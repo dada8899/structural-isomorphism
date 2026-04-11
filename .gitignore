@@ -1,0 +1,38 @@
+***REMOVED*** Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+***REMOVED*** Model weights (too large for git)
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+checkpoints/
+
+***REMOVED*** IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+***REMOVED*** OS
+.DS_Store
+Thumbs.db
+
+***REMOVED*** Logs
+logs/
+*.log
+
+***REMOVED*** Environment
+.env
+venv/
+.venv/
+
+***REMOVED*** Jupyter
+.ipynb_checkpoints/
