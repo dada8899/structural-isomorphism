@@ -36,3 +36,5 @@ venv/
 
 ***REMOVED*** Jupyter
 .ipynb_checkpoints/
+site/
+marketing/
