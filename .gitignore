@@ -36,3 +36,5 @@ venv/
 
 # Jupyter
 .ipynb_checkpoints/
+site/
+marketing/
