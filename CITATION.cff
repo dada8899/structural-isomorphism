@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Structural Isomorphism Search Engine"
+authors:
+  - family-names: "Wan"
+    given-names: "Qihang"
+version: 0.1.0
+date-released: 2026-04-11
+url: "https://github.com/yourusername/structural-isomorphism"
+license: MIT
+abstract: "A search engine that discovers hidden cross-domain structural connections using fine-tuned sentence embeddings. Given a natural language description of any phenomenon, it retrieves structurally similar phenomena from completely different domains."
+keywords:
+  - structural isomorphism
+  - cross-domain analogy
+  - sentence embeddings
+  - knowledge discovery
+  - structural similarity
