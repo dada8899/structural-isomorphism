@@ -1,0 +1,14 @@
+{
+  "v1_silhouette": -0.1708,
+  "v2_silhouette": 0.5484,
+  "v1_retrieval_5": 0.232,
+  "v2_retrieval_5": 0.959,
+  "v1_intra_mean": 0.5038,
+  "v1_inter_mean": 0.3342,
+  "v1_gap": 0.1697,
+  "v2_intra_mean": 0.8046,
+  "v2_inter_mean": 0.035,
+  "v2_gap": 0.7696,
+  "test_set_size": 1000,
+  "note": "Test on expanded 5689 samples - V1 didn't see the new 4475"
+}
