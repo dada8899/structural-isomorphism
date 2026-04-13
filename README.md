@@ -6,8 +6,8 @@
   <p align="center">
     <a href="https://www.python.org/downloads/"><img alt="Python 3.8+" src="https://img.shields.io/badge/python-3.8+-blue.svg"></a>
     <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
-    <a href="https://arxiv.org/abs/XXXX.XXXXX"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg"></a>
-    <a href="https://huggingface.co/datasets/structural-isomorphism/SIBD"><img alt="Dataset" src="https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-SIBD-yellow"></a>
+    <a href="https://doi.org/10.5281/zenodo.19547879"><img alt="DOI" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19547879-blue.svg"></a>
+    <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded"><img alt="Model" src="https://img.shields.io/badge/%F0%9F%A4%97%20Model-V2_Expanded-yellow"></a>
   </p>
 </p>
 
