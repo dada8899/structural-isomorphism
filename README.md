@@ -104,16 +104,20 @@ V2 is trained on an expanded dataset (1214 original + 4475 new phenomena). On th
 | Retrieval@5 (on 4443 KB) | 23% | **96%** | +73% |
 | High-similarity cross-domain pairs (T≥0.70) | 339,913 | **4,533** | **75× stricter** |
 
-### Two-Pipeline Discovery Results
+### Three-Pipeline Discovery Results
 
-Running both V1 (broad recall) and V2 (strict precision) on the 4443-phenomenon KB, followed by multi-stage LLM screening and deep analysis, produced **two complementary sets** of cross-domain structural isomorphism candidates with **zero overlap**:
+Running V1 (broad embedding), V2 (strict embedding), and V3 (StructTuple + LLM rerank) on the 4443-phenomenon KB, followed by multi-stage LLM screening and deep analysis, produced **three complementary sets** with **pairwise zero overlap**:
 
-| Pipeline | Raw pairs | LLM-screened | Deep analysis | Top-tier |
+| Pipeline | Method | Candidates | Paper-worthy | Top-tier |
 |---|---|---|---|---|
-| **V1 broad** | 339,913 | 3,167 pass | 272 A-rated | **24 tier-1** |
-| **V2 strict** | 4,533 | 94 five-score | 94 deep-analyzed | **19 A-level** |
+| **V1 broad** | 1214-sample embedding | 339,913 | 3,167 pass | **24 tier-1** |
+| **V2 strict** | 5689-sample embedding | 4,533 | 94 five-score | **19 A-level** |
+| **V3 struct-algebra** | StructTuple + LLM rerank | 1,000 | 203 (20.3%) | **20 A + 34 B+** |
 
-**Total: 43 unique top-tier candidate papers**, spanning computer science, physics, biology, ecology, finance, and engineering.
+**Total: 63 unique top-tier candidate papers**, with three pipelines capturing fundamentally different structural signals:
+- V1 excels at computer-science × engineering-systems analogies
+- V2 excels at dynamical-systems × critical-phenomena
+- V3 excels at equation-level matches (each V3 pair includes `shared_equation` + `variable_mapping`) and uncovered **DeFi as a high-resolution experimental system for traditional finance contagion theory**.
 
 Top V2 A-level findings:
 1. Permafrost methane delayed feedback × Extinction debt (Score 8.6)
@@ -122,7 +126,14 @@ Top V2 A-level findings:
 4. MHC over-dominant selection × Model ensemble (8.5)
 5. Extinction debt × ENSO delayed oscillator (8.4)
 
-See `site/docs/v2m-final-ranking.md` and `site/docs/v1-v2-pipeline-overlap.md` for full lists and analysis.
+Top V3 A-level findings:
+1. DeFi liquidation cascade × Earthquake static-stress triggering (8.6) — Omori-Utsu + Coulomb stress
+2. Flash-crash liquidity spiral × Liquidation cascade (8.5)
+3. Margin spiral × Bank run (8.5) — Diamond-Dybvig first observable experimental system
+4. Grape sunburn × Coral bleaching (8.5) — NOAA DHW metric transfer across biological temperature stress
+5. Intersection spillover lock-up × Power grid cascade failure (8.2) — Motter-Lai cross-domain
+
+See `site/docs/v2m-final-ranking.md`, `site/docs/v3-full-run.md`, `site/docs/v1-v2-pipeline-overlap.md`.
 
 ## Dataset: SIBD
 

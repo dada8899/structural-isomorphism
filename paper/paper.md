@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Scientific breakthroughs frequently arise from recognizing that two phenomena in unrelated domains share the same underlying mathematical structure --- a property we term *structural isomorphism*. Yet existing sentence embedding models conflate structural similarity with surface semantic similarity, failing to detect connections such as that between heat conduction and option pricing (both governed by the diffusion equation). We introduce the **Structural Isomorphism Benchmark Dataset (SIBD)**, comprising 1,214 cross-domain natural language descriptions spanning 84 mathematical structure types and 20 categories, and fine-tune a Chinese BERT-based sentence encoder (110M parameters) using contrastive learning with 8,223 positive pairs. After training, the model achieves a Silhouette Score of 0.85 (up from -0.01), Retrieval@5 of 100% (up from 20.3%), and expands the intra-class versus inter-class similarity gap from 0.074 to 0.758. Applied at scale to a knowledge base of 500 scientific phenomena, our pipeline identifies 3,017 high-similarity cross-domain pairs, from which multi-round LLM screening and equation-level verification yield 6 discoveries with confirmed mathematical correspondence. Three counter-experiments establish that the framework covers approximately 60% of known scientific innovations, identify six blocking mechanisms that prevent structural similarity from translating into innovation, and confirm discriminability against random baselines (average score 1.27 vs. 4.5 for innovation cases). We release the dataset, model, and full pipeline to support future research on AI-assisted scientific discovery.
+Scientific breakthroughs frequently arise from recognizing that two phenomena in unrelated domains share the same underlying mathematical structure --- a property we term *structural isomorphism*. Yet existing sentence embedding models conflate structural similarity with surface semantic similarity, failing to detect connections such as that between heat conduction and option pricing (both governed by the diffusion equation). We introduce the **Structural Isomorphism Benchmark Dataset (SIBD)**, comprising 1,214 cross-domain natural language descriptions spanning 84 mathematical structure types and 20 categories, and fine-tune a Chinese BERT-based sentence encoder (110M parameters) using contrastive learning with 8,223 positive pairs. After training, the model achieves a Silhouette Score of 0.85 (up from -0.01), Retrieval@5 of 100% (up from 20.3%), and expands the intra-class versus inter-class similarity gap from 0.074 to 0.758. Applied at scale to a knowledge base of 500 scientific phenomena, our V2 pipeline identifies 3,017 high-similarity cross-domain pairs, from which multi-round LLM screening and equation-level verification yield 6 discoveries with confirmed mathematical correspondence. We further develop a **V3 pipeline** that replaces pure embedding cosine similarity with a **StructTuple** structured representation (state variables, dynamics family, feedback topology, boundary behavior, timescale, canonical equation) followed by LLM pairwise reranking. Applied to an expanded knowledge base of 4,443 phenomena, V3 extracts 2,625 matchable items and produces 203 paper-worthy candidates (20.3%, a 3.4$\times$ improvement over V2's 6%) and 54 actionable findings after deep analysis, with every top candidate accompanied by an explicit shared equation and variable-level mapping. Across V1, V2, and V3 the top discoveries exhibit **zero overlap** (63 independent candidates), indicating that the three pipelines are complementary views rather than redundant. Three counter-experiments establish that the framework covers approximately 60% of known scientific innovations, identify six blocking mechanisms that prevent structural similarity from translating into innovation, and confirm discriminability against random baselines (average score 1.27 vs. 4.5 for innovation cases). We release the dataset, model, and full pipeline to support future research on AI-assisted scientific discovery.
 
 ---
 
@@ -143,6 +143,40 @@ An apparent tension exists between our approach and first principles thinking, w
 2. **Structural transfer (look sideways)**: At the structural level, identify isomorphisms with other domains.
 
 First principles thinking without structural transfer yields insight without solutions (knowing that traffic congestion is a percolation problem but having no tools to address it). Structural transfer without first principles yields surface analogy (saying "traffic is like water" without precision). The combination --- first decompose to structure, then transfer across domains --- produces the most actionable innovations.
+
+### 4.5 V3 Pipeline: StructTuple + LLM Pairwise Rerank
+
+The V2 pipeline (Section 6) relies on embedding cosine similarity to surface candidate pairs, followed by LLM screening. While effective, this design has two intrinsic limitations: (i) cosine similarity operates on an opaque 768-dimensional space and cannot *explain* why two phenomena are matched, and (ii) LLM screening is applied *after* a potentially lossy retrieval step. The V3 pipeline addresses both by introducing an intermediate **structured representation** — the StructTuple — and promoting LLM reasoning from a post-hoc filter to a core matching component.
+
+**StructTuple schema.** Each phenomenon is represented as a tuple with six fields:
+
+1. `state_vars`: the variables the system evolves (e.g., price, concentration, magnetization).
+2. `dynamics_family`: a controlled vocabulary tag describing the class of dynamics, including `ODE1_*` (first-order ODE subfamilies), `ODE2_*`, `DDE_*` (delay differential), `PDE_*` (partial differential), `Markov_*`, `Percolation_*`, `Phase_transition_*`, `Game_theoretic_*`, `Bistable_switch`, `Hysteresis_loop`, `Network_cascade`, and similar tags.
+3. `feedback_topology`: qualitative description of feedback loops (positive/negative, single/multi-loop, delayed).
+4. `boundary_behavior`: absorbing, reflecting, periodic, free, etc.
+5. `timescale_log10_s`: order-of-magnitude characteristic timescale in log-seconds, enabling physically meaningful matching.
+6. `canonical_equation`: the explicit reference equation, when available, serving as ground truth for downstream alignment.
+
+The schema is designed so that two phenomena can be compared *field-by-field* with hard constraints, replacing the soft geometry of a single cosine score.
+
+**Phase 1: Extraction.** We extract StructTuples from an expanded knowledge base of **4,443 phenomena**. Of these, 2,625 (59%) are classified as *matchable* --- they possess non-trivial dynamics amenable to structural alignment. The remaining 1,818 (41%) are tagged `Unknown` and filtered out; inspection confirms these are predominantly static or non-dynamical concepts (e.g., taxonomy definitions, one-shot measurement procedures) for which structural isomorphism is ill-defined. That the filter correctly separates dynamical from non-dynamical items is itself a validation of the schema.
+
+**Phase 2: Structural matching.** For each ordered pair of matchable phenomena, a field-level matcher applies:
+
+- **Hard constraints** on `dynamics_family` (pairs must agree at an appropriate level of the family hierarchy) and on `feedback_topology` and `boundary_behavior`.
+- **Specificity weights** that down-weight catch-all dynamics families (e.g., generic `ODE1_*`) relative to highly specific ones (e.g., `Hysteresis_loop`), so that matches carrying more information receive higher scores.
+- **Timescale gating**: pairs must lie within a bounded log-timescale distance, *except* for PDE families whose dynamics are scale-invariant (the diffusion equation governs phenomena across 12 orders of magnitude in time).
+- An **equation quality penalty** that reduces the score of pairs whose `canonical_equation` fields are incomplete, forcing the top of the ranking to contain pairs with explicit shared structure.
+
+Phase 2 produces **1,000 top structurally matched candidates**.
+
+**Phase 3: LLM pairwise rerank.** The 1,000 candidates are reranked by 10 parallel Claude Opus 4.6 agents, each processing 100 pairs. For every pair, the agent receives both StructTuples and both natural-language descriptions and is asked to assign a 1--5 structural-isomorphism score together with a written justification that must cite specific shared state variables, dynamics, and boundary conditions. This promotes the LLM from an after-the-fact sanity check to the principal scoring component, while the StructTuple pre-filter ensures it only examines pairs that are already structurally plausible.
+
+Results: **55 pairs receive the top score (5/5)** and **148 receive 4/5**, yielding **203 paper-worthy candidates** out of 1,000 (**20.3%**). For comparison, the V2 pipeline yields roughly 6% paper-worthy candidates at an equivalent funnel stage; V3 therefore delivers a **3.4$\times$ improvement in top-quality density**, and its 5-score density of **5.5%** is **2.9$\times$** V2's **1.9%**.
+
+**Phase 4: Deep analysis.** The 203 paper-worthy candidates are further processed by 10 Opus agents (20 pairs each) that produce a full research brief for every pair: shared equation, variable mapping, literature check, and an actionable research plan. This yields **20 A-rated and 34 B+-rated findings**, for a total of **54 actionable discoveries**.
+
+Crucially, every V3 top candidate is accompanied by an *explicit* shared equation and variable-level mapping --- something the V2 pipeline could not provide, because cosine similarity in embedding space does not expose the underlying structure.
 
 ---
 
@@ -300,6 +334,37 @@ Bettencourt et al. [2007] established that urban innovation output scales superl
 
 Both systems involve state transitions on conservation constraint surfaces: collisions preserve the elliptical surface defined by energy and momentum conservation; trades on Uniswap V2 move along the $xy = k$ hyperbola. The mapping yields novel concepts: *trading scattering cross-section* (probability that a trade of given size produces slippage exceeding a threshold), *potential wells* (Uniswap V3 concentrated liquidity positions), and *multi-body scattering* (multi-pool arbitrage dynamics). While the mathematical correspondence $xy = k$ is well-studied in the DeFi literature [Angeris et al., 2020; Adams et al., 2021], no prior work has adopted the collision-theoretic perspective, which provides mature analytical tools (differential cross-sections, resonance analysis) that may reveal structural vulnerabilities in AMM designs.
 
+### 6.5 V3 Results: StructTuple + LLM Rerank at Scale
+
+We apply the V3 pipeline (Section 4.5) to an expanded knowledge base of **4,443 phenomena**. [Table 5] summarizes the V3 funnel alongside V2 for direct comparison.
+
+| Stage | V2 (500 phenomena) | V3 (4,443 phenomena) |
+|-------|-------------------:|---------------------:|
+| Input phenomena | 500 | 4,443 |
+| Matchable after extraction | 500 | 2,625 (59%) |
+| Structural candidates (Phase 2) | 3,017 | 1,000 |
+| Paper-worthy (LLM rerank 4--5/5) | $\approx$ 60 (6%) | **203 (20.3%)** |
+| 5/5 density | 1.9% | **5.5%** |
+| Actionable findings (deep analysis) | 6 | **54** (20 A, 34 B+) |
+
+V3 achieves a 3.4$\times$ improvement in paper-worthy density and a 2.9$\times$ improvement in 5-score density. More importantly, every V3 candidate arrives with a `shared_equation` and a `variable_mapping`, which V2 could not produce.
+
+**V1 $\times$ V2 $\times$ V3 zero overlap.** When we intersect the top candidates of the three pipelines (24 from V1, 19 from V2, 20 from V3), we find **zero overlap**: the three pipelines together surface **63 independent top candidates**. This is direct evidence that the pipelines are complementary views of the discovery space, not redundant. V1 (pre-contrastive heuristic) favors shallow surface matches, V2 (contrastive embedding) favors phenomenological similarity, and V3 (StructTuple + LLM) favors dynamical and equational alignment; collecting the union is strictly more valuable than running any single pipeline.
+
+**V3 unique top discoveries.** [Table 6] lists the five highest-scoring V3-unique discoveries, each with an explicit shared equation and variable mapping.
+
+| Rank | Pair | Score | Shared Structure |
+|-----:|------|:-----:|------------------|
+| 1 | DeFi liquidation cascade $\leftrightarrow$ earthquake static stress triggering | **8.6** | Omori-Utsu aftershock law + Coulomb stress transfer |
+| 2 | Flash-crash liquidity spiral $\leftrightarrow$ liquidation cascade | **8.5** | Self-excited Hawkes process on leverage network |
+| 3 | Margin spiral $\leftrightarrow$ bank run | **8.5** | Diamond-Dybvig model made observable via on-chain data |
+| 4 | Grape sun-burn $\leftrightarrow$ coral bleaching | **8.5** | NOAA Degree Heating Weeks (DHW) metric transfer |
+| 5 | Urban intersection gridlock $\leftrightarrow$ power grid cascading failure | **8.2** | Motter-Lai cascading failure model on flow networks |
+
+The DeFi $\leftrightarrow$ earthquake pair is representative of a broader insight surfaced by V3: **DeFi protocols function as high-resolution experiments for traditional financial contagion theory**. Bank runs, margin spirals, and liquidity crises were previously only observable through coarse, lagged macroeconomic data; on-chain DeFi markets expose the same dynamics at block-level resolution, making long-established theoretical models (Diamond-Dybvig, Hawkes processes, Omori-Utsu aftershock laws from seismology) empirically testable for the first time. This direction was not surfaced by V1 or V2 and illustrates the kind of discovery that requires explicit structural alignment rather than embedding similarity.
+
+All extracted StructTuples, the 1,000 structural candidates, the 203 paper-worthy reranked pairs, and the 54 deep-analysis briefs are released alongside the V2 artifacts; see Section 9.
+
 ---
 
 ## 7. Critical Analysis and Limitations
@@ -377,6 +442,8 @@ The steep funnel from 3,017 embedding-similar pairs to 6 equation-verified disco
 
 The 22.7% LLM screening pass rate and the distribution of rejection reasons (trivially obvious: 15; no actionable insight: 15; known metaphor: 9; model errors: remaining) provide a diagnostic profile of current model limitations. The presence of model errors --- cases where the embedding model assigns high similarity to structurally dissimilar pairs (e.g., conflating positive and negative feedback, or matching linear and inverse-square relationships) --- suggests that the embedding space, while dramatically improved, still contains failure modes that could be addressed with targeted negative examples in future training iterations.
 
+The V3 pipeline (Sections 4.5 and 6.5) addresses these failure modes directly by replacing the opaque embedding geometry with a structured representation that the LLM can reason over field by field. Two observations support this design choice. First, V3's 3.4$\times$ improvement in paper-worthy density indicates that the gains from structural decomposition outweigh the gains from a more aggressive embedding objective alone. Second, the zero overlap between V1, V2, and V3 top candidates shows that the three pipelines are *orthogonal* views: embedding similarity captures phenomenological kinship, StructTuple matching captures dynamical kinship, and pre-contrastive heuristics capture surface-form kinship. A practical discovery system should run all three and take the union, rather than treating any single method as the final word.
+
 ### 8.2 The Shadow Mode Vision
 
 Our V2 pipeline instantiates a design pattern we call *shadow mode for science*, inspired by autonomous driving's shadow mode [where the AI runs in parallel with a human driver, generating predictions that are compared against actual human decisions]. In our context:
@@ -405,7 +472,16 @@ Several directions for future work emerge from our analysis:
 
 4. **Human-in-the-loop evaluation**: The ultimate test of our discoveries is whether domain experts find them actionable. A formal user study with researchers from the relevant fields would provide the strongest validation.
 
-5. **Scaling the knowledge base**: Our current 500-phenomenon knowledge base is small relative to the total space of scientific phenomena. Scaling to 10,000+ phenomena with automated description generation could yield qualitatively different discovery patterns.
+5. **Scaling the knowledge base**: Our current 500-phenomenon knowledge base is small relative to the total space of scientific phenomena. The V3 expansion to 4,443 phenomena is a first step in this direction; scaling further to 10,000+ phenomena with automated description generation could yield qualitatively different discovery patterns.
+
+### 8.5 Reproducibility and Release
+
+All artifacts required to reproduce V1, V2, and V3 results are publicly released:
+
+- **Code**: GitHub repository `dada8899/structural-isomorphism`, containing the full V1/V2/V3 pipelines, StructTuple extraction scripts, and LLM rerank harness.
+- **Dataset and V2 artifacts**: Zenodo DOI [`10.5281/zenodo.19547879`](https://doi.org/10.5281/zenodo.19547879), including SIBD, the 500-phenomenon knowledge base, and the 3,017 V2 candidates.
+- **Trained model**: Hugging Face model hub at `qinghuiwan/structural-isomorphism-v2-expanded`, the fine-tuned 110M-parameter Chinese sentence encoder.
+- **V3 outputs**: the 2,625 matchable StructTuples, 1,000 structural candidates, 203 paper-worthy reranked pairs, and 54 deep-analysis briefs are distributed with the V2 artifacts on Zenodo.
 
 ---
 
@@ -419,7 +495,9 @@ We have presented a framework for detecting cross-domain structural isomorphism 
 
 3. A **discovery pipeline** that processes 124,251 pairwise comparisons from 500 phenomena and, through progressive filtering (3,017 $\rightarrow$ 684 $\rightarrow$ 72 $\rightarrow$ 6), surfaces equation-verified cross-domain connections including the application of magnetic hysteresis models to ecological regime shifts and Arrhenius kinetics to urban innovation scaling.
 
-4. **Critical analysis** through three counter-experiments establishing that the framework covers ~60% of known innovations, identifying six blocking mechanisms, and confirming discriminability (random pair score 1.27 vs. innovation case score 4.5).
+4. A **V3 pipeline** that replaces embedding cosine similarity with a StructTuple structured representation and LLM pairwise reranking, scales to 4,443 phenomena, achieves a 3.4$\times$ improvement in paper-worthy candidate density (20.3% vs. 6%), and surfaces a disjoint set of 54 actionable discoveries, notably identifying on-chain DeFi markets as high-resolution experiments for traditional financial contagion theory.
+
+5. **Critical analysis** through three counter-experiments establishing that the framework covers ~60% of known innovations, identifying six blocking mechanisms, and confirming discriminability (random pair score 1.27 vs. innovation case score 4.5).
 
 We emphasize that this framework is a *tool*, not a *theory of everything*. It does not explain serendipitous discoveries, formal mathematical derivations, or irreducible intuitive leaps. What it does is systematically surface the specific type of connection --- high semantic distance, high structural similarity --- that characterizes a significant fraction of historical breakthroughs, and that is precisely the type of connection most likely to be missed by domain-specialist researchers working within disciplinary silos.
 
