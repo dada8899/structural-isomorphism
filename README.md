@@ -81,9 +81,11 @@ Most AI search tools match by **surface similarity** -- they find documents that
 
 ## Key Results
 
-Our fine-tuned model dramatically outperforms the base model at recognizing structural similarity:
+### V1 Model (1214 training samples, original 84-type SIBD)
 
-| Metric | Base Model | Fine-tuned | Improvement |
+Our fine-tuned V1 model dramatically outperforms the base model at recognizing structural similarity on the original SIBD test set:
+
+| Metric | Base Model | V1 Fine-tuned | Improvement |
 |---|---|---|---|
 | Silhouette Score | -0.012 | **0.847** | +0.859 |
 | Retrieval@5 | 20.3% | **100.0%** | +79.7% |
@@ -92,7 +94,35 @@ Our fine-tuned model dramatically outperforms the base model at recognizing stru
 | Inter-class Similarity | 0.569 | **0.174** | -0.395 |
 | Intra-Inter Gap | 0.074 | **0.758** | +0.684 |
 
-The model achieves near-perfect clustering: descriptions of the same structural type are mapped very close together (0.933 avg similarity), while different types are pushed far apart (0.174 avg similarity).
+### V2 Model (5689 training samples, expanded 4443-phenomenon KB)
+
+V2 is trained on an expanded dataset (1214 original + 4475 new phenomena). On the harder, more diverse evaluation set it is much more **selective** than V1:
+
+| Metric | V1 | V2 | Delta |
+|---|---|---|---|
+| Silhouette Score (on 4443 KB) | -0.17 | **0.55** | +0.72 |
+| Retrieval@5 (on 4443 KB) | 23% | **96%** | +73% |
+| High-similarity cross-domain pairs (T≥0.70) | 339,913 | **4,533** | **75× stricter** |
+
+### Two-Pipeline Discovery Results
+
+Running both V1 (broad recall) and V2 (strict precision) on the 4443-phenomenon KB, followed by multi-stage LLM screening and deep analysis, produced **two complementary sets** of cross-domain structural isomorphism candidates with **zero overlap**:
+
+| Pipeline | Raw pairs | LLM-screened | Deep analysis | Top-tier |
+|---|---|---|---|---|
+| **V1 broad** | 339,913 | 3,167 pass | 272 A-rated | **24 tier-1** |
+| **V2 strict** | 4,533 | 94 five-score | 94 deep-analyzed | **19 A-level** |
+
+**Total: 43 unique top-tier candidate papers**, spanning computer science, physics, biology, ecology, finance, and engineering.
+
+Top V2 A-level findings:
+1. Permafrost methane delayed feedback × Extinction debt (Score 8.6)
+2. Semiconductor laser relaxation oscillation × Algorithmic stablecoin anchoring (8.6)
+3. Percolation threshold × Technology adoption chasm (8.5)
+4. MHC over-dominant selection × Model ensemble (8.5)
+5. Extinction debt × ENSO delayed oscillator (8.4)
+
+See `site/docs/v2m-final-ranking.md` and `site/docs/v1-v2-pipeline-overlap.md` for full lists and analysis.
 
 ## Dataset: SIBD
 
