@@ -39,7 +39,7 @@ function statusInfo(status) {
 }
 
 // Render a list field that might be string, array, or missing.
-function renderList(v) {
+function renderListField(v) {
   if (!v) return '';
   if (Array.isArray(v)) {
     return '<ul class="disc-item__list">' + v.map(x => `<li>${escapeHtml(String(x))}</li>`).join('') + '</ul>';
@@ -285,19 +285,19 @@ function renderList() {
             ${d.blocking_mechanisms ? `
               <div class="disc-item__detail-block">
                 <h4>阻塞机制</h4>
-                ${renderList(d.blocking_mechanisms)}
+                ${renderListField(d.blocking_mechanisms)}
               </div>
             ` : ''}
             ${d.risk ? `
               <div class="disc-item__detail-block">
                 <h4>潜在风险</h4>
-                ${renderList(d.risk)}
+                ${renderListField(d.risk)}
               </div>
             ` : ''}
             ${d.execution_plan ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>执行方案</h4>
-                ${renderList(d.execution_plan)}
+                ${renderListField(d.execution_plan)}
               </div>
             ` : ''}
             ${d.impact_scope || d.practical_value ? `
