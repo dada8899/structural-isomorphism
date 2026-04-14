@@ -816,3 +816,68 @@
   }
   .disc-hero__stats { gap: var(--space-4); }
 }
+
+/* Pipeline badge (V2 / V3) */
+.disc-item__pipeline {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-right: 6px;
+}
+.disc-item__pipeline--v2 {
+  background: #E0E7FF;
+  color: #3730A3;
+}
+.disc-item__pipeline--v3 {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+/* List rendering in detail blocks */
+.disc-item__list {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+}
+.disc-item__list li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.disc-item__list li::before {
+  content: '·';
+  position: absolute;
+  left: 6px;
+  top: -2px;
+  font-size: 1.4em;
+  color: var(--text-tertiary);
+}
+
+/* Code block for equations */
+pre.disc-item__equations {
+  background: var(--bg-subtle, #F4F4F5);
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 4px 0 6px;
+  overflow-x: auto;
+}
+
+/* Variable mapping line below shared_equation */
+.disc-item__var-map {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

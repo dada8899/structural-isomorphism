@@ -1,5 +1,7 @@
 /**
  * Structural — Discoveries page
+ * Renders 39 A-level cross-domain isomorphism discoveries (V2 19 + V3 20)
+ * merged from three pipelines.
  */
 
 let allDiscoveries = [];
@@ -7,28 +9,48 @@ let allTier2 = [];
 let currentFilter = 'all';
 let currentTier = 'a'; // 'a' = A-grade, 't2' = tier2 candidate pool
 
-const STATUS_CLASS = {
-  '未有先例': 'unknown',
-  '未发表': 'unknown',
-  '未探索': 'unknown',
-  '微弱探索': 'partial',
-  '部分探索': 'partial',
-  '部分讨论': 'partial',
-  '广泛讨论': 'known',
-  '已知': 'known',
+// Normalize literature_status (English or Chinese) to (class, zhLabel).
+// The backend merges V2 and V3 A-level into a single feed; V2 originally used
+// Chinese strings, V3 uses English. We unify here.
+const STATUS_MAP = {
+  // English (V3)
+  'unexplored':    { cls: 'unknown', zh: '前所未有' },
+  'partial':       { cls: 'partial', zh: '部分探索' },
+  'established':   { cls: 'known',   zh: '已有文献' },
+  // Chinese (V2 legacy)
+  '未有先例':      { cls: 'unknown', zh: '前所未有' },
+  '未发表':        { cls: 'unknown', zh: '前所未有' },
+  '未探索':        { cls: 'unknown', zh: '前所未有' },
+  '微弱探索':      { cls: 'partial', zh: '部分探索' },
+  '部分探索':      { cls: 'partial', zh: '部分探索' },
+  '部分讨论':      { cls: 'partial', zh: '部分探索' },
+  '广泛讨论':      { cls: 'known',   zh: '已有文献' },
+  '已知':          { cls: 'known',   zh: '已有文献' },
 };
 
-function statusClass(status) {
-  for (const [key, cls] of Object.entries(STATUS_CLASS)) {
-    if (status && status.includes(key)) return cls;
+function statusInfo(status) {
+  if (!status) return { cls: 'known', zh: '未知' };
+  const exact = STATUS_MAP[status];
+  if (exact) return exact;
+  for (const [key, val] of Object.entries(STATUS_MAP)) {
+    if (status.includes(key)) return val;
   }
-  return 'known';
+  return { cls: 'known', zh: status };
 }
 
-// Render the 5-dim score radar-ish grid (novelty/rigor/feasibility/impact/writability)
-// Shown only when the discovery comes from v2 (has `dim_scores`).
-function renderDimScores(scores) {
-  if (!scores) return '';
+// Render a list field that might be string, array, or missing.
+function renderList(v) {
+  if (!v) return '';
+  if (Array.isArray(v)) {
+    return '<ul class="disc-item__list">' + v.map(x => `<li>${escapeHtml(String(x))}</li>`).join('') + '</ul>';
+  }
+  return `<p>${escapeHtml(String(v))}</p>`;
+}
+
+// Render the 5-dim score bars. Accepts either a nested dim_scores dict OR
+// flat top-level fields (novelty/rigor/feasibility/impact/writability).
+function renderDimScores(d) {
+  const source = d.dim_scores || d;
   const dims = [
     { key: 'novelty',     label: '创新性' },
     { key: 'rigor',       label: '严谨性' },
@@ -37,8 +59,8 @@ function renderDimScores(scores) {
     { key: 'writability', label: '可写性' },
   ];
   const rows = dims
-    .map(d => ({ ...d, score: scores[d.key] }))
-    .filter(d => typeof d.score === 'number' && d.score > 0);
+    .map(dim => ({ ...dim, score: source[dim.key] }))
+    .filter(dim => typeof dim.score === 'number' && dim.score > 0);
   if (rows.length === 0) return '';
   return `
     <div class="disc-item__detail-block disc-item__dims" style="grid-column: 1 / -1">
@@ -62,11 +84,10 @@ function renderStats(stats, count) {
   const statsEl = $('#disc-hero-stats');
   if (!statsEl) return;
 
-  const unknownCount = (stats.by_status['未有先例'] || 0) + (stats.by_status['未探索'] || 0);
-  // v2 scores are 0-10 with decimals (e.g. 9.65). Count >=9.5 as "top tier"
-  const topTier = Object.entries(stats.by_score || {})
-    .filter(([k]) => parseFloat(k) >= 9)
-    .reduce((sum, [, v]) => sum + v, 0);
+  // by_status may use English (unexplored/partial/established) or Chinese keys.
+  const unknownCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'unknown').length;
+  // "Top tier" = final_score >= 8.5 (there's no 10-scale bucket >= 9 after normalization).
+  const topTier = allDiscoveries.filter(d => (d.final_score || 0) >= 8.5).length;
 
   statsEl.innerHTML = `
     <div class="disc-hero__stat">
@@ -74,8 +95,8 @@ function renderStats(stats, count) {
       <div class="disc-hero__stat-label">A 级发现</div>
     </div>
     <div class="disc-hero__stat">
-      <div class="disc-hero__stat-num">${topTier || count}</div>
-      <div class="disc-hero__stat-label">五维加权 ≥ 9</div>
+      <div class="disc-hero__stat-num">${topTier}</div>
+      <div class="disc-hero__stat-label">Top tier (score ≥ 8.5)</div>
     </div>
     <div class="disc-hero__stat">
       <div class="disc-hero__stat-num">${unknownCount}</div>
@@ -88,10 +109,13 @@ function renderFilters(stats, total) {
   const filterEl = $('#disc-filter');
   if (!filterEl) return;
 
-  const unknownCount = (stats.by_status['未有先例'] || 0) + (stats.by_status['未探索'] || 0);
-  const partialCount = (stats.by_status['微弱探索'] || 0) + (stats.by_status['部分探索'] || 0) + (stats.by_status['部分讨论'] || 0);
+  const unknownCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'unknown').length;
+  const partialCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'partial').length;
   const knownCount = total - unknownCount - partialCount;
   const tier2Count = allTier2.length;
+
+  const v2Count = allDiscoveries.filter(d => d.pipeline === 'V2').length;
+  const v3Count = allDiscoveries.filter(d => d.pipeline === 'V3').length;
 
   filterEl.innerHTML = `
     <div class="disc-tier-tabs">
@@ -115,17 +139,26 @@ function renderFilters(stats, total) {
           部分探索 <span class="disc-filter__count">${partialCount}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'known' ? 'active' : ''}" data-filter="known">
-          已知 <span class="disc-filter__count">${knownCount}</span>
+          已有文献 <span class="disc-filter__count">${knownCount}</span>
+        </button>
+      </div>
+      <div class="disc-filter-row">
+        <span class="disc-filter__label">检索管道</span>
+        <button class="disc-filter__btn ${currentFilter === 'pipeline-v2' ? 'active' : ''}" data-filter="pipeline-v2">
+          V2 严格 <span class="disc-filter__count">${v2Count}</span>
+        </button>
+        <button class="disc-filter__btn ${currentFilter === 'pipeline-v3' ? 'active' : ''}" data-filter="pipeline-v3">
+          V3 StructTuple <span class="disc-filter__count">${v3Count}</span>
         </button>
       </div>
     ` : `
       <div class="disc-filter-row">
-        <p class="disc-tier2-hint">5 分顶级池筛出、但未进入 A 级的 <strong>${tier2Count}</strong> 条跨域对。这些条目只有基础的同构判断和相似度，没有完整的 5 维深度分析，但质量仍值得探索。</p>
+        <p class="disc-tier2-hint">V2 五分顶级池里未晋级 A 的 <strong>${tier2Count}</strong> 条跨域对。只有基础同构判断和相似度，没有完整的五维深度分析，但质量仍值得探索。</p>
       </div>
     `}
   `;
 
-  // Tier tab click handler
+  // Event delegation for tabs + filter buttons
   filterEl.addEventListener('click', (e) => {
     const tab = e.target.closest('.disc-tier-tab');
     if (tab) {
@@ -147,19 +180,23 @@ function renderFilters(stats, total) {
   });
 }
 
+function applyFilter(list) {
+  if (currentFilter === 'all') return list;
+  if (currentFilter === 'pipeline-v2') return list.filter(d => d.pipeline === 'V2');
+  if (currentFilter === 'pipeline-v3') return list.filter(d => d.pipeline === 'V3');
+  return list.filter(d => statusInfo(d.literature_status).cls === currentFilter);
+}
+
 function renderList() {
   const listEl = $('#disc-list');
   if (!listEl) return;
 
-  // Tier 2 has a completely different renderer (simpler card, no deep analysis)
   if (currentTier === 't2') {
     renderTier2List(listEl);
     return;
   }
 
-  const filtered = currentFilter === 'all'
-    ? allDiscoveries
-    : allDiscoveries.filter(d => statusClass(d.literature_status) === currentFilter);
+  const filtered = applyFilter(allDiscoveries);
 
   if (filtered.length === 0) {
     listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">没有匹配的发现</p>`;
@@ -167,7 +204,15 @@ function renderList() {
   }
 
   listEl.innerHTML = filtered.map((d, i) => {
-    const stClass = statusClass(d.literature_status);
+    const st = statusInfo(d.literature_status);
+    const conf = typeof d.isomorphism_confidence === 'number'
+      ? (d.isomorphism_confidence <= 1 ? Math.round(d.isomorphism_confidence * 100) : Math.round(d.isomorphism_confidence))
+      : null;
+    const pipelineBadge = d.pipeline
+      ? `<span class="disc-item__pipeline disc-item__pipeline--${d.pipeline.toLowerCase()}">${escapeHtml(d.pipeline)}</span>`
+      : '';
+    const verdict = d.one_line_verdict || d.paper_title || '';
+
     return `
       <article class="disc-item" data-index="${i}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
         <header class="disc-item__header">
@@ -186,13 +231,14 @@ function renderList() {
                 <div class="disc-item__name">${escapeHtml(d.b_name)}</div>
               </div>
             </div>
-            <p class="disc-item__verdict">${escapeHtml(d.one_line_verdict || d.paper_title || '')}</p>
+            <p class="disc-item__verdict">${escapeHtml(verdict)}</p>
             <div class="disc-item__meta">
+              ${pipelineBadge}
               ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">等级 ${escapeHtml(d.rating)}</span>` : ''}
-              <span class="disc-item__meta-tag disc-item__meta-tag--${stClass}">
-                ${escapeHtml(d.literature_status)}
+              <span class="disc-item__meta-tag disc-item__meta-tag--${st.cls}">
+                ${escapeHtml(st.zh)}
               </span>
-              <span class="disc-item__meta-tag">同构置信度 ${d.isomorphism_confidence}%</span>
+              ${conf !== null ? `<span class="disc-item__meta-tag">同构置信度 ${conf}%</span>` : ''}
               ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">同构深度 ${d.isomorphism_depth}/5</span>` : ''}
               ${d.time_estimate ? `<span class="disc-item__meta-tag">${escapeHtml(d.time_estimate)}</span>` : ''}
               ${d.solo_feasible ? '<span class="disc-item__meta-tag">单人可做</span>' : ''}
@@ -213,11 +259,20 @@ function renderList() {
         </header>
         <div class="disc-item__detail">
           <div class="disc-item__detail-grid">
-            ${d.equations ? `
-              <div class="disc-item__equations">${escapeHtml(d.equations)}</div>
-            ` : ''}
+            ${d.shared_equation ? `
+              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
+                <h4>共享方程骨架 (V3 StructTuple)</h4>
+                <pre class="disc-item__equations">${escapeHtml(d.shared_equation)}</pre>
+                ${d.variable_mapping ? `<p class="disc-item__var-map"><strong>变量映射</strong>：${escapeHtml(d.variable_mapping)}</p>` : ''}
+              </div>
+            ` : (Array.isArray(d.equations) && d.equations.length ? `
+              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
+                <h4>关键方程</h4>
+                <pre class="disc-item__equations">${d.equations.map(e => escapeHtml(String(e))).join('\n')}</pre>
+              </div>
+            ` : '')}
 
-            ${renderDimScores(d.dim_scores)}
+            ${renderDimScores(d)}
 
             ${d.paper_title || d.target_venue ? `
               <div class="disc-item__detail-block disc-item__paper" style="grid-column: 1 / -1">
@@ -230,30 +285,30 @@ function renderList() {
             ${d.blocking_mechanisms ? `
               <div class="disc-item__detail-block">
                 <h4>阻塞机制</h4>
-                <p>${escapeHtml(d.blocking_mechanisms)}</p>
+                ${renderList(d.blocking_mechanisms)}
               </div>
             ` : ''}
-            ${d.literature_detail ? `
+            ${d.risk ? `
               <div class="disc-item__detail-block">
                 <h4>潜在风险</h4>
-                <p>${escapeHtml(d.literature_detail)}</p>
+                ${renderList(d.risk)}
               </div>
             ` : ''}
             ${d.execution_plan ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>执行方案</h4>
-                <p>${escapeHtml(d.execution_plan)}</p>
+                ${renderList(d.execution_plan)}
               </div>
             ` : ''}
-            ${d.impact_scope || d.impact_detail ? `
+            ${d.impact_scope || d.practical_value ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>实用价值</h4>
-                <p>${d.impact_scope ? `<strong>${escapeHtml(d.impact_scope)}</strong> · ` : ''}${escapeHtml(d.impact_detail || '')}</p>
+                <p>${d.impact_scope ? `<strong>${escapeHtml(d.impact_scope)}</strong> · ` : ''}${escapeHtml(d.practical_value || '')}</p>
               </div>
             ` : ''}
             ${d.full_analysis ? `
               <details class="disc-item__full-analysis" style="grid-column: 1 / -1">
-                <summary>完整深度分析（5 维全文）</summary>
+                <summary>完整深度分析</summary>
                 <div class="disc-item__full-text">${escapeHtml(d.full_analysis)}</div>
               </details>
             ` : ''}
@@ -272,13 +327,12 @@ function renderList() {
     `;
   }).join('');
 
-  // Attach expand click (onclick assign replaces any previous handler on re-render)
+  // Expand click handler (replaces any prior handler on re-render)
   listEl.onclick = (e) => {
     if (e.target.closest('a')) return;
     const item = e.target.closest('.disc-item');
     if (item) {
       item.classList.toggle('disc-item--expanded');
-      // Render any math in the expanded detail
       if (item.classList.contains('disc-item--expanded') && window.renderMath) {
         const detail = item.querySelector('.disc-item__detail');
         if (detail) window.renderMath(detail);
@@ -287,7 +341,7 @@ function renderList() {
   };
 }
 
-// === Tier 2 renderer — simpler cards (no deep analysis fields) ===
+// === Tier 2 renderer — simpler cards, no deep analysis ===
 function renderTier2List(listEl) {
   if (!allTier2 || allTier2.length === 0) {
     listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">候选池数据未加载</p>`;
@@ -313,7 +367,7 @@ function renderTier2List(listEl) {
       </div>
       <div class="disc-t2-item__aside">
         <div class="disc-t2-item__sim">
-          <span class="disc-t2-item__sim-num">${Math.round(d.similarity * 100)}</span>
+          <span class="disc-t2-item__sim-num">${Math.round((d.similarity || 0) * 100)}</span>
           <span class="disc-t2-item__sim-unit">%</span>
         </div>
         ${d.a_id && d.b_id ? `
