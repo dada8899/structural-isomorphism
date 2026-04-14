@@ -1,0 +1,153 @@
+{
+  "runaway_feedback": {
+    "title": "🔥 正反馈加速型",
+    "desc": "增长机制自我强化，越增长越能吸引资源。典型风险：临界点前所有指标看起来都好，跨过就是断崖式反转。",
+    "companies": [
+      {
+        "ticker": "NVDA",
+        "name": "NVIDIA",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Semiconductors / AI",
+        "market_cap_usd": 3500000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "仍处在 100%+ YoY 数据中心爆发期，hyperscaler capex 飞轮加速，远离饱和。不选 saturating 因为 K 约束尚不可见；不选 Bistable 因为尚未出现替代稳态。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dI/dt = alpha*I*(P - Q)",
+        "critical_points": [
+          "任一 hyperscaler 季度订单环比减 25%+",
+          "H 系列毛利率跌破 70%",
+          "ASIC 自研份额超过 30%"
+        ],
+        "confidence": 0.88,
+        "note": "runaway 正反馈，任一大客户减单都会触发级联收缩"
+      },
+      {
+        "ticker": "PLTR",
+        "name": "Palantir",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Data Analytics / AI",
+        "market_cap_usd": 250000000000,
+        "dynamics_family": "Self_fulfilling_prophecy",
+        "why_this_family": "估值与基本面严重脱钩：PS >80 倍，叙事驱动股价→纳入指数→被动买盘→强化叙事。商用 AIP 销售加速与估值互相强化。不选 exp_growth 因为基本面增速远低于股价隐含；不选 Bistable 因为反馈链属于预期而非市场结构。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway_bubble",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dP/dt = k*(E[P] - P) + beta*P",
+        "critical_points": [
+          "商用 AIP 客户年化营收增速跌破 30%",
+          "被动资金流出",
+          "国防预算边际收紧"
+        ],
+        "confidence": 0.7,
+        "note": "叙事驱动的自我实现，一旦增速叙事破裂会快速反向",
+        "phase_state_raw": "bubble_phase"
+      }
+    ]
+  },
+  "bistable_cusp": {
+    "title": "⚖️ 双稳态切换型",
+    "desc": "系统有两个可能的稳态（成功 / 失败），当前在两者之间的 cusp。一次冲击可能让它不可逆地跳到另一边。",
+    "companies": [
+      {
+        "ticker": "ORCL",
+        "name": "Oracle",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Enterprise Software / Cloud",
+        "market_cap_usd": 470000000000,
+        "dynamics_family": "Bistable_switch",
+        "why_this_family": "Oracle 正在从老式 DB/license 的稳态（衰减）向 OCI+AI infra 新稳态（增长）切换，RPO 订单量近一年从 ~$1000亿跳到 $5000亿+，是典型的双稳态越过 cusp 场景，不是平滑 logistic。",
+        "feedback_topology": "bistable",
+        "boundary_behavior": "fold_bifurcation",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = -x^3 + mu*x + h",
+        "critical_points": [
+          "OCI 容量兑付 RPO 的比例 > 50%",
+          "AI 训练需求持续 2 年"
+        ],
+        "confidence": 0.75,
+        "note": "老 DB 业务稳态 + AI infra 新稳态之间的 cusp 切换，而非渐变"
+      },
+      {
+        "ticker": "MRK",
+        "name": "Merck",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Pharmaceuticals",
+        "market_cap_usd": 290000000000,
+        "dynamics_family": "Fold_bifurcation",
+        "why_this_family": "Keytruda 贡献超 40% 营收，2028 专利悬崖是经典 fold bifurcation——一旦越过，原稳态（独占定价）消失，被迫跳到新的（仿制竞争）低均衡，且无法回归。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "cliff",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dx/dt = r - x^2 (saddle-node near r=0)",
+        "critical_points": [
+          "Keytruda 美国专利 2028 到期",
+          "皮下注射剂型获批延迟（延命失败）",
+          "后续 pipeline PDUFA 被拒"
+        ],
+        "confidence": 0.88,
+        "note": "经典专利悬崖 fold，药企的标志性动力学",
+        "phase_state_raw": "pre_bifurcation"
+      }
+    ]
+  },
+  "critical_slowing_down": {
+    "title": "📈 临界放缓型",
+    "desc": "连续相变前夜。系统对外部冲击的敏感度在爆炸式增长——任何小扰动都被放大。",
+    "companies": [
+      {
+        "ticker": "GOOGL",
+        "name": "Alphabet / Google",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Digital Ads / Cloud",
+        "market_cap_usd": 2100000000000,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "搜索现金牛遭 LLM 原生搜索侵蚀，同时 Gemini/Cloud 自己也在抢生态位，出现 susceptibility 发散——外部小扰动（OpenAI 产品发布）引起巨大市值振幅。不选 saturating 因为广告基本盘本身在重塑；不选 Bistable 因为还没明确跳到另一稳态。",
+        "feedback_topology": "mixed",
+        "boundary_behavior": "critical_slowing",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "Ginzburg-Landau: F = a(T-Tc)*m^2 + b*m^4",
+        "critical_points": [
+          "搜索 query 份额跌破 85%",
+          "Search 广告 YoY 转负",
+          "AI Overview CTR 恶化"
+        ],
+        "confidence": 0.72,
+        "note": "临界放缓，每次 AI 叙事都放大市值波动——典型二阶相变特征",
+        "phase_state_raw": "near_critical"
+      },
+      {
+        "ticker": "TSM",
+        "name": "TSMC",
+        "exchange": "NYSE",
+        "country": "TW",
+        "industry": "Semiconductor Foundry",
+        "market_cap_usd": 950000000000,
+        "dynamics_family": "Percolation_network",
+        "why_this_family": "TSMC 的护城河不是产能本身，而是作为全球先进制程唯一连通节点的网络地位——整个半导体供应链的 percolation 骨干。地缘风险是网络断裂风险，不是 saturating 的 K 约束。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "P_infinity(p) ~ (p - p_c)^beta",
+        "critical_points": [
+          "大陆对台动武概率穿过 p_c",
+          "Intel/Samsung 先进制程良率追平"
+        ],
+        "confidence": 0.78,
+        "note": "全球 5nm 以下独点，percolation 意义上的 giant component 唯一 hub"
+      }
+    ]
+  }
+}
