@@ -1,0 +1,567 @@
+[
+  {
+    "index": 7,
+    "provenance": "connected_component",
+    "hub_name": "巨灾衍生品的极端事件定价",
+    "size": 4,
+    "n_domains": 4,
+    "domains": [
+      "保险与精算",
+      "土木工程",
+      "衍生品与风险管理",
+      "高级生态学"
+    ],
+    "members": [
+      [
+        "巨灾债券的极端事件对冲",
+        [
+          "保险与精算"
+        ]
+      ],
+      [
+        "巨灾衍生品的极端事件定价",
+        [
+          "衍生品与风险管理"
+        ]
+      ],
+      [
+        "种子散布距离尾巴",
+        [
+          "高级生态学"
+        ]
+      ],
+      [
+        "高层建筑风荷载的极值分布",
+        [
+          "土木工程"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Tail-driven expectation: E[f(X)|X>u]≈∫f(x)·α·x^{-α-1}dx/P(X>u)",
+      "GEV + POT: Pr(X>u+y|X>u) = (1+ξy/σ)^{-1/ξ}; VaR_α and ES_α from tail; structural reliability index β",
+      "GEV: F(x)=exp(-(1+ξ(x-μ)/σ)^(-1/ξ))"
+    ],
+    "avg_edge_score": 6.6
+  },
+  {
+    "index": 18,
+    "provenance": "connected_component",
+    "hub_name": "灭绝债务",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "保育生物学",
+      "海洋学",
+      "环境科学"
+    ],
+    "members": [
+      [
+        "厄尔尼诺的延迟振子",
+        [
+          "海洋学"
+        ]
+      ],
+      [
+        "永冻土融化释放甲烷的延迟反馈",
+        [
+          "环境科学"
+        ]
+      ],
+      [
+        "灭绝债务",
+        [
+          "保育生物学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Delay ODE: dx/dt = f(x(t - tau)) - mu x(t)",
+      "dN/dt = rN(1 - N/K) - α·N(t-τ)"
+    ],
+    "avg_edge_score": 8.5
+  },
+  {
+    "index": 19,
+    "provenance": "connected_component",
+    "hub_name": "Piezo1机械门控通道的不动点门控",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "细胞生物学",
+      "行为经济学",
+      "计算机科学"
+    ],
+    "members": [
+      [
+        "Piezo1机械门控通道的不动点门控",
+        [
+          "细胞生物学"
+        ]
+      ],
+      [
+        "参考点适应的享乐跑步机",
+        [
+          "行为经济学"
+        ]
+      ],
+      [
+        "限流的令牌桶",
+        [
+          "计算机科学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "dT/dt = r - λ·1{T≥θ}",
+      "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)"
+    ],
+    "avg_edge_score": 7.75
+  },
+  {
+    "index": 10,
+    "provenance": "connected_component",
+    "hub_name": "刻板印象的自我实现",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "公共管理",
+      "宏观经济",
+      "心理学"
+    ],
+    "members": [
+      [
+        "刻板印象的自我实现",
+        [
+          "心理学"
+        ]
+      ],
+      [
+        "绩效指标的古德哈特定律",
+        [
+          "公共管理"
+        ]
+      ],
+      [
+        "通胀预期去锚定",
+        [
+          "宏观经济"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "反身性反馈环: measurement/expectation → behavior → measurement_confirmation, 测量本身改变被测系统",
+      "rational expectations fixed point: x_t = f(E[x_t]); multiple equilibria when f'(E)>1"
+    ],
+    "avg_edge_score": 7.0
+  },
+  {
+    "index": 6,
+    "provenance": "connected_component",
+    "hub_name": "逆向选择",
+    "size": 4,
+    "n_domains": 2,
+    "domains": [
+      "传播学",
+      "经济学"
+    ],
+    "members": [
+      [
+        "信息茧房",
+        []
+      ],
+      [
+        "朋友圈信息的回声室效应",
+        []
+      ],
+      [
+        "沉默螺旋机制",
+        [
+          "传播学"
+        ]
+      ],
+      [
+        "逆向选择",
+        [
+          "经济学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移",
+      "Akerlof逆向选择: E[q|p] = ∫q·f(q|p)dq, 均衡条件p*=E[q|p*]; 信息市场: 内容多样性D(t+1) = D(t)·(1-α) + β·N(t), 其中α=同质化率(推荐算法强化), β=新创作者进入率, N=异质内容创作者数量。当α>β时D→0(柠檬化)。退出条件: 创作者留存当且仅当注意力回报>创作成本",
+      "Akerlof逆向选择: E[quality|price] 随价格下降而下降→好品退出→进一步质量下降; 信息茧房: E[diversity|engagement] 随engagement优化而下降→异质内容退出推荐→进一步多样性下降。两者都是信息不对称驱动的正反馈衰退循环(自选择偏差)。"
+    ],
+    "avg_edge_score": 7.667
+  },
+  {
+    "index": 2,
+    "provenance": "louvain_community",
+    "hub_name": "级联失效在社会网络中的传播",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "区块链/Web3",
+      "计算社会科学",
+      "金融市场微观结构"
+    ],
+    "members": [
+      [
+        "Plasma子链大规模退出问题",
+        [
+          "区块链/Web3"
+        ]
+      ],
+      [
+        "对手方风险的传染网络",
+        [
+          "金融市场微观结构"
+        ]
+      ],
+      [
+        "级联失效在社会网络中的传播",
+        [
+          "计算社会科学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Eisenberg-Noe清算向量: p_i = min(L_i, c_i + Σ π_ji p_j), 不动点存在性",
+      "Motter-Lai cascade: node_j fails if load_j>C_j; redistribution L_k+=share·L_j"
+    ],
+    "avg_edge_score": 6.75
+  },
+  {
+    "index": 11,
+    "provenance": "connected_component",
+    "hub_name": "低生育率陷阱假说",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "人口学",
+      "公司金融",
+      "环境科学"
+    ],
+    "members": [
+      [
+        "低生育率陷阱假说",
+        [
+          "人口学"
+        ]
+      ],
+      [
+        "湖泊内源磷负荷的再悬浮释放",
+        [
+          "环境科学"
+        ]
+      ],
+      [
+        "管理层壕沟效应",
+        [
+          "公司金融"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Hysteretic bistable system with internal positive feedback",
+      "Bistable self-reinforcing trap: dx/dt=f(x)(x-x_L)(x-x_H), two stable fixed points"
+    ],
+    "avg_edge_score": 6.6
+  },
+  {
+    "index": 12,
+    "provenance": "connected_component",
+    "hub_name": "凋亡Caspase级联的不可逆数字开关",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "基因编辑/合成生物学",
+      "微生物学",
+      "细胞生物学"
+    ],
+    "members": [
+      [
+        "凋亡Caspase级联的不可逆数字开关",
+        [
+          "细胞生物学"
+        ]
+      ],
+      [
+        "群体感应密度依赖开关",
+        [
+          "基因编辑/合成生物学"
+        ]
+      ],
+      [
+        "群感效应的同步诱导阈值",
+        [
+          "微生物学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "ultrasensitive positive feedback: dx/dt = V x^n/(K^n+x^n) - k x, Hill switch",
+      "正反馈双稳态开关: dS/dt = α S^n/(K^n + S^n) - β S, n>1 产生阈值切换",
+      "dA/dt = α·A^n/(K^n+A^n) - βA + basal·N (自诱导Hill双稳态)"
+    ],
+    "avg_edge_score": 6.4
+  },
+  {
+    "index": 9,
+    "provenance": "connected_component",
+    "hub_name": "系统性风险的无标度网络",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "保险与精算",
+      "金融市场微观结构",
+      "风险管理"
+    ],
+    "members": [
+      [
+        "抵押品升降级的再质押循环",
+        [
+          "风险管理"
+        ]
+      ],
+      [
+        "系统性风险的无标度网络",
+        [
+          "金融市场微观结构"
+        ]
+      ],
+      [
+        "网络安全险的相关性难题",
+        [
+          "保险与精算"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "scale-free network cascade: P(k)∝k^(-γ), percolation threshold p_c→0",
+      "Percolation on scale-free network P(k)∝k^(-γ); cascade threshold φ_c"
+    ],
+    "avg_edge_score": 6.3
+  },
+  {
+    "index": 13,
+    "provenance": "connected_component",
+    "hub_name": "社会认同传播",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "创业/VC",
+      "社会学",
+      "金融市场微观结构"
+    ],
+    "members": [
+      [
+        "主动管理与指数化的流动性外部性",
+        [
+          "金融市场微观结构"
+        ]
+      ],
+      [
+        "社会认同传播",
+        [
+          "社会学"
+        ]
+      ],
+      [
+        "竞争对手进入的临界规模防御门槛",
+        [
+          "创业/VC"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "order_parameter ~ (p - p_c)^beta; 2nd-order phase transition with critical adopter/active fraction",
+      "tipping point: order_param ~ (p - p_c)^beta; percolation threshold on network density"
+    ],
+    "avg_edge_score": 6.25
+  },
+  {
+    "index": 15,
+    "provenance": "connected_component",
+    "hub_name": "网红经济长尾失衡",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "体育",
+      "加密货币与DeFi",
+      "社交网络动态"
+    ],
+    "members": [
+      [
+        "矿池的规模经济集中化",
+        [
+          "加密货币与DeFi"
+        ]
+      ],
+      [
+        "网红经济长尾失衡",
+        [
+          "社交网络动态"
+        ]
+      ],
+      [
+        "足球联赛积分的幂律分布",
+        [
+          "体育"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Barabási-Albert preferential attachment: P(k_i=k) ∝ k^{-γ}, γ≈3; Yule-Simon process",
+      "P(x) ~ x^(-α); Yule-Simon preferential attachment"
+    ],
+    "avg_edge_score": 5.65
+  },
+  {
+    "index": 14,
+    "provenance": "connected_component",
+    "hub_name": "城市热岛效应的空间梯度",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "发育生物学",
+      "土木工程",
+      "环境科学"
+    ],
+    "members": [
+      [
+        "城市热岛效应的空间梯度",
+        [
+          "环境科学"
+        ]
+      ],
+      [
+        "基坑降水的地下水漏斗",
+        [
+          "土木工程"
+        ]
+      ],
+      [
+        "母源效应基因与卵轴极化",
+        [
+          "发育生物学"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "Steady Laplace/Poisson equation ∇²u = -S; radial solution u(r) ∝ -ln(r) for 2D sinks/sources",
+      "∂c/∂t = D∇²c - k·c + source，含降解的扩散方程",
+      "∂c/∂t = D ∇²c - k c + S(x); steady state: c(x) ~ λ exp(-x/λ), λ=√(D/k)"
+    ],
+    "avg_edge_score": 5.4
+  },
+  {
+    "index": 16,
+    "provenance": "connected_component",
+    "hub_name": "DNA甲基化的半甲基化继承",
+    "size": 3,
+    "n_domains": 3,
+    "domains": [
+      "分子生物学",
+      "发育生物学",
+      "电气工程"
+    ],
+    "members": [
+      [
+        "DNA甲基化的半甲基化继承",
+        [
+          "分子生物学"
+        ]
+      ],
+      [
+        "X染色体失活的随机性与克隆嵌合",
+        [
+          "发育生物学"
+        ]
+      ],
+      [
+        "发电机组启停的马尔可夫模型",
+        [
+          "电气工程"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "P(s_{t+1}|s_t) Markov transition matrix",
+      "Markov chain with P(s_{t+1}=s_t) ≈ 1 - ε; epigenetic memory fidelity"
+    ],
+    "avg_edge_score": 5.25
+  },
+  {
+    "index": 8,
+    "provenance": "connected_component",
+    "hub_name": "高层建筑风振舒适度控制",
+    "size": 3,
+    "n_domains": 2,
+    "domains": [
+      "土木工程",
+      "电气工程"
+    ],
+    "members": [
+      [
+        "电力系统小信号振荡",
+        [
+          "电气工程"
+        ]
+      ],
+      [
+        "电力系统暂态稳定",
+        [
+          "电气工程"
+        ]
+      ],
+      [
+        "高层建筑风振舒适度控制",
+        [
+          "土木工程"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "ẍ + 2ζω·ẋ + ω²·x = F(t); PSS ↔ TMD dual damping control",
+      "M·ẍ + C·ẋ + K·x = F(t); critical damping ratio ζ_c"
+    ],
+    "avg_edge_score": 6.25
+  },
+  {
+    "index": 17,
+    "provenance": "connected_component",
+    "hub_name": "新兴市场传染的多米诺效应",
+    "size": 3,
+    "n_domains": 2,
+    "domains": [
+      "国际经济",
+      "衍生品与风险管理"
+    ],
+    "members": [
+      [
+        "CDS指数的信用级联建模",
+        [
+          "衍生品与风险管理"
+        ]
+      ],
+      [
+        "场外衍生品的对手方暴露",
+        [
+          "衍生品与风险管理"
+        ]
+      ],
+      [
+        "新兴市场传染的多米诺效应",
+        [
+          "国际经济"
+        ]
+      ]
+    ],
+    "shared_equations_sample": [
+      "SIR-like default contagion on financial network: dS/dt=-βSI, etc.",
+      "network topology cascade: bow-tie → star via CCP intermediation"
+    ],
+    "avg_edge_score": 4.75
+  }
+]

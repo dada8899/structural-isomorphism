@@ -23,6 +23,7 @@ from collections import defaultdict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = REPO_ROOT / "v4" / "results" / "candidate_classes.jsonl"
+LAYER3_AUTO = REPO_ROOT / "v4" / "results" / "layer3_auto_curated.jsonl"
 OUT_FILE = REPO_ROOT / "web" / "frontend" / "assets" / "data" / "universality-classes.json"
 
 # ---------------------------------------------------------------------------
@@ -262,15 +263,43 @@ def group_members_by_domain(members):
     return result
 
 
+def load_layer3_auto():
+    """Load LLM-generated curation from layer3_auto_curated.jsonl.
+    Returns dict keyed by (hub_name, provenance)."""
+    if not LAYER3_AUTO.exists():
+        return {}
+    out = {}
+    with LAYER3_AUTO.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            key = (rec.get("hub_name"), rec.get("provenance"))
+            out[key] = rec
+    return out
+
+
 def build():
     with CANDIDATES.open("r", encoding="utf-8") as f:
         raw = [json.loads(line) for line in f if line.strip()]
+
+    layer3 = load_layer3_auto()
 
     classes = []
     for rec in raw:
         hub_name = (rec.get("hub") or {}).get("name")
         provenance = rec.get("provenance")
-        curated = CURATED.get((hub_name, provenance)) or {}
+
+        # Priority: manual CURATED > layer3 auto > unnamed
+        manual = CURATED.get((hub_name, provenance))
+        auto = layer3.get((hub_name, provenance))
+        source = "manual" if manual else ("llm" if auto else "none")
+        curated = manual or auto or {}
+
         item = {
             "class_id": curated.get("class_id") or f"auto_{rec.get('provenance','')}_{rec.get('index','')}",
             "name_zh": curated.get("name_zh") or f"未命名等价类 ({hub_name})",
@@ -292,16 +321,18 @@ def build():
             "shared_equations_raw": coerce_equations(rec.get("shared_equations_sample", [])),
             "invariants": curated.get("invariants", []),
             "predictions": curated.get("predictions", []),
+            "notes": curated.get("notes", "") if source == "llm" else "",
             "members_by_domain": group_members_by_domain(rec.get("members", [])),
-            "is_curated": bool(curated),
+            "is_curated": bool(manual or auto),
+            "curation_source": source,
         }
         classes.append(item)
 
-    # Sort: curated first, then by size * n_domains * avg_score
+    # Sort: manual > llm > uncurated, then by size * n_domains * avg_score
     def rank(c):
-        curated_bonus = 0 if c["is_curated"] else 1
+        source_priority = {"manual": 0, "llm": 1, "none": 2}
         score_key = -(c["size"] * c["n_domains"] * (c["avg_edge_score"] or 1))
-        return (curated_bonus, score_key)
+        return (source_priority.get(c["curation_source"], 3), score_key)
 
     classes.sort(key=rank)
 
@@ -310,8 +341,10 @@ def build():
             "generated_at": "2026-04-15",
             "source": "v4/results/candidate_classes.jsonl",
             "total_classes": len(classes),
+            "manual_curated": sum(1 for c in classes if c["curation_source"] == "manual"),
+            "llm_curated": sum(1 for c in classes if c["curation_source"] == "llm"),
             "curated_classes": sum(1 for c in classes if c["is_curated"]),
-            "version": "0.1",
+            "version": "0.2",
         },
         "stats": {
             "n_equivalence_classes": len(classes),
@@ -329,12 +362,13 @@ def build():
 
     print(f"=== V4 Site Data Build ===")
     print(f"Total candidate classes: {len(classes)}")
-    print(f"Curated: {payload['meta']['curated_classes']}")
+    print(f"Manual curated: {payload['meta']['manual_curated']}  LLM curated: {payload['meta']['llm_curated']}")
     print(f"Output: {OUT_FILE.relative_to(REPO_ROOT)}")
     print()
-    print("Top classes in site feed:")
-    for c in classes[:10]:
-        tag = "✓" if c["is_curated"] else "·"
+    print("All classes in site feed:")
+    tag_map = {"manual": "●", "llm": "◐", "none": "○"}
+    for c in classes:
+        tag = tag_map.get(c["curation_source"], "?")
         print(f"  {tag} {c['name_zh']} — size={c['size']:2d} domains={c['n_domains']:2d} avg={c['avg_edge_score']}")
 
 

@@ -29,9 +29,21 @@ from collections import defaultdict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_FILE = REPO_ROOT / "v4" / "results" / "graph.json"
+ALIAS_FILE = REPO_ROOT / "v4" / "config" / "node_aliases.json"
 
 SCORE_THRESHOLD = 7.0
 RATING_WHITELIST = {"A", "B+", "A+", "B"}
+
+
+def load_aliases():
+    if not ALIAS_FILE.exists():
+        return {}
+    with ALIAS_FILE.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("aliases", {})
+
+
+_ALIASES = load_aliases()
 
 
 def normalize_name(name: str) -> str:
@@ -104,8 +116,13 @@ def extract_pair(item, default_pipeline: str):
     }
 
 
+def resolve_alias(name: str) -> str:
+    return _ALIASES.get(name.strip(), name)
+
+
 def canonical_node_id(name: str) -> str:
-    return normalize_name(name)[:48] or "UNKNOWN"
+    resolved = resolve_alias(name)
+    return normalize_name(resolved)[:48] or "UNKNOWN"
 
 
 def build_graph():
@@ -139,10 +156,11 @@ def build_graph():
 
     def add_node(raw_name: str, domain: str):
         cid = canonical_node_id(raw_name)
+        canonical_display = resolve_alias(raw_name)
         if cid not in nodes:
             nodes[cid] = {
                 "id": cid,
-                "name": raw_name,  # keep first-seen as display name
+                "name": canonical_display,  # prefer canonical name if aliased
                 "domains": set(),
                 "aliases": set(),
                 "degree": 0,

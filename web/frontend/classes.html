@@ -69,18 +69,24 @@
         </p>
         <p class="uc-hero__lede">
           方法是纯数据驱动的：给 pair 结果建图（节点=现象，边=同构），跑度中心性 + Louvain 社区发现。
-          <strong>无监督地浮现出 8 个跨领域普适类</strong>——每一类都在物理学或数学里有名字，每一类都有 5-21 个跨领域实例，
-          共享同一个数学结构、同一组不变量、同一套可验证的预测。
+          无监督浮现出 <strong>23 个跨领域等价类</strong>——8 个由人工精选并匹配到物理学已命名的普适类（SOC / Hysteresis / Fold 分岔 / Motter-Lai / Diamond-Dybvig / Copula 尾部 / Toggle switch / Schelling 承诺），
+          另 15 个由 LLM 辅助做 Layer 3 不变量提取与 taxonomy 匹配。每一类共享同一个数学结构、同一组不变量。
         </p>
         <div class="uc-hero__stats" id="uc-hero-stats"></div>
       </section>
 
       <div class="uc-filter" id="uc-filter">
-        <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="curated">
-          已命名（8）
+        <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="manual">
+          人工精选
+          <span class="uc-filter__count" data-count-manual>—</span>
+        </button>
+        <button type="button" class="uc-filter__btn" data-filter="llm">
+          LLM 辅助
+          <span class="uc-filter__count" data-count-llm>—</span>
         </button>
         <button type="button" class="uc-filter__btn" data-filter="all">
-          全部 23 类
+          全部
+          <span class="uc-filter__count" data-count-all>—</span>
         </button>
       </div>
 

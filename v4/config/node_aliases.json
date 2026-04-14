@@ -1,0 +1,11 @@
+{
+  "_comment": "Manual synonym table. Maps alias names -> canonical name. Used by build_graph.py to deduplicate clearly-equivalent phenomena that V1/V2/V3 split across multiple Chinese phrasings. Conservative: only merge when the shared_equation and domain strongly overlap.",
+  "_version": "0.1",
+  "_created": "2026-04-15",
+  "aliases": {
+    "DeFi清算连锁瀑布效应": "清算级联的链上流动性危机",
+    "清算瀑布的级联效应": "清算级联的链上流动性危机",
+    "地震断层的库仑应力触发": "地震静态应力触发",
+    "闪崩的正反馈级联": "闪崩的流动性螺旋机制"
+  }
+}

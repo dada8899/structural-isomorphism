@@ -3,13 +3,15 @@
     "generated_at": "2026-04-15",
     "source": "v4/results/candidate_classes.jsonl",
     "total_classes": 23,
-    "curated_classes": 8,
-    "version": "0.1"
+    "manual_curated": 8,
+    "llm_curated": 15,
+    "curated_classes": 23,
+    "version": "0.2"
   },
   "stats": {
     "n_equivalence_classes": 23,
     "n_cross_domain": 23,
-    "max_members": 21,
+    "max_members": 17,
     "max_domains": 12,
     "largest_hub": "清算级联的链上流动性危机"
   },
@@ -21,8 +23,8 @@
       "rank": 0,
       "provenance": "connected_component",
       "hub_name": "清算级联的链上流动性危机",
-      "hub_degree": 7,
-      "size": 21,
+      "hub_degree": 10,
+      "size": 17,
       "n_domains": 12,
       "domains": [
         "交通现象",
@@ -38,8 +40,8 @@
         "金融",
         "金融市场微观结构"
       ],
-      "edges_internal": 36,
-      "avg_edge_score": 6.919,
+      "edges_internal": 30,
+      "avg_edge_score": 6.947,
       "max_edge_score": 8.6,
       "physics_prototype": "Bak-Tang-Wiesenfeld 沙堆模型 (1987)",
       "taxonomy_match": "soc_threshold_cascade",
@@ -50,13 +52,13 @@
           "raw": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade"
         },
         {
-          "raw": "dP/dt = -k*f(P)*L where L is aggregate forced-sell pressure triggered by P crossing endogenous thresholds"
-        },
-        {
-          "raw": "dP/dt = -k*max(0, trigger - P)*L where L is leverage-weighted exposure crossing margin thresholds"
-        },
-        {
           "raw": "sum_j K_ij * delta_j > threshold_i -> failure_i; Coulomb-type stress transfer on heterogeneous failure network"
+        },
+        {
+          "raw": "Coulomb stress transfer: sigma_i -> sigma_i + sum_j K_ij*M_j, failure when sigma_i > tau_i"
+        },
+        {
+          "raw": "dP/dt = -k*f(P)*L where L is aggregate forced-sell pressure triggered by P crossing endogenous thresholds"
         }
       ],
       "invariants": [
@@ -85,6 +87,7 @@
           "status": "待验证"
         }
       ],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
@@ -92,15 +95,7 @@
             "保证金螺旋与强制去杠杆",
             "做市商的期权对冲与Gamma风险",
             "对手方风险的传染网络",
-            "闪崩的正反馈级联",
             "闪崩的流动性螺旋机制"
-          ]
-        },
-        {
-          "domain": "区块链/Web3",
-          "names": [
-            "DeFi清算连锁瀑布效应",
-            "Plasma子链大规模退出问题"
           ]
         },
         {
@@ -111,10 +106,10 @@
           ]
         },
         {
-          "domain": "地质学",
+          "domain": "区块链/Web3",
           "names": [
-            "地震断层的库仑应力触发",
-            "地震静态应力触发"
+            "Plasma子链大规模退出问题",
+            "清算级联的链上流动性危机"
           ]
         },
         {
@@ -131,19 +126,25 @@
           ]
         },
         {
+          "domain": "地质学",
+          "names": [
+            "地震静态应力触发"
+          ]
+        },
+        {
           "domain": "土木工程",
           "names": [
             "建筑结构的渐进倒塌"
           ]
         },
         {
-          "domain": "加密货币与DeFi",
+          "domain": "加密货币/DeFi",
           "names": [
-            "清算瀑布的级联效应"
+            "清算级联的链上流动性危机"
           ]
         },
         {
-          "domain": "加密货币/DeFi",
+          "domain": "加密货币与DeFi",
           "names": [
             "清算级联的链上流动性危机"
           ]
@@ -173,7 +174,8 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "hysteresis_preisach",
@@ -227,6 +229,7 @@
         "临界点的标度律"
       ],
       "predictions": [],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "土木工程",
@@ -308,7 +311,8 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "scheffer_fold_bifurcation",
@@ -358,6 +362,7 @@
         "分岔点附近涨落变大"
       ],
       "predictions": [],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "材料科学",
@@ -410,128 +415,30 @@
           ]
         }
       ],
-      "is_curated": true
-    },
-    {
-      "class_id": "motter_lai_network_cascade",
-      "name_zh": "Motter-Lai 网络级联类",
-      "name_en": "Motter-Lai Network Cascade",
-      "rank": 0,
-      "provenance": "louvain_community",
-      "hub_name": "建筑结构的渐进倒塌",
-      "hub_degree": 7,
-      "size": 9,
-      "n_domains": 8,
-      "domains": [
-        "交通现象",
-        "加密货币与DeFi",
-        "区块链/Web3",
-        "土木工程",
-        "地质学",
-        "电气工程",
-        "计算社会科学",
-        "金融市场微观结构"
-      ],
-      "edges_internal": 15,
-      "avg_edge_score": 6.567,
-      "max_edge_score": 8.2,
-      "physics_prototype": "Motter-Lai model (2002) for network cascading failure",
-      "taxonomy_match": "soc_threshold_cascade",
-      "confidence": "high",
-      "summary_zh": "SOC 巨簇经 Louvain 社区发现自动拆出的一个亚类——专门描述物理基础设施网络上的级联失效。每个节点有容量 C_i，当前负载 L_i，失效后负载按权重 w_ij 分配给邻居，若接收者超过容量则连锁失效。",
-      "shared_equations_raw": [
-        {
-          "raw": "Motter-Lai cascade: L_i(t+1)=L_i(t)+Σ_j∈F(t) L_j·w_ij/Σ_k w_jk, fail if L_i>C_i"
-        },
-        {
-          "raw": "threshold cascade: f(x_i) = Θ(Σ w_ij x_j - θ_i)"
-        },
-        {
-          "raw": "Motter-Lai load redistribution: if L_i>C_i then fail, L_j←L_j+ΔL·w_ij"
-        },
-        {
-          "raw": "load shedding cascade: if L_i>C_i, redistribute ΔL to neighbors via kernel K_ij"
-        }
-      ],
-      "invariants": [
-        "级联规模分布: P(s) ∝ s^(-τ)",
-        "关键容限比 α = C/L 决定鲁棒性",
-        "单点故障攻击曲线",
-        "小世界 + 无尺度拓扑加剧级联"
-      ],
-      "predictions": [],
-      "members_by_domain": [
-        {
-          "domain": "交通现象",
-          "names": [
-            "GPS路径再分配",
-            "路口溢流锁死"
-          ]
-        },
-        {
-          "domain": "区块链/Web3",
-          "names": [
-            "Plasma子链大规模退出问题"
-          ]
-        },
-        {
-          "domain": "地质学",
-          "names": [
-            "地震断层的库仑应力触发"
-          ]
-        },
-        {
-          "domain": "土木工程",
-          "names": [
-            "建筑结构的渐进倒塌"
-          ]
-        },
-        {
-          "domain": "加密货币与DeFi",
-          "names": [
-            "清算瀑布的级联效应"
-          ]
-        },
-        {
-          "domain": "电气工程",
-          "names": [
-            "电网连锁故障"
-          ]
-        },
-        {
-          "domain": "计算社会科学",
-          "names": [
-            "级联失效在社会网络中的传播"
-          ]
-        },
-        {
-          "domain": "金融市场微观结构",
-          "names": [
-            "闪崩的正反馈级联"
-          ]
-        }
-      ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "diamond_dybvig_self_fulfilling",
       "name_zh": "Diamond-Dybvig 自实现挤兑类",
       "name_en": "Diamond-Dybvig Self-Fulfilling Runs",
-      "rank": 1,
+      "rank": 0,
       "provenance": "louvain_community",
       "hub_name": "银行挤兑",
       "hub_degree": 5,
       "size": 8,
-      "n_domains": 5,
+      "n_domains": 7,
       "domains": [
         "加密货币/DeFi",
+        "加密货币与DeFi",
+        "区块链/Web3",
         "医学",
         "商业",
         "金融",
         "金融市场微观结构"
       ],
       "edges_internal": 10,
-      "avg_edge_score": 7.2,
+      "avg_edge_score": 7.01,
       "max_edge_score": 8.5,
       "physics_prototype": "Diamond-Dybvig (1983) + Morris-Shin global games",
       "taxonomy_match": "multistable_self_fulfilling",
@@ -545,10 +452,10 @@
           "raw": "Diamond-Dybvig multiple equilibria: expectation -> action -> self-fulfilling bad equilibrium"
         },
         {
-          "raw": "dp/dt = -k·L(p); network default cascade with threshold LTV*"
+          "raw": "dW/dt = -φ(W), φ collective withdrawal"
         },
         {
-          "raw": "dW/dt = -φ(W), φ collective withdrawal"
+          "raw": "Eisenberg-Noe clearing vector: p = min(p̄, L^T p + e)"
         }
       ],
       "invariants": [
@@ -567,12 +474,13 @@
           "status": "待验证"
         }
       ],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
           "names": [
             "保证金螺旋与强制去杠杆",
-            "对手方风险的传染网络"
+            "做市商的期权对冲与Gamma风险"
           ]
         },
         {
@@ -595,6 +503,18 @@
           ]
         },
         {
+          "domain": "加密货币与DeFi",
+          "names": [
+            "清算级联的链上流动性危机"
+          ]
+        },
+        {
+          "domain": "区块链/Web3",
+          "names": [
+            "清算级联的链上流动性危机"
+          ]
+        },
+        {
           "domain": "医学",
           "names": [
             "耐药菌传播"
@@ -607,7 +527,90 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
+    },
+    {
+      "class_id": "motter_lai_network_cascade",
+      "name_zh": "Motter-Lai 网络级联类",
+      "name_en": "Motter-Lai Network Cascade",
+      "rank": 1,
+      "provenance": "louvain_community",
+      "hub_name": "建筑结构的渐进倒塌",
+      "hub_degree": 5,
+      "size": 6,
+      "n_domains": 5,
+      "domains": [
+        "交通现象",
+        "土木工程",
+        "地质学",
+        "电气工程",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 9,
+      "avg_edge_score": 6.5,
+      "max_edge_score": 8.2,
+      "physics_prototype": "Motter-Lai model (2002) for network cascading failure",
+      "taxonomy_match": "soc_threshold_cascade",
+      "confidence": "high",
+      "summary_zh": "SOC 巨簇经 Louvain 社区发现自动拆出的一个亚类——专门描述物理基础设施网络上的级联失效。每个节点有容量 C_i，当前负载 L_i，失效后负载按权重 w_ij 分配给邻居，若接收者超过容量则连锁失效。",
+      "shared_equations_raw": [
+        {
+          "raw": "Motter-Lai cascade: L_i(t+1)=L_i(t)+Σ_j∈F(t) L_j·w_ij/Σ_k w_jk, fail if L_i>C_i"
+        },
+        {
+          "raw": "Motter-Lai load redistribution: if L_i>C_i then fail, L_j←L_j+ΔL·w_ij"
+        },
+        {
+          "raw": "Motter-Lai cascade: L_j(t+1) = L_j(t) + Σ_i ΔL_i·w_ij; failure if L_j > C_j; load redistribution on network"
+        },
+        {
+          "raw": "网络中应力/价格重分布触发级联失稳: 节点失效→邻居负载增加→再失效"
+        }
+      ],
+      "invariants": [
+        "级联规模分布: P(s) ∝ s^(-τ)",
+        "关键容限比 α = C/L 决定鲁棒性",
+        "单点故障攻击曲线",
+        "小世界 + 无尺度拓扑加剧级联"
+      ],
+      "predictions": [],
+      "notes": "",
+      "members_by_domain": [
+        {
+          "domain": "交通现象",
+          "names": [
+            "GPS路径再分配",
+            "路口溢流锁死"
+          ]
+        },
+        {
+          "domain": "地质学",
+          "names": [
+            "地震静态应力触发"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "建筑结构的渐进倒塌"
+          ]
+        },
+        {
+          "domain": "电气工程",
+          "names": [
+            "电网连锁故障"
+          ]
+        },
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "闪崩的流动性螺旋机制"
+          ]
+        }
+      ],
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "tail_copula_contagion",
@@ -654,6 +657,7 @@
         "压力期的 copula 结构突变"
       ],
       "predictions": [],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "气候科学",
@@ -686,7 +690,8 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "gardner_collins_toggle_switch",
@@ -732,6 +737,7 @@
         "Hill 系数 n > 1 是双稳态存在的必要条件"
       ],
       "predictions": [],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "分子生物学",
@@ -759,7 +765,8 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
       "class_id": "schelling_credible_commitment",
@@ -805,6 +812,7 @@
         "声誉均衡 (reputation equilibrium)"
       ],
       "predictions": [],
+      "notes": "",
       "members_by_domain": [
         {
           "domain": "微观经济",
@@ -832,12 +840,13 @@
           ]
         }
       ],
-      "is_curated": true
+      "is_curated": true,
+      "curation_source": "manual"
     },
     {
-      "class_id": "auto_connected_component_7",
-      "name_zh": "未命名等价类 (巨灾衍生品的极端事件定价)",
-      "name_en": "",
+      "class_id": "extreme_value_tail_class",
+      "name_zh": "极值理论重尾分布类",
+      "name_en": "Extreme Value Theory & Heavy-Tailed Distributions",
       "rank": 7,
       "provenance": "connected_component",
       "hub_name": "巨灾衍生品的极端事件定价",
@@ -853,10 +862,10 @@
       "edges_internal": 3,
       "avg_edge_score": 6.6,
       "max_edge_score": 7.0,
-      "physics_prototype": "",
+      "physics_prototype": "Fisher-Tippett-Gnedenko theorem (1928) & Pickands-Balkema-de Haan POT (1974-75)",
       "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "confidence": "high",
+      "summary_zh": "统一描述独立极端事件最大值/超阈值的极限分布,由 GEV 三参数族 (Gumbel/Fréchet/Weibull) 和广义帕累托分布 (GPD) 刻画。尾指数 ξ 决定风险的 VaR、ES 和结构可靠度,是定价、精算和工程可靠性中刻画\"尾部\"的标准语言。",
       "shared_equations_raw": [
         {
           "raw": "Tail-driven expectation: E[f(X)|X>u]≈∫f(x)·α·x^{-α-1}dx/P(X>u)"
@@ -868,8 +877,14 @@
           "raw": "GEV: F(x)=exp(-(1+ξ(x-μ)/σ)^(-1/ξ))"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "GEV 极限分布: F(x)=exp(-(1+ξ(x-μ)/σ)^(-1/ξ))",
+        "超阈值超量服从 GPD: Pr(X>u+y|X>u)=(1+ξy/σ)^(-1/ξ)",
+        "尾指数 ξ 唯一决定重尾程度 (ξ>0 Fréchet / ξ=0 Gumbel / ξ<0 Weibull)",
+        "条件期望 E[f(X)|X>u] 与 α·x^{-α-1} 幂律尾成正比"
+      ],
       "predictions": [],
+      "notes": "共享方程精确对应 EVT/POT 教科书公式; taxonomy seed 未收录此类, 作为新增",
       "members_by_domain": [
         {
           "domain": "保险与精算",
@@ -896,73 +911,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_louvain_community_2",
-      "name_zh": "未命名等价类 (DeFi清算连锁瀑布效应)",
-      "name_en": "",
-      "rank": 2,
-      "provenance": "louvain_community",
-      "hub_name": "DeFi清算连锁瀑布效应",
-      "hub_degree": 3,
-      "size": 4,
-      "n_domains": 3,
-      "domains": [
-        "区块链/Web3",
-        "地质学",
-        "金融市场微观结构"
-      ],
-      "edges_internal": 4,
-      "avg_edge_score": 7.525,
-      "max_edge_score": 8.6,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
-      "shared_equations_raw": [
-        {
-          "raw": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade"
-        },
-        {
-          "raw": "dp/dt = -k·L(p), L liquidation triggered at p<p*"
-        },
-        {
-          "raw": "网络中应力/价格重分布触发级联失稳: 节点失效→邻居负载增加→再失效"
-        },
-        {
-          "raw": "dS/dt ∝ -Γ·∂²V/∂S², S价格/抵押品"
-        }
-      ],
-      "invariants": [],
-      "predictions": [],
-      "members_by_domain": [
-        {
-          "domain": "金融市场微观结构",
-          "names": [
-            "做市商的期权对冲与Gamma风险",
-            "闪崩的流动性螺旋机制"
-          ]
-        },
-        {
-          "domain": "区块链/Web3",
-          "names": [
-            "DeFi清算连锁瀑布效应"
-          ]
-        },
-        {
-          "domain": "地质学",
-          "names": [
-            "地震静态应力触发"
-          ]
-        }
-      ],
-      "is_curated": false
-    },
-    {
-      "class_id": "auto_connected_component_18",
-      "name_zh": "未命名等价类 (灭绝债务)",
-      "name_en": "",
+      "class_id": "delay_differential_debt",
+      "name_zh": "延迟反馈与债务累积类",
+      "name_en": "Delay Differential Equations and Accumulated Debt",
       "rank": 18,
       "provenance": "connected_component",
       "hub_name": "灭绝债务",
@@ -977,10 +932,10 @@
       "edges_internal": 2,
       "avg_edge_score": 8.5,
       "max_edge_score": 8.6,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Volterra delay equation (1928) / Mackey-Glass (1977)",
+      "taxonomy_match": "delay_differential_debt",
+      "confidence": "high",
+      "summary_zh": "系统当前状态的演化依赖于过去时刻状态 x(t-τ),时滞造成已承诺但尚未显现的\"债务\",当 τ 越过临界值发生 Hopf 分岔产生振荡或崩溃。灭绝债务、ENSO 振子、永冻土甲烷反馈都属此类。",
       "shared_equations_raw": [
         {
           "raw": "Delay ODE: dx/dt = f(x(t - tau)) - mu x(t)"
@@ -989,8 +944,14 @@
           "raw": "dN/dt = rN(1 - N/K) - α·N(t-τ)"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "主方程: dx/dt = f(x(t-τ)) - μ·x(t)",
+        "临界时滞处发生 Hopf 分岔产生极限环",
+        "committed 量 C = ∫[x*(t)-x(t)]dt 为守恒累积债务",
+        "决策窗口关闭 (τ 固定) 但症状滞后呈现"
+      ],
       "predictions": [],
+      "notes": "共享方程与 seed delay_differential_debt 完全一致",
       "members_by_domain": [
         {
           "domain": "海洋学",
@@ -1011,12 +972,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_19",
-      "name_zh": "未命名等价类 (Piezo1机械门控通道的不动点门控)",
-      "name_en": "",
+      "class_id": "leaky_integrate_fire_threshold_class",
+      "name_zh": "泄漏积分-阈值释放类",
+      "name_en": "Leaky Integrate-and-Fire Threshold Release",
       "rank": 19,
       "provenance": "connected_component",
       "hub_name": "Piezo1机械门控通道的不动点门控",
@@ -1031,10 +993,10 @@
       "edges_internal": 2,
       "avg_edge_score": 7.75,
       "max_edge_score": 8.0,
-      "physics_prototype": "",
+      "physics_prototype": "Lapicque integrate-and-fire neuron (1907) / token bucket rate limiter (Turner 1986)",
       "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "confidence": "high",
+      "summary_zh": "一个连续量 S 以速率 r 线性(或带泄漏)累积,当越过阈值 θ 时触发离散释放事件并重置,输出为 σ(S-θ) 型硬门限。同一结构出现在神经元发放、机械感受器、享乐适应和网络流量整形中。",
       "shared_equations_raw": [
         {
           "raw": "dT/dt = r - λ·1{T≥θ}"
@@ -1043,8 +1005,14 @@
           "raw": "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "积分动力学: dS/dt = F(t) - k_a·S (带泄漏项)",
+        "阈值释放: 输出 y = σ(S-θ) 或 1{S≥θ}",
+        "重置后存在不应期 / 再充电时间",
+        "稳态发放率随输入线性响应,超阈值后饱和"
+      ],
       "predictions": [],
+      "notes": "三成员共享\"累积-阈值-释放-重置\"四步结构; 与 SOC 的区别是此处是单元件门限而非耦合雪崩",
       "members_by_domain": [
         {
           "domain": "细胞生物学",
@@ -1065,12 +1033,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_10",
-      "name_zh": "未命名等价类 (刻板印象的自我实现)",
-      "name_en": "",
+      "class_id": "reflexive_fixed_point_class",
+      "name_zh": "反身性不动点与测量反馈类",
+      "name_en": "Reflexive Fixed Point & Measurement Feedback",
       "rank": 10,
       "provenance": "connected_component",
       "hub_name": "刻板印象的自我实现",
@@ -1085,10 +1054,10 @@
       "edges_internal": 2,
       "avg_edge_score": 7.0,
       "max_edge_score": 7.5,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Muth rational expectations (1961) / Soros reflexivity / Goodhart (1975)",
+      "taxonomy_match": "multistable_self_fulfilling",
+      "confidence": "medium",
+      "summary_zh": "测量或预期本身改变被测系统,形成 x_t = f(E[x_t]) 的不动点方程;当 f'(E)>1 时存在多重均衡,信念可以自我实现。古德哈特定律、通胀预期去锚、刻板印象威胁都是此结构。",
       "shared_equations_raw": [
         {
           "raw": "反身性反馈环: measurement/expectation → behavior → measurement_confirmation, 测量本身改变被测系统"
@@ -1097,8 +1066,14 @@
           "raw": "rational expectations fixed point: x_t = f(E[x_t]); multiple equilibria when f'(E)>1"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "理性预期不动点: x_t = f(E[x_t])",
+        "多重均衡条件: |f'(E)| > 1",
+        "测量-行为-测量的闭环(反身性环)",
+        "信念位移引发均衡跳变 (non-smooth transition)"
+      ],
       "predictions": [],
+      "notes": "与 multistable_self_fulfilling 接近但强调\"测量改变被测物\"这一反身性特征,置信 medium",
       "members_by_domain": [
         {
           "domain": "心理学",
@@ -1119,12 +1094,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_6",
-      "name_zh": "未命名等价类 (逆向选择)",
-      "name_en": "",
+      "class_id": "adverse_selection_unraveling_class",
+      "name_zh": "逆向选择与柠檬化退化类",
+      "name_en": "Adverse Selection & Lemons Market Unraveling",
       "rank": 6,
       "provenance": "connected_component",
       "hub_name": "逆向选择",
@@ -1138,10 +1114,10 @@
       "edges_internal": 3,
       "avg_edge_score": 7.667,
       "max_edge_score": 8.0,
-      "physics_prototype": "",
+      "physics_prototype": "Akerlof \"Market for Lemons\" (1970)",
       "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "confidence": "high",
+      "summary_zh": "信息不对称下,基于条件期望 E[q|p] 的价格机制驱动高质量方单调退出,剩余分布质量进一步下降,形成正反馈衰退直至市场崩塌或只剩次品。同构出现在二手车市场、回声室、信息茧房和沉默螺旋。",
       "shared_equations_raw": [
         {
           "raw": "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移"
@@ -1153,8 +1129,14 @@
           "raw": "Akerlof逆向选择: E[quality|price] 随价格下降而下降→好品退出→进一步质量下降; 信息茧房: E[diversity|engagement] 随engagement优化而下降→异质内容退出推荐→进一步多样性下降。两者都是信息不对称驱动的正反馈衰退循环(自选择偏差)。"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "条件期望均衡: p* = E[q|p*]",
+        "单调 unraveling 动力学: x_{t+1}=f(x_t), f 单调递减",
+        "多样性/质量方程: D(t+1)=D(t)(1-α)+βN(t), α>β 则 D→0",
+        "自选择偏差驱动的正反馈, 无外部冲击亦会坍缩"
+      ],
       "predictions": [],
+      "notes": "Akerlof 结构属经济学/博弈论, 不在 12 个 seed 中, 作为新类",
       "members_by_domain": [
         {
           "domain": "传播学",
@@ -1176,12 +1158,74 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_11",
-      "name_zh": "未命名等价类 (低生育率陷阱假说)",
-      "name_en": "",
+      "class_id": "motter_lai_network_cascade",
+      "name_zh": "Motter-Lai 负载重分配网络级联类",
+      "name_en": "Motter-Lai Load-Redistribution Network Cascade",
+      "rank": 2,
+      "provenance": "louvain_community",
+      "hub_name": "级联失效在社会网络中的传播",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "区块链/Web3",
+        "计算社会科学",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 6.75,
+      "max_edge_score": 7.0,
+      "physics_prototype": "Motter-Lai (2002) & Eisenberg-Noe clearing (2001)",
+      "taxonomy_match": "motter_lai_network_cascade",
+      "confidence": "high",
+      "summary_zh": "带容量上限的加权节点网络,单点失效后其负载按权重重分配到邻居,若邻居超过容量则继续失效形成级联。金融清算向量、区块链退出拥堵、社会网络崩塌共享这一拓扑阈值动力学。",
+      "shared_equations_raw": [
+        {
+          "raw": "Eisenberg-Noe清算向量: p_i = min(L_i, c_i + Σ π_ji p_j), 不动点存在性"
+        },
+        {
+          "raw": "Motter-Lai cascade: node_j fails if load_j>C_j; redistribution L_k+=share·L_j"
+        }
+      ],
+      "invariants": [
+        "容量-负载条件: node_j fails if load_j > C_j",
+        "重分配规则: L_k += share_{jk} · L_j",
+        "Eisenberg-Noe 清算不动点: p_i = min(L_i, c_i + Σπ_ji p_j)",
+        "级联规模对初始扰动呈幂律或 S 形相变"
+      ],
+      "predictions": [],
+      "notes": "共享方程与 Motter-Lai 范式精确一致",
+      "members_by_domain": [
+        {
+          "domain": "区块链/Web3",
+          "names": [
+            "Plasma子链大规模退出问题"
+          ]
+        },
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "对手方风险的传染网络"
+          ]
+        },
+        {
+          "domain": "计算社会科学",
+          "names": [
+            "级联失效在社会网络中的传播"
+          ]
+        }
+      ],
+      "is_curated": true,
+      "curation_source": "llm"
+    },
+    {
+      "class_id": "hysteresis_first_order_transition",
+      "name_zh": "双稳态陷阱与一阶相变迟滞类",
+      "name_en": "Bistable Trap & First-Order Hysteresis",
       "rank": 11,
       "provenance": "connected_component",
       "hub_name": "低生育率陷阱假说",
@@ -1196,10 +1240,10 @@
       "edges_internal": 2,
       "avg_edge_score": 6.6,
       "max_edge_score": 7.2,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Landau first-order transition / Scheffer bistable lakes (2001)",
+      "taxonomy_match": "hysteresis_first_order_transition",
+      "confidence": "high",
+      "summary_zh": "系统存在两个稳定不动点 x_L, x_H 由内部正反馈分隔,一旦越过鞍点被拉入低态后即使参数恢复也无法返回,产生迟滞回线。湖泊磷循环、人口陷阱、管理层壕沟均为此结构。",
       "shared_equations_raw": [
         {
           "raw": "Hysteretic bistable system with internal positive feedback"
@@ -1208,8 +1252,14 @@
           "raw": "Bistable self-reinforcing trap: dx/dt=f(x)(x-x_L)(x-x_H), two stable fixed points"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "双稳态势函数: dx/dt = f(x)(x-x_L)(x-x_H)",
+        "迟滞回线面积 > 0 (path-dependent)",
+        "鞍结分岔处跳跃式转变",
+        "正反馈自我强化, 恢复路径与失稳路径不重合"
+      ],
       "predictions": [],
+      "notes": "与已 curate 的 hysteresis_first_order_transition 精确吻合",
       "members_by_domain": [
         {
           "domain": "人口学",
@@ -1230,12 +1280,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_12",
-      "name_zh": "未命名等价类 (凋亡Caspase级联的不可逆数字开关)",
-      "name_en": "",
+      "class_id": "gardner_collins_toggle_switch",
+      "name_zh": "Hill 超敏正反馈双稳态开关类",
+      "name_en": "Hill Ultrasensitive Positive-Feedback Toggle Switch",
       "rank": 12,
       "provenance": "connected_component",
       "hub_name": "凋亡Caspase级联的不可逆数字开关",
@@ -1250,10 +1301,10 @@
       "edges_internal": 3,
       "avg_edge_score": 6.4,
       "max_edge_score": 6.5,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Gardner-Cantor-Collins toggle switch (2000) / Griffith Hill switch (1968)",
+      "taxonomy_match": "gardner_collins_toggle_switch",
+      "confidence": "high",
+      "summary_zh": "由超敏 Hill 函数 (n>1) 驱动的正反馈导致两个稳定态和一个不稳定阈值,输入缓慢穿越时产生陡峭的开关切换。Caspase 凋亡、群体感应和合成生物学 toggle 共享同一方程骨架。",
       "shared_equations_raw": [
         {
           "raw": "ultrasensitive positive feedback: dx/dt = V x^n/(K^n+x^n) - k x, Hill switch"
@@ -1265,8 +1316,14 @@
           "raw": "dA/dt = α·A^n/(K^n+A^n) - βA + basal·N (自诱导Hill双稳态)"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "主方程: dS/dt = α·S^n/(K^n+S^n) - β·S, n>1",
+        "Hill 系数 n > 1 保证双稳态存在",
+        "阈值切换 (ultrasensitive) + 不可逆 (碱基态低且稳定)",
+        "鞍结分岔点处开关触发"
+      ],
       "predictions": [],
+      "notes": "与 gardner_collins_toggle_switch 精确一致",
       "members_by_domain": [
         {
           "domain": "细胞生物学",
@@ -1287,12 +1344,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_9",
-      "name_zh": "未命名等价类 (系统性风险的无标度网络)",
-      "name_en": "",
+      "class_id": "scale_free_percolation_class",
+      "name_zh": "无标度网络渗流与级联类",
+      "name_en": "Scale-Free Network Percolation & Cascade",
       "rank": 9,
       "provenance": "connected_component",
       "hub_name": "系统性风险的无标度网络",
@@ -1307,10 +1365,10 @@
       "edges_internal": 2,
       "avg_edge_score": 6.3,
       "max_edge_score": 7.8,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Cohen-Erez-ben-Avraham-Havlin (2000) & Barabási-Albert (1999)",
+      "taxonomy_match": "preferential_attachment",
+      "confidence": "high",
+      "summary_zh": "度分布 P(k)∝k^{-γ} 的无标度网络上,当 γ<3 时渗流阈值 p_c→0,网络对随机失效极度鲁棒但对针对 hub 攻击极度脆弱,级联阈值 φ_c 由二阶矩 <k²> 决定。再抵押循环、系统性金融风险和网络保险相关性属此类。",
       "shared_equations_raw": [
         {
           "raw": "scale-free network cascade: P(k)∝k^(-γ), percolation threshold p_c→0"
@@ -1319,8 +1377,14 @@
           "raw": "Percolation on scale-free network P(k)∝k^(-γ); cascade threshold φ_c"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "度分布: P(k) ∝ k^{-γ}, γ≈2-3",
+        "渗流阈值 p_c = <k>/(<k²> - <k>), γ<3 时 p_c → 0",
+        "hub 攻击下网络崩塌呈现剧烈相变",
+        "对随机失效鲁棒 / 对定向攻击脆弱的双重性"
+      ],
       "predictions": [],
+      "notes": "同时横跨 preferential_attachment 和 percolation_connectivity; 取前者作为主匹配因其强调无标度拓扑成因",
       "members_by_domain": [
         {
           "domain": "风险管理",
@@ -1341,12 +1405,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_13",
-      "name_zh": "未命名等价类 (社会认同传播)",
-      "name_en": "",
+      "class_id": "percolation_connectivity",
+      "name_zh": "渗流临界相变与 tipping point 类",
+      "name_en": "Percolation Critical Tipping Point",
       "rank": 13,
       "provenance": "connected_component",
       "hub_name": "社会认同传播",
@@ -1361,10 +1426,10 @@
       "edges_internal": 2,
       "avg_edge_score": 6.25,
       "max_edge_score": 6.5,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Broadbent-Hammersley percolation (1957) / Granovetter threshold model (1978)",
+      "taxonomy_match": "percolation_connectivity",
+      "confidence": "high",
+      "summary_zh": "网络节点占据概率越过临界值 p_c 时出现横跨系统的无穷连通簇,序参量 P_∞ ∝ (p-p_c)^β 呈二阶相变。社会认同、主动基金份额、竞争门槛防御都对应这一临界密度效应。",
       "shared_equations_raw": [
         {
           "raw": "order_parameter ~ (p - p_c)^beta; 2nd-order phase transition with critical adopter/active fraction"
@@ -1373,8 +1438,14 @@
           "raw": "tipping point: order_param ~ (p - p_c)^beta; percolation threshold on network density"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "序参量标度: order_param ∝ (p-p_c)^β",
+        "关联长度 ξ ∝ |p-p_c|^{-ν} 发散",
+        "二阶相变 (连续), 无迟滞",
+        "临界点处集团尺寸分布呈幂律"
+      ],
       "predictions": [],
+      "notes": "共享方程与 seed percolation_connectivity 精确一致",
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
@@ -1395,12 +1466,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_15",
-      "name_zh": "未命名等价类 (网红经济长尾失衡)",
-      "name_en": "",
+      "class_id": "preferential_attachment",
+      "name_zh": "偏好连接幂律分布类",
+      "name_en": "Preferential Attachment Power-Law Distribution",
       "rank": 15,
       "provenance": "connected_component",
       "hub_name": "网红经济长尾失衡",
@@ -1415,10 +1487,10 @@
       "edges_internal": 2,
       "avg_edge_score": 5.65,
       "max_edge_score": 5.8,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Yule (1925) / Simon (1955) / Barabási-Albert (1999)",
+      "taxonomy_match": "preferential_attachment",
+      "confidence": "high",
+      "summary_zh": "资源/注意力/连接按\"富者愈富\"规则分配,P(attach to i)∝k_i,长期分布收敛到幂律 P(k)∝k^{-γ}, γ≈3。足球积分、矿池规模、网红粉丝长尾都共享 Yule-Simon 过程结构。",
       "shared_equations_raw": [
         {
           "raw": "Barabási-Albert preferential attachment: P(k_i=k) ∝ k^{-γ}, γ≈3; Yule-Simon process"
@@ -1427,8 +1499,14 @@
           "raw": "P(x) ~ x^(-α); Yule-Simon preferential attachment"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "附着概率: P(i) ∝ k_i^α (α=1 为 BA)",
+        "度分布幂律: P(k) ∝ k^{-γ}, γ≈2-3",
+        "无特征尺度 (scale-free)",
+        "Hub 支配拓扑, 平均路径对数增长"
+      ],
       "predictions": [],
+      "notes": "与 seed preferential_attachment 精确一致",
       "members_by_domain": [
         {
           "domain": "加密货币与DeFi",
@@ -1449,12 +1527,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_14",
-      "name_zh": "未命名等价类 (城市热岛效应的空间梯度)",
-      "name_en": "",
+      "class_id": "reaction_diffusion_steady_state_class",
+      "name_zh": "稳态反应-扩散梯度场类",
+      "name_en": "Steady-State Reaction-Diffusion Gradient Field",
       "rank": 14,
       "provenance": "connected_component",
       "hub_name": "城市热岛效应的空间梯度",
@@ -1469,10 +1548,10 @@
       "edges_internal": 3,
       "avg_edge_score": 5.4,
       "max_edge_score": 6.2,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Fick (1855) / Poisson equation / French flag morphogen (Wolpert 1969)",
+      "taxonomy_match": "reaction_diffusion_turing",
+      "confidence": "medium",
+      "summary_zh": "带源汇与降解的扩散方程 ∂c/∂t = D∇²c - kc + S 的稳态解为指数或对数衰减梯度,特征尺度 λ=√(D/k)。热岛、地下水漏斗、母源效应 morphogen 梯度都遵循同一拉普拉斯/修正亥姆霍兹方程。",
       "shared_equations_raw": [
         {
           "raw": "Steady Laplace/Poisson equation ∇²u = -S; radial solution u(r) ∝ -ln(r) for 2D sinks/sources"
@@ -1484,8 +1563,14 @@
           "raw": "∂c/∂t = D ∇²c - k c + S(x); steady state: c(x) ~ λ exp(-x/λ), λ=√(D/k)"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "主方程: ∂c/∂t = D∇²c - kc + S(x)",
+        "稳态特征长度 λ = √(D/k)",
+        "二维径向解: u(r) ∝ -ln(r) 对数衰减",
+        "线性叠加 (无非线性 Turing 失稳)"
+      ],
       "predictions": [],
+      "notes": "是 reaction-diffusion 的线性稳态子类, 无 Turing 图案 (pattern formation), 因此 match 到 reaction_diffusion_turing 只算 medium",
       "members_by_domain": [
         {
           "domain": "环境科学",
@@ -1506,12 +1591,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_16",
-      "name_zh": "未命名等价类 (DNA甲基化的半甲基化继承)",
-      "name_en": "",
+      "class_id": "markov_chain_memory_fidelity_class",
+      "name_zh": "马尔可夫链状态记忆保真类",
+      "name_en": "Markov Chain State Memory & Fidelity",
       "rank": 16,
       "provenance": "connected_component",
       "hub_name": "DNA甲基化的半甲基化继承",
@@ -1526,10 +1612,10 @@
       "edges_internal": 2,
       "avg_edge_score": 5.25,
       "max_edge_score": 5.5,
-      "physics_prototype": "",
+      "physics_prototype": "Markov (1906) / Kolmogorov forward equation",
       "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "confidence": "high",
+      "summary_zh": "离散状态系统满足 P(s_{t+1}|s_t) 一阶马尔可夫性,单步保持概率 1-ε 决定记忆保真度,稳态分布由转移矩阵主特征向量给出。DNA 甲基化继承、X 染色体随机失活、发电机组启停都是典型离散马尔可夫。",
       "shared_equations_raw": [
         {
           "raw": "P(s_{t+1}|s_t) Markov transition matrix"
@@ -1538,8 +1624,14 @@
           "raw": "Markov chain with P(s_{t+1}=s_t) ≈ 1 - ε; epigenetic memory fidelity"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "一阶马尔可夫性: P(s_{t+1}|s_t, s_{t-1},...) = P(s_{t+1}|s_t)",
+        "保持概率: P(s_{t+1}=s_t) ≈ 1-ε (遗忘率)",
+        "稳态分布 π 满足 πP = π",
+        "记忆衰减时间 τ ~ 1/ε"
+      ],
       "predictions": [],
+      "notes": "马尔可夫链未在 12 个 seed 中显式列出, 作为新类登记",
       "members_by_domain": [
         {
           "domain": "分子生物学",
@@ -1560,12 +1652,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_8",
-      "name_zh": "未命名等价类 (高层建筑风振舒适度控制)",
-      "name_en": "",
+      "class_id": "second_order_damped_oscillator",
+      "name_zh": "二阶阻尼振子类",
+      "name_en": "Second-Order Damped Oscillator",
       "rank": 8,
       "provenance": "connected_component",
       "hub_name": "高层建筑风振舒适度控制",
@@ -1579,10 +1672,10 @@
       "edges_internal": 2,
       "avg_edge_score": 6.25,
       "max_edge_score": 8.0,
-      "physics_prototype": "",
-      "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "physics_prototype": "Hooke + Newton (17C) / LCR circuit",
+      "taxonomy_match": "second_order_damped_oscillator",
+      "confidence": "high",
+      "summary_zh": "最基础的线性动力系统 M·ẍ+C·ẋ+K·x=F(t),由固有频率 ω₀ 和阻尼比 ζ 刻画。高层建筑 TMD、电力系统 PSS、小信号振荡和暂态稳定控制全部落在同一对偶控制框架中。",
       "shared_equations_raw": [
         {
           "raw": "ẍ + 2ζω·ẋ + ω²·x = F(t); PSS ↔ TMD dual damping control"
@@ -1591,8 +1684,14 @@
           "raw": "M·ẍ + C·ẋ + K·x = F(t); critical damping ratio ζ_c"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "主方程: M·ẍ + C·ẋ + K·x = F(t)",
+        "固有频率 ω₀=√(K/M), 阻尼比 ζ=C/(2√(MK))",
+        "临界阻尼 ζ_c=1 分离振荡/过阻尼",
+        "ω₀ 处共振峰, 相位滞后 π/2"
+      ],
       "predictions": [],
+      "notes": "与 seed second_order_damped_oscillator 精确吻合",
       "members_by_domain": [
         {
           "domain": "电气工程",
@@ -1608,12 +1707,13 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     },
     {
-      "class_id": "auto_connected_component_17",
-      "name_zh": "未命名等价类 (新兴市场传染的多米诺效应)",
-      "name_en": "",
+      "class_id": "sir_contagion_network_class",
+      "name_zh": "SIR 网络传染与拓扑传导类",
+      "name_en": "SIR-Type Contagion on Financial Networks",
       "rank": 17,
       "provenance": "connected_component",
       "hub_name": "新兴市场传染的多米诺效应",
@@ -1627,10 +1727,10 @@
       "edges_internal": 2,
       "avg_edge_score": 4.75,
       "max_edge_score": 5.0,
-      "physics_prototype": "",
+      "physics_prototype": "Kermack-McKendrick SIR (1927) & Allen-Gale contagion (2000)",
       "taxonomy_match": null,
-      "confidence": "unclassified",
-      "summary_zh": "",
+      "confidence": "medium",
+      "summary_zh": "金融网络节点按 SIR 式动力学 dS/dt=-βSI 进行违约传染,拓扑结构从 bow-tie 经 CCP 中介化演变为星型,基本再生数 R₀=β/γ 决定是否存在传染相变。CDS 级联、场外衍生品对手方暴露、新兴市场多米诺共享此结构。",
       "shared_equations_raw": [
         {
           "raw": "SIR-like default contagion on financial network: dS/dt=-βSI, etc."
@@ -1639,8 +1739,14 @@
           "raw": "network topology cascade: bow-tie → star via CCP intermediation"
         }
       ],
-      "invariants": [],
+      "invariants": [
+        "SIR 动力学: dS/dt=-βSI, dI/dt=βSI-γI, dR/dt=γI",
+        "基本再生数 R₀ = β<k>/γ, R₀>1 触发流行",
+        "网络拓扑演化 (bow-tie → star via CCP)",
+        "违约聚类服从拓扑决定的规模分布"
+      ],
       "predictions": [],
+      "notes": "既像 percolation 又像 motter_lai, 但方程明确用 SIR 形式, 作为 SIR 变体登记; taxonomy seed 没有独立 SIR 类, 故 match null",
       "members_by_domain": [
         {
           "domain": "衍生品与风险管理",
@@ -1656,7 +1762,8 @@
           ]
         }
       ],
-      "is_curated": false
+      "is_curated": true,
+      "curation_source": "llm"
     }
   ]
 }

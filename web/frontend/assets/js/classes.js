@@ -7,8 +7,9 @@
 const DATA_URL = "/assets/data/universality-classes.json";
 
 let allClasses = [];
-let curatedClasses = [];
-let currentFilter = "curated";
+let manualClasses = [];
+let llmClasses = [];
+let currentFilter = "manual";
 
 const escapeHtml = (s) => {
   if (s === null || s === undefined) return "";
@@ -113,6 +114,7 @@ function renderPredictions(preds) {
 
 function renderCard(cls) {
   const uncurated = !cls.is_curated;
+  const isLlm = cls.curation_source === "llm";
   const badges = [];
   badges.push(
     `<span class="uc-badge uc-badge--size">${cls.size} 成员</span>`,
@@ -123,6 +125,13 @@ function renderCard(cls) {
   }
   if (cls.taxonomy_match === "soc_threshold_cascade") {
     badges.push(`<span class="uc-badge uc-badge--soc">SOC</span>`);
+  }
+  if (isLlm) {
+    const confLabel = cls.confidence === "high" ? "高置信" :
+                      cls.confidence === "medium" ? "中置信" : "低置信";
+    const confCls = cls.confidence === "high" ? "llm-high" :
+                    cls.confidence === "medium" ? "llm-med" : "llm-low";
+    badges.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
   }
 
   const sections = [];
@@ -170,6 +179,15 @@ function renderCard(cls) {
       <div class="uc-card__section">
         <h3 class="uc-card__section-title">可验证预测</h3>
         ${renderPredictions(cls.predictions)}
+      </div>
+    `);
+  }
+
+  if (isLlm && cls.notes) {
+    sections.push(`
+      <div class="uc-card__section uc-card__section--note">
+        <h3 class="uc-card__section-title">LLM 批注</h3>
+        <p class="uc-note">${escapeHtml(cls.notes)}</p>
       </div>
     `);
   }
@@ -222,7 +240,8 @@ function applyFilter(filter) {
   document.querySelectorAll(".uc-filter__btn").forEach((btn) => {
     btn.classList.toggle("uc-filter__btn--active", btn.dataset.filter === filter);
   });
-  const source = filter === "curated" ? curatedClasses : allClasses;
+  const source = filter === "manual" ? manualClasses :
+                 filter === "llm" ? llmClasses : allClasses;
   renderList(source);
 }
 
@@ -232,14 +251,25 @@ function bindFilter() {
   });
 }
 
+function updateFilterCounts() {
+  const m = document.querySelector("[data-count-manual]");
+  const l = document.querySelector("[data-count-llm]");
+  const a = document.querySelector("[data-count-all]");
+  if (m) m.textContent = manualClasses.length;
+  if (l) l.textContent = llmClasses.length;
+  if (a) a.textContent = allClasses.length;
+}
+
 async function init() {
   try {
     const data = await loadData();
     allClasses = data.classes || [];
-    curatedClasses = allClasses.filter((c) => c.is_curated);
+    manualClasses = allClasses.filter((c) => c.curation_source === "manual");
+    llmClasses = allClasses.filter((c) => c.curation_source === "llm");
     renderHeroStats(data.stats);
     bindFilter();
-    applyFilter("curated");
+    updateFilterCounts();
+    applyFilter("manual");
   } catch (e) {
     console.error(e);
     const host = document.getElementById("uc-list");
