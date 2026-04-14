@@ -47,54 +47,97 @@
         "note": "AI ASIC 绑定两三个大客户，集中度风险是 critical point"
       },
       {
-        "ticker": "PLTR",
-        "name": "Palantir",
+        "ticker": "LLY",
+        "name": "Eli Lilly",
+        "exchange": "NYSE",
+        "country": "US",
+        "industry": "Pharmaceuticals (GLP-1)",
+        "market_cap_usd": 760000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "GLP-1 (Zepbound/Mounjaro) 处于需求爆发期，产能瓶颈刚解除、美国肥胖人群 TAM 渗透率 <5%，是 runaway positive feedback 的早期，不是 saturating 也不是 logistic（K 还很远）。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 8,
+        "phase_state": "growth_phase",
+        "canonical_equation": "dN/dt = r*N",
+        "critical_points": [
+          "GLP-1 营收 YoY 跌破 40%",
+          "Medicare 拒付或价格谈判",
+          "口服 GLP-1 替代注射"
+        ],
+        "confidence": 0.82,
+        "note": "需求严重受限于供给的 exp_growth 阶段，不是 saturating"
+      },
+      {
+        "ticker": "PDD",
+        "name": "PDD Holdings (Pinduoduo + Temu)",
+        "exchange": "NASDAQ",
+        "country": "US/CN",
+        "industry": "E-commerce",
+        "market_cap_usd": 180000000000,
+        "dynamics_family": "Network_cascade",
+        "why_this_family": "Temu 的海外增长主要靠老带新补贴级联——每个新用户解锁补贴并拉更多新用户，典型的邻居触发传播；不是独立增长，也不是饱和期，所以不选 ODE1。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "stable",
+        "canonical_equation": "dN/dt = beta*N*(1-N/K) with contact network R0>1",
+        "critical_points": [
+          "R0 跌破 1（新用户推荐率 < 流失率）",
+          "美国关税/de minimis 政策收紧导致单位经济断裂",
+          "Temu 月活 YoY 跌破 30%"
+        ],
+        "confidence": 0.82,
+        "note": "级联阶段仍在 R0>1 区间，但监管是悬在头上的剑"
+      },
+      {
+        "ticker": "MSTR",
+        "name": "MicroStrategy",
         "exchange": "NASDAQ",
         "country": "US",
-        "industry": "Data Analytics / AI",
-        "market_cap_usd": 250000000000,
+        "industry": "BTC treasury + BI",
+        "market_cap_usd": 45000000000.0,
         "dynamics_family": "Self_fulfilling_prophecy",
-        "why_this_family": "估值与基本面严重脱钩：PS >80 倍，叙事驱动股价→纳入指数→被动买盘→强化叙事。商用 AIP 销售加速与估值互相强化。不选 exp_growth 因为基本面增速远低于股价隐含；不选 Bistable 因为反馈链属于预期而非市场结构。",
-        "feedback_topology": "positive_loop",
-        "boundary_behavior": "runaway_bubble",
+        "why_this_family": "发可转债 → 买 BTC → 推高 BTC → 股价溢价扩大 → 再发债，反身性闭环；预期本身驱动结果；不选 exp_growth 因为底层无现金流基础，不选 bubble 因为没这个 tag——这是 Soros 式 reflexivity 典型。",
+        "feedback_topology": "reflexive_positive_loop",
+        "boundary_behavior": "runaway_or_collapse",
         "timescale_log10_s": 7,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "dP/dt = k*(E[P] - P) + beta*P",
+        "phase_state": "stable",
+        "canonical_equation": "dP/dt = alpha*P*(NAV_premium - theta)",
         "critical_points": [
-          "商用 AIP 客户年化营收增速跌破 30%",
-          "被动资金流出",
-          "国防预算边际收紧"
+          "mNAV 溢价跌破 1.0",
+          "BTC 跌破 MSTR 平均成本价",
+          "可转债再融资窗口关闭"
         ],
-        "confidence": 0.7,
-        "note": "叙事驱动的自我实现，一旦增速叙事破裂会快速反向",
-        "_phase_raw": "bubble_phase"
+        "confidence": 0.82,
+        "note": "反身性闭环，价格=预期=fundamentals"
       }
     ]
   },
   "bistable_cusp": {
     "title": "⚖️ 双稳态切换型",
-    "desc": "系统有两个可能的稳态，当前在 cusp 附近。一次冲击可能让它不可逆地跳到另一边。",
+    "desc": "两个稳态并存，系统在某条件触发时会翻转过去就回不来。典型风险：缓慢推动下没有警告，跨过临界点后状态突变。",
     "companies": [
       {
-        "ticker": "ORCL",
-        "name": "Oracle",
+        "ticker": "GOTU",
+        "name": "Gaotu Techedu (高途)",
         "exchange": "NYSE",
-        "country": "US",
-        "industry": "Enterprise Software / Cloud",
-        "market_cap_usd": 470000000000,
-        "dynamics_family": "Bistable_switch",
-        "why_this_family": "Oracle 正在从老式 DB/license 的稳态（衰减）向 OCI+AI infra 新稳态（增长）切换，RPO 订单量近一年从 ~$1000亿跳到 $5000亿+，是典型的双稳态越过 cusp 场景，不是平滑 logistic。",
-        "feedback_topology": "bistable",
-        "boundary_behavior": "fold_bifurcation",
-        "timescale_log10_s": 8,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "dx/dt = -x^3 + mu*x + h",
+        "country": "CN",
+        "industry": "K-12 Online Education",
+        "market_cap_usd": 1000000000,
+        "dynamics_family": "Phase_transition_1st",
+        "why_this_family": "2021 双减政策导致 K-12 学科培训业务几天内归零，经典一阶相变——参数（政策）越过临界值瞬间跳到新稳态。后续业务（成人/非学科）是在新稳态上的重建。和 Uber 中国 / 印度 TikTok 同构。",
+        "feedback_topology": "external_forcing",
+        "boundary_behavior": "collapsing",
+        "timescale_log10_s": 7,
+        "phase_state": "post_transition",
+        "canonical_equation": "V(x) = -mu*x + x^4 (first-order jump)",
         "critical_points": [
-          "OCI 容量兑付 RPO 的比例 > 50%",
-          "AI 训练需求持续 2 年"
+          "任何针对成人培训的新监管",
+          "非学科业务 gross margin 跌破 50%"
         ],
-        "confidence": 0.75,
-        "note": "老 DB 业务稳态 + AI infra 新稳态之间的 cusp 切换，而非渐变"
+        "confidence": 0.9,
+        "note": "在新稳态上缓慢爬，但随时可能再来一次监管冲击"
       },
       {
         "ticker": "MRK",
@@ -108,7 +151,7 @@
         "feedback_topology": "negative_loop",
         "boundary_behavior": "cliff",
         "timescale_log10_s": 8,
-        "phase_state": "approaching_critical",
+        "phase_state": "stable",
         "canonical_equation": "dx/dt = r - x^2 (saddle-node near r=0)",
         "critical_points": [
           "Keytruda 美国专利 2028 到期",
@@ -116,102 +159,187 @@
           "后续 pipeline PDUFA 被拒"
         ],
         "confidence": 0.88,
-        "note": "经典专利悬崖 fold，药企的标志性动力学",
-        "_phase_raw": "pre_bifurcation"
+        "note": "经典专利悬崖 fold，药企的标志性动力学"
       },
       {
-        "ticker": "600519.SS",
-        "name": "贵州茅台",
-        "exchange": "SSE",
+        "ticker": "EDU",
+        "name": "New Oriental",
+        "exchange": "NYSE",
         "country": "CN",
-        "industry": "白酒",
-        "market_cap_usd": 250000000000,
-        "dynamics_family": "Hysteresis_loop",
-        "why_this_family": "茅台的金融化属性（渠道囤货+理财化）形成了价格滞回——涨的时候自我强化，跌的时候囤货集中抛售，不对称路径；不是 saturating（消费量远未饱和），而是价格预期的记忆效应。",
-        "feedback_topology": "delayed_positive",
-        "boundary_behavior": "limit_cycle",
-        "timescale_log10_s": 9,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "dP/dt = f(P, expectation); path asymmetric",
+        "industry": "Education Services",
+        "market_cap_usd": 8000000000.0,
+        "dynamics_family": "Phase_transition_1st",
+        "why_this_family": "2021 双减政策是一阶相变典型：几天内 K12 学科培训业务归零，公司被迫跳到东方甄选直播 + 留学 + 成人培训新稳态。监管悬崖不可逆，是教科书的 1st-order transition。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "absorbing",
+        "timescale_log10_s": 7,
+        "phase_state": "post_transition",
+        "canonical_equation": "Theta(T - T_c) * jump(order_parameter)",
         "critical_points": [
-          "批价跌破 2000 元持续 6 个月",
-          "经销商库存周转天数 > 180",
-          "年轻人白酒消费占比持续下滑"
+          "海外留学业务 YoY 跌破 15%",
+          "东方甄选 GMV 连续两季度下滑",
+          "任何新监管信号触及在线教育"
         ],
-        "confidence": 0.72,
-        "note": "金融资产化白酒的价格滞回，不是饮用需求驱动"
+        "confidence": 0.88,
+        "note": "相变已完成，在新稳态 re-equilibrate"
+      },
+      {
+        "ticker": "TAL",
+        "name": "TAL Education",
+        "exchange": "NYSE",
+        "country": "CN",
+        "industry": "Education Services",
+        "market_cap_usd": 5000000000,
+        "dynamics_family": "Phase_transition_1st",
+        "why_this_family": "2021 年双减政策是典型一阶相变——几天之内 K12 学科培训业务从 90%+ 营收归零，不可逆。当前在 post_transition 的新稳态（素质教育/学习机）上重建。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "repeller",
+        "timescale_log10_s": 8,
+        "phase_state": "post_transition",
+        "canonical_equation": "order_parameter jumps at T=T_c",
+        "critical_points": [
+          "监管对素质教育/智能硬件再收紧",
+          "学习机市场进入价格战"
+        ],
+        "confidence": 0.85,
+        "note": "已经越过断崖，现在的动力学是 post_transition 的新生意，不是原生意恢复"
+      },
+      {
+        "ticker": "BYND",
+        "name": "Beyond Meat",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Plant-based Meat",
+        "market_cap_usd": 500000000.0,
+        "dynamics_family": "Fold_bifurcation",
+        "why_this_family": "2019 IPO 峰值期的 plant-based hype 稳态已消失，消费者回购率断崖后跳到低营收稳态；市值从 $14B → $0.5B 不可回归。鞍结分岔而非指数衰减。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "hysteretic",
+        "timescale_log10_s": 8,
+        "phase_state": "stable",
+        "canonical_equation": "dx/dt = r + x - x^3",
+        "critical_points": [
+          "Retail volume YoY < -20%",
+          "现金 runway < 6 个月",
+          "债务重组触发"
+        ],
+        "confidence": 0.85,
+        "note": "已在低稳态，现金流是 binary outcome"
       }
     ]
   },
   "critical_slowing_down": {
     "title": "📈 临界放缓型",
-    "desc": "连续相变前夜。系统对外部冲击的敏感度爆炸式增长——任何小扰动都被放大。",
+    "desc": "系统接近相变，恢复力下降，扰动后回到平衡的时间越来越长。典型风险：方差增大、自相关变高，是相变最早的预警。",
     "companies": [
       {
-        "ticker": "GOOGL",
-        "name": "Alphabet / Google",
+        "ticker": "NFLX",
+        "name": "Netflix",
         "exchange": "NASDAQ",
         "country": "US",
-        "industry": "Digital Ads / Cloud",
-        "market_cap_usd": 2100000000000,
-        "dynamics_family": "Phase_transition_2nd",
-        "why_this_family": "搜索现金牛遭 LLM 原生搜索侵蚀，同时 Gemini/Cloud 自己也在抢生态位，出现 susceptibility 发散——外部小扰动（OpenAI 产品发布）引起巨大市值振幅。不选 saturating 因为广告基本盘本身在重塑；不选 Bistable 因为还没明确跳到另一稳态。",
-        "feedback_topology": "mixed",
-        "boundary_behavior": "critical_slowing",
+        "industry": "Streaming Media",
+        "market_cap_usd": 280000000000,
+        "dynamics_family": "ODE1_saturating",
+        "why_this_family": "全球付费用户 ~2.65亿 已接近可触达市场 K_eff ~3.48亿 的 76%，订阅增长个位数，主要增量来自涨价+广告 ARPU，是典型 logistic 后段，不是 exp_growth 也不是线性。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "saturation",
         "timescale_log10_s": 8,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "Ginzburg-Landau: F = a(T-Tc)*m^2 + b*m^4",
+        "phase_state": "saturated",
+        "canonical_equation": "dN/dt = r*N*(1 - N/K)",
         "critical_points": [
-          "搜索 query 份额跌破 85%",
-          "Search 广告 YoY 转负",
-          "AI Overview CTR 恶化"
+          "付费用户 YoY 跌破 3%",
+          "ARPU 涨价弹性失效（流失率 > 3%/月）"
         ],
-        "confidence": 0.72,
-        "note": "临界放缓，每次 AI 叙事都放大市值波动——典型二阶相变特征",
-        "_phase_raw": "near_critical"
+        "confidence": 0.88,
+        "note": "S 曲线后段的 ARPU 驱动，核心约束是 K_eff 而非获客能力"
       },
       {
-        "ticker": "TSM",
-        "name": "TSMC",
-        "exchange": "NYSE",
-        "country": "TW",
-        "industry": "Semiconductor Foundry",
-        "market_cap_usd": 950000000000,
-        "dynamics_family": "Percolation_network",
-        "why_this_family": "TSMC 的护城河不是产能本身，而是作为全球先进制程唯一连通节点的网络地位——整个半导体供应链的 percolation 骨干。地缘风险是网络断裂风险，不是 saturating 的 K 约束。",
-        "feedback_topology": "positive_loop",
-        "boundary_behavior": "runaway",
-        "timescale_log10_s": 8,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "P_infinity(p) ~ (p - p_c)^beta",
-        "critical_points": [
-          "大陆对台动武概率穿过 p_c",
-          "Intel/Samsung 先进制程良率追平"
-        ],
-        "confidence": 0.78,
-        "note": "全球 5nm 以下独点，percolation 意义上的 giant component 唯一 hub"
-      },
-      {
-        "ticker": "BABA",
-        "name": "阿里巴巴 ADR",
-        "exchange": "NYSE",
+        "ticker": "700.HK",
+        "name": "腾讯控股",
+        "exchange": "HKEX",
         "country": "CN",
-        "industry": "E-commerce + Cloud (ADR)",
-        "market_cap_usd": 180000000000,
-        "dynamics_family": "Phase_transition_2nd",
-        "why_this_family": "阿里处于电商份额被拼多多/抖音蚕食但云+国际仍在增长的对撞点。对每一条外部新闻（监管、AI、分拆）的反应幅度持续放大，典型临界慢化+susceptibility 发散。不是一阶相变因为没有瞬时跳变。",
-        "feedback_topology": "mixed",
+        "industry": "社交 / 游戏 / 广告",
+        "market_cap_usd": 400000000000,
+        "dynamics_family": "ODE1_saturating",
+        "why_this_family": "微信 MAU 14亿+ 基本触顶、国内游戏版号监管常态化、广告随宏观经济饱和，增长几乎全部来自 ARPU 和视频号广告渗透——是真正的 logistic 后段 saturating，符合严格定义。",
+        "feedback_topology": "negative_loop",
+        "boundary_behavior": "saturation",
+        "timescale_log10_s": 8,
+        "phase_state": "saturated",
+        "canonical_equation": "dR/dt = r*(1 - R/K), R driven by ARPU",
+        "critical_points": [
+          "微信 MAU 负增长",
+          "游戏流水 YoY 持续负",
+          "监管再次收紧"
+        ],
+        "confidence": 0.85,
+        "note": "Super-app 顶点的 ARPU 收割期，是少数符合 ODE1_saturating 严格定义的"
+      },
+      {
+        "ticker": "NESN.SW",
+        "name": "Nestle",
+        "exchange": "SIX",
+        "country": "CH",
+        "industry": "Global Packaged Food",
+        "market_cap_usd": 290000000000,
+        "dynamics_family": "ODE1_saturating",
+        "why_this_family": "雀巢全球包装食品渗透率已到结构天花板，有机增长主要来自 pricing（量甚至微降）。这是真正的 logistic 后段——比 PEP 更饱和，品类更成熟，Nespresso 救赎曲线也已成熟。",
+        "feedback_topology": "negative_loop_capacity_bound",
+        "boundary_behavior": "asymptotic_to_K",
+        "timescale_log10_s": 8,
+        "phase_state": "saturated",
+        "canonical_equation": "dN/dt = r*N*(1 - N/K)",
+        "critical_points": [
+          "有机增长率跌破 2%",
+          "RWI（真实量增长）持续为负 4 个季度",
+          "GLP-1 类别性冲击落地"
+        ],
+        "confidence": 0.85,
+        "note": "Deep saturation; Nestle is the textbook late-logistic consumer staple"
+      },
+      {
+        "ticker": "TMUS",
+        "name": "T-Mobile US",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "US Telecom",
+        "market_cap_usd": 230000000000,
+        "dynamics_family": "ODE1_saturating",
+        "why_this_family": "美国无线用户数接近饱和（~330M人口 vs ~500M连接），T-Mobile 通过 5G+Sprint 协同吃到最后一波份额红利，增长主要来自 ARPU 和固定无线接入。真正到了 logistic 后段。",
+        "feedback_topology": "negative_loop_capacity_bound",
+        "boundary_behavior": "asymptotic_to_K",
+        "timescale_log10_s": 8,
+        "phase_state": "saturated",
+        "canonical_equation": "dN/dt = r*N*(1 - N/K), K≈合格用户池",
+        "critical_points": [
+          "后付费净增跌破 0",
+          "Verizon/AT&T 启动价格战",
+          "Cable MVNO 份额超过 15%"
+        ],
+        "confidence": 0.85,
+        "note": "Late-stage logistic, ARPU-driven growth; beneficiary of Sprint synergies tapering"
+      },
+      {
+        "ticker": "INTU",
+        "name": "Intuit",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Tax + Accounting SaaS",
+        "market_cap_usd": 190000000000,
+        "dynamics_family": "ODE1_saturating",
+        "why_this_family": "TurboTax + QuickBooks 在美国小企业/报税市场已达 60%+ 渗透，增长主要靠 ARPU（AI 功能涨价、Credit Karma 交叉销售），新增用户已饱和。符合 logistic 后段严格定义。",
+        "feedback_topology": "negative_loop",
         "boundary_behavior": "bounded",
         "timescale_log10_s": 8,
-        "phase_state": "approaching_critical",
-        "canonical_equation": "chi ~ |T - T_c|^(-gamma)",
+        "phase_state": "saturated",
+        "canonical_equation": "dN/dt = r*N*(1 - N/K)",
         "critical_points": [
-          "淘天 GMV 份额跌破 40%",
-          "阿里云 AI 收入占比 >25%",
-          "回购节奏年化 >5%"
+          "IRS direct file 政策全面铺开",
+          "ARPU YoY 跌破 5%",
+          "AI 抢夺报税心智（ChatGPT tax）"
         ],
-        "confidence": 0.73,
-        "note": "多业务对撞，市场定价在不同剧本间来回切换"
+        "confidence": 0.83,
+        "note": "真正的 saturating 模板，K 约束在美国税法护城河本身"
       }
     ]
   }

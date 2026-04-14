@@ -1,0 +1,17 @@
+{"ticker": "VALE", "name": "Vale", "exchange": "NYSE", "industry": "Iron Ore Mining", "market_cap_usd": 55000000000.0, "country": "BR"}
+{"ticker": "ITUB", "name": "Itaú Unibanco", "exchange": "NYSE", "industry": "Latin America Banking", "market_cap_usd": 60000000000.0, "country": "BR"}
+{"ticker": "2382.HK", "name": "舜宇光学", "exchange": "HKEX", "industry": "Optical Components", "market_cap_usd": 8000000000.0, "country": "CN"}
+{"ticker": "601899.SS", "name": "紫金矿业", "exchange": "SSE", "industry": "Gold + Copper Mining", "market_cap_usd": 50000000000.0, "country": "CN"}
+{"ticker": "600519.SS", "name": "贵州茅台 (second)", "exchange": "SSE", "industry": "Premium Baijiu", "market_cap_usd": 250000000000.0, "country": "CN"}
+{"ticker": "TMUS", "name": "T-Mobile US", "exchange": "NASDAQ", "industry": "US Telecom", "market_cap_usd": 230000000000.0, "country": "US"}
+{"ticker": "MO", "name": "Altria", "exchange": "NYSE", "industry": "US Tobacco", "market_cap_usd": 80000000000.0, "country": "US"}
+{"ticker": "YUM", "name": "Yum! Brands", "exchange": "NYSE", "industry": "QSR (KFC/Taco Bell)", "market_cap_usd": 35000000000.0, "country": "US"}
+{"ticker": "PEP", "name": "PepsiCo", "exchange": "NASDAQ", "industry": "Beverages + Snacks", "market_cap_usd": 240000000000.0, "country": "US"}
+{"ticker": "NESN.SW", "name": "Nestle", "exchange": "SIX", "industry": "Global Packaged Food", "market_cap_usd": 290000000000.0, "country": "CH"}
+{"ticker": "BLK", "name": "BlackRock", "exchange": "NYSE", "industry": "Asset Management", "market_cap_usd": 160000000000.0, "country": "US"}
+{"ticker": "ICE", "name": "Intercontinental Exchange", "exchange": "NYSE", "industry": "Exchange + Data", "market_cap_usd": 90000000000.0, "country": "US"}
+{"ticker": "AXP", "name": "American Express", "exchange": "NYSE", "industry": "Card Network + Lender", "market_cap_usd": 195000000000.0, "country": "US"}
+{"ticker": "PDD.A", "name": "PDD (Pinduoduo parent)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180000000000.0, "country": "CN"}
+{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing #2", "market_cap_usd": 6000000000.0, "country": "US"}
+{"ticker": "EA", "name": "Electronic Arts", "exchange": "NASDAQ", "industry": "Gaming Publisher", "market_cap_usd": 40000000000.0, "country": "US"}
+{"ticker": "AMC", "name": "AMC Entertainment", "exchange": "NYSE", "industry": "Cinemas / Meme", "market_cap_usd": 2000000000.0, "country": "US"}

@@ -495,11 +495,42 @@
       <p class="lede" style="margin: 0 auto 12px;">
         免费加入 waitlist，我们会每周推送 1-2 份新的深度分析。上线后你是第一批测试用户。
       </p>
-      <form class="waitlist-form" onsubmit="event.preventDefault(); alert('已加入 waitlist。真实 backend 开发中。'); return false;">
-        <input type="email" placeholder="your@email.com" required>
-        <button type="submit" class="btn btn-primary">加入</button>
+      <form class="waitlist-form" id="waitlist-form">
+        <input type="email" id="waitlist-email" placeholder="your@email.com" required>
+        <button type="submit" class="btn btn-primary" id="waitlist-btn">加入</button>
       </form>
-      <p class="waitlist-note">不卖数据 · 不发垃圾邮件 · 随时退订 · 绝不转售给第三方</p>
+      <p class="waitlist-note" id="waitlist-status">不卖数据 · 不发垃圾邮件 · 随时退订 · 绝不转售给第三方</p>
+      <script>
+        document.getElementById('waitlist-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('waitlist-email').value.trim();
+          const btn = document.getElementById('waitlist-btn');
+          const status = document.getElementById('waitlist-status');
+          if (!email) return;
+          btn.disabled = true;
+          btn.textContent = '提交中…';
+          try {
+            const resp = await fetch('/phase/api/waitlist', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({email}),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+              btn.textContent = '已加入 ✓';
+              status.textContent = '已收到。我们会在第一批测试上线时给你发邮件。';
+              status.style.color = '#34D399';
+            } else {
+              throw new Error(data.error || '提交失败');
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = '加入';
+            status.textContent = '提交失败：' + err.message;
+            status.style.color = '#F87171';
+          }
+        });
+      </script>
     </div>
   </section>
 

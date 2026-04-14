@@ -232,6 +232,77 @@
     .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 
+    .related-samples {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .related-sample {
+      display: block;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.15s;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .related-sample:hover {
+      border-color: var(--accent);
+      background: var(--bg-card);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+    .related-sample-tk {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .related-sample-title {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .related-sample-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .deep-report-md {
+      padding: 20px 24px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.85;
+      margin-bottom: 16px;
+    }
+    .deep-report-md h1, .deep-report-md h2, .deep-report-md h3 {
+      font-family: var(--serif);
+      color: var(--text);
+      margin: 20px 0 10px;
+      line-height: 1.3;
+    }
+    .deep-report-md h1 { font-size: 22px; }
+    .deep-report-md h2 { font-size: 18px; }
+    .deep-report-md h3 { font-size: 15px; }
+    .deep-report-md p { margin: 10px 0; }
+    .deep-report-md ul, .deep-report-md ol { margin: 10px 0 10px 24px; }
+    .deep-report-md li { margin: 4px 0; }
+    .deep-report-md strong { color: var(--text); }
+    .deep-report-md code { font-family: var(--mono); font-size: 12.5px; padding: 2px 6px; background: var(--bg-card); border-radius: 3px; }
+    .deep-report-md blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 4px 16px;
+      margin: 12px 0;
+      color: var(--text-muted);
+    }
+
     .loading, .error {
       padding: 80px 0;
       text-align: center;
@@ -390,6 +461,8 @@
       return params.get('t') || '';
     }
 
+    let SAMPLES_MANIFEST = [];
+
     async function loadCompany() {
       const ticker = getTickerFromUrl();
       if (!ticker) {
@@ -402,8 +475,14 @@
       }
 
       try {
-        const resp = await fetch('/phase/api/companies');
+        const [resp, mResp] = await Promise.all([
+          fetch('/phase/api/companies'),
+          fetch('/phase/data/samples_manifest.json').catch(() => null),
+        ]);
         const data = await resp.json();
+        if (mResp && mResp.ok) {
+          try { SAMPLES_MANIFEST = await mResp.json(); } catch (e) { SAMPLES_MANIFEST = []; }
+        }
         const company = (data.companies || []).find(c => c.ticker === ticker);
         if (!company) {
           document.getElementById('content').innerHTML = `
@@ -419,6 +498,13 @@
         document.getElementById('content').innerHTML = `
           <div class="error">加载失败：${escapeHtml(err.message)}</div>`;
       }
+    }
+
+    function relatedSamples(c) {
+      if (!Array.isArray(SAMPLES_MANIFEST) || !SAMPLES_MANIFEST.length) return [];
+      return SAMPLES_MANIFEST.filter(s =>
+        s.dynamics_family === c.dynamics_family && s.ticker !== c.ticker
+      );
     }
 
     function render(c) {
@@ -533,11 +619,49 @@
           </dl>
         </section>
 
+        ${(() => {
+          const rel = relatedSamples(c);
+          if (!rel.length) return '';
+          const items = rel.map(s => `
+            <a href="/phase/samples/${s.slug}.html" class="related-sample">
+              <div class="related-sample-tk">${escapeHtml(s.ticker)}</div>
+              <div class="related-sample-title">${escapeHtml(s.title)}</div>
+              <div class="related-sample-meta">${escapeHtml(DYNAMICS_LABELS[s.dynamics_family] || s.dynamics_family)}</div>
+            </a>
+          `).join('');
+          return `
+            <section class="block">
+              <h2>类似结构的深度样例 <span class="label">SAME DYNAMICS</span></h2>
+              <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                这些公司被分类到同一个动力学家族（<strong>${escapeHtml(DYNAMICS_LABELS[c.dynamics_family] || c.dynamics_family)}</strong>），
+                它们的结构动力学和这家公司在数学层面是同构的。看其中一份完整报告，相当于看了这家公司的 80%。
+              </p>
+              <div class="related-samples">${items}</div>
+            </section>
+          `;
+        })()}
+
+        <section class="block" id="deep-report-block">
+          <h2>深度结构报告 <span class="label">DEEP REPORT</span></h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+            点下面的按钮，让 Claude Sonnet 4.5 基于这家公司的结构动力学，实时生成一份完整的中文深度报告（约 1500 字，30 秒生成）。
+          </p>
+          <div id="deep-report-content"></div>
+          <button id="deep-report-btn" class="btn btn-primary" style="margin-top: 8px;">
+            生成深度报告 →
+          </button>
+        </section>
+
         <div class="cta-row">
           <a href="/phase/screener" class="btn btn-secondary">← 回到筛选器</a>
           <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary">给这家公司做 Thesis 红队分析 →</a>
         </div>
       `;
+
+      const drBtn = document.getElementById('deep-report-btn');
+      if (drBtn) {
+        drBtn.addEventListener('click', () => generateDeepReport(c));
+      }
 
       if (window.renderMathInElement) {
         renderMathInElement(document.getElementById('content'), {
@@ -546,6 +670,71 @@
             {left: '$', right: '$', display: false},
           ],
         });
+      }
+    }
+
+    function renderMarkdown(md) {
+      // Tiny markdown renderer — handles headings, lists, paragraphs, bold, code, blockquote
+      let html = escapeHtml(md);
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Lists
+      html = html.replace(/(?:^[-*] .+(?:\n|$))+/gm, m => {
+        const items = m.trim().split('\n').map(l => '<li>' + l.replace(/^[-*] /, '') + '</li>').join('');
+        return '<ul>' + items + '</ul>';
+      });
+      html = html.replace(/(?:^\d+\. .+(?:\n|$))+/gm, m => {
+        const items = m.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+        return '<ol>' + items + '</ol>';
+      });
+      // Paragraphs (split by blank lines, wrap non-block lines)
+      const blocks = html.split(/\n{2,}/);
+      return blocks.map(b => {
+        b = b.trim();
+        if (!b) return '';
+        if (/^<(h\d|ul|ol|blockquote)/.test(b)) return b;
+        return '<p>' + b.replace(/\n/g, '<br>') + '</p>';
+      }).join('\n');
+    }
+
+    async function generateDeepReport(c) {
+      const btn = document.getElementById('deep-report-btn');
+      const out = document.getElementById('deep-report-content');
+      if (!btn || !out) return;
+      btn.disabled = true;
+      btn.textContent = '生成中…（约 30 秒）';
+      btn.style.opacity = '0.6';
+      out.innerHTML = '<div style="padding: 20px; color: var(--text-muted); font-size: 13px;">Claude Sonnet 4.5 正在分析…</div>';
+      try {
+        const resp = await fetch('/phase/api/deep-report', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ticker: c.ticker, struct: c}),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({error: 'unknown'}));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        out.innerHTML = '<div class="deep-report-md">' + renderMarkdown(data.report || '(empty)') + '</div>';
+        btn.style.display = 'none';
+        if (window.renderMathInElement) {
+          renderMathInElement(out, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+            ],
+          });
+        }
+      } catch (err) {
+        out.innerHTML = `<div style="padding: 16px; color: var(--red); font-size: 13px;">生成失败：${escapeHtml(err.message)}</div>`;
+        btn.disabled = false;
+        btn.textContent = '重试 →';
+        btn.style.opacity = '1';
       }
     }
 
