@@ -1,3 +1,13 @@
+
+// Score display helper: map fused score [0, 1.1] to a tier label + percentage.
+// Treats <0.3 as weak, 0.3-0.6 as medium, >=0.6 as strong.
+function scoreTier(score) {
+  const s = typeof score === 'number' ? score : 0;
+  if (s >= 0.6) return { pct: Math.round(Math.min(s, 1) * 100), label: '强相似', cls: 'score--strong' };
+  if (s >= 0.3) return { pct: Math.round(Math.min(s, 1) * 100), label: '中等相似', cls: 'score--medium' };
+  return { pct: Math.round(Math.min(s, 1) * 100), label: '弱相关', cls: 'score--weak' };
+}
+
 /**
  * Structural — Search results page (Phase 2)
  *
@@ -315,8 +325,7 @@ function renderResultsWithSynth() {
               </div>
               <div class="result-card__aside">
                 <div class="result-card__score">
-                  <span class="result-card__score-num">${Math.round(r.score * 100)}</span>
-                  <span class="result-card__score-unit">%</span>
+                  <span class="result-card__score-num">${scoreTier(r.score).pct}</span><span class="result-card__score-unit">%</span>
                 </div>
                 <svg class="result-card__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
               </div>
@@ -349,7 +358,7 @@ function renderResultsWithSynth() {
           <div class="rec-primary__body">
             <div class="rec-primary__meta">
               <span class="rec-primary__domain">${escapeHtml(pr.domain)}</span>
-              <span class="rec-primary__score">${Math.round(pr.score * 100)}% 结构相似</span>
+              <span class="rec-primary__score">${scoreTier(pr.score).pct}% · ${scoreTier(pr.score).label}</span>
             </div>
             <h3 class="rec-primary__name">${escapeHtml(pr.name)}</h3>
 
@@ -387,7 +396,7 @@ function renderResultsWithSynth() {
         <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
           <div class="rec-alt__angle">${escapeHtml(alt.angle_label || '补充视角')}</div>
           <h4 class="rec-alt__name">${escapeHtml(r.name)}</h4>
-          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${Math.round(r.score * 100)}%</div>
+          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}%</div>
           ${alt.reason ? `<p class="rec-alt__reason">${window.mdInline(alt.reason)}</p>` : ''}
           <div class="rec-alt__cta">
             深度分析
@@ -429,7 +438,7 @@ function renderResultsWithSynth() {
                   <div class="rec-other__name">${escapeHtml(r.name)}</div>
                   ${snippet ? `<p class="rec-other__snippet">${escapeHtml(snippet)}</p>` : `<p class="rec-other__desc">${escapeHtml(r.description)}</p>`}
                 </div>
-                <div class="rec-other__score">${Math.round(r.score * 100)}%</div>
+                <div class="rec-other__score">${scoreTier(r.score).pct}%</div>
               </a>
             `;
           }).join('')}
