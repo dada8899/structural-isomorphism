@@ -1,0 +1,16 @@
+{"ticker": "BHP", "name": "BHP Group", "exchange": "NYSE", "industry": "Diversified Mining", "market_cap_usd": 140000000000.0, "country": "AU"}
+{"ticker": "9888.HK", "name": "百度 (HKEX)", "exchange": "HKEX", "industry": "搜索 + 自动驾驶", "market_cap_usd": 35000000000.0, "country": "CN"}
+{"ticker": "0020.HK", "name": "商汤科技 SenseTime", "exchange": "HKEX", "industry": "AI / Computer Vision", "market_cap_usd": 4000000000.0, "country": "CN"}
+{"ticker": "601166.SS", "name": "兴业银行", "exchange": "SSE", "industry": "Joint-stock Bank", "market_cap_usd": 50000000000.0, "country": "CN"}
+{"ticker": "T", "name": "AT&T", "exchange": "NYSE", "industry": "US Telecom", "market_cap_usd": 150000000000.0, "country": "US"}
+{"ticker": "PM", "name": "Philip Morris International", "exchange": "NYSE", "industry": "Tobacco + Next-gen", "market_cap_usd": 160000000000.0, "country": "US"}
+{"ticker": "SBUX", "name": "Starbucks", "exchange": "NASDAQ", "industry": "Coffee Chain", "market_cap_usd": 110000000000.0, "country": "US"}
+{"ticker": "MDLZ", "name": "Mondelez", "exchange": "NASDAQ", "industry": "Global Snacks", "market_cap_usd": 95000000000.0, "country": "US"}
+{"ticker": "UL", "name": "Unilever", "exchange": "NYSE", "industry": "Global Consumer", "market_cap_usd": 150000000000.0, "country": "UK"}
+{"ticker": "MS", "name": "Morgan Stanley", "exchange": "NYSE", "industry": "Investment Bank + Wealth", "market_cap_usd": 170000000000.0, "country": "US"}
+{"ticker": "CME", "name": "CME Group", "exchange": "NASDAQ", "industry": "Derivatives Exchange", "market_cap_usd": 85000000000.0, "country": "US"}
+{"ticker": "MCO", "name": "Moody's", "exchange": "NYSE", "industry": "Credit Ratings", "market_cap_usd": 85000000000.0, "country": "US"}
+{"ticker": "STNE", "name": "StoneCo", "exchange": "NASDAQ", "industry": "Brazil Payments", "market_cap_usd": 5000000000.0, "country": "BR"}
+{"ticker": "PINS", "name": "Pinterest", "exchange": "NYSE", "industry": "Visual Discovery", "market_cap_usd": 22000000000.0, "country": "US"}
+{"ticker": "BMBL", "name": "Bumble", "exchange": "NASDAQ", "industry": "Dating Apps", "market_cap_usd": 1000000000.0, "country": "US"}
+{"ticker": "GME", "name": "GameStop", "exchange": "NYSE", "industry": "Game Retail / Meme", "market_cap_usd": 8000000000.0, "country": "US"}
