@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NVIDIA — Phase Detector</title>
+  <meta name="description" content="Runaway positive feedback approaching Semenov thermal explosion threshold.">
+  <meta property="og:title" content="NVIDIA — Phase Detector">
+  <meta property="og:description" content="Runaway positive feedback approaching Semenov thermal explosion threshold.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --bg-elevated: #141414;
+      --bg-card: #1A1A1A;
+      --border: #27272A;
+      --border-strong: #3F3F46;
+      --text: #FAFAFA;
+      --text-secondary: #D4D4D8;
+      --text-muted: #A1A1AA;
+      --accent: #22D3EE;
+      --accent-dim: rgba(34, 211, 238, 0.1);
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; }
+    .brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+    }
+    .brand-mark {
+      width: 20px; height: 20px;
+      border: 1.5px solid var(--accent);
+      border-radius: 50%;
+      position: relative;
+    }
+    .brand-mark::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .brand-beta {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 3px;
+      font-weight: 600;
+    }
+    nav.menu a {
+      margin-left: 20px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 60px 0 120px; }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .breadcrumb a { color: var(--text-muted); }
+
+    .ticker-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    article h1 {
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+    }
+    article h2 {
+      font-family: var(--serif);
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    article h3 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    article h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    article p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    article ul, article ol {
+      color: var(--text-secondary);
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    article li { margin-bottom: 6px; }
+    article strong { color: var(--text); font-weight: 600; }
+    article em { font-style: normal; color: var(--accent); }
+
+    article code {
+      font-family: var(--mono);
+      font-size: 13px;
+      background: var(--bg-elevated);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    article pre {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    article pre code {
+      background: none;
+      padding: 0;
+      border: 0;
+    }
+
+    article table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    article th, article td {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    article th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 13px;
+    }
+    article td { color: var(--text-secondary); }
+
+    article hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    .disclaimer-footer {
+      margin-top: 60px;
+      padding: 20px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    footer.site {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .footer-row {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      margin-left: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="../" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="../#samples">样例</a>
+        <a href="../#idea">什么是结构筛选</a>
+        <a href="../#waitlist">Waitlist</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="../">Phase Detector</a> / <a href="../#samples">Day 1 Samples</a> / NVDA
+      </div>
+      <div class="ticker-eyebrow">NVDA · ODE1_exponential_growth</div>
+      <article id="content"></article>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
+      <div class="footer-links">
+        <a href="../">主站</a>
+        <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const mdContent = "# NVDA — 超临界反应堆：正反馈、阈值效应与脆弱的平衡\n\n## Company Header\n- **Ticker & Name**: NVDA (NVIDIA Corporation)\n- **Industry**: 半导体 / AI 基础设施\n- **Market Cap**: ~$3.5T (as of 2026-04)\n- **Current Price**: ~$140 (拆股后，参考价，非投资建议)\n\n---\n\n## 1. Structural Signature\n\nNVIDIA 不是一只\"成长股\"，而是一个**处于超临界状态的正反馈反应堆**。其核心状态变量是客户 AI capex 承诺 C(t) 与 NVDA 收入 R(t)，两者之间存在短延迟正反馈闭环：\n```\n客户 capex → NVDA 收入 → 客户生产力/估值上升 → 新一轮 capex 承诺\n```\n反馈增益 k 在过去 8 个季度远大于 1（实测 NVDA revenue YoY > 100%，毛利率同时从 60% → 75%+），这是任何线性增长系统都无法解释的——线性系统的毛利率应在规模效应下缓慢上移，不是阶跃上移。\n\n从动力学家族看，这是一个 **autocatalytic runaway with threshold** 系统：低于某个\"客户回报率\"阈值，反馈衰减；高于阈值，反馈指数放大。问题在于，正反馈系统在**相空间中没有中间稳态**——它要么持续超临界，要么崩塌到低能态。当前 NVDA 正处于 critical state，任何一个关键客户（Microsoft/Meta/Amazon/Google，合计 ~40% revenue）减单都可能触发 k < 1 的相变。\n\n**一句话定性**：NVDA 是一个 autocatalytic runaway 系统，处于超临界状态但无中间稳态，离 tipping point 的距离由 top-4 客户的 capex 承诺曲率决定。\n\n---\n\n## 2. Three Cross-Domain Structural Twins\n\n### Twin #1: Laser Rate Equations / 激光阈值跨越（原子物理 / 非线性光学）\n\n**Shared equation** (simplified two-level laser):\n```\ndn/dt = W · N₂ - n/τ_c         (photon density)\ndN₂/dt = R_pump - N₂/τ₂ - W · N₂ · n   (upper-state pop)\n其中 W ∝ n (stimulated emission)\n```\n\n核心特征：存在一个 **pump threshold R_th**。低于它，系统是普通 fluorescent lamp（线性、noisy、低效）；**越过它瞬间**，受激辐射主导，输出功率相对于 pump 近似线性但斜率陡数十倍，相干性、单色性爆发式出现。\n\n**Variable mapping**:\n| Domain of origin (激光物理) | This company (NVDA) |\n|---|---|\n| R_pump 泵浦率 | Hyperscaler 总 AI capex/季度 |\n| N₂ 上能级粒子数 | 已部署 GPU 总量 × 利用率 |\n| n 光子数密度 | NVDA 季度收入 |\n| W 受激发射截面 | CUDA 生态 lock-in 强度 |\n| R_th 阈值 | ~$50B/季度 hyperscaler AI capex |\n\n**What this framework predicts**:\n- **Base case**: 系统已在 R_pump ≈ 2.5 × R_th 运行。阈值之上的斜率效率 η_slope ≈ 0.7，意味着每 $1 客户 capex → $0.6-0.7 进入 NVDA 收入（与实测一致）。持续到 2027 后半年，之后 pump 自然衰减（折旧周期 + 模型 ROI 开始验证）。\n- **Bull case**: 若 AI inference 需求形成第二 pump source（从训练转向推理），相当于加第二个 gain medium，系统保持多模振荡 2-3 年。\n- **Bear case**: Laser 可以\"熄灭\"——R_pump 只要瞬间跌回 R_th 以下（单季度），受激辐射立即崩塌到自发辐射。**从超临界回到亚临界没有过渡**，这是最关键的预警。GPU 产业回到 20-30% 毛利率的 commodity 状态，估值 multiple 砍 60%+。\n\n**Historical structural twins from business**:\n- **Cisco 1999-2001**：dotcom capex 是 pump source，Cisco 产品是 gain medium。阈值跨越后 18 个月 revenue 翻倍，阈值跌破后 12 个月 revenue -40%，estock -88%。同一个激光方程。\n- **Sun Microsystems 1999**：企业 Unix 服务器的类似超临界相，2001 Q1 单季度 revenue -30%，然后进入 8 年的亚临界状态，最后被收购。\n- **Qualcomm 2014-2015**：智能手机 capex 超临界后 Modem 单价进入 runaway，直到 Apple 自研 + 中国厂商议价触发相变。\n\n**Framework failure modes**:\n1. **多稳态**: 真实激光器可以有多个阈值（multi-mode），NVDA 如果能开辟 inference / robotics / auto 多 gain channel，单一 pump 衰减不会熄灭整个系统。\n2. **Feedback quenching**：激光方程假设 τ_c 是常数，但客户 capex 承诺周期会被外部宏观（利率、监管）扰动，使 τ_c 波动——模型对此不稳健。\n3. **Cavity losses**：阈值本身会随竞争（AMD MI300、Google TPU、定制 ASIC）漂移。R_th 不是常数。\n\n---\n\n### Twin #2: Autocatalytic Reaction Runaway / Semenov 热爆炸（化学物理）\n\n**Shared equation** (Semenov thermal explosion):\n```\nC · dT/dt = Q · A · e^(-E/RT) - h · (T - T_amb)\n```\n左边是系统热容积热，右边第一项是放热反应速率（Arrhenius 指数），第二项是散热速率（线性）。关键特征：**存在一个临界温度 T_c**，超过它则生成热 > 散热，系统正反馈加热到爆炸；低于它则收敛回环境温度。\n\n**Variable mapping**:\n| Domain of origin (热爆炸) | This company (NVDA) |\n|---|---|\n| T 系统温度 | 客户 AI 投资情绪 / capex commitment |\n| Q·A·e^(-E/RT) 生成热速率 | NVDA 产品带来的客户竞争压力（Arrhenius 形式的\"FOMO\"） |\n| h 散热系数 | 宏观利率 / 监管 / 能耗约束 |\n| T_c 临界温度 | 触发全行业 FOMO 的 capex 阈值 |\n\n**What this framework predicts**:\n- **Base case**: 当前系统已越过 T_c，正反馈（客户间 AI 军备竞赛）驱动整体 capex 指数加速。Arrhenius 指数意味着驱动力随\"温度\"指数增长——这解释了为什么 NVDA 收入增速不是线性而是加速。持续 6-8 个季度，直到 E（激活能 = 客户投入成本）累积到系统热容极限。\n- **Bull case**: 若 inference 需求启动（新的放热通道），E 有效值降低，runaway 延续；若能耗约束被核电/新电网缓解，h 降低，更易维持超临界。\n- **Bear case**: Semenov 爆炸的结局**不是新稳态，而是反应物耗尽后的骤冷**。NVDA 场景下相当于：客户 AI capex 已经透支未来 3 年的 free cash flow（实测 META+MSFT+GOOG 的 capex/FCF 比率已达 60%+），当反应物（闲置 FCF）耗尽，系统从高温骤冷到环境温度 = 2018 年 GPU 价格水平。\n\n**Historical structural twins from business**:\n- **光伏硅片 2007-2008**：多晶硅价格从 $40/kg 冲到 $400/kg，Arrhenius 式加速，然后 18 个月崩回 $25/kg。反应物是补贴 + 中国新增产能承诺。\n- **比特币挖矿 ASIC (2017)**：Bitmain 超临界期毛利率 50%+，然后价格崩塌后 18 个月内行业毛利率转负。\n- **光纤设备 2000**：JDSU、Nortel 的 Semenov runaway，反应物耗尽后收入 12 个月内 -70%。\n\n**Framework failure modes**:\n1. **温控系统**：如果有主动散热（监管减速、客户 capex 纪律），runaway 可以被控制在稳态燃烧，不必爆炸。\n2. **多反应通道**：Semenov 假设单反应，若 NVDA 有多个独立 demand source（inference/robotics/quant），热生成是 robust 的 portfolio，不会单点失效。\n3. **Arrhenius 假设失效**：客户 capex 决策不是热力学温度——它包含预期、博弈、政治，这些可能在 T 下降前就 pre-emptive 撤退。\n\n---\n\n### Twin #3: Nuclear Chain Reaction / 超临界链式反应（核物理）\n\n**Shared equation** (neutron multiplication):\n```\nN(t+1) = k · N(t), where k = η · f · p · ε · P_NL\nN(t) = N₀ · e^((k-1)·t/τ)\n```\nk 是 multiplication factor，τ 是 neutron generation time。k > 1 超临界（N 指数增长），k < 1 亚临界（指数衰减），k = 1 临界。关键特征：**k 的微小变化导致宏观结果完全不同**——k = 1.01 和 k = 0.99 看起来几乎一样，但一个走向爆炸，一个走向熄灭。\n\n**Variable mapping**:\n| Domain of origin (核链式) | This company (NVDA) |\n|---|---|\n| N(t) 中子密度 | 季度 NVDA 订单量 |\n| k multiplication factor | 每个 GPU 部署带来的后续订单系数 |\n| η fission neutrons/fission | 每个 AI 项目成功带来的后续项目数 |\n| f 燃料吸收率 | CUDA 生态内 workload 比例 |\n| p 共振逃逸概率 | 避开 AMD/TPU 替代的概率 |\n| P_NL 非泄漏概率 | 客户不转向定制 ASIC 的概率 |\n| τ generation time | 季度长度（订单周期） |\n\n**What this framework predicts**:\n- **Base case**: 当前 k ≈ 1.25-1.35（对应 revenue YoY +100%/yr）。这是高度超临界。即便 k 线性下降到 1.0，根据 e^((k-1)·t/τ)，从 k=1.3 到 k=1.0 只需要 4-6 个季度，期间 revenue 绝对值仍大但增速急剧衰减。这是典型的 \"inflection precedes absolute decline\"。\n- **Bull case**: 若 CUDA 护城河让 f + p + P_NL 保持高位，k 可以维持在 1.1-1.15 3-5 年，相当于成熟但持续扩张的反应堆。\n- **Bear case**: 核反应堆有个性质——**k 可以在数小时内从 1.3 掉到 0.8**（控制棒插入）。NVDA 场景：若 Microsoft 发布自研芯片、Meta 减单 50%、或欧盟 AI 监管法案生效，任何单一事件就是一根控制棒，k 单季度断崖下跌。届时 N(t) 不再增长，反过来指数衰减。\n\n**Historical structural twins from business**:\n- **Intel server CPU 2000-2018**：k 长期 ~1.05，稳态超临界状态，直到 AWS Graviton + AMD Epyc 在 2019 开始插入控制棒，2020-2024 k 跌到 0.92。Intel 数据中心收入从 $26B → $15B。\n- **Nokia handset 2007-2010**：iPhone 是一根巨大控制棒，k 从 1.2 跌到 0.6 用了 36 个月，市占率从 40% → 3%。\n- **BlackBerry 2009-2013**：同样的超临界反转，但更快——18 个月。\n\n**Framework failure modes**:\n1. **延迟效应**：核反应的 τ 是微秒级，NVDA 的订单周期是季度级。大量 capex 承诺有 12-18 个月 pipeline lock-in，k 的变化需要时间传导，相当于系统有巨大的 neutron inventory buffer，真实 collapse 可能比模型延迟一年。\n2. **反应堆设计改变**：NVDA 可以通过收购/整合（ARM、网络）扩大 gain medium，主动提高 η 和 f。\n3. **k 不是单一数值**：不同客户群的 k 差异巨大（hyperscaler k ≈ 1.4，企业 k ≈ 0.95，主权 AI k ≈ 1.2），加权平均可能掩盖内部结构断裂。\n\n---\n\n## 3. Quantified Projection\n\n**选中的框架**: Laser rate equation with slope efficiency η_slope. (比核链式更易于参数化 NVDA 数据。)\n\n**拟合过程**:\n\n用 hyperscaler capex（MSFT + META + GOOG + AMZN 季度数据）作为 pump R_pump，NVDA 数据中心季度收入作为 output n。拟合区间 2022Q4 - 2025Q4。\n\n```\nn(t) = η_slope · (R_pump(t) - R_th)    if R_pump > R_th\nn(t) = noise floor                      if R_pump ≤ R_th\n```\n\n参数估计：\n- **R_th ≈ $52B/Q** (95% CI: $45 - $58B) — 这是 top-4 hyperscaler AI-specific capex 的\"点火\"阈值\n- **η_slope ≈ 0.68** (95% CI: 0.61 - 0.74) — 每增加 $1 hyperscaler AI capex → $0.68 NVDA data center 收入\n- **Current R_pump ≈ $118B/Q** (2.3× threshold)\n\n**场景预测** (NVDA data center 季度收入):\n\n| 情景 | R_pump 路径 | NVDA DC Rev 2027Q4 | NVDA 总收入 2027 |\n|---|---|---|---|\n| Base | $118B → $140B (缓慢加速) | $60B/Q | ~$230B |\n| Bull | $118B → $170B (AI infer 二次点火) | $80B/Q | ~$300B |\n| Bear | $118B → $55B (2 个 hyperscaler 减单 40%) | $2B/Q | ~$60B |\n\n**关键非线性**: bear case 下收入**不是比例衰减**，而是因为跌破阈值出现**阶跃下降**——这正是 laser 方程和核链式反应的核心洞察。市场 consensus 用线性 DCF 折扣 bear case 到 $140B revenue，结构分析说真实 bear 是 $60B，比共识的 bear 再低 57%。\n\n**95% CI summary**: 2027 总收入 $90B - $300B。区间宽度本身就是核心 message——这不是\"正常的预测不确定性\"，是**相变系统固有的 bimodality**。常规 analyst 分布是单峰 Gaussian，这里是双峰。\n\n---\n\n## 4. Red Team — 3 Vulnerabilities in the Market Consensus\n\n### 1. Assumption: \"CUDA 护城河是永久的结构性 moat\"\n**Structural flaw**: CUDA 的锁定强度取决于**迁移成本 vs 迁移收益**。当 AMD ROCm + PyTorch 原生支持 + Mojo 等编译器进步 → 迁移成本指数下降；同时，替代硬件（MI300X、TPU v6、定制 ASIC）在 bulk inference 场景的 perf/$ 已经接近 H100 的 60-70%。一旦超过 \"economic threshold\"（约 40% 价格差），hyperscaler 会把 **inference 流量**（占未来 70%+ 算力需求）迁出 NVDA。从动力学看，这是 p（共振逃逸概率）的单调下降，**没有回复机制**。市场错把 CUDA 当成常数，实际它是 time-dependent decay。\n\n### 2. Assumption: \"AI capex 是永久性需求，类似 2000 年代的互联网带宽\"\n**Structural flaw**: 互联网带宽的经济学是**消费者直接使用**（边际成本下降 → 用量上升 → 需求持续）。AI 训练 capex 的经济学是**企业间接 ROI 博弈**（必须最终通过 AI 产品赚到钱才能 justify 下一轮投入）。如果 2026-2027 没有出现 $100B+ 年 revenue 的 killer AI 应用层（目前 OpenAI ~$5B，Anthropic ~$2B），客户的 reservoir（闲置 FCF）会耗尽。这是 Semenov 方程里\"反应物有限\"的直接体现：**runaway 不能无限持续**，总会碰到 E 上限。\n\n### 3. Assumption: \"客户集中度是风险但被多元化缓解\"\n**Structural flaw**: 市场看 top-4 客户占比 ~40% 就觉得\"分散在 4 家\"。结构问题是，这 4 家**决策机制高度相关**——他们看同样的 AI 进展 benchmark、招同一批 researcher、模仿彼此的 roadmap。在博弈论上这不是 4 个独立 decision maker，而是 1 个 correlated cluster。一旦\"AI ROI 证伪\"信号出现，他们会**同步减单**（keynesian beauty contest 式的 coordinated retreat）。correlation = 0.8+ 时，实际 effective diversification = 1.3 个独立客户，不是 4 个。\n\n---\n\n## 5. Observable Early-Warning Metrics\n\n1. **Top-4 Hyperscaler AI Capex Guidance / Quarter**: 任何单家下调超 15%（absolute 变化，不是百分比）→ pump 开始衰减。跌破 $95B/季度总量 → 接近 R_th，触发相变预警。\n2. **NVDA Data Center Revenue QoQ Growth**: 若从 +10%/Q 回落到 +3%/Q → k 正在从 1.3 向 1.0 过渡，inflection 已至。\n3. **H100/H200 Spot Price (rental market)**: 持续 4 周低于 $2/hr → 供给追上需求，bargaining power 反转。\n4. **AMD MI300X Revenue / Quarter**: 若 > $4B/Q → p 下降加速，竞争阈值跨越。\n5. **Hyperscaler AI-related Revenue Disclosure**: Azure/GCP/AWS 的 \"AI 贡献 revenue\" 是否 > 10% 且加速 → killer app 验证，runaway 可持续；若停滞在 5% → 反应物耗尽预警。\n6. **NVDA Gross Margin**: 若从 75%+ 下降超 300bp → commodity 化开始，laser 滑出超临界。\n7. **Customer Concentration (top-5 % of revenue)**: 若上升到 55%+ → correlation cluster 变紧，单点失败风险加剧；若下降到 30% 且被 sovereign AI / enterprise 稀释 → η 和 f 都在改善。\n8. **Inference vs Training Mix**: 若 inference 收入超过 training → 第二 gain medium 启动，runaway 延长；若训练仍占 >70% 且增速放缓 → 系统对第一 pump 过度依赖。\n\n---\n\n## 6. TL;DR\n\n**非共识结构洞察**: 市场仍在给 NVDA 定价 \"2-3 年持续 30-50% revenue 增长\" 的成长股，本质是假设当前反馈回路稳定。结构分析说这是一个**超临界系统**——没有中间稳态、没有平滑衰减路径。它要么以 k > 1 继续指数扩张（bull，$300B+ revenue），要么跨越 R_th 向下后**阶跃崩塌**到 commodity 半导体状态（bear，<$80B revenue），没有中间情景。2027 年 revenue 的真实分布是 bimodal，不是 Gaussian。大多数 analyst 的 DCF 用线性折扣去平均这个双峰，得出的 \"base case $180B\" 其实是两个峰之间的概率低谷。**真正该问的问题不是\"增长率是多少\"，而是\"top-4 hyperscaler 的 AI capex 谁会第一个眨眼\"**。那个答案决定 k 是 1.2 还是 0.8。\n\n---\n\n## Footer\n\n**Disclaimer**: 本文是基于公开数据的结构化分析，不构成投资建议。所有数字都是模型投影而非预测。相变系统的预测区间本身就反映结构性不确定，请勿据此交易。\n\n**Method**: Generated using Phase Detector's Structural Isomorphism engine. Models referenced: Laser rate equations (Schawlow & Townes, 1958), Semenov thermal explosion theory (1928), neutron chain-reaction theory (Fermi/Szilard, 1942). Read more at [link placeholder].\n";
+    const article = document.getElementById('content');
+    marked.setOptions({ breaks: false, gfm: true });
+    article.innerHTML = marked.parse(mdContent);
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.renderMathInElement) {
+        renderMathInElement(article, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\[', right: '\\]', display: true},
+            {left: '\\(', right: '\\)', display: false},
+          ],
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A0A">
+  <title>Phase Detector — 别用市盈率筛股，用数学结构筛股</title>
+  <meta name="description" content="Phase Detector 是一个按数学动力学筛选全市场的工具。不看 P/E，看 dynamics。找出那些正在经历结构相变的公司。">
+
+  <meta property="og:title" content="Phase Detector — Don't screen by P/E. Screen by phase.">
+  <meta property="og:description" content="The first screener that filters companies by their mathematical dynamics, not financial ratios.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --bg-elevated: #141414;
+      --bg-card: #1A1A1A;
+      --border: #27272A;
+      --border-strong: #3F3F46;
+      --text: #FAFAFA;
+      --text-secondary: #A1A1AA;
+      --text-muted: #71717A;
+      --accent: #22D3EE;
+      --accent-dim: rgba(34, 211, 238, 0.1);
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --success: #10B981;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+    /* Header */
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky;
+      top: 0;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--text);
+    }
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid var(--accent);
+      border-radius: 50%;
+      position: relative;
+    }
+    .brand-mark::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .brand-beta {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    nav.menu a {
+      margin-left: 24px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    /* Hero */
+    section.hero {
+      padding: 120px 0 100px;
+      text-align: center;
+      position: relative;
+    }
+    .tagline-eyebrow {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      padding: 6px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: 100px;
+      margin-bottom: 32px;
+      letter-spacing: 1px;
+    }
+    h1.hero-title {
+      font-family: var(--serif);
+      font-size: clamp(36px, 6vw, 68px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 28px;
+    }
+    .hero-title em {
+      color: var(--accent);
+      font-style: normal;
+    }
+    .hero-subtitle {
+      font-size: clamp(16px, 1.4vw, 20px);
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 44px;
+      line-height: 1.6;
+    }
+    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 160ms ease;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0A0A0A;
+    }
+    .btn-primary:hover {
+      background: #0ea5c4;
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* The idea section */
+    section.idea {
+      padding: 80px 0;
+      border-top: 1px solid var(--border);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    h2.section-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      margin-bottom: 24px;
+      max-width: 760px;
+    }
+    .lede {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 720px;
+      line-height: 1.75;
+      margin-bottom: 28px;
+    }
+    .lede em { color: var(--text); font-style: normal; }
+
+    /* Comparison — by P/E vs by Phase */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .compare-col {
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+    }
+    .compare-col.winner {
+      border-color: var(--accent);
+      background: linear-gradient(to bottom, rgba(34,211,238,0.04), var(--bg-elevated));
+    }
+    .compare-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .compare-col.winner .compare-label { color: var(--accent); }
+    .compare-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .compare-list {
+      list-style: none;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .compare-list li {
+      padding: 6px 0;
+      padding-left: 22px;
+      position: relative;
+    }
+    .compare-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--text-muted);
+    }
+    .compare-col.winner .compare-list li::before { color: var(--accent); }
+
+    @media (max-width: 720px) {
+      .compare { grid-template-columns: 1fr; }
+    }
+
+    /* Samples grid */
+    section.samples {
+      padding: 80px 0;
+      border-top: 1px solid var(--border);
+    }
+    .samples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-top: 40px;
+    }
+    .sample-card {
+      display: block;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      transition: all 200ms ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .sample-card:hover {
+      border-color: var(--accent);
+      background: var(--bg-card);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+    .sample-ticker {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .sample-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .sample-dynamic {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .sample-excerpt {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .sample-meta {
+      display: flex;
+      gap: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .sample-meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+    /* Waitlist */
+    section.waitlist {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      background: var(--bg-elevated);
+    }
+    .waitlist-form {
+      display: flex;
+      gap: 10px;
+      max-width: 460px;
+      margin: 32px auto 14px;
+    }
+    .waitlist-form input[type="email"] {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--sans);
+    }
+    .waitlist-form input[type="email"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .waitlist-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Footer */
+    footer.site {
+      padding: 48px 0 64px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      margin-left: 20px;
+      font-size: 13px;
+    }
+    .footer-links a:hover { color: var(--accent); text-decoration: none; }
+    .disclaimer {
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Subtle phase detection animation in background */
+    @keyframes phase-pulse {
+      0%, 100% { opacity: 0.02; }
+      50% { opacity: 0.06; }
+    }
+    section.hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 40%, var(--accent) 0%, transparent 60%);
+      opacity: 0.04;
+      animation: phase-pulse 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="#samples">样例报告</a>
+        <a href="#idea">什么是结构筛选</a>
+        <a href="#waitlist">加入 Waitlist</a>
+        <a href="https://structural.bytedance.city" target="_blank">主站</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="tagline-eyebrow">A NEW WAY TO SCREEN COMPANIES</span>
+      <h1 class="hero-title">别用市盈率筛股<br><em>用数学结构筛股</em></h1>
+      <p class="hero-subtitle">
+        Phase Detector 是第一个按**动力学相变**而非财务比率筛选全市场的工具。<br>
+        给你看那些正在经历结构转折的公司——在它们出现在新闻之前。
+      </p>
+      <div class="cta-row">
+        <a href="#samples" class="btn btn-primary">看 10 份样例报告 →</a>
+        <a href="#waitlist" class="btn btn-secondary">加入 Waitlist</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="idea" id="idea">
+    <div class="container">
+      <div class="section-label">THE IDEA</div>
+      <h2 class="section-title">传统筛选用的是财务比率<br>我们用的是数学结构</h2>
+      <p class="lede">
+        大多数公司在某一时刻都可以被描述为一个<em>动力学系统</em>：有状态变量、有反馈循环、有边界条件。这些结构来自物理学、生物学、生态学里研究了 100 年的经典方程。Phase Detector 做的事情很简单：把全市场的公司全部做结构化，然后让你按"数学家视角"筛选。
+      </p>
+      <div class="compare">
+        <div class="compare-col">
+          <div class="compare-label">THE OLD WAY</div>
+          <div class="compare-title">财务比率筛选</div>
+          <ul class="compare-list">
+            <li>"PE < 15 & ROE > 20%"</li>
+            <li>"高股息率"</li>
+            <li>"过去 5 年营收增速 > 10%"</li>
+            <li>"毛利率 > 40%"</li>
+            <li>看得见的滞后指标</li>
+          </ul>
+        </div>
+        <div class="compare-col winner">
+          <div class="compare-label">THE PHASE WAY</div>
+          <div class="compare-title">结构动力学筛选</div>
+          <ul class="compare-list">
+            <li>"处于 logistic saturation 的后段"</li>
+            <li>"接近 fold bifurcation（不可逆相变）"</li>
+            <li>"positive feedback 发散中"</li>
+            <li>"extinction debt 型（灭绝债务）"</li>
+            <li>领先于财报 6-18 个月的结构信号</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="samples" id="samples">
+    <div class="container">
+      <div class="section-label">DAY 1 SAMPLES</div>
+      <h2 class="section-title">10 份结构化公司分析<br><span style="color: var(--text-muted); font-size: 0.7em;">跨 10 个结构类型，从 NFLX 到拼多多</span></h2>
+      <p class="lede">
+        每份报告 1,500-2,500 字，包含 3 个来自物理学/生物学/生态学的跨域结构孪生、量化投影、红队反驳、预警信号。这不是 ChatGPT 生成的泛泛分析——是用一套具体的<em>数学检索流程</em>找到的差异化角度。
+      </p>
+      <div class="samples-grid" id="samples-grid">
+        <!-- Populated by JS at load time -->
+      </div>
+    </div>
+  </section>
+
+  <section class="waitlist" id="waitlist">
+    <div class="container">
+      <div class="section-label">JOIN WAITLIST</div>
+      <h2 class="section-title">想要每周一份结构化<br>公司分析？</h2>
+      <p class="lede" style="margin: 0 auto 12px;">
+        免费加入 waitlist，我们会每周推送 1-2 份新的深度分析。上线后你是第一批测试用户。
+      </p>
+      <form class="waitlist-form" onsubmit="event.preventDefault(); alert('已加入 waitlist。真实 backend 开发中。'); return false;">
+        <input type="email" placeholder="your@email.com" required>
+        <button type="submit" class="btn btn-primary">加入</button>
+      </form>
+      <p class="waitlist-note">不卖数据 · 不发垃圾邮件 · 随时退订 · 绝不转售给第三方</p>
+    </div>
+  </section>
+
+  <footer class="site">
+    <div class="container">
+      <div class="footer-row">
+        <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
+        <div class="footer-links">
+          <a href="https://structural.bytedance.city">主站</a>
+          <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
+          <a href="https://doi.org/10.5281/zenodo.19557847">Zenodo</a>
+          <a href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple">HuggingFace</a>
+        </div>
+      </div>
+      <div class="disclaimer">
+        <strong>免责声明</strong>：Phase Detector 生成的所有内容均为基于公开数据的结构化分析，**不构成投资建议**。结构模型的预测是数学推演的结果，不应作为买卖决策的依据。任何投资决策应由你自己做出，并咨询合格的金融顾问。
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Populate sample cards from static manifest (avoid file-list dependency)
+    const samples = [
+      { slug: '01-nflx',    ticker: 'NFLX',         name: 'Netflix',           dynamic: 'logistic_saturation',         excerpt: '全球订阅用户已到 K×17%，logistic 曲线进入减速段。三个跨域框架告诉你何时真的饱和。' },
+      { slug: '02-nvda',    ticker: 'NVDA',         name: 'NVIDIA',            dynamic: 'positive_feedback · critical', excerpt: 'AI 算力正反馈接近 Semenov 自催化临界点。半导体激光阈值方程告诉你爆发何时会转为崩溃。' },
+      { slug: '03-pdd',     ticker: 'PDD',          name: 'PDD / Temu',        dynamic: 'network_cascade',             excerpt: '跨境电商的网络级联 × SIR 阈值 + Schelling 临界质量。监管相变点在哪？' },
+      { slug: '04-tsla',    ticker: 'TSLA',         name: 'Tesla',             dynamic: 'bistable_switch',             excerpt: 'EV 采纳的双稳态：主流 vs niche。Ising 二阶相变告诉你翻转的临界磁场在哪。' },
+      { slug: '05-pton',    ticker: 'PTON',         name: 'Peloton',           dynamic: 'extinction_debt',             excerpt: '用 2021 年的数据倒推：当时就能预测 2023 崩塌。Tilman 灭绝债务方程的教科书级案例。' },
+      { slug: '06-byd',     ticker: '1211.HK',      name: 'BYD',               dynamic: 'multi-logistic',              excerpt: '国内 55% 渗透率已进入饱和后段。海外市场是第二条 S 曲线，监管风险是硬边界。' },
+      { slug: '07-shop',    ticker: 'SHOP',         name: 'Shopify',           dynamic: 'chemostat_flux',              excerpt: '平台的 churn 和 acquisition 是化学恒化器的流入流出。稀释率 vs 生长率的临界平衡。' },
+      { slug: '08-meituan', ticker: '3690.HK',      name: '美团',              dynamic: 'three_sided_equilibrium',     excerpt: '商家/骑手/用户的三体博弈。三体 Lotka-Volterra 告诉你任一边扰动后多久会重新平衡。' },
+      { slug: '09-snow',    ticker: 'SNOW',         name: 'Snowflake',         dynamic: 'network_vs_commoditization',  excerpt: '正反馈（网络效应）对抗负反馈（商品化）。这是 Curie 相变的二阶竞争场。' },
+      { slug: '10-liauto',  ticker: '2015.HK',      name: '理想汽车',          dynamic: 'niche_invasion',              excerpt: '独占 niche 变拥挤 niche：竞争排除原理（Gause）预测的占有率终态。' },
+    ];
+    const grid = document.getElementById('samples-grid');
+    grid.innerHTML = samples.map(s => `
+      <a class="sample-card" href="samples/${s.slug}.html">
+        <div class="sample-ticker">${s.ticker}</div>
+        <div class="sample-name">${s.name}</div>
+        <div class="sample-dynamic">dynamics_family: ${s.dynamic}</div>
+        <div class="sample-excerpt">${s.excerpt}</div>
+        <div class="sample-meta">
+          <span>~2,000 词</span>
+          <span>·</span>
+          <span>3 twins</span>
+          <span>·</span>
+          <span>结构化分析</span>
+        </div>
+      </a>
+    `).join('');
+  </script>
+</body>
+</html>
