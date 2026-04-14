@@ -45,13 +45,20 @@
 
 .disc-hero__title {
   font-family: var(--font-serif);
-  font-size: clamp(48px, 7vw, 88px);
+  font-size: var(--font-hero-display);
   font-weight: var(--fw-regular);
-  line-height: 0.98;
+  line-height: 1.05;
   letter-spacing: var(--ls-tighter);
   color: var(--text-primary);
   margin-bottom: var(--space-5);
   animation: fadeInUp 600ms var(--ease-out-expo) 80ms both;
+}
+
+/* CJK glyph collision fix — negative tracking at 88px stacks 汉字 into each other.
+ * Restore normal letter-spacing when page is Chinese; keep tight tracking for latin fallback. */
+:lang(zh) .disc-hero__title {
+  letter-spacing: var(--ls-normal);
+  line-height: 1.1;
 }
 
 .disc-hero__title em {

@@ -531,21 +531,21 @@
   margin: var(--space-8) auto;
   padding: var(--space-7) var(--space-5);
   text-align: center;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-surface);
   border-radius: var(--radius-xl);
 }
 
 .search-error__title {
   font-size: var(--fs-16);
   font-weight: var(--fw-medium);
-  color: #991b1b;
+  color: var(--danger-strong);
   margin-bottom: var(--space-2);
 }
 
 .search-error__text {
   font-size: var(--fs-13);
-  color: #b91c1c;
+  color: var(--danger-text);
   font-family: var(--font-mono);
 }
 

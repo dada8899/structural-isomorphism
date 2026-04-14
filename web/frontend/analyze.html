@@ -18,59 +18,6 @@
   <meta name="twitter:title" content="深度分析 — Structural">
   <meta name="twitter:description" content="跨学科迁移研究报告 · 从其他领域借用答案">
 
-  <!-- Share/favorite action bar styles (kept inline — analyze.css is off-limits) -->
-  <style>
-    .analyze-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      margin-left: auto;
-    }
-    .analyze-crumb {
-      display: flex;
-      align-items: center;
-    }
-    .analyze-action-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      font-size: var(--fs-12, 12px);
-      color: var(--text-secondary);
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-full, 999px);
-      cursor: pointer;
-      font-family: inherit;
-      line-height: 1;
-      transition: color var(--dur-fast) var(--ease-out),
-                  background var(--dur-fast) var(--ease-out),
-                  border-color var(--dur-fast) var(--ease-out);
-    }
-    .analyze-action-btn:hover {
-      color: var(--text-primary);
-      background: var(--bg-subtle, rgba(24,24,27,0.04));
-      border-color: var(--border-default, rgba(24,24,27,0.12));
-    }
-    .analyze-action-btn svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-    .analyze-action-btn--fav.is-active {
-      color: #d97706;
-      border-color: rgba(217, 119, 6, 0.35);
-      background: rgba(217, 119, 6, 0.06);
-    }
-    .analyze-action-btn__star {
-      font-size: 13px;
-      line-height: 1;
-      display: inline-block;
-      width: 14px;
-      text-align: center;
-    }
-  </style>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -79,6 +26,7 @@
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
   <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
   <link rel="stylesheet" href="/assets/css/analyze.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260414a">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
 
   <!-- KaTeX for math rendering -->
