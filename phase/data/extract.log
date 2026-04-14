@@ -1,0 +1,88 @@
+Total: 83, done: 0, todo: 83
+Model: moonshotai/kimi-k2-0905
+Output: /Users/wanqh/projects/structural-isomorphism/phase/data/companies_struct.jsonl
+  [1/83] NFLX          16.5s  ODE1_logistic
+  [2/83] NVDA          19.7s  ODE1_saturating
+  [3/83] PDD           14.9s  ODE1_logistic
+  [4/83] TSLA          20.2s  ODE1_saturating
+  [5/83] PTON          19.9s  ODE1_saturating
+  [6/83] SHOP          18.0s  ODE1_logistic
+  [7/83] SNOW          15.3s  ODE1_saturating
+  [8/83] AAPL         ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [9/83] MSFT         ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [10/83] GOOGL        ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [11/83] AMZN          17.1s  ODE1_saturating
+  [12/83] META         ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [13/83] TSM          ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [14/83] AMD          ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [15/83] INTC           6.8s  ODE1_saturating
+  [16/83] CRM            5.0s  ODE1_saturating
+  [17/83] ORCL           4.5s  ODE1_saturating
+  [18/83] PLTR           4.3s  ODE1_saturating
+  [19/83] PYPL           4.9s  ODE1_saturating
+  [20/83] COIN           5.0s  ODE1_saturating
+  [21/83] UBER           7.1s  ODE1_saturating
+  [22/83] DASH           7.1s  ODE1_saturating
+  [23/83] ABNB           6.2s  ODE1_logistic
+  [24/83] DIS            5.1s  ODE1_saturating
+  [25/83] MCD            4.2s  ODE1_saturating
+  [26/83] KO             5.6s  ODE1_saturating
+  [27/83] WMT            5.8s  ODE1_saturating
+  [28/83] COST           5.6s  ODE1_saturating
+  [29/83] NKE            7.4s  ODE1_saturating
+  [30/83] LULU          10.7s  ODE1_logistic
+  [31/83] JPM            8.1s  ODE1_saturating
+  [32/83] BAC            8.0s  ODE1_saturating
+  [33/83] BRK.B          6.0s  ODE1_saturating
+  [34/83] V              6.6s  ODE1_saturating
+  [35/83] MA             4.3s  ODE1_saturating
+  [36/83] UNH            5.3s  ODE1_saturating
+  [37/83] LLY            4.9s  ODE1_logistic
+  [38/83] NVO            5.5s  ODE1_logistic
+  [39/83] MRK            5.6s  ODE1_saturating
+  [40/83] JNJ            5.4s  ODE1_saturating
+  [41/83] XOM            3.3s  ODE1_saturating
+  [42/83] CVX            4.4s  ODE1_saturating
+  [43/83] BA            13.0s  ODE1_saturating
+  [44/83] GE             6.0s  ODE1_saturating
+  [45/83] 600519.SS    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [46/83] 601318.SS    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [47/83] 600036.SS    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [48/83] 601888.SS    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [49/83] 300750.SZ    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [50/83] 002594.SZ    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [51/83] 000858.SZ    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [52/83] 300760.SZ    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [53/83] 688981.SS    ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [54/83] 1211.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [55/83] 3690.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [56/83] 9988.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [57/83] 700.HK       ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [58/83] 9618.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [59/83] 2015.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [60/83] 9868.HK      ERR: <urlopen error [Errno 54] Connection reset by peer>
+  [61/83] 9866.HK        5.2s  ODE1_saturating
+  [62/83] 1024.HK        5.5s  ODE1_saturating
+  [63/83] BILI           5.4s  ODE1_logistic
+  [64/83] NTES           6.8s  ODE1_saturating
+  [65/83] BIDU           4.3s  ODE1_saturating
+  [66/83] TCEHY          4.5s  ODE1_saturating
+  [67/83] 9999.HK        4.0s  ODE1_saturating
+  [68/83] MSTR           4.2s  Self_fulfilling_prophecy
+  [69/83] MARA           3.9s  ODE1_saturating
+  [70/83] RIOT           3.7s  ODE1_saturating
+  [71/83] HOOD           4.9s  ODE1_saturating
+  [72/83] SOFI           5.2s  ODE1_saturating
+  [73/83] U              4.7s  ODE1_saturating
+  [74/83] DDOG           3.6s  ODE1_logistic
+  [75/83] NET            4.0s  ODE1_logistic
+  [76/83] CRWD           4.5s  ODE1_saturating
+  [77/83] ZS             4.2s  ODE1_logistic
+  [78/83] TEAM           4.7s  ODE1_logistic
+  [79/83] SPOT           5.1s  ODE1_logistic
+  [80/83] SE             4.5s  ODE1_logistic
+  [81/83] GRAB           4.7s  ODE1_saturating
+  [82/83] RIVN           4.0s  ODE1_logistic
+  [83/83] LCID           5.5s  ODE1_saturating
+
+Done. ok=61 err=22 elapsed=540.4s

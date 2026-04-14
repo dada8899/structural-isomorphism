@@ -262,10 +262,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <main>
     <div class="container">
       <div class="breadcrumb">
-        <a href="../">Phase Detector</a> / <a href="../#samples">Day 1 Samples</a> / {ticker}
+        <a href="/phase">Phase Detector</a> / <a href="/phase#samples">Day 1 Samples</a> / {ticker}
       </div>
       <div class="ticker-eyebrow">{ticker} · {dynamics_family}</div>
       <article id="content"></article>
+
+      <!-- Cross-linking: 其他 9 份样例 -->
+      <aside style="margin-top: 60px; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elevated);">
+        <div style="font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 14px;">MORE SAMPLES · 其他公司的结构分析</div>
+        <div id="more-samples" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
+      </aside>
+
+      <aside style="margin-top: 20px; text-align: center; padding: 18px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border);">
+        <div style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">想按数学动力学筛选全市场？</div>
+        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #0A0A0A; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
+      </aside>
     </div>
   </main>
 
@@ -294,6 +305,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             {{left: '\\\\(', right: '\\\\)', display: false}},
           ],
         }});
+      }}
+
+      // Populate "more samples" list
+      const currentSlug = {current_slug_js};
+      const allSamples = {all_samples_js};
+      const moreContainer = document.getElementById('more-samples');
+      if (moreContainer) {{
+        moreContainer.innerHTML = allSamples
+          .filter(s => s.slug !== currentSlug)
+          .map(s => `
+            <a href="/phase/samples/${{s.slug}}.html" style="display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-decoration: none; color: inherit; transition: all 150ms ease;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.8px; margin-bottom: 4px;">${{s.ticker}}</div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px;">${{s.name}}</div>
+              <div style="font-family: var(--mono); font-size: 10px; color: var(--text-muted);">${{s.dynamics_family}}</div>
+            </a>
+          `).join('');
       }}
     }});
   </script>
@@ -331,7 +358,7 @@ def escape_js_string(s: str) -> str:
     return json.dumps(s, ensure_ascii=False)
 
 
-def build_sample_page(slug: str, manifest_entry: dict) -> None:
+def build_sample_page(slug: str, manifest_entry: dict, all_manifest: list) -> None:
     md_path = SAMPLES_DIR / f"{slug}.md"
     html_path = SAMPLES_DIR / f"{slug}.html"
     if not md_path.exists():
@@ -344,6 +371,8 @@ def build_sample_page(slug: str, manifest_entry: dict) -> None:
         dynamics_family=manifest_entry.get("dynamics_family", "Unknown"),
         excerpt=manifest_entry.get("excerpt", "")[:160].replace('"', '&quot;'),
         markdown_js_string=escape_js_string(md_content),
+        current_slug_js=escape_js_string(slug),
+        all_samples_js=json.dumps(all_manifest, ensure_ascii=False),
     )
     html_path.write_text(html, encoding="utf-8")
     print(f"[ok]   {slug}.html ({len(html)//1024}KB)")
@@ -369,7 +398,7 @@ def main():
     with open(MANIFEST, encoding="utf-8") as f:
         manifest = json.load(f)
     for entry in manifest:
-        build_sample_page(entry["slug"], entry)
+        build_sample_page(entry["slug"], entry, manifest)
     build_index(manifest)
     print(f"\nDone. {len(manifest)} entries in manifest.")
 

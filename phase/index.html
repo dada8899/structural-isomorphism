@@ -402,9 +402,10 @@
         <span class="brand-beta">BETA</span>
       </a>
       <nav class="menu">
+        <a href="/phase/screener">结构筛选器</a>
         <a href="#samples">样例报告</a>
         <a href="#idea">什么是结构筛选</a>
-        <a href="#waitlist">加入 Waitlist</a>
+        <a href="#waitlist">Waitlist</a>
         <a href="https://structural.bytedance.city" target="_blank">主站</a>
       </nav>
     </div>
@@ -419,8 +420,8 @@
         给你看那些正在经历结构转折的公司——在它们出现在新闻之前。
       </p>
       <div class="cta-row">
-        <a href="#samples" class="btn btn-primary">看 10 份样例报告 →</a>
-        <a href="#waitlist" class="btn btn-secondary">加入 Waitlist</a>
+        <a href="/phase/screener" class="btn btn-primary">打开结构筛选器 →</a>
+        <a href="#samples" class="btn btn-secondary">看 10 份样例报告</a>
       </div>
     </div>
   </section>
@@ -456,6 +457,18 @@
           </ul>
         </div>
       </div>
+    </div>
+  </section>
+
+    <section class="idea" id="critical" style="border-top: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-label">APPROACHING CRITICAL · 今日精选</div>
+      <h2 class="section-title">这 6 家公司正处在<br>数学上的相变临界点附近</h2>
+      <p class="lede">
+        从 83 家预计算公司里筛出来的、当前 phase_state 标记为 approaching_critical 且置信度 ≥ 0.7 的公司。相变不等于立即崩塌——只意味着 <em>对外部冲击的敏感度正在爆炸式增长</em>。
+      </p>
+      <div id="critical-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 32px;"></div>
+      <p style="text-align: center; margin-top: 32px;"><a href="/phase/screener" class="btn btn-secondary" style="display: inline-block;">在筛选器里看全部 83 家 →</a></p>
     </div>
   </section>
 

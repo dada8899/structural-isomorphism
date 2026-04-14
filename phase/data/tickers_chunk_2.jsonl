@@ -1,0 +1,21 @@
+{"ticker": "NVDA", "name": "NVIDIA", "exchange": "NASDAQ", "industry": "Semiconductors / AI", "market_cap_usd": 3500000000000.0, "country": "US"}
+{"ticker": "SHOP", "name": "Shopify", "exchange": "NYSE", "industry": "E-commerce SaaS", "market_cap_usd": 130000000000.0, "country": "CA/US"}
+{"ticker": "GOOGL", "name": "Alphabet / Google", "exchange": "NASDAQ", "industry": "Digital Ads / Cloud", "market_cap_usd": 2100000000000.0, "country": "US"}
+{"ticker": "AMD", "name": "AMD", "exchange": "NASDAQ", "industry": "Semiconductors", "market_cap_usd": 250000000000.0, "country": "US"}
+{"ticker": "PLTR", "name": "Palantir", "exchange": "NASDAQ", "industry": "Data Analytics / AI", "market_cap_usd": 250000000000.0, "country": "US"}
+{"ticker": "DASH", "name": "DoorDash", "exchange": "NASDAQ", "industry": "Food Delivery", "market_cap_usd": 55000000000.0, "country": "US"}
+{"ticker": "KO", "name": "Coca-Cola", "exchange": "NYSE", "industry": "Beverages", "market_cap_usd": 290000000000.0, "country": "US"}
+{"ticker": "LULU", "name": "Lululemon", "exchange": "NASDAQ", "industry": "Apparel", "market_cap_usd": 45000000000.0, "country": "CA/US"}
+{"ticker": "V", "name": "Visa", "exchange": "NYSE", "industry": "Payments Network", "market_cap_usd": 570000000000.0, "country": "US"}
+{"ticker": "NVO", "name": "Novo Nordisk", "exchange": "NYSE", "industry": "Pharmaceuticals (GLP-1)", "market_cap_usd": 540000000000.0, "country": "DK"}
+{"ticker": "CVX", "name": "Chevron", "exchange": "NYSE", "industry": "Oil & Gas", "market_cap_usd": 300000000000.0, "country": "US"}
+{"ticker": "601318.SS", "name": "中国平安", "exchange": "SSE", "industry": "保险金融", "market_cap_usd": 120000000000.0, "country": "CN"}
+{"ticker": "002594.SZ", "name": "比亚迪 (A 股)", "exchange": "SZSE", "industry": "电动车 / 电池", "market_cap_usd": 90000000000.0, "country": "CN"}
+{"ticker": "1211.HK", "name": "比亚迪", "exchange": "HKEX", "industry": "电动车 / 电池", "market_cap_usd": 90000000000.0, "country": "CN"}
+{"ticker": "9618.HK", "name": "京东", "exchange": "HKEX", "industry": "电商 / 物流", "market_cap_usd": 45000000000.0, "country": "CN"}
+{"ticker": "1024.HK", "name": "快手", "exchange": "HKEX", "industry": "短视频", "market_cap_usd": 30000000000.0, "country": "CN"}
+{"ticker": "TCEHY", "name": "Tencent ADR", "exchange": "OTC", "industry": "社交 / 游戏", "market_cap_usd": 400000000000.0, "country": "CN"}
+{"ticker": "RIOT", "name": "Riot Platforms", "exchange": "NASDAQ", "industry": "Bitcoin Mining", "market_cap_usd": 3000000000.0, "country": "US"}
+{"ticker": "DDOG", "name": "Datadog", "exchange": "NASDAQ", "industry": "Observability SaaS", "market_cap_usd": 40000000000.0, "country": "US"}
+{"ticker": "TEAM", "name": "Atlassian", "exchange": "NASDAQ", "industry": "Dev Tools SaaS", "market_cap_usd": 45000000000.0, "country": "AU/US"}
+{"ticker": "RIVN", "name": "Rivian", "exchange": "NASDAQ", "industry": "Electric Trucks / Vans", "market_cap_usd": 12000000000.0, "country": "US"}

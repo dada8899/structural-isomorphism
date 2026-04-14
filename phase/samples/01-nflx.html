@@ -246,10 +246,21 @@
   <main>
     <div class="container">
       <div class="breadcrumb">
-        <a href="../">Phase Detector</a> / <a href="../#samples">Day 1 Samples</a> / NFLX
+        <a href="/phase">Phase Detector</a> / <a href="/phase#samples">Day 1 Samples</a> / NFLX
       </div>
       <div class="ticker-eyebrow">NFLX · ODE1_saturating</div>
       <article id="content"></article>
+
+      <!-- Cross-linking: 其他 9 份样例 -->
+      <aside style="margin-top: 60px; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elevated);">
+        <div style="font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 14px;">MORE SAMPLES · 其他公司的结构分析</div>
+        <div id="more-samples" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
+      </aside>
+
+      <aside style="margin-top: 20px; text-align: center; padding: 18px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border);">
+        <div style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">想按数学动力学筛选全市场？</div>
+        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #0A0A0A; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
+      </aside>
     </div>
   </main>
 
@@ -278,6 +289,22 @@
             {left: '\\(', right: '\\)', display: false},
           ],
         });
+      }
+
+      // Populate "more samples" list
+      const currentSlug = "01-nflx";
+      const allSamples = [{"slug": "01-nflx", "ticker": "NFLX", "name": "Netflix", "dynamics_family": "ODE1_saturating", "excerpt": "Verhulst-Pearl logistic saturation on global household carrying capacity."}, {"slug": "02-nvda", "ticker": "NVDA", "name": "NVIDIA", "dynamics_family": "ODE1_exponential_growth", "excerpt": "Runaway positive feedback approaching Semenov thermal explosion threshold."}, {"slug": "03-pdd", "ticker": "PDD", "name": "PDD / Temu", "dynamics_family": "Network_cascade", "excerpt": "SIR-style diffusion on cross-border network with regulatory critical point."}, {"slug": "04-tsla", "ticker": "TSLA", "name": "Tesla", "dynamics_family": "Bistable_switch", "excerpt": "EV adoption bistable switch at Ising-style second-order transition."}, {"slug": "05-pton", "ticker": "PTON", "name": "Peloton", "dynamics_family": "DDE_delayed_feedback", "excerpt": "Tilman extinction debt: signals visible in 2021 predicted 2023 collapse."}, {"slug": "06-byd", "ticker": "1211.HK", "name": "BYD", "dynamics_family": "ODE1_saturating", "excerpt": "Two-compartment logistic saturation (domestic mature + international early)."}, {"slug": "07-shop", "ticker": "SHOP", "name": "Shopify", "dynamics_family": "ODE1_saturating", "excerpt": "Chemostat flux balance: dilution rate vs growth rate critical equilibrium."}, {"slug": "08-meituan", "ticker": "3690.HK", "name": "美团", "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Three-species Lotka-Volterra: merchant/rider/user phase locking."}, {"slug": "09-snow", "ticker": "SNOW", "name": "Snowflake", "dynamics_family": "Phase_transition_2nd", "excerpt": "Curie-style second-order transition between network effects and commoditization."}, {"slug": "10-liauto", "ticker": "2015.HK", "name": "理想汽车", "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Gause competitive exclusion: formerly unique niche under invasion."}];
+      const moreContainer = document.getElementById('more-samples');
+      if (moreContainer) {
+        moreContainer.innerHTML = allSamples
+          .filter(s => s.slug !== currentSlug)
+          .map(s => `
+            <a href="/phase/samples/${s.slug}.html" style="display: block; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); text-decoration: none; color: inherit; transition: all 150ms ease;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.8px; margin-bottom: 4px;">${s.ticker}</div>
+              <div style="font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px;">${s.name}</div>
+              <div style="font-family: var(--mono); font-size: 10px; color: var(--text-muted);">${s.dynamics_family}</div>
+            </a>
+          `).join('');
       }
     });
   </script>
