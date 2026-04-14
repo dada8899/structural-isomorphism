@@ -358,9 +358,10 @@ class SearchService:
             if score < min_score:
                 continue
             item = self.kb[int(idx)]
-            # Scale displayed score to legacy ~[5, 20] band so frontend bars
-            # keep their visual proportions. Fused is in [0, ~1.15].
-            display_score = round(10.0 * score + 6.0, 4)
+            # Return fused score directly in [0, 1.1]. Frontend is
+            # responsible for mapping this to a visual tier (strong/medium/weak)
+            # or a capped percentage (min(score, 1.0) * 100).
+            display_score = round(min(score, 1.0), 4)
             results.append({
                 "id": item.get("id", ""),
                 "name": item.get("name", ""),
