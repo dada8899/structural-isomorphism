@@ -101,11 +101,14 @@ function renderPredictions(preds) {
       const rationale = p.rationale
         ? `<p class="uc-pred__rationale">${escapeHtml(p.rationale)}</p>`
         : "";
+      const statusCls = (p.status && (p.status.includes("已验证") || p.status.includes("✅")))
+        ? "uc-pred__status uc-pred__status--verified"
+        : "uc-pred__status";
       return `
-        <div class="uc-pred">
+        <div class="uc-pred${statusCls.includes('verified') ? ' uc-pred--verified' : ''}">
           <div class="uc-pred__header">
             <div class="uc-pred__target">${escapeHtml(p.target || "")}</div>
-            ${p.status ? `<span class="uc-pred__status">${escapeHtml(p.status)}</span>` : ""}
+            ${p.status ? `<span class="${statusCls}">${escapeHtml(p.status)}</span>` : ""}
           </div>
           <p class="uc-pred__text">${escapeHtml(p.prediction || "")}</p>
           ${rationale}

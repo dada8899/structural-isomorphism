@@ -1,0 +1,39 @@
+{
+  "domain": "seismology (global USGS catalog)",
+  "predicted_class": "soc_threshold_cascade (Omori law)",
+  "time_window": {
+    "start": "2020-01-01",
+    "end": "2025-01-01"
+  },
+  "main_mag_min": 6.0,
+  "aftershock_mag_min": 4.0,
+  "spatial_scaling": "r_km = 10^(0.5 M - 1.2) (Utsu rough)",
+  "time_window_days": 30,
+  "n_main_shocks_total": 651,
+  "n_main_shocks_used": 580,
+  "n_aftershocks_total": 24680,
+  "fit": {
+    "n_aftershocks_in_fit": 24,
+    "n_bins_used": 24,
+    "t_range_days": [
+      0.004099002555443915,
+      8.470895480684044
+    ],
+    "c_days": 0.1,
+    "p": 0.940928832683485,
+    "p_sigma": 0.017198344634014026,
+    "logK": 3.3263534676257716,
+    "R2": 0.9927037103342184,
+    "predicted_p_range": [
+      0.8,
+      1.2
+    ],
+    "p_within_prediction": true
+  },
+  "verdict": "CONFIRMED",
+  "method_refs": [
+    "Omori 1894",
+    "Utsu 1961 / Utsu-Ogata-Matsu'ura 1995",
+    "Wells-Coppersmith 1994 (aftershock spatial scaling)"
+  ]
+}

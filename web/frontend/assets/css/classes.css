@@ -458,6 +458,17 @@
   font-weight: 500;
 }
 
+.uc-pred__status--verified {
+  background: rgba(54, 140, 85, 0.15);
+  color: #2a6c40;
+  font-weight: 600;
+}
+
+.uc-pred--verified {
+  border-color: rgba(54, 140, 85, 0.4);
+  background: linear-gradient(180deg, #fff 0%, #f4faf5 100%);
+}
+
 .uc-pred__text {
   font-size: 14.5px;
   color: #333;

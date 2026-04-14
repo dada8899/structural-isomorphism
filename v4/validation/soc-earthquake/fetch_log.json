@@ -1,0 +1,11 @@
+{
+  "start": "2020-01-01",
+  "end": "2025-01-01",
+  "min_mag": 3.5,
+  "batch_days": 30,
+  "batches": 61,
+  "total_events": 84808,
+  "parquet_saved": true,
+  "jsonl_path": "/root/Projects/structural-isomorphism/v4/validation/soc-earthquake/catalog.jsonl",
+  "run_finished_at": "2026-04-14T22:48:56.409978Z"
+}
