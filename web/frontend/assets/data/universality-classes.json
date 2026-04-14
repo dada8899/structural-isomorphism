@@ -1,0 +1,1662 @@
+{
+  "meta": {
+    "generated_at": "2026-04-15",
+    "source": "v4/results/candidate_classes.jsonl",
+    "total_classes": 23,
+    "curated_classes": 8,
+    "version": "0.1"
+  },
+  "stats": {
+    "n_equivalence_classes": 23,
+    "n_cross_domain": 23,
+    "max_members": 21,
+    "max_domains": 12,
+    "largest_hub": "清算级联的链上流动性危机"
+  },
+  "classes": [
+    {
+      "class_id": "soc_threshold_cascade",
+      "name_zh": "阈值级联 / 自组织临界类",
+      "name_en": "Self-Organized Criticality (threshold cascade)",
+      "rank": 0,
+      "provenance": "connected_component",
+      "hub_name": "清算级联的链上流动性危机",
+      "hub_degree": 7,
+      "size": 21,
+      "n_domains": 12,
+      "domains": [
+        "交通现象",
+        "加密货币/DeFi",
+        "加密货币与DeFi",
+        "区块链/Web3",
+        "医学",
+        "商业",
+        "土木工程",
+        "地质学",
+        "电气工程",
+        "计算社会科学",
+        "金融",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 36,
+      "avg_edge_score": 6.919,
+      "max_edge_score": 8.6,
+      "physics_prototype": "Bak-Tang-Wiesenfeld 沙堆模型 (1987)",
+      "taxonomy_match": "soc_threshold_cascade",
+      "confidence": "high",
+      "summary_zh": "一组耦合的阈值元件，每个元件局部独立积累压力，当一个元件跨越阈值就触发破裂，破裂通过耦合把压力转移给邻居。当平均分支因子 ξ → 1 时系统处于分支过程临界点，此时级联规模服从幂律分布，时间衰减服从 Omori 律。",
+      "shared_equations_raw": [
+        {
+          "raw": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade"
+        },
+        {
+          "raw": "dP/dt = -k*f(P)*L where L is aggregate forced-sell pressure triggered by P crossing endogenous thresholds"
+        },
+        {
+          "raw": "dP/dt = -k*max(0, trigger - P)*L where L is leverage-weighted exposure crossing margin thresholds"
+        },
+        {
+          "raw": "sum_j K_ij * delta_j > threshold_i -> failure_i; Coulomb-type stress transfer on heterogeneous failure network"
+        }
+      ],
+      "invariants": [
+        "Gutenberg-Richter 幂律: P(s) ∝ s^(-τ), τ ≈ 1.5",
+        "Omori 衰减律: n(t) ∝ 1/t^p, p ≈ 1",
+        "分支过程临界: 平均分支因子 ξ → 1",
+        "标度不变: 系统无特征尺度",
+        "等待时间 Pareto 尾"
+      ],
+      "predictions": [
+        {
+          "target": "DeFi 清算级联",
+          "prediction": "清算 USD 规模分布服从 τ = 1.5 ± 0.2 的幂律",
+          "test_method": "MLE 拟合 + Kolmogorov-Smirnov 检验",
+          "data_source": "DeFiLlama Liquidations (2020-2026)",
+          "sample_size": "N ≥ 50,000 events",
+          "paper_target": "Nature Physics / PRL / PNAS",
+          "status": "待验证"
+        },
+        {
+          "target": "DeFi 清算级联",
+          "prediction": "大清算后的次生清算频率衰减服从 Omori 1/t^p, p ∈ [0.8, 1.2]",
+          "test_method": "时间窗口分组统计 + 幂律拟合",
+          "data_source": "Dune Analytics 逐块清算事件",
+          "paper_target": "同上",
+          "status": "待验证"
+        }
+      ],
+      "members_by_domain": [
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "保证金螺旋与强制去杠杆",
+            "做市商的期权对冲与Gamma风险",
+            "对手方风险的传染网络",
+            "闪崩的正反馈级联",
+            "闪崩的流动性螺旋机制"
+          ]
+        },
+        {
+          "domain": "区块链/Web3",
+          "names": [
+            "DeFi清算连锁瀑布效应",
+            "Plasma子链大规模退出问题"
+          ]
+        },
+        {
+          "domain": "交通现象",
+          "names": [
+            "GPS路径再分配",
+            "路口溢流锁死"
+          ]
+        },
+        {
+          "domain": "地质学",
+          "names": [
+            "地震断层的库仑应力触发",
+            "地震静态应力触发"
+          ]
+        },
+        {
+          "domain": "金融",
+          "names": [
+            "金融风险传染",
+            "银行挤兑"
+          ]
+        },
+        {
+          "domain": "商业",
+          "names": [
+            "供应链的级联断裂"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "建筑结构的渐进倒塌"
+          ]
+        },
+        {
+          "domain": "加密货币与DeFi",
+          "names": [
+            "清算瀑布的级联效应"
+          ]
+        },
+        {
+          "domain": "加密货币/DeFi",
+          "names": [
+            "清算级联的链上流动性危机"
+          ]
+        },
+        {
+          "domain": "电气工程",
+          "names": [
+            "电网连锁故障"
+          ]
+        },
+        {
+          "domain": "计算社会科学",
+          "names": [
+            "级联失效在社会网络中的传播"
+          ]
+        },
+        {
+          "domain": "医学",
+          "names": [
+            "耐药菌传播"
+          ]
+        },
+        {
+          "domain": "未标注",
+          "names": [
+            "旁观者效应"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "hysteresis_preisach",
+      "name_zh": "磁滞 / 一阶相变类",
+      "name_en": "Hysteresis / First-order Transition (Preisach)",
+      "rank": 1,
+      "provenance": "connected_component",
+      "hub_name": "热固性树脂凝胶点渗流相变",
+      "hub_degree": 4,
+      "size": 14,
+      "n_domains": 12,
+      "domains": [
+        "交通现象",
+        "催化化学",
+        "军事史/战略",
+        "化学",
+        "商业",
+        "土木工程",
+        "城市规划",
+        "材料化学",
+        "生态学",
+        "行为经济学",
+        "金融市场微观结构",
+        "高分子化学"
+      ],
+      "edges_internal": 13,
+      "avg_edge_score": 7.154,
+      "max_edge_score": 9.0,
+      "physics_prototype": "Preisach 磁滞模型 (1935) + Scheffer 双稳态 (2001)",
+      "taxonomy_match": "hysteresis_first_order_transition",
+      "confidence": "medium",
+      "summary_zh": "系统存在双稳态或多稳态，状态变化有明显的滞后环——升高参数到 A 点才从低态跳到高态，降低参数到 B < A 才跳回。典型数学结构是 Preisach 算子与双稳态分岔的组合。",
+      "shared_equations_raw": [
+        {
+          "raw": "磁滞: M(H) = ∫∫ μ(α,β)·γ(α,β,H) dα dβ (Preisach模型); 生态: x(t+1) = f(x(t), p), dx/dt = r·x(1-x/K) - h(x,p), 双稳态分岔。映射: 外磁场H→营养物质浓度p, 磁化强度M→生态状态指标(透明度), Preisach密度μ→物种响应异质性分布, 矫顽力→恢复阈值"
+        },
+        {
+          "raw": "P∞ ∝ (p - p_c)^β, β_{2D}=5/36"
+        },
+        {
+          "raw": "p_c for bond percolation on ecological interaction network"
+        },
+        {
+          "raw": "P_∞ ∝ (p-p_c)^β, β≈0.41 (3D percolation)"
+        }
+      ],
+      "invariants": [
+        "双稳态分岔 (saddle-node / fold)",
+        "滞后环面积 = 能量耗散",
+        "Preisach 密度 μ(α,β) 描述分布式滞后",
+        "临界点的标度律"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "土木工程",
+          "names": [
+            "土壤液化",
+            "地基液化判别"
+          ]
+        },
+        {
+          "domain": "城市规划",
+          "names": [
+            "交通拥堵的非线性"
+          ]
+        },
+        {
+          "domain": "交通现象",
+          "names": [
+            "交通流相变拥堵"
+          ]
+        },
+        {
+          "domain": "军事史/战略",
+          "names": [
+            "士气崩溃的阈值效应"
+          ]
+        },
+        {
+          "domain": "商业",
+          "names": [
+            "技术采用的跨越鸿沟"
+          ]
+        },
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "流动性黑洞"
+          ]
+        },
+        {
+          "domain": "高分子化学",
+          "names": [
+            "热固性树脂凝胶点渗流相变"
+          ]
+        },
+        {
+          "domain": "生态学",
+          "names": [
+            "生态系统突变"
+          ]
+        },
+        {
+          "domain": "材料化学",
+          "names": [
+            "相变储热材料潜热不连续释放"
+          ]
+        },
+        {
+          "domain": "行为经济学",
+          "names": [
+            "社会证明的从众阈值"
+          ]
+        },
+        {
+          "domain": "化学",
+          "names": [
+            "结晶过程"
+          ]
+        },
+        {
+          "domain": "催化化学",
+          "names": [
+            "费托合成原位相重构"
+          ]
+        },
+        {
+          "domain": "未标注",
+          "names": [
+            "磁铁的磁滞"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "scheffer_fold_bifurcation",
+      "name_zh": "Scheffer 突变 / Fold 分岔类",
+      "name_en": "Fold Bifurcation / Scheffer Regime Shift",
+      "rank": 2,
+      "provenance": "connected_component",
+      "hub_name": "蛋白质相分离的临界浓度阈值",
+      "hub_degree": 5,
+      "size": 10,
+      "n_domains": 8,
+      "domains": [
+        "分子生物学",
+        "材料科学",
+        "气候科学",
+        "烹饪科学",
+        "生态学",
+        "肿瘤学",
+        "航空航天",
+        "药理学"
+      ],
+      "edges_internal": 10,
+      "avg_edge_score": 6.89,
+      "max_edge_score": 8.4,
+      "physics_prototype": "Scheffer regime shift (2001) + catastrophe theory",
+      "taxonomy_match": "fold_bifurcation_regime_shift",
+      "confidence": "high",
+      "summary_zh": "具有双稳态的非线性系统，控制参数缓慢变化到 fold 分岔点时系统状态突然跳变，且跳变不可逆——这就是 tipping point。共享方程是 Scheffer 标准式。",
+      "shared_equations_raw": [
+        {
+          "raw": "dx/dt = r - bx + x²/(h²+x²) (Scheffer normal form)"
+        },
+        {
+          "raw": "dROS/dt = P - k GSH; collapse when GSH < GSH_crit (fold bifurcation)"
+        },
+        {
+          "raw": "saddle-node bifurcation: dx/dt=r-x²; bistable hysteresis"
+        },
+        {
+          "raw": "first-order phase transition with coexistence: spinodal decomposition"
+        }
+      ],
+      "invariants": [
+        "Fold 分岔 normal form: dx/dt = r - bx + x²/(h²+x²)",
+        "tipping point 不可逆性",
+        "临界减速 (critical slowing down) 作为预警信号",
+        "分岔点附近涨落变大"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "材料科学",
+          "names": [
+            "奥氏体化的临界温度",
+            "形状记忆合金马氏体逆变"
+          ]
+        },
+        {
+          "domain": "烹饪科学",
+          "names": [
+            "果胶凝胶网络",
+            "淀粉糊化"
+          ]
+        },
+        {
+          "domain": "药理学",
+          "names": [
+            "对乙酰氨基酚代谢产物毒性"
+          ]
+        },
+        {
+          "domain": "气候科学",
+          "names": [
+            "植被反馈的绿色撒哈拉"
+          ]
+        },
+        {
+          "domain": "生态学",
+          "names": [
+            "湖泊富营养化的临界翻转"
+          ]
+        },
+        {
+          "domain": "航空航天",
+          "names": [
+            "热障涂层的热应力分岔"
+          ]
+        },
+        {
+          "domain": "肿瘤学",
+          "names": [
+            "肿瘤铁死亡易感性"
+          ]
+        },
+        {
+          "domain": "分子生物学",
+          "names": [
+            "蛋白质相分离的临界浓度阈值"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "motter_lai_network_cascade",
+      "name_zh": "Motter-Lai 网络级联类",
+      "name_en": "Motter-Lai Network Cascade",
+      "rank": 0,
+      "provenance": "louvain_community",
+      "hub_name": "建筑结构的渐进倒塌",
+      "hub_degree": 7,
+      "size": 9,
+      "n_domains": 8,
+      "domains": [
+        "交通现象",
+        "加密货币与DeFi",
+        "区块链/Web3",
+        "土木工程",
+        "地质学",
+        "电气工程",
+        "计算社会科学",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 15,
+      "avg_edge_score": 6.567,
+      "max_edge_score": 8.2,
+      "physics_prototype": "Motter-Lai model (2002) for network cascading failure",
+      "taxonomy_match": "soc_threshold_cascade",
+      "confidence": "high",
+      "summary_zh": "SOC 巨簇经 Louvain 社区发现自动拆出的一个亚类——专门描述物理基础设施网络上的级联失效。每个节点有容量 C_i，当前负载 L_i，失效后负载按权重 w_ij 分配给邻居，若接收者超过容量则连锁失效。",
+      "shared_equations_raw": [
+        {
+          "raw": "Motter-Lai cascade: L_i(t+1)=L_i(t)+Σ_j∈F(t) L_j·w_ij/Σ_k w_jk, fail if L_i>C_i"
+        },
+        {
+          "raw": "threshold cascade: f(x_i) = Θ(Σ w_ij x_j - θ_i)"
+        },
+        {
+          "raw": "Motter-Lai load redistribution: if L_i>C_i then fail, L_j←L_j+ΔL·w_ij"
+        },
+        {
+          "raw": "load shedding cascade: if L_i>C_i, redistribute ΔL to neighbors via kernel K_ij"
+        }
+      ],
+      "invariants": [
+        "级联规模分布: P(s) ∝ s^(-τ)",
+        "关键容限比 α = C/L 决定鲁棒性",
+        "单点故障攻击曲线",
+        "小世界 + 无尺度拓扑加剧级联"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "交通现象",
+          "names": [
+            "GPS路径再分配",
+            "路口溢流锁死"
+          ]
+        },
+        {
+          "domain": "区块链/Web3",
+          "names": [
+            "Plasma子链大规模退出问题"
+          ]
+        },
+        {
+          "domain": "地质学",
+          "names": [
+            "地震断层的库仑应力触发"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "建筑结构的渐进倒塌"
+          ]
+        },
+        {
+          "domain": "加密货币与DeFi",
+          "names": [
+            "清算瀑布的级联效应"
+          ]
+        },
+        {
+          "domain": "电气工程",
+          "names": [
+            "电网连锁故障"
+          ]
+        },
+        {
+          "domain": "计算社会科学",
+          "names": [
+            "级联失效在社会网络中的传播"
+          ]
+        },
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "闪崩的正反馈级联"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "diamond_dybvig_self_fulfilling",
+      "name_zh": "Diamond-Dybvig 自实现挤兑类",
+      "name_en": "Diamond-Dybvig Self-Fulfilling Runs",
+      "rank": 1,
+      "provenance": "louvain_community",
+      "hub_name": "银行挤兑",
+      "hub_degree": 5,
+      "size": 8,
+      "n_domains": 5,
+      "domains": [
+        "加密货币/DeFi",
+        "医学",
+        "商业",
+        "金融",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 10,
+      "avg_edge_score": 7.2,
+      "max_edge_score": 8.5,
+      "physics_prototype": "Diamond-Dybvig (1983) + Morris-Shin global games",
+      "taxonomy_match": "multistable_self_fulfilling",
+      "confidence": "high",
+      "summary_zh": "系统有多个 Nash 均衡，参与者的预期通过协调博弈选择均衡。相信崩溃 → 采取行动 → 崩溃成真。挤兑型现象的数学本质。",
+      "shared_equations_raw": [
+        {
+          "raw": "dP/dt = -k*max(0, trigger - P)*L where L is leverage-weighted exposure crossing margin thresholds"
+        },
+        {
+          "raw": "Diamond-Dybvig multiple equilibria: expectation -> action -> self-fulfilling bad equilibrium"
+        },
+        {
+          "raw": "dp/dt = -k·L(p); network default cascade with threshold LTV*"
+        },
+        {
+          "raw": "dW/dt = -φ(W), φ collective withdrawal"
+        }
+      ],
+      "invariants": [
+        "多重均衡 (multiple Nash equilibria)",
+        "自我实现预期",
+        "Global game 上的阈值信念 θ*",
+        "基本面与恐慌驱动的挤兑事前不可区分"
+      ],
+      "predictions": [
+        {
+          "target": "DeFi 借贷协议挤兑",
+          "prediction": "大规模提款事件可被 global game 阈值信念模型参数化识别",
+          "test_method": "Goldstein-Pauzner 反向参数识别 + 社交媒体时间戳",
+          "data_source": "Aave/Compound 提款日志 + Twitter/Telegram 情绪",
+          "paper_target": "Journal of Finance / JFE",
+          "status": "待验证"
+        }
+      ],
+      "members_by_domain": [
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "保证金螺旋与强制去杠杆",
+            "对手方风险的传染网络"
+          ]
+        },
+        {
+          "domain": "金融",
+          "names": [
+            "金融风险传染",
+            "银行挤兑"
+          ]
+        },
+        {
+          "domain": "商业",
+          "names": [
+            "供应链的级联断裂"
+          ]
+        },
+        {
+          "domain": "加密货币/DeFi",
+          "names": [
+            "清算级联的链上流动性危机"
+          ]
+        },
+        {
+          "domain": "医学",
+          "names": [
+            "耐药菌传播"
+          ]
+        },
+        {
+          "domain": "未标注",
+          "names": [
+            "旁观者效应"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "tail_copula_contagion",
+      "name_zh": "尾部相关 / Copula 传染类",
+      "name_en": "Tail Copula Contagion",
+      "rank": 4,
+      "provenance": "connected_component",
+      "hub_name": "相关性崩溃的尾部传染效应",
+      "hub_degree": 3,
+      "size": 5,
+      "n_domains": 5,
+      "domains": [
+        "保险与精算",
+        "宏观经济",
+        "气候科学",
+        "衍生品",
+        "衍生品与风险管理"
+      ],
+      "edges_internal": 5,
+      "avg_edge_score": 6.16,
+      "max_edge_score": 7.0,
+      "physics_prototype": "Copula extreme value theory + Minsky moments",
+      "taxonomy_match": null,
+      "confidence": "medium",
+      "summary_zh": "平常状态下相关性低、多元化有效的系统，在极端压力下相关性跳涨到接近 1。尾部依赖系数 λ_tail 在压力期非零——copula 的尾部重合是金融和气候的共同失败模式。",
+      "shared_equations_raw": [
+        {
+          "raw": "lambda_tail = lim_{u->1} P(X>F_X^-1(u) | Y>F_Y^-1(u)) > 0; copula tail dependence coefficient jumps in stress regime"
+        },
+        {
+          "raw": "tail dependence coefficient λ_U=lim_{u→1}P(U_1>u|U_2>u), jumps at crisis"
+        },
+        {
+          "raw": "势能双阱+正反馈：dx/dt=-dV/dx, V有cusp分岔"
+        },
+        {
+          "raw": "dρ/dt = f(ρ, stress); bistable jump at critical stress σ*"
+        }
+      ],
+      "invariants": [
+        "尾部相关系数 λ_tail = lim P(X>q|Y>q)",
+        "Minsky 稳定性悖论",
+        "Diversification illusion breakdown",
+        "压力期的 copula 结构突变"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "气候科学",
+          "names": [
+            "冰期终结的非线性触发"
+          ]
+        },
+        {
+          "domain": "保险与精算",
+          "names": [
+            "巨灾风险的尾部相关性"
+          ]
+        },
+        {
+          "domain": "宏观经济",
+          "names": [
+            "明斯基时刻"
+          ]
+        },
+        {
+          "domain": "衍生品与风险管理",
+          "names": [
+            "极端风险的分散化幻觉"
+          ]
+        },
+        {
+          "domain": "衍生品",
+          "names": [
+            "相关性崩溃的尾部传染效应"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "gardner_collins_toggle_switch",
+      "name_zh": "双稳态 Toggle Switch 类",
+      "name_en": "Gardner-Collins Bistable Toggle",
+      "rank": 3,
+      "provenance": "connected_component",
+      "hub_name": "Th1/Th2极化与疾病偏向",
+      "hub_degree": 3,
+      "size": 5,
+      "n_domains": 4,
+      "domains": [
+        "免疫学",
+        "分子生物学",
+        "发育生物学",
+        "细胞生物学"
+      ],
+      "edges_internal": 4,
+      "avg_edge_score": 6.225,
+      "max_edge_score": 7.5,
+      "physics_prototype": "Gardner-Collins-Cantor toggle switch (2000 Nature)",
+      "taxonomy_match": null,
+      "confidence": "high",
+      "summary_zh": "两个相互抑制的元件构成开关，具有两个稳定状态。只要初始条件不同，系统被锁定在不同的状态。合成生物学的经典开关结构，在免疫、发育、细胞周期里反复出现。",
+      "shared_equations_raw": [
+        {
+          "raw": "du/dt = α/(1+v^n) - u; dv/dt = α/(1+u^n) - v (classical toggle)"
+        },
+        {
+          "raw": "dx/dt = α/(1+(y/K)^n) - βx, dy/dt = α/(1+(x/K)^n) - βy 互抑双稳态"
+        },
+        {
+          "raw": "Gardner-Collins: du/dt = α1/(1+v^n) - u; dv/dt = α2/(1+u^n) - v"
+        },
+        {
+          "raw": "positive feedback bistable switch with ultrasensitivity"
+        }
+      ],
+      "invariants": [
+        "Mutual repression: du/dt = α/(1+v^n) - u",
+        "双稳态空间分离",
+        "随机噪声下的状态锁定",
+        "Hill 系数 n > 1 是双稳态存在的必要条件"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "分子生物学",
+          "names": [
+            "X染色体随机失活的双稳态锁定",
+            "合成基因拨动开关的双稳锁存"
+          ]
+        },
+        {
+          "domain": "免疫学",
+          "names": [
+            "Th1/Th2极化与疾病偏向"
+          ]
+        },
+        {
+          "domain": "细胞生物学",
+          "names": [
+            "细胞周期G1/S的Rb正反馈开关"
+          ]
+        },
+        {
+          "domain": "发育生物学",
+          "names": [
+            "胰岛素信号通路与发育时序门控"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "schelling_credible_commitment",
+      "name_zh": "可信承诺 / 时间不一致类",
+      "name_en": "Schelling Credible Commitment",
+      "rank": 5,
+      "provenance": "connected_component",
+      "hub_name": "进入威慑与产能过度承诺",
+      "hub_degree": 2,
+      "size": 5,
+      "n_domains": 4,
+      "domains": [
+        "国际关系",
+        "宏观经济",
+        "微观经济",
+        "政治"
+      ],
+      "edges_internal": 4,
+      "avg_edge_score": 5.575,
+      "max_edge_score": 6.0,
+      "physics_prototype": "Schelling 1960 credible commitment + Kydland-Prescott 时间不一致",
+      "taxonomy_match": null,
+      "confidence": "high",
+      "summary_zh": "理性主体面临承诺难题：最优事前策略在事后会被背叛。只有承诺不可逆（沉没成本、声誉、自缚机制）才能让承诺可信。跨越国际关系、产业组织、货币政策的共同数学结构。",
+      "shared_equations_raw": [
+        {
+          "raw": "payoff(commit) > payoff(flexible) iff sunk_cost > defection_gain; credible threat via irreversible commitment"
+        },
+        {
+          "raw": "承诺与重新谈判: 事前最优≠事后最优"
+        },
+        {
+          "raw": "都是Kydland-Prescott式可信承诺问题: max U(x,e) s.t. e=E[x]"
+        },
+        {
+          "raw": "重复博弈+不完全合同：max Σβ^t u_i(a_t), subject to self-enforcement constraint"
+        }
+      ],
+      "invariants": [
+        "时间不一致性 (time inconsistency)",
+        "承诺价值 > 灵活价值 iff 沉没成本 > 背叛收益",
+        "自缚 (self-binding) 作为可信机制",
+        "声誉均衡 (reputation equilibrium)"
+      ],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "微观经济",
+          "names": [
+            "合同不完全性与敲竹杠",
+            "进入威慑与产能过度承诺"
+          ]
+        },
+        {
+          "domain": "政治",
+          "names": [
+            "国际贸易的关税报复"
+          ]
+        },
+        {
+          "domain": "国际关系",
+          "names": [
+            "捆绑让步策略"
+          ]
+        },
+        {
+          "domain": "宏观经济",
+          "names": [
+            "时间不一致性问题"
+          ]
+        }
+      ],
+      "is_curated": true
+    },
+    {
+      "class_id": "auto_connected_component_7",
+      "name_zh": "未命名等价类 (巨灾衍生品的极端事件定价)",
+      "name_en": "",
+      "rank": 7,
+      "provenance": "connected_component",
+      "hub_name": "巨灾衍生品的极端事件定价",
+      "hub_degree": 2,
+      "size": 4,
+      "n_domains": 4,
+      "domains": [
+        "保险与精算",
+        "土木工程",
+        "衍生品与风险管理",
+        "高级生态学"
+      ],
+      "edges_internal": 3,
+      "avg_edge_score": 6.6,
+      "max_edge_score": 7.0,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Tail-driven expectation: E[f(X)|X>u]≈∫f(x)·α·x^{-α-1}dx/P(X>u)"
+        },
+        {
+          "raw": "GEV + POT: Pr(X>u+y|X>u) = (1+ξy/σ)^{-1/ξ}; VaR_α and ES_α from tail; structural reliability index β"
+        },
+        {
+          "raw": "GEV: F(x)=exp(-(1+ξ(x-μ)/σ)^(-1/ξ))"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "保险与精算",
+          "names": [
+            "巨灾债券的极端事件对冲"
+          ]
+        },
+        {
+          "domain": "衍生品与风险管理",
+          "names": [
+            "巨灾衍生品的极端事件定价"
+          ]
+        },
+        {
+          "domain": "高级生态学",
+          "names": [
+            "种子散布距离尾巴"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "高层建筑风荷载的极值分布"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_louvain_community_2",
+      "name_zh": "未命名等价类 (DeFi清算连锁瀑布效应)",
+      "name_en": "",
+      "rank": 2,
+      "provenance": "louvain_community",
+      "hub_name": "DeFi清算连锁瀑布效应",
+      "hub_degree": 3,
+      "size": 4,
+      "n_domains": 3,
+      "domains": [
+        "区块链/Web3",
+        "地质学",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 4,
+      "avg_edge_score": 7.525,
+      "max_edge_score": 8.6,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade"
+        },
+        {
+          "raw": "dp/dt = -k·L(p), L liquidation triggered at p<p*"
+        },
+        {
+          "raw": "网络中应力/价格重分布触发级联失稳: 节点失效→邻居负载增加→再失效"
+        },
+        {
+          "raw": "dS/dt ∝ -Γ·∂²V/∂S², S价格/抵押品"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "做市商的期权对冲与Gamma风险",
+            "闪崩的流动性螺旋机制"
+          ]
+        },
+        {
+          "domain": "区块链/Web3",
+          "names": [
+            "DeFi清算连锁瀑布效应"
+          ]
+        },
+        {
+          "domain": "地质学",
+          "names": [
+            "地震静态应力触发"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_18",
+      "name_zh": "未命名等价类 (灭绝债务)",
+      "name_en": "",
+      "rank": 18,
+      "provenance": "connected_component",
+      "hub_name": "灭绝债务",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "保育生物学",
+        "海洋学",
+        "环境科学"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 8.5,
+      "max_edge_score": 8.6,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Delay ODE: dx/dt = f(x(t - tau)) - mu x(t)"
+        },
+        {
+          "raw": "dN/dt = rN(1 - N/K) - α·N(t-τ)"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "海洋学",
+          "names": [
+            "厄尔尼诺的延迟振子"
+          ]
+        },
+        {
+          "domain": "环境科学",
+          "names": [
+            "永冻土融化释放甲烷的延迟反馈"
+          ]
+        },
+        {
+          "domain": "保育生物学",
+          "names": [
+            "灭绝债务"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_19",
+      "name_zh": "未命名等价类 (Piezo1机械门控通道的不动点门控)",
+      "name_en": "",
+      "rank": 19,
+      "provenance": "connected_component",
+      "hub_name": "Piezo1机械门控通道的不动点门控",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "细胞生物学",
+        "行为经济学",
+        "计算机科学"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 7.75,
+      "max_edge_score": 8.0,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "dT/dt = r - λ·1{T≥θ}"
+        },
+        {
+          "raw": "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "细胞生物学",
+          "names": [
+            "Piezo1机械门控通道的不动点门控"
+          ]
+        },
+        {
+          "domain": "行为经济学",
+          "names": [
+            "参考点适应的享乐跑步机"
+          ]
+        },
+        {
+          "domain": "计算机科学",
+          "names": [
+            "限流的令牌桶"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_10",
+      "name_zh": "未命名等价类 (刻板印象的自我实现)",
+      "name_en": "",
+      "rank": 10,
+      "provenance": "connected_component",
+      "hub_name": "刻板印象的自我实现",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "公共管理",
+        "宏观经济",
+        "心理学"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 7.0,
+      "max_edge_score": 7.5,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "反身性反馈环: measurement/expectation → behavior → measurement_confirmation, 测量本身改变被测系统"
+        },
+        {
+          "raw": "rational expectations fixed point: x_t = f(E[x_t]); multiple equilibria when f'(E)>1"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "心理学",
+          "names": [
+            "刻板印象的自我实现"
+          ]
+        },
+        {
+          "domain": "公共管理",
+          "names": [
+            "绩效指标的古德哈特定律"
+          ]
+        },
+        {
+          "domain": "宏观经济",
+          "names": [
+            "通胀预期去锚定"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_6",
+      "name_zh": "未命名等价类 (逆向选择)",
+      "name_en": "",
+      "rank": 6,
+      "provenance": "connected_component",
+      "hub_name": "逆向选择",
+      "hub_degree": 3,
+      "size": 4,
+      "n_domains": 2,
+      "domains": [
+        "传播学",
+        "经济学"
+      ],
+      "edges_internal": 3,
+      "avg_edge_score": 7.667,
+      "max_edge_score": 8.0,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移"
+        },
+        {
+          "raw": "Akerlof逆向选择: E[q|p] = ∫q·f(q|p)dq, 均衡条件p*=E[q|p*]; 信息市场: 内容多样性D(t+1) = D(t)·(1-α) + β·N(t), 其中α=同质化率(推荐算法强化), β=新创作者进入率, N=异质内容创作者数量。当α>β时D→0(柠檬化)。退出条件: 创作者留存当且仅当注意力回报>创作成本"
+        },
+        {
+          "raw": "Akerlof逆向选择: E[quality|price] 随价格下降而下降→好品退出→进一步质量下降; 信息茧房: E[diversity|engagement] 随engagement优化而下降→异质内容退出推荐→进一步多样性下降。两者都是信息不对称驱动的正反馈衰退循环(自选择偏差)。"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "传播学",
+          "names": [
+            "沉默螺旋机制"
+          ]
+        },
+        {
+          "domain": "经济学",
+          "names": [
+            "逆向选择"
+          ]
+        },
+        {
+          "domain": "未标注",
+          "names": [
+            "信息茧房",
+            "朋友圈信息的回声室效应"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_11",
+      "name_zh": "未命名等价类 (低生育率陷阱假说)",
+      "name_en": "",
+      "rank": 11,
+      "provenance": "connected_component",
+      "hub_name": "低生育率陷阱假说",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "人口学",
+        "公司金融",
+        "环境科学"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 6.6,
+      "max_edge_score": 7.2,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Hysteretic bistable system with internal positive feedback"
+        },
+        {
+          "raw": "Bistable self-reinforcing trap: dx/dt=f(x)(x-x_L)(x-x_H), two stable fixed points"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "人口学",
+          "names": [
+            "低生育率陷阱假说"
+          ]
+        },
+        {
+          "domain": "环境科学",
+          "names": [
+            "湖泊内源磷负荷的再悬浮释放"
+          ]
+        },
+        {
+          "domain": "公司金融",
+          "names": [
+            "管理层壕沟效应"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_12",
+      "name_zh": "未命名等价类 (凋亡Caspase级联的不可逆数字开关)",
+      "name_en": "",
+      "rank": 12,
+      "provenance": "connected_component",
+      "hub_name": "凋亡Caspase级联的不可逆数字开关",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "基因编辑/合成生物学",
+        "微生物学",
+        "细胞生物学"
+      ],
+      "edges_internal": 3,
+      "avg_edge_score": 6.4,
+      "max_edge_score": 6.5,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "ultrasensitive positive feedback: dx/dt = V x^n/(K^n+x^n) - k x, Hill switch"
+        },
+        {
+          "raw": "正反馈双稳态开关: dS/dt = α S^n/(K^n + S^n) - β S, n>1 产生阈值切换"
+        },
+        {
+          "raw": "dA/dt = α·A^n/(K^n+A^n) - βA + basal·N (自诱导Hill双稳态)"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "细胞生物学",
+          "names": [
+            "凋亡Caspase级联的不可逆数字开关"
+          ]
+        },
+        {
+          "domain": "基因编辑/合成生物学",
+          "names": [
+            "群体感应密度依赖开关"
+          ]
+        },
+        {
+          "domain": "微生物学",
+          "names": [
+            "群感效应的同步诱导阈值"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_9",
+      "name_zh": "未命名等价类 (系统性风险的无标度网络)",
+      "name_en": "",
+      "rank": 9,
+      "provenance": "connected_component",
+      "hub_name": "系统性风险的无标度网络",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "保险与精算",
+        "金融市场微观结构",
+        "风险管理"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 6.3,
+      "max_edge_score": 7.8,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "scale-free network cascade: P(k)∝k^(-γ), percolation threshold p_c→0"
+        },
+        {
+          "raw": "Percolation on scale-free network P(k)∝k^(-γ); cascade threshold φ_c"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "风险管理",
+          "names": [
+            "抵押品升降级的再质押循环"
+          ]
+        },
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "系统性风险的无标度网络"
+          ]
+        },
+        {
+          "domain": "保险与精算",
+          "names": [
+            "网络安全险的相关性难题"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_13",
+      "name_zh": "未命名等价类 (社会认同传播)",
+      "name_en": "",
+      "rank": 13,
+      "provenance": "connected_component",
+      "hub_name": "社会认同传播",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "创业/VC",
+        "社会学",
+        "金融市场微观结构"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 6.25,
+      "max_edge_score": 6.5,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "order_parameter ~ (p - p_c)^beta; 2nd-order phase transition with critical adopter/active fraction"
+        },
+        {
+          "raw": "tipping point: order_param ~ (p - p_c)^beta; percolation threshold on network density"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "金融市场微观结构",
+          "names": [
+            "主动管理与指数化的流动性外部性"
+          ]
+        },
+        {
+          "domain": "社会学",
+          "names": [
+            "社会认同传播"
+          ]
+        },
+        {
+          "domain": "创业/VC",
+          "names": [
+            "竞争对手进入的临界规模防御门槛"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_15",
+      "name_zh": "未命名等价类 (网红经济长尾失衡)",
+      "name_en": "",
+      "rank": 15,
+      "provenance": "connected_component",
+      "hub_name": "网红经济长尾失衡",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "体育",
+        "加密货币与DeFi",
+        "社交网络动态"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 5.65,
+      "max_edge_score": 5.8,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Barabási-Albert preferential attachment: P(k_i=k) ∝ k^{-γ}, γ≈3; Yule-Simon process"
+        },
+        {
+          "raw": "P(x) ~ x^(-α); Yule-Simon preferential attachment"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "加密货币与DeFi",
+          "names": [
+            "矿池的规模经济集中化"
+          ]
+        },
+        {
+          "domain": "社交网络动态",
+          "names": [
+            "网红经济长尾失衡"
+          ]
+        },
+        {
+          "domain": "体育",
+          "names": [
+            "足球联赛积分的幂律分布"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_14",
+      "name_zh": "未命名等价类 (城市热岛效应的空间梯度)",
+      "name_en": "",
+      "rank": 14,
+      "provenance": "connected_component",
+      "hub_name": "城市热岛效应的空间梯度",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "发育生物学",
+        "土木工程",
+        "环境科学"
+      ],
+      "edges_internal": 3,
+      "avg_edge_score": 5.4,
+      "max_edge_score": 6.2,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "Steady Laplace/Poisson equation ∇²u = -S; radial solution u(r) ∝ -ln(r) for 2D sinks/sources"
+        },
+        {
+          "raw": "∂c/∂t = D∇²c - k·c + source，含降解的扩散方程"
+        },
+        {
+          "raw": "∂c/∂t = D ∇²c - k c + S(x); steady state: c(x) ~ λ exp(-x/λ), λ=√(D/k)"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "环境科学",
+          "names": [
+            "城市热岛效应的空间梯度"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "基坑降水的地下水漏斗"
+          ]
+        },
+        {
+          "domain": "发育生物学",
+          "names": [
+            "母源效应基因与卵轴极化"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_16",
+      "name_zh": "未命名等价类 (DNA甲基化的半甲基化继承)",
+      "name_en": "",
+      "rank": 16,
+      "provenance": "connected_component",
+      "hub_name": "DNA甲基化的半甲基化继承",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 3,
+      "domains": [
+        "分子生物学",
+        "发育生物学",
+        "电气工程"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 5.25,
+      "max_edge_score": 5.5,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "P(s_{t+1}|s_t) Markov transition matrix"
+        },
+        {
+          "raw": "Markov chain with P(s_{t+1}=s_t) ≈ 1 - ε; epigenetic memory fidelity"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "分子生物学",
+          "names": [
+            "DNA甲基化的半甲基化继承"
+          ]
+        },
+        {
+          "domain": "发育生物学",
+          "names": [
+            "X染色体失活的随机性与克隆嵌合"
+          ]
+        },
+        {
+          "domain": "电气工程",
+          "names": [
+            "发电机组启停的马尔可夫模型"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_8",
+      "name_zh": "未命名等价类 (高层建筑风振舒适度控制)",
+      "name_en": "",
+      "rank": 8,
+      "provenance": "connected_component",
+      "hub_name": "高层建筑风振舒适度控制",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 2,
+      "domains": [
+        "土木工程",
+        "电气工程"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 6.25,
+      "max_edge_score": 8.0,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "ẍ + 2ζω·ẋ + ω²·x = F(t); PSS ↔ TMD dual damping control"
+        },
+        {
+          "raw": "M·ẍ + C·ẋ + K·x = F(t); critical damping ratio ζ_c"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "电气工程",
+          "names": [
+            "电力系统小信号振荡",
+            "电力系统暂态稳定"
+          ]
+        },
+        {
+          "domain": "土木工程",
+          "names": [
+            "高层建筑风振舒适度控制"
+          ]
+        }
+      ],
+      "is_curated": false
+    },
+    {
+      "class_id": "auto_connected_component_17",
+      "name_zh": "未命名等价类 (新兴市场传染的多米诺效应)",
+      "name_en": "",
+      "rank": 17,
+      "provenance": "connected_component",
+      "hub_name": "新兴市场传染的多米诺效应",
+      "hub_degree": 2,
+      "size": 3,
+      "n_domains": 2,
+      "domains": [
+        "国际经济",
+        "衍生品与风险管理"
+      ],
+      "edges_internal": 2,
+      "avg_edge_score": 4.75,
+      "max_edge_score": 5.0,
+      "physics_prototype": "",
+      "taxonomy_match": null,
+      "confidence": "unclassified",
+      "summary_zh": "",
+      "shared_equations_raw": [
+        {
+          "raw": "SIR-like default contagion on financial network: dS/dt=-βSI, etc."
+        },
+        {
+          "raw": "network topology cascade: bow-tie → star via CCP intermediation"
+        }
+      ],
+      "invariants": [],
+      "predictions": [],
+      "members_by_domain": [
+        {
+          "domain": "衍生品与风险管理",
+          "names": [
+            "CDS指数的信用级联建模",
+            "场外衍生品的对手方暴露"
+          ]
+        },
+        {
+          "domain": "国际经济",
+          "names": [
+            "新兴市场传染的多米诺效应"
+          ]
+        }
+      ],
+      "is_curated": false
+    }
+  ]
+}
