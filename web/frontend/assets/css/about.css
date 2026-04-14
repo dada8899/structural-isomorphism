@@ -188,3 +188,48 @@
   color: var(--text-secondary);
   line-height: var(--lh-relaxed);
 }
+
+/* Subsection title for V1/V2/V3 pipeline explanations */
+.about-page__subsection-title {
+  font-size: var(--fs-18, 18px);
+  font-weight: 600;
+  color: var(--text-primary, #0A0A0A);
+  margin-top: var(--space-6, 32px);
+  margin-bottom: var(--space-3, 12px);
+  padding-left: var(--space-3, 12px);
+  border-left: 3px solid var(--accent, #4338CA);
+  line-height: 1.4;
+}
+
+/* Bullet list in about page */
+.about-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3, 12px) 0 var(--space-4, 16px);
+}
+
+.about-list li {
+  position: relative;
+  padding-left: var(--space-5, 24px);
+  margin-bottom: var(--space-2, 8px);
+  color: var(--text-secondary, #3F3F46);
+  line-height: 1.7;
+}
+
+.about-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--text-tertiary, #71717A);
+  font-weight: 300;
+}
+
+.about-list code,
+.about-page code {
+  background: var(--bg-subtle, #F4F4F5);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.9em;
+  color: var(--text-primary, #0A0A0A);
+}
