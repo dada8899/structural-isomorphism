@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="description" content="Structural 是一个跨领域思维引擎——基于"看似无关的现象在数学结构层面往往是同一件事"这个反直觉的观察，帮你跨越学科的围墙借用别人的答案。">
+  <title>关于 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="关于 — Structural">
+  <meta property="og:description" content="一个跨领域思维引擎：看似无关的现象，在数学结构层面往往是同一件事。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="关于 — Structural">
+  <meta name="twitter:description" content="一个跨领域思维引擎：看似无关的现象，在数学结构层面往往是同一件事。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/about.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="about-page">
+    <div class="about-page__eyebrow">— 关于 Structural —</div>
+    <h1 class="about-page__title">万物的形状<br>都在重复</h1>
+
+    <p class="about-page__lede">
+      Structural 是一个跨领域思维引擎。它基于一个反直觉的观察：<strong>看似完全无关的现象，在数学结构层面往往是同一件事</strong>。放射性衰变和药物代谢、股价波动和热力学涨落、传染病传播和谣言扩散——它们在各自领域的语言下毫无关系，但背后是同一个方程。
+    </p>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Why</div>
+      <h2 class="about-page__section-title">为什么这有用</h2>
+      <p>
+        当你在自己的领域里遇到一个难题，答案也许根本不在你的领域里。<strong>在另一个和你完全无关的学科，可能有人已经解决了同一个数学问题</strong>——他们的术语不同、场景不同，但数学骨架完全一致。Structural 让你跨越学科的围墙，直接借用别人的答案。
+      </p>
+      <p>
+        Claude Shannon 借用热力学的"熵"奠定了信息论。Black 和 Scholes 把热传导方程搬到金融市场上得到了期权定价公式。模拟退火算法把冶金学的物理过程变成了组合优化的利器。这些跨领域的突破不是偶然——它们都是<strong>结构同构被发现的瞬间</strong>。Structural 想做的是把这种"发现"系统化。
+      </p>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">How</div>
+      <h2 class="about-page__section-title">它是怎么工作的</h2>
+      <p>
+        传统的搜索工具基于语义或关键词匹配——它找的是"看起来像"的东西。Structural 不一样。它的核心是一个<strong>经过对比学习微调的嵌入模型</strong>，专门学习识别"结构相似"而非"语义相似"。
+      </p>
+      <p>
+        你输入一个自然语言描述，模型把它投影到一个 768 维的结构空间里，然后在知识库的 4,443 个现象中找最近的邻居。返回的结果不是"文字像你的"，而是"数学上和你的问题服从同一个方程的"。
+      </p>
+      <div class="about-stats">
+        <div class="about-stats__item">
+          <div class="about-stats__num">4,443</div>
+          <div class="about-stats__label">Phenomena</div>
+        </div>
+        <div class="about-stats__item">
+          <div class="about-stats__num">87</div>
+          <div class="about-stats__label">Domains</div>
+        </div>
+        <div class="about-stats__item">
+          <div class="about-stats__num">84</div>
+          <div class="about-stats__label">Structure Types</div>
+        </div>
+      </div>
+      <p>
+        涵盖物理、化学、生物、经济、社会、工程、医学、计算机、哲学、艺术等 87 个领域。更多现象和领域持续扩充中。
+      </p>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">What's Next</div>
+      <h2 class="about-page__section-title">Structural 不只是一个搜索框</h2>
+      <p>
+        你现在看到的是 v0.1——核心的跨领域搜索和结构映射。接下来的版本会把 Structural 从"搜索工具"升级为"思维引擎"：基于同一结构的历史案例进行<strong>预测</strong>、识别系统中的<strong>崩溃预警信号</strong>、帮用户找到向非专家解释复杂概念的<strong>完美类比</strong>、系统性地在一个领域内<strong>发现未被记录的跨学科联系</strong>。
+      </p>
+      <p>
+        我们相信大约 60% 的跨领域创新都涉及识别结构同构。如果 AI 能比人类穷举性地浮现这些同构，瓶颈就从"发现"转移到"评估和利用"。这种分工或许代表了 AI 辅助科学的高效范式。
+      </p>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Resources</div>
+      <h2 class="about-page__section-title">论文与源码</h2>
+      <p>
+        完整的方法论、训练细节、评估结果和反向实验，请见 <a href="https://structural.bytedance.city/paper-zh.html" target="_blank">论文</a>。所有代码和数据集在 <a href="https://github.com/dada8899" target="_blank">GitHub</a> 上开源。
+      </p>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Team</div>
+      <h2 class="about-page__section-title">作者</h2>
+      <div class="about-team">
+        <div class="about-team__avatar">达</div>
+        <div class="about-team__info">
+          <div class="about-team__name">达达</div>
+          <div class="about-team__role">产品 · 研究 · 工程</div>
+          <p class="about-team__bio">
+            这是一个独立研究项目——用 AI 工具搭建的跨领域思维引擎，希望让更多人能像 Shannon 一样，从一个领域偷走另一个领域的答案。
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="Structural — 一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>Structural — 万物的形状都在重复</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="Structural — 万物的形状都在重复">
+  <meta property="og:description" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Structural — 万物的形状都在重复">
+  <meta name="twitter:description" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/home.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="home">
+    <!-- First viewport: brand + value prop + inline evidence + search -->
+    <section class="home__hero">
+      <div class="home__hero-inner">
+        <div class="home__eyebrow">
+          <span class="home__eyebrow-dot"></span>
+          跨领域思维引擎
+        </div>
+        <h1 class="home__brand serif">Structural</h1>
+        <p class="home__tagline serif">看似完全无关的现象，在数学结构层面往往是同一件事。</p>
+        <p class="home__lede">描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。</p>
+
+        <!-- Inline evidence: the strongest "wow" example, right above the search box -->
+        <div class="home__hero-evidence" id="hero-evidence">
+          <div class="hero-evidence__pair">
+            <div class="hero-evidence__side">
+              <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
+              <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
+            </div>
+            <span class="hero-evidence__symbol">≅</span>
+            <div class="hero-evidence__side">
+              <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
+              <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
+            </div>
+            <span class="hero-evidence__score" id="he-score">94%</span>
+          </div>
+          <button type="button" class="hero-evidence__rotate" id="he-rotate" aria-label="换一个例子">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 4v6h6M23 20v-6h-6"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            换一个例子
+          </button>
+        </div>
+
+        <form id="search-form" class="searchbox" role="search">
+          <div class="searchbox__wrapper searchbox__wrapper--multi">
+            <textarea
+              class="searchbox__input searchbox__input--multi"
+              placeholder="一句话描述你观察到的现象、问题或正在做的研究方向。&#10;（可选）补充你的背景和已经尝试过的，我会调整迁移的深度。"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="输入问题"
+              rows="3"
+            ></textarea>
+            <div class="searchbox__footer">
+              <div class="searchbox__hint">
+                <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
+              </div>
+              <button type="submit" class="searchbox__submit searchbox__submit--primary" aria-label="分析">
+                <span class="searchbox__submit-label">深度分析</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="home__suggestions" id="home-suggestions"></div>
+      </div>
+    </section>
+
+    <!-- Below the fold: examples, daily, stats -->
+    <div id="below-hero" class="home__below">
+
+      <!-- How it works: explain the pipeline so users know what they're entering for -->
+      <section class="home__section home__section--how">
+        <header class="home__section-header">
+          <span class="home__section-label">工作流程</span>
+          <h2 class="home__section-title">你输入一个问题之后，<em>会发生什么</em></h2>
+          <p class="home__section-sub">从一句话描述到一份可执行的跨学科研究报告，全程 1-2 分钟。</p>
+        </header>
+        <ol class="how-steps">
+          <li class="how-step">
+            <span class="how-step__num">01</span>
+            <h3 class="how-step__title">理解 + 检索</h3>
+            <p class="how-step__text">把你的口语化问题改写成研究问题，然后从 4,443 个跨学科现象里向量检索出结构相似的 20 个候选。</p>
+            <span class="how-step__time">≈ 1s</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step__num">02</span>
+            <h3 class="how-step__title">合成主洞察</h3>
+            <p class="how-step__text">把候选交给 LLM 综合分析，给你一段直接的答案 + 一张「最值得先看」的首推卡 + 两个补充视角（对立面 / 时间尺度 / 微观机制 / 跨尺度类比）。</p>
+            <span class="how-step__time">≈ 8–15s</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step__num">03</span>
+            <h3 class="how-step__title">深度迁移报告</h3>
+            <p class="how-step__text">点首推卡 → 8 段流式生成的研究报告：共享数学结构、关键变量、源领域的成熟工具、怎么具体应用到你的问题、需要验证的假设、迁移风险。</p>
+            <span class="how-step__time">≈ 30–60s</span>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Use cases: best practices for different roles -->
+      <section class="home__section home__section--usecases">
+        <header class="home__section-header">
+          <span class="home__section-label">适合这样用</span>
+          <h2 class="home__section-title">三种<em>典型场景</em></h2>
+          <p class="home__section-sub">这个工具最有价值的不是给你"答案"，而是帮你跳出本领域的思维定势。</p>
+        </header>
+        <div class="usecases-grid">
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title">写论文 · 找选题</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag">你输入</span>
+              <span class="usecase__sample">无序到有序的相变现象</span>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag">你得到</span>
+              <span class="usecase__value">物理 / 生态 / 社会学里的同构案例 + 跨学科的开题灵感和参考文献方向</span>
+            </div>
+          </article>
+
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+                <line x1="3" y1="20" x2="21" y2="20"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title">产品 · 商业研究</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag">你输入</span>
+              <span class="usecase__sample">为什么市场会崩盘</span>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag">你得到</span>
+              <span class="usecase__value">物理 / 信息论 / 组织学的成熟模型、可借用的分析工具、本周可跑的诊断动作</span>
+            </div>
+          </article>
+
+          <article class="usecase">
+            <div class="usecase__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+              </svg>
+            </div>
+            <h3 class="usecase__title">战略 · 决策</h3>
+            <div class="usecase__row">
+              <span class="usecase__tag">你输入</span>
+              <span class="usecase__sample">为什么有些市场必然赢家通吃</span>
+            </div>
+            <div class="usecase__row">
+              <span class="usecase__tag">你得到</span>
+              <span class="usecase__value">网络效应、临界质量、正反馈环的跨域案例 + 决策时该看哪几个变量</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Recent searches (local, hidden by JS when empty) -->
+      <section class="home__section home__history-section" id="home-history" hidden>
+        <header class="home__section-header">
+          <span class="home__section-label">你最近的问题</span>
+          <h2 class="home__section-title">接着上次<em>继续想</em></h2>
+        </header>
+        <div class="home__history-chips" id="home-history-chips"></div>
+      </section>
+
+      <section class="home__section">
+        <header class="home__section-header">
+          <span class="home__section-label">今日发现</span>
+          <h2 class="home__section-title">每天从知识库中揭示 <em>3 组</em>跨领域同构</h2>
+        </header>
+        <div class="home__daily-grid" id="daily-grid"></div>
+        <div class="home__section-footer">
+          <a href="/discoveries" class="home__section-link">
+            查看全部 39 个 A 级精选发现
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- Favorited reports (local, hidden by JS when empty) -->
+      <section class="home__section home__favorites-section" id="home-favorites" hidden>
+        <header class="home__section-header">
+          <span class="home__section-label">收藏的报告</span>
+          <h2 class="home__section-title">你保存的<em>深度分析</em></h2>
+        </header>
+        <div class="home__favorites-list" id="home-favorites-list"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/utils.js?v=20260414a"></script>
+  <script src="/assets/js/api.js?v=20260414a"></script>
+  <script src="/assets/js/home.js?v=20260414a"></script>
+</body>
+</html>

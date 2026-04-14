@@ -1,0 +1,451 @@
+/* Structural — Responsive refinements
+ * Handles mobile and tablet breakpoints across all pages.
+ * Loaded last so it overrides component-level styles.
+ */
+
+/* === Tablet (≤1024px) === */
+@media (max-width: 1024px) {
+  .container-wide,
+  .site-header__inner,
+  .site-footer__inner {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .home__hero {
+    padding: var(--space-7) var(--space-4) var(--space-6);
+  }
+
+  .ph-hero__name {
+    font-size: clamp(32px, 5vw, 48px);
+  }
+}
+
+/* === Small tablet / large phone (≤768px) === */
+@media (max-width: 768px) {
+  :root {
+    --space-7: 32px;
+    --space-8: 48px;
+    --space-9: 64px;
+    --space-10: 88px;
+  }
+
+  .site-header {
+    height: 56px;
+  }
+
+  .site-header__nav {
+    gap: var(--space-4);
+  }
+
+  .site-header__nav-link {
+    font-size: var(--fs-13);
+  }
+
+  /* Hide GitHub link on very small screens to save space */
+  .site-header__nav-link[href*="github"] {
+    display: none;
+  }
+
+  /* === Home === */
+  .home__eyebrow {
+    font-size: var(--fs-11, 11px);
+    padding: 4px 10px;
+  }
+
+  .home__brand {
+    font-size: clamp(44px, 13vw, 64px);
+  }
+
+  .home__tagline {
+    font-size: var(--fs-16);
+    line-height: 1.55;
+  }
+
+  /* Stack the inline demo vertically on mobile */
+  .demo-pair {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .demo-pair__card,
+  .demo-pair__card--right {
+    text-align: left;
+  }
+
+  .demo-pair__connector {
+    flex-direction: row;
+    padding: var(--space-2) 0;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+
+  .demo-pair__symbol {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+  }
+
+  .home__demo-caption {
+    font-size: var(--fs-13);
+  }
+
+  .searchbox__input {
+    height: 52px;
+    font-size: var(--fs-14);
+  }
+
+  .searchbox__submit {
+    width: 44px;
+    height: 44px;
+  }
+
+  .home__daily-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .home__daily-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+  }
+
+  .home__stats-inner {
+    gap: var(--space-4);
+  }
+
+  .home__stats-num {
+    font-size: var(--fs-20);
+  }
+
+  /* === Search page === */
+  .search-summary__query {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .search-summary__term {
+    font-size: var(--fs-24);
+    line-height: 1.3;
+  }
+
+  .search-stats {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+  }
+
+  .result-card {
+    grid-template-columns: 1fr !important;
+    padding: var(--space-4);
+  }
+
+  .result-card__aside {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .result-card__score-num {
+    font-size: var(--fs-20);
+  }
+
+  /* === Phenomenon page === */
+  .ph-hero {
+    padding: var(--space-4) 0 var(--space-5);
+  }
+
+  .ph-hero__name {
+    font-size: clamp(28px, 7vw, 40px) !important;
+  }
+
+  .ph-hero__description {
+    font-size: var(--fs-14);
+  }
+
+  .ph-section__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .ph-section__caption {
+    text-align: left;
+    max-width: 100%;
+  }
+
+  .ph-section__title {
+    font-size: var(--fs-20);
+  }
+
+  .ph-cross {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mapping-pair {
+    padding: var(--space-4);
+  }
+
+  .mapping-pair__heads {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+  }
+
+  .mapping-pair__head,
+  .mapping-pair__head--right {
+    text-align: left !important;
+  }
+
+  .mapping-pair__head-name {
+    font-size: var(--fs-20);
+  }
+
+  .mapping-pair__connector {
+    flex-direction: row;
+    padding: var(--space-2) 0;
+    justify-content: center;
+  }
+
+  .mapping-pair__symbol {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+
+  .mapping-pair__formula {
+    font-size: var(--fs-12);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .param-mapping {
+    padding: var(--space-4);
+  }
+
+  .param-mapping__grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-2);
+  }
+
+  .param-mapping__head,
+  .param-mapping__head--right {
+    display: none;
+  }
+
+  .param-mapping__row-a,
+  .param-mapping__row-b {
+    text-align: left !important;
+    padding: var(--space-2);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+  }
+
+  .param-mapping__row-b {
+    border-left: 2px solid var(--text-primary);
+    margin-left: var(--space-4);
+    background: var(--bg-tertiary);
+  }
+
+  .param-mapping__connector {
+    display: none;
+  }
+
+  .ph-actions {
+    padding: var(--space-4);
+  }
+
+  .ph-action {
+    grid-template-columns: 20px 1fr;
+    gap: var(--space-3);
+  }
+
+  .ph-action__number {
+    width: 20px;
+    height: 20px;
+    font-size: var(--fs-11, 11px);
+  }
+
+  .ph-why {
+    padding: var(--space-4);
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  /* === Discoveries page === */
+  .disc-hero__title {
+    font-size: clamp(36px, 10vw, 56px);
+  }
+
+  .disc-hero__lede {
+    font-size: var(--fs-16);
+  }
+
+  .disc-filter {
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+  }
+
+  .disc-filter__label {
+    width: 100%;
+    margin-bottom: var(--space-2);
+    margin-right: 0;
+  }
+
+  .disc-filter__btn {
+    padding: 5px 10px;
+    font-size: var(--fs-12);
+  }
+
+  .disc-item__header {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .disc-item__rank {
+    display: none;
+  }
+
+  .disc-item__pair {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+
+  .disc-item__side--right {
+    text-align: left !important;
+  }
+
+  .disc-item__name {
+    font-size: var(--fs-16);
+  }
+
+  .disc-item__connector {
+    padding: var(--space-1) 0;
+    justify-content: flex-start;
+  }
+
+  .disc-item__symbol {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  .disc-item__aside {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .disc-item__score-num {
+    font-size: var(--fs-24);
+  }
+
+  .disc-item__detail {
+    padding: 0 var(--space-4) var(--space-4);
+  }
+
+  .disc-item__detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3);
+  }
+
+  /* === About page === */
+  .about-page {
+    padding: var(--space-7) var(--space-4) var(--space-8);
+  }
+
+  .about-page__title {
+    font-size: clamp(40px, 10vw, 56px);
+  }
+
+  .about-page__lede {
+    font-size: var(--fs-16);
+  }
+
+  .about-page__section-title {
+    font-size: var(--fs-24);
+  }
+
+  .about-page__section p {
+    font-size: var(--fs-14);
+  }
+
+  .about-stats {
+    grid-template-columns: 1fr !important;
+    padding: var(--space-4);
+  }
+
+  .about-team {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .about-team__avatar {
+    width: 44px;
+    height: 44px;
+    font-size: var(--fs-20);
+  }
+}
+
+/* === Very small phone (≤480px) === */
+@media (max-width: 480px) {
+  .home__brand {
+    font-size: 40px;
+  }
+
+  .ph-hero__meta {
+    font-size: var(--fs-11, 11px);
+  }
+
+  .site-header__nav {
+    gap: var(--space-3);
+  }
+
+  .searchbox__wrapper {
+    padding: 4px 4px 4px var(--space-3);
+  }
+
+  .home__daily-title {
+    font-size: var(--fs-20);
+  }
+
+  .home__daily-badge {
+    display: none;
+  }
+}
+
+/* === Tap target (iOS) === */
+@media (hover: none) and (pointer: coarse) {
+  .btn,
+  .chip,
+  .searchbox__submit,
+  .result-card,
+  .disc-card,
+  .ph-cross__card,
+  .disc-item__header {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Disable hover-based transforms on touch devices */
+  .result-card:hover,
+  .disc-card:hover,
+  .ph-cross__card:hover,
+  .disc-item:hover {
+    transform: none;
+  }
+}
+
+/* === Reduced motion === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

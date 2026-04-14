@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>精选发现 — Structural</title>
+  <meta name="description" content="39 个 A 级跨领域结构同构发现，V2 管道 + 五维评分筛选。从永冻土到灭绝债务，从半导体激光到稳定币——万物的形状都在重复。">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="精选发现 — Structural">
+  <meta property="og:description" content="39 个 A 级跨领域结构同构发现，V2 管道 + 五维评分筛选。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="精选发现 — Structural">
+  <meta name="twitter:description" content="39 个 A 级跨领域结构同构发现，V2 管道 + 五维评分筛选。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/discoveries.css?v=20260414a">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="disc-page">
+    <div class="disc-container">
+      <section class="disc-hero">
+        <div class="disc-hero__eyebrow">
+          <span class="disc-hero__dot"></span>
+          V2 管道 · 五维评分 · 精选 A 级
+        </div>
+        <h1 class="disc-hero__title">那些<em>隐藏</em>的联系</h1>
+        <p class="disc-hero__lede">
+          从 <strong>4,533</strong> 对完整筛选中，经过 V2 模型 + LLM 五维评分（创新性 / 严谨性 / 可行性 / 影响力 / 可写性），<strong>最终留下的 39 条 A 级发现</strong>。
+          每一条都是一个跨领域的数学同构，把两个看似无关的领域连在一起——并且带有可执行的论文化路径和建议期刊。
+        </p>
+        <div class="disc-hero__stats" id="disc-hero-stats"></div>
+      </section>
+
+      <div class="disc-filter" id="disc-filter"></div>
+
+      <div class="disc-list" id="disc-list">
+        <div class="search-skeleton">
+          <div class="search-skeleton__card"></div>
+          <div class="search-skeleton__card"></div>
+          <div class="search-skeleton__card"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/utils.js?v=20260414a"></script>
+  <script src="/assets/js/api.js?v=20260414a"></script>
+  <script src="/assets/js/discoveries.js?v=20260414a"></script>
+</body>
+</html>

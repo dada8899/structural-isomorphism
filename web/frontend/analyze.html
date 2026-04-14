@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="description" content="跨学科迁移研究报告——从其他领域借用成熟的数学模型、分析工具和本周可跑的动作。">
+  <title>深度分析 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <!-- Open Graph / social share metadata -->
+  <meta property="og:title" content="深度分析 — Structural">
+  <meta property="og:description" content="跨学科迁移研究报告 · 从其他领域借用答案">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="深度分析 — Structural">
+  <meta name="twitter:description" content="跨学科迁移研究报告 · 从其他领域借用答案">
+
+  <!-- Share/favorite action bar styles (kept inline — analyze.css is off-limits) -->
+  <style>
+    .analyze-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-left: auto;
+    }
+    .analyze-crumb {
+      display: flex;
+      align-items: center;
+    }
+    .analyze-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: var(--fs-12, 12px);
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full, 999px);
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1;
+      transition: color var(--dur-fast) var(--ease-out),
+                  background var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-fast) var(--ease-out);
+    }
+    .analyze-action-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-subtle, rgba(24,24,27,0.04));
+      border-color: var(--border-default, rgba(24,24,27,0.12));
+    }
+    .analyze-action-btn svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+    .analyze-action-btn--fav.is-active {
+      color: #d97706;
+      border-color: rgba(217, 119, 6, 0.35);
+      background: rgba(217, 119, 6, 0.06);
+    }
+    .analyze-action-btn__star {
+      font-size: 13px;
+      line-height: 1;
+      display: inline-block;
+      width: 14px;
+      text-align: center;
+    }
+  </style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
+
+  <!-- KaTeX for math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="analyze-page">
+    <div class="analyze-container">
+      <nav class="analyze-crumb">
+        <a href="/">首页</a>
+        <span class="analyze-crumb__sep">/</span>
+        <a href="javascript:history.back()">返回</a>
+        <span class="analyze-crumb__sep">/</span>
+        <span>深度分析</span>
+        <div class="analyze-actions">
+          <button type="button" class="analyze-action-btn analyze-action-btn--brief" id="analyze-brief-btn" aria-label="复制为简报">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+              <line x1="9" y1="11" x2="15" y2="11"/>
+            </svg>
+            <span>复制为简报</span>
+          </button>
+          <button type="button" class="analyze-action-btn analyze-action-btn--share" id="analyze-share-btn" aria-label="分享这份报告">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+            </svg>
+            <span>分享</span>
+          </button>
+          <button type="button" class="analyze-action-btn analyze-action-btn--fav" id="analyze-fav-btn" aria-label="收藏这份报告" aria-pressed="false">
+            <span class="analyze-action-btn__star" id="analyze-fav-icon">☆</span>
+            <span id="analyze-fav-label">收藏</span>
+          </button>
+        </div>
+      </nav>
+
+      <div id="analyze-loading" class="analyze-loading">
+        <div class="analyze-loading__dots">
+          <span class="analyze-loading__dot"></span>
+          <span class="analyze-loading__dot"></span>
+          <span class="analyze-loading__dot"></span>
+        </div>
+        <h2 class="analyze-loading__title">正在生成深度分析报告</h2>
+        <p class="analyze-loading__hint">我们正在写一份跨学科迁移研究报告。</p>
+        <div class="analyze-loading__timer-row">
+          <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
+          <span class="analyze-loading__typical">通常需 30–60s</span>
+        </div>
+      </div>
+
+      <div id="analyze-header" class="analyze-header"></div>
+      <nav id="analyze-progress" class="analyze-progress"></nav>
+      <div id="analyze-sections"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/utils.js?v=20260414a"></script>
+  <script src="/assets/js/api.js?v=20260414a"></script>
+  <script src="/assets/js/analyze.js?v=20260414a"></script>
+</body>
+</html>

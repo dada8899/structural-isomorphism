@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="description" content="现象详情——查看跨领域结构同构映射、相似现象和 V2 管道精选对照。">
+  <title>现象详情 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="现象详情 — Structural">
+  <meta property="og:description" content="查看跨领域结构同构映射和相似现象。">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="现象详情 — Structural">
+  <meta name="twitter:description" content="查看跨领域结构同构映射和相似现象。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/search.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/phenomenon.css?v=20260414a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414a">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="ph-page">
+    <div class="ph-container">
+      <nav class="ph-crumb" aria-label="breadcrumb">
+        <a href="/">首页</a>
+        <span class="ph-crumb__sep" id="ph-crumb-back-sep" hidden>/</span>
+        <a href="#" id="ph-crumb-back" hidden>返回搜索</a>
+        <span class="ph-crumb__sep">/</span>
+        <span id="ph-crumb-name">现象</span>
+      </nav>
+
+      <div id="ph-content"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/utils.js?v=20260414a"></script>
+  <script src="/assets/js/api.js?v=20260414a"></script>
+  <script src="/assets/js/share-card.js?v=20260414a"></script>
+  <script src="/assets/js/phenomenon.js?v=20260414a"></script>
+</body>
+</html>
