@@ -1,0 +1,18 @@
+{"ticker": "QCOM", "name": "Qualcomm", "exchange": "NASDAQ", "industry": "Mobile Semiconductors", "market_cap_usd": 180000000000.0, "country": "US"}
+{"ticker": "WDAY", "name": "Workday", "exchange": "NASDAQ", "industry": "HR SaaS", "market_cap_usd": 65000000000.0, "country": "US"}
+{"ticker": "PARA", "name": "Paramount", "exchange": "NASDAQ", "industry": "Legacy Media + Streaming", "market_cap_usd": 10000000000.0, "country": "US"}
+{"ticker": "ETSY", "name": "Etsy", "exchange": "NASDAQ", "industry": "Handmade Marketplace", "market_cap_usd": 8000000000.0, "country": "US"}
+{"ticker": "F", "name": "Ford", "exchange": "NYSE", "industry": "Automaker", "market_cap_usd": 50000000000.0, "country": "US"}
+{"ticker": "000660.KS", "name": "SK Hynix", "exchange": "KRX", "industry": "Memory Semiconductors", "market_cap_usd": 130000000000.0, "country": "KR"}
+{"ticker": "9984.T", "name": "SoftBank Group", "exchange": "TSE", "industry": "Telecom + Investment Holdings", "market_cap_usd": 100000000000.0, "country": "JP"}
+{"ticker": "EDU", "name": "New Oriental", "exchange": "NYSE", "industry": "Education Services", "market_cap_usd": 8000000000.0, "country": "CN"}
+{"ticker": "QFIN", "name": "360 DigiTech", "exchange": "NASDAQ", "industry": "Consumer Credit (China)", "market_cap_usd": 4000000000.0, "country": "CN"}
+{"ticker": "600900.SS", "name": "长江电力 China Yangtze Power", "exchange": "SSE", "industry": "Hydropower Utility", "market_cap_usd": 95000000000.0, "country": "CN"}
+{"ticker": "NIO", "name": "NIO ADR", "exchange": "NYSE", "industry": "EV (ADR)", "market_cap_usd": 10000000000.0, "country": "CN"}
+{"ticker": "OKTA", "name": "Okta", "exchange": "NASDAQ", "industry": "Identity SaaS", "market_cap_usd": 20000000000.0, "country": "US"}
+{"ticker": "AFRM", "name": "Affirm", "exchange": "NASDAQ", "industry": "BNPL", "market_cap_usd": 14000000000.0, "country": "US"}
+{"ticker": "BYND", "name": "Beyond Meat", "exchange": "NASDAQ", "industry": "Plant-based Meat", "market_cap_usd": 500000000.0, "country": "US"}
+{"ticker": "ASTS", "name": "AST SpaceMobile", "exchange": "NASDAQ", "industry": "Satellite Direct-to-Phone", "market_cap_usd": 5000000000.0, "country": "US"}
+{"ticker": "BITO", "name": "ProShares Bitcoin Strategy ETF", "exchange": "NYSE", "industry": "BTC Futures ETF", "market_cap_usd": 3000000000.0, "country": "US"}
+{"ticker": "ENPH", "name": "Enphase Energy", "exchange": "NASDAQ", "industry": "Solar Microinverters", "market_cap_usd": 12000000000.0, "country": "US"}
+{"ticker": "HIMS", "name": "Hims & Hers Health", "exchange": "NYSE", "industry": "DTC Telehealth", "market_cap_usd": 5000000000.0, "country": "US"}

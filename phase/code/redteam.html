@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A0A">
+  <title>Thesis Red Team — Phase Detector</title>
+  <meta name="description" content="上传你的投资 thesis，结构化分析找出 3 个最脆弱的假设 + 历史结构孪生。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --bg-elevated: #141414;
+      --bg-card: #1A1A1A;
+      --border: #27272A;
+      --border-strong: #3F3F46;
+      --text: #FAFAFA;
+      --text-secondary: #D4D4D8;
+      --text-muted: #A1A1AA;
+      --text-dim: #71717A;
+      --accent: #22D3EE;
+      --accent-dim: rgba(34, 211, 238, 0.1);
+      --red: #F87171;
+      --red-dim: rgba(248, 113, 113, 0.08);
+      --amber: #FBBF24;
+      --mono: 'JetBrains Mono', monospace;
+      --serif: 'Noto Serif SC', serif;
+      --sans: 'Inter', -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site { border-bottom: 1px solid var(--border); padding: 20px 0; position: sticky; top: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(12px); z-index: 100; }
+    .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 48px 0 80px; }
+    .page-hero { margin-bottom: 32px; }
+    .page-hero .label { font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+    .page-hero h1 { font-family: var(--serif); font-size: clamp(28px, 3.5vw, 40px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; }
+    .page-hero p { color: var(--text-secondary); font-size: 15px; max-width: 720px; }
+
+    .form-box {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .form-label { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    textarea.thesis-input {
+      width: 100%;
+      min-height: 280px;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.7;
+      resize: vertical;
+    }
+    textarea.thesis-input:focus { outline: none; border-color: var(--accent); }
+    .char-count { font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: right; margin-top: 6px; }
+    .input-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .input-row input, .input-row select {
+      padding: 10px 14px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      font-size: 14px;
+      flex: 1;
+    }
+    .btn {
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary { background: var(--red); color: #0A0A0A; }
+    .btn-primary:hover { background: #ef6060; text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Example thesis */
+    .example-btn {
+      display: inline-flex;
+      padding: 6px 12px;
+      font-size: 12px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      font-family: var(--mono);
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 6px;
+    }
+    .example-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Result */
+    .result-section {
+      margin-top: 32px;
+      display: none;
+    }
+    .result-section.visible { display: block; }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-header h2 { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+
+    .vuln-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 0 10px 10px 0;
+      padding: 24px 28px;
+      margin-bottom: 18px;
+    }
+    .vuln-number {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--red);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .vuln-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .vuln-body p { color: var(--text-secondary); margin-bottom: 10px; font-size: 14px; }
+    .vuln-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; display: block; margin-top: 12px; margin-bottom: 4px; }
+    .vuln-precedent {
+      background: var(--bg-card);
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .loading-state {
+      padding: 60px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+    .loading-state .dots::after {
+      content: '';
+      display: inline-block;
+      animation: dots 1.2s infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      33% { content: '.'; }
+      66% { content: '..'; }
+      100% { content: '...'; }
+    }
+
+    .error-state {
+      padding: 20px;
+      background: var(--red-dim);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 8px;
+      color: var(--red);
+      font-size: 14px;
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase#samples">样例</a>
+        <a href="/phase/redteam">红队</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="page-hero">
+        <div class="label">THESIS RED TEAM</div>
+        <h1>把你的投资 thesis<br>交给结构化红队</h1>
+        <p>
+          粘贴你的 bull 或 bear thesis（100-2000 字），系统会识别你的核心假设，然后找出 3 个最脆弱的结构点——每个都配历史上<em>同样假设失败过的公司</em>。
+          这不是"找反方观点"，是<strong>找数学上脆弱的假设</strong>。
+        </p>
+      </div>
+
+      <form class="form-box" id="redteam-form" onsubmit="event.preventDefault(); runAnalysis();">
+        <label class="form-label">你要分析哪家公司？（可选）</label>
+        <div class="input-row">
+          <input type="text" id="company-ticker" placeholder="NVDA / 700.HK / 茅台" style="flex: 1;">
+          <input type="text" id="company-side" placeholder="bull 或 bear" style="flex: 0.5;">
+        </div>
+
+        <label class="form-label">Thesis 内容</label>
+        <textarea id="thesis-text" class="thesis-input" placeholder="粘贴你的投资 thesis。例如：
+
+NVIDIA 2026 年仍有 50%+ 上行空间。理由：(1) 数据中心需求继续指数增长；(2) CUDA 护城河让竞品无从入手；(3) 四大 hyperscaler 的 capex 飞轮还能持续 2-3 年；(4) FSD-style 终端 AI 是第二条增长曲线。目标价 $200，EV/sales 25x。"></textarea>
+        <div class="char-count"><span id="char-count">0</span> 字符</div>
+
+        <div style="margin: 16px 0;">
+          <span class="form-label" style="display: inline;">或点击示例：</span>
+          <button type="button" class="example-btn" onclick="loadExample('nvda-bull')">NVDA bull case</button>
+          <button type="button" class="example-btn" onclick="loadExample('tsla-bear')">TSLA bear case</button>
+          <button type="button" class="example-btn" onclick="loadExample('pdd-bull')">PDD bull case</button>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button type="submit" class="btn btn-primary" id="submit-btn">🔴 开始红队分析</button>
+          <span style="font-size: 12px; color: var(--text-dim);">预计 30-60 秒</span>
+        </div>
+      </form>
+
+      <div id="result" class="result-section">
+        <div class="result-header">
+          <h2>红队报告</h2>
+          <span id="result-meta" style="font-family: var(--mono); font-size: 12px; color: var(--text-muted); margin-left: auto;"></span>
+        </div>
+        <div id="result-content"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
+      <div class="footer-links">
+        <a href="/phase">Phase 首页</a>
+        <a href="https://structural.bytedance.city">主站</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const EXAMPLES = {
+      'nvda-bull': {
+        ticker: 'NVDA',
+        side: 'bull',
+        text: `NVIDIA 2026 年仍有 50%+ 上行空间。
+
+核心论点：
+1. 数据中心收入年增 100%+ 将持续 2-3 年，CUDA 生态让竞品无法进入
+2. Hyperscaler capex 循环（客户买卡→赚钱→加大订单）是自我强化的，没有结束信号
+3. AMD/Intel 的竞争产品落后 2-3 代，短期内不构成威胁
+4. 终端 AI / 机器人是第二条曲线，PC/手机里未来都要 NVIDIA 芯片
+
+估值支撑：2027 年收入 $200B+，净利率 50%+，EV/sales 25x 仍不贵。
+
+目标价 $250，+60%。`,
+      },
+      'tsla-bear': {
+        ticker: 'TSLA',
+        side: 'bear',
+        text: `Tesla 面临结构性下行 30%+。
+
+核心论点：
+1. 全球 EV 销量同比转负（2024 首次），价格战压缩毛利
+2. Cybertruck 延迟 + Model 2 推迟，新产品管线枯竭
+3. FSD 进展缓慢，Robotaxi 概念无法兑现
+4. BYD 在全球市场超越 Tesla
+5. "AI / 机器人公司"叙事缺乏收入支撑
+
+估值问题：按传统汽车 PE 定价 $120，相比现价 $250 有 52% 下行。`,
+      },
+      'pdd-bull': {
+        ticker: 'PDD',
+        side: 'bull',
+        text: `拼多多/Temu 被严重低估。
+
+核心论点：
+1. Temu 海外 GMV 年增 500%，3 年内到 3000 亿美元
+2. 补贴策略证明有效，CAC 虽然高但 LTV 更高
+3. 美国监管风险被过度定价——de minimis 规则不会改变
+4. 中国国内业务稳定 10%+ 增速，现金流充沛
+5. 管理层执行力强，ROE 持续 40%+
+
+目标市值 $3000 亿，+60% 上行空间。`,
+      },
+    };
+
+    const textarea = document.getElementById('thesis-text');
+    const charCount = document.getElementById('char-count');
+    textarea.addEventListener('input', () => {
+      charCount.textContent = textarea.value.length;
+    });
+
+    function loadExample(key) {
+      const ex = EXAMPLES[key];
+      if (!ex) return;
+      document.getElementById('company-ticker').value = ex.ticker;
+      document.getElementById('company-side').value = ex.side;
+      textarea.value = ex.text;
+      charCount.textContent = ex.text.length;
+      textarea.focus();
+    }
+
+    async function runAnalysis() {
+      const thesis = textarea.value.trim();
+      const ticker = document.getElementById('company-ticker').value.trim();
+      const side = document.getElementById('company-side').value.trim();
+
+      if (thesis.length < 50) {
+        alert('thesis 内容太短（至少 50 字符）');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '🔴 分析中…';
+
+      const resultDiv = document.getElementById('result');
+      const resultContent = document.getElementById('result-content');
+      const resultMeta = document.getElementById('result-meta');
+
+      resultDiv.classList.add('visible');
+      resultContent.innerHTML = '<div class="loading-state">正在识别核心假设和结构脆弱点<span class="dots"></span></div>';
+      resultDiv.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+      try {
+        const t0 = Date.now();
+        const resp = await fetch('/phase/api/redteam', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ticker, side, thesis}),
+        });
+        if (!resp.ok) {
+          const err = await resp.text();
+          throw new Error(`${resp.status}: ${err.slice(0, 200)}`);
+        }
+        const data = await resp.json();
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+        resultMeta.textContent = `${elapsed}s · ${data.vulnerabilities?.length || 0} 个脆弱点`;
+
+        let html = '';
+        if (data.thesis_summary) {
+          html += `<div style="background: var(--bg-elevated); padding: 20px 24px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border);">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">THESIS 核心假设</div>
+            <p style="color: var(--text-secondary); font-size: 14px;">${escapeHtml(data.thesis_summary)}</p>
+          </div>`;
+        }
+
+        if (data.vulnerabilities && data.vulnerabilities.length) {
+          data.vulnerabilities.forEach((v, i) => {
+            html += `
+              <div class="vuln-card">
+                <div class="vuln-number">脆弱点 #${i + 1}</div>
+                <div class="vuln-title">${escapeHtml(v.title || '')}</div>
+                <div class="vuln-body">
+                  <span class="vuln-label">原 thesis 的假设</span>
+                  <p>${escapeHtml(v.assumption || '')}</p>
+
+                  <span class="vuln-label">结构上的漏洞</span>
+                  <p>${escapeHtml(v.structural_flaw || '')}</p>
+
+                  ${v.precedent ? `
+                    <span class="vuln-label">历史上同样结构失败的案例</span>
+                    <div class="vuln-precedent">${escapeHtml(v.precedent)}</div>
+                  ` : ''}
+
+                  ${v.trigger ? `
+                    <span class="vuln-label">你应该监控什么</span>
+                    <p>${escapeHtml(v.trigger)}</p>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        if (data.summary) {
+          html += `<div style="margin-top: 24px; padding: 20px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border);">
+            <div style="font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">整体判断</div>
+            <p style="color: var(--text-secondary);">${escapeHtml(data.summary)}</p>
+          </div>`;
+        }
+
+        html += `<div style="margin-top: 30px; padding: 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-dim); line-height: 1.7;">
+          <strong>免责声明</strong>：本分析由 LLM 基于结构化框架生成，不构成投资建议。脆弱点不等于必然失败——它们是需要你警觉的监控锚点。
+        </div>`;
+
+        resultContent.innerHTML = html;
+      } catch (err) {
+        resultContent.innerHTML = `<div class="error-state">分析失败：${escapeHtml(err.message)}<br>请稍后重试，或检查 thesis 内容长度。</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔴 开始红队分析';
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // If URL has ?t=NVDA, preload that ticker
+    const params = new URLSearchParams(window.location.search);
+    const preticker = params.get('t');
+    if (preticker) document.getElementById('company-ticker').value = preticker;
+  </script>
+</body>
+</html>

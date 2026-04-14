@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A0A">
+  <title>加载中… — Phase Detector</title>
+  <meta name="description" content="单家公司的结构化分析：动力学家族、相位阶段、反馈拓扑、临界点、核心方程。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --bg-elevated: #141414;
+      --bg-card: #1A1A1A;
+      --border: #27272A;
+      --border-strong: #3F3F46;
+      --text: #FAFAFA;
+      --text-secondary: #D4D4D8;
+      --text-muted: #A1A1AA;
+      --text-dim: #71717A;
+      --accent: #22D3EE;
+      --accent-dim: rgba(34, 211, 238, 0.1);
+      --green: #34D399;
+      --amber: #FBBF24;
+      --red: #F87171;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 40px 0 80px; }
+
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .breadcrumb a { color: var(--text-muted); }
+
+    .ticker-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+    h1.company-name {
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 32px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .meta-chip {
+      padding: 4px 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .phase-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      border-width: 1px;
+      border-style: solid;
+    }
+    .phase-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .phase-stable { background: rgba(52, 211, 153, 0.08); color: var(--green); border-color: rgba(52, 211, 153, 0.3); }
+    .phase-stable .phase-dot { background: var(--green); }
+    .phase-saturated { background: rgba(161, 161, 170, 0.08); color: var(--text-muted); border-color: var(--border-strong); }
+    .phase-saturated .phase-dot { background: var(--text-muted); }
+    .phase-growth_phase { background: var(--accent-dim); color: var(--accent); border-color: rgba(34, 211, 238, 0.3); }
+    .phase-growth_phase .phase-dot { background: var(--accent); }
+    .phase-approaching_critical { background: rgba(251, 191, 36, 0.08); color: var(--amber); border-color: rgba(251, 191, 36, 0.3); }
+    .phase-approaching_critical .phase-dot { background: var(--amber); }
+    .phase-post_transition, .phase-unstable, .phase-contracting { background: rgba(248, 113, 113, 0.08); color: var(--red); border-color: rgba(248, 113, 113, 0.3); }
+    .phase-post_transition .phase-dot, .phase-unstable .phase-dot, .phase-contracting .phase-dot { background: var(--red); }
+
+    section.block {
+      margin-bottom: 40px;
+      padding: 28px 32px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    section.block h2 {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    section.block h2 .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 400;
+      letter-spacing: 1.5px;
+      margin-left: 12px;
+      text-transform: uppercase;
+    }
+    section.block p { color: var(--text-secondary); margin-bottom: 12px; line-height: 1.75; }
+
+    .key-value {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px 24px;
+      font-size: 14px;
+    }
+    .key-value dt { color: var(--text-dim); font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; padding-top: 4px; }
+    .key-value dd { color: var(--text); }
+
+    .equation-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      overflow-x: auto;
+      color: var(--text);
+      margin: 8px 0 16px;
+    }
+
+    .critical-list {
+      list-style: none;
+      padding: 0;
+    }
+    .critical-list li {
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: var(--bg-card);
+      border-left: 2px solid var(--amber);
+      border-radius: 0 6px 6px 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .param-table th, .param-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .param-table th { color: var(--text-dim); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 400; }
+
+    .confidence-bar {
+      height: 4px;
+      background: var(--bg-card);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary { background: var(--accent); color: #0A0A0A; }
+    .btn-primary:hover { background: #0ea5c4; text-decoration: none; }
+    .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    .loading, .error {
+      padding: 80px 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+
+    @media (max-width: 720px) {
+      .key-value { grid-template-columns: 1fr; gap: 4px 0; }
+      .key-value dd { margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase#samples">样例</a>
+        <a href="/phase/about">关于</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div id="content" class="loading">加载中…</div>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
+      <div class="footer-links">
+        <a href="/phase">Phase 首页</a>
+        <a href="https://structural.bytedance.city">主站</a>
+        <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const DYNAMICS_LABELS = {
+      'ODE1_linear': '线性 ODE (匀速增长)',
+      'ODE1_exponential_growth': '指数增长 (未饱和的爆发)',
+      'ODE1_exponential_decay': '指数衰减 (持续萎缩)',
+      'ODE1_logistic': '逻辑斯蒂 (S 曲线饱和)',
+      'ODE1_saturating': '饱和 S 曲线',
+      'ODE2_damped_oscillation': '阻尼振荡 (周期性波动衰减)',
+      'ODE2_undamped_oscillation': '无阻尼振荡 (持续周期波动)',
+      'DDE_delayed_feedback': '延迟反馈 (DDE)',
+      'PDE_reaction_diffusion': '反应扩散 (空间蔓延)',
+      'PDE_wave': '波动方程',
+      'PDE_diffusion': '扩散方程',
+      'Markov_chain': '马尔可夫链 (状态转移)',
+      'Markov_decision': '马尔可夫决策',
+      'Percolation_threshold': '渗流阈值',
+      'Phase_transition_1st': '一阶相变 (突然跳变)',
+      'Phase_transition_2nd': '二阶相变 (临界放缓)',
+      'Game_theoretic_equilibrium': '博弈均衡',
+      'Self_fulfilling_prophecy': '自我实现 (反身性)',
+      'Power_law_distribution': '幂律分布',
+      'Heavy_tail_extremal': '重尾极值 (黑天鹅主导)',
+      'Network_cascade': '网络级联 (传染式传播)',
+      'Percolation_network': '渗流网络',
+      'Hysteresis_loop': '滞回环 (路径依赖)',
+      'Bistable_switch': '双稳态开关',
+      'Fold_bifurcation': '鞍结分岔 (不可逆跳变)',
+      'Hopf_bifurcation': 'Hopf 分岔 (稳态→振荡)',
+      'Stochastic_process': '随机过程',
+      'Random_walk': '随机游走',
+      'Unknown': '未分类',
+    };
+    const DYNAMICS_EXPLAIN = {
+      'ODE1_exponential_growth': '公司处于纯指数增长阶段，远未看到饱和信号。典型场景：新兴技术早期爆发、网络效应尚未饱和。',
+      'ODE1_logistic': '公司在 S 型增长曲线上，接近承载量上限。典型场景：成熟 SaaS、消费品渗透到大部分目标市场。',
+      'ODE1_saturating': '公司已进入 S 型曲线后段，增长主要靠 ARPU 提升而非新增用户。',
+      'ODE1_linear': '成熟公司，增长线性跟随市场自然增长。',
+      'ODE1_exponential_decay': '核心业务持续萎缩，收入按指数速度衰减。',
+      'Bistable_switch': '系统有两个稳定态，当前在两者之间的 cusp 附近。一次冲击可能让它跳到另一个稳态且不可逆。',
+      'Fold_bifurcation': '老稳态正在消失，系统被迫跳到新稳态且不可回归。典型场景：专利悬崖、监管悬崖。',
+      'Phase_transition_1st': '越过某个临界参数后，系统从一个稳态瞬间跳到另一个。像水结冰，没有"半液态"。',
+      'Phase_transition_2nd': '连续相变，临界点附近对外部冲击的反应被无穷放大（susceptibility 发散）。',
+      'Hysteresis_loop': '系统有记忆——上涨和下跌走不同路径。典型：品牌信任崩塌快、重建慢。',
+      'Network_cascade': '级联传播。一个节点变化触发邻居变化，可以是病毒、挤兑、或破产链。',
+      'Self_fulfilling_prophecy': '反身性循环：预期本身驱动结果，结果又强化预期。典型：资产泡沫、银行挤兑。',
+      'DDE_delayed_feedback': '作用和结果有时间滞后。现在看起来稳定但未来已经注定。',
+      'Game_theoretic_equilibrium': '多方策略均衡维持的脆弱稳态。任一方改变策略就打破平衡。',
+      'Percolation_network': '网络临界密度。过了阈值网络连通（赢者通吃），没过阈值断裂。',
+      'Hopf_bifurcation': '稳态失稳后变成周期性振荡。不是崩塌，是进入振荡。',
+      'PDE_reaction_diffusion': '空间扩散结构主导。比如跨区域蔓延、地理扩张受物流速度约束。',
+      'Power_law_distribution': '结果分布呈幂律，少数极端值主导总回报。',
+      'Heavy_tail_extremal': '尾部风险主导，平均值 / 方差可能都不存在。黑天鹅主导。',
+      'ODE2_damped_oscillation': '周期性波动，振幅逐渐减小。',
+      'ODE2_undamped_oscillation': '持续周期性波动，无衰减。',
+      'Markov_chain': '离散状态转移链。用户/客户在多个状态间转移，由转移矩阵决定。',
+    };
+
+    const PHASE_LABELS = {
+      'growth_phase': '成长期',
+      'stable': '稳定',
+      'saturated': '饱和',
+      'approaching_critical': '接近临界点',
+      'post_transition': '相变后',
+      'unstable': '失稳',
+      'contracting': '收缩',
+    };
+    const PHASE_EXPLAIN = {
+      'growth_phase': '这家公司仍在结构性增长曲线的早期，还远没到饱和。',
+      'stable': '系统处于稳定均衡，没有明显的相变倾向。',
+      'saturated': '已进入 S 曲线后段，增长空间被承载量约束。',
+      'approaching_critical': '系统正在向某个临界点靠近。不等于立即崩塌，但对外部冲击的敏感度正在放大。',
+      'post_transition': '已经越过临界点，进入新的稳态（可能是更好或更差）。',
+      'unstable': '当前状态不可持续，某个状态变量会快速变化。',
+      'contracting': '持续收缩中，核心业务在萎缩。',
+    };
+
+    const FEEDBACK_LABELS = {
+      'positive_loop': '正反馈循环',
+      'negative_loop': '负反馈循环',
+      'delayed_positive': '延迟正反馈',
+      'delayed_negative': '延迟负反馈',
+      'bistable': '双稳态',
+      'multistable': '多稳态',
+      'none': '无明显反馈',
+      'unknown': '不确定',
+    };
+
+    const BOUNDARY_LABELS = {
+      'runaway': '失控发散',
+      'saturation': '趋向饱和',
+      'limit_cycle': '极限环',
+      'fixed_point': '固定点',
+      'decay_to_zero': '衰减到零',
+      'fold_bifurcation': '鞍结分岔',
+      'hopf_bifurcation': 'Hopf 分岔',
+      'phase_transition': '相变',
+      'power_law_tail': '幂律尾',
+      'unknown': '不确定',
+    };
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function getTickerFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('t') || '';
+    }
+
+    async function loadCompany() {
+      const ticker = getTickerFromUrl();
+      if (!ticker) {
+        document.getElementById('content').innerHTML = `
+          <div class="error">
+            <p>没有指定 ticker。</p>
+            <p style="margin-top:20px"><a href="/phase/screener" class="btn btn-primary">回到筛选器</a></p>
+          </div>`;
+        return;
+      }
+
+      try {
+        const resp = await fetch('/phase/api/companies');
+        const data = await resp.json();
+        const company = (data.companies || []).find(c => c.ticker === ticker);
+        if (!company) {
+          document.getElementById('content').innerHTML = `
+            <div class="error">
+              <p>没有找到 ticker <strong>${escapeHtml(ticker)}</strong> 的预计算数据。</p>
+              <p style="margin-top:20px">当前预计算了 ${data.count || 0} 家公司。</p>
+              <p style="margin-top:20px"><a href="/phase/screener" class="btn btn-primary">回到筛选器</a></p>
+            </div>`;
+          return;
+        }
+        render(company);
+      } catch (err) {
+        document.getElementById('content').innerHTML = `
+          <div class="error">加载失败：${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function render(c) {
+      document.title = `${c.name} (${c.ticker}) · Phase Detector`;
+
+      const dynLabel = DYNAMICS_LABELS[c.dynamics_family] || c.dynamics_family;
+      const dynExplain = DYNAMICS_EXPLAIN[c.dynamics_family] || '';
+      const phaseLabel = PHASE_LABELS[c.phase_state] || c.phase_state;
+      const phaseExplain = PHASE_EXPLAIN[c.phase_state] || '';
+      const feedbackLabel = FEEDBACK_LABELS[c.feedback_topology] || c.feedback_topology;
+      const boundaryLabel = BOUNDARY_LABELS[c.boundary_behavior] || c.boundary_behavior;
+      const mcap = c.market_cap_usd ? '$' + (c.market_cap_usd / 1e9).toFixed(0) + ' B' : '-';
+      const confPct = Math.round((c.confidence || 0) * 100);
+
+      let timescaleText = '未知';
+      if (typeof c.timescale_log10_s === 'number') {
+        const days = Math.pow(10, c.timescale_log10_s) / 86400;
+        if (days < 1) timescaleText = '分钟~小时';
+        else if (days < 30) timescaleText = '日~周';
+        else if (days < 365) timescaleText = '月';
+        else if (days < 365 * 5) timescaleText = '年';
+        else if (days < 365 * 15) timescaleText = '数年到十年';
+        else timescaleText = '十年~数十年';
+        timescaleText += ` (log₁₀s = ${c.timescale_log10_s})`;
+      }
+
+      const criticalList = Array.isArray(c.critical_points) && c.critical_points.length
+        ? '<ul class="critical-list">' + c.critical_points.map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul>'
+        : '<p style="color: var(--text-dim); font-size: 13px;">暂无明确临界点数据</p>';
+
+      let paramTable = '';
+      if (Array.isArray(c.key_parameters) && c.key_parameters.length) {
+        paramTable = '<table class="param-table"><thead><tr><th>符号</th><th>含义</th><th>估计值</th></tr></thead><tbody>' +
+          c.key_parameters.map(p => `<tr><td><code>${escapeHtml(p.symbol || '')}</code></td><td>${escapeHtml(p.meaning || '')}</td><td>${escapeHtml(p.estimate || '-')}</td></tr>`).join('') +
+          '</tbody></table>';
+      }
+
+      document.getElementById('content').innerHTML = `
+        <div class="breadcrumb">
+          <a href="/phase">Phase Detector</a> / <a href="/phase/screener">结构筛选器</a> / ${escapeHtml(c.ticker)}
+        </div>
+
+        <div class="ticker-eyebrow">${escapeHtml(c.ticker)} · ${escapeHtml(c.industry || '')}</div>
+        <h1 class="company-name">${escapeHtml(c.name)}</h1>
+
+        <div class="meta-row">
+          <span class="meta-chip">${escapeHtml(c.exchange || '')}</span>
+          <span class="meta-chip">市值 ${mcap}</span>
+          <span class="meta-chip">${escapeHtml(c.country || '')}</span>
+          <span class="meta-chip">置信度 ${confPct}%</span>
+        </div>
+
+        <div class="phase-banner phase-${c.phase_state || 'stable'}">
+          <span class="phase-dot"></span>
+          当前相位：${escapeHtml(phaseLabel)}
+        </div>
+
+        <section class="block">
+          <h2>结构动力学 <span class="label">DYNAMICS FAMILY</span></h2>
+          <p><strong style="font-size:18px; color: var(--text);">${escapeHtml(dynLabel)}</strong></p>
+          ${dynExplain ? `<p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">${escapeHtml(dynExplain)}</p>` : ''}
+
+          ${c.why_this_family ? `
+            <p style="margin-top: 16px; padding: 14px 18px; background: var(--bg); border-left: 2px solid var(--accent); border-radius: 0 6px 6px 0;">
+              <strong style="display: block; font-size: 11px; color: var(--accent); font-family: var(--mono); letter-spacing: 1px; margin-bottom: 6px;">为什么是这个家族</strong>
+              <span style="color: var(--text-secondary); font-size: 14px;">${escapeHtml(c.why_this_family)}</span>
+            </p>
+          ` : ''}
+
+          ${c.canonical_equation ? `
+            <p style="margin-top: 16px; font-size: 12px; color: var(--text-dim); font-family: var(--mono); letter-spacing: 0.5px; text-transform: uppercase;">核心方程</p>
+            <div class="equation-box">$$${escapeHtml(c.canonical_equation)}$$</div>
+          ` : ''}
+        </section>
+
+        <section class="block">
+          <h2>当前状态 <span class="label">PHASE STATE</span></h2>
+          <p><strong style="color: var(--text);">${escapeHtml(phaseLabel)}</strong></p>
+          ${phaseExplain ? `<p style="color: var(--text-muted); margin-top: 6px;">${escapeHtml(phaseExplain)}</p>` : ''}
+          ${c.note ? `
+            <p style="margin-top: 16px; padding: 14px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font-size: 14px;">
+              ${escapeHtml(c.note)}
+            </p>
+          ` : ''}
+        </section>
+
+        <section class="block">
+          <h2>临界点与监控信号 <span class="label">CRITICAL POINTS</span></h2>
+          ${criticalList}
+        </section>
+
+        ${paramTable ? `
+          <section class="block">
+            <h2>关键参数 <span class="label">PARAMETERS</span></h2>
+            ${paramTable}
+          </section>
+        ` : ''}
+
+        <section class="block">
+          <h2>结构指标总览 <span class="label">STRUCTURE</span></h2>
+          <dl class="key-value">
+            <dt>dynamics family</dt><dd>${escapeHtml(c.dynamics_family || '-')}</dd>
+            <dt>feedback topology</dt><dd>${escapeHtml(feedbackLabel || '-')}</dd>
+            <dt>boundary behavior</dt><dd>${escapeHtml(boundaryLabel || '-')}</dd>
+            <dt>timescale</dt><dd>${escapeHtml(timescaleText)}</dd>
+            <dt>phase state</dt><dd>${escapeHtml(phaseLabel || '-')}</dd>
+            <dt>confidence</dt>
+            <dd>
+              ${confPct}%
+              <div class="confidence-bar"><div class="confidence-fill" style="width: ${confPct}%"></div></div>
+            </dd>
+          </dl>
+        </section>
+
+        <div class="cta-row">
+          <a href="/phase/screener" class="btn btn-secondary">← 回到筛选器</a>
+          <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary">给这家公司做 Thesis 红队分析 →</a>
+        </div>
+      `;
+
+      if (window.renderMathInElement) {
+        renderMathInElement(document.getElementById('content'), {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+          ],
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCompany);
+  </script>
+</body>
+</html>

@@ -403,6 +403,7 @@
       </a>
       <nav class="menu">
         <a href="/phase/screener">结构筛选器</a>
+        <a href="/phase/redteam">Thesis 红队</a>
         <a href="#samples">样例报告</a>
         <a href="#idea">什么是结构筛选</a>
         <a href="#waitlist">Waitlist</a>
@@ -462,12 +463,14 @@
 
     <section class="idea" id="critical" style="border-top: 1px solid var(--border);">
     <div class="container">
-      <div class="section-label">APPROACHING CRITICAL · 今日精选</div>
-      <h2 class="section-title">这 6 家公司正处在<br>数学上的相变临界点附近</h2>
+      <div class="section-label">STRUCTURAL SIGNALS · 今日精选</div>
+      <h2 class="section-title">值得关注的 6 个结构信号</h2>
       <p class="lede">
-        从 83 家预计算公司里筛出来的、当前 phase_state 标记为 approaching_critical 且置信度 ≥ 0.7 的公司。相变不等于立即崩塌——只意味着 <em>对外部冲击的敏感度正在爆炸式增长</em>。
+        不是"会崩盘"的预测。是 83 家预计算公司里，<em>结构动力学正在发生变化</em>的 6 家——按底层数学机制分成 3 类。相变、双稳态切换、正反馈加速各有不同含义。
       </p>
-      <div id="critical-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 32px;"></div>
+      <div id="signals-container" style="margin-top: 32px;">
+        <div style="color: var(--text-muted); padding: 40px 0; text-align: center;">加载中…</div>
+      </div>
       <p style="text-align: center; margin-top: 32px;"><a href="/phase/screener" class="btn btn-secondary" style="display: inline-block;">在筛选器里看全部 83 家 →</a></p>
     </div>
   </section>
@@ -518,6 +521,39 @@
   </footer>
 
   <script>
+    // Fetch and render 3 structural signal categories
+    fetch('/phase/data/critical_signals.json').then(r => r.json()).then(data => {
+      const container = document.getElementById('signals-container');
+      if (!container) return;
+      const groups = Object.values(data);
+      container.innerHTML = groups.map(g => `
+        <div style="margin-bottom: 36px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <h3 style="font-size: 17px; font-weight: 600; color: var(--text);">${g.title}</h3>
+            <span style="font-family: var(--mono); font-size: 11px; color: var(--text-muted);">${g.companies.length} 家</span>
+          </div>
+          <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 14px;">${g.desc}</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px;">
+            ${g.companies.map(c => `
+              <a href="/phase/company?t=${encodeURIComponent(c.ticker)}" style="display: block; padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: inherit; transition: all 200ms ease;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <span style="font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 1px;">${c.ticker}</span>
+                  <span style="font-family: var(--mono); font-size: 10px; padding: 3px 8px; background: rgba(251, 191, 36, 0.15); color: #FBBF24; border-radius: 3px;">置信度 ${Math.round((c.confidence || 0) * 100)}%</span>
+                </div>
+                <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px;">${c.name}</div>
+                <div style="font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">${c.dynamics_family}</div>
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.55;">${c.note || ''}</div>
+              </a>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }).catch(e => {
+      console.warn('Failed to load signals:', e);
+      const c = document.getElementById('signals-container');
+      if (c) c.innerHTML = '<div style="color: var(--text-muted); padding: 20px; text-align: center;">信号数据加载失败</div>';
+    });
+
     // Populate sample cards from static manifest (avoid file-list dependency)
     const samples = [
       { slug: '01-nflx',    ticker: 'NFLX',         name: 'Netflix',           dynamic: 'logistic_saturation',         excerpt: '全球订阅用户已到 K×17%，logistic 曲线进入减速段。三个跨域框架告诉你何时真的饱和。' },
