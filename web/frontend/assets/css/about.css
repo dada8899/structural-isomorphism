@@ -1,0 +1,184 @@
+/* Structural — About page */
+
+.about-page {
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-5) var(--space-10);
+}
+
+.about-page__eyebrow {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+  animation: fadeInUp 500ms var(--ease-out-expo) both;
+}
+
+.about-page__title {
+  font-family: var(--font-serif);
+  font-size: clamp(48px, 6vw, 72px);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tighter);
+  color: var(--text-primary);
+  margin-bottom: var(--space-7);
+  animation: fadeInUp 600ms var(--ease-out-expo) 80ms both;
+}
+
+.about-page__lede {
+  font-size: var(--fs-20);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-7);
+  border-bottom: 1px solid var(--border-subtle);
+  animation: fadeInUp 600ms var(--ease-out-expo) 160ms both;
+  letter-spacing: var(--ls-tight);
+}
+
+.about-page__lede strong {
+  color: var(--text-primary);
+  font-weight: var(--fw-medium);
+}
+
+.about-page__section {
+  margin-bottom: var(--space-8);
+  animation: fadeInUp 600ms var(--ease-out-expo) 240ms both;
+}
+
+.about-page__section-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11, 11px);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.about-page__section-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-32);
+  font-weight: var(--fw-regular);
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  letter-spacing: var(--ls-tight);
+}
+
+.about-page__section p {
+  font-size: var(--fs-16);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+.about-page__section strong {
+  color: var(--text-primary);
+  font-weight: var(--fw-medium);
+}
+
+.about-page__section a {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--text-quaternary);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.about-page__section a:hover {
+  border-bottom-color: var(--text-primary);
+}
+
+/* === Key stats grid === */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  padding: var(--space-5);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+@media (max-width: 640px) {
+  .about-stats { grid-template-columns: 1fr; text-align: left; gap: var(--space-3); }
+}
+
+.about-stats__item {
+  text-align: center;
+  padding: var(--space-3) 0;
+}
+
+@media (max-width: 640px) {
+  .about-stats__item { text-align: left; }
+  .about-stats__item + .about-stats__item {
+    border-top: 1px dashed var(--border-subtle);
+  }
+}
+
+.about-stats__num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-32);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+  font-feature-settings: "tnum";
+}
+
+.about-stats__label {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+}
+
+/* === Team / credits === */
+.about-team {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-5);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.about-team__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: var(--fs-24);
+  font-weight: var(--fw-medium);
+  flex-shrink: 0;
+}
+
+.about-team__info {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.about-team__name {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.about-team__role {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.about-team__bio {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
+}

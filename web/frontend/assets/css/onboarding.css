@@ -1,0 +1,331 @@
+/* Structural — Onboarding overlay (3-step intro) */
+
+.onboarding {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.onboarding.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.onboarding.closing {
+  opacity: 0;
+}
+
+.onboarding__skip {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.onboarding__skip:hover {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+
+.onboarding__step {
+  width: 100%;
+  max-width: 900px;
+  padding: var(--space-6);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.onboarding__step.active {
+  display: flex;
+}
+
+/* === Step 1: Welcome === */
+.onb-welcome {
+  text-align: center;
+}
+
+.onb-welcome__headline {
+  font-family: var(--font-serif);
+  font-size: var(--fs-56);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tighter);
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+  opacity: 0;
+  animation: fadeInUp 700ms var(--ease-out-expo) 200ms both;
+}
+
+.onb-welcome__subtitle {
+  font-size: var(--fs-20);
+  color: var(--text-secondary);
+  letter-spacing: var(--ls-tight);
+  opacity: 0;
+  animation: fadeInUp 700ms var(--ease-out-expo) 500ms both;
+  margin-bottom: var(--space-9);
+}
+
+.onb-welcome__diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+  opacity: 0;
+  animation: fadeIn 700ms var(--ease-out) 900ms both;
+}
+
+.onb-welcome__node {
+  width: 140px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+}
+
+.onb-welcome__node-name {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.onb-welcome__node-domain {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.onb-welcome__link {
+  position: relative;
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.onb-welcome__link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.onb-welcome__link::after {
+  content: '≅';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--fs-20);
+  color: var(--accent);
+  font-family: var(--font-serif);
+}
+
+.onb-welcome__continue {
+  opacity: 0;
+  animation: fadeInUp 600ms var(--ease-out-expo) 1300ms both;
+}
+
+/* === Step 2: Example === */
+.onb-example {
+  text-align: center;
+  width: 100%;
+}
+
+.onb-example__label {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+}
+
+.onb-example__title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-32);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-snug);
+  color: var(--text-primary);
+  margin-bottom: var(--space-7);
+}
+
+.onb-example__pair {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.onb-example__card {
+  flex: 1;
+  max-width: 320px;
+  padding: var(--space-5);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  text-align: left;
+}
+
+.onb-example__card-domain {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.onb-example__card-name {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.onb-example__card-desc {
+  font-size: var(--fs-14);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
+}
+
+.onb-example__connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  min-width: 60px;
+}
+
+.onb-example__connector-label {
+  font-family: var(--font-serif);
+  font-size: var(--fs-32);
+  color: var(--accent);
+  line-height: 1;
+}
+
+.onb-example__connector-score {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
+}
+
+.onb-example__mapping {
+  max-width: 680px;
+  margin: 0 auto var(--space-6);
+  padding: var(--space-5);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  text-align: left;
+}
+
+.onb-example__mapping-title {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.onb-example__mapping-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  font-size: var(--fs-14);
+  color: var(--text-secondary);
+}
+
+.onb-example__mapping-row + .onb-example__mapping-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.onb-example__mapping-row span:first-child { text-align: right; }
+.onb-example__mapping-row span:last-child { text-align: left; color: var(--text-primary); }
+.onb-example__mapping-row span:nth-child(2) {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+}
+
+.onb-example__caption {
+  font-size: var(--fs-16);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+  line-height: var(--lh-relaxed);
+}
+
+.onb-example__caption strong {
+  color: var(--text-primary);
+  font-weight: var(--fw-medium);
+}
+
+.onb-example * { animation: fadeInUp 600ms var(--ease-out-expo) both; }
+.onb-example__label { animation-delay: 0ms; }
+.onb-example__title { animation-delay: 100ms; }
+.onb-example__pair .onb-example__card:first-child { animation-delay: 200ms; }
+.onb-example__connector { animation: fadeIn 600ms var(--ease-out) 400ms both; }
+.onb-example__pair .onb-example__card:last-child { animation-delay: 300ms; }
+.onb-example__mapping { animation-delay: 600ms; }
+.onb-example__caption { animation-delay: 700ms; }
+.onb-example > .btn { animation-delay: 800ms; }
+
+/* === Step 3: Tooltip (appears on home page, not overlay) === */
+.onb-tooltip {
+  position: absolute;
+  padding: var(--space-3) var(--space-4);
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  font-size: var(--fs-13);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-overlay);
+  animation: fadeInUp 400ms var(--ease-out-expo) both;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.onb-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: var(--text-primary);
+}
+
+.onb-tooltip.fade-out {
+  animation: fadeOut 300ms var(--ease-out) forwards;
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(-8px); }
+}
