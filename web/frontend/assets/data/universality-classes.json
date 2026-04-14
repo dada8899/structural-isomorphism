@@ -77,7 +77,9 @@
           "sample_size": "84,808 events / 580 main shocks / 24,680 aftershocks",
           "paper_target": "Layer 5 Phase 1 — pipeline validation",
           "status": "✅ 已验证 (2026-04-15)",
-          "rationale": "SOC 普适类的黄金参考. 在真实全球地震数据上完整复现 b ≈ 1 + Omori p ≈ 1. 这验证了分析 pipeline, 为跨域应用 (DeFi / 神经 / 社会) 铺路. 详细报告: v4/validation/soc-earthquake/VERDICT-2026-04-15.md"
+          "rationale": "SOC 普适类的黄金参考. 在真实全球地震数据上完整复现 b ≈ 1 + Omori p ≈ 1. 这验证了分析 pipeline, 为跨域应用 (DeFi / 神经 / 社会) 铺路.",
+          "paper_url": "/paper/soc-earthquake-2026-04-15",
+          "paper_title": "Recovering SOC Universality on a Global Earthquake Catalog"
         },
         {
           "target": "DeFi 清算级联",
