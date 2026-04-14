@@ -1,38 +1,54 @@
 # 公司分析产品 · 完整 Plan
 
-**文档状态**：v0.1 草案
+**文档状态**：v0.2（定位反转：Screening-first，Report 为 drill-down）
 **日期**：2026-04-15
 **作者**：达达 + Claude
 **父项目**：structural-isomorphism（V1+V2+V3 pipeline 已就绪）
+
+> **v0.2 更新**：原 v0.1 把 Company Report 作为主功能、Screening 作为 nice-to-have。  
+> 重新思考后反转：**Structural Screening 才是最强 moat**，Report 是 drill-down 视图。  
+> 原因：Screener 是 daily recurring use（粘性高），差异化最强（传统工具做不到），天然 shareable。  
+> 产品名从 "Structural Intel" 改为 **"Phase Detector"**。
 
 ---
 
 ## 零. TL;DR
 
-一个**面向商业分析师的结构化跨域 insight 生成工具**。
+**Phase Detector**（结构相变探测器）——一个按**数学动力学**筛选全市场的工具。
 
-给定一家公司（ticker 或描述），系统自动提取其"结构签名"，并从物理学/生物学/生态学/复杂系统等**非商业领域**检索 3-5 个数学上同构的框架，生成一份带方程映射、历史先例、红队反驳、可观测指标的分析报告。
+给定一个结构条件（"处于临界放缓"/"延迟反馈型"/"结构等同 2000 年 Cisco"），返回全市场所有匹配的公司。用户点任意一家 → 看到完整的 Structural Report（3 个跨域框架 + 量化投影 + 历史先例 + 红队 + 预警信号）。
 
-**不是**：Bloomberg 替代品、AI 量化交易系统、自动化研报生成器、Chatbot。
-**是**：一个"把你没想到的角度摆到你面前"的**差异化 thesis 生成器**，让分析师 30 分钟获得 3 个 non-obvious 视角。
+**核心体验**：每天看 5 分钟 Phase Detector，发现今天哪 3 家公司进入了结构相变点，比读 10 份传统研报更有信号。
+
+**5 个核心功能**（全都做）：
+1. **Structural Screener**（主入口，最强 moat）
+2. **Structural Report**（drill-down 详情页）
+3. **Structural Projections**（基于方程的量化预测）
+4. **Structural Chat**（对话式输入入口）
+5. **Structural Index API**（B2B 数据产品线）
+
+**真正不做**：实时行情、原始财务数据仓库、传统多因子选股。
 
 ---
 
 ## 一. 定位
 
-### 1.1 一句话定位
+### 1.1 一句话定位（v0.2 修订）
 
-> **"用物理学、生物学、生态学的视角看你的目标公司——看见其他分析师看不见的结构动力学。"**
+> **"在全市场找出那些正在经历结构相变的公司——用数学动力学而非财务比率筛选。"**
 
-### 1.2 产品名候选
+辅助 tagline：
+- 英文：*"Don't screen by P/E. Screen by phase."*
+- 中文："别用市盈率筛股，用数学结构筛股。"
 
-- `Structural Intel` — 品牌中性
-- `Isomorph` — 学术感
-- `跨域研究` — 中文朴素
-- `Beyond Analog` — 英文有力度
-- `Second Brain for Analysts` — 营销向
+### 1.2 产品名
 
-**暂定**：`Structural Intel`，英文 StructInt，中文"结构情报"。
+**暂定**：**`Phase Detector`**
+- 英文主名：Phase Detector
+- 中文名："相变探测器" / "结构扫描器"
+- Domain 候选：`phasedetector.com` / `phase.fund` / `structint.io`
+
+备用命名：`PhaseShift`、`Structural Radar`、`Dynamics Screener`。
 
 ### 1.3 为什么是这个定位
 
@@ -53,21 +69,32 @@
 | "每天给你 1-3 个差异化角度" | 内容驱动，不依赖数据竞争 |
 | "thesis red-team 工具" | 避免 confirmation bias 是普遍痛点，没人专门解决 |
 
-### 1.4 最重要的 anti-positioning
+### 1.4 anti-positioning（v0.2 修订）
 
-**不要做的 5 件事**：
-1. 不做"数据"——让 Bloomberg / FactSet 做
-2. 不做"预测数字"——让 Consensus / VisibleAlpha 做
-3. 不做"screening 筛股"——让 Koyfin / Simply Wall St 做
-4. 不做"问答 chatbot"——让 Perplexity / Claude 做
-5. 不做"自动化报告生成"——让 AlphaSense / Tegus 做
+v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项都有"结构化版本"可以做。
 
-**只做一件事**：给定一家公司，返回 **3-5 个来自非商业领域的数学框架**，每个框架包含：
-- 方程 + 变量到这家公司具体指标的映射
-- 该框架预测的 **3 个情境**（base / bull / bear）
-- **2-3 个历史先例**（商业界曾经被此框架正确解释的真实公司）
-- **具体可观测的预警信号**（分析师应该监控财报哪一行）
-- **框架失效的 3 种场景**（避免 cargo culting）
+**真正不做的 3 件事**（这次不会改了）：
+1. **实时行情 / order book** — 延迟和成本要求做不动，让 Bloomberg/IBKR 做
+2. **原始财务数据仓库（10 年 daily quote）**— 没意义重复 SEC EDGAR / AKShare 已有的
+3. **传统多因子选股（按 P/E / ROE / 分红筛）**— 红海无差异
+
+**v0.1 被误判为"不做"、其实应该做的 5 件事**：
+
+| 原"禁做" | 正确的形态 | 原因 |
+|---|---|---|
+| ~~数据~~ | **Structural Index™**（专有结构数据集 + B2B API） | 独家数据，B2B 第二 revenue stream |
+| ~~预测数字~~ | **Structural Projections**（基于 logistic/fold/SIR 的参数化投影 + disclaimer） | 让报告从"框架"升级到"falsifiable 数字" |
+| ~~筛选股票~~ | **Structural Screener**（按 dynamics_family / critical point state 筛） | 这才是**最强 moat** |
+| ~~问答 chatbot~~ | **Structural Chat**（帮用户把模糊问题转成 StructTuple 的结构化对话入口） | 作为 report 的输入替代路径 |
+| ~~自动研报~~ | **Structural Report**（开创新文体：3 框架+量化投影+红队+预警信号） | 核心功能，不是复制旧研报，是定义新文体 |
+
+### 1.5 核心价值主张
+
+**对分析师的 4 个可感知价值**：
+1. **发现信号**（Screener）：每天 5 分钟发现哪 3 家公司进入结构相变
+2. **深入理解**（Report）：点任意结果 → 2-3 页跨域分析
+3. **可量化**（Projections）：不止是框架，给 95% CI 的参数化预测
+4. **自查偏差**（Red Team）：上传你的 thesis，找出脆弱假设
 
 ---
 
@@ -121,11 +148,45 @@
 
 ---
 
-## 三. 核心产品功能
+## 三. 核心产品功能（v0.2：5 个核心功能）
 
-MVP 里只做 3 个功能，不多不少。
+v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排序。
 
-### 功能 1：结构化公司分析报告（核心）
+### 功能 1：Structural Screener ⭐（**最强 moat**，新增为主功能）
+
+**输入**：
+- 按动力学族筛选（27 个 enum：DDE_delayed_feedback / Bistable_switch / Network_cascade / ...）
+- 按相变阶段筛选（approaching_critical / post_transition / stable / unstable）
+- 按反馈拓扑筛选（positive_loop / delayed / bistable）
+- 按时间尺度筛选（days / months / years / decades）
+- 按结构签名相似度筛选（"find companies structurally similar to NFLX 2019"）
+- 按历史先例匹配（"companies matching Blockbuster 2008 signature"）
+- 组合查询（"处于 logistic 饱和 AND positive feedback AND 时间尺度=月"）
+
+**处理**：
+1. 预计算 Top 500-1500 全市场公司的 StructTuple（一次性 $30-100 LLM 成本，每月刷新）
+2. 建立 dynamics_family + critical_point_state 索引
+3. 查询时 O(1) 过滤 + 返回命中列表
+4. 每个结果附 30 秒 TL;DR（为什么这个公司匹配该结构）
+
+**输出**：
+- 结果列表（公司名 + 行业 + 市值 + 结构签名 + 匹配度 0-100%）
+- 每个结果一键进入 Report 详情页
+- 可导出 CSV / RSS 订阅 / 邮件提醒
+
+**独特价值**：
+- 这是**传统工具完全做不到**的筛选维度
+- 是每日 recurring use（vs 单次 report）
+- 天然 shareable："今天市场哪 3 家进入 critical slowing down" 是完美 Twitter 内容
+- **天然 lead gen**：免费 screener + 付费 report = classic freemium conversion
+
+**技术链路**：预计算 StructTuples + Postgres 索引 + 简单 REST API + 前端 filter UI
+
+**预期耗时**：查询响应 < 500ms（预计算后），StructTuple 批量刷新每周 1 次
+
+---
+
+### 功能 2：Structural Report（drill-down 详情，原主功能）
 
 **输入**：
 - 公司 ticker（如 `NFLX`、`PDD`、`700.HK`）
@@ -153,7 +214,47 @@ MVP 里只做 3 个功能，不多不少。
 
 ---
 
-### 功能 2：Thesis Red Team（防御性）
+### 功能 3：Structural Projections ⭐（**新增**，让 Report 可 falsifiable）
+
+**问题**：只给定性框架（"like logistic saturation"）不够，分析师需要数字。
+
+**解决**：每个结构孪生 auto-fit 参数 + 输出 95% CI 预测区间。
+
+**示例**：
+> Netflix 2029 subscriber projection
+> Model: Verhulst-Pearl logistic (N/dt = rN(1 - N/K))
+> Fit on 2015-2025 data: r = 0.18/year, K = 1.5B households
+> Current state: N = 265M (17% of K)
+> **2029 base case: 453M (95% CI: 421-485M)**
+>
+> Model failure conditions:
+> 1. Ad-tier broadens low-price niche → K exceeds 1.5B assumption
+> 2. Content quality decline drops r below 0.10/year
+> 3. Regulatory exit in India/China shrinks K
+
+**Model library**（MVP 覆盖 7 个核心模型）：
+- Logistic growth (Verhulst-Pearl)
+- Exponential decay with carrying capacity
+- SIR epidemic (for contagion dynamics)
+- Fold bifurcation (catastrophic regime shift)
+- Bass diffusion (product adoption)
+- Coupled oscillator (predator-prey / supply-demand lag)
+- Heavy-tail / power-law (outcome distribution)
+
+每个模型一个 Python fitter class + 参数化 prompt → 自动化流程。
+
+**独特价值**：把"结构类比"升级为"带数字的科学预测"。分析师可以直接质疑参数，自己改假设重算。
+
+**合规 disclaimer**（必须）：
+- "非投资建议"
+- "基于公开数据的数学推演"
+- "不考虑个人投资状况"
+
+律师一次性 review prompt 模板（~$500）。
+
+---
+
+### 功能 4：Thesis Red Team（原功能 2，保持不变）
 
 **输入**：用户上传自己的 bull/bear 研报（PDF / Markdown / 粘贴文本）
 
@@ -174,7 +275,23 @@ MVP 里只做 3 个功能，不多不少。
 
 ---
 
-### 功能 3：结构变化追踪（留存）
+### 功能 5：Structural Chat ⭐（新增，对话入口）
+
+**场景**：用户描述模糊情境，chat 帮忙结构化。
+
+**例子**：
+> User: "我觉得 SHEIN 的增长模式有点不对劲"
+> System: "你观察到的是 GMV 增速放缓，还是客单价下降，还是复购率下降？"
+> User: "GMV 增速放缓但客单价涨"
+> System: "这是典型的 logistic_saturation → ARPU-driven 转型信号。我给你匹配 3 个结构孪生：[...]"
+
+**实现**：LLM 对话 → 提取 StructTuple → 进入检索 → 给出 Report 入口
+
+**独特价值**：降低"不知道如何描述问题"的用户门槛。
+
+---
+
+### 功能 6：Structural Change Tracking（原功能 3，保留）
 
 **输入**：用户订阅一个公司 watchlist（设定 10-30 只）
 
@@ -192,15 +309,40 @@ MVP 里只做 3 个功能，不多不少。
 
 ---
 
-### 不做的功能（明确拒绝）
+### 功能 7：Structural Index API ⭐（新增，B2B 第二 revenue stream）
 
-- ❌ 股价预测（合规风险 + 准确度问题）
-- ❌ 估值模型（DCF / Multiples）（commodity）
-- ❌ 同行比较表（大家都有）
-- ❌ 管理层评分（主观 + 被起诉风险）
-- ❌ 自动买卖信号（合规 + 品牌污染）
-- ❌ Chatbot 对话（失焦）
-- ❌ 多语言支持（MVP 只做中英文）
+**What**：把 Top 1000 公司的 StructTuple 预计算结果做成**数据订阅产品**。
+
+**Target customer**：
+- 对冲基金量化团队（$2k-10k/月/seat）
+- 学术研究机构（$5k-20k 一次性 license）
+- 其他金融 SaaS（作为 enrichment layer）
+
+**提供形式**：
+- REST API: `GET /api/v1/struct/{ticker}` → 返回 StructTuple JSON
+- Batch CSV dump: 每月更新的全量快照
+- Webhook: 结构状态变化时触发
+
+**实现成本**：功能 1 的副产品（同一个预计算 pipeline）
+
+**技术可行性**: 🟢 95%（底层已有）
+**商业可行性**: 🟡 50%（需要 sales motion）
+**结论**: Phase 3 之后再考虑，不强推。
+
+---
+
+### 不做的功能（明确拒绝，这次不会改了）
+
+- ❌ 实时行情 / order book（技术和成本门槛）
+- ❌ 原始财务数据仓库（重复 SEC/AKShare 无意义）
+- ❌ 传统多因子筛选（P/E + ROE + dividend yield）（红海无差异）
+- ❌ 股价点位预测（"明年到 $200" 这种不给）
+- ❌ 估值模型 DCF builder（commodity，大厂有）
+- ❌ 管理层主观评分（主观 + 被起诉风险）
+- ❌ 自动买卖信号（合规污染品牌）
+- ❌ 通用 chatbot（只做 Structural Chat）
+- ❌ 日内交易信号
+- ❌ 技术分析（K 线 / 支撑阻力 / MACD）
 
 ---
 
