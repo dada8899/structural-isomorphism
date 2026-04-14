@@ -1,7 +1,7 @@
 {
   "runaway_feedback": {
     "title": "🔥 正反馈加速型",
-    "desc": "增长机制自我强化，越增长越能吸引资源。典型风险：临界点前所有指标看起来都好，跨过就是断崖式反转。",
+    "desc": "增长机制自我强化。越增长越能吸引资源。典型风险：临界点前所有指标看起来都好，跨过就是断崖式反转。",
     "companies": [
       {
         "ticker": "NVDA",
@@ -26,6 +26,27 @@
         "note": "runaway 正反馈，任一大客户减单都会触发级联收缩"
       },
       {
+        "ticker": "AVGO",
+        "name": "Broadcom",
+        "exchange": "NASDAQ",
+        "country": "US",
+        "industry": "Semiconductors / Networking",
+        "market_cap_usd": 850000000000,
+        "dynamics_family": "ODE1_exponential_growth",
+        "why_this_family": "AI custom ASIC (Google TPU, Meta MTIA) 业务 2024-25 仍在 200%+ YoY，远未见饱和，正反馈飞轮（客户 capex → 更多定制芯片订单）仍在加速。不选 saturating 是因为 AI 部分的 K 约束尚未显现；不选 linear 是因为传统网络芯片被 AI ASIC 爆发盖过。",
+        "feedback_topology": "positive_loop",
+        "boundary_behavior": "runaway",
+        "timescale_log10_s": 7,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dI/dt = alpha*I*(P-Q)",
+        "critical_points": [
+          "Google/Meta 任一减单 AI ASIC 25%+",
+          "AI capex 周期见顶信号（hyperscaler guidance 下修）"
+        ],
+        "confidence": 0.82,
+        "note": "AI ASIC 绑定两三个大客户，集中度风险是 critical point"
+      },
+      {
         "ticker": "PLTR",
         "name": "Palantir",
         "exchange": "NASDAQ",
@@ -46,13 +67,13 @@
         ],
         "confidence": 0.7,
         "note": "叙事驱动的自我实现，一旦增速叙事破裂会快速反向",
-        "phase_state_raw": "bubble_phase"
+        "_phase_raw": "bubble_phase"
       }
     ]
   },
   "bistable_cusp": {
     "title": "⚖️ 双稳态切换型",
-    "desc": "系统有两个可能的稳态（成功 / 失败），当前在两者之间的 cusp。一次冲击可能让它不可逆地跳到另一边。",
+    "desc": "系统有两个可能的稳态，当前在 cusp 附近。一次冲击可能让它不可逆地跳到另一边。",
     "companies": [
       {
         "ticker": "ORCL",
@@ -96,13 +117,35 @@
         ],
         "confidence": 0.88,
         "note": "经典专利悬崖 fold，药企的标志性动力学",
-        "phase_state_raw": "pre_bifurcation"
+        "_phase_raw": "pre_bifurcation"
+      },
+      {
+        "ticker": "600519.SS",
+        "name": "贵州茅台",
+        "exchange": "SSE",
+        "country": "CN",
+        "industry": "白酒",
+        "market_cap_usd": 250000000000,
+        "dynamics_family": "Hysteresis_loop",
+        "why_this_family": "茅台的金融化属性（渠道囤货+理财化）形成了价格滞回——涨的时候自我强化，跌的时候囤货集中抛售，不对称路径；不是 saturating（消费量远未饱和），而是价格预期的记忆效应。",
+        "feedback_topology": "delayed_positive",
+        "boundary_behavior": "limit_cycle",
+        "timescale_log10_s": 9,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "dP/dt = f(P, expectation); path asymmetric",
+        "critical_points": [
+          "批价跌破 2000 元持续 6 个月",
+          "经销商库存周转天数 > 180",
+          "年轻人白酒消费占比持续下滑"
+        ],
+        "confidence": 0.72,
+        "note": "金融资产化白酒的价格滞回，不是饮用需求驱动"
       }
     ]
   },
   "critical_slowing_down": {
     "title": "📈 临界放缓型",
-    "desc": "连续相变前夜。系统对外部冲击的敏感度在爆炸式增长——任何小扰动都被放大。",
+    "desc": "连续相变前夜。系统对外部冲击的敏感度爆炸式增长——任何小扰动都被放大。",
     "companies": [
       {
         "ticker": "GOOGL",
@@ -125,7 +168,7 @@
         ],
         "confidence": 0.72,
         "note": "临界放缓，每次 AI 叙事都放大市值波动——典型二阶相变特征",
-        "phase_state_raw": "near_critical"
+        "_phase_raw": "near_critical"
       },
       {
         "ticker": "TSM",
@@ -147,6 +190,28 @@
         ],
         "confidence": 0.78,
         "note": "全球 5nm 以下独点，percolation 意义上的 giant component 唯一 hub"
+      },
+      {
+        "ticker": "BABA",
+        "name": "阿里巴巴 ADR",
+        "exchange": "NYSE",
+        "country": "CN",
+        "industry": "E-commerce + Cloud (ADR)",
+        "market_cap_usd": 180000000000,
+        "dynamics_family": "Phase_transition_2nd",
+        "why_this_family": "阿里处于电商份额被拼多多/抖音蚕食但云+国际仍在增长的对撞点。对每一条外部新闻（监管、AI、分拆）的反应幅度持续放大，典型临界慢化+susceptibility 发散。不是一阶相变因为没有瞬时跳变。",
+        "feedback_topology": "mixed",
+        "boundary_behavior": "bounded",
+        "timescale_log10_s": 8,
+        "phase_state": "approaching_critical",
+        "canonical_equation": "chi ~ |T - T_c|^(-gamma)",
+        "critical_points": [
+          "淘天 GMV 份额跌破 40%",
+          "阿里云 AI 收入占比 >25%",
+          "回购节奏年化 >5%"
+        ],
+        "confidence": 0.73,
+        "note": "多业务对撞，市场定价在不同剧本间来回切换"
       }
     ]
   }
