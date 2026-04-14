@@ -465,6 +465,18 @@
   margin: 0 0 8px;
 }
 
+.uc-pred__rationale {
+  font-size: 13px;
+  color: #6a5d47;
+  line-height: 1.6;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: rgba(217, 119, 87, 0.06);
+  border-left: 2px solid rgba(217, 119, 87, 0.35);
+  border-radius: 4px;
+  font-style: italic;
+}
+
 .uc-pred__meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

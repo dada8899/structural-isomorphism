@@ -24,6 +24,7 @@ from collections import defaultdict
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = REPO_ROOT / "v4" / "results" / "candidate_classes.jsonl"
 LAYER3_AUTO = REPO_ROOT / "v4" / "results" / "layer3_auto_curated.jsonl"
+LAYER4_PREDICTIONS = REPO_ROOT / "v4" / "results" / "layer4_predictions.jsonl"
 OUT_FILE = REPO_ROOT / "web" / "frontend" / "assets" / "data" / "universality-classes.json"
 
 # ---------------------------------------------------------------------------
@@ -283,11 +284,33 @@ def load_layer3_auto():
     return out
 
 
+def load_layer4_predictions():
+    """Load LLM-generated predictions from layer4_predictions.jsonl.
+    Returns dict keyed by hub_name (unique enough across all 23 classes)."""
+    if not LAYER4_PREDICTIONS.exists():
+        return {}
+    out = {}
+    with LAYER4_PREDICTIONS.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            hub = rec.get("hub_name")
+            if hub:
+                out[hub] = rec.get("predictions", [])
+    return out
+
+
 def build():
     with CANDIDATES.open("r", encoding="utf-8") as f:
         raw = [json.loads(line) for line in f if line.strip()]
 
     layer3 = load_layer3_auto()
+    layer4 = load_layer4_predictions()
 
     classes = []
     for rec in raw:
@@ -320,7 +343,7 @@ def build():
             "summary_zh": curated.get("summary_zh") or "",
             "shared_equations_raw": coerce_equations(rec.get("shared_equations_sample", [])),
             "invariants": curated.get("invariants", []),
-            "predictions": curated.get("predictions", []),
+            "predictions": (curated.get("predictions", []) or layer4.get(hub_name, [])),
             "notes": curated.get("notes", "") if source == "llm" else "",
             "members_by_domain": group_members_by_domain(rec.get("members", [])),
             "is_curated": bool(manual or auto),

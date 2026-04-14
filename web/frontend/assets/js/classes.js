@@ -98,6 +98,9 @@ function renderPredictions(preds) {
       if (p.data_source) meta.push(`<div><span class="uc-pred__meta-key">数据</span>${escapeHtml(p.data_source)}</div>`);
       if (p.sample_size) meta.push(`<div><span class="uc-pred__meta-key">样本量</span>${escapeHtml(p.sample_size)}</div>`);
       if (p.paper_target) meta.push(`<div><span class="uc-pred__meta-key">目标期刊</span>${escapeHtml(p.paper_target)}</div>`);
+      const rationale = p.rationale
+        ? `<p class="uc-pred__rationale">${escapeHtml(p.rationale)}</p>`
+        : "";
       return `
         <div class="uc-pred">
           <div class="uc-pred__header">
@@ -105,6 +108,7 @@ function renderPredictions(preds) {
             ${p.status ? `<span class="uc-pred__status">${escapeHtml(p.status)}</span>` : ""}
           </div>
           <p class="uc-pred__text">${escapeHtml(p.prediction || "")}</p>
+          ${rationale}
           ${meta.length ? `<div class="uc-pred__meta">${meta.join("")}</div>` : ""}
         </div>
       `;
