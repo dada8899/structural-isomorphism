@@ -1,0 +1,12 @@
+[
+  {"slug": "01-nflx",    "ticker": "NFLX",      "name": "Netflix",       "dynamics_family": "ODE1_saturating",          "excerpt": "Verhulst-Pearl logistic saturation on global household carrying capacity."},
+  {"slug": "02-nvda",    "ticker": "NVDA",      "name": "NVIDIA",        "dynamics_family": "ODE1_exponential_growth",  "excerpt": "Runaway positive feedback approaching Semenov thermal explosion threshold."},
+  {"slug": "03-pdd",     "ticker": "PDD",       "name": "PDD / Temu",    "dynamics_family": "Network_cascade",          "excerpt": "SIR-style diffusion on cross-border network with regulatory critical point."},
+  {"slug": "04-tsla",    "ticker": "TSLA",      "name": "Tesla",         "dynamics_family": "Bistable_switch",          "excerpt": "EV adoption bistable switch at Ising-style second-order transition."},
+  {"slug": "05-pton",    "ticker": "PTON",      "name": "Peloton",       "dynamics_family": "DDE_delayed_feedback",     "excerpt": "Tilman extinction debt: signals visible in 2021 predicted 2023 collapse."},
+  {"slug": "06-byd",     "ticker": "1211.HK",   "name": "BYD",           "dynamics_family": "ODE1_saturating",          "excerpt": "Two-compartment logistic saturation (domestic mature + international early)."},
+  {"slug": "07-shop",    "ticker": "SHOP",      "name": "Shopify",       "dynamics_family": "ODE1_saturating",          "excerpt": "Chemostat flux balance: dilution rate vs growth rate critical equilibrium."},
+  {"slug": "08-meituan", "ticker": "3690.HK",   "name": "美团",          "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Three-species Lotka-Volterra: merchant/rider/user phase locking."},
+  {"slug": "09-snow",    "ticker": "SNOW",      "name": "Snowflake",     "dynamics_family": "Phase_transition_2nd",     "excerpt": "Curie-style second-order transition between network effects and commoditization."},
+  {"slug": "10-liauto",  "ticker": "2015.HK",   "name": "理想汽车",      "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Gause competitive exclusion: formerly unique niche under invasion."}
+]
