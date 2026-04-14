@@ -469,6 +469,25 @@
   background: linear-gradient(180deg, #fff 0%, #f4faf5 100%);
 }
 
+.uc-pred__paper-link {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #fff !important;
+  text-decoration: none;
+  border: 1px solid #1a1a1a;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.uc-pred__paper-link:hover {
+  background: #d97757;
+  border-color: #d97757;
+  transform: translateY(-1px);
+}
+
 .uc-pred__text {
   font-size: 14.5px;
   color: #333;

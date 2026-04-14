@@ -104,11 +104,15 @@ function renderPredictions(preds) {
       const statusCls = (p.status && (p.status.includes("已验证") || p.status.includes("✅")))
         ? "uc-pred__status uc-pred__status--verified"
         : "uc-pred__status";
+      const paperLink = p.paper_url
+        ? `<a class="uc-pred__paper-link" href="${escapeHtml(p.paper_url)}"${p.paper_title ? ` title="${escapeHtml(p.paper_title)}"` : ""}>📄 论文 →</a>`
+        : "";
       return `
         <div class="uc-pred${statusCls.includes('verified') ? ' uc-pred--verified' : ''}">
           <div class="uc-pred__header">
             <div class="uc-pred__target">${escapeHtml(p.target || "")}</div>
             ${p.status ? `<span class="${statusCls}">${escapeHtml(p.status)}</span>` : ""}
+            ${paperLink}
           </div>
           <p class="uc-pred__text">${escapeHtml(p.prediction || "")}</p>
           ${rationale}

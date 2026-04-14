@@ -164,6 +164,12 @@ async def classes_page():
     return FileResponse(FRONTEND_DIR / "classes.html")
 
 
+@app.get("/paper/{slug}")
+async def paper_page(slug: str):
+    # Whitelist: serve the same HTML renderer, which picks up the slug from URL
+    return FileResponse(FRONTEND_DIR / "paper.html")
+
+
 @app.get("/analyze")
 async def analyze_page():
     return FileResponse(FRONTEND_DIR / "analyze.html")

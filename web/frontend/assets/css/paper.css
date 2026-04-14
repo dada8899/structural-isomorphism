@@ -1,0 +1,314 @@
+/* ============================================================
+   paper.css — Academic paper rendering page
+   Scoped to .paper-* to avoid collisions
+   ============================================================ */
+
+.paper-page {
+  padding: 40px 0 120px;
+  background: #fcfbf8;
+  min-height: calc(100vh - 120px);
+}
+
+.paper-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.paper-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #808080;
+  margin-bottom: 32px;
+}
+
+.paper-breadcrumb a {
+  color: #d97757;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(217, 119, 87, 0.4);
+}
+
+.paper-breadcrumb a:hover {
+  border-bottom-color: #d97757;
+}
+
+.paper-breadcrumb__sep {
+  color: #ccc;
+}
+
+.paper-breadcrumb__current {
+  color: #555;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* --- Main article --- */
+
+.paper-article {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 64px 72px 72px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.03);
+  font-family: 'Crimson Pro', 'Noto Serif SC', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.75;
+  color: #1d1d1d;
+}
+
+.paper-article h1 {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.28;
+  margin: 0 0 16px;
+  letter-spacing: -0.005em;
+  color: #111;
+}
+
+.paper-article h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  margin: 48px 0 16px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  color: #111;
+}
+
+.paper-article h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16.5px;
+  font-weight: 600;
+  margin: 32px 0 10px;
+  color: #222;
+}
+
+.paper-article h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 22px 0 8px;
+  color: #333;
+}
+
+.paper-article p {
+  margin: 0 0 16px;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.paper-article p:first-of-type {
+  font-size: 16.5px;
+}
+
+.paper-article strong {
+  color: #111;
+  font-weight: 600;
+}
+
+.paper-article em {
+  font-style: italic;
+  color: #333;
+}
+
+.paper-article a {
+  color: #80492a;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(128, 73, 42, 0.4);
+}
+
+.paper-article a:hover {
+  border-bottom-color: #80492a;
+  color: #60361f;
+}
+
+/* --- Horizontal rule --- */
+.paper-article hr {
+  border: none;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 32px 0;
+}
+
+/* --- Abstract + author block (first-section styling) --- */
+
+.paper-article > p:first-of-type strong:first-child {
+  /* Author line */
+  display: inline;
+}
+
+/* --- Code --- */
+
+.paper-article code {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 13.5px;
+  background: #f4f2ed;
+  color: #6a4a25;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.paper-article pre {
+  background: #f8f6f0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 18px 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.paper-article pre code {
+  background: transparent;
+  color: #333;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* --- Lists --- */
+
+.paper-article ul,
+.paper-article ol {
+  padding-left: 26px;
+  margin: 12px 0 20px;
+}
+
+.paper-article li {
+  margin-bottom: 6px;
+  line-height: 1.7;
+}
+
+/* --- Blockquote --- */
+
+.paper-article blockquote {
+  margin: 20px 0;
+  padding: 14px 22px;
+  background: rgba(217, 119, 87, 0.07);
+  border-left: 3px solid rgba(217, 119, 87, 0.5);
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+  color: #444;
+}
+
+.paper-article blockquote p {
+  margin: 0 0 8px;
+}
+
+.paper-article blockquote p:last-child {
+  margin: 0;
+}
+
+/* --- Tables --- */
+
+.paper-article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0 24px;
+  font-size: 14.5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.paper-article th,
+.paper-article td {
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.paper-article th {
+  background: #faf9f6;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+.paper-article tbody tr:last-child td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* --- KaTeX math spacing --- */
+
+.paper-article .katex-display {
+  margin: 20px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.paper-article .katex {
+  font-size: 1em;
+}
+
+/* --- Skeleton loader --- */
+
+.paper-skeleton {
+  padding: 20px 0 40px;
+}
+
+.paper-skeleton__line {
+  height: 18px;
+  background: linear-gradient(90deg, #f5f2eb 0%, #faf7f0 50%, #f5f2eb 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  animation: paper-shimmer 1.5s ease infinite;
+}
+
+.paper-skeleton__line--title {
+  height: 36px;
+  width: 75%;
+  margin-bottom: 22px;
+}
+
+.paper-skeleton__line--short {
+  width: 55%;
+}
+
+@keyframes paper-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --- Footer actions --- */
+
+.paper-footer-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.paper-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  background: #fff;
+  color: #444;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.paper-action:hover {
+  border-color: rgba(217, 119, 87, 0.5);
+  color: #80492a;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 720px) {
+  .paper-article { padding: 36px 24px 48px; font-size: 16px; }
+  .paper-article h1 { font-size: 24px; }
+  .paper-article h2 { font-size: 18px; }
+  .paper-article p { text-align: left; }
+}

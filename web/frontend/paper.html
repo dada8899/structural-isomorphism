@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title id="paper-title">论文 — Structural</title>
+  <meta name="description" content="Structural Isomorphism 项目产出的学术论文">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/paper.css?v=20260415">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/classes" class="site-header__nav-link">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="paper-page">
+    <div class="paper-container">
+      <div class="paper-breadcrumb">
+        <a href="/classes">← 普适类</a>
+        <span class="paper-breadcrumb__sep">/</span>
+        <span class="paper-breadcrumb__current">Layer 5 Phase 1 · SOC × USGS Earthquakes</span>
+      </div>
+
+      <article class="paper-article" id="paper-article">
+        <div class="paper-skeleton">
+          <div class="paper-skeleton__line paper-skeleton__line--title"></div>
+          <div class="paper-skeleton__line"></div>
+          <div class="paper-skeleton__line"></div>
+          <div class="paper-skeleton__line"></div>
+          <div class="paper-skeleton__line paper-skeleton__line--short"></div>
+        </div>
+      </article>
+
+      <div class="paper-footer-actions">
+        <a class="paper-action" id="paper-download-md" download>⬇ 下载 Markdown 原文</a>
+        <a class="paper-action" href="https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-earthquake" target="_blank" rel="noopener">📂 源代码与数据 (GitHub)</a>
+        <a class="paper-action" href="/classes" >← 回到普适类目录</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/classes">普适类</a>
+        <a class="site-footer__link" href="/discoveries">精选发现</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pathMatch = window.location.pathname.match(/^\/paper\/([a-zA-Z0-9\-_]+)/);
+      let docSlug = (pathMatch && pathMatch[1]) || urlParams.get("doc") || "soc-earthquake-2026-04-15";
+      // whitelist against directory traversal
+      docSlug = docSlug.replace(/[^a-zA-Z0-9\-_]/g, "");
+      if (!docSlug) docSlug = "soc-earthquake-2026-04-15";
+      const mdUrl = `/assets/data/papers/${docSlug}.md`;
+      const target = document.getElementById("paper-article");
+      const dl = document.getElementById("paper-download-md");
+      if (dl) dl.href = mdUrl;
+
+      function render(md) {
+        if (typeof marked === "undefined") {
+          target.innerHTML = "<p style='color:#c44;'>Markdown 渲染器加载失败.</p>";
+          return;
+        }
+        marked.setOptions({ gfm: true, breaks: false });
+        const html = marked.parse(md);
+        target.innerHTML = html;
+        // Extract first h1 as title
+        const h1 = target.querySelector("h1");
+        if (h1) {
+          document.getElementById("paper-title").textContent = h1.textContent + " — Structural";
+        }
+        if (window.renderMathInElement) {
+          try {
+            window.renderMathInElement(target, {
+              delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "\\[", right: "\\]", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+              ],
+              throwOnError: false,
+            });
+          } catch (e) {
+            console.warn("KaTeX render failed", e);
+          }
+        }
+      }
+
+      fetch(mdUrl)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.text();
+        })
+        .then((md) => {
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => render(md));
+          } else {
+            render(md);
+          }
+        })
+        .catch((e) => {
+          target.innerHTML = `<p style="color:#c44; text-align:center; padding:60px 0;">论文加载失败: ${e.message}</p>`;
+        });
+    })();
+  </script>
+</body>
+</html>
