@@ -17,13 +17,19 @@
 
 .about-page__title {
   font-family: var(--font-serif);
-  font-size: clamp(48px, 6vw, 72px);
+  font-size: var(--font-hero-page);
   font-weight: var(--fw-regular);
   line-height: var(--lh-tight);
   letter-spacing: var(--ls-tighter);
   color: var(--text-primary);
   margin-bottom: var(--space-7);
   animation: fadeInUp 600ms var(--ease-out-expo) 80ms both;
+}
+
+/* Latin-only letter-spacing: undo negative tracking on CJK where glyphs collide.
+ * :lang(zh) matches lang="zh-CN" on <html>. */
+:lang(zh) .about-page__title {
+  letter-spacing: var(--ls-normal);
 }
 
 .about-page__lede {

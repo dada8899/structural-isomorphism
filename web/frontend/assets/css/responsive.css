@@ -96,9 +96,15 @@
     font-size: var(--fs-14);
   }
 
+  /* At ≤768px the 44px square can't fit "深度分析" label — collapse to icon-only.
+   * home.css already hides the label at ≤640px, but the ≤768px tier was missing it. */
   .searchbox__submit {
     width: 44px;
     height: 44px;
+    padding: 0;
+  }
+  .searchbox__submit-label {
+    display: none;
   }
 
   .home__daily-header {
