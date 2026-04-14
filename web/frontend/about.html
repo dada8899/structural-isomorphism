@@ -73,11 +73,59 @@
       <div class="about-page__section-label">How</div>
       <h2 class="about-page__section-title">它是怎么工作的</h2>
       <p>
-        传统的搜索工具基于语义或关键词匹配——它找的是"看起来像"的东西。Structural 不一样。它的核心是一个<strong>经过对比学习微调的嵌入模型</strong>，专门学习识别"结构相似"而非"语义相似"。
+        传统的搜索工具基于语义或关键词匹配——它找的是"看起来像"的东西。Structural 不一样。它的核心是让机器识别"数学结构相似"，而不是"文字表面相似"。为此我们建了<strong>三条并行的检索管道</strong>——它们从不同角度寻找同一件事，最后合并去重。
+      </p>
+
+      <h3 class="about-page__subsection-title">V1 · 广义 embedding（covering recall）</h3>
+      <p>
+        用 <code>text2vec-base-chinese</code> 作为 backbone，在 84 种结构类型 × 1,214 条人工标注样本上做对比学习微调（MultipleNegativesRankingLoss）。目标是让"同一结构的不同领域描述"在 768 维空间中互相靠近，"不同结构"互相推开。训练完成后 Silhouette 0.85、Retrieval@5 100%。
       </p>
       <p>
-        你输入一个自然语言描述，模型把它投影到一个 768 维的结构空间里，然后在知识库的 4,443 个现象中找最近的邻居。返回的结果不是"文字像你的"，而是"数学上和你的问题服从同一个方程的"。
+        <strong>路径</strong>：自然语言描述 → V1 embedding → cosine 相似度 → top-k。<br>
+        <strong>优势</strong>：召回广（在 4,443 KB 上找到 339,913 对高相似跨域配对）。<br>
+        <strong>缺点</strong>：精度一般，"共享关键词"和"共享数学"区分不够。<br>
+        <strong>角色</strong>：宽撒网——找潜在候选，不保证质量。
       </p>
+
+      <h3 class="about-page__subsection-title">V2 · 严格 embedding（precision retrieval）</h3>
+      <p>
+        相同的 backbone，但训练集扩到 5,689 条（V1 原始 + 4,475 条新扩展），多了一倍的负样本和跨领域对。这让模型变得更"挑剔"——在同一个 4,443 KB 上只产出 <strong>4,533 对高相似配对</strong>（严格度是 V1 的 75×）。
+      </p>
+      <p>
+        <strong>路径</strong>：自然语言 → V2 embedding → cosine → top-k。<br>
+        <strong>评估</strong>：Silhouette 0.55（比 V1 在扩展集上更好）、Retrieval@5 96%。<br>
+        <strong>角色</strong>：精度检索——同样是 embedding，但更能分辨浅层关键词相似。
+      </p>
+
+      <h3 class="about-page__subsection-title">V3 · StructTuple + LLM rerank（structural algebra）</h3>
+      <p>
+        前两代的 embedding 都是"统计相关"——把文本映射到向量空间看距离。V3 换了一个哲学：如果结构同构的本质是共享数学方程，就必须<strong>显式地表达这些方程</strong>，不是用相关性近似它。
+      </p>
+      <p>
+        我们用 Kimi/Opus 把 4,443 现象每一条都抽取成一个<strong>结构化元组</strong>（StructTuple），字段包括：
+      </p>
+      <ul class="about-list">
+        <li><code>state_vars</code> — 随时间变化的状态变量</li>
+        <li><code>dynamics_family</code> — 动力学族：ODE1_exponential_decay / DDE_delayed_feedback / PDE_reaction_diffusion / Bistable_switch / Network_cascade / Phase_transition_1st 等 27 个枚举值</li>
+        <li><code>feedback_topology</code> — positive_loop / negative_loop / delayed / bistable / none</li>
+        <li><code>boundary_behavior</code> — runaway / saturation / limit_cycle / fold_bifurcation / phase_transition</li>
+        <li><code>timescale_log10_s</code> — 特征时间的数量级</li>
+        <li><code>canonical_equation</code> — 可推断的方程骨架（如 <code>dx/dt = f(x(t-τ)) - g(x)</code>）</li>
+      </ul>
+      <p>
+        检索时用<strong>字段级硬匹配</strong>：dynamics_family 不同直接拒绝；同族才进入细粒度评分。这过滤掉了"两个现象都含'反馈'、'阈值'但机制完全不同"的关键词陷阱。通过后再用 LLM pairwise rerank 做第二次过滤，每对输出 <code>shared_equation</code> 和 <code>variable_mapping</code>。
+      </p>
+      <p>
+        <strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → top 候选 + 共享方程。<br>
+        <strong>评估</strong>：在 1,000 候选上 LLM 5-score 密度 5.5%（V2 是 1.9%），深度分析 A 级命中率从 V2 的 ~20% 提升到 ~27%。<br>
+        <strong>角色</strong>：结构代数——每个发现都带方程，直接可以写进论文的方法论段落。
+      </p>
+
+      <h3 class="about-page__subsection-title">三代并行，零重叠</h3>
+      <p>
+        最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到"语义近邻"、V2 看到"精细语义"、V3 看到"数学同族"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>。
+      </p>
+
       <div class="about-stats">
         <div class="about-stats__item">
           <div class="about-stats__num">4,443</div>
@@ -88,12 +136,34 @@
           <div class="about-stats__label">Domains</div>
         </div>
         <div class="about-stats__item">
-          <div class="about-stats__num">84</div>
-          <div class="about-stats__label">Structure Types</div>
+          <div class="about-stats__num">63</div>
+          <div class="about-stats__label">Top-tier discoveries</div>
         </div>
       </div>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Scoring</div>
+      <h2 class="about-page__section-title">相似度分数是怎么算的</h2>
       <p>
-        涵盖物理、化学、生物、经济、社会、工程、医学、计算机、哲学、艺术等 87 个领域。更多现象和领域持续扩充中。
+        Beta 站的 <code>/api/search</code> 接口用的是混合打分（hybrid ranking），融合四个信号：
+      </p>
+      <ul class="about-list">
+        <li><strong>BM25 词项命中</strong>（权重 0.45）— 用 jieba 中文分词后做 BM25-Okapi，衡量查询词和现象描述的词汇重合度。先 min-max 归一化到 [0, 1]。</li>
+        <li><strong>V2 embedding 余弦相似</strong>（权重 0.55）— 把查询和现象描述都过 V2 模型，计算 768 维向量的 cosine 相似度。同样先 min-max 归一化到 [0, 1]。</li>
+        <li><strong>StructTuple dynamics_family boost</strong>（+0.10）— 从查询关键词推断动力学族（"延迟"→DDE_delayed_feedback、"阈值"→Phase_transition_1st 等），给 StructTuple 里匹配的现象加一个轻奖励。</li>
+        <li><strong>MMR domain diversity guard</strong>（post-filter）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。</li>
+      </ul>
+      <p>
+        最终分数 = <code>0.45 × BM25 + 0.55 × embedding + 0.10 × dynamics_boost</code>，范围是 [0, 1.1]。前端把分数映射到三档：
+      </p>
+      <ul class="about-list">
+        <li><strong>≥ 0.6 · 强相似</strong> — 机制可能共享，值得深入</li>
+        <li><strong>0.3 – 0.6 · 中等相似</strong> — 部分重合，需要甄别</li>
+        <li><strong>&lt; 0.3 · 弱相关</strong> — 可能只是词汇重叠，谨慎参考</li>
+      </ul>
+      <p>
+        <strong>"精选发现"页面</strong>（<code>/discoveries</code>）的分数来源不同——那是<strong>每个候选经过深度分析后的综合得分</strong>（0-10），考虑 novelty / rigor / feasibility / impact / writability 五个维度加权，由 Opus 独立评估，不是实时检索的 cosine 距离。所以精选发现的分数和搜索结果的百分比<strong>不是同一个尺度</strong>，不要直接比较。
       </p>
     </div>
 
@@ -101,11 +171,13 @@
       <div class="about-page__section-label">What's Next</div>
       <h2 class="about-page__section-title">Structural 不只是一个搜索框</h2>
       <p>
-        你现在看到的是 v0.1——核心的跨领域搜索和结构映射。接下来的版本会把 Structural 从"搜索工具"升级为"思维引擎"：基于同一结构的历史案例进行<strong>预测</strong>、识别系统中的<strong>崩溃预警信号</strong>、帮用户找到向非专家解释复杂概念的<strong>完美类比</strong>、系统性地在一个领域内<strong>发现未被记录的跨学科联系</strong>。
+        目前 V1 + V2 + V3 三代检索管道全部上线，共积累 63 个顶级跨域候选发现。下一步不是新的检索管道（V4 的 feasibility 测试证明：retrieval + transform pipeline 打不过 direct LLM reasoning），而是：
       </p>
-      <p>
-        我们相信大约 60% 的跨领域创新都涉及识别结构同构。如果 AI 能比人类穷举性地浮现这些同构，瓶颈就从"发现"转移到"评估和利用"。这种分工或许代表了 AI 辅助科学的高效范式。
-      </p>
+      <ul class="about-list">
+        <li><strong>Deep transformation 候选论文化</strong>——用 8 种变形基元（variable_rename / concept_transfer / causal_inversion / continuity_toggle / boundary_rewrite / dim_shift / stochastic_toggle / time_scaling）给 63 个候选打标，筛出 5 个"真正非平凡变形"的最优先写论文。</li>
+        <li><strong>案例研究论文</strong>——从 Top 5 里选 1-2 个开始写 arXiv，预计覆盖 Nature Climate Change / Physical Review Applied / PNAS 等目标。</li>
+        <li><strong>Position paper</strong>——论证 <em>creativity = semantic distance × structural isomorphism × key transformation</em> 的三段式框架，以 V1 + V2 + V3 作为实验支撑。</li>
+      </ul>
     </div>
 
     <div class="about-page__section">
