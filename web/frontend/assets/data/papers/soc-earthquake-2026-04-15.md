@@ -1,6 +1,6 @@
 # Recovering SOC Universality on a Global Earthquake Catalog: Pipeline Validation for a Cross-Domain Isomorphism Engine
 
-**Author.** Wan Qihan (万启晗), Structural Isomorphism Project.
+**Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
 **Date.** 2026-04-15. Version: preprint draft for arXiv-style circulation.
 **Keywords.** self-organized criticality; Gutenberg-Richter; Omori-Utsu; universality class; pipeline validation; cross-domain isomorphism.
