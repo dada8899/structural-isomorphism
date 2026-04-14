@@ -1,0 +1,574 @@
+[
+  {
+    "query": "为什么创业公司早期更容易创新",
+    "tag": "organizational threshold",
+    "latency": 6.3,
+    "count": 5,
+    "top5": [
+      {
+        "name": "锂离子嵌脱阶段相变",
+        "domain": "电化学",
+        "score": 15.2084
+      },
+      {
+        "name": "创新扩散的S曲线",
+        "domain": "产业组织",
+        "score": 14.5187
+      },
+      {
+        "name": "广告的S形响应曲线",
+        "domain": "产业组织",
+        "score": 14.4338
+      },
+      {
+        "name": "氧同位素阶梯",
+        "domain": "古气候学",
+        "score": 14.1315
+      },
+      {
+        "name": "全球化的S曲线扩散",
+        "domain": "国际经济",
+        "score": 14.0323
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "延迟反馈的系统",
+    "tag": "DDE delayed feedback",
+    "latency": 5.67,
+    "count": 5,
+    "top5": [
+      {
+        "name": "奥氏体化的临界温度",
+        "domain": "材料科学",
+        "score": 16.1779
+      },
+      {
+        "name": "病虫害爆发的阈值效应",
+        "domain": "农业",
+        "score": 16.1245
+      },
+      {
+        "name": "群体免疫",
+        "domain": "流行病学",
+        "score": 16.1177
+      },
+      {
+        "name": "流化床的最小流化速度",
+        "domain": "化工",
+        "score": 16.0618
+      },
+      {
+        "name": "地基承载力的极限状态",
+        "domain": "土木工程",
+        "score": 15.9942
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "阈值突变",
+    "tag": "fold bifurcation",
+    "latency": 5.91,
+    "count": 5,
+    "top5": [
+      {
+        "name": "货币替代的临界效应",
+        "domain": "宏观经济",
+        "score": 15.2788
+      },
+      {
+        "name": "托宾Q理论",
+        "domain": "宏观经济",
+        "score": 15.1907
+      },
+      {
+        "name": "降雨-径流的非线性响应",
+        "domain": "水文学",
+        "score": 15.0303
+      },
+      {
+        "name": "微保险的规模效应阈值",
+        "domain": "保险与精算",
+        "score": 14.9188
+      },
+      {
+        "name": "断路器的阈值触发",
+        "domain": "金融市场微观结构",
+        "score": 14.8961
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "学术方向",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "正反馈循环导致失控",
+    "tag": "runaway dynamics",
+    "latency": 5.79,
+    "count": 5,
+    "top5": [
+      {
+        "name": "热固性树脂凝胶点渗流相变",
+        "domain": "高分子化学",
+        "score": 13.3106
+      },
+      {
+        "name": "甲烷水合物释放",
+        "domain": "古气候学",
+        "score": 13.2855
+      },
+      {
+        "name": "社会认同传播",
+        "domain": "社会学",
+        "score": 12.8607
+      },
+      {
+        "name": "最低工资的就业阈值效应",
+        "domain": "微观经济",
+        "score": 12.8441
+      },
+      {
+        "name": "破窗效应",
+        "domain": "社会学",
+        "score": 12.7738
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "相变",
+    "tag": "phase transition",
+    "latency": 6.39,
+    "count": 5,
+    "top5": [
+      {
+        "name": "代币解锁的供给冲击",
+        "domain": "加密货币与DeFi",
+        "score": 18.4095
+      },
+      {
+        "name": "马氏体相变的无扩散特征",
+        "domain": "材料科学",
+        "score": 17.7918
+      },
+      {
+        "name": "电压崩溃",
+        "domain": "电气工程",
+        "score": 17.5939
+      },
+      {
+        "name": "火山喷发",
+        "domain": "地质学",
+        "score": 17.5831
+      },
+      {
+        "name": "信用衍生品的相关性陷阱",
+        "domain": "衍生品与风险管理",
+        "score": 17.4491
+      }
+    ],
+    "assessment": {
+      "worth_score": 3,
+      "category": "学术方向",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "为什么流言传得那么快",
+    "tag": "network cascade SIR",
+    "latency": 5.18,
+    "count": 5,
+    "top5": [
+      {
+        "name": "齿面点蚀的累积损伤",
+        "domain": "机械工程",
+        "score": 14.6194
+      },
+      {
+        "name": "教学媒介语",
+        "domain": "教育学",
+        "score": 14.5658
+      },
+      {
+        "name": "化学反应的Arrhenius温度依赖",
+        "domain": "化工",
+        "score": 14.3172
+      },
+      {
+        "name": "光热协同催化超加和性",
+        "domain": "催化化学",
+        "score": 14.2769
+      },
+      {
+        "name": "热钱流入的指数膨胀",
+        "domain": "国际经济",
+        "score": 14.0266
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "为什么市场会崩盘",
+    "tag": "liquidity spiral",
+    "latency": 7.52,
+    "count": 5,
+    "top5": [
+      {
+        "name": "锂离子嵌脱阶段相变",
+        "domain": "电化学",
+        "score": 13.7395
+      },
+      {
+        "name": "形状记忆高分子双相机制",
+        "domain": "高分子化学",
+        "score": 13.2626
+      },
+      {
+        "name": "NFT市场热度的泡沫-崩溃周期",
+        "domain": "区块链",
+        "score": 13.2323
+      },
+      {
+        "name": "粮价饥荒",
+        "domain": "历史学",
+        "score": 13.1884
+      },
+      {
+        "name": "种子萌发的全有或全无响应",
+        "domain": "农业",
+        "score": 13.019
+      }
+    ],
+    "assessment": {
+      "worth_score": 3,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "生态系统的临界点",
+    "tag": "tipping point",
+    "latency": 6.51,
+    "count": 5,
+    "top5": [
+      {
+        "name": "降雨-径流的非线性响应",
+        "domain": "水文学",
+        "score": 17.7604
+      },
+      {
+        "name": "托宾Q理论",
+        "domain": "宏观经济",
+        "score": 17.3644
+      },
+      {
+        "name": "外汇储备的充足性阈值",
+        "domain": "国际经济",
+        "score": 17.1987
+      },
+      {
+        "name": "结晶过程的过饱和度驱动",
+        "domain": "化工",
+        "score": 17.1885
+      },
+      {
+        "name": "Bode图的增益裕度",
+        "domain": "控制工程",
+        "score": 16.8061
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "神经元如何学习",
+    "tag": "Hebbian feedback",
+    "latency": 14.95,
+    "count": 5,
+    "top5": [
+      {
+        "name": "树突棘形态可塑性",
+        "domain": "神经科学",
+        "score": 12.6356
+      },
+      {
+        "name": "神经发生与记忆分离",
+        "domain": "神经科学",
+        "score": 11.898
+      },
+      {
+        "name": "批归一化",
+        "domain": "机器学习",
+        "score": 11.3912
+      },
+      {
+        "name": "海水古温计",
+        "domain": "古海洋学",
+        "score": 11.2842
+      },
+      {
+        "name": "脑源性神经营养因子（BDNF）与可塑性",
+        "domain": "神经科学",
+        "score": 11.1333
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "学术方向",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "为什么有些语言会死亡",
+    "tag": "extinction debt",
+    "latency": 4.91,
+    "count": 5,
+    "top5": [
+      {
+        "name": "创新扩散的S曲线",
+        "domain": "产业组织",
+        "score": 13.6612
+      },
+      {
+        "name": "渗透压脱水腌制",
+        "domain": "烹饪科学",
+        "score": 13.1213
+      },
+      {
+        "name": "企业生命周期的S曲线",
+        "domain": "公司金融",
+        "score": 12.8922
+      },
+      {
+        "name": "疲劳裂纹的门槛应力强度因子",
+        "domain": "机械工程",
+        "score": 12.6482
+      },
+      {
+        "name": "网络效应的S曲线增长",
+        "domain": "创业与风险投资",
+        "score": 12.5712
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "",
+    "tag": "empty",
+    "error": "HTTP Error 422: Unprocessable Entity"
+  },
+  {
+    "query": "a",
+    "tag": "single char",
+    "latency": 1.02,
+    "count": 5,
+    "top5": [
+      {
+        "name": "财政乘数的非线性",
+        "domain": "宏观经济",
+        "score": 6.909
+      },
+      {
+        "name": "地震易损性曲线",
+        "domain": "土木工程",
+        "score": 6.7887
+      },
+      {
+        "name": "反应器的热失控",
+        "domain": "化工",
+        "score": 6.5451
+      },
+      {
+        "name": "酿酒发酵的饱和曲线",
+        "domain": "农业",
+        "score": 6.378
+      },
+      {
+        "name": "对冲基金的尾部对冲成本",
+        "domain": "衍生品与风险管理",
+        "score": 6.2583
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "现象描述",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "为什么",
+    "tag": "vague",
+    "latency": 5.5,
+    "count": 5,
+    "top5": [
+      {
+        "name": "疲劳的中枢调节模型",
+        "domain": "sports_science",
+        "score": 8.736
+      },
+      {
+        "name": "足底筋膜的绞盘机制",
+        "domain": "sports_science",
+        "score": 8.4154
+      },
+      {
+        "name": "姿势控制的踝髋策略转换",
+        "domain": "sports_science",
+        "score": 7.9735
+      },
+      {
+        "name": "离心收缩延迟性肌肉酸痛",
+        "domain": "sports_science",
+        "score": 7.9035
+      },
+      {
+        "name": "最大摄氧量的遗传天花板",
+        "domain": "sports_science",
+        "score": 7.6416
+      }
+    ],
+    "assessment": {
+      "worth_score": 1,
+      "category": "太抽象",
+      "coaching": "单独的「为什么」无法识别具体现象。请描述一个你观察到的行为模式、变化趋势或动力学问题。",
+      "rewrite_suggestion": "例如：「为什么团队规模扩大后沟通成本反而增加」或「为什么某个系统从稳定突然崩溃」——这样 Structural 才能找到同构案例。"
+    }
+  },
+  {
+    "query": "superconductor phase transition",
+    "tag": "English",
+    "latency": 6.35,
+    "count": 5,
+    "top5": [
+      {
+        "name": "混凝土开裂的局部化带",
+        "domain": "土木工程",
+        "score": 16.5435
+      },
+      {
+        "name": "信息过载疲劳",
+        "domain": "传播学",
+        "score": 15.3863
+      },
+      {
+        "name": "垄断竞争的产品分化",
+        "domain": "微观经济",
+        "score": 15.1782
+      },
+      {
+        "name": "结晶过程",
+        "domain": "化学",
+        "score": 14.9284
+      },
+      {
+        "name": "免疫多样性的超优势选择",
+        "domain": "进化生物学",
+        "score": 14.6754
+      }
+    ],
+    "assessment": {
+      "worth_score": 4,
+      "category": "学术方向",
+      "coaching": null,
+      "rewrite_suggestion": null
+    }
+  },
+  {
+    "query": "量子纠缠的非定域性",
+    "tag": "quantum nonlocality",
+    "latency": 7.37,
+    "count": 5,
+    "top5": [
+      {
+        "name": "气候系统的多尺度相互作用",
+        "domain": "气候科学",
+        "score": 10.1837
+      },
+      {
+        "name": "cGAS-STING的自DNA级联免疫感应",
+        "domain": "分子生物学",
+        "score": 10.1397
+      },
+      {
+        "name": "水文时间序列的长记忆",
+        "domain": "水文学",
+        "score": 9.8436
+      },
+      {
+        "name": "经济制裁的网络效应",
+        "domain": "宏观经济",
+        "score": 9.4948
+      },
+      {
+        "name": "价格冲击的记忆效应",
+        "domain": "金融市场微观结构",
+        "score": 9.4703
+      }
+    ],
+    "assessment": {
+      "worth_score": 2,
+      "category": "纯事实",
+      "coaching": "这是量子物理的基本概念定义，属于百科知识查询，不是可迁移的动力学现象或结构模式。",
+      "rewrite_suggestion": "改为：「为什么系统中的子单元虽然物理分离，但改变一个单元的状态会立即影响另一单元的行为」——这样可以搜索跨领域的非定域耦合现象。"
+    }
+  },
+  {
+    "endpoint": "discoveries",
+    "count": 39,
+    "sample": [
+      {
+        "name": "永冻土融化释放甲烷的延迟反馈 × 灭绝债务",
+        "score": 8.6,
+        "pipeline": "V2"
+      },
+      {
+        "name": "半导体激光器驰豫振荡阻尼特性 × 稳定币的锚定机制",
+        "score": 8.6,
+        "pipeline": "V2"
+      },
+      {
+        "name": "免疫多样性的超优势选择 × 模型集成",
+        "score": 8.5,
+        "pipeline": "V2"
+      }
+    ]
+  }
+]
