@@ -159,6 +159,11 @@ async def discoveries_page():
     return FileResponse(FRONTEND_DIR / "discoveries.html")
 
 
+@app.get("/classes")
+async def classes_page():
+    return FileResponse(FRONTEND_DIR / "classes.html")
+
+
 @app.get("/analyze")
 async def analyze_page():
     return FileResponse(FRONTEND_DIR / "analyze.html")

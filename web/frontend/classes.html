@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>普适类 — Structural</title>
+  <meta name="description" content="从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类——SOC、磁滞、Fold 分岔、Motter-Lai、Diamond-Dybvig、Toggle switch、Copula 尾部、Schelling 承诺。每类带共享方程、不变量和可验证预测。">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="普适类 — Structural">
+  <meta property="og:description" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。SOC 跨 12 领域 21 成员的巨簇 / Hysteresis / Fold bifurcation / Toggle switch / ...">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="普适类 — Structural">
+  <meta name="twitter:description" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/classes.css?v=20260415">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260415">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/classes" class="site-header__nav-link site-header__nav-link--active">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="https://github.com/dada8899" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="uc-page">
+    <div class="uc-container">
+      <section class="uc-hero">
+        <div class="uc-hero__eyebrow">
+          <span class="uc-hero__dot"></span>
+          V4 · 等价类 × 共享不变量 × 可验证预测
+        </div>
+        <h1 class="uc-hero__title">当多个现象共享<em>底层规律</em></h1>
+        <p class="uc-hero__lede">
+          我们在 <a href="/discoveries">精选发现</a> 里收录了 191 条 pair 级同构（A≅B）。这里做的是更上一层的工作——
+          <strong>找出那些"一个节点连接多个现象"的 hub</strong>，把它们合并成等价类，再把每个等价类映射到物理学已知的普适类。
+        </p>
+        <p class="uc-hero__lede">
+          方法是纯数据驱动的：给 pair 结果建图（节点=现象，边=同构），跑度中心性 + Louvain 社区发现。
+          <strong>无监督地浮现出 8 个跨领域普适类</strong>——每一类都在物理学或数学里有名字，每一类都有 5-21 个跨领域实例，
+          共享同一个数学结构、同一组不变量、同一套可验证的预测。
+        </p>
+        <div class="uc-hero__stats" id="uc-hero-stats"></div>
+      </section>
+
+      <div class="uc-filter" id="uc-filter">
+        <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="curated">
+          已命名（8）
+        </button>
+        <button type="button" class="uc-filter__btn" data-filter="all">
+          全部 23 类
+        </button>
+      </div>
+
+      <div class="uc-list" id="uc-list">
+        <div class="uc-skeleton">
+          <div class="uc-skeleton__card"></div>
+          <div class="uc-skeleton__card"></div>
+          <div class="uc-skeleton__card"></div>
+        </div>
+      </div>
+
+      <section class="uc-footnote">
+        <h2 class="uc-footnote__title">方法论说明</h2>
+        <ol class="uc-footnote__list">
+          <li><strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。</li>
+          <li><strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
+          <li><strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。</li>
+          <li><strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。</li>
+          <li><strong>Layer 5 实证验证</strong>：第一个目标是 SOC × DeFi 清算——验证是否服从 Gutenberg-Richter τ ≈ 1.5 和 Omori 1/t^p。</li>
+        </ol>
+        <p class="uc-footnote__hint">
+          完整 feasibility 报告见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md" target="_blank" rel="noopener">v4/results/FINDINGS-2026-04-15.md</a>，
+          完整 V4 规划见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md" target="_blank" rel="noopener">plans/v4-universality-class-engine.md</a>。
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="https://structural.bytedance.city" target="_blank" rel="noopener">主站</a>
+        <a class="site-footer__link" href="/discoveries">精选发现</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/utils.js?v=20260415"></script>
+  <script src="/assets/js/classes.js?v=20260415"></script>
+</body>
+</html>
