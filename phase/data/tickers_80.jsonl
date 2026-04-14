@@ -1,0 +1,83 @@
+{"ticker": "NFLX", "name": "Netflix", "exchange": "NASDAQ", "industry": "Streaming Media", "market_cap_usd": 280e9, "country": "US"}
+{"ticker": "NVDA", "name": "NVIDIA", "exchange": "NASDAQ", "industry": "Semiconductors / AI", "market_cap_usd": 3500e9, "country": "US"}
+{"ticker": "PDD", "name": "PDD Holdings (Pinduoduo + Temu)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180e9, "country": "US/CN"}
+{"ticker": "TSLA", "name": "Tesla", "exchange": "NASDAQ", "industry": "Electric Vehicles / Energy", "market_cap_usd": 750e9, "country": "US"}
+{"ticker": "PTON", "name": "Peloton", "exchange": "NASDAQ", "industry": "Connected Fitness", "market_cap_usd": 4e9, "country": "US"}
+{"ticker": "SHOP", "name": "Shopify", "exchange": "NYSE", "industry": "E-commerce SaaS", "market_cap_usd": 130e9, "country": "CA/US"}
+{"ticker": "SNOW", "name": "Snowflake", "exchange": "NYSE", "industry": "Cloud Data Warehouse", "market_cap_usd": 70e9, "country": "US"}
+{"ticker": "AAPL", "name": "Apple", "exchange": "NASDAQ", "industry": "Consumer Electronics / Services", "market_cap_usd": 3400e9, "country": "US"}
+{"ticker": "MSFT", "name": "Microsoft", "exchange": "NASDAQ", "industry": "Cloud / Enterprise Software", "market_cap_usd": 3200e9, "country": "US"}
+{"ticker": "GOOGL", "name": "Alphabet / Google", "exchange": "NASDAQ", "industry": "Digital Ads / Cloud", "market_cap_usd": 2100e9, "country": "US"}
+{"ticker": "AMZN", "name": "Amazon", "exchange": "NASDAQ", "industry": "E-commerce / Cloud / Media", "market_cap_usd": 2000e9, "country": "US"}
+{"ticker": "META", "name": "Meta Platforms", "exchange": "NASDAQ", "industry": "Social Media / Ads", "market_cap_usd": 1400e9, "country": "US"}
+{"ticker": "TSM", "name": "TSMC", "exchange": "NYSE", "industry": "Semiconductor Foundry", "market_cap_usd": 950e9, "country": "TW"}
+{"ticker": "AMD", "name": "AMD", "exchange": "NASDAQ", "industry": "Semiconductors", "market_cap_usd": 250e9, "country": "US"}
+{"ticker": "INTC", "name": "Intel", "exchange": "NASDAQ", "industry": "Semiconductors", "market_cap_usd": 150e9, "country": "US"}
+{"ticker": "CRM", "name": "Salesforce", "exchange": "NYSE", "industry": "Enterprise SaaS", "market_cap_usd": 280e9, "country": "US"}
+{"ticker": "ORCL", "name": "Oracle", "exchange": "NYSE", "industry": "Enterprise Software / Cloud", "market_cap_usd": 470e9, "country": "US"}
+{"ticker": "PLTR", "name": "Palantir", "exchange": "NASDAQ", "industry": "Data Analytics / AI", "market_cap_usd": 250e9, "country": "US"}
+{"ticker": "PYPL", "name": "PayPal", "exchange": "NASDAQ", "industry": "Digital Payments", "market_cap_usd": 70e9, "country": "US"}
+{"ticker": "COIN", "name": "Coinbase", "exchange": "NASDAQ", "industry": "Crypto Exchange", "market_cap_usd": 60e9, "country": "US"}
+{"ticker": "UBER", "name": "Uber", "exchange": "NYSE", "industry": "Ride Sharing / Delivery", "market_cap_usd": 150e9, "country": "US"}
+{"ticker": "DASH", "name": "DoorDash", "exchange": "NASDAQ", "industry": "Food Delivery", "market_cap_usd": 55e9, "country": "US"}
+{"ticker": "ABNB", "name": "Airbnb", "exchange": "NASDAQ", "industry": "Short-term Rentals", "market_cap_usd": 85e9, "country": "US"}
+{"ticker": "DIS", "name": "Disney", "exchange": "NYSE", "industry": "Media / Parks", "market_cap_usd": 200e9, "country": "US"}
+{"ticker": "MCD", "name": "McDonald's", "exchange": "NYSE", "industry": "Fast Food", "market_cap_usd": 220e9, "country": "US"}
+{"ticker": "KO", "name": "Coca-Cola", "exchange": "NYSE", "industry": "Beverages", "market_cap_usd": 290e9, "country": "US"}
+{"ticker": "WMT", "name": "Walmart", "exchange": "NYSE", "industry": "Retail", "market_cap_usd": 500e9, "country": "US"}
+{"ticker": "COST", "name": "Costco", "exchange": "NASDAQ", "industry": "Membership Retail", "market_cap_usd": 400e9, "country": "US"}
+{"ticker": "NKE", "name": "Nike", "exchange": "NYSE", "industry": "Apparel / Footwear", "market_cap_usd": 130e9, "country": "US"}
+{"ticker": "LULU", "name": "Lululemon", "exchange": "NASDAQ", "industry": "Apparel", "market_cap_usd": 45e9, "country": "CA/US"}
+{"ticker": "JPM", "name": "JPMorgan Chase", "exchange": "NYSE", "industry": "Banking", "market_cap_usd": 580e9, "country": "US"}
+{"ticker": "BAC", "name": "Bank of America", "exchange": "NYSE", "industry": "Banking", "market_cap_usd": 320e9, "country": "US"}
+{"ticker": "BRK.B", "name": "Berkshire Hathaway", "exchange": "NYSE", "industry": "Holding / Insurance", "market_cap_usd": 980e9, "country": "US"}
+{"ticker": "V", "name": "Visa", "exchange": "NYSE", "industry": "Payments Network", "market_cap_usd": 570e9, "country": "US"}
+{"ticker": "MA", "name": "Mastercard", "exchange": "NYSE", "industry": "Payments Network", "market_cap_usd": 480e9, "country": "US"}
+{"ticker": "UNH", "name": "UnitedHealth", "exchange": "NYSE", "industry": "Healthcare Insurance", "market_cap_usd": 520e9, "country": "US"}
+{"ticker": "LLY", "name": "Eli Lilly", "exchange": "NYSE", "industry": "Pharmaceuticals (GLP-1)", "market_cap_usd": 760e9, "country": "US"}
+{"ticker": "NVO", "name": "Novo Nordisk", "exchange": "NYSE", "industry": "Pharmaceuticals (GLP-1)", "market_cap_usd": 540e9, "country": "DK"}
+{"ticker": "MRK", "name": "Merck", "exchange": "NYSE", "industry": "Pharmaceuticals", "market_cap_usd": 290e9, "country": "US"}
+{"ticker": "JNJ", "name": "Johnson & Johnson", "exchange": "NYSE", "industry": "Pharma / Consumer Health", "market_cap_usd": 380e9, "country": "US"}
+{"ticker": "XOM", "name": "Exxon Mobil", "exchange": "NYSE", "industry": "Oil & Gas", "market_cap_usd": 480e9, "country": "US"}
+{"ticker": "CVX", "name": "Chevron", "exchange": "NYSE", "industry": "Oil & Gas", "market_cap_usd": 300e9, "country": "US"}
+{"ticker": "BA", "name": "Boeing", "exchange": "NYSE", "industry": "Aerospace", "market_cap_usd": 130e9, "country": "US"}
+{"ticker": "GE", "name": "GE Aerospace", "exchange": "NYSE", "industry": "Aerospace Engines", "market_cap_usd": 200e9, "country": "US"}
+{"ticker": "600519.SS", "name": "贵州茅台", "exchange": "SSE", "industry": "白酒", "market_cap_usd": 250e9, "country": "CN"}
+{"ticker": "601318.SS", "name": "中国平安", "exchange": "SSE", "industry": "保险金融", "market_cap_usd": 120e9, "country": "CN"}
+{"ticker": "600036.SS", "name": "招商银行", "exchange": "SSE", "industry": "银行", "market_cap_usd": 120e9, "country": "CN"}
+{"ticker": "601888.SS", "name": "中国中免", "exchange": "SSE", "industry": "免税零售", "market_cap_usd": 25e9, "country": "CN"}
+{"ticker": "300750.SZ", "name": "宁德时代 CATL", "exchange": "SZSE", "industry": "动力电池", "market_cap_usd": 130e9, "country": "CN"}
+{"ticker": "002594.SZ", "name": "比亚迪 (A 股)", "exchange": "SZSE", "industry": "电动车 / 电池", "market_cap_usd": 90e9, "country": "CN"}
+{"ticker": "000858.SZ", "name": "五粮液", "exchange": "SZSE", "industry": "白酒", "market_cap_usd": 60e9, "country": "CN"}
+{"ticker": "300760.SZ", "name": "迈瑞医疗", "exchange": "SZSE", "industry": "医疗器械", "market_cap_usd": 45e9, "country": "CN"}
+{"ticker": "688981.SS", "name": "中芯国际 SMIC", "exchange": "SSE", "industry": "半导体代工", "market_cap_usd": 60e9, "country": "CN"}
+{"ticker": "1211.HK", "name": "比亚迪", "exchange": "HKEX", "industry": "电动车 / 电池", "market_cap_usd": 90e9, "country": "CN"}
+{"ticker": "3690.HK", "name": "美团", "exchange": "HKEX", "industry": "本地生活 / 外卖", "market_cap_usd": 80e9, "country": "CN"}
+{"ticker": "9988.HK", "name": "阿里巴巴", "exchange": "HKEX", "industry": "电商 / 云", "market_cap_usd": 180e9, "country": "CN"}
+{"ticker": "700.HK", "name": "腾讯控股", "exchange": "HKEX", "industry": "社交 / 游戏 / 广告", "market_cap_usd": 400e9, "country": "CN"}
+{"ticker": "9618.HK", "name": "京东", "exchange": "HKEX", "industry": "电商 / 物流", "market_cap_usd": 45e9, "country": "CN"}
+{"ticker": "2015.HK", "name": "理想汽车", "exchange": "HKEX", "industry": "电动车", "market_cap_usd": 25e9, "country": "CN"}
+{"ticker": "9868.HK", "name": "小鹏汽车", "exchange": "HKEX", "industry": "电动车", "market_cap_usd": 15e9, "country": "CN"}
+{"ticker": "9866.HK", "name": "蔚来", "exchange": "HKEX", "industry": "电动车", "market_cap_usd": 10e9, "country": "CN"}
+{"ticker": "1024.HK", "name": "快手", "exchange": "HKEX", "industry": "短视频", "market_cap_usd": 30e9, "country": "CN"}
+{"ticker": "BILI", "name": "Bilibili", "exchange": "NASDAQ", "industry": "视频社区", "market_cap_usd": 9e9, "country": "CN"}
+{"ticker": "NTES", "name": "网易", "exchange": "NASDAQ", "industry": "游戏 / 教育", "market_cap_usd": 65e9, "country": "CN"}
+{"ticker": "BIDU", "name": "百度", "exchange": "NASDAQ", "industry": "搜索 / 自动驾驶 / AI", "market_cap_usd": 35e9, "country": "CN"}
+{"ticker": "TCEHY", "name": "Tencent ADR", "exchange": "OTC", "industry": "社交 / 游戏", "market_cap_usd": 400e9, "country": "CN"}
+{"ticker": "9999.HK", "name": "网易 (HKEX)", "exchange": "HKEX", "industry": "游戏", "market_cap_usd": 65e9, "country": "CN"}
+{"ticker": "MSTR", "name": "MicroStrategy", "exchange": "NASDAQ", "industry": "BTC treasury + BI", "market_cap_usd": 45e9, "country": "US"}
+{"ticker": "MARA", "name": "Marathon Digital", "exchange": "NASDAQ", "industry": "Bitcoin Mining", "market_cap_usd": 5e9, "country": "US"}
+{"ticker": "RIOT", "name": "Riot Platforms", "exchange": "NASDAQ", "industry": "Bitcoin Mining", "market_cap_usd": 3e9, "country": "US"}
+{"ticker": "HOOD", "name": "Robinhood", "exchange": "NASDAQ", "industry": "Retail Brokerage", "market_cap_usd": 30e9, "country": "US"}
+{"ticker": "SOFI", "name": "SoFi", "exchange": "NASDAQ", "industry": "Digital Banking / Lending", "market_cap_usd": 15e9, "country": "US"}
+{"ticker": "U", "name": "Unity Software", "exchange": "NYSE", "industry": "Game Engine", "market_cap_usd": 10e9, "country": "US"}
+{"ticker": "DDOG", "name": "Datadog", "exchange": "NASDAQ", "industry": "Observability SaaS", "market_cap_usd": 40e9, "country": "US"}
+{"ticker": "NET", "name": "Cloudflare", "exchange": "NYSE", "industry": "Internet Infrastructure", "market_cap_usd": 35e9, "country": "US"}
+{"ticker": "CRWD", "name": "CrowdStrike", "exchange": "NASDAQ", "industry": "Cybersecurity", "market_cap_usd": 75e9, "country": "US"}
+{"ticker": "ZS", "name": "Zscaler", "exchange": "NASDAQ", "industry": "Cloud Security", "market_cap_usd": 30e9, "country": "US"}
+{"ticker": "TEAM", "name": "Atlassian", "exchange": "NASDAQ", "industry": "Dev Tools SaaS", "market_cap_usd": 45e9, "country": "AU/US"}
+{"ticker": "SPOT", "name": "Spotify", "exchange": "NYSE", "industry": "Audio Streaming", "market_cap_usd": 90e9, "country": "SE"}
+{"ticker": "SE", "name": "Sea Limited", "exchange": "NYSE", "industry": "E-commerce / Games / Fintech", "market_cap_usd": 55e9, "country": "SG"}
+{"ticker": "GRAB", "name": "Grab Holdings", "exchange": "NASDAQ", "industry": "Ride Sharing / Fintech (SEA)", "market_cap_usd": 15e9, "country": "SG"}
+{"ticker": "RIVN", "name": "Rivian", "exchange": "NASDAQ", "industry": "Electric Trucks / Vans", "market_cap_usd": 12e9, "country": "US"}
+{"ticker": "LCID", "name": "Lucid Motors", "exchange": "NASDAQ", "industry": "Luxury EVs", "market_cap_usd": 5e9, "country": "US"}
