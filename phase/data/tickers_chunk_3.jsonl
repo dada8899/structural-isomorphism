@@ -1,0 +1,21 @@
+{"ticker": "PDD", "name": "PDD Holdings (Pinduoduo + Temu)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180000000000.0, "country": "US/CN"}
+{"ticker": "SNOW", "name": "Snowflake", "exchange": "NYSE", "industry": "Cloud Data Warehouse", "market_cap_usd": 70000000000.0, "country": "US"}
+{"ticker": "AMZN", "name": "Amazon", "exchange": "NASDAQ", "industry": "E-commerce / Cloud / Media", "market_cap_usd": 2000000000000.0, "country": "US"}
+{"ticker": "INTC", "name": "Intel", "exchange": "NASDAQ", "industry": "Semiconductors", "market_cap_usd": 150000000000.0, "country": "US"}
+{"ticker": "PYPL", "name": "PayPal", "exchange": "NASDAQ", "industry": "Digital Payments", "market_cap_usd": 70000000000.0, "country": "US"}
+{"ticker": "ABNB", "name": "Airbnb", "exchange": "NASDAQ", "industry": "Short-term Rentals", "market_cap_usd": 85000000000.0, "country": "US"}
+{"ticker": "WMT", "name": "Walmart", "exchange": "NYSE", "industry": "Retail", "market_cap_usd": 500000000000.0, "country": "US"}
+{"ticker": "JPM", "name": "JPMorgan Chase", "exchange": "NYSE", "industry": "Banking", "market_cap_usd": 580000000000.0, "country": "US"}
+{"ticker": "MA", "name": "Mastercard", "exchange": "NYSE", "industry": "Payments Network", "market_cap_usd": 480000000000.0, "country": "US"}
+{"ticker": "MRK", "name": "Merck", "exchange": "NYSE", "industry": "Pharmaceuticals", "market_cap_usd": 290000000000.0, "country": "US"}
+{"ticker": "BA", "name": "Boeing", "exchange": "NYSE", "industry": "Aerospace", "market_cap_usd": 130000000000.0, "country": "US"}
+{"ticker": "600036.SS", "name": "招商银行", "exchange": "SSE", "industry": "银行", "market_cap_usd": 120000000000.0, "country": "CN"}
+{"ticker": "000858.SZ", "name": "五粮液", "exchange": "SZSE", "industry": "白酒", "market_cap_usd": 60000000000.0, "country": "CN"}
+{"ticker": "3690.HK", "name": "美团", "exchange": "HKEX", "industry": "本地生活 / 外卖", "market_cap_usd": 80000000000.0, "country": "CN"}
+{"ticker": "2015.HK", "name": "理想汽车", "exchange": "HKEX", "industry": "电动车", "market_cap_usd": 25000000000.0, "country": "CN"}
+{"ticker": "BILI", "name": "Bilibili", "exchange": "NASDAQ", "industry": "视频社区", "market_cap_usd": 9000000000.0, "country": "CN"}
+{"ticker": "9999.HK", "name": "网易 (HKEX)", "exchange": "HKEX", "industry": "游戏", "market_cap_usd": 65000000000.0, "country": "CN"}
+{"ticker": "HOOD", "name": "Robinhood", "exchange": "NASDAQ", "industry": "Retail Brokerage", "market_cap_usd": 30000000000.0, "country": "US"}
+{"ticker": "NET", "name": "Cloudflare", "exchange": "NYSE", "industry": "Internet Infrastructure", "market_cap_usd": 35000000000.0, "country": "US"}
+{"ticker": "SPOT", "name": "Spotify", "exchange": "NYSE", "industry": "Audio Streaming", "market_cap_usd": 90000000000.0, "country": "SE"}
+{"ticker": "LCID", "name": "Lucid Motors", "exchange": "NASDAQ", "industry": "Luxury EVs", "market_cap_usd": 5000000000.0, "country": "US"}

@@ -1,0 +1,27 @@
+Total: 83, done: 61, todo: 22
+Model: moonshotai/kimi-k2-0905
+Output: /Users/wanqh/projects/structural-isomorphism/phase/data/companies_struct.jsonl
+  [1/22] AAPL           3.9s  ODE1_saturating
+  [2/22] MSFT           3.8s  ODE1_saturating
+  [3/22] GOOGL          7.5s  ODE1_saturating
+  [4/22] META           5.8s  ODE1_saturating
+  [5/22] TSM            5.2s  ODE1_saturating
+  [6/22] AMD            5.5s  ODE1_saturating
+  [7/22] 600519.SS      5.0s  ODE1_saturating
+  [8/22] 601318.SS      7.0s  ODE1_saturating
+  [9/22] 600036.SS      9.6s  ODE1_saturating
+  [10/22] 601888.SS      4.4s  ODE1_saturating
+  [11/22] 300750.SZ      6.9s  ODE1_saturating
+  [12/22] 002594.SZ      6.3s  ODE1_logistic
+  [13/22] 000858.SZ      5.1s  ODE1_saturating
+  [14/22] 300760.SZ      5.2s  ODE1_saturating
+  [15/22] 688981.SS      6.6s  ODE1_saturating
+  [16/22] 1211.HK        8.5s  ODE1_logistic
+  [17/22] 3690.HK        9.1s  ODE1_saturating
+  [18/22] 9988.HK        7.3s  ODE1_saturating
+  [19/22] 700.HK         7.7s  ODE1_saturating
+  [20/22] 9618.HK        7.9s  ODE1_saturating
+  [21/22] 2015.HK        8.4s  ODE1_saturating
+  [22/22] 9868.HK        7.6s  ODE1_saturating
+
+Done. ok=22 err=0 elapsed=144.3s
