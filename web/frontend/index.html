@@ -26,19 +26,84 @@
   <link rel="stylesheet" href="/assets/css/common.css?v=20260414c">
   <link rel="stylesheet" href="/assets/css/home.css?v=20260414c">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414c">
+  <style>
+    /* Product switcher (academic ↔ commercial) */
+    .product-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+      font-size: 12px;
+      margin-left: 12px;
+    }
+    .product-switcher__seg {
+      padding: 5px 12px;
+      border-radius: 999px;
+      color: #52525B;
+      text-decoration: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .product-switcher__seg:hover {
+      color: #18181B;
+    }
+    .product-switcher__seg--active {
+      background: #FAFAFA;
+      color: #18181B;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .site-header__logo-wrap {
+      display: inline-flex;
+      align-items: center;
+    }
+    .home__cross-product {
+      margin-top: 28px;
+      padding: 14px 20px;
+      background: rgba(0, 0, 0, 0.03);
+      border: 1px dashed rgba(0, 0, 0, 0.14);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #52525B;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .home__cross-product a {
+      color: #0891B2;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .home__cross-product a:hover { text-decoration: underline; }
+    .home__cross-product-label { color: #71717A; }
+    @media (max-width: 640px) {
+      .product-switcher { margin-left: 0; margin-top: 6px; }
+      .site-header__logo-wrap { flex-wrap: wrap; }
+    }
+  </style>
 </head>
 <body>
 
   <header class="site-header">
     <div class="site-header__inner">
-      <a href="/" class="site-header__logo">
-        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="6" cy="6" r="3"/>
-          <circle cx="18" cy="18" r="3"/>
-          <path d="M8.5 8.5l7 7"/>
-        </svg>
-        Structural<span class="beta-badge">beta</span>
-      </a>
+      <div class="site-header__logo-wrap">
+        <a href="/" class="site-header__logo">
+          <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="6" cy="6" r="3"/>
+            <circle cx="18" cy="18" r="3"/>
+            <path d="M8.5 8.5l7 7"/>
+          </svg>
+          Structural<span class="beta-badge">beta</span>
+        </a>
+        <div class="product-switcher" role="tablist" aria-label="产品切换">
+          <span class="product-switcher__seg product-switcher__seg--active" aria-current="page">🎓 学术版</span>
+          <a class="product-switcher__seg" href="/phase">💼 商业版</a>
+        </div>
+      </div>
       <nav class="site-header__nav">
         <a href="/classes" class="site-header__nav-link">普适类</a>
         <a href="/discoveries" class="site-header__nav-link">精选发现</a>
@@ -112,6 +177,11 @@
         </form>
 
         <div class="home__suggestions" id="home-suggestions"></div>
+
+        <div class="home__cross-product">
+          <span class="home__cross-product-label">想找公司或商业分析？</span>
+          <a href="/phase">去 Phase Detector — 用结构动力学给 204 家上市公司分类 →</a>
+        </div>
       </div>
     </section>
 

@@ -21,8 +21,8 @@ GROUPS = {
         "max": 5,
     },
     "bistable_cusp": {
-        "title": "⚖️ 双稳态切换型",
-        "desc": "两个稳态并存，系统在某条件触发时会翻转过去就回不来。典型风险：缓慢推动下没有警告，跨过临界点后状态突变。",
+        "title": "⚖️ 临界跳变型",
+        "desc": "系统在两种状态之间有一道折点——缓慢推动时看起来稳，但一旦跨过去就是一步到位的跳变，而且回不来。包括双稳态切换、鞍结分岔、一阶相变、滞回环。",
         "families": {
             "Bistable_switch",
             "Hysteresis_loop",
@@ -65,7 +65,10 @@ def main():
                 and key_of(c) not in used]
         if "phase_filter" in cfg:
             pool = [c for c in pool if c.get("phase_state") in cfg["phase_filter"]]
+        # Prefer approaching_critical (hot signal) → then confidence → then mcap
+        phase_priority = {"approaching_critical": 0, "saturated": 1, "post_transition": 2}
         pool.sort(key=lambda c: (
+            phase_priority.get(c.get("phase_state"), 3),
             -(c.get("confidence") or 0),
             -(c.get("market_cap_usd") or 0),
         ))

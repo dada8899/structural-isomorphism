@@ -231,6 +231,10 @@
     .btn-primary:hover { background: #0ea5c4; text-decoration: none; }
     .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .btn-ghost { background: transparent; color: var(--text-muted); border-color: transparent; padding: 12px 14px; }
+    .btn-ghost:hover { color: var(--text); text-decoration: none; }
+    .cta-row { align-items: center; justify-content: space-between; }
+    .btn-next { flex: 1; justify-content: center; max-width: 560px; }
 
     .related-samples {
       display: grid;
@@ -268,6 +272,42 @@
       font-weight: 500;
     }
     .related-sample-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .loading-dots {
+      display: inline-flex;
+      gap: 6px;
+      margin-right: 8px;
+    }
+    .loading-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      animation: dot-pulse 1.4s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.9); }
+      30% { opacity: 1; transform: scale(1.1); }
+    }
+    .dr-progress {
+      padding: 18px 22px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+    }
+    .dr-progress .elapsed {
+      margin-left: auto;
+      font-family: var(--mono);
       font-size: 11px;
       color: var(--text-dim);
     }
@@ -653,8 +693,8 @@
         </section>
 
         <div class="cta-row">
-          <a href="/phase/screener" class="btn btn-secondary">← 回到筛选器</a>
-          <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary">给这家公司做 Thesis 红队分析 →</a>
+          <a href="/phase/screener" class="btn btn-ghost">← 回到筛选器</a>
+          <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary btn-next">接下来：把你的 Thesis 粘进红队，让 Sonnet 找出最脆弱的假设 →</a>
         </div>
       `;
 
@@ -706,9 +746,20 @@
       const out = document.getElementById('deep-report-content');
       if (!btn || !out) return;
       btn.disabled = true;
-      btn.textContent = '生成中…（约 30 秒）';
+      btn.textContent = '生成中…';
       btn.style.opacity = '0.6';
-      out.innerHTML = '<div style="padding: 20px; color: var(--text-muted); font-size: 13px;">Claude Sonnet 4.5 正在分析…</div>';
+      const startTs = Date.now();
+      out.innerHTML = `
+        <div class="dr-progress">
+          <span class="loading-dots"><span></span><span></span><span></span></span>
+          <span>Claude Sonnet 4.5 正在分析这家公司的结构动力学…</span>
+          <span class="elapsed" id="dr-elapsed">0s</span>
+        </div>
+      `;
+      const drInterval = setInterval(() => {
+        const el = document.getElementById('dr-elapsed');
+        if (el) el.textContent = Math.round((Date.now() - startTs) / 1000) + 's';
+      }, 500);
       try {
         const resp = await fetch('/phase/api/deep-report', {
           method: 'POST',
@@ -720,6 +771,7 @@
           throw new Error(err.error || `HTTP ${resp.status}`);
         }
         const data = await resp.json();
+        clearInterval(drInterval);
         out.innerHTML = '<div class="deep-report-md">' + renderMarkdown(data.report || '(empty)') + '</div>';
         btn.style.display = 'none';
         if (window.renderMathInElement) {
@@ -731,6 +783,7 @@
           });
         }
       } catch (err) {
+        clearInterval(drInterval);
         out.innerHTML = `<div style="padding: 16px; color: var(--red); font-size: 13px;">生成失败：${escapeHtml(err.message)}</div>`;
         btn.disabled = false;
         btn.textContent = '重试 →';

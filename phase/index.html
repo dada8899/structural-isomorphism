@@ -95,6 +95,66 @@
     }
     nav.menu a:hover { color: var(--text); text-decoration: none; }
 
+    .brand-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .product-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .product-switcher__seg {
+      padding: 5px 12px;
+      border-radius: 999px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .product-switcher__seg:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .product-switcher__seg--active {
+      background: rgba(34, 211, 238, 0.12);
+      color: var(--accent);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .hero__cross-product {
+      margin-top: 28px;
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--border-strong);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .hero__cross-product a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .hero__cross-product a:hover { text-decoration: underline; }
+
+    @media (max-width: 760px) {
+      .brand-wrap { flex-wrap: wrap; }
+      .product-switcher { margin-top: 4px; }
+      nav.menu { display: none; }
+    }
+
     /* Hero */
     section.hero {
       padding: 120px 0 100px;
@@ -396,18 +456,23 @@
 <body>
   <header class="site">
     <div class="container nav">
-      <a href="/phase" class="brand">
-        <span class="brand-mark"></span>
-        Phase Detector
-        <span class="brand-beta">BETA</span>
-      </a>
+      <div class="brand-wrap">
+        <a href="/phase" class="brand">
+          <span class="brand-mark"></span>
+          Phase Detector
+          <span class="brand-beta">BETA</span>
+        </a>
+        <div class="product-switcher" role="tablist" aria-label="产品切换">
+          <a class="product-switcher__seg" href="/">🎓 学术版</a>
+          <span class="product-switcher__seg product-switcher__seg--active" aria-current="page">💼 商业版</span>
+        </div>
+      </div>
       <nav class="menu">
         <a href="/phase/screener">结构筛选器</a>
         <a href="/phase/redteam">Thesis 红队</a>
         <a href="#samples">样例报告</a>
         <a href="#idea">什么是结构筛选</a>
         <a href="#waitlist">Waitlist</a>
-        <a href="https://structural.bytedance.city" target="_blank">主站</a>
       </nav>
     </div>
   </header>
@@ -417,12 +482,16 @@
       <span class="tagline-eyebrow">A NEW WAY TO SCREEN COMPANIES</span>
       <h1 class="hero-title">别用市盈率筛股<br><em>用数学结构筛股</em></h1>
       <p class="hero-subtitle">
-        Phase Detector 是第一个按**动力学相变**而非财务比率筛选全市场的工具。<br>
-        给你看那些正在经历结构转折的公司——在它们出现在新闻之前。
+        把全市场 <strong>204 家</strong>上市公司按物理/生物/生态学的经典方程做结构分类，让你能按"这家公司在数学上处于什么状态"筛选——而不是按 P/E、股息率、市值。<br>
+        找出正在经历结构转折的公司，在它们出现在新闻之前。
       </p>
       <div class="cta-row">
         <a href="/phase/screener" class="btn btn-primary">打开结构筛选器 →</a>
         <a href="#samples" class="btn btn-secondary">看 10 份样例报告</a>
+      </div>
+      <div class="hero__cross-product">
+        <span>想看学术研究 / 跨领域结构同构搜索？</span>
+        <a href="/">去 Structural 学术版 →</a>
       </div>
     </div>
   </section>
@@ -585,35 +654,68 @@
       if (c) c.innerHTML = '<div style="color: var(--text-muted); padding: 20px; text-align: center;">信号数据加载失败</div>';
     });
 
-    // Populate sample cards from static manifest (avoid file-list dependency)
-    const samples = [
-      { slug: '01-nflx',    ticker: 'NFLX',         name: 'Netflix',           dynamic: 'logistic_saturation',         excerpt: '全球订阅用户已到 K×17%，logistic 曲线进入减速段。三个跨域框架告诉你何时真的饱和。' },
-      { slug: '02-nvda',    ticker: 'NVDA',         name: 'NVIDIA',            dynamic: 'positive_feedback · critical', excerpt: 'AI 算力正反馈接近 Semenov 自催化临界点。半导体激光阈值方程告诉你爆发何时会转为崩溃。' },
-      { slug: '03-pdd',     ticker: 'PDD',          name: 'PDD / Temu',        dynamic: 'network_cascade',             excerpt: '跨境电商的网络级联 × SIR 阈值 + Schelling 临界质量。监管相变点在哪？' },
-      { slug: '04-tsla',    ticker: 'TSLA',         name: 'Tesla',             dynamic: 'bistable_switch',             excerpt: 'EV 采纳的双稳态：主流 vs niche。Ising 二阶相变告诉你翻转的临界磁场在哪。' },
-      { slug: '05-pton',    ticker: 'PTON',         name: 'Peloton',           dynamic: 'extinction_debt',             excerpt: '用 2021 年的数据倒推：当时就能预测 2023 崩塌。Tilman 灭绝债务方程的教科书级案例。' },
-      { slug: '06-byd',     ticker: '1211.HK',      name: 'BYD',               dynamic: 'multi-logistic',              excerpt: '国内 55% 渗透率已进入饱和后段。海外市场是第二条 S 曲线，监管风险是硬边界。' },
-      { slug: '07-shop',    ticker: 'SHOP',         name: 'Shopify',           dynamic: 'chemostat_flux',              excerpt: '平台的 churn 和 acquisition 是化学恒化器的流入流出。稀释率 vs 生长率的临界平衡。' },
-      { slug: '08-meituan', ticker: '3690.HK',      name: '美团',              dynamic: 'three_sided_equilibrium',     excerpt: '商家/骑手/用户的三体博弈。三体 Lotka-Volterra 告诉你任一边扰动后多久会重新平衡。' },
-      { slug: '09-snow',    ticker: 'SNOW',         name: 'Snowflake',         dynamic: 'network_vs_commoditization',  excerpt: '正反馈（网络效应）对抗负反馈（商品化）。这是 Curie 相变的二阶竞争场。' },
-      { slug: '10-liauto',  ticker: '2015.HK',      name: '理想汽车',          dynamic: 'niche_invasion',              excerpt: '独占 niche 变拥挤 niche：竞争排除原理（Gause）预测的占有率终态。' },
-    ];
-    const grid = document.getElementById('samples-grid');
-    grid.innerHTML = samples.map(s => `
-      <a class="sample-card" href="/phase/samples/${s.slug}.html">
-        <div class="sample-ticker">${s.ticker}</div>
-        <div class="sample-name">${s.name}</div>
-        <div class="sample-dynamic">dynamics_family: ${s.dynamic}</div>
-        <div class="sample-excerpt">${s.excerpt}</div>
-        <div class="sample-meta">
-          <span>~2,000 词</span>
-          <span>·</span>
-          <span>3 twins</span>
-          <span>·</span>
-          <span>结构化分析</span>
-        </div>
-      </a>
-    `).join('');
+    // Chinese labels for canonical dynamics families (must match company.html)
+    const DYNAMICS_LABELS_SHORT = {
+      'ODE1_linear': '线性增长',
+      'ODE1_exponential_growth': '指数增长 (正反馈飞轮)',
+      'ODE1_logistic': '逻辑斯蒂 S 曲线',
+      'ODE1_saturating': '饱和 S 曲线',
+      'ODE1_exponential_decay': '指数衰减',
+      'ODE2_damped_oscillation': '阻尼振荡 (周期股)',
+      'Bistable_switch': '双稳态切换',
+      'Fold_bifurcation': '鞍结跳变 (不可逆)',
+      'Hopf_bifurcation': 'Hopf 分岔 (稳态→振荡)',
+      'Phase_transition_1st': '一阶相变 (突跳)',
+      'Phase_transition_2nd': '二阶相变 (临界放缓)',
+      'Network_cascade': '网络级联 (传染式传播)',
+      'Power_law_distribution': '幂律分布 (赢者通吃)',
+      'Self_fulfilling_prophecy': '反身性循环',
+      'PDE_reaction_diffusion': '反应扩散 (空间行波)',
+      'DDE_delayed_feedback': '延迟反馈',
+    };
+    const SAMPLE_EXCERPTS = {
+      '01-nflx': '全球订阅用户已接近承载量 K。用 Verhulst 逻辑斯蒂拟合出真实天花板，和 Wall Street 共识差多远。',
+      '02-nvda': 'AI 算力正反馈飞轮远未见顶。用 Semenov 自催化方程找出爆发会在什么条件下转折。',
+      '03-pdd': '跨境电商的 SIR 阈值 + Schelling 临界质量。监管相变点的几个可观测信号。',
+      '04-tsla': 'EV 采纳的双稳态：主流 vs niche。用 Ising 二阶相变定位翻转临界点。',
+      '05-pton': '用 2021 的数据倒推：当时就能看到 2023 的崩塌。Tilman 生态灭绝债务的教科书案例。',
+      '06-byd': '国内 55% 渗透率已进入饱和后段。海外市场是第二条 S 曲线，监管风险是硬边界。',
+      '07-shop': '平台的 churn 和 acquisition 是化学恒化器的流入流出。稀释率 vs 生长率的临界平衡。',
+      '08-meituan': '商家/骑手/用户的三体博弈。三方 Lotka-Volterra 告诉你任一边扰动后多久会重新平衡。',
+      '09-snow': '正反馈（网络效应）对抗负反馈（商品化）。Curie 相变的二阶竞争场。',
+      '10-liauto': '独占 niche 变拥挤 niche：竞争排除原理（Gause）预测的占有率终态。',
+    };
+
+    (async () => {
+      const grid = document.getElementById('samples-grid');
+      let samples = [];
+      try {
+        const resp = await fetch('/phase/data/samples_manifest.json');
+        samples = await resp.json();
+      } catch (e) {
+        grid.innerHTML = '<div style="color: var(--text-muted); padding: 20px;">样例加载失败，<a href="/phase/screener">直接进筛选器 →</a></div>';
+        return;
+      }
+      grid.innerHTML = samples.map(s => {
+        const fam = DYNAMICS_LABELS_SHORT[s.dynamics_family] || s.dynamics_family;
+        const excerpt = SAMPLE_EXCERPTS[s.slug] || '';
+        return `
+          <a class="sample-card" href="/phase/samples/${s.slug}.html">
+            <div class="sample-ticker">${s.ticker}</div>
+            <div class="sample-name">${s.name}</div>
+            <div class="sample-dynamic">结构类型：${fam}</div>
+            <div class="sample-excerpt">${excerpt}</div>
+            <div class="sample-meta">
+              <span>约 2,000 字</span>
+              <span>·</span>
+              <span>3 个跨域结构孪生</span>
+              <span>·</span>
+              <span>监控清单</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+    })();
   </script>
 </body>
 </html>
