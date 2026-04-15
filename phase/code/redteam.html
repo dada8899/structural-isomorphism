@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0A0A0A">
+  <meta name="theme-color" content="#FAFAF9">
   <title>Thesis Red Team — Phase Detector</title>
   <meta name="description" content="上传你的投资 thesis，结构化分析找出 3 个最脆弱的假设 + 历史结构孪生。">
 
@@ -13,20 +13,20 @@
 
   <style>
     :root {
-      --bg: #0A0A0A;
-      --bg-elevated: #141414;
-      --bg-card: #1A1A1A;
-      --border: #27272A;
-      --border-strong: #3F3F46;
-      --text: #FAFAFA;
-      --text-secondary: #D4D4D8;
-      --text-muted: #A1A1AA;
-      --text-dim: #71717A;
-      --accent: #22D3EE;
-      --accent-dim: rgba(34, 211, 238, 0.1);
-      --red: #F87171;
-      --red-dim: rgba(248, 113, 113, 0.08);
-      --amber: #FBBF24;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
+      --red: #DC2626;
+      --red-dim: rgba(220, 38, 38, 0.06);
+      --amber: #D97706;
       --mono: 'JetBrains Mono', monospace;
       --serif: 'Noto Serif SC', serif;
       --sans: 'Inter', -apple-system, sans-serif;
@@ -36,7 +36,7 @@
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    header.site { border-bottom: 1px solid var(--border); padding: 20px 0; position: sticky; top: 0; background: rgba(10,10,10,0.85); backdrop-filter: blur(12px); z-index: 100; }
+    header.site { border-bottom: 1px solid var(--border); padding: 20px 0; position: sticky; top: 0; background: rgba(250,250,249,0.88); backdrop-filter: blur(12px); z-index: 100; }
     .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
     .nav { display: flex; justify-content: space-between; align-items: center; }
     .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
@@ -97,7 +97,7 @@
       align-items: center;
       gap: 8px;
     }
-    .btn-primary { background: var(--red); color: #0A0A0A; }
+    .btn-primary { background: var(--red); color: #FFFFFF; }
     .btn-primary:hover { background: #ef6060; text-decoration: none; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 

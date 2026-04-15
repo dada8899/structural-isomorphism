@@ -35,16 +35,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <style>
     :root {{
-      --bg: #0A0A0A;
-      --bg-elevated: #141414;
-      --bg-card: #1A1A1A;
-      --border: #27272A;
-      --border-strong: #3F3F46;
-      --text: #FAFAFA;
-      --text-secondary: #D4D4D8;
-      --text-muted: #A1A1AA;
-      --accent: #22D3EE;
-      --accent-dim: rgba(34, 211, 238, 0.1);
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -65,7 +65,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       border-bottom: 1px solid var(--border);
       padding: 20px 0;
       position: sticky; top: 0;
-      background: rgba(10, 10, 10, 0.85);
+      background: rgba(250, 250, 249, 0.88);
       backdrop-filter: saturate(180%) blur(12px);
       z-index: 100;
     }}
@@ -275,7 +275,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       <aside style="margin-top: 20px; text-align: center; padding: 18px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border);">
         <div style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">想按数学动力学筛选全市场？</div>
-        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #0A0A0A; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
+        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #FFFFFF; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
       </aside>
     </div>
   </main>
@@ -335,10 +335,10 @@ INDEX_TEMPLATE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Day 1 Samples — Phase Detector</title>
   <style>
-    body {{ background:#0A0A0A; color:#FAFAFA; font-family:system-ui,sans-serif; max-width:720px; margin:60px auto; padding:0 24px; }}
+    body {{ background:#FAFAF9; color:#18181B; font-family:system-ui,sans-serif; max-width:720px; margin:60px auto; padding:0 24px; }}
     h1 {{ font-family:'Noto Serif SC',serif; }}
-    a {{ color:#22D3EE; display:block; padding:12px 0; text-decoration:none; border-bottom:1px solid #27272A; }}
-    a:hover {{ background:#141414; }}
+    a {{ color:#2563EB; display:block; padding:12px 0; text-decoration:none; border-bottom:1px solid #E4E4E7; }}
+    a:hover {{ background:#F4F4F5; }}
     .meta {{ color:#71717A; font-size:13px; font-family:'JetBrains Mono',monospace; }}
   </style>
 </head>

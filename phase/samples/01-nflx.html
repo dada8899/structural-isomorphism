@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Netflix — Phase Detector</title>
-  <meta name="description" content="Verhulst-Pearl logistic saturation on global household carrying capacity.">
+  <meta name="description" content="">
   <meta property="og:title" content="Netflix — Phase Detector">
-  <meta property="og:description" content="Verhulst-Pearl logistic saturation on global household carrying capacity.">
+  <meta property="og:description" content="">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,16 +19,16 @@
 
   <style>
     :root {
-      --bg: #0A0A0A;
-      --bg-elevated: #141414;
-      --bg-card: #1A1A1A;
-      --border: #27272A;
-      --border-strong: #3F3F46;
-      --text: #FAFAFA;
-      --text-secondary: #D4D4D8;
-      --text-muted: #A1A1AA;
-      --accent: #22D3EE;
-      --accent-dim: rgba(34, 211, 238, 0.1);
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -49,7 +49,7 @@
       border-bottom: 1px solid var(--border);
       padding: 20px 0;
       position: sticky; top: 0;
-      background: rgba(10, 10, 10, 0.85);
+      background: rgba(250, 250, 249, 0.88);
       backdrop-filter: saturate(180%) blur(12px);
       z-index: 100;
     }
@@ -259,7 +259,7 @@
 
       <aside style="margin-top: 20px; text-align: center; padding: 18px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border);">
         <div style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">想按数学动力学筛选全市场？</div>
-        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #0A0A0A; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
+        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #FFFFFF; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
       </aside>
     </div>
   </main>
@@ -293,7 +293,7 @@
 
       // Populate "more samples" list
       const currentSlug = "01-nflx";
-      const allSamples = [{"slug": "01-nflx", "ticker": "NFLX", "name": "Netflix", "dynamics_family": "ODE1_saturating", "excerpt": "Verhulst-Pearl logistic saturation on global household carrying capacity."}, {"slug": "02-nvda", "ticker": "NVDA", "name": "NVIDIA", "dynamics_family": "ODE1_exponential_growth", "excerpt": "Runaway positive feedback approaching Semenov thermal explosion threshold."}, {"slug": "03-pdd", "ticker": "PDD", "name": "PDD / Temu", "dynamics_family": "Network_cascade", "excerpt": "SIR-style diffusion on cross-border network with regulatory critical point."}, {"slug": "04-tsla", "ticker": "TSLA", "name": "Tesla", "dynamics_family": "Bistable_switch", "excerpt": "EV adoption bistable switch at Ising-style second-order transition."}, {"slug": "05-pton", "ticker": "PTON", "name": "Peloton", "dynamics_family": "DDE_delayed_feedback", "excerpt": "Tilman extinction debt: signals visible in 2021 predicted 2023 collapse."}, {"slug": "06-byd", "ticker": "1211.HK", "name": "BYD", "dynamics_family": "ODE1_saturating", "excerpt": "Two-compartment logistic saturation (domestic mature + international early)."}, {"slug": "07-shop", "ticker": "SHOP", "name": "Shopify", "dynamics_family": "ODE1_saturating", "excerpt": "Chemostat flux balance: dilution rate vs growth rate critical equilibrium."}, {"slug": "08-meituan", "ticker": "3690.HK", "name": "美团", "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Three-species Lotka-Volterra: merchant/rider/user phase locking."}, {"slug": "09-snow", "ticker": "SNOW", "name": "Snowflake", "dynamics_family": "Phase_transition_2nd", "excerpt": "Curie-style second-order transition between network effects and commoditization."}, {"slug": "10-liauto", "ticker": "2015.HK", "name": "理想汽车", "dynamics_family": "Game_theoretic_equilibrium", "excerpt": "Gause competitive exclusion: formerly unique niche under invasion."}];
+      const allSamples = [{"slug": "01-nflx", "ticker": "NFLX", "title": "Netflix (NFLX) — 一家被当成成长股的老牌制片厂", "dynamics_family": "ODE1_saturating", "phase_state": "saturated", "name": "Netflix"}, {"slug": "02-nvda", "ticker": "NVDA", "title": "NVIDIA (NVDA) — 一台越过了激光阈值的机器，但燃料快烧到顶", "dynamics_family": "ODE1_exponential_growth", "phase_state": "approaching_critical", "name": "NVIDIA"}, {"slug": "03-pdd", "ticker": "PDD", "title": "拼多多 & Temu — 它不像零售公司，更像一场传染病", "dynamics_family": "Network_cascade", "phase_state": "stable", "name": "PDD Holdings (Pinduoduo + Temu)"}, {"slug": "04-tsla", "ticker": "TSLA", "title": "Tesla (TSLA) — 一块已经跌破居里温度的磁铁，靠惯性还在发光", "dynamics_family": "Bistable_switch", "phase_state": "stable", "name": "Tesla"}, {"slug": "05-pton", "ticker": "PTON", "title": "Peloton (PTON) — 一份 2021 年就能看出它会崩的回顾", "dynamics_family": "Fold_bifurcation", "phase_state": "post_transition", "name": "Peloton"}, {"slug": "06-byd", "ticker": "1211.HK", "title": "比亚迪 (BYD) — 不是一条 S 曲线，是两条相位错开的 S 曲线", "dynamics_family": "PDE_reaction_diffusion", "phase_state": "stable", "name": "比亚迪"}, {"slug": "07-shop", "ticker": "SHOP", "title": "Shopify (SHOP) — 它不是 SaaS，它是一个化学反应器", "dynamics_family": "ODE1_logistic", "phase_state": "stable", "name": "Shopify"}, {"slug": "08-meituan", "ticker": "3690.HK", "title": "美团 (3690.HK) — 三体问题里的外卖平台", "dynamics_family": "Hopf_bifurcation", "phase_state": "stable", "name": "美团"}, {"slug": "09-snow", "ticker": "SNOW", "title": "Snowflake (SNOW) — 它正处在磁铁融化前的那一秒", "dynamics_family": "Phase_transition_2nd", "phase_state": "approaching_critical", "name": "Snowflake"}, {"slug": "10-liauto", "ticker": "LI", "title": "理想汽车 (2015.HK) — 独占生态位被入侵的经典故事", "dynamics_family": "Bistable_switch", "phase_state": "stable", "name": "Li Auto ADR"}];
       const moreContainer = document.getElementById('more-samples');
       if (moreContainer) {
         moreContainer.innerHTML = allSamples
