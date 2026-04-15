@@ -323,13 +323,13 @@
       <section class="filters">
         <div class="filter-row">
           <div class="filter-item">
-            <label>动力学家族</label>
+            <label>结构类型</label>
             <select id="filter-dynamics">
               <option value="">全部</option>
             </select>
           </div>
           <div class="filter-item">
-            <label>相位阶段</label>
+            <label>当前阶段</label>
             <select id="filter-phase">
               <option value="">全部</option>
               <option value="growth_phase">成长期</option>
@@ -553,11 +553,11 @@
         <table class="results-table">
           <thead>
             <tr>
-              <th>股票代码</th>
+              <th>代码</th>
               <th>公司 / 行业</th>
-              <th>动力学家族</th>
-              <th>相位阶段</th>
-              <th>核心结构洞察</th>
+              <th title="公司当前的结构动力学类型：指数增长、双稳态切换、一阶相变……">结构类型</th>
+              <th title="在结构曲线上所处的阶段：稳定、成长、饱和、接近临界……">当前阶段</th>
+              <th>关键信号</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
