@@ -100,12 +100,14 @@
 
   // ---------- DOM translation ----------
 
-  // Cache original text so we can restore it when a key has no translation.
+  // Cache original innerHTML so we can restore it when a key has no translation.
+  // We use innerHTML (not textContent) because content.json strings preserve
+  // inline HTML like <strong>, <br>, <a>, <code>, <em>, <kbd>.
   function cacheOriginal(el, kind) {
     var attrName = kind === 'text' ? 'data-i18n-orig' : 'data-i18n-orig-' + kind;
     if (el.hasAttribute(attrName)) return el.getAttribute(attrName);
     var val;
-    if (kind === 'text') val = el.textContent;
+    if (kind === 'text') val = el.innerHTML;
     else val = el.getAttribute(kind) || '';
     el.setAttribute(attrName, val);
     return val;
@@ -119,7 +121,35 @@
       if (!key) continue;
       var original = cacheOriginal(el, 'text');
       var translated = lookup(key, lang);
-      el.textContent = translated !== null ? translated : original;
+      var val = translated !== null ? translated : original;
+      // Use innerHTML so inline tags (<strong>, <br>, <a>, <code>) survive.
+      // Translations come from static JSON we control, not user input.
+      el.innerHTML = val;
+    }
+  }
+
+  // Translate <title> and <meta name=description|og:..|twitter:..> via data-i18n-title/-meta.
+  function translateHeadTags(lang) {
+    var titleEl = document.querySelector('title[data-i18n]');
+    if (titleEl) {
+      var tkey = titleEl.getAttribute('data-i18n');
+      var torig = cacheOriginal(titleEl, 'text');
+      var tval = lookup(tkey, lang);
+      titleEl.textContent = tval !== null ? tval : torig;
+    }
+    // Also update <meta name="description"> and <meta property="og:title"> etc. via data-i18n-meta.
+    var metas = document.querySelectorAll('meta[data-i18n-meta]');
+    for (var m = 0; m < metas.length; m++) {
+      var el = metas[m];
+      var key = el.getAttribute('data-i18n-meta');
+      if (!key) continue;
+      var orig = el.getAttribute('data-i18n-orig-content');
+      if (orig === null) {
+        orig = el.getAttribute('content') || '';
+        el.setAttribute('data-i18n-orig-content', orig);
+      }
+      var val = lookup(key, lang);
+      el.setAttribute('content', val !== null ? val : orig);
     }
   }
 
@@ -159,6 +189,21 @@
     applyHtmlLangAttr(state.lang);
     translateTextNodes(root, state.lang);
     translateAttrs(root, state.lang);
+    translateHeadTags(state.lang);
+    // Lang-aware URLs: e.g., footer paper link should point to paper-en.html in en
+    // For now just add ?lang=en to internal /about, /classes, /discoveries etc.
+    var internalLinks = document.querySelectorAll('a[href^="/about"],a[href^="/classes"],a[href^="/discoveries"],a[href^="/paper/"],a[href^="/search"],a[href^="/analyze"]');
+    for (var k = 0; k < internalLinks.length; k++) {
+      var a = internalLinks[k];
+      var href = a.getAttribute('href') || '';
+      // Strip any existing ?lang= and re-append if en
+      href = href.replace(/([?&])lang=[a-z]+(&|$)/i, function (m, a1, a2) { return a2 === '&' ? a1 : ''; });
+      href = href.replace(/[?&]$/, '');
+      if (state.lang === 'en') {
+        href += (href.indexOf('?') >= 0 ? '&' : '?') + 'lang=en';
+      }
+      a.setAttribute('href', href);
+    }
     updateLangLabels(state.lang);
     state.listeners.forEach(function (fn) {
       try { fn(state.lang); } catch (e) { /* swallow */ }
