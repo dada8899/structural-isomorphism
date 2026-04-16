@@ -69,15 +69,96 @@ function renderMembers(membersByDomain, hubName) {
   return `<div class="uc-members">${rows}</div>`;
 }
 
+// Convert pseudo-LaTeX like "du/dt = α/(1+v^n) - u" into real KaTeX.
+// Conservative — if we don't recognize a pattern we leave it as pretty monospace.
+function tryLatexify(raw) {
+  if (!raw) return null;
+  let s = raw;
+
+  // Don't attempt if there's too much prose (too many spaces between words in Latin script)
+  const wordRatio = (s.match(/\b[a-z]{4,}\b/gi) || []).length;
+  if (wordRatio > 5) return null;  // looks like a prose description
+
+  // ASCII greek → LaTeX
+  const greekMap = {
+    alpha: '\\alpha', beta: '\\beta', gamma: '\\gamma', delta: '\\delta',
+    epsilon: '\\epsilon', zeta: '\\zeta', eta: '\\eta', theta: '\\theta',
+    iota: '\\iota', kappa: '\\kappa', lambda: '\\lambda', mu: '\\mu',
+    nu: '\\nu', xi: '\\xi', pi: '\\pi', rho: '\\rho', sigma: '\\sigma',
+    tau: '\\tau', upsilon: '\\upsilon', phi: '\\phi', chi: '\\chi',
+    psi: '\\psi', omega: '\\omega',
+    Alpha: 'A', Beta: 'B', Gamma: '\\Gamma', Delta: '\\Delta',
+    Theta: '\\Theta', Lambda: '\\Lambda', Pi: '\\Pi', Sigma: '\\Sigma',
+    Phi: '\\Phi', Omega: '\\Omega',
+  };
+  for (const [k, v] of Object.entries(greekMap)) {
+    s = s.replace(new RegExp('\\b' + k + '\\b', 'g'), v);
+  }
+
+  // d<var>/dt, d<var>/dx → \frac{d<var>}{dt}
+  s = s.replace(/\bd(\w+)\/d(\w+)\b/g, '\\frac{d$1}{d$2}');
+
+  // sum_j, prod_i → \sum_j, \prod_i
+  s = s.replace(/\bsum_(\w+|\{[^}]+\})/g, '\\sum_{$1}');
+  s = s.replace(/\bprod_(\w+|\{[^}]+\})/g, '\\prod_{$1}');
+  s = s.replace(/\bint_(\w+|\{[^}]+\})/g, '\\int_{$1}');
+
+  // Common substitutions
+  s = s.replace(/->/g, '\\to ');
+  s = s.replace(/<=/g, '\\leq ');
+  s = s.replace(/>=/g, '\\geq ');
+  s = s.replace(/!=/g, '\\neq ');
+  s = s.replace(/\\infty|∞/g, '\\infty');
+
+  // Superscripts: x^n → x^{n}, x^abc → x^{abc}, keep x^{...} as-is
+  s = s.replace(/\^([A-Za-z0-9]{2,})/g, '^{$1}');
+  // Subscripts: keep x_i as is, x_abc → x_{abc}
+  s = s.replace(/_([A-Za-z0-9]{2,})/g, '_{$1}');
+
+  // Fractions: <something>/(expr) → \frac{something}{expr}
+  // Only when there's a clear (...) on the right
+  s = s.replace(/([a-zA-Z0-9\\_^{}]+)\/\(([^()]+)\)/g, '\\frac{$1}{$2}');
+
+  // Multiplication: * → \cdot (but leave A*B if A or B has a digit next to it? keep simple)
+  s = s.replace(/\s*\*\s*/g, ' \\cdot ');
+
+  // If there's still an unmatched `/` in the result, and it's between simple tokens, convert
+  s = s.replace(/(\b[a-zA-Z]\w*)\/(\b[a-zA-Z]\w*\b)/g, '\\frac{$1}{$2}');
+
+  return s;
+}
+
 function renderEquations(eqs) {
   if (!eqs || !eqs.length) return "";
-  return `
-    <div class="uc-eq-list">
-      ${eqs
-        .map((e) => `<div class="uc-eq"><code>${escapeHtml(e.raw || "")}</code></div>`)
-        .join("")}
-    </div>
-  `;
+  const items = eqs.map((e) => {
+    const raw = (e && e.raw) || "";
+    if (!raw) return "";
+
+    // Split "Label: math" when a short label exists
+    let label = "";
+    let body = raw;
+    const labelMatch = raw.match(/^([^:：]{2,40})[:：]\s+(.+)$/s);
+    if (labelMatch && !/[=+\-\\^*/()]/.test(labelMatch[1])) {
+      label = labelMatch[1].trim();
+      body = labelMatch[2].trim();
+    }
+
+    // Split body by ; into multiple lines (equations)
+    const parts = body.split(/\s*;\s+/).map((p) => p.trim()).filter(Boolean);
+
+    const renderedParts = parts.map((p) => {
+      const latex = tryLatexify(p);
+      if (latex) {
+        return `<div class="uc-eq-line"><span class="uc-eq-math">$$${latex}$$</span></div>`;
+      }
+      return `<div class="uc-eq-line"><code class="uc-eq-code">${escapeHtml(p)}</code></div>`;
+    }).join("");
+
+    const header = label ? `<div class="uc-eq-label">${escapeHtml(label)}</div>` : "";
+    return `<div class="uc-eq-block">${header}${renderedParts}</div>`;
+  }).join("");
+
+  return `<div class="uc-eq-list">${items}</div>`;
 }
 
 function renderInvariants(invariants) {
@@ -145,16 +226,8 @@ function renderCard(cls) {
     badges.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
   }
 
-  // Preview (always visible)
+  // Compact preview (always visible) — just the 2-line summary
   const previewParts = [];
-  if (cls.physics_prototype) {
-    previewParts.push(`
-      <div class="uc-card__meta-row">
-        <span class="uc-card__meta-key">物理原型</span>
-        <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
-      </div>
-    `);
-  }
   if (cls.summary_zh) {
     previewParts.push(`<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>`);
   }
@@ -162,17 +235,26 @@ function renderCard(cls) {
   // Count of extended content to show hint
   const extendedCounts = [];
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
-    extendedCounts.push(`${cls.shared_equations_raw.length} 个共享方程`);
+    extendedCounts.push(`${cls.shared_equations_raw.length} 方程`);
   }
   if (cls.invariants && cls.invariants.length) {
-    extendedCounts.push(`${cls.invariants.length} 个不变量`);
+    extendedCounts.push(`${cls.invariants.length} 不变量`);
   }
   if (cls.predictions && cls.predictions.length) {
-    extendedCounts.push(`${cls.predictions.length} 个可验证预测`);
+    extendedCounts.push(`${cls.predictions.length} 预测`);
   }
 
-  // Expandable sections (hidden by default)
+  // Expandable sections — physics_prototype moves here
   const sections = [];
+
+  if (cls.physics_prototype) {
+    sections.push(`
+      <div class="uc-card__section">
+        <h3 class="uc-card__section-title">物理学原型</h3>
+        <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
+      </div>
+    `);
+  }
 
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     sections.push(`
