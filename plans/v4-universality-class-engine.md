@@ -210,6 +210,44 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
 }
 ```
 
+### Layer 5 细节：实证验证与 Phase 命名
+
+Layer 5 把 Layer 4 产出的可验证预测真正拿真实世界数据跑一遍。由于每次验证都锁定**一个具体的领域目标**（地震 / 股市 / DeFi / 神经雪崩 / ...），我们用"Phase N"给每一轮验证编号，每个 Phase 对应**一篇独立的 preprint + 一条 /classes 卡片上的 ✅ 已实证标签**。
+
+命名规则：
+- **Phase 编号 = 该领域在 Layer 5 序列里的完成顺序**（不是优先级，也不是难度）
+- 每个 Phase 都遵循统一流程：数据抓取 → 同一 pipeline 跑拟合 → VERDICT 报告 → arXiv-style paper → /classes 卡片更新
+- 工件统一放在 `v4/validation/<class-id>-<domain>/` 目录，如 `soc-earthquake/`、`soc-stockmarket/`、`soc-defi/`
+
+已完成：
+| Phase | 目标 | 数据 / 样本量 | 主要结果 | 状态 |
+|---|---|---|---|---|
+| **1** | USGS 全球地震（物理 ground truth） | 84,724 events 2020-2025 | b = 1.084, Omori p = 0.941, R² = 0.99 | ✅ paper 1 上线 |
+| **2** | S&P 500 日收益（第一个非物理） | 9,060 交易日 1990-2025 | α = 2.998 (inverse cubic law), Omori p = 0.286 (daily) | ✅ paper 2 上线 |
+| **3** | DeFi 清算（Aave V2 + Compound + Maker） | 43,065 events 2020-2024 | α ∈ [1.57, 1.68], Omori p ∈ [0.69, 0.76] (1-hour), 跨 3 协议收敛 | ✅ paper 3 v2 上线 |
+
+Phase 4+ 候选目标（按可得性和工作量排序）：
+
+| 备选 Phase | 目标 | 数据源 | 预估工时 | 预期结果 | 学术意义 |
+|---|---|---|---|---|---|
+| **A** | 神经雪崩 | Beggs-Plenz 2003 公开 + Allen Brain 电生理集 | 1-2 天 | α ≈ 1.5（文献值），验证可复现 | 中——已有文献对比，SOC 跨生物学扩展 |
+| **B** | 森林火灾规模 | USGS / MODIS fire perimeter | 2-3 天 | α ≈ 1.3-1.5 | 中——经典 SOC 系统 |
+| **C** | 电网级联故障 | NERC TADS 公开报告 | 3-5 天 | Motter-Lai 预期 τ ≈ 2.0 | 高——首次实证 Motter-Lai 亚类 |
+| **D** | GitHub issue / commit 级联 | GHArchive.org | 2-3 天 | 可能幂律，但 SOC 是否成立未知 | 高——新领域，open question |
+| **E** | Wikipedia 编辑级联 | Wikipedia API + Pushshift | 3-4 天 | 同上 | 中-高 |
+| **F** | 巨灾保险理赔 | 国内银保监 / FEMA CED 公开数据 | 5-7 天 | 尾部幂律预期成立 | 中——已有 Cat bond 理论 |
+| **G** | 社会抗议/示威级联 | GDELT / ACLED 事件库 | 2-3 天 | unknown | 高但 noise 大 |
+| **H** | 跨链桥清算 / Curve pool depeg | Etherscan + Curve Subgraph | 3-4 天 | 预期与 Aave 类似但更稀疏 | 低——扩展而非新类 |
+
+**推荐下一步**：Phase 4 优先选 **A 神经雪崩**——最快出结果、有文献基准、能把 SOC 簇从"物理+金融"扩展到"生物"，叙事完整度再升一档。
+
+每个新 Phase 完成后应同步：
+1. 在本表格"已完成"行追加一行
+2. 在 `v4/validation/<类目录>/VERDICT-YYYY-MM-DD.md` 写 verdict
+3. 在 `web/frontend/assets/data/papers/` 放 paper.md
+4. 更新 `build_site_data.py` 里对应 predictions 条目的 status 为 "✅ 已验证"，`paper_url` 指向新 slug
+5. 重跑 `build_site_data.py` → rsync → /classes 卡片自动亮绿色"✅ 已实证"
+
 ---
 
 ## 5. 成功判据
