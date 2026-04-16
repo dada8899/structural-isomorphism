@@ -363,6 +363,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Overflow safety: grid children default to min-width: auto which prevents
+     shrinking; reset so long text / wide flex children can fit. */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .uc-card:hover {
@@ -476,11 +480,15 @@
   gap: 16px;
   margin-bottom: 8px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .uc-card__titles {
   flex: 1 1 auto;
   min-width: 0;
+  /* Allow long Chinese-English hybrid names to wrap instead of overflow */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .uc-card__title {
@@ -490,6 +498,8 @@
   color: #1a1a1a;
   margin: 0 0 2px;
   line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .uc-card__subtitle { font-size: 12px; }
 .uc-card[data-expanded="true"] .uc-card__title { font-size: 26px; margin-bottom: 4px; }
@@ -507,7 +517,17 @@
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
-  flex-shrink: 0;
+  flex-shrink: 1;   /* allow shrinking when card is narrow */
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Prevent individual badges from overflowing on very narrow cards */
+.uc-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .uc-badge { padding: 3px 8px; font-size: 10.5px; }
 .uc-card[data-expanded="true"] .uc-badge { padding: 5px 11px; font-size: 11.5px; }
@@ -578,8 +598,15 @@
   padding-left: 10px;
   border-left: 2px solid rgba(217, 119, 87, 0.55);
   font-size: 12px;
+  min-width: 0;
+  flex-wrap: wrap;   /* let hub label + long name wrap to 2 lines if needed */
 }
-.uc-card__hub-name { font-size: 13px; }
+.uc-card__hub-name {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
 .uc-card[data-expanded="true"] .uc-card__hub {
   margin: 4px 0 6px;
   padding-left: 14px;
@@ -599,6 +626,10 @@
   font-size: 15px;
   font-weight: 500;
   color: #1a1a1a;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .uc-card__summary {
