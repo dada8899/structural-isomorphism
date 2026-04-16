@@ -21,15 +21,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/classes.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/classes.css?v=20260417c">
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417c">
 </head>
 <body>
   <header class="site-header">
@@ -67,13 +67,7 @@
           </div>
           <h1 class="uc-hero__title">当多个现象共享<em>底层规律</em></h1>
           <p class="uc-hero__lede">
-            我们在 <a href="/discoveries">精选发现</a> 里收录了 191 条 pair 级同构（A≅B）。这里做的是更上一层的工作——
-            <strong>找出那些"一个节点连接多个现象"的 hub</strong>，把它们合并成等价类，再把每个等价类映射到物理学已知的普适类。
-          </p>
-          <p class="uc-hero__lede">
-            方法是纯数据驱动的：给 pair 结果建图（节点=现象，边=同构），跑度中心性 + Louvain 社区发现。
-            无监督浮现出 <strong>23 个跨领域等价类</strong>——8 个由人工精选并匹配到物理学已命名的普适类（SOC / Hysteresis / Fold 分岔 / Motter-Lai / Diamond-Dybvig / Copula 尾部 / Toggle switch / Schelling 承诺），
-            另 15 个由 LLM 辅助做 Layer 3 不变量提取与 taxonomy 匹配。每一类共享同一个数学结构、同一组不变量。
+            <a href="/discoveries">精选发现</a> 里是 191 条 pair 级同构（A≅B）。更上一层——把<strong>"一个节点连接多个现象"</strong>的 hub 聚合成等价类，再映射到物理学已知的普适类。下面 <strong>23 个跨领域等价类</strong>由图 + Louvain 无监督浮现；8 个人工精选匹配到 SOC、Hysteresis、Fold 分岔、Motter-Lai、Diamond-Dybvig 等已命名类，15 个 LLM 辅助。每一类共享同一个数学结构和同一组不变量。具体方法见<a href="#uc-footnote">页脚</a>。
           </p>
           <div class="uc-hero__stats" id="uc-hero-stats"></div>
         </section>
@@ -105,7 +99,7 @@
       <!-- DETAIL VIEW -->
       <div id="uc-view-detail" hidden></div>
 
-      <section class="uc-footnote" id="uc-footnote">
+      <section class="uc-footnote" id="uc-footnote" tabindex="-1">
         <h2 class="uc-footnote__title">方法论说明</h2>
         <ol class="uc-footnote__list">
           <li><strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。</li>
@@ -136,8 +130,8 @@
     </div>
   </footer>
 
-  <script src="/assets/js/utils.js?v=20260417b"></script>
-  <script src="/assets/js/classes.js?v=20260417b"></script>
-  <script src="/assets/js/product-switcher.js?v=20260417b"></script>
+  <script src="/assets/js/utils.js?v=20260417c"></script>
+  <script src="/assets/js/classes.js?v=20260417c"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417c"></script>
 </body>
 </html>

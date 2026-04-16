@@ -980,3 +980,120 @@
   .uc-members__row { flex-direction: column; gap: 4px; }
   .uc-members__domain { flex: 0 0 auto; }
 }
+
+/* ============================================================
+   Layout refresh 2026-04-17
+   Tightens hero, gives cards more breathing room, quiets
+   competing visual signals on "已实证" state.
+   ============================================================ */
+
+/* 1. Wider, roomier card grid. */
+.uc-list {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+@media (min-width: 1280px) {
+  .uc-list { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+}
+@media (max-width: 820px) {
+  .uc-list { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* 2. Card padding + rhythm. */
+.uc-card--preview {
+  padding: 20px 22px 16px;
+  gap: 12px;
+}
+
+/* 3. Title: larger, with better breathing. Subtitle: a bit bigger. */
+.uc-card__title { font-size: 19px; line-height: 1.32; margin-bottom: 3px; }
+.uc-card__subtitle { font-size: 13px; }
+
+/* 4. Hub row: replace orange left-border with neutral mono label chip,
+   aligned with the design system. */
+.uc-card__hub {
+  border-left: none;
+  padding-left: 0;
+  margin: 0;
+  align-items: center;
+  font-size: 13px;
+  gap: 10px;
+}
+.uc-card__hub-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #71717A;
+  letter-spacing: 0.06em;
+}
+.uc-card__hub-name {
+  font-size: 14px;
+  color: #18181B;
+  font-weight: 500;
+}
+
+/* 5. Summary: 4 lines instead of 3, slightly bigger. */
+.uc-card__summary {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #52525B;
+  -webkit-line-clamp: 4;
+}
+
+/* 6. Badges: a bit larger + more padding so they're readable on retina. */
+.uc-card--preview .uc-badge {
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+
+/* 7. Footer: remove dashed border; let whitespace + CTA carry the separation. */
+.uc-card--preview .uc-card__footer {
+  border-top: none;
+  padding-top: 6px;
+  margin-top: 4px;
+  font-size: 12.5px;
+}
+
+/* 8. Verified state: keep border + badge; remove the dot on title so we
+   don't have three competing "look here" signals at once. */
+.uc-card[data-verified="true"] .uc-card__title::after {
+  display: none;
+}
+
+/* 9. Hero: slightly tighter bottom margin now that lede is one paragraph. */
+.uc-hero { margin-bottom: 36px; }
+.uc-hero__lede { margin-bottom: 10px; }
+
+/* 10. Filter: make the button group feel more like a control cluster. */
+.uc-filter {
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 999px;
+  gap: 4px;
+  width: fit-content;
+  margin-bottom: 24px;
+}
+.uc-filter__btn {
+  border-color: transparent;
+  background: transparent;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.uc-filter__btn:hover {
+  border-color: transparent;
+  background: rgba(0, 0, 0, 0.05);
+}
+.uc-filter__btn--active {
+  background: #ffffff;
+  color: #18181B;
+  border-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 11. Stats card: slightly softer background. */
+.uc-hero__stats {
+  background: rgba(250, 250, 249, 0.4);
+  padding: 18px 22px;
+}
