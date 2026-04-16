@@ -4,8 +4,29 @@
 
 const API_BASE = '/api';
 
+// Pull current language (set by i18n.js). Defaults to 'zh' so existing
+// behavior is preserved when i18n.js hasn't loaded.
+function __apiLang() {
+  try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; }
+}
+
 async function apiFetch(path, options = {}) {
-  const url = `${API_BASE}${path}`;
+  const lang = __apiLang();
+  let url = `${API_BASE}${path}`;
+  // If caller provided a body, inject lang into it (body-field pattern).
+  if (options.body && typeof options.body === 'string') {
+    try {
+      const parsed = JSON.parse(options.body);
+      if (typeof parsed === 'object' && parsed !== null && parsed.lang === undefined) {
+        parsed.lang = lang;
+        options.body = JSON.stringify(parsed);
+      }
+    } catch (e) { /* body not JSON, skip */ }
+  } else if (!options.body) {
+    // GET/HEAD requests: append as query param (unless already set).
+    const sep = url.includes('?') ? '&' : '?';
+    if (!/[?&]lang=/.test(url)) url = `${url}${sep}lang=${encodeURIComponent(lang)}`;
+  }
   const resp = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,

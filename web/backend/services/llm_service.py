@@ -12,6 +12,24 @@ logger = logging.getLogger("structural.llm")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+
+***REMOVED*** Language clause appended to every system prompt so the LLM produces the
+***REMOVED*** user-requested output language. Default lang="zh" preserves legacy behavior.
+_LANG_CLAUSE = {
+    "zh": "请全程用中文输出。",
+    "en": "Respond entirely in English. Use academic, precise tone; do not mix Chinese into the output.",
+}
+
+
+def _lang_clause(lang: Optional[str]) -> str:
+    """Return the recency-biased language instruction string."""
+    return _LANG_CLAUSE.get((lang or "zh").lower(), _LANG_CLAUSE["zh"])
+
+
+def _with_lang(system_prompt: str, lang: Optional[str]) -> str:
+    """Append the language clause to a system prompt with high recency bias."""
+    return f"{system_prompt}\n\n{_lang_clause(lang)}"
+
 ***REMOVED*** Shared module-level client so we reuse the underlying TCP / TLS connection
 ***REMOVED*** pool across all LLM calls. Creating a fresh AsyncClient per call adds
 ***REMOVED*** ~100-300ms of TLS handshake overhead, which adds up for a multi-call flow.
@@ -38,12 +56,12 @@ class LLMService:
         if not self.api_key:
             logger.warning("OPENROUTER_API_KEY not set; LLM calls will fail.")
 
-    async def rewrite_query(self, query: str) -> Optional[str]:
+    async def rewrite_query(self, query: str, lang: str = "zh") -> Optional[str]:
         """Backward-compat wrapper — just the rewritten string."""
-        result = await self.assess_and_rewrite(query)
+        result = await self.assess_and_rewrite(query, lang=lang)
         return result.get("rewritten") or query
 
-    async def assess_and_rewrite(self, query: str) -> Dict:
+    async def assess_and_rewrite(self, query: str, lang: str = "zh") -> Dict:
         """
         Combined query rewrite + worthiness assessment in a single LLM call.
         Returns a dict:
@@ -69,7 +87,13 @@ class LLMService:
         if not self.api_key or len(query.strip()) < 2:
             return fallback
 
-        prompt = f"""你是 Structural（一个跨领域结构同构搜索引擎）的输入预检员。用户输入了一个问题，请同时做两件事：
+        ***REMOVED*** Prepend language clause to the user prompt since there is no
+        ***REMOVED*** separate system message for this call. Put it near the final output
+        ***REMOVED*** instruction as well to maximize recency bias.
+        _lang_prefix = _lang_clause(lang)
+        prompt = f"""{_lang_prefix}
+
+你是 Structural（一个跨领域结构同构搜索引擎）的输入预检员。用户输入了一个问题，请同时做两件事：
 
 1. 评估这个输入对 Structural 的适配度（worth_score 1-5）
 2. 把它改写成客观的现象描述（60-120 字）以便检索
@@ -101,7 +125,10 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
   "category": "<必须是以下之一：现象描述 / 学术方向 / 元问题 / 命令式 / 闲聊 / 太抽象 / 个人事务 / 纯事实>",
   "coaching": "<仅当 worth_score < 3 时填写：一句话告诉用户为什么不适合，30 字以内。否则为 null>",
   "rewrite_suggestion": "<仅当 worth_score < 3 时填写：给用户一个具体的、Structural 适合分析的改写示例，要保留用户的原始意图，30-60 字。否则为 null>"
-}}"""
+}}
+
+{_lang_prefix}
+注意：`rewritten` / `coaching` / `rewrite_suggestion` 三个字段里的文字必须用上面要求的语言输出。`category` 字段保持原列表里的中文枚举值不变，仅用于前端识别。"""
 
         try:
             client = _get_http_client()
@@ -165,6 +192,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         a: Dict,
         b: Dict,
         similarity: float,
+        lang: str = "zh",
     ):
         """
         Stream mapping generation. Yields SSE-formatted chunks as the LLM generates text.
@@ -174,7 +202,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             yield {"type": "done", "mapping": self._fallback_mapping(a, b, similarity)}
             return
 
-        prompt = self._build_prompt(a, b, similarity)
+        prompt = self._build_prompt(a, b, similarity, lang=lang)
 
         try:
             client = _get_http_client()
@@ -188,7 +216,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": _with_lang(SYSTEM_PROMPT, lang)},
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.3,
@@ -234,6 +262,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         a: Dict,
         b: Dict,
         similarity: float,
+        lang: str = "zh",
     ) -> Optional[Dict]:
         """
         给定两个现象 a, b，生成结构映射分析。
@@ -256,7 +285,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         if not self.api_key:
             return self._fallback_mapping(a, b, similarity)
 
-        prompt = self._build_prompt(a, b, similarity)
+        prompt = self._build_prompt(a, b, similarity, lang=lang)
 
         try:
             client = _get_http_client()
@@ -269,7 +298,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": _with_lang(SYSTEM_PROMPT, lang)},
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.3,
@@ -287,7 +316,18 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             logger.error(f"LLM call failed: {e}")
             return self._fallback_mapping(a, b, similarity)
 
-    def _build_prompt(self, a: Dict, b: Dict, similarity: float) -> str:
+    def _build_prompt(self, a: Dict, b: Dict, similarity: float, lang: str = "zh") -> str:
+        ***REMOVED*** Language-dependent content-language instruction. Structural field
+        ***REMOVED*** names stay in English (JSON schema), only the *text values* change.
+        if (lang or "zh").lower() == "en":
+            lang_rule = (
+                "- All string values in the JSON must be written in English. "
+                "Use academic, precise tone; do not mix Chinese into the output."
+            )
+            name_hint = 'English, e.g. "exponential decay", "network effects", "phase transition"'
+        else:
+            lang_rule = "- 所有内容用中文"
+            name_hint = '中文，如"指数衰减"、"网络效应"、"相变"'
         return f"""分析以下两个来自不同领域的现象，它们被模型识别为结构同构（相似度 {similarity:.2f}）：
 
 现象 A：{a.get('name', '')}
@@ -300,9 +340,9 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 
 请输出一个 JSON 对象，包含以下字段：
 
-1. "structure_name": 共享的数学/结构类型名称（中文，如"指数衰减"、"网络效应"、"相变"）
+1. "structure_name": 共享的数学/结构类型名称（{name_hint}）
 2. "formula": 该结构的核心数学公式（LaTeX 格式，不含 $ 符号）
-3. "core_insight": 一句话说明为什么这两个现象本质上是同一件事（不超过 40 字）
+3. "core_insight": 一句话说明为什么这两个现象本质上是同一件事（不超过 40 字 / max 40 words for English）
 4. "parameter_mapping": 数组，3-5 个参数对应关系，每个对象包含：
    - "a_term": A 领域中的概念名（如"原子核数量"）
    - "a_symbol": A 领域中的数学符号（如"N"）
@@ -316,7 +356,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 6. "why_important": 这个映射对 B 领域的实际价值（一段话，2-3 句）
 
 要求：
-- 所有内容用中文
+{lang_rule}
 - 参数映射必须在数学上真实成立
 - 行动建议必须具体、可执行，不要说空话
 - 不要客套话，不要"综上所述"之类
@@ -349,6 +389,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         query: str,
         rewritten_query: Optional[str],
         top_results: list,
+        lang: str = "zh",
     ) -> Optional[Dict]:
         """
         Given a user query and the top search results (KB phenomena),
@@ -417,11 +458,11 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 }}
 
 重要要求：
-- 中文
+- 自然语言文字遵循下文指定的输出语言（见文末）；`angle_label` 枚举值必须保持中文不变
 - `primary_recommendation` 必须有实质理由，不能泛泛地说"相似度高"
 - `primary_recommendation.what_youll_learn` 必须具体可执行。比如"一套预测团队效率拐点的 3 参数模型"，不要"一些启发"
 - `alternative_angles` 必须和 primary 有**不同的角度**，不是同样的东西
-- `alternative_angles[*].angle_label` **必须严格等于**这四个字符串之一（不得改写、不得添加后缀）：
+- `alternative_angles[*].angle_label` **必须严格等于**这四个字符串之一（中文原文，不得翻译、不得改写、不得添加后缀）：
     1. 对立面 —— 反面/counter-case，能推翻或挑战 primary 结论的情况
     2. 时间尺度差异 —— 同一结构在更长/更短时间尺度上表现出不同动态
     3. 微观机制 —— zoom-in 到底层机制，揭示 primary 没讲清楚的微观因果
@@ -430,7 +471,10 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 - 每个 relevance_snippet 不超过 50 字
 - 不要 markdown 代码块
 - 不说"综上所述"、"希望能帮到你"这种废话
-- JSON 字符串内部不要用 ASCII 双引号 " ，需要时用中文引号「」或单引号 '"""
+- JSON 字符串内部不要用 ASCII 双引号 " ，需要时用中文引号「」或单引号 '
+
+输出语言要求：
+{_lang_clause(lang)}"""
 
         try:
             client = _get_http_client()
@@ -443,7 +487,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                 json={
                     "model": "anthropic/claude-haiku-4.5",
                     "messages": [
-                        {"role": "system", "content": "你是跨学科研究助手。你的任务是给用户明确的引导，告诉他先看哪个、为什么、能得到什么。"},
+                        {"role": "system", "content": _with_lang("你是跨学科研究助手。你的任务是给用户明确的引导，告诉他先看哪个、为什么、能得到什么。", lang)},
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.4,
@@ -472,6 +516,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         b: Dict,
         similarity: float,
         user_query: Optional[str] = None,
+        lang: str = "zh",
     ):
         """
         Stream a full deep-analysis research report.
@@ -484,7 +529,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity)}
             return
 
-        prompt = build_deep_analysis_prompt(a, b, similarity, user_query)
+        prompt = build_deep_analysis_prompt(a, b, similarity, user_query, lang=lang)
 
         try:
             client = _get_http_client()
@@ -498,7 +543,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": DEEP_ANALYSIS_SYSTEM_PROMPT},
+                        {"role": "system", "content": _with_lang(DEEP_ANALYSIS_SYSTEM_PROMPT, lang)},
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.35,
@@ -940,7 +985,7 @@ DEEP_ANALYSIS_SYSTEM_PROMPT = """你是一位资深的跨学科研究助手，�
 你的输出必须是一个严格的 JSON 对象，不要包裹 markdown 代码块。"""
 
 
-def build_deep_analysis_prompt(a: Dict, b: Dict, similarity: float, user_query: Optional[str] = None) -> str:
+def build_deep_analysis_prompt(a: Dict, b: Dict, similarity: float, user_query: Optional[str] = None, lang: str = "zh") -> str:
     """
     Build the prompt for the deep analysis (8-section research report).
 
@@ -1104,7 +1149,7 @@ TARGET（目标 — 用户想应用的地方）:
 }}
 
 写作要求（必须全部满足）：
-- 所有内容用中文
+- 语言：{_lang_clause(lang)}（schema 中字段名与枚举保持原样，仅翻译文字值）
 - `shared_structure.intuition` 必须让一个聪明的非技术用户秒懂
 - `your_problem_breakdown` 要让用户感觉"你真的理解了我的问题"
 - `target_domain_intro.corresponding_phenomenon.plain_description` 要有叙事感，不要教科书式
