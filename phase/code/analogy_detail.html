@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>深度类比 — Phase Detector</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(250, 250, 249, 0.88);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 40px 0 100px; }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .breadcrumb a { color: var(--text-muted); }
+
+    .detail-head {
+      margin-bottom: 36px;
+    }
+    .detail-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    .detail-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.5vw, 36px);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .detail-mapping {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      background: var(--accent-dim);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .detail-mapping__tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .detail-mapping__company {
+      font-weight: 500;
+      color: var(--text);
+    }
+    .detail-mapping__arrow {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .report {
+      padding: 40px 48px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-secondary);
+    }
+    .report h1, .report h2, .report h3 {
+      font-family: var(--serif);
+      color: var(--text);
+      line-height: 1.3;
+      letter-spacing: -0.005em;
+    }
+    .report h1 { font-size: 28px; margin: 0 0 20px; font-weight: 600; }
+    .report h2 {
+      font-size: 22px;
+      margin: 36px 0 16px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .report h2:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+    .report h3 { font-size: 17px; margin: 24px 0 12px; font-weight: 600; color: var(--text); }
+    .report p { margin: 12px 0; line-height: 1.85; }
+    .report ul, .report ol { margin: 12px 0 12px 24px; }
+    .report li { margin: 6px 0; line-height: 1.75; }
+    .report strong { color: var(--text); font-weight: 600; }
+    .report code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--bg-card);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--text);
+    }
+    .report blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 10px 18px;
+      margin: 16px 0;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border-radius: 0 6px 6px 0;
+    }
+    .report table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .report th, .report td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .report th {
+      background: var(--bg-card);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .report hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+    .report .katex { color: var(--text); font-size: 1.05em; }
+    .report .katex-display {
+      margin: 20px 0;
+      padding: 14px 16px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    .report .katex-display > .katex { font-size: 1.1em; }
+    @media (max-width: 520px) {
+      .report { padding: 24px 22px; }
+      .report h1 { font-size: 23px; }
+      .report h2 { font-size: 19px; }
+      .report .katex { font-size: 0.96em; }
+      .report .katex-display > .katex { font-size: 1em; }
+    }
+
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 80px 20px;
+      color: var(--text-muted);
+    }
+    .loading-dots {
+      display: inline-flex;
+      gap: 6px;
+    }
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      animation: dot-pulse 1.4s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.9); }
+      30% { opacity: 1; transform: scale(1.15); }
+    }
+    .loader__text { font-size: 14px; text-align: center; }
+    .loader__elapsed { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+
+    .error-box {
+      padding: 40px 32px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 12px;
+      color: var(--red);
+      text-align: center;
+    }
+
+    .back-cta {
+      margin-top: 32px;
+      text-align: center;
+    }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-back:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase/analogy">类比引擎</a>
+        <a href="/phase/redteam">Thesis 红队</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="breadcrumb" id="breadcrumb">
+        <a href="/phase/analogy">类比引擎</a> · 加载中…
+      </div>
+      <div id="content"></div>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · Structural Analogy Engine</div>
+      <div class="footer-links">
+        <a href="/phase">Phase 首页</a>
+        <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    // Read context from sessionStorage (set by list page)
+    let context = null;
+    try {
+      const raw = sessionStorage.getItem('phase_analogy_detail_ctx');
+      if (raw) context = JSON.parse(raw);
+    } catch (_) {}
+
+    const ticker = new URLSearchParams(window.location.search).get('t') || (context && context.ticker) || '';
+
+    async function init() {
+      const content = document.getElementById('content');
+      const bc = document.getElementById('breadcrumb');
+
+      if (!context || !context.ticker || !context.target) {
+        content.innerHTML = `
+          <div class="error-box">
+            <p>没有类比上下文。请回到<a href="/phase/analogy${ticker ? '?t=' + encodeURIComponent(ticker) : ''}">类比引擎列表页</a>，从卡片点「深度展开」。</p>
+          </div>
+        `;
+        bc.innerHTML = `<a href="/phase/analogy">类比引擎</a> · 缺少上下文`;
+        return;
+      }
+
+      const ctk = context.ticker;
+      const cname = (context.struct && context.struct.name) || ctk;
+      const tgtCompany = context.target.company || '?';
+      const tgtPeriod = context.target.period || '?';
+
+      document.title = `${cname} × ${tgtCompany} ${tgtPeriod} — Phase Detector`;
+      bc.innerHTML = `<a href="/phase/analogy?t=${encodeURIComponent(ctk)}">类比引擎 · ${escapeHtml(ctk)}</a> · <span>深度分析</span>`;
+
+      // Header
+      content.innerHTML = `
+        <div class="detail-head">
+          <div class="detail-eyebrow">STRUCTURAL ANALOGY · DEEP DIVE</div>
+          <h1 class="detail-title">${escapeHtml(cname)} <span style="color: var(--text-muted); font-weight: 400;">像</span> ${escapeHtml(tgtCompany)}</h1>
+          <div class="detail-mapping">
+            <span class="detail-mapping__tag">当前</span>
+            <span class="detail-mapping__company">${escapeHtml(cname)} <small style="color: var(--text-muted); font-family: var(--mono);">(${escapeHtml(ctk)})</small></span>
+            <span class="detail-mapping__arrow">≅</span>
+            <span class="detail-mapping__tag">历史</span>
+            <span class="detail-mapping__company">${escapeHtml(tgtCompany)} · ${escapeHtml(tgtPeriod)}</span>
+          </div>
+        </div>
+        <div id="report-slot"></div>
+      `;
+
+      const slot = document.getElementById('report-slot');
+      const startTs = Date.now();
+      slot.innerHTML = `
+        <div class="loader">
+          <span class="loading-dots"><span></span><span></span><span></span></span>
+          <div class="loader__text">Sonnet 4.5 正在深挖这段历史（预计 40-90 秒）…</div>
+          <span class="loader__elapsed" id="loader-elapsed">0s</span>
+        </div>
+      `;
+      const timerId = setInterval(() => {
+        const el = document.getElementById('loader-elapsed');
+        if (el) el.textContent = Math.round((Date.now() - startTs) / 1000) + 's';
+      }, 500);
+
+      try {
+        const resp = await fetch('/phase/api/analogy-detail', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            ticker: ctk,
+            struct: context.struct,
+            target: context.target,
+          }),
+        });
+        clearInterval(timerId);
+        const data = await resp.json();
+        if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+
+        const md = data.report || '(空)';
+        // Use marked.js for better markdown parsing
+        const html = window.marked ? window.marked.parse(md) : escapeHtml(md).replace(/\n/g, '<br>');
+        slot.innerHTML = `
+          <article class="report">${html}</article>
+          <div class="back-cta">
+            <a class="btn-back" href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 回到 ${escapeHtml(ctk)} 的 3 个类比</a>
+          </div>
+          ${data._model ? `<div style="text-align: right; margin-top: 16px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);">由 ${escapeHtml(data._model)} 生成 · ${md.length} 字符</div>` : ''}
+        `;
+
+        // KaTeX render
+        if (window.renderMathInElement) {
+          renderMathInElement(slot, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\[', right: '\\]', display: true},
+              {left: '\\(', right: '\\)', display: false},
+            ],
+            throwOnError: false,
+          });
+        }
+      } catch (err) {
+        clearInterval(timerId);
+        slot.innerHTML = `
+          <div class="error-box">
+            <p><strong>生成失败</strong>：${escapeHtml(err.message)}</p>
+            <p style="margin-top: 12px;"><a href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 返回类比列表</a></p>
+          </div>
+        `;
+      }
+    }
+
+    init();
+  </script>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
+</body>
+</html>
