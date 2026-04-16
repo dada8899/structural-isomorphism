@@ -39,3 +39,11 @@ venv/
 site/
 marketing/
 v4/validation/**/.env
+
+# Large regeneratable data (exceed GitHub 100 MB limit)
+# Authoritative copies live on HuggingFace / Zenodo, not in git.
+# Regeneration: scripts/v2_pipeline_expanded.py (~1h runtime)
+results/v2-discoveries-expanded.jsonl
+results/v2-discoveries-expanded-raw.jsonl
+v4/validation/soc-earthquake/catalog.jsonl
+*.jsonl.bak
