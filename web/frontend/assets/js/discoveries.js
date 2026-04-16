@@ -1,4 +1,20 @@
 // --- i18n helpers ---
+function statusLabel(cls, fallback) {
+  // Map statusInfo cls → i18n key at render time (not table load time).
+  var map = {
+    'unknown':     'page.discoveries.status_unexplored',
+    'partial':     'page.discoveries.status_partial',
+    'established': 'page.discoveries.status_established',
+  };
+  var key = map[cls];
+  return key ? T(key, fallback || '') : (fallback || '');
+}
+
+function T(key, fallback) {
+  try { if (window.i18n && typeof window.i18n.t === 'function') { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {}
+  return fallback;
+}
+
 function currentLang() {
   try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; }
 }
@@ -30,13 +46,13 @@ let currentTier = 'a'; // 'a' = A-grade, 't2' = tier2 candidate pool
 // Chinese strings, V3 uses English. We unify here.
 const STATUS_MAP = {
   // English (V3)
-  'unexplored':    { cls: 'unknown', zh: '前所未有' },
+  'unexplored':    { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
   'partial':       { cls: 'partial', zh: '部分探索' },
   'established':   { cls: 'known',   zh: '已有文献' },
   // Chinese (V2 legacy)
-  '未有先例':      { cls: 'unknown', zh: '前所未有' },
-  '未发表':        { cls: 'unknown', zh: '前所未有' },
-  '未探索':        { cls: 'unknown', zh: '前所未有' },
+  '未有先例':      { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
+  '未发表':        { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
+  '未探索':        { cls: 'unknown', zh: T('page.discoveries.status_unexplored', '前所未有') },
   '微弱探索':      { cls: 'partial', zh: '部分探索' },
   '部分探索':      { cls: 'partial', zh: '部分探索' },
   '部分讨论':      { cls: 'partial', zh: '部分探索' },
@@ -70,9 +86,9 @@ function renderDimScores(d) {
   const dims = [
     { key: 'novelty',     label: '创新性' },
     { key: 'rigor',       label: '严谨性' },
-    { key: 'feasibility', label: '可行性' },
+    { key: 'feasibility', label: T('page.discoveries.dim_feasibility', '可行性') },
     { key: 'impact',      label: '影响力' },
-    { key: 'writability', label: '可写性' },
+    { key: 'writability', label: T('page.discoveries.dim_writability', '可写性') },
   ];
   const rows = dims
     .map(dim => ({ ...dim, score: source[dim.key] }))
@@ -80,7 +96,7 @@ function renderDimScores(d) {
   if (rows.length === 0) return '';
   return `
     <div class="disc-item__detail-block disc-item__dims" style="grid-column: 1 / -1">
-      <h4>五维评分</h4>
+      <h4>${T("page.discoveries.section_dim_scores", "五维评分")}</h4>
       <div class="disc-dims">
         ${rows.map(r => `
           <div class="disc-dim">
@@ -108,7 +124,7 @@ function renderStats(stats, count) {
   statsEl.innerHTML = `
     <div class="disc-hero__stat">
       <div class="disc-hero__stat-num">${count}</div>
-      <div class="disc-hero__stat-label">A 级发现</div>
+      <div class="disc-hero__stat-label">${T("page.discoveries.stat_a_grade", "A 级发现")}</div>
     </div>
     <div class="disc-hero__stat">
       <div class="disc-hero__stat-num">${topTier}</div>
@@ -116,7 +132,7 @@ function renderStats(stats, count) {
     </div>
     <div class="disc-hero__stat">
       <div class="disc-hero__stat-num">${unknownCount}</div>
-      <div class="disc-hero__stat-label">文献未探索</div>
+      <div class="disc-hero__stat-label">${T("page.discoveries.stat_lit_unexplored", "文献未探索")}</div>
     </div>
   `;
 }
@@ -136,40 +152,40 @@ function renderFilters(stats, total) {
   filterEl.innerHTML = `
     <div class="disc-tier-tabs">
       <button class="disc-tier-tab ${currentTier === 'a' ? 'active' : ''}" data-tier="a">
-        A 级精选 <span class="disc-tier-tab__count">${total}</span>
+        ${T("page.discoveries.tier_curated", "A 级精选")} <span class="disc-tier-tab__count">${total}</span>
       </button>
       <button class="disc-tier-tab ${currentTier === 't2' ? 'active' : ''}" data-tier="t2">
-        候选池 <span class="disc-tier-tab__count">${tier2Count}</span>
+        ${T("page.discoveries.tier_tier2", "候选池")} <span class="disc-tier-tab__count">${tier2Count}</span>
       </button>
     </div>
     ${currentTier === 'a' ? `
       <div class="disc-filter-row">
-        <span class="disc-filter__label">文献状态</span>
+        <span class="disc-filter__label">${T("page.discoveries.filter_lit_status_label", "文献状态")}</span>
         <button class="disc-filter__btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">
-          全部 <span class="disc-filter__count">${total}</span>
+          ${T("page.discoveries.filter_all_chip", "全部")} <span class="disc-filter__count">${total}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'unknown' ? 'active' : ''}" data-filter="unknown">
-          前所未有 <span class="disc-filter__count">${unknownCount}</span>
+          ${T("page.discoveries.status_unexplored", "前所未有")} <span class="disc-filter__count">${unknownCount}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'partial' ? 'active' : ''}" data-filter="partial">
-          部分探索 <span class="disc-filter__count">${partialCount}</span>
+          ${T("page.discoveries.filter_partial_chip", "部分探索")} <span class="disc-filter__count">${partialCount}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'known' ? 'active' : ''}" data-filter="known">
-          已有文献 <span class="disc-filter__count">${knownCount}</span>
+          ${T("page.discoveries.filter_established_chip", "已有文献")} <span class="disc-filter__count">${knownCount}</span>
         </button>
       </div>
       <div class="disc-filter-row">
-        <span class="disc-filter__label">检索管道</span>
+        <span class="disc-filter__label">${T("page.discoveries.filter_pipeline_label", "检索管道")}</span>
         <button class="disc-filter__btn ${currentFilter === 'pipeline-v2' ? 'active' : ''}" data-filter="pipeline-v2">
-          V2 严格 <span class="disc-filter__count">${v2Count}</span>
+          ${T("page.discoveries.pipeline_v2", "V2 严格")} <span class="disc-filter__count">${v2Count}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'pipeline-v3' ? 'active' : ''}" data-filter="pipeline-v3">
-          V3 StructTuple <span class="disc-filter__count">${v3Count}</span>
+          ${T("page.discoveries.pipeline_v3", "V3 StructTuple")} <span class="disc-filter__count">${v3Count}</span>
         </button>
       </div>
     ` : `
       <div class="disc-filter-row">
-        <p class="disc-tier2-hint">V2 五分顶级池里未晋级 A 的 <strong>${tier2Count}</strong> 条跨域对。只有基础同构判断和相似度，没有完整的五维深度分析，但质量仍值得探索。</p>
+        <p class="disc-tier2-hint">${T("page.discoveries.tier2_hint", "V2 五分顶级池里未晋级 A 的")} (<strong>${tier2Count}</strong>).</p>
       </div>
     `}
   `;
@@ -215,7 +231,7 @@ function renderList() {
   const filtered = applyFilter(allDiscoveries);
 
   if (filtered.length === 0) {
-    listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">没有匹配的发现</p>`;
+    listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">${T("page.discoveries.empty_filter", "没有匹配的发现")}</p>`;
     return;
   }
 
@@ -250,14 +266,14 @@ function renderList() {
             <p class="disc-item__verdict">${escapeHtml(verdict)}</p>
             <div class="disc-item__meta">
               ${pipelineBadge}
-              ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">等级 ${escapeHtml(d.rating)}</span>` : ''}
+              ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">${T("page.discoveries.meta_rating", "等级")} ${escapeHtml(d.rating)}</span>` : ''}
               <span class="disc-item__meta-tag disc-item__meta-tag--${st.cls}">
-                ${escapeHtml(st.zh)}
+                ${escapeHtml(statusLabel(st.cls, st.zh))}
               </span>
-              ${conf !== null ? `<span class="disc-item__meta-tag">同构置信度 ${conf}%</span>` : ''}
-              ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">同构深度 ${d.isomorphism_depth}/5</span>` : ''}
+              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "同构置信度")} ${conf}%</span>` : ''}
+              ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_depth", "同构深度")} ${d.isomorphism_depth}/5</span>` : ''}
               ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
-              ${d.solo_feasible ? '<span class="disc-item__meta-tag">单人可做</span>' : ''}
+              ${d.solo_feasible ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_solo_feasible", "单人可做")}</span>` : ''}
             </div>
           </div>
           <div class="disc-item__aside">
@@ -266,7 +282,7 @@ function renderList() {
               <span class="disc-item__score-unit">/10</span>
             </div>
             <div class="disc-item__expand">
-              展开
+              ${T("page.discoveries.expand", "展开")}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
@@ -277,13 +293,13 @@ function renderList() {
           <div class="disc-item__detail-grid">
             ${d.shared_equation ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>共享方程骨架 (V3 StructTuple)</h4>
+                <h4>${T("page.discoveries.section_shared_equation", "共享方程骨架 (V3 StructTuple)")}</h4>
                 <pre class="disc-item__equations">${escapeHtml(d.shared_equation)}</pre>
-                ${d.variable_mapping ? `<p class="disc-item__var-map"><strong>变量映射</strong>：${escapeHtml(d.variable_mapping)}</p>` : ''}
+                ${d.variable_mapping ? `<p class="disc-item__var-map"><strong>${T("page.discoveries.label_var_mapping", "变量映射")}</strong>：${escapeHtml(d.variable_mapping)}</p>` : ''}
               </div>
             ` : (Array.isArray(d.equations) && d.equations.length ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>关键方程</h4>
+                <h4>${T("page.discoveries.section_key_equations", "关键方程")}</h4>
                 <pre class="disc-item__equations">${d.equations.map(e => escapeHtml(String(e))).join('\n')}</pre>
               </div>
             ` : '')}
@@ -292,49 +308,49 @@ function renderList() {
 
             ${L(d, "paper_title") || d.target_venue ? `
               <div class="disc-item__detail-block disc-item__paper" style="grid-column: 1 / -1">
-                <h4>论文化路径</h4>
+                <h4>${T("page.discoveries.section_paper_path", "论文化路径")}</h4>
                 ${L(d, "paper_title") ? `<div class="disc-item__paper-title">${escapeHtml(L(d, "paper_title"))}</div>` : ''}
-                ${d.target_venue ? `<div class="disc-item__paper-venue">建议投稿：<strong>${escapeHtml(d.target_venue)}</strong></div>` : ''}
+                ${d.target_venue ? `<div class="disc-item__paper-venue">${T("page.discoveries.label_submit_to", "建议投稿")}：<strong>${escapeHtml(d.target_venue)}</strong></div>` : ''}
               </div>
             ` : ''}
 
             ${L(d, "blocking_mechanisms") ? `
               <div class="disc-item__detail-block">
-                <h4>阻塞机制</h4>
+                <h4>${T("page.discoveries.section_blocking", "阻塞机制")}</h4>
                 ${renderListField(L(d, "blocking_mechanisms"))}
               </div>
             ` : ''}
             ${L(d, "risk") ? `
               <div class="disc-item__detail-block">
-                <h4>潜在风险</h4>
+                <h4>${T("page.discoveries.section_risks", "潜在风险")}</h4>
                 ${renderListField(L(d, "risk"))}
               </div>
             ` : ''}
             ${L(d, "execution_plan") ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>执行方案</h4>
+                <h4>${T("page.discoveries.section_execution_plan", "执行方案")}</h4>
                 ${renderListField(L(d, "execution_plan"))}
               </div>
             ` : ''}
             ${L(d, "impact_scope") || L(d, "practical_value") ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>实用价值</h4>
+                <h4>${T("page.discoveries.section_practical_value", "实用价值")}</h4>
                 <p>${L(d, "impact_scope") ? `<strong>${escapeHtml(L(d, "impact_scope"))}</strong> · ` : ''}${escapeHtml(L(d, "practical_value") || '')}</p>
               </div>
             ` : ''}
             ${L(d, "full_analysis") ? `
               <details class="disc-item__full-analysis" style="grid-column: 1 / -1">
-                <summary>完整深度分析</summary>
+                <summary>${T("page.discoveries.section_full_analysis", "完整深度分析")}</summary>
                 <div class="disc-item__full-text">${escapeHtml(L(d, "full_analysis"))}</div>
               </details>
             ` : ''}
             ${d.a_id && d.b_id ? `
               <div class="disc-item__cta">
                 <a class="disc-item__cta-btn" href="/analyze?a_id=${encodeURIComponent(d.a_id)}&id=${encodeURIComponent(d.b_id)}">
-                  <span class="disc-item__cta-btn-main">生成深度分析报告</span>
+                  <span class="disc-item__cta-btn-main">${T("page.discoveries.cta_main", "生成深度分析报告")}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                 </a>
-                <span class="disc-item__cta-hint">8 段跨学科迁移研究 · 流式生成 60-90 秒</span>
+                <span class="disc-item__cta-hint">${T("page.discoveries.cta_hint", "8 段跨学科迁移研究 · 流式生成 60-90 秒")}</span>
               </div>
             ` : ''}
           </div>
@@ -360,7 +376,7 @@ function renderList() {
 // === Tier 2 renderer — simpler cards, no deep analysis ===
 function renderTier2List(listEl) {
   if (!allTier2 || allTier2.length === 0) {
-    listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">候选池数据未加载</p>`;
+    listEl.innerHTML = `<p style="text-align:center; color: var(--text-tertiary); padding: var(--space-7) 0">${T("page.discoveries.tier2_unloaded", "候选池数据未加载")}</p>`;
     return;
   }
 
@@ -402,12 +418,13 @@ async function loadDiscoveries() {
     const data = await (await fetch('/api/discoveries')).json();
     allDiscoveries = data.discoveries || [];
     allTier2 = data.tier2 || [];
+    window.__discStats = data.stats || {};
     renderStats(data.stats || {}, data.count);
     renderFilters(data.stats || {}, data.count);
     renderList();
   } catch (err) {
     console.error('Failed to load discoveries:', err);
-    $('#disc-list').innerHTML = `<p style="text-align:center; color: var(--danger); padding: var(--space-7) 0">加载失败：${escapeHtml(err.message)}</p>`;
+    $('#disc-list').innerHTML = `<p style="text-align:center; color: var(--danger); padding: var(--space-7) 0">${T("page.discoveries.load_failed", "加载失败")}：${escapeHtml(err.message)}</p>`;
   }
 }
 
@@ -420,7 +437,15 @@ document.addEventListener('DOMContentLoaded', () => {
 try {
   if (window.i18n && typeof window.i18n.onChange === 'function') {
     window.i18n.onChange(function () {
-      try { if (typeof render === 'function') render(); } catch (e) {}
+      try {
+        if (typeof renderStats === 'function' && window.__discStats) {
+          renderStats(window.__discStats, (allDiscoveries || []).length);
+        }
+        if (typeof renderFilters === 'function' && window.__discStats) {
+          renderFilters(window.__discStats, (allDiscoveries || []).length);
+        }
+        if (typeof renderList === 'function') renderList();
+      } catch (e) { console.warn('[discoveries rerender]', e); }
     });
   }
 } catch (e) {}

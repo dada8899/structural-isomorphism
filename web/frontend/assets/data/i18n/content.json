@@ -11,7 +11,6 @@
     "zh": "Structural 是一个跨领域思维引擎。它基于一个反直觉的观察：<strong>看似完全无关的现象，在数学结构层面往往是同一件事</strong>。放射性衰变和药物代谢、股价波动和热力学涨落、传染病传播和谣言扩散——它们在各自领域的语言下毫无关系，但背后是同一个方程。",
     "en": "Structural is a cross-domain thinking engine, built on a counterintuitive observation: <strong>phenomena that look entirely unrelated are often the same thing at the level of mathematical structure</strong>. Radioactive decay and drug metabolism, stock-price fluctuations and thermodynamic noise, epidemic spread and rumor diffusion — each is foreign to the others in its own disciplinary vocabulary, yet all obey the same underlying equation."
   },
-
   "page.about.goal.label": {
     "zh": "Goal",
     "en": "Goal"
@@ -44,7 +43,6 @@
     "zh": "Empirical validations<br/>（Layer 5 实证复现）",
     "en": "Empirical validations<br/>(Layer 5 empirical replication)"
   },
-
   "page.about.why.label": {
     "zh": "Why",
     "en": "Why"
@@ -61,7 +59,6 @@
     "zh": "Claude Shannon 借用热力学的\"熵\"奠定了信息论。Black 和 Scholes 把热传导方程搬到金融市场上得到了期权定价公式。模拟退火算法把冶金学的物理过程变成了组合优化的利器。这些跨领域的突破不是偶然——它们都是<strong>结构同构被发现的瞬间</strong>。Structural 想做的是把这种\"发现\"系统化。",
     "en": "Claude Shannon founded information theory by borrowing entropy from thermodynamics. Black and Scholes derived the option-pricing formula by transplanting the heat equation into financial markets. Simulated annealing turned a metallurgical process into a powerful tool for combinatorial optimization. These cross-domain breakthroughs are not accidents — each is <strong>a moment when a structural isomorphism was recognized</strong>. Structural exists to make that recognition systematic."
   },
-
   "page.about.how.label": {
     "zh": "How",
     "en": "How"
@@ -74,7 +71,6 @@
     "zh": "传统的搜索工具基于语义或关键词匹配——它找的是\"看起来像\"的东西。Structural 不一样。它的核心是让机器识别\"数学结构相似\"，而不是\"文字表面相似\"。为此我们建了<strong>三条并行的检索管道</strong>——它们从不同角度寻找同一件事，最后合并去重。",
     "en": "Conventional search tools rely on semantic or keyword matching — they surface things that <em>look</em> alike. Structural is different. Its core aim is to let a machine recognize <em>mathematical</em> similarity rather than surface-textual similarity. To that end we run <strong>three parallel retrieval pipelines</strong>, each approaching the same question from a different angle, with their outputs merged and deduplicated at the end."
   },
-
   "page.about.how.v1.title": {
     "zh": "V1 · 广义 embedding（covering recall）",
     "en": "V1 · General-purpose embedding (covering recall)"
@@ -87,7 +83,6 @@
     "zh": "<strong>路径</strong>：自然语言描述 → V1 embedding → cosine 相似度 → top-k。<br><strong>优势</strong>：召回广（在 4,443 KB 上找到 339,913 对高相似跨域配对）。<br><strong>缺点</strong>：精度一般，\"共享关键词\"和\"共享数学\"区分不够。<br><strong>角色</strong>：宽撒网——找潜在候选，不保证质量。",
     "en": "<strong>Path</strong>: natural-language description → V1 embedding → cosine similarity → top-k.<br><strong>Strengths</strong>: broad recall (339,913 high-similarity cross-domain pairs across the 4,443-item KB).<br><strong>Weaknesses</strong>: modest precision — the model does not cleanly separate \"shared keywords\" from \"shared mathematics\".<br><strong>Role</strong>: wide net — surfacing candidates without guaranteeing quality."
   },
-
   "page.about.how.v2.title": {
     "zh": "V2 · 严格 embedding（precision retrieval）",
     "en": "V2 · Strict embedding (precision retrieval)"
@@ -100,7 +95,6 @@
     "zh": "<strong>路径</strong>：自然语言 → V2 embedding → cosine → top-k。<br><strong>评估</strong>：Silhouette 0.55（比 V1 在扩展集上更好）、Retrieval@5 96%。<br><strong>角色</strong>：精度检索——同样是 embedding，但更能分辨浅层关键词相似。",
     "en": "<strong>Path</strong>: natural language → V2 embedding → cosine → top-k.<br><strong>Evaluation</strong>: Silhouette = 0.55 (better than V1 on the expanded set), Retrieval@5 = 96%.<br><strong>Role</strong>: precision retrieval — still embedding-based, but markedly better at discounting shallow lexical overlap."
   },
-
   "page.about.how.v3.title": {
     "zh": "V3 · StructTuple + LLM rerank（structural algebra）",
     "en": "V3 · StructTuple + LLM rerank (structural algebra)"
@@ -145,7 +139,6 @@
     "zh": "<strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → top 候选 + 共享方程。<br><strong>评估</strong>：在 1,000 候选上 LLM 5-score 密度 5.5%（V2 是 1.9%），深度分析 A 级命中率从 V2 的 ~20% 提升到 ~27%。<br><strong>角色</strong>：结构代数——每个发现都带方程，直接可以写进论文的方法论段落。",
     "en": "<strong>Path</strong>: natural language → LLM inference of <code>dynamics_family</code> → StructTuple field matching → LLM rerank → top candidates with a shared equation.<br><strong>Evaluation</strong>: on 1,000 candidates, the LLM-5 score density is 5.5% (vs. 1.9% for V2), and the A-grade hit rate in deep analysis rises from V2's ~20% to ~27%.<br><strong>Role</strong>: structural algebra — every discovery ships with an equation that can be dropped directly into the methods section of a paper."
   },
-
   "page.about.how.parallel.title": {
     "zh": "三代并行，零重叠",
     "en": "Three generations in parallel, with zero overlap"
@@ -154,7 +147,6 @@
     "zh": "最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到\"语义近邻\"、V2 看到\"精细语义\"、V3 看到\"数学同族\"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>（数据集 <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a>）。",
     "en": "The central empirical finding: V1's 24 tier-1 discoveries, V2's 19 A-grade discoveries, and V3's 20 A-grade discoveries exhibit <strong>zero pairwise overlap</strong>. Each pipeline evidently sees a different facet of structure — V1 picks up semantic neighbors, V2 picks up fine-grained semantics, and V3 picks up mathematical cognates. The union of the three yields <strong>63 independent top-tier cross-domain candidates</strong> (released as the <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a> dataset)."
   },
-
   "page.about.how.v4.title": {
     "zh": "V4 · 普适类发现引擎（universality class engine）",
     "en": "V4 · Universality-class discovery engine"
@@ -191,7 +183,6 @@
     "zh": "<strong>角色</strong>：组织器——把 V1-V3 的离散发现升级为\"结构家族\"，让一次验证能支撑多个领域的论文。浏览 23 个类：<a href=\"/classes\">/classes</a>。",
     "en": "<strong>Role</strong>: organizer — elevating V1–V3's discrete findings into structural families, so that a single validation effort can support papers in multiple domains. Browse all 23 classes at <a href=\"/classes\">/classes</a>."
   },
-
   "page.about.empirical.label": {
     "zh": "Empirical",
     "en": "Empirical"
@@ -232,7 +223,6 @@
     "zh": "<strong>意义</strong>：V4 不只是\"聚合 V1-V3\"——它把\"跨域同构\"从哲学命题推进到了<strong>\"可以用同一套代码在五个真实系统上复现\"</strong>的实证阶段。",
     "en": "<strong>Significance</strong>: V4 is more than an aggregation of V1–V3. It moves cross-domain isomorphism from a philosophical claim to an empirical one — <strong>something that can be reproduced by the same code on five real-world systems</strong>."
   },
-
   "page.about.scoring.label": {
     "zh": "Scoring",
     "en": "Scoring"
@@ -281,7 +271,6 @@
     "zh": "<strong>\"精选发现\"页面</strong>（<code>/discoveries</code>）的分数来源不同——那是<strong>每个候选经过深度分析后的综合得分</strong>（0-10），考虑 novelty / rigor / feasibility / impact / writability 五个维度加权，由 Opus 独立评估，不是实时检索的 cosine 距离。所以精选发现的分数和搜索结果的百分比<strong>不是同一个尺度</strong>，不要直接比较。",
     "en": "The scores on the <strong>Curated Discoveries page</strong> (<code>/discoveries</code>) come from a different source: they are <strong>composite post-analysis scores</strong> (0–10) weighting five dimensions — novelty, rigor, feasibility, impact, and writability — independently assessed by Opus, not real-time cosine distances. The curated-discovery scores and the search-result percentages therefore <strong>live on different scales</strong> and should not be compared directly."
   },
-
   "page.about.next.label": {
     "zh": "What's Next",
     "en": "What's Next"
@@ -310,7 +299,6 @@
     "zh": "<strong>Phase Detector 产品化</strong>——把 seed bank 和普适类嵌入一个实时\"结构相位检测\"工具（<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> 已 beta），让非学术用户也能用上这个引擎。",
     "en": "<strong>Productizing Phase Detector</strong> — embed the seed bank and universality classes into a real-time structural phase-detection tool (<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> is already in beta), bringing the engine to non-academic users."
   },
-
   "page.about.resources.label": {
     "zh": "Resources",
     "en": "Resources"
@@ -323,7 +311,6 @@
     "zh": "完整的方法论、训练细节、评估结果和反向实验，请见 <a href=\"https://structural.bytedance.city/paper-zh.html\" target=\"_blank\">论文</a>。SIBD-63 数据集：<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\">GitHub</a> 上开源。V2 embedding 模型在 <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>。",
     "en": "For the full methodology, training details, evaluation results, and ablation experiments, see the <a href=\"https://structural.bytedance.city/paper-zh.html\" target=\"_blank\">paper</a>. The SIBD-63 dataset lives at <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo (DOI 10.5281/zenodo.19615170)</a>. All code is open-sourced on <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\">GitHub</a>. The V2 embedding model is available on <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>."
   },
-
   "page.about.contact.label": {
     "zh": "Contact",
     "en": "Contact"
@@ -336,7 +323,6 @@
     "zh": "如果你想合作、有新的跨领域同构案例要投稿、或者只是想讨论这个方向，欢迎邮件联系：\n      <a href=\"mailto:wanqinghui@gmail.com\">wanqinghui@gmail.com</a>。",
     "en": "For collaboration, submissions of new cross-domain isomorphism cases, or simply a conversation about this line of work, please get in touch by email: <a href=\"mailto:wanqinghui@gmail.com\">wanqinghui@gmail.com</a>."
   },
-
   "page.home.eyebrow": {
     "zh": "跨领域思维引擎",
     "en": "A cross-domain thinking engine"
@@ -349,7 +335,6 @@
     "zh": "描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。",
     "en": "Describe your problem, and find structurally equivalent solutions across <strong>4,443</strong> phenomena spanning <strong>87</strong> disciplines."
   },
-
   "page.home.hero_evidence.caption_1": {
     "zh": "它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。",
     "en": "They look entirely unrelated, yet obey <strong>exactly the same</strong> mathematical equation."
@@ -370,7 +355,6 @@
     "zh": "弹簧和市场，都服从<strong>受驱简谐振动方程</strong>。",
     "en": "Spring and market alike obey the <strong>driven harmonic-oscillator equation</strong>."
   },
-
   "page.home.search.placeholder": {
     "zh": "一句话描述你观察到的现象、问题或正在做的研究方向。\n（可选）补充你的背景和已经尝试过的，我会调整迁移的深度。",
     "en": "Describe in one sentence the phenomenon you've observed, the problem you're stuck on, or the research direction you're pursuing.\n(Optional) Add your background and what you've already tried, and I'll calibrate the depth of the transfer."
@@ -387,7 +371,6 @@
     "zh": "描述一个你观察到的现象...",
     "en": "Describe a phenomenon you've observed..."
   },
-
   "page.home.cross_product.badge": {
     "zh": "子产品",
     "en": "Sub-product"
@@ -400,7 +383,6 @@
     "zh": "打开 Phase Detector →",
     "en": "Open Phase Detector →"
   },
-
   "page.home.how.label": {
     "zh": "工作流程",
     "en": "Workflow"
@@ -449,7 +431,6 @@
     "zh": "≈ 30–60s",
     "en": "≈ 30–60s"
   },
-
   "page.home.usecases.label": {
     "zh": "适合这样用",
     "en": "Works well for"
@@ -462,7 +443,6 @@
     "zh": "把你正被困住的问题输入，系统识别出底层结构，返回跨域里已经解决过的成熟工具。",
     "en": "Enter the problem you're stuck on; the system identifies the underlying structure and returns mature tools that have already solved it in another domain."
   },
-
   "page.home.usecases.tag_question": {
     "zh": "你问",
     "en": "You ask"
@@ -471,7 +451,6 @@
     "zh": "系统给",
     "en": "System returns"
   },
-
   "page.home.usecases.card1.title": {
     "zh": "学术 · 找跨域结构",
     "en": "Research · finding cross-domain structure"
@@ -484,7 +463,6 @@
     "zh": "<strong>自组织临界（SOC）普适类</strong> · 分支过程族、τ ≈ 1.5、γ=(α−1)/(τ−1)——地震 · DeFi 清算 · 神经雪崩三个领域已被实证（5 篇 arXiv 配套论文）。",
     "en": "<strong>The Self-Organized Criticality (SOC) universality class</strong> · branching-process family, τ ≈ 1.5, γ = (α − 1)/(τ − 1) — empirically validated across earthquakes, DeFi liquidations, and neural avalanches (five companion papers on arXiv)."
   },
-
   "page.home.usecases.card2.title": {
     "zh": "产品 · 用户流失分析",
     "en": "Product · user-churn analysis"
@@ -497,7 +475,6 @@
     "zh": "<strong>一阶指数衰减</strong> · dN/dt = −λN——放射性衰变 · 药物血药浓度 · RLC 阻尼振荡都是它。<strong>半衰期是唯一参数</strong>：干预必须在半衰期前进行，过后成本指数级上升。",
     "en": "<strong>First-order exponential decay</strong> · dN/dt = −λN — the same law governs radioactive decay, drug plasma concentration, and damped RLC oscillation. <strong>The half-life is the only parameter</strong>: intervention must occur before it, after which the cost rises exponentially."
   },
-
   "page.home.usecases.card3.title": {
     "zh": "战略 · 不可逆恶化",
     "en": "Strategy · irreversible degradation"
@@ -510,7 +487,6 @@
     "zh": "<strong>尖点灾变 / fold 分岔</strong> · 双稳态 + 磁滞回线——磁铁磁化 · 湖泊富营养化 · 生态 regime shift 都是它。<strong>回溯路径 ≠ 前进路径</strong>，触发阈值和反推阈值差得远。",
     "en": "<strong>Cusp catastrophe / fold bifurcation</strong> · bistability with a hysteresis loop — the same structure underlies ferromagnetic magnetization, lake eutrophication, and ecological regime shifts. <strong>The return path is not the forward path</strong>: the trigger threshold and the reversal threshold are far apart."
   },
-
   "page.home.history.label": {
     "zh": "你最近的问题",
     "en": "Your recent questions"
@@ -519,7 +495,6 @@
     "zh": "接着上次<em>继续想</em>",
     "en": "Pick up <em>where you left off</em>"
   },
-
   "page.home.daily.label": {
     "zh": "今日发现",
     "en": "Today's discoveries"
@@ -532,7 +507,6 @@
     "zh": "查看全部 39 个 A 级精选发现",
     "en": "Browse all 39 A-grade curated discoveries"
   },
-
   "page.home.favorites.label": {
     "zh": "收藏的报告",
     "en": "Saved reports"
@@ -540,5 +514,369 @@
   "page.home.favorites.title": {
     "zh": "你保存的<em>深度分析</em>",
     "en": "Your saved <em>deep analyses</em>"
+  },
+  "page.home.meta_title": {
+    "zh": "Structural — 万物的形状都在重复",
+    "en": "Structural — The shape of everything recurs"
+  },
+  "page.home.meta_desc": {
+    "zh": "一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。",
+    "en": "A cross-domain thinking engine. Describe a phenomenon you have observed and discover others in entirely different fields that share the same structure."
+  },
+  "page.about.meta_title": {
+    "zh": "关于 — Structural",
+    "en": "About — Structural"
+  },
+  "page.about.meta_desc": {
+    "zh": "Structural 是一个跨领域思维引擎，基于“看似无关的现象在数学结构层面往往是同一件事”这个反直觉的观察，帮你跨越学科的围墙借用别人的答案。",
+    "en": "Structural is a cross-domain thinking engine built on a counterintuitive observation: phenomena that look entirely unrelated are often the same thing at the level of mathematical structure."
+  },
+  "page.classes.meta_title": {
+    "zh": "普适类 — Structural",
+    "en": "Universality classes — Structural"
+  },
+  "page.classes.meta_desc": {
+    "zh": "从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类。每类带共享方程、不变量和可验证预测。",
+    "en": "From 23 automatically surfaced cross-domain equivalence classes, we highlight 8 named physical universality classes. Each carries shared equations, invariants, and falsifiable predictions."
+  },
+  "page.discoveries.meta_title": {
+    "zh": "精选发现 — Structural",
+    "en": "Curated discoveries — Structural"
+  },
+  "page.discoveries.meta_desc": {
+    "zh": "V2 + V3 管线产出的 39 个 A 级跨领域结构同构发现，每条带共享方程和执行计划。",
+    "en": "39 A-grade cross-domain structural isomorphism discoveries from the V2 + V3 pipelines, each with a shared equation and an execution plan."
+  },
+  "page.search.meta_title": {
+    "zh": "搜索 — Structural",
+    "en": "Search — Structural"
+  },
+  "page.analyze.meta_title": {
+    "zh": "深度分析 — Structural",
+    "en": "Deep analysis — Structural"
+  },
+  "page.phenomenon.meta_title": {
+    "zh": "现象详情 — Structural",
+    "en": "Phenomenon — Structural"
+  },
+  "page.paper.meta_title": {
+    "zh": "论文 — Structural",
+    "en": "Paper — Structural"
+  },
+  "page.404.meta_title": {
+    "zh": "404 — Structural",
+    "en": "404 — Structural"
+  },
+  "page.classes.hero_eyebrow": {
+    "zh": "V4 · 等价类 × 共享不变量 × 可验证预测",
+    "en": "V4 · Equivalence classes × shared invariants × falsifiable predictions"
+  },
+  "page.classes.hero_title": {
+    "zh": "当多个现象共享<em>底层规律</em>",
+    "en": "When multiple phenomena share the same <em>underlying law</em>"
+  },
+  "page.classes.hero_lede": {
+    "zh": "<a href=\"/discoveries\">精选发现</a> 里是 191 条 pair 级同构（A≅B）。更上一层——把<strong>“一个节点连接多个现象”</strong>的 hub 聚合成等价类，再映射到物理学已知的普适类。下面 <strong>23 个跨领域等价类</strong>由图 + Louvain 无监督浮现；8 个人工精选匹配到 SOC、Hysteresis、Fold 分岔、Motter-Lai、Diamond-Dybvig 等已命名类，15 个 LLM 辅助。每一类共享同一个数学结构和同一组不变量。具体方法见<a href=\"#uc-footnote\">页脚</a>。",
+    "en": "<a href=\"/discoveries?lang=en\">Curated discoveries</a> lists 191 pair-level isomorphisms (A ≅ B). One level up — we aggregate the hubs that <strong>connect one node to many phenomena</strong> into equivalence classes, then map each onto a known physical universality class. Below are <strong>23 cross-domain equivalence classes</strong> surfaced without supervision via graph construction + Louvain; 8 are curated by hand into named classes (SOC, hysteresis, fold bifurcation, Motter-Lai, Diamond-Dybvig, …), 15 are LLM-assisted. Each shares the same mathematical structure and the same invariants. Method details in the <a href=\"#uc-footnote\">footnote</a>."
+  },
+  "page.classes.filter_manual": {
+    "zh": "人工精选",
+    "en": "Curated"
+  },
+  "page.classes.filter_llm": {
+    "zh": "LLM 辅助",
+    "en": "LLM-assisted"
+  },
+  "page.classes.filter_all": {
+    "zh": "全部",
+    "en": "All"
+  },
+  "page.classes.footnote_title": {
+    "zh": "方法论说明",
+    "en": "Methodology"
+  },
+  "page.discoveries.hero_eyebrow": {
+    "zh": "V2 严格 + V3 StructTuple · 五维评分 · 精选 A 级",
+    "en": "V2 strict + V3 StructTuple · five-dimensional scoring · A-grade only"
+  },
+  "page.discoveries.hero_title": {
+    "zh": "那些<em>隐藏</em>的联系",
+    "en": "The <em>hidden</em> connections"
+  },
+  "page.discoveries.filter_all": {
+    "zh": "全部",
+    "en": "All"
+  },
+  "page.discoveries.filter_unexplored": {
+    "zh": "未探索",
+    "en": "Unexplored"
+  },
+  "page.discoveries.filter_partial": {
+    "zh": "部分",
+    "en": "Partial"
+  },
+  "page.discoveries.filter_established": {
+    "zh": "已有",
+    "en": "Established"
+  },
+  "page.404.title": {
+    "zh": "这个现象还没有被收录",
+    "en": "We haven't catalogued this phenomenon yet"
+  },
+  "page.404.desc": {
+    "zh": "你要找的页面不存在。也许我们的知识库还没有覆盖到它。",
+    "en": "The page you're looking for doesn't exist. Our knowledge base may not have reached it yet."
+  },
+  "page.home.hero_evidence.rotate": {
+    "zh": "下一个",
+    "en": "Next"
+  },
+  "page.home.hero_evidence.rotate_aria": {
+    "zh": "下一个例子",
+    "en": "Next example"
+  },
+  "page.home.hero_evidence.a_aria": {
+    "zh": "搜索 A 侧现象",
+    "en": "Search the A-side phenomenon"
+  },
+  "page.home.hero_evidence.b_aria": {
+    "zh": "搜索 B 侧现象",
+    "en": "Search the B-side phenomenon"
+  },
+  "page.home.hero_evidence.sym_aria": {
+    "zh": "结构同构",
+    "en": "Structurally isomorphic"
+  },
+  "page.home.hero_evidence.dots_aria": {
+    "zh": "切换例子",
+    "en": "Switch example"
+  },
+  "common.searchbox_aria": {
+    "zh": "输入问题",
+    "en": "Enter your question"
+  },
+  "common.search_submit_aria": {
+    "zh": "分析",
+    "en": "Analyze"
+  },
+  "page.classes.footnote_l1": {
+    "zh": "<strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。",
+    "en": "<strong>Layer 1 — Graph construction</strong>: A- and B+-grade discoveries from V1/V2/V3 are filtered by <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code>, yielding 180 nodes and 143 edges."
+  },
+  "page.classes.footnote_l2": {
+    "zh": "<strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。",
+    "en": "<strong>Layer 2 — Community detection</strong>: connected components + Louvain (weight = score) yield 23 candidate equivalence classes, 21 of which span ≥ 2 domains."
+  },
+  "page.classes.footnote_l3": {
+    "zh": "<strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。",
+    "en": "<strong>Layer 3 — Taxonomy match</strong> (the 8 classes featured here were manually matched to known physical universality classes): an automated LLM generator + critic pipeline is under construction."
+  },
+  "page.classes.footnote_l4": {
+    "zh": "<strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。",
+    "en": "<strong>Layer 4 — Prediction translation</strong>: for each matched universality class, established physical laws are translated into cross-domain falsifiable predictions."
+  },
+  "page.classes.footnote_l5": {
+    "zh": "<strong>Layer 5 实证验证</strong>：已完成 5 轮跨域测试——地震 (<a href=\"/paper/soc-earthquake-2026-04-15\">paper</a>) / 股市 (<a href=\"/paper/soc-stockmarket-2026-04-15\">paper</a>) / DeFi × 3 协议 (<a href=\"/paper/soc-defi-2026-04-15\">paper</a>) / 神经雪崩 (<a href=\"/paper/soc-neural-2026-04-16\">paper</a>) + null 反向验证 (<a href=\"/paper/soc-null-2026-04-16\">note</a>)。",
+    "en": "<strong>Layer 5 — Empirical validation</strong>: five cross-domain tests completed — earthquakes (<a href=\"/paper/soc-earthquake-2026-04-15?lang=en\">paper</a>) / stock market (<a href=\"/paper/soc-stockmarket-2026-04-15?lang=en\">paper</a>) / DeFi across 3 protocols (<a href=\"/paper/soc-defi-2026-04-15?lang=en\">paper</a>) / neural avalanches (<a href=\"/paper/soc-neural-2026-04-16?lang=en\">paper</a>) + null reverse-validation (<a href=\"/paper/soc-null-2026-04-16?lang=en\">note</a>)."
+  },
+  "page.classes.footnote_l6": {
+    "zh": "<strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除\"pipeline 把任何数据拟合成 SOC\"的平凡解释。",
+    "en": "<strong>Pipeline robustness</strong>: running the same pipeline on three known non-SOC distributions (Gaussian, exponential, Poisson) correctly rejects a power-law in every case (R ∈ [−45, −16] relative to exp/lognormal; Poisson Omori fit R² ≈ 0.002) — ruling out the trivial objection that the pipeline fits SOC to anything."
+  },
+  "page.classes.footnote_hint": {
+    "zh": "完整 feasibility 报告见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>，完整 V4 规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>。",
+    "en": "Full feasibility report: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>. Full V4 plan: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>."
+  },
+  "page.classes.stat_total": {
+    "zh": "等价类总数",
+    "en": "Equivalence classes"
+  },
+  "page.classes.stat_cross_domain": {
+    "zh": "跨领域",
+    "en": "Cross-domain"
+  },
+  "page.classes.stat_max_members": {
+    "zh": "最大成员数",
+    "en": "Max members"
+  },
+  "page.classes.stat_max_domains": {
+    "zh": "最多跨越领域",
+    "en": "Max spanned domains"
+  },
+  "page.classes.no_match": {
+    "zh": "没有匹配的等价类",
+    "en": "No matching equivalence classes"
+  },
+  "page.discoveries.hero_lede": {
+    "zh": "从三条检索管道（V1 广义 embedding / V2 严格 embedding / V3 StructTuple + LLM rerank）合并筛出，经 LLM 五维评分（创新性 / 严谨性 / 可行性 / 影响力 / 可写性），<strong>最终留下 39 条 A 级发现</strong>（V2 19 条 + V3 20 条，三管道发现零重叠）。每一条都是一个跨领域的数学同构，把两个看似无关的领域连在一起——并且带有可执行的论文化路径和建议期刊。",
+    "en": "Merged from three retrieval pipelines (V1 broad-recall embedding / V2 strict-precision embedding / V3 StructTuple + LLM rerank) and passed through a five-dimensional LLM rubric (novelty, rigor, feasibility, impact, writability), <strong>39 A-grade discoveries remain</strong> (19 from V2 + 20 from V3, with zero overlap across pipelines). Each is a cross-domain mathematical isomorphism that connects two seemingly unrelated fields — and ships with an executable publishing plan and a suggested target journal."
+  },
+  "page.discoveries.meta_rating": {
+    "zh": "等级",
+    "en": "Grade"
+  },
+  "page.discoveries.meta_iso_confidence": {
+    "zh": "同构置信度",
+    "en": "Isomorphism confidence"
+  },
+  "page.discoveries.meta_iso_depth": {
+    "zh": "同构深度",
+    "en": "Isomorphism depth"
+  },
+  "page.discoveries.meta_solo_feasible": {
+    "zh": "单人可做",
+    "en": "Solo-feasible"
+  },
+  "page.discoveries.expand": {
+    "zh": "展开",
+    "en": "Expand"
+  },
+  "page.discoveries.collapse": {
+    "zh": "收起",
+    "en": "Collapse"
+  },
+  "page.discoveries.filter_lit_status_label": {
+    "zh": "文献状态",
+    "en": "Literature status"
+  },
+  "page.discoveries.filter_pipeline_label": {
+    "zh": "检索管道",
+    "en": "Pipeline"
+  },
+  "page.discoveries.section_dim_scores": {
+    "zh": "五维评分",
+    "en": "Five-dimensional score"
+  },
+  "page.discoveries.section_shared_equation": {
+    "zh": "共享方程骨架 (V3 StructTuple)",
+    "en": "Shared equation skeleton (V3 StructTuple)"
+  },
+  "page.discoveries.section_key_equations": {
+    "zh": "关键方程",
+    "en": "Key equations"
+  },
+  "page.discoveries.section_paper_path": {
+    "zh": "论文化路径",
+    "en": "Publishing plan"
+  },
+  "page.discoveries.section_blocking": {
+    "zh": "阻塞机制",
+    "en": "Blocking mechanisms"
+  },
+  "page.discoveries.section_risks": {
+    "zh": "潜在风险",
+    "en": "Potential risks"
+  },
+  "page.discoveries.section_execution_plan": {
+    "zh": "执行方案",
+    "en": "Execution plan"
+  },
+  "page.discoveries.section_practical_value": {
+    "zh": "实用价值",
+    "en": "Practical value"
+  },
+  "page.discoveries.section_full_analysis": {
+    "zh": "完整深度分析",
+    "en": "Full deep analysis"
+  },
+  "page.discoveries.label_var_mapping": {
+    "zh": "变量映射",
+    "en": "Variable mapping"
+  },
+  "page.discoveries.label_submit_to": {
+    "zh": "建议投稿",
+    "en": "Suggested venue"
+  },
+  "page.discoveries.stat_a_grade": {
+    "zh": "A 级发现",
+    "en": "A-grade discoveries"
+  },
+  "page.discoveries.stat_lit_unexplored": {
+    "zh": "文献未探索",
+    "en": "Unexplored in literature"
+  },
+  "page.discoveries.tier2_hint": {
+    "zh": "V2 五分顶级池里未晋级 A 的跨域对。只有基础同构判断和相似度，没有完整的五维深度分析，但质量仍值得探索。",
+    "en": "Cross-domain pairs in V2's top-five pool that did not reach A-grade. Only basic isomorphism checks and similarity — no full five-dimensional deep analysis — but still worth exploring."
+  },
+  "page.discoveries.empty_filter": {
+    "zh": "没有匹配的发现",
+    "en": "No matching discoveries"
+  },
+  "page.discoveries.tier2_unloaded": {
+    "zh": "候选池数据未加载",
+    "en": "Candidate pool not loaded"
+  },
+  "page.discoveries.load_failed": {
+    "zh": "加载失败",
+    "en": "Failed to load"
+  },
+  "page.discoveries.cta_main": {
+    "zh": "生成深度分析报告",
+    "en": "Generate deep analysis report"
+  },
+  "page.discoveries.cta_hint": {
+    "zh": "8 段跨学科迁移研究 · 流式生成 60-90 秒",
+    "en": "8-section cross-disciplinary transfer report · streamed in 60–90 seconds"
+  },
+  "page.discoveries.dim_novelty": {
+    "zh": "创新性",
+    "en": "Novelty"
+  },
+  "page.discoveries.dim_rigor": {
+    "zh": "严谨性",
+    "en": "Rigor"
+  },
+  "page.discoveries.dim_feasibility": {
+    "zh": "可行性",
+    "en": "Feasibility"
+  },
+  "page.discoveries.dim_impact": {
+    "zh": "影响力",
+    "en": "Impact"
+  },
+  "page.discoveries.dim_writability": {
+    "zh": "可写性",
+    "en": "Writability"
+  },
+  "page.discoveries.status_unexplored": {
+    "zh": "前所未有",
+    "en": "Unprecedented"
+  },
+  "page.discoveries.status_partial": {
+    "zh": "部分有先例",
+    "en": "Partial precedent"
+  },
+  "page.discoveries.status_established": {
+    "zh": "已有研究",
+    "en": "Established"
+  },
+  "page.discoveries.filter_partial_chip": {
+    "zh": "部分探索",
+    "en": "Partial"
+  },
+  "page.discoveries.filter_established_chip": {
+    "zh": "已有研究",
+    "en": "Established"
+  },
+  "page.discoveries.pipeline_v2": {
+    "zh": "V2 严格",
+    "en": "V2 strict"
+  },
+  "page.discoveries.pipeline_v3": {
+    "zh": "V3 StructTuple",
+    "en": "V3 StructTuple"
+  },
+  "page.discoveries.tier_curated": {
+    "zh": "A 级精选",
+    "en": "A-grade curated"
+  },
+  "page.discoveries.tier_tier2": {
+    "zh": "候选池",
+    "en": "Candidate pool"
+  },
+  "page.discoveries.filter_all_chip": {
+    "zh": "全部",
+    "en": "All"
   }
 }

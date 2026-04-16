@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title>普适类 — Structural</title>
-  <meta name="description" content="从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类——SOC、磁滞、Fold 分岔、Motter-Lai、Diamond-Dybvig、Toggle switch、Copula 尾部、Schelling 承诺。每类带共享方程、不变量和可验证预测。">
+  <title data-i18n="page.classes.meta_title">普适类 — Structural</title>
+  <meta name="description" data-i18n-meta="page.classes.meta_desc" content="从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类——SOC、磁滞、Fold 分岔、Motter-Lai、Diamond-Dybvig、Toggle switch、Copula 尾部、Schelling 承诺。每类带共享方程、不变量和可验证预测。">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
-  <meta property="og:title" content="普适类 — Structural">
-  <meta property="og:description" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。SOC 跨 12 领域 21 成员的巨簇 / Hysteresis / Fold bifurcation / Toggle switch / ...">
+  <meta property="og:title" data-i18n-meta="page.classes.meta_title" content="普适类 — Structural">
+  <meta property="og:description" data-i18n-meta="page.classes.meta_desc" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。SOC 跨 12 领域 21 成员的巨簇 / Hysteresis / Fold bifurcation / Toggle switch / ...">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="普适类 — Structural">
-  <meta name="twitter:description" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。">
+  <meta name="twitter:title" data-i18n-meta="page.classes.meta_title" content="普适类 — Structural">
+  <meta name="twitter:description" data-i18n-meta="page.classes.meta_desc" content="从 191 条 pair 级同构里自动浮现的 8 个跨领域普适类。">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,25 +66,25 @@
         <section class="uc-hero">
           <div class="uc-hero__eyebrow">
             <span class="uc-hero__dot"></span>
-            V4 · 等价类 × 共享不变量 × 可验证预测
+            <span data-i18n="page.classes.hero_eyebrow">V4 · 等价类 × 共享不变量 × 可验证预测</span>
           </div>
-          <h1 class="uc-hero__title">当多个现象共享<em>底层规律</em></h1>
-          <p class="uc-hero__lede">
+          <h1 class="uc-hero__title" data-i18n="page.classes.hero_title">当多个现象共享<em>底层规律</em></h1>
+          <p class="uc-hero__lede" data-i18n="page.classes.hero_lede">
             <a href="/discoveries">精选发现</a> 里是 191 条 pair 级同构（A≅B）。更上一层——把<strong>"一个节点连接多个现象"</strong>的 hub 聚合成等价类，再映射到物理学已知的普适类。下面 <strong>23 个跨领域等价类</strong>由图 + Louvain 无监督浮现；8 个人工精选匹配到 SOC、Hysteresis、Fold 分岔、Motter-Lai、Diamond-Dybvig 等已命名类，15 个 LLM 辅助。每一类共享同一个数学结构和同一组不变量。具体方法见<a href="#uc-footnote">页脚</a>。
           </p>
           <div class="uc-hero__stats" id="uc-hero-stats"></div>
         </section>
 
         <div class="uc-filter" id="uc-filter">
-          <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="manual">
+          <button type="button" class="uc-filter__btn uc-filter__btn--active" data-filter="manual" data-i18n="page.classes.filter_manual">
             人工精选
             <span class="uc-filter__count" data-count-manual>—</span>
           </button>
-          <button type="button" class="uc-filter__btn" data-filter="llm">
+          <button type="button" class="uc-filter__btn" data-filter="llm" data-i18n="page.classes.filter_llm">
             LLM 辅助
             <span class="uc-filter__count" data-count-llm>—</span>
           </button>
-          <button type="button" class="uc-filter__btn" data-filter="all">
+          <button type="button" class="uc-filter__btn" data-filter="all" data-i18n="page.classes.filter_all">
             全部
             <span class="uc-filter__count" data-count-all>—</span>
           </button>
@@ -103,16 +103,16 @@
       <div id="uc-view-detail" hidden></div>
 
       <section class="uc-footnote" id="uc-footnote" tabindex="-1">
-        <h2 class="uc-footnote__title">方法论说明</h2>
+        <h2 class="uc-footnote__title" data-i18n="page.classes.footnote_title">方法论说明</h2>
         <ol class="uc-footnote__list">
-          <li><strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。</li>
-          <li><strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
-          <li><strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。</li>
-          <li><strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。</li>
-          <li><strong>Layer 5 实证验证</strong>：已完成 5 轮跨域测试——地震 (<a href="/paper/soc-earthquake-2026-04-15">paper</a>) / 股市 (<a href="/paper/soc-stockmarket-2026-04-15">paper</a>) / DeFi × 3 协议 (<a href="/paper/soc-defi-2026-04-15">paper</a>) / 神经雪崩 (<a href="/paper/soc-neural-2026-04-16">paper</a>) + null 反向验证 (<a href="/paper/soc-null-2026-04-16">note</a>)。</li>
-          <li><strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除"pipeline 把任何数据拟合成 SOC"的平凡解释。</li>
+          <li data-i18n="page.classes.footnote_l1"><strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。</li>
+          <li data-i18n="page.classes.footnote_l2"><strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
+          <li data-i18n="page.classes.footnote_l3"><strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。</li>
+          <li data-i18n="page.classes.footnote_l4"><strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。</li>
+          <li data-i18n="page.classes.footnote_l5"><strong>Layer 5 实证验证</strong>：已完成 5 轮跨域测试——地震 (<a href="/paper/soc-earthquake-2026-04-15">paper</a>) / 股市 (<a href="/paper/soc-stockmarket-2026-04-15">paper</a>) / DeFi × 3 协议 (<a href="/paper/soc-defi-2026-04-15">paper</a>) / 神经雪崩 (<a href="/paper/soc-neural-2026-04-16">paper</a>) + null 反向验证 (<a href="/paper/soc-null-2026-04-16">note</a>)。</li>
+          <li data-i18n="page.classes.footnote_l6"><strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除"pipeline 把任何数据拟合成 SOC"的平凡解释。</li>
         </ol>
-        <p class="uc-footnote__hint">
+        <p class="uc-footnote__hint" data-i18n="page.classes.footnote_hint">
           完整 feasibility 报告见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md" target="_blank" rel="noopener">v4/results/FINDINGS-2026-04-15.md</a>，
           完整 V4 规划见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md" target="_blank" rel="noopener">plans/v4-universality-class-engine.md</a>。
         </p>

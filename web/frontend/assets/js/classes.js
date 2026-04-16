@@ -1,4 +1,9 @@
 // --- i18n helpers ---
+function T(key, fallback) {
+  try { if (window.i18n && typeof window.i18n.t === 'function') { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {}
+  return fallback;
+}
+
 function currentLang() {
   try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; }
 }
@@ -55,10 +60,10 @@ function renderHeroStats(stats) {
   const host = document.getElementById("uc-hero-stats");
   if (!host || !stats) return;
   const items = [
-    { value: stats.n_equivalence_classes, label: "等价类总数" },
-    { value: stats.n_cross_domain, label: "跨 ≥2 领域" },
-    { value: stats.max_members, label: "最大成员数" },
-    { value: stats.max_domains, label: "最多跨越领域" },
+    { value: stats.n_equivalence_classes, label: T("page.classes.stat_total", "等价类总数") },
+    { value: stats.n_cross_domain, label: T("page.classes.stat_cross_domain", "跨 ≥2 领域") },
+    { value: stats.max_members, label: T("page.classes.stat_max_members", "最大成员数") },
+    { value: stats.max_domains, label: T("page.classes.stat_max_domains", "最多跨越领域") },
   ];
   host.innerHTML = items
     .map(
@@ -422,7 +427,7 @@ function renderList(list) {
   const host = document.getElementById("uc-list");
   if (!host) return;
   if (!list || !list.length) {
-    host.innerHTML = `<p style="color:#777;padding:40px 0;text-align:center;">没有匹配的等价类。</p>`;
+    host.innerHTML = `<p style="color:#777;padding:40px 0;text-align:center;">${T("page.classes.no_match", "没有匹配的等价类")}。</p>`;
     return;
   }
   host.innerHTML = list.map(renderPreviewCard).join("");
@@ -515,6 +520,7 @@ function updateFilterCounts() {
 async function init() {
   try {
     const data = await loadData();
+    window.__classesData = data;
     allClasses = data.classes || [];
     manualClasses = allClasses.filter((c) => c.curation_source === "manual");
     llmClasses = allClasses.filter((c) => c.curation_source === "llm");
@@ -550,14 +556,20 @@ if (document.readyState === "loading") {
   init();
 }
 
-// Re-render when user flips the language toggle.
+// Re-render when user flips the language toggle (or when initial ui/content.json load finishes).
+function _classesRerender() {
+  try {
+    if (typeof window.__classesData !== 'undefined' && window.__classesData) {
+      renderHeroStats(window.__classesData.stats || {});
+      if (typeof renderList === 'function') renderList();
+      else if (typeof render === 'function') render();
+    } else if (typeof render === 'function') {
+      render();
+    }
+  } catch (e) { console.warn('[classes i18n rerender]', e); }
+}
 try {
   if (window.i18n && typeof window.i18n.onChange === 'function') {
-    window.i18n.onChange(function () {
-      try {
-        if (typeof render === 'function') render();
-        else if (typeof renderList === 'function') renderList();
-      } catch (e) { console.warn('[classes i18n rerender]', e); }
-    });
+    window.i18n.onChange(_classesRerender);
   }
 } catch (e) { /* i18n.js not loaded — stay on zh */ }

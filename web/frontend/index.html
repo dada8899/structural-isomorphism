@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="Structural — 一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+  <meta name="description" data-i18n-meta="page.home.meta_desc" content="Structural — 一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
   <meta name="theme-color" content="#FAFAF9">
-  <title>Structural — 万物的形状都在重复</title>
+  <title data-i18n="page.home.meta_title">Structural — 万物的形状都在重复</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
-  <meta property="og:title" content="Structural — 万物的形状都在重复">
-  <meta property="og:description" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+  <meta property="og:title" data-i18n-meta="page.home.meta_title" content="Structural — 万物的形状都在重复">
+  <meta property="og:description" data-i18n-meta="page.home.meta_desc" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Structural — 万物的形状都在重复">
-  <meta name="twitter:description" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
+  <meta name="twitter:title" data-i18n-meta="page.home.meta_title" content="Structural — 万物的形状都在重复">
+  <meta name="twitter:description" data-i18n-meta="page.home.meta_desc" content="一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,13 +107,13 @@
         <div class="home__hero-evidence" id="hero-evidence">
           <div class="hero-evidence__card">
             <div class="hero-evidence__pair">
-              <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" aria-label="搜索 A 侧现象">
+              <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" data-i18n-attr="aria-label:page.home.hero_evidence.a_aria" aria-label="搜索 A 侧现象">
                 <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
                 <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
                 <span class="hero-evidence__desc" id="he-a-desc">不稳定的原子核自发释放粒子。释放速度只取决于当前剩余的数量——剩得越少越慢。</span>
               </button>
-              <span class="hero-evidence__symbol" aria-label="结构同构">≅</span>
-              <button type="button" class="hero-evidence__side" id="he-b-btn" data-side="b" aria-label="搜索 B 侧现象">
+              <span class="hero-evidence__symbol" data-i18n-attr="aria-label:page.home.hero_evidence.sym_aria" aria-label="结构同构">≅</span>
+              <button type="button" class="hero-evidence__side" id="he-b-btn" data-side="b" data-i18n-attr="aria-label:page.home.hero_evidence.b_aria" aria-label="搜索 B 侧现象">
                 <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
                 <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
                 <span class="hero-evidence__desc" id="he-b-desc">口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。</span>
@@ -122,13 +122,13 @@
             <p class="hero-evidence__caption" id="he-caption" data-i18n="page.home.hero_evidence.caption_1">它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。</p>
           </div>
           <div class="hero-evidence__controls">
-            <div class="hero-evidence__dots" id="he-dots" role="tablist" aria-label="切换例子"></div>
-            <button type="button" class="hero-evidence__rotate" id="he-rotate" aria-label="下一个例子">
+            <div class="hero-evidence__dots" id="he-dots" role="tablist" data-i18n-attr="aria-label:page.home.hero_evidence.dots_aria" aria-label="切换例子"></div>
+            <button type="button" class="hero-evidence__rotate" id="he-rotate" data-i18n-attr="aria-label:page.home.hero_evidence.rotate_aria" aria-label="下一个例子">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 4v6h6M23 20v-6h-6"/>
                 <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
               </svg>
-              下一个
+              <span data-i18n="page.home.hero_evidence.rotate">下一个</span>
             </button>
           </div>
         </div>
@@ -140,14 +140,14 @@
               placeholder="" data-i18n-attr="placeholder:page.home.search.placeholder"
               autocomplete="off"
               spellcheck="false"
-              aria-label="输入问题"
+              data-i18n-attr="aria-label:common.searchbox_aria" aria-label="输入问题"
               rows="3"
             ></textarea>
             <div class="searchbox__footer">
               <div class="searchbox__hint" data-i18n="page.home.search.hint">
                 <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
               </div>
-              <button type="submit" class="searchbox__submit searchbox__submit--primary" aria-label="分析">
+              <button type="submit" class="searchbox__submit searchbox__submit--primary" data-i18n-attr="aria-label:common.search_submit_aria" aria-label="分析">
                 <span class="searchbox__submit-label" data-i18n="page.home.search.submit_label">深度分析</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7"/>
