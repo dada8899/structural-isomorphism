@@ -385,16 +385,59 @@
       const liveReport = document.getElementById('live-report');
       const statusEl = document.getElementById('stream-status');
 
+      // marked.js 会把 $ 当 markdown 吃掉 → 先把数学块替换成占位符，渲染后还原
+      function safeMarkedParse(md) {
+        if (!window.marked) return escapeHtml(md).replace(/\n/g, '<br>');
+        const mathBlocks = [];
+        const stash = (m) => {
+          mathBlocks.push(m);
+          return `@@KATEXBLOCK${mathBlocks.length - 1}@@`;
+        };
+        let t = md;
+        // Block display math $$...$$
+        t = t.replace(/\$\$[\s\S]+?\$\$/g, stash);
+        // \[...\] display math
+        t = t.replace(/\\\[[\s\S]+?\\\]/g, stash);
+        // Inline $...$ — not double, not at line start as code
+        t = t.replace(/(?<!\\)\$(?!\$)[^\n$]+?(?<!\\)\$(?!\$)/g, stash);
+        // \(...\) inline math
+        t = t.replace(/\\\([\s\S]+?\\\)/g, stash);
+
+        let html = window.marked.parse(t);
+        // Restore math placeholders (they'll be picked up by KaTeX auto-render)
+        html = html.replace(/@@KATEXBLOCK(\d+)@@/g, (_, i) => mathBlocks[Number(i)] || '');
+        return html;
+      }
+
       function renderLive(final) {
-        if (!window.marked) return;
         const now = Date.now();
         // 流式中节流到每 300ms 渲染一次，避免 DOM 抖动
         if (!final && now - lastRenderTs < 300) return;
         lastRenderTs = now;
-        const html = window.marked.parse(fullText || '');
+
+        // 流式中保护未闭合的数学块：如果末尾有开头 $$ 但没闭合，截断到那里
+        let renderText = fullText || '';
+        if (!final) {
+          // 最后一个 $$ 如果还没闭合，先截掉不渲染（等它闭合）
+          const lastDouble = renderText.lastIndexOf('$$');
+          if (lastDouble >= 0) {
+            const afterLast = renderText.slice(lastDouble + 2);
+            if (!afterLast.includes('$$')) {
+              renderText = renderText.slice(0, lastDouble);
+            }
+          }
+          // 同样处理单 $（只看最后 300 字符，避免误判）
+          const tail = renderText.slice(-300);
+          const dollarCount = (tail.match(/(?<!\\)\$/g) || []).length;
+          if (dollarCount % 2 === 1) {
+            const lastDollar = renderText.lastIndexOf('$');
+            if (lastDollar >= 0) renderText = renderText.slice(0, lastDollar);
+          }
+        }
+
+        const html = safeMarkedParse(renderText);
         liveReport.innerHTML = html;
         if (!final) {
-          // 末尾加闪烁光标
           const cursor = document.createElement('span');
           cursor.className = 'typing-cursor';
           cursor.textContent = '▌';
@@ -473,6 +516,12 @@
                 if (delta) {
                   fullText += delta;
                   renderLive(false);
+                }
+                const finishReason = chunk.choices?.[0]?.finish_reason;
+                if (finishReason === 'length') {
+                  // LLM 因 max_tokens 被截断
+                  fullText += '\n\n> ⚠️ **内容因长度限制被截断**。如需完整分析，请重试（刷新本页）。';
+                  renderLive(true);
                 }
               } catch {}
             }

@@ -393,7 +393,7 @@
 
       <div id="output">
         <div class="hint-box">
-          选一家公司，点「找结构类比」，Kimi K2 会在 20-40 秒内返回 3 个历史上结构最相似的公司和它们后来的轨迹。
+          选一家公司，点「找结构类比」，Grok-4-fast 会在 10-20 秒内流式返回 3 个历史上结构最相似的公司和它们后来的轨迹。
           <div class="hint-box__example">示例：Netflix → Comcast 2002 / Sirius Radio 2007 / Tencent Music 2018</div>
         </div>
       </div>
@@ -456,9 +456,10 @@
       out.innerHTML = `
         <div class="loader">
           <span class="loading-dots"><span></span><span></span><span></span></span>
-          <span>正在从商业史里检索结构最相似的 3 个公司…</span>
+          <span id="loader-status">正在连接 Grok-4-fast…</span>
           <span class="elapsed" id="loader-elapsed">0s</span>
         </div>
+        <div id="stream-preview" style="margin-top: 16px; padding: 14px 18px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); line-height: 1.5; max-height: 200px; overflow-y: auto; display: none;"></div>
       `;
       const timerId = setInterval(() => {
         const el = document.getElementById('loader-elapsed');
@@ -469,17 +470,98 @@
       const url = `/phase/analogy?t=${encodeURIComponent(SELECTED.ticker)}`;
       history.replaceState({}, '', url);
 
+      let rawText = '';
+      let modelUsed = '';
+
       try {
-        const resp = await fetch('/phase/api/analogy', {
+        const resp = await fetch('/phase/api/analogy/stream', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json', 'Accept': 'text/event-stream'},
           body: JSON.stringify({ticker: SELECTED.ticker, struct: SELECTED}),
         });
-        clearInterval(timerId);
-        const data = await resp.json();
-        if (!resp.ok || data.error) {
-          throw new Error(data.error || `HTTP ${resp.status}`);
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
         }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentEvent = 'message';
+        const preview = document.getElementById('stream-preview');
+        const status = document.getElementById('loader-status');
+
+        while (true) {
+          const {value, done} = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, {stream: true});
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/\r$/, '');
+            if (!line) { currentEvent = 'message'; continue; }
+            if (line.startsWith(':')) continue;
+            if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
+            if (line.startsWith('data: ')) {
+              const payload = line.slice(6);
+              if (payload === '[DONE]') continue;
+              if (currentEvent === 'meta') {
+                try {
+                  const m = JSON.parse(payload);
+                  modelUsed = m.model || '';
+                  if (status) status.textContent = `${modelUsed} 正在生成…`;
+                } catch {}
+                continue;
+              }
+              if (currentEvent === 'error') {
+                try {
+                  const e = JSON.parse(payload);
+                  throw new Error(e.error || '流式错误');
+                } catch (ee) { throw ee; }
+              }
+              if (currentEvent === 'done') continue;
+              try {
+                const chunk = JSON.parse(payload);
+                const delta = chunk.choices?.[0]?.delta?.content;
+                if (delta) {
+                  rawText += delta;
+                  if (preview) {
+                    preview.style.display = 'block';
+                    // 只显示末尾 300 字符（像实时打字机）
+                    preview.textContent = rawText.slice(-300);
+                    preview.scrollTop = preview.scrollHeight;
+                  }
+                }
+              } catch {}
+            }
+          }
+        }
+
+        clearInterval(timerId);
+
+        // 解析最终 JSON
+        let cleanJson = rawText.trim();
+        // 去掉 markdown 代码块
+        if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        }
+        let data;
+        try {
+          data = JSON.parse(cleanJson);
+        } catch (e) {
+          // 宽松：找最外层 { ... }
+          const firstBrace = cleanJson.indexOf('{');
+          const lastBrace = cleanJson.lastIndexOf('}');
+          if (firstBrace >= 0 && lastBrace > firstBrace) {
+            data = JSON.parse(cleanJson.slice(firstBrace, lastBrace + 1));
+          } else {
+            throw new Error('JSON 解析失败: ' + e.message);
+          }
+        }
+        data._model = modelUsed;
         render(data);
       } catch (err) {
         clearInterval(timerId);
