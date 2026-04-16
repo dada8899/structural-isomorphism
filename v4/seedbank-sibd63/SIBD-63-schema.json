@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doi.org/10.5281/zenodo.PLACEHOLDER/SIBD-63-schema.json",
+  "title": "SIBD-63 Seed Record Schema",
+  "description": "Each line in SIBD-63.jsonl encodes a single A-level cross-domain structural isomorphism discovery.",
+  "type": "object",
+  "required": [
+    "seed_id",
+    "pipeline",
+    "a_name",
+    "b_name",
+    "final_score"
+  ],
+  "properties": {
+    "seed_id": {
+      "type": "string",
+      "description": "Stable identifier, format SIBD-{pipeline}-{NNN}."
+    },
+    "pipeline": {
+      "type": "string",
+      "enum": [
+        "v1",
+        "v2",
+        "v3"
+      ],
+      "description": "Which of the three independent pipelines surfaced this isomorphism."
+    },
+    "rank_in_pipeline": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Rank assigned by the pipeline's own scoring (lower = higher rank)."
+    },
+    "a_name": {
+      "type": "string",
+      "description": "Natural-language name of the first phenomenon."
+    },
+    "a_domain": {
+      "type": "string",
+      "description": "Domain label of phenomenon A (may be empty for v1 records)."
+    },
+    "b_name": {
+      "type": "string",
+      "description": "Natural-language name of the second phenomenon."
+    },
+    "b_domain": {
+      "type": "string",
+      "description": "Domain label of phenomenon B (may be empty for v1 records)."
+    },
+    "shared_equation": {
+      "type": "string",
+      "description": "Compact statement of the shared mathematical structure (v3 only)."
+    },
+    "variable_mapping": {
+      "type": [
+        "string",
+        "object"
+      ],
+      "description": "Mapping of variables between A and B (v3 only; may be stringified JSON)."
+    },
+    "equations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "All equations associated with the pair from any pipeline."
+    },
+    "isomorphism_depth": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Depth score 1-5, 5 = structure matches at multiple independent layers."
+    },
+    "isomorphism_confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Calibrated confidence in [0,1] that the isomorphism is real-not-coincidental."
+    },
+    "paper_title": {
+      "type": "string",
+      "description": "Suggested publication title."
+    },
+    "target_venue": {
+      "type": "string",
+      "description": "Suggested target journal / conference."
+    },
+    "literature_status": {
+      "type": "string",
+      "enum": [
+        "",
+        "unexplored",
+        "partial",
+        "established",
+        "未有先例",
+        "未发表",
+        "未探索",
+        "部分探索",
+        "已有文献"
+      ],
+      "description": "Prior-art status."
+    },
+    "literature_detail": {
+      "type": "string",
+      "description": "Free-text discussion of prior art."
+    },
+    "practical_value": {
+      "type": "string",
+      "description": "Why the finding matters beyond academic novelty."
+    },
+    "risk": {
+      "type": "string",
+      "description": "Why the isomorphism might not survive empirical test."
+    },
+    "blocking_mechanisms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Specific obstacles the user should plan for."
+    },
+    "execution_plan": {
+      "type": [
+        "array",
+        "string"
+      ],
+      "description": "Step-by-step plan for the seeded empirical paper."
+    },
+    "time_estimate": {
+      "type": "string",
+      "description": "Expected person-effort (e.g. '3-4 months')."
+    },
+    "solo_feasible": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Whether a single researcher can realistically complete the paper."
+    },
+    "impact_scope": {
+      "type": "string",
+      "description": "Expected scope of impact."
+    },
+    "impact_detail": {
+      "type": "string",
+      "description": "Free-text impact discussion."
+    },
+    "final_score": {
+      "type": "number",
+      "description": "Aggregated 5-dimensional score."
+    },
+    "one_line_verdict": {
+      "type": "string",
+      "description": "One-line characterization, written by the deep-analysis LLM."
+    },
+    "rating": {
+      "type": "string",
+      "enum": [
+        "A",
+        "A+",
+        "B+"
+      ],
+      "description": "All records in SIBD-63 are A-grade by construction."
+    },
+    "transformation_primitives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "V4 cross-domain transformation primitives used (if labeled)."
+    },
+    "transformation_depth": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "How deep a structural transformation is required to map A to B."
+    },
+    "is_deep": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if more than surface-level isomorphism."
+    },
+    "full_analysis": {
+      "type": "string",
+      "description": "Full LLM deep-analysis text."
+    }
+  }
+}

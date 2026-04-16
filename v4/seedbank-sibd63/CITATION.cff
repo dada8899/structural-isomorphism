@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use SIBD-63 in research, please cite as below."
+type: dataset
+title: "SIBD-63: A Dataset of A-Level Cross-Domain Structural Isomorphism Discoveries with Shared Equations and Variable Mappings"
+authors:
+  - family-names: "Wan"
+    given-names: "Qinghui"
+    alias: "万庆徽"
+    email: "wanqinghui@gmail.com"
+abstract: >
+  63 cross-domain structural isomorphism discoveries produced by three
+  independent AI-assisted pipelines operating on a 4,443-phenomenon
+  natural-language knowledge base. Each record pairs two phenomena
+  from disjoint scientific domains that share the same underlying
+  mathematical structure, and is annotated with a proposed shared
+  equation, variable mapping, target journal, literature-gap
+  assessment, and step-by-step empirical execution plan. Released as
+  a seed bank for empirical follow-up papers.
+version: "1.0"
+date-released: "2026-04-16"
+license: "CC-BY-4.0"
+url: "https://structural.bytedance.city"
+repository-code: "https://github.com/dada8899/structural-isomorphism"
+keywords:
+  - structural isomorphism
+  - cross-domain analogy
+  - universality
+  - self-organized criticality
+  - scientific discovery
+  - AI for science
+  - dataset
+doi: "10.5281/zenodo.PLACEHOLDER"
