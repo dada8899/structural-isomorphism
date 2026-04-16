@@ -145,20 +145,34 @@ function renderCard(cls) {
     badges.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
   }
 
-  const sections = [];
-
-  if (cls.summary_zh) {
-    sections.push(`<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>`);
-  }
-
+  // Preview (always visible)
+  const previewParts = [];
   if (cls.physics_prototype) {
-    sections.push(`
-      <div class="uc-card__section">
-        <h3 class="uc-card__section-title">物理学原型</h3>
+    previewParts.push(`
+      <div class="uc-card__meta-row">
+        <span class="uc-card__meta-key">物理原型</span>
         <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
       </div>
     `);
   }
+  if (cls.summary_zh) {
+    previewParts.push(`<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>`);
+  }
+
+  // Count of extended content to show hint
+  const extendedCounts = [];
+  if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
+    extendedCounts.push(`${cls.shared_equations_raw.length} 个共享方程`);
+  }
+  if (cls.invariants && cls.invariants.length) {
+    extendedCounts.push(`${cls.invariants.length} 个不变量`);
+  }
+  if (cls.predictions && cls.predictions.length) {
+    extendedCounts.push(`${cls.predictions.length} 个可验证预测`);
+  }
+
+  // Expandable sections (hidden by default)
+  const sections = [];
 
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     sections.push(`
@@ -203,8 +217,12 @@ function renderCard(cls) {
     `);
   }
 
+  const hintRow = extendedCounts.length
+    ? `<div class="uc-card__more-hint">${extendedCounts.join(' · ')}</div>`
+    : '';
+
   return `
-    <article class="uc-card${uncurated ? " uc-card--uncurated" : ""}">
+    <article class="uc-card${uncurated ? " uc-card--uncurated" : ""}" data-expanded="false">
       <div class="uc-card__head">
         <div class="uc-card__titles">
           <h2 class="uc-card__title">${escapeHtml(cls.name_zh || "(未命名)")}</h2>
@@ -216,9 +234,52 @@ function renderCard(cls) {
         <span class="uc-card__hub-label">Hub</span>
         <span class="uc-card__hub-name">${escapeHtml(cls.hub_name || "—")}</span>
       </div>
-      ${sections.join("")}
+      ${previewParts.join("")}
+      <div class="uc-card__expandable" hidden>
+        ${sections.join("")}
+      </div>
+      <button type="button" class="uc-card__toggle" aria-expanded="false">
+        <span class="uc-card__toggle-text">展开详情</span>
+        ${hintRow}
+        <svg class="uc-card__toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
     </article>
   `;
+}
+
+function bindCardToggles(host) {
+  host.querySelectorAll('.uc-card__toggle').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.uc-card');
+      if (!card) return;
+      const expandable = card.querySelector('.uc-card__expandable');
+      const expanded = card.dataset.expanded === 'true';
+      card.dataset.expanded = expanded ? 'false' : 'true';
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      btn.querySelector('.uc-card__toggle-text').textContent = expanded ? '展开详情' : '收起';
+      if (expandable) {
+        if (expanded) expandable.setAttribute('hidden', '');
+        else expandable.removeAttribute('hidden');
+      }
+      // Re-render KaTeX on first expand in case equations weren't yet rendered
+      if (!expanded && window.renderMathInElement) {
+        try {
+          window.renderMathInElement(card, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "$", right: "$", display: false },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false },
+            ],
+            throwOnError: false,
+          });
+        } catch (_) {}
+      }
+    });
+  });
 }
 
 function renderList(list) {
@@ -229,6 +290,7 @@ function renderList(list) {
     return;
   }
   host.innerHTML = list.map(renderCard).join("");
+  bindCardToggles(host);
   if (window.renderMathInElement) {
     try {
       window.renderMathInElement(host, {
