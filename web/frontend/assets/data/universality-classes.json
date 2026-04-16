@@ -24,8 +24,8 @@
       "provenance": "connected_component",
       "hub_name": "清算级联的链上流动性危机",
       "hub_degree": 10,
-      "size": 17,
-      "n_domains": 12,
+      "size": 19,
+      "n_domains": 13,
       "domains": [
         "交通现象",
         "加密货币/DeFi",
@@ -499,8 +499,8 @@
       "provenance": "louvain_community",
       "hub_name": "银行挤兑",
       "hub_degree": 5,
-      "size": 8,
-      "n_domains": 7,
+      "size": 10,
+      "n_domains": 8,
       "domains": [
         "加密货币/DeFi",
         "加密货币与DeFi",

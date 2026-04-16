@@ -6,8 +6,9 @@
   <p align="center">
     <a href="https://www.python.org/downloads/"><img alt="Python 3.8+" src="https://img.shields.io/badge/python-3.8+-blue.svg"></a>
     <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
-    <a href="https://doi.org/10.5281/zenodo.19547879"><img alt="DOI" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.19547879-blue.svg"></a>
+    <a href="https://doi.org/10.5281/zenodo.19615170"><img alt="Dataset DOI" src="https://img.shields.io/badge/Dataset_DOI-10.5281%2Fzenodo.19615170-blue.svg"></a>
     <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded"><img alt="Model" src="https://img.shields.io/badge/%F0%9F%A4%97%20Model-V2_Expanded-yellow"></a>
+    <a href="https://beta.structural.bytedance.city"><img alt="Live Site" src="https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44"></a>
   </p>
 </p>
 
@@ -153,6 +154,17 @@ Example structural types:
 | 18 | Self-fulfilling Prophecy | Finance, Education, Politics |
 | 21 | Hysteresis | Materials Science, Ecology, Psychology |
 
+## Dataset: SIBD-63 (Seed Bank)
+
+**SIBD-63** is the downstream discovery dataset: 63 A-level cross-domain structural isomorphism pairs produced by running the V1 + V2 + V3 pipelines on a 4,443-phenomenon knowledge base. Each record includes a proposed shared equation, variable mapping, target journal, literature-gap assessment, and a step-by-step empirical execution plan.
+
+- **DOI**: [10.5281/zenodo.19615170](https://doi.org/10.5281/zenodo.19615170) (CC-BY-4.0, Zenodo)
+- **Package**: [`v4/seedbank-sibd63/`](./v4/seedbank-sibd63/) — JSONL + schema + paper + build script
+- **Companion paper**: [`v4/seedbank-sibd63/paper.md`](./v4/seedbank-sibd63/paper.md)
+- **Intended use**: a seed bank for empirical follow-up papers — domain experts pick a seed matching their expertise and run the empirical study (3-6 months to publication)
+
+Five of the SOC-class seeds already have companion empirical validation papers (earthquakes, S&P 500, DeFi cross-protocol, neural avalanches, null controls), browsable at [https://beta.structural.bytedance.city/classes](https://beta.structural.bytedance.city/classes).
+
 ## Knowledge Base
 
 The search index contains **500 real-world phenomena** across 87 domains, organized in three files:
@@ -249,12 +261,28 @@ structural-isomorphism/
 
 ## Citation
 
-If you use this project in your research, please cite:
+If you use the **SIBD-63 seed bank dataset** in your research, please cite:
+
+```bibtex
+@dataset{sibd63-2026,
+  author       = {Wan, Qinghui},
+  title        = {{SIBD-63: A Dataset of A-Level Cross-Domain
+                   Structural Isomorphism Discoveries with Shared
+                   Equations and Variable Mappings}},
+  year         = {2026},
+  publisher    = {Zenodo},
+  version      = {1.0},
+  doi          = {10.5281/zenodo.19615170},
+  url          = {https://doi.org/10.5281/zenodo.19615170}
+}
+```
+
+If you cite the V1-V3 methodology (embedding + StructTuple pipelines):
 
 ```bibtex
 @article{structural-isomorphism-2026,
   title={Structural Isomorphism Search: Cross-Domain Structural Similarity Retrieval via Fine-tuned Embeddings},
-  author={Wan, Qihang},
+  author={Wan, Qinghui},
   journal={arXiv preprint arXiv:XXXX.XXXXX},
   year={2026}
 }
