@@ -1,3 +1,19 @@
+// --- i18n helpers ---
+function currentLang() {
+  try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; }
+}
+function L(obj, baseKey) {
+  if (!obj) return '';
+  var lang = currentLang();
+  if (lang === 'en') {
+    var en = obj[baseKey + '_en'];
+    if (typeof en === 'string' && en.length) return en;
+    if (Array.isArray(en) && en.length) return en;
+  }
+  // Discovery items use raw field names like a_name, not a_name_zh
+  return obj[baseKey];
+}
+
 /**
  * Structural — Discoveries page
  * Renders 39 A-level cross-domain isomorphism discoveries (V2 19 + V3 20)
@@ -211,7 +227,7 @@ function renderList() {
     const pipelineBadge = d.pipeline
       ? `<span class="disc-item__pipeline disc-item__pipeline--${d.pipeline.toLowerCase()}">${escapeHtml(d.pipeline)}</span>`
       : '';
-    const verdict = d.one_line_verdict || d.paper_title || '';
+    const verdict = L(d, "one_line_verdict") || L(d, "paper_title") || '';
 
     return `
       <article class="disc-item" data-index="${i}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
@@ -220,15 +236,15 @@ function renderList() {
           <div class="disc-item__body">
             <div class="disc-item__pair">
               <div class="disc-item__side">
-                <span class="disc-item__domain">${escapeHtml(d.a_domain)}</span>
-                <div class="disc-item__name">${escapeHtml(d.a_name)}</div>
+                <span class="disc-item__domain">${escapeHtml(L(d, "a_domain"))}</span>
+                <div class="disc-item__name">${escapeHtml(L(d, "a_name"))}</div>
               </div>
               <div class="disc-item__connector">
                 <div class="disc-item__symbol">≅</div>
               </div>
               <div class="disc-item__side disc-item__side--right">
-                <span class="disc-item__domain">${escapeHtml(d.b_domain)}</span>
-                <div class="disc-item__name">${escapeHtml(d.b_name)}</div>
+                <span class="disc-item__domain">${escapeHtml(L(d, "b_domain"))}</span>
+                <div class="disc-item__name">${escapeHtml(L(d, "b_name"))}</div>
               </div>
             </div>
             <p class="disc-item__verdict">${escapeHtml(verdict)}</p>
@@ -240,7 +256,7 @@ function renderList() {
               </span>
               ${conf !== null ? `<span class="disc-item__meta-tag">同构置信度 ${conf}%</span>` : ''}
               ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">同构深度 ${d.isomorphism_depth}/5</span>` : ''}
-              ${d.time_estimate ? `<span class="disc-item__meta-tag">${escapeHtml(d.time_estimate)}</span>` : ''}
+              ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
               ${d.solo_feasible ? '<span class="disc-item__meta-tag">单人可做</span>' : ''}
             </div>
           </div>
@@ -274,42 +290,42 @@ function renderList() {
 
             ${renderDimScores(d)}
 
-            ${d.paper_title || d.target_venue ? `
+            ${L(d, "paper_title") || d.target_venue ? `
               <div class="disc-item__detail-block disc-item__paper" style="grid-column: 1 / -1">
                 <h4>论文化路径</h4>
-                ${d.paper_title ? `<div class="disc-item__paper-title">${escapeHtml(d.paper_title)}</div>` : ''}
+                ${L(d, "paper_title") ? `<div class="disc-item__paper-title">${escapeHtml(L(d, "paper_title"))}</div>` : ''}
                 ${d.target_venue ? `<div class="disc-item__paper-venue">建议投稿：<strong>${escapeHtml(d.target_venue)}</strong></div>` : ''}
               </div>
             ` : ''}
 
-            ${d.blocking_mechanisms ? `
+            ${L(d, "blocking_mechanisms") ? `
               <div class="disc-item__detail-block">
                 <h4>阻塞机制</h4>
-                ${renderListField(d.blocking_mechanisms)}
+                ${renderListField(L(d, "blocking_mechanisms"))}
               </div>
             ` : ''}
-            ${d.risk ? `
+            ${L(d, "risk") ? `
               <div class="disc-item__detail-block">
                 <h4>潜在风险</h4>
-                ${renderListField(d.risk)}
+                ${renderListField(L(d, "risk"))}
               </div>
             ` : ''}
-            ${d.execution_plan ? `
+            ${L(d, "execution_plan") ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>执行方案</h4>
-                ${renderListField(d.execution_plan)}
+                ${renderListField(L(d, "execution_plan"))}
               </div>
             ` : ''}
-            ${d.impact_scope || d.practical_value ? `
+            ${L(d, "impact_scope") || L(d, "practical_value") ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>实用价值</h4>
-                <p>${d.impact_scope ? `<strong>${escapeHtml(d.impact_scope)}</strong> · ` : ''}${escapeHtml(d.practical_value || '')}</p>
+                <p>${L(d, "impact_scope") ? `<strong>${escapeHtml(L(d, "impact_scope"))}</strong> · ` : ''}${escapeHtml(L(d, "practical_value") || '')}</p>
               </div>
             ` : ''}
-            ${d.full_analysis ? `
+            ${L(d, "full_analysis") ? `
               <details class="disc-item__full-analysis" style="grid-column: 1 / -1">
                 <summary>完整深度分析</summary>
-                <div class="disc-item__full-text">${escapeHtml(d.full_analysis)}</div>
+                <div class="disc-item__full-text">${escapeHtml(L(d, "full_analysis"))}</div>
               </details>
             ` : ''}
             ${d.a_id && d.b_id ? `
@@ -354,13 +370,13 @@ function renderTier2List(listEl) {
       <div class="disc-t2-item__body">
         <div class="disc-t2-item__pair">
           <div class="disc-t2-item__side">
-            <span class="disc-t2-item__domain">${escapeHtml(d.a_domain)}</span>
-            <span class="disc-t2-item__name">${escapeHtml(d.a_name)}</span>
+            <span class="disc-t2-item__domain">${escapeHtml(L(d, "a_domain"))}</span>
+            <span class="disc-t2-item__name">${escapeHtml(L(d, "a_name"))}</span>
           </div>
           <span class="disc-t2-item__symbol">≅</span>
           <div class="disc-t2-item__side disc-t2-item__side--right">
-            <span class="disc-t2-item__domain">${escapeHtml(d.b_domain)}</span>
-            <span class="disc-t2-item__name">${escapeHtml(d.b_name)}</span>
+            <span class="disc-t2-item__domain">${escapeHtml(L(d, "b_domain"))}</span>
+            <span class="disc-t2-item__name">${escapeHtml(L(d, "b_name"))}</span>
           </div>
         </div>
         ${d.reason ? `<p class="disc-t2-item__reason">${escapeHtml(d.reason)}</p>` : ''}
@@ -399,3 +415,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
   loadDiscoveries();
 });
+
+// Re-render on language change
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try { if (typeof render === 'function') render(); } catch (e) {}
+    });
+  }
+} catch (e) {}

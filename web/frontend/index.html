@@ -21,11 +21,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/home.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/home.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417c">
   <style>
     /* Phase 子产品入口（学术版 hero 下方的 callout） */
     .home__cross-product {
@@ -72,16 +72,20 @@
           <circle cx="18" cy="18" r="3"/>
           <path d="M8.5 8.5l7 7"/>
         </svg>
-        Structural<span class="beta-badge">beta</span>
+        Structural<span class="beta-badge" data-i18n="beta.badge">beta</span>
       </a>
       <nav class="site-header__nav">
-        <a href="/classes" class="site-header__nav-link">普适类</a>
-        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
         <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
-          我的收藏
+          <span data-i18n="nav.favorites">我的收藏</span>
           <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
         </a>
-        <a href="/about" class="site-header__nav-link">关于</a>
+        <a href="/about" class="site-header__nav-link" data-i18n="nav.about">关于</a>
+      
+        <button type="button" class="site-header__lang-toggle" id="lang-toggle" data-i18n-attr="aria-label:nav.lang_toggle_aria">
+          <span data-i18n-lang-label>EN</span>
+        </button>
       </nav>
     </div>
   </header>
@@ -92,11 +96,11 @@
       <div class="home__hero-inner">
         <div class="home__eyebrow">
           <span class="home__eyebrow-dot"></span>
-          跨领域思维引擎
+          <span data-i18n="page.home.eyebrow">跨领域思维引擎</span>
         </div>
         <h1 class="home__brand serif">Structural</h1>
-        <p class="home__tagline serif">看似完全无关的现象，在数学结构层面往往是同一件事。</p>
-        <p class="home__lede">描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。</p>
+        <p class="home__tagline serif" data-i18n="page.home.tagline">看似完全无关的现象，在数学结构层面往往是同一件事。</p>
+        <p class="home__lede" data-i18n="page.home.lede">描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。</p>
 
         <!-- Inline evidence: interactive card showing one isomorphism pair with mechanism.
              Each side is clickable → fires a search; caption reveals the shared structure. -->
@@ -115,7 +119,7 @@
                 <span class="hero-evidence__desc" id="he-b-desc">口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。</span>
               </button>
             </div>
-            <p class="hero-evidence__caption" id="he-caption">它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。</p>
+            <p class="hero-evidence__caption" id="he-caption" data-i18n="page.home.hero_evidence.caption_1">它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。</p>
           </div>
           <div class="hero-evidence__controls">
             <div class="hero-evidence__dots" id="he-dots" role="tablist" aria-label="切换例子"></div>
@@ -133,18 +137,18 @@
           <div class="searchbox__wrapper searchbox__wrapper--multi">
             <textarea
               class="searchbox__input searchbox__input--multi"
-              placeholder="一句话描述你观察到的现象、问题或正在做的研究方向。&#10;（可选）补充你的背景和已经尝试过的，我会调整迁移的深度。"
+              placeholder="" data-i18n-attr="placeholder:page.home.search.placeholder"
               autocomplete="off"
               spellcheck="false"
               aria-label="输入问题"
               rows="3"
             ></textarea>
             <div class="searchbox__footer">
-              <div class="searchbox__hint">
+              <div class="searchbox__hint" data-i18n="page.home.search.hint">
                 <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
               </div>
               <button type="submit" class="searchbox__submit searchbox__submit--primary" aria-label="分析">
-                <span class="searchbox__submit-label">深度分析</span>
+                <span class="searchbox__submit-label" data-i18n="page.home.search.submit_label">深度分析</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7"/>
                 </svg>
@@ -156,9 +160,9 @@
         <div class="home__suggestions" id="home-suggestions"></div>
 
         <div class="home__cross-product">
-          <span class="home__cross-product__badge">子产品</span>
-          <span class="home__cross-product-label">Phase Detector — 把同构引擎用到金融/商业领域。</span>
-          <a href="/phase">打开 Phase Detector →</a>
+          <span class="home__cross-product__badge" data-i18n="page.home.cross_product.badge">子产品</span>
+          <span class="home__cross-product-label" data-i18n="page.home.cross_product.label">Phase Detector — 把同构引擎用到金融/商业领域。</span>
+          <a href="/phase" data-i18n="page.home.cross_product.link">打开 Phase Detector →</a>
         </div>
       </div>
     </section>
@@ -169,28 +173,28 @@
       <!-- How it works: explain the pipeline so users know what they're entering for -->
       <section class="home__section home__section--how">
         <header class="home__section-header">
-          <span class="home__section-label">工作流程</span>
-          <h2 class="home__section-title">你输入一个问题之后，<em>会发生什么</em></h2>
-          <p class="home__section-sub">从一句话描述到一份可执行的跨学科研究报告，全程 1-2 分钟。</p>
+          <span class="home__section-label" data-i18n="page.home.how.label">工作流程</span>
+          <h2 class="home__section-title" data-i18n="page.home.how.title">你输入一个问题之后，<em>会发生什么</em></h2>
+          <p class="home__section-sub" data-i18n="page.home.how.sub">从一句话描述到一份可执行的跨学科研究报告，全程 1-2 分钟。</p>
         </header>
         <ol class="how-steps">
           <li class="how-step">
             <span class="how-step__num">01</span>
-            <h3 class="how-step__title">理解 + 检索</h3>
-            <p class="how-step__text">把你的口语化问题改写成研究问题，然后从 4,443 个跨学科现象里向量检索出结构相似的 20 个候选。</p>
-            <span class="how-step__time">≈ 1s</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step1.title">理解 + 检索</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step1.text">把你的口语化问题改写成研究问题，然后从 4,443 个跨学科现象里向量检索出结构相似的 20 个候选。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step1.time">≈ 1s</span>
           </li>
           <li class="how-step">
             <span class="how-step__num">02</span>
-            <h3 class="how-step__title">合成主洞察</h3>
-            <p class="how-step__text">把候选交给 LLM 综合分析，给你一段直接的答案 + 一张「最值得先看」的首推卡 + 两个补充视角（对立面 / 时间尺度 / 微观机制 / 跨尺度类比）。</p>
-            <span class="how-step__time">≈ 8–15s</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step2.title">合成主洞察</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step2.text">把候选交给 LLM 综合分析，给你一段直接的答案 + 一张「最值得先看」的首推卡 + 两个补充视角（对立面 / 时间尺度 / 微观机制 / 跨尺度类比）。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step2.time">≈ 8–15s</span>
           </li>
           <li class="how-step">
             <span class="how-step__num">03</span>
-            <h3 class="how-step__title">深度迁移报告</h3>
-            <p class="how-step__text">点首推卡 → 8 段流式生成的研究报告：共享数学结构、关键变量、源领域的成熟工具、怎么具体应用到你的问题、需要验证的假设、迁移风险。</p>
-            <span class="how-step__time">≈ 30–60s</span>
+            <h3 class="how-step__title" data-i18n="page.home.how.step3.title">深度迁移报告</h3>
+            <p class="how-step__text" data-i18n="page.home.how.step3.text">点首推卡 → 8 段流式生成的研究报告：共享数学结构、关键变量、源领域的成熟工具、怎么具体应用到你的问题、需要验证的假设、迁移风险。</p>
+            <span class="how-step__time" data-i18n="page.home.how.step3.time">≈ 30–60s</span>
           </li>
         </ol>
       </section>
@@ -198,9 +202,9 @@
       <!-- Use cases: best practices for different roles -->
       <section class="home__section home__section--usecases">
         <header class="home__section-header">
-          <span class="home__section-label">适合这样用</span>
-          <h2 class="home__section-title">三种<em>典型场景</em></h2>
-          <p class="home__section-sub">把你正被困住的问题输入，系统识别出底层结构，返回跨域里已经解决过的成熟工具。</p>
+          <span class="home__section-label" data-i18n="page.home.usecases.label">适合这样用</span>
+          <h2 class="home__section-title" data-i18n="page.home.usecases.title">三种<em>典型场景</em></h2>
+          <p class="home__section-sub" data-i18n="page.home.usecases.sub">把你正被困住的问题输入，系统识别出底层结构，返回跨域里已经解决过的成熟工具。</p>
         </header>
         <div class="usecases-grid">
           <article class="usecase">
@@ -210,14 +214,14 @@
                 <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
               </svg>
             </div>
-            <h3 class="usecase__title">学术 · 找跨域结构</h3>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card1.title">学术 · 找跨域结构</h3>
             <div class="usecase__row">
-              <span class="usecase__tag">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="地震、股价跳跃、神经雪崩的大小都是幂律分布，是同一个机制吗？">地震、股价跳跃、神经雪崩都是幂律分布，是同一个机制吗？ →</button>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="地震、股价跳跃、神经雪崩的大小都是幂律分布，是同一个机制吗？" data-i18n="page.home.usecases.card1.sample">地震、股价跳跃、神经雪崩都是幂律分布，是同一个机制吗？ →</button>
             </div>
             <div class="usecase__row">
-              <span class="usecase__tag">系统给</span>
-              <span class="usecase__value"><strong>自组织临界（SOC）普适类</strong> · 分支过程族、τ ≈ 1.5、γ=(α−1)/(τ−1)——地震 · DeFi 清算 · 神经雪崩三个领域已被实证（5 篇 arXiv 配套论文）。</span>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card1.value"><strong>自组织临界（SOC）普适类</strong> · 分支过程族、τ ≈ 1.5、γ=(α−1)/(τ−1)——地震 · DeFi 清算 · 神经雪崩三个领域已被实证（5 篇 arXiv 配套论文）。</span>
             </div>
           </article>
 
@@ -230,14 +234,14 @@
                 <line x1="3" y1="20" x2="21" y2="20"/>
               </svg>
             </div>
-            <h3 class="usecase__title">产品 · 用户流失分析</h3>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card2.title">产品 · 用户流失分析</h3>
             <div class="usecase__row">
-              <span class="usecase__tag">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="我们的月活用户每个月按固定比率掉 7%，这种指数衰减有没有物理对应？怎么干预？">我们月活用户按固定比率掉 7%，怎么看怎么干预？ →</button>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="我们的月活用户每个月按固定比率掉 7%，这种指数衰减有没有物理对应？怎么干预？" data-i18n="page.home.usecases.card2.sample">我们月活用户按固定比率掉 7%，怎么看怎么干预？ →</button>
             </div>
             <div class="usecase__row">
-              <span class="usecase__tag">系统给</span>
-              <span class="usecase__value"><strong>一阶指数衰减</strong> · dN/dt = −λN——放射性衰变 · 药物血药浓度 · RLC 阻尼振荡都是它。<strong>半衰期是唯一参数</strong>：干预必须在半衰期前进行，过后成本指数级上升。</span>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card2.value"><strong>一阶指数衰减</strong> · dN/dt = −λN——放射性衰变 · 药物血药浓度 · RLC 阻尼振荡都是它。<strong>半衰期是唯一参数</strong>：干预必须在半衰期前进行，过后成本指数级上升。</span>
             </div>
           </article>
 
@@ -249,14 +253,14 @@
                 <line x1="2" y1="12" x2="22" y2="12"/>
               </svg>
             </div>
-            <h3 class="usecase__title">战略 · 不可逆恶化</h3>
+            <h3 class="usecase__title" data-i18n="page.home.usecases.card3.title">战略 · 不可逆恶化</h3>
             <div class="usecase__row">
-              <span class="usecase__tag">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="团队氛围一旦变差就救不回来，为什么微小变化能触发不可逆退变？">团队氛围一旦变差就回不去了——为什么会这样？ →</button>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
+              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="团队氛围一旦变差就救不回来，为什么微小变化能触发不可逆退变？" data-i18n="page.home.usecases.card3.sample">团队氛围一旦变差就回不去了——为什么会这样？ →</button>
             </div>
             <div class="usecase__row">
-              <span class="usecase__tag">系统给</span>
-              <span class="usecase__value"><strong>尖点灾变 / fold 分岔</strong> · 双稳态 + 磁滞回线——磁铁磁化 · 湖泊富营养化 · 生态 regime shift 都是它。<strong>回溯路径 ≠ 前进路径</strong>，触发阈值和反推阈值差得远。</span>
+              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
+              <span class="usecase__value" data-i18n="page.home.usecases.card3.value"><strong>尖点灾变 / fold 分岔</strong> · 双稳态 + 磁滞回线——磁铁磁化 · 湖泊富营养化 · 生态 regime shift 都是它。<strong>回溯路径 ≠ 前进路径</strong>，触发阈值和反推阈值差得远。</span>
             </div>
           </article>
         </div>
@@ -265,21 +269,21 @@
       <!-- Recent searches (local, hidden by JS when empty) -->
       <section class="home__section home__history-section" id="home-history" hidden>
         <header class="home__section-header">
-          <span class="home__section-label">你最近的问题</span>
-          <h2 class="home__section-title">接着上次<em>继续想</em></h2>
+          <span class="home__section-label" data-i18n="page.home.history.label">你最近的问题</span>
+          <h2 class="home__section-title" data-i18n="page.home.history.title">接着上次<em>继续想</em></h2>
         </header>
         <div class="home__history-chips" id="home-history-chips"></div>
       </section>
 
       <section class="home__section">
         <header class="home__section-header">
-          <span class="home__section-label">今日发现</span>
-          <h2 class="home__section-title">每天从知识库中揭示 <em>3 组</em>跨领域同构</h2>
+          <span class="home__section-label" data-i18n="page.home.daily.label">今日发现</span>
+          <h2 class="home__section-title" data-i18n="page.home.daily.title">每天从知识库中揭示 <em>3 组</em>跨领域同构</h2>
         </header>
         <div class="home__daily-grid" id="daily-grid"></div>
         <div class="home__section-footer">
           <a href="/discoveries" class="home__section-link">
-            查看全部 39 个 A 级精选发现
+            <span data-i18n="page.home.daily.link">查看全部 39 个 A 级精选发现</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M5 12h14M13 5l7 7-7 7"/>
             </svg>
@@ -290,8 +294,8 @@
       <!-- Favorited reports (local, hidden by JS when empty) -->
       <section class="home__section home__favorites-section" id="home-favorites" hidden>
         <header class="home__section-header">
-          <span class="home__section-label">收藏的报告</span>
-          <h2 class="home__section-title">你保存的<em>深度分析</em></h2>
+          <span class="home__section-label" data-i18n="page.home.favorites.label">收藏的报告</span>
+          <h2 class="home__section-title" data-i18n="page.home.favorites.title">你保存的<em>深度分析</em></h2>
         </header>
         <div class="home__favorites-list" id="home-favorites-list"></div>
       </section>
@@ -301,20 +305,21 @@
 
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__copyright" data-i18n="footer.copyright">© 2026 Structural · 跨领域思维引擎</div>
       <div class="site-footer__links">
-        <a class="site-footer__link" href="/about">关于</a>
-        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
-        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
-        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
-        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
+        <a class="site-footer__link" href="/about" data-i18n="footer.about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener" data-i18n="footer.paper">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener" data-i18n="footer.huggingface">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener" data-i18n="footer.zenodo">Zenodo</a>
       </div>
     </div>
   </footer>
 
-  <script src="/assets/js/utils.js?v=20260417b"></script>
-  <script src="/assets/js/api.js?v=20260417b"></script>
-  <script src="/assets/js/home.js?v=20260417b"></script>
-  <script src="/assets/js/product-switcher.js?v=20260417b"></script>
+  <script src="/assets/js/i18n.js?v=20260417c"></script>
+  <script src="/assets/js/utils.js?v=20260417c"></script>
+  <script src="/assets/js/api.js?v=20260417c"></script>
+  <script src="/assets/js/home.js?v=20260417c"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417c"></script>
 </body>
 </html>

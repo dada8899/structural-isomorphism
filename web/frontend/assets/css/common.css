@@ -129,6 +129,25 @@
   display: none;
 }
 
+/* Language toggle button (zh <-> en) */
+.site-header__lang-toggle {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.site-header__lang-toggle:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
 /* === Footer === */
 .site-footer {
   margin-top: var(--space-10);

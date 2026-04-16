@@ -21,11 +21,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/about.css?v=20260417b">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/about.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417c">
 </head>
 <body>
   <header class="site-header">
@@ -36,216 +36,220 @@
           <circle cx="18" cy="18" r="3"/>
           <path d="M8.5 8.5l7 7"/>
         </svg>
-        Structural<span class="beta-badge">beta</span>
+        Structural<span class="beta-badge" data-i18n="beta.badge">beta</span>
       </a>
       <nav class="site-header__nav">
-        <a href="/classes" class="site-header__nav-link">普适类</a>
-        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
         <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
-          我的收藏
+          <span data-i18n="nav.favorites">我的收藏</span>
           <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
         </a>
-        <a href="/about" class="site-header__nav-link">关于</a>
-        <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
+        <a href="/about" class="site-header__nav-link" data-i18n="nav.about">关于</a>
+        <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" class="site-header__nav-link" data-i18n="nav.github">GitHub</a>
+      
+        <button type="button" class="site-header__lang-toggle" id="lang-toggle" data-i18n-attr="aria-label:nav.lang_toggle_aria">
+          <span data-i18n-lang-label>EN</span>
+        </button>
       </nav>
     </div>
   </header>
 
   <main class="about-page">
-    <div class="about-page__eyebrow">— 关于 Structural —</div>
-    <h1 class="about-page__title">万物的形状<br>都在重复</h1>
+    <div class="about-page__eyebrow" data-i18n="page.about.eyebrow">— 关于 Structural —</div>
+    <h1 class="about-page__title" data-i18n="page.about.title">万物的形状<br>都在重复</h1>
 
-    <p class="about-page__lede">
+    <p class="about-page__lede" data-i18n="page.about.lede">
       Structural 是一个跨领域思维引擎。它基于一个反直觉的观察：<strong>看似完全无关的现象，在数学结构层面往往是同一件事</strong>。放射性衰变和药物代谢、股价波动和热力学涨落、传染病传播和谣言扩散——它们在各自领域的语言下毫无关系，但背后是同一个方程。
     </p>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Goal</div>
-      <h2 class="about-page__section-title">整体目标 · 把"发现跨域同构"系统化</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.goal.label">Goal</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.goal.title">整体目标 · 把"发现跨域同构"系统化</h2>
+      <p data-i18n="page.about.goal.p1">
         科学史上的一些关键突破——Shannon 用热力学的熵建立信息论、Black-Scholes 把热传导方程搬到期权定价、模拟退火把冶金过程变成组合优化——都是<strong>"同一个数学骨架第一次被搬到另一个领域"的瞬间</strong>。传统上这类跨域借用依赖极少数通才的偶然洞察。
       </p>
-      <p>
+      <p data-i18n="page.about.goal.p2">
         Structural 想做的是：把这种发现过程<strong>从偶然变成可搜索、可复现、可验证的流程</strong>。四代管道（V1 / V2 / V3 / V4）是同一个目标的不同切面——从 embedding 召回，到结构代数匹配，到普适类组织和实证验证。产出的每一个候选都带数学方程、变量映射、目标期刊、执行计划，是领域专家可以直接拿去写论文的"种子"。
       </p>
 
       <div class="about-stats">
         <div class="about-stats__item">
           <div class="about-stats__num">4,443</div>
-          <div class="about-stats__label">Phenomena<br/>（自然语言知识库）</div>
+          <div class="about-stats__label" data-i18n="page.about.goal.stat1.label">Phenomena<br/>（自然语言知识库）</div>
         </div>
         <div class="about-stats__item">
           <div class="about-stats__num">63</div>
-          <div class="about-stats__label">Top-tier discoveries<br/>（三代管道 A 级产出）</div>
+          <div class="about-stats__label" data-i18n="page.about.goal.stat2.label">Top-tier discoveries<br/>（三代管道 A 级产出）</div>
         </div>
         <div class="about-stats__item">
           <div class="about-stats__num">23</div>
-          <div class="about-stats__label">Universality classes<br/>（V4 等价类引擎聚合）</div>
+          <div class="about-stats__label" data-i18n="page.about.goal.stat3.label">Universality classes<br/>（V4 等价类引擎聚合）</div>
         </div>
         <div class="about-stats__item">
           <div class="about-stats__num">5</div>
-          <div class="about-stats__label">Empirical validations<br/>（Layer 5 实证复现）</div>
+          <div class="about-stats__label" data-i18n="page.about.goal.stat4.label">Empirical validations<br/>（Layer 5 实证复现）</div>
         </div>
       </div>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Why</div>
-      <h2 class="about-page__section-title">为什么这有用</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.why.label">Why</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.why.title">为什么这有用</h2>
+      <p data-i18n="page.about.why.p1">
         当你在自己的领域里遇到一个难题，答案也许根本不在你的领域里。<strong>在另一个和你完全无关的学科，可能有人已经解决了同一个数学问题</strong>——他们的术语不同、场景不同，但数学骨架完全一致。Structural 让你跨越学科的围墙，直接借用别人的答案。
       </p>
-      <p>
+      <p data-i18n="page.about.why.p2">
         Claude Shannon 借用热力学的"熵"奠定了信息论。Black 和 Scholes 把热传导方程搬到金融市场上得到了期权定价公式。模拟退火算法把冶金学的物理过程变成了组合优化的利器。这些跨领域的突破不是偶然——它们都是<strong>结构同构被发现的瞬间</strong>。Structural 想做的是把这种"发现"系统化。
       </p>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">How</div>
-      <h2 class="about-page__section-title">它是怎么工作的</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.how.label">How</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.how.title">它是怎么工作的</h2>
+      <p data-i18n="page.about.how.intro">
         传统的搜索工具基于语义或关键词匹配——它找的是"看起来像"的东西。Structural 不一样。它的核心是让机器识别"数学结构相似"，而不是"文字表面相似"。为此我们建了<strong>三条并行的检索管道</strong>——它们从不同角度寻找同一件事，最后合并去重。
       </p>
 
-      <h3 class="about-page__subsection-title">V1 · 广义 embedding（covering recall）</h3>
-      <p>
+      <h3 class="about-page__subsection-title" data-i18n="page.about.how.v1.title">V1 · 广义 embedding（covering recall）</h3>
+      <p data-i18n="page.about.how.v1.p1">
         用 <code>text2vec-base-chinese</code> 作为 backbone，在 84 种结构类型 × 1,214 条人工标注样本上做对比学习微调（MultipleNegativesRankingLoss）。目标是让"同一结构的不同领域描述"在 768 维空间中互相靠近，"不同结构"互相推开。训练完成后 Silhouette 0.85、Retrieval@5 100%。
       </p>
-      <p>
+      <p data-i18n="page.about.how.v1.p2">
         <strong>路径</strong>：自然语言描述 → V1 embedding → cosine 相似度 → top-k。<br>
         <strong>优势</strong>：召回广（在 4,443 KB 上找到 339,913 对高相似跨域配对）。<br>
         <strong>缺点</strong>：精度一般，"共享关键词"和"共享数学"区分不够。<br>
         <strong>角色</strong>：宽撒网——找潜在候选，不保证质量。
       </p>
 
-      <h3 class="about-page__subsection-title">V2 · 严格 embedding（precision retrieval）</h3>
-      <p>
+      <h3 class="about-page__subsection-title" data-i18n="page.about.how.v2.title">V2 · 严格 embedding（precision retrieval）</h3>
+      <p data-i18n="page.about.how.v2.p1">
         相同的 backbone，但训练集扩到 5,689 条（V1 原始 + 4,475 条新扩展），多了一倍的负样本和跨领域对。这让模型变得更"挑剔"——在同一个 4,443 KB 上只产出 <strong>4,533 对高相似配对</strong>（严格度是 V1 的 75×）。
       </p>
-      <p>
+      <p data-i18n="page.about.how.v2.p2">
         <strong>路径</strong>：自然语言 → V2 embedding → cosine → top-k。<br>
         <strong>评估</strong>：Silhouette 0.55（比 V1 在扩展集上更好）、Retrieval@5 96%。<br>
         <strong>角色</strong>：精度检索——同样是 embedding，但更能分辨浅层关键词相似。
       </p>
 
-      <h3 class="about-page__subsection-title">V3 · StructTuple + LLM rerank（structural algebra）</h3>
-      <p>
+      <h3 class="about-page__subsection-title" data-i18n="page.about.how.v3.title">V3 · StructTuple + LLM rerank（structural algebra）</h3>
+      <p data-i18n="page.about.how.v3.intro">
         前两代的 embedding 都是"统计相关"——把文本映射到向量空间看距离。V3 换了一个哲学：如果结构同构的本质是共享数学方程，就必须<strong>显式地表达这些方程</strong>，不是用相关性近似它。
       </p>
-      <p>
+      <p data-i18n="page.about.how.v3.bullets_intro">
         我们用 Kimi/Opus 把 4,443 现象每一条都抽取成一个<strong>结构化元组</strong>（StructTuple），字段包括：
       </p>
       <ul class="about-list">
-        <li><code>state_vars</code> — 随时间变化的状态变量</li>
-        <li><code>dynamics_family</code> — 动力学族：ODE1_exponential_decay / DDE_delayed_feedback / PDE_reaction_diffusion / Bistable_switch / Network_cascade / Phase_transition_1st 等 27 个枚举值</li>
-        <li><code>feedback_topology</code> — positive_loop / negative_loop / delayed / bistable / none</li>
-        <li><code>boundary_behavior</code> — runaway / saturation / limit_cycle / fold_bifurcation / phase_transition</li>
-        <li><code>timescale_log10_s</code> — 特征时间的数量级</li>
-        <li><code>canonical_equation</code> — 可推断的方程骨架（如 <code>dx/dt = f(x(t-τ)) - g(x)</code>）</li>
+        <li data-i18n="page.about.how.v3.bullet1"><code>state_vars</code> — 随时间变化的状态变量</li>
+        <li data-i18n="page.about.how.v3.bullet2"><code>dynamics_family</code> — 动力学族：ODE1_exponential_decay / DDE_delayed_feedback / PDE_reaction_diffusion / Bistable_switch / Network_cascade / Phase_transition_1st 等 27 个枚举值</li>
+        <li data-i18n="page.about.how.v3.bullet3"><code>feedback_topology</code> — positive_loop / negative_loop / delayed / bistable / none</li>
+        <li data-i18n="page.about.how.v3.bullet4"><code>boundary_behavior</code> — runaway / saturation / limit_cycle / fold_bifurcation / phase_transition</li>
+        <li data-i18n="page.about.how.v3.bullet5"><code>timescale_log10_s</code> — 特征时间的数量级</li>
+        <li data-i18n="page.about.how.v3.bullet6"><code>canonical_equation</code> — 可推断的方程骨架（如 <code>dx/dt = f(x(t-τ)) - g(x)</code>）</li>
       </ul>
-      <p>
+      <p data-i18n="page.about.how.v3.match_logic">
         检索时用<strong>字段级硬匹配</strong>：dynamics_family 不同直接拒绝；同族才进入细粒度评分。这过滤掉了"两个现象都含'反馈'、'阈值'但机制完全不同"的关键词陷阱。通过后再用 LLM pairwise rerank 做第二次过滤，每对输出 <code>shared_equation</code> 和 <code>variable_mapping</code>。
       </p>
-      <p>
+      <p data-i18n="page.about.how.v3.role">
         <strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → top 候选 + 共享方程。<br>
         <strong>评估</strong>：在 1,000 候选上 LLM 5-score 密度 5.5%（V2 是 1.9%），深度分析 A 级命中率从 V2 的 ~20% 提升到 ~27%。<br>
         <strong>角色</strong>：结构代数——每个发现都带方程，直接可以写进论文的方法论段落。
       </p>
 
-      <h3 class="about-page__subsection-title">三代并行，零重叠</h3>
-      <p>
+      <h3 class="about-page__subsection-title" data-i18n="page.about.how.parallel.title">三代并行，零重叠</h3>
+      <p data-i18n="page.about.how.parallel.p">
         最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到"语义近邻"、V2 看到"精细语义"、V3 看到"数学同族"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>（数据集 <a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">SIBD-63</a>）。
       </p>
 
-      <h3 class="about-page__subsection-title">V4 · 普适类发现引擎（universality class engine）</h3>
-      <p>
+      <h3 class="about-page__subsection-title" data-i18n="page.about.how.v4.title">V4 · 普适类发现引擎（universality class engine）</h3>
+      <p data-i18n="page.about.how.v4.intro">
         V1–V3 产出的是离散的"A≅B"配对。但只要你仔细看 63 个 seed，会发现大量<strong>"A≅B 同时 A≅C"</strong>的结构——地震、S&amp;P 股价、DeFi 清算、神经雪崩，它们两两都同构，但其实是在共享<strong>同一个更底层的数学物理规律</strong>。V4 的任务是把这些离散对子聚合成<strong>等价类（universality class）</strong>。
       </p>
-      <p>实现分五层：</p>
+      <p data-i18n="page.about.how.v4.layers_intro">实现分五层：</p>
       <ul class="about-list">
-        <li><strong>Layer 1 · 图建模</strong>——把 SIBD-63 建成图，节点 = 领域现象，边 = 同构对；对语义相近的节点做别名归并（<code>node_aliases.json</code>，人工白名单 + LLM 建议）。</li>
-        <li><strong>Layer 2 · 连通分量 + Louvain 社区</strong>——用 NetworkX 算 connected components 和 Louvain community，得到 23 个 candidate universality classes。</li>
-        <li><strong>Layer 3 · LLM 精编</strong>——每个 candidate 过 Opus 审核：命名（如 "Branching-process SOC"）、核心方程（<code>P(s)∝s⁻ᵗ</code>、<code>γ=(α-1)/(τ-1)</code>）、hub domain、典型 exponent 范围、literature status。</li>
-        <li><strong>Layer 4 · 可验证预测</strong>——每个类提炼 1-5 个"如果成立，某个分布/指数就会是这个值"的 falsifiable prediction（共 24 个）。</li>
-        <li><strong>Layer 5 · 实证验证</strong>——对其中最可操作的一类（SOC）走完整个"数据 → 拟合 → 论文"流程，见下一节。</li>
+        <li data-i18n="page.about.how.v4.layer1"><strong>Layer 1 · 图建模</strong>——把 SIBD-63 建成图，节点 = 领域现象，边 = 同构对；对语义相近的节点做别名归并（<code>node_aliases.json</code>，人工白名单 + LLM 建议）。</li>
+        <li data-i18n="page.about.how.v4.layer2"><strong>Layer 2 · 连通分量 + Louvain 社区</strong>——用 NetworkX 算 connected components 和 Louvain community，得到 23 个 candidate universality classes。</li>
+        <li data-i18n="page.about.how.v4.layer3"><strong>Layer 3 · LLM 精编</strong>——每个 candidate 过 Opus 审核：命名（如 "Branching-process SOC"）、核心方程（<code>P(s)∝s⁻ᵗ</code>、<code>γ=(α-1)/(τ-1)</code>）、hub domain、典型 exponent 范围、literature status。</li>
+        <li data-i18n="page.about.how.v4.layer4"><strong>Layer 4 · 可验证预测</strong>——每个类提炼 1-5 个"如果成立，某个分布/指数就会是这个值"的 falsifiable prediction（共 24 个）。</li>
+        <li data-i18n="page.about.how.v4.layer5"><strong>Layer 5 · 实证验证</strong>——对其中最可操作的一类（SOC）走完整个"数据 → 拟合 → 论文"流程，见下一节。</li>
       </ul>
-      <p>
+      <p data-i18n="page.about.how.v4.role">
         <strong>角色</strong>：组织器——把 V1-V3 的离散发现升级为"结构家族"，让一次验证能支撑多个领域的论文。浏览 23 个类：<a href="/classes">/classes</a>。
       </p>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Empirical</div>
-      <h2 class="about-page__section-title">Layer 5 · 实证验证 · SOC 跨五领域</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.empirical.label">Empirical</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.empirical.title">Layer 5 · 实证验证 · SOC 跨五领域</h2>
+      <p data-i18n="page.about.empirical.intro">
         理论只是起点，实证才让一个普适类变成论文。我们选了 V4 里最成熟的一类——<strong>Branching-process Self-Organized Criticality（SOC）</strong>，它预言 event-size 分布是无截断的 power law，exponent τ ≈ 1.5、energy α ≈ 2.0、lifetime γ ≈ 2.0 并满足 γ = (α-1)/(τ-1) 这个 scaling relation。我们在五个互相独立的领域做了同样的拟合：
       </p>
       <ul class="about-list">
-        <li><strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style="color: #2f9e44;">✅ 与理论吻合</span>。</li>
-        <li><strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style="color: #2f9e44;">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。</li>
-        <li><strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style="color: #2f9e44;">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。</li>
-        <li><strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style="color: #e8a800;">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。</li>
-        <li><strong>Phase 5 · Null controls</strong>：人工合成的 Poisson / Gaussian 流量经过同样管道，<strong>得不到 power-law</strong>——说明前四个领域的拟合不是方法学的产物。</li>
+        <li data-i18n="page.about.empirical.phase1"><strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style="color: #2f9e44;">✅ 与理论吻合</span>。</li>
+        <li data-i18n="page.about.empirical.phase2"><strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style="color: #2f9e44;">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。</li>
+        <li data-i18n="page.about.empirical.phase3"><strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style="color: #2f9e44;">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。</li>
+        <li data-i18n="page.about.empirical.phase4"><strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style="color: #e8a800;">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。</li>
+        <li data-i18n="page.about.empirical.phase5"><strong>Phase 5 · Null controls</strong>：人工合成的 Poisson / Gaussian 流量经过同样管道，<strong>得不到 power-law</strong>——说明前四个领域的拟合不是方法学的产物。</li>
       </ul>
-      <p>
+      <p data-i18n="page.about.empirical.closing">
         五个领域的分析脚本、论文 Markdown、数据下载脚本全部在 <code>v4/validation/</code> 下开源。五篇配套论文在 <a href="/classes">/classes</a> 页面底部的 Layer 5 区域可以阅读。
       </p>
-      <p>
+      <p data-i18n="page.about.empirical.significance">
         <strong>意义</strong>：V4 不只是"聚合 V1-V3"——它把"跨域同构"从哲学命题推进到了<strong>"可以用同一套代码在五个真实系统上复现"</strong>的实证阶段。
       </p>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Scoring</div>
-      <h2 class="about-page__section-title">相似度分数是怎么算的</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.scoring.label">Scoring</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.scoring.title">相似度分数是怎么算的</h2>
+      <p data-i18n="page.about.scoring.intro">
         Beta 站的 <code>/api/search</code> 接口用的是混合打分（hybrid ranking），融合四个信号：
       </p>
       <ul class="about-list">
-        <li><strong>BM25 词项命中</strong>（权重 0.45）— 用 jieba 中文分词后做 BM25-Okapi，衡量查询词和现象描述的词汇重合度。先 min-max 归一化到 [0, 1]。</li>
-        <li><strong>V2 embedding 余弦相似</strong>（权重 0.55）— 把查询和现象描述都过 V2 模型，计算 768 维向量的 cosine 相似度。同样先 min-max 归一化到 [0, 1]。</li>
-        <li><strong>StructTuple dynamics_family boost</strong>（+0.10）— 从查询关键词推断动力学族（"延迟"→DDE_delayed_feedback、"阈值"→Phase_transition_1st 等），给 StructTuple 里匹配的现象加一个轻奖励。</li>
-        <li><strong>MMR domain diversity guard</strong>（post-filter）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。</li>
+        <li data-i18n="page.about.scoring.signal1"><strong>BM25 词项命中</strong>（权重 0.45）— 用 jieba 中文分词后做 BM25-Okapi，衡量查询词和现象描述的词汇重合度。先 min-max 归一化到 [0, 1]。</li>
+        <li data-i18n="page.about.scoring.signal2"><strong>V2 embedding 余弦相似</strong>（权重 0.55）— 把查询和现象描述都过 V2 模型，计算 768 维向量的 cosine 相似度。同样先 min-max 归一化到 [0, 1]。</li>
+        <li data-i18n="page.about.scoring.signal3"><strong>StructTuple dynamics_family boost</strong>（+0.10）— 从查询关键词推断动力学族（"延迟"→DDE_delayed_feedback、"阈值"→Phase_transition_1st 等），给 StructTuple 里匹配的现象加一个轻奖励。</li>
+        <li data-i18n="page.about.scoring.signal4"><strong>MMR domain diversity guard</strong>（post-filter）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。</li>
       </ul>
-      <p>
+      <p data-i18n="page.about.scoring.formula">
         最终分数 = <code>0.45 × BM25 + 0.55 × embedding + 0.10 × dynamics_boost</code>，范围是 [0, 1.1]。前端把分数映射到三档：
       </p>
       <ul class="about-list">
-        <li><strong>≥ 0.6 · 强相似</strong> — 机制可能共享，值得深入</li>
-        <li><strong>0.3 – 0.6 · 中等相似</strong> — 部分重合，需要甄别</li>
-        <li><strong>&lt; 0.3 · 弱相关</strong> — 可能只是词汇重叠，谨慎参考</li>
+        <li data-i18n="page.about.scoring.tier1"><strong>≥ 0.6 · 强相似</strong> — 机制可能共享，值得深入</li>
+        <li data-i18n="page.about.scoring.tier2"><strong>0.3 – 0.6 · 中等相似</strong> — 部分重合，需要甄别</li>
+        <li data-i18n="page.about.scoring.tier3"><strong>&lt; 0.3 · 弱相关</strong> — 可能只是词汇重叠，谨慎参考</li>
       </ul>
-      <p>
+      <p data-i18n="page.about.scoring.note">
         <strong>"精选发现"页面</strong>（<code>/discoveries</code>）的分数来源不同——那是<strong>每个候选经过深度分析后的综合得分</strong>（0-10），考虑 novelty / rigor / feasibility / impact / writability 五个维度加权，由 Opus 独立评估，不是实时检索的 cosine 距离。所以精选发现的分数和搜索结果的百分比<strong>不是同一个尺度</strong>，不要直接比较。
       </p>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">What's Next</div>
-      <h2 class="about-page__section-title">从种子库到论文的转化</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.next.label">What's Next</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.next.title">从种子库到论文的转化</h2>
+      <p data-i18n="page.about.next.intro">
         目前 V1 + V2 + V3 + V4 四代管道全部上线，63 个 seed 已经打包成<strong>可引用的 Zenodo 数据集</strong>（<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">SIBD-63 · DOI 10.5281/zenodo.19615170</a>，CC-BY-4.0）。SOC 一类已完成 Layer 5 实证闭环。下一步工作：
       </p>
       <ul class="about-list">
-        <li><strong>Seed bank outreach</strong>——把 63 个候选分门别类发给对口方向的学术团队（生态 / 金融 / 材料 / 神经 / DeFi），让领域专家挑与自己专长匹配的 seed 做成论文，Structural 获得 co-author / acknowledgement / 被引。</li>
-        <li><strong>其他普适类实证</strong>——把 Layer 5 的五阶段工作流复用到另外 22 个类（延迟反馈债务、bistable 双稳态、Motter-Lai 级联、toggle switch 等），逐个落地。</li>
-        <li><strong>方法论论文</strong>——以 V4 + Layer 5 的工作为支撑，写"How to systematize cross-domain isomorphism discovery"，目标 Nature Machine Intelligence / Patterns。</li>
-        <li><strong>Phase Detector 产品化</strong>——把 seed bank 和普适类嵌入一个实时"结构相位检测"工具（<a href="https://beta.structural.bytedance.city/phase/timeline" target="_blank" rel="noopener">/phase/timeline</a> 已 beta），让非学术用户也能用上这个引擎。</li>
+        <li data-i18n="page.about.next.item1"><strong>Seed bank outreach</strong>——把 63 个候选分门别类发给对口方向的学术团队（生态 / 金融 / 材料 / 神经 / DeFi），让领域专家挑与自己专长匹配的 seed 做成论文，Structural 获得 co-author / acknowledgement / 被引。</li>
+        <li data-i18n="page.about.next.item2"><strong>其他普适类实证</strong>——把 Layer 5 的五阶段工作流复用到另外 22 个类（延迟反馈债务、bistable 双稳态、Motter-Lai 级联、toggle switch 等），逐个落地。</li>
+        <li data-i18n="page.about.next.item3"><strong>方法论论文</strong>——以 V4 + Layer 5 的工作为支撑，写"How to systematize cross-domain isomorphism discovery"，目标 Nature Machine Intelligence / Patterns。</li>
+        <li data-i18n="page.about.next.item4"><strong>Phase Detector 产品化</strong>——把 seed bank 和普适类嵌入一个实时"结构相位检测"工具（<a href="https://beta.structural.bytedance.city/phase/timeline" target="_blank" rel="noopener">/phase/timeline</a> 已 beta），让非学术用户也能用上这个引擎。</li>
       </ul>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Resources</div>
-      <h2 class="about-page__section-title">论文与源码</h2>
-      <p>
+      <div class="about-page__section-label" data-i18n="page.about.resources.label">Resources</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.resources.title">论文与源码</h2>
+      <p data-i18n="page.about.resources.p">
         完整的方法论、训练细节、评估结果和反向实验，请见 <a href="https://structural.bytedance.city/paper-zh.html" target="_blank">论文</a>。SIBD-63 数据集：<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a> 上开源。V2 embedding 模型在 <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded" target="_blank" rel="noopener">HuggingFace</a>。
       </p>
     </div>
 
     <div class="about-page__section">
-      <div class="about-page__section-label">Contact</div>
-      <h2 class="about-page__section-title">合作与讨论</h2>
-      <p class="about-page__contact-lede">
+      <div class="about-page__section-label" data-i18n="page.about.contact.label">Contact</div>
+      <h2 class="about-page__section-title" data-i18n="page.about.contact.title">合作与讨论</h2>
+      <p class="about-page__contact-lede" data-i18n="page.about.contact.p">
         如果你想合作、有新的跨领域同构案例要投稿、或者只是想讨论这个方向，欢迎邮件联系：
         <a href="mailto:wanqinghui@gmail.com">wanqinghui@gmail.com</a>。
       </p>
@@ -254,16 +258,17 @@
 
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__copyright" data-i18n="footer.copyright">© 2026 Structural · 跨领域思维引擎</div>
       <div class="site-footer__links">
-        <a class="site-footer__link" href="/about">关于</a>
-        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
-        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
-        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
-        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
+        <a class="site-footer__link" href="/about" data-i18n="footer.about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener" data-i18n="footer.paper">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener" data-i18n="footer.huggingface">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener" data-i18n="footer.zenodo">Zenodo</a>
       </div>
     </div>
   </footer>
-  <script src="/assets/js/product-switcher.js?v=20260417b"></script>
+  <script src="/assets/js/i18n.js?v=20260417c"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417c"></script>
 </body>
 </html>

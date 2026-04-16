@@ -43,10 +43,13 @@ def _looks_like_question(text: str) -> bool:
     return any(m in text for m in markers)
 
 
-def _query_cache_key(text: str, b_id: str) -> str:
-    """For query-mode caching, use a hash of the (query, b_id) pair."""
+def _query_cache_key(text: str, b_id: str, lang: str = "zh") -> str:
+    """For query-mode caching, use a hash of the (query, b_id, lang) tuple.
+
+    Lang is part of the cache key so zh/en reports don't collide.
+    """
     normalized = text.strip()
-    h = hashlib.md5(f"{normalized}||{b_id}".encode("utf-8")).hexdigest()[:16]
+    h = hashlib.md5(f"{normalized}||{b_id}||{lang}".encode("utf-8")).hexdigest()[:16]
     return f"q_{h}"
 
 
@@ -57,6 +60,7 @@ async def stream_analyze(
     b_id: str = Query(...),
     a_id: Optional[str] = Query(None),
     text_a: Optional[str] = Query(None),
+    lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
 ):
     from main import app_state
 
@@ -73,9 +77,14 @@ async def stream_analyze(
 
     user_query = None  # original question for query mode
 
+    # Normalize the lang parameter once
+    lang = (lang or "zh").lower()
+    if lang not in ("zh", "en"):
+        lang = "zh"
+
     if text_a:
         # === Query mode ===
-        rewritten = await _llm.rewrite_query(text_a) if _looks_like_question(text_a) else text_a
+        rewritten = await _llm.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
 
         import numpy as np
         query_emb = svc.encode_query(rewritten)
@@ -95,7 +104,7 @@ async def stream_analyze(
             "original_query": text_a,
         }
         user_query = text_a
-        cache_key_a = _query_cache_key(text_a, b_id)
+        cache_key_a = _query_cache_key(text_a, b_id, lang=lang)
     elif a_id:
         # === Pair mode ===
         other = svc.get_by_id(a_id)
@@ -109,7 +118,9 @@ async def stream_analyze(
         similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
         a = other
         b = kb_phenom
-        cache_key_a = a_id
+        # Suffix lang onto pair-mode cache key so zh/en don't collide. Legacy
+        # zh entries keep their unsuffixed keys, preserving the existing cache.
+        cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
     else:
         raise HTTPException(400, "Must provide either a_id or text_a")
 
@@ -169,7 +180,7 @@ async def stream_analyze(
             local_final = None
             local_err = None
             async for chunk in _llm.stream_deep_analysis(
-                a, b, similarity, user_query=user_query
+                a, b, similarity, user_query=user_query, lang=lang
             ):
                 ctype = chunk.get("type")
                 if ctype == "text":

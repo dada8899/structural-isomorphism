@@ -23,6 +23,8 @@ class SynthesizeRequest(BaseModel):
     query: str
     rewritten_query: Optional[str] = None
     results: List[dict]
+    # i18n: "zh" (default) or "en". Controls output language of the synthesis.
+    lang: str = "zh"
 
 
 @router.post("/synthesize")
@@ -36,6 +38,7 @@ async def synthesize(request: Request, req: SynthesizeRequest):
         query=req.query,
         rewritten_query=req.rewritten_query,
         top_results=req.results,
+        lang=req.lang,
     )
     if not result:
         return {

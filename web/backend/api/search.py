@@ -38,10 +38,14 @@ class SearchRequest(BaseModel):
     # Default False: the fast path skips the LLM rewrite/assessment entirely.
     # The frontend calls /api/search/assess separately when it wants the gate.
     rewrite: bool = Field(False, description="Use LLM to rewrite query for better matching")
+    # i18n: "zh" (default, legacy) or "en" — controls output language of the
+    # optional LLM rewrite/assessment. Vector search itself is language-neutral.
+    lang: str = Field("zh", description="Output language for LLM-generated text: 'zh' or 'en'")
 
 
 class AssessRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
+    lang: str = Field("zh", description="Output language for LLM-generated text: 'zh' or 'en'")
 
 
 class SearchResult(BaseModel):
@@ -97,7 +101,7 @@ async def search_phenomena(req: SearchRequest):
     if req.rewrite:
         try:
             llm = _get_llm()
-            result = await llm.assess_and_rewrite(original_query)
+            result = await llm.assess_and_rewrite(original_query, lang=req.lang)
             rewritten_text = result.get("rewritten") or original_query
             if rewritten_text and rewritten_text != original_query:
                 rewritten = rewritten_text
@@ -184,7 +188,7 @@ async def assess_query(req: AssessRequest):
     }
     try:
         llm = _get_llm()
-        result = await llm.assess_and_rewrite(req.query)
+        result = await llm.assess_and_rewrite(req.query, lang=req.lang)
         return {
             "query": req.query,
             "rewritten": result.get("rewritten") or req.query,

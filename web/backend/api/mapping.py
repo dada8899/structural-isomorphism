@@ -34,6 +34,8 @@ def _init():
 class MappingRequest(BaseModel):
     a_id: str
     b_id: str
+    # i18n: "zh" (default, legacy) or "en"
+    lang: str = "zh"
 
 
 @router.post("/mapping")
@@ -52,8 +54,15 @@ async def generate_mapping(request: Request, req: MappingRequest):
     if not a or not b:
         raise HTTPException(404, "Phenomenon not found")
 
+    # Normalize lang + derive cache key. Legacy zh keeps unsuffixed cache key
+    # so existing entries stay valid; en gets a separate namespace.
+    lang = (req.lang or "zh").lower()
+    if lang not in ("zh", "en"):
+        lang = "zh"
+    cache_key_a = req.a_id if lang == "zh" else f"{req.a_id}__en"
+
     # Check cache first
-    cached = _cache.get(req.a_id, req.b_id)
+    cached = _cache.get(cache_key_a, req.b_id)
     if cached:
         return {
             "from_cache": True,
@@ -71,11 +80,11 @@ async def generate_mapping(request: Request, req: MappingRequest):
     similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
 
     # Generate with LLM
-    mapping = await _llm.generate_mapping(a, b, similarity)
+    mapping = await _llm.generate_mapping(a, b, similarity, lang=lang)
 
     # Save to cache if successful
     if mapping and mapping.get("structure_name") != "结构分析暂不可用":
-        _cache.put(req.a_id, req.b_id, mapping)
+        _cache.put(cache_key_a, req.b_id, mapping)
 
     return {
         "from_cache": False,
@@ -91,6 +100,7 @@ async def stream_mapping(
     b_id: str = Query(...),
     a_id: Optional[str] = Query(None, description="KB phenomenon id for A side"),
     text_a: Optional[str] = Query(None, description="Free-text query as A side (for 'from search' flow)"),
+    lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
 ):
     """
     SSE stream of a mapping generation.
@@ -118,6 +128,11 @@ async def stream_mapping(
     if not b:
         raise HTTPException(404, "Phenomenon B not found")
 
+    # Normalize lang once at the top
+    lang = (lang or "zh").lower()
+    if lang not in ("zh", "en"):
+        lang = "zh"
+
     if a_id:
         # Pair mode: both sides are real KB phenomena
         a = svc.get_by_id(a_id)
@@ -130,7 +145,9 @@ async def stream_mapping(
         if idx_a is None or idx_b is None:
             raise HTTPException(404, "Phenomenon not in KB")
         similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
-        cache_key_a = a_id
+        # Suffix lang onto cache key so zh/en don't collide. Legacy zh stays
+        # unsuffixed to preserve existing cache entries.
+        cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
     elif text_a:
         # Query mode: text_a is user's free-text question
         #
@@ -142,7 +159,7 @@ async def stream_mapping(
         from services.llm_service import LLMService
         llm_for_rewrite = _llm or LLMService()
 
-        rewritten = await llm_for_rewrite.rewrite_query(text_a) if _looks_like_question(text_a) else text_a
+        rewritten = await llm_for_rewrite.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
 
         import numpy as np
         query_emb = svc.encode_query(rewritten)
@@ -184,7 +201,7 @@ async def stream_mapping(
 
         # Stream LLM generation
         final_mapping = None
-        async for chunk in _llm.stream_mapping(a, b, similarity):
+        async for chunk in _llm.stream_mapping(a, b, similarity, lang=lang):
             ctype = chunk.get("type")
             if ctype == "text":
                 yield sse("text", {

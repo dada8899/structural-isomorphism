@@ -1,0 +1,23 @@
+{
+  "nav.universality_classes": { "zh": "普适类", "en": "Universality classes" },
+  "nav.discoveries": { "zh": "精选发现", "en": "Curated discoveries" },
+  "nav.favorites": { "zh": "我的收藏", "en": "My favorites" },
+  "nav.about": { "zh": "关于", "en": "About" },
+  "nav.github": { "zh": "GitHub", "en": "GitHub" },
+  "nav.lang_toggle_aria": { "zh": "Switch to English", "en": "切换到中文" },
+
+  "footer.copyright": { "zh": "© 2026 Structural · 跨领域思维引擎", "en": "© 2026 Structural · Cross-domain thinking engine" },
+  "footer.about": { "zh": "关于", "en": "About" },
+  "footer.paper": { "zh": "论文", "en": "Paper" },
+  "footer.github": { "zh": "GitHub", "en": "GitHub" },
+  "footer.huggingface": { "zh": "HuggingFace", "en": "HuggingFace" },
+  "footer.zenodo": { "zh": "Zenodo", "en": "Zenodo" },
+
+  "beta.badge": { "zh": "beta", "en": "beta" },
+
+  "common.submit": { "zh": "提交", "en": "Submit" },
+  "common.back": { "zh": "返回", "en": "Back" },
+  "common.loading": { "zh": "加载中", "en": "Loading" },
+
+  "nf.back_home": { "zh": "返回首页", "en": "Back to home" }
+}

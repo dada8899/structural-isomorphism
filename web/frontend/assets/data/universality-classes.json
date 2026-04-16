@@ -13,7 +13,8 @@
     "n_cross_domain": 23,
     "max_members": 17,
     "max_domains": 12,
-    "largest_hub": "清算级联的链上流动性危机"
+    "largest_hub": "清算级联的链上流动性危机",
+    "largest_hub_en": "On-chain liquidity crisis from liquidation cascades"
   },
   "classes": [
     {
@@ -23,6 +24,7 @@
       "rank": 0,
       "provenance": "connected_component",
       "hub_name": "清算级联的链上流动性危机",
+      "hub_name_en": "On-chain liquidity crisis from liquidation cascades",
       "hub_degree": 10,
       "size": 19,
       "n_domains": 13,
@@ -40,6 +42,20 @@
         "金融",
         "金融市场微观结构"
       ],
+      "domains_en": [
+        "Traffic Phenomena",
+        "Cryptocurrency/DeFi",
+        "Cryptocurrency and DeFi",
+        "Blockchain/Web3",
+        "Medicine",
+        "Business",
+        "Civil Engineering",
+        "Geology",
+        "Electrical Engineering",
+        "Computational Social Science",
+        "Finance",
+        "Financial Market Microstructure"
+      ],
       "edges_internal": 30,
       "avg_edge_score": 6.947,
       "max_edge_score": 8.6,
@@ -47,6 +63,7 @@
       "taxonomy_match": "soc_threshold_cascade",
       "confidence": "high",
       "summary_zh": "一组耦合的阈值元件，每个元件局部独立积累压力，当一个元件跨越阈值就触发破裂，破裂通过耦合把压力转移给邻居。当平均分支因子 ξ → 1 时系统处于分支过程临界点，此时级联规模服从幂律分布，时间衰减服从 Omori 律。",
+      "summary_en": "A set of coupled threshold elements in which each element locally accumulates stress independently; once an element crosses its threshold it fails, and the failure redistributes stress to its neighbors through the coupling. When the mean branching factor ξ → 1 the system sits at the branching-process critical point, where cascade sizes follow a power-law distribution and temporal decay follows Omori's law.",
       "shared_equations_raw": [
         {
           "raw": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade"
@@ -68,52 +85,84 @@
         "标度不变: 系统无特征尺度",
         "等待时间 Pareto 尾"
       ],
+      "invariants_en": [
+        "Gutenberg-Richter power law: P(s) ∝ s^(-τ), τ ≈ 1.5",
+        "Omori decay law: n(t) ∝ 1/t^p, p ≈ 1",
+        "Branching-process criticality: mean branching factor ξ → 1",
+        "Scale invariance: no characteristic scale",
+        "Pareto-tailed waiting times"
+      ],
       "predictions": [
         {
           "target": "USGS 全球地震目录 2020-2025, M ≥ 4.45 (37,281 事件)",
+          "target_en": "USGS global earthquake catalog 2020-2025, M ≥ 4.45 (37,281 events)",
           "prediction": "Gutenberg-Richter b = 1.084 ± 0.005 (bootstrap CI [1.073, 1.094]), 能量幂律 τ = 1.72, Omori p = 0.941 ± 0.017 (R² = 0.993)",
+          "prediction_en": "Gutenberg-Richter b = 1.084 ± 0.005 (bootstrap CI [1.073, 1.094]); energy power-law τ = 1.72; Omori p = 0.941 ± 0.017 (R² = 0.993)",
           "test_method": "Aki 1965 MLE + Shi-Bolt 1982 uncertainty + 500-bootstrap CI + Clauset 2009 power-law fit + Omori log-linear regression",
           "data_source": "USGS FDSN Event API (5 年 × M ≥ 3.5 = 84,808 events)",
+          "data_source_en": "USGS FDSN Event API (5 years × M ≥ 3.5 = 84,808 events)",
           "sample_size": "84,808 events / 580 main shocks / 24,680 aftershocks",
           "paper_target": "Layer 5 Phase 1 — pipeline validation (物理 ground truth)",
+          "paper_target_en": "Layer 5 Phase 1 — pipeline validation (physical ground truth)",
           "status": "✅ 已验证 (2026-04-15)",
+          "status_en": "✅ Verified (2026-04-15)",
           "rationale": "SOC 普适类的黄金参考. 在真实全球地震数据上完整复现 b ≈ 1 + Omori p ≈ 1. 验证了分析 pipeline 的正确性.",
+          "rationale_en": "Gold-standard reference for the SOC universality class. Fully reproduces b ≈ 1 and Omori p ≈ 1 on real global earthquake data, validating the correctness of the analysis pipeline.",
           "paper_url": "/paper/soc-earthquake-2026-04-15",
           "paper_title": "Recovering SOC Universality on a Global Earthquake Catalog"
         },
         {
           "target": "S&P 500 daily returns 1990-2025 (9,060 交易日)",
+          "target_en": "S&P 500 daily returns 1990-2025 (9,060 trading days)",
           "prediction": "Inverse cubic law α = 2.998 ± 0.041 (Gopikrishnan 1998, 拒绝 lognormal p < 10⁻⁹); Omori 日尺度 p = 0.286 ± 0.034 (R² = 0.71, 318 主震 3σ, Weber 2007 daily band [0.3, 0.6] 内)",
+          "prediction_en": "Inverse cubic law α = 2.998 ± 0.041 (Gopikrishnan 1998; lognormal rejected with p < 10⁻⁹); daily-scale Omori p = 0.286 ± 0.034 (R² = 0.71, 318 mainshocks at 3σ, within the Weber 2007 daily band [0.3, 0.6])",
           "test_method": "同一 pipeline 交叉验证 — Clauset 2009 幂律拟合 on |r| + Omori log-linear regression on stacked post-shock volatility",
+          "test_method_en": "Same pipeline cross-validated — Clauset 2009 power-law fit on |r| plus Omori log-linear regression on stacked post-shock volatility",
           "data_source": "Yahoo Finance ^GSPC (yfinance 1.2.0)",
           "sample_size": "9,060 daily log returns / 2,327 tail events / 318 main shocks",
           "paper_target": "Layer 5 Phase 2 — 第一个非物理系统跨域验证",
+          "paper_target_en": "Layer 5 Phase 2 — first cross-domain validation on a non-physical system",
           "status": "✅ 已验证 (2026-04-15)",
+          "status_en": "✅ Verified (2026-04-15)",
           "rationale": "项目首次非物理系统 SOC 验证. 同一 earthquake pipeline 零调参应用到 S&P 500, 精确复现 Gopikrishnan 1998 inverse cubic law (α=3.00) + Weber 2007 daily-scale Omori (p=0.29). 功能形式 (幂律尾 + Omori 弛豫) 跨域一致, 绝对指数因微观观测量定义而异——这正是普适类理论预测的行为.",
+          "rationale_en": "First SOC validation on a non-physical system in this project. The earthquake pipeline is applied zero-shot to the S&P 500 and exactly reproduces the Gopikrishnan 1998 inverse cubic law (α=3.00) and the Weber 2007 daily-scale Omori decay (p=0.29). The functional form (power-law tail + Omori relaxation) is consistent across domains, while absolute exponents differ due to differing microscopic observables — precisely the behavior predicted by universality-class theory.",
           "paper_url": "/paper/soc-stockmarket-2026-04-15",
           "paper_title": "Cross-Domain SOC Validation: Inverse Cubic Law and Omori Decay on S&P 500"
         },
         {
           "target": "神经雪崩 — 小鼠 ALM 皮层延迟任务 (DANDI 000006, 1.39M spikes, 71 units)",
+          "target_en": "Neuronal avalanches — mouse ALM cortex during a delayed-response task (DANDI 000006, 1.39M spikes, 71 units)",
           "prediction": "Scaling relation γ = (α_T-1)/(τ-1) 跨 1-16× bin 宽度稳定在 1.10 ± 0.02 (R² = 0.998)——criticality 确认. 但具体指数 τ ≈ 2.76, α ≈ 2.94 (bin=4×IEI), 远高于 Beggs-Plenz 2003 spontaneous 值 τ=1.5, α=2.0, 对应 sub-critical task-state 亚类 (Priesemann 2014 预期).",
+          "prediction_en": "The scaling relation γ = (α_T - 1)/(τ - 1) remains stable at 1.10 ± 0.02 across 1-16× bin widths (R² = 0.998), confirming criticality. However, the individual exponents τ ≈ 2.76, α ≈ 2.94 (bin = 4×IEI) are well above the Beggs-Plenz 2003 spontaneous values (τ=1.5, α=2.0), consistent with a sub-critical task-state sub-class (as anticipated by Priesemann 2014).",
           "test_method": "Clauset 2009 power-law on size + duration, 跨 5 个 bin factor (1-16×), 测 scaling relation exponent",
+          "test_method_en": "Clauset 2009 power-law fits on size and duration across 5 bin factors (1-16×), and testing the scaling-relation exponent",
           "data_source": "DANDI Archive 000006 · sub-anm369962_ses-20170313.nwb (11.5 MB HDF5/NWB)",
           "sample_size": "1,392,414 spikes / 71 units / 2266 秒 / 产出 301,092 avalanches at bin 1×IEI",
+          "sample_size_en": "1,392,414 spikes / 71 units / 2,266 seconds / yielding 301,092 avalanches at bin 1×IEI",
           "paper_target": "Layer 5 Phase 4 — 首个生物学系统 SOC 亚类定量测量",
+          "paper_target_en": "Layer 5 Phase 4 — first quantitative measurement of an SOC sub-class in a biological system",
           "status": "⚠️ 部分验证 (2026-04-16)",
+          "status_en": "⚠️ Partially verified (2026-04-16)",
           "rationale": "Pipeline 在合成临界分支过程数据上精确复现 MF Beggs-Plenz 指数 (τ=1.50, α=1.92), 验证正确性. 真实 task-active 皮层 scaling relation 严格成立 (criticality 确认), 但指数归到**不同亚类** (sub-critical task state, m<1, 非 MF). 未否定 V4 SOC 簇假设, 揭示亚类结构——spontaneous vs task 是两个不同的 SOC fixed point. 合成 CONFIRMED + 真实 PARTIAL.",
+          "rationale_en": "The pipeline exactly reproduces the mean-field Beggs-Plenz exponents (τ=1.50, α=1.92) on synthetic critical branching-process data, validating its correctness. The scaling relation holds strictly on real task-active cortex (criticality confirmed), but the exponents belong to a different sub-class (sub-critical task state with m<1, non-mean-field). This does not falsify the V4 SOC-cluster hypothesis; rather, it exposes sub-class structure — spontaneous and task states correspond to two distinct SOC fixed points. Synthetic: CONFIRMED; real data: PARTIAL.",
           "paper_url": "/paper/soc-neural-2026-04-16",
           "paper_title": "Criticality Without Mean-Field SOC: Neural Avalanches on Task-Active Mouse Cortex"
         },
         {
           "target": "Aave V2 + Compound V2 + MakerDAO Dog — 43,065 事件 跨 3 协议",
+          "target_en": "Aave V2 + Compound V2 + MakerDAO Dog — 43,065 events across 3 protocols",
           "prediction": "三协议 SOC 收敛: α_Aave = 1.684 ± 0.010, α_Compound = 1.649 ± 0.016, α_Maker = 1.567 ± 0.015 (三值 spread 仅 0.12); Omori 1-hour p 分别 0.733 / 0.761 / 0.692 (spread 0.07). 每协议独立拒绝 lognormal 和 exponential (p < 10⁻⁹).",
+          "prediction_en": "Three-protocol SOC convergence: α_Aave = 1.684 ± 0.010, α_Compound = 1.649 ± 0.016, α_Maker = 1.567 ± 0.015 (spread among the three values is only 0.12); 1-hour Omori p values are 0.733, 0.761, and 0.692 respectively (spread 0.07). Each protocol independently rejects lognormal and exponential alternatives (p < 10⁻⁹).",
           "test_method": "同一 SOC pipeline 跨 3 DeFi 协议 × 3 时间尺度 (daily/6h/1h) 独立拟合 — Aave 拍卖 / Compound 直接清算 / Maker Dutch clipper 三种机制",
+          "test_method_en": "The same SOC pipeline applied across 3 DeFi protocols × 3 time scales (daily/6h/1h) with independent fits — Aave auctions / Compound direct liquidations / Maker Dutch clipper — three distinct mechanisms",
           "data_source": "Etherscan V2 API → LiquidationCall (Aave) + LiquidateBorrow on 5 cTokens (Compound) + Bark on Dog (Maker)",
           "sample_size": "43,065 raw events / 38,830 with size / Aave 25,601 / Compound 11,244 / Maker 1,985",
           "paper_target": "Layer 5 Phase 3 v2 — 跨协议 DeFi SOC 普适性首次确认",
+          "paper_target_en": "Layer 5 Phase 3 v2 — first confirmation of cross-protocol DeFi SOC universality",
           "status": "✅ 已验证 (2026-04-16)",
+          "status_en": "✅ Verified (2026-04-16)",
           "rationale": "三种清算机制完全不同 (Aave 5% 激励拍卖 / Compound 8% 直接清算 / Maker Dutch clipper 下降拍卖), 但 α 和 p 收敛到相同值——证明这不是 Aave 特有 artifact, 是 DeFi lending 这个资产类别的结构性质. 三协议全部 α ∈ [1.57, 1.68] 贴近地震 1.79 远离股市 3.00, 证实 SOC 簇内存在'离散阈值' vs '连续 diffusion' 亚类分裂.",
+          "rationale_en": "Three entirely different liquidation mechanisms (Aave's 5% incentive auction, Compound's 8% direct liquidation, Maker's Dutch clipper descending auction) yet α and p converge to the same values — demonstrating that this is not an Aave-specific artifact but a structural property of the DeFi-lending asset class. All three protocols have α ∈ [1.57, 1.68], close to the earthquake value of 1.79 and far from the stock-market value of 3.00, confirming a 'discrete-threshold' vs 'continuous-diffusion' sub-class split within the SOC cluster.",
           "paper_url": "/paper/soc-defi-2026-04-15",
           "paper_title": "Cross-Protocol SOC Universality in DeFi Liquidation Cascades (43,065 events)"
         }
@@ -122,86 +171,144 @@
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "保证金螺旋与强制去杠杆",
             "做市商的期权对冲与Gamma风险",
             "对手方风险的传染网络",
             "闪崩的流动性螺旋机制"
+          ],
+          "names_en": [
+            "Margin spiral and forced deleveraging",
+            "Market-maker option hedging and gamma risk",
+            "Counterparty risk contagion network",
+            "Flash-crash liquidity spiral mechanism"
           ]
         },
         {
           "domain": "交通现象",
+          "domain_en": "Traffic Phenomena",
           "names": [
             "GPS路径再分配",
             "路口溢流锁死"
+          ],
+          "names_en": [
+            "GPS path reallocation",
+            "Intersection spillback gridlock"
           ]
         },
         {
           "domain": "区块链/Web3",
+          "domain_en": "Blockchain/Web3",
           "names": [
             "Plasma子链大规模退出问题",
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "Plasma side-chain mass-exit problem",
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "金融",
+          "domain_en": "Finance",
           "names": [
             "金融风险传染",
             "银行挤兑"
+          ],
+          "names_en": [
+            "Financial-risk contagion",
+            "Bank run"
           ]
         },
         {
           "domain": "商业",
+          "domain_en": "Business",
           "names": [
             "供应链的级联断裂"
+          ],
+          "names_en": [
+            "Supply-chain cascading rupture"
           ]
         },
         {
           "domain": "地质学",
+          "domain_en": "Geology",
           "names": [
             "地震静态应力触发"
+          ],
+          "names_en": [
+            "Earthquake static-stress triggering"
           ]
         },
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "建筑结构的渐进倒塌"
+          ],
+          "names_en": [
+            "Progressive collapse of building structures"
           ]
         },
         {
           "domain": "加密货币/DeFi",
+          "domain_en": "Cryptocurrency/DeFi",
           "names": [
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "加密货币与DeFi",
+          "domain_en": "Cryptocurrency and DeFi",
           "names": [
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "电气工程",
+          "domain_en": "Electrical Engineering",
           "names": [
             "电网连锁故障"
+          ],
+          "names_en": [
+            "Power-grid cascading failure"
           ]
         },
         {
           "domain": "计算社会科学",
+          "domain_en": "Computational Social Science",
           "names": [
             "级联失效在社会网络中的传播"
+          ],
+          "names_en": [
+            "Cascading failures propagating through social networks"
           ]
         },
         {
           "domain": "医学",
+          "domain_en": "Medicine",
           "names": [
             "耐药菌传播"
+          ],
+          "names_en": [
+            "Drug-resistant-pathogen transmission"
           ]
         },
         {
           "domain": "未标注",
+          "domain_en": "Unlabeled",
           "names": [
             "旁观者效应"
+          ],
+          "names_en": [
+            "Bystander effect"
           ]
         }
       ],
@@ -215,6 +322,7 @@
       "rank": 1,
       "provenance": "connected_component",
       "hub_name": "热固性树脂凝胶点渗流相变",
+      "hub_name_en": "Percolation phase transition at the gel point of thermoset resins",
       "hub_degree": 4,
       "size": 14,
       "n_domains": 12,
@@ -232,6 +340,20 @@
         "金融市场微观结构",
         "高分子化学"
       ],
+      "domains_en": [
+        "Traffic Phenomena",
+        "Catalysis Chemistry",
+        "Military History/Strategy",
+        "Chemistry",
+        "Business",
+        "Civil Engineering",
+        "Urban Planning",
+        "Materials Chemistry",
+        "Ecology",
+        "Behavioral Economics",
+        "Financial Market Microstructure",
+        "Polymer Chemistry"
+      ],
       "edges_internal": 13,
       "avg_edge_score": 7.154,
       "max_edge_score": 9.0,
@@ -239,9 +361,11 @@
       "taxonomy_match": "hysteresis_first_order_transition",
       "confidence": "medium",
       "summary_zh": "系统存在双稳态或多稳态，状态变化有明显的滞后环——升高参数到 A 点才从低态跳到高态，降低参数到 B < A 才跳回。典型数学结构是 Preisach 算子与双稳态分岔的组合。",
+      "summary_en": "The system admits two or more stable states and exhibits a clear hysteresis loop — the parameter must be raised to a point A to jump from the low to the high state, and lowered to B < A to jump back. The canonical mathematical structure is the Preisach operator composed with a bistable bifurcation.",
       "shared_equations_raw": [
         {
-          "raw": "磁滞: M(H) = ∫∫ μ(α,β)·γ(α,β,H) dα dβ (Preisach模型); 生态: x(t+1) = f(x(t), p), dx/dt = r·x(1-x/K) - h(x,p), 双稳态分岔。映射: 外磁场H→营养物质浓度p, 磁化强度M→生态状态指标(透明度), Preisach密度μ→物种响应异质性分布, 矫顽力→恢复阈值"
+          "raw": "磁滞: M(H) = ∫∫ μ(α,β)·γ(α,β,H) dα dβ (Preisach模型); 生态: x(t+1) = f(x(t), p), dx/dt = r·x(1-x/K) - h(x,p), 双稳态分岔。映射: 外磁场H→营养物质浓度p, 磁化强度M→生态状态指标(透明度), Preisach密度μ→物种响应异质性分布, 矫顽力→恢复阈值",
+          "raw_en": "Hysteresis: M(H) = ∫∫ μ(α,β)·γ(α,β,H) dα dβ (Preisach model); ecology: x(t+1) = f(x(t), p), dx/dt = r·x(1-x/K) - h(x,p), bistable bifurcation. Mapping: external magnetic field H → nutrient concentration p, magnetization M → ecosystem-state indicator (water clarity), Preisach density μ → distribution of species-response heterogeneity, coercive force → recovery threshold"
         },
         {
           "raw": "P∞ ∝ (p - p_c)^β, β_{2D}=5/36"
@@ -259,107 +383,180 @@
         "Preisach 密度 μ(α,β) 描述分布式滞后",
         "临界点的标度律"
       ],
+      "invariants_en": [
+        "Bistable bifurcation (saddle-node / fold)",
+        "Hysteresis-loop area equals dissipated energy",
+        "Preisach density μ(α,β) characterizes distributed hysteresis",
+        "Scaling laws at the critical point"
+      ],
       "predictions": [
         {
           "target": "DeFi 借贷协议 Aave V2 ETH 市场 2020-09 至 2026-03 的清算事件时序",
+          "target_en": "Liquidation-event time series of the Aave V2 ETH market on a DeFi lending protocol, 2020-09 through 2026-03",
           "prediction": "清算事件触发的「流动性黑洞」在抵押率跨越临界值后出现迟滞回线，回线面积（以 TVL 流出 × 抵押率差衡量）满足 A_loop / TVL_peak ∈ [0.08, 0.22]；市场恢复路径与崩溃路径的抵押率临界差 Δ_hyst ∈ [4%, 9%]",
+          "prediction_en": "Liquidation-triggered 'liquidity black holes' produce a hysteresis loop once the collateralization ratio crosses its critical value; the loop area (measured as TVL outflow × collateralization-ratio difference) satisfies A_loop / TVL_peak ∈ [0.08, 0.22]; the critical collateralization-ratio difference between the recovery and crash paths is Δ_hyst ∈ [4%, 9%]",
           "test_method": "对每次清算级联前后 72 小时滑动窗口拟合 Preisach 密度 μ(α,β)，用 bootstrap（n=1000）给出回线面积置信区间，与零假设（无迟滞、回线面积为 0）做 KS 检验，p<0.01 拒绝",
+          "test_method_en": "For each liquidation cascade, fit the Preisach density μ(α,β) within a 72-hour sliding window before and after the event; bootstrap (n=1000) to obtain loop-area confidence intervals; KS-test against the null of no hysteresis (loop area = 0), rejecting at p < 0.01",
           "data_source": "Aave V2 事件日志（Dune Analytics table aave_v2.LiquidationCall）+ DeFiLlama TVL 日度序列，2020-09 至 2026-03",
+          "data_source_en": "Aave V2 event logs (Dune Analytics table aave_v2.LiquidationCall) + DeFiLlama daily TVL series, 2020-09 through 2026-03",
           "sample_size": "约 45 万条清算事件，覆盖 18 次宏观波动窗口",
+          "sample_size_en": "About 450,000 liquidation events covering 18 macro-volatility windows",
           "paper_target": "Journal of Financial Economics",
           "status": "待验证",
-          "rationale": "Preisach 迟滞在 DeFi 清算里从未被定量测量过，但「抵押率上升与下降路径不对称」是可观测的悬空不变量；0.08-0.22 的回线面积比例来自生态学湖泊相变同构实证值（Scheffer 2001 经 Van de Leemput 2014 换算）"
+          "status_en": "Pending validation",
+          "rationale": "Preisach 迟滞在 DeFi 清算里从未被定量测量过，但「抵押率上升与下降路径不对称」是可观测的悬空不变量；0.08-0.22 的回线面积比例来自生态学湖泊相变同构实证值（Scheffer 2001 经 Van de Leemput 2014 换算）",
+          "rationale_en": "Preisach hysteresis has never been quantitatively measured in DeFi liquidations, but path asymmetry between rising and falling collateralization ratios is an observable dangling invariant. The 0.08-0.22 loop-area fraction is translated from the ecological lake regime-shift isomorphism (Scheffer 2001, recalibrated via Van de Leemput 2014)."
         },
         {
           "target": "上海市早高峰 2024-01 至 2025-12 的快速路交通流相变（外环、延安高架）",
+          "target_en": "Morning-peak traffic-flow phase transitions on Shanghai expressways (Outer Ring Road, Yan'an Elevated), 2024-01 through 2025-12",
           "prediction": "从自由流跌入拥堵的临界流量 q_c1 与从拥堵恢复到自由流的临界流量 q_c2 满足 q_c1 / q_c2 ∈ [1.25, 1.55]，即需要比崩溃流量低 25-55% 才能恢复；临界点附近速度方差的标度指数 β ∈ [0.45, 0.55]（对应 Ising 类）",
+          "prediction_en": "The critical flow q_c1 at which free flow collapses into congestion and the critical flow q_c2 at which traffic recovers to free flow satisfy q_c1 / q_c2 ∈ [1.25, 1.55], i.e. recovery requires 25-55% lower flow than collapse; the critical exponent of speed variance near the critical point is β ∈ [0.45, 0.55] (Ising class)",
           "test_method": "对环路线圈数据做速度-密度基本图拟合，分上升/下降分支分别 MLE 估计临界点，bootstrap 给出 q_c1/q_c2 的 95% CI；临界指数用有限尺寸标度 (Clauset 2009)",
+          "test_method_en": "Fit the speed-density fundamental diagram to ring-road loop-detector data; MLE estimates of the critical point on the ascending and descending branches separately; bootstrap 95% CI for q_c1/q_c2; finite-size scaling for critical exponents (Clauset 2009)",
           "data_source": "上海市城运中心公开的快速路线圈实时数据（5 分钟粒度），2024-01 至 2025-12",
+          "data_source_en": "Publicly available 5-minute-granularity loop-detector data from the Shanghai Urban Operations Center, 2024-01 through 2025-12",
           "sample_size": "每路段约 21 万条时间戳 × 30 个监测断面",
+          "sample_size_en": "About 210,000 timestamps per segment × 30 monitoring cross-sections",
           "paper_target": "Transportation Research Part B",
           "status": "待验证",
-          "rationale": "交通相变的迟滞常被定性观察但缺少定量回线比；1.25-1.55 的比值来自一阶相变的 Landau 理论对三次势的精确解翻译，β≈1/2 是 mean-field 一阶相变的标准指数"
+          "status_en": "Pending validation",
+          "rationale": "交通相变的迟滞常被定性观察但缺少定量回线比；1.25-1.55 的比值来自一阶相变的 Landau 理论对三次势的精确解翻译，β≈1/2 是 mean-field 一阶相变的标准指数",
+          "rationale_en": "Traffic phase-transition hysteresis is often observed qualitatively but quantitative loop ratios are lacking; the 1.25-1.55 ratio is translated from the exact solution of Landau theory for a cubic potential, and β ≈ 1/2 is the standard mean-field first-order-transition exponent."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "土壤液化",
             "地基液化判别"
+          ],
+          "names_en": [
+            "Soil liquefaction",
+            "Foundation liquefaction assessment"
           ]
         },
         {
           "domain": "城市规划",
+          "domain_en": "Urban Planning",
           "names": [
             "交通拥堵的非线性"
+          ],
+          "names_en": [
+            "Nonlinear traffic congestion"
           ]
         },
         {
           "domain": "交通现象",
+          "domain_en": "Traffic Phenomena",
           "names": [
             "交通流相变拥堵"
+          ],
+          "names_en": [
+            "Traffic-flow phase-transition congestion"
           ]
         },
         {
           "domain": "军事史/战略",
+          "domain_en": "Military History/Strategy",
           "names": [
             "士气崩溃的阈值效应"
+          ],
+          "names_en": [
+            "Threshold effect of morale collapse"
           ]
         },
         {
           "domain": "商业",
+          "domain_en": "Business",
           "names": [
             "技术采用的跨越鸿沟"
+          ],
+          "names_en": [
+            "Technology-adoption chasm crossing"
           ]
         },
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "流动性黑洞"
+          ],
+          "names_en": [
+            "Liquidity black hole"
           ]
         },
         {
           "domain": "高分子化学",
+          "domain_en": "Polymer Chemistry",
           "names": [
             "热固性树脂凝胶点渗流相变"
+          ],
+          "names_en": [
+            "Percolation phase transition at the gel point of thermoset resins"
           ]
         },
         {
           "domain": "生态学",
+          "domain_en": "Ecology",
           "names": [
             "生态系统突变"
+          ],
+          "names_en": [
+            "Ecosystem regime shift"
           ]
         },
         {
           "domain": "材料化学",
+          "domain_en": "Materials Chemistry",
           "names": [
             "相变储热材料潜热不连续释放"
+          ],
+          "names_en": [
+            "Discontinuous latent-heat release in phase-change thermal-storage materials"
           ]
         },
         {
           "domain": "行为经济学",
+          "domain_en": "Behavioral Economics",
           "names": [
             "社会证明的从众阈值"
+          ],
+          "names_en": [
+            "Conformity threshold of social proof"
           ]
         },
         {
           "domain": "化学",
+          "domain_en": "Chemistry",
           "names": [
             "结晶过程"
+          ],
+          "names_en": [
+            "Crystallization process"
           ]
         },
         {
           "domain": "催化化学",
+          "domain_en": "Catalysis Chemistry",
           "names": [
             "费托合成原位相重构"
+          ],
+          "names_en": [
+            "In situ phase reconstruction in Fischer-Tropsch synthesis"
           ]
         },
         {
           "domain": "未标注",
+          "domain_en": "Unlabeled",
           "names": [
             "磁铁的磁滞"
+          ],
+          "names_en": [
+            "Magnetic hysteresis in ferromagnets"
           ]
         }
       ],
@@ -373,6 +570,7 @@
       "rank": 2,
       "provenance": "connected_component",
       "hub_name": "蛋白质相分离的临界浓度阈值",
+      "hub_name_en": "Critical-concentration threshold of protein phase separation",
       "hub_degree": 5,
       "size": 10,
       "n_domains": 8,
@@ -386,6 +584,16 @@
         "航空航天",
         "药理学"
       ],
+      "domains_en": [
+        "Molecular Biology",
+        "Materials Science",
+        "Climate Science",
+        "Culinary Science",
+        "Ecology",
+        "Oncology",
+        "Aerospace",
+        "Pharmacology"
+      ],
       "edges_internal": 10,
       "avg_edge_score": 6.89,
       "max_edge_score": 8.4,
@@ -393,6 +601,7 @@
       "taxonomy_match": "fold_bifurcation_regime_shift",
       "confidence": "high",
       "summary_zh": "具有双稳态的非线性系统，控制参数缓慢变化到 fold 分岔点时系统状态突然跳变，且跳变不可逆——这就是 tipping point。共享方程是 Scheffer 标准式。",
+      "summary_en": "In nonlinear systems with bistability, slow variation of a control parameter toward a fold bifurcation produces an abrupt, irreversible jump between states — the tipping point. The shared governing equation is the Scheffer normal form.",
       "shared_equations_raw": [
         {
           "raw": "dx/dt = r - bx + x²/(h²+x²) (Scheffer normal form)"
@@ -413,78 +622,132 @@
         "临界减速 (critical slowing down) 作为预警信号",
         "分岔点附近涨落变大"
       ],
+      "invariants_en": [
+        "Fold bifurcation normal form: dx/dt = r - bx + x²/(h²+x²)",
+        "Irreversibility of the tipping point",
+        "Critical slowing down as an early-warning signal",
+        "Increased fluctuations near the bifurcation point"
+      ],
       "predictions": [
         {
           "target": "北美五大湖中的 Lake Erie 2000-2025 年蓝藻水华翻转事件（富营养化-清水态切换）",
+          "target_en": "Cyanobacterial-bloom regime shifts in Lake Erie 2000-2025 (eutrophic-to-clearwater switches)",
           "prediction": "翻转前 60-180 天，叶绿素 a 时间序列的一阶自相关系数 AR(1) 从基线 0.3-0.5 单调上升至 0.85±0.05，方差放大 ≥ 2.3 倍；翻转发生在 AR(1) 越过 0.80 阈值后 45-120 天内",
+          "prediction_en": "60-180 days before a shift, the lag-1 autocorrelation AR(1) of the chlorophyll-a time series rises monotonically from a baseline of 0.3-0.5 to 0.85 ± 0.05 and variance amplifies by a factor of at least 2.3; the shift occurs 45-120 days after AR(1) crosses 0.80",
           "test_method": "滑动窗口（60 天）AR(1) + 方差估计，用 Dakos 2008 的 Kendall τ 趋势检验判断单调上升显著性（p<0.05）；与未发生翻转的控制湖做 case-control 比较",
+          "test_method_en": "Sliding-window (60-day) AR(1) and variance estimates, with Kendall-τ trend testing (Dakos 2008) to assess monotone increases at p < 0.05; case-control comparison against non-shifting control lakes",
           "data_source": "NOAA Great Lakes Environmental Research Laboratory CoastWatch 叶绿素 a 遥感时间序列 2000-2025 + EPA Lake Erie 水质监测站点周度数据",
+          "data_source_en": "NOAA Great Lakes Environmental Research Laboratory CoastWatch chlorophyll-a remote-sensing time series 2000-2025 + weekly EPA Lake Erie water-quality monitoring data",
           "sample_size": "约 9000 天序列 × 12 个监测站",
+          "sample_size_en": "About 9,000-day series × 12 monitoring stations",
           "paper_target": "Ecology Letters",
           "status": "待验证",
-          "rationale": "critical slowing down 在湖泊中是理论预测，AR(1)>0.80 的定量阈值来自 Scheffer-Carpenter 2012 综述对实验室微宇宙的校准；把它从微宇宙迁移到真实湖泊是第一次严格统计检验"
+          "status_en": "Pending validation",
+          "rationale": "critical slowing down 在湖泊中是理论预测，AR(1)>0.80 的定量阈值来自 Scheffer-Carpenter 2012 综述对实验室微宇宙的校准；把它从微宇宙迁移到真实湖泊是第一次严格统计检验",
+          "rationale_en": "Critical slowing down in lakes is a theoretical prediction; the quantitative AR(1) > 0.80 threshold is calibrated from laboratory microcosms in Scheffer-Carpenter 2012. Transferring it from microcosms to real lakes would be the first rigorous statistical test."
         },
         {
           "target": "FDA 上市后对乙酰氨基酚（扑热息痛）肝毒性案例库 2000-2024，按患者血药浓度时间曲线分组",
+          "target_en": "FDA post-marketing hepatotoxicity cases of acetaminophen (paracetamol) 2000-2024, grouped by patient serum-concentration time curves",
           "prediction": "急性肝衰竭发生的临界 NAPQI 蓄积量服从 fold 分岔阈值分布，阈值 θ ∈ [280, 340] mg/L·h（AUC 单位），超过阈值后死亡率从 <2% 跃升至 >35%，过渡区宽度 < 20 mg/L·h",
+          "prediction_en": "The critical NAPQI accumulation triggering acute liver failure follows a fold-bifurcation threshold distribution, with threshold θ ∈ [280, 340] mg/L·h (AUC units); mortality jumps from <2% below the threshold to >35% above, and the transition-region width is <20 mg/L·h",
           "test_method": "对 FDA FAERS 数据库按摄入剂量分箱做 logistic 回归并检验双稳态（two-state mixture model vs single sigmoid），AIC 差 ΔAIC > 10 支持双稳态",
+          "test_method_en": "Bin the FDA FAERS database by intake dose and run logistic regression; test for bistability (two-state mixture model vs single sigmoid), with ΔAIC > 10 supporting bistability",
           "data_source": "FDA FAERS 数据库 + Rumack-Matthew nomogram 标注的扑热息痛中毒案例 2000-2024",
+          "data_source_en": "FDA FAERS database + Rumack-Matthew nomogram-annotated acetaminophen poisoning cases 2000-2024",
           "sample_size": "约 12000 例有血药浓度记录的急性中毒入院",
+          "sample_size_en": "About 12,000 acute-poisoning admissions with serum-concentration records",
           "paper_target": "Clinical Pharmacology & Therapeutics",
           "status": "待验证",
-          "rationale": "Rumack nomogram 是经验阈值，未曾被测试是否符合 saddle-node 的剧烈跃迁特征；280-340 的区间来自 Scheffer fold 模型在谷胱甘肽耗竭阈值的解析估计"
+          "status_en": "Pending validation",
+          "rationale": "Rumack nomogram 是经验阈值，未曾被测试是否符合 saddle-node 的剧烈跃迁特征；280-340 的区间来自 Scheffer fold 模型在谷胱甘肽耗竭阈值的解析估计",
+          "rationale_en": "The Rumack nomogram is an empirical threshold and has never been tested against the sharp-jump signature of a saddle-node bifurcation; the 280-340 range is derived analytically from a Scheffer fold model at the glutathione-depletion threshold."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "材料科学",
+          "domain_en": "Materials Science",
           "names": [
             "奥氏体化的临界温度",
             "形状记忆合金马氏体逆变"
+          ],
+          "names_en": [
+            "Critical temperature of austenitization",
+            "Reverse martensitic transformation in shape-memory alloys"
           ]
         },
         {
           "domain": "烹饪科学",
+          "domain_en": "Culinary Science",
           "names": [
             "果胶凝胶网络",
             "淀粉糊化"
+          ],
+          "names_en": [
+            "Pectin gel network",
+            "Starch gelatinization"
           ]
         },
         {
           "domain": "药理学",
+          "domain_en": "Pharmacology",
           "names": [
             "对乙酰氨基酚代谢产物毒性"
+          ],
+          "names_en": [
+            "Acetaminophen metabolite toxicity"
           ]
         },
         {
           "domain": "气候科学",
+          "domain_en": "Climate Science",
           "names": [
             "植被反馈的绿色撒哈拉"
+          ],
+          "names_en": [
+            "Green-Sahara vegetation-feedback tipping"
           ]
         },
         {
           "domain": "生态学",
+          "domain_en": "Ecology",
           "names": [
             "湖泊富营养化的临界翻转"
+          ],
+          "names_en": [
+            "Critical regime shift in lake eutrophication"
           ]
         },
         {
           "domain": "航空航天",
+          "domain_en": "Aerospace",
           "names": [
             "热障涂层的热应力分岔"
+          ],
+          "names_en": [
+            "Thermal-stress bifurcation in thermal-barrier coatings"
           ]
         },
         {
           "domain": "肿瘤学",
+          "domain_en": "Oncology",
           "names": [
             "肿瘤铁死亡易感性"
+          ],
+          "names_en": [
+            "Tumor ferroptosis susceptibility"
           ]
         },
         {
           "domain": "分子生物学",
+          "domain_en": "Molecular Biology",
           "names": [
             "蛋白质相分离的临界浓度阈值"
+          ],
+          "names_en": [
+            "Critical-concentration threshold of protein phase separation"
           ]
         }
       ],
@@ -498,6 +761,7 @@
       "rank": 0,
       "provenance": "louvain_community",
       "hub_name": "银行挤兑",
+      "hub_name_en": "Bank run",
       "hub_degree": 5,
       "size": 10,
       "n_domains": 8,
@@ -510,6 +774,15 @@
         "金融",
         "金融市场微观结构"
       ],
+      "domains_en": [
+        "Cryptocurrency/DeFi",
+        "Cryptocurrency and DeFi",
+        "Blockchain/Web3",
+        "Medicine",
+        "Business",
+        "Finance",
+        "Financial Market Microstructure"
+      ],
       "edges_internal": 10,
       "avg_edge_score": 7.01,
       "max_edge_score": 8.5,
@@ -517,6 +790,7 @@
       "taxonomy_match": "multistable_self_fulfilling",
       "confidence": "high",
       "summary_zh": "系统有多个 Nash 均衡，参与者的预期通过协调博弈选择均衡。相信崩溃 → 采取行动 → 崩溃成真。挤兑型现象的数学本质。",
+      "summary_en": "The system admits multiple Nash equilibria, and participants' expectations select an equilibrium through a coordination game: believing in collapse → taking action → collapse realized. This is the mathematical essence of run-type phenomena.",
       "shared_equations_raw": [
         {
           "raw": "dP/dt = -k*max(0, trigger - P)*L where L is leverage-weighted exposure crossing margin thresholds"
@@ -537,66 +811,111 @@
         "Global game 上的阈值信念 θ*",
         "基本面与恐慌驱动的挤兑事前不可区分"
       ],
+      "invariants_en": [
+        "Multiple Nash equilibria",
+        "Self-fulfilling expectations",
+        "Threshold belief θ* on a global game",
+        "Fundamental-driven and panic-driven runs are ex-ante indistinguishable"
+      ],
       "predictions": [
         {
           "target": "DeFi 借贷协议挤兑",
+          "target_en": "Runs on DeFi lending protocols",
           "prediction": "大规模提款事件可被 global game 阈值信念模型参数化识别",
+          "prediction_en": "Large-scale withdrawal events can be identified by parameterizing a global-game threshold-belief model",
           "test_method": "Goldstein-Pauzner 反向参数识别 + 社交媒体时间戳",
+          "test_method_en": "Goldstein-Pauzner inverse parameter identification + social-media timestamps",
           "data_source": "Aave/Compound 提款日志 + Twitter/Telegram 情绪",
+          "data_source_en": "Aave/Compound withdrawal logs + Twitter/Telegram sentiment",
           "paper_target": "Journal of Finance / JFE",
-          "status": "待验证"
+          "status": "待验证",
+          "status_en": "Pending validation"
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "保证金螺旋与强制去杠杆",
             "做市商的期权对冲与Gamma风险"
+          ],
+          "names_en": [
+            "Margin spiral and forced deleveraging",
+            "Market-maker option hedging and gamma risk"
           ]
         },
         {
           "domain": "金融",
+          "domain_en": "Finance",
           "names": [
             "金融风险传染",
             "银行挤兑"
+          ],
+          "names_en": [
+            "Financial-risk contagion",
+            "Bank run"
           ]
         },
         {
           "domain": "商业",
+          "domain_en": "Business",
           "names": [
             "供应链的级联断裂"
+          ],
+          "names_en": [
+            "Supply-chain cascading rupture"
           ]
         },
         {
           "domain": "加密货币/DeFi",
+          "domain_en": "Cryptocurrency/DeFi",
           "names": [
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "加密货币与DeFi",
+          "domain_en": "Cryptocurrency and DeFi",
           "names": [
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "区块链/Web3",
+          "domain_en": "Blockchain/Web3",
           "names": [
             "清算级联的链上流动性危机"
+          ],
+          "names_en": [
+            "On-chain liquidity crisis from liquidation cascades"
           ]
         },
         {
           "domain": "医学",
+          "domain_en": "Medicine",
           "names": [
             "耐药菌传播"
+          ],
+          "names_en": [
+            "Drug-resistant-pathogen transmission"
           ]
         },
         {
           "domain": "未标注",
+          "domain_en": "Unlabeled",
           "names": [
             "旁观者效应"
+          ],
+          "names_en": [
+            "Bystander effect"
           ]
         }
       ],
@@ -610,6 +929,7 @@
       "rank": 1,
       "provenance": "louvain_community",
       "hub_name": "建筑结构的渐进倒塌",
+      "hub_name_en": "Progressive collapse of building structures",
       "hub_degree": 5,
       "size": 6,
       "n_domains": 5,
@@ -620,6 +940,13 @@
         "电气工程",
         "金融市场微观结构"
       ],
+      "domains_en": [
+        "Traffic Phenomena",
+        "Civil Engineering",
+        "Geology",
+        "Electrical Engineering",
+        "Financial Market Microstructure"
+      ],
       "edges_internal": 9,
       "avg_edge_score": 6.5,
       "max_edge_score": 8.2,
@@ -627,6 +954,7 @@
       "taxonomy_match": "soc_threshold_cascade",
       "confidence": "high",
       "summary_zh": "SOC 巨簇经 Louvain 社区发现自动拆出的一个亚类——专门描述物理基础设施网络上的级联失效。每个节点有容量 C_i，当前负载 L_i，失效后负载按权重 w_ij 分配给邻居，若接收者超过容量则连锁失效。",
+      "summary_en": "A sub-class automatically separated from the SOC giant cluster via Louvain community detection, describing cascading failures on physical infrastructure networks. Each node has capacity C_i and current load L_i; after failure the load is redistributed to neighbors by weights w_ij, and overloaded recipients trigger further failures.",
       "shared_equations_raw": [
         {
           "raw": "Motter-Lai cascade: L_i(t+1)=L_i(t)+Σ_j∈F(t) L_j·w_ij/Σ_k w_jk, fail if L_i>C_i"
@@ -638,7 +966,8 @@
           "raw": "Motter-Lai cascade: L_j(t+1) = L_j(t) + Σ_i ΔL_i·w_ij; failure if L_j > C_j; load redistribution on network"
         },
         {
-          "raw": "网络中应力/价格重分布触发级联失稳: 节点失效→邻居负载增加→再失效"
+          "raw": "网络中应力/价格重分布触发级联失稳: 节点失效→邻居负载增加→再失效",
+          "raw_en": "Stress/price redistribution in a network triggers cascading instability: node fails → neighbor load increases → further failure"
         }
       ],
       "invariants": [
@@ -647,59 +976,100 @@
         "单点故障攻击曲线",
         "小世界 + 无尺度拓扑加剧级联"
       ],
+      "invariants_en": [
+        "Cascade-size distribution: P(s) ∝ s^(-τ)",
+        "Critical tolerance ratio α = C/L governs robustness",
+        "Single-point-of-failure attack curve",
+        "Small-world and scale-free topologies amplify cascades"
+      ],
       "predictions": [
         {
           "target": "美国东部电网 PJM Interconnection 2010-2025 级联故障事件（NERC TADS 数据库）",
+          "target_en": "Cascading-failure events in the PJM Interconnection of the eastern U.S. grid 2010-2025 (NERC TADS database)",
           "prediction": "级联事件规模 s（断电节点数）的分布尾指数 τ ∈ [1.6, 2.0]（P(s)∝s^{-τ}），关键容限比 α = C/L 的临界值 α_c ∈ [0.12, 0.25]；当 α < α_c 时最大级联规模 / 总节点数 > 0.15",
+          "prediction_en": "The tail exponent τ of the cascade-size distribution (number of blacked-out nodes) satisfies τ ∈ [1.6, 2.0] (P(s) ∝ s^(-τ)); the critical tolerance ratio α = C/L has critical value α_c ∈ [0.12, 0.25]; when α < α_c the largest cascade / total nodes exceeds 0.15",
           "test_method": "Clauset-Shalizi-Newman 2009 幂律拟合 + 拔靴法显著性检验（p>0.1 不拒绝幂律），对比 lognormal/exponential 备择分布 log-likelihood ratio",
+          "test_method_en": "Clauset-Shalizi-Newman 2009 power-law fit + bootstrap significance test (p > 0.1 fails to reject the power law); log-likelihood-ratio comparison against lognormal and exponential alternatives",
           "data_source": "NERC Transmission Availability Data System (TADS) 2010-2025 公开报告 + PJM 可靠性报告",
+          "data_source_en": "NERC Transmission Availability Data System (TADS) 2010-2025 public reports + PJM reliability reports",
           "sample_size": "约 2400 条级联事件记录",
+          "sample_size_en": "About 2,400 cascade-event records",
           "paper_target": "Physical Review E",
           "status": "待验证",
-          "rationale": "Motter-Lai 2002 的 τ≈2 是模拟结果，真实电网从未系统检验；1.6-2.0 的区间允许无标度拓扑与均匀度两种极端下的修正"
+          "status_en": "Pending validation",
+          "rationale": "Motter-Lai 2002 的 τ≈2 是模拟结果，真实电网从未系统检验；1.6-2.0 的区间允许无标度拓扑与均匀度两种极端下的修正",
+          "rationale_en": "Motter-Lai 2002 gave τ ≈ 2 in simulation but real grids have never been systematically tested; the 1.6-2.0 range allows corrections in both the scale-free and uniform-degree limits."
         },
         {
           "target": "2010-2026 美股闪崩事件中的流动性蒸发级联（SEC MIDAS + NYSE TAQ）",
+          "target_en": "Liquidity-evaporation cascades during 2010-2026 U.S. flash-crash events (SEC MIDAS + NYSE TAQ)",
           "prediction": "单次闪崩内由做市商撤单触发的二次撤单级联规模分布满足 P(s)∝s^{-τ}，τ ∈ [1.5, 1.9]；在 NYSE 主板股票子集上容限比临界值 α_c ∈ [0.08, 0.18]",
+          "prediction_en": "Within a single flash crash, the distribution of secondary-cancellation cascades triggered by market-maker cancellations satisfies P(s) ∝ s^(-τ) with τ ∈ [1.5, 1.9]; on the NYSE main-board subset, the tolerance-ratio critical value is α_c ∈ [0.08, 0.18]",
           "test_method": "对 TAQ 逐 tick 订单簿重构 1ms 级时间序列，识别撤单级联（撤单间隔 < 10ms），MLE 拟合幂律尾并用 Clauset KS 统计量判断",
+          "test_method_en": "Reconstruct 1-ms-granularity order-book time series from tick-by-tick TAQ; identify cancellation cascades (cancellation interval < 10 ms); MLE power-law tail fit with Clauset KS statistic",
           "data_source": "NYSE TAQ 数据库 2010-05 至 2026-03（含 2010 Flash Crash、2015-08-24、2020-03 熔断）",
+          "data_source_en": "NYSE TAQ database 2010-05 through 2026-03 (including the 2010 Flash Crash, 2015-08-24, and 2020-03 circuit breakers)",
           "sample_size": "约 180 次流动性事件 × 每次 10^4-10^6 个订单",
+          "sample_size_en": "About 180 liquidity events × 10⁴-10⁶ orders each",
           "paper_target": "Journal of Finance",
           "status": "待验证",
-          "rationale": "闪崩的微观撤单机制与 Motter-Lai 重分配规则高度同构但尚未用其参数化；τ 区间取自无标度网络级联的 mean-field 结果"
+          "status_en": "Pending validation",
+          "rationale": "闪崩的微观撤单机制与 Motter-Lai 重分配规则高度同构但尚未用其参数化；τ 区间取自无标度网络级联的 mean-field 结果",
+          "rationale_en": "The microstructural cancellation mechanism in flash crashes is highly isomorphic to Motter-Lai redistribution but has not yet been parameterized that way; the τ range is taken from mean-field results for cascades on scale-free networks."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "交通现象",
+          "domain_en": "Traffic Phenomena",
           "names": [
             "GPS路径再分配",
             "路口溢流锁死"
+          ],
+          "names_en": [
+            "GPS path reallocation",
+            "Intersection spillback gridlock"
           ]
         },
         {
           "domain": "地质学",
+          "domain_en": "Geology",
           "names": [
             "地震静态应力触发"
+          ],
+          "names_en": [
+            "Earthquake static-stress triggering"
           ]
         },
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "建筑结构的渐进倒塌"
+          ],
+          "names_en": [
+            "Progressive collapse of building structures"
           ]
         },
         {
           "domain": "电气工程",
+          "domain_en": "Electrical Engineering",
           "names": [
             "电网连锁故障"
+          ],
+          "names_en": [
+            "Power-grid cascading failure"
           ]
         },
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "闪崩的流动性螺旋机制"
+          ],
+          "names_en": [
+            "Flash-crash liquidity spiral mechanism"
           ]
         }
       ],
@@ -713,6 +1083,7 @@
       "rank": 4,
       "provenance": "connected_component",
       "hub_name": "相关性崩溃的尾部传染效应",
+      "hub_name_en": "Tail contagion from correlation collapse",
       "hub_degree": 3,
       "size": 5,
       "n_domains": 5,
@@ -723,6 +1094,13 @@
         "衍生品",
         "衍生品与风险管理"
       ],
+      "domains_en": [
+        "Insurance and Actuarial Science",
+        "Macroeconomics",
+        "Climate Science",
+        "Derivatives",
+        "Derivatives and Risk Management"
+      ],
       "edges_internal": 5,
       "avg_edge_score": 6.16,
       "max_edge_score": 7.0,
@@ -730,6 +1108,7 @@
       "taxonomy_match": null,
       "confidence": "medium",
       "summary_zh": "平常状态下相关性低、多元化有效的系统，在极端压力下相关性跳涨到接近 1。尾部依赖系数 λ_tail 在压力期非零——copula 的尾部重合是金融和气候的共同失败模式。",
+      "summary_en": "In systems where correlations are low and diversification effective under normal conditions, correlations jump toward unity under extreme stress. The tail-dependence coefficient λ_tail is nonzero in stress regimes — copula tail coincidence is a shared failure mode of finance and climate.",
       "shared_equations_raw": [
         {
           "raw": "lambda_tail = lim_{u->1} P(X>F_X^-1(u) | Y>F_Y^-1(u)) > 0; copula tail dependence coefficient jumps in stress regime"
@@ -738,7 +1117,8 @@
           "raw": "tail dependence coefficient λ_U=lim_{u→1}P(U_1>u|U_2>u), jumps at crisis"
         },
         {
-          "raw": "势能双阱+正反馈：dx/dt=-dV/dx, V有cusp分岔"
+          "raw": "势能双阱+正反馈：dx/dt=-dV/dx, V有cusp分岔",
+          "raw_en": "Double-well potential with positive feedback: dx/dt = -dV/dx, with V having a cusp bifurcation"
         },
         {
           "raw": "dρ/dt = f(ρ, stress); bistable jump at critical stress σ*"
@@ -750,48 +1130,81 @@
         "Diversification illusion breakdown",
         "压力期的 copula 结构突变"
       ],
+      "invariants_en": [
+        "Tail-dependence coefficient λ_tail = lim P(X>q | Y>q)",
+        "Minsky stability paradox",
+        "Diversification-illusion breakdown",
+        "Abrupt copula-structure shifts under stress"
+      ],
       "predictions": [
         {
           "target": "S&P 500 成份股的 pairwise 相关性在 VIX 分位数条件下的结构（2000-2025）",
+          "target_en": "Pairwise-correlation structure of S&P 500 constituents conditioned on VIX quantiles (2000-2025)",
           "prediction": "VIX 超过 95 分位点（≈ 35）时，平均 pairwise 尾相关 λ_tail = lim_{q→1} P(r_i>q | r_j>q) 从平静期的 0.15±0.05 跃升到 0.55±0.10；Clayton/Gumbel copula 参数 θ 的跳跃幅度 Δθ ≥ 1.8",
+          "prediction_en": "When the VIX exceeds its 95th percentile (≈ 35), the average pairwise tail correlation λ_tail = lim_{q→1} P(r_i > q | r_j > q) jumps from 0.15 ± 0.05 in calm periods to 0.55 ± 0.10; the Clayton/Gumbel copula parameter θ jumps by Δθ ≥ 1.8",
           "test_method": "分位数回归 + 动态 copula（DCC-GARCH-copula）、Patton 2013 尾相关诊断；bootstrap 95% CI 不跨越 0.3 即拒绝「相关性稳定」零假设",
+          "test_method_en": "Quantile regression + dynamic copula (DCC-GARCH-copula); Patton 2013 tail-dependence diagnostics; bootstrap 95% CI must not cross 0.3 to reject the null of stable correlations",
           "data_source": "CRSP 日收益率 + CBOE VIX 2000-01 至 2025-12",
+          "data_source_en": "CRSP daily returns + CBOE VIX, 2000-01 through 2025-12",
           "sample_size": "约 6500 天 × 500 只股票 = 3.25M 日度观测",
+          "sample_size_en": "About 6,500 days × 500 stocks = 3.25M daily observations",
           "paper_target": "Review of Financial Studies",
           "status": "待验证",
-          "rationale": "「压力期相关性跳跃」在业界是 folklore，但跃升幅度从未被严格参数化；0.15→0.55 的区间来自极值 copula 理论对 Gaussian copula 尾独立崩溃的预测"
+          "status_en": "Pending validation",
+          "rationale": "「压力期相关性跳跃」在业界是 folklore，但跃升幅度从未被严格参数化；0.15→0.55 的区间来自极值 copula 理论对 Gaussian copula 尾独立崩溃的预测",
+          "rationale_en": "Stress-period correlation jumps are folklore in the industry but the jump magnitude has never been rigorously parameterized; the 0.15 → 0.55 range comes from extreme-value copula theory's prediction of Gaussian-copula tail-independence collapse."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "气候科学",
+          "domain_en": "Climate Science",
           "names": [
             "冰期终结的非线性触发"
+          ],
+          "names_en": [
+            "Nonlinear trigger of glacial-termination events"
           ]
         },
         {
           "domain": "保险与精算",
+          "domain_en": "Insurance and Actuarial Science",
           "names": [
             "巨灾风险的尾部相关性"
+          ],
+          "names_en": [
+            "Tail dependence of catastrophe risk"
           ]
         },
         {
           "domain": "宏观经济",
+          "domain_en": "Macroeconomics",
           "names": [
             "明斯基时刻"
+          ],
+          "names_en": [
+            "Minsky moment"
           ]
         },
         {
           "domain": "衍生品与风险管理",
+          "domain_en": "Derivatives and Risk Management",
           "names": [
             "极端风险的分散化幻觉"
+          ],
+          "names_en": [
+            "Diversification illusion for extreme risks"
           ]
         },
         {
           "domain": "衍生品",
+          "domain_en": "Derivatives",
           "names": [
             "相关性崩溃的尾部传染效应"
+          ],
+          "names_en": [
+            "Tail contagion from correlation collapse"
           ]
         }
       ],
@@ -805,6 +1218,7 @@
       "rank": 3,
       "provenance": "connected_component",
       "hub_name": "Th1/Th2极化与疾病偏向",
+      "hub_name_en": "Th1/Th2 polarization and disease bias",
       "hub_degree": 3,
       "size": 5,
       "n_domains": 4,
@@ -814,6 +1228,12 @@
         "发育生物学",
         "细胞生物学"
       ],
+      "domains_en": [
+        "Immunology",
+        "Molecular Biology",
+        "Developmental Biology",
+        "Cell Biology"
+      ],
       "edges_internal": 4,
       "avg_edge_score": 6.225,
       "max_edge_score": 7.5,
@@ -821,12 +1241,14 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "两个相互抑制的元件构成开关，具有两个稳定状态。只要初始条件不同，系统被锁定在不同的状态。合成生物学的经典开关结构，在免疫、发育、细胞周期里反复出现。",
+      "summary_en": "Two mutually repressing elements form a switch with two stable states. Depending on initial conditions, the system is locked into one or the other. This is the canonical switch architecture in synthetic biology, reappearing throughout immunity, development, and the cell cycle.",
       "shared_equations_raw": [
         {
           "raw": "du/dt = α/(1+v^n) - u; dv/dt = α/(1+u^n) - v (classical toggle)"
         },
         {
-          "raw": "dx/dt = α/(1+(y/K)^n) - βx, dy/dt = α/(1+(x/K)^n) - βy 互抑双稳态"
+          "raw": "dx/dt = α/(1+(y/K)^n) - βx, dy/dt = α/(1+(x/K)^n) - βy 互抑双稳态",
+          "raw_en": "dx/dt = α/(1+(y/K)^n) - βx, dy/dt = α/(1+(x/K)^n) - βy — mutual-repression bistability"
         },
         {
           "raw": "Gardner-Collins: du/dt = α1/(1+v^n) - u; dv/dt = α2/(1+u^n) - v"
@@ -841,43 +1263,73 @@
         "随机噪声下的状态锁定",
         "Hill 系数 n > 1 是双稳态存在的必要条件"
       ],
+      "invariants_en": [
+        "Mutual repression: du/dt = α/(1+v^n) - u",
+        "Spatial separation of the two stable states",
+        "State locking under stochastic noise",
+        "Hill coefficient n > 1 is necessary for bistability"
+      ],
       "predictions": [
         {
           "target": "ImmPort 数据库中的人类过敏性鼻炎 vs 结核感染患者的 T_bet/GATA3 转录因子单细胞 RNA-seq（2018-2025）",
+          "target_en": "Single-cell RNA-seq of T-bet/GATA3 transcription factors in allergic rhinitis vs tuberculosis patients in the ImmPort database (2018-2025)",
           "prediction": "单细胞 T_bet 与 GATA3 表达的联合分布在患者内呈现双峰（bimodality），双峰间最低密度 / 峰值密度 < 0.25；Hill 系数 n 的估计值 n ∈ [2.2, 3.8]；极化状态持续时间的分布尾满足指数截断 τ_decay ∈ [8, 30] 天",
+          "prediction_en": "Within patients, the joint distribution of single-cell T-bet and GATA3 expression is bimodal; the ratio of minimum to peak density between the modes is < 0.25; the estimated Hill coefficient n ∈ [2.2, 3.8]; polarized-state dwell-time tails follow an exponential cutoff with τ_decay ∈ [8, 30] days",
           "test_method": "Hartigan dip test 拒绝单峰（p<0.01）；scVI 潜空间 GMM 聚类 + MLE Hill 方程拟合；纵向样本上用 hidden Markov model 估计状态停留时间",
+          "test_method_en": "Hartigan dip test rejecting unimodality (p < 0.01); GMM clustering in scVI latent space + MLE Hill-equation fitting; hidden Markov model estimation of state-dwell times on longitudinal samples",
           "data_source": "ImmPort SDY1412/SDY1419 单细胞数据集 + 10x Genomics 公开过敏性鼻炎/结核单细胞队列 2018-2025",
+          "data_source_en": "ImmPort SDY1412/SDY1419 single-cell datasets + 10x Genomics public allergic-rhinitis/TB single-cell cohorts 2018-2025",
           "sample_size": "约 45 个患者 × 每人 5000-15000 个 CD4 T 细胞",
+          "sample_size_en": "About 45 patients × 5,000-15,000 CD4 T cells each",
           "paper_target": "Nature Immunology",
           "status": "待验证",
-          "rationale": "Gardner-Collins toggle 的 Hill 系数>1 条件在人类原位 T 细胞中从未定量验证；n=2.2-3.8 是 Griffith 1968 / Gardner 2000 合成生物学实测区间的平移"
+          "status_en": "Pending validation",
+          "rationale": "Gardner-Collins toggle 的 Hill 系数>1 条件在人类原位 T 细胞中从未定量验证；n=2.2-3.8 是 Griffith 1968 / Gardner 2000 合成生物学实测区间的平移",
+          "rationale_en": "The Hill-coefficient-greater-than-one condition of the Gardner-Collins toggle has never been quantitatively validated in human in-situ T cells; n = 2.2-3.8 is translated from the Griffith 1968 / Gardner 2000 synthetic-biology experimental range."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "分子生物学",
+          "domain_en": "Molecular Biology",
           "names": [
             "X染色体随机失活的双稳态锁定",
             "合成基因拨动开关的双稳锁存"
+          ],
+          "names_en": [
+            "Bistable locking of random X-chromosome inactivation",
+            "Bistable latching of synthetic genetic toggle switches"
           ]
         },
         {
           "domain": "免疫学",
+          "domain_en": "Immunology",
           "names": [
             "Th1/Th2极化与疾病偏向"
+          ],
+          "names_en": [
+            "Th1/Th2 polarization and disease bias"
           ]
         },
         {
           "domain": "细胞生物学",
+          "domain_en": "Cell Biology",
           "names": [
             "细胞周期G1/S的Rb正反馈开关"
+          ],
+          "names_en": [
+            "Rb positive-feedback switch at the G1/S cell-cycle transition"
           ]
         },
         {
           "domain": "发育生物学",
+          "domain_en": "Developmental Biology",
           "names": [
             "胰岛素信号通路与发育时序门控"
+          ],
+          "names_en": [
+            "Insulin signaling and developmental-timing gating"
           ]
         }
       ],
@@ -891,6 +1343,7 @@
       "rank": 5,
       "provenance": "connected_component",
       "hub_name": "进入威慑与产能过度承诺",
+      "hub_name_en": "Entry deterrence and capacity overcommitment",
       "hub_degree": 2,
       "size": 5,
       "n_domains": 4,
@@ -900,6 +1353,12 @@
         "微观经济",
         "政治"
       ],
+      "domains_en": [
+        "International Relations",
+        "Macroeconomics",
+        "Microeconomics",
+        "Politics"
+      ],
       "edges_internal": 4,
       "avg_edge_score": 5.575,
       "max_edge_score": 6.0,
@@ -907,18 +1366,22 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "理性主体面临承诺难题：最优事前策略在事后会被背叛。只有承诺不可逆（沉没成本、声誉、自缚机制）才能让承诺可信。跨越国际关系、产业组织、货币政策的共同数学结构。",
+      "summary_en": "Rational agents face a commitment problem: the ex-ante optimal strategy is reneged on ex post. Credibility is achieved only when commitment is made irreversible (sunk costs, reputation, self-binding mechanisms). The same mathematical structure spans international relations, industrial organization, and monetary policy.",
       "shared_equations_raw": [
         {
           "raw": "payoff(commit) > payoff(flexible) iff sunk_cost > defection_gain; credible threat via irreversible commitment"
         },
         {
-          "raw": "承诺与重新谈判: 事前最优≠事后最优"
+          "raw": "承诺与重新谈判: 事前最优≠事后最优",
+          "raw_en": "Commitment and renegotiation: ex-ante optimum ≠ ex-post optimum"
         },
         {
-          "raw": "都是Kydland-Prescott式可信承诺问题: max U(x,e) s.t. e=E[x]"
+          "raw": "都是Kydland-Prescott式可信承诺问题: max U(x,e) s.t. e=E[x]",
+          "raw_en": "Both are Kydland-Prescott-type credible-commitment problems: max U(x,e) s.t. e = E[x]"
         },
         {
-          "raw": "重复博弈+不完全合同：max Σβ^t u_i(a_t), subject to self-enforcement constraint"
+          "raw": "重复博弈+不完全合同：max Σβ^t u_i(a_t), subject to self-enforcement constraint",
+          "raw_en": "Repeated game with incomplete contracts: max Σ β^t u_i(a_t), subject to self-enforcement constraints"
         }
       ],
       "invariants": [
@@ -927,43 +1390,73 @@
         "自缚 (self-binding) 作为可信机制",
         "声誉均衡 (reputation equilibrium)"
       ],
+      "invariants_en": [
+        "Time inconsistency",
+        "Commitment value > flexibility value iff sunk cost > defection gain",
+        "Self-binding as a credibility mechanism",
+        "Reputation equilibrium"
+      ],
       "predictions": [
         {
           "target": "1995-2025 WTO 报复性关税争端中承诺国的执行率与预公告沉没成本比例",
+          "target_en": "Execution rates of committing states and their pre-announced sunk-cost ratios in WTO retaliatory-tariff disputes 1995-2025",
           "prediction": "承诺执行率 p_exec 与「沉没成本 / 预期报复损失」比例 s 满足 logit 关系 logit(p_exec) = a + b·s，b ∈ [1.2, 2.6]（>0 显著）；s > 0.4 的承诺执行率 > 0.75，s < 0.2 的执行率 < 0.35",
+          "prediction_en": "The execution rate p_exec and the ratio s = sunk cost / expected retaliation loss satisfy the logit relation logit(p_exec) = a + b·s with b ∈ [1.2, 2.6] (significantly positive); commitments with s > 0.4 have execution rate > 0.75 and those with s < 0.2 have execution rate < 0.35",
           "test_method": "logistic 回归 + likelihood ratio test 对比 null model（p_exec 与 s 无关）；用 country-fixed effects 控制异质性，cluster-robust SE",
+          "test_method_en": "Logistic regression + likelihood-ratio test against the null model (p_exec independent of s); country fixed effects to control for heterogeneity; cluster-robust standard errors",
           "data_source": "WTO Dispute Settlement Database 1995-2025 + Global Trade Alert 沉没成本估算",
+          "data_source_en": "WTO Dispute Settlement Database 1995-2025 + Global Trade Alert sunk-cost estimates",
           "sample_size": "约 620 起争端事件",
+          "sample_size_en": "About 620 dispute events",
           "paper_target": "American Economic Journal: Economic Policy",
           "status": "待验证",
-          "rationale": "Schelling 1960 的 credible commitment 定性命题从未被跨案例量化；b 的区间来自 Fearon 1997 audience cost 模型的参数标定"
+          "status_en": "Pending validation",
+          "rationale": "Schelling 1960 的 credible commitment 定性命题从未被跨案例量化；b 的区间来自 Fearon 1997 audience cost 模型的参数标定",
+          "rationale_en": "The qualitative Schelling-1960 credible-commitment proposition has never been quantified across cases; the b range is calibrated from the Fearon 1997 audience-cost model."
         }
       ],
       "notes": "",
       "members_by_domain": [
         {
           "domain": "微观经济",
+          "domain_en": "Microeconomics",
           "names": [
             "合同不完全性与敲竹杠",
             "进入威慑与产能过度承诺"
+          ],
+          "names_en": [
+            "Contract incompleteness and hold-up",
+            "Entry deterrence and capacity overcommitment"
           ]
         },
         {
           "domain": "政治",
+          "domain_en": "Politics",
           "names": [
             "国际贸易的关税报复"
+          ],
+          "names_en": [
+            "Tariff retaliation in international trade"
           ]
         },
         {
           "domain": "国际关系",
+          "domain_en": "International Relations",
           "names": [
             "捆绑让步策略"
+          ],
+          "names_en": [
+            "Bundled-concession strategy"
           ]
         },
         {
           "domain": "宏观经济",
+          "domain_en": "Macroeconomics",
           "names": [
             "时间不一致性问题"
+          ],
+          "names_en": [
+            "Time-inconsistency problem"
           ]
         }
       ],
@@ -977,6 +1470,7 @@
       "rank": 7,
       "provenance": "connected_component",
       "hub_name": "巨灾衍生品的极端事件定价",
+      "hub_name_en": "Extreme-event pricing of catastrophe derivatives",
       "hub_degree": 2,
       "size": 4,
       "n_domains": 4,
@@ -986,6 +1480,12 @@
         "衍生品与风险管理",
         "高级生态学"
       ],
+      "domains_en": [
+        "Insurance and Actuarial Science",
+        "Civil Engineering",
+        "Derivatives and Risk Management",
+        "Advanced Ecology"
+      ],
       "edges_internal": 3,
       "avg_edge_score": 6.6,
       "max_edge_score": 7.0,
@@ -993,6 +1493,7 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "统一描述独立极端事件最大值/超阈值的极限分布,由 GEV 三参数族 (Gumbel/Fréchet/Weibull) 和广义帕累托分布 (GPD) 刻画。尾指数 ξ 决定风险的 VaR、ES 和结构可靠度,是定价、精算和工程可靠性中刻画\"尾部\"的标准语言。",
+      "summary_en": "A unified description of the limiting distributions of maxima / threshold exceedances for independent extreme events, characterized by the three-parameter GEV family (Gumbel/Fréchet/Weibull) and the generalized Pareto distribution (GPD). The tail index ξ determines risk measures VaR and ES as well as structural reliability, and is the standard language for describing tails in pricing, actuarial science, and engineering reliability.",
       "shared_equations_raw": [
         {
           "raw": "Tail-driven expectation: E[f(X)|X>u]≈∫f(x)·α·x^{-α-1}dx/P(X>u)"
@@ -1010,42 +1511,72 @@
         "尾指数 ξ 唯一决定重尾程度 (ξ>0 Fréchet / ξ=0 Gumbel / ξ<0 Weibull)",
         "条件期望 E[f(X)|X>u] 与 α·x^{-α-1} 幂律尾成正比"
       ],
+      "invariants_en": [
+        "GEV limiting distribution: F(x) = exp(-(1+ξ(x-μ)/σ)^(-1/ξ))",
+        "Exceedances over threshold follow GPD: Pr(X > u+y | X > u) = (1 + ξy/σ)^(-1/ξ)",
+        "Tail index ξ alone determines heavy-tailedness (ξ > 0 Fréchet / ξ = 0 Gumbel / ξ < 0 Weibull)",
+        "Conditional expectation E[f(X) | X > u] is proportional to the α·x^(-α-1) power-law tail"
+      ],
       "predictions": [
         {
           "target": "英国 BADS 数据库中的北美阔叶树种 seed dispersal 距离尾部（Acer、Quercus、Fraxinus 三属，2005-2024）",
+          "target_en": "Seed-dispersal distance tails of North American broadleaf tree species (genera Acer, Quercus, Fraxinus, 2005-2024) from the U.K. BADS database",
           "prediction": "超过 95 分位点的 seed dispersal 距离服从 GPD，形状参数 ξ ∈ [0.25, 0.55]（重尾 Fréchet 型），不同物种间 ξ 的差异 < 0.15；尾指数 α = 1/ξ 与传播综合指数 wind-dispersal index 的相关 R² > 0.7",
+          "prediction_en": "Seed-dispersal distances above the 95th percentile follow a GPD with shape parameter ξ ∈ [0.25, 0.55] (heavy-tailed Fréchet type); the cross-species spread of ξ is < 0.15; the tail index α = 1/ξ correlates with the composite wind-dispersal index with R² > 0.7",
           "test_method": "Peaks-over-threshold MLE 拟合 GPD + Anderson-Darling GOF 检验；bootstrap 95% CI for ξ 不跨 0 即支持 Fréchet 型",
+          "test_method_en": "Peaks-over-threshold MLE fit of the GPD + Anderson-Darling goodness-of-fit test; bootstrap 95% CI for ξ not crossing 0 supports the Fréchet type",
           "data_source": "Seed Dispersal Distance Database (Thomson et al. 2011 更新版) + BIEN 植物性状数据库 2005-2024",
+          "data_source_en": "Seed Dispersal Distance Database (Thomson et al. 2011, updated) + BIEN plant-trait database 2005-2024",
           "sample_size": "约 140 物种 × 每种 200-2000 条标记实验",
+          "sample_size_en": "About 140 species × 200-2,000 marking experiments each",
           "paper_target": "Ecology Letters",
           "status": "待验证",
-          "rationale": "种子散布尾巴的 GPD 形状参数从未被系统估计，GEV 极限定理保证了这是唯一可测不变量；0.25-0.55 来自风传播 Lévy 飞行对 ξ 的理论预测（Nathan 2008）"
+          "status_en": "Pending validation",
+          "rationale": "种子散布尾巴的 GPD 形状参数从未被系统估计，GEV 极限定理保证了这是唯一可测不变量；0.25-0.55 来自风传播 Lévy 飞行对 ξ 的理论预测（Nathan 2008）",
+          "rationale_en": "Shape parameters of seed-dispersal tails have never been systematically estimated; the GEV limit theorem guarantees that this is the unique measurable invariant. The 0.25-0.55 range comes from the theoretical prediction of ξ for wind-driven Lévy-flight dispersal (Nathan 2008)."
         }
       ],
       "notes": "共享方程精确对应 EVT/POT 教科书公式; taxonomy seed 未收录此类, 作为新增",
+      "notes_en": "Shared equations correspond exactly to the EVT/POT textbook formulas; this class is not in the taxonomy seed and is registered as a new addition",
       "members_by_domain": [
         {
           "domain": "保险与精算",
+          "domain_en": "Insurance and Actuarial Science",
           "names": [
             "巨灾债券的极端事件对冲"
+          ],
+          "names_en": [
+            "Extreme-event hedging via catastrophe bonds"
           ]
         },
         {
           "domain": "衍生品与风险管理",
+          "domain_en": "Derivatives and Risk Management",
           "names": [
             "巨灾衍生品的极端事件定价"
+          ],
+          "names_en": [
+            "Extreme-event pricing of catastrophe derivatives"
           ]
         },
         {
           "domain": "高级生态学",
+          "domain_en": "Advanced Ecology",
           "names": [
             "种子散布距离尾巴"
+          ],
+          "names_en": [
+            "Seed-dispersal distance tail"
           ]
         },
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "高层建筑风荷载的极值分布"
+          ],
+          "names_en": [
+            "Extreme-value distribution of wind loads on high-rise buildings"
           ]
         }
       ],
@@ -1059,6 +1590,7 @@
       "rank": 18,
       "provenance": "connected_component",
       "hub_name": "灭绝债务",
+      "hub_name_en": "Extinction debt",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1067,6 +1599,11 @@
         "海洋学",
         "环境科学"
       ],
+      "domains_en": [
+        "Conservation Biology",
+        "Oceanography",
+        "Environmental Science"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 8.5,
       "max_edge_score": 8.6,
@@ -1074,6 +1611,7 @@
       "taxonomy_match": "delay_differential_debt",
       "confidence": "high",
       "summary_zh": "系统当前状态的演化依赖于过去时刻状态 x(t-τ),时滞造成已承诺但尚未显现的\"债务\",当 τ 越过临界值发生 Hopf 分岔产生振荡或崩溃。灭绝债务、ENSO 振子、永冻土甲烷反馈都属此类。",
+      "summary_en": "The evolution of the current state depends on the state at a past time x(t-τ); the delay creates a 'debt' that is already committed but not yet manifested, and when τ crosses a critical value a Hopf bifurcation produces oscillation or collapse. Extinction debt, the ENSO delayed oscillator, and permafrost-methane feedback all belong to this class.",
       "shared_equations_raw": [
         {
           "raw": "Delay ODE: dx/dt = f(x(t - tau)) - mu x(t)"
@@ -1088,36 +1626,62 @@
         "committed 量 C = ∫[x*(t)-x(t)]dt 为守恒累积债务",
         "决策窗口关闭 (τ 固定) 但症状滞后呈现"
       ],
+      "invariants_en": [
+        "Governing equation: dx/dt = f(x(t-τ)) - μ·x(t)",
+        "Hopf bifurcation at the critical delay yields a limit cycle",
+        "Committed quantity C = ∫[x*(t) - x(t)] dt is a conserved accumulated debt",
+        "Decision window closes (τ fixed) while symptoms appear with delay"
+      ],
       "predictions": [
         {
           "target": "欧洲栖息地破碎化区域（EU Natura 2000 数据库）中特有鸟类的延迟灭绝（1990-2025）",
+          "target_en": "Delayed extinctions of endemic birds in European habitat-fragmented regions (EU Natura 2000 database), 1990-2025",
           "prediction": "栖息地丧失事件后，物种多样性下降到新平衡的时间延迟 τ ∈ [18, 45] 年；committed extinction debt C = ∫[S*(t)-S(t)]dt 占现存物种的比例 ∈ [12%, 28%]；在 τ 附近观察到阻尼振荡（Hopf 分岔特征）",
+          "prediction_en": "After a habitat-loss event, the delay τ before species diversity reaches a new equilibrium is ∈ [18, 45] years; the committed extinction debt C = ∫[S*(t) - S(t)] dt as a fraction of extant species is ∈ [12%, 28%]; damped oscillations (a Hopf-bifurcation signature) are observed near τ",
           "test_method": "Mackey-Glass DDE 拟合到时序多样性数据，非线性最小二乘估计 τ 和 μ；对残差做 Lyapunov 指数检验判断是否进入极限环",
+          "test_method_en": "Fit a Mackey-Glass DDE to the temporal diversity data via nonlinear least-squares estimation of τ and μ; test for limit-cycle entry via the Lyapunov exponent of the residuals",
           "data_source": "EU Natura 2000 鸟类监测数据 1990-2025 + PREDICTS 数据库栖息地变化时间序列",
+          "data_source_en": "EU Natura 2000 bird-monitoring data 1990-2025 + PREDICTS-database habitat-change time series",
           "sample_size": "约 180 个站点 × 35 年月度观测",
+          "sample_size_en": "About 180 sites × 35 years of monthly observations",
           "paper_target": "Nature Ecology & Evolution",
           "status": "待验证",
-          "rationale": "Tilman 1994 提出灭绝债务但只给了总量估计；延迟时间与 Hopf 分岔的定量预测是第一次把 Volterra-Mackey-Glass DDE 翻译到生态数据上"
+          "status_en": "Pending validation",
+          "rationale": "Tilman 1994 提出灭绝债务但只给了总量估计；延迟时间与 Hopf 分岔的定量预测是第一次把 Volterra-Mackey-Glass DDE 翻译到生态数据上",
+          "rationale_en": "Tilman 1994 proposed extinction debt but only gave bulk estimates; quantitative predictions for the delay and Hopf bifurcation translate Volterra / Mackey-Glass DDEs to ecological data for the first time."
         }
       ],
       "notes": "共享方程与 seed delay_differential_debt 完全一致",
+      "notes_en": "Shared equations match the seed delay_differential_debt exactly",
       "members_by_domain": [
         {
           "domain": "海洋学",
+          "domain_en": "Oceanography",
           "names": [
             "厄尔尼诺的延迟振子"
+          ],
+          "names_en": [
+            "Delayed oscillator of El Niño"
           ]
         },
         {
           "domain": "环境科学",
+          "domain_en": "Environmental Science",
           "names": [
             "永冻土融化释放甲烷的延迟反馈"
+          ],
+          "names_en": [
+            "Delayed feedback of methane release from permafrost thaw"
           ]
         },
         {
           "domain": "保育生物学",
+          "domain_en": "Conservation Biology",
           "names": [
             "灭绝债务"
+          ],
+          "names_en": [
+            "Extinction debt"
           ]
         }
       ],
@@ -1131,6 +1695,7 @@
       "rank": 19,
       "provenance": "connected_component",
       "hub_name": "Piezo1机械门控通道的不动点门控",
+      "hub_name_en": "Fixed-point gating of Piezo1 mechanotransduction channels",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1139,6 +1704,11 @@
         "行为经济学",
         "计算机科学"
       ],
+      "domains_en": [
+        "Cell Biology",
+        "Behavioral Economics",
+        "Computer Science"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 7.75,
       "max_edge_score": 8.0,
@@ -1146,12 +1716,14 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "一个连续量 S 以速率 r 线性(或带泄漏)累积,当越过阈值 θ 时触发离散释放事件并重置,输出为 σ(S-θ) 型硬门限。同一结构出现在神经元发放、机械感受器、享乐适应和网络流量整形中。",
+      "summary_en": "A continuous variable S accumulates linearly (with leakage) at rate r; when it crosses threshold θ a discrete release event is triggered and S is reset, producing a σ(S - θ) hard-limit output. The same structure appears in neuronal firing, mechanoreceptors, hedonic adaptation, and network traffic shaping.",
       "shared_equations_raw": [
         {
           "raw": "dT/dt = r - λ·1{T≥θ}"
         },
         {
-          "raw": "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)"
+          "raw": "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)",
+          "raw_en": "dS/dt = F(t) - k_a·S, output y = σ(S - θ)"
         }
       ],
       "invariants": [
@@ -1160,36 +1732,62 @@
         "重置后存在不应期 / 再充电时间",
         "稳态发放率随输入线性响应,超阈值后饱和"
       ],
+      "invariants_en": [
+        "Integration dynamics: dS/dt = F(t) - k_a·S (with leakage term)",
+        "Threshold release: output y = σ(S - θ) or 1{S ≥ θ}",
+        "Refractory / recharge period after reset",
+        "Steady-state firing rate responds linearly to input and saturates above threshold"
+      ],
       "predictions": [
         {
           "target": "Prolific/MTurk 行为经济学实验中的参考点适应（hedonic treadmill，2015-2025 发布的 RCT）",
+          "target_en": "Reference-point adaptation (hedonic treadmill) in Prolific/MTurk behavioral-economics experiments (RCTs published 2015-2025)",
           "prediction": "被试对连续收入冲击的主观幸福感响应服从泄漏积分方程 dS/dt = F(t) - k_a·S，泄漏时间常数 τ = 1/k_a ∈ [45, 120] 天；阈值触发的行为改变（如消费调整）对应 S/θ > 1.15 的概率 > 80%",
+          "prediction_en": "Subjective well-being responses to successive income shocks follow the leaky-integrator equation dS/dt = F(t) - k_a·S, with leakage time constant τ = 1/k_a ∈ [45, 120] days; the probability of threshold-triggered behavioral change (e.g. consumption adjustment) given S/θ > 1.15 is > 80%",
           "test_method": "对每被试的纵向幸福感序列做状态空间模型拟合（Kalman filter + MLE），估计 τ 并用 LRT 对比 null「无泄漏」模型",
+          "test_method_en": "Fit a state-space model (Kalman filter + MLE) to each subject's longitudinal well-being time series, estimate τ, and use LRT against the null 'no-leakage' model",
           "data_source": "Prolific Academic 纵向幸福感面板数据 2015-2025 + SOEP German Socio-Economic Panel 月度子样本",
+          "data_source_en": "Prolific Academic longitudinal well-being panel data 2015-2025 + SOEP German Socio-Economic Panel monthly subsample",
           "sample_size": "约 15000 被试 × 每人 24-120 个时间点",
+          "sample_size_en": "About 15,000 subjects × 24-120 time points each",
           "paper_target": "Psychological Science",
           "status": "待验证",
-          "rationale": "享乐跑步机是心理学经典现象但从未被量化为 LIF 动力学；45-120 天的时间常数来自 Lapicque 神经元跨尺度类比，对应神经-行为的频率刻度比≈10^6"
+          "status_en": "Pending validation",
+          "rationale": "享乐跑步机是心理学经典现象但从未被量化为 LIF 动力学；45-120 天的时间常数来自 Lapicque 神经元跨尺度类比，对应神经-行为的频率刻度比≈10^6",
+          "rationale_en": "The hedonic treadmill is a classical psychological phenomenon but has never been quantified as LIF dynamics; the 45-120-day time constant is derived from a cross-scale analogy with Lapicque neurons, corresponding to a neural-to-behavioral frequency-scale ratio of ≈ 10⁶."
         }
       ],
       "notes": "三成员共享\"累积-阈值-释放-重置\"四步结构; 与 SOC 的区别是此处是单元件门限而非耦合雪崩",
+      "notes_en": "The three members share a four-step 'accumulation-threshold-release-reset' structure; unlike SOC, this is single-element thresholding rather than a coupled avalanche",
       "members_by_domain": [
         {
           "domain": "细胞生物学",
+          "domain_en": "Cell Biology",
           "names": [
             "Piezo1机械门控通道的不动点门控"
+          ],
+          "names_en": [
+            "Fixed-point gating of Piezo1 mechanotransduction channels"
           ]
         },
         {
           "domain": "行为经济学",
+          "domain_en": "Behavioral Economics",
           "names": [
             "参考点适应的享乐跑步机"
+          ],
+          "names_en": [
+            "Reference-point adaptation in the hedonic treadmill"
           ]
         },
         {
           "domain": "计算机科学",
+          "domain_en": "Computer Science",
           "names": [
             "限流的令牌桶"
+          ],
+          "names_en": [
+            "Token-bucket rate limiting"
           ]
         }
       ],
@@ -1203,6 +1801,7 @@
       "rank": 10,
       "provenance": "connected_component",
       "hub_name": "刻板印象的自我实现",
+      "hub_name_en": "Self-fulfilling stereotypes",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1211,6 +1810,11 @@
         "宏观经济",
         "心理学"
       ],
+      "domains_en": [
+        "Public Administration",
+        "Macroeconomics",
+        "Psychology"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 7.0,
       "max_edge_score": 7.5,
@@ -1218,9 +1822,11 @@
       "taxonomy_match": "multistable_self_fulfilling",
       "confidence": "medium",
       "summary_zh": "测量或预期本身改变被测系统,形成 x_t = f(E[x_t]) 的不动点方程;当 f'(E)>1 时存在多重均衡,信念可以自我实现。古德哈特定律、通胀预期去锚、刻板印象威胁都是此结构。",
+      "summary_en": "Measurement or expectation itself alters the system being measured, producing the fixed-point equation x_t = f(E[x_t]); when f'(E) > 1 multiple equilibria exist and beliefs can be self-fulfilling. Goodhart's law, the de-anchoring of inflation expectations, and stereotype threat all share this structure.",
       "shared_equations_raw": [
         {
-          "raw": "反身性反馈环: measurement/expectation → behavior → measurement_confirmation, 测量本身改变被测系统"
+          "raw": "反身性反馈环: measurement/expectation → behavior → measurement_confirmation, 测量本身改变被测系统",
+          "raw_en": "Reflexive feedback loop: measurement/expectation → behavior → measurement confirmation, where measurement itself alters the system being measured"
         },
         {
           "raw": "rational expectations fixed point: x_t = f(E[x_t]); multiple equilibria when f'(E)>1"
@@ -1232,36 +1838,62 @@
         "测量-行为-测量的闭环(反身性环)",
         "信念位移引发均衡跳变 (non-smooth transition)"
       ],
+      "invariants_en": [
+        "Rational-expectations fixed point: x_t = f(E[x_t])",
+        "Multi-equilibrium condition: |f'(E)| > 1",
+        "Measurement-action-measurement closed loop (reflexive loop)",
+        "Belief shifts trigger equilibrium jumps (non-smooth transition)"
+      ],
       "predictions": [
         {
           "target": "美国大学管理的 KPI 量化评估引入后教师论文 quality-vs-quantity 比率（2005-2024）",
+          "target_en": "Quality-vs-quantity ratio of faculty publications before and after the introduction of KPI-based quantitative evaluation in U.S. university administration (2005-2024)",
           "prediction": "引入量化 KPI 后 5 年内，高被引论文 / 总论文数 比率下降 Δ ∈ [0.12, 0.28]；KPI 权重系数 w 与比率下降量满足 |f'(E)| = 1 + c·w, c ∈ [0.8, 1.6]（反身性强度）；跨越 w_c 后出现 bifurcation 式跳变",
+          "prediction_en": "Within 5 years of introducing quantitative KPIs, the ratio of highly cited papers to total publications drops by Δ ∈ [0.12, 0.28]; the KPI weight coefficient w and the drop satisfy |f'(E)| = 1 + c·w with c ∈ [0.8, 1.6] (reflexivity strength); bifurcation-style jumps appear beyond w_c",
           "test_method": "differences-in-differences 估计 + 合成控制法 (Abadie 2010)；拟合 bifurcation 模型对比线性模型 AIC",
+          "test_method_en": "Difference-in-differences estimation + synthetic-control method (Abadie 2010); AIC comparison between the bifurcation model and a linear model",
           "data_source": "Web of Science + Leiden Ranking KPI 引入时间节点，2005-2024 美国 R1 大学教师面板",
+          "data_source_en": "Web of Science + Leiden Ranking KPI-introduction timestamps, faculty panel of U.S. R1 universities 2005-2024",
           "sample_size": "约 180 所大学 × 20 年 × 平均 200 名教师",
+          "sample_size_en": "About 180 universities × 20 years × ~200 faculty per institution",
           "paper_target": "Research Policy",
           "status": "待验证",
-          "rationale": "Goodhart 定律从未被量化为反身性不动点的 |f'(E)|>1 条件；0.12-0.28 来自 Muller 2018 对 NHS / NYPD 度量失效的 meta 估计"
+          "status_en": "Pending validation",
+          "rationale": "Goodhart 定律从未被量化为反身性不动点的 |f'(E)|>1 条件；0.12-0.28 来自 Muller 2018 对 NHS / NYPD 度量失效的 meta 估计",
+          "rationale_en": "Goodhart's law has never been quantified through the reflexive-fixed-point |f'(E)| > 1 condition; the 0.12-0.28 range comes from Muller 2018's meta-estimates of metric failure in the NHS and NYPD."
         }
       ],
       "notes": "与 multistable_self_fulfilling 接近但强调\"测量改变被测物\"这一反身性特征,置信 medium",
+      "notes_en": "Close to multistable_self_fulfilling but emphasizes the reflexive feature 'measurement alters the measured'; confidence medium",
       "members_by_domain": [
         {
           "domain": "心理学",
+          "domain_en": "Psychology",
           "names": [
             "刻板印象的自我实现"
+          ],
+          "names_en": [
+            "Self-fulfilling stereotypes"
           ]
         },
         {
           "domain": "公共管理",
+          "domain_en": "Public Administration",
           "names": [
             "绩效指标的古德哈特定律"
+          ],
+          "names_en": [
+            "Goodhart's law in performance metrics"
           ]
         },
         {
           "domain": "宏观经济",
+          "domain_en": "Macroeconomics",
           "names": [
             "通胀预期去锚定"
+          ],
+          "names_en": [
+            "De-anchoring of inflation expectations"
           ]
         }
       ],
@@ -1275,12 +1907,17 @@
       "rank": 6,
       "provenance": "connected_component",
       "hub_name": "逆向选择",
+      "hub_name_en": "Adverse selection",
       "hub_degree": 3,
       "size": 4,
       "n_domains": 2,
       "domains": [
         "传播学",
         "经济学"
+      ],
+      "domains_en": [
+        "Communication Studies",
+        "Economics"
       ],
       "edges_internal": 3,
       "avg_edge_score": 7.667,
@@ -1289,15 +1926,19 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "信息不对称下,基于条件期望 E[q|p] 的价格机制驱动高质量方单调退出,剩余分布质量进一步下降,形成正反馈衰退直至市场崩塌或只剩次品。同构出现在二手车市场、回声室、信息茧房和沉默螺旋。",
+      "summary_en": "Under information asymmetry, a price mechanism based on the conditional expectation E[q | p] monotonically drives out high-quality participants; the quality of the remaining distribution drops further, producing a positive-feedback decline that ends in market collapse or in only lemons remaining. Isomorphic instances appear in used-car markets, echo chambers, filter bubbles, and the spiral of silence.",
       "shared_equations_raw": [
         {
-          "raw": "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移"
+          "raw": "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移",
+          "raw_en": "Unraveling dynamics: x_{t+1} = f(x_t), f monotone; marginal exit → distribution shift"
         },
         {
-          "raw": "Akerlof逆向选择: E[q|p] = ∫q·f(q|p)dq, 均衡条件p*=E[q|p*]; 信息市场: 内容多样性D(t+1) = D(t)·(1-α) + β·N(t), 其中α=同质化率(推荐算法强化), β=新创作者进入率, N=异质内容创作者数量。当α>β时D→0(柠檬化)。退出条件: 创作者留存当且仅当注意力回报>创作成本"
+          "raw": "Akerlof逆向选择: E[q|p] = ∫q·f(q|p)dq, 均衡条件p*=E[q|p*]; 信息市场: 内容多样性D(t+1) = D(t)·(1-α) + β·N(t), 其中α=同质化率(推荐算法强化), β=新创作者进入率, N=异质内容创作者数量。当α>β时D→0(柠檬化)。退出条件: 创作者留存当且仅当注意力回报>创作成本",
+          "raw_en": "Akerlof adverse selection: E[q|p] = ∫ q·f(q|p) dq, equilibrium condition p* = E[q|p*]; information markets: content diversity D(t+1) = D(t)·(1-α) + β·N(t), where α = homogenization rate (amplified by recommender algorithms), β = new-creator entry rate, N = number of heterogeneous-content creators. When α > β, D → 0 (lemonization). Exit condition: creators stay iff attention-based return > creation cost"
         },
         {
-          "raw": "Akerlof逆向选择: E[quality|price] 随价格下降而下降→好品退出→进一步质量下降; 信息茧房: E[diversity|engagement] 随engagement优化而下降→异质内容退出推荐→进一步多样性下降。两者都是信息不对称驱动的正反馈衰退循环(自选择偏差)。"
+          "raw": "Akerlof逆向选择: E[quality|price] 随价格下降而下降→好品退出→进一步质量下降; 信息茧房: E[diversity|engagement] 随engagement优化而下降→异质内容退出推荐→进一步多样性下降。两者都是信息不对称驱动的正反馈衰退循环(自选择偏差)。",
+          "raw_en": "Akerlof adverse selection: E[quality | price] decreases with price → good items exit → further quality decline; filter bubbles: E[diversity | engagement] decreases as engagement is optimized → heterogeneous content exits recommendations → further diversity decline. Both are positive-feedback decline loops driven by information asymmetry (self-selection bias)."
         }
       ],
       "invariants": [
@@ -1306,37 +1947,64 @@
         "多样性/质量方程: D(t+1)=D(t)(1-α)+βN(t), α>β 则 D→0",
         "自选择偏差驱动的正反馈, 无外部冲击亦会坍缩"
       ],
+      "invariants_en": [
+        "Conditional-expectation equilibrium: p* = E[q | p*]",
+        "Monotone unraveling dynamics: x_{t+1} = f(x_t) with f monotonically decreasing",
+        "Diversity/quality equation: D(t+1) = D(t)(1-α) + βN(t); α > β implies D → 0",
+        "Self-selection bias drives a positive-feedback collapse even without external shocks"
+      ],
       "predictions": [
         {
           "target": "Twitter/X 学术 API 社交图谱中的话题「沉默螺旋」退化（2020-2024 热点政治话题 50 个）",
+          "target_en": "Spiral-of-silence degradation in 50 hot political topics on Twitter/X's academic-API social graph (2020-2024)",
           "prediction": "话题参与者多样性（Shannon 熵 H）随时间单调衰减，衰减半衰期 t_{1/2} ∈ [3, 14] 天；满足 Akerlof lemons 方程 D(t+1) = D(t)(1-α) + βN(t)，且 α/β ∈ [1.15, 2.4]（>1 保证坍缩）",
+          "prediction_en": "The participant diversity (Shannon entropy H) of each topic decays monotonically with a half-life t_{1/2} ∈ [3, 14] days; it satisfies the Akerlof lemons equation D(t+1) = D(t)(1-α) + βN(t) with α/β ∈ [1.15, 2.4] (> 1 ensures collapse)",
           "test_method": "指数衰减拟合 + 非线性动力系统 MLE；对多个话题做 pooled estimation 再 bootstrap 置信区间；与未退化话题做对照",
+          "test_method_en": "Exponential-decay fit + MLE of the nonlinear dynamical system; pooled estimation across topics with bootstrap confidence intervals; control group of non-degraded topics",
           "data_source": "Twitter/X Academic API 历史存档（via Archive.org Twitter Stream Grab）2020-2024 + Reddit Pushshift 对照",
+          "data_source_en": "Twitter/X Academic API historical archive (via Archive.org Twitter Stream Grab) 2020-2024 + Reddit Pushshift as control",
           "sample_size": "50 个话题 × 平均 150000 条推文 × 6 个月窗口",
+          "sample_size_en": "50 topics × 150,000 tweets on average × 6-month windows",
           "paper_target": "PNAS",
           "status": "待验证",
-          "rationale": "Akerlof lemons 的 unraveling 动力学从未被测量过社会话题；α/β > 1 的临界条件是经济学与传播学的共享悬空不变量"
+          "status_en": "Pending validation",
+          "rationale": "Akerlof lemons 的 unraveling 动力学从未被测量过社会话题；α/β > 1 的临界条件是经济学与传播学的共享悬空不变量",
+          "rationale_en": "The unraveling dynamics of Akerlof lemons have never been measured on social topics; the α/β > 1 criticality condition is the dangling invariant shared by economics and communication studies."
         }
       ],
       "notes": "Akerlof 结构属经济学/博弈论, 不在 12 个 seed 中, 作为新类",
+      "notes_en": "Akerlof structure is in economics/game theory, not among the 12 seeds; registered as a new class",
       "members_by_domain": [
         {
           "domain": "传播学",
+          "domain_en": "Communication Studies",
           "names": [
             "沉默螺旋机制"
+          ],
+          "names_en": [
+            "Spiral-of-silence mechanism"
           ]
         },
         {
           "domain": "经济学",
+          "domain_en": "Economics",
           "names": [
             "逆向选择"
+          ],
+          "names_en": [
+            "Adverse selection"
           ]
         },
         {
           "domain": "未标注",
+          "domain_en": "Unlabeled",
           "names": [
             "信息茧房",
             "朋友圈信息的回声室效应"
+          ],
+          "names_en": [
+            "Information cocoons (filter bubbles)",
+            "Echo-chamber effect in social-feed information"
           ]
         }
       ],
@@ -1350,6 +2018,7 @@
       "rank": 2,
       "provenance": "louvain_community",
       "hub_name": "级联失效在社会网络中的传播",
+      "hub_name_en": "Cascading failures propagating through social networks",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1358,6 +2027,11 @@
         "计算社会科学",
         "金融市场微观结构"
       ],
+      "domains_en": [
+        "Blockchain/Web3",
+        "Computational Social Science",
+        "Financial Market Microstructure"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 6.75,
       "max_edge_score": 7.0,
@@ -1365,9 +2039,11 @@
       "taxonomy_match": "motter_lai_network_cascade",
       "confidence": "high",
       "summary_zh": "带容量上限的加权节点网络,单点失效后其负载按权重重分配到邻居,若邻居超过容量则继续失效形成级联。金融清算向量、区块链退出拥堵、社会网络崩塌共享这一拓扑阈值动力学。",
+      "summary_en": "In weighted node networks with capacity limits, a single-node failure redistributes load to neighbors by weights, and neighbors over capacity continue to fail, forming a cascade. Financial clearing vectors, blockchain exit congestion, and social-network collapses share this topology-threshold dynamics.",
       "shared_equations_raw": [
         {
-          "raw": "Eisenberg-Noe清算向量: p_i = min(L_i, c_i + Σ π_ji p_j), 不动点存在性"
+          "raw": "Eisenberg-Noe清算向量: p_i = min(L_i, c_i + Σ π_ji p_j), 不动点存在性",
+          "raw_en": "Eisenberg-Noe clearing vector: p_i = min(L_i, c_i + Σ π_ji p_j); existence of a fixed point"
         },
         {
           "raw": "Motter-Lai cascade: node_j fails if load_j>C_j; redistribution L_k+=share·L_j"
@@ -1379,36 +2055,62 @@
         "Eisenberg-Noe 清算不动点: p_i = min(L_i, c_i + Σπ_ji p_j)",
         "级联规模对初始扰动呈幂律或 S 形相变"
       ],
+      "invariants_en": [
+        "Capacity-load condition: node_j fails if load_j > C_j",
+        "Redistribution rule: L_k += share_{jk} · L_j",
+        "Eisenberg-Noe clearing fixed point: p_i = min(L_i, c_i + Σ π_ji p_j)",
+        "Cascade size vs initial perturbation shows a power-law or S-shaped phase transition"
+      ],
       "predictions": [
         {
           "target": "以太坊 DeFi 清算网络 2022-01 至 2026-03（Compound、Aave、MakerDAO 跨协议再质押图）",
+          "target_en": "Ethereum DeFi liquidation network 2022-01 through 2026-03 (cross-protocol re-collateralization graph of Compound, Aave, MakerDAO)",
           "prediction": "跨协议级联清算规模分布尾指数 τ ∈ [1.4, 1.9]；负载重分配比例 share_{jk} 的中位数 ∈ [0.15, 0.35]；Eisenberg-Noe 清算不动点求解所需迭代次数与初始扰动规模的标度指数 ∈ [0.8, 1.2]",
+          "prediction_en": "The tail exponent of the cross-protocol cascade-liquidation-size distribution is τ ∈ [1.4, 1.9]; the median load-redistribution fraction share_{jk} ∈ [0.15, 0.35]; the scaling exponent of iterations needed for the Eisenberg-Noe fixed-point solver versus initial perturbation size is ∈ [0.8, 1.2]",
           "test_method": "把 DeFi 交易图映射到 EN 清算模型，参数化后做数值实验与真实级联对比；幂律尾 Clauset 拟合；迭代标度用 log-log 回归",
+          "test_method_en": "Map the DeFi transaction graph into an Eisenberg-Noe clearing model, parameterize it, and compare numerical experiments to real cascades; Clauset power-law tail fit; log-log regression for the iteration scaling",
           "data_source": "The Graph Protocol 的 Aave/Compound/Maker subgraph 2022-01 至 2026-03 + Dune Analytics 清算表",
+          "data_source_en": "The Graph Protocol's Aave/Compound/Maker subgraphs 2022-01 through 2026-03 + Dune Analytics liquidation tables",
           "sample_size": "约 8 万次清算事件 × 3 个协议",
+          "sample_size_en": "About 80,000 liquidation events × 3 protocols",
           "paper_target": "Journal of Financial Economics",
           "status": "待验证",
-          "rationale": "DeFi 是第一个可完全观察的金融网络，Eisenberg-Noe 模型从未在其上被外生校准；τ 区间来自银行间网络实证"
+          "status_en": "Pending validation",
+          "rationale": "DeFi 是第一个可完全观察的金融网络，Eisenberg-Noe 模型从未在其上被外生校准；τ 区间来自银行间网络实证",
+          "rationale_en": "DeFi is the first fully observable financial network; the Eisenberg-Noe model has never been exogenously calibrated on it. The τ range is taken from interbank-network empirical studies."
         }
       ],
       "notes": "共享方程与 Motter-Lai 范式精确一致",
+      "notes_en": "Shared equations match the Motter-Lai paradigm exactly",
       "members_by_domain": [
         {
           "domain": "区块链/Web3",
+          "domain_en": "Blockchain/Web3",
           "names": [
             "Plasma子链大规模退出问题"
+          ],
+          "names_en": [
+            "Plasma side-chain mass-exit problem"
           ]
         },
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "对手方风险的传染网络"
+          ],
+          "names_en": [
+            "Counterparty risk contagion network"
           ]
         },
         {
           "domain": "计算社会科学",
+          "domain_en": "Computational Social Science",
           "names": [
             "级联失效在社会网络中的传播"
+          ],
+          "names_en": [
+            "Cascading failures propagating through social networks"
           ]
         }
       ],
@@ -1422,6 +2124,7 @@
       "rank": 11,
       "provenance": "connected_component",
       "hub_name": "低生育率陷阱假说",
+      "hub_name_en": "Low-fertility-trap hypothesis",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1430,6 +2133,11 @@
         "公司金融",
         "环境科学"
       ],
+      "domains_en": [
+        "Demography",
+        "Corporate Finance",
+        "Environmental Science"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 6.6,
       "max_edge_score": 7.2,
@@ -1437,6 +2145,7 @@
       "taxonomy_match": "hysteresis_first_order_transition",
       "confidence": "high",
       "summary_zh": "系统存在两个稳定不动点 x_L, x_H 由内部正反馈分隔,一旦越过鞍点被拉入低态后即使参数恢复也无法返回,产生迟滞回线。湖泊磷循环、人口陷阱、管理层壕沟均为此结构。",
+      "summary_en": "The system admits two stable fixed points x_L and x_H separated by internal positive feedback; once the saddle is crossed and the system falls into the low state it cannot return even when the parameter is restored, producing a hysteresis loop. Lake phosphorus cycles, population traps, and managerial entrenchment all share this structure.",
       "shared_equations_raw": [
         {
           "raw": "Hysteretic bistable system with internal positive feedback"
@@ -1451,36 +2160,62 @@
         "鞍结分岔处跳跃式转变",
         "正反馈自我强化, 恢复路径与失稳路径不重合"
       ],
+      "invariants_en": [
+        "Bistable potential function: dx/dt = f(x)(x - x_L)(x - x_H)",
+        "Hysteresis-loop area > 0 (path-dependent)",
+        "Abrupt transitions at saddle-node bifurcations",
+        "Self-reinforcing positive feedback; recovery path does not coincide with the destabilization path"
+      ],
       "predictions": [
         {
           "target": "OECD 36 国 1970-2024 总和生育率 TFR 与家庭政策支出的迟滞关系",
+          "target_en": "Hysteretic relationship between total-fertility-rate (TFR) and family-policy expenditure in 36 OECD countries, 1970-2024",
           "prediction": "TFR 下降至 1.3 后，即使家庭政策支出恢复到下降前水平（GDP 占比 3% 以上），TFR 反弹 < 0.2 的概率 > 75%；迟滞回线面积（TFR-支出平面）/ 平均 TFR ∈ [0.08, 0.25]",
+          "prediction_en": "Once TFR falls below 1.3, even if family-policy expenditure is restored to pre-drop levels (> 3% of GDP), the probability of TFR rebounding by less than 0.2 exceeds 75%; the hysteresis-loop area (TFR-expenditure plane) / mean TFR is ∈ [0.08, 0.25]",
           "test_method": "panel threshold model (Hansen 1999) 检测 1.3 阈值，cluster-robust SE；回线面积用梯形积分 + 拔靴法 95% CI",
+          "test_method_en": "Hansen 1999 panel threshold model to detect the 1.3 threshold with cluster-robust standard errors; trapezoidal integration of the loop area + bootstrap 95% CI",
           "data_source": "OECD Family Database 1970-2024 + World Bank WDI 生育率与 GDP 面板",
+          "data_source_en": "OECD Family Database 1970-2024 + World Bank WDI fertility-rate and GDP panel",
           "sample_size": "36 国 × 55 年 = 1980 个国-年",
+          "sample_size_en": "36 countries × 55 years = 1,980 country-years",
           "paper_target": "Demography",
           "status": "待验证",
-          "rationale": "Lutz 2006 低生育率陷阱是定性假说；1.3 的 tipping point 与 Scheffer fold 的 critical threshold 完全同构，回线面积是从未测量的悬空不变量"
+          "status_en": "Pending validation",
+          "rationale": "Lutz 2006 低生育率陷阱是定性假说；1.3 的 tipping point 与 Scheffer fold 的 critical threshold 完全同构，回线面积是从未测量的悬空不变量",
+          "rationale_en": "Lutz 2006's low-fertility-trap is a qualitative hypothesis; the tipping point at 1.3 is exactly isomorphic to the critical threshold of a Scheffer fold, and the loop area is a dangling invariant that has never been measured."
         }
       ],
       "notes": "与已 curate 的 hysteresis_first_order_transition 精确吻合",
+      "notes_en": "Exactly matches the curated hysteresis_first_order_transition class",
       "members_by_domain": [
         {
           "domain": "人口学",
+          "domain_en": "Demography",
           "names": [
             "低生育率陷阱假说"
+          ],
+          "names_en": [
+            "Low-fertility-trap hypothesis"
           ]
         },
         {
           "domain": "环境科学",
+          "domain_en": "Environmental Science",
           "names": [
             "湖泊内源磷负荷的再悬浮释放"
+          ],
+          "names_en": [
+            "Resuspension-driven release of internal lake-phosphorus loading"
           ]
         },
         {
           "domain": "公司金融",
+          "domain_en": "Corporate Finance",
           "names": [
             "管理层壕沟效应"
+          ],
+          "names_en": [
+            "Managerial entrenchment effect"
           ]
         }
       ],
@@ -1494,6 +2229,7 @@
       "rank": 12,
       "provenance": "connected_component",
       "hub_name": "凋亡Caspase级联的不可逆数字开关",
+      "hub_name_en": "Irreversible digital switch of the apoptotic caspase cascade",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1502,6 +2238,11 @@
         "微生物学",
         "细胞生物学"
       ],
+      "domains_en": [
+        "Gene Editing/Synthetic Biology",
+        "Microbiology",
+        "Cell Biology"
+      ],
       "edges_internal": 3,
       "avg_edge_score": 6.4,
       "max_edge_score": 6.5,
@@ -1509,15 +2250,18 @@
       "taxonomy_match": "gardner_collins_toggle_switch",
       "confidence": "high",
       "summary_zh": "由超敏 Hill 函数 (n>1) 驱动的正反馈导致两个稳定态和一个不稳定阈值,输入缓慢穿越时产生陡峭的开关切换。Caspase 凋亡、群体感应和合成生物学 toggle 共享同一方程骨架。",
+      "summary_en": "Positive feedback driven by an ultrasensitive Hill function (n > 1) produces two stable states and an unstable threshold, yielding a sharp switching transition as the input slowly crosses the threshold. Caspase-driven apoptosis, quorum sensing, and synthetic-biology toggles share the same equation skeleton.",
       "shared_equations_raw": [
         {
           "raw": "ultrasensitive positive feedback: dx/dt = V x^n/(K^n+x^n) - k x, Hill switch"
         },
         {
-          "raw": "正反馈双稳态开关: dS/dt = α S^n/(K^n + S^n) - β S, n>1 产生阈值切换"
+          "raw": "正反馈双稳态开关: dS/dt = α S^n/(K^n + S^n) - β S, n>1 产生阈值切换",
+          "raw_en": "Positive-feedback bistable switch: dS/dt = α·S^n/(K^n + S^n) - β·S; n > 1 produces threshold switching"
         },
         {
-          "raw": "dA/dt = α·A^n/(K^n+A^n) - βA + basal·N (自诱导Hill双稳态)"
+          "raw": "dA/dt = α·A^n/(K^n+A^n) - βA + basal·N (自诱导Hill双稳态)",
+          "raw_en": "dA/dt = α·A^n/(K^n + A^n) - βA + basal·N (autoinduction Hill bistability)"
         }
       ],
       "invariants": [
@@ -1526,36 +2270,62 @@
         "阈值切换 (ultrasensitive) + 不可逆 (碱基态低且稳定)",
         "鞍结分岔点处开关触发"
       ],
+      "invariants_en": [
+        "Governing equation: dS/dt = α·S^n/(K^n + S^n) - β·S, with n > 1",
+        "Hill coefficient n > 1 guarantees bistability",
+        "Threshold switching (ultrasensitive) + irreversibility (low, stable basal state)",
+        "Switch triggered at the saddle-node bifurcation"
+      ],
       "predictions": [
         {
           "target": "群感效应 (quorum sensing) 的细菌群体诱导阈值（Vibrio harveyi、Pseudomonas aeruginosa 实验室数据）",
+          "target_en": "Population-induction threshold of quorum sensing in bacterial populations (Vibrio harveyi, Pseudomonas aeruginosa laboratory data)",
           "prediction": "AI-2 / C4-HSL 诱导子浓度对群体发光/毒力基因表达呈 Hill 响应，Hill 系数 n ∈ [2.5, 4.5]；双稳态存在区间宽度 / 阈值 ∈ [0.3, 0.7]（fold 分岔迟滞比）",
+          "prediction_en": "The AI-2 / C4-HSL autoinducer concentration produces a Hill response in population luminescence / virulence gene expression with Hill coefficient n ∈ [2.5, 4.5]; the bistable-existence-range width / threshold is ∈ [0.3, 0.7] (fold-bifurcation hysteresis ratio)",
           "test_method": "单细胞荧光流式数据分布分析，Hartigan dip test 检测双峰；Hill 方程非线性拟合 + 95% CI；上升/下降浓度扫描比对迟滞",
+          "test_method_en": "Bimodality analysis of single-cell fluorescence flow-cytometry distributions with Hartigan dip test; Hill-equation nonlinear fitting + 95% CI; ascending/descending concentration sweeps to compare hysteresis",
           "data_source": "BacDive 数据库 + 已发表 Vibrio/Pseudomonas quorum sensing 单细胞数据集（2015-2024 GEO records）",
+          "data_source_en": "BacDive database + published Vibrio/Pseudomonas quorum-sensing single-cell datasets (GEO records 2015-2024)",
           "sample_size": "约 20 个实验条件 × 每条件 10^4 单细胞",
+          "sample_size_en": "About 20 experimental conditions × 10⁴ single cells each",
           "paper_target": "Molecular Systems Biology",
           "status": "待验证",
-          "rationale": "群感从被看作连续响应，迟滞/双稳态从未系统测量；n>1 与 fold 宽度比是 Gardner-Collins 2000 模型的直接可观察量"
+          "status_en": "Pending validation",
+          "rationale": "群感从被看作连续响应，迟滞/双稳态从未系统测量；n>1 与 fold 宽度比是 Gardner-Collins 2000 模型的直接可观察量",
+          "rationale_en": "Quorum sensing has been viewed as a continuous response; its hysteresis and bistability have never been systematically measured. The conditions n > 1 and the fold-width ratio are direct observables of the Gardner-Collins 2000 model."
         }
       ],
       "notes": "与 gardner_collins_toggle_switch 精确一致",
+      "notes_en": "Matches gardner_collins_toggle_switch exactly",
       "members_by_domain": [
         {
           "domain": "细胞生物学",
+          "domain_en": "Cell Biology",
           "names": [
             "凋亡Caspase级联的不可逆数字开关"
+          ],
+          "names_en": [
+            "Irreversible digital switch of the apoptotic caspase cascade"
           ]
         },
         {
           "domain": "基因编辑/合成生物学",
+          "domain_en": "Gene Editing/Synthetic Biology",
           "names": [
             "群体感应密度依赖开关"
+          ],
+          "names_en": [
+            "Density-dependent quorum-sensing switch"
           ]
         },
         {
           "domain": "微生物学",
+          "domain_en": "Microbiology",
           "names": [
             "群感效应的同步诱导阈值"
+          ],
+          "names_en": [
+            "Synchronized-induction threshold of quorum sensing"
           ]
         }
       ],
@@ -1569,6 +2339,7 @@
       "rank": 9,
       "provenance": "connected_component",
       "hub_name": "系统性风险的无标度网络",
+      "hub_name_en": "Scale-free network of systemic risk",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1577,6 +2348,11 @@
         "金融市场微观结构",
         "风险管理"
       ],
+      "domains_en": [
+        "Insurance and Actuarial Science",
+        "Financial Market Microstructure",
+        "Risk Management"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 6.3,
       "max_edge_score": 7.8,
@@ -1584,6 +2360,7 @@
       "taxonomy_match": "preferential_attachment",
       "confidence": "high",
       "summary_zh": "度分布 P(k)∝k^{-γ} 的无标度网络上,当 γ<3 时渗流阈值 p_c→0,网络对随机失效极度鲁棒但对针对 hub 攻击极度脆弱,级联阈值 φ_c 由二阶矩 <k²> 决定。再抵押循环、系统性金融风险和网络保险相关性属此类。",
+      "summary_en": "On scale-free networks with degree distribution P(k) ∝ k^(-γ), when γ < 3 the percolation threshold p_c → 0: the network is extremely robust against random failures but extremely fragile against targeted hub attacks, and the cascade threshold φ_c is governed by the second moment ⟨k²⟩. Re-hypothecation loops, systemic financial risk, and cyber-insurance correlations all belong to this class.",
       "shared_equations_raw": [
         {
           "raw": "scale-free network cascade: P(k)∝k^(-γ), percolation threshold p_c→0"
@@ -1598,36 +2375,62 @@
         "hub 攻击下网络崩塌呈现剧烈相变",
         "对随机失效鲁棒 / 对定向攻击脆弱的双重性"
       ],
+      "invariants_en": [
+        "Degree distribution: P(k) ∝ k^(-γ), γ ≈ 2-3",
+        "Percolation threshold p_c = ⟨k⟩ / (⟨k²⟩ - ⟨k⟩); p_c → 0 when γ < 3",
+        "Network collapse under hub attack manifests as a sharp phase transition",
+        "Dual property: robust to random failures, fragile to targeted attacks"
+      ],
       "predictions": [
         {
           "target": "2020-2025 DeFi 跨协议再质押图（stETH、rETH、cbETH 等 liquid staking derivatives）",
+          "target_en": "Cross-protocol re-collateralization graph of DeFi 2020-2025 (liquid-staking derivatives such as stETH, rETH, cbETH)",
           "prediction": "节点度分布 P(k) ∝ k^{-γ}，γ ∈ [2.1, 2.8]；渗流阈值 p_c < 0.05，即移除不到 5% 的顶级 hub 即可导致整个再质押生态崩溃；网络有效直径 ≤ log(N)/log(log(N)) × (1±0.2)",
+          "prediction_en": "The degree distribution is P(k) ∝ k^(-γ) with γ ∈ [2.1, 2.8]; the percolation threshold p_c < 0.05, meaning that removing less than 5% of the top hubs collapses the entire re-staking ecosystem; the effective diameter is ≤ log(N)/log(log(N)) × (1 ± 0.2)",
           "test_method": "Clauset 幂律拟合 γ；渗流模拟 targeted attack vs random failure；hub 攻击的 giant component size 曲线拐点",
+          "test_method_en": "Clauset power-law fit for γ; percolation simulations comparing targeted attack vs random failure; identification of the inflection point of the giant-component-size curve under hub attack",
           "data_source": "DeFiLlama LSD subgraph + Etherscan Token Transfer 数据 2020-2025",
+          "data_source_en": "DeFiLlama LSD subgraph + Etherscan Token-Transfer data 2020-2025",
           "sample_size": "约 50 个 LSD 协议 × 10^6 地址",
+          "sample_size_en": "About 50 LSD protocols × 10⁶ addresses",
           "paper_target": "Review of Financial Studies",
           "status": "待验证",
-          "rationale": "Cohen 2000 预测 γ<3 时 p_c→0，DeFi 再质押从未被测 γ；若 γ 落入 2.1-2.8 则证实系统性风险无标度脆弱"
+          "status_en": "Pending validation",
+          "rationale": "Cohen 2000 预测 γ<3 时 p_c→0，DeFi 再质押从未被测 γ；若 γ 落入 2.1-2.8 则证实系统性风险无标度脆弱",
+          "rationale_en": "Cohen 2000 predicts p_c → 0 when γ < 3; DeFi re-staking has never had its γ measured. If γ falls into 2.1-2.8, this confirms systemic-risk scale-free fragility."
         }
       ],
       "notes": "同时横跨 preferential_attachment 和 percolation_connectivity; 取前者作为主匹配因其强调无标度拓扑成因",
+      "notes_en": "Straddles preferential_attachment and percolation_connectivity; the former is taken as the primary match because it emphasizes the generative cause of scale-free topology",
       "members_by_domain": [
         {
           "domain": "风险管理",
+          "domain_en": "Risk Management",
           "names": [
             "抵押品升降级的再质押循环"
+          ],
+          "names_en": [
+            "Re-hypothecation loops from collateral upgrade/downgrade"
           ]
         },
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "系统性风险的无标度网络"
+          ],
+          "names_en": [
+            "Scale-free network of systemic risk"
           ]
         },
         {
           "domain": "保险与精算",
+          "domain_en": "Insurance and Actuarial Science",
           "names": [
             "网络安全险的相关性难题"
+          ],
+          "names_en": [
+            "Correlation problem in cyber insurance"
           ]
         }
       ],
@@ -1641,6 +2444,7 @@
       "rank": 13,
       "provenance": "connected_component",
       "hub_name": "社会认同传播",
+      "hub_name_en": "Social-identity contagion",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1649,6 +2453,11 @@
         "社会学",
         "金融市场微观结构"
       ],
+      "domains_en": [
+        "Entrepreneurship/Venture Capital",
+        "Sociology",
+        "Financial Market Microstructure"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 6.25,
       "max_edge_score": 6.5,
@@ -1656,6 +2465,7 @@
       "taxonomy_match": "percolation_connectivity",
       "confidence": "high",
       "summary_zh": "网络节点占据概率越过临界值 p_c 时出现横跨系统的无穷连通簇,序参量 P_∞ ∝ (p-p_c)^β 呈二阶相变。社会认同、主动基金份额、竞争门槛防御都对应这一临界密度效应。",
+      "summary_en": "Once the node-occupation probability exceeds the critical value p_c, a system-spanning infinite connected cluster appears, and the order parameter P_∞ ∝ (p - p_c)^β exhibits a second-order phase transition. Social-identity contagion, active-fund share dynamics, and competitive-entry defensive thresholds correspond to this critical-density effect.",
       "shared_equations_raw": [
         {
           "raw": "order_parameter ~ (p - p_c)^beta; 2nd-order phase transition with critical adopter/active fraction"
@@ -1670,36 +2480,62 @@
         "二阶相变 (连续), 无迟滞",
         "临界点处集团尺寸分布呈幂律"
       ],
+      "invariants_en": [
+        "Order-parameter scaling: order_param ∝ (p - p_c)^β",
+        "Divergence of the correlation length: ξ ∝ |p - p_c|^(-ν)",
+        "Second-order (continuous) phase transition without hysteresis",
+        "Cluster-size distribution at the critical point follows a power law"
+      ],
       "predictions": [
         {
           "target": "Reddit 政治亚版 2018-2024 用户身份转换事件的渗流相变（r/politics、r/Conservative 等 20 个社区）",
+          "target_en": "Percolation phase transition of user-identity-conversion events in 20 Reddit political sub-communities 2018-2024 (r/politics, r/Conservative, etc.)",
           "prediction": "用户自我认同转换率作为序参量 m 满足 m ∝ (p-p_c)^β，β ∈ [0.30, 0.45]（对应 2D Ising 普适类）；关联长度发散指数 ν ∈ [0.90, 1.10]；p_c（邻居感染比例阈值）∈ [0.15, 0.30]",
+          "prediction_en": "The user-identity-conversion rate, as the order parameter m, satisfies m ∝ (p - p_c)^β with β ∈ [0.30, 0.45] (corresponding to the 2D Ising universality class); the correlation-length exponent ν ∈ [0.90, 1.10]; the critical neighbor-infection-ratio threshold p_c ∈ [0.15, 0.30]",
           "test_method": "有限尺寸标度 (finite-size scaling collapse) + log-log 拟合；permutation test 对 β=0.125（2D Ising）、β=0.5（mean-field）做区分",
+          "test_method_en": "Finite-size scaling collapse + log-log regression; permutation test to distinguish β = 0.125 (2D Ising) from β = 0.5 (mean-field)",
           "data_source": "Reddit Pushshift 存档 2018-2024 + Politosphere 身份标注数据集",
+          "data_source_en": "Reddit Pushshift archive 2018-2024 + Politosphere identity-label dataset",
           "sample_size": "约 2000 万用户 × 20 社区",
+          "sample_size_en": "About 20 million users × 20 communities",
           "paper_target": "Nature Human Behaviour",
           "status": "待验证",
-          "rationale": "社会认同传播被反复讨论但 β、ν 指数从未测量；0.30-0.45 的区间覆盖从 Granovetter 阈值模型到经典 percolation 的跨越"
+          "status_en": "Pending validation",
+          "rationale": "社会认同传播被反复讨论但 β、ν 指数从未测量；0.30-0.45 的区间覆盖从 Granovetter 阈值模型到经典 percolation 的跨越",
+          "rationale_en": "Social-identity contagion is widely discussed but the exponents β and ν have never been measured; the 0.30-0.45 range spans from Granovetter's threshold model to classical percolation."
         }
       ],
       "notes": "共享方程与 seed percolation_connectivity 精确一致",
+      "notes_en": "Shared equations match the seed percolation_connectivity class exactly",
       "members_by_domain": [
         {
           "domain": "金融市场微观结构",
+          "domain_en": "Financial Market Microstructure",
           "names": [
             "主动管理与指数化的流动性外部性"
+          ],
+          "names_en": [
+            "Liquidity externalities between active management and indexation"
           ]
         },
         {
           "domain": "社会学",
+          "domain_en": "Sociology",
           "names": [
             "社会认同传播"
+          ],
+          "names_en": [
+            "Social-identity contagion"
           ]
         },
         {
           "domain": "创业/VC",
+          "domain_en": "Entrepreneurship/Venture Capital",
           "names": [
             "竞争对手进入的临界规模防御门槛"
+          ],
+          "names_en": [
+            "Critical-scale defense threshold against competitor entry"
           ]
         }
       ],
@@ -1713,6 +2549,7 @@
       "rank": 15,
       "provenance": "connected_component",
       "hub_name": "网红经济长尾失衡",
+      "hub_name_en": "Long-tail imbalance of the influencer economy",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1721,6 +2558,11 @@
         "加密货币与DeFi",
         "社交网络动态"
       ],
+      "domains_en": [
+        "Sports",
+        "Cryptocurrency and DeFi",
+        "Social Network Dynamics"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 5.65,
       "max_edge_score": 5.8,
@@ -1728,6 +2570,7 @@
       "taxonomy_match": "preferential_attachment",
       "confidence": "high",
       "summary_zh": "资源/注意力/连接按\"富者愈富\"规则分配,P(attach to i)∝k_i,长期分布收敛到幂律 P(k)∝k^{-γ}, γ≈3。足球积分、矿池规模、网红粉丝长尾都共享 Yule-Simon 过程结构。",
+      "summary_en": "Resources/attention/connections are allocated by a 'rich-get-richer' rule with P(attach to i) ∝ k_i, and the long-run distribution converges to a power law P(k) ∝ k^(-γ) with γ ≈ 3. Football-league points, mining-pool sizes, and influencer-follower long tails share the Yule-Simon process structure.",
       "shared_equations_raw": [
         {
           "raw": "Barabási-Albert preferential attachment: P(k_i=k) ∝ k^{-γ}, γ≈3; Yule-Simon process"
@@ -1742,36 +2585,62 @@
         "无特征尺度 (scale-free)",
         "Hub 支配拓扑, 平均路径对数增长"
       ],
+      "invariants_en": [
+        "Attachment probability: P(i) ∝ k_i^α (α = 1 gives BA)",
+        "Power-law degree distribution: P(k) ∝ k^(-γ), γ ≈ 2-3",
+        "No characteristic scale (scale-free)",
+        "Hubs dominate the topology; mean path length grows logarithmically"
+      ],
       "predictions": [
         {
           "target": "TikTok/YouTube 创作者粉丝数分布 2020-2025（Social Blade 公开 top 10 万样本）",
+          "target_en": "Follower-count distribution of TikTok/YouTube creators 2020-2025 (top 100k sample from Social Blade public data)",
           "prediction": "粉丝数分布服从 P(k) ∝ k^{-γ}，γ ∈ [2.0, 2.6]；新创作者增长率与现有粉丝数满足 dk/dt = c·k^α，α ∈ [0.85, 1.10]（接近线性 BA）；top 1% 创作者占总粉丝比例 ∈ [45%, 70%]",
+          "prediction_en": "The follower distribution follows P(k) ∝ k^(-γ) with γ ∈ [2.0, 2.6]; the growth rate of new creators versus existing followers satisfies dk/dt = c·k^α with α ∈ [0.85, 1.10] (near-linear BA); the top 1% of creators hold ∈ [45%, 70%] of total followers",
           "test_method": "Clauset-Shalizi-Newman 2009 幂律 MLE + KS 检验；增长率 α 用纵向面板的 log-log 回归估计，个体固定效应",
+          "test_method_en": "Clauset-Shalizi-Newman 2009 power-law MLE + KS test; panel log-log regression with individual fixed effects to estimate the growth-rate exponent α",
           "data_source": "Social Blade Public API + SimilarWeb 创作者面板 2020-2025",
+          "data_source_en": "Social Blade public API + SimilarWeb creator panel 2020-2025",
           "sample_size": "约 10 万创作者 × 月度快照",
+          "sample_size_en": "About 100,000 creators × monthly snapshots",
           "paper_target": "PNAS",
           "status": "待验证",
-          "rationale": "短视频平台的增长率标度指数 α 未被测量，α≠1 会反驳纯 BA 模型；45-70% 区间从 Zipf γ≈2 解析计算得出"
+          "status_en": "Pending validation",
+          "rationale": "短视频平台的增长率标度指数 α 未被测量，α≠1 会反驳纯 BA 模型；45-70% 区间从 Zipf γ≈2 解析计算得出",
+          "rationale_en": "The growth-rate scaling exponent α on short-video platforms has not been measured; α ≠ 1 would refute the pure BA model. The 45-70% range is computed analytically from a Zipf distribution with γ ≈ 2."
         }
       ],
       "notes": "与 seed preferential_attachment 精确一致",
+      "notes_en": "Matches the seed preferential_attachment class exactly",
       "members_by_domain": [
         {
           "domain": "加密货币与DeFi",
+          "domain_en": "Cryptocurrency and DeFi",
           "names": [
             "矿池的规模经济集中化"
+          ],
+          "names_en": [
+            "Scale-economy concentration of mining pools"
           ]
         },
         {
           "domain": "社交网络动态",
+          "domain_en": "Social Network Dynamics",
           "names": [
             "网红经济长尾失衡"
+          ],
+          "names_en": [
+            "Long-tail imbalance of the influencer economy"
           ]
         },
         {
           "domain": "体育",
+          "domain_en": "Sports",
           "names": [
             "足球联赛积分的幂律分布"
+          ],
+          "names_en": [
+            "Power-law distribution of football-league points"
           ]
         }
       ],
@@ -1785,6 +2654,7 @@
       "rank": 14,
       "provenance": "connected_component",
       "hub_name": "城市热岛效应的空间梯度",
+      "hub_name_en": "Spatial gradient of the urban-heat-island effect",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1793,6 +2663,11 @@
         "土木工程",
         "环境科学"
       ],
+      "domains_en": [
+        "Developmental Biology",
+        "Civil Engineering",
+        "Environmental Science"
+      ],
       "edges_internal": 3,
       "avg_edge_score": 5.4,
       "max_edge_score": 6.2,
@@ -1800,12 +2675,14 @@
       "taxonomy_match": "reaction_diffusion_turing",
       "confidence": "medium",
       "summary_zh": "带源汇与降解的扩散方程 ∂c/∂t = D∇²c - kc + S 的稳态解为指数或对数衰减梯度,特征尺度 λ=√(D/k)。热岛、地下水漏斗、母源效应 morphogen 梯度都遵循同一拉普拉斯/修正亥姆霍兹方程。",
+      "summary_en": "Steady-state solutions of a reaction-diffusion equation with source, sink, and degradation terms ∂c/∂t = D∇²c - kc + S are exponential or logarithmic decay gradients with characteristic scale λ = √(D/k). Urban heat islands, groundwater drawdown cones, and maternal-effect morphogen gradients all obey the same Laplace / modified-Helmholtz equation.",
       "shared_equations_raw": [
         {
           "raw": "Steady Laplace/Poisson equation ∇²u = -S; radial solution u(r) ∝ -ln(r) for 2D sinks/sources"
         },
         {
-          "raw": "∂c/∂t = D∇²c - k·c + source，含降解的扩散方程"
+          "raw": "∂c/∂t = D∇²c - k·c + source，含降解的扩散方程",
+          "raw_en": "∂c/∂t = D∇²c - k·c + source — a diffusion equation with degradation"
         },
         {
           "raw": "∂c/∂t = D ∇²c - k c + S(x); steady state: c(x) ~ λ exp(-x/λ), λ=√(D/k)"
@@ -1817,36 +2694,62 @@
         "二维径向解: u(r) ∝ -ln(r) 对数衰减",
         "线性叠加 (无非线性 Turing 失稳)"
       ],
+      "invariants_en": [
+        "Governing equation: ∂c/∂t = D∇²c - kc + S(x)",
+        "Steady-state characteristic length λ = √(D/k)",
+        "Two-dimensional radial solution: u(r) ∝ -ln(r) (logarithmic decay)",
+        "Linear superposition (no nonlinear Turing instability)"
+      ],
       "predictions": [
         {
           "target": "上海市 2015-2025 年夏季夜间地表温度（Landsat 8/9 热红外）的空间梯度",
+          "target_en": "Spatial gradient of summer-nighttime land-surface temperature in Shanghai 2015-2025 (Landsat 8/9 thermal infrared)",
           "prediction": "城市中心到郊区的温度剖面符合 T(r) - T_∞ ∝ -ln(r/λ)，特征长度 λ ∈ [2.5, 6.0] km；λ² = D/k 中 D（湍流扩散）、k（辐射冷却率）估计值与独立气象数据一致性 R² > 0.75",
+          "prediction_en": "The temperature profile from city center to suburbs satisfies T(r) - T_∞ ∝ -ln(r/λ) with characteristic length λ ∈ [2.5, 6.0] km; in λ² = D/k the estimated D (turbulent diffusion) and k (radiative cooling rate) are consistent with independent meteorological data (R² > 0.75)",
           "test_method": "对逐年夏季夜间 Landsat 影像做径向平均温度剖面提取，非线性最小二乘拟合对数律，与独立 ERA5 再分析 D/k 估计比对",
+          "test_method_en": "Extract radial-average temperature profiles from summer-nighttime Landsat imagery each year; nonlinear least-squares fit of the logarithmic law; compare against independent D/k estimates from ERA5 reanalysis",
           "data_source": "NASA Landsat 8/9 Collection 2 热红外 + ERA5-Land 再分析 2015-2025",
+          "data_source_en": "NASA Landsat 8/9 Collection 2 thermal infrared + ERA5-Land reanalysis 2015-2025",
           "sample_size": "约 120 景影像 × 10 个方向径向剖面",
+          "sample_size_en": "About 120 scenes × 10 directional radial profiles",
           "paper_target": "Remote Sensing of Environment",
           "status": "待验证",
-          "rationale": "城市热岛研究多用经验拟合，很少把 Poisson 二维解析解 ln(r) 作为硬性预测；2.5-6 km 的 λ 来自 Oke 1987 能量平衡模型参数化"
+          "status_en": "Pending validation",
+          "rationale": "城市热岛研究多用经验拟合，很少把 Poisson 二维解析解 ln(r) 作为硬性预测；2.5-6 km 的 λ 来自 Oke 1987 能量平衡模型参数化",
+          "rationale_en": "Urban-heat-island studies often use empirical fits and rarely take the 2D Poisson analytical ln(r) solution as a hard prediction; λ ∈ 2.5-6 km is parameterized from the Oke 1987 energy-balance model."
         }
       ],
       "notes": "是 reaction-diffusion 的线性稳态子类, 无 Turing 图案 (pattern formation), 因此 match 到 reaction_diffusion_turing 只算 medium",
+      "notes_en": "A linear-steady-state sub-class of reaction-diffusion systems without Turing pattern formation; the match to reaction_diffusion_turing is therefore only medium",
       "members_by_domain": [
         {
           "domain": "环境科学",
+          "domain_en": "Environmental Science",
           "names": [
             "城市热岛效应的空间梯度"
+          ],
+          "names_en": [
+            "Spatial gradient of the urban-heat-island effect"
           ]
         },
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "基坑降水的地下水漏斗"
+          ],
+          "names_en": [
+            "Groundwater drawdown cone from foundation-pit dewatering"
           ]
         },
         {
           "domain": "发育生物学",
+          "domain_en": "Developmental Biology",
           "names": [
             "母源效应基因与卵轴极化"
+          ],
+          "names_en": [
+            "Maternal-effect genes and egg-axis polarization"
           ]
         }
       ],
@@ -1860,6 +2763,7 @@
       "rank": 16,
       "provenance": "connected_component",
       "hub_name": "DNA甲基化的半甲基化继承",
+      "hub_name_en": "Hemimethylated inheritance of DNA methylation",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 3,
@@ -1868,6 +2772,11 @@
         "发育生物学",
         "电气工程"
       ],
+      "domains_en": [
+        "Molecular Biology",
+        "Developmental Biology",
+        "Electrical Engineering"
+      ],
       "edges_internal": 2,
       "avg_edge_score": 5.25,
       "max_edge_score": 5.5,
@@ -1875,6 +2784,7 @@
       "taxonomy_match": null,
       "confidence": "high",
       "summary_zh": "离散状态系统满足 P(s_{t+1}|s_t) 一阶马尔可夫性,单步保持概率 1-ε 决定记忆保真度,稳态分布由转移矩阵主特征向量给出。DNA 甲基化继承、X 染色体随机失活、发电机组启停都是典型离散马尔可夫。",
+      "summary_en": "A discrete-state system satisfies the first-order Markov property P(s_{t+1} | s_t); the single-step retention probability 1-ε sets the memory fidelity, and the stationary distribution is given by the leading eigenvector of the transition matrix. DNA-methylation inheritance, random X-chromosome inactivation, and generator on/off cycling are canonical discrete Markov systems.",
       "shared_equations_raw": [
         {
           "raw": "P(s_{t+1}|s_t) Markov transition matrix"
@@ -1889,36 +2799,62 @@
         "稳态分布 π 满足 πP = π",
         "记忆衰减时间 τ ~ 1/ε"
       ],
+      "invariants_en": [
+        "First-order Markov property: P(s_{t+1} | s_t, s_{t-1}, …) = P(s_{t+1} | s_t)",
+        "Retention probability: P(s_{t+1} = s_t) ≈ 1-ε (forgetting rate)",
+        "Stationary distribution π satisfies πP = π",
+        "Memory decay time τ ~ 1/ε"
+      ],
       "predictions": [
         {
           "target": "电力调度的发电机组启停序列 PJM/CAISO 2018-2025",
+          "target_en": "Generator on/off sequences in power-system dispatch (PJM / CAISO) 2018-2025",
           "prediction": "发电机组状态（启/停）转移满足一阶马尔可夫性，高阶依赖 LRT p>0.1 不拒绝；遗忘率 ε ∈ [0.02, 0.08] / 小时，对应记忆时间 τ ∈ [12, 50] 小时；稳态分布 π 预测值与实际运行率相对误差 < 10%",
+          "prediction_en": "Generator state (on/off) transitions satisfy the first-order Markov property — higher-order dependence is not rejected by LRT (p > 0.1); the forgetting rate ε ∈ [0.02, 0.08] per hour, corresponding to memory time τ ∈ [12, 50] hours; the predicted stationary distribution π matches actual operating rates within 10% relative error",
           "test_method": "Pegram χ² 检验马尔可夫阶数；MLE 估计转移矩阵并计算 π；bootstrap 置信区间",
+          "test_method_en": "Pegram χ² test for Markov-chain order; MLE of the transition matrix and computation of π; bootstrap confidence intervals",
           "data_source": "PJM Interconnection Generation Fuel Mix 小时数据 + CAISO OASIS 2018-2025",
+          "data_source_en": "PJM Interconnection generation fuel-mix hourly data + CAISO OASIS 2018-2025",
           "sample_size": "约 6 万小时 × 500 台机组",
+          "sample_size_en": "About 60,000 hours × 500 generating units",
           "paper_target": "IEEE Transactions on Power Systems",
           "status": "待验证",
-          "rationale": "电力调度常用更复杂模型，马尔可夫一阶充分性未被严格检验；12-50 小时记忆窗口对应典型启动/最小运行约束"
+          "status_en": "Pending validation",
+          "rationale": "电力调度常用更复杂模型，马尔可夫一阶充分性未被严格检验；12-50 小时记忆窗口对应典型启动/最小运行约束",
+          "rationale_en": "Power dispatch typically uses more complex models and the sufficiency of a first-order Markov chain has not been rigorously tested; the 12-50-hour memory window corresponds to typical startup and minimum-runtime constraints."
         }
       ],
       "notes": "马尔可夫链未在 12 个 seed 中显式列出, 作为新类登记",
+      "notes_en": "Markov chains were not explicitly listed among the 12 seeds; registered as a new class",
       "members_by_domain": [
         {
           "domain": "分子生物学",
+          "domain_en": "Molecular Biology",
           "names": [
             "DNA甲基化的半甲基化继承"
+          ],
+          "names_en": [
+            "Hemimethylated inheritance of DNA methylation"
           ]
         },
         {
           "domain": "发育生物学",
+          "domain_en": "Developmental Biology",
           "names": [
             "X染色体失活的随机性与克隆嵌合"
+          ],
+          "names_en": [
+            "Stochastic X-inactivation and clonal mosaicism"
           ]
         },
         {
           "domain": "电气工程",
+          "domain_en": "Electrical Engineering",
           "names": [
             "发电机组启停的马尔可夫模型"
+          ],
+          "names_en": [
+            "Markov model of generator on/off cycling"
           ]
         }
       ],
@@ -1932,12 +2868,17 @@
       "rank": 8,
       "provenance": "connected_component",
       "hub_name": "高层建筑风振舒适度控制",
+      "hub_name_en": "Wind-induced-vibration comfort control in high-rise buildings",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 2,
       "domains": [
         "土木工程",
         "电气工程"
+      ],
+      "domains_en": [
+        "Civil Engineering",
+        "Electrical Engineering"
       ],
       "edges_internal": 2,
       "avg_edge_score": 6.25,
@@ -1946,6 +2887,7 @@
       "taxonomy_match": "second_order_damped_oscillator",
       "confidence": "high",
       "summary_zh": "最基础的线性动力系统 M·ẍ+C·ẋ+K·x=F(t),由固有频率 ω₀ 和阻尼比 ζ 刻画。高层建筑 TMD、电力系统 PSS、小信号振荡和暂态稳定控制全部落在同一对偶控制框架中。",
+      "summary_en": "The most fundamental linear dynamical system M·ẍ + C·ẋ + K·x = F(t), characterized by natural frequency ω₀ and damping ratio ζ. High-rise TMDs, power-system PSSs, small-signal oscillations, and transient-stability control all fall within the same dual control framework.",
       "shared_equations_raw": [
         {
           "raw": "ẍ + 2ζω·ẋ + ω²·x = F(t); PSS ↔ TMD dual damping control"
@@ -1960,31 +2902,54 @@
         "临界阻尼 ζ_c=1 分离振荡/过阻尼",
         "ω₀ 处共振峰, 相位滞后 π/2"
       ],
+      "invariants_en": [
+        "Governing equation: M·ẍ + C·ẋ + K·x = F(t)",
+        "Natural frequency ω₀ = √(K/M); damping ratio ζ = C / (2√(MK))",
+        "Critical damping ζ_c = 1 separates oscillation from overdamping",
+        "Resonance peak at ω₀ with phase lag of π/2"
+      ],
       "predictions": [
         {
           "target": "上海环球金融中心、台北 101、哈利法塔的风振加速度长期监测（2015-2024 结构健康监测数据）",
+          "target_en": "Long-term wind-induced-acceleration monitoring of the Shanghai World Financial Center, Taipei 101, and the Burj Khalifa (2015-2024 structural-health-monitoring data)",
           "prediction": "一阶模态固有频率 ω₀ 与阻尼比 ζ 稳定在 ω₀ ∈ [0.10, 0.25] Hz、ζ ∈ [0.008, 0.025]；共振峰放大系数 Q = 1/(2ζ) ∈ [20, 62]；风谱输入下顶层位移均方根与 1/(2ζ)^{1/2} 的线性关系 R² > 0.9",
+          "prediction_en": "The first-mode natural frequency and damping ratio remain stable at ω₀ ∈ [0.10, 0.25] Hz and ζ ∈ [0.008, 0.025]; the resonance amplification factor Q = 1 / (2ζ) ∈ [20, 62]; under wind-spectrum input, the RMS top-floor displacement varies linearly with 1 / (2ζ)^(1/2), R² > 0.9",
           "test_method": "operational modal analysis (OMA) / stochastic subspace identification 提取 ω₀、ζ；频响函数拟合 Q；用非台风窗口数据做交叉验证",
+          "test_method_en": "Operational modal analysis (OMA) / stochastic subspace identification to extract ω₀ and ζ; frequency-response-function fit for Q; cross-validation with non-typhoon windows",
           "data_source": "上海环球金融中心 SHM 系统公开数据集（2015-2024）+ NCREE 台北 101 公开模态报告",
+          "data_source_en": "Shanghai World Financial Center SHM public dataset (2015-2024) + NCREE Taipei 101 public modal reports",
           "sample_size": "约 8000 小时监测 × 3 栋建筑",
+          "sample_size_en": "About 8,000 monitoring hours × 3 buildings",
           "paper_target": "Journal of Structural Engineering (ASCE)",
           "status": "待验证",
-          "rationale": "超高层振动的 ω₀、ζ 虽是工程量，但 Q-RMS 线性关系作为 LCR 振子同构验证尚未系统做；区间取自现行规范经验值"
+          "status_en": "Pending validation",
+          "rationale": "超高层振动的 ω₀、ζ 虽是工程量，但 Q-RMS 线性关系作为 LCR 振子同构验证尚未系统做；区间取自现行规范经验值",
+          "rationale_en": "ω₀ and ζ for super-tall buildings are engineering quantities, but the Q-RMS linear relation as a verification of LCR-oscillator isomorphism has not been done systematically; the ranges come from current-code empirical values."
         }
       ],
       "notes": "与 seed second_order_damped_oscillator 精确吻合",
+      "notes_en": "Matches the seed second_order_damped_oscillator class exactly",
       "members_by_domain": [
         {
           "domain": "电气工程",
+          "domain_en": "Electrical Engineering",
           "names": [
             "电力系统小信号振荡",
             "电力系统暂态稳定"
+          ],
+          "names_en": [
+            "Small-signal oscillation in power systems",
+            "Transient stability in power systems"
           ]
         },
         {
           "domain": "土木工程",
+          "domain_en": "Civil Engineering",
           "names": [
             "高层建筑风振舒适度控制"
+          ],
+          "names_en": [
+            "Wind-induced-vibration comfort control in high-rise buildings"
           ]
         }
       ],
@@ -1998,12 +2963,17 @@
       "rank": 17,
       "provenance": "connected_component",
       "hub_name": "新兴市场传染的多米诺效应",
+      "hub_name_en": "Domino effect of emerging-market contagion",
       "hub_degree": 2,
       "size": 3,
       "n_domains": 2,
       "domains": [
         "国际经济",
         "衍生品与风险管理"
+      ],
+      "domains_en": [
+        "International Economics",
+        "Derivatives and Risk Management"
       ],
       "edges_internal": 2,
       "avg_edge_score": 4.75,
@@ -2012,6 +2982,7 @@
       "taxonomy_match": null,
       "confidence": "medium",
       "summary_zh": "金融网络节点按 SIR 式动力学 dS/dt=-βSI 进行违约传染,拓扑结构从 bow-tie 经 CCP 中介化演变为星型,基本再生数 R₀=β/γ 决定是否存在传染相变。CDS 级联、场外衍生品对手方暴露、新兴市场多米诺共享此结构。",
+      "summary_en": "Financial-network nodes undergo SIR-type default contagion with dS/dt = -βSI; the topology evolves from a bow-tie through CCP intermediation to a star, and the basic reproduction number R₀ = β/γ determines whether a contagion phase transition occurs. CDS cascades, OTC-derivative counterparty exposure, and emerging-market dominoes share this structure.",
       "shared_equations_raw": [
         {
           "raw": "SIR-like default contagion on financial network: dS/dt=-βSI, etc."
@@ -2026,31 +2997,54 @@
         "网络拓扑演化 (bow-tie → star via CCP)",
         "违约聚类服从拓扑决定的规模分布"
       ],
+      "invariants_en": [
+        "SIR dynamics: dS/dt = -βSI, dI/dt = βSI - γI, dR/dt = γI",
+        "Basic reproduction number R₀ = β⟨k⟩/γ; R₀ > 1 triggers an epidemic",
+        "Network-topology evolution (bow-tie → star via CCP)",
+        "Default clusters follow a size distribution determined by topology"
+      ],
       "predictions": [
         {
           "target": "新兴市场货币危机传染 1994-2024（墨西哥、亚洲、阿根廷、土耳其、2022 斯里兰卡）",
+          "target_en": "Emerging-market currency-crisis contagion 1994-2024 (Mexico, Asia, Argentina, Turkey, 2022 Sri Lanka)",
           "prediction": "按国际贸易/银行债权构建的网络上拟合 SIR，估计 R₀ ∈ [1.3, 2.8]（危机期）；传染规模 R_∞/N 与 (1-1/R₀) 的相对误差 < 15%；β/γ 的峰值与 CDS 利差跃升时间提前量 ∈ [5, 20] 天",
+          "prediction_en": "Fitting SIR on networks built from international trade / bank claims yields R₀ ∈ [1.3, 2.8] during crises; the relative error between the contagion size R_∞ / N and (1 - 1/R₀) is < 15%; the lead time of β/γ peaks over CDS-spread jumps is ∈ [5, 20] days",
           "test_method": "对每次危机拟合 Kermack-McKendrick SIR，估计 R₀ 的最大似然；Granger causality 检验 β/γ 对 CDS spreads 的领先性",
+          "test_method_en": "Maximum-likelihood estimation of R₀ by fitting the Kermack-McKendrick SIR to each crisis; Granger-causality tests for the lead of β/γ over CDS spreads",
           "data_source": "IMF Direction of Trade + BIS 国际银行债权 1994-2024 + Bloomberg CDS 历史",
+          "data_source_en": "IMF Direction of Trade + BIS international bank claims 1994-2024 + Bloomberg CDS history",
           "sample_size": "约 45 国 × 30 年月度数据 × 6 次主要危机",
+          "sample_size_en": "About 45 countries × 30 years of monthly data × 6 major crises",
           "paper_target": "Journal of International Economics",
           "status": "待验证",
-          "rationale": "金融传染常用线性回归描述，SIR R₀ 的严格估计与 5-20 天预警提前量是未测量的悬空不变量；区间取自 Forbes-Rigobon 2002 相关性修正估计"
+          "status_en": "Pending validation",
+          "rationale": "金融传染常用线性回归描述，SIR R₀ 的严格估计与 5-20 天预警提前量是未测量的悬空不变量；区间取自 Forbes-Rigobon 2002 相关性修正估计",
+          "rationale_en": "Financial contagion is usually described by linear regression; rigorous SIR R₀ estimates and 5-20-day early-warning leads are unmeasured dangling invariants. The range comes from Forbes-Rigobon 2002 correlation-adjusted estimates."
         }
       ],
       "notes": "既像 percolation 又像 motter_lai, 但方程明确用 SIR 形式, 作为 SIR 变体登记; taxonomy seed 没有独立 SIR 类, 故 match null",
+      "notes_en": "Resembles both percolation and Motter-Lai, but the equation is explicitly SIR, so it is registered as an SIR variant; there is no standalone SIR seed in the taxonomy, hence the null match",
       "members_by_domain": [
         {
           "domain": "衍生品与风险管理",
+          "domain_en": "Derivatives and Risk Management",
           "names": [
             "CDS指数的信用级联建模",
             "场外衍生品的对手方暴露"
+          ],
+          "names_en": [
+            "Credit-cascade modeling of CDS indices",
+            "Counterparty exposure in OTC derivatives"
           ]
         },
         {
           "domain": "国际经济",
+          "domain_en": "International Economics",
           "names": [
             "新兴市场传染的多米诺效应"
+          ],
+          "names_en": [
+            "Domino effect of emerging-market contagion"
           ]
         }
       ],

@@ -3,76 +3,95 @@
  */
 
 // === Demo rotations (hand-picked canonical examples) ===
+// i18n helper — read current lang from window.i18n if available
+function __homeLang() { try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; } }
+function __pick(zh, en) { return __homeLang() === 'en' && en ? en : zh; }
+
 const DEMO_EXAMPLES = [
   {
     a: {
-      domain: '核物理',
-      name: '放射性衰变',
+      domain: '核物理',   domain_en: 'Nuclear physics',
+      name: '放射性衰变', name_en: 'Radioactive decay',
       desc: '不稳定的原子核自发释放粒子。释放速度只取决于当前剩余的数量——剩得越少越慢。',
+      desc_en: 'Unstable nuclei spontaneously emit particles. The emission rate depends only on what\'s left — the less remaining, the slower it goes.',
     },
     b: {
-      domain: '药理学',
-      name: '药物浓度下降',
+      domain: '药理学',       domain_en: 'Pharmacology',
+      name: '药物浓度下降',   name_en: 'Drug concentration decay',
       desc: '口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。',
+      desc_en: 'After ingestion, blood concentration drops at a fixed fractional rate. Metabolism is proportional to the current concentration — the less present, the slower it clears.',
     },
     score: 94,
     caption: '它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。',
+    caption_en: 'They look entirely unrelated, yet obey <strong>exactly the same</strong> mathematical equation.',
   },
   {
     a: {
-      domain: '微生物学',
-      name: '细菌培养基中的种群增长',
+      domain: '微生物学',                    domain_en: 'Microbiology',
+      name: '细菌培养基中的种群增长',         name_en: 'Bacterial population growth',
       desc: '起初指数增长，接近承载量时增速骤降，最终趋于稳定——形成经典的 S 型曲线。',
+      desc_en: 'Exponential growth at first, slowing sharply near carrying capacity, finally stabilizing — the classic S-curve.',
     },
     b: {
-      domain: '商业',
-      name: '产品用户增长',
+      domain: '商业',             domain_en: 'Business',
+      name: '产品用户增长',        name_en: 'Product user growth',
       desc: '早期口碑传播带来指数增长，市场渗透到一定程度后见顶，最终进入存量替代期。',
+      desc_en: 'Word-of-mouth drives exponential growth early; once market penetration peaks, it enters a stock-replacement phase.',
     },
     score: 91,
     caption: '细菌和产品，在同一条<strong>逻辑斯谛曲线</strong>上。',
+    caption_en: 'Bacteria and products ride the same <strong>logistic curve</strong>.',
   },
   {
     a: {
-      domain: '流行病学',
-      name: '疫情传播',
+      domain: '流行病学',    domain_en: 'Epidemiology',
+      name: '疫情传播',      name_en: 'Epidemic spread',
       desc: '易感人群接触感染者后被传染，一人传多人，直到免疫或隔离让传播停止。',
+      desc_en: 'Susceptibles catch the pathogen from infected contacts; each infects several others until immunity or isolation halts transmission.',
     },
     b: {
-      domain: '传播学',
-      name: '社交媒体谣言扩散',
+      domain: '传播学',             domain_en: 'Communication studies',
+      name: '社交媒体谣言扩散',      name_en: 'Rumor diffusion on social media',
       desc: '一个人分享，他的朋友分享，指数级蔓延。直到触达饱和或被事实核查打断。',
+      desc_en: 'One person shares, their friends share, spreading exponentially — until reach saturates or a fact-check interrupts it.',
     },
     score: 93,
     caption: '病毒和信息，遵循<strong>同一个 SIR 模型</strong>。',
+    caption_en: 'Viruses and information obey the <strong>same SIR model</strong>.',
   },
   {
     a: {
-      domain: '凝聚态物理',
-      name: '磁铁的磁滞',
+      domain: '凝聚态物理',  domain_en: 'Condensed matter physics',
+      name: '磁铁的磁滞',    name_en: 'Ferromagnetic hysteresis',
       desc: '外磁场增加时磁化缓慢变化，过阈值后突然翻转；即便磁场回到原位，磁化也不回到初始。',
+      desc_en: 'Magnetization changes slowly as the external field grows, flips abruptly past a threshold; when the field returns, the state does not — it remembers.',
     },
     b: {
-      domain: '生态学',
-      name: '湖泊富营养化',
+      domain: '生态学',    domain_en: 'Ecology',
+      name: '湖泊富营养化', name_en: 'Lake eutrophication',
       desc: '营养物缓慢增加时水质缓慢变化，过阈值后突然暴发藻华；即便减少营养，生态也难恢复。',
+      desc_en: 'Water quality drifts slowly as nutrients rise, then crosses a threshold and the lake erupts into algal bloom; reducing nutrients does not easily reverse it.',
     },
     score: 96,
     caption: '两个系统都在同一个<strong>尖点灾变曲面</strong>上滑动。',
+    caption_en: 'Both systems slide on the same <strong>cusp catastrophe surface</strong>.',
   },
   {
     a: {
-      domain: '力学',
-      name: '简谐振子',
+      domain: '力学',   domain_en: 'Mechanics',
+      name: '简谐振子', name_en: 'Simple harmonic oscillator',
       desc: '弹簧拉开后松手，质量块来回振荡；每次偏离平衡位置越远，回复力就越大。',
+      desc_en: 'A stretched spring released — the mass oscillates back and forth; the further it strays from equilibrium, the stronger the restoring force.',
     },
     b: {
-      domain: '经济学',
-      name: '供需价格波动',
+      domain: '经济学',    domain_en: 'Economics',
+      name: '供需价格波动', name_en: 'Supply-demand price oscillations',
       desc: '价格偏离均衡时供需关系产生反作用力拉回，但惯性让它冲过均衡点，形成周期性震荡。',
+      desc_en: 'When price departs from equilibrium, supply and demand produce a restoring force; inertia carries it past equilibrium, producing periodic oscillations.',
     },
     score: 88,
     caption: '弹簧和市场，都服从<strong>受驱简谐振动方程</strong>。',
+    caption_en: 'Springs and markets both obey the <strong>driven harmonic oscillator equation</strong>.',
   },
 ];
 
@@ -159,14 +178,14 @@ function renderHeroEvidence(idx, animate) {
   if (!ex) return;
   const apply = () => {
     const set = (sel, val) => { const el = $(sel); if (el) el.textContent = val; };
-    set('#he-a-domain', ex.a.domain);
-    set('#he-a-name', ex.a.name);
-    set('#he-a-desc', ex.a.desc || '');
-    set('#he-b-domain', ex.b.domain);
-    set('#he-b-name', ex.b.name);
-    set('#he-b-desc', ex.b.desc || '');
+    set('#he-a-domain', __pick(ex.a.domain, ex.a.domain_en));
+    set('#he-a-name',   __pick(ex.a.name, ex.a.name_en));
+    set('#he-a-desc',   __pick(ex.a.desc, ex.a.desc_en));
+    set('#he-b-domain', __pick(ex.b.domain, ex.b.domain_en));
+    set('#he-b-name',   __pick(ex.b.name, ex.b.name_en));
+    set('#he-b-desc',   __pick(ex.b.desc, ex.b.desc_en));
     const cap = $('#he-caption');
-    if (cap) cap.innerHTML = ex.caption || '';
+    if (cap) cap.innerHTML = __pick(ex.caption, ex.caption_en) || '';
     // Update dots
     const dots = $('#he-dots');
     if (dots) {
@@ -488,3 +507,13 @@ document.addEventListener('DOMContentLoaded', () => {
     tw.start();
   }
 });
+
+// Re-render hero evidence + daily + favorites when language toggles
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try { renderHeroEvidence(_heroIdx, false); } catch (e) {}
+      try { renderHistory(); renderFavorites(); loadHomeData(); } catch (e) {}
+    });
+  }
+} catch (e) {}

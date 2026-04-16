@@ -1,3 +1,27 @@
+// --- i18n helpers ---
+function currentLang() {
+  try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; }
+}
+function L(obj, baseKey) {
+  // Return obj[baseKey + '_en'] if lang=en and it exists, else obj[baseKey + '_zh']
+  // or fallback to obj[baseKey].
+  if (!obj) return '';
+  var lang = currentLang();
+  if (lang === 'en') {
+    var en = obj[baseKey + '_en'];
+    if (typeof en === 'string' && en.length) return en;
+    if (Array.isArray(en) && en.length) return en;
+  }
+  var zh = obj[baseKey + '_zh'];
+  if (typeof zh === 'string' && zh.length) return zh;
+  if (Array.isArray(zh) && zh.length) return zh;
+  return obj[baseKey];
+}
+function Larr(obj, baseKey) {
+  var v = L(obj, baseKey);
+  return Array.isArray(v) ? v : [];
+}
+
 /**
  * Structural — Universality Classes page
  * Renders equivalence classes auto-discovered from V1/V2/V3 pair data
@@ -175,14 +199,14 @@ function renderPredictions(preds) {
   return preds
     .map((p) => {
       const meta = [];
-      if (p.test_method) meta.push(`<div><span class="uc-pred__meta-key">方法</span>${escapeHtml(p.test_method)}</div>`);
-      if (p.data_source) meta.push(`<div><span class="uc-pred__meta-key">数据</span>${escapeHtml(p.data_source)}</div>`);
-      if (p.sample_size) meta.push(`<div><span class="uc-pred__meta-key">样本量</span>${escapeHtml(p.sample_size)}</div>`);
-      if (p.paper_target) meta.push(`<div><span class="uc-pred__meta-key">目标期刊</span>${escapeHtml(p.paper_target)}</div>`);
-      const rationale = p.rationale
-        ? `<p class="uc-pred__rationale">${escapeHtml(p.rationale)}</p>`
+      if (L(p, "test_method")) meta.push(`<div><span class="uc-pred__meta-key">方法</span>${escapeHtml(L(p, "test_method"))}</div>`);
+      if (L(p, "data_source")) meta.push(`<div><span class="uc-pred__meta-key">数据</span>${escapeHtml(L(p, "data_source"))}</div>`);
+      if (L(p, "sample_size")) meta.push(`<div><span class="uc-pred__meta-key">样本量</span>${escapeHtml(L(p, "sample_size"))}</div>`);
+      if (L(p, "paper_target")) meta.push(`<div><span class="uc-pred__meta-key">目标期刊</span>${escapeHtml(L(p, "paper_target"))}</div>`);
+      const rationale = L(p, "rationale")
+        ? `<p class="uc-pred__rationale">${escapeHtml(L(p, "rationale"))}</p>`
         : "";
-      const statusCls = (p.status && (p.status.includes("已验证") || p.status.includes("✅")))
+      const statusCls = (L(p, "status") && (L(p, "status").includes("已验证") || L(p, "status").includes("✅")))
         ? "uc-pred__status uc-pred__status--verified"
         : "uc-pred__status";
       const paperLink = p.paper_url
@@ -191,11 +215,11 @@ function renderPredictions(preds) {
       return `
         <div class="uc-pred${statusCls.includes('verified') ? ' uc-pred--verified' : ''}">
           <div class="uc-pred__header">
-            <div class="uc-pred__target">${escapeHtml(p.target || "")}</div>
-            ${p.status ? `<span class="${statusCls}">${escapeHtml(p.status)}</span>` : ""}
+            <div class="uc-pred__target">${escapeHtml(L(p, "target") || "")}</div>
+            ${L(p, "status") ? `<span class="${statusCls}">${escapeHtml(L(p, "status"))}</span>` : ""}
             ${paperLink}
           </div>
-          <p class="uc-pred__text">${escapeHtml(p.prediction || "")}</p>
+          <p class="uc-pred__text">${escapeHtml(L(p, "prediction") || "")}</p>
           ${rationale}
           ${meta.length ? `<div class="uc-pred__meta">${meta.join("")}</div>` : ""}
         </div>
@@ -208,7 +232,7 @@ function countVerifiedPredictions(cls) {
   if (!cls || !Array.isArray(cls.predictions)) return 0;
   let n = 0;
   for (const p of cls.predictions) {
-    const s = (p && p.status) || "";
+    const s = (p && L(p, "status")) || "";
     if (s.includes("已验证") || s.includes("✅")) n += 1;
   }
   return n;
@@ -251,8 +275,8 @@ function renderPreviewCard(cls) {
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     extendedCounts.push(`${cls.shared_equations_raw.length} 方程`);
   }
-  if (cls.invariants && cls.invariants.length) {
-    extendedCounts.push(`${cls.invariants.length} 不变量`);
+  if ((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants) && (currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length) {
+    extendedCounts.push(`${(currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length} 不变量`);
   }
   if (cls.predictions && cls.predictions.length) {
     extendedCounts.push(`${cls.predictions.length} 预测`);
@@ -268,16 +292,16 @@ function renderPreviewCard(cls) {
        data-verified="${countVerifiedPredictions(cls) > 0 ? 'true' : 'false'}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
-          <h2 class="uc-card__title">${escapeHtml(cls.name_zh || "(未命名)")}</h2>
+          <h2 class="uc-card__title">${escapeHtml(L(cls, "name") || "(未命名)")}</h2>
           ${cls.name_en ? `<p class="uc-card__subtitle">${escapeHtml(cls.name_en)}</p>` : ""}
         </div>
         <div class="uc-card__badges">${badges.join("")}</div>
       </div>
       <div class="uc-card__hub">
         <span class="uc-card__hub-label">Hub</span>
-        <span class="uc-card__hub-name">${escapeHtml(cls.hub_name || "—")}</span>
+        <span class="uc-card__hub-name">${escapeHtml(L(cls, "hub_name") || "—")}</span>
       </div>
-      ${cls.summary_zh ? `<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>` : ''}
+      ${L(cls, "summary") ? `<p class="uc-card__summary">${escapeHtml(L(cls, "summary"))}</p>` : ''}
       <div class="uc-card__footer">
         ${hintRow}
         <span class="uc-card__cta">查看详情 →</span>
@@ -310,18 +334,18 @@ function renderDetail(cls) {
       </section>
     `);
   }
-  if (cls.invariants && cls.invariants.length) {
+  if ((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants) && (currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length) {
     sections.push(`
       <section class="uc-detail__section">
         <h3 class="uc-detail__section-title">共享不变量</h3>
-        ${renderInvariants(cls.invariants)}
+        ${renderInvariants((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants))}
       </section>
     `);
   }
   sections.push(`
     <section class="uc-detail__section">
       <h3 class="uc-detail__section-title">成员（按领域分组，★ 为 hub）</h3>
-      ${renderMembers(cls.members_by_domain, cls.hub_name)}
+      ${renderMembers(cls.members_by_domain, L(cls, "hub_name"))}
     </section>
   `);
   if (cls.predictions && cls.predictions.length) {
@@ -348,7 +372,7 @@ function renderDetail(cls) {
 
     <header class="uc-detail__head">
       <div class="uc-detail__titles">
-        <h1 class="uc-detail__title">${escapeHtml(cls.name_zh || "(未命名)")}</h1>
+        <h1 class="uc-detail__title">${escapeHtml(L(cls, "name") || "(未命名)")}</h1>
         ${cls.name_en ? `<p class="uc-detail__subtitle">${escapeHtml(cls.name_en)}</p>` : ""}
       </div>
       <div class="uc-detail__badges">${badges.join("")}</div>
@@ -356,10 +380,10 @@ function renderDetail(cls) {
 
     <div class="uc-detail__hub">
       <span class="uc-detail__hub-label">Hub 节点</span>
-      <span class="uc-detail__hub-name">${escapeHtml(cls.hub_name || "—")}</span>
+      <span class="uc-detail__hub-name">${escapeHtml(L(cls, "hub_name") || "—")}</span>
     </div>
 
-    ${cls.summary_zh ? `<p class="uc-detail__lede">${escapeHtml(cls.summary_zh)}</p>` : ''}
+    ${L(cls, "summary") ? `<p class="uc-detail__lede">${escapeHtml(L(cls, "summary"))}</p>` : ''}
 
     <div class="uc-detail__body">
       ${sections.join("")}
@@ -440,7 +464,7 @@ function navigate(classId, replace) {
     const url = `/classes?id=${encodeURIComponent(classId)}`;
     if (replace) history.replaceState({ classId }, '', url);
     else history.pushState({ classId }, '', url);
-    document.title = `${cls.name_zh} — 普适类 · Structural`;
+    document.title = `${L(cls, "name")} — 普适类 · Structural`;
   } else {
     showView('list');
     history.pushState({}, '', '/classes');
@@ -455,7 +479,7 @@ function handlePopState() {
     if (cls) {
       renderDetail(cls);
       showView('detail');
-      document.title = `${cls.name_zh} — 普适类 · Structural`;
+      document.title = `${L(cls, "name")} — 普适类 · Structural`;
       return;
     }
   }
@@ -506,7 +530,7 @@ async function init() {
       if (cls) {
         renderDetail(cls);
         showView('detail');
-        document.title = `${cls.name_zh} — 普适类 · Structural`;
+        document.title = `${L(cls, "name")} — 普适类 · Structural`;
         history.replaceState({ classId: initialId }, '', window.location.pathname + window.location.search);
       }
     }
@@ -525,3 +549,15 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+// Re-render when user flips the language toggle.
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try {
+        if (typeof render === 'function') render();
+        else if (typeof renderList === 'function') renderList();
+      } catch (e) { console.warn('[classes i18n rerender]', e); }
+    });
+  }
+} catch (e) { /* i18n.js not loaded — stay on zh */ }

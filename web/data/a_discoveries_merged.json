@@ -4,21 +4,33 @@
     {
       "rank": 1,
       "a_name": "永冻土融化释放甲烷的延迟反馈",
+      "a_name_en": "Delayed methane feedback from permafrost thaw",
       "b_name": "灭绝债务",
+      "b_name_en": "Extinction debt",
       "a_domain": "环境科学",
+      "a_domain_en": "Environmental science",
       "b_domain": "保育生物学",
+      "b_domain_en": "Conservation biology",
       "isomorphism_depth": 5,
       "paper_title": "Committed but Concealed: A Unified Delay-Debt Framework for Permafrost Methane and Extinction Debt",
       "target_venue": "Nature Climate Change / Trends in Ecology & Evolution",
       "practical_value": "提供一个可度量的'承诺债务'指标，量化当前稳态背后隐藏的未来塌缩量，可用于气候、生态、养老金等所有具有长时滞响应的系统，直接影响政策折现率和风险评估。",
+      "practical_value_en": "Provides a measurable \"committed debt\" indicator that quantifies the hidden future collapse concealed behind present-day quasi-stable states, applicable to climate, ecology, pension systems, and any regime with long response lags, and directly informing policy discount rates and risk assessment.",
       "risk": "两者都有大量独立文献，论文必须真正做出跨域的统一形式（例如共同的延迟微分方程和债务估计方法），否则仅做类比没有价值。另一个风险是'承诺量'的测量在两领域都很难，数据可能不足以支撑严肃估计。",
+      "risk_en": "Both domains already have extensive independent literatures, so the paper must produce a genuinely cross-domain unified formalism (for instance, a common delay differential equation and a debt-estimation method); a pure analogy would add little. A further risk is that the \"committed quantity\" is difficult to measure on either side, so data may be insufficient to support rigorous estimates.",
       "blocking_mechanisms": [
         "延迟尺度跨越（生态百年 vs 气候千年）",
         "债务存量难以直接观测",
         "需要处理不同领域的地球物理/生物参数"
       ],
+      "blocking_mechanisms_en": [
+        "Disparate delay scales (centuries in ecology vs. millennia in climate)",
+        "Debt stocks are difficult to observe directly",
+        "Requires handling heterogeneous geophysical and biological parameters"
+      ],
       "rating": "A",
       "full_analysis": "这是我判断最有原创性的一组。'承诺未现'这个结构在两个领域都独立发展，但没有人把它们放到同一数学框架下。共享的不仅是延迟反馈，还有'评估方法系统性低估真实风险'和'决策窗口已关闭但症状未现'这两个认知结构——这是罕见的具有政策含义的深度同构。可以用延迟微分方程 x'(t) = f(x(t - tau)) 统一建模，并给出两领域'债务余额'的可比较估计。目标期刊可瞄准 Nature Climate Change 的 perspective 或 TREE 的 opinion。独立研究者可行，关键是与相关领域专家建立轻度合作做数据校准。这一对值得作为项目首批产出重点推进。",
+      "full_analysis_en": "This is the pair I judge to be the most original. The \"committed but unrealized\" structure has been developed independently in both fields, yet no one has unified them within a single mathematical framework. What is shared is not only delayed feedback but also two deeper cognitive structures — \"standard assessment methods systematically understate the true risk\" and \"the decision window has already closed even though symptoms have not yet appeared\" — a rare case of a deep isomorphism with direct policy implications. A delay differential equation x'(t) = f(x(t − tau)) can serve as the unifying model, yielding comparable \"outstanding debt\" estimates across the two domains. Target venues could be a Nature Climate Change perspective or a TREE opinion. The project is tractable for a solo researcher; the key is establishing light collaborations with domain experts for data calibration. This pair is worth prioritizing as one of the project's first outputs.",
       "equations": [
         "Delay ODE: dx/dt = f(x(t - tau)) - mu x(t)",
         "Committed change C = integral_{t0}^{infty} [x*(t) - x(t)] dt",
@@ -31,7 +43,13 @@
         "用 IPCC 永冻土数据和生境碎片化数据做债务估计",
         "撰写 perspective 投 Nature Climate Change"
       ],
+      "execution_plan_en": [
+        "Formalize a unified delay-debt equation and derive observable indicators",
+        "Use IPCC permafrost data and habitat-fragmentation data to estimate the debt",
+        "Write a perspective piece and submit to Nature Climate Change"
+      ],
       "time_estimate": "5-8 个月",
+      "time_estimate_en": "5-8 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.6,
@@ -55,22 +73,35 @@
     {
       "rank": 2,
       "a_name": "半导体激光器驰豫振荡阻尼特性",
+      "a_name_en": "Relaxation-oscillation damping of semiconductor lasers",
       "b_name": "稳定币的锚定机制",
+      "b_name_en": "Stablecoin peg mechanism",
       "a_domain": "光学/光子学",
+      "a_domain_en": "Optics / photonics",
       "b_domain": "加密货币与DeFi",
+      "b_domain_en": "Cryptocurrency and DeFi",
       "isomorphism_depth": 5,
       "paper_title": "Relaxation Oscillations in Algorithmic Stablecoins: A Laser Rate-Equation Analogy",
       "target_venue": "Physical Review Applied / Quantitative Finance",
       "practical_value": "把激光速率方程的线性稳定性分析直接搬到算法稳定币设计，可给出量化的阻尼比、谐振频率与临界铸销速率，对UST式崩盘有预警作用。",
+      "practical_value_en": "Transplants the linear stability analysis of laser rate equations directly to algorithmic-stablecoin design, yielding quantitative damping ratios, resonance frequencies, and critical mint-burn rates, and providing an early-warning signal for UST-style collapses.",
       "risk": "稳定币系统包含博弈论因素(套利者预期)，线性ODE可能在极端行情下失效；加密领域的学术接受度和数据真实性需谨慎。",
+      "risk_en": "Stablecoin systems contain game-theoretic elements (arbitrageur expectations) and linear ODEs may fail under extreme market conditions; academic acceptance and data integrity in the crypto domain require caution.",
       "blocking_mechanisms": [
         "稳定币含博弈论与预期成分非纯ODE",
         "加密数据操纵风险",
         "激光类比若过度简化可能被金融界批评",
         "跨域审稿协调难"
       ],
+      "blocking_mechanisms_en": [
+        "Stablecoins contain game-theoretic and expectation components beyond pure ODEs",
+        "Risk of data manipulation in crypto markets",
+        "An oversimplified laser analogy may draw criticism from the finance community",
+        "Difficulty coordinating cross-domain peer review"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次中机制映射最清洁的一对：激光器速率方程(载流子N, 光子S)与算法稳定币(配对币供应, 稳定币价)都是两个耦合变量通过速率方程互相驱动，形成阻尼谐振子。Terra/UST崩溃的事后分析表明其动态完全可用阻尼不足的二阶系统描述，而DeFi文献几乎没人引用激光物理。论文可以提出一个从激光速率方程推导的稳定币稳定性设计准则(阻尼比ζ>临界值)，并用UST、FRAX、DAI的历史链上数据拟合。单人5个月内可完成，发表前景好。",
+      "full_analysis_en": "This is the cleanest mechanistic mapping in this batch: both the laser rate equations (carriers N, photons S) and an algorithmic stablecoin (paired-token supply, peg price) are two coupled variables driving each other through rate equations to form a damped harmonic oscillator. Post-mortem analyses of the Terra/UST collapse indicate that its dynamics can be fully described by an underdamped second-order system, yet the DeFi literature virtually never cites laser physics. The paper could propose a stablecoin stability design criterion derived from laser rate equations (damping ratio ζ greater than a critical value) and fit it to historical on-chain data from UST, FRAX, and DAI. Feasible solo within 5 months with strong publication prospects.",
       "equations": [
         "dN/dt = J/qV - N/τ_n - g(N-N_0)S",
         "dS/dt = Γg(N-N_0)S - S/τ_p + βN/τ_n",
@@ -83,7 +114,13 @@
         "用UST链上时序数据拟合阻尼比与谐振频率",
         "给出设计参数与崩盘临界曲线"
       ],
+      "execution_plan_en": [
+        "Derive a generic two-variable stablecoin rate-equation system and its linearized stability conditions",
+        "Fit damping ratio and resonance frequency using on-chain UST time-series data",
+        "Provide design parameters and the critical collapse curve"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.6,
@@ -107,21 +144,33 @@
     {
       "rank": 3,
       "a_name": "免疫多样性的超优势选择",
+      "a_name_en": "Heterozygote advantage in immune diversity",
       "b_name": "模型集成",
+      "b_name_en": "Model ensembling",
       "a_domain": "进化生物学",
+      "a_domain_en": "Evolutionary biology",
       "b_domain": "机器学习",
+      "b_domain_en": "Machine learning",
       "isomorphism_depth": 5,
       "paper_title": "MHC Heterozygote Advantage as Natural Ensemble Learning: A Bias-Variance Perspective on Immune Diversity",
       "target_venue": "Nature Machine Intelligence / PNAS",
       "practical_value": "把偏差-方差分解的理论语言引入群体免疫学，定量解释MHC多态性为何维持、最优等位基因数量的理论上限，并反向为集成学习提供'频率依赖选择'的多样性维持机制，设计自适应模型多样性算法。",
+      "practical_value_en": "Imports the bias-variance decomposition into population immunology, quantitatively explaining why MHC polymorphism is maintained and setting a theoretical upper bound on the optimal number of alleles; conversely, it furnishes ensemble learning with a \"frequency-dependent selection\" mechanism for diversity maintenance that can inform adaptive model-diversity algorithms.",
       "risk": "两者都已有独立成熟理论，贡献点需在交叉的可验证预测上。若只是把两套语言对齐而无新预测，会被视为重新表述已知结果。",
+      "risk_en": "Both sides already have mature independent theories, so the contribution must lie in falsifiable predictions produced at the intersection. Merely aligning two vocabularies without new predictions would be viewed as a restatement of known results.",
       "blocking_mechanisms": [
         "生物学已有Hughes-Nei等群体遗传模型",
         "ML集成理论已有bias-variance-covariance分解",
         "需要找到交叉视角下的新可验证预测"
       ],
+      "blocking_mechanisms_en": [
+        "Population genetics already has Hughes-Nei and related models",
+        "Ensemble-learning theory already has the bias-variance-covariance decomposition",
+        "Requires identifying falsifiable new predictions unique to the cross-domain perspective"
+      ],
       "rating": "A",
       "full_analysis": "这是少有的两个方向都能互相启发的深层同构。MHC超优势选择在群体层维持多样性，恰似集成学习维持模型多样性的偏差-方差权衡；频率依赖选择的负反馈机制对应集成中的diversity regularization。若能从群体遗传学导出最优集成大小的分析式，或从ML bias-variance导出MHC位点数量的预测，将形成真正双向贡献。Nature系列对这类跨学科概念迁移历来青睐。执行风险在于需要同时熟悉两个领域的数学工具。",
+      "full_analysis_en": "This is a rare deep isomorphism in which both sides can inform each other. MHC heterozygote advantage maintains diversity at the population level, mirroring the bias-variance trade-off by which ensemble learning maintains model diversity; the negative-feedback mechanism of frequency-dependent selection corresponds to diversity regularization in ensembles. If one can derive an analytical expression for the optimal ensemble size from population genetics, or predict the number of MHC loci from the ML bias-variance framework, this would constitute a genuinely bidirectional contribution. Nature-family journals have historically favored this kind of cross-disciplinary concept transfer. The execution risk is the need for simultaneous fluency in the mathematical tools of both domains.",
       "equations": [
         "w̄ = Σ p_i·w_ii + 2Σ p_i·p_j·w_ij",
         "E[(y-f̄)²] = Bias² + Var/N + (1-1/N)Cov"
@@ -133,7 +182,13 @@
         "映射至集成学习的bias-variance-covariance分解",
         "导出最优多样性规模的闭式解并在两个领域各做验证"
       ],
+      "execution_plan_en": [
+        "Formulate the dynamical equations for frequency-dependent selection on MHC",
+        "Map onto the bias-variance-covariance decomposition in ensemble learning",
+        "Derive a closed-form optimal diversity size and validate it in each domain"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.5,
@@ -157,25 +212,43 @@
     {
       "rank": 4,
       "a_name": "灭绝债务",
+      "a_name_en": "Extinction debt",
       "b_name": "厄尔尼诺的延迟振子",
+      "b_name_en": "Delayed-oscillator model of El Niño",
       "a_domain": "保育生物学",
+      "a_domain_en": "Conservation biology",
       "b_domain": "海洋学",
+      "b_domain_en": "Oceanography",
       "isomorphism_depth": 5,
       "paper_title": "Extinction Debt as a Delayed Oscillator: Unifying Rossby-Wave Memory and Habitat-Destruction Lag",
       "target_venue": "Proceedings of the Royal Society B / Theoretical Ecology",
       "practical_value": "把ENSO延迟振子（Suarez-Schopf方程）的频率-延迟标度关系迁移到灭绝债务，给保育生物学一个可预测的'生态债务偿还时滞'估算公式。",
+      "practical_value_en": "Transfers the frequency-delay scaling relations from the ENSO delayed oscillator (Suarez-Schopf equation) to extinction debt, providing conservation biology with a predictive formula for the \"repayment time lag\" of ecological debt.",
       "risk": "ENSO延迟振子已有近40年数学研究，灭绝债务虽有Tilman奠基但数据稀疏；论文需要靠'数学同构+参数迁移'立住，容易被批机制不同。",
+      "risk_en": "The ENSO delayed-oscillator framework has nearly 40 years of mathematical development, while extinction debt, although founded by Tilman, remains data-sparse; the paper must rest on \"mathematical isomorphism plus parameter transfer\" and is vulnerable to criticism that the underlying mechanisms differ.",
       "blocking_mechanisms": [
         "ENSO延迟由Rossby-Kelvin波速决定，物理清晰；灭绝延迟由物种代际时间和metapopulation结构决定，异质性大",
         "海洋数据时间分辨率高，生态系统长期监测稀疏",
         "延迟振子方程要求单一主延迟，真实生态系统通常是延迟谱"
       ],
+      "blocking_mechanisms_en": [
+        "ENSO delays are set by Rossby-Kelvin wave speeds and are physically clear, whereas extinction delays are set by species generation time and metapopulation structure and are strongly heterogeneous",
+        "Oceanographic data have high temporal resolution, whereas long-term ecosystem monitoring is sparse",
+        "The delayed-oscillator equation assumes a single dominant delay, while real ecosystems typically have a spectrum of delays"
+      ],
       "rating": "A",
       "full_analysis": "这一对的同构强度非常高：Suarez-Schopf的延迟微分方程dT/dt = T - T³ - α·T(t-τ)可以直接改写为'生境破坏当前稳态→世代反馈延迟→未来灭绝'的形式，延迟项的物理意义从波传播时间变为世代时间，数学结构完全一致。价值在于ENSO文献已有成熟的delay-induced Hopf分岔分析与稳定岛结构，可直接迁移用于预测灭绝债务的'偿还时间窗口'和可能的振荡式灭绝脉冲。核心风险是真实生态系统的延迟是分布而非单一值，需要用distributed delay推广。若能找到一个经验数据集（如新热带雨林破碎化后的物种损失时间序列）做参数拟合，论文可以突破纯理论范畴。",
+      "full_analysis_en": "The isomorphism in this pair is very strong: the Suarez-Schopf delay differential equation dT/dt = T − T³ − α·T(t − τ) can be rewritten directly in the form \"current quasi-stable state after habitat destruction → generational feedback delay → future extinction,\" where the physical meaning of the delay term shifts from wave-propagation time to generation time while the mathematical structure is identical. The value lies in the fact that ENSO literature already has a mature delay-induced Hopf-bifurcation analysis and stability-island structure that can be transferred directly to predict the \"repayment window\" of extinction debt and possible oscillatory extinction pulses. The core risk is that real ecological delays are distributed rather than single-valued and thus require a distributed-delay extension. If an empirical dataset can be found (such as a species-loss time series after Neotropical rainforest fragmentation) for parameter fitting, the paper can move beyond pure theory.",
       "equations": [
         "dN/dt = rN(1 - N/K) - α·N(t-τ)",
-        "dT/dt = T - T³ - δ·T(t-τ) （Suarez-Schopf）",
-        "Hopf分岔条件: ατ = π/2 + 2kπ"
+        {
+          "zh": "dT/dt = T - T³ - δ·T(t-τ) （Suarez-Schopf）",
+          "en": "dT/dt = T - T³ - δ·T(t-τ) (Suarez-Schopf)"
+        },
+        {
+          "zh": "Hopf分岔条件: ατ = π/2 + 2kπ",
+          "en": "Hopf-bifurcation condition: ατ = π/2 + 2kπ"
+        }
       ],
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
@@ -184,7 +257,13 @@
         "引入Suarez-Schopf的Hopf分岔分析得到振荡灭绝条件",
         "用Barro Colorado或亚马逊破碎化数据做数值验证"
       ],
+      "execution_plan_en": [
+        "Recast Tilman's extinction-debt equation explicitly as a delay differential equation",
+        "Introduce the Suarez-Schopf Hopf-bifurcation analysis to derive conditions for oscillatory extinction",
+        "Numerically validate using Barro Colorado or Amazon fragmentation data"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.4,
@@ -208,22 +287,35 @@
     {
       "rank": 5,
       "a_name": "全球失衡的镜像对称",
+      "a_name_en": "Mirror symmetry of global imbalances",
       "b_name": "扰动前馈补偿",
+      "b_name_en": "Feedforward disturbance compensation",
       "a_domain": "国际经济",
+      "a_domain_en": "International economics",
       "b_domain": "控制工程",
+      "b_domain_en": "Control engineering",
       "isomorphism_depth": 5,
       "paper_title": "Conservation Laws as Feedforward Compensation: From Global Current Account Imbalances to Control Engineering",
       "target_venue": "Automatica / Journal of International Economics",
       "practical_value": "将控制工程的前馈补偿设计思想引入全球失衡监测，可为IMF等机构提供系统级稳定性指标与早期预警控制律。",
+      "practical_value_en": "Introduces the feedforward-compensation design philosophy from control engineering into the monitoring of global imbalances, providing institutions such as the IMF with system-level stability indicators and early-warning control laws.",
       "risk": "守恒律层面的同构是数学恒等式层面的，未必带来新的经济预测；控制工程方法应用到宏观经济常被批评为'假设违反现实'。",
+      "risk_en": "An isomorphism at the level of conservation laws is a mathematical identity and may not yield new economic predictions; applying control-engineering methods to macroeconomics is often criticized for assumptions that violate reality.",
       "blocking_mechanisms": [
         "恒等式同构不产生新预测",
         "宏观经济系统噪声大难以设计控制律",
         "经济学界对工程类比警惕",
         "数据频率不匹配(季度 vs 毫秒)"
       ],
+      "blocking_mechanisms_en": [
+        "An identity-level isomorphism yields no new predictions",
+        "Macroeconomic systems are too noisy for control-law design",
+        "Economists are wary of engineering analogies",
+        "Mismatch in data sampling frequency (quarterly vs. millisecond)"
+      ],
       "rating": "A",
       "full_analysis": "两者共享'加法守恒律'这个最干净的代数骨架：全球经常账户之和恒为零等价于前馈补偿中的扰动-补偿和为零。真正的学术价值在于把控制工程的'前馈+反馈'层次结构映射到国际货币体系：前馈补偿=经常账户再平衡机制，反馈控制=汇率调节。这个映射在Engineering与Economics之间几乎未被严肃形式化过(Minsky、Godley的流量存量模型接近但非控制论框架)。论文的关键是给出一个最小可控模型并证明某种稳定性定理。推荐投Automatica的跨学科专栏或IJE的方法论专辑。",
+      "full_analysis_en": "The two domains share the cleanest possible algebraic skeleton — an additive conservation law: the sum of global current accounts being zero is equivalent to the sum of disturbance and compensation being zero in feedforward compensation. The real academic value lies in mapping the feedforward-plus-feedback hierarchical structure of control engineering onto the international monetary system: feedforward compensation = current-account rebalancing mechanism; feedback control = exchange-rate adjustment. This mapping has hardly ever been formalized seriously between engineering and economics (the Minsky-Godley stock-flow models come close but are not control-theoretic). The key is to provide a minimal controllable model and prove a stability theorem. Suggested venues are the cross-disciplinary track of Automatica or a methodology special issue of the International Journal of Economics.",
       "equations": [
         "Σ_i CA_i(t) = 0 ∀t",
         "u_ff(t) = -G_d(s)/G_p(s)·d(t)",
@@ -236,7 +328,13 @@
         "推导守恒律下的前馈-反馈分解",
         "用IMF BOP数据做控制性能评估"
       ],
+      "execution_plan_en": [
+        "Formalize the current accounts of N countries as a MIMO control system",
+        "Derive the feedforward-feedback decomposition under the conservation constraint",
+        "Evaluate control performance using IMF Balance of Payments data"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.3,
@@ -260,25 +358,44 @@
     {
       "rank": 6,
       "a_name": "信任的建立与崩塌",
+      "a_name_en": "Build-up and collapse of trust",
       "b_name": "珊瑚白化的滞后恢复",
+      "b_name_en": "Hysteretic recovery of coral bleaching",
       "a_domain": "社会学",
+      "a_domain_en": "Sociology",
       "b_domain": "生态学",
+      "b_domain_en": "Ecology",
       "isomorphism_depth": 5,
       "paper_title": "Asymmetric Recovery Thresholds: Unifying Social Trust Collapse and Coral Bleaching Hysteresis under a Preisach Framework",
       "target_venue": "Nature Human Behaviour / Ecology Letters (方法论角度)",
+      "target_venue_en": "Nature Human Behaviour / Ecology Letters (methodology angle)",
       "practical_value": "把珊瑚迟滞回路的恢复阈值估算方法（退温曲线需低于白化触发温度才恢复）迁移为'信任修复阈值'的形式化表达，给危机公关和组织重建提供可量化的代价函数。",
+      "practical_value_en": "Transfers the coral-hysteresis recovery-threshold estimation method (cooling curves must fall below the bleaching trigger temperature before recovery begins) into a formal expression of the \"trust-repair threshold,\" providing crisis communication and organizational reconstruction with a quantifiable cost function.",
       "risk": "与678号高度重叠（都用Preisach），需要在两篇中差异化定位；生态-社会的机制桥梁需要设计实验来验证，否则仍是类比。",
+      "risk_en": "The topic overlaps heavily with pair #678 (both use Preisach), so the two papers must be differentiated; the ecology-to-social mechanistic bridge also needs experimental verification, otherwise it remains an analogy.",
       "blocking_mechanisms": [
         "珊瑚白化的共生体阈值由藻类生理决定，社会信任的'藻类'对应物（声誉资本？）尚无统一定义",
         "生态恢复有明确的温度控制实验，社会信任难以进行对照实验",
         "Preisach框架假设hysteron线性叠加，社会传染的网络结构可能引入非线性"
       ],
+      "blocking_mechanisms_en": [
+        "The symbiont threshold in coral bleaching is set by algal physiology, whereas the \"algal\" counterpart of social trust (reputational capital?) lacks a unified definition",
+        "Ecological recovery allows controlled temperature experiments, but social trust is difficult to study with controlled experiments",
+        "The Preisach framework assumes linear superposition of hysterons, whereas the network structure of social contagion may introduce nonlinearities"
+      ],
       "rating": "A",
       "full_analysis": "这是整批10对中最具跨界启发性的一对：两者都满足'正反路径不重合+恢复代价严格大于破坏代价+存在记忆性'这三个Preisach迟滞的核心特征，且珊瑚恢复阈值的量化方法（Δ_recovery > Δ_bleach）有直接的社会学对应物（'信任修复需要比维持更严苛的条件'）。论文的独特价值不在于两边分别的研究，而在于给出一个统一的Preisach代价不等式，并据此预测不同类型冲击下的信任恢复时间。比678更扎实的理由是珊瑚文献已有温度-时间的精确阈值函数，可直接作为社会对照系的'金标准'，不像交通流要处理实时守恒律。建议作为研究重点，单作可投Nature Human Behaviour方法论板块。",
+      "full_analysis_en": "This is the most cross-disciplinarily inspiring pair among the 10: both satisfy the three core features of Preisach hysteresis — non-coincident forward and reverse paths, recovery cost strictly greater than damage cost, and memory — and the quantification method used for coral recovery thresholds (Δ_recovery > Δ_bleach) has a direct sociological counterpart (\"trust repair requires stricter conditions than trust maintenance\"). The paper's distinctive value lies not in either side separately but in delivering a unified Preisach cost inequality and using it to predict trust-recovery times for different shock types. The reason it is more solid than pair #678 is that the coral literature already supplies precise temperature-time threshold functions that can serve as a \"gold standard\" for the social counterpart, without needing to handle real-time conservation laws as in traffic flow. Recommended as a priority; publishable in the methodology section of Nature Human Behaviour as a single-author paper.",
       "equations": [
-        "T_recovery < T_bleach (非对称阈值)",
+        {
+          "zh": "T_recovery < T_bleach (非对称阈值)",
+          "en": "T_recovery < T_bleach (asymmetric threshold)"
+        },
         "W_repair = ∫_{path_up} F·dx > W_damage = ∫_{path_down} F·dx",
-        "μ(α,β) = Preisach密度, supp(μ) 在 α>β 半平面"
+        {
+          "zh": "μ(α,β) = Preisach密度, supp(μ) 在 α>β 半平面",
+          "en": "μ(α,β) = Preisach density; supp(μ) in the α>β half-plane"
+        }
       ],
       "isomorphism_confidence": 83,
       "literature_status": "unexplored",
@@ -287,7 +404,13 @@
         "收集10-20个组织信任崩塌-修复案例的时间序列",
         "拟合Preisach密度μ并检验代价不等式"
       ],
+      "execution_plan_en": [
+        "Extract a parametric form of the recovery-threshold function from the coral-bleaching literature",
+        "Collect time series from 10-20 cases of organizational trust collapse and repair",
+        "Fit the Preisach density μ and test the cost inequality"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.2,
@@ -311,22 +434,35 @@
     {
       "rank": 7,
       "a_name": "费托合成原位相重构",
+      "a_name_en": "In-situ phase reconstruction in Fischer-Tropsch synthesis",
       "b_name": "热固性树脂凝胶点渗流相变",
+      "b_name_en": "Percolation-type phase transition at the gel point of thermosets",
       "a_domain": "催化化学",
+      "a_domain_en": "Catalytic chemistry",
       "b_domain": "高分子化学",
+      "b_domain_en": "Polymer chemistry",
       "isomorphism_depth": 5,
       "paper_title": "Dynamic Phase Emergence in Reactive Systems: Percolation Universality from Fischer-Tropsch Active Phase to Thermoset Gelation",
       "target_venue": "Physical Review Materials / Journal of Chemical Physics",
       "practical_value": "将渗流理论(Flory-Stockmayer)的临界指数工具引入催化原位相重构分析，可用于预测活性相形成的临界转化率与结构敏感性突变点。",
+      "practical_value_en": "Introduces the critical-exponent toolkit of percolation theory (Flory-Stockmayer) into the analysis of in-situ phase reconstruction in catalysis, enabling prediction of the critical conversion at which active phases form and the points at which structure sensitivity changes abruptly.",
       "risk": "催化体系的动态相非随机键合过程，渗流普适类未必直接适用；需要精细的operando表征数据对接。",
+      "risk_en": "The dynamic phases in catalytic systems are not random bond-formation processes, so the percolation universality class may not apply directly; the work requires careful coupling with high-quality operando characterization data.",
       "blocking_mechanisms": [
         "operando XRD/XAS数据获取门槛高",
         "催化体系非理想渗流格点",
         "临界指数测量误差大",
         "催化圈对统计物理模型接受度参差"
       ],
+      "blocking_mechanisms_en": [
+        "High entry barrier to operando XRD/XAS data",
+        "Catalytic systems are not ideal percolation lattices",
+        "Large measurement error on critical exponents",
+        "Uneven acceptance of statistical-physics models within the catalysis community"
+      ],
       "rating": "A",
       "full_analysis": "两者共享'反应驱动的临界结构相变'深层骨架：费托的碳化钴形成与环氧交联的凝胶化都是在反应进程中某个临界转化率处体系连通性突变。渗流理论的普适类(平均场或3D)可能为催化活性相的动态形成提供统一的标度框架，这在催化文献中几乎未被系统引用。论文落点清晰，可从已发表的operando数据集复现分析，再做一个简化的Kinetic Monte Carlo模拟验证。跨域深度足，且有可计算的不变量(临界指数β、γ)，属于真正的结构同构而非修辞类比。",
+      "full_analysis_en": "Both domains share the deeper skeleton of a \"reaction-driven critical structural phase transition\": the formation of carbided cobalt in Fischer-Tropsch and the gelation of cross-linked epoxies both exhibit an abrupt change in system connectivity at some critical conversion. Percolation universality classes (mean-field or 3D) may provide a unified scaling framework for the dynamic formation of catalytic active phases, something that has hardly been cited systematically in the catalysis literature. The project is well defined: reanalyze published operando datasets and validate with a simplified kinetic Monte Carlo simulation. Cross-domain depth is sufficient, and there are computable invariants (critical exponents β, γ), making this a genuine structural isomorphism rather than a rhetorical analogy.",
       "equations": [
         "P_∞ ∝ (p-p_c)^β, β≈0.41 (3D percolation)",
         "dX/dt = k(1-X)^n, X_gel = 1-(1-2/f)^(1/(f-2))",
@@ -339,7 +475,13 @@
         "拟合活性相体积分数随转化率的标度行为",
         "与Flory凝胶化模型做β指数对比，做KMC验证"
       ],
+      "execution_plan_en": [
+        "Collect 2-3 publicly available operando XRD time-series datasets for CoFT",
+        "Fit the scaling behavior of the active-phase volume fraction as a function of conversion",
+        "Compare β-exponents with the Flory gelation model and validate with kinetic Monte Carlo"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.1,
@@ -363,21 +505,33 @@
     {
       "rank": 8,
       "a_name": "薄壁件数控加工颤振",
+      "a_name_en": "Chatter in CNC machining of thin-walled parts",
       "b_name": "算法稳定币死亡螺旋",
+      "b_name_en": "Algorithmic-stablecoin death spiral",
       "a_domain": "机械工程",
+      "a_domain_en": "Mechanical engineering",
       "b_domain": "区块链/Web3",
+      "b_domain_en": "Blockchain / Web3",
       "isomorphism_depth": 5,
       "paper_title": "Regenerative Feedback Instability: Machine Tool Chatter as a Physical Analog of Stablecoin Death Spirals",
       "target_venue": "Nonlinear Dynamics / Journal of Financial Stability",
       "practical_value": "把机械颤振中成熟的稳定叶瓣图(Stability Lobe Diagram)方法论移植到稳定币协议参数空间,给出'在什么铸币速率+抵押率组合下协议稳定'的相图,为DeFi风控提供工程化工具。",
+      "practical_value_en": "Transplants the mature stability-lobe-diagram methodology from machine-tool chatter into the parameter space of stablecoin protocols, providing a phase diagram of \"under which combinations of minting rate and collateral ratio is the protocol stable\" and furnishing an engineering-grade tool for DeFi risk control.",
       "risk": "稳定币读者对机械工程语言陌生,投稿时需要双向翻译;若被认为是'工程概念硬套金融'会被拒。需要真正的数学等价证明而非口头类比。",
+      "risk_en": "Stablecoin readers are unfamiliar with mechanical-engineering terminology, so the submission requires bidirectional translation; if perceived as \"engineering concepts forced onto finance\" it will be rejected. Rigorous mathematical equivalence, not verbal analogy, is required.",
       "blocking_mechanisms": [
         "跨领域审稿人稀缺",
         "稳定币时滞参数难估计",
         "需要严格的DDE稳定性证明"
       ],
+      "blocking_mechanisms_en": [
+        "Scarcity of cross-disciplinary reviewers",
+        "Stablecoin time-delay parameters are difficult to estimate",
+        "Requires a rigorous DDE stability proof"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次里最有新意的配对,同构深度达到机制级——两者都是带时滞的正反馈回路(颤振是切削-振动时滞,死亡螺旋是铸币-清算时滞),都可用延迟微分方程(DDE)建模,都具有Hopf分岔与极限环。机械工程的稳定叶瓣图方法几乎可以原样移植到稳定币参数空间,产生一个全新的DeFi风控分析工具。最关键的是这种'工具跨域'而非'概念跨域',能带来实实在在的计算结果而非仅类比。UST崩盘的分钟级链上数据为模型验证提供了天然样本。非常适合作为一篇方法论+应用的独立论文,也可能因跨度大而被主流期刊谨慎对待。",
+      "full_analysis_en": "This is the most novel pairing in the batch; the isomorphism reaches the mechanistic level — both are delayed positive-feedback loops (cutting-vibration delay in chatter, minting-liquidation delay in the death spiral), both admit DDE modeling, and both exhibit Hopf bifurcations and limit cycles. The stability-lobe-diagram method from mechanical engineering can be ported almost verbatim to the stablecoin parameter space, producing an entirely new analytical tool for DeFi risk control. Most importantly, this is \"tool transfer\" rather than \"concept transfer,\" delivering concrete computational results rather than mere analogy. The minute-level on-chain data from the UST collapse provides a natural sample for model validation. Well suited as a methodology-plus-application standalone paper, though mainstream journals may be cautious given the large disciplinary span.",
       "equations": [
         "ẍ + 2ζω_n ẋ + ω_n²x = -K_c(x(t) - x(t-τ))/m (chatter DDE)",
         "dS/dt = -γ(P-1)S(t-τ) (stablecoin mint lag)",
@@ -390,7 +544,13 @@
         "生成稳定币版稳定叶瓣图",
         "用UST数据验证,投Nonlinear Dynamics"
       ],
+      "execution_plan_en": [
+        "Write the stablecoin protocol as a DDE and prove its equivalence to the chatter equation",
+        "Generate a stablecoin-version stability-lobe diagram",
+        "Validate with UST data and submit to Nonlinear Dynamics"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.1,
@@ -414,25 +574,43 @@
     {
       "rank": 9,
       "a_name": "放热反应的温度曲线",
+      "a_name_en": "Temperature curve of exothermic reactions",
       "b_name": "影子银行的信用创造乘数",
+      "b_name_en": "Credit-creation multiplier of shadow banking",
       "a_domain": "化学",
+      "a_domain_en": "Chemistry",
       "b_domain": "宏观经济",
+      "b_domain_en": "Macroeconomics",
       "isomorphism_depth": 4,
       "paper_title": "Thermal Runaway and Credit Runaway: An Arrhenius-Type Model of Shadow Banking Leverage Cascades",
       "target_venue": "Journal of Financial Stability / Physica A",
       "practical_value": "若影子银行的杠杆级联能用 Arrhenius 型指数放大律刻画，可为宏观审慎监管提供「热失控阈值」类的量化指标（临界杠杆率、级联时间常数）。",
+      "practical_value_en": "If shadow-banking leverage cascades can be characterized by an Arrhenius-type exponential amplification law, macroprudential regulators would gain quantitative indicators of a \"thermal-runaway threshold\" (critical leverage ratio, cascade time constant).",
       "risk": "金融数据粒度有限（月度/季度），难以拟合快速指数增长相位；2008危机样本只有一次，统计检验力弱；化学放热反应的「能量守恒约束」在金融系统中没有直接对应物。",
+      "risk_en": "Financial data have limited granularity (monthly/quarterly), making it hard to fit rapid exponential-growth phases; the 2008 crisis provides only a single sample, so statistical power is weak; and the \"energy-conservation constraint\" of exothermic chemistry has no direct counterpart in financial systems.",
       "blocking_mechanisms": [
         "危机事件样本量过小（2008、2020 两次）",
         "杠杆数据在危机前后往往被机构修饰或隐藏",
         "缺乏金融系统的「反应热」对应物（能量守恒不成立）"
       ],
+      "blocking_mechanisms_en": [
+        "The sample of crisis events is very small (2008 and 2020)",
+        "Leverage data are often massaged or concealed by institutions around crises",
+        "Financial systems lack a counterpart to \"heat of reaction\" (energy conservation does not hold)"
+      ],
       "rating": "A",
       "full_analysis": "这是四对中同构度最高、最可能产出真正研究的一对。核心洞察是：放热反应的失控来自 Arrhenius 律 k=A·exp(-E/RT) 的正反馈，而影子银行每一层再抵押相当于把「有效温度」（风险偏好/估值）放大，整体系统方程在数学形式上可以写得高度相似——都是 dT/dt = α·exp(βT) - γ·T 这样的指数自催化+线性耗散。深层价值在于把化学工程中非常成熟的「热失控判据」（Semenov 准则、Frank-Kamenetskii 参数）整体迁移到金融，这是 Minsky 金融不稳定性假说从定性到定量的一个具体路径。关键挑战是找到 BIS/FSB 的高频杠杆数据，并证明 Semenov 型临界条件在 2008、2020 前能被检测到。可作为独立实证论文。",
+      "full_analysis_en": "Among the four pairs, this one has the highest isomorphism and the greatest chance of producing a genuine research paper. The core insight is that exothermic runaway arises from the positive feedback of the Arrhenius law k = A·exp(−E/RT), while each re-hypothecation layer in shadow banking amplifies an \"effective temperature\" (risk appetite / valuation); the overall system equation can be written in a highly similar form — namely, dT/dt = α·exp(βT) − γ·T, an exponential autocatalytic term minus a linear dissipative term. The deeper value is transplanting the mature \"thermal-runaway criteria\" of chemical engineering (the Semenov criterion and Frank-Kamenetskii parameter) to finance, providing a concrete quantitative realization of Minsky's financial-instability hypothesis. The key challenge is obtaining high-frequency BIS/FSB leverage data and demonstrating that the Semenov-type critical condition could be detected prior to 2008 and 2020. Suitable as a standalone empirical paper.",
       "equations": [
         "dT/dt = Q·A·exp(-E/RT) - h(T-T_a)",
-        "Semenov 临界：δ = (Q·A·E/R·T_a^2)·exp(-E/RT_a)·(V/hS) = e^(-1)",
-        "Frank-Kamenetskii：∇^2θ + δ·e^θ = 0"
+        {
+          "zh": "Semenov 临界：δ = (Q·A·E/R·T_a^2)·exp(-E/RT_a)·(V/hS) = e^(-1)",
+          "en": "Semenov criticality: δ = (Q·A·E/R·T_a^2)·exp(-E/RT_a)·(V/hS) = e^(-1)"
+        },
+        {
+          "zh": "Frank-Kamenetskii：∇^2θ + δ·e^θ = 0",
+          "en": "Frank-Kamenetskii: ∇^2θ + δ·e^θ = 0"
+        }
       ],
       "isomorphism_confidence": 80,
       "literature_status": "unexplored",
@@ -441,7 +619,13 @@
         "拟合 Semenov/Frank-Kamenetskii 型模型，计算等效 δ 参数的历史轨迹，检验危机前是否越过临界值",
         "写成定量实证论文投 Journal of Financial Stability 或 Physica A，备选 Quantitative Finance"
       ],
+      "execution_plan_en": [
+        "Extract monthly leverage proxies for 2002-2024 from BIS global liquidity indicators and FSB shadow-banking monitoring reports",
+        "Fit a Semenov/Frank-Kamenetskii-type model, compute the historical trajectory of an equivalent δ parameter, and test whether pre-crisis values crossed the critical threshold",
+        "Write a quantitative empirical paper targeting the Journal of Financial Stability or Physica A, with Quantitative Finance as a fallback"
+      ],
       "time_estimate": "6-8个月",
+      "time_estimate_en": "6-8 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.3,
@@ -465,25 +649,43 @@
     {
       "rank": 10,
       "a_name": "CRISPR-Cas系统的间隔序列获取",
+      "a_name_en": "Spacer acquisition in CRISPR-Cas systems",
       "b_name": "VC投资组合的幂律收益结构",
+      "b_name_en": "Power-law return structure of VC portfolios",
       "a_domain": "微生物学",
+      "a_domain_en": "Microbiology",
       "b_domain": "创业/VC",
+      "b_domain_en": "Entrepreneurship / venture capital",
       "isomorphism_depth": 5,
       "paper_title": "Extreme-Value Portfolios: CRISPR Spacer Acquisition as a Power-Law Sampling Strategy for Rare Catastrophic Events",
       "target_venue": "PNAS / Journal of Theoretical Biology",
       "practical_value": "把VC组合的幂律极值采样策略迁移到CRISPR免疫的最优spacer采样数与多样性权衡，给合成生物学设计可调CRISPR免疫库提供极值理论框架；反向也给VC一个来自进化免疫学的'有效覆盖度'概念。",
+      "practical_value_en": "Transfers the power-law extreme-value sampling strategy of VC portfolios to CRISPR immunity, balancing optimal spacer sampling number against diversity, and gives synthetic biology an extreme-value-theory framework for designing tunable CRISPR immune libraries; in reverse, it provides VC with a biology-inspired notion of \"effective coverage.\"",
       "risk": "两边都已在各自领域被深入研究（CRISPR有population genetics，VC有heavy-tailed return理论），需要避免只做'都是幂律'的浅同构；核心论据必须放在'采样机制与最优分配'上。",
+      "risk_en": "Both sides have already been studied in depth within their own fields (population genetics for CRISPR, heavy-tailed return theory for VC); it is crucial to avoid a shallow \"they are both power laws\" isomorphism, and the core argument must rest on \"sampling mechanism and optimal allocation.\"",
       "blocking_mechanisms": [
         "CRISPR spacer获取受限于Cas1-Cas2酶的机制约束，并非自由采样",
         "VC的投资决策有强路径依赖和网络效应，不是无记忆采样",
         "两边的'极值'定义不同：CRISPR是噬菌体遭遇概率，VC是回报乘数"
       ],
+      "blocking_mechanisms_en": [
+        "CRISPR spacer acquisition is constrained by the Cas1-Cas2 enzyme mechanism and is not free sampling",
+        "VC investment decisions have strong path dependence and network effects and are not memoryless sampling",
+        "The two sides define \"extremes\" differently: CRISPR uses phage encounter probability; VC uses return multiple"
+      ],
       "rating": "A",
       "full_analysis": "这是本批最具原创性的跨域同构之一。两者共享的深层结构是：'在重尾分布中通过有限采样捕获极值事件，评估标准从均值转向分位数/极值期望'。CRISPR的spacer数量上限与VC的组合规模都受限于资源约束，且最优策略都来自极值理论而非大数定律。论文独特价值在于可以给两边同时贡献新视角：CRISPR这边给出'最优免疫库多样性'的极值公式，VC这边引入'有效免疫宽度'的类生物学指标。潜在突破点是把Cas1-Cas2的实际采样概率与VC的deal flow分布对齐，验证它们是否都服从同一个最优分位数的Kelly-like准则。风险是审稿人可能要求严格机制同构；建议定位为理论论文+双边数值实验。",
+      "full_analysis_en": "This is one of the most original cross-domain isomorphisms in the batch. The shared deep structure is \"capturing extreme events via finite sampling from a heavy-tailed distribution, shifting the evaluation standard from the mean to quantiles / extreme-value expectations.\" Both the upper bound on CRISPR spacer count and the size of a VC portfolio are constrained by resource limits, and the optimal strategies in both cases derive from extreme-value theory rather than the law of large numbers. The paper's unique value is contributing new perspectives to both sides simultaneously: for CRISPR, an extreme-value formula for \"optimal immune-library diversity\"; for VC, an \"effective immune breadth\" biology-inspired metric. A potential breakthrough is aligning the actual sampling probability of Cas1-Cas2 with the deal-flow distribution of VC and verifying whether both obey the same optimal-quantile Kelly-like criterion. The risk is that reviewers may demand strict mechanistic isomorphism; the suggested positioning is a theoretical paper plus bilateral numerical experiments.",
       "equations": [
-        "E[max(X_1,...,X_n)] ~ n^{1/α} (Fréchet极值)",
+        {
+          "zh": "E[max(X_1,...,X_n)] ~ n^{1/α} (Fréchet极值)",
+          "en": "E[max(X_1,...,X_n)] ~ n^{1/α} (Fréchet extreme value)"
+        },
         "N*_spacers = argmax_n P(survive | n) · cost(n)^{-1}",
-        "Kelly fraction f* = (p·b - q)/b （极值调整版）"
+        {
+          "zh": "Kelly fraction f* = (p·b - q)/b （极值调整版）",
+          "en": "Kelly fraction f* = (p·b - q)/b (extreme-value-adjusted version)"
+        }
       ],
       "isomorphism_confidence": 78,
       "literature_status": "unexplored",
@@ -492,7 +694,13 @@
         "从Crunchbase提取VC组合规模与回报分布",
         "用统一的极值采样模型拟合两组数据并对比最优策略"
       ],
+      "execution_plan_en": [
+        "Extract spacer-count distributions and phage encounter rates from the CRISPR literature",
+        "Extract VC portfolio sizes and return distributions from Crunchbase",
+        "Fit both datasets with a unified extreme-value sampling model and compare optimal strategies"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.0,
@@ -516,21 +724,33 @@
     {
       "rank": 11,
       "a_name": "限流的令牌桶",
+      "a_name_en": "Token-bucket rate limiting",
       "b_name": "Piezo1机械门控通道的不动点门控",
+      "b_name_en": "Fixed-point gating of Piezo1 mechanosensitive channels",
       "a_domain": "计算机科学",
+      "a_domain_en": "Computer science",
       "b_domain": "细胞生物学",
+      "b_domain_en": "Cell biology",
       "isomorphism_depth": 5,
       "paper_title": "Token-Bucket Rate Limiting as a Computational Model for Piezo1 Mechanotransduction: A Cross-Domain Theory of Accumulator-Threshold Gating",
       "target_venue": "PLOS Computational Biology / Bioinformatics",
       "practical_value": "令牌桶模型已有成熟的排队论分析和参数调优方法，将其迁移到Piezo1通道建模可提供解析的开闭概率、瞬时通量和恢复时间预测，为机械感觉神经元的刺激编码研究提供新工具。",
+      "practical_value_en": "Token-bucket models have mature queueing-theoretic analyses and parameter-tuning methods; transferring them to Piezo1 channel modeling yields analytical predictions for open/close probability, instantaneous flux, and recovery time, providing a new tool for stimulus-encoding studies in mechanosensory neurons.",
       "risk": "生物门控有连续的构象状态和慢失活时间尺度层次，令牌桶的离散事件模型可能过度简化，需引入分层令牌桶或信用桶等变体才能覆盖失活动力学。",
+      "risk_en": "Biological gating has continuous conformational states and a hierarchy of slow-inactivation timescales, so the discrete-event token-bucket model may oversimplify; variants such as hierarchical token buckets or credit buckets are likely needed to capture inactivation dynamics.",
       "blocking_mechanisms": [
         "Piezo1失活有多时间尺度",
         "生物测量噪声远高于网络",
         "门控耦合膜张力场的空间分布"
       ],
+      "blocking_mechanisms_en": [
+        "Piezo1 inactivation has multiple timescales",
+        "Biological measurement noise is far higher than in networks",
+        "Gating couples to the spatial distribution of membrane tension"
+      ],
       "rating": "A",
       "full_analysis": "这是一个真正有深度且可执行的跨域同构。两者都是'连续输入→阈值触发离散脉冲→自重置不应期'的完全相同的计算结构，计算机系统理论中已有非常精细的排队论/漏桶/分层令牌桶工具链，生物侧目前多用唯象Hodgkin-Huxley式微分方程。迁移方向明确：用网络流控的解析工具重新参数化Piezo1数据，可能给出比经典HH模型更紧凑的描述，且可扩展到机械感觉适应编码。作者解决方向清晰、数据可得、实验验证门槛低。",
+      "full_analysis_en": "This is a genuinely deep and actionable cross-domain isomorphism. Both systems share the identical computational structure of \"continuous input → threshold-triggered discrete pulse → self-resetting refractory period.\" Computer systems theory already provides a very fine-grained queueing / leaky-bucket / hierarchical-token-bucket toolchain, whereas biology primarily uses phenomenological Hodgkin-Huxley-style differential equations. The transfer direction is clear: re-parameterize Piezo1 data with network-flow-control analytical tools, potentially producing a more compact description than the classical HH model that also extends to mechanosensory-adaptation encoding. The research direction is clear, data are available, and experimental validation is accessible.",
       "equations": [
         "dT/dt = r - λ·1{T≥θ}",
         "P_open(F) = f(∫F dt - θ)·1{refractory}",
@@ -543,7 +763,13 @@
         "拟合令牌桶/漏桶模型与经典HH模型做AIC对比",
         "扩展到压力时变刺激验证预测力"
       ],
+      "execution_plan_en": [
+        "Extract Piezo1 patch-clamp force-step response curves from the literature",
+        "Fit token-bucket / leaky-bucket models and compare with the classical Hodgkin-Huxley model by AIC",
+        "Extend to time-varying pressure stimuli to test predictive power"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.0,
@@ -567,21 +793,33 @@
     {
       "rank": 12,
       "a_name": "技术采用的跨越鸿沟",
+      "a_name_en": "Crossing the chasm in technology adoption",
       "b_name": "热固性树脂凝胶点渗流相变",
+      "b_name_en": "Percolation-type phase transition at the gel point of thermosets",
       "a_domain": "商业",
+      "a_domain_en": "Business",
       "b_domain": "高分子化学",
+      "b_domain_en": "Polymer chemistry",
       "isomorphism_depth": 5,
       "paper_title": "Percolation at the Chasm: Mapping Technology Adoption Tipping Points to Gel-Point Phase Transitions in Thermoset Polymers",
       "target_venue": "Journal of Statistical Mechanics / Research Policy",
       "practical_value": "渗流理论中黏度发散的临界指数和有限尺度修正可直接用于预测采用率临界点附近的扩散加速度，为初创公司跨越鸿沟的时机判断提供定量工具而非仅依赖Moore的定性描述。",
+      "practical_value_en": "The critical exponents for the viscosity divergence and the finite-size corrections from percolation theory can be applied directly to predict the diffusion acceleration near the adoption-rate critical point, giving start-ups a quantitative tool for timing the chasm crossing rather than relying only on Moore's qualitative description.",
       "risk": "技术采用网络的拓扑不是无标度就是小世界，与高分子交联的近似树形拓扑差异大，普适类可能不完全一致，需要仔细验证临界指数是否真正吻合。",
+      "risk_en": "Technology-adoption networks are either scale-free or small-world, differing substantially from the near-tree-like topology of polymer cross-linking, so the universality classes may not fully match; careful verification of whether the critical exponents genuinely agree is required.",
       "blocking_mechanisms": [
         "采用网络拓扑复杂",
         "高分子凝胶点测量vs采用率数据精度差异",
         "市场时间不可逆，聚合可控退化"
       ],
+      "blocking_mechanisms_en": [
+        "Adoption-network topology is complex",
+        "Precision mismatch between polymer gel-point measurements and adoption-rate data",
+        "Market time is irreversible, while aggregation is controlled-degradable"
+      ],
       "rating": "A",
       "full_analysis": "这是一个让人眼前一亮的同构。技术扩散的'鸿沟'在Moore的原著中只是定性概念，而渗流理论已经为同类相变提供了完整的普适类框架和临界指数。若能用历史采用数据（如智能手机、电动车）验证临界行为的标度律，可将市场营销理论学术化。执行路径清晰：收集多个技术采用率时间序列，计算临界指数与高分子凝胶点理论值对比。此选题同时对高分子化学家和技术扩散研究者有吸引力。",
+      "full_analysis_en": "This is an eye-catching isomorphism. The \"chasm\" in Moore's original work is only a qualitative concept, whereas percolation theory already provides a complete universality-class framework and critical exponents for analogous phase transitions. If historical adoption data (smartphones, electric vehicles) can verify scaling laws for critical behavior, marketing theory can be academically formalized. The execution path is clear: collect multiple technology-adoption time series, compute their critical exponents, and compare with the theoretical values from polymer gel-point theory. The topic is appealing to both polymer chemists and technology-diffusion researchers.",
       "equations": [
         "p_c = 2/(f-1) (Flory-Stockmayer)",
         "η ∝ (p_c-p)^(-s)",
@@ -594,7 +832,13 @@
         "拟合渗流临界指数并与凝胶点理论对比",
         "用渗流做超前预测一个新兴技术的tipping time"
       ],
+      "execution_plan_en": [
+        "Collect 5-10 technology-diffusion datasets",
+        "Fit percolation critical exponents and compare with gel-point theory",
+        "Use percolation to make a forward prediction of an emerging technology's tipping time"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.0,
@@ -618,20 +862,31 @@
     {
       "rank": 13,
       "a_name": "湖泊富营养化的临界翻转",
+      "a_name_en": "Critical regime shift in lake eutrophication",
       "b_name": "蛋白质相分离的临界浓度阈值",
+      "b_name_en": "Critical concentration threshold of protein phase separation",
       "a_domain": "生态学",
+      "a_domain_en": "Ecology",
       "b_domain": "分子生物学",
+      "b_domain_en": "Molecular biology",
       "isomorphism_depth": 4,
       "paper_title": "From Lakes to Droplets: A Shared Critical-Threshold Framework for Eutrophication and Biomolecular Condensation",
       "target_venue": "Nature Physics (perspective) / PNAS",
       "practical_value": "将湖泊早期预警指标（variance, autocorrelation, skewness）的成熟方法论迁移到细胞内相分离的异常检测，为神经退行性疾病中病理凝聚体的预警提供新工具。",
+      "practical_value_en": "Transfers the mature methodology of lake early-warning indicators (variance, autocorrelation, skewness) into anomaly detection for intracellular phase separation, providing a new tool for early warning of pathological condensates in neurodegenerative diseases.",
       "risk": "生态学侧 CSD 已有争议（Boettiger 2012），分子侧相分离研究正火爆但与生态类比尚无先例，审稿人可能要求严格推导而不接受比喻；尺度跨越太大可能被认为缺乏力学一致性。",
+      "risk_en": "Critical slowing down on the ecological side is already contested (Boettiger 2012); on the molecular side, phase-separation research is booming but has no precedent for analogies to ecology, so reviewers may demand strict derivations rather than accept metaphors; the large scale gap could be criticized as lacking mechanistic consistency.",
       "blocking_mechanisms": [
         "分子侧缺少长时间序列数据用于 CSD 检测",
         "生态与分子系统的噪声结构差异显著"
       ],
+      "blocking_mechanisms_en": [
+        "The molecular side lacks long time-series data for critical-slowing-down detection",
+        "Noise structures in ecological and molecular systems differ substantially"
+      ],
       "rating": "A",
       "full_analysis": "这是本批最有深度的同构之一：两者都可用 Flory-Huggins 式自由能 F(φ) = φlnφ + χφ(1-φ) 刻画，而湖泊侧 Scheffer 的鞍结分岔模型在数学上就是此自由能的降维投影。真正的学术增量在于：分子侧的荧光涨落数据（FCS）可视为蛋白相分离的早期预警序列，可以直接套用 Dakos-Scheffer 工具包。该迁移尚无文献，且目标读者横跨 systems biology / ecology / soft matter 三方，极具潜力。风险在分子侧是否真能观察到 critical slowing down，需要 in vitro 可控浓度梯度实验。",
+      "full_analysis_en": "This is one of the deepest isomorphisms in the batch: both systems admit a Flory-Huggins free energy F(φ) = φ ln φ + χφ(1 − φ), and Scheffer's saddle-node-bifurcation model on the lake side is mathematically a low-dimensional projection of this free energy. The real academic increment is that fluorescence-fluctuation data (FCS) on the molecular side can be treated as an early-warning time series for protein phase separation and can be analyzed directly with the Dakos-Scheffer toolkit. This transfer is not yet in the literature, and the target readership spans systems biology, ecology, and soft matter, giving the topic high potential. The risk is whether critical slowing down can actually be observed on the molecular side; this requires controlled in-vitro concentration-gradient experiments.",
       "equations": [
         "dX/dt = r - aX + bX²/(c² + X²) + ση(t)",
         "F(φ) = kT[φlnφ + (1-φ)ln(1-φ)] + χφ(1-φ)",
@@ -643,6 +898,11 @@
         "整理已发表 LLPS 荧光涨落数据集",
         "应用 Dakos CSD 工具包检测预警指标",
         "与湖泊案例做方法学对比并撰写 perspective"
+      ],
+      "execution_plan_en": [
+        "Assemble published LLPS fluorescence-fluctuation datasets",
+        "Apply the Dakos critical-slowing-down toolkit to detect early-warning indicators",
+        "Compare methodologically with lake case studies and write a perspective"
       ],
       "time_estimate": "6-9 months",
       "solo_feasible": true,
@@ -668,20 +928,31 @@
     {
       "rank": 14,
       "a_name": "渗流阈值导电网络转变",
+      "a_name_en": "Percolation-threshold transition in conducting networks",
       "b_name": "技术采纳的鸿沟",
+      "b_name_en": "Chasm of technology adoption",
       "a_domain": "凝聚态物理",
+      "a_domain_en": "Condensed-matter physics",
       "b_domain": "创业与风险投资",
+      "b_domain_en": "Entrepreneurship and venture capital",
       "isomorphism_depth": 5,
       "paper_title": "Percolation Phase Transition in Technology Adoption: Crossing the Chasm as a Geometric Critical Phenomenon",
       "target_venue": "Nature Human Behaviour / PNAS",
       "practical_value": "为Moore的'鸿沟理论'提供严格的渗流临界理论基础，可量化计算不同行业的技术采纳临界阈值pc，并把幂律起跳指数作为早期判断产品是否会跨越鸿沟的指标，直接为VC投资决策提供新工具。",
+      "practical_value_en": "Provides a rigorous percolation-critical-theory foundation for Moore's \"chasm theory,\" enabling quantitative computation of industry-specific critical adoption thresholds p_c, with the power-law take-off exponent serving as an early indicator of whether a product will cross the chasm — a direct new tool for VC investment decisions.",
       "risk": "社会网络的异质性和动态重连比格子渗流复杂得多，pc值依赖网络拓扑，若用标准bond percolation过度简化，会被社会学家指出忽略关键变量如社群结构。",
+      "risk_en": "Social networks are far more heterogeneous and dynamically rewired than lattice percolation; p_c depends on network topology, so a naïve application of standard bond percolation will be criticized by sociologists for ignoring key variables such as community structure.",
       "blocking_mechanisms": [
         "真实社交网络的渗流阈值难以先验计算",
         "采纳决策的内生性与外部影响耦合"
       ],
+      "blocking_mechanisms_en": [
+        "The percolation threshold of real social networks is hard to compute a priori",
+        "Endogeneity of adoption decisions is coupled to external influence"
+      ],
       "rating": "A",
       "full_analysis": "这是十个中最干净的同构之一：导电网络渗流与技术采纳鸿沟共享完全相同的几何相变结构，宏观序参量（电导率/市场渗透率）在临界点以幂律涌现，低于阈值时只有孤立集团。数学上可直接套用渗流临界指数β和相关长度ν。已有部分社会物理学文献尝试过但未把'鸿沟'这一管理学概念与严格pc关联。可发展为可预测商业指标的理论-数据双栖工作，若能用真实采纳数据拟合出符合渗流普适类的临界指数，贡献度显著。",
+      "full_analysis_en": "This is one of the cleanest isomorphisms among the ten pairs: percolation in conducting networks and the technology-adoption chasm share exactly the same geometric phase-transition structure; the macroscopic order parameter (conductivity / market penetration) emerges with a power law at the critical point, while only isolated clusters exist below threshold. Mathematically, one can import percolation critical exponents β and correlation length ν directly. A few sociophysics papers have attempted this but none have tied the managerial concept of the \"chasm\" to a rigorous p_c. This can be developed into a theory-plus-data hybrid yielding predictive business indicators; if real adoption data can be fit to critical exponents in the percolation universality class, the contribution is significant.",
       "equations": [
         "σ(p) ∝ (p-pc)^t, p>pc",
         "P∞(p) ∝ (p-pc)^β",
@@ -694,7 +965,13 @@
         "拟合渗流临界指数并与普适类比较",
         "构建可投资决策使用的'距离pc'指标并做回测"
       ],
+      "execution_plan_en": [
+        "Collect user-adoption time series and social graphs for 5-10 representative SaaS and hardware products",
+        "Fit percolation critical exponents and compare with the universality class",
+        "Build an investable \"distance-to-p_c\" indicator and backtest it"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.5,
@@ -718,21 +995,33 @@
     {
       "rank": 15,
       "a_name": "交通拥堵的非线性",
+      "a_name_en": "Nonlinear traffic congestion",
       "b_name": "热固性树脂凝胶点渗流相变",
+      "b_name_en": "Percolation-type phase transition at the gel point of thermosets",
       "a_domain": "城市规划",
+      "a_domain_en": "Urban planning",
       "b_domain": "高分子化学",
+      "b_domain_en": "Polymer chemistry",
       "isomorphism_depth": 5,
       "paper_title": "Percolation Universality Class Shared by Traffic Jamming and Thermoset Gelation: Critical Exponents and Finite-Size Scaling",
       "target_venue": "Physical Review E / PNAS",
       "practical_value": "把高分子物理中精确测量的渗流临界指数（β、γ、ν）迁移到城市交通相变预测，可提供比现有经验模型更严格的拥堵预警阈值估计。反向则用交通流高维实测数据验证普适类假设。",
+      "practical_value_en": "Transfers the precisely measured percolation critical exponents (β, γ, ν) from polymer physics to urban-traffic phase-transition prediction, offering more rigorous congestion-warning threshold estimates than current empirical models; conversely, high-dimensional traffic-flow measurements can test the universality-class hypothesis.",
       "risk": "两边的连通性定义不同：交通是动态连通（车流时空网络），凝胶是静态几何连通，是否真属于同一普适类仍有争议，需严格的指数测量来确认。",
+      "risk_en": "The two sides define connectivity differently: traffic uses dynamic connectivity (a spatiotemporal flow network), whereas gels use static geometric connectivity. Whether they truly share a universality class remains contested and requires rigorous exponent measurement.",
       "blocking_mechanisms": [
         "动态 vs 静态渗流是否同普适类需理论证明",
         "交通数据的有限尺度效应难消除",
         "需要同时拥有两领域的数据"
       ],
+      "blocking_mechanisms_en": [
+        "Whether dynamic and static percolation share a universality class requires a theoretical proof",
+        "Finite-size effects in traffic data are difficult to remove",
+        "Access to data from both domains is needed simultaneously"
+      ],
       "rating": "A",
       "full_analysis": "交通拥堵相变与热固性树脂凝胶点都属于几何连通性相变，在临界密度/转化率处出现无穷大连通团。两者共享渗流普适类的临界指数：相关长度 ξ∝|p-p_c|^(-ν)、最大团大小 S∝|p-p_c|^(-γ)，且都表现出有限尺度标度 P∞(L) ~ L^(-β/ν) f(L^(1/ν) ε)。这一同构的独特价值在于：高分子领域已通过精细流变学实验把指数测到三位有效数字，而交通领域的临界指数测量受限于道路拓扑噪声。若能证明二者属同一普适类，则可直接跨域迁移 ν≈4/3 (2D)、β≈5/36 等精确值，为城市拥堵的早期预警提供第一性原理支撑。反向亦可用高分辨交通 GPS 数据验证渗流理论的某些预测。",
+      "full_analysis_en": "Traffic jamming and the gel point of thermosets both belong to geometric-connectivity phase transitions, with an infinite cluster emerging at the critical density / conversion. They share the percolation universality-class critical exponents: correlation length ξ ∝ |p − p_c|^(−ν), largest-cluster size S ∝ |p − p_c|^(−γ), and finite-size scaling P_∞(L) ~ L^(−β/ν) f(L^(1/ν) ε). The distinctive value of this isomorphism is that polymer rheology has measured these exponents to three significant figures, whereas traffic measurements are limited by road-topology noise. Demonstrating that both belong to the same universality class would allow direct transfer of exact values such as ν ≈ 4/3 (2D) and β ≈ 5/36, providing first-principles support for urban congestion early-warning. Conversely, high-resolution traffic GPS data can validate certain predictions of percolation theory.",
       "equations": [
         "P∞ ∝ (p - p_c)^β, β_{2D}=5/36",
         "ξ ∝ |p - p_c|^(-ν), ν_{2D}=4/3",
@@ -745,7 +1034,13 @@
         "用 Flory-Stockmayer 凝胶模型生成对照数据，比较 β、γ、ν 是否一致",
         "若指数吻合则写成短文投 PRE；若发现新普适类则投 PNAS"
       ],
+      "execution_plan_en": [
+        "Collect open-access traffic GPS data (e.g., Shenzhen / Beijing taxi data) and measure the critical exponents of the congestion-cluster size distribution",
+        "Generate control data with the Flory-Stockmayer gelation model and test whether β, γ, ν agree",
+        "If exponents agree, submit a short paper to PRE; if a new universality class is found, target PNAS"
+      ],
       "time_estimate": "6-9 个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.3,
@@ -769,21 +1064,33 @@
     {
       "rank": 16,
       "a_name": "生态系统突变",
+      "a_name_en": "Ecosystem regime shifts",
       "b_name": "热固性树脂凝胶点渗流相变",
+      "b_name_en": "Percolation-type phase transition at the gel point of thermosets",
       "a_domain": "生态学",
+      "a_domain_en": "Ecology",
       "b_domain": "高分子化学",
+      "b_domain_en": "Polymer chemistry",
       "isomorphism_depth": 4,
       "paper_title": "Hysteretic Gelation in Ecosystems: A Cross-Scale Percolation Model for Regime Shifts with Asymmetric Recovery",
       "target_venue": "Ecology Letters / Nature Ecology & Evolution",
       "practical_value": "把高分子凝胶的不可逆交联结构迁移到生态系统的再生障碍建模，可以解释为什么湖泊富营养化恢复需要比触发低得多的磷浓度，并给出基于连通性的可观测预测（物种网络连通性 vs 参数）。",
+      "practical_value_en": "Transfers the irreversible cross-link structure of polymer gels to the modeling of regeneration barriers in ecosystems, explaining why lake-eutrophication recovery requires a much lower phosphorus level than the triggering concentration, and yields observable connectivity-based predictions (species-network connectivity vs. parameters).",
       "risk": "Scheffer、Carpenter 的生态突变理论非常成熟，论文需要提供'渗流模型独有的'预测（例如临界指数或连通性标度），否则会被看成现有 alternative stable states 理论的换皮。",
+      "risk_en": "The Scheffer-Carpenter regime-shift theory is very mature, so the paper must provide predictions unique to the percolation model (for example, critical exponents or connectivity scaling); otherwise it will be seen as a reskin of existing alternative-stable-states theory.",
       "blocking_mechanisms": [
         "生态网络定义模糊——以谁为节点",
         "恢复不可逆的原因多样（种子库、土壤记忆）不止几何连通性",
         "长时序生态数据稀缺"
       ],
+      "blocking_mechanisms_en": [
+        "Ecological networks are ill-defined — what counts as a node?",
+        "Irreversibility of recovery has many causes (seed banks, soil memory) beyond geometric connectivity",
+        "Long-term ecological time series are scarce"
+      ],
       "rating": "A",
       "full_analysis": "这是我评分最高的一组，同构不仅在宏观临界现象层面成立，还共享了'不可逆'和'滞后'的深层结构——凝胶后键无法解开，对应生态系统种子库耗尽后的再生障碍。独特贡献在于把高分子物理的 cross-link 数学迁移到物种相互作用网络，得到可观测的连通性序参量和临界指数，这是生态学目前 alternative stable states 理论缺失的部分。可以用湖泊食物网数据或珊瑚礁相互作用数据实证。对独立研究者来说工作量可控，数据公开。建议作为重点推进对象之一。",
+      "full_analysis_en": "This is my highest-ranked pair; the isomorphism holds not only at the level of macroscopic critical phenomena but also shares the deep structure of \"irreversibility\" and \"hysteresis\" — bonds cannot be reopened after gelation, corresponding to regeneration barriers when an ecosystem's seed bank is exhausted. The distinctive contribution is transferring the cross-link mathematics of polymer physics to species-interaction networks, yielding observable connectivity order parameters and critical exponents, precisely what current alternative-stable-states ecology lacks. Empirical work can use lake food-web data or coral-reef interaction data. The workload is tractable for an independent researcher and the data are public. Recommended as one of the priority targets.",
       "equations": [
         "p_c for bond percolation on ecological interaction network",
         "Hysteresis loop: F(x) = r x (1 - x/K) - c x^2/(x^2 + h^2)",
@@ -796,7 +1103,13 @@
         "拟合历史 regime shift 数据估计 p_c 和 p_r",
         "验证临界指数与高分子凝胶的一致性"
       ],
+      "execution_plan_en": [
+        "Build a bond-percolation model on an ecological interaction network for lakes or coral reefs",
+        "Fit historical regime-shift data to estimate p_c and p_r",
+        "Test whether the critical exponents match those of polymer gels"
+      ],
       "time_estimate": "6-9 个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 8.2,
@@ -819,22 +1132,38 @@
     },
     {
       "a_name": "地震静态应力触发",
+      "a_name_en": "Static Coulomb-stress triggering of earthquakes",
       "b_name": "DeFi清算连锁瀑布效应",
+      "b_name_en": "DeFi liquidation cascades",
       "a_domain": "地质学",
+      "a_domain_en": "Geology",
       "b_domain": "区块链/Web3",
+      "b_domain_en": "Blockchain / Web3",
       "shared_equation": "Coulomb stress change ΔCFS > ΔCFS_c triggers next failure; cascade",
       "variable_mapping": "库仑应力↔LTV距离; 断层节段↔借贷仓位; 主震触发余震↔大清算触发小清算",
+      "variable_mapping_en": {
+        "Coulomb stress": "Distance from the LTV liquidation threshold",
+        "Fault segments": "Lending positions",
+        "Mainshock triggering aftershocks": "Large liquidations triggering smaller ones"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Coulomb Stress Transfer Meets DeFi: Testing Earthquake Triggering Models on On-Chain Liquidation Cascades",
       "target_venue": "Nature Physics / PNAS / JGR Solid Earth",
       "practical_value": "DeFi提供了大样本高频的'阈值破裂级联'实证平台,可首次定量验证Stein-King库仑应力触发理论在非地震系统的普适性",
+      "practical_value_en": "DeFi provides a large-sample, high-frequency empirical platform for \"threshold-failure cascades,\" enabling the first quantitative test of the Stein-King Coulomb-stress-triggering theory outside seismic systems.",
       "risk": "库仑应力的几何张量结构在DeFi中无直接对应,需谨慎定义'等效应力场'",
+      "risk_en": "The geometric tensor structure of Coulomb stress has no direct counterpart in DeFi, so an \"equivalent stress field\" must be defined with care.",
       "blocking_mechanisms": [
         "应力张量vs标量LTV的维度不匹配",
         "需定义借贷仓位的空间邻接"
       ],
+      "blocking_mechanisms_en": [
+        "Dimensional mismatch between the stress tensor and the scalar LTV",
+        "Spatial adjacency of lending positions must be defined"
+      ],
       "rating": "A",
       "full_analysis": "本批最有突破潜力的同构之一。地震静应力触发在地球物理内部验证受限于地震罕见性和测量噪声,而DeFi清算每月提供数万样本,可回测Omori衰减律、Coulomb触发距离等经典公式。若成立,是统计物理/复杂系统的里程碑论文。关键创新是把'仓位距离'定义为共享价格风险因子空间中的距离而非物理空间距离。",
+      "full_analysis_en": "One of the most breakthrough-capable isomorphisms in this batch. Static-stress triggering in seismology is held back within geophysics by the rarity of earthquakes and high measurement noise, whereas DeFi liquidations yield tens of thousands of samples per month, allowing backtests of classical formulas such as the Omori decay law and Coulomb triggering distance. If the mapping holds, this would be a milestone paper for statistical physics / complex systems. The key innovation is defining \"position distance\" as the distance in a shared price-risk-factor space rather than physical space.",
       "isomorphism_confidence": 75,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -842,9 +1171,16 @@
         "按Omori律和Coulomb触发重采样",
         "与1992 Landers地震余震序列做统计对照"
       ],
+      "execution_plan_en": [
+        "Scrape on-chain liquidation time series",
+        "Resample according to the Omori-Utsu law and Coulomb triggering",
+        "Perform a statistical comparison with the aftershock sequence of the 1992 Landers earthquake"
+      ],
       "time_estimate": "5-6个月",
+      "time_estimate_en": "5-6 months",
       "solo_feasible": true,
       "impact_scope": "跨学科高影响,统计物理与地球物理双读者",
+      "impact_scope_en": "High cross-disciplinary impact, dual readership in statistical and geophysical physics",
       "final_score": 8.6,
       "pipeline": "V3",
       "final_weighted_score": 8.6,
@@ -855,23 +1191,38 @@
     {
       "rank": 18,
       "a_name": "Piezo1机械门控通道的不动点门控",
+      "a_name_en": "Fixed-point gating of Piezo1 mechanosensitive channels",
       "b_name": "参考点适应的享乐跑步机",
+      "b_name_en": "Hedonic treadmill of reference-point adaptation",
       "a_domain": "细胞生物学",
+      "a_domain_en": "Cell biology",
       "b_domain": "行为经济学",
+      "b_domain_en": "Behavioral economics",
       "isomorphism_depth": 5,
       "paper_title": "High-Pass Filtering from Molecules to Minds: Piezo1 Inactivation and Hedonic Adaptation as Instances of Derivative Encoding",
       "target_venue": "Trends in Cognitive Sciences / Nature Human Behaviour (perspective)",
       "practical_value": "将分子层面的机械感觉适应动力学直接映射到幸福感参考点动力学，可为享乐适应的时间常数估计提供生物物理学基准，并启发新的心理适应实验范式（如预测退步效应的时间动力学）。",
+      "practical_value_en": "Maps the molecular-scale dynamics of mechanosensory adaptation directly onto the dynamics of hedonic set-points, providing a biophysical baseline for the time-constant estimation of hedonic adaptation and inspiring new experimental paradigms (such as predicting the temporal dynamics of regression effects).",
       "risk": "'高通滤波器'是非常宽泛的结构同构，多个感觉/认知系统都符合，仅此无法单独撑起一篇深度论文，必须加上可验证的定量预测才能区别于已有的'适应'文献。",
+      "risk_en": "\"High-pass filter\" is a very broad structural isomorphism that fits many sensory and cognitive systems; by itself it is not enough to support a deep paper, and verifiable quantitative predictions are required to distinguish the work from the existing \"adaptation\" literature.",
       "blocking_mechanisms": [
         "心理适应的时间尺度比Piezo1慢6个数量级",
         "主观幸福感测量噪声大",
         "行为经济学已有独立的habituation理论"
       ],
+      "blocking_mechanisms_en": [
+        "Psychological adaptation operates 6 orders of magnitude slower than Piezo1",
+        "Subjective well-being measurements are very noisy",
+        "Behavioral economics already has an independent habituation theory"
+      ],
       "rating": "A",
       "full_analysis": "这是一对真正有解释力的同构。Piezo1用毫秒尺度展示了'累积输入→阈值响应→快速适应'的机制范式，享乐跑步机在天/月尺度做同样的事。核心洞察不在于发现它们都是高通滤波器（这已是共识），而在于用Piezo1的构象动力学建模思路重新组织享乐适应的数学框架，例如引入不应期、分层适应等概念。定位为跨尺度perspective文章而非原创理论更稳妥，解决方向是输出一个可验证的预测（如享乐适应的'刷新率'上限）。",
+      "full_analysis_en": "This is a genuinely explanatory isomorphism. Piezo1 demonstrates the paradigm of \"accumulated input → threshold response → fast adaptation\" on millisecond scales, while the hedonic treadmill does the same on scales of days to months. The core insight is not that both are high-pass filters — this is already consensus — but that the conformational-dynamics modeling approach for Piezo1 can reorganize the mathematical framework of hedonic adaptation, introducing concepts such as refractory periods and hierarchical adaptation. Positioning the work as a cross-scale perspective piece rather than an original theory is safer; the target is a verifiable prediction (for example, an upper bound on the \"refresh rate\" of hedonic adaptation).",
       "equations": [
-        "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)",
+        {
+          "zh": "dS/dt = F(t) - k_a·S, 输出 y=σ(S-θ)",
+          "en": "dS/dt = F(t) - k_a·S, output y = σ(S-θ)"
+        },
         "U_t = u(c_t - r_t), dr/dt = α(c-r)",
         "H(ω) = iωτ/(1+iωτ)"
       ],
@@ -882,7 +1233,13 @@
         "构造统一的高通滤波模型并对比时间常数",
         "设计一个行为经济学实验验证分子启发的新预测"
       ],
+      "execution_plan_en": [
+        "Compile classical adaptation-dynamics datasets from both sides",
+        "Construct a unified high-pass filter model and compare their time constants",
+        "Design a behavioral-economics experiment to test a new prediction inspired by the molecular side"
+      ],
       "time_estimate": "4-6个月",
+      "time_estimate_en": "4-6 months",
       "solo_feasible": true,
       "impact_scope": "cross-field",
       "final_score": 7.5,
@@ -905,9 +1262,13 @@
     },
     {
       "a_name": "闪崩的流动性螺旋机制",
+      "a_name_en": "Liquidity-spiral mechanism of flash crashes",
       "b_name": "清算级联的链上流动性危机",
+      "b_name_en": "On-chain liquidity crisis of liquidation cascades",
       "a_domain": "金融市场微观结构",
+      "a_domain_en": "Market microstructure",
       "b_domain": "加密货币/DeFi",
+      "b_domain_en": "Cryptocurrency / DeFi",
       "shared_equation": "dP/dt = -k*f(P)*L where L is aggregate forced-sell pressure triggered by P crossing endogenous thresholds",
       "variable_mapping": {
         "算法做市商退出": "AMM流动性池深度衰减",
@@ -915,18 +1276,32 @@
         "螺旋下跌": "链式清算瀑布",
         "闪崩幅度": "清算损失率"
       },
+      "variable_mapping_en": {
+        "Algorithmic market-maker withdrawal": "Decay of AMM liquidity-pool depth",
+        "Programmatic stop-loss": "LTV liquidation threshold",
+        "Price spiral": "Chained liquidation waterfall",
+        "Flash-crash magnitude": "Liquidation loss ratio"
+      },
       "isomorphism_depth": 5,
       "paper_title": "From Flash Crashes to On-Chain Cascades: A Unified Stochastic Model of Endogenous Liquidity Spirals Across Market Infrastructures",
       "target_venue": "Review of Financial Studies / Journal of Finance",
       "practical_value": "DeFi清算数据链上完全透明可观测，可作为传统闪崩机制的天然实验场；反过来传统市场微观结构理论可直接指导DeFi协议参数设计。",
+      "practical_value_en": "DeFi liquidation data are fully transparent and observable on-chain, providing a natural laboratory for mechanisms studied in traditional flash-crash literature; conversely, traditional market-microstructure theory can directly guide DeFi protocol parameter design.",
       "risk": "已有研究开始桥接两者，需快速占位；需要处理DeFi特有的MEV与Gas机制异质性，否则同构过于粗糙。",
+      "risk_en": "Several studies have begun bridging the two domains, so priority must be established quickly; the work must handle the heterogeneity of MEV and gas-fee mechanisms specific to DeFi, otherwise the isomorphism will be too coarse.",
       "blocking_mechanisms": [
         "DeFi链上数据访问门槛",
         "需同时掌握传统市场微观结构与AMM/借贷协议数学",
         "Gas动力学引入的非线性"
       ],
+      "blocking_mechanisms_en": [
+        "Barriers to on-chain DeFi data access",
+        "Requires simultaneous command of traditional market microstructure and AMM / lending-protocol mathematics",
+        "Nonlinearity introduced by gas dynamics"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次最值得做的对。两者共享完全相同的正反馈方程：价格冲击触发强制卖出，强制卖出加剧价格冲击。关键价值在于DeFi清算是链上完全可观测的闪崩实验——所有订单、所有清算、所有流动性都是公开数据，这在传统市场中是不可能的。可以用DeFi数据实证校准流动性螺旋模型的核心参数（弹性、阈值密度、反馈增益），再反向预测传统市场闪崩风险。Kyle-Obizhaeva的市场冲击模型可直接迁移到AMM。文献状态为partial：有人做过DeFi清算研究，有人做过闪崩研究，但统一框架下的参数可比性分析尚未充分展开。执行可行：数据完全开源，模型框架成熟。",
+      "full_analysis_en": "This is the most valuable pair in the batch. Both share exactly the same positive-feedback equation: price shocks trigger forced selling, and forced selling amplifies price shocks. The critical value is that a DeFi liquidation is a fully on-chain observable flash-crash experiment — every order, liquidation, and liquidity state is public data, which is not possible in traditional markets. DeFi data can be used to empirically calibrate the core parameters of liquidity-spiral models (resilience, threshold density, feedback gain), and the calibrated model can then predict flash-crash risk in traditional markets. The Kyle-Obizhaeva market-impact model can be transferred directly to AMMs. The literature status is partial — individual DeFi-liquidation and flash-crash studies exist, but a unified framework with parameter comparability has not yet been fully developed. Execution is feasible: data are fully open-source and the modeling framework is mature.",
       "isomorphism_confidence": 95,
       "literature_status": "partial",
       "execution_plan": [
@@ -934,9 +1309,16 @@
         "Step2: 在统一SDE框架下分别标定流动性螺旋参数，比较弹性与阈值分布",
         "Step3: 验证DeFi标定参数在传统市场闪崩事件上的预测力"
       ],
+      "execution_plan_en": [
+        "Step 1: compile a 2020-2025 DeFi liquidation-event dataset together with the 2010 and 2015 flash-crash events",
+        "Step 2: calibrate the liquidity-spiral parameters for each under a unified SDE framework, comparing resilience and threshold distributions",
+        "Step 3: test whether DeFi-calibrated parameters predict flash-crash events in traditional markets"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "金融稳定监管、DeFi协议设计、市场微观结构理论",
+      "impact_scope_en": "Financial-stability regulation, DeFi protocol design, market-microstructure theory",
       "final_score": 8.5,
       "pipeline": "V3",
       "final_weighted_score": 8.5,
@@ -946,9 +1328,13 @@
     },
     {
       "a_name": "保证金螺旋与强制去杠杆",
+      "a_name_en": "Margin spirals and forced deleveraging",
       "b_name": "清算级联的链上流动性危机",
+      "b_name_en": "On-chain liquidity crisis of liquidation cascades",
       "a_domain": "金融市场微观结构",
+      "a_domain_en": "Market microstructure",
       "b_domain": "加密货币/DeFi",
+      "b_domain_en": "Cryptocurrency / DeFi",
       "shared_equation": "dP/dt = -k*max(0, trigger - P)*L where L is leverage-weighted exposure crossing margin thresholds",
       "variable_mapping": {
         "margin_call": "liquidation_threshold",
@@ -960,14 +1346,22 @@
       "paper_title": "Margin Spirals On-Chain: Using DeFi Liquidation Data to Identify Brunnermeier-Pedersen Funding Liquidity Parameters",
       "target_venue": "Journal of Finance / Review of Financial Studies",
       "practical_value": "Brunnermeier-Pedersen 2009的funding liquidity模型参数过去难以直接观测，DeFi提供了完美的参数识别实验，可以精确估计螺旋强度并反向验证传统市场理论。",
+      "practical_value_en": "The parameters of the Brunnermeier-Pedersen 2009 funding-liquidity model have historically been difficult to observe directly. DeFi provides a near-ideal identification experiment for precisely estimating spiral intensity and, in reverse, validating the classical theory.",
       "risk": "与pair 3主题非常接近，需明确差异化定位；DeFi社区已有人独立发表相关实证，可能存在优先权竞争。",
+      "risk_en": "Thematically very close to pair 3, so a clear differentiation is needed; some DeFi-community empirical work has already been published independently, raising the possibility of a priority race.",
       "blocking_mechanisms": [
         "与pair 3定位需区分",
         "已有DeFi实证文献",
         "需掌握Brunnermeier-Pedersen模型细节"
       ],
+      "blocking_mechanisms_en": [
+        "Differentiation from pair 3 must be established",
+        "Existing DeFi empirical literature",
+        "Detailed command of the Brunnermeier-Pedersen model is required"
+      ],
       "rating": "A",
       "full_analysis": "这是一个更聚焦的版本：专门把Brunnermeier-Pedersen 2009 RFS的funding liquidity模型参数化地迁移到DeFi数据。BP模型的核心参数（保证金灵敏度、资金供给弹性）在传统市场几乎无法直接观测，但DeFi链上数据可以精确估计每次清算的触发价格、强制卖出量、价格冲击弹性。用DeFi数据标定BP模型是一个极具实证含金量的方向，等于给十年前的理论文章提供第一个完全identified的参数估计。与pair 3的差别在于：pair 3关注一般的流动性螺旋，这一对专注保证金/杠杆维度。可并行推进或合并为一篇更强的论文。",
+      "full_analysis_en": "This is a more focused version: specifically porting the Brunnermeier-Pedersen 2009 RFS funding-liquidity model to DeFi data in a parameterized way. The core BP parameters (margin sensitivity, funding-supply elasticity) are essentially unobservable in traditional markets, but DeFi on-chain data give precise access to the trigger price, forced-selling volume, and price-impact elasticity of every liquidation. Calibrating BP with DeFi data is an empirically rich direction, providing the first fully identified parameter estimates for a decade-old theoretical paper. The difference from pair 3 is focus: pair 3 concerns liquidity spirals in general, whereas this pair targets the margin / leverage dimension. The two can be pursued in parallel or merged into a single stronger paper.",
       "isomorphism_confidence": 96,
       "literature_status": "partial",
       "execution_plan": [
@@ -975,9 +1369,16 @@
         "Step2: 在Brunnermeier-Pedersen框架下识别资金流动性参数",
         "Step3: 将参数用于预测2020年3月等传统市场事件"
       ],
+      "execution_plan_en": [
+        "Step 1: reconstruct the full 2020-2025 liquidation history from Aave, Compound, and MakerDAO",
+        "Step 2: identify funding-liquidity parameters within the Brunnermeier-Pedersen framework",
+        "Step 3: use the parameters to predict traditional-market events such as March 2020"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "宏观审慎监管、金融稳定、DeFi风险管理",
+      "impact_scope_en": "Macroprudential regulation, financial stability, DeFi risk management",
       "final_score": 8.5,
       "pipeline": "V3",
       "final_weighted_score": 8.5,
@@ -987,9 +1388,13 @@
     },
     {
       "a_name": "清算级联的链上流动性危机",
+      "a_name_en": "On-chain liquidity crisis of liquidation cascades",
       "b_name": "地震静态应力触发",
+      "b_name_en": "Static Coulomb-stress triggering of earthquakes",
       "a_domain": "加密货币/DeFi",
+      "a_domain_en": "Cryptocurrency / DeFi",
       "b_domain": "地质学",
+      "b_domain_en": "Geology",
       "shared_equation": "sum_j K_ij * delta_j > threshold_i -> failure_i; Coulomb-type stress transfer on heterogeneous failure network",
       "variable_mapping": {
         "价格下跌冲击": "库仑应力变化",
@@ -997,18 +1402,32 @@
         "清算执行": "断层破裂",
         "余震序列": "次生清算"
       },
+      "variable_mapping_en": {
+        "Price-drop shock": "Change in Coulomb stress",
+        "LTV liquidation threshold": "Fault shear strength",
+        "Liquidation execution": "Fault rupture",
+        "Aftershock sequence": "Secondary liquidations"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Self-Organized Criticality in On-Chain Liquidations and Seismic Aftershocks: A Shared Omori-Law Scaling",
       "target_venue": "Physical Review Letters / Nature Communications / Journal of Financial Econometrics",
       "practical_value": "地震学的大村定律（Omori law）对余震频率衰减是精确幂律，若DeFi清算级联符合同一幂律，则可用地震预测工具预测清算风险。",
+      "practical_value_en": "Seismology's Omori-Utsu law governing aftershock-frequency decay is a precise power law; if DeFi liquidation cascades obey the same law, earthquake-prediction tools could be used for liquidation-risk forecasting.",
       "risk": "需要严格验证幂律而非仅定性类比；地球物理学界对自组织临界性的应用存在争议。",
+      "risk_en": "The power-law behavior must be verified rigorously rather than merely by qualitative analogy; applications of self-organized criticality remain contested within geophysics.",
       "blocking_mechanisms": [
         "需清算事件时间戳精确到秒级",
         "需识别主清算vs次清算",
         "跨学科评审标准差异大"
       ],
+      "blocking_mechanisms_en": [
+        "Liquidation-event timestamps must be second-level precise",
+        "Primary vs. secondary liquidations must be distinguished",
+        "Cross-disciplinary review standards differ substantially"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次最具原创性的对。地震学的Omori定律（余震频率~1/t^p）、Gutenberg-Richter分布（震级频率幂律）、ETAS模型是成熟的数学工具。DeFi清算数据是链上完全有序可观测的，完美适合直接套用ETAS框架。如果清算级联也服从Omori衰减，那是一个非平凡的发现，直接连接自组织临界性与金融极端事件。文献状态为unexplored：地震学与金融级联的类比有人提过但没人用DeFi数据做严格的统计验证。这个项目solo可行，数据开源，方法成熟，跨学科亮点突出。",
+      "full_analysis_en": "This is the most original pair in the batch. Seismology's Omori-Utsu law (aftershock frequency ~ 1/t^p), the Gutenberg-Richter magnitude distribution, and the ETAS model constitute a mature mathematical toolkit. DeFi liquidation data are fully ordered and observable on-chain, ideally suited to direct application of the ETAS framework. If liquidation cascades also obey Omori-Utsu decay, the finding would be non-trivial, directly linking self-organized criticality to financial extreme events. The literature status is unexplored: analogies between seismology and financial cascades have been mentioned but no one has performed a strict statistical validation with DeFi data. The project is solo-feasible, data are open-source, methods are mature, and the cross-disciplinary angle is striking.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1016,9 +1435,16 @@
         "Step2: 用ETAS模型拟合，检验Omori律与Gutenberg-Richter律",
         "Step3: 与加州地震目录做标度律对照"
       ],
+      "execution_plan_en": [
+        "Step 1: extract liquidation-event time series from Aave and MakerDAO",
+        "Step 2: fit an ETAS model and test the Omori-Utsu law and the Gutenberg-Richter law",
+        "Step 3: compare scaling laws with the California earthquake catalog"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "复杂系统物理、DeFi风控、跨学科自组织临界性研究",
+      "impact_scope_en": "Complex-systems physics, DeFi risk control, interdisciplinary self-organized criticality research",
       "final_score": 8.5,
       "pipeline": "V3",
       "final_weighted_score": 8.5,
@@ -1028,9 +1454,13 @@
     },
     {
       "a_name": "清算级联的链上流动性危机",
+      "a_name_en": "On-chain liquidity crisis of liquidation cascades",
       "b_name": "银行挤兑",
+      "b_name_en": "Bank runs",
       "a_domain": "加密货币/DeFi",
+      "a_domain_en": "Cryptocurrency / DeFi",
       "b_domain": "金融",
+      "b_domain_en": "Finance",
       "shared_equation": "Diamond-Dybvig multiple equilibria: expectation -> action -> self-fulfilling bad equilibrium",
       "variable_mapping": {
         "提款": "清算请求",
@@ -1038,17 +1468,30 @@
         "恐慌预期": "脱锚预期",
         "存款保险": "协议保险基金"
       },
+      "variable_mapping_en": {
+        "Withdrawal": "Liquidation request",
+        "Bank liquidity": "Protocol collateral pool",
+        "Panic expectation": "De-peg expectation",
+        "Deposit insurance": "Protocol insurance fund"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Diamond-Dybvig Goes On-Chain: Self-Fulfilling Runs in DeFi Lending Protocols with Observable Equilibrium Selection",
       "target_venue": "Journal of Finance / Journal of Financial Economics",
       "practical_value": "Diamond-Dybvig 1983的多重均衡是纯理论构造，在传统银行业从未被精确观测。DeFi提供了第一个每次\"挤兑\"都完全可观测的实验室，可以实证区分基本面挤兑与恐慌挤兑。",
+      "practical_value_en": "The multiple equilibria of Diamond-Dybvig 1983 are a purely theoretical construct that has never been precisely observed in traditional banking. DeFi offers the first laboratory in which every \"run\" is fully observable, enabling empirical separation of fundamentals-driven runs from panic-driven runs.",
       "risk": "需要构造出对\"预期\"的可观测代理变量（链上社交信号、Twitter情绪）；恐慌挤兑与基本面挤兑的识别问题一直很难。",
+      "risk_en": "An observable proxy for \"expectations\" must be constructed (on-chain social signals, Twitter sentiment); the identification problem between panic and fundamentals-driven runs has long been difficult.",
       "blocking_mechanisms": [
         "Goldstein-Pauzner全局博弈方法已解决识别问题但应用复杂",
         "需跨学科掌握宏观银行学与DeFi工程"
       ],
+      "blocking_mechanisms_en": [
+        "The Goldstein-Pauzner global-game method solves identification but is complex to apply",
+        "Requires cross-disciplinary mastery of macro-banking theory and DeFi engineering"
+      ],
       "rating": "A",
       "full_analysis": "这是发表潜力极高的方向。Diamond-Dybvig 1983的核心问题——如何区分自我实现预期挤兑与基本面驱动的偿付危机——在传统银行业几乎无法严格识别，因为预期不可观测且挤兑事件稀少。DeFi协议提供了完美的自然实验场：每次脱锚、每次大规模提款都有链上数据、社交媒体时间戳、价格演化路径。可以用Goldstein-Pauzner 2005的全局博弈方法反向识别DeFi的挤兑参数，再反馈给传统银行监管。Iyer & Puri等实证银行挤兑文献应该也会感兴趣。原创性高、数据可得、方法成熟。",
+      "full_analysis_en": "This direction has very high publication potential. The central question of Diamond-Dybvig 1983 — how to distinguish self-fulfilling panic-driven runs from fundamentals-driven solvency crises — is nearly impossible to identify rigorously in traditional banking, because expectations are unobservable and bank-run events are rare. DeFi protocols provide an ideal natural experiment: every de-peg event and every large-scale withdrawal leaves on-chain data, social-media timestamps, and a price-evolution path. The Goldstein-Pauzner 2005 global-game method can be used to reverse-engineer the run parameters of DeFi and feed them back into traditional bank regulation. Empirical bank-run work (Iyer & Puri) should also be interested. Originality is high, data are available, and methods are mature.",
       "isomorphism_confidence": 93,
       "literature_status": "partial",
       "execution_plan": [
@@ -1056,9 +1499,16 @@
         "Step2: 用链上+社交时间戳构建预期代理变量",
         "Step3: 用全局博弈方法做挤兑均衡选择检验"
       ],
+      "execution_plan_en": [
+        "Step 1: identify major DeFi de-peg events from 2022-2025 (UST, USDN, sUSD, etc.)",
+        "Step 2: build an expectations proxy variable from on-chain data and social-media timestamps",
+        "Step 3: perform an equilibrium-selection test for runs using global-game methods"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "银行挤兑理论、DeFi监管、金融稳定",
+      "impact_scope_en": "Bank-run theory, DeFi regulation, financial stability",
       "final_score": 8.5,
       "pipeline": "V3",
       "final_weighted_score": 8.5,
@@ -1068,10 +1518,15 @@
     },
     {
       "a_name": "葡萄日烧伤害",
+      "a_name_en": "Sunburn damage in grapes",
       "b_name": "珊瑚白化",
+      "b_name_en": "Coral bleaching",
       "a_domain": "农业科学",
+      "a_domain_en": "Agricultural science",
       "b_domain": "海洋生物学",
+      "b_domain_en": "Marine biology",
       "shared_equation": "T > T_tolerance → symbiont/chloroplast dysfunction; Arrhenius型热应力累积（degree-heating-weeks）",
+      "shared_equation_en": "T > T_tolerance → symbiont/chloroplast dysfunction; Arrhenius-type heat-stress accumulation (degree-heating-weeks)",
       "variable_mapping": {
         "grape_skin_T": "coral_tissue_T",
         "chloroplast_collapse": "zooxanthellae_expulsion",
@@ -1082,14 +1537,22 @@
       "paper_title": "Degree-Heating-Weeks for Viticulture: Translating Coral Bleaching Heat-Stress Metrics to Grape Sunburn Prediction under Climate Warming",
       "target_venue": "Agricultural and Forest Meteorology / Climate Research",
       "practical_value": "珊瑚白化预警系统NOAA CRW的DHW（degree heating weeks）指标是成熟的运营级产品，已预测全球珊瑚白化事件。把同样的指标结构迁移到葡萄园——DHG（degree heating grapes）——可建立气候变化下的葡萄酒产区风险地图，对气候适应农业有直接应用价值。OpenMeteo等公开天气数据可直接驱动。",
+      "practical_value_en": "The degree-heating-weeks (DHW) indicator of NOAA CRW's coral-bleaching early-warning system is a mature operational product that has successfully predicted global bleaching events. Porting the same indicator structure to vineyards — DHG (degree-heating-grapes) — can produce a climate-change risk map for wine-producing regions, with direct applications in climate-adaptation agriculture. Public weather data such as OpenMeteo can drive the model directly.",
       "risk": "葡萄的热耐受机制涉及蒸腾冷却、叶片遮光等非线性修正，单纯温度阈值可能不够；需与葡萄生理学文献对齐。",
+      "risk_en": "Grape heat tolerance involves nonlinear corrections from transpirational cooling and leaf shading, so a pure temperature threshold may be insufficient; the model must be aligned with the grape-physiology literature.",
       "blocking_mechanisms": [
         "NOAA CRW DHW方法已成熟",
         "葡萄学已有日烧研究（Greer 2010）但无DHW类指标",
         "需要葡萄园温度监测数据验证"
       ],
+      "blocking_mechanisms_en": [
+        "NOAA CRW DHW methodology is already mature",
+        "Viticulture has existing sunburn research (Greer 2010) but no DHW-type indicator",
+        "Vineyard temperature-monitoring data are needed for validation"
+      ],
       "rating": "A",
       "full_analysis": "这是本批最强的一对。两侧都是气候变暖敏感的共生光合系统，阈值+累积热剂量的数学结构完全相同。NOAA成熟的DHW工具（全球5km分辨率、7天预报）可直接改写阈值参数迁移到葡萄园预警。独立学者可做：1）改写DHW计算脚本以葡萄阈值参数；2）与法国/纳帕历史日烧损失数据对比验证；3）生成气候情景下的全球葡萄风险地图。方法论迁移+实证+政策意义俱全，适合投Agricultural and Forest Meteorology或Climate Research Letters。这是一个有明确交付物、可复现、有政策价值的跨界方法迁移案例。",
+      "full_analysis_en": "This is the strongest pair in the batch. Both sides are climate-warming-sensitive symbiotic photosynthetic systems, and the \"threshold + cumulative heat dose\" mathematical structure is identical. NOAA's mature DHW toolkit (5 km global resolution, 7-day forecast) can be adapted directly with grape threshold parameters. An independent scholar can: (1) rewrite the DHW computation script with grape parameters; (2) validate against historical sunburn-loss data from France and Napa; (3) generate global vineyard risk maps under climate scenarios. Methodology transfer + empirical validation + policy significance are all present; appropriate targets include Agricultural and Forest Meteorology or Climate Research Letters. This is a clear-deliverable, reproducible cross-domain methodology-transfer case with genuine policy value.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1098,9 +1561,17 @@
         "对比历史日烧年份（2003欧洲热浪、2020加州）",
         "生成CMIP6情景下的风险地图"
       ],
+      "execution_plan_en": [
+        "Rewrite NOAA's DHW Python code with grape thresholds",
+        "Drive it with OpenMeteo ERA5 data",
+        "Benchmark against historical sunburn years (2003 European heatwave, 2020 California)",
+        "Generate risk maps under CMIP6 scenarios"
+      ],
       "time_estimate": "8-10周",
+      "time_estimate_en": "8-10 weeks",
       "solo_feasible": true,
       "impact_scope": "气候适应农业+海洋生物学方法迁移+葡萄酒产业",
+      "impact_scope_en": "Climate-adaptation agriculture + marine-biology methodological transfer + wine industry",
       "final_score": 8.5,
       "pipeline": "V3",
       "final_weighted_score": 8.5,
@@ -1110,22 +1581,38 @@
     },
     {
       "a_name": "清算级联的链上流动性危机",
+      "a_name_en": "On-chain liquidity crisis of liquidation cascades",
       "b_name": "对手方风险的传染网络",
+      "b_name_en": "Counterparty-risk contagion networks",
       "a_domain": "加密货币/DeFi",
+      "a_domain_en": "Cryptocurrency / DeFi",
       "b_domain": "金融市场微观结构",
+      "b_domain_en": "Market microstructure",
       "shared_equation": "dp/dt = -k·L(p); network default cascade with threshold LTV*",
       "variable_mapping": "链上清算触发↔对手方违约; LTV阈值↔敞口违约点; AMM滑点↔传染系数",
+      "variable_mapping_en": {
+        "On-chain liquidation trigger": "Counterparty default",
+        "LTV threshold": "Exposure default point",
+        "AMM slippage": "Contagion coefficient"
+      },
       "isomorphism_depth": 4,
       "paper_title": "On-Chain Liquidation Cascades as Transparent Counterparty Contagion: Empirical Validation of Network Default Models",
       "target_venue": "Review of Financial Studies / Management Science",
       "practical_value": "DeFi透明清算数据可首次在区块级精度验证传统对手方风险模型,对监管有直接价值",
+      "practical_value_en": "Transparent DeFi liquidation data enables, for the first time, block-level validation of traditional counterparty-risk models, with direct regulatory value.",
       "risk": "DeFi结构与双边对手方有差异(AMM非合约双方); 过度映射会忽视机制差异",
+      "risk_en": "DeFi differs from bilateral counterparty structure (AMMs are not contractual counterparties); over-mapping would ignore mechanistic differences.",
       "blocking_mechanisms": [
         "清算机制(原子性vs违约协商)存在结构差异",
         "需要区分AMM滑点与信用违约两类动力学"
       ],
+      "blocking_mechanisms_en": [
+        "Structural differences between liquidation mechanisms (atomic execution vs. negotiated default)",
+        "Need to distinguish AMM slippage from credit-default dynamics"
+      ],
       "rating": "A",
       "full_analysis": "这是本批最有说服力的一对:DeFi清算级联提供了传统金融从未有过的高频全样本传染数据,可直接回测Eisenberg-Noe型网络违约模型。同构深度4(方程与阈值机制实质一致),学术价值高,数据公开可独立完成,是罕见的'干净实验台'。主要风险是需论证AMM定价机制与双边对手方并非完全等价,但这恰恰是论文贡献所在。",
+      "full_analysis_en": "This is the most compelling pair in the batch: DeFi liquidation cascades provide high-frequency, full-sample contagion data that traditional finance has never possessed, allowing direct backtesting of Eisenberg-Noe-type network-default models. With isomorphism depth 4 (equations and threshold mechanisms are substantively identical), high academic value, and publicly available data, it is a rare \"clean test bed.\" The main risk is demonstrating that AMM pricing is not fully equivalent to bilateral counterparty exposure, but this is precisely the paper's contribution.",
       "isomorphism_confidence": 82,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1133,9 +1620,16 @@
         "拟合网络默认级联方程与阈值",
         "与传统银行间网络Benchmark对比"
       ],
+      "execution_plan_en": [
+        "Scrape liquidation histories from Aave and Compound",
+        "Fit network-default cascade equations and thresholds",
+        "Benchmark against traditional interbank networks"
+      ],
       "time_estimate": "4-5个月",
+      "time_estimate_en": "4-5 months",
       "solo_feasible": true,
       "impact_scope": "金融传染模型的首次高频实证,具跨领域影响",
+      "impact_scope_en": "First high-frequency empirical test of financial-contagion models, with cross-domain impact",
       "final_score": 8.4,
       "pipeline": "V3",
       "final_weighted_score": 8.4,
@@ -1145,28 +1639,49 @@
     },
     {
       "a_name": "闪崩的流动性螺旋机制",
+      "a_name_en": "Liquidity-spiral mechanism of flash crashes",
       "b_name": "DeFi清算连锁瀑布效应",
+      "b_name_en": "DeFi liquidation cascades",
       "a_domain": "金融市场微观结构",
+      "a_domain_en": "Market microstructure",
       "b_domain": "区块链/Web3",
+      "b_domain_en": "Blockchain / Web3",
       "shared_equation": "dp/dt = -k·L(p), L liquidation triggered at p<p*",
       "variable_mapping": "算法止损↔自动清算;价格下跌↔抵押品贬值;流动性退出↔Gas竞争",
+      "variable_mapping_en": {
+        "Algorithmic stop-loss": "Automatic liquidation",
+        "Price decline": "Collateral depreciation",
+        "Liquidity withdrawal": "Gas competition"
+      },
       "isomorphism_depth": 5,
       "paper_title": "From Flash Crashes to DeFi Liquidation Cascades: A Unified Fire-Sale Feedback Model",
       "target_venue": "Review of Financial Studies / Journal of Financial Economics",
       "practical_value": "为DeFi风险管理者提供传统市场闪崩文献的理论工具与监管经验，同时为传统金融提供链上可观测的可控实验场。",
+      "practical_value_en": "Provides DeFi risk managers with the theoretical toolkit and regulatory experience of the traditional flash-crash literature, and conversely supplies traditional finance with an on-chain observable, controlled laboratory.",
       "risk": "DeFi清算的Gas竞价、预言机延迟与传统做市商行为差异大，需要认真处理而非只做形式对齐。",
+      "risk_en": "DeFi liquidations differ significantly from traditional market-maker behavior due to gas auctions and oracle latency; these must be treated rigorously rather than aligned only formally.",
       "blocking_mechanisms": [
         "预言机延迟引入了传统市场没有的离散跳变",
         "Gas费机制使清算行为带有拍卖性，不纯是价格反馈"
       ],
+      "blocking_mechanisms_en": [
+        "Oracle latency introduces discrete jumps absent from traditional markets",
+        "Gas-fee mechanisms give liquidations an auction character beyond pure price feedback"
+      ],
       "rating": "A",
       "full_analysis": "闪崩与DeFi清算瀑布共享完全一致的fire-sale正反馈结构：阈值触发的抛售、价格-清算自激、网络负载依赖的执行延迟。DeFi优势在于全链透明可复现，是传统闪崩研究梦寐以求的高分辨率实验室。论文价值在于用统一fire-sale模型同时拟合两侧数据，揭示Gas竞争与算法止损在结构上的等价与差异。这是一个真正有数据支撑、有理论新意、跨域双向互利的选题。",
+      "full_analysis_en": "Flash crashes and DeFi liquidation cascades share an identical fire-sale positive-feedback structure: threshold-triggered selling, price-liquidation self-excitation, and execution latency contingent on network load. The DeFi advantage is full on-chain transparency and reproducibility — precisely the high-resolution laboratory long sought by flash-crash researchers. The paper's value lies in jointly fitting both datasets with a unified fire-sale model, revealing the structural equivalence and differences between gas competition and algorithmic stop-losses. This is a genuinely data-grounded, theoretically novel, mutually beneficial cross-domain topic.",
       "isomorphism_confidence": 90,
       "literature_status": "partial",
       "execution_plan": [
         "构建统一fire-sale ODE，加入延迟执行项",
         "用2010闪崩与2022 Terra/2020 Black Thursday数据联合校准",
         "识别可跨市场迁移的风险早期指标"
+      ],
+      "execution_plan_en": [
+        "Build a unified fire-sale ODE with delayed execution",
+        "Jointly calibrate on the 2010 flash crash, the 2022 Terra collapse, and 2020 Black Thursday",
+        "Identify early-warning risk indicators transferable across markets"
       ],
       "time_estimate": "5-6 months",
       "solo_feasible": false,
@@ -1180,23 +1695,41 @@
     },
     {
       "a_name": "路口溢流锁死",
+      "a_name_en": "Intersection-spillover gridlock",
       "b_name": "电网连锁故障",
+      "b_name_en": "Cascading failures in power grids",
       "a_domain": "交通现象",
+      "a_domain_en": "Traffic phenomena",
       "b_domain": "电气工程",
+      "b_domain_en": "Electrical engineering",
       "shared_equation": "Motter-Lai cascade: L_i(t+1)=L_i(t)+Σ_j∈F(t) L_j·w_ij/Σ_k w_jk, fail if L_i>C_i",
       "variable_mapping": "路口容量↔线路容量；车流↔负荷；溢流↔跳闸；绿波↔潮流",
+      "variable_mapping_en": {
+        "Intersection capacity": "Line capacity",
+        "Vehicle flow": "Load",
+        "Spillover": "Breaker trip",
+        "Green wave": "Power flow"
+      },
       "isomorphism_depth": 5,
       "paper_title": "Gridlock as Grid Lockdown: Unified Motter-Lai Cascade Model for Traffic and Power Networks",
       "target_venue": "IEEE Transactions on Network Science and Engineering",
       "practical_value": "电网N-1准则与防御策略可直接迁移到交通信号控制，反之亦然；有实际工程价值。",
+      "practical_value_en": "The N-1 criterion and defense strategies from power grids can be transferred directly to traffic-signal control, and vice versa; the work has concrete engineering value.",
       "risk": "电网是瞬时平衡，交通有时滞和排队动态；车辆是离散主体有路径选择。",
+      "risk_en": "Power grids equilibrate instantaneously, while traffic has delays and queueing dynamics; vehicles are discrete agents with route-choice capability.",
       "blocking_mechanisms": [
         "电网潮流方程是代数约束，交通流是PDE",
         "交通主体有路径重选能力",
         "电网无存储节点而交通有排队缓冲"
       ],
+      "blocking_mechanisms_en": [
+        "Power-flow equations are algebraic constraints, while traffic flow is governed by PDEs",
+        "Traffic agents can re-route",
+        "Power grids lack storage nodes, whereas traffic has queueing buffers"
+      ],
       "rating": "A",
       "full_analysis": "Motter-Lai级联模型在复杂网络文献已成为两领域共同工具，但直接对比迁移研究不足。交通的Braess悖论与电网的Cohn悖论高度同构，可揭示拓扑保护共同原理。方程级严格同构，有A类论文潜力。",
+      "full_analysis_en": "The Motter-Lai cascade model has become a shared tool in both fields within the complex-networks literature, but direct comparative-transfer studies are limited. The Braess paradox in traffic and the Cohn paradox in power networks are highly isomorphic, revealing common topology-protection principles. With strict equation-level isomorphism, the pair has the potential for an A-class paper.",
       "isomorphism_confidence": 85,
       "literature_status": "partial",
       "execution_plan": [
@@ -1204,9 +1737,16 @@
         "实证电网N-1与交通N-1脆弱性对比",
         "设计跨域迁移的鲁棒性增强策略"
       ],
+      "execution_plan_en": [
+        "Build a unified load-transfer model for both networks",
+        "Empirically compare power-grid N-1 and traffic N-1 vulnerabilities",
+        "Design cross-domain transferable robustness-enhancement strategies"
+      ],
       "time_estimate": "6个月",
+      "time_estimate_en": "6 months",
       "solo_feasible": true,
       "impact_scope": "网络科学方法论",
+      "impact_scope_en": "Network-science methodology",
       "final_score": 8.2,
       "pipeline": "V3",
       "final_weighted_score": 8.2,
@@ -1216,22 +1756,38 @@
     },
     {
       "a_name": "高层建筑风振舒适度控制",
+      "a_name_en": "Wind-induced vibration comfort control of high-rise buildings",
       "b_name": "电力系统小信号振荡",
+      "b_name_en": "Small-signal oscillations in power systems",
       "a_domain": "土木工程",
+      "a_domain_en": "Civil engineering",
       "b_domain": "电气工程",
+      "b_domain_en": "Electrical engineering",
       "shared_equation": "ẍ + 2ζω·ẋ + ω²·x = F(t); PSS ↔ TMD dual damping control",
       "variable_mapping": "TMD质量比μ↔PSS增益K; 顶层加速度↔机电振荡幅值; ζ目标值共享",
+      "variable_mapping_en": {
+        "TMD mass ratio μ": "PSS gain K",
+        "Top-floor acceleration": "Electromechanical oscillation amplitude",
+        "Shared target ζ": "Shared target damping ratio"
+      },
       "isomorphism_depth": 4,
       "paper_title": "TMD-PSS Equivalence: Unified Damping Design for Structural and Power System Low-Frequency Oscillations",
       "target_venue": "IEEE Transactions on Power Systems / Engineering Structures",
       "practical_value": "TMD的鲁棒调谐理论(Den Hartog最优参数)可直接移植到PSS参数整定,反向PSS的自适应控制可启发智能TMD",
+      "practical_value_en": "The robust-tuning theory of TMDs (Den Hartog optimal parameters) can be transplanted directly to PSS parameter tuning, and conversely the adaptive control of PSS can inspire intelligent TMDs.",
       "risk": "电力多机系统的状态空间维度远高于结构,仅单模振荡严格同构",
+      "risk_en": "The state-space dimension of multi-machine power systems far exceeds that of structures; strict isomorphism holds only for a single oscillation mode.",
       "blocking_mechanisms": [
         "电网小信号问题的多模耦合",
         "实际应用需跨学科合作"
       ],
+      "blocking_mechanisms_en": [
+        "Multi-mode coupling of small-signal problems in power networks",
+        "Practical application requires cross-disciplinary collaboration"
+      ],
       "rating": "A",
       "full_analysis": "本对是小信号线性域内严格的二阶阻尼振子同构,且双方各有成熟但彼此隔绝的设计理论(Den Hartog TMD vs Kundur PSS)。最优阻尼比的数学等价可写出一篇高质量的跨域控制论文,且可引出自适应TMD等新方向。同构深度4,文献状态很少被明确点破,solo可行性高。",
+      "full_analysis_en": "This pair is a strict second-order damped-oscillator isomorphism within the small-signal linear regime, with each side having a mature but disconnected design theory (Den Hartog TMD vs. Kundur PSS). The mathematical equivalence of the optimal damping ratio can yield a high-quality cross-domain control paper and open new directions such as adaptive TMDs. Isomorphism depth 4, the connection has rarely been explicitly articulated, and solo feasibility is high.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1239,9 +1795,16 @@
         "在单模场景下证明最优参数同构",
         "对两典型案例做仿真对照"
       ],
+      "execution_plan_en": [
+        "Write the state-space equivalence between TMD and PSS",
+        "Prove isomorphism of optimal parameters in the single-mode case",
+        "Perform simulation comparisons on two representative cases"
+      ],
       "time_estimate": "3-4个月",
+      "time_estimate_en": "3-4 months",
       "solo_feasible": true,
       "impact_scope": "控制工程跨域引用,示范性论文",
+      "impact_scope_en": "Cross-domain control-engineering reference; exemplary paper",
       "final_score": 8.0,
       "pipeline": "V3",
       "final_weighted_score": 8.0,
@@ -1251,22 +1814,38 @@
     },
     {
       "a_name": "次级制裁连锁",
+      "a_name_en": "Secondary-sanctions cascades",
       "b_name": "供应链的牛鞭效应",
+      "b_name_en": "Bullwhip effect in supply chains",
       "a_domain": "国际关系",
+      "a_domain_en": "International relations",
       "b_domain": "微观经济",
+      "b_domain_en": "Microeconomics",
       "shared_equation": "Variance amplification along a chain: Var(X_{k+1})=γ²·Var(X_k), γ>1",
       "variable_mapping": "制裁初始清单↔终端需求波动；合规恐惧放大系数↔订单批量决策放大系数；银行层级↔供应链层级",
+      "variable_mapping_en": {
+        "Initial sanctions list": "Fluctuations in terminal demand",
+        "Compliance-fear amplification factor": "Order-batching amplification factor",
+        "Bank hierarchy": "Supply-chain hierarchy"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Bullwhip Sanctions: Variance Amplification along Financial Compliance Chains",
       "target_venue": "International Studies Quarterly",
       "practical_value": "将Lee et al. (1997)牛鞭效应模型移植到次级制裁研究，可定量预测过度合规规模，对政策设计与银行合规成本估计有直接价值。",
+      "practical_value_en": "Porting the Lee et al. (1997) bullwhip-effect model to secondary-sanctions research enables quantitative prediction of over-compliance magnitude, with direct relevance for policy design and estimating bank compliance costs.",
       "risk": "需要获取分层银行合规数据，第一手数据稀缺。",
+      "risk_en": "Requires access to hierarchical bank-compliance data, which is scarce first-hand.",
       "blocking_mechanisms": [
         "银行合规数据非公开",
         "需建立层级识别策略"
       ],
+      "blocking_mechanisms_en": [
+        "Bank-compliance data are not public",
+        "A hierarchical identification strategy must be developed"
+      ],
       "rating": "A",
       "full_analysis": "这是一个强同构候选：牛鞭效应有明确的方差放大方程（Chen et al. 2000），次级制裁的合规过度反应亦可用同一模型刻画。两域均可观察到层级结构（上游银行/上游厂商）。关键创新在于将operations research的成熟模型首次系统引入sanctions研究。数据可获性是唯一瓶颈，可用SWIFT清算层级或公开的制裁合规报告代理。",
+      "full_analysis_en": "This is a strong isomorphism candidate: the bullwhip effect has a clear variance-amplification equation (Chen et al. 2000), and the over-compliance reaction in secondary sanctions can be modeled with the same equation. Both domains exhibit hierarchical structure (upstream banks / upstream manufacturers). The key innovation is introducing a mature operations-research model to sanctions research systematically for the first time. Data availability is the only bottleneck and can be proxied via SWIFT clearing hierarchy or public sanctions-compliance reports.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1274,9 +1853,16 @@
         "构造跨层级制裁传导数据（OFAC+SWIFT公开数据）",
         "估计γ系数并对比操作级牛鞭结果"
       ],
+      "execution_plan_en": [
+        "Formalize a common equation shared by the two domains",
+        "Construct cross-level sanctions-transmission data (OFAC + public SWIFT data)",
+        "Estimate the γ coefficient and compare with operational bullwhip results"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "高，国际制裁研究方法论创新",
+      "impact_scope_en": "High; methodological innovation for sanctions research",
       "final_score": 8.0,
       "pipeline": "V3",
       "final_weighted_score": 8.0,
@@ -1286,22 +1872,39 @@
     },
     {
       "a_name": "沉默螺旋机制",
+      "a_name_en": "Spiral of silence",
       "b_name": "逆向选择",
+      "b_name_en": "Adverse selection",
       "a_domain": "传播学",
+      "a_domain_en": "Communication studies",
       "b_domain": "经济学",
+      "b_domain_en": "Economics",
       "shared_equation": "Unraveling dynamics: x_{t+1}=f(x_t), f单调, 边缘退出→分布偏移",
+      "shared_equation_en": "Unraveling dynamics: x_{t+1}=f(x_t), f monotonic; marginal exit → distributional shift",
       "variable_mapping": "温和意见持有者↔好车卖家；社会孤立成本↔低价损失；可见少数↔低质平均价",
+      "variable_mapping_en": {
+        "Moderate-opinion holders": "Sellers of good cars",
+        "Cost of social isolation": "Cost of low prices",
+        "Visible minority": "Average price under low quality"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Unraveling as a General Mechanism: Silent Spirals and Lemons Markets under One Equation",
       "target_venue": "Rationality and Society / Public Opinion Quarterly",
       "practical_value": "将Akerlof (1970)的unraveling机制形式化移植到传播学，为沉默螺旋提供严格的博弈基础。",
+      "practical_value_en": "Formally porting the Akerlof (1970) unraveling mechanism to communication studies provides a rigorous game-theoretic foundation for the spiral of silence.",
       "risk": "沉默螺旋的社会心理机制与市场信号结构存在非对称，严格同构需处理多均衡问题。",
+      "risk_en": "The social-psychological mechanism of the spiral of silence and the market-signaling structure of adverse selection are asymmetric; a strict isomorphism must handle multiple equilibria.",
       "blocking_mechanisms": [
         "心理成本vs金钱成本的参数不可比",
         "数据获取需实验"
       ],
+      "blocking_mechanisms_en": [
+        "Psychological costs and monetary costs are parameterically incomparable",
+        "Empirical data require an experiment"
+      ],
       "rating": "A",
       "full_analysis": "这是一个高质量候选。Noelle-Neumann的沉默螺旋一直缺乏严格博弈基础，而Akerlof unraveling提供的正是一个分布退出机制。两者都有迭代退出导致均衡偏离真实分布的性质，且两域都未曾系统交叉建模。可形成扎实的理论论文。",
+      "full_analysis_en": "A high-quality candidate. The Noelle-Neumann spiral of silence has long lacked a rigorous game-theoretic foundation, while Akerlof unraveling provides exactly a distributional exit mechanism. Both share the property that iterated exit causes the equilibrium to deviate from the true distribution, and neither domain has yet been systematically modeled against the other. The topic can yield a solid theoretical paper.",
       "isomorphism_confidence": 80,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1309,9 +1912,16 @@
         "证明均衡偏移等价于逆向选择下的价格退化",
         "用公共意见调查数据实证"
       ],
+      "execution_plan_en": [
+        "Construct an iterated game model in which silence is an exit decision",
+        "Prove that the equilibrium shift is equivalent to price degradation under adverse selection",
+        "Empirically validate using public-opinion survey data"
+      ],
       "time_estimate": "6-8个月",
+      "time_estimate_en": "6-8 months",
       "solo_feasible": true,
       "impact_scope": "高，跨传播学与经济学的理论整合",
+      "impact_scope_en": "High; theoretical integration between communication studies and economics",
       "final_score": 8.0,
       "pipeline": "V3",
       "final_weighted_score": 8.0,
@@ -1321,22 +1931,38 @@
     },
     {
       "a_name": "DeFi清算连锁瀑布效应",
+      "a_name_en": "DeFi liquidation cascades",
       "b_name": "级联失效在社会网络中的传播",
+      "b_name_en": "Cascading failures in social networks",
       "a_domain": "区块链/Web3",
+      "a_domain_en": "Blockchain / Web3",
       "b_domain": "计算社会科学",
+      "b_domain_en": "Computational social science",
       "shared_equation": "Price-load coupled cascade: node fail → load redistribute; price drop → more liquidations",
       "variable_mapping": "抵押品价格↔节点负载；清算触发线↔节点容量；套利机器人↔负载转移路径",
+      "variable_mapping_en": {
+        "Collateral price": "Node load",
+        "Liquidation threshold": "Node capacity",
+        "Arbitrage bots": "Load-transfer paths"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Liquidation Cascades as Network Failures: A Motter-Lai Model of DeFi Stress",
       "target_venue": "Journal of Financial Stability",
       "practical_value": "将物理网络级联失效方法论用于DeFi稳定性分析，对风险监管有直接价值。",
+      "practical_value_en": "Applies physical-network cascading-failure methodology to DeFi stability analysis, with direct value for risk regulation.",
       "risk": "金融级联文献（Gai-Kapadia 2010）已有相似建模，需突出DeFi特殊性（链上自动执行、gas费用耗尽）。",
+      "risk_en": "The financial-cascade literature (Gai-Kapadia 2010) already contains similar models, so the paper must emphasize DeFi-specific features (automatic on-chain execution, gas-fee exhaustion).",
       "blocking_mechanisms": [
         "金融网络文献重叠",
         "需突出DeFi独特机制"
       ],
+      "blocking_mechanisms_en": [
+        "Overlap with the financial-network literature",
+        "Must emphasize unique DeFi mechanisms"
+      ],
       "rating": "A",
       "full_analysis": "这是有真正新意的候选。虽然金融级联文献存在，但DeFi的特殊之处在于清算完全由智能合约自动执行、gas费耗尽导致\"小额抵押品无法清算\"的二阶效应前所未有。可将Motter-Lai与Gai-Kapadia结合给出DeFi独有的级联方程。数据完全链上可得（Compound、Aave、MakerDAO）。",
+      "full_analysis_en": "A genuinely novel candidate. Although the financial-cascade literature already exists, DeFi is distinctive in that liquidations are executed automatically by smart contracts and a unique second-order effect arises when gas-fee exhaustion renders small collateral positions unliquidatable. A DeFi-specific cascade equation can be obtained by combining Motter-Lai with Gai-Kapadia. Data are fully on-chain (Compound, Aave, MakerDAO).",
       "isomorphism_confidence": 90,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1344,9 +1970,16 @@
         "建立价格-负载耦合级联模型",
         "对比2020-03-12、2022-06 Luna等极端事件"
       ],
+      "execution_plan_en": [
+        "Scrape on-chain liquidation events (2020-2025)",
+        "Construct a price-load coupled cascade model",
+        "Benchmark against extreme events such as March 12, 2020, and the June 2022 Luna collapse"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "高，DeFi风险管理前沿",
+      "impact_scope_en": "High; frontier topic in DeFi risk management",
       "final_score": 8.0,
       "pipeline": "V3",
       "final_weighted_score": 8.0,
@@ -1357,21 +1990,33 @@
     {
       "rank": 31,
       "a_name": "湖泊富营养化的临界翻转",
+      "a_name_en": "Critical regime shift in lake eutrophication",
       "b_name": "植被反馈的绿色撒哈拉",
+      "b_name_en": "Green-Sahara vegetation feedback",
       "a_domain": "生态学",
+      "a_domain_en": "Ecology",
       "b_domain": "气候科学",
+      "b_domain_en": "Climate science",
       "isomorphism_depth": 5,
       "paper_title": "Unified Fold-Bifurcation Signatures across Lake Eutrophication and Sahara Greening",
       "target_venue": "Nature Climate Change / PNAS",
       "practical_value": "把湖泊生态学发展成熟的早期预警指标(方差增大、自相关上升、skewness)直接迁移到古气候植被-降水耦合系统,为识别地球系统临界点提供跨尺度验证方法。",
+      "practical_value_en": "Transfers the mature lake-ecology early-warning indicators (increased variance, rising autocorrelation, skewness) directly to the paleoclimate vegetation-precipitation coupled system, providing a cross-scale validation approach for identifying Earth-system tipping points.",
       "risk": "古气候数据分辨率粗,早期预警信号检测的假阳性率高;两个系统的时标差4个数量级(年vs千年),动力学相似不代表数值方法可直接套用。",
+      "risk_en": "Paleoclimate data have coarse resolution and early-warning signal detection has a high false-positive rate; the two systems span four orders of magnitude in timescale (years vs. millennia), so dynamical similarity does not mean numerical methods can be transferred directly.",
       "blocking_mechanisms": [
         "古气候代用指标的时间分辨率",
         "噪声结构差异导致EWS指标失效",
         "折叠分岔vs鞍结分岔的辨识需高分辨率数据"
       ],
+      "blocking_mechanisms_en": [
+        "Temporal resolution of paleoclimate proxies",
+        "Differing noise structures cause EWS indicators to fail",
+        "Distinguishing fold vs. saddle-node bifurcations requires high-resolution data"
+      ],
       "rating": "A",
       "full_analysis": "这是教科书级的深度同构——Scheffer学派的折叠分岔框架本就是为这类系统设计,两者共享同一规范形式 dx/dt = r - x + x²/(1+x²),只是参数尺度不同。文献上湖泊EWS与气候临界点已各自建立,但系统性地把二者作为同一普适类进行交叉验证的工作仍有空间,尤其是利用湖泊高频数据标定EWS指标再外推到古气候。关键是要找到一条可以同时做两种时标分析的湿地/小湖古沉积序列。执行门槛在数据和古气候合作者,不在数学。若能用单一贝叶斯框架同时拟合两类系统的翻转,足以支撑一篇高影响力论文。",
+      "full_analysis_en": "This is a textbook-level deep isomorphism — the Scheffer school's fold-bifurcation framework was designed for such systems, and both share the normal form dx/dt = r − x + x²/(1 + x²) with only different parameter scales. In the literature, lake EWS and climate tipping points have each been established separately, but systematic cross-validation under a common universality class remains an open space, especially using high-frequency lake data to calibrate EWS indicators for extrapolation to paleoclimate. The key is to find a wetland or small-lake paleosediment series amenable to both timescale analyses. The bottleneck lies in data and paleoclimate collaborators, not mathematics. A single Bayesian framework fitting both system types would be enough to support a high-impact paper.",
       "equations": [
         "dx/dt = r - bx + x²/(h²+x²) (Scheffer normal form)",
         "Var(x_t), AC(1) → ∞ as r → r_c (EWS)",
@@ -1384,7 +2029,13 @@
         "统一贝叶斯框架拟合折叠分岔参数与EWS",
         "投PNAS或Nature Climate Change"
       ],
+      "execution_plan_en": [
+        "Extract 5-10 lake-eutrophication time series plus Green-Sahara paleoclimate series",
+        "Fit fold-bifurcation parameters and EWS within a unified Bayesian framework",
+        "Submit to PNAS or Nature Climate Change"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": false,
       "impact_scope": "cross-field",
       "final_score": 8.4,
@@ -1407,28 +2058,49 @@
     },
     {
       "a_name": "保证金螺旋与强制去杠杆",
+      "a_name_en": "Margin spirals and forced deleveraging",
       "b_name": "银行挤兑",
+      "b_name_en": "Bank runs",
       "a_domain": "金融市场微观结构",
+      "a_domain_en": "Market microstructure",
       "b_domain": "金融",
+      "b_domain_en": "Finance",
       "shared_equation": "dW/dt = -φ(W), φ collective withdrawal",
       "variable_mapping": "保证金追缴↔存款挤兑;去杠杆↔取款;价格下跌↔银行资本耗尽",
+      "variable_mapping_en": {
+        "Margin call": "Deposit run",
+        "Deleveraging": "Withdrawals",
+        "Price decline": "Bank-capital depletion"
+      },
       "isomorphism_depth": 5,
       "paper_title": "Diamond-Dybvig Meets the Margin Call: Self-Fulfilling Runs in Collateralized Funding Markets",
       "target_venue": "American Economic Review / Journal of Finance",
       "practical_value": "把银行挤兑的多重均衡分析工具迁移到保证金融资市场，为central clearing政策评估提供理论基础。",
+      "practical_value_en": "Transfers the multiple-equilibria analytical toolkit of bank-run theory to margin-funding markets, providing a theoretical basis for evaluating central-clearing policies.",
       "risk": "Brunnermeier-Pedersen与Diamond-Dybvig已经在相关性上被讨论，创新门槛高。",
+      "risk_en": "Brunnermeier-Pedersen and Diamond-Dybvig have already been discussed together in the literature, raising the novelty bar.",
       "blocking_mechanisms": [
         "两套模型在宏观审慎文献中已被并列讨论",
         "需要新建筑成的具体技术迁移才能避免综述化"
       ],
+      "blocking_mechanisms_en": [
+        "The two models have already been juxtaposed in macroprudential literature",
+        "Concrete technical transfer is needed to avoid producing a review rather than a research paper"
+      ],
       "rating": "A",
       "full_analysis": "这是一个深层次且严格的同构：二者都是自我实现的多重均衡，一个是存款人挤兑银行，一个是对手方拒绝展期导致的杠杆踩踏。数学结构都可写成协调博弈+临界质量，且都有'基本面良好依然可以崩盘'的脆弱性。跨域价值在于把Diamond-Dybvig的存款保险/最后贷款人机制迁移成central counterparty设计原则。这个映射清晰、数据可得、政策相关。",
+      "full_analysis_en": "This is a deep and rigorous isomorphism: both are self-fulfilling multiple-equilibria problems — depositors running a bank in one case and counterparties refusing to roll over exposure and triggering a deleveraging stampede in the other. The mathematical structure is a coordination game with a critical mass in both cases, and both exhibit the fragility that \"collapse can occur even when fundamentals are sound.\" The cross-domain value is transferring the deposit-insurance / lender-of-last-resort mechanisms of Diamond-Dybvig into central-counterparty design principles. The mapping is clean, the data are available, and the topic is policy-relevant.",
       "isomorphism_confidence": 88,
       "literature_status": "partial",
       "execution_plan": [
         "统一建模保证金挤兑与存款挤兑为同一协调博弈",
         "用2008与2020年回购市场数据识别多重均衡区",
         "提出对应'保证金保险'机制设计"
+      ],
+      "execution_plan_en": [
+        "Model margin runs and deposit runs jointly as a single coordination game",
+        "Use repo-market data from 2008 and 2020 to identify the multiple-equilibrium region",
+        "Propose a corresponding \"margin insurance\" mechanism design"
       ],
       "time_estimate": "6 months",
       "solo_feasible": false,
@@ -1442,22 +2114,38 @@
     },
     {
       "a_name": "热带雨林临界点",
+      "a_name_en": "Tropical-rainforest tipping point",
       "b_name": "人口空洞化与乡村系统性衰退",
+      "b_name_en": "Demographic hollowing and systemic rural decline",
       "a_domain": "气候科学",
+      "a_domain_en": "Climate science",
       "b_domain": "人口学",
+      "b_domain_en": "Demography",
       "shared_equation": "Fold bifurcation with positive feedback; Scheffer-type tipping",
       "variable_mapping": "蒸腾-降水反馈↔人口-服务反馈; 森林覆盖↔居住人口密度; 临界慢化指标共享",
+      "variable_mapping_en": {
+        "Transpiration-precipitation feedback": "Population-services feedback",
+        "Forest cover": "Resident population density",
+        "Shared critical-slowing-down indicators": "Shared critical-slowing-down indicators"
+      },
       "isomorphism_depth": 3,
       "paper_title": "Social Tipping of Depopulating Villages as Ecological Regime Shift: Early Warning Signals from Critical Slowing Down",
       "target_venue": "Nature Sustainability / PNAS",
       "practical_value": "将生态系统的早期预警指标(variance, autocorrelation)应用于乡村收缩,给政策干预提供前瞻信号",
+      "practical_value_en": "Applies ecosystem early-warning indicators (variance, autocorrelation) to rural contraction, providing forward-looking signals for policy intervention.",
       "risk": "社会系统的慢变量度量困难;生态预警信号在噪声社会数据中信噪比低",
+      "risk_en": "Slow variables in social systems are difficult to measure; ecological early-warning signals have a poor signal-to-noise ratio in noisy social data.",
       "blocking_mechanisms": [
         "乡村年度数据频率过低",
         "人口决策异质性使Scheffer框架过度简化"
       ],
+      "blocking_mechanisms_en": [
+        "The frequency of annual village data is too low",
+        "Heterogeneity of individual demographic decisions makes the Scheffer framework over-simplified"
+      ],
       "rating": "A",
       "full_analysis": "Scheffer的临界慢化框架向社会系统迁移已有初步尝试(van Nes 2016),但乡村空洞化作为测试案例极具象且日本/中国数据丰富。可写出政策导向的高影响论文,关键是找到社会系统中variance/autocorrelation的可测代理(如迁出率波动,商店数量波动)。同构深度3但数据可得性好。",
+      "full_analysis_en": "Scheffer's critical-slowing-down framework has already been tentatively ported to social systems (van Nes 2016), and rural hollowing is a particularly concrete test case for which Japanese and Chinese data are abundant. The work can yield a policy-oriented, high-impact paper; the key is identifying measurable social proxies for variance and autocorrelation (fluctuations in outmigration rate, shop counts, etc.). Isomorphism depth is 3, but data availability is good.",
       "isomorphism_confidence": 68,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1465,9 +2153,16 @@
         "构建逐年人口-服务-消费面板",
         "计算早期预警指标与拐点对照"
       ],
+      "execution_plan_en": [
+        "Select 5-10 sample villages in Japan or China",
+        "Build an annual panel of population, services, and consumption",
+        "Compute early-warning indicators and compare with observed tipping points"
+      ],
       "time_estimate": "5-6个月",
+      "time_estimate_en": "5-6 months",
       "solo_feasible": true,
       "impact_scope": "Sustainability Science跨域,政策影响强",
+      "impact_scope_en": "Cross-domain sustainability science with strong policy impact",
       "final_score": 7.8,
       "pipeline": "V3",
       "final_weighted_score": 7.8,
@@ -1477,9 +2172,13 @@
     },
     {
       "a_name": "供应链的级联断裂",
+      "a_name_en": "Cascading breakdown of supply chains",
       "b_name": "金融风险传染",
+      "b_name_en": "Financial-risk contagion",
       "a_domain": "商业",
+      "a_domain_en": "Business",
       "b_domain": "金融",
+      "b_domain_en": "Finance",
       "shared_equation": "Eisenberg-Noe clearing vector: p = min(p̄, L^T p + e)",
       "variable_mapping": {
         "供应商应交付量": "债务面值",
@@ -1487,18 +2186,32 @@
         "外部订单": "外生资产e",
         "交付向量": "清算向量p"
       },
+      "variable_mapping_en": {
+        "Supplier delivery obligation": "Debt face value",
+        "Dependency matrix": "Liability matrix L",
+        "External orders": "Exogenous assets e",
+        "Delivery vector": "Clearing vector p"
+      },
       "isomorphism_depth": 5,
       "paper_title": "Eisenberg-Noe Clearing Framework for Physical Supply Networks: Unified Systemic Risk Assessment",
       "target_venue": "Management Science / Operations Research",
       "practical_value": "把金融系统性风险的严格清算框架迁移到供应链，给每个节点计算'违约概率-系统性重要度'，这是供应链韧性评估的一个数学上严谨的新工具",
+      "practical_value_en": "Transplants the rigorous clearing framework from financial systemic risk to supply chains, computing each node's \"default probability vs. systemic importance\" — a mathematically rigorous new tool for supply-chain resilience assessment.",
       "risk": "金融领域和供应链文献都有类似尝试（Acemoglu-Ozdaglar），可能已被部分研究过；需要证明严格Eisenberg-Noe而非简化版在供应链可解",
+      "risk_en": "Similar attempts exist in both finance and supply chains (Acemoglu-Ozdaglar), so some overlap is likely; the paper must prove that the strict Eisenberg-Noe model (not a simplified version) is solvable on supply chains.",
       "blocking_mechanisms": [
         "供应链有物理不可替代性债务可用现金清偿不同",
         "多商品vs单货币",
         "Eisenberg-Noe假设同质债务供应链违反"
       ],
+      "blocking_mechanisms_en": [
+        "Supply chains involve physical non-substitutability, unlike debts that can be settled in cash",
+        "Multi-commodity vs. single-currency",
+        "Eisenberg-Noe assumes homogeneous debts, a condition violated in supply chains"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次中最强的同构——Eisenberg-Noe clearing向量可以严格推广到多商品供应链网络，已有数学基础。论文价值在于提供一套可计算的供应链系统性风险度量，补上运筹学中缺失的严格工具。需要形式化推广和至少一个真实数据集的演示。独立完成可行，关键是推广证明和计算算法。",
+      "full_analysis_en": "The strongest isomorphism in the batch: the Eisenberg-Noe clearing vector admits a rigorous extension to multi-commodity supply-chain networks with a clear mathematical foundation. The paper's value is delivering a computable systemic-risk measure for supply chains, filling a rigorous-tool gap in operations research. Required are a formal extension proof and at least one real-data demonstration. Feasible solo; the key steps are the extension proof and the computational algorithm.",
       "isomorphism_confidence": 92,
       "literature_status": "partial",
       "execution_plan": [
@@ -1506,9 +2219,16 @@
         "证明固定点存在唯一性（Tarski）",
         "用半导体或药品供应链数据实证"
       ],
+      "execution_plan_en": [
+        "Extend Eisenberg-Noe to a directed multi-commodity hypergraph",
+        "Prove existence and uniqueness of the fixed point (Tarski)",
+        "Provide an empirical demonstration using semiconductor or pharmaceutical supply-chain data"
+      ],
       "time_estimate": "8-12个月",
+      "time_estimate_en": "8-12 months",
       "solo_feasible": true,
       "impact_scope": "运筹学/金融工程，可被工业界采用",
+      "impact_scope_en": "Operations research / financial engineering; adoptable by industry",
       "final_score": 7.8,
       "pipeline": "V3",
       "final_weighted_score": 7.8,
@@ -1519,21 +2239,33 @@
     {
       "rank": 35,
       "a_name": "认知失调的一致性修复",
+      "a_name_en": "Consistency restoration in cognitive dissonance",
       "b_name": "Lyapunov稳定性分析",
+      "b_name_en": "Lyapunov stability analysis",
       "a_domain": "行为经济学",
+      "a_domain_en": "Behavioral economics",
       "b_domain": "控制工程",
+      "b_domain_en": "Control engineering",
       "isomorphism_depth": 4,
       "paper_title": "Cognitive Dissonance as a Psychological Lyapunov Function: A Control-Theoretic Model of Belief Updating",
       "target_venue": "Psychological Review / IEEE Control Systems Magazine",
       "practical_value": "把认知失调视为Lyapunov函数后可直接套用非线性控制的收敛速率估计和鲁棒稳定性工具，对态度变化动力学的数学化具有显著推动作用，并为信念更新的个性化建模提供工程化接口。",
+      "practical_value_en": "Treating cognitive dissonance as a Lyapunov function allows direct use of the convergence-rate estimates and robust-stability tools of nonlinear control, substantially advancing the mathematization of attitude-change dynamics and providing an engineering-grade interface for personalized belief-updating models.",
       "risk": "Lyapunov框架要求显式的V函数及其沿轨迹的单调递减，而认知失调的测量多为离散自报量表，构造连续可微的V并验证其单调性面临严重的操作化困难。",
+      "risk_en": "The Lyapunov framework requires an explicit V function that is monotonically decreasing along trajectories, whereas cognitive dissonance is mostly measured via discrete self-report scales, making it operationally difficult to construct a continuously differentiable V and verify its monotonicity.",
       "blocking_mechanisms": [
         "失调测量是离散主观量表",
         "信念空间缺少自然度量结构",
         "个体差异巨大导致群体V函数不唯一"
       ],
+      "blocking_mechanisms_en": [
+        "Dissonance is measured with discrete subjective scales",
+        "Belief space lacks a natural metric structure",
+        "Large individual differences make a population V function non-unique"
+      ],
       "rating": "A",
       "full_analysis": "这是一个理论雅致且有真实研究价值的同构。Festinger本人的表述已经隐含能量下降的语言，控制论里的Lyapunov方法恰好提供了严格化它的工具。难点不在数学而在操作化：需要设计能连续追踪的失调代理量（如生理指标或细粒度决策流）来构造可测V函数。若能跑通一个实验范式用Lyapunov方法预测态度调整轨迹，对心理学方法论是扎实贡献。",
+      "full_analysis_en": "This is a theoretically elegant and substantively valuable isomorphism. Festinger's own language already carries an implicit energy-decreasing flavor, and the Lyapunov method in control theory provides exactly the tools needed to make it rigorous. The difficulty lies not in the mathematics but in operationalization: one must design a continuously trackable dissonance proxy (such as physiological indicators or fine-grained decision streams) to construct a measurable V function. If an experimental paradigm can successfully use the Lyapunov method to predict the trajectory of attitude adjustment, this would be a solid methodological contribution to psychology.",
       "equations": [
         "V̇(x) = ∇V·f(x) < 0",
         "D(b) = Σ w_ij·|b_i - b_j|²",
@@ -1546,7 +2278,13 @@
         "构造V函数并拟合动力学模型",
         "用控制论稳定性结果预测新条件下收敛时间"
       ],
+      "execution_plan_en": [
+        "Design a continuous measurement experiment for dissonance (physiological + behavioral streams)",
+        "Construct a V function and fit the dynamical model",
+        "Use control-theoretic stability results to predict convergence times under new conditions"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": false,
       "impact_scope": "cross-field",
       "final_score": 7.5,
@@ -1569,9 +2307,13 @@
     },
     {
       "a_name": "对乙酰氨基酚代谢产物毒性",
+      "a_name_en": "Toxicity of acetaminophen metabolites",
       "b_name": "肿瘤铁死亡易感性",
+      "b_name_en": "Ferroptosis susceptibility in tumors",
       "a_domain": "药理学",
+      "a_domain_en": "Pharmacology",
       "b_domain": "肿瘤学",
+      "b_domain_en": "Oncology",
       "shared_equation": "dROS/dt = P - k GSH; collapse when GSH < GSH_crit (fold bifurcation)",
       "variable_mapping": {
         "NAPQI": "脂质过氧化物",
@@ -1579,18 +2321,32 @@
         "CYP2E1产率": "铁催化Fenton反应",
         "肝细胞坏死": "铁死亡"
       },
+      "variable_mapping_en": {
+        "NAPQI": "Lipid peroxides",
+        "Glutathione": "GPX4/GSH system",
+        "CYP2E1 production rate": "Iron-catalyzed Fenton reaction",
+        "Hepatocyte necrosis": "Ferroptosis"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Glutathione Buffer Collapse as a Shared Fold Bifurcation in Acetaminophen Hepatotoxicity and Tumor Ferroptosis",
       "target_venue": "Cell Death & Disease / Redox Biology",
       "practical_value": "把APAP中毒的N-acetylcysteine时间窗理论与铁死亡诱导时机精确对应，指导铁死亡肿瘤治疗的剂量时序设计；反之把铁死亡的GPX4定量动力学方法反哺APAP剂量阈值预测",
+      "practical_value_en": "Maps the N-acetylcysteine time-window theory in APAP poisoning precisely onto ferroptosis-induction timing, guiding dose-timing design for ferroptosis-based tumor therapy; conversely, feeds the quantitative GPX4 dynamics of ferroptosis back into APAP dose-threshold prediction.",
       "risk": "GSH耗竭类比在redox biology内部已被多次提及，论文需要具体的定量对应而非概念类比",
+      "risk_en": "The GSH-depletion analogy is already widely discussed within redox biology, so the paper needs concrete quantitative correspondence rather than conceptual analogy.",
       "blocking_mechanisms": [
         "APAP是外源毒素单次暴露，铁死亡是内源肿瘤慢性状态",
         "NAC在APAP有效但在铁死亡不一定",
         "细胞类型差异"
       ],
+      "blocking_mechanisms_en": [
+        "APAP is an exogenous single-dose toxin, while ferroptosis is an endogenous chronic tumor state",
+        "NAC is effective in APAP but not necessarily in ferroptosis",
+        "Cell-type differences"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次最有潜力的药理-肿瘤跨域同构：GSH缓冲崩溃的fold bifurcation几乎是字面上的同一机制，而两个领域的临床与分子工具却各自独立发展。论文价值在于把APAP几十年积累的GSH动力学模型（MALDI、同位素tracing）迁移到铁死亡的定量框架，产生可翻译的治疗窗口预测。临床相关性强，实验门槛适中。",
+      "full_analysis_en": "The most promising pharmacology-oncology isomorphism in this batch: the fold bifurcation driven by GSH-buffer collapse is almost literally the same mechanism, yet the two fields have developed independent clinical and molecular toolkits. The paper's value is porting decades of APAP-accumulated GSH-dynamics models (MALDI, isotope tracing) into the quantitative ferroptosis framework, yielding translational therapeutic-window predictions. Clinical relevance is strong and experimental barriers are moderate.",
       "isomorphism_confidence": 88,
       "literature_status": "partial",
       "execution_plan": [
@@ -1598,9 +2354,16 @@
         "用APAP数据校准并预测铁死亡阈值",
         "在肿瘤细胞系验证NAC-like缓冲能否保护"
       ],
+      "execution_plan_en": [
+        "Build a unified GSH-ROS fold-bifurcation model",
+        "Calibrate with APAP data and predict the ferroptosis threshold",
+        "Test in tumor cell lines whether NAC-like buffering can be protective"
+      ],
       "time_estimate": "9-12个月",
+      "time_estimate_en": "9-12 months",
       "solo_feasible": false,
       "impact_scope": "redox biology和肿瘤治疗交叉，临床价值高",
+      "impact_scope_en": "Intersection of redox biology and tumor therapy with high clinical value",
       "final_score": 7.7,
       "pipeline": "V3",
       "final_weighted_score": 7.7,
@@ -1610,22 +2373,38 @@
     },
     {
       "a_name": "士气崩溃的阈值效应",
+      "a_name_en": "Threshold effects in morale collapse",
       "b_name": "社会证明的从众阈值",
+      "b_name_en": "Conformity thresholds in social proof",
       "a_domain": "军事史/战略",
+      "a_domain_en": "Military history / strategy",
       "b_domain": "行为经济学",
+      "b_domain_en": "Behavioral economics",
       "shared_equation": "Granovetter threshold model: act if share>θ_i; collective share evolves via s_{t+1}=F(s_t)",
       "variable_mapping": "逃跑个体比例↔参与行动比例；逃跑阈值↔从众阈值；部队凝聚力↔群体同质性",
+      "variable_mapping_en": {
+        "Fraction of troops fleeing": "Fraction taking part in an action",
+        "Flight threshold": "Conformity threshold",
+        "Unit cohesion": "Group homogeneity"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Collapse as Cascade: A Granovetter Threshold Model of Military Morale and Crowd Dynamics",
       "target_venue": "Journal of Conflict Resolution",
       "practical_value": "用统一的阈值模型对比士气崩溃与社会动员，提供可参数化的崩溃预测。对军事训练与群体心理学研究均有价值。",
+      "practical_value_en": "A unified threshold model compares morale collapse with social mobilization, providing parameterizable collapse predictions. The work is valuable for both military training and crowd-psychology research.",
       "risk": "Granovetter (1978)本就是阈值模型的普适应用，新意在于首次移植到军事心理学的定量分析。",
+      "risk_en": "Granovetter (1978) is itself a universal application of threshold models; the novelty lies in systematically porting it for the first time to a quantitative analysis of military psychology.",
       "blocking_mechanisms": [
         "历史战役数据粒度不足",
         "需细化个体异质性"
       ],
+      "blocking_mechanisms_en": [
+        "Insufficient granularity of historical battle data",
+        "Individual heterogeneity must be refined"
+      ],
       "rating": "A",
       "full_analysis": "这是一个高价值候选：两域都共享Granovetter阈值动力学，但军事史领域尚未系统化使用该模型建模士气。若能用历史战役的逃跑比例时间序列做参数估计，构成跨学科真正有意义的贡献。优势在于军事心理学领域对该建模空白明显。",
+      "full_analysis_en": "A high-value candidate: both domains share Granovetter threshold dynamics, but the military-history community has not yet systematically used this model for morale. Parameter estimation from historical battles' flight-ratio time series would constitute a meaningful cross-disciplinary contribution. The advantage is that the modeling gap in military psychology is clear.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1633,9 +2412,16 @@
         "拟合阈值分布参数",
         "对比实验室从众实验阈值"
       ],
+      "execution_plan_en": [
+        "Collect battle-level casualty-retreat time series (e.g., US Civil War, WWII)",
+        "Fit threshold-distribution parameters",
+        "Benchmark against laboratory conformity-experiment thresholds"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "高，军事史与行为经济学的跨学科贡献",
+      "impact_scope_en": "High; cross-disciplinary contribution to military history and behavioral economics",
       "final_score": 7.5,
       "pipeline": "V3",
       "final_weighted_score": 7.5,
@@ -1645,22 +2431,38 @@
     },
     {
       "a_name": "政策扩散的竞争性学习机制",
+      "a_name_en": "Competitive-learning mechanism of policy diffusion",
       "b_name": "VC跟投的信号级联",
+      "b_name_en": "Signal cascades in VC follow-on investment",
       "a_domain": "公共管理",
+      "a_domain_en": "Public administration",
       "b_domain": "创业与风险投资",
+      "b_domain_en": "Entrepreneurship and venture capital",
       "shared_equation": "Bikhchandani information cascade: p_i=f(obs(j<i)), private signal overridden when cascade forms",
       "variable_mapping": "邻近政府政策观察↔前序机构投资观察；政策采纳↔跟投决策；私人评估↔私人估值",
+      "variable_mapping_en": {
+        "Observation of neighboring governments' policies": "Observation of prior institutional investments",
+        "Policy adoption": "Follow-on decision",
+        "Private assessment": "Private valuation"
+      },
       "isomorphism_depth": 4,
       "paper_title": "Cascading Decisions: A Unified Information-Cascade Model of Policy Diffusion and Venture Syndication",
       "target_venue": "Administrative Science Quarterly",
       "practical_value": "将信息级联模型应用到政策扩散与VC跟投的直接比较，可解释\"逐底竞争\"与\"羊群投资\"共享的结构性风险。",
+      "practical_value_en": "Applying the information-cascade model to a direct comparison of policy diffusion and VC follow-on investment explains the structural risks shared by \"race to the bottom\" and \"herd investing.\"",
       "risk": "信息级联在两域分别已有应用，新意需突出统一建模与对比数据。",
+      "risk_en": "Information cascades already have applications in both domains, so novelty must come from unified modeling and comparative data.",
       "blocking_mechanisms": [
         "需严格的时间先后数据",
         "VC数据可得性"
       ],
+      "blocking_mechanisms_en": [
+        "Strict time-ordering data are required",
+        "VC data availability"
+      ],
       "rating": "A",
       "full_analysis": "Bikhchandani-Hirshleifer-Welch (1992)的信息级联模型是共同基础。政策扩散与VC跟投都呈现\"后来者忽略私人信号\"特征。统一建模新意足，且两域数据均可获取（政策采纳日期+VC轮次数据）。具备很强的发表潜力。",
+      "full_analysis_en": "The Bikhchandani-Hirshleifer-Welch (1992) information-cascade model is the common foundation. Policy diffusion and VC follow-on both exhibit the \"later participants ignore private signals\" feature. Unified modeling offers sufficient novelty, and data are obtainable in both domains (policy-adoption dates + VC-round data). Strong publication potential.",
       "isomorphism_confidence": 85,
       "literature_status": "unexplored",
       "execution_plan": [
@@ -1668,9 +2470,16 @@
         "政策扩散数据（如州立法日期）",
         "VC跟投数据（Crunchbase）并行估计级联强度"
       ],
+      "execution_plan_en": [
+        "Build a unified cascade model",
+        "Policy-diffusion data (e.g., state-legislation dates)",
+        "Estimate cascade intensity in parallel with VC follow-on data (Crunchbase)"
+      ],
       "time_estimate": "6-9个月",
+      "time_estimate_en": "6-9 months",
       "solo_feasible": true,
       "impact_scope": "高，公共管理与金融的跨学科整合",
+      "impact_scope_en": "High; cross-disciplinary integration of public administration and finance",
       "final_score": 7.5,
       "pipeline": "V3",
       "final_weighted_score": 7.5,
@@ -1680,27 +2489,44 @@
     },
     {
       "a_name": "Th1/Th2极化与疾病偏向",
+      "a_name_en": "Th1/Th2 polarization and disease bias",
       "b_name": "合成基因拨动开关的双稳锁存",
+      "b_name_en": "Bistable latching of a synthetic genetic toggle switch",
       "a_domain": "免疫学",
+      "a_domain_en": "Immunology",
       "b_domain": "分子生物学",
+      "b_domain_en": "Molecular biology",
       "shared_equation": "du/dt = α/(1+v^n) - u; dv/dt = α/(1+u^n) - v (classical toggle)",
       "variable_mapping": {
         "GATA3": "LacI",
         "T-bet": "TetR",
         "IL-4/IFN-γ": "IPTG/aTc诱导剂"
       },
+      "variable_mapping_en": {
+        "GATA3": "LacI",
+        "T-bet": "TetR",
+        "IL-4/IFN-γ": "IPTG/aTc inducers"
+      },
       "isomorphism_depth": 5,
       "paper_title": "Th1/Th2 Polarization as a Natural Implementation of the Gardner-Cantor-Collins Toggle: Quantitative Parameter Mapping and Predictions",
       "target_venue": "Cell Systems / PNAS",
       "practical_value": "把合成生物学十几年积累的toggle switch定量工程方法（Hill系数测量、滞后回路设计、单细胞荧光tracking）系统性迁移到Th极化，提供Th极化的'工程化参数集'，可用于自身免疫病模型的定量预测",
+      "practical_value_en": "Systematically transfers the accumulated quantitative engineering methods from toggle-switch synthetic biology (Hill-coefficient measurement, hysteresis-loop design, single-cell fluorescence tracking) to Th polarization, supplying an \"engineered parameter set\" for Th polarization usable in quantitative prediction of autoimmune-disease models.",
       "risk": "教科书级同构已被Xiong-Ferrell 2003等经典论文提过，可能已有完整对应工作；需要充分文献调研确认未被做完",
+      "risk_en": "The textbook-level isomorphism has been raised by classical papers such as Xiong-Ferrell 2003, and a complete corresponding study may already exist; a thorough literature review is required to confirm the work is not done.",
       "blocking_mechanisms": [
         "Th极化有细胞因子autocrine和paracrine两层而toggle是cell-autonomous",
         "活体中细胞分裂稀释参数不同",
         "转录因子-信号通路不是严格互抑"
       ],
+      "blocking_mechanisms_en": [
+        "Th polarization has both autocrine and paracrine cytokine layers, while the toggle is cell-autonomous",
+        "Cell division dilutes parameters differently in vivo",
+        "The transcription factor-signaling pathway is not strictly mutually inhibitory"
+      ],
       "rating": "A",
       "full_analysis": "这是本批次中第二强的同构：Th极化的分子网络几乎就是Gardner-Collins toggle的天然版本，ODE结构完全一致。论文价值在于把合成生物学中成熟的定量方法（单细胞测量、参数反演、Hill coefficient fitting）首次系统迁移到Th极化，产生一套可验证的定量预测。需要团队实验支持（流式或成像），单人可完成建模部分。",
+      "full_analysis_en": "The second-strongest isomorphism in the batch: the molecular network of Th polarization is almost a natural instance of the Gardner-Collins toggle, with identical ODE structure. The paper's value is systematically transferring mature quantitative methods from synthetic biology (single-cell measurement, parameter inversion, Hill-coefficient fitting) to Th polarization for the first time, producing verifiable quantitative predictions. Experimental team support is needed for flow cytometry or imaging; the modeling component is solo-feasible.",
       "isomorphism_confidence": 92,
       "literature_status": "partial",
       "execution_plan": [
@@ -1708,9 +2534,16 @@
         "从文献中反演Th极化的有效Hill系数与α",
         "做一个可证伪的预测（如IL-4脉冲触发切换的最小剂量）"
       ],
+      "execution_plan_en": [
+        "Reconstruct the exact correspondence between the Th-polarization ODEs and the Gardner-Collins model",
+        "Invert the effective Hill coefficients and α from the Th-polarization literature",
+        "Produce a falsifiable prediction (such as the minimum IL-4 pulse dose that triggers switching)"
+      ],
       "time_estimate": "8-12个月",
+      "time_estimate_en": "8-12 months",
       "solo_feasible": false,
       "impact_scope": "系统免疫学与合成生物学，有较高影响",
+      "impact_scope_en": "Systems immunology and synthetic biology; relatively high impact",
       "final_score": 7.5,
       "pipeline": "V3",
       "final_weighted_score": 7.5,
