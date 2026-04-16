@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260414c">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260414c">
   <link rel="stylesheet" href="/assets/css/common.css?v=20260414c">
-  <link rel="stylesheet" href="/assets/css/about.css?v=20260416a">
+  <link rel="stylesheet" href="/assets/css/about.css?v=20260417a">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414c">
 </head>
 <body>
@@ -58,6 +58,36 @@
     <p class="about-page__lede">
       Structural 是一个跨领域思维引擎。它基于一个反直觉的观察：<strong>看似完全无关的现象，在数学结构层面往往是同一件事</strong>。放射性衰变和药物代谢、股价波动和热力学涨落、传染病传播和谣言扩散——它们在各自领域的语言下毫无关系，但背后是同一个方程。
     </p>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Goal</div>
+      <h2 class="about-page__section-title">整体目标 · 把"发现跨域同构"系统化</h2>
+      <p>
+        科学史上的一些关键突破——Shannon 用热力学的熵建立信息论、Black-Scholes 把热传导方程搬到期权定价、模拟退火把冶金过程变成组合优化——都是<strong>"同一个数学骨架第一次被搬到另一个领域"的瞬间</strong>。传统上这类跨域借用依赖极少数通才的偶然洞察。
+      </p>
+      <p>
+        Structural 想做的是：把这种发现过程<strong>从偶然变成可搜索、可复现、可验证的流程</strong>。四代管道（V1 / V2 / V3 / V4）是同一个目标的不同切面——从 embedding 召回，到结构代数匹配，到普适类组织和实证验证。产出的每一个候选都带数学方程、变量映射、目标期刊、执行计划，是领域专家可以直接拿去写论文的"种子"。
+      </p>
+
+      <div class="about-stats">
+        <div class="about-stats__item">
+          <div class="about-stats__num">4,443</div>
+          <div class="about-stats__label">Phenomena<br/>（自然语言知识库）</div>
+        </div>
+        <div class="about-stats__item">
+          <div class="about-stats__num">63</div>
+          <div class="about-stats__label">Top-tier discoveries<br/>（三代管道 A 级产出）</div>
+        </div>
+        <div class="about-stats__item">
+          <div class="about-stats__num">23</div>
+          <div class="about-stats__label">Universality classes<br/>（V4 等价类引擎聚合）</div>
+        </div>
+        <div class="about-stats__item">
+          <div class="about-stats__num">5</div>
+          <div class="about-stats__label">Empirical validations<br/>（Layer 5 实证复现）</div>
+        </div>
+      </div>
+    </div>
 
     <div class="about-page__section">
       <div class="about-page__section-label">Why</div>
@@ -124,23 +154,45 @@
 
       <h3 class="about-page__subsection-title">三代并行，零重叠</h3>
       <p>
-        最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到"语义近邻"、V2 看到"精细语义"、V3 看到"数学同族"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>。
+        最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到"语义近邻"、V2 看到"精细语义"、V3 看到"数学同族"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>（数据集 <a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">SIBD-63</a>）。
       </p>
 
-      <div class="about-stats">
-        <div class="about-stats__item">
-          <div class="about-stats__num">4,443</div>
-          <div class="about-stats__label">Phenomena</div>
-        </div>
-        <div class="about-stats__item">
-          <div class="about-stats__num">87</div>
-          <div class="about-stats__label">Domains</div>
-        </div>
-        <div class="about-stats__item">
-          <div class="about-stats__num">63</div>
-          <div class="about-stats__label">Top-tier discoveries</div>
-        </div>
-      </div>
+      <h3 class="about-page__subsection-title">V4 · 普适类发现引擎（universality class engine）</h3>
+      <p>
+        V1–V3 产出的是离散的"A≅B"配对。但只要你仔细看 63 个 seed，会发现大量<strong>"A≅B 同时 A≅C"</strong>的结构——地震、S&amp;P 股价、DeFi 清算、神经雪崩，它们两两都同构，但其实是在共享<strong>同一个更底层的数学物理规律</strong>。V4 的任务是把这些离散对子聚合成<strong>等价类（universality class）</strong>。
+      </p>
+      <p>实现分五层：</p>
+      <ul class="about-list">
+        <li><strong>Layer 1 · 图建模</strong>——把 SIBD-63 建成图，节点 = 领域现象，边 = 同构对；对语义相近的节点做别名归并（<code>node_aliases.json</code>，人工白名单 + LLM 建议）。</li>
+        <li><strong>Layer 2 · 连通分量 + Louvain 社区</strong>——用 NetworkX 算 connected components 和 Louvain community，得到 23 个 candidate universality classes。</li>
+        <li><strong>Layer 3 · LLM 精编</strong>——每个 candidate 过 Opus 审核：命名（如 "Branching-process SOC"）、核心方程（<code>P(s)∝s⁻ᵗ</code>、<code>γ=(α-1)/(τ-1)</code>）、hub domain、典型 exponent 范围、literature status。</li>
+        <li><strong>Layer 4 · 可验证预测</strong>——每个类提炼 1-5 个"如果成立，某个分布/指数就会是这个值"的 falsifiable prediction（共 24 个）。</li>
+        <li><strong>Layer 5 · 实证验证</strong>——对其中最可操作的一类（SOC）走完整个"数据 → 拟合 → 论文"流程，见下一节。</li>
+      </ul>
+      <p>
+        <strong>角色</strong>：组织器——把 V1-V3 的离散发现升级为"结构家族"，让一次验证能支撑多个领域的论文。浏览 23 个类：<a href="/classes">/classes</a>。
+      </p>
+    </div>
+
+    <div class="about-page__section">
+      <div class="about-page__section-label">Empirical</div>
+      <h2 class="about-page__section-title">Layer 5 · 实证验证 · SOC 跨五领域</h2>
+      <p>
+        理论只是起点，实证才让一个普适类变成论文。我们选了 V4 里最成熟的一类——<strong>Branching-process Self-Organized Criticality（SOC）</strong>，它预言 event-size 分布是无截断的 power law，exponent τ ≈ 1.5、energy α ≈ 2.0、lifetime γ ≈ 2.0 并满足 γ = (α-1)/(τ-1) 这个 scaling relation。我们在五个互相独立的领域做了同样的拟合：
+      </p>
+      <ul class="about-list">
+        <li><strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style="color: #2f9e44;">✅ 与理论吻合</span>。</li>
+        <li><strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style="color: #2f9e44;">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。</li>
+        <li><strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style="color: #2f9e44;">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。</li>
+        <li><strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style="color: #e8a800;">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。</li>
+        <li><strong>Phase 5 · Null controls</strong>：人工合成的 Poisson / Gaussian 流量经过同样管道，<strong>得不到 power-law</strong>——说明前四个领域的拟合不是方法学的产物。</li>
+      </ul>
+      <p>
+        五个领域的分析脚本、论文 Markdown、数据下载脚本全部在 <code>v4/validation/</code> 下开源。五篇配套论文在 <a href="/classes">/classes</a> 页面底部的 Layer 5 区域可以阅读。
+      </p>
+      <p>
+        <strong>意义</strong>：V4 不只是"聚合 V1-V3"——它把"跨域同构"从哲学命题推进到了<strong>"可以用同一套代码在五个真实系统上复现"</strong>的实证阶段。
+      </p>
     </div>
 
     <div class="about-page__section">
@@ -170,14 +222,15 @@
 
     <div class="about-page__section">
       <div class="about-page__section-label">What's Next</div>
-      <h2 class="about-page__section-title">Structural 不只是一个搜索框</h2>
+      <h2 class="about-page__section-title">从种子库到论文的转化</h2>
       <p>
-        目前 V1 + V2 + V3 三代检索管道全部上线，共积累 63 个顶级跨域候选发现。下一步不是新的检索管道（V4 的 feasibility 测试证明：retrieval + transform pipeline 打不过 direct LLM reasoning），而是：
+        目前 V1 + V2 + V3 + V4 四代管道全部上线，63 个 seed 已经打包成<strong>可引用的 Zenodo 数据集</strong>（<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">SIBD-63 · DOI 10.5281/zenodo.19615170</a>，CC-BY-4.0）。SOC 一类已完成 Layer 5 实证闭环。下一步工作：
       </p>
       <ul class="about-list">
-        <li><strong>Deep transformation 候选论文化</strong>——用 8 种变形基元（variable_rename / concept_transfer / causal_inversion / continuity_toggle / boundary_rewrite / dim_shift / stochastic_toggle / time_scaling）给 63 个候选打标，筛出 5 个"真正非平凡变形"的最优先写论文。</li>
-        <li><strong>案例研究论文</strong>——从 Top 5 里选 1-2 个开始写 arXiv，预计覆盖 Nature Climate Change / Physical Review Applied / PNAS 等目标。</li>
-        <li><strong>Position paper</strong>——论证 <em>creativity = semantic distance × structural isomorphism × key transformation</em> 的三段式框架，以 V1 + V2 + V3 作为实验支撑。</li>
+        <li><strong>Seed bank outreach</strong>——把 63 个候选分门别类发给对口方向的学术团队（生态 / 金融 / 材料 / 神经 / DeFi），让领域专家挑与自己专长匹配的 seed 做成论文，Structural 获得 co-author / acknowledgement / 被引。</li>
+        <li><strong>其他普适类实证</strong>——把 Layer 5 的五阶段工作流复用到另外 22 个类（延迟反馈债务、bistable 双稳态、Motter-Lai 级联、toggle switch 等），逐个落地。</li>
+        <li><strong>方法论论文</strong>——以 V4 + Layer 5 的工作为支撑，写"How to systematize cross-domain isomorphism discovery"，目标 Nature Machine Intelligence / Patterns。</li>
+        <li><strong>Phase Detector 产品化</strong>——把 seed bank 和普适类嵌入一个实时"结构相位检测"工具（<a href="https://beta.structural.bytedance.city/phase/timeline" target="_blank" rel="noopener">/phase/timeline</a> 已 beta），让非学术用户也能用上这个引擎。</li>
       </ul>
     </div>
 
@@ -185,7 +238,7 @@
       <div class="about-page__section-label">Resources</div>
       <h2 class="about-page__section-title">论文与源码</h2>
       <p>
-        完整的方法论、训练细节、评估结果和反向实验，请见 <a href="https://structural.bytedance.city/paper-zh.html" target="_blank">论文</a>。所有代码和数据集在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a> 上开源。
+        完整的方法论、训练细节、评估结果和反向实验，请见 <a href="https://structural.bytedance.city/paper-zh.html" target="_blank">论文</a>。SIBD-63 数据集：<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a> 上开源。V2 embedding 模型在 <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded" target="_blank" rel="noopener">HuggingFace</a>。
       </p>
     </div>
 
@@ -207,7 +260,7 @@
         <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
         <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
         <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
-        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19557847" target="_blank" rel="noopener">Zenodo</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
       </div>
     </div>
   </footer>
