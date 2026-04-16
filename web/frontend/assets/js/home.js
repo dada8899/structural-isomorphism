@@ -199,8 +199,30 @@ function startHeroEvidenceTimer() {
 }
 
 function initHeroEvidence() {
+  // Build dot indicators (one per example) — lets users see there are more + jump to any
+  const dots = $('#he-dots');
+  if (dots) {
+    dots.innerHTML = '';
+    DEMO_EXAMPLES.forEach((_, i) => {
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'hero-evidence__dot';
+      d.setAttribute('role', 'tab');
+      d.setAttribute('aria-label', `例子 ${i + 1}`);
+      d.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      if (i === 0) d.classList.add('is-active');
+      d.addEventListener('click', () => {
+        _heroIdx = i;
+        renderHeroEvidence(i, true);
+        startHeroEvidenceTimer();
+      });
+      dots.appendChild(d);
+    });
+  }
+
   renderHeroEvidence(_heroIdx, false);
   startHeroEvidenceTimer();
+
   const rotateBtn = $('#he-rotate');
   if (rotateBtn) {
     rotateBtn.addEventListener('click', () => {
@@ -208,6 +230,21 @@ function initHeroEvidence() {
       startHeroEvidenceTimer();
     });
   }
+
+  // Click either side → pre-fill search with that phenomenon description and submit
+  ['he-a-btn', 'he-b-btn'].forEach((btnId) => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const ex = DEMO_EXAMPLES[_heroIdx];
+      if (!ex) return;
+      const side = btn.dataset.side === 'a' ? ex.a : ex.b;
+      const q = side.desc || side.name;
+      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    });
+  });
+
   const wrapper = $('.home__hero-evidence');
   if (wrapper) {
     wrapper.addEventListener('mouseenter', () => {
@@ -413,10 +450,24 @@ async function loadHomeData() {
   }
 }
 
+function initUsecaseSamples() {
+  // Each clickable "试一下" sample submits a search with its data-usecase-q value
+  document.querySelectorAll('.usecase__sample--clickable').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const q = btn.getAttribute('data-usecase-q');
+      if (q) {
+        window.location.href = `/search?q=${encodeURIComponent(q)}`;
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
   initSearch();
   initHeroEvidence();
+  initUsecaseSamples();
   renderHistory();
   renderFavorites();
   loadHomeData();
