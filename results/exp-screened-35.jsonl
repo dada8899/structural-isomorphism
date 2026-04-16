@@ -1,0 +1,100 @@
+{"rank": 3401, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "mTORC1多路AND门聚合与混淆矩阵都涉及多维信号的矩阵汇总", "reject_reason": "weak_analogy: AND门是逻辑整合, 混淆矩阵是性能评估计数, 功能角色完全不同, 只是表面上都叫多维整合"}
+{"rank": 3402, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "战场遮断与涡流发生器都是以局部干预延迟关键事件", "reject_reason": "weak_analogy: 遮断是切断补给线, 涡流发生器是注入能量推后分离点, 机制尺度和作用链条差异过大"}
+{"rank": 3403, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者都是药物/靶点相关, 但主题完全无交集", "reject_reason": "no_structural_match: 核苷类似物脱靶毒性与VEGF血管生成通路机制风马牛不相及"}
+{"rank": 3404, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "中心体单次执照与闪电贷原子性都依赖资源耗竭式的不可重入约束: 中心体通过PLK4位点占据和STIL消耗阻止二次复制, 闪电贷通过交易回滚使资金永不真正离开区块边界, 两者都不是主动禁止而是让二次执行变得物理不可能, 可启发设计基于资源耗尽的一次性许可协议", "reject_reason": ""}
+{"rank": 3405, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "IgA主动转运与肾小管药物分泌都是跨上皮主动运输", "reject_reason": "known_metaphor: 都是ABC/SLC类转运体介导的主动外排, 教科书内容, 且属于同一生物领域"}
+{"rank": 3406, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "结构共振破坏与大气静力平衡表面看都是力学平衡", "reject_reason": "opposite_mechanism: 结构共振是正反馈能量积累, 静力平衡是负反馈稳定, 机制方向相反不构成同构"}
+{"rank": 3407, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "超精细相互作用与城市行动圈量化都是空间分布的精细刻画", "reject_reason": "no_structural_match: 前者是量子自旋耦合, 后者是地理数据统计, 无共同机制"}
+{"rank": 3408, "verdict": "keep", "value_type": "structural_pattern", "potential": 3, "reason": "T-S-D-T和声循环与全球价值链层级嵌套都是递归可嵌套的层级依赖结构: 和声中小节进行可嵌套为乐章级结构, 供应链中组件可递归展开为更细层级, 两者都具有自相似的层级语法", "reject_reason": ""}
+{"rank": 3409, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "回音壁微腔与声学负折射超材料都是波在人工结构中的共振操控", "reject_reason": "weak_analogy: 都属于波动光学/声学, 领域距离不足, 机制不构成跨域同构"}
+{"rank": 3410, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "禁毒政策反效与储蓄过剩假说都揭示了政策/压力通过市场激励产生反向后果的意外机制: 禁毒提高毒品利润率反吸引犯罪并促效力升级, 高储蓄压低利率反刺激借贷消费形成失衡, 共同模式是干预通过价格信号被自动消化并可能放大原问题, 可用于设计政策干预的反效防护", "reject_reason": ""}
+{"rank": 3411, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "技术创新超额利润与岩石风化碳汇都提到负反馈均衡", "reject_reason": "weak_analogy: 超额利润消散是市场竞争, 碳循环是地球化学, 时间尺度和机制完全不对应"}
+{"rank": 3412, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "钙波扩散与路口溢流锁死表面上都是波状传播", "reject_reason": "opposite_mechanism: 钙波是有序建设性传播, 路口锁死是故障级联, 后者无恢复机制, 不构成同构"}
+{"rank": 3413, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "mTORC1多传感器与中国剩余定理都涉及多源信息合成", "reject_reason": "no_structural_match: CRT是环直积代数, AND门是逻辑整合, 数学结构完全不同"}
+{"rank": 3414, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "NIZK与ZK递归聚合都是零知识证明体系", "reject_reason": "same_domain: 同属密码学领域, 不构成跨域配对"}
+{"rank": 3415, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "炎症小体焦亡与弓形虫效应蛋白都是免疫信号的操控", "reject_reason": "same_domain: 都属于免疫/感染生物学, 领域重叠"}
+{"rank": 3416, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "Rad51同源搜索与可微神经架构搜索都是将离散组合搜索松弛为连续概率的加速策略: Rad51通过接触停留时间的概率性延长实现贝叶斯式匹配, DARTS通过连续混合权重替代离散架构选择使梯度可用, 核心同构是用匹配度的软概率代替硬搜索来降低组合爆炸成本, 可启发将停留时间动力学作为神经搜索的生物灵感算法", "reject_reason": ""}
+{"rank": 3417, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "塔板雾沫夹带与重力波动量沉积都是湍流中物质/动量的跨层输运", "reject_reason": "weak_analogy: 尺度和驱动完全不同, 一个是工业塔板液滴卷起, 一个是大气波动破碎"}
+{"rank": 3418, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "中心体单次复制与ZAB协议都通过严格单调递增序号保证不可重入", "reject_reason": "weak_analogy: zxid是软件状态机, 中心体是物理位点占据, 只在抽象'单次执照'层面相似, 属于泛类型对应"}
+{"rank": 3419, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "傅里叶级数逼近与单位线法都把复杂响应分解为基函数的线性叠加: 傅里叶用正弦波基分解周期信号, 水文学用单位线作为脉冲响应分解降雨径流, 本质都是LTI系统的格林函数方法, 这一对应可启发用频域方法直接分析径流响应", "reject_reason": ""}
+{"rank": 3420, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "首过效应与PFC流控都涉及在关键节点的吸收/暂停", "reject_reason": "weak_analogy: 首过代谢是单向酶降解, PFC是反向信号通知上游暂停, 反馈方向相反"}
+{"rank": 3421, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "密近双星物质转移与雪球地球都是临界引发的失控过程", "reject_reason": "weak_analogy: 物质转移驱动因素是引力溢出, 冰盖扩展是反照率正反馈, 驱动机制不同"}
+{"rank": 3422, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "做市商Gamma对冲与金属点蚀都可能形成自强化局部失效", "reject_reason": "no_structural_match: 前者是对冲交易策略, 后者是电化学腐蚀, 不构成有意义同构"}
+{"rank": 3423, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "战俘审讯整合与NLP社运分析都是零碎信息汇总推断整体", "reject_reason": "weak_analogy: 两者都是情报汇总, 但机制都是简单的聚合统计, 无深层结构同构"}
+{"rank": 3424, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "造血干细胞龛容量限制与中等干扰物种多样性峰值都是有限资源/扰动通过竞争负反馈维持群体大小稳态: 龛位数限制干细胞库规模, 干扰强度通过阻止垄断维持物种数, 共同原理是外部约束通过竞争压力成为稳态锚点, 可启发用龛容量类比重新理解生态系统承载力", "reject_reason": ""}
+{"rank": 3425, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "NLRP3两步激活与Treg多机制抑制都是免疫调控", "reject_reason": "same_domain: 同属免疫学, 不算跨域"}
+{"rank": 3426, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "社会流动测量与建筑能耗建模都是多源数据集成的空间建模", "reject_reason": "same_domain: 同属计算社会科学/城市计算, 方法论相似但非结构同构"}
+{"rank": 3427, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "信息茧房与信息过载疲劳都是信息环境的认知后果", "reject_reason": "same_domain: 都属于传播学/社会学, 且两者描述的是同一生态的不同侧面, 非异域同构"}
+{"rank": 3428, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "变质相带与信用利差期限结构都是梯度分布", "reject_reason": "weak_analogy: 表面都是沿某参数轴的分层, 但驱动机制(热压vs信用风险)完全无对应"}
+{"rank": 3429, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "复合材料混合律与流域水量平衡都是线性守恒", "reject_reason": "known_metaphor: 都是基本守恒律的应用, 过于一般不构成洞察"}
+{"rank": 3430, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "逆向选择与代币通缩平衡都是供需价格的反馈循环", "reject_reason": "opposite_mechanism: 逆向选择是正反馈失控(劣币驱逐), 代币通缩描述为负反馈均衡, 方向相反不构成同构"}
+{"rank": 3431, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "品牌扩散与钙波传播都是从中心向外的扩散过程", "reject_reason": "known_metaphor: 扩散方程的基本形式是跨学科通用的, 两者是扩散模型的典型实例, 非深层同构"}
+{"rank": 3432, "verdict": "keep", "value_type": "structural_pattern", "potential": 4, "reason": "Rad51同源搜索与超分子主客体识别都依赖接触停留时间的协同稳定化实现选择性: 正确同源/匹配位点因互补作用延长接触时间, 错配快速解离, 两者共享'搜索-协同稳定'动力学, 可启发用超分子几何互补原理指导同源搜索动力学建模", "reject_reason": ""}
+{"rank": 3433, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "RCU无锁同步与MEV夹击都利用交易顺序/时间窗口", "reject_reason": "weak_analogy: RCU是读写协调原语, MEV是前后夹击攻击, 只是都涉及时序, 无结构同构"}
+{"rank": 3434, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "肥大细胞脱颗粒与稳定币死亡螺旋都是阈值触发的级联反应", "reject_reason": "weak_analogy: 脱颗粒是单向触发, 死亡螺旋是正反馈崩溃, 反馈结构不同"}
+{"rank": 3435, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "ARPES能带测量与签到数据城市活力都是通过分布式观测重构隐藏结构", "reject_reason": "no_structural_match: 物理测量与社会测量的方法相似性过于宽泛"}
+{"rank": 3436, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "Mott绝缘体U/W相变与朗道二阶相变分岔都是连续相变的普适范畴: Mott转变对应哈伯德模型有效序参量出现, 朗道理论通过自由能展开系数变号描述对称破缺, 两者可在重整化群不动点层面统一, 实际上Mott转变是朗道理论的微观实现, 对理解强关联电子体系临界行为有指导意义", "reject_reason": ""}
+{"rank": 3437, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "m6A动态时滞调控与ELF延迟绑定都是懒求解策略: m6A在修饰到降解之间提供30-60分钟缓冲窗口以容许应急更改, 延迟绑定把符号解析推迟到首次调用降低启动成本, 共同原理是用时滞换取响应灵活性和资源节约, 可启发将延迟绑定的PLT缓存类比设计生物调控时滞的数学模型", "reject_reason": ""}
+{"rank": 3438, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "QAOA量子算法与气候历史关联分析都是优化/估计问题", "reject_reason": "no_structural_match: 两者无结构对应, 领域差异不转化为有价值的同构"}
+{"rank": 3439, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "索雷特效应与板块脱水深度都是梯度驱动的物质分带", "reject_reason": "weak_analogy: 都是沿梯度的物质分离, 但驱动力(热扩散vs压力诱导脱水)完全不同"}
+{"rank": 3440, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "月尘静电吸附与PIO振荡都是意外的耦合失效", "reject_reason": "no_structural_match: 前者是静电吸附, 后者是控制相位失配, 机制无关联"}
+{"rank": 3441, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "城市热岛遥感与历史人口记录链接都是通过代理数据的大规模识别", "reject_reason": "same_domain: 都属于城市计算/数字人文, 方法论相似但不算跨域同构"}
+{"rank": 3442, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "证书透明度与Rollup数据可用性都依赖把关键状态公开可审", "reject_reason": "same_domain: 均属于密码学/加密货币, 跨域距离不足"}
+{"rank": 3443, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "沉积物粒度分选与地下水泊松补给都是统计分布", "reject_reason": "weak_analogy: 都是地质水文分布建模, 不构成结构同构"}
+{"rank": 3444, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "神经切线核与L函数类数公式都是解析对象与离散结构的桥梁", "reject_reason": "weak_analogy: 都是'解析量与代数量相连'的宽泛描述, 无具体机制映射"}
+{"rank": 3445, "verdict": "keep", "value_type": "structural_pattern", "potential": 3, "reason": "湿地浓度梯度净化与反应器热点漂移都是活性区沿流动方向的逐步推进: 污染物沿梯度耗散, 热点随催化剂活性衰减向出口迁移, 共同是'反应前沿移动'的对流-反应结构, 可启发用PFR移动前沿模型统一描述", "reject_reason": ""}
+{"rank": 3446, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "流行病年龄死亡模式与地球化学异常都是统计分布的尾部分析", "reject_reason": "weak_analogy: 两者只是都涉及分布尾部, 无机制对应"}
+{"rank": 3447, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "时间感知韦伯与过滤速率反比律都是非线性阻尼响应", "reject_reason": "weak_analogy: 韦伯定律是对数感知, 过滤是滤饼阻力增长, 数学形式不同"}
+{"rank": 3448, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "依恋内部工作模型与主题建模都涉及潜在结构的归纳", "reject_reason": "no_structural_match: 一个是心理学中的内化表征, 另一个是统计主题模型, 无机制同构"}
+{"rank": 3449, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "GPC梯度分离与泊松补给都是时间/空间分布", "reject_reason": "no_structural_match: 两者完全无关"}
+{"rank": 3450, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 5, "reason": "惩罚标签效应与逆向选择劣质驱逐都是干预通过选择性退出放大问题的正反馈: 刑事标签把初犯推出合法市场使再犯增加, 高保费把低风险者推出池子使平均风险升高, 共同结构是'干预筛出好人留下坏人'的逆向筛选, 这一同构启发以保险精算模型量化刑事司法再犯率, 提供跨域的定量预测框架", "reject_reason": ""}
+{"rank": 3451, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "腐蚀微电池与冰架绕极暖水入侵都是局部侵入引发的几何增强正反馈: 腐蚀坑越深电场越集中溶解越快, 暖水槽谷越深融蚀越快冰架支撑削弱, 共同结构是'形貌凹陷强化驱动力'的几何-通量耦合, 可启发用腐蚀坑动力学模型理解冰架崩塌时间尺度", "reject_reason": ""}
+{"rank": 3452, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "热盐环流淡水扰动与深部生物岩石反应都涉及流体化学改变", "reject_reason": "no_structural_match: 机制和尺度都对应不上"}
+{"rank": 3453, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "飞控死区抖振与电网频率下沉都是响应延迟导致控制质量下降", "reject_reason": "weak_analogy: 两者都属于控制工程通用问题, 非跨域洞察"}
+{"rank": 3454, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "径流系数降雨强度依赖与市场冲击平方根定律都是非线性阈值型响应函数: 超渗降雨使径流比例陡升, 大单价格冲击按交易量平方根放大, 共同是'输入强度与输出响应的非线性关系', 启发用水文超渗阈值模型类比市场冲击非线性, 为订单拆分提供新的数学基础", "reject_reason": ""}
+{"rank": 3455, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "开尔文波单向传播与稳定币利率传导都是沿边界单向信号传递", "reject_reason": "weak_analogy: 两者都是'沿路径传播', 但前者是物理波动, 后者是套利调整, 无共同动力学"}
+{"rank": 3456, "verdict": "keep", "value_type": "structural_pattern", "potential": 3, "reason": "选择过载倒U效应与生命表S曲线都是参数驱动的单峰/饱和响应, 前者是认知负荷阻尼, 后者是生理死亡率累积, 可在响应曲线层面对比但机制差异大", "reject_reason": ""}
+{"rank": 3457, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "房价泡沫杠杆与永冻土碳反馈都是正反馈失控", "reject_reason": "known_metaphor: 正反馈循环是跨学科通用模式, 此配对属于典型类型但无具体机制映射价值"}
+{"rank": 3458, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "电子俘获与沉管压浆都涉及空隙填充", "reject_reason": "no_structural_match: 量子电子跃迁与土木工程压浆完全无结构对应"}
+{"rank": 3459, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Umklapp热阻与原子干涉仪测引力都是量子测量相关", "reject_reason": "no_structural_match: 两者无机制对应"}
+{"rank": 3460, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "知识蒸馏与神经经济学模型比较都是用代理模型逼近复杂目标", "reject_reason": "weak_analogy: 方法论描述都太宽泛, 无具体同构"}
+{"rank": 3461, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "干扰素正反馈与Akt-S6K负反馈都是信号传导的反馈环", "reject_reason": "same_domain: 都属于分子生物学/细胞生物学, 非跨域"}
+{"rank": 3462, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "银行业顺周期与电网频率惯性都描述了'内在放大周期+外部缓冲'的组合: 银行扩张加剧周期, 逆周期资本缓冲提供稳定储备; 新能源减少惯量, 电池储能提供合成惯量, 共同结构是'系统内生波动需要外部储能/资本作为减震器', 可启发用电网惯性设计思路重构宏观审慎监管的定量框架", "reject_reason": ""}
+{"rank": 3463, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "光学相位共轭与核糖开关都是自校正机制", "reject_reason": "weak_analogy: 相位共轭是时间反转波, 核糖开关是构象感应, 数学结构无对应"}
+{"rank": 3464, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "催化剂碱性位分布与夜间灯光代理都是分布测量", "reject_reason": "no_structural_match: 领域完全无关"}
+{"rank": 3465, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "发表偏倚漏斗图与陶片密度图都是用空间/统计分布识别异常", "reject_reason": "weak_analogy: 两者都是统计偏差识别, 但机制不同, 非深层同构"}
+{"rank": 3466, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "Aurora B张力纠错与FACTS阻尼注入都是基于偏差的负反馈纠错", "reject_reason": "known_metaphor: 都是负反馈闭环, 属于通用控制原理, 非具体机制同构"}
+{"rank": 3467, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "奶牛热应激与鱼肉冷冻变性都是温度应激", "reject_reason": "no_structural_match: 两者无机制同构"}
+{"rank": 3468, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "光纤PMD随机游走与分子钟速率变异都是随机过程引起的偏差", "reject_reason": "weak_analogy: 都是随机游走统计, 但物理机制完全无关"}
+{"rank": 3469, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "洋流传送带与大气湍流能量级串都是能量输运", "reject_reason": "opposite_mechanism: 洋流是大尺度定向输送, 湍流级串是尺度间单向传递, 本质不同"}
+{"rank": 3470, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "库仑爆炸成像与飞秒相干控制都是飞秒激光操控", "reject_reason": "same_domain: 同属原子分子物理/光化学, 不算跨域"}
+{"rank": 3471, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "lncRNA支架与Prime编辑都是精确分子操作", "reject_reason": "same_domain: 都属分子生物学/基因编辑"}
+{"rank": 3472, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "神经信号传导与耐药菌传播都是逐节点级联", "reject_reason": "known_metaphor: 级联传播是通用类型, 无具体动力学同构"}
+{"rank": 3473, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "胰岛素门控发育与银行顺周期都是基于资源状态的扩张/收缩开关", "reject_reason": "weak_analogy: 门控发育是阈值门, 顺周期是资本规则, 结构相似但具体机制不对应"}
+{"rank": 3474, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "间隙连接耦合与正交分子系统都是细胞间/内通路设计", "reject_reason": "weak_analogy: 间隙连接是物理耦合, 正交系统是隔离设计, 方向相反"}
+{"rank": 3475, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "CDW Peierls不稳定与光力学参量放大都是正反馈失稳", "reject_reason": "same_domain: 都属凝聚态/量子光学, 且Peierls是平衡相变而参量放大是动力学不稳, 不同"}
+{"rank": 3476, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "布朗运动局部时与拥挤博弈势函数都是通过辅助函数分析路径/均衡", "reject_reason": "weak_analogy: 都是'势函数方法', 但局部时刻画占用测度, 势函数刻画单调收敛, 数学结构不同"}
+{"rank": 3477, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "国际法碎片化与DEX流动性碎片化都是'缺乏统一协调导致多中心独立模块'的演化模式: 国际法庭各自建立判例体系产生矛盾裁判, 流动性池按协议和费率分层互不流通, 共同结构是'子系统专业化但失去互操作性', 可启发用DEX跨池路由器思路设计国际法冲突规则协调机制", "reject_reason": ""}
+{"rank": 3478, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "诺特环有限生成与民间定理都是存在性证明", "reject_reason": "no_structural_match: 代数与博弈论, 领域差异不产生可迁移洞察"}
+{"rank": 3479, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "内源大麻素逆行信号与群体感应开关都是信号门控", "reject_reason": "weak_analogy: 两者都涉及阈值调节, 但机制完全不同"}
+{"rank": 3480, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "副热带模态水与壤中流侧向传输都是流体的侧向运移", "reject_reason": "weak_analogy: 都是'沿等密度/等势面横向传输', 但一个是海洋水团一个是土壤水, 无深层机制同构"}
+{"rank": 3481, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 5, "reason": "CAP定理与蒙代尔三角都是三目标不可能同时满足的约束三角: 一致性/可用性/分区容错最多取二, 资本自由流动/固定汇率/独立货币政策最多取二, 两者共享相同的'三元约束'数学结构, 启发用CAP的分区容错类比开放资本流动这一不可避免的约束, 为宏观政策设计提供工程化权衡框架, 是少见的严格数学同构", "reject_reason": ""}
+{"rank": 3482, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "DAO投票权集中与陶瓷断裂韦伯分布都是重尾分布", "reject_reason": "weak_analogy: 两者只是都服从无标度/重尾分布, 背后机制(优先连接vs缺陷统计)不同"}
+{"rank": 3483, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "数字民族志与街景步行友好度都是计算辅助的空间观察", "reject_reason": "same_domain: 都属计算社会科学/城市计算"}
+{"rank": 3484, "verdict": "keep", "value_type": "structural_pattern", "potential": 3, "reason": "火力/机动钟摆与库存周期都是供需双方过度响应引起的振荡: 攻防技术交替升级, 补库去库交替过度, 共同是'响应滞后+过度调整'的二阶振荡模式", "reject_reason": ""}
+{"rank": 3485, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "古土壤碳酸盐与众包标注质量控制都是从噪声数据估计真实值", "reject_reason": "weak_analogy: 一个是同位素代理, 一个是多标注融合, 机制不同"}
+{"rank": 3486, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "CRISPR间隔序列获取与DTLS都是记录入侵/适应攻击的机制", "reject_reason": "weak_analogy: 两者都提供'抗攻击'但机制层面完全不同"}
+{"rank": 3487, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "量子电路可达性与索塔锚固区都是连接拓扑约束", "reject_reason": "weak_analogy: 前者是比特连接图, 后者是应力集中, 无实质同构"}
+{"rank": 3488, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Nyquist压扁半圆与大偏差原理都是分布特征的尾部分析", "reject_reason": "weak_analogy: 前者是频率响应, 后者是概率速率函数, 无机制对应"}
+{"rank": 3489, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "连续墙接头渗漏与不可靠叙述者都是'薄弱环节'的隐喻", "reject_reason": "no_structural_match: 土木与文学, 只是比喻层面, 无结构同构"}
+{"rank": 3490, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "控制死区抖振与坡面糙率延时都是小输入区的响应特性", "reject_reason": "weak_analogy: 前者是死区导致抖振, 后者是摩擦阻力减缓响应, 非同构"}
+{"rank": 3491, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "卫星热弹性变形与复合材料热残余应力都是热膨胀差引起变形", "reject_reason": "same_domain: 都属航空航天/材料的热力学应力, 领域相近"}
+{"rank": 3492, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "顶端外胚层嵴与辐射雾都是'距离边界越远越消散'", "reject_reason": "weak_analogy: 一个是信号浓度梯度决定分化, 一个是短波加热消散雾, 机制不同"}
+{"rank": 3493, "verdict": "keep", "value_type": "structural_pattern", "potential": 3, "reason": "RNA二级结构动态规划与柔性制造动态调度都是分阶段最优决策序列(Bellman最优性): 两者都通过划分子问题累积最优值找全局最优, 共享DP最优子结构, 但属于DP的两个标准应用", "reject_reason": ""}
+{"rank": 3494, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "P糖蛋白外排与肿瘤Treg都是阻挡/外排机制", "reject_reason": "same_domain: 都属药理/肿瘤学"}
+{"rank": 3495, "verdict": "keep", "value_type": "mechanism_transfer", "potential": 4, "reason": "建筑屈曲失稳与货币替代临界都是典型的鞍结/亚临界分岔: 轴压达到临界Euler值后柱子突变侧弯不可逆, 贬值预期超阈值后本币需求断崖式下跌, 两者共享'超过阈值后状态不可恢复'的一阶相变结构, 可启发用屈曲后曲线类比货币替代的滞回现象以建模政策干预窗口", "reject_reason": ""}
+{"rank": 3496, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "开尔文波沿岸传播与磁小体链方向感都是沿特定方向的有序传播/排列", "reject_reason": "weak_analogy: 前者是流体波, 后者是生物矿化排列, 无机制同构"}
+{"rank": 3497, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "干扰素正反馈与心脏左右不对称纤毛流都是生物信号放大", "reject_reason": "same_domain: 都属分子/发育生物学"}
+{"rank": 3498, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "mRNA疫苗翻译增强与神经网络剪枝都是通过多手段优化表达/计算效率", "reject_reason": "weak_analogy: 一个是生化修饰一个是参数稀疏, 优化思路类似但无深层机制同构"}
+{"rank": 3499, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "表型组降维与城市洪涝动态评估都是高维数据整合", "reject_reason": "weak_analogy: 都是多源数据聚合, 方法论相近但无跨域洞察"}
+{"rank": 3500, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "央行前瞻指引与对手方风险传染都是金融网络中的信息/风险扩散", "reject_reason": "same_domain: 都属宏观经济/金融市场, 不算跨域"}

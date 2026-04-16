@@ -1,0 +1,30 @@
+{"rank": 801, "a_name": "内核抢占与自旋锁临界区", "b_name": "闪电贷原子性约束", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "两者都以'原子执行区间'为核心：自旋锁通过禁止抢占强制构造不可分割的临界区；闪电贷通过区块原子性强制构造不可分割的交易。跨越OS与区块链，共享同一抽象'用硬制边界替代协调'，可启发DeFi协议与并发原语的设计互鉴。"}
+{"rank": 802, "a_name": "城市犯罪的热点时空预测方法", "b_name": "议会辩论语料库的意识形态话语分析", "value_type": "methodology_parallel", "potential": 2, "reason": "都将定性现象转化为可重复的计算方法，但机制不深——只是'用数据驱动方法分析社会现象'的共性，属于方法论层面泛泛相似。"}
+{"rank": 804, "a_name": "Chandy-Lamport 全局快照", "b_name": "文件系统日志 Journaling 原子写", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "两者共享'标记点+重放'的一致性捕获原理：分布式快照用Marker切分通道状态，Journal用日志区切分前/后主区状态。一个解决分布式空间一致性，一个解决崩溃时间一致性，但本质都是'用边界标记把无时序系统切成可恢复的状态'。"}
+{"rank": 806, "a_name": "稳定币脱锚的死亡螺旋路径", "b_name": "DeFi清算连锁瀑布效应", "value_type": "trivially_obvious", "potential": 0, "reason": "同一领域同一类型的级联正反馈，属于平凡重复。"}
+{"rank": 811, "a_name": "运动员体能恢复的指数回升", "b_name": "抗振隔振器的传递率", "value_type": "trivially_obvious", "potential": 0, "reason": "都是幂律/反比衰减的浅层相似，无深层机制连接。"}
+{"rank": 812, "a_name": "mTORC1多传感器AND门营养整合", "b_name": "神经振荡的跨频率相位-幅度耦合", "value_type": "cross_domain_mechanism", "potential": 3, "reason": "前者是多信号AND门逻辑整合，后者是慢波框架内嵌套快波细节。都涉及'多路信号在层次上整合决定输出'，但AND门与相位-幅度耦合机制不同，共鸣偏浅。"}
+{"rank": 814, "a_name": "X染色体随机失活的双稳态锁定", "b_name": "纺锤体组装检查点的零容错数字监控", "value_type": "cross_domain_mechanism", "potential": 3, "reason": "两者都是细胞内的数字化开关：Xist正反馈锁定一种状态（双稳态），SAC用MCC零容错门控。共享'细胞把连续过程离散化以保精度'的思想，但双稳态与一票否决是不同的数字化逻辑。"}
+{"rank": 824, "a_name": "无标度幂律分布", "b_name": "零售集中度的幂律分布", "value_type": "known_metaphor", "potential": 0, "reason": "幂律分布与优先连接是跨领域常识，不构成新见解。"}
+{"rank": 828, "a_name": "法典化反噬", "b_name": "白银通缩", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "两者共享'提高确定性的改革意外放大外部冲击'模式：成文法去弹性使语境适配失灵；税赋折银使货币依赖成为刚性依赖。揭示'刚性改革在外生变量变化时反成脆弱源'的系统性规律，对政策设计有启发。"}
+{"rank": 829, "a_name": "新道路诱发新交通", "b_name": "毒品政策反效", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "共享'干预意图与反向结果'的深层结构：修路缓堵反增堵，禁毒反促产品危险化。核心机制都是干预改变激励后行为者适应方向反转，是'需求弹性+适应性博弈'的通用模板，可用于政策预评估。"}
+{"rank": 830, "a_name": "亲属延伸的同心圆模式", "b_name": "公司治理的委员会层级", "value_type": "known_metaphor", "potential": 1, "reason": "层级嵌套结构的常见相似，公司治理本身就是从社会结构演化而来，无新意。"}
+{"rank": 832, "a_name": "光强随距离衰减", "b_name": "时间感知的韦伯定律", "value_type": "trivially_obvious", "potential": 0, "reason": "都是'与基准成某种比例'的感知/物理规律，但一个是球面几何一个是对数感知，机制完全不同，浅层相似无深度。"}
+{"rank": 835, "a_name": "金融风险传染", "b_name": "情绪传染", "value_type": "known_metaphor", "potential": 0, "reason": "传染模型在社会科学中已是标准类比，无新意。"}
+{"rank": 839, "a_name": "耐药菌传播", "b_name": "央行前瞻指引的信号效应", "value_type": "known_metaphor", "potential": 1, "reason": "网络中信息/病原体扩散的常规类比，已是标准模型。"}
+{"rank": 847, "a_name": "复合材料的混合律", "b_name": "生物多样性的种-面积关系", "value_type": "no_actionable_insight", "potential": 1, "reason": "一个线性一个幂律，连数学形式都不同，强行配对无意义。"}
+{"rank": 849, "a_name": "三级孔结构传质优化", "b_name": "增强子-启动子染色质环化", "value_type": "cross_domain_mechanism", "potential": 5, "reason": "两者揭示'扩散/信号传递的瓶颈通过建立多层级快速通道绕过'的深层架构：催化剂用宏孔-中孔-微孔的级联孔径分离快速传输和精选择；基因组用染色质环化绕过线性碱基距离直接建立三维空间短路。跨尺度揭示'快速通道+选择性停靠点'的通用设计范式，对人工物料运输、信号路由都有启发。"}
+{"rank": 853, "a_name": "DeFi流动性池的守恒乘积", "b_name": "税盾价值的折现守恒", "value_type": "trivially_obvious", "potential": 1, "reason": "都是守恒量，但一个是物理约束一个是金融恒等式，机制没有结构上的共鸣。"}
+{"rank": 859, "a_name": "和弦外音的延留解决", "b_name": "诗歌的跨行断句", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "两种艺术形式共享'让结构单元的边界错位以制造张力'的机制：音乐中和声与旋律的时间错位，诗歌中句法与行格的空间错位，都是以'延迟解决'在期待与满足间引入弹性。可启发跨感官艺术设计，也可反哺交互/UI中的'不同步感'设计。"}
+{"rank": 863, "a_name": "市场碎片化与最优执行义务", "b_name": "分裂内含肽条件蛋白组装", "value_type": "cross_domain_mechanism", "potential": 4, "reason": "都以'把大对象拆解到独立载体、通过汇聚规则重建功能'为核心：订单在多场所间按NBBO汇聚成最优执行；蛋白两半被分别递送后由内含肽连接激活。两个领域共享'拆-载-合'的容量突破范式，对分布式系统与大体积载荷递送策略有启发。"}
+{"rank": 864, "a_name": "级联失效在社会网络中的传播", "b_name": "信息瀑布的从众机制", "value_type": "known_metaphor", "potential": 1, "reason": "网络级联与信息瀑布都是社会科学中已熟知的模型，配对无增量。"}
+{"rank": 867, "a_name": "Kelvin-Helmholtz界面卷起", "b_name": "海洋锋面强化降水", "value_type": "trivially_obvious", "potential": 0, "reason": "同属流体力学正反馈，属平凡相似。"}
+{"rank": 872, "a_name": "谱隙与马尔可夫链混合时间", "b_name": "可再生能源的学习曲线", "value_type": "no_actionable_insight", "potential": 1, "reason": "一个是收敛速率一个是成本曲线，都出现'指数/幂律'但无结构共鸣。"}
+{"rank": 873, "a_name": "混凝土碳化与钢筋锈蚀", "b_name": "雪球地球的反照率失控", "value_type": "cross_domain_mechanism", "potential": 3, "reason": "都是'保护性屏障失守后正反馈加速'结构：碱性环境保护钢筋，碳化穿透后锈蚀不可逆；冰盖反照率保持冷冻态，融化后反照率崩解加速升温。共享'临界阈值后屏障效应逆转'的模板，但反馈机制不同构。"}
+{"rank": 876, "a_name": "湍流标量超扩散幂律", "b_name": "前景理论的参照依赖", "value_type": "no_actionable_insight", "potential": 0, "reason": "两者除了都涉及'敏感性递减'外没有结构共鸣，强行配对。"}
+{"rank": 878, "a_name": "三维涡管伸展正反馈", "b_name": "主客体化学中的疏水效应驱动力", "value_type": "no_actionable_insight", "potential": 0, "reason": "一个是拉伸诱导的涡量放大，一个是熵驱动的自发结合，没有共享结构。"}
+{"rank": 879, "a_name": "二级价格歧视的自选择菜单", "b_name": "保单定价的逆向选择均衡", "value_type": "known_metaphor", "potential": 1, "reason": "机制设计的经典自选择模型，同属经济学内经典配对，无新意。"}
+{"rank": 882, "a_name": "止损触发的流动性螺旋", "b_name": "河道展宽与弯曲演化", "value_type": "cross_domain_mechanism", "potential": 5, "reason": "两者共享'阈值触发的自强化构型跃迁'：多个止损单在价格临界点同时触发引发跳崩；河道弯曲指数达到临界后被洪水截弯取直。深层结构是'系统积累到临界时由连续演化突变为离散状态跳转'，暗示金融风险模型可借鉴地貌学的临界弯曲指数作预警指标，反之地貌研究可参考微观结构的止损簇集分析。"}
+{"rank": 883, "a_name": "季风系统位移", "b_name": "色彩的同时对比", "value_type": "no_actionable_insight", "potential": 0, "reason": "一个是区域辐射驱动的气候带漂移，一个是视觉补色偏移，无结构相似。"}
+{"rank": 891, "a_name": "相变诱导陶瓷增韧", "b_name": "ENSO的正反馈振荡", "value_type": "no_actionable_insight", "potential": 0, "reason": "一个是局部裂纹止扩机制，一个是海气耦合振荡，都涉及反馈但结构完全不同。"}
+{"rank": 896, "a_name": "去中心化治理的投票率衰减", "b_name": "生物修复的微生物降解", "value_type": "no_actionable_insight", "potential": 1, "reason": "都是S形衰减曲线，但驱动力（疲劳 vs 底物耗尽）不同构。"}

@@ -1,0 +1,10 @@
+{
+  "contract": "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
+  "topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286",
+  "start_block": 11362579,
+  "end_block": 19000000,
+  "chunk_blocks": 50000,
+  "n_events": 28943,
+  "elapsed_sec": 308.4899933338165,
+  "finished_at": "2026-04-14T23:42:55.558635Z"
+}

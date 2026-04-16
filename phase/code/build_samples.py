@@ -168,12 +168,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     article code {{
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 0.88em;
       background: var(--bg-elevated);
       padding: 2px 6px;
       border-radius: 3px;
       color: var(--text);
       border: 1px solid var(--border);
+    }}
+    /* KaTeX integration */
+    article .katex {{ color: var(--text); font-size: 1.04em; }}
+    article .katex-display {{
+      margin: 20px 0;
+      padding: 14px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow-x: auto;
+    }}
+    article .katex-display > .katex {{ font-size: 1.12em; }}
+    @media (max-width: 520px) {{
+      article .katex {{ font-size: 0.96em; }}
+      article .katex-display > .katex {{ font-size: 1em; }}
+      article .katex-display {{ padding: 10px 12px; }}
     }}
     article pre {{
       background: var(--bg-elevated);
@@ -284,7 +300,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="container footer-row">
       <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
       <div class="footer-links">
-        <a href="../">主站</a>
         <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
       </div>
     </div>
@@ -324,6 +339,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }}
     }});
   </script>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
 </body>
 </html>
 """

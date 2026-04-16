@@ -38,3 +38,4 @@ venv/
 .ipynb_checkpoints/
 site/
 marketing/
+v4/validation/**/.env

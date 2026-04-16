@@ -1,0 +1,100 @@
+{"rank": 1101, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "颤振与燃烧不稳定均为能量释放过程与结构/声学模态的自激耦合,抑制手段(调谐共振回避、模态阻尼)可互相借鉴,属非显然跨域机理同构", "reject_reason": null}
+{"rank": 1102, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "等效电路频段解耦与形态发生素多级阈值响应共享'单一连续信号被多级阈值拆分为离散功能区段'的结构,启发生物模式形成用阻抗谱式频率扫描分析或反之", "reject_reason": null}
+{"rank": 1103, "verdict": "pass", "value_type": "policy_insight", "potential": 4, "reason": "标签效应与海禁外溢指向同一反直觉机制:强制压制合法路径反而催生并固化地下形态,对监管设计(毒品/加密/走私)有直接政策杠杆", "reject_reason": null}
+{"rank": 1104, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 均为计算社会科学/数字人文的话语分析方法,非跨域"}
+{"rank": 1105, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 两者都是扩散/耗散过程,教科书级相似"}
+{"rank": 1106, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 3, "reason": "气泡共振(共振放大散射)与CV氧化还原峰(扫速依赖滞后)看似无关,但共享'频率/扫速-响应'谱作为探测界面过程的工具逻辑,可启发电化学阻抗中引入机械共振类比", "reject_reason": null}
+{"rank": 1107, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: ARPES与出租车流聚类只是'从动量/轨迹反推结构',类比松散难落地"}
+{"rank": 1108, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: piRNA乒乓循环与葡萄酒二次发酵仅表面相似,机制无同构"}
+{"rank": 1109, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 两者都是正反馈,教科书级气候反馈对比"}
+{"rank": 1110, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 激子漏斗与光合天线本就是公认类比(COF就是模仿天然光合天线设计的)"}
+{"rank": 1111, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 两者都是量子比特实现路线,同域比较"}
+{"rank": 1112, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 3, "reason": "发动机喘振裕度与控制死区抖振共享'工作点逼近边界触发频繁切换'的非线性动力学,可将控制死区补偿技术类比到喘振裕度监测的边缘控制策略", "reject_reason": null}
+{"rank": 1113, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 分子量分布形态与U形谷仅共享'形态反映过程'的空泛观察"}
+{"rank": 1114, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 均为飞秒分子结构成像,同技术族内对比,圈内共识"}
+{"rank": 1115, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: TAD边界与智能卡出行链无结构同构,仅共享'模块化/链式重建'高抽象词"}
+{"rank": 1116, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 3, "reason": "kpatch内核热修复与QUIC连接迁移都解决'运行中替换底层绑定而不中断服务',stop_machine与connection_ID等价于'在变更窗口保证原子切换',可互相启发状态迁移协议设计", "reject_reason": null}
+{"rank": 1117, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 数字人文+城市计算均为大数据反推隐含属性,同范式"}
+{"rank": 1118, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "混淆矩阵与齿轮阶次分析都是'在二维域里将混叠信号分离到对角/阶次谱线',可用阶次追踪思想给分类错误做转速域聚类,或用混淆矩阵可视化旋转机械故障分类", "reject_reason": null}
+{"rank": 1119, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "社交网络优先连接与岩溶地下河管道流均展示无标度分布源于'正反馈强化少数通道',可把水文的物理侵蚀增强机制类比到社交网络的连接强化,给幂律生成一个物质化模型", "reject_reason": null}
+{"rank": 1120, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 位置编码与重叠层拼接仅在'利用位置/重叠解歧义'上高度抽象类比,落不到具体算法"}
+{"rank": 1121, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 磷酸酶级联与VEGF通路均为信号级联,生物学内部常见对比,无跨域增量"}
+{"rank": 1122, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "高频RV的微观结构噪声估计与机床热-力耦合误差都是'高分辨率观测因耦合噪声偏大,需跨尺度解耦',Barndorff-Nielsen稳健估计量思想可迁移到机床误差分离", "reject_reason": null}
+{"rank": 1123, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: NLRP3与补体均为免疫级联,生物医学同域"}
+{"rank": 1124, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 5, "reason": "受精钙波与再质押抵押品链都是'局部触发沿耦合网络全局扩散的单向不可逆事件',钙波屏障机制(皮质颗粒)启发金融系统给再质押链加入'切断透明带'式防火墙,结构同构极强且跨域差距大", "reject_reason": null}
+{"rank": 1125, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "横断面患病率混入持续时间与水文事件水/预存水同位素混合模型都是'静态观测包含历史存量与新发通量',流行病学可借鉴同位素双端元分解量化'存量病例vs新发病例'对关联的贡献", "reject_reason": null}
+{"rank": 1126, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: ARPES能带与绅士化定量化都是'从观测推断隐含结构',类比空泛"}
+{"rank": 1127, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 气动加热离解与番茄裂果仅共享'外壳跟不上内部膨胀'表面语,机制不同构"}
+{"rank": 1128, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "奇异金属线性电阻与职业声望跨社会稳定性都是'强关联/普遍性约束下宏观观测量呈现异常简单普适律',前者启发后者寻找'普朗克散射'式的功能极限约束", "reject_reason": null}
+{"rank": 1129, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 铵盐堵塞与低温推进剂沸腾都只是温度管理问题,无深层同构"}
+{"rank": 1130, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 3, "reason": "量子随机游走弹道传播(与经典sqrt扩散对比)与Cramér大偏差(指数衰减)都涉及'偏离均值的尾部行为的本质时标',为量子vs经典扩散的大偏差刻画提供桥梁", "reject_reason": null}
+{"rank": 1131, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 议程设置与Copula都在处理依赖结构,但跨域映射落不到具体算法"}
+{"rank": 1132, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 幂律/帕累托分布跨域已是老生常谈"}
+{"rank": 1133, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "鞅可选停止定理与Nash均衡存在性都用'不动点/期望守恒'证明无策略套利或无偏离,可启发将博弈均衡看作停时鞅性质,在在线学习收敛性证明中互相借用", "reject_reason": null}
+{"rank": 1134, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 神经抑制与热岛遥感毫无机理同构,只是都做'定量空间映射'"}
+{"rank": 1135, "verdict": "pass", "value_type": "policy_insight", "potential": 4, "reason": "算法极化与柠檬市场逆向选择共享'低质量挤出高质量的自我强化选择',对内容平台治理提出'价差/质量信号'类市场设计思路,同构深且可落地", "reject_reason": null}
+{"rank": 1136, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 奥斯瓦尔德熟化与上升流机理差异大,仅表面'小变小大变大'不同构"}
+{"rank": 1137, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "Journaling先写意图后落盘与填充预言机'先验完整性后解密'都是'关键操作前必须完成保护步骤'的严格顺序,可互相启发:分布式存储引入密文完整性验证顺序,密码协议学习WAL回放恢复", "reject_reason": null}
+{"rank": 1138, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 都是波/扰动在介质中传播衰减,教科书对比"}
+{"rank": 1139, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 考古地震与文学地理GIS同属数字人文空间分析"}
+{"rank": 1140, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 自动稳定器与产能周期均为负反馈,经济学内部常识"}
+{"rank": 1141, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: Hippo通路与T细胞耗竭同属分子/肿瘤生物学"}
+{"rank": 1142, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: RSA与扩散语言模型仅都'迭代去除',机制不同构"}
+{"rank": 1143, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "双重继嗣制与心理账户都体现'同一主体内多套不相互替代的规则/资源池',可用人类学亲属规则给心理账户刚性提供进化/文化解释基础", "reject_reason": null}
+{"rank": 1144, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 3, "reason": "lncRNA支架与T4SS共轭注射机器虽机理不同,都体现'同一分子机器被演化再利用承载多功能',生物学内但跨尺度,对模块化演化研究有启发", "reject_reason": null}
+{"rank": 1145, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 河流溯源侵蚀与深水下沉均为地球科学经典过程,无跨域"}
+{"rank": 1146, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "HSF1的Hsp70竞争阈值感知与网格蛋白出芽曲率不动点阈值都是'通过竞争/协同把连续输入变为开关式全有全无输出',揭示生物开关的通用设计范式,跨尺度同构强", "reject_reason": null}
+{"rank": 1147, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 声屏障对数增益与VaR分位数都是'取分位/阈值',结构类比空洞"}
+{"rank": 1148, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 3, "reason": "采样定理与碳预算都是'系统可接受信息/扰动速率存在刚性上限超出即不可逆损失',将控制论信息极限思想引入气候政策的动态余量管理是有趣的形式化桥梁", "reject_reason": null}
+{"rank": 1149, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: IPv6流标签与门限密码学无结构同构"}
+{"rank": 1150, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 热膨胀线性与Rossby数标度都是量纲关系,平凡"}
+{"rank": 1151, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 反应釜结焦与控制死区机制不同构,都只是'需要定期补偿'"}
+{"rank": 1152, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "对比学习与数字人文主题模型人工迭代修正都面对'无监督表示学习需融入领域知识',数字人文的'专家反馈→主题建模'循环可启发对比学习的领域先验注入", "reject_reason": null}
+{"rank": 1153, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 肿瘤免疫编辑三阶段与烧结三阶段都是'启动-中段-完成'的常见分期叙述"}
+{"rank": 1154, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 城市计算与数字人文语料均为文本/轨迹挖掘同域方法"}
+{"rank": 1155, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "Uniswap x*y=k守恒与央行资产负债表复式守恒揭示'任何操作都必须在守恒约束下等额对冲',给DeFi设计提供传统央行资产负债管理工具箱(逆周期缓冲/SLF)的类比依据", "reject_reason": null}
+{"rank": 1156, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "流行病学直接/间接标准化与计算社科断点/双差/合成控制都是'在观测数据上构造反事实比较',两套方法论可系统对照以改进小样本标准化和因果识别", "reject_reason": null}
+{"rank": 1157, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "Saga补偿事务与太阳翼展开锁定都是'多步不可分布式提交,失败需按序补偿或锁定状态',航天机构设计的单向锁定可启发分布式系统对不可逆步骤的幂等补偿建模", "reject_reason": null}
+{"rank": 1158, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: MapReduce与多级火箭的分级递归是常见科普类比"}
+{"rank": 1159, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 桩基荷载传递与地震波传播都是弹性介质中应力/波动传播,教科书级"}
+{"rank": 1160, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 蛋白相分离与胶束CMC都是相变/自组装,生物物理圈共识"}
+{"rank": 1161, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "同位素地层学全球对比与手稿谱系重建都是'从多份带变异的抄本/层序重建共同祖先',计算系谱方法可直接借用分子地层相关系数工具,反之可用文献校勘启发地层缺失识别", "reject_reason": null}
+{"rank": 1162, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 悬沙幂律与Rossby数标度仅都'幂律',概念层面空洞"}
+{"rank": 1163, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 桩基负摩阻力与晶界蠕变机制完全不同"}
+{"rank": 1164, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 3, "reason": "Clapeyron方程与Cramér大偏差速率函数都经Legendre变换连接微观能量与宏观观测量,统计物理与大偏差理论的深层同构早被Ellis指出,此对为其具体化范例", "reject_reason": null}
+{"rank": 1165, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 测验效应与生成效应都是认知/教育学的同一记忆强化家族"}
+{"rank": 1166, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: Yield Farming套利与海洋层化都涉及'扩散趋向均衡',但机制不同构且套利均衡是金融常识"}
+{"rank": 1167, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "哨点监测的代表性抽样与量化感知训练的训练时模拟噪声都是'用低成本代理近似全量真值',哨点系统的代表性偏倚分析可启发量化代理训练的覆盖性诊断", "reject_reason": null}
+{"rank": 1168, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 金属玻璃形成与谱归一化都是'约束优化',抽象过高"}
+{"rank": 1169, "verdict": "pass", "value_type": "policy_insight", "potential": 4, "reason": "制裁回旋镖与去灭绝悖论都揭示'干预手段本身改变目标系统的适应路径并反噬初衷',对气候/公共卫生干预设计有通用警示,跨域距离大", "reject_reason": null}
+{"rank": 1170, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 血红蛋白S曲线与青藏热源无结构同构"}
+{"rank": 1171, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: vDSO与外部记忆网络都只是'外挂快速通道',类比太泛"}
+{"rank": 1172, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "信号肽引导分泌与分布式背压流控都是'用小型前缀信号协调下游资源分配与通路选择',Tat途径'已折叠蛋白转运'启发背压在保留状态的前提下暂停生产者", "reject_reason": null}
+{"rank": 1173, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 签到活力与气候指纹法只共享'高维观测匹配',无同构"}
+{"rank": 1174, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "锂枝晶尖端正反馈与环岛入口容量饱和都是'局部通量超阈引发自加速恶化',环岛'冲突点分散'设计启发锂电池用三维分散成核抑制枝晶", "reject_reason": null}
+{"rank": 1175, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 神经经济学与城市计算都是多源数据建模,同范式"}
+{"rank": 1176, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 晶界蠕变与AMOC减速机制不同构,仅都'慢变衰减'"}
+{"rank": 1177, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 神经传导vs金融传染是经典科普类比"}
+{"rank": 1178, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "MPLS标签前缀绕过IP最长匹配与核糖开关mRNA直接感知代谢物绕过蛋白中介都是'在底层数据面建立旁路以降低控制延迟',给合成生物学网络控制提供标签交换范式启发", "reject_reason": null}
+{"rank": 1179, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 丝绸之路扩散与大气重力波频散机制完全不同,只是都'传播'"}
+{"rank": 1180, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 双流视觉与脊索双梯度均是双通路指定,生物学内部熟知"}
+{"rank": 1181, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "社会懈怠与委托代理信息租金都源于'贡献/努力不可观测',社会心理学的问责机制实验结果可为机制设计提供低成本监控替代方案证据", "reject_reason": null}
+{"rank": 1182, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 暖水入侵与珊瑚礁生长都是海洋正反馈,学科内平行"}
+{"rank": 1183, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "Kolmogorov复杂度与玻色采样积和式都是'计算上不可约的下界',前者的不可压缩性论证可与量子优越性的#P困难论证形成信息论-复杂性对照,加深量子优势的复杂度基础", "reject_reason": null}
+{"rank": 1184, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 3, "reason": "外汇储备边际效用递减与减速器效率级联都体现'每多一级收益几何递减',外储最优规模模型可借用传动系统级数优化的解析形式", "reject_reason": null}
+{"rank": 1185, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 都是计算社科网络与城市计算分层,同域"}
+{"rank": 1186, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 咝音腭化与桩基荷载传递无结构同构"}
+{"rank": 1187, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "三级孔结构传质优化与lncRNA多结构域支架都是'不同尺度/亲和层级并联以避免单一瓶颈',催化剂设计的层级孔径分配启发功能性RNA设计中的结构域距离优化", "reject_reason": null}
+{"rank": 1188, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 回忆偏倚与锚点偏差机制不同构,只是都'参考基准影响估计'"}
+{"rank": 1189, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 模态水储热与POP冷凝都是输运-储存-延迟释放,海洋学经典"}
+{"rank": 1190, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 都是声学/声子衰减,本质同域"}
+{"rank": 1191, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 宏观/微观经济内部机制设计"}
+{"rank": 1192, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 5, "reason": "VEGF驱动的肿瘤血管生成与做市商Gamma挤压都是'局部供需压力触发自我强化的定向放大',且都出现旁路抵抗(FGF/流动性枯竭),可将抗血管生成治疗的旁路抑制思路类比到Gamma风险的多对冲工具组合,跨域极远且落地路径明确", "reject_reason": null}
+{"rank": 1193, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 4, "reason": "社会网络级联失效与辐照位移级联是两个研究成熟但少交叉的领域,材料学位移级联的'稳定构型阈值'与合金化抑制可直接启发电网/社交网络的缓冲节点设计", "reject_reason": null}
+{"rank": 1194, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 开尔文波与模态水同属海洋动力学"}
+{"rank": 1195, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 城市规模幂律与无标度网络均为Zipf律经典展示"}
+{"rank": 1196, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 咝音腭化与互惠合作无结构同构"}
+{"rank": 1197, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: LIED飞秒成像与城市洪涝建模只共享'多源融合高分辨重建'"}
+{"rank": 1198, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "trivially_obvious: 光氧化链式与藻华生消都是激增-耗竭,跨域但无具体同构"}
+{"rank": 1199, "verdict": "pass", "value_type": "method_transfer", "potential": 3, "reason": "发表偏倚漏斗图与土工界面直剪参数都是'用散点对称性/极端值识别隐藏薄弱环节',Egger式对称性检验可迁移到多层材料界面参数分布的小样本偏倚筛查", "reject_reason": null}
+{"rank": 1200, "verdict": "pass", "value_type": "method_transfer", "potential": 4, "reason": "对比学习增强不变性与侧信道常量时间实现都是'学习/设计对无关扰动鲁棒的表示',密码常量时间工程可启发对比学习设计物理侧信道不变的增强,反之对比学习可给侧信道模型提供自监督特征", "reject_reason": null}

@@ -1,0 +1,91 @@
+{"rank": 1548, "verdict": 3, "value_type": "负反馈不动点", "potential": "两者都通过失活/恢复机制过滤稳态、只传递偏离信号，可抽象为'微分型传感器'", "reason": "Piezo1 门控与臭氧光化学平衡都包含偏离-恢复的负反馈；但 Piezo1 强调只传递变化量而非稳态，臭氧强调维持绝对浓度，结构方向不完全对齐", "reject_reason": ""}
+{"rank": 1549, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "跨货币基差是市场摩擦/套利失效现象，海冰反照率是正反馈放大机制，核心动力学不同，仅 '压力/偏离' 层面类比，结构不构成同构"}
+{"rank": 1550, "verdict": 4, "value_type": "守恒律下的对偶变换", "potential": "液压力×距离=常数 与 两国持有对方货币等值守恒，都是'总量守恒+跨介质/跨主体再分配'模板，可迁移到风险互换、能量耦合等场景", "reason": "两者本质都是乘积/总量守恒约束下的双向再分配：液压以面积比换力×距离守恒，货币互换以等值约束换取双边持有量守恒。映射清晰且跨工程-经济域", "reject_reason": ""}
+{"rank": 1551, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "机翼马蹄冰脊是局部流场畸变问题，搜索成本导致价格离散是信息经济学均衡问题，无共同结构"}
+{"rank": 1552, "verdict": 3, "value_type": "自催化正反馈", "potential": "放热加速-升温-再加速 与 疲劳点蚀扩展是同类'损伤自加速'模板", "reason": "两者都是正反馈加速：放热反应温度-速率耦合，点蚀以应力集中自繁殖。跨化学-机械域，但机制差别（连续热 vs 离散缺陷增殖）使映射不完全", "reject_reason": ""}
+{"rank": 1553, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆热稳定是时间-温度瞬态约束，基坑踢脚是绕底端刚体旋转力学失稳，结构完全不同"}
+{"rank": 1554, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "COF 激子梯度传输涉及能量载流子扩散与捕获，白细胞趋化是细胞沿化学梯度主动迁移，表面'梯度'同名但驱动机制（能量输运 vs 细胞化学趋性）不构成同构"}
+{"rank": 1555, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "换流变阀侧绝缘是叠加电场老化问题，超固结土侧压力系数是历史应力-卸载路径依赖，无结构对应"}
+{"rank": 1556, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "Klein 隧穿是赝自旋守恒导致的拓扑无散射，随机预言机是密码学理想化假设的证明模型，两者仅在'理想化'层面空泛相似"}
+{"rank": 1557, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "接地网均压是电位梯度分布管理，水锤是压力冲击波动力学，虽都涉及'波/梯度'但核心结构不同"}
+{"rank": 1558, "verdict": 3, "value_type": "夹带外部输入的自持周期", "potential": "内源周期+外部校准 是生物钟/编队飞行/行星钟等系统共通模板", "reason": "昼夜节律是自持振荡被光照夹带校准，编队飞行是 Hill 坐标系下相对轨道的自然周期振荡，都具有'固有周期+约束修正'结构，但一个是生理振荡器一个是轨道力学", "reject_reason": ""}
+{"rank": 1559, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "继电保护时限配合是分级时序协调，滚珠丝杠预紧是轴向消隙力平衡，结构不同"}
+{"rank": 1560, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "换流变阀侧绝缘是电场应力叠加老化，信贷脉冲是二阶导数效应，都涉及'叠加/导数'但映射过于抽象不成同构"}
+{"rank": 1561, "verdict": 3, "value_type": "边际递减式放大", "potential": "规模经济与费兰蒂效应都是'分母/积累量变化带来非线性响应'，可统一为'累积介质的边际效应'", "reason": "规模经济是固定成本分摊造成平均成本下降，费兰蒂效应是分布电容沿线积累造成末端电压抬升，两者都有'沿某维度累积导致非线性变化'的结构，但一为经济量一为电路量，映射较牵强", "reject_reason": ""}
+{"rank": 1562, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "压缩机喘振是低流量下的流-压失稳振荡，再入热障烧蚀是热防护质量换温度稳定，两者结构无交集"}
+{"rank": 1563, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆热稳定是瞬态热约束，闪贷攻击是原子交易内的价格操纵套利，结构不同"}
+{"rank": 1564, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "Carnot 热效率是热力学上限，被害者易感结构是犯罪学统计集中，两者仅共享'上限/集中'语义，无同构"}
+{"rank": 1565, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆护层环流是电磁感应闭合回路损耗，立铣刀径向跳动是几何误差放大载荷波动，机理不同"}
+{"rank": 1566, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "太阳帆是持续小推力下的幂律加速运动学，米兰科维奇沉积是外部周期信号调制沉积，两者都涉及'幂律/周期'但结构不对应"}
+{"rank": 1567, "verdict": 3, "value_type": "预期协调的多均衡", "potential": "判例累积漂移与宏观多重均衡都揭示'相同基本面→不同路径→锁定不同稳态'的路径依赖", "reason": "先例蚀刻是微小边缘判决被后续放大形成新规则，宏观多重均衡是预期协调选择稳态，两者都体现路径依赖+稳态锁定，但一为离散法律演化一为连续经济协调", "reject_reason": ""}
+{"rank": 1568, "verdict": 4, "value_type": "偏差驱动负反馈", "potential": "Piezo1 力学门控和认知失调修复都将'传递稳态'变为'只传递偏差'，是典型的误差检测-修复控制器模板", "reason": "两者都是偏离参考点触发响应、恢复后回到静息的负反馈结构：Piezo1 以 Ca²⁺ 脉冲编码张力变化，认知失调以信念修改消除不一致。跨细胞生物-行为经济域，结构映射清晰", "reject_reason": ""}
+{"rank": 1569, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆护层环流是感应闭合回路损耗，桩基负摩阻力是相对沉降产生的力反向，结构无关"}
+{"rank": 1570, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "金属高周疲劳是裂纹萌生扩展，温度控制热惯性滞后是传递函数纯滞后，两者一为损伤动力学一为控制频响，不构成同构"}
+{"rank": 1571, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "对抗样本转移性是高维决策边界共享方向性，钙循环碳捕获是化学吸附-解吸循环，不构成结构对应"}
+{"rank": 1572, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "海洋热含量增长是热容延迟释放，双唇颤音是肌-气流反馈振动，毫无结构关联"}
+{"rank": 1573, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "双馈风机低电压穿越是电力电子控制要求，扩散语言模型离散去噪是生成模型训练框架，共享'低电平→恢复'空泛相似"}
+{"rank": 1574, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "Klein 隧穿是赝自旋守恒下的无散射透射，保险风险分摊是总风险量守恒下的再分配，'守恒'仅表面相似，物理机制完全不同"}
+{"rank": 1575, "verdict": 3, "value_type": "边际递减式饱和", "potential": "自然垄断的成本衰减与并购退出倍数压缩都反映'分母越大单位贡献越小'的边际结构", "reason": "两者都是边际递减：自然垄断平均成本随产量下降，退出倍数从峰值回落时对估值影响递减。同域（经济）内比较，距离偏近", "reject_reason": ""}
+{"rank": 1576, "verdict": 3, "value_type": "梯度驱动迭代逼近", "potential": "聚合物界面梯度与精益创业迭代都体现'驱动力→响应→新稳态'的梯度下降式逼近", "reason": "不相容共混界面是浓度梯度与界面张力的物理平衡，精益创业是反馈梯度驱动产品迭代。两者共享'梯度驱动→最优化'思想，但一为静态平衡一为动态搜索", "reject_reason": ""}
+{"rank": 1577, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "树突棘形态可塑性是结构-功能耦合的稳定性梯度，种群瓶颈是遗传多样性的随机丢失，两者都涉及'状态稳定性'但结构不同"}
+{"rank": 1578, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "美式看跌提前行权边界是最优停时问题，大跨屋盖不均匀雪荷载是风吹雪几何分布，结构无关"}
+{"rank": 1579, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电影悬念依赖观众-角色信息差的张力建构，管道水击是液柱动量突变压力波，两者本质完全不同"}
+{"rank": 1580, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "超大陆旋回是地质长尺度节律，社会解组是社区结构-犯罪率非线性，'长尺度/系统性波动'仅空泛相似"}
+{"rank": 1581, "verdict": 3, "value_type": "对数式递减增长", "potential": "爬电距离控制与加工硬化同属'边际贡献随累积量衰减'的对数模板", "reason": "绝缘爬距设计靠沿面距离积累泄漏阻抗，加工硬化靠变形累积提升强度但斜率下降。结构上都是累积量-响应的对数关系，但一为静态设计阈值一为塑性本构", "reject_reason": ""}
+{"rank": 1582, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "相位共轭是时间反转波前自动矫正，格密码是基于 NP 困难假设的后量子密码，两者除'对称/困难'无结构对应"}
+{"rank": 1583, "verdict": 3, "value_type": "阻尼振荡回稳态", "potential": "减肥平台期与半导体激光器驰豫振荡都是'扰动后阻尼振荡回到新稳态'的二阶系统响应", "reason": "代谢-体重耦合的负反馈与载流子-光子密度速率方程耦合都可写为阻尼振荡形式，可迁移到任何两变量负反馈系统。但减肥描述为单调收敛而激光强调振荡，表观动力学不完全一致", "reject_reason": ""}
+{"rank": 1584, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "热装配过盈是界面摩擦夹持力设计，跨链消息重排是时序依赖安全漏洞，结构无关"}
+{"rank": 1585, "verdict": 3, "value_type": "阈值处的突变相变", "potential": "富锂正极晶格氧释放与热固性凝胶点都属于阈值触发的不可逆结构相变", "reason": "两者都经历阈值触发的相变：富锂正极在高压下发生氧释放与晶格塌陷，热固性树脂在渗流阈值发生溶-不溶转变。同为'阈值相变'结构，但一为电化学一为高分子交联，且富锂正极为渐变性劣化", "reject_reason": ""}
+{"rank": 1586, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "帕金森定律是时间-工作量的膨胀社会规律，OPO 泵浦阈值是非线性增益超过腔损耗的激光式相变，两者仅'阈值/膨胀'词面相似"}
+{"rank": 1587, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "零序电流是三相不平衡矢量分量，疲劳裂纹扩展是应力强度因子幂律驱动损伤，结构无对应"}
+{"rank": 1588, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "再入热障烧蚀是热防护，PWM 是开关平均等效，两者无结构交集"}
+{"rank": 1589, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "规模经济是分摊-递减，造血干细胞龛是信号锚定稳态维持，机制完全不同"}
+{"rank": 1590, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "斜拉桥锚固区应力集中是力学局部高应力，扩散语言模型是离散生成框架，无关联"}
+{"rank": 1591, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "机翼马蹄冰脊是防冰系统失效，过度自信校准偏差是主观概率分布偏差，结构无关"}
+{"rank": 1592, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "零序电流与斜齿轮轴向力平衡都是工程量平衡，但前者是矢量和为零的检测原理、后者是对称抵消设计，不构成同构"}
+{"rank": 1593, "verdict": 4, "value_type": "边际递减/幂次惩罚", "potential": "边际生产力递减与无常损失都表达'偏离越远单位代价越大/越小'的非线性累积结构，可迁移到税收-激励、剂量-反应等", "reason": "两者都用凹/幂函数刻画'偏离基准带来的累积非线性'：边际生产力递减是对数式递减，无常损失是幂次式增长，方向相反但同属'偏离-成本'家族。跨微观经济-DeFi 域提供了把经典边际律迁移到 AMM 的清晰对照", "reject_reason": ""}
+{"rank": 1594, "verdict": 3, "value_type": "反事实识别", "potential": "政策因果识别与艺术真伪鉴别都基于'观察到的差异 vs 反事实基线'", "reason": "两者都是从观察数据反推隐藏真相：政策评估构造反事实对照组，艺术鉴别用模型区分真迹 vs 赝品分布。共享'基线对比'范式，但一为因果识别一为分类判别", "reject_reason": ""}
+{"rank": 1595, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "知识溢出支持内生增长是外部性使边际回报不递减，继电保护时限配合是分级时序协调，结构无关"}
+{"rank": 1596, "verdict": 3, "value_type": "空间梯度-功能轴", "potential": "Wnt 梯度-隐窝轴与大陆裂谷热穹隆都是'物理/化学梯度沿空间分布决定局部状态'的梯度轴模板", "reason": "两者都在空间维度上用梯度决定功能/状态：肠上皮 Wnt 梯度决定干性-分化，裂谷热穹隆沿轴线决定地质活动。结构对应清晰但尺度和介质差异巨大", "reject_reason": ""}
+{"rank": 1597, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "城市管道老化是性能对数式衰减，次同步振荡是串补谐振下的轴系扭振激增，两者动力学完全不同"}
+{"rank": 1598, "verdict": 3, "value_type": "临界条件下的流-动量失稳", "potential": "喷雾粘壁与压气机喘振都属于'工艺参数越界→流动/物性越界→不可逆退化'的临界失稳", "reason": "两者都是低稳定域内的非正常运行：粘壁是物料玻璃化前未干燥粘附，喘振是低流量下流-压失稳倒流。结构层面都表现为'越界进入非稳定区'，但一为物性一为流场动力学", "reject_reason": ""}
+{"rank": 1599, "verdict": 3, "value_type": "可行域丢失导致的失控", "potential": "喘振与 MPC 可行性丢失都是'约束越界→控制器失效→需兜底策略'的通用控制问题", "reason": "压缩机喘振是进入不稳定流量域需防喘振回路，MPC 可行性丢失是优化问题无解需备用律。两者同属'工作域边界失效→兜底'结构，但一为物理流动一为数学优化", "reject_reason": ""}
+{"rank": 1600, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "Raft 多数派日志复制是共识算法，红外热点监测是带电检测手段，结构完全无关"}
+{"rank": 1601, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "素数密度对数递减是数论定理，费兰蒂效应是长线电容充电，仅'对数/递减'词面相似"}
+{"rank": 1602, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "空载损耗是铁芯持续能耗，不均匀雪荷载是气动沉积几何分布，结构无关"}
+{"rank": 1603, "verdict": 3, "value_type": "边际递减", "potential": "班级规模与费兰蒂效应都可视为'规模/长度累积下的边际衰减'", "reason": "班级规模效应是对数式边际递减，费兰蒂效应是线路长度-末端电压非线性上升。结构都是'某维度累积→非线性响应'但方向相反", "reject_reason": ""}
+{"rank": 1604, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆环流是电磁感应损耗，喷音是喉头气流机制，完全无关"}
+{"rank": 1605, "verdict": 4, "value_type": "不对称路径的建立与崩塌", "potential": "信任积累-崩塌与自利归因不对称都体现'正向慢、负向快/正反不同路径'的不对称动力学", "reason": "两者都是正负结果走不同路径：信任建立缓慢崩塌迅速，归因对成功归己对失败归外。结构层面都是'正/负响应走不同函数'，跨社会学-行为经济学域提供清晰的不对称性模板", "reject_reason": ""}
+{"rank": 1606, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "热装配是界面摩擦夹持力设计，闪贷攻击是原子交易价格操纵，无结构关联"}
+{"rank": 1607, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "馈线自动化是故障定位恢复，冲裁间隙是断面质量工艺参数，无关"}
+{"rank": 1608, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "更新定理是随机过程极限定理，条约互译误差是语言概念歧义的保留，结构无关"}
+{"rank": 1609, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "Zipf 词频是幂律分布统计现象，纳米材料表面能主导是尺寸-比表面积标度，两者都是幂律但背后机制完全不同且无有趣映射"}
+{"rank": 1610, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "蒸发悖论揭示辐射驱动蒸发，陆海碳交换是海平面-碳库交换，两者均为气候过程但结构不对应"}
+{"rank": 1611, "verdict": 4, "value_type": "大交易/累积量的凹函数响应", "potential": "Hi-C 接触图和市场影响都是'随规模/累积增长响应凹衰减'的饱和响应模板", "reason": "Hi-C 接触频率随距离凹衰减，市场影响随交易规模凹增长。两者共享'累积量→响应凹性'结构，前者为物理距离-接触概率后者为交易规模-价格冲击，跨生物信息-市场微观结构域有启发性", "reject_reason": ""}
+{"rank": 1612, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "桥梁伸缩缝是周期应力破坏部位，扩散模型得分匹配是生成模型原理，无结构关联"}
+{"rank": 1613, "verdict": 3, "value_type": "总量守恒的恒等式约束", "potential": "MM 定理与全球失衡都是'总量守恒下的再分配'恒等式", "reason": "两者都是会计恒等式意义下的守恒：MM 定理下公司总价值守恒只重分配现金流，经常账户顺差逆差之和必为零。同属经济学内比较，跨域距离偏近", "reject_reason": ""}
+{"rank": 1614, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "Raft 共识与扩散模型去噪结构完全不同，无法构成同构"}
+{"rank": 1615, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "固定床偏流是流场短路热点，鲁棒控制保守性是性能代价，结构不对应"}
+{"rank": 1616, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "压缩机喘振是低流量失稳，高超声速气动加热是激波后气体离解，结构无关"}
+{"rank": 1617, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "去中心化衍生品的资金效率瓶颈是保证金-延迟约束，继电保护时限配合是分级时序，无对应"}
+{"rank": 1618, "verdict": 3, "value_type": "时间依赖滞后响应", "potential": "高分子蠕变/应力松弛与涡轮迟滞都是'响应滞后于激励'的粘弹性/时滞系统", "reason": "两者都展示时间依赖延迟：高分子蠕变源于链段弛豫谱，涡轮迟滞源于质量流率惯性。都可写为时滞/粘弹本构，但一为分子弛豫一为宏观气动惯性", "reject_reason": ""}
+{"rank": 1619, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "滚珠丝杠预紧是轴向消隙，正交异性板疲劳是局部弯曲叠加损伤，无结构对应"}
+{"rank": 1620, "verdict": 3, "value_type": "阈值触发的不可逆损伤", "potential": "钠电层状正极与热固性凝胶点都是'累积变化达阈值后发生质变'的相变家族", "reason": "两者都经历阈值处的结构转变：钠电晶格体积变化累积导致开裂，热固性树脂交联密度达渗流阈值凝胶。都是阈值相变但一为累积性疲劳一为瞬时相变", "reject_reason": ""}
+{"rank": 1621, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "群体免疫阈值是流行病学传播阈值，量化感知训练是神经网络训练技巧，结构无关"}
+{"rank": 1622, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "再入热障烧蚀是热防护设计，社会资本负效应是群体内聚-排斥两难，完全无关"}
+{"rank": 1623, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "客户端侧负载均衡是服务发现分发机制，费兰蒂效应是长线电容充电，结构无关"}
+{"rank": 1624, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "认知负荷是工作记忆容量限制，Carnot 热效率极限是热力学上界，两者仅'上限'语义类似不构成同构"}
+{"rank": 1625, "verdict": 5, "value_type": "响应-抑制负反馈控制", "potential": "PD-L1 IFN-γ 负反馈与寿险久期匹配都是经典的'偏离参考点→触发修正→回归目标'闭环控制器，可统一为一般的误差-修正控制律，在免疫-金融两个'总量风险管理'系统之间搭建桥梁", "reason": "两者高度同构：有效反应→产生抑制信号→反应被抑制→达到新平衡。PD-L1 通过 IFN-γ 自我抑制 T 细胞活化，寿险通过匹配调整偏离久期回归。都是围绕目标值的负反馈控制器，跨免疫-精算域映射清晰且机制对应彻底", "reject_reason": ""}
+{"rank": 1626, "verdict": 3, "value_type": "路径依赖的滞后变化", "potential": "语言衰退与框架效应都体现'进入路径决定后续状态，惯性滞后于显式条件变化'", "reason": "殖民语言因教育惯性滞后于政治变化，框架效应下决策依赖问题呈现路径。两者共享路径依赖结构，但一为制度惯性一为个体决策偏差", "reject_reason": ""}
+{"rank": 1627, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "陶瓷热震开裂是温度梯度产生的拉应力损伤，网络控制时延抖动是通信不确定性对控制性能的影响，结构不同"}
+{"rank": 1628, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "班级规模效应是边际递减经济学现象，造血干细胞龛是信号-微环境锚定，结构无关"}
+{"rank": 1629, "verdict": 3, "value_type": "小信号调制-反馈放大", "potential": "冷点水汽-温度反馈与对流组织化都是'大气内部小信号通过反馈放大/组织'的结构", "reason": "两者都是大气系统内部反馈放大：冷点水汽通过长波辐射反馈影响温度，对流通过湿度-辐射反馈组织化。同域内比较，结构对应但跨域距离近", "reject_reason": ""}
+{"rank": 1630, "verdict": 3, "value_type": "对数式衰减增长", "potential": "空载损耗与混凝土徐变均可抽象为'时间累积下的饱和/衰减响应'", "reason": "空载损耗是持续能量消耗（稳态非时间函数），徐变是持续荷载下变形的对数增长，这里关联其实弱，仅在'长期持续效应'上类比", "reject_reason": ""}
+{"rank": 1631, "verdict": 4, "value_type": "阈值处的幂律相变", "potential": "渗流相变与脆-韧转换都是'临界条件下材料响应模式突变'，且都能用临界指数刻画。可统一为'临界条件-模式切换'模板，在几何相变与力学相变之间建立共同语言", "reason": "渗流阈值以上电导率 σ∝(p-pc)^t 幂律上升，岩石脆-韧转换随温度压力条件改变力学模式。两者同为临界相变，对应关系清晰跨凝聚态物理-地质学", "reject_reason": ""}
+{"rank": 1632, "verdict": 3, "value_type": "双变量耦合振荡平衡", "potential": "驰豫振荡与代币通缩通胀都是双变量负反馈耦合达到平衡的二阶系统", "reason": "激光器载流子-光子速率方程与代币铸造-销毁速率都是二阶负反馈，都可能振荡收敛。结构对应但一为物理速率方程一为经济激励机制", "reject_reason": ""}
+{"rank": 1633, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "配电变压器空载损耗与双唇颤音结构无关"}
+{"rank": 1634, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "齿根弯曲疲劳是应力集中累积损伤，算法稳定币死亡螺旋是正反馈崩溃，结构完全不同"}
+{"rank": 1635, "verdict": 4, "value_type": "能量介质间周期性交换", "potential": "厄尔尼诺与 LC 振荡都是'两种储能介质间周期性能量交换'的振荡器模板，可把气候振荡写成等效 LC 形式", "reason": "厄尔尼诺是海-气热/风耦合的准周期振荡，LC 回路是电-磁场能量交换的正弦振荡。两者都可用二阶振荡方程描述、都有频率由系统参数决定。跨气象-电气域具有启发性，但海气耦合非线性更强", "reject_reason": ""}
+{"rank": 1636, "verdict": 2, "value_type": "", "potential": "", "reason": "", "reject_reason": "渗流阈值是几何相变，电化学剥离石墨烯是阴离子嵌入应力剥离，都涉及'临界窗口'但结构不对应"}
+{"rank": 1637, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "薄壁件再生颤振是切削力-振动正反馈，面筋网络形成是蛋白质交联，两者均为'网络/循环'但机理完全不同"}
+{"rank": 1638, "verdict": 1, "value_type": "", "potential": "", "reason": "", "reject_reason": "电缆护层环流是电磁感应损耗，睡眠相位延迟是昼夜节律偏移，完全无关"}

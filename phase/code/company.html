@@ -159,15 +159,21 @@
     .key-value dd { color: var(--text); }
 
     .equation-box {
-      background: var(--bg);
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 16px 20px;
       font-family: var(--mono);
-      font-size: 13.5px;
+      font-size: 14.5px;
       overflow-x: auto;
       color: var(--text);
       margin: 8px 0 16px;
+    }
+    .equation-box .katex,
+    .deep-report-md .katex { color: var(--text); font-size: 1.05em; }
+    @media (max-width: 520px) {
+      .equation-box { font-size: 12.5px; padding: 14px 14px; }
+      .equation-box .katex { font-size: 0.95em; }
     }
 
     .critical-list {
@@ -386,7 +392,6 @@
       <div>© 2026 Phase Detector · Part of Structural Isomorphism Project</div>
       <div class="footer-links">
         <a href="/phase">Phase 首页</a>
-        <a href="https://structural.bytedance.city">主站</a>
         <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
       </div>
     </div>
@@ -714,7 +719,17 @@
     }
 
     function renderMarkdown(md) {
-      // Tiny markdown renderer — handles headings, lists, paragraphs, bold, code, blockquote
+      // Extract KaTeX math blocks first so they survive escaping and paragraph wrapping.
+      const mathBlocks = [];
+      const stash = (full) => {
+        mathBlocks.push(full);
+        return '\x00MATH' + (mathBlocks.length - 1) + '\x00';
+      };
+      md = md.replace(/\$\$[\s\S]+?\$\$/g, stash);
+      md = md.replace(/\\\[[\s\S]+?\\\]/g, stash);
+      md = md.replace(/(?<!\\)\$(?!\$)[^\n$]+?(?<!\\)\$(?!\$)/g, stash);
+      md = md.replace(/\\\([\s\S]+?\\\)/g, stash);
+
       let html = escapeHtml(md);
       html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
       html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
@@ -733,12 +748,18 @@
       });
       // Paragraphs (split by blank lines, wrap non-block lines)
       const blocks = html.split(/\n{2,}/);
-      return blocks.map(b => {
+      html = blocks.map(b => {
         b = b.trim();
         if (!b) return '';
         if (/^<(h\d|ul|ol|blockquote)/.test(b)) return b;
+        // A block that is only a display-math placeholder should not be wrapped in <p>
+        if (/^\x00MATH\d+\x00$/.test(b)) return b;
         return '<p>' + b.replace(/\n/g, '<br>') + '</p>';
       }).join('\n');
+
+      // Restore math placeholders
+      html = html.replace(/\x00MATH(\d+)\x00/g, (_, i) => mathBlocks[Number(i)]);
+      return html;
     }
 
     async function generateDeepReport(c) {
@@ -793,5 +814,6 @@
 
     document.addEventListener('DOMContentLoaded', loadCompany);
   </script>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
 </body>
 </html>

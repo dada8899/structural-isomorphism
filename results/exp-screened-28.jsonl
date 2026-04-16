@@ -1,0 +1,100 @@
+{"rank": 2701, "verdict": "reject", "value_type": "surface_gradient", "potential": 2, "reason": "两者都是空间梯度衰减，但机制不同（挂单密度 vs 品牌认同）", "reject_reason": "trivially_obvious: 衰减扩散是通用常识隐喻"}
+{"rank": 2702, "verdict": "keep", "value_type": "modular_topology", "potential": 3, "reason": "分段开关模块化隔离与河流分级分形自相似结构在拓扑组织上有对应", "reject_reason": null}
+{"rank": 2703, "verdict": "reject", "value_type": "selectivity", "potential": 1, "reason": "HLA等位基因疾病易感性与年龄选择性死亡仅在'选择性'一词上表面相似", "reject_reason": "no_actionable_insight: 机制完全不同"}
+{"rank": 2704, "verdict": "keep", "value_type": "self_decelerating_decay", "potential": 4, "reason": "减肥平台期的代谢负反馈与催化剂积炭自毒化衰减都呈自减速曲线，剩余有效单元越少每时间毒化越慢——动力学方程可能同构", "reject_reason": null}
+{"rank": 2705, "verdict": "reject", "value_type": "purification", "potential": 1, "reason": "量子纠缠蒸馏与真实性评价无实质结构对应", "reject_reason": "no_actionable_insight: 概念错配"}
+{"rank": 2706, "verdict": "reject", "value_type": "power_law", "potential": 1, "reason": "帕斯卡定律是线性比例，学习曲线是幂律下降，数学形式都不同", "reject_reason": "no_actionable_insight: 仅'比例关系'表面相似"}
+{"rank": 2707, "verdict": "keep", "value_type": "gradient_driven_separation", "potential": 3, "reason": "光生载流子内建电场驱动分离与岩浆分异结晶的熔点差驱动分离，都是浓度/相态梯度下的定向分离", "reject_reason": null}
+{"rank": 2708, "verdict": "reject", "value_type": "acidification", "potential": 1, "reason": "内爆音气流机制与发酵面团酸度积累无共享结构", "reject_reason": "no_actionable_insight"}
+{"rank": 2709, "verdict": "keep", "value_type": "coordination_deadlock", "potential": 4, "reason": "Nagle+延迟ACK互等死锁与DAO时间锁延迟都涉及双方等待对方行动产生的系统性迟滞，时间延迟本身成为博弈参数", "reject_reason": null}
+{"rank": 2710, "verdict": "reject", "value_type": "enzymatic_reaction", "potential": 1, "reason": "苹果酸乳酸发酵与酶促褐变都是酶反应，但结构无实质同构", "reject_reason": "trivially_obvious: 同一学科内的平行例子"}
+{"rank": 2711, "verdict": "reject", "value_type": "linear_partition", "potential": 2, "reason": "电流片压强守恒与萃取分配系数都涉及稀区分配平衡，但机制差异大", "reject_reason": "no_actionable_insight"}
+{"rank": 2712, "verdict": "reject", "value_type": "hierarchy", "potential": 1, "reason": "网格细胞多尺度与肿瘤克隆进化层次结构层次化不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2713, "verdict": "reject", "value_type": "power_law", "potential": 2, "reason": "无标度网络与长尾市场帕累托分布都是幂律", "reject_reason": "known_metaphor: 幂律/长尾是经典跨域类比"}
+{"rank": 2714, "verdict": "reject", "value_type": "pareto", "potential": 2, "reason": "聚合物分子量分布与DAO投票权集中同为帕累托", "reject_reason": "known_metaphor: 80/20分布是常见跨域类比"}
+{"rank": 2715, "verdict": "reject", "value_type": "cascade_energy", "potential": 2, "reason": "磁重联能量释放与光子上转换都是能量传递级联但机制不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2716, "verdict": "reject", "value_type": "wave_propagation", "potential": 2, "reason": "水平基因转移与钙波都涉及传播但一个是离散个体间转移一个是连续波", "reject_reason": "no_actionable_insight"}
+{"rank": 2717, "verdict": "keep", "value_type": "adaptive_scaffolding_removal", "potential": 4, "reason": "支架式教学渐撤与Delta对冲连续再平衡——都是沿梯度追踪目标、持续调整支持/对冲力度直到系统稳定，控制论上的跟踪器结构", "reject_reason": null}
+{"rank": 2718, "verdict": "reject", "value_type": "fractal_scaling", "potential": 2, "reason": "城市超线性创新与表面分形粗糙度都涉及尺度律但一个是标度律一个是分形", "reject_reason": "no_actionable_insight"}
+{"rank": 2719, "verdict": "reject", "value_type": "exponential_decay", "potential": 2, "reason": "盘口深度衰减与隔振传递率都是频率/距离衰减", "reject_reason": "trivially_obvious: 衰减是普遍现象"}
+{"rank": 2720, "verdict": "reject", "value_type": "compartment_model", "potential": 1, "reason": "SEIR与孤儿作品计算识别无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2721, "verdict": "keep", "value_type": "and_gate_integration", "potential": 4, "reason": "mTORC1多传感器AND门汇聚与扩散语言模型多位置联合去噪都需要多信号汇聚判定，前者生化后者算法的多路整合AND逻辑", "reject_reason": null}
+{"rank": 2722, "verdict": "reject", "value_type": "parameterization", "potential": 1, "reason": "Nyquist阻抗谱与气候参数化无实质同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2723, "verdict": "reject", "value_type": "positive_feedback_focusing", "potential": 3, "reason": "激光自聚焦细丝与金属点蚀都是小不均匀被正反馈放大形成局部化失稳结构", "reject_reason": "known_metaphor: 正反馈局部化是常见同构"}
+{"rank": 2724, "verdict": "keep", "value_type": "coordinate_transform_decoupling", "potential": 5, "reason": "Girsanov测度变换(漂移转鞅)与电机Park变换(交流转直流)——两者都是通过可逆坐标/测度变换把含纠缠项的动态变成解耦简单形式，然后在新坐标系做推理再反变换。抽象数学结构高度同构且可互相启发", "reject_reason": null}
+{"rank": 2725, "verdict": "reject", "value_type": "functional_attribution", "potential": 1, "reason": "宏转录组功能注释与地铁客流回归无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2726, "verdict": "reject", "value_type": "local_adaptation", "potential": 1, "reason": "地理加权回归与QAOA无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2727, "verdict": "reject", "value_type": "spectral_analysis", "potential": 1, "reason": "ARPES能带测量与历史词汇漂移仅表面都是某种'谱'", "reject_reason": "no_actionable_insight: 一个物理谱一个统计谱"}
+{"rank": 2728, "verdict": "reject", "value_type": "buoyancy_driven", "potential": 2, "reason": "青藏高原热源与盐底辟都是密度/温度驱动垂向运动影响周边", "reject_reason": "no_actionable_insight"}
+{"rank": 2729, "verdict": "keep", "value_type": "diminishing_marginal_rate", "potential": 3, "reason": "规模经济成本递减(边际减缓)与过滤速率随滤饼增厚反比递减——都是'规模/累积量扩大时单位效率下降'的反比例减速，但机制差异明显", "reject_reason": null}
+{"rank": 2730, "verdict": "reject", "value_type": "systematic_bias", "potential": 3, "reason": "代表性启发偏差与LLM训练语料偏差都是系统性偏差源自样本/原型的不代表性", "reject_reason": "known_metaphor: LLM偏差常被类比为认知偏差"}
+{"rank": 2731, "verdict": "reject", "value_type": "feature_extraction", "potential": 1, "reason": "ARPES与艺术品真伪鉴定都提取特征但无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2732, "verdict": "reject", "value_type": "power_law_decay", "potential": 2, "reason": "隧穿电离指数衰减与泥沙悬浮幂律分布数学形式不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2733, "verdict": "keep", "value_type": "positive_feedback_tip_focusing", "potential": 3, "reason": "锂枝晶尖端效应正反馈与陶瓷裂纹尖端应力诱相变——都涉及尖端的局部场放大但一个是正反馈失稳一个是负反馈抑制", "reject_reason": null}
+{"rank": 2734, "verdict": "keep", "value_type": "cascade_propagation", "potential": 4, "reason": "高速公路幽灵堵车与社会网络级联失效——小扰动沿链路逆向放大传播，每个节点过度反应触发下一级，形成传播波。传播动力学可能有相同ODE", "reject_reason": null}
+{"rank": 2735, "verdict": "reject", "value_type": "signal_integration", "potential": 1, "reason": "原子干涉重力梯度仪与街景步行友好度无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2736, "verdict": "reject", "value_type": "competitive_selection", "potential": 2, "reason": "突触竞争修剪与深部岩石反应无实质同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2737, "verdict": "reject", "value_type": "feature_quantification", "potential": 1, "reason": "城市蔓延指标与动作捕捉风格分析只是都用指标", "reject_reason": "no_actionable_insight"}
+{"rank": 2738, "verdict": "reject", "value_type": "signal_amplification", "potential": 2, "reason": "SERS信号增强与夜间灯光代理都是从原信号放大/代理指标", "reject_reason": "no_actionable_insight"}
+{"rank": 2739, "verdict": "reject", "value_type": "trapping_effect", "potential": 1, "reason": "离子陷阱与雪盖反馈无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2740, "verdict": "reject", "value_type": "coupling_effect", "potential": 1, "reason": "沿岸上升流与色彩同时对比无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2741, "verdict": "reject", "value_type": "heavy_tail", "potential": 2, "reason": "无标度网络与尾部事件概率忽视都涉及重尾分布", "reject_reason": "known_metaphor: 幂律/重尾是经典跨域类比"}
+{"rank": 2742, "verdict": "reject", "value_type": "diffusion_gradient", "potential": 1, "reason": "药物缓释扩散与互惠偏好条件合作无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2743, "verdict": "reject", "value_type": "power_law_scaling", "potential": 2, "reason": "驻点温度随速度幂律与学习曲线幂律下降", "reject_reason": "known_metaphor: 幂律标度律"}
+{"rank": 2744, "verdict": "keep", "value_type": "competing_order_bifurcation", "potential": 4, "reason": "铜氧化物条纹相与超导的竞争序分岔和海洋热盐指双扩散不稳定——两种不同速率过程竞争，特定参数下涌现出空间周期图案或序转换", "reject_reason": null}
+{"rank": 2745, "verdict": "reject", "value_type": "coherent_state", "potential": 1, "reason": "孤子光频梳与量子门无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2746, "verdict": "reject", "value_type": "scaling_exponent", "potential": 2, "reason": "非费米液体线性电阻与自回避游走Flory指数都涉及非平凡标度指数", "reject_reason": "no_actionable_insight: 仅表面相似"}
+{"rank": 2747, "verdict": "keep", "value_type": "nonlinear_stiffness", "potential": 3, "reason": "钢结构半刚性节点刚度随转角递减与岩石圈弹性厚度控制挠曲范围——都是被动变形体对载荷的幂律/对数响应", "reject_reason": null}
+{"rank": 2748, "verdict": "reject", "value_type": "margin_depletion", "potential": 1, "reason": "喘振裕度衰减与发酵乳后酸化无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2749, "verdict": "reject", "value_type": "linear_response", "potential": 1, "reason": "量子纠缠面积律与光纤布拉格光栅线性响应无实质同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2750, "verdict": "keep", "value_type": "state_identity_persistence", "potential": 4, "reason": "基因组印记ICR甲基化马尔可夫维持(初始状态唯一决定后代所有细胞)与QUIC连接迁移(连接ID脱离四元组保持身份)——抽象层面都是把'身份标签'从其物理基底解耦，使状态在环境变化下持续", "reject_reason": null}
+{"rank": 2751, "verdict": "reject", "value_type": "diffusive_spreading", "potential": 2, "reason": "埃克曼螺旋与污染物弥散都是扩散+流动耦合", "reject_reason": "trivially_obvious: 扩散-平流耦合是通用物理"}
+{"rank": 2752, "verdict": "reject", "value_type": "flow_simulation", "potential": 1, "reason": "SEIR传染病模型与城市通风廊道CFD无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2753, "verdict": "reject", "value_type": "nonlinear_mixing", "potential": 2, "reason": "河口盐淡水混合与光化学烟雾都涉及非线性混合但机制不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2754, "verdict": "keep", "value_type": "force_to_state_feedback", "potential": 5, "reason": "染色体分离Aurora B张力感知纠错(物理张力→酶活性状态)与做市商存货风险价差调整(存货偏离→报价倾斜纠偏)——两者都是把'状态偏离'直接转化为反向驱动力，实现无监督自纠正；结构是闭环反馈控制器，机制迥异但控制论同构", "reject_reason": null}
+{"rank": 2755, "verdict": "reject", "value_type": "instability_branching", "potential": 1, "reason": "激光成丝与重音转移无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2756, "verdict": "reject", "value_type": "square_root_law", "potential": 3, "reason": "市场冲击平方根律与过滤滤液体积随时间平方根增长——均为√t/√Q的经典形式", "reject_reason": "known_metaphor: √t律是物理学常见"}
+{"rank": 2757, "verdict": "reject", "value_type": "gradient_maintenance", "potential": 2, "reason": "RanGTP熵梯度驱动核质运输与肿瘤基因组不稳定性分类无实质对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2758, "verdict": "reject", "value_type": "coherent_oscillation", "potential": 1, "reason": "真空拉比分裂与光声效应无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2759, "verdict": "keep", "value_type": "axiom_violation_breakdown", "potential": 3, "reason": "孟德尔随机化工具变量假设失效(多效性违反独立性)与VaR非次可加性(违反分散化公理)——都是'通过假设/公理构建的推理工具在假设失效时系统性崩溃'", "reject_reason": null}
+{"rank": 2760, "verdict": "reject", "value_type": "superlinear_growth", "potential": 2, "reason": "湍流超扩散t³律与双曲折扣都涉及非线性偏离", "reject_reason": "no_actionable_insight"}
+{"rank": 2761, "verdict": "reject", "value_type": "critical_transition", "potential": 2, "reason": "电子回旋漂移混沌与气泡空化临界半径都是不稳定阈值但动力学不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2762, "verdict": "reject", "value_type": "distribution_gradient", "potential": 1, "reason": "碱性位强度分布与流量历时曲线都涉及分布但无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2763, "verdict": "reject", "value_type": "bidirectional_plasticity", "potential": 1, "reason": "LTD突触可塑性与双语优势无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2764, "verdict": "keep", "value_type": "connection_tracking_state", "potential": 3, "reason": "NAT连接跟踪表维护映射与量子纠错码通过稳定子测量间接追踪错误——都是通过辅助状态/表追踪主系统状态以保证可靠性", "reject_reason": null}
+{"rank": 2765, "verdict": "keep", "value_type": "residual_local_edit", "potential": 4, "reason": "残差连接(只学增量)与碱基编辑器(只改单碱基不断链)——两者都是'保留主通路/主链完整，只在局部做微小修正'的架构原则。工程与生物学的'最小侵入式编辑'同构", "reject_reason": null}
+{"rank": 2766, "verdict": "reject", "value_type": "power_law_sensitivity", "potential": 2, "reason": "疲劳裂纹扩展幂律与FRET六次方距离", "reject_reason": "known_metaphor: 幂律对距离/应力的敏感性"}
+{"rank": 2767, "verdict": "reject", "value_type": "dependency_modeling", "potential": 2, "reason": "空间计量溢出效应与Copula相关性建模都是建模依赖", "reject_reason": "no_actionable_insight"}
+{"rank": 2768, "verdict": "reject", "value_type": "runaway_feedback", "potential": 3, "reason": "高超声速气动加热离解与雪球地球反照率失控都是正反馈失控", "reject_reason": "known_metaphor: 失控正反馈是常见同构"}
+{"rank": 2769, "verdict": "reject", "value_type": "selection_pressure", "potential": 2, "reason": "公司控制权市场纪律与浊流密度流传播无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2770, "verdict": "reject", "value_type": "state_machine", "potential": 2, "reason": "肿瘤免疫编辑三阶段与冲动购买状态机都是状态转移", "reject_reason": "known_metaphor: 有限状态机类比"}
+{"rank": 2771, "verdict": "reject", "value_type": "positive_feedback_instability", "potential": 2, "reason": "漂移波不稳定性与乳化液破乳静电聚结", "reject_reason": "no_actionable_insight"}
+{"rank": 2772, "verdict": "keep", "value_type": "write_ahead_protocol", "potential": 4, "reason": "文件系统Journaling先写日志后改主区与TLS 1.3 0-RTT只适合幂等操作——都涉及持久性/安全性权衡的'先记意图后执行'原则，以及'某些操作必须幂等'的设计规则", "reject_reason": null}
+{"rank": 2773, "verdict": "reject", "value_type": "systematic_offset", "potential": 2, "reason": "回归均值与黑体辐射移都是系统性偏差需要校正", "reject_reason": "no_actionable_insight"}
+{"rank": 2774, "verdict": "reject", "value_type": "positive_feedback_growth", "potential": 2, "reason": "珊瑚礁向上生长与Bergeron过程冰晶增长都是正反馈差异性增长", "reject_reason": "no_actionable_insight"}
+{"rank": 2775, "verdict": "keep", "value_type": "tradeoff_optimum", "potential": 3, "reason": "散热器翅片密度权衡与控制系统带宽噪声权衡——都是'一个维度的收益被另一个维度的代价抵消，存在内部最优点'的对偶结构", "reject_reason": null}
+{"rank": 2776, "verdict": "reject", "value_type": "isotope_analysis", "potential": 1, "reason": "斯塔克效应偶极矩与同位素示踪无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2777, "verdict": "reject", "value_type": "multi_pathway_convergence", "potential": 2, "reason": "泛素化E1E2E3级联与补体三途径激活——都是多条路径汇聚到核心效应器", "reject_reason": "no_actionable_insight: 同学科并列例子"}
+{"rank": 2778, "verdict": "reject", "value_type": "spatial_clustering", "potential": 2, "reason": "社会流动性代际测量与城市犯罪热点预测都是空间聚类分析", "reject_reason": "no_actionable_insight"}
+{"rank": 2779, "verdict": "reject", "value_type": "selection_efficiency", "potential": 2, "reason": "密码子偏好与合成致死都涉及选择但无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2780, "verdict": "reject", "value_type": "instability_regime", "potential": 1, "reason": "流化床节涌与盐构造底辟无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2781, "verdict": "keep", "value_type": "negative_feedback_equilibrium", "potential": 3, "reason": "地貌侵蚀抬升耦合稳态与咸淡水界面抽水负反馈都是两个相反过程通过梯度耦合达成动态平衡", "reject_reason": null}
+{"rank": 2782, "verdict": "reject", "value_type": "scaling_law", "potential": 1, "reason": "帕斯卡定律与Rossby数无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2783, "verdict": "reject", "value_type": "phase_transition", "potential": 2, "reason": "边界层转捩与深水形成都是相态转变但机制不同", "reject_reason": "no_actionable_insight"}
+{"rank": 2784, "verdict": "keep", "value_type": "indirect_leverage", "potential": 4, "reason": "弓形虫棒状体直接注入宿主转录因子操控宿主基因表达与跨国倡议回飞镖效应(本国公民绕道国际社会给本国施压)——两者都是'内部渠道受阻时注入外部信号完成内部操控'的迂回策略，网络同构度高", "reject_reason": null}
+{"rank": 2785, "verdict": "reject", "value_type": "calibration_registration", "potential": 1, "reason": "ARPES能带与历史地图配准无结构同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2786, "verdict": "reject", "value_type": "principal_agent", "potential": 3, "reason": "创投代理冲突与官僚自主性张力都是委托代理问题", "reject_reason": "known_metaphor: 委托-代理是成熟经济学框架"}
+{"rank": 2787, "verdict": "reject", "value_type": "price_equilibration", "potential": 2, "reason": "做市商竞争价差压缩与Yield Farming收益均衡都是套利负反馈", "reject_reason": "known_metaphor: 套利收敛是金融常识"}
+{"rank": 2788, "verdict": "reject", "value_type": "strategic_bifurcation", "potential": 2, "reason": "亲子基因印记冲突与渗透vs撇脂定价都涉及一次性选择", "reject_reason": "no_actionable_insight"}
+{"rank": 2789, "verdict": "reject", "value_type": "modular_control", "potential": 2, "reason": "组蛋白读写擦除与抑制神经元亚型都是模块化调控", "reject_reason": "no_actionable_insight"}
+{"rank": 2790, "verdict": "reject", "value_type": "splitting_measurement", "potential": 1, "reason": "斯塔克分裂与代际流动性测量无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2791, "verdict": "reject", "value_type": "network_formation", "potential": 1, "reason": "拓扑绝缘体狄拉克锥与果胶凝胶网络无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2792, "verdict": "reject", "value_type": "signal_detection", "potential": 1, "reason": "脉冲星计时阵列与黑页岩缺氧无同构", "reject_reason": "no_actionable_insight"}
+{"rank": 2793, "verdict": "keep", "value_type": "critical_buckling", "potential": 4, "reason": "态度转变阈值(积累到临界点突然翻转不可逆)与建筑柱屈曲失稳(临界载荷下突然侧弯不可恢复)——都是看似渐进但实际一阶相变的系统，滞回性质相同。心理学借物理学模型可量化", "reject_reason": null}
+{"rank": 2794, "verdict": "reject", "value_type": "phase_coexistence", "potential": 1, "reason": "克拉珀龙方程与Paris律无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2795, "verdict": "reject", "value_type": "superlinear_response", "potential": 2, "reason": "颗粒物吸湿增长超线性与应力集中幂律都是幂律响应", "reject_reason": "known_metaphor: 幂律敏感性"}
+{"rank": 2796, "verdict": "reject", "value_type": "convective_mixing", "potential": 2, "reason": "流化床节涌与岩浆房热对流都是对流混合", "reject_reason": "no_actionable_insight"}
+{"rank": 2797, "verdict": "reject", "value_type": "gradient_guided", "potential": 1, "reason": "扩散模型分类器引导与ChIP-seq泊松检验无结构对应", "reject_reason": "no_actionable_insight"}
+{"rank": 2798, "verdict": "reject", "value_type": "hierarchical_structure", "potential": 1, "reason": "质量阶梯与河流分级都是层级", "reject_reason": "no_actionable_insight"}
+{"rank": 2799, "verdict": "reject", "value_type": "threshold_cascade", "potential": 3, "reason": "病毒传播阈值与富营养化藻华阈值都是阈值触发指数增长", "reject_reason": "known_metaphor: 阈值相变在生态/传染病中常见"}
+{"rank": 2800, "verdict": "keep", "value_type": "emergent_phase_transition", "potential": 4, "reason": "大模型能力涌现相变(规模跨阈值能力突跳)与CDO相关性陷阱(相关性跨阈值优先级损失突变)——参数空间中存在突变点跨过后定性行为根本改变，且突变点难以从小规模外推。预测困难的结构同构", "reject_reason": null}

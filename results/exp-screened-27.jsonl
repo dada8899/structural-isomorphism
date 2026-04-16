@@ -1,0 +1,100 @@
+{"rank": 2601, "verdict": 2, "value_type": "none", "potential": "low", "reason": "DALY与Larson-Miller都做数据归并/统一量化，但一个是健康损失度量一个是寿命参数化，结构契合点太泛。", "reject_reason": "no actionable insight"}
+{"rank": 2602, "verdict": 2, "value_type": "none", "potential": "low", "reason": "同为工程寿命衰减和界面应力,同属材料/机械工程内部,跨域张力弱。", "reject_reason": "trivially obvious"}
+{"rank": 2603, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "电缆金属护层环流与超导磁通量子比特都涉及环路穿过磁通产生感应电流,但一个是工程损耗一个是量子简并态,结构差异大。", "reject_reason": ""}
+{"rank": 2604, "verdict": 2, "value_type": "none", "potential": "low", "reason": "粘着磨损与流致振动磨损都属于磨损,同属机械损伤类,跨域度低。", "reject_reason": "trivially obvious"}
+{"rank": 2605, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "视觉背侧/腹侧流与叙事内外聚焦都把信息流分离为'是什么/在哪里'与'谁在看/看到多少'的双通道,均为认知信息分流架构,可产生叙事神经基础假设。", "reject_reason": ""}
+{"rank": 2606, "verdict": 2, "value_type": "none", "potential": "low", "reason": "态度翻转阈值与种子萌发阈值都是标准'阈值开关'隐喻,属认知科学常用类比。", "reject_reason": "known metaphor"}
+{"rank": 2607, "verdict": 2, "value_type": "none", "potential": "low", "reason": "模态叠加与Larson-Miller参数都是'将复杂问题投影到正交基/主曲线'的数学技巧,抽象层面相同但过于泛。", "reject_reason": "trivially obvious"}
+{"rank": 2608, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "引力透镜放大与多任务学习负迁移相似度低,都涉及'路径扭曲'但一个是信号增强一个是梯度冲突,结构错位。", "reject_reason": ""}
+{"rank": 2609, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "cGAS-STING级联与CRISPR转座酶插入都是识别+催化的分子逻辑,但前者是信号放大后者是片段插入,功能不同构。", "reject_reason": ""}
+{"rank": 2610, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "染色体张力自关闭纠错与飞行员PIO振荡都是反馈系统中正确/错误耦合产生的控制悖论,可启发'物理张力即信息'的控制工程类比。", "reject_reason": ""}
+{"rank": 2611, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "酸强度选择性权衡与多元化折价都是'过犹不及'的U型权衡,抽象可类比但过于通用。", "reject_reason": ""}
+{"rank": 2612, "verdict": 2, "value_type": "none", "potential": "low", "reason": "洋流输送与溃坝扩散波都是流体重力驱动扩散,同属流体力学,跨域贫弱。", "reject_reason": "trivially obvious"}
+{"rank": 2613, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "幽灵堵车与供应链级联断裂都是网络级联放大,隐喻常见但可量化传导速度类比。", "reject_reason": "known metaphor"}
+{"rank": 2614, "verdict": 2, "value_type": "none", "potential": "low", "reason": "珊瑚白化阈值与等离子体黑障临界密度都是阈值相变,抽象同构但是基础物理隐喻。", "reject_reason": "trivially obvious"}
+{"rank": 2615, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "Jarzynski等式与条件期望塔性质都涉及'分层取平均'的一致性守恒,数学结构层面可能类通。", "reject_reason": ""}
+{"rank": 2616, "verdict": 2, "value_type": "none", "potential": "low", "reason": "勒夏特列与自动稳定器是标准经济学教科书类比。", "reject_reason": "known metaphor"}
+{"rank": 2617, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "差动保护谐波闭锁与古DNA损伤模式鉴伪都是'真信号vs伪信号的特征识别',跨域识别逻辑相似。", "reject_reason": ""}
+{"rank": 2618, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "障碍期权Gamma奇点导致对冲风险与冻融裂隙导致水文骤增都是'临界点附近系统响应非线性放大'的跨域结构,可启发风险阈值建模迁移。", "reject_reason": ""}
+{"rank": 2619, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "片晶折叠生长与原肠运动收敛伸展都涉及分子/细胞定向排列生长,但层次差大。", "reject_reason": ""}
+{"rank": 2620, "verdict": 2, "value_type": "none", "potential": "low", "reason": "传感器融合与模型集成是数据科学众所周知类比。", "reject_reason": "known metaphor"}
+{"rank": 2621, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "轨道选择性Mott相与生物膜遗传异质性都是'同质系统内子群因局部环境差异分化为异质功能态'的涌现异质性,跨尺度同构,可启发持留态机制的物理类比。", "reject_reason": ""}
+{"rank": 2622, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "分离均衡信号揭示与代码即法律事前约束都是'规则通过结构阻止类型混淆',制度经济学和数字治理的一个桥接。", "reject_reason": ""}
+{"rank": 2623, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "ARPES与SAE特征分解都是'将高维内部态投影到可解释基',是跨'测量方法-可解释性'的共通结构。", "reject_reason": ""}
+{"rank": 2624, "verdict": 2, "value_type": "none", "potential": "low", "reason": "Th17肠道屏障与ETF套利传导都涉及'局部/中介保持系统对接',但机制完全不同。", "reject_reason": "no actionable insight"}
+{"rank": 2625, "verdict": 2, "value_type": "none", "potential": "low", "reason": "漂移波不稳定性与奥斯瓦尔德熟化都是正反馈驱动的尺度演化,抽象但普通。", "reject_reason": "trivially obvious"}
+{"rank": 2626, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "TLB命中与RNN梯度消失都有'跨层传递信息时的衰减/丢失',但一个是缓存命中一个是梯度数学,类比牵强。", "reject_reason": ""}
+{"rank": 2627, "verdict": 2, "value_type": "none", "potential": "low", "reason": "TAD边界与Hi-C都是染色质空间结构研究的一体两面,同域。", "reject_reason": "trivially obvious"}
+{"rank": 2628, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "SR-IOV虚拟功能分裂与分裂内含肽蛋白组装都是'把整体拆成可独立递送/组装的子单元',结构隔离思想相似。", "reject_reason": ""}
+{"rank": 2629, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "克拉珀龙方程与特征函数一一对应都是'从一对一对应可从一侧推另一侧',通用数学结构。", "reject_reason": ""}
+{"rank": 2630, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "AMM恒定乘积与海洋热含量积分是非常不同的守恒,但都是积分量约束动态,较弱类比。", "reject_reason": ""}
+{"rank": 2631, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "Hippo通路通过机械张力感应限制器官大小,与足底筋膜绞盘通过背屈张力刚性化足弓,都将机械张力转化为生物学状态切换,可启发器官力学稳态机制的跨尺度分析。", "reject_reason": ""}
+{"rank": 2632, "verdict": 2, "value_type": "none", "potential": "low", "reason": "PIO振荡与碳酸盐补偿深度无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2633, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "中性粒细胞核分叶降低弯曲刚性与NUMA本地内存分配降低访问延迟都是'结构分隔以优化通过/访问成本',生物细胞形态学可类比硬件NUMA设计的空间局部性原则。", "reject_reason": ""}
+{"rank": 2634, "verdict": 2, "value_type": "none", "potential": "low", "reason": "冰反照率反馈与螺旋极化都是正反馈,隐喻常用。", "reject_reason": "known metaphor"}
+{"rank": 2635, "verdict": 2, "value_type": "none", "potential": "low", "reason": "幽灵堵车与渐进倒塌都是级联放大,同属标准网络级联隐喻。", "reject_reason": "known metaphor"}
+{"rank": 2636, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "DAO投票疲劳与金属加工硬化都是'初期强后期弱'的对数增长/衰减曲线,可类比但浅。", "reject_reason": ""}
+{"rank": 2637, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "彩票假说稀疏子网络与历史记录链接都是'从嘈杂大集合中识别真实匹配项',可类比筛选策略。", "reject_reason": ""}
+{"rank": 2638, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "涡管伸展正反馈与性选择失控都是正反馈级联直到外部成本逆转,但物理/生物机制完全不同。", "reject_reason": ""}
+{"rank": 2639, "verdict": 2, "value_type": "none", "potential": "low", "reason": "VC回报幂律与DAO投票权幂律都是幂律分布,实在太普通。", "reject_reason": "trivially obvious"}
+{"rank": 2640, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "患病率vs发病率的持续时间偏差与压力测试的非线性尾部聚合都涉及'时点测量在动态过程中的系统性偏差',启发金融风险测量中生存者偏差类模型。", "reject_reason": ""}
+{"rank": 2641, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "PRR区隔化与形态发生素阈值都是'通过空间位置实现类型特异性',区隔vs梯度两种策略,值得对比。", "reject_reason": ""}
+{"rank": 2642, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "PPI不可逆抑制与RCU宽限期都涉及'旧版本失效后等待重建',可类比药代动力学周转节奏,有一定新意。", "reject_reason": ""}
+{"rank": 2643, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "量子电路SWAP成本与Rollup数据可用成本都是'算法移到底层拓扑/DA层的不可避免开销',存在结构经济学类比。", "reject_reason": ""}
+{"rank": 2644, "verdict": 2, "value_type": "none", "potential": "low", "reason": "沉默螺旋与回声室效应是同域传播学现象,不同跨域。", "reject_reason": "trivially obvious"}
+{"rank": 2645, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "固定床偏流短路与浊流密度流都是非均匀驱动下的优先路径形成,流体共性但跨域。", "reject_reason": ""}
+{"rank": 2646, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "ARPES与Hubbard量子模拟是互补方法论,同属测量/验证强关联物理,同域。", "reject_reason": "trivially obvious"}
+{"rank": 2647, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "结构改革短期代价与钙钛矿离子迁移都是'短期反效果但最终破坏长期性能'的跨时滞冲突。", "reject_reason": ""}
+{"rank": 2648, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "流动性挖矿庞氏稀释与犯罪标签效应都是'干预/奖励本身反向固化问题',先进先出/再犯自强化的反面制度设计警示,有价值的结构同构。", "reject_reason": ""}
+{"rank": 2649, "verdict": 2, "value_type": "none", "potential": "low", "reason": "光晶格能带工程与量子相干控制都是原子物理方法论同域。", "reject_reason": "trivially obvious"}
+{"rank": 2650, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "干旱自激与脱水熔融都是'水/湿度相变触发系统进入新态',跨尺度,但结构差异大。", "reject_reason": ""}
+{"rank": 2651, "verdict": 4, "value_type": "principle", "potential": "high", "reason": "侵蚀-抬升耦合稳态与纵向一体化消除双重加价都是'通过整合自动纠正两侧失衡'的负反馈均衡,地质/产业组织跨域同构。", "reject_reason": ""}
+{"rank": 2652, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "水平基因转移与对手方风险传染都是网络拓扑决定的非血统传播,网络传染学常见隐喻。", "reject_reason": "known metaphor"}
+{"rank": 2653, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "形态发生素阈值响应将单一梯度分为多区命运,与长尾分布学习解耦表示与分类头都是'共享基础上单独处理极端值',概念迁移潜力高。", "reject_reason": ""}
+{"rank": 2654, "verdict": 2, "value_type": "none", "potential": "low", "reason": "谱隙混合时间与期权Rho无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2655, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "中性粒细胞核分叶降低刚性,与神经网络剪枝去除冗余参数都可视为'以结构稀疏化换取流动/通行能力',一种精简策略跨域。", "reject_reason": ""}
+{"rank": 2656, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "逆向归纳与链梯法都是逐层递归求解,通用动态规划/递归结构。", "reject_reason": "trivially obvious"}
+{"rank": 2657, "verdict": 2, "value_type": "none", "potential": "low", "reason": "脉冲星计时与社会排斥疼痛除'残差关联'外无结构共通。", "reject_reason": "no actionable insight"}
+{"rank": 2658, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "最小基因组底盘与控制器降阶都是'删去冗余模块保留核心动力学',合成生物学可借用控制理论的平衡截断法度量必需基因。", "reject_reason": ""}
+{"rank": 2659, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "碱性位分布与气候归因指纹法都涉及'谱分布与响应函数的匹配识别',统计识别方法可类比。", "reject_reason": ""}
+{"rank": 2660, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "补体三途径汇聚与ParABS扩散棘轮是两种不同的生物'多路径汇流/方向性驱动',结构不同构。", "reject_reason": ""}
+{"rank": 2661, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "LSM树写放大与神经网络剪枝都是'主写/训练时的冗余换取后续查询效率',压缩-访问权衡同构。", "reject_reason": ""}
+{"rank": 2662, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "RNA温度计与分子振动量子比特都是直接把物理量(温度/振动)转化为信息态,物理传感器同构。", "reject_reason": ""}
+{"rank": 2663, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "VEGF旁路抵抗与DeFi利率传导都涉及'截断主通道后旁路重建平衡',一种抵抗性的通用模式。", "reject_reason": ""}
+{"rank": 2664, "verdict": 2, "value_type": "none", "potential": "low", "reason": "Jahn-Teller与光子晶体带隙都是周期性结构下的对称破缺带隙,同属凝聚态,跨域弱。", "reject_reason": "trivially obvious"}
+{"rank": 2665, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "奥斯瓦尔德熟化与季风系统位移都涉及'梯度驱动的分布漂移',但尺度差异巨大。", "reject_reason": ""}
+{"rank": 2666, "verdict": 5, "value_type": "principle", "potential": "high", "reason": "茶树寒害回青的滞后假复苏与灭绝债务的延迟灭绝都是'表面状态已注定但尚未显现'的滞后信号,跨越农业/保育的深层时滞概念,可推广到医学/风险评估的隐性损伤识别。", "reject_reason": ""}
+{"rank": 2667, "verdict": 2, "value_type": "none", "potential": "low", "reason": "费米接触项与P值曲线除'分布形态描述'外无实质同构。", "reject_reason": "no actionable insight"}
+{"rank": 2668, "verdict": 2, "value_type": "none", "potential": "low", "reason": "枝晶尖端正反馈与金属点蚀都是电化学局部自催化,同属材料,跨域弱。", "reject_reason": "trivially obvious"}
+{"rank": 2669, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "量子密度矩阵与Doob分解都是'把混合/随机过程分解为系统成分+相干/涨落成分',都是经典/量子概率的结构性分解,值得对比。", "reject_reason": ""}
+{"rank": 2670, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "电纺直径与气溶胶云间接效应都是'参数梯度沿多因子方向共同决定输出',多因子耦合结构相似但内容差异大。", "reject_reason": ""}
+{"rank": 2671, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "NLP话题建模与古气候-文明关联都是数字人文量化方法,同域方法论。", "reject_reason": "trivially obvious"}
+{"rank": 2672, "verdict": 2, "value_type": "none", "potential": "low", "reason": "量子点尺寸调光与PIO振荡无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2673, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "玻色凝聚的宏观态序参量跳变与合子基因组激活的阈值转录切换,都是系统从分散态突然进入宏观单波函数/统一转录程序的'宏观涌现相变',跨物理/发育生物学同构,高质量类比。", "reject_reason": ""}
+{"rank": 2674, "verdict": 2, "value_type": "none", "potential": "low", "reason": "闵纳特气泡共振与Lévy飞行无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2675, "verdict": 2, "value_type": "none", "potential": "low", "reason": "渗透压与互惠偏好条件合作都是'差异驱动的流动',但隐喻过于泛。", "reject_reason": "known metaphor"}
+{"rank": 2676, "verdict": 4, "value_type": "structural", "potential": "high", "reason": "量子自旋霍尔螺旋边缘态被对称保护抵抗非磁性散射,与遗传漂变帮助种群跨越局部最优低谷都是'对称破缺/噪声使系统摆脱某种局部最优陷阱'的跨域模式。", "reject_reason": ""}
+{"rank": 2677, "verdict": 2, "value_type": "none", "potential": "low", "reason": "RTK反式二聚与超导磁通比特都是'二聚/二态',但机制完全不同。", "reject_reason": "no actionable insight"}
+{"rank": 2678, "verdict": 2, "value_type": "none", "potential": "low", "reason": "环糊精释放与无氧阈漂移无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2679, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "黑死病沿贸易网传播与催化裂化碳正离子链式氢转移都是'沿拓扑路径的级联传播',隐喻可套用但普通。", "reject_reason": "known metaphor"}
+{"rank": 2680, "verdict": 2, "value_type": "none", "potential": "low", "reason": "Bloom Filter与量子点单光子源无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2681, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "晶状体胚胎感应与铁膜砷循环都涉及'界面接触下的双向反馈',但功能差异大。", "reject_reason": ""}
+{"rank": 2682, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "受激布里渊散射阈值与群体感应密度阈值都是'达到阈值后自发有序/输出切换',通用阈值-放大模式。", "reject_reason": "known metaphor"}
+{"rank": 2683, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "GTPase受控不动点循环与原肠EMT都是'正常程序在病理中被重新激活',但此对重点在前者提示'循环必回基态保证有限性',后者则'程序可被异常启动',值得讨论信号循环的时间有限性与去抑制风险。", "reject_reason": ""}
+{"rank": 2684, "verdict": 2, "value_type": "none", "potential": "low", "reason": "土工合成界面摩擦与陶片密度图无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2685, "verdict": 2, "value_type": "none", "potential": "low", "reason": "人口结构长期增长与荧光寿命粘度探测无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2686, "verdict": 3, "value_type": "mechanism", "potential": "medium", "reason": "冲击动载荷系数与流量稀释电导率都是'系统对瞬时输入的放大/稀释响应',数学相似但内容差异大。", "reject_reason": ""}
+{"rank": 2687, "verdict": 2, "value_type": "none", "potential": "low", "reason": "量子点尺寸与太沙基有效应力无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2688, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "MPLS标签交换与分裂内含肽都是'在通用底层上插入专用标签/接头实现高效转发/组装',架构层次类比。", "reject_reason": ""}
+{"rank": 2689, "verdict": 2, "value_type": "none", "potential": "low", "reason": "药物缓释扩散与咝音腭化频谱偏移无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2690, "verdict": 2, "value_type": "none", "potential": "low", "reason": "量子随机游走与软X射线谱无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2691, "verdict": 2, "value_type": "none", "potential": "low", "reason": "催化剂烧结与飞轮储能无结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2692, "verdict": 5, "value_type": "mechanism", "potential": "high", "reason": "希格斯场相变赋予质量(对称破缺后非零期望值耦合决定质量)与乙酰胆碱受体涌现聚集(Agrin激活后受体从弥散跃升至功能密度阈值)都是'相变后场/密度从零跃升至非零定义功能属性'的涌现同构,粒子物理与细胞生物学跨度大且结构精确匹配。", "reject_reason": ""}
+{"rank": 2693, "verdict": 2, "value_type": "none", "potential": "low", "reason": "近视发展正反馈与海洋含氧量下降都是正反馈加剧,但机制无关。", "reject_reason": "trivially obvious"}
+{"rank": 2694, "verdict": 4, "value_type": "mechanism", "potential": "high", "reason": "健康工人选择效应与机构羊群LSV指标都涉及'观测样本的系统性选择/相关性使表面指标偏离底层风险',选择偏差跨域结构清晰,可互相借用方法。", "reject_reason": ""}
+{"rank": 2695, "verdict": 2, "value_type": "none", "potential": "low", "reason": "病毒传播阈值与电弧击穿阈值都是标准阈值相变隐喻。", "reject_reason": "known metaphor"}
+{"rank": 2696, "verdict": 3, "value_type": "principle", "potential": "medium", "reason": "拓扑不变量与算术基本定理都是'变换下保持的结构性不变量',纯数学通用概念。", "reject_reason": "trivially obvious"}
+{"rank": 2697, "verdict": 3, "value_type": "structural", "potential": "medium", "reason": "ARPES测量能带与分裂作格语法对齐共存都是'多种体系在同一系统中并存的结构显示',抽象层可类比。", "reject_reason": ""}
+{"rank": 2698, "verdict": 2, "value_type": "none", "potential": "low", "reason": "竞争风险与土工合成摩擦无实质结构关联。", "reject_reason": "no actionable insight"}
+{"rank": 2699, "verdict": 2, "value_type": "none", "potential": "low", "reason": "电气热点监测与城市通风CFD都是工程监测手段,方法论同类。", "reject_reason": "trivially obvious"}
+{"rank": 2700, "verdict": 2, "value_type": "none", "potential": "low", "reason": "混合氧化物碱性位分布与城市绅士化定量识别都是'分布谱量化',但内容无关。", "reject_reason": "no actionable insight"}

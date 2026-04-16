@@ -264,8 +264,8 @@ function bindCardToggles(host) {
         if (expanded) expandable.setAttribute('hidden', '');
         else expandable.removeAttribute('hidden');
       }
-      // Re-render KaTeX on first expand in case equations weren't yet rendered
-      if (!expanded && window.renderMathInElement) {
+      // Render KaTeX only on first expand (guard against re-render)
+      if (!expanded && window.renderMathInElement && card.dataset.katexRendered !== 'true') {
         try {
           window.renderMathInElement(card, {
             delimiters: [
@@ -276,6 +276,7 @@ function bindCardToggles(host) {
             ],
             throwOnError: false,
           });
+          card.dataset.katexRendered = 'true';
         } catch (_) {}
       }
     });

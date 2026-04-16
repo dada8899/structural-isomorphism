@@ -1,0 +1,100 @@
+{"rank": 3901, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "A为可解释性特征分解，B为量子噪声谱反推，仅共享'反推内部结构'的泛泛表述", "reject_reason": "机制差异大：稀疏编码vs滤波函数解谱，无真正同构"}
+{"rank": 3902, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "一个是代谢-信号通路交叉，一个是囊泡介导的毒力递送", "reject_reason": "生物学两个无关机制，仅同属分子生物学广义范畴"}
+{"rank": 3903, "verdict": "weak", "value_type": "竞争序分岔", "potential": 3, "reason": "物理条纹序vs超导序竞争，与政治两党不对称极化螺旋，都是两态竞争+路径依赖", "reject_reason": ""}
+{"rank": 3904, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "CRISPR间隔序列整合vs伙伴系统内存分配，表面都是'分块管理'但机制差异极大", "reject_reason": "一个是分子免疫记忆写入，一个是内存碎片管理，没有真正同构"}
+{"rank": 3905, "verdict": "weak", "value_type": "多源数据融合估计", "potential": 2, "reason": "都是从碎片化数据用概率/融合方法重建个体/群体状态", "reject_reason": "同属计算社会科学领域，跨度不足"}
+{"rank": 3906, "verdict": "accept", "value_type": "多层次逻辑组合调控", "potential": 4, "reason": "基因调控网络的与或非逻辑组合，与跨市场操纵通过现货-衍生品联动提取价值，都涉及多环节联动产生整体效应——但更精确的同构在于'子系统状态决定整体输出'", "reject_reason": ""}
+{"rank": 3907, "verdict": "weak", "value_type": "抑制性控制回路", "potential": 2, "reason": "社交机器人污染舆论vs认知控制抑制冲动，勉强都涉及'自动化响应vs高层控制'", "reject_reason": "类比牵强，机制层面差距大"}
+{"rank": 3908, "verdict": "accept", "value_type": "阈值驱动的非线性主导", "potential": 4, "reason": "表面原子分散度帕累托分布vs径流系数随降雨强度的非线性跃升，都是'超过临界点后少数单元承担主导贡献'，结构同构清晰", "reject_reason": ""}
+{"rank": 3909, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "zero-copy sendfile与MPLS标签交换同属网络/操作系统优化手段", "reject_reason": "同领域内部两项优化技术，不构成跨域同构"}
+{"rank": 3910, "verdict": "accept", "value_type": "信息优势者的前置-后置套利", "potential": 4, "reason": "炎症小体识别损伤信号后级联切割释放炎症因子，与MEV夹心攻击利用内存池可见性前后夹击，都是'先感知→触发放大式不可逆反应'。但更精确同构在于三明治结构", "reject_reason": ""}
+{"rank": 3911, "verdict": "weak", "value_type": "跨系统耦合的传导放大", "potential": 3, "reason": "经济周期国际同步传导vs季风系统位移，都是全局强迫导致局部同步响应", "reject_reason": "同构存在但已被反复讨论"}
+{"rank": 3912, "verdict": "accept", "value_type": "稳定性约束下的解精炼", "potential": 4, "reason": "特征崩塌vs颤抖手完美均衡——都是排除退化/不稳定解的精炼机制：SSL要求非平凡表示，博弈论要求对扰动稳健", "reject_reason": ""}
+{"rank": 3913, "verdict": "accept", "value_type": "符号序列的结构反推解读", "potential": 4, "reason": "EVM字节码反编译vs古代文字计算解读，都是在无源码/无字典情况下通过频率+上下文+结构模式推断功能类别", "reject_reason": ""}
+{"rank": 3914, "verdict": "weak", "value_type": "跨边界重排/拥塞反馈", "potential": 2, "reason": "PFC暂停风暴vs跨链消息重排，都涉及队列/顺序异常引发系统性故障", "reject_reason": "机制差异显著，一个是流控一个是共识重排"}
+{"rank": 3915, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "直接与间接标准化vs神经经济学模型比较，都是统计方法比较", "reject_reason": "方法论层面的泛泛类比，无深层同构"}
+{"rank": 3916, "verdict": "accept", "value_type": "幂律发散的普适性", "potential": 4, "reason": "临界乳光关联长度幂律发散vs疲劳裂纹扩展Paris幂律，都是临界/失效附近的幂律规律，但主体不同（相变vs损伤累积）——前者连续相变后者损伤累积", "reject_reason": ""}
+{"rank": 3917, "verdict": "accept", "value_type": "双重边际/质量-数量权衡", "potential": 4, "reason": "纵向一体化消除双重加价vs生育质量-数量替代，都是'两阶段各自优化导致总体低效→合并/集中后改善'的结构", "reject_reason": ""}
+{"rank": 3918, "verdict": "accept", "value_type": "文化图式对感知的塑造", "potential": 4, "reason": "图式理论的知识结构过滤记忆vs身体作为文化文本的污染规则，都是'预设结构决定什么被看到/接受'", "reject_reason": ""}
+{"rank": 3919, "verdict": "weak", "value_type": "负反馈过度抑制", "potential": 3, "reason": "PD-L1负反馈被肿瘤利用vs交互抑制爆发力训练，都涉及抑制回路的生理作用", "reject_reason": "都属生理抑制机制，跨度不足"}
+{"rank": 3920, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "库仑阻塞单电子输运vs磁压缩绝热加热", "reject_reason": "同属物理领域的独立机制，无同构"}
+{"rank": 3921, "verdict": "accept", "value_type": "多体系共存的类别分布", "potential": 4, "reason": "分裂作格的主宾格与作格对齐共存按条件分布vs跨文化情感弧线比较——前者结构精确，后者只是比较", "reject_reason": ""}
+{"rank": 3922, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "QAOA变分优化vs微观结构噪声稳健估计量", "reject_reason": "都是优化/估计方法，但机制完全不同"}
+{"rank": 3923, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "免疫衰老记忆T细胞积累vs超分子聚合物溶剂去组装", "reject_reason": "两个无关机制"}
+{"rank": 3924, "verdict": "accept", "value_type": "比例-微分-积分三重纠正", "potential": 4, "reason": "体温调节的当前偏差+趋势+累积三重反馈vs飞行PIO相位失配振荡——前者正是PID控制的生理版，后者是高增益反馈引发振荡，都是反馈控制视角下经典案例", "reject_reason": ""}
+{"rank": 3925, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "CRISPR大片段插入vs卫星激光通信跟踪", "reject_reason": "两者都是'精准定位'但机制完全不同"}
+{"rank": 3926, "verdict": "accept", "value_type": "连续相变普适性", "potential": 4, "reason": "超导转变vs高分子共混物相容窗口，都是温度驱动的连续相变，同属相变普适类", "reject_reason": ""}
+{"rank": 3927, "verdict": "accept", "value_type": "信号沿网络级联", "potential": 4, "reason": "央行前瞻指引信号波传播vs VC跟投信号级联，都是权威节点发出信号→下游节点顺序响应", "reject_reason": ""}
+{"rank": 3928, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "字节码反编译vs蛋白质语言模型嵌入，都是从无注释序列学功能", "reject_reason": "表面类比，实质机制差异大"}
+{"rank": 3929, "verdict": "weak", "value_type": "大尺度输送通道", "potential": 2, "reason": "NAO遥相关vs西边界流热输送，都是地球系统大尺度输送", "reject_reason": "同属气候/海洋学邻近领域"}
+{"rank": 3930, "verdict": "accept", "value_type": "帕累托前沿的鞍点权衡", "potential": 5, "reason": "过拟合-欠拟合权衡vs滞胀双重困境，都是'两个目标无法同时最优，最优解在帕累托前沿/鞍点'，结构同构非常精确", "reject_reason": ""}
+{"rank": 3931, "verdict": "accept", "value_type": "信息优势者对内部过程重编程", "potential": 4, "reason": "弓形虫注射效应蛋白重编程宿主vs MEV夹击利用内存池可见性——都是'侵入者利用可见性直接操控内部状态'", "reject_reason": ""}
+{"rank": 3932, "verdict": "weak", "value_type": "身份标识与上下文解耦", "potential": 3, "reason": "纺锤体检查点零容错数字监控vs QUIC连接迁移用连接ID解耦——两者表面无关但深层类比牵强：一个是全或无否决，一个是标识解耦", "reject_reason": ""}
+{"rank": 3933, "verdict": "accept", "value_type": "正交旁路降低干扰", "potential": 4, "reason": "DPDK内核旁路vs合成生物学正交分子系统，都是'绕过宿主/默认栈降低干扰提高确定性'", "reject_reason": ""}
+{"rank": 3934, "verdict": "accept", "value_type": "分层屏蔽破裂释放", "potential": 4, "reason": "俯冲带脱水熔融vs湖泊秋季翻转混合，都是'稳定分层被打破后释放积累物质触发转化'", "reject_reason": ""}
+{"rank": 3935, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "双馈风机LVRT vs混凝土暖棚养护", "reject_reason": "两者都是'极端条件下维持正常功能'泛泛类比"}
+{"rank": 3936, "verdict": "accept", "value_type": "多约束的交集界定", "potential": 4, "reason": "Lawson判据nTτ乘积阈值vs气候敏感度多证据约束，都是多参数乘积/交集界定可行区域", "reject_reason": ""}
+{"rank": 3937, "verdict": "accept", "value_type": "概率匹配+边际分离建模", "potential": 4, "reason": "历史人口记录链接vs Copula相关性建模，都是'将边际与联合依赖分开处理，概率化匹配'", "reject_reason": ""}
+{"rank": 3938, "verdict": "accept", "value_type": "相位失配导致的分散响应", "potential": 4, "reason": "孤子分子XPM束缚振荡vs交错定价货币政策传导——都是'个体相位不同步使整体响应发生扭曲'", "reject_reason": ""}
+{"rank": 3939, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "DPDK用户态网络vs MEV夹击", "reject_reason": "两个都是系统优化/攻击但机制完全不同"}
+{"rank": 3940, "verdict": "weak", "value_type": "扰动响应反推内部参数", "potential": 3, "reason": "斯塔克效应反推偶极矩vs气候指纹法反推因子贡献，都是'已知响应模式反推系数'", "reject_reason": ""}
+{"rank": 3941, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "关节机械力反馈vs志贺毒素核糖体失活", "reject_reason": "两个无关生物学机制"}
+{"rank": 3942, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "季风位移vs咝音腭化", "reject_reason": "'位置偏移'泛泛类比"}
+{"rank": 3943, "verdict": "accept", "value_type": "分离编码联合解码/长期关系合作", "potential": 4, "reason": "Slepian-Wolf分布式信源编码vs民间定理重复博弈合作，都是'个体独立但结构关联导致整体解空间扩大'", "reject_reason": ""}
+{"rank": 3944, "verdict": "accept", "value_type": "自激正反馈强化初始扰动", "potential": 4, "reason": "干旱自激机制vs保护诱致冲突，都是'初始状态通过反馈自我强化，最终走向反面'", "reject_reason": ""}
+{"rank": 3945, "verdict": "accept", "value_type": "局部破坏自催化加剧", "potential": 4, "reason": "金属点蚀的自催化蚀坑vs城市边界层污染积聚——都是'局部破坏/闭锁条件下的自我强化'", "reject_reason": ""}
+{"rank": 3946, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "RDMA零拷贝vs核糖开关代谢物传感", "reject_reason": "'绕过中介直接响应'的表面类比"}
+{"rank": 3947, "verdict": "accept", "value_type": "密度机械感应负反馈", "potential": 4, "reason": "受激布里渊声光谐振阈值vs接触抑制YAP机械感应——一个是能量阈值一个是密度阈值，同构在'超过阈值后负反馈激活'", "reject_reason": ""}
+{"rank": 3948, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "价格离散性跨市场套利vs等长训练角度特异性", "reject_reason": "两者都是'局部有效性衰减'但跨度不足"}
+{"rank": 3949, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "期权IV曲面流动性vs嘎裂声音区", "reject_reason": "两个无关概念"}
+{"rank": 3950, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Treg多机制抑制vs细菌外膜囊泡", "reject_reason": "两个无关免疫/微生物机制"}
+{"rank": 3951, "verdict": "accept", "value_type": "逆向归纳消除不可置信解", "potential": 4, "reason": "测度论概率空间框架vs子博弈完美均衡——前者σ代数封闭性与极限运算一致性，后者子博弈完美均衡的逆向归纳排除不可置信威胁：都是'局部一致性约束全局解'", "reject_reason": ""}
+{"rank": 3952, "verdict": "accept", "value_type": "对数线性收敛速度", "potential": 4, "reason": "菲涅尔绕射插入损失对数线性vs马尔可夫链谱隙混合时间，都是'关键参数决定对数型收敛速度'", "reject_reason": ""}
+{"rank": 3953, "verdict": "accept", "value_type": "前馈补偿最小化损失", "potential": 4, "reason": "福利三角最小化约束下定价vs前馈扰动补偿，都是'预测偏差并主动补偿使损失最小'", "reject_reason": ""}
+{"rank": 3954, "verdict": "accept", "value_type": "有限生成结构的指数衰减", "potential": 4, "reason": "Mordell定理椭圆曲线有理点有限生成vs Cramér大偏差指数衰减，结构在'刻画稀有事件/元素的精细尺度'——弱同构", "reject_reason": ""}
+{"rank": 3955, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "星形胶质三突触单元vs BiTE双特异性抗体", "reject_reason": "都是细胞接触介导但机制完全不同"}
+{"rank": 3956, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "飞秒X射线衍射vs历史人口记录链接", "reject_reason": "两者都是'从碎片数据重建'但完全无关"}
+{"rank": 3957, "verdict": "accept", "value_type": "裕度管理与临界切除", "potential": 4, "reason": "创业公司烧钱率与跑道管理vs电力系统暂态稳定临界切除时间——都是'关键参数裕度不足将不可逆失效，必须在裕度耗尽前完成关键动作'，同构精确", "reject_reason": ""}
+{"rank": 3958, "verdict": "accept", "value_type": "时间滑动窗口提取演化", "potential": 4, "reason": "库仑爆炸成像追踪分子几何演化vs中文报刊词汇漂移追踪，都是'通过时间序列快照重建演化轨迹'", "reject_reason": ""}
+{"rank": 3959, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "同一加密市场四年减半周期的两条重复记录", "reject_reason": "几乎同词条重复"}
+{"rank": 3960, "verdict": "weak", "value_type": "密度感知负反馈", "potential": 2, "reason": "Hippo通路器官大小门控vs热应激奶牛产奶下降", "reject_reason": "生物学领域内邻近机制"}
+{"rank": 3961, "verdict": "accept", "value_type": "尺度依赖的衰减速率", "potential": 4, "reason": "素数密度对数稀疏衰减vs手机电量高负载下加速衰减，都是'某量随规模非线性变化'但方向相反——值得比较", "reject_reason": ""}
+{"rank": 3962, "verdict": "accept", "value_type": "倒U型/衰减式响应", "potential": 4, "reason": "选择过载倒U型效应vs DAO治理投票疲劳衰减，都是'参与度初期升高后系统性下降'", "reject_reason": ""}
+{"rank": 3963, "verdict": "accept", "value_type": "镜像对称的功能差异", "potential": 4, "reason": "手性药物对映体活性差异vs情报组织镜像化风险——都是'镜像结构导致功能/判断翻转'，表面相似但后果显著不同", "reject_reason": ""}
+{"rank": 3964, "verdict": "accept", "value_type": "梯度驱动的扩散传播", "potential": 4, "reason": "灌溉水土壤渗透扩散vs地震波P/S波传播，都服从梯度驱动的波动/扩散方程", "reject_reason": ""}
+{"rank": 3965, "verdict": "accept", "value_type": "代理变量的信息不对称", "potential": 4, "reason": "价格质量启发vs VPIN订单流毒性——都是'通过可观测代理推断不可观测质量/信息'", "reject_reason": ""}
+{"rank": 3966, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "浓度/时间依赖抗菌vs认知控制冲动消费", "reject_reason": "两者都是'剂量-响应'但完全无关"}
+{"rank": 3967, "verdict": "accept", "value_type": "幂律分布少数主导", "potential": 4, "reason": "城市遗址面积幂律分布vs自由基聚合分子量帕累托分布，都是'跨数量级尺寸分布+少数大单元主导整体属性'", "reject_reason": ""}
+{"rank": 3968, "verdict": "accept", "value_type": "估计误差校正", "potential": 4, "reason": "肾功能下降剂量调整vs回归均值干预研究干扰，都是'基于单次测量估计存在偏差，需要校正'", "reject_reason": ""}
+{"rank": 3969, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "CRISPR间隔序列获取vs QUIC连接迁移", "reject_reason": "'记忆/状态持久化'的浅层类比"}
+{"rank": 3970, "verdict": "accept", "value_type": "长期退化导致响应失效", "potential": 4, "reason": "发动机喘振裕度衰减vs控制器执行器粘连，都是'长期偏离工况导致临界裕度消失，需周期维护'", "reject_reason": ""}
+{"rank": 3971, "verdict": "accept", "value_type": "夹点约束最小公用工程", "potential": 4, "reason": "轮烷封端位阻阈值vs换热网络夹点分析，都是'几何/温度夹点约束决定系统可行性'", "reject_reason": ""}
+{"rank": 3972, "verdict": "accept", "value_type": "分形结构局部场增强", "potential": 4, "reason": "等离激元热点局域场增强vs城市路网分形通达性，都是'分形/多尺度结构产生的局部强度极值'", "reject_reason": ""}
+{"rank": 3973, "verdict": "accept", "value_type": "阈值穿越滞后环", "potential": 4, "reason": "钝化膜正反扫滞后vs等离子体鞘套通信黑障，都是'阈值穿越产生开关式滞后'", "reject_reason": ""}
+{"rank": 3974, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "认知控制抑制消费vs城市居民行动圈量化", "reject_reason": "同属计算社科但无结构同构"}
+{"rank": 3975, "verdict": "accept", "value_type": "正反馈泡沫+挤出效应", "potential": 4, "reason": "财政挤出效应vs加密FOMO泡沫——前者负反馈挤出，后者正反馈膨胀，结构相反但同属'乘数效应'", "reject_reason": ""}
+{"rank": 3976, "verdict": "accept", "value_type": "从碎片重建祖先结构", "potential": 4, "reason": "激光诱导电子衍射原子结构反演vs手稿比较谱系重建——都是'通过散射/差异模式反推未直接观察的祖先结构'", "reject_reason": ""}
+{"rank": 3977, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Berry-Esseen收敛速率vs局部时Tanaka公式", "reject_reason": "同属概率论"}
+{"rank": 3978, "verdict": "accept", "value_type": "高维表征降维到认知地图", "potential": 4, "reason": "位置细胞的抽象认知地图vs UMAP表型组降维，都是'高维输入→低维拓扑表征'", "reject_reason": ""}
+{"rank": 3979, "verdict": "accept", "value_type": "链式级联能量释放", "potential": 4, "reason": "磁重联能量释放级联vs烃类裂解链式自由基传播，都是'单点引发→链式传播→整体能量/质量转化'，同构精确", "reject_reason": ""}
+{"rank": 3980, "verdict": "accept", "value_type": "分布尾部的显著性检验", "potential": 4, "reason": "温度采样调节分布尖锐度vs ChIP-seq泊松检验峰检出，都是'在分布上设阈值选择显著事件'", "reject_reason": ""}
+{"rank": 3981, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "质子泵不可逆抑制vs EIT量子存储器", "reject_reason": "'映射/存储'表面类比"}
+{"rank": 3982, "verdict": "accept", "value_type": "级联信号放大", "potential": 4, "reason": "cGAS-STING自DNA级联免疫感应vs跨市场操纵的衍生品联动放大，都是'单点触发→跨组件级联→整体响应'", "reject_reason": ""}
+{"rank": 3983, "verdict": "accept", "value_type": "承诺/意图驱动的先动优势", "potential": 4, "reason": "Stackelberg先动优势vs基于意图跨链结算，都是'先声明/承诺→后续响应者围绕该承诺优化'", "reject_reason": ""}
+{"rank": 3984, "verdict": "accept", "value_type": "路径依赖滞后环", "potential": 4, "reason": "斯托克斯/反斯托克斯熵竞争vs循环伏安氧化还原峰对，都是'正反方向过程不对称产生滞后'", "reject_reason": ""}
+{"rank": 3985, "verdict": "accept", "value_type": "外部强迫比改变内部分层", "potential": 4, "reason": "细菌生物膜基质遗传异质性vs河口盐淡水混合分层，都是'外界梯度驱动内部分层并保留不同态空间'", "reject_reason": ""}
+{"rank": 3986, "verdict": "accept", "value_type": "选择性暴露导致样本偏倚", "potential": 4, "reason": "发表偏倚漏斗图检测vs绅士化的纵向追踪识别——都是'不可见选择过程导致样本结构偏移，需通过时空模式检测'", "reject_reason": ""}
+{"rank": 3987, "verdict": "accept", "value_type": "结构耦合再生振荡", "potential": 4, "reason": "薄壁件数控加工再生颤振vs激波边界层干扰激波振荡，都是'结构响应反作用于驱动力→自激振荡'", "reject_reason": ""}
+{"rank": 3988, "verdict": "accept", "value_type": "S型正反馈自强化扩散", "potential": 4, "reason": "Polycomb H3K27me3 S型扩散vs热钱流入指数膨胀，都是'自催化正反馈产生S型动力学，由阈值触发'", "reject_reason": ""}
+{"rank": 3989, "verdict": "accept", "value_type": "刚性规则的绕行溢出", "potential": 5, "reason": "宪法修改僵化vs海贸禁令外溢，都是'刚性禁令无法消除真实需求，压力通过非正式渠道绕行并倒逼制度松动'，同构非常精确", "reject_reason": ""}
+{"rank": 3990, "verdict": "accept", "value_type": "无标度网络的集中度", "potential": 4, "reason": "幂律分布无标度网络vs DAO投票权集中度，都是'分布极度不均匀→少数节点主导'", "reject_reason": ""}
+{"rank": 3991, "verdict": "accept", "value_type": "非线性阈值响应曲线", "potential": 4, "reason": "弓形激波脱体距离线性关系vs链上借贷利率S曲线——都是关键参数驱动的非线性响应", "reject_reason": ""}
+{"rank": 3992, "verdict": "accept", "value_type": "对数vs线性的边际效益", "potential": 4, "reason": "Vega线性敏感度vs齐奥尔科夫斯基对数关系，都是参数敏感度的基本形式对比", "reject_reason": ""}
+{"rank": 3993, "verdict": "accept", "value_type": "约束边界的最优落点", "potential": 4, "reason": "裂缝宽度规范控制vs MPC约束处理，都是'多参数约束界定可行域，最优解贴约束边界'", "reject_reason": ""}
+{"rank": 3994, "verdict": "accept", "value_type": "正反馈自我放大", "potential": 4, "reason": "海冰反照率反馈vs河流蛇曲演化——都是'初始偏移被反馈强化直至突变转折'，同构精确", "reject_reason": ""}
+{"rank": 3995, "verdict": "accept", "value_type": "守恒定律的线性vs反比", "potential": 4, "reason": "DeFi守恒乘积反比关系vs复合材料混合律线性关系——都是守恒/体积约束下的数量关系，但一个反比一个线性", "reject_reason": ""}
+{"rank": 3996, "verdict": "accept", "value_type": "残差/拖累的系统性损耗", "potential": 4, "reason": "杠杆ETF波动率拖累vs比例控制稳态误差，都是'缺少某种补偿导致系统性残差'", "reject_reason": ""}
+{"rank": 3997, "verdict": "accept", "value_type": "风格指纹的统计归属", "potential": 4, "reason": "推文政治倾向自动分类vs诗歌韵律计算风格比对，都是'通过语言细粒度特征做风格/立场归属'，但同属计算人文", "reject_reason": ""}
+{"rank": 3998, "verdict": "accept", "value_type": "抢占/背压的流控权衡", "potential": 4, "reason": "背压流控vs调度器抢占点非抢占窗口，都是'消费者-生产者节奏调控与不可打断关键区'——但同属系统领域", "reject_reason": ""}
+{"rank": 3999, "verdict": "accept", "value_type": "曲率驱动的几何演化", "potential": 4, "reason": "弓形激波脱体距离与曲率半径线性关系vs晶界迁移曲率驱动，都是'曲率几何量直接决定演化速率'", "reject_reason": ""}
+{"rank": 4000, "verdict": "accept", "value_type": "双向诱导级联", "potential": 4, "reason": "炎症小体焦亡激活级联vs晶状体胚胎诱导级联，都是'识别→切割/诱导→不可逆下游级联'", "reject_reason": ""}

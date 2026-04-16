@@ -1,0 +1,100 @@
+{"rank": 1201, "verdict": "reject", "reject_reason": "散裂中子源是粒子级反应产率问题，充电电流是分布参数电路的费兰蒂效应，两者既无共享的数学结构也无共同抽象机制"}
+{"rank": 1202, "verdict": "reject", "reject_reason": "SAE特征分解是高维稀疏表示学习，历史地图配准是几何变形校正，表面都涉及坐标变换但底层问题性质完全不同"}
+{"rank": 1203, "verdict": "reject", "reject_reason": "反应器热点漂移是局部放热—失活耦合移动，深水负浮力驱动是密度差驱动的垂直输运，两者方向、驱动力、时间尺度均无结构对应"}
+{"rank": 1204, "verdict": "reject", "reject_reason": "拉曼熵竞争涉及量子态布居和熵，剂量效应曲线斜率描述浓度-响应敏感度，一个是统计物理一个是药理学形状匹配而非机制同构"}
+{"rank": 1205, "verdict": "accept", "value_type": "协议死锁的通用结构", "potential": 3, "reason": "2PC的协调者阻塞与Nagle+延迟ACK死锁都是双方互相等待对方先行动的同构结构，都需要第三方打破或超时机制；同属分布式/网络协议经典教材案例，同构性清晰但跨域跨度小"}
+{"rank": 1206, "verdict": "reject", "reject_reason": "做市商价差压缩是竞争者趋同的负反馈，海洋层化抑制扩散是密度梯度阻止垂向混合，一个是博弈趋同一个是物理屏障，机制类型不同"}
+{"rank": 1207, "verdict": "reject", "reject_reason": "信号混叠是频域折叠的采样问题，力量耐力干扰是分子通路相互抑制，两者均用'干扰'一词但机制层完全不同"}
+{"rank": 1208, "verdict": "accept", "value_type": "正反馈放大的气候反馈环", "potential": 2, "reason": "温室效应水汽正反馈与海冰反照率正反馈都是气候系统中的典型自我放大机制，结构同构明确但同为气候学内部，跨域价值低"}
+{"rank": 1209, "verdict": "reject", "reject_reason": "茶叶品质随海拔幂律提升是经验统计的边际递减，机械臂逆运动学求解难度随自由度增长是计算复杂性问题，两者'递减/增长'形状不同"}
+{"rank": 1210, "verdict": "reject", "reject_reason": "γδ T细胞非经典识别和双特异性抗体都是免疫学内部机制，涉及T细胞激活但同属免疫学，非跨域"}
+{"rank": 1211, "verdict": "reject", "reject_reason": "飞秒泵浦探测用时间延迟扫描捕获动力学快照，纳米孔测序通过电流轨迹反推序列，两者都涉及'信号反演'但物理原理无同构"}
+{"rank": 1212, "verdict": "reject", "reject_reason": "非最小相位反向欠冲是零点位于右半平面的控制特性，铁电畴壁滞回是铁电相变现象，表面都有'反向'但底层完全不同"}
+{"rank": 1213, "verdict": "accept", "value_type": "扩散波动方程的共同数学结构", "potential": 4, "reason": "P/S波与溃坝扩散波表面物理不同，但都服从波动/扩散方程在重力/弹性势驱动下向外传播，前沿推进与衰减形式可映射；跨地质—水文，数学结构共享明确"}
+{"rank": 1214, "verdict": "reject", "reject_reason": "SaaS扩张前置指标预测是客户使用模式信号挖掘，电气热点温度监测是红外物理检测，两者都是'早期预警'但信号物理基础完全不同"}
+{"rank": 1215, "verdict": "accept", "value_type": "平流—扩散耦合的物质输运", "potential": 4, "reason": "低空急流水汽输送和地下水污染弥散同构于对流—扩散方程：定向平流+湍流横向扩散共同决定分布，跨大气—地下水，是经典平流扩散方程的跨域应用"}
+{"rank": 1216, "verdict": "accept", "value_type": "扩散过程的算子表征", "potential": 4, "reason": "Nyquist阻抗谱的弛豫过程分解和Fokker-Planck方程对扩散过程概率密度演化的二阶偏微分表达共享'扩散+漂移'的算子结构，电化学半圆的低频尾对应的Warburg阻抗正是扩散方程解；数学同构深刻"}
+{"rank": 1217, "verdict": "reject", "reject_reason": "烃池机理是局部自催化正反馈，硅酸盐风化是全球碳汇负反馈，一正一负反馈方向相反，并非同构"}
+{"rank": 1218, "verdict": "reject", "reject_reason": "密近双星质量转移是引力驱动物质流，俯冲带脱水熔融是矿物相变释水，两者都是'物质转移'但驱动力和尺度完全不同"}
+{"rank": 1219, "verdict": "reject", "reject_reason": "聚合物应力发白是微银纹造成的光学变化，喉化元音是声带振动模式，表面都是'由内部结构变化产生特征外观'但无真结构同构"}
+{"rank": 1220, "verdict": "reject", "reject_reason": "具身认知是身体—认知耦合，生育意愿背离是态度—行为差距，两者属于心理学同域内部现象，非跨域且机制不同构"}
+{"rank": 1221, "verdict": "reject", "reject_reason": "斯塔克效应偶极矩测量和Nyquist压扁半圆是两种独立的测量/响应方法，除都'响应外场'外无同构"}
+{"rank": 1222, "verdict": "reject", "reject_reason": "Prandtl-Meyer膨胀是等熵几何关系，Z-R关系是雷达反射率的经验幂律，都是'确定对应关系'但物理内涵不同"}
+{"rank": 1223, "verdict": "accept", "value_type": "能级避交叉与简并解除的通用结构", "potential": 5, "reason": "Jahn-Teller畸变解除轨道简并和声腔避交叉分岔均属于相互作用耦合解除简并的通用量子力学结构；描述中明确指出了与双量子点避交叉的数学同构，是跨声学—凝聚态物理的深刻同构范例"}
+{"rank": 1224, "verdict": "accept", "value_type": "链式级联正反馈的支化分支过程", "potential": 4, "reason": "烃类裂解链式自由基传播和DeFi清算级联同构于支化分支过程：单次触发引发指数级级联传播，每次事件创造新的触发条件；跨化学—金融的经典级联模型同构"}
+{"rank": 1225, "verdict": "reject", "reject_reason": "水稻冷害空壳是低温阻断小孢子发育的生理伤害，发酵乳后酸化是菌种持续代谢的化学变化，两者都是'时段内的生物化学过程'但结构毫无重叠"}
+{"rank": 1226, "verdict": "accept", "value_type": "涡旋/湍流驱动的跨屏障输运", "potential": 3, "reason": "南大洋跨锋面输送和Hadley环流都涉及经向对流+湍流横向扩散完成能量/物质的低纬—高纬传递，机制可映射但同属大气海洋学，跨域跨度有限"}
+{"rank": 1227, "verdict": "reject", "reject_reason": "阿尔芬波三波耦合级联是波波非线性相互作用，RTK二聚激活是受体配体诱导二聚化，都涉及'二体/三体作用'但物理语义不同"}
+{"rank": 1228, "verdict": "reject", "reject_reason": "散热翅片温度指数衰减是热传导方程解，深水浪群速度分散是色散关系，两者都是物理衰减但方程形式不同"}
+{"rank": 1229, "verdict": "reject", "reject_reason": "CNN权重共享是参数绑定的归纳偏置，Slepian-Wolf分布式编码是联合解码下的信息论下界，两者都节省资源但机制完全不同"}
+{"rank": 1230, "verdict": "reject", "reject_reason": "LP分期召资是资金效率机制，再生冷却是热管理机制，都是'延迟使用/分批处理'但底层无真同构"}
+{"rank": 1231, "verdict": "accept", "value_type": "先快后慢的衰减/流失动力学", "potential": 3, "reason": "城市管道老化的性能退化和网课完课率双曲衰减都是初期快速流失后拖长尾的幂律/双曲衰减结构；跨工程—教育，形状同构清晰但机制层深度有限"}
+{"rank": 1232, "verdict": "reject", "reject_reason": "突触修剪活动依赖竞争是发育生物学选择性保留机制，Gamma挤压是期权做市商对冲放大，两者都是'活动强化弱者削弱'但结构并不同构"}
+{"rank": 1233, "verdict": "reject", "reject_reason": "YAP机械感应负反馈是密度依赖的细胞增殖限制，PD-L1检查点是免疫抑制标志物，两者都是细胞学但机制层次不同"}
+{"rank": 1234, "verdict": "accept", "value_type": "时间积分的累积量", "potential": 4, "reason": "庇古税的边际外部性—价格一一对应与海洋热含量作为辐射不平衡的时间积分，在结构上前者是瞬时对齐后者是累积积分，但两者都涉及'因子—效应的精确对应量'；第二个描述'时间积分效应'本身是跨域概念"}
+{"rank": 1235, "verdict": "accept", "value_type": "变分优化下的最优分布设计", "potential": 4, "reason": "最大熵原理在约束下求最优分布与Myerson拍卖在激励兼容下求最优机制都是变分优化问题：在约束集上极值化某个目标泛函；信息论—机制设计的深刻数学同构"}
+{"rank": 1236, "verdict": "reject", "reject_reason": "PD-L1免疫治疗预测是临床生物标志物，光催化空穴转移与缺陷态竞争是半导体表面物理，两者都涉及'被捕获失效vs有效反应'但物理机制毫无重叠"}
+{"rank": 1237, "verdict": "reject", "reject_reason": "水平基因转移和细菌转导都是细菌耐药水平传播，同属微生物学，非跨域"}
+{"rank": 1238, "verdict": "reject", "reject_reason": "SEIR模型是流行病学仓室动力学，齿轮箱阶次分析是旋转机械频谱，两者都是时序信号分析但问题性质完全不同"}
+{"rank": 1239, "verdict": "accept", "value_type": "性能—稳定性权衡的约束优化", "potential": 4, "reason": "催化剂酸强度与选择性的权衡和液压背压效率权衡都是典型的双目标约束优化：过强则副作用过强过弱则功能不足，都需要寻找最优配比；跨化学—机械，权衡结构普适"}
+{"rank": 1240, "verdict": "reject", "reject_reason": "建筑度日法是线性比例估算，齐奥尔科夫斯基方程是对数关系，数学形式不同"}
+{"rank": 1241, "verdict": "reject", "reject_reason": "SASP旁分泌扩散是局部分子扩散，光污染干扰是宏观物理光照影响，都是'小源头大范围影响'但机制完全不同"}
+{"rank": 1242, "verdict": "reject", "reject_reason": "组蛋白读写擦除是化学修饰模块化调控，视网膜命运时序码是转录因子时序表达，两者都是基因表达调控但结构层次不同"}
+{"rank": 1243, "verdict": "reject", "reject_reason": "热带对流组织化是湿度—辐射反馈聚集，PM2.5辐合带是风场汇聚，都是'汇聚—积聚'但机制层不同"}
+{"rank": 1244, "verdict": "accept", "value_type": "扩散方程描述的前沿推进", "potential": 4, "reason": "地震波传播（纵横波）和Richards方程描述的土壤含水量湿润锋推进都是前沿/波在介质中的非线性扩散推进；跨地质—水文，数学结构共享但前者波动后者扩散有差异"}
+{"rank": 1245, "verdict": "reject", "reject_reason": "ADCC是抗体—NK细胞桥接杀伤，Hedgehog信号障碍是胆固醇代谢交叉病，两者同属生物学且机制层无共享"}
+{"rank": 1246, "verdict": "accept", "value_type": "嵌套同心圆的层次依赖结构", "potential": 4, "reason": "亲属同心圆扩展和生态系统多层锁定都是嵌套层次结构：核心层最紧密，外层覆盖广但强度递减；跨人类学—产业组织，结构同构清晰有迁移解释力"}
+{"rank": 1247, "verdict": "reject", "reject_reason": "飞秒X射线衍射是结构动力学成像，Copula是依赖结构建模，两者都是'高维关联分析'但领域语义无同构"}
+{"rank": 1248, "verdict": "reject", "reject_reason": "城市热岛空间梯度是热扩散稳态，咝音腭化是共振峰偏移，都'向某方向推进'但物理实质完全不同"}
+{"rank": 1249, "verdict": "accept", "value_type": "边际效益递减与对数线性关系", "potential": 3, "reason": "声屏障插入损失随菲涅尔数对数线性增长和遗憾最小化的遗憾随轮数平方根增长都是边际效益递减结构，形状相似但具体数学形式不同，跨声学—博弈论"}
+{"rank": 1250, "verdict": "accept", "value_type": "非线性扩散的深度衰减", "potential": 4, "reason": "海洋混合层风力搅拌能量指数衰减与Bergeron过程混合相云中水汽梯度驱动扩散都是梯度驱动的物质/能量传输；同属大气海洋但机制细节不同，有同构但跨域弱"}
+{"rank": 1251, "verdict": "reject", "reject_reason": "回归均值效应是极端值向均值靠近，ML缺失值补全是概率推断，都是'统计处理'但结构完全不同"}
+{"rank": 1252, "verdict": "reject", "reject_reason": "飞控粘滞是机械摩擦死区，复合材料热残余应力是固化冷却应变，两者都是工程缺陷但物理完全不同"}
+{"rank": 1253, "verdict": "accept", "value_type": "电子/电荷调控的精细化设计", "potential": 3, "reason": "合金配体效应通过电子轨道杂化调控吸附和超分子给受体异质结通过电荷转移组装，都是'通过电子结构调控材料性质'的设计原理；跨催化—超分子化学有一定关联"}
+{"rank": 1254, "verdict": "reject", "reject_reason": "PIP2信号域的局部消耗—全局补充稳态和染色体倒位锁定单倍型是完全不同的分子生物学机制"}
+{"rank": 1255, "verdict": "accept", "value_type": "边际收益递减的规模效应", "potential": 2, "reason": "资本深化对数收益和规模经济成本递减都是经济学内部的边际递减现象，同属经济学非跨域"}
+{"rank": 1256, "verdict": "reject", "reject_reason": "流化床节涌是气液两相流不稳定，大洋内波破碎是海洋内波耗散，表面都是波动但物理机制不同构"}
+{"rank": 1257, "verdict": "reject", "reject_reason": "齿轮传动比是恒定比例，火箭方程是对数关系，数学形式完全不同"}
+{"rank": 1258, "verdict": "reject", "reject_reason": "非均匀成核位点分布和固定床偏流是完全不同的现象，前者是晶体成核后者是流体分布"}
+{"rank": 1259, "verdict": "accept", "value_type": "干预反向强化的自我应验反馈", "potential": 4, "reason": "犯罪标签效应和社交平台螺旋极化都是'干预本身强化了被干预对象'的反向反馈结构：司法标签反而使犯罪者更难回归，算法推送反而将平台推向极端；跨犯罪学—传播学的社会系统同构"}
+{"rank": 1260, "verdict": "reject", "reject_reason": "拉曼熵竞争和人口结构长期增长没有任何结构同构"}
+{"rank": 1261, "verdict": "reject", "reject_reason": "索雷特效应是温度梯度下的粒子分离，旋翼入流是诱导气流分布，两者都是流体问题但同构性弱"}
+{"rank": 1262, "verdict": "accept", "value_type": "能量在两个存储形式间的周期性转换", "potential": 4, "reason": "行星轨道运动中引力势能和动能周期转换与LC振荡中电场能磁场能周期转换是经典教科书级同构：线性回复系统的周期能量转换；跨天体物理—电路，是数学结构同构典范"}
+{"rank": 1263, "verdict": "reject", "reject_reason": "标准模型规范对称性和二次域整数环都涉及对称/代数结构但物理/数学语境不同"}
+{"rank": 1264, "verdict": "reject", "reject_reason": "刻板印象威胁是心理—行为负反馈，异交衰退是基因适应性丢失，两者属于不同学科且机制层次完全不同"}
+{"rank": 1265, "verdict": "accept", "value_type": "活跃度随时间的指数/双曲衰减", "potential": 3, "reason": "资本深化对数收益和DeFi治理投票率衰减都是'参与/收益随时间递减'的衰减结构，跨宏观经济—DeFi有一定同构"}
+{"rank": 1266, "verdict": "reject", "reject_reason": "准双年振荡是波—平均流相互作用驱动，LC振荡是电感电容储能，两者都是振荡但驱动机制完全不同"}
+{"rank": 1267, "verdict": "reject", "reject_reason": "大洋内波破碎和重音转移无任何结构同构"}
+{"rank": 1268, "verdict": "accept", "value_type": "链式级联的正反馈传播", "potential": 4, "reason": "催化裂化碳正离子链式氢转移和DeFi清算瀑布级联都是支化分支过程的典型同构，但与1224高度相似；跨化学—金融同构明确"}
+{"rank": 1269, "verdict": "accept", "value_type": "增益—损耗平衡下的极限环", "potential": 5, "reason": "Peierls不稳定性驱动的CDW形成和Rijke管热声极限环都是从不稳定基态自发演化到新稳定态的同构过程，前者在能级能隙上，后者在声场振幅上；跨凝聚态—流体声学是深刻的不稳定性—相变/极限环同构"}
+{"rank": 1270, "verdict": "reject", "reject_reason": "催化剂烧结失活和气溶胶—降水间接效应两者都是时间依赖物理化学过程但机制层完全不同"}
+{"rank": 1271, "verdict": "reject", "reject_reason": "二次互反律和类数都是数论内部概念，同域非跨域"}
+{"rank": 1272, "verdict": "accept", "value_type": "对数—多项式尺度的信息/容量下界", "potential": 3, "reason": "分形盒计数维度和通信复杂度秩下界都涉及'在某个尺度下填充/编码的下界'思想，跨统计力学—理论计算机但同构性较抽象"}
+{"rank": 1273, "verdict": "reject", "reject_reason": "古地震痕迹和音乐史计算分析都是'历史序列的大规模量化重建'但本质只是方法论相似"}
+{"rank": 1274, "verdict": "accept", "value_type": "共振锁定驱动的大幅极限环振荡", "potential": 4, "reason": "Rijke管热声极限环和高层建筑涡脱横风共振都是外部周期性激励与固有频率锁定驱动大幅振荡，前者热—声耦合后者气动—结构耦合，跨声学—土木的流体耦合振荡同构"}
+{"rank": 1275, "verdict": "reject", "reject_reason": "NAO冬季遥相关是气压梯度振荡，斜拉桥调索耦合是结构力学传递，两者都是'调整—级联'但机制完全不同"}
+{"rank": 1276, "verdict": "reject", "reject_reason": "差异暴露/易感性混淆和代表性/可用性启发都是认知判断偏差但'偏差对象'不同，非结构同构"}
+{"rank": 1277, "verdict": "reject", "reject_reason": "流化床节涌和陆架内孤立波都涉及波动/脉动但物理本质完全不同"}
+{"rank": 1278, "verdict": "reject", "reject_reason": "议程设置量化和行动圈量化都是计算社会科学方法论，同域"}
+{"rank": 1279, "verdict": "accept", "value_type": "资源竞争导致的反协同与极化", "potential": 4, "reason": "氢键网络协同/反协同与塔形意见极化都是'相互作用使同侧增强、对立方削弱'的竞争协同结构，跨超分子化学—社交网络有启发性同构"}
+{"rank": 1280, "verdict": "reject", "reject_reason": "碱性位分布和气候—文明兴衰关联无任何结构同构"}
+{"rank": 1281, "verdict": "accept", "value_type": "相变临界下的序参量突跳", "potential": 4, "reason": "BEC一阶跳变和交通流相变都是序参量在临界点不连续变化的非平衡相变：温度/密度越过临界值后系统集体重组；跨量子—交通是相变理论跨域应用范例"}
+{"rank": 1282, "verdict": "reject", "reject_reason": "UPR三支路响应和肿瘤免疫抑制网络都是生物学并行机制但同域且机制层次不同"}
+{"rank": 1283, "verdict": "accept", "value_type": "沿网络拓扑的扩散传播", "potential": 4, "reason": "黑死病沿贸易网络传播和细菌耐药基因水平转移都是沿特定网络拓扑扩散，枢纽节点优先感染；跨历史—微生物学是网络传染病模型的跨域同构"}
+{"rank": 1284, "verdict": "reject", "reject_reason": "宇宙膨胀是空间尺度膨胀，趋肤效应是频率依赖电流分布，两者无结构同构"}
+{"rank": 1285, "verdict": "reject", "reject_reason": "减速器效率级联相乘和岩石圈弹性厚度四分之三次方都是幂律但物理机制完全不同"}
+{"rank": 1286, "verdict": "reject", "reject_reason": "收敛伸展和磁小体定向矿化都涉及方向性组织但结构层次完全不同"}
+{"rank": 1287, "verdict": "reject", "reject_reason": "肠道菌群调控T细胞分化和肿瘤Treg免疫抑制同属免疫学领域"}
+{"rank": 1288, "verdict": "accept", "value_type": "反馈控制下的动态平衡", "potential": 4, "reason": "Aurora B张力纠错自关闭和做市商库存调节报价都是力学/市场量的偏离触发修正回到平衡的负反馈闭环；跨细胞生物学—金融微观结构有启发性的自动纠错同构"}
+{"rank": 1289, "verdict": "reject", "reject_reason": "同位素示踪产流和气候指纹法都是'用特征模式区分贡献来源'但领域方法论相似度低"}
+{"rank": 1290, "verdict": "accept", "value_type": "递归/级联聚合降低验证复杂度", "potential": 4, "reason": "KLM方案通过级联辅助模式使非线性量子门成功率趋近1和ZK-SNARK递归聚合将验证成本从线性降至常数，都是通过递归/级联将昂贵操作降至可行成本；跨量子光学—密码学的递归组合同构"}
+{"rank": 1291, "verdict": "reject", "reject_reason": "双色里德伯激发和退化广播信道都是'多级/多层结构'但物理和信息论语义无同构"}
+{"rank": 1292, "verdict": "accept", "value_type": "极值统计的幂律重尾分布", "potential": 4, "reason": "NFT价格幂律分布和陶瓷断裂韦伯分布都是重尾极值分布，少数极端值主导整体；跨金融—材料科学是极值统计的跨域同构"}
+{"rank": 1293, "verdict": "reject", "reject_reason": "奥肯定律是线性比例，Hall-Petch是负半次方幂律，数学形式不同"}
+{"rank": 1294, "verdict": "reject", "reject_reason": "同位素示踪和情感表达语料库都是'混合分析'但完全不相关"}
+{"rank": 1295, "verdict": "reject", "reject_reason": "量子噪声谱重构是通过脉冲序列反推频谱，街景图像自动评估是视觉语义分割，两者都是'间接测量'但机制完全不同"}
+{"rank": 1296, "verdict": "accept", "value_type": "正反馈驱动的阈值涌现", "potential": 4, "reason": "AChR聚集的正反馈密度跃升和电池热失控的温度自加速都是局部正反馈越过阈值后系统涌现到新态的同构过程；跨细胞生物学—能源技术是阈值正反馈灾变模型"}
+{"rank": 1297, "verdict": "reject", "reject_reason": "间隙连接细胞耦合和MPLS标签转发都是'快速绕过常规识别'但物理/信息语义完全不同"}
+{"rank": 1298, "verdict": "reject", "reject_reason": "Jarzynski等式和特征函数对应都是数学理论但语境不同"}
+{"rank": 1299, "verdict": "reject", "reject_reason": "ETF折溢价均值回归是负反馈，荷兰病是正反馈，反馈方向相反非同构"}
+{"rank": 1300, "verdict": "reject", "reject_reason": "地热梯度和Rossby数都是线性/幂律关系但物理机制完全不同"}

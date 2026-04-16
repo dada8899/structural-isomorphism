@@ -1,0 +1,91 @@
+{"rank": 638, "verdict": "accept", "value_type": "阈值触发二值响应", "potential": 4, "reason": "两者都是'连续变量跨越临界阈值后系统突变为离散二值态'，珊瑚温度阈值与熔断机制在形式上同构，且一旦触发都有滞后恢复风险。启发：熔断机制的滞后带设计（需跌至更低阈值才重开）可类比思考珊瑚恢复窗口，反向地金融断路器可借鉴生态阈值-恢复曲线的非对称性设定重开条件。", "reject_reason": ""}
+{"rank": 639, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "生物物种界定的连续变异问题与航空结冰流场问题无共享动力学或决策结构。"}
+{"rank": 640, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "免疫龛空间锚定与发音器官气流控制完全不同抽象层面，相似度算法误配。"}
+{"rank": 641, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都有'阈值+动作'框架，但前者是最优停时问题，后者是KCL电流比较加谐波抑制，机制不同构且无相互可迁移方法。"}
+{"rank": 642, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "同属语言学内部对照，不构成跨域结构同构。"}
+{"rank": 643, "verdict": "accept", "value_type": "成核/渗流相变", "potential": 3, "reason": "两者都是'局部临界事件引发宏观相变'：缺陷成核 vs 交联渗流阈值。共享临界点附近的标度律和非均匀起始机制。启发：渗流理论的临界指数估算可迁移到成核密度空间分布的定量分析。", "reject_reason": ""}
+{"rank": 644, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "前者是化工流体短路流，后者是控制系统观测器高频噪声放大，机制不同构且无共同方程。"}
+{"rank": 645, "verdict": "accept", "value_type": "叠加载荷下的有效承载塌缩", "potential": 3, "reason": "两者都是'基础载荷叠加动态扰动导致微观积累最终宏观失效'：交直流叠加使绝缘极化空间电荷积聚 vs 渗流水压叠加总应力使土颗粒有效应力归零。共享'需区分表观载荷与有效载荷'结构。启发：太沙基有效应力原理可形式化借鉴到绝缘设计，将极化积累视为类'孔隙水压'的抵消项。", "reject_reason": ""}
+{"rank": 646, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都是守恒量导出的输运性质，但Klein源于拓扑赝自旋守恒，声辐射压力是时均非线性效应，共享面太抽象，提不出可迁移框架。"}
+{"rank": 647, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "电磁感应损耗与岩土相对位移摩阻反向无共享结构。"}
+{"rank": 648, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "勒夏特列是单一平衡的自动调节，肿瘤免疫抑制是网络冗余（多条并行旁路），结构类型不同，强行类比会掩盖后者关键特征。"}
+{"rank": 649, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "电磁感应环流与蠕变时间松弛机制完全不同。"}
+{"rank": 650, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "机械/土木工程细节对照，无跨域抽象。"}
+{"rank": 651, "verdict": "accept", "value_type": "主动牺牲换整体稳定", "potential": 4, "reason": "两者都是'主动接受局部/个体损耗以换取整体系统稳定'：烧蚀材料用质量损失换结构温度稳定 vs VC用单项目失败换组合期望回报稳定，且都隐含大数定律式平滑。启发：烧蚀率的最优化（不能过慢也不能过快）可类比VC的最优投资速率与项目数量阈值，形成'最小烧蚀厚度-最小组合规模'的形式化对应。", "reject_reason": ""}
+{"rank": 652, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "齐夫分布与法律多元并存无共享数学或动力学结构。"}
+{"rank": 653, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "均属化学内部浓度梯度现象，同域同类不构成跨域结构同构。"}
+{"rank": 654, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "相似度算法误配，无任何共享结构。"}
+{"rank": 655, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "平衡移动是通用自稳原理，新抗原治疗是精准医学流程，强行对应无意义。"}
+{"rank": 656, "verdict": "accept", "value_type": "反馈掩蔽下的偏差识别", "potential": 3, "reason": "两者都是'系统内部反馈隐藏真实响应结构'：固定床局部失活-偏流-转化率下降的掩蔽 vs 闭环反馈相关性引起辨识偏差。共享'需外加扰动或分流测试才能分离真实参数'方法论。启发：化工反应器可借用控制界的'闭环辨识'思路，通过分段扰动分离偏流与失活的贡献。", "reject_reason": ""}
+{"rank": 657, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "惯性力与密度分层无共享结构。"}
+{"rank": 658, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "地质记录时间序列与动态规划能量最小化完全不同抽象层。"}
+{"rank": 659, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "差动保护是KCL守恒检验，扩散模型是得分匹配生成，无共享动力学。"}
+{"rank": 660, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "气动流量-压比失稳振荡与电化学自催化蚀坑机制不同。"}
+{"rank": 661, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都是工程疲劳损伤的范畴，但前者是动态接触+电弧耦合，后者是Paris幂律，机制异构。"}
+{"rank": 662, "verdict": "accept", "value_type": "集体惯性-相变滞后", "potential": 3, "reason": "两者都是'集体行为的临界相变存在显著滞后'：语言地位滞后于政治地位 vs 交通自由流-同步流相变迟滞。共享'宏观状态切换由微观互作用决定且有时间常数'结构。启发：交通相变的迟滞回路数学可类比语言替换的代际滞后曲线，形式化'语言动量'。", "reject_reason": ""}
+{"rank": 663, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "完全无共享结构。"}
+{"rank": 664, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 665, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "细胞空间锚定与梯度方向的模型间转移强类比会混淆抽象层。"}
+{"rank": 666, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "社会行为定律与构造-侵蚀耦合无共享结构。"}
+{"rank": 667, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "地磁记录与认知偏差无共享结构。"}
+{"rank": 668, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "匀加速运动与多数派共识无共享结构。"}
+{"rank": 669, "verdict": "accept", "value_type": "先验绑定导致决策盲区", "potential": 4, "reason": "两者都是'已习得的表征被预先绑定到特定用途，面对新输入时沿原梯度方向错误响应'：人脑功能固着 vs 神经网络对抗脆弱性与跨模型转移。共享'学习到的捷径成为系统性盲区'结构。启发：功能固着的'功能抽离训练'可类比神经网络的对抗训练，反之对抗样本的梯度分析可否用于量化人类认知偏差的'脆弱方向'。", "reject_reason": ""}
+{"rank": 670, "verdict": "accept", "value_type": "滞后-补偿信号博弈", "potential": 4, "reason": "两者都是'系统内在信息延迟使决策者须通过外部信号代理真实状态'：Smith预估器用模型估计未来温度 vs 教育文凭作为能力代理信号。共享'用可观测代理补偿不可观测延迟'结构。启发：斯宾塞单交叉条件（高能力者教育边际成本低）可否对应控制中'快响应系统预估误差小'的稳定性条件，借鉴信号博弈到鲁棒预估器设计。", "reject_reason": ""}
+{"rank": 671, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "同属金融域，同域比较非跨域。"}
+{"rank": 672, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "累积式规则漂移与威慑博弈均衡属制度-博弈不同分析层。"}
+{"rank": 673, "verdict": "accept", "value_type": "环境降低的有效承载崩溃", "potential": 3, "reason": "两者都是'环境因素降低有效承载'：潮湿污秽降低绝缘表面耐压 vs 饱和松散砂孔压降低有效应力为零。共享'承载能力=材料属性-环境因子'结构，且都有'临界之下稳定、之上完全失效'的非线性跳变。启发：爬电距离的污秽度分级可类比液化势SPT判别的简化方法。", "reject_reason": ""}
+{"rank": 674, "verdict": "accept", "value_type": "约束突变下可行域塌缩", "potential": 3, "reason": "两者都是'系统因动量/约束突变进入无可行解状态'：水击液柱动量突变产生无约束压力峰 vs 扰动突变使MPC优化不可行。共享'快速变化超出系统容纳能力'结构。启发：水击缓闭阀与气囊缓冲器可类比MPC软约束与备用控制律，形成'松弛变量是工程物理缓冲'的迁移洞察。", "reject_reason": ""}
+{"rank": 675, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无共享结构。"}
+{"rank": 676, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "非局域拓扑序参量与生物免疫记忆插入仅在'非局域关联'字面弱相似。"}
+{"rank": 677, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 678, "verdict": "accept", "value_type": "非对称相变与滞后回路", "potential": 5, "reason": "两者都是'相变的上下行路径不对称形成滞后回路'的典型：信任建立慢、崩塌快，回到高信任须跨越比第一次更高的门槛 vs 交通自由流-同步流相变的密度迟滞曲线。共享Preisach型迟滞算子和集体动力学结构。启发：交通相变的自组织临界+迟滞环数学可迁移到社会信任的定量建模，用'等效势垒'概念对应信任修复的非对称代价，形成社会物理学的可验证假说。", "reject_reason": ""}
+{"rank": 679, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "土力学与语音学无共享结构。"}
+{"rank": 680, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "同属社会/传播心理学领域，都涉及行为或认知的累积效应但同域不构成跨域结构同构。"}
+{"rank": 681, "verdict": "accept", "value_type": "临界坍塌/相变骤变", "potential": 3, "reason": "两者都是'缓慢累积到临界点后系统状态瞬间跳变'：核燃料耗尽后引力坍缩 vs 交联渗流阈值后液-固瞬变。共享一阶相变的突变结构。启发：渗流临界指数理论可能可借用到坍缩判据的统计建模，尤其是各向异性坍缩与渗流斑块形态学的类比。", "reject_reason": ""}
+{"rank": 682, "verdict": "accept", "value_type": "非对称滞后回路", "potential": 5, "reason": "堪称跨域同构的范式对：信任建立-崩塌的非对称路径 vs 珊瑚升温-恢复的非对称路径，都是沿不同路径走出的迟滞环且恢复代价远大于破坏代价。共享Preisach迟滞算子和'状态记忆导致历史路径依赖'结构。启发：生态学中珊瑚迟滞回路的恢复阈值估算（需温度降至比白化触发值更低才恢复）可直接迁移到社会信任的定量研究，提供'重建信任需比维持更严苛条件'的形式化表述，将社会-生态-物理的非对称相变统一在Preisach框架下。", "reject_reason": ""}
+{"rank": 683, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 684, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "'两因素叠加优于单因素'的粗结构相似，但宏观经济学与肌肉生理机制互不相关。"}
+{"rank": 685, "verdict": "accept", "value_type": "边际效用递减曲线", "potential": 3, "reason": "两者都是'单调递减的边际曲线'：管道退化速率递减 vs 现金缓冲价值递减。共享数学形式但含义相反（成本累积 vs 价值累积）。启发：可形式化为'时间-质量'与'存量-效用'的对偶关系，运维与财务决策共享同一最优停止问题。", "reject_reason": ""}
+{"rank": 686, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "电磁感应损耗与经济边际报酬递减无结构相似。"}
+{"rank": 687, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "'身体/情感消耗换结果'过于隐喻，无机制共享。"}
+{"rank": 688, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 689, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都涉及吸热，但尺度与动力学不可比，糊化是相变而海洋是连续增温。"}
+{"rank": 690, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "守恒量导出输运性质的共享面过于抽象，提不出可迁移方法。"}
+{"rank": 691, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "同一机制不同尺度表述，非跨域。"}
+{"rank": 692, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "电子结构调控吸附能与趋化因子梯度引导迁移，'梯度'字面相似不构成结构同构。"}
+{"rank": 693, "verdict": "accept", "value_type": "幂律标度律", "potential": 4, "reason": "两者都是经典幂律分布实例：齐夫定律 vs Gutenberg-Richter定律。共享无特征尺度和自相似结构，均可由优先连接或自组织临界推导。启发：复杂系统普适类分类的经典跨域案例，可用于检验新的幂律起源理论（SOC vs 优先连接 vs 最大熵）的通用解释力。", "reject_reason": ""}
+{"rank": 694, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "少数晶粒吞噬的形态学不稳定与增益过强的闭环振荡机制不同。"}
+{"rank": 695, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 696, "verdict": "accept", "value_type": "幂律寿命-尺度律", "potential": 3, "reason": "两者都是材料/构造尺度的幂律：应力幅-循环寿命 vs 地震矩-断层面积。共享'对数坐标线性'和自相似破坏过程。启发：焊缝疲劳寿命预测的可靠度方法可迁移到地震复发周期的统计推断，将Paris裂纹扩展率与断层滑动率统一为剪切破坏普适类。", "reject_reason": ""}
+{"rank": 697, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "同属社会/行为科学内的路径依赖，同域比较非跨域同构。"}
+{"rank": 698, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都是动力学平衡，但时间尺度差异太大（秒级 vs 百万年），无可迁移方法。"}
+{"rank": 699, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "局部弯曲+整体弯曲的疲劳与期权收益凸性的叠加意义完全不同。"}
+{"rank": 700, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "同领域内现象且已被明确类比，缺乏跨域新意。"}
+{"rank": 701, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 702, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "同属工程力学，无跨域深层结构同构。"}
+{"rank": 703, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "量子隧穿与分子泵送仅'穿越屏障'字面相似。"}
+{"rank": 704, "verdict": "accept", "value_type": "热激活克服钉扎/能垒", "potential": 4, "reason": "两者都是'热激活克服局部能垒导致缓慢不可逆位移'：应力+腐蚀共同激活键断裂 vs 热激活使磁通线脱离钉扎。共享Arrhenius类蠕变形式。启发：超导磁通钉扎的Anderson-Kim蠕变理论可形式化迁移到应力腐蚀开裂的裂纹扩展速率预测，建立'钉扎密度-裂纹速率'的类比模型。", "reject_reason": ""}
+{"rank": 705, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "完全不同抽象层和领域。"}
+{"rank": 706, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "共混界面是热力学平衡导出的浓度分布，股利平滑是信号博弈下的行为规则，机制不可迁移。"}
+{"rank": 707, "verdict": "accept", "value_type": "幂律标度预测性", "potential": 3, "reason": "两者都属幂律经济学/语言学实例，经济复杂度指数本身就源于网络幂律分析，与齐夫定律方法论直接相关。启发：可检验齐夫残差与复杂性指数残差的对应、语言多样性是否预测出口复杂度，是尚未系统化的方向。", "reject_reason": ""}
+{"rank": 708, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 709, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "机制不同。"}
+{"rank": 710, "verdict": "accept", "value_type": "频域失配的伪响应/失稳", "potential": 3, "reason": "两者都是'系统动力学与信号频率不匹配导致伪响应或失稳'：喘振是低流量流量-压比斜率变号触发倒流 vs 采样不足导致高频折叠。共享'频率-动力学交互阈值'结构。启发：Nyquist采样定理的抗混叠滤波思想可类比喘振边界的'防失稳滤波'，提示可用频域稳定裕度设计旋转机械防喘振控制。", "reject_reason": ""}
+{"rank": 711, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 712, "verdict": "accept", "value_type": "可见性驱动演化均衡", "potential": 3, "reason": "两者都是'可观察性驱动群体演化到新均衡'：暴力示范/反动员效应决定动员路径 vs 价差紧的做市商获得更多成交扩散。共享'可见行为影响群体策略演化'的演化博弈结构，但前者是非对称信息+情感动员，比价差压缩更复杂。启发：做市商价差收敛的定量模型（带噪声的复制动态）可用作暴力动员-反动员阈值的形式化起点。", "reject_reason": ""}
+{"rank": 713, "verdict": "accept", "value_type": "自我强化正反馈环", "potential": 3, "reason": "两者都是'自增强正反馈回路'：工资-物价 vs 海冰-反照率。共享自激增长结构，都存在外部稳定因素决定是否发散。启发：气候反馈的Charney灵敏度分析方法可迁移到通胀预期锚定强度的定量表达，提供宏观政策的'气候灵敏度'类比。", "reject_reason": ""}
+{"rank": 714, "verdict": "accept", "value_type": "最短路径/最省原理", "potential": 4, "reason": "两者都可描述为变分原理：光走最短光程 vs 资本沿治理水平梯度寻最优回报路径。共享'最省原理'结构且都可推导类斯涅尔边界折射关系。启发：可形式化提出'资本折射率'概念，将各国治理成本视为介质折射率，预测资金流的国际路径，是金融经济学与物理的可操作同构。", "reject_reason": ""}
+{"rank": 715, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "同属工程力学，机制不同。"}
+{"rank": 716, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "都是指数曲线金融现象，同域同类。"}
+{"rank": 717, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "完全无关。"}
+{"rank": 718, "verdict": "accept", "value_type": "生理/制度性负反馈稳定器", "potential": 4, "reason": "两者都是'通过负反馈形成稳定器并存在被利用的脆弱面'：IFN-γ-PD-L1回路稳定免疫强度但被肿瘤利用 vs 央行信誉锚定预期稳定通胀但过度使用会失效。共享'负反馈稳定器+被滥用机制'结构。启发：免疫检查点阻断策略可类比央行前瞻指引的'打破锚定'操作，提示'制度可塑性与免疫可塑性'的可迁移分析框架。", "reject_reason": ""}
+{"rank": 719, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 720, "verdict": "reject", "value_type": "", "potential": 2, "reason": "", "reject_reason": "同属金融域，同一幂律曲线形式但无跨域迁移新意。"}
+{"rank": 721, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "都是工程损耗但机制不同。"}
+{"rank": 722, "verdict": "accept", "value_type": "正反馈爆发+终止机制", "potential": 3, "reason": "两者都是正反馈驱动的爆发现象，Ca²⁺有SERCA泵终止，而海冰反照率是否有类似终止机制（冰架崩解/云反馈）是开放问题。共享'激发-终止双相'结构。启发：细胞信号频率编码理论（FM vs AM信号载荷）可类比气候反馈在轨道周期上的频率编码分析。", "reject_reason": ""}
+{"rank": 723, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 724, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 725, "verdict": "accept", "value_type": "时标不匹配的脆弱点", "potential": 3, "reason": "两者都是'快速扰动绕过慢平衡导致系统错误响应'：淡水快速输入破坏慢密度对流 vs 闪贷在单区块内扰动慢更新的价格喂价。共享'时标不匹配→系统被攻击面'结构。启发：预言机的时间加权均价TWAP防御可类比海洋环流预警的'多时标滤波'，提供气候临界点早期预警的算法迁移。", "reject_reason": ""}
+{"rank": 726, "verdict": "accept", "value_type": "临界窗口/阈值相变", "potential": 4, "reason": "两者都是'从连通性/可塑性阈值处发生不可逆相变'：导体浓度-电导率渗流转变 vs 神经突触可塑性窗口-语言能力转变。共享'连通密度超临界形成大联通团'结构，后者是神经突触修剪前的渗流网络。启发：渗流临界指数和普适类思想可迁移到关键期神经网络连接密度的定量建模，预测语言可塑性窗口。", "reject_reason": ""}
+{"rank": 727, "verdict": "reject", "value_type": "", "potential": 1, "reason": "", "reject_reason": "无关。"}
+{"rank": 728, "verdict": "accept", "value_type": "不确定性下的谨慎决策", "potential": 4, "reason": "两者都是'不确定性下的谨慎决策'：H∞覆盖最坏不确定 vs VaR用分位数取尾部损失。共享'风险容忍度-性能成本'权衡结构。启发：鲁棒控制的结构奇异值μ分析可借鉴到金融VaR的分布假设检验，反向地CVaR条件尾思想可迁移到控制器的'期望最坏情形'软化设计，形成控制-金融风险管理的共同数学框架。", "reject_reason": ""}

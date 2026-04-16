@@ -1,0 +1,100 @@
+{"rank":3501,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 相关性制度切换是统计分布的突变，同位素示踪是物理混合追踪，仅共享'两状态识别'的表层；建模对象（相关矩阵 vs 端元贡献）毫无结构关联"}
+{"rank":3502,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"开尔文波与壤中流侧向传输都是边界约束下的单向横向传输：旋转科氏力 vs 重力-坡度为横向约束场，介质性质决定传播衰减率，可统一为边界波导型输运模型","reject_reason":""}
+{"rank":3503,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"枝晶尖端正反馈与静电聚结都是电场梯度在界面曲率处的自增强：高曲率处场强聚集导致物质迁移/变形，但方向相反（一个促长一个促并），可作对照阐明电场-界面耦合的双面效应","reject_reason":""}
+{"rank":3504,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 双重继嗣制是制度层面的双轨规则，DEX流动性碎片化是协议壁垒造成的资金隔离，仅共享'多通道并行'表层，机制与动力学完全不同"}
+{"rank":3505,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 拉曼声子熵与湍流超扩散唯一共通的是'幂律/熵因子'，一个是量子统计相空间一个是Lagrangian级联，无可迁移机制"}
+{"rank":3506,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 南大洋跨锋面输送是大尺度海洋物理过程，远程官能团激活是分子内能量转移，跨度过大无共同数学结构"}
+{"rank":3507,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: kpatch热修复与TCP三次握手同属系统领域但机制完全不同，一个是函数替换的原子性保证，一个是状态机同步"}
+{"rank":3508,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 患病率/发病率差异是流行病学测量学问题，荧光寿命是光物理过程，仅共享'寿命/持续时间影响观测值'的修辞类比"}
+{"rank":3509,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"期望效用的线性概率加权与VaR的分位数估计同属风险度量框架的两种代表：前者是线性期望算子，后者是非线性尾部截断，可对比展示风险度量的公理化差异","reject_reason":""}
+{"rank":3510,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 光晶格量子模拟与社交机器人舆论污染毫无结构联系，唯一共通的'集体/涌现'是泛泛的系统科学修辞"}
+{"rank":3511,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 稳定币利率传导是套利均衡机制，南大洋跨锋面输送是流体动力学输运，分属完全不同的守恒方程体系"}
+{"rank":3512,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"Cournot战略替代与家庭质-量替代都是有限资源约束下的相互抑制型选择：个体最优响应随对手/对象数量增加而减少分配，可统一为稀缺资源下的替代型博弈结构","reject_reason":""}
+{"rank":3513,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 波动率微笑风险溢价与职业声望跨社会稳定性分属定价与社会学范畴，仅勉强共享'系统性偏差/结构稳定'修辞"}
+{"rank":3514,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 战俘审讯情报开发是信息聚合方法论，宏转录组功能注释是序列比对，仅共享'从样本推断整体'的通用数据处理逻辑"}
+{"rank":3515,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"菲涅尔绕射对数线性损失与随机游走平方根律都是对数/幂律关系控制的可观测量尺度效应，可对比展示'边际收益递减'在波动物理中的不同来源（衍射相位积累 vs 扩散步数统计）","reject_reason":""}
+{"rank":3516,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 冰盖暖水入侵与加密货币FOMO泡沫都是'正反馈加速崩溃'的典型例子，此类配对在前面screen中已大量出现，无新洞察"}
+{"rank":3517,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"DNA数据存储纠错编码与电力系统状态估计冗余校验共享信息论冗余-一致性反演结构：两者都通过冗余测量在未知错误位置时用一致性约束恢复真值，本质是过约束反演","reject_reason":""}
+{"rank":3518,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"密码学承诺方案与监管沙盒都是'两阶段绑定承诺'：先承诺后揭示/先试点后立法，隐藏性对应信息不完备性，绑定性对应不可逆提交，可作为制度设计的密码学类比","reject_reason":""}
+{"rank":3519,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 睡眠周期与比特币减半周期仅共享'周期性振荡'这一表层特征，一个是生物节律一个是供给冲击驱动的市场周期，无结构同构"}
+{"rank":3520,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: vDSO内核映射与单细胞RNA液滴封装都涉及'每实例独立封装'，但机制完全不同，一个是内存映射一个是微流控"}
+{"rank":3521,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 创业J曲线与河道弯曲演化仅共享'生命周期'叙事，两者内部机制毫无联系"}
+{"rank":3522,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"Hippo通路机械门控与卫星帆板挠性振动都是反馈回路中的刚-柔耦合控制问题：YAP/密度反馈抑制失稳增殖对应低通滤波/陷波器抑制挠性振动，可类比制导控制设计","reject_reason":""}
+{"rank":3523,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 高LET辐射DSB修复是分子遗传学，水泥土搅拌墙止水帷幕是岩土工程，完全不相关"}
+{"rank":3524,"verdict":"pass","value_type":"共享数学形式","potential":4,"reason":"RSA与格密码同属于'陷门单向函数'密码学家族，此配对已属教科书级别，但可作为'计算困难性假设演化'的经典对照，展示后量子密码学范式转移","reject_reason":""}
+{"rank":3525,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: GWAS多基因评分与城市建筑能耗建模仅共享'多变量加权预测'这一通用统计范式"}
+{"rank":3526,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"超额死亡率估计与指令簿不平衡方向预测都是'基于基线反常检测'：两者都从历史/基线分布出发，用偏离信号做因果/方向推断，数据同化与贝叶斯更新的结构一致","reject_reason":""}
+{"rank":3527,"verdict":"pass","value_type":"深层机制连接","potential":5,"reason":"拓扑光子学单向边缘态与拓扑量子计算共享完全相同的拓扑保护原理：两者都利用体-边对应和拓扑不变量保证对局部扰动的免疫，一个是光子霍尔态一个是非阿贝尔任意子编织；这是拓扑序原理在经典波与量子计算两侧的最直接异构实现，可揭示拓扑保护的普适性","reject_reason":""}
+{"rank":3528,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: mRNA疫苗翻译优化与混合精度训练仅共享'多级优化策略'的工程思路，无共同机制"}
+{"rank":3529,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 原位EPR捕捉中间体与红外热点监测都是'在线诊断'技术，但物理量与机理完全不同"}
+{"rank":3530,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 侧信道攻击与扩散语言模型离散去噪无结构关联，前者是泄漏分析后者是生成建模"}
+{"rank":3531,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"表型组UMAP降维与出租车轨迹聚类都是'高维行为/性状数据的非线性流形识别'：两者都依赖局部结构保持的降维或聚类来还原语义功能分区，方法论可互相迁移","reject_reason":""}
+{"rank":3532,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"费米液体准粒子寿命幂律与汇率利率平价都是'约束条件下的相空间抵消关系'：前者是能量守恒约束下的相空间因子压制，后者是无套利约束下的远期汇率锁定，共享守恒约束→幂律结构的数学形式","reject_reason":""}
+{"rank":3533,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: CRISPR间隔序列获取与Clock页面置换都是'记录最近访问/入侵'，但一个是生物学永久记忆一个是近似LRU硬件位，机制与用途完全不同"}
+{"rank":3534,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 强金属-载体相互作用与北大西洋涛动遥相关毫无结构联系"}
+{"rank":3535,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 湍流超扩散幂律与循环伏安氧化还原峰对都是'路径依赖/滞后'，但一个是输运统计一个是电极动力学，仅表层类比"}
+{"rank":3536,"verdict":"pass","value_type":"共享数学形式","potential":4,"reason":"TFP索洛余差与谐波污染FFT分解共享相同的'残差分解'思维：两者都把总信号减去可识别线性分量后把残差归因为结构性扰动（技术进步/谐波）；都面临残差归因难题","reject_reason":""}
+{"rank":3537,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"结晶高分子片晶折叠生长与神经管闭合拉链机制都是'从离散起始点向两端推进的一维界面扩展'：两者的推进速率受界面能与局部动力学限制，形成'局部失败→整体缺陷'的拓扑后果，可统一为拉链型前沿推进动力学","reject_reason":""}
+{"rank":3538,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 计算政治学议程设置与孤儿作品计算识别仅共享'大规模文本挖掘'的方法论家族"}
+{"rank":3539,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"Ca²⁺诱导释放脉冲与PFC优先级流控都是'局部触发-全局暂停/爆发'的阈值门控系统：少量触发激活正反馈爆发但必须由快速负反馈（SERCA泵/恢复帧）终止，否则导致风暴扩散（Pause Storm/钙中毒）；安全裕度设计的结构同构","reject_reason":""}
+{"rank":3540,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 量子点尺寸调控与催化剂烧结失活都涉及纳米颗粒尺寸，但一个是量子限域效应一个是Ostwald熟化，机理不同"}
+{"rank":3541,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 俯冲带脱水熔融与匝道汇入瓶颈仅共享'容量下降/阻塞'的隐喻，机制完全不同"}
+{"rank":3542,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 行星环模块化与合作网络核心-边缘都是'中心-边缘结构'的常见类比，此类比在前面screen已出现多次"}
+{"rank":3543,"verdict":"pass","value_type":"深层机制连接","potential":5,"reason":"自私遗传元件与柠檬市场逆向选择共享完全相同的'群体福利 vs 个体偏差传递'的博弈结构：违反'公平分离/完全信息'假设时，偏差性传递使低质量单元超比例存留，引发军备竞赛/市场崩溃的共演化螺旋；这是演化生物学与信息经济学的直接同构，可统一为偏差传递下的演化稳定性","reject_reason":""}
+{"rank":3544,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 古土壤碳酸盐与数字足迹分析仅共享'代理变量+选择偏差'的研究设计共性"}
+{"rank":3545,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"合金d带配体效应与反应精馏耦合增效都是'原位耦合调控'：前者邻近原子电子改变吸附能，后者反应-分离同时进行推动平衡；共享'邻域耦合改变热力学约束'的思路","reject_reason":""}
+{"rank":3546,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"Treg抑制与分子笼定向催化都是'局部微环境改造抑制外部反应路径'：Treg通过IL-2消耗和共刺激竞争限制效应T细胞空间激活，分子笼通过限域创造与外部不同的反应微环境，都是'空间隔离的选择性抑制'","reject_reason":""}
+{"rank":3547,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"海冰反照率反馈与健康险费率螺旋共享完全相同的'退出放大型正反馈'结构：优质单元（冰/健康人）离开→剩余组合恶化→吸收更多能量/保费上升→更多退出，至系统崩溃；两者可统一为'选择性退出驱动的临界转变'","reject_reason":""}
+{"rank":3548,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 共享单车潮汐调度与语音学内爆音无结构联系"}
+{"rank":3549,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"土壤铁膜砷吸附循环与奶酪凝乳脱水收缩都是'网络结构在氧化还原/酶切后重构导致吸附物释放'，共享凝胶-吸附相变下的物质释放机制","reject_reason":""}
+{"rank":3550,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: RanGTP熵梯度与钢箱梁疲劳毫无结构联系"}
+{"rank":3551,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 飞秒X射线结构动力学与签到数据城市活力仅共享'时空分辨观测'的通用理念"}
+{"rank":3552,"verdict":"pass","value_type":"共享数学形式","potential":4,"reason":"庇古税与税盾折现守恒都是'总量守恒下的最优分配不变性'：前者使私人成本内化社会成本以达最优，后者税盾总值与债务结构无关；共享税收的线性可加性与折现守恒原理","reject_reason":""}
+{"rank":3553,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: ctDNA片段化与老龄化异质性遮蔽仅共享'异质性掩盖真实信号'的统计学修辞"}
+{"rank":3554,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"收敛伸展原肠运动与滑模控制切换面都是'极性约束驱动的定向运动'：细胞PCP方向与滑模面法向都定义了系统状态在几何面上的演化方向，体现出切换/极性引导的统一控制结构","reject_reason":""}
+{"rank":3555,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"二次域唯一分解与Sylow子群定理都是代数结构分类的核心工具，分属数论与群论但共享'用特殊子对象唯一性替代元素唯一性'的代数思维","reject_reason":""}
+{"rank":3556,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"SEI膜衰减与DeFi TVL逻辑斯蒂增长都是'初始加速-饱和'曲线，但方向相反（一个衰减一个增长），共享有限资源约束下的Sigmoid动力学","reject_reason":""}
+{"rank":3557,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"DeFi清算瀑布与结晶过饱和触发都是'阈值触发的自加速相变'：越过临界后整个系统从亚稳态突然相变释放压力，瀑布式抛压/晶核同时成核，可统一为阈值驱动级联","reject_reason":""}
+{"rank":3558,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 涨落-耗散定理与纹状体期望价值编码都是'响应函数'但一个是物理学定理一个是神经编码，类比过于宽泛"}
+{"rank":3559,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"规模经济边际递减与稀缺心态带宽税都是'资源分摊中的非线性损耗'：一个是固定成本分摊的凹性，一个是认知资源被紧急需求挤占的反比例，共享'有限资源分配下的边际递减'结构","reject_reason":""}
+{"rank":3560,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"海洋藻华生消与热钱流入指数膨胀都是'营养/利差脉冲触发的爆发-崩解循环'：两者都依赖外部条件脉冲启动正反馈爆发并被自身消耗机制终止，共享'脉冲-爆发-崩解'的一阶动力学","reject_reason":""}
+{"rank":3561,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"富锂高压氧释放与金属再结晶织构演变都是'脱稳态→新晶格稳态'的不可逆相变，结构重构伴随性能改变","reject_reason":""}
+{"rank":3562,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"混凝土碳化深度与海洋混合层风力搅拌都是'外界能量/物质从表面指数衰减向内渗透'，都形成明确的梯度前沿，数学上同属一维扩散-衰减方程","reject_reason":""}
+{"rank":3563,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: BEC Bogoliubov声子色散与群感效应阈值都是'集体涌现响应'，但一个是量子多体另一个是基因调控，机制跨度过大"}
+{"rank":3564,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"三维涡管伸展与翅脉反应扩散都是'自我强化局部结构+抑制/耗散邻域'的模式形成：涡管自增强对应活化子自催化，共享Turing型对称破缺产生规则结构","reject_reason":""}
+{"rank":3565,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"战时通胀遗产与气候变化时滞都是'停止外部驱动后系统状态持续演化的滞后效应'，共享由惯性/预期积累造成的非对称响应结构","reject_reason":""}
+{"rank":3566,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 声学双负超材料与超分子D-A异质结仅共享'人工结构涌现集体效应'的宽泛理念"}
+{"rank":3567,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 做市商Gamma对冲与俯冲带脱水熔融毫无结构联系"}
+{"rank":3568,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"Th1/Th2极化与海洋锋面强化降水都是'双稳态互斥偏向的边界增强'：前者是细胞因子互斥切换的功能二分，后者是温度梯度锋面激发的对流增强，共享'边界不连续驱动的偏向性涌现'","reject_reason":""}
+{"rank":3569,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"Polycomb S型扩散与AER远端FGF持续信号都是'源-远距离信号梯度决定命运分界'，共享位置信号积累阈值→命运切换的结构","reject_reason":""}
+{"rank":3570,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 飞秒X射线与电影字幕跨文化情感比较都是'时序观测+叙事重建'的空泛类比"}
+{"rank":3571,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"Wnt破坏复合体稳态与纺锤体检查点都是'默认抑制+信号解除'的零泄漏主动保护机制：静息时主动清除/抑制激活信号，保证无信号时不误触发，共享负反馈维持的低基线数字门控","reject_reason":""}
+{"rank":3572,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"X染色体随机失活与端粒T环都是'通过正反馈/保护构象锁定的双稳态或不动点'：状态一旦建立自我维持，破坏即触发灾难性应答，共享'稳定态通过主动维持保卫而非被动存续'","reject_reason":""}
+{"rank":3573,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"跨货币基差持续偏差与公共物品条件性合作都是'理论零偏差在实际中被结构性摩擦持续扭曲'，共享'偏差不消失反映隐含成本/期望'的均衡诠释","reject_reason":""}
+{"rank":3574,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"光学参量放大压缩态与d带配体效应都是'通过耦合在守恒约束下重新分配一方损失以换另一方增强'：OPA在正交分量间分配噪声，合金在原子间分配电子密度","reject_reason":""}
+{"rank":3575,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 行星环模块化与零售幂律都是'中心-外围/幂律分布'的常见类比"}
+{"rank":3576,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"流行病代际间隔与集合竞价-连续交易效率都是'时序聚合单位的选择决定系统效率和可控性'：聚合窗口越短响应越快但噪声越大，共享'时间离散化粒度的权衡'","reject_reason":""}
+{"rank":3577,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 社运NLP研究与地铁站建成环境客流回归仅共享'大数据统计方法'"}
+{"rank":3578,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 跨国倡议网络与话语脚手架仅共享'语言/信息引导行为改变'的宽泛理念"}
+{"rank":3579,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 电化学SERS热点增强与签到城市活力测量仅共享'热点识别'词汇"}
+{"rank":3580,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 地理加权回归与历史气候文明兴衰都是统计方法，类比过于抽象"}
+{"rank":3581,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"PD-L1负反馈与ETF套利流动性传导都是'反向机制使扰动被平滑但同时将压力传导至底层'：PD-L1将免疫应答强度反向抑制到耐受，AP将ETF价差传导至股票篮子流动性，共享'套利/反馈机制使得表象稳定但底层承压'","reject_reason":""}
+{"rank":3582,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"三维涡管伸展与人口空洞化收缩螺旋共享'自拉伸/自收缩+邻域耦合+临界点失守'结构：正反馈驱动系统性不可逆演化，可统一为自加速型动力学","reject_reason":""}
+{"rank":3583,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"阿尔芬波湍流级联与免疫突触TCR运输降解都是'能量/信号从大尺度/外周向小尺度/中心级联并在尺度端耗散'：前者是波-波三波耦合，后者是运输-降解新陈代谢；两者共享'多尺度级联维持稳态流动'的结构","reject_reason":""}
+{"rank":3584,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"星际信号平方反比与市场冲击平方根律都是'几何扩散/聚合决定的幂律标度'，对比展示不同的物理与统计来源","reject_reason":""}
+{"rank":3585,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"金属再结晶织构演变与湖泊分层翻转都是'储存能量释放后系统重组至新稳态'：冷轧位错能驱动新晶粒，温度梯度积累后翻转释放分层；共享受阻相变的临界释放机制","reject_reason":""}
+{"rank":3586,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"控制系统死区抖振与光催化空穴表面钝化都是'缺陷/不灵敏区导致无效循环'：死区使控制反复越界，表面缺陷使载流子复合浪费；消除方法都是'填补缺陷/死区补偿'，共享缺陷主导的能量损耗结构","reject_reason":""}
+{"rank":3587,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"染色体倒位锁定单倍型与嗜酸机制单层脂膜都是'通过结构改造阻断交换/渗漏以保护功能组合'，共享'通过拓扑隔离保护协同组'的适应策略","reject_reason":""}
+{"rank":3588,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 单光子量子随机游走弹道传播与临界乳光都是涨落/散射物理但分属量子行走与相变，结构性不强"}
+{"rank":3589,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"层流边界层平方根增长与马尔可夫谱隙混合时间都是'扩散/收敛尺度随时间平方根/谱隙反比'的经典结果，共享扩散过程的特征时间标度律","reject_reason":""}
+{"rank":3590,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"催化裂化链式氢转移与建筑渐进倒塌都是'局部破坏通过载荷/电荷重分配向邻居级联扩展'：碳正离子级联攻击相邻C-H，柱失效使相邻柱超载继续破坏；共享'级联传播受结构骨架限制'的破坏动力学","reject_reason":""}
+{"rank":3591,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: mRNA疫苗优化与VQE变分本征求解仅共享'工程优化多步流程'的宽泛共性"}
+{"rank":3592,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"TAD边界限域增强子与形态发生素阈值响应都是'空间信号的边界-阈值解码决定命运分区'：CTCF边界限制增强子作用范围，阈值把连续梯度离散化；共享'连续信号→离散命运'的解码原理","reject_reason":""}
+{"rank":3593,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: ARPES能带测量与β多样性毫无结构联系"}
+{"rank":3594,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"白细胞趋化因子多步级联归巢与钙波受精膜反应都是'瞬时级联事件锁定单一结果并阻断进一步事件'：白细胞逐步锁定到特定组织，钙波触发胞吐阻断多精；共享阈值触发→不可逆锁定→其他路径封闭的级联结构","reject_reason":""}
+{"rank":3595,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"ChIP-seq峰检出泊松检验与政策因果计算识别都是'从带噪观察数据中以统计显著性/准实验分配识别真实信号'，共享反事实/假设检验的统计推断结构","reject_reason":""}
+{"rank":3596,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 弹簧回弹与火力机动钟摆都是'钟摆'的常见隐喻，类比停留表层"}
+{"rank":3597,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"多孔电极弯曲扩散与人口结构长期增长都是'有效传输率被结构阻碍系数与可用截面乘积限制'，共享'路径迂曲+截面缩减'的双重折扣机制","reject_reason":""}
+{"rank":3598,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"混凝土碳化深度与海浪深水色散传播都是'扩散/频散方程下的尺度分离演化'，两者都形成从源/入射条件出发的梯度/色散型前沿","reject_reason":""}
+{"rank":3599,"verdict":"pass","value_type":"共享数学形式","potential":3,"reason":"航空发动机喘振裕度衰减与压电陶瓷退极化都是'逐步累计损耗使安全裕度逼近临界'的寿命管理问题，都需周期性监测与条件限制，共享裕度衰减型寿命模型","reject_reason":""}
+{"rank":3600,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"domain mismatch: 价格离散性与机床爬行都涉及'静动摩擦/摩擦成本'隐喻但机理完全不同"}
