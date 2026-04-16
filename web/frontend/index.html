@@ -27,92 +27,62 @@
   <link rel="stylesheet" href="/assets/css/home.css?v=20260414c">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260414c">
   <style>
-    /* Product switcher (academic ↔ commercial) */
-    .product-switcher {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 2px;
-      background: rgba(0, 0, 0, 0.04);
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 999px;
-      font-size: 12px;
-      margin-left: 12px;
-    }
-    .product-switcher__seg {
-      padding: 5px 12px;
-      border-radius: 999px;
-      color: #52525B;
-      text-decoration: none;
-      transition: all 0.15s;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-    .product-switcher__seg:hover {
-      color: #18181B;
-    }
-    .product-switcher__seg--active {
-      background: #FAFAFA;
-      color: #18181B;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    }
-    .site-header__logo-wrap {
-      display: inline-flex;
-      align-items: center;
-    }
+    /* Phase 子产品入口（学术版 hero 下方的 callout） */
     .home__cross-product {
       margin-top: 28px;
-      padding: 14px 20px;
-      background: rgba(0, 0, 0, 0.03);
-      border: 1px dashed rgba(0, 0, 0, 0.14);
-      border-radius: 10px;
+      padding: 16px 22px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      border-radius: 12px;
       font-size: 14px;
       color: #52525B;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       flex-wrap: wrap;
+      line-height: 1.6;
+    }
+    .home__cross-product__badge {
+      display: inline-flex;
+      padding: 2px 8px;
+      background: #2563EB;
+      color: #FFFFFF;
+      font-size: 11px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
     }
     .home__cross-product a {
-      color: #0891B2;
+      color: #2563EB;
       text-decoration: none;
       font-weight: 500;
     }
     .home__cross-product a:hover { text-decoration: underline; }
     .home__cross-product-label { color: #71717A; }
-    @media (max-width: 640px) {
-      .product-switcher { margin-left: 0; margin-top: 6px; }
-      .site-header__logo-wrap { flex-wrap: wrap; }
-    }
   </style>
 </head>
 <body>
 
   <header class="site-header">
     <div class="site-header__inner">
-      <div class="site-header__logo-wrap">
-        <a href="/" class="site-header__logo">
-          <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="6" cy="6" r="3"/>
-            <circle cx="18" cy="18" r="3"/>
-            <path d="M8.5 8.5l7 7"/>
-          </svg>
-          Structural<span class="beta-badge">beta</span>
-        </a>
-        <div class="product-switcher" role="tablist" aria-label="产品切换">
-          <span class="product-switcher__seg product-switcher__seg--active" aria-current="page">🎓 学术版</span>
-          <a class="product-switcher__seg" href="/phase">💼 商业版</a>
-        </div>
-      </div>
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
       <nav class="site-header__nav">
         <a href="/classes" class="site-header__nav-link">普适类</a>
         <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/phase" class="site-header__nav-link" style="color: #2563EB;">Phase →</a>
         <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
           我的收藏
           <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
         </a>
         <a href="/about" class="site-header__nav-link">关于</a>
-        <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
       </nav>
     </div>
   </header>
@@ -129,27 +99,35 @@
         <p class="home__tagline serif">看似完全无关的现象，在数学结构层面往往是同一件事。</p>
         <p class="home__lede">描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。</p>
 
-        <!-- Inline evidence: the strongest "wow" example, right above the search box -->
+        <!-- Inline evidence: interactive card showing one isomorphism pair with mechanism.
+             Each side is clickable → fires a search; caption reveals the shared structure. -->
         <div class="home__hero-evidence" id="hero-evidence">
-          <div class="hero-evidence__pair">
-            <div class="hero-evidence__side">
-              <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
-              <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
+          <div class="hero-evidence__card">
+            <div class="hero-evidence__pair">
+              <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" aria-label="搜索 A 侧现象">
+                <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
+                <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
+                <span class="hero-evidence__desc" id="he-a-desc">不稳定的原子核自发释放粒子。释放速度只取决于当前剩余的数量——剩得越少越慢。</span>
+              </button>
+              <span class="hero-evidence__symbol" aria-label="结构同构">≅</span>
+              <button type="button" class="hero-evidence__side" id="he-b-btn" data-side="b" aria-label="搜索 B 侧现象">
+                <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
+                <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
+                <span class="hero-evidence__desc" id="he-b-desc">口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。</span>
+              </button>
             </div>
-            <span class="hero-evidence__symbol">≅</span>
-            <div class="hero-evidence__side">
-              <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
-              <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
-            </div>
-            <span class="hero-evidence__score" id="he-score">94%</span>
+            <p class="hero-evidence__caption" id="he-caption">它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。</p>
           </div>
-          <button type="button" class="hero-evidence__rotate" id="he-rotate" aria-label="换一个例子">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 4v6h6M23 20v-6h-6"/>
-              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-            </svg>
-            换一个例子
-          </button>
+          <div class="hero-evidence__controls">
+            <div class="hero-evidence__dots" id="he-dots" role="tablist" aria-label="切换例子"></div>
+            <button type="button" class="hero-evidence__rotate" id="he-rotate" aria-label="下一个例子">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 4v6h6M23 20v-6h-6"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              下一个
+            </button>
+          </div>
         </div>
 
         <form id="search-form" class="searchbox" role="search">
@@ -179,8 +157,9 @@
         <div class="home__suggestions" id="home-suggestions"></div>
 
         <div class="home__cross-product">
-          <span class="home__cross-product-label">想找公司或商业分析？</span>
-          <a href="/phase">去 Phase Detector — 用结构动力学给 204 家上市公司分类 →</a>
+          <span class="home__cross-product__badge">子产品</span>
+          <span class="home__cross-product-label">Phase Detector — 把同构引擎用到金融/商业领域。</span>
+          <a href="/phase">打开 Phase Detector →</a>
         </div>
       </div>
     </section>

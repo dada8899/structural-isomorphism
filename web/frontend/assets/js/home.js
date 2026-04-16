@@ -152,29 +152,37 @@ let _heroIdx = 0;
 let _heroInterval = null;
 
 function renderHeroEvidence(idx, animate) {
-  const pair = $('#hero-evidence');
-  if (!pair) return;
+  const wrapper = $('#hero-evidence');
+  if (!wrapper) return;
+  const card = wrapper.querySelector('.hero-evidence__card');
   const ex = DEMO_EXAMPLES[idx];
   if (!ex) return;
-  const aDomain = $('#he-a-domain');
-  const aName = $('#he-a-name');
-  const bDomain = $('#he-b-domain');
-  const bName = $('#he-b-name');
-  const score = $('#he-score');
   const apply = () => {
-    if (aDomain) aDomain.textContent = ex.a.domain;
-    if (aName) aName.textContent = ex.a.name;
-    if (bDomain) bDomain.textContent = ex.b.domain;
-    if (bName) bName.textContent = ex.b.name;
-    if (score) score.textContent = `${ex.score}%`;
+    const set = (sel, val) => { const el = $(sel); if (el) el.textContent = val; };
+    set('#he-a-domain', ex.a.domain);
+    set('#he-a-name', ex.a.name);
+    set('#he-a-desc', ex.a.desc || '');
+    set('#he-b-domain', ex.b.domain);
+    set('#he-b-name', ex.b.name);
+    set('#he-b-desc', ex.b.desc || '');
+    const cap = $('#he-caption');
+    if (cap) cap.innerHTML = ex.caption || '';
+    // Update dots
+    const dots = $('#he-dots');
+    if (dots) {
+      dots.querySelectorAll('.hero-evidence__dot').forEach((d, i) => {
+        d.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+        d.classList.toggle('is-active', i === idx);
+      });
+    }
   };
-  if (animate) {
-    pair.style.opacity = '0';
-    pair.style.transition = 'opacity 200ms var(--ease-out)';
+  if (animate && card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 180ms var(--ease-out)';
     setTimeout(() => {
       apply();
-      pair.style.opacity = '1';
-    }, 200);
+      card.style.opacity = '1';
+    }, 180);
   } else {
     apply();
   }

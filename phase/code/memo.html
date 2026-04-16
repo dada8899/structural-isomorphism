@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>投资 Memo 生成器 — Phase Detector</title>
+  <meta name="description" content="选一家公司 + 立场 → 一键生成 1500-2500 字结构化投资 memo，复制到 Notion / Substack 直接用。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15.5px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(250, 250, 249, 0.88);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 40px 0 100px; }
+
+    .hero { margin-bottom: 28px; }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    h1.hero-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.5vw, 38px);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .hero-lede {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 720px;
+      line-height: 1.75;
+    }
+
+    .panel {
+      padding: 22px 26px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 28px;
+    }
+
+    .form-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 70px;
+    }
+    select.ticker-select {
+      flex: 1;
+      min-width: 260px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--bg);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+    }
+    select.ticker-select:focus { outline: none; border-color: var(--accent); }
+
+    .side-group { display: inline-flex; gap: 0; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+    .side-btn {
+      padding: 8px 14px;
+      background: var(--bg);
+      border: 0;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+    }
+    .side-btn:last-child { border-right: 0; }
+    .side-btn:hover { background: var(--bg-card); color: var(--text); }
+    .side-btn[data-active="true"] { background: var(--accent); color: #FFFFFF; }
+
+    button.btn-primary {
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #FFFFFF;
+      border: 0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    button.btn-primary:hover { background: #1D4ED8; }
+    button.btn-primary:disabled { background: var(--text-dim); cursor: not-allowed; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .btn-tool {
+      padding: 7px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-tool:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-tool.copied { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+    .memo {
+      padding: 36px 42px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.85;
+    }
+    .memo h1, .memo h2, .memo h3 {
+      font-family: var(--serif);
+      color: var(--text);
+      letter-spacing: -0.005em;
+      line-height: 1.3;
+    }
+    .memo h1 { font-size: 26px; margin: 0 0 18px; font-weight: 600; }
+    .memo h2 {
+      font-size: 22px;
+      margin: 32px 0 14px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .memo h2:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+    .memo h3 { font-size: 16px; margin: 20px 0 10px; font-weight: 600; }
+    .memo p { margin: 10px 0; }
+    .memo ul, .memo ol { margin: 12px 0 12px 22px; }
+    .memo li { margin: 4px 0; }
+    .memo strong { color: var(--text); font-weight: 600; }
+    .memo blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 8px 16px;
+      margin: 14px 0;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border-radius: 0 6px 6px 0;
+    }
+    .memo code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--bg-card);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .memo table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13.5px;
+    }
+    .memo th, .memo td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .memo th { background: var(--bg-card); font-weight: 600; color: var(--text); }
+    .memo hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+    .memo .katex { color: var(--text); font-size: 1.05em; }
+    .memo .katex-display {
+      margin: 16px 0;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+
+    .loader {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .loading-dots { display: inline-flex; gap: 6px; }
+    .loading-dots span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); opacity: 0.4;
+      animation: dot-pulse 1.4s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.9); }
+      30% { opacity: 1; transform: scale(1.15); }
+    }
+    .loader .elapsed {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 600;
+      animation: cursor-blink 1s steps(2) infinite;
+      margin-left: 2px;
+    }
+    @keyframes cursor-blink { to { opacity: 0; } }
+
+    .hint-box {
+      padding: 40px 32px;
+      background: var(--bg-elevated);
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+    .hint-box__example {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .error-box {
+      padding: 30px 28px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      color: var(--red);
+      text-align: center;
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+
+    @media (max-width: 680px) {
+      .memo { padding: 24px 22px; }
+      .memo h1 { font-size: 22px; }
+      .memo h2 { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase/timeline">相位演变</a>
+        <a href="/phase/analogy">类比引擎</a>
+        <a href="/phase/memo">Memo</a>
+        <a href="/phase/about">关于</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="hero">
+        <div class="hero-eyebrow">INVESTMENT MEMO GENERATOR</div>
+        <h1 class="hero-title">一键生成可以直接用的<br>结构化投资 memo</h1>
+        <p class="hero-lede">
+          选一家公司 + 立场，Sonnet 4.5 帮你写一份 1500-2500 字的 memo：<strong>TLDR / 结构画像 / 三个历史类比 / 核心观点 / 五个风险 / 十个监控指标 / 六个月可证伪假设</strong>。
+          结果直接复制到 Notion / Substack / PM memo 能用。
+        </p>
+      </section>
+
+      <div class="panel">
+        <div class="form-row">
+          <label class="form-label">选公司</label>
+          <select class="ticker-select" id="ticker-select" disabled>
+            <option>加载中…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">立场</label>
+          <div class="side-group" id="side-group">
+            <button type="button" class="side-btn" data-side="long" data-active="true">📈 多头</button>
+            <button type="button" class="side-btn" data-side="short">📉 空头</button>
+            <button type="button" class="side-btn" data-side="watch">👁️ 观察</button>
+          </div>
+          <button class="btn-primary" id="run-btn" disabled style="margin-left: auto;">生成 Memo →</button>
+        </div>
+      </div>
+
+      <div id="output">
+        <div class="hint-box">
+          选一家公司 + 立场，点「生成 Memo」，Sonnet 4.5 会流式输出一份 1500-2500 字的结构化 memo。
+          <div class="hint-box__example">整个过程约 60-120 秒。生成完成后支持「复制全文」和「下载 .md」。</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · 实验性产品</div>
+      <div class="footer-links">
+        <a href="/phase">首页</a>
+        <a href="/phase/about">关于</a>
+        <a href="mailto:wanqinghui@gmail.com">联系</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    let COMPANIES = [];
+    let SELECTED = null;
+    let SIDE = 'long';
+    let fullText = '';
+
+    async function loadCompanies() {
+      try {
+        const r = await fetch('/phase/api/companies');
+        const d = await r.json();
+        COMPANIES = (d.companies || []).sort((a, b) => (b.market_cap_usd || 0) - (a.market_cap_usd || 0));
+        const sel = document.getElementById('ticker-select');
+        sel.innerHTML = '<option value="">— 请选择 —</option>' +
+          COMPANIES.map(c => `<option value="${escapeHtml(c.ticker)}">${escapeHtml(c.ticker)} · ${escapeHtml(c.name)} · ${escapeHtml(c.industry || '')}</option>`).join('');
+        sel.disabled = false;
+
+        const initT = new URLSearchParams(window.location.search).get('t');
+        const initS = new URLSearchParams(window.location.search).get('s') || 'long';
+        SIDE = initS;
+        document.querySelectorAll('.side-btn').forEach(b => b.dataset.active = (b.dataset.side === SIDE).toString());
+        if (initT && COMPANIES.find(c => c.ticker === initT)) {
+          sel.value = initT;
+          onSelectChange();
+          generateMemo();
+        }
+      } catch (e) {
+        document.getElementById('ticker-select').innerHTML = '<option>加载失败</option>';
+      }
+    }
+
+    function onSelectChange() {
+      const sel = document.getElementById('ticker-select');
+      SELECTED = COMPANIES.find(c => c.ticker === sel.value) || null;
+      document.getElementById('run-btn').disabled = !SELECTED;
+    }
+
+    // 同 timeline 的 normalizeEquation — 保护 KaTeX 渲染
+    function normalizeEquation(raw) {
+      if (!raw) return '';
+      let eq = String(raw);
+      eq = eq.replace(/\s*[（\(]\s*[^)）]*[\u4e00-\u9fff][^)）]*[）\)]/g, '');
+      const sups = { '⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','ⁿ':'n' };
+      eq = eq.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ]+/g, (m) => '^{' + [...m].map(c => sups[c] || c).join('') + '}');
+      const subs = { '₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','ᵢ':'i','ⱼ':'j','ₖ':'k','ₙ':'n' };
+      eq = eq.replace(/[₀₁₂₃₄ᵢⱼₖₙ]+/g, (m) => '_{' + [...m].map(c => subs[c] || c).join('') + '}');
+      const greek = { 'α':'\\alpha ','β':'\\beta ','γ':'\\gamma ','δ':'\\delta ','θ':'\\theta ','κ':'\\kappa ','λ':'\\lambda ','μ':'\\mu ','π':'\\pi ','σ':'\\sigma ','τ':'\\tau ','φ':'\\phi ','ψ':'\\psi ','ω':'\\omega ','Γ':'\\Gamma ','Δ':'\\Delta ','Σ':'\\Sigma ','Ω':'\\Omega ' };
+      eq = eq.replace(/[α-ωΑ-Ω]/g, c => greek[c] || c);
+      const ops = { '∂':'\\partial ','∇':'\\nabla ','∞':'\\infty ','∑':'\\sum ','→':'\\to ','≈':'\\approx ','≠':'\\neq ','≤':'\\leq ','≥':'\\geq ','·':'\\cdot ' };
+      eq = eq.replace(/[∂∇∞∑→≈≠≤≥·]/g, c => ops[c] || c);
+      eq = eq.replace(/[\u4e00-\u9fff]+/g, (m) => '\\text{' + m + '}');
+      return eq.replace(/\s+/g, ' ').trim();
+    }
+
+    // Safe markdown + math protect
+    function safeMarkedParse(md) {
+      if (!window.marked) return escapeHtml(md).replace(/\n/g, '<br>');
+      const blocks = [];
+      let out = '';
+      let i = 0;
+      const n = md.length;
+      while (i < n) {
+        const c = md[i];
+        if (c === '$' && md[i + 1] === '$') {
+          const end = md.indexOf('$$', i + 2);
+          if (end >= 0) { blocks.push(md.slice(i, end + 2)); out += '@@MATH' + (blocks.length - 1) + '@@'; i = end + 2; continue; }
+        }
+        if (c === '$' && md[i + 1] !== '$' && md[i - 1] !== '\\') {
+          let j = i + 1;
+          while (j < n) {
+            if (md[j] === '\n') break;
+            if (md[j] === '$' && md[j - 1] !== '\\' && md[j + 1] !== '$') break;
+            j++;
+          }
+          if (j < n && md[j] === '$') {
+            blocks.push(md.slice(i, j + 1));
+            out += '@@MATH' + (blocks.length - 1) + '@@';
+            i = j + 1;
+            continue;
+          }
+        }
+        out += c;
+        i++;
+      }
+      let html = window.marked.parse(out);
+      html = html.replace(/@@MATH(\d+)@@/g, (_, idx) => blocks[Number(idx)] || '');
+      return html;
+    }
+
+    let lastRenderLen = 0;
+    let pendingRender = false;
+    function scheduleRender(final, target) {
+      if (final) { doRender(true, target); return; }
+      if (pendingRender) return;
+      pendingRender = true;
+      setTimeout(() => requestAnimationFrame(() => doRender(false, target)), 500);
+    }
+    function doRender(final, target) {
+      pendingRender = false;
+      if (!final && fullText.length === lastRenderLen) return;
+      lastRenderLen = fullText.length;
+
+      let text = fullText;
+      if (!final) {
+        // 保护未闭合数学块
+        const tail = text.slice(-200);
+        const dblCount = (tail.match(/\$\$/g) || []).length;
+        if (dblCount % 2 === 1) {
+          const idx = text.lastIndexOf('$$');
+          if (idx >= 0) text = text.slice(0, idx);
+        }
+      }
+
+      const html = safeMarkedParse(text);
+      target.innerHTML = html;
+      if (!final) {
+        const cursor = document.createElement('span');
+        cursor.className = 'typing-cursor';
+        cursor.textContent = '▌';
+        target.appendChild(cursor);
+      }
+    }
+
+    async function generateMemo() {
+      if (!SELECTED) return;
+      const btn = document.getElementById('run-btn');
+      const out = document.getElementById('output');
+      btn.disabled = true;
+      btn.textContent = '生成中…';
+
+      fullText = '';
+      lastRenderLen = 0;
+
+      const startTs = Date.now();
+      const url = `/phase/memo?t=${encodeURIComponent(SELECTED.ticker)}&s=${encodeURIComponent(SIDE)}`;
+      history.replaceState({}, '', url);
+
+      out.innerHTML = `
+        <div class="toolbar" id="toolbar" style="display:none;">
+          <button class="btn-tool" id="btn-copy">📋 复制全文</button>
+          <button class="btn-tool" id="btn-download">💾 下载 .md</button>
+          <button class="btn-tool" id="btn-raw">📝 切换原文/渲染</button>
+          <span style="margin-left: auto; font-size: 12px; color: var(--text-dim); font-family: var(--mono); align-self: center;" id="meta-info"></span>
+        </div>
+        <article class="memo" id="memo-body">
+          <div class="loader">
+            <span class="loading-dots"><span></span><span></span><span></span></span>
+            <span id="stream-status">连接 Sonnet 4.5…</span>
+            <span class="elapsed" id="elapsed">0s</span>
+          </div>
+        </article>
+      `;
+
+      const memoBody = document.getElementById('memo-body');
+      const statusEl = document.getElementById('stream-status');
+      const timerId = setInterval(() => {
+        const el = document.getElementById('elapsed');
+        if (el) el.textContent = Math.round((Date.now() - startTs) / 1000) + 's';
+      }, 500);
+
+      let modelName = '';
+      let showRaw = false;
+
+      try {
+        const resp = await fetch('/phase/api/memo/stream', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'Accept': 'text/event-stream'},
+          body: JSON.stringify({ticker: SELECTED.ticker, side: SIDE, struct: SELECTED}),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentEvent = 'message';
+
+        while (true) {
+          const {value, done} = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, {stream: true});
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/\r$/, '');
+            if (!line) { currentEvent = 'message'; continue; }
+            if (line.startsWith(':')) continue;
+            if (line.startsWith('event: ')) { currentEvent = line.slice(7).trim(); continue; }
+            if (line.startsWith('data: ')) {
+              const payload = line.slice(6);
+              if (payload === '[DONE]') continue;
+              if (currentEvent === 'meta') {
+                try {
+                  const m = JSON.parse(payload);
+                  modelName = m.model || '';
+                  if (statusEl) statusEl.textContent = `${modelName} 正在生成…`;
+                } catch {}
+                continue;
+              }
+              if (currentEvent === 'error') {
+                try { throw new Error(JSON.parse(payload).error || 'stream error'); }
+                catch (e) { throw e; }
+              }
+              if (currentEvent === 'done') continue;
+              try {
+                const chunk = JSON.parse(payload);
+                const delta = chunk.choices?.[0]?.delta?.content;
+                if (delta) {
+                  fullText += delta;
+                  scheduleRender(false, memoBody);
+                }
+                const fr = chunk.choices?.[0]?.finish_reason;
+                if (fr === 'length') {
+                  fullText += '\n\n> ⚠️ **内容因长度限制被截断**。刷新重试可能得到完整版。';
+                  scheduleRender(true, memoBody);
+                }
+              } catch {}
+            }
+          }
+        }
+
+        clearInterval(timerId);
+        scheduleRender(true, memoBody);
+
+        // KaTeX 最终渲染
+        if (window.renderMathInElement) {
+          renderMathInElement(memoBody, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+            ],
+            throwOnError: false,
+          });
+        }
+
+        // 显示 toolbar
+        document.getElementById('toolbar').style.display = 'flex';
+        document.getElementById('meta-info').textContent = `${modelName} · ${fullText.length} 字符 · ${Math.round((Date.now()-startTs)/1000)}s`;
+
+        // 绑定按钮
+        document.getElementById('btn-copy').addEventListener('click', () => {
+          navigator.clipboard.writeText(fullText).then(() => {
+            const b = document.getElementById('btn-copy');
+            b.textContent = '✓ 已复制';
+            b.classList.add('copied');
+            setTimeout(() => { b.textContent = '📋 复制全文'; b.classList.remove('copied'); }, 2000);
+          });
+        });
+        document.getElementById('btn-download').addEventListener('click', () => {
+          const fname = `${SELECTED.ticker}_memo_${SIDE}_${new Date().toISOString().slice(0,10)}.md`;
+          const blob = new Blob([fullText], {type: 'text/markdown'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fname;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+        document.getElementById('btn-raw').addEventListener('click', () => {
+          showRaw = !showRaw;
+          if (showRaw) {
+            const pre = document.createElement('pre');
+            pre.style.cssText = 'background: var(--bg-card); padding: 18px 20px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; line-height: 1.7;';
+            pre.textContent = fullText;
+            memoBody.innerHTML = '';
+            memoBody.appendChild(pre);
+          } else {
+            const html = safeMarkedParse(fullText);
+            memoBody.innerHTML = html;
+            if (window.renderMathInElement) renderMathInElement(memoBody, {delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError: false});
+          }
+        });
+
+      } catch (err) {
+        clearInterval(timerId);
+        if (!fullText) {
+          out.innerHTML = `<div class="error-box">生成失败：${escapeHtml(err.message)}</div>`;
+        } else {
+          scheduleRender(true, memoBody);
+          const warn = document.createElement('div');
+          warn.style.cssText = 'margin-top: 12px; padding: 10px 14px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 6px; color: #991B1B; font-size: 13px;';
+          warn.textContent = `流式中断：${err.message}`;
+          memoBody.insertAdjacentElement('afterend', warn);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '重新生成 →';
+      }
+    }
+
+    document.getElementById('ticker-select').addEventListener('change', onSelectChange);
+    document.getElementById('run-btn').addEventListener('click', generateMemo);
+    document.querySelectorAll('.side-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        SIDE = btn.dataset.side;
+        document.querySelectorAll('.side-btn').forEach(b => b.dataset.active = (b.dataset.side === SIDE).toString());
+      });
+    });
+    loadCompanies();
+  </script>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
+</body>
+</html>
