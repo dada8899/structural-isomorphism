@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>相位演变时间线 — Phase Detector</title>
+  <meta name="description" content="一家公司 10-15 年走过的结构相位切换，每个点配触发条件和关键数据。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(250, 250, 249, 0.88);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 40px 0 100px; }
+
+    .hero {
+      margin-bottom: 36px;
+      text-align: left;
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    h1.hero-title {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.5vw, 38px);
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .hero-lede {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 760px;
+      line-height: 1.75;
+    }
+
+    .picker {
+      padding: 18px 22px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 36px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .picker label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select.ticker-select {
+      flex: 1;
+      min-width: 260px;
+      padding: 9px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--bg);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+    }
+    select.ticker-select:focus { outline: none; border-color: var(--accent); }
+
+    .company-head {
+      margin-bottom: 32px;
+      padding: 20px 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      gap: 16px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .company-head__ticker {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+    .company-head__name {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .company-head__industry {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Timeline */
+    .timeline-wrap {
+      position: relative;
+      padding: 60px 0 40px;
+      margin-bottom: 32px;
+      overflow-x: auto;
+    }
+    .timeline-track {
+      position: relative;
+      min-width: 700px;
+      padding: 30px 40px 60px;
+    }
+    .timeline-line {
+      position: absolute;
+      left: 40px;
+      right: 40px;
+      top: 60px;
+      height: 2px;
+      background: linear-gradient(to right,
+        var(--border-strong) 0%,
+        var(--accent) 15%,
+        var(--accent) 50%,
+        var(--amber) 85%,
+        var(--red) 100%);
+      border-radius: 1px;
+    }
+    .timeline-points {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+    }
+    .tl-point {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.15s;
+      flex: 0 0 auto;
+      width: 180px;
+    }
+    .tl-point:hover { transform: translateY(-2px); }
+    .tl-point__dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid var(--bg);
+      box-shadow: 0 0 0 2px var(--accent);
+      z-index: 2;
+      transition: all 0.15s;
+    }
+    .tl-point[data-active="true"] .tl-point__dot {
+      width: 22px;
+      height: 22px;
+      background: var(--bg);
+      border: 4px solid var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim), 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .tl-point__year {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .tl-point__phase {
+      margin-top: 6px;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+    .tl-point__label {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 160px;
+      line-height: 1.4;
+    }
+
+    /* Phase color chips — same as company.html */
+    .phase-stable { background: rgba(5, 150, 105, 0.10); color: var(--green); }
+    .phase-saturated { background: rgba(113, 113, 122, 0.10); color: var(--text-muted); }
+    .phase-growth_phase { background: var(--accent-dim); color: var(--accent); }
+    .phase-approaching_critical { background: rgba(217, 119, 6, 0.12); color: var(--amber); }
+    .phase-post_transition, .phase-unstable, .phase-contracting { background: rgba(220, 38, 38, 0.10); color: var(--red); }
+
+    /* Detail card below timeline */
+    .snapshot-detail {
+      padding: 32px 36px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .snapshot-detail__head {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .snapshot-detail__year {
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .snapshot-detail__period {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .snapshot-section {
+      margin-bottom: 18px;
+    }
+    .snapshot-section__label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .snapshot-section__text {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+    .snapshot-eq {
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text);
+      overflow-x: auto;
+    }
+    .snapshot-eq .katex { color: var(--text); font-size: 1.05em; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .metric-item {
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .metric-item__key {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .metric-item__val {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .trigger-banner {
+      margin: 0 0 32px;
+      padding: 16px 22px;
+      background: #FFFBEB;
+      border: 1px solid rgba(217, 119, 6, 0.30);
+      border-left: 4px solid var(--amber);
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .trigger-banner strong {
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    .loader {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .loading-dots {
+      display: inline-flex;
+      gap: 6px;
+      margin-right: 10px;
+    }
+    .loading-dots span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); opacity: 0.4;
+      animation: dot-pulse 1.4s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.9); }
+      30% { opacity: 1; transform: scale(1.1); }
+    }
+
+    .hint-box {
+      padding: 40px 32px;
+      background: var(--bg-elevated);
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+
+    @media (max-width: 680px) {
+      .timeline-wrap { padding: 30px 0 20px; }
+      .tl-point { width: 140px; }
+      .snapshot-detail { padding: 22px 20px; }
+      .snapshot-detail__year { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase/analogy">类比引擎</a>
+        <a href="/phase/timeline">相位演变</a>
+        <a href="/phase/redteam">红队</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="hero">
+        <div class="hero-eyebrow">PHASE EVOLUTION TIMELINE</div>
+        <h1 class="hero-title">这家公司<br>走过哪几个结构阶段？</h1>
+        <p class="hero-lede">
+          一家公司 10-15 年的演变，不是连续变化，而是由几次「结构切换」拼成的。
+          这里展示 20 家公司的历史相位节点——<strong>每次切换配触发条件和关键数据</strong>，让你看到历史上什么信号预示了结构性变化。
+        </p>
+      </section>
+
+      <div class="picker">
+        <label>选公司</label>
+        <select class="ticker-select" id="ticker-select" disabled>
+          <option>加载中…</option>
+        </select>
+      </div>
+
+      <div id="output">
+        <div class="hint-box">
+          选一家公司，看它 10-15 年走过的 3-4 个结构阶段和每次切换的触发条件。
+          <div style="margin-top: 10px; font-size: 13px; color: var(--text-dim);">
+            当前覆盖 20 家经典公司 · 数据由 Sonnet 4.5 生成
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · Structural Evolution Timeline</div>
+      <div class="footer-links">
+        <a href="/phase">Phase 首页</a>
+        <a href="https://github.com/dada8899/structural-isomorphism">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    const PHASE_CN = {
+      'growth_phase': '成长期',
+      'stable': '稳定',
+      'saturated': '饱和',
+      'approaching_critical': '接近临界',
+      'post_transition': '相变后',
+      'unstable': '失稳',
+      'contracting': '收缩',
+    };
+
+    const FAMILY_CN = {
+      'ODE1_linear': '线性增长',
+      'ODE1_exponential_growth': '指数增长',
+      'ODE1_logistic': '逻辑斯蒂 S 曲线',
+      'ODE1_saturating': '饱和曲线',
+      'ODE1_exponential_decay': '指数衰减',
+      'ODE2_damped_oscillation': '阻尼振荡',
+      'Bistable_switch': '双稳态切换',
+      'Fold_bifurcation': '鞍结跳变',
+      'Hopf_bifurcation': 'Hopf 分岔',
+      'Phase_transition_1st': '一阶相变',
+      'Phase_transition_2nd': '二阶相变',
+      'Network_cascade': '网络级联',
+      'Power_law_distribution': '幂律分布',
+      'Self_fulfilling_prophecy': '反身性循环',
+      'PDE_reaction_diffusion': '反应扩散',
+      'Hysteresis_loop': '滞回环',
+      'Game_theoretic_equilibrium': '博弈均衡',
+      'Heavy_tail_extremal': '重尾极值',
+    };
+
+    let TIMELINE = null;
+    let ACTIVE_IDX = -1;
+
+    async function loadCompanies() {
+      try {
+        const r = await fetch('/phase/api/timeline/list');
+        const d = await r.json();
+        const sel = document.getElementById('ticker-select');
+        sel.innerHTML = '<option value="">— 请选择 —</option>' +
+          (d.tickers || []).map(t => `<option value="${escapeHtml(t.ticker)}">${escapeHtml(t.ticker)} · ${escapeHtml(t.name)} · ${escapeHtml(t.industry || '')}</option>`).join('');
+        sel.disabled = false;
+
+        const init = new URLSearchParams(window.location.search).get('t');
+        if (init && d.tickers.find(t => t.ticker === init)) {
+          sel.value = init;
+          onSelect();
+        }
+      } catch (e) {
+        document.getElementById('ticker-select').innerHTML = '<option>加载失败</option>';
+      }
+    }
+
+    async function onSelect() {
+      const sel = document.getElementById('ticker-select');
+      const ticker = sel.value;
+      const out = document.getElementById('output');
+      if (!ticker) return;
+
+      history.replaceState({}, '', `/phase/timeline?t=${encodeURIComponent(ticker)}`);
+      out.innerHTML = `<div class="loader"><span class="loading-dots"><span></span><span></span><span></span></span>加载 ${escapeHtml(ticker)} 时间线…</div>`;
+
+      try {
+        const r = await fetch(`/phase/api/timeline/${encodeURIComponent(ticker)}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        TIMELINE = await r.json();
+        ACTIVE_IDX = TIMELINE.snapshots.length - 1;  // 默认选最后一个（当前）
+        render();
+      } catch (e) {
+        out.innerHTML = `<div class="hint-box" style="color: var(--red);">加载失败: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function render() {
+      if (!TIMELINE) return;
+      const out = document.getElementById('output');
+      const snaps = TIMELINE.snapshots || [];
+
+      // Company head
+      let html = `
+        <div class="company-head">
+          <span class="company-head__ticker">${escapeHtml(TIMELINE.ticker)}</span>
+          <span class="company-head__name">${escapeHtml(TIMELINE.name)}</span>
+          <span class="company-head__industry">· ${escapeHtml(TIMELINE.industry || '')}</span>
+        </div>
+      `;
+
+      // Timeline
+      html += `
+        <div class="timeline-wrap">
+          <div class="timeline-track" style="min-width: ${Math.max(700, snaps.length * 220)}px;">
+            <div class="timeline-line"></div>
+            <div class="timeline-points">
+              ${snaps.map((s, i) => `
+                <div class="tl-point" data-idx="${i}" data-active="${i === ACTIVE_IDX}">
+                  <div class="tl-point__dot"></div>
+                  <div class="tl-point__year">${escapeHtml(String(s.year))}</div>
+                  <span class="tl-point__phase phase-${escapeHtml(s.phase_state)}">${escapeHtml(PHASE_CN[s.phase_state] || s.phase_state)}</span>
+                  <div class="tl-point__label">${escapeHtml(FAMILY_CN[s.dynamics_family] || s.dynamics_family)}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Selected snapshot detail
+      const s = snaps[ACTIVE_IDX];
+      if (s) {
+        const metrics = s.key_metrics || {};
+        const metricItems = Object.entries(metrics).map(([k, v]) => `
+          <div class="metric-item">
+            <div class="metric-item__key">${escapeHtml(k)}</div>
+            <div class="metric-item__val">${escapeHtml(String(v))}</div>
+          </div>
+        `).join('');
+
+        html += `
+          <div class="snapshot-detail">
+            <div class="snapshot-detail__head">
+              <span class="snapshot-detail__year">${escapeHtml(String(s.year))}</span>
+              <span class="snapshot-detail__period">${escapeHtml(s.period_label || '')}</span>
+              <span class="tl-point__phase phase-${escapeHtml(s.phase_state)}" style="font-size: 12px; padding: 4px 12px;">
+                ${escapeHtml(PHASE_CN[s.phase_state] || s.phase_state)} · ${escapeHtml(FAMILY_CN[s.dynamics_family] || s.dynamics_family)}
+              </span>
+            </div>
+
+            ${s.one_line ? `
+              <div class="snapshot-section">
+                <div class="snapshot-section__label">核心状态</div>
+                <div class="snapshot-section__text" style="font-size: 17px; color: var(--text); font-weight: 500;">${escapeHtml(s.one_line)}</div>
+              </div>
+            ` : ''}
+
+            ${s.why_this_phase ? `
+              <div class="snapshot-section">
+                <div class="snapshot-section__label">为什么是这个相位</div>
+                <div class="snapshot-section__text">${escapeHtml(s.why_this_phase)}</div>
+              </div>
+            ` : ''}
+
+            ${s.canonical_equation ? `
+              <div class="snapshot-section">
+                <div class="snapshot-section__label">对应方程</div>
+                <div class="snapshot-eq">$$${escapeHtml(s.canonical_equation)}$$</div>
+              </div>
+            ` : ''}
+
+            ${metricItems ? `
+              <div class="snapshot-section">
+                <div class="snapshot-section__label">关键指标</div>
+                <div class="metrics-grid">${metricItems}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        // Trigger to next (if not last)
+        if (s.trigger_to_next && ACTIVE_IDX < snaps.length - 1) {
+          const next = snaps[ACTIVE_IDX + 1];
+          html += `
+            <div class="trigger-banner">
+              <strong>⚡ 切换到下个阶段（${next.year}）的触发条件：</strong><br>
+              ${escapeHtml(s.trigger_to_next)}
+            </div>
+          `;
+        }
+      }
+
+      out.innerHTML = html;
+
+      // Bind clicks
+      out.querySelectorAll('.tl-point').forEach(pt => {
+        pt.addEventListener('click', () => {
+          ACTIVE_IDX = parseInt(pt.dataset.idx, 10);
+          render();
+          // Scroll snapshot detail into view
+          setTimeout(() => {
+            const el = document.querySelector('.snapshot-detail');
+            if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+          }, 50);
+        });
+      });
+
+      // KaTeX
+      if (window.renderMathInElement) {
+        renderMathInElement(out, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+          ],
+          throwOnError: false,
+        });
+      }
+    }
+
+    document.getElementById('ticker-select').addEventListener('change', onSelect);
+    loadCompanies();
+  </script>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
+</body>
+</html>
