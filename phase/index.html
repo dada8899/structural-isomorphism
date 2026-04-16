@@ -95,7 +95,7 @@
     }
     nav.menu a:hover { color: var(--text); text-decoration: none; }
 
-    /* 产品族顶部横条由 /assets/js/product-switcher.js 注入 */
+    /* 品牌层次由 /assets/js/product-switcher.js 注入（Structural 主品牌 + 商业版子标签） */
 
     .hero__cross-product {
       margin-top: 28px;
@@ -118,9 +118,8 @@
     .hero__cross-product a:hover { text-decoration: underline; }
 
     @media (max-width: 760px) {
-      .brand-wrap { flex-wrap: wrap; }
-      .product-switcher { margin-top: 4px; }
-      nav.menu { display: none; }
+      nav.menu { font-size: 13px; }
+      nav.menu a { margin-left: 12px; }
     }
 
     /* Hero */
@@ -680,5 +679,6 @@
       }).join('');
     })();
   </script>
+  <script src="/assets/js/product-switcher.js?v=20260417b"></script>
 </body>
 </html>
