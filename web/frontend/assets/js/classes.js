@@ -204,12 +204,29 @@ function renderPredictions(preds) {
     .join("");
 }
 
+function countVerifiedPredictions(cls) {
+  if (!cls || !Array.isArray(cls.predictions)) return 0;
+  let n = 0;
+  for (const p of cls.predictions) {
+    const s = (p && p.status) || "";
+    if (s.includes("已验证") || s.includes("✅")) n += 1;
+  }
+  return n;
+}
+
 function buildBadges(cls) {
   const isLlm = cls.curation_source === "llm";
-  const out = [
+  const nVerified = countVerifiedPredictions(cls);
+  const out = [];
+  // Put the verified badge FIRST so it's most prominent
+  if (nVerified > 0) {
+    const label = nVerified === 1 ? "✅ 已实证" : `✅ 已实证 ×${nVerified}`;
+    out.push(`<span class="uc-badge uc-badge--verified" title="${nVerified} 条预测已通过实证验证">${label}</span>`);
+  }
+  out.push(
     `<span class="uc-badge uc-badge--size">${cls.size} 成员</span>`,
     `<span class="uc-badge uc-badge--domain">${cls.n_domains} 领域</span>`,
-  ];
+  );
   if (cls.avg_edge_score) {
     out.push(`<span class="uc-badge uc-badge--score">avg ${cls.avg_edge_score.toFixed(2)}</span>`);
   }
@@ -247,7 +264,8 @@ function renderPreviewCard(cls) {
   return `
     <a class="uc-card uc-card--preview${uncurated ? " uc-card--uncurated" : ""}"
        href="/classes?id=${encodeURIComponent(cls.class_id)}"
-       data-class-id="${escapeHtml(cls.class_id)}">
+       data-class-id="${escapeHtml(cls.class_id)}"
+       data-verified="${countVerifiedPredictions(cls) > 0 ? 'true' : 'false'}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
           <h2 class="uc-card__title">${escapeHtml(cls.name_zh || "(未命名)")}</h2>
