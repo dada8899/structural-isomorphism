@@ -199,6 +199,17 @@
       .report .katex-display > .katex { font-size: 1em; }
     }
 
+    .typing-cursor {
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 600;
+      animation: cursor-blink 1s steps(2) infinite;
+      margin-left: 2px;
+    }
+    @keyframes cursor-blink {
+      to { opacity: 0; }
+    }
+
     .loader {
       display: flex;
       flex-direction: column;
@@ -352,63 +363,170 @@
 
       const slot = document.getElementById('report-slot');
       const startTs = Date.now();
+
+      // 准备流式容器
       slot.innerHTML = `
-        <div class="loader">
-          <span class="loading-dots"><span></span><span></span><span></span></span>
-          <div class="loader__text">Sonnet 4.5 正在深挖这段历史（预计 40-90 秒）…</div>
-          <span class="loader__elapsed" id="loader-elapsed">0s</span>
-        </div>
+        <article class="report" id="live-report">
+          <div class="loader" id="stream-loader">
+            <span class="loading-dots"><span></span><span></span><span></span></span>
+            <div class="loader__text" id="stream-status">连接中…</div>
+            <span class="loader__elapsed" id="loader-elapsed">0s</span>
+          </div>
+        </article>
       `;
       const timerId = setInterval(() => {
         const el = document.getElementById('loader-elapsed');
         if (el) el.textContent = Math.round((Date.now() - startTs) / 1000) + 's';
       }, 500);
 
+      let fullText = '';
+      let modelName = '';
+      let lastRenderTs = 0;
+      const liveReport = document.getElementById('live-report');
+      const statusEl = document.getElementById('stream-status');
+
+      function renderLive(final) {
+        if (!window.marked) return;
+        const now = Date.now();
+        // 流式中节流到每 300ms 渲染一次，避免 DOM 抖动
+        if (!final && now - lastRenderTs < 300) return;
+        lastRenderTs = now;
+        const html = window.marked.parse(fullText || '');
+        liveReport.innerHTML = html;
+        if (!final) {
+          // 末尾加闪烁光标
+          const cursor = document.createElement('span');
+          cursor.className = 'typing-cursor';
+          cursor.textContent = '▌';
+          liveReport.appendChild(cursor);
+        }
+      }
+
       try {
-        const resp = await fetch('/phase/api/analogy-detail', {
+        const resp = await fetch('/phase/api/analogy-detail/stream', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json', 'Accept': 'text/event-stream'},
           body: JSON.stringify({
             ticker: ctk,
             struct: context.struct,
             target: context.target,
           }),
         });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${text.slice(0, 200)}`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let currentEvent = 'message';
+
+        while (true) {
+          const {value, done} = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, {stream: true});
+
+          // 按 SSE 分割：空行分隔 event
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const rawLine of lines) {
+            const line = rawLine.replace(/\r$/, '');
+            if (!line) {
+              // event boundary，下一行新 event
+              currentEvent = 'message';
+              continue;
+            }
+            if (line.startsWith(':')) continue;  // comment (OPENROUTER PROCESSING)
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+              continue;
+            }
+            if (line.startsWith('data: ')) {
+              const payload = line.slice(6);
+              if (payload === '[DONE]') continue;
+
+              if (currentEvent === 'meta') {
+                try {
+                  const meta = JSON.parse(payload);
+                  modelName = meta.model || '';
+                  if (statusEl) statusEl.textContent = `${modelName} 正在深挖…`;
+                } catch {}
+                continue;
+              }
+              if (currentEvent === 'error') {
+                try {
+                  const err = JSON.parse(payload);
+                  throw new Error(err.error || '流式错误');
+                } catch (e) {
+                  throw e;
+                }
+              }
+              if (currentEvent === 'done') continue;
+
+              // 正常 message chunk
+              try {
+                const chunk = JSON.parse(payload);
+                const delta = chunk.choices?.[0]?.delta?.content;
+                if (delta) {
+                  fullText += delta;
+                  renderLive(false);
+                }
+              } catch {}
+            }
+          }
+        }
+
+        // 最终渲染
         clearInterval(timerId);
-        const data = await resp.json();
-        if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+        renderLive(true);
 
-        const md = data.report || '(空)';
-        // Use marked.js for better markdown parsing
-        const html = window.marked ? window.marked.parse(md) : escapeHtml(md).replace(/\n/g, '<br>');
-        slot.innerHTML = `
-          <article class="report">${html}</article>
-          <div class="back-cta">
-            <a class="btn-back" href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 回到 ${escapeHtml(ctk)} 的 3 个类比</a>
-          </div>
-          ${data._model ? `<div style="text-align: right; margin-top: 16px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);">由 ${escapeHtml(data._model)} 生成 · ${md.length} 字符</div>` : ''}
-        `;
-
-        // KaTeX render
+        // KaTeX 一次性渲染（流式中渲染太卡）
         if (window.renderMathInElement) {
-          renderMathInElement(slot, {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '$', right: '$', display: false},
-              {left: '\\[', right: '\\]', display: true},
-              {left: '\\(', right: '\\)', display: false},
-            ],
-            throwOnError: false,
-          });
+          try {
+            renderMathInElement(liveReport, {
+              delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\[', right: '\\]', display: true},
+                {left: '\\(', right: '\\)', display: false},
+              ],
+              throwOnError: false,
+            });
+          } catch {}
+        }
+
+        // 附加返回链接 + 模型标注
+        const backCta = document.createElement('div');
+        backCta.className = 'back-cta';
+        backCta.innerHTML = `<a class="btn-back" href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 回到 ${escapeHtml(ctk)} 的 3 个类比</a>`;
+        liveReport.insertAdjacentElement('afterend', backCta);
+
+        if (modelName) {
+          const meta = document.createElement('div');
+          meta.style.cssText = 'text-align: right; margin-top: 16px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);';
+          meta.textContent = `由 ${modelName} 流式生成 · ${fullText.length} 字符 · 用时 ${Math.round((Date.now() - startTs)/1000)}s`;
+          backCta.insertAdjacentElement('afterend', meta);
         }
       } catch (err) {
         clearInterval(timerId);
-        slot.innerHTML = `
-          <div class="error-box">
-            <p><strong>生成失败</strong>：${escapeHtml(err.message)}</p>
-            <p style="margin-top: 12px;"><a href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 返回类比列表</a></p>
-          </div>
-        `;
+        if (!fullText) {
+          slot.innerHTML = `
+            <div class="error-box">
+              <p><strong>生成失败</strong>：${escapeHtml(err.message)}</p>
+              <p style="margin-top: 12px;"><a href="/phase/analogy?t=${encodeURIComponent(ctk)}">← 返回类比列表</a></p>
+            </div>
+          `;
+        } else {
+          // 已有部分内容，标注中断
+          renderLive(true);
+          const warn = document.createElement('div');
+          warn.style.cssText = 'margin-top: 16px; padding: 12px 16px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 6px; color: #991B1B; font-size: 13px;';
+          warn.textContent = `流式中断：${err.message}`;
+          liveReport.insertAdjacentElement('afterend', warn);
+        }
       }
     }
 
