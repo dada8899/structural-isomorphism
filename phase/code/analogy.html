@@ -551,11 +551,17 @@
             ` : ''}
 
             ${a.lesson_for_current ? `
-              <div class="analogy-section" style="margin-bottom: 0;">
+              <div class="analogy-section">
                 <div class="analogy-section__label">对 ${escapeHtml(SELECTED.ticker)} 的启示</div>
                 <div class="lesson">${escapeHtml(a.lesson_for_current)}</div>
               </div>
             ` : ''}
+
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); text-align: right;">
+              <button class="btn-deep-dive" data-idx="${i}" style="background: transparent; color: var(--accent); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;">
+                🔬 深度展开：Sonnet 深挖这段历史 →
+              </button>
+            </div>
           </article>
         `;
       });
@@ -571,10 +577,27 @@
       }
 
       if (data._model) {
-        html += `<div style="text-align: right; margin-top: 20px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);">由 ${escapeHtml(data._model)} 生成</div>`;
+        html += `<div style="text-align: right; margin-top: 20px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);">由 ${escapeHtml(data._model)} 生成 · 点卡片下方「深度展开」看任一类比的完整分析</div>`;
       }
 
       out.innerHTML = html;
+
+      // 绑定深度展开
+      out.querySelectorAll('.btn-deep-dive').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          const target = analogies[idx];
+          if (!target || !SELECTED) return;
+          try {
+            sessionStorage.setItem('phase_analogy_detail_ctx', JSON.stringify({
+              ticker: SELECTED.ticker,
+              struct: SELECTED,
+              target: target,
+            }));
+          } catch (e) {}
+          window.location.href = `/phase/analogy/detail?t=${encodeURIComponent(SELECTED.ticker)}`;
+        });
+      });
     }
 
     document.getElementById('ticker-select').addEventListener('change', onSelect);
