@@ -112,7 +112,8 @@
           <li><strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
           <li><strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。</li>
           <li><strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。</li>
-          <li><strong>Layer 5 实证验证</strong>：第一个目标是 SOC × DeFi 清算——验证是否服从 Gutenberg-Richter τ ≈ 1.5 和 Omori 1/t^p。</li>
+          <li><strong>Layer 5 实证验证</strong>：已完成 5 轮跨域测试——地震 (<a href="/paper/soc-earthquake-2026-04-15">paper</a>) / 股市 (<a href="/paper/soc-stockmarket-2026-04-15">paper</a>) / DeFi × 3 协议 (<a href="/paper/soc-defi-2026-04-15">paper</a>) / 神经雪崩 (<a href="/paper/soc-neural-2026-04-16">paper</a>) + null 反向验证 (<a href="/paper/soc-null-2026-04-16">note</a>)。</li>
+          <li><strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除"pipeline 把任何数据拟合成 SOC"的平凡解释。</li>
         </ol>
         <p class="uc-footnote__hint">
           完整 feasibility 报告见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md" target="_blank" rel="noopener">v4/results/FINDINGS-2026-04-15.md</a>，
