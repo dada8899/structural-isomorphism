@@ -1,0 +1,18 @@
+[Unit]
+Description=Structural Web Backend (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Projects/structural-isomorphism/web/backend
+Environment="PYTHONPATH=/root/Projects/structural-isomorphism"
+EnvironmentFile=/root/Projects/structural-isomorphism/web/backend/.env
+ExecStart=/root/Projects/structural-isomorphism/venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 5004
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/structural-web.log
+StandardError=append:/var/log/structural-web.log
+
+[Install]
+WantedBy=multi-user.target

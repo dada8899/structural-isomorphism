@@ -1,0 +1,91 @@
+{"rank": 92, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "A讲信任建立与破坏的非对称性（渐进累积vs瞬间崩塌），B讲水稻低温不育的生理机制，二者除了都涉及'脆弱性'外没有共同结构。", "reject_reason": "两个系统的动力学机制完全不同：A是路径非对称的状态转换，B是阈值生理损伤。强行类比只能停在文学层面。"}
+{"rank": 93, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "两者都是渗流/相变型转变：QGP在170MeV处从禁闭态跃迁到自由夸克态，环氧树脂在交联密度阈值处从液态突变为固态。都以序参量突变和临界指数刻画，属同一普适类的相变思维。", "reject_reason": ""}
+{"rank": 94, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "A是再入烧蚀（以质量损失换热稳定），B是热惯性滞后（控制时延）。同属'热'主题但动力学机制不同：一个是能量耗散补偿，一个是传递延迟。", "reject_reason": "共同关键词'热'掩盖了结构差异，没有真正的同构机制可迁移。"}
+{"rank": 95, "verdict": "reject", "value_type": "同域", "potential": 2, "reason": "温室效应和海冰反照率反馈都是气候正反馈，属同一学科（气象vs气候），跨域性弱。", "reject_reason": "同属地球系统科学，不构成有价值的跨域映射。"}
+{"rank": 96, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "金属棘轮效应（循环塑性累积）和温度控制热惯性滞后（控制相位延迟）除'循环'词面外结构不同。", "reject_reason": "一个是不可逆塑性累积，一个是线性传递延迟，动力学本质不同。"}
+{"rank": 97, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "电缆护层环流（电磁感应损耗）和桥梁伸缩缝破坏（机械冲击疲劳），两者都是工程'薄弱环节'但机制毫无交集。", "reject_reason": "跨域但只有'工程缺陷'这一空洞共性，不构成结构同构。"}
+{"rank": 98, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "热疲劳裂纹和复合材料热残余应力同属热致应力，但一个是循环疲劳，一个是冷却固化时的一次性残余应力。", "reject_reason": "同属材料热力学问题，没有真正跨域，且机制也不同。"}
+{"rank": 99, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击（流体压力瞬态）和卫星表面充放电（等离子体静电），除了都是'突然释放'外无共同机制。", "reject_reason": "能量载体完全不同（力学动量vs电荷），无可迁移的数学结构。"}
+{"rank": 100, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "生态功能随物种数的对数递减 vs 电机堵转电流倍数，一个讲边际递减，一个讲启动冲击，完全不同的现象。", "reject_reason": "两者唯一共性是'都涉及数量与效应'，无结构同构。"}
+{"rank": 101, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "政治庇护网络的持久性（互惠监督均衡）和做市商竞争价差压缩（博弈收敛），都是博弈均衡但方向相反。", "reject_reason": "一个是合作均衡的自我加固，一个是竞争均衡的下限收敛，结构对立非同构。"}
+{"rank": 102, "verdict": "keep", "value_type": "结构同构", "potential": 3, "reason": "锂离子嵌锂阶段相变和树脂凝胶点渗流相变都是材料相变：前者是有序相转变（晶格突变），后者是渗流型连续相变。相变思维可迁移但具体普适类不同。", "reject_reason": ""}
+{"rank": 103, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "电机启动电流冲击 vs 湿地污染物缓冲对数递减，一个是瞬态电磁，一个是稳态生态净化。", "reject_reason": "机制完全不同，仅'数学上都涉及非线性'这种泛化共性。"}
+{"rank": 104, "verdict": "keep", "value_type": "结构同构", "potential": 5, "reason": "交通拥堵从缓行到停滞的阈值突变，和凝聚态渗流阈值pc处的绝缘-导体转变，都是连通性几何相变——前者是车流连通性在密度阈值处突然断裂/粘滞，后者是导电路径在浓度阈值处突然形成，同属几何相变普适类，临界指数思维可直接迁移。跨域深刻。", "reject_reason": ""}
+{"rank": 105, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "激光自聚焦正反馈和海冰反照率反馈都是正反馈，但一个是光强-折射率耦合形成细丝，一个是反照率-温度耦合。都是正反馈这一点太泛。", "reject_reason": "正反馈是极其普适的抽象标签，本身不构成有价值的同构，需要更具体的数学结构才算。"}
+{"rank": 106, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流（空间分布失衡导致短路）vs 金属棘轮效应（循环累积塑性）。两者毫无结构交集。", "reject_reason": "空间不均vs时间累积，维度都不同。"}
+{"rank": 107, "verdict": "reject", "value_type": "同域", "potential": 2, "reason": "自身免疫病和海冰反照率反馈都是正反馈，分属医学和气候科学，但'攻击-碎片-更强攻击'和'冰-反照率-温度'只有正反馈这一最泛标签相同。", "reject_reason": "正反馈本身不够细致，两者内部动力学结构不同。"}
+{"rank": 108, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "变压器励磁涌流（电磁瞬态）和预应力混凝土张拉损失（材料徐变应力松弛），一个是瞬态冲击一个是长期衰减。", "reject_reason": "时间尺度和物理机制均无交集。"}
+{"rank": 109, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "卫星热控百叶窗双金属片疲劳卡滞 vs PID振荡发散，都是'控制系统失效'但机制完全不同（机械疲劳vs增益过强）。", "reject_reason": "共同标签只是'控制系统问题'，结构不同构。"}
+{"rank": 110, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "造血干细胞龛的CXCL12锚定稳态 vs 企业现金预防性持有边际递减，都讲'储备'但一个是空间锚定一个是边际效用。", "reject_reason": "储备的概念不同：生物龛是定位机制，现金是边际效用曲线。"}
+{"rank": 111, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "素数分布的对数递减和预应力张拉损失都是'随量递减'，但前者是纯数学密度，后者是工程徐变，两者数学形式都不同（log vs 指数衰减）。", "reject_reason": "递减只是表象，函数形式和机制都不匹配。"}
+{"rank": 112, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "机翼过冷水滴冰脊 vs 沉积物粒度分选（对数正态分布），毫无结构关联。", "reject_reason": "分别是防冰失效和地质分选，只共享'颗粒'这一词面。"}
+{"rank": 113, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "法律滞后性（规则依赖已观察过的现象制定，与现实脱节随时间加大）和灭绝债务（生境破坏后物种灭绝滞后显现），都是'延迟响应'型系统：当前观测低估真实状态，信号在时间上被推迟。本质是同一种延迟反馈结构。", "reject_reason": ""}
+{"rank": 114, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击（压力瞬态冲击）和系统辨识激励不充分，两者的机制完全不同。", "reject_reason": "冲击波 vs 信号频谱覆盖，无同构。"}
+{"rank": 115, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "石墨烯Klein隧穿（拓扑禁止背散射）和BET比表面积测定（守恒质量算法），只有'守恒'这一非常泛的共性。", "reject_reason": "守恒是太普遍的物理原理，不能作为同构依据。"}
+{"rank": 116, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "信任建立崩塌的非对称性 vs 社会网络同质性，两者都是社会学但讨论问题完全不同。", "reject_reason": "同学科内两个不同的社会现象，无同构。"}
+{"rank": 117, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "海冰反照率反馈和反应器热失控都是典型的'温度升高→机制加速→更多温度升高'的正反馈，且都涉及'散热能力阈值'。气候vs化工跨域，同构清晰。", "reject_reason": ""}
+{"rank": 118, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "压缩机喘振（周期倒流振荡）和传感器零点漂移，完全不同的物理机制。", "reject_reason": "振荡vs漂移，动力学不同。"}
+{"rank": 119, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "零序电流接地保护和预应力张拉损失，仅在学科（都是工程）上相近，机制无关。", "reject_reason": "一是电磁保护，一是力学徐变。"}
+{"rank": 120, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和陶瓷晶粒异常长大，无结构交集。", "reject_reason": "瞬态动量vs烧结动力学。"}
+{"rank": 121, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "海冰反照率反馈和健康险费率螺旋都是典型的'恶化驱离稳定者→剩余更恶化'的正反馈螺旋，分属气候和保险精算，跨域同构清晰：气候系统中的反照率下降=风险池中健康人退出，温度升高=费率上调。", "reject_reason": ""}
+{"rank": 122, "verdict": "reject", "value_type": "表层相似", "potential": 3, "reason": "ETF做市商套保成本和海冰反照率反馈，都涉及流动性/系统放大，但ETF是成本传导一次性映射而非正反馈。", "reject_reason": "前者是成本传导，后者是正反馈，结构不同。"}
+{"rank": 123, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "陶瓷热震开裂和PID振荡发散，都叫'振荡'但一个是热应力一个是控制增益。", "reject_reason": "表层关键词共享，机制完全不同。"}
+{"rank": 124, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "高分子共混界面浓度梯度（纳米级化学势梯度驱动）和白细胞趋化因子梯度归巢（细胞响应化学梯度迁移），都是梯度驱动的定向组织结构：梯度陡度决定界面/迁移特异性。化学-免疫跨域同构。", "reject_reason": ""}
+{"rank": 125, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "商业周期和LC振荡回路，都是两个储能态之间能量来回转换形成的振荡：商业周期在'生产-消费'之间、LC在'电场-磁场'之间，频率/周期由系统参数决定。经济学-电学的经典同构。", "reject_reason": ""}
+{"rank": 126, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "航空煤油结晶堵塞和PID振荡发散，毫无机制交集。", "reject_reason": "蜡结晶vs控制器振荡，只有'失效'这一空洞共性。"}
+{"rank": 127, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "压缩机喘振和控制器执行器粘连，都是'控制回路问题'但机制不同。", "reject_reason": "流体失稳vs机械粘连。"}
+{"rank": 128, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "国家渗透能力的社会基础 vs 做市商竞争价差压缩，政治权力基础设施 vs 微观流动性竞争，两者都涉及'基础设施'但含义完全不同。", "reject_reason": "形式与内容都不匹配。"}
+{"rank": 129, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "固定床偏流（空间不均短路流）和复合材料界面脱粘（界面应力失效），都叫'界面问题'但一个是流体分布一个是力学粘结。", "reject_reason": "只有'界面'这一词面相近。"}
+{"rank": 130, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和卡尔曼滤波发散，完全无关。", "reject_reason": "流体瞬态vs估计算法发散。"}
+{"rank": 131, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和闭环辨识偏差，无结构交集。", "reject_reason": "力学瞬态vs统计辨识偏差。"}
+{"rank": 132, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "行星轨道运动（引力向心力驱动椭圆周期运动）和LC振荡回路（电磁能量交换驱动正弦振荡），都是守恒力场下的周期运动：能量在两种形式间转换，周期由系统参数唯一决定。经典机械-电气同构。", "reject_reason": ""}
+{"rank": 133, "verdict": "keep", "value_type": "结构同构", "potential": 5, "reason": "珊瑚白化的温度阈值突变和货币替代的汇率预期阈值突变，都是典型的一阶相变/突变论结构：参数低于阈值时小扰动可恢复，超过阈值后系统不可逆跃迁到另一吸引子。海洋生物学-宏观经济的深刻同构，临界点思维可完整迁移。", "reject_reason": ""}
+{"rank": 134, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "母差保护（代数和为零检测故障）和信贷脉冲（增量对经济敏感），都涉及'差/导数'但数学结构不同。", "reject_reason": "一个是空间求和一个是时间求导，不同结构。"}
+{"rank": 135, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "气泡空化核的临界半径突变（一阶失稳跃迁）和树脂凝胶点渗流相变，都是从稳定态到失稳态的阈值跃迁，但一个是一阶相变（不连续），一个是连续渗流相变。相变主题但类不同，结构有部分同构。", "reject_reason": ""}
+{"rank": 136, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "管理幅度的七到十人上限和注意力信道的信息论容量上限，都是'有限信道容量'思想：超过容量信息必须丢弃/层级增加。管理学-认知科学跨域，信息论视角统一。", "reject_reason": ""}
+{"rank": 137, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "协同过滤推荐（相似度匹配）和管道水击（压力瞬态），毫无结构关联。", "reject_reason": "这是明显的无关配对。"}
+{"rank": 138, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "高压电缆环流（感应电动势闭合回路损耗）和地下连续墙接头渗漏，都是工程'薄弱环节'但机制无关。", "reject_reason": "不构成同构。"}
+{"rank": 139, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "细菌生物膜异质性（空间梯度分化）和SOFAR声道（声速极小层聚焦），都涉及'梯度层'但机制/功能不同。", "reject_reason": "空间异质性vs声学折射聚焦，不同结构。"}
+{"rank": 140, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "闪崩的流动性螺旋（价格下跌→止损卖出→进一步下跌）和海冰反照率反馈都是典型的正反馈放大结构，且都是'系统稳定性丧失时触发的级联'。金融微观结构vs气候科学跨域。", "reject_reason": ""}
+{"rank": 141, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和金属点蚀，都是'局部缺陷扩大'但机制不同（流体短路vs电化学自催化）。", "reject_reason": "点蚀是电化学自催化，偏流是流动分配不均，不构成同构。"}
+{"rank": 142, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "Klein隧穿和声学逆散射，都提到'守恒'但含义完全不同。前者是赝自旋守恒导致无背散射，后者是测量信息守恒。", "reject_reason": "同一词汇不同概念。"}
+{"rank": 143, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "陶瓷热震开裂和温度控制热惯性滞后，都是'热'相关但机制无关。", "reject_reason": "一个是热应力失效，一个是传递时延。"}
+{"rank": 144, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "聚合物应力发白和温度控制热惯性滞后，毫无结构关联。", "reject_reason": "微银纹形成vs控制时延。"}
+{"rank": 145, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "压缩机喘振和传感器迟滞回环，都是'非线性'但机制完全不同。", "reject_reason": "流体失稳vs机械迟滞。"}
+{"rank": 146, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "弹性流体动力润滑（高压粘度激增形成油膜）和深基坑踢脚破坏，都是力学但问题完全不同。", "reject_reason": "润滑界面vs基坑失稳。"}
+{"rank": 147, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "LC振荡回路和极地涡旋准两年振荡，都是系统内部的自激振荡：由系统参数决定固有周期，属于线性振子或非线性极限环。电气-大气科学跨域同构思路清晰。", "reject_reason": ""}
+{"rank": 148, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和半导体晶圆位错，毫无结构关联。", "reject_reason": "流体瞬态vs晶体缺陷。"}
+{"rank": 149, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "卫星解锁微振动和卡尔曼滤波发散，两者都与'振动/发散'有关但机制不同。", "reject_reason": "机械微振动vs估计算法失稳。"}
+{"rank": 150, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和反馈线性化奇异，无关。", "reject_reason": "流体瞬态vs控制律奇异。"}
+{"rank": 151, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和系统辨识激励不充分，同属工程但机制完全不同。", "reject_reason": "流体分布vs信号频谱。"}
+{"rank": 152, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "市场冲击的持久-短暂分解和海冰反照率反馈，前者是时间序列分解，后者是正反馈，结构不同。", "reject_reason": "分解视角vs正反馈动力学。"}
+{"rank": 153, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "树脂凝胶点渗流相变和帝国扩张陷阱，前者是物质相变后者是财政曲线拐点，强行类比。", "reject_reason": "相变机制和边际成本超限是不同数学结构。"}
+{"rank": 154, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "PD-L1的IFN-γ负反馈调控和认知失调的一致性修复，都是典型的'偏离-检测-纠正'负反馈稳态机制：免疫系统防过激活化，认知系统维持信念一致。免疫学-行为经济学跨域负反馈同构。", "reject_reason": ""}
+{"rank": 155, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和采样系统混叠，机制无关。", "reject_reason": "流体短路vs采样折叠。"}
+{"rank": 156, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "城市基础设施老化和风机低电压穿越，一个是长期退化一个是瞬态穿越，无同构。", "reject_reason": "时间尺度和机制均不同。"}
+{"rank": 157, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "高分子光氧化链式正反馈和海冰反照率反馈，都是自催化链式正反馈，前者是分子尺度的自由基链传播，后者是气候尺度的反照率-温度耦合，属同一'自催化链'结构。跨域同构。", "reject_reason": ""}
+{"rank": 158, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "电机堵转电流和现金预防性持有边际递减，毫无结构关联。", "reject_reason": "瞬态电流倍数vs边际效用递减。"}
+{"rank": 159, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "海冰反照率反馈和年金生存反选择，都是同一类正反馈：某一类成员占比上升→环境/成本对剩余成员更不利→进一步驱离稳定成员。气候-精算跨域，是逆向选择与气候反馈的深刻同构。", "reject_reason": ""}
+{"rank": 160, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和卫星热控百叶窗失效，都是工程失效但机制无关。", "reject_reason": "流体分布vs机械疲劳。"}
+{"rank": 161, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "电缆热稳定校验和钛合金切削热软化，都涉及'热累积不散'但一个是瞬态热容限，一个是局部切削热。", "reject_reason": "共同的'散热不足'主题不构成结构同构。"}
+{"rank": 162, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "母差保护和预应力张拉损失，同属工程但机制无关。", "reject_reason": "电流守恒vs徐变损失。"}
+{"rank": 163, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "再入热障烧蚀和PID振荡发散，都涉及'控制'但一个是能量耗散一个是参数整定。", "reject_reason": "不同层面。"}
+{"rank": 164, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "场外衍生品中央清算的风险集中和海冰反照率反馈，前者是风险汇聚到节点，后者是正反馈放大，不构成同构。", "reject_reason": "风险节点化vs正反馈，不同结构。"}
+{"rank": 165, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "卡尔曼滤波发散和田野调查情感劳动，几乎无关的强行配对。", "reject_reason": "算法vs人类学方法反思，毫无同构。"}
+{"rank": 166, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "无套利漂移的变分极值 vs 公司治理套利跨国梯度，都用'套利'一词但含义不同：前者是价格无套利约束，后者是制度水平差异驱动资金流。", "reject_reason": "都叫套利但数学结构不同。"}
+{"rank": 167, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "交通灯周期控制和DFB激光布拉格光栅，都是'周期性'但一个是时间周期一个是空间周期，结构不对等。", "reject_reason": "时间节律vs空间光栅，只是词面相似。"}
+{"rank": 168, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和酱油氨基酸态氮，完全无关。", "reject_reason": "明显无关的强行配对。"}
+{"rank": 169, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和金属再结晶织构，毫无结构关联。", "reject_reason": "瞬态流体vs晶粒演化。"}
+{"rank": 170, "verdict": "reject", "value_type": "同域", "potential": 2, "reason": "音节重整和语音象征，都是语言学内部现象，不跨域。", "reject_reason": "同学科内的两个不同议题。"}
+{"rank": 171, "verdict": "keep", "value_type": "结构同构", "potential": 3, "reason": "白细胞沿趋化因子梯度归巢和地壳变质作用的温压梯度，都是'响应梯度分化空间结构'，生物与地质跨域同构，但具体机制差异较大。", "reject_reason": ""}
+{"rank": 172, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "Klein隧穿和光纤四波混频频率转换，都是凝聚态/光学中的守恒驱动过程，但前者是拓扑禁戒后者是相位匹配。", "reject_reason": "同属物理但机制不同层面。"}
+{"rank": 173, "verdict": "reject", "value_type": "表层相似", "potential": 2, "reason": "城市噪声众包地图和艺术品真伪计算鉴别，都是'用计算方法+数据辅助专家'但具体结构无同构。", "reject_reason": "工具类共性，不构成结构同构。"}
+{"rank": 174, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "复合材料热残余应力和PID振荡发散，无关。", "reject_reason": "热应力vs控制整定。"}
+{"rank": 175, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和金属再结晶织构，完全不同问题。", "reject_reason": "无关。"}
+{"rank": 176, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "固定床偏流和卫星表面充放电，无关。", "reject_reason": "流体短路vs静电放电。"}
+{"rank": 177, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "发动机热效率的卡诺上限和管理幅度的七到十人上限，都是'系统能力不可逾越的硬上限'：热机由温差决定，管理由人类认知带宽决定。工程学-管理学跨域，共享'原理性天花板'的抽象结构，但两种上限的底层数学并不同一（热力学第二定律 vs 认知心理上限），同构停留在哲学层面。", "reject_reason": ""}
+{"rank": 178, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "变压器励磁涌流和超固结土侧压力系数，两者都是工程'异常系数'但机制无关。", "reject_reason": "电磁瞬态vs土力学历史效应。"}
+{"rank": 179, "verdict": "reject", "value_type": "无明显同构", "potential": 2, "reason": "服务发现客户端负载均衡和扩散语言模型离散去噪，都是'分布式计算'话题但结构无关。", "reject_reason": "不同层次的算法议题。"}
+{"rank": 180, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "价格离散性与套利（同一资产跨场所价差被套利者消除）和海冰反照率反馈结构不完全同构。但若考虑的是'套利竞争反而加剧短期波动'这一自反馈部分，与正反馈有一定相似。整体同构度中等。", "reject_reason": ""}
+{"rank": 181, "verdict": "keep", "value_type": "结构同构", "potential": 4, "reason": "近视发展（用眼习惯-眼球变长-更近距离用眼）和海冰反照率反馈，都是典型的自强化正反馈：行为/状态的变化使得继续该变化更有利。医学-气候跨域同构清晰。", "reject_reason": ""}
+{"rank": 182, "verdict": "reject", "value_type": "无明显同构", "potential": 1, "reason": "管道水击和观测器相对阶失配，都是控制/力学但机制完全不同。", "reject_reason": "流体瞬态vs观测器带宽。"}

@@ -1,0 +1,91 @@
+{"rank": 3186, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Rijke管是热释放与声压同相位形成的极限环振荡（热声正反馈+非线性饱和）；虐待代际传递是风险因子通过情绪/依恋机制提高概率的统计性传递，不是振荡也无饱和极限环。", "reject_reason": "no actionable insight - 仅共享模糊的'正反馈'标签，动力学结构完全不同。"}
+{"rank": 3187, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "冻融裂隙提升导水率是结构性破坏改变输运系数；摩擦片温度-摩擦系数非线性是材料本身热响应曲线。一个是几何通道生成，一个是本征参数依赖温度。", "reject_reason": "no actionable insight - 两者都是温度相关现象但机理毫无共通之处。"}
+{"rank": 3188, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "群体免疫阈值是1-1/R0的硬性理论阈值（非线性传播截断）；主轴热误差时滞是线性一阶热惯性响应滞后。一个是阈值突破，一个是线性时延。", "reject_reason": "no actionable insight - 没有共同的数学结构。"}
+{"rank": 3189, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "利率互换凸性调整涉及期货盯市结算对远期利率的定价修正；扩散模型去噪得分匹配是梯度引导的逐步去噪生成。两者毫无关系。", "reject_reason": "no actionable insight - 跨域但毫无共同抽象结构。"}
+{"rank": 3190, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "热装配过盈量是主动设计的界面压力以传递载荷；斜拉桥锚固区应力集中是被动承受集中力导致的局部高应力。一个是利用过盈，一个是避免集中。", "reject_reason": "no actionable insight - 都涉及局部高应力但方向和设计目的相反。"}
+{"rank": 3191, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "深海热泉化能合成生态是自下而上的能量耦合涌现出完整食物链；生物气候带迁移速度差造成的'不存在群落'是物种响应速率差异的警示。一个是涌现，一个是滞后。", "reject_reason": "no actionable insight - 都在生态学但结构不同。"}
+{"rank": 3192, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "SHH-BMP对向浓度梯度精确指定神经元命运属于形态发生素模式形成；电缆热稳定校验是短路电流下温升上限的静态安全校核。毫不相关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3193, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 4, "reason": "MHC多样性维持（杂合个体识别更广肽段，超显性选择）与标签平滑（软标签使模型避免对单一类别过度自信）存在同构：两者都是通过保留多种'识别模式'防止对单一信号过拟合。MHC在免疫识别谱系上的广覆盖对应标签平滑在类别概率上的平坦化，抗特异性脆弱性的策略相通。", "reject_reason": ""}
+{"rank": 3194, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "语言爆发期是儿童在获得'命名洞察'后词汇量突破的发育阈值现象；降雨-径流非线性是入渗能力饱和后径流突发。两者表面都是'阈值突破后爆发'，但前者是认知突破而后者是物理饱和，底层机制不同构。", "reject_reason": "trivially obvious - 仅共享'阈值效应'这一泛化标签。"}
+{"rank": 3195, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "斜拉桥锚固区应力集中与扩散模型得分匹配毫无任何结构性关联。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3196, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 5, "reason": "LC振荡回路与季风陆海热力差形成的同构极为干净：两个储能库（电感磁场↔电容电场；大陆热容↔海洋热容）之间能量周期性交替转换，频率由两库参数决定，都是典型的二阶保守振荡系统。LC方程d²q/dt²+q/(LC)=0与季风驱动力的年周期反转完全对应——同构到可用类比模型直接传授季风为何'每半年翻转'。", "reject_reason": ""}
+{"rank": 3197, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "低球技术是承诺一致性在说服中的利用；昆虫生物量下降是生态压力累积效应。毫无同构关系。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3198, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "腐蚀微电池是几何自增强的正反馈（腐蚀坑越深电场越集中→腐蚀越快）；Akt-S6K是急性负反馈在慢性状态下病理化。一个是正反馈加速，一个是负反馈畸变，反馈极性相反。", "reject_reason": "no actionable insight - 都提'反馈'但机理方向相反。"}
+{"rank": 3199, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Umklapp声子散射是动量不守恒过程产生的热阻（指数温度依赖）；磁压缩绝热加热是磁矩绝热不变量守恒导致垂直动能升高。两者都涉及守恒/不守恒，但一个是破坏守恒产生电阻，一个是利用不变量升温，不构成同构。", "reject_reason": "no actionable insight - 浅层都涉及动量/能量但结构不同。"}
+{"rank": 3200, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "素数分布稀疏化（对数密度）与员工期权凸性激励（幂次增长）是相反的数学形式。", "reject_reason": "no actionable insight - 数学形式相反。"}
+{"rank": 3201, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "肿瘤MHC-I下调的免疫逃逸与ViT图像块嵌入完全无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3202, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "赤道潜流结构是海洋学补偿流；对数均温差是换热器设计公式。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3203, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "基因调控网络是逻辑门组合的布尔/阈值网络；士气崩溃是累积伤亡突破比例阈值的相变。两者都涉及'阈值'但网络拓扑与相变机理不同。", "reject_reason": "no actionable insight - 共享'阈值'标签但结构不同。"}
+{"rank": 3204, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "固定床偏流是流阻不均导致的短路流热点；聚合物冷流是无定形区链段蠕变。都是工程问题但机理迥异。", "reject_reason": "no actionable insight - 都涉及慢变形但机理不同。"}
+{"rank": 3205, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Chandy-Lamport快照是分布式一致性状态捕获算法；信贷脉冲是宏观经济增速对信贷加速度的二阶导敏感。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3206, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "规模经济是平均成本递减；超固结土侧压力系数是历史固结应力路径影响。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3207, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "蛇绿岩套是古洋壳保存的地质学证据；钙循环碳捕获是工程化学过程。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3208, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "凝胶点渗流相变是分子网络连通性突变（相变点模量突现）；Lévy定理是通过二次变差刻画布朗运动路径。两者都是数学性刻画但概念层次不同。", "reject_reason": "no actionable insight - 无共同结构。"}
+{"rank": 3209, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "市场崩盘与货币替代临界效应都在金融领域，都描述阈值突破后的非对称崩溃，属于同领域现象，不算跨域同构。", "reject_reason": "trivially obvious - 同在金融宏观领域。"}
+{"rank": 3210, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "群体免疫阈值与元小说自我揭露毫无任何关联。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3211, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "流体静压轴承是外部泵压主动建立油膜；量化宽松边际递减是政策刺激效果对数衰减。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3212, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "禀赋效应是损失厌恶导致的持有估值偏高；机器学习缺失值补全是统计方法。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3213, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "水泥稳定碎石基层干缩裂缝反射与功能固着完全无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3214, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "温盐环流深水形成是密度驱动的大尺度经向翻转；壤中流侧向传输是坡面土壤优势通道横向流。都是重力/密度流但尺度和机制差异大。", "reject_reason": "trivially obvious - 都在地球流体学科内。"}
+{"rank": 3215, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "背压流控机制是消费者通过反向信号让生产者减速的负反馈稳态；算法稳定币死亡螺旋是增发配对代币反而加速崩溃的正反馈。反馈极性相反。", "reject_reason": "no actionable insight - 一个是稳态保护，一个是崩溃放大，恰恰相反。"}
+{"rank": 3216, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "PD-L1免疫检查点治疗预测与灭绝债务无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3217, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "溶剂化弛豫动力学是光化学时间分辨测量；维克瑞拍卖激励相容是机制设计。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3218, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "不经意传输与机翼除冰无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3219, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "创始人股权稀释追踪与水泥稳定碎石裂缝反射无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3220, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "变压器差动保护与海洋碳泵无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3221, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "继电保护时限配合是电网分级保护时间级差设计；Gamma凸性暴露是期权对冲误差随价格幂次增长。无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3222, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "语言爆发期是发育阶段的认知能力跃变；PETM是古气候中的快速碳释放与全球升温事件。都是'短时间快速转变'但机制完全不同。", "reject_reason": "no actionable insight - 共享时间尺度描述但无结构性同构。"}
+{"rank": 3223, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "词频分布（Zipf幂律）与登山缺氧气压反比关系是不同的数学形式，且不构成同构。", "reject_reason": "no actionable insight - 都是幂律相关但无共同机制。"}
+{"rank": 3224, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "变压器差动保护与沉管隧道压浆基础处理无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3225, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "服务发现客户端负载均衡与有效应力原理无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3226, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "电气设备热点温度监测与并购退出倍数压缩无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3227, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "黎曼Zeta函数解析延拓与心理定势无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3228, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "薄壁件数控铣削颤振是再生型机械自激振动（切削力与振动相互激励）；平流层-对流层耦合是大气波动的行星尺度传递。都是振动/波但尺度和物理机制迥异。", "reject_reason": "no actionable insight - 都涉及波但结构不同。"}
+{"rank": 3229, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "不相容共混物界面浓度梯度与隐身飞行器外形优化无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3230, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "轮烷封端位阻与光化学阀门都是超分子化学中开关设计，属于同领域工具，并不形成跨域同构。", "reject_reason": "trivially obvious - 同领域分子开关。"}
+{"rank": 3231, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "城市基础设施老化（前期快后期慢的磨损曲线）与海洋碳汇饱和（对数式递减效率）表面都是'对数衰减'，但前者是物理磨损累积，后者是化学缓冲耗竭，机制不同。", "reject_reason": "trivially obvious - 都是'边际递减'的模糊共性，无共同机制。"}
+{"rank": 3232, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "排桩止水帷幕与幽灵岛屿生物地理无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3233, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "淀粉糊化与信贷脉冲效应无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3234, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "缓存命中率与滚珠丝杠预紧消隙无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3235, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "SHH背腹轴梯度与超固结土侧压力系数无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3236, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "特征函数一一对应定理与灭绝债务无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3237, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "绝缘配合爬电距离与并购退出倍数压缩无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3238, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "黑页岩缺氧沉积与海洋碳泵都在海洋地球化学领域，都涉及有机碳封存，同领域而非跨域同构。", "reject_reason": "trivially obvious - 同领域。"}
+{"rank": 3239, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "功能固着是认知上被常规用途限制；金属加工硬化是塑性变形后位错密度升高导致强度对数增长。都涉及'历史使用影响后续响应'但机制迥异。", "reject_reason": "no actionable insight - 只是隐喻层面的共性。"}
+{"rank": 3240, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "创始人股权稀释与零序电流接地保护无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3241, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "飞轮储能调速与淀粉糊化无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3242, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "市场韧性流动性恢复（扰动后回归稳态的负反馈）与海冰反照率反馈（正反馈放大）方向相反。", "reject_reason": "no actionable insight - 反馈极性相反。"}
+{"rank": 3243, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "班级规模效应与高压电缆金属护层环流无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3244, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "背压流控机制与美式期权提前行权边界无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3245, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "缓存命中率（对数递减）与员工期权凸性（幂次增长）数学形式相反。", "reject_reason": "no actionable insight - 数学形式相反。"}
+{"rank": 3246, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "不相容共混物界面浓度梯度是热力学不相容导致的尖锐界面；锚定效应是认知调整不充分。表面都是'从某起点渐变'但机制完全不同。", "reject_reason": "no actionable insight - 仅有隐喻相似性。"}
+{"rank": 3247, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "物种入侵与认知负荷理论无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3248, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 5, "reason": "MHC超优势选择与模型集成是极为干净的同构：两者都通过保留多个不同识别器（MHC等位基因/不同初始化模型）构成多样性池，个体识别盲点通过多样性互补消除，整体错误率低于任何单一成员。MHC群体层面维持多态性↔集成在模型空间维持多样性，偏差方差分解的生物学对应。这个同构把'多样性降低系统性错误'的原理从免疫学迁移到机器学习理论，具有教学与研究的迁移价值。", "reject_reason": ""}
+{"rank": 3249, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "膨胀土地基变形与冻融循环都是土壤季节性体积变化，同在水文/土力学领域，属于相近现象而非跨域同构。", "reject_reason": "trivially obvious - 同领域的相近现象。"}
+{"rank": 3250, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Dynamo版本向量与美式期权提前行权边界无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3251, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Hi-C染色质映射与湿地缓冲容量无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3252, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "租房信息不对称是双边私有信息的经济学问题；固定床偏流是催化反应器中流动短路。都提到'不均匀/不对称'但机制无共通。", "reject_reason": "no actionable insight - 仅共享'不对称'标签。"}
+{"rank": 3253, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "机械密封端面气膜与古地磁倒转无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3254, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "自发参量下转换产生纠缠光子对是量子光学中的非线性过程；格密码是后量子密码基于格问题。两者都与量子信息相关但一个是物理实现一个是抗量子攻击，不是同构。", "reject_reason": "no actionable insight - 相关但不同构。"}
+{"rank": 3255, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "傅里叶级数逼近与折扣去敏感化无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3256, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "采样系统混叠与田野调查情感劳动无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3257, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Raft日志复制与Hi-C染色质映射无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3258, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "编队飞行Hill坐标下的椭圆周期运动与潮汐日月引力周期都是稳定的周期运动，但前者是Clohessy-Wiltshire线性化的相对轨道动力学，后者是强迫响应。都是可精确预报的周期但机理不同。", "reject_reason": "trivially obvious - 只是都'周期'这一浅层共性。"}
+{"rank": 3259, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "国际移民侨汇与抗阻训练神经早期适应无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3260, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "地理代替种环状种与再入热障烧蚀无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3261, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "lncRNA支架组装与抗阻训练肌肥大双因素无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3262, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "立铣刀径向跳动与扩散语言模型无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3263, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "扩散模型得分匹配与变压器铁心磁饱和无关（都是'饱和'但完全不同含义）。", "reject_reason": "no actionable insight - 共享模糊词但无同构。"}
+{"rank": 3264, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "水泥稳定基层裂缝反射与面筋网络形成无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3265, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "Hippo通路器官大小负反馈与盐指对流混合无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3266, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Jarzynski等式是非平衡功分布与平衡自由能差的严格统计等式；全球失衡是经常账户顺差与逆差的会计恒等式。两者都是'恒等式'但一个是统计力学定理一个是会计定义。", "reject_reason": "no actionable insight - 只是共享'恒等'抽象标签。"}
+{"rank": 3267, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "高层建筑风振舒适度控制与温盐环流深水形成无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3268, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "染色质TAD边界与抗阻训练神经适应无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3269, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "NK细胞缺失自我识别与肠隐窝-绒毛轴都在生物学领域且机制完全不同（受体平衡识别 vs 空间梯度分化）。", "reject_reason": "trivially obvious - 同领域但无共同机制。"}
+{"rank": 3270, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "细菌生物膜遗传异质性与加压氢化压力突变无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3271, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "配电变压器空载损耗与湿地缓冲容量无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3272, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "自由落体（距离随时间二次幂）与生物多样性-生态功能对数关系数学形式相反。", "reject_reason": "no actionable insight - 数学形式相反。"}
+{"rank": 3273, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "钙循环碳捕获与现金预防性动机都涉及'边际递减'但机制完全不同（化学吸附活性下降 vs 主观安全边际递减）。", "reject_reason": "trivially obvious - 仅共享'边际递减'抽象标签。"}
+{"rank": 3274, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "AMOC减速与壤中流侧向传输都是水体流动但尺度和机制差异巨大（大洋经向翻转 vs 坡面土壤优势通道），且同在地球流体学科内。", "reject_reason": "trivially obvious - 同领域尺度完全不同。"}
+{"rank": 3275, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "pDC与I型干扰素产生与凸轮型线加速度突变无关。", "reject_reason": "no actionable insight - 完全无关。"}
+{"rank": 3276, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "大规模调查机器学习补全与城市居民行动圈量化同属计算社会科学，都是数据方法论，不构成跨域同构。", "reject_reason": "trivially obvious - 同领域工具方法。"}

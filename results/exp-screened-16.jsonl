@@ -1,0 +1,100 @@
+{"rank": 1501, "verdict": 3, "value_type": "跨域机制类比", "potential": "中", "reason": "NAO南北气压梯度驱动的西风强度 vs 浊流密度差驱动的重力流，均为势差驱动的定向输运，但一个是大气地转涡动一个是重力-颗粒沉降，结构相似度一般", "reject_reason": null}
+{"rank": 1502, "verdict": 4, "value_type": "跨域结构同构", "potential": "高", "reason": "混淆矩阵的分类混淆模式 vs 手稿谱系的抄写错误传播——都是在双维度标签空间中记录转化/误差模式并据此反推真实结构，一个反推模型误判另一个反推文本祖先，信息论层面的结构同构", "reject_reason": null}
+{"rank": 1503, "verdict": 2, "value_type": "对数律平行", "potential": "低", "reason": "均为对数/幂次衰减关系且都涉及边际效益递减的工程阈值，但一个是声衍射一个是疲劳力学，仅在公式形态上相似，机制差异大", "reject_reason": null}
+{"rank": 1504, "verdict": 2, "value_type": "正反馈共性", "potential": "低", "reason": "涡管伸展正反馈与上升流生态不在同一结构层面，上升流是Ekman抽吸+生物响应，非角动量守恒型正反馈", "reject_reason": "机制层次不匹配"}
+{"rank": 1505, "verdict": 3, "value_type": "搜索与选择性激发", "potential": "中", "reason": "双色激发绕开选择定则访问高态 vs Rad51链入侵概率搜索同源——都是通过中间态/试探接触提高目标命中率，概念类比成立但物理与生化机制差别大", "reject_reason": null}
+{"rank": 1506, "verdict": 1, "value_type": "无结构关联", "potential": "低", "reason": "CAR-T持久性依赖记忆细胞池 vs 荧光寿命测粘度——只是两者都涉及'寿命'词汇，毫无结构对应", "reject_reason": "词汇巧合，无同构"}
+{"rank": 1507, "verdict": 2, "value_type": "定向/汇聚对照", "potential": "低", "reason": "磁小体提供方向感 vs 光捕获天线能量漏斗——都涉及定向聚集，但一个是导航一个是能量转移，结构性较弱", "reject_reason": null}
+{"rank": 1508, "verdict": 3, "value_type": "耦合漂移结构", "potential": "中", "reason": "多铁材料磁电耦合自旋螺旋 vs 等离子体弯曲磁场中的梯度曲率漂移电荷分离——都涉及对称性破缺下的矢量耦合，但前者是凝聚态后者是输运，同构有限", "reject_reason": null}
+{"rank": 1509, "verdict": 3, "value_type": "最小约束界限", "potential": "中", "reason": "裂缝宽度控制阈值 vs 换热网络夹点约束——都体现工程系统中存在不可逾越的约束界限决定设计极限，结构类比合理", "reject_reason": null}
+{"rank": 1510, "verdict": 1, "value_type": "无关联", "potential": "低", "reason": "RCU宽限期与悬崖归属期都涉及'等待期'词汇巧合，但RCU是读写一致性保障，悬崖归属是激励博弈，结构完全不对应", "reject_reason": "仅时序词汇巧合"}
+{"rank": 1511, "verdict": 1, "value_type": "无关联", "potential": "低", "reason": "KH卷起（流体不稳定）与重音转移（音系规则）完全异质", "reject_reason": "无共同结构"}
+{"rank": 1512, "verdict": 3, "value_type": "裕度衰减+工艺监测", "potential": "中", "reason": "反应釜结焦累积与发动机喘振裕度衰减——都是运行中关键性能参数渐近劣化至临界阈值的退化过程，结构类比成立", "reject_reason": null}
+{"rank": 1513, "verdict": 4, "value_type": "因子暴露+制度切换", "potential": "高", "reason": "CDO分层对系统/特质因子敏感度差异 vs 相关性制度切换——都揭示了压力期高阶矩结构突变使常规模型失效的金融同类现象，但同属金融域，跨度不足", "reject_reason": "同领域（金融）"}
+{"rank": 1514, "verdict": 3, "value_type": "谱分解对照", "potential": "中", "reason": "买卖价差成本三分解 vs 曲轴扭振模态分解——都是将观测量分解为正交成分的分析框架，数学上是特征分解类比，较抽象", "reject_reason": null}
+{"rank": 1515, "verdict": 3, "value_type": "守恒约束", "potential": "中", "reason": "AMM乘积守恒 vs 飞机力矩平衡——都是刚性守恒约束决定系统状态，但一个是经济设计一个是力学平衡，同构在守恒层面", "reject_reason": null}
+{"rank": 1516, "verdict": 4, "value_type": "跨模型/跨景观转移", "potential": "高", "reason": "进化景观的局部峰锁死 vs 对抗样本跨模型转移——两者都刻画高维决策面上梯度方向的相关性决定跨实体转移，深度学习决策边界类比适应度地形的非凸几何", "reject_reason": null}
+{"rank": 1517, "verdict": 3, "value_type": "耦合传导放大", "potential": "中", "reason": "经济周期国际传导 vs 海洋锋面强化降水——都描述耦合界面放大局部扰动，但一个是金融一个是海气，结构同构弱", "reject_reason": null}
+{"rank": 1518, "verdict": 3, "value_type": "多约束最优化", "potential": "中", "reason": "Lawson判据nTτ乘积 vs 电化学合成氨选择性约束——都是多条件同时满足的临界判据问题，结构相似但物理层次差别大", "reject_reason": null}
+{"rank": 1519, "verdict": 2, "value_type": "完备化+守恒", "potential": "低", "reason": "Jarzynski非平衡自由能 vs p进数完备化——都涉及'完备'和'守恒'词汇，但一个是统计力学一个是数论，无实质同构", "reject_reason": "词汇巧合"}
+{"rank": 1520, "verdict": 4, "value_type": "湍流能量级联", "potential": "高", "reason": "阿尔芬波湍流级联 vs 海洋内波破碎混合——两者都是波湍流三波耦合向小尺度级联耗散的经典机制，同构度很高且跨等离子体/流体域", "reject_reason": null}
+{"rank": 1521, "verdict": 4, "value_type": "势差驱动非线性扩散", "potential": "高", "reason": "渗透压脱水腌制 vs Richards土壤水方程——都是势梯度驱动的非线性扩散界面推进过程，数学上是同类非线性扩散问题", "reject_reason": null}
+{"rank": 1522, "verdict": 4, "value_type": "公共品→中央节点", "potential": "高", "reason": "铁载体特异性阻止搭便车（微生物群落排斥） vs 中央清算对手方吸收交易风险（金融系统）——两者都将分散风险/资源集中到中介节点，并使该节点成为系统性关键，结构对应精彩", "reject_reason": null}
+{"rank": 1523, "verdict": 2, "value_type": "统计尾部识别", "potential": "低", "reason": "城市流动性社会分层 vs 地球化学异常尾部识别——都用统计分布识别异常，但一个是描述分层一个是点源定位，结构同构弱", "reject_reason": null}
+{"rank": 1524, "verdict": 3, "value_type": "不稳定性放大", "potential": "中", "reason": "激光自聚焦细丝 vs 夜间低空急流——都是局部扰动经过正反馈放大但机制差异大", "reject_reason": null}
+{"rank": 1525, "verdict": 3, "value_type": "仓室模型+贝叶斯归因", "potential": "中", "reason": "SEIR仓室流动 vs 气候归因指纹法——一个是状态转移一个是信号分解，同构较弱", "reject_reason": null}
+{"rank": 1526, "verdict": 5, "value_type": "绕过分层中介直接耦合", "potential": "极高", "reason": "BiTE绕过MHC抗原提呈直接桥接T细胞与肿瘤 vs DPDK绕过内核协议栈直接让应用控制网卡——两者都是通过旁路中间层建立端到端强耦合以提升响应速度与吞吐量，代价都是需要持续消耗资源维持（输注/CPU轮询），结构同构罕见且深刻", "reject_reason": null}
+{"rank": 1527, "verdict": 3, "value_type": "互斥正反馈分区", "potential": "中", "reason": "极性复合体互斥建立细胞极性 vs 林窗更新斑块动态——都是互斥正反馈产生空间分异，但生态斑块机制不是纯粹的双稳态互斥", "reject_reason": null}
+{"rank": 1528, "verdict": 2, "value_type": "幂律关系", "potential": "低", "reason": "Paris律幂指数 vs Rossby数尺度反比——都是无量纲参数标度，但物理场景和结构功能差异大", "reject_reason": null}
+{"rank": 1529, "verdict": 4, "value_type": "灵敏距离标尺", "potential": "高", "reason": "气泡闵纳特共振的半径-频率标尺 vs FRET的1/r^6距离标尺——都是将物理共振/耦合效率作为尺寸/距离的精确度量工具，同构性强", "reject_reason": null}
+{"rank": 1530, "verdict": 3, "value_type": "多通道汇聚放大", "potential": "中", "reason": "免疫突触模块化信号刷新 vs 补体三通路汇聚C3——都涉及多入口单出口的放大结构，但一个是时间刷新一个是空间汇聚，同构有限", "reject_reason": null}
+{"rank": 1531, "verdict": 3, "value_type": "梯度扩散稳态", "potential": "中", "reason": "城市热岛空间梯度 vs 海浪深水传播——前者是源强维持的定常梯度扩散，后者是频散传播，结构同构不密", "reject_reason": null}
+{"rank": 1532, "verdict": 3, "value_type": "对称性破缺与节点", "potential": "中", "reason": "d波超导节线结构 vs 双曲超材料双曲等频线——都是具有节点/发散的各向异性响应函数，同构在波矢空间几何", "reject_reason": null}
+{"rank": 1533, "verdict": 3, "value_type": "标记/令牌协议", "potential": "中", "reason": "Chandy-Lamport Marker快照 vs 盲签名盲因子——都使用标记机制实现协议保证，但目的不同（一致性 vs 匿名），结构弱关联", "reject_reason": null}
+{"rank": 1534, "verdict": 2, "value_type": "耦合扩散传染", "potential": "低", "reason": "KH不稳定性 vs 经济周期同步——都涉及'传染/扰动放大'但机制完全不同", "reject_reason": null}
+{"rank": 1535, "verdict": 3, "value_type": "时序关联回归识别", "potential": "中", "reason": "议程设置量化 vs 建成环境客流回归——都是用时空协变量回归识别影响机制，同领域倾向（计算社科内部）", "reject_reason": "近同领域"}
+{"rank": 1536, "verdict": 2, "value_type": "层级扩散", "potential": "低", "reason": "品牌扩散 vs 微塑料食物链累积——一个是社会网络扩散一个是营养级富集，方向与机制不同", "reject_reason": null}
+{"rank": 1537, "verdict": 2, "value_type": "层级结构共性", "potential": "低", "reason": "指示词层级 vs 环境评价层次分析——只是都有层级，结构意义差异大", "reject_reason": "层级词义巧合"}
+{"rank": 1538, "verdict": 4, "value_type": "套利机制+操控漏洞", "potential": "高", "reason": "ETF授权参与者套利机制 vs 闪电贷操控AMM预言机——都是依赖套利保持价格锚定并将底层流动性风险传导至上层，还都存在被操控的脆弱性，但同属金融域", "reject_reason": "同领域（金融）"}
+{"rank": 1539, "verdict": 4, "value_type": "边际递减曲线", "potential": "高", "reason": "学习曲线成本对数递减 vs 多效蒸发蒸汽经济性递减——都刻画每增加一单位积累的收益按固定比例递减的经典规律，结构同构非常直接", "reject_reason": null}
+{"rank": 1540, "verdict": 2, "value_type": "尖端效应不同域", "potential": "低", "reason": "锂枝晶尖端正反馈 vs 主客体疏水效应——机制完全不同，仅都涉及'驱动力'概念", "reject_reason": null}
+{"rank": 1541, "verdict": 4, "value_type": "完全共线性识别困境", "potential": "高", "reason": "双缝互补性D²+V²≤1守恒约束 vs 年龄-时期-队列三者线性依赖识别困境——两者都是观测自由度小于理论参数导致无法同时确定所有分量，必须靠额外先验/测量选择打破简并，这种'识别困境'在量子互补与社科APC之间形成深刻同构", "reject_reason": null}
+{"rank": 1542, "verdict": 1, "value_type": "无关联", "potential": "低", "reason": "晶界滑移蠕变 vs 重音转移完全异质", "reject_reason": "无结构关联"}
+{"rank": 1543, "verdict": 2, "value_type": "正反馈 vs 营养输送", "potential": "低", "reason": "枝晶尖端正反馈 vs 沿岸上升流——机制维度不同", "reject_reason": null}
+{"rank": 1544, "verdict": 3, "value_type": "信号诱导负反馈", "potential": "中", "reason": "PD-L1负反馈抑制T细胞 vs 肿瘤铁死亡易感性——同属肿瘤学，结构同构弱", "reject_reason": "同领域"}
+{"rank": 1545, "verdict": 3, "value_type": "守恒交换", "potential": "中", "reason": "DeFi乘积守恒 vs 利率互换净额守恒——都是守恒约束下的即时交换，但一个是乘积一个是加和守恒，结构同类但类型不同", "reject_reason": null}
+{"rank": 1546, "verdict": 3, "value_type": "梯度驱动双向输运", "potential": "中", "reason": "渗透压腌制水分外迁风味内渗 vs 流体联轴器转速差驱动油液循环——都是差驱动双向输运，结构类比中等", "reject_reason": null}
+{"rank": 1547, "verdict": 3, "value_type": "级联层次结构", "potential": "中", "reason": "高分子片晶折叠层次 vs 大气湍流能量级联——都是多尺度层次结构，但一个是静态形态一个是动态能量转移", "reject_reason": null}
+{"rank": 1548, "verdict": 3, "value_type": "聚集触发状态切换", "potential": "中", "reason": "溶剂触发超分子去组装 vs AIE聚集诱导发光——都是组装态物性跳变，同超分子/光化学邻域", "reject_reason": "近邻领域"}
+{"rank": 1549, "verdict": 3, "value_type": "梯度驱动链式传递", "potential": "中", "reason": "自旋塞贝克效应 vs 催化裂化链式氢转移——一个是物理自旋流一个是化学链反应，结构同构弱", "reject_reason": null}
+{"rank": 1550, "verdict": 4, "value_type": "散射信息反演", "potential": "高", "reason": "电子衍射反演分子结构 vs 乐谱计算量化和声演化——都是从海量观测信号中反演内部结构/演化轨迹，信息论层面相似", "reject_reason": null}
+{"rank": 1551, "verdict": 1, "value_type": "无关联", "potential": "低", "reason": "QAOA变分优化 vs 议程设置量化——无结构对应", "reject_reason": "无同构"}
+{"rank": 1552, "verdict": 3, "value_type": "前置提取价值", "potential": "中", "reason": "三明治攻击从滑点提取价值 vs RLHF从偏好提取梯度——两者都是从可见信息流中提取信号，但性质差异大", "reject_reason": null}
+{"rank": 1553, "verdict": 3, "value_type": "传播速度与距离", "potential": "中", "reason": "丝绸之路传播 vs 海浪深水传播——都涉及远距离传播与介质依赖的速度，结构类比较直接但简单", "reject_reason": null}
+{"rank": 1554, "verdict": 1, "value_type": "无关联", "potential": "低", "reason": "ACC冲突监测 vs 肿瘤VEGF血管生成无结构对应", "reject_reason": "异质"}
+{"rank": 1555, "verdict": 3, "value_type": "可见信号溢价", "potential": "中", "reason": "可见慈善的地位信号 vs On-the-run流动性溢价——都描述可见性带来的额外溢价，概念类比成立", "reject_reason": null}
+{"rank": 1556, "verdict": 2, "value_type": "极化平衡", "potential": "低", "reason": "三突触单元 vs M1/M2极化——同属生物学子领域", "reject_reason": "近领域"}
+{"rank": 1557, "verdict": 2, "value_type": "边界传输", "potential": "低", "reason": "免疫突触运输-降解 vs 南大洋跨锋面输送——都涉及跨边界输送，结构同构弱", "reject_reason": null}
+{"rank": 1558, "verdict": 4, "value_type": "从碎片模式反推隐藏结构", "potential": "高", "reason": "战俘审讯集合分析推断德军兵力配置 vs 古代文字计算解读通过频率与共现模式推断文字功能类别——两者都是从大量局部观测的统计分布中反推不可直接观察的系统结构（军队编制/语言体系），信息论层面同构度高，跨军事情报与数字人文", "reject_reason": null}
+{"rank": 1559, "verdict": 4, "value_type": "梯度驱动线性传播律", "potential": "高", "reason": "深空信号平方反比衰减 vs Darcy定律渗流线性律——都是基础物理的通量-梯度/距离关系，属于经典场论律的同构，但形式略不同（反比 vs 线性）", "reject_reason": null}
+{"rank": 1560, "verdict": 3, "value_type": "辐射传播", "potential": "中", "reason": "品牌扩散 vs 地震波P/S波传播——都是从源向外辐射，但一个是社会网络一个是弹性波，结构同构中等", "reject_reason": null}
+{"rank": 1561, "verdict": 3, "value_type": "正反馈军备竞赛", "potential": "中", "reason": "锂枝晶正反馈 vs 算法交易军备竞赛——都是局部优势自我放大，结构类比成立", "reject_reason": null}
+{"rank": 1562, "verdict": 3, "value_type": "释放物改变承载相", "potential": "中", "reason": "俯冲带脱水触发熔融 vs 氮沉降改变化学计量——都是外源输入改变体系相态/群落结构，机制弱同构", "reject_reason": null}
+{"rank": 1563, "verdict": 3, "value_type": "模态/集合分解", "potential": "中", "reason": "战俘集合的统计推断 vs 曲轴扭振模态分解——概念层面都从复合信号分离结构，结构联系较弱", "reject_reason": null}
+{"rank": 1564, "verdict": 2, "value_type": "缺失数据推断", "potential": "低", "reason": "调查数据ML补全 vs 可得性启发——两者都涉及缺失信息处理但结构不对应", "reject_reason": null}
+{"rank": 1565, "verdict": 4, "value_type": "速率编码的分段控制", "potential": "高", "reason": "啁啾镜色散补偿分层反射 vs 稀有密码子制造翻译减速窗口——都是通过设计'速率分段'使整体过程达到最优（脉冲压缩至极限/折叠精度提升），两者同为'在快速过程中引入受控延迟'的设计原则，跨光学与分子生物学", "reject_reason": null}
+{"rank": 1566, "verdict": 5, "value_type": "超时等待防双写", "potential": "极高", "reason": "分布式租约超时防脑裂 vs Optimistic Rollup 7天挑战期——两者都用'时间窗口+默认生效+期末确认'模式解决分布式一致性问题，新状态在窗口内可被挑战/回滚，窗口过后才不可撤销，这一设计在分布式系统与区块链之间形成精确同构", "reject_reason": null}
+{"rank": 1567, "verdict": 3, "value_type": "代际/仓室转移测量", "potential": "中", "reason": "SEIR仓室流动 vs 代际流动性测量——都是状态转移矩阵分析，但SEIR是动态微分方程而代际是静态相关系数，同构弱", "reject_reason": null}
+{"rank": 1568, "verdict": 2, "value_type": "角度/粘度特异性", "potential": "低", "reason": "荧光寿命测粘度 vs 等长训练角度特异性——词汇相近但结构无关", "reject_reason": "无同构"}
+{"rank": 1569, "verdict": 3, "value_type": "存量调节释放", "potential": "中", "reason": "环糊精包合物释放 vs 做市商库存价差调节——都是通过持有量调节'释放/报价'的反馈控制，概念类比中等", "reject_reason": null}
+{"rank": 1570, "verdict": 3, "value_type": "选择性引导", "potential": "中", "reason": "信号肽引导蛋白分选 vs 远程官能团光激活——都是借中介实现特定位点选择性，同构弱", "reject_reason": null}
+{"rank": 1571, "verdict": 4, "value_type": "三级级联路由", "potential": "高", "reason": "E1-E2-E3泛素级联决定底物特异性 vs MPLS标签交换路径——都是三/多级级联中每级独立决定下一步路由目的地，结构上是信号→路由→执行的分层决策架构", "reject_reason": null}
+{"rank": 1572, "verdict": 4, "value_type": "无套利守恒约束", "potential": "高", "reason": "汇率利率平价（加法守恒） vs AMM乘积守恒——都是无套利约束下维持的守恒关系，结构同构度高但同属金融领域", "reject_reason": "同领域（金融）"}
+{"rank": 1573, "verdict": 4, "value_type": "仓室流动与概率链接", "potential": "高", "reason": "SEIR模型在时间上追踪个体状态转移 vs 历史人口数据库概率链接追踪跨年代个体——都涉及用概率方法跟踪离散个体在时间断点间的状态，前者是同时性仓室转移后者是跨档案匹配，信息模型相似", "reject_reason": null}
+{"rank": 1574, "verdict": 3, "value_type": "线性变换守恒", "potential": "中", "reason": "量子比特叠加线性变换 vs 量子-经典路径积分对应——两者都是量子力学内部的数学对应，同领域", "reject_reason": "同领域（量子）"}
+{"rank": 1575, "verdict": 3, "value_type": "树状层级结构", "potential": "中", "reason": "创业生态层级 vs 配电馈线分段——都是树状分级的模块化架构，但一个是金融流程一个是电力拓扑", "reject_reason": null}
+{"rank": 1576, "verdict": 3, "value_type": "反比/平方关系", "potential": "中", "reason": "离心力 vs 过滤滤速阻力——都是速度相关反比，但分别为动力学和传输现象", "reject_reason": null}
+{"rank": 1577, "verdict": 4, "value_type": "可比性识别问题", "potential": "高", "reason": "测量不变性跨群比较 vs 年龄-时期-队列识别困境——都是实证研究中因潜在参数无法独立识别而导致结论不稳健的根本方法论问题，同属统计识别理论", "reject_reason": "近邻领域（流病与人口学）"}
+{"rank": 1578, "verdict": 4, "value_type": "协同正反馈极端化", "potential": "高", "reason": "血红蛋白协同S型曲线 vs 性选择失控进化——都是少数初始偏好通过正反馈连锁放大至全局极端状态，一个是四级结构一个是基因-偏好连锁，同构度高", "reject_reason": null}
+{"rank": 1579, "verdict": 2, "value_type": "级联/折叠共性", "potential": "低", "reason": "阿尔芬波级联 vs 片晶折叠生长——都用'级/折'概念但结构不同", "reject_reason": null}
+{"rank": 1580, "verdict": 3, "value_type": "衰减函数形态", "potential": "中", "reason": "双曲折扣 vs 噪声距离衰减——都是距离/时间的非线性衰减，但函数形态不同（双曲 vs 对数）", "reject_reason": null}
+{"rank": 1581, "verdict": 4, "value_type": "正交隔离提高可预测性", "potential": "高", "reason": "中断亲和力+isolcpus隔离保护实时任务 vs 合成生物学正交分子系统与宿主代谢隔离——两者都是通过建立独立资源通道/正交子系统避免相互干扰以提升可预测性，跨操作系统与合成生物", "reject_reason": null}
+{"rank": 1582, "verdict": 3, "value_type": "激发态路径选择", "potential": "中", "reason": "量子相干控制反应路径 vs 光化学立体选择性——两者都涉及通过激发态调控选择性产物，相关但非严格同构", "reject_reason": "近邻领域"}
+{"rank": 1583, "verdict": 4, "value_type": "签名信任链", "potential": "高", "reason": "E1-E2-E3泛素级联从上游信号到降解标记 vs DNSSEC区级密钥签名链验证——都是通过多级密钥/酶的签名传递建立可验证的信任/命运链，结构同构精巧", "reject_reason": null}
+{"rank": 1584, "verdict": 4, "value_type": "递归分级结构", "potential": "高", "reason": "地层叠覆时间序 vs Horton河流分级——都是自然系统中自相似的层序结构，前者是时间层序后者是空间分形，同构度较高", "reject_reason": null}
+{"rank": 1585, "verdict": 4, "value_type": "乘积/加法守恒", "potential": "高", "reason": "AMM乘积守恒 vs 流域水量平衡加法守恒——都是系统量在通道间分配的守恒约束，同构明确但一个乘积一个加法", "reject_reason": null}
+{"rank": 1586, "verdict": 4, "value_type": "物理量转化为纠错信号", "potential": "高", "reason": "动粒张力-Aurora B磷酸化纠错（正确附着产生张力使激酶与底物空间分离自动关闭纠错） vs 大脑预期误差信号驱动强化学习（结果-预测差值直接作为学习梯度）——两者都是将系统内在误差量直接编码为驱动自我校正的控制信号而无需外部监督，但细胞机械-酶耦合与神经预测编码机制差异仍较大", "reject_reason": null}
+{"rank": 1587, "verdict": 2, "value_type": "闭环辨识", "potential": "低", "reason": "控制系统闭环偏差 vs 城市通风CFD规划——都涉及建模但机制完全不同", "reject_reason": null}
+{"rank": 1588, "verdict": 4, "value_type": "定植抵抗背压", "potential": "高", "reason": "肠道菌群定植抵抗（竞争位点+代谢物阻止入侵） vs 分布式系统背压流控（下游反向信号阻止上游过载）——两者都是'通过当前占用/信号反馈主动阻止新流入'的防御机制，跨微生物与分布式系统", "reject_reason": null}
+{"rank": 1589, "verdict": 2, "value_type": "近同域", "potential": "低", "reason": "镜像神经元基础与经济含义本质同一主题", "reject_reason": "同主题近复制"}
+{"rank": 1590, "verdict": 4, "value_type": "自加强正反馈回路", "potential": "高", "reason": "台风正反馈 vs 永久冻土碳反馈——都是气候系统中的自我强化正反馈回路，相似机制但前者短时后者长期", "reject_reason": null}
+{"rank": 1591, "verdict": 3, "value_type": "有限生成结构", "potential": "中", "reason": "类数群与诺特环理想结构——同属代数数论与代数，同领域", "reject_reason": "同领域（代数）"}
+{"rank": 1592, "verdict": 3, "value_type": "有限稳定条件", "potential": "中", "reason": "诺特环理想升链稳定 vs 鞅可选停止——都是'到某阶段后稳定/不变'的守恒定理，概念类比成立", "reject_reason": null}
+{"rank": 1593, "verdict": 3, "value_type": "速率变异分布", "potential": "中", "reason": "激光散斑负指数分布 vs 分子钟速率变异——都是统计变异问题但结构不同", "reject_reason": null}
+{"rank": 1594, "verdict": 4, "value_type": "从激活模式反推作者/语义", "potential": "高", "reason": "稀疏自编码器分解神经元激活到可解释特征 vs 文体计量学从文本频率指纹识别作者——都是从高维观测中分解出可解释的少数主导特征来归因/识别，信息论层面同构", "reject_reason": null}
+{"rank": 1595, "verdict": 4, "value_type": "频谱反演", "potential": "高", "reason": "量子噪声谱重构（动力学解耦脉冲滤波反推环境谱） vs 齿轮箱阶次分析（转速追踪整理频谱）——都是通过特定滤波手段将原始噪声映射到结构化频谱以定位源，跨量子与机械", "reject_reason": null}
+{"rank": 1596, "verdict": 4, "value_type": "双曲式递减持续量", "potential": "高", "reason": "混凝土徐变（递减速率但永不停） vs 记忆双曲遗忘（最初忘得快后越忘越慢）——都是刻画双曲式递减但永不归零的累积曲线，一个是力学一个是记忆，形态同构度高", "reject_reason": null}
+{"rank": 1597, "verdict": 2, "value_type": "分类区分", "potential": "低", "reason": "人称包括排除 vs 盈亏分段编码——都涉及二分判断但结构同构弱", "reject_reason": null}
+{"rank": 1598, "verdict": 3, "value_type": "正交分量分解", "potential": "中", "reason": "功率因数有功无功分解 vs 齿轮箱阶次分析——都是将观测量分解到正交分量/基底，同为傅里叶类分解", "reject_reason": null}
+{"rank": 1599, "verdict": 3, "value_type": "所有权/代付抽象", "potential": "中", "reason": "互斥锁所有权 vs 账户抽象Gas代付——都涉及'谁有权执行某操作'的抽象，概念类比中等", "reject_reason": null}
+{"rank": 1600, "verdict": 3, "value_type": "跨尺度相关谱", "potential": "中", "reason": "情绪传染跨节点扩散 vs 气候多尺度相互作用——都体现长程相关跨尺度，但机制结构同构中等", "reject_reason": null}

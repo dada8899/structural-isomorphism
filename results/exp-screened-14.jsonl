@@ -1,0 +1,100 @@
+{"rank": 1301, "verdict": "reject", "reject_reason": "两者虽都涉及气候耦合，但结构差异大：侵蚀-抬升是均衡反馈塑形，上升流是风驱辐散生态，缺少同构机制"}
+{"rank": 1302, "verdict": "reject", "reject_reason": "种群局部适应(基因流-选择平衡)与盐指对流(双扩散不稳定)分属离散进化与连续流体，结构不同构"}
+{"rank": 1303, "verdict": "reject", "reject_reason": "同属概率/随机过程领域，非跨域；且塔性质与等距性质是两个独立定理，非同构"}
+{"rank": 1304, "verdict": "accept", "value_type": "heuristic", "potential": 3, "reason": "宏基因组分箱(按多维特征聚类混合信号)与电能质量傅里叶分析(按频率分解混合波形)同构于信号盲源分离，都是用正交分量分解复合信号"}
+{"rank": 1305, "verdict": "accept", "value_type": "mechanism", "potential": 3, "reason": "需求价格弹性(线性比例)与种-面积幂律(对数线性)都是变量对数坐标下线性标度律，但一为短期弹性一为长期生态积累，结构类似深度不同"}
+{"rank": 1306, "verdict": "reject", "reject_reason": "OPA压缩态是正交分量间噪声守恒重分配，群感效应是浓度阈值超敏开关，一为连续重分配一为离散阈值，机制不同构"}
+{"rank": 1307, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "幽灵堵车与电网连锁故障同构于局部过载沿网络拓扑反向级联传播，小扰动经反应延迟与容量耦合被放大为系统性崩溃，但两者都已属经典级联故障范式，跨域新颖性中等"}
+{"rank": 1308, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "街景步行友好度自动评估与手稿谱系重建同构于大规模样本间自动比较+特征提取+隐藏结构重建，都是用算法将传统人工判读扩展到人类不可及的规模"}
+{"rank": 1309, "verdict": "reject", "reject_reason": "平方反比(球面展开)与效率指数衰减(级联相乘)看似都是衰减，但一为几何面积分配一为独立概率相乘，数学形式不同构"}
+{"rank": 1310, "verdict": "reject", "reject_reason": "热震裂纹(机械应力累积脆断)与反应热失控(放热正反馈)机制完全不同，前者是无反馈的应力积累，后者是温度-反应速率正反馈"}
+{"rank": 1311, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "福利三角最小化与最优杠杆同构于边际收益等于边际成本的内点最优化，都是在单调递增成本与单调递减收益间求凸权衡极值"}
+{"rank": 1312, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "博弈逆向归纳与损失发展三角递归都是从终点向前逐层展开的自引用动态规划，Bellman方程结构同构，跨域连接博弈论与精算"}
+{"rank": 1313, "verdict": "reject", "reject_reason": "词嵌入语义漂移与Copula联合分布都用统计工具，但一是时序语义偏移，一是尾部依赖结构，结构不同构"}
+{"rank": 1314, "verdict": "reject", "reject_reason": "制裁minimax与Staking锁定期约束优化都是优化问题但结构不同：一是零和博弈一是单方约束最大化"}
+{"rank": 1315, "verdict": "reject", "reject_reason": "富锂正极氧释放(不可逆晶格塌陷)与氮沉降化学计量失衡(生态群落重构)结构差别大，只是都涉及元素失衡"}
+{"rank": 1316, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "双重继嗣制(父系母系并行传递不同资源)与暗池-公开市场信息隔离同构于双通道并行信息流网络，内部紧密外部隔离的双模块架构，社会人类学与市场微观结构的结构相似"}
+{"rank": 1317, "verdict": "reject", "reject_reason": "卫星微振动(宽频弹性振动)与编码器盲区(电气死区非线性)都是控制扰动但机制完全不同"}
+{"rank": 1318, "verdict": "reject", "reject_reason": "随机游走sqrt(N)律与L函数类数公式属完全不同数学对象，相似性来自「平方根」这个表面词"}
+{"rank": 1319, "verdict": "reject", "reject_reason": "军事火力-机动钟摆是技术博弈演化，BTC四年周期是供给冲击节律，前者是军备适应性共演化后者是外生供给冲击"}
+{"rank": 1320, "verdict": "reject", "reject_reason": "希格斯场相变赋予质量与混凝土碳化钢筋锈蚀表面都涉及「化学反应前沿推进」但结构不同构"}
+{"rank": 1321, "verdict": "reject", "reject_reason": "同在数学大领域(代数/概率)且两个完全独立的基础定理，不构成跨域同构"}
+{"rank": 1322, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "KH界面卷起(剪切驱动指数增长涡)与Turing翅脉形成(活化-抑制反应扩散)都是小扰动经反馈放大形成规则图案的失稳机制，但KH是流体剪切不稳定而Turing是反应扩散，严格数学结构不同属同一类"}
+{"rank": 1323, "verdict": "reject", "reject_reason": "同属语言学领域，非跨域"}
+{"rank": 1324, "verdict": "reject", "reject_reason": "催化剂碱性位梯度分布与议程设置量化是两个不相关的测量量化研究，不构成结构同构"}
+{"rank": 1325, "verdict": "reject", "reject_reason": "ARPES(物理精密测量)与城市热岛遥感(遥感时空建模)都是成像技术但对象与机制完全不同"}
+{"rank": 1326, "verdict": "accept", "value_type": "mechanism", "potential": 5, "reason": "中心体单次执照(资源耗竭防重复复制)与重入攻击(状态未更新致递归调用)同构于状态检查-执行次序的临界竞态漏洞，正常情况下执行顺序保护单次性，但若状态更新滞后于资源消耗则可被重入破坏。这是细胞生物学与智能合约漏洞的深刻同构，对生物安全机制与合约设计互为镜像"}
+{"rank": 1327, "verdict": "accept", "value_type": "methodology", "potential": 3, "reason": "洪涝风险高分辨率动态评估与历史人口概率记录链接都是多源异构数据的模糊拼接，前者拼接物理层后者拼接身份层，方法论同构于贝叶斯融合"}
+{"rank": 1328, "verdict": "reject", "reject_reason": "社会运动NLP话题建模与出租车轨迹功能区聚类都是大数据无监督挖掘，但结构同构程度弱"}
+{"rank": 1329, "verdict": "reject", "reject_reason": "咝音腭化(发音部位协调)与浊流传播(密度驱动对流扩散)机制差异极大，无同构"}
+{"rank": 1330, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "土壤水分特征曲线滞后与粘土膨胀收缩滞后环都是双稳态记忆效应/迟滞环：相同状态变量对应不同历史路径响应，可用Preisach框架描述，但两者同为「水-固相」相关领域迁移跨度不大"}
+{"rank": 1331, "verdict": "accept", "value_type": "methodology", "potential": 3, "reason": "GPS轨迹识别城市功能区与古文字字符共现识别语法类别同构于从序列共现模式反推隐藏类别，都是无标签聚类发现功能结构"}
+{"rank": 1332, "verdict": "reject", "reject_reason": "色彩同时对比(视觉神经侧抑制)与浊流密度驱动传播无结构同构"}
+{"rank": 1333, "verdict": "reject", "reject_reason": "拉曼Stokes/反Stokes熵差与多孔电极弯曲扩散两者结构完全无关"}
+{"rank": 1334, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "独角兽幂律与DAO投票权无标度分布同构于少数节点主导整体影响的重尾结构，同一优先连接模型可解释两者，跨创投与DeFi治理"}
+{"rank": 1335, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "自身免疫正反馈(损伤-攻击放大)与海冰反照率正反馈(融化-吸热放大)同构于自我放大失稳循环，属于临界点失控反馈机制，跨生物与气候经典同构"}
+{"rank": 1336, "verdict": "reject", "reject_reason": "城市人群密度多源感知与数字表演动作捕捉都是用多模态传感量化时空行为，但结构同构弱"}
+{"rank": 1337, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "核纤层力-基因偶联(机械力经多层结构传导到染色质)与对手方风险传染网络(信用风险经连接链级联)同构于层次化耦合传导网络，外部扰动经多跳路径到达核心并被放大，跨细胞生物学与金融系统深刻同构"}
+{"rank": 1338, "verdict": "accept", "value_type": "mechanism", "potential": 3, "reason": "学习曲线(累积产量的幂律成本递减)与液压缓冲(指数能量耗散)都是随累积量的衰减过程，但一为幂律一为指数，部分同构"}
+{"rank": 1339, "verdict": "reject", "reject_reason": "洪涝评估与古气候-文明兴衰相关分析都是时空数据建模，但结构不同构"}
+{"rank": 1340, "verdict": "reject", "reject_reason": "Hubbard模型量子模拟与Copula相关性建模无结构同构"}
+{"rank": 1341, "verdict": "reject", "reject_reason": "核纤层机械传导与钙波受精阻断都是细胞层次级联，同属细胞生物学/发育生物学，非跨域"}
+{"rank": 1342, "verdict": "reject", "reject_reason": "特征函数对应唯一性与布朗运动局部时Tanaka公式属概率论内部两个独立结果，非跨域"}
+{"rank": 1343, "verdict": "reject", "reject_reason": "新生抗原疫苗设计与自组装纳米管通道都是分子设计，但结构同构弱"}
+{"rank": 1344, "verdict": "reject", "reject_reason": "建筑能耗时空建模与动作捕捉肢体分析都是大数据建模但同构度低"}
+{"rank": 1345, "verdict": "reject", "reject_reason": "减速器效率指数衰减与驻点温度速度平方律数学形式不同"}
+{"rank": 1346, "verdict": "reject", "reject_reason": "反应釜挂壁结焦(物理沉积积累)与味觉感官疲劳(神经适应)机制完全不同"}
+{"rank": 1347, "verdict": "reject", "reject_reason": "果园冻拔(物理冻融抬升)与信用利差均值回归无结构同构"}
+{"rank": 1348, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "火箭燃烧不稳定(声学模态与释热耦合相位正反馈)与PIO飞行员-飞机振荡(操纵指令与响应相位失配)同构于闭环反馈相位失配引发振荡发散，同一奈奎斯特判据可描述，但同属航天工程跨度有限"}
+{"rank": 1349, "verdict": "accept", "value_type": "methodology", "potential": 3, "reason": "在线民族志文本计算辅助与众包噪声地图都是通过海量低精度观测融合+算法校正构建宏观视图，都是noisy crowdsourcing方法论"}
+{"rank": 1350, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "催化裂化碳正离子链式氢转移(链式自催化传播)与DeFi利率-美联储套利传导都是「链式」传导但一为分子级联一为套利均衡，弱同构；不过信号经链式放大是共性"}
+{"rank": 1351, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "沿岸上升流(持续驱动外力形成稳态产力循环)与气动颤振(气动力-变形正反馈发散)结构差别大，不同构"}
+{"rank": 1352, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "Perturb-seq(给每个细胞加唯一gRNA标签对应独立扰动)与历史人口概率记录链接(通过特征相似度匹配同一个体)同构于带噪条件下多标识符匹配单元，方法论高度相似"}
+{"rank": 1353, "verdict": "reject", "reject_reason": "DTLS与认证加密同属密码学/网络安全，非跨域"}
+{"rank": 1354, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "组织筒仓效应与红楼梦小世界结构同构于模块化网络拓扑(高聚类+稀疏跨模块连接)，管理学与文学网络分析结构相似"}
+{"rank": 1355, "verdict": "reject", "reject_reason": "诺特环希尔伯特基定理与Kolmogorov扩张定理虽都是「保证存在性」的基础定理但对象机制完全不同"}
+{"rank": 1356, "verdict": "accept", "value_type": "mechanism", "potential": 3, "reason": "谱隙控制马氏链混合时间(第二特征值衰减率)与Paris裂纹扩展律(应力幂律)都是用单一参数预测收敛/破坏速率，但数学本质不同，弱同构"}
+{"rank": 1357, "verdict": "reject", "reject_reason": "网络社区模块化检测与签到密度活力测量同属计算社会科学方法，弱跨域"}
+{"rank": 1358, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "光纤偏振模色散随机游走(DGD按sqrt(L)累积)与地震动调制随机过程同构于随机扰动累积分布建模，都用随机过程描述非平稳强度演化"}
+{"rank": 1359, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "自由基聚合分子量帕累托分布与陶瓷断裂韦伯统计同构于少数极端样本主导整体响应的重尾分布，都涉及「弱链主导全局失效」原理"}
+{"rank": 1360, "verdict": "reject", "reject_reason": "气泡空化核临界尺寸与蛋白变性凝固都是临界跳变但一为机械失稳一为热力学相变，结构不同"}
+{"rank": 1361, "verdict": "reject", "reject_reason": "南大洋涡旋跨锋面输送与滑模控制切换面属于完全不同物理/控制对象，结构不同构"}
+{"rank": 1362, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "性选择失控(偏好-特征基因连锁正反馈)与海洋藻华生消(营养盐-光协同爆发-崩解)结构差异较大，但都有爆发性正反馈驱动继而外部成本逆转的节律"}
+{"rank": 1363, "verdict": "reject", "reject_reason": "奶牛热应激产奶下降与信用利差均值回归无结构同构"}
+{"rank": 1364, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "地缘经济武器化(相互依存转为胁迫杠杆，催生各国技术主权竞争)与算法交易军备竞赛(速度投资驱动行业更快演化)同构于共演化军备竞赛：参与方对竞争刺激的适应性投入驱动系统整体向更复杂演化"}
+{"rank": 1365, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "荷兰病资源诅咒(汇率上升-制造业萎缩正反馈)与气溶胶辐射冷却(反射-抵消增温负反馈)同属反馈回路但一正一负，弱同构"}
+{"rank": 1366, "verdict": "reject", "reject_reason": "认知抑制控制冲动消费与夜间灯光经济代理都是神经经济/城市计算代理指标方法，结构不同构"}
+{"rank": 1367, "verdict": "reject", "reject_reason": "飞轮调速(转动惯量平滑波动)与坡面糙率减洪(摩擦延迟汇流)功能上都是「缓冲平滑」但机制不同"}
+{"rank": 1368, "verdict": "reject", "reject_reason": "自旋塞贝克效应与肾小体间质-上皮转化无结构同构"}
+{"rank": 1369, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "高分子光氧化链式正反馈老化与piRNA乒乓循环同构于自我放大链式扩增结构，piRNA免疫可视为「终止子式防御」，抗氧化剂链终止机制可反向启发"}
+{"rank": 1370, "verdict": "reject", "reject_reason": "离心力v²/r律与岩石圈弹性厚度挠曲都涉及幂律标度但对象完全无关"}
+{"rank": 1371, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "RSA模幂加密(可正向运算难逆向)与任务向量算术(权重差加减合并能力)同构于在代数结构中做可逆线性组合，都是用代数运算在单向难题与可组合能力间设计系统"}
+{"rank": 1372, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "议会话语意识形态漂移量化与气候归因指纹法同构于将观测信号分解到预定义基向量(党派/自然vs人为)并量化各分量贡献，都是指纹匹配归因方法论"}
+{"rank": 1373, "verdict": "reject", "reject_reason": "中断亲和力CPU绑定与分裂内含肽蛋白条件组装无结构同构"}
+{"rank": 1374, "verdict": "reject", "reject_reason": "驻点温度速度平方律与岩石圈挠曲尺度律都是幂律但对象无关"}
+{"rank": 1375, "verdict": "reject", "reject_reason": "连锁不平衡衰减(距离指数衰减)与声纳衰减属于不同机制"}
+{"rank": 1376, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "金融约束下投资欠优与空投女巫攻击防御同构于资源约束下的机制设计最优化，都是在二维约束空间中最大化真实价值覆盖"}
+{"rank": 1377, "verdict": "reject", "reject_reason": "巨噬细胞M1/M2极化(二元可逆表型)与叙述聚焦切换视角虽然都是二元切换但一为生化极化一为叙事手法，同构度弱"}
+{"rank": 1378, "verdict": "reject", "reject_reason": "红树林硫化物解毒机制(根际氧化微区)与酶促褐变虽同为氧化化学但一为解毒一为损伤反应"}
+{"rank": 1379, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "相关性制度切换(马尔可夫区制转换)与跨文化情感弧线比较都是识别隐藏状态切换结构，前者金融后者文学，方法论同构"}
+{"rank": 1380, "verdict": "reject", "reject_reason": "知识蒸馏与稀疏自编码器特征分解同属深度学习领域，非跨域"}
+{"rank": 1381, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "临界乳光(浓度涨落关联长度发散导致散射)与心理旋转线性反应时(逐步空间变换)结构差异大，不同构"}
+{"rank": 1382, "verdict": "reject", "reject_reason": "城市规模超线性创新(1.15幂律)与噪声距离衰减(平方反比)都是幂律但结构差异"}
+{"rank": 1383, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "福利三角最小化与最优货币区收益成本权衡都是凸权衡帕累托前沿优化，一为管制价格一为货币联盟决策，宏观微观经济学内部同构迁移"}
+{"rank": 1384, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "CDO因子分解(权益层敞口特质/高级层敞口系统)与老龄化异质性遮蔽(低龄vs高龄功能障碍分布)同构于聚合背后的隐藏异质性：平均数遮蔽了子群对系统性/特质性冲击的非对称暴露，启发分层风险建模"}
+{"rank": 1385, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "串级控制内外环(快内环追踪+慢外环设定)与海洋碳泵溶解度+生物双通道同构于层次化双时间尺度并行模块，都是通过分层解耦实现整体稳态调节"}
+{"rank": 1386, "verdict": "reject", "reject_reason": "Hippo通路感知细胞密度与环糊精包合释放控制都是精细调节但机制不同构"}
+{"rank": 1387, "verdict": "accept", "value_type": "mechanism", "potential": 3, "reason": "聚合反应先快后慢(底物耗尽+缠绕限制)与电机启动电流浪涌(转速上升反电动势抑制)同构于初始高速率被自身产物/状态逐步自限，属于负反馈自限衰减结构"}
+{"rank": 1388, "verdict": "reject", "reject_reason": "BTC四年周期(供给事件驱动)与光化学烟雾日峰值(外生辐射周期驱动)都是周期但驱动机制完全不同"}
+{"rank": 1389, "verdict": "reject", "reject_reason": "蒸发悖论(反直觉辐射主导)与双曲折扣(时间不一致偏好)无结构同构"}
+{"rank": 1390, "verdict": "reject", "reject_reason": "拓扑绝缘体表面态与DFB激光布拉格选模都是带隙内保护模式但一为拓扑一为光子晶格周期性，结构差异较大"}
+{"rank": 1391, "verdict": "reject", "reject_reason": "相变诱导陶瓷增韧(局部马氏体相变抑制裂纹)与气动颤振(发散正反馈)机制完全相反"}
+{"rank": 1392, "verdict": "reject", "reject_reason": "ARPES能带测量与动作捕捉肢体分析都是数据化可视化但对象机制完全不同"}
+{"rank": 1393, "verdict": "reject", "reject_reason": "TAD边界CTCF限域(三维基因组空间分隔)与皮层抑制神经元亚型虽同属分子/神经生物，同构度弱"}
+{"rank": 1394, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "弓形激波脱体距离线性关系与订单簿斜率-市场冲击同构于阻抗/深度决定扰动传播特征：头部曲率vs订单深度决定冲击前沿结构，激波厚度对应价格冲击区间。这是流体力学与市场微观结构的结构相似"}
+{"rank": 1395, "verdict": "reject", "reject_reason": "气穴侵蚀与离心泵气蚀是同一现象在不同设备中的表述，同属机械/化工，非真正跨域"}
+{"rank": 1396, "verdict": "reject", "reject_reason": "星际信号平方反比衰减与Rossby数尺度标度都是几何律但完全不同对象"}
+{"rank": 1397, "verdict": "reject", "reject_reason": "量子纠缠面积律与原子干涉仪引力测量虽同属物理但一为凝聚态拓扑一为精密测量，无同构"}
+{"rank": 1398, "verdict": "accept", "value_type": "mechanism", "potential": 5, "reason": "piRNA乒乓循环(转座子活动-piRNA放大的密度依赖负反馈免疫)与保证金螺旋(价格下跌-追加保证金-强制卖出正反馈强化)同构于密度依赖的自我放大传染网络，但一为抑制性负反馈一为破坏性正反馈。两者共享信号放大环路结构，互为控制vs失控的镜像对照，跨分子生物与金融系统深刻同构"}
+{"rank": 1399, "verdict": "accept", "value_type": "mechanism", "potential": 4, "reason": "纺锤体检查点零容错(单个未附着染色体即阻滞)与端粒酶重激活永生化结构差异大，不同构"}
+{"rank": 1400, "verdict": "accept", "value_type": "methodology", "potential": 4, "reason": "中断时间序列分析与计算社科因果识别(断点回归/双重差分/合成控制)共享准实验因果识别方法论内核，但本身已属计量经济学主流工具箱迁移跨度有限"}

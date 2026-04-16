@@ -1,0 +1,91 @@
+{"rank": 911, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "两者都是二阶线性振荡系统，能量在两种储能形式间周期性转换（电场-磁场 / 重力势能-动能），频率由系统固有参数决定，存在空间衰减（沿海岸距离 / 线路损耗）的结构对应", "reject_reason": ""}
+{"rank": 912, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是静力学守恒约束下的力传递系统，通过几何放大关系在力与位移之间做权衡（液压面积比 / 拱形推力分解），功的守恒是共同约束", "reject_reason": ""}
+{"rank": 913, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "变压器直流偏磁与扩散模型去噪无结构同构，仅表面上都涉及噪声概念，机制完全不同"}
+{"rank": 914, "verdict": "accept", "value_type": "method_transfer", "potential": 3, "reason": "都是众包/分布式传感系统，通过大量异质低精度测量 + 校正模型重建高分辨率时空场，方法论可互通", "reject_reason": ""}
+{"rank": 915, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "AMOC减速与金属加工硬化的对数关系仅为表面形状相似，物理机制（热盐环流 vs 位错塞积）毫无结构对应"}
+{"rank": 916, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "晶化相变是连续空间中粒子自组织成序，断路器阈值是人为设定的离散控制规则，两者仅共享阈值概念不构成结构同构"}
+{"rank": 917, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "固定床偏流是空间阻力分布不均引起短路流，高超声速气动加热涉及气体离解热力学，无结构对应"}
+{"rank": 918, "verdict": "accept", "value_type": "deep_structural", "potential": 5, "reason": "平方反比律的严格同构：光强按球面积1/r²衰减 vs 离心力按v²/r缩放。两者都是几何约束（球面散布 vs 曲线运动）导致的平方关系，量纲分析和几何推导结构完全一致", "reject_reason": ""}
+{"rank": 919, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "生态功能对数递减与预应力张拉损失都是衰减过程但机制不同（饱和效应 vs 时间依赖松弛），仅形状相似"}
+{"rank": 920, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是幂律标度关系：屈服强度∝d^(-1/2) vs 降水量∝T^α，对应于尺度-强度/频度-极值的统计物理标度律，可能共享临界现象的数学骨架", "reject_reason": ""}
+{"rank": 921, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是耦合速率方程下的有限容量竞争反馈：载流子-光子耦合产生驰豫振荡 vs 干细胞-龛位耦合调节群体稳态，数学结构都是Lotka-Volterra型负反馈", "reject_reason": ""}
+{"rank": 922, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "MEV夹击攻击是对抗性博弈，Hi-C是物理捕获测序技术，无任何结构同构"}
+{"rank": 923, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "同一现象的两种描述层次（认知负荷的项目限制 vs 注意力的信道容量），均属信息处理的有限带宽瓶颈，结构一致但视角不同", "reject_reason": ""}
+{"rank": 924, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "海洋热惯性是物理热容延迟，睡眠相位延迟是生物钟节律偏移，都有延迟但底层机制无同构"}
+{"rank": 925, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "水泥基层反射裂缝与钙循环煅烧无结构关联"}
+{"rank": 926, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "固定床偏流是物理短路流，信号发送是信息经济学成本差异机制，两者无结构同构"}
+{"rank": 927, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "Klein隧穿是拓扑守恒的量子现象，物料平衡是宏观质量守恒，守恒抽象概念相同但层次和机制毫无对应"}
+{"rank": 928, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "资金费率套利是激励驱动的价格锚定，输电线分布电容是电磁感应的被动效应，无结构同构"}
+{"rank": 929, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "链式自放大正反馈：自由基链传播 vs 反照率反馈，都是状态→诱发更多状态的乘性放大，共享指数增长型正反馈结构，但两者机制同门类故未给到最高分", "reject_reason": ""}
+{"rank": 930, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "并购文化尽调与宗主国语言衰退都涉及滞后效应但领域和机制差异过大，结构对应薄弱"}
+{"rank": 931, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是路径不对称的迟滞系统：进入/建立缓慢、退出/崩塌迅速，信任建立 vs 转换成本在拓扑上都是非对称能量景观", "reject_reason": ""}
+{"rank": 932, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是电流流出加剧局部恶化的空间聚焦正反馈：腐蚀坑越深越集中 vs 冰越少吸收越多，结构上是空间局部性+乘性反馈", "reject_reason": ""}
+{"rank": 933, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "素数分布是数论规律，造血干细胞龛是生物维持机制，无结构对应"}
+{"rank": 934, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "复合材料界面脱粘与网络时延抖动无结构同构"}
+{"rank": 935, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "都依赖系统通过自身反馈维持功能阈值（砂轮自锐的破碎-暴露 vs 继电反馈的极限环），包含自激发式自调节元素", "reject_reason": ""}
+{"rank": 936, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "电弧闪络与预应力张拉损失无结构关联"}
+{"rank": 937, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是渗流/阈值型相变：Mott绝缘体-超流体量子相变 vs 凝胶点渗流相变，都是控制参数越过临界值时系统宏观性质突变，渗流理论普适", "reject_reason": ""}
+{"rank": 938, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是跨阈值的一阶相变式突变：锂嵌脱阶段平台 vs 货币替代临界点，系统在临界前稳定、临界后发生结构性切换，结构上是多稳态势阱跃迁", "reject_reason": ""}
+{"rank": 939, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "进气道不起动是空气动力学流动失稳，大数定律是统计收敛，仅抽象上都涉及'大量'概念无真实同构"}
+{"rank": 940, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "平均场自洽方程S形序参量 vs 肠干细胞Wnt梯度-分化：都是空间梯度驱动序参量从无序到有序的渐变式跃迁，可能共享Landau型自洽方程骨架，但生物学例子中的自洽性尚需验证", "reject_reason": ""}
+{"rank": 941, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "电缆护层环流是电磁感应闭回路损耗，刹车片温度-摩擦非线性是热衰退，无结构同构"}
+{"rank": 942, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "费兰蒂效应与立铣刀径向跳动无结构关联"}
+{"rank": 943, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是时间/数量累积下的递减增长曲线：混凝土徐变 vs 生态多样性对数关系，数学形式近似对数型饱和，共享'资源消耗/位点占用导致边际效应递减'的结构", "reject_reason": ""}
+{"rank": 944, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "版本向量是因果偏序判断，扩散语言模型是迭代去噪，仅都涉及'并发/并行'概念无真实同构"}
+{"rank": 945, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是测量/执行环节的非线性畸变引发控制回路振荡：陀螺摩擦死区 vs 传感器迟滞回环，数学上都是非光滑非线性导致闭环极限环，控制理论可互通", "reject_reason": ""}
+{"rank": 946, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "造血干细胞龛与古地磁倒转记录无结构同构"}
+{"rank": 947, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "电机堵转电流是瞬态等效阻抗问题，海洋碳汇饱和是化学缓冲递减，两者都是'递减'但物理机制完全不同"}
+{"rank": 948, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "都是累积投入的对数递减回报：资本深化边际回报递减 vs 爬距增加对闪络概率的边际效应，都属饱和型边际递减", "reject_reason": ""}
+{"rank": 949, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "音节重整是音系学边界调整，指示词层级是语义分类，仅因同属语言学被检索到但无结构同构"}
+{"rank": 950, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "离心力与主语脱落参数毫无结构关联，显著跨领域噪声"}
+{"rank": 951, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "造血干细胞龛与板块缝合带变质无结构同构"}
+{"rank": 952, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是严格的守恒/平衡恒等式：全球经常账户顺差与逆差之和为零 vs 装配尺寸链封闭尺寸等于组成尺寸之和，两者都是闭合系统的加和守恒", "reject_reason": ""}
+{"rank": 953, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "离对角长程序是量子相干结构，便利溢价是消费经济学，两者无结构同构"}
+{"rank": 954, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "驯化外溢是遗传流向稀释，海冰反照率开关是热力学双稳态，虽都为'阈值/开关'但机制不同"}
+{"rank": 955, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "同位素地层学和海洋碳泵都涉及海洋碳循环但分属记录与通量机制，仅因同域被检索到不构成同构"}
+{"rank": 956, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "机翼过冷水滴结冰和加工正态分布无结构同构"}
+{"rank": 957, "verdict": "accept", "value_type": "method_transfer", "potential": 3, "reason": "都是用结构表征技术实时追踪相变/相变节点，方法论上XRD追踪电极相变 vs 凝胶点渗流相变均可用结构参数监测，原位检测思路可互通", "reject_reason": ""}
+{"rank": 958, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "LTD是神经突触可塑性下调，语言爆发期是发育突增，两者都涉及学习但机制层次不对应"}
+{"rank": 959, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是路径不可逆的非对称迟滞系统：信任建立缓慢-破坏迅速 vs 沉没成本进入-退出不对称，结构上都是状态空间中的单向门", "reject_reason": ""}
+{"rank": 960, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "脓毒血症级联是纯正反馈放大，光热协同催化是两种效应叠加，机制结构不同"}
+{"rank": 961, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "板块缝合带与蛋白质结构预测无结构关联"}
+{"rank": 962, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是跨越临界过电位/预期阈值后发生的成核式突变：电镀临界核 vs 货币替代临界点，都是经典成核理论——亚稳态越过势垒后不可逆转变", "reject_reason": ""}
+{"rank": 963, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "电机堵转电流与双唇颤音无结构关联"}
+{"rank": 964, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "金属疲劳是裂纹累积扩展，PID整定振荡发散是控制不稳定，机制不同"}
+{"rank": 965, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是局部信号驱动整体稳态的群体调控：Hippo通路由细胞接触密度调节器官大小 vs 地震静态应力触发断层耦合响应，共享'分布式信号积分→群体稳态'结构", "reject_reason": ""}
+{"rank": 966, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "应力腐蚀开裂与热疲劳都属材料失效但机制（腐蚀耦合 vs 热应力循环）结构不同"}
+{"rank": 967, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "零序电流接地保护是对称性破缺检测，土工合成材料界面摩擦是抗剪强度问题，无结构同构"}
+{"rank": 968, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "造血干细胞龛与软弱夹层边坡稳定无结构同构"}
+{"rank": 969, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "配电变压器空载损耗与钛合金切削热软化无结构关联"}
+{"rank": 970, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "规模经济与高压电缆护层环流无任何结构同构"}
+{"rank": 971, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "固定床偏流与高熵合金晶格畸变无结构对应"}
+{"rank": 972, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "冰芯尘埃与海底沉积物波都用作古环境代用指标但属于同域方法而非跨域结构同构"}
+{"rank": 973, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "进气道不起动与Monte Carlo收敛无结构同构"}
+{"rank": 974, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "水泥基层反射裂缝与扩散语言模型无结构关联"}
+{"rank": 975, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "电气设备热点监测是缺陷检测方法，液压水锤是流体瞬态力学，无结构同构"}
+{"rank": 976, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "都涉及边际递减式响应：QE边际效应递减 vs 护层环流随接地方式的损耗递减，数学上都是饱和型对数响应", "reject_reason": ""}
+{"rank": 977, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "冰川消融反馈 vs 海冰反照率反馈实际上是同一反照率物理机制的两个尺度/场景描述，结构一致但非跨域，知识增量有限", "reject_reason": ""}
+{"rank": 978, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "素数分布与电气设备热点监测无结构关联"}
+{"rank": 979, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "自由落体与钛合金切削热软化无结构同构"}
+{"rank": 980, "verdict": "accept", "value_type": "deep_structural", "potential": 5, "reason": "海冰反照率反馈 vs 气动弹性颤振：都是状态-反作用耦合的正反馈直至失控（冰少→吸热更多→冰更少；变形→气动力增→变形更大），数学上都是超过临界点后线性系统特征值进入右半平面的发散型正反馈", "reject_reason": ""}
+{"rank": 981, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "互补品交叉弹性与换热器对数均温差都涉及'对数'但一个是经济偏好一个是热力学驱动力，机制无同构"}
+{"rank": 982, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "不相容共混物界面梯度与迭代学习控制无结构同构"}
+{"rank": 983, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "资金费率套利与热装配过盈量无结构对应"}
+{"rank": 984, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是路径不可逆的累积-放大（信任破坏 vs 风投早期决策的路径依赖），状态空间中进入特定区域后无法回到原点的不对称动力学", "reject_reason": ""}
+{"rank": 985, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "QE边际递减 vs 无常损失价格偏离惩罚，都是偏离基线程度越大边际损失/效果变化越显著，但一个是递减一个是幂次增长，部分结构对应", "reject_reason": ""}
+{"rank": 986, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是对流-扩散过程的前沿推进：沿岸上升流的对流+扩散 vs 溃坝洪水的扩散波，数学上都是平流扩散方程描述的传输结构", "reject_reason": ""}
+{"rank": 987, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "有效应力原理与变压器磁饱和都涉及饱和/递减但机制完全不同"}
+{"rank": 988, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "内生增长与钢箱梁疲劳无结构对应"}
+{"rank": 989, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是被扰动后平衡态的延迟响应：灭绝债务（种群反馈滞后）vs 海平面均衡调整（地壳反馈滞后），结构上都是松弛时间远大于驱动时间的慢变量系统", "reject_reason": ""}
+{"rank": 990, "verdict": "accept", "value_type": "deep_structural", "potential": 3, "reason": "反照率正反馈 vs 结瘤自调节都是群体水平的反馈调节，但一个正反馈一个负反馈，仅属反馈机制同门类", "reject_reason": ""}
+{"rank": 991, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "薄壁件数控加工颤振与扩散语言模型无结构关联"}
+{"rank": 992, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "高熵合金晶格畸变与温度控制热惯性滞后无结构同构"}
+{"rank": 993, "verdict": "accept", "value_type": "method_transfer", "potential": 3, "reason": "渗流阈值导电相变与原位XRD相变检测都涉及相变但一个是机制一个是观测方法，属方法/对象互补", "reject_reason": ""}
+{"rank": 994, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是路径不可逆的累积系统：信任建立-崩塌 vs 风投路径依赖，早期微小差异通过正反馈累积放大为完全不同轨迹，分叉动力学结构一致", "reject_reason": ""}
+{"rank": 995, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "QE边际递减是对数，无常损失是幂次增长，方向和函数形式都不同"}
+{"rank": 996, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "都是对流+扩散的传输过程：上升流的水平对流与垂直混合 vs 溃坝洪水的重力推进与扩散衰减，共享平流-扩散方程的数学结构", "reject_reason": ""}
+{"rank": 997, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "压气机喘振是流动失稳的极限环振荡，土壤pH对重金属有效性是平衡态化学，结构无同构"}
+{"rank": 998, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "造血干细胞龛与脊索信号背腹轴都是生物发育机制但分属细胞维持和位置编码，不构成结构同构"}
+{"rank": 999, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "", "reject_reason": "板块缝合带变质与海洋碳泵都是地质/海洋过程但无结构对应"}
+{"rank": 1000, "verdict": "accept", "value_type": "deep_structural", "potential": 4, "reason": "PD-L1的IFN-γ诱导负反馈 vs 享乐跑步机参考点适应：都是通过反馈信号使系统返回基线的恒温器型负反馈，结构骨架都是'激活→抑制→回归平衡'", "reject_reason": ""}
+{"rank": 1001, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "", "reject_reason": "钙循环碳捕获与淀粉糊化都涉及加热但机制完全不同，无结构同构"}

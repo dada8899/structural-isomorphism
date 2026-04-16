@@ -1,0 +1,24 @@
+{"idx": 0, "a_name": "Phi 累积故障检测器", "b_name": "梯度裁剪", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 1, "a_name": "TLB 快表地址翻译加速", "b_name": "KV缓存推理加速机制", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "WEAK_KNOWN"}}
+{"idx": 2, "a_name": "CRISPR-Cas系统的间隔序列获取", "b_name": "文件系统日志 Journaling 原子写", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 3, "a_name": "轨道稳定子定理", "b_name": "LoRA低秩矩阵微调", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 4, "a_name": "量子误差缓解", "b_name": "量化感知训练精度保持", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 5, "a_name": "二级价格歧视与信息租金", "b_name": "鲁棒控制的H∞范数", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "KNOWN", "moonshotai/kimi-k2.5": "WEAK_KNOWN"}}
+{"idx": 6, "a_name": "健康工人效应", "b_name": "分布外泛化", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "KNOWN", "moonshotai/kimi-k2.5": "WEAK_KNOWN"}}
+{"idx": 7, "a_name": "路径积分对偶(d维量子→d+1维经典)", "b_name": "神经切线核(无限宽NN→核回归)", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "WEAK_KNOWN"}}
+{"idx": 8, "a_name": "RCU 读写无锁同步机制", "b_name": "TCP TIME_WAIT 状态", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 9, "a_name": "非寿险准备金的链梯法", "b_name": "洪水路由的Muskingum方法", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 10, "a_name": "Polycomb抑制标记的S型扩散", "b_name": "止损触发的流动性螺旋", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 11, "a_name": "抵押品升降级的再质押循环", "b_name": "清算瀑布的级联效应", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 12, "a_name": "二度价格歧视与自选择菜单", "b_name": "人类反馈强化学习对齐", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 13, "a_name": "杠杆顺周期放大机制", "b_name": "AMM恒定乘积曲线", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 14, "a_name": "LDPC码消息传递译码", "b_name": "扩散语言模型离散去噪", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 15, "a_name": "横断面研究患病率与发病率的差异", "b_name": "压力期间的相关性制度切换", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 16, "a_name": "Spoofing Across Markets", "b_name": "Quote Stuffing与闪电贷预言机操纵", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "WEAK_KNOWN"}}
+{"idx": 17, "a_name": "竞争风险生存分析", "b_name": "压力测试非线性损失聚合", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 18, "a_name": "In-Band Metadata for Distributed Routing", "b_name": "TraceID Propagation与SRv6 Segment Routing", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 19, "a_name": "多基因风险评分", "b_name": "历史档案模糊匹配", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 20, "a_name": "大模型能力涌现相变现象", "b_name": "信用衍生品的相关性陷阱", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 21, "a_name": "量子误差缓解", "b_name": "模型合并任务向量算术", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 22, "a_name": "信号博弈分离均衡", "b_name": "人类反馈强化学习对齐", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "WEAK_KNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}
+{"idx": 23, "a_name": "I型超敏反应的肥大细胞脱颗粒", "b_name": "清算级联的链上流动性危机", "verdicts": {"anthropic/claude-opus-4.1": "UNKNOWN", "google/gemini-2.5-pro": "UNKNOWN", "moonshotai/kimi-k2.5": "UNKNOWN"}}

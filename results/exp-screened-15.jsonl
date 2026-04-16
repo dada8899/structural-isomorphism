@@ -1,0 +1,100 @@
+{"rank": 1401, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "两者都是定量方法学但结构不同：因果推断处理反事实识别，神经经济学模型比较是模型选择。共同点仅在'计算方法验证'，无深层同构结构"}
+{"rank": 1402, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "家庭聚集研究做遗传vs环境的方差分解，签到数据做城市活力测量，机制完全不同，仅因'测量'二字相似"}
+{"rank": 1403, "verdict": "pass", "value_type": "衰减动力学同构", "potential": 4, "reason": "遗忘曲线与完课率都呈双曲/指数衰减：初期快速流失、留存者越来越稳定、衰减率正比于当前存量。跨认知科学与行为数据，数学形式一致（dN/dt = -kN 类型），是经典的流失动力学同构"}
+{"rank": 1404, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "生态位分化强调资源维度正交减少竞争，小说人物小世界强调高聚类+短路径。都涉及'网络分群'但功能和生成机制不同"}
+{"rank": 1405, "verdict": "pass", "value_type": "层级隔离的模块化拓扑", "potential": 3, "reason": "公司治理与馈线自动化都把一个大系统切成多个可独立监督/隔离的段，故障/问责只影响局部。共享'分段隔离+层级互联'的拓扑结构"}
+{"rank": 1406, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "重力梯度仪做物理差分测量，议程设置做媒体-公众时序关联。共同点仅在'测量相关性'，结构不同"}
+{"rank": 1407, "verdict": "pass", "value_type": "累积性阻碍-周期性清理", "potential": 4, "reason": "裂解炉结焦和阀门结胶都是长期运行中累积性沉积导致性能退化、需定期清理/冲刷恢复。结构严格同构：沉积物阻碍功能→周期性主动清理打破累积。跨化工与控制工程"}
+{"rank": 1408, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "量子误差缓解靠外推/线性组合消除噪声，社科因果推断靠自然实验识别反事实。仅'从观测数据恢复真实'的口号相似"}
+{"rank": 1409, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "啁啾镜是分层色散补偿（光学），量化感知训练是训练阶段模拟部署噪声。机制不同，共同点仅'训练时模拟部署条件'的弱类比"}
+{"rank": 1410, "verdict": "pass", "value_type": "初期快-后期趋缓的饱和演化", "potential": 3, "reason": "聚合反应分子量增长与预应力损失都是初期快、后期指数趋缓至稳态。但一个是建设性增长、一个是损失衰减，仅曲线形态同构"}
+{"rank": 1411, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "庇古税是外部性内部化的税率设计，CVA是违约风险调整。两者都是'从无约束值扣除调整项'但一个是监管一个是定价"}
+{"rank": 1412, "verdict": "pass", "value_type": "两阶段有序写-读协议", "potential": 4, "reason": "鞭毛组装按严格顺序：基体→钩→底物切换→鞭毛素。RCU按严格顺序：复制→修改→原子替换→宽限期→释放。都是生物/软件系统用'阶段门+等待同步'避免中间态暴露的并发控制策略。跨微生物学与操作系统"}
+{"rank": 1413, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "任务向量算术是参数空间线性组合，VLBI是信号相关合成大孔径。都涉及'多源合成'但底层数学与功能截然不同"}
+{"rank": 1414, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "两者都是计算社会科学的检测任务（机器人检测、热点预测），同域配对价值低"}
+{"rank": 1415, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "都是计算人文/社科的量化方法，同域相似不构成跨域同构"}
+{"rank": 1416, "verdict": "pass", "value_type": "层级隔离架构", "potential": 3, "reason": "进程地址空间与继电保护都是按层级划分隔离域、故障/越界只影响局部、上层作为后备。跨操作系统与电气工程的层级保护同构"}
+{"rank": 1417, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "CDO分层的因子敏感度差异与分形路网的多尺度自相似是完全不同的数学结构"}
+{"rank": 1418, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "二度价格歧视靠菜单自选择，分子笼靠空腔物理限制。'限制创造新行为'的类比过于抽象"}
+{"rank": 1419, "verdict": "pass", "value_type": "距离的幂律敏感度", "potential": 3, "reason": "湍流扩散按时间三次方增长（Richardson），FRET效率按距离六次方衰减。都是单参数幂律控制、幂次成为诊断性标志的结构。但物理机制差异大"}
+{"rank": 1420, "verdict": "pass", "value_type": "自相似标度律", "potential": 3, "reason": "涨落耗散定理建立自发涨落与响应函数的内在关联；地震矩-断层面积-位错按幂律相连且跨尺度自相似。共享'同一微观机制产生多个宏观量的守恒关系'，但一个是涨落-响应一个是自相似标度"}
+{"rank": 1421, "verdict": "pass", "value_type": "重尾分布", "potential": 4, "reason": "财富分布与轴承寿命都是重尾分布：大多数聚集低值区、少数极端值拉长尾巴、无典型值（均值不代表）。跨经济与机械工程的幂律/Weibull同构是统计上坚实的跨域案例"}
+{"rank": 1422, "verdict": "pass", "value_type": "动态平衡/不动点", "potential": 4, "reason": "久期平衡：母核供给率=子核衰变率使活度恒定；瓦尔拉斯出清：供给=需求使价格稳定。都是流入=流出的不动点结构，跨核物理与微观经济的稳态同构严格"}
+{"rank": 1423, "verdict": "pass", "value_type": "多点汇聚的能量/信号漏斗", "potential": 4, "reason": "RTK二聚化聚集放大信号；光捕获天线将分散激发能逐级漏斗至中心受体。都是'多个外围单元协同汇聚至单一枢纽'的漏斗结构，共享空间几何+距离敏感的耦合机制"}
+{"rank": 1424, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "P值曲线是统计可视化，空间计量是建模独立性假设违反。都在流行病学/社科方法论内但结构不同"}
+{"rank": 1425, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "夜光污染是干扰生物节律的外部扰动，辐照损伤是级联碰撞产生晶格缺陷，机制完全不同"}
+{"rank": 1426, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "同为回声室概念，传播学与社交网络动态同一现象，不是跨域同构"}
+{"rank": 1427, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "位置编码是添加位置信息向量，量子噪声谱重构是滤波函数推谱。无共同结构"}
+{"rank": 1428, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "两者都是凝聚态/光学物理内的量子现象，同域配对"}
+{"rank": 1429, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "量子点尺寸调色与爬行现象无结构关联"}
+{"rank": 1430, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "激光成丝是正反馈自聚焦的不稳定性，晶界蠕变是缓慢应变累积。机制与时间尺度均异"}
+{"rank": 1431, "verdict": "pass", "value_type": "物理递送载体/招募", "potential": 3, "reason": "细菌OMV携带毒力因子远距离递送；BiTE把T细胞物理招募到肿瘤。都是'小载体搭桥将效应带到目标位置'的递送结构，但一个是纳米囊泡一个是双特异分子"}
+{"rank": 1432, "verdict": "pass", "value_type": "载体靶向改写", "potential": 4, "reason": "弓形虫向宿主注射效应蛋白改写转录状态；AAV改造衣壳重定向感染靶标。都是'通过修改载体的表面/分泌接口改变宿主选择与响应'的劫持/重编程结构，跨寄生虫学与基因治疗"}
+{"rank": 1433, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "四波混频的频率守恒和Quorum读写交集都涉及'守恒约束'但一个是物理守恒一个是集合论，结构差距大"}
+{"rank": 1434, "verdict": "pass", "value_type": "守恒恒等式", "potential": 5, "reason": "全球经常账户顺逆差之和恒等于零；飞机稳定飞行三对力/力矩严格平衡。都是'封闭系统的守恒恒等式产生镜像对称'的深层结构——任何单边偏差必然被对称方抵消。跨国际经济与航空工程的守恒结构罕见且坚实"}
+{"rank": 1435, "verdict": "pass", "value_type": "级联链式放大", "potential": 4, "reason": "海洋内波破碎将大尺度能量级联至小尺度湍流；碳正离子连锁氢转移将单个活性位点级联至整个烃系统。共享'局部扰动通过级联结构传播至整体'的结构，跨流体力学与催化化学"}
+{"rank": 1436, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "冰芯古气候重建与和声演化计算分析都是'从历史记录中量化演变'，但一个是物理化学一个是文本挖掘，结构类比过于宽泛"}
+{"rank": 1437, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "地震波传播与渗滤液迁移都是'向外传递'但机制（弹性波vs扩散+对流）完全不同"}
+{"rank": 1438, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "ECMP哈希与位置编码都涉及'映射'但一个是负载均衡分发一个是向量表示"}
+{"rank": 1439, "verdict": "pass", "value_type": "拓扑变化触发级联", "potential": 4, "reason": "磁重联：磁力线拓扑重连触发能量级联释放；纤毛流左右对称破缺：单向液流触发Nodal级联激活。都是'初始对称性破缺/拓扑切换→单向信号级联→宏观结构定型'的结构。跨等离子体物理与发育生物学"}
+{"rank": 1440, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "湍流-5/3幂律与量子随机行走的二次加速无结构关联"}
+{"rank": 1441, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "高分子光氧化是正反馈自加速，疏水效应是熵驱动。机制与反馈方向都不同"}
+{"rank": 1442, "verdict": "pass", "value_type": "干预反向强化", "potential": 4, "reason": "财政主导下紧缩货币反而恶化债务；海贸禁令越严走私越盛。都是'试图抑制某现象的强制干预反而激化该现象'的反效果结构，跨宏观经济与历史学"}
+{"rank": 1443, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "激光诱导电子衍射是从动量分布反解结构，签到数据测城市活力完全不同"}
+{"rank": 1444, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "帕斯卡定律是线性传递（压强等面积比），温室效应增温对浓度对数型递减。响应函数形式不同"}
+{"rank": 1445, "verdict": "pass", "value_type": "资源抢夺/劫持", "potential": 3, "reason": "胸腺阴性选择与病毒帽结构抢夺都涉及'识别-抢夺/清除'但前者是自身耐受建立，后者是劫持宿主翻译机。类比偏粗"}
+{"rank": 1446, "verdict": "pass", "value_type": "双重作用/选择压力的两面性", "potential": 3, "reason": "线粒体融合分裂按健康状态差异化选择；IgE系统在进化上是抗寄生虫防御在工业环境中变为过敏源。都涉及'同一机制在不同环境下有益vs有害'的二重性，但一个是质量控制一个是环境错配"}
+{"rank": 1447, "verdict": "pass", "value_type": "梯度驱动扩散", "potential": 4, "reason": "做市商竞争压缩价差：紧价差获更多成交→价差趋于边际成本；Bergeron冰晶增长：水汽从高饱和液滴向低饱和冰晶净迁移→分布向冰晶集中。都是'单向梯度驱动下资源从弱势流向强势方直至耗尽'的结构，跨金融微观结构与大气物理"}
+{"rank": 1448, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "价格弹性是线性比例，Hall-Petch是幂律。数学形式不同"}
+{"rank": 1449, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "字节码反编译与量子噪声谱重构都是'从黑箱输出反推内部结构'但工具与对象差别巨大，类比弱"}
+{"rank": 1450, "verdict": "pass", "value_type": "正反馈放大的免疫循环", "potential": 4, "reason": "移植排异：攻击→组织损伤→更多免疫细胞→更强攻击；piRNA乒乓循环：识别切割→产生新piRNA→更强抑制。都是'识别-放大-再识别'的正反馈免疫放大结构。跨医学与分子生物学"}
+{"rank": 1451, "verdict": "pass", "value_type": "多尺度搬运+汇聚沉降", "potential": 4, "reason": "内波破碎驱动深海垂向混合；POPs蒸发迁移在冷区冷凝沉降。都是'大尺度流动搬运+小尺度局部汇聚/沉降'形成全球尺度物质再分配。跨流体力学与环境化学"}
+{"rank": 1452, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "手性药物对映体差异与高频交易分形无结构关联"}
+{"rank": 1453, "verdict": "pass", "value_type": "生成函数联系宏微观", "potential": 4, "reason": "配分函数通过不同求导联系微观哈密顿量与各宏观热力学量；L函数通过特殊点值联系类数与判别式。都是'单个生成对象通过不同操作导出多个不变量'的结构。跨统计力学与解析数论"}
+{"rank": 1454, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "发表偏倚检测和通风廊道规划都是'矫正系统偏差'但一个是统计一个是流体模拟，类比薄"}
+{"rank": 1455, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "激光诱导电子衍射与代际传递测量无结构同构"}
+{"rank": 1456, "verdict": "pass", "value_type": "逆向传播的放大冲击波", "potential": 5, "reason": "幽灵堵车：小扰动沿车流反向传播并放大为停滞波；信息瀑布：早期信号压过私人信息沿社会网络传染并放大。都是'局部扰动+有限理性反应时间+排队结构'产生的逆向传播放大波，严格同构：反应延迟放大扰动、下游比上游反应更强、信号越传越强。跨城市交通与微观经济的经典同构"}
+{"rank": 1457, "verdict": "pass", "value_type": "精确前馈平衡", "potential": 4, "reason": "盾构土压平衡：土仓压力=地层水土压力主动匹配避免沉降；扰动前馈补偿：测量扰动提前施加等量反向补偿。都是'主动测量+实时匹配'的前馈平衡控制结构。跨土木工程与控制工程"}
+{"rank": 1458, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "谱隙决定马氏链混合速度与订单簿深度决定价格冲击。都是'响应尺度'但数学结构差距大"}
+{"rank": 1459, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "YAP机械感应与ACC冲突监测都涉及'检测-反馈'但机制层级差异过大"}
+{"rank": 1460, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "季风位移与大洋内波破碎都属气候/海洋物理近域配对"}
+{"rank": 1461, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "肢体发育的FGF持续信号与湖泊分层的热力翻转机制完全不同"}
+{"rank": 1462, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "速度减缓器与SAFE估值上限都是'推迟决定'但机制和目标差异大"}
+{"rank": 1463, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "数字民族志计算辅助与认知吝啬都涉及'降维'但一个是研究工具一个是认知机制"}
+{"rank": 1464, "verdict": "pass", "value_type": "预期-现实正反馈", "potential": 4, "reason": "预测误差学习：差值驱动预期更新；汇率自我实现危机：预期贬值→抛售→确实贬值→更多抛售。虽然一个是学习一个是自证，都共享'预期驱动行为→行为改变现实→现实反馈预期'的闭环，跨认知心理学与国际经济"}
+{"rank": 1465, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "RCU与DNS递归/迭代查询都是操作系统/网络协议域内配对"}
+{"rank": 1466, "verdict": "pass", "value_type": "尺度依赖的幂律/线性规律", "potential": 3, "reason": "Hall-Petch幂律与地热梯度线性。都是'强度/温度随某尺度参数单调变化'但数学形式不同（幂律vs线性），结构相似度中等"}
+{"rank": 1467, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "肠道菌群远程调控T细胞与PI3K肿瘤代谢都是免疫/肿瘤生物学域内配对"}
+{"rank": 1468, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "布尔搜索与N-1安全准则都是'满足约束条件'但结构差异大"}
+{"rank": 1469, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "庇古税线性比例与AMM恒定乘积反比。都是'价格决定规则'但数学形式不同"}
+{"rank": 1470, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "帕斯卡定律线性与Rossby变形半径幂律，数学形式不同"}
+{"rank": 1471, "verdict": "pass", "value_type": "梯度引导的定向迁移/分离", "potential": 4, "reason": "白细胞趋化：沿趋化因子梯度滚动-黏附-渗出定向归巢；ParABS：ParB-parS复合体沿ParA动态浓度梯度向低端扩散棘轮前进。都是'浓度梯度+局部识别+单向运动'的定向迁移结构，但两者都在生物学领域跨域距离较近"}
+{"rank": 1472, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "量子纠错阈值与Slepian-Wolf都是'冗余编码'但一个是阈值定理一个是信源速率下界，数学结构不同"}
+{"rank": 1473, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "耗散孤子与核力饱和性无结构关联"}
+{"rank": 1474, "verdict": "pass", "value_type": "阶段性渐进演化链", "potential": 4, "reason": "岩浆分异结晶按熔点顺序依次分离形成岩性谱系；语法化按语义虚化-语音弱化-范畴重分析顺序演化。都是'按固定物理/语义顺序逐步分化，每阶段产物成为下阶段起点'的谱系结构。跨地质学与语言学"}
+{"rank": 1475, "verdict": "pass", "value_type": "物理通道直连的协同耦合", "potential": 4, "reason": "间隙连接让相邻细胞质通过通道直连共享代谢/电信号实现同步；中断亲和力+CPU隔离让特定中断与处理进程绑定在同一核心直连减少延迟。都是'通过硬直连通道绕过一般化中介实现紧耦合协同'的结构。跨细胞生物学与操作系统"}
+{"rank": 1476, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "PM2.5辐合带汇聚与J-聚集增强荧光都是'聚集增强效应'但机制（大气流场vs分子堆积）不同"}
+{"rank": 1477, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "都是计算城市/数字人文域内配对"}
+{"rank": 1478, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "分类器引导生成与因果效应识别都是'从噪声中提取信号'但结构差异大"}
+{"rank": 1479, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "cGAS-STING与BiTE都是免疫/肿瘤学域内近域配对"}
+{"rank": 1480, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "出租车轨迹识别功能区与Copula相关性建模无结构同构"}
+{"rank": 1481, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "水分同位素示踪与机器人污染舆论都是'溯源'但对象与方法差异大"}
+{"rank": 1482, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "攻击率矩阵与RNA折叠动态规划都涉及'枚举+选优'但目标完全不同"}
+{"rank": 1483, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "IgA黏膜防御与CAF促肿瘤都是肿瘤/免疫域内近域配对"}
+{"rank": 1484, "verdict": "pass", "value_type": "极小极大鞍点均衡", "potential": 4, "reason": "二级价格歧视菜单设计中垄断者极大化收益而消费者极小化信息租，最优在激励相容鞍点；H∞鲁棒控制中控制器极小化而扰动极大化同一目标，最优在鞍点。都是'对立方博弈下的minimax鞍点'结构。跨机制设计与控制工程"}
+{"rank": 1485, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "抗原原罪偏好旧记忆与产业政策动态比较优势无结构同构"}
+{"rank": 1486, "verdict": "pass", "value_type": "层级传导的信号改写", "potential": 3, "reason": "核纤层机械传导：外基质力→细胞骨架→LINC→核纤层→染色质；弓形虫效应：分泌器官→注射→宿主激酶→转录。都是'外部信号通过层级分子桥梁抵达基因组'但一个是力学信号一个是化学劫持"}
+{"rank": 1487, "verdict": "pass", "value_type": "分形/时间常数谱的非理想偏移", "potential": 3, "reason": "分形盒计数产生非整数维度；阻抗谱压扁半圆反映多个弛豫时间常数叠加。都是'理想结构→多尺度/多过程偏离→非整数/压扁特征'的结构，偏移量成为诊断特征"}
+{"rank": 1488, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "倾向评分加权与分类器引导都涉及'条件概率加权'但前者是混杂校正后者是生成引导，结构差距大"}
+{"rank": 1489, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "两者都属心理学域内配对"}
+{"rank": 1490, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "都属计算社科/数字人文域内配对"}
+{"rank": 1491, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "关联价值拍卖与ICL隐式梯度下降都涉及'推断'但结构差异大"}
+{"rank": 1492, "verdict": "pass", "value_type": "几何引发的局部极端化", "potential": 3, "reason": "开孔应力集中系数随几何幂律增大；表面粗糙度在多尺度呈分形自相似。都涉及'几何特征通过幂律/分形关系控制局部效应'但机制不同"}
+{"rank": 1493, "verdict": "pass", "value_type": "梯度+拮抗维持的空间结构", "potential": 4, "reason": "肠Wnt梯度+Notum负反馈维持隐窝-绒毛分化轴；磁小体链方向+单畴晶体维持细菌地磁导航。前者是浓度梯度+拮抗剂，后者是物理方向+尺寸限制。共享'局部物理化学特性产生空间梯度指导结构'的结构但较弱"}
+{"rank": 1494, "verdict": "pass", "value_type": "冗余+多数表决纠错", "potential": 4, "reason": "DNA存储通过深度测序多副本取众数纠正错误；飞控三余度架构多套系统交叉比对隔离故障。都是'独立冗余副本+多数表决'的容错结构。跨合成生物学与航空工程"}
+{"rank": 1495, "verdict": "pass", "value_type": "延迟响应的自适应调整", "potential": 3, "reason": "P450酶诱导需数天酶量上调，停药后缓慢恢复；J曲线效应贬值后短期贸易恶化后长期改善。都是'扰动后短期看似无效/恶化，长期显现预期效应'的延迟适应结构，但一个是酶动力学一个是贸易量滞后"}
+{"rank": 1496, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "流化床节涌是流态化不稳定性，极涡扰动是大气行星波破碎。规模和机制均差距大"}
+{"rank": 1497, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "斯特林近似与气候参数化都涉及'近似处理'但目的完全不同"}
+{"rank": 1498, "verdict": "pass", "value_type": "尺度级联输运", "potential": 4, "reason": "大气湍流能量从大涡逐级传递至小涡耗散；污染物地下水弥散中对流+水力弥散产生多尺度混合输运。都是'初始集中量通过多尺度级联向外扩散'的结构。跨大气科学与水文学"}
+{"rank": 1499, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "同为计算社科/城市计算域内配对"}
+{"rank": 1500, "verdict": "pass", "value_type": "敏感度决定控制窗口", "potential": 3, "reason": "脉冲星计时残差的Hellings-Downs关联曲线陡峭与剂量效应曲线斜率，都是'响应曲线的斜率决定探测/控制难度'但一个是统计关联一个是药理学，结构类比偏弱"}

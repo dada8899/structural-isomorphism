@@ -1,0 +1,100 @@
+{"rank":1,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"溯源侵蚀与渗滤液迁移都属于浓度/能量梯度驱动的前沿推进，速度受介质抗性控制，可用统一的反应-扩散前沿传播框架建模","reject_reason":""}
+{"rank":2,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 位错强化(Taylor)与Darcy定律都是经典本构关系，配对仅停留在'线性/幂律'表层相似，无新机制洞察"}
+{"rank":3,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 幂律/线性比例关系的表层匹配，两者实际机制毫无关联"}
+{"rank":4,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"'结构性条件清单'作为方法论——将干预效果判断从单因素转为多条件同时满足的乘法逻辑，可迁移到政策评估、机制设计等领域，且揭示条件缺失会反向放大负效应","reject_reason":""}
+{"rank":5,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"Sakharov三条件(对称性破缺+守恒律破坏+非平衡)作为'产生不对称性'的通用必要条件框架，可迁移到任何需要从对称初态生成持久差异的系统(社会分化、市场不对称、生物发育)，是深层的生成性框架","reject_reason":""}
+{"rank":6,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 正反馈回路是气候/流体系统的常识概念，两者都是教科书经典例子"}
+{"rank":7,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 都叫'周期'但时间尺度相差亿倍，机制完全无关，仅是名词共享"}
+{"rank":8,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 幂律与线性关系的表层匹配，S-N曲线与Darcy定律无实质机制连接"}
+{"rank":9,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 长尾/幂律在经济领域已是常识框架，VC回报与电商长尾是同一概念的不同实例"}
+{"rank":10,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 都是周期性节律，但地铁高峰受社会时钟驱动、睡眠周期受神经振荡驱动，机制毫无连接"}
+{"rank":11,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"EMI频谱扩散与溯源侵蚀都可视为'扰动前沿在介质中受阻抗衰减地传播'，暗示EMI屏蔽设计可借鉴河流基准面控制的'抗蚀层'思维","reject_reason":""}
+{"rank":12,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"生态功能冗余与航电余度设计共享'独立单元并行+交叉比对+故障隔离'的可靠性架构，可反向为生态保护提供'最小冗余度'量化设计原则","reject_reason":""}
+{"rank":13,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 无标度网络与VC幂律回报都是Barabasi/Taleb已普及的常识框架"}
+{"rank":14,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 引力是平方反比，电镀是线性正比，结构完全不同，仅因'比例关系'被配对"}
+{"rank":15,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 地震矩标度律与Z-R关系都是各自领域的经验幂律，跨域无机制连接"}
+{"rank":16,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两条都在描述同一物理现象(光晶格量子模拟)，不是跨域类比"}
+{"rank":17,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 幂律关系的表层匹配，Taylor强化律与重现期关系无机制连接"}
+{"rank":18,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 两者都是气候/气象领域的经典正反馈案例，无新洞察"}
+{"rank":19,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"离心力与驻点温度都是速度平方律，揭示了'动量通量→能量耗散'的共同物理根基(动能尺度律)，可用于工程量纲分析的跨域直觉","reject_reason":""}
+{"rank":20,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"高分子片晶生长与基坑降水漏斗都是径向扩散方程解的物理实例，片晶端面链扩散可类比为'溶液含水层'模型，可启发结晶动力学的水文工程类比","reject_reason":""}
+{"rank":21,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 线性关系与幂律学习曲线机制无关，配对牵强"}
+{"rank":22,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"珊瑚礁模块化与《红楼梦》人物网络共享'高聚类小世界+关键枢纽连接模块'的定量网络结构，可将社交网络分析方法(模块度Q、介数中心性)迁移到生态学物种角色识别","reject_reason":""}
+{"rank":23,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 离心力的平方律与Arrhenius指数律是完全不同的数学形式，仅因'越快越强'被配对"}
+{"rank":24,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"与rank5相同方向但独立个案：三条件必要性框架从粒子物理向战略决策的迁移，揭示'产生持久信息不对称'的跨域生成逻辑，是极具操作性的深层框架","reject_reason":""}
+{"rank":25,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: Sverdrup线性关系与Z-R幂律机制无关"}
+{"rank":26,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 幂律分布/赢家通吃在经济学中已是标准框架"}
+{"rank":27,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"亲属同心圆与全球价值链层级都是'嵌套式义务/价值传递'结构，揭示社会连带与经济连带可用同一种层级扩散模型刻画，可应用于供应链信任度建模","reject_reason":""}
+{"rank":28,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"犯罪热点时空预测与古气候-文明关联分析都涉及'时空聚集模式识别+因果与相关的区分'，核密度/时空扫描方法可迁移到长时间尺度历史事件分析","reject_reason":""}
+{"rank":29,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两条描述的是完全相同的生物学机制(胸腺阴性选择)，只是视角不同，不是跨域类比"}
+{"rank":30,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: Hall-Petch与Darcy定律无机制连接，仅因'比例关系'配对"}
+{"rank":31,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"希腊字母免疫与施工资源约束优化都是多约束凸优化问题，金融的对角化风险分解方法可迁移到工程调度的主约束识别与松弛策略","reject_reason":""}
+{"rank":32,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"金属再结晶织构与造山带对称性破缺都是'储能驱动+择优方向演化'的宏观表现，自由能最小化下的织构选择原理可用于地质构造演化类比","reject_reason":""}
+{"rank":33,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"no actionable insight: 都是相关性分析方法，但领域差距大且无共享机制，仅是'用数据算相关'的泛泛相似"}
+{"rank":34,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"核纤层机械传导与ParABS扩散棘轮都体现'物理梯度→生物信息定位'的共同逻辑，扩散棘轮机制可启发核纤层力学信号如何在染色质空间传递，是分子机器层面的深层连接","reject_reason":""}
+{"rank":35,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: '周期性节拍'表层匹配，睡眠与加速器批次无机制关系"}
+{"rank":36,"verdict":"pass","value_type":"概念框架迁移","potential":3,"reason":"温室温控与宏观自动稳定器都是带阻尼的负反馈控制系统，可用控制论PID参数调谐方法反向启发财政自动稳定器的时滞与增益设计","reject_reason":""}
+{"rank":37,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"三级孔催化与间隙连接耦合都是'多尺度通道+选择性传质+局部-整体涌现'架构，揭示高效传质系统的通用设计法则：宏观速度/中观面积/微观选择性的三层分工，对人工器官、类器官通道设计有极强的操作价值","reject_reason":""}
+{"rank":38,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 欧姆线性律与引力平方反比律是不同结构，且这两对比是物理教材烂熟的套路"}
+{"rank":39,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"洋流热输送与地下水污染羽都是对流-弥散方程在不同尺度的解，两者都有纵向平流+横向弥散的椭圆形扩散前沿，可互相借鉴数值模型的网格化策略","reject_reason":""}
+{"rank":40,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 混合律是加权求和、海洋热含量是时间积分，数学结构不同"}
+{"rank":41,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"希腊字母免疫与信贷约束投资都是约束下价值最大化，可将期权组合的对偶分解(影子价格)方法迁移到企业投资优先级排序","reject_reason":""}
+{"rank":42,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"腌制渗透与深水形成都是'密度/浓度梯度驱动的定向迁移'，风味物质内扩散与盐析驱动下沉可用同一个耦合传质方程描述，跨尺度的物理根源一致且揭示美食科学与海洋学共享的对流-扩散机制","reject_reason":""}
+{"rank":43,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"渗透压与Bergeron过程都是'化学势差驱动物质从高势向低势迁移'，Bergeron其实是水汽压版的渗透，可将Ostwald熟化/Bergeron/渗透统一到化学势梯度框架，启发混合相云人工干预","reject_reason":""}
+{"rank":44,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"语法层次结构与《一千零一夜》叙事递归共享'有限规则+嵌套自指产生无限'的生成结构，为叙事学引入乔姆斯基层次语法分析工具，对AI长叙事生成有直接方法论启发","reject_reason":""}
+{"rank":45,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两者都是周期现象但机制毫无连接(神经振荡vs光化学反应)"}
+{"rank":46,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"出租车轨迹聚类识别城市功能区与笔触纹理识别画作真伪都基于'提取难以伪造的无意识行为指纹'，计算人文的风格指纹方法可迁移到城市数据的规划合规性审计","reject_reason":""}
+{"rank":47,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"双系统道德判断与滞胀决策都是'两套不可同时最优的目标函数'的帕累托/鞍点结构，可将多目标优化的帕累托前沿分析法迁移到伦理决策研究","reject_reason":""}
+{"rank":48,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两者是同一物理现象(压缩机喘振)在不同应用场景，不是跨域类比"}
+{"rank":49,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: Paris幂律与Sverdrup线性关系数学结构都不同，仅因都叫'比例'被配对"}
+{"rank":50,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"海冰反照率反馈与FOMO泡沫都是'状态变化改变吸收率/吸引力→加速原过程'的自催化结构，可用气候反馈的平衡温度敏感度方法量化市场情绪临界点","reject_reason":""}
+{"rank":51,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 半导体激光驰豫振荡与CO2季节振荡机制完全不同，仅因都叫'振荡'"}
+{"rank":52,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 幂律分布在社会经济领域已是常识"}
+{"rank":53,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 无标度网络与幂律估值分布都是同一框架下的教科书案例"}
+{"rank":54,"verdict":"pass","value_type":"概念框架迁移","potential":3,"reason":"轨道稳定子定理的'线性加权/不动点平均'与期望效用的线性加权共享线性泛函结构，提示可用Burnside式对称聚合视角重构社会选择理论的公理系统","reject_reason":""}
+{"rank":55,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 丝绸之路扩散与P/S波传播时间尺度与机制完全不同，仅因'传播'被配对"}
+{"rank":56,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"原位XRD追踪电极相变节点与绅士化指标同步发生的早期预警方法本质相同：都是'通过多模态时序指标协同突变识别阶段转换点'，可将电化学相图分析法迁移到城市社会学的系统性突变检测","reject_reason":""}
+{"rank":57,"verdict":"pass","value_type":"深层机制连接","potential":5,"reason":"量子-经典对应路径积分与神经切线核都是'将复杂非线性系统精确映射到高维线性/经典等价形式以便分析'的深层对偶，共享统计场论的核心思想，是统计力学与机器学习理论连接的根本桥梁，极有研究潜力","reject_reason":""}
+{"rank":58,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"电纺直径梯度控制与渗透腌制都是'多参数梯度联合调控相界面动力学'，可将电纺的多参数耦合方程迁移到食品工艺的多变量优化","reject_reason":""}
+{"rank":59,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 幂律与线性关系的表层匹配"}
+{"rank":60,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 都是速度/距离平方律但机制无连接"}
+{"rank":61,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"no actionable insight: 都是'数据驱动的空间-时间分析'，过于泛泛"}
+{"rank":62,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"漂移波不稳定性与季风位移都是'梯度驱动+反馈放大+非线性饱和'的输运不稳定性，托卡马克的反常输运理论可与气候动力学的ITCZ位移共享同一类Kelvin-Helmholtz/梯度驱动不稳定性数学框架","reject_reason":""}
+{"rank":63,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"建筑能耗的属性外推建模与众包标注的动态加权都是'从异质低质量观测推断可靠高分辨率真值'，Dawid-Skene式的标注质量加权可迁移到城市能耗传感器的可信度建模","reject_reason":""}
+{"rank":64,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"no actionable insight: 都是计算社会科学内部，基于数据整合的量化方法，缺乏跨域新洞察"}
+{"rank":65,"verdict":"pass","value_type":"深层机制连接","potential":5,"reason":"大模型能力涌现与集体行动临界质量都是'从随机水平→突然跳变'的相变现象，共享渗流理论/临界指数的统计物理根基，可将伊辛模型的临界指数法迁移到AI涌现能力的标度律预测，方向极具研究价值","reject_reason":""}
+{"rank":66,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 激光散斑负指数分布与等离子体X射线幂律是不同的统计分布，仅是'都是统计分布'的配对"}
+{"rank":67,"verdict":"pass","value_type":"概念框架迁移","potential":3,"reason":"规范内化三阶段与积云三阶段都有'发展-成熟-内化/消散'的生命周期结构，可为政治学引入流体动力学的阶段转换判据(上升/下沉动力学比值)做定量分析","reject_reason":""}
+{"rank":68,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"混凝土徐变与重金属吸附衰减都是'对数型渐近趋稳'，本质为多时间尺度指数过程的叠加(Kohlrausch式松弛)，可用松弛函数框架跨域拟合","reject_reason":""}
+{"rank":69,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"p进完备化与势函数方法都是'通过构造辅助函数/度量证明存在性和收敛性'，数论的完备化思想可启发博弈论中非传递拥挤博弈的广义势函数构造","reject_reason":""}
+{"rank":70,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 两者都是化学势梯度驱动扩散的经典实例，与rank43类似但更弱"}
+{"rank":71,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"代际流动性测量与Copula相关性建模都涉及'超越线性相关的依赖结构捕捉'，Copula的尾部依赖建模可迁移到社会流动性研究中极端贫困/富裕的代际粘性分析","reject_reason":""}
+{"rank":72,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: DPDK与RDMA都是内核旁路技术，同一设计哲学的不同实例，不是跨域类比"}
+{"rank":73,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 线性折现敏感度与Arrhenius指数律是不同数学结构"}
+{"rank":74,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"神经信号传导与灭绝级联都是'局部激活触发邻接节点活动'的波前传播，可共享反应-扩散或定向图上的SIR/传染模型框架，将生态级联的节点移除敏感性方法反哺神经通路退行性病变建模","reject_reason":""}
+{"rank":75,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: Myerson拍卖与Shapley值都在博弈论/机制设计内，不是跨域"}
+{"rank":76,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"电池放电与聚合反应都是'反应物消耗→反应速率递减'的前快后慢曲线，共享Avrami式转化率动力学，可将聚合动力学模型迁移到电池寿命预测","reject_reason":""}
+{"rank":77,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 离心力的平方律与趋肤效应平方根律无结构性连接"}
+{"rank":78,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"极涡行星波破坏与盐构造底辟都是'密度/势能反转驱动的大尺度重组'，地球流体动力学的Rayleigh-Taylor/浮力屈服理论可跨圈层应用于大气与地质","reject_reason":""}
+{"rank":79,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"品牌忠诚衰减与地铁振动衰减都是源强随距离/认同度指数衰减，可将振动学的阻尼耗散模型反向用于品牌影响力的空间传播量化","reject_reason":""}
+{"rank":80,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"海洋温跃层抑制扩散与咸淡水交界面都是'密度分层+负反馈边界'，层化海洋的垂向混合参数化可迁移到海岸含水层的咸淡水界面稳定性分析","reject_reason":""}
+{"rank":81,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 渗透压与药物缓释是同一扩散机制的教科书例子"}
+{"rank":82,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"期权组合风险矩阵主成分分解与曲轴扭振模态分解都是'特征值分解识别主导模态'，金融主成分对冲与机械模态减振可共享谱分析思想，为金融风险管理引入机械模态阻尼设计法","reject_reason":""}
+{"rank":83,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"电纺直径梯度与Bergeron冰晶生长都是'多场梯度耦合控制相界面形态'，可将冰晶生长的饱和水汽压梯度模型迁移到纳米纤维直径精准预测","reject_reason":""}
+{"rank":84,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"RCU宽限期机制与TCP Fast Open Cookie都是'通过预先建立的状态避免关键路径阻塞'，RCU的版本化读与0-RTT的预建凭证共享乐观并发思想，可为分布式系统设计提供统一的'信任换延迟'原则","reject_reason":""}
+{"rank":85,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"no actionable insight: 同位素地层学与舞蹈动作捕捉都在做'时序指纹'但机制完全无关，过于泛泛"}
+{"rank":86,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"高原训练血红蛋白塌陷与过度训练免疫低谷都是'调节反应的时间窗口错位'，揭示稳态调节存在多时间常数的松弛窗口，可为个体化训练周期设计提供统一的'窗口期'框架","reject_reason":""}
+{"rank":87,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"增强子-启动子染色质环化与间隙连接耦合都是'通过物理桥接形成模块化调控网络'，揭示生物调控的'3D回路'共性：无论是染色质域还是细胞群连接，功能边界都由绝缘子/接口蛋白决定模块分离，可启发合成生物学的模块化设计","reject_reason":""}
+{"rank":88,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两条描述的是同一概念(NTK)，不是跨域类比"}
+{"rank":89,"verdict":"pass","value_type":"概念框架迁移","potential":3,"reason":"品牌扩散与央行前瞻指引都是'信息波沿社交/市场距离梯度传播'，可将品牌扩散系数估计方法迁移到央行沟通效应的量化","reject_reason":""}
+{"rank":90,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两条描述的是同一概念(临界质量)，不是跨域类比"}
+{"rank":91,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"known metaphor: 网络效应是商业战略的常识框架"}
+{"rank":92,"verdict":"pass","value_type":"概念框架迁移","potential":4,"reason":"规范内化三阶段与烧结致密化三阶段都有'初始接触→通道封闭→稳态消除缺陷'的阶段结构，可将烧结动力学的阶段速率常数法迁移到规范传播的定量阶段识别","reject_reason":""}
+{"rank":93,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"轨道稳定子定理与单位线法都是'线性叠加+对称性简化'的计算策略，单位线的脉冲分解可与Burnside引理共享线性群作用的抽象结构","reject_reason":""}
+{"rank":94,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"极涡扰动与内波破碎都是'大尺度稳定结构被小尺度波扰动破坏→产生耗散混合'，地球流体动力学的波-平均流相互作用理论可统一描述大气与海洋的混合路径","reject_reason":""}
+{"rank":95,"verdict":"pass","value_type":"方法论迁移","potential":3,"reason":"同位素地层学与古地震考古都是'通过物质痕迹延伸事件序列到文献之前'，可将同位素多元代理对比的全球相关方法迁移到考古地震的跨遗址事件同步","reject_reason":""}
+{"rank":96,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 两条描述的是同一概念(自监督特征崩塌)，不是跨域类比"}
+{"rank":97,"verdict":"pass","value_type":"方法论迁移","potential":4,"reason":"希腊字母免疫与Uniswap V3集中流动性都是'在约束下最大化资本效率'的凸优化问题，可将期权组合的风险对角化方法迁移到AMM的动态区间再平衡策略","reject_reason":""}
+{"rank":98,"verdict":"pass","value_type":"深层机制连接","potential":4,"reason":"COF激子梯度传输与Wnt隐窝梯度都是'局部产生+梯度扩散+局部拮抗形成稳定分布'，共享Turing反应-扩散图灵机制，可将发育生物学的拮抗剂维持边界原理迁移到光催化材料的活性位稳定设计","reject_reason":""}
+{"rank":99,"verdict":"reject","value_type":"","potential":0,"reason":"","reject_reason":"trivially obvious: 消费者剩余面积与齿轮速比守恒无结构连接，仅因都叫'守恒/面积'被配对"}
+{"rank":100,"verdict":"pass","value_type":"深层机制连接","potential":3,"reason":"溯源侵蚀与溃坝扩散波都是流体力学中的非线性波前传播，但方向相反(逆流vs顺流)，揭示同一介质中扰动可双向传播的对称性，对河流灾害预测模型有操作价值","reject_reason":""}

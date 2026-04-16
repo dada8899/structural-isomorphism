@@ -384,16 +384,6 @@
     padding: var(--space-4);
   }
 
-  .about-team {
-    padding: var(--space-4);
-    gap: var(--space-3);
-  }
-
-  .about-team__avatar {
-    width: 44px;
-    height: 44px;
-    font-size: var(--fs-20);
-  }
 }
 
 /* === Very small phone (≤480px) === */

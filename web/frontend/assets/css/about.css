@@ -138,56 +138,22 @@
   text-transform: uppercase;
 }
 
-/* === Team / credits === */
-.about-team {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-4);
-  align-items: start;
+.about-page__contact-lede {
+  font-size: var(--fs-16);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
   padding: var(--space-5);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
+  margin: 0;
 }
-
-.about-team__avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--text-primary);
-  color: var(--text-inverse);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: var(--fs-24);
+.about-page__contact-lede a {
+  color: var(--accent);
   font-weight: var(--fw-medium);
-  flex-shrink: 0;
+  text-decoration: none;
 }
-
-.about-team__info {
-  min-width: 0;
-  padding-top: 4px;
-}
-
-.about-team__name {
-  font-size: var(--fs-16);
-  font-weight: var(--fw-medium);
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.about-team__role {
-  font-size: var(--fs-13);
-  color: var(--text-tertiary);
-  margin-bottom: var(--space-2);
-}
-
-.about-team__bio {
-  font-size: var(--fs-13);
-  color: var(--text-secondary);
-  line-height: var(--lh-relaxed);
-}
+.about-page__contact-lede a:hover { text-decoration: underline; }
 
 /* Subsection title for V1/V2/V3 pipeline explanations */
 .about-page__subsection-title {

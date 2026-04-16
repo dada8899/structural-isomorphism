@@ -1,0 +1,91 @@
+{"rank": 1, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "两者都是工程故障模式，但水击是流体动量冲击（瞬态压力波），粘连是润滑失效静阻力（启动阶跃），底层机理不同，仅表面都属于阀门相关故障。", "reject_reason": "no actionable insight - 只是都与阀有关，无共同的抽象结构可迁移。"}
+{"rank": 2, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两条几乎在描述同一个生物系统（肠隐窝Wnt梯度 + Lgr5干细胞），只是视角略有不同。", "reject_reason": "trivially obvious - 同一生物学现象的两种描述，不构成跨域同构。"}
+{"rank": 3, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 4, "reason": "水击与热震是快速外部扰动→内部梯度突变→局部应力瞬时超过强度→裂纹的同构。水击是动量梯度，热震是温度梯度，但都可用缓释策略（缓闭阀/退火）抑制。工程上的缓冲策略可相互启发。", "reject_reason": ""}
+{"rank": 4, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "水击是动态压力波导致宏观破裂；应力发白是静态拉伸下微银纹形成（能量吸收机制）。两者一个是失效一个是韧化前兆，结构不同。", "reject_reason": "no actionable insight - 只是都涉及应力这个抽象词。"}
+{"rank": 5, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 5, "reason": "两者都是流量-压比特性曲线出现负斜率区→小扰动引发周期性倒流→严重损伤的同构，都需要通过主动控制（防喘振回路/可调几何）避开不稳定区。这是流体机械中跨域最硬的同构，背后都是相同的静态稳定性判据；恢复也都需要重新起动——非单调恢复路径。", "reject_reason": ""}
+{"rank": 6, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "不起动是流体稳态跳变（双稳态），振荡发散是线性系统相位裕度不足。一个是bifurcation，一个是linear instability。结构不同。", "reject_reason": "no actionable insight - 仅都会引起系统失控这一层面的相似。"}
+{"rank": 7, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "水击是瞬态动量冲击，热残余应力是准静态固化收缩。都涉及应力只是表面相似。", "reject_reason": "no actionable insight"}
+{"rank": 8, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是指数衰减数学形式，但经济激励衰减与机械效率级联本质上是不同的生成机制（一个是设计选择，一个是独立概率连乘）。", "reject_reason": "known metaphor - 指数衰减是最通用的数学模板，不足以成为有价值的跨域同构。"}
+{"rank": 9, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "水击是压力波传播（声学），进气道不起动是正激波推出（定常流动双稳态）。虽然都涉及激波概念但物理机制与时间尺度完全不同。", "reject_reason": "no actionable insight - 共享激波词语但不共享结构。"}
+{"rank": 10, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是正反馈崩溃但这是教科书式的反馈循环类比。", "reject_reason": "known metaphor - 正反馈螺旋在系统动力学中是标准套路，两侧并无新洞察。"}
+{"rank": 11, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "一个是瞬态压力波，一个是相变堵塞。仅管道故障这一外部标签相同。", "reject_reason": "no actionable insight"}
+{"rank": 12, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "施加恒定输入后响应随时间缓慢演化是同构：并购后文化整合的时滞反馈环与高分子链段重排的时间谱在结构上对应。可将蠕变/松弛的时间谱工具（弛豫时间分布、KWW方程）迁移到组织整合进程建模，量化不同部门的整合弛豫时间。", "reject_reason": ""}
+{"rank": 13, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 4, "reason": "当下状态已注定但信号延迟显现是真正的同构。灭绝债务概念可直接迁移为整合债务：当前看似成功的并购可能已注定失败只因反馈时滞。可给出类似的评估修正方法——关注延迟显现的指标而非瞬时表现。", "reject_reason": ""}
+{"rank": 14, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者在时间尺度、机理上无共性。", "reject_reason": "no actionable insight"}
+{"rank": 15, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "饱和缠绕是积分器在饱和后继续累积导致响应滞后，水击是动量冲击。两者共享积累→释放的直觉但数学上没有结构对应。", "reject_reason": "no actionable insight"}
+{"rank": 16, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 17, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "喘振是流体动态失稳，盲区是机械/电气死区。无结构同构。", "reject_reason": "no actionable insight"}
+{"rank": 18, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "点蚀是局部电化学自催化加速，水击是动态压力波。仅都可能引发裂纹这一终态相似。", "reject_reason": "no actionable insight"}
+{"rank": 19, "verdict": "keep", "value_type": "structural_analogy", "potential": 3, "reason": "局部突起→吸引更多能量/物质→进一步突起的几何放大是真同构（尖端效应 vs 暗色吸热正反馈）。均匀化策略（均衡界面离子流 vs 减缓融冰）有类比意义，但两者都属于已知正反馈大类，novelty有限。", "reject_reason": ""}
+{"rank": 20, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "床层偏流是空间流量不均，粘连是时间域静阻力。无结构对应。", "reject_reason": "no actionable insight"}
+{"rank": 21, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 4, "reason": "建立缓慢、崩塌迅速、返回更难的不对称滞回是真同构。两者都对应数学上的ratchet/hysteresis模型。价格粘性的菜单成本文献可能迁移到信任修复的成本模型，反之信任不对称中的崩塌门槛可为价格调整研究提供新量化维度。", "reject_reason": ""}
+{"rank": 22, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "瞬态压力波 vs 层间剪切失效，无共性。", "reject_reason": "no actionable insight"}
+{"rank": 23, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "水击是单次瞬态，疲劳是循环累积。时间与机制都不同。", "reject_reason": "no actionable insight"}
+{"rank": 24, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 25, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 26, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "两者无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 27, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "交通灯是人为设定的定时开关，LC是物理共振。数学上一个是square wave设计，一个是sinusoidal eigenfrequency。", "reject_reason": "known metaphor - 周期性切换的类比非常表面。"}
+{"rank": 28, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "床层偏流是阻力不均导致的空间不均匀分流（稳态），进气道不起动是激波位置突变（双稳态）。都与流量有关但不同构。", "reject_reason": "no actionable insight"}
+{"rank": 29, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 30, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 31, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是正反馈但太通用。", "reject_reason": "known metaphor - 预期自我实现已是经济学常识。"}
+{"rank": 32, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "都是梯度驱动的线性不稳定性+非线性饱和。数学结构相似（Ginzburg-Landau类），但正反馈不稳定性在物理学中非常通用，两侧都没有提供新洞察。", "reject_reason": "known metaphor - 线性不稳定性的跨域类比已广泛讨论。"}
+{"rank": 33, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "均为正反馈聚集。", "reject_reason": "known metaphor"}
+{"rank": 34, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是大气/气候中的正反馈自增强机制，且都是已知教科书案例。", "reject_reason": "known metaphor"}
+{"rank": 35, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "渗流阈值与接枝密度阈值都是临界密度导致宏观性质突变的同构。前者是拓扑连通性相变（幂律），后者是构象排斥相变（跳跃式）。两者都可用统计几何/mean-field框架描述，是软物质与凝聚态之间真实的阈值同构。可用渗流普适类指数检验刷相变是否属于同一universality class。", "reject_reason": ""}
+{"rank": 36, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "PKR的阈值+自磷酸化确实呈现全或无响应，与海冰的临界点相似。但两者均属于正反馈+阈值范式，已是系统生物学与气候学共识结构。", "reject_reason": "known metaphor"}
+{"rank": 37, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 38, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "一个是量子力学赝自旋守恒禁止背散射，一个是会计恒等式。共享守恒字面但结构完全不同。", "reject_reason": "no actionable insight - 词汇巧合。"}
+{"rank": 39, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "反身性本身就是正反馈自增强的另一种表述。", "reject_reason": "known metaphor"}
+{"rank": 40, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "两者都在分子生物学/免疫学范畴，都是抑制通路的负反馈。同域同构。", "reject_reason": "trivially obvious - 跨域度不足。"}
+{"rank": 41, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 42, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "海洋热含量是能量积蓄延迟释放，现金持有是融资缓冲边际递减。前者是动态时滞，后者是静态凹函数。", "reject_reason": "no actionable insight"}
+{"rank": 43, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "一个是流体动态，一个是固态晶粒演化。无结构对应。", "reject_reason": "no actionable insight"}
+{"rank": 44, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "两者都是末端/边界的反常放大/反向作用：费兰蒂效应中空载末端电压高于首端，负摩阻力中桩周土的反向下拖。背后都是分布参数系统在边界条件变化下的反向现象，数学上都可用分布参数方程+合适边界条件描述。两个完全不同工程领域的反直觉现象同构让学生对分布参数思维有跨域印证。", "reject_reason": ""}
+{"rank": 45, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无实质结构对应。", "reject_reason": "no actionable insight"}
+{"rank": 46, "verdict": "keep", "value_type": "structural_analogy", "potential": 3, "reason": "都是梯度驱动的扩散/定向运动。灌溉水服从Richards方程，白细胞趋化服从Keller-Segel模型。两者数学上确实都是对流-扩散类PDE，但生物趋化涉及主动感知+整合素，比被动扩散复杂。一定程度的结构类比但机制非同构。", "reject_reason": ""}
+{"rank": 47, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "都是物理守恒律约束下的传输效率（动量守恒）。但这是物理学内部的广义守恒定律，不算真正跨域。", "reject_reason": "trivially obvious - 物理域内同类守恒机制。"}
+{"rank": 48, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 49, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 50, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 51, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是正反馈。", "reject_reason": "known metaphor"}
+{"rank": 52, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 53, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "不起动是双稳态空气动力现象，热惯性滞后是纯时滞对象。虽然都用补偿/预估控制策略但本质结构不同。", "reject_reason": "no actionable insight"}
+{"rank": 54, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "一个是固化冷却的残余应变，一个是传热动态时滞。", "reject_reason": "no actionable insight"}
+{"rank": 55, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "正反馈放大主题重复。", "reject_reason": "known metaphor"}
+{"rank": 56, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "正反馈主题重复。", "reject_reason": "known metaphor"}
+{"rank": 57, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 58, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 59, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 60, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "均为量子物理中的禁止/不可行类机制。但两者同属量子物理领域，不构成跨域同构。", "reject_reason": "trivially obvious - 同领域内。"}
+{"rank": 61, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "边缘决策/报价被放大被采用→系统整体向某方向漂移是同构。先例蚀刻是法律规则漂移（马尔可夫过程），做市商价差压缩是市场价差漂移（演化博弈）。两者都表现为静默累积而非突变。可将演化博弈的dominance/invasion分析工具迁移到普通法演化研究。", "reject_reason": ""}
+{"rank": 62, "verdict": "reject", "value_type": "none", "potential": 3, "reason": "都是正反馈失控，凝胶效应（Trommsdorff）是已知的反应工程-传热耦合问题，与海冰反照率都是正反馈标杆案例。", "reject_reason": "known metaphor"}
+{"rank": 63, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "同属物理学守恒律家族。", "reject_reason": "trivially obvious"}
+{"rank": 64, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 65, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "昼夜节律是生物振荡器（需光校准的极限环），LC是线性谐振。数学上一个是非线性极限环一个是线性特征频率。", "reject_reason": "known metaphor - 周期性的最浅类比。"}
+{"rank": 66, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "一个是军事平衡动力学，一个是判例漂移。无结构对应。", "reject_reason": "no actionable insight"}
+{"rank": 67, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 68, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "正反馈主题重复。", "reject_reason": "known metaphor"}
+{"rank": 69, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "化学链式反应vs气候正反馈，都是已知正反馈。", "reject_reason": "known metaphor"}
+{"rank": 70, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "一个是竞争压缩均衡，一个是目标冲突两难。都是经济学内部。", "reject_reason": "no actionable insight"}
+{"rank": 71, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 72, "verdict": "keep", "value_type": "transferable_mechanism", "potential": 5, "reason": "交通流突变与凝胶点都是渗流相变的真实案例：密度/交联度达临界值后系统从可流动跳变为凝固，非线性度由渗流普适类决定。交通流文献已用percolation描述道路网络，高分子物理的凝胶点也是同一理论。这是数学上严格共享（universality class）的跨域同构，可直接迁移临界指数、有限尺度scaling等工具。", "reject_reason": ""}
+{"rank": 73, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "都是正反馈自增强。", "reject_reason": "known metaphor"}
+{"rank": 74, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 75, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无结构共性。", "reject_reason": "no actionable insight"}
+{"rank": 76, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "驰豫振荡与capex周期都是两变量通过速率方程耦合→阻尼振荡→收敛到稳态的同构。激光器速率方程（载流子-光子）与经济中的资本存量-价格反馈是同一类Lotka-Volterra/predator-prey结构。阻尼程度决定是否有超调，经济学可借鉴物理阻尼分析工具量化周期收敛速度。", "reject_reason": ""}
+{"rank": 77, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 78, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 79, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 80, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 81, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 82, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "Fisher债务通缩螺旋是最经典的经济学正反馈。", "reject_reason": "known metaphor"}
+{"rank": 83, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 84, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "均为正反馈。", "reject_reason": "known metaphor"}
+{"rank": 85, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "正反馈主题重复。", "reject_reason": "known metaphor"}
+{"rank": 86, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 87, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 88, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 89, "verdict": "reject", "value_type": "none", "potential": 2, "reason": "最经典的正反馈比喻。", "reject_reason": "known metaphor"}
+{"rank": 90, "verdict": "reject", "value_type": "none", "potential": 1, "reason": "无共性。", "reject_reason": "no actionable insight"}
+{"rank": 91, "verdict": "keep", "value_type": "structural_analogy", "potential": 4, "reason": "密度信号→激酶/速率方程级联→群体水平负反馈稳态是同构：光子密度调节载流子消耗 vs 细胞密度通过Hippo激酶级联调节YAP/TAZ。都是分布式局部反馈产生全局稳态大小控制，无中央协调者。两者的阻尼/响应时间分析可能相互借鉴。", "reject_reason": ""}
