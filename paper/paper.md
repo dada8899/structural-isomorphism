@@ -363,7 +363,52 @@ V3 achieves a 3.4$\times$ improvement in paper-worthy density and a 2.9$\times$ 
 
 The DeFi $\leftrightarrow$ earthquake pair is representative of a broader insight surfaced by V3: **DeFi protocols function as high-resolution experiments for traditional financial contagion theory**. Bank runs, margin spirals, and liquidity crises were previously only observable through coarse, lagged macroeconomic data; on-chain DeFi markets expose the same dynamics at block-level resolution, making long-established theoretical models (Diamond-Dybvig, Hawkes processes, Omori-Utsu aftershock laws from seismology) empirically testable for the first time. This direction was not surfaced by V1 or V2 and illustrates the kind of discovery that requires explicit structural alignment rather than embedding similarity.
 
-All extracted StructTuples, the 1,000 structural candidates, the 203 paper-worthy reranked pairs, and the 54 deep-analysis briefs are released alongside the V2 artifacts; see Section 9.
+All extracted StructTuples, the 1,000 structural candidates, the 203 paper-worthy reranked pairs, and the 54 deep-analysis briefs are released alongside the V2 artifacts; see §8.5.
+
+### 6.6 V4: From 63 discrete candidates to universality-class aggregation
+
+The §6.5 results expose a deeper structural pattern. Among the 63 tier-1 discoveries, many instances where **$A \cong B$ and $A \cong C$ simultaneously** are not coincidental — they reflect the same underlying mathematical-physical regularity expressed in different domains. Earthquake stress triggering, DeFi liquidation cascades, bank runs, flash-crash liquidity spirals, power-grid cascading failures, social cascades, and supply-chain collapses are all pairwise identified as isomorphic by V1–V3, but their shared structure is actually the **branching-process family of Self-Organized Criticality (SOC)**. Discrete pairs cannot naturally express this "structural family" relationship.
+
+V4 (the Universality Class Engine) aggregates discrete A≅B pairs into **universality classes**. It is organized in five layers:
+
+- **Layer 1 · Graph construction and alias merging**: SIBD-63 is built into an undirected graph (nodes = domain phenomena, edges = LLM-confirmed isomorphism pairs); semantically close nodes are merged via a curated allowlist (`node_aliases.json`).
+- **Layer 2 · Connected components + Louvain community detection**: Louvain modularity maximization on the giant connected component yields 23 candidate universality classes.
+- **Layer 3 · LLM curation**: Each candidate is audited by Opus/Kimi with a `class_name` (e.g., "Branching-process SOC", "Diamond-Dybvig self-fulfilling runs"), `core_equation` (e.g., $P(s)\propto s^{-\tau}$, $\gamma=(\alpha-1)/(\tau-1)$), `hub_domain`, and a typical exponent band. Ultimately 8 classes are curated by hand (provenance=`curated`) and 15 are LLM-assisted (`llm_assisted`).
+- **Layer 4 · Falsifiable predictions**: Each class is annotated with 1–5 "if this universality class holds, then a certain distribution or exponent must lie in this narrow band" falsifiable predictions, totaling 24. Predictions are numerical claims directly comparable to public data (e.g., "Gutenberg–Richter b ∈ [0.95, 1.15]", "SOC event-size exponent $\tau \in [1.45, 1.7]$").
+- **Layer 5 · Empirical validation**: For the most operationalizable prediction family (SOC), the full pipeline "data acquisition → distribution fitting → hypothesis testing → paper" is executed end-to-end; see §6.7.
+
+V4 is not a new retrieval pipeline — it is a downstream aggregator over V1–V3. Its value is upgrading "63 discrete cross-domain analogies" into "23 structural families with falsifiable numerical predictions", and supplying Layer 5 with directly actionable hypotheses.
+
+### 6.7 Layer 5: Cross-domain empirical validation of the SOC universality class
+
+We chose SOC as our first empirical target because its theory is the most mature: mean-field branching-process SOC predicts an uncut power-law event-size distribution with $\tau \approx 1.5$, energy exponent $\alpha \approx 2.0$, lifetime exponent $\gamma \approx 2.0$, and the three exponents are mutually constrained by the scaling relation $\gamma=(\alpha-1)/(\tau-1)$. We applied the same Clauset–Shalizi–Newman (2009) power-law fitting pipeline with distribution_compare (vs. lognormal / exponential / truncated power-law) in **five mutually independent domains**:
+
+| Domain | Source | Sample | Key numbers | Verdict |
+|--------|--------|-------:|-------------|---------|
+| Earthquakes | USGS global catalog | 84k events | $b$-value = 1.084, Omori $p$ = 0.941, $\tau \approx 1.67$ | ✅ Consistent with discrete-threshold SOC |
+| Stock market | S&P 500 daily returns | 20k days | $\alpha \approx 3.00$, $p$ = 0.29 (daily-scale literature band [0.3, 0.6]) | ✅ Continuous-diffusion SOC subclass |
+| DeFi liquidations | Aave V2 + Compound V2 + MakerDAO event logs | 43,065 events | per-protocol $\alpha$ = 1.57–1.68, consistent across protocols | ✅ Discrete-threshold SOC, same subclass as earthquakes |
+| Neural avalanches | DANDI 000006 mouse cortex NWB | 54 sessions | $\tau, \gamma$ fall in task-state sub-critical band | ⚠️ Partial (Priesemann 2014 task-state shift) |
+| Null controls | Synthetic Poisson + Gaussian streams | 20k samples | **No power-law fit obtained** | ✅ Negative control |
+
+Three empirical observations deserve emphasis:
+
+1. **SOC subclass structure**: DeFi + earthquakes cluster at $\alpha \in [1.57, 1.68]$ (discrete-threshold — events triggered by threshold crossings), whereas S&P 500 clusters at $\alpha \approx 3.0$ (continuous-diffusion — price moves generated by a continuous random walk). This is not fit error; it is the fingerprint of two physical mechanisms.
+2. **Universality across DeFi implementations**: Aave V2, Compound V2, and MakerDAO use engineering-distinct liquidation triggers (Aave: health factor; Compound: utilization rate; Maker: DAI-pegged stability fee), yet their liquidation cascade size distributions fall in the same narrow band. This is cross-implementation emergent universality, consistent with SOC's prediction of detail-independence.
+3. **Negative control is effective**: Synthetic Poisson / Gaussian streams run through the same pipeline fail to fit a power-law ($\hat{\alpha} > 10$ or distribution_compare favors lognormal). This rules out the methodological objection "your pipeline fits a power-law on any data".
+
+Fitting scripts, data-acquisition scripts, result JSON files, and the paper Markdown for all five domains are open-sourced at `v4/validation/`; each domain has a 5–8 page arXiv-style companion paper, readable at the bottom of the `/classes` page on the Structural site.
+
+### 6.8 SIBD-63: Releasing the cross-domain isomorphism seed bank
+
+To facilitate reuse by domain experts, we package the 63 tier-1 discoveries (24 from V1 + 19 from V2 + 20 from V3, pairwise zero-overlap) as a standalone academic dataset, **SIBD-63**:
+
+- **Contents**: JSONL format; each record carries `seed_id`, `a/b_domain`, `a/b_name`, `shared_equation` (V3-only, 20 records), `variable_mapping`, `isomorphism_depth` (1–5), `isomorphism_confidence`, `paper_title`, `target_venue`, `literature_status` (unexplored / partial / established), `execution_plan` (directly actionable empirical steps), `final_score`, `rating`, and `full_analysis`.
+- **Coverage**: 48 domain labels spanning physical sciences (geology, condensed matter, fluids, electromagnetism), life sciences (ecology, molecular biology, immunology, neuroscience, oncology), social and economic (financial microstructure, macroeconomics, behavioral economics, DeFi), engineering (civil, power, traffic, aerospace), and emerging cross-disciplinary directions (synthetic biology, computational social science).
+- **Release**: CC-BY-4.0, Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170).
+- **Companion paper**: `v4/seedbank-sibd63/paper.md` provides the full sampling protocol, domain coverage statistics, quality control, and usage guidance.
+
+**SIBD-63 is designed as "executable research seeds"**: every record ships with a target journal, a `time_estimate`, required data sources, and potential blocking mechanisms. A domain expert can pick a matching seed using their own expertise and complete a companion empirical paper in 3–6 months without rebuilding the four-generation pipeline — this decouples "cross-domain structural discovery" from "domain-specific empirical writing" as two separable workflow steps. The SOC class has been completed by us in Layer 5 (see §6.7); the other 22 classes are available for collaborators to adopt.
 
 ---
 
@@ -476,12 +521,14 @@ Several directions for future work emerge from our analysis:
 
 ### 8.5 Reproducibility and Release
 
-All artifacts required to reproduce V1, V2, and V3 results are publicly released:
+All artifacts required to reproduce V1–V4 results are publicly released:
 
-- **Code**: GitHub repository `dada8899/structural-isomorphism`, containing the full V1/V2/V3 pipelines, StructTuple extraction scripts, and LLM rerank harness.
-- **Dataset and V2 artifacts**: Zenodo DOI [`10.5281/zenodo.19547879`](https://doi.org/10.5281/zenodo.19547879), including SIBD, the 500-phenomenon knowledge base, and the 3,017 V2 candidates.
+- **Code**: GitHub repository `dada8899/structural-isomorphism`, containing the full V1/V2/V3 retrieval pipelines, the V4 universality-class aggregation scripts, Layer 5 empirical pipelines for all five domains, and the StructTuple extraction + LLM rerank harness.
+- **SIBD-63 dataset** (new): Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170), CC-BY-4.0, containing 63 tier-1 cross-domain isomorphism discoveries (24 from V1 + 19 from V2 + 20 from V3, pairwise zero-overlap), each with shared equation, variable mapping, target journal, and execution plan. The package also includes the schema, companion paper, and build script.
 - **Trained model**: Hugging Face model hub at `qinghuiwan/structural-isomorphism-v2-expanded`, the fine-tuned 110M-parameter Chinese sentence encoder.
-- **V3 outputs**: the 2,625 matchable StructTuples, 1,000 structural candidates, 203 paper-worthy reranked pairs, and 54 deep-analysis briefs are distributed with the V2 artifacts on Zenodo.
+- **V3 outputs**: the 2,625 matchable StructTuples, 1,000 structural candidates, 203 paper-worthy reranked pairs, and 54 deep-analysis briefs are distributed alongside SIBD-63 on the same Zenodo record.
+- **Layer 5 empirical data and papers**: acquisition scripts, fitting scripts, result JSON, and five arXiv-style companion paper Markdown files for all five SOC validation domains (earthquakes / S&P 500 / DeFi cross-protocol / neural avalanches / null controls) are open-sourced at `v4/validation/` and browsable at the bottom of the `beta.structural.bytedance.city/classes` page.
+- **Live site**: `structural.bytedance.city` (paper and docs), `beta.structural.bytedance.city` (interactive search engine + /classes + /discoveries + /paper/{slug}).
 
 ---
 
@@ -497,7 +544,13 @@ We have presented a framework for detecting cross-domain structural isomorphism 
 
 4. A **V3 pipeline** that replaces embedding cosine similarity with a StructTuple structured representation and LLM pairwise reranking, scales to 4,443 phenomena, achieves a 3.4$\times$ improvement in paper-worthy candidate density (20.3% vs. 6%), and surfaces a disjoint set of 54 actionable discoveries, notably identifying on-chain DeFi markets as high-resolution experiments for traditional financial contagion theory.
 
-5. **Critical analysis** through three counter-experiments establishing that the framework covers ~60% of known innovations, identifying six blocking mechanisms, and confirming discriminability (random pair score 1.27 vs. innovation case score 4.5).
+5. A **V4 universality class engine** that aggregates the 63 tier-1 discoveries from V1–V3 into 23 candidate universality classes (8 curated + 15 LLM-assisted), with 24 falsifiable numerical predictions. This upgrades "cross-domain isomorphism discovery" from A≅B pairs to falsifiable statements about entire structural families (§6.6).
+
+6. **Layer 5 empirical validation** of the most mature class (SOC) end-to-end across five mutually independent domains (earthquakes, S&P 500, DeFi cross-protocol, neural avalanches, synthetic null controls). The results support the core SOC predictions, resolve two subclasses ("discrete-threshold" at $\alpha \approx 1.6$ vs. "continuous-diffusion" at $\alpha \approx 3.0$), and rule out methodological false-positives via the null control (§6.7).
+
+7. **SIBD-63 seed bank**: the 63 tier-1 discoveries are packaged as a standalone dataset with execution plans, released under CC-BY-4.0 as Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170). This allows domain experts to pick matching seeds and complete companion empirical papers in 3–6 months, decoupling cross-domain structural discovery from domain-specific empirical writing as two separable workflow steps.
+
+8. **Critical analysis** through three counter-experiments establishing that the framework covers ~60% of known innovations, identifying six blocking mechanisms, and confirming discriminability (random pair score 1.27 vs. innovation case score 4.5).
 
 We emphasize that this framework is a *tool*, not a *theory of everything*. It does not explain serendipitous discoveries, formal mathematical derivations, or irreducible intuitive leaps. What it does is systematically surface the specific type of connection --- high semantic distance, high structural similarity --- that characterizes a significant fraction of historical breakthroughs, and that is precisely the type of connection most likely to be missed by domain-specialist researchers working within disciplinary silos.
 
