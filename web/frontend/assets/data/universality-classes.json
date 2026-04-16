@@ -94,16 +94,16 @@
           "paper_title": "Cross-Domain SOC Validation: Inverse Cubic Law and Omori Decay on S&P 500"
         },
         {
-          "target": "Aave V2 DeFi 清算级联 2020-12 → 2024-01 (25,601 stablecoin-debt 事件)",
-          "prediction": "清算 USD 规模幂律尾 α = 1.684, 拒绝 lognormal (p = 10⁻²¹), 拒绝 exponential (p = 10⁻⁹³); Omori 1-hour scale p = 0.730 ± 0.043 (227 主震, 6-hour scale 收敛一致 p=0.72)",
-          "test_method": "同一 SOC pipeline 第三次交叉验证 — Clauset 2009 power-law on USD sizes + multi-scale Omori (daily/6h/1h) log-linear regression",
-          "data_source": "Etherscan V2 API (chainid=1) → Aave V2 LendingPool LiquidationCall 事件日志",
-          "sample_size": "28,943 raw events / 25,601 stablecoin-debt / 4,771 tail above $17,494",
-          "paper_target": "Layer 5 Phase 3 — 首个 DeFi SOC 定量测量 + 三点跨域验证完整化",
-          "status": "✅ 已验证 (2026-04-15)",
-          "rationale": "项目首个DeFi SOC 定量测量 — 文献从未发表过. α=1.68 接近地震能量 1.79 而非股市 3.0, 证明 DeFi 清算和地震同属'离散阈值触发' sub-class, 而股市是'连续价格 diffusion'类. 三点跨域 (物理/股市/DeFi) SOC 普适性首次完整化. 论文与 Phase 1/2 互为 companion.",
+          "target": "Aave V2 + Compound V2 + MakerDAO Dog — 43,065 事件 跨 3 协议",
+          "prediction": "三协议 SOC 收敛: α_Aave = 1.684 ± 0.010, α_Compound = 1.649 ± 0.016, α_Maker = 1.567 ± 0.015 (三值 spread 仅 0.12); Omori 1-hour p 分别 0.733 / 0.761 / 0.692 (spread 0.07). 每协议独立拒绝 lognormal 和 exponential (p < 10⁻⁹).",
+          "test_method": "同一 SOC pipeline 跨 3 DeFi 协议 × 3 时间尺度 (daily/6h/1h) 独立拟合 — Aave 拍卖 / Compound 直接清算 / Maker Dutch clipper 三种机制",
+          "data_source": "Etherscan V2 API → LiquidationCall (Aave) + LiquidateBorrow on 5 cTokens (Compound) + Bark on Dog (Maker)",
+          "sample_size": "43,065 raw events / 38,830 with size / Aave 25,601 / Compound 11,244 / Maker 1,985",
+          "paper_target": "Layer 5 Phase 3 v2 — 跨协议 DeFi SOC 普适性首次确认",
+          "status": "✅ 已验证 (2026-04-16)",
+          "rationale": "三种清算机制完全不同 (Aave 5% 激励拍卖 / Compound 8% 直接清算 / Maker Dutch clipper 下降拍卖), 但 α 和 p 收敛到相同值——证明这不是 Aave 特有 artifact, 是 DeFi lending 这个资产类别的结构性质. 三协议全部 α ∈ [1.57, 1.68] 贴近地震 1.79 远离股市 3.00, 证实 SOC 簇内存在'离散阈值' vs '连续 diffusion' 亚类分裂.",
           "paper_url": "/paper/soc-defi-2026-04-15",
-          "paper_title": "First Quantitative Measurement of SOC in DeFi Liquidation Cascades"
+          "paper_title": "Cross-Protocol SOC Universality in DeFi Liquidation Cascades (43,065 events)"
         }
       ],
       "notes": "",
