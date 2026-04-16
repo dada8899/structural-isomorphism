@@ -13,10 +13,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260415">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260415">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260415">
-  <link rel="stylesheet" href="/assets/css/paper.css?v=20260415">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260417b">
+  <link rel="stylesheet" href="/assets/css/paper.css?v=20260417b">
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -38,6 +38,10 @@
       <nav class="site-header__nav">
         <a href="/classes" class="site-header__nav-link">普适类</a>
         <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
+          我的收藏
+          <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
+        </a>
         <a href="/about" class="site-header__nav-link">关于</a>
         <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" class="site-header__nav-link">GitHub</a>
       </nav>
@@ -74,9 +78,11 @@
     <div class="site-footer__inner">
       <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
       <div class="site-footer__links">
-        <a class="site-footer__link" href="/classes">普适类</a>
-        <a class="site-footer__link" href="/discoveries">精选发现</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener">论文</a>
         <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
       </div>
     </div>
   </footer>
@@ -141,6 +147,6 @@
         });
     })();
   </script>
-  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417b"></script>
 </body>
 </html>
