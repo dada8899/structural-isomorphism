@@ -381,57 +381,125 @@
 
       let fullText = '';
       let modelName = '';
-      let lastRenderTs = 0;
+      let lastRenderedLen = 0;
+      let pendingRender = false;
       const liveReport = document.getElementById('live-report');
       const statusEl = document.getElementById('stream-status');
 
-      // marked.js 会把 $ 当 markdown 吃掉 → 先把数学块替换成占位符，渲染后还原
+      // 数学保护：只在真需要的时候跑（每次 regex 很贵）
+      // 大文本时缓存结果（但我们要每次新增渲染，不缓存）
+      // 用 String.prototype.split + 简单状态机代替嵌套 regex，避免灾难性回溯
       function safeMarkedParse(md) {
         if (!window.marked) return escapeHtml(md).replace(/\n/g, '<br>');
-        const mathBlocks = [];
-        const stash = (m) => {
-          mathBlocks.push(m);
-          return `@@KATEXBLOCK${mathBlocks.length - 1}@@`;
-        };
-        let t = md;
-        // Block display math $$...$$
-        t = t.replace(/\$\$[\s\S]+?\$\$/g, stash);
-        // \[...\] display math
-        t = t.replace(/\\\[[\s\S]+?\\\]/g, stash);
-        // Inline $...$ — not double, not at line start as code
-        t = t.replace(/(?<!\\)\$(?!\$)[^\n$]+?(?<!\\)\$(?!\$)/g, stash);
-        // \(...\) inline math
-        t = t.replace(/\\\([\s\S]+?\\\)/g, stash);
+        // 用有限状态机把 $$..$$  和  $..$  提取（避免复杂 lookbehind regex 回溯）
+        const blocks = [];
+        let out = '';
+        let i = 0;
+        const n = md.length;
+        while (i < n) {
+          const c = md[i];
+          // $$...$$
+          if (c === '$' && md[i + 1] === '$') {
+            const end = md.indexOf('$$', i + 2);
+            if (end >= 0) {
+              blocks.push(md.slice(i, end + 2));
+              out += '@@MATHBLK' + (blocks.length - 1) + '@@';
+              i = end + 2;
+              continue;
+            }
+          }
+          // \[...\]
+          if (c === '\\' && md[i + 1] === '[') {
+            const end = md.indexOf('\\]', i + 2);
+            if (end >= 0) {
+              blocks.push(md.slice(i, end + 2));
+              out += '@@MATHBLK' + (blocks.length - 1) + '@@';
+              i = end + 2;
+              continue;
+            }
+          }
+          // \(...\)
+          if (c === '\\' && md[i + 1] === '(') {
+            const end = md.indexOf('\\)', i + 2);
+            if (end >= 0) {
+              blocks.push(md.slice(i, end + 2));
+              out += '@@MATHBLK' + (blocks.length - 1) + '@@';
+              i = end + 2;
+              continue;
+            }
+          }
+          // inline $...$  (only if not double $$, not escaped)
+          if (c === '$' && md[i + 1] !== '$' && md[i - 1] !== '\\') {
+            // find closing $
+            let j = i + 1;
+            while (j < n && j < i + 200) {
+              if (md[j] === '\n') break;  // don't cross newlines
+              if (md[j] === '$' && md[j - 1] !== '\\' && md[j + 1] !== '$') {
+                break;
+              }
+              j++;
+            }
+            if (j < n && md[j] === '$') {
+              blocks.push(md.slice(i, j + 1));
+              out += '@@MATHBLK' + (blocks.length - 1) + '@@';
+              i = j + 1;
+              continue;
+            }
+          }
+          out += c;
+          i++;
+        }
 
-        let html = window.marked.parse(t);
-        // Restore math placeholders (they'll be picked up by KaTeX auto-render)
-        html = html.replace(/@@KATEXBLOCK(\d+)@@/g, (_, i) => mathBlocks[Number(i)] || '');
+        let html = window.marked.parse(out);
+        html = html.replace(/@@MATHBLK(\d+)@@/g, (_, idx) => blocks[Number(idx)] || '');
         return html;
       }
 
-      function renderLive(final) {
-        const now = Date.now();
-        // 流式中节流到每 300ms 渲染一次，避免 DOM 抖动
-        if (!final && now - lastRenderTs < 300) return;
-        lastRenderTs = now;
+      let renderRafId = null;
+      function scheduleRender(final) {
+        if (final) {
+          // 最终渲染：立即
+          if (renderRafId) cancelAnimationFrame(renderRafId);
+          doRender(true);
+          return;
+        }
+        if (pendingRender) return;
+        pendingRender = true;
+        // 用 requestAnimationFrame + 最少 600ms 间隔
+        // 大文本时人眼看每秒 1-2 次更新已经很流畅，过快反而卡
+        setTimeout(() => {
+          if (renderRafId) cancelAnimationFrame(renderRafId);
+          renderRafId = requestAnimationFrame(() => doRender(false));
+        }, 600);
+      }
 
-        // 流式中保护未闭合的数学块：如果末尾有开头 $$ 但没闭合，截断到那里
-        let renderText = fullText || '';
+      function doRender(final) {
+        pendingRender = false;
+        renderRafId = null;
+        // 如果自上次渲染后没新增 → 跳过
+        if (!final && fullText.length === lastRenderedLen) return;
+        lastRenderedLen = fullText.length;
+
+        // 流式中保护未闭合的数学块
+        let renderText = fullText;
         if (!final) {
-          // 最后一个 $$ 如果还没闭合，先截掉不渲染（等它闭合）
-          const lastDouble = renderText.lastIndexOf('$$');
-          if (lastDouble >= 0) {
-            const afterLast = renderText.slice(lastDouble + 2);
-            if (!afterLast.includes('$$')) {
-              renderText = renderText.slice(0, lastDouble);
+          // 找最后一个未闭合的 $$（快速方法：末尾包含奇数个 $$？）
+          // 简化：如果末尾 100 字符里有 $$ 没闭合，截掉
+          const tail = renderText.slice(-200);
+          const doubleCount = (tail.match(/\$\$/g) || []).length;
+          if (doubleCount % 2 === 1) {
+            const lastDouble = renderText.lastIndexOf('$$');
+            if (lastDouble >= 0) renderText = renderText.slice(0, lastDouble);
+          } else {
+            // 单 $ 检查（只看末尾 200 字符）
+            const tail2 = renderText.slice(-200);
+            const dollarCount = (tail2.replace(/\$\$/g, '').match(/\$/g) || []).length;
+            if (dollarCount % 2 === 1) {
+              const lastDollar = renderText.lastIndexOf('$');
+              if (lastDollar >= 0 && renderText[lastDollar - 1] !== '$' && renderText[lastDollar + 1] !== '$') {
+                renderText = renderText.slice(0, lastDollar);
+              }
             }
-          }
-          // 同样处理单 $（只看最后 300 字符，避免误判）
-          const tail = renderText.slice(-300);
-          const dollarCount = (tail.match(/(?<!\\)\$/g) || []).length;
-          if (dollarCount % 2 === 1) {
-            const lastDollar = renderText.lastIndexOf('$');
-            if (lastDollar >= 0) renderText = renderText.slice(0, lastDollar);
           }
         }
 
@@ -443,6 +511,10 @@
           cursor.textContent = '▌';
           liveReport.appendChild(cursor);
         }
+      }
+
+      function renderLive(final) {
+        scheduleRender(final);
       }
 
       try {
