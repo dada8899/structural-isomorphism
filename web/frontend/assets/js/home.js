@@ -152,29 +152,37 @@ let _heroIdx = 0;
 let _heroInterval = null;
 
 function renderHeroEvidence(idx, animate) {
-  const pair = $('***REMOVED***hero-evidence');
-  if (!pair) return;
+  const wrapper = $('***REMOVED***hero-evidence');
+  if (!wrapper) return;
+  const card = wrapper.querySelector('.hero-evidence__card');
   const ex = DEMO_EXAMPLES[idx];
   if (!ex) return;
-  const aDomain = $('***REMOVED***he-a-domain');
-  const aName = $('***REMOVED***he-a-name');
-  const bDomain = $('***REMOVED***he-b-domain');
-  const bName = $('***REMOVED***he-b-name');
-  const score = $('***REMOVED***he-score');
   const apply = () => {
-    if (aDomain) aDomain.textContent = ex.a.domain;
-    if (aName) aName.textContent = ex.a.name;
-    if (bDomain) bDomain.textContent = ex.b.domain;
-    if (bName) bName.textContent = ex.b.name;
-    if (score) score.textContent = `${ex.score}%`;
+    const set = (sel, val) => { const el = $(sel); if (el) el.textContent = val; };
+    set('***REMOVED***he-a-domain', ex.a.domain);
+    set('***REMOVED***he-a-name', ex.a.name);
+    set('***REMOVED***he-a-desc', ex.a.desc || '');
+    set('***REMOVED***he-b-domain', ex.b.domain);
+    set('***REMOVED***he-b-name', ex.b.name);
+    set('***REMOVED***he-b-desc', ex.b.desc || '');
+    const cap = $('***REMOVED***he-caption');
+    if (cap) cap.innerHTML = ex.caption || '';
+    // Update dots
+    const dots = $('***REMOVED***he-dots');
+    if (dots) {
+      dots.querySelectorAll('.hero-evidence__dot').forEach((d, i) => {
+        d.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+        d.classList.toggle('is-active', i === idx);
+      });
+    }
   };
-  if (animate) {
-    pair.style.opacity = '0';
-    pair.style.transition = 'opacity 200ms var(--ease-out)';
+  if (animate && card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 180ms var(--ease-out)';
     setTimeout(() => {
       apply();
-      pair.style.opacity = '1';
-    }, 200);
+      card.style.opacity = '1';
+    }, 180);
   } else {
     apply();
   }
