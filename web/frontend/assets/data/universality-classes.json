@@ -94,6 +94,18 @@
           "paper_title": "Cross-Domain SOC Validation: Inverse Cubic Law and Omori Decay on S&P 500"
         },
         {
+          "target": "神经雪崩 — 小鼠 ALM 皮层延迟任务 (DANDI 000006, 1.39M spikes, 71 units)",
+          "prediction": "Scaling relation γ = (α_T-1)/(τ-1) 跨 1-16× bin 宽度稳定在 1.10 ± 0.02 (R² = 0.998)——criticality 确认. 但具体指数 τ ≈ 2.76, α ≈ 2.94 (bin=4×IEI), 远高于 Beggs-Plenz 2003 spontaneous 值 τ=1.5, α=2.0, 对应 sub-critical task-state 亚类 (Priesemann 2014 预期).",
+          "test_method": "Clauset 2009 power-law on size + duration, 跨 5 个 bin factor (1-16×), 测 scaling relation exponent",
+          "data_source": "DANDI Archive 000006 · sub-anm369962_ses-20170313.nwb (11.5 MB HDF5/NWB)",
+          "sample_size": "1,392,414 spikes / 71 units / 2266 秒 / 产出 301,092 avalanches at bin 1×IEI",
+          "paper_target": "Layer 5 Phase 4 — 首个生物学系统 SOC 亚类定量测量",
+          "status": "⚠️ 部分验证 (2026-04-16)",
+          "rationale": "Pipeline 在合成临界分支过程数据上精确复现 MF Beggs-Plenz 指数 (τ=1.50, α=1.92), 验证正确性. 真实 task-active 皮层 scaling relation 严格成立 (criticality 确认), 但指数归到**不同亚类** (sub-critical task state, m<1, 非 MF). 未否定 V4 SOC 簇假设, 揭示亚类结构——spontaneous vs task 是两个不同的 SOC fixed point. 合成 CONFIRMED + 真实 PARTIAL.",
+          "paper_url": "/paper/soc-neural-2026-04-16",
+          "paper_title": "Criticality Without Mean-Field SOC: Neural Avalanches on Task-Active Mouse Cortex"
+        },
+        {
           "target": "Aave V2 + Compound V2 + MakerDAO Dog — 43,065 事件 跨 3 协议",
           "prediction": "三协议 SOC 收敛: α_Aave = 1.684 ± 0.010, α_Compound = 1.649 ± 0.016, α_Maker = 1.567 ± 0.015 (三值 spread 仅 0.12); Omori 1-hour p 分别 0.733 / 0.761 / 0.692 (spread 0.07). 每协议独立拒绝 lognormal 和 exponential (p < 10⁻⁹).",
           "test_method": "同一 SOC pipeline 跨 3 DeFi 协议 × 3 时间尺度 (daily/6h/1h) 独立拟合 — Aave 拍卖 / Compound 直接清算 / Maker Dutch clipper 三种机制",
