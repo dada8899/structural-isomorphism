@@ -131,7 +131,7 @@ The build script consumes the three pipeline outputs committed to the repository
 
 ## 7. Data and code availability
 
-- **Dataset**: Zenodo DOI 10.5281/zenodo.PLACEHOLDER (this record).
+- **Dataset**: Zenodo DOI 10.5281/zenodo.19615170 (this record).
 - **Source code & pipelines**: https://github.com/dada8899/structural-isomorphism
 - **V1 / V2 embedding models**: https://huggingface.co/qinghuiwan/structural-isomorphism-v1 · https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded
 - **Companion Layer 5 empirical validations**: `/paper/soc-earthquake-2026-04-15`, `/paper/soc-stockmarket-2026-04-15`, `/paper/soc-defi-2026-04-15`, `/paper/soc-neural-2026-04-16`, `/paper/soc-null-2026-04-16`
@@ -147,7 +147,7 @@ The build script consumes the three pipeline outputs committed to the repository
   year      = 2026,
   publisher = {Zenodo},
   version   = {1.0},
-  doi       = {10.5281/zenodo.PLACEHOLDER},
+  doi       = {10.5281/zenodo.19615170},
 }
 ```
 

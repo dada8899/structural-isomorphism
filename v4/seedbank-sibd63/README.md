@@ -103,14 +103,14 @@ If you use this dataset, please cite:
   year         = 2026,
   publisher    = {Zenodo},
   version      = {1.0},
-  doi          = {10.5281/zenodo.PLACEHOLDER},
-  url          = {https://doi.org/10.5281/zenodo.PLACEHOLDER}
+  doi          = {10.5281/zenodo.19615170},
+  url          = {https://doi.org/10.5281/zenodo.19615170}
 }
 ```
 
 Plain-text form:
 
-> Wan, Q. (2026). *SIBD-63: A Dataset of A-Level Cross-Domain Structural Isomorphism Discoveries with Shared Equations and Variable Mappings* (Version 1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.PLACEHOLDER
+> Wan, Q. (2026). *SIBD-63: A Dataset of A-Level Cross-Domain Structural Isomorphism Discoveries with Shared Equations and Variable Mappings* (Version 1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19615170
 
 ## Reproducibility
 

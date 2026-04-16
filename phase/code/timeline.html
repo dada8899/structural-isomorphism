@@ -450,6 +450,57 @@
       'contracting': '收缩',
     };
 
+    // 把 LLM 输出的"半 LaTeX 半 Unicode 半中文"方程转成合法 KaTeX
+    function normalizeEquation(raw) {
+      if (!raw) return '';
+      let eq = String(raw);
+
+      // 1. 移除中文括号注释（如 "(双势阱)" "(传染病模型，I=采用者)"）
+      //    检测：括号内包含任何 CJK 字符
+      eq = eq.replace(/\s*[（\(]\s*[^)）]*[\u4e00-\u9fff][^)）]*[）\)]/g, '');
+
+      // 2. Unicode 上标 → LaTeX
+      const sups = { '⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9',
+                     'ⁿ':'n','⁺':'+','⁻':'-','ⁱ':'i' };
+      eq = eq.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺⁻ⁱ]+/g, (m) => '^{' + [...m].map(c => sups[c] || c).join('') + '}');
+
+      // 3. Unicode 下标 → LaTeX
+      const subs = { '₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9',
+                     'ᵢ':'i','ⱼ':'j','ₖ':'k','ₙ':'n','ₘ':'m' };
+      eq = eq.replace(/[₀₁₂₃₄₅₆₇₈₉ᵢⱼₖₙₘ]+/g, (m) => '_{' + [...m].map(c => subs[c] || c).join('') + '}');
+
+      // 4. Unicode 希腊字母 → LaTeX
+      const greek = {
+        'α':'\\alpha ','β':'\\beta ','γ':'\\gamma ','δ':'\\delta ','ε':'\\epsilon ',
+        'ζ':'\\zeta ','η':'\\eta ','θ':'\\theta ','ι':'\\iota ','κ':'\\kappa ',
+        'λ':'\\lambda ','μ':'\\mu ','ν':'\\nu ','ξ':'\\xi ','π':'\\pi ',
+        'ρ':'\\rho ','σ':'\\sigma ','τ':'\\tau ','υ':'\\upsilon ','φ':'\\phi ',
+        'χ':'\\chi ','ψ':'\\psi ','ω':'\\omega ',
+        'Γ':'\\Gamma ','Δ':'\\Delta ','Θ':'\\Theta ','Λ':'\\Lambda ','Ξ':'\\Xi ',
+        'Π':'\\Pi ','Σ':'\\Sigma ','Φ':'\\Phi ','Ψ':'\\Psi ','Ω':'\\Omega ',
+      };
+      eq = eq.replace(/[α-ωΑ-Ω]/g, c => greek[c] || c);
+
+      // 5. 数学算子和关系符号 → LaTeX
+      const ops = {
+        '∂':'\\partial ','∇':'\\nabla ','∞':'\\infty ','∑':'\\sum ','∏':'\\prod ','∫':'\\int ',
+        '→':'\\to ','←':'\\leftarrow ','↔':'\\leftrightarrow ','⟶':'\\longrightarrow ',
+        '≈':'\\approx ','≠':'\\neq ','≤':'\\leq ','≥':'\\geq ','±':'\\pm ','×':'\\times ','÷':'\\div ',
+        '·':'\\cdot ','∈':'\\in ','∉':'\\notin ','⊂':'\\subset ','⊃':'\\supset ','∪':'\\cup ','∩':'\\cap ',
+        '√':'\\sqrt',
+      };
+      eq = eq.replace(/[∂∇∞∑∏∫→←↔⟶≈≠≤≥±×÷·∈∉⊂⊃∪∩√]/g, c => ops[c] || c);
+
+      // 6. 其他残留中文（不在括号里的）→ 用 \text{...} 包起来
+      //    保守策略：找连续 CJK 片段包成 \text{}
+      eq = eq.replace(/[\u4e00-\u9fff]+/g, (m) => '\\text{' + m + '}');
+
+      // 7. 清理多余空白
+      eq = eq.replace(/\s+/g, ' ').trim();
+
+      return eq;
+    }
+
     const FAMILY_CN = {
       'ODE1_linear': '线性增长',
       'ODE1_exponential_growth': '指数增长',
@@ -584,7 +635,8 @@
             ${s.canonical_equation ? `
               <div class="snapshot-section">
                 <div class="snapshot-section__label">对应方程</div>
-                <div class="snapshot-eq">$$${escapeHtml(s.canonical_equation)}$$</div>
+                <div class="snapshot-eq">$$${normalizeEquation(s.canonical_equation)}$$</div>
+                <div style="margin-top: 6px; font-size: 11px; color: var(--text-dim); font-family: var(--mono);">原始: ${escapeHtml(s.canonical_equation)}</div>
               </div>
             ` : ''}
 

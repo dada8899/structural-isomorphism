@@ -110,9 +110,9 @@ Add 2 个 related identifier：
 一键替换：
 ```bash
 cd ~/Projects/structural-isomorphism
-grep -rl "10.5281/zenodo.PLACEHOLDER" v4/seedbank-sibd63/
+grep -rl "10.5281/zenodo.19615170" v4/seedbank-sibd63/
 # 然后逐个 sed 替换：
-sed -i '' 's|10.5281/zenodo.PLACEHOLDER|10.5281/zenodo.1234567|g' v4/seedbank-sibd63/*.md v4/seedbank-sibd63/*.json v4/seedbank-sibd63/*.cff
+sed -i '' 's|10.5281/zenodo.19615170|10.5281/zenodo.1234567|g' v4/seedbank-sibd63/*.md v4/seedbank-sibd63/*.json v4/seedbank-sibd63/*.cff
 ```
 
 然后 git commit 一下："replace Zenodo DOI placeholder with real DOI"。

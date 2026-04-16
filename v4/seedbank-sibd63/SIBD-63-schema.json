@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://doi.org/10.5281/zenodo.PLACEHOLDER/SIBD-63-schema.json",
+  "$id": "https://doi.org/10.5281/zenodo.19615170/SIBD-63-schema.json",
   "title": "SIBD-63 Seed Record Schema",
   "description": "Each line in SIBD-63.jsonl encodes a single A-level cross-domain structural isomorphism discovery.",
   "type": "object",
