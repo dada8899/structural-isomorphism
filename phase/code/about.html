@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>关于 — Phase Detector</title>
+  <meta name="description" content="Phase Detector 的原理、做法、已验证的事、未来可能性。这是一个实验性产品。">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
+      --accent-dim: rgba(37, 99, 235, 0.08);
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
+      --mono: 'JetBrains Mono', 'Menlo', monospace;
+      --serif: 'Noto Serif SC', 'Times New Roman', serif;
+      --sans: 'Inter', -apple-system, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15.5px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: sticky; top: 0;
+      background: rgba(250, 250, 249, 0.88);
+      backdrop-filter: saturate(180%) blur(12px);
+      z-index: 100;
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; position: relative; }
+    .brand-mark::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+    .brand-beta { font-size: 10px; padding: 2px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 3px; font-weight: 600; }
+    nav.menu a { margin-left: 20px; font-size: 14px; color: var(--text-muted); }
+    nav.menu a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 48px 0 100px; }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 42px);
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-family: var(--serif);
+      font-size: 24px;
+      font-weight: 600;
+      margin: 48px 0 16px;
+      color: var(--text);
+      letter-spacing: -0.005em;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 36px; }
+    h3 {
+      font-family: var(--sans);
+      font-size: 17px;
+      font-weight: 600;
+      margin: 24px 0 10px;
+      color: var(--text);
+    }
+    p { margin: 12px 0; color: var(--text-secondary); }
+    strong { color: var(--text); font-weight: 600; }
+    ul, ol { margin: 12px 0 12px 22px; color: var(--text-secondary); }
+    li { margin: 6px 0; }
+    code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--bg-card);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--text);
+    }
+
+    .banner-warn {
+      margin: 0 0 40px;
+      padding: 18px 22px;
+      background: #FFFBEB;
+      border: 1px solid rgba(217, 119, 6, 0.30);
+      border-left: 4px solid var(--amber);
+      border-radius: 0 8px 8px 0;
+      font-size: 14.5px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .banner-warn strong { color: var(--amber); }
+
+    .lede {
+      font-size: 17px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin: 20px 0 40px;
+    }
+
+    .box {
+      padding: 20px 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+
+    .check-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0;
+    }
+    .check-list li {
+      padding: 10px 14px;
+      margin: 6px 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: start;
+    }
+    .check-list li .mark { flex: 0 0 auto; width: 20px; font-weight: 700; }
+    .check-list li.done .mark { color: var(--green); }
+    .check-list li.miss .mark { color: var(--red); }
+    .check-list li.partial .mark { color: var(--amber); }
+
+    .contact-box {
+      margin: 36px 0 0;
+      padding: 28px 30px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+    }
+    .contact-box p { color: var(--text); margin: 6px 0; }
+    .contact-box a { font-weight: 500; }
+
+    .disclaimer {
+      margin-top: 48px;
+      padding: 22px 26px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .quote-block {
+      margin: 18px 0;
+      padding: 14px 20px;
+      border-left: 3px solid var(--accent);
+      background: var(--bg-elevated);
+      border-radius: 0 6px 6px 0;
+      font-family: var(--serif);
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text);
+      font-style: italic;
+    }
+
+    footer.site { padding: 40px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
+    .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+    .footer-links a { color: var(--text-muted); margin-left: 16px; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container nav">
+      <a href="/phase" class="brand">
+        <span class="brand-mark"></span>
+        Phase Detector
+        <span class="brand-beta">BETA</span>
+      </a>
+      <nav class="menu">
+        <a href="/phase/screener">筛选器</a>
+        <a href="/phase/timeline">相位演变</a>
+        <a href="/phase/analogy">类比引擎</a>
+        <a href="/phase/about">关于</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <div class="hero-eyebrow">ABOUT PHASE DETECTOR</div>
+      <h1>一个关于「用数学结构看公司」的实验</h1>
+
+      <div class="banner-warn">
+        <strong>⚠️ 先说清楚：这是一个实验性产品</strong><br>
+        我一个人（个人项目，非商业实体）做的。数据由 LLM 生成，可能不准；覆盖面有限（目前 204 家公司）；<strong>不构成任何投资建议</strong>。你看到的每一份分析都应该作为「多一个思考视角」，不是决策依据。如果你看到 Phase Detector 说某家公司像 1998 年的 Cisco，请自己去验证这个类比成不成立，不要直接拿来做投资。
+      </div>
+
+      <p class="lede">
+        Phase Detector 在问一个简单的问题：<strong>如果我们不看市盈率、不看股息率、不看分析师评级，而是用物理学、生物学、生态学里研究了一百年的经典动力学方程来描述公司，会看到什么？</strong>
+      </p>
+
+      <h2>一、为什么做这个</h2>
+
+      <p>
+        这是 <a href="/">Structural 学术版</a> 的延伸。学术版在做一件事：在不同领域（物理、生物、经济、社会）里找「数学结构相同」的现象——比如传染病传播、技术扩散、金融泡沫、社会运动，表面完全不同，但底层方程是同一个 SIR 模型的变体。
+      </p>
+
+      <p>
+        商业版把这个思路落在单一领域：<strong>公司</strong>。如果不同学科的现象在数学结构上是同构的，那同一套方程也应该能描述公司的动力学。
+      </p>
+
+      <div class="quote-block">
+        Netflix 的订户增长和兔子种群生长有什么关系？—— 数学上是同一个方程（Verhulst 逻辑斯蒂模型）。
+      </div>
+
+      <h2>二、核心原理（大白话）</h2>
+
+      <h3>第一步：把每家公司分类到一个「动力学家族」</h3>
+      <p>
+        用 LLM + 结构化 prompt，给 204 家上市公司打标签，从 24 种经典动力学方程里选一个最匹配的：
+      </p>
+      <ul>
+        <li><code>ODE1_logistic</code>（S 曲线饱和）—— Netflix / Shopify / 拼多多这种"从爆发到饱和"的公司</li>
+        <li><code>ODE1_exponential_growth</code>（指数增长飞轮）—— NVIDIA / Broadcom 这种当前正反馈飞轮未见顶的</li>
+        <li><code>Bistable_switch</code>（双稳态切换）—— Tesla 这种在 niche 和主流之间翻转的</li>
+        <li><code>Fold_bifurcation</code>（鞍结跳变）—— Peloton 这种经历不可逆崩塌的</li>
+        <li><code>Phase_transition_2nd</code>（二阶相变，临界放缓）—— Meta / Snap 这种接近拐点的</li>
+        <li>... 还有 19 个家族</li>
+      </ul>
+
+      <h3>第二步：判断公司当前处于什么「相位状态」</h3>
+      <p>
+        7 个 canonical phase：<code>growth_phase / stable / saturated / approaching_critical / post_transition / unstable / contracting</code>。每种对应不同的投资逻辑。
+      </p>
+
+      <h3>第三步：找出可观测的「临界点」</h3>
+      <p>
+        每家公司配 2-5 个 critical points——不是"市场情绪变化"这种虚的，而是"月活跌破 X 亿"、"ARPU 增速首次超过订户增速"这种具体可查的。
+      </p>
+
+      <h3>第四步：把"像不像"变成可检索</h3>
+      <p>
+        有了结构标签之后，"Tesla 现在像 1998 年的 Apple"不再是一句文艺话，而是一个可以通过结构匹配回答的具体问题。<a href="/phase/analogy">类比引擎</a>就是干这个的。
+      </p>
+
+      <h2>三、已经验证过的事（包括失败）</h2>
+
+      <ul class="check-list">
+        <li class="done">
+          <span class="mark">✓</span>
+          <div><strong>LLM 能做出一致的结构分类</strong>：204 家公司的 <code>dynamics_family</code> 标签，用同样的 prompt 多跑几次，结果稳定。分布也合理（不会 80% 都是 ODE1_saturating 这种退化情况）。</div>
+        </li>
+        <li class="done">
+          <span class="mark">✓</span>
+          <div><strong>10 份样例深度报告可用</strong>：用 Verhulst / SIR / Gause / Ising 等经典模型分析 Netflix / NVIDIA / Tesla / 拼多多等公司，每份 1500-2500 字。数据真实、论证成立。</div>
+        </li>
+        <li class="done">
+          <span class="mark">✓</span>
+          <div><strong>类比引擎给出有历史依据的类比</strong>：Netflix → Comcast 2002 / Sirius 2007 / Tencent Music 2018；Tesla → Apple 2006 / BlackBerry 2009 / Boeing 2011。类比基于真实数据，不是 LLM 瞎编。</div>
+        </li>
+        <li class="partial">
+          <span class="mark">⚠</span>
+          <div><strong>相位演变时间线仅覆盖 20 家</strong>：NFLX / NVDA / TSLA / PTON / BYD / SHOP / 美团 / SNOW / 理想 / Apple / Amazon / Meta / Google / Microsoft / Intel / 茅台 / 腾讯 / ASML / BABA / PDD。每家 3-4 个历史节点。LLM 生成的年份和数字可能有偏差，需自行校对。</div>
+        </li>
+        <li class="miss">
+          <span class="mark">✗</span>
+          <div><strong>PELT 结构拐点检测不 work</strong>：我做过一次 POC，对 25 家公司跑 PELT 算法自动找历史结构断点。54% 对应真实 regime 变化，但去掉宏观事件后真信号只剩 12%——<strong>说明"每周扫全市场找结构拐点"这条路 ROI 太低</strong>。所以最终选择了「类比引擎 + 时间线」的方向：不预测，只展示。</div>
+        </li>
+        <li class="miss">
+          <span class="mark">✗</span>
+          <div><strong>量化信号回测没做</strong>：没有"用 Phase Detector 的分类选股，夏普比多少"这种证明。目前的价值是「分析视角」，不是「量化工具」。</div>
+        </li>
+        <li class="miss">
+          <span class="mark">✗</span>
+          <div><strong>没有真实用户反馈</strong>：0 用户，所有改进都基于我自己的判断。这是目前最大的风险——可能整个方向是自嗨。</div>
+        </li>
+      </ul>
+
+      <h2>四、未来可能的场景（没承诺会做）</h2>
+
+      <p>
+        如果有人真的用起来了（或者我自己继续折腾），下面这些是可能的方向：
+      </p>
+
+      <ol>
+        <li>
+          <strong>组合画像</strong>：上传持仓 → 看组合的结构分布。"你 80% 在 positive_loop 公司，0% 在防御型"——机构会愿意付钱的视角。
+        </li>
+        <li>
+          <strong>公司对比</strong>：选两家直接对比它们的 structural 异同、共同类比、对立预测。
+        </li>
+        <li>
+          <strong>周度 digest 邮件</strong>：每周给订阅者一份"本周结构有变化的公司 + 历史类比 + 启示"。
+        </li>
+        <li>
+          <strong>扩到 500+ 家</strong>：现在 204 家覆盖有限。如果信号有效，扩面值得做。
+        </li>
+        <li>
+          <strong>分享卡 + 永久 URL</strong>：每份类比分析能生成漂亮的分享卡，发到 Twitter / 小红书有传播效果。
+        </li>
+        <li>
+          <strong>时间维度深化</strong>：每家公司不只看"现在"，看它 15 年走过哪几个阶段、每次切换的触发条件——<a href="/phase/timeline">相位演变时间线</a>已经是第一步，未来可扩到 50-100 家。
+        </li>
+      </ol>
+
+      <p>
+        这些都<strong>可能做</strong>，也可能都不做。取决于用户反馈和我个人的时间/兴趣。
+      </p>
+
+      <h2>五、技术上用了什么</h2>
+
+      <ul>
+        <li><strong>数据层</strong>：204 家公司的 struct tuples（手工定义 schema + LLM 批量生成 + 人工校对）</li>
+        <li><strong>分析层</strong>：OpenRouter 接 Claude Sonnet 4.5（深度分析）+ Kimi K2 / Grok-4-fast（快速检索）</li>
+        <li><strong>前端</strong>：纯静态 HTML + vanilla JS + KaTeX（公式）+ marked.js（Markdown）</li>
+        <li><strong>后端</strong>：FastAPI + httpx（async streaming）</li>
+        <li><strong>所有内容</strong>：开源（<a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a>）</li>
+      </ul>
+
+      <h2>六、想交流 / 合作 / 讨论</h2>
+
+      <div class="contact-box">
+        <p><strong>联系方式：wanqinghui@gmail.com</strong></p>
+        <p>欢迎：</p>
+        <ul style="margin-top: 6px;">
+          <li>找到 LLM 编错的事实、错配的类比 —— 特别感谢</li>
+          <li>你是买方 / 独立分析师 / 财经博主 —— 愿意聊你平时怎么看公司</li>
+          <li>你想在这个框架上做点事（研究 / 内容 / 工具）</li>
+          <li>你有类似的思路，想交换视角</li>
+        </ul>
+        <p style="margin-top: 10px;">我一般 24 小时内回。</p>
+      </div>
+
+      <div class="disclaimer">
+        <strong>免责声明</strong>：Phase Detector 生成的所有内容均为基于公开数据的结构化分析实验，<strong>不构成投资建议、财务建议或任何形式的专业建议</strong>。结构模型的预测是数学推演的结果，不应作为买卖决策的依据。LLM 生成内容可能包含事实错误、过时信息或虚构细节。所有数字和类比请自行独立验证。任何投资决策应由你自己做出，并咨询合格的金融顾问。
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site">
+    <div class="container footer-row">
+      <div>© 2026 Phase Detector · 实验性产品 · Part of Structural Isomorphism</div>
+      <div class="footer-links">
+        <a href="/phase">首页</a>
+        <a href="/phase/about">关于</a>
+        <a href="mailto:wanqinghui@gmail.com">联系</a>
+        <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </footer>
+  <script src="/assets/js/product-switcher.js?v=20260416a"></script>
+</body>
+</html>
