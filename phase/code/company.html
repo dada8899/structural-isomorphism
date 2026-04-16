@@ -697,9 +697,10 @@
           </button>
         </section>
 
-        <div class="cta-row">
+        <div class="cta-row" style="gap: 10px; flex-wrap: wrap;">
           <a href="/phase/screener" class="btn btn-ghost">← 回到筛选器</a>
-          <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary btn-next">接下来：把你的 Thesis 粘进红队，让 Sonnet 找出最脆弱的假设 →</a>
+          <a href="/phase/analogy?t=${encodeURIComponent(c.ticker)}" class="btn btn-secondary">🕰️ 找历史结构类比</a>
+          <a href="/phase/redteam?t=${encodeURIComponent(c.ticker)}" class="btn btn-primary btn-next" style="flex: none;">🎯 Thesis 红队 →</a>
         </div>
       `;
 

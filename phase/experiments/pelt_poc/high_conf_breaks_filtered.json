@@ -1,0 +1,448 @@
+[
+  {
+    "ticker": "AAPL",
+    "name": "苹果",
+    "family": "ODE1_saturating",
+    "date": "2016-06-30",
+    "avg_score": 3.4491914951051905,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.014254007677732439,
+    "return_after": 0.12467891781556939,
+    "regime_change": "无明显变化",
+    "macro_event": "英国脱欧公投",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "MSFT",
+    "name": "微软",
+    "family": "ODE1_linear",
+    "date": "2016-06-30",
+    "avg_score": 4.027738941259573,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.005601707239182074,
+    "return_after": 0.14113157775837193,
+    "regime_change": "无明显变化",
+    "macro_event": "英国脱欧公投",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "MSFT",
+    "name": "微软",
+    "family": "ODE1_linear",
+    "date": "2021-11-30",
+    "avg_score": 3.3648921783520738,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.166537109905615,
+    "return_after": -0.0675457862007609,
+    "regime_change": "趋势反转",
+    "macro_event": "Fed 加息预期升温 + 成长股崩",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "GOOGL",
+    "name": "谷歌",
+    "family": "ODE1_saturating",
+    "date": "2023-02-28",
+    "avg_score": 4.260060957675807,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.018587779996767084,
+    "return_after": 0.1918718833767823,
+    "regime_change": "趋势加速",
+    "macro_event": "硅谷银行危机",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "META",
+    "name": "Meta",
+    "family": "Phase_transition_2nd",
+    "date": "2014-03-31",
+    "avg_score": 5.549525659063772,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.017517944297004595,
+    "return_after": 0.05959486991719798,
+    "regime_change": "无明显变化",
+    "macro_event": null,
+    "is_real_signal": false
+  },
+  {
+    "ticker": "META",
+    "name": "Meta",
+    "family": "Phase_transition_2nd",
+    "date": "2022-02-28",
+    "avg_score": 6.044151735732055,
+    "n_signals": 3,
+    "signals": [
+      "sharpe",
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.38877912871120524,
+    "return_after": -0.025114961852821804,
+    "regime_change": "趋势减速",
+    "macro_event": "Fed tightening + 俄乌战争预期",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "META",
+    "name": "Meta",
+    "family": "Phase_transition_2nd",
+    "date": "2023-04-01",
+    "avg_score": 8.997924629893436,
+    "n_signals": 3,
+    "signals": [
+      "sharpe",
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.42270262223722965,
+    "return_after": 0.23208351046515263,
+    "regime_change": "趋势减速",
+    "macro_event": "硅谷银行危机",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "NVDA",
+    "name": "NVIDIA",
+    "family": "ODE1_exponential_growth",
+    "date": "2015-08-31",
+    "avg_score": 5.656950667579377,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.11780737409890785,
+    "return_after": 0.23131685101754518,
+    "regime_change": "无明显变化",
+    "macro_event": "中国股灾 + 人民币贬值",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "NFLX",
+    "name": "Netflix",
+    "family": "ODE1_saturating",
+    "date": "2021-11-30",
+    "avg_score": 4.595504027945121,
+    "n_signals": 3,
+    "signals": [
+      "sharpe",
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.08267151875348522,
+    "return_after": -0.4012151524832912,
+    "regime_change": "趋势反转",
+    "macro_event": "Fed 加息预期升温 + 成长股崩",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "NFLX",
+    "name": "Netflix",
+    "family": "ODE1_saturating",
+    "date": "2023-02-28",
+    "avg_score": 5.338957614060488,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.09546257633711841,
+    "return_after": 0.024213787880671855,
+    "regime_change": "无明显变化",
+    "macro_event": "硅谷银行危机",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "PTON",
+    "name": "Peloton",
+    "family": "Fold_bifurcation",
+    "date": "2021-06-01",
+    "avg_score": 5.848581264993083,
+    "n_signals": 3,
+    "signals": [
+      "sharpe",
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.011183438093850251,
+    "return_after": 0.08412162469880724,
+    "regime_change": "无明显变化",
+    "macro_event": null,
+    "is_real_signal": false
+  },
+  {
+    "ticker": "SHOP",
+    "name": "Shopify",
+    "family": "ODE1_logistic",
+    "date": "2021-09-01",
+    "avg_score": 6.845886072001486,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "yoy"
+    ],
+    "return_before": -0.008614896990793208,
+    "return_after": -0.04697761403789158,
+    "regime_change": "无明显变化",
+    "macro_event": null,
+    "is_real_signal": false
+  },
+  {
+    "ticker": "SHOP",
+    "name": "Shopify",
+    "family": "ODE1_logistic",
+    "date": "2023-01-31",
+    "avg_score": 6.279755268210122,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.09591261313752986,
+    "return_after": -0.026994150978237208,
+    "regime_change": "趋势反转",
+    "macro_event": "硅谷银行危机",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "CMG",
+    "name": "Chipotle",
+    "family": "ODE1_logistic",
+    "date": "2025-03-01",
+    "avg_score": 4.182568814112953,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.10497509281006734,
+    "return_after": -0.06773422015738484,
+    "regime_change": "波动率突增",
+    "macro_event": null,
+    "is_real_signal": true
+  },
+  {
+    "ticker": "BYND",
+    "name": "Beyond Meat",
+    "family": "Fold_bifurcation",
+    "date": "2021-07-01",
+    "avg_score": 6.009058316224522,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "yoy"
+    ],
+    "return_before": 0.24596521829091778,
+    "return_after": -0.2058304749493659,
+    "regime_change": "趋势反转",
+    "macro_event": null,
+    "is_real_signal": true
+  },
+  {
+    "ticker": "JPM",
+    "name": "摩根大通",
+    "family": "ODE1_linear",
+    "date": "2020-03-31",
+    "avg_score": 5.596897200257608,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.293593305032109,
+    "return_after": 0.09209368625427028,
+    "regime_change": "趋势反转",
+    "macro_event": "COVID crash",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "V",
+    "name": "Visa",
+    "family": "ODE1_linear",
+    "date": "2018-02-28",
+    "avg_score": 4.344847373070648,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": 0.079248898570073,
+    "return_after": 0.024971639019591096,
+    "regime_change": "无明显变化",
+    "macro_event": "美股 volmageddon",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "XOM",
+    "name": "埃克森美孚",
+    "family": "ODE2_damped_oscillation",
+    "date": "2020-03-31",
+    "avg_score": 6.83240208532583,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.3876630062933961,
+    "return_after": 0.22074373489347776,
+    "regime_change": "趋势反转",
+    "macro_event": "COVID crash",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "XOM",
+    "name": "埃克森美孚",
+    "family": "ODE2_damped_oscillation",
+    "date": "2021-01-01",
+    "avg_score": 8.628918928725174,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.24196820287395715,
+    "return_after": 0.3821159354361665,
+    "regime_change": "无明显变化",
+    "macro_event": null,
+    "is_real_signal": false
+  },
+  {
+    "ticker": "CVX",
+    "name": "雪佛龙",
+    "family": "ODE2_damped_oscillation",
+    "date": "2020-03-31",
+    "avg_score": 6.929320520735448,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.32059963146529724,
+    "return_after": 0.2841046611207987,
+    "regime_change": "趋势反转",
+    "macro_event": "COVID crash",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "CVX",
+    "name": "雪佛龙",
+    "family": "ODE2_damped_oscillation",
+    "date": "2021-01-01",
+    "avg_score": 9.024168478450813,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.18770092555487294,
+    "return_after": 0.2217270496393735,
+    "regime_change": "无明显变化",
+    "macro_event": null,
+    "is_real_signal": false
+  },
+  {
+    "ticker": "FCX",
+    "name": "自由港麦克莫兰",
+    "family": "ODE2_damped_oscillation",
+    "date": "2014-10-31",
+    "avg_score": 6.0488019562363435,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": -0.20075750605299125,
+    "return_after": -0.183859590001607,
+    "regime_change": "波动率突增",
+    "macro_event": null,
+    "is_real_signal": true
+  },
+  {
+    "ticker": "FCX",
+    "name": "自由港麦克莫兰",
+    "family": "ODE2_damped_oscillation",
+    "date": "2020-03-31",
+    "avg_score": 4.389814470143614,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": -0.4378376735676378,
+    "return_after": 0.3437035374305455,
+    "regime_change": "趋势反转",
+    "macro_event": "COVID crash",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "IBM",
+    "name": "IBM",
+    "family": "ODE1_linear",
+    "date": "2023-12-01",
+    "avg_score": 5.945505288856504,
+    "n_signals": 2,
+    "signals": [
+      "vol",
+      "yoy"
+    ],
+    "return_before": 0.1389079927425403,
+    "return_after": 0.16561835683809578,
+    "regime_change": "波动率突增",
+    "macro_event": "AI 行情启动 + Fed 停止加息",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "SNAP",
+    "name": "Snap",
+    "family": "Phase_transition_2nd",
+    "date": "2021-11-01",
+    "avg_score": 6.7699755792715095,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "yoy"
+    ],
+    "return_before": -0.2886904338000351,
+    "return_after": -0.11022602470168441,
+    "regime_change": "趋势减速",
+    "macro_event": "Fed 加息预期升温 + 成长股崩",
+    "is_real_signal": false
+  },
+  {
+    "ticker": "GME",
+    "name": "GameStop",
+    "family": "Self_fulfilling_prophecy",
+    "date": "2020-03-31",
+    "avg_score": 5.804407968175731,
+    "n_signals": 2,
+    "signals": [
+      "sharpe",
+      "vol"
+    ],
+    "return_before": -0.04947912058560078,
+    "return_after": 0.15999998365129753,
+    "regime_change": "趋势反转",
+    "macro_event": "COVID crash",
+    "is_real_signal": false
+  }
+]
