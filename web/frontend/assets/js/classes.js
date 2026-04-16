@@ -204,35 +204,32 @@ function renderPredictions(preds) {
     .join("");
 }
 
-function renderCard(cls) {
-  const uncurated = !cls.is_curated;
+function buildBadges(cls) {
   const isLlm = cls.curation_source === "llm";
-  const badges = [];
-  badges.push(
+  const out = [
     `<span class="uc-badge uc-badge--size">${cls.size} 成员</span>`,
-    `<span class="uc-badge uc-badge--domain">${cls.n_domains} 领域</span>`
-  );
+    `<span class="uc-badge uc-badge--domain">${cls.n_domains} 领域</span>`,
+  ];
   if (cls.avg_edge_score) {
-    badges.push(`<span class="uc-badge uc-badge--score">avg ${cls.avg_edge_score.toFixed(2)}</span>`);
+    out.push(`<span class="uc-badge uc-badge--score">avg ${cls.avg_edge_score.toFixed(2)}</span>`);
   }
   if (cls.taxonomy_match === "soc_threshold_cascade") {
-    badges.push(`<span class="uc-badge uc-badge--soc">SOC</span>`);
+    out.push(`<span class="uc-badge uc-badge--soc">SOC</span>`);
   }
   if (isLlm) {
     const confLabel = cls.confidence === "high" ? "高置信" :
                       cls.confidence === "medium" ? "中置信" : "低置信";
     const confCls = cls.confidence === "high" ? "llm-high" :
                     cls.confidence === "medium" ? "llm-med" : "llm-low";
-    badges.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
+    out.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
   }
+  return out;
+}
 
-  // Compact preview (always visible) — just the 2-line summary
-  const previewParts = [];
-  if (cls.summary_zh) {
-    previewParts.push(`<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>`);
-  }
-
-  // Count of extended content to show hint
+// Compact preview card — clickable, navigates to detail view
+function renderPreviewCard(cls) {
+  const uncurated = !cls.is_curated;
+  const badges = buildBadges(cls);
   const extendedCounts = [];
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     extendedCounts.push(`${cls.shared_equations_raw.length} 方程`);
@@ -243,68 +240,14 @@ function renderCard(cls) {
   if (cls.predictions && cls.predictions.length) {
     extendedCounts.push(`${cls.predictions.length} 预测`);
   }
-
-  // Expandable sections — physics_prototype moves here
-  const sections = [];
-
-  if (cls.physics_prototype) {
-    sections.push(`
-      <div class="uc-card__section">
-        <h3 class="uc-card__section-title">物理学原型</h3>
-        <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
-      </div>
-    `);
-  }
-
-  if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
-    sections.push(`
-      <div class="uc-card__section">
-        <h3 class="uc-card__section-title">共享方程（V3 自带，跨 pair 聚合）</h3>
-        ${renderEquations(cls.shared_equations_raw)}
-      </div>
-    `);
-  }
-
-  if (cls.invariants && cls.invariants.length) {
-    sections.push(`
-      <div class="uc-card__section">
-        <h3 class="uc-card__section-title">共享不变量</h3>
-        ${renderInvariants(cls.invariants)}
-      </div>
-    `);
-  }
-
-  sections.push(`
-    <div class="uc-card__section">
-      <h3 class="uc-card__section-title">成员（按领域分组，★ 为 hub）</h3>
-      ${renderMembers(cls.members_by_domain, cls.hub_name)}
-    </div>
-  `);
-
-  if (cls.predictions && cls.predictions.length) {
-    sections.push(`
-      <div class="uc-card__section">
-        <h3 class="uc-card__section-title">可验证预测</h3>
-        ${renderPredictions(cls.predictions)}
-      </div>
-    `);
-  }
-
-  if (isLlm && cls.notes) {
-    sections.push(`
-      <div class="uc-card__section uc-card__section--note">
-        <h3 class="uc-card__section-title">LLM 批注</h3>
-        <p class="uc-note">${escapeHtml(cls.notes)}</p>
-      </div>
-    `);
-  }
-
   const hintRow = extendedCounts.length
-    ? `<div class="uc-card__more-hint">${extendedCounts.join(' · ')}</div>`
+    ? `<span class="uc-card__more-hint">${extendedCounts.join(' · ')}</span>`
     : '';
 
   return `
-    <article class="uc-card${uncurated ? " uc-card--uncurated" : ""}" data-expanded="false">
+    <a class="uc-card uc-card--preview${uncurated ? " uc-card--uncurated" : ""}"
+       href="/classes?id=${encodeURIComponent(cls.class_id)}"
+       data-class-id="${escapeHtml(cls.class_id)}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
           <h2 class="uc-card__title">${escapeHtml(cls.name_zh || "(未命名)")}</h2>
@@ -316,64 +259,100 @@ function renderCard(cls) {
         <span class="uc-card__hub-label">Hub</span>
         <span class="uc-card__hub-name">${escapeHtml(cls.hub_name || "—")}</span>
       </div>
-      ${previewParts.join("")}
-      <div class="uc-card__expandable" hidden>
-        ${sections.join("")}
-      </div>
-      <button type="button" class="uc-card__toggle" aria-expanded="false">
-        <span class="uc-card__toggle-text">展开详情</span>
+      ${cls.summary_zh ? `<p class="uc-card__summary">${escapeHtml(cls.summary_zh)}</p>` : ''}
+      <div class="uc-card__footer">
         ${hintRow}
-        <svg class="uc-card__toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
-    </article>
+        <span class="uc-card__cta">查看详情 →</span>
+      </div>
+    </a>
   `;
 }
 
-function bindCardToggles(host) {
-  host.querySelectorAll('.uc-card__toggle').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const card = btn.closest('.uc-card');
-      if (!card) return;
-      const expandable = card.querySelector('.uc-card__expandable');
-      const expanded = card.dataset.expanded === 'true';
-      card.dataset.expanded = expanded ? 'false' : 'true';
-      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-      btn.querySelector('.uc-card__toggle-text').textContent = expanded ? '展开详情' : '收起';
-      if (expandable) {
-        if (expanded) expandable.setAttribute('hidden', '');
-        else expandable.removeAttribute('hidden');
-      }
-      // Render KaTeX only on first expand (guard against re-render)
-      if (!expanded && window.renderMathInElement && card.dataset.katexRendered !== 'true') {
-        try {
-          window.renderMathInElement(card, {
-            delimiters: [
-              { left: "$$", right: "$$", display: true },
-              { left: "$", right: "$", display: false },
-              { left: "\\[", right: "\\]", display: true },
-              { left: "\\(", right: "\\)", display: false },
-            ],
-            throwOnError: false,
-          });
-          card.dataset.katexRendered = 'true';
-        } catch (_) {}
-      }
-    });
-  });
-}
-
-function renderList(list) {
-  const host = document.getElementById("uc-list");
+function renderDetail(cls) {
+  const host = document.getElementById("uc-view-detail");
   if (!host) return;
-  if (!list || !list.length) {
-    host.innerHTML = `<p style="color:#777;padding:40px 0;text-align:center;">没有匹配的等价类。</p>`;
-    return;
+
+  const badges = buildBadges(cls);
+  const sections = [];
+
+  if (cls.physics_prototype) {
+    sections.push(`
+      <section class="uc-detail__section">
+        <h3 class="uc-detail__section-title">物理学原型</h3>
+        <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
+      </section>
+    `);
   }
-  host.innerHTML = list.map(renderCard).join("");
-  bindCardToggles(host);
+  if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
+    sections.push(`
+      <section class="uc-detail__section">
+        <h3 class="uc-detail__section-title">共享方程</h3>
+        <p class="uc-detail__section-sub">V3 抽取的 TeX-ish 方程，跨 pair 聚合。</p>
+        ${renderEquations(cls.shared_equations_raw)}
+      </section>
+    `);
+  }
+  if (cls.invariants && cls.invariants.length) {
+    sections.push(`
+      <section class="uc-detail__section">
+        <h3 class="uc-detail__section-title">共享不变量</h3>
+        ${renderInvariants(cls.invariants)}
+      </section>
+    `);
+  }
+  sections.push(`
+    <section class="uc-detail__section">
+      <h3 class="uc-detail__section-title">成员（按领域分组，★ 为 hub）</h3>
+      ${renderMembers(cls.members_by_domain, cls.hub_name)}
+    </section>
+  `);
+  if (cls.predictions && cls.predictions.length) {
+    sections.push(`
+      <section class="uc-detail__section">
+        <h3 class="uc-detail__section-title">可验证预测</h3>
+        ${renderPredictions(cls.predictions)}
+      </section>
+    `);
+  }
+  if (cls.curation_source === "llm" && cls.notes) {
+    sections.push(`
+      <section class="uc-detail__section uc-detail__section--note">
+        <h3 class="uc-detail__section-title">LLM 批注</h3>
+        <p class="uc-note">${escapeHtml(cls.notes)}</p>
+      </section>
+    `);
+  }
+
+  host.innerHTML = `
+    <nav class="uc-detail__breadcrumb">
+      <a href="/classes" data-back-link>← 返回普适类列表</a>
+    </nav>
+
+    <header class="uc-detail__head">
+      <div class="uc-detail__titles">
+        <h1 class="uc-detail__title">${escapeHtml(cls.name_zh || "(未命名)")}</h1>
+        ${cls.name_en ? `<p class="uc-detail__subtitle">${escapeHtml(cls.name_en)}</p>` : ""}
+      </div>
+      <div class="uc-detail__badges">${badges.join("")}</div>
+    </header>
+
+    <div class="uc-detail__hub">
+      <span class="uc-detail__hub-label">Hub 节点</span>
+      <span class="uc-detail__hub-name">${escapeHtml(cls.hub_name || "—")}</span>
+    </div>
+
+    ${cls.summary_zh ? `<p class="uc-detail__lede">${escapeHtml(cls.summary_zh)}</p>` : ''}
+
+    <div class="uc-detail__body">
+      ${sections.join("")}
+    </div>
+
+    <footer class="uc-detail__footer">
+      <a href="/classes" data-back-link class="uc-detail__back-btn">← 返回普适类列表</a>
+    </footer>
+  `;
+
+  // KaTeX render
   if (window.renderMathInElement) {
     try {
       window.renderMathInElement(host, {
@@ -385,10 +364,85 @@ function renderList(list) {
         ],
         throwOnError: false,
       });
-    } catch (e) {
-      console.warn("KaTeX render failed", e);
+    } catch (_) {}
+  }
+
+  // Intercept back-links for SPA navigation
+  host.querySelectorAll('[data-back-link]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(null);
+    });
+  });
+}
+
+function renderList(list) {
+  const host = document.getElementById("uc-list");
+  if (!host) return;
+  if (!list || !list.length) {
+    host.innerHTML = `<p style="color:#777;padding:40px 0;text-align:center;">没有匹配的等价类。</p>`;
+    return;
+  }
+  host.innerHTML = list.map(renderPreviewCard).join("");
+
+  // Intercept card clicks for SPA nav
+  host.querySelectorAll('.uc-card--preview').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      // Allow cmd/ctrl click to open in new tab
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      const id = card.dataset.classId;
+      if (id) navigate(id);
+    });
+  });
+}
+
+function showView(which) {
+  const list = document.getElementById("uc-view-list");
+  const detail = document.getElementById("uc-view-detail");
+  const footnote = document.getElementById("uc-footnote");
+  if (which === 'detail') {
+    if (list) list.setAttribute('hidden', '');
+    if (detail) detail.removeAttribute('hidden');
+    if (footnote) footnote.setAttribute('hidden', '');
+  } else {
+    if (list) list.removeAttribute('hidden');
+    if (detail) detail.setAttribute('hidden', '');
+    if (footnote) footnote.removeAttribute('hidden');
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function navigate(classId, replace) {
+  if (classId) {
+    const cls = allClasses.find((c) => c.class_id === classId);
+    if (!cls) return;
+    renderDetail(cls);
+    showView('detail');
+    const url = `/classes?id=${encodeURIComponent(classId)}`;
+    if (replace) history.replaceState({ classId }, '', url);
+    else history.pushState({ classId }, '', url);
+    document.title = `${cls.name_zh} — 普适类 · Structural`;
+  } else {
+    showView('list');
+    history.pushState({}, '', '/classes');
+    document.title = '普适类 — Structural';
+  }
+}
+
+function handlePopState() {
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (id) {
+    const cls = allClasses.find((c) => c.class_id === id);
+    if (cls) {
+      renderDetail(cls);
+      showView('detail');
+      document.title = `${cls.name_zh} — 普适类 · Structural`;
+      return;
     }
   }
+  showView('list');
+  document.title = '普适类 — Structural';
 }
 
 function applyFilter(filter) {
@@ -426,6 +480,19 @@ async function init() {
     bindFilter();
     updateFilterCounts();
     applyFilter("manual");
+
+    // Routing: if URL has ?id=..., show detail directly
+    const initialId = new URLSearchParams(window.location.search).get('id');
+    if (initialId) {
+      const cls = allClasses.find((c) => c.class_id === initialId);
+      if (cls) {
+        renderDetail(cls);
+        showView('detail');
+        document.title = `${cls.name_zh} — 普适类 · Structural`;
+        history.replaceState({ classId: initialId }, '', window.location.pathname + window.location.search);
+      }
+    }
+    window.addEventListener('popstate', handlePopState);
   } catch (e) {
     console.error(e);
     const host = document.getElementById("uc-list");
