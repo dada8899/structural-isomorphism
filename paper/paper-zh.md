@@ -369,7 +369,52 @@ V3 在论文级密度上实现 3.4 倍提升，在 5 分密度上实现 2.9 倍�
 
 DeFi $\leftrightarrow$ 地震这对发现代表了 V3 浮现出的一个更大的洞察：**DeFi 协议是传统金融传染理论的高分辨率实验台**。银行挤兑、保证金螺旋、流动性危机过去只能通过粗糙、滞后的宏观经济数据观测；而链上 DeFi 市场以区块级的分辨率暴露了同样的动力学，使长期被提出的理论模型（Diamond-Dybvig、Hawkes 过程、源于地震学的 Omori-Utsu 余震律）第一次具备了经验可检验性。这一研究方向未被 V1 或 V2 浮现，恰好说明了有些发现必须借助显式的结构对齐而非嵌入相似度才能被看见。
 
-抽取出的全部 StructTuple、1,000 条结构化候选、203 组论文级重排结果以及 54 份深度分析简报与 V2 产物一同发布（见第 9 节）。
+抽取出的全部 StructTuple、1,000 条结构化候选、203 组论文级重排结果以及 54 份深度分析简报与 V2 产物一同发布（见 §8.5）。
+
+***REMOVED******REMOVED******REMOVED*** 6.6 V4：从 63 个离散候选到普适类聚合
+
+§6.5 的结果暴露了一个更深层的结构：在 63 个 tier-1 发现里，许多**同时满足 $A \cong B$ 与 $A \cong C$** 的情况并非偶然——它们是同一个更底层的数学物理规律在不同领域的显式化。例如地震应力触发、DeFi 清算瀑布、银行挤兑、闪崩流动性螺旋、电网连锁故障、社会级联、供应链崩溃等现象，两两之间都被 V1–V3 识别为同构，但其共享的底层结构实际上是 **自组织临界（SOC）的分支过程族**。离散发现无法自然地表达这种"结构家族"。
+
+V4（Universality Class Engine）的任务是将离散的 A≅B 对聚合为**等价类（universality classes）**。它分五层：
+
+- **Layer 1 · 图建模与别名归并**：把 SIBD-63 建成无向图（节点=领域现象，边=LLM 重排确认的同构对），对语义近似的节点做白名单合并（`node_aliases.json`）。
+- **Layer 2 · 连通分量 + Louvain 社区检测**：在主连通分量上运行 Louvain 模块度最大化，得到 23 个 candidate universality classes。
+- **Layer 3 · LLM 精编**：每个 candidate 由 Opus/Kimi 做二次审核，标注 `class_name`（如 "Branching-process SOC"、"Diamond-Dybvig self-fulfilling runs"）、`core_equation`（如 $P(s)\propto s^{-\tau}$、$\gamma=(\alpha-1)/(\tau-1)$）、`hub_domain` 与典型指数范围。最终 8 个类为人工精选（provenance=`curated`），15 个为 LLM 辅助（`llm_assisted`）。
+- **Layer 4 · 可证伪预测**：每个类提炼 1–5 条"如果该普适类成立，则某个分布或指数必须落在某个窄带内"的 falsifiable prediction，合计 24 条。预测均为可直接与公开数据对比的数值断言（如 "Gutenberg–Richter b ∈ [0.95, 1.15]"、"SOC event-size exponent $\tau \in [1.45, 1.7]$"）。
+- **Layer 5 · 实证验证**：对 Layer 4 产出的预测中最可操作的一类（SOC）走完整个"数据获取 → 分布拟合 → 假设检验 → 论文"流程，详见 §6.7。
+
+V4 并不是新的检索管线——它是 V1–V3 的下游聚合器。其价值在于把"离散的 63 个跨域类比"升级为"23 个可带可证伪预测的结构家族"，并为 Layer 5 的实证工作提供可直接落地的 hypotheses。
+
+***REMOVED******REMOVED******REMOVED*** 6.7 Layer 5：SOC 普适类的跨域实证验证
+
+我们选择 SOC 作为首个实证目标，原因是其理论最成熟：平均场分支过程 SOC 预言 event-size 分布为无截断幂律，$\tau \approx 1.5$；energy 指数 $\alpha \approx 2.0$；lifetime 指数 $\gamma \approx 2.0$；三者通过标度关系 $\gamma=(\alpha-1)/(\tau-1)$ 相互约束。我们在 **五个相互独立的领域** 使用同一套 Clauset–Shalizi–Newman (2009) power-law 拟合管线与 distribution_compare 对比（vs. lognormal / exponential / truncated power-law）进行验证：
+
+| 领域 | 数据源 | 样本 | 关键数字 | 结论 |
+|------|--------|-----:|----------|------|
+| 地震 | USGS 全球地震目录 | 84k events | $b$-value = 1.084，Omori $p$ = 0.941，$\tau \approx 1.67$ | ✅ 与离散阈值 SOC 吻合 |
+| 股市 | S&P 500 日收益 | 20k days | $\alpha \approx 3.00$，$p$ = 0.29 (日尺度文献带 [0.3, 0.6]) | ✅ 连续扩散 SOC 亚类 |
+| DeFi 清算级联 | Aave V2 + Compound V2 + MakerDAO 事件日志 | 43,065 events | per-protocol $\alpha$ = 1.57–1.68，跨协议一致 | ✅ 离散阈值 SOC，与地震同亚类 |
+| 神经雪崩 | DANDI 000006 小鼠皮层 NWB | 54 sessions | $\tau, \gamma$ 落在 task-state 亚临界区间 | ⚠️ 部分符合（Priesemann 2014 预言的 task-state shift） |
+| Null controls | 合成 Poisson + Gaussian 流 | 20k samples | **无法拟合出幂律** | ✅ 阴性对照 |
+
+三点实证发现值得单独强调：
+
+1. **SOC 的亚类结构**：DeFi + 地震聚在 $\alpha \in [1.57, 1.68]$（离散阈值型——事件是否触发由阈值跨越决定），S&P 500 聚在 $\alpha \approx 3.0$（连续扩散型——价格变动由连续随机游走生成）。这不是拟合误差，而是两种物理机制的指纹。
+2. **DeFi 三协议的普适性**：Aave V2、Compound V2 与 MakerDAO 的清算机制在工程上显著不同（Aave 采用健康因子触发、Compound 用利用率、Maker 用 DAI 锚定的稳定费），但三者的清算级联尺寸分布落在同一窄带内。这是跨实现（implementation-level）的涌现普适性，与 SOC 的"细节无关性"预言一致。
+3. **阴性对照有效**：人工合成的 Poisson / Gaussian 流量通过同一管线无法得到幂律拟合（$\hat{\alpha} > 10$ 或 distribution_compare 偏向 lognormal）。这排除了"我们的管线对任何数据都会拟合出幂律"这一方法学质疑。
+
+五个领域的拟合脚本、数据下载脚本、分析结果 JSON 与论文 Markdown 均已开源于 `v4/validation/`；每个领域有一篇 5–8 页的 arXiv-style 配套论文（companion paper），可在 Structural 站的 `/classes` 页面底部打开。
+
+***REMOVED******REMOVED******REMOVED*** 6.8 SIBD-63：释出跨域同构 seed bank
+
+为便于领域专家复用，我们将 63 条 tier-1 发现（V1 的 24 条 + V2 的 19 条 + V3 的 20 条，两两零重叠）打包为独立的学术数据集 **SIBD-63**：
+
+- **内容**：JSONL 格式，每条记录包含 `seed_id`、`a/b_domain`、`a/b_name`、`shared_equation`（V3 专有，20 条）、`variable_mapping`、`isomorphism_depth`（1–5）、`isomorphism_confidence`、`paper_title`、`target_venue`、`literature_status`（未探索 / 部分 / 已有）、`execution_plan`（可直接执行的实证步骤）、`final_score`、`rating`、`full_analysis`。
+- **覆盖面**：48 个领域标签，跨越物理科学（地质、凝聚态、流体、电磁）、生命科学（生态、分子生物、免疫、神经、肿瘤）、社会经济（金融微观结构、宏观经济、行为经济、DeFi）、工程（土木、电力、交通、航空）与新兴交叉方向（合成生物、计算社会科学）。
+- **释出**：CC-BY-4.0，Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170)。
+- **配套 paper**：`v4/seedbank-sibd63/paper.md` 给出完整的抽样协议、领域覆盖统计、质量控制与使用方法。
+
+**SIBD-63 的设计定位是"可执行的研究种子"**：每一条都带 target journal、预估耗时（`time_estimate`）、所需数据源与潜在 blocking mechanisms。领域专家可依据自身专长选对口 seed，在 3–6 个月内完成一篇配套实证 paper，不需要重建整个四代管线——这把"跨域结构发现"与"领域实证写作"在流程上解耦开。SOC 一类已由我们在 Layer 5 完成（见 §6.7），其余 22 类等待合作者领取。
 
 ---
 
@@ -482,12 +527,14 @@ V2 版管线实例化了一种我们称为**科学影子模式**的设计范式�
 
 ***REMOVED******REMOVED******REMOVED*** 8.5 可复现性与发布
 
-V1、V2、V3 的全部产物均已公开发布，足以复现本文结果：
+V1、V2、V3、V4 的全部产物均已公开发布，足以复现本文结果：
 
-- **代码**：GitHub 仓库 `dada8899/structural-isomorphism`，包含完整的 V1/V2/V3 管线、StructTuple 抽取脚本以及 LLM 重排序框架。
-- **数据集与 V2 产物**：Zenodo DOI [`10.5281/zenodo.19547879`](https://doi.org/10.5281/zenodo.19547879)，包含 SIBD、500 现象知识库及 3,017 组 V2 候选。
+- **代码**：GitHub 仓库 `dada8899/structural-isomorphism`，包含完整的 V1/V2/V3 检索管线、V4 普适类聚合脚本、Layer 5 五个实证 pipeline 以及 StructTuple 抽取与 LLM 重排序框架。
+- **SIBD-63 数据集**（新）：Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170)，CC-BY-4.0，63 条 tier-1 跨域同构发现（V1 的 24 条 + V2 的 19 条 + V3 的 20 条，两两零重叠），每条带 shared equation、variable mapping、target journal 与 execution plan。Package 同时包含 schema、companion paper 与 build 脚本。
 - **训练模型**：Hugging Face 模型仓库 `qinghuiwan/structural-isomorphism-v2-expanded`，即微调后的 110M 参数中文句子编码器。
-- **V3 产物**：2,625 条可匹配 StructTuple、1,000 条结构化候选、203 组论文级重排结果以及 54 份深度分析简报，与 V2 产物一并发布于 Zenodo。
+- **V3 产物**：2,625 条可匹配 StructTuple、1,000 条结构化候选、203 组论文级重排结果以及 54 份深度分析简报，随 SIBD-63 发布于同一 Zenodo record。
+- **Layer 5 实证数据与论文**：五个 SOC 验证领域（地震 / S&P 500 / DeFi cross-protocol / 神经雪崩 / null controls）的获取脚本、拟合脚本、结果 JSON 与 5 篇 arXiv-style 配套论文 Markdown，全部开源于 `v4/validation/`；可在 `beta.structural.bytedance.city/classes` 页面底部直接阅读。
+- **Live site**：`structural.bytedance.city`（论文与文档）、`beta.structural.bytedance.city`（可交互的检索引擎 + /classes + /discoveries + /paper/{slug}）。
 
 ---
 
@@ -503,7 +550,13 @@ V1、V2、V3 的全部产物均已公开发布，足以复现本文结果：
 
 4. **V3 管线**：以 StructTuple 结构化表示加 LLM 配对重排序取代嵌入余弦相似度，规模化至 4,443 个现象，在论文级候选密度上实现 3.4 倍提升（20.3% vs. 6%），浮现出与前两条管线**完全不重叠**的 54 项可执行发现，其中尤为关键的是将链上 DeFi 市场识别为传统金融传染理论的高分辨率实验台。
 
-5. **批判性分析**：三组反向实验确立了框架约 60% 的覆盖率，识别了六种阻断机制，并验证了评分的区分能力（随机配对 1.27 vs. 创新案例 4.5）。
+5. **V4 普适类引擎**：将 V1–V3 产出的 63 条离散发现聚合为 23 个 candidate universality classes（8 个人工精选 + 15 个 LLM 辅助），并为每类提炼出 24 条 falsifiable 数值预测。首次把"跨域同构发现"从 A≅B 配对升级为"结构家族"的可证伪陈述（详见 §6.6）。
+
+6. **Layer 5 实证验证**：对其中最成熟的 SOC 普适类在五个相互独立的领域（地震、S&P 500、DeFi 跨协议、神经雪崩、合成 null controls）完成端到端验证，结果既支持 SOC 的核心预言，也分辨出"离散阈值型"（$\alpha \approx 1.6$）与"连续扩散型"（$\alpha \approx 3.0$）两种亚类，并通过 null control 排除了方法学伪阳性（详见 §6.7）。
+
+7. **SIBD-63 seed bank**：将 63 条 tier-1 发现打包为带执行计划的独立数据集，以 CC-BY-4.0 + Zenodo DOI [`10.5281/zenodo.19615170`](https://doi.org/10.5281/zenodo.19615170) 释出，允许领域专家对口选种并在 3–6 个月内完成配套实证 paper。这把"跨域结构发现"与"领域实证写作"两步在流程上解耦。
+
+8. **批判性分析**：三组反向实验确立了框架约 60% 的覆盖率，识别了六种阻断机制，并验证了评分的区分能力（随机配对 1.27 vs. 创新案例 4.5）。
 
 我们强调，该框架是一个**工具**，而非一个"万物理论"。它不能解释偶然发现、纯形式数学推导或不可还原的直觉飞跃。它所做的，是系统性地浮现一种特定类型的联系——**高语义距离、高结构相似度**——而这恰恰是大量历史性突破的特征，也是最容易被囿于学科壁垒的领域专家所遗漏的联系类型。
 
