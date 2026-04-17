@@ -22,12 +22,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417c">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417c">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260417c">
-  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260417c">
-  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260417c">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417c">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417e">
 
   <!-- KaTeX for math rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
@@ -64,33 +64,33 @@
   <main class="analyze-page">
     <div class="analyze-container">
       <nav class="analyze-crumb">
-        <a href="/">首页</a>
+        <a href="/" data-i18n="page.analyze.crumb_home">首页</a>
         <span class="analyze-crumb__sep">/</span>
-        <a href="javascript:history.back()">返回</a>
+        <a href="javascript:history.back()" data-i18n="page.analyze.crumb_back">返回</a>
         <span class="analyze-crumb__sep">/</span>
-        <span>深度分析</span>
+        <span data-i18n="page.analyze.crumb_current">深度分析</span>
         <div class="analyze-actions">
-          <button type="button" class="analyze-action-btn analyze-action-btn--brief" id="analyze-brief-btn" aria-label="复制为简报">
+          <button type="button" class="analyze-action-btn analyze-action-btn--brief" id="analyze-brief-btn" data-i18n-attr="aria-label:page.analyze.btn_brief_aria" aria-label="复制为简报">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
               <line x1="9" y1="15" x2="15" y2="15"/>
               <line x1="9" y1="11" x2="15" y2="11"/>
             </svg>
-            <span>复制为简报</span>
+            <span data-i18n="page.analyze.btn_brief">复制为简报</span>
           </button>
-          <button type="button" class="analyze-action-btn analyze-action-btn--share" id="analyze-share-btn" aria-label="分享这份报告">
+          <button type="button" class="analyze-action-btn analyze-action-btn--share" id="analyze-share-btn" data-i18n-attr="aria-label:page.analyze.btn_share_aria" aria-label="分享这份报告">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="18" cy="5" r="3"/>
               <circle cx="6" cy="12" r="3"/>
               <circle cx="18" cy="19" r="3"/>
               <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
             </svg>
-            <span>分享</span>
+            <span data-i18n="page.analyze.btn_share">分享</span>
           </button>
-          <button type="button" class="analyze-action-btn analyze-action-btn--fav" id="analyze-fav-btn" aria-label="收藏这份报告" aria-pressed="false">
+          <button type="button" class="analyze-action-btn analyze-action-btn--fav" id="analyze-fav-btn" data-i18n-attr="aria-label:page.analyze.btn_fav_aria" aria-label="收藏这份报告" aria-pressed="false">
             <span class="analyze-action-btn__star" id="analyze-fav-icon">☆</span>
-            <span id="analyze-fav-label">收藏</span>
+            <span id="analyze-fav-label" data-i18n="page.analyze.btn_fav">收藏</span>
           </button>
         </div>
       </nav>
@@ -101,7 +101,7 @@
           <span class="analyze-loading__dot"></span>
           <span class="analyze-loading__dot"></span>
         </div>
-        <h2 class="analyze-loading__title">正在生成深度分析报告</h2>
+        <h2 class="analyze-loading__title" data-i18n="page.analyze.loading_title">正在生成深度分析报告</h2>
         <p class="analyze-loading__hint">我们正在写一份跨学科迁移研究报告。</p>
         <div class="analyze-loading__timer-row">
           <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
@@ -128,10 +128,10 @@
     </div>
   </footer>
 
-  <script src="/assets/js/i18n.js?v=20260417c"></script>
-  <script src="/assets/js/utils.js?v=20260417c"></script>
-  <script src="/assets/js/api.js?v=20260417c"></script>
-  <script src="/assets/js/analyze.js?v=20260417c"></script>
-  <script src="/assets/js/product-switcher.js?v=20260417c"></script>
+  <script src="/assets/js/i18n.js?v=20260417e"></script>
+  <script src="/assets/js/utils.js?v=20260417e"></script>
+  <script src="/assets/js/api.js?v=20260417e"></script>
+  <script src="/assets/js/analyze.js?v=20260417e"></script>
+  <script src="/assets/js/product-switcher.js?v=20260417e"></script>
 </body>
 </html>

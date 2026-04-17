@@ -526,7 +526,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
           {"type": "error", "message": "..."}
         """
         if not self.api_key:
-            yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity)}
+            yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity, lang=lang)}
             return
 
         prompt = build_deep_analysis_prompt(a, b, similarity, user_query, lang=lang)
@@ -602,7 +602,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 
                     if final_report is None:
                         logger.error(f"JSON repair failed. Head: {accumulated[:300]}")
-                        final_report = self._fallback_deep_report(a, b, similarity)
+                        final_report = self._fallback_deep_report(a, b, similarity, lang=lang)
                     else:
                         ***REMOVED*** Emit any remaining sections that weren't caught during streaming
                         ***REMOVED*** (e.g., the very last one if the parser was more conservative)
@@ -619,15 +619,39 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         except Exception as e:
             logger.error(f"Deep analysis stream failed: {e}")
             yield {"type": "error", "message": str(e)}
-            yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity)}
+            yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity, lang=lang)}
 
-    def _fallback_deep_report(self, a: Dict, b: Dict, similarity: float) -> Dict:
-        """降级：返回一个空结构的报告，让前端不崩溃。"""
+    ***REMOVED*** Sentinel strings used to detect a fallback report in downstream cache
+    ***REMOVED*** logic. Keep them in sync with `_fallback_deep_report`.
+    FALLBACK_STRUCTURE_NAME_ZH = "结构分析暂不可用"
+    FALLBACK_STRUCTURE_NAME_EN = "Structural analysis unavailable"
+
+    def _fallback_deep_report(self, a: Dict, b: Dict, similarity: float, lang: str = "zh") -> Dict:
+        """降级：返回一个空结构的报告，让前端不崩溃。
+
+        When lang=="en", returns English fallback strings so an EN request
+        that hits the fallback path doesn't leak Chinese text into the UI.
+        Field keys are unchanged; only the user-visible string values differ.
+        """
+        lang_norm = (lang or "zh").lower()
+        if lang_norm == "en":
+            name = self.FALLBACK_STRUCTURE_NAME_EN
+            intuition = (
+                f"The embedding similarity between the two phenomena is "
+                f"{similarity:.2f}. A detailed analysis could not be "
+                f"generated right now; please try again shortly."
+            )
+        else:
+            name = self.FALLBACK_STRUCTURE_NAME_ZH
+            intuition = (
+                f"两个现象的嵌入相似度为 {similarity:.2f}。"
+                f"详细分析暂时无法生成，请稍后重试。"
+            )
         return {
             "shared_structure": {
-                "name": "结构分析暂不可用",
+                "name": name,
                 "formal_expression": "",
-                "intuition": f"两个现象的嵌入相似度为 {similarity:.2f}。详细分析暂时无法生成，请稍后重试。",
+                "intuition": intuition,
             },
             "your_problem_breakdown": {
                 "summary": "",

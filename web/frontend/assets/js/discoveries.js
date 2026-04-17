@@ -395,7 +395,7 @@ function renderTier2List(listEl) {
             <span class="disc-t2-item__name">${escapeHtml(L(d, "b_name"))}</span>
           </div>
         </div>
-        ${d.reason ? `<p class="disc-t2-item__reason">${escapeHtml(d.reason)}</p>` : ''}
+        ${L(d, "reason") ? `<p class="disc-t2-item__reason">${escapeHtml(L(d, "reason"))}</p>` : ''}
       </div>
       <div class="disc-t2-item__aside">
         <div class="disc-t2-item__sim">

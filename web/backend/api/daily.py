@@ -58,12 +58,22 @@ def _load_discoveries():
 
 
 @router.get("/daily")
-async def daily_discoveries():
+async def daily_discoveries(lang: str = "zh"):
     from main import app_state
 
     discoveries = _load_discoveries()
     if not discoveries:
         return {"date": str(date.today()), "discoveries": []}
+
+    use_en = lang == "en"
+
+    def tr(item, key):
+        """Pick *_en when lang=en and available, else base."""
+        if use_en:
+            en = item.get(key + "_en")
+            if en:
+                return en
+        return item.get(key, "")
 
     svc = app_state.get("search")
 
@@ -98,17 +108,17 @@ async def daily_discoveries():
         picks.append({
             "a": {
                 "id": a_id,
-                "name": d.get("a_name") or (a_full or {}).get("name", ""),
-                "domain": d.get("a_domain") or (a_full or {}).get("domain", ""),
+                "name": tr(d, "a_name") or (a_full or {}).get("name", ""),
+                "domain": tr(d, "a_domain") or (a_full or {}).get("domain", ""),
                 "type_id": d.get("a_type_id") or (a_full or {}).get("type_id", ""),
-                "description": d.get("a_description") or (a_full or {}).get("description", ""),
+                "description": tr(d, "a_description") or (a_full or {}).get("description", ""),
             },
             "b": {
                 "id": b_id,
-                "name": d.get("b_name") or (b_full or {}).get("name", ""),
-                "domain": d.get("b_domain") or (b_full or {}).get("domain", ""),
+                "name": tr(d, "b_name") or (b_full or {}).get("name", ""),
+                "domain": tr(d, "b_domain") or (b_full or {}).get("domain", ""),
                 "type_id": d.get("b_type_id") or (b_full or {}).get("type_id", ""),
-                "description": d.get("b_description") or (b_full or {}).get("description", ""),
+                "description": tr(d, "b_description") or (b_full or {}).get("description", ""),
             },
             "similarity": round(float(sim), 4),
         })
