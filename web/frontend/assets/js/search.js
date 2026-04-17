@@ -1,11 +1,12 @@
+function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
 
 // Score display helper: map fused score [0, 1.1] to a tier label + percentage.
 // Treats <0.3 as weak, 0.3-0.6 as medium, >=0.6 as strong.
 function scoreTier(score) {
   const s = typeof score === 'number' ? score : 0;
-  if (s >= 0.6) return { pct: Math.round(Math.min(s, 1) * 100), label: '强相似', cls: 'score--strong' };
-  if (s >= 0.3) return { pct: Math.round(Math.min(s, 1) * 100), label: '中等相似', cls: 'score--medium' };
-  return { pct: Math.round(Math.min(s, 1) * 100), label: '弱相关', cls: 'score--weak' };
+  if (s >= 0.6) return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_strong', '强相似'), cls: 'score--strong' };
+  if (s >= 0.3) return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_medium', '中等相似'), cls: 'score--medium' };
+  return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_weak', '弱相关'), cls: 'score--weak' };
 }
 
 /**
@@ -44,12 +45,14 @@ let _phaseIntervalId = null;
 
 // Phase labels rotated based on elapsed seconds — gives the user a sense of
 // progress instead of a single static "loading" message.
-const SYNTH_PHASES = [
-  { until: 4, text: '正在理解你的问题' },
-  { until: 9, text: '正在挑选最相关的证据' },
-  { until: 16, text: '正在组织答案' },
-  { until: 999, text: '马上就好' },
-];
+function getSynthPhases() {
+  return [
+    { until: 4, text: T('page.search.phase_understanding', '正在理解你的问题') },
+    { until: 9, text: T('page.search.phase_picking', '正在挑选最相关的证据') },
+    { until: 16, text: T('page.search.phase_organizing', '正在组织答案') },
+    { until: 999, text: T('page.search.phase_almost', '马上就好') },
+  ];
+}
 
 function renderQuestionHeader(query, data) {
   const container = $('#search-summary');
@@ -58,7 +61,7 @@ function renderQuestionHeader(query, data) {
   if (data.count === 0) {
     container.innerHTML = `
       <div class="search-question">
-        <div class="search-question__label">你的问题</div>
+        <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
         <div class="search-question__text">${escapeHtml(query)}</div>
       </div>
     `;
@@ -69,24 +72,24 @@ function renderQuestionHeader(query, data) {
 
   container.innerHTML = `
     <div class="search-question">
-      <button type="button" class="search-question__edit-btn" id="search-edit-btn" aria-label="编辑这个问题">
+      <button type="button" class="search-question__edit-btn" id="search-edit-btn" aria-label="${T('page.search.edit_this_question', '编辑这个问题')}">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        编辑
+        ${T('page.search.edit', '编辑')}
       </button>
-      <div class="search-question__label">你的问题</div>
+      <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
       <div class="search-question__text">${escapeHtml(query)}</div>
       ${rewritten && rewritten !== query ? `
         <div class="search-question__rewrite">
-          已改写为研究问题：<em>${escapeHtml(rewritten)}</em>
+          ${T('page.search.rewritten_as', '已改写为研究问题：')}<em>${escapeHtml(rewritten)}</em>
         </div>
       ` : ''}
     </div>
     <div class="search-synth search-synth--loading" id="search-synth">
       <div class="search-synth__loading">
         <div class="search-synth__dots"><span></span><span></span><span></span></div>
-        <span class="search-synth__phase-text" id="search-synth-phase">正在理解你的问题</span>
-        <span class="elapsed-timer" id="search-synth-timer">已等待 0s</span>
-        <span class="search-synth__typical">${data.count} 个候选 · 通常 8–15s</span>
+        <span class="search-synth__phase-text" id="search-synth-phase">${T('page.search.phase_understanding', '正在理解你的问题')}</span>
+        <span class="elapsed-timer" id="search-synth-timer">${T('page.search.elapsed_start', '已等待 0s')}</span>
+        <span class="search-synth__typical">${data.count} ${T('page.search.candidates_typical', '个候选 · 通常 8–15s')}</span>
       </div>
     </div>
   `;
@@ -109,7 +112,8 @@ function renderQuestionHeader(query, data) {
       return;
     }
     const elapsed = (Date.now() - phaseStart) / 1000;
-    const phase = SYNTH_PHASES.find(p => elapsed < p.until) || SYNTH_PHASES[SYNTH_PHASES.length - 1];
+    const phases = getSynthPhases();
+    const phase = phases.find(p => elapsed < p.until) || phases[phases.length - 1];
     if (phaseEl.textContent !== phase.text) phaseEl.textContent = phase.text;
   };
   tickPhase();
@@ -127,13 +131,13 @@ function enterEditMode(currentQuery) {
   const card = document.querySelector('.search-question');
   if (!card) return;
   card.innerHTML = `
-    <div class="search-question__label">编辑你的问题</div>
+    <div class="search-question__label">${T('page.search.edit_your_question', '编辑你的问题')}</div>
     <textarea class="search-question__editor" rows="3">${escapeHtml(currentQuery)}</textarea>
     <div class="search-question__edit-actions">
-      <button type="button" class="btn btn--ghost btn--sm" id="search-edit-cancel">取消</button>
-      <button type="button" class="btn btn--primary btn--sm" id="search-edit-submit">再问一次</button>
+      <button type="button" class="btn btn--ghost btn--sm" id="search-edit-cancel">${T('page.search.cancel', '取消')}</button>
+      <button type="button" class="btn btn--primary btn--sm" id="search-edit-submit">${T('page.search.ask_again', '再问一次')}</button>
     </div>
-    <div class="search-question__edit-hint"><kbd>⌘</kbd> + <kbd>Enter</kbd> 提交</div>
+    <div class="search-question__edit-hint"><kbd>⌘</kbd> + <kbd>Enter</kbd> ${T('page.search.submit_hint', '提交')}</div>
   `;
   const ta = card.querySelector('textarea');
   if (ta) {
@@ -152,7 +156,9 @@ function enterEditMode(currentQuery) {
   document.getElementById('search-edit-submit')?.addEventListener('click', () => {
     const newQ = (ta?.value || '').trim();
     if (!newQ) return;
-    window.location.href = `/search?q=${encodeURIComponent(newQ)}`;
+    const lang = (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'zh';
+    const langSuffix = lang === 'en' ? '&lang=en' : '';
+    window.location.href = `/search?q=${encodeURIComponent(newQ)}${langSuffix}`;
   });
 }
 
@@ -175,11 +181,11 @@ function renderSynthBlock(synth) {
   container.classList.remove('search-synth--loading');
   container.innerHTML = `
     <div class="search-synth__content">
-      <div class="search-synth__label">主洞察 · AI 合成</div>
+      <div class="search-synth__label">${T('page.search.main_insight_label', '主洞察 · AI 合成')}</div>
       <div class="search-synth__insight">${toParagraphs(synth.main_insight)}</div>
       ${synth.why_these_matter ? `
         <div class="search-synth__why">
-          <span class="search-synth__why-tag">为什么这有用</span>
+          <span class="search-synth__why-tag">${T('page.search.why_useful', '为什么这有用')}</span>
           <div class="search-synth__why-text">${toParagraphs(synth.why_these_matter)}</div>
         </div>
       ` : ''}
@@ -210,14 +216,11 @@ function renderResults(query, data) {
         <svg class="search-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6" opacity="0.3"/>
         </svg>
-        <h2 class="search-empty__title">没有找到足够相似的现象</h2>
-        <p class="search-empty__text">
-          知识库暂时没有结构相似的匹配。<br>
-          试着描述现象本身的<strong>行为模式</strong>，而不是问题或结论。
-        </p>
+        <h2 class="search-empty__title">${T('page.search.empty_title', '没有找到足够相似的现象')}</h2>
+        <p class="search-empty__text">${T('page.search.empty_text', '知识库暂时没有结构相似的匹配。<br>试着描述现象本身的<strong>行为模式</strong>，而不是问题或结论。')}</p>
         <div class="search-empty__actions">
-          <a href="/" class="btn btn--primary">返回首页</a>
-          <a href="/about" class="btn btn--ghost">了解 Structural</a>
+          <a href="/" class="btn btn--primary">${T('page.search.back_home', '返回首页')}</a>
+          <a href="/about" class="btn btn--ghost">${T('page.search.learn_structural', '了解 Structural')}</a>
         </div>
       </div>
     `;
@@ -230,7 +233,7 @@ function renderResults(query, data) {
   container.innerHTML = `
     <div class="search-page__results">
       <div class="rec-placeholder rec-placeholder--quiet">
-        <span class="rec-placeholder__text">推荐和证据将在合成完成后展开...</span>
+        <span class="rec-placeholder__text">${T('page.search.rec_placeholder', '推荐和证据将在合成完成后展开...')}</span>
       </div>
     </div>
   `;
@@ -263,7 +266,7 @@ function renderV2PairsForTop() {
         <div class="v2-phenom-block__title">
           <span class="v2-phenom-block__name">${escapeHtml(group.phenomenon_name || '')}</span>
           <span class="v2-phenom-block__domain">（${escapeHtml(group.phenomenon_domain || '')}）</span>
-          <span class="v2-phenom-block__linker">还连接到</span>
+          <span class="v2-phenom-block__linker">${T('page.search.v2_also_connects', '还连接到')}</span>
         </div>
         <div class="v2-pair-grid">${cards}</div>
       </div>
@@ -275,9 +278,9 @@ function renderV2PairsForTop() {
   return `
     <section class="v2-pairs-section">
       <div class="v2-pairs-section__header">
-        <div class="v2-pairs-section__label">V2 模型识别的跨域对</div>
-        <h3 class="v2-pairs-section__title">V2 还看到了这些联系</h3>
-        <p class="v2-pairs-section__sub">V2 管道独立筛选过的跨学科同构对，不在向量检索流里。点击查看深度分析。</p>
+        <div class="v2-pairs-section__label">${T('page.search.v2_pairs_label', 'V2 模型识别的跨域对')}</div>
+        <h3 class="v2-pairs-section__title">${T('page.search.v2_pairs_title', 'V2 还看到了这些联系')}</h3>
+        <p class="v2-pairs-section__sub">${T('page.search.v2_pairs_sub', 'V2 管道独立筛选过的跨学科同构对，不在向量检索流里。点击查看深度分析。')}</p>
       </div>
       ${blocks}
     </section>
@@ -309,7 +312,7 @@ function renderResultsWithSynth() {
     container.innerHTML = `
       <div class="search-page__results">
         <div class="search-page__results-title">
-          <span>跨领域证据 · ${results.length} 个候选</span>
+          <span>${T('page.search.candidates_title', '跨领域证据')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         </div>
         <div class="result-list">
           ${results.map(r => `
@@ -318,7 +321,7 @@ function renderResultsWithSynth() {
                 <div class="result-card__meta">
                   <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
                   <span class="result-card__meta-dot"></span>
-                  <span class="result-card__meta-type">结构 ${escapeHtml(r.type_id)}</span>
+                  <span class="result-card__meta-type">${T('page.search.structure_prefix', '结构')} ${escapeHtml(r.type_id)}</span>
                 </div>
                 <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
                 <p class="result-card__description">${escapeHtml(r.description)}</p>
@@ -352,7 +355,7 @@ function renderResultsWithSynth() {
       <section class="rec-primary" style="animation: fadeInUp 500ms var(--ease-out-expo) both">
         <div class="rec-primary__label">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          <span>推荐先看这一个</span>
+          <span>${T('page.search.primary_rec_label', '推荐先看这一个')}</span>
         </div>
         <a href="/analyze?id=${encodeURIComponent(pr.id)}&q=${encodeURIComponent(query)}" class="rec-primary__card">
           <div class="rec-primary__body">
@@ -364,21 +367,21 @@ function renderResultsWithSynth() {
 
             ${primary.reason ? `
               <div class="rec-primary__block">
-                <div class="rec-primary__block-label">为什么首推</div>
+                <div class="rec-primary__block-label">${T('page.search.primary_why', '为什么首推')}</div>
                 <div class="rec-primary__block-text">${window.mdInline(primary.reason)}</div>
               </div>
             ` : ''}
 
             ${primary.what_youll_learn ? `
               <div class="rec-primary__block rec-primary__block--takeaway">
-                <div class="rec-primary__block-label">你会得到</div>
+                <div class="rec-primary__block-label">${T('page.search.primary_takeaway', '你会得到')}</div>
                 <div class="rec-primary__block-text">${window.mdInline(primary.what_youll_learn)}</div>
               </div>
             ` : ''}
           </div>
 
           <div class="rec-primary__cta">
-            <span>立即深度分析</span>
+            <span>${T('page.search.primary_cta', '立即深度分析')}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </div>
         </a>
@@ -394,12 +397,12 @@ function renderResultsWithSynth() {
       if (!r) return '';
       return `
         <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
-          <div class="rec-alt__angle">${escapeHtml(alt.angle_label || '补充视角')}</div>
+          <div class="rec-alt__angle">${escapeHtml(alt.angle_label || T('page.search.alt_angle_default', '补充视角'))}</div>
           <h4 class="rec-alt__name">${escapeHtml(r.name)}</h4>
           <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}%</div>
           ${alt.reason ? `<p class="rec-alt__reason">${window.mdInline(alt.reason)}</p>` : ''}
           <div class="rec-alt__cta">
-            深度分析
+            ${T('page.search.deep_analysis', '深度分析')}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </div>
         </a>
@@ -409,7 +412,7 @@ function renderResultsWithSynth() {
     if (altCards) {
       altHtml = `
         <section class="rec-alts">
-          <div class="rec-alts__label">补充视角 — 从不同角度看你的问题</div>
+          <div class="rec-alts__label">${T('page.search.alt_angles_label', '补充视角 — 从不同角度看你的问题')}</div>
           <div class="rec-alts__grid">${altCards}</div>
         </section>
       `;
@@ -422,7 +425,7 @@ function renderResultsWithSynth() {
     othersHtml = `
       <section class="rec-others">
         <button type="button" class="rec-others__toggle" id="rec-others-toggle">
-          <span>其他 ${others.length} 个候选证据</span>
+          <span>${T('page.search.others_prefix', '其他')} ${others.length} ${T('page.search.others_suffix', '个候选证据')}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="rec-others__list" id="rec-others-list" hidden>
@@ -480,15 +483,15 @@ function renderResultsWithSynth() {
 function renderError(err) {
   const container = $('#search-results');
   if (!container) return;
-  const detail = escapeHtml(err && (err.message || String(err)) || '未知错误');
+  const detail = escapeHtml(err && (err.message || String(err)) || T('page.search.unknown_error', '未知错误'));
   container.innerHTML = `
     <div class="search-error">
-      <h2 class="search-error__title">搜索失败</h2>
-      <p class="search-error__text">可能是网络问题或服务暂时不可用。</p>
+      <h2 class="search-error__title">${T('page.search.error_title', '搜索失败')}</h2>
+      <p class="search-error__text">${T('page.search.error_text', '可能是网络问题或服务暂时不可用。')}</p>
       <p class="search-error__detail" style="color: var(--text-tertiary); font-size: var(--fs-12); margin-top: 4px;">${detail}</p>
       <div class="search-error__actions" style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-        <button type="button" class="btn btn--primary" id="search-retry-btn">重试</button>
-        <a href="/" class="btn btn--ghost">换个说法</a>
+        <button type="button" class="btn btn--primary" id="search-retry-btn">${T('page.search.retry', '重试')}</button>
+        <a href="/" class="btn btn--ghost">${T('page.search.rephrase', '换个说法')}</a>
       </div>
     </div>
   `;
@@ -512,15 +515,15 @@ function maybeRenderAssessmentGate(query, data) {
   if (typeof score !== 'number' || score >= 3) return false;
 
   // Below threshold — show the coaching card instead of results.
-  const coaching = assess.coaching || '这个输入对 Structural 的同构搜索可能不太适合。';
+  const coaching = assess.coaching || T('page.search.assess_coaching_default', '这个输入对 Structural 的同构搜索可能不太适合。');
   const suggestion = assess.rewrite_suggestion;
-  const category = assess.category || '其他';
+  const category = assess.category || T('page.search.assess_category_other', '其他');
 
   const summaryEl = $('#search-summary');
   if (summaryEl) {
     summaryEl.innerHTML = `
       <div class="search-question">
-        <div class="search-question__label">你的问题</div>
+        <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
         <div class="search-question__text">${escapeHtml(query)}</div>
       </div>
     `;
@@ -537,29 +540,29 @@ function maybeRenderAssessmentGate(query, data) {
           <path d="M12 16v-4M12 8h.01"/>
         </svg>
       </div>
-      <div class="assess-gate__category">识别为：${escapeHtml(category)}</div>
-      <h2 class="assess-gate__title">这个问题对 Structural 来说不太典型</h2>
+      <div class="assess-gate__category">${T('page.search.assess_identified_as', '识别为：')}${escapeHtml(category)}</div>
+      <h2 class="assess-gate__title">${T('page.search.assess_title', '这个问题对 Structural 来说不太典型')}</h2>
       <p class="assess-gate__coaching">${escapeHtml(coaching)}</p>
 
       ${suggestion ? `
         <div class="assess-gate__suggestion">
-          <div class="assess-gate__suggestion-label">💡 试着这样改写</div>
+          <div class="assess-gate__suggestion-label">${T('page.search.assess_rewrite_hint', '💡 试着这样改写')}</div>
           <div class="assess-gate__suggestion-text">${escapeHtml(suggestion)}</div>
         </div>
       ` : ''}
 
       <div class="assess-gate__actions">
         ${suggestion ? `
-          <button type="button" class="btn btn--primary" id="assess-use-suggestion">用这个改写</button>
+          <button type="button" class="btn btn--primary" id="assess-use-suggestion">${T('page.search.assess_use_rewrite', '用这个改写')}</button>
         ` : ''}
-        <button type="button" class="btn btn--secondary" id="assess-force-search">还是按原文搜</button>
-        <a href="/" class="btn btn--ghost">返回首页</a>
+        <button type="button" class="btn btn--secondary" id="assess-force-search">${T('page.search.assess_force_search', '还是按原文搜')}</button>
+        <a href="/" class="btn btn--ghost">${T('page.search.back_home', '返回首页')}</a>
       </div>
 
       <details class="assess-gate__why">
-        <summary>为什么 Structural 拦下了这个问题</summary>
-        <p>Structural 是一个跨学科<strong>结构同构</strong>引擎，最擅长的是把"<em>现象级</em>"的问题（比如行为模式、动力学、临界点、趋势变化）映射到其他学科里结构相同的案例。</p>
-        <p>不擅长的：写作请求、元问题（"这个产品怎么用"）、闲聊、纯事实查询、纯个人琐事——这些场景我们没有可借用的"另一个学科里的同构现象"。</p>
+        <summary>${T('page.search.assess_why_summary', '为什么 Structural 拦下了这个问题')}</summary>
+        <p>${T('page.search.assess_why_p1', 'Structural 是一个跨学科<strong>结构同构</strong>引擎，最擅长的是把"<em>现象级</em>"的问题（比如行为模式、动力学、临界点、趋势变化）映射到其他学科里结构相同的案例。')}</p>
+        <p>${T('page.search.assess_why_p2', '不擅长的：写作请求、元问题（"这个产品怎么用"）、闲聊、纯事实查询、纯个人琐事——这些场景我们没有可借用的"另一个学科里的同构现象"。')}</p>
       </details>
     </div>
   `;
@@ -568,7 +571,9 @@ function maybeRenderAssessmentGate(query, data) {
   const useSuggestion = document.getElementById('assess-use-suggestion');
   if (useSuggestion && suggestion) {
     useSuggestion.addEventListener('click', () => {
-      window.location.href = `/search?q=${encodeURIComponent(suggestion)}`;
+      const lang = (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'zh';
+      const langSuffix = lang === 'en' ? '&lang=en' : '';
+      window.location.href = `/search?q=${encodeURIComponent(suggestion)}${langSuffix}`;
     });
   }
   const forceSearch = document.getElementById('assess-force-search');
@@ -708,3 +713,29 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '/';
   }
 });
+
+// Re-render content when language toggles
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try {
+        const q = _lastQuery || getQueryParam('q');
+        if (!q) return;
+        // Re-render all cached results with new language
+        const data = {
+          count: (_lastResults || []).length,
+          results: _lastResults,
+          rewritten_query: null,
+          v2_pairs_for_top: _lastV2PairsForTop,
+        };
+        renderQuestionHeader(q, data);
+        if (_lastSynth) {
+          renderSynthBlock(_lastSynth);
+          renderResultsWithSynth();
+        } else {
+          renderResults(q, data);
+        }
+      } catch (e) { /* ignore */ }
+    });
+  }
+} catch (e) {}

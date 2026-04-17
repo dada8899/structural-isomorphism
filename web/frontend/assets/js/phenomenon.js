@@ -1,3 +1,5 @@
+function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
+
 /**
  * Structural — Phenomenon detail page
  *
@@ -16,6 +18,12 @@ function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+// Cache of the current phenomenon data so we can re-render on language toggle
+let _phData = null;
+let _phId = null;
+let _phPairId = null;
+let _phFromQuery = null;
+
 function renderLoadingHero() {
   const container = $('#ph-content');
   container.innerHTML = `
@@ -33,7 +41,7 @@ function renderHero(p) {
     <div class="ph-hero">
       <div class="ph-hero__meta">
         <span class="ph-hero__meta-domain">${escapeHtml(p.domain)}</span>
-        <span class="ph-hero__meta-type">结构 ${escapeHtml(p.type_id)}</span>
+        <span class="ph-hero__meta-type">${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(p.type_id)}</span>
       </div>
       <h1 class="ph-hero__name">${escapeHtml(p.name)}</h1>
       <p class="ph-hero__description">${escapeHtml(p.description)}</p>
@@ -44,10 +52,10 @@ function renderHero(p) {
 function renderHeroCompact(p) {
   return `
     <div class="ph-hero-compact">
-      <div class="ph-hero-compact__label">关于这个现象</div>
+      <div class="ph-hero-compact__label">${T('page.phenomenon.about_label', '关于这个现象')}</div>
       <div class="ph-hero-compact__meta">
         <span class="ph-hero__meta-domain">${escapeHtml(p.domain)}</span>
-        <span class="ph-hero__meta-type">结构 ${escapeHtml(p.type_id)}</span>
+        <span class="ph-hero__meta-type">${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(p.type_id)}</span>
       </div>
       <h2 class="ph-hero-compact__name">${escapeHtml(p.name)}</h2>
       <p class="ph-hero-compact__description">${escapeHtml(p.description)}</p>
@@ -63,16 +71,16 @@ function renderCrossDomainList(items, currentId) {
     <section class="ph-section">
       <header class="ph-section__header">
         <h2 class="ph-section__title">
-          跨领域的同构现象
+          ${T('page.phenomenon.cross_domain_title', '跨领域的同构现象')}
           <span class="ph-section__badge">${filtered.length}</span>
         </h2>
-        <p class="ph-section__caption">点击任意一个现象，查看它和当前现象的结构映射</p>
+        <p class="ph-section__caption">${T('page.phenomenon.cross_domain_caption', '点击任意一个现象，查看它和当前现象的结构映射')}</p>
       </header>
       <div class="ph-cross">
         ${filtered.map((x, i) => `
           <a class="ph-cross__card" href="/phenomenon/${encodeURIComponent(currentId)}?pair=${encodeURIComponent(x.id)}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 40}ms both">
             <div class="ph-cross__card-main">
-              <span class="ph-cross__card-domain">${escapeHtml(x.domain)} · 结构 ${escapeHtml(x.type_id)}</span>
+              <span class="ph-cross__card-domain">${escapeHtml(x.domain)} · ${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(x.type_id)}</span>
               <h3 class="ph-cross__card-name">${escapeHtml(x.name)}</h3>
               <p class="ph-cross__card-desc">${escapeHtml(x.description)}</p>
             </div>
@@ -97,16 +105,16 @@ function renderMoreAnswers(queryResults, currentId, fromQuery) {
     <section class="ph-section ph-section--primary">
       <header class="ph-section__header">
         <div>
-          <span class="ph-section__eyebrow">继续探索你的问题</span>
-          <h2 class="ph-section__title">你问题的其他答案</h2>
+          <span class="ph-section__eyebrow">${T('page.phenomenon.more_answers_eyebrow', '继续探索你的问题')}</span>
+          <h2 class="ph-section__title">${T('page.phenomenon.more_answers_title', '你问题的其他答案')}</h2>
         </div>
-        <p class="ph-section__caption">和“${escapeHtml(fromQuery)}”结构最相似的其他现象。点进去看它们如何映射到你的问题。</p>
+        <p class="ph-section__caption">${T('page.phenomenon.more_answers_caption_prefix', '和"')}${escapeHtml(fromQuery)}${T('page.phenomenon.more_answers_caption_suffix', '"结构最相似的其他现象。点进去看它们如何映射到你的问题。')}</p>
       </header>
       <div class="ph-cross">
         ${filtered.map((x, i) => `
           <a class="ph-cross__card" href="/phenomenon/${encodeURIComponent(x.id)}?from_query=${encodeURIComponent(fromQuery)}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 40}ms both">
             <div class="ph-cross__card-main">
-              <span class="ph-cross__card-domain">${escapeHtml(x.domain)} · 结构 ${escapeHtml(x.type_id)}</span>
+              <span class="ph-cross__card-domain">${escapeHtml(x.domain)} · ${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(x.type_id)}</span>
               <h3 class="ph-cross__card-name">${escapeHtml(x.name)}</h3>
               <p class="ph-cross__card-desc">${escapeHtml(x.description)}</p>
             </div>
@@ -117,7 +125,7 @@ function renderMoreAnswers(queryResults, currentId, fromQuery) {
       <div class="ph-section__footer">
         <a href="/search?q=${encodeURIComponent(fromQuery)}" class="btn btn--ghost">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          返回所有结果
+          ${T('page.phenomenon.back_all_results', '返回所有结果')}
         </a>
       </div>
     </section>
@@ -127,14 +135,14 @@ function renderMoreAnswers(queryResults, currentId, fromQuery) {
 function renderSameStructure(items, opts = {}) {
   if (!items || items.length === 0) return '';
   const caption = opts.emphasize
-    ? '这些现象共享同一个数学骨架，可相互迁移。'
-    : '共享相同数学结构的其他已知现象';
+    ? T('page.phenomenon.same_structure_caption_emphasize', '这些现象共享同一个数学骨架，可相互迁移。')
+    : T('page.phenomenon.same_structure_caption_default', '共享相同数学结构的其他已知现象');
   return `
     <section class="ph-section ph-section--muted">
       <header class="ph-section__header">
         <div>
-          <span class="ph-section__eyebrow">开阔视野</span>
-          <h2 class="ph-section__title">同一结构的其他现象</h2>
+          <span class="ph-section__eyebrow">${T('page.phenomenon.same_structure_eyebrow', '开阔视野')}</span>
+          <h2 class="ph-section__title">${T('page.phenomenon.same_structure_title', '同一结构的其他现象')}</h2>
         </div>
         <p class="ph-section__caption">${escapeHtml(caption)}</p>
       </header>
@@ -163,15 +171,15 @@ function renderStructureBlock(p) {
     <section class="ph-section ph-section--muted">
       <header class="ph-section__header">
         <div>
-          <span class="ph-section__eyebrow">结构类型</span>
+          <span class="ph-section__eyebrow">${T('page.phenomenon.structure_type_eyebrow', '结构类型')}</span>
           <h2 class="ph-section__title">
-            结构 ${escapeHtml(p.type_id)}
-            <span class="ph-section__badge">数学骨架</span>
+            ${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(p.type_id)}
+            <span class="ph-section__badge">${T('page.phenomenon.math_skeleton_badge', '数学骨架')}</span>
           </h2>
         </div>
-        <p class="ph-section__caption">这个编号代表一类共享的数学结构，不同领域的许多现象都落在同一个骨架之下。</p>
+        <p class="ph-section__caption">${T('page.phenomenon.structure_type_caption', '这个编号代表一类共享的数学结构，不同领域的许多现象都落在同一个骨架之下。')}</p>
       </header>
-      <p class="ph-about__text">${escapeHtml(p.name)} 属于结构 ${escapeHtml(p.type_id)}。沿着这个骨架，你可以在其他领域找到行为高度相似的现象，并把它们的成熟做法迁移到当前问题上。</p>
+      <p class="ph-about__text">${escapeHtml(p.name)} ${T('page.phenomenon.belongs_to_structure', '属于结构')} ${escapeHtml(p.type_id)}${T('page.phenomenon.structure_type_text', '。沿着这个骨架，你可以在其他领域找到行为高度相似的现象，并把它们的成熟做法迁移到当前问题上。')}</p>
     </section>
   `;
 }
@@ -187,10 +195,10 @@ function renderV2Pairs(pairs, currentId) {
     <section class="ph-section ph-v2-hub">
       <header class="ph-section__header">
         <div>
-          <span class="ph-section__eyebrow">V2 管道</span>
-          <h2 class="ph-section__title">V2 模型识别的跨域同构</h2>
+          <span class="ph-section__eyebrow">${T('page.phenomenon.v2_eyebrow', 'V2 管道')}</span>
+          <h2 class="ph-section__title">${T('page.phenomenon.v2_title', 'V2 模型识别的跨域同构')}</h2>
         </div>
-        <p class="ph-section__caption">这个现象在 V2 管道里被发现连接到 ${count} 个其他领域的现象。每对都经过 LLM 评分。</p>
+        <p class="ph-section__caption">${T('page.phenomenon.v2_caption_prefix', '这个现象在 V2 管道里被发现连接到')} ${count} ${T('page.phenomenon.v2_caption_suffix', '个其他领域的现象。每对都经过 LLM 评分。')}</p>
       </header>
       <div class="ph-v2-hub__grid">
         ${pairs.map((x, i) => {
@@ -203,7 +211,7 @@ function renderV2Pairs(pairs, currentId) {
               <div class="ph-v2-pair-card__domain">${escapeHtml(x.other_domain || '')}</div>
               <h3 class="ph-v2-pair-card__name">${escapeHtml(x.other_name || '')}</h3>
               <p class="ph-v2-pair-card__reason">${escapeHtml(x.reason || '')}</p>
-              <div class="ph-v2-pair-card__score-badge ${scoreClass}">V2 ${x.score} 分</div>
+              <div class="ph-v2-pair-card__score-badge ${scoreClass}">${T('page.phenomenon.v2_score_prefix', 'V2')} ${x.score} ${T('page.phenomenon.v2_score_suffix', '分')}</div>
             </a>
           `;
         }).join('')}
@@ -220,18 +228,18 @@ function renderAnalyzeCTA(p) {
     <section class="ph-section ph-section--primary ph-cta-analyze">
       <header class="ph-section__header">
         <div>
-          <span class="ph-section__eyebrow">深度分析</span>
-          <h2 class="ph-section__title">发起这个现象的跨学科迁移研究</h2>
+          <span class="ph-section__eyebrow">${T('page.phenomenon.analyze_eyebrow', '深度分析')}</span>
+          <h2 class="ph-section__title">${T('page.phenomenon.analyze_title', '发起这个现象的跨学科迁移研究')}</h2>
         </div>
-        <p class="ph-section__caption">8 段跨学科深度分析，约 60-90 秒流式生成</p>
+        <p class="ph-section__caption">${T('page.phenomenon.analyze_caption', '8 段跨学科深度分析，约 60-90 秒流式生成')}</p>
       </header>
-      <p class="ph-about__text">以 ${escapeHtml(p.name)} 为起点，让 LLM 沿着它的数学骨架跨越领域边界，生成一份 8 段结构化迁移报告：共享结构 → 参数对照 → 方法借用 → 行动建议。</p>
+      <p class="ph-about__text">${T('page.phenomenon.analyze_text_prefix', '以')} ${escapeHtml(p.name)} ${T('page.phenomenon.analyze_text_suffix', '为起点，让 LLM 沿着它的数学骨架跨越领域边界，生成一份 8 段结构化迁移报告：共享结构 → 参数对照 → 方法借用 → 行动建议。')}</p>
       <div class="ph-cta-analyze__actions">
         <a href="${href}" class="btn btn--primary ph-cta-analyze__btn">
-          生成深度分析报告
+          ${T('page.phenomenon.analyze_btn', '生成深度分析报告')}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>
-        <span class="ph-cta-analyze__hint">8 段跨学科迁移研究</span>
+        <span class="ph-cta-analyze__hint">${T('page.phenomenon.analyze_hint', '8 段跨学科迁移研究')}</span>
       </div>
     </section>
   `;
@@ -273,8 +281,8 @@ function renderMappingLoading() {
         <span class="mapping-loading__dot"></span>
         <span class="mapping-loading__dot"></span>
       </div>
-      <div class="mapping-loading__text">正在分析两个现象之间的结构映射</div>
-      <div class="mapping-loading__hint">LLM 生成可能需要 5-10 秒</div>
+      <div class="mapping-loading__text">${T('page.phenomenon.mapping_loading_text', '正在分析两个现象之间的结构映射')}</div>
+      <div class="mapping-loading__hint">${T('page.phenomenon.mapping_loading_hint', 'LLM 生成可能需要 5-10 秒')}</div>
     </div>
   `;
 }
@@ -282,7 +290,7 @@ function renderMappingLoading() {
 function renderMappingError(err) {
   return `
     <div class="search-error">
-      <div class="search-error__title">映射生成失败</div>
+      <div class="search-error__title">${T('page.phenomenon.mapping_error_title', '映射生成失败')}</div>
       <div class="search-error__text">${escapeHtml(err.message || String(err))}</div>
     </div>
   `;
@@ -297,7 +305,7 @@ function renderMappingPair(a, b, similarity, mapping) {
   // In query mode, A is the user's question — render it differently
   const aName = isQueryMode ? (a.original_query || a.name) : a.name;
   const aDesc = isQueryMode
-    ? (a.description && a.description !== a.original_query ? `已改写为：${a.description}` : '')
+    ? (a.description && a.description !== a.original_query ? `${T('page.phenomenon.rewritten_as', '已改写为：')}${a.description}` : '')
     : a.description;
 
   return `
@@ -323,7 +331,7 @@ function renderMappingPair(a, b, similarity, mapping) {
 
         ${mapping.structure_name ? `
           <div class="mapping-pair__structure">
-            <div class="mapping-pair__structure-label">共享数学结构</div>
+            <div class="mapping-pair__structure-label">${T('page.phenomenon.shared_structure_label', '共享数学结构')}</div>
             <div class="mapping-pair__structure-name">${escapeHtml(mapping.structure_name)}</div>
             ${hasFormula ? `<div class="mapping-pair__formula">${escapeHtml(mapping.formula)}</div>` : ''}
             ${mapping.core_insight ? `<p class="mapping-pair__insight">${escapeHtml(mapping.core_insight)}</p>` : ''}
@@ -334,8 +342,8 @@ function renderMappingPair(a, b, similarity, mapping) {
       ${params.length > 0 ? `
         <div class="param-mapping">
           <div class="param-mapping__title">
-            <div class="param-mapping__title-label">参数对照</div>
-            <div class="param-mapping__title-hint">A 中的每个变量，在 B 中叫什么</div>
+            <div class="param-mapping__title-label">${T('page.phenomenon.param_mapping_label', '参数对照')}</div>
+            <div class="param-mapping__title-hint">${T('page.phenomenon.param_mapping_hint', 'A 中的每个变量，在 B 中叫什么')}</div>
           </div>
           <div class="param-mapping__grid">
             <div class="param-mapping__head">${escapeHtml(a.domain)} · ${escapeHtml(a.name)}</div>
@@ -363,8 +371,8 @@ function renderMappingPair(a, b, similarity, mapping) {
       ${actions.length > 0 ? `
         <div class="ph-actions">
           <header class="ph-actions__header">
-            <div class="ph-actions__title">从 ${escapeHtml(a.domain)} 借用到 ${escapeHtml(b.domain)}</div>
-            <div class="ph-actions__subtitle">把源领域的成熟做法翻译成你能用的行动建议</div>
+            <div class="ph-actions__title">${T('page.phenomenon.borrow_from_prefix', '从')} ${escapeHtml(a.domain)} ${T('page.phenomenon.borrow_from_suffix', '借用到')} ${escapeHtml(b.domain)}</div>
+            <div class="ph-actions__subtitle">${T('page.phenomenon.borrow_subtitle', '把源领域的成熟做法翻译成你能用的行动建议')}</div>
           </header>
           ${actions.map((act, i) => `
             <div class="ph-action">
@@ -372,7 +380,7 @@ function renderMappingPair(a, b, similarity, mapping) {
               <div class="ph-action__main">
                 <div class="ph-action__title">${escapeHtml(act.title || '')}</div>
                 <div class="ph-action__description">${escapeHtml(act.description || '')}</div>
-                ${act.scenario ? `<div class="ph-action__scenario">适用场景：${escapeHtml(act.scenario)}</div>` : ''}
+                ${act.scenario ? `<div class="ph-action__scenario">${T('page.phenomenon.scenario_label', '适用场景：')}${escapeHtml(act.scenario)}</div>` : ''}
               </div>
             </div>
           `).join('')}
@@ -385,7 +393,7 @@ function renderMappingPair(a, b, similarity, mapping) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
           </div>
           <div class="ph-why__content">
-            <div class="ph-why__label">为什么这重要</div>
+            <div class="ph-why__label">${T('page.phenomenon.why_important_label', '为什么这重要')}</div>
             <div class="ph-why__text">${escapeHtml(mapping.why_important)}</div>
           </div>
         </div>
@@ -393,21 +401,21 @@ function renderMappingPair(a, b, similarity, mapping) {
 
       <div class="ph-share">
         <div class="ph-share__text">
-          <div class="ph-share__label">分享这个发现</div>
-          <div class="ph-share__hint">生成一张精美的图片，粘到任何地方都能传递核心洞察</div>
+          <div class="ph-share__label">${T('page.phenomenon.share_label', '分享这个发现')}</div>
+          <div class="ph-share__hint">${T('page.phenomenon.share_hint', '生成一张精美的图片，粘到任何地方都能传递核心洞察')}</div>
         </div>
         <div class="ph-share__actions">
           <button type="button" class="btn btn--secondary btn--sm" id="share-preview">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
-            预览
+            ${T('page.phenomenon.share_preview', '预览')}
           </button>
           <button type="button" class="btn btn--secondary btn--sm" id="share-copy">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            复制图片
+            ${T('page.phenomenon.share_copy', '复制图片')}
           </button>
           <button type="button" class="btn btn--primary btn--sm" id="share-download">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            下载图片
+            ${T('page.phenomenon.share_download', '下载图片')}
           </button>
         </div>
       </div>
@@ -434,7 +442,7 @@ function attachShareHandlers(a, b, similarity, mapping) {
     copyBtn.addEventListener('click', async () => {
       const canvas = ShareCard.render(dataForCard);
       const ok = await ShareCard.copy(canvas);
-      showToast(ok ? '已复制到剪贴板' : '复制失败，请改用下载');
+      showToast(ok ? T('page.phenomenon.toast_copied', '已复制到剪贴板') : T('page.phenomenon.toast_copy_failed', '复制失败，请改用下载'));
     });
   }
 
@@ -443,7 +451,7 @@ function attachShareHandlers(a, b, similarity, mapping) {
       const canvas = ShareCard.render(dataForCard);
       const safeName = `${(a.name || '').replace(/[^\w\u4e00-\u9fa5-]/g, '')}-${(b.name || '').replace(/[^\w\u4e00-\u9fa5-]/g, '')}.png`;
       ShareCard.download(canvas, safeName);
-      showToast('已下载');
+      showToast(T('page.phenomenon.toast_downloaded', '已下载'));
     });
   }
 }
@@ -457,11 +465,11 @@ function showSharePreview(canvas) {
   modal.innerHTML = `
     <div class="share-modal__backdrop"></div>
     <div class="share-modal__content">
-      <button class="share-modal__close" aria-label="关闭">
+      <button class="share-modal__close" aria-label="${T('page.phenomenon.modal_close_aria', '关闭')}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
       <div class="share-modal__canvas-wrap"></div>
-      <div class="share-modal__hint">1200 × 630 · 点击外部区域关闭</div>
+      <div class="share-modal__hint">${T('page.phenomenon.modal_hint', '1200 × 630 · 点击外部区域关闭')}</div>
     </div>
   `;
 
@@ -574,7 +582,7 @@ function streamMapping(aSource, bId, slot, fallbackA) {
   es.onerror = (err) => {
     console.error('EventSource error:', err);
     if (!renderedOnce) {
-      slot.innerHTML = renderMappingError(new Error('连接中断'));
+      slot.innerHTML = renderMappingError(new Error(T('page.phenomenon.connection_lost', '连接中断')));
     }
     es.close();
   };
@@ -629,8 +637,8 @@ function renderMappingStreaming(a, b, similarity, charCount) {
           <span class="mapping-loading__dot"></span>
           <span class="mapping-loading__dot"></span>
         </div>
-        <div class="mapping-loading__text">正在生成结构映射</div>
-        <div class="mapping-loading__hint">${charCount > 0 ? `已接收 ${charCount} 字` : '即将开始…'}</div>
+        <div class="mapping-loading__text">${T('page.phenomenon.mapping_streaming_text', '正在生成结构映射')}</div>
+        <div class="mapping-loading__hint">${charCount > 0 ? `${T('page.phenomenon.mapping_received_prefix', '已接收')} ${charCount} ${T('page.phenomenon.mapping_received_suffix', '字')}` : T('page.phenomenon.mapping_starting', '即将开始…')}</div>
       </div>
     </section>
   `;
@@ -638,143 +646,158 @@ function renderMappingStreaming(a, b, similarity, charCount) {
 
 async function loadPhenomenon(id, pairId, fromQuery) {
   renderLoadingHero();
+  _phId = id;
+  _phPairId = pairId;
+  _phFromQuery = fromQuery;
 
   try {
     const data = await StructuralAPI.getPhenomenon(id);
-    const p = data.phenomenon;
-    if (!p) throw new Error('现象未找到');
-
-    // Update title and breadcrumb
-    document.title = `${p.name} — Structural`;
-    const crumbName = $('#ph-crumb-name');
-    if (crumbName) crumbName.textContent = p.name;
-
-    // Show "返回搜索" only if there's actually a recent query stash
-    let lastQuery = null;
-    try {
-      const stash = sessionStorage.getItem('structural_last_search');
-      if (stash) lastQuery = JSON.parse(stash).query;
-    } catch (e) { /* ignore */ }
-    const backLink = $('#ph-crumb-back');
-    const backSep = $('#ph-crumb-back-sep');
-    if (lastQuery && backLink && backSep) {
-      backLink.removeAttribute('hidden');
-      backSep.removeAttribute('hidden');
-      backLink.setAttribute('href', `/search?q=${encodeURIComponent(lastQuery)}`);
-    }
-
-    const container = $('#ph-content');
-
-    // Layout depends on whether user came from a query or from a pair click
-    if (fromQuery) {
-      // "From search" flow: the mapping is the main event.
-      // Below the fold: more answers to the user's original question,
-      // then a compact view of this phenomenon, then cross-structure options.
-      container.innerHTML = `
-        <div id="ph-mapping-slot" class="ph-mapping-hero"></div>
-        <div class="ph-secondary">
-          <div id="ph-more-answers-slot"></div>
-          <div id="ph-about-slot"></div>
-          ${renderSameStructure(data.same_structure || [])}
-        </div>
-      `;
-
-      // Mapping stream
-      const slot = $('#ph-mapping-slot');
-      slot.innerHTML = renderMappingLoading();
-      streamMapping({ kind: 'text', value: fromQuery }, id, slot, p);
-
-      // Load "more answers" (other results from the same query)
-      (async () => {
-        let queryResults = getStashedSearchResults(fromQuery);
-        if (!queryResults) {
-          queryResults = await fetchSearchResults(fromQuery);
-        }
-        const moreSlot = $('#ph-more-answers-slot');
-        if (moreSlot) {
-          moreSlot.innerHTML = renderMoreAnswers(queryResults, id, fromQuery);
-        }
-      })();
-
-      // "About this phenomenon" — compact hero with a link to deep-dive
-      const aboutSlot = $('#ph-about-slot');
-      if (aboutSlot) {
-        aboutSlot.innerHTML = `
-          <section class="ph-section ph-section--muted">
-            <header class="ph-section__header">
-              <div>
-                <span class="ph-section__eyebrow">关于这个现象</span>
-                <h2 class="ph-section__title">${escapeHtml(p.name)}</h2>
-              </div>
-              <p class="ph-section__caption">${escapeHtml(p.domain)} · 结构 ${escapeHtml(p.type_id)}</p>
-            </header>
-            <p class="ph-about__text">${escapeHtml(p.description)}</p>
-            <div class="ph-section__footer">
-              <a href="/phenomenon/${encodeURIComponent(id)}" class="btn btn--ghost">
-                查看这个现象的完整信息
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-              </a>
-            </div>
-          </section>
-        `;
-      }
-    } else if (pairId) {
-      // "Pair click" flow: same as before — mapping between two KB phenomena
-      container.innerHTML = `
-        ${renderHero(p)}
-        <div id="ph-mapping-slot"></div>
-        ${renderCrossDomainList(data.similar || [], id)}
-        ${renderSameStructure(data.same_structure || [])}
-      `;
-      const slot = $('#ph-mapping-slot');
-      slot.innerHTML = renderMappingLoading();
-      streamMapping({ kind: 'id', value: id }, pairId, slot, p);
-    } else {
-      // Direct access: hero + structure block + analyze CTA + cross-domain + same-structure + v2 hub
-      const hasSameStructure = (data.same_structure || []).length > 0;
-      container.innerHTML = `
-        ${renderHero(p)}
-        ${renderStructureBlock(p)}
-        ${renderAnalyzeCTA(p)}
-        ${renderCrossDomainList(data.similar || [], id)}
-        ${renderSameStructure(data.same_structure || [], { emphasize: hasSameStructure })}
-        ${renderV2Pairs(data.v2_pairs || [], id)}
-      `;
-    }
+    _phData = data;
+    renderPhenomenon(data, id, pairId, fromQuery);
   } catch (err) {
-    console.error('Load phenomenon failed:', err);
-    const container = $('#ph-content');
-    const isNotFound = /\b404\b/.test(err.message || '');
-    if (isNotFound) {
-      // Match the full-page /404 empty state: "现象未被收录"
-      document.title = '没找到 — Structural';
-      const crumbName = $('#ph-crumb-name');
-      if (crumbName) crumbName.textContent = '未找到';
-      container.innerHTML = `
-        <div class="search-empty" style="padding: var(--space-8) var(--space-5); text-align: center;">
-          <div style="font-family: var(--font-serif); font-size: 96px; line-height: 1; color: var(--text-primary); letter-spacing: var(--ls-tighter); margin-bottom: var(--space-4);">404</div>
-          <h2 class="search-empty__title">这个现象还没有被收录</h2>
-          <p class="search-empty__text">你要找的现象不存在。<br>也许我们的知识库还没有覆盖到它。</p>
-          <div class="search-empty__actions">
-            <a href="/" class="btn btn--primary btn--lg">返回首页</a>
-            <a href="/discoveries" class="btn btn--ghost">查看精选发现</a>
+    renderPhenomenonError(err);
+  }
+}
+
+function renderPhenomenon(data, id, pairId, fromQuery) {
+  const p = data.phenomenon;
+  if (!p) {
+    renderPhenomenonError(new Error(T('page.phenomenon.not_found', '现象未找到')));
+    return;
+  }
+
+  // Update title and breadcrumb
+  document.title = `${p.name} — Structural`;
+  const crumbName = $('#ph-crumb-name');
+  if (crumbName) crumbName.textContent = p.name;
+
+  // Show "返回搜索" only if there's actually a recent query stash
+  let lastQuery = null;
+  try {
+    const stash = sessionStorage.getItem('structural_last_search');
+    if (stash) lastQuery = JSON.parse(stash).query;
+  } catch (e) { /* ignore */ }
+  const backLink = $('#ph-crumb-back');
+  const backSep = $('#ph-crumb-back-sep');
+  if (lastQuery && backLink && backSep) {
+    backLink.removeAttribute('hidden');
+    backSep.removeAttribute('hidden');
+    backLink.setAttribute('href', `/search?q=${encodeURIComponent(lastQuery)}`);
+  }
+
+  const container = $('#ph-content');
+
+  // Layout depends on whether user came from a query or from a pair click
+  if (fromQuery) {
+    // "From search" flow: the mapping is the main event.
+    // Below the fold: more answers to the user's original question,
+    // then a compact view of this phenomenon, then cross-structure options.
+    container.innerHTML = `
+      <div id="ph-mapping-slot" class="ph-mapping-hero"></div>
+      <div class="ph-secondary">
+        <div id="ph-more-answers-slot"></div>
+        <div id="ph-about-slot"></div>
+        ${renderSameStructure(data.same_structure || [])}
+      </div>
+    `;
+
+    // Mapping stream
+    const slot = $('#ph-mapping-slot');
+    slot.innerHTML = renderMappingLoading();
+    streamMapping({ kind: 'text', value: fromQuery }, id, slot, p);
+
+    // Load "more answers" (other results from the same query)
+    (async () => {
+      let queryResults = getStashedSearchResults(fromQuery);
+      if (!queryResults) {
+        queryResults = await fetchSearchResults(fromQuery);
+      }
+      const moreSlot = $('#ph-more-answers-slot');
+      if (moreSlot) {
+        moreSlot.innerHTML = renderMoreAnswers(queryResults, id, fromQuery);
+      }
+    })();
+
+    // "About this phenomenon" — compact hero with a link to deep-dive
+    const aboutSlot = $('#ph-about-slot');
+    if (aboutSlot) {
+      aboutSlot.innerHTML = `
+        <section class="ph-section ph-section--muted">
+          <header class="ph-section__header">
+            <div>
+              <span class="ph-section__eyebrow">${T('page.phenomenon.about_label', '关于这个现象')}</span>
+              <h2 class="ph-section__title">${escapeHtml(p.name)}</h2>
+            </div>
+            <p class="ph-section__caption">${escapeHtml(p.domain)} · ${T('page.phenomenon.structure_prefix', '结构')} ${escapeHtml(p.type_id)}</p>
+          </header>
+          <p class="ph-about__text">${escapeHtml(p.description)}</p>
+          <div class="ph-section__footer">
+            <a href="/phenomenon/${encodeURIComponent(id)}" class="btn btn--ghost">
+              ${T('page.phenomenon.view_full_info', '查看这个现象的完整信息')}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
           </div>
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div class="search-empty">
-          <svg class="search-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          <h2 class="search-empty__title">未能加载此现象</h2>
-          <p class="search-empty__text">${escapeHtml(err.message)}</p>
-          <div class="search-empty__actions">
-            <a href="/" class="btn btn--primary">返回首页</a>
-          </div>
-        </div>
+        </section>
       `;
     }
+  } else if (pairId) {
+    // "Pair click" flow: same as before — mapping between two KB phenomena
+    container.innerHTML = `
+      ${renderHero(p)}
+      <div id="ph-mapping-slot"></div>
+      ${renderCrossDomainList(data.similar || [], id)}
+      ${renderSameStructure(data.same_structure || [])}
+    `;
+    const slot = $('#ph-mapping-slot');
+    slot.innerHTML = renderMappingLoading();
+    streamMapping({ kind: 'id', value: id }, pairId, slot, p);
+  } else {
+    // Direct access: hero + structure block + analyze CTA + cross-domain + same-structure + v2 hub
+    const hasSameStructure = (data.same_structure || []).length > 0;
+    container.innerHTML = `
+      ${renderHero(p)}
+      ${renderStructureBlock(p)}
+      ${renderAnalyzeCTA(p)}
+      ${renderCrossDomainList(data.similar || [], id)}
+      ${renderSameStructure(data.same_structure || [], { emphasize: hasSameStructure })}
+      ${renderV2Pairs(data.v2_pairs || [], id)}
+    `;
+  }
+}
+
+function renderPhenomenonError(err) {
+  console.error('Load phenomenon failed:', err);
+  const container = $('#ph-content');
+  const isNotFound = /\b404\b/.test(err.message || '');
+  if (isNotFound) {
+    // Match the full-page /404 empty state: "现象未被收录"
+    document.title = T('page.phenomenon.not_found_title', '没找到 — Structural');
+    const crumbName = $('#ph-crumb-name');
+    if (crumbName) crumbName.textContent = T('page.phenomenon.not_found_crumb', '未找到');
+    container.innerHTML = `
+      <div class="search-empty" style="padding: var(--space-8) var(--space-5); text-align: center;">
+        <div style="font-family: var(--font-serif); font-size: 96px; line-height: 1; color: var(--text-primary); letter-spacing: var(--ls-tighter); margin-bottom: var(--space-4);">404</div>
+        <h2 class="search-empty__title">${T('page.phenomenon.not_found_title_body', '这个现象还没有被收录')}</h2>
+        <p class="search-empty__text">${T('page.phenomenon.not_found_text', '你要找的现象不存在。<br>也许我们的知识库还没有覆盖到它。')}</p>
+        <div class="search-empty__actions">
+          <a href="/" class="btn btn--primary btn--lg">${T('page.phenomenon.back_home', '返回首页')}</a>
+          <a href="/discoveries" class="btn btn--ghost">${T('page.phenomenon.view_discoveries', '查看精选发现')}</a>
+        </div>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="search-empty">
+        <svg class="search-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+        </svg>
+        <h2 class="search-empty__title">${T('page.phenomenon.load_failed', '未能加载此现象')}</h2>
+        <p class="search-empty__text">${escapeHtml(err.message)}</p>
+        <div class="search-empty__actions">
+          <a href="/" class="btn btn--primary">${T('page.phenomenon.back_home', '返回首页')}</a>
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -790,3 +813,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.replace('/');
   }
 });
+
+// Re-render when language toggles
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try {
+        if (_phData && _phId) {
+          renderPhenomenon(_phData, _phId, _phPairId, _phFromQuery);
+        }
+      } catch (e) { /* ignore */ }
+    });
+  }
+} catch (e) {}

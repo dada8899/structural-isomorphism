@@ -204,6 +204,17 @@
       }
       a.setAttribute('href', href);
     }
+    // Footer "paper" link: swap paper-zh.html → github paper.md in EN mode
+    var paperLinks = document.querySelectorAll('a.site-footer__link[href*="paper-zh.html"], a.site-footer__link[data-i18n="footer.paper"]');
+    for (var pp = 0; pp < paperLinks.length; pp++) {
+      var pa = paperLinks[pp];
+      if (!pa.__origHref) pa.__origHref = pa.getAttribute('href');
+      if (state.lang === 'en') {
+        pa.setAttribute('href', 'https://github.com/dada8899/structural-isomorphism/blob/main/paper/paper.md');
+      } else {
+        pa.setAttribute('href', pa.__origHref);
+      }
+    }
     updateLangLabels(state.lang);
     state.listeners.forEach(function (fn) {
       try { fn(state.lang); } catch (e) { /* swallow */ }

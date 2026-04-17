@@ -878,5 +878,1033 @@
   "page.discoveries.filter_all_chip": {
     "zh": "全部",
     "en": "All"
+  },
+  "page.classes.badge_members": {
+    "zh": "成员",
+    "en": "members"
+  },
+  "page.classes.badge_domains": {
+    "zh": "领域",
+    "en": "domains"
+  },
+  "page.classes.badge_verified": {
+    "zh": "已实证",
+    "en": "Empirically verified"
+  },
+  "page.classes.badge_verified_multi": {
+    "zh": "已实证",
+    "en": "Empirically verified"
+  },
+  "page.classes.count_equations": {
+    "zh": "方程",
+    "en": "equations"
+  },
+  "page.classes.count_invariants": {
+    "zh": "不变量",
+    "en": "invariants"
+  },
+  "page.classes.count_predictions": {
+    "zh": "预测",
+    "en": "predictions"
+  },
+  "page.classes.card_cta": {
+    "zh": "查看详情 →",
+    "en": "View details →"
+  },
+  "page.classes.section_prototype": {
+    "zh": "物理学原型",
+    "en": "Physical prototype"
+  },
+  "page.classes.section_equations": {
+    "zh": "共享方程",
+    "en": "Shared equations"
+  },
+  "page.classes.section_equations_sub": {
+    "zh": "V3 抽取的 TeX-ish 方程，跨 pair 聚合。",
+    "en": "TeX-ish equations extracted by V3, aggregated across pairs."
+  },
+  "page.classes.section_invariants": {
+    "zh": "共享不变量",
+    "en": "Shared invariants"
+  },
+  "page.classes.section_members": {
+    "zh": "成员（按领域分组，★ 为 hub）",
+    "en": "Members (grouped by domain; ★ = hub)"
+  },
+  "page.classes.section_predictions": {
+    "zh": "可验证预测",
+    "en": "Falsifiable predictions"
+  },
+  "page.classes.back_to_list": {
+    "zh": "← 返回普适类列表",
+    "en": "← Back to universality classes"
+  },
+  "page.classes.hub_label": {
+    "zh": "Hub 节点",
+    "en": "Hub node"
+  },
+  "page.classes.pred_meta_method": {
+    "zh": "方法",
+    "en": "Method"
+  },
+  "page.classes.pred_meta_data": {
+    "zh": "数据",
+    "en": "Data"
+  },
+  "page.classes.pred_meta_sample": {
+    "zh": "样本量",
+    "en": "Sample size"
+  },
+  "page.classes.pred_meta_venue": {
+    "zh": "目标期刊",
+    "en": "Target venue"
+  },
+  "page.classes.pred_paper_link": {
+    "zh": "📄 论文 →",
+    "en": "📄 Paper →"
+  },
+  "page.classes.load_failed": {
+    "zh": "加载数据失败",
+    "en": "Failed to load data"
+  },
+  "page.classes.verified_title": {
+    "zh": "条预测已通过实证验证",
+    "en": "predictions empirically verified"
+  },
+  "page.classes.uncurated_note": {
+    "zh": "LLM 自动生成，尚未人工审核",
+    "en": "LLM-generated, not yet human-reviewed"
+  },
+  "page.classes.llm_note": {
+    "zh": "LLM 批注",
+    "en": "LLM note"
+  },
+  "page.home.suggestions_label": {
+    "zh": "试试这些真实场景",
+    "en": "Try one of these real scenarios"
+  },
+  "page.home.daily_structure_prefix": {
+    "zh": "结构",
+    "en": "Structure"
+  },
+  "page.analyze.crumb_home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "page.analyze.crumb_back": {
+    "zh": "返回",
+    "en": "Back"
+  },
+  "page.analyze.crumb_current": {
+    "zh": "深度分析",
+    "en": "Deep analysis"
+  },
+  "page.analyze.btn_brief": {
+    "zh": "复制为简报",
+    "en": "Copy as brief"
+  },
+  "page.analyze.btn_share": {
+    "zh": "分享",
+    "en": "Share"
+  },
+  "page.analyze.btn_fav": {
+    "zh": "收藏",
+    "en": "Favorite"
+  },
+  "page.analyze.btn_brief_aria": {
+    "zh": "复制为简报",
+    "en": "Copy as brief"
+  },
+  "page.analyze.btn_share_aria": {
+    "zh": "分享这份报告",
+    "en": "Share this report"
+  },
+  "page.analyze.btn_fav_aria": {
+    "zh": "收藏这份报告",
+    "en": "Favorite this report"
+  },
+  "page.analyze.loading_title": {
+    "zh": "正在生成深度分析报告",
+    "en": "Generating deep analysis report"
+  },
+  "page.analyze.loading_hint": {
+    "zh": "8 段流式生成 · 60–90 秒",
+    "en": "8 streaming sections · 60–90 seconds"
+  },
+  "page.analyze.error_title": {
+    "zh": "生成失败",
+    "en": "Generation failed"
+  },
+  "page.analyze.error_hint": {
+    "zh": "连接中断，可能是网络或 LLM 响应超时",
+    "en": "Connection dropped — likely a network issue or LLM response timeout"
+  },
+  "page.analyze.btn_retry": {
+    "zh": "刷新重试",
+    "en": "Retry"
+  },
+  "page.analyze.btn_back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.phenomenon.crumb_home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "page.phenomenon.crumb_search": {
+    "zh": "返回搜索",
+    "en": "Back to search"
+  },
+  "page.phenomenon.crumb_current": {
+    "zh": "现象",
+    "en": "Phenomenon"
+  },
+  "page.paper.crumb_back": {
+    "zh": "← 普适类",
+    "en": "← Universality classes"
+  },
+  "page.paper.dl_md": {
+    "zh": "⬇ 下载 Markdown 原文",
+    "en": "⬇ Download Markdown"
+  },
+  "page.paper.source_gh": {
+    "zh": "📂 源代码与数据 (GitHub)",
+    "en": "📂 Source + data (GitHub)"
+  },
+  "page.paper.back_to_list": {
+    "zh": "← 回到普适类目录",
+    "en": "← Back to universality classes"
+  },
+  "page.paper.md_loader_failed": {
+    "zh": "Markdown 渲染器加载失败。",
+    "en": "Markdown renderer failed to load."
+  },
+  "page.paper.load_failed": {
+    "zh": "论文加载失败",
+    "en": "Paper failed to load"
+  },
+  "page.404.btn_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.analyze.retry_first": {
+    "zh": "首次生成失败，正在重试...",
+    "en": "First attempt failed, retrying..."
+  },
+  "page.home.placeholder_1": {
+    "zh": "我们的产品增长放缓了...",
+    "en": "Our product growth is slowing..."
+  },
+  "page.home.placeholder_2": {
+    "zh": "为什么市场会崩盘",
+    "en": "Why do markets crash"
+  },
+  "page.home.placeholder_3": {
+    "zh": "用户老客户越来越不活跃，怎么看",
+    "en": "How to interpret declining retention among long-time users"
+  },
+  "page.home.placeholder_4": {
+    "zh": "为什么有些市场必然赢家通吃",
+    "en": "Why some markets inevitably end winner-take-all"
+  },
+  "page.home.fallback_placeholder": {
+    "zh": "描述一个你观察到的现象...",
+    "en": "Describe a phenomenon you've observed..."
+  },
+  "page.home.example_aria": {
+    "zh": "例子",
+    "en": "Example"
+  },
+  "page.home.no_title": {
+    "zh": "(未命名查询)",
+    "en": "(Untitled query)"
+  },
+  "page.classes.llm_high": {
+    "zh": "高置信",
+    "en": "High confidence"
+  },
+  "page.classes.llm_medium": {
+    "zh": "中置信",
+    "en": "Medium confidence"
+  },
+  "page.classes.llm_low": {
+    "zh": "低置信",
+    "en": "Low confidence"
+  },
+  "page.classes.untitled": {
+    "zh": "(未命名)",
+    "en": "(Untitled)"
+  },
+  "page.paper.meta_desc": {
+    "zh": "Structural Isomorphism 项目产出的学术论文",
+    "en": "Academic papers from the Structural Isomorphism project"
+  },
+  "page.analyze.section_shared_structure": {
+    "zh": "共享结构",
+    "en": "Shared structure"
+  },
+  "page.analyze.section_your_problem_breakdown": {
+    "zh": "你的问题拆解",
+    "en": "Breakdown of your problem"
+  },
+  "page.analyze.section_target_domain_intro": {
+    "zh": "源领域讲解",
+    "en": "Source-domain primer"
+  },
+  "page.analyze.section_structural_mapping": {
+    "zh": "结构对照",
+    "en": "Structural mapping"
+  },
+  "page.analyze.section_borrowable_insights": {
+    "zh": "可借用的工具",
+    "en": "Borrowable tools"
+  },
+  "page.analyze.section_how_to_combine": {
+    "zh": "怎么结合",
+    "en": "How to combine them"
+  },
+  "page.analyze.section_research_directions": {
+    "zh": "研究方向",
+    "en": "Research directions"
+  },
+  "page.analyze.section_risks_and_limits": {
+    "zh": "迁移风险",
+    "en": "Transfer risks"
+  },
+  "page.analyze.section_action_plan": {
+    "zh": "本周行动",
+    "en": "This week's action plan"
+  },
+  "page.analyze.sub_key_variables": {
+    "zh": "关键变量",
+    "en": "Key variables"
+  },
+  "page.analyze.sub_dynamics": {
+    "zh": "动力学",
+    "en": "Dynamics"
+  },
+  "page.analyze.sub_why_stuck": {
+    "zh": "为什么卡壳",
+    "en": "Why it is stuck"
+  },
+  "page.analyze.sub_source_domain": {
+    "zh": "源领域",
+    "en": "Source domain"
+  },
+  "page.analyze.sub_your_problem": {
+    "zh": "你的问题",
+    "en": "Your problem"
+  },
+  "page.analyze.sub_corresponding_phenomenon": {
+    "zh": "这个领域里的对应现象",
+    "en": "The analogous phenomenon in this domain"
+  },
+  "page.analyze.sub_discovery_history": {
+    "zh": "发现历史",
+    "en": "Discovery history"
+  },
+  "page.analyze.sub_key_thinkers": {
+    "zh": "关键人物",
+    "en": "Key thinkers"
+  },
+  "page.analyze.sub_mature_tools": {
+    "zh": "成熟工具",
+    "en": "Mature tools"
+  },
+  "page.analyze.sub_what_it_solves": {
+    "zh": "在源领域中它解决什么",
+    "en": "What it solves in the source domain"
+  },
+  "page.analyze.sub_translated_to_target": {
+    "zh": "翻译到你的问题",
+    "en": "Translated to your problem"
+  },
+  "page.analyze.sub_concrete_application": {
+    "zh": "具体怎么用",
+    "en": "Concrete application"
+  },
+  "page.analyze.sub_execution_steps": {
+    "zh": "执行步骤",
+    "en": "Execution steps"
+  },
+  "page.analyze.sub_assumptions": {
+    "zh": "需要验证的假设",
+    "en": "Assumptions to verify"
+  },
+  "page.analyze.sub_boundary_conditions": {
+    "zh": "边界条件",
+    "en": "Boundary conditions"
+  },
+  "page.analyze.sub_literature_status": {
+    "zh": "文献状态",
+    "en": "Literature status"
+  },
+  "page.analyze.status_unknown": {
+    "zh": "未知",
+    "en": "unknown"
+  },
+  "page.analyze.sub_research_opportunity": {
+    "zh": "⭐ 潜在的研究机会",
+    "en": "⭐ Potential research opportunity"
+  },
+  "page.analyze.sub_suggested_references": {
+    "zh": "建议参考",
+    "en": "Suggested references"
+  },
+  "page.analyze.severity_high": {
+    "zh": "高",
+    "en": "High"
+  },
+  "page.analyze.severity_medium": {
+    "zh": "中",
+    "en": "Medium"
+  },
+  "page.analyze.severity_low": {
+    "zh": "低",
+    "en": "Low"
+  },
+  "page.analyze.action_how": {
+    "zh": "怎么做",
+    "en": "How"
+  },
+  "page.analyze.action_verification": {
+    "zh": "验证指标",
+    "en": "Verification metric"
+  },
+  "page.analyze.action_expected": {
+    "zh": "预期产出",
+    "en": "Expected outcome"
+  },
+  "page.analyze.action_if_only_one": {
+    "zh": "⭐ 如果你只能做一件事",
+    "en": "⭐ If you can only do one thing"
+  },
+  "page.analyze.action_full_plan": {
+    "zh": "本周完整计划",
+    "en": "Full weekly plan"
+  },
+  "page.analyze.action_next_week": {
+    "zh": "下周回头看",
+    "en": "Revisit next week"
+  },
+  "page.analyze.header_your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.analyze.header_comparison": {
+    "zh": "对比分析",
+    "en": "Comparative analysis"
+  },
+  "page.analyze.header_borrow_from": {
+    "zh": "从 {source} 借用答案",
+    "en": "Borrow the answer from {source}"
+  },
+  "page.analyze.header_apply_to": {
+    "zh": "应用到 {target}",
+    "en": "Apply to {target}"
+  },
+  "page.analyze.header_similarity": {
+    "zh": "{pct}% 结构相似",
+    "en": "{pct}% structural similarity"
+  },
+  "page.analyze.loading_progress_line": {
+    "zh": "已生成 {chars} 字 · LLM 正在写研究报告",
+    "en": "{chars} characters generated · the LLM is drafting the research report"
+  },
+  "page.analyze.loading_hint_long": {
+    "zh": "我们正在写一份跨学科迁移研究报告。",
+    "en": "We are drafting a cross-domain transfer research report."
+  },
+  "page.analyze.status_waiting": {
+    "zh": "等待中",
+    "en": "Waiting"
+  },
+  "page.analyze.status_generating_section": {
+    "zh": "正在生成这一部分",
+    "en": "Generating this section"
+  },
+  "page.analyze.timer_elapsed_eta": {
+    "zh": "已 {s}s / 约 {eta}s",
+    "en": "{s}s elapsed / ~{eta}s"
+  },
+  "page.analyze.timer_waiting": {
+    "zh": "已等待 0s",
+    "en": "0s elapsed"
+  },
+  "page.analyze.timer_typical": {
+    "zh": "通常需 30–60s",
+    "en": "Typically 30–60s"
+  },
+  "page.analyze.retry_first_hint": {
+    "zh": "模型刚刚没稳定输出，我们换个角度再来一次。",
+    "en": "The model did not produce a stable response; retrying from a different angle."
+  },
+  "page.analyze.btn_retry_soft": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "page.analyze.brief_title": {
+    "zh": "Structural · 跨学科分析简报",
+    "en": "Structural · Cross-domain analysis brief"
+  },
+  "page.analyze.brief_your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.analyze.brief_analogy": {
+    "zh": "跨学科类比",
+    "en": "Cross-domain analogy"
+  },
+  "page.analyze.brief_shared_structure": {
+    "zh": "共享结构",
+    "en": "Shared structure"
+  },
+  "page.analyze.brief_similarity": {
+    "zh": "结构相似度",
+    "en": "Structural similarity"
+  },
+  "page.analyze.brief_one_liner": {
+    "zh": "一句话核心",
+    "en": "Core idea in one line"
+  },
+  "page.analyze.brief_top_insights": {
+    "zh": "三条最关键的洞察",
+    "en": "Three most critical insights"
+  },
+  "page.analyze.brief_weekly_actions": {
+    "zh": "本周行动清单",
+    "en": "This week's action list"
+  },
+  "page.analyze.brief_verify": {
+    "zh": "验证",
+    "en": "Verify"
+  },
+  "page.analyze.brief_expected": {
+    "zh": "预期",
+    "en": "Expected"
+  },
+  "page.analyze.brief_footer": {
+    "zh": "来自 [Structural]",
+    "en": "From [Structural]"
+  },
+  "page.analyze.fav_active": {
+    "zh": "已收藏",
+    "en": "Favorited"
+  },
+  "page.analyze.toast_still_generating": {
+    "zh": "报告还在生成中，请稍后再点",
+    "en": "The report is still being generated — please try again in a moment"
+  },
+  "page.analyze.toast_brief_copied": {
+    "zh": "已复制为 Markdown 简报，可以粘贴到 Notion / Slack / 邮件",
+    "en": "Copied as a Markdown brief — ready to paste into Notion, Slack, or email"
+  },
+  "page.analyze.toast_copy_failed_perm": {
+    "zh": "复制失败，请检查浏览器权限",
+    "en": "Copy failed — please check browser clipboard permissions"
+  },
+  "page.analyze.toast_link_copied": {
+    "zh": "链接已复制，可以分享给朋友",
+    "en": "Link copied — ready to share"
+  },
+  "page.analyze.toast_copy_failed_manual": {
+    "zh": "复制失败，请手动复制地址栏 URL",
+    "en": "Copy failed — please copy the URL from the address bar manually"
+  },
+  "page.analyze.toast_fav_added": {
+    "zh": "已添加到收藏",
+    "en": "Added to favorites"
+  },
+  "page.analyze.toast_fav_removed": {
+    "zh": "已移出收藏",
+    "en": "Removed from favorites"
+  },
+  "page.search.score_strong": {
+    "zh": "强相似",
+    "en": "Strong match"
+  },
+  "page.search.score_medium": {
+    "zh": "中等相似",
+    "en": "Medium match"
+  },
+  "page.search.score_weak": {
+    "zh": "弱相关",
+    "en": "Weak match"
+  },
+  "page.search.phase_understanding": {
+    "zh": "正在理解你的问题",
+    "en": "Understanding your question"
+  },
+  "page.search.phase_picking": {
+    "zh": "正在挑选最相关的证据",
+    "en": "Selecting the most relevant evidence"
+  },
+  "page.search.phase_organizing": {
+    "zh": "正在组织答案",
+    "en": "Organizing the answer"
+  },
+  "page.search.phase_almost": {
+    "zh": "马上就好",
+    "en": "Almost there"
+  },
+  "page.search.your_question": {
+    "zh": "你的问题",
+    "en": "Your question"
+  },
+  "page.search.edit": {
+    "zh": "编辑",
+    "en": "Edit"
+  },
+  "page.search.edit_your_question": {
+    "zh": "编辑你的问题",
+    "en": "Edit your question"
+  },
+  "page.search.edit_this_question": {
+    "zh": "编辑这个问题",
+    "en": "Edit this question"
+  },
+  "page.search.cancel": {
+    "zh": "取消",
+    "en": "Cancel"
+  },
+  "page.search.ask_again": {
+    "zh": "再问一次",
+    "en": "Ask again"
+  },
+  "page.search.submit_hint": {
+    "zh": "提交",
+    "en": "Submit"
+  },
+  "page.search.rewritten_as": {
+    "zh": "已改写为研究问题：",
+    "en": "Rewritten as a research question: "
+  },
+  "page.search.elapsed_start": {
+    "zh": "已等待 0s",
+    "en": "Waited 0s"
+  },
+  "page.search.candidates_typical": {
+    "zh": "个候选 · 通常 8–15s",
+    "en": "candidates · usually 8–15s"
+  },
+  "page.search.main_insight_label": {
+    "zh": "主洞察 · AI 合成",
+    "en": "Main insight · AI synthesis"
+  },
+  "page.search.why_useful": {
+    "zh": "为什么这有用",
+    "en": "Why this helps"
+  },
+  "page.search.empty_title": {
+    "zh": "没有找到足够相似的现象",
+    "en": "No sufficiently similar phenomena found"
+  },
+  "page.search.empty_text": {
+    "zh": "知识库暂时没有结构相似的匹配。<br>试着描述现象本身的<strong>行为模式</strong>，而不是问题或结论。",
+    "en": "The knowledge base has no structurally similar match yet.<br>Try describing the phenomenon's <strong>behavioral pattern</strong>, not the question or conclusion."
+  },
+  "page.search.back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.search.learn_structural": {
+    "zh": "了解 Structural",
+    "en": "About Structural"
+  },
+  "page.search.rec_placeholder": {
+    "zh": "推荐和证据将在合成完成后展开...",
+    "en": "Recommendations and evidence will unfold once synthesis completes..."
+  },
+  "page.search.v2_also_connects": {
+    "zh": "还连接到",
+    "en": "also connects to"
+  },
+  "page.search.v2_pairs_label": {
+    "zh": "V2 模型识别的跨域对",
+    "en": "Cross-domain pairs identified by the V2 model"
+  },
+  "page.search.v2_pairs_title": {
+    "zh": "V2 还看到了这些联系",
+    "en": "V2 also saw these connections"
+  },
+  "page.search.v2_pairs_sub": {
+    "zh": "V2 管道独立筛选过的跨学科同构对，不在向量检索流里。点击查看深度分析。",
+    "en": "Cross-disciplinary isomorphic pairs independently filtered by the V2 pipeline, outside the vector retrieval stream. Click for deep analysis."
+  },
+  "page.search.candidates_title": {
+    "zh": "跨领域证据",
+    "en": "Cross-domain evidence"
+  },
+  "page.search.candidates_unit": {
+    "zh": "个候选",
+    "en": "candidates"
+  },
+  "page.search.structure_prefix": {
+    "zh": "结构",
+    "en": "Structure"
+  },
+  "page.search.primary_rec_label": {
+    "zh": "推荐先看这一个",
+    "en": "Start with this one"
+  },
+  "page.search.primary_why": {
+    "zh": "为什么首推",
+    "en": "Why this is the top pick"
+  },
+  "page.search.primary_takeaway": {
+    "zh": "你会得到",
+    "en": "What you'll get"
+  },
+  "page.search.primary_cta": {
+    "zh": "立即深度分析",
+    "en": "Run deep analysis now"
+  },
+  "page.search.alt_angle_default": {
+    "zh": "补充视角",
+    "en": "Alternative angle"
+  },
+  "page.search.deep_analysis": {
+    "zh": "深度分析",
+    "en": "Deep analysis"
+  },
+  "page.search.alt_angles_label": {
+    "zh": "补充视角 — 从不同角度看你的问题",
+    "en": "Alternative angles — see your question from a different perspective"
+  },
+  "page.search.others_prefix": {
+    "zh": "其他",
+    "en": "Other"
+  },
+  "page.search.others_suffix": {
+    "zh": "个候选证据",
+    "en": "candidate matches"
+  },
+  "page.search.unknown_error": {
+    "zh": "未知错误",
+    "en": "Unknown error"
+  },
+  "page.search.error_title": {
+    "zh": "搜索失败",
+    "en": "Search failed"
+  },
+  "page.search.error_text": {
+    "zh": "可能是网络问题或服务暂时不可用。",
+    "en": "This may be a network issue or the service is temporarily unavailable."
+  },
+  "page.search.retry": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "page.search.rephrase": {
+    "zh": "换个说法",
+    "en": "Rephrase"
+  },
+  "page.search.assess_coaching_default": {
+    "zh": "这个输入对 Structural 的同构搜索可能不太适合。",
+    "en": "This input may not be a good fit for Structural's isomorphism search."
+  },
+  "page.search.assess_category_other": {
+    "zh": "其他",
+    "en": "Other"
+  },
+  "page.search.assess_identified_as": {
+    "zh": "识别为：",
+    "en": "Recognized as: "
+  },
+  "page.search.assess_title": {
+    "zh": "这个问题对 Structural 来说不太典型",
+    "en": "This question isn't typical for Structural"
+  },
+  "page.search.assess_rewrite_hint": {
+    "zh": "💡 试着这样改写",
+    "en": "💡 Try rewriting it like this"
+  },
+  "page.search.assess_use_rewrite": {
+    "zh": "用这个改写",
+    "en": "Use this rewrite"
+  },
+  "page.search.assess_force_search": {
+    "zh": "还是按原文搜",
+    "en": "Search original anyway"
+  },
+  "page.search.assess_why_summary": {
+    "zh": "为什么 Structural 拦下了这个问题",
+    "en": "Why Structural flagged this question"
+  },
+  "page.search.assess_why_p1": {
+    "zh": "Structural 是一个跨学科<strong>结构同构</strong>引擎，最擅长的是把\"<em>现象级</em>\"的问题（比如行为模式、动力学、临界点、趋势变化）映射到其他学科里结构相同的案例。",
+    "en": "Structural is a cross-disciplinary <strong>structural isomorphism</strong> engine. It excels at mapping <em>phenomenon-level</em> questions (behavioral patterns, dynamics, critical points, trend changes) onto structurally identical cases in other disciplines."
+  },
+  "page.search.assess_why_p2": {
+    "zh": "不擅长的：写作请求、元问题（\"这个产品怎么用\"）、闲聊、纯事实查询、纯个人琐事——这些场景我们没有可借用的\"另一个学科里的同构现象\"。",
+    "en": "What it isn't good at: writing requests, meta-questions (\"how do I use this product\"), small talk, pure factual lookups, purely personal trivia — for these, there's no \"isomorphic phenomenon in another discipline\" to borrow from."
+  },
+  "page.phenomenon.structure_prefix": {
+    "zh": "结构",
+    "en": "Structure"
+  },
+  "page.phenomenon.about_label": {
+    "zh": "关于这个现象",
+    "en": "About this phenomenon"
+  },
+  "page.phenomenon.cross_domain_title": {
+    "zh": "跨领域的同构现象",
+    "en": "Cross-domain isomorphic phenomena"
+  },
+  "page.phenomenon.cross_domain_caption": {
+    "zh": "点击任意一个现象，查看它和当前现象的结构映射",
+    "en": "Click any phenomenon to see its structural mapping to the current one"
+  },
+  "page.phenomenon.more_answers_eyebrow": {
+    "zh": "继续探索你的问题",
+    "en": "Keep exploring your question"
+  },
+  "page.phenomenon.more_answers_title": {
+    "zh": "你问题的其他答案",
+    "en": "Other answers to your question"
+  },
+  "page.phenomenon.more_answers_caption_prefix": {
+    "zh": "和\"",
+    "en": "Other phenomena structurally closest to \""
+  },
+  "page.phenomenon.more_answers_caption_suffix": {
+    "zh": "\"结构最相似的其他现象。点进去看它们如何映射到你的问题。",
+    "en": "\". Click through to see how they map to your question."
+  },
+  "page.phenomenon.back_all_results": {
+    "zh": "返回所有结果",
+    "en": "Back to all results"
+  },
+  "page.phenomenon.same_structure_caption_emphasize": {
+    "zh": "这些现象共享同一个数学骨架，可相互迁移。",
+    "en": "These phenomena share the same mathematical skeleton and can be transferred between one another."
+  },
+  "page.phenomenon.same_structure_caption_default": {
+    "zh": "共享相同数学结构的其他已知现象",
+    "en": "Other known phenomena sharing the same mathematical structure"
+  },
+  "page.phenomenon.same_structure_eyebrow": {
+    "zh": "开阔视野",
+    "en": "Broaden the view"
+  },
+  "page.phenomenon.same_structure_title": {
+    "zh": "同一结构的其他现象",
+    "en": "Other phenomena of the same structure"
+  },
+  "page.phenomenon.structure_type_eyebrow": {
+    "zh": "结构类型",
+    "en": "Structure type"
+  },
+  "page.phenomenon.math_skeleton_badge": {
+    "zh": "数学骨架",
+    "en": "Mathematical skeleton"
+  },
+  "page.phenomenon.structure_type_caption": {
+    "zh": "这个编号代表一类共享的数学结构，不同领域的许多现象都落在同一个骨架之下。",
+    "en": "This code represents a shared mathematical structure — many phenomena across different domains fall under the same skeleton."
+  },
+  "page.phenomenon.belongs_to_structure": {
+    "zh": "属于结构",
+    "en": "belongs to structure"
+  },
+  "page.phenomenon.structure_type_text": {
+    "zh": "。沿着这个骨架，你可以在其他领域找到行为高度相似的现象，并把它们的成熟做法迁移到当前问题上。",
+    "en": ". Following this skeleton, you can find phenomena with highly similar behavior in other domains, and transfer their mature approaches to your current problem."
+  },
+  "page.phenomenon.v2_eyebrow": {
+    "zh": "V2 管道",
+    "en": "V2 pipeline"
+  },
+  "page.phenomenon.v2_title": {
+    "zh": "V2 模型识别的跨域同构",
+    "en": "Cross-domain isomorphisms identified by V2"
+  },
+  "page.phenomenon.v2_caption_prefix": {
+    "zh": "这个现象在 V2 管道里被发现连接到",
+    "en": "In the V2 pipeline this phenomenon was found to connect to"
+  },
+  "page.phenomenon.v2_caption_suffix": {
+    "zh": "个其他领域的现象。每对都经过 LLM 评分。",
+    "en": "phenomena in other domains. Each pair was LLM-scored."
+  },
+  "page.phenomenon.v2_score_prefix": {
+    "zh": "V2",
+    "en": "V2"
+  },
+  "page.phenomenon.v2_score_suffix": {
+    "zh": "分",
+    "en": "pts"
+  },
+  "page.phenomenon.analyze_eyebrow": {
+    "zh": "深度分析",
+    "en": "Deep analysis"
+  },
+  "page.phenomenon.analyze_title": {
+    "zh": "发起这个现象的跨学科迁移研究",
+    "en": "Launch a cross-disciplinary transfer study for this phenomenon"
+  },
+  "page.phenomenon.analyze_caption": {
+    "zh": "8 段跨学科深度分析，约 60-90 秒流式生成",
+    "en": "8-section cross-disciplinary deep analysis, streamed in ~60-90s"
+  },
+  "page.phenomenon.analyze_text_prefix": {
+    "zh": "以",
+    "en": "Starting from"
+  },
+  "page.phenomenon.analyze_text_suffix": {
+    "zh": "为起点，让 LLM 沿着它的数学骨架跨越领域边界，生成一份 8 段结构化迁移报告：共享结构 → 参数对照 → 方法借用 → 行动建议。",
+    "en": ", let the LLM trace its mathematical skeleton across domain boundaries to produce an 8-section structured transfer report: shared structure → parameter mapping → method borrowing → action suggestions."
+  },
+  "page.phenomenon.analyze_btn": {
+    "zh": "生成深度分析报告",
+    "en": "Generate deep-analysis report"
+  },
+  "page.phenomenon.analyze_hint": {
+    "zh": "8 段跨学科迁移研究",
+    "en": "8-section cross-disciplinary transfer study"
+  },
+  "page.phenomenon.mapping_loading_text": {
+    "zh": "正在分析两个现象之间的结构映射",
+    "en": "Analyzing the structural mapping between the two phenomena"
+  },
+  "page.phenomenon.mapping_loading_hint": {
+    "zh": "LLM 生成可能需要 5-10 秒",
+    "en": "LLM generation may take 5-10 seconds"
+  },
+  "page.phenomenon.mapping_error_title": {
+    "zh": "映射生成失败",
+    "en": "Mapping generation failed"
+  },
+  "page.phenomenon.rewritten_as": {
+    "zh": "已改写为：",
+    "en": "Rewritten as: "
+  },
+  "page.phenomenon.shared_structure_label": {
+    "zh": "共享数学结构",
+    "en": "Shared mathematical structure"
+  },
+  "page.phenomenon.param_mapping_label": {
+    "zh": "参数对照",
+    "en": "Parameter mapping"
+  },
+  "page.phenomenon.param_mapping_hint": {
+    "zh": "A 中的每个变量，在 B 中叫什么",
+    "en": "What each variable in A is called in B"
+  },
+  "page.phenomenon.borrow_from_prefix": {
+    "zh": "从",
+    "en": "Borrow from"
+  },
+  "page.phenomenon.borrow_from_suffix": {
+    "zh": "借用到",
+    "en": "into"
+  },
+  "page.phenomenon.borrow_subtitle": {
+    "zh": "把源领域的成熟做法翻译成你能用的行动建议",
+    "en": "Translate mature practices from the source domain into actionable suggestions you can use"
+  },
+  "page.phenomenon.scenario_label": {
+    "zh": "适用场景：",
+    "en": "Applicable scenario: "
+  },
+  "page.phenomenon.why_important_label": {
+    "zh": "为什么这重要",
+    "en": "Why this matters"
+  },
+  "page.phenomenon.share_label": {
+    "zh": "分享这个发现",
+    "en": "Share this finding"
+  },
+  "page.phenomenon.share_hint": {
+    "zh": "生成一张精美的图片，粘到任何地方都能传递核心洞察",
+    "en": "Generate a polished image — paste it anywhere to share the core insight"
+  },
+  "page.phenomenon.share_preview": {
+    "zh": "预览",
+    "en": "Preview"
+  },
+  "page.phenomenon.share_copy": {
+    "zh": "复制图片",
+    "en": "Copy image"
+  },
+  "page.phenomenon.share_download": {
+    "zh": "下载图片",
+    "en": "Download image"
+  },
+  "page.phenomenon.toast_copied": {
+    "zh": "已复制到剪贴板",
+    "en": "Copied to clipboard"
+  },
+  "page.phenomenon.toast_copy_failed": {
+    "zh": "复制失败，请改用下载",
+    "en": "Copy failed, please download instead"
+  },
+  "page.phenomenon.toast_downloaded": {
+    "zh": "已下载",
+    "en": "Downloaded"
+  },
+  "page.phenomenon.modal_close_aria": {
+    "zh": "关闭",
+    "en": "Close"
+  },
+  "page.phenomenon.modal_hint": {
+    "zh": "1200 × 630 · 点击外部区域关闭",
+    "en": "1200 × 630 · click outside to close"
+  },
+  "page.phenomenon.connection_lost": {
+    "zh": "连接中断",
+    "en": "Connection lost"
+  },
+  "page.phenomenon.mapping_streaming_text": {
+    "zh": "正在生成结构映射",
+    "en": "Generating structural mapping"
+  },
+  "page.phenomenon.mapping_received_prefix": {
+    "zh": "已接收",
+    "en": "Received"
+  },
+  "page.phenomenon.mapping_received_suffix": {
+    "zh": "字",
+    "en": "chars"
+  },
+  "page.phenomenon.mapping_starting": {
+    "zh": "即将开始…",
+    "en": "Starting soon…"
+  },
+  "page.phenomenon.not_found": {
+    "zh": "现象未找到",
+    "en": "Phenomenon not found"
+  },
+  "page.phenomenon.view_full_info": {
+    "zh": "查看这个现象的完整信息",
+    "en": "View the full information for this phenomenon"
+  },
+  "page.phenomenon.not_found_title": {
+    "zh": "没找到 — Structural",
+    "en": "Not found — Structural"
+  },
+  "page.phenomenon.not_found_crumb": {
+    "zh": "未找到",
+    "en": "Not found"
+  },
+  "page.phenomenon.not_found_title_body": {
+    "zh": "这个现象还没有被收录",
+    "en": "This phenomenon hasn't been indexed yet"
+  },
+  "page.phenomenon.not_found_text": {
+    "zh": "你要找的现象不存在。<br>也许我们的知识库还没有覆盖到它。",
+    "en": "The phenomenon you're looking for doesn't exist.<br>Our knowledge base may not cover it yet."
+  },
+  "page.phenomenon.back_home": {
+    "zh": "返回首页",
+    "en": "Back to home"
+  },
+  "page.phenomenon.view_discoveries": {
+    "zh": "查看精选发现",
+    "en": "View featured discoveries"
+  },
+  "page.phenomenon.load_failed": {
+    "zh": "未能加载此现象",
+    "en": "Failed to load this phenomenon"
   }
 }

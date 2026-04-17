@@ -313,7 +313,8 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "physics_prototype_en": "Bak-Tang-Wiesenfeld sandpile model (1987)"
     },
     {
       "class_id": "hysteresis_preisach",
@@ -561,7 +562,8 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "physics_prototype_en": "Preisach hysteresis model (1935) + Scheffer bistable (2001)"
     },
     {
       "class_id": "scheffer_fold_bifurcation",
@@ -1461,7 +1463,8 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "physics_prototype_en": "Schelling 1960 credible commitment + Kydland-Prescott time inconsistency"
     },
     {
       "class_id": "extreme_value_tail_class",

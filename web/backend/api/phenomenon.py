@@ -1,13 +1,17 @@
 """GET /api/phenomenon/{id} — 获取现象详情 + 相似项 + v2 跨域对"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
+from services.translation import translate_kb_item, translate_kb_items
 from services.v2_pairs import get_pairs_for
 
 router = APIRouter(tags=["phenomenon"])
 
 
 @router.get("/phenomenon/{phenomenon_id}")
-async def get_phenomenon(phenomenon_id: str):
+async def get_phenomenon(
+    phenomenon_id: str,
+    lang: str = Query("zh", description="Output language: 'zh' (default) or 'en'"),
+):
     from main import app_state
 
     svc = app_state.get("search")
@@ -25,6 +29,14 @@ async def get_phenomenon(phenomenon_id: str):
 
     # V2 cross-domain pairs enrichment (hub view)
     v2_pairs = get_pairs_for(phenomenon_id, limit=20)
+
+    # When lang=en, translate the Chinese KB fields on-the-fly. The zh path
+    # is a no-op passthrough, so legacy behavior is preserved.
+    lang_norm = (lang or "zh").lower()
+    if lang_norm == "en":
+        item = await translate_kb_item(item, lang_norm)
+        similar = await translate_kb_items(similar, lang_norm)
+        same_structure = await translate_kb_items(same_structure, lang_norm)
 
     return {
         "phenomenon": item,

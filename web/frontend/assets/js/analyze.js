@@ -1,3 +1,5 @@
+function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
+
 /**
  * Structural — Deep Analysis Report page
  *
@@ -5,16 +7,20 @@
  */
 
 const SECTIONS = [
-  { key: 'shared_structure', label: '共享结构', num: '§0' },
-  { key: 'your_problem_breakdown', label: '你的问题拆解', num: '§1' },
-  { key: 'target_domain_intro', label: '源领域讲解', num: '§2' },
-  { key: 'structural_mapping', label: '结构对照', num: '§3' },
-  { key: 'borrowable_insights', label: '可借用的工具', num: '§4' },
-  { key: 'how_to_combine', label: '怎么结合', num: '§5' },
-  { key: 'research_directions', label: '研究方向', num: '§6' },
-  { key: 'risks_and_limits', label: '迁移风险', num: '§7' },
-  { key: 'action_plan', label: '本周行动', num: '§8' },
+  { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§0' },
+  { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§1' },
+  { key: 'target_domain_intro', label: '源领域讲解', label_key: 'page.analyze.section_target_domain_intro', num: '§2' },
+  { key: 'structural_mapping', label: '结构对照', label_key: 'page.analyze.section_structural_mapping', num: '§3' },
+  { key: 'borrowable_insights', label: '可借用的工具', label_key: 'page.analyze.section_borrowable_insights', num: '§4' },
+  { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§5' },
+  { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§6' },
+  { key: 'risks_and_limits', label: '迁移风险', label_key: 'page.analyze.section_risks_and_limits', num: '§7' },
+  { key: 'action_plan', label: '本周行动', label_key: 'page.analyze.section_action_plan', num: '§8' },
 ];
+
+function sectionLabel(s) {
+  return T(s.label_key, s.label);
+}
 
 function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -114,7 +120,7 @@ const renderers = {
       ${data.summary ? `<p>${escapeHtml(data.summary)}</p>` : ''}
 
       ${vars.length > 0 ? `
-        <h3 class="section__subtitle">关键变量</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_key_variables', '关键变量')}</h3>
         <div class="variables">
           ${vars.map(v => `
             <div class="variable">
@@ -127,13 +133,13 @@ const renderers = {
       ` : ''}
 
       ${data.dynamics ? `
-        <h3 class="section__subtitle">动力学</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_dynamics', '动力学')}</h3>
         <p>${escapeHtml(data.dynamics)}</p>
       ` : ''}
 
       ${data.why_stuck ? `
         <div class="callout callout--warning">
-          <div class="callout__label">为什么卡壳</div>
+          <div class="callout__label">${T('page.analyze.sub_why_stuck', '为什么卡壳')}</div>
           <div class="callout__text">${escapeHtml(data.why_stuck)}</div>
         </div>
       ` : ''}
@@ -146,17 +152,17 @@ const renderers = {
     const thinkers = data.key_thinkers || [];
     const tools = data.mature_tools || [];
     return `
-      <h3 class="section__subtitle">${escapeHtml(data.domain_name || '源领域')}</h3>
+      <h3 class="section__subtitle">${escapeHtml(data.domain_name || T('page.analyze.sub_source_domain', '源领域'))}</h3>
       ${data.what_it_studies ? `<p>${escapeHtml(data.what_it_studies)}</p>` : ''}
 
       ${phenom.name ? `
-        <h3 class="section__subtitle">这个领域里的对应现象：${escapeHtml(phenom.name)}</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_corresponding_phenomenon', '这个领域里的对应现象')}：${escapeHtml(phenom.name)}</h3>
         ${phenom.plain_description ? `<p>${escapeHtml(phenom.plain_description)}</p>` : ''}
-        ${phenom.discovery_history ? `<p><strong>发现历史：</strong>${escapeHtml(phenom.discovery_history)}</p>` : ''}
+        ${phenom.discovery_history ? `<p><strong>${T('page.analyze.sub_discovery_history', '发现历史')}：</strong>${escapeHtml(phenom.discovery_history)}</p>` : ''}
       ` : ''}
 
       ${thinkers.length > 0 ? `
-        <h3 class="section__subtitle">关键人物</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_key_thinkers', '关键人物')}</h3>
         <div class="thinkers">
           ${thinkers.map(t => `
             <div class="thinker">
@@ -169,7 +175,7 @@ const renderers = {
       ` : ''}
 
       ${tools.length > 0 ? `
-        <h3 class="section__subtitle">成熟工具</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_mature_tools', '成熟工具')}</h3>
         <div class="tools-list">
           ${tools.map(t => `
             <div class="tool">
@@ -194,13 +200,13 @@ const renderers = {
             <div class="param-row">
               <div class="param-row__pair">
                 <div class="param-row__side">
-                  <div class="param-row__side-label">源领域</div>
+                  <div class="param-row__side-label">${T('page.analyze.sub_source_domain', '源领域')}</div>
                   <div class="param-row__concept">${escapeHtml(p.source_concept || '')}</div>
                   <div class="param-row__explain">${escapeHtml(p.source_explanation || '')}</div>
                 </div>
                 <div class="param-row__arrow">↔</div>
                 <div class="param-row__side">
-                  <div class="param-row__side-label">你的问题</div>
+                  <div class="param-row__side-label">${T('page.analyze.sub_your_problem', '你的问题')}</div>
                   <div class="param-row__concept">${escapeHtml(p.target_concept || '')}</div>
                   <div class="param-row__explain">${escapeHtml(p.target_explanation || '')}</div>
                 </div>
@@ -225,19 +231,19 @@ const renderers = {
         </div>
         ${ins.what_it_solves_in_source ? `
           <div class="insight__subsection">
-            <span class="insight__subsection-label">在源领域中它解决什么</span>
+            <span class="insight__subsection-label">${T('page.analyze.sub_what_it_solves', '在源领域中它解决什么')}</span>
             <div class="insight__subsection-text">${md(ins.what_it_solves_in_source)}</div>
           </div>
         ` : ''}
         ${ins.translated_to_target ? `
           <div class="insight__subsection">
-            <span class="insight__subsection-label">翻译到你的问题</span>
+            <span class="insight__subsection-label">${T('page.analyze.sub_translated_to_target', '翻译到你的问题')}</span>
             <div class="insight__subsection-text">${md(ins.translated_to_target)}</div>
           </div>
         ` : ''}
         ${ins.concrete_application ? `
           <div class="insight__subsection insight__apply">
-            <span class="insight__subsection-label">具体怎么用</span>
+            <span class="insight__subsection-label">${T('page.analyze.sub_concrete_application', '具体怎么用')}</span>
             <div class="insight__subsection-text insight__subsection-text--block">${mdb(ins.concrete_application)}</div>
           </div>
         ` : ''}
@@ -251,14 +257,14 @@ const renderers = {
     const assumptions = data.assumptions_to_verify || [];
     return `
       ${steps.length > 0 ? `
-        <h3 class="section__subtitle">执行步骤</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_execution_steps', '执行步骤')}</h3>
         <div class="steps">
           ${steps.map(s => `<div class="step">${escapeHtml(s)}</div>`).join('')}
         </div>
       ` : ''}
 
       ${assumptions.length > 0 ? `
-        <h3 class="section__subtitle">需要验证的假设</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_assumptions', '需要验证的假设')}</h3>
         <ul style="padding-left: 24px; font-size: var(--fs-14); color: var(--text-secondary); line-height: var(--lh-relaxed);">
           ${assumptions.map(a => `<li style="margin-bottom: 8px;">${escapeHtml(a)}</li>`).join('')}
         </ul>
@@ -266,7 +272,7 @@ const renderers = {
 
       ${data.boundary_conditions ? `
         <div class="callout">
-          <div class="callout__label">边界条件</div>
+          <div class="callout__label">${T('page.analyze.sub_boundary_conditions', '边界条件')}</div>
           <div class="callout__text">${escapeHtml(data.boundary_conditions)}</div>
         </div>
       ` : ''}
@@ -284,20 +290,20 @@ const renderers = {
 
     return `
       <div class="research-status research-status--${statusClass}">
-        文献状态 · ${escapeHtml(status || '未知')}
+        ${T('page.analyze.sub_literature_status', '文献状态')} · ${escapeHtml(status || T('page.analyze.status_unknown', '未知'))}
       </div>
 
       ${data.status_explanation ? `<p>${escapeHtml(data.status_explanation)}</p>` : ''}
 
       ${data.if_novel_opportunity ? `
         <div class="opportunity">
-          <div class="opportunity__label">⭐ 潜在的研究机会</div>
+          <div class="opportunity__label">${T('page.analyze.sub_research_opportunity', '⭐ 潜在的研究机会')}</div>
           <div class="opportunity__text">${escapeHtml(data.if_novel_opportunity)}</div>
         </div>
       ` : ''}
 
       ${refs.length > 0 ? `
-        <h3 class="section__subtitle">建议参考</h3>
+        <h3 class="section__subtitle">${T('page.analyze.sub_suggested_references', '建议参考')}</h3>
         <div class="references">
           ${refs.map(r => `
             <div class="reference">
@@ -317,11 +323,14 @@ const renderers = {
         ${data.map(r => {
           const sev = (r.severity || '').trim();
           let sevClass = 'low';
-          if (sev === '高') sevClass = 'high';
-          else if (sev === '中') sevClass = 'medium';
+          let sevLabel = T('page.analyze.severity_low', '低');
+          if (sev === '高') { sevClass = 'high'; sevLabel = T('page.analyze.severity_high', '高'); }
+          else if (sev === '中') { sevClass = 'medium'; sevLabel = T('page.analyze.severity_medium', '中'); }
+          else if (sev === '低') { sevClass = 'low'; sevLabel = T('page.analyze.severity_low', '低'); }
+          else if (sev) { sevLabel = sev; }
           return `
             <div class="risk">
-              <span class="risk__severity risk__severity--${sevClass}">${escapeHtml(sev || '低')}</span>
+              <span class="risk__severity risk__severity--${sevClass}">${escapeHtml(sevLabel)}</span>
               <div>
                 <div class="risk__name">${escapeHtml(r.risk_name || '')}</div>
                 <div class="risk__explain">${escapeHtml(r.explanation || '')}</div>
@@ -371,19 +380,19 @@ const renderers = {
           </div>
           ${it.how ? `
             <div class="action-item__row">
-              <span class="action-item__row-label">怎么做</span>
+              <span class="action-item__row-label">${T('page.analyze.action_how', '怎么做')}</span>
               <div class="action-item__row-text action-item__row-text--block">${mdb(normalizeSteps(it.how))}</div>
             </div>
           ` : ''}
           ${it.verification ? `
             <div class="action-item__row">
-              <span class="action-item__row-label">验证指标</span>
+              <span class="action-item__row-label">${T('page.analyze.action_verification', '验证指标')}</span>
               <div class="action-item__row-text">${md(it.verification)}</div>
             </div>
           ` : ''}
           ${it.expected_impact ? `
             <div class="action-item__row">
-              <span class="action-item__row-label">预期产出</span>
+              <span class="action-item__row-label">${T('page.analyze.action_expected', '预期产出')}</span>
               <div class="action-item__row-text">${md(it.expected_impact)}</div>
             </div>
           ` : ''}
@@ -396,14 +405,14 @@ const renderers = {
 
       ${ifShort ? `
         <div class="action-pinned">
-          <div class="action-pinned__label">⭐ 如果你只能做一件事</div>
+          <div class="action-pinned__label">${T('page.analyze.action_if_only_one', '⭐ 如果你只能做一件事')}</div>
           <h3 class="action-pinned__title">${md(ifShort.title || '')}</h3>
           ${ifShort.rationale ? `<p class="action-pinned__rationale">${md(ifShort.rationale)}</p>` : ''}
         </div>
       ` : ''}
 
       ${items.length > 0 ? `
-        <h3 class="section__subtitle">本周完整计划</h3>
+        <h3 class="section__subtitle">${T('page.analyze.action_full_plan', '本周完整计划')}</h3>
         <ol class="action-list">
           ${items.map(itemHtml).join('')}
         </ol>
@@ -411,7 +420,7 @@ const renderers = {
 
       ${followup ? `
         <div class="action-followup">
-          <span class="action-followup__label">下周回头看</span>
+          <span class="action-followup__label">${T('page.analyze.action_next_week', '下周回头看')}</span>
           <p class="action-followup__text">${md(followup)}</p>
         </div>
       ` : ''}
@@ -424,7 +433,7 @@ function renderProgress() {
   const el = $('#analyze-progress');
   if (!el) return;
   el.innerHTML = SECTIONS.map(s => `
-    <button class="analyze-progress__item" data-key="${s.key}">${escapeHtml(s.label)}</button>
+    <button class="analyze-progress__item" data-key="${s.key}">${escapeHtml(sectionLabel(s))}</button>
   `).join('');
 
   el.addEventListener('click', (e) => {
@@ -449,7 +458,7 @@ function renderSections(container) {
   container.innerHTML = SECTIONS.map(s => `
     <section class="section" id="section-${s.key}" data-key="${s.key}">
       <div class="section__number">${s.num}</div>
-      <h2 class="section__title">${escapeHtml(s.label)}</h2>
+      <h2 class="section__title">${escapeHtml(sectionLabel(s))}</h2>
       <div class="section__body" id="section-body-${s.key}"></div>
     </section>
   `).join('');
@@ -479,16 +488,17 @@ function renderHeader(meta) {
   const b = meta.b;
 
   const questionText = isQuery ? (b.original_query || b.description || '') : b.name;
-  const label = isQuery ? '你的问题' : '对比分析';
+  const label = isQuery ? T('page.analyze.header_your_question', '你的问题') : T('page.analyze.header_comparison', '对比分析');
+  const targetStrong = isQuery ? T('page.analyze.header_your_question', '你的问题') : escapeHtml(b.domain);
 
   el.innerHTML = `
     <div class="analyze-header__label">${escapeHtml(label)}</div>
     <h1 class="analyze-header__question">${escapeHtml(questionText)}</h1>
     <div class="analyze-header__bridge">
-      <span>从 <strong>${escapeHtml(a.domain)} · ${escapeHtml(a.name)}</strong> 借用答案</span>
+      <span>${T('page.analyze.header_borrow_from', '从 {source} 借用答案').replace('{source}', `<strong>${escapeHtml(a.domain)} · ${escapeHtml(a.name)}</strong>`)}</span>
       <svg class="analyze-header__bridge-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      <span>应用到<strong>${isQuery ? '你的问题' : escapeHtml(b.domain)}</strong></span>
-      <span style="color: var(--text-tertiary); font-family: var(--font-mono); font-size: var(--fs-12); margin-left: 8px;">${Math.round((meta.similarity || 0) * 100)}% 结构相似</span>
+      <span>${T('page.analyze.header_apply_to', '应用到 {target}').replace('{target}', `<strong>${targetStrong}</strong>`)}</span>
+      <span style="color: var(--text-tertiary); font-family: var(--font-mono); font-size: var(--fs-12); margin-left: 8px;">${T('page.analyze.header_similarity', '{pct}% 结构相似').replace('{pct}', Math.round((meta.similarity || 0) * 100))}</span>
     </div>
   `;
 }
@@ -506,7 +516,7 @@ function updateLoadingProgress(chars) {
   }
   const lineEl = $('#analyze-loading .analyze-loading__progress-line');
   if (lineEl) {
-    lineEl.textContent = `已生成 ${chars} 字 · LLM 正在写研究报告`;
+    lineEl.textContent = T('page.analyze.loading_progress_line', '已生成 {chars} 字 · LLM 正在写研究报告').replace('{chars}', chars);
   }
 }
 
@@ -522,7 +532,7 @@ function renderFinalReport(report) {
     return `
       <section class="section" id="section-${s.key}" data-key="${s.key}" style="animation-delay: ${i * 150}ms">
         <div class="section__number">${s.num}</div>
-        <h2 class="section__title">${escapeHtml(s.label)}</h2>
+        <h2 class="section__title">${escapeHtml(sectionLabel(s))}</h2>
         <div class="section__body">${html || '<p style="color:var(--text-tertiary)">—</p>'}</div>
       </section>
     `;
@@ -540,7 +550,7 @@ function pendingBodyHtml() {
   return `
     <div class="section__wait">
       ${window.hourglassSvg ? window.hourglassSvg() : ''}
-      <span class="section__wait-label">等待中</span>
+      <span class="section__wait-label">${T('page.analyze.status_waiting', '等待中')}</span>
     </div>
   `;
 }
@@ -565,8 +575,8 @@ function streamingBodyHtml(key) {
   return `
     <div class="section__streaming-indicator">
       ${window.hourglassSvg ? window.hourglassSvg() : ''}
-      <span>正在生成这一部分</span>
-      <span class="elapsed-timer section__stream-timer" data-eta="${eta}">已 0s / 约 ${eta}s</span>
+      <span>${T('page.analyze.status_generating_section', '正在生成这一部分')}</span>
+      <span class="elapsed-timer section__stream-timer" data-eta="${eta}">${T('page.analyze.timer_elapsed_eta', '已 {s}s / 约 {eta}s').replace('{s}', '0').replace('{eta}', eta)}</span>
     </div>
     <div class="shimmer-line"></div>
   `;
@@ -578,7 +588,7 @@ function renderSectionSkeleton() {
   container.innerHTML = SECTIONS.map(s => `
     <section class="section section--pending" id="section-${s.key}" data-key="${s.key}">
       <div class="section__number">${s.num}</div>
-      <h2 class="section__title">${escapeHtml(s.label)}</h2>
+      <h2 class="section__title">${escapeHtml(sectionLabel(s))}</h2>
       <div class="section__body">${pendingBodyHtml()}</div>
     </section>
   `).join('');
@@ -609,7 +619,7 @@ function setStreamingSection(key) {
           const eta = Number(timerEl.getAttribute('data-eta')) || 8;
           // Custom format that shows "已 Xs / 约 Ys"
           _currentStreamTimerStop = window.startElapsedTimer(timerEl, {
-            format: (s) => `已 ${s}s / 约 ${eta}s`,
+            format: (s) => T('page.analyze.timer_elapsed_eta', '已 {s}s / 约 {eta}s').replace('{s}', s).replace('{eta}', eta),
           });
         }
       }
@@ -769,8 +779,8 @@ function streamAnalysis(params) {
     console.warn('[analyze] retry event:', e && e.data);
     const titleEl = $('#analyze-loading .analyze-loading__title');
     const hintEl = $('#analyze-loading .analyze-loading__hint');
-    if (titleEl) titleEl.textContent = '首次生成失败，正在重试...';
-    if (hintEl) hintEl.textContent = '模型刚刚没稳定输出，我们换个角度再来一次。';
+    if (titleEl) titleEl.textContent = T('page.analyze.retry_first', '首次生成失败，正在重试...');
+    if (hintEl) hintEl.textContent = T('page.analyze.retry_first_hint', '模型刚刚没稳定输出，我们换个角度再来一次。');
   });
 
   es.addEventListener('error', (e) => {
@@ -787,7 +797,7 @@ function streamAnalysis(params) {
     if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
     if (_currentStreamTimerStop) { _currentStreamTimerStop(); _currentStreamTimerStop = null; }
     renderStreamError({
-      message: data.message || data.error || '生成失败',
+      message: data.message || data.error || T("page.analyze.error_title", "生成失败"),
       retryable: data.retryable,
       raw: data,
     });
@@ -802,7 +812,7 @@ function streamAnalysis(params) {
     // Mid-stream disconnect leaves existing sections readable.
     if (receivedKeys.size === 0) {
       renderStreamError({
-        message: '连接中断，可能是网络或 LLM 响应超时',
+        message: T('page.analyze.error_hint', '连接中断，可能是网络或 LLM 响应超时'),
         retryable: undefined, // unknown — default to refresh-retry
       });
     }
@@ -812,21 +822,21 @@ function streamAnalysis(params) {
 
 // === Render an error state in place of the loading block ===
 // `retryable === false`  → show "重试" button (user can click to re-request)
-// otherwise              → show "刷新重试" (full reload) as the safer default
+// otherwise              → show T("page.analyze.btn_retry", "刷新重试") (full reload) as the safer default
 function renderStreamError({ message, retryable }) {
   const loading = $('#analyze-loading');
   if (!loading) return;
-  const msg = escapeHtml(message || '生成失败');
+  const msg = escapeHtml(message || T("page.analyze.error_title", "生成失败"));
   const canSoftRetry = retryable !== false;
   const buttonHtml = canSoftRetry
-    ? `<a href="javascript:location.reload()" class="btn btn--primary">刷新重试</a>`
-    : `<button type="button" class="btn btn--primary" id="analyze-retry-btn">重试</button>`;
+    ? `<a href="javascript:location.reload()" class="btn btn--primary">${T("page.analyze.btn_retry", "刷新重试")}</a>`
+    : `<button type="button" class="btn btn--primary" id="analyze-retry-btn">${T('page.analyze.btn_retry_soft', '重试')}</button>`;
   loading.innerHTML = `
-    <h2 class="analyze-loading__title" style="color: var(--danger, #dc2626)">生成失败</h2>
+    <h2 class="analyze-loading__title" style="color: var(--danger, #dc2626)">${T("page.analyze.error_title", "生成失败")}</h2>
     <p class="analyze-loading__hint">${msg}</p>
     <p style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
       ${buttonHtml}
-      <a href="/" class="btn btn--ghost">返回首页</a>
+      <a href="/" class="btn btn--ghost">${T("page.analyze.btn_back_home", "返回首页")}</a>
     </p>
   `;
   // Ensure the loading block is visible (it may have been fading out)
@@ -850,11 +860,11 @@ function renderStreamError({ message, retryable }) {
           <span class="analyze-loading__dot"></span>
           <span class="analyze-loading__dot"></span>
         </div>
-        <h2 class="analyze-loading__title">正在生成深度分析报告</h2>
-        <p class="analyze-loading__hint">我们正在写一份跨学科迁移研究报告。</p>
+        <h2 class="analyze-loading__title">${T('page.analyze.loading_title', '正在生成深度分析报告')}</h2>
+        <p class="analyze-loading__hint">${T('page.analyze.loading_hint_long', '我们正在写一份跨学科迁移研究报告。')}</p>
         <div class="analyze-loading__timer-row">
-          <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
-          <span class="analyze-loading__typical">通常需 30–60s</span>
+          <span class="elapsed-timer" id="analyze-loading-timer">${T('page.analyze.timer_waiting', '已等待 0s')}</span>
+          <span class="analyze-loading__typical">${T('page.analyze.timer_typical', '通常需 30–60s')}</span>
         </div>
       `;
       streamAnalysis(p);
@@ -875,7 +885,7 @@ function buildBriefMarkdown() {
   const isQuery = meta.is_query_mode;
 
   const userQuery = isQuery ? (b.original_query || b.description || '') : '';
-  const targetLabel = isQuery ? '你的问题' : `${b.domain || ''} · ${b.name || ''}`;
+  const targetLabel = isQuery ? T('page.analyze.header_your_question', '你的问题') : `${b.domain || ''} · ${b.name || ''}`;
   const url = window.location.href;
 
   // Helper: strip $...$ math markers and **bold** for plain markdown context
@@ -889,30 +899,30 @@ function buildBriefMarkdown() {
   const ifShort = action.if_time_short;
 
   const lines = [];
-  lines.push(`# Structural · 跨学科分析简报`);
+  lines.push(`# ${T('page.analyze.brief_title', 'Structural · 跨学科分析简报')}`);
   lines.push('');
   if (userQuery) {
-    lines.push(`> **你的问题**: ${userQuery}`);
+    lines.push(`> **${T('page.analyze.brief_your_question', '你的问题')}**: ${userQuery}`);
   }
-  lines.push(`> **跨学科类比**: ${a.domain || ''} · ${a.name || ''}  ↔  ${targetLabel}`);
+  lines.push(`> **${T('page.analyze.brief_analogy', '跨学科类比')}**: ${a.domain || ''} · ${a.name || ''}  ↔  ${targetLabel}`);
   if (struct.name) {
-    lines.push(`> **共享结构**: ${struct.name}`);
+    lines.push(`> **${T('page.analyze.brief_shared_structure', '共享结构')}**: ${struct.name}`);
   }
   if (typeof meta.similarity === 'number') {
-    lines.push(`> **结构相似度**: ${Math.round(meta.similarity * 100)}%`);
+    lines.push(`> **${T('page.analyze.brief_similarity', '结构相似度')}**: ${Math.round(meta.similarity * 100)}%`);
   }
   lines.push('');
 
   // Core insight
   if (struct.intuition) {
-    lines.push(`## 一句话核心`);
+    lines.push(`## ${T('page.analyze.brief_one_liner', '一句话核心')}`);
     lines.push(clean(struct.intuition));
     lines.push('');
   }
 
   // Top 3 borrowable insights — translated_to_target is the punchy summary
   if (insights.length > 0) {
-    lines.push(`## 三条最关键的洞察`);
+    lines.push(`## ${T('page.analyze.brief_top_insights', '三条最关键的洞察')}`);
     insights.slice(0, 3).forEach((ins, i) => {
       const tool = ins.tool || '';
       const translated = clean(ins.translated_to_target || '');
@@ -923,35 +933,35 @@ function buildBriefMarkdown() {
 
   // Action plan — the money shot
   if (ifShort) {
-    lines.push(`## ⭐ 如果你只能做一件事`);
+    lines.push(`## ${T('page.analyze.action_if_only_one', '⭐ 如果你只能做一件事')}`);
     lines.push(`**${ifShort.title || ''}**`);
     if (ifShort.rationale) lines.push(clean(ifShort.rationale));
     lines.push('');
   }
 
   if (actions.length > 0) {
-    lines.push(`## 本周行动清单`);
+    lines.push(`## ${T('page.analyze.brief_weekly_actions', '本周行动清单')}`);
     actions.forEach((it) => {
       const rank = it.rank || '?';
       const time = it.estimated_time ? ` _（${it.estimated_time}）_` : '';
       const optional = (it.rank || 0) >= 4 ? ' (optional)' : '';
       lines.push(`${rank}. **${clean(it.title || '')}**${time}${optional}`);
-      if (it.how) lines.push(`   - 怎么做：${clean(it.how)}`);
-      if (it.verification) lines.push(`   - 验证：${clean(it.verification)}`);
-      if (it.expected_impact) lines.push(`   - 预期：${clean(it.expected_impact)}`);
+      if (it.how) lines.push(`   - ${T('page.analyze.action_how', '怎么做')}：${clean(it.how)}`);
+      if (it.verification) lines.push(`   - ${T('page.analyze.brief_verify', '验证')}：${clean(it.verification)}`);
+      if (it.expected_impact) lines.push(`   - ${T('page.analyze.brief_expected', '预期')}：${clean(it.expected_impact)}`);
     });
     lines.push('');
   }
 
   if (action.next_week_followup) {
-    lines.push(`## 下周回头看`);
+    lines.push(`## ${T('page.analyze.action_next_week', '下周回头看')}`);
     lines.push(clean(action.next_week_followup));
     lines.push('');
   }
 
   // Risks
   if (risks.length > 0) {
-    lines.push(`## 迁移风险`);
+    lines.push(`## ${T('page.analyze.section_risks_and_limits', '迁移风险')}`);
     risks.slice(0, 3).forEach((rk) => {
       const sev = rk.severity ? `[${rk.severity}] ` : '';
       lines.push(`- ${sev}**${rk.risk_name || ''}** — ${clean(rk.explanation || '')}`);
@@ -960,7 +970,7 @@ function buildBriefMarkdown() {
   }
 
   lines.push('---');
-  lines.push(`_来自 [Structural](${url})_`);
+  lines.push(`_${T('page.analyze.brief_footer', '来自 [Structural]')}(${url})_`);
 
   return lines.join('\n');
 }
@@ -972,7 +982,7 @@ function initAnalyzeActions() {
   if (briefBtn) {
     briefBtn.addEventListener('click', async () => {
       if (!window._finalReport || Object.keys(window._finalReport).length === 0) {
-        if (window.showToast) window.showToast('报告还在生成中，请稍后再点');
+        if (window.showToast) window.showToast(T('page.analyze.toast_still_generating', '报告还在生成中，请稍后再点'));
         return;
       }
       const md = buildBriefMarkdown();
@@ -989,10 +999,10 @@ function initAnalyzeActions() {
           document.execCommand('copy');
           document.body.removeChild(ta);
         }
-        if (window.showToast) window.showToast('已复制为 Markdown 简报，可以粘贴到 Notion / Slack / 邮件');
+        if (window.showToast) window.showToast(T('page.analyze.toast_brief_copied', '已复制为 Markdown 简报，可以粘贴到 Notion / Slack / 邮件'));
       } catch (err) {
         console.error('[analyze] brief copy failed:', err);
-        if (window.showToast) window.showToast('复制失败，请检查浏览器权限');
+        if (window.showToast) window.showToast(T('page.analyze.toast_copy_failed_perm', '复制失败，请检查浏览器权限'));
       }
     });
   }
@@ -1015,10 +1025,10 @@ function initAnalyzeActions() {
           document.execCommand('copy');
           document.body.removeChild(ta);
         }
-        if (window.showToast) window.showToast('链接已复制，可以分享给朋友');
+        if (window.showToast) window.showToast(T('page.analyze.toast_link_copied', '链接已复制，可以分享给朋友'));
       } catch (err) {
         console.error('[analyze] copy failed:', err);
-        if (window.showToast) window.showToast('复制失败，请手动复制地址栏 URL');
+        if (window.showToast) window.showToast(T('page.analyze.toast_copy_failed_manual', '复制失败，请手动复制地址栏 URL'));
       }
     });
   }
@@ -1054,7 +1064,7 @@ function initAnalyzeActions() {
     const icon = document.getElementById('analyze-fav-icon');
     const label = document.getElementById('analyze-fav-label');
     if (icon) icon.textContent = active ? '★' : '☆';
-    if (label) label.textContent = active ? '已收藏' : '收藏';
+    if (label) label.textContent = active ? T('page.analyze.fav_active', '已收藏') : T('page.analyze.btn_fav', '收藏');
   };
 
   syncFavUi();
@@ -1065,7 +1075,7 @@ function initAnalyzeActions() {
     syncFavUi();
     if (window.updateFavBadge) window.updateFavBadge();
     if (window.showToast) {
-      window.showToast(favorited ? '已添加到收藏' : '已移出收藏');
+      window.showToast(favorited ? T('page.analyze.toast_fav_added', '已添加到收藏') : T('page.analyze.toast_fav_removed', '已移出收藏'));
     }
   });
 
@@ -1108,3 +1118,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   streamAnalysis(params);
 });
+
+// Re-render header + progress + revealed sections when language toggles.
+// Pending / streaming sections keep their placeholder (T() is resolved on paint).
+try {
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      try {
+        // Header
+        if (window._analyzeMeta) renderHeader(window._analyzeMeta);
+        // Progress rail labels
+        var rail = document.getElementById('analyze-progress');
+        if (rail) {
+          rail.querySelectorAll('.analyze-progress__item').forEach(function (el) {
+            var k = el.dataset.key;
+            var sec = SECTIONS.find(function (s) { return s.key === k; });
+            if (sec) el.textContent = sectionLabel(sec);
+          });
+        }
+        // Section titles
+        document.querySelectorAll('.section').forEach(function (el) {
+          var k = el.dataset.key;
+          var sec = SECTIONS.find(function (s) { return s.key === k; });
+          if (!sec) return;
+          var titleEl = el.querySelector('.section__title');
+          if (titleEl) titleEl.textContent = sectionLabel(sec);
+          // Re-render already-revealed bodies so sub-headings pick up new lang.
+          if (el.classList.contains('section--revealed') && window._finalReport && window._finalReport[k]) {
+            var body = el.querySelector('.section__body');
+            var renderer = renderers[k];
+            if (body && renderer) {
+              var html = renderer(window._finalReport[k]);
+              if (html) {
+                body.innerHTML = html;
+                if (window.renderMath) window.renderMath(body);
+              }
+            }
+          }
+        });
+        // Favorite button label
+        var favLabel = document.getElementById('analyze-fav-label');
+        if (favLabel) {
+          var active = favLabel.parentElement && favLabel.parentElement.classList.contains('is-active');
+          favLabel.textContent = active
+            ? T('page.analyze.fav_active', '已收藏')
+            : T('page.analyze.btn_fav', '收藏');
+        }
+      } catch (e) { console.warn('[analyze] onChange re-render failed:', e); }
+    });
+  }
+} catch (e) {}

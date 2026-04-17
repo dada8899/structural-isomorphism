@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from services.llm_service import LLMService
+from services.translation import translate_category, translate_kb_items
 from services.v2_pairs import get_pairs_for, has_pairs
 
 router = APIRouter(tags=["search"])
@@ -86,8 +87,13 @@ async def search_phenomena(req: SearchRequest):
     original_query = req.query
     effective_query = original_query
     rewritten = None
+    lang_norm = (req.lang or "zh").lower()
+    if lang_norm not in ("zh", "en"):
+        lang_norm = "zh"
     # Default assessment is a permissive passthrough so downstream code that
-    # reads `assessment.worth_score` still sees a valid shape.
+    # reads `assessment.worth_score` still sees a valid shape. The `category`
+    # value stays ZH internally (enum shape) and is translated on output
+    # when lang=en.
     assessment = {
         "worth_score": 5,
         "category": "现象描述",
@@ -119,6 +125,12 @@ async def search_phenomena(req: SearchRequest):
 
     results = svc.search(effective_query, top_k=req.top_k)
 
+    # When lang=en, translate KB results (name/domain/description). Other
+    # fields (id/type_id/score) pass through. Domain stats are computed
+    # AFTER translation so the aggregated domain names are also in EN.
+    if lang_norm == "en":
+        results = await translate_kb_items(results, lang_norm)
+
     # Aggregate stats for the results page UI
     type_counts = Counter(r["type_id"] for r in results if r.get("type_id"))
     domain_counts = Counter(r["domain"] for r in results if r.get("domain"))
@@ -145,6 +157,23 @@ async def search_phenomena(req: SearchRequest):
             }
             for p in raw_pairs
         ]
+        # When lang=en, translate the "other" side of each pair too so the
+        # UI renders a uniform English block.
+        if lang_norm == "en" and trimmed_pairs:
+            as_items = [
+                {
+                    "id": p["other_id"],
+                    "name": p.get("other_name") or "",
+                    "domain": p.get("other_domain") or "",
+                    "description": "",  # unused for pair cards
+                }
+                for p in trimmed_pairs
+            ]
+            translated = await translate_kb_items(as_items, lang_norm)
+            for p, t in zip(trimmed_pairs, translated):
+                p["other_name"] = t.get("name") or p["other_name"]
+                p["other_domain"] = t.get("domain") or p["other_domain"]
+
         v2_pairs_for_top.append(
             {
                 "phenomenon_id": rid,
@@ -153,6 +182,11 @@ async def search_phenomena(req: SearchRequest):
                 "pairs": trimmed_pairs,
             }
         )
+
+    # Translate the hard-coded ZH category enum on the way out.
+    if lang_norm == "en":
+        assessment = dict(assessment)
+        assessment["category"] = translate_category(assessment.get("category"))
 
     return {
         "query": original_query,
@@ -178,22 +212,29 @@ async def assess_query(req: AssessRequest):
     results immediately and then overlay the coaching gate if the query
     scores below threshold. On any error we fail open (worth_score=5).
     """
+    lang_norm = (req.lang or "zh").lower()
+    if lang_norm not in ("zh", "en"):
+        lang_norm = "zh"
+    default_category = "phenomenon description" if lang_norm == "en" else "现象描述"
     fallback = {
         "query": req.query,
         "rewritten": req.query,
         "worth_score": 5,
-        "category": "现象描述",
+        "category": default_category,
         "coaching": None,
         "rewrite_suggestion": None,
     }
     try:
         llm = _get_llm()
         result = await llm.assess_and_rewrite(req.query, lang=req.lang)
+        category = result.get("category", "现象描述")
+        if lang_norm == "en":
+            category = translate_category(category)
         return {
             "query": req.query,
             "rewritten": result.get("rewritten") or req.query,
             "worth_score": result.get("worth_score", 5),
-            "category": result.get("category", "现象描述"),
+            "category": category,
             "coaching": result.get("coaching"),
             "rewrite_suggestion": result.get("rewrite_suggestion"),
         }

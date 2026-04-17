@@ -79,17 +79,23 @@ function renderHeroStats(stats) {
 
 function renderMembers(membersByDomain, hubName) {
   if (!membersByDomain || !membersByDomain.length) return "";
+  const isEn = currentLang() === 'en';
   const rows = membersByDomain
     .map((row) => {
-      const names = row.names
-        .map((n) => {
-          const isHub = n === hubName;
+      const domainLabel = (isEn && row.domain_en) ? row.domain_en : row.domain;
+      const namesArr = (isEn && row.names_en && row.names_en.length) ? row.names_en : row.names;
+      const namesZhArr = row.names || [];
+      const names = namesArr
+        .map((n, i) => {
+          // Hub comparison: always use the zh-side to match hubName passed in
+          const rawName = namesZhArr[i] !== undefined ? namesZhArr[i] : n;
+          const isHub = rawName === hubName || n === hubName;
           return `<span class="uc-members__name${isHub ? " uc-members__name--hub" : ""}">${escapeHtml(n)}${isHub ? " ★" : ""}</span>`;
         })
         .join("");
       return `
       <div class="uc-members__row">
-        <div class="uc-members__domain">${escapeHtml(row.domain)}</div>
+        <div class="uc-members__domain">${escapeHtml(domainLabel)}</div>
         <div class="uc-members__names">${names}</div>
       </div>
     `;
@@ -204,10 +210,10 @@ function renderPredictions(preds) {
   return preds
     .map((p) => {
       const meta = [];
-      if (L(p, "test_method")) meta.push(`<div><span class="uc-pred__meta-key">方法</span>${escapeHtml(L(p, "test_method"))}</div>`);
-      if (L(p, "data_source")) meta.push(`<div><span class="uc-pred__meta-key">数据</span>${escapeHtml(L(p, "data_source"))}</div>`);
-      if (L(p, "sample_size")) meta.push(`<div><span class="uc-pred__meta-key">样本量</span>${escapeHtml(L(p, "sample_size"))}</div>`);
-      if (L(p, "paper_target")) meta.push(`<div><span class="uc-pred__meta-key">目标期刊</span>${escapeHtml(L(p, "paper_target"))}</div>`);
+      if (L(p, "test_method")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_method", "方法")}</span>${escapeHtml(L(p, "test_method"))}</div>`);
+      if (L(p, "data_source")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_data", "数据")}</span>${escapeHtml(L(p, "data_source"))}</div>`);
+      if (L(p, "sample_size")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_sample", "样本量")}</span>${escapeHtml(L(p, "sample_size"))}</div>`);
+      if (L(p, "paper_target")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_venue", "目标期刊")}</span>${escapeHtml(L(p, "paper_target"))}</div>`);
       const rationale = L(p, "rationale")
         ? `<p class="uc-pred__rationale">${escapeHtml(L(p, "rationale"))}</p>`
         : "";
@@ -215,7 +221,7 @@ function renderPredictions(preds) {
         ? "uc-pred__status uc-pred__status--verified"
         : "uc-pred__status";
       const paperLink = p.paper_url
-        ? `<a class="uc-pred__paper-link" href="${escapeHtml(p.paper_url)}"${p.paper_title ? ` title="${escapeHtml(p.paper_title)}"` : ""}>📄 论文 →</a>`
+        ? `<a class="uc-pred__paper-link" href="${escapeHtml(p.paper_url)}"${p.paper_title ? ` title="${escapeHtml(p.paper_title)}"` : ""}>${T("page.classes.pred_paper_link", "📄 论文 →")}</a>`
         : "";
       return `
         <div class="uc-pred${statusCls.includes('verified') ? ' uc-pred--verified' : ''}">
@@ -249,12 +255,12 @@ function buildBadges(cls) {
   const out = [];
   // Put the verified badge FIRST so it's most prominent
   if (nVerified > 0) {
-    const label = nVerified === 1 ? "✅ 已实证" : `✅ 已实证 ×${nVerified}`;
-    out.push(`<span class="uc-badge uc-badge--verified" title="${nVerified} 条预测已通过实证验证">${label}</span>`);
+    const verifiedLabel = T("page.classes.badge_verified", "已实证"); const label = nVerified === 1 ? `✅ ${verifiedLabel}` : `✅ ${verifiedLabel} ×${nVerified}`;
+    out.push(`<span class="uc-badge uc-badge--verified" title="${nVerified} ${T("page.classes.verified_title", "条预测已通过实证验证")}">${label}</span>`);
   }
   out.push(
-    `<span class="uc-badge uc-badge--size">${cls.size} 成员</span>`,
-    `<span class="uc-badge uc-badge--domain">${cls.n_domains} 领域</span>`,
+    `<span class="uc-badge uc-badge--size">${cls.size} ${T("page.classes.badge_members", "成员")}</span>`,
+    `<span class="uc-badge uc-badge--domain">${cls.n_domains} ${T("page.classes.badge_domains", "领域")}</span>`,
   );
   if (cls.avg_edge_score) {
     out.push(`<span class="uc-badge uc-badge--score">avg ${cls.avg_edge_score.toFixed(2)}</span>`);
@@ -263,8 +269,8 @@ function buildBadges(cls) {
     out.push(`<span class="uc-badge uc-badge--soc">SOC</span>`);
   }
   if (isLlm) {
-    const confLabel = cls.confidence === "high" ? "高置信" :
-                      cls.confidence === "medium" ? "中置信" : "低置信";
+    const confLabel = cls.confidence === "high" ? T("page.classes.llm_high", "高置信") :
+                      cls.confidence === "medium" ? T("page.classes.llm_medium", "中置信") : T("page.classes.llm_low", "低置信");
     const confCls = cls.confidence === "high" ? "llm-high" :
                     cls.confidence === "medium" ? "llm-med" : "llm-low";
     out.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
@@ -278,13 +284,13 @@ function renderPreviewCard(cls) {
   const badges = buildBadges(cls);
   const extendedCounts = [];
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
-    extendedCounts.push(`${cls.shared_equations_raw.length} 方程`);
+    extendedCounts.push(`${cls.shared_equations_raw.length} ${T("page.classes.count_equations", "方程")}`);
   }
   if ((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants) && (currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length) {
-    extendedCounts.push(`${(currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length} 不变量`);
+    extendedCounts.push(`${(currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length} ${T("page.classes.count_invariants", "不变量")}`);
   }
   if (cls.predictions && cls.predictions.length) {
-    extendedCounts.push(`${cls.predictions.length} 预测`);
+    extendedCounts.push(`${cls.predictions.length} ${T("page.classes.count_predictions", "预测")}`);
   }
   const hintRow = extendedCounts.length
     ? `<span class="uc-card__more-hint">${extendedCounts.join(' · ')}</span>`
@@ -297,7 +303,7 @@ function renderPreviewCard(cls) {
        data-verified="${countVerifiedPredictions(cls) > 0 ? 'true' : 'false'}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
-          <h2 class="uc-card__title">${escapeHtml(L(cls, "name") || "(未命名)")}</h2>
+          <h2 class="uc-card__title">${escapeHtml(L(cls, "name") || T("page.classes.untitled", "(未命名)"))}</h2>
           ${cls.name_en ? `<p class="uc-card__subtitle">${escapeHtml(cls.name_en)}</p>` : ""}
         </div>
         <div class="uc-card__badges">${badges.join("")}</div>
@@ -309,7 +315,7 @@ function renderPreviewCard(cls) {
       ${L(cls, "summary") ? `<p class="uc-card__summary">${escapeHtml(L(cls, "summary"))}</p>` : ''}
       <div class="uc-card__footer">
         ${hintRow}
-        <span class="uc-card__cta">查看详情 →</span>
+        <span class="uc-card__cta">${T("page.classes.card_cta", "查看详情 →")}</span>
       </div>
     </a>
   `;
@@ -325,16 +331,16 @@ function renderDetail(cls) {
   if (cls.physics_prototype) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">物理学原型</h3>
-        <span class="uc-prototype">${escapeHtml(cls.physics_prototype)}</span>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_prototype", "物理学原型")}</h3>
+        <span class="uc-prototype">${escapeHtml(L(cls, "physics_prototype") || cls.physics_prototype)}</span>
       </section>
     `);
   }
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">共享方程</h3>
-        <p class="uc-detail__section-sub">V3 抽取的 TeX-ish 方程，跨 pair 聚合。</p>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_equations", "共享方程")}</h3>
+        <p class="uc-detail__section-sub">${T("page.classes.section_equations_sub", "V3 抽取的 TeX-ish 方程，跨 pair 聚合。")}</p>
         ${renderEquations(cls.shared_equations_raw)}
       </section>
     `);
@@ -342,21 +348,21 @@ function renderDetail(cls) {
   if ((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants) && (currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">共享不变量</h3>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_invariants", "共享不变量")}</h3>
         ${renderInvariants((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants))}
       </section>
     `);
   }
   sections.push(`
     <section class="uc-detail__section">
-      <h3 class="uc-detail__section-title">成员（按领域分组，★ 为 hub）</h3>
-      ${renderMembers(cls.members_by_domain, L(cls, "hub_name"))}
+      <h3 class="uc-detail__section-title">${T("page.classes.section_members", "成员（按领域分组，★ 为 hub）")}</h3>
+      ${renderMembers(cls.members_by_domain, cls.hub_name)}
     </section>
   `);
   if (cls.predictions && cls.predictions.length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">可验证预测</h3>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_predictions", "可验证预测")}</h3>
         ${renderPredictions(cls.predictions)}
       </section>
     `);
@@ -364,27 +370,27 @@ function renderDetail(cls) {
   if (cls.curation_source === "llm" && cls.notes) {
     sections.push(`
       <section class="uc-detail__section uc-detail__section--note">
-        <h3 class="uc-detail__section-title">LLM 批注</h3>
-        <p class="uc-note">${escapeHtml(cls.notes)}</p>
+        <h3 class="uc-detail__section-title">${T("page.classes.llm_note", "LLM 批注")}</h3>
+        <p class="uc-note">${escapeHtml(L(cls, "notes"))}</p>
       </section>
     `);
   }
 
   host.innerHTML = `
     <nav class="uc-detail__breadcrumb">
-      <a href="/classes" data-back-link>← 返回普适类列表</a>
+      <a href="/classes" data-back-link>${T("page.classes.back_to_list", "← 返回普适类列表")}</a>
     </nav>
 
     <header class="uc-detail__head">
       <div class="uc-detail__titles">
-        <h1 class="uc-detail__title">${escapeHtml(L(cls, "name") || "(未命名)")}</h1>
+        <h1 class="uc-detail__title">${escapeHtml(L(cls, "name") || T("page.classes.untitled", "(未命名)"))}</h1>
         ${cls.name_en ? `<p class="uc-detail__subtitle">${escapeHtml(cls.name_en)}</p>` : ""}
       </div>
       <div class="uc-detail__badges">${badges.join("")}</div>
     </header>
 
     <div class="uc-detail__hub">
-      <span class="uc-detail__hub-label">Hub 节点</span>
+      <span class="uc-detail__hub-label">${T("page.classes.hub_label", "Hub 节点")}</span>
       <span class="uc-detail__hub-name">${escapeHtml(L(cls, "hub_name") || "—")}</span>
     </div>
 
@@ -395,7 +401,7 @@ function renderDetail(cls) {
     </div>
 
     <footer class="uc-detail__footer">
-      <a href="/classes" data-back-link class="uc-detail__back-btn">← 返回普适类列表</a>
+      <a href="/classes" data-back-link class="uc-detail__back-btn">${T("page.classes.back_to_list", "← 返回普适类列表")}</a>
     </footer>
   `;
 
@@ -469,11 +475,11 @@ function navigate(classId, replace) {
     const url = `/classes?id=${encodeURIComponent(classId)}`;
     if (replace) history.replaceState({ classId }, '', url);
     else history.pushState({ classId }, '', url);
-    document.title = `${L(cls, "name")} — 普适类 · Structural`;
+    document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
   } else {
     showView('list');
     history.pushState({}, '', '/classes');
-    document.title = '普适类 — Structural';
+    document.title = T('nav.universality_classes', '普适类') + ' — Structural';
   }
 }
 
@@ -484,12 +490,12 @@ function handlePopState() {
     if (cls) {
       renderDetail(cls);
       showView('detail');
-      document.title = `${L(cls, "name")} — 普适类 · Structural`;
+      document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
       return;
     }
   }
   showView('list');
-  document.title = '普适类 — Structural';
+  document.title = T('nav.universality_classes', '普适类') + ' — Structural';
 }
 
 function applyFilter(filter) {
@@ -536,7 +542,7 @@ async function init() {
       if (cls) {
         renderDetail(cls);
         showView('detail');
-        document.title = `${L(cls, "name")} — 普适类 · Structural`;
+        document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
         history.replaceState({ classId: initialId }, '', window.location.pathname + window.location.search);
       }
     }
@@ -545,7 +551,7 @@ async function init() {
     console.error(e);
     const host = document.getElementById("uc-list");
     if (host) {
-      host.innerHTML = `<p style="color:#c44;padding:40px 0;text-align:center;">加载数据失败：${escapeHtml(e.message)}</p>`;
+      host.innerHTML = `<p style="color:#c44;padding:40px 0;text-align:center;">${T("page.classes.load_failed", "加载数据失败")}：${escapeHtml(e.message)}</p>`;
     }
   }
 }

@@ -18,6 +18,7 @@ from fastapi.responses import StreamingResponse
 from services.cache import MappingCache
 from services.llm_service import LLMService
 from services.rate_limit import limit as _rl
+from services.translation import translate_kb_item
 
 router = APIRouter(tags=["analyze"])
 
@@ -93,12 +94,13 @@ async def stream_analyze(
             raise HTTPException(404, "Phenomenon not in KB")
         similarity = float(np.dot(query_emb.flatten(), svc._embeddings[idx_kb]))
 
-        # SOURCE (a) = KB phenomenon; TARGET (b) = user's question
+        # SOURCE (a) = KB phenomenon; TARGET (b) = user's question.
+        # The synthetic `b.domain` is hardcoded ZH; translate for lang=en.
         a = kb_phenom
         b = {
             "id": "__query__",
             "name": text_a[:60] + ("..." if len(text_a) > 60 else ""),
-            "domain": "你的问题",
+            "domain": "Your question" if lang == "en" else "你的问题",
             "type_id": "?",
             "description": rewritten,
             "original_query": text_a,
@@ -123,6 +125,16 @@ async def stream_analyze(
         cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
     else:
         raise HTTPException(400, "Must provide either a_id or text_a")
+
+    # When lang=en, translate the KB fields in a/b before emitting meta.
+    # `b` in query mode is the user's own question (not KB) so we skip it;
+    # its fields are either user-written or already produced by the LLM
+    # rewrite in the target language.
+    if lang == "en":
+        a = await translate_kb_item(a, lang) or a
+        if user_query is None:
+            # Pair mode — b is a KB item too.
+            b = await translate_kb_item(b, lang) or b
 
     # Expected 9 top-level sections in a complete report
     EXPECTED_SECTIONS = {
@@ -163,9 +175,10 @@ async def stream_analyze(
             """Return (is_fallback, missing_count) for a final report dict."""
             if not report:
                 return True, len(EXPECTED_SECTIONS)
-            is_fallback = (
-                report.get("shared_structure", {}).get("name")
-                == "结构分析暂不可用"
+            name_val = report.get("shared_structure", {}).get("name")
+            is_fallback = name_val in (
+                LLMService.FALLBACK_STRUCTURE_NAME_ZH,
+                LLMService.FALLBACK_STRUCTURE_NAME_EN,
             )
             missing = len(EXPECTED_SECTIONS - set(report.keys()))
             return is_fallback, missing
@@ -268,8 +281,12 @@ async def stream_analyze(
 
         yield sse("done", {"report": final_report, "from_cache": False})
 
-        # Cache successful reports (both first-try and retry-try)
-        if final_report and final_report.get("shared_structure", {}).get("name") != "结构分析暂不可用":
+        # Cache successful reports (both first-try and retry-try). Skip the
+        # fallback sentinel in either language so we don't poison the cache.
+        if final_report and final_report.get("shared_structure", {}).get("name") not in (
+            LLMService.FALLBACK_STRUCTURE_NAME_ZH,
+            LLMService.FALLBACK_STRUCTURE_NAME_EN,
+        ):
             try:
                 _cache.put(cache_key_a, b_id, final_report)
             except Exception:

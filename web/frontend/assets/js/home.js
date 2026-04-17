@@ -1,3 +1,5 @@
+function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
+
 /**
  * Structural — Home page logic
  */
@@ -96,12 +98,22 @@ const DEMO_EXAMPLES = [
 ];
 
 // === Search box placeholders (used by single-line input only, not textarea) ===
-const PLACEHOLDER_TEXTS = [
+const PLACEHOLDER_TEXTS_ZH = [
   '我们的产品增长放缓了...',
   '为什么市场会崩盘',
   '用户老客户越来越不活跃，怎么看',
   '为什么有些市场必然赢家通吃',
 ];
+const PLACEHOLDER_TEXTS_EN = [
+  'Our product growth is slowing...',
+  'Why do markets crash',
+  'How to interpret declining retention among long-time users',
+  'Why some markets inevitably end winner-take-all',
+];
+function PLACEHOLDER_TEXTS() {
+  try { return (window.i18n && window.i18n.getLang && window.i18n.getLang() === 'en') ? PLACEHOLDER_TEXTS_EN : PLACEHOLDER_TEXTS_ZH; }
+  catch (e) { return PLACEHOLDER_TEXTS_ZH; }
+}
 
 // === Typewriter placeholder ===
 class Typewriter {
@@ -129,7 +141,7 @@ class Typewriter {
     if (!this.running) return;
     if (document.activeElement === this.input) {
       // User is typing, reset to plain placeholder
-      this.input.setAttribute('placeholder', '描述一个你观察到的现象...');
+      this.input.setAttribute('placeholder', T("page.home.fallback_placeholder", "描述一个你观察到的现象..."));
       this.charIdx = 0;
       this.mode = 'typing';
       setTimeout(() => this.tick(), 800);
@@ -227,7 +239,7 @@ function initHeroEvidence() {
       d.type = 'button';
       d.className = 'hero-evidence__dot';
       d.setAttribute('role', 'tab');
-      d.setAttribute('aria-label', `例子 ${i + 1}`);
+      d.setAttribute('aria-label', T('page.home.example_aria', '例子') + ' ' + (i + 1));
       d.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
       if (i === 0) d.classList.add('is-active');
       d.addEventListener('click', () => {
@@ -310,21 +322,32 @@ function initSearch() {
 // Curated example queries — covers PM, engineering, strategy, data, management.
 // We override the server-provided list because those are too "popular science"
 // for the target user (researchers/PMs/strategists).
-const EXAMPLE_CHIPS = [
+const EXAMPLE_CHIPS_ZH = [
   '团队从 8 人扩到 25 人后决策速度慢了一半',
   '我们产品的 D30 留存卡在 18% 上不去',
   '分布式系统加机器后吞吐反而下降',
   '为什么市场越成熟，创新反而越慢',
   '实验组数据漂亮但长期指标背离',
 ];
+const EXAMPLE_CHIPS_EN = [
+  'Team decision speed halved after growing from 8 to 25 people',
+  "Our product's D30 retention is stuck at 18%",
+  'Distributed system throughput drops when we add more machines',
+  'Why do mature markets innovate more slowly',
+  "The experiment group's metrics look great short-term but diverge long-term",
+];
+function EXAMPLE_CHIPS() {
+  try { return (window.i18n && window.i18n.getLang && window.i18n.getLang() === 'en') ? EXAMPLE_CHIPS_EN : EXAMPLE_CHIPS_ZH; }
+  catch (e) { return EXAMPLE_CHIPS_ZH; }
+}
 
 function renderSuggestions(_suggestionsFromServer) {
   const container = $('#home-suggestions');
   if (!container) return;
 
   container.innerHTML = `
-    <div class="home__suggestions-label">试试这些真实场景</div>
-    ${EXAMPLE_CHIPS.map((s) => `
+    <div class="home__suggestions-label">${T("page.home.suggestions_label", "试试这些真实场景")}</div>
+    ${EXAMPLE_CHIPS().map((s) => `
       <button type="button" class="chip" data-query="${escapeHtml(s)}">${escapeHtml(s)}</button>
     `).join('')}
   `;
@@ -356,7 +379,7 @@ function renderDaily(discoveries) {
     return `
       <article class="disc-card" data-a="${escapeHtml(d.a.id)}" data-b="${escapeHtml(d.b.id)}" style="animation: fadeInUp 600ms var(--ease-out-expo) ${1000 + i * 100}ms both">
         <header class="disc-card__header">
-          <span class="disc-card__structure">结构 ${escapeHtml(structureId)}</span>
+          <span class="disc-card__structure">${T("page.home.daily_structure_prefix", "结构")} ${escapeHtml(structureId)}</span>
           <span class="disc-card__score">${scorePct}</span>
         </header>
         <div class="disc-card__item">
@@ -434,7 +457,7 @@ function renderFavorites() {
   listEl.innerHTML = favs.map((f) => {
     const href = f && f.analyze_url ? f.analyze_url : '/';
     // Title fallback: a_name ≅ b_name (pair mode) → query → "(未命名查询)"
-    let title = '(未命名查询)';
+    let title = T('page.home.no_title', '(未命名查询)');
     if (f && f.a_name && f.b_name) {
       title = `${f.a_name} ≅ ${f.b_name}`;
     } else if (f && f.query) {
@@ -442,7 +465,7 @@ function renderFavorites() {
     } else if (f && f.b_name) {
       title = f.b_name;
     }
-    const when = f && f.timestamp ? new Date(f.timestamp).toLocaleDateString('zh-CN') : '';
+    const when = f && f.timestamp ? new Date(f.timestamp).toLocaleDateString(currentLang() === 'en' ? 'en-US' : 'zh-CN') : '';
     return `
       <a href="${escapeHtml(href)}" class="home__fav-card">
         <span class="home__fav-card__star">★</span>
@@ -503,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // (Multi-line textarea keeps its full static placeholder.)
   const input = $('.searchbox__input');
   if (input && input.tagName !== 'TEXTAREA' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const tw = new Typewriter(input, PLACEHOLDER_TEXTS);
+    const tw = new Typewriter(input, PLACEHOLDER_TEXTS());
     tw.start();
   }
 });
