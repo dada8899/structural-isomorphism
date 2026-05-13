@@ -2202,7 +2202,7 @@
       "verified": false
     },
     {
-      "class_id": "motter_lai_network_cascade",
+      "class_id": "motter_lai_network_cascade_v2",
       "name_zh": "Motter-Lai 负载重分配网络级联类",
       "name_en": "Motter-Lai Load-Redistribution Network Cascade",
       "rank": 2,
@@ -2420,7 +2420,7 @@
       "verified": false
     },
     {
-      "class_id": "gardner_collins_toggle_switch",
+      "class_id": "gardner_collins_toggle_switch_v2",
       "name_zh": "Hill 超敏正反馈双稳态开关类",
       "name_en": "Hill Ultrasensitive Positive-Feedback Toggle Switch",
       "rank": 12,

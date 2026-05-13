@@ -39,6 +39,20 @@ function filterMock(filters: ScreenerFilters): Company[] {
   }).slice(0, filters.limit ?? 50);
 }
 
+// W6-E P1 fix: defensive JSON parse — malformed/empty responses no longer
+// throw uncaught, they return null and the caller's catch path handles it.
+async function safeJson<T>(res: Response): Promise<T | null> {
+  try {
+    const text = await res.text();
+    if (!text) return null;
+    return JSON.parse(text) as T;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[api] malformed JSON response:", err);
+    return null;
+  }
+}
+
 export async function fetchScreener(filters: ScreenerFilters): Promise<Company[]> {
   if (USE_MOCK) {
     // Simulate latency so loading state is testable.
@@ -48,7 +62,8 @@ export async function fetchScreener(filters: ScreenerFilters): Promise<Company[]
   const url = `${API_BASE}/screener${buildQuery(filters)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`screener fetch failed: ${res.status} ${res.statusText}`);
-  const json = await res.json();
+  const json = await safeJson<Company[] | { results: Company[] }>(res);
+  if (!json) return [];
   // Accept either array or { results: [] } envelope.
   return Array.isArray(json) ? json : (json.results ?? []);
 }
@@ -65,7 +80,9 @@ export async function fetchCompany(ticker: string): Promise<Company> {
   const url = `${API_BASE}/company/${encodeURIComponent(ticker)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`company fetch failed: ${res.status} ${res.statusText}`);
-  return res.json();
+  const json = await safeJson<Company>(res);
+  if (!json) throw new Error(`company ${ticker} returned empty body`);
+  return json;
 }
 
 export async function fetchStats(): Promise<Stats> {
@@ -76,5 +93,7 @@ export async function fetchStats(): Promise<Stats> {
   const url = `${API_BASE}/stats`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`stats fetch failed: ${res.status} ${res.statusText}`);
-  return res.json();
+  const json = await safeJson<Stats>(res);
+  if (!json) throw new Error("stats returned empty body");
+  return json;
 }
