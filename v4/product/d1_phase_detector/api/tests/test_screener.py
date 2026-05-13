@@ -274,3 +274,121 @@ def test_cors_headers(client):
     )
     assert r.status_code == 200
     assert r.headers.get("access-control-allow-origin") == "*"
+
+
+# ---------- W6-E extended edge cases ----------
+
+
+def test_screener_combo_dynamics_critical_state(client):
+    """Two-filter intersection: dynamics_family=soc AND critical_point_state=near_critical."""
+    r = client.get(
+        "/screener",
+        params={"dynamics_family": "soc", "critical_point_state": "near_critical"},
+    )
+    assert r.status_code == 200
+    items = r.json()
+    tickers = {i["ticker"] for i in items}
+    assert tickers == {"GME"}
+
+
+def test_screener_min_confidence_boundary_inclusive(client):
+    """min_confidence is inclusive (>= 0.85)."""
+    r = client.get("/screener", params={"min_confidence": 0.85})
+    assert r.status_code == 200
+    tickers = {i["ticker"] for i in r.json()}
+    # LEH 0.92, AAPL 0.85, BBY 0.85 (all >= 0.85)
+    assert tickers == {"LEH", "AAPL", "BBY"}
+
+
+def test_screener_min_confidence_just_above_boundary(client):
+    """0.86 excludes the 0.85 rows but keeps LEH (0.92)."""
+    r = client.get("/screener", params={"min_confidence": 0.86})
+    assert r.status_code == 200
+    tickers = {i["ticker"] for i in r.json()}
+    assert tickers == {"LEH"}
+
+
+def test_screener_large_limit_capped(client):
+    """limit=500 should not 4xx; returns all available."""
+    r = client.get("/screener", params={"limit": 500})
+    assert r.status_code == 200
+    assert len(r.json()) == 5  # all seeded rows
+
+
+def test_screener_nonexistent_sector_empty_not_404(client):
+    """Filtering by a sector with no matches → 200 + []. Never 404."""
+    r = client.get("/screener", params={"sector": "no_such_sector"})
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+def test_screener_three_filter_combo_empty(client):
+    """Combining 3 mutually-exclusive filters should yield []."""
+    r = client.get(
+        "/screener",
+        params={
+            "dynamics_family": "soc",
+            "critical_point_state": "far_from_critical",
+            "min_confidence": 0.5,
+        },
+    )
+    assert r.status_code == 200
+    # SOC rows are LEH (tipped) + GME (near_critical), neither is far_from_critical
+    assert r.json() == []
+
+
+def test_screener_ordering_by_confidence_desc(client):
+    """Default ordering is extraction_confidence DESC."""
+    r = client.get("/screener")
+    assert r.status_code == 200
+    items = r.json()
+    confs = [i["extraction_confidence"] for i in items if i["extraction_confidence"] is not None]
+    # Confidences should be non-increasing
+    for a, b in zip(confs, confs[1:]):
+        assert a >= b, f"ordering broken: {a} then {b}"
+
+
+def test_company_detail_returns_full_schema(client):
+    """Detail response includes all known fields, even if None."""
+    r = client.get("/company/AAPL")
+    assert r.status_code == 200
+    body = r.json()
+    for k in (
+        "ticker", "name", "sector", "industry", "market_cap_usd_b",
+        "dynamics_family", "critical_point_state", "universality_class",
+        "extraction_confidence", "extraction_model", "extracted_at",
+        "tldr", "primary_indicators", "caveats",
+    ):
+        assert k in body, f"detail response missing {k}"
+
+
+def test_screener_universality_class_none(client):
+    """Rows where universality_class IS NULL should NOT match a filter."""
+    r = client.get("/screener", params={"universality_class": "soc_threshold_cascade"})
+    tickers = {i["ticker"] for i in r.json()}
+    # AAPL has 'bose_einstein_network'; BBY/LOWCONF have NULL universality_class
+    assert "BBY" not in tickers
+    assert "LOWCONF" not in tickers
+
+
+def test_health_response_shape(client):
+    r = client.get("/health")
+    body = r.json()
+    assert "status" in body
+    assert body["status"] == "ok"
+    # Defensive: no unexpected keys
+    assert set(body.keys()) == {"status"}
+
+
+def test_stats_top_level_keys(client):
+    r = client.get("/stats")
+    assert r.status_code == 200
+    body = r.json()
+    for k in ("total", "by_dynamics_family", "by_critical_point_state",
+              "by_universality_class", "by_sector"):
+        assert k in body, f"stats response missing {k}"
+    # All by_* dicts have nonneg int values
+    for k, dct in body.items():
+        if isinstance(dct, dict):
+            for label, n in dct.items():
+                assert isinstance(n, int) and n >= 0
