@@ -1,35 +1,84 @@
 """Phase Detector Screener FastAPI service.
 
 Endpoints:
-    GET /health
-    GET /screener
-    GET /company/{ticker}
-    GET /stats
+    GET  /health
+    GET  /screener
+    GET  /company/{ticker}
+    GET  /stats
+    POST /api/waitlist           (W8-D: waitlist signup, form-encoded)
+    GET  /api/waitlist/count     (W8-D: public count)
 
 Run:
     .venv/bin/uvicorn v4.product.d1_phase_detector.api.main:app --reload --port 8000
 
 Env:
-    DB_URL  default sqlite:///<api>/../d1.sqlite
+    DB_URL              default sqlite:///<api>/../d1.sqlite
+    BUTTONDOWN_API_KEY  optional; if set, waitlist signups also POST to Buttondown
 """
 
 from __future__ import annotations
 
+import os
+import re
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .db import get_cursor, placeholder, row_to_dict
 
-app = FastAPI(title="Phase Detector Screener API", version="0.1.0")
+app = FastAPI(title="Phase Detector Screener API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    # W8-D: include POST so /api/waitlist preflights succeed from main site.
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# W8-D: ensure waitlist table exists on startup (idempotent).
+# Mirrors migrations/0002_waitlist*.sql but inline so tests + dev don't
+# need a separate migrate step.
+_WAITLIST_DDL_SQLITE = """
+CREATE TABLE IF NOT EXISTS waitlist (
+    email TEXT PRIMARY KEY,
+    source TEXT NOT NULL DEFAULT 'phase_detector',
+    signed_up_at TEXT NOT NULL DEFAULT (datetime('now')),
+    confirmed INTEGER NOT NULL DEFAULT 0,
+    placement TEXT,
+    referrer TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_source ON waitlist(source);
+CREATE INDEX IF NOT EXISTS idx_waitlist_signed_up_at ON waitlist(signed_up_at);
+"""
+
+_WAITLIST_DDL_POSTGRES = """
+CREATE TABLE IF NOT EXISTS waitlist (
+    email TEXT PRIMARY KEY,
+    source TEXT NOT NULL DEFAULT 'phase_detector',
+    signed_up_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    placement TEXT,
+    referrer TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_source ON waitlist(source);
+CREATE INDEX IF NOT EXISTS idx_waitlist_signed_up_at ON waitlist(signed_up_at);
+"""
+
+
+@app.on_event("startup")
+def _ensure_waitlist_table() -> None:
+    try:
+        with get_cursor() as (cur, driver):
+            ddl = _WAITLIST_DDL_SQLITE if driver == "sqlite" else _WAITLIST_DDL_POSTGRES
+            if driver == "sqlite":
+                cur.executescript(ddl)
+            else:
+                cur.execute(ddl)
+    except Exception:  # pragma: no cover -- never block app boot on DDL race
+        pass
 
 
 # -------- pydantic models --------
@@ -58,6 +107,31 @@ class StatsResponse(BaseModel):
     by_critical_point_state: dict[str, int]
     by_universality_class: dict[str, int] = Field(default_factory=dict)
     by_sector: dict[str, int] = Field(default_factory=dict)
+
+
+# W8-D: waitlist models.
+
+
+class WaitlistSignupResponse(BaseModel):
+    status: str
+    msg: str
+    # W8-D: returned so frontend can decide whether to fire `waitlist_signup`
+    # Plausible event (only on first signup, not duplicates).
+    created: bool
+
+
+class WaitlistCountResponse(BaseModel):
+    count: int
+
+
+# W8-D: email regex. Deliberately permissive but rules out obvious garbage.
+# We do *not* try to be RFC 5322-perfect; backend stays cheap, frontend already
+# uses <input type="email"> for the strict-enough check.
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+# Whitelist sources to keep the column clean (avoids garbage from manual curl).
+_ALLOWED_SOURCES = frozenset(
+    {"phase_detector", "main_site", "thank_you_share", "footer", "hero"}
+)
 
 
 # -------- helpers --------
@@ -192,3 +266,88 @@ def stats() -> StatsResponse:
             by_universality_class=_group_by("universality_class"),
             by_sector=_group_by("sector"),
         )
+
+
+# -------- W8-D waitlist routes --------
+
+
+def _maybe_forward_buttondown(email: str, source: str) -> None:
+    """Best-effort POST to Buttondown subscriber API. Never raises.
+
+    Buttondown account / API key are not provisioned yet (see
+    docs/newsletter/buttondown-setup.md). This is wired so that once
+    BUTTONDOWN_API_KEY env var is set, signups flow through automatically.
+    """
+    api_key = os.environ.get("BUTTONDOWN_API_KEY")
+    if not api_key:
+        return
+    try:
+        import httpx  # type: ignore
+
+        httpx.post(
+            "https://api.buttondown.email/v1/subscribers",
+            headers={"Authorization": f"Token {api_key}"},
+            json={"email_address": email, "tags": [source]},
+            timeout=4.0,
+        )
+    except Exception:
+        # Newsletter forwarding is best-effort; storage is the source of truth.
+        pass
+
+
+@app.post("/api/waitlist", response_model=WaitlistSignupResponse)
+def waitlist_signup(
+    email: str = Form(...),
+    source: str = Form("phase_detector"),
+    placement: Optional[str] = Form(None),
+    referrer: Optional[str] = Form(None),
+) -> WaitlistSignupResponse:
+    """Capture an email + source into the waitlist table.
+
+    Idempotent: re-signing the same email returns `created=false` instead of 4xx,
+    so the frontend can show a friendly "you're already on the list" message.
+    """
+    email_norm = email.strip().lower()
+    if not _EMAIL_RE.match(email_norm):
+        raise HTTPException(status_code=422, detail="invalid email")
+    if source not in _ALLOWED_SOURCES:
+        source = "phase_detector"
+
+    created = False
+    with get_cursor() as (cur, driver):
+        ph = placeholder(driver)
+        cur.execute(f"SELECT 1 FROM waitlist WHERE email = {ph}", (email_norm,))
+        existing = cur.fetchone()
+        if existing is None:
+            if driver == "sqlite":
+                cur.execute(
+                    "INSERT INTO waitlist (email, source, placement, referrer) "
+                    f"VALUES ({ph}, {ph}, {ph}, {ph})",
+                    (email_norm, source, placement, referrer),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO waitlist (email, source, placement, referrer) "
+                    f"VALUES ({ph}, {ph}, {ph}, {ph}) ON CONFLICT (email) DO NOTHING",
+                    (email_norm, source, placement, referrer),
+                )
+            # rowcount can be -1 on some drivers; treat as success if no existing row.
+            created = True
+
+    if created:
+        _maybe_forward_buttondown(email_norm, source)
+        return WaitlistSignupResponse(
+            status="ok", msg="On the list — see you in your inbox.", created=True
+        )
+    return WaitlistSignupResponse(
+        status="ok", msg="You're already on the list.", created=False
+    )
+
+
+@app.get("/api/waitlist/count", response_model=WaitlistCountResponse)
+def waitlist_count() -> WaitlistCountResponse:
+    with get_cursor() as (cur, driver):
+        cur.execute("SELECT COUNT(*) AS n FROM waitlist")
+        row = cur.fetchone()
+        n = (row["n"] if driver == "postgres" else row[0]) if row else 0
+        return WaitlistCountResponse(count=int(n))

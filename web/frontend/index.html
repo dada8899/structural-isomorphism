@@ -96,6 +96,73 @@
       font-size: 12px; color: #71717A;
       font-family: "JetBrains Mono", monospace;
     }
+
+    /* W8-D: Waitlist signup CTA */
+    .home__waitlist { margin-top: 56px; }
+    .home__waitlist-card {
+      max-width: 640px; margin: 0 auto;
+      padding: 28px 28px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #E4E4E7; border-radius: 16px;
+    }
+    .home__waitlist-eyebrow {
+      display: inline-block;
+      font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+      color: #71717A; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .home__waitlist-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 22px; font-weight: 600; color: #18181B;
+      margin-bottom: 8px; line-height: 1.35;
+    }
+    .home__waitlist-body {
+      font-size: 14px; color: #52525B; line-height: 1.65;
+      margin-bottom: 14px;
+    }
+    .home__waitlist-meta {
+      display: inline-block; margin-left: 6px;
+      font-size: 12px; color: #A1A1AA;
+    }
+    .home__waitlist-form {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .home__waitlist-input {
+      flex: 1 1 220px; min-width: 0;
+      padding: 9px 12px;
+      font-size: 14px; color: #18181B;
+      border: 1px solid #D4D4D8; border-radius: 8px;
+      background: #FFFFFF;
+      transition: border-color 0.15s;
+    }
+    .home__waitlist-input:focus {
+      outline: none; border-color: #18181B;
+      box-shadow: 0 0 0 1px #18181B;
+    }
+    .home__waitlist-input:disabled { opacity: 0.6; }
+    .home__waitlist-button {
+      padding: 9px 20px;
+      font-size: 14px; font-weight: 500; color: #FFFFFF;
+      background: #18181B; border: none; border-radius: 8px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .home__waitlist-button:hover { background: #27272A; }
+    .home__waitlist-button:disabled { cursor: not-allowed; opacity: 0.6; }
+    .home__waitlist-status {
+      font-size: 12px; margin-top: 8px; min-height: 18px;
+    }
+    .home__waitlist-status.is-ok { color: #047857; }
+    .home__waitlist-status.is-dup { color: #52525B; }
+    .home__waitlist-status.is-err { color: #B91C1C; }
+    .home__waitlist-fineprint {
+      font-size: 11px; color: #A1A1AA; margin-top: 8px;
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
   </style>
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
@@ -358,6 +425,39 @@
         <div class="home__favorites-list" id="home-favorites-list"></div>
       </section>
 
+      <!-- W8-D: waitlist signup CTA -->
+      <section class="home__section home__waitlist" aria-labelledby="waitlist-heading">
+        <div class="home__waitlist-card">
+          <span class="home__waitlist-eyebrow">每周一封 · Weekly newsletter</span>
+          <h2 id="waitlist-heading" class="home__waitlist-title">
+            每周收一封《结构信号》 →
+          </h2>
+          <p class="home__waitlist-body">
+            每周日推送：本周哪些公司跨入临近临界、哪些回到稳态、一个深度案例。
+            <span class="home__waitlist-meta">Free · 一封邮件 · 可随时退订</span>
+          </p>
+          <form id="waitlist-form" class="home__waitlist-form" novalidate>
+            <label class="sr-only" for="waitlist-email-main">Email</label>
+            <input
+              id="waitlist-email-main"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              placeholder="you@example.com"
+              class="home__waitlist-input"
+            >
+            <button type="submit" class="home__waitlist-button" id="waitlist-submit">
+              加入
+            </button>
+          </form>
+          <p class="home__waitlist-status" id="waitlist-status" role="status" aria-live="polite"></p>
+          <p class="home__waitlist-fineprint">
+            不会用于其他用途。退订只需点击邮件页脚的链接。
+          </p>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -380,5 +480,6 @@
   <script src="/assets/js/api.js?v=20260417e"></script>
   <script src="/assets/js/home.js?v=20260417e"></script>
   <script src="/assets/js/product-switcher.js?v=20260417e"></script>
+  <script src="/assets/js/waitlist.js?v=20260513"></script>
 </body>
 </html>
