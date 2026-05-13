@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ARIA_LABEL,
@@ -10,20 +10,50 @@ import {
   CPS_LABEL_ZH,
   DYNAMICS_LABEL_ZH,
   DYNAMICS_SUBTITLE_ZH,
+  SECTOR_LABEL_ZH,
 } from "@/lib/labels";
 import type { Company } from "@/lib/types";
 
-// W6-B: confidence bar tiered color (W5-E quick win).
-// 0-0.5 → red, 0.5-0.75 → amber, 0.75-1.0 → emerald.
+// 2026-05-14 P0 fix: read BE-canonical fields (extraction_confidence,
+// sector slug, primary_indicators as Record). Display labels come from
+// label maps that now key on BE enum slugs.
+//
+// W6-B: confidence bar tiered color — 0-0.5 red / 0.5-0.75 amber / 0.75+ emerald.
 function confidenceColor(c: number): string {
   if (c >= 0.75) return "bg-emerald-600";
   if (c >= 0.5) return "bg-amber-600";
   return "bg-red-600";
 }
 
+// Format indicator values: numbers get toLocaleString; null → "—".
+function formatIndicatorValue(v: string | number | null | undefined): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "number") return v.toLocaleString();
+  return String(v);
+}
+
 export function CompanyCard({ company }: { company: Company }) {
   const [showCaveats, setShowCaveats] = useState(false);
-  const confPct = Math.round(company.confidence * 100);
+  const conf = company.extraction_confidence ?? 0;
+  const confPct = Math.round(conf * 100);
+
+  // primary_indicators is a Record<string, string | number | null> now —
+  // flatten to a list for rendering, drop empty values.
+  const indicators = useMemo(() => {
+    const raw = company.primary_indicators;
+    if (!raw || typeof raw !== "object") return [];
+    return Object.entries(raw).filter(
+      ([, v]) => v !== null && v !== undefined && v !== "",
+    );
+  }, [company.primary_indicators]);
+
+  const sectorLabel = company.sector
+    ? SECTOR_LABEL_ZH[company.sector] ?? company.sector
+    : null;
+
+  const cps = company.critical_point_state;
+  const family = company.dynamics_family;
+  const caveats = company.caveats ?? [];
 
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 hover:shadow-sm">
@@ -37,58 +67,52 @@ export function CompanyCard({ company }: { company: Company }) {
               {company.name}
             </span>
           </div>
-          {company.sector && (
+          {sectorLabel && (
             <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
-              {company.sector}
+              {sectorLabel}
             </span>
           )}
         </div>
-        {/* W6-B: triple-redundant CPS badge — icon + color + text label.
-            WCAG 1.4.1 (color is not the only signal). */}
+        {/* WCAG 1.4.1 — icon + color + text label (triple redundancy). */}
         <span
-          className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${CPS_BADGE[company.critical_point_state]}`}
-          title={CPS_ARIA_LABEL[company.critical_point_state]}
-          aria-label={CPS_ARIA_LABEL[company.critical_point_state]}
+          className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${CPS_BADGE[cps] ?? "bg-zinc-400 text-white"}`}
+          title={CPS_ARIA_LABEL[cps] ?? cps}
+          aria-label={CPS_ARIA_LABEL[cps] ?? cps}
         >
           <span aria-hidden="true" className="text-sm leading-none">
-            {CPS_ICON[company.critical_point_state]}
+            {CPS_ICON[cps] ?? "?"}
           </span>
-          <span>{CPS_LABEL_ZH[company.critical_point_state]}</span>
+          <span>{CPS_LABEL_ZH[cps] ?? cps}</span>
         </span>
       </header>
 
       <div className="text-xs text-zinc-500">
         <span className="font-medium text-zinc-700">
-          {DYNAMICS_LABEL_ZH[company.dynamics_family] ?? company.dynamics_family}
+          {DYNAMICS_LABEL_ZH[family] ?? family}
         </span>
-        {DYNAMICS_SUBTITLE_ZH[company.dynamics_family] && (
+        {DYNAMICS_SUBTITLE_ZH[family] && (
           <span className="ml-2 text-gray-500">
-            · {DYNAMICS_SUBTITLE_ZH[company.dynamics_family]}
+            · {DYNAMICS_SUBTITLE_ZH[family]}
           </span>
         )}
       </div>
 
       <p className="text-sm leading-relaxed text-zinc-700">{company.tldr}</p>
 
-      {company.primary_indicators?.length > 0 && (
+      {indicators.length > 0 && (
         <div>
           <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             主要指标
           </div>
           <ul className="space-y-1">
-            {company.primary_indicators.map((ind, i) => (
+            {indicators.map(([name, value]) => (
               <li
-                key={`${ind.name}-${i}`}
+                key={name}
                 className="flex items-baseline justify-between gap-3 text-sm"
               >
-                <span className="text-zinc-600">{ind.name}</span>
+                <span className="text-zinc-600">{name}</span>
                 <span className="font-medium tabular-nums text-zinc-900">
-                  {typeof ind.value === "number"
-                    ? ind.value.toLocaleString()
-                    : ind.value}
-                  {ind.unit ? (
-                    <span className="ml-0.5 text-zinc-500">{ind.unit}</span>
-                  ) : null}
+                  {formatIndicatorValue(value)}
                 </span>
               </li>
             ))}
@@ -96,7 +120,6 @@ export function CompanyCard({ company }: { company: Company }) {
         </div>
       )}
 
-      {/* W6-B: confidence bar with tiered color + larger numeric font (W5-E #6). */}
       <div>
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs text-zinc-500">置信度</span>
@@ -113,13 +136,13 @@ export function CompanyCard({ company }: { company: Company }) {
           aria-label={`置信度 ${confPct}%`}
         >
           <div
-            className={`h-full rounded-full transition-all ${confidenceColor(company.confidence)}`}
+            className={`h-full rounded-full transition-all ${confidenceColor(conf)}`}
             style={{ width: `${confPct}%` }}
           />
         </div>
       </div>
 
-      {company.caveats && company.caveats.length > 0 && (
+      {caveats.length > 0 && (
         <div>
           <button
             onClick={() => setShowCaveats((v) => !v)}
@@ -128,11 +151,11 @@ export function CompanyCard({ company }: { company: Company }) {
           >
             {showCaveats
               ? "隐藏注意事项"
-              : `展开注意事项 (${company.caveats.length})`}
+              : `展开注意事项 (${caveats.length})`}
           </button>
           {showCaveats && (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-600">
-              {company.caveats.map((c, i) => (
+              {caveats.map((c, i) => (
                 <li key={i}>{c}</li>
               ))}
             </ul>
@@ -148,8 +171,8 @@ export function CompanyCard({ company }: { company: Company }) {
           onClick={() =>
             trackEvent(Events.CompanyViewed, {
               ticker: company.ticker,
-              family: company.dynamics_family,
-              state: company.critical_point_state,
+              family,
+              state: cps,
             })
           }
         >

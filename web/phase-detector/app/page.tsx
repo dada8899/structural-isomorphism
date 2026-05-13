@@ -54,8 +54,9 @@ export default function ScreenerHomePage() {
           console.warn("stats fetch failed:", err);
         }
       });
-    // W6-B: fetch signals — companies near or past critical point.
-    fetchScreener({ critical_point_state: "near_critical", limit: 6 })
+    // 2026-05-14 P0 fix: BE enum is `approaching_critical` (was hardcoded
+    // `near_critical` which returned [] because BE has no such state).
+    fetchScreener({ critical_point_state: "approaching_critical", limit: 6 })
       .then((s) => {
         if (!cancelled) setSignals(s);
       })
@@ -180,12 +181,12 @@ export default function ScreenerHomePage() {
           id="cps-legend"
           className="mb-3 text-base font-semibold tracking-tight text-zinc-900"
         >
-          四种状态，先看图例
+          五种状态，先看图例
         </h2>
         <p className="mb-3 text-xs text-zinc-500">
-          下面所有公司卡片的彩色徽章，都用这四个符号 + 颜色表示当前所处状态。
+          下面所有公司卡片的彩色徽章，都用这些符号 + 颜色表示当前所处状态。
         </p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {CPS_OPTIONS.map((s) => (
             <div
               key={s}
@@ -195,13 +196,15 @@ export default function ScreenerHomePage() {
                 className="text-2xl leading-none"
                 style={{
                   color:
-                    s === "subcritical"
+                    s === "far_from_critical"
                       ? "#059669"
-                      : s === "near_critical"
+                      : s === "approaching_critical"
                         ? "#D97706"
-                        : s === "supercritical"
+                        : s === "at_critical"
                           ? "#DC2626"
-                          : "#18181B",
+                          : s === "post_critical_transition"
+                            ? "#18181B"
+                            : "#71717A",
                 }}
                 aria-hidden="true"
               >
@@ -261,16 +264,16 @@ export default function ScreenerHomePage() {
         </section>
       )}
 
-      {/* 5 shared-pattern cards (was: 动力学族 · 5 个普适类) */}
+      {/* 9 shared-pattern cards — v0.2 taxonomy (was 5 in v0.1). */}
       <section aria-labelledby="families-heading">
         <h2
           id="families-heading"
           className="mb-3 text-base font-semibold tracking-tight text-zinc-900"
         >
-          5 类共享模式 · 公司怎么"动"
+          9 类共享模式 · 公司怎么"动"
         </h2>
         <p className="mb-3 text-xs text-zinc-500">
-          所有 100 家公司被归入下面其中一类。点开"看完整方法说明"看每一类的解释。
+          所有公司被归入下面其中一类。点开"看完整方法说明"看每一类的解释。
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {familyOverview.map((f) => (
@@ -396,7 +399,7 @@ export default function ScreenerHomePage() {
 
       {/* Sister-product cross-link — symmetric to Structural's homepage callout. */}
       <a
-        href="https://structural.bytedance.city"
+        href="https://beta.structural.bytedance.city/classes"
         target="_blank"
         rel="noopener"
         className="block rounded-2xl border border-zinc-200 bg-white px-6 py-5 transition hover:border-accent hover:bg-zinc-50 sm:px-8"

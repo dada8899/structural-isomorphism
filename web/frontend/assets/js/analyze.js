@@ -516,8 +516,45 @@ function updateLoadingProgress(chars) {
   }
   const lineEl = $('#analyze-loading .analyze-loading__progress-line');
   if (lineEl) {
-    lineEl.textContent = T('page.analyze.loading_progress_line', '已生成 {chars} 字 · LLM 正在写研究报告').replace('{chars}', chars);
+    lineEl.textContent = T('page.analyze.loading_progress_line', '已生成 {chars} 字 · AI 正在写研究报告').replace('{chars}', chars);
   }
+}
+
+// === Live typewriter preview of the stream (last ~280 chars) ===
+// Backend already streams `chunk.content` (delta text) inside each `text`
+// SSE event. We accumulate it and paint the tail as a "what's being written
+// right now" preview so the user sees motion instead of just a char counter.
+let _streamBuffer = '';
+function appendStreamContent(delta) {
+  if (!delta) return;
+  _streamBuffer += String(delta);
+  // Keep memory bounded
+  if (_streamBuffer.length > 5000) {
+    _streamBuffer = _streamBuffer.slice(-5000);
+  }
+  const loading = $('#analyze-loading');
+  if (!loading) return;
+  let previewEl = loading.querySelector('.analyze-loading__stream-preview');
+  if (!previewEl) {
+    previewEl = document.createElement('div');
+    previewEl.className = 'analyze-loading__stream-preview';
+    loading.appendChild(previewEl);
+  }
+  // Show last ~280 chars; strip JSON syntax for legibility
+  let tail = _streamBuffer.slice(-280);
+  tail = tail
+    .replace(/[{}"\[\]]+/g, ' ')
+    .replace(/\\n/g, ' ')
+    .replace(/\\"/g, '')
+    .replace(/[,:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  previewEl.textContent = tail || '...';
+}
+function clearStreamPreview() {
+  _streamBuffer = '';
+  const previewEl = $('#analyze-loading .analyze-loading__stream-preview');
+  if (previewEl) previewEl.remove();
 }
 
 // === Final render: all sections at once with stagger animation ===
@@ -747,6 +784,10 @@ function streamAnalysis(params) {
     // Update loading progress line (before the first section arrives)
     if (!firstSectionSeen) {
       updateLoadingProgress(chunk.total_length || 0);
+    }
+    // Typewriter preview: paint the latest delta into a live "正在写" pane
+    if (chunk.content) {
+      appendStreamContent(chunk.content);
     }
   });
 

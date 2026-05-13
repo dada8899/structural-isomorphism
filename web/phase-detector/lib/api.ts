@@ -32,7 +32,7 @@ function filterMock(filters: ScreenerFilters): Company[] {
     if (filters.sector && c.sector !== filters.sector) return false;
     if (
       typeof filters.min_confidence === "number" &&
-      c.confidence < filters.min_confidence
+      c.extraction_confidence < filters.min_confidence
     )
       return false;
     return true;

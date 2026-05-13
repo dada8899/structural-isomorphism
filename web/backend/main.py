@@ -1494,6 +1494,11 @@ async def taxonomy_v2_page():
     return FileResponse(FRONTEND_DIR / "taxonomy-v2.html")
 
 
+@app.get("/start-here")
+async def start_here_page():
+    return FileResponse(FRONTEND_DIR / "start-here.html")
+
+
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     # API routes return JSON; only HTML pages get the full 404 template.
