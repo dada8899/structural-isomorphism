@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title data-i18n="page.taxv2.meta_title">Pattern family verdicts — what we kept, demoted, or rejected · Structural</title>
-  <meta name="description" data-i18n-meta="page.taxv2.meta_desc" content="21 candidate universality classes underwent multi-model critic review. The full verdict matrix below shows which pattern families survived, which were demoted, and which were rejected — plus the four cases where a stricter ensemble overruled the single-model first pass.">
+  <title data-i18n="page.taxv2.meta_title">共享模式审稿结果 — 保留、降级、拒绝 · Structural</title>
+  <meta name="description" data-i18n-meta="page.taxv2.meta_desc" content="21 个候选共享模式经过多模型 AI 审稿团评审。完整投票矩阵展示哪些被保留、哪些被降级、哪些被拒绝——以及 4 个更严格的多模型审稿推翻单模型初判的案例。">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,7 +141,7 @@
       </a>
       <nav class="site-header__nav">
         <a href="/start-here" class="site-header__nav-link" data-i18n="nav.start_here">从这里开始</a>
-        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
+        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">共享模式</a>
         <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
         <a href="/papers" class="site-header__nav-link" data-i18n="nav.papers">论文</a>
         <a href="/methods" class="site-header__nav-link" data-i18n="nav.methods">方法</a>
@@ -160,32 +160,27 @@
       <section class="tax-hero">
         <div class="tax-hero__eyebrow">
           <span class="tax-hero__dot"></span>
-          <span data-i18n="page.taxv2.eyebrow">Verdicts · 多模型审议结果</span>
+          <span data-i18n="page.taxv2.eyebrow">审稿结果 · 多模型评议</span>
         </div>
-        <h1 class="tax-hero__title" data-i18n="page.taxv2.title">Pattern family verdicts — what we kept, demoted, or <em>rejected</em></h1>
+        <h1 class="tax-hero__title" data-i18n="page.taxv2.title">共享模式审稿结果 — 保留、降级、<em>拒绝</em></h1>
         <p class="tax-hero__lede" data-i18n="page.taxv2.lede">
-          21 candidate universality classes underwent multi-model critic review.
-          Three independent reviewers (one rigorous flagship, one rigorous fast,
-          one creative) each voted KEEP / REJECT / SPLIT / MERGE on every
-          candidate; a majority ruled. 63 verdicts total, 0 parse failures, 40.8
-          minutes wall-clock. Methodology details on the
-          <a href="/methods">methods page</a>.
+          21 个候选共享模式经过多模型 AI 审稿团评审。三个独立审稿模型(一个严谨旗舰、一个严谨快速、一个创造性)各自对每个候选投票:保留 / 拒绝 / 拆分 / 合并,多数决定共识。共 63 次投票,0 解析错误,40.8 分钟总耗时。方法细节见<a href="/methods">方法页</a>。
         </p>
 
         <div class="tax-stats">
-          <div><div class="tax-stat__num tax-stat__num--keep">5</div><div class="tax-stat__label">KEEP</div></div>
-          <div><div class="tax-stat__num tax-stat__num--reject">7</div><div class="tax-stat__label">REJECT</div></div>
-          <div><div class="tax-stat__num tax-stat__num--split">5</div><div class="tax-stat__label">SPLIT</div></div>
-          <div><div class="tax-stat__num tax-stat__num--merge">4</div><div class="tax-stat__label">MERGE</div></div>
-          <div><div class="tax-stat__num tax-stat__num--unclear">0</div><div class="tax-stat__label">UNCLEAR</div></div>
+          <div><div class="tax-stat__num tax-stat__num--keep">5</div><div class="tax-stat__label">保留</div></div>
+          <div><div class="tax-stat__num tax-stat__num--reject">7</div><div class="tax-stat__label">拒绝</div></div>
+          <div><div class="tax-stat__num tax-stat__num--split">5</div><div class="tax-stat__label">拆分</div></div>
+          <div><div class="tax-stat__num tax-stat__num--merge">4</div><div class="tax-stat__label">合并</div></div>
+          <div><div class="tax-stat__num tax-stat__num--unclear">0</div><div class="tax-stat__label">未定</div></div>
         </div>
 
         <div class="tax-legend">
           <span class="tax-legend__item"><span class="verdict verdict--keep">KEEP</span><span data-i18n="page.taxv2.legend_keep">保留类</span></span>
-          <span class="tax-legend__item"><span class="verdict verdict--reject">REJECT</span><span data-i18n="page.taxv2.legend_reject">demote 到描述符目录</span></span>
+          <span class="tax-legend__item"><span class="verdict verdict--reject">REJECT</span><span data-i18n="page.taxv2.legend_reject">降级到描述符目录</span></span>
           <span class="tax-legend__item"><span class="verdict verdict--split">SPLIT</span><span data-i18n="page.taxv2.legend_split">拆为子类</span></span>
           <span class="tax-legend__item"><span class="verdict verdict--merge">MERGE</span><span data-i18n="page.taxv2.legend_merge">合并到其他类</span></span>
-          <span class="tax-legend__item"><span style="display:inline-block;width:10px;height:10px;background:#FFFBEB;border:1px solid #FEF3C7;"></span><span data-i18n="page.taxv2.legend_disagree">B1 vs B3 disagreement</span></span>
+          <span class="tax-legend__item"><span style="display:inline-block;width:10px;height:10px;background:#FFFBEB;border:1px solid #FEF3C7;"></span><span data-i18n="page.taxv2.legend_disagree">人工初判 vs AI 审稿团有分歧</span></span>
         </div>
       </section>
 
@@ -193,13 +188,13 @@
         <table class="tax-table" id="tax-table">
           <thead>
             <tr>
-              <th data-i18n="page.taxv2.col_class">class_id</th>
-              <th>B1</th>
-              <th>v4-pro · rigorous</th>
-              <th>v4-flash · rigorous</th>
-              <th>v4-pro · creative</th>
-              <th data-i18n="page.taxv2.col_consensus">B3 consensus</th>
-              <th>avg_conf</th>
+              <th data-i18n="page.taxv2.col_class">候选模式</th>
+              <th>人工初判</th>
+              <th>审稿模型 1(严谨旗舰)</th>
+              <th>审稿模型 2(严谨快速)</th>
+              <th>审稿模型 3(创造性)</th>
+              <th data-i18n="page.taxv2.col_consensus">AI 审稿团共识</th>
+              <th>平均置信度</th>
             </tr>
           </thead>
           <tbody>
@@ -209,23 +204,23 @@
       </div>
 
       <section class="tax-section">
-        <h2 class="tax-section__title" data-i18n="page.taxv2.pattern_title">共享 demotion 模式</h2>
+        <h2 class="tax-section__title" data-i18n="page.taxv2.pattern_title">共享降级模式</h2>
         <p data-i18n="page.taxv2.pattern_p1">
-          B3 推翻 B1 KEEP 的 <strong>4 个 class</strong>(<code>delay_differential_debt</code> / <code>hysteresis_preisach</code> 作为单一类 / <code>scale_free_percolation_class</code> / <code>tail_copula_contagion</code>)共享同一个错误模式:<strong>把数学框架当作普适类</strong>。
+          AI 审稿团推翻人工初判保留的 <strong>4 个候选</strong>(延迟微分债务、回不去效应 Preisach 作为单一类、无标度渗流类、尾部 copula 传染)共享同一个错误模式:<strong>把数学框架当作共享模式</strong>。
         </p>
         <p data-i18n="page.taxv2.pattern_p2">
-          delay-differential equation、Preisach 积分、scale-free 生成模型、copula 联合分布族都是数学基础设施。它们能描述很多不同机制产生的数据,但它们本身不是机制。三个独立 reviewer 收敛于同一个 filter 本身就是非平凡的方法论 validation。
+          延迟微分方程、Preisach 积分、无标度生成模型、copula 联合分布族都是数学基础设施。它们能描述很多不同机制产生的数据,但它们本身不是机制。三个独立审稿模型收敛于同一个判定本身就是非平凡的方法论验证。
         </p>
         <p data-i18n="page.taxv2.pattern_p3">
-          <strong>Preisach 例外:</strong> Preisach 作为<em>单一类</em>被 B3 REJECT,但 traffic-Preisach(A2-Hysteresis NGSIM US-101 验证)、magnetic-Preisach、capillary-Preisach 等<strong>per-domain 子类</strong>仍然成立。每个 sub-class 对应一个真实物理机制 + 各自的 loop-width band。
+          <strong>回不去效应(Preisach)例外:</strong> Preisach 作为<em>单一类</em>被 AI 审稿团拒绝,但交通-Preisach(NGSIM US-101 验证)、磁滞-Preisach、毛细-Preisach 等<strong>各领域子类</strong>仍然成立。每个子类对应一个真实物理机制 + 各自的回路宽度带。
         </p>
       </section>
 
       <section class="tax-section">
         <h2 class="tax-section__title" data-i18n="page.taxv2.limit_title">局限与下一步</h2>
-        <p data-i18n="page.taxv2.limit_p1"><strong>(a) 同 vendor ensemble</strong> — 三个 reviewer 都是 DeepSeek 家族,探测的是 within-model confidence drift,不是 cross-family 架构分歧。原计划纳入 Kimi / GLM-5,但 OpenRouter CN 区域 block + 备用 router base URL 未验证,推迟到 B4+ (cross-vendor router 验证完成后)。</p>
-        <p data-i18n="page.taxv2.limit_p2"><strong>(b) 21 类是已发现的子集</strong> — V4 Layer 2 浮现 23 个候选,B3 评审了 21 个。"应当存在但没被 Layer 2 浮现"的类无法靠 critic pass 补回来,需要回到 V1/V2/V3 加新现象。</p>
-        <p data-i18n="page.taxv2.limit_p3">B3 raw 输出 + per-verdict reasoning 公开在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl" target="_blank" rel="noopener">v4/results/B3_ensemble_review.jsonl</a>,consensus 在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl" target="_blank" rel="noopener">v4/results/B3_taxonomy_v2.jsonl</a>,summary 表在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md" target="_blank" rel="noopener">v4/results/B3_ensemble_summary.md</a>。</p>
+        <p data-i18n="page.taxv2.limit_p1"><strong>(a) 同厂商审稿团</strong> — 三个审稿模型都来自同一家厂商,探测的是同模型族内的判定漂移,不是跨架构分歧。原计划纳入其他 LLM 家族,但因地区访问限制 + 备用路由 base URL 未验证,推迟到后续版本。</p>
+        <p data-i18n="page.taxv2.limit_p2"><strong>(b) 21 个候选是已发现的子集</strong> — 社区发现浮现 23 个候选,审稿评议了 21 个。"应当存在但没被社区发现浮现"的类无法靠审稿补回来,需要回到前几代检索加新现象。</p>
+        <p data-i18n="page.taxv2.limit_p3">审稿原始输出 + 每条判定的理由公开在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl" target="_blank" rel="noopener">GitHub</a>,共识结果在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl" target="_blank" rel="noopener">GitHub</a>,汇总表在 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md" target="_blank" rel="noopener">GitHub</a>。</p>
       </section>
 
     </div>

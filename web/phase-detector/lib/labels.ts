@@ -6,6 +6,11 @@
 // § 3.2 ("Filter labels"). Goal — keep technical terms but pair them with a
 // human sentence the way Robinhood pairs "Buying Power" with "$X available
 // to invest".
+//
+// PR-1 copy sweep (2026-05-14): jargon translated per /tmp/copy-style-guide.md
+// translation table — 阈值级联 → 临界级联, 富者愈富 → 强者愈强,
+// 路径依赖 → 回不去效应, 普适类 → 共享模式, 滞后 → 回不去效应,
+// 失控通道/已翻转 simplified for 8th-grade reader.
 
 import type { CriticalPointState, DynamicsFamily } from "./types";
 
@@ -16,10 +21,10 @@ export type Lang = "zh-CN" | "en";
 // ---------------------------------------------------------------------------
 
 export const DYNAMICS_LABEL_ZH: Record<DynamicsFamily, string> = {
-  soc: "阈值级联",
-  preferential_attachment: "富者愈富",
+  soc: "临界级联",
+  preferential_attachment: "强者愈强",
   fold: "临界翻转",
-  hysteresis: "路径依赖",
+  hysteresis: "回不去效应",
   other: "其他",
 };
 
@@ -31,14 +36,14 @@ export const DYNAMICS_LABEL_EN: Record<DynamicsFamily, string> = {
   other: "Other",
 };
 
-// One-line plain-English subtitle for each dynamics family — shown next to
+// One-line plain-Chinese subtitle for each dynamics family — shown next to
 // the primary label so users always have a human read on the term.
 export const DYNAMICS_SUBTITLE_ZH: Record<DynamicsFamily, string> = {
-  soc: "积压→突然连锁爆裂（像地震、银行挤兑）",
-  preferential_attachment: "已经强的越来越强（像 GitHub 星、维基流量）",
-  fold: "慢慢漂移到悬崖，掉下去就回不来",
-  hysteresis: "去的路和回的路不一样（像交通拥堵）",
-  other: "未归入上述类型",
+  soc: "压力慢慢攒，一下子全连环爆（像地震、银行挤兑）",
+  preferential_attachment: "已经强的越来越强（像头部主播、爆款 App）",
+  fold: "慢慢漂到悬崖边，掉下去就回不来",
+  hysteresis: "上去的路和下来的路不一样（像交通堵车）",
+  other: "未归入上述四类",
 };
 
 export const DYNAMICS_SUBTITLE_EN: Record<DynamicsFamily, string> = {
@@ -51,14 +56,15 @@ export const DYNAMICS_SUBTITLE_EN: Record<DynamicsFamily, string> = {
 
 // One-line layperson explanations of each dynamics family (W6-B).
 // Used on /methodology and as tooltip hints.
+// PR-1: rewritten plain-Chinese, no 普适类 / 幂律 / 自组织 jargon (幂律保留是大众词).
 export const DYNAMICS_EXPLAIN: Record<DynamicsFamily, string> = {
-  soc: "系统通过缓慢积累压力 + 突发释放达到临界状态。事件大小服从幂律分布（地震、神经雪崩）。",
+  soc: "压力慢慢攒，到了某个点一次性爆发，规模可大可小（地震、雪崩、神经放电都是这样）。",
   preferential_attachment:
-    "强者愈强：节点越受关注越容易获得新连接，最终形成长尾（社交网络、引用图）。",
-  fold: "缓慢参数变化下系统突然跳到另一个稳态。失去稳态后不可自行回到原态（湖泊富营养化、生态崩溃）。",
+    "已经强的越来越强：越多人关注越容易再来新关注，最后头部吃掉大部分（社交网络、引用关系）。",
+  fold: "参数慢慢变，系统突然跳到另一个稳定状态，而且回不去了（湖泊富营养化、生态崩塌）。",
   hysteresis:
-    "系统的状态依赖于历史路径。同一参数下可能停在不同状态（交通拥堵 / 自由流、市场牛熊）。",
-  other: "其他尚未归类到上述四大族的动力学结构。",
+    "走过的路决定现在在哪：同样的条件，可能停在不同状态（交通堵车 vs. 畅通、牛市 vs. 熊市）。",
+  other: "暂未归入上面四类的其他结构。",
 };
 
 // Legacy single-language fallback (English technical name). Kept so any
@@ -69,6 +75,8 @@ export const DYNAMICS_LABEL: Record<DynamicsFamily, string> = DYNAMICS_LABEL_EN;
 // Critical-point state — user-friendly labels.
 // ---------------------------------------------------------------------------
 
+// PR-1: kept plain-Chinese labels (稳态 / 临界附近 / 失控通道 / 已翻转) —
+// these are already audience-friendly. EN map below also plain-English.
 export const CPS_LABEL_ZH: Record<CriticalPointState, string> = {
   subcritical: "稳态",
   near_critical: "临界附近",
@@ -84,10 +92,10 @@ export const CPS_LABEL_EN: Record<CriticalPointState, string> = {
 };
 
 export const CPS_SUBTITLE_ZH: Record<CriticalPointState, string> = {
-  subcritical: "压力低，弹性强",
-  near_critical: "小扰动可能放大",
-  supercritical: "正反馈已启动",
-  tipped: "已无法回到原状态",
+  subcritical: "压力小，扛得住",
+  near_critical: "小风吹就能放大",
+  supercritical: "正反馈已经在跑",
+  tipped: "回不到原来的样子了",
 };
 
 export const CPS_SUBTITLE_EN: Record<CriticalPointState, string> = {
@@ -98,13 +106,14 @@ export const CPS_SUBTITLE_EN: Record<CriticalPointState, string> = {
 };
 
 // Layperson explanations for /methodology and tooltip (W6-B).
+// PR-1: rewritten plain-Chinese (8th-grade level), no 相变 / reverse hysteresis jargon.
 export const CPS_EXPLAIN: Record<CriticalPointState, string> = {
-  subcritical: "远离临界点。系统在稳态运行，没有放大反馈。",
+  subcritical: "离翻车点还远。系统稳稳运行，没有自我加强的反馈。",
   near_critical:
-    "接近临界点。小扰动开始被放大，波动率上升，但还没跳到新稳态。",
+    "已经在翻车点附近了。小扰动开始被放大，波动变大，但还没真翻面。",
   supercritical:
-    "已经跨过临界点但还没完成切换。系统正在加速向新稳态滑落。",
-  tipped: "已经完成相变。回到原稳态需要外部干预（reverse hysteresis）。",
+    "已经越过翻车点但还没翻完。正在加速滑向新的状态。",
+  tipped: "已经翻完了。想回到原来的样子，需要外部强力干预。",
 };
 
 // W6-B: WCAG 1.4.1 — icon symbols for non-color encoding.
@@ -117,10 +126,10 @@ export const CPS_ICON: Record<CriticalPointState, string> = {
 };
 
 export const CPS_ARIA_LABEL: Record<CriticalPointState, string> = {
-  subcritical: "稳定状态：远离临界点",
-  near_critical: "临近临界：接近相变",
-  supercritical: "过临状态：跨过临界点",
-  tipped: "已变：完成相变",
+  subcritical: "稳态：离翻车点还远",
+  near_critical: "临界附近：接近翻车点",
+  supercritical: "失控通道：已经越过翻车点",
+  tipped: "已翻转：状态已经改变",
 };
 
 // Legacy alias — keep existing imports working.
@@ -151,14 +160,16 @@ type Field =
 // exist in the current `DynamicsFamily` union onto user-friendly labels
 // independent of that union. This lets the UI render extended labels coming
 // out of v0.2 ingest without first widening the type.
+// PR-1: 普适类 → 共享模式; 阈值级联 → 临界级联; 富者愈富 → 强者愈强;
+// 滞后效应 → 回不去效应; 网络级联 → 网络级联反应; 反身性 keeps (大众有认知).
 const EXTENDED_LABELS_ZH: Record<string, string> = {
-  universality_class: "普适类",
-  soc_threshold_cascade: "阈值级联",
-  preferential_attachment: "富者愈富",
-  hysteresis_preisach: "滞后效应",
+  universality_class: "共享模式",
+  soc_threshold_cascade: "临界级联",
+  preferential_attachment: "强者愈强",
+  hysteresis_preisach: "回不去效应",
   scheffer_fold: "临界翻转",
-  motter_lai_cascade: "网络级联",
-  extreme_value_tail: "极值尾部",
+  motter_lai_cascade: "网络级联反应",
+  extreme_value_tail: "极端尾部风险",
   linear_quasi_equilibrium: "线性平衡",
   reflexive_fixed_point: "反身性",
   mixed: "混合型",

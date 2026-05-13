@@ -27,7 +27,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="text-zinc-500">动力学 · How it moves</span>
+          <span className="text-zinc-500">怎么动</span>
           {stats.by_dynamics.map((d) => (
             <span key={d.dynamics_family} className="text-zinc-700">
               <span className="text-zinc-500">
@@ -38,7 +38,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="text-zinc-500">临界状态 · Critical state</span>
+          <span className="text-zinc-500">当前状态</span>
           {stats.by_critical_point_state.map((c) => (
             <span
               key={c.critical_point_state}
