@@ -19,13 +19,15 @@ export const metadata: Metadata = {
 };
 
 const cpsColor = (s: string) =>
-  s === "subcritical"
+  s === "far_from_critical"
     ? "#059669"
-    : s === "near_critical"
+    : s === "approaching_critical"
       ? "#D97706"
-      : s === "supercritical"
+      : s === "at_critical"
         ? "#DC2626"
-        : "#18181B";
+        : s === "post_critical_transition"
+          ? "#18181B"
+          : "#71717A";
 
 export default function MethodologyPage() {
   return (
@@ -97,10 +99,10 @@ export default function MethodologyPage() {
       {/* Five shared patterns */}
       <section className="mb-10">
         <h2 className="mb-3 text-xl font-semibold text-zinc-900">
-          2. 5 类共享模式
+          2. 9 类共享模式
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-zinc-600">
-          我们把 100 家公司按"怎么动"归为下面 5 类。这 5 类来自跨学科研究——
+          我们把公司按"怎么动"归为下面 9 类。这套分类来自跨学科研究——
           地震、神经网络、电网、生态、金融市场都被这套模式解释过。
         </p>
         <div className="space-y-3">
@@ -125,10 +127,10 @@ export default function MethodologyPage() {
       {/* Four current states */}
       <section className="mb-10">
         <h2 className="mb-3 text-xl font-semibold text-zinc-900">
-          3. 4 种当前状态
+          3. 5 种当前状态
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-zinc-600">
-          每家公司离它的"翻车点"有多远？我们用下面 4 个状态描述。
+          每家公司离它的"翻车点"有多远？我们用下面 5 个状态描述（含证据不足时标记的"未知"）。
           每个状态用一个独特图标 + 颜色 + 文字（颜色不是唯一识别方式，色盲也能用）。
         </p>
         <div className="space-y-3">
@@ -194,7 +196,7 @@ export default function MethodologyPage() {
         <ul className="space-y-1 text-sm">
           <li>
             <a
-              href="https://structural.bytedance.city"
+              href="https://beta.structural.bytedance.city/classes"
               className="text-blue-600 hover:underline"
             >
               主站：跨学科同构研究报告 ↗

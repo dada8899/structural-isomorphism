@@ -1,4 +1,4 @@
-// PR-4: deterministic NLU for the Phase Detector hero search box.
+// Deterministic NLU for the Phase Detector hero search box.
 //
 // Input: free-form user query (CN or EN, no LLM).
 // Output: a routing decision the page can act on:
@@ -6,10 +6,10 @@
 //   - Else: stay on "/" but produce filters (state / family / sector) that
 //     match the keywords detected in the query.
 //
-// Truth source for family + state codes is lib/labels.ts + lib/types.ts.
-// Sector slug mapping is best-effort against common ICS sector names returned
-// by the backend; misses fall through and the query is preserved as the raw
-// string filter (sector free-text).
+// 2026-05-14 P0 fix: keyword maps now emit BE canonical v0.2 enum slugs
+// (approaching_critical / at_critical / post_critical_transition / etc.),
+// NOT the legacy short forms (near_critical / supercritical / tipped) which
+// had zero overlap with the BE and produced empty result sets.
 
 import type { CriticalPointState, DynamicsFamily } from "./types";
 
@@ -30,40 +30,128 @@ export interface ParsedQuery {
 const TICKER_RE = /^[A-Za-z]{1,5}(?:\.[A-Za-z])?$/;
 
 // ---------------------------------------------------------------------------
-// Keyword → enum maps. Order matters: longer / more specific phrases first
-// so "near critical" wins over "critical".
+// Keyword → enum maps. Order matters: longer / more specific phrases first.
+//
+// CPS mapping rationale (BE has no "supercritical" — closest is at_critical
+// for "已越过翻车点仍在加速"; post_critical_transition for "已翻转"):
+//   接近临界 / 临界附近 / 崩盘边缘  → approaching_critical
+//   失控 / 临界点上 / supercritical → at_critical
+//   已翻转 / tipped / 翻车 / 暴雷  → post_critical_transition
+//   稳态 / 稳定 / 健康 / 远离      → far_from_critical
 // ---------------------------------------------------------------------------
 
 const STATE_KEYWORDS: Array<[RegExp, CriticalPointState]> = [
-  [/(接近临界|临界附近|崩盘边缘|快崩了|near[\s-]?critical|on the edge)/i, "near_critical"],
-  [/(失控通道|失控|超临界|supercritical|runaway|out of control)/i, "supercritical"],
-  [/(已翻转|翻转|翻面|tipped|already tipped|post[\s-]?tip)/i, "tipped"],
-  [/(稳态|稳定|健康|平稳|subcritical|stable|resilient)/i, "subcritical"],
+  [
+    /(接近临界|临界附近|崩盘边缘|快崩了|near[\s-]?critical|approaching|on the edge)/i,
+    "approaching_critical",
+  ],
+  [
+    /(失控通道|失控|超临界|临界点上|at[\s-]?critical|supercritical|runaway|out of control)/i,
+    "at_critical",
+  ],
+  [
+    /(已翻转|翻转|翻面|翻车|暴雷|post[\s-]?critical|tipped|already tipped|post[\s-]?tip)/i,
+    "post_critical_transition",
+  ],
+  [
+    /(稳态|稳定|健康|平稳|远离|far[\s-]?from|subcritical|stable|resilient)/i,
+    "far_from_critical",
+  ],
 ];
 
 const FAMILY_KEYWORDS: Array<[RegExp, DynamicsFamily]> = [
-  [/(临界级联|阈值级联|level cascade|threshold cascade|cascade dynamics|soc)/i, "soc"],
-  [/(强者愈强|富者愈富|马太效应|rich[\s-]?get[\s-]?richer|preferential attachment|power law|幂律)/i, "preferential_attachment"],
-  [/(临界翻转|临界点|tipping point|tipping|fold|scheffer)/i, "fold"],
-  [/(回不去|回不来|路径依赖|滞后|hysteresis|memory effect|path dependence)/i, "hysteresis"],
+  [
+    /(临界级联|阈值级联|threshold cascade|cascade dynamics|\bsoc\b)/i,
+    "soc_threshold_cascade",
+  ],
+  [
+    /(强者愈强|富者愈富|马太效应|rich[\s-]?get[\s-]?richer|preferential attachment|power law|幂律)/i,
+    "preferential_attachment",
+  ],
+  [
+    /(临界翻转|临界点|tipping point|\btipping\b|\bfold\b|scheffer)/i,
+    "scheffer_fold",
+  ],
+  [
+    /(回不去|回不来|路径依赖|滞后|hysteresis|memory effect|path dependence|preisach)/i,
+    "hysteresis_preisach",
+  ],
+  [
+    /(网络级联|连锁反应|network cascade|domino|motter|motter[\s-]?lai)/i,
+    "motter_lai_cascade",
+  ],
+  [
+    /(反身性|反身性循环|reflexive|reflexivity|soros)/i,
+    "reflexive_fixed_point",
+  ],
+  [
+    /(极端尾部|黑天鹅|尾部风险|extreme value|tail risk|fat[\s-]?tail|black swan)/i,
+    "extreme_value_tail",
+  ],
+  [
+    /(线性稳态|近线性|稳态线性|quasi[\s-]?equilibrium|linear equilibrium|steady state)/i,
+    "linear_quasi_equilibrium",
+  ],
+  [
+    /(复合|混合|待判定|mixed|unclear)/i,
+    "mixed_or_unclear",
+  ],
 ];
 
-// CN keyword → canonical English sector name (matches backend output).
-// These are conservative: if user input doesn't match any key here, sector
-// stays unset (so the screener won't over-filter on a stray Chinese word).
+// CN keyword → BE canonical sector slug (matches /api/screener?sector=...).
+// For broad keywords mapping to many BE sectors, we emit the most common
+// canonical (e.g. 银行 → financials_bank). Misses fall through so the
+// screener won't over-filter on a stray Chinese word.
 const SECTOR_KEYWORDS: Array<[RegExp, string]> = [
-  [/(银行|金融|银行业|保险|financial|banking|finance|insurance)/i, "Financial"],
-  [/(能源|石油|油气|煤|energy|oil|gas|petroleum)/i, "Energy"],
-  [/(半导体|芯片|chip|semiconductor)/i, "Semiconductors"],
-  [/(科技|互联网|软件|tech|technology|software|internet)/i, "Technology"],
-  [/(电商|零售|消费|retail|e-?commerce|consumer)/i, "Retail"],
-  [/(汽车|车企|automotive|automobile|auto)/i, "Automotive"],
-  [/(医药|医疗|生物|healthcare|pharma|biotech|medical)/i, "Healthcare"],
-  [/(地产|房地产|物业|real estate|property|reit)/i, "Real Estate"],
-  [/(电信|通信|telecom|communication)/i, "Communication Services"],
-  [/(工业|制造|industrial|manufactur)/i, "Industrials"],
-  [/(公用|水电|燃气|utilit)/i, "Utilities"],
-  [/(原材料|材料|化工|material|chemical)/i, "Materials"],
+  // Banking + finance — bank is the broadest single bucket
+  [/(银行业|银行|banking|\bbank\b)/i, "financials_bank"],
+  [/(保险业|保险|insurance|reinsurance)/i, "financials_insurance"],
+  [/(支付|payments?|fintech)/i, "financials_payments"],
+  [/(券商|经纪|broker)/i, "financials_retail_broker"],
+  [/(加密|币圈|crypto|bitcoin)/i, "financials_crypto"],
+  [/(资管|资产管理|asset[\s-]?mgmt|asset management)/i, "financials_asset_mgmt"],
+  [/(金融|finance|financial)/i, "financials_bank"],
+
+  // Energy
+  [/(油气|石油|原油|oil|gas|petroleum)/i, "energy_oil_gas"],
+  [/(光伏|太阳能|solar)/i, "energy_solar"],
+  [/(氢能|hydrogen)/i, "energy_hydrogen"],
+  [/(炼化|refining)/i, "energy_refining"],
+  [/(中游|midstream|pipeline)/i, "energy_midstream"],
+  [/(能源|energy)/i, "energy_oil_gas"],
+
+  // Tech / software
+  [/(半导体|芯片|chip|semiconductor)/i, "tech_semiconductor"],
+  [/(游戏|gaming|games?)/i, "tech_software_gaming"],
+  [/(数据库|database|\bdb\b)/i, "tech_software_db"],
+  [/(安全|cybersec|security)/i, "tech_software_security"],
+  [/(电动车|电车|ev|electric vehicle)/i, "tech_auto_ev"],
+  [/(流媒体|streaming)/i, "tech_internet_streaming"],
+  [/(中国互联网|china internet)/i, "tech_internet_china"],
+  [/(电商|e-?commerce)/i, "tech_software_ecommerce"],
+  [/(互联网|internet)/i, "tech_internet"],
+  [/(软件|software)/i, "tech_software"],
+  [/(硬件|hardware)/i, "tech_hardware"],
+  [/(科技|tech|technology)/i, "tech_software"],
+
+  // Healthcare
+  [/(制药|药企|pharma)/i, "healthcare_pharma"],
+  [/(医疗器械|devices?)/i, "healthcare_devices"],
+  [/(生物|biotech)/i, "biotech"],
+  [/(医疗|healthcare|medical)/i, "healthcare_pharma"],
+
+  // Consumer
+  [/(汽车|车企|automotive|automobile|\bauto\b)/i, "consumer_auto"],
+  [/(必需消费|staples)/i, "consumer_staples"],
+  [/(非必需|可选消费|discretionary)/i, "consumer_discretionary"],
+  [/(零售|retail)/i, "consumer_discretionary_retail"],
+  [/(消费|consumer)/i, "consumer_discretionary"],
+
+  // Other
+  [/(航空|航天|aerospace)/i, "industrials_aerospace"],
+  [/(工业|industrial|manufactur)/i, "industrials_diversified"],
+  [/(电信|通信|telecom|communication)/i, "telecom"],
+  [/(媒体|娱乐|media|entertainment)/i, "media_entertainment"],
 ];
 
 function detect<T>(
@@ -129,7 +217,7 @@ export function parseQuery(input: string): ParsedQuery {
 // Plain Chinese, no internal codenames (per PR-1 copy sweep).
 export const EXAMPLE_QUERIES: string[] = [
   "银行接近临界",
-  "能源失控通道",
+  "能源临界点上",
   "已翻转科技股",
   "稳态消费",
   "AAPL",

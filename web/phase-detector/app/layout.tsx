@@ -84,7 +84,7 @@ export default function RootLayout({
                 关于
               </Link>
               <a
-                href="https://structural.bytedance.city"
+                href="https://beta.structural.bytedance.city/classes"
                 target="_blank"
                 rel="noopener"
                 className="hover:text-zinc-900"
@@ -118,7 +118,7 @@ export default function RootLayout({
                 GitHub ↗
               </a>
               <a
-                href="https://structural.bytedance.city"
+                href="https://beta.structural.bytedance.city/classes"
                 target="_blank"
                 rel="noopener"
                 className="hover:text-zinc-900"

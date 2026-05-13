@@ -909,6 +909,38 @@
   min-width: 200px;
 }
 
+/* Live typewriter preview — backend streams chunk.content per token,
+   we paint the last ~280 chars so user sees actual writing motion. */
+.analyze-loading__stream-preview {
+  margin: var(--space-5) auto 0;
+  max-width: 640px;
+  padding: 14px 18px;
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px dashed rgba(37, 99, 235, 0.28);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 60px;
+  position: relative;
+  overflow: hidden;
+}
+.analyze-loading__stream-preview::after {
+  content: '▋';
+  display: inline-block;
+  color: #2563EB;
+  margin-left: 2px;
+  animation: blink-caret 1s steps(2) infinite;
+}
+@keyframes blink-caret {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
 /* Elapsed timer row sitting above/below the dots */
 .analyze-loading__timer-row {
   display: inline-flex;
