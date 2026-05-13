@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "title": "Cross-domain SOC validation dataset (v1, 2026-05-13)",
+    "upload_type": "dataset",
+    "description": "<p>Cross-domain validation of self-organized criticality (SOC) and adjacent universality classes. Companion dataset for the structural-isomorphism preprint series (arXiv ID TBD).</p><p><strong>Contents:</strong></p><ul><li>13 verified universality systems: SOC × 9 (sandpile, earthquakes, neural avalanches, forest fires, solar flares, financial avalanches, traffic, granular, snow); PA × 2 (preferential attachment networks); Hysteresis × 1 (random-field Ising); Scheffer × 1 (early-warning regime shift).</li><li>4 null-control systems (exponential, gaussian, uniform, gamma) to validate rejection rates.</li><li>B1 ⊗ B3 taxonomy verdicts (21 classes) with per-system pass/fail breakdown.</li><li>Frozen analysis pipeline: Clauset 2009 KS-fit + parametric bootstrap (n=1000) + Vuong likelihood-ratio + universal scaling collapse.</li><li>Reproducibility scripts (Python 3.10+) and unit tests.</li></ul><p><strong>Methods:</strong> See companion preprint at <code>arXiv:TBD</code> (to be cross-referenced once published).</p><p><strong>Software:</strong> Analysis pipeline is published as <code>soc-pipeline</code> on PyPI (<a href=\"https://pypi.org/project/soc-pipeline/\">https://pypi.org/project/soc-pipeline/</a>). LLM ensemble guardrails published as <code>guarded-llm</code>.</p>",
+    "creators": [
+      {
+        "name": "dada8899",
+        "affiliation": "Independent Research"
+      }
+    ],
+    "access_right": "open",
+    "license": "CC-BY-4.0",
+    "keywords": [
+      "self-organized criticality",
+      "universality",
+      "power-law",
+      "cross-domain validation",
+      "LLM ensemble critic",
+      "Clauset 2009",
+      "Vuong likelihood ratio",
+      "scaling collapse",
+      "complex systems",
+      "heavy-tailed distributions"
+    ],
+    "communities": [],
+    "related_identifiers": [
+      {
+        "relation": "isSupplementTo",
+        "identifier": "arXiv:placeholder",
+        "scheme": "arxiv",
+        "resource_type": "publication-preprint"
+      },
+      {
+        "relation": "isDocumentedBy",
+        "identifier": "https://github.com/dada8899/structural-isomorphism",
+        "scheme": "url",
+        "resource_type": "software"
+      },
+      {
+        "relation": "isCompiledBy",
+        "identifier": "https://pypi.org/project/soc-pipeline/",
+        "scheme": "url",
+        "resource_type": "software"
+      }
+    ],
+    "version": "v1.0.0",
+    "language": "eng",
+    "notes": "First public release. v2 will add Phase 2 extensions (additional null controls + reject-aware pipeline). See CHANGELOG in companion GitHub repo."
+  }
+}
