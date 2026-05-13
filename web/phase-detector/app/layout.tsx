@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
+import HistorySidebar from "@/components/HistorySidebar";
 import "./globals.css";
 
 // W6-B: localized to zh-CN, aligned with main site brand (双圆 logo, Inter + Noto Serif SC).
@@ -38,11 +39,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
         />
       </head>
-      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased">
+      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60">
         <a href="#main-content" className="skip-link">
           跳到主要内容
         </a>
-        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur">
+        <HistorySidebar />
+        <header className="sticky top-0 z-[80] border-b border-zinc-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
             <Link href="/" className="flex items-center gap-2" aria-label="Phase Detector 首页">
               {/* W6-B: double-circle mark — same as main site (Structural logo). */}
