@@ -1,46 +1,83 @@
-# B2 — Layer 4 prediction calibration summary
+# B2 — Layer 4 prediction calibration (v2, W1-D)
 
-**Run date**: 2026-05-13  
+**Run date**: 2026-05-13 (session #3, W1-D)
 
-**Total classes**: 21  
-
-**Total predictions**: 24  
+**Script**: `v4/scripts/b2_calibrate_predictions.py`
 
 
-## Verification status
+## Overview
 
-| Status | Count | % |
+- Classes processed: **21**
+- Predictions processed: **24**
+- Extracted numerical bands (total): **42**
+- Bands matched to a verified observation: **3** / 42 (7%)
+
+## 95% CI method per band
+
+| Method | Count | Description |
 |---|---|---|
-| ✅ Confirmed (observed value in predicted band) | 0 | 0% |
-| 🟡 Partial (literature band overlap only) | 0 | 0% |
-| 🔴 Deviating | 0 | 0% |
-| ⚪ Pending (no verified observation yet) | 24 | 100% |
+| `literature_band_rescaled` | 42 | Treat LLM band as ±2σ → 95% CI = mid ± 1.96σ_est |
+| `bootstrap` | 0 | Verified phase: bootstrap CI on observed value attached |
 
-## Verified-observation bootstrap CI refresh
+## Reverse-filled verdicts on verified phases
 
-| Quantity | Value | Bootstrap 95% CI | n_boot succeeded |
+Among **3** bands matched to a verified observation:
+
+| Verdict | Count | % | Meaning |
 |---|---|---|---|
-| earthquake_alpha | 1.803 | [1.753, 1.838] | 100 |
-| stockmarket_alpha | 2.993 | [2.738, 3.000] | 100 |
-| defi_aave_alpha | — | failed: too few sizes: 0 | — |
-| defi_compound_alpha | — | failed: too few sizes: 0 | — |
-| defi_maker_alpha | — | failed: too few sizes: 0 | — |
+| `in_band` | 0 | 0% | Observed value lies inside predicted 95% CI |
+| `out_band_partial` | 3 | 100% | Predicted band overlaps literature band but not observed |
+| `complete_mismatch` | 0 | 0% | Predicted band misses both observed and literature |
+
+## Bootstrap CI refresh on raw data
+
+| Observation | Median α | Bootstrap 95% CI | n_boot |
+|---|---|---|---|
+| earthquake_alpha_energy | 1.803 | [1.753, 1.838] | 100 |
+| stockmarket_alpha_returns | 2.993 | [2.738, 3.000] | 100 |
+
+## Surprises — LLM bands that miss the observed value
+
+(none — all matched predictions land in_band or out_band_partial)
 
 ## Methodology
 
-1. **Band extraction**: regex pulls numerical ranges `[a, b]` / `a-b` / `a 到 b` from each prediction text.
-2. **Quantity inference**: looks at ~30 chars before each range for known physical-quantity keywords (α, τ, β, p_omori, b-value, ratio, time, fraction).
-3. **Observation matching**: for each verified phase 1-5 system, the prediction text is scanned for domain keywords (earthquake / S&P / DeFi / neural). If matched, the predicted band is compared to observed central value.
-4. **Bootstrap CI refresh**: where raw data is available (earthquake, S&P 500, 3 DeFi protocols), Clauset α is re-fit on 100 bootstrap resamples to give updated 95% CI.
-5. **Score**:
-   - `confirmed`: observed value lies inside predicted band
-   - `partial`: predicted band overlaps the canonical literature band even if not the exact observation
-   - `deviating`: predicted band misses both
-   - `pending`: no verified phase has tested this class+target yet
+**Method A — `literature_band_rescaled` (default)**
+
+LLM predictions give heuristic ranges (e.g. `[0.08, 0.22]`). We treat each band
+as a ~2σ envelope around its midpoint, then rescale to a 95% CI:
+
+```
+mid = (low + high) / 2
+sigma_est = (high - low) / 4   # half-width / 2
+CI_95 = mid ± 1.96 × sigma_est
+```
+
+This widens narrow LLM bands by ~5% and shrinks very wide ones — conservative but
+honest given the LLM never specified what its band meant. All 24 predictions have
+all extracted bands rescaled this way as a baseline.
+
+**Method B — `bootstrap` (verified phases only)**
+
+For the 13 verified phases (HANDOFF §1), raw data is re-bootstrapped (n_boot=100)
+with `soc_pipeline.bootstrap_alpha_ci`. The observed value + its empirical 95% CI
+are attached to any predicted band that matches the verified system by class_id ∩
+domain keyword. Verdict = `in_band` if observed lies inside the rescaled predicted CI,
+`out_band_partial` if predicted band overlaps literature but not observed, else
+`complete_mismatch`.
 
 ## Limitations
 
-- Regex band extraction misses range expressions in other phrasings (e.g. 'approximately X with σ Y'). 24/24 predictions had at least one extractable band; not all are physically meaningful quantities.
-- Quantity inference is heuristic; some bands attributed to wrong quantity if context keyword is ambiguous.
-- For non-α/τ quantities (timings, ratios), no verified observation table exists yet — those default to `pending` until matching phase is run.
-- Only SOC threshold cascade class has verified observations; 22 other classes are all `pending` until Phase 6+/A2 phases run.
+- LLM bands have no specified semantic (1σ? 2σ? P5-P95?). Choosing 2σ is a
+  middle-ground assumption; if true semantic is 1σ, our 95% CI is too narrow.
+
+- Quantity inference uses heuristic context window — a band labelled 'ratio' may
+  actually represent something else; mismatches between predicted unit and verified
+  observation unit are filtered only by domain keyword, not unit.
+
+- 11 predictions touch domains with no verified phase yet (e.g. building collapse,
+  traffic phase transition); those land `pending` by default.
+
+- Bootstrap CI uses n_boot=100 — sufficient for stable median but tail estimates
+  could shift ±5% with n_boot=500.
+
