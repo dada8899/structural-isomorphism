@@ -1,48 +1,58 @@
 class_id: gardner_collins_toggle_switch_apoptosis
 status: speculative
-display_name: "Gardner-Collins toggle switch (apoptosis/quorum sensing variant)"
-display_name_zh: "Gardner-Collins 拨动开关 (凋亡级联与群感效应变体)"
-hub_phenomenon: "Ultrasensitive positive-feedback bistable switches in apoptosis Caspase cascades and quorum sensing"
-shared_equation: |
-  Hill ultrasensitive positive-feedback:
-    dS/dt = α · S^n / (K^n + S^n) - β · S.
-  For n > 1: two stable fixed points (off/on).
-  Quorum sensing variant (autoinducer self-loop):
-    dA/dt = α · A^n / (K^n + A^n) - β·A + basal·N.
-  Caspase cascade (Yang-Wirtz 2007): irreversible due to deep low basin.
+display_name: Gardner-Collins toggle switch (apoptosis/quorum sensing variant)
+display_name_zh: Gardner-Collins 拨动开关 (凋亡级联与群感效应变体)
+hub_phenomenon: Ultrasensitive positive-feedback bistable switches in apoptosis Caspase cascades and quorum sensing
+shared_equation: "Hill ultrasensitive positive-feedback:\n  dS/dt = α · S^n / (K^n + S^n) - β · S.\nFor n > 1: two stable\
+  \ fixed points (off/on).\nQuorum sensing variant (autoinducer self-loop):\n  dA/dt = α · A^n / (K^n + A^n) - β·A + basal·N.\n\
+  Caspase cascade (Yang-Wirtz 2007): irreversible due to deep low basin.\n"
 key_invariants:
-  - "Hill positive feedback dS/dt = α·S^n/(K^n+S^n) - β·S"
-  - "n > 1 (ultrasensitivity threshold)"
-  - "Saddle-node bifurcation triggers switching"
-  - "Irreversibility from deep off-state (apoptosis once committed)"
-  - "Density-dependent activation (quorum sensing)"
+- Hill positive feedback dS/dt = α·S^n/(K^n+S^n) - β·S
+- n > 1 (ultrasensitivity threshold)
+- Saddle-node bifurcation triggers switching
+- Irreversibility from deep off-state (apoptosis once committed)
+- Density-dependent activation (quorum sensing)
 positive_examples:
-  - phenomenon: "Apoptosis Caspase cascade irreversible digital switch (凋亡Caspase级联)"
-    evidence: "Hub. Once Caspase-3 above threshold, positive feedback amplifies → irreversible cell death."
-    verified_at: "candidate"
-  - phenomenon: "Quorum sensing density-dependent activation (群体感应)"
-    evidence: "Layer 4 prediction: Hill n ∈ [2.5, 4.5] in Vibrio harveyi / Pseudomonas; bistability hysteresis width / threshold ∈ [0.3, 0.7]."
-    verified_at: "candidate"
-  - phenomenon: "Quorum sensing synchronous induction threshold (群感效应)"
-    evidence: "Same autoinducer Hill kinetics."
-    verified_at: "candidate"
+- phenomenon: Apoptosis Caspase cascade irreversible digital switch (凋亡Caspase级联)
+  evidence: Hub. Once Caspase-3 above threshold, positive feedback amplifies → irreversible cell death.
+  verified_at: candidate
+- phenomenon: Quorum sensing density-dependent activation (群体感应)
+  evidence: 'Layer 4 prediction: Hill n ∈ [2.5, 4.5] in Vibrio harveyi / Pseudomonas; bistability hysteresis width / threshold
+    ∈ [0.3, 0.7].'
+  verified_at: candidate
+- phenomenon: Quorum sensing synchronous induction threshold (群感效应)
+  evidence: Same autoinducer Hill kinetics.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Linear caspase-substrate cleavage"
-    reason: "Without positive feedback loop, no bistability. The cascade requires self-activation (Caspase-3 cleaves Caspase-9 which activates more Caspase-3) to produce switch behavior."
-  - phenomenon: "Graded apoptosis under low stress"
-    reason: "If population shows graded death (no bimodality), Hill ultrasensitivity is insufficient. Need n > 1 + autocatalysis."
-  - phenomenon: "Cell-cycle progression"
-    reason: "Cyclin-CDK switches are toggle-like (G1/S transition is Rb positive feedback) — actually class member. Misclassified here as negative; should be re-examined."
+- phenomenon: Linear caspase-substrate cleavage
+  reason: Without positive feedback loop, no bistability. The cascade requires self-activation (Caspase-3 cleaves Caspase-9
+    which activates more Caspase-3) to produce switch behavior.
+- phenomenon: Graded apoptosis under low stress
+  reason: If population shows graded death (no bimodality), Hill ultrasensitivity is insufficient. Need n > 1 + autocatalysis.
+- phenomenon: Cell-cycle progression
+  reason: Cyclin-CDK switches are toggle-like (G1/S transition is Rb positive feedback) — actually class member. Misclassified
+    here as negative; should be re-examined.
 edge_cases:
-  - phenomenon: "MAPK signaling (Goldbeter-Koshland)"
-    debate: "Zero-order ultrasensitivity can produce switch-like response without explicit Hill. Different mathematical mechanism but same phenotype. Class boundary."
-notes: |
-  LLM-proposed sub-class. The parent class gardner_collins_toggle_switch in layer 3 covers
+- phenomenon: MAPK signaling (Goldbeter-Koshland)
+  debate: Zero-order ultrasensitivity can produce switch-like response without explicit Hill. Different mathematical mechanism
+    but same phenotype. Class boundary.
+notes: 'LLM-proposed sub-class. The parent class gardner_collins_toggle_switch in layer 3 covers
+
   this — this entry exists because Layer 4 generated targeted predictions for two specific
+
   variants (apoptosis and quorum sensing). Speculative until validation experiments performed
+
   on BacDive single-cell datasets.
+
+  '
 references:
-  - "Gardner, Cantor, Collins 2000 Nature 403, 339"
-  - "Yang, Wirtz 2007 (Caspase irreversibility model)"
-  - "Bassler, Losick 2006 Cell 125, 237 (quorum sensing review)"
-  - "Tyson, Csikasz-Nagy, Novak 2002 BioEssays 24, 1095 (cell cycle as toggle)"
+- Gardner, Cantor, Collins 2000 Nature 403, 339
+- Yang, Wirtz 2007 (Caspase irreversibility model)
+- Bassler, Losick 2006 Cell 125, 237 (quorum sensing review)
+- Tyson, Csikasz-Nagy, Novak 2002 BioEssays 24, 1095 (cell cycle as toggle)
+b3_status: MERGED_B3
+b3_verdict: MERGE_strong
+b3_consensus: MERGE
+b3_avg_confidence: 0.93
+b3_action_taken: merged into gardner_collins_toggle_switch (kept as historical pointer)
+merged_into: gardner_collins_toggle_switch

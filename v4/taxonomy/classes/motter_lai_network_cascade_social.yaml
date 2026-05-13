@@ -1,44 +1,52 @@
 class_id: motter_lai_network_cascade_social
 status: speculative
-display_name: "Motter-Lai cascade (social/financial network variant)"
-display_name_zh: "Motter-Lai 级联 (社会与金融网络变体)"
-hub_phenomenon: "Load-redistribution cascade on social/financial counterparty networks; Eisenberg-Noe clearing vector or Watts threshold cascade as instantiations"
-shared_equation: |
-  Eisenberg-Noe clearing vector: p_i = min(L_i, c_i + Σ π_ji · p_j).
-  Motter-Lai redistribution: node_j fails if load_j > C_j;
-    redistribution L_k += share·L_j.
-  Cascade size distribution tail: P(s) ∝ s^{-τ}.
+display_name: Motter-Lai cascade (social/financial network variant)
+display_name_zh: Motter-Lai 级联 (社会与金融网络变体)
+hub_phenomenon: Load-redistribution cascade on social/financial counterparty networks; Eisenberg-Noe clearing vector or Watts
+  threshold cascade as instantiations
+shared_equation: "Eisenberg-Noe clearing vector: p_i = min(L_i, c_i + Σ π_ji · p_j).\nMotter-Lai redistribution: node_j fails\
+  \ if load_j > C_j;\n  redistribution L_k += share·L_j.\nCascade size distribution tail: P(s) ∝ s^{-τ}.\n"
 key_invariants:
-  - "Eisenberg-Noe clearing vector existence (Banach fixed-point)"
-  - "Capacity-load ratio α = C/L; phase transition at α_c"
-  - "Cascade size power-law tail"
-  - "Topology dependence (scale-free vs random vs hub-and-spoke)"
+- Eisenberg-Noe clearing vector existence (Banach fixed-point)
+- Capacity-load ratio α = C/L; phase transition at α_c
+- Cascade size power-law tail
+- Topology dependence (scale-free vs random vs hub-and-spoke)
 positive_examples:
-  - phenomenon: "Cascading failure in social networks (级联失效在社会网络中的传播)"
-    evidence: "Hub. Watts 2002 PNAS threshold cascade on social network with heterogeneous individual thresholds θ_i."
-    verified_at: "candidate"
-  - phenomenon: "Plasma sub-chain mass exit problem (Plasma子链大规模退出)"
-    evidence: "Exit queue congestion on L2 rollup. Counterparty risk network propagates exit pressure."
-    verified_at: "candidate"
-  - phenomenon: "Counterparty risk contagion network (对手方风险的传染网络)"
-    evidence: "OTC derivatives bilateral exposure network; Eisenberg-Noe applied to clearing."
-    verified_at: "candidate"
+- phenomenon: Cascading failure in social networks (级联失效在社会网络中的传播)
+  evidence: Hub. Watts 2002 PNAS threshold cascade on social network with heterogeneous individual thresholds θ_i.
+  verified_at: candidate
+- phenomenon: Plasma sub-chain mass exit problem (Plasma子链大规模退出)
+  evidence: Exit queue congestion on L2 rollup. Counterparty risk network propagates exit pressure.
+  verified_at: candidate
+- phenomenon: Counterparty risk contagion network (对手方风险的传染网络)
+  evidence: OTC derivatives bilateral exposure network; Eisenberg-Noe applied to clearing.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Earthquake aftershock cascade"
-    reason: "Geological cascade with continuous stress field, not discrete network. Belongs to soc_threshold_cascade."
-  - phenomenon: "Disease epidemic"
-    reason: "Mass-action SIR, not capacity-redistribution. Belongs to sir_contagion_network_class."
-  - phenomenon: "Power-grid cascading failure"
-    reason: "Belongs to motter_lai_network_cascade (physical/engineering variant), not specifically the social/financial sub-class."
+- phenomenon: Earthquake aftershock cascade
+  reason: Geological cascade with continuous stress field, not discrete network. Belongs to soc_threshold_cascade.
+- phenomenon: Disease epidemic
+  reason: Mass-action SIR, not capacity-redistribution. Belongs to sir_contagion_network_class.
+- phenomenon: Power-grid cascading failure
+  reason: Belongs to motter_lai_network_cascade (physical/engineering variant), not specifically the social/financial sub-class.
 edge_cases:
-  - phenomenon: "Bank run (Diamond-Dybvig)"
-    debate: "Multiple equilibria coordination at single bank; vs. cascade across banking network. Same data, two valid models depending on focus."
-notes: |
-  LLM-proposed sub-class. Substantially overlaps with parent motter_lai_network_cascade.
+- phenomenon: Bank run (Diamond-Dybvig)
+  debate: Multiple equilibria coordination at single bank; vs. cascade across banking network. Same data, two valid models
+    depending on focus.
+notes: 'LLM-proposed sub-class. Substantially overlaps with parent motter_lai_network_cascade.
+
   Created because Layer 4 grouped social/financial cascade phenomena into a separate prediction set.
+
   Speculative; recommended merge with motter_lai_network_cascade pending consolidation review.
+
+  '
 references:
-  - "Motter, Lai 2002 Phys. Rev. E 66, 065102"
-  - "Eisenberg, Noe 2001 Manag. Sci. 47, 236"
-  - "Watts 2002 PNAS 99, 5766 (threshold cascades on social networks)"
-  - "Acemoglu, Ozdaglar, Tahbaz-Salehi 2015 Am. Econ. Rev. 105, 564 (financial contagion)"
+- Motter, Lai 2002 Phys. Rev. E 66, 065102
+- Eisenberg, Noe 2001 Manag. Sci. 47, 236
+- Watts 2002 PNAS 99, 5766 (threshold cascades on social networks)
+- Acemoglu, Ozdaglar, Tahbaz-Salehi 2015 Am. Econ. Rev. 105, 564 (financial contagion)
+b3_status: MERGED_B3
+b3_verdict: MERGE_strong
+b3_consensus: MERGE
+b3_avg_confidence: 0.93
+b3_action_taken: merged into motter_lai_network_cascade__threshold_contagion (kept as historical pointer)
+merged_into: motter_lai_network_cascade__threshold_contagion

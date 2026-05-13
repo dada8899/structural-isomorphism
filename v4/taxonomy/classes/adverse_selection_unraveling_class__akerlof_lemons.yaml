@@ -1,9 +1,9 @@
-class_id: adverse_selection_unraveling_class
-status: emerging
-display_name: Adverse selection & lemons-market unraveling
-display_name_zh: 逆向选择与柠檬化退化
-hub_phenomenon: 'Information asymmetry drives positive-feedback quality (or diversity) collapse: high-quality participants
-  exit → remaining pool quality drops → price drops → more high-quality exit → market dies'
+class_id: adverse_selection_unraveling_class__akerlof_lemons
+status: speculative
+display_name: Akerlof lemons unraveling (hidden quality + price-driven exit)
+display_name_zh: Akerlof 柠檬市场逆向选择
+hub_phenomenon: Hidden quality + price-conditional expectation equilibrium p* = E[q|p*] producing monotone exit of high-quality
+  types.
 shared_equation: "Akerlof 1970 conditional expectation: p* = E[q | p*]; equilibrium when expected quality matches price.\n\
   Unraveling dynamics: x_{t+1} = f(x_t), f monotone decreasing.\nDiversity / quality dynamics: D(t+1) = D(t)·(1-α) + β·N(t),\n\
   \  where α = homogenization rate (recommendation algorithm reinforcement),\n  β = new heterogeneous-content creator entry\
@@ -56,7 +56,7 @@ references:
 - Noelle-Neumann 1974 J. Communication 24, 43 (spiral of silence)
 - Spence 1973 Q. J. Econ. 87, 355 (job market signaling — closely related)
 - Pariser 2011 The Filter Bubble (information cocoon)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: SPLIT_strong
 b3_consensus: SPLIT
 b3_avg_confidence: 0.92
@@ -66,3 +66,12 @@ superseded_by_split:
 - adverse_selection_unraveling_class__akerlof_lemons
 - adverse_selection_unraveling_class__spiral_of_silence
 - adverse_selection_unraveling_class__echo_chamber_filter
+parent_class: adverse_selection_unraveling_class
+split_from: adverse_selection_unraveling_class
+split_rationale: 'Akerlof-specific: hidden quality with conditional-expectation equilibrium. Spiral of silence and echo chambers
+  share only surface dynamics and were removed.'
+members_kept_after_split:
+- used car lemons
+- labor market signaling
+- insurance adverse selection
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

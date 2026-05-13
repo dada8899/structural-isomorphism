@@ -1,9 +1,9 @@
-class_id: sir_contagion_network_class
-status: emerging
-display_name: SIR-type contagion on networks
-display_name_zh: SIR 网络传染与拓扑传导
-hub_phenomenon: Compartmental contagion dynamics on a contact/financial network; basic reproduction number R_0 = β/γ determines
-  epidemic threshold
+class_id: sir_contagion_network_class__sir_epidemic
+status: speculative
+display_name: SIR epidemic on network (recovery + R0 threshold)
+display_name_zh: 网络 SIR 流行病 (恢复 + R0 阈值)
+hub_phenomenon: 'Kermack-McKendrick SIR: dS/dt = -βSI, dI/dt = βSI - γI, dR/dt = γI; epidemic threshold R0 = β⟨k⟩/γ > 1; final
+  size obeys R∞/N = 1 - exp(-R0·R∞/N).'
 shared_equation: "Kermack-McKendrick SIR (mean-field):\n  dS/dt = -β·S·I/N,\n  dI/dt = β·S·I/N - γ·I,\n  dR/dt = γ·I.\nNetwork\
   \ SIR: dX_i/dt = β·Σ_j A_ij·X_j·(1-X_i) - γ·X_i.\nBasic reproduction number: R_0 = β·⟨k⟩/γ.\nEpidemic threshold: R_0 > 1\
   \ → outbreak.\nFinal epidemic size: R_∞/N = 1 - exp(-R_0·R_∞/N).\n"
@@ -54,7 +54,7 @@ references:
 - Pastor-Satorras, Vespignani 2001 Phys. Rev. Lett. 86, 3200 (epidemic on scale-free)
 - Allen, Gale 2000 J. Pol. Econ. 108, 1 (financial contagion)
 - Forbes, Rigobon 2002 J. Finance 57, 2223 (contagion measurement)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: SPLIT_strong
 b3_consensus: SPLIT
 b3_avg_confidence: 0.83
@@ -62,3 +62,11 @@ b3_action_taken: 'split into 2 children: sir_contagion_network_class__sir_epidem
 superseded_by_split:
 - sir_contagion_network_class__sir_epidemic
 - sir_contagion_network_class__balance_sheet_cascade
+parent_class: sir_contagion_network_class
+split_from: sir_contagion_network_class
+split_rationale: True SIR requires recovery compartment with γ > 0 and final-size law. Excludes balance-sheet financial cascades.
+members_kept_after_split:
+- drug-resistant bacteria spread
+- measles outbreak
+- COVID transmission
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.
