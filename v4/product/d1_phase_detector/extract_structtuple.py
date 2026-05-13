@@ -16,15 +16,18 @@ CLI:
 
 Model defaults to `deepseek-v4-pro` (better quality + reasoning) per D1 brief.
 
-Direct DeepSeek API is used to bypass OpenRouter CN region-block. Key is
-embedded inline — this is a research / internal-only script; rotate via
-session ***REMOVED***N+ if it ever gets pushed.
+Direct DeepSeek API is used to bypass OpenRouter CN region-block. The key
+is loaded from the `DEEPSEEK_API_KEY` env var (see `.env.example` and
+`docs/security/api-key-rotation-runbook.md`); the script aborts loudly if
+the var is unset, so it never silently runs against an empty or accidental
+key.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -43,7 +46,14 @@ from llm_guardrail import state_machine_fix, validate_json  ***REMOVED*** noqa: 
 ***REMOVED*** DeepSeek API config
 ***REMOVED*** ---------------------------------------------------------------------------
 
-DEEPSEEK_KEY = "sk-REDACTED-BY-SCRUB-20260524"
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
+if not DEEPSEEK_KEY:
+    raise RuntimeError(
+        "DEEPSEEK_API_KEY env var is not set. "
+        "Get a key at https://platform.deepseek.com and export it before running:\n"
+        "    export DEEPSEEK_API_KEY='sk-...'\n"
+        "See docs/security/api-key-rotation-runbook.md for the rotation runbook."
+    )
 DEEPSEEK_BASE = "https://api.deepseek.com/v1/chat/completions"
 
 DEFAULT_MODEL = "deepseek-v4-pro"
