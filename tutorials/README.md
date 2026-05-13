@@ -1,14 +1,16 @@
 # Reproduction tutorials
 
-> 30-minute, from-scratch reproductions of the structural-isomorphism Phase 1 results.
+> From-scratch reproductions of the structural-isomorphism Phase 1 results.
+> Default 1-year window runs in ~5 seconds (CLI script) / ~3 minutes (notebook with explanations).
+> The full 5-year headline window takes ~5 minutes (script) / ~30 minutes (notebook).
 > No GPU, no credentials, no private data. Just `pip install` and a USGS REST call.
 
 ## What's here
 
 | File | What it does | ETA |
 |---|---|---|
-| `01_reproduce_earthquake_soc.ipynb` | Jupyter notebook: USGS pull → $M_c$ → Aki $b$ → bootstrap CI → Clauset 2009 fit on energy → Vuong LR tests → log-log plot → verdict | ~30 min |
-| `01_phase_1_quick.py` | Same pipeline as a one-command CLI script for users who don't want Jupyter | ~5 min |
+| `01_reproduce_earthquake_soc.ipynb` | Jupyter notebook: USGS pull → $M_c$ → Aki $b$ → bootstrap CI → Clauset 2009 fit on energy → Vuong LR tests → log-log plot → verdict | ~3 min (1-yr default end-to-end with explanatory cells); ~30 min for the 5-yr headline reproduction |
+| `01_phase_1_quick.py` | Same pipeline as a one-command CLI script for users who don't want Jupyter | **~5 seconds** (1-yr default; W5-D dogfood measured 5.2 s on a 2024 MacBook Air); ~5 min for 5-yr window |
 
 The notebook is for understanding (each step explained, intermediate plots). The script is for batch runs (CI, dogfooding, "just give me the number").
 
@@ -18,10 +20,18 @@ The notebook is for understanding (each step explained, intermediate plots). The
 - ~200 MB free disk (USGS pull + matplotlib cache)
 - Network access to `earthquake.usgs.gov`
 
-The notebook installs everything from a single cell, so the only manual step is `jupyter` itself. Same packages are needed by the script.
+The notebook installs everything from a single cell. The CLI script needs the same six packages installed up front. Explicit one-liner — copy-paste this exact line, in this order, so you get the right versions:
 
+```bash
+pip install numpy scipy pandas matplotlib powerlaw requests jupyter
 ```
-pip install jupyter numpy scipy pandas matplotlib requests powerlaw
+
+(Notebook users need `jupyter`; CLI-only users can drop it.)
+
+You can also install the repo with the `[tutorials]` extra, which pulls the same set:
+
+```bash
+pip install -e ".[tutorials]"   # from the repo root
 ```
 
 ## Run the notebook

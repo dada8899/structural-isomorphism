@@ -29,8 +29,11 @@ Thumbs.db
 logs/
 *.log
 
-# Environment
+# Environment (secrets — DEEPSEEK_API_KEY etc. live here)
 .env
+.env.local
+.env.*.local
+!.env.example
 venv/
 .venv/
 

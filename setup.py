@@ -10,17 +10,26 @@ setup(
     description="Cross-domain structural similarity search engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/structural-isomorphism",
+    url="https://github.com/dada8899/structural-isomorphism",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[
+        # Core engine
         "sentence-transformers>=2.0",
         "numpy",
         "torch",
+        # Statistical / data processing (used by phase detector, validation,
+        # tutorial reproductions, and the active-learning simulation)
+        "scipy",
+        "pandas",
+        "powerlaw",
+        "requests",
+        "matplotlib",
     ],
     extras_require={
         "demo": ["gradio>=4.0"],
-        "dev": ["scikit-learn", "pytest"],
+        "tutorials": ["jupyter", "matplotlib", "powerlaw"],
+        "dev": ["scikit-learn", "pytest", "black", "ruff"],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

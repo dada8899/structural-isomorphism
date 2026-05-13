@@ -405,7 +405,7 @@ I thank the Anthropic Claude family (Opus 4.6/4.7, Sonnet 4.5) and the DeepSeek 
 
 [31] V. Dakos, M. Scheffer, E. H. van Nes, V. Brovkin, V. Petoukhov, and H. Held, "Slowing down as an early warning signal for abrupt climate change," *Proc. Natl. Acad. Sci. USA* **105**, 14308 (2008).
 
-[32] A. Wei, K. Cobbe, R. Nakano, et al., "An empirical analysis of LLM ensemble methods for technical reasoning tasks," *arXiv*:2402.xxxxx (2024).
+[32] X. Wang, J. Wei, D. Schuurmans, Q. Le, E. Chi, S. Narang, A. Chowdhery, and D. Zhou, "Self-consistency improves chain of thought reasoning in language models," *International Conference on Learning Representations (ICLR)* (2023). arXiv:2203.11171.
 
 [33] S. Min, X. Lyu, A. Holtzman, et al., "Rethinking the role of demonstrations: what makes in-context learning work?" *EMNLP* (2022).
 
