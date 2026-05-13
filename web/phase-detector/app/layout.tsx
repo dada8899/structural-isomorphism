@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -46,6 +47,13 @@ export default function RootLayout({
         <footer className="mx-auto max-w-7xl px-6 py-10 text-xs text-gray-400">
           Phase Detector v0.1 · Research preview · Not investment advice.
         </footer>
+        {/* Plausible analytics (W4-B G3, 2026-05-13). */}
+        <Script
+          defer
+          data-domain="phase.bytedance.city"
+          src="https://plausible.bytedance.city/js/script.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
