@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageOpenTracker } from "@/components/PageOpenTracker";
 import {
   CPS_EXPLAIN,
   CPS_ICON,
@@ -29,6 +30,7 @@ const cpsColor = (s: string) =>
 export default function MethodologyPage() {
   return (
     <article className="mx-auto max-w-3xl">
+      <PageOpenTracker event="methodology_opened" />
       <Breadcrumb
         items={[{ label: "首页", href: "/" }, { label: "方法" }]}
       />
