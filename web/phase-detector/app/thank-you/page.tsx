@@ -5,7 +5,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 
 export const metadata: Metadata = {
   title: "已加入名单 — Phase Detector",
-  description: "你已加入《结构信号》订阅。每周日推送本周相态变化。",
+  description: "你已加入《结构信号》订阅。每周日推送本周公司状态变化。",
   // Block indexing so this page does not show up in search.
   robots: { index: false, follow: false },
 };
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const SHARE_URL = "https://phase.bytedance.city";
 const SHARE_TEXT =
-  "我刚订阅了《结构信号》——100 家全球上市公司的相态分析，用解释地震和银行挤兑的同一套物理。每周日推送。";
+  "我刚订阅了《结构信号》——100 家全球公司的状态评分，用解释地震和银行挤兑的同一套数学。每周日推送。";
 
 export default function ThankYouPage() {
   return (
@@ -33,10 +33,10 @@ export default function ThankYouPage() {
         下次发刊是<strong>本周日 22:00 (Asia/Shanghai)</strong>。内容覆盖：
       </p>
       <ul className="mb-6 list-disc space-y-1 pl-6 text-sm text-zinc-700">
-        <li>本周新跨入「临近临界」的公司（每个含一句结构解释）</li>
+        <li>本周新走到「临界附近」的公司（每个附一句解释）</li>
         <li>本周回到「稳态」的公司</li>
         <li>一个深度案例（约 200 字）</li>
-        <li>方法论 FAQ + 推荐阅读</li>
+        <li>常见问题 + 推荐阅读</li>
       </ul>
 
       <section
@@ -61,14 +61,14 @@ export default function ThankYouPage() {
           className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm"
         >
           <div className="text-sm font-semibold text-zinc-900">回到首页</div>
-          <p className="mt-1 text-xs text-zinc-500">看 100 家公司的当前相态</p>
+          <p className="mt-1 text-xs text-zinc-500">看 100 家公司的当前状态</p>
         </Link>
         <Link
           href="/methodology"
           className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm"
         >
           <div className="text-sm font-semibold text-zinc-900">方法论</div>
-          <p className="mt-1 text-xs text-zinc-500">动力学族 + 临界点判定</p>
+          <p className="mt-1 text-xs text-zinc-500">共享模式 + 状态判定怎么来</p>
         </Link>
         <Link
           href="/about"

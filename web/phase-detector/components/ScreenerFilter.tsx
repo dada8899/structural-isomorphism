@@ -102,14 +102,14 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
         )}
       </div>
 
-      <Field label="动力学类型 / How it moves">
+      <Field label="怎么动（共享模式）">
         <select
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
           value={df}
           onChange={(e) => setDf(e.target.value as DynamicsFamily | "")}
-          aria-label="按动力学族筛选"
+          aria-label="按共享模式筛选"
         >
-          <option value="">Any · 任意</option>
+          <option value="">任意</option>
           {DYNAMICS_FAMILY_OPTIONS.map((f) => (
             <option key={f} value={f}>
               {DYNAMICS_LABEL_ZH[f]}
@@ -121,14 +121,14 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
         )}
       </Field>
 
-      <Field label="临界状态 / Critical state">
+      <Field label="当前状态">
         <select
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
           value={cps}
           onChange={(e) => setCps(e.target.value as CriticalPointState | "")}
-          aria-label="按临界点状态筛选"
+          aria-label="按当前状态筛选"
         >
-          <option value="">Any · 任意</option>
+          <option value="">任意</option>
           {CPS_OPTIONS.map((s) => (
             <option key={s} value={s}>
               {CPS_ICON[s]}  {CPS_LABEL_ZH[s]}

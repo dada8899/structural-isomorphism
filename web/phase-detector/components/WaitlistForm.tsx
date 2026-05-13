@@ -111,12 +111,12 @@ export function WaitlistForm({
         className="text-lg font-semibold tracking-tight text-zinc-900"
         style={{ fontFamily: "'Noto Serif SC', serif" }}
       >
-        每周收一封《结构信号》→
+        每周一封《结构信号》→
       </h3>
       <p className="mt-1 text-sm text-zinc-600">
-        每周日推送：本周哪些公司跨入临近临界、哪些回到稳态、一个深度案例。
+        每周日推送：本周哪些公司刚走到临界附近、哪些回到稳态，附一个深度案例。
         <span className="ml-1 text-xs text-zinc-400">
-          Free · 一封邮件 · 可随时退订
+          免费 · 一封邮件 · 可随时退订
         </span>
       </p>
 
@@ -148,7 +148,7 @@ export function WaitlistForm({
       {/* Status messages */}
       {status === "duplicate" && (
         <p className="mt-3 text-xs text-zinc-600" role="status">
-          ✓ 这个邮箱已经在名单上了。下次发刊见你。
+          ✓ 这个邮箱已经在名单上了。下次发刊见。
         </p>
       )}
       {status === "error" && errorMsg && (

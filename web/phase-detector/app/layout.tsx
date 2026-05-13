@@ -4,14 +4,15 @@ import Script from "next/script";
 import "./globals.css";
 
 // W6-B: localized to zh-CN, aligned with main site brand (双圆 logo, Inter + Noto Serif SC).
+// PR-1 (2026-05-14): metadata copy rewritten plain-Chinese, jargon stripped.
 export const metadata: Metadata = {
-  title: "Phase Detector — 结构同构筛选 · Structural",
+  title: "Phase Detector — 100 家公司的状态评分",
   description:
-    "按结构动力学族（SOC / 优先连接 / 折叠分岔 / 滞后）和临界点状态筛选公司。结合 100 家公司的 LLM 抽取数据，给出 30 秒 TL;DR。",
+    "100 家全球上市公司的状态评分，30 秒看懂：谁在崩盘边缘，谁在悄悄起飞。用解释地震、银行挤兑的同一套数学。",
   metadataBase: new URL("https://phase.bytedance.city"),
   openGraph: {
-    title: "Phase Detector — 结构同构筛选",
-    description: "用结构动力学族 + 临界点状态筛选公司。Structural Isomorphism 子产品。",
+    title: "Phase Detector — 100 家公司的状态评分",
+    description: "30 秒看懂一家公司当前的状态：稳态、临界附近、失控通道、已翻转。",
     type: "website",
     siteName: "Phase Detector",
   },
@@ -64,7 +65,7 @@ export default function RootLayout({
                 Phase Detector
               </span>
               <span className="ml-2 hidden text-xs text-zinc-500 sm:inline">
-                Structural Isomorphism · D1
+                公司状态评分
               </span>
             </Link>
             <nav
@@ -72,7 +73,7 @@ export default function RootLayout({
               aria-label="主导航"
             >
               <Link href="/" className="hover:text-zinc-900">
-                筛选器
+                公司表
               </Link>
               <Link href="/methodology" className="hover:text-zinc-900">
                 方法
@@ -98,7 +99,7 @@ export default function RootLayout({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               <span className="font-medium text-zinc-700">
-                Phase Detector v0.1
+                Phase Detector
               </span>
               <Link href="/about" className="hover:text-zinc-900">
                 关于
@@ -120,11 +121,11 @@ export default function RootLayout({
                 rel="noopener"
                 className="hover:text-zinc-900"
               >
-                主站 Structural ↗
+                主站 ↗
               </a>
             </div>
             <div className="text-zinc-400">
-              研究预览 · 非投资建议 · AI 抽取数据，请独立核实
+              研究预览 · 不是投资建议 · AI 抽取的数据，请独立核实
             </div>
           </div>
         </footer>

@@ -116,7 +116,7 @@ export default function CompanyDetailPage({
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          30 秒 TL;DR
+          30 秒一句话
         </h2>
         <p className="text-base leading-relaxed text-zinc-800">
           {company.tldr}
@@ -160,7 +160,7 @@ export default function CompanyDetailPage({
             <span className="text-3xl font-semibold tabular-nums text-zinc-900">
               {confPct}%
             </span>
-            <span className="text-xs text-zinc-500">模型自报</span>
+            <span className="text-xs text-zinc-500">AI 自报的把握程度</span>
           </div>
           <div
             className="h-2 w-full overflow-hidden rounded-full bg-zinc-100"
@@ -197,7 +197,7 @@ export default function CompanyDetailPage({
             className="text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline"
             aria-expanded={showRaw}
           >
-            {showRaw ? "隐藏原始返回" : "查看原始返回"}
+            {showRaw ? "隐藏原始 AI 输出" : "查看原始 AI 输出"}
           </button>
           {showRaw && (
             <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-zinc-50 p-3 text-xs text-zinc-700">
