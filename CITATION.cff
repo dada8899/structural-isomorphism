@@ -1,18 +1,43 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use this software / pipeline, please cite it as below."
 type: software
-title: "Structural Isomorphism Search Engine"
+title: "Structural Isomorphism: cross-domain SOC validation pipeline"
 authors:
-  - family-names: "Wan"
-    given-names: "Qihang"
-version: 0.1.0
-date-released: 2026-04-11
-url: "https://github.com/yourusername/structural-isomorphism"
+  - family-names: dada8899
+    affiliation: "Independent Research, Structural Isomorphism Project"
+version: 0.3.1
+date-released: 2026-05-14
+url: "https://github.com/dada8899/structural-isomorphism"
+repository-code: "https://github.com/dada8899/structural-isomorphism"
 license: MIT
-abstract: "A search engine that discovers hidden cross-domain structural connections using fine-tuned sentence embeddings. Given a natural language description of any phenomenon, it retrieves structurally similar phenomena from completely different domains."
+abstract: >
+  A Clauset-grade analysis pipeline for cross-domain validation of self-
+  organized criticality (SOC), preferential attachment, and adjacent
+  universality classes (Motter-Lai network cascade, Preisach hysteresis,
+  Scheffer fold bifurcation). One shared ~339-LOC Python module
+  (v4/lib/soc_pipeline.py) applied unchanged to thirteen independent
+  empirical systems plus four synthetic null controls. Includes a B1/B3
+  multi-model LLM ensemble critic over a 21-candidate universality-class
+  taxonomy, frozen pipeline source, and 213 tests across unit /
+  integration / e2e tiers. Companion preprint
+  (paper/v0-unified-pipeline-2026-05-13.md) and dataset bundle
+  (dataset/v1/) ship in the same repository.
 keywords:
-  - structural isomorphism
-  - cross-domain analogy
-  - sentence embeddings
-  - knowledge discovery
-  - structural similarity
+  - self-organized criticality
+  - cross-domain validation
+  - power-law
+  - Clauset MLE
+  - universality classes
+  - Omori-Utsu
+  - preferential attachment
+  - Motter-Lai cascade
+  - Preisach hysteresis
+  - Scheffer fold bifurcation
+  - LLM ensemble critic
+  - reproducibility benchmark
+identifiers:
+  - type: url
+    value: https://github.com/dada8899/structural-isomorphism
+  - type: other
+    value: "structural-isomorphism-pipeline-v0.3.1"
+    description: pipeline release tag
