@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
 import { ScreenerFilter } from "@/components/ScreenerFilter";
+import { SearchHero } from "@/components/SearchHero";
 import { StatsBar } from "@/components/StatsBar";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { fetchScreener, fetchStats } from "@/lib/api";
+import { addToHistory } from "@/lib/history";
 import {
   CPS_EXPLAIN,
   CPS_ICON,
@@ -16,6 +19,7 @@ import {
   DYNAMICS_FAMILY_OPTIONS,
   DYNAMICS_LABEL_ZH,
 } from "@/lib/labels";
+import { parseQuery } from "@/lib/parse-query";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 
 // W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
@@ -29,6 +33,7 @@ import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 //   5. Stats bar + filter + grid (under the fold)
 
 export default function ScreenerHomePage() {
+  const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [signals, setSignals] = useState<Company[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -95,10 +100,40 @@ export default function ScreenerHomePage() {
     [],
   );
 
-  const scrollToFilters = useCallback(() => {
+  const scrollToScreener = useCallback(() => {
     const el = document.getElementById("screener");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+
+  // PR-4: hero search submit. parse-query.ts decides whether we navigate to
+  // /company/<ticker> or stay on home with filters applied.
+  const handleSearchSubmit = useCallback(
+    (raw: string) => {
+      const parsed = parseQuery(raw);
+      // Persist to localStorage history (sidebar UI lives in PR-5).
+      addToHistory({ query: parsed.query, route: parsed.route });
+      if (parsed.isTicker) {
+        router.push(parsed.route);
+        return;
+      }
+      // Apply filters in-place and scroll to the result grid.
+      const next: ScreenerFilters = { limit: 50 };
+      if (parsed.filters.critical_point_state)
+        next.critical_point_state = parsed.filters.critical_point_state;
+      if (parsed.filters.dynamics_family)
+        next.dynamics_family = parsed.filters.dynamics_family;
+      if (parsed.filters.sector) next.sector = parsed.filters.sector;
+      setFilters(next);
+      // Also reflect in URL so the search is shareable.
+      if (parsed.route.startsWith("/?")) {
+        // Next.js client-side update (no full reload).
+        router.replace(parsed.route);
+      }
+      // Defer scroll until next paint so the filter state lands first.
+      setTimeout(scrollToScreener, 0);
+    },
+    [router, scrollToScreener],
+  );
 
   return (
     <div className="space-y-10">
@@ -117,14 +152,10 @@ export default function ScreenerHomePage() {
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">
           用同一套数学，解释过地震、银行挤兑、电网瘫痪——现在套到上市公司上。
         </p>
+        {/* PR-4: legacy "开始查看 →" CTA replaced by <SearchHero> below.
+            Keep secondary methodology link inline so users can still pivot to
+            the explainer without scrolling. */}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={scrollToFilters}
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
-          >
-            开始查看 →
-          </button>
           <Link
             href="/methodology"
             className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
@@ -136,6 +167,11 @@ export default function ScreenerHomePage() {
           研究预览 · 不是投资建议 · 数据由 AI 抽取，请独立核实
         </p>
       </section>
+
+      {/* PR-4: search hero — Perplexity-style single input with autocomplete.
+          Replaces the legacy "开始查看 →" scroll-to-filter CTA. Sits BELOW the
+          headline + ABOVE the state legend / signals / family blocks. */}
+      <SearchHero onSubmit={handleSearchSubmit} />
 
       {/* State legend — PR-1 reorder: appears BEFORE signals so user knows
           what ●▲◆✕ + colors mean before seeing colored badges. */}
