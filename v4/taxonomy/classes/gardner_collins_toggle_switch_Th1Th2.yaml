@@ -1,45 +1,54 @@
 class_id: gardner_collins_toggle_switch_Th1Th2
 status: speculative
-display_name: "Gardner-Collins toggle switch (immune Th1/Th2 variant)"
-display_name_zh: "Gardner-Collins 拨动开关 (Th1/Th2 免疫极化变体)"
-hub_phenomenon: "Bistable mutually-repressive gene regulatory network producing Th1/Th2 immune polarization"
-shared_equation: |
-  Gardner-Collins toggle (classical):
-    du/dt = α / (1 + v^n) - u,
-    dv/dt = α / (1 + u^n) - v,
-  with n > 1 (ultrasensitivity).
-  Two stable fixed points (high-u-low-v vs high-v-low-u) + unstable saddle.
-  Hill coefficient n controls switching steepness.
-  Tunnel barrier between states determines transition rate.
+display_name: Gardner-Collins toggle switch (immune Th1/Th2 variant)
+display_name_zh: Gardner-Collins 拨动开关 (Th1/Th2 免疫极化变体)
+hub_phenomenon: Bistable mutually-repressive gene regulatory network producing Th1/Th2 immune polarization
+shared_equation: "Gardner-Collins toggle (classical):\n  du/dt = α / (1 + v^n) - u,\n  dv/dt = α / (1 + u^n) - v,\nwith n\
+  \ > 1 (ultrasensitivity).\nTwo stable fixed points (high-u-low-v vs high-v-low-u) + unstable saddle.\nHill coefficient n\
+  \ controls switching steepness.\nTunnel barrier between states determines transition rate.\n"
 key_invariants:
-  - "Mutually-repressive Hill kinetics"
-  - "Two stable fixed points (toggle states)"
-  - "n > 1 required for bistability"
-  - "Bimodality in single-cell expression distribution"
-  - "Hysteresis under slow parameter sweep"
+- Mutually-repressive Hill kinetics
+- Two stable fixed points (toggle states)
+- n > 1 required for bistability
+- Bimodality in single-cell expression distribution
+- Hysteresis under slow parameter sweep
 positive_examples:
-  - phenomenon: "Th1/Th2 immune polarization (T_bet vs GATA3)"
-    evidence: "Hub. Layer 4 prediction: Hill n ∈ [2.2, 3.8] from ImmPort scRNA-seq; bimodality in T_bet/GATA3 distribution; state persistence τ ∈ [8, 30] days."
-    verified_at: "candidate"
-  - phenomenon: "Synthetic toggle switch (Gardner-Collins 2000)"
-    evidence: "Original positive example. E. coli engineered with two mutually repressive promoters; demonstrated bistability."
-    verified_at: "candidate"
+- phenomenon: Th1/Th2 immune polarization (T_bet vs GATA3)
+  evidence: 'Hub. Layer 4 prediction: Hill n ∈ [2.2, 3.8] from ImmPort scRNA-seq; bimodality in T_bet/GATA3 distribution;
+    state persistence τ ∈ [8, 30] days.'
+  verified_at: candidate
+- phenomenon: Synthetic toggle switch (Gardner-Collins 2000)
+  evidence: Original positive example. E. coli engineered with two mutually repressive promoters; demonstrated bistability.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Continuous immune response gradation"
-    reason: "If response is graded (no bimodality), the system is not in toggle regime. Class membership requires single-cell evidence of two distinct states, not a continuum."
-  - phenomenon: "Linear gene regulatory cascade"
-    reason: "Single-direction activation (A → B → C) has no toggle structure. Belongs to a different class."
-  - phenomenon: "Stochastic gene expression noise"
-    reason: "Noise alone produces unimodal distribution with variance; not bimodality. Requires positive feedback to create two stable peaks."
+- phenomenon: Continuous immune response gradation
+  reason: If response is graded (no bimodality), the system is not in toggle regime. Class membership requires single-cell
+    evidence of two distinct states, not a continuum.
+- phenomenon: Linear gene regulatory cascade
+  reason: Single-direction activation (A → B → C) has no toggle structure. Belongs to a different class.
+- phenomenon: Stochastic gene expression noise
+  reason: Noise alone produces unimodal distribution with variance; not bimodality. Requires positive feedback to create two
+    stable peaks.
 edge_cases:
-  - phenomenon: "X-chromosome random inactivation"
-    debate: "Bistable choice of which X to inactivate. Similar toggle structure but inheritance via Markov-fidelity (markov_chain_memory_fidelity_class) once committed. Class boundary."
-notes: |
-  This is a domain-specific instantiation of the general Gardner-Collins toggle switch class.
+- phenomenon: X-chromosome random inactivation
+  debate: Bistable choice of which X to inactivate. Similar toggle structure but inheritance via Markov-fidelity (markov_chain_memory_fidelity_class)
+    once committed. Class boundary.
+notes: 'This is a domain-specific instantiation of the general Gardner-Collins toggle switch class.
+
   LLM-proposed sub-class for layer 4 prediction targeting. The parent class gardner_collins_toggle_switch
+
   is the canonical one; this entry exists because Layer 4 generated targeted predictions for the immunology variant.
+
   Speculative until Layer 5 verification on ImmPort data.
+
+  '
 references:
-  - "Gardner, Cantor, Collins 2000 Nature 403, 339 (synthetic toggle switch)"
-  - "Mosmann, Coffman 1989 Annu. Rev. Immunol. 7, 145 (Th1/Th2 dichotomy)"
-  - "Antebi, Nandagopal, Elowitz 2017 Annu. Rev. Biophys. 46, 405 (bistability in immune cells)"
+- Gardner, Cantor, Collins 2000 Nature 403, 339 (synthetic toggle switch)
+- Mosmann, Coffman 1989 Annu. Rev. Immunol. 7, 145 (Th1/Th2 dichotomy)
+- Antebi, Nandagopal, Elowitz 2017 Annu. Rev. Biophys. 46, 405 (bistability in immune cells)
+b3_status: MERGED_B3
+b3_verdict: MERGE_strong
+b3_consensus: MERGE
+b3_avg_confidence: 0.95
+b3_action_taken: merged into gardner_collins_toggle_switch (kept as historical pointer)
+merged_into: gardner_collins_toggle_switch

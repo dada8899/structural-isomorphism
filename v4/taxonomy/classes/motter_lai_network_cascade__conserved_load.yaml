@@ -1,9 +1,9 @@
-class_id: motter_lai_network_cascade
-status: emerging
-display_name: Motter-Lai network cascade
-display_name_zh: Motter-Lai 网络负载重分配级联
-hub_phenomenon: Load-redistribution cascade failures on weighted capacity-limited networks (progressive building collapse,
-  power grid blackouts, DeFi liquidations)
+class_id: motter_lai_network_cascade__conserved_load
+status: speculative
+display_name: Motter-Lai conservative load redistribution cascade
+display_name_zh: Motter-Lai 守恒负载再分配级联
+hub_phenomenon: Node capacity C_i = (1+α)L_i^(0). Failed node's load redistributes to neighbors conservatively; over-capacity
+  triggers further failure. Cascade size τ ∈ [1.5, 2.0] near α_c.
 shared_equation: "Motter-Lai 2002 load redistribution: when node j fails,\n  L_k ← L_k + share_{jk} · L_j for k ∈ N(j),\n\
   \  where share_{jk} = w_jk / Σ_m w_jm.\nFailure rule: node fails iff L_j > C_j.\nEisenberg-Noe 2001 clearing vector: p =\
   \ min(p̄, L^T p + e); existence/uniqueness via fixed-point.\nTolerance parameter α = C/L; cascade phase transition at α_c.\n"
@@ -60,7 +60,7 @@ references:
 - Watts 2002 PNAS 99, 5766 (threshold cascades on social networks)
 - Buldyrev, Parshani, Paul, Stanley, Havlin 2010 Nature 464, 1025 (catastrophic cascades on interdependent networks)
 - Crucitti, Latora, Marchiori 2004 Phys. Rev. E 69, 045104 (cascade in power grids)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: CONTESTED(B1=KEEP,B3=SPLIT)
 b3_consensus: SPLIT
 b3_avg_confidence: 0.83
@@ -68,3 +68,12 @@ b3_action_taken: 'split into 2 children: motter_lai_network_cascade__conserved_l
 superseded_by_split:
 - motter_lai_network_cascade__conserved_load
 - motter_lai_network_cascade__threshold_contagion
+parent_class: motter_lai_network_cascade
+split_from: motter_lai_network_cascade
+split_rationale: Conserved-load redistribution with capacity thresholds. Excludes neighbor-fraction Watts cascades (no load
+  conservation).
+members_kept_after_split:
+- power grid blackout cascade
+- building progressive collapse
+- Eisenberg-Noe financial cascade (conserved version)
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

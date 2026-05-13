@@ -1,48 +1,71 @@
 class_id: reflexive_fixed_point_class
 status: emerging
-display_name: "Reflexive fixed point & measurement feedback"
-display_name_zh: "反身性不动点与测量反馈"
-hub_phenomenon: "Measurement or expectation feedback to behavior closes a reflexive loop; system state satisfies x_t = f(E[x_t]) with multiple equilibria when |f'(E)| > 1"
-shared_equation: |
-  Rational expectations fixed point: x_t = f(E[x_t]).
+display_name: Reflexive fixed point & measurement feedback
+display_name_zh: 反身性不动点与测量反馈
+hub_phenomenon: Measurement or expectation feedback to behavior closes a reflexive loop; system state satisfies x_t = f(E[x_t])
+  with multiple equilibria when |f'(E)| > 1
+shared_equation: 'Rational expectations fixed point: x_t = f(E[x_t]).
+
   Reflexivity (Soros / Goodhart): measurement → behavior → measurement-confirmation.
-  Multiple equilibria condition: |f'(E)| > 1 (locally unstable).
+
+  Multiple equilibria condition: |f''(E)| > 1 (locally unstable).
+
   Goodhart: dM/dy ≠ 0 (the act of measuring M perturbs y).
-  Stereotype self-fulfilling: belief_t+1 = β · observation_t + (1-β) · belief_t, where observation depends on prior belief through behavior.
+
+  Stereotype self-fulfilling: belief_t+1 = β · observation_t + (1-β) · belief_t, where observation depends on prior belief
+  through behavior.
+
+  '
 key_invariants:
-  - "x_t = f(E[x_t]) (rational-expectations / reflexive fixed-point equation)"
-  - "Multiple equilibria condition: |f'(E)| > 1"
-  - "Closed loop: measurement → behavior → measurement-confirmation"
-  - "Belief shift induces equilibrium jump (non-smooth transition)"
-  - "Distinguishing feature vs. multistable_self_fulfilling: the measurement itself perturbs the system (Goodhart), not just expectations"
+- x_t = f(E[x_t]) (rational-expectations / reflexive fixed-point equation)
+- 'Multiple equilibria condition: |f''(E)| > 1'
+- 'Closed loop: measurement → behavior → measurement-confirmation'
+- Belief shift induces equilibrium jump (non-smooth transition)
+- 'Distinguishing feature vs. multistable_self_fulfilling: the measurement itself perturbs the system (Goodhart), not just
+  expectations'
 positive_examples:
-  - phenomenon: "Stereotype threat self-fulfillment (刻板印象的自我实现)"
-    evidence: "Steele 1997 Am. Psychol. Test scores conditional on stereotype activation produce confirming behaviors. Belief E[ability] → measured ability → belief-update reinforces. Hub of this cluster."
-    verified_at: "candidate"
-  - phenomenon: "Goodhart's law in KPI metrics (绩效指标的古德哈特定律)"
-    evidence: "Once measure becomes a target, it ceases to be a good measure. Muller 2018 documents NHS, NYPD, university rankings. Layer 4 prediction: KPI weight w correlates with quality-vs-quantity ratio drop ∈ [0.12, 0.28]."
-    verified_at: "candidate"
-  - phenomenon: "Inflation expectation de-anchoring (通胀预期去锚定)"
-    evidence: "Once households expect higher inflation, they bid up wages → realize higher inflation → confirm expectations. Multiple equilibria when central bank credibility breaks. Layer 3 match."
-    verified_at: "candidate"
+- phenomenon: Stereotype threat self-fulfillment (刻板印象的自我实现)
+  evidence: Steele 1997 Am. Psychol. Test scores conditional on stereotype activation produce confirming behaviors. Belief
+    E[ability] → measured ability → belief-update reinforces. Hub of this cluster.
+  verified_at: candidate
+- phenomenon: Goodhart's law in KPI metrics (绩效指标的古德哈特定律)
+  evidence: 'Once measure becomes a target, it ceases to be a good measure. Muller 2018 documents NHS, NYPD, university rankings.
+    Layer 4 prediction: KPI weight w correlates with quality-vs-quantity ratio drop ∈ [0.12, 0.28].'
+  verified_at: candidate
+- phenomenon: Inflation expectation de-anchoring (通胀预期去锚定)
+  evidence: Once households expect higher inflation, they bid up wages → realize higher inflation → confirm expectations.
+    Multiple equilibria when central bank credibility breaks. Layer 3 match.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Diamond-Dybvig bank run"
-    reason: "Edge case: bank run is also self-fulfilling, but the mechanism is coordination game on first-mover advantage in a static-payoff model, not reflexive measurement feedback. Belongs to multistable_self_fulfilling. The closely-related class is reflexive_fixed_point_class but only loosely (Layer 3 marks confidence MEDIUM)."
-  - phenomenon: "Stock-market momentum / overreaction"
-    reason: "Price feedback can be reflexive, but typically modeled as adaptive expectations (slow), not Goodhart-style measurement-induced. Belongs to a separate class of price-feedback dynamics."
-  - phenomenon: "Earthquake aftershock prediction"
-    reason: "No measurement feedback; aftershocks happen regardless of prediction. Belongs to soc_threshold_cascade."
-  - phenomenon: "Polling effects on voting"
-    reason: "Surface similarity (polls influence votes), but typically modeled as bandwagon/Bayesian updating, not strict measurement-induced bifurcation. Class membership debatable."
+- phenomenon: Diamond-Dybvig bank run
+  reason: 'Edge case: bank run is also self-fulfilling, but the mechanism is coordination game on first-mover advantage in
+    a static-payoff model, not reflexive measurement feedback. Belongs to multistable_self_fulfilling. The closely-related
+    class is reflexive_fixed_point_class but only loosely (Layer 3 marks confidence MEDIUM).'
+- phenomenon: Stock-market momentum / overreaction
+  reason: Price feedback can be reflexive, but typically modeled as adaptive expectations (slow), not Goodhart-style measurement-induced.
+    Belongs to a separate class of price-feedback dynamics.
+- phenomenon: Earthquake aftershock prediction
+  reason: No measurement feedback; aftershocks happen regardless of prediction. Belongs to soc_threshold_cascade.
+- phenomenon: Polling effects on voting
+  reason: Surface similarity (polls influence votes), but typically modeled as bandwagon/Bayesian updating, not strict measurement-induced
+    bifurcation. Class membership debatable.
 edge_cases:
-  - phenomenon: "Self-fulfilling currency crises"
-    debate: "Investor expectation of devaluation → speculative attack → forced devaluation. Same structure as bank run. Class membership splits between multistable_self_fulfilling and reflexive_fixed_point_class depending on whether the focus is multiple equilibria or measurement-induced loop."
-  - phenomenon: "Algorithmic bias amplification"
-    debate: "ML model trained on biased data → biased predictions → biased actions → more biased data. Strong reflexive loop, but slow-timescale. Class assignment accepted but requires explicit timestep modeling."
+- phenomenon: Self-fulfilling currency crises
+  debate: Investor expectation of devaluation → speculative attack → forced devaluation. Same structure as bank run. Class
+    membership splits between multistable_self_fulfilling and reflexive_fixed_point_class depending on whether the focus is
+    multiple equilibria or measurement-induced loop.
+- phenomenon: Algorithmic bias amplification
+  debate: ML model trained on biased data → biased predictions → biased actions → more biased data. Strong reflexive loop,
+    but slow-timescale. Class assignment accepted but requires explicit timestep modeling.
 references:
-  - "Muth 1961 Econometrica 29, 315 (rational expectations)"
-  - "Soros 1987 Alchemy of Finance (reflexivity)"
-  - "Goodhart 1975 (Goodhart's law)"
-  - "Steele 1997 Am. Psychol. 52, 613 (stereotype threat)"
-  - "Muller 2018 The Tyranny of Metrics"
-  - "Krugman 1979 J. Money Credit Banking 11, 311 (self-fulfilling crisis)"
+- Muth 1961 Econometrica 29, 315 (rational expectations)
+- Soros 1987 Alchemy of Finance (reflexivity)
+- Goodhart 1975 (Goodhart's law)
+- Steele 1997 Am. Psychol. 52, 613 (stereotype threat)
+- Muller 2018 The Tyranny of Metrics
+- Krugman 1979 J. Money Credit Banking 11, 311 (self-fulfilling crisis)
+b3_status: VERIFIED_B3
+b3_verdict: KEEP_strong
+b3_consensus: KEEP
+b3_avg_confidence: 0.73
+b3_action_taken: verified by B3 consensus; class kept as-is

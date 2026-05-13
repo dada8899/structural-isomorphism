@@ -1,9 +1,8 @@
-class_id: leaky_integrate_fire_threshold_class
-status: emerging
-display_name: Leaky integrate-and-fire threshold release
-display_name_zh: 泄漏积分-阈值释放
-hub_phenomenon: A continuous quantity S accumulates with leakage; when S crosses threshold θ a discrete release event occurs
-  and S resets
+class_id: leaky_integrate_fire_threshold_class__lif_reset
+status: speculative
+display_name: Leaky integrate-and-fire with reset (Lapicque LIF + token bucket)
+display_name_zh: 漏积分-激发-重置 (经典 LIF)
+hub_phenomenon: dV/dt = -(V - V_rest)/τ + I/C, with V → V_reset upon V ≥ V_threshold (discrete reset, refractory period).
 shared_equation: 'Leaky integration: dS/dt = F(t) - k_a · S.
 
   Threshold release: y(t) = σ(S - θ) or 1{S ≥ θ}.
@@ -59,7 +58,7 @@ references:
 - Turner 1986 (token bucket rate limiter)
 - Brette, Gerstner 2005 J. Neurophys. 94, 3637 (adaptive exponential I&F)
 - Frederick, Loewenstein 1999 (hedonic adaptation review)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: SPLIT_strong
 b3_consensus: SPLIT
 b3_avg_confidence: 0.75
@@ -67,3 +66,12 @@ b3_action_taken: 'split into 2 children: leaky_integrate_fire_threshold_class__l
 superseded_by_split:
 - leaky_integrate_fire_threshold_class__lif_reset
 - leaky_integrate_fire_threshold_class__threshold_adaptation
+parent_class: leaky_integrate_fire_threshold_class
+split_from: leaky_integrate_fire_threshold_class
+split_rationale: 'Full LIF mechanism: leaky integration + threshold + DISCRETE RESET. Excludes Piezo1 (conformational gating,
+  no reset) and hedonic treadmill (continuous adaptation).'
+members_kept_after_split:
+- Lapicque cortical neuron
+- network token bucket / leaky bucket rate limiter
+- dripping faucet
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

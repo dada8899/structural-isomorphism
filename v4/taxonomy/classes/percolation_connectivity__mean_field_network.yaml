@@ -1,9 +1,8 @@
-class_id: percolation_connectivity
-status: emerging
-display_name: Percolation critical tipping point
-display_name_zh: 渗流连通性临界相变
-hub_phenomenon: Network/lattice occupancy crosses critical probability p_c → giant connected cluster spans system; second-order
-  phase transition with characteristic exponents
+class_id: percolation_connectivity__mean_field_network
+status: speculative
+display_name: Mean-field percolation on complex networks (MF exponents)
+display_name_zh: 复杂网络上的平均场渗流
+hub_phenomenon: Giant component emerges at ⟨k²⟩/⟨k⟩ = 2; mean-field exponents β = 1, γ = 1 independent of underlying topology.
 shared_equation: 'Order parameter (giant component fraction): P_∞(p) ∝ (p - p_c)^β.
 
   Correlation length: ξ ∝ |p - p_c|^{-ν}.
@@ -66,7 +65,7 @@ references:
 - Granovetter 1978 Am. J. Sociol. 83, 1420 (threshold models)
 - Watts, Strogatz 1998 Nature 393, 440 (small-world)
 - Cohen, Erez, ben-Avraham, Havlin 2000 Phys. Rev. Lett. 85, 4626 (resilience to attack)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: CONTESTED(B1=KEEP,B3=SPLIT)
 b3_consensus: SPLIT
 b3_avg_confidence: 0.89
@@ -74,3 +73,11 @@ b3_action_taken: 'split into 2 children: percolation_connectivity__geometric_lat
 superseded_by_split:
 - percolation_connectivity__geometric_lattice
 - percolation_connectivity__mean_field_network
+parent_class: percolation_connectivity
+split_from: percolation_connectivity
+split_rationale: Mean-field universality, distinct from lattice geometric percolation.
+members_kept_after_split:
+- epidemic threshold on random networks
+- social identity contagion threshold
+- scale-free network giant component
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

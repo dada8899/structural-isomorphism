@@ -1,47 +1,67 @@
 class_id: markov_chain_memory_fidelity_class
 status: emerging
-display_name: "Markov chain state memory & fidelity"
-display_name_zh: "马尔可夫链状态记忆保真"
-hub_phenomenon: "Discrete-state systems satisfying first-order Markov property where single-step persistence probability (1-ε) sets memory fidelity"
-shared_equation: |
-  First-order Markov: P(s_{t+1} | s_t, s_{t-1}, ...) = P(s_{t+1} | s_t).
+display_name: Markov chain state memory & fidelity
+display_name_zh: 马尔可夫链状态记忆保真
+hub_phenomenon: Discrete-state systems satisfying first-order Markov property where single-step persistence probability (1-ε)
+  sets memory fidelity
+shared_equation: 'First-order Markov: P(s_{t+1} | s_t, s_{t-1}, ...) = P(s_{t+1} | s_t).
+
   Persistence: P(s_{t+1} = s_t) ≈ 1 - ε (forgetting rate).
+
   Stationary distribution: π satisfies πP = π (left eigenvector of transition matrix).
+
   Memory decay time: τ ~ 1/ε.
+
   Mixing time t_mix ~ 1/(1 - λ_2) where λ_2 is second-largest eigenvalue.
+
+  '
 key_invariants:
-  - "First-order Markov property"
-  - "Persistence probability 1-ε per step"
-  - "Stationary distribution π (left eigenvector)"
-  - "Memory decay time τ ~ 1/ε"
-  - "Spectral gap controls mixing"
+- First-order Markov property
+- Persistence probability 1-ε per step
+- Stationary distribution π (left eigenvector)
+- Memory decay time τ ~ 1/ε
+- Spectral gap controls mixing
 positive_examples:
-  - phenomenon: "DNA methylation hemimethylated inheritance (DNA甲基化的半甲基化继承)"
-    evidence: "Each cell division: P(methyl|prev=methyl) ≈ 0.98, P(methyl|prev=unmethyl) ≈ 0.02. Layer 3 high confidence."
-    verified_at: "candidate"
-  - phenomenon: "X-chromosome inactivation random clonal mosaicism (X染色体失活)"
-    evidence: "Cell decides Xa/Xi randomly in early development; descendants inherit state via Markov transition matrix. Same fidelity structure."
-    verified_at: "candidate"
-  - phenomenon: "Power generator unit start/stop Markov chain (发电机组启停)"
-    evidence: "Layer 4 prediction: forgetting rate ε ∈ [0.02, 0.08]/hour → memory τ ∈ [12, 50] hours, matches typical min-run-time constraints. Stationary π predicts long-run capacity factors within 10%."
-    verified_at: "candidate"
+- phenomenon: DNA methylation hemimethylated inheritance (DNA甲基化的半甲基化继承)
+  evidence: 'Each cell division: P(methyl|prev=methyl) ≈ 0.98, P(methyl|prev=unmethyl) ≈ 0.02. Layer 3 high confidence.'
+  verified_at: candidate
+- phenomenon: X-chromosome inactivation random clonal mosaicism (X染色体失活)
+  evidence: Cell decides Xa/Xi randomly in early development; descendants inherit state via Markov transition matrix. Same
+    fidelity structure.
+  verified_at: candidate
+- phenomenon: Power generator unit start/stop Markov chain (发电机组启停)
+  evidence: 'Layer 4 prediction: forgetting rate ε ∈ [0.02, 0.08]/hour → memory τ ∈ [12, 50] hours, matches typical min-run-time
+    constraints. Stationary π predicts long-run capacity factors within 10%.'
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Earthquake magnitude sequence"
-    reason: "Heavy-tailed temporal correlations (Omori law) violate first-order Markov property at the macro scale. Aftershocks remember the main shock across multiple events. Belongs to soc_threshold_cascade."
-  - phenomenon: "Stock returns"
-    reason: "Volatility clustering and long-memory effects violate Markov property at returns level. ARCH/GARCH models capture this — they are NOT simple Markov chains. Belongs to a different class."
-  - phenomenon: "Mackey-Glass chaotic time series"
-    reason: "Delay-differential equation produces non-Markov correlations at delay lag τ. Belongs to delay_differential_debt."
-  - phenomenon: "Continuous diffusion (Brownian motion)"
-    reason: "Edge case: Brownian motion *is* Markov in continuous time, but with continuous state. This class is for discrete-state systems. Continuous Markov processes are a separate (closely-related) class."
+- phenomenon: Earthquake magnitude sequence
+  reason: Heavy-tailed temporal correlations (Omori law) violate first-order Markov property at the macro scale. Aftershocks
+    remember the main shock across multiple events. Belongs to soc_threshold_cascade.
+- phenomenon: Stock returns
+  reason: Volatility clustering and long-memory effects violate Markov property at returns level. ARCH/GARCH models capture
+    this — they are NOT simple Markov chains. Belongs to a different class.
+- phenomenon: Mackey-Glass chaotic time series
+  reason: Delay-differential equation produces non-Markov correlations at delay lag τ. Belongs to delay_differential_debt.
+- phenomenon: Continuous diffusion (Brownian motion)
+  reason: 'Edge case: Brownian motion *is* Markov in continuous time, but with continuous state. This class is for discrete-state
+    systems. Continuous Markov processes are a separate (closely-related) class.'
 edge_cases:
-  - phenomenon: "Hidden Markov Models (HMM)"
-    debate: "Underlying state is Markov but observations are noisy emissions. State-space-model class includes HMMs. Same Markov class for the latent process, but the observable is one filter operation away."
-  - phenomenon: "Higher-order Markov chains (n-gram language models)"
-    debate: "If P(s_{t+1} | s_t, ..., s_{t-n+1}) ≠ P(s_{t+1} | s_t), the chain is higher-order. Reducible to first-order by state expansion (state = window of last n symbols), so still in class but with exponentially larger state space."
+- phenomenon: Hidden Markov Models (HMM)
+  debate: Underlying state is Markov but observations are noisy emissions. State-space-model class includes HMMs. Same Markov
+    class for the latent process, but the observable is one filter operation away.
+- phenomenon: Higher-order Markov chains (n-gram language models)
+  debate: If P(s_{t+1} | s_t, ..., s_{t-n+1}) ≠ P(s_{t+1} | s_t), the chain is higher-order. Reducible to first-order by state
+    expansion (state = window of last n symbols), so still in class but with exponentially larger state space.
 references:
-  - "Markov 1906 (foundational work on chains)"
-  - "Kolmogorov 1931 Math. Ann. 104, 415 (forward equation)"
-  - "Norris 1997 Markov Chains (textbook)"
-  - "Aldous, Fill 2002 Reversible Markov Chains (mixing time)"
-  - "Bird, Wolffe 1999 Cell 99, 451 (DNA methylation inheritance)"
+- Markov 1906 (foundational work on chains)
+- Kolmogorov 1931 Math. Ann. 104, 415 (forward equation)
+- Norris 1997 Markov Chains (textbook)
+- Aldous, Fill 2002 Reversible Markov Chains (mixing time)
+- Bird, Wolffe 1999 Cell 99, 451 (DNA methylation inheritance)
+b3_status: REJECTED_B3
+b3_verdict: REJECT_strong
+b3_consensus: REJECT
+b3_avg_confidence: 0.94
+b3_action_taken: rejected per B3 consensus; kept as historical record
+rejection_reason: B3 ensemble consensus=REJECT (avg confidence 0.94); final verdict REJECT_strong. Retained as historical
+  record per CLAUDE.md (no class deletion).

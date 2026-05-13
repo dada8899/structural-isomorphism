@@ -1,50 +1,70 @@
 class_id: delay_differential_debt
 status: emerging
-display_name: "Delay-differential debt and committed change"
-display_name_zh: "时滞反馈与债务累积"
-hub_phenomenon: "Systems whose response depends on past inputs via a fixed time delay τ, producing committed-but-unrealized debt and Hopf-bifurcation oscillations"
-shared_equation: |
-  Delay ODE: dx/dt = f(x(t - τ)) - μ·x(t).
+display_name: Delay-differential debt and committed change
+display_name_zh: 时滞反馈与债务累积
+hub_phenomenon: Systems whose response depends on past inputs via a fixed time delay τ, producing committed-but-unrealized
+  debt and Hopf-bifurcation oscillations
+shared_equation: 'Delay ODE: dx/dt = f(x(t - τ)) - μ·x(t).
+
   Mackey-Glass: dx/dt = β·x(t-τ)/(1 + x(t-τ)^n) - γ·x(t).
-  Committed quantity / 'debt': C(t) = ∫_{t}^{t+τ} [x*(s) - x(s)] ds.
+
+  Committed quantity / ''debt'': C(t) = ∫_{t}^{t+τ} [x*(s) - x(s)] ds.
+
   Hopf bifurcation at critical delay τ_H beyond which limit cycle appears.
+
+  '
 key_invariants:
-  - "Master form: dx/dt = f(x(t-τ)) - μ·x(t)"
-  - "Hopf bifurcation at critical delay τ_H"
-  - "Committed-debt accumulator C = ∫[x*(t) - x(t)] dt monotone in delay"
-  - "Damped oscillations near τ_H; chaotic regime for large τ in Mackey-Glass"
-  - "Decision window is closed (delay fixed) while symptoms are still developing"
+- 'Master form: dx/dt = f(x(t-τ)) - μ·x(t)'
+- Hopf bifurcation at critical delay τ_H
+- Committed-debt accumulator C = ∫[x*(t) - x(t)] dt monotone in delay
+- Damped oscillations near τ_H; chaotic regime for large τ in Mackey-Glass
+- Decision window is closed (delay fixed) while symptoms are still developing
 positive_examples:
-  - phenomenon: "Extinction debt (灭绝债务) in fragmented habitats"
-    evidence: "Tilman 1994 prediction: post habitat-loss species diversity decays with characteristic delay τ ≈ 18-45 years; committed extinction debt C as fraction of extant species ∈ [12%, 28%]. Layer 3 curated as high confidence."
-    verified_at: "candidate"
-  - phenomenon: "Permafrost methane release (永冻土融化甲烷反馈)"
-    evidence: "Schuur et al. 2015 frame: dC_perm/dt = f(T(t-τ)) - μ·C with τ ≈ decadal scale. Layer 3 high-confidence match."
-    verified_at: "candidate"
-  - phenomenon: "El Niño Southern Oscillation delayed-oscillator model (厄尔尼诺延迟振子)"
-    evidence: "Suarez-Schopf 1988 delay-oscillator: ENSO SST anomaly satisfies dT/dt = T - αT³ - bT(t-τ); Hopf bifurcation produces 3-7 year oscillation. Match to delay_differential_debt explicit."
-    verified_at: "candidate"
-  - phenomenon: "Pension debt / climate commitment / extinction debt"
-    evidence: "All share the 'committed-but-not-yet-realized' structure with macroscopic invariant C = ∫[x* - x] dt. Candidate."
-    verified_at: "candidate"
+- phenomenon: Extinction debt (灭绝债务) in fragmented habitats
+  evidence: 'Tilman 1994 prediction: post habitat-loss species diversity decays with characteristic delay τ ≈ 18-45 years;
+    committed extinction debt C as fraction of extant species ∈ [12%, 28%]. Layer 3 curated as high confidence.'
+  verified_at: candidate
+- phenomenon: Permafrost methane release (永冻土融化甲烷反馈)
+  evidence: 'Schuur et al. 2015 frame: dC_perm/dt = f(T(t-τ)) - μ·C with τ ≈ decadal scale. Layer 3 high-confidence match.'
+  verified_at: candidate
+- phenomenon: El Niño Southern Oscillation delayed-oscillator model (厄尔尼诺延迟振子)
+  evidence: 'Suarez-Schopf 1988 delay-oscillator: ENSO SST anomaly satisfies dT/dt = T - αT³ - bT(t-τ); Hopf bifurcation produces
+    3-7 year oscillation. Match to delay_differential_debt explicit.'
+  verified_at: candidate
+- phenomenon: Pension debt / climate commitment / extinction debt
+  evidence: All share the 'committed-but-not-yet-realized' structure with macroscopic invariant C = ∫[x* - x] dt. Candidate.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Earthquake aftershock decay (Omori law)"
-    reason: "No fixed delay τ; relaxation is continuous power-law without Hopf bifurcation. Memory is in the elastic medium, not delay-differential. Belongs to soc_threshold_cascade."
-  - phenomenon: "Compound interest accumulation"
-    reason: "Exponential growth without delay; differential equation dx/dt = r·x is ordinary, not delay-differential. No Hopf, no critical τ_H."
-  - phenomenon: "Predator-prey Lotka-Volterra oscillation"
-    reason: "Oscillation arises from coupled ODEs, no delay required. Belongs to lotka_volterra_predator_prey."
-  - phenomenon: "Stock market volatility persistence"
-    reason: "GARCH-style autoregressive conditional volatility — discrete-time memory, no continuous delay differential structure."
+- phenomenon: Earthquake aftershock decay (Omori law)
+  reason: No fixed delay τ; relaxation is continuous power-law without Hopf bifurcation. Memory is in the elastic medium,
+    not delay-differential. Belongs to soc_threshold_cascade.
+- phenomenon: Compound interest accumulation
+  reason: Exponential growth without delay; differential equation dx/dt = r·x is ordinary, not delay-differential. No Hopf,
+    no critical τ_H.
+- phenomenon: Predator-prey Lotka-Volterra oscillation
+  reason: Oscillation arises from coupled ODEs, no delay required. Belongs to lotka_volterra_predator_prey.
+- phenomenon: Stock market volatility persistence
+  reason: GARCH-style autoregressive conditional volatility — discrete-time memory, no continuous delay differential structure.
 edge_cases:
-  - phenomenon: "Mackey-Glass chronic myelogenous leukemia model"
-    debate: "The original 1977 application — physiological feedback with τ days. Strong canonical positive example, but the underlying biology is heterogeneous (blood-cell production involves many cellular delays, not one). Class membership accepted with caveat that τ is an effective parameter."
-  - phenomenon: "Climate commitment (Wigley 2005)"
-    debate: "Mauna Loa CO₂ + ocean thermal inertia → committed warming after emissions stop. Effective delay τ ≈ 30-40 years. Belongs to this class but the underlying physics is a diffusion equation (ocean heat uptake) rather than a true point-delay. Effective DDE approximation."
+- phenomenon: Mackey-Glass chronic myelogenous leukemia model
+  debate: The original 1977 application — physiological feedback with τ days. Strong canonical positive example, but the underlying
+    biology is heterogeneous (blood-cell production involves many cellular delays, not one). Class membership accepted with
+    caveat that τ is an effective parameter.
+- phenomenon: Climate commitment (Wigley 2005)
+  debate: Mauna Loa CO₂ + ocean thermal inertia → committed warming after emissions stop. Effective delay τ ≈ 30-40 years.
+    Belongs to this class but the underlying physics is a diffusion equation (ocean heat uptake) rather than a true point-delay.
+    Effective DDE approximation.
 references:
-  - "Volterra 1928 (original delay differential equations in ecology)"
-  - "Mackey, Glass 1977 Science 197, 287 (chronic myelogenous leukemia)"
-  - "Wright 1955 Quart. Appl. Math. (Wright's equation)"
-  - "Tilman, May, Lehman, Nowak 1994 Nature 371, 65 (extinction debt)"
-  - "Suarez, Schopf 1988 J. Atmos. Sci. 45, 3283 (delayed oscillator ENSO)"
-  - "Schuur et al. 2015 Nature 520, 171 (permafrost feedback)"
+- Volterra 1928 (original delay differential equations in ecology)
+- Mackey, Glass 1977 Science 197, 287 (chronic myelogenous leukemia)
+- Wright 1955 Quart. Appl. Math. (Wright's equation)
+- Tilman, May, Lehman, Nowak 1994 Nature 371, 65 (extinction debt)
+- Suarez, Schopf 1988 J. Atmos. Sci. 45, 3283 (delayed oscillator ENSO)
+- Schuur et al. 2015 Nature 520, 171 (permafrost feedback)
+b3_status: REJECTED_B3
+b3_verdict: CONTESTED(B1=KEEP,B3=REJECT)
+b3_consensus: REJECT
+b3_avg_confidence: 0.75
+b3_action_taken: rejected per B3 consensus; kept as historical record
+rejection_reason: B3 ensemble consensus=REJECT (avg confidence 0.75); final verdict CONTESTED(B1=KEEP,B3=REJECT). Retained
+  as historical record per CLAUDE.md (no class deletion).

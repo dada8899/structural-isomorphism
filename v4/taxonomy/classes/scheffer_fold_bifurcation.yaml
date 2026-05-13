@@ -1,57 +1,75 @@
 class_id: scheffer_fold_bifurcation
 status: speculative
-display_name: "Scheffer fold (saddle-node bifurcation in ecological/biological systems)"
-display_name_zh: "Scheffer 鞍结分岔 (生态系统临界翻转)"
-hub_phenomenon: "Saddle-node (fold) bifurcation in slow-driven systems producing critical slowing down, tipping points, and alternative stable states"
-shared_equation: |
-  Scheffer fold normal form: dx/dt = r - b·x + x²/(h² + x²) + σ·η(t).
+display_name: Scheffer fold (saddle-node bifurcation in ecological/biological systems)
+display_name_zh: Scheffer 鞍结分岔 (生态系统临界翻转)
+hub_phenomenon: Saddle-node (fold) bifurcation in slow-driven systems producing critical slowing down, tipping points, and
+  alternative stable states
+shared_equation: 'Scheffer fold normal form: dx/dt = r - b·x + x²/(h² + x²) + σ·η(t).
+
   Saddle-node: dx/dt = r - x²; two fixed points (stable + unstable) collide at r = 0.
+
   Critical slowing down near bifurcation: relaxation time τ → ∞.
+
   Early warning signals: AR(1) → 1, variance → ∞, skewness shift.
+
+  '
 key_invariants:
-  - "Fold/saddle-node bifurcation with bistable hysteresis"
-  - "Critical slowing down: AR(1) increase, variance amplification"
-  - "Early warning signals (Dakos-Carpenter 2008)"
-  - "Tipping point at critical parameter value"
-  - "Recovery path ≠ collapse path (hysteresis)"
+- Fold/saddle-node bifurcation with bistable hysteresis
+- 'Critical slowing down: AR(1) increase, variance amplification'
+- Early warning signals (Dakos-Carpenter 2008)
+- Tipping point at critical parameter value
+- Recovery path ≠ collapse path (hysteresis)
 positive_examples:
-  - phenomenon: "Protein phase separation critical concentration threshold (蛋白质相分离的临界浓度阈值)"
-    evidence: "Hub. Flory-Huggins + percolation threshold p_c = 1/(⟨k⟩-1); fold bifurcation in concentration."
-    verified_at: "candidate"
-  - phenomenon: "Lake eutrophication critical flip (湖泊富营养化的临界翻转)"
-    evidence: "Layer 4 prediction: AR(1) > 0.80 + 2.3× variance amplification predicts flip 45-120 days before. Scheffer 2001 canonical example."
-    verified_at: "candidate"
-  - phenomenon: "Acetaminophen NAPQI hepatotoxicity threshold (对乙酰氨基酚毒性)"
-    evidence: "Layer 4 prediction: critical AUC θ ∈ [280, 340] mg/L·h; mortality jump <2% → >35% across threshold."
-    verified_at: "candidate"
-  - phenomenon: "Green Sahara vegetation feedback (植被反馈的绿色撒哈拉)"
-    evidence: "Mid-Holocene rapid desertification driven by albedo feedback bifurcation. Claussen 2003."
-    verified_at: "candidate"
-  - phenomenon: "Tumor ferroptosis susceptibility (肿瘤铁死亡易感性)"
-    evidence: "ROS accumulation crosses GSH-depletion threshold; fold bifurcation in cell-death decision."
-    verified_at: "candidate"
+- phenomenon: Protein phase separation critical concentration threshold (蛋白质相分离的临界浓度阈值)
+  evidence: Hub. Flory-Huggins + percolation threshold p_c = 1/(⟨k⟩-1); fold bifurcation in concentration.
+  verified_at: candidate
+- phenomenon: Lake eutrophication critical flip (湖泊富营养化的临界翻转)
+  evidence: 'Layer 4 prediction: AR(1) > 0.80 + 2.3× variance amplification predicts flip 45-120 days before. Scheffer 2001
+    canonical example.'
+  verified_at: candidate
+- phenomenon: Acetaminophen NAPQI hepatotoxicity threshold (对乙酰氨基酚毒性)
+  evidence: 'Layer 4 prediction: critical AUC θ ∈ [280, 340] mg/L·h; mortality jump <2% → >35% across threshold.'
+  verified_at: candidate
+- phenomenon: Green Sahara vegetation feedback (植被反馈的绿色撒哈拉)
+  evidence: Mid-Holocene rapid desertification driven by albedo feedback bifurcation. Claussen 2003.
+  verified_at: candidate
+- phenomenon: Tumor ferroptosis susceptibility (肿瘤铁死亡易感性)
+  evidence: ROS accumulation crosses GSH-depletion threshold; fold bifurcation in cell-death decision.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Earthquake aftershock decay"
-    reason: "Power-law relaxation, not slow-driven fold bifurcation. Belongs to soc_threshold_cascade."
-  - phenomenon: "Linear pharmacological dose-response"
-    reason: "Smooth sigmoid response, no bistability or hysteresis. Belongs to a separate dose-response class."
-  - phenomenon: "Second-order Ising transition"
-    reason: "Continuous (no bistability, no hysteresis). Different bifurcation type."
-  - phenomenon: "Single Gardner-Collins toggle"
-    reason: "Hill positive feedback also produces bistability via saddle-node, BUT distinct mechanism (mutual repression). Class boundary; phenotypes overlap."
+- phenomenon: Earthquake aftershock decay
+  reason: Power-law relaxation, not slow-driven fold bifurcation. Belongs to soc_threshold_cascade.
+- phenomenon: Linear pharmacological dose-response
+  reason: Smooth sigmoid response, no bistability or hysteresis. Belongs to a separate dose-response class.
+- phenomenon: Second-order Ising transition
+  reason: Continuous (no bistability, no hysteresis). Different bifurcation type.
+- phenomenon: Single Gardner-Collins toggle
+  reason: Hill positive feedback also produces bistability via saddle-node, BUT distinct mechanism (mutual repression). Class
+    boundary; phenotypes overlap.
 edge_cases:
-  - phenomenon: "Shape-memory alloy martensitic transformation"
-    debate: "First-order phase transition with hysteresis — but driven by thermomechanical loading, not slow ecological driver. Class boundary with hysteresis_first_order_transition."
-  - phenomenon: "Climate tipping points (AMOC shutdown, ice-sheet collapse)"
-    debate: "Strong candidate but uncertain whether the fold structure dominates over delay/feedback dynamics. Often modeled with delay_differential_debt elements too."
-notes: |
-  LLM-proposed cluster. Many members overlap with hysteresis_first_order_transition;
+- phenomenon: Shape-memory alloy martensitic transformation
+  debate: First-order phase transition with hysteresis — but driven by thermomechanical loading, not slow ecological driver.
+    Class boundary with hysteresis_first_order_transition.
+- phenomenon: Climate tipping points (AMOC shutdown, ice-sheet collapse)
+  debate: Strong candidate but uncertain whether the fold structure dominates over delay/feedback dynamics. Often modeled
+    with delay_differential_debt elements too.
+notes: 'LLM-proposed cluster. Many members overlap with hysteresis_first_order_transition;
+
   the distinguishing feature is the explicit critical-slowing-down / early-warning-signal
+
   framework (Dakos-Scheffer 2008). Speculative until early-warning signal validation on
+
   individual systems.
+
+  '
 references:
-  - "Scheffer, Carpenter, Foley, Folke, Walker 2001 Nature 413, 591 (catastrophic shifts)"
-  - "Scheffer 2009 Critical Transitions in Nature and Society"
-  - "Dakos, Carpenter, Brock et al. 2008 PNAS 105, 14308 (slowing down)"
-  - "Scheffer, Bascompte, Brock et al. 2009 Nature 461, 53 (early warning)"
-  - "Strogatz 2015 Nonlinear Dynamics and Chaos (saddle-node bifurcation)"
+- Scheffer, Carpenter, Foley, Folke, Walker 2001 Nature 413, 591 (catastrophic shifts)
+- Scheffer 2009 Critical Transitions in Nature and Society
+- Dakos, Carpenter, Brock et al. 2008 PNAS 105, 14308 (slowing down)
+- Scheffer, Bascompte, Brock et al. 2009 Nature 461, 53 (early warning)
+- Strogatz 2015 Nonlinear Dynamics and Chaos (saddle-node bifurcation)
+b3_status: VERIFIED_B3
+b3_verdict: KEEP_strong
+b3_consensus: KEEP
+b3_avg_confidence: 0.88
+b3_action_taken: verified by B3 consensus; class kept as-is

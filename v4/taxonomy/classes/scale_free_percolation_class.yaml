@@ -1,50 +1,70 @@
 class_id: scale_free_percolation_class
 status: emerging
-display_name: "Scale-free network percolation & cascade"
-display_name_zh: "无标度网络渗流与级联"
-hub_phenomenon: "Percolation and cascade behavior on networks with scale-free degree distribution P(k) ∝ k^{-γ}; γ < 3 produces vanishing percolation threshold and extreme robustness/fragility duality"
-shared_equation: |
-  Scale-free degree: P(k) ∝ k^{-γ}, γ ∈ [2, 3].
+display_name: Scale-free network percolation & cascade
+display_name_zh: 无标度网络渗流与级联
+hub_phenomenon: Percolation and cascade behavior on networks with scale-free degree distribution P(k) ∝ k^{-γ}; γ < 3 produces
+  vanishing percolation threshold and extreme robustness/fragility duality
+shared_equation: 'Scale-free degree: P(k) ∝ k^{-γ}, γ ∈ [2, 3].
+
   Cohen et al. 2000 percolation threshold: p_c = ⟨k⟩ / (⟨k²⟩ - ⟨k⟩).
+
   For γ < 3: ⟨k²⟩ → ∞ → p_c → 0 (robust to random failure).
+
   Cascade threshold on scale-free: φ_c set by second moment.
+
   Targeted attack: removing top f fraction of hubs collapses giant component at f << 0.05.
+
+  '
 key_invariants:
-  - "Degree distribution P(k) ∝ k^{-γ}, γ ∈ [2, 3]"
-  - "Percolation threshold p_c = ⟨k⟩/(⟨k²⟩-⟨k⟩); for γ < 3 p_c → 0"
-  - "Targeted attack vulnerability: 5% hub removal causes collapse"
-  - "Random failure robustness: removing 90% nodes preserves giant component"
-  - "Network diameter ≤ log(N)/log(log(N)) × (1±0.2)"
+- Degree distribution P(k) ∝ k^{-γ}, γ ∈ [2, 3]
+- Percolation threshold p_c = ⟨k⟩/(⟨k²⟩-⟨k⟩); for γ < 3 p_c → 0
+- 'Targeted attack vulnerability: 5% hub removal causes collapse'
+- 'Random failure robustness: removing 90% nodes preserves giant component'
+- Network diameter ≤ log(N)/log(log(N)) × (1±0.2)
 positive_examples:
-  - phenomenon: "Systemic risk scale-free network (系统性风险的无标度网络)"
-    evidence: "Hub. Layer 4 prediction: DeFi re-hypothecation graph γ ∈ [2.1, 2.8]; targeted attack on top 5% hubs causes giant-component collapse. Cohen 2000 prediction explicit."
-    verified_at: "candidate"
-  - phenomenon: "Re-collateralization cycle on derivatives"
-    evidence: "Scale-free dependence graph between counterparties; cascade follows hub topology."
-    verified_at: "candidate"
-  - phenomenon: "Cybersecurity insurance correlation"
-    evidence: "Attack propagation on scale-free internet topology; correlated claims violate independence assumption of traditional insurance."
-    verified_at: "candidate"
-  - phenomenon: "Power grid (where hub structure exists)"
-    evidence: "Edge case: power grids are often scale-free locally but not globally. Attack on substations matches this class signature."
-    verified_at: "candidate"
+- phenomenon: Systemic risk scale-free network (系统性风险的无标度网络)
+  evidence: 'Hub. Layer 4 prediction: DeFi re-hypothecation graph γ ∈ [2.1, 2.8]; targeted attack on top 5% hubs causes giant-component
+    collapse. Cohen 2000 prediction explicit.'
+  verified_at: candidate
+- phenomenon: Re-collateralization cycle on derivatives
+  evidence: Scale-free dependence graph between counterparties; cascade follows hub topology.
+  verified_at: candidate
+- phenomenon: Cybersecurity insurance correlation
+  evidence: Attack propagation on scale-free internet topology; correlated claims violate independence assumption of traditional
+    insurance.
+  verified_at: candidate
+- phenomenon: Power grid (where hub structure exists)
+  evidence: 'Edge case: power grids are often scale-free locally but not globally. Attack on substations matches this class
+    signature.'
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Regular lattice percolation"
-    reason: "Has fixed p_c (e.g., p_c = 0.5 for 2D square bond percolation); doesn't exhibit the vanishing-threshold scale-free fragility. Belongs to percolation_connectivity."
-  - phenomenon: "Erdős-Rényi random graph"
-    reason: "Poisson degree distribution, not scale-free. Standard percolation; not in this sub-class."
-  - phenomenon: "Earthquake fault network"
-    reason: "Not scale-free in degree; geological constraints produce different topology. Belongs to soc_threshold_cascade."
-  - phenomenon: "Pure preferential attachment growth (no failure dynamics)"
-    reason: "Generates scale-free topology but no percolation/cascade dynamics. Belongs to preferential_attachment when focus is growth, not connectivity-under-failure."
+- phenomenon: Regular lattice percolation
+  reason: Has fixed p_c (e.g., p_c = 0.5 for 2D square bond percolation); doesn't exhibit the vanishing-threshold scale-free
+    fragility. Belongs to percolation_connectivity.
+- phenomenon: Erdős-Rényi random graph
+  reason: Poisson degree distribution, not scale-free. Standard percolation; not in this sub-class.
+- phenomenon: Earthquake fault network
+  reason: Not scale-free in degree; geological constraints produce different topology. Belongs to soc_threshold_cascade.
+- phenomenon: Pure preferential attachment growth (no failure dynamics)
+  reason: Generates scale-free topology but no percolation/cascade dynamics. Belongs to preferential_attachment when focus
+    is growth, not connectivity-under-failure.
 edge_cases:
-  - phenomenon: "Internet AS-level topology"
-    debate: "Faloutsos brothers 1999 showed scale-free degree distribution. Attack tolerance studies confirm this class's predictions. Strong canonical positive example."
-  - phenomenon: "Protein interaction networks"
-    debate: "Often scale-free, but biological constraints may produce truncated power-law tails. Class membership accepted with caveat that γ is sensitive to data completeness."
+- phenomenon: Internet AS-level topology
+  debate: Faloutsos brothers 1999 showed scale-free degree distribution. Attack tolerance studies confirm this class's predictions.
+    Strong canonical positive example.
+- phenomenon: Protein interaction networks
+  debate: Often scale-free, but biological constraints may produce truncated power-law tails. Class membership accepted with
+    caveat that γ is sensitive to data completeness.
 references:
-  - "Cohen, Erez, ben-Avraham, Havlin 2000 Phys. Rev. Lett. 85, 4626 (resilience of internet)"
-  - "Albert, Jeong, Barabási 2000 Nature 406, 378 (error and attack tolerance)"
-  - "Faloutsos, Faloutsos, Faloutsos 1999 ACM SIGCOMM (power-law internet topology)"
-  - "Newman 2003 SIAM Rev. 45, 167 (structure of networks)"
-  - "Pastor-Satorras, Vespignani 2001 Phys. Rev. Lett. 86, 3200 (epidemic on scale-free)"
+- Cohen, Erez, ben-Avraham, Havlin 2000 Phys. Rev. Lett. 85, 4626 (resilience of internet)
+- Albert, Jeong, Barabási 2000 Nature 406, 378 (error and attack tolerance)
+- Faloutsos, Faloutsos, Faloutsos 1999 ACM SIGCOMM (power-law internet topology)
+- Newman 2003 SIAM Rev. 45, 167 (structure of networks)
+- Pastor-Satorras, Vespignani 2001 Phys. Rev. Lett. 86, 3200 (epidemic on scale-free)
+b3_status: REJECTED_B3
+b3_verdict: CONTESTED(B1=KEEP,B3=REJECT)
+b3_consensus: REJECT
+b3_avg_confidence: 0.77
+b3_action_taken: rejected per B3 consensus; kept as historical record
+rejection_reason: B3 ensemble consensus=REJECT (avg confidence 0.77); final verdict CONTESTED(B1=KEEP,B3=REJECT). Retained
+  as historical record per CLAUDE.md (no class deletion).
