@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title data-i18n="page.methods.meta_title">方法与 Pipeline — Structural</title>
+  <meta name="description" data-i18n-meta="page.methods.meta_desc" content="V4 Layer 1-5 pipeline 全貌:从 4,443 个跨域现象到 13 个验证 phase。339 行共享代码 + Clauset 2009 MLE + Null control + Multi-model B3 ensemble taxonomy critic。">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" data-i18n-meta="page.methods.meta_title" content="方法与 Pipeline — Structural">
+  <meta property="og:description" data-i18n-meta="page.methods.meta_desc" content="V4 Layer 1-5 pipeline 全貌。339 行共享代码 + Clauset 2009 + Null + B3 ensemble critic。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260513">
+
+  <style>
+    .meth-page { padding: 56px 24px 96px; }
+    .meth-container { max-width: 880px; margin: 0 auto; }
+    .meth-hero { margin-bottom: 56px; }
+    .meth-hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #71717A; letter-spacing: 0.4px;
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+    .meth-hero__dot { width: 6px; height: 6px; border-radius: 50%; background: #2563EB; }
+    .meth-hero__title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 36px; line-height: 1.25; margin-bottom: 18px; color: #18181B;
+    }
+    .meth-hero__title em { font-style: normal; color: #2563EB; }
+    .meth-hero__lede { font-size: 16px; line-height: 1.7; color: #52525B; }
+    .meth-hero__lede strong { color: #18181B; }
+    .meth-hero__lede a { color: #2563EB; text-decoration: none; }
+    .meth-hero__lede a:hover { text-decoration: underline; }
+
+    .meth-pipeline {
+      margin: 48px 0; padding: 32px; background: #FAFAF9;
+      border: 1px solid #E4E4E7; border-radius: 12px;
+    }
+    .meth-layer {
+      display: grid; grid-template-columns: 80px 1fr; gap: 20px;
+      padding: 18px 0; border-bottom: 1px solid #E4E4E7;
+    }
+    .meth-layer:last-child { border-bottom: 0; }
+    .meth-layer__num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px; font-weight: 600; color: #2563EB;
+      padding-top: 2px;
+    }
+    .meth-layer__title { font-size: 16px; font-weight: 600; color: #18181B; margin-bottom: 4px; }
+    .meth-layer__desc { font-size: 14px; color: #52525B; line-height: 1.6; }
+    .meth-layer__desc code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; padding: 1px 6px;
+      background: #FFF; border: 1px solid #E4E4E7; border-radius: 4px;
+    }
+
+    .meth-section { margin: 56px 0; }
+    .meth-section__title {
+      font-size: 22px; font-weight: 600; color: #18181B; margin-bottom: 16px;
+    }
+    .meth-section p { font-size: 15px; color: #52525B; line-height: 1.7; margin-bottom: 14px; }
+    .meth-section ul { margin: 12px 0 16px 24px; }
+    .meth-section li { font-size: 15px; color: #52525B; line-height: 1.7; margin-bottom: 6px; }
+    .meth-section strong { color: #18181B; }
+    .meth-section a { color: #2563EB; text-decoration: none; }
+    .meth-section a:hover { text-decoration: underline; }
+    .meth-section code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; padding: 1px 6px;
+      background: #F4F4F5; border-radius: 4px;
+    }
+
+    .meth-b3-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      margin: 24px 0; padding: 22px; background: #FAFAF9;
+      border: 1px solid #E4E4E7; border-radius: 10px;
+    }
+    .meth-b3-stat__num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px; font-weight: 600; color: #18181B;
+    }
+    .meth-b3-stat__label { font-size: 12px; color: #71717A; margin-top: 4px; }
+
+    .meth-quote {
+      margin: 24px 0; padding: 18px 22px;
+      border-left: 3px solid #2563EB; background: #FAFAF9;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px; color: #52525B; line-height: 1.65;
+    }
+
+    @media (max-width: 720px) {
+      .meth-hero__title { font-size: 28px; }
+      .meth-b3-stats { grid-template-columns: repeat(2, 1fr); }
+      .meth-layer { grid-template-columns: 1fr; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge" data-i18n="beta.badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
+        <a href="/papers" class="site-header__nav-link" data-i18n="nav.papers">论文</a>
+        <a href="/methods" class="site-header__nav-link site-header__nav-link--active" data-i18n="nav.methods">方法</a>
+        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="site-header__nav-link" data-i18n="nav.phase_detector">Phase Detector</a>
+        <a href="/about" class="site-header__nav-link" data-i18n="nav.about">关于</a>
+        <button type="button" class="site-header__lang-toggle" id="lang-toggle" data-i18n-attr="aria-label:nav.lang_toggle_aria">
+          <span data-i18n-lang-label>EN</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="meth-page">
+    <div class="meth-container">
+
+      <section class="meth-hero">
+        <div class="meth-hero__eyebrow">
+          <span class="meth-hero__dot"></span>
+          <span data-i18n="page.methods.eyebrow">V4 · Layer 1-5 全貌</span>
+        </div>
+        <h1 class="meth-hero__title" data-i18n="page.methods.title">同一条 pipeline,<em>13 个独立系统</em></h1>
+        <p class="meth-hero__lede" data-i18n="page.methods.lede">
+          普适类断言只有"<strong>同一份代码、不调一个参数,跑遍多个完全不同的领域,都恢复出预测信号</strong>"时才有经验内容。V4 把这条要求做成了一个 5 层 pipeline:从 V1/V2/V3 的 4,443 个跨域现象,到 21 个候选普适类,到 13 个独立数据源、全部跑同一份 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py" target="_blank" rel="noopener"><code>v4/lib/soc_pipeline.py</code></a>(339 行 Python,frozen at commit 7ee228c)。
+        </p>
+      </section>
+
+      <section class="meth-pipeline">
+        <div class="meth-layer">
+          <div class="meth-layer__num">Layer 1</div>
+          <div>
+            <div class="meth-layer__title" data-i18n="page.methods.l1_title">图构建</div>
+            <div class="meth-layer__desc" data-i18n="page.methods.l1_desc">读取 V1/V2/V3 的 A 级 + B+ 发现,按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤,得到 180 节点 / 143 边。</div>
+          </div>
+        </div>
+        <div class="meth-layer">
+          <div class="meth-layer__num">Layer 2</div>
+          <div>
+            <div class="meth-layer__title" data-i18n="page.methods.l2_title">社区发现</div>
+            <div class="meth-layer__desc" data-i18n="page.methods.l2_desc">连通分量 + Louvain (weight=score)。得到 <strong>23 个候选等价类</strong>,21 个跨 ≥ 2 领域。</div>
+          </div>
+        </div>
+        <div class="meth-layer">
+          <div class="meth-layer__num">Layer 3</div>
+          <div>
+            <div class="meth-layer__title" data-i18n="page.methods.l3_title">Taxonomy Match</div>
+            <div class="meth-layer__desc" data-i18n="page.methods.l3_desc">把无监督浮现的等价类匹配到物理学已命名的普适类(SOC / PA / Motter-Lai / Preisach / Scheffer / Diamond-Dybvig / Fold bifurcation / ...)。</div>
+          </div>
+        </div>
+        <div class="meth-layer">
+          <div class="meth-layer__num">Layer 4</div>
+          <div>
+            <div class="meth-layer__title" data-i18n="page.methods.l4_title">预测翻译</div>
+            <div class="meth-layer__desc" data-i18n="page.methods.l4_desc">对已匹配的普适类,把已知物理定律(α band、Omori 律、loop-width ratio、critical slowing down)翻译为跨域可验证预测。</div>
+          </div>
+        </div>
+        <div class="meth-layer">
+          <div class="meth-layer__num">Layer 5</div>
+          <div>
+            <div class="meth-layer__title" data-i18n="page.methods.l5_title">实证验证 (13 phase + 2 A2)</div>
+            <div class="meth-layer__desc" data-i18n="page.methods.l5_desc">同一份 339 行 pipeline 跑 USGS 地震 / S&P 500 / DeFi × 3 / 神经雪崩 / GitHub stars / FDIC / 野火 / 太阳耀斑 / NERC 电网 / Wikipedia / NGSIM 高速公路 / Fox River 湖泊 + 4 个 null control + 7 系统 universal collapse。<strong>所有 α 落入预测带, null 全部正确拒绝</strong>。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="meth-section">
+        <h2 class="meth-section__title" data-i18n="page.methods.pipeline_title">共享 pipeline 模块</h2>
+        <p data-i18n="page.methods.pipeline_p1"><a href="https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py" target="_blank" rel="noopener"><code>v4/lib/soc_pipeline.py</code></a> 暴露一个函数对应一个分析操作:</p>
+        <ul>
+          <li><strong>MLE</strong> — Clauset-Shalizi-Newman 2009 最大似然 + KS-driven x<sub>min</sub>。</li>
+          <li><strong>Bootstrap</strong> — 95% CI on α。</li>
+          <li><strong>Vuong 似然比</strong> — vs lognormal + exponential 替代假设。</li>
+          <li><strong>Omori-Utsu</strong> — 时间衰减叠加(适用 SOC)。</li>
+          <li><strong>Null control</strong> — matched-n 合成数据(folded normal / exponential / Poisson inter-arrival / Poisson Omori)。</li>
+          <li><strong>Log-binned BIC</strong> — Bayesian 模型选择,power-law + cutoff vs lognormal。</li>
+        </ul>
+        <p data-i18n="page.methods.pipeline_p2"><strong>每个 phase 调用同一个函数,数据 loader 是 domain-specific 的,但 pipeline 本身从不修改、不调参数、不加 prior</strong>。这是"同一条 pipeline"断言的技术含义。</p>
+      </section>
+
+      <section class="meth-section">
+        <h2 class="meth-section__title" data-i18n="page.methods.b3_title">B3 多模型 ensemble taxonomy critic</h2>
+        <p data-i18n="page.methods.b3_p1">候选类太多 / 命名太松会污染整个 taxonomy。V4 在 Layer 3 上接一个 <strong>多模型 ensemble critic</strong>:跑 3 个独立 reviewer(deepseek-v4-pro rigorous / deepseek-v4-flash rigorous / deepseek-v4-pro creative T=0.6),每个对 21 个候选类给 KEEP/REJECT/SPLIT/MERGE 四档投票,多数决定 consensus。</p>
+
+        <div class="meth-b3-stats">
+          <div><div class="meth-b3-stat__num">63</div><div class="meth-b3-stat__label" data-i18n="page.methods.b3_stat_verdicts">verdicts</div></div>
+          <div><div class="meth-b3-stat__num">0</div><div class="meth-b3-stat__label" data-i18n="page.methods.b3_stat_errors">parse errors</div></div>
+          <div><div class="meth-b3-stat__num">40.8m</div><div class="meth-b3-stat__label" data-i18n="page.methods.b3_stat_walltime">wall time</div></div>
+          <div><div class="meth-b3-stat__num">14/21</div><div class="meth-b3-stat__label" data-i18n="page.methods.b3_stat_agreement">B1↔B3 一致</div></div>
+        </div>
+
+        <p data-i18n="page.methods.b3_p2"><strong>Consensus 分布:</strong> KEEP=5 / REJECT=7 / SPLIT=5 / MERGE=4。详细 verdict 矩阵见 <a href="/taxonomy-v2">B1 ⊗ B3 verdict 矩阵</a>。</p>
+
+        <p data-i18n="page.methods.b3_p3"><strong>关键发现 — 共享错误模式:</strong> B3 推翻 B1 KEEP 的 4 个 class(<code>delay_differential_debt</code> / <code>hysteresis_preisach</code> 作为单一类 / <code>scale_free_percolation_class</code> / <code>tail_copula_contagion</code>)共享同一种错误 — <strong>把数学框架当作普适类</strong>。delay-differential equation、Preisach 积分、scale-free 生成模型、copula 联合分布族都是数学基础设施,不是机制。三个独立 reviewer 收敛于同一个 filter 本身就是非平凡的方法论 validation。</p>
+
+        <div class="meth-quote">
+          <strong data-i18n="page.methods.b3_limit_label">局限:</strong> <span data-i18n="page.methods.b3_limit_text">同 vendor ensemble 探测的是 within-model confidence drift,不是 cross-family 架构分歧。Cross-family 路径(Kimi / GLM-5)因 OpenRouter CN 区域 block + 备用 router 未验证 base URL 推迟到 B4+。</span>
+        </div>
+      </section>
+
+      <section class="meth-section">
+        <h2 class="meth-section__title" data-i18n="page.methods.null_title">Null robustness</h2>
+        <p data-i18n="page.methods.null_p1">为排除"pipeline 把任何数据都拟合成 SOC 幂律"的平凡解释,Phase 5 在 4 个合成非 SOC 源上跑同一份代码:Gaussian 随机游走增量、exponential 变量、homogeneous Poisson inter-arrival 时间、homogeneous Poisson Omori 叠加。<strong>全部正确拒绝幂律</strong>(R ∈ [-45, -16] 相对 exp/lognormal,Poisson Omori 拟合 R² ≈ 0.002)。</p>
+        <p data-i18n="page.methods.null_p2">Phase 12 加一道 universal collapse 检验:7 个系统在 finite-size scaling 假设 P(s) = s<sup>-α</sup> f(s/s*) 下做 shape-normalized 函数形态崩塌,达到 r<sub>shape</sub> = 1.11(excellent 阈值 r < 2)。BIC 模型选择在 5/7 系统优先选 power-law + 指数 cutoff,lognormal 在 0/7 系统胜出。</p>
+        <p data-i18n="page.methods.null_p3">完整 V4 规划见 <a href="https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md" target="_blank" rel="noopener">plans/v4-universality-class-engine.md</a>,统一预印本见 <a href="/papers/unified-pipeline-v0.2-2026-05-13">v0.2 unified preprint</a>。</p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright" data-i18n="footer.copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="/about" data-i18n="footer.about">关于</a>
+        <a class="site-footer__link" href="/papers" data-i18n="footer.paper">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener" data-i18n="footer.huggingface">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener" data-i18n="footer.zenodo">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/i18n.js?v=20260513"></script>
+  <script src="/assets/js/product-switcher.js?v=20260513"></script>
+</body>
+</html>

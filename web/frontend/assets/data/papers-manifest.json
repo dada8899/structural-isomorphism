@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "generated_at": "2026-05-13",
+    "version": "v4-session3",
+    "last_updated": "2026-05-13",
+    "total_papers": 20,
+    "verified_phases": 13,
+    "preprints": 1,
+    "arxiv_drafts": 4,
+    "tutorials": 1
+  },
+  "groups": [
+    {
+      "id": "unified",
+      "title_zh": "v0.2 统一预印本",
+      "title_en": "v0.2 unified preprint",
+      "desc_zh": "13 个验证系统、一条 339 行 pipeline、一份完整论文。",
+      "desc_en": "Thirteen verified systems, one 339-line pipeline, one preprint.",
+      "papers": [
+        {
+          "slug": "unified-pipeline-v0.2-2026-05-13",
+          "title_zh": "13 系统跨域普适类统一 pipeline (v0.2)",
+          "title_en": "Unified pipeline for 13-system cross-domain universality (v0.2)",
+          "words": 12538,
+          "minutes": 25,
+          "class": "multi (SOC + PA + Motter-Lai + Preisach + Scheffer)",
+          "status": "preprint",
+          "date": "2026-05-13",
+          "feature": true
+        }
+      ]
+    },
+    {
+      "id": "arxiv-drafts",
+      "title_zh": "arXiv 单系统稿件 (Session #3)",
+      "title_en": "arXiv solo drafts (Session #3)",
+      "desc_zh": "C2 工作流产出，4 篇可独立投出的 arXiv 草稿。",
+      "desc_en": "C2 workflow products — four standalone arXiv-ready drafts.",
+      "papers": [
+        {
+          "slug": "arxiv-01_earthquake_soc-2026-05-13",
+          "title_zh": "全球地震目录上的 SOC 复现 — arXiv 稿",
+          "title_en": "Recovering SOC on a global earthquake catalog — arXiv draft",
+          "words": 4249,
+          "minutes": 9,
+          "class": "SOC threshold-cascade",
+          "status": "arxiv-draft",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "arxiv-02_stockmarket_inverse_cubic-2026-05-13",
+          "title_zh": "S&P 500 跨域 SOC: 反三次律 + Omori 衰减 — arXiv 稿",
+          "title_en": "Cross-domain SOC: inverse cubic law on S&P 500 — arXiv draft",
+          "words": 3279,
+          "minutes": 7,
+          "class": "SOC threshold-cascade",
+          "status": "arxiv-draft",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "arxiv-03_defi_cross_protocol-2026-05-13",
+          "title_zh": "DeFi 跨协议清算 SOC: 43k 事件 / 3 协议 — arXiv 稿",
+          "title_en": "Cross-protocol SOC in DeFi liquidations (43k events) — arXiv draft",
+          "words": 3870,
+          "minutes": 8,
+          "class": "SOC threshold-cascade",
+          "status": "arxiv-draft",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "arxiv-04_neural_avalanches-2026-05-13",
+          "title_zh": "无均匀场 SOC: 任务态小鼠皮层雪崩缩放 — arXiv 稿",
+          "title_en": "Criticality without mean-field SOC: neural avalanche scaling — arXiv draft",
+          "words": 3335,
+          "minutes": 7,
+          "class": "SOC threshold-cascade",
+          "status": "arxiv-draft",
+          "date": "2026-05-13"
+        }
+      ]
+    },
+    {
+      "id": "phase-papers",
+      "title_zh": "13 个验证 phase paper",
+      "title_en": "13 verified phase papers",
+      "desc_zh": "每篇 = 一个独立数据源 × 共享 339 行 pipeline，全部带 α + 95% CI + null control。",
+      "desc_en": "Each = one independent data source × the shared 339-line pipeline, with α + 95% CI + null control.",
+      "papers": [
+        {
+          "slug": "soc-earthquake-2026-04-15",
+          "title_zh": "Phase 1 · USGS 地震 SOC",
+          "title_en": "Phase 1 · USGS earthquakes SOC",
+          "words": 3613,
+          "minutes": 8,
+          "class": "SOC threshold-cascade",
+          "alpha": "b = 1.084 ± 0.005",
+          "n_tail": 37281,
+          "status": "site",
+          "date": "2026-04-15"
+        },
+        {
+          "slug": "soc-stockmarket-2026-04-15",
+          "title_zh": "Phase 2 · S&P 500 反三次律",
+          "title_en": "Phase 2 · S&P 500 inverse cubic",
+          "words": 2053,
+          "minutes": 5,
+          "class": "SOC threshold-cascade",
+          "alpha": "α = 2.998 ± 0.041",
+          "n_tail": 9060,
+          "status": "site",
+          "date": "2026-04-15"
+        },
+        {
+          "slug": "soc-defi-2026-04-15",
+          "title_zh": "Phase 3 · DeFi 跨协议清算",
+          "title_en": "Phase 3 · DeFi cross-protocol liquidations",
+          "words": 2925,
+          "minutes": 6,
+          "class": "SOC threshold-cascade",
+          "alpha": "α ∈ [1.567, 1.684]",
+          "n_tail": 43065,
+          "status": "site",
+          "date": "2026-04-15"
+        },
+        {
+          "slug": "soc-neural-2026-04-16",
+          "title_zh": "Phase 4 · 小鼠皮层神经雪崩",
+          "title_en": "Phase 4 · Mouse cortex neural avalanches",
+          "words": 1964,
+          "minutes": 4,
+          "class": "SOC threshold-cascade",
+          "alpha": "τ ∈ [2.17, 3.00]",
+          "n_tail": 1390000,
+          "status": "site",
+          "date": "2026-04-16"
+        },
+        {
+          "slug": "soc-null-2026-04-16",
+          "title_zh": "Phase 5 · Null 反向验证 (pipeline 不撒谎)",
+          "title_en": "Phase 5 · Null control (pipeline does not lie)",
+          "words": 895,
+          "minutes": 2,
+          "class": "null-controls",
+          "alpha": "rejected on 4 synthetic nulls",
+          "n_tail": null,
+          "status": "site",
+          "date": "2026-04-16"
+        },
+        {
+          "slug": "soc-github-stars-2026-05-13",
+          "title_zh": "Phase 6 · GitHub 仓库 stars (Barabási-Albert PA)",
+          "title_en": "Phase 6 · GitHub repos (Barabási-Albert PA)",
+          "words": 2496,
+          "minutes": 5,
+          "class": "Preferential attachment",
+          "alpha": "α = 2.867 ± 0.050",
+          "n_tail": 8398,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-power-grid-2026-05-13",
+          "title_zh": "Phase 7 · 北美电网级联 (Motter-Lai)",
+          "title_en": "Phase 7 · NERC power-grid cascades (Motter-Lai)",
+          "words": 3622,
+          "minutes": 8,
+          "class": "Motter-Lai network-cascade",
+          "alpha": "α_MW = 2.02 ± 0.16",
+          "n_tail": 123,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-bank-failures-2026-05-13",
+          "title_zh": "Phase 8 · FDIC 美国银行倒闭 (Diamond-Dybvig)",
+          "title_en": "Phase 8 · FDIC US bank failures (Diamond-Dybvig)",
+          "words": 3429,
+          "minutes": 7,
+          "class": "SOC / Diamond-Dybvig sub-class",
+          "alpha": "α = 1.899 ± 0.045",
+          "n_tail": 3960,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-wildfire-2026-05-13",
+          "title_zh": "Phase 10 · NIFC 美国野火 SOC",
+          "title_en": "Phase 10 · NIFC US wildfires SOC",
+          "words": 2490,
+          "minutes": 5,
+          "class": "SOC threshold-cascade",
+          "alpha": "α = 1.660 ± 0.017",
+          "n_tail": 21022,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-solar-2026-05-13",
+          "title_zh": "Phase 11 · GOES 太阳耀斑 SOC",
+          "title_en": "Phase 11 · GOES solar flares SOC",
+          "words": 2512,
+          "minutes": 5,
+          "class": "SOC threshold-cascade",
+          "alpha": "α = 2.194 ± 0.018",
+          "n_tail": 29907,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-universal-collapse-2026-05-13",
+          "title_zh": "Phase 12 · 跨系统 universal collapse (BIC 模型选择)",
+          "title_en": "Phase 12 · Cross-system universal collapse (BIC)",
+          "words": 3967,
+          "minutes": 8,
+          "class": "finite-size scaling",
+          "alpha": "r_shape = 1.11",
+          "n_tail": null,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "soc-wikipedia-views-2026-05-13",
+          "title_zh": "Phase 13 · Wikipedia 浏览量 (Zipf PA 带)",
+          "title_en": "Phase 13 · Wikipedia pageviews (Zipf PA band)",
+          "words": 3627,
+          "minutes": 8,
+          "class": "Preferential attachment (Zipf)",
+          "alpha": "α = 2.034 ± 0.019",
+          "n_tail": 7521,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "hysteresis-traffic-2026-05-13",
+          "title_zh": "A2-Hysteresis · NGSIM US-101 高速公路一阶相变 (Preisach)",
+          "title_en": "A2-Hysteresis · NGSIM US-101 first-order signature (Preisach)",
+          "words": 3531,
+          "minutes": 7,
+          "class": "Preisach hysteresis (per-domain)",
+          "alpha": "loop-width 1.38 ∈ [1.25, 1.55]",
+          "n_tail": 4538,
+          "status": "site",
+          "date": "2026-05-13"
+        },
+        {
+          "slug": "scheffer-lake-2026-05-13",
+          "title_zh": "A2-Scheffer · Fox River 湖泊溶氧 fold 分岔 (CSD)",
+          "title_en": "A2-Scheffer · Fox River dissolved oxygen fold-bifurcation",
+          "words": 2960,
+          "minutes": 6,
+          "class": "Scheffer fold-bifurcation",
+          "alpha": "Kendall τ_AR1 = +0.284 / τ_Var = +0.234",
+          "n_tail": null,
+          "status": "site",
+          "date": "2026-05-13"
+        }
+      ]
+    },
+    {
+      "id": "tutorials",
+      "title_zh": "复现 tutorial",
+      "title_en": "Reproduction tutorial",
+      "desc_zh": "30 分钟、零私有数据、本地 pip + REST 即可跑通 Phase 1。",
+      "desc_en": "30-minute, no private data — pip + REST gets you Phase 1.",
+      "papers": [
+        {
+          "slug": "tutorial-reproduction-2026-05-13",
+          "title_zh": "Phase 1 复现 tutorial — Jupyter + CLI",
+          "title_en": "Phase 1 reproduction tutorial — Jupyter + CLI",
+          "words": 710,
+          "minutes": 2,
+          "class": "tutorial",
+          "status": "site",
+          "date": "2026-05-13",
+          "external_link": "https://github.com/dada8899/structural-isomorphism/tree/main/tutorials"
+        }
+      ]
+    }
+  ]
+}

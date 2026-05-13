@@ -6,9 +6,10 @@
     "manual_curated": 8,
     "llm_curated": 15,
     "curated_classes": 23,
-    "version": "0.2",
+    "version": "0.3",
     "last_updated": "2026-05-13",
-    "layer5_phase_count": 13
+    "layer5_phase_count": 13,
+    "b3_review_done": true
   },
   "stats": {
     "n_equivalence_classes": 23,
@@ -17,7 +18,13 @@
     "max_domains": 12,
     "largest_hub": "清算级联的链上流动性危机",
     "largest_hub_en": "On-chain liquidity crisis from liquidation cascades",
-    "verified_predictions": 13
+    "verified_predictions": 13,
+    "b3_consensus": {
+      "KEEP": 5,
+      "REJECT": 7,
+      "SPLIT": 5,
+      "MERGE": 4
+    }
   },
   "classes": [
     {
@@ -407,7 +414,18 @@
       ],
       "is_curated": true,
       "curation_source": "manual",
-      "physics_prototype_en": "Bak-Tang-Wiesenfeld sandpile model (1987)"
+      "physics_prototype_en": "Bak-Tang-Wiesenfeld sandpile model (1987)",
+      "b3_consensus": "KEEP",
+      "verified": true,
+      "verified_phases": [
+        "Phase 1 USGS",
+        "Phase 2 S&P 500",
+        "Phase 3 DeFi",
+        "Phase 4 Mouse cortex",
+        "Phase 8 FDIC",
+        "Phase 10 NIFC",
+        "Phase 11 GOES"
+      ]
     },
     {
       "class_id": "hysteresis_preisach",
@@ -674,7 +692,13 @@
       ],
       "is_curated": true,
       "curation_source": "manual",
-      "physics_prototype_en": "Preisach hysteresis model (1935) + Scheffer bistable (2001)"
+      "physics_prototype_en": "Preisach hysteresis model (1935) + Scheffer bistable (2001)",
+      "b3_consensus": "REJECT",
+      "verified": true,
+      "verified_phases": [
+        "A2-Hysteresis NGSIM US-101 (traffic-Preisach sub-class)"
+      ],
+      "b3_note": "REJECT as monolithic class; per-domain sub-classes survive. Traffic-Preisach verified."
     },
     {
       "class_id": "scheffer_fold_bifurcation",
@@ -883,7 +907,12 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "b3_consensus": "KEEP",
+      "verified": true,
+      "verified_phases": [
+        "A2-Scheffer Fox River dissolved oxygen"
+      ]
     },
     {
       "class_id": "diamond_dybvig_self_fulfilling",
@@ -1051,7 +1080,12 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "b3_consensus": "KEEP",
+      "verified": true,
+      "verified_phases": [
+        "Phase 8 FDIC bank failures (Diamond-Dybvig sub-class)"
+      ]
     },
     {
       "class_id": "motter_lai_network_cascade",
@@ -1205,7 +1239,12 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "b3_consensus": "SPLIT",
+      "verified": true,
+      "verified_phases": [
+        "Phase 7 NERC/OE-417 power-grid cascades"
+      ]
     },
     {
       "class_id": "tail_copula_contagion",
@@ -1340,7 +1379,10 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "b3_consensus": "REJECT",
+      "verified": false,
+      "b3_note": "Demoted — copula is a parametric family, not a mechanism. Session #3 W2-B confirmed reject."
     },
     {
       "class_id": "gardner_collins_toggle_switch",
@@ -1465,7 +1507,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "manual"
+      "curation_source": "manual",
+      "b3_consensus": "MERGE",
+      "verified": false
     },
     {
       "class_id": "schelling_credible_commitment",
@@ -1593,7 +1637,9 @@
       ],
       "is_curated": true,
       "curation_source": "manual",
-      "physics_prototype_en": "Schelling 1960 credible commitment + Kydland-Prescott time inconsistency"
+      "physics_prototype_en": "Schelling 1960 credible commitment + Kydland-Prescott time inconsistency",
+      "b3_consensus": "REJECT",
+      "verified": false
     },
     {
       "class_id": "extreme_value_tail_class",
@@ -1713,7 +1759,10 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "REJECT",
+      "verified": false,
+      "b3_note": "Limit-theorem class, not mechanism."
     },
     {
       "class_id": "delay_differential_debt",
@@ -1818,7 +1867,10 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "REJECT",
+      "verified": false,
+      "b3_note": "B3 demoted — delay-diff is a math framework not a mechanism."
     },
     {
       "class_id": "leaky_integrate_fire_threshold_class",
@@ -1924,7 +1976,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "SPLIT",
+      "verified": false
     },
     {
       "class_id": "reflexive_fixed_point_class",
@@ -2030,7 +2084,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "KEEP",
+      "verified": false
     },
     {
       "class_id": "adverse_selection_unraveling_class",
@@ -2141,7 +2197,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "SPLIT",
+      "verified": false
     },
     {
       "class_id": "motter_lai_network_cascade",
@@ -2247,7 +2305,12 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "SPLIT",
+      "verified": true,
+      "verified_phases": [
+        "Phase 7 NERC/OE-417 power-grid cascades"
+      ]
     },
     {
       "class_id": "hysteresis_first_order_transition",
@@ -2352,7 +2415,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "MERGE",
+      "verified": false
     },
     {
       "class_id": "gardner_collins_toggle_switch",
@@ -2462,7 +2527,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "MERGE",
+      "verified": false
     },
     {
       "class_id": "scale_free_percolation_class",
@@ -2567,7 +2634,10 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "REJECT",
+      "verified": false,
+      "b3_note": "B3 demoted — folded into percolation_connectivity."
     },
     {
       "class_id": "percolation_connectivity",
@@ -2672,7 +2742,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "SPLIT",
+      "verified": false
     },
     {
       "class_id": "preferential_attachment",
@@ -2813,7 +2885,13 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "KEEP",
+      "verified": true,
+      "verified_phases": [
+        "Phase 6 GitHub stars",
+        "Phase 13 Wikipedia pageviews"
+      ]
     },
     {
       "class_id": "reaction_diffusion_steady_state_class",
@@ -2922,7 +3000,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "KEEP",
+      "verified": false
     },
     {
       "class_id": "markov_chain_memory_fidelity_class",
@@ -3027,7 +3107,10 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "REJECT",
+      "verified": false,
+      "b3_note": "Statistical descriptor, not mechanism."
     },
     {
       "class_id": "second_order_damped_oscillator",
@@ -3122,7 +3205,9 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "KEEP",
+      "verified": false
     },
     {
       "class_id": "sir_contagion_network_class",
@@ -3217,7 +3302,13 @@
         }
       ],
       "is_curated": true,
-      "curation_source": "llm"
+      "curation_source": "llm",
+      "b3_consensus": "SPLIT",
+      "verified": true,
+      "verified_phases": [
+        "Session #3 W2-C SIR confirm in progress"
+      ],
+      "b3_note": "Verification in progress (W2-C)."
     }
   ]
 }

@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "generated_at": "2026-05-13",
+    "reviewers": [
+      "deepseek-v4-pro (rigorous, T=0.0)",
+      "deepseek-v4-flash (rigorous, T=0.0)",
+      "deepseek-v4-pro (creative, T=0.6)"
+    ],
+    "n_classes": 21,
+    "n_verdicts": 63,
+    "errors": 0,
+    "parse_failures": 0,
+    "wall_time_minutes": 40.8,
+    "consensus_distribution": {"KEEP": 5, "REJECT": 7, "SPLIT": 5, "MERGE": 4, "UNCLEAR": 0},
+    "raw_verdict_distribution": {"REJECT": 22, "KEEP": 16, "SPLIT": 14, "MERGE": 10, "UNCLEAR": 1},
+    "b1_b3_agreement": {"agree": 14, "disagree": 7}
+  },
+  "verdicts": [
+    {"class_id": "adverse_selection_unraveling_class", "b1": "SPLIT", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "SPLIT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.92},
+    {"class_id": "delay_differential_debt", "b1": "KEEP", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "KEEP", "b3_consensus": "REJECT", "avg_conf": 0.75, "note_zh": "B3 推翻 B1 — delay-differential 是数学框架,不是机制"},
+    {"class_id": "extreme_value_tail_class", "b1": "REJECT", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "REJECT", "b3_consensus": "REJECT", "avg_conf": 0.93, "note_zh": "Fisher-Tippett-Gnedenko 是极限定理,不是机制"},
+    {"class_id": "gardner_collins_toggle_switch_Th1Th2", "b1": "MERGE_WITH(apoptosis)", "b3_pro_rigorous": "MERGE", "b3_flash_rigorous": "MERGE", "b3_pro_creative": "MERGE", "b3_consensus": "MERGE", "avg_conf": 0.95},
+    {"class_id": "gardner_collins_toggle_switch_apoptosis", "b1": "MERGE_WITH(Th1Th2)", "b3_pro_rigorous": "MERGE", "b3_flash_rigorous": "MERGE", "b3_pro_creative": "MERGE", "b3_consensus": "MERGE", "avg_conf": 0.93},
+    {"class_id": "hysteresis_first_order_transition_fertility", "b1": "KEEP", "b3_pro_rigorous": "MERGE", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "MERGE", "b3_consensus": "MERGE", "avg_conf": 0.83},
+    {"class_id": "hysteresis_preisach", "b1": "SPLIT", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "REJECT", "avg_conf": 0.82, "note_zh": "Preisach 是数学积分框架而非机制。按域 split: 磁/交通/毛细。A2-Hysteresis (NGSIM) 验证的是 traffic-Preisach 子类"},
+    {"class_id": "leaky_integrate_fire_threshold_class", "b1": "SPLIT", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "SPLIT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.75},
+    {"class_id": "markov_chain_memory_fidelity_class", "b1": "REJECT", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "REJECT", "b3_consensus": "REJECT", "avg_conf": 0.94, "note_zh": "Markovian 是统计描述符,不是机制"},
+    {"class_id": "motter_lai_network_cascade", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "SPLIT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.83, "note_zh": "Phase 7 验证;split 提议按物理 vs 社会子类"},
+    {"class_id": "motter_lai_network_cascade_social", "b1": "MERGE_WITH(motter_lai_network_cascade)", "b3_pro_rigorous": "MERGE", "b3_flash_rigorous": "MERGE", "b3_pro_creative": "REJECT", "b3_consensus": "MERGE", "avg_conf": 0.93},
+    {"class_id": "percolation_connectivity", "b1": "KEEP", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.89},
+    {"class_id": "preferential_attachment", "b1": "KEEP", "b3_pro_rigorous": "UNCLEAR", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.75, "note_zh": "Phase 6 (GitHub) + Phase 13 (Wikipedia) 双验证"},
+    {"class_id": "reaction_diffusion_steady_state_class", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.85},
+    {"class_id": "reflexive_fixed_point_class", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.73},
+    {"class_id": "scale_free_percolation_class", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "REJECT", "b3_consensus": "REJECT", "avg_conf": 0.77, "note_zh": "B3 推翻 B1 — 与 percolation_connectivity 难区分"},
+    {"class_id": "scheffer_fold_bifurcation", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.88, "note_zh": "A2-Scheffer (Fox River) 验证,p ≪ 10⁻¹²⁰"},
+    {"class_id": "schelling_credible_commitment", "b1": "REJECT", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "REJECT", "b3_consensus": "REJECT", "avg_conf": 0.91},
+    {"class_id": "second_order_damped_oscillator", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.93},
+    {"class_id": "sir_contagion_network_class", "b1": "SPLIT", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.83, "note_zh": "Session #3 W2-C SIR confirm 在做"},
+    {"class_id": "tail_copula_contagion", "b1": "KEEP", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "REJECT", "avg_conf": 0.76, "note_zh": "Copula 是参数族,不是机制。Session #3 W2-B 已 reject"}
+  ],
+  "demotion_pattern": {
+    "zh": "B3 推翻 B1 KEEP 的 4 个 class (delay_differential_debt / hysteresis_preisach / scale_free_percolation_class / tail_copula_contagion) 共享同一个错误模式: 把数学框架(delay-differential equations / Preisach integral / scale-free generating model / copula family)当作普适类。三个 reviewer 独立收敛于这个 filter 本身是非平凡的方法论 validation。",
+    "en": "The four B3-driven demotions (delay_differential_debt, hysteresis_preisach, scale_free_percolation_class, tail_copula_contagion) share one error pattern: mistaking a mathematical framework for a universality class. Three independent reviewers converging on this filter is itself non-trivial methodological validation."
+  }
+}
