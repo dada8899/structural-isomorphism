@@ -78,7 +78,7 @@ Predator-Prey Standoff (Ecology) - similarity: 0.764
 
 ```bash
 # From source
-git clone https://github.com/yourusername/structural-isomorphism.git
+git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 pip install -e .
 
