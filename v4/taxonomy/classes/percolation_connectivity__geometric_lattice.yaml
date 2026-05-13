@@ -1,9 +1,8 @@
-class_id: percolation_connectivity
-status: emerging
-display_name: Percolation critical tipping point
-display_name_zh: 渗流连通性临界相变
-hub_phenomenon: Network/lattice occupancy crosses critical probability p_c → giant connected cluster spans system; second-order
-  phase transition with characteristic exponents
+class_id: percolation_connectivity__geometric_lattice
+status: speculative
+display_name: Geometric percolation on low-dimensional lattice (dimension-dependent exponents)
+display_name_zh: 几何渗流 (低维格点, 维度相关指数)
+hub_phenomenon: 'P_∞ ∝ (p - p_c)^β with β, ν, γ determined by lattice dimension (e.g., 2D: β = 5/36, ν = 4/3).'
 shared_equation: 'Order parameter (giant component fraction): P_∞(p) ∝ (p - p_c)^β.
 
   Correlation length: ξ ∝ |p - p_c|^{-ν}.
@@ -66,7 +65,7 @@ references:
 - Granovetter 1978 Am. J. Sociol. 83, 1420 (threshold models)
 - Watts, Strogatz 1998 Nature 393, 440 (small-world)
 - Cohen, Erez, ben-Avraham, Havlin 2000 Phys. Rev. Lett. 85, 4626 (resilience to attack)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: CONTESTED(B1=KEEP,B3=SPLIT)
 b3_consensus: SPLIT
 b3_avg_confidence: 0.89
@@ -74,3 +73,11 @@ b3_action_taken: 'split into 2 children: percolation_connectivity__geometric_lat
 superseded_by_split:
 - percolation_connectivity__geometric_lattice
 - percolation_connectivity__mean_field_network
+parent_class: percolation_connectivity
+split_from: percolation_connectivity
+split_rationale: Lattice geometry sets exponent values. Excludes mean-field on complex networks.
+members_kept_after_split:
+- porous media fluid flow
+- oil reservoir percolation
+- 2D site/bond percolation
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.

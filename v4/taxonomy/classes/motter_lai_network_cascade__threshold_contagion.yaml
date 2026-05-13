@@ -1,9 +1,9 @@
-class_id: motter_lai_network_cascade
-status: emerging
-display_name: Motter-Lai network cascade
-display_name_zh: Motter-Lai 网络负载重分配级联
-hub_phenomenon: Load-redistribution cascade failures on weighted capacity-limited networks (progressive building collapse,
-  power grid blackouts, DeFi liquidations)
+class_id: motter_lai_network_cascade__threshold_contagion
+status: speculative
+display_name: Watts threshold contagion (neighbor-fraction activation, non-conserved)
+display_name_zh: Watts 阈值传染 (邻居比例激活, 非守恒)
+hub_phenomenon: Each node activates when fraction of active neighbors exceeds threshold φ_i. No conserved quantity flows;
+  cascade size distribution differs from Motter-Lai.
 shared_equation: "Motter-Lai 2002 load redistribution: when node j fails,\n  L_k ← L_k + share_{jk} · L_j for k ∈ N(j),\n\
   \  where share_{jk} = w_jk / Σ_m w_jm.\nFailure rule: node fails iff L_j > C_j.\nEisenberg-Noe 2001 clearing vector: p =\
   \ min(p̄, L^T p + e); existence/uniqueness via fixed-point.\nTolerance parameter α = C/L; cascade phase transition at α_c.\n"
@@ -60,7 +60,7 @@ references:
 - Watts 2002 PNAS 99, 5766 (threshold cascades on social networks)
 - Buldyrev, Parshani, Paul, Stanley, Havlin 2010 Nature 464, 1025 (catastrophic cascades on interdependent networks)
 - Crucitti, Latora, Marchiori 2004 Phys. Rev. E 69, 045104 (cascade in power grids)
-b3_status: SPLIT_B3
+b3_status: SPLIT_B3_CHILD
 b3_verdict: CONTESTED(B1=KEEP,B3=SPLIT)
 b3_consensus: SPLIT
 b3_avg_confidence: 0.83
@@ -68,3 +68,13 @@ b3_action_taken: 'split into 2 children: motter_lai_network_cascade__conserved_l
 superseded_by_split:
 - motter_lai_network_cascade__conserved_load
 - motter_lai_network_cascade__threshold_contagion
+parent_class: motter_lai_network_cascade
+split_from: motter_lai_network_cascade
+split_rationale: Non-conserved, neighbor-fraction activation. Distinct universality class from Motter-Lai.
+members_kept_after_split:
+- Watts threshold model on social networks
+- DeFi liquidation cascades (leverage-driven, non-conserved)
+- social media virality cascades
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.
+merged_from:
+- motter_lai_network_cascade_social

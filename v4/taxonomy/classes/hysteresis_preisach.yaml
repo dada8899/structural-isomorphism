@@ -1,54 +1,63 @@
 class_id: hysteresis_preisach
 status: speculative
-display_name: "Preisach hysteresis (heterogeneous bistable element ensemble)"
-display_name_zh: "Preisach 迟滞 (异质双稳态元件集合)"
-hub_phenomenon: "Macroscopic hysteresis emerging from an ensemble of heterogeneous bistable hysterons with distributed switching thresholds"
-shared_equation: |
-  Preisach hysteresis model:
-    M(H) = ∫∫ μ(α, β) · γ(α, β, H) dα dβ,
-  where γ(α, β, H) ∈ {-1, +1} is a hysteron (switches up at H = α, down at H = β),
-  μ(α, β) is the Preisach density.
-  Aggregate M is path-dependent function of H history.
-  Distinct from simple bistability: many hysterons with different (α, β) thresholds.
+display_name: Preisach hysteresis (heterogeneous bistable element ensemble)
+display_name_zh: Preisach 迟滞 (异质双稳态元件集合)
+hub_phenomenon: Macroscopic hysteresis emerging from an ensemble of heterogeneous bistable hysterons with distributed switching
+  thresholds
+shared_equation: "Preisach hysteresis model:\n  M(H) = ∫∫ μ(α, β) · γ(α, β, H) dα dβ,\nwhere γ(α, β, H) ∈ {-1, +1} is a hysteron\
+  \ (switches up at H = α, down at H = β),\nμ(α, β) is the Preisach density.\nAggregate M is path-dependent function of H\
+  \ history.\nDistinct from simple bistability: many hysterons with different (α, β) thresholds.\n"
 key_invariants:
-  - "Ensemble of bistable hysterons with thresholds (α, β)"
-  - "Preisach density μ(α, β) characterizes heterogeneity"
-  - "Hysteresis loop area > 0; minor loops nested inside major"
-  - "Wiping-out property: every loop closure erases interior memory"
-  - "Path-dependent state requires full reversal history"
+- Ensemble of bistable hysterons with thresholds (α, β)
+- Preisach density μ(α, β) characterizes heterogeneity
+- Hysteresis loop area > 0; minor loops nested inside major
+- 'Wiping-out property: every loop closure erases interior memory'
+- Path-dependent state requires full reversal history
 positive_examples:
-  - phenomenon: "Thermosetting resin gel-point percolation transition (热固性树脂凝胶点渗流相变)"
-    evidence: "Hub. Cross-linking creates heterogeneous bistable network elements; macroscopic gel-point hysteresis."
-    verified_at: "candidate"
-  - phenomenon: "Magnetic hysteresis"
-    evidence: "Original Preisach 1935 application to ferromagnetism. Each magnetic domain is a hysteron."
-    verified_at: "candidate"
-  - phenomenon: "Traffic flow phase transition (交通流相变)"
-    evidence: "Layer 4 prediction: q_c1/q_c2 ∈ [1.25, 1.55] critical density ratio between collapse and recovery; β ∈ [0.45, 0.55] for Ising-like transition."
-    verified_at: "candidate"
-  - phenomenon: "Soil liquefaction (土壤液化)"
-    evidence: "Pore pressure threshold ensemble; each grain contact is a hysteron."
-    verified_at: "candidate"
-  - phenomenon: "Liquidity black hole / market microstructure"
-    evidence: "Layer 4 prediction: Aave clearance liquidation hysteresis loop area A_loop / TVL_peak ∈ [0.08, 0.22]."
-    verified_at: "candidate"
+- phenomenon: Thermosetting resin gel-point percolation transition (热固性树脂凝胶点渗流相变)
+  evidence: Hub. Cross-linking creates heterogeneous bistable network elements; macroscopic gel-point hysteresis.
+  verified_at: candidate
+- phenomenon: Magnetic hysteresis
+  evidence: Original Preisach 1935 application to ferromagnetism. Each magnetic domain is a hysteron.
+  verified_at: candidate
+- phenomenon: Traffic flow phase transition (交通流相变)
+  evidence: 'Layer 4 prediction: q_c1/q_c2 ∈ [1.25, 1.55] critical density ratio between collapse and recovery; β ∈ [0.45,
+    0.55] for Ising-like transition.'
+  verified_at: candidate
+- phenomenon: Soil liquefaction (土壤液化)
+  evidence: Pore pressure threshold ensemble; each grain contact is a hysteron.
+  verified_at: candidate
+- phenomenon: Liquidity black hole / market microstructure
+  evidence: 'Layer 4 prediction: Aave clearance liquidation hysteresis loop area A_loop / TVL_peak ∈ [0.08, 0.22].'
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Single Gardner-Collins toggle"
-    reason: "Single bistable element ≠ Preisach. Preisach requires ensemble of heterogeneous hysterons. Belongs to gardner_collins_toggle_switch."
-  - phenomenon: "Lake clearwater-eutrophic Scheffer fold"
-    reason: "Single fold bifurcation (one bistable system); not an ensemble of hysterons. Belongs to scheffer_fold_bifurcation."
-  - phenomenon: "Pure elastic deformation"
-    reason: "Reversible (no hysteresis loop). Different mechanism."
+- phenomenon: Single Gardner-Collins toggle
+  reason: Single bistable element ≠ Preisach. Preisach requires ensemble of heterogeneous hysterons. Belongs to gardner_collins_toggle_switch.
+- phenomenon: Lake clearwater-eutrophic Scheffer fold
+  reason: Single fold bifurcation (one bistable system); not an ensemble of hysterons. Belongs to scheffer_fold_bifurcation.
+- phenomenon: Pure elastic deformation
+  reason: Reversible (no hysteresis loop). Different mechanism.
 edge_cases:
-  - phenomenon: "Memristor"
-    debate: "Single-element memristive hysteresis (Chua 1971). One hysteron, not Preisach ensemble. Class boundary."
-notes: |
-  LLM-proposed cluster. Bundles together many systems with macroscopic hysteresis. Some
+- phenomenon: Memristor
+  debate: Single-element memristive hysteresis (Chua 1971). One hysteron, not Preisach ensemble. Class boundary.
+notes: 'LLM-proposed cluster. Bundles together many systems with macroscopic hysteresis. Some
+
   members (lake eutrophication, low fertility trap) might be better assigned to single-fold
+
   classes; this entry treats the heterogeneous-ensemble interpretation. Speculative until
+
   individual systems are tested for Preisach signatures (minor-loop wiping property).
+
+  '
 references:
-  - "Preisach 1935 Z. Physik 94, 277 (original hysteresis model)"
-  - "Mayergoyz 2003 Mathematical Models of Hysteresis"
-  - "Bertotti 1998 Hysteresis in Magnetism"
-  - "Sethna 1993 Nature 410 (crackling noise via Preisach)"
+- Preisach 1935 Z. Physik 94, 277 (original hysteresis model)
+- Mayergoyz 2003 Mathematical Models of Hysteresis
+- Bertotti 1998 Hysteresis in Magnetism
+- Sethna 1993 Nature 410 (crackling noise via Preisach)
+b3_status: REJECTED_B3
+b3_verdict: SPLIT+B3=REJECT
+b3_consensus: REJECT
+b3_avg_confidence: 0.82
+b3_action_taken: rejected per B3 consensus; kept as historical record
+rejection_reason: B3 ensemble consensus=REJECT (avg confidence 0.82); final verdict SPLIT+B3=REJECT. Retained as historical
+  record per CLAUDE.md (no class deletion).

@@ -1,46 +1,65 @@
 class_id: hysteresis_first_order_transition_fertility
 status: speculative
-display_name: "Bistable trap & first-order hysteresis (fertility/socioeconomic variant)"
-display_name_zh: "双稳态陷阱与一阶相变 (低生育率陷阱变体)"
-hub_phenomenon: "Self-reinforcing positive-feedback traps with hysteresis: once a system crosses below saddle to low-state, even restoring conditions cannot pull it back"
-shared_equation: |
-  Bistable potential: dx/dt = f(x)·(x - x_L)·(x - x_H).
+display_name: Bistable trap & first-order hysteresis (fertility/socioeconomic variant)
+display_name_zh: 双稳态陷阱与一阶相变 (低生育率陷阱变体)
+hub_phenomenon: 'Self-reinforcing positive-feedback traps with hysteresis: once a system crosses below saddle to low-state,
+  even restoring conditions cannot pull it back'
+shared_equation: 'Bistable potential: dx/dt = f(x)·(x - x_L)·(x - x_H).
+
   Hysteresis loop: forward bifurcation at p_+ ≠ backward at p_- (loop area > 0).
+
   Saddle-node bifurcation at extremes.
+
   Hysteresis area: A_loop = ∮ x dp.
+
   Tipping point: critical bifurcation parameter p_c.
+
+  '
 key_invariants:
-  - "Bistable cubic potential: dx/dt = f(x)(x-x_L)(x-x_H)"
-  - "Hysteresis loop area > 0 (path-dependent)"
-  - "Saddle-node bifurcation at jump points"
-  - "Positive feedback self-reinforcement"
-  - "Recovery path ≠ collapse path"
+- 'Bistable cubic potential: dx/dt = f(x)(x-x_L)(x-x_H)'
+- Hysteresis loop area > 0 (path-dependent)
+- Saddle-node bifurcation at jump points
+- Positive feedback self-reinforcement
+- Recovery path ≠ collapse path
 positive_examples:
-  - phenomenon: "Low fertility trap hypothesis (低生育率陷阱假说)"
-    evidence: "Hub. Lutz 2006 qualitative hypothesis. Layer 4 prediction: once TFR drops below 1.3, recovery probability < 0.25 even with policy spending recovery; loop area / mean TFR ∈ [0.08, 0.25] from OECD 1970-2024 panel."
-    verified_at: "candidate"
-  - phenomenon: "Lake internal phosphorus loading resuspension (湖泊内源磷负荷)"
-    evidence: "Eutrophic state self-reinforces via P resuspension; cleanup requires far below original eutrophication threshold. Scheffer 2001."
-    verified_at: "candidate"
-  - phenomenon: "Management entrenchment effect (管理层壕沟效应)"
-    evidence: "Entrenched managers self-reinforce via governance changes; takeover threshold pushed back. Shleifer-Vishny 1989."
-    verified_at: "candidate"
+- phenomenon: Low fertility trap hypothesis (低生育率陷阱假说)
+  evidence: 'Hub. Lutz 2006 qualitative hypothesis. Layer 4 prediction: once TFR drops below 1.3, recovery probability < 0.25
+    even with policy spending recovery; loop area / mean TFR ∈ [0.08, 0.25] from OECD 1970-2024 panel.'
+  verified_at: candidate
+- phenomenon: Lake internal phosphorus loading resuspension (湖泊内源磷负荷)
+  evidence: Eutrophic state self-reinforces via P resuspension; cleanup requires far below original eutrophication threshold.
+    Scheffer 2001.
+  verified_at: candidate
+- phenomenon: Management entrenchment effect (管理层壕沟效应)
+  evidence: Entrenched managers self-reinforce via governance changes; takeover threshold pushed back. Shleifer-Vishny 1989.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Linear demographic trend"
-    reason: "Smooth monotone decline without bistability; no hysteresis. Different mechanism."
-  - phenomenon: "Second-order phase transition (Ising)"
-    reason: "Continuous transition without hysteresis; belongs to equilibrium_critical_ising. Different universality."
-  - phenomenon: "Saddle-node bifurcation without history dependence"
-    reason: "Tipping point alone is not enough — need loop area > 0 indicating path-dependent state. Pure fold without history doesn't qualify."
+- phenomenon: Linear demographic trend
+  reason: Smooth monotone decline without bistability; no hysteresis. Different mechanism.
+- phenomenon: Second-order phase transition (Ising)
+  reason: Continuous transition without hysteresis; belongs to equilibrium_critical_ising. Different universality.
+- phenomenon: Saddle-node bifurcation without history dependence
+  reason: Tipping point alone is not enough — need loop area > 0 indicating path-dependent state. Pure fold without history
+    doesn't qualify.
 edge_cases:
-  - phenomenon: "Lake eutrophication-clearwater transition (Scheffer fold)"
-    debate: "Canonical positive example of class. The fertility-trap variant generalizes this socioeconomically. Class boundary with scheffer_fold_bifurcation."
-notes: |
-  LLM-proposed variant. The parent class hysteresis_first_order_transition covers the
+- phenomenon: Lake eutrophication-clearwater transition (Scheffer fold)
+  debate: Canonical positive example of class. The fertility-trap variant generalizes this socioeconomically. Class boundary
+    with scheffer_fold_bifurcation.
+notes: 'LLM-proposed variant. The parent class hysteresis_first_order_transition covers the
+
   underlying mechanism; this entry exists because Layer 4 generated targeted demographic
+
   predictions. Speculative until Layer 5 panel test on OECD fertility data.
+
+  '
 references:
-  - "Lutz, Skirbekk, Testa 2006 Vienna Yearb. Pop. Res. 4, 167 (low fertility trap)"
-  - "Scheffer, Carpenter 2001 Nature 413, 591 (catastrophic shifts in ecosystems)"
-  - "Shleifer, Vishny 1989 J. Financ. Econ. 25, 123 (managerial entrenchment)"
-  - "Landau, Lifshitz 1937 (phase transitions and order parameters)"
+- Lutz, Skirbekk, Testa 2006 Vienna Yearb. Pop. Res. 4, 167 (low fertility trap)
+- Scheffer, Carpenter 2001 Nature 413, 591 (catastrophic shifts in ecosystems)
+- Shleifer, Vishny 1989 J. Financ. Econ. 25, 123 (managerial entrenchment)
+- Landau, Lifshitz 1937 (phase transitions and order parameters)
+b3_status: MERGED_B3
+b3_verdict: MIXED(B1=KEEP,B3=MERGE)
+b3_consensus: MERGE
+b3_avg_confidence: 0.83
+b3_action_taken: merged into hysteresis_first_order_transition (kept as historical pointer)
+merged_into: hysteresis_first_order_transition

@@ -1,53 +1,67 @@
 class_id: hysteresis_first_order_transition
 status: emerging
-display_name: "Bistable trap & first-order hysteresis"
-display_name_zh: "双稳态陷阱与一阶相变迟滞"
-hub_phenomenon: "Systems with two stable fixed points separated by positive-feedback barrier; collapse path ≠ recovery path; hysteresis loop area > 0"
-shared_equation: |
-  Bistable potential dynamics: dx/dt = f(x)·(x - x_L)·(x - x_H).
+display_name: Bistable trap & first-order hysteresis
+display_name_zh: 双稳态陷阱与一阶相变迟滞
+hub_phenomenon: Systems with two stable fixed points separated by positive-feedback barrier; collapse path ≠ recovery path;
+  hysteresis loop area > 0
+shared_equation: 'Bistable potential dynamics: dx/dt = f(x)·(x - x_L)·(x - x_H).
+
   Hysteresis loop: forward bifurcation at p_+ ≠ backward at p_-.
+
   Loop area: A_loop = ∮ x dp > 0.
+
   Saddle-node (fold) bifurcation at the two jump points.
+
   Self-reinforcing positive feedback creates the barrier.
+
+  '
 key_invariants:
-  - "Cubic bistable potential dx/dt = f(x)(x-x_L)(x-x_H)"
-  - "Hysteresis loop area > 0 (path-dependent)"
-  - "Saddle-node bifurcation at jump points"
-  - "Positive feedback self-reinforcement (vs. negative feedback restoration)"
-  - "Recovery path ≠ collapse path"
+- Cubic bistable potential dx/dt = f(x)(x-x_L)(x-x_H)
+- Hysteresis loop area > 0 (path-dependent)
+- Saddle-node bifurcation at jump points
+- Positive feedback self-reinforcement (vs. negative feedback restoration)
+- Recovery path ≠ collapse path
 positive_examples:
-  - phenomenon: "Lake eutrophic-clearwater bistability (Scheffer 2001)"
-    evidence: "Canonical positive example. Below P loading threshold → clearwater stable; above → eutrophic with internal P recycling self-reinforcement; recovery requires far lower P than original threshold."
-    verified_at: "candidate"
-  - phenomenon: "Low fertility trap hypothesis"
-    evidence: "OECD TFR data: once below 1.3, recovery rare even with policy support. See hysteresis_first_order_transition_fertility for Layer 4 prediction."
-    verified_at: "candidate"
-  - phenomenon: "Management entrenchment effect (管理层壕沟效应)"
-    evidence: "Self-reinforcing governance changes by entrenched managers; takeover threshold pushed back."
-    verified_at: "candidate"
-  - phenomenon: "Magnetic ferromagnetic-paramagnetic first-order transition"
-    evidence: "Below T_c with strong external field, magnetization shows hysteresis loop in M-H plane."
-    verified_at: "candidate"
-  - phenomenon: "Coral reef regime shift (Hughes 2003)"
-    evidence: "Coral-dominated vs algal-dominated alternative stable states with hysteresis."
-    verified_at: "candidate"
+- phenomenon: Lake eutrophic-clearwater bistability (Scheffer 2001)
+  evidence: Canonical positive example. Below P loading threshold → clearwater stable; above → eutrophic with internal P recycling
+    self-reinforcement; recovery requires far lower P than original threshold.
+  verified_at: candidate
+- phenomenon: Low fertility trap hypothesis
+  evidence: 'OECD TFR data: once below 1.3, recovery rare even with policy support. See hysteresis_first_order_transition_fertility
+    for Layer 4 prediction.'
+  verified_at: candidate
+- phenomenon: Management entrenchment effect (管理层壕沟效应)
+  evidence: Self-reinforcing governance changes by entrenched managers; takeover threshold pushed back.
+  verified_at: candidate
+- phenomenon: Magnetic ferromagnetic-paramagnetic first-order transition
+  evidence: Below T_c with strong external field, magnetization shows hysteresis loop in M-H plane.
+  verified_at: candidate
+- phenomenon: Coral reef regime shift (Hughes 2003)
+  evidence: Coral-dominated vs algal-dominated alternative stable states with hysteresis.
+  verified_at: candidate
 negative_examples:
-  - phenomenon: "Second-order Ising transition"
-    reason: "Continuous (no hysteresis). Different universality class. Belongs to equilibrium_critical_ising."
-  - phenomenon: "Earthquake stress relaxation"
-    reason: "Single direction relaxation; no recovery path required. Belongs to soc_threshold_cascade."
-  - phenomenon: "Linear bistability (no positive feedback)"
-    reason: "Without positive feedback the two equilibria are not separated by a hysteretic barrier. Class membership requires loop area > 0."
-  - phenomenon: "Stochastic two-state Markov system"
-    reason: "Markov toggling between states is reversible at the population level; no macroscopic hysteresis if transitions are symmetric. Belongs to markov_chain_memory_fidelity_class."
+- phenomenon: Second-order Ising transition
+  reason: Continuous (no hysteresis). Different universality class. Belongs to equilibrium_critical_ising.
+- phenomenon: Earthquake stress relaxation
+  reason: Single direction relaxation; no recovery path required. Belongs to soc_threshold_cascade.
+- phenomenon: Linear bistability (no positive feedback)
+  reason: Without positive feedback the two equilibria are not separated by a hysteretic barrier. Class membership requires
+    loop area > 0.
+- phenomenon: Stochastic two-state Markov system
+  reason: Markov toggling between states is reversible at the population level; no macroscopic hysteresis if transitions are
+    symmetric. Belongs to markov_chain_memory_fidelity_class.
 edge_cases:
-  - phenomenon: "Gardner-Collins toggle switch"
-    debate: "Mathematically related (both produce bistability) but the toggle's hysteresis is at single-cell level driven by Hill kinetics, while this class is macroscopic. Class boundary; large overlap."
-  - phenomenon: "Shape-memory alloy martensitic transition"
-    debate: "Thermoelastic martensitic transformation has hysteresis loop, but driven by both temperature AND stress. Compound bifurcation parameter space. Class membership accepted with caveat."
+- phenomenon: Gardner-Collins toggle switch
+  debate: Mathematically related (both produce bistability) but the toggle's hysteresis is at single-cell level driven by
+    Hill kinetics, while this class is macroscopic. Class boundary; large overlap.
+- phenomenon: Shape-memory alloy martensitic transition
+  debate: Thermoelastic martensitic transformation has hysteresis loop, but driven by both temperature AND stress. Compound
+    bifurcation parameter space. Class membership accepted with caveat.
 references:
-  - "Landau, Lifshitz 1937 (first-order transitions)"
-  - "Scheffer, Carpenter, Foley, Folke, Walker 2001 Nature 413, 591 (catastrophic shifts)"
-  - "Scheffer 2009 Critical Transitions in Nature and Society"
-  - "Strogatz 2015 Nonlinear Dynamics and Chaos"
-  - "Hughes et al. 2003 Science 301, 929 (coral reef regime shift)"
+- Landau, Lifshitz 1937 (first-order transitions)
+- Scheffer, Carpenter, Foley, Folke, Walker 2001 Nature 413, 591 (catastrophic shifts)
+- Scheffer 2009 Critical Transitions in Nature and Society
+- Strogatz 2015 Nonlinear Dynamics and Chaos
+- Hughes et al. 2003 Science 301, 929 (coral reef regime shift)
+merged_from:
+- hysteresis_first_order_transition_fertility
