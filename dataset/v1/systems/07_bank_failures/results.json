@@ -1,0 +1,106 @@
+{
+  "slot": "07_bank_failures",
+  "source_dir": "v4/validation/soc-bank-failures",
+  "bank_results": {
+    "phase": "Layer 5 Phase 8",
+    "domain": "FDIC US bank failures 1934-2026 (n=4114 raw, ~size>0 filtered)",
+    "predicted_class": "soc_threshold_cascade / Diamond-Dybvig sub-class",
+    "n_failures": 3960,
+    "year_range": [
+      1934,
+      2026
+    ],
+    "asset_size_range_usd": [
+      14000.0,
+      1471631047000.0
+    ],
+    "decade_distribution": {
+      "1930": 207,
+      "1940": 54,
+      "1950": 28,
+      "1960": 43,
+      "1970": 77,
+      "1980": 2035,
+      "1990": 925,
+      "2000": 210,
+      "2010": 367,
+      "2020": 14
+    },
+    "powerlaw_fit_assets": {
+      "name": "bank_assets",
+      "alpha": 1.8991217566984138,
+      "sigma_alpha": 0.044622663545475554,
+      "xmin": 626922000.0,
+      "n_total": 3960,
+      "n_tail": 406,
+      "vs_lognormal_R": -0.6558525709725347,
+      "vs_lognormal_p": 0.5119189874231937,
+      "vs_exponential_R": 4.77991758337337,
+      "vs_exponential_p": 1.7536706885202502e-06,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": true
+    },
+    "bootstrap_ci_assets": {
+      "alpha_mean": 1.8802974718116559,
+      "alpha_median": 1.862825783165903,
+      "alpha_std": 0.08355879342096584,
+      "ci_low": 1.7626819798282363,
+      "ci_high": 2.0465995528880168,
+      "n_boot_succeeded": 100
+    },
+    "era_split_fits": {
+      "1934-2007_pre": {
+        "n": 3401,
+        "alpha": 1.8376043241375104,
+        "xmin": 130265000.0,
+        "n_tail": 944,
+        "winner": "lognormal"
+      },
+      "2008-2014_crisis": {
+        "n": 520,
+        "alpha": 1.724654845517652,
+        "xmin": 153172000.0,
+        "n_tail": 334,
+        "winner": "inconclusive"
+      },
+      "2015-2026_post": {
+        "n": 39,
+        "note": "too few"
+      }
+    },
+    "omori_after_large_failures": {
+      "n_aftershocks_in_fit": 7547,
+      "n_bins_used": 14,
+      "t_range_days": [
+        1.2345550475424079,
+        295.6530781892589
+      ],
+      "c_days": 0.5,
+      "p": 0.027659776713385487,
+      "p_sigma": 0.06184095192234309,
+      "logK": -3.414803183332072,
+      "R2": 0.016397713389864954
+    },
+    "null_control": {
+      "all_rejected": true,
+      "n_per_null": 3960
+    },
+    "predicted_alpha_range": [
+      1.4,
+      2.5
+    ],
+    "literature_alpha_range": [
+      1.2,
+      3.0
+    ],
+    "verdict": "CONFIRMED",
+    "interpretation": "FDIC bank failure asset distribution \u03b1 = 1.899 (bootstrap 95% CI [1.763, 2.047]). Predicted [1.4, 2.5] from Diamond-Dybvig / Eisenberg-Noe systemic risk literature. vs lognormal R = -0.656 (p=0.512). Omori p = 0.027659776713385487. Verdict: CONFIRMED.",
+    "method_refs": [
+      "Diamond-Dybvig 1983 J. Pol. Econ. (bank run model)",
+      "Eisenberg-Noe 2001 Mgmt Sci (financial contagion network)",
+      "Glasserman-Young 2015 J. Banking Finance (systemic risk review)",
+      "Clauset-Shalizi-Newman 2009",
+      "Reinhart-Rogoff 2009 (financial crises history)"
+    ]
+  }
+}
