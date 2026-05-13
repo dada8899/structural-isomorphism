@@ -1,0 +1,91 @@
+{
+  "slot": "06_solar",
+  "source_dir": "v4/validation/soc-solar",
+  "solar_results": {
+    "phase": "Layer 5 Phase 11",
+    "domain": "solar flare X-ray (NOAA GOES 2000-2016)",
+    "predicted_class": "soc_threshold_cascade (Lu-Hamilton 1991 avalanche model)",
+    "n_total_flares": 29907,
+    "peak_flux_range_W_m2": [
+      6.3e-08,
+      0.0009000000000000001
+    ],
+    "class_distribution": {
+      "C": 17121,
+      "B": 10802,
+      "M": 1831,
+      "X": 147,
+      "A": 6
+    },
+    "powerlaw_fit_peak_flux": {
+      "name": "flare_peak_flux",
+      "alpha": 2.1943650738561313,
+      "sigma_alpha": 0.01813812783039459,
+      "xmin": 5.2e-06,
+      "n_total": 29907,
+      "n_tail": 4336,
+      "vs_lognormal_R": 0.444593882610143,
+      "vs_lognormal_p": 0.6566132691229525,
+      "vs_exponential_R": 15.055906391230005,
+      "vs_exponential_p": 3.157420893489774e-51,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": false
+    },
+    "bootstrap_ci_peak_flux": {
+      "alpha_mean": 2.197897180771279,
+      "alpha_median": 2.1947782520410213,
+      "alpha_std": 0.02288854344280341,
+      "ci_low": 2.159465155563366,
+      "ci_high": 2.2478172449068525,
+      "n_boot_succeeded": 100
+    },
+    "powerlaw_fit_interarrival": {
+      "name": "flare_interarrival",
+      "alpha": 2.647116126953109,
+      "sigma_alpha": 0.02845358581983766,
+      "xmin": 30600.0,
+      "n_total": 29890,
+      "n_tail": 3351,
+      "vs_lognormal_R": 2.274240090698862,
+      "vs_lognormal_p": 0.02295155500770813,
+      "vs_exponential_R": 6.29887774737695,
+      "vs_exponential_p": 2.998083269373796e-10,
+      "vs_powerlaw_lognormal_winner": "power_law",
+      "rejects_power_law": false
+    },
+    "omori_after_X_class": {
+      "n_aftershocks_in_fit": 3773,
+      "n_bins_used": 14,
+      "t_range_days": [
+        0.0312589566747165,
+        2.533427095822147
+      ],
+      "c_days": 0.001,
+      "p": -0.035751416061721344,
+      "p_sigma": 0.045399337176721115,
+      "logK": -2.0080031708887036,
+      "R2": 0.04913867151026208
+    },
+    "null_control": {
+      "all_rejected": true,
+      "n_per_null": 20000
+    },
+    "predicted_alpha_range": [
+      1.5,
+      2.5
+    ],
+    "literature_alpha_range": [
+      1.5,
+      2.5
+    ],
+    "verdict": "CONFIRMED",
+    "interpretation": "GOES X-ray flare peak-flux distribution \u03b1 = 2.194 (bootstrap 95% CI [2.159, 2.248]). Predicted [1.5, 2.5] from Lu-Hamilton 1991 / Crosby 1993 / Aschwanden 2011. vs lognormal R = 0.445 (p=0.657). Pipeline null-control all rejected: True. Verdict: CONFIRMED.",
+    "method_refs": [
+      "Lu-Hamilton 1991 ApJ (avalanche model for solar flares)",
+      "Crosby-Aschwanden-Dennis 1993 Solar Phys (RHESSI flare statistics)",
+      "Aschwanden 2011 Solar Phys (SOC review)",
+      "Wheatland 2000 ApJ (flare inter-arrival times)",
+      "Clauset-Shalizi-Newman 2009 SIAM Rev"
+    ]
+  }
+}
