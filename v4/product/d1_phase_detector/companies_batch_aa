@@ -1,0 +1,20 @@
+{"ticker": "AAPL", "company_name": "Apple Inc.", "sector": "tech_hardware", "market_cap_bn_usd": 3500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MSFT", "company_name": "Microsoft Corporation", "sector": "tech_software", "market_cap_bn_usd": 3300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "GOOGL", "company_name": "Alphabet Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AMZN", "company_name": "Amazon.com Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2100, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "META", "company_name": "Meta Platforms Inc.", "sector": "tech_internet", "market_cap_bn_usd": 1500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NVDA", "company_name": "NVIDIA Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 3200, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "TSLA", "company_name": "Tesla Inc.", "sector": "tech_auto", "market_cap_bn_usd": 1000, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AVGO", "company_name": "Broadcom Inc.", "sector": "tech_semiconductor", "market_cap_bn_usd": 800, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ORCL", "company_name": "Oracle Corporation", "sector": "tech_software", "market_cap_bn_usd": 450, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CRM", "company_name": "Salesforce Inc.", "sector": "tech_software", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "WMT", "company_name": "Walmart Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 600, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PG", "company_name": "Procter & Gamble Co.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "KO", "company_name": "Coca-Cola Company", "sector": "consumer_staples", "market_cap_bn_usd": 280, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PEP", "company_name": "PepsiCo Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 230, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "MCD", "company_name": "McDonald's Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 210, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "NKE", "company_name": "Nike Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SBUX", "company_name": "Starbucks Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 105, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "COST", "company_name": "Costco Wholesale Corp.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "HD", "company_name": "Home Depot Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TGT", "company_name": "Target Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
