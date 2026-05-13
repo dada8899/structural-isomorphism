@@ -6,8 +6,9 @@ import {
   CPS_ARIA_LABEL,
   CPS_BADGE,
   CPS_ICON,
-  CPS_LABEL,
-  DYNAMICS_LABEL,
+  CPS_LABEL_ZH,
+  DYNAMICS_LABEL_ZH,
+  DYNAMICS_SUBTITLE_ZH,
 } from "@/lib/labels";
 import { fetchCompany } from "@/lib/api";
 import type { Company } from "@/lib/types";
@@ -95,10 +96,15 @@ export default function CompanyDetailPage({
             aria-label={CPS_ARIA_LABEL[company.critical_point_state]}
           >
             <span aria-hidden="true">{CPS_ICON[company.critical_point_state]}</span>
-            {CPS_LABEL[company.critical_point_state]}
+            {CPS_LABEL_ZH[company.critical_point_state]}
           </span>
           <span className="text-sm text-zinc-600">
-            {DYNAMICS_LABEL[company.dynamics_family] ?? company.dynamics_family}
+            {DYNAMICS_LABEL_ZH[company.dynamics_family] ?? company.dynamics_family}
+            {DYNAMICS_SUBTITLE_ZH[company.dynamics_family] && (
+              <span className="ml-2 text-zinc-400">
+                · {DYNAMICS_SUBTITLE_ZH[company.dynamics_family]}
+              </span>
+            )}
           </span>
           {company.updated_at && (
             <span className="text-xs text-zinc-400">
