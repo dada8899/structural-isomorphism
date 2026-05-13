@@ -1,0 +1,115 @@
+{"ticker": "AAPL", "company_name": "Apple Inc.", "sector": "tech_hardware", "market_cap_bn_usd": 3500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MSFT", "company_name": "Microsoft Corporation", "sector": "tech_software", "market_cap_bn_usd": 3300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "GOOGL", "company_name": "Alphabet Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AMZN", "company_name": "Amazon.com Inc.", "sector": "tech_internet", "market_cap_bn_usd": 2100, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "META", "company_name": "Meta Platforms Inc.", "sector": "tech_internet", "market_cap_bn_usd": 1500, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NVDA", "company_name": "NVIDIA Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 3200, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "TSLA", "company_name": "Tesla Inc.", "sector": "tech_auto", "market_cap_bn_usd": 1000, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AVGO", "company_name": "Broadcom Inc.", "sector": "tech_semiconductor", "market_cap_bn_usd": 800, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ORCL", "company_name": "Oracle Corporation", "sector": "tech_software", "market_cap_bn_usd": 450, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CRM", "company_name": "Salesforce Inc.", "sector": "tech_software", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "WMT", "company_name": "Walmart Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 600, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PG", "company_name": "Procter & Gamble Co.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "KO", "company_name": "Coca-Cola Company", "sector": "consumer_staples", "market_cap_bn_usd": 280, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "PEP", "company_name": "PepsiCo Inc.", "sector": "consumer_staples", "market_cap_bn_usd": 230, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "MCD", "company_name": "McDonald's Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 210, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "NKE", "company_name": "Nike Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SBUX", "company_name": "Starbucks Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 105, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "COST", "company_name": "Costco Wholesale Corp.", "sector": "consumer_staples", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "HD", "company_name": "Home Depot Inc.", "sector": "consumer_discretionary", "market_cap_bn_usd": 380, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TGT", "company_name": "Target Corporation", "sector": "consumer_discretionary", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "JPM", "company_name": "JPMorgan Chase & Co.", "sector": "financials_bank", "market_cap_bn_usd": 680, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BAC", "company_name": "Bank of America Corp.", "sector": "financials_bank", "market_cap_bn_usd": 360, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "WFC", "company_name": "Wells Fargo & Co.", "sector": "financials_bank", "market_cap_bn_usd": 250, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "C", "company_name": "Citigroup Inc.", "sector": "financials_bank", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "GS", "company_name": "Goldman Sachs Group", "sector": "financials_bank", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "MS", "company_name": "Morgan Stanley", "sector": "financials_bank", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BLK", "company_name": "BlackRock Inc.", "sector": "financials_asset_mgmt", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "V", "company_name": "Visa Inc.", "sector": "financials_payments", "market_cap_bn_usd": 580, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MA", "company_name": "Mastercard Inc.", "sector": "financials_payments", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AXP", "company_name": "American Express Co.", "sector": "financials_payments", "market_cap_bn_usd": 195, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "JNJ", "company_name": "Johnson & Johnson", "sector": "healthcare_pharma", "market_cap_bn_usd": 410, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "UNH", "company_name": "UnitedHealth Group", "sector": "healthcare_insurance", "market_cap_bn_usd": 480, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "LLY", "company_name": "Eli Lilly and Company", "sector": "healthcare_pharma", "market_cap_bn_usd": 720, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PFE", "company_name": "Pfizer Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "MRK", "company_name": "Merck & Co. Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABBV", "company_name": "AbbVie Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 310, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TMO", "company_name": "Thermo Fisher Scientific", "sector": "healthcare_devices", "market_cap_bn_usd": 220, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABT", "company_name": "Abbott Laboratories", "sector": "healthcare_devices", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DHR", "company_name": "Danaher Corporation", "sector": "healthcare_devices", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CVS", "company_name": "CVS Health Corp.", "sector": "healthcare_retail", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "XOM", "company_name": "Exxon Mobil Corp.", "sector": "energy_oil_gas", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "CVX", "company_name": "Chevron Corporation", "sector": "energy_oil_gas", "market_cap_bn_usd": 290, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "COP", "company_name": "ConocoPhillips", "sector": "energy_oil_gas", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "SLB", "company_name": "Schlumberger Limited", "sector": "energy_oilfield_svc", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "EOG", "company_name": "EOG Resources Inc.", "sector": "energy_oil_gas", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PSX", "company_name": "Phillips 66", "sector": "energy_refining", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "MPC", "company_name": "Marathon Petroleum Corp.", "sector": "energy_refining", "market_cap_bn_usd": 60, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "VLO", "company_name": "Valero Energy Corp.", "sector": "energy_refining", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "OXY", "company_name": "Occidental Petroleum", "sector": "energy_oil_gas", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "KMI", "company_name": "Kinder Morgan Inc.", "sector": "energy_midstream", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "SNOW", "company_name": "Snowflake Inc.", "sector": "tech_software_cloud", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "DDOG", "company_name": "Datadog Inc.", "sector": "tech_software_obs", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "NET", "company_name": "Cloudflare Inc.", "sector": "tech_software_edge", "market_cap_bn_usd": 35, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MDB", "company_name": "MongoDB Inc.", "sector": "tech_software_db", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "CRWD", "company_name": "CrowdStrike Holdings", "sector": "tech_software_security", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PANW", "company_name": "Palo Alto Networks", "sector": "tech_software_security", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ZS", "company_name": "Zscaler Inc.", "sector": "tech_software_security", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "SHOP", "company_name": "Shopify Inc.", "sector": "tech_software_ecommerce", "market_cap_bn_usd": 110, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ABNB", "company_name": "Airbnb Inc.", "sector": "tech_marketplace", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "U", "company_name": "Unity Software Inc.", "sector": "tech_software_gaming", "market_cap_bn_usd": 8, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "RBLX", "company_name": "Roblox Corporation", "sector": "tech_software_gaming", "market_cap_bn_usd": 30, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "PLTR", "company_name": "Palantir Technologies", "sector": "tech_software_data", "market_cap_bn_usd": 180, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "MRNA", "company_name": "Moderna Inc.", "sector": "biotech", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BNTX", "company_name": "BioNTech SE", "sector": "biotech", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "REGN", "company_name": "Regeneron Pharmaceuticals", "sector": "biotech", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": null}
+{"ticker": "BIIB", "company_name": "Biogen Inc.", "sector": "biotech", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GILD", "company_name": "Gilead Sciences Inc.", "sector": "biotech", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ILMN", "company_name": "Illumina Inc.", "sector": "biotech_tools", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "ENPH", "company_name": "Enphase Energy Inc.", "sector": "energy_solar", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SEDG", "company_name": "SolarEdge Technologies", "sector": "energy_solar", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "FSLR", "company_name": "First Solar Inc.", "sector": "energy_solar", "market_cap_bn_usd": 22, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "PLUG", "company_name": "Plug Power Inc.", "sector": "energy_hydrogen", "market_cap_bn_usd": 2, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "BLDP", "company_name": "Ballard Power Systems", "sector": "energy_hydrogen", "market_cap_bn_usd": 1, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "RIVN", "company_name": "Rivian Automotive", "sector": "tech_auto_ev", "market_cap_bn_usd": 12, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "LCID", "company_name": "Lucid Group Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 6, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NIO", "company_name": "NIO Inc.", "sector": "tech_auto_ev", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "COIN", "company_name": "Coinbase Global Inc.", "sector": "financials_crypto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "HOOD", "company_name": "Robinhood Markets", "sector": "financials_retail_broker", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "reflexive_fixed_point"}
+{"ticker": "AFRM", "company_name": "Affirm Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 14, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "UPST", "company_name": "Upstart Holdings", "sector": "financials_fintech", "market_cap_bn_usd": 3, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "BBY", "company_name": "Best Buy Co. Inc.", "sector": "consumer_discretionary_retail", "market_cap_bn_usd": 18, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "INTC", "company_name": "Intel Corporation", "sector": "tech_semiconductor", "market_cap_bn_usd": 95, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "PYPL", "company_name": "PayPal Holdings", "sector": "financials_payments", "market_cap_bn_usd": 65, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "BABA", "company_name": "Alibaba Group", "sector": "tech_internet_china", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "BA", "company_name": "Boeing Company", "sector": "industrials_aerospace", "market_cap_bn_usd": 100, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "GE", "company_name": "General Electric Co.", "sector": "industrials_diversified", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "F", "company_name": "Ford Motor Company", "sector": "consumer_auto", "market_cap_bn_usd": 45, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "GM", "company_name": "General Motors Co.", "sector": "consumer_auto", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "T", "company_name": "AT&T Inc.", "sector": "telecom", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "VZ", "company_name": "Verizon Communications", "sector": "telecom", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DIS", "company_name": "Walt Disney Company", "sector": "media_entertainment", "market_cap_bn_usd": 165, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "WBD", "company_name": "Warner Bros. Discovery", "sector": "media_entertainment", "market_cap_bn_usd": 25, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "NFLX", "company_name": "Netflix Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 270, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "ROKU", "company_name": "Roku Inc.", "sector": "tech_internet_streaming", "market_cap_bn_usd": 9, "expected_dynamics_family_a_priori": "scheffer_fold"}
+{"ticker": "SPOT", "company_name": "Spotify Technology", "sector": "tech_internet_audio", "market_cap_bn_usd": 90, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AIG", "company_name": "American International Group", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "ALL", "company_name": "Allstate Corporation", "sector": "financials_insurance", "market_cap_bn_usd": 50, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "TRV", "company_name": "Travelers Companies", "sector": "financials_insurance", "market_cap_bn_usd": 55, "expected_dynamics_family_a_priori": "soc_threshold_cascade"}
+{"ticker": "RE", "company_name": "Everest Re Group", "sector": "financials_reinsurance", "market_cap_bn_usd": 16, "expected_dynamics_family_a_priori": "extreme_value_tail"}
+{"ticker": "RNR", "company_name": "RenaissanceRe Holdings", "sector": "financials_reinsurance", "market_cap_bn_usd": 13, "expected_dynamics_family_a_priori": "extreme_value_tail"}
+{"ticker": "MOCKX00", "company_name": "Mock Co X00", "sector": "tech_hardware", "industry": "mock_industry", "market_cap_bn_usd": 10.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX01", "company_name": "Mock Co X01", "sector": "tech_software", "industry": "mock_industry", "market_cap_bn_usd": 20.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX02", "company_name": "Mock Co X02", "sector": "finance", "industry": "mock_industry", "market_cap_bn_usd": 30.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX03", "company_name": "Mock Co X03", "sector": "retail", "industry": "mock_industry", "market_cap_bn_usd": 40.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX04", "company_name": "Mock Co X04", "sector": "energy", "industry": "mock_industry", "market_cap_bn_usd": 50.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX05", "company_name": "Mock Co X05", "sector": "health", "industry": "mock_industry", "market_cap_bn_usd": 60.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX06", "company_name": "Mock Co X06", "sector": "tech_hardware", "industry": "mock_industry", "market_cap_bn_usd": 70.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX07", "company_name": "Mock Co X07", "sector": "tech_software", "industry": "mock_industry", "market_cap_bn_usd": 80.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX08", "company_name": "Mock Co X08", "sector": "finance", "industry": "mock_industry", "market_cap_bn_usd": 90.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX09", "company_name": "Mock Co X09", "sector": "retail", "industry": "mock_industry", "market_cap_bn_usd": 100.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX10", "company_name": "Mock Co X10", "sector": "energy", "industry": "mock_industry", "market_cap_bn_usd": 110.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX11", "company_name": "Mock Co X11", "sector": "health", "industry": "mock_industry", "market_cap_bn_usd": 120.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX12", "company_name": "Mock Co X12", "sector": "tech_hardware", "industry": "mock_industry", "market_cap_bn_usd": 130.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX13", "company_name": "Mock Co X13", "sector": "tech_software", "industry": "mock_industry", "market_cap_bn_usd": 140.0, "expected_dynamics_family_a_priori": "mock"}
+{"ticker": "MOCKX14", "company_name": "Mock Co X14", "sector": "finance", "industry": "mock_industry", "market_cap_bn_usd": 150.0, "expected_dynamics_family_a_priori": "mock"}

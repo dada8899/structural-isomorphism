@@ -49,3 +49,7 @@ v4/validation/soc-earthquake/catalog.jsonl
 v4/validation/soc-wildfire/raw_nifc.csv
 *.jsonl.bak
 .claude/
+
+# D1 Phase Detector local DB artifacts
+v4/product/d1_phase_detector/d1.sqlite
+v4/product/d1_phase_detector/*.sqlite-journal
