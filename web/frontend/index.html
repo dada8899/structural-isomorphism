@@ -27,20 +27,22 @@
   <link rel="stylesheet" href="/assets/css/home.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417e">
   <style>
-    /* Phase 子产品入口（学术版 hero 下方的 callout） */
+    /* Phase 子产品入口（学术版 hero 下方的 callout）
+     * W6-B (W5-E #4): tightened to reduce first-viewport density.
+     * margin-top: 16px (was 28), padding: 10px 14px (was 16/22), font: 13 (was 14). */
     .home__cross-product {
-      margin-top: 28px;
-      padding: 16px 22px;
+      margin-top: 16px;
+      padding: 10px 14px;
       background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
       border: 1px solid rgba(37, 99, 235, 0.15);
-      border-radius: 12px;
-      font-size: 14px;
+      border-radius: 10px;
+      font-size: 13px;
       color: #52525B;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      line-height: 1.6;
+      line-height: 1.5;
     }
     .home__cross-product__badge {
       display: inline-flex;
@@ -61,9 +63,10 @@
     .home__cross-product a:hover { text-decoration: underline; }
     .home__cross-product-label { color: #71717A; }
 
-    /* Featured preprint (session #3) */
+    /* Featured preprint (session #3)
+     * W6-B (W5-E #4): tightened — margin-top 12 (was 18), padding 16 20 (was 22 26). */
     .home__featured-preprint {
-      display: block; margin-top: 18px; padding: 22px 26px;
+      display: block; margin-top: 12px; padding: 16px 20px;
       background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
       border: 1px solid #18181B; border-radius: 12px;
       text-decoration: none; color: inherit;
