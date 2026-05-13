@@ -58,9 +58,9 @@ window.Storage = {
 };
 
 // === Search history (localStorage) ===
-// Shape: [{ query, rewritten_query, timestamp }], newest first, max 20
+// Shape: [{ query, rewritten_query, timestamp }], newest first, max 50
 const HISTORY_KEY = 'structural_history';
-const HISTORY_MAX = 20;
+const HISTORY_MAX = 50;
 
 window.getHistory = () => {
   const list = window.Storage.get(HISTORY_KEY, []);
