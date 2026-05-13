@@ -435,5 +435,23 @@
     }
   },
   "classical_csd_signature_detected": true,
-  "interpretation": "Detected \u22651 changepoint with significant rise in BOTH AR(1) and variance over the preceding 730 days \u2014 classical critical-slowing-down signature consistent with fold-bifurcation regime shift."
+  "interpretation": "Detected \u22651 changepoint with significant rise in BOTH AR(1) and variance over the preceding 730 days \u2014 classical critical-slowing-down signature consistent with fold-bifurcation regime shift.",
+  "block_bootstrap": {
+    "n_boot": 1000,
+    "block_size_days": 30,
+    "window_days": 365,
+    "tau_ar1_obs": 0.33058235679443543,
+    "tau_var_obs": 0.23902106827347355,
+    "p_naive_ar1": 1.5552617375527091e-245,
+    "p_naive_var": 2.437069554060383e-129,
+    "p_block_bootstrap_ar1": 0.07392607392607392,
+    "p_block_bootstrap_var": 0.2057942057942058,
+    "boot_tau_ar1_mean": 0.0061963104907938205,
+    "boot_tau_ar1_std": 0.18165598714019718,
+    "boot_tau_ar1_p95": 0.3046490636906435,
+    "boot_tau_var_mean": -0.00276267386783615,
+    "boot_tau_var_std": 0.18484590220224864,
+    "boot_tau_var_p95": 0.29532157779529594,
+    "rationale": "Naive p-values assume i.i.d.; daily DO has lag-1 autocorrelation ~0.8-0.9. Block bootstrap preserves serial structure within blocks of 30 days, resamples blocks with replacement, recomputes rolling indicator + Kendall tau on each resample. p_block reports the fraction of |tau_boot| >= |tau_obs| under the resampled null."
+  }
 }
