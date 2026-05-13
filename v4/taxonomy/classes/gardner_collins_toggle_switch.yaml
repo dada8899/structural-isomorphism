@@ -1,0 +1,61 @@
+class_id: gardner_collins_toggle_switch
+status: emerging
+display_name: "Hill ultrasensitive positive-feedback toggle switch"
+display_name_zh: "Hill 超敏正反馈双稳态开关"
+hub_phenomenon: "Bistable systems with mutually-repressive or autocatalytic Hill kinetics (n > 1); ultrasensitive switch between two stable states"
+shared_equation: |
+  Classical Gardner-Collins toggle:
+    du/dt = α/(1 + v^n) - u,
+    dv/dt = α/(1 + u^n) - v, with n > 1.
+  Autocatalytic Hill positive feedback:
+    dS/dt = α · S^n/(K^n + S^n) - β·S.
+  Saddle-node bifurcation: two stable + one unstable fixed point.
+  Switching irreversibility from deep low basin.
+key_invariants:
+  - "Hill positive feedback: dS/dt = α·S^n/(K^n + S^n) - β·S"
+  - "n > 1 (ultrasensitivity required for bistability)"
+  - "Saddle-node bifurcation at threshold"
+  - "Bimodality in single-cell distribution"
+  - "Ultrasensitive switching + irreversibility from deep low basin"
+positive_examples:
+  - phenomenon: "Apoptosis Caspase cascade irreversible digital switch (凋亡Caspase级联)"
+    evidence: "Layer 3 high confidence: ultrasensitive positive feedback dx/dt = V·x^n/(K^n+x^n) - kx, Hill switch."
+    verified_at: "candidate"
+  - phenomenon: "Quorum sensing density-dependent activation (群体感应)"
+    evidence: "Hill n bistable autoinducer; Vibrio/Pseudomonas data."
+    verified_at: "candidate"
+  - phenomenon: "Th1/Th2 immune polarization"
+    evidence: "Mutual T_bet ↔ GATA3 repression; bistable polarized state."
+    verified_at: "candidate"
+  - phenomenon: "X-chromosome random inactivation bistable lock (X染色体随机失活)"
+    evidence: "Tsix ↔ Xist mutual repression; one X chosen, inheritance via markov chain after commitment."
+    verified_at: "candidate"
+  - phenomenon: "Synthetic gene toggle switch (Gardner-Cantor-Collins 2000)"
+    evidence: "Canonical positive example; engineered E. coli with mutually repressive promoters demonstrating bistability."
+    verified_at: "candidate"
+  - phenomenon: "Cell cycle G1/S Rb positive-feedback switch (细胞周期G1/S)"
+    evidence: "Rb-E2F mutual feedback; sharp threshold for cycle commitment."
+    verified_at: "candidate"
+  - phenomenon: "Insulin signaling developmental timing gate (胰岛素信号通路与发育时序门控)"
+    evidence: "Threshold-gated developmental switch."
+    verified_at: "candidate"
+negative_examples:
+  - phenomenon: "Linear gene cascade (no positive feedback)"
+    reason: "Single-direction activation without autocatalytic loop; no bistability. Different class."
+  - phenomenon: "Stochastic gene expression noise (no positive feedback)"
+    reason: "Unimodal distribution with variance; bistability requires positive feedback structure, not just noise."
+  - phenomenon: "Continuous graded dose-response"
+    reason: "If response is monotone and gradual without bimodality, system is not in bistable regime."
+  - phenomenon: "Scheffer fold bifurcation"
+    reason: "Same bistability phenotype but driven by external slow parameter (eutrophication, climate), not autocatalytic gene feedback. Belongs to scheffer_fold_bifurcation."
+edge_cases:
+  - phenomenon: "MAPK signaling zero-order ultrasensitivity (Goldbeter-Koshland)"
+    debate: "Switch-like response via saturated enzymes, no explicit Hill. Mathematically distinct mechanism; class boundary."
+  - phenomenon: "Lambda phage lysis/lysogeny decision"
+    debate: "Bistable cI/Cro mutual repression; canonical example. Class membership accepted."
+references:
+  - "Gardner, Cantor, Collins 2000 Nature 403, 339 (synthetic toggle switch)"
+  - "Griffith 1968 J. Theor. Biol. 20, 202 (original Hill positive feedback bistability)"
+  - "Ferrell, Machleder 1998 Science 280, 895 (ultrasensitivity in MAPK)"
+  - "Tyson, Csikasz-Nagy, Novak 2002 BioEssays 24, 1095 (cell cycle as toggle)"
+  - "Yang, Wirtz 2007 (Caspase irreversibility)"

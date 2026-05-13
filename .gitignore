@@ -46,4 +46,5 @@ v4/validation/**/.env
 results/v2-discoveries-expanded.jsonl
 results/v2-discoveries-expanded-raw.jsonl
 v4/validation/soc-earthquake/catalog.jsonl
+v4/validation/soc-wildfire/raw_nifc.csv
 *.jsonl.bak

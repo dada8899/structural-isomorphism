@@ -1,0 +1,51 @@
+class_id: adverse_selection_unraveling_class
+status: emerging
+display_name: "Adverse selection & lemons-market unraveling"
+display_name_zh: "逆向选择与柠檬化退化"
+hub_phenomenon: "Information asymmetry drives positive-feedback quality (or diversity) collapse: high-quality participants exit → remaining pool quality drops → price drops → more high-quality exit → market dies"
+shared_equation: |
+  Akerlof 1970 conditional expectation: p* = E[q | p*]; equilibrium when expected quality matches price.
+  Unraveling dynamics: x_{t+1} = f(x_t), f monotone decreasing.
+  Diversity / quality dynamics: D(t+1) = D(t)·(1-α) + β·N(t),
+    where α = homogenization rate (recommendation algorithm reinforcement),
+    β = new heterogeneous-content creator entry rate.
+  Collapse condition: α > β → D → 0.
+key_invariants:
+  - "Akerlof conditional expectation equilibrium: p* = E[q | p*]"
+  - "Monotone unraveling: x_{t+1} = f(x_t), f' < 0"
+  - "Diversity dynamic: D(t+1) = D(t)·(1-α) + β·N(t)"
+  - "Quality collapse condition: α > β"
+  - "Self-selection bias drives positive feedback even without external shock"
+positive_examples:
+  - phenomenon: "Akerlof lemons market (used cars)"
+    evidence: "Original 1970 formulation. Buyers cannot distinguish quality → average price reflects average quality → high-quality sellers exit → average quality drops → cycle continues. Hub of class."
+    verified_at: "candidate"
+  - phenomenon: "Information cocoon / 信息茧房"
+    evidence: "Recommendation algorithm optimizes engagement → reduces diversity → heterogeneous creators get less attention → exit → less diversity. Same unraveling dynamic. Layer 3 explicit equation match."
+    verified_at: "candidate"
+  - phenomenon: "Spiral of silence (沉默螺旋机制)"
+    evidence: "Minority opinion holders silent → majority appears stronger → more minority silent. Noelle-Neumann 1974. Same monotone unraveling."
+    verified_at: "candidate"
+  - phenomenon: "Echo chamber effect in social media"
+    evidence: "Engagement-optimized recommendation reinforces homophily, drives out heterogeneous content. Same Akerlof structure."
+    verified_at: "candidate"
+negative_examples:
+  - phenomenon: "Earthquake aftershock decay"
+    reason: "No information asymmetry; pure stress-relaxation cascade. Belongs to soc_threshold_cascade."
+  - phenomenon: "Stock market crash"
+    reason: "Edge case: crashes can involve information asymmetry (lemon-like signaling about firm quality), but the main mechanism is liquidity spiral / margin cascade, not adverse selection unraveling. Belongs to soc_threshold_cascade."
+  - phenomenon: "Bank run"
+    reason: "Diamond-Dybvig is multiple-equilibrium coordination, not information-asymmetry-driven gradual unraveling. Belongs to multistable_self_fulfilling."
+  - phenomenon: "Preferential attachment / rich-get-richer"
+    reason: "BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce heavy tails but via different routes."
+edge_cases:
+  - phenomenon: "Insurance market adverse selection (Rothschild-Stiglitz 1976)"
+    debate: "Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear. The separating-equilibrium variant uses contract menus to break unraveling — still in this class, just with additional structure."
+  - phenomenon: "Academic field decline"
+    debate: "Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment."
+references:
+  - "Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)"
+  - "Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)"
+  - "Noelle-Neumann 1974 J. Communication 24, 43 (spiral of silence)"
+  - "Spence 1973 Q. J. Econ. 87, 355 (job market signaling — closely related)"
+  - "Pariser 2011 The Filter Bubble (information cocoon)"
