@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <title>Why bank runs, earthquakes, and neural avalanches are the same thing · Structural</title>
+  <meta name="description" content="A plain-English tour of structural isomorphism — why three very different systems share one statistical fingerprint, how we find them automatically, and what it lets us predict. No math, no jargon, ~10 minutes.">
+
+  <meta property="og:title" content="Why bank runs, earthquakes, and neural avalanches are the same thing">
+  <meta property="og:description" content="A 10-minute plain-English tour. No math. No jargon.">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260513">
+
+  <style>
+    .essay { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+    .essay__eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #71717A; letter-spacing: 0.4px;
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .essay__eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #2563EB;
+    }
+    .essay__title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 38px; line-height: 1.2; color: #18181B; margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+    .essay__subtitle {
+      font-family: "Noto Serif SC", serif;
+      font-size: 18px; line-height: 1.55; color: #52525B; margin-bottom: 28px;
+      font-weight: 400;
+    }
+    .essay__meta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: #A1A1AA; margin-bottom: 40px;
+      padding-bottom: 18px; border-bottom: 1px solid #E4E4E7;
+    }
+    .essay h2 {
+      font-family: "Noto Serif SC", serif;
+      font-size: 24px; color: #18181B; margin: 44px 0 16px;
+      line-height: 1.35;
+    }
+    .essay h3 {
+      font-size: 17px; color: #18181B; margin: 28px 0 10px;
+      font-weight: 600;
+    }
+    .essay p {
+      font-size: 16px; line-height: 1.78; color: #27272A;
+      margin-bottom: 18px;
+    }
+    .essay strong { color: #18181B; font-weight: 600; }
+    .essay em { font-style: italic; color: #18181B; }
+    .essay a { color: #2563EB; text-decoration: none; border-bottom: 1px solid rgba(37,99,235,0.3); }
+    .essay a:hover { border-bottom-color: #2563EB; }
+
+    .essay__figure {
+      margin: 28px 0; padding: 22px 24px;
+      background: #FAFAF9; border: 1px solid #E4E4E7;
+      border-radius: 12px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; line-height: 1.7; color: #3F3F46;
+      white-space: pre-wrap; overflow-x: auto;
+    }
+    .essay__figure-caption {
+      margin-top: 12px; font-family: "Inter", sans-serif;
+      font-size: 13px; color: #71717A; line-height: 1.6;
+    }
+
+    .essay__pullquote {
+      margin: 32px -4px;
+      padding: 18px 24px;
+      border-left: 3px solid #2563EB;
+      font-family: "Noto Serif SC", serif;
+      font-size: 18px; line-height: 1.6;
+      color: #18181B;
+    }
+
+    .essay__next {
+      margin-top: 56px; padding: 28px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #E4E4E7; border-radius: 14px;
+    }
+    .essay__next-label {
+      font-size: 12px; letter-spacing: 0.4px; text-transform: uppercase;
+      color: #71717A; margin-bottom: 10px;
+    }
+    .essay__next-grid {
+      display: grid; gap: 12px; grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      .essay__next-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .essay__next-card {
+      display: block; padding: 16px 18px;
+      background: #FFFFFF; border: 1px solid #E4E4E7;
+      border-radius: 10px; text-decoration: none; color: inherit;
+      transition: all 0.18s;
+    }
+    .essay__next-card:hover {
+      border-color: #18181B;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    }
+    .essay__next-card strong {
+      display: block; font-size: 14px; color: #18181B;
+      margin-bottom: 4px;
+    }
+    .essay__next-card span {
+      font-size: 13px; color: #71717A; line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .essay__title { font-size: 28px; }
+      .essay__subtitle { font-size: 16px; }
+    }
+  </style>
+
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-header__logo">
+        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"/>
+          <circle cx="18" cy="18" r="3"/>
+          <path d="M8.5 8.5l7 7"/>
+        </svg>
+        Structural<span class="beta-badge">beta</span>
+      </a>
+      <nav class="site-header__nav">
+        <a href="/start-here" class="site-header__nav-link">从这里开始</a>
+        <a href="/classes" class="site-header__nav-link">普适类</a>
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/papers" class="site-header__nav-link">论文</a>
+        <a href="/methods" class="site-header__nav-link">方法</a>
+        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="site-header__nav-link">Phase Detector</a>
+        <a href="/about" class="site-header__nav-link">关于</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="essay">
+
+    <div class="essay__eyebrow">
+      <span class="essay__eyebrow-dot"></span>
+      <span>Start here · ~10 min read · No math</span>
+    </div>
+
+    <h1 class="essay__title">Why bank runs, earthquakes, and neural avalanches are the same thing</h1>
+
+    <p class="essay__subtitle">
+      Three completely different systems collapse in eerily similar ways.
+      Once you see the shape, you can&rsquo;t un-see it &mdash; and you can start
+      predicting where it&rsquo;ll show up next.
+    </p>
+
+    <div class="essay__meta">≈ 1,650 words · 2026-05-13 · plain English · no equations</div>
+
+    <h2>1. A puzzle that took a hundred years to spot</h2>
+
+    <p>
+      In 1906, San Francisco shook. In 1929, Wall Street panicked. In 1955, a
+      neuroscientist named Donald Hebb noticed that the brains of awake cats
+      crackle with tiny bursts of activity, separated by long quiet stretches.
+      Three completely different domains, three completely different decades,
+      three completely different scientific communities.
+    </p>
+
+    <p>
+      Nothing connects them. Except that when researchers eventually got
+      enough data to plot the &ldquo;how big&rdquo; of each event &mdash; the magnitude of
+      an earthquake, the size of a market crash, the duration of a brain
+      burst &mdash; the curves all looked the same. Not similar. <em>The same.</em>
+      A long flat tail of small events, vanishingly few giant ones, and a
+      smooth fall-off that follows a precise mathematical shape called a
+      <strong>power law</strong>.
+    </p>
+
+    <p>
+      The technical name for this shape is dry. The implication is not. It
+      means the earth doesn&rsquo;t care whether it&rsquo;s shaking a fault line, a
+      bank&rsquo;s balance sheet, or a neuron. Below the surface of all three is
+      the same kind of <em>process</em>, the same kind of dynamics, the same
+      tendency to sit quietly and then release everything at once.
+    </p>
+
+    <h2>2. The pattern: living on the edge of a cliff</h2>
+
+    <p>
+      Imagine a pile of sand. Drop one grain at a time. For a while, nothing
+      happens &mdash; the pile gets a little taller. Then suddenly one extra
+      grain triggers an avalanche of a few hundred. The pile relaxes, and you
+      start dropping again. Most of the time you get nothing. Occasionally you
+      get a small slide. Once in a while, a wholesale collapse.
+    </p>
+
+    <p>
+      That sand pile isn&rsquo;t doing anything fancy. It&rsquo;s just stuck near a
+      threshold &mdash; each grain pushes a local slope toward a tipping point,
+      and when one local slope finally tips, it shoves its neighbors over too.
+      Sometimes the neighbors absorb the shove and nothing else happens.
+      Sometimes they pass it along, and so do their neighbors, and you get a
+      cascade.
+    </p>
+
+    <p>
+      That&rsquo;s the whole secret. <strong>A system made of many parts, each
+      slowly building up local pressure, each connected to its neighbors</strong> &mdash;
+      will sit calmly for long stretches, occasionally throwing off small
+      shocks, and rarely (but inevitably) collapse all at once. Earthquakes
+      work this way: the crust accumulates stress, locked faults pop and
+      transfer load. Banks work this way: leverage builds up between
+      counterparties until one failure forces another. Brains work this way:
+      neurons charge until a few fire, which makes their neighbors fire.
+    </p>
+
+    <div class="essay__pullquote">
+      The earth doesn&rsquo;t care whether it&rsquo;s shaking a fault line, a
+      bank&rsquo;s balance sheet, or a neuron. The same process produces the
+      same statistics.
+    </div>
+
+    <p>
+      Physicists named this family of systems <strong>self-organized
+      criticality</strong>. The phrase is unwieldy; the idea is simple: many systems,
+      left alone, drift naturally to the edge of a phase transition and live
+      there. They don&rsquo;t need to be tuned. They <em>find</em> the edge by
+      themselves. And once they&rsquo;re there, the rules of how they fail are
+      the same regardless of what they&rsquo;re made of.
+    </p>
+
+    <h2>3. From &ldquo;same statistics&rdquo; to &ldquo;same machinery&rdquo;</h2>
+
+    <p>
+      A skeptic might say: <em>So what? Lots of things look similar in
+      cherry-picked summary statistics. That doesn&rsquo;t mean they share a
+      mechanism.</em> Fair. So the way the physics community has dealt with
+      this, slowly, since the 1970s, is to insist on more than one shared
+      number. They look for a whole family of predictions that all have to
+      line up.
+    </p>
+
+    <p>
+      For our sand-pile family, the predictions are:
+    </p>
+
+    <p>
+      <strong>(a)</strong> The size of avalanches follows a power law with an
+      exponent in a narrow band.<br>
+      <strong>(b)</strong> The time between avalanches follows another
+      predictable shape (the aftershock decay rate that seismologists call
+      Omori&rsquo;s law).<br>
+      <strong>(c)</strong> If you re-scale the system &mdash; squint at the
+      data from far away &mdash; everything collapses onto a single universal
+      curve.
+    </p>
+
+    <p>
+      If a new system passes <em>all</em> of these checks, not just the first
+      one, that&rsquo;s called sharing a <strong>universality class</strong>. The
+      term sounds physics-y. The practical meaning: same fingerprint, same
+      machinery. You can take tools developed in one field &mdash; say,
+      seismology&rsquo;s extensive theory of fault dynamics &mdash; and apply them
+      to a different field where the data looks identical.
+    </p>
+
+    <h2>4. The pipeline: how we find these matches automatically</h2>
+
+    <p>
+      Researchers have been spotting these connections one at a time, slowly,
+      since the 1980s. Each match takes a graduate student, a year, a paper.
+      We wanted to know: can a computer do this systematically? Could you
+      take a database of thousands of phenomena from dozens of disciplines
+      and have the software propose &mdash; and then test &mdash; matches you
+      didn&rsquo;t know existed?
+    </p>
+
+    <p>
+      The pipeline we built does four things, end to end:
+    </p>
+
+    <div class="essay__figure">
+4,443 phenomena from 87 disciplines
+            │
+            ▼
+   [1] Embed each phenomenon as a structural fingerprint.
+            │
+            ▼
+   [2] Cluster fingerprints to surface candidate families.
+            │
+            ▼
+   [3] Have multiple AI critics independently vote KEEP or REJECT
+       on each candidate. Majority rules.
+            │
+            ▼
+   [4] For survivors, run real-world data through the same code,
+       no parameter tuning. Check if it fits the predictions.
+            │
+            ▼
+        13 verified systems · 5 confirmed universality classes
+    </div>
+
+    <p class="essay__figure-caption">
+      Layer 1 finds structural fingerprints. Layer 2 groups them. Layer 3
+      sanity-checks the groups with several independent reviewers. Layer 5
+      tests each survivor on real data with no tuning &mdash; one piece of
+      code, many domains. The whole thing is open source.
+    </p>
+
+    <p>
+      The key discipline is layer 3: <strong>let the critics try to break
+      things</strong>. Most failed matches in this field are not bold-faced
+      errors &mdash; they&rsquo;re plausible-looking groupings where someone
+      confused a mathematical framework with an actual mechanism. (Confusing
+      a hammer with a building, basically.) Running three independent
+      reviewers and demanding majority agreement filters those out cheaply.
+    </p>
+
+    <h2>5. What we&rsquo;ve found so far</h2>
+
+    <p>
+      Running the pipeline against open data sources, we&rsquo;ve so far
+      verified 13 independent systems falling into five universality classes.
+      The verified list includes earthquakes (USGS catalogs), stock-market
+      jumps (35 years of S&amp;P 500), DeFi cascades (three protocols),
+      neural avalanches (mouse cortex), bank failures (FDIC), wildfires
+      (NIFC), solar flares (GOES), traffic phase transitions (NGSIM US-101),
+      and lake regime shifts (Fox River). Same 339 lines of Python. No
+      parameter tuning between domains.
+    </p>
+
+    <p>
+      We also ran four <em>synthetic null</em> datasets &mdash; data
+      engineered to <em>not</em> be self-organized critical &mdash; through the
+      same code. The pipeline correctly rejected all four. That&rsquo;s the
+      check that turns &ldquo;interesting&rdquo; into &ldquo;trustworthy&rdquo;: a tool that
+      confirms everything you point it at is useless.
+    </p>
+
+    <h2>6. Why this matters outside academic curiosity</h2>
+
+    <p>
+      Three concrete reasons.
+    </p>
+
+    <p>
+      <strong>For investors:</strong> if a portfolio company has the
+      statistical signature of a self-organized critical system, the
+      reasonable expectation is rare-but-violent loss events &mdash; not a
+      smooth bell curve. Risk models that assume bell curves consistently
+      under-price tail risk in these systems. You can also tell, roughly,
+      <em>how close to the edge</em> a particular system is sitting. We do this
+      automatically for 100 public companies on the
+      <a href="https://phase.bytedance.city/" target="_blank" rel="noopener">Phase Detector</a> site.
+    </p>
+
+    <p>
+      <strong>For public policy:</strong> grid operators, regulators, public
+      health officials all design interventions on assumptions about how
+      systems behave between shocks. If the underlying process is critical
+      cascading rather than independent random failures, the cheapest
+      intervention isn&rsquo;t &ldquo;reduce average load&rdquo; &mdash; it&rsquo;s &ldquo;reduce
+      the tightness of coupling between parts.&rdquo; That insight comes for free
+      once you recognize the family.
+    </p>
+
+    <p>
+      <strong>For science itself:</strong> the entire history of physics has
+      been finding two phenomena that look unrelated and showing that they
+      share an underlying law. Light and electricity. Magnets and crystals.
+      Heat and information. Every one of those mergers compressed a giant
+      table of facts into a single equation. There&rsquo;s no reason this should
+      stop at physics. Biology, economics, ecology, social dynamics &mdash; the
+      data is now big enough, and the tools good enough, to look
+      systematically.
+    </p>
+
+    <h2>7. What to do next</h2>
+
+    <p>
+      If this was your first exposure to the idea, the best next step is to
+      see one of the verified matches in concrete detail. The
+      <a href="/classes">pattern families page</a> shows each verified family
+      with its real-world examples and the predictions it makes. The
+      <a href="/discoveries">discoveries page</a> shows ~200 pair-level matches
+      between phenomena (some verified, some candidate-only). And the
+      <a href="/papers">papers page</a> links the open-access preprint with all
+      the data and code.
+    </p>
+
+    <p>
+      If you came here because you have a specific question &mdash; &ldquo;why does
+      X happen, has anyone solved something like it?&rdquo; &mdash; the
+      <a href="/">search bar on the home page</a> takes your question in plain
+      language and proposes structurally similar phenomena from completely
+      different fields. About a third of the time the match is genuinely
+      useful. The other two-thirds, you at least know the shape of what
+      you&rsquo;re dealing with.
+    </p>
+
+    <p>
+      Either way: welcome. The fun part of this project isn&rsquo;t any one
+      result. It&rsquo;s the realization that the patterns are everywhere once
+      you know what to look for.
+    </p>
+
+    <div class="essay__next">
+      <div class="essay__next-label">What now?</div>
+      <div class="essay__next-grid">
+        <a class="essay__next-card" href="/classes">
+          <strong>Browse pattern families →</strong>
+          <span>13 verified systems grouped into 5 families with examples and predictions.</span>
+        </a>
+        <a class="essay__next-card" href="https://phase.bytedance.city/" target="_blank" rel="noopener">
+          <strong>See it applied to companies →</strong>
+          <span>100 public companies, phase-tagged. 30-second reads.</span>
+        </a>
+        <a class="essay__next-card" href="/paper/unified-pipeline-v0.2-2026-05-13">
+          <strong>Read the full preprint →</strong>
+          <span>One pipeline, 13 systems, open data. ~12k words.</span>
+        </a>
+        <a class="essay__next-card" href="/">
+          <strong>Search your own question →</strong>
+          <span>Describe a phenomenon in plain language. Get cross-domain matches.</span>
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__copyright">© 2026 Structural · Cross-domain pattern engine</div>
+      <div class="site-footer__links">
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="/start-here">Start here</a>
+        <a class="site-footer__link" href="/papers">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/js/i18n.js?v=20260513"></script>
+  <script src="/assets/js/product-switcher.js?v=20260513"></script>
+</body>
+</html>
