@@ -1,0 +1,59 @@
+{
+  "model": "deepseek-v4-pro",
+  "calls": [
+    {
+      "ticker": "AAPL",
+      "ok": true,
+      "attempts": 1,
+      "elapsed_s": 40.62,
+      "prompt_tokens": 744,
+      "completion_tokens": 1346,
+      "total_tokens": 2090
+    },
+    {
+      "ticker": "BBY",
+      "ok": true,
+      "attempts": 1,
+      "elapsed_s": 38.25,
+      "prompt_tokens": 752,
+      "completion_tokens": 1246,
+      "total_tokens": 1998
+    },
+    {
+      "ticker": "JPM",
+      "ok": true,
+      "attempts": 1,
+      "elapsed_s": 48.19,
+      "prompt_tokens": 751,
+      "completion_tokens": 1588,
+      "total_tokens": 2339
+    },
+    {
+      "ticker": "AIG",
+      "ok": true,
+      "attempts": 1,
+      "elapsed_s": 71.37,
+      "prompt_tokens": 745,
+      "completion_tokens": 2371,
+      "total_tokens": 3116
+    },
+    {
+      "ticker": "KO",
+      "ok": true,
+      "attempts": 1,
+      "elapsed_s": 34.15,
+      "prompt_tokens": 745,
+      "completion_tokens": 1116,
+      "total_tokens": 1861
+    }
+  ],
+  "n_ok": 5,
+  "n_fail": 0,
+  "total_prompt_tokens": 3737,
+  "total_completion_tokens": 7667,
+  "total_elapsed_s": 232.58,
+  "wall_time_s": 232.6,
+  "avg_prompt_tokens": 747.4,
+  "avg_completion_tokens": 1533.4,
+  "avg_elapsed_s": 46.516000000000005
+}
