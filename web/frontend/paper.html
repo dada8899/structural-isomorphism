@@ -96,10 +96,12 @@
     function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
     (function () {
       const urlParams = new URLSearchParams(window.location.search);
-      const pathMatch = window.location.pathname.match(/^\/paper\/([a-zA-Z0-9\-_]+)/);
+      const pathMatch = window.location.pathname.match(/^\/paper\/([a-zA-Z0-9\-_.]+)/);
       let docSlug = (pathMatch && pathMatch[1]) || urlParams.get("doc") || "soc-earthquake-2026-04-15";
-      // whitelist against directory traversal
-      docSlug = docSlug.replace(/[^a-zA-Z0-9\-_]/g, "");
+      // whitelist against directory traversal (allow dots for version slugs e.g. v0.2)
+      docSlug = docSlug.replace(/[^a-zA-Z0-9\-_.]/g, "");
+      // Defense in depth: forbid leading dot / .. / consecutive dots
+      if (docSlug.startsWith(".") || docSlug.indexOf("..") !== -1) docSlug = "soc-earthquake-2026-04-15";
       if (!docSlug) docSlug = "soc-earthquake-2026-04-15";
       const mdUrl = `/assets/data/papers/${docSlug}.md`;
       const target = document.getElementById("paper-article");
