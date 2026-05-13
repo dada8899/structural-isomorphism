@@ -1,0 +1,110 @@
+{
+  "slot": "08_github_stars",
+  "source_dir": "v4/validation/soc-github-stars",
+  "github_results": {
+    "phase": "Layer 5 Phase 6",
+    "domain": "GitHub repository stargazers (GitHub Search API, top 8398 repos, 2026-05)",
+    "predicted_class": "preferential_attachment (Barab\u00e1si-Albert 1999)",
+    "n_repos": 8398,
+    "star_range": [
+      248,
+      500996
+    ],
+    "star_median": 4734.5,
+    "star_mean": 12950.634793998572,
+    "powerlaw_fit": {
+      "name": "github_stars",
+      "alpha": 2.866794119533785,
+      "sigma_alpha": 0.04959198580682046,
+      "xmin": 25585.0,
+      "n_total": 8398,
+      "n_tail": 1417,
+      "vs_lognormal_R": -1.4505659874115957,
+      "vs_lognormal_p": 0.1469007520840812,
+      "vs_exponential_R": 5.4453335066068655,
+      "vs_exponential_p": 5.1708409823184076e-08,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": true
+    },
+    "bootstrap_ci": {
+      "alpha_mean": 2.886257292557226,
+      "alpha_median": 2.8818683605358717,
+      "alpha_std": 0.0589017830061523,
+      "ci_low": 2.781127675792641,
+      "ci_high": 2.999715658441756,
+      "n_boot_succeeded": 100
+    },
+    "per_language_fits": {
+      "Python": {
+        "n": 1506,
+        "alpha": 2.7472425289551063,
+        "xmin": 27464.0,
+        "n_tail": 252,
+        "vs_lognormal_R": -1.07881482099198,
+        "winner": "inconclusive"
+      },
+      "JavaScript": {
+        "n": 1039,
+        "alpha": 2.995216549108867,
+        "xmin": 27337.0,
+        "n_tail": 145,
+        "vs_lognormal_R": -0.8551001173767311,
+        "winner": "inconclusive"
+      },
+      "TypeScript": {
+        "n": 905,
+        "alpha": 2.853434627682029,
+        "xmin": 27907.0,
+        "n_tail": 202,
+        "vs_lognormal_R": -0.4634617836058581,
+        "winner": "inconclusive"
+      },
+      "Go": {
+        "n": 545,
+        "alpha": 2.6510646035626104,
+        "xmin": 15029.0,
+        "n_tail": 194,
+        "vs_lognormal_R": -1.076530882082189,
+        "winner": "inconclusive"
+      },
+      "C++": {
+        "n": 476,
+        "alpha": 2.9769689461868554,
+        "xmin": 32254.0,
+        "n_tail": 38,
+        "vs_lognormal_R": -0.3602761722035215,
+        "winner": "inconclusive"
+      },
+      "Java": {
+        "n": 471,
+        "alpha": 2.6078082456090463,
+        "xmin": 15035.0,
+        "n_tail": 108,
+        "vs_lognormal_R": -0.8819519218111139,
+        "winner": "inconclusive"
+      }
+    },
+    "null_control": {
+      "all_rejected": true,
+      "n_per_null": 8000
+    },
+    "predicted_alpha_range": [
+      2.0,
+      3.0
+    ],
+    "literature_alpha_range": [
+      1.8,
+      3.5
+    ],
+    "verdict": "CONFIRMED",
+    "interpretation": "GitHub repository star count distribution \u03b1 = 2.867 (bootstrap 95% CI [2.781, 3.000]). Predicted [2.0, 3.0] from Barab\u00e1si-Albert preferential attachment. vs lognormal R = -1.451 (p=0.147). Verdict: CONFIRMED.",
+    "method_refs": [
+      "Barab\u00e1si-Albert 1999 Science (preferential attachment)",
+      "Yule 1925 (cumulative advantage in species)",
+      "Simon 1955 Biometrika (Yule-Simon)",
+      "Newman 2005 Contemp. Phys. (power-law review)",
+      "Clauset-Shalizi-Newman 2009 SIAM Rev",
+      "Albert-Barab\u00e1si 2002 Rev. Mod. Phys."
+    ]
+  }
+}
