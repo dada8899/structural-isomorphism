@@ -10,20 +10,23 @@ import { fetchScreener, fetchStats } from "@/lib/api";
 import {
   CPS_EXPLAIN,
   CPS_ICON,
-  CPS_LABEL,
+  CPS_LABEL_ZH,
   CPS_OPTIONS,
   DYNAMICS_EXPLAIN,
   DYNAMICS_FAMILY_OPTIONS,
-  DYNAMICS_LABEL,
+  DYNAMICS_LABEL_ZH,
 } from "@/lib/labels";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 
-// W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (STRUCTURAL SIGNALS surface).
+// W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
+// PR-1 copy sweep (2026-05-14): hero rewritten outcome-first, jargon translated,
+// internal codenames (普适类 / 临界点 / STRUCTURAL SIGNALS) stripped from user-visible copy.
 // New flow:
-//   1. Hero: tagline + 1 primary CTA (anchor to filters)
-//   2. STRUCTURAL SIGNALS: highlight 6 companies near critical point
-//   3. 6 family overview cards
-//   4. Stats bar + filter + grid (under the fold)
+//   1. Hero: outcome-first headline + 1 primary CTA
+//   2. State legend (●▲◆✕): explain icons BEFORE user sees colored badges
+//   3. Signals: highlight 6 companies near state flip
+//   4. 5 shared-pattern cards
+//   5. Stats bar + filter + grid (under the fold)
 
 export default function ScreenerHomePage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -86,7 +89,7 @@ export default function ScreenerHomePage() {
     () =>
       DYNAMICS_FAMILY_OPTIONS.map((f) => ({
         family: f,
-        label: DYNAMICS_LABEL[f],
+        label: DYNAMICS_LABEL_ZH[f],
         explain: DYNAMICS_EXPLAIN[f],
       })),
     [],
@@ -99,23 +102,20 @@ export default function ScreenerHomePage() {
 
   return (
     <div className="space-y-10">
-      {/* Hero — audience-first rewrite (W6-D, replaces internal-jargon hero).
-          Keeps W6-B design-system container styling. */}
+      {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14). */}
       <section className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8 sm:py-10">
         <h1
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
         >
-          哪些公司正在接近临界点？
+          谁在崩盘边缘？谁在悄悄起飞？
         </h1>
         <p className="mb-3 max-w-2xl text-base leading-relaxed text-zinc-600 md:text-lg">
-          100 家全球上市公司的相态分析 — 用解释地震、银行挤兑、电网级联的同一套物理。
-          每家公司一个 30 秒结论：它如何运动、它现在所处的状态、什么会让它翻转。
+          100 家全球公司的状态评分，30 秒看懂。
+          每家公司给你一句话：它现在在哪个阶段、下一步可能往哪走、什么会让它翻车。
         </p>
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">
-          Which companies are approaching critical points? A phase-state analysis
-          of 100 global public companies, on the same physics that explains
-          earthquakes, bank runs, and power-grid cascades.
+          用同一套数学，解释过地震、银行挤兑、电网瘫痪——现在套到上市公司上。
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -123,105 +123,32 @@ export default function ScreenerHomePage() {
             onClick={scrollToFilters}
             className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
-            开始筛选 ↓ <span className="sr-only">Start filtering</span>
+            开始查看 →
           </button>
           <Link
             href="/methodology"
             className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
           >
-            如何读懂这些信号 →
+            怎么看这张表 →
           </Link>
         </div>
         <p className="mt-4 text-xs text-zinc-500">
-          研究预览版 · 不构成投资建议 · Research preview · not investment advice. Methodology paper available.
+          研究预览 · 不是投资建议 · 数据由 AI 抽取，请独立核实
         </p>
       </section>
 
-      {/* STRUCTURAL SIGNALS — surface near-critical companies (W5-C #3, W6-B) */}
-      {signals.length > 0 && (
-        <section
-          aria-labelledby="signals-heading"
-          className="rounded-xl border border-amber-200 bg-amber-50/50 p-5"
-        >
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2
-              id="signals-heading"
-              className="text-sm font-semibold uppercase tracking-wider text-amber-900"
-            >
-              <span aria-hidden="true">▲ </span>
-              STRUCTURAL SIGNALS
-            </h2>
-            <span className="text-xs text-zinc-500">
-              {signals.length} 家公司接近临界点
-            </span>
-          </div>
-          <p className="mb-4 text-sm text-zinc-700">
-            根据 100 家公司的结构抽取，以下公司当前处于
-            <strong>临近临界</strong>状态——波动率上升、放大反馈开始显现，但尚未跳到新稳态。
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {signals.map((c) => (
-              <Link
-                key={c.ticker}
-                href={`/company/${encodeURIComponent(c.ticker)}`}
-                className="rounded-lg border border-amber-200 bg-white p-3 transition hover:border-amber-400 hover:shadow-sm"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-semibold tracking-tight text-zinc-900">
-                    {c.ticker}
-                  </span>
-                  <span className="text-xs text-zinc-500">{c.sector}</span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-zinc-600">
-                  {c.tldr}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 6 Family overview */}
-      <section aria-labelledby="families-heading">
-        <h2
-          id="families-heading"
-          className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500"
-        >
-          动力学族 · 5 个普适类
-        </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {familyOverview.map((f) => (
-            <div
-              key={f.family}
-              className="rounded-lg border border-zinc-200 bg-white p-4"
-            >
-              <div className="mb-1 text-sm font-semibold text-zinc-900">
-                {f.label}
-              </div>
-              <p className="text-xs leading-relaxed text-zinc-600">
-                {f.explain}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3">
-          <Link
-            href="/methodology"
-            className="text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:underline"
-          >
-            查看完整方法论 →
-          </Link>
-        </div>
-      </section>
-
-      {/* CPS legend — W6-B: surface icons + colors + meanings here */}
+      {/* State legend — PR-1 reorder: appears BEFORE signals so user knows
+          what ●▲◆✕ + colors mean before seeing colored badges. */}
       <section aria-labelledby="cps-legend">
         <h2
           id="cps-legend"
-          className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500"
+          className="mb-3 text-base font-semibold tracking-tight text-zinc-900"
         >
-          临界点状态图例
+          四种状态，先看图例
         </h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          下面所有公司卡片的彩色徽章，都用这四个符号 + 颜色表示当前所处状态。
+        </p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {CPS_OPTIONS.map((s) => (
             <div
@@ -246,7 +173,7 @@ export default function ScreenerHomePage() {
               </span>
               <div>
                 <div className="text-sm font-medium text-zinc-900">
-                  {CPS_LABEL[s]}
+                  {CPS_LABEL_ZH[s]}
                 </div>
                 <p className="mt-0.5 text-xs leading-snug text-zinc-600">
                   {CPS_EXPLAIN[s]}
@@ -257,6 +184,83 @@ export default function ScreenerHomePage() {
         </div>
       </section>
 
+      {/* Signals: companies near a state flip (PR-1 copy: Chinese-first heading) */}
+      {signals.length > 0 && (
+        <section
+          aria-labelledby="signals-heading"
+          className="rounded-xl border border-amber-200 bg-amber-50/50 p-5"
+        >
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2
+              id="signals-heading"
+              className="text-base font-semibold tracking-tight text-amber-900"
+            >
+              <span aria-hidden="true">▲ </span>
+              当前发现 · {signals.length} 家公司接近状态翻转
+            </h2>
+          </div>
+          <p className="mb-4 text-sm text-zinc-700">
+            下面这些公司正处在
+            <strong>临界附近</strong>：波动开始放大、反馈开始自我加强，但还没真正翻面。
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {signals.map((c) => (
+              <Link
+                key={c.ticker}
+                href={`/company/${encodeURIComponent(c.ticker)}`}
+                className="rounded-lg border border-amber-200 bg-white p-3 transition hover:border-amber-400 hover:shadow-sm"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-semibold tracking-tight text-zinc-900">
+                    {c.ticker}
+                  </span>
+                  <span className="text-xs text-zinc-500">{c.sector}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-zinc-600">
+                  {c.tldr}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 5 shared-pattern cards (was: 动力学族 · 5 个普适类) */}
+      <section aria-labelledby="families-heading">
+        <h2
+          id="families-heading"
+          className="mb-3 text-base font-semibold tracking-tight text-zinc-900"
+        >
+          5 类共享模式 · 公司怎么"动"
+        </h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          所有 100 家公司被归入下面其中一类。点开"看完整方法说明"看每一类的解释。
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {familyOverview.map((f) => (
+            <div
+              key={f.family}
+              className="rounded-lg border border-zinc-200 bg-white p-4"
+            >
+              <div className="mb-1 text-sm font-semibold text-zinc-900">
+                {f.label}
+              </div>
+              <p className="text-xs leading-relaxed text-zinc-600">
+                {f.explain}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3">
+          <Link
+            href="/methodology"
+            className="text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:underline"
+          >
+            看完整方法说明 →
+          </Link>
+        </div>
+      </section>
+
       {/* Screener — under the fold per W5-E #4 */}
       <section id="screener" aria-labelledby="screener-heading">
         <div className="mb-3 flex items-baseline justify-between">
@@ -264,10 +268,10 @@ export default function ScreenerHomePage() {
             id="screener-heading"
             className="text-lg font-semibold tracking-tight text-zinc-900"
           >
-            公司筛选器
+            按条件挑公司
           </h2>
           <p className="text-xs text-zinc-500">
-            选择条件后自动应用，每张卡片含 30 秒 TL;DR
+            选完条件自动刷新，每张卡片附 30 秒一句话总结
           </p>
         </div>
 
@@ -344,7 +348,7 @@ export default function ScreenerHomePage() {
             id="waitlist-cta-heading"
             className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
           >
-            Get weekly structural signals
+            每周一封《结构信号》
           </p>
           <WaitlistForm
             placement="footer"

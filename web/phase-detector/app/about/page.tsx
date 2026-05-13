@@ -6,7 +6,7 @@ import { PageOpenTracker } from "@/components/PageOpenTracker";
 export const metadata: Metadata = {
   title: "关于 — Phase Detector",
   description:
-    "Phase Detector 是 Structural Isomorphism 的子产品。用 LLM 抽取 100 家公司的结构动力学族 + 临界点状态。研究预览，非投资建议。",
+    "Phase Detector 用同一套数学，从地震、银行挤兑等场景延伸到上市公司——每家给一个状态评分。研究预览，不是投资建议。",
 };
 
 export default function AboutPage() {
@@ -33,28 +33,25 @@ export default function AboutPage() {
         >
           {" "}Structural Isomorphism{" "}
         </a>
-        研究项目的子产品（代号 D1）。我们把同一套
-        <strong className="text-zinc-900">结构动力学分类</strong>
-        应用到金融/商业领域：哪些公司处于
-        <strong className="text-zinc-900">临界点附近</strong>？哪些
-        已经
-        <strong className="text-zinc-900">完成相变</strong>？
+        研究项目的子产品。我们把同一套用来解释
+        <strong className="text-zinc-900">地震、银行挤兑、电网瘫痪</strong>
+        的数学，套到上市公司上：谁正
+        <strong className="text-zinc-900">接近翻车点</strong>？谁已经
+        <strong className="text-zinc-900">翻完面回不去了</strong>？
       </p>
 
       <section className="mb-8 space-y-3">
-        <h2 className="text-xl font-semibold text-zinc-900">数据来源</h2>
+        <h2 className="text-xl font-semibold text-zinc-900">数据怎么来</h2>
         <p className="text-sm leading-relaxed text-zinc-600">
           当前覆盖 100 家上市公司（NYSE + NASDAQ 大盘 +
-          部分中小盘代表）。每家公司的 StructTuple 由 LLM 从其
-          10-K 报告 / 业绩说明 / 行业研报中
-          <strong>抽取</strong>，再由独立的 reviewer agent
+          部分中小盘代表）。我们读取每家公司的年报、业绩说明、行业研报，
+          用主流大模型抽取关键结构，再由几个独立的审稿 AI
           交叉检查后入库。
         </p>
         <ul className="ml-5 list-disc space-y-1 text-sm text-zinc-600">
-          <li>抽取模型：DeepSeek v4-pro（1M 上下文，2026-05-06 切换）</li>
-          <li>Schema：StructTuple v0.2（参考 C1 unified preprint）</li>
-          <li>评审：B3 ensemble taxonomy reviewer × 3 投票</li>
-          <li>数据更新：每周一次（roadmap 中将扩到每日）</li>
+          <li>抽取：主流大模型，长上下文读取全文</li>
+          <li>审稿：多个独立 AI 模型投票，多数同意才入库</li>
+          <li>更新：每周一次（未来扩到每日）</li>
         </ul>
       </section>
 
@@ -82,16 +79,16 @@ export default function AboutPage() {
         </h2>
         <p className="text-sm leading-relaxed text-zinc-600">
           Phase Detector 基于 Structural Isomorphism 项目的核心假设：
-          <em>看似无关的现象，在数学结构层面往往同构</em>。该假设已在
-          13 个独立系统（地震、神经雪崩、DeFi 清算、湖泊富营养化、
-          高速公路相变等）的
+          <em>看似无关的现象，在数学结构层面往往是同一件事</em>。
+          我们在 13 个独立领域跑了同一套代码（地震、神经放电、DeFi 清算、
+          湖泊富营养化、高速公路堵车等），用同一套
           <Link
-            href="https://structural.bytedance.city/paper/unified-pipeline-v0.2-2026-05-13"
+            href="https://structural.bytedance.city"
             className="text-blue-600 hover:underline"
           >
-            {" "}339 行统一 pipeline{" "}
+            {" "}研究报告{" "}
           </Link>
-          上验证（v0.2 预印本，2026-05-13）。
+          一并发布。
         </p>
       </section>
 
@@ -138,7 +135,7 @@ export default function AboutPage() {
             方法论详解 →
           </Link>
           <Link href="/" className="text-blue-600 hover:underline">
-            打开筛选器 →
+            打开公司表 →
           </Link>
           <a
             href="https://structural.bytedance.city"
