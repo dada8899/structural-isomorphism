@@ -1,0 +1,11 @@
+***REMOVED*** Executed notebooks (re-generate locally, don't commit)
+*_executed.ipynb
+
+***REMOVED*** Jupyter checkpoints
+.ipynb_checkpoints/
+
+***REMOVED*** Tutorial scratch outputs
+*.png
+*.csv
+*.parquet
+*.jsonl
