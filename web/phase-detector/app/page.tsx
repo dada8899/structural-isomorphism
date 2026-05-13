@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
 import { ScreenerFilter } from "@/components/ScreenerFilter";
 import { StatsBar } from "@/components/StatsBar";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { fetchScreener, fetchStats } from "@/lib/api";
 import {
   CPS_EXPLAIN,
@@ -330,6 +331,26 @@ export default function ScreenerHomePage() {
               </>
             )}
           </section>
+        </div>
+      </section>
+
+      {/* W8-D: waitlist CTA, above footer */}
+      <section
+        aria-labelledby="waitlist-cta-heading"
+        className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8"
+      >
+        <div className="mx-auto max-w-2xl">
+          <p
+            id="waitlist-cta-heading"
+            className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          >
+            Get weekly structural signals
+          </p>
+          <WaitlistForm
+            placement="footer"
+            source="phase_detector"
+            className="border-0 bg-transparent p-0 shadow-none"
+          />
         </div>
       </section>
     </div>

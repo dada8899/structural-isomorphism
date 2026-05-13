@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ICON,
   CPS_LABEL_ZH,
@@ -47,6 +48,8 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
   const isFirstRun = useRef(true);
 
   // W6-B: debounced reactive apply.
+  // W8-D: also fire Plausible custom event when a filter change actually
+  // produces a new query (not on initial mount).
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
@@ -59,6 +62,12 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
         sector: sector || undefined,
         min_confidence: minConf > 0 ? minConf : undefined,
         limit: 50,
+      });
+      trackEvent(Events.ScreenerFilterApplied, {
+        family: df || "any",
+        state: cps || "any",
+        sector: sector || "any",
+        min_confidence: minConf,
       });
     }, DEBOUNCE_MS);
     return () => clearTimeout(handle);
