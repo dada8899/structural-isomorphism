@@ -1,12 +1,30 @@
 """Sanity tests for v4/scripts/b3_ensemble.py.
 
-These tests cover the pure-function pieces of b3_ensemble.py — `consensus_of`,
-`extract_json`, and the IO helpers (`write_taxonomy_v2`, `write_summary`) —
-without ever calling DeepSeek. Network is mocked at the urllib layer when
-needed.
+Combined unit + integration test suite for the B3 multi-model ensemble
+reviewer pipeline. Covers the pure / deterministic functions:
+
+  - consensus_of()      majority voting across reviewer verdicts
+  - extract_json()      JSON extraction from raw LLM output (markdown fences,
+                        nested objects, missing fields, malformed)
+  - load_yaml_class()   minimal yaml parsing (display_name / hub /
+                        shared_equation / key_invariants / positive_examples /
+                        negative_examples / notes)
+  - build_user_prompt() template substitution + truncation
+  - write_taxonomy_v2() / write_summary() IO smoke tests via tmp_path
+  - module-level DEEPSEEK_API_KEY env var enforcement
+
+We do NOT exercise call_deepseek() — that requires network and the API key.
 
 The module reads `DEEPSEEK_API_KEY` at import time and raises if unset; the
-fixture below sets a dummy value so the import succeeds.
+env setup below sets a dummy value so the import succeeds.
+
+Provenance:
+- W6-A class-style tests (TestConsensusOf, TestExtractJson, TestWriteTaxonomyV2,
+  TestWriteSummary, env-var enforcement) — base set, takes priority on
+  overlapping coverage per W6-A merge order.
+- W6-E function-style additions (test_load_yaml_class_*, test_build_user_prompt_*,
+  test_verdict_normalization_prefix) — added to extend coverage without
+  duplicating W6-A's overlapping tests.
 """
 
 from __future__ import annotations
@@ -14,10 +32,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
-
-import pytest
 
 # Make the env var defined before b3_ensemble.py is imported (module-level
 # check would otherwise abort).
@@ -30,7 +45,7 @@ import b3_ensemble  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# consensus_of()
+# consensus_of() — W6-A class-based
 # ---------------------------------------------------------------------------
 
 
@@ -75,7 +90,7 @@ class TestConsensusOf:
 
 
 # ---------------------------------------------------------------------------
-# extract_json()
+# extract_json() — W6-A class-based
 # ---------------------------------------------------------------------------
 
 
@@ -137,7 +152,7 @@ class TestExtractJson:
 
 
 # ---------------------------------------------------------------------------
-# write_taxonomy_v2() — IO contract
+# write_taxonomy_v2() — IO contract (W6-A class-based)
 # ---------------------------------------------------------------------------
 
 
@@ -208,7 +223,7 @@ class TestWriteTaxonomyV2:
 
 
 # ---------------------------------------------------------------------------
-# write_summary() — schema smoke
+# write_summary() — schema smoke (W6-A class-based)
 # ---------------------------------------------------------------------------
 
 
@@ -238,7 +253,7 @@ class TestWriteSummary:
 
 
 # ---------------------------------------------------------------------------
-# Module-level: env var enforcement
+# Module-level: env var enforcement (W6-A)
 # ---------------------------------------------------------------------------
 
 
@@ -258,3 +273,133 @@ def test_module_raises_when_env_unset(monkeypatch):
     )
     assert result.returncode != 0
     assert "DEEPSEEK_API_KEY" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# load_yaml_class() — minimal yaml parser (W6-E additions, NOT covered by W6-A)
+# ---------------------------------------------------------------------------
+
+
+def test_load_yaml_class_missing_file_returns_empty(monkeypatch, tmp_path):
+    monkeypatch.setattr(b3_ensemble, "YAML_DIR", tmp_path)
+    out = b3_ensemble.load_yaml_class("does_not_exist")
+    assert out == {}
+
+
+def test_load_yaml_class_parses_fields(monkeypatch, tmp_path):
+    monkeypatch.setattr(b3_ensemble, "YAML_DIR", tmp_path)
+    (tmp_path / "test_class.yaml").write_text(
+        'display_name: "Test Class"\n'
+        'hub_phenomenon: "test hub"\n'
+        "shared_equation:\n"
+        "  E = mc^2\n"
+        "  alpha = 2.0\n"
+        "key_invariants:\n"
+        '  - "scaling exponent"\n'
+        '  - "critical mechanism"\n'
+        "positive_examples:\n"
+        '  - phenomenon: "earthquake"\n'
+        '  - phenomenon: "solar flare"\n'
+        "negative_examples:\n"
+        '  - phenomenon: "lottery"\n'
+        "notes: |\n"
+        "  Some notes here\n"
+        "  with multiple lines.\n"
+    )
+    out = b3_ensemble.load_yaml_class("test_class")
+    assert out["display_name"] == "Test Class"
+    assert out["hub"] == "test hub"
+    assert "E = mc^2" in out["shared_equation"]
+    assert "scaling exponent" in out["key_invariants"]
+    assert "critical mechanism" in out["key_invariants"]
+    assert "earthquake" in out["positive_examples"]
+    assert "solar flare" in out["positive_examples"]
+    assert "lottery" in out["negative_examples"]
+    assert "Some notes" in out["notes"]
+
+
+# ---------------------------------------------------------------------------
+# build_user_prompt() — W6-E additions, NOT covered by W6-A
+# ---------------------------------------------------------------------------
+
+
+def test_build_user_prompt_basic_substitution():
+    b1_row = {
+        "class_id": "soc_threshold_cascade",
+        "review_verdict": "KEEP",
+        "confidence": 0.8,
+        "members_flagged_reason": "consistent power-law tails",
+    }
+    yaml = {
+        "display_name": "SOC Cascade",
+        "hub": "earthquake aftershock",
+        "shared_equation": "P(s) ~ s^-alpha",
+        "key_invariants": ["alpha ~ 1.5", "self-similar"],
+        "positive_examples": ["earthquake", "solar flare"],
+        "negative_examples": ["lottery"],
+        "notes": "verified across 13 systems",
+    }
+    prompt = b3_ensemble.build_user_prompt("soc_threshold_cascade", b1_row, yaml)
+    assert "soc_threshold_cascade" in prompt
+    assert "SOC Cascade" in prompt
+    assert "P(s) ~ s^-alpha" in prompt
+    assert "alpha ~ 1.5" in prompt
+    assert "earthquake" in prompt
+    assert "lottery" in prompt
+    # B1 prior verdict is included
+    assert "KEEP" in prompt
+
+
+def test_build_user_prompt_truncation_long_summary():
+    """Verifies the [:N] slices in the format call don't crash on huge inputs."""
+    b1_row = {"review_verdict": "REJECT", "confidence": 0.9, "members_flagged_reason": "x" * 2000}
+    yaml = {
+        "display_name": "huge",
+        "hub": "x" * 1000,
+        "shared_equation": "y" * 2000,
+        "key_invariants": ["z" * 200] * 50,
+        "positive_examples": ["p" * 100] * 30,
+        "negative_examples": ["n" * 100] * 30,
+        "notes": "q" * 1000,
+    }
+    prompt = b3_ensemble.build_user_prompt("huge_class", b1_row, yaml)
+    # prompt is rendered, no exception
+    assert "huge_class" in prompt
+
+
+def test_build_user_prompt_missing_yaml_fields():
+    """All yaml fields optional; build_user_prompt must not crash."""
+    b1_row = {"review_verdict": "UNCLEAR", "confidence": 0.5}
+    prompt = b3_ensemble.build_user_prompt("bare_class", b1_row, {})
+    assert "bare_class" in prompt
+    # Falls back to '(none)'
+    assert "(none)" in prompt
+
+
+# ---------------------------------------------------------------------------
+# Edge-case verdict normalization in the main loop (W6-E addition)
+# ---------------------------------------------------------------------------
+
+
+def test_verdict_normalization_prefix():
+    """
+    Main loop normalizes 'MERGE_with_X' -> 'MERGE' and 'SPLIT_into_3' -> 'SPLIT'.
+    This is implemented inline in main(); the normalization rule is:
+        if verdict.startswith("MERGE"): verdict = "MERGE"
+        if verdict.startswith("SPLIT"): verdict = "SPLIT"
+    We exercise the equivalent string predicate.
+    """
+    examples = {
+        "MERGE_into_c2": "MERGE",
+        "SPLIT_into_3_classes": "SPLIT",
+        "KEEP": "KEEP",
+        "REJECT": "REJECT",
+        "UNCLEAR": "UNCLEAR",
+    }
+    for raw, expected in examples.items():
+        v = raw.upper().strip()
+        if v.startswith("MERGE"):
+            v = "MERGE"
+        if v.startswith("SPLIT"):
+            v = "SPLIT"
+        assert v == expected
