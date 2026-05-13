@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ICON,
@@ -10,6 +10,7 @@ import {
   DYNAMICS_FAMILY_OPTIONS,
   DYNAMICS_LABEL_ZH,
   DYNAMICS_SUBTITLE_ZH,
+  SECTOR_LABEL_ZH,
 } from "@/lib/labels";
 import type {
   CriticalPointState,
@@ -42,7 +43,20 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
   const [sector, setSector] = useState<string>(initial.sector ?? "");
   const [minConf, setMinConf] = useState<number>(initial.min_confidence ?? 0);
 
-  const sectors = stats?.by_sector?.map((s) => s.sector) ?? [];
+  // 2026-05-14 P0 fix: by_sector is now Record<slug, count> (BE canonical),
+  // not an array. The previous `.map()` call threw at render → wiped out
+  // the entire sector <select>. Sort by descending count for relevance,
+  // then alphabetically by display label as tiebreaker.
+  const sectors = useMemo(() => {
+    const raw = Object.entries(stats?.by_sector ?? {});
+    return raw
+      .map(([slug, count]) => ({
+        slug,
+        count,
+        label: SECTOR_LABEL_ZH[slug] ?? slug,
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "zh-CN"));
+  }, [stats?.by_sector]);
 
   // Skip the very first apply on mount — parent already has `initial`.
   const isFirstRun = useRef(true);
@@ -149,8 +163,8 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
         >
           <option value="">全部</option>
           {sectors.map((s) => (
-            <option key={s} value={s}>
-              {s}
+            <option key={s.slug} value={s.slug}>
+              {s.label} ({s.count})
             </option>
           ))}
         </select>

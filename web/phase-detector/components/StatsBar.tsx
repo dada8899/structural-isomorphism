@@ -4,10 +4,18 @@ import {
   CPS_LABEL_ZH,
   DYNAMICS_LABEL_ZH,
 } from "@/lib/labels";
-import type { Stats } from "@/lib/types";
+import type {
+  CriticalPointState,
+  DynamicsFamily,
+  Stats,
+} from "@/lib/types";
 
-// W6-B: align colors with design system (zinc + accent).
-// CPS pills now show icon + dot + label for non-color encoding redundancy.
+// 2026-05-14 P0 fix: Stats is now Record-shaped (not arrays). Iterate via
+// Object.entries — the previous `.map()` call was the source of the
+// production crash that wiped out the entire sector <select>.
+//
+// W6-B: aligned colors with design system (zinc + accent); CPS pills show
+// icon + dot + label for non-color encoding redundancy.
 
 export function StatsBar({ stats }: { stats: Stats | null }) {
   if (!stats) {
@@ -17,48 +25,54 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
       </div>
     );
   }
+
+  const dynamicsEntries = Object.entries(stats.by_dynamics_family ?? {}) as Array<
+    [DynamicsFamily, number]
+  >;
+  const cpsEntries = Object.entries(stats.by_critical_point_state ?? {}) as Array<
+    [CriticalPointState, number]
+  >;
+
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
         <div>
           <span className="text-zinc-500">公司总数</span>{" "}
-          <span className="font-semibold tabular-nums">
-            {stats.total_companies}
-          </span>
+          <span className="font-semibold tabular-nums">{stats.total}</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="text-zinc-500">怎么动</span>
-          {stats.by_dynamics.map((d) => (
-            <span key={d.dynamics_family} className="text-zinc-700">
+          {dynamicsEntries.map(([family, count]) => (
+            <span key={family} className="text-zinc-700">
               <span className="text-zinc-500">
-                {DYNAMICS_LABEL_ZH[d.dynamics_family] ?? d.dynamics_family}
+                {DYNAMICS_LABEL_ZH[family] ?? family}
               </span>{" "}
-              <span className="font-medium tabular-nums">{d.count}</span>
+              <span className="font-medium tabular-nums">{count}</span>
             </span>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="text-zinc-500">当前状态</span>
-          {stats.by_critical_point_state.map((c) => (
+          {cpsEntries.map(([state, count]) => (
             <span
-              key={c.critical_point_state}
+              key={state}
               className="flex items-center gap-1.5 text-zinc-700"
-              title={CPS_LABEL_ZH[c.critical_point_state]}
+              title={CPS_LABEL_ZH[state] ?? state}
             >
               <span
                 aria-hidden="true"
                 className="font-semibold leading-none"
               >
-                {CPS_ICON[c.critical_point_state]}
+                {CPS_ICON[state] ?? "?"}
               </span>
               <span
                 aria-hidden="true"
-                className={`h-1.5 w-1.5 rounded-full ${CPS_DOT[c.critical_point_state]}`}
+                className={`h-1.5 w-1.5 rounded-full ${CPS_DOT[state] ?? "bg-zinc-300"}`}
               />
               <span className="text-zinc-500">
-                {CPS_LABEL_ZH[c.critical_point_state]}
+                {CPS_LABEL_ZH[state] ?? state}
               </span>
-              <span className="font-medium tabular-nums">{c.count}</span>
+              <span className="font-medium tabular-nums">{count}</span>
             </span>
           ))}
         </div>

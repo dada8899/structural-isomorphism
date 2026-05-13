@@ -26,7 +26,7 @@ export default function AboutPage() {
       <p className="mb-8 text-base leading-relaxed text-zinc-600">
         Phase Detector 是
         <a
-          href="https://structural.bytedance.city"
+          href="https://beta.structural.bytedance.city/classes"
           target="_blank"
           rel="noopener"
           className="text-blue-600 hover:underline"
@@ -83,7 +83,7 @@ export default function AboutPage() {
           我们在 13 个独立领域跑了同一套代码（地震、神经放电、DeFi 清算、
           湖泊富营养化、高速公路堵车等），用同一套
           <Link
-            href="https://structural.bytedance.city"
+            href="https://beta.structural.bytedance.city/classes"
             className="text-blue-600 hover:underline"
           >
             {" "}研究报告{" "}
@@ -111,12 +111,12 @@ export default function AboutPage() {
           <li>
             主站：
             <a
-              href="https://structural.bytedance.city"
+              href="https://beta.structural.bytedance.city/classes"
               target="_blank"
               rel="noopener"
               className="text-blue-600 hover:underline"
             >
-              structural.bytedance.city ↗
+              beta.structural.bytedance.city/classes ↗
             </a>
           </li>
           <li>反馈/建议：欢迎在 GitHub 开 issue</li>
@@ -138,7 +138,7 @@ export default function AboutPage() {
             打开公司表 →
           </Link>
           <a
-            href="https://structural.bytedance.city"
+            href="https://beta.structural.bytedance.city/classes"
             target="_blank"
             rel="noopener"
             className="text-blue-600 hover:underline"

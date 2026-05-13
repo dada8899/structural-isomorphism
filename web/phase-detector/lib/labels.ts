@@ -1,221 +1,231 @@
 // Human-friendly labels and visual mappings for taxonomy values.
 //
-// W6-B: added icons + aria-labels for WCAG 1.4.1 (color is not the only signal).
-// W6-D rewrite (2026-05-13): added bilingual user-friendly labels + plain
-// English subtitles. Reference: docs/reviews/W5-F-copywriter-review-2026-05-13.md
-// § 3.2 ("Filter labels"). Goal — keep technical terms but pair them with a
-// human sentence the way Robinhood pairs "Buying Power" with "$X available
-// to invest".
-//
-// PR-1 copy sweep (2026-05-14): jargon translated per /tmp/copy-style-guide.md
-// translation table — 阈值级联 → 临界级联, 富者愈富 → 强者愈强,
-// 路径依赖 → 回不去效应, 普适类 → 共享模式, 滞后 → 回不去效应,
-// 失控通道/已翻转 simplified for 8th-grade reader.
+// 2026-05-14 P0 fix: rewritten against v0.2 BE taxonomy. KEYS = canonical BE
+// enum slugs (returned by /api/stats + /api/screener). VALUES = plain-Chinese
+// per PR-1 copy style guide (8th-grade reader, no 普适类 / 幂律 jargon when
+// avoidable). EN map kept as best-effort for future i18n.
 
 import type { CriticalPointState, DynamicsFamily } from "./types";
 
 export type Lang = "zh-CN" | "en";
 
 // ---------------------------------------------------------------------------
-// Dynamics family — primary user-friendly labels (per W5-F translation table).
+// Dynamics family — primary user-friendly labels (v0.2 taxonomy).
 // ---------------------------------------------------------------------------
 
 export const DYNAMICS_LABEL_ZH: Record<DynamicsFamily, string> = {
-  soc: "临界级联",
+  soc_threshold_cascade: "临界级联",
   preferential_attachment: "强者愈强",
-  fold: "临界翻转",
-  hysteresis: "回不去效应",
-  other: "其他",
+  scheffer_fold: "临界翻转 (Scheffer)",
+  hysteresis_preisach: "回不去效应",
+  motter_lai_cascade: "网络级联反应",
+  reflexive_fixed_point: "反身性循环",
+  extreme_value_tail: "极端尾部",
+  linear_quasi_equilibrium: "近线性稳态",
+  mixed_or_unclear: "复合/待判定",
 };
 
 export const DYNAMICS_LABEL_EN: Record<DynamicsFamily, string> = {
-  soc: "Threshold cascade",
+  soc_threshold_cascade: "Threshold cascade",
   preferential_attachment: "Rich-get-richer",
-  fold: "Tipping point",
-  hysteresis: "Path dependence",
-  other: "Other",
+  scheffer_fold: "Tipping point (Scheffer)",
+  hysteresis_preisach: "Path dependence",
+  motter_lai_cascade: "Network domino",
+  reflexive_fixed_point: "Reflexive feedback",
+  extreme_value_tail: "Tail risk",
+  linear_quasi_equilibrium: "Steady state",
+  mixed_or_unclear: "Mixed / unclear",
 };
 
 // One-line plain-Chinese subtitle for each dynamics family — shown next to
 // the primary label so users always have a human read on the term.
 export const DYNAMICS_SUBTITLE_ZH: Record<DynamicsFamily, string> = {
-  soc: "压力慢慢攒，一下子全连环爆（像地震、银行挤兑）",
+  soc_threshold_cascade: "压力慢慢攒，一下子全连环爆（像地震、银行挤兑）",
   preferential_attachment: "已经强的越来越强（像头部主播、爆款 App）",
-  fold: "慢慢漂到悬崖边，掉下去就回不来",
-  hysteresis: "上去的路和下来的路不一样（像交通堵车）",
-  other: "未归入上述四类",
+  scheffer_fold: "慢慢漂到悬崖边，掉下去就回不来",
+  hysteresis_preisach: "上去的路和下来的路不一样（像交通堵车）",
+  motter_lai_cascade: "网络里一处出事，沿着连线一路连锁",
+  reflexive_fixed_point: "情绪推动价格，价格又反过来推情绪",
+  extreme_value_tail: "平时风平浪静，黑天鹅来时一记重击",
+  linear_quasi_equilibrium: "基本面驱动，平稳缓慢",
+  mixed_or_unclear: "几种模式叠在一起，暂时分不清",
 };
 
 export const DYNAMICS_SUBTITLE_EN: Record<DynamicsFamily, string> = {
-  soc: "Slow buildup → sudden cascade (earthquakes, bank runs)",
-  preferential_attachment: "The strong keep gaining (GitHub stars, Wikipedia traffic)",
-  fold: "Drift to a cliff — falling off is one-way",
-  hysteresis: "Going up and coming down trace different paths",
-  other: "Not assigned to a primary family",
+  soc_threshold_cascade: "Slow buildup → sudden cascade (earthquakes, bank runs)",
+  preferential_attachment: "The strong keep gaining (head accounts, viral apps)",
+  scheffer_fold: "Drift to a cliff — falling off is one-way",
+  hysteresis_preisach: "Going up and coming down trace different paths",
+  motter_lai_cascade: "Failure in one node domino-chains across the network",
+  reflexive_fixed_point: "Sentiment moves price; price moves sentiment",
+  extreme_value_tail: "Calm most days; rare black swans dominate outcomes",
+  linear_quasi_equilibrium: "Fundamentals-driven, slow and stable",
+  mixed_or_unclear: "Several patterns layered; not yet separable",
 };
 
-// One-line layperson explanations of each dynamics family (W6-B).
-// Used on /methodology and as tooltip hints.
-// PR-1: rewritten plain-Chinese, no 普适类 / 幂律 / 自组织 jargon (幂律保留是大众词).
+// One-line layperson explanations of each dynamics family. Used on
+// /methodology and as tooltip hints.
 export const DYNAMICS_EXPLAIN: Record<DynamicsFamily, string> = {
-  soc: "压力慢慢攒，到了某个点一次性爆发，规模可大可小（地震、雪崩、神经放电都是这样）。",
+  soc_threshold_cascade:
+    "压力慢慢攒，到了某个点一次性爆发，规模可大可小（地震、雪崩、神经放电都是这样）。",
   preferential_attachment:
     "已经强的越来越强：越多人关注越容易再来新关注，最后头部吃掉大部分（社交网络、引用关系）。",
-  fold: "参数慢慢变，系统突然跳到另一个稳定状态，而且回不去了（湖泊富营养化、生态崩塌）。",
-  hysteresis:
+  scheffer_fold:
+    "参数慢慢变，系统突然跳到另一个稳定状态，而且回不去了（湖泊富营养化、生态崩塌）。",
+  hysteresis_preisach:
     "走过的路决定现在在哪：同样的条件，可能停在不同状态（交通堵车 vs. 畅通、牛市 vs. 熊市）。",
-  other: "暂未归入上面四类的其他结构。",
+  motter_lai_cascade:
+    "网络中一个节点故障，沿着依赖关系连环触发其他节点失效（电网瘫痪、供应链断裂）。",
+  reflexive_fixed_point:
+    "Soros 式反身性：信念影响现实，现实又反过来强化信念，形成自我加强的回路。",
+  extreme_value_tail:
+    "正常波动很小，但偶尔出现的极端事件主导长期结果（保险、再保、加密资产）。",
+  linear_quasi_equilibrium:
+    "近线性、平稳波动的稳态；可用传统估值/基本面框架解释，没有明显非线性。",
+  mixed_or_unclear:
+    "证据指向多种动力学，或当前数据不足以确定主导模式，暂列复合。",
 };
 
-// Legacy single-language fallback (English technical name). Kept so any
-// existing import of `DYNAMICS_LABEL` continues to compile.
+// Legacy single-language fallback. Kept so any existing import of
+// `DYNAMICS_LABEL` continues to compile.
 export const DYNAMICS_LABEL: Record<DynamicsFamily, string> = DYNAMICS_LABEL_EN;
 
 // ---------------------------------------------------------------------------
 // Critical-point state — user-friendly labels.
 // ---------------------------------------------------------------------------
 
-// PR-1: kept plain-Chinese labels (稳态 / 临界附近 / 失控通道 / 已翻转) —
-// these are already audience-friendly. EN map below also plain-English.
 export const CPS_LABEL_ZH: Record<CriticalPointState, string> = {
-  subcritical: "稳态",
-  near_critical: "临界附近",
-  supercritical: "失控通道",
-  tipped: "已翻转",
+  far_from_critical: "稳态",
+  approaching_critical: "接近临界",
+  at_critical: "临界点上",
+  post_critical_transition: "已翻转",
+  unknown: "未知",
 };
 
 export const CPS_LABEL_EN: Record<CriticalPointState, string> = {
-  subcritical: "Stable",
-  near_critical: "On the edge",
-  supercritical: "Runaway",
-  tipped: "Tipped",
+  far_from_critical: "Stable",
+  approaching_critical: "Approaching tipping",
+  at_critical: "At tipping",
+  post_critical_transition: "Tipped",
+  unknown: "Unknown",
 };
 
 export const CPS_SUBTITLE_ZH: Record<CriticalPointState, string> = {
-  subcritical: "压力小，扛得住",
-  near_critical: "小风吹就能放大",
-  supercritical: "正反馈已经在跑",
-  tipped: "回不到原来的样子了",
+  far_from_critical: "压力小，扛得住",
+  approaching_critical: "小风吹就能放大",
+  at_critical: "正反馈已经在跑",
+  post_critical_transition: "回不到原来的样子了",
+  unknown: "证据不足，暂未判定",
 };
 
 export const CPS_SUBTITLE_EN: Record<CriticalPointState, string> = {
-  subcritical: "Low stress, resilient",
-  near_critical: "Small shocks can amplify",
-  supercritical: "Positive feedback is running",
-  tipped: "Cannot return to prior state",
+  far_from_critical: "Low stress, resilient",
+  approaching_critical: "Small shocks can amplify",
+  at_critical: "Positive feedback is running",
+  post_critical_transition: "Cannot return to prior state",
+  unknown: "Insufficient evidence to classify",
 };
 
-// Layperson explanations for /methodology and tooltip (W6-B).
-// PR-1: rewritten plain-Chinese (8th-grade level), no 相变 / reverse hysteresis jargon.
+// Layperson explanations for /methodology and tooltip.
 export const CPS_EXPLAIN: Record<CriticalPointState, string> = {
-  subcritical: "离翻车点还远。系统稳稳运行，没有自我加强的反馈。",
-  near_critical:
+  far_from_critical:
+    "离翻车点还远。系统稳稳运行，没有自我加强的反馈。",
+  approaching_critical:
     "已经在翻车点附近了。小扰动开始被放大，波动变大，但还没真翻面。",
-  supercritical:
+  at_critical:
     "已经越过翻车点但还没翻完。正在加速滑向新的状态。",
-  tipped: "已经翻完了。想回到原来的样子，需要外部强力干预。",
+  post_critical_transition:
+    "已经翻完了。想回到原来的样子，需要外部强力干预。",
+  unknown:
+    "目前公开信息不足以判断它处在哪个阶段，先标记为未知。",
 };
 
-// W6-B: WCAG 1.4.1 — icon symbols for non-color encoding.
+// WCAG 1.4.1 — icon symbols for non-color encoding.
 // Each state has a unique geometric shape, visible regardless of color perception.
 export const CPS_ICON: Record<CriticalPointState, string> = {
-  subcritical: "●", // filled circle = stable
-  near_critical: "▲", // up triangle = warning
-  supercritical: "◆", // diamond = critical
-  tipped: "✕", // cross = already changed
+  far_from_critical: "●", // filled circle = stable
+  approaching_critical: "▲", // up triangle = warning
+  at_critical: "◆", // diamond = critical
+  post_critical_transition: "✕", // cross = already changed
+  unknown: "?", // question mark = unknown
 };
 
 export const CPS_ARIA_LABEL: Record<CriticalPointState, string> = {
-  subcritical: "稳态：离翻车点还远",
-  near_critical: "临界附近：接近翻车点",
-  supercritical: "失控通道：已经越过翻车点",
-  tipped: "已翻转：状态已经改变",
+  far_from_critical: "稳态：离翻车点还远",
+  approaching_critical: "接近临界：已在翻车点附近",
+  at_critical: "临界点上：已越过翻车点，仍在加速",
+  post_critical_transition: "已翻转：状态已经改变",
+  unknown: "未知：证据不足",
 };
 
 // Legacy alias — keep existing imports working.
 export const CPS_LABEL: Record<CriticalPointState, string> = CPS_LABEL_EN;
 
 // ---------------------------------------------------------------------------
+// Sector labels — plain Chinese for the 38 BE sector slugs.
+// Source of truth: GET /api/stats by_sector keys (full list pulled
+// 2026-05-14). Unknown slugs fall back to the raw slug via the lookup
+// helper SECTOR_LABEL_ZH[key] ?? key.
+// ---------------------------------------------------------------------------
+export const SECTOR_LABEL_ZH: Record<string, string> = {
+  biotech: "生物科技",
+  consumer_auto: "消费 / 整车",
+  consumer_discretionary: "非必需消费",
+  consumer_discretionary_retail: "非必需消费 / 零售",
+  consumer_staples: "必需消费",
+  energy_hydrogen: "能源 / 氢能",
+  energy_midstream: "能源 / 中游",
+  energy_oil_gas: "油气",
+  energy_oilfield_svc: "油田服务",
+  energy_refining: "能源 / 炼化",
+  energy_solar: "能源 / 光伏",
+  financials_asset_mgmt: "资产管理",
+  financials_bank: "银行",
+  financials_crypto: "金融 / 加密资产",
+  financials_fintech: "金融科技",
+  financials_insurance: "保险",
+  financials_payments: "支付",
+  financials_reinsurance: "再保险",
+  financials_retail_broker: "零售券商",
+  healthcare_devices: "医疗器械",
+  healthcare_insurance: "医疗保险",
+  healthcare_pharma: "制药",
+  healthcare_retail: "医疗零售",
+  industrials_aerospace: "航空航天",
+  industrials_diversified: "工业 / 多元化",
+  media_entertainment: "媒体娱乐",
+  tech_auto: "科技 / 汽车",
+  tech_auto_ev: "科技 / 电动车",
+  tech_hardware: "科技 / 硬件",
+  tech_internet: "科技 / 互联网",
+  tech_internet_audio: "科技 / 互联网音频",
+  tech_internet_china: "科技 / 中国互联网",
+  tech_internet_streaming: "科技 / 流媒体",
+  tech_marketplace: "科技 / 平台",
+  tech_semiconductor: "半导体",
+  tech_software: "科技 / 软件",
+  tech_software_data: "科技 / 数据平台",
+  tech_software_db: "科技 / 数据库",
+  tech_software_ecommerce: "科技 / 电商软件",
+  tech_software_edge: "科技 / 边缘计算",
+  tech_software_gaming: "科技 / 游戏",
+  tech_software_obs: "科技 / 可观测性",
+  tech_software_security: "科技 / 安全",
+  telecom: "电信",
+};
+
+// ---------------------------------------------------------------------------
 // Display label dispatcher.
 // ---------------------------------------------------------------------------
 
-type Field =
-  | "dynamics_family"
-  | "critical_point_state"
-  // Extended fields (forward-compat with v0.2 taxonomy — currently aliased to
-  // the closest existing DynamicsFamily). Calling displayLabel with one of
-  // these returns the same user-friendly label.
-  | "universality_class"
-  | "soc_threshold_cascade"
-  | "preferential_attachment"
-  | "hysteresis_preisach"
-  | "scheffer_fold"
-  | "motter_lai_cascade"
-  | "extreme_value_tail"
-  | "linear_quasi_equilibrium"
-  | "reflexive_fixed_point"
-  | "mixed";
-
-// Forward-compatible alias table — maps extended taxonomy IDs that don't
-// exist in the current `DynamicsFamily` union onto user-friendly labels
-// independent of that union. This lets the UI render extended labels coming
-// out of v0.2 ingest without first widening the type.
-// PR-1: 普适类 → 共享模式; 阈值级联 → 临界级联; 富者愈富 → 强者愈强;
-// 滞后效应 → 回不去效应; 网络级联 → 网络级联反应; 反身性 keeps (大众有认知).
-const EXTENDED_LABELS_ZH: Record<string, string> = {
-  universality_class: "共享模式",
-  soc_threshold_cascade: "临界级联",
-  preferential_attachment: "强者愈强",
-  hysteresis_preisach: "回不去效应",
-  scheffer_fold: "临界翻转",
-  motter_lai_cascade: "网络级联反应",
-  extreme_value_tail: "极端尾部风险",
-  linear_quasi_equilibrium: "线性平衡",
-  reflexive_fixed_point: "反身性",
-  mixed: "混合型",
-};
-
-const EXTENDED_LABELS_EN: Record<string, string> = {
-  universality_class: "Pattern family",
-  soc_threshold_cascade: "Cascade dynamics",
-  preferential_attachment: "Rich get richer",
-  hysteresis_preisach: "Memory effects",
-  scheffer_fold: "Tipping point",
-  motter_lai_cascade: "Network domino",
-  extreme_value_tail: "Tail risk",
-  linear_quasi_equilibrium: "Steady state",
-  reflexive_fixed_point: "Reflexive feedback",
-  mixed: "Mixed signals",
-};
-
-// Extra CPS states surfaced by W5-F mapping (not in the strict union yet —
-// returned as strings so the UI can render them without a schema change).
-const EXTENDED_CPS_ZH: Record<string, string> = {
-  far_from_critical: "稳态",
-  approaching: "接近",
-  at_critical: "临界",
-  post_critical: "过临",
-  unknown: "未知",
-};
-
-const EXTENDED_CPS_EN: Record<string, string> = {
-  far_from_critical: "Far from tipping",
-  approaching: "Approaching tipping",
-  at_critical: "At tipping",
-  post_critical: "Post-tipping",
-  unknown: "Unknown",
-};
+type Field = "dynamics_family" | "critical_point_state" | "sector" | string;
 
 /**
  * Resolve a (field, value) into a user-friendly string. Falls back to the
  * raw value when no mapping exists so the UI never renders empty.
- *
- * @param field   schema field name
- * @param value   raw enum value coming from the API
- * @param lang    "zh-CN" (default) or "en"
  */
 export function displayLabel(
-  field: Field | string,
+  field: Field,
   value: string,
   lang: Lang = "zh-CN",
 ): string {
@@ -228,25 +238,21 @@ export function displayLabel(
 
   if (field === "critical_point_state") {
     const map = lang === "zh-CN" ? CPS_LABEL_ZH : CPS_LABEL_EN;
-    if (value in map) return map[value as CriticalPointState];
-    const ext = lang === "zh-CN" ? EXTENDED_CPS_ZH : EXTENDED_CPS_EN;
-    return ext[value] ?? value;
+    return map[value as CriticalPointState] ?? value;
   }
 
-  // Extended fields — look up by field name first (semantic field label),
-  // then by value (treats the value itself as the taxonomy ID).
-  const ext = lang === "zh-CN" ? EXTENDED_LABELS_ZH : EXTENDED_LABELS_EN;
-  if (typeof field === "string" && field in ext) return ext[field];
-  if (value in ext) return ext[value];
+  if (field === "sector") {
+    return SECTOR_LABEL_ZH[value] ?? value;
+  }
+
   return value;
 }
 
 /**
- * Get the plain-English subtitle for a dynamics family or CPS value.
- * Returns empty string when no subtitle is defined.
+ * Get the plain-Chinese subtitle for a dynamics family or CPS value.
  */
 export function displaySubtitle(
-  field: Field | string,
+  field: Field,
   value: string,
   lang: Lang = "zh-CN",
 ): string {
@@ -267,34 +273,41 @@ export function displaySubtitle(
 
 // ---------------------------------------------------------------------------
 // Tailwind class maps for badges (statically discoverable by JIT).
-// W6-B: aligned to design system tokens (emerald-600/amber-600/red-600/zinc-900).
+// Aligned to design system tokens (emerald-600/amber-600/red-600/zinc-900).
 // ---------------------------------------------------------------------------
 
 export const CPS_BADGE: Record<CriticalPointState, string> = {
-  subcritical: "bg-emerald-600 text-white",
-  near_critical: "bg-amber-600 text-white",
-  supercritical: "bg-red-600 text-white",
-  tipped: "bg-zinc-900 text-white",
+  far_from_critical: "bg-emerald-600 text-white",
+  approaching_critical: "bg-amber-600 text-white",
+  at_critical: "bg-red-600 text-white",
+  post_critical_transition: "bg-zinc-900 text-white",
+  unknown: "bg-zinc-400 text-white",
 };
 
 export const CPS_DOT: Record<CriticalPointState, string> = {
-  subcritical: "bg-emerald-600",
-  near_critical: "bg-amber-600",
-  supercritical: "bg-red-600",
-  tipped: "bg-zinc-900",
+  far_from_critical: "bg-emerald-600",
+  approaching_critical: "bg-amber-600",
+  at_critical: "bg-red-600",
+  post_critical_transition: "bg-zinc-900",
+  unknown: "bg-zinc-400",
 };
 
 export const DYNAMICS_FAMILY_OPTIONS: DynamicsFamily[] = [
-  "soc",
+  "soc_threshold_cascade",
   "preferential_attachment",
-  "fold",
-  "hysteresis",
-  "other",
+  "scheffer_fold",
+  "hysteresis_preisach",
+  "motter_lai_cascade",
+  "reflexive_fixed_point",
+  "extreme_value_tail",
+  "linear_quasi_equilibrium",
+  "mixed_or_unclear",
 ];
 
 export const CPS_OPTIONS: CriticalPointState[] = [
-  "subcritical",
-  "near_critical",
-  "supercritical",
-  "tipped",
+  "far_from_critical",
+  "approaching_critical",
+  "at_critical",
+  "post_critical_transition",
+  "unknown",
 ];

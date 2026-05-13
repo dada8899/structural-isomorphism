@@ -1,41 +1,57 @@
-// Shared types for Phase Detector frontend
-// Schema mirrors W3-B backend API responses.
+// Shared types for Phase Detector frontend.
+//
+// 2026-05-14 P0 fix: schema realigned to backend canonical (W3-B v0.2 taxonomy).
+// Backend = source of truth. FE enums + Stats shape now mirror exactly what
+// GET /api/stats and GET /api/screener return. Previously the FE used a
+// legacy short-name vocabulary (soc / fold / hysteresis / subcritical /
+// near_critical / supercritical / tipped) that did not exist in any BE
+// response, so every filter selection returned [] in production.
 
+// ---------------------------------------------------------------------------
+// Dynamics family — 9-state v0.2 taxonomy as returned by /api/screener.
+// ---------------------------------------------------------------------------
 export type DynamicsFamily =
-  | "soc"
+  | "soc_threshold_cascade"
   | "preferential_attachment"
-  | "fold"
-  | "hysteresis"
-  | "other";
+  | "scheffer_fold"
+  | "hysteresis_preisach"
+  | "motter_lai_cascade"
+  | "reflexive_fixed_point"
+  | "extreme_value_tail"
+  | "linear_quasi_equilibrium"
+  | "mixed_or_unclear";
 
+// ---------------------------------------------------------------------------
+// Critical-point state — 5-state v0.2 taxonomy.
+// ---------------------------------------------------------------------------
 export type CriticalPointState =
-  | "subcritical"
-  | "near_critical"
-  | "supercritical"
-  | "tipped";
+  | "far_from_critical"
+  | "approaching_critical"
+  | "at_critical"
+  | "post_critical_transition"
+  | "unknown";
 
-export interface PrimaryIndicator {
-  name: string;
-  value: string | number;
-  unit?: string;
-  // Optional short hint shown next to the indicator.
-  note?: string;
-}
+// Primary indicators are returned as a free-form object (key → value). We
+// keep `value` permissive because BE may emit string labels (e.g. "rising")
+// or numeric values for the same indicator name across companies.
+export type PrimaryIndicators = Record<string, string | number | null>;
 
 export interface Company {
   ticker: string;
   name: string;
-  sector?: string;
+  sector: string;
+  industry?: string | null;
+  market_cap_usd_b?: number | null;
   dynamics_family: DynamicsFamily;
   critical_point_state: CriticalPointState;
+  universality_class?: string | null;
+  extraction_confidence: number; // 0..1
+  extraction_model?: string | null;
+  extracted_at?: string | null;
   // 30-second TL;DR — 1-3 sentences, plain English.
   tldr: string;
-  primary_indicators: PrimaryIndicator[];
-  confidence: number; // 0..1
-  caveats?: string[];
-  // For detail page: raw model JSON or extra fields.
-  raw_response?: Record<string, unknown>;
-  updated_at?: string;
+  primary_indicators: PrimaryIndicators | null;
+  caveats?: string[] | null;
 }
 
 export interface ScreenerFilters {
@@ -46,24 +62,17 @@ export interface ScreenerFilters {
   limit?: number;
 }
 
-export interface SectorBreakdown {
-  sector: string;
-  count: number;
-}
-
-export interface DynamicsBreakdown {
-  dynamics_family: DynamicsFamily;
-  count: number;
-}
-
-export interface CpsBreakdown {
-  critical_point_state: CriticalPointState;
-  count: number;
-}
-
+// ---------------------------------------------------------------------------
+// Stats — shape returned by GET /api/stats.
+//   total (NOT total_companies)
+//   by_dynamics_family (NOT by_dynamics)
+//   by_critical_point_state, by_sector, by_universality_class are Records,
+//   not arrays — this was the source of the .map() crash.
+// ---------------------------------------------------------------------------
 export interface Stats {
-  total_companies: number;
-  by_dynamics: DynamicsBreakdown[];
-  by_critical_point_state: CpsBreakdown[];
-  by_sector: SectorBreakdown[];
+  total: number;
+  by_dynamics_family: Partial<Record<DynamicsFamily, number>>;
+  by_critical_point_state: Partial<Record<CriticalPointState, number>>;
+  by_sector: Record<string, number>;
+  by_universality_class: Record<string, number>;
 }
