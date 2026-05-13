@@ -91,38 +91,52 @@ export default function ScreenerHomePage() {
     [],
   );
 
+  const scrollToFilters = useCallback(() => {
+    const el = document.getElementById("screener");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   return (
     <div className="space-y-10">
-      {/* Hero — simplified per W5-E #4 */}
-      <section className="pt-2">
+      {/* Hero — audience-first rewrite (W6-D, replaces internal-jargon hero).
+          Keeps W6-B design-system container styling. */}
+      <section className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8 sm:py-10">
         <h1
-          className="serif mb-2 text-3xl font-semibold leading-tight tracking-tight text-zinc-900 md:text-4xl"
+          className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
         >
-          Phase Detector
+          哪些公司正在接近临界点？
         </h1>
-        <p className="mb-3 text-base text-zinc-600 md:text-lg">
-          按<strong className="text-zinc-900">结构动力学族</strong>和
-          <strong className="text-zinc-900">临界点状态</strong>筛选公司。30 秒
-          TL;DR，看清谁接近相变。
+        <p className="mb-3 max-w-2xl text-base leading-relaxed text-zinc-600 md:text-lg">
+          100 家全球上市公司的相态分析 — 用解释地震、银行挤兑、电网级联的同一套物理。
+          每家公司一个 30 秒结论：它如何运动、它现在所处的状态、什么会让它翻转。
+        </p>
+        <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">
+          Which companies are approaching critical points? A phase-state analysis
+          of 100 global public companies, on the same physics that explains
+          earthquakes, bank runs, and power-grid cascades.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <a
-            href="#screener"
-            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+          <button
+            type="button"
+            onClick={scrollToFilters}
+            className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
-            开始筛选 ↓
-          </a>
+            开始筛选 ↓ <span className="sr-only">Start filtering</span>
+          </button>
           <Link
             href="/methodology"
-            className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900"
+            className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
           >
-            了解方法 →
+            如何读懂这些信号 →
           </Link>
         </div>
+        <p className="mt-4 text-xs text-zinc-500">
+          研究预览版 · 不构成投资建议 · Research preview · not investment advice. Methodology paper available.
+        </p>
       </section>
 
-      {/* STRUCTURAL SIGNALS — surface near-critical companies (W5-C #3) */}
+      {/* STRUCTURAL SIGNALS — surface near-critical companies (W5-C #3, W6-B) */}
       {signals.length > 0 && (
         <section
           aria-labelledby="signals-heading"

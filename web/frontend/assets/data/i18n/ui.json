@@ -1,4 +1,8 @@
 {
+  "nav.start_here": {
+    "zh": "从这里开始",
+    "en": "Start here"
+  },
   "nav.universality_classes": {
     "zh": "普适类",
     "en": "Universality classes"
@@ -26,6 +30,10 @@
   "footer.copyright": {
     "zh": "© 2026 Structural · 跨领域思维引擎",
     "en": "© 2026 Structural · Cross-domain thinking engine"
+  },
+  "footer.start_here": {
+    "zh": "从这里开始",
+    "en": "Start here"
   },
   "footer.about": {
     "zh": "关于",

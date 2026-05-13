@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title data-i18n="page.taxv2.meta_title">B1 ⊗ B3 Taxonomy v2 — Structural</title>
-  <meta name="description" data-i18n-meta="page.taxv2.meta_desc" content="V4 B3 多模型 ensemble taxonomy critic 在 21 个候选普适类上跑 3 个 reviewer × 63 verdicts。完整 verdict 矩阵 + B1 vs B3 disagreement + 4 个 B3 推翻 B1 的 demotion (delay-differential / Preisach / scale-free percolation / copula)。">
+  <title data-i18n="page.taxv2.meta_title">Pattern family verdicts — what we kept, demoted, or rejected · Structural</title>
+  <meta name="description" data-i18n-meta="page.taxv2.meta_desc" content="21 candidate universality classes underwent multi-model critic review. The full verdict matrix below shows which pattern families survived, which were demoted, and which were rejected — plus the four cases where a stricter ensemble overruled the single-model first pass.">
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,6 +140,7 @@
         Structural<span class="beta-badge" data-i18n="beta.badge">beta</span>
       </a>
       <nav class="site-header__nav">
+        <a href="/start-here" class="site-header__nav-link" data-i18n="nav.start_here">从这里开始</a>
         <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
         <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
         <a href="/papers" class="site-header__nav-link" data-i18n="nav.papers">论文</a>
@@ -159,11 +160,16 @@
       <section class="tax-hero">
         <div class="tax-hero__eyebrow">
           <span class="tax-hero__dot"></span>
-          <span data-i18n="page.taxv2.eyebrow">V4 · B1 ⊗ B3 Verdict 矩阵</span>
+          <span data-i18n="page.taxv2.eyebrow">Verdicts · 多模型审议结果</span>
         </div>
-        <h1 class="tax-hero__title" data-i18n="page.taxv2.title">21 候选类 × 3 reviewer = <em>63 verdicts</em></h1>
+        <h1 class="tax-hero__title" data-i18n="page.taxv2.title">Pattern family verdicts — what we kept, demoted, or <em>rejected</em></h1>
         <p class="tax-hero__lede" data-i18n="page.taxv2.lede">
-          B3 多模型 ensemble taxonomy critic 在 V4 候选普适类上跑 <strong>3 个独立 reviewer</strong>(deepseek-v4-pro rigorous T=0.0 / deepseek-v4-flash rigorous T=0.0 / deepseek-v4-pro creative T=0.6),每个对 21 候选类给 KEEP / REJECT / SPLIT / MERGE / UNCLEAR 五档投票。多数(≥2/3)决定 consensus,否则 UNCLEAR。0 个 parse failure,40.8 分钟 wall-clock。完整方法论见 <a href="/methods">方法与 Pipeline</a> 页面 § B3 ensemble critic 章节。
+          21 candidate universality classes underwent multi-model critic review.
+          Three independent reviewers (one rigorous flagship, one rigorous fast,
+          one creative) each voted KEEP / REJECT / SPLIT / MERGE on every
+          candidate; a majority ruled. 63 verdicts total, 0 parse failures, 40.8
+          minutes wall-clock. Methodology details on the
+          <a href="/methods">methods page</a>.
         </p>
 
         <div class="tax-stats">

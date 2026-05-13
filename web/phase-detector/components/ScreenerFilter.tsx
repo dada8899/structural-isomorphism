@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CPS_ICON,
-  CPS_LABEL,
+  CPS_LABEL_ZH,
   CPS_OPTIONS,
+  CPS_SUBTITLE_ZH,
   DYNAMICS_FAMILY_OPTIONS,
-  DYNAMICS_LABEL,
+  DYNAMICS_LABEL_ZH,
+  DYNAMICS_SUBTITLE_ZH,
 } from "@/lib/labels";
 import type {
   CriticalPointState,
@@ -91,36 +93,42 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
         )}
       </div>
 
-      <Field label="动力学族">
+      <Field label="动力学类型 / How it moves">
         <select
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
           value={df}
           onChange={(e) => setDf(e.target.value as DynamicsFamily | "")}
           aria-label="按动力学族筛选"
         >
-          <option value="">全部</option>
+          <option value="">Any · 任意</option>
           {DYNAMICS_FAMILY_OPTIONS.map((f) => (
             <option key={f} value={f}>
-              {DYNAMICS_LABEL[f]}
+              {DYNAMICS_LABEL_ZH[f]}
             </option>
           ))}
         </select>
+        {df && (
+          <p className="mt-1 text-xs text-gray-500">{DYNAMICS_SUBTITLE_ZH[df]}</p>
+        )}
       </Field>
 
-      <Field label="临界点状态">
+      <Field label="临界状态 / Critical state">
         <select
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
           value={cps}
           onChange={(e) => setCps(e.target.value as CriticalPointState | "")}
           aria-label="按临界点状态筛选"
         >
-          <option value="">全部</option>
+          <option value="">Any · 任意</option>
           {CPS_OPTIONS.map((s) => (
             <option key={s} value={s}>
-              {CPS_ICON[s]}  {CPS_LABEL[s]}
+              {CPS_ICON[s]}  {CPS_LABEL_ZH[s]}
             </option>
           ))}
         </select>
+        {cps && (
+          <p className="mt-1 text-xs text-gray-500">{CPS_SUBTITLE_ZH[cps]}</p>
+        )}
       </Field>
 
       <Field label="行业">

@@ -31,6 +31,30 @@
 
 **Structural Isomorphism** is the phenomenon where systems in completely different domains share the same underlying mathematical or logical structure. This project provides a search engine that, given a natural language description of a phenomenon, retrieves structurally similar phenomena from other domains -- even when they share zero surface-level vocabulary.
 
+## Quickstart by audience
+
+Different readers want different entry points. Pick yours:
+
+- **Student / curious newcomer** — read the plain-English tour
+  [start here](https://structural.bytedance.city/start-here)
+  (~10 minutes, no math, no jargon), then browse
+  [`tutorials/`](tutorials/) for hands-on notebooks.
+- **Researcher** — read the unified preprint
+  [`paper/v0-unified-pipeline-2026-05-13.md`](paper/v0-unified-pipeline-2026-05-13.md)
+  for the full pipeline, then the verification results in
+  [`v4/results/`](v4/results/).
+- **Investor / analyst** — visit
+  [phase.bytedance.city](https://phase.bytedance.city) for phase-tagged reads
+  on 100 public companies. Methodology paper linked from the site.
+- **Developer / contributor** — read
+  [`docs/sessions/HANDOFF.md`](docs/sessions/HANDOFF.md) for the current
+  state of the codebase, then [`setup.py`](setup.py) +
+  [`docs/sessions/`](docs/sessions/) for build conventions and recent
+  decisions.
+- **Journalist / generalist** — start at the plain-English essay
+  [why bank runs, earthquakes, and neural avalanches are the same thing](https://structural.bytedance.city/start-here).
+  For quotes, the [`paper/`](paper/) directory has source preprints.
+
 ## Quick Start
 
 ```python
