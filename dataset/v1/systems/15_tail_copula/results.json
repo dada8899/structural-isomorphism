@@ -1,0 +1,78 @@
+{
+  "slot": "15_tail_copula",
+  "source_dir": "v4/validation/tail-copula",
+  "results": {
+    "phase": "A2-Copula",
+    "universality_class": "#6 tail copula",
+    "data_sources": [
+      "S&P 500 daily returns (Yahoo Finance, local 1990-2025)",
+      "NOAA Storm Events Database (1996-2024, public CSV)"
+    ],
+    "data_period": "1996-01-02 to 2024-12-31",
+    "n_obs": 7300,
+    "marginal_transform": "empirical CDF rank-to-uniform",
+    "lambda_U_empirical_panel": {
+      "q=0.9": 0.08904109589041095,
+      "q=0.95": 0.052054794520547946,
+      "q=0.975": 0.02197802197802198,
+      "q=0.99": 0.0,
+      "avg": 0.04076847809724522
+    },
+    "lambda_U_empirical_q95": 0.052054794520547946,
+    "lambda_U_gumbel": 0.0013931556985358196,
+    "lambda_U_clayton": 9.050519018596195e-300,
+    "gumbel_theta": 1.0010063112283658,
+    "survival_clayton_theta": 0.0010066434157634209,
+    "lambda_U_ci_95": [
+      0.030333006073336683,
+      0.07702911917781143
+    ],
+    "bootstrap": {
+      "empirical_q95": {
+        "mean": 0.0524116970347658,
+        "median": 0.0518630199043008,
+        "ci_low": 0.030333006073336683,
+        "ci_high": 0.07702911917781143,
+        "n_boot": 500
+      },
+      "gumbel": {
+        "mean": 0.002501580139636298,
+        "median": 0.0013931556985358196,
+        "ci_low": 0.0013931556985358196,
+        "ci_high": 0.012890586973276953,
+        "n_boot": 500
+      },
+      "survival_clayton": {
+        "mean": 1.3358528233465877e-10,
+        "median": 9.050519018596195e-300,
+        "ci_low": 9.050519018596195e-300,
+        "ci_high": 4.928433272266795e-16,
+        "n_boot": 500
+      }
+    },
+    "permutation_null": {
+      "q": 0.95,
+      "mean_null_lambda": 0.0501013698630137,
+      "p99_null": 0.07673972602739725,
+      "p95_null": 0.0684931506849315,
+      "n_perm": 1000
+    },
+    "baseline_comparison": {
+      "P(extreme_storm)": 0.05,
+      "P(extreme_storm | extreme_return)": 0.052054794520547946,
+      "lift_ratio": 1.0410958904109588,
+      "n_extreme_ret": 365,
+      "n_extreme_dmg": 365,
+      "n_total": 7300
+    },
+    "verdict": "rejects",
+    "verdict_note": "no detectable tail dependence; empirical \u03bb_U inside null distribution",
+    "fit_source": "real_data",
+    "positive_control_volatility_clustering": {
+      "n_obs": 7299,
+      "empirical_q95": 0.21428571428571427,
+      "empirical_q99": 0.2777777777777778,
+      "gumbel_lambda_U": 0.13781320202713165
+    }
+  }
+}

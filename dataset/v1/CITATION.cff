@@ -1,0 +1,46 @@
+cff-version: 1.2.0
+title: "Cross-domain SOC validation dataset (v1, 2026-05-13)"
+abstract: >
+  A frozen, multi-domain benchmark for self-organized criticality (SOC) and
+  related universality-class validation. Bundles 16 independently-fetched
+  empirical systems (earthquakes, S&P 500 returns, DeFi liquidations, neural
+  avalanches, wildfires, solar flares, bank failures, GitHub stars, power-grid
+  disturbances, Wikipedia pageviews, Hawkes-Omori synthetics, lake regime
+  shifts, traffic hysteresis, SIR contagion, tail-copula, plus a 7-system
+  universal-collapse composite) with their canonical Clauset-Shalizi-Newman
+  power-law fits, Omori temporal decays where applicable, and per-system
+  arXiv-style companion paper drafts. Includes 4 synthetic null controls
+  (Gaussian walk, exponential, Poisson inter-arrival, Poisson-Omori stack)
+  that the same pipeline correctly rejects, a 35-class universality-class
+  taxonomy with B1 (single-Opus) and B3 (3-DeepSeek ensemble) critic
+  verdicts, the frozen pipeline source (~1.4k LoC of fitting + LLM guardrail
+  + ensemble critic), and a 17-test sanity test suite. Suitable for cross-
+  domain SOC validation, pipeline reproducibility benchmarking, and LLM
+  ensemble-critic methodology research.
+authors:
+  - family-names: dada8899
+    affiliation: Independent Research
+date-released: 2026-05-13
+license: CC-BY-4.0
+type: dataset
+version: 1.0.0
+doi: 10.5281/zenodo.PLACEHOLDER
+url: https://github.com/dada8899/structural-isomorphism
+repository-code: https://github.com/dada8899/structural-isomorphism
+keywords:
+  - self-organized criticality
+  - universality classes
+  - power-law
+  - Clauset MLE
+  - Omori law
+  - Gutenberg-Richter
+  - cross-domain validation
+  - LLM ensemble critic
+  - reproducibility benchmark
+  - synthetic null controls
+identifiers:
+  - type: url
+    value: https://github.com/dada8899/structural-isomorphism
+  - type: other
+    value: "structural-isomorphism-dataset-v1"
+    description: dataset bundle schema id

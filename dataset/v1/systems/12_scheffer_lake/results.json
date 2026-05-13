@@ -1,0 +1,461 @@
+{
+  "slot": "12_scheffer_lake",
+  "source_dir": "v4/validation/scheffer-lake",
+  "lake_results": {
+    "site": {
+      "site_name": "FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI",
+      "site_code": "040851385",
+      "n_raw": 4732
+    },
+    "fetched_from": "lake_do_timeseries.jsonl",
+    "n_days_grid": 5052,
+    "n_valid_obs": 4838,
+    "first_date": "2011-03-04",
+    "last_date": "2024-12-31",
+    "params": {
+      "window_days": 365,
+      "cusum_k": 0.5,
+      "cusum_h": 15.0,
+      "cluster_gap": 180,
+      "pre_window": 730
+    },
+    "changepoints": [
+      {
+        "date": "2011-05-17",
+        "index": 74,
+        "ac1_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 0
+        },
+        "var_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 0
+        },
+        "skew_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 0
+        },
+        "mean_before_30d": 11.896666666666667,
+        "mean_after_30d": 8.723333333333333
+      },
+      {
+        "date": "2012-03-25",
+        "index": 387,
+        "ac1_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 22
+        },
+        "var_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 22
+        },
+        "skew_trend": {
+          "tau": null,
+          "p_value": null,
+          "n": 22
+        },
+        "mean_before_30d": 12.463333333333333,
+        "mean_after_30d": 11.368333333333334
+      },
+      {
+        "date": "2013-01-13",
+        "index": 681,
+        "ac1_trend": {
+          "tau": 0.8331525015069319,
+          "p_value": 3.6691268043516085e-108,
+          "n": 316
+        },
+        "var_trend": {
+          "tau": 0.5440626883664857,
+          "p_value": 3.4858482936810913e-47,
+          "n": 316
+        },
+        "skew_trend": {
+          "tau": -0.24846292947558768,
+          "p_value": 4.4381999935238554e-11,
+          "n": 316
+        },
+        "mean_before_30d": 12.990000000000002,
+        "mean_after_30d": 13.210000000000003
+      },
+      {
+        "date": "2013-08-05",
+        "index": 885,
+        "ac1_trend": {
+          "tau": 0.743367422558174,
+          "p_value": 1.1073679839043836e-141,
+          "n": 520
+        },
+        "var_trend": {
+          "tau": 0.5630449201347387,
+          "p_value": 4.1208551257877294e-82,
+          "n": 520
+        },
+        "skew_trend": {
+          "tau": -0.030991551800800356,
+          "p_value": 0.2907317499299421,
+          "n": 520
+        },
+        "mean_before_30d": 8.523333333333332,
+        "mean_after_30d": 6.49047619047619
+      },
+      {
+        "date": "2014-07-17",
+        "index": 1231,
+        "ac1_trend": {
+          "tau": -0.32422346242741973,
+          "p_value": 2.938853422596083e-39,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.45597545140815865,
+          "p_value": 6.827282553026522e-76,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.3818516639419734,
+          "p_value": 9.006261396755522e-54,
+          "n": 730
+        },
+        "mean_before_30d": 8.27,
+        "mean_after_30d": 7.296666666666665
+      },
+      {
+        "date": "2015-05-04",
+        "index": 1522,
+        "ac1_trend": {
+          "tau": -0.581141364601537,
+          "p_value": 4.478639568661349e-122,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.4662983633049589,
+          "p_value": 2.785401896329003e-79,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.4531221226299866,
+          "p_value": 5.720474912713393e-75,
+          "n": 730
+        },
+        "mean_before_30d": 11.383333333333333,
+        "mean_after_30d": 8.253333333333332
+      },
+      {
+        "date": "2016-12-01",
+        "index": 2099,
+        "ac1_trend": {
+          "tau": 0.16017062216960742,
+          "p_value": 9.429158631461422e-11,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.1278651558712441,
+          "p_value": 2.3447740783192395e-07,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.058105492605746274,
+          "p_value": 0.018811110327523695,
+          "n": 730
+        },
+        "mean_before_30d": 10.816666666666666,
+        "mean_after_30d": 13.686666666666666
+      },
+      {
+        "date": "2017-07-31",
+        "index": 2341,
+        "ac1_trend": {
+          "tau": -0.4788883251592535,
+          "p_value": 1.619580289004354e-83,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.4593682469887441,
+          "p_value": 5.350759431506587e-77,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.34890730405697423,
+          "p_value": 3.457996694001561e-45,
+          "n": 730
+        },
+        "mean_before_30d": 7.86,
+        "mean_after_30d": 9.020000000000001
+      },
+      {
+        "date": "2018-06-20",
+        "index": 2665,
+        "ac1_trend": {
+          "tau": 0.5690550012214141,
+          "p_value": 3.933566808935894e-117,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.21771614333765524,
+          "p_value": 1.3386835148945968e-18,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.5677847304432793,
+          "p_value": 1.283362498500663e-116,
+          "n": 730
+        },
+        "mean_before_30d": 6.876666666666666,
+        "mean_after_30d": 7.970000000000001
+      },
+      {
+        "date": "2019-05-14",
+        "index": 2993,
+        "ac1_trend": {
+          "tau": -0.24684217449311305,
+          "p_value": 1.8640369733862132e-23,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.5329161734032357,
+          "p_value": 5.742246249119738e-103,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.06390814965142716,
+          "p_value": 0.009770160697987248,
+          "n": 730
+        },
+        "mean_before_30d": 11.886666666666667,
+        "mean_after_30d": 9.349999999999998
+      },
+      {
+        "date": "2019-11-11",
+        "index": 3174,
+        "ac1_trend": {
+          "tau": -0.7505783092495151,
+          "p_value": 2.8668174482677664e-202,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.039665135173747104,
+          "p_value": 0.10879131306140824,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.4405859196909582,
+          "p_value": 5.62682366805063e-71,
+          "n": 730
+        },
+        "mean_before_30d": 11.243333333333334,
+        "mean_after_30d": 13.656666666666666
+      },
+      {
+        "date": "2020-07-19",
+        "index": 3425,
+        "ac1_trend": {
+          "tau": -0.7514231728766536,
+          "p_value": 1.1357433747678508e-202,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.4388589177857586,
+          "p_value": 2.0310326135650472e-70,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.385634738507209,
+          "p_value": 8.620371862470048e-55,
+          "n": 730
+        },
+        "mean_before_30d": 8.253333333333334,
+        "mean_after_30d": 7.35
+      },
+      {
+        "date": "2021-04-20",
+        "index": 3700,
+        "ac1_trend": {
+          "tau": 0.3793983022005349,
+          "p_value": 4.389538135056477e-53,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.44500830880519293,
+          "p_value": 2.4120265940453413e-72,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.21424181943542342,
+          "p_value": 4.7133849417849135e-18,
+          "n": 730
+        },
+        "mean_before_30d": 12.533333333333333,
+        "mean_after_30d": 9.866666666666667
+      },
+      {
+        "date": "2021-10-17",
+        "index": 3880,
+        "ac1_trend": {
+          "tau": 0.7339099648454671,
+          "p_value": 2.0470331945776307e-193,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.7033800320201713,
+          "p_value": 7.933308472928508e-178,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.16665915189302402,
+          "p_value": 1.6180186077345388e-11,
+          "n": 730
+        },
+        "mean_before_30d": 7.533333333333331,
+        "mean_after_30d": 9.57
+      },
+      {
+        "date": "2022-06-09",
+        "index": 4115,
+        "ac1_trend": {
+          "tau": 0.39591907392146686,
+          "p_value": 1.1553111114037665e-57,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.21353644055826448,
+          "p_value": 5.982604380275603e-18,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.6717593704180285,
+          "p_value": 2.0381713390965315e-162,
+          "n": 730
+        },
+        "mean_before_30d": 7.386666666666667,
+        "mean_after_30d": 7.070000000000002
+      },
+      {
+        "date": "2023-02-03",
+        "index": 4354,
+        "ac1_trend": {
+          "tau": -0.5546309776774184,
+          "p_value": 2.3641973870367183e-111,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.42142392802035594,
+          "p_value": 4.33702433798147e-65,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": -0.4237616850568294,
+          "p_value": 8.581337602859104e-66,
+          "n": 730
+        },
+        "mean_before_30d": 14.550000000000002,
+        "mean_after_30d": 14.579999999999997
+      },
+      {
+        "date": "2023-09-05",
+        "index": 4568,
+        "ac1_trend": {
+          "tau": -0.5907322847962116,
+          "p_value": 4.513798753291709e-126,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": -0.11785331754890352,
+          "p_value": 1.8894054340133246e-06,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.36868293966213794,
+          "p_value": 3.005623950895547e-50,
+          "n": 730
+        },
+        "mean_before_30d": 6.63,
+        "mean_after_30d": 6.803333333333333
+      },
+      {
+        "date": "2024-04-28",
+        "index": 4804,
+        "ac1_trend": {
+          "tau": 0.297743202360148,
+          "p_value": 2.2431674124714045e-33,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.5924234737020124,
+          "p_value": 8.771038739876496e-127,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.6488415355995263,
+          "p_value": 1.1114594692758167e-151,
+          "n": 730
+        },
+        "mean_before_30d": 10.958333333333334,
+        "mean_after_30d": 8.2
+      },
+      {
+        "date": "2024-11-07",
+        "index": 4997,
+        "ac1_trend": {
+          "tau": 0.43537591371178375,
+          "p_value": 2.3523450019666755e-69,
+          "n": 730
+        },
+        "var_trend": {
+          "tau": 0.03646579100663321,
+          "p_value": 0.140389495852312,
+          "n": 730
+        },
+        "skew_trend": {
+          "tau": 0.5960989909239528,
+          "p_value": 2.453318207482393e-128,
+          "n": 730
+        },
+        "mean_before_30d": 9.286666666666665,
+        "mean_after_30d": 11.631666666666668
+      }
+    ],
+    "global_trend": {
+      "ac1": {
+        "tau": 0.28378294357100275,
+        "p_value": 1.5762020138747958e-186,
+        "n": 4686
+      },
+      "var": {
+        "tau": 0.23397370258742536,
+        "p_value": 1.9070273858112324e-127,
+        "n": 4686
+      },
+      "skew": {
+        "tau": -0.029972406135438397,
+        "p_value": 0.0020948303491436495,
+        "n": 4686
+      }
+    },
+    "classical_csd_signature_detected": true,
+    "interpretation": "Detected \u22651 changepoint with significant rise in BOTH AR(1) and variance over the preceding 730 days \u2014 classical critical-slowing-down signature consistent with fold-bifurcation regime shift.",
+    "block_bootstrap": {
+      "n_boot": 1000,
+      "block_size_days": 30,
+      "window_days": 365,
+      "tau_ar1_obs": 0.33058235679443543,
+      "tau_var_obs": 0.23902106827347355,
+      "p_naive_ar1": 1.5552617375527091e-245,
+      "p_naive_var": 2.437069554060383e-129,
+      "p_block_bootstrap_ar1": 0.07392607392607392,
+      "p_block_bootstrap_var": 0.2057942057942058,
+      "boot_tau_ar1_mean": 0.0061963104907938205,
+      "boot_tau_ar1_std": 0.18165598714019718,
+      "boot_tau_ar1_p95": 0.3046490636906435,
+      "boot_tau_var_mean": -0.00276267386783615,
+      "boot_tau_var_std": 0.18484590220224864,
+      "boot_tau_var_p95": 0.29532157779529594,
+      "rationale": "Naive p-values assume i.i.d.; daily DO has lag-1 autocorrelation ~0.8-0.9. Block bootstrap preserves serial structure within blocks of 30 days, resamples blocks with replacement, recomputes rolling indicator + Kendall tau on each resample. p_block reports the fraction of |tau_boot| >= |tau_obs| under the resampled null."
+    }
+  }
+}
