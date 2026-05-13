@@ -60,6 +60,39 @@
     }
     .home__cross-product a:hover { text-decoration: underline; }
     .home__cross-product-label { color: #71717A; }
+
+    /* Featured preprint (session #3) */
+    .home__featured-preprint {
+      display: block; margin-top: 18px; padding: 22px 26px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #18181B; border-radius: 12px;
+      text-decoration: none; color: inherit;
+      transition: all 0.18s;
+    }
+    .home__featured-preprint:hover {
+      box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .home__featured-preprint__badge {
+      display: inline-block; padding: 3px 9px;
+      background: #18181B; color: #FFF;
+      font-size: 10px; letter-spacing: 0.5px;
+      font-family: "JetBrains Mono", monospace;
+      border-radius: 4px; margin-bottom: 10px;
+    }
+    .home__featured-preprint__title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 19px; font-weight: 600; color: #18181B;
+      line-height: 1.4; margin-bottom: 8px;
+    }
+    .home__featured-preprint__body {
+      font-size: 14px; color: #52525B; line-height: 1.65; margin-bottom: 8px;
+    }
+    .home__featured-preprint__body strong { color: #2563EB; }
+    .home__featured-preprint__meta {
+      font-size: 12px; color: #71717A;
+      font-family: "JetBrains Mono", monospace;
+    }
   </style>
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
@@ -81,12 +114,15 @@
       <nav class="site-header__nav">
         <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">普适类</a>
         <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
+        <a href="/papers" class="site-header__nav-link" data-i18n="nav.papers">论文</a>
+        <a href="/methods" class="site-header__nav-link" data-i18n="nav.methods">方法</a>
+        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="site-header__nav-link" data-i18n="nav.phase_detector">Phase Detector</a>
         <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link>
           <span data-i18n="nav.favorites">我的收藏</span>
           <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
         </a>
         <a href="/about" class="site-header__nav-link" data-i18n="nav.about">关于</a>
-      
+
         <button type="button" class="site-header__lang-toggle" id="lang-toggle" data-i18n-attr="aria-label:nav.lang_toggle_aria">
           <span data-i18n-lang-label>EN</span>
         </button>
@@ -166,8 +202,16 @@
         <div class="home__cross-product">
           <span class="home__cross-product__badge" data-i18n="page.home.cross_product.badge">子产品</span>
           <span class="home__cross-product-label" data-i18n="page.home.cross_product.label">Phase Detector — 把同构引擎用到金融/商业领域。</span>
-          <a href="/phase" data-i18n="page.home.cross_product.link">打开 Phase Detector →</a>
+          <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" data-i18n="page.home.cross_product.link">打开 Phase Detector →</a>
         </div>
+
+        <!-- Session #3 featured: 13-system unified preprint + 5-class headline -->
+        <a class="home__featured-preprint" href="/paper/unified-pipeline-v0.2-2026-05-13" data-i18n-block="page.home.featured">
+          <div class="home__featured-preprint__badge">PREPRINT v0.2 · 2026-05-13</div>
+          <div class="home__featured-preprint__title">13 个独立系统,1 条 339 行 pipeline,5 个普适类</div>
+          <div class="home__featured-preprint__body">SOC threshold-cascade × 7 phase + Preferential Attachment × 2 + Motter-Lai 电网级联 + Preisach 高速公路相变 + Scheffer 湖泊 fold 分岔。同一份代码、不调参数,所有 α 落在预测带内,4 个合成 null 全部正确拒绝。 <strong>阅读 v0.2 统一预印本 →</strong></div>
+          <div class="home__featured-preprint__meta">12,538 字 · 25 分钟阅读 · B3 ensemble taxonomy 评审 (63 verdicts, 0 errors)</div>
+        </a>
       </div>
     </section>
 
@@ -312,7 +356,7 @@
       <div class="site-footer__copyright" data-i18n="footer.copyright">© 2026 Structural · 跨领域思维引擎</div>
       <div class="site-footer__links">
         <a class="site-footer__link" href="/about" data-i18n="footer.about">关于</a>
-        <a class="site-footer__link" href="https://structural.bytedance.city/paper-zh.html" target="_blank" rel="noopener" data-i18n="footer.paper">论文</a>
+        <a class="site-footer__link" href="/papers" data-i18n="footer.paper">论文</a>
         <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
         <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener" data-i18n="footer.huggingface">HuggingFace</a>
         <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener" data-i18n="footer.zenodo">Zenodo</a>

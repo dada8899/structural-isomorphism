@@ -1479,6 +1479,21 @@ async def analyze_page():
     return FileResponse(FRONTEND_DIR / "analyze.html")
 
 
+@app.get("/papers")
+async def papers_page():
+    return FileResponse(FRONTEND_DIR / "papers.html")
+
+
+@app.get("/methods")
+async def methods_page():
+    return FileResponse(FRONTEND_DIR / "methods.html")
+
+
+@app.get("/taxonomy-v2")
+async def taxonomy_v2_page():
+    return FileResponse(FRONTEND_DIR / "taxonomy-v2.html")
+
+
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     # API routes return JSON; only HTML pages get the full 404 template.
