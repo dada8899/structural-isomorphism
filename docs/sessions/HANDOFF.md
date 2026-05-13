@@ -10,214 +10,215 @@
 ```bash
 cd ~/Projects/structural-isomorphism/
 git pull origin main                        # 同步最新
-git log --oneline -5                        # 确认 head = d222aa1 或之后
-source .venv/bin/activate                   # 激活 venv（Python 3.14 + numpy/scipy/pandas/powerlaw/...）
-python -c "from soc_pipeline import fit_clauset_powerlaw; print('lib ok')" \
-  || (cd v4/lib && PYTHONPATH=. python -c "from soc_pipeline import fit_clauset_powerlaw; print('lib ok')")
-ls v4/validation/                           # 9 个 phase 目录 (含 wildfire/solar/github-stars/bank-failures)
-ls v4/taxonomy/classes/ | wc -l             # 应该是 24 yaml
+git log --oneline -5                        # 确认 head = session 2 PR merge commit
+source .venv/bin/activate                   # Python 3.14 + numpy/scipy/pandas/powerlaw/matplotlib/pytest
+PYTHONPATH=v4/lib python -c "from soc_pipeline import fit_clauset_powerlaw; print('soc lib ok')"
+PYTHONPATH=v4/lib python -c "from llm_guardrail import guardrailed_llm_call; print('guardrail ok')"
+python v4/cli.py status                     # 应打印 13 phases + verdicts
+.venv/bin/python -m pytest v4/tests/sanity -m sanity -q   # 38 passing in ~3.6s
 ```
 
-读完这 4 个文件即可上手：
+读完这 5 个文件即可上手：
 1. **本文件** (HANDOFF.md)
 2. `plans/v4-next-roadmap-2026-05-13.md` — 7 维度全景路线图
-3. `docs/sessions/structural-iso-session-1-end.md` — 上 session retro 详情
-4. `CLAUDE.md` (repo 根) — 如果还没有/不熟，需要先读 `~/CLAUDE.md` 全局规范
+3. `docs/sessions/structural-iso-session-2-end.md` — session #2 retro（最新）
+4. `paper/v0-unified-pipeline-2026-05-13.md` — C1 unified preprint draft
+5. `CLAUDE.md` (repo 根) — 项目级 CC 指引
 
 ---
 
-## 1. 当前状态 (2026-05-13 截止)
+## 1. 当前状态 (2026-05-13 session #2 截止)
 
-### 已验证 SOC 系统：9 个
+### 已验证 universality systems：13 个（SOC × 9 + PA × 2 + Hysteresis × 1 + Scheffer × 1）
 
-| Phase | 系统 | α | CI | n | paper |
-|---|---|---|---|---|---|
-| 1 | USGS earthquakes | b=1.084 | [1.073, 1.094] | 37k tail | ✓ |
-| 2 | S&P 500 returns | 2.998 | (n/a) | 9060 | ✓ |
-| 3 | DeFi Aave/Compound/Maker | 1.57-1.68 | (per-protocol) | 43k | ✓ |
-| 4 | Mouse cortex avalanches | 2.58 | [2.17, 3.00] | 1.39M spk | ✓ |
-| 5 | null validation (4/4 reject) | — | — | — | (footer) |
-| **6** | **GitHub stars (PA class)** | **2.867** | **[2.781, 3.000]** | **8398** | ✓ |
-| **8** | **FDIC bank failures** | **1.899** | **[1.763, 2.047]** | **3960** | ✓ |
-| **10** | **NIFC wildfires** | **1.660** | **[1.381, 1.808]** | **21k** | ✓ |
-| **11** | **GOES solar flares** | **2.194** | **[2.159, 2.248]** | **29.9k** | ✓ |
+| Phase | 系统 | Class | α / 关键指标 | CI | n | paper | session |
+|---|---|---|---|---|---|---|---|
+| 1 | USGS earthquakes | SOC | b=1.084 | [1.073, 1.094] | 37k tail | ✓ | V4 L5 |
+| 2 | S&P 500 returns | SOC | 2.998 | (n/a) | 9060 | ✓ | V4 L5 |
+| 3 | DeFi Aave/Compound/Maker | SOC | 1.57-1.68 | (per-protocol) | 43k | ✓ | V4 L5 |
+| 4 | Mouse cortex avalanches | SOC | 2.58 | [2.17, 3.00] | 1.39M spk | ✓ | V4 L5 |
+| 5 | null validation (4/4 reject) | — | — | — | — | (footer) | V4 L5 |
+| 6 | GitHub stars | PA | 2.867 | [2.781, 3.000] | 8398 | ✓ | #1 |
+| 8 | FDIC bank failures | SOC | 1.899 | [1.763, 2.047] | 3960 | ✓ | #1 |
+| 10 | NIFC wildfires | SOC | 1.660 | [1.381, 1.808] | 21k | ✓ | #1 |
+| 11 | GOES solar flares | SOC | 2.194 | [2.159, 2.248] | 29.9k | ✓ | #1 |
+| **7** | **Power grid cascades (MW)** | **Motter-Lai** | **2.018** | **[1.692, 2.307]** | **123 (40 tail)** | **✓** | **#2** |
+| **12** | **Universal collapse (7 sys)** | **SOC meta** | shape-norm=1.11 | (excellent) | (composite) | **✓** | **#2** |
+| **13** | **Wikipedia pageviews** | **PA** | **2.034** | **[1.854, 2.984]** | **7521 (2817 tail)** | **✓** | **#2** |
+| **A2-1** | **NGSIM US-101 traffic** | **Hysteresis-Preisach** | ratio 0.926 + lit 1.375/1.385 | (composite) | 4538 cells | **✓** | **#2** |
+| **A2-2** | **Fox River Green Bay DO** | **Scheffer fold** | AR(1) τ=+0.284 p=1e-186 | (rising) | 4732 obs | **✓** | **#2** |
 
-### Taxonomy 状态
+**Session #2 新增 5 个 verified phases + 1 universal-collapse polish。**
 
-- `v4/taxonomy/classes/*.yaml` — 24 类，per-class positive/negative/edge_cases
-- `v4/results/layer3_critic.jsonl` — B1 critic 推荐 21 → 15 active classes
-- `v4/results/A3_universal_collapse_plot.png` — 7 系统 master curve
+### Taxonomy 状态 (B1 ⊗ B3 final)
+
+- `v4/taxonomy/classes/*.yaml` — 24 类基础 schema (B4)
+- `v4/results/layer3_critic.jsonl` — B1 critic (single Opus reviewer)
+- `v4/results/B3_ensemble_review.jsonl` — B3 ensemble (3 × DeepSeek reviewers, 63 verdicts, 0 errors)
+- `v4/results/B3_taxonomy_v2.jsonl` — B1 ⊗ B3 merged final taxonomy
+- **B3 consensus**: KEEP=5 / REJECT=7 / SPLIT=5 / MERGE=4 (more conservative than B1 KEEP=11)
+- Notable B3-driven demotions: `delay_differential_debt` / `hysteresis_preisach` / `scale_free_percolation` / `tail_copula_contagion` 都从 KEEP → REJECT（rigorous reviewer 抓 mechanism vs limit-theorem 混淆）
 
 ### Git 状态
 
-- main HEAD: `d222aa1` (PR #1 merged 2026-05-13)
-- 4 commits 来自 session 1: `d03a841 / 3e57acb / 490afba / 2767738`
-- 本地 = origin/main，clean
+- main HEAD: session 2 PR merge commit (TBD pending merge — 11 commits on `v4/session2-mega-sprint`)
+- 本 session 11 commits（C1 preprint / Phase 12 polish / E1 CLI / E3 tests / E4 guardrail / Phase 13 / Phase 7 / A2-Hysteresis / A2-Scheffer / D1 groundwork / B3 ensemble）
+- 36525 lines net add，76 files changed
 
 ### Site 状态
 
-- `web/frontend/assets/data/universality-classes.json` 已更新（8 verified predictions）
-- 4 papers copied to `web/frontend/assets/data/papers/`
-- **VPS 未同步**（SSH 22 不通时段，下次 launchd 周期或手动 pull 后生效）
+- `web/frontend/assets/data/universality-classes.json` 仍是 session #1 的 8 verified predictions
+- 5 个 session #2 paper 还**未** copy 到 `web/frontend/assets/data/papers/`
+- VPS 未同步（next session 处理）
+
+### Engineering 基础设施 (new in #2)
+
+- `v4/cli.py` — unified CLI（list/status/validate/collapse/calibrate/critic 6 subcommands）
+- `v4/lib/llm_schemas.py + llm_guardrail.py` — 3-layer LLM JSON guardrail (E4)
+- `v4/tests/sanity/*` — 38 deterministic regression tests (3.6s) covering 9 phases + soc_pipeline primitives + universal collapse + llm_guardrail
+- `v4/product/d1_phase_detector/` — D1 MVP groundwork (schema + 100 companies + 5-sample DeepSeek run + cost projection $0.19 for full 100)
 
 ---
 
 ## 2. 下个 sprint 优先级（按 leverage 排）
 
-### Sprint A — 直接产出 (8-10h)
+### Sprint A — D1 Phase Detector full ship (4-6h)
 
-1. **C1 unified preprint v0.1** — 把 Phase 1+2+3+4+5+6+8+10+11 合成一篇 arXiv 草稿
-   - 标题候选：*"A pipeline for cross-domain validation of self-organized criticality and preferential attachment: 9 systems, one method"*
-   - 模板：派 Opus subagent 用各 phase paper.md + A3 universal collapse 结果合成 5000-7000 word 主稿
-   - 写到 `paper/v0-unified-pipeline-2026-05-XX.md`
-   - 预期：1-2 个 subagent dispatch，2-3h 完成 v0.1
-   - 卖点：单一管道 0 调参跨 9 个真实系统 + null validation + B1 critic + universal collapse
-   - **强 leverage** — 把 4 周工作变成可投 arXiv 的成品
+1. **D1 full 100-company batch run** — 跑 `v4/product/d1_phase_detector/extract_structtuple.py` on 100 companies (parallel 5-way ≈ 15 min, ~$0.19)
+2. **Postgres ingestion + Screener API** — schema for StructTuple → companies table, FastAPI endpoint `/screener?dynamics_family=...&critical_point_state=...`
+3. **Filter UI + 30s TL;DR card** — minimal Next.js page
+4. **Deploy phase.bytedance.city** — DNS / nginx / certbot per project lifecycle Phase 2
 
-2. **B3 multi-model ensemble** — DeepSeek 直连 + Kimi 直连绕开 OpenRouter CN 区域 block
-   - DeepSeek 直连 key 在 memory: `reference_deepseek_direct_api_2026_05_06.md`
-   - 3 模型对 23 类投票 → 写 `v4/results/B3_ensemble_review.jsonl`
-   - 配合 B1 critic 一起进 taxonomy v2 输出
+### Sprint B — Site refresh + C1 polish (2-3h)
 
-3. **Phase 12 — universal-collapse polish + 新增 c-extension** — A3 现在是基础版，可加：
-   - finite-size scaling 完整推导（不仅 99th-pctl rescale）
-   - log-bin density estimation
-   - 写成单独 paper.md 而不是只 summary.md
-   - 1-2h 工作
+5. **Site update**: copy session #2 papers (Phase 7 / 13 / A2-Hysteresis / A2-Scheffer / Phase 12) → `web/frontend/assets/data/papers/`; update `universality-classes.json` with new verified predictions (13 instead of 8)
+6. **C1 preprint v0.2** — 加 universal collapse polish 结果 + Phase 7/13/A2-Hysteresis/A2-Scheffer 章节 + B3 taxonomy v2 数据
+7. **Figure 1 real flowchart** — 替换 v0.1 的 ASCII placeholder
 
-### Sprint B — 新数据 (6-10h)
+### Sprint C — 新数据 phases (6-10h)
 
-4. **Phase 7 NERC TADS 电网级联**（Motter-Lai 亚类 explicit）
-   - 数据：NERC TADS 报告（PDF 或 Excel）。Excel 友好。
-   - URL: https://www.nerc.com/pa/RAPA/tads/ (找 Excel 附件)
-   - 替代：US EIA OE-417 electricity disturbance reports (~5k events)
-   - 预测：α 1.4-1.9 (Motter-Lai)，event size = MW affected / customer hours
-   - 估时 3-4d
+8. **A2 #6 Copula tail dependence**：FRED + NOAA 巨灾联动数据
+9. **A2 #7 SIR contagion**：COVID openly published data，验证 R0 + branching ratio
+10. **Phase 14 — Hawkes process Omori** 跨域：earthquake / DeFi / neural 在 Hawkes 框架下重新 fit branching ratio
 
-5. **Phase 13 Wikipedia views**（再 verify preferential_attachment）
-   - 数据：Wikimedia REST API pageviews
-   - 已知 α ≈ 2.0 (Newman 2005)
-   - 估时 2d
+### Sprint D — 学术发表 (2-4 周)
 
-6. **A2-Hysteresis 交通拥堵**（首次非 SOC 类实证）
-   - 数据：PeMS California highway 5-min loop detector data
-   - 验证：q_c1 / q_c2 ratio in [1.25, 1.55]
-   - 估时 3d
-
-7. **A2-Scheffer 湖泊富营养化**
-   - 数据：USGS National Water Information System
-   - 验证：bistable regime shift + early warning indicators
-   - 估时 3d
-
-### Sprint C — 工程加固 (2-3h)
-
-8. **E1 unified CLI** — 把 v4/validation/*/analyze.py 抽成 `v4 validate <slug>` 子命令
-9. **E2 DVC / git-lfs** — 给 catalog.parquet / aave_v2_liquidations.jsonl 等大 jsonl 加 versioning
-10. **E3 CI sanity tests** — 每 phase 一个 10s synthetic regression test
+11. **C2 solo papers arXiv 化** — Phase 1/2/3/4 重写格式投 arXiv
+12. **C3 Taxonomy v2 paper** — B3 验证后的 21 → 7 KEEP 写成 cross-domain taxonomy 论文（需 senior physicist 合作者）
 
 ---
 
 ## 3. 已知 blocker / 注意事项
 
 ### 网络
-- **VPS SSH 22 不通时段** — 本地→43.156.233.71:22 路由经常 transient 抖动；可用 `ssh -o ConnectTimeout=30` 重试或等 launchd 周期
-- **OpenRouter Anthropic/Gemini CN region-block** — 用 DeepSeek 直连 / Kimi 直连绕开（key 在 memory）
-- **Reddit Pushshift API 停服** — Phase 9 social cascade 数据需要换源（Hacker News Algolia API 是替代）
+- **OpenRouter Anthropic/Gemini CN region-block** — 已确认。所有 LLM 调用必须走 DeepSeek 直连（v4-pro + v4-flash, key in memory `reference_deepseek_direct_api_2026_05_06.md`）。session #2 全程 OK，0 errors / 0 parse fails on 63 + 5 calls。
+- **VPS SSH 22 transient** — 部署用重试或等 launchd 周期
+- **DOE OE-417 portal TLS-handshake timeout** — Phase 7 用 literature meta + Wikipedia cross-val 替代；EIA API 也无 event-level disturbance endpoint
+- **Reddit Pushshift 停服** — social cascade phase 替代源待研
 
-### 子 agent
-- **worktree isolation 限制**: structural-isomorphism 仓在 `/Users/dadamini/Projects/structural-isomorphism`，主 session CWD 是 `/Users/dadamini/Projects/renai-cross`。subagent `isolation: "worktree"` 会基于主 session CWD，导致 worktree 在 renai-cross 内，无法操作 structural-isomorphism。
-  - **解决**：subagent **不用 isolation**，直接给绝对路径，让它在主仓写文件，主 session 后续 commit。memory 有相关 feedback (`feedback_subagent_worktree_*.md`)。
-  - **代价**：多 subagent 并行写不同目录可以，但 git commit 必须主 session 来做（避免 race）。
+### Subagent
+- **worktree isolation 限制**: 主 session CWD = `renai-cross`，操作 structural-isomorphism 时 subagent **不用 isolation**，给绝对路径，主 session harvest commit。
+- **B3 长时 LLM 跑务必用 bash background**：直接 subagent 跑 63 个 LLM call 容易 "Monitor armed" 后未 wait 就退出。改用 `nohup python script &` 在主 session 起，poll JSONL 行数确认进度。
 
 ### Commit
-- main branch 直接 push 被 sandbox 拒 — **必须走 PR**：起 feature branch + `gh pr create` + `gh pr merge --merge --delete-branch`。session 1 走通这条路（PR #1）。
+- main branch 直 push 被 sandbox 拒 — **必须走 PR**：feature branch + `gh pr create` + `gh pr merge --merge --delete-branch`. session #1/#2 都按这条。
+- session 内一次 commit 一个语义意图（一个 Wave deliverable），跨产品改动用 `renai` scope。
 
 ### 数据
-- `v4/validation/soc-wildfire/raw_nifc.csv` 17MB — `.gitignore` 已加；如果 re-fetch 需要 17M 不进 git
-- `models/` (782MB V1/V2) — 已 `.gitignore`，V4 不依赖
+- `v4/validation/scheffer-lake/lake_do_timeseries.jsonl` 698KB，未 LFS（可接受）
+- `v4/validation/hysteresis-traffic/us101_ngsim_agg_raw.csv` 较大，未 LFS
+- session #2 不引入新的 `.gitignore` 漏放（合理大小）
 
 ---
 
-## 4. Repo 结构速查
+## 4. Repo 结构速查（session #2 之后）
 
 ```
 ~/Projects/structural-isomorphism/
-├── .venv/                          # Python 3.14 venv (numpy/scipy/pandas/powerlaw/...)
-├── plans/                          # 路线图 + 老 V3 plans
-│   └── v4-next-roadmap-2026-05-13.md   ⭐ 7 维度全景路线
+├── .venv/
+├── plans/
+│   └── v4-next-roadmap-2026-05-13.md
+├── paper/
+│   └── v0-unified-pipeline-2026-05-13.md      ✨ session #2 (C1)
 ├── v4/
-│   ├── lib/soc_pipeline.py             ⭐ 共享 SOC primitives
-│   ├── validation/                     # 9 个 phase 目录
-│   │   ├── soc-earthquake/
-│   │   ├── soc-stockmarket/
-│   │   ├── soc-defi/
-│   │   ├── soc-neural/
-│   │   ├── soc-wildfire/               # session 1 new
-│   │   ├── soc-solar/                  # session 1 new
-│   │   ├── soc-bank-failures/          # session 1 new
-│   │   ├── soc-github-stars/           # session 1 new
-│   │   └── null-controls/
-│   ├── scripts/                        # 全局 utilities
-│   │   ├── build_graph.py / build_site_data.py / hub_detect.py
-│   │   ├── calibrate_predictions_ci.py    # B2
-│   │   ├── universal_collapse.py          # A3
-│   │   └── update_classes_site_data.py    # site updater
-│   ├── results/                        # cross-phase 结果
-│   │   ├── candidate_classes.jsonl     # Layer 2
-│   │   ├── layer3_auto_curated.jsonl   # Layer 3
-│   │   ├── layer4_predictions.jsonl    # Layer 4
-│   │   ├── layer3_critic.jsonl + summary.md     # B1 ✨
-│   │   ├── layer4_predictions_calibrated.jsonl # B2 ✨
-│   │   ├── verified_observations.json           # B2 ✨
-│   │   ├── A3_universal_collapse.{json,plot.png,summary.md}  # A3 ✨
-│   │   └── B2_calibration_summary.md            # B2 ✨
-│   └── taxonomy/
-│       ├── universality_classes.yaml   # 老 seed (don't overwrite)
-│       ├── SCHEMA.md                    # B4 ✨
-│       └── classes/<class_id>.yaml × 24  # B4 ✨
-├── web/frontend/
-│   ├── classes.html / assets/js/classes.js  # /classes 页面
-│   └── assets/data/
-│       ├── universality-classes.json   # ✨ 8 verified predictions
-│       └── papers/<slug>.md            # 4 new papers ✨
-├── paper/                              # 老 V1/V2 paper drafts
+│   ├── cli.py                                 ✨ session #2 (E1)
+│   ├── __init__.py                            ✨ session #2
+│   ├── lib/
+│   │   ├── soc_pipeline.py
+│   │   ├── llm_schemas.py                     ✨ session #2 (E4)
+│   │   └── llm_guardrail.py                   ✨ session #2 (E4)
+│   ├── validation/                            # 14 phase 目录
+│   │   ├── soc-earthquake/ soc-stockmarket/ soc-defi/ soc-neural/
+│   │   ├── soc-wildfire/ soc-solar/ soc-bank-failures/ soc-github-stars/
+│   │   ├── null-controls/
+│   │   ├── soc-universal-collapse/            ✨ session #2 (Phase 12)
+│   │   ├── soc-power-grid/                    ✨ session #2 (Phase 7)
+│   │   ├── soc-wikipedia-views/               ✨ session #2 (Phase 13)
+│   │   ├── hysteresis-traffic/                ✨ session #2 (A2-Hysteresis)
+│   │   └── scheffer-lake/                     ✨ session #2 (A2-Scheffer)
+│   ├── scripts/
+│   │   ├── b3_ensemble.py                     ✨ session #2 (B3)
+│   │   └── (existing build_graph / calibrate / universal_collapse / hub_detect / update_classes_site_data)
+│   ├── results/
+│   │   ├── B3_ensemble_review.jsonl           ✨ session #2 (B3, 63 verdicts)
+│   │   ├── B3_ensemble_summary.md             ✨ session #2 (B3)
+│   │   ├── B3_taxonomy_v2.jsonl               ✨ session #2 (B3, B1⊗B3 merged)
+│   │   └── (existing A3_*, B2_*, layer3_*, layer4_*, candidate_classes ...)
+│   ├── taxonomy/classes/*.yaml × 24
+│   ├── tests/                                 ✨ session #2 (E3 + E4 test)
+│   │   ├── conftest.py
+│   │   ├── sanity_helpers.py
+│   │   └── sanity/test_*.py × 12
+│   └── product/d1_phase_detector/             ✨ session #2 (D1 groundwork)
+│       ├── schema/structtuple_schema.json
+│       ├── companies.jsonl (100)
+│       ├── extract_structtuple.py
+│       ├── sample_run.py + sample_structtuples.jsonl (5)
+│       ├── cost_projection.md + README.md
+├── web/frontend/                              # 站点（session #2 未更新）
 ├── docs/sessions/
 │   ├── HANDOFF.md (本文件)
-│   └── structural-iso-session-1-end.md
-└── CLAUDE.md                           # 项目级 CC 指引（项目根，重要）
+│   ├── structural-iso-session-1-end.md
+│   └── structural-iso-session-2-end.md        ✨ session #2
+├── pytest.ini                                 ✨ session #2 (E3)
+└── CLAUDE.md
 ```
 
 ---
 
-## 5. 常用命令速查
+## 5. 常用命令速查（session #2 起新增）
 
 ```bash
-# 跑某个 phase analyze (例: wildfire)
-cd ~/Projects/structural-isomorphism && source .venv/bin/activate
-python v4/validation/soc-wildfire/analyze.py
+# 起 session
+cd ~/Projects/structural-isomorphism && git pull && source .venv/bin/activate
 
-# 重新跑 B2 calibration（添加新 verified 后）
-python v4/scripts/calibrate_predictions_ci.py
+# CLI（新）
+python v4/cli.py status                     # 13 phases overview
+python v4/cli.py validate <slug>            # single phase
+python v4/cli.py list                       # all phases
 
-# A3 universal collapse 重新合成
-python v4/scripts/universal_collapse.py
+# Sanity tests（新）
+.venv/bin/python -m pytest v4/tests/sanity -m sanity -q   # 38 in 3.6s
 
-# 更新 /classes 站点数据
-python v4/scripts/update_classes_site_data.py
+# B3 ensemble re-run（如改 prompt 后重跑）
+nohup .venv/bin/python v4/scripts/b3_ensemble.py > /tmp/b3.log 2>&1 &
+tail -F /tmp/b3.log
 
-# 起 feature branch + commit + PR + merge（替代 direct push to main）
-git checkout -b v4/next-phase-XX
+# D1 sample re-run
+.venv/bin/python v4/product/d1_phase_detector/sample_run.py
+
+# D1 full 100 batch (next session)
+.venv/bin/python v4/product/d1_phase_detector/extract_structtuple.py \
+  v4/product/d1_phase_detector/companies.jsonl \
+  v4/product/d1_phase_detector/structtuples_2026-05-XX.jsonl
+
+# PR flow
+git checkout -b v4/session3-<topic>
 # ... 工作 ...
-git add <specific files>
-git commit -m "..."
-git push -u origin v4/next-phase-XX
+git push -u origin v4/session3-<topic>
 gh pr create --base main --title "..." --body "..."
 gh pr merge <num> --merge --delete-branch
 git checkout main && git pull --ff-only
-
-# VPS git pull (SSH 通的时候)
-ssh vps "cd /root/Projects/structural-isomorphism && git pull origin main && systemctl restart nginx"
-# 注意：VPS 目录原本是 rsync 快照非 git，第一次需要 git init + remote add + fetch + reset
 ```
 
 ---
@@ -227,19 +228,22 @@ ssh vps "cd /root/Projects/structural-isomorphism && git pull origin main && sys
 | Session | 日期 | 重点 | retro |
 |---|---|---|---|
 | (V1/V2) | 2026-04-11 | KB 5k + 3017 pair matches + 站点上线 | progress.md |
-| (V3) | 2026-04-14 | V3 solver deprecated（被 Direct Opus 9/10 击穿） | progress.md |
-| (V4 Layer 1-4) | 2026-04-15 | 23 candidate classes 浮现 + 27 predictions | v4/results/FINDINGS-2026-04-15.md |
-| (V4 Layer 5 Phase 1-5) | 2026-04-15..16 | earthquake / S&P / DeFi / mouse / null validation | papers in v4/validation/*/paper.md |
-| **Session 1** | **2026-05-13** | **Phase 6/8/10/11 + B1/B2/B4 + A3** | **docs/sessions/structural-iso-session-1-end.md** |
-| Session 2 | (next) | C1 unified preprint / B3 ensemble / Phase 7+ | (TBD) |
+| (V3) | 2026-04-14 | V3 solver deprecated（Direct Opus 9/10 击穿） | progress.md |
+| (V4 Layer 1-4) | 2026-04-15 | 23 candidate classes + 27 predictions | v4/results/FINDINGS-2026-04-15.md |
+| (V4 L5 Phase 1-5) | 2026-04-15..16 | earthquake / S&P / DeFi / mouse / null | papers in v4/validation/*/paper.md |
+| **#1** | **2026-05-13** | Phase 6/8/10/11 + B1/B2/B4 + A3 | docs/sessions/structural-iso-session-1-end.md |
+| **#2** | **2026-05-13** | **C1 preprint + Phase 7/12/13 + A2-Hyst + A2-Scheffer + B3 + D1 + E1/E3/E4** | **docs/sessions/structural-iso-session-2-end.md** |
+| #3 | (next) | D1 full ship + Sprint B site refresh + Phase 14 Hawkes | (TBD) |
 
 ---
 
 ## 7. 末尾 checklist (session N 结束时更新本文件)
 
-下个 session 结束时，把这个 HANDOFF.md 更新：
-- [ ] §1 "已验证 SOC 系统" 加一行
-- [ ] §2 "下个 sprint 优先级" 把已完成的删去 + 排新优先级
-- [ ] §3 "已知 blocker" 更新（解决的删，新增的加）
-- [ ] §6 "历史 sprint 索引" 加一行 + 写 `docs/sessions/structural-iso-session-N-end.md`
+下个 session 结束时更新本文件：
+- [ ] §1 "已验证 systems" 加新行 (table)
+- [ ] §2 "下个 sprint 优先级" 删已完成 + 排新
+- [ ] §3 blocker 更新
+- [ ] §4 repo 结构加新 ✨
+- [ ] §5 命令速查加新
+- [ ] §6 历史 sprint 索引加新行 + 写 `docs/sessions/structural-iso-session-N-end.md`
 - [ ] commit 本文件 + push（走 PR）
