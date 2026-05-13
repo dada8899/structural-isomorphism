@@ -36,4 +36,9 @@ setup(
     package_data={
         "structural_isomorphism": ["data/*.jsonl"],
     },
+    entry_points={
+        "console_scripts": [
+            "v4=v4.cli:main",
+        ],
+    },
 )
