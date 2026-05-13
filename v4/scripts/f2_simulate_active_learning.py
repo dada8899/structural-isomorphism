@@ -190,7 +190,36 @@ def main() -> int:
     parser.add_argument("--eval-frac", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument(
+        "--baseline",
+        choices=["critic", "random", "uncertainty", "all"],
+        default="critic",
+        help=(
+            "Active-learning query selection baseline. "
+            "'critic' (default) = original run using all miner-mined pairs; "
+            "'random' = uniform random sample at the same volume; "
+            "'uncertainty' = pairs closest to the decision boundary; "
+            "'all' = run all three and write a side-by-side comparison report "
+            "(invokes f2_baseline_ablation.py)."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.baseline == "all":
+        # Delegate to the dedicated ablation script
+        import subprocess
+        cmd = [
+            sys.executable,
+            str(Path(__file__).resolve().parent / "f2_baseline_ablation.py"),
+            "--positives", str(args.positives),
+            "--negatives", str(args.negatives),
+            "--epochs", str(args.epochs),
+            "--eval-frac", str(args.eval_frac),
+            "--seed", str(args.seed),
+        ]
+        if args.quiet:
+            cmd.append("--quiet")
+        return subprocess.call(cmd)
 
     logging.basicConfig(
         level=logging.WARNING if args.quiet else logging.INFO,

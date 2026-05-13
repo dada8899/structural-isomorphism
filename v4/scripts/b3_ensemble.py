@@ -45,7 +45,15 @@ TAXONOMY_OUT = REPO / "v4" / "results" / "B3_taxonomy_v2.jsonl"
 # DeepSeek API config
 
 DEEPSEEK_BASE = "https://api.deepseek.com/v1/chat/completions"
-DEEPSEEK_KEY = "sk-ad62cc6d8ada4bd0a92847b6b1d0ae1f"
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
+if not DEEPSEEK_KEY:
+    raise RuntimeError(
+        "DEEPSEEK_API_KEY env var is not set. "
+        "Get a key at https://platform.deepseek.com and export it before running:\n"
+        "    export DEEPSEEK_API_KEY='sk-...'\n"
+        "Or copy .env.example to .env and source it. See "
+        "docs/security/api-key-rotation-runbook.md for the rotation runbook."
+    )
 
 REVIEWERS = [
     {
