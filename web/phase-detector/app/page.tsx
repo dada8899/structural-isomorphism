@@ -393,6 +393,21 @@ export default function ScreenerHomePage() {
           />
         </div>
       </section>
+
+      {/* Sister-product cross-link — symmetric to Structural's homepage callout. */}
+      <a
+        href="https://structural.bytedance.city"
+        target="_blank"
+        rel="noopener"
+        className="block rounded-2xl border border-zinc-200 bg-white px-6 py-5 transition hover:border-accent hover:bg-zinc-50 sm:px-8"
+      >
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          姐妹产品
+        </span>
+        <span className="block text-sm text-zinc-900">
+          想找跨学科的解法？→ <strong>Structural</strong>：把你的难题，换成另一个学科已经解过的题
+        </span>
+      </a>
     </div>
   );
 }

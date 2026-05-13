@@ -89,7 +89,7 @@ export default function RootLayout({
                 rel="noopener"
                 className="hover:text-zinc-900"
               >
-                主站 ↗
+                Structural ↗
               </a>
             </nav>
           </div>
@@ -123,7 +123,7 @@ export default function RootLayout({
                 rel="noopener"
                 className="hover:text-zinc-900"
               >
-                主站 ↗
+                Structural ↗
               </a>
             </div>
             <div className="text-zinc-400">
