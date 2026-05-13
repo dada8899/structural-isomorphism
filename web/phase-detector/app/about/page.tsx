@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PageOpenTracker } from "@/components/PageOpenTracker";
 
 export const metadata: Metadata = {
   title: "关于 — Phase Detector",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <article className="mx-auto max-w-3xl">
+      <PageOpenTracker event="about_opened" />
       <Breadcrumb
         items={[{ label: "首页", href: "/" }, { label: "关于" }]}
       />

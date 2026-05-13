@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ARIA_LABEL,
   CPS_BADGE,
@@ -144,6 +145,13 @@ export function CompanyCard({ company }: { company: Company }) {
           href={`/company/${encodeURIComponent(company.ticker)}`}
           className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
           style={{ color: "#2563EB" }}
+          onClick={() =>
+            trackEvent(Events.CompanyViewed, {
+              ticker: company.ticker,
+              family: company.dynamics_family,
+              state: company.critical_point_state,
+            })
+          }
         >
           查看完整报告
           <span aria-hidden="true">→</span>
