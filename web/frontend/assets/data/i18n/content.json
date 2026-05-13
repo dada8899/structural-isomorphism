@@ -568,8 +568,8 @@
     "en": "404 — Structural"
   },
   "page.classes.hero_eyebrow": {
-    "zh": "V4 · 等价类 × 共享不变量 × 可验证预测",
-    "en": "V4 · Equivalence classes × shared invariants × falsifiable predictions"
+    "zh": "等价类 · 共享不变量 · 可验证预测",
+    "en": "Equivalence classes · shared invariants · falsifiable predictions"
   },
   "page.classes.hero_title": {
     "zh": "当多个现象共享<em>底层规律</em>",
@@ -1916,8 +1916,8 @@
     "en": "13 verified phase papers + v0.2 unified preprint + 4 arXiv solo drafts + reproduction tutorial."
   },
   "page.papers.eyebrow": {
-    "zh": "V4 · Layer 5 实证验证 + 预印本",
-    "en": "V4 · Layer 5 empirical verification + preprints"
+    "zh": "实证验证 · 预印本",
+    "en": "Empirical verification · preprints"
   },
   "page.papers.title": {
     "zh": "同一条 pipeline,<em>13 个验证系统</em>",
@@ -1980,8 +1980,8 @@
     "en": "V4 Layer 1-5 pipeline overview."
   },
   "page.methods.eyebrow": {
-    "zh": "V4 · Layer 1-5 全貌",
-    "en": "V4 · Layers 1-5"
+    "zh": "完整 pipeline · 5 个阶段",
+    "en": "Full pipeline · 5 stages"
   },
   "page.methods.title": {
     "zh": "同一条 pipeline,<em>13 个独立系统</em>",
@@ -2016,16 +2016,16 @@
     "en": "Null robustness"
   },
   "page.taxv2.meta_title": {
-    "zh": "B1 ⊗ B3 Taxonomy v2 — Structural",
-    "en": "B1 ⊗ B3 Taxonomy v2 — Structural"
+    "zh": "Pattern family verdicts · Structural",
+    "en": "Pattern family verdicts · Structural"
   },
   "page.taxv2.eyebrow": {
-    "zh": "V4 · B1 ⊗ B3 Verdict 矩阵",
-    "en": "V4 · B1 ⊗ B3 verdict matrix"
+    "zh": "Verdicts · 多模型审议结果",
+    "en": "Verdicts · multi-model review"
   },
   "page.taxv2.title": {
-    "zh": "21 候选类 × 3 reviewer = <em>63 verdicts</em>",
-    "en": "21 candidate classes × 3 reviewers = <em>63 verdicts</em>"
+    "zh": "Pattern family verdicts — 哪些被保留、降级、否决",
+    "en": "Pattern family verdicts — what we kept, demoted, or <em>rejected</em>"
   },
   "page.taxv2.col_class": {
     "zh": "候选类",

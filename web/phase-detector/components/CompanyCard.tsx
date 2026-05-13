@@ -6,8 +6,9 @@ import {
   CPS_ARIA_LABEL,
   CPS_BADGE,
   CPS_ICON,
-  CPS_LABEL,
-  DYNAMICS_LABEL,
+  CPS_LABEL_ZH,
+  DYNAMICS_LABEL_ZH,
+  DYNAMICS_SUBTITLE_ZH,
 } from "@/lib/labels";
 import type { Company } from "@/lib/types";
 
@@ -51,14 +52,19 @@ export function CompanyCard({ company }: { company: Company }) {
           <span aria-hidden="true" className="text-sm leading-none">
             {CPS_ICON[company.critical_point_state]}
           </span>
-          <span>{CPS_LABEL[company.critical_point_state]}</span>
+          <span>{CPS_LABEL_ZH[company.critical_point_state]}</span>
         </span>
       </header>
 
       <div className="text-xs text-zinc-500">
         <span className="font-medium text-zinc-700">
-          {DYNAMICS_LABEL[company.dynamics_family] ?? company.dynamics_family}
+          {DYNAMICS_LABEL_ZH[company.dynamics_family] ?? company.dynamics_family}
         </span>
+        {DYNAMICS_SUBTITLE_ZH[company.dynamics_family] && (
+          <span className="ml-2 text-gray-500">
+            · {DYNAMICS_SUBTITLE_ZH[company.dynamics_family]}
+          </span>
+        )}
       </div>
 
       <p className="text-sm leading-relaxed text-zinc-700">{company.tldr}</p>

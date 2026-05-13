@@ -1,0 +1,29 @@
+{
+  "$comment": "Single source of truth for site-wide counts (W6-D, 2026-05-13). Pages should fetch this and template-inject — do not hard-code these numbers in HTML. Update here when the underlying dataset / pipeline changes.",
+  "verified_phases": 13,
+  "verified_phases_breakdown": {
+    "soc": 7,
+    "preferential_attachment": 2,
+    "motter_lai_cascade": 1,
+    "preisach_hysteresis": 1,
+    "scheffer_fold": 1,
+    "universal_collapse": 1
+  },
+  "a2_systems": 2,
+  "universality_classes_kept": 5,
+  "universality_classes_candidates_reviewed": 21,
+  "ensemble_verdicts_total": 63,
+  "phase_detector_companies_published": 97,
+  "phase_detector_companies_attempted": 100,
+  "structural_signals_near_critical": 6,
+  "kb_phenomena_total": 4443,
+  "kb_disciplines": 87,
+  "discoveries_a_grade": 39,
+  "pair_isomorphisms": 191,
+  "papers_total": 5,
+  "preprint_unified": 1,
+  "preprint_solo_drafts": 4,
+  "pipeline_lines_of_code": 339,
+  "last_updated": "2026-05-13",
+  "data_doi": "10.5281/zenodo.19615170"
+}
