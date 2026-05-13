@@ -1,0 +1,20 @@
+{"ticker": "JPM", "company_name": "JPMorgan Chase & Co.", "sector": "financials_bank", "market_cap_bn_usd": 680, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BAC", "company_name": "Bank of America Corp.", "sector": "financials_bank", "market_cap_bn_usd": 360, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "WFC", "company_name": "Wells Fargo & Co.", "sector": "financials_bank", "market_cap_bn_usd": 250, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "C", "company_name": "Citigroup Inc.", "sector": "financials_bank", "market_cap_bn_usd": 130, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "GS", "company_name": "Goldman Sachs Group", "sector": "financials_bank", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "MS", "company_name": "Morgan Stanley", "sector": "financials_bank", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "motter_lai_cascade"}
+{"ticker": "BLK", "company_name": "BlackRock Inc.", "sector": "financials_asset_mgmt", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "V", "company_name": "Visa Inc.", "sector": "financials_payments", "market_cap_bn_usd": 580, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "MA", "company_name": "Mastercard Inc.", "sector": "financials_payments", "market_cap_bn_usd": 470, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "AXP", "company_name": "American Express Co.", "sector": "financials_payments", "market_cap_bn_usd": 195, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "JNJ", "company_name": "Johnson & Johnson", "sector": "healthcare_pharma", "market_cap_bn_usd": 410, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "UNH", "company_name": "UnitedHealth Group", "sector": "healthcare_insurance", "market_cap_bn_usd": 480, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "LLY", "company_name": "Eli Lilly and Company", "sector": "healthcare_pharma", "market_cap_bn_usd": 720, "expected_dynamics_family_a_priori": "preferential_attachment"}
+{"ticker": "PFE", "company_name": "Pfizer Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 160, "expected_dynamics_family_a_priori": "hysteresis_preisach"}
+{"ticker": "MRK", "company_name": "Merck & Co. Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 300, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABBV", "company_name": "AbbVie Inc.", "sector": "healthcare_pharma", "market_cap_bn_usd": 310, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "TMO", "company_name": "Thermo Fisher Scientific", "sector": "healthcare_devices", "market_cap_bn_usd": 220, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "ABT", "company_name": "Abbott Laboratories", "sector": "healthcare_devices", "market_cap_bn_usd": 200, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "DHR", "company_name": "Danaher Corporation", "sector": "healthcare_devices", "market_cap_bn_usd": 170, "expected_dynamics_family_a_priori": "linear_quasi_equilibrium"}
+{"ticker": "CVS", "company_name": "CVS Health Corp.", "sector": "healthcare_retail", "market_cap_bn_usd": 75, "expected_dynamics_family_a_priori": "scheffer_fold"}
