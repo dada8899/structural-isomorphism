@@ -1,0 +1,80 @@
+# Git LFS configuration — structural-isomorphism project
+#
+# Background: 2026-04-16 commit b135717 撞过 git-filter-repo 事故（误删大文件）
+# 此 .gitattributes 用于约束未来新增的大文件（>=1MB）自动走 LFS，
+# 避免再次触发需要 history rewrite 的修复。
+#
+# IMPORTANT: 现有已 commit 的大文件未通过 `git lfs migrate import` 迁移到 LFS。
+# 仅约束新增——已有大文件保持在 git history 中不动。
+# 详细策略与 onboarding 流程见 docs/data-versioning.md
+#
+# 维护规则：
+# - 新加一个大文件 pattern：`git lfs track "<pattern>"` 自动 append 到本文件
+# - 手动编辑时按"data type pattern"分块，保持注释解释为什么
+# - 配置类 jsonl / 小数据集 (<100KB) 不进 LFS（避免引入 LFS pointer 间接层的复杂度）
+
+# === Generic data file patterns (always LFS) ===
+
+# Columnar formats — almost always >1MB
+*.parquet filter=lfs diff=lfs merge=lfs -text
+
+# NumPy serialized arrays (embeddings, dense tensors)
+*.npy filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+
+# Neurodata Without Borders (neuroscience datasets)
+*.nwb filter=lfs diff=lfs merge=lfs -text
+
+# Archive formats — typically data dumps
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
+*.tgz filter=lfs diff=lfs merge=lfs -text
+
+# === Path-specific patterns (LFS for known large data files) ===
+
+# Validation domain raw catalogs / aggregated data (>1MB each)
+v4/validation/soc-earthquake/catalog.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-earthquake/catalog.parquet filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-defi/aave_v2_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-defi/compound_v2_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-defi/maker_dog_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-neural/neural_avalanches.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-neural/synthetic_avalanches.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-neural/bf_1.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-neural/bf_2.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-solar/flares.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-wildfire/fires.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-github-stars/repos.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/soc-bank-failures/raw_fdic.json filter=lfs diff=lfs merge=lfs -text
+v4/validation/scheffer-lake/lake_do_timeseries.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/hysteresis-traffic/us101_ngsim_agg_raw.csv filter=lfs diff=lfs merge=lfs -text
+
+# Future validation raw data — any csv under raw/ subdirs goes LFS
+v4/validation/**/raw/*.csv filter=lfs diff=lfs merge=lfs -text
+v4/validation/**/raw/*.jsonl filter=lfs diff=lfs merge=lfs -text
+v4/validation/**/raw/*.parquet filter=lfs diff=lfs merge=lfs -text
+
+# Web app knowledge-base embeddings (currently >13MB each)
+web/data/kb_embeddings.npy filter=lfs diff=lfs merge=lfs -text
+web/data/kb_v2_embeddings.npy filter=lfs diff=lfs merge=lfs -text
+
+# Top-level results bundles (screened candidate sets, expanded discoveries — >1MB)
+results/exp-screened-all.jsonl filter=lfs diff=lfs merge=lfs -text
+results/v2-discoveries-expanded-top5000.jsonl filter=lfs diff=lfs merge=lfs -text
+results/v2-discoveries-v2model.jsonl filter=lfs diff=lfs merge=lfs -text
+results/v2-discoveries.jsonl filter=lfs diff=lfs merge=lfs -text
+results/exp-high-potential.jsonl filter=lfs diff=lfs merge=lfs -text
+results/v2m-screened-all.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# Legacy v3 expanded knowledge base
+v3/results/kb-expanded-struct.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# Top-level knowledge-base aggregates (>1MB)
+data/kb-5000-merged.jsonl filter=lfs diff=lfs merge=lfs -text
+data/kb-expanded.jsonl filter=lfs diff=lfs merge=lfs -text
+data/clean-expanded.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# === Explicit exclusions from LFS ===
+# Small config/output jsonl under v4/results/ stay in regular git
+# (<100KB analyses/summaries — LFS pointer overhead not worth it)
+v4/results/*.jsonl !filter !diff !merge
+v4/results/*.json !filter !diff !merge
