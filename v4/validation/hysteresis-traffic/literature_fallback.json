@@ -1,0 +1,16 @@
+{
+  "treiber2013_chap8_a5_motorway": {
+    "q_c1_veh_per_h_per_lane": 2200.0,
+    "q_c2_veh_per_h_per_lane": 1600.0,
+    "ratio": 1.375,
+    "rho_crit_veh_per_km_per_lane": 25.0,
+    "v_free_kmh": 110.0,
+    "source": "Treiber & Kesting 2013 chap.8 table 8.1"
+  },
+  "geroliminis2008_yokohama_mfd": {
+    "q_c1_veh_per_h": 18.0,
+    "q_c2_veh_per_h": 13.0,
+    "ratio": 1.3846153846153846,
+    "source": "Geroliminis & Daganzo 2008 Transp.Res.B 42 Yokohama MFD"
+  }
+}
