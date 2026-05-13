@@ -6,7 +6,9 @@
     "manual_curated": 8,
     "llm_curated": 15,
     "curated_classes": 23,
-    "version": "0.2"
+    "version": "0.2",
+    "last_updated": "2026-05-13",
+    "layer5_phase_count": 9
   },
   "stats": {
     "n_equivalence_classes": 23,
@@ -14,7 +16,8 @@
     "max_members": 17,
     "max_domains": 12,
     "largest_hub": "清算级联的链上流动性危机",
-    "largest_hub_en": "On-chain liquidity crisis from liquidation cascades"
+    "largest_hub_en": "On-chain liquidity crisis from liquidation cascades",
+    "verified_predictions": 8
   },
   "classes": [
     {
@@ -165,6 +168,60 @@
           "rationale_en": "Three entirely different liquidation mechanisms (Aave's 5% incentive auction, Compound's 8% direct liquidation, Maker's Dutch clipper descending auction) yet α and p converge to the same values — demonstrating that this is not an Aave-specific artifact but a structural property of the DeFi-lending asset class. All three protocols have α ∈ [1.57, 1.68], close to the earthquake value of 1.79 and far from the stock-market value of 3.00, confirming a 'discrete-threshold' vs 'continuous-diffusion' sub-class split within the SOC cluster.",
           "paper_url": "/paper/soc-defi-2026-04-15",
           "paper_title": "Cross-Protocol SOC Universality in DeFi Liquidation Cascades (43,065 events)"
+        },
+        {
+          "target": "NIFC Interagency 美国野火事件 (21,022 fires, 2010s-2024)",
+          "target_en": "NIFC Interagency US wildfire catalog (21,022 fires, 2010s-2024)",
+          "prediction": "Clauset α(acres) = 1.660 ± 0.017，bootstrap 95% CI [1.381, 1.808]，落在 Drossel-Schwabl band [1.3, 2.5]",
+          "prediction_en": "Clauset α(acres) = 1.660 ± 0.017, bootstrap 95% CI [1.381, 1.808], inside Drossel-Schwabl band [1.3, 2.5]",
+          "test_method": "Clauset MLE + bootstrap n=100 + Omori on inter-fire times after 95th-pctl mainshocks + matched-n null control",
+          "data_source": "NIFC Interagency Fire Perimeter History (opendata.arcgis.com)",
+          "data_source_en": "NIFC Interagency Fire Perimeter History (opendata.arcgis.com)",
+          "sample_size": "21,022 fires / 1,591 tail events above xmin=1,199 acres",
+          "paper_target": "Layer 5 Phase 10 — wildfire SOC validation",
+          "paper_target_en": "Layer 5 Phase 10 — wildfire SOC validation",
+          "status": "✅ 已验证 (2026-05-13)",
+          "status_en": "✅ Verified (2026-05-13)",
+          "rationale": "经典 SOC 系统 (Drossel-Schwabl 1992 / Malamud 1998 PNAS). α 落在预测带，但 lognormal 也合理 (R=-4.73 caveat)。Omori p=0.24 反映季节强迫而非应力释放。",
+          "rationale_en": "Classic SOC system (Drossel-Schwabl 1992 / Malamud 1998 PNAS). α inside predicted band but lognormal alternative also fits (R=-4.73 caveat). Shallow Omori p=0.24 reflects seasonal forcing rather than stress relaxation.",
+          "paper_url": "/paper/soc-wildfire-2026-05-13",
+          "paper_title": "Wildfire size distribution exhibits SOC: cross-validation of pipeline on Drossel-Schwabl class"
+        },
+        {
+          "target": "NOAA GOES X 射线太阳耀斑目录 2000-2016 (29,907 events)",
+          "target_en": "NOAA GOES X-ray solar flare catalog 2000-2016 (29,907 events)",
+          "prediction": "Clauset α(peak flux) = 2.194 ± 0.018, bootstrap 95% CI [2.159, 2.248], 落在 Lu-Hamilton 1991 band [1.5, 2.5]; vs lognormal inconclusive (R=+0.44)",
+          "prediction_en": "Clauset α(peak flux) = 2.194 ± 0.018, bootstrap 95% CI [2.159, 2.248], inside Lu-Hamilton 1991 band [1.5, 2.5]; vs lognormal inconclusive (R=+0.44)",
+          "test_method": "Clauset MLE + bootstrap n=100 + IAT power-law + Omori on X-class flare windows + matched-n null",
+          "data_source": "NOAA NGDC GOES-XRS report archive 2000-2016",
+          "data_source_en": "NOAA NGDC GOES-XRS report archive 2000-2016",
+          "sample_size": "29,907 unique flares / 4,336 tail events above xmin=5.2e-6 W/m² (~M0.5)",
+          "paper_target": "Layer 5 Phase 11 — solar flare SOC validation",
+          "paper_target_en": "Layer 5 Phase 11 — solar flare SOC validation",
+          "status": "✅ 已验证 (2026-05-13)",
+          "status_en": "✅ Verified (2026-05-13)",
+          "rationale": "Lu-Hamilton 1991 经典 SOC 系统。本队列中最干净的 SOC 确认——lognormal 没击败。Omori p≈0 (state-dependent Poisson / Wheatland 2000)，size 信号和时间信号在 solar flare 上解耦。",
+          "rationale_en": "Lu-Hamilton 1991 canonical SOC system. Cleanest SOC confirmation in the cohort — lognormal cannot be ruled out but is not preferred. Omori p≈0 (state-dependent Poisson / Wheatland 2000), size and temporal signatures decouple.",
+          "paper_url": "/paper/soc-solar-2026-05-13",
+          "paper_title": "Solar X-ray flares revisited: independent SOC validation via Layer-5 pipeline"
+        },
+        {
+          "target": "FDIC 美国银行倒闭事件 1934-2026 (3,960 failures)",
+          "target_en": "FDIC US bank failures 1934-2026 (3,960 failures)",
+          "prediction": "Clauset α(assets) = 1.899 ± 0.045, bootstrap 95% CI [1.763, 2.047], 落在 Diamond-Dybvig / Eisenberg-Noe band [1.4, 2.5]",
+          "prediction_en": "Clauset α(assets) = 1.899 ± 0.045, bootstrap 95% CI [1.763, 2.047], inside Diamond-Dybvig / Eisenberg-Noe band [1.4, 2.5]",
+          "test_method": "Clauset MLE + bootstrap n=100 + era-split (pre-crisis/crisis/post) + Omori after 99th-pctl + matched-n null",
+          "data_source": "FDIC banks.data.fdic.gov public API (4,114 raw / 3,960 with valid assets)",
+          "data_source_en": "FDIC banks.data.fdic.gov public API (4,114 raw / 3,960 with valid assets)",
+          "sample_size": "3,960 failures across 92 years / 406 tail events above xmin=$627M",
+          "paper_target": "Layer 5 Phase 8 — bank failures (Diamond-Dybvig sub-class)",
+          "paper_target_en": "Layer 5 Phase 8 — bank failures (Diamond-Dybvig sub-class)",
+          "status": "✅ 已验证 (2026-05-13)",
+          "status_en": "✅ Verified (2026-05-13)",
+          "rationale": "首次明确针对 V4 Louvain L01 sub-community (Diamond-Dybvig) 实证。92 年数据 + 1980s S&L 危机主导。与 DeFi (Phase 3) 同 sub-class, 跨 1000× 时间尺度同一签名。",
+          "rationale_en": "First explicit empirical validation of V4 Louvain L01 sub-community (Diamond-Dybvig). 92 years of data, dominated by 1980s S&L crisis. Same sub-class signature as DeFi (Phase 3) across a 1000× time-scale difference.",
+          "paper_url": "/paper/soc-bank-failures-2026-05-13",
+          "paper_title": "FDIC bank failure size distribution: Diamond-Dybvig SOC sub-class on 92 years of US data"
         }
       ],
       "notes": "",
@@ -2611,6 +2668,24 @@
           "status_en": "Pending validation",
           "rationale": "短视频平台的增长率标度指数 α 未被测量，α≠1 会反驳纯 BA 模型；45-70% 区间从 Zipf γ≈2 解析计算得出",
           "rationale_en": "The growth-rate scaling exponent α on short-video platforms has not been measured; α ≠ 1 would refute the pure BA model. The 45-70% range is computed analytically from a Zipf distribution with γ ≈ 2."
+        },
+        {
+          "target": "GitHub 仓库 star 数 (8,398 repos, stratified sample 250-500k stars)",
+          "target_en": "GitHub repository star counts (8,398 repos, stratified sample 250-500k stars)",
+          "prediction": "Clauset α(stars) = 2.867 ± 0.050, bootstrap 95% CI [2.781, 3.000], 完美对齐 Barabási-Albert α=3 asymptote",
+          "prediction_en": "Clauset α(stars) = 2.867 ± 0.050, bootstrap 95% CI [2.781, 3.000], perfectly aligns with Barabási-Albert α=3 asymptote",
+          "test_method": "Clauset MLE (discrete) + bootstrap n=100 + per-language sub-fits + matched-n null",
+          "data_source": "GitHub Search API stratified by `stars:>N` buckets (10 buckets spanning 100→500k)",
+          "data_source_en": "GitHub Search API stratified by `stars:>N` buckets (10 buckets spanning 100→500k)",
+          "sample_size": "8,398 unique repos / 1,417 tail events above xmin=25,585 stars",
+          "paper_target": "Layer 5 Phase 6 — preferential_attachment class first verification",
+          "paper_target_en": "Layer 5 Phase 6 — preferential_attachment class first verification",
+          "status": "✅ 已验证 (2026-05-13)",
+          "status_en": "✅ Verified (2026-05-13)",
+          "rationale": "首次实证 preferential_attachment 普适类。每语言独立确认 (JS=3.00 / C++=2.98 / TS=2.85 / Py=2.75 / Go=2.65 / Java=2.61)，均落在 BA 带。",
+          "rationale_en": "First empirical confirmation of preferential_attachment universality class. Per-language fits all in BA band (JS=3.00, C++=2.98, TS=2.85, Python=2.75, Go=2.65, Java=2.61).",
+          "paper_url": "/paper/soc-github-stars-2026-05-13",
+          "paper_title": "Repository popularity on GitHub follows preferential-attachment universality"
         }
       ],
       "notes": "与 seed preferential_attachment 精确一致",
