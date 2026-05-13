@@ -20,14 +20,24 @@ python v4/cli.py status                     # 应打印 13 phases + verdicts
 
 读完这 5 个文件即可上手：
 1. **本文件** (HANDOFF.md)
-2. `plans/v4-next-roadmap-2026-05-13.md` — 7 维度全景路线图
-3. `docs/sessions/structural-iso-session-2-end.md` — session #2 retro（最新）
-4. `paper/v0-unified-pipeline-2026-05-13.md` — C1 unified preprint draft
-5. `CLAUDE.md` (repo 根) — 项目级 CC 指引
+2. **`docs/sessions/SESSION-4-STARTER.md`** — 🔥 session #4 直接执行清单（全权授权 token-blocked actions runbook）
+3. `docs/sessions/structural-iso-session-3-end.md` — session #3 retro (latest)
+4. `paper/v0-unified-pipeline-2026-05-13.md` v0.3 — C1 unified preprint (latest)
+5. `CLAUDE.md` (repo root) — 项目级 CC 指引
 
 ---
 
 ## 1. 当前状态 (2026-05-13 session #3 截止)
+
+### Session #3 close 状态 (2026-05-14 close, post F1 P1 fixes)
+
+**main HEAD**: `0380327` (F1 P1 fix merge) — 42 PRs merged 自 session #2 base `332049b` 起。
+
+**Session #4 唯一第一件事：读 `docs/sessions/SESSION-4-STARTER.md` + 按 §2 顺序跑**。该文档涵盖：
+- 凭证清单（PYPI_TOKEN / ZENODO_ACCESS_TOKEN / arXiv 账号 / gh CLI）
+- Step 1-9 详细 runbook（每步 5-30 min，部分需 user 提供 token）
+- 不可逆 step 的 rollback plan
+- §5 验收标准（10 个 checkbox）
 
 ### Session #3 新增（基于 session #2）
 
@@ -107,10 +117,10 @@ Session #3 把几乎所有 engineering-side 工作做完。剩下都是需要 us
 5. **arXiv submission** — submit C1 v0.3 unified pipeline preprint to `cond-mat.stat-mech` + `physics.data-an`. Coordinate with Zenodo DOI (paper references DOI).
 6. **PyPI publish** — `soc-pipeline 0.1.0` + `guarded-llm 0.1.0`. Wheels built and tested.
 
-### P1 — Bug fixes (W6-E found, can do without user auth)
+### P1 — Bug fixes (W6-E found)
 
-7. **Fix `phase.bytedance.city` React error after networkidle** — W6-E E2E test reproduces it. Check D1 prod logs + Next.js hydration timing.
-8. **Fix `universality-classes.json` duplicate class_id** — 2 duplicates found (`motter_lai_network_cascade` + `gardner_collins_toggle_switch`).
+7. ~~Fix `phase.bytedance.city` React error after networkidle~~ — **DONE in F1 (PR #44, commit 0380327)**. Root causes: stale prod build (51 commits behind) + missing error boundaries + Next.js Server Action bot probe. Fix shipped: `app/error.tsx` + `app/global-error.tsx` + `lib/api.ts safeJson()` + VPS redeploy. E2E 9/10 pass + body asserted no "Application error".
+8. ~~Fix `universality-classes.json` duplicate class_id~~ — **DONE in F1**. Preserved both valid Louvain sub-communities with `_v2` suffix on lower-rank dupes (no info loss). 23 entries all unique now.
 
 ### P2 — Product growth (W7-D agenda)
 
