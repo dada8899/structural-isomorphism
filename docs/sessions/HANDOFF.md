@@ -27,7 +27,21 @@ python v4/cli.py status                     # 应打印 13 phases + verdicts
 
 ---
 
-## 1. 当前状态 (2026-05-13 session #2 截止)
+## 1. 当前状态 (2026-05-13 session #3 截止)
+
+### Session #3 新增（基于 session #2）
+
+- **2 PyPI packages built (wheel ready, not yet published)**: `packages/soc-pipeline/` (1085 src + 37 tests + 5 notebooks) and `packages/guarded-llm/` (1624 src + 52 tests + 4 providers)
+- **Zenodo dataset bundle ready**: `dataset/v1/` (244 files / 99 MB / 16 systems / 4 nulls / 35 yamls / MINT_DOI_RUNBOOK)
+- **phase.bytedance.city LIVE** with HTTPS, 97 companies via /api/screener, 2 systemd units
+- **Main site refreshed** with 5 new pages (papers / methods / taxonomy-v2 / start-here essay / featured preprint card)
+- **C1 v0.3 preprint**: 16,109 words (v0.2 → v0.3 with Scheffer block-bootstrap actually run, §4.5 demoted, §7 FWER limitations, §8 adversarial pre-registration, §9 submission path)
+- **6 paper drafts ready for arXiv** (C1 v0.3 + 4 solo + C4 red-team)
+- **6-role review consolidated** (scholar / researcher / PM / student / UX / copywriter) → applied 5-agent fix wave
+- **Tests expanded**: 98 → 213 (+117%), three-tier (unit + integration + e2e)
+- **Scientific correction**: Scheffer A2 p-value revised from `< 10^-186` to `0.074` via block-bootstrap (Künsch 1989 method) — most important scientific honesty signal of session #3
+
+### 当前 verdict summary (16 phases attempted in session #3, 13 still canonical)
 
 ### 已验证 universality systems：13 个（SOC × 9 + PA × 2 + Hysteresis × 1 + Scheffer × 1）
 
@@ -80,31 +94,45 @@ python v4/cli.py status                     # 应打印 13 phases + verdicts
 
 ---
 
-## 2. 下个 sprint 优先级（按 leverage 排）
+## 2. 下个 sprint 优先级（session #4，按 user authorization gate 排）
 
-### Sprint A — D1 Phase Detector full ship (4-6h)
+Session #3 把几乎所有 engineering-side 工作做完。剩下都是需要 user 拍板的 irreversible/external actions。
 
-1. **D1 full 100-company batch run** — 跑 `v4/product/d1_phase_detector/extract_structtuple.py` on 100 companies (parallel 5-way ≈ 15 min, ~$0.19)
-2. **Postgres ingestion + Screener API** — schema for StructTuple → companies table, FastAPI endpoint `/screener?dynamics_family=...&critical_point_state=...`
-3. **Filter UI + 30s TL;DR card** — minimal Next.js page
-4. **Deploy phase.bytedance.city** — DNS / nginx / certbot per project lifecycle Phase 2
+### P0 — Irreversible / external actions (waiting on user authorization)
 
-### Sprint B — Site refresh + C1 polish (2-3h)
+1. **Rotate DeepSeek API key** — current key may be compromised in git history (W5-B P0). User runs rotation on console.deepseek.com.
+2. **Scrub git history** — use BFG or git-filter-repo to remove old key references from past commits. Force push cleaned history. Coordinate before any clone-fork (no contributors yet so low blast radius).
+3. **Flip repo to PUBLIC** — see `docs/PUBLIC_READINESS_CHECKLIST.md`. After P0 #1 + #2 done.
+4. **Mint Zenodo DOI** for `dataset/v1/` bundle — bundle ready (244 files / 99 MB). Permanent DOI. Run `MINT_DOI_RUNBOOK.md`.
+5. **arXiv submission** — submit C1 v0.3 unified pipeline preprint to `cond-mat.stat-mech` + `physics.data-an`. Coordinate with Zenodo DOI (paper references DOI).
+6. **PyPI publish** — `soc-pipeline 0.1.0` + `guarded-llm 0.1.0`. Wheels built and tested.
 
-5. **Site update**: copy session #2 papers (Phase 7 / 13 / A2-Hysteresis / A2-Scheffer / Phase 12) → `web/frontend/assets/data/papers/`; update `universality-classes.json` with new verified predictions (13 instead of 8)
-6. **C1 preprint v0.2** — 加 universal collapse polish 结果 + Phase 7/13/A2-Hysteresis/A2-Scheffer 章节 + B3 taxonomy v2 数据
-7. **Figure 1 real flowchart** — 替换 v0.1 的 ASCII placeholder
+### P1 — Bug fixes (W6-E found, can do without user auth)
 
-### Sprint C — 新数据 phases (6-10h)
+7. **Fix `phase.bytedance.city` React error after networkidle** — W6-E E2E test reproduces it. Check D1 prod logs + Next.js hydration timing.
+8. **Fix `universality-classes.json` duplicate class_id** — 2 duplicates found (`motter_lai_network_cascade` + `gardner_collins_toggle_switch`).
 
-8. **A2 #6 Copula tail dependence**：FRED + NOAA 巨灾联动数据
-9. **A2 #7 SIR contagion**：COVID openly published data，验证 R0 + branching ratio
-10. **Phase 14 — Hawkes process Omori** 跨域：earthquake / DeFi / neural 在 Hawkes 框架下重新 fit branching ratio
+### P2 — Product growth (W7-D agenda)
 
-### Sprint D — 学术发表 (2-4 周)
+9. **D1 expand 100 → 500 companies** — re-run extract_structtuple batch with new ticker list. Cost ~$1-2.
+10. **Backtest engine v0.1** — historical StructTuple time series → "near_critical → 6mo return" backtest. Determines alpha-product vs narrative-product path.
+11. **Weekly newsletter v1 send** — coordinate Buttondown account creation + first real send.
 
-11. **C2 solo papers arXiv 化** — Phase 1/2/3/4 重写格式投 arXiv
-12. **C3 Taxonomy v2 paper** — B3 验证后的 21 → 7 KEEP 写成 cross-domain taxonomy 论文（需 senior physicist 合作者）
+### P3 — Continuing research (W7-A agenda)
+
+12. **Adversarial pre-registration replication** — §8 of C1 v0.3 names 5 systems. Pre-register exponent bands BEFORE pulling data. Run 3 of 5.
+13. **B4 cross-vendor ensemble** — replace 3-DeepSeek with Claude + GPT + DeepSeek + Kimi + GLM-5 heterogeneous critic. Rerun B3 verdicts.
+
+### Removed from list (done in session #3)
+
+- ~~D1 Phase Detector full ship~~ — DONE (Wave 3 + Wave 4 D)
+- ~~Site refresh~~ — DONE (Wave 1 A + Wave 4 E)
+- ~~Phase 14 Hawkes + A2 Copula + A2 SIR~~ — DONE (Wave 2)
+- ~~C1 preprint v0.2 + v0.3~~ — DONE (Wave 1 B + Wave 6 C)
+- ~~4 solo arXiv drafts~~ — DONE (Wave 3 E)
+- ~~C4 red-team paper~~ — DONE (Wave 4 A)
+- ~~Reproduction tutorial~~ — DONE (Wave 3 D)
+- ~~B2 calibration / B4 yaml schema / F1 embedding / F2 active learning~~ — DONE (Wave 1-2 + Wave 4 C)
 
 ---
 
@@ -232,8 +260,9 @@ git checkout main && git pull --ff-only
 | (V4 Layer 1-4) | 2026-04-15 | 23 candidate classes + 27 predictions | v4/results/FINDINGS-2026-04-15.md |
 | (V4 L5 Phase 1-5) | 2026-04-15..16 | earthquake / S&P / DeFi / mouse / null | papers in v4/validation/*/paper.md |
 | **#1** | **2026-05-13** | Phase 6/8/10/11 + B1/B2/B4 + A3 | docs/sessions/structural-iso-session-1-end.md |
-| **#2** | **2026-05-13** | **C1 preprint + Phase 7/12/13 + A2-Hyst + A2-Scheffer + B3 + D1 + E1/E3/E4** | **docs/sessions/structural-iso-session-2-end.md** |
-| #3 | (next) | D1 full ship + Sprint B site refresh + Phase 14 Hawkes | (TBD) |
+| **#2** | **2026-05-13** | C1 preprint + Phase 7/12/13 + A2-Hyst + A2-Scheffer + B3 + D1 + E1/E3/E4 | docs/sessions/structural-iso-session-2-end.md |
+| **#3** | **2026-05-13** | **41 PRs / 9 waves: site refresh + B/C/D 加固 + Phase 14 Hawkes / A2 Copula / A2 SIR + D1 ship LIVE + 6-role review + apply fixes + future planning + Zenodo + 2 PyPI + Scheffer p revised** | **docs/sessions/structural-iso-session-3-end.md** |
+| #4 | (next) | PUBLIC flip + arXiv submit + Zenodo mint + PyPI publish | (TBD) |
 
 ---
 
