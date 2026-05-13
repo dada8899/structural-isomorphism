@@ -2,19 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
+/* W6-B: align with main site design-system.css.
+ * Source of truth: web/frontend/assets/css/design-system.css
+ * We mirror the same tokens here so D1 (this Next.js sub-site) reads visually
+ * identical to the main site (structural.bytedance.city). */
+
 :root {
   color-scheme: light;
+
+  /* === Colors (mirror main site) === */
+  --bg-primary: #F5F5F4;
+  --bg-secondary: #F4F4F5;
+  --bg-tertiary: #FFFFFF;
+
+  --border-subtle: #E4E4E7;
+  --border-default: rgba(24, 24, 27, 0.12);
+  --border-strong: #D4D4D8;
+
+  --text-primary: #18181B;
+  --text-secondary: #52525B;
+  --text-tertiary: #71717A;
+
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+  --accent-focus-ring: rgba(37, 99, 235, 0.12);
+
+  --success: #059669;
+  --warning: #D97706;
+  --danger: #DC2626;
+
+  /* === Typography === */
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'Times New Roman', serif;
+  --font-sans: 'Inter', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 
 html,
 body {
-  background: #ffffff;
-  color: #111827;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.serif {
+  font-family: var(--font-serif);
+}
+
+.numeral,
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* === W6-B: focus-visible ring (WCAG 2.4.7) === */
+/* All interactive elements get a visible focus ring; uses accent color from design system. */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Buttons/inputs already have border-radius — preserve it on focus. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* === Selection === */
+::selection {
+  background: var(--accent);
+  color: #FAFAF9;
+}
+
+/* === Skip link (a11y) === */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--text-primary);
+  color: #FAFAF9;
+  padding: 8px 16px;
+  z-index: 100;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+}
+.skip-link:focus {
+  top: 0;
 }

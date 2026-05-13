@@ -1,5 +1,8 @@
 import type { Config } from "tailwindcss";
 
+// W6-B: aligned with main site (web/frontend/assets/css/design-system.css).
+// Font stack: Inter + Noto Serif SC (matches main site).
+// Default Tailwind zinc + accent #2563EB.
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,22 +12,41 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: [
+          "Inter",
+          "PingFang SC",
           "-apple-system",
           "BlinkMacSystemFont",
-          "SF Pro Text",
-          "SF Pro Display",
-          "system-ui",
-          "Segoe UI",
-          "Roboto",
+          "Helvetica Neue",
+          "Noto Sans SC",
           "sans-serif",
+        ],
+        serif: [
+          "Noto Serif SC",
+          "Source Han Serif SC",
+          "Songti SC",
+          "Times New Roman",
+          "serif",
+        ],
+        mono: [
+          "JetBrains Mono",
+          "SF Mono",
+          "Menlo",
+          "Monaco",
+          "Courier New",
+          "monospace",
         ],
       },
       colors: {
+        accent: {
+          DEFAULT: "#2563EB",
+          hover: "#1D4ED8",
+          subtle: "rgba(37, 99, 235, 0.08)",
+        },
         cps: {
-          subcritical: "#10B981",
-          nearcritical: "#F59E0B",
-          supercritical: "#EF4444",
-          tipped: "#1F2937",
+          subcritical: "#059669",
+          nearcritical: "#D97706",
+          supercritical: "#DC2626",
+          tipped: "#18181B",
         },
       },
     },
