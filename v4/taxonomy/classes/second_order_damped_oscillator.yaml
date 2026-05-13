@@ -1,0 +1,54 @@
+class_id: second_order_damped_oscillator
+status: emerging
+display_name: "Second-order damped oscillator"
+display_name_zh: "二阶阻尼振子"
+hub_phenomenon: "Linear systems with restoring force + viscous damping; simple harmonic motion modulated by exponential decay"
+shared_equation: |
+  M · ẍ + C · ẋ + K · x = F(t).
+  Natural frequency: ω_0 = √(K/M).
+  Damping ratio: ζ = C / (2·√(KM)).
+  Critical damping ζ_c = 1 separates oscillatory from overdamped regimes.
+  Resonance peak Q = 1/(2ζ); FWHM ~ ω_0/Q.
+  Phase lag π/2 at resonance.
+key_invariants:
+  - "M·ẍ + C·ẋ + K·x = F(t) (master equation)"
+  - "Resonance peak at ω_0 = √(K/M)"
+  - "Quality factor Q = 1/(2ζ)"
+  - "Exponential envelope on free decay: x(t) ∝ e^{-ζω_0 t}"
+  - "Phase lag π/2 at resonance; π at high frequencies"
+positive_examples:
+  - phenomenon: "High-rise wind-induced vibration control (高层建筑风振)"
+    evidence: "Hub. Layer 4 prediction: ω_0 ∈ [0.10, 0.25] Hz, ζ ∈ [0.008, 0.025], Q ∈ [20, 62] for Shanghai SWFC / Taipei 101 / Burj Khalifa. RMS displacement ~ 1/√(2ζ)."
+    verified_at: "candidate"
+  - phenomenon: "Power system small-signal oscillation (电力系统小信号振荡)"
+    evidence: "Generator rotor angle: M·δ̈ + D·δ̇ + K·δ = ΔP. PSS (Power System Stabilizer) modeled as second-order. Layer 3 explicit match."
+    verified_at: "candidate"
+  - phenomenon: "Power system transient stability (电力系统暂态稳定)"
+    evidence: "Same swing equation framework. Critical damping ratio determines stability margin."
+    verified_at: "candidate"
+  - phenomenon: "LCR electrical circuit"
+    evidence: "L·İ + R·I + (1/C)·∫I dt = V(t). Dual of mechanical oscillator. Identical equation form."
+    verified_at: "candidate"
+  - phenomenon: "Pendulum (small angle approximation)"
+    evidence: "I·θ̈ + b·θ̇ + mgl·θ = τ_ext. Linear-regime damped oscillator."
+    verified_at: "candidate"
+negative_examples:
+  - phenomenon: "Earthquake aftershock decay"
+    reason: "Power-law decay (Omori), not exponential. Not a damped linear oscillator. Belongs to soc_threshold_cascade."
+  - phenomenon: "Kuramoto firefly synchronization"
+    reason: "Nonlinear phase coupling with order parameter transition; not second-order linear ODE. Belongs to kuramoto_sync."
+  - phenomenon: "Predator-prey oscillation (Lotka-Volterra)"
+    reason: "Closed orbits (no damping), nonlinear (multiplicative), no fixed point at origin. Belongs to lotka_volterra_predator_prey."
+  - phenomenon: "Hopf bifurcation oscillation"
+    reason: "Limit cycle from supercritical Hopf; amplitude self-stabilized via nonlinearity. Different mechanism than linear damped response. Class boundary."
+edge_cases:
+  - phenomenon: "Bridge wind-induced flutter (Tacoma Narrows)"
+    debate: "Linear regime is second-order damped, but flutter is nonlinear instability beyond critical wind speed (effective damping becomes negative). Class membership holds for sub-critical regime; flutter itself is a different class."
+  - phenomenon: "Atomic absorption line (Lorentzian)"
+    debate: "Damped harmonic oscillator model of atomic dipole gives Lorentzian linewidth. Class membership accepted in classical limit; full QM treatment goes beyond."
+references:
+  - "Hooke 1660 (Hooke's law)"
+  - "Newton 1687 Principia (F = ma)"
+  - "Rayleigh 1894 Theory of Sound"
+  - "Den Hartog 1956 Mechanical Vibrations"
+  - "Kundur 1994 Power System Stability and Control"

@@ -1,0 +1,54 @@
+class_id: tail_copula_contagion
+status: speculative
+display_name: "Tail copula contagion (correlation collapse in stress regimes)"
+display_name_zh: "尾相关性崩溃与传染"
+hub_phenomenon: "Asset/risk correlations jump from low-baseline to high-stress regimes; copula tail dependence coefficient becomes the relevant invariant"
+shared_equation: |
+  Tail dependence: λ_tail = lim_{u→1} P(X > F_X^{-1}(u) | Y > F_Y^{-1}(u)).
+  λ_tail > 0 for Clayton/Gumbel copulas; λ_tail = 0 for Gaussian copula.
+  Bistable correlation regime: ρ in stress vs. calm; jump Δρ.
+  Cusp catastrophe: dV/dx → cusp shape with feedback parameter.
+  Sornette/Sornette 2006: "dragon kings" — outliers above heavy-tailed regime.
+key_invariants:
+  - "Tail dependence coefficient λ_tail jumps in stress regime"
+  - "Gaussian copula → 0; Clayton/Gumbel → positive λ_tail"
+  - "Bistable correlation regime with abrupt transition"
+  - "Diversification benefit disappears at peak stress"
+  - "Cusp catastrophe / fold structure in correlation parameter"
+positive_examples:
+  - phenomenon: "Correlation collapse tail contagion (相关性崩溃的尾部传染效应)"
+    evidence: "Hub. Layer 4 prediction: VIX > 95 percentile → λ_tail jumps from 0.15±0.05 to 0.55±0.10 on S&P 500 pairs; Clayton/Gumbel parameter jump Δθ ≥ 1.8."
+    verified_at: "candidate"
+  - phenomenon: "Catastrophe risk tail correlation (巨灾风险的尾部相关性)"
+    evidence: "Earthquake / hurricane / pandemic clustering in space-time produces λ_tail > 0 vs. independence assumption."
+    verified_at: "candidate"
+  - phenomenon: "Minsky moment (明斯基时刻)"
+    evidence: "Asset correlations spike at credit-cycle peak; sudden re-pricing of risk."
+    verified_at: "candidate"
+  - phenomenon: "Diversification illusion in extreme risk (极端风险的分散化幻觉)"
+    evidence: "Portfolios designed for Gaussian correlation fail when stress copula activates."
+    verified_at: "candidate"
+  - phenomenon: "Ice age termination nonlinear trigger (冰期终结的非线性触发)"
+    evidence: "Milankovitch + ice-albedo + CO₂ amplification; correlated feedbacks produce sharp deglaciation. Cusp catastrophe model."
+    verified_at: "candidate"
+negative_examples:
+  - phenomenon: "Earthquake aftershock"
+    reason: "Single-system relaxation, not cross-asset correlation. Belongs to soc_threshold_cascade."
+  - phenomenon: "DeFi liquidation cascade"
+    reason: "Within-protocol cascade, not cross-asset correlation jump. Belongs to motter_lai_network_cascade."
+  - phenomenon: "Stable Gaussian portfolio under normal regime"
+    reason: "Belongs in normal regime; this class is about the *transition* to high-correlation regime."
+edge_cases:
+  - phenomenon: "Liquidity black hole (流动性黑洞)"
+    debate: "Bid-ask spreads widen across assets simultaneously during liquidity crisis. Tail co-movement signature. Class boundary with hysteresis_preisach."
+notes: |
+  LLM-proposed cluster grouping financial / climate phenomena exhibiting correlation regime shifts.
+  Speculative because (1) tail copula estimation requires many extreme observations; (2)
+  underlying mechanism (positive feedback vs. liquidity coupling vs. exogenous trigger) differs
+  across members. Layer 5 validation should use dynamic copula models (DCC-GARCH-copula).
+references:
+  - "Embrechts, McNeil, Straumann 2002 (correlation pitfalls)"
+  - "Patton 2013 (copula methods in finance)"
+  - "Sornette 2003 Why Stock Markets Crash"
+  - "Sornette, Ouillon 2012 Eur. Phys. J. Spec. Top. 205, 1 (dragon kings)"
+  - "Forbes, Rigobon 2002 J. Finance 57, 2223 (contagion measurement)"
