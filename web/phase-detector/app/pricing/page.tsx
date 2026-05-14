@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { PageOpenTracker } from "@/components/PageOpenTracker";
 import { PricingTable } from "@/components/PricingTable";
 import { Events } from "@/lib/analytics";
+import { buildMetadata } from "@/lib/seo";
 
 // W10-B (session #10): pricing page. Free / Pro $19 / Team $99 mock.
 // Real Stripe integration deferred until PMF signal — see README in
@@ -18,17 +19,14 @@ import { Events } from "@/lib/analytics";
 // Anti-patterns avoided: gradient CTAs, glow effects, emoji bullets,
 // competing badges.
 
-export const metadata: Metadata = {
+// W12-B (2026-05-15): canonical + OG image + twitter card added via buildMetadata helper.
+export const metadata: Metadata = buildMetadata({
   title: "定价 — Phase Detector",
   description:
-    "Free / Pro $19 / Team $99。给分析师、写手、买方团队的结构化股票研究订阅。",
-  openGraph: {
-    title: "Phase Detector 定价",
-    description:
-      "Free $0 / Pro $19 / Team $99。1000+ ticker 全量访问、API、newsletter 抢先看。",
-    type: "website",
-  },
-};
+    "Free / Pro $19 / Team $99。给分析师、写手、买方团队的结构化股票研究订阅。1000+ ticker 全量访问、API、newsletter 抢先看。",
+  path: "/pricing",
+  ogImage: "/og/pricing.png",
+});
 
 export default function PricingPage() {
   return (

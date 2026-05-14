@@ -3,7 +3,9 @@ import Link from "next/link";
 import Script from "next/script";
 import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
+import JsonLd from "@/components/JsonLd";
 import TopNav from "@/components/TopNav";
+import { organizationSchema, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
 // W3-B (session #9, 2026-05-14): self-host fonts via next/font (latin subset only).
@@ -31,17 +33,40 @@ const jetbrainsMono = JetBrains_Mono({
 
 // W6-B: localized to zh-CN, aligned with main site brand (双圆 logo, Inter + Noto Serif SC).
 // PR-1 (2026-05-14): metadata copy rewritten plain-Chinese, jargon stripped.
+// W12-B (2026-05-15): OG image + twitter card + canonical added; siteName
+// canonicalized via metadataBase; per-page metadata extends via lib/seo.
 export const metadata: Metadata = {
-  title: "Phase Detector — 100 家公司的状态评分",
+  title: {
+    default: "Phase Detector — 100 家公司的状态评分",
+    template: "%s — Phase Detector",
+  },
   description:
     "100 家全球上市公司的状态评分，30 秒看懂：谁在崩盘边缘，谁在悄悄起飞。用解释地震、银行挤兑的同一套数学。",
   metadataBase: new URL("https://phase.bytedance.city"),
+  alternates: { canonical: "https://phase.bytedance.city/" },
   openGraph: {
     title: "Phase Detector — 100 家公司的状态评分",
     description: "30 秒看懂一家公司当前的状态：稳态、临界附近、失控通道、已翻转。",
     type: "website",
     siteName: "Phase Detector",
+    url: "https://phase.bytedance.city/",
+    images: [
+      {
+        url: "/og/home.png",
+        width: 1200,
+        height: 630,
+        alt: "Phase Detector — 100 家公司的状态评分",
+      },
+    ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Phase Detector — 100 家公司的状态评分",
+    description: "30 秒看懂一家公司当前的状态。",
+    images: ["/og/home.png"],
+    creator: "@dada8899",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
@@ -127,6 +152,9 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        {/* Site-wide structured data: WebSite + Organization (W12-B). */}
+        <JsonLd id="ld-website" schema={websiteSchema()} />
+        <JsonLd id="ld-organization" schema={organizationSchema()} />
         {/* Plausible analytics (W4-B G3, 2026-05-13). */}
         <Script
           defer

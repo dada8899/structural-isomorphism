@@ -1,17 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import JsonLd from "@/components/JsonLd";
 import { PageOpenTracker } from "@/components/PageOpenTracker";
+import { buildMetadata, organizationSchema } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "关于 — Phase Detector",
   description:
     "Phase Detector 用同一套数学，从地震、银行挤兑等场景延伸到上市公司——每家给一个状态评分。研究预览，不是投资建议。",
+  path: "/about",
+  ogImage: "/og/about.png",
+});
+
+const FOUNDER_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "dada",
+  url: "https://github.com/dada8899",
+  affiliation: {
+    "@type": "Organization",
+    name: "Phase Detector",
+    url: "https://phase.bytedance.city",
+  },
 };
 
 export default function AboutPage() {
   return (
     <article className="mx-auto max-w-3xl">
+      {/* W12-B: Organization + founder Person schemas for rich result eligibility. */}
+      <JsonLd id="ld-about-org" schema={organizationSchema()} />
+      <JsonLd id="ld-about-founder" schema={FOUNDER_SCHEMA} />
       <PageOpenTracker event="about_opened" />
       <Breadcrumb
         items={[{ label: "首页", href: "/" }, { label: "关于" }]}

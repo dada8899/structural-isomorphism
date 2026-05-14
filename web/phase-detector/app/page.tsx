@@ -24,7 +24,9 @@ import { HowItWorksSteps } from "@/components/HowItWorksSteps";
 import { TrustSignalsRow } from "@/components/TrustSignalsRow";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { WaitlistForm } from "@/components/WaitlistForm";
+import JsonLd from "@/components/JsonLd";
 import { MOCK_COMPANIES } from "@/lib/mock-data";
+import { softwareApplicationSchema } from "@/lib/seo";
 import type { Company } from "@/lib/types";
 
 const API_BASE =
@@ -87,6 +89,8 @@ export default async function LandingPage() {
 
   return (
     <div className="-mx-6 -my-6 sm:-mx-6">
+      {/* W12-B: SoftwareApplication schema for landing page (rich result eligibility). */}
+      <JsonLd id="ld-software-app" schema={softwareApplicationSchema()} />
       {/* Cancel the layout's max-w-7xl px-6 py-6 wrapping so we can do full-bleed sections. */}
       <LandingHero />
 
@@ -157,8 +161,33 @@ export default async function LandingPage() {
 }
 
 // Metadata for the landing — overrides layout default with sharper EN-first positioning.
+// W12-B (2026-05-15): OG card + twitter + canonical added.
 export const metadata = {
   title: "Phase Detector — Daily structural signals from 1000+ public companies",
   description:
     "Each one a hypothesis. Each one with the receipts. You judge the alpha. 1000+ 家上市公司每日结构信号——同一套数学解释过地震、银行挤兑、电网级联。",
+  alternates: { canonical: "https://phase.bytedance.city/" },
+  openGraph: {
+    title: "Phase Detector — Daily structural signals from 1000+ public companies",
+    description:
+      "Each one a hypothesis. Each one with the receipts. You judge the alpha.",
+    type: "website" as const,
+    url: "https://phase.bytedance.city/",
+    siteName: "Phase Detector",
+    images: [
+      {
+        url: "/og/home.png",
+        width: 1200,
+        height: 630,
+        alt: "Phase Detector — daily structural signals",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Phase Detector — Daily structural signals from 1000+ public companies",
+    description: "Each one a hypothesis. Each one with the receipts.",
+    images: ["/og/home.png"],
+    creator: "@dada8899",
+  },
 };
