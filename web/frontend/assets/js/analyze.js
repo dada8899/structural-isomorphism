@@ -1,5 +1,19 @@
 function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
 
+/* W3-B: Plausible event wrapper — safe when plausible.js is missing
+   (privacy mode / ad-blocker / region block). Telemetry must not throw. */
+function trackPlausible(event, props) {
+  try {
+    if (typeof window.plausible === 'function') {
+      window.plausible(event, props ? { props: props } : undefined);
+    }
+  } catch (e) {}
+}
+
+// Page-level t0 for "time to first useful card" metric — set once on load.
+var _analyzePageT0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+var _tldrShownLogged = false;
+
 /**
  * Structural — Deep Analysis Report page
  *
@@ -461,6 +475,8 @@ function renderProgress() {
     if (btn) {
       const target = $(`#section-${btn.dataset.key}`);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // W3-B: user clicked the progress nav to jump to / expand a section.
+      trackPlausible('analyze_section_expanded', { section_name: btn.dataset.key || 'unknown' });
     }
   });
 }
@@ -520,6 +536,15 @@ function renderTldrCard() {
     return;
   }
   el.hidden = false;
+  // W3-B: tldr_card_shown — fired exactly once per page, on the first
+  // transition from hidden → visible.
+  if (!_tldrShownLogged) {
+    _tldrShownLogged = true;
+    var _now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    trackPlausible('tldr_card_shown', {
+      time_to_first_section_ms: Math.round(_now - _analyzePageT0)
+    });
+  }
 
   const md = window.mdInline || ((s) => escapeHtml(s || ''));
   const isPending = !ifShort;
