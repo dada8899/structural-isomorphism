@@ -25,21 +25,21 @@
 
 | # | Title | Area | Difficulty | Status | GH Issue |
 |---|---|---|---|---|---|
-| 001 | [Add solar-wind speed-burst dataset with pre-registered SOC band](001-dataset-solar-wind-bursts.md) | data | ★★ | open | TBD |
-| 002 | [Add Twitter / X retweet-cascade inter-arrival dataset](002-dataset-twitter-cascade-arrivals.md) | data | ★★ | open | TBD |
-| 003 | [Add GitHub issue resolution-time dataset (heavy-tail / SOC test)](003-dataset-github-issue-resolution-times.md) | data | ★ to ★★ | open | TBD |
-| 004 | [Add `fractional_brownian_crossings` universality class YAML](004-class-yaml-fractional-brownian-crossings.md) | data | ★★ | open | TBD |
-| 005 | [Add `anderson_localization_transition` universality class YAML](005-class-yaml-anderson-localization.md) | data | ★★★ | open | TBD |
-| 006 | [Lift coverage of `web/backend/api/ask.py` above 80 %](006-test-coverage-ask-api.md) | tests | ★★ | open | TBD |
-| 007 | [Add coverage for `v4/lib/multitest_correction.py`](007-test-coverage-multitest-correction.md) | tests | ★★ | open | TBD |
-| 008 | [Improve test coverage of `soc_pipeline.pandas_accessor`](008-test-coverage-pandas-accessor.md) | tests | ★ | open | TBD |
-| 009 | [Fix deprecated `v4.lib.soc_pipeline` references in tutorials and docs](009-docs-fix-deprecated-cli-references.md) | docs | ★ | open | TBD |
-| 010 | [Audit and fix broken internal links in MkDocs site](010-docs-fix-broken-mkdocs-links.md) | docs | ★ | open | TBD |
-| 011 | [New tutorial — designing synthetic null controls](011-tutorial-synthetic-null-design.md) | tutorial | ★★ | open | TBD |
-| 012 | [New tutorial — writing a pre-registration](012-tutorial-pre-registration-workflow.md) | tutorial | ★ | open | TBD |
-| 013 | [Speed up Clauset `xmin` scan in `fit_clauset_powerlaw`](013-perf-clauset-xmin-scan.md) | performance | ★★★ | open | TBD |
-| 014 | [Add Mandarin Chinese translation of the README](014-i18n-mandarin-readme.md) | i18n | ★ | open | TBD |
-| 015 | [Add dark-mode toggle with `localStorage` persistence on beta search page](015-web-dark-mode-persistence.md) | web | ★★ | open | TBD |
+| 001 | [Add solar-wind speed-burst dataset with pre-registered SOC band](001-dataset-solar-wind-bursts.md) | data | ★★ | open | [#141](https://github.com/dada8899/structural-isomorphism/issues/141) |
+| 002 | [Add Twitter / X retweet-cascade inter-arrival dataset](002-dataset-twitter-cascade-arrivals.md) | data | ★★ | open | [#142](https://github.com/dada8899/structural-isomorphism/issues/142) |
+| 003 | [Add GitHub issue resolution-time dataset (heavy-tail / SOC test)](003-dataset-github-issue-resolution-times.md) | data | ★ to ★★ | open | [#144](https://github.com/dada8899/structural-isomorphism/issues/144) |
+| 004 | [Add `fractional_brownian_crossings` universality class YAML](004-class-yaml-fractional-brownian-crossings.md) | data | ★★ | open | [#145](https://github.com/dada8899/structural-isomorphism/issues/145) |
+| 005 | [Add `anderson_localization_transition` universality class YAML](005-class-yaml-anderson-localization.md) | data | ★★★ | open | [#146](https://github.com/dada8899/structural-isomorphism/issues/146) |
+| 006 | [Lift coverage of `web/backend/api/ask.py` above 80 %](006-test-coverage-ask-api.md) | tests | ★★ | open | [#147](https://github.com/dada8899/structural-isomorphism/issues/147) |
+| 007 | [Add coverage for `v4/lib/multitest_correction.py`](007-test-coverage-multitest-correction.md) | tests | ★★ | open | [#148](https://github.com/dada8899/structural-isomorphism/issues/148) |
+| 008 | [Improve test coverage of `soc_pipeline.pandas_accessor`](008-test-coverage-pandas-accessor.md) | tests | ★ | open | [#149](https://github.com/dada8899/structural-isomorphism/issues/149) |
+| 009 | [Fix deprecated `v4.lib.soc_pipeline` references in tutorials and docs](009-docs-fix-deprecated-cli-references.md) | docs | ★ | open | [#150](https://github.com/dada8899/structural-isomorphism/issues/150) |
+| 010 | [Audit and fix broken internal links in MkDocs site](010-docs-fix-broken-mkdocs-links.md) | docs | ★ | open | [#151](https://github.com/dada8899/structural-isomorphism/issues/151) |
+| 011 | [New tutorial — designing synthetic null controls](011-tutorial-synthetic-null-design.md) | tutorial | ★★ | open | [#152](https://github.com/dada8899/structural-isomorphism/issues/152) |
+| 012 | [New tutorial — writing a pre-registration](012-tutorial-pre-registration-workflow.md) | tutorial | ★ | open | [#153](https://github.com/dada8899/structural-isomorphism/issues/153) |
+| 013 | [Speed up Clauset `xmin` scan in `fit_clauset_powerlaw`](013-perf-clauset-xmin-scan.md) | performance | ★★★ | open | [#154](https://github.com/dada8899/structural-isomorphism/issues/154) |
+| 014 | [Add Mandarin Chinese translation of the README](014-i18n-mandarin-readme.md) | i18n | ★ | open | [#155](https://github.com/dada8899/structural-isomorphism/issues/155) |
+| 015 | [Add dark-mode toggle with `localStorage` persistence on beta search page](015-web-dark-mode-persistence.md) | web | ★★ | open | [#156](https://github.com/dada8899/structural-isomorphism/issues/156) |
 
 ## Difficulty distribution
 
