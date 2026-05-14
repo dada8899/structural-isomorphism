@@ -32,10 +32,30 @@ negative_examples:
 - phenomenon: Cell-cycle progression
   reason: Cyclin-CDK switches are toggle-like (G1/S transition is Rb positive feedback) — actually class member. Misclassified
     here as negative; should be re-examined.
+- phenomenon: Lac operon bistable switch
+  reason: "Although it exhibits bistability via positive feedback, the mechanism is a single autoregulatory loop (LacY permease enhancing its own expression), not the double-negative mutual repression architecture of the Gardner-Collins toggle."
+- phenomenon: p53-Mdm2 oscillator
+  reason: This system primarily operates as a limit-cycle oscillator due to time-delayed negative feedback; any switch-like behavior arises from a transient pulse rather than the stable bistable states produced by mutual repression.
+- phenomenon: MAPK cascade (Mos-MEK-ERK) bistable switch
+  reason: "The bistability relies on distributive multisite phosphorylation creating ultrasensitivity, not on mutual transcriptional repression; the equation form for a protein kinase cascade differs fundamentally from the toggle-switch ordinary differential equations."
+- phenomenon: "Quorum sensing with single positive feedback (e.g., LuxI/LuxR autoinduction)"
+  reason: "Many quorum sensing systems use a single positive-feedback loop (autoinducer synthase induced by its own product), lacking the cross-repressive interaction of a true toggle switch; this can produce bistability but is structurally distinct."
+- phenomenon: Cell cycle CDK1-APC/C switch
+  reason: "This mitotic entry switch involves multiple components (Cdc25, Wee1, APC/C), irreversible transitions, and complex post-translational regulation that cannot be reduced to a minimal two-component mutual repression model."
 edge_cases:
 - phenomenon: MAPK signaling (Goldbeter-Koshland)
   debate: Zero-order ultrasensitivity can produce switch-like response without explicit Hill. Different mathematical mechanism
     but same phenotype. Class boundary.
+- phenomenon: Lambda phage CI/Cro lysis-lysogeny toggle
+  debate: "It is mathematically identical to the Gardner-Collins toggle (two mutual repressor genes), and was a foundational example, but it belongs to a different biological context (viral decision circuit) – should the universality class be restricted to eukaryotic apoptosis and bacterial quorum sensing, or encompass all natural double-negative switches?"
+- phenomenon: Xenopus oocyte MAPK cascade bistability
+  debate: "While this is a signaling cascade with positive feedback rather than a transcriptional toggle, its cooperative, ultrasensitive dynamics may be approximated by similar algebraic forms; debate exists on whether post-translational toggle equivalents belong to the same universality class as genetic toggle switches."
+- phenomenon: Mitochondrial outer membrane permeabilization (MOMP) apoptotic switch
+  debate: "MOMP involves cooperative assembly of Bcl-2 family proteins forming a pore, producing a digital-like all-or-none response; however, the mechanism is a cooperative activation (like a phase transition) rather than mutual inhibition, raising the question of whether it shares the same underlying dynamical equations as the caspase cascade toggle."
+- phenomenon: OmpF/OmpC porin regulation (EnvZ-OmpR system)
+  debate: "This bacterial osmosensing switch uses a phosphorelay creating a double-negative feedback loop (OmpR~P represses ompF and activates ompC), but the involvement of a bifunctional sensor kinase/phosphatase adds a layer of complexity that may or may not map cleanly onto the simple toggle-switch equations."
+- phenomenon: Synthetic Gardner-Collins toggle in E. coli
+  debate: "As the engineered instantiation of the abstract mutual-repression circuit, it perfectly matches the equations; however, its synthetic nature raises the question of whether the class intends to capture only naturally evolved instances or also artificial constructions that test the minimal design principles."
 notes: 'LLM-proposed sub-class. The parent class gardner_collins_toggle_switch in layer 3 covers
 
   this — this entry exists because Layer 4 generated targeted predictions for two specific

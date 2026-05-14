@@ -42,6 +42,16 @@ negative_examples:
 - phenomenon: Preferential attachment / rich-get-richer
   reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
     heavy tails but via different routes.
+- phenomenon: Asch conformity experiments
+  reason: "Individuals yield to an incorrect majority under immediate direct pressure, but this is a static, one-shot influence; it lacks the temporal, self-reinforcing spiral driven by perceived climate of opinion and fear of isolation."
+- phenomenon: Information cascades in economics
+  reason: "Observational learning leads agents to ignore private signals and follow predecessors, resembling minority opinion suppression, but the mechanism is rational inference in sequential decision-making, not fear of social isolation."
+- phenomenon: Preferential attachment in network growth
+  reason: "Existing popularity drives new connections via a rich-get-richer feedback, visually similar to majority amplification, but it arises from network topology and visibility, not from social conformity or expressive self-censorship."
+- phenomenon: Algorithmic filter bubbles
+  reason: "Curated information environments reinforce existing views and create illusory majorities, but the suppression of minority perspectives is due to selective exposure, not active self-silence from fear of isolation."
+- phenomenon: Granovetter threshold models of collective action
+  reason: "Individuals act only when enough others do, producing cascades, but the mechanism is based on private participation thresholds and observational cues for action, not on conformist expression of opinions under social pressure."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -50,6 +60,14 @@ edge_cases:
 - phenomenon: Academic field decline
   debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
     but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: Pluralistic ignorance
+  debate: "It is a state where individuals misperceive group norms, often causing people to self-silence, but it can exist without the dynamic spiral of silence and its underlying fear-of-isolation motive, making the boundary between static misperception and feedback-driven cascade ambiguous."
+- phenomenon: Bandwagon effect in voting
+  debate: "People shift support to the perceived front-runner, creating a self-reinforcing majority; the positive feedback loop mirrors the spiral of silence, but the motivational driver (desire to be on the winning side vs. fear of social isolation) may or may not be structurally isomorphic."
+- phenomenon: Group polarization
+  debate: "Like-minded discussion intensifies initial leanings, which could involve self-censorship of moderate voices, but the primary mechanisms (persuasive arguments, social comparison) might not require fear of isolation, blurring the line with the spiral of silence class."
+- phenomenon: Minority influence (consistent minority converting majority)
+  debate: "It is a reverse dynamic where an initially minority view gains traction through consistency, not silence, yet the underlying feedback structure (amplification of expressed views) could be a sign-flipped version of the same universality class, making its classification debatable."
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
