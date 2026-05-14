@@ -87,6 +87,12 @@
   gap: var(--space-7);
   flex-wrap: wrap;
   animation: fadeInUp 600ms var(--ease-out-expo) 240ms both;
+  /* CLS guard (W1-B, 2026-05-14): reserve exact stat-row height so JS-rendered
+   * stats don't push siblings down. Matches font-size 32 + line-height 1 +
+   * margin-bottom space-1 (4) + label 11px ≈ 47px content + 20px skeleton top
+   * margin keeps total at 80px (skeleton height). */
+  min-height: 80px;
+  align-items: center;
 }
 
 .disc-hero__stat {
@@ -116,6 +122,9 @@
   gap: var(--space-3);
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-5);
+  /* CLS guard: reserve filter slot height (tier-tabs ~44 + filter-row ~36 + gaps).
+   * Skeleton renders 2× 60px + gap (CSS below) to match. */
+  min-height: 160px;
   border-bottom: 1px solid var(--border-subtle);
 }
 

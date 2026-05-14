@@ -420,8 +420,8 @@ function renderDiscSkeletons() {
   const statsEl = $('#disc-hero-stats');
   if (statsEl) statsEl.innerHTML = '<div class="disc-skeleton-stats" aria-hidden="true"></div>';
   const filterEl = $('#disc-filter');
+  // W1-B (2026-05-14): 2 rows match real render (tier-tabs + filter-row).
   if (filterEl) filterEl.innerHTML =
-    '<div class="disc-skeleton-filter" aria-hidden="true"></div>' +
     '<div class="disc-skeleton-filter" aria-hidden="true"></div>' +
     '<div class="disc-skeleton-filter" aria-hidden="true"></div>';
   const listEl = $('#disc-list');

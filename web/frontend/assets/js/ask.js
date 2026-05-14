@@ -378,13 +378,23 @@
 
     container.innerHTML = cards.map(function (c, i) {
       var idx = i + 1;
-      var href = c.id ? ('/phenomenon.html?id=' + encodeURIComponent(c.id)) : '#';
+      // Polished route: /phenomenon/{id} is the canonical URL.
+      // The backend renders phenomenon.html which reads ?id= for legacy compat.
+      var href = c.id ? ('/phenomenon/' + encodeURIComponent(c.id)) : '#';
       var score = (typeof c.score === 'number') ? Math.round(c.score * 100) + '%' : '';
+      var name = c.name || '(未命名)';
+      // Tooltip: first 100 chars of description, fall back to domain+name.
+      var descRaw = c.description || c.summary || c.key_metric || '';
+      var tooltip = descRaw ? String(descRaw).slice(0, 100) : (c.domain ? (c.domain + ' · ' + name) : name);
+      var aria = 'View KB phenomenon: ' + name;
       return (
-        '<a class="ask-kb-card" href="' + href + '" target="_blank" rel="noopener" data-kb-id="' + esc(c.id || '') + '">' +
+        '<a class="ask-kb-card" href="' + href + '" target="_blank" rel="noopener"' +
+          ' data-kb-id="' + esc(c.id || '') + '"' +
+          ' aria-label="' + esc(aria) + '"' +
+          ' title="' + esc(tooltip) + '">' +
           '<span class="ask-kb-card__idx">' + idx + '</span>' +
           (c.domain ? '<span class="ask-kb-card__domain">' + esc(c.domain) + '</span>' : '') +
-          '<span class="ask-kb-card__name">' + esc(c.name || '(未命名)') + '</span>' +
+          '<span class="ask-kb-card__name">' + esc(name) + '</span>' +
           (score ? '<span class="ask-kb-card__score">相似度 ' + score + '</span>' : '') +
         '</a>'
       );
@@ -452,9 +462,17 @@
         barEl.innerHTML = citations.map(function (cit) {
           var src = cardsById[cit.kb_id];
           var label = cit.label || (src ? src.name : 'source');
-          var href = cit.kb_id ? ('/phenomenon.html?id=' + encodeURIComponent(cit.kb_id)) : '#';
+          // Canonical /phenomenon/{id} route.
+          var href = cit.kb_id ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '#';
+          var descRaw = src ? (src.description || src.summary || src.key_metric || '') : '';
+          var tooltip = descRaw
+            ? String(descRaw).slice(0, 100)
+            : (src && src.domain ? (src.domain + ' · ' + label) : label);
+          var aria = 'View KB phenomenon: ' + label;
           return (
-            '<a class="ask-citation-link" href="' + href + '" target="_blank" rel="noopener">' +
+            '<a class="ask-citation-link" href="' + href + '" target="_blank" rel="noopener"' +
+              ' aria-label="' + esc(aria) + '"' +
+              ' title="' + esc(tooltip) + '">' +
               '<span class="ask-citation-link__idx">[' + cit.idx + ']</span>' +
               '<span>' + esc(label) + '</span>' +
             '</a>'
@@ -484,11 +502,18 @@
     if (!container) return;
 
     container.innerHTML = phens.slice(0, 3).map(function (p, i) {
-      var href = p.kb_id ? ('/phenomenon.html?id=' + encodeURIComponent(p.kb_id)) : '#';
+      var href = p.kb_id ? ('/phenomenon/' + encodeURIComponent(p.kb_id)) : '#';
+      var name = p.name || '';
+      var descRaw = p.description || p.summary || p.key_metric || '';
+      var tooltip = descRaw ? String(descRaw).slice(0, 100) : (p.domain ? (p.domain + ' · ' + name) : name);
+      var aria = 'View KB phenomenon: ' + name;
       return (
-        '<a class="ask-similar-card" href="' + href + '" target="_blank" rel="noopener" data-similar-idx="' + i + '">' +
+        '<a class="ask-similar-card" href="' + href + '" target="_blank" rel="noopener"' +
+          ' data-similar-idx="' + i + '"' +
+          ' aria-label="' + esc(aria) + '"' +
+          ' title="' + esc(tooltip) + '">' +
           (p.domain ? '<span class="ask-similar-card__domain">' + esc(p.domain) + '</span>' : '') +
-          '<span class="ask-similar-card__name">' + esc(p.name || '') + '</span>' +
+          '<span class="ask-similar-card__name">' + esc(name) + '</span>' +
           (p.key_metric ? '<span class="ask-similar-card__metric">' + esc(p.key_metric) + '</span>' : '') +
         '</a>'
       );
@@ -564,9 +589,17 @@
       var idx = parseInt(m[1], 10);
       var cit = citsByIdx[idx];
       var src = cit ? cardsById[cit.kb_id] : null;
-      var href = (cit && cit.kb_id) ? ('/phenomenon.html?id=' + encodeURIComponent(cit.kb_id)) : '#';
-      var title = src ? (src.name + (src.domain ? ' · ' + src.domain : '')) : '引用 ' + idx;
-      out += '<a class="ask-citation" href="' + href + '" target="_blank" rel="noopener" title="' + esc(title) + '">[' + idx + ']</a>';
+      var href = (cit && cit.kb_id) ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '#';
+      // Tooltip: first 100 chars of description, fall back to name·domain.
+      var descRaw = src ? (src.description || src.summary || src.key_metric || '') : '';
+      var title = descRaw
+        ? String(descRaw).slice(0, 100)
+        : (src ? (src.name + (src.domain ? ' · ' + src.domain : '')) : '引用 ' + idx);
+      var srcName = src ? src.name : ('引用 ' + idx);
+      var aria = 'View KB phenomenon: ' + srcName;
+      out += '<a class="ask-citation" href="' + href + '" target="_blank" rel="noopener"' +
+        ' aria-label="' + esc(aria) + '"' +
+        ' title="' + esc(title) + '">[' + idx + ']</a>';
       lastIdx = m.index + m[0].length;
     }
     out += esc(text.slice(lastIdx));
