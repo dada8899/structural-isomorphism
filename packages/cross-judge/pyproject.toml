@@ -5,41 +5,66 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cross-judge"
 version = "0.1.0"
-description = "Multi-vendor LLM ensemble judge — cross-vendor / cross-prompt / cross-temperature consensus aggregation for LLM-as-judge research workflows."
+description = "Multi-vendor LLM ensemble-judge framework with KEEP/REJECT/SPLIT/MERGE verdicts"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [
     { name = "dada8899" }
 ]
-keywords = ["llm", "ensemble", "judge", "evaluation", "consensus", "deepseek", "openai", "openrouter"]
+keywords = [
+    "llm",
+    "ensemble",
+    "judge",
+    "evaluation",
+    "consensus",
+    "krippendorff",
+    "disagreement",
+    "deepseek",
+    "openai",
+    "openrouter",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "openai>=1.0",
-    "pydantic>=2.0",
+    "pydantic>=2",
+    "httpx>=0.27",
+    "pyyaml>=6",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-mock>=3.10",
+    "build>=1.0",
+]
+# Optional convenience: use openai-python client instead of the bundled httpx client.
+openai = [
+    "openai>=1.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/dada8899/structural-isomorphism"
+Documentation = "https://github.com/dada8899/structural-isomorphism/tree/main/packages/cross-judge"
 Issues = "https://github.com/dada8899/structural-isomorphism/issues"
+Repository = "https://github.com/dada8899/structural-isomorphism"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+cross_judge = ["prompts/*.yaml", "prompts/*.yml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
