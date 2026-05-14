@@ -1,0 +1,67 @@
+name: Storybook CI
+
+# PR check: build Storybook so broken stories are caught before merge.
+# Deployment is handled by the unified `docs.yml` workflow on push to
+# main (mkdocs at `/`, Storybook at `/storybook/` in one Pages artifact)
+# — see w13-d notes in docs/.
+#
+# This workflow does NOT deploy. It runs the same `pnpm storybook:build`
+# command on PRs so the team finds rendering / loader errors at the PR
+# stage rather than after merge.
+
+on:
+  pull_request:
+    paths:
+      - "web/phase-detector/components/**"
+      - "web/phase-detector/.storybook/**"
+      - "web/phase-detector/app/**"
+      - "web/phase-detector/lib/**"
+      - "web/phase-detector/package.json"
+      - "web/phase-detector/pnpm-lock.yaml"
+      - ".github/workflows/storybook.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/phase-detector/pnpm-lock.yaml
+
+      - name: Install phase-detector deps
+        working-directory: web/phase-detector
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        working-directory: web/phase-detector
+        run: pnpm storybook:build
+
+      - name: Verify index.html + iframe.html present
+        working-directory: web/phase-detector
+        run: |
+          test -f storybook-static/index.html
+          test -f storybook-static/iframe.html
+          test -f storybook-static/index.json
+          echo "Storybook static build OK"
+          du -sh storybook-static/
+          echo "Story entries:"
+          jq '.entries | length' storybook-static/index.json
+
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: web/phase-detector/storybook-static
+          retention-days: 7
