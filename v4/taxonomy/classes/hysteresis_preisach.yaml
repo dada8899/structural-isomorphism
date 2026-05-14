@@ -37,9 +37,29 @@ negative_examples:
   reason: Single fold bifurcation (one bistable system); not an ensemble of hysterons. Belongs to scheffer_fold_bifurcation.
 - phenomenon: Pure elastic deformation
   reason: Reversible (no hysteresis loop). Different mechanism.
+- phenomenon: Stoner–Wohlfarth single-domain particle hysteresis
+  reason: "Hysteresis arises from coherent rotation of a single macrospin, not from an ensemble of independent bistable hysterons with distributed switching thresholds."
+- phenomenon: Bean critical-state model (type-II superconducting hysteresis)
+  reason: "Macroscopic hysteresis loop emerges from flux pinning and a gradient of current density, not from a collection of heterogeneous bistable switching elements."
+- phenomenon: Jiles–Atherton mean-field hysteresis model
+  reason: Phenomenological differential equation based on domain-wall pinning and an effective field; lacks an explicit ensemble of statistically distributed independent hysterons.
+- phenomenon: Dynamic eddy-current hysteresis in bulk ferromagnetic conductors
+  reason: Rate-dependent hysteresis from macroscopic induced currents; Preisach model is inherently rate-independent and mechanism-incompatible.
+- phenomenon: Single play/backlash operator (mechanical hysteresis)
+  reason: "Produces a hysteresis loop but consists of one elementary operator, not an ensemble of many heterogeneous bistable elements with distributed switching."
 edge_cases:
 - phenomenon: Memristor
   debate: Single-element memristive hysteresis (Chua 1971). One hysteron, not Preisach ensemble. Class boundary.
+- phenomenon: Prandtl–Ishlinskii model (superposition of play/stop operators)
+  debate: Uses a continuum of elementary operators with slanted loops rather than the rectangular relay hysterons of Preisach; whether this constitutes a generalization or a distinct class is debated.
+- phenomenon: Zero-temperature random-field Ising model (RFIM) hysteresis
+  debate: "Exhibits Preisach-like return-point memory but spin interactions cause state-dependent effective thresholds, violating the congruency property typical of a classical Preisach ensemble."
+- phenomenon: Moving Preisach model (state-dependent mean-field hysterons)
+  debate: "Introduces interactions between hysterons via a mean field, which preserves some Preisach features but breaks the strict independence of switching thresholds, blurring the class boundary."
+- phenomenon: Shape-memory alloy stress–strain hysteresis
+  debate: "Often fitted by Preisach models, but the underlying martensitic transformation involves strongly interacting plates and nucleation/propagation mechanisms, not just a distribution of independent bistable elements."
+- phenomenon: "Discrete Preisach-like system with a very small number of hysterons (e.g., 2–5)"
+  debate: "The definition emphasizes an ensemble with distributed switching; a handful of elements may not constitute a statistically meaningful ensemble, yet still produce a multi-loop hysteresis akin to a coarse-grained Preisach map."
 notes: 'LLM-proposed cluster. Bundles together many systems with macroscopic hysteresis. Some
 
   members (lake eutrophication, low fertility trap) might be better assigned to single-fold

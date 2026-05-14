@@ -1,0 +1,87 @@
+# ---------------------------------------------------------------------------
+# Adversarial pre-registration: NYC FDNY fire-incident cascade
+#
+# Locked BEFORE data acquisition and BEFORE pipeline run. Once committed +
+# pushed to git, the predicted band cannot be silently widened post-hoc.
+# This is the same date-stamped pre-registration discipline outlined in
+# paper/v0-unified-pipeline-2026-05-13.md §8.
+# ---------------------------------------------------------------------------
+
+system: nyc-fdny-fires
+pre_registered_at: 2026-05-14
+pre_registration_session: session-7-W1-C
+author: dada8899
+class_id: soc_cascade
+universality_class: SOC threshold cascade
+predicted_exponent: 1.65
+predicted_band: [1.3, 2.0]
+reasoning: |
+  NYC FDNY fire-incident dispatch data is a candidate SOC threshold-cascade
+  system at the urban scale. Hypothesis: fire-incident size (number of units
+  dispatched or response-duration-weighted size) follows a power-law tail
+  driven by a self-organized critical structure of urban combustible loads
+  and adjacency contagion (fires that spread building-to-building before
+  containment).
+
+  Calibration anchor: Malamud-Morein-Turcotte 1998 (forest fire SOC,
+  alpha ~ 1.3-1.5) + later urban-fire and wildfire literature
+  (alpha typically in [1.3, 2.0]). Our verified internal SOC wildfire band
+  is [1.4, 1.9] (see v4/validation/soc-wildfire/).
+
+  Predicted point estimate alpha = 1.65 (centre of band). Band widened
+  modestly to [1.3, 2.0] to allow finite-size-cutoff effects in a confined
+  urban environment vs the open-landscape forest case.
+
+  ADVERSARIAL ASPECT: NYC fire data was NOT used in any of the v4 band-
+  calibration phases (phases 1-13 in the v0 paper). The forest-fire and
+  wildfire bands were anchored on Malamud / Sornette literature, not on
+  urban dispatch records.
+
+data_source: NYC OpenData Fire Incident Dispatch Data
+data_url: https://data.cityofnewyork.us/Public-Safety/Fire-Incident-Dispatch-Data/8m42-w767
+data_license: public domain (NYC OpenData)
+data_size_estimate: ~6M dispatch events 2013-2024
+sample_size_target: ">=10000 fire-size events after deduplication to incidents"
+
+extraction_method: |
+  1. Pull Fire Incident Dispatch Data via Socrata API (CSV export).
+  2. Group dispatches by incident_key -> incident_size = count of unique
+     dispatched units OR total response duration (sec).
+  3. Filter to fire-incident-types only (drop EMS / medical).
+  4. Compute fire-size distribution; pass to soc_pipeline.fit_clauset_powerlaw.
+
+verification_method: |
+  Clauset 2009 power-law fit:
+  - xmin selected by KS minimisation
+  - alpha by MLE
+  - p_value vs Vuong likelihood-ratio against alternatives
+  - bootstrap_ci with n_boot=1000 for alpha CI
+
+null_hypothesis_alternatives:
+  - exponential
+  - log_normal
+  - stretched_exponential
+  - power_law_with_cutoff
+
+success_criteria:
+  - "alpha_hat in [1.3, 2.0]"
+  - "Vuong p_value(power-law vs exponential) > 0.1"
+  - "Vuong p_value(power-law vs log-normal) > 0.1 OR power-law-with-cutoff preferred by BIC"
+  - "n_tail >= 100 after xmin cutoff"
+
+verdict_rules:
+  PASS: alpha in band AND >=2 null alternatives rejected
+  FAIL: alpha outside band OR all alternatives preferred
+  INCONCLUSIVE: alpha in band but null tests ambiguous, OR n_tail < 100
+
+calibration_independence:
+  - Was NYC fire data used in any v4 phase calibration? NO
+  - Was urban-fire data used to set the SOC wildfire band? NO
+  - Are the alpha anchors from independent literature only? YES (Malamud 1998 + Sornette)
+
+risks_and_caveats:
+  - Urban fires may show stronger finite-size cutoff than wildland fires (geometry).
+  - "Incident-size" metric ambiguity: units dispatched vs duration vs damage.
+    We pre-commit to UNITS DISPATCHED as primary metric, duration as secondary.
+  - Multi-alarm fires may be under-represented in size distribution due to
+    administrative incident-merging policies. Document but do not adjust.
