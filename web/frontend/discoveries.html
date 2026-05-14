@@ -30,6 +30,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260417e">
+  <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
@@ -65,6 +66,9 @@
 
   <main class="disc-page">
     <div class="disc-container">
+      <!-- Session #9 W2-A: catch readers who land here and just want updates -->
+      <div id="newsletter-discoveries" class="newsletter newsletter--compact"></div>
+
       <section class="disc-hero">
         <div class="disc-hero__eyebrow">
           <span class="disc-hero__dot"></span>
@@ -117,5 +121,12 @@
   <script src="/assets/js/api.js?v=20260417e"></script>
   <script src="/assets/js/discoveries.js?v=20260417e"></script>
   <script src="/assets/js/product-switcher.js?v=20260417e"></script>
+  <script src="/assets/js/newsletter.js?v=20260514"></script>
+  <script>
+    // Session #9 W2-A: newsletter signup at the top of the discoveries list.
+    if (window.mountNewsletter) {
+      window.mountNewsletter("newsletter-discoveries", "discoveries-top");
+    }
+  </script>
 </body>
 </html>

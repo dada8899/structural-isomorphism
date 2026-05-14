@@ -1,0 +1,142 @@
+/* =============================================================
+ * /assets/css/newsletter.css — beta-site newsletter signup widget
+ *
+ * Session #9 W2-A. Used by /assets/js/newsletter.js, which builds
+ * the markup into any container passed to window.mountNewsletter.
+ *
+ * Visual style mirrors learn.html's .home__waitlist inline styles
+ * so the two CTAs feel like the same component family. The reusable
+ * version lives here so future pages can adopt it without copy-paste.
+ *
+ * Tokens: shared-tokens.css (--brand-* family). We fall back to raw
+ * hex for IE-style robustness — these match what learn.html uses
+ * inline, which is the design-locked palette.
+ * ============================================================= */
+
+.newsletter-card {
+  max-width: 640px;
+  margin: 56px auto 0;
+  padding: 28px 28px;
+  background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+  border: 1px solid #E4E4E7;
+  border-radius: 16px;
+}
+
+.newsletter-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #71717A;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.newsletter-title {
+  font-family: "Noto Serif SC", serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #18181B;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.newsletter-body {
+  font-size: 14px;
+  color: #52525B;
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+
+.newsletter-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.newsletter-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #18181B;
+  border: 1px solid #D4D4D8;
+  border-radius: 8px;
+  background: #FFFFFF;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.newsletter-input:focus {
+  outline: none;
+  border-color: #18181B;
+  box-shadow: 0 0 0 1px #18181B;
+}
+
+.newsletter-input:disabled {
+  opacity: 0.6;
+}
+
+.newsletter-button {
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #FFFFFF;
+  background: #18181B;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.newsletter-button:hover {
+  background: #27272A;
+}
+
+.newsletter-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.newsletter-status {
+  font-size: 12px;
+  margin: 8px 0 0;
+  min-height: 18px;
+}
+
+.newsletter-status.is-ok {
+  color: #047857;
+}
+
+.newsletter-status.is-dup {
+  color: #52525B;
+}
+
+.newsletter-status.is-err {
+  color: #B91C1C;
+}
+
+.newsletter-fineprint {
+  font-size: 11px;
+  color: #A1A1AA;
+  margin: 8px 0 0;
+}
+
+/* Tighter spacing when used at the top of a list page (discoveries). */
+.newsletter--compact .newsletter-card {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+/* Local sr-only — file-scoped to avoid clobbering other definitions. */
+.newsletter-card .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
