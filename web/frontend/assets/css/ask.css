@@ -784,3 +784,78 @@
   .ask-caret { animation: none; opacity: 0.6; }
   .ask-skeleton { animation: none; }
 }
+
+/* ============================================================
+ * Explore cards (W3-C session #9 first-fold strengthening)
+ * ------------------------------------------------------------
+ * Sits between examples chips and footer links. Three cards in
+ * a row on desktop, single column on mobile. Visual style stays
+ * consistent with the rest of the empty state: white card,
+ * grey border, accent hover.
+ * ============================================================ */
+
+.ask-empty__explore {
+  margin-top: 48px;
+  width: 100%;
+  max-width: 880px;
+}
+.ask-empty__explore-label {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--brand-muted);
+  margin-bottom: 14px;
+}
+.ask-empty__explore-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.explore-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  background: var(--brand-paper-card);
+  border: 1px solid var(--brand-line);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+}
+.explore-card:hover {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent-soft);
+}
+.explore-card:active { transform: scale(0.99); }
+.explore-card__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+.explore-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  letter-spacing: -0.1px;
+}
+.explore-card__desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--brand-muted);
+}
+
+@media (max-width: 768px) {
+  .ask-empty__explore {
+    margin-top: 32px;
+  }
+  .ask-empty__explore-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .explore-card {
+    padding: 14px 14px 12px;
+  }
+}
