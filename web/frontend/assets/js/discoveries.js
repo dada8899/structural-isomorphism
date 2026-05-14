@@ -413,7 +413,26 @@ function renderTier2List(listEl) {
   `).join('');
 }
 
+// W3-B: render skeleton placeholders into the three load-driven regions
+// (hero stats / filter / list) BEFORE fetch resolves so the page reserves
+// vertical space and does not visibly shift when the real nodes pop in.
+function renderDiscSkeletons() {
+  const statsEl = $('#disc-hero-stats');
+  if (statsEl) statsEl.innerHTML = '<div class="disc-skeleton-stats" aria-hidden="true"></div>';
+  const filterEl = $('#disc-filter');
+  if (filterEl) filterEl.innerHTML =
+    '<div class="disc-skeleton-filter" aria-hidden="true"></div>' +
+    '<div class="disc-skeleton-filter" aria-hidden="true"></div>' +
+    '<div class="disc-skeleton-filter" aria-hidden="true"></div>';
+  const listEl = $('#disc-list');
+  if (listEl) listEl.innerHTML =
+    '<div class="disc-skeleton-card" aria-hidden="true"></div>' +
+    '<div class="disc-skeleton-card" aria-hidden="true"></div>' +
+    '<div class="disc-skeleton-card" aria-hidden="true"></div>';
+}
+
 async function loadDiscoveries() {
+  const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   try {
     const data = await (await fetch('/api/discoveries')).json();
     allDiscoveries = data.discoveries || [];
@@ -422,6 +441,15 @@ async function loadDiscoveries() {
     renderStats(data.stats || {}, data.count);
     renderFilters(data.stats || {}, data.count);
     renderList();
+    // W3-B: Plausible — record list ready
+    try {
+      if (typeof window.plausible === 'function') {
+        const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        window.plausible('discoveries_loaded', {
+          props: { count: data.count || 0, latency_ms: Math.round(t1 - t0) }
+        });
+      }
+    } catch (e) {}
   } catch (err) {
     console.error('Failed to load discoveries:', err);
     $('#disc-list').innerHTML = `<p style="text-align:center; color: var(--danger); padding: var(--space-7) 0">${T("page.discoveries.load_failed", "加载失败")}：${escapeHtml(err.message)}</p>`;
@@ -430,6 +458,7 @@ async function loadDiscoveries() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
+  renderDiscSkeletons();
   loadDiscoveries();
 });
 

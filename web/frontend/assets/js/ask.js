@@ -28,6 +28,24 @@
   // Count threads so each item gets a stable DOM id.
   var threadCounter = 0;
 
+  // ---- Plausible event wrapper (W3-B) ---------------------------
+  // Guarded so the page does not throw when plausible.js fails to load
+  // (e.g. blocked by ad-blocker / privacy mode / region block).
+  function track(event, props) {
+    try {
+      if (typeof window.plausible === 'function') {
+        window.plausible(event, props ? { props: props } : undefined);
+      }
+    } catch (e) {
+      // Telemetry must never break the UI.
+    }
+  }
+
+  // Per-thread submit source tagging: 'empty' (first), 'chip', 'followup',
+  // 'deeplink'. Set by submitQuery callers; defaults to 'followup' for any
+  // subsequent submit so we never double-count an empty.
+  var nextSubmitSource = 'empty';
+
   // ============================================================
   // DOM helpers
   // ============================================================
@@ -103,6 +121,9 @@
     try {
       var qParam = new URLSearchParams(window.location.search).get('q');
       if (qParam && qParam.trim()) {
+        // Tag the upcoming submit; submitQuery normalises 'empty' for
+        // first-from-landing, so we keep 'deeplink' explicit instead.
+        nextSubmitSource = 'deeplink';
         submitQuery(qParam.trim());
       }
     } catch (e) {}
@@ -112,7 +133,13 @@
     qsa('.ask-chip[data-example-q]').forEach(function (chip) {
       chip.addEventListener('click', function () {
         var q = chip.getAttribute('data-example-q') || '';
-        if (q.trim()) submitQuery(q.trim());
+        if (q.trim()) {
+          // W3-B: tag the source + record chip label so we know which
+          // canned examples actually draw clicks.
+          track('example_chip_clicked', { chip_label: (chip.textContent || '').trim().slice(0, 40) });
+          nextSubmitSource = 'chip';
+          submitQuery(q.trim());
+        }
       });
     });
   }
@@ -132,12 +159,24 @@
     // Switch to thread state on first submit
     var emptyEl = qs('#ask-empty');
     var threadEl = qs('#ask-thread');
-    if (emptyEl && !emptyEl.hidden) {
+    var wasEmpty = emptyEl && !emptyEl.hidden;
+    if (wasEmpty) {
       emptyEl.hidden = true;
     }
     if (threadEl) {
       threadEl.hidden = false;
     }
+
+    // W3-B: ask_submitted. Source = explicit tag from upstream caller
+    // (chip / deeplink) if set, else 'empty' for first-from-landing,
+    // else 'followup' for any subsequent submit.
+    var source = nextSubmitSource;
+    if (!source || source === 'empty') {
+      source = wasEmpty ? 'empty' : 'followup';
+    }
+    track('ask_submitted', { length: query.length, source: source });
+    // Reset for next call so we do not stick at 'chip' / 'deeplink'.
+    nextSubmitSource = 'followup';
 
     // Record in history (utils.js)
     try {
@@ -146,8 +185,10 @@
       }
     } catch (e) {}
 
-    // Build new item
+    // Build new item; stamp the t0 so kb_cards / answer events can
+    // compute latency relative to this submit.
     var item = renderThreadItem(query);
+    if (item) item._t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // Scroll into view
     try {
@@ -156,6 +197,13 @@
 
     // Fire SSE
     streamAsk(query, item);
+  }
+
+  // ---- timing helper -------------------------------------------
+  function elapsedSince(t0) {
+    if (typeof t0 !== 'number') return 0;
+    var t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    return Math.round(t1 - t0);
   }
 
   function renderThreadItem(query) {
@@ -347,6 +395,23 @@
     // Show answer skeleton placeholder
     var ansSection = item.querySelector('[data-role="answer-section"]');
     if (ansSection) ansSection.hidden = false;
+
+    // W3-B: kb_cards_received — latency from submit to first cards.
+    track('kb_cards_received', { count: cards.length, latency_ms: elapsedSince(item._t0) });
+
+    // Attach citation-click tracker once per item. We track on the
+    // *card* now (not just the [N] inline citation in renderCitations)
+    // so we capture both clicks. Idempotent — re-binding the same
+    // delegate is harmless because we only attach once via _ckBound.
+    if (!item._ckBound) {
+      item.addEventListener('click', function (ev) {
+        var citEl = ev.target.closest('.ask-citation, .ask-citation-link');
+        if (!citEl) return;
+        var idxText = (citEl.textContent || '').match(/\d+/);
+        track('citation_clicked', { idx: idxText ? parseInt(idxText[0], 10) : 0 });
+      }, true);
+      item._ckBound = true;
+    }
   }
 
   function handleAnswerChunk(item, data) {
@@ -401,6 +466,13 @@
 
     // Render deep-analysis CTA — links to /analyze.html using top KB card as B-side seed.
     renderDeepAnalysisCTA(item);
+
+    // W3-B: answer_completed — full answer rendered (citations resolved).
+    track('answer_completed', {
+      chars: fullText.length,
+      citations_count: citations.length,
+      latency_ms: elapsedSince(item._t0)
+    });
   }
 
   function handleSimilarEvent(item, data) {
@@ -411,10 +483,10 @@
     var container = item.querySelector('[data-role="similar"]');
     if (!container) return;
 
-    container.innerHTML = phens.slice(0, 3).map(function (p) {
+    container.innerHTML = phens.slice(0, 3).map(function (p, i) {
       var href = p.kb_id ? ('/phenomenon.html?id=' + encodeURIComponent(p.kb_id)) : '#';
       return (
-        '<a class="ask-similar-card" href="' + href + '" target="_blank" rel="noopener">' +
+        '<a class="ask-similar-card" href="' + href + '" target="_blank" rel="noopener" data-similar-idx="' + i + '">' +
           (p.domain ? '<span class="ask-similar-card__domain">' + esc(p.domain) + '</span>' : '') +
           '<span class="ask-similar-card__name">' + esc(p.name || '') + '</span>' +
           (p.key_metric ? '<span class="ask-similar-card__metric">' + esc(p.key_metric) + '</span>' : '') +
@@ -423,6 +495,14 @@
     }).join('');
 
     if (section) section.hidden = false;
+
+    // W3-B: bind clicks for telemetry — capture phase so we record before
+    // navigation (target=_blank still allows the new tab to open).
+    qsa('.ask-similar-card[data-similar-idx]', container).forEach(function (a) {
+      a.addEventListener('click', function () {
+        track('similar_card_clicked', { card_idx: parseInt(a.getAttribute('data-similar-idx') || '0', 10) });
+      });
+    });
   }
 
   function handleFollowupsEvent(item, data) {
@@ -433,9 +513,9 @@
     var container = item.querySelector('[data-role="followups"]');
     if (!container) return;
 
-    container.innerHTML = qs_.slice(0, 3).map(function (q) {
+    container.innerHTML = qs_.slice(0, 3).map(function (q, i) {
       return (
-        '<button type="button" class="ask-followup-btn" data-followup-q="' + esc(q) + '">' +
+        '<button type="button" class="ask-followup-btn" data-followup-q="' + esc(q) + '" data-followup-idx="' + i + '">' +
           '<span>' + esc(q) + '</span>' +
           '<svg class="ask-followup-btn__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>' +
         '</button>'
@@ -511,6 +591,15 @@
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>' +
       '</a>';
     section.hidden = false;
+
+    // W3-B: bind deep analysis click — we send `from_thread_item: true`
+    // so we can disambiguate from a direct /analyze.html visit.
+    var ctaLink = section.querySelector('.ask-thread-item__deep-cta');
+    if (ctaLink) {
+      ctaLink.addEventListener('click', function () {
+        track('deep_analysis_triggered', { from_thread_item: true });
+      });
+    }
   }
 
   // ============================================================
@@ -521,7 +610,12 @@
     btns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var q = btn.getAttribute('data-followup-q') || '';
-        if (q.trim()) submitQuery(q.trim());
+        if (q.trim()) {
+          // W3-B: track followup click + tag the next submit as 'followup'.
+          track('followup_clicked', { question_idx: parseInt(btn.getAttribute('data-followup-idx') || '0', 10) });
+          nextSubmitSource = 'followup';
+          submitQuery(q.trim());
+        }
       });
     });
   }
