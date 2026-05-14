@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { PhaseTrajectoryChart } from "@/components/PhaseTrajectoryChart";
 import Link from "next/link";
 import {
   CPS_ARIA_LABEL,
@@ -275,6 +276,24 @@ export default function CompanyDetailPage({
           30 秒一句话
         </h2>
         <p className="text-base leading-relaxed text-zinc-800">{company.tldr}</p>
+      </section>
+
+      {/* W11-D: PhaseTrajectoryChart — synthesized 12-month structural distance
+          trajectory with phase-band background, hover tooltip, brush selection.
+          Sits below TL;DR (anchor block) and above the deeper context panel so
+          the visual narrative reinforces what TL;DR just said. */}
+      <section
+        className="rounded-xl border border-zinc-200 bg-white p-6"
+        aria-labelledby="trajectory-heading"
+        data-testid="trajectory-section"
+      >
+        <h2
+          id="trajectory-heading"
+          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+        >
+          结构距离趋势
+        </h2>
+        <PhaseTrajectoryChart company={company} months={12} />
       </section>
 
       {/* W6-C: KeyContextPanel — surface the family + CPS explainer prominently.

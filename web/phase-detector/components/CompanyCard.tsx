@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { SparkLine } from "@/components/SparkLine";
 import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ARIA_LABEL,
@@ -123,6 +124,20 @@ export function CompanyCard({ company }: { company: Company }) {
       <p className="pointer-events-none relative z-[1] text-sm leading-relaxed text-zinc-700">
         {company.tldr}
       </p>
+
+      {/* W11-D: animated sparkline — reveals on scroll into view, segments
+          colored by phase band. Pointer events are auto so hover tooltip
+          works while the stretched link still navigates on click of empty
+          card surface. */}
+      <div className="relative z-10 flex items-center justify-between gap-3">
+        <span className="text-xs text-zinc-500">近 12 月趋势</span>
+        <SparkLine
+          ticker={company.ticker}
+          currentPhase={cps}
+          width={120}
+          height={32}
+        />
+      </div>
 
       {indicators.length > 0 && (
         <div className="pointer-events-none relative z-[1]">
