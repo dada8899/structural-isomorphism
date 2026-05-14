@@ -819,6 +819,18 @@ function streamAnalysis(params) {
     if (STREAM_ORDER.length > 0) {
       setStreamingSection(STREAM_ORDER[0]);
     }
+    // Once meta lands, the page has 4 "still working" signals already (TL;DR
+    // placeholder pulsing dot + section skeleton breathGlow + section title
+    // pulsing dot + sticky progress nav). The big analyze-loading block is
+    // redundant noise from here. Fade it out — keep the timer cleanup for
+    // good citizenship.
+    if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
+    const loading = $('#analyze-loading');
+    if (loading) {
+      loading.classList.add('analyze-loading--fading');
+      setTimeout(() => loading.remove(), 400);
+    }
+    firstSectionSeen = true; // suppress the redundant fade-out branch below
     // If this report is already favorited, back-fill the stored entry with names
     if (window.refreshFavoriteWithMeta) {
       window.refreshFavoriteWithMeta(meta);
