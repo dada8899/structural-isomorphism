@@ -66,3 +66,9 @@ v4/product/d1_phase_detector/backtest/data/prices.meta.json
 # Web backend history DB (per-device anonymous query history; ephemeral)
 web/backend/data/history.db
 web/backend/data/history.db-*
+
+# W12-A: a11y audit run-time artifacts (regenerable from pytest run)
+web/tests/e2e/a11y-artifacts/
+web/tests/e2e/.pytest_cache/
+# axe-core script auto-downloaded by test_a11y_audit.py on first run (cached for offline use).
+web/tests/e2e/.axe-core-*.min.js

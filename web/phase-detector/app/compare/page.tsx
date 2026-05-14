@@ -79,7 +79,11 @@ function MiniTimelineStrip({ state }: { state: string | undefined }) {
     ? CPS_DOT[state as keyof typeof CPS_DOT] ?? "bg-zinc-300"
     : "bg-zinc-200";
   return (
-    <div className="flex h-2 w-full gap-[1px]" aria-label="30 天状态时间线（占位）">
+    <div
+      role="img"
+      aria-label="30 天状态时间线（占位）"
+      className="flex h-2 w-full gap-[1px]"
+    >
       {cells.map((i) => (
         <div key={i} className={`h-full flex-1 rounded-[1px] ${cls}`} />
       ))}
