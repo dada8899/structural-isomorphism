@@ -52,6 +52,16 @@ negative_examples:
   reason: "Curated information environments reinforce existing views and create illusory majorities, but the suppression of minority perspectives is due to selective exposure, not active self-silence from fear of isolation."
 - phenomenon: Granovetter threshold models of collective action
   reason: "Individuals act only when enough others do, producing cascades, but the mechanism is based on private participation thresholds and observational cues for action, not on conformist expression of opinions under social pressure."
+- phenomenon: Preferential attachment in scale-free networks
+  reason: "Rich-get-richer emergent majority resembles spiral of silence, but driven by network growth mechanics and cumulative advantage, not by fear of social isolation or normative conformity."
+- phenomenon: "Market tipping with network effects (e.g., VHS vs Betamax)"
+  reason: "Adoption cascade makes minority option disappear, but mechanism is coordination value and switching costs, not individuals self-censoring due to social pressure."
+- phenomenon: Informational cascades in financial herding
+  reason: "Individuals abandon private signals to follow predecessors, causing a cascade, but the driver is rational inference under uncertainty, not fear of social disapproval."
+- phenomenon: Epidemic spreading of behavior via simple contagion
+  reason: "Threshold models can show a majority opinion becoming dominant through contact-based diffusion, but no conformity pressure nor perceived opinion climate is involved."
+- phenomenon: Allee effect in population dynamics
+  reason: "A minority population can collapse to extinction via a positive feedback loop where rarity reduces fitness, but the mechanism is ecological, not social-normative."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -68,6 +78,16 @@ edge_cases:
   debate: "Like-minded discussion intensifies initial leanings, which could involve self-censorship of moderate voices, but the primary mechanisms (persuasive arguments, social comparison) might not require fear of isolation, blurring the line with the spiral of silence class."
 - phenomenon: Minority influence (consistent minority converting majority)
   debate: "It is a reverse dynamic where an initially minority view gains traction through consistency, not silence, yet the underlying feedback structure (amplification of expressed views) could be a sign-flipped version of the same universality class, making its classification debatable."
+- phenomenon: Pluralistic ignorance
+  debate: "Individuals publicly conform to a perceived majority that they privately reject, leading to a self-reinforcing false consensus; deeply related to spiral of silence but the driver is erroneous perception of what others think, not specifically fear of isolation."
+- phenomenon: Groupthink in cohesive decision groups
+  debate: "Suppression of dissent to maintain group harmony shares conformity pressure and self-censorship, but the context is face-to-face small groups and the mechanism centers on cohesion rather than broad fear-of-isolation dynamics."
+- phenomenon: Echo chambers and filter bubbles online
+  debate: "Lack of exposure to minority views can mimic the spiral outcome, but the process is often driven by algorithmic curation and selective exposure rather than active self-silencing from anticipated disapproval."
+- phenomenon: Broken windows theory of neighborhood decline
+  debate: "Visible disorder leads to further norm erosion through perceived social norms; similar feedback loop exists but it relies on signaling and rational updating about social control, not necessarily fear-of-isolation-driven self-silencing."
+- phenomenon: Reinformancing loops in authoritarian contexts
+  debate: "Citizens publicly display support for a regime they privately oppose, reinforcing apparent majority, driven by fear of repression; this mechanical proximity to spiral of silence blurs the line between fear of isolation and fear of state-sanctioned punishment."
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)

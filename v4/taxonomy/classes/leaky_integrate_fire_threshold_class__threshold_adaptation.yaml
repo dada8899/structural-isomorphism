@@ -45,6 +45,16 @@ negative_examples:
   reason: No threshold or reset; continuous Hamiltonian dynamics. Belongs to second_order_damped_oscillator.
 - phenomenon: Sigmoid neural activation in ANNs
   reason: Static input-output map y = σ(Wx+b); no dynamics, no leaky integration, no reset event. Different mechanism class.
+- phenomenon: Leaky integrate-and-fire with fixed threshold and discrete reset
+  reason: "Appears similar by integrating input with leak, but the variable is instantaneously reset to a rest value upon crossing the threshold, not gated or adapted continuously via threshold dynamics."
+- phenomenon: Adaptive exponential integrate-and-fire (AdEx) neuron
+  reason: "Though it accumulates and leaks, the adaptation is implemented via a subtractive current (w) that does not directly modify the threshold; the voltage resets discretely after a spike, making the mechanism incompatible."
+- phenomenon: FitzHugh-Nagumo model
+  reason: "A continuous excitable system without discrete resets, often mistaken for a purely gating system, but the recovery variable acts as a slow current-based negative feedback, not an adaptive threshold; the effective firing threshold is a fixed manifold in phase space."
+- phenomenon: Izhikevich neuron model
+  reason: "Includes both a discrete voltage reset and a recovery variable for adaptation; the reset violates the lack of discrete-event reset, and adaptation is not threshold-based but subtractive."
+- phenomenon: Firing-rate model with subtractive adaptation
+  reason: "Describes continuous evolution of firing rate and adaptation variable, but adaptation subtracts from the input (current-based), whereas this class requires that the gate/threshold itself is explicitly adapted, not the driving signal."
 edge_cases:
 - phenomenon: Neural avalanche under criticality
   debate: Each neuron is LIF, but the population dynamics produce SOC threshold-cascade signatures. Same elementary unit (LIF),
@@ -53,6 +63,16 @@ edge_cases:
 - phenomenon: Hodgkin-Huxley action potential
   debate: Full HH model includes Na+/K+ channel gating, more detailed than LIF. LIF is a reduced approximation. Same class
     membership at coarse level; HH is the full mechanism.
+- phenomenon: "Threshold fatigue without reset, leading to self-terminating spikes"
+  debate: "Variable crosses threshold, causing the threshold to increase continuously until it overtakes the variable, terminating the spike without a discrete reset. This behavior mimics a reset-like event purely via threshold dynamics, blurring the distinction between discrete reset and continuous gating."
+- phenomenon: Phase oscillator with adaptive event threshold and no phase reset
+  debate: "The phase variable accumulates cyclically without reset; after each event, the threshold for the next event is incremented. While threshold adaptation is present, the cyclic nature of the variable means 'accumulation against threshold' is not leaky in the usual sense, raising ambiguity about membership."
+- phenomenon: Dynamic threshold that is an instantaneous function of the accumulated variable
+  debate: "The threshold adapts directly via a functional dependence on the variable (e.g., h(V)), without an independent relaxation equation. Superficially resembles threshold adaptation, but lacks the separate slow dynamics typical of the class, creating a borderline case."
+- phenomenon: Leaky integrator with moving threshold and spike-triggered continuous current injection (no discrete reset)
+  debate: "The injection provides a continuous relaxation toward rest after a spike, arguably substituting for a reset, while threshold adaptation modulates future events. This hybrid of continuous and reset-like mechanisms challenges the strict 'gating without reset' definition."
+- phenomenon: Multiple-timescale model where subtractive adaptation is mathematically equivalent to an adaptive threshold under certain inputs
+  debate: "In some regimes, a subtractive adaptation current can be re-expressed as a dynamic threshold shift; systems that are conventionally modeled with current-based adaptation might in fact satisfy the class definition by reinterpretation, making their classification ambiguous."
 references:
 - Lapicque 1907 J. Physiol. Pathol. Gen. 9, 620 (original I&F neuron)
 - Stein 1965 Biophys. J. 5, 173 (modern LIF derivation)

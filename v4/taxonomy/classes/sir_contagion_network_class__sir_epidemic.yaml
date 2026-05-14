@@ -38,6 +38,16 @@ negative_examples:
     Belongs to motter_lai_network_cascade or percolation_connectivity.
 - phenomenon: Network failure via random component failure
   reason: Independent failures; no infection-style state coupling. Belongs to percolation_connectivity.
+- phenomenon: SIS epidemic on network
+  reason: "No removed compartment; recovery returns individuals to the susceptible class, leading to endemic steady states. The absence of permanent immunity fundamentally alters the long-term dynamics despite the superficial similarity of bilinear incidence and network threshold."
+- phenomenon: SI epidemic on network
+  reason: "No recovery term (γ=0); the model has no epidemic threshold, always reaching full saturation. The sigmoidal growth curve can be mistaken for an SIR-like outbreak, but the mechanism lacks the threshold-dependent extinction typical of the class."
+- phenomenon: Rumor spreading (Daley–Kendall model)
+  reason: "Transmission ceases when spreaders contact other spreaders or stiflers, introducing a nonlinear stifling mechanism distinct from SIR's simple recovery. The final outbreak size depends on the interplay of spreader-stifler encounters, not just an R0 threshold."
+- phenomenon: Linear threshold model (complex contagion)
+  reason: "Adoption requires a threshold fraction of infected neighbors, which leads to discontinuous transitions and cascades. The mechanism is not pairwise mass-action transmission, and the notion of recovery is not analogous to the SIR class removal rate."
+- phenomenon: SIR model with vital dynamics
+  reason: "Birth and death terms introduce population turnover, changing the epidemic threshold to R0 = β/(γ+μ) and enabling an endemic equilibrium. The fixed-population, single-outbreak SIR class does not include demographic processes."
 edge_cases:
 - phenomenon: Bank run with information cascade
   debate: Information-driven 'infection' of withdrawal behavior could fit SIR. But payoff structure is coordination game (multistable_self_fulfilling),
@@ -48,6 +58,16 @@ edge_cases:
 - phenomenon: Cascading default on interbank network
   debate: Can be modeled as SIR (default infects creditors) OR as Eisenberg-Noe clearing (Motter-Lai). Same data, two valid
     generative models. Class boundary.
+- phenomenon: SIR on temporal networks
+  debate: "Contacts change over time, breaking the static network assumption. The epidemic threshold is given by the spectral radius of a temporal operator, and whether the mean-field ODE description still defines a unique universality class is contested."
+- phenomenon: SIR on scale-free networks (degree exponent ≤3)
+  debate: "The threshold R0 ∝ ⟨k²⟩/⟨k⟩ diverges with network size, making outbreaks possible for arbitrarily small transmission rates. Some argue this vanishing threshold constitutes a distinct universality class, while others treat it as a limiting case within the SIR network class."
+- phenomenon: SIRS model with waning immunity
+  debate: "Adds a feedback loop from removed back to susceptible (at rate ω), producing damped oscillations and a stable endemic state for R0 > 1. The long-term behavior departs from the simple epidemic burnout of SIR, blurring the boundary of the class."
+- phenomenon: Non-Markovian SIR (gamma-distributed infectious periods)
+  debate: "The recovery process is non-exponential, introducing memory through integro-differential equations. The threshold R0 condition remains, but the transient dynamics and final size formula deviate, questioning inclusion in the purely Markovian ODE universality class."
+- phenomenon: SIR with behavioral feedback (β dependent on incidence)
+  debate: "Transmission rate β becomes a function of the infected population, creating a dynamic R0 that can induce multiple waves. The compartmental structure is identical, but the feedback mechanism changes the bifurcation landscape, making class membership debatable."
 references:
 - Kermack, McKendrick 1927 Proc. Roy. Soc. A 115, 700 (original SIR)
 - Anderson, May 1991 Infectious Diseases of Humans

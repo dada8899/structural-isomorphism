@@ -45,6 +45,16 @@ negative_examples:
 - phenomenon: Continuous diffusion (Brownian motion)
   reason: 'Edge case: Brownian motion *is* Markov in continuous time, but with continuous state. This class is for discrete-state
     systems. Continuous Markov processes are a separate (closely-related) class.'
+- phenomenon: Bernoulli shift with exponential correlation decay
+  reason: "Deterministic chaotic map with identical symbol statistics, but transition probabilities are conditioned on infinite past (exact initial condition), not just the current symbol."
+- phenomenon: Random walk with stochastic resetting to origin
+  reason: "Resetting introduces long-range memory of the initial state, making the next-state distribution depend on the entire trajectory length, violating the first-order Markov property."
+- phenomenon: Pólya urn process
+  reason: "Reinforcement dynamics cause transition probabilities to be path-dependent (proportional to historical counts), not solely a function of the current state."
+- phenomenon: Continuous-time random walk with power-law waiting times
+  reason: "The non-exponential waiting-time distribution introduces memory of the time since last jump, yielding a non-Markovian process despite discrete state space."
+- phenomenon: Voter model on a lattice
+  reason: "Transition of a site’s state depends on the states of neighboring sites, not just its own current state; the system is only Markov when considering the full configuration."
 edge_cases:
 - phenomenon: Hidden Markov Models (HMM)
   debate: Underlying state is Markov but observations are noisy emissions. State-space-model class includes HMMs. Same Markov
@@ -52,6 +62,16 @@ edge_cases:
 - phenomenon: Higher-order Markov chains (n-gram language models)
   debate: If P(s_{t+1} | s_t, ..., s_{t-n+1}) ≠ P(s_{t+1} | s_t), the chain is higher-order. Reducible to first-order by state
     expansion (state = window of last n symbols), so still in class but with exponentially larger state space.
+- phenomenon: Hidden Markov model (HMM) observations
+  debate: "The hidden state follows a first-order Markov chain, but the observation sequence is not Markov in general; ambiguity arises if the class is defined on observed states or the underlying latent Markov kernel."
+- phenomenon: Markov chain with absorbing state reached after random delay
+  debate: "If the transition probabilities change when approaching the absorbing boundary (e.g., gambler’s ruin), the process might still be first-order on the augmented time-to-absorption variable, but the original state description loses the Markov property."
+- phenomenon: Higher-order Markov chain approximated by first-order with augmented state
+  debate: A process that requires two-step memory can be reduced to a first-order chain by expanding the state space to include previous step; the boundary hinges on whether the state definition is considered fixed or can be freely extended.
+- phenomenon: "Semi-Markov process with state-dependent, non-exponential holding times"
+  debate: "Transitions at discrete epochs follow a Markov chain, but the continuous-time evolution is not Markov; it is ambiguous whether the class requires continuous-time Markovianity or only the embedded jump chain."
+- phenomenon: Stochastic cellular automaton with synchronous updates
+  debate: "Parallel updates based only on current state yield a deterministic transition of the probability distribution (mean-field dynamics), which is Markov on the space of distributions but the individual state process may not be first-order Markov due to simultaneous interactions."
 references:
 - Markov 1906 (foundational work on chains)
 - Kolmogorov 1931 Math. Ann. 104, 415 (forward equation)
