@@ -822,15 +822,19 @@ function streamAnalysis(params) {
     // Once meta lands, the page has 4 "still working" signals already (TL;DR
     // placeholder pulsing dot + section skeleton breathGlow + section title
     // pulsing dot + sticky progress nav). The big analyze-loading block is
-    // redundant noise from here. Fade it out — keep the timer cleanup for
-    // good citizenship.
+    // redundant noise from here. HIDE it (display:none) but DON'T remove it
+    // — the error and retry handlers repaint into this same element, so the
+    // node must remain in the DOM. It gets fully removed once the first
+    // section actually arrives (existing handler below).
     if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
     const loading = $('#analyze-loading');
     if (loading) {
       loading.classList.add('analyze-loading--fading');
-      setTimeout(() => loading.remove(), 400);
+      // After the fade-out animation, hide via display:none. Stays in DOM.
+      setTimeout(() => {
+        if (loading.parentNode) loading.classList.add('analyze-loading--hidden');
+      }, 400);
     }
-    firstSectionSeen = true; // suppress the redundant fade-out branch below
     // If this report is already favorited, back-fill the stored entry with names
     if (window.refreshFavoriteWithMeta) {
       window.refreshFavoriteWithMeta(meta);
@@ -910,6 +914,14 @@ function streamAnalysis(params) {
   // and it is about to try again. Show a soft hint in the loading block.
   es.addEventListener('retry', (e) => {
     console.warn('[analyze] retry event:', e && e.data);
+    // Make sure the loading block is visible again — meta-arrival path has
+    // hidden it via .analyze-loading--hidden, but a retry warrants surfacing
+    // the message there.
+    const loadingBlock = $('#analyze-loading');
+    if (loadingBlock) {
+      loadingBlock.classList.remove('analyze-loading--hidden');
+      loadingBlock.classList.remove('analyze-loading--fading');
+    }
     const titleEl = $('#analyze-loading .analyze-loading__title');
     const hintEl = $('#analyze-loading .analyze-loading__hint');
     if (titleEl) titleEl.textContent = T('page.analyze.retry_first', '首次生成失败，正在重试...');
@@ -959,6 +971,10 @@ function streamAnalysis(params) {
 function renderStreamError({ message, retryable }) {
   const loading = $('#analyze-loading');
   if (!loading) return;
+  // After meta arrives we hide the loading block via .analyze-loading--hidden
+  // (display:none). An error event needs to bring it back so the user sees
+  // the failure copy.
+  loading.classList.remove('analyze-loading--hidden');
   const msg = escapeHtml(message || T("page.analyze.error_title", "生成失败"));
   const canSoftRetry = retryable !== false;
   const buttonHtml = canSoftRetry
