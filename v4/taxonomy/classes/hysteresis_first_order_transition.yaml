@@ -60,6 +60,14 @@ negative_examples:
   reason: "Specific heat loops on cooling/heating reflect kinetic arrest out of equilibrium, not an equilibrium first-order transition between two fixed points; the barrier is dynamically emergent, not static."
 - phenomenon: Stochastic resonance in bistable systems
   reason: "The apparent loop in response versus weak periodic input is due to noise-driven hopping synchronized with the drive, not a slow parameter sweep leading to deterministic collapse/recovery paths."
+- phenomenon: "Viscoelastic hysteresis (e.g., rubber, polymers)"
+  reason: "Stress-strain loop looks like bistable hysteresis but arises from rate-dependent viscous dissipation, not a first-order transition barrier between two equilibrium states."
+- phenomenon: Magnetic Barkhausen hysteresis (domain-wall pinning in soft magnets)
+  reason: "Hysteresis loop mimics a first-order transition but originates from pinning/depinning of domain walls in a disordered landscape, a depinning transition, not a single global bistable free-energy well."
+- phenomenon: Bean critical-state hysteresis in hard superconductors
+  reason: "Irreversible magnetization curve resembles first-order loop but is a dynamic steady-state from flux-gradient pinning, lacking a thermodynamic free-energy barrier between uniform phases."
+- phenomenon: "Relaxation-oscillation hysteresis (e.g., slow–fast van der Pol system)"
+  reason: "Appears as a hysteresis loop when a parameter is slowly swept, but the jump is due to a fold of limit cycles or canard explosion, not a saddle-node bifurcation of fixed points."
 edge_cases:
 - phenomenon: Gardner-Collins toggle switch
   debate: Mathematically related (both produce bistability) but the toggle's hysteresis is at single-cell level driven by
@@ -73,6 +81,16 @@ edge_cases:
   debate: "Near the spinodal the nucleation barrier vanishes, so the collapse path can be continuous; the system still has a metastable branch, but the transition becomes second-order-like at the endpoint, blurring class membership."
 - phenomenon: Rate-induced pseudo-hysteresis near a saddle-node (ghost attractor)
   debate: "Finite-rate sweeps produce a hysteresis-like loop due to critical slowing down, but there is no bistable region; the underlying bifurcation is a single stable fixed point, making it a dynamical artifact rather than a genuine first-order transition."
+- phenomenon: Active motility-induced phase separation
+  debate: "Shows a discontinuous density transition with hysteresis, but no free energy: the barrier stems from nonequilibrium motility feedback. It is unclear whether the class covers systems without a potential function."
+- phenomenon: First-order transition with conserved order parameter near spinodal region
+  debate: "For deep quenches the system enters unstable spinodal decomposition, bypassing metastability and thus the hysteresis loop; it is the same transition but the observable may not always exhibit a clear collapse–recovery asymmetry."
+- phenomenon: First-order transition near a tricritical point
+  debate: "The transition continuously blurs into a second-order one; the barrier vanishes, and the mechanism is no longer a clean first-order jump, yet the phenomenology can survive as a smeared hysteresis."
+- phenomenon: Excitable system with a hard-excitation saddle-loop bifurcation
+  debate: "Hysteresis appears between a stable fixed point and a stable limit cycle; although a discontinuous change occurs, the class definition specifies two stable fixed points, so the limit cycle attractor challenges the boundary."
+- phenomenon: Hysteresis in glasses (heat capacity across glass transition)
+  debate: "The loop superficially resembles a smeared first-order transition, but the mechanism is kinetic arrest, not a phase transition. However, some effective-temperature theories treat it as a genuine nonequilibrium phase transition, placing it on the boundary."
 references:
 - Landau, Lifshitz 1937 (first-order transitions)
 - Scheffer, Carpenter, Foley, Folke, Walker 2001 Nature 413, 591 (catastrophic shifts)

@@ -52,6 +52,16 @@ negative_examples:
 - phenomenon: Crystal lattice ordering
   reason: Ising-like ordering with continuous symmetry; equilibrium_critical_ising class. Different universality class with
     different exponents.
+- phenomenon: Mean-field percolation on a random graph
+  reason: "Exhibits a connectivity transition with P_∞ ∝ (p - p_c)^β, but exponents are mean-field (e.g., β=1) independent of spatial dimension; the infinite-dimensional topology eliminates the geometric lattice constraints essential to this class."
+- phenomenon: High-dimensional geometric percolation (d ≥ 6)
+  reason: "Still on a hypercubic lattice and follows the same percolation formalism, but above the upper critical dimension exponents become dimension-independent and mean-field, violating the dimension-dependent exponent requirement of this class."
+- phenomenon: Fortuin-Kasteleyn (FK) cluster percolation in the 2D Ising model
+  reason: "Percolation of spin-aligned clusters at the Ising critical point superficially resembles geometric connectivity, but exponents (e.g., β=1/8, ν=1) are those of the Ising universality class, not pure geometric percolation, due to thermal correlations."
+- phenomenon: Bootstrap percolation (continuous transition regime)
+  reason: "Connectivity emerges through a k-core pruning process, and while an order parameter can be defined, the transition exponents (e.g., β may be 0.5 or other) differ from standard geometric percolation because of the non-local culling rule."
+- phenomenon: Directed percolation
+  reason: "Looks like anisotropic connectivity on a lattice, but the directional bias changes the symmetry and universality class; critical exponents (e.g., β ≈ 0.276 in 2D) are those of the directed percolation class, incompatible with isotropic geometric percolation."
 edge_cases:
 - phenomenon: Forest fire spread
   debate: Drossel-Schwabl 1992 forest fire IS percolation-like at the right tree-density limit (p_c). But the slow-driving
@@ -59,6 +69,14 @@ edge_cases:
 - phenomenon: Network robustness to random failure vs targeted attack
   debate: Both reduce to percolation problems with different occupancy patterns. Scale-free networks have p_c → 0 under attack
     (Cohen et al. 2000). Strong overlap with scale_free_percolation_class.
+- phenomenon: "Percolation on fractal lattices (e.g., Sierpinski carpet)"
+  debate: "Uses the same geometric percolation equations on a low-dimensional lattice, but exponents are determined by fractal dimension or spectral dimension rather than integer lattice dimension; often treated as a separate class, though it clearly extends the geometric framework."
+- phenomenon: Long-range percolation with power-law decaying bond probability
+  debate: "When connection probability decays as ∼r^{-σ}, the universality class can cross over from geometric to mean-field; for certain σ it may retain dimension-dependent exponents, making boundary with the pure geometric class ambiguous."
+- phenomenon: Correlated percolation from q-state Potts model FK representation
+  debate: "The FK clusters percolate at the Potts critical point and live on the same lattice, but the critical exponents belong to the q-state Potts universality class; often considered distinct, yet it is a direct generalization of geometric percolation (q=1) using identical equations."
+- phenomenon: Invasion percolation in a gradient
+  debate: "The pinned interface and cluster structure near the percolation threshold share scaling with ordinary geometric percolation, but the non‑equilibrium, externally driven mechanism generates different critical exponents; debates persist over whether it falls into the same static universality class."
 references:
 - Broadbent, Hammersley 1957 Proc. Camb. Phil. Soc. 53, 629 (original percolation)
 - Stauffer, Aharony 1994 Introduction to Percolation Theory

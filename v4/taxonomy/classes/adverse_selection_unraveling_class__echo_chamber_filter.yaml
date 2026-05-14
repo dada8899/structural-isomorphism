@@ -51,6 +51,16 @@ negative_examples:
   reason: "Individuals self-select consonant information, creating echo chambers, but the mechanism is psychological bias, not an external algorithm that iteratively narrows exposure."
 - phenomenon: Classifier feedback loop in predictive policing
   reason: "Self-fulfilling predictions cause geographic concentration, but the loop optimizes a crime metric, not engagement-driven view exposure, and the collapsing quantity is spatial allocation, not information diversity."
+- phenomenon: Homophilic social network segregation
+  reason: "Segregation arises from preferential attachment due to homophily, a purely social mechanism, not algorithmic relevance feedback optimizing for engagement."
+- phenomenon: "Akerlof's adverse selection in markets for lemons"
+  reason: "Quality unraveling stems from information asymmetry about product quality, leading to market collapse, not from recommendation algorithms amplifying engagement-correlated views."
+- phenomenon: Confirmation bias in human information search
+  reason: "Exposure diversity collapses due to cognitive biases (selective exposure), not an external algorithmic system optimizing relevance based on engagement metrics."
+- phenomenon: Preferential attachment in network growth
+  reason: "Degree diversity collapses via rich-get-richer attachment, a structural growth rule without relevance feedback or user engagement optimization, producing power-law degree distributions."
+- phenomenon: Neural network overfitting to dominant features
+  reason: "Representation collapse occurs from statistical loss minimization over a fixed dataset, not an ongoing feedback loop where user engagement reinforces exposure of certain views."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -69,6 +79,16 @@ edge_cases:
   debate: "Explicit censorship produces filter bubbles, but the metric is toxicity/compliance, not engagement; the collapse is due to removal, not relevance-feeding, blurring the mechanism boundary."
 - phenomenon: Algorithmic trending topics on social media
   debate: "Engagement-driven amplification concentrates attention on a few items, yet users still access a long tail; is a partial, often transient concentration equivalent to the class's permanent, systemic collapse?"
+- phenomenon: Algorithmic curation in news aggregators optimizing for click-through rate
+  debate: ""
+- phenomenon: Polarization via social media bot amplification
+  debate: ""
+- phenomenon: Echo chambers in academic citation networks with recommender-enhanced discovery
+  debate: ""
+- phenomenon: "Adverse selection in two-sided rating platforms (e.g., ride-hailing)"
+  debate: ""
+- phenomenon: Personalized search filter bubbles
+  debate: ""
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)

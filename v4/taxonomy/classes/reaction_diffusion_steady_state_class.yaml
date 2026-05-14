@@ -48,6 +48,14 @@ negative_examples:
   reason: Granular dynamics with threshold cascades; SOC, not linear reaction-diffusion. Belongs to soc_threshold_cascade.
 - phenomenon: Turbulent eddy diffusion (Kolmogorov)
   reason: Nonlinear (Navier-Stokes), no source-sink steady state; different mechanism.
+- phenomenon: Turing pattern formation
+  reason: "Produces regular spatial patterns (spots/stripes) via reaction-diffusion instability, not a monotonic gradient from a source-sink balance."
+- phenomenon: Diffusion-limited aggregation (DLA)
+  reason: Generates fractal clusters via random walker attachment; the Laplacian concentration field is transient and not a stationary gradient maintained by sources and sinks.
+- phenomenon: Traveling front in Fisher–KPP equation
+  reason: "Moving wavefront with steady shape, but the system is inherently transient and driven by reaction kinetics, not a static gradient field."
+- phenomenon: Turbulent passive scalar mixing layer
+  reason: "Scalar dissipation creates fluctuations, not a steady gradient; advection dominates and no fixed sources/sinks maintain a stationary field."
 edge_cases:
 - phenomenon: Magnetic dipole field
   debate: Same Laplace equation (∇²φ = 0 outside source) but no decay term k. Belongs to a sibling class 'Laplace equation
@@ -55,6 +63,14 @@ edge_cases:
 - phenomenon: Drug pharmacokinetics in tissue
   debate: Same equation with k = clearance rate. Belongs to this class. The compartmental approximation (point) is a coarser
     model in the same family.
+- phenomenon: Steady-state heat conduction with temperature-dependent conductivity
+  debate: "Still a source-sink-diffusion system, but nonlinear conductivity could alter universality; debate whether it belongs to the same class due to material nonlinearity."
+- phenomenon: Quasi-steady morphogen gradient with slow temporal regulation
+  debate: "Gradients change over developmental time; very slow dynamics may approximate steady-state, but active feedback blurs the boundary of a purely passive gradient."
+- phenomenon: Concentration profile in a packed-bed reactor with small Péclet number
+  debate: "Advection-diffusion-reaction with weak advection; small but non-zero convection challenges the pure diffusion assumption, complicating mechanism classification."
+- phenomenon: Electrostatic potential around fixed charges in a dielectric
+  debate: "Obeys Poisson's equation (same mathematical form as steady-state diffusion with source), but the mechanism is electrostatic, not transport; shared equation but incompatible domain."
 references:
 - Fick 1855 Ann. Physik 94, 59 (Fick's law)
 - Crank 1975 The Mathematics of Diffusion

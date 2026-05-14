@@ -42,6 +42,16 @@ negative_examples:
   reason: "Many quorum sensing systems use a single positive-feedback loop (autoinducer synthase induced by its own product), lacking the cross-repressive interaction of a true toggle switch; this can produce bistability but is structurally distinct."
 - phenomenon: Cell cycle CDK1-APC/C switch
   reason: "This mitotic entry switch involves multiple components (Cdc25, Wee1, APC/C), irreversible transitions, and complex post-translational regulation that cannot be reduced to a minimal two-component mutual repression model."
+- phenomenon: Classic Gardner-Collins mutual-inhibition toggle switch
+  reason: "Uses mutual repression between two transcription factors; the bistability arises from a double-negative loop, not from a single ultrasensitive positive-feedback loop as required by the class."
+- phenomenon: Goldbeter-Koshland zero-order ultrasensitivity switch
+  reason: "Bistability emerges from zero-order kinetics in a covalent modification cycle; lacks an explicit autocatalytic positive-feedback loop, relying instead on enzyme saturation."
+- phenomenon: p53-Mdm2 negative-feedback oscillator
+  reason: "Generates sustained oscillations due to delayed negative feedback, not steady-state bistability; superficially resembles toggle dynamics but is a fundamentally different dynamical regime."
+- phenomenon: HipA/HipB toxin–antitoxin persistence switch
+  reason: "Bistability is primarily noise-driven, resulting from stochastic dilution and thresholding, not from deterministic positive feedback with ultrasensitivity."
+- phenomenon: Bacterial chemotaxis perfect-adaptation circuit
+  reason: "Achieves precise adaptation via integral feedback, not a bistable toggle; although it exhibits switch-like transient behavior, it lacks the positive feedback and multiple stable states."
 edge_cases:
 - phenomenon: MAPK signaling (Goldbeter-Koshland)
   debate: Zero-order ultrasensitivity can produce switch-like response without explicit Hill. Different mathematical mechanism
@@ -56,6 +66,16 @@ edge_cases:
   debate: "This bacterial osmosensing switch uses a phosphorelay creating a double-negative feedback loop (OmpR~P represses ompF and activates ompC), but the involvement of a bifunctional sensor kinase/phosphatase adds a layer of complexity that may or may not map cleanly onto the simple toggle-switch equations."
 - phenomenon: Synthetic Gardner-Collins toggle in E. coli
   debate: "As the engineered instantiation of the abstract mutual-repression circuit, it perfectly matches the equations; however, its synthetic nature raises the question of whether the class intends to capture only naturally evolved instances or also artificial constructions that test the minimal design principles."
+- phenomenon: Mitotic CDK1 activation switch
+  debate: "Incorporates a double-negative-feedback loop (CDK1-Cdc25-Wee1) that mathematically resembles positive feedback and yields bistability, but it operates within an oscillatory cell-cycle context and involves additional negative feedbacks; classification as a pure toggle switch is contested."
+- phenomenon: Lac operon bistable induction switch
+  debate: "Relies on transport-mediated positive feedback (permease–inducer) rather than cooperative binding; though it produces hysteretic bistability, the nonlinearity mechanism differs from the canonical Hill-type ultrasensitivity."
+- phenomenon: CaMKII autophosphorylation mnemonic switch
+  debate: "Single-molecule positive feedback with cooperative autophosphorylation creates a protein-level toggle analogous to the genetic toggle switch, but the molecular scale and lack of transcriptional regulation may place it in a distinct subclass."
+- phenomenon: B. subtilis ComK competence switch
+  debate: "Contains a positive autoregulatory loop with cooperative binding, but the full system exhibits excitable dynamics and stochastic pulsing; whether it serves as a canonical deterministic bistable switch is ambiguous."
+- phenomenon: Mitochondrial MOMP switch in apoptosis
+  debate: "Involves positive feedback loops among Bcl-2 family proteins and caspase cascades; however, the core switch integrates mitochondrial outer membrane permeabilization, which has spatial and physical dimensions that may fall outside the purely chemical toggle paradigm."
 notes: 'LLM-proposed sub-class. The parent class gardner_collins_toggle_switch in layer 3 covers
 
   this — this entry exists because Layer 4 generated targeted predictions for two specific
