@@ -84,6 +84,14 @@ The `calibration_independence` stanza is a standing requirement: it forces the p
 
 The protocol distinguishes itself from standard pre-registration in two ways. First, **every** pre-registered system gets a report, regardless of verdict. The four negatives and partials reported here would, under a non-adversarial protocol, plausibly never reach the literature. Second, the protocol records the **per-system verdict trajectory** in a public ledger (`v4/preregistration/STATUS.md`), so that the joint distribution of verdicts is observable to readers and reviewers. Adversarial pre-registration treats the ledger as the unit of credibility, not the individual paper.
 
+![Pre-registration filter funnel (21 LLM candidates -> 13 in-band-and-Vuong-passing).](figures/anti-phacking/fig1_preregistration_funnel.pdf)
+
+**Figure 1.** Pre-registration filter funnel. Counts at each gate of the V4 reject-aware pipeline: 21 LLM-curated candidate classes -> 18 B1-survivors -> 14 B3-survivors -> 17 pre-registered empirical tests (SPLIT/MERGE expanded some classes) -> 13 in-band-and-Vuong-passing verdicts. Numbers from `v4/results/B3_ensemble_summary.md` and §3.5 joint reading below.
+
+![B1 vs B3 critic-stage rejection rate (Wilson 95% CI; 2.33x increase).](figures/anti-phacking/fig2_b1_vs_b3_rejection.pdf)
+
+**Figure 2.** Rejection rate on the 21-class candidate panel for B1 (single Opus) vs B3 (3x DeepSeek ensemble). B3 rejects 33.3% (7/21, Wilson 95% CI [17, 55]%) vs B1's 14.3% (3/21, [5, 35]%) — a 2.33x increase, with four of the B3 rejections concentrating on classes B1 had voted KEEP (mechanism-vs-limit-theorem confusion). Source: `paper/c4-reject-aware-pipeline-2026-05-13.md` §4.
+
 ## §3 Four adversarial cases
 
 ### §3.1 CVE 2023 high-severity disclosures — FAIL
@@ -205,6 +213,18 @@ What the null *does* falsify is the strongest commercialization claim: "the Phas
 ### §3.5 Joint reading
 
 The four verdicts are heterogeneous: a clean FAIL on falsified mechanism (CVE / Patch Tuesday), an INCONCLUSIVE with mechanism-identifiable finite-size cutoff (NYC FDNY), a PARTIAL with one band confirmed and a stationarity-break Easter egg (WSB), and a NULL on a commercial-fork signal (Phase Detector). Pooled with the thirteen positive cross-domain confirmations from the same pipeline [22], the joint distribution is approximately 13 PASS, 2 INCONCLUSIVE/PARTIAL, 1 FAIL, 1 NULL across seventeen pre-registered systems. No system was retested after first verdict. No pre-registration was amended after data fetch. The shared pipeline produced this distribution without per-system tuning.
+
+![Forest plot of 13 in-band positive verdicts (measured exponent vs pre-registered band).](figures/anti-phacking/fig3_exponent_band_coverage.pdf)
+
+**Figure 3.** Per-system tail-exponent band coverage across the 13 positive verdicts produced by the same frozen `soc_pipeline.py` (commit `7ee228c`). Shaded blue band = pre-registered prediction; point = measured Clauset MLE exponent; horizontal bar = 95% bootstrap CI. Class tags: SOC = self-organized-criticality threshold cascade; PA = preferential attachment; SOC/PG = Plerou-Gopikrishnan inverse-cubic regime; Motter-Lai = heterogeneous-load network cascade. All 13 systems land in-band (green markers); see §3 of `paper/v0-unified-pipeline-2026-05-13.md` for full system tables and Vuong likelihood-ratio diagnostics.
+
+![Null-control p-value distributions (4 synthetic non-SOC families; uniform under correctly calibrated null).](figures/anti-phacking/fig4_null_pvalue_uniformity.pdf)
+
+**Figure 4.** Synthetic null-control p-value distributions across 200 bootstrap replicates per non-SOC family (lognormal, exponential, Poisson inter-arrival, shuffled). Under a correctly calibrated null, p-values should be uniform on [0,1] (dashed reference); visible departures diagnose calibration error. Single-shot real-data anchors from `v4/validation/null-controls/null_results.json` are overlaid (vermilion dotted) where available; the single-shot empirical pipeline rejects power-law in all four families at $p \ll 10^{-50}$ — confirming the pipeline does not "fit everything as a power-law".
+
+![S&P 500 inverse-cubic tail (CCDF log-log, n=9065 daily returns 1990-2026).](figures/anti-phacking/fig5_sp500_inverse_cubic.pdf)
+
+**Figure 5.** S&P 500 daily-return tail. Pale blue points = empirical CCDF of $|r_t|$ over 9,065 trading days (1990-04 through 2026-05, source: `yfinance` via `v4/validation/soc-stockmarket/sp500_daily.csv`). Vermilion line = Clauset-Shalizi-Newman MLE power-law fit on the upper tail ($x_\mathrm{min} = 0.014$, $n_\mathrm{tail} = 1{,}424$, $\hat{\alpha} = 3.39$). Black dashed line = canonical Plerou-Gopikrishnan-Stanley inverse-cubic reference ($\alpha = 3$). Measured $\hat{\alpha}$ lies inside the pre-registered band $[2.5, 3.5]$ and within 13% of the canonical inverse-cubic value; see also §3 Phase 2 in `paper/v0-unified-pipeline-2026-05-13.md` where the same data with a denser bootstrap grid recovers $\hat{\alpha} = 2.998 \pm 0.041$.
 
 The methodological claim is not that the distribution proves the universality-class framework correct. The thirteen positives might individually still be vulnerable to other validity threats (calibration leakage, post-hoc data filtering not captured by the YAML, plain bad luck on the universe sampled). The claim is narrower: the distribution of outcomes is consistent with the underlying mechanism heterogeneity rather than with confirmation bias in the orchestrating agent or in the analyst. A pipeline that had been silently re-tunable would have produced seventeen confirmations, and a reader could not have known. A pipeline under adversarial pre-registration produces what the data actually says, and the negatives are a primary part of the credibility argument.
 
