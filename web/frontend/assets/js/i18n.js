@@ -28,6 +28,33 @@
   // rather than overwrite.
   window.__i18n_strings = window.__i18n_strings || { zh: {}, en: {} };
 
+  // ---------- inline EN fallback dict ----------
+  // A subset of the most user-visible keys is duplicated here so the page
+  // remains coherent in EN even if content.json fetch is slow or blocked.
+  // The async JSON load below is still authoritative — these entries are
+  // overwritten the moment content.json arrives. Kept intentionally small
+  // (top-of-page chrome + nav crumbs); full coverage lives in content.json.
+  var FALLBACK_EN = {
+    'page.home.brand': 'Turn your problem into <em>one another field has already solved</em>',
+    'page.home.hero_evidence.eyebrow': 'Demo · click either side for a real example',
+    'page.analyze.crumb_classes': 'Shared patterns',
+    'page.methods.lede': 'A "shared pattern" only counts when "<strong>the same code, with zero tuned parameters, run across multiple totally different domains, recovers the predicted signal</strong>".',
+    'page.methods.pipeline_title': 'Shared code modules',
+    'page.methods.b3_limit_label': 'Limit:',
+    'page.methods.b3_stat_agreement': 'human ↔ AI agreement',
+    'page.methods.b3_stat_errors': 'parse errors',
+    'page.methods.b3_stat_verdicts': 'total verdicts',
+    'page.methods.b3_stat_walltime': 'total wall-time',
+    'page.taxv2.limit_title': 'Limitations & next steps',
+    'page.taxv2.pattern_title': 'A shared downgrade pattern'
+  };
+  (function seedFallback() {
+    var dst = window.__i18n_strings.en = window.__i18n_strings.en || {};
+    Object.keys(FALLBACK_EN).forEach(function (k) {
+      if (typeof dst[k] !== 'string') dst[k] = FALLBACK_EN[k];
+    });
+  })();
+
   var state = {
     lang: DEFAULT_LANG,
     ready: false,
