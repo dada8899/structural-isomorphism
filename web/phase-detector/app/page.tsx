@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
+import { RecentlyFlippedRow } from "@/components/RecentlyFlippedRow";
 import { ScreenerFilter } from "@/components/ScreenerFilter";
 import { SearchHero } from "@/components/SearchHero";
 import { StatsBar } from "@/components/StatsBar";
@@ -36,6 +37,7 @@ export default function ScreenerHomePage() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [signals, setSignals] = useState<Company[]>([]);
+  const [recentlyFlipped, setRecentlyFlipped] = useState<Company[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [filters, setFilters] = useState<ScreenerFilters>({ limit: 50 });
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,17 @@ export default function ScreenerHomePage() {
       .catch((err) => {
         // eslint-disable-next-line no-console
         console.warn("signals fetch failed:", err);
+      });
+    // W3-C session #9: pull 3 companies that have already transitioned for
+    // the first-fold "recently flipped" retrospective row. If BE has no rows
+    // for this state we render nothing (no fake data).
+    fetchScreener({ critical_point_state: "post_critical_transition", limit: 3 })
+      .then((s) => {
+        if (!cancelled) setRecentlyFlipped(s);
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn("recently-flipped fetch failed:", err);
       });
     return () => {
       cancelled = true;
@@ -207,6 +220,13 @@ export default function ScreenerHomePage() {
           Replaces the legacy "开始查看 →" scroll-to-filter CTA. Sits BELOW the
           headline + ABOVE the state legend / signals / family blocks. */}
       <SearchHero onSubmit={handleSearchSubmit} />
+
+      {/* W3-C session #9: first-fold retrospective row — companies that have
+          ALREADY transitioned (post_critical_transition). Sits between the
+          search hero and the state legend so users immediately see one
+          concrete outcome of the methodology before scrolling into the table.
+          Renders nothing if BE returns []. */}
+      <RecentlyFlippedRow companies={recentlyFlipped} />
 
       {/* State legend — PR-1 reorder: appears BEFORE signals so user knows
           what ●▲◆✕ + colors mean before seeing colored badges. */}
