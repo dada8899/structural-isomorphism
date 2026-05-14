@@ -213,12 +213,17 @@ export default function UniversalityDetailPage() {
   if (loading) {
     return (
       <div className="space-y-4">
+        {/* W12-A: axe `page-has-heading-one` — ensure every loading state still
+         * exposes an <h1> landmark so screen readers can announce the page. */}
+        <h1 className="sr-only">普适类详情加载中</h1>
         <div className="text-xs text-zinc-500">
           <Link href="/universality" className="hover:text-zinc-900">
             ← 返回普适类列表
           </Link>
         </div>
-        <div className="text-sm text-zinc-500">加载中…</div>
+        <div className="text-sm text-zinc-500" role="status" aria-live="polite">
+          加载中…
+        </div>
       </div>
     );
   }
@@ -226,12 +231,16 @@ export default function UniversalityDetailPage() {
   if (error || !detail) {
     return (
       <div className="space-y-4">
+        <h1 className="sr-only">普适类未找到</h1>
         <div className="text-xs text-zinc-500">
           <Link href="/universality" className="hover:text-zinc-900">
             ← 返回普适类列表
           </Link>
         </div>
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+          role="alert"
+        >
           没找到这个普适类：{classId}
           {error && <div className="mt-1 text-xs text-amber-700">{error}</div>}
         </div>

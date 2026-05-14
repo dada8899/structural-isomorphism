@@ -171,7 +171,9 @@ export default function CompanyDetailPage({
           role="alert"
         >
           <p className="font-medium">加载 {params.ticker} 失败</p>
-          <p className="mt-1 text-xs text-red-700/80">{error}</p>
+          {/* W12-A: was text-red-700/80 (4.34:1 on red-50). Drop the opacity
+           * modifier so we hit AA 4.5:1 with full text-red-800 on the same bg. */}
+          <p className="mt-1 text-xs text-red-800">{error}</p>
           <Link
             href="/"
             className="mt-3 inline-flex rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:border-red-400"
