@@ -28,9 +28,10 @@ python v4/cli.py status                     ***REMOVED*** 应打印 13 phases + 
 
 ---
 
-***REMOVED******REMOVED*** 1. 当前状态 (2026-05-14 session ***REMOVED***7 截止)
+***REMOVED******REMOVED*** 1. 当前状态 (2026-05-14 session ***REMOVED***7 截止 + post-deploy scale)
 
-- **Main HEAD**: `23484f7` (PR ***REMOVED***79 merged) — **14 PRs in session ***REMOVED***7** (***REMOVED***64-79 含 fix ***REMOVED***75/***REMOVED***76/***REMOVED***78 + plan ***REMOVED***64)
+- **Main HEAD**: `75c6908` (PR ***REMOVED***83 merged) — **20 PRs in session ***REMOVED***7** (***REMOVED***64-***REMOVED***83)
+- **Git tag**: `v0.4.0`
 - **Production live + 11/11 e2e PASS**:
   - https://beta.structural.bytedance.city/ — **Perplexity-like 真搜索引擎 (session ***REMOVED***7 北极星 ship)**: 输入复杂问题 → SSE 流式 answer + 5 KB cards + 3 similar phenomena + 3 followups + deep-analysis CTA
   - https://beta.structural.bytedance.city/learn — Legacy home backup（marketing + SEO 保留）
@@ -38,14 +39,14 @@ python v4/cli.py status                     ***REMOVED*** 应打印 13 phases + 
   - https://structural.bytedance.city/ — Legacy 学术静态（不动）
   - https://phase.bytedance.city/ — Phase Detector
 
-***REMOVED******REMOVED******REMOVED*** Session ***REMOVED***7 主要交付 (5 directions all shipped + verified)
+***REMOVED******REMOVED******REMOVED*** Session ***REMOVED***7 主要交付 (5 directions + post-deploy scale)
 
 | Direction | Status | Key artifact |
 |---|---|---|
 | *****REMOVED***6 Perplexity-like 真搜索引擎** | ✅ Live | POST /api/ask/stream SSE + new /index.html + ask.js (574 LOC) + ask.css (705 LOC) |
-| *****REMOVED***1 Phase Detector** | ✅ partial | 500 ticker list + 55 sample StructTuple + backtest engine v0.1 + 9 pytest |
+| *****REMOVED***1 Phase Detector** | ✅ Full | **500/500 ticker StructTuple full SP500** + backtest engine v0.1 + 9 pytest |
 | *****REMOVED***2 UX 第三轮** | ✅ Live | mobile fix + Plausible 14 events + /discoveries skeleton + glossary v2 (5 新词) |
-| *****REMOVED***3 科学纵深** | ✅ ship | 3 pre-registration yaml + B4 ensemble script + 12 taxonomy yaml expanded + **CVE preregister FAIL (α=2.668 outside band, lognormal+exp beat power-law)** |
+| *****REMOVED***3 科学纵深** | ✅ Full | 3 pre-reg yaml + **B4 full 21 classes (8 AGREE / 13 DIFFER = 62% disagree vs B3)** + **35/35 taxonomy yaml expanded** + **CVE FAIL** (α=2.668 outside band) + **NYC FDNY INCONCLUSIVE** (α=1.739 in band but lognormal/exp beat — finite cutoff hypothesis) + CVE paper draft v0.1 |
 | *****REMOVED***4 工程平台** | ✅ Live | GitHub Actions CI + history SQLite + observability + auth tier middleware + i18n EN 100% (244/244) + 30 backend tests pass |
 
 ***REMOVED******REMOVED******REMOVED*** Session ***REMOVED***7 PR 表
