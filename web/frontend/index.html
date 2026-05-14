@@ -3,169 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" data-i18n-meta="page.home.meta_desc" content="Structural — 输入一句话描述你的问题，1-2 分钟拿到一份跨学科研究报告。从地震、神经网络、金融市场等领域，找出和你的问题数学结构相同的成熟解法。">
+  <meta name="description" content="Structural — 跨学科搜索引擎。输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
   <meta name="theme-color" content="#FAFAF9">
-  <title data-i18n="page.home.meta_title">Structural — 把你的难题换成别的学科已经解过的题</title>
+  <title>Structural — 跨学科搜索引擎</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
-  <meta property="og:title" data-i18n-meta="page.home.meta_title" content="Structural — 把你的难题换成别的学科已经解过的题">
-  <meta property="og:description" data-i18n-meta="page.home.meta_desc" content="输入一句话描述你的问题，1-2 分钟拿到一份跨学科研究报告。从地震、神经网络、金融市场等领域，找出和你的问题数学结构相同的成熟解法。">
+  <meta property="og:title" content="Structural — 跨学科搜索引擎">
+  <meta property="og:description" content="输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" data-i18n-meta="page.home.meta_title" content="Structural — 把你的难题换成别的学科已经解过的题">
-  <meta name="twitter:description" data-i18n-meta="page.home.meta_desc" content="输入一句话描述你的问题，1-2 分钟拿到一份跨学科研究报告。">
+  <meta name="twitter:title" content="Structural — 跨学科搜索引擎">
+  <meta name="twitter:description" content="输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/home.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260514c">
-  <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514c">
-  <style>
-    /* Phase 子产品入口（学术版 hero 下方的 callout）
-     * W6-B (W5-E #4): tightened to reduce first-viewport density.
-     * margin-top: 16px (was 28), padding: 10px 14px (was 16/22), font: 13 (was 14). */
-    .home__cross-product {
-      margin-top: 16px;
-      padding: 10px 14px;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
-      border: 1px solid rgba(37, 99, 235, 0.15);
-      border-radius: 10px;
-      font-size: 13px;
-      color: #52525B;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      line-height: 1.5;
-    }
-    .home__cross-product__badge {
-      display: inline-flex;
-      padding: 2px 8px;
-      background: #2563EB;
-      color: #FFFFFF;
-      font-size: 11px;
-      border-radius: 4px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      flex-shrink: 0;
-    }
-    .home__cross-product a {
-      color: #2563EB;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .home__cross-product a:hover { text-decoration: underline; }
-    .home__cross-product-label { color: #71717A; }
-
-    /* Featured preprint (session #3)
-     * W6-B (W5-E #4): tightened — margin-top 12 (was 18), padding 16 20 (was 22 26). */
-    .home__featured-preprint {
-      display: block; margin-top: 12px; padding: 16px 20px;
-      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
-      border: 1px solid #18181B; border-radius: 12px;
-      text-decoration: none; color: inherit;
-      transition: all 0.18s;
-    }
-    .home__featured-preprint:hover {
-      box-shadow: 0 10px 28px rgba(0,0,0,0.08);
-      transform: translateY(-2px);
-    }
-    .home__featured-preprint__badge {
-      display: inline-block; padding: 3px 9px;
-      background: #18181B; color: #FFF;
-      font-size: 10px; letter-spacing: 0.5px;
-      font-family: "JetBrains Mono", monospace;
-      border-radius: 4px; margin-bottom: 10px;
-    }
-    .home__featured-preprint__title {
-      font-family: "Noto Serif SC", serif;
-      font-size: 19px; font-weight: 600; color: #18181B;
-      line-height: 1.4; margin-bottom: 8px;
-    }
-    .home__featured-preprint__body {
-      font-size: 14px; color: #52525B; line-height: 1.65; margin-bottom: 8px;
-    }
-    .home__featured-preprint__body strong { color: #2563EB; }
-    .home__featured-preprint__meta {
-      font-size: 12px; color: #71717A;
-      font-family: "JetBrains Mono", monospace;
-    }
-
-    /* W8-D: Waitlist signup CTA */
-    .home__waitlist { margin-top: 56px; }
-    .home__waitlist-card {
-      max-width: 640px; margin: 0 auto;
-      padding: 28px 28px;
-      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
-      border: 1px solid #E4E4E7; border-radius: 16px;
-    }
-    .home__waitlist-eyebrow {
-      display: inline-block;
-      font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
-      color: #71717A; font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .home__waitlist-title {
-      font-family: "Noto Serif SC", serif;
-      font-size: 22px; font-weight: 600; color: #18181B;
-      margin-bottom: 8px; line-height: 1.35;
-    }
-    .home__waitlist-body {
-      font-size: 14px; color: #52525B; line-height: 1.65;
-      margin-bottom: 14px;
-    }
-    .home__waitlist-meta {
-      display: inline-block; margin-left: 6px;
-      font-size: 12px; color: #A1A1AA;
-    }
-    .home__waitlist-form {
-      display: flex; gap: 8px; flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-    .home__waitlist-input {
-      flex: 1 1 220px; min-width: 0;
-      padding: 9px 12px;
-      font-size: 14px; color: #18181B;
-      border: 1px solid #D4D4D8; border-radius: 8px;
-      background: #FFFFFF;
-      transition: border-color 0.15s;
-    }
-    .home__waitlist-input:focus {
-      outline: none; border-color: #18181B;
-      box-shadow: 0 0 0 1px #18181B;
-    }
-    .home__waitlist-input:disabled { opacity: 0.6; }
-    .home__waitlist-button {
-      padding: 9px 20px;
-      font-size: 14px; font-weight: 500; color: #FFFFFF;
-      background: #18181B; border: none; border-radius: 8px;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .home__waitlist-button:hover { background: #27272A; }
-    .home__waitlist-button:disabled { cursor: not-allowed; opacity: 0.6; }
-    .home__waitlist-status {
-      font-size: 12px; margin-top: 8px; min-height: 18px;
-    }
-    .home__waitlist-status.is-ok { color: #047857; }
-    .home__waitlist-status.is-dup { color: #52525B; }
-    .home__waitlist-status.is-err { color: #B91C1C; }
-    .home__waitlist-fineprint {
-      font-size: 11px; color: #A1A1AA; margin-top: 8px;
-    }
-    .sr-only {
-      position: absolute; width: 1px; height: 1px;
-      padding: 0; margin: -1px; overflow: hidden;
-      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514s7">
+  <link rel="stylesheet" href="/assets/css/ask.css?v=20260514s7">
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
        safe to keep before Plausible self-hosted instance is live. -->
@@ -181,297 +43,108 @@
           <circle cx="18" cy="18" r="3"/>
           <path d="M8.5 8.5l7 7"/>
         </svg>
-        Structural<span class="beta-badge" data-i18n="beta.badge">beta</span>
+        Structural<span class="beta-badge">beta</span>
       </a>
       <nav class="site-header__nav">
-        <a href="/start-here" class="site-header__nav-link" data-i18n="nav.start_here">从这里开始</a>
-        <a href="/classes" class="site-header__nav-link" data-i18n="nav.universality_classes">共享模式</a>
-        <a href="/discoveries" class="site-header__nav-link" data-i18n="nav.discoveries">精选发现</a>
-        <a href="/papers" class="site-header__nav-link" data-i18n="nav.papers">论文</a>
-        <a href="/methods" class="site-header__nav-link" data-i18n="nav.methods">方法</a>
-        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="site-header__nav-link" data-i18n="nav.phase_detector">Phase Detector</a>
+        <a href="/start-here" class="site-header__nav-link">从这里开始</a>
+        <a href="/classes" class="site-header__nav-link">共享模式</a>
+        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
+        <a href="/papers" class="site-header__nav-link">论文</a>
+        <a href="/methods" class="site-header__nav-link">方法</a>
+        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="site-header__nav-link">Phase Detector</a>
+        <a href="/learn" class="site-header__nav-link">了解 Structural</a>
         <a href="/#home-favorites" class="site-header__nav-link site-header__nav-link--fav" data-fav-link title="用过的查询会出现在这里">
-          <span data-i18n="nav.favorites">我的收藏</span>
+          <span>我的收藏</span>
           <span class="site-header__fav-badge" data-fav-badge hidden>0</span>
         </a>
-        <a href="/about" class="site-header__nav-link" data-i18n="nav.about">关于</a>
-
-        <button type="button" class="site-header__lang-toggle" id="lang-toggle" data-i18n-attr="aria-label:nav.lang_toggle_aria">
-          <span data-i18n-lang-label>EN</span>
-        </button>
+        <a href="/about" class="site-header__nav-link">关于</a>
       </nav>
     </div>
   </header>
 
-  <main class="home">
-    <!-- First viewport: brand + value prop + inline evidence + search -->
-    <section class="home__hero">
-      <div class="home__hero-inner">
-        <div class="home__eyebrow">
-          <span class="home__eyebrow-dot"></span>
-          <span data-i18n="page.home.eyebrow">跨学科研究助手</span>
+  <main class="ask-main">
+    <!-- ===== Empty state ===== -->
+    <section class="ask-empty" id="ask-empty">
+      <h1 class="ask-empty__brand">Structural</h1>
+      <p class="ask-empty__tagline">跨学科搜索引擎 — 输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法</p>
+
+      <form id="ask-form" class="ask-searchbox" role="search" autocomplete="off">
+        <textarea
+          class="ask-searchbox__input"
+          id="ask-input"
+          placeholder="问点复杂的——比如「为什么 SVB 挤兑这么吓人？还有什么类似的系统？」"
+          rows="3"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="输入你的问题"
+        ></textarea>
+        <div class="ask-searchbox__footer">
+          <div class="ask-searchbox__hint"><kbd>⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+          <button type="submit" class="ask-searchbox__submit" aria-label="开始搜索">
+            <span>开始搜索</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
         </div>
-        <h1 class="home__brand serif" data-i18n="page.home.brand">把你的难题，换成<em>另一个学科已经解过的题</em></h1>
-        <p class="home__tagline serif" data-i18n="page.home.tagline">输入一句话描述你的问题。我们从地震、神经网络、金融市场这些看似无关的领域，找出和你问题数学结构相同的成熟解法。</p>
-        <p class="home__lede" data-i18n="page.home.lede">1-2 分钟出一份跨学科研究报告。已收录 <strong>4,443</strong> 个跨学科现象，覆盖 <strong>87</strong> 个领域。</p>
+      </form>
 
-        <!-- Inline evidence: interactive card showing one isomorphism pair with mechanism.
-             Each side is clickable → fires a search; caption reveals the shared structure. -->
-        <div class="home__hero-evidence" id="hero-evidence">
-          <div class="hero-evidence__card">
-            <div class="hero-evidence__eyebrow" style="display:inline-block;font-size:11px;letter-spacing:0.6px;color:#71717A;text-transform:uppercase;margin-bottom:10px;font-weight:600;" data-i18n="page.home.hero_evidence.eyebrow">演示 · 点任一边看一个真实例子</div>
-            <div class="hero-evidence__pair">
-              <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" data-i18n-attr="aria-label:page.home.hero_evidence.a_aria" aria-label="搜索 A 侧现象">
-                <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
-                <span class="hero-evidence__name" id="he-a-name">放射性衰变</span>
-                <span class="hero-evidence__desc" id="he-a-desc">不稳定的原子核自发释放粒子。释放速度只取决于当前剩余的数量——剩得越少越慢。</span>
-              </button>
-              <span class="hero-evidence__symbol" data-i18n-attr="aria-label:page.home.hero_evidence.sym_aria" aria-label="结构同构">≅</span>
-              <button type="button" class="hero-evidence__side" id="he-b-btn" data-side="b" data-i18n-attr="aria-label:page.home.hero_evidence.b_aria" aria-label="搜索 B 侧现象">
-                <span class="hero-evidence__domain" id="he-b-domain">药理学</span>
-                <span class="hero-evidence__name" id="he-b-name">药物浓度下降</span>
-                <span class="hero-evidence__desc" id="he-b-desc">口服后血液中浓度按固定比率降低。代谢速率和当前浓度成正比——越少代谢越慢。</span>
-              </button>
-            </div>
-            <p class="hero-evidence__caption" id="he-caption" data-i18n="page.home.hero_evidence.caption_1">它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。</p>
-          </div>
-          <div class="hero-evidence__controls">
-            <div class="hero-evidence__dots" id="he-dots" role="tablist" data-i18n-attr="aria-label:page.home.hero_evidence.dots_aria" aria-label="切换例子"></div>
-            <button type="button" class="hero-evidence__rotate" id="he-rotate" data-i18n-attr="aria-label:page.home.hero_evidence.rotate_aria" aria-label="下一个例子">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 4v6h6M23 20v-6h-6"/>
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-              <span data-i18n="page.home.hero_evidence.rotate">下一个</span>
-            </button>
-          </div>
+      <div class="ask-empty__examples">
+        <div class="ask-empty__examples-label">试试这些例子</div>
+        <div class="ask-empty__examples-chips">
+          <button type="button" class="ask-chip" data-example-q="为什么硅谷银行挤兑后市场反应这么剧烈？还有哪些类似的级联系统？">SVB 挤兑级联</button>
+          <button type="button" class="ask-chip" data-example-q="月活用户每月按固定比率掉 7%，怎么看怎么干预？">月活衰减干预</button>
+          <button type="button" class="ask-chip" data-example-q="为什么有些谣言会爆，另一些悄悄消散？区别在哪？">谣言传播</button>
+          <button type="button" class="ask-chip" data-example-q="团队氛围崩了之后为什么很难恢复？">团队相变</button>
         </div>
+      </div>
 
-        <form id="search-form" class="searchbox" role="search">
-          <div class="searchbox__wrapper searchbox__wrapper--multi">
-            <textarea
-              class="searchbox__input searchbox__input--multi"
-              placeholder="" data-i18n-attr="placeholder:page.home.search.placeholder"
-              autocomplete="off"
-              spellcheck="false"
-              data-i18n-attr="aria-label:common.searchbox_aria" aria-label="输入问题"
-              rows="3"
-            ></textarea>
-            <div class="searchbox__footer">
-              <div class="searchbox__hint" data-i18n="page.home.search.hint">
-                <kbd>⌘</kbd> + <kbd>Enter</kbd> 提交
-              </div>
-              <button type="submit" class="searchbox__submit searchbox__submit--primary" data-i18n-attr="aria-label:common.search_submit_aria" aria-label="开始分析">
-                <span class="searchbox__submit-label" data-i18n="page.home.search.submit_label">开始分析</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h14M13 5l7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <div class="home__suggestions" id="home-suggestions"></div>
-
-        <div class="home__cross-product">
-          <span class="home__cross-product__badge" data-i18n="page.home.cross_product.badge">姐妹产品</span>
-          <span class="home__cross-product-label" data-i18n="page.home.cross_product.label">想看公司？→ Phase Detector：100 家全球公司的状态评分</span>
-          <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" data-i18n="page.home.cross_product.link">打开 Phase Detector →</a>
-        </div>
-
+      <div class="ask-empty__footer">
+        <a href="/learn" class="ask-empty__link">了解工作原理 →</a>
+        <span class="ask-empty__sep">·</span>
+        <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="ask-empty__link">Phase Detector ↗</a>
       </div>
     </section>
 
-    <!-- Below the fold: examples, daily, stats -->
-    <div id="below-hero" class="home__below">
+    <!-- ===== Thread state (after submit) ===== -->
+    <section class="ask-thread" id="ask-thread" hidden>
+      <div class="ask-thread__inner">
+        <div id="ask-thread-items"></div>
 
-      <!-- How it works: explain the pipeline so users know what they're entering for -->
-      <section class="home__section home__section--how">
-        <header class="home__section-header">
-          <span class="home__section-label" data-i18n="page.home.how.label">工作流程</span>
-          <h2 class="home__section-title" data-i18n="page.home.how.title">你输入一个问题之后，<em>会发生什么</em></h2>
-          <p class="home__section-sub" data-i18n="page.home.how.sub">从一句话描述到一份可执行的跨学科研究报告，全程 1-2 分钟。</p>
-        </header>
-        <ol class="how-steps">
-          <li class="how-step">
-            <span class="how-step__num">01</span>
-            <h3 class="how-step__title" data-i18n="page.home.how.step1.title">读懂你的问题</h3>
-            <p class="how-step__text" data-i18n="page.home.how.step1.text">把你写的口语化描述翻译成一个清晰的研究问题，然后从 4,443 个跨学科现象里挑出 20 个结构最相似的候选。</p>
-            <span class="how-step__time" data-i18n="page.home.how.step1.time">≈ 1 秒</span>
-          </li>
-          <li class="how-step">
-            <span class="how-step__num">02</span>
-            <h3 class="how-step__title" data-i18n="page.home.how.step2.title">给出一段直接的答案</h3>
-            <p class="how-step__text" data-i18n="page.home.how.step2.text">让 AI 综合 20 个候选，给你：一段直接的回答 + 一张「最值得先看」的核心卡 + 两个补充视角（比如对立面、不同时间尺度、更微观的机制）。</p>
-            <span class="how-step__time" data-i18n="page.home.how.step2.time">≈ 8–15 秒</span>
-          </li>
-          <li class="how-step">
-            <span class="how-step__num">03</span>
-            <h3 class="how-step__title" data-i18n="page.home.how.step3.title">写一份完整的研究报告</h3>
-            <p class="how-step__text" data-i18n="page.home.how.step3.text">点核心卡 → 一份 8 段的研究报告：共享的数学结构、关键变量、对方领域已经成熟的工具、怎么具体应用到你的问题、需要先验证的假设、可能的迁移风险。</p>
-            <span class="how-step__time" data-i18n="page.home.how.step3.time">≈ 30–60 秒</span>
-          </li>
-        </ol>
-      </section>
-
-      <!-- Use cases: best practices for different roles -->
-      <section class="home__section home__section--usecases">
-        <header class="home__section-header">
-          <span class="home__section-label" data-i18n="page.home.usecases.label">适合这样用</span>
-          <h2 class="home__section-title" data-i18n="page.home.usecases.title">三种<em>典型场景</em></h2>
-          <p class="home__section-sub" data-i18n="page.home.usecases.sub">把你正被困住的问题输入，系统识别出底层结构，返回跨域里已经解决过的成熟工具。</p>
-        </header>
-        <div class="usecases-grid">
-          <article class="usecase">
-            <div class="usecase__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
-                <line x1="3" y1="20" x2="21" y2="20"/>
-              </svg>
-            </div>
-            <h3 class="usecase__title" data-i18n="page.home.usecases.card1.title">商业 · 用户流失</h3>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="我们的月活用户每个月按固定比率掉 7%，这种指数衰减有没有物理对应？怎么干预？" data-i18n="page.home.usecases.card1.sample">我们月活用户每月按固定比率掉 7%，怎么看怎么干预？ →</button>
-            </div>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
-              <span class="usecase__value" data-i18n="page.home.usecases.card1.value">本质上和<strong>放射性衰变 / 药物代谢</strong>是一回事：剩得越少，掉得越慢。<strong>关键指标是「半衰期」</strong>——只要在半衰期之前出手，成本最低；过了之后，挽回成本指数级上升。</span>
-            </div>
-          </article>
-
-          <article class="usecase">
-            <div class="usecase__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-              </svg>
-            </div>
-            <h3 class="usecase__title" data-i18n="page.home.usecases.card2.title">产品 · 留存断崖</h3>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="为什么我们 app 的留存曲线在第 7 天有一个明显的断崖？" data-i18n="page.home.usecases.card2.sample">为什么我们 app 的留存曲线在第 7 天有一个明显的断崖？ →</button>
-            </div>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
-              <span class="usecase__value" data-i18n="page.home.usecases.card2.value">这种"先平稳后突崩"的曲线，和<strong>材料疲劳断裂 / 神经回路习惯化</strong>结构相同——属于"看上去稳定，其实在累积压力"。给出三种触发机制 + 怎么提前观察到信号。</span>
-            </div>
-          </article>
-
-          <article class="usecase">
-            <div class="usecase__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-              </svg>
-            </div>
-            <h3 class="usecase__title" data-i18n="page.home.usecases.card3.title">社会 · 谣言为什么爆</h3>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_question">你问</span>
-              <button type="button" class="usecase__sample usecase__sample--clickable" data-usecase-q="为什么有些谣言会突然爆，另一些就悄悄消散了？" data-i18n="page.home.usecases.card3.sample">为什么有些谣言会突然爆，另一些就悄悄消散了？ →</button>
-            </div>
-            <div class="usecase__row">
-              <span class="usecase__tag" data-i18n="page.home.usecases.tag_system">系统给</span>
-              <span class="usecase__value" data-i18n="page.home.usecases.card3.value">和<strong>森林大火 / 病毒传播</strong>是同一种结构——是否爆发取决于"传播率 × 易感人群密度"是否过临界点。两个相似谣言可能一个爆一个不爆，差别只在临界点附近的一点点扰动。</span>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- Recent searches (local, hidden by JS when empty) -->
-      <section class="home__section home__history-section" id="home-history" hidden>
-        <header class="home__section-header">
-          <span class="home__section-label" data-i18n="page.home.history.label">你最近的问题</span>
-          <h2 class="home__section-title" data-i18n="page.home.history.title">接着上次<em>继续想</em></h2>
-        </header>
-        <div class="home__history-chips" id="home-history-chips"></div>
-      </section>
-
-      <section class="home__section">
-        <header class="home__section-header">
-          <span class="home__section-label" data-i18n="page.home.daily.label">今日发现</span>
-          <h2 class="home__section-title" data-i18n="page.home.daily.title">每天从知识库中揭示 <em>3 组</em>跨领域同构</h2>
-        </header>
-        <div class="home__daily-grid" id="daily-grid"></div>
-        <div class="home__section-footer">
-          <a href="/discoveries" class="home__section-link">
-            <span data-i18n="page.home.daily.link">查看全部 39 个精选发现</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14M13 5l7 7-7 7"/>
-            </svg>
-          </a>
-        </div>
-      </section>
-
-      <!-- Favorited reports (local, hidden by JS when empty) -->
-      <section class="home__section home__favorites-section" id="home-favorites" hidden>
-        <header class="home__section-header">
-          <span class="home__section-label" data-i18n="page.home.favorites.label">收藏的报告</span>
-          <h2 class="home__section-title" data-i18n="page.home.favorites.title">你保存的<em>研究报告</em></h2>
-        </header>
-        <div class="home__favorites-list" id="home-favorites-list"></div>
-      </section>
-
-      <!-- W8-D: waitlist signup CTA -->
-      <section class="home__section home__waitlist" aria-labelledby="waitlist-heading">
-        <div class="home__waitlist-card">
-          <span class="home__waitlist-eyebrow">每周一封 · Weekly newsletter</span>
-          <h2 id="waitlist-heading" class="home__waitlist-title">
-            每周收一封《结构信号》 →
-          </h2>
-          <p class="home__waitlist-body">
-            每周日推送：本周哪些公司正在接近崩盘边缘、哪些已经回到健康状态，以及一个深度案例。
-            <span class="home__waitlist-meta">免费 · 一封邮件 · 可随时退订</span>
-          </p>
-          <form id="waitlist-form" class="home__waitlist-form" novalidate>
-            <label class="sr-only" for="waitlist-email-main">Email</label>
-            <input
-              id="waitlist-email-main"
-              name="email"
-              type="email"
-              autocomplete="email"
-              required
-              placeholder="you@example.com"
-              class="home__waitlist-input"
-            >
-            <button type="submit" class="home__waitlist-button" id="waitlist-submit">
-              加入
-            </button>
-          </form>
-          <p class="home__waitlist-status" id="waitlist-status" role="status" aria-live="polite"></p>
-          <p class="home__waitlist-fineprint">
-            不会用于其他用途。退订只需点击邮件页脚的链接。
-          </p>
-        </div>
-      </section>
-
-    </div>
+        <form id="ask-followup-form" class="ask-followup-box" role="search" autocomplete="off">
+          <textarea
+            class="ask-followup-box__input"
+            id="ask-followup-input"
+            placeholder="继续追问..."
+            rows="2"
+            spellcheck="false"
+            aria-label="继续追问"
+          ></textarea>
+          <button type="submit" class="ask-followup-box__submit" aria-label="追问">
+            <span>追问</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <div class="site-footer__copyright" data-i18n="footer.copyright">© 2026 Structural · 跨领域思维引擎</div>
+      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
       <div class="site-footer__links">
-        <a class="site-footer__link" href="/start-here" data-i18n="footer.start_here">从这里开始</a>
-        <a class="site-footer__link" href="/about" data-i18n="footer.about">关于</a>
-        <a class="site-footer__link" href="/papers" data-i18n="footer.paper">论文</a>
-        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
-        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener" data-i18n="footer.huggingface">HuggingFace 数据集</a>
-        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener" data-i18n="footer.zenodo">Zenodo</a>
+        <a class="site-footer__link" href="/learn">了解 Structural</a>
+        <a class="site-footer__link" href="/start-here">从这里开始</a>
+        <a class="site-footer__link" href="/about">关于</a>
+        <a class="site-footer__link" href="/papers">论文</a>
+        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
+        <a class="site-footer__link" href="https://huggingface.co/datasets/qinghuiwan/structural-isomorphism-v3-structtuple" target="_blank" rel="noopener">HuggingFace 数据集</a>
+        <a class="site-footer__link" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo</a>
       </div>
     </div>
   </footer>
 
-  <script src="/assets/js/i18n.js?v=20260514c"></script>
-  <script src="/assets/js/utils.js?v=20260514c"></script>
-  <script defer src="/assets/js/glossary.js?v=20260514c"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
-  <script src="/assets/js/api.js?v=20260514c"></script>
-  <script src="/assets/js/home.js?v=20260514c"></script>
-  <script src="/assets/js/product-switcher.js?v=20260514c"></script>
-  <script src="/assets/js/waitlist.js?v=20260513"></script>
+  <script src="/assets/js/utils.js?v=20260514s7"></script>
+  <script src="/assets/js/i18n.js?v=20260514s7"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260514s7"></script>
+  <script src="/assets/js/ask.js?v=20260514s7"></script>
 </body>
 </html>
