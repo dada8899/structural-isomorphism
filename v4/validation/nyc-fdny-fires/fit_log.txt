@@ -1,0 +1,20 @@
+# Filtered: kept [fit] lines + first/last warnings sample
+# Total raw lines: 4901
+# === Sample of warnings (first 6) ===
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+/Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
+# ... (many similar warnings during bootstrap fits, suppressed) ...
+# === Final [fit] summary lines ===
+[fit] primary_series=units_dispatched_all
+[fit] primary_verdict=INCONCLUSIVE
+[fit] alpha=1.739 in band but 2 alternative(s) decisively beat power-law (Vuong R<0, p<0.1). Likely heavy-tailed but better fit by lognormal/exp at this resolution.
+[fit] alpha=1.739 CI=[1.733, 2.988] n_tail=21424 n_input=21424
+[fit] units_dispatched_strict: verdict=FAIL alpha=2.765026319444762 n_tail=196 n_input=2743
+[fit] daily_counts_all: verdict=INCONCLUSIVE alpha=1.7977918695877109 n_tail=31 n_input=31
+[fit] daily_counts_strict: verdict=INCONCLUSIVE alpha=1.7723186299755231 n_tail=31 n_input=31
+[fit] wrote /private/tmp/si-nyc-fdny/v4/validation/nyc-fdny-fires/fit_result.json
+[fit] wrote /private/tmp/si-nyc-fdny/v4/validation/nyc-fdny-fires/result.json
