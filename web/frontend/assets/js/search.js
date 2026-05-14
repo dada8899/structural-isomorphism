@@ -227,13 +227,37 @@ function renderResults(query, data) {
     return;
   }
 
-  // Quiet placeholder while synth is loading — no breathing, no second timer.
-  // The breathing/timer/phase rotation lives in the synth card above (single
-  // source of "I'm working" feedback).
+  // Render the raw result list immediately so the user can read + click
+  // cards while synth is still streaming above. When the SSE `done` event
+  // arrives, renderResultsWithSynth() rebuilds this container with the
+  // primary recommendation tagged. Until then the cards show in their
+  // unranked form with a soft "AI 排序中" hint at the top.
   container.innerHTML = `
     <div class="search-page__results">
-      <div class="rec-placeholder rec-placeholder--quiet">
-        <span class="rec-placeholder__text">${T('page.search.rec_placeholder', '推荐和证据将在合成完成后展开...')}</span>
+      <div class="search-page__results-title">
+        <span>${T('page.search.candidates_title', '跨领域证据')} · ${data.results.length} ${T('page.search.candidates_unit', '个候选')}</span>
+        <span class="search-page__results-hint">${T('page.search.results_pre_synth_hint', 'AI 正在挑选首推 · 现在已可点击查看')}</span>
+      </div>
+      <div class="result-list">
+        ${data.results.map(r => `
+          <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="result-card result-card--pre-synth">
+            <div class="result-card__main">
+              <div class="result-card__meta">
+                <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
+                <span class="result-card__meta-dot"></span>
+                <span class="result-card__meta-type">${T('page.search.structure_prefix', '结构')} ${escapeHtml(r.type_id)}</span>
+              </div>
+              <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
+              <p class="result-card__description">${escapeHtml(r.description)}</p>
+            </div>
+            <div class="result-card__aside">
+              <div class="result-card__score">
+                <span class="result-card__score-num">${scoreTier(r.score).pct}</span><span class="result-card__score-unit">%</span>
+              </div>
+              <svg class="result-card__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        `).join('')}
       </div>
     </div>
   `;
