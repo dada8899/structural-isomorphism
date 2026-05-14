@@ -138,8 +138,41 @@ export default function ScreenerHomePage() {
 
   return (
     <div className="space-y-10">
-      {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14). */}
+      {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14).
+          W2-B (session #9): transparency banner pulled above-fold as trust
+          signal — we publish the NULL backtest (p=0.681) upfront so users can
+          decide before scrolling. Not a fine-print disclaimer; a positioning
+          statement. */}
       <section className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8 sm:py-10">
+        {/* W2-B transparency banner — above headline, amber 50 (trust signal,
+            not red warning). Mobile-friendly via flex-wrap on inner text. */}
+        <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          <div>
+            <strong className="font-semibold">透明披露</strong>：我们做了 walk-forward backtest（500 ticker × 5 年），
+            <strong className="font-semibold">p = 0.681</strong>，alpha 不显著。这个分数
+            <strong className="font-semibold"> 不是 </strong>投资信号。{" "}
+            <Link
+              href="/backtest"
+              className="font-medium underline decoration-amber-700/40 underline-offset-2 hover:decoration-amber-700"
+            >
+              查看完整 NULL 报告 →
+            </Link>
+          </div>
+        </div>
         <h1
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
@@ -152,6 +185,7 @@ export default function ScreenerHomePage() {
         </p>
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">
           用同一套数学，解释过地震、银行挤兑、电网瘫痪——现在套到上市公司上。
+          我们公开发布了 NULL backtest 结果，看清楚再决定要不要用。
         </p>
         {/* PR-4: legacy "开始查看 →" CTA replaced by <SearchHero> below.
             Keep secondary methodology link inline so users can still pivot to
