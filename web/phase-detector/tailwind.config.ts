@@ -3,6 +3,7 @@ import type { Config } from "tailwindcss";
 // W6-B: aligned with main site (web/frontend/assets/css/design-system.css).
 // Font stack: Inter + Noto Serif SC (matches main site).
 // Default Tailwind zinc + accent #2563EB.
+// W3-B (session #9, 2026-05-14): fonts now self-hosted via next/font; tailwind references CSS vars.
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,6 +13,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: [
+          "var(--font-inter)",
           "Inter",
           "PingFang SC",
           "-apple-system",
@@ -21,6 +23,7 @@ const config: Config = {
           "sans-serif",
         ],
         serif: [
+          "var(--font-noto-serif)",
           "Noto Serif SC",
           "Source Han Serif SC",
           "Songti SC",
@@ -28,6 +31,7 @@ const config: Config = {
           "serif",
         ],
         mono: [
+          "var(--font-jetbrains-mono)",
           "JetBrains Mono",
           "SF Mono",
           "Menlo",
