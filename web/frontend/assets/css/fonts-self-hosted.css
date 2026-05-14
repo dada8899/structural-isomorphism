@@ -1,0 +1,205 @@
+/*
+ * Self-hosted web fonts to eliminate Cumulative Layout Shift (CLS).
+ *
+ * Strategy:
+ *   - font-display: optional → no FOUT/FOIT swap. If font not cached, browser
+ *     uses fallback for ENTIRE page load; font swaps in only on next visit.
+ *     This guarantees zero CLS from font swap.
+ *   - size-adjust + ascent/descent-override → match fallback metrics so the
+ *     transient swap (if any) doesn't shift layout.
+ *   - Latin subset only (~300KB total). CJK characters fall back to system
+ *     fonts (PingFang SC / Microsoft YaHei / Noto Sans CJK) which are
+ *     pre-installed and render with no swap.
+ *
+ * Background: W1-B session #8 measured /discoveries CLS = 0.1927 of which
+ * ~94% came from Google Fonts swap. Target: CLS ≤ 0.015.
+ */
+
+/* ============================================================
+ * Inter (sans-serif body / UI)
+ * Fallback metrics tuned for system-ui / -apple-system
+ * ============================================================ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/assets/fonts/inter-400-latin.woff2") format("woff2");
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url("/assets/fonts/inter-500-latin.woff2") format("woff2");
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url("/assets/fonts/inter-600-latin.woff2") format("woff2");
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url("/assets/fonts/inter-700-latin.woff2") format("woff2");
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================================
+ * Noto Serif SC (serif for Chinese + Latin)
+ * Latin subset only; Chinese falls back to system CJK serif.
+ * size-adjust tuned against PingFang SC / Microsoft YaHei fallback.
+ * ============================================================ */
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/assets/fonts/noto-serif-sc-400-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 86%;
+  descent-override: 14%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url("/assets/fonts/noto-serif-sc-500-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 86%;
+  descent-override: 14%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url("/assets/fonts/noto-serif-sc-600-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 86%;
+  descent-override: 14%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url("/assets/fonts/noto-serif-sc-700-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 86%;
+  descent-override: 14%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================================
+ * JetBrains Mono (monospace for code)
+ * size-adjust tuned against Menlo / Consolas fallback.
+ * ============================================================ */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/assets/fonts/jetbrains-mono-400-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 80%;
+  descent-override: 20%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url("/assets/fonts/jetbrains-mono-500-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 80%;
+  descent-override: 20%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================================
+ * Crimson Pro (serif body for paper.html)
+ * Latin only; replaces Crimson Pro from Google Fonts.
+ * ============================================================ */
+@font-face {
+  font-family: "Crimson Pro";
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/assets/fonts/crimson-pro-400-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Crimson Pro";
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url("/assets/fonts/crimson-pro-500-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Crimson Pro";
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url("/assets/fonts/crimson-pro-600-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Crimson Pro";
+  font-style: italic;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/assets/fonts/crimson-pro-400-italic-latin.woff2") format("woff2");
+  size-adjust: 100%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+}
