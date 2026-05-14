@@ -653,7 +653,13 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             if not accumulated.strip():
                 yield {"type": "error", "message": "empty_response"}
                 return
-            fixed = _fix_latex_escapes(accumulated)
+            ***REMOVED*** Strip stray markdown fences (model sometimes wraps in ```json ... ```)
+            cleaned = accumulated.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.strip("`")
+                if cleaned.lower().startswith("json"):
+                    cleaned = cleaned[4:].lstrip()
+            fixed = _fix_latex_escapes(cleaned)
             try:
                 parsed = json.loads(fixed)
             except json.JSONDecodeError:
