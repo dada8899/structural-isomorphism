@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { restartOnboardingTour } from "./OnboardingTour";
+import { openCommandPalette } from "./CommandPaletteProvider";
 import { useScrollDirection } from "@/lib/useScrollDirection";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
@@ -107,6 +108,34 @@ export default function TopNav() {
         >
           导览
         </button>
+        {/* W13-E (session #10): Cmd+K search trigger. */}
+        <button
+          type="button"
+          onClick={() => openCommandPalette("nav-click")}
+          aria-label="搜索 (Cmd+K)"
+          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 px-2 py-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+          data-testid="cmdk-trigger-desktop"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <span className="hidden text-xs md:inline">
+            搜索{" "}
+            <kbd className="ml-1 rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[10px]">
+              ⌘K
+            </kbd>
+          </span>
+        </button>
         <LanguageSwitcher />
       </nav>
 
@@ -184,6 +213,33 @@ export default function TopNav() {
                   )}
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openCommandPalette("nav-click");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-base text-zinc-700 hover:bg-zinc-50"
+                  role="menuitem"
+                  data-testid="cmdk-trigger-mobile"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                  搜索
+                </button>
+              </li>
               <li>
                 <button
                   type="button"

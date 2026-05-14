@@ -7,6 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import NetworkBanner from "@/components/NetworkBanner";
 import TopNav from "@/components/TopNav";
 import OnboardingTour from "@/components/OnboardingTour";
+import CommandPaletteProvider from "@/components/CommandPaletteProvider";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
@@ -185,6 +186,8 @@ export default function RootLayout({
         </footer>
         {/* W12-D onboarding tour — auto-starts first visit, restart-able from TopNav. */}
         <OnboardingTour />
+        {/* W13-E (session #10) Cmd+K command palette — global mount + keyboard shortcut. */}
+        <CommandPaletteProvider />
         {/* W12-B site-wide structured data: WebSite + Organization. */}
         <JsonLd id="ld-website" schema={websiteSchema()} />
         <JsonLd id="ld-organization" schema={organizationSchema()} />
