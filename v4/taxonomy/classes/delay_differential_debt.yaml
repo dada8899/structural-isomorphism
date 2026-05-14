@@ -55,6 +55,16 @@ negative_examples:
   reason: "Oscillatory onset via complex conjugate eigenvalues in instantaneous ODEs can mimic delay-induced oscillations, but no true delay term is present."
 - phenomenon: "Chaotic map with memory (e.g., Mackey-Glass discrete mapping)"
   reason: "Often used as an approximation for DDEs, but the underlying mechanism is a discrete iterated map, not a differential equation with delay."
+- phenomenon: "Distributed-delay population model (e.g., blowflies with continuous maturation)"
+  reason: "Uses an integro-differential equation with a convolution kernel over past states, lacking a single fixed τ; the dynamics depend on distribution moments rather than a discrete committed change."
+- phenomenon: Hysteretic mechanical play (backlash)
+  reason: "A rate-independent memory of past turning points that produces a deadband lag, not governed by a differential equation with an explicit time delay; the lag does not scale with a delay parameter τ."
+- phenomenon: "Relaxation oscillator (e.g., van der Pol with large μ)"
+  reason: "A slow-fast ODE system without an explicit delay; the period arises from multiple time scales and nonlinearity, not from a committed but unrealized future change."
+- phenomenon: Neural field model with axonal conduction speed
+  reason: "Introduces a continuum of space-dependent delays, yielding a distributed-delay integro-differential equation rather than a single fixed τ; the dynamics reflect spatial averaging, not discrete committed debt."
+- phenomenon: Smith predictor control system
+  reason: "Compensates for process delay via an internal model, effectively canceling the delay from the feedback loop; the closed-loop behavior avoids the characteristic instability and committed debt of a raw delayed system."
 edge_cases:
 - phenomenon: Mackey-Glass chronic myelogenous leukemia model
   debate: The original 1977 application — physiological feedback with τ days. Strong canonical positive example, but the underlying
@@ -74,6 +84,16 @@ edge_cases:
   debate: "Reduce to delay equations with distributed delay, not fixed delay; yet under certain assumptions (e.g., constant maturation time) they reduce exactly to a DDE, making the boundary fuzzy."
 - phenomenon: Economic overlapping generations (OLG) model with fixed retirement
   debate: "Features a fixed time delay between contributions and payouts, typical of the class; but often formulated in discrete time, making the continuous DDE version a limiting case; contested whether discrete-time versions fall outside."
+- phenomenon: "State-dependent delay: maturation time depends on population density"
+  debate: ""
+- phenomenon: DDE with distributed delay approximating a discrete delay (gamma kernel with high shape parameter)
+  debate: ""
+- phenomenon: Coupling of two oscillators with transmission delay
+  debate: ""
+- phenomenon: "Transport delay in a non-feedback loop (e.g., pipe flow with no reaction)"
+  debate: ""
+- phenomenon: Economic cobweb model with naive expectations
+  debate: ""
 references:
 - Volterra 1928 (original delay differential equations in ecology)
 - Mackey, Glass 1977 Science 197, 287 (chronic myelogenous leukemia)

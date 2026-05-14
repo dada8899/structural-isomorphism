@@ -37,10 +37,30 @@ negative_examples:
   reason: Static-payoff competitive equilibrium, no time inconsistency. Different class.
 - phenomenon: Stock market trading
   reason: Reversible transactions; no sunk-cost commitment role. Different class.
+- phenomenon: Real options waiting to invest (Dixit-Pindyck)
+  reason: "Sunk costs create an option value of waiting under uncertainty, but the mechanism is optimal timing, not strategic commitment to make a threat credible. No strategic adversary."
+- phenomenon: Costly signaling in job market (Spence education signaling)
+  reason: "Sunk cost (education) separates worker types under asymmetric information, but the purpose is to signal quality, not to commit to a future threat. The ex-ante/ex-post mismatch serves a different function."
+- phenomenon: War of attrition (all-pay auction)
+  reason: "Bidders sink costs incrementally to outlast rivals, but there is no pre-commitment; costs are incurred during the conflict. The mechanism is endurance, not irreversible signaling of commitment."
+- phenomenon: Schelling segregation model (threshold tipping)
+  reason: "Shares Schelling’s name, but the mechanism involves emergent neighborhood patterns from preference thresholds with no sunk-cost signaling or strategic commitments."
+- phenomenon: Corporate debt overhang (Myers)
+  reason: "Existing debt alters investment incentives by shifting payoffs, but this is a consequence of financial structure, not a deliberate sunk-cost move to make a subsequent threat credible."
 edge_cases:
 - phenomenon: Central bank inflation targeting
   debate: Canonical positive example. Public commitment to target makes deviation politically costly (audience cost). Class
     membership accepted.
+- phenomenon: Pre-emptive capacity expansion (Spence-Dixit entry deterrence)
+  debate: "The canonical example of schelling_credible_commitment, but the boundary blurs when capacity is not fully sunk (resalable); the commitment mechanism then competes with signaling or mere preemption."
+- phenomenon: Burning money in a Cournot game (irreversible cost-reducing investment)
+  debate: Ambiguous whether the sunk cost serves to signal private cost type (signaling) or to irrevocably commit to higher output (commitment); both mechanisms can coexist and are often confounded in the literature.
+- phenomenon: "Tying hands through international treaties (e.g., fixed exchange rate)"
+  debate: "Costly exit from treaties makes policy threats credible, but the enforcement often relies on reputation and repeated interaction, blurring the line between sheer sunk-cost commitment and dynamic game strategies."
+- phenomenon: Hostile takeover defenses (poison pills)
+  debate: "Adopting a poison pill is a sunk cost that deters raiders by making the firm less attractive, but its primary function is to change the control structure, not necessarily to make a strategic threat credible in a bargaining sense."
+- phenomenon: Marriage as a commitment device
+  debate: "The high cost of divorce can commit partners to the relationship, but the ‘threat’ of staying together is often about solving hold-up and investment incentives rather than making an external threat credible; the payoff change is mutual rather than adversarial."
 notes: 'LLM-proposed cluster grouping game-theoretic commitment phenomena. Speculative because:
 
   (1) the unifying invariant is qualitative (sunk cost > defection gain) rather than a sharp

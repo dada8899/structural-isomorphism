@@ -52,6 +52,16 @@ negative_examples:
   reason: "Quality declines over time, but because monopolist faces no threat of entry and maximizes profit, not because high-quality sellers are driven out by asymmetric information."
 - phenomenon: Ecological population collapse from habitat loss
   reason: "Decline might follow a similar curve, but driven by external resource depletion, not an unraveling where high-fitness individuals exit because they can't signal their quality."
+- phenomenon: Tragedy of the commons
+  reason: "Collapse of a shared resource resembles quality degradation, but it arises from open-access overuse and externality, not from asymmetric information driving out quality participants."
+- phenomenon: "Network effects lock-in (e.g., QWERTY)"
+  reason: "Dominance of one technology standard appears similar to a winner-take-all collapse, but the positive feedback stems from adoption externalities and switching costs, not informational asymmetry about quality."
+- phenomenon: Classic bank runs (Diamond-Dybvig)
+  reason: "A run triggers a rapid collapse, but it is a self-fulfilling liquidity crisis under fractional reserves, not a gradual unravelling driven by hidden quality types."
+- phenomenon: Predatory pricing
+  reason: "High-quality (efficient) firms exit due to a deep-pocketed competitor’s below-cost pricing, not because buyers cannot observe quality; the mechanism is strategic pricing, not information asymmetry."
+- phenomenon: Information cascades (herding) in financial markets
+  reason: "Cascade-driven bubbles and crashes look like feedback-induced collapse, but the channel is observational learning from others’ actions, not selection based on private asymmetric information about quality."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -70,6 +80,16 @@ edge_cases:
   debate: "Adverse selection (hidden credit risk) drives out good borrowers, but also prone to moral hazard (strategic default) and credit booms driven by supply-side frictions; the relative dominance of adverse selection is contested."
 - phenomenon: Ecosystem diversity collapse via competitive exclusion
   debate: "Species loss can mimic a lemons market if 'good' species (e.g., specialists) are outcompeted when information about resource patch quality is missing, but it is fundamentally a resource-competition dynamic without explicit signaling failure; mapping to adverse selection requires a controversial analogy."
+- phenomenon: "Gresham's law (bad money drives out good)"
+  debate: "Often analogized to lemons, but the mechanism requires legal tender laws that overvalue bad money; the role of asymmetric information is minimal—people know coin quality but are forced to accept at face value. Is it a distinct institutional class or a variant of adverse selection?"
+- phenomenon: Platform enshittification (two-sided market degradation)
+  debate: "As platforms extract more rents, quality users leave, leaving only low-quality participants—exactly the adverse-selection feedback. However, the root cause is monopoly power shifting surplus, not ex ante hidden information about participant types. Boundary between market-power-driven collapse and information-driven unraveling."
+- phenomenon: Moral-hazard driven insurance death spiral
+  debate: "A spiral triggered by ex post moral hazard (e.g., overutilization after insuring) raises premiums and drives out the healthy, mimicking adverse selection. Blurred lines because both information asymmetries can coexist, but the initiating mechanism differs."
+- phenomenon: Statistical discrimination and underinvestment (Phelps model)
+  debate: "Employers use group identity as a proxy for unobserved productivity, leading to a self-confirming equilibrium where the discriminated group underinvests. This fits the adverse selection schema perfectly, yet the focus is on dynamic investment response, not just static selection, creating a boundary with human-capital feedback models."
+- phenomenon: Academic journal quality unraveling
+  debate: "When reviewers cannot perfectly distinguish quality, low-quality papers may drive out high-quality ones—a lemons market. But the 'currency' is prestige, not price, and the market is not decentralized; boundary issue whether the class strictly requires a monetary exchange economy or can apply to reputation-based systems."
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)

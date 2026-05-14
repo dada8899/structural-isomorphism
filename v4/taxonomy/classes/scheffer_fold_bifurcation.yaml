@@ -46,6 +46,14 @@ negative_examples:
 - phenomenon: Single Gardner-Collins toggle
   reason: Hill positive feedback also produces bistability via saddle-node, BUT distinct mechanism (mutual repression). Class
     boundary; phenotypes overlap.
+- phenomenon: Transcritical bifurcation in epidemic threshold
+  reason: "Superficially similar tipping point at R0=1, but no bistability or hysteresis; the bifurcation is transcritical, exchanging stability without a fold, unlike a saddle-node."
+- phenomenon: Subcritical pitchfork bifurcation in population outbreak models
+  reason: "Exhibits hysteresis and abrupt collapse similar to a fold, but the mechanism is a symmetry-breaking pitchfork, not a generic saddle-node; the normal form contains a cubic term."
+- phenomenon: Noise-induced regime shift without parameter drift
+  reason: "Appears as a tipping point with increased variance (early warning), but no deterministic saddle-node bifurcation; solely driven by stochastic fluctuations crossing a potential barrier."
+- phenomenon: Hopf bifurcation leading to shift in mean population density
+  reason: "Transition from steady state to large-amplitude oscillations can be mistaken for a fold, but no alternative stable steady states exist; the bifurcation is a Hopf, not a saddle-node."
 edge_cases:
 - phenomenon: Shape-memory alloy martensitic transformation
   debate: First-order phase transition with hysteresis — but driven by thermomechanical loading, not slow ecological driver.
@@ -53,6 +61,14 @@ edge_cases:
 - phenomenon: Climate tipping points (AMOC shutdown, ice-sheet collapse)
   debate: Strong candidate but uncertain whether the fold structure dominates over delay/feedback dynamics. Often modeled
     with delay_differential_debt elements too.
+- phenomenon: Canard explosion in fast-slow neural or chemical oscillator
+  debate: "Involves a fold bifurcation of the critical manifold and a rapid transition, but the slow passage through the fold and delayed stability loss create distinct dynamics; may or may not fit the simple saddle-node class."
+- phenomenon: Saddle-node on invariant circle (SNIC) in predator-prey cycles
+  debate: "A saddle-node bifurcation occurs on a limit cycle, yielding critical slowing down, but the global topology (cycle birth/death) differs from a simple fixed-point fold; scaling laws may differ."
+- phenomenon: "Fold bifurcation in discrete-time population maps (e.g., Ricker model)"
+  debate: "Produces alternative stable states and tipping points similar to continuous saddle-node, but discrete dynamics introduce period-doubling routes; uncertain if discrete folds belong to the same universality class."
+- phenomenon: Spatial fold bifurcation in vegetation pattern formation
+  debate: "The transition between uniform and patterned states or between alternative patterned states involves a fold in PDE models, but spatial extension and Turing mechanisms complicate the low-dimensional ODE paradigm."
 notes: 'LLM-proposed cluster. Many members overlap with hysteresis_first_order_transition;
 
   the distinguishing feature is the explicit critical-slowing-down / early-warning-signal
