@@ -49,6 +49,9 @@ export const Events = {
   WaitlistError: "waitlist_error",
   MethodologyOpened: "methodology_opened",
   AboutOpened: "about_opened",
+  NewsletterArchiveView: "newsletter_archive_view",
+  NewsletterArchiveIndex: "newsletter_archive_index",
+  NewsletterLinkClick: "newsletter_link_click",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
