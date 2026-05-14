@@ -11,6 +11,7 @@ import { StatsBar } from "@/components/StatsBar";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { fetchScreener, fetchStats } from "@/lib/api";
 import { addToHistory } from "@/lib/history";
+import { usePullToRefresh } from "@/lib/useSwipe";
 import {
   CPS_EXPLAIN,
   CPS_ICON,
@@ -99,6 +100,13 @@ export default function ScreenerHomePage() {
   useEffect(() => {
     load(filters);
   }, [filters, load]);
+
+  // W12-C (session #10): pull-to-refresh on touch devices. No-op when no
+  // touchstart fires (desktop), so safe to wire unconditionally.
+  usePullToRefresh({
+    onRefresh: () => load(filters),
+    disabled: loading,
+  });
 
   const handleApply = useCallback((next: ScreenerFilters) => {
     setFilters(next);

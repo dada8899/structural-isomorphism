@@ -1,10 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import Script from "next/script";
 import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
 import TopNav from "@/components/TopNav";
 import "./globals.css";
+
+// W12-C (session #10): mobile polish.
+// viewport-fit=cover lets us use env(safe-area-inset-*) for iOS notch.
+// We DO NOT set user-scalable=no — pinch-zoom is essential for charts and
+// dense data (WCAG 1.4.4 + Apple HIG / Android guideline).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Allow up to 5× zoom (browser default) for accessibility.
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#F5F5F4",
+};
 
 // W3-B (session #9, 2026-05-14): self-host fonts via next/font (latin subset only).
 // Same-origin, automatic size-adjust + ascent-override (0 CLS), no cross-origin RTT to fonts.googleapis.com.
@@ -54,12 +68,12 @@ export default function RootLayout({
       lang="zh-CN"
       className={`${inter.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60">
+      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60 safe-area-body">
         <a href="#main-content" className="skip-link">
           跳到主要内容
         </a>
         <HistorySidebar />
-        <header className="sticky top-0 z-[80] border-b border-zinc-200 bg-white/90 backdrop-blur">
+        <header className="sticky top-0 z-[80] border-b border-zinc-200 bg-white/90 backdrop-blur safe-area-top">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
             <Link href="/" className="flex items-center gap-2" aria-label="Phase Detector 首页">
               {/* W6-B: double-circle mark — same as main site (Structural logo). */}
@@ -93,7 +107,7 @@ export default function RootLayout({
         <main id="main-content" className="mx-auto max-w-7xl px-6 py-6">
           {children}
         </main>
-        <footer className="mx-auto max-w-7xl border-t border-zinc-200 px-6 py-8 text-xs text-zinc-500">
+        <footer className="mx-auto max-w-7xl border-t border-zinc-200 px-6 py-8 text-xs text-zinc-500 safe-area-bottom">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               <span className="font-medium text-zinc-700">
