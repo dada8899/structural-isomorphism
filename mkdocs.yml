@@ -159,6 +159,11 @@ nav:
       - P2 — Reddit comment cascade sizes: pre-registrations/p2-reddit-cascade-result.md
   - Papers: papers.md
   - Contributing: contributing.md
+  - 简体中文:
+      - 索引: i18n/zh/INDEX-zh.md
+      - 快速开始: i18n/zh/getting-started-zh.md
+      - 方法论 (F1-F5): i18n/zh/methodology-zh.md
+      - Phase Detector: i18n/zh/phase-detector-zh.md
 
 extra:
   social:
