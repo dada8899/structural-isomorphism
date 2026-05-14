@@ -1,0 +1,9 @@
+{
+  "started_at": 1778790055.391006,
+  "source": "HYBRID: 300 real (gh api, 15 repos) + 1700 synthetic (Bertram 2015 calibrated)",
+  "n_real": 300,
+  "n_real_used": 300,
+  "n_synth": 1700,
+  "n_records": 2000,
+  "finished_at": 1778790081.6686158
+}
