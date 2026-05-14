@@ -400,6 +400,18 @@
     gap: var(--space-3);
   }
 
+  /* Mobile ≤480px: hide secondary nav items + clip overflow so the header
+   * never widens the document. Logo + lang toggle remain. Session #7 fix. */
+  .site-header__nav .site-header__nav-link {
+    display: none;
+  }
+  .site-header__nav .site-header__lang-toggle {
+    display: inline-flex;
+  }
+  html, body {
+    overflow-x: hidden;
+  }
+
   .searchbox__wrapper {
     padding: 4px 4px 4px var(--space-3);
   }
