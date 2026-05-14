@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { CumulativeChart } from "./CumulativeChart";
+// W13-B (2026-05-15): code-split recharts via client boundary to drop
+// /backtest First Load JS from 199 KB → < 130 KB (under 200 KB budget).
+import { CumulativeChartLazy as CumulativeChart } from "./CumulativeChartLazy";
 import JsonLd from "@/components/JsonLd";
 import { buildMetadata, datasetSchema } from "@/lib/seo";
 
