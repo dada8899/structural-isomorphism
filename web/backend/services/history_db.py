@@ -17,6 +17,7 @@ device_id is the anonymous cookie ID; isolation is enforced at query time
 
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import logging
 import sqlite3
@@ -24,6 +25,51 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+***REMOVED*** --- Python 3.12+ sqlite3 timestamp adapter/converter ---------------------
+***REMOVED*** The stdlib's default `datetime` adapter and `timestamp` converter are
+***REMOVED*** deprecated as of Python 3.12 (PendingDeprecationWarning → DeprecationWarning)
+***REMOVED*** and slated for removal in a future version. Register explicit ISO-8601
+***REMOVED*** string round-trippers so we don't rely on the deprecated default path.
+***REMOVED***
+***REMOVED*** Idempotent: sqlite3.register_*() are global; calling them on every import
+***REMOVED*** is harmless. Guarded by a module-level flag for clarity.
+
+_TIMESTAMP_HOOKS_INSTALLED = False
+
+
+def _install_timestamp_hooks() -> None:
+    global _TIMESTAMP_HOOKS_INSTALLED
+    if _TIMESTAMP_HOOKS_INSTALLED:
+        return
+
+    def _adapt_datetime(dt: _dt.datetime) -> str:
+        ***REMOVED*** Match the CURRENT_TIMESTAMP default ("YYYY-MM-DD HH:MM:SS") so
+        ***REMOVED*** comparisons against rows inserted via the SQL default still sort
+        ***REMOVED*** lexically. fromisoformat() accepts both " " and "T" separators.
+        return dt.isoformat(sep=" ", timespec="seconds")
+
+    def _convert_timestamp(value: bytes) -> _dt.datetime:
+        ***REMOVED*** CURRENT_TIMESTAMP stores "YYYY-MM-DD HH:MM:SS" (no microseconds,
+        ***REMOVED*** no timezone). fromisoformat() handles both that shape and any
+        ***REMOVED*** isoformat() we adapt above.
+        text = value.decode("utf-8", errors="replace")
+        try:
+            return _dt.datetime.fromisoformat(text)
+        except ValueError:
+            ***REMOVED*** Fallback: strip trailing "Z" or fractional weirdness; if it
+            ***REMOVED*** still can't parse, return None equivalent (epoch) rather than
+            ***REMOVED*** crashing the row read.
+            text2 = text.rstrip("Z").split(".")[0]
+            return _dt.datetime.fromisoformat(text2)
+
+    sqlite3.register_adapter(_dt.datetime, _adapt_datetime)
+    sqlite3.register_converter("timestamp", _convert_timestamp)
+    _TIMESTAMP_HOOKS_INSTALLED = True
+
+
+_install_timestamp_hooks()
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS history (
