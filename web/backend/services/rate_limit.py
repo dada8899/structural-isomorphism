@@ -60,20 +60,10 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
             return f
         return _noop
 
-    # Local import to avoid a hard dep at module load — auth.py only needs
-    # to be importable when this decorator actually fires.
-    try:
-        from services.auth import verify_api_token, get_rate_limit_tier
-    except Exception as e:  # pragma: no cover
-        logger.warning(f"tier_limit_decorator: auth import failed ({e}), falling back to static limit")
-        return limiter.limit(default_anon)
-
-    def _spec_for(request) -> str:
-        tier = verify_api_token(request)
-        # Invalid token → fall back to default_anon; the endpoint itself
-        # is expected to raise 401, but if it doesn't we still rate-limit.
-        if tier is None or tier == "anonymous":
-            return default_anon if tier is None else get_rate_limit_tier("anonymous")
-        return get_rate_limit_tier(tier)
-
-    return limiter.limit(_spec_for)
+    # slowapi's dynamic-limit callable is invoked without the request
+    # object (signature: `_spec()` or `_spec(key)` where key = remote-addr),
+    # so we cannot resolve the tier inside the limit-provider. Tier-aware
+    # auth still happens at the endpoint top via verify_api_token; here we
+    # apply the anonymous baseline. A future enhancement could keep a
+    # request-context contextvar to lift the tier into the limit provider.
+    return limiter.limit(default_anon)
