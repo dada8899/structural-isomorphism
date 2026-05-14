@@ -20,14 +20,37 @@ python v4/cli.py status                     # 应打印 13 phases + verdicts
 
 读完这 5 个文件即可上手：
 1. **本文件** (HANDOFF.md)
-2. **`docs/sessions/SESSION-4-STARTER.md`** — 🔥 session #4 直接执行清单（全权授权 token-blocked actions runbook）
-3. `docs/sessions/structural-iso-session-3-end.md` — session #3 retro (latest)
-4. `paper/v0-unified-pipeline-2026-05-13.md` v0.3 — C1 unified preprint (latest)
+2. **`docs/sessions/SESSION-5-STARTER.md`** — 🔥 session #5 直接执行清单（session #4 收尾 + P0/P1/P2 队列）
+3. `docs/sessions/SESSION-4-STARTER.md` — session #3 末交 #4 的 publishing runbook（PyPI / Zenodo / arXiv 仍待 token）
+4. `paper/v0-unified-pipeline-2026-05-13.md` v0.3.1 — C1 unified preprint (session #4 W6-D abstract apply)
 5. `CLAUDE.md` (repo root) — 项目级 CC 指引
 
 ---
 
-## 1. 当前状态 (2026-05-13 session #3 截止)
+## 1. 当前状态 (2026-05-14 session #4 截止)
+
+- **Main HEAD**: `b75c5b0` (PR #52 merged) — 7 PRs in session #4 (#46-52)
+- **Production live + verified**:
+  - https://beta.structural.bytedance.city/ — Structural (新 hero "把你的难题，换成另一个学科已经解过的题" + history sidebar + 流式 typewriter preview)
+  - https://phase.bytedance.city/ — Phase Detector (新 hero "谁在崩盘边缘？谁在悄悄起飞？" + Perplexity-style SearchHero + history sidebar + 修复 enum drift + 修复 cross-link to /classes)
+- **UX 多维度打分**: 37.8% → 84.4% (+47 pts)
+- **关键能力 shipped**: copy de-jargon / history sidebar 双站 / Phase search box / 流式 typewriter / breadcrumb 确定性回 /classes / 0 V1-V4 leak
+
+### Session #4 累计 PR 表
+
+| PR | 主题 |
+|---|---|
+| #46 | W6-D abstract + CITATION rebrand + README placeholder |
+| #47 | 全站 copy sweep — V1-V4 sprawl 全清 |
+| #48 | History sidebar — Structural |
+| #49 | Phase Detector SearchHero + parse-query NLU |
+| #50 | History sidebar — Phase Detector |
+| #51 | Cross-link symmetry polish |
+| #52 | 关键修复：Phase filter enum + /start-here 404 + 研究报告卡片删 + cross-link 域名 + analyze breadcrumb + 流式 typewriter |
+
+---
+
+## 历史状态 (2026-05-13 session #3 截止)
 
 ### Session #3 close 状态 (2026-05-14 close, post F1 P1 fixes)
 
