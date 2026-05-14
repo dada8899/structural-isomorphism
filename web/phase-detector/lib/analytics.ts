@@ -52,6 +52,12 @@ export const Events = {
   NewsletterArchiveView: "newsletter_archive_view",
   NewsletterArchiveIndex: "newsletter_archive_index",
   NewsletterLinkClick: "newsletter_link_click",
+  PricingView: "pricing_view",
+  CheckoutStarted: "checkout_started",
+  CheckoutCompletedMock: "checkout_completed_mock",
+  CheckoutDeclinedMock: "checkout_declined_mock",
+  PaywallModalView: "paywall_modal_view",
+  PaywallModalClick: "paywall_modal_click",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];

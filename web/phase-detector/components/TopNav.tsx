@@ -14,6 +14,7 @@ const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/universality", label: "普适类" },
   { href: "/methodology", label: "方法" },
   { href: "/backtest", label: "Backtest" },
+  { href: "/pricing", label: "定价" }, // W10-B (session #10)
   { href: "/about", label: "关于" },
   {
     href: "https://beta.structural.bytedance.city/classes",
