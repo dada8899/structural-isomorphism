@@ -113,7 +113,7 @@ def get_search_service():
 
 
 ***REMOVED*** --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter  ***REMOVED*** noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock  ***REMOVED*** noqa
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -127,6 +127,9 @@ app.include_router(synthesize.router, prefix="/api")
 app.include_router(ask.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
 app.include_router(newsletter.router, prefix="/api")
+***REMOVED*** W10-B (session ***REMOVED***10): Stripe Pro mock + /api/usage probe. Real Stripe deferred
+***REMOVED*** until PMF signal — see web/backend/api/checkout_mock.py for migration plan.
+app.include_router(checkout_mock.router, prefix="/api")
 
 
 @app.get("/api/health")
