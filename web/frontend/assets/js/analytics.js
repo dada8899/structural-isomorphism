@@ -41,6 +41,15 @@
     PHASE_FILTER_APPLY: "apply_filter",
     PHASE_COMPANY_VIEW: "view_company",
     PHASE_SOURCE_CLICK: "click_source",
+
+    // W10-B (session #10) — Stripe Pro mock funnel. Mirrors phase-detector
+    // app/lib/analytics.ts Events. Keep both in sync when adding events.
+    PRICING_VIEW: "pricing_view",
+    CHECKOUT_STARTED: "checkout_started",
+    CHECKOUT_COMPLETED_MOCK: "checkout_completed_mock",
+    CHECKOUT_DECLINED_MOCK: "checkout_declined_mock",
+    PAYWALL_MODAL_VIEW: "paywall_modal_view",
+    PAYWALL_MODAL_CLICK: "paywall_modal_click",
   };
 
   // Validate event names defensively — Plausible silently drops invalid names,
