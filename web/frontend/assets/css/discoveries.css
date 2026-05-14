@@ -892,13 +892,20 @@ pre.disc-item__equations {
 }
 
 /* ============================================================
- * Skeleton placeholders (W3-B) — render before /api/discoveries
+ * Skeleton placeholders (W3-B + W4-A) — render before /api/discoveries
  * resolves so the page does not shift when hero stats / filter /
- * list pop in. Heights chosen to match the rendered nodes' final
- * footprint within ±8px to keep CLS near zero.
+ * list pop in. Heights tuned (W4-A 2026-05-14) against real
+ * rendered footprints captured under throttled local repro:
+ *   - hero_stats   : 100px actual (skeleton was 80 → +20 shift)
+ *   - disc_filter  : 189px desktop / 181px mobile actual
+ *     (2 × 60px skeletons = 120 → +60-70px shift)
+ *   - first_card   : 120px desktop / 112px mobile actual
+ *     (skeleton was 180 → -60px over-reservation)
+ * Goal: skeleton total height ≈ real total height to drive
+ * /discoveries mobile CLS from 0.4867 → < 0.05.
  * ============================================================ */
 .disc-skeleton-stats {
-  height: 80px;
+  height: 100px;
   background: linear-gradient(
     90deg,
     var(--bg-secondary) 0%,
@@ -911,14 +918,43 @@ pre.disc-item__equations {
   margin-top: 20px;
 }
 .disc-skeleton-filter {
-  height: 60px;
+  /* W4-A: filter renders 181-189px total; two 90px skeletons + 16 gap ≈ 196px. */
+  height: 90px;
   background: var(--bg-secondary);
   border-radius: 8px;
   margin-bottom: 16px;
 }
 .disc-skeleton-card {
-  height: 180px;
+  /* W4-A: real first card is 112-120px (was over-reserved at 180px). */
+  height: 120px;
   background: var(--bg-secondary);
   border-radius: 12px;
   margin-bottom: 12px;
+}
+
+/* ============================================================
+ * Newsletter container reservation (W4-A 2026-05-14)
+ *
+ * #newsletter-discoveries is empty until window.mountNewsletter()
+ * injects the .newsletter-card markup after JS load. Without a
+ * reserved height the entire page below shifts down by ~325px
+ * on mobile / ~255px on desktop when the card mounts — this was
+ * the dominant CLS source on /discoveries (0.485 mobile).
+ *
+ * Reserve min-height matching the rendered card so the mount is
+ * a zero-shift swap. Heights tuned per viewport.
+ * ============================================================ */
+#newsletter-discoveries:empty {
+  display: block;
+  min-height: 255px;
+  margin: 24px auto;
+  max-width: 640px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+  border: 1px solid #E4E4E7;
+}
+@media (max-width: 640px) {
+  #newsletter-discoveries:empty {
+    min-height: 325px;
+  }
 }
