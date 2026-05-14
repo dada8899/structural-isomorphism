@@ -20,19 +20,53 @@ python v4/cli.py status                     # 应打印 13 phases + verdicts
 
 读完这 5 个文件即可上手：
 1. **本文件** (HANDOFF.md)
-2. **`docs/sessions/SESSION-6-STARTER.md`** — 🔥 session #6 直接执行清单（session #5 收尾 + P0/P1/P2 队列）
-3. `docs/sessions/SESSION-4-STARTER.md` — publishing runbook（PyPI / Zenodo / arXiv 仍待 token，session #5 没动）
-4. `paper/v0-unified-pipeline-2026-05-13.md` v0.3.1 — C1 unified preprint (session #4 W6-D abstract apply)
-5. `CLAUDE.md` (repo root) — 项目级 CC 指引
+2. **`docs/sessions/SESSION-8-STARTER.md`** — 🔥 session #8 直接执行清单（session #7 收尾 + P0/P1/P2 队列）
+3. `docs/sessions/SESSION-7-end.md` — session #7 retrospective（5 directions + Perplexity-like ship）
+4. `docs/sessions/session-7-deploy-verified.md` — 部署 SOP + 实证 SSE event log + 11/11 e2e pass
+5. `paper/v0-unified-pipeline-2026-05-13.md` v0.3.1 — C1 unified preprint
+6. `CLAUDE.md` (repo root) — 项目级 CC 指引
 
 ---
 
-## 1. 当前状态 (2026-05-14 session #5 截止)
+## 1. 当前状态 (2026-05-14 session #7 截止)
 
-- **Main HEAD**: `4b9f888` (PR #62 merged) — 9 PRs in session #5 (#54-62)
-- **Production live + verified**:
-  - https://beta.structural.bytedance.city/ — Structural (TL;DR 卡前置 + /search instant cards + SSE typewriter + GlossaryTooltip + skeleton 兜底所有 layout shift)
-  - https://phase.bytedance.city/ — Phase Detector (StatsBar skeleton + sector dropdown disabled-while-loading + 共享 brand tokens)
+- **Main HEAD**: `23484f7` (PR #79 merged) — **14 PRs in session #7** (#64-79 含 fix #75/#76/#78 + plan #64)
+- **Production live + 11/11 e2e PASS**:
+  - https://beta.structural.bytedance.city/ — **Perplexity-like 真搜索引擎 (session #7 北极星 ship)**: 输入复杂问题 → SSE 流式 answer + 5 KB cards + 3 similar phenomena + 3 followups + deep-analysis CTA
+  - https://beta.structural.bytedance.city/learn — Legacy home backup（marketing + SEO 保留）
+  - https://beta.structural.bytedance.city/search /analyze /discoveries /classes /papers /methods /start-here — 全部 200，i18n EN 100%
+  - https://structural.bytedance.city/ — Legacy 学术静态（不动）
+  - https://phase.bytedance.city/ — Phase Detector
+
+### Session #7 主要交付 (5 directions all shipped + verified)
+
+| Direction | Status | Key artifact |
+|---|---|---|
+| **#6 Perplexity-like 真搜索引擎** | ✅ Live | POST /api/ask/stream SSE + new /index.html + ask.js (574 LOC) + ask.css (705 LOC) |
+| **#1 Phase Detector** | ✅ partial | 500 ticker list + 55 sample StructTuple + backtest engine v0.1 + 9 pytest |
+| **#2 UX 第三轮** | ✅ Live | mobile fix + Plausible 14 events + /discoveries skeleton + glossary v2 (5 新词) |
+| **#3 科学纵深** | ✅ ship | 3 pre-registration yaml + B4 ensemble script + 12 taxonomy yaml expanded + **CVE preregister FAIL (α=2.668 outside band, lognormal+exp beat power-law)** |
+| **#4 工程平台** | ✅ Live | GitHub Actions CI + history SQLite + observability + auth tier middleware + i18n EN 100% (244/244) + 30 backend tests pass |
+
+### Session #7 PR 表
+
+| PR | Title | Commit |
+|---|---|---|
+| #64 | SESSION-7-PLAN master plan | f3e9c92 |
+| #65 | POST /api/ask/stream SSE orchestrator (W1-A) | f29c85b |
+| #67 | CI workflows + history SQLite + observability (W1-D) | 0529b68 |
+| #68 | Phase Detector 100→500 + batch extract (W1-B) | db68684 |
+| #69 | Pre-registration + B4 ensemble + taxonomy expand infra (W1-C) | 34f2a81 |
+| #70 | Perplexity-like /index.html (W2-A) | 2566c39 |
+| #71 | Backtest engine v0.1 (W2-B) | 8b2fc68 |
+| #72 | API auth + history remote + i18n EN (W2-D) | 42888c0 |
+| #73 | B4 ensemble run + CVE preregister FAIL (W2-C) | 53b0f32 |
+| #74 | Playwright e2e + baseline screenshots (W3-A) | 9d2942f |
+| #75 | fix: tier_limit_decorator slowapi signature (hotfix) | e439aeb |
+| #76 | feat: /learn route (hotfix) | 7ce45dd |
+| #77 | UX 3rd round mobile + Plausible + glossary v2 (W3-B) | bcf10e4 |
+| #78 | fix: mobile ≤480px nav overflow (hotfix) | 70ce543 |
+| #79 | docs: deploy verified + screenshots | 98c8d5f |
 - **UX 多维度打分**: 84.4% → 88-90% 预计 (+4-6 pts)
 - **关键能力 shipped (session #5)**: TL;DR 卡片 / synthesize SSE 流式 / shared brand tokens 中心化 / GlossaryTooltip / instant search cards / 4 处 layout-shift 兜底 / analyze loading 噪音降低
 
