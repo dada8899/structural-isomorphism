@@ -1,0 +1,3 @@
+# Generated price series — regenerate locally via fetch_prices.py
+prices.csv
+prices.meta.json
