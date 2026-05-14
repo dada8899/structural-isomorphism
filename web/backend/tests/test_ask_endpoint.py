@@ -148,14 +148,17 @@ class AskOrchestratorTests(unittest.TestCase):
         events = _parse_sse_events(chunks)
         names = [e[0] for e in events]
 
-        # Spec ordering: meta first, kb_cards second, done last.
+        # Spec ordering: meta first, retrieval_done before kb_cards, done last.
+        # (retrieval_done was added in W5-B to give the user a < 5s signal
+        # before the kb_cards payload arrives.)
         self.assertEqual(names[0], "meta")
-        self.assertEqual(names[1], "kb_cards")
         self.assertEqual(names[-1], "done")
+        self.assertLess(names.index("retrieval_done"), names.index("kb_cards"))
 
-        # All required event types present.
+        # All required event types present (retrieval_done is new in W5-B).
         for required in (
             "meta",
+            "retrieval_done",
             "kb_cards",
             "answer_chunk",
             "answer_done",
