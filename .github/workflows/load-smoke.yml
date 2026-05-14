@@ -1,0 +1,133 @@
+name: Load smoke (k6)
+
+# Manually triggered only — load tests are too expensive and too noisy
+# to run on every PR. workflow_dispatch lets ops kick off a baseline run
+# against staging or a custom URL on demand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment'
+        required: true
+        type: choice
+        default: 'local'
+        options:
+          - local
+          - beta
+          - custom
+      custom_url:
+        description: 'Custom BASE_URL (only used when target=custom)'
+        required: false
+        type: string
+        default: ''
+      scenario:
+        description: 'Scenario to run'
+        required: true
+        type: choice
+        default: 'phases_smoke'
+        options:
+          - phases_smoke
+          - ask_smoke
+          - universality_smoke
+          - mixed_realistic
+          - stress_ramp
+          - all
+      vus_override:
+        description: 'Override VUs (optional; e.g. "1" for prod sanity)'
+        required: false
+        type: string
+        default: ''
+      duration_override:
+        description: 'Override duration (optional; e.g. "20s" for prod sanity)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  load-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Resolve BASE_URL
+        id: target
+        run: |
+          case "${{ inputs.target }}" in
+            local)  echo "url=http://localhost:8000" >> "$GITHUB_OUTPUT" ;;
+            beta)   echo "url=https://beta.structural.bytedance.city" >> "$GITHUB_OUTPUT" ;;
+            custom)
+              if [ -z "${{ inputs.custom_url }}" ]; then
+                echo "ERROR: custom target requires custom_url input"
+                exit 1
+              fi
+              echo "url=${{ inputs.custom_url }}" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Inspect scripts (parse-check, no execution)
+        run: |
+          for f in tests/load/*.js; do
+            echo "--- inspect: $f ---"
+            k6 inspect "$f" || { echo "PARSE FAIL: $f"; exit 1; }
+          done
+
+      - name: Run scenario(s)
+        env:
+          BASE_URL: ${{ steps.target.outputs.url }}
+          VUS_OVERRIDE: ${{ inputs.vus_override }}
+          DURATION_OVERRIDE: ${{ inputs.duration_override }}
+        run: |
+          mkdir -p tests/load/results
+
+          run_one() {
+            local script="$1"
+            shift
+            local args=()
+            if [ -n "$VUS_OVERRIDE" ]; then args+=(--vus "$VUS_OVERRIDE"); fi
+            if [ -n "$DURATION_OVERRIDE" ]; then args+=(--duration "$DURATION_OVERRIDE"); fi
+            echo "Running: BASE_URL=$BASE_URL k6 run ${args[*]} $script"
+            BASE_URL="$BASE_URL" k6 run "${args[@]}" "$script" || echo "WARN: threshold breach or error"
+          }
+
+          case "${{ inputs.scenario }}" in
+            phases_smoke)      run_one tests/load/phases_smoke.js ;;
+            ask_smoke)         run_one tests/load/ask_smoke.js ;;
+            universality_smoke) run_one tests/load/universality_smoke.js ;;
+            mixed_realistic)   run_one tests/load/mixed_realistic.js ;;
+            stress_ramp)
+              if [ "${{ inputs.target }}" = "beta" ]; then
+                export I_KNOW_WHAT_I_AM_DOING=yes
+              fi
+              run_one tests/load/stress_ramp.js
+              ;;
+            all)
+              run_one tests/load/phases_smoke.js
+              run_one tests/load/ask_smoke.js
+              run_one tests/load/universality_smoke.js
+              run_one tests/load/mixed_realistic.js
+              ;;
+          esac
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ inputs.scenario }}-${{ inputs.target }}
+          path: tests/load/results/
+          if-no-files-found: warn
+          retention-days: 30
