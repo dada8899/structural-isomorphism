@@ -177,7 +177,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    # W14-C: DELETE added for /api/privacy/delete (GDPR right-to-erasure).
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -197,6 +198,7 @@ def get_search_service():
 
 # --- API routes ---
 from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log  # noqa
+from api.privacy import export as privacy_export, delete as privacy_delete  # noqa
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -216,11 +218,13 @@ app.include_router(checkout_mock.router, prefix="/api")
 # W12-E (session #10): client error reporter (page + global error boundaries
 # auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
 app.include_router(error_log.router, prefix="/api")
-# W14-D (session #10): admin log tail endpoint — reads the rotating JSON log
-# file written by logging_config and returns the last N lines. Admin tier only.
+# W14-D: admin log tail endpoint — admin tier only.
 from api.admin import logs as admin_logs  # noqa: E402
 
 app.include_router(admin_logs.router, prefix="/api")
+# W14-C: GDPR data export + delete endpoints.
+app.include_router(privacy_export.router, prefix="/api")
+app.include_router(privacy_delete.router, prefix="/api")
 
 
 @app.get(
