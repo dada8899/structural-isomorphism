@@ -13,7 +13,7 @@ This checklist tracks what needs to be done before flipping the repo from PRIVAT
 - [x] .github/workflows/ci.yml (GitHub Actions for pytest)
 - [x] Plaintext credentials removed from current state (all migrated to env vars in W6-A)
 - [ ] **Credentials scrubbed from git history** — historical commits still contain old DeepSeek key references. Requires user authorization to run `git filter-repo` or BFG and force-push cleaned history. Old key should be rotated first regardless.
-- [ ] README rewritten for external audience (currently dev-focused)
+- [x] README rewritten for external audience (W6-E session #10 — leads with question, 3-card layout, tightened to ~1100 words)
 - [ ] All TODO placeholders in `setup.py`, `pyproject.toml`, papers replaced with real values (W6-A handled most; verify before flip)
 
 ## P1 (recommended, not blocking)
@@ -24,8 +24,8 @@ This checklist tracks what needs to be done before flipping the repo from PRIVAT
 - [ ] Zenodo DOI minted for dataset/v1/ bundle
 - [ ] 15 good-first-issue drafts converted to labeled GitHub issues
 - [ ] LFS migration completed (current large data files moved to LFS)
-- [ ] Phase Detector browser-side runtime issue fixed (W6-E found 1 React error after networkidle)
-- [ ] universality-classes.json duplicate class_id resolved (W6-E found 2 dupes)
+- [x] Phase Detector browser-side runtime issue fixed (commit bfdf2b0; regression e2e in `tests/e2e/test_phase_detector_no_react_errors.py`)
+- [x] universality-classes.json duplicate class_id resolved (commit bfdf2b0 + W6-E session #10 — `_v2` suffix policy, regression test in `tests/test_universality_classes_unique.py`, decision record in `docs/data/universality-classes-dedupe-2026-05-15.md`)
 
 ## Decision gates (founder authorization required)
 
@@ -47,5 +47,5 @@ These actions are irreversible or externally visible and need explicit go-ahead:
 
 ## Status
 
-Last updated: 2026-05-13 (session #3 close)
+Last updated: 2026-05-15 (W6-E session #10 — README rewrite + dedupe regression + React error e2e regression tests landed)
 Maintainer: @dada8899
