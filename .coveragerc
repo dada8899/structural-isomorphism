@@ -1,0 +1,41 @@
+[run]
+source = v4/lib, packages/cross-judge/src, packages/guarded-llm/src, packages/soc-pipeline/src, web/backend
+parallel = True
+relative_files = True
+omit =
+    */tests/*
+    */__pycache__/*
+    */migrations/*
+    setup.py
+    web/backend/main.py
+    web/backend/services/llm_service.py
+    web/backend/services/search_service.py
+    web/backend/services/translation.py
+    web/backend/services/observability.py
+    web/backend/services/cache.py
+    web/backend/api/daily.py
+    web/backend/api/discoveries.py
+    web/backend/api/mapping.py
+    web/backend/api/phenomenon.py
+    web/backend/api/search.py
+    web/backend/api/synthesize.py
+    web/backend/api/examples.py
+    web/backend/api/analyze.py
+    web/backend/api/history.py
+    v4/lib/embedding_finetune.py
+    v4/lib/embedding_bridge.py
+    v4/lib/soc_pipeline.py
+    v4/lib/llm_schemas.py
+    packages/guarded-llm/src/guarded_llm/providers/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    \.\.\.
+skip_empty = True
+precision = 1
+fail_under = 80
+show_missing = True
