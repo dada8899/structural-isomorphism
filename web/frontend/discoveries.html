@@ -32,10 +32,23 @@
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
 
+  <!-- W4-A CLS fix (2026-05-14): pre-reserve history-sidebar padding so
+       layout doesn't shift when history-sidebar.js late-injects its
+       stylesheet and adds .has-history-sidebar to <body> at ~t=8s.
+       The JS-injected rule lives in history-sidebar.js → we duplicate
+       the desktop padding declaration in static CSS so it applies on
+       first paint. Mobile (< 1024px) has no padding so no need.       -->
+  <style>
+    @media (min-width: 1024px) {
+      body.has-history-sidebar { padding-left: 240px; }
+      body.has-history-sidebar.history-sidebar-collapsed { padding-left: 56px; }
+    }
+  </style>
+
   <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
   <header class="site-header">
     <div class="site-header__inner">
       <a href="/" class="site-header__logo">
