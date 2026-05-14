@@ -241,6 +241,28 @@
   margin-top: 1em;
 }
 
+/* Streaming state — caret + soft "ink is wet" tint while characters flow in */
+.search-synth__insight--streaming {
+  position: relative;
+  min-height: 1.85em;
+  color: var(--text-primary);
+  opacity: 0.95;
+}
+
+.search-synth__caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--accent, #2563eb);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: synth-caret-blink 1s step-start infinite;
+}
+
+@keyframes synth-caret-blink {
+  50% { opacity: 0; }
+}
+
 /* "Why it matters" — secondary, quieter */
 .search-synth__why {
   display: grid;

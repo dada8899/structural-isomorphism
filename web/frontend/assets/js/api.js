@@ -92,4 +92,87 @@ window.StructuralAPI = {
       }),
     });
   },
+
+  /**
+   * Streaming synthesize. Returns { abort } so callers can cancel mid-flight.
+   * callbacks: { onText({content,total_length}), onDone({result}), onError(err) }
+   *
+   * EventSource doesn't support POST so we hand-parse SSE off fetch's
+   * ReadableStream. The wire format matches the backend exactly:
+   *   event: text\ndata: {...}\n\n
+   *   event: done\ndata: {...}\n\n
+   *   event: error\ndata: {...}\n\n
+   */
+  synthesizeStream(query, rewrittenQuery, results, callbacks) {
+    const lang = __apiLang();
+    const ctrl = new AbortController();
+    const cb = callbacks || {};
+
+    (async () => {
+      try {
+        const resp = await fetch(`${API_BASE}/synthesize/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+          },
+          body: JSON.stringify({
+            query,
+            rewritten_query: rewrittenQuery,
+            results,
+            lang,
+          }),
+          signal: ctrl.signal,
+        });
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          throw new Error(`API ${resp.status}: ${text || resp.statusText}`);
+        }
+        if (!resp.body) {
+          throw new Error('No response body (streaming unsupported)');
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        // SSE messages are separated by a blank line (\n\n)
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const message = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            let event = 'message';
+            let data = '';
+            for (const line of message.split('\n')) {
+              if (line.startsWith('event: ')) event = line.slice(7).trim();
+              else if (line.startsWith('data: ')) data += line.slice(6);
+            }
+            if (!data) continue;
+            let parsed;
+            try { parsed = JSON.parse(data); }
+            catch (e) {
+              console.warn('[synthesize] SSE parse failed:', e, data);
+              continue;
+            }
+            if (event === 'text') cb.onText && cb.onText(parsed);
+            else if (event === 'done') { cb.onDone && cb.onDone(parsed); return; }
+            else if (event === 'error') {
+              const err = new Error(parsed.message || 'stream error');
+              err.payload = parsed;
+              throw err;
+            }
+          }
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        if (cb.onError) cb.onError(err);
+        else console.error('[synthesize] stream error:', err);
+      }
+    })();
+
+    return { abort: () => ctrl.abort() };
+  },
 };

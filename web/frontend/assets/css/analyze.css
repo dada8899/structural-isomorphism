@@ -1259,3 +1259,151 @@ ol.md-list li::before {
 .insight__subsection-text--block p:last-child {
   margin-bottom: 0;
 }
+
+/* === TL;DR pinned card (above all sections) ===
+   Sits between the progress rail and the section list. Fills with
+   action_plan.if_time_short the moment the backend streams it (last in
+   prompt order) so the user sees the answer at the top of the page.
+*/
+.analyze-tldr {
+  position: relative;
+  margin: var(--space-5) 0 var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  background: linear-gradient(180deg, var(--bg-tertiary, #f8f7f3) 0%, var(--bg-primary, #fafaf9) 100%);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.08), 0 1px 2px rgba(0, 0, 0, 0.03);
+  animation: tldr-fade-in 360ms ease-out;
+}
+
+@keyframes tldr-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.analyze-tldr--pending {
+  border-style: dashed;
+  border-color: var(--text-tertiary, #a8a29e);
+  box-shadow: none;
+  background: var(--bg-tertiary, #f8f7f3);
+}
+
+.analyze-tldr__label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.analyze-tldr--pending .analyze-tldr__label {
+  color: var(--text-tertiary);
+}
+
+.analyze-tldr__title {
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: var(--fw-regular);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.analyze-tldr__rationale {
+  font-size: var(--fs-15, 15px);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4);
+}
+
+.analyze-tldr__waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-14);
+  color: var(--text-tertiary);
+  font-style: italic;
+  padding: var(--space-2) 0;
+}
+
+.analyze-tldr__waiting-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: tldr-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tldr-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+.analyze-tldr__core {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-3);
+  background: var(--bg-primary, #fafaf9);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--fs-14);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.analyze-tldr--pending .analyze-tldr__core {
+  border-left-color: var(--text-tertiary);
+}
+
+.analyze-tldr__core-label {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.analyze-tldr--pending .analyze-tldr__core-label {
+  color: var(--text-tertiary);
+}
+
+.analyze-tldr__core-text {
+  color: var(--text-primary);
+}
+
+.analyze-tldr__more {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-size: var(--fs-13, 13px);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent);
+  padding-bottom: 1px;
+  transition: opacity 160ms ease;
+}
+
+.analyze-tldr__more:hover {
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .analyze-tldr {
+    padding: var(--space-5);
+    margin: var(--space-4) 0 var(--space-5);
+  }
+  .analyze-tldr__core {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
