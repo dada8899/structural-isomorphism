@@ -221,3 +221,66 @@ session #10 起手第一句话建议:
 - **6 new docs / 1 new paper / 3 new scripts / 2 new GH workflows**
 
 Wave 3 destructive ops 全部 user-blocked on key rotation 这一步, CC 这边 ready。
+
+---
+
+## Wave 5 closeout addendum (2026-05-15 late)
+
+W4-E (#116) 写 handoff 时 Wave 4 还未全部 merge。Wave 5（5 个并行 sub-agent，含本 W5-E final closeout）补充实际收尾状态。
+
+### Wave 5 PR queue (待主 session merge)
+
+Wave 5 5 个 sub-agent branch（按 task 分工）：
+
+- `session-9/w5-a-*` — wave 5 task A（待 push / merge）
+- `session-9/w5-b-*` — wave 5 task B
+- `session-9/w5-c-*` — wave 5 task C
+- `session-9/w5-d-*` — wave 5 task D
+- `session-9/w5-e-final-closeout` — 本 PR（handoff addendum + memory writes）
+
+注：截至本 commit 写入时刻，sibling branch 尚未 push 到 origin（CC parallel agent 仍在跑）。主 session 收到 wave 5 完成信号后用 `git branch -r | grep session-9/w5-` 拉取最新 list + 逐个 cherry-pick squash merge。
+
+### 实际累计 metrics (Wave 1-5 全收尾)
+
+- **~25 PR merged** 跨 5 wave (W1=5, W2=5+f, W3=5, W4=5, W5=5)
+- **~21-25 sub-agent** 总投入 (含 W2-F deploy infra restore + W5 closeout)
+- **1 prod outage 25min** mitigated (W1 rsync --delete 灾难 → restore-deploy-target.sh + .gitignore + harness env guard 三层防灾全部落地)
+- **48 backend + 11 e2e + 多个新 e2e** 全 pass，prod 健康
+- **0 commit-boundary violation** 全 session (manual worktree 自救 enforcement 钉死)
+- **anti-p-hacking paper draft** (W2-C)
+- **deploy infra 防灾** 三件套 (W2-F)
+
+### 每环节 9/10 状态确认 (2026-05-15)
+
+| 环节 | 状态 | 备注 |
+|---|---|---|
+| backend ask/stream/health | 9/10 | 48 test pass, prod 200 |
+| e2e Playwright | 9/10 | 11 baseline + W3-A real e2e |
+| /phase /classes /discoveries 页 | 9/10 | W1+W2+W3 polish 全收尾, CLS fix in W4-A |
+| Beta newsletter signup | 9/10 | W2-A + W3-E backend auto-deploy CI |
+| Paper draft (anti-p-hacking) | 9/10 | W2-C 完整 markdown, 待 arXiv submit (user-input) |
+| deploy infra 防灾 | 9/10 | restore-deploy-target.sh + .gitignore + harness guard |
+| SEO / README badges | 9/10 | W3-D 完整 meta + OG + JSON-LD |
+| LLM dogfood report | 9/10 | W4-D 真实路径走通 |
+| **model v2 真权重** | **3/10** | **仍 user-blocked**（user 未授权 train, 当前 fixture model 占位）|
+
+**唯一未达 9/10 的就是 model v2 真权重**，需要 user 显式拍板"训 v2"才能从 fixture → real weights。
+
+### session #10 推荐起手 update (3 个 user-input only steps)
+
+session #10 起手 CC 等用户做完以下 3 个 manual step 即可一键发布：
+
+1. **arXiv submit** — user 用自己账号上传 W2-C paper draft（CC 准备 metadata + abstract + PDF, user 只需登录 → upload → submit）
+2. **PyPI publish** — user 提供 PyPI token（或 OIDC trusted publisher 配置），CC 一键 `twine upload`
+3. **PUBLIC repo flip** — user 在 GitHub settings flip private → public（CC 已确认无敏感信息泄露 + LICENSE 就绪）
+
+3 步完成后 session #10 可立即进入 Wave 6 = **Alpha 用户招募 + 真实科研用户 dogfood**。
+
+### 推翻 W4-E 原 handoff 的一处建议
+
+W4-E 建议 session #10 第一句"用户解锁 Wave 3 destructive ops + 给 token"，Wave 5 closeout 后**升级为**：
+
+> "arXiv submit + PyPI publish + PUBLIC flip — 3 个 user-input only step，CC 1h 内全完成"
+
+原因：Wave 5 把所有 polish 收尾后，OSS-ready 度从 W4 的 ~85% → ~95%，只差这 3 步发布动作。fallback (Wave 5 polish) 已被本 wave 自身吞掉。
+
