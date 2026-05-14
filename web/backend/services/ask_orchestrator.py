@@ -357,6 +357,21 @@ class AskOrchestrator:
         ***REMOVED*** W5-A + W5-B combined: streaming pipeline carries the low_relevance
         ***REMOVED*** flag through to the prompt builder so the LLM degrades gracefully
         ***REMOVED*** on out-of-scope queries while still streaming chunk-by-chunk.
+        ***REMOVED*** W14-D: structured `ask.llm.start` log line — model + low_relevance
+        ***REMOVED*** + retrieval count so a single grep on `request_id` reconstructs
+        ***REMOVED*** the whole pipeline timeline.
+        try:
+            from logging_config import get_logger as _glog
+
+            _glog("structural.ask").info(
+                "ask.llm.start",
+                model=self.model,
+                kb_count=len(cards_payload),
+                low_relevance=low_relevance,
+            )
+        except Exception:
+            pass
+        llm_started = time.monotonic()
         payload: Dict
         raw_buffer = ""
         first_chunk_sent = False
@@ -385,6 +400,21 @@ class AskOrchestrator:
             payload = self._fallback_payload(query, cards, lang_norm)
 
         answer_text = payload.get("answer", "") if payload else ""
+
+        ***REMOVED*** W14-D: structured `ask.llm.complete` event. We don't have token
+        ***REMOVED*** counts in-band (the SSE stream doesn't surface them), so latency
+        ***REMOVED*** + answer length is the best proxy until we plumb token usage
+        ***REMOVED*** through llm_service.
+        try:
+            from logging_config import get_logger as _glog
+
+            _glog("structural.ask").info(
+                "ask.llm.complete",
+                latency_ms=int((time.monotonic() - llm_started) * 1000),
+                answer_len=len(answer_text),
+            )
+        except Exception:
+            pass
 
         ***REMOVED*** If we never streamed any answer chars (e.g. fallback path, or the
         ***REMOVED*** JSON-string-extractor never matched `"answer"` because the model
@@ -424,6 +454,20 @@ class AskOrchestrator:
 
         ***REMOVED*** ---- Done ---------------------------------------------------- ***REMOVED***
         latency_ms = int((time.monotonic() - started) * 1000)
+        ***REMOVED*** W14-D: emit final `ask.response` event so a single grep on the
+        ***REMOVED*** request_id reconstructs full lifecycle (request → retrieval →
+        ***REMOVED*** llm.start → llm.complete → response).
+        try:
+            from logging_config import get_logger as _glog
+
+            _glog("structural.ask").info(
+                "ask.response",
+                latency_ms=latency_ms,
+                citation_count=len(validated_citations),
+                out_of_scope=bool(low_relevance),
+            )
+        except Exception:
+            pass
         yield _sse("done", {"latency_ms": latency_ms})
 
     ***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
