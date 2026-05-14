@@ -1,0 +1,1688 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Structural",
+    "description": "跨领域结构同构搜索引擎 — Structural Isomorphism API.\n\nPublic surface for the Structural cross-domain knowledge engine. Endpoints are grouped by capability (Ask / Phase / Phenomenon / Pricing / Newsletter / Admin). Rate limits are tier-based; supply an `X-API-Key` header to promote a request beyond the anonymous free-tier bucket.",
+    "contact": {
+      "name": "Structural Team",
+      "url": "https://structural.bytedance.city/"
+    },
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/search": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Search Phenomena",
+        "operationId": "search_phenomena_api_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search/assess": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Assess Query",
+        "description": "Run the LLM \"worthiness + rewrite\" pre-flight independently.\n\nThe frontend calls this in parallel with /api/search so it can show\nresults immediately and then overlay the coaching gate if the query\nscores below threshold. On any error we fail open (worth_score=5).",
+        "operationId": "assess_query_api_search_assess_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/phenomenon/{phenomenon_id}": {
+      "get": {
+        "tags": [
+          "phenomenon"
+        ],
+        "summary": "Get Phenomenon",
+        "operationId": "get_phenomenon_api_phenomenon__phenomenon_id__get",
+        "parameters": [
+          {
+            "name": "phenomenon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Phenomenon Id"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Output language: 'zh' (default) or 'en'",
+              "default": "zh",
+              "title": "Lang"
+            },
+            "description": "Output language: 'zh' (default) or 'en'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mapping": {
+      "post": {
+        "tags": [
+          "mapping"
+        ],
+        "summary": "Generate Mapping",
+        "operationId": "generate_mapping_api_mapping_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mapping/stream": {
+      "get": {
+        "tags": [
+          "mapping"
+        ],
+        "summary": "Stream Mapping",
+        "description": "SSE stream of a mapping generation.\n\nTwo modes:\n1. Pair mode (a_id + b_id): both sides are KB phenomena, result is cached\n2. Query mode (text_a + b_id): A is user's free-text query, no cache\n\nEvent types:\n- \"cache\":  {\"mapping\": {...}}           — immediate cache hit (pair mode only)\n- \"meta\":   {\"a\": {...}, \"b\": {...}, \"similarity\": 0.95}\n- \"text\":   {\"content\": \"...\", \"total_length\": N}\n- \"done\":   {\"mapping\": {...}}\n- \"error\":  {\"message\": \"...\"}",
+        "operationId": "stream_mapping_api_mapping_stream_get",
+        "parameters": [
+          {
+            "name": "b_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "B Id"
+            }
+          },
+          {
+            "name": "a_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "KB phenomenon id for A side",
+              "title": "A Id"
+            },
+            "description": "KB phenomenon id for A side"
+          },
+          {
+            "name": "text_a",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-text query as A side (for 'from search' flow)",
+              "title": "Text A"
+            },
+            "description": "Free-text query as A side (for 'from search' flow)"
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Output language for LLM-generated text: 'zh' or 'en'",
+              "default": "zh",
+              "title": "Lang"
+            },
+            "description": "Output language for LLM-generated text: 'zh' or 'en'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/daily": {
+      "get": {
+        "tags": [
+          "daily"
+        ],
+        "summary": "Daily Discoveries",
+        "operationId": "daily_discoveries_api_daily_get",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "zh",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/examples": {
+      "get": {
+        "tags": [
+          "examples"
+        ],
+        "summary": "Get Examples",
+        "operationId": "get_examples_api_examples_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/suggest": {
+      "get": {
+        "tags": [
+          "suggest"
+        ],
+        "summary": "Get Suggestions",
+        "operationId": "get_suggestions_api_suggest_get",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "zh",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discoveries": {
+      "get": {
+        "tags": [
+          "discoveries"
+        ],
+        "summary": "List Discoveries",
+        "operationId": "list_discoveries_api_discoveries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analyze/stream": {
+      "get": {
+        "tags": [
+          "analyze"
+        ],
+        "summary": "Stream Analyze",
+        "operationId": "stream_analyze_api_analyze_stream_get",
+        "parameters": [
+          {
+            "name": "b_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "B Id"
+            }
+          },
+          {
+            "name": "a_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "A Id"
+            }
+          },
+          {
+            "name": "text_a",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Text A"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Output language for LLM-generated text: 'zh' or 'en'",
+              "default": "zh",
+              "title": "Lang"
+            },
+            "description": "Output language for LLM-generated text: 'zh' or 'en'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/synthesize": {
+      "post": {
+        "tags": [
+          "synthesize"
+        ],
+        "summary": "Synthesize",
+        "operationId": "synthesize_api_synthesize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SynthesizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/synthesize/stream": {
+      "post": {
+        "tags": [
+          "synthesize"
+        ],
+        "summary": "Synthesize Stream",
+        "description": "Streaming variant. Server-Sent Events with three event types:\n\n- `text`  → {\"content\": \"<delta>\", \"total_length\": N}\n- `done`  → {\"result\": {...full parsed JSON...}}\n- `error` → {\"message\": \"...\"}",
+        "operationId": "synthesize_stream_api_synthesize_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SynthesizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ask/stream": {
+      "post": {
+        "tags": [
+          "ask"
+        ],
+        "summary": "Ask Stream",
+        "description": "SSE endpoint streaming a Perplexity-style cross-domain answer.\n\nAuth: optional Bearer token / cookie promotes the caller to free/paid\ntier (looser rate limits). Anonymous traffic still allowed.",
+        "operationId": "ask_stream_api_ask_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": [
+          "history"
+        ],
+        "summary": "List History",
+        "operationId": "list_history_api_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "history"
+        ],
+        "summary": "Record History",
+        "description": "Record a single history entry. Anonymous, scoped by device_id cookie.",
+        "operationId": "record_history_api_history_post",
+        "parameters": [
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history/{history_id}": {
+      "delete": {
+        "tags": [
+          "history"
+        ],
+        "summary": "Delete History",
+        "operationId": "delete_history_api_history__history_id__delete",
+        "parameters": [
+          {
+            "name": "history_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "History Id"
+            }
+          },
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Device-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/newsletter/subscribe": {
+      "post": {
+        "tags": [
+          "newsletter"
+        ],
+        "summary": "Subscribe",
+        "operationId": "subscribe_api_newsletter_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/newsletter/count": {
+      "get": {
+        "tags": [
+          "newsletter"
+        ],
+        "summary": "Count",
+        "description": "Public count of subscribers (used by future social-proof widgets).\nCheap-but-not-cached — at our scale (~MB jsonl), a full scan is < 5ms.",
+        "operationId": "count_api_newsletter_count_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checkout/mock": {
+      "post": {
+        "tags": [
+          "checkout-mock"
+        ],
+        "summary": "Checkout Mock",
+        "description": "Simulate a Stripe Checkout call.\n\nReturns success ~90% of the time, decline ~10%. Decline is a *valid*\nbusiness response (200, not 4xx) — the frontend distinguishes via the\n`status` field, mirroring how Stripe surfaces card_declined.",
+        "operationId": "checkout_mock_api_checkout_mock_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/usage": {
+      "get": {
+        "tags": [
+          "checkout-mock"
+        ],
+        "summary": "Usage",
+        "description": "Return current tier + ticker_limit + today's API usage.\n\nTier resolution (mock, in priority order):\n  1. `?tier=` query param (only for local dev / e2e — ignored from real IPs)\n  2. `x-mock-tier` request header\n  3. `mock_tier` cookie (set by the success flow on /checkout/mock)\n  4. Default: free\n\nOnce real Stripe is in: tier comes from `stripe_customers` table via the\nauthenticated user's email. The shape of this response stays the same so\nthe frontend doesn't need to change.",
+        "operationId": "usage_api_usage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Liveness probe",
+        "description": "Lightweight health check. Pass `?deep=1` for a deep probe that also exercises external dependencies (DB / LLM upstream).",
+        "operationId": "health_api_health_get",
+        "parameters": [
+          {
+            "name": "deep",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Deep"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is up",
+            "content": {
+              "application/json": {
+                "schema": {},
+                "example": {
+                  "status": "ok",
+                  "kb_size": 12345,
+                  "llm_model": "deepseek-chat"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Build & version metadata",
+        "description": "Returns the current build's semantic version, git SHA (if available via the `STRUCTURAL_GIT_SHA` env), build date, runtime python version, and the deploy environment (dev / staging / prod).",
+        "operationId": "version_api_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/whoami": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Reflect resolved tier for the current request",
+        "description": "Useful for debugging X-API-Key auth. Returns the tier that rate-limiting will use and whether a valid key was supplied.",
+        "operationId": "whoami_api_whoami_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/keys": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List loaded API keys (admin only)",
+        "description": "Reflects the current in-memory API key store. Requires tier=admin.",
+        "operationId": "admin_list_keys_api_admin_keys_get",
+        "responses": {
+          "200": {
+            "description": "Key list",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid X-API-Key"
+          },
+          "403": {
+            "description": "API key is valid but not admin tier"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "Search Page",
+        "operationId": "search_page_search_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/phenomenon/{pid}": {
+      "get": {
+        "summary": "Phenomenon Page",
+        "operationId": "phenomenon_page_phenomenon__pid__get",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/phenomenon": {
+      "get": {
+        "summary": "Phenomenon Page Query",
+        "operationId": "phenomenon_page_query_phenomenon_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/phenomenon.html": {
+      "get": {
+        "summary": "Phenomenon Html Alias",
+        "operationId": "phenomenon_html_alias_phenomenon_html_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/about": {
+      "get": {
+        "summary": "About Page",
+        "operationId": "about_page_about_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/discoveries": {
+      "get": {
+        "summary": "Discoveries Page",
+        "operationId": "discoveries_page_discoveries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classes": {
+      "get": {
+        "summary": "Classes Page",
+        "operationId": "classes_page_classes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/paper/{slug}": {
+      "get": {
+        "summary": "Paper Page",
+        "operationId": "paper_page_paper__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analyze": {
+      "get": {
+        "summary": "Analyze Page",
+        "operationId": "analyze_page_analyze_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analyze.html": {
+      "get": {
+        "summary": "Analyze Html Alias",
+        "operationId": "analyze_html_alias_analyze_html_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/papers": {
+      "get": {
+        "summary": "Papers Page",
+        "operationId": "papers_page_papers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/methods": {
+      "get": {
+        "summary": "Methods Page",
+        "operationId": "methods_page_methods_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/taxonomy-v2": {
+      "get": {
+        "summary": "Taxonomy V2 Page",
+        "operationId": "taxonomy_v2_page_taxonomy_v2_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/start-here": {
+      "get": {
+        "summary": "Start Here Page",
+        "operationId": "start_here_page_start_here_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learn": {
+      "get": {
+        "summary": "Learn Page",
+        "operationId": "learn_page_learn_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 8001,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "zh",
+              "en"
+            ],
+            "title": "Lang",
+            "default": "zh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "AskRequest",
+        "description": "Body for /api/ask/stream.\n\n`query` is the raw user question. We don't pre-rewrite it here — the\norchestrator emits `meta.rewritten` mirroring the query verbatim, so\nthe frontend can show a single \"thinking about: <query>\" line."
+      },
+      "AssessRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "description": "Output language for LLM-generated text: 'zh' or 'en'",
+            "default": "zh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "AssessRequest"
+      },
+      "CheckoutBody": {
+        "properties": {
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "interval": {
+            "type": "string",
+            "title": "Interval",
+            "default": "month"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "default": ""
+          },
+          "card_last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Last4",
+            "default": ""
+          },
+          "force_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Force Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier",
+          "email"
+        ],
+        "title": "CheckoutBody"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HistoryRecordRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Kind"
+          },
+          "result_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "kind"
+        ],
+        "title": "HistoryRecordRequest",
+        "description": "Body for POST /api/history.\n\nMirrors HistoryDB.record fields. `result_summary` is optional and any\nJSON-serialisable shape is accepted; HistoryDB normalises to a string."
+      },
+      "MappingRequest": {
+        "properties": {
+          "a_id": {
+            "type": "string",
+            "title": "A Id"
+          },
+          "b_id": {
+            "type": "string",
+            "title": "B Id"
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "default": "zh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "a_id",
+          "b_id"
+        ],
+        "title": "MappingRequest"
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 12
+          },
+          "rewrite": {
+            "type": "boolean",
+            "title": "Rewrite",
+            "description": "Use LLM to rewrite query for better matching",
+            "default": false
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "description": "Output language for LLM-generated text: 'zh' or 'en'",
+            "default": "zh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest"
+      },
+      "SubscribeBody": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "SubscribeBody"
+      },
+      "SynthesizeRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "rewritten_query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rewritten Query"
+          },
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "default": "zh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "SynthesizeRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Optional API key. Anonymous requests fall back to the free tier (60 req/min). Provide an X-API-Key header to access higher tiers."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "ask",
+      "description": "Perplexity-like Q&A over the KB"
+    },
+    {
+      "name": "search",
+      "description": "Vector search for phenomena"
+    },
+    {
+      "name": "phenomenon",
+      "description": "Per-phenomenon lookups + similar items"
+    },
+    {
+      "name": "mapping",
+      "description": "LLM-generated structural mappings"
+    },
+    {
+      "name": "analyze",
+      "description": "Deep cross-domain transfer reports"
+    },
+    {
+      "name": "synthesize",
+      "description": "Synthesized answer over search results"
+    },
+    {
+      "name": "daily",
+      "description": "Today's curated discoveries"
+    },
+    {
+      "name": "discoveries",
+      "description": "A-grade structural discoveries"
+    },
+    {
+      "name": "examples",
+      "description": "Handpicked example pairs"
+    },
+    {
+      "name": "suggest",
+      "description": "Search suggestion phrases"
+    },
+    {
+      "name": "history",
+      "description": "Per-device anonymous query history"
+    },
+    {
+      "name": "newsletter",
+      "description": "Email newsletter signup"
+    },
+    {
+      "name": "checkout-mock",
+      "description": "Stripe checkout mock (pre-PMF)"
+    },
+    {
+      "name": "system",
+      "description": "Health, version, and operational probes"
+    },
+    {
+      "name": "admin",
+      "description": "Admin-only endpoints (require admin tier)"
+    }
+  ]
+}
