@@ -1,8 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
+import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
 import "./globals.css";
+
+// W3-B (session #9, 2026-05-14): self-host fonts via next/font (latin subset only).
+// Same-origin, automatic size-adjust + ascent-override (0 CLS), no cross-origin RTT to fonts.googleapis.com.
+// CJK glyphs continue to fall back to system fonts (PingFang SC / Noto Sans SC) — same strategy as W1-E beta static.
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+});
+const notoSerifSC = Noto_Serif_SC({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600"],
+  variable: "--font-noto-serif",
+  preload: false, // CJK serif: don't eager preload; let system fallback while it loads.
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500"],
+  variable: "--font-jetbrains-mono",
+});
 
 // W6-B: localized to zh-CN, aligned with main site brand (双圆 logo, Inter + Noto Serif SC).
 // PR-1 (2026-05-14): metadata copy rewritten plain-Chinese, jargon stripped.
@@ -25,20 +49,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <head>
-        {/* W6-B: Google Fonts preload (Inter + Noto Serif SC) — matches main site. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        />
-      </head>
+    <html
+      lang="zh-CN"
+      className={`${inter.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60">
         <a href="#main-content" className="skip-link">
           跳到主要内容
