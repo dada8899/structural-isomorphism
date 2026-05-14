@@ -77,17 +77,23 @@
           我们经过四代检索引擎迭代，把不同学科里看似无关的现象配对，再让多个独立 AI 审稿模型从五个角度（创新性 / 严谨性 / 可行性 / 影响力 / 可写性）打分，<strong>最后留下 39 条最值得展开的发现</strong>。
           每一条都是一个跨领域的数学同构——把两个看似无关的领域连在一起，并附上可以直接写成论文的执行路径。
         </p>
-        <div class="disc-hero__stats" id="disc-hero-stats"></div>
+        <div class="disc-hero__stats" id="disc-hero-stats">
+          <!-- W3-B: pre-JS skeleton — JS replaces this with the real stats
+               once /api/discoveries resolves. Matches final ~80px height. -->
+          <div class="disc-skeleton-stats" aria-hidden="true"></div>
+        </div>
       </section>
 
-      <div class="disc-filter" id="disc-filter"></div>
+      <div class="disc-filter" id="disc-filter">
+        <div class="disc-skeleton-filter" aria-hidden="true"></div>
+        <div class="disc-skeleton-filter" aria-hidden="true"></div>
+        <div class="disc-skeleton-filter" aria-hidden="true"></div>
+      </div>
 
       <div class="disc-list" id="disc-list">
-        <div class="search-skeleton">
-          <div class="search-skeleton__card"></div>
-          <div class="search-skeleton__card"></div>
-          <div class="search-skeleton__card"></div>
-        </div>
+        <div class="disc-skeleton-card" aria-hidden="true"></div>
+        <div class="disc-skeleton-card" aria-hidden="true"></div>
+        <div class="disc-skeleton-card" aria-hidden="true"></div>
       </div>
     </div>
   </main>
