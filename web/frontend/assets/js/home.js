@@ -369,6 +369,35 @@ function renderSuggestions(_suggestionsFromServer) {
 }
 
 // === Daily discoveries ===
+// Skeleton renders 3 placeholder cards immediately so the section reserves
+// space before fetchDaily() lands. Without this, the homepage footer jumps
+// down by ~220px when the grid populates — a classic CLS issue.
+function renderDailySkeleton() {
+  const grid = $('#daily-grid');
+  if (!grid || grid.children.length > 0) return;
+  grid.innerHTML = Array.from({ length: 3 }).map(() => `
+    <article class="disc-card disc-card--skeleton" aria-busy="true">
+      <header class="disc-card__header">
+        <span class="skeleton-bar skeleton-bar--w-10"></span>
+        <span class="skeleton-bar skeleton-bar--w-6"></span>
+      </header>
+      <div class="disc-card__item">
+        <span class="skeleton-bar skeleton-bar--w-8"></span>
+        <span class="skeleton-bar skeleton-bar--w-14 skeleton-bar--tall"></span>
+      </div>
+      <div class="disc-card__divider">
+        <span class="disc-card__divider-line"></span>
+        <span class="disc-card__divider-symbol" aria-hidden="true">≅</span>
+        <span class="disc-card__divider-line"></span>
+      </div>
+      <div class="disc-card__item">
+        <span class="skeleton-bar skeleton-bar--w-8"></span>
+        <span class="skeleton-bar skeleton-bar--w-14 skeleton-bar--tall"></span>
+      </div>
+    </article>
+  `).join('');
+}
+
 function renderDaily(discoveries) {
   const grid = $('#daily-grid');
   if (!grid || !discoveries.length) return;
@@ -512,6 +541,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initUsecaseSamples();
   renderHistory();
   renderFavorites();
+  // Reserve daily-discoveries grid space immediately so the section below
+  // doesn't jump down when fetchDaily() lands (~300ms later).
+  renderDailySkeleton();
   loadHomeData();
 
   // If the URL hash is #home-favorites (from the nav link), scroll there
