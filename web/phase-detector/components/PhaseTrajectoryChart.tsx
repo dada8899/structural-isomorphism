@@ -25,6 +25,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Company } from "@/lib/types";
+import { useTheme } from "./ThemeProvider";
 
 interface Props {
   company: Company;
@@ -132,6 +133,22 @@ export function PhaseTrajectoryChart({
       .map((p, i) => `${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`)
       .join(" ");
   }, [series]);
+
+  // W13-A: theme-aware palette for chart chrome (grid/axis/line/tooltip).
+  // Band fills stay constant but use lower-opacity in dark to avoid glare.
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  const chartLine = isDark ? "#FAFAFA" : "#18181B";
+  const chartGrid = isDark ? "#27272A" : "#E4E4E7";
+  const chartAxisLabel = isDark ? "#A1A1AA" : "#71717A";
+  const chartHoverLine = isDark ? "#A78BFA" : "#3B82F6";
+  const chartTooltipBg = isDark ? "#18181B" : "#FFFFFF";
+  const chartTooltipBorder = isDark ? "#27272A" : "#E4E4E7";
+  const chartTooltipShadow = isDark
+    ? "0 4px 12px rgba(0,0,0,0.6)"
+    : "0 4px 12px rgba(0,0,0,0.08)";
+  const chartTooltipFg = isDark ? "#FAFAFA" : "#18181B";
+  const chartTooltipFgSecondary = isDark ? "#D4D4D8" : "#52525B";
 
   // Hydration-aware state for tooltip/brush.
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -292,7 +309,7 @@ export function PhaseTrajectoryChart({
               x2={PAD.left + innerW}
               y1={yScale(t)}
               y2={yScale(t)}
-              stroke="#E4E4E7"
+              stroke={chartGrid}
               strokeDasharray="3 3"
               strokeWidth={1}
             />
@@ -305,7 +322,7 @@ export function PhaseTrajectoryChart({
                 x={PAD.left - 6}
                 y={yScale(v) + 3}
                 fontSize={10}
-                fill="#71717A"
+                fill={chartAxisLabel}
                 textAnchor="end"
               >
                 {v.toFixed(2)}
@@ -321,7 +338,7 @@ export function PhaseTrajectoryChart({
                 x={xScale(i)}
                 y={H - PAD.bottom + 16}
                 fontSize={10}
-                fill="#71717A"
+                fill={chartAxisLabel}
                 textAnchor="middle"
               >
                 {fmtDate(p.date)}
@@ -347,7 +364,7 @@ export function PhaseTrajectoryChart({
           <path
             d={pathD}
             fill="none"
-            stroke="#18181B"
+            stroke={chartLine}
             strokeWidth={1.75}
             strokeLinejoin="round"
             strokeLinecap="round"
@@ -360,7 +377,7 @@ export function PhaseTrajectoryChart({
               cx={xScale(i)}
               cy={yScale(p.value)}
               r={hoverIdx === i ? 4 : 2.5}
-              fill="#18181B"
+              fill={chartLine}
               opacity={hoverIdx === i ? 1 : 0.7}
             />
           ))}
@@ -373,7 +390,7 @@ export function PhaseTrajectoryChart({
                 x2={xScale(hoverIdx)}
                 y1={PAD.top}
                 y2={H - PAD.bottom}
-                stroke="#3B82F6"
+                stroke={chartHoverLine}
                 strokeDasharray="2 2"
                 strokeWidth={1}
               />
@@ -395,9 +412,9 @@ export function PhaseTrajectoryChart({
                   ? "translate(-100%, 0)"
                   : "translate(8px, 0)",
               pointerEvents: "none",
-              background: "white",
-              border: "1px solid #E4E4E7",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              background: chartTooltipBg,
+              border: `1px solid ${chartTooltipBorder}`,
+              boxShadow: chartTooltipShadow,
               padding: "6px 10px",
               fontSize: 12,
               borderRadius: 6,
@@ -405,13 +422,13 @@ export function PhaseTrajectoryChart({
               zIndex: 5,
             }}
           >
-            <div style={{ fontWeight: 600, color: "#18181B" }}>
+            <div style={{ fontWeight: 600, color: chartTooltipFg }}>
               {fmtDate(hoverPoint.date)}
             </div>
-            <div style={{ color: "#52525B", fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: chartTooltipFgSecondary, fontSize: 11, marginTop: 2 }}>
               结构距离 <strong>{hoverPoint.value.toFixed(2)}</strong>
             </div>
-            <div style={{ color: "#52525B", fontSize: 11 }}>
+            <div style={{ color: chartTooltipFgSecondary, fontSize: 11 }}>
               阶段 · {PHASE_LABEL_ZH[hoverPoint.phase] ?? hoverPoint.phase}
             </div>
           </div>
