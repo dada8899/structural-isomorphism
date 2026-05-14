@@ -1,0 +1,48 @@
+[B4] Loaded 8 candidate classes
+[B4] Reviewers: ['deepseek-pro-rigorous', 'deepseek-flash-rigorous', 'deepseek-pro-high-creativity']
+[B4] note: OpenRouter Kimi-K2.5 unavailable (OPENROUTER_API_KEY missing); fallback to DeepSeek-pro T=1.0 (NOT a true cross-architecture probe)
+[B4] Expected calls: 8 x 3 = 24
+
+[B4] [1/8] hysteresis_preisach
+  deepseek-pro-rigorous          | REJECT     | conf=0.85 |  16.5s
+  deepseek-flash-rigorous        | REJECT     | conf=0.80 |  12.1s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.80 |  29.0s
+
+[B4] [2/8] scheffer_fold_bifurcation
+  deepseek-pro-rigorous          | UNCLEAR    | conf=0.70 |  31.6s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.20 |   7.1s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.85 |  40.7s
+
+[B4] [3/8] motter_lai_network_cascade
+  deepseek-pro-rigorous          | KEEP       | conf=0.90 |  28.7s
+  deepseek-flash-rigorous        | REJECT     | conf=0.80 |   6.3s
+  deepseek-pro-high-creativity   | UNCLEAR    | conf=0.50 |  34.7s
+
+[B4] [4/8] tail_copula_contagion
+  deepseek-pro-rigorous          | REJECT     | conf=0.90 |  16.8s
+  deepseek-flash-rigorous        | REJECT     | conf=0.65 |   7.4s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.85 |  27.0s
+
+[B4] [5/8] gardner_collins_toggle_switch_Th1Th2
+  deepseek-pro-rigorous          | MERGE      | conf=0.95 |  21.8s
+  deepseek-flash-rigorous        | MERGE      | conf=0.95 |   7.7s
+  deepseek-pro-high-creativity   | MERGE      | conf=0.95 |  31.7s
+
+[B4] [6/8] schelling_credible_commitment
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  17.3s
+  deepseek-flash-rigorous        | REJECT     | conf=0.95 |   5.2s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.90 |  16.7s
+
+[B4] [7/8] extreme_value_tail_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  26.1s
+  deepseek-flash-rigorous        | REJECT     | conf=0.95 |   4.4s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.95 |  20.3s
+
+[B4] [8/8] delay_differential_debt
+  deepseek-pro-rigorous          | REJECT     | conf=0.85 |  16.8s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.30 |   7.8s
+  deepseek-pro-high-creativity   | SPLIT      | conf=0.65 |  34.1s
+
+[B4] Done: 24 verdicts in 7.8 min (errors=0, parse_fail=0)
+[B4] Wrote /private/tmp/si-b4/v4/results/B4_heterogeneous_ensemble.jsonl
+[B4] Wrote /private/tmp/si-b4/v4/results/B4_ensemble_summary.md

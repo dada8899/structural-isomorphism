@@ -29,10 +29,26 @@ negative_examples:
 - phenomenon: Stochastic gene expression noise
   reason: Noise alone produces unimodal distribution with variance; not bimodality. Requires positive feedback to create two
     stable peaks.
+- phenomenon: Lac operon induction bistability
+  reason: "Bistability arises from positive feedback due to inducer transport (autocatalytic), not from mutual repression of two transcription factors. The core motif is a single positive feedback loop, not a toggle switch."
+- phenomenon: Xenopus oocyte maturation switch (Mos-MAPK cascade)
+  reason: "Bistable activation of MPF through positive feedback in the MAPK cascade (Mos → MEK → MAPK → Mos), not mutual repression of transcriptional regulators. Superficial switch-like behavior, different mechanism."
+- phenomenon: Bistable caspase activation in apoptosis
+  reason: "Switch-like activation of executioner caspases via initiator caspase positive feedback, not a gene regulatory network of mutual repressors. Similar in all-or-none response but incompatible core dynamics."
+- phenomenon: Bacterial persistence HipA/HipB toxin-antitoxin system
+  reason: "Bistability arises from post-translational interactions and slow growth dependence, not from a directly cross-repressing transcriptional toggle. Mechanism lacks the canonical mutual repression architecture."
 edge_cases:
 - phenomenon: X-chromosome random inactivation
   debate: Bistable choice of which X to inactivate. Similar toggle structure but inheritance via Markov-fidelity (markov_chain_memory_fidelity_class)
     once committed. Class boundary.
+- phenomenon: Th17/Treg lineage commitment
+  debate: "Involves cross-antagonism between RORγt and Foxp3, but the system is heavily influenced by extracellular cytokines (TGF-β, IL-6) with complex signaling cascades; it is debated whether it constitutes a simple autonomous bistable toggle or requires continuous external instruction."
+- phenomenon: M1/M2 macrophage polarization
+  debate: "Features mutual inhibition between interferon/STAT1 and IL-4/STAT6 pathways, but involves multiple feedbacks and a spectrum of states; ambiguity around whether it is a strict two-state toggle or a multistable attractor landscape."
+- phenomenon: Multi-lineage CD4+ T-cell differentiation network (Th1-Th2-Th17-Treg)
+  debate: Extends Th1/Th2 mutual repression to a larger network of cross-inhibiting master regulators; unclear if the class is strictly two-component or includes higher-dimensional mutually repressive systems with similar dynamical signatures.
+- phenomenon: Synthetic toggle switch with self-activation (amplified toggle)
+  debate: "Adds positive autoregulation to the mutual repression motif, which can modify stability properties and introduce tristability. Whether it belongs to the same universality class as the minimal toggle is contested."
 notes: 'This is a domain-specific instantiation of the general Gardner-Collins toggle switch class.
 
   LLM-proposed sub-class for layer 4 prediction targeting. The parent class gardner_collins_toggle_switch

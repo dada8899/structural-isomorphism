@@ -41,6 +41,16 @@ negative_examples:
 - phenomenon: Preferential attachment / rich-get-richer
   reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
     heavy tails but via different routes.
+- phenomenon: Market for lemons (Akerlof adverse selection)
+  reason: "Shares the term 'adverse selection' and a quality-unraveling dynamic, but mechanism is buyer-seller asymmetric information, not algorithmic relevance feedback on engagement."
+- phenomenon: Group polarization via social network homophily (no algorithm)
+  reason: "Also yields opinion clusters and reduced diversity, but driven by human homophily and social influence, not an engagement-maximizing recommendation loop."
+- phenomenon: Matthew effect in citation networks
+  reason: "Concentration of attention due to preferential attachment looks like a filter bubble, but it’s a network growth process with no explicit algorithmic feedback optimizing for engagement."
+- phenomenon: Confirmation-bias-driven selective exposure
+  reason: "Individuals self-select consonant information, creating echo chambers, but the mechanism is psychological bias, not an external algorithm that iteratively narrows exposure."
+- phenomenon: Classifier feedback loop in predictive policing
+  reason: "Self-fulfilling predictions cause geographic concentration, but the loop optimizes a crime metric, not engagement-driven view exposure, and the collapsing quantity is spatial allocation, not information diversity."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -49,6 +59,16 @@ edge_cases:
 - phenomenon: Academic field decline
   debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
     but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: Multi-armed bandit recommendation with forced exploration
+  debate: "When exploration is added, diversity may not permanently collapse, yet the underlying engagement-maximizing drive is identical; is mere architectural mitigation enough to exclude it from the class?"
+- phenomenon: RLHF-induced mode collapse in large language models
+  debate: "A reward model pruning low-preference outputs resembles an engagement-feedback loop shrinking the model's 'view' diversity, but the setting is model output space, not user exposure, challenging the class’s scope."
+- phenomenon: Spiral of silence amplified by platform algorithms
+  debate: "Without algorithms, the spiral is a social dynamic; the algorithm may merely accelerate it—does an amplifier of a pre-existing collapse belong, or is the root mechanism distinct?"
+- phenomenon: Content moderation bots removing dissenting content
+  debate: "Explicit censorship produces filter bubbles, but the metric is toxicity/compliance, not engagement; the collapse is due to removal, not relevance-feeding, blurring the mechanism boundary."
+- phenomenon: Algorithmic trending topics on social media
+  debate: "Engagement-driven amplification concentrates attention on a few items, yet users still access a long tail; is a partial, often transient concentration equivalent to the class's permanent, systemic collapse?"
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
