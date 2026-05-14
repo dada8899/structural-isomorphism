@@ -1,0 +1,197 @@
+{
+  "pre_registration": "v4/preregistration/wsb-posts.yaml",
+  "pre_registered_at": "2026-05-14",
+  "executed_at": "2026-05-14",
+  "data_source": "arctic_shift (Pushshift mirror) \u2014 https://arctic-shift.photon-reddit.com/",
+  "data_source_reason": "Pushshift API closed post-2023 Reddit changes; arctic_shift community mirror indexes the same dump data",
+  "n_total": 6000,
+  "p1_band": [
+    0.7,
+    1.3
+  ],
+  "p2_band": [
+    1.7,
+    2.3
+  ],
+  "slices": {
+    "pre_2021": {
+      "n_posts": 3000,
+      "primary_omori": {
+        "label": "pre_2021",
+        "n_events": 3000,
+        "p": 0.179900417366346,
+        "logK": -0.006694190501272536,
+        "R2": 0.28746842231604675,
+        "n_main_shocks": 62,
+        "mu_per_bin": 0.696217219772569,
+        "sigma_per_bin": 0.9458963831563183,
+        "threshold": 3.0609581776633648,
+        "n_bins_used": 48,
+        "extra": {
+          "n_pos_excess_bins": 48,
+          "n_total_bins": 4309,
+          "bin_seconds": 300.0
+        },
+        "error": null,
+        "in_band": false,
+        "band": [
+          0.7,
+          1.3
+        ]
+      },
+      "secondary_cascade_clauset": {
+        "name": "wsb_cascade_pre_2021",
+        "alpha": 2.017176500430893,
+        "sigma_alpha": 0.03875133843896344,
+        "xmin": 18.0,
+        "n_total": 2295,
+        "n_tail": 689,
+        "vs_lognormal_R": -0.9978289958953028,
+        "vs_lognormal_p": 0.3183622872049653,
+        "vs_exponential_R": 10.130750777579522,
+        "vs_exponential_p": 4.035389853590555e-24,
+        "vs_powerlaw_lognormal_winner": "inconclusive",
+        "rejects_power_law": true,
+        "ks_statistic": 0.02529649922723276,
+        "bootstrap": {
+          "alpha_mean": 2.017615879385308,
+          "alpha_median": 2.020619751327911,
+          "alpha_std": 0.050740391489046056,
+          "ci_low": 1.9285903571056753,
+          "ci_high": 2.1103758708920153,
+          "n_boot_succeeded": 200
+        },
+        "in_band": true,
+        "band": [
+          1.7,
+          2.3
+        ],
+        "n_cascades": 2295,
+        "max_cascade": 4640,
+        "median_cascade": 9,
+        "label": "pre_2021"
+      },
+      "verdict": "PARTIAL"
+    },
+    "post_2024": {
+      "n_posts": 3000,
+      "primary_omori": {
+        "label": "post_2024",
+        "n_events": 3000,
+        "p": 0.12490147490795876,
+        "logK": -0.12684285342735369,
+        "R2": 0.1322072197976718,
+        "n_main_shocks": 109,
+        "mu_per_bin": 0.9917355371900827,
+        "sigma_per_bin": 1.141377070038572,
+        "threshold": 3.8451782122865126,
+        "n_bins_used": 48,
+        "extra": {
+          "n_pos_excess_bins": 48,
+          "n_total_bins": 3025,
+          "bin_seconds": 300.0
+        },
+        "error": null,
+        "in_band": false,
+        "band": [
+          0.7,
+          1.3
+        ]
+      },
+      "secondary_cascade_clauset": {
+        "name": "wsb_cascade_post_2024",
+        "alpha": 1.610398788067217,
+        "sigma_alpha": 0.030182277563321126,
+        "xmin": 10.0,
+        "n_total": 1939,
+        "n_tail": 409,
+        "vs_lognormal_R": -1.3761639128607814,
+        "vs_lognormal_p": 0.16877089183320715,
+        "vs_exponential_R": 9.200943782589404,
+        "vs_exponential_p": 3.5481946642935044e-20,
+        "vs_powerlaw_lognormal_winner": "inconclusive",
+        "rejects_power_law": true,
+        "ks_statistic": 0.029051118819859806,
+        "bootstrap": {
+          "alpha_mean": 1.6269595708209783,
+          "alpha_median": 1.62442585182312,
+          "alpha_std": 0.0661622253882134,
+          "ci_low": 1.4997097288459824,
+          "ci_high": 1.8003617943286054,
+          "n_boot_succeeded": 200
+        },
+        "in_band": false,
+        "band": [
+          1.7,
+          2.3
+        ],
+        "n_cascades": 1939,
+        "max_cascade": 10904,
+        "median_cascade": 1,
+        "label": "post_2024"
+      },
+      "verdict": "FAIL"
+    },
+    "full_union": {
+      "n_posts": 6000,
+      "primary_omori": {
+        "label": "full_union",
+        "n_events": 6000,
+        "p": 0.03131944310186112,
+        "logK": 0.012838555456887349,
+        "R2": 0.7004286429983366,
+        "n_main_shocks": 3691,
+        "mu_per_bin": 0.011344020661242965,
+        "sigma_per_bin": 0.15515118628579336,
+        "threshold": 0.39922198637572637,
+        "n_bins_used": 48,
+        "extra": {
+          "n_pos_excess_bins": 48,
+          "n_total_bins": 528913,
+          "bin_seconds": 300.0
+        },
+        "error": null,
+        "in_band": false,
+        "band": [
+          0.7,
+          1.3
+        ]
+      },
+      "secondary_cascade_clauset": {
+        "name": "wsb_cascade_full_union",
+        "alpha": 1.8506392039682522,
+        "sigma_alpha": 0.026713230832429248,
+        "xmin": 17.0,
+        "n_total": 4234,
+        "n_tail": 1014,
+        "vs_lognormal_R": 1.1357066858975766,
+        "vs_lognormal_p": 0.2560793414986643,
+        "vs_exponential_R": 12.552329255149317,
+        "vs_exponential_p": 3.8598634986226184e-36,
+        "vs_powerlaw_lognormal_winner": "inconclusive",
+        "rejects_power_law": false,
+        "ks_statistic": 0.019713188882659022,
+        "bootstrap": {
+          "alpha_mean": 1.8490855857365138,
+          "alpha_median": 1.8490656663361529,
+          "alpha_std": 0.03437379440371375,
+          "ci_low": 1.7883168750169993,
+          "ci_high": 1.9174224616830735,
+          "n_boot_succeeded": 200
+        },
+        "in_band": true,
+        "band": [
+          1.7,
+          2.3
+        ],
+        "n_cascades": 4234,
+        "max_cascade": 10904,
+        "median_cascade": 4,
+        "label": "full_union"
+      },
+      "verdict": "PARTIAL"
+    }
+  },
+  "headline_slice": "pre_2021",
+  "headline_verdict": "PARTIAL"
+}

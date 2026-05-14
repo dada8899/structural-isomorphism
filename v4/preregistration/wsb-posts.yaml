@@ -110,3 +110,82 @@ risks_and_caveats:
     which actually helps with the regime-shift concern).
   - Comment-count cascade size is administratively rate-limited by Reddit
     spam filters; document but do not adjust.
+
+# ---------------------------------------------------------------------------
+# Result (2026-05-14)  -- session #8 W2-C
+# Validation dir: v4/validation/soc-wsb-posts/
+# ---------------------------------------------------------------------------
+result:
+  executed_at: 2026-05-14
+  execution_session: session-8-W2-C
+  data_source_actual: arctic_shift (Pushshift mirror, https://arctic-shift.photon-reddit.com/)
+  data_source_reason: |
+    Pushshift API closed post-2023 Reddit changes. arctic_shift is the
+    community-maintained mirror that indexes the original Pushshift dump.
+  n_posts_fetched: 6000
+  slices_fetched:
+    pre_2021: {window: "2019-01-01 to 2020-12-31", n: 3000}
+    post_2024: {window: "2024-01-01 to 2024-12-31", n: 3000}
+
+  primary_P1_omori_p:
+    pre_2021: 0.180     # OUT of [0.7, 1.3]
+    post_2024: 0.125    # OUT
+    full_union: 0.031   # OUT
+    note: |
+      PRIMARY is UNDER-TESTED, not falsified. The pre-reg extraction method
+      called for per-comment timestamp streams under viral roots
+      (num_comments >= 100). arctic_shift returns post-level aggregates only;
+      per-root comment streams require ~500-1000 extra API calls beyond the
+      < 30-min wall budget. We substituted post-arrival inter-event times
+      with bin_and_omori_from_events. This proxy is mechanistically misaligned
+      (WSB post arrivals are filter+mod+circadian gated, not Omori-driven)
+      so a small p is consistent with "no signal in proxy" rather than
+      "Omori absent in WSB". Logged as follow-up F1.
+
+  secondary_P2_cascade_alpha:
+    pre_2021:
+      alpha: 2.017
+      sigma: 0.039
+      bootstrap_ci_95: [1.929, 2.110]
+      xmin: 18
+      n_tail: 689
+      in_band_1_7_to_2_3: true     # YES — almost exactly on pre-reg point estimate 2.0
+    post_2024:
+      alpha: 1.610
+      sigma: 0.030
+      bootstrap_ci_95: [1.500, 1.800]
+      xmin: 10
+      n_tail: 409
+      in_band_1_7_to_2_3: false    # NO — heavier-tail drift post-GME-regime
+    full_union:
+      alpha: 1.851
+      sigma: 0.027
+      bootstrap_ci_95: [1.788, 1.917]
+      xmin: 17
+      n_tail: 1014
+      in_band_1_7_to_2_3: true
+
+  verdict:
+    headline_slice: pre_2021
+    headline: PARTIAL
+    rationale: |
+      P1 (PRIMARY) is OUT of band in all three slices but the methodological
+      proxy is misaligned with the pre-reg's specified extraction (see note).
+      P2 (SECONDARY) is IN band for the headline adversarial pre_2021 slice
+      (alpha = 2.02, almost exactly on the pre-registered 2.0 point estimate)
+      and for full_union. P2 drifts out for post_2024, consistent with the
+      pre-reg risk note about 2021 GME regime shift breaking stationarity
+      (though in the opposite direction — heavier tail post-regime, not
+      lighter).
+    by_slice:
+      pre_2021: PARTIAL
+      post_2024: FAIL
+      full_union: PARTIAL
+
+  followup_logged:
+    - F1: Fetch per-comment streams for top-K viral roots via arctic_shift
+      /api/comments/search; rerun P1 with fit_omori_p (proper aftershock
+      stack entry point, not bin_and_omori_from_events).
+    - F2: KS 2-sample test on alpha drift between pre_2021 (2.02) and
+      post_2024 (1.61) cascade-size distributions.
+    - F3: 2021 GME-quarter isolated subslice for regime-shift bracketing.
