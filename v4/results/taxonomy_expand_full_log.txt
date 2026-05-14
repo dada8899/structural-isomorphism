@@ -1,0 +1,73 @@
+[expand] 35 class(es) to process
+[expand] [1/35] adverse_selection_unraveling_class
+  -> UPDATED  neg+5 edge+5
+[expand] [2/35] adverse_selection_unraveling_class__akerlof_lemons
+  -> UPDATED  neg+5 edge+5
+[expand] [3/35] adverse_selection_unraveling_class__echo_chamber_filter
+  -> UPDATED  neg+5 edge+5
+[expand] [4/35] adverse_selection_unraveling_class__spiral_of_silence
+  -> UPDATED  neg+5 edge+5
+[expand] [5/35] delay_differential_debt
+  -> UPDATED  neg+5 edge+5
+[expand] [6/35] extreme_value_tail_class
+  -> UPDATED  neg+4 edge+4
+[expand] [7/35] gardner_collins_toggle_switch
+  -> UPDATED  neg+4 edge+4
+[expand] [8/35] gardner_collins_toggle_switch_Th1Th2
+  -> UPDATED  neg+4 edge+4
+[expand] [9/35] gardner_collins_toggle_switch_apoptosis
+  -> UPDATED  neg+5 edge+5
+[expand] [10/35] hysteresis_first_order_transition
+  -> UPDATED  neg+4 edge+5
+[expand] [11/35] hysteresis_first_order_transition_fertility
+  -> UPDATED  neg+5 edge+5
+[expand] [12/35] hysteresis_preisach
+  -> UPDATED  neg+4 edge+4
+[expand] [13/35] leaky_integrate_fire_threshold_class
+  -> UPDATED  neg+5 edge+5
+[expand] [14/35] leaky_integrate_fire_threshold_class__lif_reset
+  -> UPDATED  neg+5 edge+5
+[expand] [15/35] leaky_integrate_fire_threshold_class__threshold_adaptation
+  -> UPDATED  neg+5 edge+5
+[expand] [16/35] markov_chain_memory_fidelity_class
+  -> UPDATED  neg+5 edge+5
+[expand] [17/35] motter_lai_network_cascade
+  -> UPDATED  neg+5 edge+5
+[expand] [18/35] motter_lai_network_cascade__conserved_load
+  -> UPDATED  neg+5 edge+5
+[expand] [19/35] motter_lai_network_cascade__threshold_contagion
+  -> UPDATED  neg+5 edge+5
+[expand] [20/35] motter_lai_network_cascade_social
+  -> UPDATED  neg+5 edge+3
+[expand] [21/35] percolation_connectivity
+  -> UPDATED  neg+5 edge+5
+[expand] [22/35] percolation_connectivity__geometric_lattice
+  -> UPDATED  neg+5 edge+4
+[expand] [23/35] percolation_connectivity__mean_field_network
+  -> UPDATED  neg+5 edge+5
+[expand] [24/35] preferential_attachment
+  -> UPDATED  neg+5 edge+5
+[expand] [25/35] reaction_diffusion_steady_state_class
+  -> UPDATED  neg+4 edge+4
+[expand] [26/35] reflexive_fixed_point_class
+  -> UPDATED  neg+5 edge+5
+[expand] [27/35] scale_free_percolation_class
+  -> UPDATED  neg+5 edge+5
+[expand] [28/35] scheffer_fold_bifurcation
+  -> UPDATED  neg+4 edge+4
+[expand] [29/35] schelling_credible_commitment
+  -> UPDATED  neg+5 edge+5
+[expand] [30/35] second_order_damped_oscillator
+  -> UPDATED  neg+5 edge+5
+[expand] [31/35] sir_contagion_network_class
+  -> UPDATED  neg+5 edge+5
+[expand] [32/35] sir_contagion_network_class__balance_sheet_cascade
+  -> UPDATED  neg+5 edge+5
+[expand] [33/35] sir_contagion_network_class__sir_epidemic
+  -> UPDATED  neg+5 edge+5
+[expand] [34/35] soc_threshold_cascade
+  -> UPDATED  neg+4 edge+4
+[expand] [35/35] tail_copula_contagion
+  -> UPDATED  neg+4 edge+4
+
+[expand] Done: 35 updated, 0 no-change, 0 error in 54.8 min

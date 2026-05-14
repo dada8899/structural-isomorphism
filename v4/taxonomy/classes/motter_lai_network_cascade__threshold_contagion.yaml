@@ -46,6 +46,16 @@ negative_examples:
   reason: 'Edge case: Coulomb-stress redistribution IS a form of load redistribution, but the geometry is continuous 3D elastic,
     not discrete network. Better classified under soc_threshold_cascade with continuous (Olami-Feder-Christensen) rather than
     discrete-network (Motter-Lai) sub-class.'
+- phenomenon: k-core percolation / absolute threshold bootstrap percolation
+  reason: "Activation requires a fixed number of active neighbors (e.g., at least 2), not a fraction; the threshold is absolute and independent of node degree, making the process degree-sensitive and incompatible with the fraction-based condition."
+- phenomenon: Voter model
+  reason: "Node adopts a neighbor's state chosen uniformly at random; there is no threshold mechanism and adoption probability does not depend on the fraction of like-minded neighbors, contrasting with the deterministic fraction-exceeding activation."
+- phenomenon: SIR epidemic model with fixed transmission rate per contact
+  reason: "Infection is a stochastic per-contact event, not a deterministic activation when a fraction of infected neighbors exceeds a threshold; no conserved quantity but entirely different dynamics."
+- phenomenon: Linear threshold model with unnormalized edge weights
+  reason: "Node activates when total incoming weight from active neighbors exceeds a threshold, which is an absolute sum, not a fraction of neighbors; this lacks the normalization to neighbor count, thus not neighbor-fraction activation."
+- phenomenon: Majority vote model with noise
+  reason: "Node flips to the majority state of neighbors with a probability depending on a temperature parameter; it is a stochastic spin-flip process, not a deterministic cascade activation upon exceeding a fixed fraction threshold."
 edge_cases:
 - phenomenon: Bank run / 银行挤兑
   debate: Diamond-Dybvig original bank run is multistable_self_fulfilling (coordination game on expectations). But interconnected
@@ -54,6 +64,16 @@ edge_cases:
 - phenomenon: Traffic flow lockup at intersections (路口溢流锁死)
   debate: Queue length > capacity → spillback to upstream → blocking cycle. Topologically a Motter-Lai-style cascade on a
     road network, but the load dynamics are time-asymmetric (queues drain via signals). Worth a formal sub-class study.
+- phenomenon: "Probabilistic threshold contagion (soft threshold, e.g., logistic activation)"
+  debate: "Activation probability is a sigmoidal function of the fraction of active neighbors; as steepness → ∞ it approaches the sharp threshold, but for finite steepness it is stochastic. The original class implies deterministic activation, so the inclusion of stochasticity is ambiguous."
+- phenomenon: Threshold contagion with heterogeneous thresholds including zero (seed nodes)
+  debate: "Some nodes have φ_i=0 (always active instantly) which may induce spontaneous activations, effectively introducing a random field. While still fraction-based, this could alter universality class; it is unclear if the presence of such seeds breaks the class membership."
+- phenomenon: Fraction-threshold cascade on directed networks (in-neighbor fraction)
+  debate: "Fraction is computed only over in-neighbors, which is a natural extension to directed graphs. However, the definition of 'neighbor' may be contested, and the dynamics on directed versus undirected graphs could lead to distinct critical behavior, making the boundary fuzzy."
+- phenomenon: "Bootstrap percolation defined with fraction threshold (e.g., activate if ≥ f*k neighbors active)"
+  debate: "This is mathematically identical to the Watts threshold model on fixed-degree graphs, but bootstrap percolation often uses integer thresholds; when the threshold is a real fraction, the discretization (ceiling) could alter the sharpness of the transition, potentially placing it at the edge of the class."
+- phenomenon: Threshold model with temporal memory decay (exposure over sliding window)
+  debate: "Activation depends on the fraction of neighbors that have been active within a recent time window rather than instantaneously. The introduction of memory complicates the driving mechanism; it might still belong if the memory is short, but could lead to different universality."
 references:
 - Motter, Lai 2002 Phys. Rev. E 66, 065102 (load redistribution cascade)
 - Eisenberg, Noe 2001 Manag. Sci. 47, 236 (clearing vector existence/uniqueness)

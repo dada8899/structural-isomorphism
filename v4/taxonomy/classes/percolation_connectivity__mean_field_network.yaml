@@ -52,6 +52,16 @@ negative_examples:
 - phenomenon: Crystal lattice ordering
   reason: Ising-like ordering with continuous symmetry; equilibrium_critical_ising class. Different universality class with
     different exponents.
+- phenomenon: Percolation on scale-free networks with degree exponent 2<γ<3
+  reason: "The diverging second moment ⟨k²⟩ shifts the threshold to zero and yields non-mean-field exponents (e.g., β=1/(γ-2)), incompatible with the class's claim of β=1,γ=1 independent of topology."
+- phenomenon: Directed percolation (DP) on random networks
+  reason: "The DP universality class (Reggeon field theory) exhibits β=1 in mean-field limit but describes an absorbing-state phase transition, distinct from the undirected connectivity transition of this class."
+- phenomenon: Contact process (SIS model) on random networks
+  reason: "Despite β=1 for the endemic fraction above threshold, the contact process is a dynamical absorbing-state transition in the DP class, not equilibrium geometric percolation."
+- phenomenon: Explosive percolation (Achlioptas process) on a complete graph
+  reason: "Under certain product rules the order parameter shows continuous scaling with β=1 in finite systems but the thermodynamic limit is a discontinuous transition, fundamentally different from the standard continuous percolation mechanism."
+- phenomenon: K-core (bootstrap) percolation on Erdős-Rényi networks with threshold m≥3
+  reason: "The transition is hybrid (first-order jump with a continuous cascade), lacking the pure continuous order-parameter onset β=1 of the mean-field percolation class."
 edge_cases:
 - phenomenon: Forest fire spread
   debate: Drossel-Schwabl 1992 forest fire IS percolation-like at the right tree-density limit (p_c). But the slow-driving
@@ -59,6 +69,16 @@ edge_cases:
 - phenomenon: Network robustness to random failure vs targeted attack
   debate: Both reduce to percolation problems with different occupancy patterns. Scale-free networks have p_c → 0 under attack
     (Cohen et al. 2000). Strong overlap with scale_free_percolation_class.
+- phenomenon: Percolation on scale-free networks with degree exponent γ=3
+  debate: "⟨k²⟩ diverges logarithmically, producing logarithmic corrections to mean-field scaling; whether this constitutes a separate universality class or merely a borderline with the same exponents plus logs is genuinely contested."
+- phenomenon: Continuous percolation on weakly interdependent networks
+  debate: "When coupling between networks is weak the transition can remain continuous with β=1, but the cascading failure mechanism may alter finite-size scaling or introduce hidden diverging length scales, making assignment to the pure mean-field class ambiguous."
+- phenomenon: "Percolation on a small-world network with shortcut probability scaling as p~N^{-α}"
+  debate: "For 0<α<1 the effective dimension crosses over between 1D and infinite-dimensional, raising debate whether finite-size scaling belongs to mean-field percolation or a distinct heterogeneous mean-field class."
+- phenomenon: Percolation on clustered networks with power-law distributed clique sizes
+  debate: "Strong clustering on top of a scale-free backbone can yield non-tree-like correlations; if the second moment of clique sizes diverges, exponents may deviate from mean-field, contesting whether the class boundary extends to such structures."
+- phenomenon: Giant strongly connected component percolation in directed networks with high reciprocity
+  debate: "When reciprocity is high the directed graph approaches an undirected one, yet strictly directed rules still apply; it is debated whether the transition remains in the mean-field undirected percolation class or crosses into directed percolation (DP)."
 references:
 - Broadbent, Hammersley 1957 Proc. Camb. Phil. Soc. 53, 629 (original percolation)
 - Stauffer, Aharony 1994 Introduction to Percolation Theory

@@ -60,6 +60,14 @@ negative_examples:
   reason: "Scale-free degree distribution arises from preferential attachment, not from threshold-driven cascades of failures or events."
 - phenomenon: Internet packet burst lengths
   reason: "Heavy-tailed burst statistics stem from self-similar traffic generation and TCP congestion control, lacking the local threshold and load redistribution core to the class."
+- phenomenon: Ising model at critical temperature
+  reason: "Produces power-law cluster size distributions and scaling, but is an equilibrium phase transition requiring fine-tuning of temperature, not a slowly driven threshold-cascade system that self-organizes without parameter tuning."
+- phenomenon: Granovetter threshold model of collective behavior
+  reason: "Cascade size distributions can be scale-free at a fixed threshold, but the system is a one-shot cascade from a seed and requires external tuning of the threshold parameter, lacking slow driving and load redistribution inherent in self-organized criticality."
+- phenomenon: Nuclear chain reaction at exact criticality
+  reason: "Exhibits branching-process criticality with power-law chain lengths, but the branching ratio is held at 1 by external control rods, not by self-organized dynamics with threshold failure and stress redistribution."
+- phenomenon: 1/f noise from superposition of random telegraph signals (McWhorter model)
+  reason: "Yields 1/f-like spectra and heavy-tailed fluctuations but arises from the additive sum of many independent two-level fluctuators, with no threshold activation or avalanche dynamics."
 edge_cases:
   - phenomenon: "Solar flare temporal sequence (Omori test)"
     debate: "Phase 11 confirmed α ∈ [1.5, 2.5] CONFIRMED at size level but Omori p ≈ 0 with R² = 0.05 — i.e. size signature is SOC but no temporal Omori decay. Solar flares are a hybrid: SOC at size level + state-dependent Poisson at time level (Wheatland 2000). We keep them as SOC class members and treat the absence of Omori as a *corroborating* signature (because the physics predicts no relaxation cascade beneath a slow magnetic driver)."
@@ -75,6 +83,14 @@ edge_cases:
   debate: "Observed power-law scaling often includes an exponential cutoff, suggesting subcritical dynamics and raising questions about whether landslides are genuine SOC or finite-size effects."
 - phenomenon: Slow slip events (SSEs) on tectonic faults
   debate: "SSE catalogues show scale-invariant sizes and temporal clustering, but the dominant role of fluid pressure and aseismic creep may place them at the boundary between threshold cascades and externally forced systems."
+- phenomenon: Power grid cascading blackouts (OPA model)
+  debate: "Slowly driven by load growth with line failures at thermal limits and power redistribution, yielding heavy-tailed blackout sizes; observations suggest SOC, but exogenous events and operational interventions may prevent true self-organization, making classification ambiguous."
+- phenomenon: Strain avalanches in sheared amorphous solids (yielding transition)
+  debate: "Under slow shear, threshold-activated plastic events redistribute stress via Eshelby kernels, producing power-law avalanche statistics; however, the critical point may be a tuned non-equilibrium transition (depinning) rather than a self-organized state, and some models require disorder tuning."
+- phenomenon: Neuronal avalanches in dissociated cultures (Beggs-Plenz type)
+  debate: "Display scale-free burst sizes and branching ratios near 1, consistent with SOC threshold cascades, yet the mechanism may rely on homeostatic synaptic plasticity to set excitability, which is a biological tuning process rather than pure self-organization via threshold failure and stress redistribution."
+- phenomenon: Landslide size distributions
+  debate: "Power-law frequency-area statistics resemble SOC, but the driving is irregular (rainfall) rather than slow steady forcing, and failure events may not involve significant stress transfer to neighboring slopes; thus, whether they reflect true threshold-cascade SOC or merely scale-free topography with stochastic triggers is contested."
 references:
   - "Bak, Tang, Wiesenfeld 1987 Phys. Rev. Lett. 59, 381 (original SOC, 1/f noise sandpile)"
   - "Olami, Feder, Christensen 1992 Phys. Rev. Lett. 68, 1244 (continuous nonconservative cellular automaton earthquake model)"

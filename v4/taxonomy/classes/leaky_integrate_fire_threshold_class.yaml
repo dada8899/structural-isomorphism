@@ -45,6 +45,16 @@ negative_examples:
   reason: No threshold or reset; continuous Hamiltonian dynamics. Belongs to second_order_damped_oscillator.
 - phenomenon: Sigmoid neural activation in ANNs
   reason: Static input-output map y = σ(Wx+b); no dynamics, no leaky integration, no reset event. Different mechanism class.
+- phenomenon: Perfect integrate-and-fire neuron
+  reason: "Accumulates input without any leak (decay) until threshold, then fires and resets. Missing the essential leakage mechanism that defines the class."
+- phenomenon: Hodgkin–Huxley spiking
+  reason: "Produces spikes via continuous dynamics of ion-channel gating variables; no instantaneous discrete release event at threshold—the spike is part of the continuous oscillation, not a reset."
+- phenomenon: Poisson spike generator
+  reason: Generates discrete spikes from a time-varying rate without integrating a continuous quantity; lacks both accumulation and threshold.
+- phenomenon: Sandpile model (Bak–Tang–Wiesenfeld)
+  reason: "Slowly driven slope with threshold for avalanches, but no dissipation or decay of the accumulated slope between events—it's a conservative cellular automaton, not leaky."
+- phenomenon: Leaky bucket traffic shaper
+  reason: "Continuous token arrival and leakage, but when bucket is full the discrete event is discarding an incoming token, not a release of the accumulated contents—the integrated quantity is not released."
 edge_cases:
 - phenomenon: Neural avalanche under criticality
   debate: Each neuron is LIF, but the population dynamics produce SOC threshold-cascade signatures. Same elementary unit (LIF),
@@ -53,6 +63,16 @@ edge_cases:
 - phenomenon: Hodgkin-Huxley action potential
   debate: Full HH model includes Na+/K+ channel gating, more detailed than LIF. LIF is a reduced approximation. Same class
     membership at coarse level; HH is the full mechanism.
+- phenomenon: Relaxation oscillator with ultrafast but continuous discharge
+  debate: "When discharge is not instantaneous but occurs on a much faster timescale than charging, it is often approximated as a discrete release. Whether this truly satisfies 'discrete release event' or demands a separation of timescales condition is ambiguous."
+- phenomenon: Leaky accumulator with probabilistic threshold crossing
+  debate: "Some decision models treat the threshold as deterministic; others add noise so that crossing triggers response stochastically. The class definition's 'crosses threshold θ' might imply deterministic, but many would still classify it as a noisy variant, making the boundary fuzzy."
+- phenomenon: Adaptive threshold integrate-and-fire
+  debate: "The threshold θ is not constant but changes after each event (e.g., spike-rate adaptation). Mechanistically similar, but the class definition may assume a fixed threshold, raising the question whether dynamic thresholds belong inside or outside."
+- phenomenon: Burst–quiescence oscillator with slow feedback
+  debate: "A fast leaky integrator generates spikes, but a slow variable modulates excitability, creating bursts. The burst onset might itself be a threshold event in the slow dynamics, potentially a composite of the class—does the class extend to multi-scale release events?"
+- phenomenon: Neural field with discrete behavioral readout
+  debate: "A spatially extended neural field evolves with leakage and threshold, and a motor command is triggered when activity crosses a spatial threshold. The integrated quantity S is a field, not a scalar, challenging whether the class is limited to scalar accumulators."
 references:
 - Lapicque 1907 J. Physiol. Pathol. Gen. 9, 620 (original I&F neuron)
 - Stein 1965 Biophys. J. 5, 173 (modern LIF derivation)

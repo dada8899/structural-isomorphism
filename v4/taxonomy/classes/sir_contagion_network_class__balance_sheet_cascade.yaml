@@ -38,6 +38,16 @@ negative_examples:
     Belongs to motter_lai_network_cascade or percolation_connectivity.
 - phenomenon: Network failure via random component failure
   reason: Independent failures; no infection-style state coupling. Belongs to percolation_connectivity.
+- phenomenon: SIR epidemic on a contact network
+  reason: "Network contagion with a steep phase transition resembling a default cascade, but includes a recovery compartment (R) allowing nodes to leave the infectious state, fundamentally altering the threshold condition to R0 > 1 rather than a clearing-vector fixed-point based on leverage."
+- phenomenon: Watts threshold model of social contagion
+  reason: "Cascading activation driven by a fixed fraction of adopting neighbors superficially similar to a leverage ratio, but the mechanism lacks a clearing equilibrium: thresholds are exogenous, static, and activation is unconditional, with no counterparty-liability structure."
+- phenomenon: BTW sandpile model of self-organized criticality
+  reason: "Produces power-law avalanche size distributions mimicking systemic crisis statistics, yet the dynamics are local, threshold-based toppling rules on a lattice; no financial balance sheets, clearing vector, or absorbing default states tied to network of liabilities."
+- phenomenon: Percolation on random graphs
+  reason: "Exhibits a critical occupation probability analogous to a minimum capital ratio, but the process is static (bond/site deletion) without an iterative equilibrium condition; the giant component emerges from connectivity alone, not from interdependent default resolutions."
+- phenomenon: Interdependent networks cascading failure (Buldyrev-type)
+  reason: "Cascades through mutual dependency links resemble financial contagion, yet the dynamic is governed by recursive removal of nodes disconnected from the giant component, not by a fixed-point map on asset–liability stocks; the critical threshold depends on degree distributions and dependency coupling, not leverage."
 edge_cases:
 - phenomenon: Bank run with information cascade
   debate: Information-driven 'infection' of withdrawal behavior could fit SIR. But payoff structure is coordination game (multistable_self_fulfilling),
@@ -48,6 +58,16 @@ edge_cases:
 - phenomenon: Cascading default on interbank network
   debate: Can be modeled as SIR (default infects creditors) OR as Eisenberg-Noe clearing (Motter-Lai). Same data, two valid
     generative models. Class boundary.
+- phenomenon: Eisenberg-Noe with endogenous asset fire-sales
+  debate: "Extends the basic clearing vector by making external asset prices depend on the total liquidated volume; this introduces a price-impact function that can generate multiple equilibria and non-linear feedback, potentially altering the phase transition (e.g., discontinuities). Whether such an extension still belongs to the same universality class or defines a distinct 'illiquidity-leverage spiral' class is contested."
+- phenomenon: Supply-chain disruption cascades modeled via a clearing vector
+  debate: "If firms’ production obligations are treated as liabilities and the failure condition is insolvency, the formal equations mirror Eisenberg–Noe. The debate centers on whether the physical nature of goods (inventories, delivery times) breaks the isomorphism, or if it qualifies as a member due to identical abstract dynamics."
+- phenomenon: Over-collateralized DeFi lending liquidation cascades
+  debate: "Liquidations propagate through a network of loans and are triggered by a fixed threshold (liquidation ratio), superficially matching the balance-sheet cascade. However, reliance on external price oracles, automatic liquidations without negotiation, and insurance pool absorption may introduce mechanisms not present in the classical clearing vector, leaving classification ambiguous."
+- phenomenon: Sovereign-bank nexus crises (doom loop)
+  debate: "When sovereign bonds are bank assets and bank solvency depends on sovereign creditworthiness, a clearing-vector framework can capture the feedback. Yet sovereigns cannot liquidate, and bailouts or loss mutualization blur the 'no recovery' property, making it unclear whether this belongs to the same class or requires a macro-financial extension."
+- phenomenon: Cross-holdings of equity in a financial network
+  debate: "If liabilities are replaced by equity participations, the clearing vector adjusts firm values instead of default states. Although a fixed-point condition still exists, the absence of a fixed debt obligation and the possibility that equity values never hit zero (no absorbing default) may place this outside the pure balance-sheet cascade class, yet many studies treat them together."
 references:
 - Kermack, McKendrick 1927 Proc. Roy. Soc. A 115, 700 (original SIR)
 - Anderson, May 1991 Infectious Diseases of Humans
