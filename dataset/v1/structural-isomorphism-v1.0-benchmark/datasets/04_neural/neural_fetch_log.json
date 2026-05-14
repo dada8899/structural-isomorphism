@@ -1,0 +1,18 @@
+{
+  "nwb_file": "sample.nwb",
+  "n_units": 71,
+  "n_spikes_total": 1392414,
+  "pooled_time_span_sec": 2266.1670510000004,
+  "mean_iei_ms": 1.64183594660152,
+  "bin_factor": 1.0,
+  "bin_width_ms": 1.64183594660152,
+  "n_avalanches": 301092,
+  "size_range": [
+    1,
+    268
+  ],
+  "duration_range": [
+    1,
+    98
+  ]
+}

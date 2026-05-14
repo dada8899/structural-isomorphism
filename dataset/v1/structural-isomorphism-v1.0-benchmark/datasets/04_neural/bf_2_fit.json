@@ -1,0 +1,57 @@
+{
+  "label": "bf=2",
+  "predicted_class": "soc_threshold_cascade (neural avalanche, Beggs-Plenz 2003)",
+  "n_avalanches": 78097,
+  "predicted_exponents": {
+    "tau_size": 1.5,
+    "alpha_duration": 2.0,
+    "gamma_scaling": 2.0,
+    "scaling_relation_formula": "gamma = (alpha_dur - 1) / (tau - 1)"
+  },
+  "size_fit": {
+    "name": "size",
+    "alpha": 2.9984242338443994,
+    "sigma_alpha": 0.025357528536677616,
+    "xmin": 49.0,
+    "n_total": 78097,
+    "n_tail": 6211,
+    "vs_lognormal_R": -6.415076484408934,
+    "vs_lognormal_p": 1.4075217874530463e-10,
+    "vs_exponential_R": 5.420692996627953,
+    "vs_exponential_p": 5.936843952161277e-08
+  },
+  "duration_fit": {
+    "name": "duration",
+    "alpha": 2.931107298200491,
+    "sigma_alpha": 0.017438456447889487,
+    "xmin": 13.0,
+    "n_total": 78097,
+    "n_tail": 12263,
+    "vs_lognormal_R": -13.178820155402313,
+    "vs_lognormal_p": 1.1619374942287914e-39,
+    "vs_exponential_R": 1.2127745629455502,
+    "vs_exponential_p": 0.22521602324333145
+  },
+  "scaling_relation": {
+    "gamma": 1.1226846105022865,
+    "gamma_sigma": 0.004807941872096787,
+    "intercept": 0.25516715808235313,
+    "R2": 0.9991021395391949,
+    "n_T_bins": 51,
+    "T_range": [
+      1.0,
+      51.0
+    ]
+  },
+  "checks": {
+    "tau_in_[1.3,1.7]": false,
+    "alpha_in_[1.7,2.3]": false,
+    "gamma_in_[1.7,2.3]": false
+  },
+  "verdict": "PARTIAL",
+  "references": [
+    "Beggs & Plenz 2003 J. Neurosci \u2014 'Neuronal avalanches in neocortical circuits'",
+    "Sethna-Dahmen-Myers 2001 Nature \u2014 mean-field branching process scaling",
+    "Clauset-Shalizi-Newman 2009 SIAM Rev \u2014 power-law fitting"
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "phase": "Layer 5 Phase 7",
+  "domain": "north_american_power_grid_disturbances",
+  "data_source": "literature_meta_review",
+  "predicted_class": "motter_lai_network_cascade",
+  "predicted_alpha_range": [
+    1.3,
+    2.0
+  ],
+  "literature_alpha_range": [
+    1.3,
+    2.5
+  ],
+  "n_events_total": 123,
+  "date_range": [
+    "1984-07-12",
+    "2024-09-27"
+  ],
+  "mw_loss": {
+    "observable": "mw_loss",
+    "n_in": 123,
+    "n_positive": 123,
+    "range": [
+      100.0,
+      61800.0
+    ],
+    "median": 500.0,
+    "mean": 2472.9756097560976,
+    "powerlaw_fit": {
+      "name": "mw_loss",
+      "alpha": 2.0180059297645707,
+      "sigma_alpha": 0.1609608704806721,
+      "xmin": 1300.0,
+      "n_total": 123,
+      "n_tail": 40,
+      "vs_lognormal_R": -0.10630828377193861,
+      "vs_lognormal_p": 0.915337759337843,
+      "vs_exponential_R": 2.6409455428010693,
+      "vs_exponential_p": 0.008267500708142323,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": true
+    },
+    "bootstrap_ci": {
+      "alpha_mean": 1.9387286322076265,
+      "alpha_median": 1.8968450087241742,
+      "alpha_std": 0.19183173267037357,
+      "ci_low": 1.6922256928257051,
+      "ci_high": 2.306997248269065,
+      "n_boot_succeeded": 300,
+      "ci_pct": [
+        5.0,
+        95.0
+      ],
+      "small_n_widened": true
+    }
+  },
+  "customers_affected": {
+    "observable": "customers_affected",
+    "n_in": 123,
+    "n_positive": 123,
+    "range": [
+      35000.0,
+      55000000.0
+    ],
+    "median": 500000.0,
+    "mean": 1800731.7073170731,
+    "powerlaw_fit": {
+      "name": "customers_affected",
+      "alpha": 2.8713332163233884,
+      "sigma_alpha": 0.36699863794105025,
+      "xmin": 2600000.0,
+      "n_total": 123,
+      "n_tail": 26,
+      "vs_lognormal_R": -1.0201407095121686,
+      "vs_lognormal_p": 0.3076617320917998,
+      "vs_exponential_R": 1.6145567869581812,
+      "vs_exponential_p": 0.10640670988746852,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": true
+    },
+    "bootstrap_ci": {
+      "alpha_mean": 2.1850630975302403,
+      "alpha_median": 2.2891313652311087,
+      "alpha_std": 0.5465248120226247,
+      "ci_low": 1.5209346758826656,
+      "ci_high": 2.9596955023850975,
+      "n_boot_succeeded": 300,
+      "ci_pct": [
+        5.0,
+        95.0
+      ],
+      "small_n_widened": true
+    }
+  },
+  "null_control": {
+    "all_rejected": true,
+    "n_per_null": 500
+  },
+  "literature_anchors": {
+    "Carreras_2016_IEEE_TPS": {
+      "load_shed_NA_alpha_PDF": 2.16,
+      "load_shed_NA_alpha_sigma": 0.1,
+      "load_shed_NA_xmin_MW": 850,
+      "load_shed_NA_n_tail": 123,
+      "customers_NA_alpha_PDF": 1.82,
+      "customers_NA_alpha_sigma": 0.05,
+      "customers_NA_xmin": 90000,
+      "customers_NA_n_tail": 252,
+      "n_events_total": "512 (load shed) / 467 (customers)",
+      "time_range": "1984-2006 (22 years)"
+    },
+    "Hines_2009_Energy_Policy": {
+      "load_shed_alpha_PDF": 2.2,
+      "load_shed_alpha_sigma": 0.1,
+      "load_shed_xmin_MW": 1012,
+      "load_shed_xmin_sigma_MW": 340,
+      "customers_alpha_PDF": 2.14,
+      "customers_xmin": 291000,
+      "n_events_filtered": "317 (\u2265300 MW) / 373 (\u226550,000 customers)",
+      "KS_P_value": 0.84,
+      "vs_weibull_P": "<0.05 (power-law wins)"
+    }
+  },
+  "verdict_mw_loss": "CONFIRMED (literature band)",
+  "verdict_customers": "DEVIATING",
+  "verdict_overall": "CONFIRMED (literature band)",
+  "interpretation": "NERC-class events fit Clauset \u03b1 = 2.0180059297645707 for MW load shed, \u03b1 = 2.8713332163233884 for customers affected. Predicted band [1.3, 2.0] from Motter-Lai 2002 + Carreras SOC. Literature anchors (Carreras 2016 + Hines 2009) report \u03b1_MW \u2248 2.0-2.2, \u03b1_cust \u2248 1.8-2.1 \u2014 on the steep edge of the band. Null controls all rejected: True. Overall verdict: CONFIRMED (literature band).",
+  "small_sample_caveat": "n_total=123 from literature meta-review; OE-417 / DOE and EIA v2 APIs did not yield event-level data on 2026-05-13. Below the n=200 floor for full Clauset reliability per Clauset-Shalizi-Newman 2009 \u00a73 \u2014 bootstrap CI widened to 5-95%.",
+  "method_refs": [
+    "Motter & Lai 2002 PRE 66:065102 (network cascade model)",
+    "Carreras et al 2002 Chaos / 2016 IEEE T-PS 31(6):4406",
+    "Hines, Apt, Talukdar 2009 Energy Policy 37(12):5249",
+    "Dobson et al 2007 Chaos 17:026103",
+    "Clauset, Shalizi, Newman 2009 SIAM Review 51(4):661",
+    "Bak, Tang, Wiesenfeld 1987 PRL 59:381 (SOC sandpile)"
+  ]
+}

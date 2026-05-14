@@ -1,0 +1,25 @@
+{
+  "case_id": "null_004_poisson_omori",
+  "synthetic_data_type": "poisson_omori_stack",
+  "description": "homogeneous Poisson process subjected to Omori main-shock + aftershock detector; expected NO Omori structure",
+  "params": {
+    "rate": 1.0,
+    "rng_seed": 42,
+    "window_seconds": 5006,
+    "main_shock_threshold_sigmas": 3.0
+  },
+  "n_samples": 23,
+  "pipeline_verdict": "rejected",
+  "key_indicators": {
+    "omori_p": -0.06762037454611873,
+    "omori_R2": 0.0015150713758032008,
+    "n_main_shocks": 23,
+    "n_pos_excess_bins": 16,
+    "alpha_clauset": null
+  },
+  "expected_real_distribution": "no_temporal_clustering",
+  "date_added": "2026-05-13",
+  "phase_source": "phase_5_null",
+  "source_file": "v4/validation/null-controls/null_results.json",
+  "doc_ref": "v4/validation/null-controls/VERDICT-2026-04-16.md"
+}

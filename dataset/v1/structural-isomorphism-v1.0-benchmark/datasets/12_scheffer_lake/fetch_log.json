@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "site_code": "040851385",
+      "url": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=040851385&parameterCd=00300&startDT=2008-01-01&endDT=2024-12-31&statCd=00003",
+      "fetched_at": "2026-05-13T05:46:22.142288Z",
+      "ok": true,
+      "n_records": 4732,
+      "site_name": "FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI",
+      "first_date": "2011-03-04",
+      "last_date": "2024-12-31",
+      "error": null,
+      "descriptor": "Fox River at Green Bay, WI (eutrophic embayment, primary)"
+    },
+    {
+      "site_code": "04085427",
+      "url": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=04085427&parameterCd=00300&startDT=2008-01-01&endDT=2024-12-31&statCd=00003",
+      "fetched_at": "2026-05-13T05:46:24.487735Z",
+      "ok": true,
+      "n_records": 2689,
+      "site_name": "MANITOWOC RIVER AT MANITOWOC, WI",
+      "first_date": "2011-03-18",
+      "last_date": "2022-11-07",
+      "error": null,
+      "descriptor": "Manitowoc River at Manitowoc, WI (cross-site check)"
+    },
+    {
+      "site_code": "02234432",
+      "url": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=02234432&parameterCd=00300&startDT=2005-01-01&endDT=2024-12-31&statCd=00003",
+      "fetched_at": "2026-05-13T05:46:26.755640Z",
+      "ok": false,
+      "n_records": 0,
+      "site_name": null,
+      "first_date": null,
+      "last_date": null,
+      "error": "empty timeSeries",
+      "descriptor": "Lake Jesup, FL (true LK siteType)"
+    },
+    {
+      "site_code": "423755088341700",
+      "url": "https://waterservices.usgs.gov/nwis/dv/?format=json&sites=423755088341700&parameterCd=00300&startDT=2000-01-01&endDT=2024-12-31&statCd=00003",
+      "fetched_at": "2026-05-13T05:46:28.376766Z",
+      "ok": false,
+      "n_records": 0,
+      "site_name": null,
+      "first_date": null,
+      "last_date": null,
+      "error": "empty timeSeries",
+      "descriptor": "Delavan Lake Inlet, WI (true LK siteType)"
+    }
+  ],
+  "chosen": {
+    "site_code": "040851385",
+    "descriptor": "Fox River at Green Bay, WI (eutrophic embayment, primary)",
+    "n_records": 4732,
+    "first_date": "2011-03-04",
+    "last_date": "2024-12-31",
+    "site_name": "FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI"
+  },
+  "fallback_used": false,
+  "started_at": "2026-05-13T05:46:22.142000Z",
+  "finished_at": "2026-05-13T05:46:30.013649Z",
+  "n_written": 4732,
+  "out_path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/scheffer-lake/lake_do_timeseries.jsonl"
+}
