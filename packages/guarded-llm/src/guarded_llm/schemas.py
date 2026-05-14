@@ -28,6 +28,22 @@ except ImportError:
     _HAS_JSONSCHEMA = False
 
 
+def _best_validator():
+    """Pick the newest JSON Schema validator the installed jsonschema offers.
+
+    Prefer Draft 2020-12 (jsonschema>=4); fall back to Draft7 (jsonschema 3.x)
+    so users on older environments still get useful validation rather than an
+    ImportError.
+    """
+    if not _HAS_JSONSCHEMA:
+        return None
+    for name in ("Draft202012Validator", "Draft201909Validator", "Draft7Validator"):
+        v = getattr(jsonschema, name, None)
+        if v is not None:
+            return v
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -99,13 +115,19 @@ class LLMSchema:
             )
         if not isinstance(schema, dict):
             raise TypeError(f"schema must be a dict, got {type(schema).__name__}")
+        validator_cls = _best_validator()
+        if validator_cls is None:
+            raise ImportError(
+                "LLMSchema requires `jsonschema>=3.2`. "
+                "Install with `pip install jsonschema`."
+            )
         # Eagerly validate the meta-schema so misconfiguration surfaces early.
         try:
-            jsonschema.Draft202012Validator.check_schema(schema)
+            validator_cls.check_schema(schema)
         except jsonschema.exceptions.SchemaError as e:
             raise ValueError(f"invalid JSON Schema: {e.message}") from e
         self._schema = schema
-        self._validator = jsonschema.Draft202012Validator(schema)
+        self._validator = validator_cls(schema)
 
     @property
     def schema(self) -> dict[str, Any]:
