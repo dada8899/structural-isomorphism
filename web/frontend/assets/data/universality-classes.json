@@ -2,17 +2,17 @@
   "meta": {
     "generated_at": "2026-04-15",
     "source": "v4/results/candidate_classes.jsonl",
-    "total_classes": 23,
+    "total_classes": 26,
     "manual_curated": 8,
     "llm_curated": 15,
-    "curated_classes": 23,
+    "curated_classes": 26,
     "version": "0.3",
-    "last_updated": "2026-05-13",
-    "layer5_phase_count": 13,
+    "last_updated": "2026-05-15",
+    "layer5_phase_count": 15,
     "b3_review_done": true
   },
   "stats": {
-    "n_equivalence_classes": 23,
+    "n_equivalence_classes": 26,
     "n_cross_domain": 23,
     "max_members": 17,
     "max_domains": 12,
@@ -3309,6 +3309,178 @@
         "Session #3 W2-C SIR confirm in progress"
       ],
       "b3_note": "Verification in progress (W2-C)."
+    },
+    {
+      "class_id": "fractional_brownian_crossings",
+      "name_zh": "分数布朗运动零交叉类",
+      "name_en": "Fractional Brownian motion level crossings",
+      "rank": 23,
+      "provenance": "manual_curation",
+      "hub_name": "长记忆扩散过程的水平穿越",
+      "hub_name_en": "Long-memory diffusion level-crossing returns",
+      "hub_degree": 0,
+      "size": 5,
+      "n_domains": 4,
+      "domains": [
+        "金融",
+        "网络/通信",
+        "水文/地球科学",
+        "湍流物理"
+      ],
+      "domains_en": [
+        "Finance",
+        "Network/Communications",
+        "Hydrology/Geophysics",
+        "Turbulence physics"
+      ],
+      "edges_internal": 0,
+      "avg_edge_score": 0.0,
+      "max_edge_score": 0.0,
+      "physics_prototype": "Mandelbrot-Van Ness fBm (1968)",
+      "taxonomy_match": "fractional_brownian_crossings",
+      "confidence": "speculative",
+      "summary_zh": "具有长记忆 Hurst 指数 H ≠ 0.5 的分数布朗运动的水平穿越时间分布服从幂律 P(τ) ∝ τ^(-(2-H)),其中 H ∈ (0,1) 控制长程相关性。区别于 Markov 短记忆类。",
+      "summary_en": "Inter-crossing return-time distribution of fractional Brownian motion follows a power-law P(τ) ∝ τ^(-(2-H)) with Hurst parameter H ∈ (0, 1) controlling long-range correlation. Distinct from Markov short-memory class.",
+      "shared_equations_raw": [
+        {
+          "raw": "Cov[B_H(t), B_H(s)] = (1/2)(|t|^{2H} + |s|^{2H} - |t-s|^{2H})"
+        },
+        {
+          "raw": "Inter-crossing PDF tail: P(τ) ∝ τ^{-(2-H)} for τ >> 1"
+        }
+      ],
+      "invariants": [
+        "长程相关: C(k) ~ k^(2H-2)",
+        "Hurst 自相似: B_H(at) =_d a^H B_H(t)",
+        "分数差分非 Markov 记忆核",
+        "幂律穿越间隔: α = 2 - H"
+      ],
+      "invariants_en": [
+        "Long-range correlation: C(k) ~ k^(2H-2)",
+        "Hurst self-similarity: B_H(at) =_d a^H B_H(t)",
+        "Non-Markov long-memory kernel",
+        "Power-law inter-crossing: alpha = 2 - H"
+      ],
+      "last_curated": "2026-05-15",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
+      "b3_status": "PENDING",
+      "notes": "Pre-registered band alpha ∈ [1.5, 2.0] for H ∈ [0.5, 0.8]; cross-judge ensemble verification deferred (no API keys in worktree session)."
+    },
+    {
+      "class_id": "anderson_localization",
+      "name_zh": "Anderson 局域化 (金属-绝缘体相变)",
+      "name_en": "Anderson localization (metal-insulator transition)",
+      "rank": 24,
+      "provenance": "manual_curation",
+      "hub_name": "无序驱动量子相变",
+      "hub_name_en": "Disorder-driven quantum phase transition",
+      "hub_degree": 0,
+      "size": 5,
+      "n_domains": 4,
+      "domains": [
+        "凝聚态物理",
+        "光子学",
+        "冷原子物理",
+        "随机网络理论"
+      ],
+      "domains_en": [
+        "Condensed matter",
+        "Photonics",
+        "Cold-atom physics",
+        "Random network theory"
+      ],
+      "edges_internal": 0,
+      "avg_edge_score": 0.0,
+      "max_edge_score": 0.0,
+      "physics_prototype": "Anderson tight-binding 模型 (1958)",
+      "taxonomy_match": "anderson_localization",
+      "confidence": "well-established",
+      "summary_zh": "由无序驱动的量子相变,从扩展(金属)态到空间局域(绝缘体)态,3D 正交类临界指数 ν ≈ 1.571。具有普适的临界电导分布和多重分形本征态。",
+      "summary_en": "Disorder-driven quantum phase transition from extended (metallic) to spatially localized (insulating) eigenstates with critical exponent ν ≈ 1.571 in 3D orthogonal class. Universal critical conductance distribution and multifractal eigenstates.",
+      "shared_equations_raw": [
+        {
+          "raw": "H = sum_i epsilon_i |i><i| + t sum_{<ij>} (|i><j| + h.c.)"
+        },
+        {
+          "raw": "xi(W) ~ |W - W_c|^{-nu}, nu ≈ 1.571 (3D orthogonal)"
+        }
+      ],
+      "invariants": [
+        "局域长度发散: ξ ~ |W - W_c|^(-ν)",
+        "普适电导分布 P(g)",
+        "本征态多重分形谱 D_q",
+        "对称类依赖临界指数",
+        "维度依赖相变存在"
+      ],
+      "invariants_en": [
+        "Localization length divergence: xi ~ |W - W_c|^(-nu)",
+        "Universal critical conductance distribution P(g)",
+        "Multifractal eigenstate spectrum D_q",
+        "Symmetry-class-dependent critical exponents",
+        "Dimension-dependent transition existence"
+      ],
+      "last_curated": "2026-05-15",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
+      "b3_status": "PENDING",
+      "notes": "Pre-registered band nu ∈ [1.55, 1.60] (3D orthogonal). Cross-judge ensemble verification deferred."
+    },
+    {
+      "class_id": "preisach_hysteresis_cascade",
+      "name_zh": "Preisach 迟滞级联 (Barkhausen 跳变分布)",
+      "name_en": "Preisach hysteresis cascade (Barkhausen-style jump distribution)",
+      "rank": 25,
+      "provenance": "manual_curation",
+      "hub_name": "无序耦合双稳态系统的跳变级联",
+      "hub_name_en": "Cascade jump dynamics in disordered coupled-bistable ensembles",
+      "hub_degree": 0,
+      "size": 5,
+      "n_domains": 4,
+      "domains": [
+        "凝聚态物理 / 磁学",
+        "塑性力学",
+        "凝聚态物理 / 电荷密度波",
+        "金融"
+      ],
+      "domains_en": [
+        "Condensed matter / magnetism",
+        "Plasticity",
+        "Condensed matter / charge density waves",
+        "Finance"
+      ],
+      "edges_internal": 0,
+      "avg_edge_score": 0.0,
+      "max_edge_score": 0.0,
+      "physics_prototype": "Sethna-Dahmen-Myers 噪声破裂模型 (1993/2001)",
+      "taxonomy_match": "preisach_hysteresis_cascade",
+      "confidence": "speculative",
+      "summary_zh": "外加慢驱动下,耦合的双稳态元件集合产生离散跳变事件,跳变规模分布 P(s) ∝ s^(-τ),τ ∈ [1.5, 2.5],在 Sethna 无序临界点。区别于经典 Preisach (无耦合) 类。",
+      "summary_en": "Slow driving of coupled bistable elements produces discrete cascade jump events with power-law size distribution P(s) ∝ s^(-tau), tau ∈ [1.5, 2.5], at the Sethna disorder critical point. Distinct from the classical non-coupled Preisach class.",
+      "shared_equations_raw": [
+        {
+          "raw": "M(H) = sum_alpha s_alpha(H), H_alpha^switch = h_alpha + J sum_beta s_beta"
+        },
+        {
+          "raw": "P(s) ∝ s^{-tau} exp(-s/s_c), tau ≈ 1.5 (mean-field)"
+        }
+      ],
+      "invariants": [
+        "幂律跳变分布 P(s) ∝ s^(-τ)",
+        "无序临界点 R = R_c 的 cutoff 发散",
+        "持续时间幂律 τ_T ≈ 2",
+        "1/f^(1+θ) 功率谱",
+        "Sethna 噪声破裂普适"
+      ],
+      "invariants_en": [
+        "Power-law jump distribution P(s) ∝ s^(-tau)",
+        "Cutoff divergence at disorder critical point R = R_c",
+        "Duration power-law tau_T ≈ 2",
+        "1/f^(1+theta) power spectrum",
+        "Sethna crackling-noise universal"
+      ],
+      "last_curated": "2026-05-15",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
+      "b3_status": "PENDING",
+      "notes": "Sethna-Dahmen-Myers refinement of the B3-rejected hysteresis_preisach class. Pre-registered tau ∈ [1.5, 2.5]. Cross-judge ensemble verification deferred."
     }
   ]
 }
