@@ -482,7 +482,7 @@
       }
     }
 
-    // Render deep-analysis CTA — links to /analyze.html using top KB card as B-side seed.
+    // Render deep-analysis CTA — links to /analyze using top KB card as B-side seed.
     renderDeepAnalysisCTA(item);
 
     // W3-B: answer_completed — full answer rendered (citations resolved).
@@ -607,7 +607,7 @@
   }
 
   // ============================================================
-  // Deep analysis CTA — bridge to /analyze.html for full pipeline
+  // Deep analysis CTA — bridge to /analyze for full pipeline
   // ============================================================
   function renderDeepAnalysisCTA(item) {
     var section = item.querySelector('[data-role="deep-cta-section"]');
@@ -615,7 +615,9 @@
     var query = item.getAttribute('data-query') || '';
     var cards = item._cards || [];
     var topKbId = cards.length ? cards[0].id : '';
-    var url = '/analyze.html?text_a=' + encodeURIComponent(query);
+    // Use clean /analyze URL (no .html suffix) — matches site-wide convention
+    // in search.js, discoveries.js, home.js, phenomenon.js.
+    var url = '/analyze?text_a=' + encodeURIComponent(query);
     if (topKbId) url += '&b_id=' + encodeURIComponent(topKbId);
 
     section.innerHTML =
@@ -626,7 +628,7 @@
     section.hidden = false;
 
     // W3-B: bind deep analysis click — we send `from_thread_item: true`
-    // so we can disambiguate from a direct /analyze.html visit.
+    // so we can disambiguate from a direct /analyze visit.
     var ctaLink = section.querySelector('.ask-thread-item__deep-cta');
     if (ctaLink) {
       ctaLink.addEventListener('click', function () {
