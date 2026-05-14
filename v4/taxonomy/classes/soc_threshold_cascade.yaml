@@ -52,6 +52,14 @@ negative_examples:
     reason: "Linear superposition of independent relaxation timescales — Kogan 1996 spectral mechanism, not avalanche cascade. Power-spectrum 1/f signature is necessary but not sufficient for SOC class membership."
   - phenomenon: "Kuramoto firefly synchronization"
     reason: "Phase-coupled oscillators reaching coherence transition; order parameter is global phase coherence r, not avalanche size distribution. Belongs to kuramoto_sync."
+- phenomenon: "City population sizes (Zipf's law)"
+  reason: "Exhibits a heavy-tailed distribution similar to crackling noise, but originates from multiplicative growth (Gibrat's law) without a threshold cascade mechanism."
+- phenomenon: Epidemic superspreading event size
+  reason: "Power-law distributed secondary infections resemble cascade sizes, but the mechanism is fixed heterogeneity in individual reproduction numbers, not self-organized criticality or redistribution."
+- phenomenon: Paper citation counts
+  reason: "Scale-free degree distribution arises from preferential attachment, not from threshold-driven cascades of failures or events."
+- phenomenon: Internet packet burst lengths
+  reason: "Heavy-tailed burst statistics stem from self-similar traffic generation and TCP congestion control, lacking the local threshold and load redistribution core to the class."
 edge_cases:
   - phenomenon: "Solar flare temporal sequence (Omori test)"
     debate: "Phase 11 confirmed α ∈ [1.5, 2.5] CONFIRMED at size level but Omori p ≈ 0 with R² = 0.05 — i.e. size signature is SOC but no temporal Omori decay. Solar flares are a hybrid: SOC at size level + state-dependent Poisson at time level (Wheatland 2000). We keep them as SOC class members and treat the absence of Omori as a *corroborating* signature (because the physics predicts no relaxation cascade beneath a slow magnetic driver)."
@@ -59,6 +67,14 @@ edge_cases:
     debate: "Phase 10 recovered α = 1.66 inside band, but Clauset likelihood-ratio decisively prefers lognormal (R = -4.73, p < 10^-5). We retain the class assignment because (a) functional form + exponent band agreement is the published SOC criterion, (b) Reed-Hughes 2002 critique applies to virtually every empirical heavy-tail and would invalidate the entire SOC literature if treated as falsification, (c) Clauset et al. 2009 note that distinguishing power-law from lognormal at n_tail ~ 10^3 is statistically hard even with known generators."
   - phenomenon: "Task-active mouse cortex avalanche exponents (τ ≈ 2.8) vs spontaneous Beggs-Plenz τ ≈ 1.5"
     debate: "Same SOC class but different sub-fixed-point. Phase 4 shows the scaling relation γ holds (system is genuinely critical) but the recording sits in the sub-critical sub-class (Priesemann-Munk-Wibral 2014, m < 1). The SOC equivalence class in biology contains *at least* two distinguishable sub-classes — spontaneous-MF and task-subcritical — and brain-state labeling is a first-class feature of any neural SOC dataset."
+- phenomenon: Barkhausen noise in ferromagnets
+  debate: "Avalanche size and waiting-time scaling match SOC, but the underlying depinning transition may require fine-tuning; debated whether it is truly self-organized or an ordinary critical point."
+- phenomenon: Earthquake sequences from ETAS model
+  debate: "The model reproduces Omori law and power-law sizes only when the branching ratio is tuned near 1; real seismicity may self-organize, but the model itself lacks a self-tuning mechanism."
+- phenomenon: Landslide magnitude-frequency distribution
+  debate: "Observed power-law scaling often includes an exponential cutoff, suggesting subcritical dynamics and raising questions about whether landslides are genuine SOC or finite-size effects."
+- phenomenon: Slow slip events (SSEs) on tectonic faults
+  debate: "SSE catalogues show scale-invariant sizes and temporal clustering, but the dominant role of fluid pressure and aseismic creep may place them at the boundary between threshold cascades and externally forced systems."
 references:
   - "Bak, Tang, Wiesenfeld 1987 Phys. Rev. Lett. 59, 381 (original SOC, 1/f noise sandpile)"
   - "Olami, Feder, Christensen 1992 Phys. Rev. Lett. 68, 1244 (continuous nonconservative cellular automaton earthquake model)"
