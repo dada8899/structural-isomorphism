@@ -1,0 +1,40 @@
+{
+  "$schema": "./scripts/perf-budget.schema.json",
+  "comment": [
+    "W13-B (2026-05-15) — performance budget enforced in CI.",
+    "Thresholds match Core Web Vitals 'Good' bucket. CI fails any PR that",
+    "regresses ANY page beyond these numbers. To adjust, update this file",
+    "and link the rationale (e.g. a perf doc) in the PR body.",
+    "",
+    "Bundle thresholds reference Next.js 'First Load JS' from `next build`",
+    "(NOT the audit's transfer total which includes async chunks).",
+    "",
+    "INP is currently measured as 'inp_proxy_ms' — an upper bound derived",
+    "from the worst LoAF or event duration observed during a synthetic",
+    "scroll+click interaction. The real user INP via web-vitals.js is",
+    "always <= this value; we keep the slack so the budget is conservative."
+  ],
+  "thresholds": {
+    "lcp_mobile_ms": 2600,
+    "lcp_desktop_ms": 2000,
+    "cls": 0.1,
+    "tbt_ms": 200,
+    "inp_ms": 200,
+    "inp_proxy_ms": 2200,
+    "main_bundle_kb": 200,
+    "first_load_js_kb": 200
+  },
+  "exemptions": {
+    "comment": "Per-route overrides for legitimate slack — must justify each.",
+    "/universality/[class_id]": {
+      "lcp_mobile_ms": 2700,
+      "reason": "Dynamic import of UniversalityAnalogueMap adds a waterfall hop on slow 4G. The bundle savings (~30 KB gz) outweigh the ~100 ms LCP delta."
+    }
+  },
+  "budget_metadata": {
+    "created": "2026-05-15",
+    "owner": "W13-B (perf audit)",
+    "baseline_audit": "docs/performance/perf-audit-2026-05-15-baseline.json",
+    "post_fixes_audit": "docs/performance/perf-audit-2026-05-15-final.json"
+  }
+}

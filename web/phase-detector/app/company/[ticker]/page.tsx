@@ -1,9 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { PhaseTrajectoryChart } from "@/components/PhaseTrajectoryChart";
 import SwipeNavigator from "@/components/SwipeNavigator";
+
+// W13-B (2026-05-15): code-split PhaseTrajectoryChart (~7 KB gz of SVG
+// + simulation logic) to keep the company detail page's First Load JS
+// lean. The placeholder reserves the chart's 280 px height so layout
+// stays stable while the chunk hydrates.
+const PhaseTrajectoryChart = dynamic(
+  () =>
+    import("@/components/PhaseTrajectoryChart").then((m) => ({
+      default: m.PhaseTrajectoryChart,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-[280px] w-full rounded-md border border-zinc-200 bg-zinc-50/50"
+        role="status"
+        aria-label="加载相位轨迹图中"
+      />
+    ),
+  },
+);
 import Link from "next/link";
 import {
   CPS_ARIA_LABEL,
