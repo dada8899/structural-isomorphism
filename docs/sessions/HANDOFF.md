@@ -20,23 +20,37 @@ python v4/cli.py status                     ***REMOVED*** 应打印 13 phases + 
 
 读完这 5 个文件即可上手：
 1. **本文件** (HANDOFF.md)
-2. **`docs/sessions/SESSION-5-STARTER.md`** — 🔥 session ***REMOVED***5 直接执行清单（session ***REMOVED***4 收尾 + P0/P1/P2 队列）
-3. `docs/sessions/SESSION-4-STARTER.md` — session ***REMOVED***3 末交 ***REMOVED***4 的 publishing runbook（PyPI / Zenodo / arXiv 仍待 token）
+2. **`docs/sessions/SESSION-6-STARTER.md`** — 🔥 session ***REMOVED***6 直接执行清单（session ***REMOVED***5 收尾 + P0/P1/P2 队列）
+3. `docs/sessions/SESSION-4-STARTER.md` — publishing runbook（PyPI / Zenodo / arXiv 仍待 token，session ***REMOVED***5 没动）
 4. `paper/v0-unified-pipeline-2026-05-13.md` v0.3.1 — C1 unified preprint (session ***REMOVED***4 W6-D abstract apply)
 5. `CLAUDE.md` (repo root) — 项目级 CC 指引
 
 ---
 
-***REMOVED******REMOVED*** 1. 当前状态 (2026-05-14 session ***REMOVED***4 截止)
+***REMOVED******REMOVED*** 1. 当前状态 (2026-05-14 session ***REMOVED***5 截止)
 
-- **Main HEAD**: `b75c5b0` (PR ***REMOVED***52 merged) — 7 PRs in session ***REMOVED***4 (***REMOVED***46-52)
+- **Main HEAD**: `4b9f888` (PR ***REMOVED***62 merged) — 9 PRs in session ***REMOVED***5 (***REMOVED***54-62)
 - **Production live + verified**:
-  - https://beta.structural.bytedance.city/ — Structural (新 hero "把你的难题，换成另一个学科已经解过的题" + history sidebar + 流式 typewriter preview)
-  - https://phase.bytedance.city/ — Phase Detector (新 hero "谁在崩盘边缘？谁在悄悄起飞？" + Perplexity-style SearchHero + history sidebar + 修复 enum drift + 修复 cross-link to /classes)
-- **UX 多维度打分**: 37.8% → 84.4% (+47 pts)
-- **关键能力 shipped**: copy de-jargon / history sidebar 双站 / Phase search box / 流式 typewriter / breadcrumb 确定性回 /classes / 0 V1-V4 leak
+  - https://beta.structural.bytedance.city/ — Structural (TL;DR 卡前置 + /search instant cards + SSE typewriter + GlossaryTooltip + skeleton 兜底所有 layout shift)
+  - https://phase.bytedance.city/ — Phase Detector (StatsBar skeleton + sector dropdown disabled-while-loading + 共享 brand tokens)
+- **UX 多维度打分**: 84.4% → 88-90% 预计 (+4-6 pts)
+- **关键能力 shipped (session ***REMOVED***5)**: TL;DR 卡片 / synthesize SSE 流式 / shared brand tokens 中心化 / GlossaryTooltip / instant search cards / 4 处 layout-shift 兜底 / analyze loading 噪音降低
 
-***REMOVED******REMOVED******REMOVED*** Session ***REMOVED***4 累计 PR 表
+***REMOVED******REMOVED******REMOVED*** Session ***REMOVED***5 累计 PR 表
+
+| PR | 主题 |
+|---|---|
+| ***REMOVED***54 | TL;DR card + /synthesize SSE + footer "HuggingFace 数据集" |
+| ***REMOVED***55 | shared brand tokens (web/shared/tokens.css 5-var) + SSE markdown fence-strip |
+| ***REMOVED***56 | StatsBar skeleton — kill "正在加载统计…" flash |
+| ***REMOVED***57 | GlossaryTooltip — 7 jargon hover 解释 (auto-wrap) |
+| ***REMOVED***58 | /search 立即出卡，不等 synth |
+| ***REMOVED***59 | daily-grid skeleton + sector dropdown disabled-while-loading |
+| ***REMOVED***60 | hero-evidence__desc line-clamp:3 + min-height |
+| ***REMOVED***61 | /analyze 在 meta arrival 隐藏 loading block |
+| ***REMOVED***62 | 修 PR-8 在 error/retry 路径的 regression |
+
+***REMOVED******REMOVED******REMOVED*** 历史 — Session ***REMOVED***4 累计 PR 表
 
 | PR | 主题 |
 |---|---|
@@ -47,6 +61,7 @@ python v4/cli.py status                     ***REMOVED*** 应打印 13 phases + 
 | ***REMOVED***50 | History sidebar — Phase Detector |
 | ***REMOVED***51 | Cross-link symmetry polish |
 | ***REMOVED***52 | 关键修复：Phase filter enum + /start-here 404 + 研究报告卡片删 + cross-link 域名 + analyze breadcrumb + 流式 typewriter |
+| ***REMOVED***53 | docs(sessions): SESSION-5-STARTER + HANDOFF update |
 
 ---
 
