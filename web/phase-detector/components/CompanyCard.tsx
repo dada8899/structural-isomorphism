@@ -55,12 +55,35 @@ export function CompanyCard({ company }: { company: Company }) {
   const family = company.dynamics_family;
   const caveats = company.caveats ?? [];
 
+  // W4-B (session #9): Stretched-link pattern — whole card is clickable to
+  // /company/[ticker]. Root <article> is relative; an absolutely-positioned
+  // <Link> overlay (::after via aria-hidden span) covers the card surface.
+  // Inner interactive elements (caveats <button>, "查看完整报告" footer Link)
+  // are raised via `relative z-10` so they remain independently clickable.
+  // Rationale: <button>/<a> cannot legally nest inside <a> per HTML5 spec,
+  // so we cannot simply wrap the entire <article> in a <Link>.
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 hover:shadow-sm">
-      <header className="flex items-start justify-between gap-3">
+    <article className="group relative flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-blue-300 hover:bg-zinc-50 hover:shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+      {/* Stretched link overlay — clickable surface for whole card. */}
+      <Link
+        href={`/company/${encodeURIComponent(company.ticker)}`}
+        aria-label={`查看 ${company.ticker} ${company.name} 完整详情`}
+        className="absolute inset-0 z-0 rounded-xl focus:outline-none"
+        onClick={() =>
+          trackEvent(Events.CompanyViewed, {
+            ticker: company.ticker,
+            family,
+            state: cps,
+            source: "card_surface",
+          })
+        }
+      >
+        <span className="sr-only">查看 {company.ticker} 详情</span>
+      </Link>
+      <header className="pointer-events-none relative z-[1] flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <h3 className="truncate text-lg font-semibold tracking-tight text-zinc-900">
+            <h3 className="truncate text-lg font-semibold tracking-tight text-zinc-900 transition-colors group-hover:text-blue-700">
               {company.ticker}
             </h3>
             <span className="truncate text-sm text-zinc-500">
@@ -86,7 +109,7 @@ export function CompanyCard({ company }: { company: Company }) {
         </span>
       </header>
 
-      <div className="text-xs text-zinc-500">
+      <div className="pointer-events-none relative z-[1] text-xs text-zinc-500">
         <span className="font-medium text-zinc-700">
           {DYNAMICS_LABEL_ZH[family] ?? family}
         </span>
@@ -97,10 +120,12 @@ export function CompanyCard({ company }: { company: Company }) {
         )}
       </div>
 
-      <p className="text-sm leading-relaxed text-zinc-700">{company.tldr}</p>
+      <p className="pointer-events-none relative z-[1] text-sm leading-relaxed text-zinc-700">
+        {company.tldr}
+      </p>
 
       {indicators.length > 0 && (
-        <div>
+        <div className="pointer-events-none relative z-[1]">
           <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             主要指标
           </div>
@@ -120,7 +145,7 @@ export function CompanyCard({ company }: { company: Company }) {
         </div>
       )}
 
-      <div>
+      <div className="pointer-events-none relative z-[1]">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs text-zinc-500">置信度</span>
           <span className="text-base font-semibold tabular-nums text-zinc-800">
@@ -143,10 +168,15 @@ export function CompanyCard({ company }: { company: Company }) {
       </div>
 
       {caveats.length > 0 && (
-        <div>
+        <div className="relative z-10">
           <button
-            onClick={() => setShowCaveats((v) => !v)}
-            className="text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowCaveats((v) => !v);
+            }}
+            className="pointer-events-auto text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline"
             aria-expanded={showCaveats}
           >
             {showCaveats
@@ -163,18 +193,24 @@ export function CompanyCard({ company }: { company: Company }) {
         </div>
       )}
 
-      <div className="mt-auto pt-1">
+      <div className="relative z-10 mt-auto pt-1">
         <Link
           href={`/company/${encodeURIComponent(company.ticker)}`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+          className="pointer-events-auto inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
           style={{ color: "#2563EB" }}
-          onClick={() =>
+          onClick={(e) => {
+            // Stop the surface link's onClick from double-firing the same
+            // event; the stretched link below would also navigate, but it's
+            // a separate anchor at z-0 — clicking the explicit footer link
+            // should still register its own analytics tag.
+            e.stopPropagation();
             trackEvent(Events.CompanyViewed, {
               ticker: company.ticker,
               family,
               state: cps,
-            })
-          }
+              source: "card_footer_link",
+            });
+          }}
         >
           查看完整报告
           <span aria-hidden="true">→</span>
