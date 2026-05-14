@@ -55,6 +55,31 @@ TYPEWRITER_CHARS_PER_CHUNK = 8
 # without buffering the whole stream. Tuned for SSE through nginx.
 TYPEWRITER_SLEEP_S = 0.025
 
+# ---- Out-of-scope rejection guardrail (W5-A) -----------------------------
+# Dogfood report 2026-05-15 (docs/dogfood-ask-2026-05-15.md) caught 3 edge
+# queries (q5 "女朋友为什么生气" / q6 "1+1=?" / q7 "BTC 明天涨跌") where the
+# system硬拗 isomorphism answers despite low retrieval scores. q6 burned
+# 33s producing 494 chars of forced analogy.
+#
+# We layer two cheap signals:
+#   - top-1 cosine < RELEVANCE_TOP1_MIN  → low relevance
+#   - top-3 mean   < RELEVANCE_TOP3_MEAN_MIN → low relevance
+#   - empty cards                         → low relevance (trivial)
+# A "low_relevance" flag is then injected into the LLM prompt so the model
+# can degrade gracefully (decline + redirect) instead of forcing an answer.
+#
+# Threshold rationale from dogfood data:
+#   q1 (SVB):      top-1=0.94  top-3=0.85+ → above
+#   q2 (team):     top-1=1.00  top-3=0.94  → above (false-negative ok; KW hack)
+#   q3 (churn):    top-1≈0.92  top-3=0.83  → above
+#   q4 (rumor):    top-1=0.93  top-3=0.88  → above
+#   q5 (gf):       top-1=0.82  top-3=0.747 → top-3 GATE TRIPS
+#   q6 (1+1):     top-1=0.70  top-3=0.597 → BOTH GATES TRIP
+#   q7 (BTC):     top-1=0.65  top-3=0.63  → BOTH GATES TRIP
+# Env override knobs let us re-tune in prod without redeploy.
+RELEVANCE_TOP1_MIN = float(os.getenv("ASK_RELEVANCE_TOP1_MIN", "0.75"))
+RELEVANCE_TOP3_MEAN_MIN = float(os.getenv("ASK_RELEVANCE_TOP3_MEAN_MIN", "0.65"))
+
 
 def _sse(event: str, data: Dict) -> str:
     """Format a single SSE event line."""
@@ -149,8 +174,24 @@ class AskOrchestrator:
         ]
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
+        # ---- Relevance gate (W5-A) ---------------------------------- #
+        # Inspect the retrieval scores. If the query is clearly outside
+        # the KB's coverage, we still call the LLM (UX wants one coherent
+        # SSE stream regardless), but we tell the LLM to politely decline
+        # rather than硬拗 isomorphism content. This is a code-layer
+        # guardrail per the global "不信任 LLM 输出" rule — we don't let
+        # the LLM alone decide whether to honor scope.
+        low_relevance, relevance_reason = self._evaluate_relevance(cards)
+        if low_relevance:
+            logger.info(
+                f"[ask] low-relevance query gated; reason={relevance_reason} "
+                f"top1={(cards[0].get('score') if cards else None)}"
+            )
+
         # ---- Phase B: LLM synthesize answer + citations + followups -- #
-        payload = await self._llm_answer_with_retry(query, cards, lang_norm)
+        payload = await self._llm_answer_with_retry(
+            query, cards, lang_norm, low_relevance=low_relevance,
+        )
 
         # Typewriter-emit the answer text.
         answer_text = payload.get("answer", "") if payload else ""
@@ -166,10 +207,17 @@ class AskOrchestrator:
         # Sanitize citations against the actual cards range so a
         # hallucinated idx never leaks to the frontend.
         validated_citations = self._validate_citations(payload.get("citations", []), cards)
-        yield _sse("answer_done", {
+        answer_done_payload = {
             "full_text": answer_text,
             "citations": validated_citations,
-        })
+        }
+        if low_relevance:
+            # Surface the gate decision so the UI can render an
+            # "out-of-scope" badge / softer styling and so analytics can
+            # track how often we degrade.
+            answer_done_payload["out_of_scope"] = True
+            answer_done_payload["scope_reason"] = relevance_reason
+        yield _sse("answer_done", answer_done_payload)
 
         # ---- Phase C: similar phenomena ------------------------------ #
         similar = self._build_similar_phenomena(cards[:TOP_K_SIMILAR])
@@ -245,6 +293,46 @@ class AskOrchestrator:
             })
         return out
 
+    # ---------------- Relevance gating (W5-A) --------------------------- #
+
+    def _evaluate_relevance(self, cards: List[Dict]) -> tuple[bool, str]:
+        """Decide whether the retrieved KB is too thin to support an answer.
+
+        Returns (low_relevance, reason_label). The reason label is short
+        and goes into structured logs; the LLM prompt itself does NOT
+        carry the threshold values, only the boolean flag, so we don't
+        encourage the model to game scores.
+
+        Three trip conditions (any one is enough):
+          - no cards at all
+          - top-1 score below RELEVANCE_TOP1_MIN
+          - top-3 mean below RELEVANCE_TOP3_MEAN_MIN
+
+        Scores are read from the KB card dicts; missing scores are treated
+        as 0.0 so that a misbehaving search backend errs on the safe side
+        (degrades to honest decline rather than over-confident hallucination).
+        """
+        if not cards:
+            return True, "no_cards"
+
+        def _score(c: Dict) -> float:
+            try:
+                return float(c.get("score") or 0.0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        top1 = _score(cards[0])
+        if top1 < RELEVANCE_TOP1_MIN:
+            return True, f"top1_below_{RELEVANCE_TOP1_MIN}"
+
+        top3 = cards[:3]
+        if len(top3) >= 1:
+            mean3 = sum(_score(c) for c in top3) / len(top3)
+            if mean3 < RELEVANCE_TOP3_MEAN_MIN:
+                return True, f"top3_mean_below_{RELEVANCE_TOP3_MEAN_MIN}"
+
+        return False, "ok"
+
     # ---------------- LLM call + retry --------------------------------- #
 
     async def _llm_answer_with_retry(
@@ -252,6 +340,7 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
+        low_relevance: bool = False,
     ) -> Dict:
         """One LLM call; on failure retry once with a stricter reminder.
 
@@ -259,7 +348,9 @@ class AskOrchestrator:
         returns a graceful fallback so the SSE stream can still complete.
         """
         # First attempt — normal prompt.
-        prompt = self._build_prompt(query, cards, lang, strict_json=False)
+        prompt = self._build_prompt(
+            query, cards, lang, strict_json=False, low_relevance=low_relevance,
+        )
         result = await self._call_llm_once(prompt)
         validated = self._try_validate(result)
         if validated is not None:
@@ -267,7 +358,9 @@ class AskOrchestrator:
 
         # Retry once with a stricter "JSON only, no markdown fences" note.
         logger.warning("[ask] first LLM JSON validate failed; retrying once")
-        prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
+        prompt2 = self._build_prompt(
+            query, cards, lang, strict_json=True, low_relevance=low_relevance,
+        )
         result2 = await self._call_llm_once(prompt2)
         validated2 = self._try_validate(result2)
         if validated2 is not None:
@@ -340,8 +433,15 @@ class AskOrchestrator:
         cards: List[Dict],
         lang: str,
         strict_json: bool,
+        low_relevance: bool = False,
     ) -> str:
-        """Build the single-shot prompt for answer + citations + followups."""
+        """Build the single-shot prompt for answer + citations + followups.
+
+        When `low_relevance` is True, the prompt switches to an
+        out-of-scope branch that asks the model to decline politely and
+        redirect the user — instead of硬拗 isomorphism analogies on
+        edge / trivial / prediction queries.
+        """
         if not cards:
             cards_block = "（无 KB 召回结果，请基于通识尝试回答；citations 字段可填 idx=1 并 kb_id 留空也可以）"
         else:
@@ -365,6 +465,77 @@ class AskOrchestrator:
             else ""
         )
 
+        # ---- Out-of-scope branch (W5-A) --------------------------------
+        # Triggered when our retrieval-score gate decided the KB doesn't
+        # really cover this query. We want a short, honest, redirecting
+        # answer — not a forced cross-domain analogy. The JSON schema
+        # stays identical so downstream emission code is unchanged; we
+        # only re-frame the instructions and relax the citation rule.
+        if low_relevance:
+            if lang == "en":
+                scope_intro = (
+                    "The user's query is OUTSIDE the typical coverage of this "
+                    "structural-isomorphism knowledge base. The retrieved KB "
+                    "items are weakly related at best. Do NOT force an "
+                    "isomorphism analogy."
+                )
+                scope_rules = (
+                    "Write a SHORT (60-180 chars) answer that:\n"
+                    "  1) politely says this question is outside the KB's "
+                    "coverage (this KB focuses on cross-disciplinary "
+                    "structural isomorphism — e.g. earthquakes, bank runs, "
+                    "neural avalanches share a common math)\n"
+                    "  2) gives ONE concrete redirect — what kind of source / "
+                    "discipline / tool would actually answer this\n"
+                    "  3) does NOT pretend the retrieved KB items are "
+                    "relevant. Do not cite them with [n] markers.\n"
+                    "Followups should be 3 questions that DO fit the KB scope "
+                    "(structural isomorphism / cascades / phase transitions / "
+                    "network dynamics), so the user can pivot productively."
+                )
+            else:
+                scope_intro = (
+                    "用户的问题超出本「结构同构」知识库的典型覆盖范围。"
+                    "下方召回的 KB 现象相关性都很弱。不要硬拗跨域类比。"
+                )
+                scope_rules = (
+                    "请写一段简短（60-180 字）的回复，包含：\n"
+                    "  1) 委婉说明这个问题不在 Structural 当前覆盖范围（"
+                    "Structural 专注跨学科结构同构，如地震 / 银行挤兑 / "
+                    "神经放电的共同数学）\n"
+                    "  2) 给出 1 句具体建议——哪个学科 / 工具 / 资源更适合\n"
+                    "  3) 不要把召回的 KB 现象当真，不要使用 [n] 引用标记\n"
+                    "followups 必须给 3 个真正落在结构同构 / 级联 / 相变 / "
+                    "网络动力学范围内的问题，让用户能转向有意义的探索方向。"
+                )
+
+            return f"""你是一个跨学科结构同构搜索引擎。{scope_intro}
+
+用户问题：
+{query}
+
+下方是 vector 检索召回的 KB 现象（仅供参考，相关性低）：
+{cards_block}
+
+{lang_clause}
+
+{scope_rules}
+
+请输出严格 JSON（schema 不变）：
+{{
+  "answer": "60-180 字短回复：承认超出范围 + 给重定向建议",
+  "citations": [
+    {{"idx": 1, "kb_id": "对应 KB 现象的 id（schema 要求至少 1 条；填 idx=1 即可，不要在 answer 文本中使用 [1] 标记）", "label": "out-of-scope"}}
+  ],
+  "followups": ["真正落在结构同构范围内的问题1?", "问题2?", "问题3?"]
+}}
+
+要求：
+- answer 长度 20-2000 字符；out-of-scope 模式下不需要在文本中插入 [n] 引用标记
+- citations 数组至少 1 条以满足 schema（label 写 out-of-scope 即可）
+- followups 必须 2-5 条，全部围绕结构同构 / 跨域结构 / 级联 / 相变 / 网络动力学{strict_block}"""
+
+        # ---- Normal in-scope prompt -----------------------------------
         return f"""你是一个跨学科结构同构搜索引擎。用户问了一个复杂问题，你需要：
 
 1. 基于以下 KB 现象（已 vector 召回，按相似度排序），给出 200-400 字短答案，解释问题的"结构本质"
