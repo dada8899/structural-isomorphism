@@ -1,7 +1,14 @@
-"""POST /api/synthesize — 基于用户 query + top 搜索结果，生成合成回答"""
+"""POST /api/synthesize — 基于用户 query + top 搜索结果，生成合成回答
+
+Two endpoints:
+- POST /api/synthesize         — blocking, returns full JSON (kept for back-compat)
+- POST /api/synthesize/stream  — SSE, streams `text` deltas + final `done` event
+"""
+import json as _json
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from services.llm_service import LLMService
@@ -47,3 +54,49 @@ async def synthesize(request: Request, req: SynthesizeRequest):
             "relevance_snippets": [],
         }
     return result
+
+
+@router.post("/synthesize/stream")
+@_rl("10/minute")
+async def synthesize_stream(request: Request, req: SynthesizeRequest):
+    """Streaming variant. Server-Sent Events with three event types:
+
+    - `text`  → {"content": "<delta>", "total_length": N}
+    - `done`  → {"result": {...full parsed JSON...}}
+    - `error` → {"message": "..."}
+    """
+    if not req.query or not req.results:
+        raise HTTPException(400, "Missing query or results")
+
+    llm = _get_llm()
+
+    async def event_gen():
+        def sse(event_type: str, data: dict) -> str:
+            return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
+
+        async for chunk in llm.stream_synthesize_answer(
+            query=req.query,
+            rewritten_query=req.rewritten_query,
+            top_results=req.results,
+            lang=req.lang,
+        ):
+            ctype = chunk.get("type")
+            if ctype == "text":
+                yield sse("text", {
+                    "content": chunk.get("content", ""),
+                    "total_length": chunk.get("total_length", 0),
+                })
+            elif ctype == "done":
+                yield sse("done", {"result": chunk.get("result")})
+            elif ctype == "error":
+                yield sse("error", {"message": chunk.get("message", "unknown")})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

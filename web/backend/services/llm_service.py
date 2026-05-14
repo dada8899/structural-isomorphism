@@ -510,6 +510,163 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             logger.error(f"Synthesize failed: {e}")
             return None
 
+    async def stream_synthesize_answer(
+        self,
+        query: str,
+        rewritten_query: Optional[str],
+        top_results: list,
+        lang: str = "zh",
+    ):
+        """
+        Streaming version of synthesize_answer. Yields dicts:
+        - {"type": "text", "content": delta, "total_length": int}
+        - {"type": "done", "result": parsed_json_dict}
+        - {"type": "error", "message": str}
+
+        Uses OpenRouter's streaming API so the frontend can render
+        main_insight progressively (Perplexity-style typewriter).
+        """
+        if not self.api_key or not top_results:
+            yield {"type": "error", "message": "no_api_key_or_no_results"}
+            return
+
+        top5 = top_results[:5]
+        results_block = ""
+        for i, r in enumerate(top5, 1):
+            results_block += f"\n[{i}] {r.get('name', '')}（领域：{r.get('domain', '')}）\n    {r.get('description', '')[:220]}\n"
+
+        ***REMOVED*** Reuse the same prompt as the blocking version so the schema and
+        ***REMOVED*** behavior stay identical — only transport changes.
+        prompt = f"""用户的问题是：
+"{query}"
+{f'改写后的现象描述：' + rewritten_query if rewritten_query and rewritten_query != query else ''}
+
+我们的跨学科知识库返回了以下结构最相似的现象：
+{results_block}
+
+你的任务是给用户一份**有明确引导**的回答。用户是专业人士，他不想要"这有 5 个选项你自己挑"，他想要"我建议你先看这个，因为..."。
+
+请输出严格的 JSON：
+
+{{
+  "main_insight": "综合分析这些跨领域证据，告诉用户你发现了什么本质结构（2-3 句话，用 \\n\\n 分段）",
+
+  "why_these_matter": "为什么这些其他领域的现象能真正帮到用户（1-2 句）",
+
+  "primary_recommendation": {{
+    "result_index": 1,
+    "reason": "为什么这个是**最值得先看**的。不是因为相似度高，而是因为它在用户的问题上能提供最直接、最可操作的答案。2-3 句。",
+    "what_youll_learn": "看完它你会得到什么具体的东西（一句话，很具体，不要抽象）"
+  }},
+
+  "alternative_angles": [
+    {{
+      "result_index": 2,
+      "angle_label": "必须**严格**是以下四个字符串之一：'对立面' | '时间尺度差异' | '微观机制' | '跨尺度类比'",
+      "reason": "为什么这个视角也值得看，具体说清它带来什么增量（1-2 句）"
+    }},
+    {{
+      "result_index": 3,
+      "angle_label": "必须**严格**是以下四个字符串之一：'对立面' | '时间尺度差异' | '微观机制' | '跨尺度类比'（且与上一条不同）",
+      "reason": "..."
+    }}
+  ],
+
+  "relevance_snippets": [
+    {{"index": 1, "snippet": "这个现象和用户问题的关系（50 字内）"}},
+    {{"index": 2, "snippet": "..."}},
+    {{"index": 3, "snippet": "..."}},
+    {{"index": 4, "snippet": "..."}},
+    {{"index": 5, "snippet": "..."}}
+  ]
+}}
+
+重要要求：
+- 自然语言文字遵循下文指定的输出语言（见文末）；`angle_label` 枚举值必须保持中文不变
+- `primary_recommendation` 必须有实质理由，不能泛泛地说"相似度高"
+- `primary_recommendation.what_youll_learn` 必须具体可执行
+- `alternative_angles` 必须和 primary 有**不同的角度**
+- `alternative_angles[*].angle_label` **必须严格等于**这四个字符串之一（中文原文，不得翻译、不得改写、不得添加后缀）：
+    1. 对立面 —— 反面/counter-case
+    2. 时间尺度差异 —— 同一结构在更长/更短时间尺度上表现出不同动态
+    3. 微观机制 —— zoom-in 到底层机制
+    4. 跨尺度类比 —— 个体↔群体、micro↔macro 的同构
+- 从这 4 个角度里挑**信息量最大的 2 个**（两个 label 不能相同）
+- 每个 relevance_snippet 不超过 50 字
+- 不要 markdown 代码块
+- 不说"综上所述"、"希望能帮到你"这种废话
+- JSON 字符串内部不要用 ASCII 双引号 " ，需要时用中文引号「」或单引号 '
+
+输出语言要求：
+{_lang_clause(lang)}"""
+
+        accumulated = ""
+        try:
+            client = _get_http_client()
+            async with client.stream(
+                "POST",
+                OPENROUTER_URL,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "anthropic/claude-haiku-4.5",
+                    "messages": [
+                        {"role": "system", "content": _with_lang("你是跨学科研究助手。你的任务是给用户明确的引导，告诉他先看哪个、为什么、能得到什么。", lang)},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.4,
+                    "max_tokens": 2500,
+                    "response_format": {"type": "json_object"},
+                    "stream": True,
+                },
+                timeout=60.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    if line.startswith(": "):
+                        ***REMOVED*** SSE comment / heartbeat — ignore
+                        continue
+                    if not line.startswith("data: "):
+                        continue
+                    payload = line[6:].strip()
+                    if payload == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(payload)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                        if delta:
+                            accumulated += delta
+                            yield {
+                                "type": "text",
+                                "content": delta,
+                                "total_length": len(accumulated),
+                            }
+                    except (json.JSONDecodeError, KeyError, IndexError) as e:
+                        logger.debug(f"Skipping malformed stream chunk: {e}")
+                        continue
+
+            ***REMOVED*** Parse the full accumulated JSON
+            if not accumulated.strip():
+                yield {"type": "error", "message": "empty_response"}
+                return
+            fixed = _fix_latex_escapes(accumulated)
+            try:
+                parsed = json.loads(fixed)
+            except json.JSONDecodeError:
+                logger.warning("Stream synthesize JSON parse failed, trying repair")
+                parsed = _try_repair_json(fixed)
+            if parsed:
+                yield {"type": "done", "result": parsed}
+            else:
+                yield {"type": "error", "message": "json_parse_failed"}
+        except Exception as e:
+            logger.error(f"Stream synthesize failed: {e}")
+            yield {"type": "error", "message": str(e)}
+
     async def stream_deep_analysis(
         self,
         a: Dict,
