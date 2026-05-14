@@ -1,36 +1,42 @@
+/* shared-tokens.css must come first so the --brand-* vars are defined
+ * before tailwind base / our :root overrides reference them.
+ * See web/shared/tokens.css for the canonical 5-var brand palette. */
+@import "./shared-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* W6-B: align with main site design-system.css.
- * Source of truth: web/frontend/assets/css/design-system.css
- * We mirror the same tokens here so D1 (this Next.js sub-site) reads visually
- * identical to the main site (structural.bytedance.city). */
+ * Source of truth for the 5 brand tokens: web/shared/tokens.css.
+ * The site-local tokens below (--text-primary, --bg-primary, etc.) are
+ * aliases over the shared --brand-* set so when we tweak brand colors
+ * the change shows up here automatically. */
 
 :root {
   color-scheme: light;
 
-  /* === Colors (mirror main site) === */
-  --bg-primary: #F5F5F4;
-  --bg-secondary: #F4F4F5;
-  --bg-tertiary: #FFFFFF;
+  /* === Colors (alias the shared brand palette) === */
+  --bg-primary: var(--brand-paper, #F5F5F4);
+  --bg-secondary: var(--brand-paper-soft, #F4F4F5);
+  --bg-tertiary: var(--brand-paper-card, #FFFFFF);
 
-  --border-subtle: #E4E4E7;
+  --border-subtle: var(--brand-line, #E4E4E7);
   --border-default: rgba(24, 24, 27, 0.12);
-  --border-strong: #D4D4D8;
+  --border-strong: var(--brand-line-strong, #D4D4D8);
 
-  --text-primary: #18181B;
-  --text-secondary: #52525B;
-  --text-tertiary: #71717A;
+  --text-primary: var(--brand-ink, #18181B);
+  --text-secondary: var(--brand-ink-soft, #52525B);
+  --text-tertiary: var(--brand-muted, #71717A);
 
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-subtle: rgba(37, 99, 235, 0.08);
-  --accent-focus-ring: rgba(37, 99, 235, 0.12);
+  --accent: var(--brand-accent, #2563EB);
+  --accent-hover: var(--brand-accent-hover, #1D4ED8);
+  --accent-subtle: var(--brand-accent-soft, rgba(37, 99, 235, 0.08));
+  --accent-focus-ring: var(--brand-accent-ring, rgba(37, 99, 235, 0.12));
 
-  --success: #059669;
-  --warning: #D97706;
-  --danger: #DC2626;
+  --success: var(--brand-success, #059669);
+  --warning: var(--brand-warning, #D97706);
+  --danger: var(--brand-danger, #DC2626);
 
   /* === Typography === */
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'Times New Roman', serif;

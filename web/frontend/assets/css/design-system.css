@@ -1,34 +1,38 @@
 /* Structural — Design System
  * Inspired by Linear, Perplexity, Anthropic
  * All tokens defined here. Never use hardcoded values in component CSS.
+ *
+ * Brand palette: see web/shared/tokens.css (the 5-var canonical set).
+ * shared-tokens.css must be loaded BEFORE this file in HTML so the
+ * --brand-* vars resolve. The tokens below alias to those.
  */
 
 :root {
   /* === Colors === */
   /* bg-primary slightly darkened from #FAFAF9 → #F5F5F4 (Stone-100) so white card surfaces read as lifted */
-  --bg-primary: #F5F5F4;
-  --bg-secondary: #F4F4F5;
-  --bg-tertiary: #FFFFFF;
+  --bg-primary: var(--brand-paper, #F5F5F4);
+  --bg-secondary: var(--brand-paper-soft, #F4F4F5);
+  --bg-tertiary: var(--brand-paper-card, #FFFFFF);
   --bg-subtle: rgba(24, 24, 27, 0.04);
   --bg-overlay: rgba(24, 24, 27, 0.6);
 
-  --border-subtle: #E4E4E7;
+  --border-subtle: var(--brand-line, #E4E4E7);
   --border-default: rgba(24, 24, 27, 0.12);
-  --border-strong: #D4D4D8;
-  --border-focus: #2563EB;
+  --border-strong: var(--brand-line-strong, #D4D4D8);
+  --border-focus: var(--brand-accent, #2563EB);
 
-  --text-primary: #18181B;
-  --text-secondary: #52525B;
+  --text-primary: var(--brand-ink, #18181B);
+  --text-secondary: var(--brand-ink-soft, #52525B);
   /* --text-tertiary deepened from #A1A1AA → #71717A for WCAG AA on #FAFAF9 (4.6:1) */
-  --text-tertiary: #71717A;
+  --text-tertiary: var(--brand-muted, #71717A);
   --text-muted: #A1A1AA; /* legacy light tone — only for decorative use, never body copy */
   --text-quaternary: #D4D4D8;
   --text-inverse: #FAFAF9;
 
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-subtle: rgba(37, 99, 235, 0.08);
-  --accent-focus-ring: rgba(37, 99, 235, 0.12);
+  --accent: var(--brand-accent, #2563EB);
+  --accent-hover: var(--brand-accent-hover, #1D4ED8);
+  --accent-subtle: var(--brand-accent-soft, rgba(37, 99, 235, 0.08));
+  --accent-focus-ring: var(--brand-accent-ring, rgba(37, 99, 235, 0.12));
 
   --success: #059669;
   --warning: #D97706;
