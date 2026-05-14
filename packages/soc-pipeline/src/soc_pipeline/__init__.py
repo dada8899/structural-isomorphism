@@ -29,6 +29,10 @@ from .time_resolution import time_resolution_sweep
 from .utils import empirical_ccdf, verdict_from_alpha_band
 from .validate import Verdict, validate
 
+# Register pandas `.soc` accessor (side-effect import)
+from . import pandas_accessor as _pandas_accessor  # noqa: F401
+from .pandas_accessor import SocAccessor, Verdict, validate
+
 __all__ = [
     "__version__",
     # unified validation entry point (recommended)
@@ -61,4 +65,8 @@ __all__ = [
     # utils
     "empirical_ccdf",
     "verdict_from_alpha_band",
+    # pandas accessor
+    "SocAccessor",
+    "Verdict",
+    "validate",
 ]

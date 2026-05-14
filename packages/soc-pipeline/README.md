@@ -155,6 +155,25 @@ print(f"95% CI: [{bv.ci_low:.3f}, {bv.ci_high:.3f}]")
 print(f"equivalent alpha on energy: {bv.alpha_equivalent:.2f}")
 ```
 
+## Pandas integration
+
+If your data is already in a `pd.Series`, the `.soc` accessor gives one-line
+SOC validation — no need to convert to numpy or learn the FitResult API:
+
+```python
+import pandas as pd
+import soc_pipeline  # noqa: F401  -- registers the accessor
+
+s = pd.Series(my_event_sizes, name="magnitudes")
+s.soc.fit_alpha()                                # -> float
+v = s.soc.validate(expected_band=(2.5, 3.5))     # -> Verdict (verdict / alpha / CI / KS / LR)
+s.soc.is_pass(expected_band=(2.5, 3.5))          # -> bool, for CI / gating
+```
+
+See [`tutorials/02_jupyter_widget.ipynb`](../../tutorials/02_jupyter_widget.ipynb) for an
+interactive `ipywidgets` UI and [`tutorials/03_pandas_accessor.ipynb`](../../tutorials/03_pandas_accessor.ipynb)
+for a walk-through on a real earthquake catalog.
+
 ## Cross-domain validation suite
 
 This package was developed and validated against the [Structural Isomorphism Project](https://github.com/dada8899/structural-isomorphism) reference dataset of 13 verified SOC systems:
