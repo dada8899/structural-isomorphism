@@ -1,0 +1,9 @@
+Figure 3. Forest plot of pre-registered tail-exponent bands across 13
+empirical systems analysed by the shared soc_pipeline.py (commit 7ee228c).
+Each row is one system: shaded blue rectangle = pre-registered band; point =
+measured alpha (Clauset MLE, Hill-form estimator); horizontal bars = 95%
+bootstrap CI. All 13 systems land inside their respective pre-registered
+bands (green markers). Class labels: SOC = self-organized-criticality
+threshold cascade; PA = preferential attachment; PG = Gopikrishnan-Plerou
+inverse-cubic regime; Motter-Lai = heterogeneous-load network cascade.
+Values sourced from paper/v0-unified-pipeline-2026-05-13.md §3 system table.
