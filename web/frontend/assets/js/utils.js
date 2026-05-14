@@ -57,6 +57,82 @@ window.Storage = {
   },
 };
 
+// === Device ID (cookie, persistent across sessions) ===
+// Anonymous identifier used to scope server-side history. NEVER PII —
+// generated client-side via crypto.randomUUID() the first time it's read.
+// Stored as a cookie so it survives across tabs but stays per-browser.
+const DEVICE_ID_COOKIE = 'structural_device_id';
+const DEVICE_ID_MAX_AGE = 60 * 60 * 24 * 365 * 2; // 2 years
+
+function _readCookie(name) {
+  if (typeof document === 'undefined' || !document.cookie) return null;
+  var parts = document.cookie.split(';');
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i].trim();
+    if (p.indexOf(name + '=') === 0) return decodeURIComponent(p.substring(name.length + 1));
+  }
+  return null;
+}
+
+function _writeCookie(name, value, maxAge) {
+  if (typeof document === 'undefined') return;
+  var parts = [
+    name + '=' + encodeURIComponent(value),
+    'path=/',
+    'max-age=' + maxAge,
+    'SameSite=Lax',
+  ];
+  if (window.location && window.location.protocol === 'https:') parts.push('Secure');
+  document.cookie = parts.join('; ');
+}
+
+function _genUuid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback: RFC4122-ish via Math.random (only used if crypto unavailable).
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0;
+    var v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+window.getDeviceId = () => {
+  var existing = _readCookie(DEVICE_ID_COOKIE);
+  if (existing) return existing;
+  var id = _genUuid();
+  _writeCookie(DEVICE_ID_COOKIE, id, DEVICE_ID_MAX_AGE);
+  return id;
+};
+
+// Fire-and-forget POST to /api/history when remote-history is enabled.
+// Returns the fetch Promise so callers can await/log if they want.
+window.recordHistoryRemote = (query, kind, summary) => {
+  // Opt-in via localStorage flag — dual-source rollout, off by default.
+  var enabled = false;
+  try { enabled = localStorage.getItem('structural_use_remote_history') === '1'; } catch (e) {}
+  if (!enabled) return Promise.resolve(null);
+
+  if (!query || !kind) return Promise.resolve(null);
+  var body = {
+    query: String(query).slice(0, 2000),
+    kind: String(kind).toLowerCase(),
+    result_summary: summary || null,
+  };
+  return fetch('/api/history', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Device-ID': window.getDeviceId(),
+    },
+    body: JSON.stringify(body),
+    credentials: 'same-origin',
+  }).catch(function (err) {
+    // Remote history failures should never break the page.
+    if (window.console && console.warn) console.warn('[recordHistoryRemote] failed:', err);
+    return null;
+  });
+};
+
 // === Search history (localStorage) ===
 // Shape: [{ query, rewritten_query, timestamp }], newest first, max 50
 const HISTORY_KEY = 'structural_history';

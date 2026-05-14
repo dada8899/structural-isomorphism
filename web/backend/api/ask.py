@@ -15,8 +15,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from services.ask_orchestrator import AskOrchestrator
+from services.auth import verify_api_token
 from services.llm_service import LLMService
-from services.rate_limit import limit as _rl
+from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["ask"])
 
@@ -45,9 +46,18 @@ class AskRequest(BaseModel):
 
 
 @router.post("/ask/stream")
-@_rl("5/minute")
+@tier_limit_decorator(default_anon="5/minute")
 async def ask_stream(request: Request, req: AskRequest):
-    """SSE endpoint streaming a Perplexity-style cross-domain answer."""
+    """SSE endpoint streaming a Perplexity-style cross-domain answer.
+
+    Auth: optional Bearer token / cookie promotes the caller to free/paid
+    tier (looser rate limits). Anonymous traffic still allowed.
+    """
+    # Tier classification — None means token provided but invalid.
+    tier = verify_api_token(request)
+    if tier is None:
+        raise HTTPException(401, "Invalid API token")
+
     # Import inside the handler to avoid a circular import at module load.
     # (api.ask is imported in main.py, which itself owns app_state.)
     from main import app_state

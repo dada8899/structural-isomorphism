@@ -303,10 +303,98 @@
     }).join('');
   }
 
+  // Local cache of the last merged list so a remote fetch doesn't have to
+  // race the initial render. localStorage stays authoritative.
+  var _remoteCache = null;
+
+  function _useRemote() {
+    try { return localStorage.getItem('structural_use_remote_history') === '1'; } catch (e) { return false; }
+  }
+
+  // Merge two lists by query string (case-insensitive), keeping the most
+  // recent timestamp from either source. localStorage entries win on tie
+  // so user-local writes never get clobbered by a stale remote row.
+  function mergeHistoryLists(localList, remoteList) {
+    var bucket = {};
+    var order = [];
+    function add(entry, isLocal) {
+      if (!entry || !entry.query) return;
+      var key = String(entry.query).trim().toLowerCase();
+      if (!key) return;
+      if (bucket[key]) {
+        // Merge: keep newer timestamp, prefer local entry's other fields.
+        var existing = bucket[key];
+        var existingTs = Number(existing.timestamp || 0);
+        var entryTs = Number(entry.timestamp || 0);
+        if (entryTs > existingTs && !isLocal) existing.timestamp = entryTs;
+        return;
+      }
+      bucket[key] = {
+        query: String(entry.query),
+        rewritten_query: entry.rewritten_query || null,
+        timestamp: Number(entry.timestamp || 0),
+      };
+      order.push(key);
+    }
+    // Local first → wins on dedupe.
+    (localList || []).forEach(function (e) { add(e, true); });
+    (remoteList || []).forEach(function (e) { add(e, false); });
+    return order
+      .map(function (k) { return bucket[k]; })
+      .sort(function (a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+  }
+
+  // Convert backend history rows (kind ∈ {ask,search,analyze}, created_at as
+  // ISO string) into the sidebar's expected shape.
+  function _normaliseRemote(rows) {
+    if (!Array.isArray(rows)) return [];
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i] || {};
+      if (!r.query) continue;
+      // created_at may be ISO string or sqlite-style "YYYY-MM-DD HH:MM:SS"
+      var ts = 0;
+      if (r.created_at) {
+        var d = new Date(r.created_at);
+        if (!isNaN(d.getTime())) ts = d.getTime();
+      }
+      out.push({ query: r.query, rewritten_query: null, timestamp: ts });
+    }
+    return out;
+  }
+
+  function fetchRemoteHistory() {
+    if (!_useRemote()) return Promise.resolve(null);
+    if (!window.getDeviceId) return Promise.resolve(null);
+    return fetch('/api/history?limit=20', {
+      method: 'GET',
+      headers: { 'X-Device-ID': window.getDeviceId() },
+      credentials: 'same-origin',
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('history fetch ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        _remoteCache = _normaliseRemote(data && data.items);
+        return _remoteCache;
+      })
+      .catch(function (err) {
+        if (window.console && console.warn) console.warn('[history-sidebar] remote fetch failed:', err);
+        return null;
+      });
+  }
+
   function refresh() {
     var body = document.getElementById('history-sidebar-body');
     if (!body) return;
-    var list = (window.getHistory && window.getHistory()) || [];
+    var local = (window.getHistory && window.getHistory()) || [];
+    // Dual-source: if remote is enabled and we have a cached snapshot,
+    // merge it in. localStorage is the source of truth.
+    var list = local;
+    if (_useRemote() && _remoteCache) {
+      list = mergeHistoryLists(local, _remoteCache);
+    }
     if (!list.length) renderEmpty(body);
     else renderList(body, list);
   }
@@ -415,6 +503,13 @@
     });
 
     refresh();
+
+    // Async: pull remote history if opted-in; re-render after merge.
+    if (_useRemote()) {
+      fetchRemoteHistory().then(function (rows) {
+        if (rows && rows.length) refresh();
+      });
+    }
   }
 
   // Public API
@@ -424,6 +519,8 @@
     toggle: toggleCollapsed,
     openDrawer: openDrawer,
     closeDrawer: closeDrawer,
+    fetchRemote: fetchRemoteHistory,
+    mergeHistoryLists: mergeHistoryLists,
   };
 
   if (document.readyState === 'loading') {
