@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import Link from "next/link";
 import {
   CPS_ARIA_LABEL,
   CPS_BADGE,
@@ -9,6 +10,9 @@ import {
   CPS_LABEL_ZH,
   DYNAMICS_LABEL_ZH,
   DYNAMICS_SUBTITLE_ZH,
+  INDICATOR_LABEL_ZH,
+  INDICATOR_TOOLTIP_ZH,
+  INDICATOR_VALUE_LABEL_ZH,
   SECTOR_LABEL_ZH,
 } from "@/lib/labels";
 import { fetchCompany } from "@/lib/api";
@@ -27,7 +31,13 @@ function confidenceColor(c: number): string {
 function formatIndicatorValue(v: string | number | null | undefined): string {
   if (v === null || v === undefined || v === "") return "—";
   if (typeof v === "number") return v.toLocaleString();
-  return String(v);
+  const s = String(v);
+  // W5-D: map canonical short tokens to CN. Unknown values fall through.
+  return INDICATOR_VALUE_LABEL_ZH[s] ?? s;
+}
+
+function indicatorLabel(name: string): string {
+  return INDICATOR_LABEL_ZH[name] ?? name;
 }
 
 export default function CompanyDetailPage({
@@ -154,17 +164,26 @@ export default function CompanyDetailPage({
           </h2>
           {indicators.length ? (
             <ul className="space-y-2">
-              {indicators.map(([name, value]) => (
-                <li
-                  key={name}
-                  className="flex items-baseline justify-between gap-4 border-b border-zinc-100 pb-2 last:border-0 last:pb-0"
-                >
-                  <span className="text-sm text-zinc-700">{name}</span>
-                  <span className="text-sm font-medium tabular-nums text-zinc-900">
-                    {formatIndicatorValue(value)}
-                  </span>
-                </li>
-              ))}
+              {indicators.map(([name, value]) => {
+                const tooltip = INDICATOR_TOOLTIP_ZH[name];
+                return (
+                  <li
+                    key={name}
+                    className="flex items-baseline justify-between gap-4 border-b border-zinc-100 pb-2 last:border-0 last:pb-0"
+                  >
+                    <span
+                      className="text-sm text-zinc-700"
+                      title={tooltip}
+                      aria-label={tooltip ? `${indicatorLabel(name)}：${tooltip}` : undefined}
+                    >
+                      {indicatorLabel(name)}
+                    </span>
+                    <span className="text-sm font-medium tabular-nums text-zinc-900">
+                      {formatIndicatorValue(value)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="text-sm text-zinc-500">未报告指标。</p>
@@ -234,6 +253,36 @@ export default function CompanyDetailPage({
           )}
         </section>
       )}
+
+      {/* W5-D: continuation CTAs — back to company table + cross-link to
+          universality classes on the beta sibling site. Helps users finish
+          one detail view and decide where to go next instead of using the
+          browser back button. */}
+      <nav
+        aria-label="继续浏览"
+        className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 text-sm"
+      >
+        <Link
+          href="/"
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+        >
+          ← 返回公司表
+        </Link>
+        <Link
+          href="/methodology"
+          className="text-zinc-500 hover:text-zinc-900 hover:underline"
+        >
+          方法说明
+        </Link>
+        <a
+          href="https://beta.structural.bytedance.city/classes"
+          target="_blank"
+          rel="noopener"
+          className="text-zinc-500 hover:text-zinc-900 hover:underline"
+        >
+          查看相关 universality class ↗
+        </a>
+      </nav>
     </div>
   );
 }
