@@ -1,0 +1,34 @@
+{
+  "domain": "DeFi (Aave V2 liquidations)",
+  "predicted_class": "soc_threshold_cascade",
+  "cross_domain_test": true,
+  "n_total_events": 28943,
+  "n_stable_events": 25601,
+  "time_window": {
+    "start": "2020-12",
+    "end": "2024-01"
+  },
+  "clauset_fit": {
+    "alpha": 1.683786765012432,
+    "sigma_alpha": 0.009899562054109587,
+    "xmin_usd": 17494.43023626997,
+    "n_total": 25601,
+    "n_tail": 4771,
+    "compare_vs_lognormal_R": -9.553886103903043,
+    "compare_vs_lognormal_p": 1.2492046592539451e-21,
+    "compare_vs_exponential_R": 20.515281929760015,
+    "compare_vs_exponential_p": 1.572542689927056e-93,
+    "compare_vs_truncated_R": -12.655110355469272,
+    "compare_vs_truncated_p": 0.0
+  },
+  "alpha_predicted_range": [
+    1.5,
+    3.0
+  ],
+  "alpha_within_prediction": true,
+  "verdict_gr": "CONFIRMED",
+  "method_refs": [
+    "Clauset-Shalizi-Newman 2009",
+    "Qin et al 2021 (empirical DeFi liquidations)"
+  ]
+}

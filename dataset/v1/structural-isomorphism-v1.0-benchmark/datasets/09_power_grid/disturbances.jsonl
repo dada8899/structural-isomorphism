@@ -1,0 +1,123 @@
+{"id": "1984-12-22_Western_US", "date": "1984-12-22", "area": "Western US", "mw_loss": 1900.0, "customers": 1500000, "source": "C16+H09", "notes": "NERC DAWG"}
+{"id": "1985-05-17_Florida", "date": "1985-05-17", "area": "Florida", "mw_loss": 900.0, "customers": 4500000, "source": "WP+H09", "notes": "everglades brushfire transmission"}
+{"id": "1989-03-13_Quebec", "date": "1989-03-13", "area": "Quebec", "mw_loss": 21500.0, "customers": 6000000, "source": "H09+NERC", "notes": "geomagnetic storm Hydro-Quebec"}
+{"id": "1989-09-22_South_Carolina", "date": "1989-09-22", "area": "South Carolina", "mw_loss": 500.0, "customers": 1500000, "source": "H09", "notes": "Hurricane Hugo"}
+{"id": "1989-10-17_Northern_California", "date": "1989-10-17", "area": "Northern California", "mw_loss": 2400.0, "customers": 1400000, "source": "H09+WP", "notes": "Loma Prieta earthquake"}
+{"id": "1991-07-07_Iowa-Ontario", "date": "1991-07-07", "area": "Iowa-Ontario", "mw_loss": 400.0, "customers": 1000000, "source": "WP+H09", "notes": "wind storm"}
+{"id": "1992-08-24_South_Florida", "date": "1992-08-24", "area": "South Florida", "mw_loss": 2200.0, "customers": 1400000, "source": "H09+WP", "notes": "Hurricane Andrew"}
+{"id": "1994-01-17_Western_US", "date": "1994-01-17", "area": "Western US", "mw_loss": 7500.0, "customers": 2200000, "source": "C16", "notes": "Carreras-corrected from 4235 MW"}
+{"id": "1994-01-19_Northeast_US", "date": "1994-01-19", "area": "Northeast US", "mw_loss": 1700.0, "customers": 500000, "source": "H09", "notes": "cold snap"}
+{"id": "1994-12-14_Western_US", "date": "1994-12-14", "area": "Western US", "mw_loss": 9336.0, "customers": 1500000, "source": "C16", "notes": "Carreras-corrected from 5020 MW; 6877 firm + 2459 interruptible"}
+{"id": "1995-10-04_Eastern_US", "date": "1995-10-04", "area": "Eastern US", "mw_loss": 1300.0, "customers": 2000000, "source": "WP+H09", "notes": "Hurricane Opal"}
+{"id": "1996-07-02_Idaho-Montana-Utah", "date": "1996-07-02", "area": "Idaho-Montana-Utah", "mw_loss": 11850.0, "customers": 2000000, "source": "C16+WP", "notes": "Carreras-corrected from 2500 MW; 5 islands"}
+{"id": "1996-07-03_Idaho", "date": "1996-07-03", "area": "Idaho", "mw_loss": 1200.0, "customers": 500000, "source": "C16", "notes": "follow-on July 3 separation"}
+{"id": "1996-08-10_WSCC", "date": "1996-08-10", "area": "WSCC", "mw_loss": 30390.0, "customers": 7500000, "source": "C16", "notes": "Carreras-corrected from 0 MW; WSCC western interconnect breakup; ~150 GW system"}
+{"id": "1996-11-19_Spokane-CDA", "date": "1996-11-19", "area": "Spokane-CDA", "mw_loss": 300.0, "customers": 400000, "source": "WP", "notes": "ice storm"}
+{"id": "1998-01-09_Quebec-NE", "date": "1998-01-09", "area": "Quebec-NE", "mw_loss": 2200.0, "customers": 3500000, "source": "WP+H09", "notes": "North American Ice Storm"}
+{"id": "1998-05-31_Central_NA", "date": "1998-05-31", "area": "Central NA", "mw_loss": 900.0, "customers": 2000000, "source": "WP+H09", "notes": "wind storm"}
+{"id": "1998-06-25_Upper_Midwest", "date": "1998-06-25", "area": "Upper Midwest", "mw_loss": 950.0, "customers": 150000, "source": "H09", "notes": "Auburn substation"}
+{"id": "1999-07-06_Mid-Atlantic", "date": "1999-07-06", "area": "Mid-Atlantic", "mw_loss": 1500.0, "customers": 500000, "source": "H09", "notes": "heat wave PJM"}
+{"id": "1999-07-30_New_York", "date": "1999-07-30", "area": "New York", "mw_loss": 4400.0, "customers": 200000, "source": "H09", "notes": "Washington Heights transformer"}
+{"id": "2000-06-14_San_Francisco", "date": "2000-06-14", "area": "San Francisco", "mw_loss": 800.0, "customers": 365000, "source": "H09", "notes": "Bay Area summer overload"}
+{"id": "2001-01-18_California", "date": "2001-01-18", "area": "California", "mw_loss": 1500.0, "customers": 675000, "source": "H09", "notes": "stage-3 emergency rolling"}
+{"id": "2001-03-19_California", "date": "2001-03-19", "area": "California", "mw_loss": 1000.0, "customers": 500000, "source": "H09", "notes": "rolling blackout"}
+{"id": "2002-09-04_South-East", "date": "2002-09-04", "area": "South-East", "mw_loss": 400.0, "customers": 150000, "source": "H09", "notes": "T-storm"}
+{"id": "2003-08-14_Northeast-Midwest-Ontari", "date": "2003-08-14", "area": "Northeast-Midwest-Ontario", "mw_loss": 61800.0, "customers": 55000000, "source": "USCA+H09", "notes": "Aug 14 2003 cascading; ~62 GW load shed"}
+{"id": "2003-09-18_Eastern_US", "date": "2003-09-18", "area": "Eastern US", "mw_loss": 1500.0, "customers": 6000000, "source": "H09+WP", "notes": "Hurricane Isabel"}
+{"id": "2004-08-13_Florida", "date": "2004-08-13", "area": "Florida", "mw_loss": 500.0, "customers": 2800000, "source": "H09", "notes": "Hurricane Charley"}
+{"id": "2004-09-05_Florida", "date": "2004-09-05", "area": "Florida", "mw_loss": 900.0, "customers": 3200000, "source": "H09+WP", "notes": "Hurricane Frances"}
+{"id": "2004-09-16_Florida", "date": "2004-09-16", "area": "Florida", "mw_loss": 800.0, "customers": 1800000, "source": "H09", "notes": "Hurricane Ivan"}
+{"id": "2004-09-26_Florida", "date": "2004-09-26", "area": "Florida", "mw_loss": 700.0, "customers": 2100000, "source": "H09", "notes": "Hurricane Jeanne"}
+{"id": "2005-08-29_Gulf_Coast", "date": "2005-08-29", "area": "Gulf Coast", "mw_loss": 7900.0, "customers": 2600000, "source": "H09+WP", "notes": "Hurricane Katrina"}
+{"id": "2005-09-24_Texas-LA", "date": "2005-09-24", "area": "Texas-LA", "mw_loss": 1300.0, "customers": 2700000, "source": "H09+WP", "notes": "Hurricane Rita"}
+{"id": "2005-10-24_Florida", "date": "2005-10-24", "area": "Florida", "mw_loss": 1100.0, "customers": 3200000, "source": "H09+WP", "notes": "Hurricane Wilma"}
+{"id": "2006-08-01_Quebec", "date": "2006-08-01", "area": "Quebec", "mw_loss": 200.0, "customers": 450000, "source": "WP", "notes": "thunderstorms Laurentians"}
+{"id": "2006-08-02_Ontario", "date": "2006-08-02", "area": "Ontario", "mw_loss": 150.0, "customers": 250000, "source": "WP", "notes": "severe T-storms"}
+{"id": "2006-12-14_PNW-BC", "date": "2006-12-14", "area": "PNW-BC", "mw_loss": 800.0, "customers": 1500000, "source": "WP", "notes": "Hanukkah Eve windstorm"}
+{"id": "2007-12-08_Great_Plains", "date": "2007-12-08", "area": "Great Plains", "mw_loss": 400.0, "customers": 1000000, "source": "WP", "notes": "ice storm"}
+{"id": "2008-02-26_South_Florida", "date": "2008-02-26", "area": "South Florida", "mw_loss": 3400.0, "customers": 4000000, "source": "WP+FERC", "notes": "Turkey Point switch failure + relay misoperation"}
+{"id": "2008-09-13_Houston", "date": "2008-09-13", "area": "Houston", "mw_loss": 2500.0, "customers": 2000000, "source": "WP", "notes": "Hurricane Ike"}
+{"id": "2008-12-11_MA-NH", "date": "2008-12-11", "area": "MA-NH", "mw_loss": 600.0, "customers": 1000000, "source": "WP", "notes": "ice storm"}
+{"id": "2008-12-12_Maine-PA", "date": "2008-12-12", "area": "Maine-PA", "mw_loss": 900.0, "customers": 1500000, "source": "WP", "notes": "ice storm"}
+{"id": "2009-01-27_KY-IN", "date": "2009-01-27", "area": "KY-IN", "mw_loss": 500.0, "customers": 769000, "source": "WP", "notes": "ice storm"}
+{"id": "2010-02-05_Mid-Atlantic", "date": "2010-02-05", "area": "Mid-Atlantic", "mw_loss": 400.0, "customers": 250000, "source": "WP", "notes": "blizzard"}
+{"id": "2010-07-25_DC_area", "date": "2010-07-25", "area": "DC area", "mw_loss": 300.0, "customers": 250000, "source": "WP", "notes": "severe T-storms"}
+{"id": "2011-02-02_Texas-NM", "date": "2011-02-02", "area": "Texas-NM", "mw_loss": 7000.0, "customers": 3200000, "source": "WP+FERC", "notes": "Feb 2 2011 cold weather event"}
+{"id": "2011-04-27_Alabama", "date": "2011-04-27", "area": "Alabama", "mw_loss": 1700.0, "customers": 1100000, "source": "WP", "notes": "tornado outbreak 311 towers destroyed"}
+{"id": "2011-07-11_Chicago", "date": "2011-07-11", "area": "Chicago", "mw_loss": 500.0, "customers": 850000, "source": "WP", "notes": "derecho"}
+{"id": "2011-08-27_NE_US-Canada", "date": "2011-08-27", "area": "NE US-Canada", "mw_loss": 2900.0, "customers": 5800000, "source": "WP", "notes": "Hurricane Irene"}
+{"id": "2011-09-08_SoCal-AZ-MX", "date": "2011-09-08", "area": "SoCal-AZ-MX", "mw_loss": 4300.0, "customers": 5000000, "source": "WP+FERC", "notes": "Sep 8 2011 Pacific Southwest cascading"}
+{"id": "2011-10-29_Northeast", "date": "2011-10-29", "area": "Northeast", "mw_loss": 1500.0, "customers": 3000000, "source": "WP", "notes": "Oct snowstorm"}
+{"id": "2012-06-29_Midwest-Mid-Atl", "date": "2012-06-29", "area": "Midwest-Mid-Atl", "mw_loss": 3300.0, "customers": 4200000, "source": "WP", "notes": "June 2012 derecho"}
+{"id": "2012-10-29_Eastern_US", "date": "2012-10-29", "area": "Eastern US", "mw_loss": 7500.0, "customers": 8500000, "source": "WP+FERC", "notes": "Hurricane Sandy"}
+{"id": "2013-02-08_Northeast", "date": "2013-02-08", "area": "Northeast", "mw_loss": 800.0, "customers": 700000, "source": "WP", "notes": "Nor'easter Nemo"}
+{"id": "2013-12-22_Ontario-Maritime", "date": "2013-12-22", "area": "Ontario-Maritime", "mw_loss": 600.0, "customers": 600000, "source": "WP", "notes": "storm complex"}
+{"id": "2014-01-07_Eastern_US", "date": "2014-01-07", "area": "Eastern US", "mw_loss": 1500.0, "customers": 500000, "source": "WP", "notes": "polar vortex"}
+{"id": "2015-08-29_BC-Lower_Mainland", "date": "2015-08-29", "area": "BC-Lower Mainland", "mw_loss": 300.0, "customers": 710000, "source": "WP", "notes": "BCHydro windstorm"}
+{"id": "2015-11-17_Spokane", "date": "2015-11-17", "area": "Spokane", "mw_loss": 100.0, "customers": 161000, "source": "WP", "notes": "windstorm"}
+{"id": "2016-09-01_FL_Panhandle", "date": "2016-09-01", "area": "FL Panhandle", "mw_loss": 250.0, "customers": 350000, "source": "WP", "notes": "Hurricane Hermine"}
+{"id": "2016-09-21_Puerto_Rico", "date": "2016-09-21", "area": "Puerto Rico", "mw_loss": 1300.0, "customers": 3500000, "source": "WP", "notes": "transmission line failure full collapse"}
+{"id": "2017-03-08_Michigan", "date": "2017-03-08", "area": "Michigan", "mw_loss": 700.0, "customers": 1000000, "source": "WP", "notes": "windstorm"}
+{"id": "2017-09-06_Florida", "date": "2017-09-06", "area": "Florida", "mw_loss": 3000.0, "customers": 7500000, "source": "WP+FERC", "notes": "Hurricane Irma"}
+{"id": "2017-09-20_Puerto_Rico", "date": "2017-09-20", "area": "Puerto Rico", "mw_loss": 3000.0, "customers": 3400000, "source": "WP+FERC", "notes": "Hurricane Maria total grid collapse"}
+{"id": "2017-10-30_New_England", "date": "2017-10-30", "area": "New England", "mw_loss": 900.0, "customers": 1800000, "source": "WP", "notes": "tropical remnant"}
+{"id": "2018-09-14_Carolinas", "date": "2018-09-14", "area": "Carolinas", "mw_loss": 1200.0, "customers": 1700000, "source": "WP", "notes": "Hurricane Florence"}
+{"id": "2018-10-10_FL_Panhandle", "date": "2018-10-10", "area": "FL Panhandle", "mw_loss": 1500.0, "customers": 1300000, "source": "WP", "notes": "Hurricane Michael"}
+{"id": "2019-10-09_California", "date": "2019-10-09", "area": "California", "mw_loss": 1700.0, "customers": 2700000, "source": "WP+CPUC", "notes": "PSPS shutoff PG&E (planned but reportable)"}
+{"id": "2020-08-14_California", "date": "2020-08-14", "area": "California", "mw_loss": 1100.0, "customers": 800000, "source": "WP+CAISO", "notes": "heat wave rotating outages"}
+{"id": "2020-08-19_Iowa", "date": "2020-08-19", "area": "Iowa", "mw_loss": 1500.0, "customers": 585000, "source": "WP", "notes": "Iowa derecho"}
+{"id": "2021-02-15_Texas", "date": "2021-02-15", "area": "Texas", "mw_loss": 30000.0, "customers": 4500000, "source": "WP+ERCOT", "notes": "Texas February storm Uri grid emergency"}
+{"id": "2021-08-29_Louisiana", "date": "2021-08-29", "area": "Louisiana", "mw_loss": 2200.0, "customers": 1100000, "source": "WP", "notes": "Hurricane Ida"}
+{"id": "2022-09-28_Florida", "date": "2022-09-28", "area": "Florida", "mw_loss": 2900.0, "customers": 2700000, "source": "WP", "notes": "Hurricane Ian"}
+{"id": "2022-12-23_Tennessee", "date": "2022-12-23", "area": "Tennessee", "mw_loss": 2300.0, "customers": 1500000, "source": "WP+TVA", "notes": "Dec 2022 winter storm Elliott TVA rolling"}
+{"id": "2023-08-09_Hawaii_(Maui)", "date": "2023-08-09", "area": "Hawaii (Maui)", "mw_loss": 200.0, "customers": 35000, "source": "WP", "notes": "Maui fire grid damage (small but reportable)"}
+{"id": "2024-05-16_Houston", "date": "2024-05-16", "area": "Houston", "mw_loss": 700.0, "customers": 900000, "source": "WP", "notes": "May derecho"}
+{"id": "2024-07-08_Texas-LA", "date": "2024-07-08", "area": "Texas-LA", "mw_loss": 2700.0, "customers": 2700000, "source": "WP", "notes": "Hurricane Beryl"}
+{"id": "2024-09-27_Southeast", "date": "2024-09-27", "area": "Southeast", "mw_loss": 4500.0, "customers": 4500000, "source": "WP", "notes": "Hurricane Helene"}
+{"id": "1984-07-12_Mid-Atlantic", "date": "1984-07-12", "area": "Mid-Atlantic", "mw_loss": 300.0, "customers": 120000, "source": "H09", "notes": "heat wave"}
+{"id": "1985-09-27_Pennsylvania", "date": "1985-09-27", "area": "Pennsylvania", "mw_loss": 400.0, "customers": 200000, "source": "H09", "notes": "Hurricane Gloria"}
+{"id": "1986-09-10_Southeast", "date": "1986-09-10", "area": "Southeast", "mw_loss": 250.0, "customers": 80000, "source": "H09", "notes": "T-storm"}
+{"id": "1987-10-04_Northeast", "date": "1987-10-04", "area": "Northeast", "mw_loss": 350.0, "customers": 150000, "source": "H09", "notes": "early snow"}
+{"id": "1988-07-15_Texas", "date": "1988-07-15", "area": "Texas", "mw_loss": 500.0, "customers": 200000, "source": "H09", "notes": "heat wave"}
+{"id": "1990-08-06_Mid-Atlantic", "date": "1990-08-06", "area": "Mid-Atlantic", "mw_loss": 300.0, "customers": 100000, "source": "H09", "notes": "PJM heat"}
+{"id": "1990-11-15_PNW", "date": "1990-11-15", "area": "PNW", "mw_loss": 200.0, "customers": 80000, "source": "H09", "notes": "windstorm"}
+{"id": "1992-12-11_Northeast", "date": "1992-12-11", "area": "Northeast", "mw_loss": 400.0, "customers": 250000, "source": "H09", "notes": "Dec storm"}
+{"id": "1993-03-13_East_Coast", "date": "1993-03-13", "area": "East Coast", "mw_loss": 600.0, "customers": 400000, "source": "H09", "notes": "Storm of the Century"}
+{"id": "1993-08-27_Northeast", "date": "1993-08-27", "area": "Northeast", "mw_loss": 350.0, "customers": 150000, "source": "H09", "notes": "T-storm"}
+{"id": "1995-08-22_Northeast", "date": "1995-08-22", "area": "Northeast", "mw_loss": 500.0, "customers": 250000, "source": "H09", "notes": "Hurricane Felix coastal"}
+{"id": "1997-04-08_Midwest", "date": "1997-04-08", "area": "Midwest", "mw_loss": 300.0, "customers": 90000, "source": "H09", "notes": "ice storm"}
+{"id": "1998-09-25_NC", "date": "1998-09-25", "area": "NC", "mw_loss": 400.0, "customers": 500000, "source": "H09", "notes": "Hurricane Bonnie"}
+{"id": "2000-08-04_Mid-Atlantic", "date": "2000-08-04", "area": "Mid-Atlantic", "mw_loss": 300.0, "customers": 90000, "source": "H09", "notes": "T-storm"}
+{"id": "2001-08-11_Long_Island", "date": "2001-08-11", "area": "Long Island", "mw_loss": 350.0, "customers": 300000, "source": "H09", "notes": "summer overload"}
+{"id": "2002-11-10_Ohio", "date": "2002-11-10", "area": "Ohio", "mw_loss": 400.0, "customers": 150000, "source": "H09", "notes": "windstorm"}
+{"id": "2003-11-03_PNW", "date": "2003-11-03", "area": "PNW", "mw_loss": 250.0, "customers": 150000, "source": "H09", "notes": "windstorm"}
+{"id": "2004-07-04_DC", "date": "2004-07-04", "area": "DC", "mw_loss": 300.0, "customers": 200000, "source": "H09", "notes": "July storm"}
+{"id": "2005-04-08_TX", "date": "2005-04-08", "area": "TX", "mw_loss": 400.0, "customers": 200000, "source": "H09", "notes": "T-storm"}
+{"id": "2006-04-02_TN", "date": "2006-04-02", "area": "TN", "mw_loss": 200.0, "customers": 85000, "source": "H09", "notes": "tornado"}
+{"id": "2007-03-02_NE", "date": "2007-03-02", "area": "NE", "mw_loss": 300.0, "customers": 120000, "source": "H09", "notes": "Nor'easter"}
+{"id": "2007-04-15_NE", "date": "2007-04-15", "area": "NE", "mw_loss": 350.0, "customers": 250000, "source": "H09", "notes": "April Nor'easter"}
+{"id": "2008-01-30_PNW", "date": "2008-01-30", "area": "PNW", "mw_loss": 250.0, "customers": 200000, "source": "H09", "notes": "windstorm"}
+{"id": "2008-06-04_MW", "date": "2008-06-04", "area": "MW", "mw_loss": 400.0, "customers": 180000, "source": "H09", "notes": "T-storm"}
+{"id": "2009-02-11_TX", "date": "2009-02-11", "area": "TX", "mw_loss": 500.0, "customers": 250000, "source": "H09", "notes": "ice"}
+{"id": "2010-01-24_PNW", "date": "2010-01-24", "area": "PNW", "mw_loss": 300.0, "customers": 200000, "source": "WP", "notes": "windstorm"}
+{"id": "2010-07-13_MW", "date": "2010-07-13", "area": "MW", "mw_loss": 350.0, "customers": 200000, "source": "WP", "notes": "T-storm"}
+{"id": "2011-01-26_DC_area", "date": "2011-01-26", "area": "DC area", "mw_loss": 200.0, "customers": 350000, "source": "WP", "notes": "winter storm"}
+{"id": "2011-05-22_MO", "date": "2011-05-22", "area": "MO", "mw_loss": 300.0, "customers": 185000, "source": "WP", "notes": "Joplin tornado"}
+{"id": "2011-06-30_TX", "date": "2011-06-30", "area": "TX", "mw_loss": 400.0, "customers": 200000, "source": "WP", "notes": "T-storm"}
+{"id": "2013-05-31_OK", "date": "2013-05-31", "area": "OK", "mw_loss": 500.0, "customers": 220000, "source": "WP", "notes": "tornado"}
+{"id": "2014-07-08_MI", "date": "2014-07-08", "area": "MI", "mw_loss": 400.0, "customers": 400000, "source": "WP", "notes": "T-storm"}
+{"id": "2014-11-18_NY", "date": "2014-11-18", "area": "NY", "mw_loss": 300.0, "customers": 150000, "source": "WP", "notes": "lake-effect snow"}
+{"id": "2015-06-23_OH", "date": "2015-06-23", "area": "OH", "mw_loss": 350.0, "customers": 200000, "source": "WP", "notes": "T-storm"}
+{"id": "2016-04-30_TX", "date": "2016-04-30", "area": "TX", "mw_loss": 400.0, "customers": 220000, "source": "WP", "notes": "T-storm"}
+{"id": "2017-05-04_CO", "date": "2017-05-04", "area": "CO", "mw_loss": 250.0, "customers": 90000, "source": "WP", "notes": "spring storm"}
+{"id": "2018-03-02_NE", "date": "2018-03-02", "area": "NE", "mw_loss": 500.0, "customers": 500000, "source": "WP", "notes": "Mar 2018 Nor'easter Riley"}
+{"id": "2018-11-08_CA", "date": "2018-11-08", "area": "CA", "mw_loss": 400.0, "customers": 200000, "source": "WP", "notes": "Camp Fire PSPS"}
+{"id": "2019-09-12_Bahamas-FL", "date": "2019-09-12", "area": "Bahamas-FL", "mw_loss": 200.0, "customers": 100000, "source": "WP", "notes": "Hurricane Dorian US periphery"}
+{"id": "2020-04-13_MS-LA", "date": "2020-04-13", "area": "MS-LA", "mw_loss": 300.0, "customers": 200000, "source": "WP", "notes": "Easter tornadoes"}
+{"id": "2020-08-04_NE", "date": "2020-08-04", "area": "NE", "mw_loss": 500.0, "customers": 500000, "source": "WP", "notes": "Isaias"}
+{"id": "2021-06-15_TX", "date": "2021-06-15", "area": "TX", "mw_loss": 400.0, "customers": 300000, "source": "WP", "notes": "summer heat"}
+{"id": "2022-06-07_OH-PA", "date": "2022-06-07", "area": "OH-PA", "mw_loss": 400.0, "customers": 400000, "source": "WP", "notes": "T-storm"}
+{"id": "2023-04-05_TX-OK", "date": "2023-04-05", "area": "TX-OK", "mw_loss": 300.0, "customers": 180000, "source": "WP", "notes": "spring storm"}
+{"id": "2023-06-29_TX", "date": "2023-06-29", "area": "TX", "mw_loss": 500.0, "customers": 250000, "source": "WP", "notes": "ERCOT conservation"}
+{"id": "2024-03-14_OH", "date": "2024-03-14", "area": "OH", "mw_loss": 350.0, "customers": 200000, "source": "WP", "notes": "spring storm"}
+{"id": "2024-08-05_NJ-NY", "date": "2024-08-05", "area": "NJ-NY", "mw_loss": 400.0, "customers": 300000, "source": "WP", "notes": "Tropical Debby"}

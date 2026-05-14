@@ -1,0 +1,27 @@
+{
+  "case_id": "null_003_poisson_iat",
+  "synthetic_data_type": "poisson_iat",
+  "description": "inter-arrival times of homogeneous Poisson(rate=1); exactly exponential by construction",
+  "params": {
+    "rate": 1.0,
+    "rng_seed": 42,
+    "n_events": 20000
+  },
+  "n_samples": 49999,
+  "pipeline_verdict": "rejected",
+  "key_indicators": {
+    "alpha_clauset": 2.999975917840704,
+    "sigma_alpha": 0.017081337669360527,
+    "xmin": 0.12917817134643883,
+    "n_tail": 13709,
+    "vs_lognormal_R": -24.448772112937657,
+    "vs_lognormal_p": 5.186017137549267e-132,
+    "vs_exponential_R": -24.387222384954182,
+    "vs_exponential_p": 2.3368743158451496e-131
+  },
+  "expected_real_distribution": "exponential",
+  "date_added": "2026-05-13",
+  "phase_source": "phase_5_null",
+  "source_file": "v4/validation/null-controls/null_results.json",
+  "doc_ref": "v4/validation/null-controls/VERDICT-2026-04-16.md"
+}

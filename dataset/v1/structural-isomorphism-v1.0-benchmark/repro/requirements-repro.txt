@@ -1,0 +1,5 @@
+# Dependencies for the reproducibility entry point (repro/reproduce_all.py
+# and repro/generate_manifest.py). These do not include the LLM-critic
+# dependencies — reproduce_all.py is a no-LLM script.
+numpy>=1.24,<3.0
+scipy>=1.10,<2.0

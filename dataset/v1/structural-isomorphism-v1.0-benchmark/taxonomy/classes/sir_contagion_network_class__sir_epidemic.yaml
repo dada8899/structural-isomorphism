@@ -1,0 +1,92 @@
+class_id: sir_contagion_network_class__sir_epidemic
+status: speculative
+display_name: SIR epidemic on network (recovery + R0 threshold)
+display_name_zh: 网络 SIR 流行病 (恢复 + R0 阈值)
+hub_phenomenon: 'Kermack-McKendrick SIR: dS/dt = -βSI, dI/dt = βSI - γI, dR/dt = γI; epidemic threshold R0 = β⟨k⟩/γ > 1; final
+  size obeys R∞/N = 1 - exp(-R0·R∞/N).'
+shared_equation: "Kermack-McKendrick SIR (mean-field):\n  dS/dt = -β·S·I/N,\n  dI/dt = β·S·I/N - γ·I,\n  dR/dt = γ·I.\nNetwork\
+  \ SIR: dX_i/dt = β·Σ_j A_ij·X_j·(1-X_i) - γ·X_i.\nBasic reproduction number: R_0 = β·⟨k⟩/γ.\nEpidemic threshold: R_0 > 1\
+  \ → outbreak.\nFinal epidemic size: R_∞/N = 1 - exp(-R_0·R_∞/N).\n"
+key_invariants:
+- SIR master equation dS/dt = -βSI; dI/dt = βSI - γI; dR/dt = γI
+- R_0 = β⟨k⟩/γ controls phase transition
+- R_∞/N ≈ 1 - 1/R_0 for R_0 not too large
+- 'Topology shifts threshold: scale-free networks have R_0 → 0 critical (no epidemic threshold)'
+- Mass-action transmission (no individual-level threshold)
+positive_examples:
+- phenomenon: Emerging markets contagion domino effect (新兴市场传染的多米诺效应)
+  evidence: 'Hub. Layer 4 prediction: R_0 ∈ [1.3, 2.8] during crisis; β/γ leads CDS spreads by 5-20 days. SIR fit to 6 major
+    crises 1994-2024.'
+  verified_at: candidate
+- phenomenon: CDS index credit cascade modeling
+  evidence: Network SIR on CDS counterparty graph. Layer 3 medium-confidence match.
+  verified_at: candidate
+- phenomenon: OTC derivatives counterparty exposure
+  evidence: Same SIR mechanism on bilateral exposure graph; topology shifted from bow-tie to star via CCP intermediation.
+  verified_at: candidate
+- phenomenon: Drug-resistant bacteria transmission (耐药菌传播)
+  evidence: SIR on hospital contact network with reservoir compartment. Standard infectious disease model.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake aftershock cascade
+  reason: No individual susceptibility/infection state; cascade is mechanistic stress transfer. Belongs to soc_threshold_cascade.
+- phenomenon: DeFi liquidation cascade
+  reason: Threshold cascade (Motter-Lai), not mass-action transmission. Liquidations don't 'infect' counterparties — they
+    redistribute load. Belongs to motter_lai_network_cascade.
+- phenomenon: Watts threshold cascade on social network
+  reason: Individual threshold rule (fraction of infected neighbors > θ_i), NOT mass-action β·S·I. Different microscopic dynamics.
+    Belongs to motter_lai_network_cascade or percolation_connectivity.
+- phenomenon: Network failure via random component failure
+  reason: Independent failures; no infection-style state coupling. Belongs to percolation_connectivity.
+- phenomenon: SIS epidemic on network
+  reason: "No removed compartment; recovery returns individuals to the susceptible class, leading to endemic steady states. The absence of permanent immunity fundamentally alters the long-term dynamics despite the superficial similarity of bilinear incidence and network threshold."
+- phenomenon: SI epidemic on network
+  reason: "No recovery term (γ=0); the model has no epidemic threshold, always reaching full saturation. The sigmoidal growth curve can be mistaken for an SIR-like outbreak, but the mechanism lacks the threshold-dependent extinction typical of the class."
+- phenomenon: Rumor spreading (Daley–Kendall model)
+  reason: "Transmission ceases when spreaders contact other spreaders or stiflers, introducing a nonlinear stifling mechanism distinct from SIR's simple recovery. The final outbreak size depends on the interplay of spreader-stifler encounters, not just an R0 threshold."
+- phenomenon: Linear threshold model (complex contagion)
+  reason: "Adoption requires a threshold fraction of infected neighbors, which leads to discontinuous transitions and cascades. The mechanism is not pairwise mass-action transmission, and the notion of recovery is not analogous to the SIR class removal rate."
+- phenomenon: SIR model with vital dynamics
+  reason: "Birth and death terms introduce population turnover, changing the epidemic threshold to R0 = β/(γ+μ) and enabling an endemic equilibrium. The fixed-population, single-outbreak SIR class does not include demographic processes."
+edge_cases:
+- phenomenon: Bank run with information cascade
+  debate: Information-driven 'infection' of withdrawal behavior could fit SIR. But payoff structure is coordination game (multistable_self_fulfilling),
+    not SIR. Class assignment depends on whether you model belief contagion (SIR) or strategic decision (game theory).
+- phenomenon: Twitter retweet cascade
+  debate: Often modeled as SIR-like (Goel et al. 2012). But preferential attachment + homophily also contribute. Heterogeneous
+    class membership.
+- phenomenon: Cascading default on interbank network
+  debate: Can be modeled as SIR (default infects creditors) OR as Eisenberg-Noe clearing (Motter-Lai). Same data, two valid
+    generative models. Class boundary.
+- phenomenon: SIR on temporal networks
+  debate: "Contacts change over time, breaking the static network assumption. The epidemic threshold is given by the spectral radius of a temporal operator, and whether the mean-field ODE description still defines a unique universality class is contested."
+- phenomenon: SIR on scale-free networks (degree exponent ≤3)
+  debate: "The threshold R0 ∝ ⟨k²⟩/⟨k⟩ diverges with network size, making outbreaks possible for arbitrarily small transmission rates. Some argue this vanishing threshold constitutes a distinct universality class, while others treat it as a limiting case within the SIR network class."
+- phenomenon: SIRS model with waning immunity
+  debate: "Adds a feedback loop from removed back to susceptible (at rate ω), producing damped oscillations and a stable endemic state for R0 > 1. The long-term behavior departs from the simple epidemic burnout of SIR, blurring the boundary of the class."
+- phenomenon: Non-Markovian SIR (gamma-distributed infectious periods)
+  debate: "The recovery process is non-exponential, introducing memory through integro-differential equations. The threshold R0 condition remains, but the transient dynamics and final size formula deviate, questioning inclusion in the purely Markovian ODE universality class."
+- phenomenon: SIR with behavioral feedback (β dependent on incidence)
+  debate: "Transmission rate β becomes a function of the infected population, creating a dynamic R0 that can induce multiple waves. The compartmental structure is identical, but the feedback mechanism changes the bifurcation landscape, making class membership debatable."
+references:
+- Kermack, McKendrick 1927 Proc. Roy. Soc. A 115, 700 (original SIR)
+- Anderson, May 1991 Infectious Diseases of Humans
+- Pastor-Satorras, Vespignani 2001 Phys. Rev. Lett. 86, 3200 (epidemic on scale-free)
+- Allen, Gale 2000 J. Pol. Econ. 108, 1 (financial contagion)
+- Forbes, Rigobon 2002 J. Finance 57, 2223 (contagion measurement)
+b3_status: SPLIT_B3_CHILD
+b3_verdict: SPLIT_strong
+b3_consensus: SPLIT
+b3_avg_confidence: 0.83
+b3_action_taken: 'split into 2 children: sir_contagion_network_class__sir_epidemic, sir_contagion_network_class__balance_sheet_cascade'
+superseded_by_split:
+- sir_contagion_network_class__sir_epidemic
+- sir_contagion_network_class__balance_sheet_cascade
+parent_class: sir_contagion_network_class
+split_from: sir_contagion_network_class
+split_rationale: True SIR requires recovery compartment with γ > 0 and final-size law. Excludes balance-sheet financial cascades.
+members_kept_after_split:
+- drug-resistant bacteria spread
+- measles outbreak
+- COVID transmission
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.
