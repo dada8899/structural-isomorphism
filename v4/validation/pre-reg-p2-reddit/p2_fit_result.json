@@ -1,0 +1,41 @@
+{
+  "label": "P2_reddit_cascade",
+  "data_source": "arctic-shift.photon-reddit.com (Reddit submissions archive) \u2014 PARTIAL FETCH",
+  "fetched_at_utc": "2026-05-14T18:38:33.073413+00:00",
+  "window_start_utc": "2026-04-12T18:43:51+00:00",
+  "window_end_utc": "2026-05-12T18:23:36+00:00",
+  "subreddits": null,
+  "n_cascades": 22522,
+  "fit": {
+    "name": "P2_reddit_cascade_sizes",
+    "alpha": 1.7641036583580325,
+    "sigma_alpha": 0.009508308380675323,
+    "xmin": 35.0,
+    "n_total": 22522,
+    "n_tail": 6458,
+    "vs_lognormal_R": -13.179428370322581,
+    "vs_lognormal_p": 1.1526083359356092e-39,
+    "vs_exponential_R": 14.5664022673414,
+    "vs_exponential_p": 4.594588715875553e-48,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true,
+    "ks_statistic": 0.05949104128991489
+  },
+  "bootstrap_ci": {
+    "alpha_mean": 2.3711979785076656,
+    "alpha_median": 2.483002593498974,
+    "alpha_std": 0.561495668962663,
+    "ci_low": 1.7138228563238604,
+    "ci_high": 2.9977476044058307,
+    "n_boot_succeeded": 200
+  },
+  "predicted_band": [
+    1.7,
+    2.3
+  ],
+  "literature_band": [
+    1.5,
+    2.5
+  ],
+  "verdict": "CONFIRMED"
+}
