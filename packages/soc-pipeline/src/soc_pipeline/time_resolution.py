@@ -28,9 +28,10 @@ def time_resolution_sweep(
 
     Returns:
         dict with:
-          - 'sweep': list of {bin_seconds, alpha, n_tail, xmin, error?}
-          - 'alpha_min', 'alpha_max', 'alpha_spread'
-          - 'is_stable': True if spread < threshold
+
+        - ``sweep``: list of ``{bin_seconds, alpha, n_tail, xmin, error?}``
+        - ``alpha_min``, ``alpha_max``, ``alpha_spread``
+        - ``is_stable``: True if spread < threshold
 
     Notes:
         Genuinely SOC processes should be roughly bin-invariant. Sharp

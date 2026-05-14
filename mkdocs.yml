@@ -78,6 +78,23 @@ plugins:
       type: date
       enable_creation_date: true
       fallback_to_build_date: true
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - packages/soc-pipeline/src
+            - packages/cross-judge/src
+            - packages/guarded-llm/src
+          options:
+            show_source: true
+            docstring_style: google
+            show_signature_annotations: true
+            members_order: source
+            heading_level: 3
+            show_root_heading: true
+            show_root_full_path: false
+            separate_signature: true
+            merge_init_into_class: true
   - minify:
       minify_html: true
       minify_js: true
@@ -133,6 +150,11 @@ nav:
       - Phase Detector: phase-detector.md
   - API:
       - Reference: api.md
+      - Python packages:
+          - Overview: api/packages/index.md
+          - soc-pipeline: api/packages/soc-pipeline.md
+          - cross-judge: api/packages/cross-judge.md
+          - guarded-llm: api/packages/guarded-llm.md
   - Methodology:
       - Overview: methodology/statistical-robustness-2026-05-15.md
       - Cross-judge ensemble: methodology/cross-judge.md
