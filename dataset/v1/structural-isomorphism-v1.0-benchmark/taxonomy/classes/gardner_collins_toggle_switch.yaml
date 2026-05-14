@@ -1,0 +1,97 @@
+class_id: gardner_collins_toggle_switch
+status: emerging
+display_name: Hill ultrasensitive positive-feedback toggle switch
+display_name_zh: Hill 超敏正反馈双稳态开关
+hub_phenomenon: Bistable systems with mutually-repressive or autocatalytic Hill kinetics (n > 1); ultrasensitive switch between
+  two stable states
+shared_equation: "Classical Gardner-Collins toggle:\n  du/dt = α/(1 + v^n) - u,\n  dv/dt = α/(1 + u^n) - v, with n > 1.\n\
+  Autocatalytic Hill positive feedback:\n  dS/dt = α · S^n/(K^n + S^n) - β·S.\nSaddle-node bifurcation: two stable + one unstable\
+  \ fixed point.\nSwitching irreversibility from deep low basin.\n"
+key_invariants:
+- 'Hill positive feedback: dS/dt = α·S^n/(K^n + S^n) - β·S'
+- n > 1 (ultrasensitivity required for bistability)
+- Saddle-node bifurcation at threshold
+- Bimodality in single-cell distribution
+- Ultrasensitive switching + irreversibility from deep low basin
+positive_examples:
+- phenomenon: Apoptosis Caspase cascade irreversible digital switch (凋亡Caspase级联)
+  evidence: 'Layer 3 high confidence: ultrasensitive positive feedback dx/dt = V·x^n/(K^n+x^n) - kx, Hill switch.'
+  verified_at: candidate
+- phenomenon: Quorum sensing density-dependent activation (群体感应)
+  evidence: Hill n bistable autoinducer; Vibrio/Pseudomonas data.
+  verified_at: candidate
+- phenomenon: Th1/Th2 immune polarization
+  evidence: Mutual T_bet ↔ GATA3 repression; bistable polarized state.
+  verified_at: candidate
+- phenomenon: X-chromosome random inactivation bistable lock (X染色体随机失活)
+  evidence: Tsix ↔ Xist mutual repression; one X chosen, inheritance via markov chain after commitment.
+  verified_at: candidate
+- phenomenon: Synthetic gene toggle switch (Gardner-Cantor-Collins 2000)
+  evidence: Canonical positive example; engineered E. coli with mutually repressive promoters demonstrating bistability.
+  verified_at: candidate
+- phenomenon: Cell cycle G1/S Rb positive-feedback switch (细胞周期G1/S)
+  evidence: Rb-E2F mutual feedback; sharp threshold for cycle commitment.
+  verified_at: candidate
+- phenomenon: Insulin signaling developmental timing gate (胰岛素信号通路与发育时序门控)
+  evidence: Threshold-gated developmental switch.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Linear gene cascade (no positive feedback)
+  reason: Single-direction activation without autocatalytic loop; no bistability. Different class.
+- phenomenon: Stochastic gene expression noise (no positive feedback)
+  reason: Unimodal distribution with variance; bistability requires positive feedback structure, not just noise.
+- phenomenon: Continuous graded dose-response
+  reason: If response is monotone and gradual without bimodality, system is not in bistable regime.
+- phenomenon: Scheffer fold bifurcation
+  reason: Same bistability phenotype but driven by external slow parameter (eutrophication, climate), not autocatalytic gene
+    feedback. Belongs to scheffer_fold_bifurcation.
+- phenomenon: Enzymatic futile cycle with zero-order ultrasensitivity
+  reason: "Utilizes saturation kinetics (Michaelis-Menten) to create a switch-like response, not cooperative binding. The sigmoidal shape results from enzyme zero-order conditions, not a Hill exponent n>1 from protein oligomerization."
+- phenomenon: Holling type III predator-prey bistability
+  reason: "Shows bistability with a sigmoidal functional response resembling a Hill function, but the mechanism is ecological (prey switching, refuge) without mutual repression or autocatalytic gene regulation. Not based on Hill kinetics in a molecular toggle."
+- phenomenon: Transcriptional interference toggle (roadblock mechanism)
+  reason: "Two genes mutually repress via steric hindrance of RNA polymerases, producing a switch-like response. The mechanism does not involve cooperative transcription factor binding (Hill kinetics); the effective repression is non-cooperative."
+- phenomenon: Recombinase-based irreversible toggle switch
+  reason: "Produces a persistent binary state via DNA flipping, not continuous bistability from an ODE system. Lacks Hill-kinetic mutual repression dynamics; memory is hard-coded genetically."
+- phenomenon: Mutual activation with linear dose-response (n=1)
+  reason: "Two genes mutually activate each other with no cooperative binding. While sometimes capable of bistability via other nonlinearities (e.g., sequestration), it lacks the hallmark Hill coefficient n>1 for ultrasensitivity, placing it outside the class."
+- phenomenon: Goldbeter–Koshland zero-order ultrasensitive switch
+  reason: Generates a sharp switch-like response through enzyme saturation in a futile cycle rather than cooperative binding; the sigmoidal shape does not arise from Hill kinetics with n > 1.
+- phenomenon: Distributive phosphorylation MAPK cascade
+  reason: "Bistability emerges from cumulative multisite phosphorylation without requiring explicit Hill cooperativity; the underlying mechanism is distributive (non-processive) enzyme kinetics, not a Hill-type regulatory function."
+- phenomenon: Noise-induced bimodal gene expression
+  reason: Produces two apparent phenotypic states stochastically without deterministic bistable dynamics; lacks the positive-feedback-driven threshold and hysteresis of a true toggle switch.
+- phenomenon: Lateral inhibition pattern in Notch-Delta signaling
+  reason: "Generates switch-like cell-fate decisions through intercellular feedback, but the bistability is spatial and depends on membrane-bound ligand-receptor interactions, not intracellular Hill-cooperative mutual repression."
+edge_cases:
+- phenomenon: MAPK signaling zero-order ultrasensitivity (Goldbeter-Koshland)
+  debate: Switch-like response via saturated enzymes, no explicit Hill. Mathematically distinct mechanism; class boundary.
+- phenomenon: Lambda phage lysis/lysogeny decision
+  debate: Bistable cI/Cro mutual repression; canonical example. Class membership accepted.
+- phenomenon: "Single-cooperative mutual repression toggle (one TF monomeric, one dimeric)"
+  debate: "The classic toggle requires both repressors to have n>1; here only one has cooperativity. Bistability may still arise, but it is ambiguous whether this qualifies as a true Gardner-Collins toggle or a borderline case with reduced robustness."
+- phenomenon: Positive autoregulation with delayed negative feedback leading to bistability
+  debate: "The circuit uses Hill-type autocatalysis but the second stable state emerges from time delay, not solely from steady-state mutual repression. Ambiguous because the delay-induced bistability is distinct from the standard ODE toggle mechanism."
+- phenomenon: Bistable switch from multi-site binding without true cooperativity
+  debate: "An activator binds multiple independent sites in the promoter, giving a polynomial response that approximates a Hill function. While visually sigmoidal, the underlying mechanism lacks cooperative binding, blurring the line with classical Hill ultrasensitivity."
+- phenomenon: Bistable system with both cooperative repressor and activator
+  debate: "Involves mutual repression but also an autoregulatory activator, blending toggle-like and autocatalytic elements. The class definition mentions mutually-repressive or autocatalytic, but the hybrid nature creates ambiguity about primary mechanism."
+- phenomenon: Noise-induced stochastic toggle in a monostable deterministic system
+  debate: "Appears toggle-like due to bimodal distributions, but the deterministic ODE has a single steady state. The class is typically concerned with deterministic bistability; stochastic switching by noise is a different phenomenon, yet often conflated with the synthetic toggle."
+- phenomenon: Sequestration-based ultrasensitive toggle
+  debate: "Uses stoichiometric protein sequestration to create a sharp effective activation function without cooperative binding; it achieves the same functional bistability as a Hill toggle but through a different physical mechanism, raising the question of whether mechanistic or functional criteria define the class."
+- phenomenon: Lambda phage CI-Cro switch with multi-operator cooperativity
+  debate: "The classic genetic toggle switch is often approximated by Hill functions, but the actual ultrasensitivity arises from cooperative binding among multiple operators and protein dimerisation; it is unclear if this multi-layer cooperativity should be considered an instance of simple Hill kinetics with n > 1."
+- phenomenon: Mutual activation double-positive feedback loop
+  debate: "Two genes activate each other (not repress) with sigmoidal activation functions, forming a positive feedback loop capable of bistability; while topologically distinct from mutual repression, it shares the core property of an ultrasensitive positive-feedback toggle, blurring the class boundary."
+- phenomenon: Time-delayed single-gene positive feedback with n = 1
+  debate: "Introducing a transcriptional delay can produce bistability even without Hill cooperativity (n = 1); the resulting switch behaviour mimics a classical toggle but relies on delay-induced effective ultrasensitivity, posing a challenge for mechanistic classification."
+references:
+- Gardner, Cantor, Collins 2000 Nature 403, 339 (synthetic toggle switch)
+- Griffith 1968 J. Theor. Biol. 20, 202 (original Hill positive feedback bistability)
+- Ferrell, Machleder 1998 Science 280, 895 (ultrasensitivity in MAPK)
+- Tyson, Csikasz-Nagy, Novak 2002 BioEssays 24, 1095 (cell cycle as toggle)
+- Yang, Wirtz 2007 (Caspase irreversibility)
+merged_from:
+- gardner_collins_toggle_switch_Th1Th2
+- gardner_collins_toggle_switch_apoptosis

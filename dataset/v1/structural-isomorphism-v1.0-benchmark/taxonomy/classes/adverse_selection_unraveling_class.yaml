@@ -1,0 +1,108 @@
+class_id: adverse_selection_unraveling_class
+status: emerging
+display_name: Adverse selection & lemons-market unraveling
+display_name_zh: 逆向选择与柠檬化退化
+hub_phenomenon: 'Information asymmetry drives positive-feedback quality (or diversity) collapse: high-quality participants
+  exit → remaining pool quality drops → price drops → more high-quality exit → market dies'
+shared_equation: "Akerlof 1970 conditional expectation: p* = E[q | p*]; equilibrium when expected quality matches price.\n\
+  Unraveling dynamics: x_{t+1} = f(x_t), f monotone decreasing.\nDiversity / quality dynamics: D(t+1) = D(t)·(1-α) + β·N(t),\n\
+  \  where α = homogenization rate (recommendation algorithm reinforcement),\n  β = new heterogeneous-content creator entry\
+  \ rate.\nCollapse condition: α > β → D → 0.\n"
+key_invariants:
+- 'Akerlof conditional expectation equilibrium: p* = E[q | p*]'
+- 'Monotone unraveling: x_{t+1} = f(x_t), f'' < 0'
+- 'Diversity dynamic: D(t+1) = D(t)·(1-α) + β·N(t)'
+- 'Quality collapse condition: α > β'
+- Self-selection bias drives positive feedback even without external shock
+positive_examples:
+- phenomenon: Akerlof lemons market (used cars)
+  evidence: Original 1970 formulation. Buyers cannot distinguish quality → average price reflects average quality → high-quality
+    sellers exit → average quality drops → cycle continues. Hub of class.
+  verified_at: candidate
+- phenomenon: Information cocoon / 信息茧房
+  evidence: Recommendation algorithm optimizes engagement → reduces diversity → heterogeneous creators get less attention
+    → exit → less diversity. Same unraveling dynamic. Layer 3 explicit equation match.
+  verified_at: candidate
+- phenomenon: Spiral of silence (沉默螺旋机制)
+  evidence: Minority opinion holders silent → majority appears stronger → more minority silent. Noelle-Neumann 1974. Same
+    monotone unraveling.
+  verified_at: candidate
+- phenomenon: Echo chamber effect in social media
+  evidence: Engagement-optimized recommendation reinforces homophily, drives out heterogeneous content. Same Akerlof structure.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake aftershock decay
+  reason: No information asymmetry; pure stress-relaxation cascade. Belongs to soc_threshold_cascade.
+- phenomenon: Stock market crash
+  reason: 'Edge case: crashes can involve information asymmetry (lemon-like signaling about firm quality), but the main mechanism
+    is liquidity spiral / margin cascade, not adverse selection unraveling. Belongs to soc_threshold_cascade.'
+- phenomenon: Bank run
+  reason: Diamond-Dybvig is multiple-equilibrium coordination, not information-asymmetry-driven gradual unraveling. Belongs
+    to multistable_self_fulfilling.
+- phenomenon: Preferential attachment / rich-get-richer
+  reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
+    heavy tails but via different routes.
+- phenomenon: "Network-effect platform die-off (e.g., social network abandoned)"
+  reason: "Superficially resembles quality collapse, but driven by direct network externalities (users leave because others left) rather than information asymmetry about user quality."
+- phenomenon: Moral-hazard insurance death spiral
+  reason: "Collapse is caused by hidden action (insureds take more risks) rather than hidden information (adverse selection), leading to premium increases that drive out low-risk types via a different mechanism."
+- phenomenon: Financial contagion cascade
+  reason: "System collapse exhibits exponential decay patterns, but mechanism is interbank credit linkages and fire-sale dynamics, not asymmetric information about asset quality driving a quality-ranked exit."
+- phenomenon: Monopoly quality degradation due to lack of competition
+  reason: "Quality declines over time, but because monopolist faces no threat of entry and maximizes profit, not because high-quality sellers are driven out by asymmetric information."
+- phenomenon: Ecological population collapse from habitat loss
+  reason: "Decline might follow a similar curve, but driven by external resource depletion, not an unraveling where high-fitness individuals exit because they can't signal their quality."
+- phenomenon: Tragedy of the commons
+  reason: "Collapse of a shared resource resembles quality degradation, but it arises from open-access overuse and externality, not from asymmetric information driving out quality participants."
+- phenomenon: "Network effects lock-in (e.g., QWERTY)"
+  reason: "Dominance of one technology standard appears similar to a winner-take-all collapse, but the positive feedback stems from adoption externalities and switching costs, not informational asymmetry about quality."
+- phenomenon: Classic bank runs (Diamond-Dybvig)
+  reason: "A run triggers a rapid collapse, but it is a self-fulfilling liquidity crisis under fractional reserves, not a gradual unravelling driven by hidden quality types."
+- phenomenon: Predatory pricing
+  reason: "High-quality (efficient) firms exit due to a deep-pocketed competitor’s below-cost pricing, not because buyers cannot observe quality; the mechanism is strategic pricing, not information asymmetry."
+- phenomenon: Information cascades (herding) in financial markets
+  reason: "Cascade-driven bubbles and crashes look like feedback-induced collapse, but the channel is observational learning from others’ actions, not selection based on private asymmetric information about quality."
+edge_cases:
+- phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
+  debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
+    The separating-equilibrium variant uses contract menus to break unraveling — still in this class, just with additional
+    structure.
+- phenomenon: Academic field decline
+  debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
+    but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: "Reputation-system collapse (e.g., online marketplace feedback collapse)"
+  debate: Adverse selection where high-quality sellers leave because reviews are unreliable vs. moral hazard where sellers shirk after building reputation; the boundary is fuzzy when both hidden information and hidden action contribute.
+- phenomenon: Health insurance death spiral
+  debate: "Classic adverse selection example, but in practice also influenced by moral hazard, risk adjustment failures, and regulatory design; disentangling pure adverse selection from confounding factors makes membership disputable."
+- phenomenon: "Labor market signaling unraveling (e.g., degree inflation)"
+  debate: "Asymmetric information about worker quality leads to escalating signals, but if the signal becomes uninformative, the market may not unravel through exit of high types but rather through pooling; resembles adverse selection but with a pooling equilibrium rather than unraveling per se."
+- phenomenon: Peer-to-peer lending market collapse
+  debate: "Adverse selection (hidden credit risk) drives out good borrowers, but also prone to moral hazard (strategic default) and credit booms driven by supply-side frictions; the relative dominance of adverse selection is contested."
+- phenomenon: Ecosystem diversity collapse via competitive exclusion
+  debate: "Species loss can mimic a lemons market if 'good' species (e.g., specialists) are outcompeted when information about resource patch quality is missing, but it is fundamentally a resource-competition dynamic without explicit signaling failure; mapping to adverse selection requires a controversial analogy."
+- phenomenon: "Gresham's law (bad money drives out good)"
+  debate: "Often analogized to lemons, but the mechanism requires legal tender laws that overvalue bad money; the role of asymmetric information is minimal—people know coin quality but are forced to accept at face value. Is it a distinct institutional class or a variant of adverse selection?"
+- phenomenon: Platform enshittification (two-sided market degradation)
+  debate: "As platforms extract more rents, quality users leave, leaving only low-quality participants—exactly the adverse-selection feedback. However, the root cause is monopoly power shifting surplus, not ex ante hidden information about participant types. Boundary between market-power-driven collapse and information-driven unraveling."
+- phenomenon: Moral-hazard driven insurance death spiral
+  debate: "A spiral triggered by ex post moral hazard (e.g., overutilization after insuring) raises premiums and drives out the healthy, mimicking adverse selection. Blurred lines because both information asymmetries can coexist, but the initiating mechanism differs."
+- phenomenon: Statistical discrimination and underinvestment (Phelps model)
+  debate: "Employers use group identity as a proxy for unobserved productivity, leading to a self-confirming equilibrium where the discriminated group underinvests. This fits the adverse selection schema perfectly, yet the focus is on dynamic investment response, not just static selection, creating a boundary with human-capital feedback models."
+- phenomenon: Academic journal quality unraveling
+  debate: "When reviewers cannot perfectly distinguish quality, low-quality papers may drive out high-quality ones—a lemons market. But the 'currency' is prestige, not price, and the market is not decentralized; boundary issue whether the class strictly requires a monetary exchange economy or can apply to reputation-based systems."
+references:
+- Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
+- Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
+- Noelle-Neumann 1974 J. Communication 24, 43 (spiral of silence)
+- Spence 1973 Q. J. Econ. 87, 355 (job market signaling — closely related)
+- Pariser 2011 The Filter Bubble (information cocoon)
+b3_status: SPLIT_B3
+b3_verdict: SPLIT_strong
+b3_consensus: SPLIT
+b3_avg_confidence: 0.92
+b3_action_taken: 'split into 3 children: adverse_selection_unraveling_class__akerlof_lemons, adverse_selection_unraveling_class__spiral_of_silence,
+  adverse_selection_unraveling_class__echo_chamber_filter'
+superseded_by_split:
+- adverse_selection_unraveling_class__akerlof_lemons
+- adverse_selection_unraveling_class__spiral_of_silence
+- adverse_selection_unraveling_class__echo_chamber_filter

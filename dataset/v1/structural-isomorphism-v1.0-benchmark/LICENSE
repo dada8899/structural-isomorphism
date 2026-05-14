@@ -1,0 +1,34 @@
+Cross-domain SOC validation dataset (v1, 2026-05-13)
+=====================================================
+
+Data files in this bundle (under systems/*/data, null_controls/*/results.json,
+taxonomy/, paper.md companion files) are released under the
+
+    Creative Commons Attribution 4.0 International License (CC-BY-4.0).
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose,
+  even commercially.
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the
+  license, and indicate if changes were made. You may do so in any reasonable
+  manner, but not in any way that suggests the licensor endorses you or
+  your use.
+
+Citation: see CITATION.cff in this directory.
+
+Full license text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Pipeline scripts under pipeline/ (soc_pipeline.py, llm_guardrail.py,
+b3_ensemble.py) and helper scripts under scripts/ are released under the
+MIT License — see the parent repository (https://github.com/dada8899/structural-isomorphism)
+for the full MIT license text.
+
+Upstream data attribution
+-------------------------
+The 16 underlying systems were assembled from publicly available primary sources.
+Each system's paper.md file lists the upstream data provider (USGS, NIFC, GOES,
+FDIC, Compound Labs subgraph, etc.) and date of fetch. Users redistributing the
+data are asked to also credit those primary sources where applicable.

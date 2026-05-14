@@ -1,0 +1,114 @@
+class_id: adverse_selection_unraveling_class__echo_chamber_filter
+status: speculative
+display_name: Echo chamber / filter-bubble collapse (algorithmic relevance feedback)
+display_name_zh: 回音室 / 信息茧房 (算法过滤反馈)
+hub_phenomenon: Recommendation algorithm reinforces engagement-correlated views, collapsing exposure diversity over time.
+shared_equation: "Akerlof 1970 conditional expectation: p* = E[q | p*]; equilibrium when expected quality matches price.\n\
+  Unraveling dynamics: x_{t+1} = f(x_t), f monotone decreasing.\nDiversity / quality dynamics: D(t+1) = D(t)·(1-α) + β·N(t),\n\
+  \  where α = homogenization rate (recommendation algorithm reinforcement),\n  β = new heterogeneous-content creator entry\
+  \ rate.\nCollapse condition: α > β → D → 0.\n"
+key_invariants:
+- 'Akerlof conditional expectation equilibrium: p* = E[q | p*]'
+- 'Monotone unraveling: x_{t+1} = f(x_t), f'' < 0'
+- 'Diversity dynamic: D(t+1) = D(t)·(1-α) + β·N(t)'
+- 'Quality collapse condition: α > β'
+- Self-selection bias drives positive feedback even without external shock
+positive_examples:
+- phenomenon: Akerlof lemons market (used cars)
+  evidence: Original 1970 formulation. Buyers cannot distinguish quality → average price reflects average quality → high-quality
+    sellers exit → average quality drops → cycle continues. Hub of class.
+  verified_at: candidate
+- phenomenon: Information cocoon / 信息茧房
+  evidence: Recommendation algorithm optimizes engagement → reduces diversity → heterogeneous creators get less attention
+    → exit → less diversity. Same unraveling dynamic. Layer 3 explicit equation match.
+  verified_at: candidate
+- phenomenon: Spiral of silence (沉默螺旋机制)
+  evidence: Minority opinion holders silent → majority appears stronger → more minority silent. Noelle-Neumann 1974. Same
+    monotone unraveling.
+  verified_at: candidate
+- phenomenon: Echo chamber effect in social media
+  evidence: Engagement-optimized recommendation reinforces homophily, drives out heterogeneous content. Same Akerlof structure.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake aftershock decay
+  reason: No information asymmetry; pure stress-relaxation cascade. Belongs to soc_threshold_cascade.
+- phenomenon: Stock market crash
+  reason: 'Edge case: crashes can involve information asymmetry (lemon-like signaling about firm quality), but the main mechanism
+    is liquidity spiral / margin cascade, not adverse selection unraveling. Belongs to soc_threshold_cascade.'
+- phenomenon: Bank run
+  reason: Diamond-Dybvig is multiple-equilibrium coordination, not information-asymmetry-driven gradual unraveling. Belongs
+    to multistable_self_fulfilling.
+- phenomenon: Preferential attachment / rich-get-richer
+  reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
+    heavy tails but via different routes.
+- phenomenon: Market for lemons (Akerlof adverse selection)
+  reason: "Shares the term 'adverse selection' and a quality-unraveling dynamic, but mechanism is buyer-seller asymmetric information, not algorithmic relevance feedback on engagement."
+- phenomenon: Group polarization via social network homophily (no algorithm)
+  reason: "Also yields opinion clusters and reduced diversity, but driven by human homophily and social influence, not an engagement-maximizing recommendation loop."
+- phenomenon: Matthew effect in citation networks
+  reason: "Concentration of attention due to preferential attachment looks like a filter bubble, but it’s a network growth process with no explicit algorithmic feedback optimizing for engagement."
+- phenomenon: Confirmation-bias-driven selective exposure
+  reason: "Individuals self-select consonant information, creating echo chambers, but the mechanism is psychological bias, not an external algorithm that iteratively narrows exposure."
+- phenomenon: Classifier feedback loop in predictive policing
+  reason: "Self-fulfilling predictions cause geographic concentration, but the loop optimizes a crime metric, not engagement-driven view exposure, and the collapsing quantity is spatial allocation, not information diversity."
+- phenomenon: Homophilic social network segregation
+  reason: "Segregation arises from preferential attachment due to homophily, a purely social mechanism, not algorithmic relevance feedback optimizing for engagement."
+- phenomenon: "Akerlof's adverse selection in markets for lemons"
+  reason: "Quality unraveling stems from information asymmetry about product quality, leading to market collapse, not from recommendation algorithms amplifying engagement-correlated views."
+- phenomenon: Confirmation bias in human information search
+  reason: "Exposure diversity collapses due to cognitive biases (selective exposure), not an external algorithmic system optimizing relevance based on engagement metrics."
+- phenomenon: Preferential attachment in network growth
+  reason: "Degree diversity collapses via rich-get-richer attachment, a structural growth rule without relevance feedback or user engagement optimization, producing power-law degree distributions."
+- phenomenon: Neural network overfitting to dominant features
+  reason: "Representation collapse occurs from statistical loss minimization over a fixed dataset, not an ongoing feedback loop where user engagement reinforces exposure of certain views."
+edge_cases:
+- phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
+  debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
+    The separating-equilibrium variant uses contract menus to break unraveling — still in this class, just with additional
+    structure.
+- phenomenon: Academic field decline
+  debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
+    but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: Multi-armed bandit recommendation with forced exploration
+  debate: "When exploration is added, diversity may not permanently collapse, yet the underlying engagement-maximizing drive is identical; is mere architectural mitigation enough to exclude it from the class?"
+- phenomenon: RLHF-induced mode collapse in large language models
+  debate: "A reward model pruning low-preference outputs resembles an engagement-feedback loop shrinking the model's 'view' diversity, but the setting is model output space, not user exposure, challenging the class’s scope."
+- phenomenon: Spiral of silence amplified by platform algorithms
+  debate: "Without algorithms, the spiral is a social dynamic; the algorithm may merely accelerate it—does an amplifier of a pre-existing collapse belong, or is the root mechanism distinct?"
+- phenomenon: Content moderation bots removing dissenting content
+  debate: "Explicit censorship produces filter bubbles, but the metric is toxicity/compliance, not engagement; the collapse is due to removal, not relevance-feeding, blurring the mechanism boundary."
+- phenomenon: Algorithmic trending topics on social media
+  debate: "Engagement-driven amplification concentrates attention on a few items, yet users still access a long tail; is a partial, often transient concentration equivalent to the class's permanent, systemic collapse?"
+- phenomenon: Algorithmic curation in news aggregators optimizing for click-through rate
+  debate: ""
+- phenomenon: Polarization via social media bot amplification
+  debate: ""
+- phenomenon: Echo chambers in academic citation networks with recommender-enhanced discovery
+  debate: ""
+- phenomenon: "Adverse selection in two-sided rating platforms (e.g., ride-hailing)"
+  debate: ""
+- phenomenon: Personalized search filter bubbles
+  debate: ""
+references:
+- Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
+- Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
+- Noelle-Neumann 1974 J. Communication 24, 43 (spiral of silence)
+- Spence 1973 Q. J. Econ. 87, 355 (job market signaling — closely related)
+- Pariser 2011 The Filter Bubble (information cocoon)
+b3_status: SPLIT_B3_CHILD
+b3_verdict: SPLIT_strong
+b3_consensus: SPLIT
+b3_avg_confidence: 0.92
+b3_action_taken: 'split into 3 children: adverse_selection_unraveling_class__akerlof_lemons, adverse_selection_unraveling_class__spiral_of_silence,
+  adverse_selection_unraveling_class__echo_chamber_filter'
+superseded_by_split:
+- adverse_selection_unraveling_class__akerlof_lemons
+- adverse_selection_unraveling_class__spiral_of_silence
+- adverse_selection_unraveling_class__echo_chamber_filter
+parent_class: adverse_selection_unraveling_class
+split_from: adverse_selection_unraveling_class
+split_rationale: Driven by algorithmic relevance feedback, not adverse selection or conformity. Distinct class.
+members_kept_after_split:
+- social media filter bubbles
+- personalized news feed polarization
+needs_b4_review: Inherited B4 examples from parent. Filter / re-curate after split.
