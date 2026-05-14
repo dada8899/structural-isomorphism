@@ -1,21 +1,24 @@
-site_name: structural-isomorphism
+site_name: Structural Isomorphism
 site_description: A pre-registered, cross-domain validation pipeline for universality classes in complex systems.
 site_url: https://dada8899.github.io/structural-isomorphism/
+site_author: dada8899
 repo_url: https://github.com/dada8899/structural-isomorphism
 repo_name: dada8899/structural-isomorphism
 edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 dada8899 — MIT License
 
 docs_dir: docs
 site_dir: site_mkdocs
 
 # Existing files under docs/ that are not part of the public navigation but
-# would otherwise warn under --strict. We exclude them rather than delete
-# (they remain in the repo for internal reference).
+# would otherwise warn under --strict. They remain in the repo for internal
+# reference.
 exclude_docs: |
   PUBLIC_READINESS_CHECKLIST.md
   API_AUTH.md
   data-versioning.md
   privacy-policy.md
+  legacy-readme.md
   analytics/
   deployment/
   future/
@@ -28,62 +31,144 @@ exclude_docs: |
 
 theme:
   name: material
+  language: en
   features:
     - navigation.instant
     - navigation.tracking
     - navigation.tabs
     - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
     - navigation.top
+    - toc.follow
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
+    - content.code.annotate
     - content.action.edit
+    - content.tabs.link
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      type: date
+      enable_creation_date: true
+      fallback_to_build_date: true
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
 
 markdown_extensions:
+  - abbr
   - admonition
+  - attr_list
+  - def_list
   - footnotes
+  - md_in_html
   - tables
   - toc:
       permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
   - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
 
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - Pipeline: pipeline.md
-  - Phase Detector: phase-detector.md
+  - Concepts:
+      - Pipeline: pipeline.md
+      - Phase Detector: phase-detector.md
+  - API:
+      - Reference: api.md
   - Methodology:
+      - Overview: methodology/statistical-robustness-2026-05-15.md
       - Cross-judge ensemble: methodology/cross-judge.md
       - Pre-registration: methodology/pre-registration.md
-  - Pre-registrations: pre-registrations.md
+      - F1 — Bootstrap convergence: methodology/F1-bootstrap-convergence-2026-05-15.md
+      - F2 — Block-bootstrap verification: methodology/F2-block-bootstrap-verification.md
+      - F3 — FWER correction: methodology/F3-fwer-correction-2026-05-15.md
+      - F4 — xmin sensitivity: methodology/F4-xmin-sensitivity-2026-05-15.md
+      - F5 — r-shape null distribution: methodology/F5-r-shape-null-2026-05-15.md
+  - Datasets:
+      - Universality classes (dedupe): data/universality-classes-dedupe-2026-05-15.md
+      - Data-count audit: data-count-audit-2026-05-14.md
+      - Maintenance — duplicate fix: maintenance/universality-classes-dupe-fix-2026-05-14.md
+      - Model recovery: MODEL_RECOVERY.md
+  - Phase Detector audits:
+      - CLS verification: cls-discoveries-verification.md
+      - Company detail audit: phase-company-detail-audit-2026-05-15.md
+      - Dogfood — /api/ask quality: dogfood-ask-2026-05-15.md
+      - LLM A/B test: llm-ab-test-2026-05-14.md
+      - "Real-env e2e (session #9)": session-9-real-e2e-2026-05-15.md
+  - Pre-registrations:
+      - Index: pre-registrations.md
+      - P1 — Bitcoin Cash daily log returns: pre-registrations/p1-bitcoin-cash-result.md
+      - P2 — Reddit comment cascade sizes: pre-registrations/p2-reddit-cascade-result.md
   - Papers: papers.md
-  - API: api.md
+  - Contributing: contributing.md
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/dada8899/structural-isomorphism
+      name: GitHub repository
+    - icon: fontawesome/solid/database
+      link: https://doi.org/10.5281/zenodo.19615170
+      name: Dataset DOI
+  generator: false
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js

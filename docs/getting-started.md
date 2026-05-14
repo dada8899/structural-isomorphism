@@ -1,7 +1,7 @@
 # Getting started
 
-This page walks through installing the pipeline and running a first
-pre-registered validation locally.
+This page walks through installing **Structural Isomorphism** and running a
+first pre-registered validation locally.
 
 ## Prerequisites
 
@@ -11,18 +11,51 @@ pre-registered validation locally.
 
 ## Install
 
+=== "From source (recommended)"
+
+    ```bash
+    git clone https://github.com/dada8899/structural-isomorphism.git
+    cd structural-isomorphism
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -e .
+    ```
+
+=== "Pipeline package only"
+
+    The shared analysis stack will be published as `soc-pipeline` on PyPI.
+    Until then, install editable from the cloned repo as shown on the left.
+
+    ```bash
+    # placeholder — coming soon
+    pip install soc-pipeline
+    ```
+
+The shared analysis stack lives in `v4/lib/soc_pipeline.py` and has no heavy
+non-PyPI dependencies. The web backend (under `web/backend/`) additionally
+requires FastAPI and a small set of asynchronous client libraries; see
+`web/backend/requirements.txt`.
+
+## Quickstart — earthquakes
+
 ```bash
-git clone https://github.com/dada8899/structural-isomorphism.git
-cd structural-isomorphism
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+v4 status              # show pass/fail across 13 systems + 4 nulls
 ```
 
-The shared analysis stack lives in `v4/lib/soc_pipeline.py` and has no
-heavy non-PyPI dependencies. The web backend (under `web/backend/`)
-additionally requires FastAPI and a small set of asynchronous client
-libraries; see `web/backend/requirements.txt`.
+Programmatic example:
+
+```python
+from v4.lib.soc_pipeline import fit_clauset_powerlaw, vuong_lr
+
+result = fit_clauset_powerlaw(sizes, discrete=True)
+print(result.alpha, result.x_min, result.n_tail)
+
+lr_ln  = vuong_lr(sizes, result, alternative="lognormal")
+lr_exp = vuong_lr(sizes, result, alternative="exponential")
+print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
+```
+
+See [Pipeline](pipeline.md) for the full API surface.
 
 ## Run an existing validation
 
@@ -45,34 +78,17 @@ Verdicts are PASS, INCONCLUSIVE, or FAIL according to the rules in the
 YAML. The pipeline does no per-system tuning: the same code path produces
 all verdicts.
 
-## Run a fresh fit on your own data
-
-To fit a power-law tail on an arbitrary size vector:
-
-```python
-from v4.lib.soc_pipeline import fit_clauset_powerlaw, vuong_lr
-
-result = fit_clauset_powerlaw(sizes, discrete=True)
-print(result.alpha, result.x_min, result.n_tail)
-
-lr_ln  = vuong_lr(sizes, result, alternative="lognormal")
-lr_exp = vuong_lr(sizes, result, alternative="exponential")
-print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
-```
-
-See [Pipeline](pipeline.md) for the full API surface.
-
 ## Tests
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q
 ```
 
-At the time of writing the web backend test suite has 30 passing tests
-covering the SSE orchestrator, rate-limited API endpoints, and the
-pipeline result serializer.
+At the time of writing the web backend test suite has 30+ passing tests
+covering the SSE orchestrator, rate-limited API endpoints, and the pipeline
+result serializer.
 
-## Next steps
+## Where to go next
 
 - Read the [Pipeline](pipeline.md) overview to understand the seven
   analytical operations exposed by the shared library.
@@ -80,3 +96,6 @@ pipeline result serializer.
   to understand how exponent bands are locked before data acquisition.
 - Browse [Papers](papers.md) for the preprint set, including the unified
   thirteen-system preprint and the CVE falsification.
+- Try the live [Phase Detector](https://phase.bytedance.city) — submit a
+  size vector to `/api/ask/stream` and watch the seven-event orchestrator
+  return a verdict.
