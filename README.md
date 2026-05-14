@@ -32,7 +32,7 @@ A single shared 339-LOC Python module that performs Clauset MLE power-law fittin
 
 ### 2. Phase Detector product (`web/phase-detector/` + `phase/`)
 
-A research-preview consumer product that tags 500 publicly listed companies with their current dynamical phase (`stable`, `accumulating`, `near_critical`, `reversed`, `recovering`) using LLM-extracted StructTuple features mapped onto nine universality patterns drawn from cross-domain dynamical systems. Live at [phase.bytedance.city](https://phase.bytedance.city). Methodology paper in [`paper/`](paper/). A v0.1 historical backtest engine is included.
+A research-preview consumer product that tags 100 publicly listed companies with their current dynamical phase (`stable`, `accumulating`, `near_critical`, `reversed`, `recovering`) using LLM-extracted StructTuple features mapped onto nine universality patterns drawn from cross-domain dynamical systems. Live at [phase.bytedance.city](https://phase.bytedance.city). Methodology paper in [`paper/`](paper/). A v0.1 historical backtest engine runs against a larger 500-ticker S&P 500 universe (see [`v4/product/d1_phase_detector/README_BACKTEST.md`](v4/product/d1_phase_detector/README_BACKTEST.md)).
 
 ### 3. Cross-judge methodology (`v4/critics/` + `web/`)
 
@@ -47,7 +47,7 @@ A reproducible workflow for asking the question *"do these two phenomena from di
 | Product | URL | What it does |
 |---|---|---|
 | Structural search | https://beta.structural.bytedance.city | Natural-language query, streamed answer, KB citations, similar phenomena from other domains |
-| Phase Detector | https://phase.bytedance.city | 500 companies tagged with dynamical phase + nine universality patterns |
+| Phase Detector | https://phase.bytedance.city | 100 companies tagged with dynamical phase + nine universality patterns (500-ticker S&P 500 backtest universe in v0.1) |
 
 ## Quick start
 
@@ -161,7 +161,7 @@ For engineering / contributor details (build conventions, deployment SOP, sessio
 |---|---|
 | SOC validation pipeline | Stable. Frozen `soc_pipeline.py` + 38 sanity tests + 213 total tests. Used unchanged across 13 systems. |
 | Universality taxonomy (35 classes) | v0.3, B3 consensus complete (5 KEEP / 7 REJECT / 5 SPLIT / 4 MERGE), B4 ensemble run partial. |
-| Phase Detector | Live at 500 companies + backtest v0.1. Research-preview disclaimer in product. |
+| Phase Detector | Live at 100 companies + 500-ticker S&P 500 walk-forward backtest v0.1. Research-preview disclaimer in product. |
 | Structural search engine | Live at beta.structural.bytedance.city. Perplexity-style SSE streaming, 244/244 i18n EN keys. |
 | Unified preprint (C1) | v0.3.1 ready. arXiv submission pending account setup. |
 | Solo arXiv drafts | 4 drafts complete (earthquakes, S&P 500, DeFi cross-protocol, neural avalanches partial). |
