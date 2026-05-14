@@ -102,18 +102,38 @@
   font-size: 12px;
   margin: 8px 0 0;
   min-height: 18px;
+  /* Subtle transition for state changes so users don't miss the swap. */
+  transition: color 0.18s, background-color 0.18s, padding 0.18s;
 }
 
+/* Session #9 W4-C: stronger visual cue on terminal states. The plain colored
+ * text on a busy card is easy to miss (W3-A capture showed "提交中…" still
+ * visible at 15s — feedback that final state isn't visible enough). A faint
+ * inline pill on success/duplicate makes the swap unmistakable without
+ * shouting. Errors get a soft red wash so they don't look like loading text. */
 .newsletter-status.is-ok {
   color: #047857;
+  background-color: #ECFDF5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  font-weight: 500;
 }
 
 .newsletter-status.is-dup {
-  color: #52525B;
+  color: #3F3F46;
+  background-color: #F4F4F5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
 }
 
 .newsletter-status.is-err {
   color: #B91C1C;
+  background-color: #FEF2F2;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
 }
 
 .newsletter-fineprint {
