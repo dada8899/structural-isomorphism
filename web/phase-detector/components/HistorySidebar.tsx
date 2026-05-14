@@ -111,14 +111,18 @@ export default function HistorySidebar() {
 
   return (
     <>
-      {/* Mobile floating trigger */}
+      {/* Mobile floating trigger.
+          W6-C: moved from bottom-left to bottom-right so it stops overlapping
+          the TL;DR card mid-paragraph (audit § 5 mobile chrome). 历史 label
+          added so the icon-only button is discoverable per WCAG. */}
       <button
         type="button"
         aria-label="打开历史"
         onClick={() => setDrawerOpen(true)}
-        className="fixed bottom-5 left-4 z-[95] flex h-11 w-11 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg hover:bg-accent lg:hidden"
+        className="fixed bottom-5 right-4 z-[95] inline-flex h-11 items-center gap-2 rounded-full bg-zinc-900 px-3.5 text-sm text-white shadow-lg hover:bg-accent lg:hidden"
       >
         <span aria-hidden>☰</span>
+        <span className="text-xs">历史</span>
       </button>
 
       {/* Mobile backdrop */}

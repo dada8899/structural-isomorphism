@@ -3,6 +3,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
+import TopNav from "@/components/TopNav";
 import "./globals.css";
 
 // W3-B (session #9, 2026-05-14): self-host fonts via next/font (latin subset only).
@@ -84,31 +85,9 @@ export default function RootLayout({
                 公司状态评分
               </span>
             </Link>
-            <nav
-              className="flex items-center gap-5 text-sm text-zinc-600"
-              aria-label="主导航"
-            >
-              <Link href="/" className="hover:text-zinc-900">
-                公司表
-              </Link>
-              <Link href="/methodology" className="hover:text-zinc-900">
-                方法
-              </Link>
-              <Link href="/backtest" className="hover:text-zinc-900">
-                Backtest
-              </Link>
-              <Link href="/about" className="hover:text-zinc-900">
-                关于
-              </Link>
-              <a
-                href="https://beta.structural.bytedance.city/classes"
-                target="_blank"
-                rel="noopener"
-                className="hover:text-zinc-900"
-              >
-                Structural ↗
-              </a>
-            </nav>
+            {/* W6-C: top nav now collapses to hamburger below sm:640px to
+                fix mobile wrap (audit § 5). */}
+            <TopNav />
           </div>
         </header>
         <main id="main-content" className="mx-auto max-w-7xl px-6 py-6">
