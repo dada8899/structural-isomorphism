@@ -9,6 +9,10 @@
     <a href="https://doi.org/10.5281/zenodo.19615170"><img alt="Dataset DOI" src="https://img.shields.io/badge/Dataset_DOI-10.5281%2Fzenodo.19615170-blue.svg"></a>
     <a href="https://beta.structural.bytedance.city"><img alt="Live Demo" src="https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44"></a>
     <a href="https://phase.bytedance.city"><img alt="Phase Detector" src="https://img.shields.io/badge/Phase_Detector-phase.bytedance.city-2f9e44"></a>
+    <a href="paper/v0-unified-pipeline-2026-05-13.md"><img alt="Preprint" src="https://img.shields.io/badge/Preprint-arXiv_pending-orange.svg"></a>
+    <a href="CITATION.cff"><img alt="Citation" src="https://img.shields.io/badge/Cite-CITATION.cff-blue.svg"></a>
+    <a href="#run-the-included-regression-suite"><img alt="Tests" src="https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg"></a>
+    <a href="paper/anti-phacking-unified-2026-05-15.md"><img alt="Methodology paper" src="https://img.shields.io/badge/Methodology-Anti--p--hacking-blueviolet.svg"></a>
   </p>
 </p>
 
