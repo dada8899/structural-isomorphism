@@ -85,7 +85,8 @@
       </section>
 
       <div class="disc-filter" id="disc-filter">
-        <div class="disc-skeleton-filter" aria-hidden="true"></div>
+        <!-- W1-B (2026-05-14): 2 rows = real render shape (tier-tabs + filter-row).
+             3 was over-tall and caused shift when JS swapped in real DOM. -->
         <div class="disc-skeleton-filter" aria-hidden="true"></div>
         <div class="disc-skeleton-filter" aria-hidden="true"></div>
       </div>
