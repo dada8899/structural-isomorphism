@@ -92,9 +92,12 @@ export function ExploreCardsGrid({ cards }: Props) {
         </Link>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {slice.map((c) => {
+        {slice.map((c, i) => {
           const palette = PHASE_COLORS[c.critical_point_state] ?? PHASE_COLORS.unknown;
           const sparkPath = buildSparkPath(c.ticker);
+          // W12-D: first card doubles as the spotlight target for the
+          // onboarding tour's "phase badge" step.
+          const isTourTarget = i === 0;
           return (
             <Link
               key={c.ticker}
@@ -136,6 +139,7 @@ export function ExploreCardsGrid({ cards }: Props) {
                     backgroundColor: palette.bg,
                     borderColor: palette.border,
                   }}
+                  {...(isTourTarget ? { "data-tour-target": "phase-badge" } : {})}
                 >
                   {CPS_LABEL_ZH[c.critical_point_state] ?? c.critical_point_state}
                 </span>

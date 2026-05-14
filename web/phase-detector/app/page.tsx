@@ -105,10 +105,13 @@ export default async function LandingPage() {
 
       <TrustSignalsRow />
 
-      {/* Waitlist section — kept editorially tight to match the surrounding tone. */}
+      {/* Waitlist section — kept editorially tight to match the surrounding tone.
+          W12-D: data-tour-target="waitlist-form" makes this the spotlight
+          for the onboarding tour's 4th step. */}
       <section
         aria-labelledby="waitlist-heading"
         className="mx-auto w-full max-w-3xl px-6 py-20 sm:py-24"
+        data-tour-target="waitlist-form"
       >
         <div className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-white via-white to-indigo-50/40 p-8 sm:p-12">
           <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-indigo-700">
@@ -135,12 +138,15 @@ export default async function LandingPage() {
 
       <FaqAccordion />
 
-      {/* Sister-product cross-link — keep the same as before for symmetry. */}
+      {/* Sister-product cross-link — keep the same as before for symmetry.
+          W12-D: doubles as the universality spotlight target since there
+          isn't a dedicated universality card on the landing yet. */}
       <section className="mx-auto w-full max-w-4xl px-6 pb-24">
         <Link
           href="https://beta.structural.bytedance.city/classes"
           target="_blank"
           rel="noopener"
+          data-tour-target="universality-card"
           className="block rounded-2xl border border-zinc-200 bg-white px-6 py-6 transition hover:border-indigo-300 hover:bg-indigo-50/30 sm:px-8"
         >
           <span className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
