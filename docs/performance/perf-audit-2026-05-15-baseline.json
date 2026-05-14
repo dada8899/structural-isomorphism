@@ -1,0 +1,497 @@
+{
+  "base_url": "http://localhost:3017",
+  "timestamp": "2026-05-15T05:22:29+0800",
+  "runs_per_page": 1,
+  "pages": {
+    "landing": {
+      "path": "/",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 60,
+        "lcp_element": "H1#hero-headline",
+        "cls": 0,
+        "fcp_ms": 60,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 52.4,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 127.4,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 165.5,
+          "total_kb": 398.3
+        },
+        "resource_count": 44,
+        "dom_loaded_ms": 61,
+        "load_event_ms": 62.5,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2128,
+        "lcp_element": "H1#hero-headline",
+        "cls": 0,
+        "fcp_ms": 2128,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1958,
+        "long_task_count": 1,
+        "long_task_total_ms": 97,
+        "transfer_kb": {
+          "js_kb": 127.4,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 124.7,
+          "total_kb": 357.5
+        },
+        "resource_count": 31,
+        "dom_loaded_ms": 2136.4,
+        "load_event_ms": 2136.4,
+        "raw_runs": null
+      }
+    },
+    "companies": {
+      "path": "/companies",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 60,
+        "lcp_element": "DIV",
+        "cls": 0.01,
+        "fcp_ms": 60,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 49.7,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 148.3,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 153.0,
+          "total_kb": 406.8
+        },
+        "resource_count": 40,
+        "dom_loaded_ms": 58.8,
+        "load_event_ms": 59,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2248,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2248,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 2078.3,
+        "long_task_count": 1,
+        "long_task_total_ms": 102,
+        "transfer_kb": {
+          "js_kb": 148.3,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 135.4,
+          "total_kb": 389.1
+        },
+        "resource_count": 32,
+        "dom_loaded_ms": 2255.4,
+        "load_event_ms": 2255.4,
+        "raw_runs": null
+      }
+    },
+    "company_AAPL": {
+      "path": "/company/AAPL",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 92,
+        "lcp_element": "P",
+        "cls": 0.04,
+        "fcp_ms": 60,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 140.8,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 152.6,
+          "total_kb": 398.8
+        },
+        "resource_count": 39,
+        "dom_loaded_ms": 61.3,
+        "load_event_ms": 391.3,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2288,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2144,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1970.2,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 140.8,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 131.1,
+          "total_kb": 377.3
+        },
+        "resource_count": 29,
+        "dom_loaded_ms": 2154,
+        "load_event_ms": 2154,
+        "raw_runs": null
+      }
+    },
+    "universality": {
+      "path": "/universality",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 40,
+        "lcp_element": "P",
+        "cls": 0.01,
+        "fcp_ms": 40,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 132.2,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 149.1,
+          "total_kb": 386.7
+        },
+        "resource_count": 36,
+        "dom_loaded_ms": 43.3,
+        "load_event_ms": 419.4,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2096,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2096,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1930.3,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 132.2,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 134.6,
+          "total_kb": 372.2
+        },
+        "resource_count": 30,
+        "dom_loaded_ms": 2104.4,
+        "load_event_ms": 2104.5,
+        "raw_runs": null
+      }
+    },
+    "universality_class": {
+      "path": "/universality/self_organized_criticality",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 116,
+        "lcp_element": "H1",
+        "cls": 0.58,
+        "fcp_ms": 48,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 138.6,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 152.6,
+          "total_kb": 396.6
+        },
+        "resource_count": 37,
+        "dom_loaded_ms": 50.3,
+        "load_event_ms": 429.3,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2228,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2128,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1952.5,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 138.6,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 138.1,
+          "total_kb": 382.1
+        },
+        "resource_count": 32,
+        "dom_loaded_ms": 2135.6,
+        "load_event_ms": 2135.7,
+        "raw_runs": null
+      }
+    },
+    "compare": {
+      "path": "/compare?tickers=AAPL,TSLA",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 56,
+        "lcp_element": "P",
+        "cls": 0.05,
+        "fcp_ms": 40,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 136.2,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 153.0,
+          "total_kb": 394.6
+        },
+        "resource_count": 38,
+        "dom_loaded_ms": 41.7,
+        "load_event_ms": 41.7,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2300,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2120,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1950.4,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 136.2,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 135.1,
+          "total_kb": 376.6
+        },
+        "resource_count": 31,
+        "dom_loaded_ms": 2129.8,
+        "load_event_ms": 2129.8,
+        "raw_runs": null
+      }
+    },
+    "pricing": {
+      "path": "/pricing",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 48,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 48,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 130.7,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 147.5,
+          "total_kb": 383.5
+        },
+        "resource_count": 36,
+        "dom_loaded_ms": 47.4,
+        "load_event_ms": 47.4,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2056,
+        "lcp_element": "H1",
+        "cls": 0,
+        "fcp_ms": 2056,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1879.5,
+        "long_task_count": 1,
+        "long_task_total_ms": 62,
+        "transfer_kb": {
+          "js_kb": 119.7,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 119.0,
+          "total_kb": 344.1
+        },
+        "resource_count": 25,
+        "dom_loaded_ms": 2061.5,
+        "load_event_ms": 2061.5,
+        "raw_runs": null
+      }
+    },
+    "backtest": {
+      "path": "/backtest",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 48,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 48,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 220.0,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 162.1,
+          "total_kb": 487.5
+        },
+        "resource_count": 37,
+        "dom_loaded_ms": 56.9,
+        "load_event_ms": 57,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2256,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2256,
+        "tbt_ms": 91.0,
+        "inp_proxy_ms": 2079.8,
+        "long_task_count": 2,
+        "long_task_total_ms": 200,
+        "transfer_kb": {
+          "js_kb": 220.0,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 137.9,
+          "total_kb": 463.3
+        },
+        "resource_count": 27,
+        "dom_loaded_ms": 2267.1,
+        "load_event_ms": 2621.3,
+        "raw_runs": null
+      }
+    },
+    "about": {
+      "path": "/about",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 48,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 48,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 0,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 245.5,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 147.1,
+          "total_kb": 498.0
+        },
+        "resource_count": 35,
+        "dom_loaded_ms": 48,
+        "load_event_ms": 406.1,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2044,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2044,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1866.9,
+        "long_task_count": 1,
+        "long_task_total_ms": 64,
+        "transfer_kb": {
+          "js_kb": 117.5,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 119.0,
+          "total_kb": 341.9
+        },
+        "resource_count": 25,
+        "dom_loaded_ms": 2051.7,
+        "load_event_ms": 2051.8,
+        "raw_runs": null
+      }
+    },
+    "methodology": {
+      "path": "/methodology",
+      "desktop": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 64,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 64,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 51.5,
+        "long_task_count": 0,
+        "long_task_total_ms": 0,
+        "transfer_kb": {
+          "js_kb": 117.5,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 146.0,
+          "total_kb": 368.9
+        },
+        "resource_count": 35,
+        "dom_loaded_ms": 65.7,
+        "load_event_ms": 388.7,
+        "raw_runs": null
+      },
+      "mobile": {
+        "runs": 1,
+        "status": 200,
+        "lcp_ms": 2064,
+        "lcp_element": "P",
+        "cls": 0,
+        "fcp_ms": 2064,
+        "tbt_ms": 0.0,
+        "inp_proxy_ms": 1887.8,
+        "long_task_count": 1,
+        "long_task_total_ms": 85,
+        "transfer_kb": {
+          "js_kb": 117.5,
+          "css_kb": 105.4,
+          "img_kb": 0.0,
+          "other_kb": 119.0,
+          "total_kb": 341.9
+        },
+        "resource_count": 25,
+        "dom_loaded_ms": 2071.6,
+        "load_event_ms": 2071.6,
+        "raw_runs": null
+      }
+    }
+  }
+}
