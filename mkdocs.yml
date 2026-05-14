@@ -1,0 +1,89 @@
+site_name: structural-isomorphism
+site_description: A pre-registered, cross-domain validation pipeline for universality classes in complex systems.
+site_url: https://dada8899.github.io/structural-isomorphism/
+repo_url: https://github.com/dada8899/structural-isomorphism
+repo_name: dada8899/structural-isomorphism
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site_mkdocs
+
+# Existing files under docs/ that are not part of the public navigation but
+# would otherwise warn under --strict. We exclude them rather than delete
+# (they remain in the repo for internal reference).
+exclude_docs: |
+  PUBLIC_READINESS_CHECKLIST.md
+  API_AUTH.md
+  data-versioning.md
+  privacy-policy.md
+  analytics/
+  deployment/
+  future/
+  newsletter/
+  reviews/
+  screenshots/
+  security/
+  sessions/
+  testing/
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Pipeline: pipeline.md
+  - Phase Detector: phase-detector.md
+  - Methodology:
+      - Cross-judge ensemble: methodology/cross-judge.md
+      - Pre-registration: methodology/pre-registration.md
+  - Pre-registrations: pre-registrations.md
+  - Papers: papers.md
+  - API: api.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/dada8899/structural-isomorphism
