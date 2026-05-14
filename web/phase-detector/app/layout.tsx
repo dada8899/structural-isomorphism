@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
 import TopNav from "@/components/TopNav";
+import OnboardingTour from "@/components/OnboardingTour";
 import "./globals.css";
 
 // W3-B (session #9, 2026-05-14): self-host fonts via next/font (latin subset only).
@@ -127,6 +128,10 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        {/* W12-D (session #10): onboarding tour — auto-starts on first
+            visit (localStorage `phase_tour_seen` controls), restart-able
+            from TopNav. Mounted globally so every page can host it. */}
+        <OnboardingTour />
         {/* Plausible analytics (W4-B G3, 2026-05-13). */}
         <Script
           defer
