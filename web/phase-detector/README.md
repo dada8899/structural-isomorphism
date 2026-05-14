@@ -74,7 +74,7 @@ NEXT_PUBLIC_USE_MOCK=false
 - 缺这个文件时 build 会用源码默认值 `http://localhost:8000`，前端到用户浏览器的本地端口（不存在）→ "Failed to fetch"
 - 改了 `.env.production` 后必须 **rebuild + restart**（不是 dev hot reload）
 
-部署 SOP：
+部署 SOP（手动 fallback）：
 
 ```bash
 cd /root/Projects/structural-isomorphism-v4/web/phase-detector
@@ -82,6 +82,28 @@ git pull --ff-only origin main
 export NVM_DIR="/root/.nvm" && . "$NVM_DIR/nvm.sh"
 pnpm build && systemctl restart phase-detector-web
 ```
+
+## Auto-deploy
+
+Push 到 `main` 且改动落在 `web/phase-detector/**` 时，GitHub Actions
+workflow [`.github/workflows/deploy-phase-detector.yml`](../../.github/workflows/deploy-phase-detector.yml)
+自动跑：
+
+1. CI runner 用专用 SSH key（GH secret `VPS_DEPLOY_KEY`）登 VPS
+2. VPS `~/.ssh/authorized_keys` 上的 `command=` 限制强制只会跑
+   `/root/scripts/deploy-phase-detector.sh`（key 不能执行任意命令）
+3. 脚本流程：`git fetch && reset --hard origin/main` →
+   guard `.env.production` 存在（缺则非零退出）→
+   `pnpm install --frozen-lockfile` → `pnpm build` →
+   `systemctl restart phase-detector-web` → curl smoke
+   `https://phase.bytedance.city/`
+4. CI runner 再做一次外部 curl smoke 兜底
+
+手动触发：`gh workflow run deploy-phase-detector.yml`。
+
+防回 2026-05-14 故障：脚本第一步就检查 `.env.production`，缺则
+非零退出，不会以损坏配置 build 出问题 bundle。改 `.env.production`
+本身就会触发本 workflow（`web/phase-detector/**` paths 命中）。
 
 ## Architecture notes
 
