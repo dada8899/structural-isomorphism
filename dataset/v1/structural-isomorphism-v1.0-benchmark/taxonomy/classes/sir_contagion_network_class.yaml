@@ -1,0 +1,84 @@
+class_id: sir_contagion_network_class
+status: emerging
+display_name: SIR-type contagion on networks
+display_name_zh: SIR 网络传染与拓扑传导
+hub_phenomenon: Compartmental contagion dynamics on a contact/financial network; basic reproduction number R_0 = β/γ determines
+  epidemic threshold
+shared_equation: "Kermack-McKendrick SIR (mean-field):\n  dS/dt = -β·S·I/N,\n  dI/dt = β·S·I/N - γ·I,\n  dR/dt = γ·I.\nNetwork\
+  \ SIR: dX_i/dt = β·Σ_j A_ij·X_j·(1-X_i) - γ·X_i.\nBasic reproduction number: R_0 = β·⟨k⟩/γ.\nEpidemic threshold: R_0 > 1\
+  \ → outbreak.\nFinal epidemic size: R_∞/N = 1 - exp(-R_0·R_∞/N).\n"
+key_invariants:
+- SIR master equation dS/dt = -βSI; dI/dt = βSI - γI; dR/dt = γI
+- R_0 = β⟨k⟩/γ controls phase transition
+- R_∞/N ≈ 1 - 1/R_0 for R_0 not too large
+- 'Topology shifts threshold: scale-free networks have R_0 → 0 critical (no epidemic threshold)'
+- Mass-action transmission (no individual-level threshold)
+positive_examples:
+- phenomenon: Emerging markets contagion domino effect (新兴市场传染的多米诺效应)
+  evidence: 'Hub. Layer 4 prediction: R_0 ∈ [1.3, 2.8] during crisis; β/γ leads CDS spreads by 5-20 days. SIR fit to 6 major
+    crises 1994-2024.'
+  verified_at: candidate
+- phenomenon: CDS index credit cascade modeling
+  evidence: Network SIR on CDS counterparty graph. Layer 3 medium-confidence match.
+  verified_at: candidate
+- phenomenon: OTC derivatives counterparty exposure
+  evidence: Same SIR mechanism on bilateral exposure graph; topology shifted from bow-tie to star via CCP intermediation.
+  verified_at: candidate
+- phenomenon: Drug-resistant bacteria transmission (耐药菌传播)
+  evidence: SIR on hospital contact network with reservoir compartment. Standard infectious disease model.
+  verified_at: candidate
+negative_examples:
+- phenomenon: Earthquake aftershock cascade
+  reason: No individual susceptibility/infection state; cascade is mechanistic stress transfer. Belongs to soc_threshold_cascade.
+- phenomenon: DeFi liquidation cascade
+  reason: Threshold cascade (Motter-Lai), not mass-action transmission. Liquidations don't 'infect' counterparties — they
+    redistribute load. Belongs to motter_lai_network_cascade.
+- phenomenon: Watts threshold cascade on social network
+  reason: Individual threshold rule (fraction of infected neighbors > θ_i), NOT mass-action β·S·I. Different microscopic dynamics.
+    Belongs to motter_lai_network_cascade or percolation_connectivity.
+- phenomenon: Network failure via random component failure
+  reason: Independent failures; no infection-style state coupling. Belongs to percolation_connectivity.
+- phenomenon: Deterministic well-mixed SIR ODE model
+  reason: "Superficially identical S-shaped epidemic curves, but lacks network structure; it is a homogeneous mean-field system, not a contagion on a contact/financial network."
+- phenomenon: Linear threshold cascade on social network
+  reason: "Produces avalanche-like adoption curves that resemble epidemic spread, but the mechanism is based on fraction of activated neighbors exceeding a threshold, not independent probabilistic transmission per contact."
+- phenomenon: Percolation on a random graph
+  reason: "Exhibits a critical threshold and giant component size similar to epidemic outbreak size, but it is a static connectivity phase transition with no dynamic compartmental evolution or recovery."
+- phenomenon: Fire-sale financial contagion in interbank networks
+  reason: "Cascades of bank failures look like disease spreading on a financial network, but transmission occurs through asset liquidation pressure and overlapping portfolios, not through an infection-like independent probability per exposure."
+- phenomenon: Voter model on networks
+  reason: "Opinions spread over edges, but the dynamics lack an immune (recovered) compartment; it is a two-state model (S and I only) with no recovery, making its equilibrium and threshold behavior distinct from SIR."
+edge_cases:
+- phenomenon: Bank run with information cascade
+  debate: Information-driven 'infection' of withdrawal behavior could fit SIR. But payoff structure is coordination game (multistable_self_fulfilling),
+    not SIR. Class assignment depends on whether you model belief contagion (SIR) or strategic decision (game theory).
+- phenomenon: Twitter retweet cascade
+  debate: Often modeled as SIR-like (Goel et al. 2012). But preferential attachment + homophily also contribute. Heterogeneous
+    class membership.
+- phenomenon: Cascading default on interbank network
+  debate: Can be modeled as SIR (default infects creditors) OR as Eisenberg-Noe clearing (Motter-Lai). Same data, two valid
+    generative models. Class boundary.
+- phenomenon: SIR on temporal networks with dynamic edges
+  debate: ""
+- phenomenon: SIR with waning immunity (SIRS model)
+  debate: ""
+- phenomenon: Metapopulation SIR on a mobility network
+  debate: ""
+- phenomenon: "SIR with highly heterogeneous contact rates (e.g., scale-free degree distribution)"
+  debate: ""
+- phenomenon: SEIR model on a network (with exposed/latent period)
+  debate: ""
+references:
+- Kermack, McKendrick 1927 Proc. Roy. Soc. A 115, 700 (original SIR)
+- Anderson, May 1991 Infectious Diseases of Humans
+- Pastor-Satorras, Vespignani 2001 Phys. Rev. Lett. 86, 3200 (epidemic on scale-free)
+- Allen, Gale 2000 J. Pol. Econ. 108, 1 (financial contagion)
+- Forbes, Rigobon 2002 J. Finance 57, 2223 (contagion measurement)
+b3_status: SPLIT_B3
+b3_verdict: SPLIT_strong
+b3_consensus: SPLIT
+b3_avg_confidence: 0.83
+b3_action_taken: 'split into 2 children: sir_contagion_network_class__sir_epidemic, sir_contagion_network_class__balance_sheet_cascade'
+superseded_by_split:
+- sir_contagion_network_class__sir_epidemic
+- sir_contagion_network_class__balance_sheet_cascade

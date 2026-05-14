@@ -1,0 +1,63 @@
+{
+  "task": "NULL VALIDATION",
+  "objective": "Pipeline must REJECT power-law on synthetic non-SOC data",
+  "datasets_tested": [
+    "gaussian_walk",
+    "exponential",
+    "poisson_iat",
+    "poisson_omori"
+  ],
+  "all_three_size_dists_rejected_power_law": true,
+  "poisson_failed_omori_fit": true,
+  "pipeline_robustness": "PASSED",
+  "note": "If pipeline_robustness == PASSED, the positive SOC findings of Phases 1-4 cannot be explained by 'pipeline fits everything as power-law'. The pipeline is a meaningful detector, not a tautological labelling tool.",
+  "results": {
+    "gaussian_walk": {
+      "name": "gaussian_walk",
+      "alpha": 2.999087244811155,
+      "sigma_alpha": 0.021499290727308048,
+      "xmin": 0.7840644374778307,
+      "n_total": 20000,
+      "n_tail": 8646,
+      "vs_lognormal_R": -28.577448877381094,
+      "vs_lognormal_p": 1.281215785634331e-179,
+      "vs_exponential_R": -44.75967762663638,
+      "vs_exponential_p": 0.0,
+      "rejects_power_law": true
+    },
+    "exponential": {
+      "name": "exponential",
+      "alpha": 2.996022019298488,
+      "sigma_alpha": 0.026902129954687503,
+      "xmin": 1.3051163898222926,
+      "n_total": 20000,
+      "n_tail": 5505,
+      "vs_lognormal_R": -16.026027586765732,
+      "vs_lognormal_p": 8.408923215526333e-58,
+      "vs_exponential_R": -17.170991634354344,
+      "vs_exponential_p": 4.3787493905446844e-66,
+      "rejects_power_law": true
+    },
+    "poisson_omori": {
+      "n_main": 23,
+      "mu": 9.986019572598362,
+      "threshold": 19.548060818078064,
+      "p": -0.06762037454611873,
+      "R2": 0.0015150713758032008,
+      "n_pos_excess_bins": 16
+    },
+    "poisson_iat": {
+      "name": "poisson_iat",
+      "alpha": 2.999975917840704,
+      "sigma_alpha": 0.017081337669360527,
+      "xmin": 0.12917817134643883,
+      "n_total": 49999,
+      "n_tail": 13709,
+      "vs_lognormal_R": -24.448772112937657,
+      "vs_lognormal_p": 5.186017137549267e-132,
+      "vs_exponential_R": -24.387222384954182,
+      "vs_exponential_p": 2.3368743158451496e-131,
+      "rejects_power_law": true
+    }
+  }
+}

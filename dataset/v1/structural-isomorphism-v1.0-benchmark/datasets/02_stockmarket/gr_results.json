@@ -1,0 +1,33 @@
+{
+  "domain": "stock market (S&P 500 daily returns)",
+  "predicted_class": "soc_threshold_cascade",
+  "cross_domain_test": true,
+  "time_window": {
+    "start": "1990-01-01",
+    "end": "2025-12-31"
+  },
+  "n_returns": 9065,
+  "std_daily_return": 0.011384785762070606,
+  "clauset_fit": {
+    "alpha": 2.9980301314292044,
+    "sigma_alpha": 0.04141940365038265,
+    "xmin": 0.009980500536555895,
+    "n_total": 9060,
+    "n_tail": 2327,
+    "compare_vs_lognormal_R": -6.120311689558688,
+    "compare_vs_lognormal_p": 9.33924933487159e-10,
+    "compare_vs_exponential_R": -0.5168360912893013,
+    "compare_vs_exponential_p": 0.6052705834298948
+  },
+  "alpha_predicted_range": [
+    2.5,
+    3.5
+  ],
+  "alpha_within_prediction": true,
+  "method_refs": [
+    "Gopikrishnan et al 1998 (power-law tails of stock returns)",
+    "Plerou et al 1999",
+    "Lux-Marchesi 1999",
+    "Clauset-Shalizi-Newman 2009"
+  ]
+}

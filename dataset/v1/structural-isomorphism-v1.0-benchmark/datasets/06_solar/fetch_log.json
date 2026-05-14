@@ -1,0 +1,108 @@
+{
+  "per_year": [
+    {
+      "year": 2000,
+      "status": "ok",
+      "lines_total": 2661,
+      "events_parsed": 2661
+    },
+    {
+      "year": 2001,
+      "status": "ok",
+      "lines_total": 2706,
+      "events_parsed": 2705
+    },
+    {
+      "year": 2002,
+      "status": "ok",
+      "lines_total": 2718,
+      "events_parsed": 2718
+    },
+    {
+      "year": 2003,
+      "status": "ok",
+      "lines_total": 2395,
+      "events_parsed": 2393
+    },
+    {
+      "year": 2004,
+      "status": "ok",
+      "lines_total": 2369,
+      "events_parsed": 2369
+    },
+    {
+      "year": 2005,
+      "status": "ok",
+      "lines_total": 2172,
+      "events_parsed": 2171
+    },
+    {
+      "year": 2006,
+      "status": "ok",
+      "lines_total": 1341,
+      "events_parsed": 1339
+    },
+    {
+      "year": 2007,
+      "status": "ok",
+      "lines_total": 650,
+      "events_parsed": 649
+    },
+    {
+      "year": 2008,
+      "status": "ok",
+      "lines_total": 87,
+      "events_parsed": 86
+    },
+    {
+      "year": 2009,
+      "status": "ok",
+      "lines_total": 257,
+      "events_parsed": 256
+    },
+    {
+      "year": 2010,
+      "status": "ok",
+      "lines_total": 1256,
+      "events_parsed": 1255
+    },
+    {
+      "year": 2011,
+      "status": "ok",
+      "lines_total": 2171,
+      "events_parsed": 2170
+    },
+    {
+      "year": 2012,
+      "status": "ok",
+      "lines_total": 2037,
+      "events_parsed": 2037
+    },
+    {
+      "year": 2013,
+      "status": "ok",
+      "lines_total": 2051,
+      "events_parsed": 2051
+    },
+    {
+      "year": 2014,
+      "status": "ok",
+      "lines_total": 2258,
+      "events_parsed": 2258
+    },
+    {
+      "year": 2015,
+      "status": "ok",
+      "lines_total": 1899,
+      "events_parsed": 1899
+    },
+    {
+      "year": 2016,
+      "status": "ok",
+      "lines_total": 1194,
+      "events_parsed": 1194
+    }
+  ],
+  "total": 29907,
+  "after_dedup_dropped": 304
+}

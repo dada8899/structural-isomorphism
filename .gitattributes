@@ -78,3 +78,19 @@ data/clean-expanded.jsonl filter=lfs diff=lfs merge=lfs -text
 # (<100KB analyses/summaries — LFS pointer overhead not worth it)
 v4/results/*.jsonl !filter !diff !merge
 v4/results/*.json !filter !diff !merge
+
+# === structural-isomorphism v1.0 Zenodo benchmark bundle large data files (W7-A) ===
+# These mirror v4/validation/ raw files; >1MB threshold for LFS to keep git history clean.
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/01_earthquake/catalog.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/01_earthquake/catalog.parquet filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/03_defi/aave_v2_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/03_defi/compound_v2_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/03_defi/maker_dog_liquidations.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/04_neural/bf_1.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/04_neural/bf_2.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/04_neural/neural_avalanches.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/04_neural/synthetic_avalanches.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/05_wildfire/fires.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/06_solar/flares.jsonl filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/07_bank_failures/raw_fdic.json filter=lfs diff=lfs merge=lfs -text
+dataset/v1/structural-isomorphism-v1.0-benchmark/datasets/08_github_stars/repos.jsonl filter=lfs diff=lfs merge=lfs -text

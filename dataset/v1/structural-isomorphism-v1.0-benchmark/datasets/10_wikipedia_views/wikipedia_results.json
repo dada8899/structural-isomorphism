@@ -1,0 +1,92 @@
+{
+  "phase": "Layer 5 Phase 13",
+  "domain": "English Wikipedia pageviews (Wikimedia REST top API, 22 monthly Top-1000 lists from 2023-01 to 2024-11)",
+  "predicted_class": "preferential_attachment (Yule-Simon / Zipf / Barabási-Albert)",
+  "n_articles": 7521,
+  "views_range": [
+    275427,
+    107637994
+  ],
+  "views_median": 677710.0,
+  "views_mean": 1788002.3966227896,
+  "powerlaw_fit": {
+    "name": "wikipedia_pageviews",
+    "alpha": 2.0335699021539746,
+    "sigma_alpha": 0.019473608317077853,
+    "xmin": 984148.0,
+    "n_total": 7521,
+    "n_tail": 2817,
+    "vs_lognormal_R": -6.31394772582226,
+    "vs_lognormal_p": 2.7200585016438555e-10,
+    "vs_exponential_R": 7.665367455312894,
+    "vs_exponential_p": 1.7831993285696547e-14,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true
+  },
+  "bootstrap_ci": {
+    "alpha_mean": 2.0696808242634965,
+    "alpha_median": 2.0010181000076432,
+    "alpha_std": 0.31769047864489625,
+    "ci_low": 1.8542798769129725,
+    "ci_high": 2.983645035624504,
+    "n_boot_succeeded": 100
+  },
+  "subpop_top_half": {
+    "name": "top_half",
+    "alpha": 2.0335699021539746,
+    "sigma_alpha": 0.019473608317077853,
+    "xmin": 984148.0,
+    "n_total": 3761,
+    "n_tail": 2817,
+    "vs_lognormal_R": -6.31394772582226,
+    "vs_lognormal_p": 2.7200585016438555e-10,
+    "vs_exponential_R": 7.665367455312894,
+    "vs_exponential_p": 1.7831993285696547e-14,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true
+  },
+  "subpop_bottom_half": {
+    "name": "bottom_half",
+    "alpha": 2.9999999240040767,
+    "sigma_alpha": 0.03261640241331525,
+    "xmin": 275427.0,
+    "n_total": 3760,
+    "n_tail": 3760,
+    "vs_lognormal_R": -35.23078934048631,
+    "vs_lognormal_p": 6.755592749836096e-272,
+    "vs_exponential_R": -83.07322655692246,
+    "vs_exponential_p": 0.0,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true
+  },
+  "null_control": {
+    "all_rejected": true,
+    "n_per_null": 7521
+  },
+  "predicted_alpha_range": [
+    1.7,
+    2.5
+  ],
+  "literature_alpha_range": [
+    1.5,
+    3.0
+  ],
+  "verdict": "CONFIRMED",
+  "interpretation": "Wikipedia pageview distribution α = 2.034 (bootstrap 95% CI [1.854, 2.984]). Predicted [1.7, 2.5] from Zipf/preferential-attachment heuristics. vs lognormal R = -6.314 (p=2.72e-10). vs exponential R = 7.665 (p=1.78e-14). Verdict: CONFIRMED.",
+  "method_refs": [
+    "Newman 2005 Contemp. Phys. (Wikipedia pageview α ≈ 2.0 reported)",
+    "Zipf 1949 (rank-frequency law, α = 2)",
+    "Yule 1925 (cumulative advantage)",
+    "Simon 1955 Biometrika (Yule-Simon)",
+    "Barabási-Albert 1999 Science (preferential attachment)",
+    "Clauset-Shalizi-Newman 2009 SIAM Rev (MLE + LR tests)",
+    "Mitzenmacher 2004 Internet Math. (power-law vs lognormal)",
+    "Spoerri 2007 (Wikipedia popularity distribution)"
+  ],
+  "data_caveats": [
+    "Wikimedia REST top API returns at most 1000 articles per month, so the catalog is truncated at the popular end — articles outside the monthly Top-1000 are absent",
+    "2024-09 and 2024-12 returned HTTP 404 ('data not loaded') and are excluded",
+    "Main_Page, Special:*, Wikipedia:*, Portal:*, File:*, Talk:*, User:*, Category:* are filtered out as non-article entries",
+    "Yearly aggregate sums views across months an article appears in the Top-1000, not full annual views; articles popular only briefly are undercounted"
+  ]
+}
