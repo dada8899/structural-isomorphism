@@ -36,6 +36,14 @@ app_state = {}
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("Starting Structural Web Backend...")
+
+    # Initialise structured JSON event logger + (optional) Sentry.
+    try:
+        from services.observability import setup_logging
+        setup_logging()
+    except Exception as e:  # pragma: no cover — never fail startup over logging
+        logger.warning(f"observability setup failed: {e}")
+
     from services.search_service import SearchService
 
     data_dir = os.getenv("STRUCTURAL_DATA_DIR")
@@ -105,7 +113,7 @@ def get_search_service():
 
 
 # --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask  # noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history  # noqa
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -117,6 +125,7 @@ app.include_router(discoveries.router, prefix="/api")
 app.include_router(analyze.router, prefix="/api")
 app.include_router(synthesize.router, prefix="/api")
 app.include_router(ask.router, prefix="/api")
+app.include_router(history.router, prefix="/api")
 
 
 @app.get("/api/health")
