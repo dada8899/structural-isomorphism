@@ -311,3 +311,41 @@ export const CPS_OPTIONS: CriticalPointState[] = [
   "post_critical_transition",
   "unknown",
 ];
+
+// ---------------------------------------------------------------------------
+// Primary indicator labels (W5-D copy-quality fix).
+//
+// BE returns indicators as a free-form Record<string, ...> keyed by canonical
+// snake_case names. Without CN labels, /company/[ticker] surfaces raw
+// "ar1_trend / variance_trend / tail_exponent_drift" — unreadable for the
+// 8th-grade reader target. Mapping below covers the 3 universal indicators
+// emitted by extract_structtuple. Unknown keys gracefully fall back to the
+// raw snake_case name.
+// ---------------------------------------------------------------------------
+
+export const INDICATOR_LABEL_ZH: Record<string, string> = {
+  ar1_trend: "记忆效应趋势 (AR1)",
+  variance_trend: "波动率趋势",
+  tail_exponent_drift: "尾部厚度漂移",
+};
+
+export const INDICATOR_TOOLTIP_ZH: Record<string, string> = {
+  ar1_trend:
+    "自相关系数趋势：上升 = 系统响应越来越慢、记忆变长，是接近临界的早期信号。",
+  variance_trend:
+    "方差趋势：上升 = 波动放大、系统变得越来越敏感，常与临界减速一起出现。",
+  tail_exponent_drift:
+    "幂律尾部指数变化：变扁 = 极端事件更频繁，重尾结构正在变厚。",
+};
+
+// Indicator values are also typically short label tokens (rising / falling /
+// stable / unknown / n/a / heavy_tail_steepening). Provide CN equivalents so
+// the panel reads as a sentence not a debug dump.
+export const INDICATOR_VALUE_LABEL_ZH: Record<string, string> = {
+  rising: "上升",
+  falling: "下降",
+  stable: "稳定",
+  unknown: "未知",
+  "n/a": "—",
+  heavy_tail_steepening: "尾部变厚",
+};
