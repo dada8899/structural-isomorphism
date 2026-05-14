@@ -19,6 +19,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { UniversalityAnalogueMap } from "@/components/UniversalityAnalogueMap";
 import {
   fetchUniversalityClassDetail,
   fetchUniversalityCompanies,
@@ -275,6 +276,18 @@ export default function UniversalityDetailPage() {
           </p>
         )}
       </header>
+
+      {/* W11-D: cross-domain analogue map — force-directed graph of evidence
+          systems + prototypes colored by domain. Renders above the canonical
+          text sections so the visual relationship is the first thing readers
+          see after the header. */}
+      <Section
+        title="跨领域类比图"
+        description="该类的实证系统按所属领域聚合；点击节点可跳转到对应公司或证据"
+        testid="analogue-map-section"
+      >
+        <UniversalityAnalogueMap detail={detail} />
+      </Section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
