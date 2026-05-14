@@ -33,10 +33,54 @@ pip install "soc-pipeline[notebooks]"
 pip install -e ".[dev,notebooks]"
 ```
 
-## Quickstart
+## Quickstart — the one-call `validate()` API
+
+The recommended entry point for almost all users:
 
 ```python
 import numpy as np
+from soc_pipeline import validate
+
+# 1-D positive event sizes — earthquake energies, S&P returns, avalanche sizes, …
+event_sizes = np.loadtxt("my_events.txt")
+
+# Pre-registered acceptance band on the Clauset α (best practice)
+verdict = validate(event_sizes, label="my_events", expected_band=(1.8, 2.2))
+
+print(verdict.verdict)       # PASS | FAIL | INCONCLUSIVE
+print(verdict.alpha)         # Clauset 2009 MLE
+print(verdict.alpha_ci_lo, verdict.alpha_ci_hi)   # 95% bootstrap CI
+print(verdict.in_band)       # True / False / None
+print(verdict.reason)        # human-readable explanation
+```
+
+**Verdict rules** (Clauset 2009 §6 + pre-registration discipline):
+
+| Verdict | When |
+|---|---|
+| `PASS` | Fit succeeds, alpha inside `expected_band` (if given), no alternative model significantly preferred |
+| `FAIL` | Fit succeeds, but alpha outside band **or** an alternative (lognormal / exponential) is significantly preferred (R<0 and p<0.1) |
+| `INCONCLUSIVE` | Fewer than `min_samples` (default 100), or the underlying `powerlaw` fit fails |
+
+### Pre-registered band concept
+
+The `expected_band` parameter is the discipline that separates exploratory
+data fitting from confirmatory analysis. The recipe:
+
+1. **Before** you look at your data, write down the (low, high) range of
+   alpha you expect from theory or prior literature.
+2. Run `validate(data, expected_band=(low, high))`.
+3. Report the verdict exactly. PASS = confirmation; FAIL = either the theory
+   needs updating or the model fits a different distribution.
+
+This is the same discipline used in particle physics (5σ pre-registered
+discovery bands) and clinical trials (pre-registered primary endpoints).
+
+## Lower-level API (for diagnostics)
+
+If you need the individual building blocks:
+
+```python
 from soc_pipeline import (
     fit_clauset_powerlaw,
     bootstrap_ci,
@@ -44,27 +88,58 @@ from soc_pipeline import (
     verdict_from_alpha_band,
 )
 
-# 1. Load your event sizes (e.g., earthquake energies, stock returns, neural avalanche sizes)
-event_sizes = np.loadtxt("my_events.txt")  # any 1-D positive array
-
-# 2. Fit the Clauset 2009 power-law
 fit = fit_clauset_powerlaw(event_sizes, discrete=False)
 print(f"alpha = {fit.alpha:.2f}  xmin = {fit.xmin:.2g}  n_tail = {fit.n_tail}")
 
-# 3. Bootstrap a 95% CI
 ci = bootstrap_ci(event_sizes, n_boot=200)
 print(f"CI = [{ci.ci_low:.2f}, {ci.ci_high:.2f}]")
 
-# 4. Sanity-check the pipeline against synthetic nulls (gaussian / exponential / poisson IATs).
-#    A healthy pipeline rejects power-law on ALL THREE.
+# Synthetic null controls — pipeline must reject all three
 nulls = synthetic_null()
 for name, case in nulls.items():
     print(f"{name}: correctly_rejected = {case.correctly_rejected}")
 
-# 5. Render verdict
+# Tier verdict against predicted vs literature bands
 v = verdict_from_alpha_band(fit.alpha, predicted=(1.5, 2.0), literature=(1.3, 2.3))
 print(f"verdict: {v}")
 ```
+
+## Public API table
+
+| Name | Kind | Purpose |
+|---|---|---|
+| `validate(data, label, expected_band=None) -> Verdict` | function | One-call PASS/FAIL/INCONCLUSIVE verdict |
+| `Verdict` | dataclass | Result of `validate()` (alpha, CI, xmin, KS, LR p-values, band check) |
+| `fit_clauset_powerlaw(x_data, discrete=False)` | function | Clauset 2009 MLE — returns `FitResult` |
+| `FitResult` | dataclass | Per-fit numerics (alpha, sigma, xmin, KS, LR vs lognormal/exponential) |
+| `bootstrap_ci(x_data, n_boot=200, seed=42)` | function | Resampled CI on alpha — returns `BootstrapResult` |
+| `synthetic_null(n=20000, seed=42)` | function | 3 not-power-law samples for negative control |
+| `vuong_lr_test(...)` | function | Standalone Vuong LR vs lognormal/exponential |
+| `shape_normalized_collapse(...)` | function | Multi-system master-curve collapse |
+| `fit_omori_p(...)` | function | Omori-Utsu aftershock decay |
+| `fit_b_value(...)` | function | Gutenberg-Richter b-value (Aki 1965 MLE) |
+| `b_to_clauset_alpha(b)` | function | Mapping b → α for energy-size GR catalogues |
+| `time_resolution_sweep(...)` | function | Stability across binning |
+| `empirical_ccdf(x_data)` | function | Log-spaced empirical CCDF |
+| `verdict_from_alpha_band(alpha, predicted, literature)` | function | 3-tier band classification |
+
+## Limitations
+
+- **Finite-size sensitivity.** Below ~1000 tail samples the Clauset MLE
+  starts to wander; the bootstrap CI widens accordingly. The validator
+  enforces `min_samples=100` on the *raw* count and returns INCONCLUSIVE
+  below that.
+- **xmin sensitivity.** Clauset 2009 KS-minimisation works well for clean
+  power-laws but can mis-identify xmin on bimodal or contaminated tails.
+  Always plot the empirical CCDF visually before trusting the verdict.
+- **LR tests are non-nested.** Vuong's likelihood-ratio test compares
+  *non-nested* alternatives (power-law vs lognormal). The p-value reflects
+  the strength of preference, not the absolute goodness of fit.
+- **Bootstrap is i.i.d.** The default `bootstrap_ci` resamples with
+  replacement assuming i.i.d. observations. For autocorrelated time series,
+  use a block bootstrap (not currently shipped — open an issue).
+- **`powerlaw` 1.5+ dependency.** Underlying numerics depend on
+  Alstott et al. 2014. Pinned via `dependencies` in `pyproject.toml`.
 
 ## Earthquake quickstart (Gutenberg-Richter b-value)
 
@@ -100,7 +175,17 @@ This package was developed and validated against the [Structural Isomorphism Pro
 
 See `notebooks/` for reproducibility — each notebook loads the source data, runs the pipeline, and reproduces the headline result of a published or working paper.
 
-## Reproducibility notebooks
+## Tutorials & reproducibility notebooks
+
+Beginner-friendly 10-cell walkthrough:
+
+```
+tutorials/
+└── 01_quickstart.ipynb       # synthetic Gutenberg-Richter end-to-end (~10 cells)
+```
+
+Cross-domain reproducibility notebooks (each loads source data and reproduces
+the headline result of a published or working paper):
 
 ```
 notebooks/

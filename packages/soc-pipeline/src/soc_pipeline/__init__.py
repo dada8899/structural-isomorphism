@@ -2,7 +2,13 @@
 
 Cross-domain self-organized criticality validation in 5 lines of code.
 
-Example:
+Recommended one-call entry point:
+    >>> from soc_pipeline import validate
+    >>> v = validate(event_sizes, label="my_events", expected_band=(2.0, 3.0))
+    >>> print(v.verdict, v.alpha, v.in_band)
+    PASS 2.47 True
+
+Low-level building blocks remain available:
     >>> from soc_pipeline import fit_clauset_powerlaw, bootstrap_ci
     >>> result = fit_clauset_powerlaw(event_sizes, discrete=False)
     >>> ci = bootstrap_ci(event_sizes, n_boot=200)
@@ -21,9 +27,13 @@ from .omori import OmoriResult, fit_omori_p, bin_and_omori_from_events
 from .b_value import b_to_clauset_alpha, fit_b_value
 from .time_resolution import time_resolution_sweep
 from .utils import empirical_ccdf, verdict_from_alpha_band
+from .validate import Verdict, validate
 
 __all__ = [
     "__version__",
+    # unified validation entry point (recommended)
+    "validate",
+    "Verdict",
     # fit
     "fit_clauset_powerlaw",
     "FitResult",
