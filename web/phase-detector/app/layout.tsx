@@ -7,6 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import NetworkBanner from "@/components/NetworkBanner";
 import TopNav from "@/components/TopNav";
 import OnboardingTour from "@/components/OnboardingTour";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
@@ -107,15 +108,17 @@ export default function RootLayout({
     <html
       lang="zh-CN"
       className={`${inter.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60 safe-area-body">
+      <body className="min-h-screen bg-[var(--bg-base)] font-sans text-[var(--fg-primary)] antialiased lg:pl-60 safe-area-body">
+        <ThemeProvider>
         <a href="#main-content" className="skip-link">
           跳到主要内容
         </a>
         {/* W12-E: SW register + offline banner. */}
         <NetworkBanner />
         <HistorySidebar />
-        <header className="sticky top-0 z-[80] border-b border-zinc-200 bg-white/90 backdrop-blur safe-area-top">
+        <header className="sticky top-0 z-[80] border-b border-[var(--border)] bg-[var(--bg-base)]/90 backdrop-blur safe-area-top">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
             <Link href="/" className="flex items-center gap-2" aria-label="Phase Detector 首页">
               {/* W6-B: double-circle mark — same as main site (Structural logo). */}
@@ -134,10 +137,10 @@ export default function RootLayout({
                 <circle cx="18" cy="18" r="3" />
                 <path d="M8.5 8.5l7 7" />
               </svg>
-              <span className="text-sm font-semibold tracking-tight">
+              <span className="text-sm font-semibold tracking-tight text-[var(--fg-primary)]">
                 Phase Detector
               </span>
-              <span className="ml-2 hidden text-xs text-zinc-500 sm:inline">
+              <span className="ml-2 hidden text-xs text-[var(--fg-tertiary)] sm:inline">
                 公司状态评分
               </span>
             </Link>
@@ -149,23 +152,23 @@ export default function RootLayout({
         <main id="main-content" className="mx-auto max-w-7xl px-6 py-6">
           {children}
         </main>
-        <footer className="mx-auto max-w-7xl border-t border-zinc-200 px-6 py-8 text-xs text-zinc-500 safe-area-bottom">
+        <footer className="mx-auto max-w-7xl border-t border-[var(--border)] px-6 py-8 text-xs text-[var(--fg-tertiary)] safe-area-bottom">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <span className="font-medium text-zinc-700">
+              <span className="font-medium text-[var(--fg-secondary)]">
                 Phase Detector
               </span>
-              <Link href="/about" className="hover:text-zinc-900">
+              <Link href="/about" className="hover:text-[var(--fg-primary)]">
                 关于
               </Link>
-              <Link href="/methodology" className="hover:text-zinc-900">
+              <Link href="/methodology" className="hover:text-[var(--fg-primary)]">
                 方法
               </Link>
               <a
                 href="https://github.com/dada8899/structural-isomorphism"
                 target="_blank"
                 rel="noopener"
-                className="hover:text-zinc-900"
+                className="hover:text-[var(--fg-primary)]"
               >
                 GitHub ↗
               </a>
@@ -173,12 +176,12 @@ export default function RootLayout({
                 href="https://beta.structural.bytedance.city/classes"
                 target="_blank"
                 rel="noopener"
-                className="hover:text-zinc-900"
+                className="hover:text-[var(--fg-primary)]"
               >
                 Structural ↗
               </a>
             </div>
-            <div className="text-zinc-400">
+            <div className="text-[var(--fg-tertiary)]">
               研究预览 · 不是投资建议 · AI 抽取的数据，请独立核实
             </div>
           </div>
@@ -195,6 +198,7 @@ export default function RootLayout({
           src="https://plausible.bytedance.city/js/script.js"
           strategy="afterInteractive"
         />
+        </ThemeProvider>
       </body>
     </html>
   );

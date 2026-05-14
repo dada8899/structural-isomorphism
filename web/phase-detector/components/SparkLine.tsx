@@ -21,6 +21,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CriticalPointState } from "@/lib/types";
+import { useTheme } from "./ThemeProvider";
 
 export interface SparkLineProps {
   ticker: string;
@@ -42,10 +43,17 @@ const PHASE_BIAS: Record<CriticalPointState, number> = {
   unknown: 0.42,
 };
 
-const BAND_STROKE: Array<{ from: number; to: number; color: string; label: string }> = [
+// W13-A: per-theme palettes. Light = original W11-D values; dark uses
+// brightened tones so the band remains readable on #0A0A0A background.
+const BAND_STROKE_LIGHT: Array<{ from: number; to: number; color: string; label: string }> = [
   { from: 0, to: 0.33, color: "#10B981", label: "稳态" },
   { from: 0.33, to: 0.66, color: "#F59E0B", label: "接近临界" },
   { from: 0.66, to: 1.01, color: "#EF4444", label: "临界点上" },
+];
+const BAND_STROKE_DARK: Array<{ from: number; to: number; color: string; label: string }> = [
+  { from: 0, to: 0.33, color: "#34D399", label: "稳态" },
+  { from: 0.33, to: 0.66, color: "#FBBF24", label: "接近临界" },
+  { from: 0.66, to: 1.01, color: "#F87171", label: "临界点上" },
 ];
 
 function hash32(s: string): number {
@@ -85,8 +93,11 @@ function buildSeries(ticker: string, phase: CriticalPointState, months: number):
   return out;
 }
 
-function bandFor(v: number): { color: string; label: string } {
-  for (const b of BAND_STROKE) {
+function bandFor(
+  v: number,
+  palette: typeof BAND_STROKE_LIGHT,
+): { color: string; label: string } {
+  for (const b of palette) {
     if (v >= b.from && v < b.to) return { color: b.color, label: b.label };
   }
   return { color: "#71717A", label: "未知" };
@@ -111,6 +122,17 @@ export function SparkLine({
     () => buildSeries(ticker, currentPhase, months),
     [ticker, currentPhase, months],
   );
+  // W13-A: pick palette based on resolved theme.
+  const { resolvedTheme } = useTheme();
+  const palette = resolvedTheme === "dark" ? BAND_STROKE_DARK : BAND_STROKE_LIGHT;
+  const baselineStroke = resolvedTheme === "dark" ? "#27272A" : "#E4E4E7";
+  const tooltipBg = resolvedTheme === "dark" ? "#18181B" : "#FFFFFF";
+  const tooltipBorder = resolvedTheme === "dark" ? "#27272A" : "#E4E4E7";
+  const tooltipShadow =
+    resolvedTheme === "dark" ? "0 2px 6px rgba(0,0,0,0.6)" : "0 2px 6px rgba(0,0,0,0.08)";
+  const tooltipFg = resolvedTheme === "dark" ? "#FAFAFA" : "#18181B";
+  const tooltipFgSecondary = resolvedTheme === "dark" ? "#D4D4D8" : "#52525B";
+  const dotStroke = resolvedTheme === "dark" ? "#0A0A0A" : "white";
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
@@ -168,7 +190,7 @@ export function SparkLine({
       const bx = padX + (i + 1) * step;
       const by = padY + (1 - b.v) * innerH;
       const mid = (a.v + b.v) / 2;
-      const { color, label } = bandFor(mid);
+      const { color, label } = bandFor(mid, palette);
       segs.push({
         d: `M${ax.toFixed(1)},${ay.toFixed(1)}L${bx.toFixed(1)},${by.toFixed(1)}`,
         color,
@@ -178,7 +200,7 @@ export function SparkLine({
       });
     }
     return segs;
-  }, [series, padX, padY, step, innerH]);
+  }, [series, padX, padY, step, innerH, palette]);
 
   const totalLen = useMemo(() => {
     let len = 0;
@@ -199,7 +221,7 @@ export function SparkLine({
   };
 
   const hoverPt = hovered !== null ? series[hovered] : null;
-  const hoverBand = hoverPt ? bandFor(hoverPt.v) : null;
+  const hoverBand = hoverPt ? bandFor(hoverPt.v, palette) : null;
 
   return (
     <div
@@ -226,7 +248,7 @@ export function SparkLine({
           x2={padX + innerW}
           y1={padY + innerH * 0.5}
           y2={padY + innerH * 0.5}
-          stroke="#E4E4E7"
+          stroke={baselineStroke}
           strokeWidth={0.5}
           strokeDasharray="2 2"
         />
@@ -258,8 +280,8 @@ export function SparkLine({
             cx={padX + hovered * step}
             cy={padY + (1 - hoverPt.v) * innerH}
             r={2.5}
-            fill={hoverBand?.color ?? "#18181B"}
-            stroke="white"
+            fill={hoverBand?.color ?? tooltipFg}
+            stroke={dotStroke}
             strokeWidth={1}
           />
         )}
@@ -273,9 +295,9 @@ export function SparkLine({
             position: "absolute",
             bottom: height + 4,
             left: Math.max(0, Math.min(width - 100, padX + hovered * step - 50)),
-            background: "white",
-            border: "1px solid #E4E4E7",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+            background: tooltipBg,
+            border: `1px solid ${tooltipBorder}`,
+            boxShadow: tooltipShadow,
             padding: "4px 6px",
             fontSize: 10,
             borderRadius: 4,
@@ -284,10 +306,10 @@ export function SparkLine({
             pointerEvents: "none",
           }}
         >
-          <span style={{ fontWeight: 600, color: "#18181B" }}>
+          <span style={{ fontWeight: 600, color: tooltipFg }}>
             {fmtMonthLabel(hovered, months)}
           </span>
-          <span style={{ color: "#52525B" }}>
+          <span style={{ color: tooltipFgSecondary }}>
             {" · "}
             {hoverPt.v.toFixed(2)}
           </span>

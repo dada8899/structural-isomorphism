@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { restartOnboardingTour } from "./OnboardingTour";
+import ThemeToggle from "./ThemeToggle";
 import { useScrollDirection } from "@/lib/useScrollDirection";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
@@ -78,7 +79,7 @@ export default function TopNav() {
       {/* Sentinel: lets us reach the <header> ancestor without a ref prop. */}
       <span ref={sentinelRef} className="hidden" aria-hidden="true" />
       <nav
-        className="hidden items-center gap-5 text-sm text-zinc-600 sm:flex"
+        className="hidden items-center gap-5 text-sm text-[var(--fg-secondary)] sm:flex"
         aria-label="主导航"
       >
         {LINKS.map((l) =>
@@ -88,7 +89,7 @@ export default function TopNav() {
               href={l.href}
               target="_blank"
               rel="noopener"
-              className="hover:text-zinc-900"
+              className="hover:text-[var(--fg-primary)]"
             >
               {l.label}
             </a>
@@ -102,12 +103,14 @@ export default function TopNav() {
         <button
           type="button"
           onClick={restartOnboardingTour}
-          className="text-zinc-600 hover:text-zinc-900"
+          className="text-[var(--fg-secondary)] hover:text-[var(--fg-primary)]"
           data-testid="tour-restart-link"
         >
           导览
         </button>
         <LanguageSwitcher />
+        {/* W13-A: 3-state theme toggle (system/light/dark). */}
+        <ThemeToggle />
       </nav>
 
       <button
@@ -116,7 +119,7 @@ export default function TopNav() {
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 sm:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-[var(--border)] text-[var(--fg-secondary)] sm:hidden"
         data-testid="mobile-nav-toggle"
       >
         <svg
@@ -154,7 +157,7 @@ export default function TopNav() {
           />
           <div
             id="mobile-nav-drawer"
-            className="fixed left-0 right-0 top-[57px] z-[79] border-b border-zinc-200 bg-white px-6 py-4 shadow-md sm:hidden"
+            className="fixed left-0 right-0 top-[57px] z-[79] border-b border-[var(--border)] bg-[var(--bg-base)] px-6 py-4 shadow-md sm:hidden"
             role="menu"
             aria-label="主导航（移动）"
           >
@@ -167,7 +170,7 @@ export default function TopNav() {
                       target="_blank"
                       rel="noopener"
                       onClick={() => setOpen(false)}
-                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-zinc-700 hover:bg-zinc-50"
+                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-[var(--fg-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg-primary)]"
                       role="menuitem"
                     >
                       {l.label}
@@ -176,7 +179,7 @@ export default function TopNav() {
                     <Link
                       href={l.href}
                       onClick={() => setOpen(false)}
-                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-zinc-700 hover:bg-zinc-50"
+                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-[var(--fg-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg-primary)]"
                       role="menuitem"
                     >
                       {l.label}
@@ -191,7 +194,7 @@ export default function TopNav() {
                     setOpen(false);
                     restartOnboardingTour();
                   }}
-                  className="block w-full rounded-md px-3 py-2 text-left text-base text-zinc-700 hover:bg-zinc-50"
+                  className="block w-full rounded-md px-3 py-2 text-left text-base text-[var(--fg-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg-primary)]"
                   role="menuitem"
                   data-testid="tour-restart-link-mobile"
                 >
@@ -200,6 +203,9 @@ export default function TopNav() {
               </li>
               <li className="pt-2">
                 <LanguageSwitcher />
+              </li>
+              <li className="pt-2">
+                <ThemeToggle compact />
               </li>
             </ul>
           </div>

@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UniversalityClassDetail } from "@/lib/types";
+import { useTheme } from "./ThemeProvider";
 
 // Inline domain heuristic — no API change required.
 function inferDomain(text: string): "physics" | "biology" | "finance" | "social" | "tech" | "unknown" {
@@ -255,6 +256,21 @@ function relax(nodes: Node[], iterations: number) {
 
 export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Props) {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  // W13-A theme-aware palette.
+  const edgeStroke = isDark ? "#52525B" : "#A1A1AA";
+  const centerFill = isDark ? "#FAFAFA" : "#18181B";
+  const nodeStroke = isDark ? "#0A0A0A" : "white";
+  const labelFill = isDark ? "#E4E4E7" : "#27272A";
+  const centerLabelFill = isDark ? "#18181B" : "white";
+  const tooltipBg = isDark ? "#18181B" : "white";
+  const tooltipBorder = isDark ? "#27272A" : "#E4E4E7";
+  const tooltipShadow = isDark
+    ? "0 4px 12px rgba(0,0,0,0.6)"
+    : "0 4px 12px rgba(0,0,0,0.08)";
+  const tooltipFg = isDark ? "#FAFAFA" : "#18181B";
+  const tooltipFgSecondary = isDark ? "#D4D4D8" : "#52525B";
   const [hover, setHover] = useState<number | null>(null);
   const [nodes, setNodes] = useState<Node[]>(() => {
     const { nodes: initial } = buildGraph(detail);
@@ -355,7 +371,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke="#A1A1AA"
+                stroke={edgeStroke}
                 strokeOpacity={0.4}
                 strokeWidth={Math.max(0.5, e.weight * 2.5)}
               />
@@ -366,7 +382,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
           {nodes.map((n, i) => {
             const isHover = hover === i;
             const r = n.isCenter ? 26 : isHover ? 14 : 11;
-            const fill = n.isCenter ? "#18181B" : DOMAIN_COLOR[n.domain] ?? "#71717A";
+            const fill = n.isCenter ? centerFill : DOMAIN_COLOR[n.domain] ?? "#71717A";
             return (
               <g
                 key={n.id}
@@ -394,7 +410,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
                   cy={n.y}
                   r={r}
                   fill={fill}
-                  stroke="white"
+                  stroke={nodeStroke}
                   strokeWidth={2}
                   opacity={n.isCenter ? 1 : isHover ? 1 : 0.85}
                 />
@@ -402,7 +418,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
                   x={n.x}
                   y={n.y + (n.isCenter ? 4 : -r - 6)}
                   fontSize={n.isCenter ? 11 : 10}
-                  fill={n.isCenter ? "white" : "#27272A"}
+                  fill={n.isCenter ? centerLabelFill : labelFill}
                   textAnchor="middle"
                   style={{ pointerEvents: "none", fontWeight: n.isCenter ? 600 : 500 }}
                 >
@@ -424,9 +440,9 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
               top: `${(nodes[hover].y / H) * 100}%`,
               transform: "translate(12px, 12px)",
               pointerEvents: "none",
-              background: "white",
-              border: "1px solid #E4E4E7",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              background: tooltipBg,
+              border: `1px solid ${tooltipBorder}`,
+              boxShadow: tooltipShadow,
               padding: "8px 10px",
               fontSize: 12,
               borderRadius: 6,
@@ -434,21 +450,21 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
               zIndex: 5,
             }}
           >
-            <div style={{ fontWeight: 600, color: "#18181B" }}>
+            <div style={{ fontWeight: 600, color: tooltipFg }}>
               {nodes[hover].label}
             </div>
-            <div style={{ color: "#52525B", fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: tooltipFgSecondary, fontSize: 11, marginTop: 2 }}>
               领域 · {DOMAIN_LABEL_ZH[nodes[hover].domain] ?? nodes[hover].domain}
             </div>
             {nodes[hover].verdict && (
-              <div style={{ color: "#52525B", fontSize: 11 }}>
+              <div style={{ color: tooltipFgSecondary, fontSize: 11 }}>
                 状态 · {nodes[hover].verdict}
               </div>
             )}
             {nodes[hover].evidence && (
               <div
                 style={{
-                  color: "#52525B",
+                  color: tooltipFgSecondary,
                   fontSize: 11,
                   marginTop: 4,
                   lineHeight: 1.4,
