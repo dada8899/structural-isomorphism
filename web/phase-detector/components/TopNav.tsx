@@ -4,9 +4,12 @@
 // Audit § 5 mobile chrome: top nav items wrap onto two lines on 375px
 // viewports. Collapse links into a drawer below sm: 640px, keep horizontal
 // row on ≥ sm.
+// W11-B (session #10): EN | 中 language switcher appended after the link
+// row on desktop, inside the drawer on mobile.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "公司表" },
@@ -70,6 +73,7 @@ export default function TopNav() {
             </Link>
           ),
         )}
+        <LanguageSwitcher />
       </nav>
 
       <button
@@ -146,6 +150,9 @@ export default function TopNav() {
                   )}
                 </li>
               ))}
+              <li className="pt-2">
+                <LanguageSwitcher />
+              </li>
             </ul>
           </div>
         </>

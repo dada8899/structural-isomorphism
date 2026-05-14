@@ -1,5 +1,7 @@
 # Getting started
 
+**English** | [简体中文](i18n/zh/getting-started-zh.md)
+
 This page walks through installing **Structural Isomorphism** and running a
 first pre-registered validation locally.
 
