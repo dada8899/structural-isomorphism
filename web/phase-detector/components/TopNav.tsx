@@ -6,11 +6,16 @@
 // row on ≥ sm.
 // W11-B (session #10): EN | 中 language switcher appended after the link
 // row on desktop, inside the drawer on mobile.
+// W12-C (session #10): slide-on-scroll-up / off-scroll-down on mobile.
+// The sticky header's parent <header> element gets a `data-nav-hidden`
+// attribute toggled by useScrollDirection so we can drive the CSS
+// transform without breaking the existing layout.
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { restartOnboardingTour } from "./OnboardingTour";
+import { useScrollDirection } from "@/lib/useScrollDirection";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "公司表" },
@@ -29,6 +34,23 @@ const LINKS: { href: string; label: string; external?: boolean }[] = [
 
 export default function TopNav() {
   const [open, setOpen] = useState(false);
+  const sentinelRef = useRef<HTMLSpanElement>(null);
+  const dir = useScrollDirection({ threshold: 96 });
+
+  // W12-C: toggle a data-attr on the closest <header> so CSS can hide it.
+  // We don't manipulate styles directly; we let .sticky-nav-hide handle it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const header = sentinelRef.current?.closest("header");
+    if (!header) return;
+    // Don't hide while mobile drawer is open (would be jarring).
+    if (open) {
+      header.removeAttribute("data-nav-hidden");
+      return;
+    }
+    if (dir === "down") header.setAttribute("data-nav-hidden", "true");
+    else header.removeAttribute("data-nav-hidden");
+  }, [dir, open]);
 
   // Auto-close drawer on viewport resize past sm breakpoint.
   useEffect(() => {
@@ -53,6 +75,8 @@ export default function TopNav() {
 
   return (
     <>
+      {/* Sentinel: lets us reach the <header> ancestor without a ref prop. */}
+      <span ref={sentinelRef} className="hidden" aria-hidden="true" />
       <nav
         className="hidden items-center gap-5 text-sm text-zinc-600 sm:flex"
         aria-label="主导航"
@@ -92,7 +116,7 @@ export default function TopNav() {
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 sm:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 sm:hidden"
         data-testid="mobile-nav-toggle"
       >
         <svg
@@ -143,7 +167,7 @@ export default function TopNav() {
                       target="_blank"
                       rel="noopener"
                       onClick={() => setOpen(false)}
-                      className="block rounded-md px-3 py-2 text-base text-zinc-700 hover:bg-zinc-50"
+                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-zinc-700 hover:bg-zinc-50"
                       role="menuitem"
                     >
                       {l.label}
@@ -152,7 +176,7 @@ export default function TopNav() {
                     <Link
                       href={l.href}
                       onClick={() => setOpen(false)}
-                      className="block rounded-md px-3 py-2 text-base text-zinc-700 hover:bg-zinc-50"
+                      className="block min-h-[44px] rounded-md px-3 py-2.5 text-base text-zinc-700 hover:bg-zinc-50"
                       role="menuitem"
                     >
                       {l.label}

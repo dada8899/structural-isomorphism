@@ -16,9 +16,10 @@
 //   - Locked content blurred behind a clickable scrim ("dark patterns" per
 //     EU DSA Article 25)
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Events, trackEvent } from "@/lib/analytics";
+import { useSwipe } from "@/lib/useSwipe";
 
 interface Props {
   /** Controls visibility. Caller owns the open state. */
@@ -32,6 +33,17 @@ interface Props {
 }
 
 export function PaywallModal({ open, onClose, hit = 100, context = "screener" }: Props) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // W12-C: swipe-down on the sheet closes (iOS native pattern).
+  useSwipe(sheetRef, {
+    threshold: 80,
+    onSwipeDown: () => {
+      trackEvent(Events.PaywallModalClick, { action: "swipe_down_dismiss", context });
+      onClose();
+    },
+  });
+
   // Fire view event once per open transition.
   useEffect(() => {
     if (!open) return;
@@ -72,12 +84,20 @@ export function PaywallModal({ open, onClose, hit = 100, context = "screener" }:
       />
 
       {/* Sheet */}
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+      <div
+        ref={sheetRef}
+        className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl"
+      >
+        {/* W12-C: drag-handle affordance on mobile (iOS sheet pattern). */}
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-zinc-200 sm:hidden"
+        />
         <button
           type="button"
           onClick={onClose}
           aria-label="关闭"
-          className="absolute right-4 top-4 rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+          className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -129,7 +149,7 @@ export function PaywallModal({ open, onClose, hit = 100, context = "screener" }:
             onClick={() =>
               trackEvent(Events.PaywallModalClick, { action: "see_pricing", context })
             }
-            className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white transition hover:bg-zinc-700"
+            className="flex-1 rounded-lg bg-zinc-900 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-zinc-700 min-h-[44px]"
             data-testid="paywall-see-pricing"
           >
             查看定价
@@ -140,7 +160,7 @@ export function PaywallModal({ open, onClose, hit = 100, context = "screener" }:
               trackEvent(Events.PaywallModalClick, { action: "dismiss", context });
               onClose();
             }}
-            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 min-h-[44px]"
             data-testid="paywall-dismiss"
           >
             稍后再说
