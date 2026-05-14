@@ -284,3 +284,7 @@ W4-E 建议 session #10 第一句"用户解锁 Wave 3 destructive ops + 给 toke
 
 原因：Wave 5 把所有 polish 收尾后，OSS-ready 度从 W4 的 ~85% → ~95%，只差这 3 步发布动作。fallback (Wave 5 polish) 已被本 wave 自身吞掉。
 
+---
+
+**Updated 2026-05-15 after Wave 14 closeout** — session #10 ran **9 waves total** (W6-W14) instead of the originally planned 5; see `SESSION-11-HANDOFF.md` for full inventory (~45 PR merged, 3 PyPI packages, 5 papers + Zenodo bundle, dark mode + search + PWA + a11y AA + perf budget, coverage 54% → 85.6%, 1000-ticker NULL backtest decision-gate pivot to "structured research narrative" positioning). Refer to `CHANGELOG.md` v0.4.0 entry for the full machine-readable changelog. v0.4.0 git tag procedure documented in `SESSION-11-HANDOFF.md` § 9.
+
