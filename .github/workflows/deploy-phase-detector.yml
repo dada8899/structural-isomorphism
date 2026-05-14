@@ -1,0 +1,58 @@
+name: Deploy Phase Detector
+
+# Auto-deploy web/phase-detector to VPS phase.bytedance.city on push to main.
+# Triggered by:
+#   - Push to main touching web/phase-detector/** or this workflow file.
+#   - Manual via workflow_dispatch.
+#
+# Background: the 2026-05-14 incident — devs forgot to rsync .env.production
+# so NEXT_PUBLIC_API_BASE baked to localhost:8000 → "Failed to fetch" in prod.
+# PR #85 committed .env.production to repo. This workflow + the VPS deploy
+# script `/root/scripts/deploy-phase-detector.sh` enforce the rebuild path.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/phase-detector/**'
+      - '.github/workflows/deploy-phase-detector.yml'
+  workflow_dispatch: {}
+
+# Avoid two deploys racing.
+concurrency:
+  group: deploy-phase-detector
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (for context only)
+        uses: actions/checkout@v4
+
+      - name: SSH deploy
+        env:
+          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # authorized_keys command= forces the deploy script regardless of args.
+          ssh -i ~/.ssh/id_deploy \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              "$USER@$HOST" "deploy"
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          sleep 5
+          curl -fsS -o /dev/null https://phase.bytedance.city/
+          # API health is best-effort (endpoint may not exist yet).
+          curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true
+          echo "Smoke OK"
