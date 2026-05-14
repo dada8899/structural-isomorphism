@@ -80,6 +80,11 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
 | Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.1 (null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
 
+## API reference
+
+- **HTTP API** (Phase Detector / Structural Search): [`/api/docs`](https://structural.bytedance.city/api/docs) (Swagger UI) — see also [`docs/api/index.md`](docs/api/index.md).
+- **Python packages** (`soc-pipeline`, `cross-judge`, `guarded-llm`): auto-generated from docstrings at [docs/api/packages/](docs/api/packages/index.md). Hosted: <https://dada8899.github.io/structural-isomorphism/api/packages/>.
+
 ## Tests
 
 ```bash
