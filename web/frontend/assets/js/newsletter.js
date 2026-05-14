@@ -17,9 +17,16 @@
 
   var EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/;
 
-  // Plausible-safe event tracker — no-op if Plausible isn't loaded.
+  // Plausible-safe event tracker. Prefers central window.analytics.track
+  // (W9-C, /assets/js/analytics.js) when loaded; falls back to inline
+  // window.plausible() so this file still works on pages that don't include
+  // analytics.js (legacy or stripped-down landing pages).
   function trackEvent(name, props) {
     try {
+      if (window.analytics && typeof window.analytics.track === "function") {
+        window.analytics.track(name, props);
+        return;
+      }
       if (typeof window.plausible === "function") {
         window.plausible(name, props ? { props: props } : undefined);
       }

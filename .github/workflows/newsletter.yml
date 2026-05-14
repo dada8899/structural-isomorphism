@@ -1,0 +1,119 @@
+name: Weekly Newsletter
+
+# W9-C: every Sunday 23:00 UTC, generate the current ISO week's digest and
+# open a PR for human review. Real send is gated on PR merge — this workflow
+# never sends to actual subscribers.
+
+on:
+  schedule:
+    # Sunday 23:00 UTC = Monday 07:00 China = Sunday 16:00 PT
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "ISO week label (e.g. 2026-W19). Leave blank to use current week."
+        required: false
+        type: string
+      spotlight:
+        description: "Force methodology spotlight slug (e.g. soc-universality-class)."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal dependencies
+        # generate-newsletter.py uses stdlib only; no pip install needed.
+        # Confirm version + a few stdlib modules are accessible.
+        run: |
+          python --version
+          python -c "import urllib.request, xml.etree.ElementTree, json"
+
+      - name: Compute ISO week
+        id: week
+        run: |
+          if [ -n "${{ inputs.week }}" ]; then
+            WEEK="${{ inputs.week }}"
+          else
+            # ISO week in Bash via `date -u +%G-W%V`
+            WEEK="$(date -u +%G-W%V)"
+          fi
+          echo "Computed week: $WEEK"
+          # Extract numeric week for the filename
+          WEEKNUM="$(echo "$WEEK" | sed 's/^[0-9]*-W//')"
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+          echo "weeknum=$WEEKNUM" >> "$GITHUB_OUTPUT"
+
+      - name: Generate newsletter
+        env:
+          # CI uses --skip-network so the generator doesn't hit arXiv / GitHub
+          # API during workflow run (avoids rate-limits + flakiness). Real
+          # data sources are wired but disabled until W10 when we add a
+          # secrets-injected real run.
+          PYTHONUNBUFFERED: "1"
+        run: |
+          mkdir -p docs/community/newsletters
+          OUT="docs/community/newsletters/issue-${{ steps.week.outputs.weeknum }}.md"
+
+          SPOTLIGHT_FLAG=""
+          if [ -n "${{ inputs.spotlight }}" ]; then
+            SPOTLIGHT_FLAG="--spotlight ${{ inputs.spotlight }}"
+          fi
+
+          python scripts/generate-newsletter.py \
+            --week "${{ steps.week.outputs.week }}" \
+            --skip-network \
+            $SPOTLIGHT_FLAG \
+            --out "$OUT" \
+            --verbose
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+
+          # Sanity: file is non-empty
+          test -s "$OUT" || (echo "ERROR: generator produced empty file" && exit 1)
+          wc -l "$OUT"
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest tests/test_generate_newsletter.py -v
+
+      - name: Create review PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="newsletter/issue-${{ steps.week.outputs.weeknum }}-$(date -u +%s)"
+          OUT="docs/community/newsletters/issue-${{ steps.week.outputs.weeknum }}.md"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "$OUT"
+
+          # If nothing changed (re-run on same week without spotlight override),
+          # exit gracefully instead of failing.
+          if git diff --cached --quiet; then
+            echo "No changes — skipping PR creation."
+            exit 0
+          fi
+
+          git commit -m "newsletter: issue ${{ steps.week.outputs.weeknum }} (auto-generated)"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "newsletter: issue ${{ steps.week.outputs.weeknum }} for human review" \
+            --body "Auto-generated draft for week ${{ steps.week.outputs.week }}. Review the markdown, edit if needed, then merge. **Do not send to subscribers until merged.** Real send is a separate manual step (Buttondown API, see scripts/newsletter/send_weekly.py)." \
+            --label "newsletter" \
+            --label "auto-generated"
