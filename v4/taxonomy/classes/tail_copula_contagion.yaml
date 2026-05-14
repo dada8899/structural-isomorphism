@@ -46,10 +46,26 @@ negative_examples:
   reason: Within-protocol cascade, not cross-asset correlation jump. Belongs to motter_lai_network_cascade.
 - phenomenon: Stable Gaussian portfolio under normal regime
   reason: Belongs in normal regime; this class is about the *transition* to high-correlation regime.
+- phenomenon: Regime-switching factor model
+  reason: "Correlation increases because factor variance spikes in high-volatility regimes, but the copula (dependence structure) remains constant, so tail dependence coefficient does not jump—unlike tail copula contagion where the dependency structure itself changes."
+- phenomenon: Common shock default clustering
+  reason: "Defaults cluster during a recession due to a shared latent factor, creating a correlation jump, but there is no direct contagion mechanism; tail dependence merely reflects extreme factor realizations, not a contagious cascade."
+- phenomenon: Phase synchronization in Kuramoto oscillators
+  reason: "Oscillators suddenly align at a critical coupling, superficially resembling correlation collapse, but the mechanism is deterministic nonlinear coupling with no notion of copula tail dependence."
+- phenomenon: Algorithmic feedback in flash crashes
+  reason: "Correlated price dislocations emerge from herding algorithms and positive feedback, producing fat tails and apparent tail dependence, but the process is driven by strategic interaction rather than a regime change in a copula dependence structure."
 edge_cases:
 - phenomenon: Liquidity black hole (流动性黑洞)
   debate: Bid-ask spreads widen across assets simultaneously during liquidity crisis. Tail co-movement signature. Class boundary
     with hysteresis_preisach.
+- phenomenon: Financial fire sales and overlapping portfolios
+  debate: "Correlation surges due to forced selling of common assets, a contagion mechanism, yet it is often modeled via balance-sheet linkages rather than copula tail dependence; whether this belongs to the same universality class as copula-based contagion is ambiguous."
+- phenomenon: Spatial correlation of climate extremes
+  debate: "Heatwave occurrences at distant locations show increased tail dependence under global warming, and extreme-value copulas are applied, but the physical mechanism (atmospheric blocking) is a common forcing, not infectious spreading—testing the boundary of the class across domains."
+- phenomenon: Interbank network defaults
+  debate: "Correlation of bank failures jumps during crises; the debate is whether true network contagion (direct exposures) is necessary to qualify as tail copula contagion, or whether common asset shocks alone also fall under the class."
+- phenomenon: Epidemic threshold in disease spread
+  debate: "Infection status correlation sharply increases when transmission exceeds the epidemic threshold, a classical contagion process, but its mathematical formulation (SIR/compartmental models) typically lacks copula dependence; inclusion hinges on whether cross-domain isomorphism is intended."
 notes: 'LLM-proposed cluster grouping financial / climate phenomena exhibiting correlation regime shifts.
 
   Speculative because (1) tail copula estimation requires many extreme observations; (2)

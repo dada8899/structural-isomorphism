@@ -1,0 +1,113 @@
+[B4] Loaded 21 candidate classes
+[B4] Reviewers: ['deepseek-pro-rigorous', 'deepseek-flash-rigorous', 'deepseek-pro-high-creativity']
+[B4] note: OpenRouter Kimi-K2.5 unavailable (OPENROUTER_API_KEY missing); fallback to DeepSeek-pro T=1.0 (NOT a true cross-architecture probe)
+[B4] Expected calls: 21 x 3 = 63
+
+[B4] [1/21] hysteresis_preisach
+  deepseek-pro-rigorous          | UNCLEAR    | conf=0.80 |  37.3s
+  deepseek-flash-rigorous        | REJECT     | conf=0.80 |   9.9s
+  deepseek-pro-high-creativity   | UNCLEAR    | conf=0.80 |  38.9s
+
+[B4] [2/21] scheffer_fold_bifurcation
+  deepseek-pro-rigorous          | UNCLEAR    | conf=0.90 |  23.9s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |   8.7s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.90 |  54.4s
+
+[B4] [3/21] motter_lai_network_cascade
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  17.2s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |   5.9s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.92 |  32.6s
+
+[B4] [4/21] tail_copula_contagion
+  deepseek-pro-rigorous          | REJECT     | conf=0.90 |  21.7s
+  deepseek-flash-rigorous        | REJECT     | conf=0.85 |   3.6s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.90 |  26.9s
+
+[B4] [5/21] gardner_collins_toggle_switch_Th1Th2
+  deepseek-pro-rigorous          | MERGE      | conf=0.96 |  17.7s
+  deepseek-flash-rigorous        | MERGE      | conf=0.95 |   8.8s
+  deepseek-pro-high-creativity   | MERGE      | conf=0.95 |  17.5s
+
+[B4] [6/21] schelling_credible_commitment
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  18.5s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |   7.5s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.95 |  29.7s
+
+[B4] [7/21] extreme_value_tail_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  13.5s
+  deepseek-flash-rigorous        | REJECT     | conf=0.95 |   5.0s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.95 |  17.0s
+
+[B4] [8/21] delay_differential_debt
+  deepseek-pro-rigorous          | REJECT     | conf=0.80 |  60.9s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.30 |   5.7s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.75 |  65.3s
+
+[B4] [9/21] leaky_integrate_fire_threshold_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.70 |  29.9s
+  deepseek-flash-rigorous        | REJECT     | conf=0.30 |  10.7s
+  deepseek-pro-high-creativity   | SPLIT      | conf=0.70 |  56.5s
+
+[B4] [10/21] reflexive_fixed_point_class
+  deepseek-pro-rigorous          | UNCLEAR    | conf=0.60 |  29.5s
+  deepseek-flash-rigorous        | REJECT     | conf=0.30 |   7.6s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.70 |  26.7s
+
+[B4] [11/21] adverse_selection_unraveling_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  29.1s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |  11.1s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.90 |  23.2s
+
+[B4] [12/21] motter_lai_network_cascade_social
+  deepseek-pro-rigorous          | MERGE      | conf=0.95 |  25.2s
+  deepseek-flash-rigorous        | MERGE      | conf=0.95 |   3.8s
+  deepseek-pro-high-creativity   | MERGE      | conf=0.95 |  19.9s
+
+[B4] [13/21] hysteresis_first_order_transition_fertility
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  34.4s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |   5.8s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.90 |  27.9s
+
+[B4] [14/21] gardner_collins_toggle_switch_apoptosis
+  deepseek-pro-rigorous          | REJECT     | conf=0.85 |  51.2s
+  deepseek-flash-rigorous        | MERGE      | conf=0.90 |   5.1s
+  deepseek-pro-high-creativity   | MERGE      | conf=0.95 |  22.1s
+
+[B4] [15/21] scale_free_percolation_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.90 |  41.4s
+  deepseek-flash-rigorous        | REJECT     | conf=0.65 |   8.2s
+  deepseek-pro-high-creativity   | UNCLEAR    | conf=0.50 |  29.0s
+
+[B4] [16/21] percolation_connectivity
+  deepseek-pro-rigorous          | KEEP       | conf=0.95 |  43.1s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.60 |  19.4s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.95 |  21.6s
+
+[B4] [17/21] preferential_attachment
+  deepseek-pro-rigorous          | UNCLEAR    | conf=0.70 |  29.1s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.60 |   8.8s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.90 |  44.3s
+
+[B4] [18/21] reaction_diffusion_steady_state_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.85 |  43.6s
+  deepseek-flash-rigorous        | REJECT     | conf=0.70 |  10.3s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.90 |  21.0s
+
+[B4] [19/21] markov_chain_memory_fidelity_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.95 |  16.1s
+  deepseek-flash-rigorous        | REJECT     | conf=0.95 |   4.7s
+  deepseek-pro-high-creativity   | REJECT     | conf=0.95 |  18.3s
+
+[B4] [20/21] second_order_damped_oscillator
+  deepseek-pro-rigorous          | PARSE_FAIL | conf=0.00 |  31.2s
+  deepseek-flash-rigorous        | UNCLEAR    | conf=0.60 |   9.6s
+  deepseek-pro-high-creativity   | KEEP       | conf=0.95 |  28.7s
+
+[B4] [21/21] sir_contagion_network_class
+  deepseek-pro-rigorous          | REJECT     | conf=0.70 |  36.4s
+  deepseek-flash-rigorous        | REJECT     | conf=0.90 |   9.2s
+  deepseek-pro-high-creativity   | SPLIT      | conf=0.70 |  28.4s
+
+[B4] Done: 63 verdicts in 24.5 min (errors=0, parse_fail=1)
+[B4] Wrote /private/tmp/si-extras/v4/results/B4_heterogeneous_ensemble.jsonl
+[B4] Wrote /private/tmp/si-extras/v4/results/B4_ensemble_summary.md

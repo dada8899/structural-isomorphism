@@ -49,6 +49,16 @@ negative_examples:
 - phenomenon: Polling effects on voting
   reason: Surface similarity (polls influence votes), but typically modeled as bandwagon/Bayesian updating, not strict measurement-induced
     bifurcation. Class membership debatable.
+- phenomenon: Gradient descent on convex function
+  reason: "Iterative map x_{n+1}=x_n - η∇f(x_n) converges to a fixed point satisfying ∇f=0, but there is no expectation or measurement feedback; it is a deterministic optimization algorithm."
+- phenomenon: Watt centrifugal governor
+  reason: "Mechanical feedback adjusts throttle to stabilize engine speed around a setpoint using proportional control, but the mechanism is purely physical measurement error correction, not a reflexive loop where current state equals a function of its own expectation."
+- phenomenon: Logistic growth equilibrium
+  reason: The steady state N=K in dN/dt=rN(1-N/K) is a simple deterministic fixed point with no measurement or expectation feedback; dynamics are driven by intrinsic growth and density dependence.
+- phenomenon: Hopfield network energy minimization
+  reason: "Network state converges to a local energy minimum via asynchronous updates, but the fixed point is a stored pattern, not the result of a reflexive expectation equation like x = f(E[x])."
+- phenomenon: Temporal difference learning fixed point
+  reason: "Value function satisfies Bellman equation V = T(V) involving expected future values, but it is a functional fixed point on a state space, not a single variable satisfying x = f(E[x]) without additional structure."
 edge_cases:
 - phenomenon: Self-fulfilling currency crises
   debate: Investor expectation of devaluation → speculative attack → forced devaluation. Same structure as bank run. Class
@@ -57,6 +67,16 @@ edge_cases:
 - phenomenon: Algorithmic bias amplification
   debate: ML model trained on biased data → biased predictions → biased actions → more biased data. Strong reflexive loop,
     but slow-timescale. Class assignment accepted but requires explicit timestep modeling.
+- phenomenon: Adaptive expectations in cobweb model
+  debate: "Price depends on expected price, and expectations adapt over time; the long-run steady state satisfies p = f(E[p]), but the dynamic path includes learning, creating ambiguity whether the class covers only the fixed-point condition or the entire learning process."
+- phenomenon: Sunspot equilibria
+  debate: "State depends on a self-fulfilling extraneous variable (sunspot) rather than directly on its own expectation; the reflexive loop involves beliefs about an extrinsic signal, but the clean form x = f(E[x]) may not hold if the state is not directly the expectation's argument."
+- phenomenon: Quantum Zeno effect
+  debate: "Repeated projective measurements freeze a quantum state; each measurement outcome feeds back to collapse the state, producing a fixed point in state space, but the mechanism is measurement collapse, not an expectation-based loop, making the fit to x_t = f(E[x_t]) ambiguous."
+- phenomenon: Second-order cybernetic observer system
+  debate: "An observer’s model of a system influences the system’s behavior, potentially creating a self-referential fixed point, yet the mathematical form may involve a model state and a system state, not a single variable x satisfying x = f(E[x]), blurring the class boundary."
+- phenomenon: Rational expectations with forward-looking timing
+  debate: "Market clearing conditions often take the form p_t = f(E_t[p_{t+1}]) rather than x_t = f(E_t[x_t]); the expectation is of a future variable, not the contemporary one, which may exclude it from the strict reflexive fixed-point class even though it shares the self-referential spirit."
 references:
 - Muth 1961 Econometrica 29, 315 (rational expectations)
 - Soros 1987 Alchemy of Finance (reflexivity)

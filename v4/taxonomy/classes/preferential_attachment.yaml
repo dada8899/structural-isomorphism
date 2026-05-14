@@ -46,6 +46,16 @@ negative_examples:
   reason: 'Edge case: Bianconi-Barabási 2001 fitness model generalizes BA with quality heterogeneity. While related, fitness-driven
     inhomogeneous attachment is a strict superset of BA, and the resulting degree distribution can deviate from γ=3 power-law
     toward a stretched form. Keep in preferential_attachment class but flag fitness-induced deviation.'
+- phenomenon: "Self-organized criticality (e.g., sandpile avalanche sizes)"
+  reason: "Produces power‑law event size distributions via local threshold dynamics, not via a growth process with preferential attachment to size."
+- phenomenon: Multiplicative random walk for wealth (Gibrat’s law)
+  reason: "Yields a Pareto tail in a fixed population through uncorrelated proportional shocks, not through network growth and degree‑biased attachment."
+- phenomenon: Highly Optimized Tolerance (HOT) power‑law event sizes
+  reason: "Power‑law arises from design optimization for robustness, not from an evolving network where new nodes attach preferentially."
+- phenomenon: Random branching process without degree bias
+  reason: Can generate scale‑free tree structures through Yule‑type splitting without any degree‑based attachment rule (purely random replication).
+- phenomenon: Zipfian word frequencies from random typing / optimization
+  reason: "Power‑law rank‑frequency comes from mechanisms like random typing with space, not from an accumulating preferential attachment process on a graph."
 edge_cases:
 - phenomenon: Citation networks (de Solla Price 1965, Redner 1998)
   debate: Canonical positive example in the literature — but exponent γ varies by field (physics ~3, social sciences ~2.5),
@@ -59,6 +69,16 @@ edge_cases:
     attachment of new proteins to high-degree existing ones. Vázquez et al. 2003 showed duplication-divergence models reproduce
     BA-like exponents. Class assignment debated; we keep in preferential_attachment because the macroscopic invariant is the
     same.
+- phenomenon: Bianconi–Barabási fitness model
+  debate: ""
+- phenomenon: Duplication–divergence models of biological networks
+  debate: ""
+- phenomenon: Kleinberg copying model for web graphs
+  debate: ""
+- phenomenon: Sublinear preferential attachment with cutoffs
+  debate: ""
+- phenomenon: Aging and cost‑modulated attachment models
+  debate: ""
 references:
 - Yule 1925 Phil. Trans. Roy. Soc. B 213, 21 (original cumulative-advantage in species)
 - Simon 1955 Biometrika 42, 425 (Yule-Simon process for word frequencies)

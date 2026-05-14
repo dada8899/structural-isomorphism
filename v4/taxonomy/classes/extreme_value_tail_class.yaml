@@ -47,6 +47,14 @@ negative_examples:
   reason: "Deterministic low-dimensional chaos can yield apparent power-law distributed laminar phases, but the strong dependence violates the independence/mixing assumptions needed for classical GEV limit; the extremal behavior may not converge to GEV."
 - phenomenon: Multiplicative cascade extremes
   reason: "Cascade models in turbulence generate multifractal fields with extreme values that may follow a log-stable or other distribution depending on cascade parameters, not necessarily the GEV, due to intrinsic scale-dependent correlations."
+- phenomenon: Power-law degree distributions in scale-free networks (preferential attachment)
+  reason: "Heavy-tailed degree distribution emerges from a growth mechanism, not from sampling maxima of independent observations; no GEV/GPD limit."
+- phenomenon: "Avalanche sizes in self-organized criticality (e.g., sandpile models)"
+  reason: "Power-law event sizes arise from correlated critical dynamics, not from block maxima or threshold exceedances of i.i.d. data; extremal dependence invalidates classical EVT independence."
+- phenomenon: "Lévy stable distributions (non-Gaussian, heavy-tailed)"
+  reason: "Stable laws are limits of sums (generalized CLT), not maxima; although they have Pareto tails, the distribution itself is not a max-stable law belonging to extreme_value_tail_class."
+- phenomenon: Wealth distribution (Pareto) from multiplicative random growth
+  reason: "The power-law tail emerges from a multiplicative stochastic process, not from the convergence of sample maxima to a GEV shape; the tail index is not necessarily the extreme value index for maxima."
 edge_cases:
 - phenomenon: Insurance loss distribution
   debate: EVT is the standard tool but generative mechanism may be either independent Poisson claims (true EVT regime) or
@@ -64,6 +72,14 @@ edge_cases:
   debate: "Mixtures (e.g., two Gaussians) can mimic heavy tails in the bulk but are Gumbel; estimating ξ from data often yields values near zero, making it difficult to distinguish from a light Fréchet or Gumbel, a classic boundary problem."
 - phenomenon: Non-stationary climate extremes (with trend)
   debate: "Presence of a trend violates stationarity, a core EVT assumption; applying classical methods may yield misleading tail behavior, and the choice of detrending or non-stationary modeling blurs the boundary of the class."
+- phenomenon: Block maxima of a stationary dependent process with extremal index θ < 1 (clustering)
+  debate: "The limit distribution is still GEV with same shape but adjusted scale; the independence assumption is violated, yet the shape parameter still governs the tail. Is such a process a member, or does the class require i.i.d. data?"
+- phenomenon: "Maxima from a non-stationary sequence with time-varying parameters (e.g., climate trends)"
+  debate: "If the shape parameter remains constant, the non-identically distributed but independent maxima may still converge to GEV under regularity conditions; however, classical EVT is formulated for i.i.d. samples, making the membership ambiguous when identically distributed fails."
+- phenomenon: "Maxima of long-range dependent heavy-tailed time series (e.g., FARIMA with infinite variance)"
+  debate: "Strong dependence can alter the limiting extreme value distribution or yield a degenerate limit; it is not clear whether a GEV shape universally governs the maxima, or if the extremal index is zero leading to a different class."
+- phenomenon: "Pre-asymptotic block maxima from a distribution that converges extremely slowly to GEV (e.g., log-gamma tail)"
+  debate: "In finite samples, the shape estimate may misrepresent the true asymptotic domain; practitioners may fit GPD/GEV without verifying domain of attraction membership. The boundary between being in the class and merely using EVT as an approximation is fuzzy."
 references:
 - Fisher, Tippett 1928 Math. Proc. Cambridge 24, 180 (limit theorems for maxima)
 - Gnedenko 1943 Ann. Math. 44, 423 (foundational classification of EVT distributions)

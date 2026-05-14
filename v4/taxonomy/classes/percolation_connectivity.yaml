@@ -53,6 +53,16 @@ negative_examples:
 - phenomenon: Crystal lattice ordering
   reason: Ising-like ordering with continuous symmetry; equilibrium_critical_ising class. Different universality class with
     different exponents.
+- phenomenon: Explosive percolation (Achlioptas process)
+  reason: "Superficially resembles standard percolation but the transition is first-order (abrupt jump) rather than second-order, due to a competitive edge‑selection rule that suppresses the formation of a giant component."
+- phenomenon: Critical conductivity in random resistor networks
+  reason: "Involves transport on the infinite cluster rather than mere connectivity; the conductivity exponent t differs from the connectivity exponent β, placing it in a distinct transport universality class."
+- phenomenon: Diluted Ising model at the percolation threshold
+  reason: "Though the magnetic transition occurs at the geometric percolation point, the thermal critical behavior belongs to the random Ising universality class, not to pure percolation."
+- phenomenon: "Sandpile self‑organized criticality (e.g., Oslo model)"
+  reason: "Produces fractal, connected avalanche clusters with power‑law distributions, but the mechanism is a driven dissipative steady state, not a static occupation probability crossing a threshold."
+- phenomenon: Cluster‑cluster diffusion‑limited aggregation
+  reason: "Generates fractal connected structures, but no critical probability exists; it is a non‑equilibrium growth process, not a second‑order connectivity phase transition."
 edge_cases:
 - phenomenon: Forest fire spread
   debate: Drossel-Schwabl 1992 forest fire IS percolation-like at the right tree-density limit (p_c). But the slow-driving
@@ -60,6 +70,16 @@ edge_cases:
 - phenomenon: Network robustness to random failure vs targeted attack
   debate: Both reduce to percolation problems with different occupancy patterns. Scale-free networks have p_c → 0 under attack
     (Cohen et al. 2000). Strong overlap with scale_free_percolation_class.
+- phenomenon: Directed percolation
+  debate: "Possesses a connectivity transition and is often called a percolation process, but the directional bias leads to different critical exponents and symmetry; it is regarded as a distinct non‑equilibrium universality class, yet it is sometimes lumped under ‘percolation’."
+- phenomenon: "Bootstrap percolation (k=2, d=2)"
+  debate: "Shows a continuous transition with a spanning cluster, but the additional activation rule (needing k occupied neighbours) changes the universality class, possibly with logarithmic corrections; whether it truly belongs to ordinary percolation remains debated."
+- phenomenon: Jamming percolation (random sequential adsorption with connectivity)
+  debate: "The connectivity transition at the jamming limit involves both excluded‑volume constraints and percolation, yielding exponents that may interpolate between random percolation and RSA; ambiguous assignment."
+- phenomenon: Chemical gelation (Flory–Stockmayer vs percolation)
+  debate: "Classical mean‑field theory predicts gelation exponents different from 3D percolation; real gelation in good solvents may cross over to percolation universality, but loop formation and excluded volume make the boundary fuzzy."
+- phenomenon: Epidemic spread on adaptive (co‑evolving) networks
+  debate: "On static networks the final outbreak maps exactly to bond percolation, but with dynamic links the process may shift into the directed percolation class or exhibit new critical behaviour, making its classification ambiguous."
 references:
 - Broadbent, Hammersley 1957 Proc. Camb. Phil. Soc. 53, 629 (original percolation)
 - Stauffer, Aharony 1994 Introduction to Percolation Theory

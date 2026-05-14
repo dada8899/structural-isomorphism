@@ -52,6 +52,16 @@ negative_examples:
   reason: "Superficially similar market deterioration, but mechanism is congestion externalities (not hidden quality). High-value users exit due to quality of service decline, not because price reflects average quality under asymmetric information."
 - phenomenon: Price controls inducing quality degradation
   reason: "Sellers lower overt quality in response to a binding price ceiling; quality is observable and the mechanism is supply-side cost cutting, not hidden quality and equilibrium p* = E[q|p*]."
+- phenomenon: "Gresham's law ('bad money drives out good')"
+  reason: "Superficially similar as low-quality displaces high-quality, but mechanism rests on legal tender laws and fixed exchange rates, not on asymmetric information and price-conditional expectation equilibrium."
+- phenomenon: Moral hazard in insurance markets (hidden action)
+  reason: "Similar market failure but driven by unobservable effort affecting loss probabilities after contract, not by hidden quality ex ante; equilibrium condition involves incentive constraints rather than p* = E[q|p*]."
+- phenomenon: "Network-effects tipping (e.g., VHS vs Betamax)"
+  reason: "One product dominates due to positive reinforcement from installed base, not adverse selection; quality is observable and price mechanism is unrelated to hidden information."
+- phenomenon: Mussa-Rosen monopolistic quality screening
+  reason: "Principal designs nonlinear price schedule to induce self-selection among heterogeneous types, but there is no single market price or price-driven exit; equilibrium is a contracting outcome, not a market-clearing condition under asymmetric quality information."
+- phenomenon: Spence job-market signaling
+  reason: "Involves hidden ability and an equilibrium wage that equals expected productivity conditional on signal, but the mechanism is costly signaling that prevents exit rather than causing it; no monotone exit of high types because they separate rather than leave."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -70,6 +80,16 @@ edge_cases:
   debate: "Exogenous elimination of hidden quality prevents unraveling, but the underlying market structure is identical. Is the system still in the adverse selection class if the informational asymmetry is removed by policy, or does it cross a class boundary into full‐information markets?"
 - phenomenon: Online marketplace with reputation-based feedback
   debate: "Dynamic learning from ratings reduces information asymmetry and can stem the exit of high-quality sellers. The static p* = E[q|p*] unraveling may be avoided, but the core adverse-selection tension remains. Does the introduction of reputation dynamics place this in a new class, or is it a perturbed version of the same class?"
+- phenomenon: Rothschild-Stiglitz competitive insurance screening
+  debate: "Shares core adverse selection and price (premium) linked to expected costs of the pool, but equilibrium involves firms offering menus of contracts and possible non-existence; debate whether it belongs to the same class or requires a separate competitive contract equilibrium class."
+- phenomenon: "Grossman full disclosure 'unraveling' (quality disclosure)"
+  debate: "Uses the term 'unraveling' and hinges on hidden quality, but the unraveling is of information (all firms voluntarily disclose) rather than exit of high-quality goods; mechanism is disclosure incentives, not price-conditional expectation."
+- phenomenon: Stiglitz-Weiss credit rationing with adverse selection
+  debate: "Interest rate (price) affects the pool of borrowers similarly, but equilibrium often involves rate setting below market-clearing and credit rationing, with bank expected return maximization rather than simple p* = E[q|p*]; arguably an extension, but equilibrium form differs."
+- phenomenon: Kreps-Wilson reputation in repeated lemons markets
+  debate: "Dynamic setting where high-quality sellers can invest in reputation to signal type, potentially sustaining quality; equilibrium may not reduce to static p* = E[q|p*] due to intertemporal incentives, blurring the class boundary."
+- phenomenon: "Over-the-counter asset markets with asymmetric information (e.g., Duffie, Gârleanu, Pedersen)"
+  debate: "Search frictions and bargaining combined with hidden quality can produce similar price-driven exit dynamics, but the equilibrium condition involves meeting rates and bargaining splits, not a simple Walrasian market; might be a distinct class."
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)

@@ -47,6 +47,14 @@ negative_examples:
   reason: Rate-dependent hysteresis from macroscopic induced currents; Preisach model is inherently rate-independent and mechanism-incompatible.
 - phenomenon: Single play/backlash operator (mechanical hysteresis)
   reason: "Produces a hysteresis loop but consists of one elementary operator, not an ensemble of many heterogeneous bistable elements with distributed switching."
+- phenomenon: Stoner-Wohlfarth particle hysteresis
+  reason: "Magnetization reversal occurs by coherent rotation within a single domain, not by an ensemble of independent bistable hysterons with distributed switching fields."
+- phenomenon: "Hysteresis in first-order phase transitions (e.g., liquid–vapor in a finite system)"
+  reason: "The hysteresis originates from nucleation and growth in a single system with a free-energy barrier, not from a superposition of elementary bistable units."
+- phenomenon: Rate-dependent viscoelastic hysteresis
+  reason: "Rate-dependent energy dissipation leads to frequency-dependent loops, incompatible with the rate-independent Preisach framework that assumes instantaneous switching."
+- phenomenon: Random-field Ising model (RFIM) avalanche hysteresis
+  reason: Domain interactions and disorder produce cooperative avalanches that violate the independence of hysterons and break the congruency property of classical Preisach models.
 edge_cases:
 - phenomenon: Memristor
   debate: Single-element memristive hysteresis (Chua 1971). One hysteron, not Preisach ensemble. Class boundary.
@@ -60,6 +68,14 @@ edge_cases:
   debate: "Often fitted by Preisach models, but the underlying martensitic transformation involves strongly interacting plates and nucleation/propagation mechanisms, not just a distribution of independent bistable elements."
 - phenomenon: "Discrete Preisach-like system with a very small number of hysterons (e.g., 2–5)"
   debate: "The definition emphasizes an ensemble with distributed switching; a handful of elements may not constitute a statistically meaningful ensemble, yet still produce a multi-loop hysteresis akin to a coarse-grained Preisach map."
+- phenomenon: Magnetic hysteresis of a bulk ferromagnet with domain-wall pinning
+  debate: "Preisach models are widely applied phenomenologically, but the underlying mechanism involves interacting domain walls moving in a disordered landscape, which may produce non-congruent, interaction-dependent loops."
+- phenomenon: Capillary hysteresis in porous networks
+  debate: "Independent pore models map exactly to Preisach, yet real networks exhibit cooperative pore filling and percolation effects, making the independence assumption ambiguous."
+- phenomenon: Preisach model with accommodation (non-congruency)
+  debate: Classical Preisach demands congruency; extensions that incorporate non-local memory by allowing hysteron states to shift after minor loops blur the boundary of the original class.
+- phenomenon: Vector Preisach models
+  debate: "The classical model is scalar; vector extensions preserve the ensemble-of-hysterons concept but introduce directional coupling and rotation, raising the question of whether they represent a natural generalization or a distinct class."
 notes: 'LLM-proposed cluster. Bundles together many systems with macroscopic hysteresis. Some
 
   members (lake eutrophication, low fertility trap) might be better assigned to single-fold

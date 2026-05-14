@@ -50,6 +50,16 @@ negative_examples:
 - phenomenon: Hopf bifurcation oscillation
   reason: Limit cycle from supercritical Hopf; amplitude self-stabilized via nonlinearity. Different mechanism than linear
     damped response. Class boundary.
+- phenomenon: Coulomb friction damped oscillator
+  reason: "Exhibits decaying oscillations with a linear amplitude decay envelope, not exponential; damping force is constant in magnitude, incompatible with the viscous damping assumption proportional to velocity."
+- phenomenon: Van der Pol oscillator
+  reason: "Self-sustained limit cycle due to nonlinear negative damping at small amplitudes; lacks exponential decay and does not embody linear viscous damping, despite a similar-looking damping term."
+- phenomenon: Quadratic aerodynamic drag oscillator
+  reason: "Damping force proportional to velocity squared produces hyperbolic amplitude decay, not exponential; often misinterpreted as viscous damping at low amplitudes but arises from a fundamentally different energy dissipation mechanism."
+- phenomenon: Parametric oscillator (Mathieu equation)
+  reason: "Exponential growth of oscillations driven by time-varying stiffness, not viscous damping; the mechanism is parametric resonance, without the restoring-force-plus-viscous-damping structure."
+- phenomenon: Relaxation oscillator (neon lamp flasher)
+  reason: "Produces non-harmonic sawtooth-like oscillations via fast/slow dynamics and threshold switching, not simple harmonic motion modulated by exponential decay; second-order but incompatible mechanism."
 edge_cases:
 - phenomenon: Bridge wind-induced flutter (Tacoma Narrows)
   debate: Linear regime is second-order damped, but flutter is nonlinear instability beyond critical wind speed (effective
@@ -57,6 +67,16 @@ edge_cases:
 - phenomenon: Atomic absorption line (Lorentzian)
   debate: Damped harmonic oscillator model of atomic dipole gives Lorentzian linewidth. Class membership accepted in classical
     limit; full QM treatment goes beyond.
+- phenomenon: Overdamped oscillator (ζ > 1)
+  debate: "Satisfies the same linear ODE but exhibits no oscillation, only exponential decay; debatable whether it belongs to the class defined by 'simple harmonic motion modulated by exponential decay' since harmonic motion is absent."
+- phenomenon: Weakly nonlinear Duffing oscillator with viscous damping
+  debate: "For small amplitudes it approximates linear behavior, but full system is nonlinear with amplitude-dependent frequency; contested whether strict linearity is required or effective linear response suffices for membership."
+- phenomenon: Viscoelastic fractional damping
+  debate: "Fractional-order damping term yields power-law or stretched-exponential decay, not pure exponential; often approximated as a damped harmonic oscillator, but the underlying non-integer order differentiates it from standard viscous damping."
+- phenomenon: Forced damped harmonic oscillator (driven)
+  debate: "Under transient conditions it behaves as a pure second-order damped oscillator, but the driven steady-state introduces non-autonomy and external energy input; classification ambiguous when the system includes forcing."
+- phenomenon: Hysteretic (structural) damping
+  debate: "Energy dissipation modeled by a frequency-independent complex stiffness; time-domain representation involves a Hilbert transform and non-causality, fundamentally distinct from viscous damping, yet often substituted by an equivalent viscous model, leading to boundary disputes."
 references:
 - Hooke 1660 (Hooke's law)
 - Newton 1687 Principia (F = ma)

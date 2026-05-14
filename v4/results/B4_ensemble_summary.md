@@ -2,10 +2,10 @@
 
 **Date**: 2026-05-14  
 **Reviewers**: deepseek-pro-rigorous, deepseek-flash-rigorous, deepseek-pro-high-creativity  
-**Classes reviewed**: 8  
-**Total verdicts**: 24  
-**Errors**: 0, **Parse failures**: 0  
-**Total wall time**: 7.8 min  
+**Classes reviewed**: 21  
+**Total verdicts**: 63  
+**Errors**: 0, **Parse failures**: 1  
+**Total wall time**: 24.5 min  
 
 ## Setup notes
 
@@ -15,22 +15,35 @@
 
 | class_id | deepseek-pro-rigorous | deepseek-flash-rigorous | deepseek-pro-high-creativity | B4 consensus | avg_conf |
 |---|---|---|---|---|---|
-| `delay_differential_debt` | REJECT | UNCLEAR | SPLIT | **UNCLEAR** | 0.60 |
+| `adverse_selection_unraveling_class` | REJECT | REJECT | REJECT | **REJECT** | 0.92 |
+| `delay_differential_debt` | REJECT | UNCLEAR | KEEP | **UNCLEAR** | 0.62 |
 | `extreme_value_tail_class` | REJECT | REJECT | REJECT | **REJECT** | 0.95 |
 | `gardner_collins_toggle_switch_Th1Th2` | MERGE | MERGE | MERGE | **MERGE** | 0.95 |
-| `hysteresis_preisach` | REJECT | REJECT | REJECT | **REJECT** | 0.82 |
-| `motter_lai_network_cascade` | KEEP | REJECT | UNCLEAR | **UNCLEAR** | 0.73 |
-| `scheffer_fold_bifurcation` | UNCLEAR | UNCLEAR | KEEP | **UNCLEAR** | 0.58 |
+| `gardner_collins_toggle_switch_apoptosis` | REJECT | MERGE | MERGE | **MERGE** | 0.90 |
+| `hysteresis_first_order_transition_fertility` | REJECT | REJECT | KEEP | **REJECT** | 0.92 |
+| `hysteresis_preisach` | UNCLEAR | REJECT | UNCLEAR | **UNCLEAR** | 0.80 |
+| `leaky_integrate_fire_threshold_class` | REJECT | REJECT | SPLIT | **REJECT** | 0.57 |
+| `markov_chain_memory_fidelity_class` | REJECT | REJECT | REJECT | **REJECT** | 0.95 |
+| `motter_lai_network_cascade` | REJECT | REJECT | KEEP | **REJECT** | 0.92 |
+| `motter_lai_network_cascade_social` | MERGE | MERGE | MERGE | **MERGE** | 0.95 |
+| `percolation_connectivity` | KEEP | UNCLEAR | KEEP | **KEEP** | 0.83 |
+| `preferential_attachment` | UNCLEAR | UNCLEAR | KEEP | **UNCLEAR** | 0.73 |
+| `reaction_diffusion_steady_state_class` | REJECT | REJECT | KEEP | **REJECT** | 0.82 |
+| `reflexive_fixed_point_class` | UNCLEAR | REJECT | KEEP | **UNCLEAR** | 0.53 |
+| `scale_free_percolation_class` | REJECT | REJECT | UNCLEAR | **REJECT** | 0.68 |
+| `scheffer_fold_bifurcation` | UNCLEAR | REJECT | KEEP | **UNCLEAR** | 0.90 |
 | `schelling_credible_commitment` | REJECT | REJECT | REJECT | **REJECT** | 0.93 |
-| `tail_copula_contagion` | REJECT | REJECT | REJECT | **REJECT** | 0.80 |
+| `second_order_damped_oscillator` | PARSE_FAIL | UNCLEAR | KEEP | **UNCLEAR** | 0.52 |
+| `sir_contagion_network_class` | REJECT | REJECT | SPLIT | **REJECT** | 0.77 |
+| `tail_copula_contagion` | REJECT | REJECT | REJECT | **REJECT** | 0.88 |
 
 ## B4 consensus distribution
 
-- **KEEP**: 0
-- **REJECT**: 4
+- **KEEP**: 1
+- **REJECT**: 11
 - **SPLIT**: 0
-- **MERGE**: 1
-- **UNCLEAR**: 3
+- **MERGE**: 3
+- **UNCLEAR**: 6
 
 ## B3 vs B4 agreement (see B3_taxonomy_v2.jsonl for B3 consensus)
 

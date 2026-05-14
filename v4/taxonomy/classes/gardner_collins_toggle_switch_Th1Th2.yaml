@@ -37,6 +37,14 @@ negative_examples:
   reason: "Switch-like activation of executioner caspases via initiator caspase positive feedback, not a gene regulatory network of mutual repressors. Similar in all-or-none response but incompatible core dynamics."
 - phenomenon: Bacterial persistence HipA/HipB toxin-antitoxin system
   reason: "Bistability arises from post-translational interactions and slow growth dependence, not from a directly cross-repressing transcriptional toggle. Mechanism lacks the canonical mutual repression architecture."
+- phenomenon: Bistable switch from single-gene positive autoregulation
+  reason: "Produces bistability via a single transcription factor activating its own expression, not through mutual repression of two antagonistic regulators."
+- phenomenon: Repressilator oscillator
+  reason: "Uses a ring of three repressors to generate sustained oscillations, not bistable steady states, despite sharing mutual/delayed repression motifs; dynamical class is incompatible."
+- phenomenon: Mutually activating toggle switch (double-positive feedback)
+  reason: "Achieves bistability through mutual activation of two transcription factors, a fundamentally different wiring from mutual inhibition, altering response to perturbations."
+- phenomenon: Stochastic phenotypic switching via epigenetic feedback
+  reason: "Bistability in HIV latency or similar systems arises from stochastic transitions and chromatin-state positive feedback, not deterministic mutual repression of two master regulators."
 edge_cases:
 - phenomenon: X-chromosome random inactivation
   debate: Bistable choice of which X to inactivate. Similar toggle structure but inheritance via Markov-fidelity (markov_chain_memory_fidelity_class)
@@ -49,6 +57,14 @@ edge_cases:
   debate: Extends Th1/Th2 mutual repression to a larger network of cross-inhibiting master regulators; unclear if the class is strictly two-component or includes higher-dimensional mutually repressive systems with similar dynamical signatures.
 - phenomenon: Synthetic toggle switch with self-activation (amplified toggle)
   debate: "Adds positive autoregulation to the mutual repression motif, which can modify stability properties and introduce tristability. Whether it belongs to the same universality class as the minimal toggle is contested."
+- phenomenon: Synthetic genetic toggle switch (Gardner et al. 2000)
+  debate: "Shares identical mutual repression architecture and equations, but is an engineered system without immune context; ambiguity whether the class requires natural immune polarization or purely structural isomorphism."
+- phenomenon: Th17/Treg differentiation toggle
+  debate: "Another T-helper cell fate driven by mutual inhibition (RORγt vs FoxP3); structurally indistinguishable from Th1/Th2, but different biological identity—should it be a separate subclass or same universality class?"
+- phenomenon: Phage lambda lysis-lysogeny decision (CI-Cro mutual repression)
+  debate: "Classic bistable switch with mutual repression, often modeled identically to the Gardner-Collins toggle; ambiguous whether viral vs. immune origin matters for universality classification."
+- phenomenon: Mutual repression with additional self-activation loops
+  debate: "Networks like hematopoietic stem cell differentiation use mutual inhibition plus autoactivation, yielding tristable or more complex dynamics; the core mutual repression is present but extra feedback may blur the strict bistable, two-component boundary."
 notes: 'This is a domain-specific instantiation of the general Gardner-Collins toggle switch class.
 
   LLM-proposed sub-class for layer 4 prediction targeting. The parent class gardner_collins_toggle_switch

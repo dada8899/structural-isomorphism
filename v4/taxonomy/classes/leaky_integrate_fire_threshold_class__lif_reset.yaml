@@ -44,6 +44,16 @@ negative_examples:
   reason: No threshold or reset; continuous Hamiltonian dynamics. Belongs to second_order_damped_oscillator.
 - phenomenon: Sigmoid neural activation in ANNs
   reason: Static input-output map y = σ(Wx+b); no dynamics, no leaky integration, no reset event. Different mechanism class.
+- phenomenon: Quadratic Integrate-and-Fire (QIF) model
+  reason: "Superficially similar because of threshold and reset, but the subthreshold dynamics contain a quadratic nonlinearity dV/dt ∝ (V-V_rest)^2, not a linear leak, placing it in a different dynamical class."
+- phenomenon: Exponential Integrate-and-Fire (EIF) model
+  reason: Uses an exponential term Δ_T exp((V-V_T)/Δ_T) in the voltage equation; this non-linear spike initiation mechanism is incompatible with the purely linear leak of the LIF class.
+- phenomenon: Perfect Integrate-and-Fire (PIF) model
+  reason: "Lacks the leak term entirely (dV/dt = I/C), so the integration is undamped and the reset dynamics occur from a neutral integrator, not a leaky one."
+- phenomenon: Hodgkin-Huxley (HH) conductance-based model
+  reason: Generates spikes through a continuous dynamical bifurcation without an explicit discontinuous voltage reset; the mechanism is fundamentally different from a threshold-and-reset hybrid system.
+- phenomenon: Izhikevich model
+  reason: "Has a quadratic voltage term and a two-dimensional adaptation variable, producing rich dynamics; despite a reset, the underlying equation is not a first-order linear leak."
 edge_cases:
 - phenomenon: Neural avalanche under criticality
   debate: Each neuron is LIF, but the population dynamics produce SOC threshold-cascade signatures. Same elementary unit (LIF),
@@ -52,6 +62,16 @@ edge_cases:
 - phenomenon: Hodgkin-Huxley action potential
   debate: Full HH model includes Na+/K+ channel gating, more detailed than LIF. LIF is a reduced approximation. Same class
     membership at coarse level; HH is the full mechanism.
+- phenomenon: LIF with smooth sigmoidal threshold and reset approximation
+  debate: "Uses a continuous, steep function to mimic the discontinuous reset; formally it is a smooth dynamical system, but in the limit it recovers LIF behavior exactly, blurring the boundary of the class."
+- phenomenon: Leaky integrate-and-fire with time-varying leak conductance (g_L(t))
+  debate: "The leak term remains linear in V, but the time-dependent coefficient may be considered a parameter variation; it is unclear whether this variation moves it out of the canonical LIF class with fixed τ."
+- phenomenon: LIF with dynamic threshold implementing relative refractoriness
+  debate: "The voltage equation is purely LIF, but the threshold modulation changes the firing condition based on history; the core hybrid mechanism is preserved, yet the added dimension may warrant a separate subclass."
+- phenomenon: Adaptive Exponential Integrate-and-Fire (AdEx) in the small Δ_T limit
+  debate: "For small Δ_T the exponential term is negligible and the model approximates an LIF with adaptation; however, the formal presence of the exponential nonlinearity means it is not strictly a linear leak model."
+- phenomenon: LIF with reset implemented as ultra-fast continuous repolarization
+  debate: "Instead of an instantaneous jump, the voltage decays very rapidly upon threshold crossing; it mimics hybrid reset but removes the discontinuity, challenging the strict hybrid-system definition of the class."
 references:
 - Lapicque 1907 J. Physiol. Pathol. Gen. 9, 620 (original I&F neuron)
 - Stein 1965 Biophys. J. 5, 173 (modern LIF derivation)
