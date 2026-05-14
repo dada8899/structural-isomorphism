@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { PhaseTrajectoryChart } from "@/components/PhaseTrajectoryChart";
+import SwipeNavigator from "@/components/SwipeNavigator";
 import Link from "next/link";
 import {
   CPS_ARIA_LABEL,
@@ -174,7 +175,7 @@ export default function CompanyDetailPage({
           <p className="mt-1 text-xs text-red-700/80">{error}</p>
           <Link
             href="/"
-            className="mt-3 inline-flex rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:border-red-400"
+            className="mt-3 inline-flex min-h-[44px] items-center rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:border-red-400"
           >
             ← 返回公司表
           </Link>
@@ -198,6 +199,7 @@ export default function CompanyDetailPage({
   const marketCapLabel = formatMarketCap(company.market_cap_usd_b);
 
   return (
+    <SwipeNavigator currentTicker={params.ticker}>
     <div className="space-y-6">
       <Breadcrumb items={breadcrumb} />
 
@@ -492,5 +494,6 @@ export default function CompanyDetailPage({
         </a>
       </nav>
     </div>
+    </SwipeNavigator>
   );
 }

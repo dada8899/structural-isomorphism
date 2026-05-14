@@ -134,7 +134,7 @@ function TierCard({
           });
           onStart(tier);
         }}
-        className={`mt-6 w-full rounded-lg px-4 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 ${
+        className={`mt-6 min-h-[44px] w-full rounded-lg px-4 py-3 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 ${
           tier.highlight
             ? "bg-zinc-900 text-white hover:bg-zinc-700"
             : tier.id === "free"
@@ -196,7 +196,7 @@ export function PricingTable({ defaultInterval = "month" }: PricingTableProps) {
           role="tab"
           aria-selected={interval === "month"}
           onClick={() => setInterval("month")}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+          className={`min-h-[44px] rounded-md px-4 py-2 text-sm font-medium transition ${
             interval === "month"
               ? "bg-zinc-900 text-white"
               : "text-zinc-600 hover:text-zinc-900"
@@ -210,7 +210,7 @@ export function PricingTable({ defaultInterval = "month" }: PricingTableProps) {
           role="tab"
           aria-selected={interval === "year"}
           onClick={() => setInterval("year")}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+          className={`min-h-[44px] rounded-md px-4 py-2 text-sm font-medium transition ${
             interval === "year"
               ? "bg-zinc-900 text-white"
               : "text-zinc-600 hover:text-zinc-900"
