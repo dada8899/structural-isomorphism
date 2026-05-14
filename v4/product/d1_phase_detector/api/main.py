@@ -27,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .db import get_cursor, placeholder, row_to_dict
+from .universality import router as universality_router
 
 app = FastAPI(title="Phase Detector Screener API", version="0.2.0")
 app.add_middleware(
@@ -36,6 +37,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+# W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
+app.include_router(universality_router)
 
 
 # W8-D: ensure waitlist table exists on startup (idempotent).

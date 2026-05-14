@@ -427,7 +427,9 @@ export default function CompanyDetailPage({
         )}
       </section>
 
-      {/* Continuation CTAs — back to table + cross-link to universality classes. */}
+      {/* Continuation CTAs — back to table + cross-link to universality classes.
+          W10-E: link directly to /universality/<class_id> for the matched class
+          (when present), and to /compare seeded with this ticker. */}
       <nav
         aria-label="继续浏览"
         className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 text-sm"
@@ -438,6 +440,22 @@ export default function CompanyDetailPage({
           className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
         >
           ← 返回公司表
+        </Link>
+        {company.universality_class && (
+          <Link
+            href={`/universality/${encodeURIComponent(company.universality_class)}`}
+            className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+            data-testid="universality-class-link"
+          >
+            查看普适类 {company.universality_class} →
+          </Link>
+        )}
+        <Link
+          href={`/compare?tickers=${encodeURIComponent(company.ticker)}`}
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
+          data-testid="compare-link"
+        >
+          在对比页打开 →
         </Link>
         <Link
           href="/methodology"
@@ -451,7 +469,7 @@ export default function CompanyDetailPage({
           rel="noopener"
           className="text-zinc-500 hover:text-zinc-900 hover:underline"
         >
-          查看相关 universality class ↗
+          Structural 全局视角 ↗
         </a>
       </nav>
     </div>
