@@ -1,0 +1,83 @@
+name: Deploy Beta Backend
+
+# Auto-deploy beta.structural.bytedance.city (FastAPI + static frontend) on
+# push to main. Replaces the manual flow:
+#   ssh vps; cd structural-isomorphism-v4; git pull; bash scripts/deploy-vps.sh
+#
+# Path filter scopes deploys to web app + deploy scripts only — pure docs /
+# v4 lib / phase-detector changes do not trigger this workflow (phase-detector
+# has its own deploy workflow).
+#
+# Secrets used (same pattern as deploy-phase-detector.yml):
+#   VPS_DEPLOY_KEY  — SSH private key authorized on VPS
+#   VPS_HOST        — VPS hostname / IP
+#   VPS_USER        — SSH user (typically root)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/backend/**'
+      - 'web/frontend/**'
+      - 'scripts/deploy-vps.sh'
+      - 'scripts/restore-models.sh'
+      - '.github/workflows/deploy-beta-backend.yml'
+  workflow_dispatch: {}
+
+# Serialize deploys so two pushes do not race on the VPS rsync + restart.
+concurrency:
+  group: deploy-beta-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (context only)
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Pull + deploy via scripts/deploy-vps.sh
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /root/Projects/structural-isomorphism-v4
+          git fetch origin main
+          git reset --hard origin/main
+          chmod +x scripts/deploy-vps.sh scripts/restore-models.sh
+          bash scripts/deploy-vps.sh
+          REMOTE
+
+      - name: Verify prod health
+        run: |
+          set -euo pipefail
+          sleep 5
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://beta.structural.bytedance.city/api/health || echo "000")
+            if [ "$CODE" = "200" ]; then
+              echo "[verify] prod healthy (attempt $i)"
+              exit 0
+            fi
+            echo "[verify] retry $i, got $CODE"
+            sleep 5
+          done
+          echo "[verify] FAIL: /api/health did not return 200 after 5 retries"
+          exit 1
