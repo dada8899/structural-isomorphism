@@ -1,4 +1,14 @@
-"""Phase Detector backtest engine v0.1.
+"""Phase Detector backtest engine v0.2.
+
+Two modes:
+  1. Single-snapshot (default, v0.1 compat): pin --snapshot to one date and
+     compute forward-period return per company once. Used by unit tests.
+
+  2. Walk-forward (--walk-forward, v0.2): roll snapshot month-by-month across
+     the price history, computing forward-period returns at every month, then
+     aggregate to per-month means per group + a single Welch t-test across all
+     (company × month) observations. Outputs an extra cumulative_return.png
+     and backtest_result.json includes Sharpe + walk-forward stats.
 
 Hypothesis under test:
     "Companies classified as `near_critical` (= approaching_critical OR
@@ -6,15 +16,18 @@ Hypothesis under test:
      return over the next 6 (or 12) months versus the rest."
 
 Inputs:
-  --companies   companies_500.jsonl (Wave 1 StructTuple) or fallback companies.jsonl
-  --prices      data/prices.csv produced by fetch_prices.py
-  --snapshot    YYYY-MM-DD anchor date (default 2026-05-14)
-  --period      6m | 12m
-  --dry-run     run end-to-end on synthetic data with no externals
+  --companies     companies_500.jsonl (Wave 1 StructTuple)
+  --prices        prices.csv (legacy) OR --real-prices to read prices_500.csv
+  --snapshot      YYYY-MM-DD anchor date (default today)
+  --period        6m | 12m
+  --walk-forward  enable rolling snapshot mode
+  --real-prices   shortcut: load v0.2 prices_500.csv + walk-forward
+  --dry-run       run end-to-end on synthetic data with no externals
 
 Outputs:
   data/backtest_result.json     {mean, std, sharpe, t, p, n_per_group, ...}
   data/backtest_cumulative.csv  date, near_critical_cumret, other_cumret
+  data/cumulative_return.png    (walk-forward only)
 """
 
 from __future__ import annotations
@@ -34,10 +47,12 @@ from typing import Dict, List, Optional, Tuple
 LOG = logging.getLogger("backtest")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PRICES = os.path.join(SCRIPT_DIR, "data", "prices.csv")
+DEFAULT_REAL_PRICES = os.path.join(SCRIPT_DIR, "prices_500.csv")
 DEFAULT_COMPANIES_PRIMARY = os.path.join(SCRIPT_DIR, "companies_500.jsonl")
 DEFAULT_COMPANIES_FALLBACK = os.path.join(SCRIPT_DIR, "companies.jsonl")
-DEFAULT_RESULT = os.path.join(SCRIPT_DIR, "data", "backtest_result.json")
-DEFAULT_CUMCSV = os.path.join(SCRIPT_DIR, "data", "backtest_cumulative.csv")
+DEFAULT_RESULT = os.path.join(SCRIPT_DIR, "backtest_result.json")
+DEFAULT_CUMCSV = os.path.join(SCRIPT_DIR, "cumulative.csv")
+DEFAULT_CUMPNG = os.path.join(SCRIPT_DIR, "cumulative_return.png")
 DEFAULT_SNAPSHOT = "2026-05-14"
 
 NEAR_CRITICAL_STATES = {"approaching_critical", "at_critical"}
@@ -369,17 +384,184 @@ def _synth_dry_run(snapshot: dt.date, months: int) -> Tuple[List[CompanyRow], Di
 
 
 # ---------------------------------------------------------------------------
+# Walk-forward (v0.2)
+# ---------------------------------------------------------------------------
+
+def walk_forward_returns(
+    companies: List[CompanyRow],
+    prices: Dict[str, List[Tuple[dt.date, float]]],
+    months: int,
+    min_snapshot: Optional[dt.date] = None,
+    max_snapshot: Optional[dt.date] = None,
+) -> Tuple[Dict[str, List[float]], List[Tuple[dt.date, float, float, int, int]]]:
+    """Roll a `months`-forward window across every available month-end.
+
+    For each snapshot date T (month-end with data) and each company:
+      ret = price[T + months] / price[T] - 1
+
+    Returns:
+      flat_grouped: {"near_critical": [...all returns...], "other": [...]}
+      monthly: list of (snapshot_date, mean_nc, mean_other, n_nc, n_other)
+    """
+    # Collect set of distinct snapshot dates from all tickers.
+    all_dates: set = set()
+    for series in prices.values():
+        for d, _ in series:
+            all_dates.add(d)
+    timeline = sorted(all_dates)
+    if min_snapshot:
+        timeline = [d for d in timeline if d >= min_snapshot]
+    if max_snapshot:
+        timeline = [d for d in timeline if d <= max_snapshot]
+
+    # We need each snapshot to have a corresponding T+months point available,
+    # so cut tail.
+    if not timeline:
+        return {"near_critical": [], "other": []}, []
+    # Filter to snapshots where target_end <= last available date overall.
+    last_overall = timeline[-1]
+    usable = [d for d in timeline if add_months(d, months) <= last_overall]
+
+    flat_grouped: Dict[str, List[float]] = {"near_critical": [], "other": []}
+    monthly: List[Tuple[dt.date, float, float, int, int]] = []
+
+    # Pre-index companies by group for fast iteration
+    nc_companies = [c for c in companies if c.group == "near_critical"]
+    oth_companies = [c for c in companies if c.group == "other"]
+
+    for snap in usable:
+        target_end = add_months(snap, months)
+        nc_rets: List[float] = []
+        oth_rets: List[float] = []
+        for grp, comps, bucket in (
+            ("near_critical", nc_companies, nc_rets),
+            ("other", oth_companies, oth_rets),
+        ):
+            for c in comps:
+                series = prices.get(c.ticker)
+                if not series:
+                    continue
+                anchor = _nearest_on_or_before(series, snap)
+                if not anchor:
+                    continue
+                end_pt = _nearest_on_or_after(series, target_end)
+                if not end_pt or anchor[1] <= 0:
+                    continue
+                # Sanity: end_pt must not equal anchor (no forward window)
+                if end_pt[0] <= anchor[0]:
+                    continue
+                ret = (end_pt[1] - anchor[1]) / anchor[1]
+                bucket.append(ret)
+        flat_grouped["near_critical"].extend(nc_rets)
+        flat_grouped["other"].extend(oth_rets)
+        if nc_rets or oth_rets:
+            mean_nc = statistics.fmean(nc_rets) if nc_rets else float("nan")
+            mean_oth = statistics.fmean(oth_rets) if oth_rets else float("nan")
+            monthly.append((snap, mean_nc, mean_oth, len(nc_rets), len(oth_rets)))
+
+    LOG.info(
+        "Walk-forward: %d snapshots, %d nc obs, %d other obs",
+        len(monthly), len(flat_grouped["near_critical"]), len(flat_grouped["other"]),
+    )
+    return flat_grouped, monthly
+
+
+def write_walk_forward_cumulative_csv(
+    path: str,
+    monthly: List[Tuple[dt.date, float, float, int, int]],
+) -> int:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    cum_nc = 0.0
+    cum_oth = 0.0
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "snapshot_date", "mean_nc_ret", "mean_other_ret",
+            "n_nc", "n_other", "cum_nc_ret", "cum_other_ret",
+        ])
+        for snap, mnc, moth, nnc, noth in monthly:
+            # Compound monthly mean returns (treat each snapshot as a period sample).
+            if not math.isnan(mnc):
+                cum_nc = (1 + cum_nc) * (1 + mnc) - 1
+            if not math.isnan(moth):
+                cum_oth = (1 + cum_oth) * (1 + moth) - 1
+            w.writerow([
+                snap.isoformat(),
+                f"{mnc:.6f}" if not math.isnan(mnc) else "",
+                f"{moth:.6f}" if not math.isnan(moth) else "",
+                nnc, noth,
+                f"{cum_nc:.6f}",
+                f"{cum_oth:.6f}",
+            ])
+    return len(monthly)
+
+
+def plot_cumulative_png(
+    path: str,
+    monthly: List[Tuple[dt.date, float, float, int, int]],
+    title_suffix: str = "",
+) -> bool:
+    """Render a 2-line cumulative-return plot. Returns True on success."""
+    try:
+        import matplotlib  # type: ignore
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt  # type: ignore
+    except ImportError:
+        LOG.warning("matplotlib not installed; skipping PNG output")
+        return False
+
+    if not monthly:
+        LOG.warning("no walk-forward data to plot")
+        return False
+
+    dates = [m[0] for m in monthly]
+    cum_nc: List[float] = []
+    cum_oth: List[float] = []
+    cn = 0.0
+    co = 0.0
+    for _, mnc, moth, _, _ in monthly:
+        if not math.isnan(mnc):
+            cn = (1 + cn) * (1 + mnc) - 1
+        if not math.isnan(moth):
+            co = (1 + co) * (1 + moth) - 1
+        cum_nc.append(cn)
+        cum_oth.append(co)
+
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    fig, ax = plt.subplots(figsize=(11, 6))
+    ax.plot(dates, [c * 100 for c in cum_nc], label="near_critical", linewidth=2.0, color="#d62728")
+    ax.plot(dates, [c * 100 for c in cum_oth], label="other", linewidth=2.0, color="#1f77b4")
+    ax.axhline(0, color="#888", linewidth=0.8, linestyle="--")
+    ax.set_title(f"Phase Detector walk-forward cumulative return{title_suffix}")
+    ax.set_xlabel("Snapshot date")
+    ax.set_ylabel("Cumulative return (%)")
+    ax.legend(loc="best")
+    ax.grid(True, alpha=0.3)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+    LOG.info("Wrote PNG -> %s", path)
+    return True
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main(argv: List[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Phase Detector backtest v0.1")
+    parser = argparse.ArgumentParser(description="Phase Detector backtest v0.2")
     parser.add_argument("--companies", default=None, help="StructTuple JSONL (default companies_500.jsonl)")
-    parser.add_argument("--prices", default=DEFAULT_PRICES)
+    parser.add_argument("--prices", default=DEFAULT_PRICES, help="Prices CSV path")
+    parser.add_argument("--real-prices", action="store_true",
+                        help="Use prices_500.csv (real fetched data) + walk-forward mode")
     parser.add_argument("--snapshot", default=DEFAULT_SNAPSHOT)
     parser.add_argument("--period", default="6m", help="6m | 12m | <integer months>")
+    parser.add_argument("--walk-forward", action="store_true",
+                        help="Roll snapshot month-by-month across price history")
     parser.add_argument("--result", default=DEFAULT_RESULT)
     parser.add_argument("--cumulative", default=DEFAULT_CUMCSV)
+    parser.add_argument("--png", default=DEFAULT_CUMPNG, help="cumulative return PNG output path")
     parser.add_argument("--dry-run", action="store_true", help="Synthetic in-memory end-to-end")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -387,6 +569,12 @@ def main(argv: List[str] | None = None) -> int:
     _setup_logging(args.verbose)
     snapshot = dt.date.fromisoformat(args.snapshot)
     months = parse_period(args.period)
+
+    # --real-prices implies walk-forward + the new prices_500.csv path
+    if args.real_prices:
+        if args.prices == DEFAULT_PRICES:
+            args.prices = DEFAULT_REAL_PRICES
+        args.walk_forward = True
 
     if args.dry_run:
         LOG.info("DRY RUN: building synthetic universe in-memory")
@@ -409,9 +597,13 @@ def main(argv: List[str] | None = None) -> int:
 
     nc_count = sum(1 for c in companies if c.group == "near_critical")
     oth_count = sum(1 for c in companies if c.group == "other")
-    LOG.info("Group split: %d near_critical, %d other (snapshot=%s period=%dm)",
-             nc_count, oth_count, snapshot, months)
+    LOG.info("Group split: %d near_critical, %d other (snapshot=%s period=%dm walk_forward=%s)",
+             nc_count, oth_count, snapshot, months, args.walk_forward)
 
+    if args.walk_forward:
+        return _run_walk_forward(args, companies, prices, snapshot, months)
+
+    # ----- single-snapshot mode (v0.1 compat) -----
     grouped, used = compute_group_returns(companies, prices, snapshot, months)
     nc_summary = summarize(grouped["near_critical"], months)
     oth_summary = summarize(grouped["other"], months)
@@ -447,10 +639,68 @@ def main(argv: List[str] | None = None) -> int:
         "prices_meta": _read_prices_meta(args.prices),
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
-    os.makedirs(os.path.dirname(args.result), exist_ok=True)
+    result_dir = os.path.dirname(args.result) or "."
+    os.makedirs(result_dir, exist_ok=True)
     with open(args.result, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, default=str)
     LOG.info("Wrote result -> %s", args.result)
+    return 0
+
+
+def _run_walk_forward(
+    args,
+    companies: List[CompanyRow],
+    prices: Dict[str, List[Tuple[dt.date, float]]],
+    snapshot: dt.date,
+    months: int,
+) -> int:
+    flat, monthly = walk_forward_returns(companies, prices, months)
+    nc_summary = summarize(flat["near_critical"], months)
+    oth_summary = summarize(flat["other"], months)
+    t, p = ttest_groups(flat["near_critical"], flat["other"])
+
+    LOG.info(
+        "[walk-fwd] mean ret_nc=%.2f%% std=%.2f%% sharpe=%.2f (n=%d) | mean ret_oth=%.2f%% std=%.2f%% sharpe=%.2f (n=%d)",
+        100 * nc_summary["mean"], 100 * nc_summary["std"], nc_summary["sharpe"], nc_summary["n"],
+        100 * oth_summary["mean"], 100 * oth_summary["std"], oth_summary["sharpe"], oth_summary["n"],
+    )
+    LOG.info("[walk-fwd] Welch t=%.3f p=%.4g", t, p)
+
+    n_cum = write_walk_forward_cumulative_csv(args.cumulative, monthly)
+    LOG.info("[walk-fwd] wrote %d monthly rows -> %s", n_cum, args.cumulative)
+
+    plot_cumulative_png(args.png, monthly, title_suffix=f" (period={months}mo, n_snapshots={len(monthly)})")
+
+    result = {
+        "version": "0.2",
+        "mode": "walk_forward",
+        "snapshot_anchor": snapshot.isoformat(),
+        "period_months": months,
+        "n_snapshots": len(monthly),
+        "n_near_critical": nc_summary["n"],
+        "n_other": oth_summary["n"],
+        "mean_return_nc": nc_summary["mean"],
+        "mean_return_other": oth_summary["mean"],
+        "std_nc": nc_summary["std"],
+        "std_other": oth_summary["std"],
+        "sharpe_nc": nc_summary["sharpe"],
+        "sharpe_other": oth_summary["sharpe"],
+        "t_stat": t,
+        "p_value": p,
+        "groups": {
+            "near_critical": {**nc_summary},
+            "other": {**oth_summary},
+        },
+        "ttest_welch": {"t": t, "p": p},
+        "synthetic": bool(args.dry_run) or _prices_are_synthetic(args.prices),
+        "prices_meta": _read_prices_meta(args.prices),
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+    result_dir = os.path.dirname(args.result) or "."
+    os.makedirs(result_dir, exist_ok=True)
+    with open(args.result, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, default=str)
+    LOG.info("[walk-fwd] wrote result -> %s", args.result)
     return 0
 
 
