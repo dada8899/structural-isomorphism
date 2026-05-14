@@ -1536,6 +1536,17 @@ async def learn_page():
     return FileResponse(FRONTEND_DIR / "learn.html")
 
 
+# --- SEO: robots.txt + sitemap.xml (W3-D, 2026-05-14) ---
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    return FileResponse(FRONTEND_DIR / "robots.txt", media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    return FileResponse(FRONTEND_DIR / "sitemap.xml", media_type="application/xml")
+
+
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     # API routes return JSON; only HTML pages get the full 404 template.
