@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { restartOnboardingTour } from "./OnboardingTour";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "公司表" },
@@ -73,6 +74,15 @@ export default function TopNav() {
             </Link>
           ),
         )}
+        {/* W12-D: restart the onboarding tour from anywhere. */}
+        <button
+          type="button"
+          onClick={restartOnboardingTour}
+          className="text-zinc-600 hover:text-zinc-900"
+          data-testid="tour-restart-link"
+        >
+          导览
+        </button>
         <LanguageSwitcher />
       </nav>
 
@@ -150,6 +160,20 @@ export default function TopNav() {
                   )}
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    restartOnboardingTour();
+                  }}
+                  className="block w-full rounded-md px-3 py-2 text-left text-base text-zinc-700 hover:bg-zinc-50"
+                  role="menuitem"
+                  data-testid="tour-restart-link-mobile"
+                >
+                  导览
+                </button>
+              </li>
               <li className="pt-2">
                 <LanguageSwitcher />
               </li>
