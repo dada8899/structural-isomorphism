@@ -22,12 +22,14 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from logging_config import get_logger
 from services.ask_orchestrator import AskOrchestrator
 from services.auth import verify_api_token
 from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["ask"])
+log = get_logger("structural.api.ask")
 
 # W6-D (session #7 P1 backlog): bump query cap from 500 → 8000 chars so
 # users can paste full paragraphs / longer context. We keep pydantic
@@ -74,6 +76,14 @@ async def ask_stream(request: Request, req: AskRequest):
     Auth: optional Bearer token / cookie promotes the caller to free/paid
     tier (looser rate limits). Anonymous traffic still allowed.
     """
+    # W14-D structured log: request received (length only, never the full
+    # query body — PII / IP-sensitive content stays out of logs by default).
+    log.info(
+        "ask.request",
+        query_len=len(req.query),
+        lang=req.lang,
+    )
+
     # W6-D structured 8000-char cap: surface a JSON-shaped error the
     # frontend can recognize (vs an opaque pydantic 422 string).
     if len(req.query) > MAX_QUERY_CHARS:
@@ -104,6 +114,7 @@ async def ask_stream(request: Request, req: AskRequest):
         raise HTTPException(503, "Search service not ready")
 
     orchestrator = AskOrchestrator(search_service=search, llm=_get_llm())
+    log.info("ask.response", tier=tier)
 
     return StreamingResponse(
         orchestrator.stream(req.query, lang=req.lang),

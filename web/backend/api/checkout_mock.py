@@ -60,6 +60,14 @@ from pydantic import BaseModel
 
 router = APIRouter(tags=["checkout-mock"])
 logger = logging.getLogger("structural.checkout_mock")
+# W14-D: structlog adapter — `slog` emits queryable key=value fields
+# alongside the legacy stdlib `logger` calls (kept for log-message stability).
+try:  # pragma: no cover — import guard for early-load test envs
+    from logging_config import get_logger as _glog
+
+    slog = _glog("structural.checkout_mock")
+except Exception:  # pragma: no cover
+    slog = None
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
@@ -143,6 +151,11 @@ async def checkout_mock(body: CheckoutBody, request: Request):
             "checkout_mock declined: email=%s tier=%s interval=%s",
             email, tier, interval,
         )
+        if slog is not None:
+            slog.info(
+                "checkout.declined",
+                tier=tier, interval=interval, amount_usd=amount,
+            )
         # Persist the decline too — useful funnel signal.
         _persist({
             "status": "declined",
@@ -179,6 +192,12 @@ async def checkout_mock(body: CheckoutBody, request: Request):
         "checkout_mock success: email=%s tier=%s interval=%s cust=%s",
         email, tier, interval, customer_id,
     )
+    if slog is not None:
+        slog.info(
+            "checkout.success",
+            tier=tier, interval=interval, amount_usd=amount,
+            customer_id=customer_id,
+        )
     return JSONResponse({
         "status": "success",
         "customer_id": customer_id,
