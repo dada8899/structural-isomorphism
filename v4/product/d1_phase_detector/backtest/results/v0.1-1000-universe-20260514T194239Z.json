@@ -1,72 +1,17 @@
 {
-  "version": "0.1-1000ticker",
-  "mode": "walk_forward",
-  "snapshot_anchor": "2026-05-15",
-  "period_months": 1,
-  "n_snapshots": 59,
-  "n_near_critical": 65,
-  "n_other": 434,
-  "mean_return_nc": 0.013764675066615332,
-  "mean_return_other": 0.012196954428758743,
-  "std_nc": 0.06804836330879185,
-  "std_other": 0.04553862151449824,
-  "sharpe_nc": 0.7007109475026565,
-  "sharpe_other": 0.9278166121689266,
-  "t_stat": 0.5726848900844931,
-  "p_value": 0.5690715675952458,
-  "groups": {
-    "near_critical": {
-      "n": 59,
-      "mean": 0.013764675066615332,
-      "std": 0.06804836330879185,
-      "sharpe": 0.7007109475026565
-    },
-    "other": {
-      "n": 59,
-      "mean": 0.012196954428758743,
-      "std": 0.04553862151449824,
-      "sharpe": 0.9278166121689266
-    }
-  },
-  "ttest_welch": {
-    "t": 0.5726848900844931,
-    "p": 0.5690715675952458
-  },
-  "synthetic": false,
-  "prices_meta": {
-    "version": "0.1-1000ticker",
-    "yfinance_tickers": 927,
-    "stooq_tickers": 0,
-    "synthetic_tickers": 0,
-    "missing_tickers": 74,
-    "synthetic": false,
-    "all_synthetic": false,
+  "version": "0.1",
+  "engine": "walk_forward_1000ticker",
+  "generated_at": "2026-05-14T19:42:39.064135+00:00",
+  "params": {
     "start": "2020-12-01",
     "end": "2025-12-01",
-    "period": "5y",
-    "interval": "1d",
-    "n_total_tickers": 1001,
+    "hold_months": 1,
+    "decile": 0.1,
+    "n_universe_input": 1001,
     "n_universe_covered": 927,
-    "generated_at": "2026-05-14T19:42:39.064135+00:00"
+    "n_universe_missing": 74
   },
-  "v01_extensions": {
-    "engine": "walk_forward_1000ticker",
-    "universe_composition": {
-      "sp500": 500,
-      "russell_supplement": 501,
-      "total_input": 1001,
-      "covered": 927,
-      "coverage_pct": 92.6
-    },
-    "benchmark_ew": {
-      "n_months": 59,
-      "mean_monthly": 0.0116517008226736,
-      "std_monthly": 0.052218091992996304,
-      "sharpe_annualised": 0.7729634327569671,
-      "max_drawdown": -0.23430914734769914,
-      "hit_rate": 0.559322033898305,
-      "cumulative_return": 0.8302617730352542
-    },
+  "stats": {
     "near_critical_llm": {
       "n_months": 59,
       "mean_monthly": 0.013764675066615332,
@@ -123,9 +68,75 @@
       "t_stat_vs_bench": -0.41105817667109185,
       "p_value_vs_bench": 0.6825447370741207
     },
-    "sharpe_lift": -0.0722524852543106,
-    "verdict": "null_result_pivot_to_research_narrative"
+    "benchmark_ew": {
+      "n_months": 59,
+      "mean_monthly": 0.0116517008226736,
+      "std_monthly": 0.052218091992996304,
+      "sharpe_annualised": 0.7729634327569671,
+      "sortino_annualised": 0.8647914263751026,
+      "max_drawdown": -0.23430914734769914,
+      "hit_rate": 0.559322033898305,
+      "cumulative_return": 0.8302617730352542,
+      "sharpe_lift_vs_bench": 0.0,
+      "mean_diff_monthly_vs_bench": 0.0,
+      "t_stat_vs_bench": NaN,
+      "p_value_vs_bench": NaN
+    }
   },
-  "last_updated": "2026-05-14T19:46:22.711618+00:00",
-  "generated_at": "2026-05-14T19:42:39.064135+00:00"
+  "cohort_counts": {
+    "near_critical_llm": 65,
+    "other_llm": 434
+  },
+  "missing_examples": [
+    "RE",
+    "BRK.B",
+    "BF.B",
+    "Q",
+    "SUMO",
+    "NEWR",
+    "CYBR",
+    "MIME",
+    "SPLK",
+    "ZUO",
+    "AYX",
+    "PLAN",
+    "EVBG",
+    "GRUB",
+    "TWTR",
+    "SQ",
+    "VERV",
+    "BPMC",
+    "AKRO",
+    "SAGE",
+    "BLUE",
+    "NSTG",
+    "ACCD",
+    "INFI",
+    "NUVA",
+    "CTLT",
+    "MOG.A",
+    "RYDER",
+    "CONX",
+    "HA",
+    "SAVE",
+    "FL",
+    "JWN",
+    "GPS",
+    "NOVA",
+    "DENN",
+    "MMC",
+    "ESGR",
+    "TMK",
+    "FBHS",
+    "CMA",
+    "PXD",
+    "MRO",
+    "CHK",
+    "SBOW",
+    "OAS",
+    "NEX",
+    "SUM",
+    "X",
+    "AKS"
+  ]
 }
