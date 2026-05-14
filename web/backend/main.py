@@ -166,6 +166,20 @@ async def phenomenon_page(pid: str):
     return FileResponse(FRONTEND_DIR / "phenomenon.html")
 
 
+***REMOVED*** Query-param deep-link form: /phenomenon?id=xxx (used by share-card and
+***REMOVED*** external embeds). JS-side resolvePhenomenonId() reads ?id= as fallback.
+@app.get("/phenomenon")
+async def phenomenon_page_query():
+    return FileResponse(FRONTEND_DIR / "phenomenon.html")
+
+
+***REMOVED*** .html-suffixed forms — kept alive for legacy bookmarks and embedded
+***REMOVED*** CTAs that still hardcode /phenomenon.html or /analyze.html.
+@app.get("/phenomenon.html")
+async def phenomenon_html_alias():
+    return FileResponse(FRONTEND_DIR / "phenomenon.html")
+
+
 @app.get("/about")
 async def about_page():
     return FileResponse(FRONTEND_DIR / "about.html")
@@ -1486,6 +1500,13 @@ async def paper_page(slug: str):
 
 @app.get("/analyze")
 async def analyze_page():
+    return FileResponse(FRONTEND_DIR / "analyze.html")
+
+
+***REMOVED*** Legacy alias: ask.js (W3-B deep-analysis CTA) still emits /analyze.html?text_a=
+***REMOVED*** Keep serving it to avoid breaking already-rendered thread items with hardcoded links.
+@app.get("/analyze.html")
+async def analyze_html_alias():
     return FileResponse(FRONTEND_DIR / "analyze.html")
 
 
