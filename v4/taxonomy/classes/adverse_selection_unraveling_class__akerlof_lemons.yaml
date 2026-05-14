@@ -42,6 +42,16 @@ negative_examples:
 - phenomenon: Preferential attachment / rich-get-richer
   reason: BA model is *positive* feedback on degree, not selective exit of high-quality. Different mechanism; both produce
     heavy tails but via different routes.
+- phenomenon: Moral hazard in auto insurance
+  reason: "Post-contract hidden action, not pre-contract hidden quality; outcomes depend on unobservable behavior rather than a price-conditional expectation equilibrium p* = E[q|p*]."
+- phenomenon: "Gresham's law (bad money drives out good)"
+  reason: "Mechanism relies on legal tender laws and a fixed exchange ratio, not asymmetric information. No price-conditional exit of high-quality agents occurs."
+- phenomenon: "Winner's curse in common-value auctions"
+  reason: "Adverse selection emerges from overestimation conditional on winning, not from price-conditional expectation derived from a posted price. Equilibrium is bid shading, not monotone quality exit."
+- phenomenon: Network congestion driving out high-value users
+  reason: "Superficially similar market deterioration, but mechanism is congestion externalities (not hidden quality). High-value users exit due to quality of service decline, not because price reflects average quality under asymmetric information."
+- phenomenon: Price controls inducing quality degradation
+  reason: "Sellers lower overt quality in response to a binding price ceiling; quality is observable and the mechanism is supply-side cost cutting, not hidden quality and equilibrium p* = E[q|p*]."
 edge_cases:
 - phenomenon: Insurance market adverse selection (Rothschild-Stiglitz 1976)
   debate: Canonical positive example. Healthy customers exit pool → premiums rise → more healthy exit. Class membership clear.
@@ -50,6 +60,16 @@ edge_cases:
 - phenomenon: Academic field decline
   debate: Top researchers exit shrinking field → quality of remaining work drops → more top researchers exit. Plausible unraveling
     but mechanism includes both information asymmetry and reputation dynamics. Loose class assignment.
+- phenomenon: Rothschild-Stiglitz insurance market equilibrium
+  debate: "Also driven by adverse selection, but equilibrium relies on self-selection via contract menus rather than a single price. Is the multi-dimensional screening a different universality class, or just an extension of Akerlof's price-conditional expectation framework?"
+- phenomenon: Signaling equilibrium (Spence education model)
+  debate: "Hidden quality is present, but high types avoid unraveling through costly signaling rather than exiting. Does this constitute a distinct dynamical regime where the equilibrium condition is signaling cost condition instead of p* = E[q|p*], or is it a non‐unraveling outcome within the same class?"
+- phenomenon: Credit rationing (Stiglitz-Weiss)
+  debate: "Adverse selection in loan markets leads to equilibrium interest rate below market-clearing and quantity rationing, because expected bank return is non-monotonic in rate. The mechanism diverges from p* = E[q|p*] and the unraveling is partial; is it a separate universality class of adverse selection with non-monotonic payoffs?"
+- phenomenon: Mandatory quality disclosure in a lemons market
+  debate: "Exogenous elimination of hidden quality prevents unraveling, but the underlying market structure is identical. Is the system still in the adverse selection class if the informational asymmetry is removed by policy, or does it cross a class boundary into full‐information markets?"
+- phenomenon: Online marketplace with reputation-based feedback
+  debate: "Dynamic learning from ratings reduces information asymmetry and can stem the exit of high-quality sellers. The static p* = E[q|p*] unraveling may be avoided, but the core adverse-selection tension remains. Does the introduction of reputation dynamics place this in a new class, or is it a perturbed version of the same class?"
 references:
 - Akerlof 1970 Q. J. Econ. 84, 488 (Market for Lemons)
 - Rothschild, Stiglitz 1976 Q. J. Econ. 90, 629 (equilibrium under adverse selection)
