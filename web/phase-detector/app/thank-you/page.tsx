@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { CheckoutSuccessBanner } from "@/components/CheckoutSuccessBanner";
 import { ShareButtons } from "@/components/ShareButtons";
 
 export const metadata: Metadata = {
@@ -21,6 +23,11 @@ export default function ThankYouPage() {
   return (
     <article className="mx-auto max-w-2xl">
       <Breadcrumb items={[{ label: "首页", href: "/" }, { label: "已加入名单" }]} />
+
+      {/* W10-B: tier-specific success banner if user came from mock checkout. */}
+      <Suspense fallback={null}>
+        <CheckoutSuccessBanner />
+      </Suspense>
 
       <h1
         className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl"

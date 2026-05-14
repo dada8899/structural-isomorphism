@@ -49,6 +49,13 @@ export const Events = {
   WaitlistError: "waitlist_error",
   MethodologyOpened: "methodology_opened",
   AboutOpened: "about_opened",
+  // W10-B (session #10) — Stripe Pro mock funnel.
+  PricingView: "pricing_view",
+  CheckoutStarted: "checkout_started",
+  CheckoutCompletedMock: "checkout_completed_mock",
+  CheckoutDeclinedMock: "checkout_declined_mock",
+  PaywallModalView: "paywall_modal_view",
+  PaywallModalClick: "paywall_modal_click",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];

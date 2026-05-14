@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
+import { PaywallModal } from "@/components/PaywallModal";
 import { RecentlyFlippedRow } from "@/components/RecentlyFlippedRow";
 import { ScreenerFilter } from "@/components/ScreenerFilter";
 import { SearchHero } from "@/components/SearchHero";
@@ -42,6 +43,32 @@ export default function ScreenerHomePage() {
   const [filters, setFilters] = useState<ScreenerFilters>({ limit: 50 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // W10-B (session #10): paywall modal state. Free users hitting the
+  // "show more (1000+)" CTA see this; Pro users bypass entirely (gated by
+  // /api/usage tier check).
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [tier, setTier] = useState<"free" | "pro" | "team">("free");
+
+  // Pull tier from /api/usage once on mount. Failure → assume free (safe default).
+  useEffect(() => {
+    let cancelled = false;
+    const apiBase =
+      (typeof window !== "undefined" &&
+        (window as unknown as { __API_BASE__?: string }).__API_BASE__) || "";
+    fetch(`${apiBase}/api/usage`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        const t = (d.tier || "free").toLowerCase();
+        if (t === "pro" || t === "team" || t === "free") setTier(t);
+      })
+      .catch(() => {
+        /* default to free already set; swallow */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Initial stats fetch (independent from screener).
   useEffect(() => {
@@ -425,6 +452,31 @@ export default function ScreenerHomePage() {
                     <CompanyCard key={c.ticker} company={c} />
                   ))}
                 </div>
+                {/* W10-B: paywall trigger — free users get a soft gate to
+                    1000+ ticker access. Pro/Team users see "expand limit"
+                    instead (no gate). */}
+                {companies.length >= 50 && (
+                  <div className="mt-6 flex justify-center">
+                    {tier === "free" ? (
+                      <button
+                        type="button"
+                        onClick={() => setPaywallOpen(true)}
+                        className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
+                        data-testid="paywall-trigger"
+                      >
+                        🔒 查看更多公司（1000+）
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleApply({ ...filters, limit: 1000 })}
+                        className="rounded-lg border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-900"
+                      >
+                        加载全部 1000+ 公司
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -465,6 +517,14 @@ export default function ScreenerHomePage() {
           想找跨学科的解法？→ <strong>Structural</strong>：把你的难题，换成另一个学科已经解过的题
         </span>
       </a>
+
+      {/* W10-B paywall modal — portal-style, renders above everything. */}
+      <PaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        hit={companies.length}
+        context="screener_show_more"
+      />
     </div>
   );
 }

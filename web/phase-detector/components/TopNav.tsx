@@ -12,6 +12,7 @@ const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "公司表" },
   { href: "/methodology", label: "方法" },
   { href: "/backtest", label: "Backtest" },
+  { href: "/pricing", label: "定价" }, // W10-B (session #10)
   { href: "/about", label: "关于" },
   {
     href: "https://beta.structural.bytedance.city/classes",
