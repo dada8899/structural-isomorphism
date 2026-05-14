@@ -18,10 +18,46 @@ import type {
 // icon + dot + label for non-color encoding redundancy.
 
 export function StatsBar({ stats }: { stats: Stats | null }) {
+  // Skeleton mirrors the loaded layout exactly — same outer chrome, same row
+  // structure, same gap rhythm — so when real numbers land the swap is
+  // invisible (no height jump, no "正在加载统计…" flash).
+  // Three groups: 公司总数 (1 chip), 怎么动 (~3 chips), 当前状态 (~5 chips).
   if (!stats) {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
-        正在加载统计…
+      <div
+        className="rounded-lg border border-zinc-200 bg-white px-4 py-3"
+        aria-busy="true"
+        aria-label="加载统计中"
+      >
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
+          {/* 公司总数 */}
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-12 animate-pulse rounded bg-zinc-100" />
+            <span className="h-3 w-8 animate-pulse rounded bg-zinc-200" />
+          </div>
+          {/* 怎么动 */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="h-3 w-10 animate-pulse rounded bg-zinc-100" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <span key={i} className="flex items-center gap-1">
+                <span className="h-3 w-12 animate-pulse rounded bg-zinc-100" />
+                <span className="h-3 w-5 animate-pulse rounded bg-zinc-200" />
+              </span>
+            ))}
+          </div>
+          {/* 当前状态 */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="h-3 w-12 animate-pulse rounded bg-zinc-100" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <span className="h-3 w-3 animate-pulse rounded bg-zinc-200" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-200" />
+                <span className="h-3 w-10 animate-pulse rounded bg-zinc-100" />
+                <span className="h-3 w-4 animate-pulse rounded bg-zinc-200" />
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
