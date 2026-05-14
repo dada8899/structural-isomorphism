@@ -198,6 +198,17 @@
   color: var(--text-secondary);
   line-height: 1.5;
   margin-top: 2px;
+  /* Clamp to 3 lines so card heights stay consistent across the 5.5s
+     auto-rotation (different DEMO_EXAMPLES have desc strings of varying
+     length — without this, the entire hero block height twitches every
+     rotation, dragging everything below up/down a few pixels). */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Reserve 3 lines × 1.5 line-height × 12px = 54px even for short descs */
+  min-height: 54px;
 }
 
 .hero-evidence__symbol {
