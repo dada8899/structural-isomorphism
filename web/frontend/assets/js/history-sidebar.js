@@ -307,8 +307,20 @@
   // race the initial render. localStorage stays authoritative.
   var _remoteCache = null;
 
+  // Remote sync is ON by default (W1-B, session #8). Users who explicitly
+  // want device-local-only history can set `structural_disable_remote_history=1`
+  // in localStorage. We still respect the old opt-in flag if set so existing
+  // testers who turned it on don't see any regression.
   function _useRemote() {
-    try { return localStorage.getItem('structural_use_remote_history') === '1'; } catch (e) { return false; }
+    try {
+      if (localStorage.getItem('structural_disable_remote_history') === '1') return false;
+      // Old opt-in flag still wins if explicitly set to '0' (force off).
+      if (localStorage.getItem('structural_use_remote_history') === '0') return false;
+      return true;
+    } catch (e) {
+      // localStorage unavailable (private mode) — fall back to off.
+      return false;
+    }
   }
 
   // Merge two lists by query string (case-insensitive), keeping the most
