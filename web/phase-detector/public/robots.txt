@@ -1,0 +1,13 @@
+***REMOVED*** Phase Detector — robots.txt
+***REMOVED*** W12-B (2026-05-15): static fallback. Next.js app/robots.ts is authoritative
+***REMOVED*** in production; this file is for static export / CDN preview deploys where
+***REMOVED*** the Next runtime is not serving the request.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /_next/
+Disallow: /thank-you/
+
+Sitemap: https://phase.bytedance.city/sitemap.xml
+Host: https://phase.bytedance.city
