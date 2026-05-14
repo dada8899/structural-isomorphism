@@ -105,7 +105,7 @@ def get_search_service():
 
 
 ***REMOVED*** --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize  ***REMOVED*** noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask  ***REMOVED*** noqa
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -116,6 +116,7 @@ app.include_router(suggest.router, prefix="/api")
 app.include_router(discoveries.router, prefix="/api")
 app.include_router(analyze.router, prefix="/api")
 app.include_router(synthesize.router, prefix="/api")
+app.include_router(ask.router, prefix="/api")
 
 
 @app.get("/api/health")
