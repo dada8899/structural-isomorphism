@@ -27,11 +27,21 @@
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514s7">
   <link rel="stylesheet" href="/assets/css/ask.css?v=20260514s7">
 
+  <!-- W4-A CLS fix (2026-05-14): pre-reserve history-sidebar padding so
+       layout doesn't shift when history-sidebar.js late-injects its CSS
+       and adds .has-history-sidebar to <body>. See discoveries.html. -->
+  <style>
+    @media (min-width: 1024px) {
+      body.has-history-sidebar { padding-left: 240px; }
+      body.has-history-sidebar.history-sidebar-collapsed { padding-left: 56px; }
+    }
+  </style>
+
   <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
        safe to keep before Plausible self-hosted instance is live. -->
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
 
   <header class="site-header">
     <div class="site-header__inner">
