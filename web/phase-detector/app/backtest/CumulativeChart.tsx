@@ -12,12 +12,14 @@ import {
 } from "recharts";
 
 // Wave 2 (2026-05-14): two-series cumulative return chart on /backtest.
+// Wave 10 (2026-05-15): added benchmark EW line for v0.1 1000-ticker.
 // Inputs are pre-parsed rows from /api/backtest-cumulative.
 
 type Row = {
   snapshot_date: string;
   cum_nc_ret: number;
   cum_other_ret: number;
+  cum_bench_ret?: number;
 };
 
 export function CumulativeChart({ rows }: { rows: Row[] }) {
@@ -74,7 +76,7 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
           <Line
             type="monotone"
             dataKey="cum_nc_ret"
-            name="near_critical group"
+            name="near_critical (LLM)"
             stroke="#DC2626"
             strokeWidth={2}
             dot={false}
@@ -82,9 +84,18 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
           <Line
             type="monotone"
             dataKey="cum_other_ret"
-            name="other group"
+            name="other (stable, LLM)"
             stroke="#2563EB"
             strokeWidth={2}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="cum_bench_ret"
+            name="benchmark EW"
+            stroke="#71717A"
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
             dot={false}
           />
         </LineChart>

@@ -59,6 +59,10 @@ v4/validation/soc-wildfire/raw_nifc.csv
 v4/product/d1_phase_detector/d1.sqlite
 v4/product/d1_phase_detector/*.sqlite-journal
 
+# D1 Phase Detector backtest price cache (regenerable via yfinance, ~25MB)
+v4/product/d1_phase_detector/backtest/data/prices/
+v4/product/d1_phase_detector/backtest/data/prices.meta.json
+
 # Web backend history DB (per-device anonymous query history; ephemeral)
 web/backend/data/history.db
 web/backend/data/history.db-*

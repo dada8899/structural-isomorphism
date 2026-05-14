@@ -41,6 +41,8 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 ### 3. Phase Detector
 A research-preview consumer product. Tags 100 public companies with their current dynamical phase (stable / accumulating / near-critical / reversed / recovering) against nine universality patterns.
 
+**Backtest v0.1 (1000-ticker walk-forward, 2020-2025)**: Sharpe lift of `near_critical` cohort vs equal-weight benchmark = **−0.07** (p = 0.57, NOT significant). Published openly per W7-D Track A → positioning pivot to structured-research-narrative. See [`/backtest`](https://phase.bytedance.city/backtest) for the full transparency report.
+
 [**→ phase.bytedance.city**](https://phase.bytedance.city)
 
 </td>
@@ -72,7 +74,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 500-ticker S&P 500 walk-forward backtest. Research preview — not investment advice. |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.1 (null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
 
 ## Tests
 
@@ -160,7 +162,7 @@ For contributor details — build conventions, deployment SOP, session retrospec
 |---|---|
 | SOC pipeline | Stable. Frozen module + 38 sanity tests + 213 total. |
 | Universality taxonomy | v0.3, B3 consensus complete, B4 ensemble run partial. |
-| Phase Detector | Live: 100 companies + 500-ticker walk-forward backtest v0.1. |
+| Phase Detector | Live: 100 companies + 1000-ticker walk-forward backtest v0.1 (null result published openly). |
 | Structural Search | Live: SSE streaming, full EN i18n (244/244 keys). |
 | Unified preprint (C1) | v0.3.1 ready; arXiv submission pending. |
 | Solo arXiv drafts | 4 complete (earthquakes, S&P 500, DeFi, neural). |
