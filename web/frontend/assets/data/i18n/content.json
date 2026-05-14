@@ -572,12 +572,12 @@
     "en": "Equivalence classes · shared invariants · falsifiable predictions"
   },
   "page.classes.hero_title": {
-    "zh": "当多个现象共享<em>底层规律</em>",
-    "en": "When multiple phenomena share the same <em>underlying law</em>"
+    "zh": "23 个跨领域<em>等价类</em>",
+    "en": "23 cross-domain <em>equivalence classes</em>"
   },
   "page.classes.hero_lede": {
-    "zh": "<a href=\"/discoveries\">精选发现</a> 里是 191 条 pair 级同构（A≅B）。更上一层——把<strong>“一个节点连接多个现象”</strong>的 hub 聚合成等价类，再映射到物理学已知的普适类。下面 <strong>23 个跨领域等价类</strong>由图 + Louvain 无监督浮现；8 个人工精选匹配到 SOC、Hysteresis、Fold 分岔、Motter-Lai、Diamond-Dybvig 等已命名类，15 个 LLM 辅助。每一类共享同一个数学结构和同一组不变量。具体方法见<a href=\"#uc-footnote\">页脚</a>。",
-    "en": "<a href=\"/discoveries?lang=en\">Curated discoveries</a> lists 191 pair-level isomorphisms (A ≅ B). One level up — we aggregate the hubs that <strong>connect one node to many phenomena</strong> into equivalence classes, then map each onto a known physical universality class. Below are <strong>23 cross-domain equivalence classes</strong> surfaced without supervision via graph construction + Louvain; 8 are curated by hand into named classes (SOC, hysteresis, fold bifurcation, Motter-Lai, Diamond-Dybvig, …), 15 are LLM-assisted. Each shares the same mathematical structure and the same invariants. Method details in the <a href=\"#uc-footnote\">footnote</a>."
+    "zh": "每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href=\"#uc-footnote\">页脚</a>。",
+    "en": "Each class is a group of phenomena sharing the same mathematical structure and invariants — earthquakes, bank runs, neural avalanches and grid cascades can all map onto the same underlying pattern. The <strong>23 classes</strong> below were surfaced without supervision from 191 cross-domain isomorphisms via community detection; <strong>13 independent domains are empirically validated</strong>. Click any card for shared equations, invariants and falsifiable predictions; method details in the <a href=\"#uc-footnote\">footnote</a>."
   },
   "page.classes.filter_manual": {
     "zh": "人工精选",

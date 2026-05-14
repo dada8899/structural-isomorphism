@@ -38,7 +38,8 @@ const DATA_URL = "/assets/data/universality-classes.json";
 let allClasses = [];
 let manualClasses = [];
 let llmClasses = [];
-let currentFilter = "manual";
+// Default to "all" so /classes shows the 23 cards immediately (session #9 P1 UX fix).
+let currentFilter = "all";
 
 const escapeHtml = (s) => {
   if (s === null || s === undefined) return "";
@@ -533,7 +534,7 @@ async function init() {
     renderHeroStats(data.stats);
     bindFilter();
     updateFilterCounts();
-    applyFilter("manual");
+    applyFilter("all");
 
     // Routing: if URL has ?id=..., show detail directly
     const initialId = new URLSearchParams(window.location.search).get('id');
