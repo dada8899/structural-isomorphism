@@ -94,8 +94,22 @@ export default function AboutPage() {
 
       <section className="mb-8 space-y-3">
         <h2 className="text-xl font-semibold text-zinc-900">
-          联系 / 反馈
+          关于作者 / About
         </h2>
+        <p className="text-sm leading-relaxed text-zinc-600">
+          作者 <strong className="text-zinc-900">达达（dada8899）</strong>
+          ——独立研究者 / 跨学科系统动力学爱好者。
+          本项目以<strong>个人时间</strong>维护，目前处于
+          <strong>研究预览阶段</strong>，<strong>非投资建议机构</strong>，
+          也不构成任何商业咨询关系。
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-600">
+          <strong className="text-zinc-900">关于域名歧义：</strong>
+          本项目与 <strong>ByteDance（字节跳动）</strong>
+          无任何雇佣或商业关系；<code className="rounded bg-zinc-100 px-1 py-0.5 text-xs text-zinc-700">bytedance.city</code>{" "}
+          仅为作者个人 VPS 上注册的私人域名，与字节跳动公司
+          <strong>无关</strong>。
+        </p>
         <ul className="space-y-1 text-sm text-zinc-600">
           <li>
             GitHub：
@@ -109,17 +123,58 @@ export default function AboutPage() {
             </a>
           </li>
           <li>
-            主站：
+            邮箱：
             <a
-              href="https://beta.structural.bytedance.city/classes"
+              href="mailto:riazward110@gmail.com"
+              className="text-blue-600 hover:underline"
+            >
+              riazward110@gmail.com
+            </a>
+          </li>
+          <li>
+            项目主站：
+            <a
+              href="https://beta.structural.bytedance.city"
               target="_blank"
               rel="noopener"
               className="text-blue-600 hover:underline"
             >
-              beta.structural.bytedance.city/classes ↗
+              beta.structural.bytedance.city ↗
             </a>
           </li>
-          <li>反馈/建议：欢迎在 GitHub 开 issue</li>
+        </ul>
+      </section>
+
+      <section className="mb-8 space-y-3">
+        <h2 className="text-xl font-semibold text-zinc-900">
+          联系 / 反馈
+        </h2>
+        <p className="text-sm leading-relaxed text-zinc-600">
+          欢迎通过以下渠道反馈错误、提出建议或讨论方法论。
+          为便于公开追踪，<strong>首选 GitHub Issues</strong>；
+          涉及隐私 / 商务事务请走邮箱。
+        </p>
+        <ul className="space-y-1 text-sm text-zinc-600">
+          <li>
+            <strong>首选</strong>：
+            <a
+              href="https://github.com/dada8899/structural-isomorphism/issues"
+              target="_blank"
+              rel="noopener"
+              className="text-blue-600 hover:underline"
+            >
+              GitHub Issues ↗
+            </a>
+          </li>
+          <li>
+            <strong>次选</strong>：邮箱{" "}
+            <a
+              href="mailto:riazward110@gmail.com"
+              className="text-blue-600 hover:underline"
+            >
+              riazward110@gmail.com
+            </a>
+          </li>
         </ul>
       </section>
 
