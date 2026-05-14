@@ -1,0 +1,89 @@
+name: Coverage
+
+# W11-A (session #10): coverage gate.
+# Runs on every PR + push to main. Fails the build if global coverage on
+# critical modules (v4/lib + packages/*/src + web/backend/api) drops below 80%.
+# Per-file targets (≥90%): voting.py, multitest_correction.py, ask.py,
+# checkout_mock.py, soc_pipeline/validate.py.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage pytest httpx fastapi pydantic
+          pip install -e packages/soc-pipeline || true
+          pip install -e packages/cross-judge || true
+          pip install -e packages/guarded-llm || true
+          # Backend deps for web/backend tests
+          pip install slowapi || true
+          # SOC scientific deps
+          pip install numpy scipy pandas powerlaw || true
+      - name: Run coverage (split by suite, parallel files combined)
+        run: |
+          export PYTHONPATH=.
+          # Guarded-llm
+          python -m coverage run --rcfile=.coveragerc -m pytest packages/guarded-llm/tests/ -q --tb=no || true
+          # Cross-judge
+          python -m coverage run --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ -q --tb=no || true
+          # Web backend
+          python -m coverage run --rcfile=.coveragerc -m pytest web/backend/tests/ -q --tb=no || true
+          # V4 sanity (skip soc-pipeline-primitives that needs special PYTHONPATH gymnastics)
+          python -m coverage run --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py -q --tb=no || true
+          # Soc-pipeline subset (skip slow LR/null/omori for CI speed)
+          python -m coverage run --rcfile=.coveragerc -m pytest \
+              packages/soc-pipeline/tests/test_utils.py \
+              packages/soc-pipeline/tests/test_pandas_accessor.py \
+              packages/soc-pipeline/tests/test_validate_w11a_coverage.py \
+              packages/soc-pipeline/tests/test_b_value.py \
+              packages/soc-pipeline/tests/test_universal_collapse.py \
+              packages/soc-pipeline/tests/test_time_resolution.py \
+              packages/soc-pipeline/tests/test_fit.py \
+              -q --tb=no || true
+          python -m coverage combine --rcfile=.coveragerc
+      - name: Coverage report
+        run: |
+          python -m coverage report --rcfile=.coveragerc --skip-empty
+      - name: Generate coverage XML
+        run: |
+          python -m coverage xml --rcfile=.coveragerc -o coverage.xml
+      - name: Per-critical-file ≥90% gate
+        # Hard fail if any critical W11-A target drops below 90%.
+        run: |
+          set -e
+          for f in \
+            v4/lib/multitest_correction.py \
+            web/backend/api/ask.py \
+            web/backend/api/checkout_mock.py \
+            packages/cross-judge/src/cross_judge/voting.py \
+            packages/cross-judge/src/cross_judge/core.py \
+            packages/soc-pipeline/src/soc_pipeline/validate.py \
+          ; do
+            echo "::group::$f"
+            python -m coverage report --rcfile=.coveragerc --include="$f" --fail-under=90
+            echo "::endgroup::"
+          done
+      - name: Global 80% gate (on covered subset)
+        # Final guard: total coverage on the explicit source= list ≥80%.
+        run: |
+          python -m coverage report --rcfile=.coveragerc --fail-under=80 --skip-empty
+      - name: Upload coverage XML artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 14
