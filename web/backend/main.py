@@ -22,11 +22,15 @@ sys.path.insert(0, _project_root)
 
 load_dotenv(Path(__file__).parent / ".env")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-logger = logging.getLogger("structural.web")
+# W14-D: structlog + correlation IDs. configure_logging() installs a
+# JSON-line handler on the root logger (stdout) + a rotating file handler
+# at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
+# through the same pipeline. Must run *before* any logger.info() call so
+# we don't accidentally bake in the old text format.
+from logging_config import configure_logging, get_logger  # noqa: E402
+
+configure_logging(level=os.getenv("STRUCTURAL_LOG_LEVEL", "INFO"))
+logger = get_logger("structural.web")
 
 # Shared state
 app_state = {}
@@ -177,6 +181,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# W14-D: Correlation-ID middleware. Mounted last so it runs *first* for
+# inbound requests (Starlette middleware stack is LIFO). Reads X-Request-ID
+# from caller or generates UUID4; binds onto ContextVar so every log line
+# in the request scope carries it. Echoes back as X-Request-ID on response.
+from middleware.correlation import install_correlation_middleware  # noqa: E402
+
+install_correlation_middleware(app)
+
 
 # --- Shared getter for dependency ---
 def get_search_service():
@@ -204,6 +216,11 @@ app.include_router(checkout_mock.router, prefix="/api")
 # W12-E (session #10): client error reporter (page + global error boundaries
 # auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
 app.include_router(error_log.router, prefix="/api")
+# W14-D (session #10): admin log tail endpoint — reads the rotating JSON log
+# file written by logging_config and returns the last N lines. Admin tier only.
+from api.admin import logs as admin_logs  # noqa: E402
+
+app.include_router(admin_logs.router, prefix="/api")
 
 
 @app.get(
@@ -421,6 +438,7 @@ async def phase_api_companies():
     import json as _json
     data_file = FRONTEND_DIR / "phase" / "data" / "companies_struct.jsonl"
     if not data_file.exists():
+        logger.info("phases.fetch", ticker_count=0, source="missing_file")
         return JSONResponse({"count": 0, "companies": []})
     companies = []
     with open(data_file, encoding="utf-8") as f:
@@ -435,6 +453,10 @@ async def phase_api_companies():
                 companies.append(d)
             except Exception:
                 continue
+    # W14-D: ticker_count surfaces the response cardinality so we can
+    # spot ingest regressions (e.g. file truncated to 0 rows) from a
+    # log dashboard without sampling actual responses.
+    logger.info("phases.fetch", ticker_count=len(companies))
     return JSONResponse({"count": len(companies), "companies": companies})
 
 
