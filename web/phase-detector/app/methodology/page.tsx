@@ -11,12 +11,15 @@ import {
   DYNAMICS_FAMILY_OPTIONS,
   DYNAMICS_LABEL_ZH,
 } from "@/lib/labels";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "方法 — Phase Detector",
   description:
     "Phase Detector 怎么打分：每家公司归入哪一类、当前在哪个状态、AI 怎么从公开资料里读出来。",
-};
+  path: "/methodology",
+  ogImage: "/og/methodology.png",
+});
 
 const cpsColor = (s: string) =>
   s === "far_from_critical"
