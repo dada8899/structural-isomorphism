@@ -70,3 +70,67 @@ python3 -m pytest v4/product/d1_phase_detector/tests/test_backtest.py -v
 ## Why "near_critical → 6mo return" is the commercialisation hinge
 
 The Phase Detector outputs a class label per company. If the label has zero correlation with subsequent risk-adjusted returns, the product is interesting science but not monetisable. v0.1 is the cheapest possible test that the wiring works: can we even *measure* a difference, given the Wave 1 sample size and synthetic noise? Real-data run in session 8 will tell us whether to invest further or pivot the productisation angle.
+
+## Real-data findings (2026-05-14)
+
+**v0.2: walk-forward backtest on real SP500 monthly prices (yfinance, 5y history, 497/500 tickers).**
+
+### Setup
+
+- 500 SP500 StructTuples from `companies_500.jsonl` (Wave 1, classified by `deepseek-v4-flash`)
+- Group split: **65 `near_critical`** (approaching_critical + at_critical) vs **434 `other`** (far_from_critical + post_critical_transition); 1 null state dropped
+- Price source: `yfinance` monthly closes, 2021-06 → 2026-05 (5 years)
+- Coverage: 497/500 tickers fetched (3 missing: `RE` delisted, `BF.B` / `BRK.B` dotted-ticker yfinance bug; Stooq fallback also missed those 3)
+- Method: **rolling 6-month forward return** at every month-end snapshot T (54 snapshots × ~497 companies). Welch's t-test (scipy) on the flat pooled observations: 3470 `near_critical` × 23113 `other`.
+
+### Result
+
+| metric | near_critical | other |
+|---|---|---|
+| n observations | 3,470 | 23,113 |
+| mean 6mo return | **+6.16%** | **+6.43%** |
+| std | 36.69% | 28.64% |
+| annualised Sharpe | 0.24 | 0.32 |
+
+**Welch's t = −0.412, p = 0.681.**
+
+### Interpretation
+
+> **商业化路径暂未打开（p ≫ 0.05）。** On 5-year SP500 walk-forward, the Phase Detector's `near_critical` label produces statistically indistinguishable 6-month forward returns from `other`. Mean returns differ by only 27 bp (likely noise); `near_critical` shows higher dispersion (36.7% vs 28.6% std) → slightly *worse* risk-adjusted return (Sharpe 0.24 vs 0.32).
+
+This null result is informative — but not damning:
+
+1. **Universe matters.** SP500 = already large, mature, dominantly `far_from_critical`. The hypothesis was always more compelling on growth/smid-cap or sector cohorts.
+2. **Labels were a-priori, not refreshed.** Each company has *one* `critical_point_state` from a single 2026-05 deepseek-v4-flash run. The walk-forward uses the SAME label for every snapshot from 2021-06 → 2025-11 — which leaks future info backwards if a company *transitioned* during the window, but more importantly fails to capture state transitions over time.
+3. **Definition of `near_critical` is wide.** 13% of universe labelled `near_critical` is large enough that any signal gets diluted.
+4. **6 months may be the wrong horizon.** Phase transitions can play out over years (preferential_attachment companies) or weeks (panic / contagion). Sensitivity over 3m / 12m / 24m is open.
+
+### Next experiments (priority order)
+
+1. **Per-snapshot label refresh** — re-run StructTuple extraction at quarterly anchors, then backtest. Removes label-leakage.
+2. **Universe broadening** — Russell 2000 or sector ETFs (where `near_critical` events are more impactful).
+3. **Stratify by `dynamics_family`** — preferential_attachment companies labelled `near_critical` may behave very differently from contagion-family ones.
+4. **Threshold tuning** — restrict `near_critical` to high-confidence (`confidence >= 0.8`) labels only.
+5. **Horizon sensitivity** — 3m / 12m / 24m grid.
+
+### Reproduce
+
+```bash
+# Fetch (~3 min for 500 tickers via yfinance)
+python3 v4/product/d1_phase_detector/fetch_prices.py \
+    --tickers v4/product/d1_phase_detector/companies_500.jsonl \
+    --output v4/product/d1_phase_detector/prices_500.csv \
+    --period 5y --interval 1mo
+
+# Walk-forward backtest (~2 sec)
+python3 v4/product/d1_phase_detector/backtest.py \
+    --companies v4/product/d1_phase_detector/companies_500.jsonl \
+    --period 6m --real-prices
+```
+
+Artifacts written to `v4/product/d1_phase_detector/`:
+- `prices_500.csv` — long-format ticker × date × close (29,566 rows)
+- `prices.meta.json` — fetch provenance (yfinance / stooq / synthetic counts)
+- `backtest_result.json` — full stats blob (mode, n, means, t, p, Sharpe, …)
+- `cumulative.csv` — per-snapshot monthly mean return + compounded cumulative per group
+- `cumulative_return.png` — line plot of cumulative return curves
