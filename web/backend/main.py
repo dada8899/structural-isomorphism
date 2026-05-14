@@ -68,24 +68,95 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Structural",
-    description="跨领域结构同构搜索引擎",
-    version="0.1.0",
+    description=(
+        "跨领域结构同构搜索引擎 — Structural Isomorphism API.\n\n"
+        "Public surface for the Structural cross-domain knowledge engine. "
+        "Endpoints are grouped by capability (Ask / Phase / Phenomenon / "
+        "Pricing / Newsletter / Admin). Rate limits are tier-based; supply "
+        "an `X-API-Key` header to promote a request beyond the anonymous "
+        "free-tier bucket."
+    ),
+    version="0.2.0",
     lifespan=lifespan,
+    contact={
+        "name": "Structural Team",
+        "url": "https://structural.bytedance.city",
+    },
+    license_info={
+        "name": "Proprietary",
+    },
+    openapi_tags=[
+        {"name": "ask", "description": "Perplexity-like Q&A over the KB"},
+        {"name": "search", "description": "Vector search for phenomena"},
+        {"name": "phenomenon", "description": "Per-phenomenon lookups + similar items"},
+        {"name": "mapping", "description": "LLM-generated structural mappings"},
+        {"name": "analyze", "description": "Deep cross-domain transfer reports"},
+        {"name": "synthesize", "description": "Synthesized answer over search results"},
+        {"name": "daily", "description": "Today's curated discoveries"},
+        {"name": "discoveries", "description": "A-grade structural discoveries"},
+        {"name": "examples", "description": "Handpicked example pairs"},
+        {"name": "suggest", "description": "Search suggestion phrases"},
+        {"name": "history", "description": "Per-device anonymous query history"},
+        {"name": "newsletter", "description": "Email newsletter signup"},
+        {"name": "checkout-mock", "description": "Stripe checkout mock (pre-PMF)"},
+        {"name": "system", "description": "Health, version, and operational probes"},
+        {"name": "admin", "description": "Admin-only endpoints (require admin tier)"},
+    ],
 )
 
-# --- Rate limiter (slowapi) ---
-# The Limiter instance lives in services/rate_limit.py so routers can import
-# it without a circular dependency on this module.
-from services.rate_limit import limiter  # noqa: E402
-if limiter is not None:
-    try:
-        from slowapi import _rate_limit_exceeded_handler
-        from slowapi.errors import RateLimitExceeded
+# --- OpenAPI security scheme: APIKeyHeader (X-API-Key) ---
+# Optional everywhere; admin-required for /api/admin/*. We inject via a
+# custom openapi() so the same spec is served at /openapi.json AND can be
+# exported to docs/api/openapi.json without re-implementing the logic.
+def _custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=getattr(app, "openapi_tags", None),
+        contact=getattr(app, "contact", None),
+        license_info=getattr(app, "license_info", None),
+    )
+    schema.setdefault("components", {}).setdefault("securitySchemes", {})["APIKeyHeader"] = {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": (
+            "Optional API key. Anonymous requests fall back to the free tier "
+            "(60 req/min). Provide an X-API-Key header to access higher tiers."
+        ),
+    }
+    # Force admin-prefix paths to require the key.
+    for path, methods in schema.get("paths", {}).items():
+        if path.startswith("/api/admin"):
+            for op in methods.values():
+                if isinstance(op, dict):
+                    op["security"] = [{"APIKeyHeader": []}]
+    app.openapi_schema = schema
+    return schema
 
-        app.state.limiter = limiter
-        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    except Exception as e:  # pragma: no cover
-        logger.warning(f"rate limit handler wiring failed: {e}")
+
+app.openapi = _custom_openapi
+
+
+# --- RFC 7807 problem-detail error handlers ---
+# Must be installed before routers so they catch validation errors raised
+# during dependency resolution.
+from errors import install_problem_handlers  # noqa: E402
+install_problem_handlers(app)
+
+# --- Tier-aware rate limiter (W11-C) ---
+# Replaces the previous flat slowapi setup. The new module installs the
+# middleware + custom RFC 7807 429 handler in one call. The legacy
+# `services/rate_limit.py` is kept (existing routers still import `limit`
+# and `tier_limit_decorator` from it) but defers to the same shared
+# Limiter via the middleware contextvar.
+from middleware import install_rate_limit  # noqa: E402
+install_rate_limit(app)
 
 # --- CORS ---
 # Origins are restricted to our production hosts; wildcard + credentials is
@@ -132,13 +203,143 @@ app.include_router(newsletter.router, prefix="/api")
 app.include_router(checkout_mock.router, prefix="/api")
 
 
-@app.get("/api/health")
-async def health():
+@app.get(
+    "/api/health",
+    tags=["system"],
+    summary="Liveness probe",
+    description=(
+        "Lightweight health check. Pass `?deep=1` for a deep probe that "
+        "also exercises external dependencies (DB / LLM upstream)."
+    ),
+    responses={
+        200: {
+            "description": "Service is up",
+            "content": {
+                "application/json": {
+                    "example": {"status": "ok", "kb_size": 12345, "llm_model": "deepseek-chat"}
+                }
+            },
+        }
+    },
+)
+async def health(deep: int = 0):
     svc = app_state.get("search")
-    return {
+    body = {
         "status": "ok",
         "kb_size": svc.kb_size if svc else 0,
         "llm_model": os.getenv("LLM_MODEL", "unknown"),
+    }
+    if deep:
+        # Deep-mode: probe optional subsystems and surface their state.
+        # We never fail the health endpoint outright — degraded subsystems
+        # show up as `checks.<name> = "fail"` so an operator can see the
+        # full picture in one shot.
+        checks = {}
+        # search service load state
+        checks["search_service"] = "ok" if svc else "fail"
+        # history DB file accessible
+        try:
+            from pathlib import Path as _P
+            hp = _P(__file__).parent / "data" / "history.db"
+            checks["history_db"] = "ok" if hp.parent.exists() else "missing_dir"
+        except Exception:
+            checks["history_db"] = "fail"
+        # LLM upstream env present
+        checks["llm_env"] = "ok" if os.getenv("OPENROUTER_API_KEY") or os.getenv("DEEPSEEK_API_KEY") else "missing"
+        body["checks"] = checks
+        body["status"] = "ok" if all(v in ("ok", "missing") for v in checks.values()) else "degraded"
+    return body
+
+
+@app.get(
+    "/api/version",
+    tags=["system"],
+    summary="Build & version metadata",
+    description=(
+        "Returns the current build's semantic version, git SHA (if available "
+        "via the `STRUCTURAL_GIT_SHA` env), build date, runtime python "
+        "version, and the deploy environment (dev / staging / prod)."
+    ),
+)
+async def version():
+    import sys as _sys
+    import subprocess as _sp
+    git_sha = os.getenv("STRUCTURAL_GIT_SHA", "")
+    if not git_sha:
+        # Best-effort: short SHA from git, capped at 12 chars.
+        try:
+            git_sha = _sp.check_output(
+                ["git", "rev-parse", "--short=12", "HEAD"],
+                cwd=str(Path(__file__).resolve().parent.parent.parent),
+                stderr=_sp.DEVNULL,
+                timeout=2,
+            ).decode().strip()
+        except Exception:
+            git_sha = "unknown"
+    return {
+        "semver": app.version,
+        "git_sha": git_sha,
+        "build_date": os.getenv("STRUCTURAL_BUILD_DATE", "unknown"),
+        "python_version": _sys.version.split()[0],
+        "env": os.getenv("STRUCTURAL_ENV", "dev"),
+    }
+
+
+# --- API-key probe ---
+@app.get(
+    "/api/whoami",
+    tags=["system"],
+    summary="Reflect resolved tier for the current request",
+    description=(
+        "Useful for debugging X-API-Key auth. Returns the tier that "
+        "rate-limiting will use and whether a valid key was supplied."
+    ),
+)
+async def whoami(request: Request):
+    from middleware.rate_limit import CURRENT_TIER as _T
+    has_key = bool(request.headers.get("X-API-Key") or request.headers.get("x-api-key"))
+    return {"tier": _T.get(), "api_key_supplied": has_key}
+
+
+# --- Admin endpoint (requires admin tier) ---
+@app.get(
+    "/api/admin/keys",
+    tags=["admin"],
+    summary="List loaded API keys (admin only)",
+    description="Reflects the current in-memory API key store. Requires tier=admin.",
+    responses={
+        200: {"description": "Key list"},
+        401: {"description": "Missing or invalid X-API-Key"},
+        403: {"description": "API key is valid but not admin tier"},
+    },
+)
+async def admin_list_keys(request: Request):
+    from middleware.rate_limit import CURRENT_TIER as _T
+    from errors import Forbidden, Unauthenticated
+    from auth.api_key import list_seed_keys
+
+    tier = _T.get()
+    if tier == "free":
+        # No key supplied OR free-tier key — both end up as "free".
+        if not (request.headers.get("X-API-Key") or request.headers.get("x-api-key")):
+            raise Unauthenticated(detail="X-API-Key header required for /api/admin/*")
+        raise Forbidden(detail="Admin tier required")
+    if tier != "admin":
+        raise Forbidden(detail="Admin tier required")
+    keys = list_seed_keys()
+    # Never return the raw `key` field — only metadata.
+    return {
+        "count": len(keys),
+        "keys": [
+            {
+                "key_prefix": k.key[:10] + "..." if len(k.key) > 10 else k.key,
+                "tier": k.tier,
+                "owner_email": k.owner_email,
+                "created_at": k.created_at,
+                "revoked": k.revoked,
+            }
+            for k in keys
+        ],
     }
 
 
