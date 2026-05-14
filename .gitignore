@@ -56,3 +56,7 @@ v4/validation/soc-wildfire/raw_nifc.csv
 # D1 Phase Detector local DB artifacts
 v4/product/d1_phase_detector/d1.sqlite
 v4/product/d1_phase_detector/*.sqlite-journal
+
+# Web backend history DB (per-device anonymous query history; ephemeral)
+web/backend/data/history.db
+web/backend/data/history.db-*

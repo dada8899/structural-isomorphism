@@ -1,0 +1,24 @@
+name: site smoke
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6h
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl key endpoints
+        run: |
+          set -e
+          for url in \
+            https://beta.structural.bytedance.city/ \
+            https://structural.bytedance.city/ \
+            https://phase.bytedance.city/; do
+            echo "Checking $url"
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
+            if [ "$code" != "200" ]; then
+              echo "FAIL: $url returned $code"
+              exit 1
+            fi
+            echo "OK: $url"
+          done
