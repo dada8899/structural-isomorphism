@@ -3,10 +3,14 @@ AskOrchestrator — Perplexity-like 3-phase SSE backend for /api/ask/stream.
 
 Pipeline:
     Phase A: vector-search the cross-domain KB for top-5 cards (~1-2s).
-             Emit `meta` then `kb_cards`.
+             Emit `meta` → `retrieval_done` → `kb_cards`.
     Phase B: one LLM call (DeepSeek via OpenRouter) returns a JSON object
-             {answer, citations, followups}. Validate with pydantic. Then
-             typewriter-emit `answer_chunk` deltas and finally `answer_done`.
+             {answer, citations, followups}. With STREAMING enabled we
+             incrementally extract the `answer` string field as the JSON
+             arrives and forward each delta as `answer_chunk` ASAP, so the
+             user sees text within ~3-5s instead of waiting 18-32s for the
+             whole non-streaming completion. After the stream finishes we
+             validate the full JSON with pydantic for citations + followups.
     Phase C: pick top-3 of the same KB cards, derive a one-sentence
              "key_metric" snippet from each card's description, emit
              `similar_phenomena`.
@@ -15,6 +19,11 @@ Pipeline:
 Design notes:
 - The LLM is invoked once for answer + citations + followups (per spec).
   Splitting would multiply latency and burn quota.
+- W5-B: switched the LLM call from blocking POST to streaming chat
+  completions. We use a small JSON-string-extractor state machine to pull
+  out the `answer` field characters as they arrive (rather than waiting
+  for the closing brace), because OpenRouter's `response_format=json_object`
+  guarantees a valid JSON envelope but only at the end of stream.
 - On JSON parse / pydantic validation failure we retry exactly once with
   a stricter "JSON-only, no markdown fences" reminder. Second failure
   emits a fallback `answer_done` so the frontend never hangs.
@@ -29,7 +38,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from typing import AsyncIterator, Dict, List, Optional
+from typing import AsyncIterator, Dict, List, Optional, Tuple
 
 from pydantic import ValidationError
 
@@ -89,6 +98,137 @@ def _sse(event: str, data: Dict) -> str:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+class _AnswerFieldExtractor:
+    """Stream-parse the `answer` string field out of a JSON object as bytes arrive.
+
+    The LLM returns one JSON object shaped like
+        {"answer": "....", "citations": [...], "followups": [...]}
+    With OpenRouter `response_format=json_object` the model is forced to
+    produce valid JSON, but it still streams character by character. We want
+    to forward each character INSIDE the `answer` string to the user the
+    moment it lands, without waiting for the closing `"`.
+
+    State machine (minimal — only what we need):
+        SCANNING  → looking for `"answer"` key
+        AFTER_KEY → saw the key, looking for `:` then opening `"`
+        IN_VALUE  → inside the string literal; every char (handling \\ escapes)
+                    gets emitted via feed()'s return value
+        DONE      → saw the unescaped closing `"`; no more chars to emit
+
+    Returned chars are already unescaped (\\n → newline, \\" → ", \\uXXXX
+    → char, etc.) so the frontend can render them directly.
+
+    NOT a full JSON parser — we deliberately keep this tiny because we
+    still parse the complete buffer with `json.loads` at end-of-stream for
+    citations + followups validation. This is purely a forwarder.
+    """
+
+    SCANNING = 0
+    AFTER_KEY = 1
+    IN_VALUE = 2
+    DONE = 3
+
+    # Key we are hunting for, including the closing quote so we don't
+    # match `"answer_extra"`. We tolerate any whitespace between the key
+    # close-quote and the colon.
+    _KEY = '"answer"'
+
+    def __init__(self) -> None:
+        self.state = self.SCANNING
+        # Rolling buffer used only while SCANNING for `"answer"`. Capped at
+        # 256 chars so a runaway preamble can't blow memory.
+        self._scan_tail = ""
+        # Pending escape sequence handler — set when we hit `\` inside the
+        # string. Forms: "esc" (next single-char escape) | "uXXXX" partial.
+        self._pending_esc: Optional[str] = None
+
+    def feed(self, chunk: str) -> str:
+        """Push a chunk of raw JSON text. Return any newly-emittable answer chars."""
+        out_parts: List[str] = []
+        for ch in chunk:
+            piece = self._step(ch)
+            if piece:
+                out_parts.append(piece)
+            if self.state == self.DONE:
+                # Drop the rest of the chunk — caller will keep feeding
+                # for the buffer copy but we don't emit anything more.
+                break
+        return "".join(out_parts)
+
+    def _step(self, ch: str) -> str:  # noqa: C901  (state machine reads cleaner inline)
+        if self.state == self.SCANNING:
+            self._scan_tail = (self._scan_tail + ch)[-len(self._KEY):]
+            if self._scan_tail == self._KEY:
+                self.state = self.AFTER_KEY
+            return ""
+
+        if self.state == self.AFTER_KEY:
+            # Look for `:` then the opening `"`. Skip whitespace between.
+            if ch == '"':
+                self.state = self.IN_VALUE
+            # Any non-whitespace, non-`:`, non-`"` char here means the
+            # response shape is off-spec; we let the full json.loads at
+            # end-of-stream report it. Stay AFTER_KEY in case it normalizes.
+            return ""
+
+        if self.state == self.IN_VALUE:
+            # Handle pending escape from previous char.
+            if self._pending_esc is not None:
+                return self._consume_escape(ch)
+            if ch == "\\":
+                self._pending_esc = "esc"
+                return ""
+            if ch == '"':
+                # Unescaped closing quote → end of answer string value.
+                self.state = self.DONE
+                return ""
+            return ch
+
+        # DONE — ignore everything else.
+        return ""
+
+    def _consume_escape(self, ch: str) -> str:
+        """Handle the char immediately following a `\\` inside the string."""
+        pending = self._pending_esc or ""
+        if pending == "esc":
+            simple = {
+                '"': '"',
+                "\\": "\\",
+                "/": "/",
+                "b": "\b",
+                "f": "\f",
+                "n": "\n",
+                "r": "\r",
+                "t": "\t",
+            }
+            if ch in simple:
+                self._pending_esc = None
+                return simple[ch]
+            if ch == "u":
+                # Expect 4 hex digits to follow.
+                self._pending_esc = "u"
+                return ""
+            # Unknown escape — drop the backslash, keep the char.
+            self._pending_esc = None
+            return ch
+        if pending.startswith("u"):
+            # Accumulate up to 4 hex digits.
+            buf = pending + ch
+            if len(buf) >= 5:  # "u" + 4 digits
+                hex_digits = buf[1:5]
+                try:
+                    self._pending_esc = None
+                    return chr(int(hex_digits, 16))
+                except ValueError:
+                    self._pending_esc = None
+                    return ""  # malformed → silently drop
+            self._pending_esc = buf
+            return ""
+        # Unknown pending state — reset.
+        self._pending_esc = None
+        return ch
 
 
 def _safe_snippet(description: str, max_len: int = 140) -> str:
@@ -151,12 +291,14 @@ class AskOrchestrator:
         })
 
         cards: List[Dict] = []
+        retrieval_started = time.monotonic()
         try:
             if self.search is not None:
                 cards = self.search.search(query, top_k=TOP_K_CARDS) or []
         except Exception as e:
             logger.warning(f"[ask] vector search failed: {e}")
             cards = []
+        retrieval_ms = int((time.monotonic() - retrieval_started) * 1000)
 
         # Always emit the kb_cards event (possibly empty) so the frontend
         # can transition from "searching" to "ready". Cards keep only the
@@ -172,6 +314,29 @@ class AskOrchestrator:
             }
             for c in cards
         ]
+        # W5-B: explicit `retrieval_done` event marking the user-visible
+        # transition from "搜索中…" to "找到 N 篇 → 正在生成"。Frontend
+        # paints citation placeholder cards on this event so the user has
+        # a concrete signal well before the LLM produces its first token.
+        # Kept alongside the legacy `kb_cards` event so older clients keep
+        # working without change.
+        yield _sse("retrieval_done", {
+            "count": len(cards_payload),
+            "retrieval_ms": retrieval_ms,
+            # Lightweight precis — name + domain + idx so a citation card
+            # placeholder can render. Full descriptions still go via the
+            # subsequent kb_cards event.
+            "candidates": [
+                {
+                    "idx": i + 1,
+                    "id": c.get("id", ""),
+                    "name": c.get("name", ""),
+                    "domain": c.get("domain", ""),
+                    "score": c.get("score", 0.0),
+                }
+                for i, c in enumerate(cards_payload)
+            ],
+        })
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
         # ---- Relevance gate (W5-A) ---------------------------------- #
@@ -189,18 +354,45 @@ class AskOrchestrator:
             )
 
         # ---- Phase B: LLM synthesize answer + citations + followups -- #
-        payload = await self._llm_answer_with_retry(
-            query, cards, lang_norm, low_relevance=low_relevance,
-        )
+        # W5-A + W5-B combined: streaming pipeline carries the low_relevance
+        # flag through to the prompt builder so the LLM degrades gracefully
+        # on out-of-scope queries while still streaming chunk-by-chunk.
+        payload: Dict
+        raw_buffer = ""
+        first_chunk_sent = False
+        try:
+            async for kind, value in self._stream_llm_answer_with_retry(
+                query, cards, lang_norm, low_relevance=low_relevance,
+            ):
+                if kind == "answer_delta":
+                    if value:
+                        if not first_chunk_sent:
+                            first_chunk_sent = True
+                            logger.info(
+                                "[ask] first answer chunk emitted at %dms",
+                                int((time.monotonic() - started) * 1000),
+                            )
+                        yield _sse("answer_chunk", {"delta": value})
+                elif kind == "raw_chunk":
+                    raw_buffer += value
+                elif kind == "done":
+                    payload = value
+                    break
+            else:
+                payload = self._fallback_payload(query, cards, lang_norm)
+        except Exception as e:
+            logger.error(f"[ask] streaming LLM pipeline failed: {e}")
+            payload = self._fallback_payload(query, cards, lang_norm)
 
-        # Typewriter-emit the answer text.
         answer_text = payload.get("answer", "") if payload else ""
-        if answer_text:
+
+        # If we never streamed any answer chars (e.g. fallback path, or the
+        # JSON-string-extractor never matched `"answer"` because the model
+        # produced a wonky envelope), fall back to one typewriter pass so
+        # the frontend isn't stuck on its "正在思考..." placeholder.
+        if not first_chunk_sent and answer_text:
             for chunk in self._typewriter_chunks(answer_text):
                 yield _sse("answer_chunk", {"delta": chunk})
-                # Yield control between chunks so other awaits (search,
-                # heartbeats) can run. Skip the sleep when running in
-                # tests to keep test runtime tight.
                 if TYPEWRITER_SLEEP_S > 0:
                     await asyncio.sleep(TYPEWRITER_SLEEP_S)
 
@@ -346,6 +538,10 @@ class AskOrchestrator:
 
         Returns a dict {answer, citations, followups}. On total failure
         returns a graceful fallback so the SSE stream can still complete.
+
+        Kept for backward compatibility / non-streaming code paths (tests
+        currently still drive this via `_call_llm_once` mocks). The hot
+        path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
         # First attempt — normal prompt.
         prompt = self._build_prompt(
@@ -368,6 +564,145 @@ class AskOrchestrator:
 
         logger.error("[ask] LLM JSON validate failed twice; emitting fallback")
         return self._fallback_payload(query, cards, lang)
+
+    async def _stream_llm_answer_with_retry(
+        self,
+        query: str,
+        cards: List[Dict],
+        lang: str,
+        low_relevance: bool = False,
+    ) -> AsyncIterator[Tuple[str, object]]:
+        """Streaming variant — yields tuples driving the SSE pipeline.
+
+        Yield protocol:
+            ("answer_delta", str)  → newly-emittable answer-string chars
+            ("raw_chunk", str)     → raw JSON chunk (caller may ignore)
+            ("done", dict)         → validated/fallback payload at end
+
+        Strategy:
+        1. First attempt streams; if the final JSON validates, done.
+        2. If first attempt failed validation:
+            - If we already streamed answer chars (DONE > IN_VALUE state),
+              we KEEP what we sent (don't yank text out of the user's view)
+              and use `_try_validate` retry once for citations/followups.
+              The retry runs in NON-streaming mode (no further answer_delta).
+            - If we never emitted any answer_delta (e.g. envelope malformed
+              before the `answer` field arrived), we retry in streaming mode
+              with strict_json=True.
+        3. After two failures total, yield ("done", fallback).
+        """
+        # ---- Attempt 1: stream + extract --------------------------------
+        prompt = self._build_prompt(query, cards, lang, strict_json=False, low_relevance=low_relevance)
+        accumulated = ""
+        emitted_any = False
+        async for kind, value in self._call_llm_stream(prompt):
+            if kind == "answer_delta":
+                if value:
+                    emitted_any = True
+                    yield ("answer_delta", value)
+            elif kind == "raw_chunk":
+                accumulated += value
+                yield ("raw_chunk", value)
+            elif kind == "error":
+                logger.warning(f"[ask] streaming attempt 1 errored: {value}")
+                break
+
+        validated = self._try_validate(accumulated)
+        if validated is not None:
+            yield ("done", validated)
+            return
+
+        # ---- Attempt 2: depends on whether we already streamed answer ---
+        if emitted_any:
+            # Already showed text to user. Re-call (non-streaming) for a
+            # second shot at valid citations/followups, but preserve the
+            # already-emitted answer string by overriding `answer` with
+            # whatever we managed to accumulate via the extractor.
+            logger.warning("[ask] stream JSON validate failed; retry (no re-stream)")
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            result2 = await self._call_llm_once(prompt2)
+            validated2 = self._try_validate(result2)
+            if validated2 is not None:
+                # Keep what the user already saw on screen.
+                streamed_answer = self._best_effort_extract_answer(accumulated)
+                if streamed_answer:
+                    validated2 = dict(validated2)
+                    validated2["answer"] = streamed_answer
+                yield ("done", validated2)
+                return
+        else:
+            # Nothing user-visible yet — safe to fully re-stream.
+            logger.warning("[ask] stream emitted nothing; retry with strict_json")
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            accumulated2 = ""
+            stream2_errored = False
+            async for kind, value in self._call_llm_stream(prompt2):
+                if kind == "answer_delta":
+                    if value:
+                        yield ("answer_delta", value)
+                elif kind == "raw_chunk":
+                    accumulated2 += value
+                    yield ("raw_chunk", value)
+                elif kind == "error":
+                    logger.warning(f"[ask] streaming attempt 2 errored: {value}")
+                    stream2_errored = True
+                    break
+            validated3 = self._try_validate(accumulated2)
+            if validated3 is not None:
+                yield ("done", validated3)
+                return
+
+            # Final tier: if streaming failed entirely (e.g. no API key,
+            # network refused) fall back to the legacy non-streaming
+            # `_call_llm_once` path. This preserves compatibility with
+            # mocks that only patch `_call_llm_once` AND keeps prod from
+            # giving up if the streaming endpoint flakes.
+            if stream2_errored or not accumulated2:
+                logger.warning("[ask] streaming retry empty; falling back to non-stream")
+                try:
+                    result3 = await self._call_llm_once(prompt2)
+                except Exception as e:
+                    logger.error(f"[ask] non-stream fallback failed: {e}")
+                    result3 = None
+                validated4 = self._try_validate(result3)
+                if validated4 is not None:
+                    # Typewriter emission of the recovered answer so the
+                    # frontend isn't stuck on its placeholder.
+                    answer4 = validated4.get("answer", "")
+                    if answer4:
+                        for chunk in self._typewriter_chunks(answer4):
+                            yield ("answer_delta", chunk)
+                    yield ("done", validated4)
+                    return
+
+        logger.error("[ask] LLM JSON validate failed twice; emitting fallback")
+        yield ("done", self._fallback_payload(query, cards, lang))
+
+    def _best_effort_extract_answer(self, raw: str) -> str:
+        """Try to pluck the `answer` field out of a possibly-incomplete JSON.
+
+        Used when attempt 1 emitted answer chars but the full envelope didn't
+        validate — we want to keep what the user already saw and merge in
+        the retry's citations/followups. Returns "" if nothing extractable.
+        """
+        if not raw:
+            return ""
+        text = raw.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:].lstrip()
+        try:
+            obj = json.loads(text)
+            if isinstance(obj, dict):
+                ans = obj.get("answer")
+                if isinstance(ans, str):
+                    return ans
+        except json.JSONDecodeError:
+            pass
+        # Last resort — walk the chars through the extractor to reconstruct.
+        ext = _AnswerFieldExtractor()
+        return ext.feed(text)
 
     def _try_validate(self, raw: Optional[str]) -> Optional[Dict]:
         """Parse + pydantic-validate the LLM JSON. None on any failure."""
@@ -426,6 +761,83 @@ class AskOrchestrator:
         except Exception as e:
             logger.error(f"[ask] LLM call failed: {e}")
             return None
+
+    async def _call_llm_stream(
+        self,
+        prompt: str,
+    ) -> AsyncIterator[Tuple[str, str]]:
+        """Streaming chat call to OpenRouter.
+
+        Yields tuples:
+            ("answer_delta", str)  — newly-emittable answer field chars
+            ("raw_chunk", str)     — raw model-content chunk (drives accumulator)
+            ("error", str)         — non-fatal error message; caller falls back
+
+        Implementation mirrors `LLMService.stream_mapping`: POST with
+        `stream: True`, iterate `resp.aiter_lines()`, parse `data: <json>`
+        OpenAI-style SSE deltas, extract `choices[0].delta.content` and
+        push it through `_AnswerFieldExtractor` so we can forward the
+        `answer` field characters as soon as they arrive (rather than
+        waiting for the closing `}`).
+        """
+        api_key = self.llm.api_key or os.getenv("OPENROUTER_API_KEY", "")
+        if not api_key:
+            logger.warning("[ask] no OPENROUTER_API_KEY; cannot call LLM (stream)")
+            yield ("error", "no_api_key")
+            return
+
+        extractor = _AnswerFieldExtractor()
+        try:
+            client = _get_http_client()
+            async with client.stream(
+                "POST",
+                OPENROUTER_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 1800,
+                    "response_format": {"type": "json_object"},
+                    "stream": True,
+                },
+                timeout=120.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    line = line.strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if payload == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(payload)
+                    except json.JSONDecodeError:
+                        # OpenRouter occasionally emits non-JSON keepalive
+                        # comments — skip silently.
+                        continue
+                    delta = (
+                        chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+                        or ""
+                    )
+                    if not delta:
+                        continue
+                    # Always forward raw chunk so the caller can accumulate
+                    # the full JSON for final pydantic validation.
+                    yield ("raw_chunk", delta)
+                    # Extract any answer-field chars unlocked by this delta.
+                    emitted = extractor.feed(delta)
+                    if emitted:
+                        yield ("answer_delta", emitted)
+        except Exception as e:
+            logger.error(f"[ask] LLM stream failed: {e}")
+            yield ("error", str(e))
 
     def _build_prompt(
         self,

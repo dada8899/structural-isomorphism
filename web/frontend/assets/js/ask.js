@@ -337,6 +337,7 @@
 
     switch (event) {
       case 'meta':            return handleMetaEvent(item, data);
+      case 'retrieval_done':  return handleRetrievalDoneEvent(item, data);
       case 'kb_cards':        return handleKbCardsEvent(item, data);
       case 'answer_chunk':    return handleAnswerChunk(item, data);
       case 'answer_done':     return handleAnswerDoneEvent(item, data);
@@ -363,6 +364,36 @@
       metaEl.innerHTML = parts.join('');
       metaEl.hidden = false;
     }
+  }
+
+  // W5-B: `retrieval_done` lands ~1-2s after submit and is the user's
+  // first concrete "something happened" signal. We replace the answer
+  // placeholder ("正在思考...") with a tighter "找到 N 篇 → 正在生成"
+  // hint so the perceived latency drops well below the LLM's own first
+  // token. Full citation cards still arrive via the subsequent kb_cards.
+  function handleRetrievalDoneEvent(item, data) {
+    if (!item || !data) return;
+    var count = (typeof data.count === 'number') ? data.count : (data.candidates ? data.candidates.length : 0);
+    if (!count) return;
+
+    // Reveal the answer section + swap placeholder text so the user sees
+    // immediate motion even before the LLM ships its first token.
+    var ansSection = item.querySelector('[data-role="answer-section"]');
+    if (ansSection) ansSection.hidden = false;
+    var answerEl = item.querySelector('[data-role="answer"]');
+    var empty = answerEl && answerEl.querySelector('.ask-thread-item__answer-empty');
+    if (empty) {
+      empty.textContent = '找到 ' + count + ' 篇相关现象，正在生成答案…';
+    }
+
+    // W3-B-ish: track when retrieval_done landed. Distinct from
+    // `kb_cards_received` so we can separate retrieval latency vs cards
+    // rendering latency in analytics.
+    track('retrieval_done', {
+      count: count,
+      retrieval_ms: typeof data.retrieval_ms === 'number' ? data.retrieval_ms : 0,
+      latency_ms: elapsedSince(item._t0)
+    });
   }
 
   function handleKbCardsEvent(item, data) {
@@ -432,6 +463,13 @@
     // Remove placeholder on first chunk
     var empty = answerEl.querySelector('.ask-thread-item__answer-empty');
     if (empty) empty.remove();
+
+    // W5-B: capture time-to-first-token explicitly; this is the headline
+    // latency metric we are optimizing for in this sprint.
+    if (!item._firstChunkAt) {
+      item._firstChunkAt = elapsedSince(item._t0);
+      track('first_answer_chunk', { latency_ms: item._firstChunkAt });
+    }
 
     // Append to a running text buffer (we keep raw text, render citations on done)
     if (!item._answerBuf) item._answerBuf = '';
