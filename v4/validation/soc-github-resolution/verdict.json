@@ -1,0 +1,52 @@
+{
+  "verdict": {
+    "label": "github_issue_resolution_s",
+    "verdict": "PASS",
+    "underlying_verdict": "CONFIRMED",
+    "alpha": 1.8364079009186023,
+    "alpha_ci_low": 1.5148424385155106,
+    "alpha_ci_high": 2.121279169192083,
+    "xmin": 2547942.493713836,
+    "ks_statistic": 0.04082331185088761,
+    "vs_lognormal_R": 0.15612949935029283,
+    "vs_lognormal_p": 0.8759309463672038,
+    "vs_exponential_R": 3.486500475045027,
+    "vs_exponential_p": 0.0004893845145961559,
+    "in_band": true,
+    "n_total": 2000,
+    "n_tail": 321,
+    "fit": {
+      "alpha": 1.8364079009186023,
+      "xmin": 2547942.493713836,
+      "sigma": 0.046683736643906064,
+      "n_total": 2000,
+      "n_tail": 321,
+      "ks_statistic": 0.04082331185088761,
+      "vs_lognormal_R": 0.15612949935029283,
+      "vs_lognormal_p": 0.8759309463672038,
+      "vs_exponential_R": 3.486500475045027,
+      "vs_exponential_p": 0.0004893845145961559,
+      "vs_powerlaw_lognormal_winner": "inconclusive",
+      "rejects_power_law": false,
+      "name": "github_issue_resolution_s",
+      "error": null,
+      "extra": {}
+    },
+    "bootstrap": {
+      "alpha_mean": 1.824535716163232,
+      "alpha_median": 1.8352768725562418,
+      "alpha_std": 0.14065289142345627,
+      "ci_low": 1.5148424385155106,
+      "ci_high": 2.121279169192083,
+      "n_boot_succeeded": 200,
+      "error": null
+    },
+    "error": null
+  },
+  "n_rows": 2000,
+  "n_durations": 2000,
+  "preregistered_band": [
+    1.5,
+    3.0
+  ]
+}

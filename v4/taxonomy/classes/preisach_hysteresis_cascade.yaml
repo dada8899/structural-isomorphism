@@ -1,0 +1,177 @@
+class_id: preisach_hysteresis_cascade
+status: speculative
+display_name: Preisach hysteresis cascade (Barkhausen-style jump distribution)
+display_name_zh: Preisach 迟滞级联 (Barkhausen 跳变分布)
+hub_phenomenon: "Discrete jump events in the response of an ensemble of interacting bistable elements to a slowly varying driving force, with power-law distribution of jump sizes characteristic of disordered hysteresis avalanches."
+shared_equation: |
+  Preisach ensemble with weak interactions (Sethna-Dahmen-Myers 2001):
+    M(H) = sum_alpha s_alpha(H) where s_alpha ∈ {-1, +1},
+    H_alpha^switch = h_alpha + J sum_{beta} s_beta  (mean-field coupling J).
+  As H is swept, switching events cascade through the ensemble; the
+  size of one cascade s = number of co-flipping hysterons follows a
+  power-law:
+    P(s) ∝ s^{-tau} exp(-s/s_c),
+    tau ≈ 1.5 (mean-field), tau ∈ [1.5, 2.5] (finite range / lower dim).
+  Distinct from the classical Preisach class
+  (hysteresis_preisach.yaml, B3-rejected) by:
+    (a) coupling J ≠ 0 → cascade dynamics, not independent hysterons,
+    (b) the *jump-size distribution* is the primary observable, not
+        the loop area,
+    (c) the system sits at the disordered (zero-temperature) random-field
+        Ising critical point (Sethna 1993), not at a generic Preisach ensemble.
+  Crackling-noise signature:
+    Power spectrum S(f) ∝ 1/f^{1+theta} where theta is set by the
+    avalanche duration distribution.
+
+  This class is the avalanche / Barkhausen interpretation of disordered
+  hysteresis, complementary to the rate-independent Preisach model. The
+  Sethna-Dahmen-Myers crackling-noise framework (Nature 410, 242, 2001)
+  is the canonical reference.
+key_invariants:
+  - "Power-law jump-size distribution: P(s) ∝ s^{-tau}, tau ∈ [1.5, 2.5]"
+  - "Cutoff s_c diverges at disorder critical point R = R_c (Sethna 1993)"
+  - "Avalanche duration tail: P(T) ∝ T^{-tau_T}, tau_T ≈ 2 (mean-field)"
+  - "Power spectrum: S(f) ∝ 1/f^{1+theta}, theta ≈ 0 in mean-field"
+  - "Scale-invariant Barkhausen jumps across decades in s"
+  - "Universal: same tau for ferromagnetic Barkhausen, plastic slip, charge density waves"
+positive_examples:
+  - phenomenon: Ferromagnetic Barkhausen noise (Cizeau-Zapperi-Durin-Stanley 1997)
+    evidence: |
+      Original empirical confirmation of Sethna's RFIM picture. Soft
+      magnetic alloys (SiFe, NiFe) show P(s) ∝ s^{-1.5 ± 0.1} over 3-4
+      decades in jump size. The classical Barkhausen experiment is the
+      cleanest realisation of disorder-driven avalanche hysteresis.
+    verified_at: candidate
+  - phenomenon: Plastic slip avalanches in crystalline solids (Dimiduk-Greer 2006)
+    evidence: |
+      Compression of micron-scale Au and Ni pillars produces strain
+      bursts with power-law distribution P(s) ∝ s^{-1.5} extending 2-3
+      decades (Phys. Rev. Lett. 100, 155502, 2008 review). Each
+      dislocation rearrangement is a "hysteron"; collective avalanche
+      dynamics give the cascade.
+    verified_at: candidate
+  - phenomenon: Charge-density-wave depinning avalanches
+    evidence: |
+      Sliding CDW in NbSe_3 above depinning threshold shows avalanche
+      statistics with tau ≈ 1.5-2 (Bhattacharya et al. 1987, Adams et
+      al. 1988). The depinning transition is a disorder-driven critical
+      point analogous to Sethna RFIM hysteresis.
+    verified_at: candidate
+  - phenomenon: Earthquake-stress hysteresis loops (Burridge-Knopoff aftershock framing)
+    evidence: |
+      Sethna et al. 2001 explicitly compare crackling noise in
+      ferromagnets to earthquake aftershock statistics; both reach
+      tau ≈ 1.5-2 in different physical contexts. Earthquake catalogues
+      *also* fit the soc_threshold_cascade class — boundary case.
+    verified_at: candidate
+  - phenomenon: Market volatility cascade (speculative)
+    evidence: |
+      Sornette-Andersen 2002 propose log-periodic precursors to financial
+      crashes from hysteretic herding dynamics. Market drops have heavy
+      tail P(|r|) ∝ |r|^{-alpha} with alpha ∈ [2.5, 3.5] (inverse cubic
+      law). Whether this is a Preisach cascade or a soc_threshold_cascade
+      class member is debated; both bands overlap at the strict upper
+      edge of Preisach.
+    verified_at: candidate
+negative_examples:
+  - phenomenon: Single Stoner-Wohlfarth magnetic particle hysteresis
+    reason: |
+      Single bistable element with no ensemble; no cascade dynamics; no
+      power-law jump distribution. Belongs to a simple bistability class,
+      not cascade.
+  - phenomenon: Classical Preisach hysteresis (independent hysterons, no coupling)
+    reason: |
+      hysteresis_preisach.yaml class (B3-rejected for over-binning). No
+      coupling → no cascade → no power-law jump distribution. The
+      cascade variant requires J ≠ 0; classical Preisach has J = 0.
+  - phenomenon: Smooth elastic stress-strain curve
+    reason: |
+      No discrete jumps. No hysteresis loop (reversible). Different
+      mechanism entirely.
+  - phenomenon: Sandpile model (classical BTW)
+    reason: |
+      No hysteresis loop. Single-direction relaxation under driving, no
+      reversible H sweep. Belongs to soc_threshold_cascade class —
+      different driving protocol.
+  - phenomenon: Lake-eutrophication Scheffer fold
+    reason: |
+      Single fold bifurcation, smooth hysteresis loop, no cascade
+      structure, no jump distribution. Belongs to scheffer_fold_bifurcation.
+  - phenomenon: Mean-field equilibrium Ising at T_c
+    reason: |
+      Equilibrium critical point, no driving, no hysteresis loop.
+      Sethna's analogy is to the *zero-temperature random-field* Ising,
+      a non-equilibrium driven system.
+edge_cases:
+  - phenomenon: Memristor switching cascades
+    debate: |
+      Coupled memristors (resistive switching networks) can show Barkhausen-
+      like cascades. Whether the universality class is genuinely Preisach
+      cascade or a new class (electron-thermal coupling adds physics) is
+      open.
+  - phenomenon: Snow avalanche slab failures
+    debate: |
+      Slab failures show power-law size statistics (Birkeland-Landry
+      2002, alpha ≈ 1.7-2.5). Whether the snowpack is best modelled by
+      Preisach cascade or by soc_threshold_cascade depends on whether
+      reverse-driving experiments produce a hysteresis loop. Generally
+      treated as SOC, not Preisach.
+  - phenomenon: Earthquake aftershock statistics
+    debate: |
+      As above: tau ≈ 1.5 matches Preisach cascade *and* soc_threshold_cascade.
+      Discriminating signature would be the cyclic loop area on tectonic
+      stress, which is hard to measure. We treat earthquakes as primarily
+      SOC and Preisach as an alternative framing.
+  - phenomenon: Damage avalanches in concrete / fibrous materials
+    debate: |
+      Acoustic-emission events under monotonic load show alpha ≈ 1.5-2.0
+      (Petri et al. 1994). The monotonic protocol means no full hysteresis
+      loop; sits between Preisach cascade and depinning class.
+  - phenomenon: Quasi-static random-bond Ising hysteresis loops
+    debate: |
+      Random-bond rather than random-field; same Sethna framework but
+      different disorder type. Universality class membership numerically
+      validated (Perkovic-Dahmen-Sethna 1995); we list as positive but
+      framework-debated.
+notes: |
+  Pre-registered band: tau ∈ [1.5, 2.5] for jump-size distribution.
+
+  Falsifiability: a system claimed to belong to this class but exhibiting
+  (a) exponentially decaying jump distribution, (b) no hysteresis loop
+  under cyclic driving, (c) tau < 1.0 or tau > 3.0 outside the SDM range,
+  (d) the absence of a disorder-driven critical point, is rejected.
+
+  Relation to other classes:
+    - hysteresis_preisach: the *non-interacting* (J = 0) limit. B3-rejected
+      for over-binning. preisach_hysteresis_cascade is the interacting limit,
+      which has fundamentally different physics (cascade vs. independent
+      switching).
+    - soc_threshold_cascade: overlapping band tau ≈ 1.5-2.0 with very
+      similar exponents, but SOC requires *slow driving toward attractor*
+      whereas Preisach cascade is driven by reversible H sweep. SOC has
+      no hysteresis loop; Preisach cascade does.
+    - extreme_value_tail_class: marginal distribution of extremes, not
+      avalanche cascade.
+
+  History: The B3 ensemble rejected the over-binned hysteresis_preisach
+  class for bundling fold bifurcations, depinning transitions, and true
+  Preisach ensembles into one cluster. preisach_hysteresis_cascade is the
+  narrower, Sethna-Dahmen-Myers crackling-noise specialisation, which
+  has clearer falsifiability and explicit cross-domain predictions.
+
+references:
+  - "Sethna, Dahmen, Myers 2001 Nature 410, 242 (crackling noise canonical review)"
+  - "Sethna et al. 1993 Phys. Rev. Lett. 70, 3347 (hysteresis & avalanches in RFIM)"
+  - "Perkovic, Dahmen, Sethna 1995 Phys. Rev. Lett. 75, 4528 (numerical RFIM exponents)"
+  - "Cizeau, Zapperi, Durin, Stanley 1997 Phys. Rev. Lett. 79, 4669 (Barkhausen)"
+  - "Dimiduk, Woodward, LeSar, Uchic 2006 Science 312, 1188 (micropillar plasticity)"
+  - "Bhattacharya, Higgins, Karahka 1987 Phys. Rev. Lett. 58, 1424 (CDW avalanches)"
+  - "Birkeland & Landry 2002 Geophys. Res. Lett. 29, 1554 (snow slab failure)"
+  - "Preisach 1935 Z. Physik 94, 277 (original hysteresis model — note this is non-cascade)"
+last_curated: 2026-05-15
+last_curated_by: Wave 11 sub-agent E (session #10)
+last_curated_note: |
+  Initial draft. Cross-judge ensemble verification deferred — no API keys
+  configured in this worktree session. Class proposed as Sethna-style
+  refinement of B3-rejected hysteresis_preisach; recommended cross-judge
+  before promoting status to "well-established".
