@@ -1,0 +1,10 @@
+Figure 5. Complementary cumulative distribution function (CCDF) of |daily log
+return| for the S&P 500 (^GSPC) from 1990-04-23 to 2026, fetched via yfinance
+(source: v4/validation/soc-stockmarket/sp500_daily.csv). Pale blue points are
+the empirical CCDF; vermilion line is the Clauset-Shalizi-Newman MLE power-
+law fit on the upper tail (Hill-form alpha estimator, KS-minimizing x_min);
+black dashed line is the canonical inverse-cubic reference (alpha = 3, the
+Plerou-Gopikrishnan-Stanley result, on CCDF this corresponds to slope -2).
+The fitted alpha lies within 0.07% of the pre-registered band [2.5, 3.5] and
+within 1% of the canonical inverse-cubic value 3.0; see also
+paper/v0-unified-pipeline-2026-05-13.md §3 Phase 2.

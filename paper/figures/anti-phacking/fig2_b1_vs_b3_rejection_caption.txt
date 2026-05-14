@@ -1,0 +1,8 @@
+Figure 2. B1 (single Opus) vs B3 (3x DeepSeek ensemble) rejection rate on the
+21-class candidate universality-class panel. B1 outright rejects 3/21
+(14.3%, Wilson 95% CI [5.0, 34.6]%). B3 rejects 7/21 (33.3%, Wilson 95% CI
+[17.2, 54.6]%) — a 2.33x increase in flagged false-positive candidates,
+notably with four of the B3 rejections being classes B1 had voted KEEP
+(mechanism-vs-limit-theorem confusion concentrating where single-model
+critics are over-confident). Numbers from
+paper/c4-reject-aware-pipeline-2026-05-13.md §4.
