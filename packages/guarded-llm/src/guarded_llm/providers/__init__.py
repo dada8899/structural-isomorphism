@@ -66,6 +66,7 @@ from . import deepseek  ***REMOVED*** noqa: E402, F401
 from . import anthropic  ***REMOVED*** noqa: E402, F401
 from . import openai  ***REMOVED*** noqa: E402, F401
 from . import kimi  ***REMOVED*** noqa: E402, F401
+from . import glm  ***REMOVED*** noqa: E402, F401
 
 
 __all__ = [
