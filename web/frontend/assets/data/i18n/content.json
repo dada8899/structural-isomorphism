@@ -2054,5 +2054,177 @@
   "page.taxv2.legend_disagree": {
     "zh": "B1 vs B3 不一致",
     "en": "B1 vs B3 disagreement"
+  },
+  "page.about.empirical.results": {
+    "zh": "几个有代表性的结果：地震（USGS 8.4 万次事件）的 b-value 落在 1.08 附近、余震衰减指数 p≈0.94，与理论吻合；S&P 500 日线的能量指数 α≈3.00 落在日尺度文献带内；DeFi 三大协议（Aave / Compound / MakerDAO，4.3 万次清算）的 per-protocol 能量指数 α=1.57-1.68，跨协议聚在同一个共享模式里——同一个数学结构在三个独立系统中独立涌现。小鼠皮层神经雪崩部分符合任务态亚临界假说。控制实验里人工合成的 Poisson / Gaussian 数据跑同样管道<strong>得不到幂律分布</strong>，说明前面的结果不是方法学造的假。",
+    "en": "Representative results: earthquakes (USGS, 84k events) — b-value ≈ 1.08, aftershock decay exponent p ≈ 0.94, both consistent with theory. S&P 500 daily returns — energy exponent α ≈ 3.00, well inside the published daily-scale band. DeFi (Aave / Compound / MakerDAO, 43k liquidations) — per-protocol energy exponents α = 1.57–1.68, all three protocols clustering on the same shared pattern: one mathematical structure independently emerging in three independent systems. Mouse cortical neural avalanches partially match the task-state subcritical hypothesis. As a control, the same pipeline applied to synthetic Poisson / Gaussian data <strong>fails to recover any power-law distribution</strong>, ruling out a methodological artefact."
+  },
+  "page.about.how.example1": {
+    "zh": "<strong>地震和股价闪崩</strong>——共享同一类\"能量缓慢累积、临界点突然释放\"的方程，事件大小都服从相同范围的幂律分布。",
+    "en": "<strong>Earthquakes and stock-market flash crashes</strong> — share the same class of \"slow energy build-up, sudden release at a critical threshold\" equations; event sizes follow power-law distributions in the same band."
+  },
+  "page.about.how.example2": {
+    "zh": "<strong>神经雪崩和电网级联反应</strong>——共享相同的\"局部失败传染给邻居\"机制，雪崩规模和持续时间的指数关系满足同一个标度律。",
+    "en": "<strong>Neural avalanches and power-grid cascading failures</strong> — share the same \"local failure spreads to neighbours\" mechanism; the scaling relation between avalanche size and duration obeys the same scaling law."
+  },
+  "page.about.how.example3": {
+    "zh": "<strong>DeFi 清算和银行挤兑</strong>——共享同一个延迟反馈结构：杠杆累积 → 触发阈值 → 强制平仓压力传给下一家，跨链跨协议都涌现出相同的级联反应统计。",
+    "en": "<strong>DeFi liquidations and bank runs</strong> — share the same delayed-feedback structure: leverage builds up → threshold triggers → forced unwinds propagate to the next position. The same cascade statistics emerge across chains and across protocols."
+  },
+  "page.about.how.example4": {
+    "zh": "<strong>野火和太阳耀斑</strong>——共享\"系统自己漂到临界边缘\"的动力学，事件大小分布的指数都落在同一个窄带里。",
+    "en": "<strong>Wildfires and solar flares</strong> — share the \"system drifts to the edge of criticality on its own\" dynamics; the event-size exponents both fall inside the same narrow band."
+  },
+  "page.about.how.examples_intro": {
+    "zh": "这套流程实际跑出来的发现，长这样：",
+    "en": "Here is what this pipeline actually finds in practice:"
+  },
+  "page.about.how.flow": {
+    "zh": "具体来说：我们读取每个现象的描述，让 AI 提炼出它的状态变量、反馈结构、特征时间、骨架方程；同族的现象被聚到一起；每一对候选都交给多个独立 AI 评审员投票通过/否决，只留下多数同意的；最后挑出最成熟的一类，把开源数据接进同一套代码，看实际的分布、指数、回归曲线对不对得上理论预测。",
+    "en": "Concretely: we read each phenomenon's description and have an AI extract its state variables, feedback structure, characteristic timescale, and skeleton equation. Phenomena from the same family are clustered. Every candidate pair is then submitted to several independent AI reviewers who vote accept / reject; only those with a majority survive. Finally, we pick the most mature class, plug open-source data into a single shared codebase, and check whether the observed distributions, exponents, and regression curves match the theoretical predictions."
+  },
+  "page.about.how.outcome": {
+    "zh": "每一对发现都附带可推断的数学方程、变量对应表、目标期刊、执行计划——领域专家可以直接拿去做实验、写论文。所有共享模式都在这里：<a href=\"/classes\">/classes</a>。",
+    "en": "Each finding ships with the inferred mathematical equation, variable-correspondence table, target journal, and execution plan — a domain expert can pick it up and run experiments or write a paper directly. The full set of shared patterns lives at <a href=\"/classes\">/classes</a>."
+  },
+  "page.analyze.crumb_classes": {
+    "zh": "共享模式",
+    "en": "Shared patterns"
+  },
+  "page.classes.footnote_l7": {
+    "zh": "<strong>多模型 AI 审稿团</strong>:3 个独立 AI 审稿模型 × 21 个候选共享模式 = 63 次投票,0 解析错误,40.8 分钟总耗时。AI 审稿团对 21 个候选共享模式投票:保留 5 / 拒绝 7 / 拆分 5 / 合并 4。4 个 AI 推翻人工保留的候选共享\"把数学框架当作共享模式\"的错误模式。详细见 <a href=\"/taxonomy-v2\">审稿结果</a>。",
+    "en": "<strong>Multi-model AI review panel</strong>: 3 independent AI reviewers × 21 candidate shared patterns = 63 votes, 0 parse errors, 40.8 min total wall-time. Verdicts: keep 5 / reject 7 / split 5 / merge 4. The 4 candidates AI overturned (initially kept by human reviewers) all share the same error mode — <em>mistaking a mathematical framework for a shared pattern</em>. Full results at <a href=\"/taxonomy-v2\">/taxonomy-v2</a>."
+  },
+  "page.home.brand": {
+    "zh": "把你的难题，换成<em>另一个学科已经解过的题</em>",
+    "en": "Turn your problem into <em>one another field has already solved</em>"
+  },
+  "page.home.hero_evidence.eyebrow": {
+    "zh": "演示 · 点任一边看一个真实例子",
+    "en": "Demo · click either side for a real example"
+  },
+  "page.methods.b3_limit_label": {
+    "zh": "局限:",
+    "en": "Limit:"
+  },
+  "page.methods.b3_limit_text": {
+    "zh": "同厂商 AI 审稿团探测的是同模型族内的判定漂移,不是跨架构分歧。跨厂商审稿(其他 LLM 家族)因地区访问限制推迟到后续版本。",
+    "en": "A single-vendor review panel only detects intra-family verdict drift, not cross-architecture disagreement. Cross-vendor review (other LLM families) is deferred to a future version due to regional access constraints."
+  },
+  "page.methods.b3_p1": {
+    "zh": "候选模式太多 / 命名太松会污染整个分类。我们在\"匹配到已知模式\"环节接一个 <strong>多模型 AI 审稿团</strong>:跑三个独立 AI 审稿模型,每个对 21 个候选模式给 保留 / 拒绝 / 拆分 / 合并 四档投票,多数决定共识。",
+    "en": "Too many candidate patterns, or names that are too loose, will pollute the entire taxonomy. After the \"match to known patterns\" stage we add a <strong>multi-model AI review panel</strong>: three independent AI reviewers each vote keep / reject / split / merge on all 21 candidates, and the majority decides the consensus."
+  },
+  "page.methods.b3_p2": {
+    "zh": "<strong>共识分布:</strong> 保留 5 / 拒绝 7 / 拆分 5 / 合并 4。详细投票矩阵见 <a href=\"/taxonomy-v2\">审稿结果</a>。",
+    "en": "<strong>Consensus breakdown:</strong> keep 5 / reject 7 / split 5 / merge 4. Full voting matrix at <a href=\"/taxonomy-v2\">/taxonomy-v2</a>."
+  },
+  "page.methods.b3_p3": {
+    "zh": "<strong>关键发现 — 共享错误模式:</strong> AI 审稿团推翻初始保留的 4 个候选(延迟微分债务、回不去效应 Preisach 作为单一类、无标度渗流类、尾部 copula 传染)共享同一种错误 — <strong>把数学框架当作共享模式</strong>。这些都是数学基础设施,不是机制。三个独立审稿模型收敛于同一个判定本身就是非平凡的方法论验证。",
+    "en": "<strong>Key finding — a shared error mode:</strong> the four candidates the AI panel overturned (delay-differential debt; Preisach hysteresis as a single class; scale-free percolation class; tail-copula contagion) share the same error — <strong>mistaking a mathematical framework for a shared pattern</strong>. These are mathematical infrastructure, not mechanisms. The fact that three independent reviewers converge on the same verdict is itself a non-trivial methodological check."
+  },
+  "page.methods.b3_stat_agreement": {
+    "zh": "人工 ↔ AI 一致",
+    "en": "human ↔ AI agreement"
+  },
+  "page.methods.b3_stat_errors": {
+    "zh": "解析错误",
+    "en": "parse errors"
+  },
+  "page.methods.b3_stat_verdicts": {
+    "zh": "投票总数",
+    "en": "total verdicts"
+  },
+  "page.methods.b3_stat_walltime": {
+    "zh": "总耗时",
+    "en": "total wall-time"
+  },
+  "page.methods.l1_desc": {
+    "zh": "读取前几代检索的高质量结果(A 级 + B+ 发现),按统一打分阈值过滤,得到 180 节点 / 143 边的现象关联图。",
+    "en": "Ingest the high-quality results from earlier retrieval generations (A-grade + B+ findings), filter by a unified score threshold, and obtain a phenomenon graph of 180 nodes / 143 edges."
+  },
+  "page.methods.l2_desc": {
+    "zh": "用社区发现算法(Louvain)在关联图上聚簇,得到 <strong>23 个候选等价类</strong>,21 个跨 ≥ 2 领域。",
+    "en": "Run a community-detection algorithm (Louvain) on the graph to cluster nodes, yielding <strong>23 candidate equivalence classes</strong>, 21 of which span ≥ 2 domains."
+  },
+  "page.methods.l3_desc": {
+    "zh": "把无监督浮现的等价类匹配到物理学已命名的共享模式(临界级联、强者愈强、电网级联、回不去效应、临界翻转、银行挤兑 …)。",
+    "en": "Match each unsupervised-emerged equivalence class to a named physics pattern (critical cascade, rich-get-richer, grid cascade, no-going-back effect, critical tipping, bank-run cascade, …)."
+  },
+  "page.methods.l4_desc": {
+    "zh": "对已匹配的共享模式,把已知物理定律翻译为跨域可验证预测(幂律带、余震律、回路宽度比、临界放缓…)。",
+    "en": "For each matched pattern, translate the known physics into cross-domain falsifiable predictions (power-law band, aftershock law, loop-width ratio, critical slowing down, …)."
+  },
+  "page.methods.l5_desc": {
+    "zh": "同一份代码跑 13 个独立领域:地震 / 股市 / DeFi / 神经雪崩 / GitHub stars / 银行倒闭 / 野火 / 太阳耀斑 / 电网级联 / 维基百科 / 高速公路 / 湖泊翻转 + 4 个合成数据对照 + 7 系统共享形态对照。<strong>所有预测信号都落入预测带,对照组全部正确拒绝</strong>。",
+    "en": "Run the same code on 13 independent domains — earthquakes / stocks / DeFi / neural avalanches / GitHub stars / bank failures / wildfires / solar flares / grid cascades / Wikipedia / highway traffic / lake regime shifts — plus 4 synthetic-data controls and a 7-system shape-collapse control. <strong>Every predicted signal lands inside the predicted band; every control is correctly rejected.</strong>"
+  },
+  "page.methods.lede": {
+    "zh": "\"共享模式\"这件事只有\"<strong>同一份代码、不调一个参数,跑遍多个完全不同的领域,都恢复出预测信号</strong>\"时才算数。我们把这条要求做成了一个分层流程:从前几代检索积累的跨域现象,到 21 个候选共享模式,到 13 个独立数据源、全部跑同一份 Python 代码(<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>)。",
+    "en": "A \"shared pattern\" only counts when \"<strong>the same code, with zero tuned parameters, run across multiple totally different domains, recovers the predicted signal</strong>\". We turn that requirement into a layered pipeline: from cross-domain phenomena accumulated by earlier retrieval generations, to 21 candidate shared patterns, to 13 independent datasets all running the same Python code (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>)."
+  },
+  "page.methods.null_p1": {
+    "zh": "为排除\"代码把任何数据都拟合成幂律\"的平凡解释,我们在 4 个合成数据上跑了同一份代码作为对照(包括 Gaussian 随机游走、指数变量、Poisson 事件、Poisson 余震叠加)。<strong>全部正确拒绝幂律假设</strong>(相对对数正态/指数分布的似然比 R ∈ [-45, -16],Poisson 余震拟合 R² ≈ 0.002)。",
+    "en": "To rule out the trivial \"the code fits a power law to anything\" explanation, we ran the same code on 4 synthetic datasets as controls (Gaussian random walk, exponential variates, Poisson events, Poisson-aftershock superposition). <strong>All four correctly reject the power-law hypothesis</strong> (likelihood ratios R ∈ [-45, -16] against log-normal / exponential alternatives; Poisson-aftershock fit R² ≈ 0.002)."
+  },
+  "page.methods.null_p2": {
+    "zh": "我们做了一道共享形态对照(让 7 个不同领域的曲线在归一化后比形状)。在有限尺寸标度假设下做归一化形态对照,达到 r<sub>shape</sub> = 1.11(优秀阈值 r < 2)。贝叶斯模型选择在 5/7 系统优先选幂律 + 指数 cutoff,对数正态在 0/7 系统胜出。",
+    "en": "We also ran a shape-collapse control — normalising curves from 7 different domains and comparing shapes. Under the finite-size scaling ansatz, we reach r<sub>shape</sub> = 1.11 (excellent threshold r < 2). Bayesian model selection prefers \"power-law + exponential cutoff\" in 5/7 systems; log-normal wins in 0/7."
+  },
+  "page.methods.null_p3": {
+    "zh": "完整研究规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>,统一研究报告见 <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">研究报告</a>。",
+    "en": "Full research plan on <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>; unified pipeline report at <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">research report</a>."
+  },
+  "page.methods.pipeline_p1": {
+    "zh": "所有领域共用同一份 Python 代码(<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>)。一个函数对应一个分析操作:",
+    "en": "Every domain runs against the same Python module (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>). One function per analytical operation:"
+  },
+  "page.methods.pipeline_p2": {
+    "zh": "<strong>每个领域调用同一个函数,数据接入是各领域专用的,但分析代码本身从不修改、不调参数、不加先验</strong>。这是\"同一份代码\"这件事的技术含义。",
+    "en": "<strong>Every domain calls the same functions. Data ingestion is domain-specific, but the analysis code itself is never modified, never tuned, never given priors.</strong> That is the technical meaning of \"the same code\"."
+  },
+  "page.methods.pipeline_title": {
+    "zh": "共享代码模块",
+    "en": "Shared code modules"
+  },
+  "page.taxv2.lede": {
+    "zh": "21 个候选共享模式经过多模型 AI 审稿团评审。三个独立审稿模型(一个严谨旗舰、一个严谨快速、一个创造性)各自对每个候选投票:保留 / 拒绝 / 拆分 / 合并,多数决定共识。共 63 次投票,0 解析错误,40.8 分钟总耗时。方法细节见<a href=\"/methods\">方法页</a>。",
+    "en": "The 21 candidate shared patterns were reviewed by a multi-model AI panel. Three independent reviewer models (one rigorous flagship, one rigorous fast, one creative) each vote keep / reject / split / merge on every candidate; the majority defines consensus. 63 votes total, 0 parse errors, 40.8 min wall-time. Method details on the <a href=\"/methods\">methods page</a>."
+  },
+  "page.taxv2.limit_p1": {
+    "zh": "<strong>(a) 同厂商审稿团</strong> — 三个审稿模型都来自同一家厂商,探测的是同模型族内的判定漂移,不是跨架构分歧。原计划纳入其他 LLM 家族,但因地区访问限制 + 备用路由 base URL 未验证,推迟到后续版本。",
+    "en": "<strong>(a) Single-vendor panel</strong> — all three reviewer models come from the same vendor, so the panel detects intra-family verdict drift rather than cross-architecture disagreement. We planned to include other LLM families but deferred to a future version due to regional access constraints + an unverified fallback router base URL."
+  },
+  "page.taxv2.limit_p2": {
+    "zh": "<strong>(b) 21 个候选是已发现的子集</strong> — 社区发现浮现 23 个候选,审稿评议了 21 个。\"应当存在但没被社区发现浮现\"的类无法靠审稿补回来,需要回到前几代检索加新现象。",
+    "en": "<strong>(b) 21 is a subset of what's discoverable</strong> — community detection surfaced 23 candidates; the panel reviewed 21. Classes that \"should exist but were never surfaced by community detection\" cannot be recovered by review alone — they require returning to earlier retrieval generations to add new phenomena."
+  },
+  "page.taxv2.limit_p3": {
+    "zh": "审稿原始输出 + 每条判定的理由公开在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>,共识结果在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>,汇总表在 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>。",
+    "en": "The raw review output and the reasoning behind each verdict are public on <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_review.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>; consensus results at <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_taxonomy_v2.jsonl\" target=\"_blank\" rel=\"noopener\">GitHub</a>; summary table at <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/B3_ensemble_summary.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>."
+  },
+  "page.taxv2.limit_title": {
+    "zh": "局限与下一步",
+    "en": "Limitations & next steps"
+  },
+  "page.taxv2.meta_desc": {
+    "zh": "21 个候选共享模式经过多模型 AI 审稿团评审。完整投票矩阵展示哪些被保留、哪些被降级、哪些被拒绝——以及 4 个更严格的多模型审稿推翻单模型初判的案例。",
+    "en": "21 candidate shared patterns reviewed by a multi-model AI panel. The full voting matrix shows which were kept, which were downgraded, which were rejected — and 4 cases where stricter multi-model review overturned a single-model initial verdict."
+  },
+  "page.taxv2.pattern_p1": {
+    "zh": "AI 审稿团推翻人工初判保留的 <strong>4 个候选</strong>(延迟微分债务、回不去效应 Preisach 作为单一类、无标度渗流类、尾部 copula 传染)共享同一个错误模式:<strong>把数学框架当作共享模式</strong>。",
+    "en": "The <strong>4 candidates</strong> the AI panel overturned from \"human-kept\" (delay-differential debt; Preisach hysteresis as a single class; scale-free percolation class; tail-copula contagion) all share one error mode: <strong>mistaking a mathematical framework for a shared pattern</strong>."
+  },
+  "page.taxv2.pattern_p2": {
+    "zh": "延迟微分方程、Preisach 积分、无标度生成模型、copula 联合分布族都是数学基础设施。它们能描述很多不同机制产生的数据,但它们本身不是机制。三个独立审稿模型收敛于同一个判定本身就是非平凡的方法论验证。",
+    "en": "Delay-differential equations, Preisach integrals, scale-free generative models, and copula joint distributions are all mathematical infrastructure. They can describe data produced by many different mechanisms, but they are not mechanisms themselves. The fact that three independent reviewers converge on the same verdict is itself a non-trivial methodological check."
+  },
+  "page.taxv2.pattern_p3": {
+    "zh": "<strong>回不去效应(Preisach)例外:</strong> Preisach 作为<em>单一类</em>被 AI 审稿团拒绝,但交通-Preisach(NGSIM US-101 验证)、磁滞-Preisach、毛细-Preisach 等<strong>各领域子类</strong>仍然成立。每个子类对应一个真实物理机制 + 各自的回路宽度带。",
+    "en": "<strong>The Preisach exception:</strong> Preisach as a <em>single class</em> was rejected by the AI panel, but <strong>per-domain subclasses</strong> like traffic-Preisach (validated on NGSIM US-101), magnetic-Preisach, and capillary-Preisach all stand. Each subclass corresponds to a real physical mechanism with its own loop-width band."
+  },
+  "page.taxv2.pattern_title": {
+    "zh": "共享降级模式",
+    "en": "A shared downgrade pattern"
   }
 }

@@ -15,9 +15,10 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
+from services.auth import verify_api_token
 from services.cache import MappingCache
 from services.llm_service import LLMService
-from services.rate_limit import limit as _rl
+from services.rate_limit import tier_limit_decorator
 from services.translation import translate_kb_item
 
 router = APIRouter(tags=["analyze"])
@@ -55,7 +56,7 @@ def _query_cache_key(text: str, b_id: str, lang: str = "zh") -> str:
 
 
 @router.get("/analyze/stream")
-@_rl("10/minute")
+@tier_limit_decorator(default_anon="10/minute")
 async def stream_analyze(
     request: Request,
     b_id: str = Query(...),
@@ -63,6 +64,11 @@ async def stream_analyze(
     text_a: Optional[str] = Query(None),
     lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
 ):
+    # Auth tier classification — None means token was provided but invalid.
+    tier = verify_api_token(request)
+    if tier is None:
+        raise HTTPException(401, "Invalid API token")
+
     from main import app_state
 
     _init()
