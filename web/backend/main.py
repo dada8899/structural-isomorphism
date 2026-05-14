@@ -184,7 +184,7 @@ def get_search_service():
 
 
 # --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock  # noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log  # noqa
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -201,6 +201,9 @@ app.include_router(newsletter.router, prefix="/api")
 # W10-B (session #10): Stripe Pro mock + /api/usage probe. Real Stripe deferred
 # until PMF signal — see web/backend/api/checkout_mock.py for migration plan.
 app.include_router(checkout_mock.router, prefix="/api")
+# W12-E (session #10): client error reporter (page + global error boundaries
+# auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
+app.include_router(error_log.router, prefix="/api")
 
 
 @app.get(
