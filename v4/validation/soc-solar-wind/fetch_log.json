@@ -1,0 +1,9 @@
+{
+  "started_at": 1778789806.4061508,
+  "source": "HYBRID: 5-year synthetic (Veltri 1999 stats) + 7-day real NOAA SWPC plasma-7-day.json",
+  "n_samples": 53501,
+  "n_bursts": 596,
+  "real_n": 9701,
+  "synth_n": 43800,
+  "finished_at": 1778789807.276948
+}
