@@ -76,3 +76,77 @@ export interface Stats {
   by_sector: Record<string, number>;
   by_universality_class: Record<string, number>;
 }
+
+// ---------------------------------------------------------------------------
+// W10-E — Universality class taxonomy types.
+// Backend: /api/universality/{classes, classes/<id>, companies/<id>}
+// ---------------------------------------------------------------------------
+
+// Card-sized payload returned by GET /api/universality/classes.
+export interface UniversalityClassCard {
+  class_id: string;
+  display_name: string;
+  display_name_zh?: string | null;
+  definition: string;
+  status: "well-established" | "emerging" | "speculative" | "unknown" | string;
+  exponent_band: string[]; // first ≤3 key invariants — short for cards
+  evidence_count: number;
+}
+
+export interface UniversalityClassesResponse {
+  count: number;
+  classes: UniversalityClassCard[];
+}
+
+// Full payload returned by GET /api/universality/classes/{class_id}.
+export interface UniversalityEvidenceSystem {
+  phenomenon: string;
+  evidence: string;
+  verified_at?: string;
+  paper?: string | null;
+}
+
+export interface UniversalityNegativeExample {
+  phenomenon: string;
+  reason: string;
+}
+
+export interface UniversalityEdgeCase {
+  phenomenon: string;
+  debate: string;
+}
+
+export interface UniversalityClassDetail {
+  class_id: string;
+  display_name: string;
+  display_name_zh?: string | null;
+  definition: string;
+  status: string;
+  key_invariants: string[];
+  shared_equation: string;
+  evidence_systems: UniversalityEvidenceSystem[];
+  negative_examples: UniversalityNegativeExample[];
+  edge_cases: UniversalityEdgeCase[];
+  references: string[];
+  prototypes: string[];
+  source: string;
+}
+
+// Mini-company row from GET /api/universality/companies/{class_id}.
+export interface UniversalityCompanyTag {
+  ticker: string;
+  name: string;
+  sector?: string | null;
+  industry?: string | null;
+  dynamics_family?: DynamicsFamily;
+  critical_point_state?: CriticalPointState;
+  extraction_confidence?: number;
+  tldr?: string | null;
+}
+
+export interface UniversalityCompaniesResponse {
+  class_id: string;
+  display_name: string;
+  count: number;
+  companies: UniversalityCompanyTag[];
+}

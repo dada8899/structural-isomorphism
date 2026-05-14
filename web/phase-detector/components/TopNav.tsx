@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "公司表" },
+  { href: "/compare", label: "对比" },
+  { href: "/universality", label: "普适类" },
   { href: "/methodology", label: "方法" },
   { href: "/backtest", label: "Backtest" },
   { href: "/about", label: "关于" },

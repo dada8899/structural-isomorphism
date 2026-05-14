@@ -1,7 +1,14 @@
 // API client for Phase Detector backend (W3-B endpoints).
 // Falls back to mock data when NEXT_PUBLIC_USE_MOCK=true.
 
-import type { Company, ScreenerFilters, Stats } from "./types";
+import type {
+  Company,
+  ScreenerFilters,
+  Stats,
+  UniversalityClassDetail,
+  UniversalityClassesResponse,
+  UniversalityCompaniesResponse,
+} from "./types";
 import { MOCK_COMPANIES, MOCK_STATS } from "./mock-data";
 
 const API_BASE =
@@ -95,5 +102,109 @@ export async function fetchStats(): Promise<Stats> {
   if (!res.ok) throw new Error(`stats fetch failed: ${res.status} ${res.statusText}`);
   const json = await safeJson<Stats>(res);
   if (!json) throw new Error("stats returned empty body");
+  return json;
+}
+
+// ---------------------------------------------------------------------------
+// W10-E — Universality class fetchers.
+// Mock path: synthesizes a tiny shape from MOCK_COMPANIES so the /compare
+// + /universality pages still render in mock mode for screenshot tests.
+// ---------------------------------------------------------------------------
+
+export async function fetchUniversalityClasses(): Promise<UniversalityClassesResponse> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 40));
+    const ids = Array.from(
+      new Set(
+        MOCK_COMPANIES.map((c) => c.universality_class).filter(
+          (x): x is string => !!x,
+        ),
+      ),
+    );
+    return {
+      count: ids.length,
+      classes: ids.map((id) => ({
+        class_id: id,
+        display_name: id,
+        definition: "Mock universality class",
+        status: "emerging",
+        exponent_band: [],
+        evidence_count: 0,
+      })),
+    };
+  }
+  const url = `${API_BASE}/api/universality/classes`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok)
+    throw new Error(`universality classes fetch failed: ${res.status} ${res.statusText}`);
+  const json = await safeJson<UniversalityClassesResponse>(res);
+  if (!json) return { count: 0, classes: [] };
+  return json;
+}
+
+export async function fetchUniversalityClassDetail(
+  classId: string,
+): Promise<UniversalityClassDetail> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 40));
+    return {
+      class_id: classId,
+      display_name: classId,
+      definition: "Mock universality class definition.",
+      status: "emerging",
+      key_invariants: ["Mock invariant 1", "Mock invariant 2"],
+      shared_equation: "",
+      evidence_systems: [],
+      negative_examples: [],
+      edge_cases: [],
+      references: [],
+      prototypes: [],
+      source: "mock",
+    };
+  }
+  const url = `${API_BASE}/api/universality/classes/${encodeURIComponent(classId)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok)
+    throw new Error(
+      `universality class detail fetch failed: ${res.status} ${res.statusText}`,
+    );
+  const json = await safeJson<UniversalityClassDetail>(res);
+  if (!json) throw new Error("universality class detail returned empty body");
+  return json;
+}
+
+export async function fetchUniversalityCompanies(
+  classId: string,
+): Promise<UniversalityCompaniesResponse> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 40));
+    const matching = MOCK_COMPANIES.filter(
+      (c) => c.universality_class === classId,
+    );
+    return {
+      class_id: classId,
+      display_name: classId,
+      count: matching.length,
+      companies: matching.map((c) => ({
+        ticker: c.ticker,
+        name: c.name,
+        sector: c.sector,
+        industry: c.industry,
+        dynamics_family: c.dynamics_family,
+        critical_point_state: c.critical_point_state,
+        extraction_confidence: c.extraction_confidence,
+        tldr: c.tldr,
+      })),
+    };
+  }
+  const url = `${API_BASE}/api/universality/companies/${encodeURIComponent(classId)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok)
+    throw new Error(
+      `universality companies fetch failed: ${res.status} ${res.statusText}`,
+    );
+  const json = await safeJson<UniversalityCompaniesResponse>(res);
+  if (!json)
+    return { class_id: classId, display_name: classId, count: 0, companies: [] };
   return json;
 }
