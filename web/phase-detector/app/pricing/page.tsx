@@ -147,16 +147,19 @@ export default function PricingPage() {
 
       <div className="mt-16 text-center text-sm text-zinc-500">
         还想再读一下方法？看{" "}
+        {/* W12-A: axe `link-in-text-block` — inline links inside running text
+         * must carry a non-color visual affordance. Switched from
+         * hover:underline to always-on underline. */}
         <Link
           href="/methodology"
-          className="text-zinc-700 underline-offset-2 hover:underline"
+          className="text-zinc-700 underline underline-offset-2"
         >
           方法论页面
         </Link>{" "}
         或{" "}
         <Link
           href="/about"
-          className="text-zinc-700 underline-offset-2 hover:underline"
+          className="text-zinc-700 underline underline-offset-2"
         >
           关于
         </Link>

@@ -10,6 +10,7 @@
 [![Methodology](https://img.shields.io/badge/Methodology-Anti--p--hacking-blueviolet.svg)](paper/anti-phacking-unified-2026-05-15.md)
 [![Tests](https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg)](#tests)
 [![Coverage](https://img.shields.io/badge/coverage-85.6%25-brightgreen.svg)](.github/workflows/coverage.yml)
+[![A11y](https://img.shields.io/badge/a11y-WCAG_2.1_AA-brightgreen.svg)](docs/accessibility/a11y-report-2026-05-15.md)
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 

@@ -100,9 +100,20 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
   const hasActiveFilter = df || cps || sector || minConf > 0;
 
   return (
-    <aside className="space-y-5 rounded-lg border border-zinc-200 bg-white p-5">
+    // W12-A: axe `landmark-complementary-is-top-level` flagged the nested
+    // <aside>. The filter panel is a sub-region of the companies <main>, not
+    // tangentially-related content, so a `region` with aria-labelledby is the
+    // semantically-correct landmark here.
+    <section
+      role="region"
+      aria-labelledby="screener-filter-heading"
+      className="space-y-5 rounded-lg border border-zinc-200 bg-white p-5"
+    >
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <h2
+          id="screener-filter-heading"
+          className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+        >
           筛选条件
         </h2>
         {loading && (
@@ -208,7 +219,7 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
           重置
         </button>
       </div>
-    </aside>
+    </section>
   );
 }
 

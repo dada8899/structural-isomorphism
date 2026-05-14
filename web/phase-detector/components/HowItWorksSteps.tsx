@@ -53,7 +53,10 @@ export function HowItWorksSteps() {
         {STEPS.map((s) => (
           <li key={s.n} className="grid grid-cols-1 gap-6 sm:grid-cols-[140px_1fr]">
             <div
-              className="select-none font-mono text-5xl font-light leading-none text-indigo-300 sm:text-6xl"
+              // W12-A: bumped from text-indigo-300 (1.82:1) to text-indigo-500
+              // (#6366f1 → 4.62:1 on cream paper). Clears WCAG 1.4.3 for
+              // non-text UI (3:1) even though the numeral is aria-hidden.
+              className="select-none font-mono text-5xl font-light leading-none text-indigo-500 sm:text-6xl"
               style={{ fontFeatureSettings: "'tnum'" }}
               aria-hidden="true"
             >

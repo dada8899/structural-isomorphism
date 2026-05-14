@@ -25,6 +25,11 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
   if (!stats) {
     return (
       <div
+        // W12-A: axe `aria-prohibited-attr` — aria-label on generic <div>
+        // requires either an explicit role or a non-presentational element.
+        // Use role="status" so loading is announced once and the label is
+        // accepted by AT (WCAG 4.1.2 + ARIA 1.2 spec § 5.2.7.2).
+        role="status"
         className="rounded-lg border border-zinc-200 bg-white px-4 py-3"
         aria-busy="true"
         aria-label="加载统计中"
