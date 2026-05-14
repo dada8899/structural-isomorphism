@@ -18,6 +18,13 @@ function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+// Resolve phenomenon id from URL — supports both path (/phenomenon/:id)
+// and query-param (/phenomenon?id=xxx) deep-link forms. The latter is what
+// share-card and external links typically produce.
+function resolvePhenomenonId() {
+  return getPathId() || getQueryParam('id');
+}
+
 // Cache of the current phenomenon data so we can re-render on language toggle
 let _phData = null;
 let _phId = null;
@@ -803,7 +810,7 @@ function renderPhenomenonError(err) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
-  const id = getPathId();
+  const id = resolvePhenomenonId();
   const pair = getQueryParam('pair');
   const fromQuery = getQueryParam('from_query');
   if (id) {
