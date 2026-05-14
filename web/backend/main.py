@@ -1509,6 +1509,11 @@ async def start_here_page():
     return FileResponse(FRONTEND_DIR / "start-here.html")
 
 
+@app.get("/learn")
+async def learn_page():
+    return FileResponse(FRONTEND_DIR / "learn.html")
+
+
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     # API routes return JSON; only HTML pages get the full 404 template.
