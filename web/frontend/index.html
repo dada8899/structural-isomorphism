@@ -9,6 +9,16 @@
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
+  <!-- W6-D (session #7 P1 backlog): mobile LCP < 2.5s.
+       The first paint above the fold renders `.ask-empty__brand` (Noto
+       Serif SC 600) and `.ask-empty__tagline` (Inter 400). Preload both
+       so they don't block LCP behind the CSS-discovered @font-face
+       resolution, and preconnect to the Plausible host so its deferred
+       script doesn't contend for connection slots later. -->
+  <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/noto-serif-sc-600-latin.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-400-latin.woff2" crossorigin>
+  <link rel="preconnect" href="https://plausible.bytedance.city" crossorigin>
+
   <meta property="og:title" content="Structural — 跨学科搜索引擎">
   <meta property="og:description" content="输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
   <meta property="og:type" content="website">
@@ -84,10 +94,24 @@
           rows="3"
           autocomplete="off"
           spellcheck="false"
+          maxlength="8000"
           aria-label="输入你的问题"
+          aria-describedby="ask-char-counter"
         ></textarea>
         <div class="ask-searchbox__footer">
           <div class="ask-searchbox__hint"><kbd>⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+          <!-- W6-D (session #7 P1 backlog): live char counter, warn at 75%,
+               hard stop at 100% (8000). aria-live=polite so screen readers
+               only announce the warning state changes. -->
+          <div
+            class="ask-searchbox__counter"
+            id="ask-char-counter"
+            data-counter
+            data-limit="8000"
+            data-warn="6000"
+            aria-live="polite"
+            hidden
+          ><span data-counter-text>0 / 8000</span></div>
           <button type="submit" class="ask-searchbox__submit" aria-label="开始搜索">
             <span>开始搜索</span>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -145,8 +169,20 @@
             placeholder="继续追问..."
             rows="2"
             spellcheck="false"
+            maxlength="8000"
             aria-label="继续追问"
+            aria-describedby="ask-followup-char-counter"
           ></textarea>
+          <!-- W6-D char counter mirror for follow-up box. -->
+          <div
+            class="ask-searchbox__counter ask-followup-box__counter"
+            id="ask-followup-char-counter"
+            data-counter
+            data-limit="8000"
+            data-warn="6000"
+            aria-live="polite"
+            hidden
+          ><span data-counter-text>0 / 8000</span></div>
           <button type="submit" class="ask-followup-box__submit" aria-label="追问">
             <span>追问</span>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>

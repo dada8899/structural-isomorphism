@@ -70,6 +70,50 @@
   // ============================================================
   // Init
   // ============================================================
+  // ============================================================
+  // W6-D (session #7 P1 backlog): char counter for ask + follow-up inputs.
+  // Reads data-limit / data-warn from the counter <div>, updates count
+  // every input event, sets data-state to '' | 'warn' | 'stop' so CSS can
+  // color the count + show the "已达上限" label. The textarea's
+  // `maxlength` attribute already enforces the hard stop in the browser.
+  // ============================================================
+  function bindCharCounter(inputSel, counterSel) {
+    var inputEl = qs(inputSel);
+    var counterEl = qs(counterSel);
+    if (!inputEl || !counterEl) return;
+    var limit = parseInt(counterEl.getAttribute('data-limit') || '8000', 10);
+    var warnAt = parseInt(counterEl.getAttribute('data-warn') || String(Math.floor(limit * 0.75)), 10);
+    var textSpan = counterEl.querySelector('[data-counter-text]') || counterEl;
+
+    function update() {
+      var len = (inputEl.value || '').length;
+      // Hide entirely while empty so the empty state stays clean.
+      if (len === 0) {
+        counterEl.hidden = true;
+        counterEl.removeAttribute('data-state');
+        textSpan.textContent = '0 / ' + limit;
+        return;
+      }
+      counterEl.hidden = false;
+      textSpan.textContent = len + ' / ' + limit;
+      var newState = '';
+      if (len >= limit) newState = 'stop';
+      else if (len >= warnAt) newState = 'warn';
+      var prev = counterEl.getAttribute('data-state') || '';
+      if (newState !== prev) {
+        if (newState) counterEl.setAttribute('data-state', newState);
+        else counterEl.removeAttribute('data-state');
+        // Track only on state transitions to avoid spamming Plausible.
+        if (newState === 'warn') track('input_warn_threshold', { limit: limit, len: len });
+        if (newState === 'stop') track('input_hit_cap', { limit: limit });
+      }
+    }
+
+    inputEl.addEventListener('input', update);
+    // Initial paint (e.g. if textarea was prefilled by browser session).
+    update();
+  }
+
   function initAskPage() {
     var form = qs('#ask-form');
     if (form) {
@@ -102,7 +146,15 @@
         var q = input ? input.value.trim() : '';
         if (!q) return;
         submitQuery(q);
-        if (input) input.value = '';
+        if (input) {
+          input.value = '';
+          // Reset the follow-up counter since the field emptied.
+          var fc = qs('#ask-followup-char-counter');
+          if (fc) {
+            fc.hidden = true;
+            fc.removeAttribute('data-state');
+          }
+        }
       });
       var fInput = qs('#ask-followup-input');
       if (fInput) {
@@ -114,6 +166,11 @@
         });
       }
     }
+
+    // W6-D: wire the counters for both inputs. Safe no-op if elements
+    // missing (e.g. on alternate page layouts).
+    bindCharCounter('#ask-input', '#ask-char-counter');
+    bindCharCounter('#ask-followup-input', '#ask-followup-char-counter');
 
     bindExampleChips();
 
@@ -274,6 +331,21 @@
     })
       .then(function (resp) {
         if (!resp.ok) {
+          // W6-D: surface structured `input_too_long` body (HTTP 422)
+          // as a friendly inline message instead of a bare "HTTP 422".
+          if (resp.status === 422) {
+            return resp.json().then(function (body) {
+              if (body && body.error === 'input_too_long') {
+                var msg = body.message
+                  || ('输入长度超过 ' + (body.limit || 8000) + ' 字限制，请精简问题或拆成两条。');
+                track('input_too_long_server', { limit: body.limit, received: body.received });
+                throw new Error(msg);
+              }
+              throw new Error('HTTP 422');
+            }, function () {
+              throw new Error('HTTP 422');
+            });
+          }
           throw new Error('HTTP ' + resp.status);
         }
         if (!resp.body) {
@@ -440,19 +512,102 @@
     // W3-B: kb_cards_received — latency from submit to first cards.
     track('kb_cards_received', { count: cards.length, latency_ms: elapsedSince(item._t0) });
 
-    // Attach citation-click tracker once per item. We track on the
-    // *card* now (not just the [N] inline citation in renderCitations)
-    // so we capture both clicks. Idempotent — re-binding the same
-    // delegate is harmless because we only attach once via _ckBound.
+    // W6-D (session #7 P1 backlog): citation click-through tracking.
+    // We delegate one capture-phase listener on each thread item. The
+    // listener handles three click surfaces:
+    //   - `.ask-kb-card` (top KB card rows)
+    //   - `.ask-citation` (inline [N] markers inside the answer)
+    //   - `.ask-citation-link` (citations bar at the bottom)
+    // Each click fires a Plausible event `citation_click` with props
+    // {phenomenon_id, position, query_hash, surface}. The query_hash is
+    // a short SHA-256 prefix of the original query so we can dedupe
+    // clicks across the same question without leaking raw text.
     if (!item._ckBound) {
+      var rawQuery = item.getAttribute('data-query') || '';
+      // Compute query_hash once per thread item; cache for reuse.
+      var hashPromise = computeQueryHash(rawQuery).then(function (h) {
+        item._queryHash = h;
+        return h;
+      });
+
       item.addEventListener('click', function (ev) {
-        var citEl = ev.target.closest('.ask-citation, .ask-citation-link');
+        var citEl = ev.target.closest('.ask-citation, .ask-citation-link, .ask-kb-card');
         if (!citEl) return;
+        // Resolve position (1-based among siblings of the same kind).
+        var siblings = item.querySelectorAll(
+          citEl.classList.contains('ask-kb-card') ? '.ask-kb-card'
+            : citEl.classList.contains('ask-citation-link') ? '.ask-citation-link'
+            : '.ask-citation'
+        );
+        var position = 0;
+        for (var i = 0; i < siblings.length; i++) {
+          if (siblings[i] === citEl) { position = i + 1; break; }
+        }
+        // Pull phenomenon_id from the element (data-kb-id on cards, or
+        // href `/phenomenon/{id}` for inline citations / citation bar).
+        var phenomenonId = citEl.getAttribute('data-kb-id');
+        if (!phenomenonId) {
+          var href = citEl.getAttribute('href') || '';
+          var m = href.match(/\/phenomenon\/([^\/?#]+)/);
+          if (m) phenomenonId = decodeURIComponent(m[1]);
+        }
+        var surface = citEl.classList.contains('ask-kb-card') ? 'kb_card'
+          : citEl.classList.contains('ask-citation-link') ? 'citation_bar'
+          : 'inline';
+
+        function fire(h) {
+          track('citation_click', {
+            phenomenon_id: phenomenonId || 'unknown',
+            position: position,
+            query_hash: h || 'unhashed',
+            surface: surface,
+          });
+        }
+        // If hash already computed, fire synchronously; otherwise wait.
+        if (item._queryHash) {
+          fire(item._queryHash);
+        } else if (hashPromise && typeof hashPromise.then === 'function') {
+          hashPromise.then(fire);
+        } else {
+          fire(null);
+        }
+
+        // Keep legacy event so existing dashboards continue to work.
         var idxText = (citEl.textContent || '').match(/\d+/);
         track('citation_clicked', { idx: idxText ? parseInt(idxText[0], 10) : 0 });
       }, true);
       item._ckBound = true;
     }
+  }
+
+  // ============================================================
+  // W6-D helper: short SHA-256 prefix of the query for analytics dedup.
+  // Falls back to a tiny synchronous string hash when crypto.subtle is
+  // unavailable (older browsers / non-HTTPS local dev).
+  // ============================================================
+  function computeQueryHash(query) {
+    var text = String(query || '').trim();
+    if (!text) return Promise.resolve('');
+    if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+      try {
+        var bytes = new TextEncoder().encode(text);
+        return window.crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+          var arr = Array.from(new Uint8Array(buf));
+          return arr.slice(0, 4).map(function (b) {
+            return ('00' + b.toString(16)).slice(-2);
+          }).join('');
+        }).catch(function () { return fallbackHash(text); });
+      } catch (e) { /* fall through */ }
+    }
+    return Promise.resolve(fallbackHash(text));
+  }
+  function fallbackHash(s) {
+    // djb2 — short, fast, good enough as a session-level dedupe key.
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) {
+      h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    }
+    return ('00000000' + h.toString(16)).slice(-8);
   }
 
   function handleAnswerChunk(item, data) {
