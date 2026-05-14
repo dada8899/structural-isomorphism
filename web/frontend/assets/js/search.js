@@ -615,21 +615,83 @@ async function performSearch(query) {
 
     // Kick off synthesis using the raw query now — once the rewritten search
     // lands, we'll re-run synthesis with the improved context.
+    //
+    // Uses the streaming endpoint so main_insight paints character-by-character
+    // (Perplexity-style). The previous request can be aborted if the rewritten
+    // search lands and we need to start over.
+    let _activeSynthStream = null;
     const runSynth = (q, rewritten, results) => {
       if (!results || results.length === 0) return;
-      StructuralAPI.synthesize(q, rewritten, results)
-        .then(synth => {
-          _lastSynth = synth;
-          renderSynthBlock(synth);
+      // Cancel any in-flight stream from a prior call (rewritten upgrade).
+      if (_activeSynthStream && _activeSynthStream.abort) {
+        try { _activeSynthStream.abort(); } catch (e) {}
+      }
+
+      // Replace the loading placeholder with a typewriter preview slot. We
+      // keep the AI label visible from the start so the user sees that
+      // something is happening even before the first delta lands.
+      const synthEl = $('#search-synth');
+      if (synthEl) {
+        synthEl.classList.remove('search-synth--loading');
+        synthEl.innerHTML = `
+          <div class="search-synth__content">
+            <div class="search-synth__label">${T('page.search.main_insight_label', '主洞察 · AI 合成')}</div>
+            <div class="search-synth__insight search-synth__insight--streaming" id="synth-insight-preview">
+              <span class="search-synth__caret"></span>
+            </div>
+          </div>
+        `;
+      }
+
+      let streamBuffer = '';
+      _activeSynthStream = StructuralAPI.synthesizeStream(q, rewritten, results, {
+        onText: (chunk) => {
+          streamBuffer += chunk.content || '';
+          const previewEl = document.getElementById('synth-insight-preview');
+          if (!previewEl) return;
+          const partial = extractPartialMainInsight(streamBuffer);
+          if (partial) {
+            previewEl.innerHTML = toParagraphs(partial)
+              + '<span class="search-synth__caret"></span>';
+            if (window.renderMath) window.renderMath(previewEl);
+          }
+        },
+        onDone: (data) => {
+          _activeSynthStream = null;
+          _lastSynth = data && data.result;
+          renderSynthBlock(_lastSynth);
           renderResultsWithSynth();
-        })
-        .catch(err => {
-          console.error('Synthesize failed:', err);
-          const synthEl = $('#search-synth');
-          if (synthEl) synthEl.remove();
+        },
+        onError: (err) => {
+          _activeSynthStream = null;
+          console.error('Synthesize stream failed:', err);
+          const e = $('#search-synth');
+          if (e) e.remove();
           renderResultsWithSynth();
-        });
+        },
+      });
     };
+
+    // Extract main_insight value from a partially-streamed JSON. Returns
+    // the unescaped text fragment, or null if the field hasn't started yet.
+    // We only need the value of the first top-level "main_insight" key; the
+    // backend always emits it first in the schema.
+    function extractPartialMainInsight(buf) {
+      // Look for "main_insight": "<...>" (possibly unterminated).
+      const m = buf.match(/"main_insight"\s*:\s*"((?:[^"\\]|\\.)*)/);
+      if (!m) return null;
+      const raw = m[1];
+      // Unescape standard JSON escapes (\n, \", \\, \uXXXX). We keep this
+      // tolerant — any malformed trailing escape is just dropped.
+      try {
+        return JSON.parse('"' + raw + '"');
+      } catch (e) {
+        // Strip trailing partial escape and retry once
+        const stripped = raw.replace(/\\$/, '');
+        try { return JSON.parse('"' + stripped + '"'); }
+        catch (e2) { return raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
+      }
+    }
 
     let currentData = data;
     runSynth(query, null, currentData.results);

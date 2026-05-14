@@ -6,16 +6,36 @@ function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "f
  * Streams an 8-section research report via SSE and renders it section by section.
  */
 
+// Display order: answer-first. action_plan + borrowable_insights at top, then
+// shared_structure (the formal-math intro) and the rest of the theory. Backend
+// SSE still emits sections in its prompt order (shared_structure first,
+// action_plan last); the TL;DR pinned card at the very top fills in as soon
+// as action_plan arrives so the user has the "answer" even before scrolling.
 const SECTIONS = [
-  { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§0' },
-  { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§1' },
-  { key: 'target_domain_intro', label: '源领域讲解', label_key: 'page.analyze.section_target_domain_intro', num: '§2' },
-  { key: 'structural_mapping', label: '结构对照', label_key: 'page.analyze.section_structural_mapping', num: '§3' },
-  { key: 'borrowable_insights', label: '可借用的工具', label_key: 'page.analyze.section_borrowable_insights', num: '§4' },
-  { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§5' },
-  { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§6' },
-  { key: 'risks_and_limits', label: '迁移风险', label_key: 'page.analyze.section_risks_and_limits', num: '§7' },
-  { key: 'action_plan', label: '本周行动', label_key: 'page.analyze.section_action_plan', num: '§8' },
+  { key: 'action_plan', label: '本周行动', label_key: 'page.analyze.section_action_plan', num: '§1' },
+  { key: 'borrowable_insights', label: '可借用的工具', label_key: 'page.analyze.section_borrowable_insights', num: '§2' },
+  { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§3' },
+  { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§4' },
+  { key: 'target_domain_intro', label: '源领域讲解', label_key: 'page.analyze.section_target_domain_intro', num: '§5' },
+  { key: 'structural_mapping', label: '结构对照', label_key: 'page.analyze.section_structural_mapping', num: '§6' },
+  { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§7' },
+  { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§8' },
+  { key: 'risks_and_limits', label: '迁移风险', label_key: 'page.analyze.section_risks_and_limits', num: '§9' },
+];
+
+// The order backend SSE actually emits sections in (matches the LLM prompt's
+// JSON schema order). Used to pick which still-pending section to mark as
+// "正在生成" — without this we'd jump around the page randomly.
+const STREAM_ORDER = [
+  'shared_structure',
+  'your_problem_breakdown',
+  'target_domain_intro',
+  'structural_mapping',
+  'borrowable_insights',
+  'how_to_combine',
+  'research_directions',
+  'risks_and_limits',
+  'action_plan',
 ];
 
 function sectionLabel(s) {
@@ -479,6 +499,59 @@ function updateSection(key, data) {
   }
 }
 
+// === TL;DR pinned card ===
+// Lives above the section list. Fills in as soon as the backend streams
+// `action_plan` (last) or `shared_structure.intuition` (first). The whole
+// point: even though `action_plan` arrives last, the user sees the answer
+// in the same visual position they entered the page on, no scrolling.
+function renderTldrCard() {
+  const el = document.getElementById('analyze-tldr');
+  if (!el) return;
+  const r = window._finalReport || {};
+  const action = r.action_plan || {};
+  const ifShort = action.if_time_short;
+  const struct = r.shared_structure || {};
+  const items = Array.isArray(action.this_week) ? action.this_week : [];
+
+  // Don't show the card at all until at least one of the two anchor sections
+  // has data — otherwise we'd flash an empty box right when the page loads.
+  if (!ifShort && !struct.intuition) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+
+  const md = window.mdInline || ((s) => escapeHtml(s || ''));
+  const isPending = !ifShort;
+  el.classList.toggle('analyze-tldr--pending', isPending);
+
+  const titleHtml = ifShort
+    ? `<h2 class="analyze-tldr__title">${md(ifShort.title || '')}</h2>
+       ${ifShort.rationale ? `<p class="analyze-tldr__rationale">${md(ifShort.rationale)}</p>` : ''}`
+    : `<div class="analyze-tldr__waiting">
+         <span class="analyze-tldr__waiting-dot"></span>
+         <span>${T('page.analyze.tldr_waiting', '本周行动正在生成…')}</span>
+       </div>`;
+
+  const coreHtml = struct.intuition
+    ? `<div class="analyze-tldr__core">
+         <span class="analyze-tldr__core-label">${T('page.analyze.tldr_core_label', '一句话核心')}</span>
+         <span class="analyze-tldr__core-text">${md(struct.intuition)}</span>
+       </div>`
+    : '';
+
+  const moreHtml = items.length
+    ? `<a href="#section-action_plan" class="analyze-tldr__more">${T('page.analyze.tldr_more', '完整 {n} 步清单').replace('{n}', items.length)} ↓</a>`
+    : '';
+
+  el.innerHTML = `
+    <div class="analyze-tldr__label">${T('page.analyze.tldr_label', 'TL;DR · 如果你只能做一件事')}</div>
+    ${titleHtml}
+    ${coreHtml}
+    ${moreHtml}
+  `;
+}
+
 // === Header renderers ===
 function renderHeader(meta) {
   const el = $('#analyze-header');
@@ -740,9 +813,11 @@ function streamAnalysis(params) {
     renderHeader(meta);
     renderProgress();
     renderSectionSkeleton();
-    // Mark the first section as the currently-streaming one
-    if (SECTIONS.length > 0) {
-      setStreamingSection(SECTIONS[0].key);
+    renderTldrCard(); // shows the "答案准备中" placeholder right away
+    // Mark the first section in the backend's emit order as currently
+    // streaming, not whatever is at the top of the display order.
+    if (STREAM_ORDER.length > 0) {
+      setStreamingSection(STREAM_ORDER[0]);
     }
     // If this report is already favorited, back-fill the stored entry with names
     if (window.refreshFavoriteWithMeta) {
@@ -771,12 +846,16 @@ function streamAnalysis(params) {
       }
     }
 
-    // Advance the streaming marker to the next pending section
-    const nextKey = SECTIONS.find(s => !receivedKeys.has(s.key))?.key;
+    // Advance the streaming marker to the next pending section. Use the
+    // backend stream order (not display order) so the highlight follows what
+    // is actually being generated.
+    const nextKey = STREAM_ORDER.find(k => !receivedKeys.has(k));
     if (nextKey) {
       setStreamingSection(nextKey);
     }
     updateProgressState(receivedKeys, nextKey);
+    // Refresh the TL;DR pinned card as new sections land
+    renderTldrCard();
   });
 
   es.addEventListener('text', (e) => {
@@ -811,6 +890,7 @@ function streamAnalysis(params) {
     const loading = $('#analyze-loading');
     if (loading) loading.remove();
     updateProgressState(receivedKeys, null);
+    renderTldrCard();
     es.close();
   });
 
@@ -1197,6 +1277,8 @@ try {
             }
           }
         });
+        // TL;DR pinned card — re-render so labels and "完整 N 步清单" pick up new lang
+        try { renderTldrCard(); } catch (e) {}
         // Favorite button label
         var favLabel = document.getElementById('analyze-fav-label');
         if (favLabel) {
