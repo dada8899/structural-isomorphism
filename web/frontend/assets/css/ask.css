@@ -696,6 +696,87 @@
 }
 
 /* ============================================================
+ * Mobile (<= 480px, narrow viewports e.g. iPhone SE 375px) — W3-B
+ * ------------------------------------------------------------
+ * The 768px block handles tablet+. At 375px the brand mark, chips and
+ * fixed followup box need tighter values. Only override declarations
+ * whose 768px values are still too generous for a narrow phone.
+ * ============================================================ */
+
+@media (max-width: 480px) {
+  .ask-main {
+    padding: 0 12px;
+  }
+  .ask-empty {
+    padding: 32px 0 28px;
+  }
+  .ask-empty__brand {
+    font-size: 40px;
+    letter-spacing: -0.5px;
+  }
+  .ask-empty__tagline {
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .ask-searchbox {
+    padding: 12px 12px 8px;
+    border-radius: 14px;
+  }
+  .ask-searchbox__input {
+    font-size: 15px;
+    min-height: 52px;
+    padding: 4px 2px;
+  }
+  .ask-empty__examples-chips {
+    /* Allow horizontal wrap without overflow; align left to match input */
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .ask-chip {
+    font-size: 12px;
+    padding: 7px 11px;
+    /* Prevent a long chip label forcing horizontal scroll */
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  /* Thread items — query line at 21px wraps fine, but the answer + KB
+     cards need extra padding trimming. */
+  .ask-thread-item__answer {
+    font-size: 14px;
+    padding: 14px 14px;
+    border-radius: 10px;
+  }
+  .ask-thread-item__cards {
+    /* Snap to KB cards so swipe lands cleanly on one card */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .ask-kb-card {
+    flex: 0 0 160px;
+    scroll-snap-align: start;
+  }
+
+  /* Fixed followup box must respect iOS safe area inset so the input
+     does not hide behind the home-indicator bar. */
+  .ask-followup-box {
+    bottom: 0;
+    left: 8px;
+    right: 8px;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-radius: 12px;
+  }
+  .ask-followup-box__input {
+    font-size: 14px;
+  }
+}
+
+/* ============================================================
  * Reduced motion: kill blinking / shimmer
  * ============================================================ */
 

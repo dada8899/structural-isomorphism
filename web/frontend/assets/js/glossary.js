@@ -32,6 +32,13 @@
     '普适类': '物理细节不同的系统，只要结构（维度、对称性）一样，临界附近的行为就完全一致。这是跨学科借用的根据。',
     '标度律': '某个量按幂律 y ~ x^α 随系统大小变化。同一普适类的 α 相同。',
     '临界假说': '声明：观察到的现象不是巧合，而是系统正处在临界点附近——所以借用临界点工具能解释它。',
+    // W3-B (session #7): Glossary v2 expansion — five new terms that
+    // recur across discoveries / classes / paper copy.
+    '相变': '系统在某个临界点突然改变性质，比如水到 100°C 突然变成蒸汽。在跨学科中，市场崩盘、银行挤兑、神经放电都属于相变现象。',
+    '标度形式': '用一个数学公式描述不同尺度上行为的规律，比如 P(s) ~ s^(-α)。标度律告诉我们：大事件和小事件遵循同一套规律，只是出现的频率按幂律递减。',
+    '涌现': '整体表现出的性质，是单个组件没有的。比如水分子单个不会湿，但大量水分子组成的水有湿润性。社交网络的群体智慧、神经元集群的意识，都属于涌现。',
+    '反馈环': '系统的输出反过来影响输入。正反馈放大（病毒传播、市场恐慌），负反馈稳定（恒温调节、市场均衡）。结构同构系统常有相同的反馈环结构。',
+    '阈值效应': '当某个变量低于阈值时系统几乎不变，超过阈值后剧变。森林大火的燃料密度、神经元的电位、产品的传播率，都有阈值效应。',
   };
 
   // Sorted longest-first so 临界翻转 matches before 临界. Otherwise the
@@ -155,6 +162,14 @@
     activeAnchor = anchor;
     // Trigger CSS fade-in on next frame
     requestAnimationFrame(() => tip.classList.add('glossary-tip--visible'));
+
+    // W3-B: Plausible — record which glossary term opened. Guarded so a
+    // missing plausible.js (privacy / region block) does not throw.
+    try {
+      if (typeof window.plausible === 'function') {
+        window.plausible('glossary_tooltip_opened', { props: { term: term } });
+      }
+    } catch (e) {}
   }
 
   function hideTooltip() {
