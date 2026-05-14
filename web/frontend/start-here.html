@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/assets/css/common.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260513">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
 
   <style>
     .essay { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
@@ -420,6 +421,9 @@
       you know what to look for.
     </p>
 
+    <!-- Session #9 W2-A: catch the "just read the essay" reader -->
+    <div id="newsletter-start-here" class="newsletter"></div>
+
     <div class="essay__next">
       <div class="essay__next-label">What now?</div>
       <div class="essay__next-grid">
@@ -463,5 +467,12 @@
   <script defer src="/assets/js/glossary.js?v=20260417e"></script>
   <script src="/assets/js/history-sidebar.js?v=20260514"></script>
   <script src="/assets/js/product-switcher.js?v=20260513"></script>
+  <script src="/assets/js/newsletter.js?v=20260514"></script>
+  <script>
+    // Session #9 W2-A: mount newsletter signup at the end of the essay.
+    if (window.mountNewsletter) {
+      window.mountNewsletter("newsletter-start-here", "start-here-essay-end");
+    }
+  </script>
 </body>
 </html>
