@@ -7,6 +7,14 @@ StreamingResponse that emits, in order:
     similar_phenomena → followups → done
 
 Rate-limited to 5 requests/minute per IP (DeepSeek calls cost real $).
+
+W5-A guardrail (2026-05-15): the orchestrator emits an
+`out_of_scope: true` flag plus `scope_reason` inside `answer_done` when
+the retrieval scores fail the relevance gate (top-1 < 0.75 OR top-3
+mean < 0.65). Frontend code should detect this flag and render the
+answer with a softer "outside KB coverage" badge instead of the usual
+isomorphism framing. See services/ask_orchestrator.py
+`_evaluate_relevance` for thresholds and env knobs.
 """
 from typing import Literal, Optional
 
