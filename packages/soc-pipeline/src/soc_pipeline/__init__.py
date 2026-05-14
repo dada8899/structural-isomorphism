@@ -22,6 +22,10 @@ from .b_value import b_to_clauset_alpha, fit_b_value
 from .time_resolution import time_resolution_sweep
 from .utils import empirical_ccdf, verdict_from_alpha_band
 
+***REMOVED*** Register pandas `.soc` accessor (side-effect import)
+from . import pandas_accessor as _pandas_accessor  ***REMOVED*** noqa: F401
+from .pandas_accessor import SocAccessor, Verdict, validate
+
 __all__ = [
     "__version__",
     ***REMOVED*** fit
@@ -51,4 +55,8 @@ __all__ = [
     ***REMOVED*** utils
     "empirical_ccdf",
     "verdict_from_alpha_band",
+    ***REMOVED*** pandas accessor
+    "SocAccessor",
+    "Verdict",
+    "validate",
 ]
