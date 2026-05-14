@@ -1,0 +1,16 @@
+{
+  "version": "0.2",
+  "yfinance_tickers": 497,
+  "stooq_tickers": 0,
+  "synthetic_tickers": 0,
+  "missing_tickers": 3,
+  "synthetic": false,
+  "all_synthetic": false,
+  "start": "2021-05-15",
+  "end": "2026-05-14",
+  "period": "5y",
+  "interval": "1mo",
+  "n_total_tickers": 500,
+  "n_rows": 29566,
+  "generated_at": "2026-05-14T13:29:45.934872+00:00"
+}
