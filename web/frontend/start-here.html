@@ -128,11 +128,19 @@
       .essay__title { font-size: 28px; }
       .essay__subtitle { font-size: 16px; }
     }
+
+    /* W4-A CLS fix (2026-05-14): pre-reserve history-sidebar padding so
+       layout doesn't shift when history-sidebar.js late-injects its CSS
+       and adds .has-history-sidebar to <body>. See discoveries.html. */
+    @media (min-width: 1024px) {
+      body.has-history-sidebar { padding-left: 240px; }
+      body.has-history-sidebar.history-sidebar-collapsed { padding-left: 56px; }
+    }
   </style>
 
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
 </head>
-<body>
+<body class="has-history-sidebar">
 
   <header class="site-header">
     <div class="site-header__inner">
