@@ -38,6 +38,16 @@ negative_examples:
     Belongs to motter_lai_network_cascade or percolation_connectivity.
 - phenomenon: Network failure via random component failure
   reason: Independent failures; no infection-style state coupling. Belongs to percolation_connectivity.
+- phenomenon: Deterministic well-mixed SIR ODE model
+  reason: "Superficially identical S-shaped epidemic curves, but lacks network structure; it is a homogeneous mean-field system, not a contagion on a contact/financial network."
+- phenomenon: Linear threshold cascade on social network
+  reason: "Produces avalanche-like adoption curves that resemble epidemic spread, but the mechanism is based on fraction of activated neighbors exceeding a threshold, not independent probabilistic transmission per contact."
+- phenomenon: Percolation on a random graph
+  reason: "Exhibits a critical threshold and giant component size similar to epidemic outbreak size, but it is a static connectivity phase transition with no dynamic compartmental evolution or recovery."
+- phenomenon: Fire-sale financial contagion in interbank networks
+  reason: "Cascades of bank failures look like disease spreading on a financial network, but transmission occurs through asset liquidation pressure and overlapping portfolios, not through an infection-like independent probability per exposure."
+- phenomenon: Voter model on networks
+  reason: "Opinions spread over edges, but the dynamics lack an immune (recovered) compartment; it is a two-state model (S and I only) with no recovery, making its equilibrium and threshold behavior distinct from SIR."
 edge_cases:
 - phenomenon: Bank run with information cascade
   debate: Information-driven 'infection' of withdrawal behavior could fit SIR. But payoff structure is coordination game (multistable_self_fulfilling),
@@ -48,6 +58,16 @@ edge_cases:
 - phenomenon: Cascading default on interbank network
   debate: Can be modeled as SIR (default infects creditors) OR as Eisenberg-Noe clearing (Motter-Lai). Same data, two valid
     generative models. Class boundary.
+- phenomenon: SIR on temporal networks with dynamic edges
+  debate: ""
+- phenomenon: SIR with waning immunity (SIRS model)
+  debate: ""
+- phenomenon: Metapopulation SIR on a mobility network
+  debate: ""
+- phenomenon: "SIR with highly heterogeneous contact rates (e.g., scale-free degree distribution)"
+  debate: ""
+- phenomenon: SEIR model on a network (with exposed/latent period)
+  debate: ""
 references:
 - Kermack, McKendrick 1927 Proc. Roy. Soc. A 115, 700 (original SIR)
 - Anderson, May 1991 Infectious Diseases of Humans

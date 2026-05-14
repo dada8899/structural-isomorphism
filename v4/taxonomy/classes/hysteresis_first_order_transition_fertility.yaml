@@ -41,10 +41,30 @@ negative_examples:
 - phenomenon: Saddle-node bifurcation without history dependence
   reason: Tipping point alone is not enough — need loop area > 0 indicating path-dependent state. Pure fold without history
     doesn't qualify.
+- phenomenon: Demographic window of opportunity
+  reason: "Appears as a temporary favorable dependency ratio that boosts economic growth, but it is a transient phase, not a bistable trap with hysteresis; lacks an alternative stable state and saddle threshold."
+- phenomenon: Malthusian trap with endogenous technology
+  reason: "Exhibits a long-run stagnation equilibrium, but escape involves gradual technological progress shifting the carrying capacity, not a first-order transition crossing a saddle; no hysteresis once escaped."
+- phenomenon: Fertility cycle driven by Easterlin relative income hypothesis
+  reason: "Generates oscillations in fertility rates resembling state switching, but the system is inherently cyclical due to cohort size effects, not a bistable potential with hysteresis."
+- phenomenon: "Epidemiological regime shifts (e.g., HIV prevalence trap)"
+  reason: "Shares a threshold-like behavior and alternative stable states, but the mechanism is transmission dynamics, not socioeconomic fertility feedback; belongs to a separate epidemiological universality class."
+- phenomenon: Qwerty keyboard lock-in
+  reason: "Displays path dependence and multiple equilibria, but positive feedback is from network externalities and increasing returns, not a first-order hysteresis in fertility; transition mechanism is stochastic adoption, not a saddle-node bifurcation in a continuous potential."
 edge_cases:
 - phenomenon: Lake eutrophication-clearwater transition (Scheffer fold)
   debate: Canonical positive example of class. The fertility-trap variant generalizes this socioeconomically. Class boundary
     with scheffer_fold_bifurcation.
+- phenomenon: Low-fertility trap with migration feedback
+  debate: "Inclusion of migration may alter bistability structure, introducing a third state or smoothing hysteresis; ambiguous whether the core hysteresis mechanism holds in open-population dynamics."
+- phenomenon: Education-fertility joint trap
+  debate: "Coupling between female education and fertility can produce multiple equilibria, but it is unclear if the hysteresis is first-order (discontinuous jump) or a smooth transition with a broad threshold; equation form is contested."
+- phenomenon: Poverty-fertility trap in agrarian economies
+  debate: "Trap mechanism often involves land inheritance and child labor, which may not map directly onto a simple first-order potential; ambiguous whether it is the same universality class or a distinct structural variant."
+- phenomenon: Cultural shift tipping point in fertility norms
+  debate: "Norm diffusion models exhibit cascades and hysteresis, but the timescale is slow cultural evolution; mathematical form may be a contagion model with critical mass, not a saddle-node bifurcation, blurring boundary with social tipping points."
+- phenomenon: Marriage market mismatch and fertility postponement
+  debate: "Delayed union formation can cause self-reinforcing fertility declines, but the mechanism involves stock-flow dynamics and age structure, not a simple bistable potential; may require age-structured models, challenging universality."
 notes: 'LLM-proposed variant. The parent class hysteresis_first_order_transition covers the
 
   underlying mechanism; this entry exists because Layer 4 generated targeted demographic

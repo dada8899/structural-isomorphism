@@ -46,6 +46,16 @@ negative_examples:
   reason: 'Edge case: Coulomb-stress redistribution IS a form of load redistribution, but the geometry is continuous 3D elastic,
     not discrete network. Better classified under soc_threshold_cascade with continuous (Olami-Feder-Christensen) rather than
     discrete-network (Motter-Lai) sub-class.'
+- phenomenon: Self-organized criticality (sandpile) on networks
+  reason: "Cascading avalanches occur via threshold dynamics without capacity limits; dynamics are conservative and driven by an absolute threshold, not a load-capacity ratio relative to initial load."
+- phenomenon: Bootstrap percolation on networks
+  reason: "Node activation/failure depends on a fixed fraction of failed neighbors, with no load redistribution or capacity concept; cascade size distribution can resemble Motter-Lai but mechanism is purely thresholding without overload."
+- phenomenon: SIR epidemic spreading on networks
+  reason: "Cascading infections are contact-driven, not load-redistribution; the epidemic threshold and reproductive number are conceptually distinct from the tolerance parameter alpha in Motter-Lai capacity formulation."
+- phenomenon: "Branching process cascade models (e.g., Galton-Watson)"
+  reason: Failures occur with a fixed offspring distribution and no network structure or load-redistribution; mean-field power-law cascades may superficially match but the absence of capacity and topology makes it incompatible.
+- phenomenon: Static percolation on networks
+  reason: "Node or edge removal is random or targeted without any dynamical overload cascade; fragmentation pattern is not triggered by load-capacity violation, distinct from Motter-Lai progressive building collapse."
 edge_cases:
 - phenomenon: Bank run / 银行挤兑
   debate: Diamond-Dybvig original bank run is multistable_self_fulfilling (coordination game on expectations). But interconnected
@@ -54,6 +64,16 @@ edge_cases:
 - phenomenon: Traffic flow lockup at intersections (路口溢流锁死)
   debate: Queue length > capacity → spillback to upstream → blocking cycle. Topologically a Motter-Lai-style cascade on a
     road network, but the load dynamics are time-asymmetric (queues drain via signals). Worth a formal sub-class study.
+- phenomenon: Fiber bundle model with global load sharing on a complete graph
+  debate: "Load is redistributed equally after each fiber break, resembling the mean-field Motter-Lai model, but capacities are typically drawn from a fixed distribution independent of initial load; it is ambiguous whether this constitutes the same class when capacity is not proportional to initial load."
+- phenomenon: OPA model for power grid cascading outages
+  debate: "Incorporates capacity-limited line tripping and load redistribution via DC power flow; the redistribution is local and state-dependent, challenging whether it belongs to the Motter-Lai class which typically assumes simple (e.g., betweenness-based) global redistribution."
+- phenomenon: DebtRank financial contagion model
+  debate: "Banks have capital buffers (capacity) and interbank exposures (load); when a bank fails, losses propagate like load redistribution, but the network is directed and the initial load is balance-sheet based, not betweenness. The mechanism is capacity-overload but may differ in critical exponents."
+- phenomenon: Traffic congestion cascades with dynamic traffic assignment
+  debate: "Link closure leads to rerouting that can overload other links; the load redistribution follows user equilibrium rather than simple shortest-path rerouting, and failure may not be instantaneous. It shares the load-capacity cascade concept but with distinct dynamic feedback."
+- phenomenon: Load-redistribution cascade on networks with local load sharing
+  debate: "Generalizations of Motter-Lai where load is redistributed only to neighboring nodes (e.g., weighted shell model); it maintains the capacity-limit paradigm but the locality can alter universality, raising the question of whether it falls within the same class or forms a separate one."
 references:
 - Motter, Lai 2002 Phys. Rev. E 66, 065102 (load redistribution cascade)
 - Eisenberg, Noe 2001 Manag. Sci. 47, 236 (clearing vector existence/uniqueness)

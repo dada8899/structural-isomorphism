@@ -28,10 +28,26 @@ negative_examples:
   reason: Mass-action SIR, not capacity-redistribution. Belongs to sir_contagion_network_class.
 - phenomenon: Power-grid cascading failure
   reason: Belongs to motter_lai_network_cascade (physical/engineering variant), not specifically the social/financial sub-class.
+- phenomenon: SIR epidemic on contact network
+  reason: "Superficially similar cascade shape, but mechanism is infectious transmission via contacts, not load redistribution among counterparties; no balancing of obligations or thresholds based on cumulative load."
+- phenomenon: Sandpile model (SOC) on a lattice
+  reason: "Produces power-law avalanche size distributions resembling cascade failures, but dynamics are local threshold-driven relaxation, not global load-redistribution on a predefined obligation network; no clearing vector analog."
+- phenomenon: k-core percolation cascade
+  reason: "Cascade triggered by removal of nodes with degree < k, leading to further removals, but process is a pure structural pruning, not a load-redistribution mechanism; no conservation of load or financial contagion logic."
+- phenomenon: Bak-Tang-Wiesenfeld earthquake model
+  reason: "Build-up and sudden release of stress resembles cascades, but dynamics are driven by local stress thresholds and nearest-neighbor redistribution, lacking the bilateral obligations and clearing vector of financial/social counterparty networks."
+- phenomenon: Rumor propagation with simple threshold (Granovetter-like)
+  reason: "Adoption cascades based on fraction of neighbors already adopted look like social cascades, but no load or obligation transfers; purely a binary state adoption with fixed thresholds, not a continuous financial contagion."
 edge_cases:
 - phenomenon: Bank run (Diamond-Dybvig)
   debate: Multiple equilibria coordination at single bank; vs. cascade across banking network. Same data, two valid models
     depending on focus.
+- phenomenon: Fire-sale contagion in interbank networks
+  debate: "Builds on Eisenberg-Noe but introduces price-mediated feedback and mark-to-market losses, blurring the line between pure clearing vector cascades and market-driven amplification; is the additional price mechanism a distinct universality class?"
+- phenomenon: Traffic rerouting cascades in road networks
+  debate: "Load (vehicles) redistributed after link failures via user equilibrium or shortest-path rerouting, resembling load-redistribution cascades but with adaptive agent optimization rather than fixed counterparty obligations; ambiguous whether the optimization layer changes universality."
+- phenomenon: Watts threshold model with heterogeneous thresholds on networks
+  debate: "Directly cited as inspiration, but when thresholds are drawn from a distribution, the cascade condition and critical exponents may deviate from the pure Motter-Lai load-redistribution form; is it still the same class if the mechanism is threshold-based rather than load-based?"
 notes: 'LLM-proposed sub-class. Substantially overlaps with parent motter_lai_network_cascade.
 
   Created because Layer 4 grouped social/financial cascade phenomena into a separate prediction set.
