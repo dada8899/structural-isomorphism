@@ -1,0 +1,19 @@
+{
+  "slices": {
+    "pre_2021": {
+      "after_unix": 1546300800,
+      "before_unix": 1609459200,
+      "n_fetched": 3000,
+      "wall_sec": 51.32
+    },
+    "post_2024": {
+      "after_unix": 1704067200,
+      "before_unix": 1735689600,
+      "n_fetched": 3000,
+      "wall_sec": 56.5
+    }
+  },
+  "total_n": 6000,
+  "out_path": "/private/tmp/w2c-wsb-prereg-1778767354N/v4/validation/soc-wsb-posts/raw_posts.jsonl",
+  "out_size_mb": 1.42
+}
