@@ -155,18 +155,31 @@ export function ScreenerFilter({ initial, stats, onApply, loading }: Props) {
       </Field>
 
       <Field label="行业">
+        {/* While stats is null, the sector list comes back empty (it's
+            keyed off stats.by_sector). Disable the select + show a
+            "加载中" placeholder so the user knows it's not broken — they
+            see structure but can't pick yet. Other selects (动态 / 状态)
+            don't need this because their options are hardcoded constants. */}
         <select
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none disabled:cursor-wait disabled:bg-zinc-50 disabled:text-zinc-400"
           value={sector}
           onChange={(e) => setSector(e.target.value)}
           aria-label="按行业筛选"
+          disabled={!stats}
+          aria-busy={!stats}
         >
-          <option value="">全部</option>
-          {sectors.map((s) => (
-            <option key={s.slug} value={s.slug}>
-              {s.label} ({s.count})
-            </option>
-          ))}
+          {!stats ? (
+            <option value="">加载行业列表中…</option>
+          ) : (
+            <>
+              <option value="">全部</option>
+              {sectors.map((s) => (
+                <option key={s.slug} value={s.slug}>
+                  {s.label} ({s.count})
+                </option>
+              ))}
+            </>
+          )}
         </select>
       </Field>
 

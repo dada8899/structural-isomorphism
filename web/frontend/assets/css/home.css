@@ -1033,6 +1033,11 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
+  /* Reserve approx 1 row of disc-cards so the grid doesn't shift the
+     footer when fetchDaily() lands. ~220px = card padding + 2 items +
+     divider + score header. Mobile (single column) keeps min-height for
+     the first card slot only — subsequent cards expand naturally. */
+  min-height: 220px;
 }
 
 @media (max-width: 900px) {
@@ -1061,14 +1066,34 @@
   transform: translateX(3px);
 }
 
-.home__daily-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+/* === Skeleton bars (used by daily-discoveries skeleton + future) === */
+.skeleton-bar {
+  display: inline-block;
+  height: 10px;
+  background: var(--brand-line, #E4E4E7);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+.skeleton-bar--tall { height: 16px; margin-top: 6px; display: block; }
+.skeleton-bar--w-6  { width: 24px; }
+.skeleton-bar--w-8  { width: 56px; }
+.skeleton-bar--w-10 { width: 72px; }
+.skeleton-bar--w-14 { width: 60%; max-width: 180px; }
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
 }
 
-@media (max-width: 900px) {
-  .home__daily-grid { grid-template-columns: 1fr; }
+.disc-card--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+.disc-card--skeleton:hover {
+  border-color: var(--border-subtle);
+  transform: none;
+  box-shadow: none;
 }
 
 /* === Discovery card (improved) === */
