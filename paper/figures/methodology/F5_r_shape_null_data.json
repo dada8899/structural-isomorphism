@@ -1,0 +1,31 @@
+{
+  "n_perm": 10000,
+  "seed": 42,
+  "matrix_shape": [
+    7,
+    20
+  ],
+  "systems": [
+    "earthquake",
+    "stockmarket",
+    "wildfire",
+    "solar",
+    "bank_failure",
+    "github_stars",
+    "defi_aave"
+  ],
+  "r_shape_obs": 1.1083333333333334,
+  "combinatorial_constant_BminusBoverB_x_SoverSminus1": 1.1083333333333334,
+  "r_shape_is_combinatorial_artifact": true,
+  "r_shape_null_mean": 1.1083333333333334,
+  "r_shape_null_std": 2.0106994154417226e-16,
+  "rmse_obs": 0.5963047582587448,
+  "rmse_null_mean": 1.920040648215796,
+  "rmse_null_std": 0.13444722573345882,
+  "rmse_null_p5": 1.7022890392904113,
+  "rmse_null_p95": 2.145071520382013,
+  "p_left_rmse": 9.999000099990002e-05,
+  "p_right_rmse": 1.0,
+  "p_two_sided_rmse": 0.00019998000199980003,
+  "key_finding": "The paper's r_shape statistic (1.11 across 7 systems on 20 bins) is mathematically identical to ((B-1)/B)*(S/(S-1)) regardless of the underlying data \u2014 i.e. it does not distinguish real shape collapse from random Gaussian rows. We substitute the shape-collapse RMSE for a meaningful test."
+}
