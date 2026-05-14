@@ -36,7 +36,7 @@ UNCLEAR / ERROR / PARSE_FAIL — fallback labels for partial / failed verdicts.
 class Verdict(BaseModel):
     """A single critic's verdict on one query.
 
-    Fields:
+    Attributes:
         kind: VerdictKind label (KEEP / REJECT / SPLIT / MERGE / UNCLEAR / ...).
         confidence: 0.0–1.0 self-reported confidence.
         reasoning: 1–4 sentence rationale.
@@ -99,7 +99,7 @@ class Verdict(BaseModel):
 class EnsembleVerdict(BaseModel):
     """Aggregate result for one query across all critics in an ensemble.
 
-    Fields:
+    Attributes:
         query_id: caller-supplied identifier for the judged item.
         verdicts: per-critic Verdict list (one per critic, in input order).
         consensus: the rolled-up consensus label per the ensemble's voting strategy.
