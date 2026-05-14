@@ -1,0 +1,11 @@
+Figure 1. Pre-registration filter funnel.
+Counts at each gate of the V4 reject-aware pipeline. The LLM curator (Layer 3)
+proposes 21 candidate universality classes from the 5,000-pair knowledge base.
+B1 (single Opus critic) rejects 3 outright (KEEP=18). B3 (3x DeepSeek ensemble)
+rejects 7 (4 of them previously B1-KEPT), reducing the panel to 14 surviving
+classes. SPLIT/MERGE verdicts then expand the panel to 17 pre-registered
+empirical test systems. Of those, 13 satisfy the joint
+"exponent-in-band-and-Vuong-passes" verdict rule; 4 are negative/partial/null
+(reported in this paper). Numbers sourced from
+v4/results/B3_ensemble_summary.md (B1/B3 counts) and the joint distribution
+documented in anti-phacking-unified-2026-05-15.md §3.5.
