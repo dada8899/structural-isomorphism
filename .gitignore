@@ -40,6 +40,8 @@ venv/
 # Jupyter
 .ipynb_checkpoints/
 site/
+site_mkdocs/
+_site_build/
 marketing/
 v4/validation/**/.env
 
