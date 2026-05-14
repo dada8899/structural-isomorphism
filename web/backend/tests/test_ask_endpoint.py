@@ -379,10 +379,50 @@ class TestAskStreamEndpoint:
         assert r.status_code == 422
 
     def test_oversize_query_rejected_422(self, ask_app):
-        """Pydantic max_length=500 → 501-char query → 422."""
+        """W6-D: 8001-char query → 422 with structured input_too_long body."""
         with TestClient(ask_app) as client:
-            r = client.post("/api/ask/stream", json={"query": "x" * 501})
+            r = client.post("/api/ask/stream", json={"query": "x" * 8001})
         assert r.status_code == 422
+        body = r.json()
+        # When the request fails the structural cap *exactly* at the boundary
+        # (8001 = MAX_QUERY_CHARS + 1), our handler still runs and shapes the
+        # error body. Beyond that (e.g. 9000) pydantic catches it first and
+        # surfaces its own 'detail' shape — both are acceptable 422 outcomes
+        # but for the boundary case we assert the friendly shape.
+        if "error" in body:
+            assert body["error"] == "input_too_long"
+            assert body["limit"] == 8000
+            assert body["received"] == 8001
+            assert "focus" in body["message"].lower() or "split" in body["message"].lower()
+
+    def test_within_new_cap_passes(self, ask_app):
+        """W6-D: a 4000-char query (within new 8000 cap) reaches the orchestrator."""
+        with TestClient(ask_app) as client:
+            with client.stream(
+                "POST",
+                "/api/ask/stream",
+                json={"query": "Why " + ("do banks collapse " * 250)},
+            ) as r:
+                # New cap allows long inputs; 200 + event-stream.
+                assert r.status_code == 200, f"expected 200 within cap, got {r.status_code}"
+                assert r.headers["content-type"].startswith("text/event-stream")
+
+    def test_structured_input_too_long_shape(self, ask_app):
+        """W6-D: pydantic-rejected oversize (way past cap) still 422.
+
+        We hit MAX_QUERY_CHARS + 1 chars directly — that is the exact
+        boundary the in-route handler owns (pydantic max_length is
+        MAX_QUERY_CHARS + 1). The handler must produce a structured JSON
+        body with `error`/`limit`/`received`.
+        """
+        with TestClient(ask_app) as client:
+            r = client.post("/api/ask/stream", json={"query": "x" * 8001})
+        assert r.status_code == 422
+        body = r.json()
+        assert body.get("error") == "input_too_long"
+        assert body.get("limit") == 8000
+        assert body.get("received") == 8001
+        assert isinstance(body.get("message"), str) and body["message"]
 
     def test_missing_query_field_rejected_422(self, ask_app):
         """Missing required field → 422 (no query key)."""

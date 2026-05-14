@@ -19,7 +19,7 @@ isomorphism framing. See services/ask_orchestrator.py
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from services.ask_orchestrator import AskOrchestrator
@@ -28,6 +28,15 @@ from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["ask"])
+
+# W6-D (session #7 P1 backlog): bump query cap from 500 → 8000 chars so
+# users can paste full paragraphs / longer context. We keep pydantic
+# validation as a structural floor (1..8000 with safe headroom), and add
+# an explicit pre-validation check below that returns a structured
+# `input_too_long` JSON error with the limit + received counts so the
+# frontend can surface a friendly inline message instead of a generic
+# 422 from pydantic. See `docs/sessions/SESSION-10-HANDOFF.md` §6 Option D.
+MAX_QUERY_CHARS = 8000
 
 # Reuse a single LLMService instance so its API key + model env are
 # captured once and the underlying http client is shared.
@@ -49,7 +58,11 @@ class AskRequest(BaseModel):
     the frontend can show a single "thinking about: <query>" line.
     """
 
-    query: str = Field(..., min_length=1, max_length=500)
+    # Pydantic upper bound is intentionally one above MAX_QUERY_CHARS so
+    # that exactly-at-cap requests pass the schema and the structured
+    # `input_too_long` handler below owns the boundary check (returns 422
+    # with a JSON body the frontend can render specifically).
+    query: str = Field(..., min_length=1, max_length=MAX_QUERY_CHARS + 1)
     lang: Literal["zh", "en"] = Field("zh")
 
 
@@ -61,6 +74,22 @@ async def ask_stream(request: Request, req: AskRequest):
     Auth: optional Bearer token / cookie promotes the caller to free/paid
     tier (looser rate limits). Anonymous traffic still allowed.
     """
+    # W6-D structured 8000-char cap: surface a JSON-shaped error the
+    # frontend can recognize (vs an opaque pydantic 422 string).
+    if len(req.query) > MAX_QUERY_CHARS:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "input_too_long",
+                "limit": MAX_QUERY_CHARS,
+                "received": len(req.query),
+                "message": (
+                    f"Input limit {MAX_QUERY_CHARS} chars — try focusing "
+                    "your question or splitting into two queries."
+                ),
+            },
+        )
+
     # Tier classification — None means token provided but invalid.
     tier = verify_api_token(request)
     if tier is None:

@@ -98,6 +98,36 @@
   font-size: 12px;
   color: var(--brand-muted);
 }
+
+/* W6-D (session #7 P1 backlog): live char counter.
+ * Default: muted gray, only visible when typing.
+ * Warn (data-state="warn"): orange at ≥75% of cap.
+ * Stop (data-state="stop"): red at ≥100% (8000); paired with maxlength
+ * attr on the textarea so the browser also enforces the hard stop. */
+.ask-searchbox__counter {
+  font-size: 12px;
+  color: var(--brand-muted);
+  margin: 0 12px;
+  font-variant-numeric: tabular-nums;
+  font-family: "JetBrains Mono", monospace;
+  transition: color 0.15s;
+}
+.ask-searchbox__counter[data-state="warn"] {
+  color: #c97a18;
+}
+.ask-searchbox__counter[data-state="stop"] {
+  color: #c03030;
+  font-weight: 500;
+}
+.ask-searchbox__counter[data-state="stop"]::after {
+  content: " — 已达上限";
+  font-weight: 400;
+}
+.ask-followup-box__counter {
+  margin: 4px 0 0 4px;
+  display: block;
+  text-align: right;
+}
 .ask-searchbox__hint kbd {
   display: inline-block;
   padding: 1px 5px;
