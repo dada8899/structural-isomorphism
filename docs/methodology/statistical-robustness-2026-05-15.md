@@ -1,5 +1,7 @@
 # Statistical robustness fixes — F1-F5 aggregate (W7-D)
 
+**English** | [简体中文](../i18n/zh/methodology-zh.md)
+
 **Date:** 2026-05-15
 **Source:** W5-A scholar review (`docs/reviews/W5-A-scholar-review-2026-05-13.md`)
 **Driver:** F1-F5 are the five "single most important reviewer-pass issues"

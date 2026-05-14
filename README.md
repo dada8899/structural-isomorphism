@@ -1,5 +1,7 @@
 # Structural Isomorphism
 
+**English** | [简体中文](README-zh.md)
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Dataset DOI](https://img.shields.io/badge/Dataset_DOI-10.5281%2Fzenodo.19615170-blue.svg)](https://doi.org/10.5281/zenodo.19615170)

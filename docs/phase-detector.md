@@ -1,5 +1,7 @@
 # Phase Detector
 
+**English** | [简体中文](i18n/zh/phase-detector-zh.md)
+
 The Phase Detector (codename **D1**) ships the shared pipeline as a
 queryable service. The intended audience is researchers and engineers who
 want to drop a size vector or time series into a hosted endpoint and get
