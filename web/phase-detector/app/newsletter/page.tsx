@@ -8,19 +8,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import JsonLd from "@/components/JsonLd";
 import { PageOpenTracker } from "@/components/PageOpenTracker";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { ISSUES } from "@/lib/newsletter-data";
+import { buildMetadata, SITE_URL } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Newsletter archive — Structural Signals",
   description:
     "Weekly newsletter from structural-isomorphism: phase flips across 1000+ companies, methodology deep-dives, and cross-domain preprints. No marketing, no clickbait.",
-  openGraph: {
-    title: "Newsletter archive — Structural Signals",
-    description:
-      "Weekly cross-domain structural signals — phase flips, methodology, papers.",
-    type: "website",
+  path: "/newsletter",
+  ogImage: "/og/newsletter.png",
+});
+
+const NEWSLETTER_LIST_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Newsletter archive — Structural Signals",
+  url: `${SITE_URL}/newsletter`,
+  mainEntity: {
+    "@type": "ItemList",
+    name: "Structural Signals issues",
+    itemListElement: ISSUES.map((issue, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      url: `${SITE_URL}/newsletter/${issue.slug}`,
+      name: issue.subject,
+    })),
   },
 };
 
@@ -31,6 +46,8 @@ export default function NewsletterArchivePage() {
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
+      {/* W12-B: WebPage + ItemList schema for newsletter archive. */}
+      <JsonLd id="ld-newsletter-list" schema={NEWSLETTER_LIST_SCHEMA} />
       <PageOpenTracker event="newsletter_archive_index" />
       <Breadcrumb
         items={[{ label: "首页", href: "/" }, { label: "Newsletter" }]}

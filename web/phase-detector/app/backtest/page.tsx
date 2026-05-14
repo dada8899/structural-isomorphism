@@ -3,6 +3,8 @@ import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { CumulativeChart } from "./CumulativeChart";
+import JsonLd from "@/components/JsonLd";
+import { buildMetadata, datasetSchema } from "@/lib/seo";
 
 // Wave 2 (2026-05-14): /backtest transparency page.
 // Wave 10 (2026-05-15): updated to v0.1 1000-ticker walk-forward numbers.
@@ -20,11 +22,14 @@ import { CumulativeChart } from "./CumulativeChart";
 // time so production deploys can drop new files without rebuilds. The same
 // files are also exposed via /api/backtest-result and /api/backtest-cumulative.
 
-export const metadata: Metadata = {
+// W12-B (2026-05-15): OG card + canonical + dataset JSON-LD embedded in page body.
+export const metadata: Metadata = buildMetadata({
   title: "Backtest 透明度报告 — Phase Detector",
   description:
     "Walk-forward backtest v0.1 on 927 SP500 + Russell-1000-supplement tickers, 59 monthly snapshots, 2020-2025. Sharpe lift -0.07 vs benchmark (p = 0.569). Alpha NOT detected at scale. 我们公开发布零结果。",
-};
+  path: "/backtest",
+  ogImage: "/og/backtest.png",
+});
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
@@ -167,6 +172,16 @@ export default async function BacktestPage() {
 
   return (
     <div className="space-y-12 py-4">
+      {/* W12-B: Dataset schema for rich result eligibility. */}
+      <JsonLd
+        id="ld-backtest-dataset"
+        schema={datasetSchema({
+          name: "Phase Detector walk-forward backtest v0.1",
+          description: `Walk-forward backtest of ${ticksFetched} U.S. equity tickers across ${result.n_snapshots} monthly snapshots. Published null outcome (Sharpe lift = ${num(lift ?? NaN, 3)}, p = ${num(result.p_value, 3)}).`,
+          url: "https://phase.bytedance.city/backtest",
+          distributionUrl: "https://phase.bytedance.city/api/backtest-result",
+        })}
+      />
       {/* Hero */}
       <header className="space-y-3 border-b border-zinc-200 pb-8">
         <div className="flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
