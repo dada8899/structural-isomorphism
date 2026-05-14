@@ -1,0 +1,197 @@
+{
+  "primary_series": "units_dispatched_all",
+  "primary_verdict": "INCONCLUSIVE",
+  "primary_reason": "alpha=1.739 in band but 2 alternative(s) decisively beat power-law (Vuong R<0, p<0.1). Likely heavy-tailed but better fit by lognormal/exp at this resolution.",
+  "alpha_measured": 1.7391567195428093,
+  "ci_low": 1.7334114599518533,
+  "ci_high": 2.988487567943439,
+  "n_tail": 21424,
+  "n_input": 21424,
+  "predicted_band": [
+    1.3,
+    2.0
+  ],
+  "per_series": {
+    "units_dispatched_all": {
+      "series": "units_dispatched_all",
+      "verdict": "INCONCLUSIVE",
+      "reason": "alpha=1.739 in band but 2 alternative(s) decisively beat power-law (Vuong R<0, p<0.1). Likely heavy-tailed but better fit by lognormal/exp at this resolution.",
+      "alpha_measured": 1.7391567195428093,
+      "xmin": 1.0,
+      "n_input": 21424,
+      "n_tail": 21424,
+      "ci_low": 1.7334114599518533,
+      "ci_high": 2.988487567943439,
+      "n_boot": 1000,
+      "ks_statistic": 0.15645049239353692,
+      "vuong": {
+        "lognormal": {
+          "R": -52.94805428442545,
+          "p_value": 0.0,
+          "winner": "lognormal",
+          "error": null
+        },
+        "exponential": {
+          "R": -46.33357705112581,
+          "p_value": 0.0,
+          "winner": "exponential",
+          "error": null
+        },
+        "from_fit_result": {
+          "vs_lognormal_R": -52.94805428442545,
+          "vs_lognormal_p": 0.0,
+          "vs_exponential_R": -46.33357705112581,
+          "vs_exponential_p": 0.0
+        }
+      },
+      "n_null_rejected": 0,
+      "n_alt_not_winning": 0,
+      "n_alt_winning": 2,
+      "predicted_band": [
+        1.3,
+        2.0
+      ],
+      "fit_status": "real_fit_completed"
+    },
+    "units_dispatched_strict": {
+      "series": "units_dispatched_strict",
+      "verdict": "FAIL",
+      "reason": "alpha=2.765 outside band [1.3, 2.0]",
+      "alpha_measured": 2.765026319444762,
+      "xmin": 9.0,
+      "n_input": 2743,
+      "n_tail": 196,
+      "ci_low": 2.6265286937600316,
+      "ci_high": 2.994102065956936,
+      "n_boot": 1000,
+      "ks_statistic": 0.22056293198057192,
+      "vuong": {
+        "lognormal": {
+          "R": -1.7453937823901025,
+          "p_value": 0.08091634722720537,
+          "winner": "lognormal",
+          "error": null
+        },
+        "exponential": {
+          "R": -0.009143206739124181,
+          "p_value": 0.9927048781499774,
+          "winner": "inconclusive",
+          "error": null
+        },
+        "from_fit_result": {
+          "vs_lognormal_R": -1.7453937823901025,
+          "vs_lognormal_p": 0.08091634722720537,
+          "vs_exponential_R": -0.009143206739124181,
+          "vs_exponential_p": 0.9927048781499774
+        }
+      },
+      "n_null_rejected": 1,
+      "n_alt_not_winning": 1,
+      "n_alt_winning": 1,
+      "predicted_band": [
+        1.3,
+        2.0
+      ],
+      "fit_status": "real_fit_completed"
+    },
+    "daily_counts_all": {
+      "series": "daily_counts_all",
+      "verdict": "INCONCLUSIVE",
+      "reason": "alpha=1.798 in band but n_tail=31 < 100 (sample size insufficient for definitive verdict)",
+      "alpha_measured": 1.7977918695877109,
+      "xmin": 194.0,
+      "n_input": 31,
+      "n_tail": 31,
+      "ci_low": 1.7861823087440818,
+      "ci_high": 2.999999999999999,
+      "n_boot": 1000,
+      "ks_statistic": 0.5833825914352891,
+      "vuong": {
+        "lognormal": {
+          "R": null,
+          "p_value": null,
+          "winner": "inconclusive",
+          "error": "too few values: 31"
+        },
+        "exponential": {
+          "R": null,
+          "p_value": null,
+          "winner": "inconclusive",
+          "error": "too few values: 31"
+        },
+        "from_fit_result": {
+          "vs_lognormal_R": -2.6489116367320262,
+          "vs_lognormal_p": 0.008075144205856203,
+          "vs_exponential_R": -12.953267240772366,
+          "vs_exponential_p": 2.2516299738858742e-38
+        }
+      },
+      "n_null_rejected": 0,
+      "n_alt_not_winning": 0,
+      "n_alt_winning": 0,
+      "predicted_band": [
+        1.3,
+        2.0
+      ],
+      "fit_status": "real_fit_completed"
+    },
+    "daily_counts_strict": {
+      "series": "daily_counts_strict",
+      "verdict": "INCONCLUSIVE",
+      "reason": "alpha=1.772 in band but n_tail=31 < 100 (sample size insufficient for definitive verdict)",
+      "alpha_measured": 1.7723186299755231,
+      "xmin": 24.0,
+      "n_input": 31,
+      "n_tail": 31,
+      "ci_low": 1.7473557169235905,
+      "ci_high": 2.999999999999999,
+      "n_boot": 1000,
+      "ks_statistic": 0.5073789579114711,
+      "vuong": {
+        "lognormal": {
+          "R": null,
+          "p_value": null,
+          "winner": "inconclusive",
+          "error": "too few values: 31"
+        },
+        "exponential": {
+          "R": null,
+          "p_value": null,
+          "winner": "inconclusive",
+          "error": "too few values: 31"
+        },
+        "from_fit_result": {
+          "vs_lognormal_R": -3.1218485458379197,
+          "vs_lognormal_p": 0.0017971936906170985,
+          "vs_exponential_R": -12.395294782121248,
+          "vs_exponential_p": 2.7712477202653727e-35
+        }
+      },
+      "n_null_rejected": 0,
+      "n_alt_not_winning": 0,
+      "n_alt_winning": 0,
+      "predicted_band": [
+        1.3,
+        2.0
+      ],
+      "fit_status": "real_fit_completed"
+    }
+  },
+  "data_source": "nyc-opendata-socrata",
+  "is_synthetic_fallback": false,
+  "n_unique_incidents": 50000,
+  "n_fire_incidents_all": 21443,
+  "n_fire_incidents_strict": 2746,
+  "per_group_counts": {
+    "NonStructural Fires": 754,
+    "NonMedical Emergencies": 17177,
+    "Medical Emergencies": 28369,
+    "Structural Fires": 1992,
+    "NonMedical MFAs": 1520,
+    "Medical MFAs": 188
+  },
+  "computed_at": "2026-05-14T07:23:38.751080+00:00",
+  "yaml_spec": "v4/preregistration/nyc-fdny-fires.yaml",
+  "fetcher": "v4/scripts/fetch/fetch_nyc_fdny.py",
+  "session": "session-7-W2-D"
+}
