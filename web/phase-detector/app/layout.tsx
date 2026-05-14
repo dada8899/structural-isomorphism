@@ -80,6 +80,9 @@ export default function RootLayout({
               <Link href="/methodology" className="hover:text-zinc-900">
                 方法
               </Link>
+              <Link href="/backtest" className="hover:text-zinc-900">
+                Backtest
+              </Link>
               <Link href="/about" className="hover:text-zinc-900">
                 关于
               </Link>
