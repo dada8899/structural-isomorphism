@@ -51,14 +51,37 @@ pnpm build   # production build, must pass before PR merge
 pnpm start   # serve built app on :3000
 ```
 
-## Deploy (planned)
+## Deploy
 
-Target subdomain: **phase.bytedance.city**
+Target subdomain: **phase.bytedance.city** (live).
 
 1. `pnpm build` to produce `.next/` output
-2. Reverse-proxy `phase.bytedance.city` → `127.0.0.1:3xxx` via nginx
+2. Reverse-proxy `phase.bytedance.city` → `127.0.0.1:3210` via nginx; `/api/` 反代到 `127.0.0.1:8200` (phase-detector-api)
 3. `certbot --nginx -d phase.bytedance.city`
-4. Run with `pm2 start "pnpm start" --name phase-detector` (or systemd)
+4. systemd: `phase-detector-web` (3210) + `phase-detector-api` (8200)
+
+### ⚠️ build-time env (重要)
+
+Next.js `NEXT_PUBLIC_*` 是 **build-time** 烧入 bundle 的。**必须**在 `pnpm build`
+前准备好 `.env.production`（已 commit 到 repo）：
+
+```
+NEXT_PUBLIC_API_BASE=/api
+NEXT_PUBLIC_USE_MOCK=false
+```
+
+- `/api` 是相对路径，浏览器走 `https://phase.bytedance.city/api/...` → nginx 反代到 8200
+- 缺这个文件时 build 会用源码默认值 `http://localhost:8000`，前端到用户浏览器的本地端口（不存在）→ "Failed to fetch"
+- 改了 `.env.production` 后必须 **rebuild + restart**（不是 dev hot reload）
+
+部署 SOP：
+
+```bash
+cd /root/Projects/structural-isomorphism-v4/web/phase-detector
+git pull --ff-only origin main
+export NVM_DIR="/root/.nvm" && . "$NVM_DIR/nvm.sh"
+pnpm build && systemctl restart phase-detector-web
+```
 
 ## Architecture notes
 
