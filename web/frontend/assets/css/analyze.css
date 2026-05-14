@@ -296,6 +296,13 @@
   pointer-events: none;
 }
 
+/* Hidden but kept in DOM so error/retry handlers can repaint into it.
+ * Added by the meta-arrival path after the fade-out completes.
+ * Removed by the error/retry handlers to surface failure copy. */
+.analyze-loading--hidden {
+  display: none !important;
+}
+
 .section__number {
   display: inline-block;
   font-family: var(--font-mono);
