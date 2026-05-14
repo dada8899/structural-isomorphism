@@ -33,3 +33,6 @@ next-env.d.ts.bak
 
 # vercel
 .vercel
+
+# storybook static build (output of `pnpm storybook:build`)
+/storybook-static

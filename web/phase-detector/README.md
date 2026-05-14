@@ -105,6 +105,26 @@ workflow [`.github/workflows/deploy-phase-detector.yml`](../../.github/workflows
 非零退出，不会以损坏配置 build 出问题 bundle。改 `.env.production`
 本身就会触发本 workflow（`web/phase-detector/**` paths 命中）。
 
+## Component Library (Storybook)
+
+Run Storybook locally for visual QA of individual components:
+
+```bash
+cd web/phase-detector
+pnpm storybook         # → http://localhost:6006
+pnpm storybook:build   # → ./storybook-static (static bundle)
+```
+
+The live component library deploys to **GitHub Pages** at
+[`https://dada8899.github.io/structural-isomorphism/storybook/`](https://dada8899.github.io/structural-isomorphism/storybook/).
+mkdocs takes the root (`/`); Storybook lives at `/storybook/`. Both ship
+inside a single `actions/deploy-pages` artifact via
+`.github/workflows/docs.yml`. PRs that touch components run a build-only
+CI check via `.github/workflows/storybook.yml` (no deploy).
+
+Stories cover ≥15 components (see `.storybook/intro.mdx` for the
+priority list + conventions).
+
 ## Architecture notes
 
 - API client (`lib/api.ts`) supports both real-API and mock modes via

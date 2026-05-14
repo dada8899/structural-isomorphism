@@ -1,0 +1,50 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Introduction" />
+
+# Phase Detector — Component Library
+
+This Storybook hosts the production-grade UI components powering
+[phase.bytedance.city](https://phase.bytedance.city).
+
+## Conventions
+
+- **Tailwind** zinc + accent `#2563EB`. Tokens come from `app/globals.css` + the
+  shared `shared-tokens.css` import — both are auto-loaded in `preview.ts`.
+- **Fonts** self-hosted via `next/font` in production. Storybook falls back to
+  the system stack; visual diffs vs. production are intentional (this is a
+  component lab, not a pixel snapshot).
+- **A11y** every story is automatically checked with axe-core. Use the "A11y"
+  panel to inspect violations. WCAG 2.1 AA is the bar.
+- **Viewports** five sizes (320 / 375 / 768 / 1280 / 1536) configured in
+  `preview.ts`. Switch via the toolbar.
+- **i18n** Chinese-only components are tagged in their story sidebar group
+  (`i18n/zh`). All other components default to English.
+
+## Coverage
+
+The library covers ≥ 15 of the ~30 components under `components/`. Priority
+went to:
+
+1. Landing page (hero / CTAs / phase indicator animation)
+2. Screener / Company card (CompanyCard / SparkLine / StatsBar)
+3. Navigation chrome (TopNav / Breadcrumb / LanguageSwitcher / SwipeNavigator)
+4. Conversion (PricingTable / PaywallModal / CheckoutMockForm)
+5. Visualization (PhaseTrajectoryChart / UniversalityAnalogueMap)
+
+## Local dev
+
+```bash
+pnpm storybook        # http://localhost:6006
+pnpm storybook:build  # → ./storybook-static
+```
+
+## Deploy
+
+Pushes to `main` that touch `web/phase-detector/{components,.storybook}/**`
+trigger `.github/workflows/storybook.yml`, which builds the static bundle
+and deploys it to the `gh-pages` branch under `/storybook/`. The main
+mkdocs site continues to occupy the root of `gh-pages`.
+
+Live URL (post-deploy):
+[https://dada8899.github.io/structural-isomorphism/storybook/](https://dada8899.github.io/structural-isomorphism/storybook/)

@@ -1,5 +1,14 @@
 name: Deploy docs
 
+# Builds + deploys two things to GitHub Pages in a SINGLE artifact:
+#   * mkdocs material site → root (/)
+#   * Storybook 8 component lib for web/phase-detector → /storybook/
+#
+# We use a single workflow because actions/deploy-pages publishes one
+# artifact per Pages site; running two workflows that both call
+# deploy-pages races against the concurrency group `pages` and loses one
+# of the two payloads. See w13-d notes in CLAUDE.md.
+
 on:
   push:
     branches:
@@ -8,6 +17,12 @@ on:
       - "mkdocs.yml"
       - "docs/**"
       - ".github/workflows/docs.yml"
+      - "web/phase-detector/components/**"
+      - "web/phase-detector/.storybook/**"
+      - "web/phase-detector/app/**"
+      - "web/phase-detector/lib/**"
+      - "web/phase-detector/package.json"
+      - "web/phase-detector/pnpm-lock.yaml"
   workflow_dispatch:
 
 permissions:
@@ -44,8 +59,35 @@ jobs:
             mkdocs-git-revision-date-localized-plugin \
             mkdocs-minify-plugin
 
-      - name: Build site (strict)
+      - name: Build mkdocs site (strict)
         run: mkdocs build --strict --site-dir _site_build
+
+      # -- Storybook 8 build -------------------------------------------
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/phase-detector/pnpm-lock.yaml
+
+      - name: Install phase-detector deps
+        working-directory: web/phase-detector
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        working-directory: web/phase-detector
+        run: pnpm storybook:build
+
+      - name: Copy Storybook into pages artifact at /storybook
+        run: |
+          mkdir -p _site_build/storybook
+          cp -R web/phase-detector/storybook-static/. _site_build/storybook/
+          ls _site_build/storybook/ | head -10
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
