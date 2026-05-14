@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+***REMOVED*** Block API endpoints from crawlers (waste of crawl budget)
+Disallow: /api/
+
+***REMOVED*** Block phase product sub-routes (separate site at phase.bytedance.city)
+Disallow: /phase/
+
+Sitemap: https://beta.structural.bytedance.city/sitemap.xml
