@@ -1,0 +1,38 @@
+{
+  "label": "P1_bitcoin_cash",
+  "data_source": "min-api.cryptocompare.com histoday (free public API)",
+  "fetched_at_utc": "2026-05-14T18:27:36.249173+00:00",
+  "n_intervals": 1999,
+  "fit": {
+    "name": "P1_bitcoin_cash_intervals",
+    "alpha": 2.62074826069403,
+    "sigma_alpha": 0.05918135882795893,
+    "xmin": 0.029954025360608656,
+    "n_total": 1999,
+    "n_tail": 750,
+    "vs_lognormal_R": -4.284135184111276,
+    "vs_lognormal_p": 1.8345135094077592e-05,
+    "vs_exponential_R": -0.6886439548930687,
+    "vs_exponential_p": 0.49104735318623294,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true,
+    "ks_statistic": 0.07757810516964384
+  },
+  "bootstrap_ci": {
+    "alpha_mean": 2.725612252757835,
+    "alpha_median": 2.6924239334343225,
+    "alpha_std": 0.15976292148875473,
+    "ci_low": 2.4864859170379496,
+    "ci_high": 2.997105480194085,
+    "n_boot_succeeded": 200
+  },
+  "predicted_band": [
+    2.5,
+    3.1
+  ],
+  "literature_band": [
+    2.0,
+    3.5
+  ],
+  "verdict": "CONFIRMED"
+}
