@@ -9,25 +9,24 @@ import path from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import JsonLd from "@/components/JsonLd";
 import { NewsletterLinkTracker } from "@/components/NewsletterLinkTracker";
 import { PageOpenTracker } from "@/components/PageOpenTracker";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { getIssue } from "@/lib/newsletter-data";
 import { renderMarkdown } from "@/lib/render-markdown";
+import { articleSchema, buildMetadata } from "@/lib/seo";
 
 const ISSUE_SLUG = "001";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Structural Signals #001 — Week of 2026-05-12",
   description:
     "10 phase flips, why we use block-bootstrap CIs instead of iid bootstrap, and four cross-domain preprints worth reading. First issue of the weekly Structural Signals newsletter.",
-  openGraph: {
-    title: "Structural Signals #001 — Week of 2026-05-12",
-    description:
-      "First issue of the weekly newsletter from structural-isomorphism: phase flips, methodology, papers.",
-    type: "article",
-  },
-};
+  path: "/newsletter/001",
+  ogType: "article",
+  ogImage: "/og/newsletter.png",
+});
 
 // Resolve the markdown file relative to the workspace root. Next builds the
 // page at the phase-detector cwd, so we walk up three levels:
@@ -75,6 +74,16 @@ export default function NewsletterIssue001Page() {
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
+      {/* W12-B: Article schema for issue #001. */}
+      <JsonLd
+        id="ld-newsletter-001"
+        schema={articleSchema({
+          headline: issue.subject,
+          description: issue.summary,
+          url: `https://phase.bytedance.city/newsletter/${issue.slug}`,
+          datePublished: issue.publishedOn,
+        })}
+      />
       <PageOpenTracker
         event="newsletter_archive_view"
         props={{ issue: issue.number }}
