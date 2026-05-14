@@ -3,6 +3,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import HistorySidebar from "@/components/HistorySidebar";
+import NetworkBanner from "@/components/NetworkBanner";
 import TopNav from "@/components/TopNav";
 import "./globals.css";
 
@@ -36,6 +37,21 @@ export const metadata: Metadata = {
   description:
     "100 家全球上市公司的状态评分，30 秒看懂：谁在崩盘边缘，谁在悄悄起飞。用解释地震、银行挤兑的同一套数学。",
   metadataBase: new URL("https://phase.bytedance.city"),
+  // W12-E: PWA manifest + Apple touch-icon hints.
+  manifest: "/manifest.webmanifest",
+  themeColor: "#5B21B6",
+  appleWebApp: {
+    capable: true,
+    title: "Phase",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
+  },
   openGraph: {
     title: "Phase Detector — 100 家公司的状态评分",
     description: "30 秒看懂一家公司当前的状态：稳态、临界附近、失控通道、已翻转。",
@@ -58,6 +74,8 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           跳到主要内容
         </a>
+        {/* W12-E: SW register + offline banner. */}
+        <NetworkBanner />
         <HistorySidebar />
         <header className="sticky top-0 z-[80] border-b border-zinc-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
