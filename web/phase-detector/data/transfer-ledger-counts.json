@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "generated_at": null,
+    "generated_by": "manual seed — will be overwritten by .github/workflows/transfer-ledger-aggregate.yml"
+  },
+  "counts_by_case": {}
+}

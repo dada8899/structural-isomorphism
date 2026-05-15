@@ -24,6 +24,7 @@
 export type SearchEntryType =
   | "company"
   | "universality_class"
+  | "insight_case"
   | "paper"
   | "newsletter"
   | "docs";
@@ -134,6 +135,7 @@ export function groupHitsByType(hits: SearchHit[]): Array<{
   hits: SearchHit[];
 }> {
   const order: SearchEntryType[] = [
+    "insight_case",
     "company",
     "universality_class",
     "paper",
@@ -141,6 +143,7 @@ export function groupHitsByType(hits: SearchHit[]): Array<{
     "docs",
   ];
   const labels: Record<SearchEntryType, string> = {
+    insight_case: "案例 / Insight cases",
     company: "公司 / Companies",
     universality_class: "普适类 / Universality classes",
     paper: "论文 / Papers",
@@ -148,6 +151,7 @@ export function groupHitsByType(hits: SearchHit[]): Array<{
     docs: "文档 / Docs",
   };
   const buckets: Record<SearchEntryType, SearchHit[]> = {
+    insight_case: [],
     company: [],
     universality_class: [],
     paper: [],

@@ -32,6 +32,45 @@ import {
   groupHitsByType,
   searchIndex,
 } from "@/lib/search";
+import { listInsightCases } from "@/lib/insights-data";
+
+/**
+ * Insight cases are static, in-repo, and tiny — merge them into the index
+ * at component-load time rather than baking them into search-index.json.
+ * This keeps the JSON purely build-output and lets the cases live with
+ * their data file.
+ *
+ * Keyword set is generous: case ID, title, domain names, universality
+ * class name, and the synthesis answer-shaped one-liner — so a query
+ * like "kuaishou" or "growth" or "platform" hits the viral-content case
+ * even though those words aren't in the title.
+ */
+function insightCaseSearchEntries(): SearchEntry[] {
+  return listInsightCases().map((c) => {
+    const kwBlob = [
+      c.id,
+      c.title,
+      c.subtitle,
+      c.domains.a,
+      c.domains.b,
+      c.universality_class_name,
+      c.synthesis.best_current_answer,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return {
+      id: `insight-${c.id}`,
+      type: "insight_case" as const,
+      title: c.title,
+      subtitle: c.synthesis.best_current_answer.slice(0, 180),
+      url: `/insights/${c.id}`,
+      keywords: Array.from(
+        new Set(kwBlob.split(/[^a-z0-9一-鿿]+/).filter((w) => w.length >= 2)),
+      ).slice(0, 40),
+      weight: 6, // above docs (4), below companies (10) — high-value editorial
+    };
+  });
+}
 
 const RECENT_KEY = "phase:cmdk:recent";
 const RECENT_MAX = 5;
@@ -40,9 +79,9 @@ const RECENT_MAX = 5;
 // Pick 5 representative entry-points across types.
 const TRENDING: Array<{ label: string; query: string }> = [
   { label: "AAPL", query: "AAPL" },
-  { label: "NVDA", query: "NVDA" },
+  { label: "Cascade in your platform", query: "viral cascade" },
+  { label: "Liquidation risk", query: "liquidation defi" },
   { label: "Scheffer fold", query: "scheffer" },
-  { label: "Reflexivity (Soros)", query: "reflexive" },
   { label: "Newsletter #001", query: "issue 001" },
 ];
 
@@ -87,6 +126,14 @@ function TypeIcon({ type, className }: { type: string; className?: string }) {
           <circle cx="6" cy="6" r="3" />
           <circle cx="18" cy="18" r="3" />
           <path d="M8.5 8.5l7 7" />
+        </svg>
+      );
+    case "insight_case":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={cls} aria-hidden="true">
+          {/* A lightbulb-ish icon: idea applied to a problem. */}
+          <path d="M9 18h6M10 22h4" />
+          <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" />
         </svg>
       );
     case "paper":
@@ -154,7 +201,12 @@ export default function CommandPalette({ open, onClose, source }: CommandPalette
       })
       .then((data) => {
         if (cancelled) return;
-        setIndex(Array.isArray(data) ? data : []);
+        // Session #12 W17: merge in static insight cases so /insights is
+        // searchable from Cmd+K. The cases live in lib/insights-data
+        // (in-repo), so we avoid round-tripping them through the static
+        // search-index.json.
+        const baseline = Array.isArray(data) ? data : [];
+        setIndex([...insightCaseSearchEntries(), ...baseline]);
       })
       .catch((e) => {
         if (cancelled) return;

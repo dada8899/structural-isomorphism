@@ -49,6 +49,16 @@ import {
   fetchUniversalityClassDetail,
   fetchUniversalityCompanies,
 } from "@/lib/api";
+// Session #12 W17: surface curated /insights cases whose universality_class_id
+// matches this class so a researcher landing on the taxonomy detail page has
+// a one-click "apply this class to a real problem" path.
+import {
+  CONFIDENCE_BADGE,
+  CONFIDENCE_LABEL,
+  listInsightCases,
+  OUTCOME_BADGE,
+  OUTCOME_LABEL,
+} from "@/lib/insights-data";
 import {
   CPS_DOT,
   CPS_LABEL_ZH,
@@ -355,6 +365,80 @@ export default function UniversalityDetailPage() {
               </pre>
             </Section>
           )}
+
+          {/* Session #12 W17: cross-link to /insights cases for this class.
+              Rendered above evidence_systems because it gives the user the
+              answer-shaped path (apply to a real problem) rather than the
+              corpus-shaped path (list of analogues). */}
+          {(() => {
+            const cases = listInsightCases().filter(
+              (c) => c.universality_class_id === classId,
+            );
+            if (cases.length === 0) return null;
+            return (
+              <Section
+                title="Apply this class to a real problem"
+                description="Curated insight cases whose universality class matches this page — each gives an answer-shaped recommendation with explicit confidence, the strongest objection, and a 14-day check."
+                testid="universality-insight-cases"
+              >
+                <ul className="space-y-3">
+                  {cases.map((c) => {
+                    const mix = c.documented_transfers.reduce(
+                      (acc, t) => {
+                        acc[t.outcome] = (acc[t.outcome] ?? 0) + 1;
+                        return acc;
+                      },
+                      {} as Record<string, number>,
+                    );
+                    return (
+                      <li
+                        key={c.id}
+                        className="rounded-md border border-zinc-200 bg-white p-3"
+                      >
+                        <Link
+                          href={`/insights/${c.id}`}
+                          className="group flex flex-col gap-1.5"
+                          data-testid="insight-case-link"
+                          data-case-id={c.id}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE[c.synthesis.confidence]}`}
+                            >
+                              {CONFIDENCE_LABEL[c.synthesis.confidence]}
+                            </span>
+                            {(["succeeded", "partial", "failed", "open"] as const).map(
+                              (k) =>
+                                (mix[k] ?? 0) > 0 && (
+                                  <span
+                                    key={k}
+                                    className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] ring-1 ring-inset ${OUTCOME_BADGE[k]}`}
+                                  >
+                                    <span className="tabular-nums font-semibold">
+                                      {mix[k]}
+                                    </span>{" "}
+                                    {OUTCOME_LABEL[k]}
+                                  </span>
+                                ),
+                            )}
+                          </div>
+                          <div className="text-sm font-medium text-zinc-900 group-hover:text-indigo-700">
+                            {c.title}
+                          </div>
+                          <p className="line-clamp-2 text-xs leading-relaxed text-zinc-600">
+                            {c.synthesis.best_current_answer}
+                          </p>
+                          <span className="text-[11px] font-medium text-indigo-700">
+                            Open case →
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Section>
+            );
+          })()}
 
           {detail && detail.evidence_systems.length > 0 && (
             <Section

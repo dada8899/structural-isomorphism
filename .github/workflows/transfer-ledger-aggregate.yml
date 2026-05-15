@@ -1,0 +1,74 @@
+name: Transfer-ledger aggregate
+
+# Session #12 W17: auto-update web/phase-detector/data/transfer-ledger-counts.json
+# whenever a transfer-ledger issue is opened, edited, labeled, closed, or
+# commented. The /insights/[case_id] pages read that file at request time
+# to display the cumulative user-reported pass/fail/inconclusive counts.
+#
+# The workflow uses GITHUB_TOKEN's contents write permission to commit the
+# updated counts file back to main with a [skip ci] marker so we don't
+# trigger an infinite loop. The script itself short-circuits when there is
+# no change to the counts, so the most common webhook event (an issue
+# being commented without a verdict change) is a no-op.
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled, closed, reopened, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: read
+
+concurrency:
+  group: transfer-ledger-aggregate
+  cancel-in-progress: false
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Skip cheaply when the event is unrelated. We can't filter on label
+    # at the workflow-trigger level for issue_comment, so we gate here.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'transfer-ledger')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.issue.labels.*.name, 'transfer-ledger'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Aggregate transfer-ledger reports
+        id: agg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/aggregate-transfer-ledger.mjs
+
+      - name: Commit changes
+        if: steps.agg.outputs.changed == 'true'
+        run: |
+          git config user.name "transfer-ledger-bot"
+          git config user.email "transfer-ledger-bot@users.noreply.github.com"
+          git add web/phase-detector/data/transfer-ledger-counts.json
+          if git diff --cached --quiet; then
+            echo "no diff to commit"
+            exit 0
+          fi
+          git commit -m "chore(ledger): refresh transfer-ledger counts [skip ci]"
+          # Retry-aware push: rebase on top of any concurrent main update.
+          for i in 1 2 3 4; do
+            if git push origin HEAD:${GITHUB_REF##*/}; then
+              break
+            fi
+            git pull --rebase origin ${GITHUB_REF##*/} || true
+            sleep $((2 ** i))
+          done

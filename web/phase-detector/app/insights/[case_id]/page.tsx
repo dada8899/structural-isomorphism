@@ -24,6 +24,22 @@ import {
   type TransferOutcome,
 } from "@/lib/insights-data";
 import { buildMetadata } from "@/lib/seo";
+import ledgerCounts from "@/data/transfer-ledger-counts.json";
+
+interface LedgerSnapshot {
+  _meta?: {
+    schema_version?: number;
+    generated_at?: string | null;
+    total_issues_inspected?: number;
+    source?: string;
+  };
+  counts_by_case: Record<
+    string,
+    { pass: number; fail: number; inconclusive: number; total: number }
+  >;
+}
+
+const LEDGER = ledgerCounts as LedgerSnapshot;
 
 interface PageProps {
   params: { case_id: string };
@@ -128,27 +144,102 @@ export default function InsightCaseDetailPage({ params }: PageProps) {
           </Link>
         </div>
 
-        {/* Transfer-outcome mix */}
-        <div className="mt-5">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-            Historical transfer record (this case)
-          </p>
-          <ul className="flex flex-wrap gap-2 text-xs">
-            {(["succeeded", "partial", "failed", "open"] as const).map(
-              (k) =>
-                transferMix[k] > 0 && (
-                  <li
-                    key={k}
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 ring-1 ring-inset ${OUTCOME_BADGE[k]}`}
-                  >
-                    <span className="font-semibold tabular-nums">
-                      {transferMix[k]}
-                    </span>
-                    <span>{OUTCOME_LABEL[k]}</span>
-                  </li>
-                ),
-            )}
-          </ul>
+        {/* Transfer-outcome mix — curated literature + user-reported */}
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+              Curated literature record
+            </p>
+            <ul className="flex flex-wrap gap-2 text-xs">
+              {(["succeeded", "partial", "failed", "open"] as const).map(
+                (k) =>
+                  transferMix[k] > 0 && (
+                    <li
+                      key={k}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 ring-1 ring-inset ${OUTCOME_BADGE[k]}`}
+                    >
+                      <span className="font-semibold tabular-nums">
+                        {transferMix[k]}
+                      </span>
+                      <span>{OUTCOME_LABEL[k]}</span>
+                    </li>
+                  ),
+              )}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+              User-reported transfer ledger
+            </p>
+            {(() => {
+              const ledger = LEDGER.counts_by_case[c.id];
+              if (!ledger || ledger.total === 0) {
+                return (
+                  <p className="text-xs leading-relaxed text-zinc-500">
+                    No user reports yet.{" "}
+                    <a
+                      href={`https://github.com/dada8899/structural-isomorphism/issues/new?labels=transfer-ledger&template=transfer-ledger.md&title=%5Btransfer-ledger%5D+${c.id}%3A+%3Cpass%7Cfail%7Cinconclusive%3E`}
+                      target="_blank"
+                      rel="noopener"
+                      className="font-medium text-indigo-700 underline underline-offset-2 hover:text-indigo-900"
+                    >
+                      Be the first to submit one →
+                    </a>
+                  </p>
+                );
+              }
+              return (
+                <>
+                  <ul className="flex flex-wrap gap-2 text-xs">
+                    <li
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 ring-1 ring-inset ${OUTCOME_BADGE.succeeded}`}
+                    >
+                      <span className="font-semibold tabular-nums">
+                        {ledger.pass}
+                      </span>
+                      <span>Passed</span>
+                    </li>
+                    <li
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 ring-1 ring-inset ${OUTCOME_BADGE.partial}`}
+                    >
+                      <span className="font-semibold tabular-nums">
+                        {ledger.inconclusive}
+                      </span>
+                      <span>Inconclusive</span>
+                    </li>
+                    <li
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 ring-1 ring-inset ${OUTCOME_BADGE.failed}`}
+                    >
+                      <span className="font-semibold tabular-nums">
+                        {ledger.fail}
+                      </span>
+                      <span>Failed</span>
+                    </li>
+                  </ul>
+                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                    {ledger.total} report{ledger.total > 1 ? "s" : ""} ·{" "}
+                    <a
+                      href={`https://github.com/dada8899/structural-isomorphism/issues?q=is%3Aissue+label%3Atransfer-ledger+${c.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-indigo-700 underline underline-offset-2 hover:text-indigo-900"
+                    >
+                      view on GitHub
+                    </a>
+                    {" · "}
+                    <a
+                      href={`https://github.com/dada8899/structural-isomorphism/issues/new?labels=transfer-ledger&template=transfer-ledger.md&title=%5Btransfer-ledger%5D+${c.id}%3A+%3Cpass%7Cfail%7Cinconclusive%3E`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-indigo-700 underline underline-offset-2 hover:text-indigo-900"
+                    >
+                      submit yours
+                    </a>
+                  </p>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </header>
 
