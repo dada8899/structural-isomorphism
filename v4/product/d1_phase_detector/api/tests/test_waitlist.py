@@ -2,7 +2,7 @@
 
 We seed the same DB-isolation pattern as test_screener.py:
 - Each test gets a fresh SQLite DB.
-- The app's @on_event("startup") hook creates the `waitlist` table inside the
+- The app's lifespan context manager creates the `waitlist` table inside the
   TestClient lifespan (TestClient triggers startup on first request).
 """
 
