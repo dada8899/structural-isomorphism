@@ -23,6 +23,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { fetchCompany, fetchScreener } from "@/lib/api";
 import {
   CPS_BADGE,
@@ -105,19 +106,21 @@ function CompareColumn({ company }: { company: Company }) {
       className="flex min-w-[240px] flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
     >
       <header className="space-y-1">
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <Link
             href={`/company/${encodeURIComponent(company.ticker)}`}
             className="text-base font-semibold text-zinc-900 hover:text-zinc-700"
           >
             {company.ticker}
           </Link>
-          {sectorLabel && (
-            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">
-              {sectorLabel}
-            </span>
-          )}
+          {/* W15-C: star button per column header. */}
+          <FavoriteButton ticker={company.ticker} source="compare" />
         </div>
+        {sectorLabel && (
+          <span className="inline-block rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">
+            {sectorLabel}
+          </span>
+        )}
         <div className="text-xs text-zinc-500">{company.name}</div>
       </header>
 

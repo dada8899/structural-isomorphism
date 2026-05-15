@@ -102,6 +102,7 @@ app = FastAPI(
         {"name": "suggest", "description": "Search suggestion phrases"},
         {"name": "history", "description": "Per-device anonymous query history"},
         {"name": "newsletter", "description": "Email newsletter signup"},
+        {"name": "favorites", "description": "Per-user bookmarked company tickers"},
         {"name": "checkout-mock", "description": "Stripe checkout mock (pre-PMF)"},
         {"name": "system", "description": "Health, version, and operational probes"},
         {"name": "admin", "description": "Admin-only endpoints (require admin tier)"},
@@ -197,7 +198,7 @@ def get_search_service():
 
 
 # --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log  # noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, favorites  # noqa
 from api.privacy import export as privacy_export, delete as privacy_delete  # noqa
 from api import flags as flags_api  # noqa: E402 — W15-E feature flags
 
@@ -228,6 +229,8 @@ app.include_router(privacy_export.router, prefix="/api")
 app.include_router(privacy_delete.router, prefix="/api")
 # W15-E (session #10): feature flags + A/B experiments framework.
 app.include_router(flags_api.router, prefix="/api")
+# W15-C (session #10): user favorites / bookmarks (per-user star button).
+app.include_router(favorites.router, prefix="/api")
 
 
 @app.get(

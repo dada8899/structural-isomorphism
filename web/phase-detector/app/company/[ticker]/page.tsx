@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import SwipeNavigator from "@/components/SwipeNavigator";
 
 // W13-B (2026-05-15): code-split PhaseTrajectoryChart (~7 KB gz of SVG
@@ -227,11 +228,15 @@ export default function CompanyDetailPage({
       <Breadcrumb items={breadcrumb} />
 
       <header className="space-y-3" data-testid="company-header">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-            {company.ticker}
-          </h1>
-          <span className="text-base text-zinc-500">{company.name}</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+              {company.ticker}
+            </h1>
+            <span className="text-base text-zinc-500">{company.name}</span>
+          </div>
+          {/* W15-C: star button — right-aligned in the title row. */}
+          <FavoriteButton ticker={company.ticker} source="detail" />
         </div>
 
         {/* W6-C: chips row promoted out of metadata toggle (audit § 3). */}
