@@ -22,6 +22,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TIERS, annualPrice, getTier, type Interval, type TierId } from "@/lib/pricing";
 import { Events, trackEvent } from "@/lib/analytics";
+// W15-A: shape of the POST body is generated from Pydantic and lives
+// in api-types.ts. Importing it here keeps the request inline in sync
+// with the backend without a manual mirror.
+import type { CheckoutBody } from "@/lib/api-types";
 
 function isValidEmail(email: string): boolean {
   return /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(email);
@@ -79,17 +83,20 @@ export function CheckoutMockForm() {
       const apiBase =
         (typeof window !== "undefined" &&
           (window as unknown as { __API_BASE__?: string }).__API_BASE__) || "";
+      // W15-A: body shape mirrors Pydantic `CheckoutBody` from api-types.
+      // TS will fail the build if backend schema drops/renames a field.
+      const checkoutBody: CheckoutBody = {
+        tier: tier.id,
+        interval,
+        email,
+        name,
+        card_last4: cardLast4,
+        force_status: forceParam || null,
+      };
       const resp = await fetch(`${apiBase}/api/checkout/mock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tier: tier.id,
-          interval,
-          email,
-          name,
-          card_last4: cardLast4,
-          force_status: forceParam || undefined,
-        }),
+        body: JSON.stringify(checkoutBody),
       });
       const data = await resp.json();
       if (resp.status !== 200) {
