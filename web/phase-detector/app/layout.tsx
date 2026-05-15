@@ -154,14 +154,17 @@ export default function RootLayout({
                   Phase Detector
                 </span>
                 <Link href="/about" className="hover:text-zinc-900 dark:hover:text-white">
-                  关于
+                  About · 关于
                 </Link>
                 <Link href="/methodology" className="hover:text-zinc-900 dark:hover:text-white">
-                  方法
+                  Methodology · 方法
+                </Link>
+                <Link href="/backtest" className="hover:text-zinc-900 dark:hover:text-white">
+                  Backtest
                 </Link>
                 {/* W14-C: privacy + cookie controls in footer */}
                 <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-white">
-                  隐私
+                  Privacy · 隐私
                 </Link>
                 <ManageCookiesButton />
                 <a
@@ -173,6 +176,14 @@ export default function RootLayout({
                   GitHub ↗
                 </a>
                 <a
+                  href="https://github.com/dada8899/structural-isomorphism/blob/main/CONTRIBUTING.md"
+                  target="_blank"
+                  rel="noopener"
+                  className="hover:text-zinc-900 dark:hover:text-white"
+                >
+                  Contribute ↗
+                </a>
+                <a
                   href="https://beta.structural.bytedance.city/classes"
                   target="_blank"
                   rel="noopener"
@@ -182,9 +193,20 @@ export default function RootLayout({
                 </a>
               </div>
               <div className="text-zinc-400 dark:text-zinc-500">
-                研究预览 · 不是投资建议 · AI 抽取的数据，请独立核实
+                Research preview · Not investment advice · 研究预览，AI 抽取的数据请独立核实
               </div>
             </div>
+            <p className="mt-4 max-w-3xl text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+              <strong className="font-semibold text-zinc-500 dark:text-zinc-400">
+                Domain note:
+              </strong>{" "}
+              <code className="rounded bg-zinc-100 px-1 py-0.5 text-[10px] dark:bg-zinc-800">
+                bytedance.city
+              </code>{" "}
+              is a personal domain on the generic <code>.city</code> gTLD held
+              by the author. It has no relationship with ByteDance Ltd. or any
+              of its subsidiaries.
+            </p>
           </footer>
           {/* W12-D onboarding tour. */}
           <OnboardingTour />

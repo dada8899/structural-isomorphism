@@ -1,10 +1,17 @@
-"""W10-C alpha-screener landing v2 — e2e acceptance test.
+"""W10-C editorial landing v2 — e2e acceptance test.
 
-Asserts the new editorial landing renders the contractual blocks:
-  - Hero headline ("Daily structural signals from 1000+ public companies.")
+Session #12 (W16 pre-launch audit) flipped the positioning from "Daily
+structural signals" (which scanned as alpha-screener) to a cross-domain-
+universality framing with the NULL backtest stated up front; the doc
+strings here were updated accordingly.
+
+Asserts the contractual blocks on the landing:
+  - Hero headline (cross-domain framing — "earthquakes" or "universality" +
+    "public companies" + "1000+")
   - 6 explore cards (data-testid="explore-card")
-  - 3 trust signals (anchored on "Receipts" section heading)
-  - 2 hero CTAs (primary + secondary; data-testid="cta-primary"/"cta-secondary")
+  - 3 trust signals anchored on "Verifiable claims" section heading
+  - 2 hero CTAs (primary "Explore companies" → /companies, secondary
+    "Read the methodology" → /methodology)
   - FAQ accordion has at least 7 items
   - Console clean on initial load (no JS errors)
 
