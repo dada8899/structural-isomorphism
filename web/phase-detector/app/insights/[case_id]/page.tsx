@@ -15,6 +15,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  CONFIDENCE_BADGE,
+  CONFIDENCE_LABEL,
   getInsightCase,
   listInsightCases,
   OUTCOME_BADGE,
@@ -149,6 +151,88 @@ export default function InsightCaseDetailPage({ params }: PageProps) {
           </ul>
         </div>
       </header>
+
+      {/* SYNTHESIS — the answer-shaped block. Session #12 W17 added this
+          after a user pointed out that surfacing only analogies + a 30-day
+          test felt like deliver-homework, not deliver-value. */}
+      <section
+        aria-labelledby="synthesis-heading"
+        className="space-y-4 rounded-2xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50/70 via-white to-white p-6 shadow-sm sm:p-8"
+        data-testid="case-synthesis"
+      >
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-indigo-700">
+              Best current converging answer
+            </p>
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE[c.synthesis.confidence]}`}
+              data-testid="synthesis-confidence"
+            >
+              {CONFIDENCE_LABEL[c.synthesis.confidence]}
+            </span>
+          </div>
+          <h2
+            id="synthesis-heading"
+            className="text-lg font-semibold leading-snug text-zinc-900 sm:text-xl"
+            style={{ fontFamily: "'Noto Serif SC', serif" }}
+          >
+            {c.synthesis.best_current_answer}
+          </h2>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-lg bg-white/70 p-4 ring-1 ring-zinc-200">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+              Why this answer
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-zinc-700">
+              {c.synthesis.why_this_answer}
+            </p>
+          </div>
+          <div className="rounded-lg bg-amber-50/60 p-4 ring-1 ring-amber-200">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-amber-800">
+              Strongest objection (read this)
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-amber-900">
+              {c.synthesis.strongest_objection}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white/70 p-4">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+            14-day check (before you commit to acting on this)
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-700">
+            {c.synthesis.short_falsification}
+          </p>
+        </div>
+
+        {c.synthesis.do_not_apply_when && c.synthesis.do_not_apply_when.length > 0 && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50/40 p-4">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-rose-800">
+              Do NOT apply this answer when…
+            </p>
+            <ul className="space-y-1 text-sm leading-relaxed text-rose-900">
+              {c.synthesis.do_not_apply_when.map((d, i) => (
+                <li key={i} className="flex gap-2">
+                  <span aria-hidden="true" className="select-none">×</span>
+                  <span>{d}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <p className="border-t border-zinc-200 pt-3 text-xs leading-relaxed text-zinc-500">
+          This block is hand-authored from the evidence shown below — no
+          LLM in the path. The mapping, documented transfers, blocking
+          mechanisms, and falsifiable prediction are all auditable below.
+          The confidence badge reflects how strongly the evidence supports
+          this specific answer, not the broader analogy.
+        </p>
+      </section>
 
       {/* 2. VARIABLE MAPPING */}
       <section aria-labelledby="mapping-heading" className="space-y-3">

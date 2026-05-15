@@ -14,7 +14,13 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listInsightCases, OUTCOME_BADGE, OUTCOME_LABEL } from "@/lib/insights-data";
+import {
+  CONFIDENCE_BADGE,
+  CONFIDENCE_LABEL,
+  listInsightCases,
+  OUTCOME_BADGE,
+  OUTCOME_LABEL,
+} from "@/lib/insights-data";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -54,15 +60,17 @@ export default function InsightsIndexPage() {
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base">
           Each case below pairs two domains that share a mathematical
-          structure. We show the variable-level mapping, the documented
-          historical transfer attempts (with citations), the failure modes,
-          and one falsifiable 30-90 day prediction you can run on your own
-          system. This is a structured analogy library — <strong>not</strong>{" "}
-          a recommendation engine. Where transfer has been tried and failed,
-          the failure is shown at the same visual weight as the successes.
+          structure. We give you the <strong>best current converging answer</strong>{" "}
+          with an explicit confidence tier, the strongest objection at equal
+          weight, a 14-day check you can run <em>before</em> committing,
+          and the full evidence chain (variable mapping, documented
+          historical transfers with citations, failure modes, and one
+          longer falsifiable prediction). Where transfer has been tried and
+          failed, the failure is shown at the same visual weight as the
+          successes — including this project&apos;s own NULL backtest.
         </p>
         <p className="mt-3 max-w-2xl text-xs leading-relaxed text-zinc-500">
-          每个案例展示一对共享数学结构的领域：显式变量映射 + 已发表的历史转移尝试（成功/部分/失败/未测）+ 失败边界 + 一个 30-90 天可证伪的预测。本页是结构化类比库，**不是**操作建议。
+          每个案例都给出「**当前可收敛的最佳答案**」+ 置信度 + 等权重的反驳 + 14 天可证伪短测试 + 完整证据链。失败案例与成功案例视觉权重相同——包括本项目自家 NULL backtest。
         </p>
 
         {/* Honest outcome counter — surfaces the failure / open ratio so
@@ -132,9 +140,28 @@ export default function InsightsIndexPage() {
                     </h3>
                   </header>
 
-                  <p className="line-clamp-3 text-xs leading-relaxed text-zinc-600">
+                  <p className="line-clamp-2 text-xs leading-relaxed text-zinc-600">
                     {c.subtitle}
                   </p>
+
+                  {/* Synthesis preview — the answer-shaped one-liner.
+                      Session #12 W17 addition so users get an answer-
+                      shaped preview without opening the case. */}
+                  <div className="mt-2 rounded-md border border-indigo-200 bg-indigo-50/40 px-3 py-2">
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-700">
+                        Best current answer
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE[c.synthesis.confidence]}`}
+                      >
+                        {CONFIDENCE_LABEL[c.synthesis.confidence]}
+                      </span>
+                    </div>
+                    <p className="line-clamp-3 text-xs leading-relaxed text-zinc-800">
+                      {c.synthesis.best_current_answer}
+                    </p>
+                  </div>
 
                   {/* Per-case transfer-outcome mix */}
                   <ul className="mt-auto flex flex-wrap gap-1.5 text-[11px]">
@@ -172,34 +199,36 @@ export default function InsightsIndexPage() {
         </h2>
         <ul className="space-y-1.5 text-sm leading-relaxed text-zinc-700">
           <li>
-            <strong className="font-semibold">No LLM-generated prescriptions.</strong>{" "}
-            Every &quot;outcome&quot; in a case is sourced from an external
-            citation or from this project&apos;s own published result (including
-            our own Phase Detector NULL backtest, which appears as a{" "}
+            <strong className="font-semibold">Answer-shaped, not LLM-generated.</strong>{" "}
+            Every &quot;best current answer&quot; is hand-authored from cited
+            evidence + this project&apos;s own published results (including
+            our Phase Detector NULL backtest, which appears as a{" "}
             <span className={`mx-0.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] ring-1 ring-inset ${OUTCOME_BADGE.failed}`}>
               Failed
             </span>{" "}
-            row in the earthquake ↔ DeFi case).
+            row in the earthquake ↔ DeFi case). No LLM is in the path; every
+            field is auditable to a citation or an in-repo result.
           </li>
           <li>
-            <strong className="font-semibold">No &quot;you should do X&quot;.</strong>{" "}
-            We show variable mappings and historical outcomes; we don&apos;t
-            tell you which intervention to deploy in your domain. The four-
-            agent feasibility review (UX / PM / scholar / architect /
-            real-user, in <code>docs/sessions/SESSION-12-PRELAUNCH-AUDIT.md</code>) explicitly
-            rejected the prescriptive direction.
+            <strong className="font-semibold">Confidence is always shown.</strong>{" "}
+            Each answer carries a {" "}
+            <span className={`mx-0.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE.high}`}>High</span> /
+            <span className={`mx-0.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE.medium}`}>Medium</span> /
+            <span className={`mx-0.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${CONFIDENCE_BADGE.low}`}>Low</span>
+            tag that reflects how strongly the evidence supports the
+            specific answer (not the looser analogy).
           </li>
           <li>
-            <strong className="font-semibold">Each case includes one falsifiable prediction.</strong>{" "}
-            You can test it on your own data in 30-90 days and the result
-            goes to a public ledger so the library learns from real-world
-            applications instead of confabulating.
+            <strong className="font-semibold">Strongest objection at equal weight.</strong>{" "}
+            We show the most likely reason the answer is wrong for your
+            specific case in the same panel — not buried in a disclaimer.
           </li>
           <li>
-            <strong className="font-semibold">Failures shown at full weight.</strong>{" "}
-            Where transfer was attempted and failed in the literature, that
-            row is in the same table as the successes — not buried in a
-            disclaimer.
+            <strong className="font-semibold">14-day check before committing.</strong>{" "}
+            Each case includes a short test you can run on your own data
+            before acting on the answer. Larger 30-90 day falsifiable
+            predictions are also shown below the synthesis for deeper
+            validation. Submit results to the public transfer ledger.
           </li>
         </ul>
       </section>
