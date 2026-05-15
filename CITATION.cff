@@ -5,8 +5,8 @@ title: "Structural Isomorphism: cross-domain SOC validation pipeline"
 authors:
   - family-names: dada8899
     affiliation: "Independent Research, Structural Isomorphism Project"
-version: 0.3.1
-date-released: 2026-05-14
+version: 0.4.0
+date-released: 2026-05-15
 url: "https://github.com/dada8899/structural-isomorphism"
 repository-code: "https://github.com/dada8899/structural-isomorphism"
 license: MIT
@@ -39,5 +39,5 @@ identifiers:
   - type: url
     value: https://github.com/dada8899/structural-isomorphism
   - type: other
-    value: "structural-isomorphism-pipeline-v0.3.1"
+    value: "structural-isomorphism-pipeline-v0.4.0"
     description: pipeline release tag
