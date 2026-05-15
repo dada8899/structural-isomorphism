@@ -8,23 +8,19 @@ Run from repo root:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import pytest
 
-***REMOVED*** Allow `import llm_guardrail` / `import llm_schemas` regardless of how pytest
-***REMOVED*** auto-discovers rootdir.
-_LIB_DIR = Path(__file__).resolve().parents[2] / "lib"
-if str(_LIB_DIR) not in sys.path:
-    sys.path.insert(0, str(_LIB_DIR))
-
-import pytest  ***REMOVED*** noqa: E402
-
-from llm_guardrail import (  ***REMOVED*** noqa: E402
+***REMOVED*** Import the deprecated shims via their canonical `v4.lib.*` package path.
+***REMOVED*** Historically these used bare `import llm_guardrail`, which required a
+***REMOVED*** sys.path.insert(0, v4/lib) hack — but that prepend shadowed the
+***REMOVED*** editable-installed `soc_pipeline` real package in sibling test modules.
+***REMOVED*** Using the dotted path keeps shim-coverage intact without polluting sys.path.
+from v4.lib.llm_guardrail import (
     state_machine_fix,
     validate_json,
     guardrailed_llm_call,
 )
-from llm_schemas import (  ***REMOVED*** noqa: E402
+from v4.lib.llm_schemas import (
     Layer3CriticVerdict,
     Layer4Prediction,
     B3EnsembleReview,
