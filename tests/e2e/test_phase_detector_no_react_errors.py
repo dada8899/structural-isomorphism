@@ -57,7 +57,7 @@ from playwright.sync_api import Page, sync_playwright  # noqa: E402
 BASE_URL = "https://phase.bytedance.city"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-pytestmark = pytest.mark.e2e
+pytestmark = [pytest.mark.e2e, pytest.mark.requires_internet]
 
 
 # Console messages we treat as transient (not regression-class).

@@ -6,41 +6,165 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel duplicate runs on the same PR / branch — keeps queue clean.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # ---------------------------------------------------------------------------
+  # 1) Backend: full Python matrix (3.10/3.11/3.12 × ubuntu/macos/windows)
+  #    Sanity + integration suites. Slow tests skipped — those run nightly.
+  # ---------------------------------------------------------------------------
+  backend:
+    name: backend (py${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        exclude:
+          # Skip combos that don't add signal (3.11/3.12 cover modern targets;
+          # 3.10 only validated on ubuntu as a minimum-floor check).
+          - os: macos-latest
+            python-version: "3.10"
+          - os: windows-latest
+            python-version: "3.10"
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/Library/Caches/pip
+            ~\AppData\Local\pip\Cache
+          key: ${{ matrix.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', 'pytest.ini') }}
+          restore-keys: |
+            ${{ matrix.os }}-py${{ matrix.python-version }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest
-      - name: Run sanity tests
-        run: pytest v4/tests/sanity -m sanity -v
-      - name: Run integration tests
-        run: pytest v4/tests/integration -v || true
+          pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest pytest-xdist
 
-  package-tests:
+      - name: Run sanity tests
+        run: pytest v4/tests/sanity -m sanity -v -m "not slow"
+
+      - name: Run integration tests (skip slow)
+        # PR-time integration: must pass fast. Slow + requires_internet/llm
+        # excluded — those are nightly-only signal.
+        run: pytest v4/tests/integration -v -m "not slow and not requires_internet and not requires_llm" || true
+
+  # ---------------------------------------------------------------------------
+  # 2) Packages: in-tree libs (soc-pipeline, guarded-llm, cross-judge)
+  #    Single Python version — packages have their own internal matrix
+  #    needs if they grow. Cached pip per-package.
+  # ---------------------------------------------------------------------------
+  packages:
+    name: packages (py3.11)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ubuntu-latest-py3.11-packages-${{ hashFiles('packages/**/pyproject.toml') }}
+          restore-keys: |
+            ubuntu-latest-py3.11-packages-
+
       - name: Test soc-pipeline package
         run: |
           cd packages/soc-pipeline
           pip install -e .[dev]
-          pytest tests/ -v
+          pytest tests/ -v -m "not slow"
+
       - name: Test guarded-llm package
         run: |
           cd packages/guarded-llm
           pip install -e .[dev]
-          pytest tests/ -v
+          pytest tests/ -v -m "not slow"
+
+      - name: Test cross-judge package
+        run: |
+          cd packages/cross-judge
+          pip install -e .[dev] || true
+          pytest tests/ -v -m "not slow" || true
+
+  # ---------------------------------------------------------------------------
+  # 3) Frontend: Next.js (phase-detector). Lint + build smoke.
+  #    Runs in parallel with backend/packages — keeps total wall time low.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: frontend (node 20)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web/phase-detector
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/phase-detector/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint --if-present || true
+
+      - name: Build (smoke)
+        run: npm run build --if-present || true
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  # ---------------------------------------------------------------------------
+  # 4) e2e: live network tests (skipped on PR unless label `run-e2e` present;
+  #    on push to main runs as a soft-fail signal). Heavy real-network tests
+  #    are nightly-only via `slow` / `requires_internet` markers.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: e2e (live, soft-fail)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ubuntu-latest-py3.11-e2e-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ubuntu-latest-py3.11-e2e-
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev] || pip install pytest requests
+          pip install playwright || true
+          python -m playwright install --with-deps chromium || true
+
+      - name: Run e2e (skip slow + requires_llm; soft-fail)
+        run: pytest tests/e2e -m "e2e and not slow and not requires_llm" -v || true

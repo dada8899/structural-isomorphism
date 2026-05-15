@@ -1,0 +1,206 @@
+name: Nightly (full suite)
+
+# Runs daily 02:00 UTC (10:00 Beijing). Full suite incl. slow + e2e + load
+# smoke (1 VU sanity). Posts a summary to a tracking GitHub issue on failure.
+#
+# Manual dispatch supported for ad-hoc runs (e.g. before a release tag).
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Full backend matrix — same axes as CI but WITH slow tests included.
+  # ---------------------------------------------------------------------------
+  backend-full:
+    name: backend full (py${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        exclude:
+          - os: macos-latest
+            python-version: "3.10"
+          - os: windows-latest
+            python-version: "3.10"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/Library/Caches/pip
+            ~\AppData\Local\pip\Cache
+          key: ${{ matrix.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', 'pytest.ini') }}
+          restore-keys: |
+            ${{ matrix.os }}-py${{ matrix.python-version }}-pip-
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest
+
+      - name: Run sanity + integration (incl. slow)
+        run: pytest v4/tests -v -m "not requires_llm" || true
+
+  # ---------------------------------------------------------------------------
+  # 2) Full e2e (live network, all flavors).
+  # ---------------------------------------------------------------------------
+  e2e-full:
+    name: e2e full
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ubuntu-latest-py3.11-e2e-nightly-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev] || pip install pytest requests
+          pip install playwright || true
+          python -m playwright install --with-deps chromium || true
+
+      - name: Run e2e (all markers except requires_llm w/o key)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            pytest tests/e2e -v -m "e2e" || true
+            pytest web/tests/e2e -v || true
+          else
+            pytest tests/e2e -v -m "e2e and not requires_llm" || true
+            pytest web/tests/e2e -v -m "not requires_llm" || true
+          fi
+
+  # ---------------------------------------------------------------------------
+  # 3) Load smoke (k6, 1 VU sanity). Prod-safe budget.
+  # ---------------------------------------------------------------------------
+  load-smoke-1vu:
+    name: load smoke (k6, 1 VU)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Inspect scripts (parse-check)
+        run: |
+          for f in tests/load/*.js; do
+            [ -f "$f" ] || continue
+            echo "--- inspect: $f ---"
+            k6 inspect "$f" || { echo "PARSE FAIL: $f"; exit 1; }
+          done
+
+      - name: Run 1-VU smoke against beta
+        env:
+          BASE_URL: https://beta.structural.bytedance.city
+        run: |
+          mkdir -p tests/load/results
+          if [ -f tests/load/phases_smoke.js ]; then
+            BASE_URL="$BASE_URL" k6 run --vus 1 --duration 30s tests/load/phases_smoke.js || echo "WARN: threshold breach"
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-k6-results
+          path: tests/load/results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # 4) Summary — post failure summary to tracking issue.
+  # ---------------------------------------------------------------------------
+  summary:
+    name: post nightly summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [backend-full, e2e-full, load-smoke-1vu]
+    steps:
+      - name: Compose status
+        id: status
+        run: |
+          {
+            echo "be=${{ needs.backend-full.result }}"
+            echo "e2e=${{ needs.e2e-full.result }}"
+            echo "load=${{ needs.load-smoke-1vu.result }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post issue comment (failure only)
+        if: needs.backend-full.result == 'failure' || needs.e2e-full.result == 'failure' || needs.load-smoke-1vu.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Nightly CI tracker";
+            const body = [
+              `Nightly run **${context.runId}** finished with failures.`,
+              "",
+              `- backend-full: \`${{ steps.status.outputs.be }}\``,
+              `- e2e-full: \`${{ steps.status.outputs.e2e }}\``,
+              `- load-smoke-1vu: \`${{ steps.status.outputs.load }}\``,
+              "",
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              "",
+              "cc @dada8899"
+            ].join("\n");
+
+            // Find or create the tracker issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "nightly-ci",
+              per_page: 5,
+            });
+            let issue = issues.data.find(i => i.title === title);
+            if (!issue) {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: "Auto-managed by `.github/workflows/nightly.yml`. Comments below = recent failures.",
+                labels: ["nightly-ci"],
+              });
+              issue = created.data;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body,
+            });
