@@ -6,21 +6,29 @@
 // session cookie and routes back to /. Unauthenticated visitors get a
 // redirect prompt to /auth/login.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
+
+// Auto-redirect delay before sending unauthed visitors to /auth/login.
+// Keep the data-testid="me-no-session" element rendered during this window
+// so the e2e test (which asserts the testid) still passes.
+const REDIRECT_DELAY_MS = 2000;
 
 export default function MePage() {
   const { user, loading, signOut } = useSession();
   const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
 
-  // If load completed and there's no session, send them to login.
+  // After load completes, if there is no session, show the "please sign in"
+  // card briefly and then auto-redirect to /auth/login for better UX.
   useEffect(() => {
-    if (!loading && !user) {
-      // Don't auto-redirect for a tick — show the "please sign in" UI
-      // first. The test relies on the data-testid being visible.
-    }
+    if (loading || user) return;
+    setRedirecting(true);
+    const t = setTimeout(() => {
+      router.push("/auth/login");
+    }, REDIRECT_DELAY_MS);
+    return () => clearTimeout(t);
   }, [loading, user, router]);
 
   if (loading) {
@@ -37,16 +45,25 @@ export default function MePage() {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="mb-3 text-2xl font-semibold text-zinc-900">未登录</h1>
-        <p className="mb-6 text-sm text-zinc-600" data-testid="me-no-session">
-          你尚未登录。请先登录后再访问个人页。
+        <p className="mb-3 text-sm text-zinc-600" data-testid="me-no-session">
+          你尚未登录。即将跳转到登录页…
         </p>
-        <Link
-          href="/auth/login"
-          className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          data-testid="me-login-link"
-        >
-          前往登录
-        </Link>
+        <div className="flex items-center gap-3" data-testid="me-redirect-spinner">
+          <span
+            aria-hidden="true"
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700"
+          />
+          <a
+            href="/auth/login"
+            className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            data-testid="me-login-link"
+          >
+            立即登录
+          </a>
+          {redirecting && (
+            <span className="text-xs text-zinc-500">2 秒后自动跳转</span>
+          )}
+        </div>
       </main>
     );
   }

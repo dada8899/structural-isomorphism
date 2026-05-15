@@ -109,8 +109,27 @@ export default function ScreenerHomePage() {
   });
 
   const handleApply = useCallback((next: ScreenerFilters) => {
-    setFilters(next);
+    // Reset page size to 50 whenever filters change (W17 polish #5).
+    setFilters({ ...next, limit: next.limit ?? 50 });
   }, []);
+
+  // W17 polish #5: "load more" pagination (mobile UX). Bumps the current
+  // limit by +50 and re-fetches. If the server returns the same row count
+  // as the previous request, we treat that as "no more rows" and hide the
+  // button until filters change.
+  const PAGE_STEP = 50;
+  const [reachedEnd, setReachedEnd] = useState(false);
+  const handleLoadMore = useCallback(() => {
+    const currentLimit = filters.limit ?? 50;
+    setFilters({ ...filters, limit: currentLimit + PAGE_STEP });
+  }, [filters]);
+  useEffect(() => {
+    // After a fetch resolves, infer "no more rows" when the count is below
+    // the requested limit. Reset the flag whenever filters change upward.
+    if (loading) return;
+    const requested = filters.limit ?? 50;
+    setReachedEnd(companies.length < requested);
+  }, [loading, companies.length, filters.limit]);
 
   const familyOverview = useMemo(
     () =>
@@ -433,6 +452,19 @@ export default function ScreenerHomePage() {
                     <CompanyCard key={c.ticker} company={c} />
                   ))}
                 </div>
+                {!reachedEnd && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={loading}
+                      data-testid="companies-load-more"
+                      className="inline-flex items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {loading ? "加载中…" : "加载更多"}
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </section>
