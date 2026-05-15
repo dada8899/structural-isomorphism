@@ -54,7 +54,7 @@ Per `GOVERNANCE.md` § Emergency Procedures: ≥ 30 days of unresponsive BDFL �
 
 ## 4. Code of Conduct
 
-The project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md), with an explicit enforcement-contact line and escalation path. Reports route to `conduct@structural-isomorphism.org` (alias TBD; for now: @dada8899 via GitHub Discussions Meta category, with the option to email directly for privacy-sensitive reports).
+The project adopts the [Contributor Covenant v2.1](https://github.com/dada8899/structural-isomorphism/blob/main/CODE_OF_CONDUCT.md), with an explicit enforcement-contact line and escalation path. Reports route to `conduct@structural-isomorphism.org` (alias TBD; for now: @dada8899 via GitHub Discussions Meta category, with the option to email directly for privacy-sensitive reports).
 
 Enforcement actions follow the Contributor Covenant Enforcement Ladder:
 

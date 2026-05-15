@@ -40,16 +40,16 @@ Don't pay for boosts.
 
 ## Code-of-Conduct & governance (W9-B / project root)
 
-✅ [`/CODE_OF_CONDUCT.md`](../../CODE_OF_CONDUCT.md) — the *what*: rules
+✅ [`/CODE_OF_CONDUCT.md`](https://github.com/dada8899/structural-isomorphism/blob/main/CODE_OF_CONDUCT.md) — the *what*: rules
 & values. The *how* lives in `coc-enforcement-playbook.md` above.
 
-✅ [`/GOVERNANCE.md`](../../GOVERNANCE.md) — BDFL + 5-member maintainer
+✅ [`/GOVERNANCE.md`](https://github.com/dada8899/structural-isomorphism/blob/main/GOVERNANCE.md) — BDFL + 5-member maintainer
 council + decision process + recusal rules.
 
-✅ [`/CONTRIBUTING.md`](../../CONTRIBUTING.md) — how to make your first
+✅ [`/CONTRIBUTING.md`](https://github.com/dada8899/structural-isomorphism/blob/main/CONTRIBUTING.md) — how to make your first
 PR; quality bar; review process; conventional commit format.
 
-✅ [`/.github/SECURITY.md`](../../.github/SECURITY.md) — security-issue
+✅ [`/.github/SECURITY.md`](https://github.com/dada8899/structural-isomorphism/blob/main/.github/SECURITY.md) — security-issue
 reporting (private channel, 90-day disclosure window).
 
 ✅ [`NUMFOCUS_APPLICATION.md`](./NUMFOCUS_APPLICATION.md) — Fiscally
@@ -97,8 +97,8 @@ and `discord-bot-config.md`. Extract & consolidate in a future wave.
 
 If you're a **new member** landing here, start with:
 
-1. [`/CODE_OF_CONDUCT.md`](../../CODE_OF_CONDUCT.md) — what we expect
-2. [`/CONTRIBUTING.md`](../../CONTRIBUTING.md) — how to contribute
+1. [`/CODE_OF_CONDUCT.md`](https://github.com/dada8899/structural-isomorphism/blob/main/CODE_OF_CONDUCT.md) — what we expect
+2. [`/CONTRIBUTING.md`](https://github.com/dada8899/structural-isomorphism/blob/main/CONTRIBUTING.md) — how to contribute
 3. [`good-first-issues/INDEX.md`](./good-first-issues/INDEX.md) — pick a
    first task
 
@@ -108,7 +108,7 @@ If you're a **maintainer** landing here:
    a ticket lands
 2. [`discord-bot-config.md`](./discord-bot-config.md) — when a bot
    breaks
-3. [`/GOVERNANCE.md`](../../GOVERNANCE.md) — when a decision needs
+3. [`/GOVERNANCE.md`](https://github.com/dada8899/structural-isomorphism/blob/main/GOVERNANCE.md) — when a decision needs
    council vote
 
 If you're an **admin spinning up the Discord server**:
