@@ -29,15 +29,14 @@ def _hero_text(page) -> str:
 
 
 def test_zh_landing_hero_in_chinese(page):
-    """/zh hero contains the W11-B Chinese positioning line."""
+    """/zh hero contains the W11-B (+ Session #12 audit) Chinese positioning line."""
     page.goto(BASE + "/zh", wait_until="domcontentloaded", timeout=30000)
     text = _hero_text(page)
-    assert "每日" in text and "1000+" in text and "上市公司" in text, (
+    assert "1000+" in text and "上市公司" in text, (
         f"/zh hero missing Chinese positioning: {text!r}"
     )
-    # The original EN headline must not be the primary on /zh.
-    assert "Daily structural signals" not in text, (
-        f"/zh hero unexpectedly shows EN copy: {text!r}"
+    assert ("地震" in text) or ("普适" in text) or ("每日" in text), (
+        f"/zh hero must surface the cross-domain framing: {text!r}"
     )
 
 
@@ -73,7 +72,7 @@ def test_switch_en_to_zh(page):
     zh_btn.click()
     page.wait_for_url("**/zh", timeout=10000)
     text = _hero_text(page)
-    assert "每日" in text, f"after switch, hero not in Chinese: {text!r}"
+    assert "上市公司" in text, f"after switch, hero not in Chinese: {text!r}"
 
 
 def test_switch_zh_to_en(page):
@@ -88,11 +87,12 @@ def test_switch_zh_to_en(page):
         f"EN link href shouldn't keep /zh: {href!r}"
     )
     en_btn.click()
-    # The base URL "/" — we wait for the page where headline is English.
+    # The base URL "/" — wait for the English landing (Session #12 headline:
+    # "The same math that explains earthquakes, applied to 1000+ public companies.").
     page.wait_for_function(
         """() => {
             const h = document.querySelector('[data-testid=\"hero-headline\"]');
-            return h && /Daily structural signals/i.test(h.innerText);
+            return h && /public companies/i.test(h.innerText) && /earthquakes|universality/i.test(h.innerText);
         }""",
         timeout=10000,
     )

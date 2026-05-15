@@ -42,7 +42,7 @@ Session #10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes: paper / dat
 - **Storybook 8 component library** (W13-D) — 17 component stories + GH Pages deploy CI
 - **4-step onboarding tour** (W12-D) with restart link + a11y compliance
 - **Stripe Pro tier mock + paywall + analytics** (W10-B) — commercialization scaffold
-- **1000-ticker walk-forward backtest engine v0.1** (W10-A) — produced NULL result (t=-0.412, p=0.681), now publicly displayed as trust signal
+- **1000-ticker walk-forward backtest engine v0.1** (W10-A) — produced NULL result (Sharpe lift −0.07, Welch t = 0.573, p = 0.569, n_months = 59, 927 / 1000 tickers covered), now publicly displayed as trust signal
 - **i18n zh-CN translations** (W11-B): README + landing + docs + lang switcher
 - **`/compare` multi-company comparison page** + **`/universality` analogue explorer** (W10-E)
 - **Newsletter pipeline + issue #001** (W9-C + W10-D): weekly newsletter MJML template + archive page + CI

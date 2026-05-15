@@ -12,3 +12,7 @@ structlog==25.5.0
 PyYAML>=6.0,<7.0
 # W15-B (session #10): JWT session tokens for magic-link auth scaffold.
 pyjwt==2.12.1
+# W11-C: per-IP / per-API-key rate limiting + RFC7807 problem-details errors.
+# errors.py imports slowapi.errors.RateLimitExceeded — keep slowapi pinned with
+# fastapi 0.110.x compatibility band.
+slowapi>=0.1.9,<0.2

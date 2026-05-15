@@ -119,18 +119,20 @@ export default async function LandingPage() {
       >
         <div className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-white via-white to-indigo-50/40 p-8 sm:p-12">
           <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-indigo-700">
-            Newsletter · 每周一封
+            Newsletter · Weekly digest · 每周一封
           </p>
           <h2
             id="waitlist-heading"
             className="mb-3 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl"
             style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
           >
-            《结构信号》— 每周一封
+            Structural Signals — weekly research digest
           </h2>
           <p className="mb-6 max-w-prose text-sm leading-relaxed text-zinc-600 sm:text-base">
-            v0.2 backtest 报告就绪时第一时间通知 + 每周精选 3 家最值得看的相位翻转。
-            <strong className="text-zinc-900">不卖广告，不卖列表，不发别的。</strong>
+            Three notable phase flips + new pre-registered systems + v0.2 backtest as soon as it ships.
+            <br className="hidden sm:inline" />
+            每周三家最值得看的相位翻转 + 新的预登记系统 + v0.2 backtest 第一时间通知。
+            <strong className="block mt-2 text-zinc-900">No ads, no list rental, nothing else.</strong>
           </p>
           <WaitlistForm
             placement="footer"
@@ -168,15 +170,19 @@ export default async function LandingPage() {
 
 // Metadata for the landing — overrides layout default with sharper EN-first positioning.
 // W12-B (2026-05-15): OG card + twitter + canonical added.
+// Session #12: removed "alpha" framing to match W7-D Track A pivot; descriptions
+// now lead with cross-domain universality + NULL backtest as trust signal.
 export const metadata = {
-  title: "Phase Detector — Daily structural signals from 1000+ public companies",
+  title:
+    "Phase Detector — cross-domain universality, applied to 1000+ public companies",
   description:
-    "Each one a hypothesis. Each one with the receipts. You judge the alpha. 1000+ 家上市公司每日结构信号——同一套数学解释过地震、银行挤兑、电网级联。",
+    "A research-preview classifier that applies the same Clauset MLE pipeline used on earthquakes and neural avalanches to 1000+ listed equities. v0.1 backtest is NULL (Sharpe lift −0.07, p = 0.57) — published openly. Not investment advice.",
   alternates: { canonical: "https://phase.bytedance.city/" },
   openGraph: {
-    title: "Phase Detector — Daily structural signals from 1000+ public companies",
+    title:
+      "Phase Detector — cross-domain universality, applied to 1000+ public companies",
     description:
-      "Each one a hypothesis. Each one with the receipts. You judge the alpha.",
+      "Same math as earthquakes, applied to equities. v0.1 backtest NULL (p = 0.57), published openly. Research preview.",
     type: "website" as const,
     url: "https://phase.bytedance.city/",
     siteName: "Phase Detector",
@@ -185,14 +191,16 @@ export const metadata = {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — daily structural signals",
+        alt: "Phase Detector — cross-domain universality classifier",
       },
     ],
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Phase Detector — Daily structural signals from 1000+ public companies",
-    description: "Each one a hypothesis. Each one with the receipts.",
+    title:
+      "Phase Detector — cross-domain universality, applied to 1000+ public companies",
+    description:
+      "Same math as earthquakes, applied to equities. v0.1 backtest NULL (p = 0.57), published openly.",
     images: ["/og/home.png"],
     creator: "@dada8899",
   },

@@ -25,8 +25,8 @@ const STEPS = [
     n: "03",
     title: "Surface",
     titleZh: "翻面前看见",
-    body: "You see flips before they're priced in. Or you don't — we publish honest backtests up front so you judge the alpha, not us.",
-    bodyZh: "在市场定价前看见翻转。或者根本看不见——我们公开发布 NULL backtest，让你自己判断 alpha，不替你下结论。",
+    body: "Every classification is paired with its source data and the pre-registered exponent band. The v0.1 backtest is openly NULL (Sharpe lift −0.07, p = 0.57) — we publish the test we said we would run.",
+    bodyZh: "每个状态标签都附带原始数据和预登记的指数带。v0.1 回测公开零结果（Sharpe lift −0.07, p = 0.57）——我们说要跑的检验，跑完原样写出来。",
   },
 ];
 

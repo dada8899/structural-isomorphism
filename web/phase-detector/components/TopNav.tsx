@@ -19,8 +19,11 @@ import { openCommandPalette } from "./CommandPaletteProvider";
 import ThemeToggle from "./ThemeToggle";
 import { useScrollDirection } from "@/lib/useScrollDirection";
 
+// Session #12: first link was "公司表 → /" which looped to landing; restored
+// to /companies where the actual screener lives (W6-C extracted screener
+// out of /). Labels are bilingual; LanguageSwitcher swaps presentation.
 const LINKS: { href: string; label: string; external?: boolean }[] = [
-  { href: "/", label: "公司表" },
+  { href: "/companies", label: "公司表" },
   { href: "/compare", label: "对比" },
   { href: "/universality", label: "普适类" },
   { href: "/methodology", label: "方法" },

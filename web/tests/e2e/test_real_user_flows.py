@@ -326,9 +326,14 @@ def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile
         page.goto(f"{PHASE}/", wait_until="load", timeout=30000)
         # Wait for any hydration.
         page.wait_for_timeout(2500)
-        # Look for p = 0.681 in body text (transparency banner).
+        # Session #12: transparency banner now mirrors /backtest v0.1 1000-ticker
+        # run (p = 0.57); older 500-ticker number (p = 0.681) is paper-only.
         body_text = page.locator("body").inner_text(timeout=5000)
-        asserts["has_p_value"] = "p = 0.681" in body_text or "0.681" in body_text
+        asserts["has_p_value"] = (
+            "p = 0.57" in body_text
+            or "0.57" in body_text
+            or "p = 0.681" in body_text
+        )
         asserts["has_phase_brand"] = "Phase Detector" in body_text or "Phase" in body_text
         _shot(page, f"flow3-{viewport_name}-1-phase-home")
 

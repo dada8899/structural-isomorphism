@@ -25,29 +25,32 @@ export function LandingHeroZh() {
         >
           <span
             aria-hidden="true"
-            className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500"
+            className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500 motion-safe:animate-pulse"
           />
-          研究预览 · Research preview
+          跨域普适性 · 研究预览
         </p>
 
         <h1
           id="hero-headline"
           data-testid="hero-headline"
-          className="max-w-4xl text-balance text-[40px] font-semibold leading-[1.08] tracking-tight text-zinc-900 sm:text-[56px] lg:text-[64px]"
+          className="max-w-4xl text-balance text-[40px] font-semibold leading-[1.08] tracking-tight text-zinc-900 sm:text-[52px] lg:text-[56px]"
           style={{
             fontFamily: "var(--font-serif), 'Noto Serif SC', 'Charter', 'Times New Roman', serif",
           }}
         >
-          每日 <span className="text-indigo-700">1000+</span> 家上市公司的结构性信号。
+          同一套数学，从地震延伸到 <span className="text-indigo-700">1000+ 家上市公司</span>。
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
-          每条都是一个假设。每条都附带证据。
-          <br className="hidden sm:inline" /> <span className="text-zinc-900">alpha 是否成立，由你判断。</span>
+          一个跨域普适性分类器，每天对上市公司打相位标签。
+          <br className="hidden sm:inline" />{" "}
+          <span className="text-zinc-900">
+            v0.1 回测零结果（Sharpe lift −0.07，p = 0.57），公开发表。
+          </span>
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
-          Daily structural signals from 1000+ public companies. Each one a hypothesis. Each one with the receipts.
+          Same math, applied to listed equities. v0.1 backtest is NULL (p = 0.57), published openly. Research preview, not investment advice.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3" data-testid="hero-ctas">
@@ -60,17 +63,11 @@ export function LandingHeroZh() {
             <span aria-hidden="true">→</span>
           </Link>
           <Link
-            href="#how-it-works"
+            href="/methodology"
             data-testid="cta-secondary"
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
-            工作原理
-          </Link>
-          <Link
-            href="/backtest"
-            className="inline-flex items-center gap-1 px-2 py-3 text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
-          >
-            v0.1 NULL 回测 →
+            阅读方法论
           </Link>
         </div>
 

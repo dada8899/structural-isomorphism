@@ -169,6 +169,7 @@ install_rate_limit(app)
 _allowed_origins = [
     "https://beta.structural.bytedance.city",
     "https://structural.bytedance.city",
+    "https://phase.bytedance.city",
 ]
 _extra = os.getenv("STRUCTURAL_EXTRA_ORIGINS", "").strip()
 if _extra:

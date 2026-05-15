@@ -89,14 +89,22 @@ def _measure_lcp(url: str, viewport: dict, browser) -> int:
 # ---------------------------------------------------------------------------
 
 def test_hero_headline_renders(page):
-    """Hero H1 must contain the W10-C alpha-screener positioning line."""
+    """Hero H1 must surface the cross-domain-universality positioning line.
+
+    Session #12 (W16 pre-launch audit) flipped the headline from
+    "Daily structural signals" → "The same math that explains earthquakes,
+    applied to 1000+ public companies." so visitors don't pattern-match to
+    'alpha screener' before they see the NULL backtest framing.
+    """
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
     headline = page.locator('[data-testid="hero-headline"]').first
     headline.wait_for(state="visible", timeout=5000)
     text = headline.inner_text()
-    assert "Daily structural signals" in text, f"hero missing positioning line: {text!r}"
     assert "1000+" in text, f"hero missing 1000+ marker: {text!r}"
     assert "public companies" in text, f"hero missing 'public companies': {text!r}"
+    assert "earthquakes" in text.lower() or "universality" in text.lower(), (
+        f"hero must surface the cross-domain framing, got: {text!r}"
+    )
 
 
 def test_hero_eyebrow_present(page):
@@ -118,7 +126,13 @@ def test_six_explore_cards_rendered(page):
 
 
 def test_two_hero_ctas_work(page):
-    """Primary CTA links to /companies, secondary anchors to #how-it-works."""
+    """Primary CTA links to /companies, secondary to /methodology.
+
+    Session #12 (W16 audit) demoted the tertiary "v0.1 NULL backtest"
+    text-link out of the hero and changed the secondary CTA from the
+    #how-it-works in-page anchor to /methodology so researchers landing
+    cold get pulled into the science, not into another marketing scroll.
+    """
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
     primary = page.locator('[data-testid="cta-primary"]').first
     secondary = page.locator('[data-testid="cta-secondary"]').first
@@ -127,21 +141,27 @@ def test_two_hero_ctas_work(page):
     # Primary destination
     href = primary.get_attribute("href")
     assert href and ("/companies" in href), f"primary CTA href wrong: {href!r}"
-    # Secondary destination (anchor)
+    # Secondary destination (full page)
     sec_href = secondary.get_attribute("href")
-    assert sec_href and ("#how-it-works" in sec_href), f"secondary CTA href wrong: {sec_href!r}"
+    assert sec_href and ("/methodology" in sec_href), f"secondary CTA href wrong: {sec_href!r}"
     # Click primary, verify we end up on /companies
     primary.click()
     page.wait_for_url("**/companies", timeout=10000)
 
 
 def test_trust_signals_present(page):
-    """Trust signals row must surface 3 receipts: validation / backtest / methodology."""
+    """Trust signals row must surface 3 verifiable claims.
+
+    Session #12 (W16 audit) renamed the eyebrow "Receipts · 凭证" →
+    "Verifiable claims · 凭证" (English readers were parsing "Receipts" as
+    slang) and the first card "Cross-domain validation" →
+    "Within-class robustness" (scholar review flagged within-class
+    aggregation being framed as cross-domain).
+    """
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-    # Section heading hidden visually (sr-only) but accessible by name.
-    page.wait_for_selector("text=Receipts", timeout=10000)
-    # 3 labels (uppercase eyebrows inside cards):
-    page.wait_for_selector("text=Cross-domain validation", timeout=10000)
+    page.wait_for_selector("text=Verifiable claims", timeout=10000)
+    # 3 card labels:
+    page.wait_for_selector("text=Within-class robustness", timeout=10000)
     page.wait_for_selector("text=Honest backtest", timeout=10000)
     page.wait_for_selector("text=Open methodology", timeout=10000)
 

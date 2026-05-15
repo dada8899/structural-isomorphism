@@ -161,9 +161,11 @@ export default function ScreenerHomePage() {
     <div className="space-y-10">
       {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14).
           W2-B (session #9): transparency banner pulled above-fold as trust
-          signal — we publish the NULL backtest (p=0.681) upfront so users can
-          decide before scrolling. Not a fine-print disclaimer; a positioning
-          statement. */}
+          signal — we publish the NULL backtest upfront so users can decide
+          before scrolling. Numbers below mirror /backtest v0.1 1000-ticker
+          run (Sharpe lift −0.07, p = 0.57); the older 500-ticker
+          54-snapshot result (t = −0.412, p = 0.681) lives in the
+          methodology paper. */}
       <section className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8 sm:py-10">
         {/* W2-B transparency banner — above headline, amber 50 (trust signal,
             not red warning). Mobile-friendly via flex-wrap on inner text. */}
@@ -183,8 +185,8 @@ export default function ScreenerHomePage() {
             <path d="M9 12l2 2 4-4" />
           </svg>
           <div>
-            <strong className="font-semibold">透明披露</strong>：我们做了 walk-forward backtest（500 ticker × 5 年），
-            <strong className="font-semibold">p = 0.681</strong>，alpha 不显著。这个分数
+            <strong className="font-semibold">透明披露</strong>：我们做了 walk-forward backtest（927 / 1000 ticker × 5 年），Sharpe lift = −0.07，
+            <strong className="font-semibold">p = 0.57</strong>，alpha 不显著。这个分数
             <strong className="font-semibold"> 不是 </strong>投资信号。{" "}
             <Link
               href="/backtest"

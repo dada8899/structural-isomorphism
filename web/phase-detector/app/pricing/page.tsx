@@ -21,9 +21,9 @@ import { buildMetadata } from "@/lib/seo";
 
 // W12-B (2026-05-15): canonical + OG image + twitter card added via buildMetadata helper.
 export const metadata: Metadata = buildMetadata({
-  title: "定价 — Phase Detector",
+  title: "Pricing · 定价 — Phase Detector",
   description:
-    "Free / Pro $19 / Team $99。给分析师、写手、买方团队的结构化股票研究订阅。1000+ ticker 全量访问、API、newsletter 抢先看。",
+    "Free for researchers, students, journalists, OSS contributors. Pro and Team tiers cover shared dashboards, bulk export and the public HTTP API. This is a research tool, not an alpha screener — v0.1 backtest is NULL.",
   path: "/pricing",
   ogImage: "/og/pricing.png",
 });
@@ -39,11 +39,19 @@ export default function PricingPage() {
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
         >
-          为认真的研究付一杯咖啡的价。
+          A research tool, priced like one.
         </h1>
         <p className="text-base leading-relaxed text-zinc-600">
-          每天免费看 100 家公司的状态评分；想要 1000+ ticker、API
-          访问、newsletter 抢先看，升级到 Pro。
+          Free for individual researchers, students, journalists, and open-source contributors.
+          Paid tiers cover shared dashboards, bulk export and HTTP API for labs and editorial teams.
+          <br className="hidden sm:inline" />
+          <span className="block mt-2 text-zinc-500">
+            研究工具，按研究工具定价。个人研究、学生、记者、开源贡献者免费；付费档面向实验室与编辑团队。
+          </span>
+        </p>
+        <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+          <span aria-hidden="true">·</span>
+          Not an alpha screener · v0.1 backtest NULL (p = 0.57) · Not investment advice
         </p>
       </header>
 
@@ -58,13 +66,22 @@ export default function PricingPage() {
           id="pmf-disclaimer-heading"
           className="mb-1 text-sm font-semibold text-amber-900"
         >
-          研究预览阶段：Stripe 接入还在路上
+          Research-preview pricing: payments are a mock today
         </h2>
         <p className="text-sm leading-relaxed text-amber-900/85">
-          这是一个 mock checkout。当前点击「Start Pro」会进入一个模拟的
-          Stripe 结账页，**不会**真扣款。我们在 PMF 信号清晰之前不接入真实
-          Stripe（目标 Q3 2026）。但你输入的订阅意向会进入「先于
-          Stripe」的 waitlist——真上线时会优先邀请并享首月 50% off。
+          The checkout below is a mock — clicking <em>Start Pro</em> will not
+          charge anything. Real Stripe billing will only be wired in once a
+          clear product-market signal warrants it; until then your declared
+          intent is recorded as a soft waitlist and you will be invited (with a
+          first-month 50% off) the day real billing turns on. Need commercial
+          licensing or team seats sooner?{" "}
+          <a
+            href="mailto:hello@bytedance.city"
+            className="underline underline-offset-2"
+          >
+            Email us
+          </a>
+          .
         </p>
       </section>
 

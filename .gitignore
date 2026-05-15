@@ -33,9 +33,16 @@ logs/
 .env
 .env.local
 .env.*.local
+.env.bak*
+.env.backup
+.env.production
 !.env.example
+!*.env.example
 venv/
 .venv/
+
+# Runtime API-key store (test seeds live in api_keys.jsonl.example)
+web/backend/data/api_keys.jsonl
 
 # Jupyter
 .ipynb_checkpoints/

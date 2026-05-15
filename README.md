@@ -21,6 +21,8 @@ Universality classes are one of the most consequential ideas in modern statistic
 
 The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance.
 
+> **Scope honesty.** The 13 PASS verdicts currently validate **within-class robustness of a SOC-grade pipeline** across systems that all sit in (or near) the self-organized-criticality universality class. Genuine *cross-class* universality — comparing SOC vs Motter–Lai cascade vs preferential-attachment on the *same* dataset — is reserved for the next coordinated study. We avoid the "13 wins" overclaim in the papers and in this README.
+
 ## What's in this repo
 
 <table>
@@ -44,9 +46,9 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 <td width="33%" valign="top">
 
 ### 3. Phase Detector
-A research-preview consumer product. Tags 100 public companies with their current dynamical phase (stable / accumulating / near-critical / reversed / recovering) against nine universality patterns.
+A research-preview consumer product. Tags 100 public companies daily with a dynamical phase label (stable / accumulating / near-critical / reversed / recovering) against nine universality patterns. **Positioned as a structured-research-narrative, not an alpha screener.**
 
-**Backtest v0.1 (1000-ticker walk-forward, 2020-2025)**: Sharpe lift of `near_critical` cohort vs equal-weight benchmark = **−0.07** (p = 0.57, NOT significant). Published openly per W7-D Track A → positioning pivot to structured-research-narrative. See [`/backtest`](https://phase.bytedance.city/backtest) for the full transparency report.
+**Backtest v0.1** (walk-forward, 927 / 1000 tickers covered, 59 monthly snapshots over 2020-2025): Sharpe lift of `near_critical` cohort vs equal-weight benchmark = **−0.07** (Welch *t* = 0.57, *p* = 0.57, NOT significant). The NULL outcome is the headline trust signal — we published the test we said we'd run, and we report what it actually found. See [`/backtest`](https://phase.bytedance.city/backtest) for the full transparency report.
 
 [**→ phase.bytedance.city**](https://phase.bytedance.city)
 
@@ -79,7 +81,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.1 (null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + walk-forward backtest v0.1 (927 / 1000 tickers covered, null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
 
 ## API reference
 
@@ -172,7 +174,7 @@ For contributor details — build conventions, deployment SOP, session retrospec
 |---|---|
 | SOC pipeline | Stable. Frozen module + 38 sanity tests + 213 total. |
 | Universality taxonomy | v0.3, B3 consensus complete, B4 ensemble run partial. |
-| Phase Detector | Live: 100 companies + 1000-ticker walk-forward backtest v0.1 (null result published openly). |
+| Phase Detector | Live: 100 companies + walk-forward backtest v0.1 (927 / 1000 tickers covered, null result published openly). |
 | Structural Search | Live: SSE streaming, full EN i18n (244/244 keys). |
 | Unified preprint (C1) | v0.3.1 ready; arXiv submission pending. |
 | Solo arXiv drafts | 4 complete (earthquakes, S&P 500, DeFi, neural). |
@@ -192,6 +194,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, code style, and the PR revie
 
 Code: MIT — see [`LICENSE`](LICENSE).
 Datasets: CC-BY-4.0 — see individual dataset cards.
+
+## A note on the `bytedance.city` domain
+
+The live deployments are hosted at `phase.bytedance.city` and `beta.structural.bytedance.city`. These are **personal domains held by the author** — there is **no relationship** with ByteDance Ltd. or any of its subsidiaries. The `.city` TLD is a generic gTLD; `bytedance.city` was registered independently for this research project.
 
 ## Acknowledgments
 
