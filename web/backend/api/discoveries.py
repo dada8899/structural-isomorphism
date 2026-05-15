@@ -5,6 +5,8 @@ from typing import Optional
 
 from fastapi import APIRouter
 
+from schemas import DiscoveriesResponse
+
 router = APIRouter(tags=["discoveries"])
 
 _a_cache: Optional[list] = None
@@ -39,7 +41,7 @@ def _load_tier2():
     return _t2_cache
 
 
-@router.get("/discoveries")
+@router.get("/discoveries", response_model=DiscoveriesResponse)
 async def list_discoveries():
     items = _load_a_grade()
     tier2 = _load_tier2()
