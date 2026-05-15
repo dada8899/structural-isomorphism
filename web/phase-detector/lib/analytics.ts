@@ -58,6 +58,8 @@ export const Events = {
   CheckoutDeclinedMock: "checkout_declined_mock",
   PaywallModalView: "paywall_modal_view",
   PaywallModalClick: "paywall_modal_click",
+  // W15-E: A/B experiment exposure (fired once per session per experiment).
+  ExperimentExposed: "experiment_exposed",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
