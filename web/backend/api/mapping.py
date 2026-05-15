@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from services.cache import MappingCache
 from services.llm_service import LLMService
-from services.rate_limit import limit as _rl
+from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["mapping"])
 
@@ -39,7 +39,7 @@ class MappingRequest(BaseModel):
 
 
 @router.post("/mapping")
-@_rl("10/minute")
+@tier_limit_decorator(default_anon="5/minute")
 async def generate_mapping(request: Request, req: MappingRequest):
     from main import app_state
 
@@ -96,7 +96,9 @@ async def generate_mapping(request: Request, req: MappingRequest):
 
 
 @router.get("/mapping/stream")
+@tier_limit_decorator(default_anon="5/minute")
 async def stream_mapping(
+    request: Request,
     b_id: str = Query(...),
     a_id: Optional[str] = Query(None, description="KB phenomenon id for A side"),
     text_a: Optional[str] = Query(None, description="Free-text query as A side (for 'from search' flow)"),

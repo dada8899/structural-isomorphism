@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from services.llm_service import LLMService
+from services.rate_limit import tier_limit_decorator
 from services.translation import translate_category, translate_kb_items
 from services.v2_pairs import get_pairs_for, has_pairs
 
@@ -77,7 +78,8 @@ def _looks_like_question(query: str) -> bool:
 
 
 @router.post("/search")
-async def search_phenomena(req: SearchRequest):
+@tier_limit_decorator(default_anon="30/minute")
+async def search_phenomena(request: Request, req: SearchRequest):
     from main import app_state
 
     svc = app_state.get("search")
@@ -204,7 +206,8 @@ async def search_phenomena(req: SearchRequest):
 
 
 @router.post("/search/assess")
-async def assess_query(req: AssessRequest):
+@tier_limit_decorator(default_anon="10/minute")
+async def assess_query(request: Request, req: AssessRequest):
     """
     Run the LLM "worthiness + rewrite" pre-flight independently.
 
