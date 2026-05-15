@@ -14,6 +14,16 @@
 
 set -euo pipefail
 
+# CI=true tells pnpm (and most other JS tooling) to skip interactive prompts.
+# Without it, pnpm hits ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY when it
+# detects a modules dir change and asks the operator to confirm the purge —
+# SSH sessions launched by GitHub Actions don't allocate a TTY, so the
+# deploy aborts. Exporting here covers any pnpm invocation downstream
+# (restore-models.sh, systemd unit PreStart, web/* installs, etc.).
+# Mirrors session-10 W2-F 防灾 deploy three-piece: deploy must work
+# non-interactive.
+export CI=true
+
 SOURCE="${SOURCE:-/root/Projects/structural-isomorphism-v4}"
 TARGET="${TARGET:-/root/Projects/structural-isomorphism}"
 SERVICE="${SERVICE:-structural-web}"
