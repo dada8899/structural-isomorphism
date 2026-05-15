@@ -160,7 +160,7 @@ We do **not** store:
 
 ## Related
 
-- [`README.md`](./README.md) — pipeline overview.
+- [`newsletters/README.md`](./newsletters/README.md) — pipeline overview.
 - `web/backend/api/newsletter.py` — current v0 endpoint.
 - `web/frontend/assets/js/newsletter.js` — current v0 signup form.
 - `web/frontend/assets/js/analytics.js` — Plausible event tracking.
