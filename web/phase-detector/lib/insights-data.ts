@@ -483,6 +483,120 @@ export const INSIGHT_CASES: InsightCase[] = [
     sibd_seed_ids: ["SIBD-v3-044", "SIBD-v3-047"],
     last_human_review: "2026-05-15",
   },
+  {
+    id: "ews-organizational-regime-shift",
+    title: "Lake-ecosystem early-warning signals ↔ Business / organizational regime shifts",
+    subtitle:
+      "Critical-slowing-down (variance ↑, autocorrelation ↑) before a fold bifurcation is well-documented in controlled ecosystems and some climate records; the transfer to social / organizational regime detection is contested with high false-alarm rates.",
+    domains: {
+      a: "Ecological regime shifts (eutrophication, vegetation, fisheries)",
+      b: "Business / organizational regime shifts (team collapse, market structure breaks, product-life-cycle endings)",
+    },
+    universality_class_id: "scheffer_fold_bifurcation",
+    universality_class_name: "Scheffer fold bifurcation / early-warning signals",
+    shared_equation:
+      "Near a fold bifurcation, recovery time τ from perturbations diverges (critical slowing down); empirical proxies are rising variance, lag-1 autocorrelation, and skewness of the system variable",
+    variable_mapping: [
+      {
+        yours: "Decision-latency / response-time of an organization to a stressor",
+        analogue: "Ecosystem recovery time τ after a perturbation",
+        note: "In ecology τ is directly measurable from controlled perturbation experiments; in organizations only proxy variables exist (cycle time, time-to-decision) and they are confounded by many other factors.",
+      },
+      {
+        yours: "Variance of a key business KPI (e.g. churn, conversion) in a rolling window",
+        analogue: "Variance of the ecological state variable (chlorophyll, biomass)",
+      },
+      {
+        yours: "Lag-1 autocorrelation of the same KPI",
+        analogue: "Lag-1 autocorrelation of the ecological state",
+      },
+      {
+        yours: "An impending product-line collapse, team breakdown, or regime change",
+        analogue: "An impending fold bifurcation",
+        note: "The mapping assumes the social/organizational system *has* a fold bifurcation — a strong assumption that is contested. Many real-world regime changes are driven by external shocks, not by approach to a fold.",
+      },
+    ],
+    documented_transfers: [
+      {
+        direction: "Whole-lake experiment (controlled) → EWS detection",
+        intervention:
+          "Use rising variance + lag-1 autocorrelation in the trophic state variable as a leading indicator before manipulating a lake's nutrient load past the eutrophication threshold.",
+        outcome: "succeeded",
+        evidence:
+          "Carpenter et al. 2011 Science: in a deliberately-manipulated experimental lake, variance and AR(1) of phytoplankton biomass rose significantly ~2 years before the regime shift, while an unmanipulated control lake showed no such trend. This is the canonical 'EWS works' result.",
+        citation:
+          "Carpenter et al., 'Early warnings of regime shifts: a whole-ecosystem experiment.' Science 332(6033), 2011.",
+        url: "https://www.science.org/doi/10.1126/science.1203672",
+      },
+      {
+        direction: "Ecology → general dynamical-systems framework",
+        intervention:
+          "Scheffer et al.'s synthesis paper proposes EWS as a generic detector across ecology, climate, finance, neural systems.",
+        outcome: "partial",
+        evidence:
+          "Scheffer 2009 Nature reviews positive cases in ecology + paleoclimate + (with weaker evidence) clinical depression. The synthesis is influential and well-cited (>10k cites) but it explicitly notes that the signals work best in slow-driver systems with low dimensionality, conditions which most social / financial / organizational systems do NOT satisfy.",
+        citation:
+          "Scheffer et al., 'Early-warning signals for critical transitions.' Nature 461, 2009.",
+        url: "https://www.nature.com/articles/nature08227",
+      },
+      {
+        direction: "EWS → financial-crisis prediction",
+        intervention:
+          "Apply rising variance + AR(1) on market-volatility series as a leading indicator of crashes.",
+        outcome: "failed",
+        evidence:
+          "Boettiger & Hastings 2012 (Royal Soc Interface) and follow-ups demonstrate large false-alarm rates and large miss rates when EWS indicators are applied to financial time series. The slow-driver assumption is violated; high-dimensional + fast-feedback dynamics produce spurious EWS signals and miss true crashes. Multiple proposed financial-EWS papers have not produced out-of-sample forecasting better than chance.",
+        citation:
+          "Boettiger & Hastings, 'Quantifying limits to detection of early warning for critical transitions.' Royal Soc Interface 9, 2012.",
+        url: "https://royalsocietypublishing.org/doi/10.1098/rsif.2012.0125",
+      },
+      {
+        direction: "EWS → social / political regime change prediction",
+        intervention:
+          "Look for rising variance + AR(1) in social-tension indicators (protest counts, polarization indices) before political regime shifts.",
+        outcome: "failed",
+        evidence:
+          "Multiple empirical applications (Lade et al. 2013, others) find that EWS indicators on social-system data produce indistinguishable signals between actual regime changes and stable periods. The signal-to-noise ratio in observational social-system data is too low for the canonical EWS battery to work.",
+        citation:
+          "Lade & Niiranen, 'Generalized modeling of empirical social-ecological systems.' Math Biosci Eng 2017; and review in Dakos et al. 2015.",
+      },
+    ],
+    blocking_mechanisms: [
+      "Critical-slowing-down requires the system to be near a fold bifurcation. Many real-world regime changes are driven by sudden external shocks (a competitor launches, a war starts, a key person leaves) — these are NOT folds and EWS will not flag them.",
+      "The theory assumes a single slow driver and low-dimensional dynamics. Most business and social systems are high-dimensional and have many fast feedbacks. The variance / AR(1) signature gets washed out or spuriously generated.",
+      "False-alarm rate is the dominant failure mode. In observational (non-controlled) data, the same EWS signal appears before regime shifts AND before stable continuation. Without an experimental control, you cannot tell which.",
+      "Window length and detrending choices have outsized effects on the EWS verdict. Two reasonable analysts can get opposite conclusions from the same data depending on these knobs.",
+    ],
+    falsifiable_prediction: {
+      if_condition:
+        "Your organization has at least 90 days of high-frequency (≥ daily) measurements of one KPI you suspect is approaching a fold-bifurcation regime shift.",
+      then_observation:
+        "Computing rolling-window variance and lag-1 autocorrelation should show a *significant* monotonic upward trend in BOTH indicators over the last 50% of the window, with a Kendall tau > 0.3 (the standard threshold from Dakos et al.). Critically, the same test on a comparable stable-period window from your historical data should NOT show the same signal — without this control comparison, any positive result is uninterpretable.",
+      timeframe_days: 90,
+      how_to_test:
+        "1) Pull 90+ days of daily KPI data. 2) Compute rolling-window variance and AR(1) on a 21-day window. 3) Compute Kendall tau of each indicator over the trailing 45 days. 4) Repeat the same procedure on 3-5 stable historical windows from the same KPI. 5) If the test windows produce τ > 0.3 in 2+ stable windows, the indicator is firing on noise — abandon. 6) Submit your result to the public ledger.",
+    },
+    synthesis: {
+      best_current_answer:
+        "Do NOT use early-warning-signal indicators as a leading detector for business / organizational / market regime shifts. Outside controlled, slow-driver, low-dimensional systems (ecology with whole-ecosystem experimental setup, some paleoclimate records), the false-alarm rate is too high to be operationally useful. If you want to anticipate organizational regime shifts, qualitative scenario-planning + leading-indicator dashboards designed for your specific failure modes are documented to outperform EWS — use those instead.",
+      confidence: "low",
+      why_this_answer:
+        "The positive evidence for EWS is concentrated in a small number of controlled ecological + paleoclimate cases (Carpenter 2011, Dakos 2008). Every documented attempt to transfer it to social / financial / political regime detection in this library has failed at out-of-sample prediction (Boettiger & Hastings 2012, multiple follow-ups). The 'low confidence' tag reflects that the answer 'don't use EWS for your business' itself rests on a thinner empirical base than we'd like — EWS could in principle work in a sub-class of social systems we haven't isolated yet.",
+      strongest_objection:
+        "EWS may genuinely work for a narrow sub-class of slow-driver, well-isolated organizational systems (e.g. a single product nearing market saturation in a stable competitive landscape). The blanket 'don't use it' may be overly cautious — a more nuanced answer would identify which organizational sub-cases satisfy the underlying assumptions. We currently cannot give that sub-case map with confidence.",
+      short_falsification:
+        "Take your KPI's last stable 90-day window (not one where a regime shift happened). Compute variance + AR(1) Kendall tau on the trailing 45 days. If τ > 0.3 on either, EWS is firing on noise in your data — proof that even the negative control fails. If τ < 0.1 on both, you have at least a control baseline and can run the prediction test on the suspect window.",
+      do_not_apply_when: [
+        "Your regime change is most likely driven by an external shock (competitor launch, key-person departure, regulatory change) — these aren't folds and EWS won't catch them.",
+        "Your KPI is measured weekly or less frequently — sample size is too small for reliable variance/AR(1) estimation.",
+        "You don't have a comparable stable-period window to act as control — without control, positive EWS is uninterpretable.",
+      ],
+    },
+    scope_statement:
+      "This is the weakest-evidence case in the current library and is included precisely because the answer is 'don't use this transfer for most cases'. The literature has 2 decades of effort and the failure modes are well-documented. Treat this case as a warning, not as a methodology.",
+    sibd_seed_ids: ["SIBD-v2-030", "SIBD-v2-035"],
+    last_human_review: "2026-05-15",
+  },
 ];
 
 export function getInsightCase(id: string): InsightCase | undefined {
