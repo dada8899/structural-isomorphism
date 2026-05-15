@@ -58,6 +58,10 @@ export const Events = {
   CheckoutDeclinedMock: "checkout_declined_mock",
   PaywallModalView: "paywall_modal_view",
   PaywallModalClick: "paywall_modal_click",
+  // W15-C — favorites / bookmarks.
+  FavoriteAdded: "favorite_added",
+  FavoriteRemoved: "favorite_removed",
+  FavoriteCapExceeded: "favorite_cap_exceeded",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
