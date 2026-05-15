@@ -296,7 +296,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DailyResponse"
+                }
               }
             }
           },
@@ -325,7 +327,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ExamplesResponse"
+                }
               }
             }
           }
@@ -385,7 +389,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveriesResponse"
+                }
               }
             }
           }
@@ -816,7 +822,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/NewsletterCountResponse"
+                }
               }
             }
           }
@@ -883,6 +891,684 @@
         }
       }
     },
+    "/api/errors": {
+      "post": {
+        "tags": [
+          "errors"
+        ],
+        "summary": "Submit Error",
+        "operationId": "submit_error_api_errors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorReportBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logs/tail": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Tail recent server log lines (admin only)",
+        "description": "Returns the last N JSON-formatted log lines from the active server log file. Use `filter` for a cheap substring match and `level` to narrow by severity. Admin tier (X-API-Key) required.",
+        "operationId": "tail_logs_api_admin_logs_tail_get",
+        "parameters": [
+          {
+            "name": "n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 200,
+              "title": "N"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filter"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tail of recent log lines (newest last)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Tail Logs Api Admin Logs Tail Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid X-API-Key"
+          },
+          "403": {
+            "description": "API key is valid but not admin tier"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/privacy/export": {
+      "get": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "Export Data",
+        "description": "Export all data tied to a given email + optional session id.\n\nArgs:\n    email: Identifier for newsletter / checkout records.\n    session_id: Identifier for error log entries (different keying).\n    code: Verification code (mock for Phase 1).\n\nReturns 200 with full payload on success. 401 if unverified.\n429 if rate-limit exceeded. 400 if no identifier supplied.",
+        "operationId": "export_data_api_privacy_export_get",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/privacy/delete": {
+      "delete": {
+        "tags": [
+          "privacy"
+        ],
+        "summary": "Delete Data",
+        "description": "Delete all data tied to the given email and/or session_id.\n\nReturns 200 with removal counts on success. 401 if unverified.\n429 if rate-limit exceeded. 400 if no identifier supplied.",
+        "operationId": "delete_data_api_privacy_delete_delete",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flags": {
+      "get": {
+        "tags": [
+          "flags"
+        ],
+        "summary": "Get Flags",
+        "description": "Return resolved flags + experiment variants for current user.",
+        "operationId": "get_flags_api_flags_get",
+        "parameters": [
+          {
+            "name": "X-Anon-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Anon-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/favorites": {
+      "get": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "List current user's favorited company tickers",
+        "description": "Returns the current user's favorite tickers. Anonymous callers receive an empty list (NOT 401) so client-side stores can hydrate from localStorage without a login wall.",
+        "operationId": "list_favorites_api_favorites_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/favorites/merge": {
+      "post": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "One-time merge: anon localStorage tickers → server account",
+        "description": "Posts a list of tickers gathered while anonymous; server unions them into the user's account. Tier cap still applies: tickers beyond the cap are dropped silently (client should warn the user). Returns final {tickers, dropped}.",
+        "operationId": "merge_favorites_api_favorites_merge_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/favorites/{ticker}": {
+      "post": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Add a ticker to favorites (idempotent)",
+        "description": "Add the given ticker to the current user's favorites. Idempotent: adding a duplicate returns 200 (no-op). Enforces a per-tier cap (free=50, pro=500, team/admin=unlimited).",
+        "operationId": "add_favorite_api_favorites__ticker__post",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Remove a ticker from favorites",
+        "description": "Remove the given ticker from the current user's favorites. Returns 204 whether or not the ticker was present (idempotent).",
+        "operationId": "remove_favorite_api_favorites__ticker__delete",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/request-link": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request a magic-link email",
+        "description": "Generate a magic-link token and 'send' it (mock writes to outbox.jsonl).\n\nReturns 200 unconditionally for valid emails to prevent enumeration\n(whether the email exists or not, the response is identical). Invalid\nemail format still returns 400.",
+        "operationId": "request_link_api_auth_request_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestLinkBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Exchange magic-link token for session",
+        "description": "Validate the token, create/lookup the user, issue a JWT, set cookie.",
+        "operationId": "verify_api_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Clear session cookie + revoke jti",
+        "description": "Revoke the current session's jti and clear the cookie.\n\nRevocation is best-effort: if no/invalid cookie, we still return 200\nand clear the cookie. JWT remains technically valid until expiry but\nthe jti revocation list rejects it on next /me call.",
+        "operationId": "logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Return current session user",
+        "description": "Return {email, tier, created_at} or 401 if no/invalid session.",
+        "operationId": "me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -908,7 +1594,9 @@
             "description": "Service is up",
             "content": {
               "application/json": {
-                "schema": {},
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
                 "example": {
                   "status": "ok",
                   "kb_size": 12345,
@@ -943,7 +1631,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
               }
             }
           }
@@ -963,7 +1653,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WhoAmIResponse"
+                }
               }
             }
           }
@@ -1406,6 +2098,243 @@
         ],
         "title": "CheckoutBody"
       },
+      "DailyResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "discoveries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Discoveries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date"
+        ],
+        "title": "DailyResponse",
+        "description": "GET /api/daily — today's curated discoveries."
+      },
+      "DiscoveriesResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "default": 0
+          },
+          "discoveries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Discoveries"
+          },
+          "tier2_count": {
+            "type": "integer",
+            "title": "Tier2 Count",
+            "default": 0
+          },
+          "tier2": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Tier2"
+          },
+          "stats": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Stats"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DiscoveriesResponse",
+        "description": "GET /api/discoveries — A-grade + tier-2 structural discoveries."
+      },
+      "ErrorAcceptedResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "stored_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "ErrorAcceptedResponse",
+        "description": "POST /api/errors — accepted/rate_limited/storage_failure envelope.\n\n`accepted=true` ⇒ persisted to disk and `stored_at` is set.\n`accepted=false` ⇒ `reason` is set (`rate_limited` / `storage_failure`)."
+      },
+      "ErrorReportBody": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "stack": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stack"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "userAgent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useragent"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "fatal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fatal",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ErrorReportBody"
+      },
+      "ExamplesResponse": {
+        "properties": {
+          "examples": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Examples"
+          }
+        },
+        "type": "object",
+        "title": "ExamplesResponse",
+        "description": "GET /api/examples — handpicked example phenomenon pairs.\n\nItems are intentionally loose (raw KB rows are reshaped at render\ntime) so we keep `List[Dict[str, Any]]` instead of pinning a strict\nKB-row shape."
+      },
+      "FlagsResponse": {
+        "properties": {
+          "flags": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Flags"
+          },
+          "experiments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Experiments"
+          },
+          "variants": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Variants"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "FlagsResponse",
+        "description": "GET /api/flags — resolved feature flags + experiment variants."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1418,6 +2347,42 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "kb_size": {
+            "type": "integer",
+            "title": "Kb Size",
+            "default": 0
+          },
+          "llm_model": {
+            "type": "string",
+            "title": "Llm Model",
+            "default": "unknown"
+          },
+          "checks": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checks"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "GET /api/health — liveness/deep-probe response."
       },
       "HistoryRecordRequest": {
         "properties": {
@@ -1475,6 +2440,33 @@
           "b_id"
         ],
         "title": "MappingRequest"
+      },
+      "NewsletterCountResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "NewsletterCountResponse",
+        "description": "GET /api/newsletter/count — current subscriber count (anon-safe)."
+      },
+      "RequestLinkBody": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "RequestLinkBody"
       },
       "SearchRequest": {
         "properties": {
@@ -1612,6 +2604,74 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VerifyBody": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 10,
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "VerifyBody"
+      },
+      "VersionResponse": {
+        "properties": {
+          "semver": {
+            "type": "string",
+            "title": "Semver"
+          },
+          "git_sha": {
+            "type": "string",
+            "title": "Git Sha"
+          },
+          "build_date": {
+            "type": "string",
+            "title": "Build Date"
+          },
+          "python_version": {
+            "type": "string",
+            "title": "Python Version"
+          },
+          "env": {
+            "type": "string",
+            "title": "Env"
+          }
+        },
+        "type": "object",
+        "required": [
+          "semver",
+          "git_sha",
+          "build_date",
+          "python_version",
+          "env"
+        ],
+        "title": "VersionResponse",
+        "description": "GET /api/version — build & version metadata."
+      },
+      "WhoAmIResponse": {
+        "properties": {
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "api_key_supplied": {
+            "type": "boolean",
+            "title": "Api Key Supplied"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier",
+          "api_key_supplied"
+        ],
+        "title": "WhoAmIResponse",
+        "description": "GET /api/whoami — debug helper reflecting the resolved auth tier."
       }
     },
     "securitySchemes": {
@@ -1671,6 +2731,10 @@
     {
       "name": "newsletter",
       "description": "Email newsletter signup"
+    },
+    {
+      "name": "favorites",
+      "description": "Per-user bookmarked company tickers"
     },
     {
       "name": "checkout-mock",

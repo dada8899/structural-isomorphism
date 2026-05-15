@@ -319,6 +319,102 @@ class ProblemDetailEnvelope(BaseModel):
     instance: Optional[str] = None
 
 
+# ---------------------------------------------------------------------------
+# System endpoints (main.py: /api/health, /api/version, /api/whoami)
+# ---------------------------------------------------------------------------
+# 2026-05-15 W17 typed-OpenAPI fill-in. Added so the public OpenAPI spec
+# no longer ships `{}` placeholders for endpoints that have a stable
+# response shape. New endpoints should ship typed by default.
+class HealthResponse(BaseModel):
+    """GET /api/health — liveness/deep-probe response."""
+
+    status: str = "ok"
+    kb_size: int = 0
+    llm_model: str = "unknown"
+    # Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
+    checks: Optional[Dict[str, str]] = None
+
+
+class VersionResponse(BaseModel):
+    """GET /api/version — build & version metadata."""
+
+    semver: str
+    git_sha: str
+    build_date: str
+    python_version: str
+    env: str
+
+
+class WhoAmIResponse(BaseModel):
+    """GET /api/whoami — debug helper reflecting the resolved auth tier."""
+
+    tier: str
+    api_key_supplied: bool
+
+
+# ---------------------------------------------------------------------------
+# /api/examples + /api/discoveries + /api/daily + /api/flags + /api/newsletter
+# ---------------------------------------------------------------------------
+class ExamplesResponse(BaseModel):
+    """GET /api/examples — handpicked example phenomenon pairs.
+
+    Items are intentionally loose (raw KB rows are reshaped at render
+    time) so we keep `List[Dict[str, Any]]` instead of pinning a strict
+    KB-row shape.
+    """
+
+    examples: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class NewsletterCountResponse(BaseModel):
+    """GET /api/newsletter/count — current subscriber count (anon-safe)."""
+
+    count: int = 0
+
+
+class ErrorAcceptedResponse(BaseModel):
+    """POST /api/errors — accepted/rate_limited/storage_failure envelope.
+
+    `accepted=true` ⇒ persisted to disk and `stored_at` is set.
+    `accepted=false` ⇒ `reason` is set (`rate_limited` / `storage_failure`).
+    """
+
+    accepted: bool
+    stored_at: Optional[str] = None  # ISO-8601 UTC when accepted=True
+    reason: Optional[str] = None  # set when accepted=False
+
+    model_config = {"extra": "allow"}
+
+
+class DiscoveriesResponse(BaseModel):
+    """GET /api/discoveries — A-grade + tier-2 structural discoveries."""
+
+    count: int = 0
+    discoveries: List[Dict[str, Any]] = Field(default_factory=list)
+    tier2_count: int = 0
+    tier2: List[Dict[str, Any]] = Field(default_factory=list)
+    stats: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow"}
+
+
+class DailyResponse(BaseModel):
+    """GET /api/daily — today's curated discoveries."""
+
+    date: str  # ISO-8601 date
+    discoveries: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class FlagsResponse(BaseModel):
+    """GET /api/flags — resolved feature flags + experiment variants."""
+
+    flags: Dict[str, Any] = Field(default_factory=dict)
+    experiments: Dict[str, Any] = Field(default_factory=dict)
+    variants: Dict[str, str] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow"}
+
+
 __all__ = [
     # ask
     "AskRequest",
@@ -358,4 +454,14 @@ __all__ = [
     "CompaniesResponse",
     "Phase",
     "PhasesResponse",
+    # system + filled-in W17 typed responses
+    "HealthResponse",
+    "VersionResponse",
+    "WhoAmIResponse",
+    "ExamplesResponse",
+    "NewsletterCountResponse",
+    "ErrorAcceptedResponse",
+    "DiscoveriesResponse",
+    "DailyResponse",
+    "FlagsResponse",
 ]

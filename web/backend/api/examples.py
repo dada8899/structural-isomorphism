@@ -1,6 +1,8 @@
 """GET /api/examples — 首页的 3 个示例发现（精心挑选）"""
 from fastapi import APIRouter
 
+from schemas import ExamplesResponse
+
 router = APIRouter(tags=["examples"])
 
 # Handpicked 3 most "wow" discoveries for the homepage.
@@ -37,7 +39,7 @@ def _compute_examples(svc) -> list:
     return examples
 
 
-@router.get("/examples")
+@router.get("/examples", response_model=ExamplesResponse)
 async def get_examples():
     global _CACHED_EXAMPLES
     from main import app_state
