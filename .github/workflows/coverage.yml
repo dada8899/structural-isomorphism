@@ -25,12 +25,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install coverage pytest httpx fastapi pydantic
-          pip install -e packages/soc-pipeline || true
-          pip install -e packages/cross-judge || true
-          pip install -e packages/guarded-llm || true
-          ***REMOVED*** Backend deps for web/backend tests
-          pip install slowapi || true
-          ***REMOVED*** SOC scientific deps
+          ***REMOVED*** Hard-fail on the three packages we ship — soft-fail used to mask
+          ***REMOVED*** broken builds and silently drop their coverage from the rollup.
+          pip install -e packages/soc-pipeline
+          pip install -e packages/cross-judge
+          pip install -e packages/guarded-llm
+          ***REMOVED*** Backend deps for web/backend tests (errors.py imports slowapi).
+          pip install slowapi
+          ***REMOVED*** SOC scientific deps — soft-fail tolerated only here because
+          ***REMOVED*** numpy/scipy/pandas/powerlaw wheels occasionally regress on a fresh
+          ***REMOVED*** ubuntu image; we want the gate to still run on the rest.
           pip install numpy scipy pandas powerlaw || true
       - name: Run coverage (split by suite, parallel files combined)
         run: |

@@ -5,9 +5,9 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="structural-isomorphism",
-    version="0.1.0",
+    version="0.4.0",
     author="Qihang Wan",
-    description="Cross-domain structural similarity search engine",
+    description="Cross-domain structural similarity search engine + SOC validation pipeline",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dada8899/structural-isomorphism",
