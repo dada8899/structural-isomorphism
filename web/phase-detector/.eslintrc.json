@@ -1,0 +1,14 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "coverage/",
+    "playwright-report/",
+    "storybook-static/"
+  ],
+  "rules": {
+    "@next/next/no-html-link-for-pages": "off"
+  }
+}
