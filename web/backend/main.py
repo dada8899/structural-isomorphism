@@ -199,6 +199,7 @@ def get_search_service():
 
 ***REMOVED*** --- API routes ---
 from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, favorites  ***REMOVED*** noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, auth as auth_api  ***REMOVED*** noqa
 from api.privacy import export as privacy_export, delete as privacy_delete  ***REMOVED*** noqa
 from api import flags as flags_api  ***REMOVED*** noqa: E402 — W15-E feature flags
 
@@ -231,6 +232,10 @@ app.include_router(privacy_delete.router, prefix="/api")
 app.include_router(flags_api.router, prefix="/api")
 ***REMOVED*** W15-C (session ***REMOVED***10): user favorites / bookmarks (per-user star button).
 app.include_router(favorites.router, prefix="/api")
+***REMOVED*** W15-B (session ***REMOVED***10): magic-link auth scaffold + JWT session cookies.
+***REMOVED*** Mock email send (writes to data/mock_email_outbox.jsonl); replace with
+***REMOVED*** real SMTP/SendGrid when product is ready for invite-only Alpha.
+app.include_router(auth_api.router, prefix="/api")
 
 
 @app.get(
