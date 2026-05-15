@@ -54,7 +54,10 @@ jobs:
           python -m coverage run --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ $PYTEST_FLAGS || true
           # Web backend
           python -m coverage run --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS || true
-          # V4 sanity (skip soc-pipeline-primitives that needs special PYTHONPATH gymnastics)
+          # V4 sanity. soc-pipeline-primitives is covered separately by the
+          # packages/soc-pipeline subset below (avoids double-counting), so
+          # it's --ignore'd here. The PYTHONPATH shadow bug that previously
+          # broke this test was fixed via v4/tests/conftest.py reordering.
           python -m coverage run --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py $PYTEST_FLAGS || true
           # Soc-pipeline subset (skip slow LR/null/omori for CI speed)
           python -m coverage run --rcfile=.coveragerc -m pytest \
