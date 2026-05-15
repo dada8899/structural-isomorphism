@@ -6,6 +6,27 @@ import type {
   Stats,
   UniversalityClassDetail,
 } from "@/lib/types";
+// W15-A: pull one fixture's type from the auto-generated api-types so a
+// backend rename breaks Storybook visibly + early.
+import type { CheckoutBody } from "@/lib/api-types";
+
+// W15-A: example POST body matching the generated `CheckoutBody`.
+// Stories or future MSW handlers consume this rather than inlining a
+// duplicate object literal that could drift from Pydantic.
+export const checkoutBodyValid: CheckoutBody = {
+  tier: "pro",
+  interval: "month",
+  email: "qa@example.com",
+  name: "QA Tester",
+  card_last4: "4242",
+  force_status: null,
+};
+
+export const checkoutBodyDeclined: CheckoutBody = {
+  ...checkoutBodyValid,
+  card_last4: "0002",
+  force_status: "declined",
+};
 
 export const companyStable: Company = {
   ticker: "AAPL",
