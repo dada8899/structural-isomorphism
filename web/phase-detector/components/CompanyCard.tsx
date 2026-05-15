@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { SparkLine } from "@/components/SparkLine";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Events, trackEvent } from "@/lib/analytics";
 import {
   CPS_ARIA_LABEL,
@@ -81,7 +82,13 @@ export function CompanyCard({ company }: { company: Company }) {
       >
         <span className="sr-only">查看 {company.ticker} 详情</span>
       </Link>
-      <header className="pointer-events-none relative z-[1] flex items-start justify-between gap-3">
+      {/* W15-C: star button — absolute top-right, z-10 above stretched link.
+          Clicks are stopPropagation'd inside FavoriteButton so they don't
+          navigate. */}
+      <div className="absolute right-3 top-3 z-10">
+        <FavoriteButton ticker={company.ticker} source="card" />
+      </div>
+      <header className="pointer-events-none relative z-[1] flex items-start justify-between gap-3 pr-12">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <h3 className="truncate text-lg font-semibold tracking-tight text-zinc-900 transition-colors group-hover:text-blue-700">
