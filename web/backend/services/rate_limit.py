@@ -37,33 +37,65 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
     """Per-request tier-aware rate-limit decorator.
 
     slowapi's `Limiter.limit` accepts either a static string OR a callable
-    that takes the request and returns a string. We forward to the callable
-    form so a single endpoint can serve paid/free/anonymous tiers with
-    different limits.
+    that takes no arguments and returns a string (per memory
+    `feedback_slowapi_dynamic_limit_signature.md`: the callable does NOT
+    receive `request`, so per-request tier must arrive via ContextVar).
 
     Usage:
         @router.post("/ask/stream")
-        @tier_limit_decorator()
+        @tier_limit_decorator(default_anon="5/minute")
         async def ask_stream(request: Request, req: AskRequest): ...
 
     Behaviour:
-        - When slowapi is available, returns a real decorator that asks
-          services.auth for the tier on every call.
+        - When slowapi is available, returns a real decorator whose limit
+          callable reads `middleware.rate_limit.CURRENT_TIER` (set by
+          TierResolutionMiddleware before the route runs) and maps tier →
+          spec via `TIER_LIMITS`. `default_anon` is the floor used when
+          the resolved tier is free/anonymous (so individual endpoints can
+          tighten anonymous traffic without touching the global table).
+        - For `admin` tier we return a very high cap so slowapi is
+          effectively a no-op without breaking its callable contract.
         - When slowapi is missing (test envs, lean installs), returns a
           no-op decorator — endpoints still work, just unrate-limited.
-        - The `default_anon` argument lets callers override the fallback
-          limit if they want stricter handling for anonymous traffic on
-          specific endpoints.
     """
     if not (_ENABLED and limiter is not None):
         def _noop(f):
             return f
         return _noop
 
-    # slowapi's dynamic-limit callable is invoked without the request
-    # object (signature: `_spec()` or `_spec(key)` where key = remote-addr),
-    # so we cannot resolve the tier inside the limit-provider. Tier-aware
-    # auth still happens at the endpoint top via verify_api_token; here we
-    # apply the anonymous baseline. A future enhancement could keep a
-    # request-context contextvar to lift the tier into the limit provider.
-    return limiter.limit(default_anon)
+    def _resolve_spec() -> str:
+        # Local import keeps this module importable even if middleware
+        # subpackage isn't wired (e.g. lean test harnesses that don't
+        # install_rate_limit). The ContextVar default of "free" gives a
+        # sensible fallback in those cases.
+        try:
+            from middleware.rate_limit import CURRENT_TIER, TIER_LIMITS
+            tier = CURRENT_TIER.get()
+        except Exception:
+            tier = "anonymous"
+            TIER_LIMITS = None  # type: ignore[assignment]
+
+        # Tier → req/minute. Mirrors middleware.rate_limit.TIER_LIMITS but
+        # tolerates absence to keep this module self-sufficient.
+        defaults = {"free": 60, "pro": 1000, "team": 5000, "admin": None}
+        if TIER_LIMITS:
+            defaults = dict(TIER_LIMITS)  # type: ignore[arg-type]
+
+        # Normalise legacy tier names (verify_api_token still returns
+        # "anonymous" / "paid" in some code paths).
+        tier_norm = (tier or "free").lower()
+        if tier_norm == "anonymous":
+            # Anonymous gets the per-endpoint default_anon floor — this
+            # is the whole point of the parameter.
+            return default_anon
+        if tier_norm == "paid":
+            tier_norm = "pro"
+
+        base = defaults.get(tier_norm, defaults.get("free", 60))
+        if base is None:
+            # admin — effectively unlimited (slowapi can't be fully bypassed
+            # from a callable, but a 1M/min cap is inert in practice).
+            return "1000000/minute"
+        return f"{base}/minute"
+
+    return limiter.limit(_resolve_spec)

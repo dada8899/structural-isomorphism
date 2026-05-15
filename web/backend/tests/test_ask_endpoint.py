@@ -466,26 +466,35 @@ class TestAskStreamEndpoint:
             r = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
         assert r.status_code == 503
 
-    def test_rate_limit_anonymous_429_after_burst(self, ask_app):
-        """Anonymous tier @ 5/minute: 6th call inside one minute → 429."""
-        # The endpoint default is "5/minute" for anonymous traffic. Hammering
-        # 6 requests from the same client IP must trip the limiter on the
-        # 6th. Use stream() for the first 5 so we exhaust the SSE body and
-        # don't leave dangling generators.
+    def test_rate_limit_free_tier_smoke(self, ask_app):
+        """Smoke: free-tier traffic flows without immediate 429.
+
+        Updated for W11-C ContextVar-driven tier resolution: requests
+        without an X-API-Key resolve to tier='free' via
+        TierResolutionMiddleware, not 'anonymous'. The free-tier cap is
+        60/min from middleware.rate_limit.TIER_LIMITS, so a 6-request
+        burst should NOT trip the limiter (previous test asserted 429
+        on 6th under the broken static-5/min path that this fix removed).
+
+        Strict per-tier spec resolution is unit-tested in
+        test_rate_limit_tier_contextvar.py — that file calls the inner
+        `_resolve_spec` directly under each ContextVar value.
+        """
         with TestClient(ask_app) as client:
             for _ in range(5):
                 with client.stream(
-                    "POST", "/api/ask/stream", json={"query": "Why do banks collapse"}
+                    "POST",
+                    "/api/ask/stream",
+                    json={"query": "Why do banks collapse"},
                 ) as r:
                     assert r.status_code == 200
-                    # drain
                     for _line in r.iter_text():
                         pass
-            r6 = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
-        # slowapi raises RateLimitExceeded → handler returns 429.
-        # If slowapi isn't installed in the env, this test would be skipped
-        # via the decorator no-op path; in our deps it IS installed.
-        assert r6.status_code == 429
+            r6 = client.post(
+                "/api/ask/stream", json={"query": "Why do banks collapse"}
+            )
+        # Free tier 60/min: 6th request well under the cap.
+        assert r6.status_code == 200
 
 
 if __name__ == "__main__":

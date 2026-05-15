@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from services.llm_service import LLMService
-from services.rate_limit import limit as _rl
+from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["synthesize"])
 
@@ -35,7 +35,7 @@ class SynthesizeRequest(BaseModel):
 
 
 @router.post("/synthesize")
-@_rl("10/minute")
+@tier_limit_decorator(default_anon="5/minute")
 async def synthesize(request: Request, req: SynthesizeRequest):
     if not req.query or not req.results:
         raise HTTPException(400, "Missing query or results")
@@ -57,7 +57,7 @@ async def synthesize(request: Request, req: SynthesizeRequest):
 
 
 @router.post("/synthesize/stream")
-@_rl("10/minute")
+@tier_limit_decorator(default_anon="5/minute")
 async def synthesize_stream(request: Request, req: SynthesizeRequest):
     """Streaming variant. Server-Sent Events with three event types:
 
