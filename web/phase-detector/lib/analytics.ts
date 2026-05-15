@@ -60,6 +60,10 @@ export const Events = {
   PaywallModalClick: "paywall_modal_click",
   // W15-E: A/B experiment exposure (fired once per session per experiment).
   ExperimentExposed: "experiment_exposed",
+  // W15-C — favorites / bookmarks.
+  FavoriteAdded: "favorite_added",
+  FavoriteRemoved: "favorite_removed",
+  FavoriteCapExceeded: "favorite_cap_exceeded",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
