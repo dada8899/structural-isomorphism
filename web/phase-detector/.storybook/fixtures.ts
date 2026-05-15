@@ -197,28 +197,28 @@ export const universalityDetailSample: UniversalityClassDetail = {
   shared_equation: "P(s) ~ s^{-τ}",
   evidence_systems: [
     {
-      domain: "physics",
-      name: "Bak-Tang-Wiesenfeld sandpile",
-      citation: "Bak, Tang & Wiesenfeld 1987",
+      phenomenon: "Bak-Tang-Wiesenfeld sandpile",
+      evidence: "Power-law avalanche-size distribution τ ≈ 1.5",
+      paper: "Bak, Tang & Wiesenfeld 1987",
     },
     {
-      domain: "biology",
-      name: "Neural avalanches",
-      citation: "Beggs & Plenz 2003",
+      phenomenon: "Neural avalanches",
+      evidence: "Power-law neuronal burst sizes in cortical slices",
+      paper: "Beggs & Plenz 2003",
     },
     {
-      domain: "finance",
-      name: "DeFi liquidation cascades",
-      citation: "Aave V2 / Maker / Compound 2020-2024",
+      phenomenon: "DeFi liquidation cascades",
+      evidence: "Heavy-tailed liquidation event sizes with 1/f noise",
+      paper: "Aave V2 / Maker / Compound 2020-2024",
     },
   ],
   negative_examples: [
-    { name: "Linear regulators", reason: "No threshold-driven cascade." },
+    { phenomenon: "Linear regulators", reason: "No threshold-driven cascade." },
   ],
   edge_cases: [
     {
-      name: "Power-law tail without 1/f noise",
-      note: "Often heavy-tailed but not SOC.",
+      phenomenon: "Power-law tail without 1/f noise",
+      debate: "Often heavy-tailed but not SOC.",
     },
   ],
   references: [
