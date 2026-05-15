@@ -199,6 +199,7 @@ def get_search_service():
 ***REMOVED*** --- API routes ---
 from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log  ***REMOVED*** noqa
 from api.privacy import export as privacy_export, delete as privacy_delete  ***REMOVED*** noqa
+from api import flags as flags_api  ***REMOVED*** noqa: E402 — W15-E feature flags
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -225,6 +226,8 @@ app.include_router(admin_logs.router, prefix="/api")
 ***REMOVED*** W14-C: GDPR data export + delete endpoints.
 app.include_router(privacy_export.router, prefix="/api")
 app.include_router(privacy_delete.router, prefix="/api")
+***REMOVED*** W15-E (session ***REMOVED***10): feature flags + A/B experiments framework.
+app.include_router(flags_api.router, prefix="/api")
 
 
 @app.get(
