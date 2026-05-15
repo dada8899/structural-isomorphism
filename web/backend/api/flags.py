@@ -30,6 +30,7 @@ from flags import (
     get_all_flags,
     _load_config,
 )
+from schemas import FlagsResponse
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def _resolve_user_id(request: Request, x_anon_id: Optional[str]) -> Optional[str
     return None
 
 
-@router.get("/flags")
+@router.get("/flags", response_model=FlagsResponse)
 async def get_flags(
     request: Request,
     x_anon_id: Optional[str] = Header(default=None, alias="X-Anon-Id"),

@@ -27,6 +27,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from schemas import NewsletterCountResponse
+
 router = APIRouter(tags=["newsletter"])
 logger = logging.getLogger("structural.newsletter")
 
@@ -136,7 +138,7 @@ async def subscribe(body: SubscribeBody, request: Request):
     )
 
 
-@router.get("/newsletter/count")
+@router.get("/newsletter/count", response_model=NewsletterCountResponse)
 async def count():
     """Public count of subscribers (used by future social-proof widgets).
     Cheap-but-not-cached — at our scale (~MB jsonl), a full scan is < 5ms."""
