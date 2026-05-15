@@ -35,6 +35,8 @@
     "autoprefixer": "10.4.19",
     "babel-loader": "^10.1.1",
     "css-loader": "^7.1.4",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.15",
     "eslint-plugin-storybook": "^0.10.2",
     "postcss": "8.4.38",
     "postcss-loader": "^8.2.1",
