@@ -39,8 +39,8 @@
 | **deploy-phase-detector** | ✅ SUCCESS at 04:21 | F12 + VPS patch 起作用 |
 | **docs (mkdocs build)** | ✅ SUCCESS | F14 #211 修 |
 | **docs (GH Pages deploy)** | ❌ 404 Not Found | **user-input only blocker** — Settings → Pages → "GitHub Actions" |
-| **sanity** | ❌ 期待修 by #213 + #214 | F15+F17 双层修；新 run 待触发 |
-| **perf** | ❌ 期待修 by #212 | F16 关 eslint 规则 + pipefail; 新 run 待触发 |
+| **sanity** | ✅ SUCCESS at 04:29:30 | F15+F17 双层修真起作用（PYTHONPATH shadow + sklearn dep） |
+| **perf** | ⏳ RUNNING (post F16) | 新 run 跟 F16 push 后触发 |
 | **deploy-beta-backend** | ❌ pre-F12 fail at 04:01 | F12 #208 已修 deploy-vps.sh; 未自动 re-trigger (paths-filtered workflow) |
 | **coverage** | ❌ 54.3% < 90% gate | **真覆盖率债务**（不在 session scope；需补测试） |
 | **CI matrix** | 部分红 | macOS/Windows runner 上 sanity matrix 可能仍有 platform 差异 |
