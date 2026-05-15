@@ -84,6 +84,44 @@ export interface CookieConsent {
   timestamp?: number | null;
 }
 /**
+ * GET /api/daily — today's curated discoveries.
+ */
+export interface DailyResponse {
+  date: string;
+  discoveries?: {
+    [k: string]: unknown;
+  }[];
+}
+/**
+ * GET /api/discoveries — A-grade + tier-2 structural discoveries.
+ */
+export interface DiscoveriesResponse {
+  count?: number;
+  discoveries?: {
+    [k: string]: unknown;
+  }[];
+  tier2_count?: number;
+  tier2?: {
+    [k: string]: unknown;
+  }[];
+  stats?: {
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+}
+/**
+ * POST /api/errors — accepted/rate_limited/storage_failure envelope.
+ *
+ * `accepted=true` ⇒ persisted to disk and `stored_at` is set.
+ * `accepted=false` ⇒ `reason` is set (`rate_limited` / `storage_failure`).
+ */
+export interface ErrorAcceptedResponse {
+  accepted: boolean;
+  stored_at?: string | null;
+  reason?: string | null;
+  [k: string]: unknown;
+}
+/**
  * Client-side error envelope. All optional fields are size-capped
  * in the backend; mirrored here for the typed-frontend contract.
  */
@@ -96,6 +134,44 @@ export interface ErrorReportBody {
   timestamp?: number | null;
   sessionId?: string | null;
   fatal?: boolean | null;
+}
+/**
+ * GET /api/examples — handpicked example phenomenon pairs.
+ *
+ * Items are intentionally loose (raw KB rows are reshaped at render
+ * time) so we keep `List[Dict[str, Any]]` instead of pinning a strict
+ * KB-row shape.
+ */
+export interface ExamplesResponse {
+  examples?: {
+    [k: string]: unknown;
+  }[];
+}
+/**
+ * GET /api/flags — resolved feature flags + experiment variants.
+ */
+export interface FlagsResponse {
+  flags?: {
+    [k: string]: unknown;
+  };
+  experiments?: {
+    [k: string]: unknown;
+  };
+  variants?: {
+    [k: string]: string;
+  };
+  [k: string]: unknown;
+}
+/**
+ * GET /api/health — liveness/deep-probe response.
+ */
+export interface HealthResponse {
+  status?: string;
+  kb_size?: number;
+  llm_model?: string;
+  checks?: {
+    [k: string]: string;
+  } | null;
 }
 /**
  * A single history row returned by GET /api/history.
@@ -138,6 +214,12 @@ export interface MappingRequest {
   a_id: string;
   b_id: string;
   lang?: string;
+}
+/**
+ * GET /api/newsletter/count — current subscriber count (anon-safe).
+ */
+export interface NewsletterCountResponse {
+  count?: number;
 }
 /**
  * Universality class / phase descriptor.
@@ -246,4 +328,21 @@ export interface Verdict {
   confidence: number;
   similar_phenomena?: KBCard[];
   followups?: string[];
+}
+/**
+ * GET /api/version — build & version metadata.
+ */
+export interface VersionResponse {
+  semver: string;
+  git_sha: string;
+  build_date: string;
+  python_version: string;
+  env: string;
+}
+/**
+ * GET /api/whoami — debug helper reflecting the resolved auth tier.
+ */
+export interface WhoAmIResponse {
+  tier: string;
+  api_key_supplied: boolean;
 }
