@@ -15,7 +15,18 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install numpy scipy pandas powerlaw matplotlib pytest pydantic
+          pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml
+      - name: Install local packages (editable)
+        # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
+        # re-export from packages/*. Sanity tests import via the shims
+        # (and one test imports `yaml` directly), so we MUST install:
+        #   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
+        #   * guarded-llm        → guarded_llm.guardrail symbols
+        #   * cross-judge        → pulls in pyyaml + cross_judge prompts
+        run: |
+          pip install -e packages/soc-pipeline
+          pip install -e packages/guarded-llm
+          pip install -e packages/cross-judge
       - name: Run sanity tests
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/v4/lib:$(pwd)/web/backend"
