@@ -20,7 +20,7 @@ from playwright.sync_api import Page, expect, sync_playwright  ***REMOVED*** noq
 
 BASE_URL = "https://phase.bytedance.city"
 
-pytestmark = pytest.mark.e2e
+pytestmark = [pytest.mark.e2e, pytest.mark.requires_internet]
 
 
 @pytest.fixture(scope="module")
