@@ -20,7 +20,8 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, Optional
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator, Optional
 
 from fastapi import FastAPI, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,17 +29,6 @@ from pydantic import BaseModel, Field
 
 from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
-
-app = FastAPI(title="Phase Detector Screener API", version="0.2.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    # W8-D: include POST so /api/waitlist preflights succeed from main site.
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
-# W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
-app.include_router(universality_router)
 
 
 # W8-D: ensure waitlist table exists on startup (idempotent).
@@ -71,7 +61,6 @@ CREATE INDEX IF NOT EXISTS idx_waitlist_signed_up_at ON waitlist(signed_up_at);
 """
 
 
-@app.on_event("startup")
 def _ensure_waitlist_table() -> None:
     try:
         with get_cursor() as (cur, driver):
@@ -82,6 +71,30 @@ def _ensure_waitlist_table() -> None:
                 cur.execute(ddl)
     except Exception:  # pragma: no cover -- never block app boot on DDL race
         pass
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # startup: idempotent waitlist DDL (replaces deprecated @app.on_event("startup")).
+    _ensure_waitlist_table()
+    yield
+    # shutdown: nothing to clean up currently.
+
+
+app = FastAPI(
+    title="Phase Detector Screener API",
+    version="0.2.0",
+    lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    # W8-D: include POST so /api/waitlist preflights succeed from main site.
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+# W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
+app.include_router(universality_router)
 
 
 # -------- pydantic models --------
