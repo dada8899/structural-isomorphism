@@ -19,8 +19,27 @@ import re
 import sys
 from pathlib import Path
 
+# Match Next.js 14.2.x build route table lines.
+#
+# Examples (note the various tree-drawing chars Next emits):
+#   ┌ ○ /                                    4.17 kB         111 kB
+#   ├ ○ /_not-found                          161 B          87.6 kB
+#   │ └ ƒ /company/[ticker]                  6.01 kB         109 kB
+#   └ ○ /zh                                  3.35 kB         110 kB
+#
+# Both 14.2.15 and 14.2.35 emit this same layout, but in 14.2.x the root
+# corner "┌" was missing from the original char class, and "/\S+" rejected
+# the bare root route "/" (no chars after the slash). Both bugs combined
+# could mask the root route, and on builds where the route table was
+# preceded by additional log noise (typecheck warnings interleaved with
+# tree chars), more lines could fall through. The pattern below is
+# robust to:
+#   - Any leading whitespace (incl. NBSP via \s in re.UNICODE)
+#   - Any combination of tree characters before the type marker
+#   - Bare "/" route (route path can be just "/")
+#   - Whitespace/size tokens separated by 1+ spaces
 ROUTE_LINE = re.compile(
-    r"^(?:├|└|│)?\s*[○ƒ]\s+(/\S+)\s+([0-9.]+)\s+(B|kB|MB)\s+([0-9.]+)\s+(B|kB|MB)"
+    r"^[\s│├└┌─]*[○ƒλ]\s+(/\S*)\s+([0-9.]+)\s+(B|kB|MB)\s+([0-9.]+)\s+(B|kB|MB)"
 )
 
 
