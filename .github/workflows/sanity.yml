@@ -15,7 +15,10 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml
+          # scikit-learn required: v4/lib/embedding_bridge.py uses
+          # TfidfVectorizer as fallback when V1/V2 SentenceTransformer
+          # models unavailable in CI. Mirrors coverage.yml dep list.
+          pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
       - name: Install local packages (editable)
         # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
         # re-export from packages/*. Sanity tests import via the shims
