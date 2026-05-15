@@ -64,7 +64,14 @@ jobs:
         working-directory: web/phase-detector
         env:
           NEXT_PUBLIC_USE_MOCK: 'true'
-        run: pnpm build 2>&1 | tee /tmp/build.log
+        # set -o pipefail so `pnpm build` failure surfaces here (not in
+        # downstream "Check bundle budget" as a confusing parse error).
+        # Without pipefail, `tee` swallows the non-zero exit and the step
+        # appears green even when next build aborts in lint / typecheck.
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm build 2>&1 | tee /tmp/build.log
 
       - name: Install Python deps
         run: |

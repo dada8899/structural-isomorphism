@@ -76,7 +76,30 @@ def main():
 
     rows = parse_build_log(Path(args.build_log))
     if not rows:
-        print("No routes parsed from build log — pattern mismatch.", file=sys.stderr)
+        # No route table found. Most often this means `next build` aborted
+        # before emitting it (lint / typecheck error, OOM, network fail
+        # fetching fonts on a sandboxed runner, ...) and the upstream step
+        # used `tee` without `pipefail`, so the real error was swallowed.
+        # Surface a hint + tail of the log so the true root cause is one
+        # scroll away rather than buried under a regex.
+        log_path = Path(args.build_log)
+        size = log_path.stat().st_size if log_path.exists() else 0
+        print(
+            "No routes parsed from build log. "
+            "Either next build aborted before emitting the route table "
+            "(lint / typecheck / OOM — inspect tail of the log) "
+            "or the Next.js output format changed and the regex needs an update. "
+            f"Log: {log_path} ({size} bytes)",
+            file=sys.stderr,
+        )
+        try:
+            tail = log_path.read_text().splitlines()[-40:]
+            print("\n----- build.log tail (last 40 lines) -----", file=sys.stderr)
+            for line in tail:
+                print(line, file=sys.stderr)
+            print("----- end build.log tail -----", file=sys.stderr)
+        except Exception:
+            pass
         sys.exit(2)
 
     budget = json.loads(Path(args.budget).read_text())
