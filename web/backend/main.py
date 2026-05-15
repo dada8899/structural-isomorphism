@@ -238,6 +238,9 @@ app.include_router(favorites.router, prefix="/api")
 app.include_router(auth_api.router, prefix="/api")
 
 
+from schemas import HealthResponse, VersionResponse, WhoAmIResponse  # noqa: E402
+
+
 @app.get(
     "/api/health",
     tags=["system"],
@@ -246,6 +249,8 @@ app.include_router(auth_api.router, prefix="/api")
         "Lightweight health check. Pass `?deep=1` for a deep probe that "
         "also exercises external dependencies (DB / LLM upstream)."
     ),
+    response_model=HealthResponse,
+    response_model_exclude_none=True,
     responses={
         200: {
             "description": "Service is up",
@@ -295,6 +300,7 @@ async def health(deep: int = 0):
         "via the `STRUCTURAL_GIT_SHA` env), build date, runtime python "
         "version, and the deploy environment (dev / staging / prod)."
     ),
+    response_model=VersionResponse,
 )
 async def version():
     import sys as _sys
@@ -329,6 +335,7 @@ async def version():
         "Useful for debugging X-API-Key auth. Returns the tier that "
         "rate-limiting will use and whether a valid key was supplied."
     ),
+    response_model=WhoAmIResponse,
 )
 async def whoami(request: Request):
     from middleware.rate_limit import CURRENT_TIER as _T

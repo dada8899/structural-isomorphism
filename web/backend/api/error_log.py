@@ -48,6 +48,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from schemas import ErrorAcceptedResponse
+
 router = APIRouter(tags=["errors"])
 logger = logging.getLogger("structural.errors")
 
@@ -135,7 +137,7 @@ class ErrorReportBody(BaseModel):
     model_config = {"extra": "forbid"}  # reject unknown fields (privacy)
 
 
-@router.post("/errors")
+@router.post("/errors", response_model=ErrorAcceptedResponse, response_model_exclude_none=True)
 async def submit_error(body: ErrorReportBody, request: Request):
     now = time.time()
     client_ip = request.client.host if request.client else "?"

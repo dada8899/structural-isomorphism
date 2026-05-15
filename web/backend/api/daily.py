@@ -8,6 +8,8 @@ from typing import List, Optional
 
 from fastapi import APIRouter
 
+from schemas import DailyResponse
+
 router = APIRouter(tags=["daily"])
 
 _discoveries: Optional[List[dict]] = None
@@ -57,7 +59,7 @@ def _load_discoveries():
     return _discoveries
 
 
-@router.get("/daily")
+@router.get("/daily", response_model=DailyResponse)
 async def daily_discoveries(lang: str = "zh"):
     from main import app_state
 
