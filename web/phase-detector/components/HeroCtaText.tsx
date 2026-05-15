@@ -13,7 +13,7 @@ interface Props {
   fallback?: string;
 }
 
-export function HeroCtaText({ fallback = "Browse signals" }: Props) {
+export function HeroCtaText({ fallback = "Explore companies" }: Props) {
   const text = useVariantValue("hero_cta_text_v2", fallback);
   return <>{text}</>;
 }

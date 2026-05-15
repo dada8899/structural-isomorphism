@@ -38,7 +38,7 @@ Before any of the above goes out, the human reviewer needs to confirm:
 - [ ] arXiv submission has landed; replace every "arXiv pending" placeholder with the real arXiv ID
 - [ ] Zenodo DOI link is live (https://doi.org/10.5281/zenodo.19615170) — confirmed accessible from a non-author IP
 - [ ] beta.structural.bytedance.city and phase.bytedance.city are live and not 5xx-ing at launch time
-- [ ] PyPI packages (`structural-soc-pipeline`, `structural-critics`, `structural-taxonomy`) are installable from a clean venv
+- [ ] PyPI packages (`soc-pipeline`, `cross-judge`, `guarded-llm`) are installable from a clean venv
 - [ ] CITATION.cff renders correctly via GitHub's "Cite this repository" button
 - [ ] Repo README badges all load (not 404)
 - [ ] HN account has sufficient karma for the post not to be auto-flagged

@@ -29,7 +29,7 @@ const QUESTIONS: QA[] = [
       <>
         不是。Phase Detector 是<strong>研究预览</strong>——把复杂系统的相变数学套到上市公司上，公开展示我们的看法和回测。
         所有信号<strong>仅供独立研究</strong>，不构成买卖建议、不构成证券推荐、不替代你自己的判断。
-        我们公开发布的 NULL backtest（p=0.681）就说明：alpha 不显著时我们也照实写。
+        我们公开发布的 NULL backtest（Sharpe lift −0.07, p = 0.57）就说明：alpha 不显著时我们也照实写。
       </>
     ),
   },

@@ -41,3 +41,135 @@ identifiers:
   - type: other
     value: "structural-isomorphism-pipeline-v0.3.1"
     description: pipeline release tag
+references:
+  - type: article
+    title: "Power-law distributions in empirical data"
+    authors:
+      - family-names: Clauset
+        given-names: Aaron
+      - family-names: Shalizi
+        given-names: Cosma Rohilla
+      - family-names: Newman
+        given-names: M. E. J.
+    journal: SIAM Review
+    volume: 51
+    issue: 4
+    year: 2009
+    start: 661
+    end: 703
+    doi: 10.1137/070710111
+  - type: article
+    title: "Self-organized criticality: An explanation of the 1/f noise"
+    authors:
+      - family-names: Bak
+        given-names: Per
+      - family-names: Tang
+        given-names: Chao
+      - family-names: Wiesenfeld
+        given-names: Kurt
+    journal: Physical Review Letters
+    volume: 59
+    issue: 4
+    year: 1987
+    start: 381
+    end: 384
+    doi: 10.1103/PhysRevLett.59.381
+  - type: article
+    title: "Early-warning signals for critical transitions"
+    authors:
+      - family-names: Scheffer
+        given-names: Marten
+      - family-names: Bascompte
+        given-names: Jordi
+      - family-names: Brock
+        given-names: William A.
+      - family-names: Brovkin
+        given-names: Victor
+      - family-names: Carpenter
+        given-names: Stephen R.
+      - family-names: Dakos
+        given-names: Vasilis
+      - family-names: Held
+        given-names: Hermann
+      - family-names: van Nes
+        given-names: Egbert H.
+      - family-names: Rietkerk
+        given-names: Max
+      - family-names: Sugihara
+        given-names: George
+    journal: Nature
+    volume: 461
+    year: 2009
+    start: 53
+    end: 59
+    doi: 10.1038/nature08227
+  - type: article
+    title: "Cascade-based attacks on complex networks"
+    authors:
+      - family-names: Motter
+        given-names: Adilson E.
+      - family-names: Lai
+        given-names: Ying-Cheng
+    journal: Physical Review E
+    volume: 66
+    issue: 6
+    year: 2002
+    doi: 10.1103/PhysRevE.66.065102
+  - type: article
+    title: "Neuronal avalanches in neocortical circuits"
+    authors:
+      - family-names: Beggs
+        given-names: John M.
+      - family-names: Plenz
+        given-names: Dietmar
+    journal: The Journal of Neuroscience
+    volume: 23
+    issue: 35
+    year: 2003
+    start: 11167
+    end: 11177
+    doi: 10.1523/JNEUROSCI.23-35-11167.2003
+  - type: article
+    title: "Scaling of the distribution of price fluctuations of individual companies"
+    authors:
+      - family-names: Plerou
+        given-names: Vasiliki
+      - family-names: Gopikrishnan
+        given-names: Parameswaran
+      - family-names: Amaral
+        given-names: Luís A. N.
+      - family-names: Meyer
+        given-names: Martin
+      - family-names: Stanley
+        given-names: H. Eugene
+    journal: Physical Review E
+    volume: 60
+    issue: 6
+    year: 1999
+    start: 6519
+    end: 6529
+    doi: 10.1103/PhysRevE.60.6519
+  - type: article
+    title: "Bank runs, deposit insurance, and liquidity"
+    authors:
+      - family-names: Diamond
+        given-names: Douglas W.
+      - family-names: Dybvig
+        given-names: Philip H.
+    journal: Journal of Political Economy
+    volume: 91
+    issue: 3
+    year: 1983
+    start: 401
+    end: 419
+    doi: 10.1086/261155
+  - type: data
+    title: "SIBD-63: A Dataset of A-Level Cross-Domain Structural Isomorphism Discoveries"
+    authors:
+      - family-names: Wan
+        given-names: Qinghui
+    year: 2026
+    publisher:
+      name: Zenodo
+    doi: 10.5281/zenodo.19615170
+    version: "1.0"

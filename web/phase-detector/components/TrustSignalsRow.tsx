@@ -14,31 +14,30 @@ interface Signal {
   hint?: string;
 }
 
-// Backtest delta is sourced from /backtest page (W10-A). We currently
-// publish the NULL result honestly (p=0.681, alpha not significant). When
-// W10-A ships the v0.2 Sharpe lift this value swaps in via env.
-const BACKTEST_HEADLINE =
-  process.env.NEXT_PUBLIC_BACKTEST_HEADLINE ??
-  "v0.1 backtest: p=0.681 (NULL, published)";
+// Backtest headline mirrors web/phase-detector/public/backtest/result.json:
+//   sharpe_lift = -0.072, t_stat = 0.573, p_value = 0.569 (Welch t-test,
+//   near_critical_llm cohort vs equal-weight benchmark, n_months=59).
+// When W10-A v0.2 ships an updated number, edit the value below + the
+// /backtest page metadata in the same PR — both must agree.
 
 const SIGNALS: Signal[] = [
   {
-    label: "Cross-domain validation",
+    label: "Within-class robustness",
     value: "13 systems · Clauset-grade",
-    href: "https://github.com/dada8899/structural-isomorphism/blob/main/PREPRINT.md",
-    hint: "Earthquakes, bank runs, neural avalanches, wildfires, grid cascades.",
+    href: "https://github.com/dada8899/structural-isomorphism/blob/main/paper/anti-phacking-unified-2026-05-15.md",
+    hint: "Earthquakes, bank runs, neural avalanches, wildfires, grid cascades — all within the SOC universality class.",
   },
   {
     label: "Honest backtest",
-    value: BACKTEST_HEADLINE,
+    value: "Sharpe lift −0.07, p = 0.57 (NULL, published)",
     href: "/backtest",
-    hint: "Walk-forward. 500 tickers × 5 years. We publish even when alpha = 0.",
+    hint: "Walk-forward, 927 / 1000 tickers covered, 59 monthly snapshots over 2020–2025. We publish even when alpha = 0.",
   },
   {
     label: "Open methodology",
-    value: "Frozen pipeline · public code",
+    value: "Frozen 339-LOC pipeline · public code",
     href: "/methodology",
-    hint: "Code, prompts, calibration data — all on GitHub.",
+    hint: "Code, prompts, pre-registered exponent bands — all on GitHub. MIT + CC-BY-4.0.",
   },
 ];
 
@@ -49,22 +48,18 @@ export function TrustSignalsRow() {
       className="border-y border-zinc-200 bg-zinc-50/40"
     >
       <div className="mx-auto w-full max-w-6xl px-6 py-16 sm:py-20">
-        <h2
-          id="trust-signals-heading"
-          className="sr-only"
-        >
-          Trust signals
-        </h2>
         <div className="mb-10 max-w-2xl">
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-            Receipts · 凭证
+            Verifiable claims · 凭证
           </p>
-          <p
+          <h2
+            id="trust-signals-heading"
             className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl"
             style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
           >
-            每一条信号都附带来源。<br className="hidden sm:inline" />你判断 alpha，我们不替你下结论。
-          </p>
+            Every claim links to its source.<br className="hidden sm:inline" />{" "}
+            <span className="text-zinc-600">每条信号都附带来源，你自己判断。</span>
+          </h2>
         </div>
         <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-200 sm:grid-cols-3">
           {SIGNALS.map((s) => {

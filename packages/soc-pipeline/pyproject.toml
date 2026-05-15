@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Cross-domain self-organized criticality validation (Clauset 2009 + bootstrap + null controls + Vuong LR + universal collapse)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [
     { name = "Structural Isomorphism Project", email = "soc@bytedance.city" },
 ]
