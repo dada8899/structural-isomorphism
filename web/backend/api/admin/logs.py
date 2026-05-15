@@ -39,6 +39,7 @@ from fastapi import APIRouter, Query, Request
 
 from errors import Forbidden, Unauthenticated
 from logging_config import current_log_file
+from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["admin"])
 
@@ -160,6 +161,7 @@ def _parse_line(raw: str) -> dict:
         403: {"description": "API key is valid but not admin tier"},
     },
 )
+@tier_limit_decorator(default_anon="2/minute")
 async def tail_logs(
     request: Request,
     n: int = Query(_DEFAULT_N, ge=1, le=_MAX_N),
