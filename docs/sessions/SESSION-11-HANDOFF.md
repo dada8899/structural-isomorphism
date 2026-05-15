@@ -347,4 +347,107 @@ git tag --list 'v*' | tail -5
 
 > Session ***REMOVED***11 起手必读: 本文件 → CHANGELOG.md v0.4.0 entry → SESSION-10-HANDOFF.md footer addendum → 验证 §0 健康
 > 任何疑问翻 `docs/sessions/SESSION-10-HANDOFF.md` 找 W6→W13 详情
-> Wave 14 详细 metric 等 W14-E commit 上 main 后填到本文件 §1 末尾 (post-merge addendum)
+
+---
+
+***REMOVED******REMOVED*** 11. Session ***REMOVED***10 末态 addendum (2026-05-15 写于 close-out)
+
+W14-E 提交本文件后，session ***REMOVED***10 继续跑了 Wave 15 (5 sub-agents) + 1 个 hotfix。
+
+***REMOVED******REMOVED******REMOVED*** 11.1 Wave 14 + 15 + 1 hotfix 全清单
+
+| PR | 主题 |
+|---|---|
+| **Wave 14** | |
+| ***REMOVED***184 | docs: SESSION-11 handoff + CHANGELOG v0.4.0 (w14-e) |
+| ***REMOVED***185 | test(load): k6 scripts + baseline (w14-b) |
+| ***REMOVED***186 | feat(obs): structlog + correlation ID (w14-d) |
+| ***REMOVED***188 | feat(privacy): GDPR cookie consent + export/delete (w14-c rebased) |
+| ***REMOVED***189 | test(e2e): full user journey (w14-a) |
+| **Wave 15** | |
+| ***REMOVED***190 | ci: matrix Python 3.10/11/12 × OS + nightly (w15-d) |
+| ***REMOVED***191 | feat(flags): feature flags + A/B framework (w15-e) |
+| ***REMOVED***192 | feat(types): Pydantic→TS sync + CI gate (w15-a) |
+| ***REMOVED***194 | feat(favorites): user bookmarks (w15-c rebased) |
+| ***REMOVED***197 | feat(auth): magic-link scaffold (w15-b rebased) |
+| **Hotfix** | |
+| ***REMOVED***196 | fix(topnav): restore 266 LOC after rebase truncation |
+
+**累计 session ***REMOVED***10: 50 PR merged** (W6-W15 + hotfix). 8 PRs superseded by rebase versions: 163, 171, 173, 176, 180, 187, 193, 195.
+
+***REMOVED******REMOVED******REMOVED*** 11.2 最终 metrics
+
+- Backend tests 75 → **271**
+- Coverage 54.1% → **85.6%**
+- E2E tests 11 → **80+** (user journey + a11y + PWA + cookie + auth + favorites + dark mode + search)
+- 0 commit-boundary violations / 0 quota burns
+- ~10 rebases auto-resolved
+
+***REMOVED******REMOVED******REMOVED*** 11.3 TopNav 截断 bug (W12-C/W13-A 后遗症，已修 ***REMOVED***196)
+
+W12-C → W13-A rebase 时 conflict resolution 用 `re.sub(...DOTALL)` 正则太贪婪，吃掉 TopNav.tsx 主体 248 行 (只剩 19 行 imports)。直到 W15-B agent 报错才发现。
+
+PR ***REMOVED***196 已恢复：`git show 66fa69b:TopNav.tsx` → 266 行 + 手插 ThemeToggle import.
+
+**教训**: rebase 用正则合并 conflict marker 不安全。下次用 `git checkout --conflict=diff3` 手动 review，或合后验证 `wc -l` 没塌陷。
+
+***REMOVED******REMOVED******REMOVED*** 11.4 v2 模型部署状态 ⏳
+
+- ✅ 本地训练完成 (49.5min, 2 epoch, eval_loss 1.088 → 0.696, **-36%**)
+- ✅ 本地 smoke test 通过 (768-dim, earthquake↔neural avalanche sim=0.586)
+- ⏳ **VPS 部署 in-flight**: rsync PID 25171 跑了 7h+
+  - 当前 .Tmp 文件 `.model.safetensors.x3eeVH` = **356MB / 391MB = 91%**
+  - rsync `--partial` 保断点续传 (本机断 ssh 也会自动 resume)
+  - 完成后 atomic rename → prod 自动用 v2
+
+**为什么慢**: Mac→SG ISP 上行 + ISP QoS 长连接限速 + 100-200ms RTT 导致 TCP slow-start。开始 140 KB/s，几小时后降到 13-17 KB/s。**网络层面随机性**，非代码 bug。
+
+**Session ***REMOVED***11 验证 v2 已部署**:
+```bash
+ssh vps "ls -la /root/Projects/structural-isomorphism/models/structural-v2/model.safetensors"
+***REMOVED*** 应看 size = 391M (vs 当前 409M base fallback) + timestamp = 2026-05-15 之后
+```
+
+**如果还在跑**: 不需介入。如果想加速:
+```bash
+***REMOVED*** 仅当卡死时
+pgrep -f "rsync.*structural-v2" | xargs kill
+nohup rsync -avu --partial --progress \
+  -e "ssh -i ~/.ssh/id_ed25519 -c aes128-gcm@openssh.com -o TCPKeepAlive=yes" \
+  ~/Projects/structural-isomorphism/models/structural-v2/ \
+  root@43.156.233.71:/root/Projects/structural-isomorphism/models/structural-v2/ \
+  > /tmp/rsync_resume.log 2>&1 &
+```
+
+***REMOVED******REMOVED******REMOVED*** 11.5 Session ***REMOVED***11 推荐起手 (升级版)
+
+**Option A — 3-step OSS publish (推荐 highest ROI)**
+1. 用户 20 分钟: arXiv 注册 + PYPI_TOKEN GH secret + GH Pages 切 "GitHub Actions"
+2. CC 接力 1h: history scrub + LFS migrate + PUBLIC flip + 3 PyPI upload + 5 paper arXiv submit
+3. 后续: launch HN + Twitter + Mastodon + Reddit (W9-D 全部 ready) + 5 senior outreach 邮件 (Plenz / Priesemann / Scheffer / Clauset / Sornette)
+
+**Option B — Wave 16+ continuous polish (无 user 介入)**
+- W16: 邮件实发 (Buttondown / Resend)
+- W17: real Sentry + OpenTelemetry + Grafana
+- W18: WebSocket realtime phase flips
+- W19: GraphQL layer alongside REST
+- W20: 第二个语言 i18n (Japanese / Spanish)
+
+**Option C — Wave 6 alpha launch**
+- 5-10 真实 scientific user dogfood
+- 1 周收 feedback
+- P0 修复
+
+---
+
+***REMOVED******REMOVED*** 12. Session ***REMOVED***10 close checklist
+
+- [x] Wave 6-15 全 5/5 完成
+- [x] 50 PR merged + 1 hotfix
+- [x] CHANGELOG.md v0.4.0 entry
+- [x] SESSION-11 handoff (本文件) 含完整清单 + addendum
+- [x] TopNav 截断 bug 修复 (***REMOVED***196)
+- [ ] v2 模型 VPS rsync 完成 (in-flight 91%, 后台自动跑)
+- [ ] git tag v0.4.0 (session ***REMOVED***11 起手可打，或等 v2 prod 验证后)
+- [ ] HF Hub push v2 model (user: HF_TOKEN)
+- [ ] arXiv submit / PyPI publish / PUBLIC flip (Option A user-input)
