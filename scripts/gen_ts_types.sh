@@ -26,6 +26,27 @@ PYDANTIC2TS="${PYDANTIC2TS:-${REPO_ROOT}/.venv/bin/pydantic2ts}"
 OUT="web/phase-detector/lib/api-types.ts"
 SCHEMAS_FILE="web/backend/schemas.py"
 
+# Accept either an absolute path (local .venv) or a bare command name on
+# $PATH (CI sets PY=python). The `[[ -x ... ]]` test below only works on
+# real paths, so resolve bare names through `command -v` first.
+if [[ "$PY" != /* ]]; then
+  PY_RESOLVED="$(command -v "$PY" || true)"
+  if [[ -z "$PY_RESOLVED" ]]; then
+    echo "[gen_ts_types] no python on PATH as '$PY' — set PY env var or run 'python -m venv .venv'" >&2
+    exit 2
+  fi
+  PY="$PY_RESOLVED"
+fi
+if [[ "$PYDANTIC2TS" != /* ]]; then
+  PYDANTIC2TS_RESOLVED="$(command -v "$PYDANTIC2TS" || true)"
+  if [[ -z "$PYDANTIC2TS_RESOLVED" ]]; then
+    echo "[gen_ts_types] pydantic2ts not found on PATH as '$PYDANTIC2TS' — run:" >&2
+    echo "    $PY -m pip install pydantic-to-typescript" >&2
+    exit 2
+  fi
+  PYDANTIC2TS="$PYDANTIC2TS_RESOLVED"
+fi
+
 if [[ ! -x "$PY" ]]; then
   echo "[gen_ts_types] no python at $PY — set PY env var or run 'python -m venv .venv'" >&2
   exit 2

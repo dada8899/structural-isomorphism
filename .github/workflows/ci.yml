@@ -54,6 +54,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev] || pip install numpy scipy pandas powerlaw pytest pytest-xdist
+          pip install pyyaml
+
+      - name: Install local packages (editable)
+        # v4 sanity / integration tests import via deprecated shims at
+        # v4/lib/{llm_guardrail,soc_pipeline}.py that re-export from
+        # packages/*. Without these editable installs sanity collects
+        # ModuleNotFoundError. cross-judge also pulls in pyyaml.
+        run: |
+          pip install -e packages/soc-pipeline
+          pip install -e packages/guarded-llm
+          pip install -e packages/cross-judge
 
       - name: Run sanity tests
         run: pytest v4/tests/sanity -m sanity -v -m "not slow"
