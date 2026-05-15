@@ -1,0 +1,109 @@
+name: types-sync
+
+# W15-A (session #10, 2026-05-15): keep the auto-generated TS types
+# (web/phase-detector/lib/api-types.ts) in lockstep with the Pydantic
+# schemas at web/backend/schemas.py.
+#
+# The workflow regenerates the file on every PR and fails if the result
+# differs from what was committed. Authors who change a Pydantic model
+# but forget to run `bash scripts/gen_ts_types.sh` see a red check, get
+# a comment on the PR with the diff, and can copy/paste the fix.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "web/backend/schemas.py"
+      - "web/backend/api/**"
+      - "web/phase-detector/lib/api-types.ts"
+      - "scripts/gen_ts_types.sh"
+      - ".github/workflows/types-sync.yml"
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pydantic-to-typescript
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pydantic-to-typescript pydantic
+
+      - name: Install json-schema-to-typescript
+        run: npm install -g json-schema-to-typescript@15
+
+      - name: Regenerate api-types.ts
+        env:
+          PY: python
+          PYDANTIC2TS: pydantic2ts
+        run: bash scripts/gen_ts_types.sh
+
+      - name: Diff committed vs regenerated
+        id: diff
+        run: |
+          if git diff --quiet -- web/phase-detector/lib/api-types.ts; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+            echo "OK — api-types.ts is in sync with web/backend/schemas.py"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "::error::api-types.ts is stale — run 'bash scripts/gen_ts_types.sh' and commit"
+            git diff -- web/phase-detector/lib/api-types.ts | head -200
+            exit 1
+          fi
+
+      - name: Comment on PR with diff
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            let diff = '';
+            try {
+              diff = execSync(
+                'git diff -- web/phase-detector/lib/api-types.ts',
+                { encoding: 'utf8' }
+              ).slice(0, 60000);
+            } catch (_) {
+              diff = '(diff command failed — re-run the workflow locally)';
+            }
+            const body = [
+              '### types-sync: api-types.ts is stale',
+              '',
+              'A Pydantic schema in `web/backend/schemas.py` (or one of the',
+              'endpoints it mirrors) changed without regenerating the TS file.',
+              '',
+              '**Fix locally:**',
+              '```bash',
+              'bash scripts/gen_ts_types.sh',
+              'git add web/phase-detector/lib/api-types.ts',
+              'git commit --amend --no-edit && git push -f',
+              '```',
+              '',
+              '<details><summary>Generated diff</summary>',
+              '',
+              '```diff',
+              diff,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
