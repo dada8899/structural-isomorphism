@@ -30,19 +30,32 @@ jobs:
           pip install -e packages/guarded-llm || true
           ***REMOVED*** Backend deps for web/backend tests
           pip install slowapi || true
-          ***REMOVED*** SOC scientific deps
-          pip install numpy scipy pandas powerlaw || true
+          ***REMOVED*** W14/W15 test-collection deps (pyjwt → test_auth,
+          ***REMOVED*** structlog → test_correlation + test_structlog_format).
+          ***REMOVED*** Without these, pytest fails at collection time and kills
+          ***REMOVED*** the entire web/backend suite, including W11-A critical tests
+          ***REMOVED*** like test_checkout_mock_w11a_coverage.
+          pip install 'pyjwt>=2.8' structlog || true
+          ***REMOVED*** openai → cross-judge vendors tests (otherwise 2 fail but
+          ***REMOVED*** suite continues).
+          pip install 'openai>=1.0' || true
+          ***REMOVED*** SOC scientific deps + sklearn (embedding_bridge sanity).
+          pip install numpy scipy pandas powerlaw scikit-learn || true
       - name: Run coverage (split by suite, parallel files combined)
         run: |
           export PYTHONPATH=.
+          ***REMOVED*** --continue-on-collection-errors: don't let a single missing
+          ***REMOVED*** optional dep kill the entire suite (W11-A critical tests
+          ***REMOVED*** must always run even if newer W14/W15 deps are missing).
+          PYTEST_FLAGS="-q --tb=no --continue-on-collection-errors"
           ***REMOVED*** Guarded-llm
-          python -m coverage run --rcfile=.coveragerc -m pytest packages/guarded-llm/tests/ -q --tb=no || true
+          python -m coverage run --rcfile=.coveragerc -m pytest packages/guarded-llm/tests/ $PYTEST_FLAGS || true
           ***REMOVED*** Cross-judge
-          python -m coverage run --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ -q --tb=no || true
+          python -m coverage run --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ $PYTEST_FLAGS || true
           ***REMOVED*** Web backend
-          python -m coverage run --rcfile=.coveragerc -m pytest web/backend/tests/ -q --tb=no || true
+          python -m coverage run --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS || true
           ***REMOVED*** V4 sanity (skip soc-pipeline-primitives that needs special PYTHONPATH gymnastics)
-          python -m coverage run --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py -q --tb=no || true
+          python -m coverage run --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py $PYTEST_FLAGS || true
           ***REMOVED*** Soc-pipeline subset (skip slow LR/null/omori for CI speed)
           python -m coverage run --rcfile=.coveragerc -m pytest \
               packages/soc-pipeline/tests/test_utils.py \
@@ -52,7 +65,7 @@ jobs:
               packages/soc-pipeline/tests/test_universal_collapse.py \
               packages/soc-pipeline/tests/test_time_resolution.py \
               packages/soc-pipeline/tests/test_fit.py \
-              -q --tb=no || true
+              $PYTEST_FLAGS || true
           python -m coverage combine --rcfile=.coveragerc
       - name: Coverage report
         run: |
