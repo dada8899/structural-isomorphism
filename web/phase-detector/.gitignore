@@ -2,6 +2,11 @@
 /node_modules
 /.pnp
 .pnp.js
+# Lockfiles intentionally NOT tracked — the project pins versions in
+# package.json and the deploy pipeline regenerates the lockfile per env.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # testing
 /coverage
