@@ -10,3 +10,5 @@ torch==2.2.0
 structlog==25.5.0
 # W15-E (session #10): feature flags YAML config.
 PyYAML>=6.0,<7.0
+# W15-B (session #10): JWT session tokens for magic-link auth scaffold.
+pyjwt==2.12.1
