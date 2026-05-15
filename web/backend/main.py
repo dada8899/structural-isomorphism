@@ -197,7 +197,7 @@ def get_search_service():
 
 
 ***REMOVED*** --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log  ***REMOVED*** noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, auth as auth_api  ***REMOVED*** noqa
 from api.privacy import export as privacy_export, delete as privacy_delete  ***REMOVED*** noqa
 
 app.include_router(search.router, prefix="/api")
@@ -225,6 +225,10 @@ app.include_router(admin_logs.router, prefix="/api")
 ***REMOVED*** W14-C: GDPR data export + delete endpoints.
 app.include_router(privacy_export.router, prefix="/api")
 app.include_router(privacy_delete.router, prefix="/api")
+***REMOVED*** W15-B (session ***REMOVED***10): magic-link auth scaffold + JWT session cookies.
+***REMOVED*** Mock email send (writes to data/mock_email_outbox.jsonl); replace with
+***REMOVED*** real SMTP/SendGrid when product is ready for invite-only Alpha.
+app.include_router(auth_api.router, prefix="/api")
 
 
 @app.get(
