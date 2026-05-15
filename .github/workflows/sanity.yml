@@ -28,6 +28,14 @@ jobs:
           pip install -e packages/guarded-llm
           pip install -e packages/cross-judge
       - name: Run sanity tests
+        # IMPORTANT: do NOT add v4/lib to PYTHONPATH. v4/lib/soc_pipeline.py
+        # and v4/lib/llm_guardrail.py are deprecated re-export shims; when
+        # v4/lib is on PYTHONPATH first, `from soc_pipeline import ...`
+        # resolves to the shim, which re-imports itself and fails with
+        # ImportError. The editable installs above provide the real
+        # packages — let normal resolution find them. Tests that target the
+        # shim itself (test_llm_guardrail.py) add v4/lib to sys.path locally.
+        # web/backend is kept on PYTHONPATH for tests importing site-data modules.
         run: |
-          export PYTHONPATH="${PYTHONPATH}:$(pwd)/v4/lib:$(pwd)/web/backend"
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/web/backend"
           pytest v4/tests/sanity -m sanity -q --tb=short
