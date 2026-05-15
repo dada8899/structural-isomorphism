@@ -8,3 +8,5 @@ sentence-transformers==2.5.0
 torch==2.2.0
 # W14-D (session #10): structured JSON logging + correlation IDs.
 structlog==25.5.0
+# W15-E (session #10): feature flags YAML config.
+PyYAML>=6.0,<7.0

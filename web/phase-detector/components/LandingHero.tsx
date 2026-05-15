@@ -13,6 +13,10 @@
 
 import Link from "next/link";
 import { PhaseIndicatorAnimation } from "./PhaseIndicatorAnimation";
+// W15-E: A/B experiment on primary CTA text. Client island; fallback ensures
+// no hydration mismatch (server renders "Browse signals", client may swap
+// to "See live data" for treatment-bucket users).
+import { HeroCtaText } from "./HeroCtaText";
 
 export function LandingHero() {
   return (
@@ -64,7 +68,7 @@ export function LandingHero() {
             data-testid="cta-primary"
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
-            Browse signals
+            <HeroCtaText fallback="Browse signals" />
             <span aria-hidden="true">→</span>
           </Link>
           <Link

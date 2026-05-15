@@ -1,0 +1,47 @@
+# Feature flags + A/B experiments — session #10 W15-E.
+#
+# Two top-level sections:
+#   - flags:       boolean toggles (enabled? rollout%? tier-gated?)
+#   - experiments: A/B variants with weighted allocation
+#
+# Edit this file to ship/toggle. Backend hot-reloads on a 30s TTL.
+# See docs/dev/feature-flags-2026-05-15.md for the full how-to.
+
+flags:
+  new_pricing_layout:
+    enabled: true
+    description: W10-B 3-tier Pro/Team pricing
+    rollout:
+      type: percentage
+      value: 100  # 100% of users
+
+  dark_mode_default:
+    enabled: false
+    description: Default to dark mode for new users
+    rollout:
+      type: percentage
+      value: 0
+
+  experimental_d3_viz:
+    enabled: true
+    description: W11-D interactive viz (vs static recharts fallback)
+    rollout:
+      type: segment
+      segments: [pro, team, admin]  # tier-based
+
+  newsletter_double_optin:
+    enabled: false
+    description: Send confirmation email before subscribing
+    rollout:
+      type: percentage
+      value: 50
+
+experiments:
+  hero_cta_text_v2:
+    description: A/B test "Browse signals" vs "See live data"
+    variants:
+      control: "Browse signals"
+      treatment: "See live data"
+    allocation:
+      control: 50
+      treatment: 50

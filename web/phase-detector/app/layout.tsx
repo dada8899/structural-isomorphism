@@ -8,6 +8,7 @@ import TopNav from "@/components/TopNav";
 import OnboardingTour from "@/components/OnboardingTour";
 import CommandPaletteProvider from "@/components/CommandPaletteProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { FlagsProvider } from "@/lib/flags";
 import CookieConsent from "@/components/CookieConsent";
 import ManageCookiesButton from "@/components/ManageCookiesButton";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
@@ -104,6 +105,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60 safe-area-body dark:bg-zinc-950 dark:text-zinc-100">
         <ThemeProvider>
+          <FlagsProvider>
           <a href="#main-content" className="skip-link">
             跳到主要内容
           </a>
@@ -195,6 +197,7 @@ export default function RootLayout({
           {/* W12-B site-wide structured data: WebSite + Organization. */}
           <JsonLd id="ld-website" schema={websiteSchema()} />
           <JsonLd id="ld-organization" schema={organizationSchema()} />
+          </FlagsProvider>
         </ThemeProvider>
       </body>
     </html>
