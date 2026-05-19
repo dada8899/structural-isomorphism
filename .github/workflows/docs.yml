@@ -60,14 +60,12 @@ jobs:
             mkdocs-minify-plugin \
             "mkdocstrings[python]>=0.24,<1.0"
 
-      # NOTE: --strict temporarily disabled. 7 broken-link warnings remain in
-      # docs/community/* referencing repo-root files (CODE_OF_CONDUCT.md,
-      # GOVERNANCE.md, CONTRIBUTING.md, .github/SECURITY.md) via ../../ paths
-      # that mkdocs cannot resolve since docs_dir is restricted to docs/.
-      # Tracked as follow-up: either copy/symlink those files into docs/community/
-      # or rewrite links to absolute github URLs, then re-enable --strict.
+      # --strict re-enabled (F14 fix). Repo-root governance docs (CODE_OF_CONDUCT,
+      # GOVERNANCE, CONTRIBUTING, SECURITY) are now copied into docs/community/
+      # so mkdocs can resolve them; newsletter cross-refs fixed to correct
+      # relative paths. Build is broken-link clean.
       - name: Build mkdocs site
-        run: mkdocs build --site-dir _site_build
+        run: mkdocs build --strict --site-dir _site_build
 
       # -- Storybook 8 build -------------------------------------------
       - name: Setup pnpm
