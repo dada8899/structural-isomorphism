@@ -77,8 +77,8 @@ TYPEWRITER_SLEEP_S = 0.025
 #   - top-1 cosine < RELEVANCE_TOP1_MIN  → low relevance
 #   - top-3 mean   < RELEVANCE_TOP3_MEAN_MIN → low relevance
 #   - empty cards                         → low relevance (trivial)
-# A "low_relevance" flag is then injected into the LLM prompt so the model
-# can degrade gracefully (decline + redirect) instead of forcing an answer.
+# When any signal trips, `stream()` short-circuits (M1.3): it emits a
+# local, honest refusal and skips the LLM call entirely — never硬拗.
 #
 # Threshold rationale from dogfood data:
 #   q1 (SVB):      top-1=0.94  top-3=0.85+ → above
@@ -400,12 +400,11 @@ class AskOrchestrator:
             return
 
         # ---- Phase B: LLM synthesize answer + citations + followups -- #
-        # W5-A + W5-B combined: streaming pipeline carries the low_relevance
-        # flag through to the prompt builder so the LLM degrades gracefully
-        # on out-of-scope queries while still streaming chunk-by-chunk.
-        # W14-D: structured `ask.llm.start` log line — model + low_relevance
-        # + retrieval count so a single grep on `request_id` reconstructs
-        # the whole pipeline timeline.
+        # Reached only for in-scope queries — out-of-scope ones were
+        # refused above (M1.3) without ever calling the LLM.
+        # W14-D: structured `ask.llm.start` log line — model + retrieval
+        # count so a single grep on `request_id` reconstructs the whole
+        # pipeline timeline.
         try:
             from logging_config import get_logger as _glog
 
@@ -413,7 +412,6 @@ class AskOrchestrator:
                 "ask.llm.start",
                 model=self.model,
                 kb_count=len(cards_payload),
-                low_relevance=low_relevance,
             )
         except Exception:
             pass
@@ -430,7 +428,7 @@ class AskOrchestrator:
         first_chunk_sent = False
         try:
             async for kind, value in self._stream_llm_answer_with_retry(
-                query, cards, lang_norm, low_relevance=low_relevance,
+                query, cards, lang_norm,
             ):
                 if kind == "answer_delta":
                     if value:
@@ -482,17 +480,12 @@ class AskOrchestrator:
         # Sanitize citations against the actual cards range so a
         # hallucinated idx never leaks to the frontend.
         validated_citations = self._validate_citations(payload.get("citations", []), cards)
-        answer_done_payload = {
+        # In-scope path only — out-of-scope queries were refused above and
+        # returned (M1.3), so `answer_done` here never carries out_of_scope.
+        yield _sse("answer_done", {
             "full_text": answer_text,
             "citations": validated_citations,
-        }
-        if low_relevance:
-            # Surface the gate decision so the UI can render an
-            # "out-of-scope" badge / softer styling and so analytics can
-            # track how often we degrade.
-            answer_done_payload["out_of_scope"] = True
-            answer_done_payload["scope_reason"] = relevance_reason
-        yield _sse("answer_done", answer_done_payload)
+        })
 
         # ---- Phase C: similar phenomena ------------------------------ #
         similar = self._build_similar_phenomena(cards[:TOP_K_SIMILAR])
@@ -517,7 +510,7 @@ class AskOrchestrator:
                 "ask.response",
                 latency_ms=latency_ms,
                 citation_count=len(validated_citations),
-                out_of_scope=bool(low_relevance),
+                out_of_scope=False,
             )
         except Exception:
             pass
@@ -629,7 +622,6 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
-        low_relevance: bool = False,
     ) -> Dict:
         """One LLM call; on failure retry once with a stricter reminder.
 
@@ -641,9 +633,7 @@ class AskOrchestrator:
         path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
         # First attempt — normal prompt.
-        prompt = self._build_prompt(
-            query, cards, lang, strict_json=False, low_relevance=low_relevance,
-        )
+        prompt = self._build_prompt(query, cards, lang, strict_json=False)
         result = await self._call_llm_once(prompt)
         validated = self._try_validate(result)
         if validated is not None:
@@ -651,9 +641,7 @@ class AskOrchestrator:
 
         # Retry once with a stricter "JSON only, no markdown fences" note.
         logger.warning("[ask] first LLM JSON validate failed; retrying once")
-        prompt2 = self._build_prompt(
-            query, cards, lang, strict_json=True, low_relevance=low_relevance,
-        )
+        prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
         result2 = await self._call_llm_once(prompt2)
         validated2 = self._try_validate(result2)
         if validated2 is not None:
@@ -667,7 +655,6 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
-        low_relevance: bool = False,
     ) -> AsyncIterator[Tuple[str, object]]:
         """Streaming variant — yields tuples driving the SSE pipeline.
 
@@ -689,7 +676,7 @@ class AskOrchestrator:
         3. After two failures total, yield ("done", fallback).
         """
         # ---- Attempt 1: stream + extract --------------------------------
-        prompt = self._build_prompt(query, cards, lang, strict_json=False, low_relevance=low_relevance)
+        prompt = self._build_prompt(query, cards, lang, strict_json=False)
         accumulated = ""
         emitted_any = False
         async for kind, value in self._call_llm_stream(prompt):
@@ -716,7 +703,7 @@ class AskOrchestrator:
             # already-emitted answer string by overriding `answer` with
             # whatever we managed to accumulate via the extractor.
             logger.warning("[ask] stream JSON validate failed; retry (no re-stream)")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             result2 = await self._call_llm_once(prompt2)
             validated2 = self._try_validate(result2)
             if validated2 is not None:
@@ -730,7 +717,7 @@ class AskOrchestrator:
         else:
             # Nothing user-visible yet — safe to fully re-stream.
             logger.warning("[ask] stream emitted nothing; retry with strict_json")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             accumulated2 = ""
             stream2_errored = False
             async for kind, value in self._call_llm_stream(prompt2):
@@ -942,14 +929,12 @@ class AskOrchestrator:
         cards: List[Dict],
         lang: str,
         strict_json: bool,
-        low_relevance: bool = False,
     ) -> str:
         """Build the single-shot prompt for answer + citations + followups.
 
-        When `low_relevance` is True, the prompt switches to an
-        out-of-scope branch that asks the model to decline politely and
-        redirect the user — instead of硬拗 isomorphism analogies on
-        edge / trivial / prediction queries.
+        Always the in-scope synthesis prompt: out-of-scope queries are
+        refused locally in `stream()` (M1.3) and never reach the LLM, so
+        the old `low_relevance` prompt branch was removed as dead code.
         """
         if not cards:
             cards_block = "（无 KB 召回结果，请基于通识尝试回答；citations 字段可填 idx=1 并 kb_id 留空也可以）"
@@ -974,77 +959,7 @@ class AskOrchestrator:
             else ""
         )
 
-        # ---- Out-of-scope branch (W5-A) --------------------------------
-        # Triggered when our retrieval-score gate decided the KB doesn't
-        # really cover this query. We want a short, honest, redirecting
-        # answer — not a forced cross-domain analogy. The JSON schema
-        # stays identical so downstream emission code is unchanged; we
-        # only re-frame the instructions and relax the citation rule.
-        if low_relevance:
-            if lang == "en":
-                scope_intro = (
-                    "The user's query is OUTSIDE the typical coverage of this "
-                    "structural-isomorphism knowledge base. The retrieved KB "
-                    "items are weakly related at best. Do NOT force an "
-                    "isomorphism analogy."
-                )
-                scope_rules = (
-                    "Write a SHORT (60-180 chars) answer that:\n"
-                    "  1) politely says this question is outside the KB's "
-                    "coverage (this KB focuses on cross-disciplinary "
-                    "structural isomorphism — e.g. earthquakes, bank runs, "
-                    "neural avalanches share a common math)\n"
-                    "  2) gives ONE concrete redirect — what kind of source / "
-                    "discipline / tool would actually answer this\n"
-                    "  3) does NOT pretend the retrieved KB items are "
-                    "relevant. Do not cite them with [n] markers.\n"
-                    "Followups should be 3 questions that DO fit the KB scope "
-                    "(structural isomorphism / cascades / phase transitions / "
-                    "network dynamics), so the user can pivot productively."
-                )
-            else:
-                scope_intro = (
-                    "用户的问题超出本「结构同构」知识库的典型覆盖范围。"
-                    "下方召回的 KB 现象相关性都很弱。不要硬拗跨域类比。"
-                )
-                scope_rules = (
-                    "请写一段简短（60-180 字）的回复，包含：\n"
-                    "  1) 委婉说明这个问题不在 Structural 当前覆盖范围（"
-                    "Structural 专注跨学科结构同构，如地震 / 银行挤兑 / "
-                    "神经放电的共同数学）\n"
-                    "  2) 给出 1 句具体建议——哪个学科 / 工具 / 资源更适合\n"
-                    "  3) 不要把召回的 KB 现象当真，不要使用 [n] 引用标记\n"
-                    "followups 必须给 3 个真正落在结构同构 / 级联 / 相变 / "
-                    "网络动力学范围内的问题，让用户能转向有意义的探索方向。"
-                )
-
-            return f"""你是一个跨学科结构同构搜索引擎。{scope_intro}
-
-用户问题：
-{query}
-
-下方是 vector 检索召回的 KB 现象（仅供参考，相关性低）：
-{cards_block}
-
-{lang_clause}
-
-{scope_rules}
-
-请输出严格 JSON（schema 不变）：
-{{
-  "answer": "60-180 字短回复：承认超出范围 + 给重定向建议",
-  "citations": [
-    {{"idx": 1, "kb_id": "对应 KB 现象的 id（schema 要求至少 1 条；填 idx=1 即可，不要在 answer 文本中使用 [1] 标记）", "label": "out-of-scope"}}
-  ],
-  "followups": ["真正落在结构同构范围内的问题1?", "问题2?", "问题3?"]
-}}
-
-要求：
-- answer 长度 20-2000 字符；out-of-scope 模式下不需要在文本中插入 [n] 引用标记
-- citations 数组至少 1 条以满足 schema（label 写 out-of-scope 即可）
-- followups 必须 2-5 条，全部围绕结构同构 / 跨域结构 / 级联 / 相变 / 网络动力学{strict_block}"""
-
-        # ---- Normal in-scope prompt -----------------------------------
+        # ---- In-scope synthesis prompt --------------------------------
         return f"""你是一个跨学科结构同构搜索引擎。用户问了一个复杂问题，你需要：
 
 1. 基于以下 KB 现象（已 vector 召回，按相似度排序），给出 200-400 字短答案，解释问题的"结构本质"

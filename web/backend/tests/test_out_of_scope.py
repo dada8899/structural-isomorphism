@@ -5,14 +5,14 @@ that edge queries like "我女朋友为什么生气" / "1+1=?" / "BTC 明天涨�
 硬拗 isomorphism answers despite all retrieved KB items scoring < 0.75.
 q6 burned 33s of LLM time producing 494 chars of forced analogy.
 
-Two-layer guardrail tested here:
-  - Layer A (code): AskOrchestrator._evaluate_relevance gates on
-    top-1 < RELEVANCE_TOP1_MIN  OR  top-3 mean < RELEVANCE_TOP3_MEAN_MIN
-  - Layer B (LLM):  _build_prompt(..., low_relevance=True) switches to
-    an out-of-scope branch that asks for a short, honest decline.
+M1.3 guardrail tested here:
+  - AskOrchestrator._evaluate_relevance gates on top-1 < RELEVANCE_TOP1_MIN
+    OR top-3 mean < RELEVANCE_TOP3_MEAN_MIN (or empty cards).
+  - When it trips, stream() SHORT-CIRCUITS with a local refusal
+    (_build_refusal_payload) and never calls the LLM.
 
-We mock the search service + LLM and verify the prompt path + the SSE
-event payload exposes `out_of_scope=True` on `answer_done`.
+We mock the search service and verify the refusal path makes zero LLM
+calls and the SSE `answer_done` payload carries `refused=True`.
 
 Run:
     cd web/backend
@@ -193,53 +193,37 @@ class RelevanceGateTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------
-# Layer B: LLM prompt branching
+# Layer B: in-scope prompt shape
 # --------------------------------------------------------------------------
 
-class PromptBranchingTests(unittest.TestCase):
-    """Verify _build_prompt switches branches when low_relevance=True."""
+class PromptTests(unittest.TestCase):
+    """`_build_prompt` always produces the in-scope synthesis prompt — the
+    out-of-scope branch was removed in M1.3 (refusal short-circuits before
+    the LLM is ever reached, so a low-relevance prompt is never built)."""
 
     def setUp(self):
         self.orch = AskOrchestrator(search_service=_FakeSearch([]))
 
-    def test_low_relevance_prompt_contains_out_of_scope_instruction(self):
+    def test_in_scope_prompt_shape(self):
+        """In-scope prompt asks for a 200-400 char answer with [n] citations."""
         prompt = self.orch._build_prompt(
-            "1+1=?", _LOW_REL_KB, lang="zh",
-            strict_json=False, low_relevance=True,
-        )
-        # Out-of-scope branch must explicitly tell the model to decline.
-        self.assertIn("超出", prompt)
-        self.assertIn("覆盖范围", prompt)
-        # Must tell the model NOT to use [n] citation markers.
-        self.assertIn("不要", prompt)
-
-    def test_low_relevance_prompt_english_branch(self):
-        prompt = self.orch._build_prompt(
-            "What's 1+1?", _LOW_REL_KB, lang="en",
-            strict_json=False, low_relevance=True,
-        )
-        self.assertIn("OUTSIDE", prompt)
-        self.assertIn("structural-isomorphism", prompt.lower())
-
-    def test_in_scope_prompt_unchanged(self):
-        """Regression: in-scope prompt MUST still ask for 200-400 char answer
-        with [n] citations. We don't want to accidentally degrade the
-        happy path."""
-        prompt = self.orch._build_prompt(
-            "SVB bank run?", _HIGH_REL_KB, lang="zh",
-            strict_json=False, low_relevance=False,
+            "SVB bank run?", _HIGH_REL_KB, lang="zh", strict_json=False,
         )
         self.assertIn("200-400", prompt)
         self.assertIn("[1] [2]", prompt)
+        # The removed out-of-scope wording must not leak back in.
         self.assertNotIn("超出 Structural 当前覆盖范围", prompt)
 
-    def test_low_relevance_flag_defaults_false(self):
-        """Backward compatibility: existing callers without low_relevance
-        kwarg get the original in-scope prompt."""
-        prompt = self.orch._build_prompt(
-            "test", _HIGH_REL_KB, lang="zh", strict_json=False,
+    def test_strict_json_appends_reminder(self):
+        """strict_json=True appends the JSON-only reminder block."""
+        normal = self.orch._build_prompt(
+            "q", _HIGH_REL_KB, lang="zh", strict_json=False,
         )
-        self.assertIn("200-400", prompt)
+        strict = self.orch._build_prompt(
+            "q", _HIGH_REL_KB, lang="zh", strict_json=True,
+        )
+        self.assertNotIn("严格要求", normal)
+        self.assertIn("严格要求", strict)
 
 
 # --------------------------------------------------------------------------
