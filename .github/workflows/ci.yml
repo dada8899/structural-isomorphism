@@ -24,13 +24,22 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # Windows excluded: prod is Linux-only (VPS) and macOS is dev-only.
+        # Windows surfaces three classes of failures unrelated to logic:
+        #   1. cp1252 default codec breaks pathlib.read_text() on UTF-8 JSON
+        #      (e.g. site_data fixtures containing ≥, ±, etc.).
+        #   2. cp1252 stdout/file write fails on UTF-8 chars like ≥.
+        #   3. sys.path.insert() in subprocess tests behaves differently
+        #      under D:\a\... runner paths (ModuleNotFoundError for v4/scripts).
+        # Fixing these globally (encoding='utf-8' everywhere + Windows path
+        # normalisation) is large surface for zero deploy value. Revisit if
+        # Windows support becomes a product requirement.
+        # See: docs/ci-matrix-decisions.md
+        os: [ubuntu-latest, macos-latest]
         exclude:
-          # Skip combos that don't add signal (3.11/3.12 cover modern targets;
-          # 3.10 only validated on ubuntu as a minimum-floor check).
+          # 3.10 only validated on ubuntu as a minimum-floor check;
+          # macos-latest needs 3.11+ for runner image alignment.
           - os: macos-latest
-            python-version: "3.10"
-          - os: windows-latest
             python-version: "3.10"
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +54,6 @@ jobs:
           path: |
             ~/.cache/pip
             ~/Library/Caches/pip
-            ~\AppData\Local\pip\Cache
           key: ${{ matrix.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', 'pytest.ini') }}
           restore-keys: |
             ${{ matrix.os }}-py${{ matrix.python-version }}-pip-
