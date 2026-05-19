@@ -41,6 +41,36 @@
 | **docs (GH Pages deploy)** | ❌ 404 Not Found | **user-input only blocker** — Settings → Pages → "GitHub Actions" |
 | **sanity** | ✅ SUCCESS at 04:29:30 | F15+F17 双层修真起作用（PYTHONPATH shadow + sklearn dep） |
 | **perf** | ⏳ RUNNING (post F16) | 新 run 跟 F16 push 后触发 |
+
+---
+
+***REMOVED******REMOVED*** Wave 4 addendum (2026-05-20)
+
+Repo went PUBLIC during the 5-day gap. New work this round:
+
+| PR | 主题 |
+|---|---|
+| *****REMOVED***217** | ci: matrix exclude windows-latest (3 root causes: cp1252 decode/encode, sys.path subprocess paths) |
+| *****REMOVED***218** | feat(ci): PyPI publish workflow + docs (tag-trigger, token/OIDC dual-auth) |
+| *****REMOVED***219** | fix(docs): cp 4 community files + fix 7 broken links + re-enable mkdocs --strict |
+| *****REMOVED***220** | fix(eslint): re-enable react/no-unescaped-entities + fix 22 CJK quote sites |
+| *****REMOVED***221** | fix(ci): coverage workflow — add -p to 5 coverage runs for true parallel combine |
+
+`+` v0.5.0 git tag + GH release + GH Pages enable (`gh api ... -X POST -f build_type=workflow`)
+
+**21 PRs total this session ***REMOVED***11** (***REMOVED***199-***REMOVED***221).
+
+**Wave 4 CI state**:
+| Workflow | Status |
+|---|---|
+| **types-sync** | ✅ persistently green |
+| **sanity** | ✅ post-C9 retrigger green |
+| **deploy-phase-detector** | ✅ |
+| **docs** | ✅ at 17:14:03 (post-C12 strict + GH Pages enabled) |
+
+**Discovered but not solved** (audit findings):
+- 2 active LLM keys still in main HEAD plaintext: OpenRouter `sk-or-v1-af9ae...` (since 2026-04-16, 34d) + DeepSeek `sk-ad62cc...` (since 2026-05-13, 7d). PUBLIC repo + `Eudes-Crabe` fork already mirrored. Audit doc on `audit/p0-history-key-scrub-1779210404` branch (NOT merged). User must rotate at vendor dashboards then approve scrub.
+- Independent CI reds noted: `packages (py3.11)` Verdict.alpha_ci_lo API drift, `frontend (node 20)` LFS pointer cache key (out of session scope)
 | **deploy-beta-backend** | ❌ pre-F12 fail at 04:01 | F12 ***REMOVED***208 已修 deploy-vps.sh; 未自动 re-trigger (paths-filtered workflow) |
 | **coverage** | ❌ 54.3% < 90% gate | **真覆盖率债务**（不在 session scope；需补测试） |
 | **CI matrix** | 部分红 | macOS/Windows runner 上 sanity matrix 可能仍有 platform 差异 |
