@@ -342,19 +342,62 @@ class AskOrchestrator:
         })
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
-        # ---- Relevance gate (W5-A) ---------------------------------- #
+        # ---- Relevance gate → out-of-scope refusal (W5-A → M1.3) ----- #
         # Inspect the retrieval scores. If the query is clearly outside
-        # the KB's coverage, we still call the LLM (UX wants one coherent
-        # SSE stream regardless), but we tell the LLM to politely decline
-        # rather than硬拗 isomorphism content. This is a code-layer
-        # guardrail per the global "不信任 LLM 输出" rule — we don't let
-        # the LLM alone decide whether to honor scope.
+        # the KB's coverage we SHORT-CIRCUIT here: emit a local, honest
+        # refusal and never call the LLM. The relevance gate has always
+        # been an accurate detector; M1.3 adds the missing execution
+        # branch that actually acts on it. Pre-M1.3 the flag was only a
+        # soft hint fed into the prompt, so an out-of-scope query still
+        # burned a full 18-32s LLM call (dogfood q6 "1+1=?" → 33s of
+        # forced analogy). Refusing locally drops that to ~1-3s and kills
+        # the "硬拗类比" failure mode outright — a code-layer guardrail
+        # per the global "不信任 LLM 输出" rule.
         low_relevance, relevance_reason = self._evaluate_relevance(cards)
         if low_relevance:
             logger.info(
-                f"[ask] low-relevance query gated; reason={relevance_reason} "
+                "[ask] low-relevance query refused locally; "
+                f"reason={relevance_reason} "
                 f"top1={(cards[0].get('score') if cards else None)}"
             )
+            refusal = self._build_refusal_payload(
+                query, cards, lang_norm, relevance_reason,
+            )
+            refusal_text = refusal["answer"]
+            for chunk in self._typewriter_chunks(refusal_text):
+                yield _sse("answer_chunk", {"delta": chunk})
+                if TYPEWRITER_SLEEP_S > 0:
+                    await asyncio.sleep(TYPEWRITER_SLEEP_S)
+            yield _sse("answer_done", {
+                "full_text": refusal_text,
+                "citations": [],
+                "out_of_scope": True,
+                "scope_reason": relevance_reason,
+                # `refused` marks a hard local refusal (no LLM call) so the
+                # frontend / analytics can tell it apart from the legacy
+                # soft `out_of_scope` flag.
+                "refused": True,
+            })
+            # No "similar phenomena": the gate already decided the
+            # retrieved cards aren't genuinely related, so surfacing them
+            # would contradict the refusal text.
+            yield _sse("similar_phenomena", {"phenomena": []})
+            yield _sse("followups", {"questions": refusal["followups"]})
+            refusal_latency_ms = int((time.monotonic() - started) * 1000)
+            try:
+                from logging_config import get_logger as _glog
+
+                _glog("structural.ask").info(
+                    "ask.response",
+                    latency_ms=refusal_latency_ms,
+                    citation_count=0,
+                    out_of_scope=True,
+                    refused=True,
+                )
+            except Exception:
+                pass
+            yield _sse("done", {"latency_ms": refusal_latency_ms})
+            return
 
         # ---- Phase B: LLM synthesize answer + citations + followups -- #
         # W5-A + W5-B combined: streaming pipeline carries the low_relevance
@@ -374,6 +417,13 @@ class AskOrchestrator:
             )
         except Exception:
             pass
+        # M1.2 fix 4: tell the frontend the LLM call is starting so its
+        # progress indicator can advance — closes the perceived "black
+        # screen" gap between `retrieval_done` and the first `answer_chunk`.
+        yield _sse("llm_start", {
+            "model": self.model,
+            "kb_count": len(cards_payload),
+        })
         llm_started = time.monotonic()
         payload: Dict
         raw_buffer = ""
@@ -1022,6 +1072,72 @@ KB 现象列表（结构相似度排序）：
 - citations 至少 1 条，最多 10 条；idx 必须是上面 KB 现象列表里的有效编号（1-based）
 - followups 必须 2-5 条字符串
 - answer 长度 20-2000 字符；包含至少一个 [1] 之类的引用标记{strict_block}"""
+
+    def _build_refusal_payload(
+        self, query: str, cards: List[Dict], lang: str, scope_reason: str,
+    ) -> Dict:
+        """Build an out-of-scope refusal locally — NO LLM call (M1.3).
+
+        Returned shape: {answer, followups}. `citations` is deliberately
+        omitted; the refusal path emits an empty citation list because the
+        retrieved cards were judged not genuinely relevant.
+
+        Wording adapts to `scope_reason` (from `_evaluate_relevance`):
+        `no_cards` means nothing matched at all, while `top1_below_*` /
+        `top3_mean_below_*` mean cards exist but score weakly. `followups`
+        are 3 demo questions firmly inside the KB's scope (structural
+        isomorphism / cascades / phase transitions / network dynamics) so
+        the user can pivot productively instead of hitting a dead end.
+
+        `query` / `cards` are accepted for signature parity with
+        `_fallback_payload` and possible future tailoring; not used today.
+        """
+        no_cards = scope_reason == "no_cards"
+        if lang == "en":
+            if no_cards:
+                answer = (
+                    "This question doesn't match anything in Structural's "
+                    "knowledge base. Structural is built for cross-disciplinary "
+                    "structural isomorphism — how earthquakes, bank runs and "
+                    "neural avalanches share the same underlying math. For "
+                    "calculations, factual lookups or personal questions, a "
+                    "more specialised tool will serve you better."
+                )
+            else:
+                answer = (
+                    "This question falls outside Structural's knowledge base — "
+                    "the retrieved phenomena are only weakly related to it. "
+                    "Structural is built for cross-disciplinary structural "
+                    "isomorphism, e.g. how earthquakes, bank runs and neural "
+                    "avalanches share the same underlying math. A domain-"
+                    "specific source or tool would answer this better."
+                )
+            followups = [
+                "Why do bank runs and forest fires spread in structurally similar ways?",
+                "Can critical phase transitions be detected before they happen?",
+                "How does network topology determine the scale of cascading failures?",
+            ]
+        else:
+            if no_cards:
+                answer = (
+                    "这个问题没有匹配到 Structural 知识库里的任何现象。"
+                    "Structural 擅长的是跨学科的结构同构——比如地震、银行挤兑、"
+                    "神经放电背后共用同一套数学规律。数学计算、事实查询或个人"
+                    "生活类的问题，换用更对口的工具会更靠谱。"
+                )
+            else:
+                answer = (
+                    "这个问题超出了 Structural 知识库的覆盖范围，检索到的现象"
+                    "与它的结构相关性都很弱。Structural 擅长的是跨学科的结构"
+                    "同构——比如地震、银行挤兑、神经放电背后共用同一套数学规律。"
+                    "这类问题建议换用更对口的工具或学科资源。"
+                )
+            followups = [
+                "为什么银行挤兑和森林大火的蔓延方式如此相似？",
+                "临界相变能不能提前预警？地震和股灾有共同的前兆信号吗？",
+                "网络拓扑结构如何决定级联失败的规模？",
+            ]
+        return {"answer": answer, "followups": followups}
 
     def _fallback_payload(self, query: str, cards: List[Dict], lang: str) -> Dict:
         """Emit a minimum-viable payload when the LLM never produces valid JSON.
