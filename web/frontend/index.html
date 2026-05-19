@@ -90,8 +90,8 @@
         <textarea
           class="ask-searchbox__input"
           id="ask-input"
-          placeholder="问点复杂的——比如「为什么 SVB 挤兑这么吓人？还有什么类似的系统？」"
-          rows="3"
+          placeholder="问点复杂的——它可能在另一个学科已经被解过"
+          rows="1"
           autocomplete="off"
           spellcheck="false"
           maxlength="8000"
@@ -112,9 +112,9 @@
             aria-live="polite"
             hidden
           ><span data-counter-text>0 / 8000</span></div>
-          <button type="submit" class="ask-searchbox__submit" aria-label="开始搜索">
-            <span>开始搜索</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          <button type="submit" class="ask-searchbox__submit" aria-label="开始搜索" disabled>
+            <svg class="ask-searchbox__submit-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            <span class="ask-searchbox__submit-spinner" aria-hidden="true"></span>
           </button>
         </div>
       </form>
