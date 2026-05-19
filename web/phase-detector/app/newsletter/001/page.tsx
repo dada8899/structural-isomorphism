@@ -115,7 +115,7 @@ export default function NewsletterIssue001Page() {
       {/* Top subscribe form */}
       <section className="mb-10 rounded border border-zinc-200 bg-zinc-50 p-5">
         <p className="mb-3 text-sm text-zinc-700">
-          📬 Get next Monday's issue delivered. No marketing, no clickbait — if
+          📬 Get next Monday&rsquo;s issue delivered. No marketing, no clickbait — if
           we have nothing structural to say in a given week, we say that.
         </p>
         <WaitlistForm placement="inline" source={`newsletter_${issue.number}_top`} />
