@@ -77,12 +77,12 @@ Sunday for the same week label. CI tests assert this.
 
 > **Important**: this pipeline produces the *artifact*. Sending to real
 > subscribers is a separate, manual step gated on PR merge. See
-> [`newsletter-subscribe-design.md`](./newsletter-subscribe-design.md) for
+> [`newsletter-subscribe-design.md`](../newsletter-subscribe-design.md) for
 > the subscription-storage plan.
 
 ## See also
 
 - Older single-source phase-flip-only pipeline: `scripts/newsletter/send_weekly.py` (W8-D)
-- Subscription-storage design: [`newsletter-subscribe-design.md`](./newsletter-subscribe-design.md)
+- Subscription-storage design: [`newsletter-subscribe-design.md`](../newsletter-subscribe-design.md)
 - Beta-site signup form: `web/frontend/assets/js/newsletter.js` (W2-A)
 - Backend endpoint: `web/backend/api/newsletter.py`
