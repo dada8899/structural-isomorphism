@@ -114,25 +114,57 @@
     update();
   }
 
+  // Scheme A: grow the empty-state textarea with its content. Starts
+  // at one row (min-height 56px from CSS) and expands up to max-height,
+  // after which the textarea scrolls internally.
+  function autoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+    el.style.overflowY = el.scrollHeight > el.clientHeight ? 'auto' : 'hidden';
+  }
+
   function initAskPage() {
     var form = qs('#ask-form');
     if (form) {
+      var submitBtn = qs('.ask-searchbox__submit', form);
+      var input = qs('#ask-input');
+
+      // Scheme A: keep the circular submit inert until there is text.
+      function syncSubmitState() {
+        if (!submitBtn) return;
+        var hasText = !!(input && input.value.trim());
+        submitBtn.disabled = !hasText;
+      }
+      syncSubmitState();
+
       form.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        var input = qs('#ask-input');
         var q = input ? input.value.trim() : '';
         if (!q) return;
+        // Scheme A: lock + spin the button so the click registers
+        // visually even though submitQuery swaps to the thread view.
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.classList.add('is-loading');
+        }
         submitQuery(q);
       });
+
       // Cmd/Ctrl+Enter submits
-      var input = qs('#ask-input');
       if (input) {
+        input.addEventListener('input', function () {
+          autoGrow(input);
+          syncSubmitState();
+        });
         input.addEventListener('keydown', function (ev) {
           if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
             ev.preventDefault();
             form.requestSubmit();
           }
         });
+        // Initial paint (handles browser-restored text).
+        autoGrow(input);
         // Autofocus on landing
         try { input.focus(); } catch (e) {}
       }
