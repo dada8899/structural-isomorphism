@@ -62,7 +62,7 @@ export default function NewsletterArchivePage() {
         </h1>
         <p className="text-base leading-relaxed text-zinc-600">
           Every Monday: phase flips across 1000+ public companies, one
-          methodology deep-dive, a few preprints we're reading, and what's
+          methodology deep-dive, a few preprints we&rsquo;re reading, and what&rsquo;s
           happening in the repo. Same physics that describes earthquakes,
           neural avalanches, and power-grid cascades.
         </p>
