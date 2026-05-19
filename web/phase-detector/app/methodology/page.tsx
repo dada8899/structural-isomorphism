@@ -62,7 +62,7 @@ export default function MethodologyPage() {
         <ul className="space-y-2 rounded-lg border border-zinc-200 bg-white p-4 text-sm">
           <li>
             <strong className="text-zinc-900">共享模式</strong>{" "}
-            — 它"怎么动"（5 选 1）
+            — 它&ldquo;怎么动&rdquo;（5 选 1）
           </li>
           <li>
             <strong className="text-zinc-900">当前状态</strong>{" "}
@@ -105,7 +105,7 @@ export default function MethodologyPage() {
           2. 9 类共享模式
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-zinc-600">
-          我们把公司按"怎么动"归为下面 9 类。这套分类来自跨学科研究——
+          我们把公司按&ldquo;怎么动&rdquo;归为下面 9 类。这套分类来自跨学科研究——
           地震、神经网络、电网、生态、金融市场都被这套模式解释过。
         </p>
         <div className="space-y-3">
@@ -133,7 +133,7 @@ export default function MethodologyPage() {
           3. 5 种当前状态
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-zinc-600">
-          每家公司离它的"翻车点"有多远？我们用下面 5 个状态描述（含证据不足时标记的"未知"）。
+          每家公司离它的&ldquo;翻车点&rdquo;有多远？我们用下面 5 个状态描述（含证据不足时标记的&ldquo;未知&rdquo;）。
           每个状态用一个独特图标 + 颜色 + 文字（颜色不是唯一识别方式，色盲也能用）。
         </p>
         <div className="space-y-3">
@@ -169,7 +169,7 @@ export default function MethodologyPage() {
         </h2>
         <p className="text-sm leading-relaxed text-zinc-600">
           我们抓取每家公司公开的年报、业绩说明、行业研报，用多个主流 AI 模型读，
-          填出上面那张结构化卡片。每个判断由 3 个独立的"审稿 AI"投票，
+          填出上面那张结构化卡片。每个判断由 3 个独立的&ldquo;审稿 AI&rdquo;投票，
           多数同意才入库；同行业里业务相近的公司不应该得到差别极大的判断，
           我们也会扫一遍。最终结果附带不确定性说明。
         </p>
@@ -184,7 +184,7 @@ export default function MethodologyPage() {
           <li>覆盖：当前 100 家公司，长尾尚未覆盖</li>
           <li>频率：每周更新一次，盘中突发事件不会立刻反映</li>
           <li>
-            模型偏差：AI 可能漏读或读错，请看每家公司卡片下的"注意事项"
+            模型偏差：AI 可能漏读或读错，请看每家公司卡片下的&ldquo;注意事项&rdquo;
           </li>
           <li>
             结构判断 ≠ 价格预测：当前状态描述的是结构性风险，不是短期涨跌信号

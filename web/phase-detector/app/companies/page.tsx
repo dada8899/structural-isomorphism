@@ -351,10 +351,10 @@ export default function ScreenerHomePage() {
           id="families-heading"
           className="mb-3 text-base font-semibold tracking-tight text-zinc-900"
         >
-          9 类共享模式 · 公司怎么"动"
+          9 类共享模式 · 公司怎么&ldquo;动&rdquo;
         </h2>
         <p className="mb-3 text-xs text-zinc-500">
-          所有公司被归入下面其中一类。点开"看完整方法说明"看每一类的解释。
+          所有公司被归入下面其中一类。点开&ldquo;看完整方法说明&rdquo;看每一类的解释。
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {familyOverview.map((f) => (
