@@ -48,10 +48,13 @@ from services.llm_service import LLMService, _get_http_client, OPENROUTER_URL
 logger = logging.getLogger("structural.ask_orchestrator")
 
 
-# DeepSeek as the default driver for /ask. Spec D-renai-10 tagged DeepSeek
-# as the temporary fast/cheap default for high-volume synthesis flows.
-# Override via env when we want to A/B against Claude / Kimi.
-ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat")
+# DeepSeek as the default driver for /ask. The `:nitro` suffix tells
+# OpenRouter to route to the highest-throughput provider available, which
+# cuts time-to-first-token from a 8-25s tail down to ~2-6s (M1.2 fix 1 —
+# first-token latency硬伤). Same model, fastest provider — no answer
+# quality change. Override via env (ASK_LLM_MODEL) to A/B against Claude /
+# Kimi, or drop the suffix to let OpenRouter balance on price.
+ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
 
 # How many KB hits to surface to the user as citation candidates.
 TOP_K_CARDS = 5
