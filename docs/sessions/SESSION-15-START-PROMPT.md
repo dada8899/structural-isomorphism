@@ -9,6 +9,7 @@
 
 - **PR #224**(session #14, `feat/m1-ask-experience-fix`, 5 commits, 47 测试全绿):
   M1.2 fix1(`ASK_MODEL` → `:nitro`) + M1.3(本地拒答短路) + M1.2 fix4(`llm_start` 事件)+ 死代码清理 + session 文档归档
+  - commits: `5090e4c` `9b3f7ff` `297ca77` `1c98a04` `b0b3b26`
 - **PR #222**(CI 修复, 全绿)、**PR #223**(首页搜索框)同样 OPEN
 - main HEAD 仍是 session #12 的 commit
 
@@ -41,10 +42,13 @@ cd ~/Projects/structural-isomorphism && git fetch && git log --oneline origin/ma
 
 ```bash
 # 7 条 dogfood query 跑 :nitro 后的 TTFT
+HOST="https://beta.structural.bytedance.city"
 for q in "SVB 怎么倒的" "团队为什么散" "用户流失原因" "传言怎么扩散" \
          "女朋友为什么生气" "1+1=?" "BTC 明天涨跌"; do
-  time curl -N "https://structural.../api/ask/stream?q=$(jq -rn --arg x "$q" '$x|@uri')" \
-    | head -c 200
+  echo "=== $q ==="
+  time curl -N "$HOST/api/ask/stream?q=$(jq -rn --arg x "$q" '$x|@uri')" \
+    | head -c 500
+  echo
 done
 ```
 
