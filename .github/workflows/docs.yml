@@ -53,12 +53,15 @@ jobs:
       - name: Install mkdocs + plugins
         run: |
           python -m pip install --upgrade pip
+          ***REMOVED*** mkdocstrings upgraded to 1.x — the `<1.0` hold from ***REMOVED***211 is lifted.
+          ***REMOVED*** Verified locally: `mkdocs build --strict` is clean on mkdocstrings
+          ***REMOVED*** 1.0.x + mkdocstrings-python 2.x (no new strict-mode warnings).
           pip install \
             mkdocs==1.6.1 \
             mkdocs-material==9.7.6 \
             mkdocs-git-revision-date-localized-plugin \
             mkdocs-minify-plugin \
-            "mkdocstrings[python]>=0.24,<1.0"
+            "mkdocstrings[python]>=1.0"
 
       ***REMOVED*** --strict re-enabled (F14 fix). Repo-root governance docs (CODE_OF_CONDUCT,
       ***REMOVED*** GOVERNANCE, CONTRIBUTING, SECURITY) are now copied into docs/community/

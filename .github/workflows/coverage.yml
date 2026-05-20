@@ -28,8 +28,12 @@ jobs:
           pip install -e packages/soc-pipeline || true
           pip install -e packages/cross-judge || true
           pip install -e packages/guarded-llm || true
-          ***REMOVED*** Backend deps for web/backend tests
-          pip install slowapi || true
+          ***REMOVED*** Backend deps for web/backend tests. main.py imports python-dotenv
+          ***REMOVED*** + PyYAML (api.flags, W15-E) at module load — without them the
+          ***REMOVED*** importlib.import_module("main") in test_ask_endpoint.py's ask_app
+          ***REMOVED*** fixture raises ImportError, all 10 HTTP endpoint tests error, and
+          ***REMOVED*** the per-file gate sees a stale 54.3% for web/backend/api/ask.py.
+          pip install slowapi python-dotenv pyyaml || true
           ***REMOVED*** W14/W15 test-collection deps (pyjwt → test_auth,
           ***REMOVED*** structlog → test_correlation + test_structlog_format).
           ***REMOVED*** Without these, pytest fails at collection time and kills

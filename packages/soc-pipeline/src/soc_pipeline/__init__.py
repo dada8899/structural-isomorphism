@@ -29,9 +29,14 @@ from .time_resolution import time_resolution_sweep
 from .utils import empirical_ccdf, verdict_from_alpha_band
 from .validate import Verdict, validate
 
-***REMOVED*** Register pandas `.soc` accessor (side-effect import)
+***REMOVED*** Register pandas `.soc` accessor (side-effect import).
+***REMOVED*** Only re-export SocAccessor: pandas_accessor defines its OWN Series-oriented
+***REMOVED*** Verdict/validate (fields alpha_ci_low/high). Re-exporting them here used to
+***REMOVED*** silently shadow the canonical validate.py Verdict/validate (alpha_ci_lo/hi)
+***REMOVED*** imported just above — breaking `from soc_pipeline import validate` for every
+***REMOVED*** caller and the whole test_validate.py suite.
 from . import pandas_accessor as _pandas_accessor  ***REMOVED*** noqa: F401
-from .pandas_accessor import SocAccessor, Verdict, validate
+from .pandas_accessor import SocAccessor
 
 __all__ = [
     "__version__",
@@ -67,6 +72,4 @@ __all__ = [
     "verdict_from_alpha_band",
     ***REMOVED*** pandas accessor
     "SocAccessor",
-    "Verdict",
-    "validate",
 ]
