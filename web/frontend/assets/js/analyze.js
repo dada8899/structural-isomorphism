@@ -804,6 +804,120 @@ function revealSection(key, data) {
   }
 }
 
+// =====================================================================
+// Session #16 M1.4 — share-bar + feedback wiring
+// =====================================================================
+
+function renderShareBar(persistedPayload) {
+  const bar = document.getElementById('analyze-share-bar');
+  if (!bar || !persistedPayload || !persistedPayload.share_url) return;
+  const urlInput = document.getElementById('analyze-share-url');
+  if (urlInput) urlInput.value = persistedPayload.share_url;
+  const partial = document.getElementById('analyze-share-bar__partial');
+  if (partial) {
+    partial.hidden = !persistedPayload.is_partial;
+  }
+  bar.hidden = false;
+  // Wire copy + open buttons (idempotent — fine to bind multiple times,
+  // but we guard with a data flag).
+  const copyBtn = document.getElementById('analyze-share-copy');
+  if (copyBtn && !copyBtn.dataset.wired) {
+    copyBtn.dataset.wired = '1';
+    copyBtn.addEventListener('click', () => {
+      const url = (urlInput && urlInput.value) || '';
+      if (!url) return;
+      const done = () => {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = T('page.analyze.share_copied', '已复制');
+        setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+        trackPlausible('Report Share Clicked', { via: 'copy' });
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(() => {
+          // Fallback: select + execCommand
+          urlInput.select();
+          try { document.execCommand('copy'); done(); } catch (e) {}
+        });
+      } else {
+        urlInput.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+      }
+    });
+  }
+  const openBtn = document.getElementById('analyze-share-open');
+  if (openBtn && !openBtn.dataset.wired) {
+    openBtn.dataset.wired = '1';
+    openBtn.addEventListener('click', () => {
+      const url = (urlInput && urlInput.value) || '';
+      if (url) {
+        trackPlausible('Report Share Clicked', { via: 'open' });
+        window.open(url, '_blank', 'noopener');
+      }
+    });
+  }
+  // Wire overall feedback buttons.
+  bar.querySelectorAll('.analyze-vote').forEach((btn) => {
+    if (btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => submitFeedback(btn));
+  });
+}
+
+function submitFeedback(btn) {
+  const persisted = window._persistedReport;
+  if (!persisted || !persisted.id) return;
+  const section = btn.dataset.section || '';
+  const vote = parseInt(btn.dataset.vote, 10);
+  if (vote !== 1 && vote !== -1) return;
+  // Optimistic UI — bump the counter immediately, roll back on error.
+  const countEl = btn.querySelector('.analyze-vote__count');
+  const prevCount = countEl ? parseInt(countEl.textContent, 10) || 0 : 0;
+  if (countEl) countEl.textContent = String(prevCount + 1);
+  btn.classList.add('analyze-vote--active');
+  // Mark its opposite as inactive (flip semantics).
+  const opposite = btn.parentElement.querySelector(
+    '.analyze-vote' + (vote === 1 ? '--down' : '--up')
+  );
+  if (opposite) opposite.classList.remove('analyze-vote--active');
+
+  let anonId = '';
+  try { anonId = localStorage.getItem('anonId') || ''; } catch (e) {}
+  fetch('/api/report/' + encodeURIComponent(persisted.id) + '/feedback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Anon-Id': anonId,
+    },
+    body: JSON.stringify({
+      section: section || null,
+      vote: vote,
+    }),
+  })
+    .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+    .then((body) => {
+      // Sync counters with server truth.
+      const up = document.getElementById('analyze-vote-up-count');
+      const down = document.getElementById('analyze-vote-down-count');
+      if (up) up.textContent = String(body.total_up || 0);
+      if (down) down.textContent = String(body.total_down || 0);
+      trackPlausible('Report Feedback', {
+        section: section || 'overall',
+        vote: vote === 1 ? 'up' : 'down',
+        is_partial: !!persisted.is_partial,
+      });
+    })
+    .catch((err) => {
+      console.warn('[analyze] feedback failed:', err);
+      // Roll back optimistic counter.
+      if (countEl) countEl.textContent = String(prevCount);
+      btn.classList.remove('analyze-vote--active');
+    });
+}
+
+// Expose so the share-page (report.js) can reuse the same submitFeedback.
+window._m14_submitFeedback = submitFeedback;
+window._m14_renderShareBar = renderShareBar;
+
 function updateProgressState(receivedKeys, currentStreamingKey) {
   $$('.analyze-progress__item').forEach(el => {
     const key = el.dataset.key;
@@ -908,6 +1022,21 @@ function streamAnalysis(params) {
     // Typewriter preview: paint the latest delta into a live "正在写" pane
     if (chunk.content) {
       appendStreamContent(chunk.content);
+    }
+  });
+
+  // Session #16 M1.4 — handles the new `persisted` SSE event emitted
+  // when persist=1. Payload: {id, share_token, share_url, created_at,
+  // is_partial}. We stash the id (for feedback POSTs) and render the
+  // sticky share-bar.
+  es.addEventListener('persisted', (e) => {
+    try {
+      const payload = JSON.parse(e.data);
+      window._persistedReport = payload;
+      renderShareBar(payload);
+      trackPlausible('Report Persisted', { is_partial: !!payload.is_partial });
+    } catch (err) {
+      console.warn('[analyze] persisted parse error:', err);
     }
   });
 
@@ -1266,6 +1395,10 @@ function initAnalyzeActions() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Session #16 M1.4 — report.html reuses this file for its section
+  // renderers but does NOT want the analyze SSE boot to fire.
+  if (window._suppressAnalyzeBoot) return;
+
   initHeaderScroll();
   initAnalyzeActions();
 
@@ -1288,6 +1421,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // No context to analyze against — just send back to phenomenon detail
     window.location.href = `/phenomenon/${encodeURIComponent(bId)}`;
     return;
+  }
+
+  // Session #16 M1.4 — persist by default so users get a shareable URL
+  // for every report they read. Override with ?persist=0 in the URL.
+  // anon_id is the same UUID used by /api/flags / favorites / history.
+  const persistFlag = getQueryParam('persist');
+  if (persistFlag !== '0') {
+    params.set('persist', '1');
+    try {
+      let anonId = localStorage.getItem('anonId');
+      if (!anonId) {
+        anonId = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : ('anon-' + Math.random().toString(36).slice(2) + '-' + Date.now().toString(36));
+        localStorage.setItem('anonId', anonId);
+      }
+      params.set('anon_id', anonId);
+    } catch (e) { /* localStorage may be blocked; skip silently */ }
   }
 
   streamAnalysis(params);

@@ -1781,6 +1781,17 @@ async def analyze_html_alias():
     return FileResponse(FRONTEND_DIR / "analyze.html")
 
 
+# Session #16 M1.4 — persisted-report viewer pages. JS parses the URL.
+@app.get("/report/share/{token}")
+async def report_share_page(token: str):
+    return FileResponse(FRONTEND_DIR / "report.html")
+
+
+@app.get("/report/{report_id}")
+async def report_by_id_page(report_id: str):
+    return FileResponse(FRONTEND_DIR / "report.html")
+
+
 @app.get("/papers")
 async def papers_page():
     return FileResponse(FRONTEND_DIR / "papers.html")
