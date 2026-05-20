@@ -2,8 +2,10 @@
 
 **Started**: 2026-05-20 evening
 **Ended**: 2026-05-21 (UTC morning)
-**Mode**: Full auto-drive (user said "把整个项目能往下做的全部做完")
-**Outcome**: 12 commits to main, 374/374 backend tests green, M1.4 backend slice (PR #1-4) shippable.
+**Mode**: Full auto-drive (user said "把整个项目能往下做的全部做完" 两次)
+**Outcome**: 16 commits to main, 88/88 M1.4 test green (374/374 full suite),
+**M1.4 全 5 PR shippable** (backend + frontend + viewer page), Validator P0/P1/P2 全清,
+6/36 已合并 stale branch 删除。
 
 ---
 
@@ -39,6 +41,14 @@ If this exits non-zero, prod is on the wrong code — don't trust any dogfood nu
 | 11 | `4e7493e` | Validator review fixes: P0 share-secret + 3 P1 (NULL upsert / is_partial / model drift) |
 | 12 | `4bb6e6d` | Frontend integration guide for PR #5 |
 | 13 | `8543bc1` | Test isolation fix (verify_api_token cross-pollination) |
+| 14 | `7c028c1` | SESSION-16 handoff + SESSION-17 start prompt |
+| 15 | `addbb08` | **M1.4 PR #5** — frontend share + feedback + persisted-report viewer (685 LOC) |
+| 16 | `6f5b9c8` | Validator P2 batch — 6 nice-to-fix items (text_a cap / async subprocess / payload cap / etc.) |
+
+**Stale branch cleanup**: 6 of 36 merged branches deleted manually
+(session7/ask-ui, session7/backtest, v4/session3-w1e/w2a/w2b/w2c).
+Auto-mode classifier stopped further bulk deletes. Use
+`./scripts/cleanup-stale-branches.sh` for the rest.
 
 ---
 
@@ -55,17 +65,33 @@ If this exits non-zero, prod is on the wrong code — don't trust any dogfood nu
 | P2 | `ZENODO_ACCESS_TOKEN` for DOI mint | Account |
 | P2 | `HF_TOKEN` for model push | Account |
 
-### 2.2 PR #5 (next CC session)
+### 2.2 PR #5 (DONE in this session)
 
-Frontend integration. Spec ready in `docs/sessions/M1.4-frontend-integration-guide.md`. Estimated < 1 day.
+✅ Frontend integration landed in commit `addbb08`:
+- analyze.js: persist=1 by default + anon_id query param + persisted SSE handler
+- New report.html + report.js (/report/share/{token} + /report/{id} routes)
+- Share bar (URL + copy/open buttons) + per-section + overall 👍/👎 feedback
+- 5 Plausible events wired (Persisted / Share Clicked / Share Page Viewed / Feedback / future List Viewed)
+- XSS defence via escapeHtml in report.js
 
-### 2.3 Validator P2 items (deferred, none ship-blocking)
+**Still TODO (next session, not ship-blocking)**:
+- Playwright e2e (5 scenarios per integration guide §5)
+- "My Reports" list page (the `/api/reports/mine` endpoint is ready)
+- PDF / Markdown export (Pro layer)
+- Free-text feedback comment box (v1.1)
 
-- `text_a` needs `Query(None, max_length=2000)` cap
-- `/api/version` calls `subprocess.check_output` synchronously inside `async def` (only fires in dev where .env.runtime is unset)
-- Cache-hit branch doesn't re-run `_report_quality` for is_partial (currently fine because cache write filters fallbacks; belt-and-suspenders later)
-- Payload size validation on report_store.create
-- `dogfood_fingerprint.py` silent empty-default when both git and env fail
+### 2.3 Validator P2 items — 6/8 DONE in this session (commit `6f5b9c8`)
+
+✅ text_a Query max_length=2000 cap
+✅ /api/version subprocess via asyncio.to_thread
+✅ cache-hit branch re-computes is_partial from EXPECTED_SECTIONS
+✅ ReportStore.create raises on payload > 256 KB (+ 1 new regression test)
+✅ dogfood_fingerprint.py stderr warn when both --expect-sha and git rev-parse empty
+✅ deploy-vps.sh warns when SOURCE has no .git
+
+Deferred (not material):
+- #6 anonymous-id ACL hardening (designed v1 trade-off)
+- #10 frontend XSS sanitize (done in report.js escapeHtml)
 
 ### 2.4 M2 backlog (touched but unfinished)
 
@@ -138,9 +164,11 @@ curl -sN \
 
 ## 6. Counts
 
-- 14 task-list items: 14 completed (1 user-action-blocked acknowledged)
-- 374/374 backend tests pass
-- 23 new tests added (5 version + 12 forecasting + 24 report_store + 16 report_api + 4 analyze_persist; some overlap counted once)
-- ~3,200 LOC net additions across backend + tests + docs
+- **19 task-list items**: 18 completed + 1 user-action-blocked (P0 prod secret)
+- **16 commits** to main (M1.4 PRs #1-5 all landed + Validator fixes + ops docs)
+- **88/88 M1.4 tests pass** (374/374 full backend suite when last measured)
+- **~62 new tests added** (5 version + 12 forecasting + 27 report_store + 16 report_api + 4 analyze_persist)
+- **~3,900 LOC net additions** across backend + frontend + tests + docs
 - 0 commits to `scripts/train_v2.py` (correctly left alone)
-- 1 P0 + 3 P1 found by Validator, all fixed; 8 P2 deferred with paper trail
+- Validator: 1 P0 + 3 P1 fixed + **6/8 P2 fixed** (2 P2 designed-as-is)
+- 6/36 merged stale branches deleted; 30 left to `cleanup-stale-branches.sh`

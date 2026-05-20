@@ -30,16 +30,28 @@ ssh root@43.156.233.71 'python3 -c "import secrets; print(\"STRUCTURAL_SHARE_TOK
 
 ---
 
-## 下一站:M1.4 PR #5 — 前端 share + feedback
+## ✅ M1.4 已全部完成 (PRs #1-#5 全在 main)
 
-**目标**:把 backend 已经做完的 persist + share + feedback endpoint 接到前端。
+session #16 把 frontend PR #5 也做了 (commit `addbb08`)。**M1.4 全 5 PR 已 shippable**:
+- backend ReportStore + share token + endpoints (PRs #1-#4)
+- frontend persist=1 + share bar + 9-section feedback buttons (PR #5)
+- report.html + report.js 共用 `/report/share/<token>` 和 `/report/<id>`
+- 5 个 Plausible 事件已 wire (Persisted / Share Clicked / Share Page Viewed / Feedback)
 
-**完整规格在**:`docs/sessions/M1.4-frontend-integration-guide.md`(202 行)。三件套:
-1. `analyze.html` 加 "💾 Save & share" 复选框 + SSE `persisted` 事件处理 + share bar 渲染
-2. 新 `report.html` 页面(`/report/share/<token>` + `/report/<id>` 两条路由共用)
-3. 每个 section 加 👍/👎 按钮 + 整体 👍/👎 + 5 个 Plausible 事件
+剩 P0:**用户跑这一行命令** 设 prod share secret(见上方 §当前 prod 状态)。
+其余都是 follow-up:
+- Playwright e2e (5 scenarios per integration guide §5)
+- "My Reports" 列表页 (`/api/reports/mine` 已就绪, UI 缺)
+- PDF / Markdown export (Pro 层 — W7-D 第 2 月)
+- Free-text feedback note 输入框 (v1.1, backend `note` field 已就绪)
 
-**估时**:< 1 天。所有 backend endpoint + 87 个测试已就绪。
+## 下一站候选 (按优先级)
+
+1. **M1.4 e2e 测试** — Playwright 跑通 5 个 user journey, 把 frontend 接住的 backend 在真浏览器锁死. 估 2-3 h.
+2. **30 stale branches 清理** — 一行 `./scripts/cleanup-stale-branches.sh` 删 30 个剩下的 merged 分支.
+3. **My Reports 列表页** — backend 就绪, 加一页 UI. 估 2-3 h.
+4. **V4 universality class 扩展** — 长周期, 看 `plans/v4-next-roadmap-2026-05-13.md`.
+5. **OSS 对外发布** (PyPI / arXiv / Zenodo / HF) — 都需要 user token, 见 §用户授权阻塞.
 
 ---
 
