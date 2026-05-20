@@ -243,6 +243,25 @@ for backward compatibility with the structural-isomorphism
 `Critic` / `Ensemble` / `Verdict`. See `cross_judge/reviewer.py` and
 `cross_judge/panel.py` for legacy docstrings.
 
+## API stability (v0.1 → v1.0 plan)
+
+cross-judge follows semver. The **v0.1 public surface** below is locked
+through the 1.0 release — any breaking change requires a major bump and a
+deprecation cycle one minor release ahead.
+
+| Symbol | Status |
+|---|---|
+| `Critic` (dataclass, .judge()) | stable |
+| `Ensemble` (.judge()) | stable |
+| `Verdict`, `VerdictKind`, `EnsembleVerdict` | stable |
+| `VENDOR_DEFAULTS` (registry shape) | stable |
+| voting helpers: `majority_vote` / `unanimous` / `agreement_pct` / `krippendorff_alpha` / `get_voting_strategy` | stable |
+| **legacy** `Reviewer` / `JudgePanel` / `EnsembleResult` / `AggregationStrategy` | preserved for back-compat, will be removed in v2.0 |
+
+Internal modules (`cross_judge.aggregation`, `cross_judge.vendors`,
+private helpers prefixed `_`) carry no stability guarantee — pin a
+specific version if you import them directly.
+
 ## License
 
 MIT. See `LICENSE`.
