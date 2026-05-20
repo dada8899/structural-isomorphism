@@ -241,6 +241,9 @@ app.include_router(favorites.router, prefix="/api")
 ***REMOVED*** Mock email send (writes to data/mock_email_outbox.jsonl); replace with
 ***REMOVED*** real SMTP/SendGrid when product is ready for invite-only Alpha.
 app.include_router(auth_api.router, prefix="/api")
+***REMOVED*** Session ***REMOVED***16 M1.4 — persisted analyze reports + share + feedback.
+from api import report as report_api  ***REMOVED*** noqa: E402
+app.include_router(report_api.router, prefix="/api")
 
 
 from schemas import HealthResponse, VersionResponse, WhoAmIResponse  ***REMOVED*** noqa: E402

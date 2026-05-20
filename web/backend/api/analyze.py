@@ -9,6 +9,8 @@
 """
 import hashlib
 import json as _json
+import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -19,21 +21,49 @@ from services.auth import verify_api_token
 from services.cache import MappingCache
 from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
+from services.report_store import ReportStore, sign_share_token
 from services.translation import translate_kb_item
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analyze"])
 
 _cache: Optional[MappingCache] = None
 _llm: Optional[LLMService] = None
+_report_store: Optional[ReportStore] = None
+
+***REMOVED*** Default ASK model — matches the one main.py /api/version reports so
+***REMOVED*** persisted reports record what the running code is actually using.
+ASK_MODEL_DEFAULT = "deepseek/deepseek-chat:nitro"
+
+
+def _build_share_url(request: Request, report_id: str, token: str) -> str:
+    """Return a full https URL to the share page.
+
+    Honours X-Forwarded-Host / X-Forwarded-Proto so the URL is correct
+    behind nginx. Falls back to request.base_url when those are missing
+    (local dev / tests).
+    """
+    fwd_host = request.headers.get("x-forwarded-host")
+    fwd_proto = request.headers.get("x-forwarded-proto", "https")
+    if fwd_host:
+        base = f"{fwd_proto}://{fwd_host.split(',')[0].strip()}"
+    else:
+        base = str(request.base_url).rstrip("/")
+    return f"{base}/report/share/{token}"
 
 
 def _init():
-    global _cache, _llm
+    global _cache, _llm, _report_store
     if _cache is None:
         cache_path = Path(__file__).parent.parent.parent / "data" / "analysis_cache.jsonl"
         _cache = MappingCache(cache_path)
     if _llm is None:
         _llm = LLMService()
+    if _report_store is None:
+        ***REMOVED*** Reuse the existing history.db file so we don't fragment storage.
+        ***REMOVED*** Path matches services/history_db.py initialiser in main.py lifespan.
+        db_path = Path(__file__).parent.parent / "data" / "history.db"
+        _report_store = ReportStore(db_path)
 
 
 def _looks_like_question(text: str) -> bool:
@@ -63,6 +93,15 @@ async def stream_analyze(
     a_id: Optional[str] = Query(None),
     text_a: Optional[str] = Query(None),
     lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
+    persist: int = Query(
+        0,
+        description=(
+            "Session ***REMOVED***16 M1.4 — if 1, persist the final report to the "
+            "report store and emit a `persisted` SSE event with id + "
+            "share_url before `done`. Default 0 keeps existing callers "
+            "backward-compatible."
+        ),
+    ),
 ):
     ***REMOVED*** Auth tier classification — None means token was provided but invalid.
     tier = verify_api_token(request)
@@ -156,6 +195,48 @@ async def stream_analyze(
     }
     MAX_MISSING_SECTIONS = 4
 
+    ***REMOVED*** Session ***REMOVED***16 M1.4 — capture identity bits for optional persist=1.
+    ***REMOVED*** X-Anon-Id is the same anonymous cookie/localStorage UUID used by
+    ***REMOVED*** services/flags / history; treat empty as None so list_by_anon
+    ***REMOVED*** doesn't bucket every anon-less call together.
+    anon_id_raw = request.headers.get("x-anon-id", "").strip() or None
+    creator_tier = tier if isinstance(tier, str) else None
+    ask_model = os.getenv("ASK_LLM_MODEL", ASK_MODEL_DEFAULT)
+
+    def _maybe_persist(report: dict, is_partial: bool) -> Optional[dict]:
+        """Persist the report if persist=1 and we have a non-empty payload.
+
+        Returns the SSE payload for the `persisted` event, or None when
+        persistence is skipped (persist=0) or fails (logged, not raised).
+        We never let a persist failure tear down the SSE stream — the
+        report itself is what the user came for.
+        """
+        if not persist or not report:
+            return None
+        try:
+            out = _report_store.create(
+                query=user_query or "",
+                rewritten_query=(b.get("description") if user_query else None),
+                b_id=b_id,
+                lang=lang,
+                payload=report,
+                model=ask_model,
+                prompt_version="v1",
+                creator_anon_id=anon_id_raw,
+                creator_tier=creator_tier,
+                is_partial=is_partial,
+            )
+            return {
+                "id": out["id"],
+                "share_token": out["share_token"],
+                "share_url": _build_share_url(request, out["id"], out["share_token"]),
+                "created_at": out["created_at"],
+                "is_partial": is_partial,
+            }
+        except Exception:
+            logger.exception("[analyze] persist failed (persist=1)")
+            return None
+
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
@@ -174,6 +255,12 @@ async def stream_analyze(
             ***REMOVED*** Emit each section as a separate event so frontend renders uniformly
             for key, value in cached.items():
                 yield sse("section", {"key": key, "data": value})
+            ***REMOVED*** M1.4: optional persist even on cache hit — same payload, new
+            ***REMOVED*** share token / row, so the user gets a shareable URL each time
+            ***REMOVED*** they explicitly ask for it.
+            persist_payload = _maybe_persist(cached, is_partial=False)
+            if persist_payload is not None:
+                yield sse("persisted", persist_payload)
             yield sse("done", {"report": cached, "from_cache": True})
             return
 
@@ -284,6 +371,15 @@ async def stream_analyze(
                     "message": err_reason,
                     "retryable": False,
                 })
+
+        ***REMOVED*** M1.4: persist BEFORE the `done` event so clients see the
+        ***REMOVED*** share URL alongside the final report in one SSE flush. Treat
+        ***REMOVED*** an incomplete/retried-then-failed report as is_partial=True so
+        ***REMOVED*** the frontend can dim the share button.
+        is_partial = final_report is None or _report_quality(final_report)[0]
+        persist_payload = _maybe_persist(final_report or {}, is_partial=is_partial)
+        if persist_payload is not None:
+            yield sse("persisted", persist_payload)
 
         yield sse("done", {"report": final_report, "from_cache": False})
 

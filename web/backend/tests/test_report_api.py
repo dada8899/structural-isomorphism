@@ -1,0 +1,259 @@
+"""Integration tests for /api/report/* endpoints (M1.4).
+
+Uses FastAPI TestClient against a focused sub-app — we don't need the
+full lifespan / search load for these endpoints.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+_BACKEND = Path(__file__).resolve().parent.parent
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
+
+
+***REMOVED*** --------- fixtures --------- ***REMOVED***
+
+
+@pytest.fixture
+def isolated_store(tmp_path, monkeypatch):
+    """Point api.report._store at a fresh DB inside tmp_path."""
+    from services.report_store import ReportStore
+    from api import report as report_api
+
+    fresh = ReportStore(tmp_path / "test_history.db")
+    monkeypatch.setattr(report_api, "_store", fresh)
+    return fresh
+
+
+@pytest.fixture
+def app(isolated_store):
+    """Minimal app exposing just the report router."""
+    from api import report as report_api
+
+    a = FastAPI()
+    a.include_router(report_api.router, prefix="/api")
+    return a
+
+
+@pytest.fixture
+def client(app):
+    return TestClient(app)
+
+
+@pytest.fixture
+def sample_payload():
+    return {
+        "shared_structure": {"name": "Cascade"},
+        "your_problem_breakdown": {"summary": "..."},
+        "action_plan": {"immediate_actions": ["a"]},
+    }
+
+
+***REMOVED*** --------- /api/report/{id} --------- ***REMOVED***
+
+
+def test_get_by_id_not_found(client):
+    r = client.get("/api/report/r_doesnotexist")
+    assert r.status_code == 404
+
+
+def test_get_by_id_anonymous_owner_allows_read(client, isolated_store, sample_payload):
+    """Row with no creator_anon_id can be read without X-Anon-Id."""
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="en", payload=sample_payload, model="m",
+    )
+    r = client.get(f"/api/report/{out['id']}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == out["id"]
+    assert body["payload"]["shared_structure"]["name"] == "Cascade"
+    ***REMOVED*** Owner-shape response must NOT include the share_token (caller of
+    ***REMOVED*** this endpoint already has the id; the token is for the /share path).
+    assert "share_token" not in body
+
+
+def test_get_by_id_with_owner_requires_matching_anon(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="en", payload=sample_payload, model="m",
+        creator_anon_id="A",
+    )
+    ***REMOVED*** Wrong anon-id → 404 (hide existence, NOT 403)
+    r = client.get(f"/api/report/{out['id']}", headers={"X-Anon-Id": "B"})
+    assert r.status_code == 404
+    ***REMOVED*** Right anon-id → 200
+    r = client.get(f"/api/report/{out['id']}", headers={"X-Anon-Id": "A"})
+    assert r.status_code == 200
+
+
+def test_get_by_id_records_view(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    client.get(f"/api/report/{out['id']}")
+    client.get(f"/api/report/{out['id']}")
+    r = client.get(f"/api/report/{out['id']}")
+    assert r.json()["view_count"] >= 2
+
+
+***REMOVED*** --------- /api/report/share/{token} --------- ***REMOVED***
+
+
+def test_get_by_share_token_round_trip(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+        creator_anon_id="A",
+    )
+    ***REMOVED*** No anon-id needed for share access — that's the whole point.
+    r = client.get(f"/api/report/share/{out['share_token']}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == out["id"]
+
+
+def test_get_by_share_token_invalid_format(client):
+    r = client.get("/api/report/share/short-token")
+    assert r.status_code == 404
+
+
+def test_get_by_share_token_unknown(client):
+    r = client.get("/api/report/share/" + "0" * 32)
+    assert r.status_code == 404
+
+
+***REMOVED*** --------- /api/reports/mine --------- ***REMOVED***
+
+
+def test_list_mine_without_anon_returns_empty(client):
+    r = client.get("/api/reports/mine")
+    assert r.status_code == 200
+    body = r.json()
+    assert body == {"items": [], "has_more": False}
+
+
+def test_list_mine_filters_by_anon(client, isolated_store, sample_payload):
+    for q in ("q1", "q2"):
+        isolated_store.create(
+            query=q, b_id="b", lang="en", payload=sample_payload, model="m",
+            creator_anon_id="A",
+        )
+    isolated_store.create(
+        query="q3-other", b_id="b", lang="en", payload=sample_payload, model="m",
+        creator_anon_id="B",
+    )
+    r = client.get("/api/reports/mine", headers={"X-Anon-Id": "A"})
+    body = r.json()
+    assert len(body["items"]) == 2
+    assert all("other" not in i["query"] for i in body["items"])
+
+
+def test_list_mine_pagination(client, isolated_store, sample_payload):
+    for i in range(5):
+        isolated_store.create(
+            query=f"q{i}", b_id="b", lang="en", payload=sample_payload, model="m",
+            creator_anon_id="A",
+        )
+    r = client.get(
+        "/api/reports/mine?limit=2",
+        headers={"X-Anon-Id": "A"},
+    )
+    body = r.json()
+    assert len(body["items"]) == 2
+    assert body["has_more"] is True
+
+    r2 = client.get(
+        "/api/reports/mine?limit=2&offset=4",
+        headers={"X-Anon-Id": "A"},
+    )
+    body2 = r2.json()
+    assert len(body2["items"]) == 1
+    assert body2["has_more"] is False
+
+
+***REMOVED*** --------- POST /api/report/{id}/feedback --------- ***REMOVED***
+
+
+def test_feedback_up_vote(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/feedback",
+        json={"section": "shared_structure", "vote": 1},
+        headers={"X-Anon-Id": "V"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body == {"ok": True, "total_up": 1, "total_down": 0}
+
+
+def test_feedback_section_must_be_known(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/feedback",
+        json={"section": "made_up_section_name", "vote": 1},
+        headers={"X-Anon-Id": "V"},
+    )
+    assert r.status_code == 400
+
+
+def test_feedback_vote_must_be_signed_one(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/feedback",
+        json={"section": None, "vote": 7},
+        headers={"X-Anon-Id": "V"},
+    )
+    assert r.status_code == 400
+
+
+def test_feedback_404_on_missing_report(client):
+    r = client.post(
+        "/api/report/r_nope/feedback",
+        json={"section": None, "vote": 1},
+        headers={"X-Anon-Id": "V"},
+    )
+    assert r.status_code == 404
+
+
+def test_feedback_same_voter_section_overwrites(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    headers = {"X-Anon-Id": "V"}
+    body = {"section": "risks_and_limits", "vote": 1}
+    client.post(f"/api/report/{out['id']}/feedback", json=body, headers=headers)
+    body["vote"] = -1
+    r = client.post(f"/api/report/{out['id']}/feedback", json=body, headers=headers)
+    out_body = r.json()
+    assert out_body == {"ok": True, "total_up": 0, "total_down": 1}
+
+
+def test_feedback_different_voters_accumulate(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+    )
+    for v in ("A", "B", "C"):
+        client.post(
+            f"/api/report/{out['id']}/feedback",
+            json={"section": "action_plan", "vote": 1},
+            headers={"X-Anon-Id": v},
+        )
+    ***REMOVED*** One more down-vote from a new voter
+    r = client.post(
+        f"/api/report/{out['id']}/feedback",
+        json={"section": "action_plan", "vote": -1},
+        headers={"X-Anon-Id": "D"},
+    )
+    body = r.json()
+    assert body["total_up"] == 3
+    assert body["total_down"] == 1
