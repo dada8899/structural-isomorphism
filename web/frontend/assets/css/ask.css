@@ -55,12 +55,14 @@
 
 .ask-searchbox {
   width: 100%;
-  max-width: 680px;
+  max-width: 660px;
   background: var(--brand-paper-card);
   border: 1.5px solid var(--brand-line);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 18px 20px 12px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
+  /* Scheme A: lift the elevation so the box is the page's single
+     visual anchor — soft contact shadow + deeper ambient layer. */
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04), 0 8px 24px rgba(24, 24, 27, 0.08);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ask-searchbox:focus-within {
@@ -78,7 +80,10 @@
   line-height: 1.55;
   color: var(--brand-ink);
   resize: none;
-  min-height: 80px;
+  /* Scheme A: starts at one row, JS auto-grow expands on input. */
+  min-height: 56px;
+  max-height: 200px;
+  overflow-y: hidden;
   padding: 0;
 }
 .ask-searchbox__input::placeholder {
@@ -97,6 +102,12 @@
 .ask-searchbox__hint {
   font-size: 12px;
   color: var(--brand-muted);
+  /* Scheme A: keep the shortcut hint quiet until the box is focused. */
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ask-searchbox:focus-within .ask-searchbox__hint {
+  opacity: 1;
 }
 
 /* W6-D (session ***REMOVED***7 P1 backlog): live char counter.
@@ -140,41 +151,69 @@
   margin: 0 1px;
 }
 
+/* Scheme A: circular icon-only submit. Inert gray until there is
+ * input, then accent blue. JS toggles the `disabled` attribute. */
 .ask-searchbox__submit {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--brand-ink);
-  color: var(--brand-paper-card);
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  background: var(--brand-accent);
+  color: ***REMOVED***fff;
   border: none;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 50%;
   cursor: pointer;
   transition: background 0.15s, transform 0.05s;
 }
-.ask-searchbox__submit:hover { background: ***REMOVED***000; }
-.ask-searchbox__submit:active { transform: scale(0.97); }
+.ask-searchbox__submit:hover { background: var(--brand-accent-hover); }
+.ask-searchbox__submit:active { transform: scale(0.95); }
 .ask-searchbox__submit:disabled {
-  background: var(--brand-line-strong);
+  background: var(--brand-line);
+  color: var(--brand-muted);
   cursor: not-allowed;
+}
+/* While submitting the button is disabled but should stay accent
+   blue so the white spinner reads clearly. */
+.ask-searchbox__submit.is-loading:disabled {
+  background: var(--brand-accent);
+  cursor: progress;
+}
+
+/* Spinner shown only while a submit is in flight (.is-loading). */
+.ask-searchbox__submit-spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: ***REMOVED***fff;
+  border-radius: 50%;
+  animation: ask-spin 0.6s linear infinite;
+}
+.ask-searchbox__submit.is-loading .ask-searchbox__submit-arrow {
+  display: none;
+}
+.ask-searchbox__submit.is-loading .ask-searchbox__submit-spinner {
+  display: block;
+}
+@keyframes ask-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ---- examples chips ---- */
 
 .ask-empty__examples {
-  margin-top: 40px;
+  /* Scheme A: tuck the chips close under the search box. */
+  margin-top: 16px;
   width: 100%;
-  max-width: 680px;
+  max-width: 660px;
 }
 .ask-empty__examples-label {
+  /* Scheme A: drop the uppercase heading down to one quiet gray line. */
   font-size: 12px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
   color: var(--brand-muted);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .ask-empty__examples-chips {
   display: flex;
