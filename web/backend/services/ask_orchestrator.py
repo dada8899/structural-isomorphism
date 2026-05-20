@@ -48,10 +48,13 @@ from services.llm_service import LLMService, _get_http_client, OPENROUTER_URL
 logger = logging.getLogger("structural.ask_orchestrator")
 
 
-***REMOVED*** DeepSeek as the default driver for /ask. Spec D-renai-10 tagged DeepSeek
-***REMOVED*** as the temporary fast/cheap default for high-volume synthesis flows.
-***REMOVED*** Override via env when we want to A/B against Claude / Kimi.
-ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat")
+***REMOVED*** DeepSeek as the default driver for /ask. The `:nitro` suffix tells
+***REMOVED*** OpenRouter to route to the highest-throughput provider available, which
+***REMOVED*** cuts time-to-first-token from a 8-25s tail down to ~2-6s (M1.2 fix 1 —
+***REMOVED*** first-token latency硬伤). Same model, fastest provider — no answer
+***REMOVED*** quality change. Override via env (ASK_LLM_MODEL) to A/B against Claude /
+***REMOVED*** Kimi, or drop the suffix to let OpenRouter balance on price.
+ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
 
 ***REMOVED*** How many KB hits to surface to the user as citation candidates.
 TOP_K_CARDS = 5
@@ -74,8 +77,8 @@ TYPEWRITER_SLEEP_S = 0.025
 ***REMOVED***   - top-1 cosine < RELEVANCE_TOP1_MIN  → low relevance
 ***REMOVED***   - top-3 mean   < RELEVANCE_TOP3_MEAN_MIN → low relevance
 ***REMOVED***   - empty cards                         → low relevance (trivial)
-***REMOVED*** A "low_relevance" flag is then injected into the LLM prompt so the model
-***REMOVED*** can degrade gracefully (decline + redirect) instead of forcing an answer.
+***REMOVED*** When any signal trips, `stream()` short-circuits (M1.3): it emits a
+***REMOVED*** local, honest refusal and skips the LLM call entirely — never硬拗.
 ***REMOVED***
 ***REMOVED*** Threshold rationale from dogfood data:
 ***REMOVED***   q1 (SVB):      top-1=0.94  top-3=0.85+ → above
@@ -339,27 +342,69 @@ class AskOrchestrator:
         })
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
-        ***REMOVED*** ---- Relevance gate (W5-A) ---------------------------------- ***REMOVED***
+        ***REMOVED*** ---- Relevance gate → out-of-scope refusal (W5-A → M1.3) ----- ***REMOVED***
         ***REMOVED*** Inspect the retrieval scores. If the query is clearly outside
-        ***REMOVED*** the KB's coverage, we still call the LLM (UX wants one coherent
-        ***REMOVED*** SSE stream regardless), but we tell the LLM to politely decline
-        ***REMOVED*** rather than硬拗 isomorphism content. This is a code-layer
-        ***REMOVED*** guardrail per the global "不信任 LLM 输出" rule — we don't let
-        ***REMOVED*** the LLM alone decide whether to honor scope.
+        ***REMOVED*** the KB's coverage we SHORT-CIRCUIT here: emit a local, honest
+        ***REMOVED*** refusal and never call the LLM. The relevance gate has always
+        ***REMOVED*** been an accurate detector; M1.3 adds the missing execution
+        ***REMOVED*** branch that actually acts on it. Pre-M1.3 the flag was only a
+        ***REMOVED*** soft hint fed into the prompt, so an out-of-scope query still
+        ***REMOVED*** burned a full 18-32s LLM call (dogfood q6 "1+1=?" → 33s of
+        ***REMOVED*** forced analogy). Refusing locally drops that to ~1-3s and kills
+        ***REMOVED*** the "硬拗类比" failure mode outright — a code-layer guardrail
+        ***REMOVED*** per the global "不信任 LLM 输出" rule.
         low_relevance, relevance_reason = self._evaluate_relevance(cards)
         if low_relevance:
             logger.info(
-                f"[ask] low-relevance query gated; reason={relevance_reason} "
+                "[ask] low-relevance query refused locally; "
+                f"reason={relevance_reason} "
                 f"top1={(cards[0].get('score') if cards else None)}"
             )
+            refusal = self._build_refusal_payload(
+                query, cards, lang_norm, relevance_reason,
+            )
+            refusal_text = refusal["answer"]
+            for chunk in self._typewriter_chunks(refusal_text):
+                yield _sse("answer_chunk", {"delta": chunk})
+                if TYPEWRITER_SLEEP_S > 0:
+                    await asyncio.sleep(TYPEWRITER_SLEEP_S)
+            yield _sse("answer_done", {
+                "full_text": refusal_text,
+                "citations": [],
+                "out_of_scope": True,
+                "scope_reason": relevance_reason,
+                ***REMOVED*** `refused` marks a hard local refusal (no LLM call) so the
+                ***REMOVED*** frontend / analytics can tell it apart from the legacy
+                ***REMOVED*** soft `out_of_scope` flag.
+                "refused": True,
+            })
+            ***REMOVED*** No "similar phenomena": the gate already decided the
+            ***REMOVED*** retrieved cards aren't genuinely related, so surfacing them
+            ***REMOVED*** would contradict the refusal text.
+            yield _sse("similar_phenomena", {"phenomena": []})
+            yield _sse("followups", {"questions": refusal["followups"]})
+            refusal_latency_ms = int((time.monotonic() - started) * 1000)
+            try:
+                from logging_config import get_logger as _glog
+
+                _glog("structural.ask").info(
+                    "ask.response",
+                    latency_ms=refusal_latency_ms,
+                    citation_count=0,
+                    out_of_scope=True,
+                    refused=True,
+                )
+            except Exception:
+                pass
+            yield _sse("done", {"latency_ms": refusal_latency_ms})
+            return
 
         ***REMOVED*** ---- Phase B: LLM synthesize answer + citations + followups -- ***REMOVED***
-        ***REMOVED*** W5-A + W5-B combined: streaming pipeline carries the low_relevance
-        ***REMOVED*** flag through to the prompt builder so the LLM degrades gracefully
-        ***REMOVED*** on out-of-scope queries while still streaming chunk-by-chunk.
-        ***REMOVED*** W14-D: structured `ask.llm.start` log line — model + low_relevance
-        ***REMOVED*** + retrieval count so a single grep on `request_id` reconstructs
-        ***REMOVED*** the whole pipeline timeline.
+        ***REMOVED*** Reached only for in-scope queries — out-of-scope ones were
+        ***REMOVED*** refused above (M1.3) without ever calling the LLM.
+        ***REMOVED*** W14-D: structured `ask.llm.start` log line — model + retrieval
+        ***REMOVED*** count so a single grep on `request_id` reconstructs the whole
+        ***REMOVED*** pipeline timeline.
         try:
             from logging_config import get_logger as _glog
 
@@ -367,17 +412,23 @@ class AskOrchestrator:
                 "ask.llm.start",
                 model=self.model,
                 kb_count=len(cards_payload),
-                low_relevance=low_relevance,
             )
         except Exception:
             pass
+        ***REMOVED*** M1.2 fix 4: tell the frontend the LLM call is starting so its
+        ***REMOVED*** progress indicator can advance — closes the perceived "black
+        ***REMOVED*** screen" gap between `retrieval_done` and the first `answer_chunk`.
+        yield _sse("llm_start", {
+            "model": self.model,
+            "kb_count": len(cards_payload),
+        })
         llm_started = time.monotonic()
         payload: Dict
         raw_buffer = ""
         first_chunk_sent = False
         try:
             async for kind, value in self._stream_llm_answer_with_retry(
-                query, cards, lang_norm, low_relevance=low_relevance,
+                query, cards, lang_norm,
             ):
                 if kind == "answer_delta":
                     if value:
@@ -429,17 +480,12 @@ class AskOrchestrator:
         ***REMOVED*** Sanitize citations against the actual cards range so a
         ***REMOVED*** hallucinated idx never leaks to the frontend.
         validated_citations = self._validate_citations(payload.get("citations", []), cards)
-        answer_done_payload = {
+        ***REMOVED*** In-scope path only — out-of-scope queries were refused above and
+        ***REMOVED*** returned (M1.3), so `answer_done` here never carries out_of_scope.
+        yield _sse("answer_done", {
             "full_text": answer_text,
             "citations": validated_citations,
-        }
-        if low_relevance:
-            ***REMOVED*** Surface the gate decision so the UI can render an
-            ***REMOVED*** "out-of-scope" badge / softer styling and so analytics can
-            ***REMOVED*** track how often we degrade.
-            answer_done_payload["out_of_scope"] = True
-            answer_done_payload["scope_reason"] = relevance_reason
-        yield _sse("answer_done", answer_done_payload)
+        })
 
         ***REMOVED*** ---- Phase C: similar phenomena ------------------------------ ***REMOVED***
         similar = self._build_similar_phenomena(cards[:TOP_K_SIMILAR])
@@ -464,7 +510,7 @@ class AskOrchestrator:
                 "ask.response",
                 latency_ms=latency_ms,
                 citation_count=len(validated_citations),
-                out_of_scope=bool(low_relevance),
+                out_of_scope=False,
             )
         except Exception:
             pass
@@ -576,7 +622,6 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
-        low_relevance: bool = False,
     ) -> Dict:
         """One LLM call; on failure retry once with a stricter reminder.
 
@@ -588,9 +633,7 @@ class AskOrchestrator:
         path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
         ***REMOVED*** First attempt — normal prompt.
-        prompt = self._build_prompt(
-            query, cards, lang, strict_json=False, low_relevance=low_relevance,
-        )
+        prompt = self._build_prompt(query, cards, lang, strict_json=False)
         result = await self._call_llm_once(prompt)
         validated = self._try_validate(result)
         if validated is not None:
@@ -598,9 +641,7 @@ class AskOrchestrator:
 
         ***REMOVED*** Retry once with a stricter "JSON only, no markdown fences" note.
         logger.warning("[ask] first LLM JSON validate failed; retrying once")
-        prompt2 = self._build_prompt(
-            query, cards, lang, strict_json=True, low_relevance=low_relevance,
-        )
+        prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
         result2 = await self._call_llm_once(prompt2)
         validated2 = self._try_validate(result2)
         if validated2 is not None:
@@ -614,7 +655,6 @@ class AskOrchestrator:
         query: str,
         cards: List[Dict],
         lang: str,
-        low_relevance: bool = False,
     ) -> AsyncIterator[Tuple[str, object]]:
         """Streaming variant — yields tuples driving the SSE pipeline.
 
@@ -636,7 +676,7 @@ class AskOrchestrator:
         3. After two failures total, yield ("done", fallback).
         """
         ***REMOVED*** ---- Attempt 1: stream + extract --------------------------------
-        prompt = self._build_prompt(query, cards, lang, strict_json=False, low_relevance=low_relevance)
+        prompt = self._build_prompt(query, cards, lang, strict_json=False)
         accumulated = ""
         emitted_any = False
         async for kind, value in self._call_llm_stream(prompt):
@@ -663,7 +703,7 @@ class AskOrchestrator:
             ***REMOVED*** already-emitted answer string by overriding `answer` with
             ***REMOVED*** whatever we managed to accumulate via the extractor.
             logger.warning("[ask] stream JSON validate failed; retry (no re-stream)")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             result2 = await self._call_llm_once(prompt2)
             validated2 = self._try_validate(result2)
             if validated2 is not None:
@@ -677,7 +717,7 @@ class AskOrchestrator:
         else:
             ***REMOVED*** Nothing user-visible yet — safe to fully re-stream.
             logger.warning("[ask] stream emitted nothing; retry with strict_json")
-            prompt2 = self._build_prompt(query, cards, lang, strict_json=True, low_relevance=low_relevance)
+            prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             accumulated2 = ""
             stream2_errored = False
             async for kind, value in self._call_llm_stream(prompt2):
@@ -889,14 +929,12 @@ class AskOrchestrator:
         cards: List[Dict],
         lang: str,
         strict_json: bool,
-        low_relevance: bool = False,
     ) -> str:
         """Build the single-shot prompt for answer + citations + followups.
 
-        When `low_relevance` is True, the prompt switches to an
-        out-of-scope branch that asks the model to decline politely and
-        redirect the user — instead of硬拗 isomorphism analogies on
-        edge / trivial / prediction queries.
+        Always the in-scope synthesis prompt: out-of-scope queries are
+        refused locally in `stream()` (M1.3) and never reach the LLM, so
+        the old `low_relevance` prompt branch was removed as dead code.
         """
         if not cards:
             cards_block = "（无 KB 召回结果，请基于通识尝试回答；citations 字段可填 idx=1 并 kb_id 留空也可以）"
@@ -921,77 +959,7 @@ class AskOrchestrator:
             else ""
         )
 
-        ***REMOVED*** ---- Out-of-scope branch (W5-A) --------------------------------
-        ***REMOVED*** Triggered when our retrieval-score gate decided the KB doesn't
-        ***REMOVED*** really cover this query. We want a short, honest, redirecting
-        ***REMOVED*** answer — not a forced cross-domain analogy. The JSON schema
-        ***REMOVED*** stays identical so downstream emission code is unchanged; we
-        ***REMOVED*** only re-frame the instructions and relax the citation rule.
-        if low_relevance:
-            if lang == "en":
-                scope_intro = (
-                    "The user's query is OUTSIDE the typical coverage of this "
-                    "structural-isomorphism knowledge base. The retrieved KB "
-                    "items are weakly related at best. Do NOT force an "
-                    "isomorphism analogy."
-                )
-                scope_rules = (
-                    "Write a SHORT (60-180 chars) answer that:\n"
-                    "  1) politely says this question is outside the KB's "
-                    "coverage (this KB focuses on cross-disciplinary "
-                    "structural isomorphism — e.g. earthquakes, bank runs, "
-                    "neural avalanches share a common math)\n"
-                    "  2) gives ONE concrete redirect — what kind of source / "
-                    "discipline / tool would actually answer this\n"
-                    "  3) does NOT pretend the retrieved KB items are "
-                    "relevant. Do not cite them with [n] markers.\n"
-                    "Followups should be 3 questions that DO fit the KB scope "
-                    "(structural isomorphism / cascades / phase transitions / "
-                    "network dynamics), so the user can pivot productively."
-                )
-            else:
-                scope_intro = (
-                    "用户的问题超出本「结构同构」知识库的典型覆盖范围。"
-                    "下方召回的 KB 现象相关性都很弱。不要硬拗跨域类比。"
-                )
-                scope_rules = (
-                    "请写一段简短（60-180 字）的回复，包含：\n"
-                    "  1) 委婉说明这个问题不在 Structural 当前覆盖范围（"
-                    "Structural 专注跨学科结构同构，如地震 / 银行挤兑 / "
-                    "神经放电的共同数学）\n"
-                    "  2) 给出 1 句具体建议——哪个学科 / 工具 / 资源更适合\n"
-                    "  3) 不要把召回的 KB 现象当真，不要使用 [n] 引用标记\n"
-                    "followups 必须给 3 个真正落在结构同构 / 级联 / 相变 / "
-                    "网络动力学范围内的问题，让用户能转向有意义的探索方向。"
-                )
-
-            return f"""你是一个跨学科结构同构搜索引擎。{scope_intro}
-
-用户问题：
-{query}
-
-下方是 vector 检索召回的 KB 现象（仅供参考，相关性低）：
-{cards_block}
-
-{lang_clause}
-
-{scope_rules}
-
-请输出严格 JSON（schema 不变）：
-{{
-  "answer": "60-180 字短回复：承认超出范围 + 给重定向建议",
-  "citations": [
-    {{"idx": 1, "kb_id": "对应 KB 现象的 id（schema 要求至少 1 条；填 idx=1 即可，不要在 answer 文本中使用 [1] 标记）", "label": "out-of-scope"}}
-  ],
-  "followups": ["真正落在结构同构范围内的问题1?", "问题2?", "问题3?"]
-}}
-
-要求：
-- answer 长度 20-2000 字符；out-of-scope 模式下不需要在文本中插入 [n] 引用标记
-- citations 数组至少 1 条以满足 schema（label 写 out-of-scope 即可）
-- followups 必须 2-5 条，全部围绕结构同构 / 跨域结构 / 级联 / 相变 / 网络动力学{strict_block}"""
-
-        ***REMOVED*** ---- Normal in-scope prompt -----------------------------------
+        ***REMOVED*** ---- In-scope synthesis prompt --------------------------------
         return f"""你是一个跨学科结构同构搜索引擎。用户问了一个复杂问题，你需要：
 
 1. 基于以下 KB 现象（已 vector 召回，按相似度排序），给出 200-400 字短答案，解释问题的"结构本质"
@@ -1019,6 +987,72 @@ KB 现象列表（结构相似度排序）：
 - citations 至少 1 条，最多 10 条；idx 必须是上面 KB 现象列表里的有效编号（1-based）
 - followups 必须 2-5 条字符串
 - answer 长度 20-2000 字符；包含至少一个 [1] 之类的引用标记{strict_block}"""
+
+    def _build_refusal_payload(
+        self, query: str, cards: List[Dict], lang: str, scope_reason: str,
+    ) -> Dict:
+        """Build an out-of-scope refusal locally — NO LLM call (M1.3).
+
+        Returned shape: {answer, followups}. `citations` is deliberately
+        omitted; the refusal path emits an empty citation list because the
+        retrieved cards were judged not genuinely relevant.
+
+        Wording adapts to `scope_reason` (from `_evaluate_relevance`):
+        `no_cards` means nothing matched at all, while `top1_below_*` /
+        `top3_mean_below_*` mean cards exist but score weakly. `followups`
+        are 3 demo questions firmly inside the KB's scope (structural
+        isomorphism / cascades / phase transitions / network dynamics) so
+        the user can pivot productively instead of hitting a dead end.
+
+        `query` / `cards` are accepted for signature parity with
+        `_fallback_payload` and possible future tailoring; not used today.
+        """
+        no_cards = scope_reason == "no_cards"
+        if lang == "en":
+            if no_cards:
+                answer = (
+                    "This question doesn't match anything in Structural's "
+                    "knowledge base. Structural is built for cross-disciplinary "
+                    "structural isomorphism — how earthquakes, bank runs and "
+                    "neural avalanches share the same underlying math. For "
+                    "calculations, factual lookups or personal questions, a "
+                    "more specialised tool will serve you better."
+                )
+            else:
+                answer = (
+                    "This question falls outside Structural's knowledge base — "
+                    "the retrieved phenomena are only weakly related to it. "
+                    "Structural is built for cross-disciplinary structural "
+                    "isomorphism, e.g. how earthquakes, bank runs and neural "
+                    "avalanches share the same underlying math. A domain-"
+                    "specific source or tool would answer this better."
+                )
+            followups = [
+                "Why do bank runs and forest fires spread in structurally similar ways?",
+                "Can critical phase transitions be detected before they happen?",
+                "How does network topology determine the scale of cascading failures?",
+            ]
+        else:
+            if no_cards:
+                answer = (
+                    "这个问题没有匹配到 Structural 知识库里的任何现象。"
+                    "Structural 擅长的是跨学科的结构同构——比如地震、银行挤兑、"
+                    "神经放电背后共用同一套数学规律。数学计算、事实查询或个人"
+                    "生活类的问题，换用更对口的工具会更靠谱。"
+                )
+            else:
+                answer = (
+                    "这个问题超出了 Structural 知识库的覆盖范围，检索到的现象"
+                    "与它的结构相关性都很弱。Structural 擅长的是跨学科的结构"
+                    "同构——比如地震、银行挤兑、神经放电背后共用同一套数学规律。"
+                    "这类问题建议换用更对口的工具或学科资源。"
+                )
+            followups = [
+                "为什么银行挤兑和森林大火的蔓延方式如此相似？",
+                "临界相变能不能提前预警？地震和股灾有共同的前兆信号吗？",
+                "网络拓扑结构如何决定级联失败的规模？",
+            ]
+        return {"answer": answer, "followups": followups}
 
     def _fallback_payload(self, query: str, cards: List[Dict], lang: str) -> Dict:
         """Emit a minimum-viable payload when the LLM never produces valid JSON.
