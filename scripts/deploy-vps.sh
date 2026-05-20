@@ -96,6 +96,12 @@ if [[ "$DRY_RUN" == "0" ]]; then
   # can't fingerprint-check what code is actually running (session #15 root
   # cause: 5 days of stale-code deploys went undetected).
   echo "[deploy] Writing runtime fingerprint to web/backend/.env.runtime..."
+  # Validator session-#16 P2 — warn early if SOURCE has no .git, since
+  # that's exactly when git_sha silently becomes 'unknown' and the
+  # session-#15 incident class can re-emerge.
+  if [[ ! -d "$SOURCE/.git" ]]; then
+    echo "[deploy] WARN: $SOURCE has no .git directory; git_sha will be 'unknown'." >&2
+  fi
   GIT_SHA="$(cd "$SOURCE" && git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
   DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   cat > "$TARGET/web/backend/.env.runtime" <<EOF
