@@ -313,18 +313,24 @@ async def health(deep: int = 0):
 async def version():
     import sys as _sys
     import subprocess as _sp
+    import asyncio as _aio
     git_sha = os.getenv("STRUCTURAL_GIT_SHA", "")
     if not git_sha:
         ***REMOVED*** Best-effort: short SHA from git, capped at 12 chars.
-        try:
-            git_sha = _sp.check_output(
-                ["git", "rev-parse", "--short=12", "HEAD"],
-                cwd=str(Path(__file__).resolve().parent.parent.parent),
-                stderr=_sp.DEVNULL,
-                timeout=2,
-            ).decode().strip()
-        except Exception:
-            git_sha = "unknown"
+        ***REMOVED*** Off-load to a thread so /api/version doesn't block the event
+        ***REMOVED*** loop for up to 2s when STRUCTURAL_GIT_SHA is unset (dev /
+        ***REMOVED*** misconfigured deploy). Validator session-***REMOVED***16 P2.
+        def _git_sha_blocking():
+            try:
+                return _sp.check_output(
+                    ["git", "rev-parse", "--short=12", "HEAD"],
+                    cwd=str(Path(__file__).resolve().parent.parent.parent),
+                    stderr=_sp.DEVNULL,
+                    timeout=2,
+                ).decode().strip()
+            except Exception:
+                return "unknown"
+        git_sha = await _aio.to_thread(_git_sha_blocking)
     ***REMOVED*** Session ***REMOVED***16 — surface the ask-model + deploy timestamp so dogfood scripts
     ***REMOVED*** can fingerprint-check prod in a single request. Import the canonical
     ***REMOVED*** value from ask_orchestrator so the two NEVER drift (Validator session

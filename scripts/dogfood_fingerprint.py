@@ -84,6 +84,14 @@ def main() -> int:
             failed.append(
                 f"git_sha mismatch: prod={sha!r} expected starts-with={args.expect_sha_startswith!r}"
             )
+    else:
+        ***REMOVED*** Validator session-***REMOVED***16 P2 — silent empty default can mask real
+        ***REMOVED*** drift. Emit a stderr warning rather than appearing to verify SHA.
+        print(
+            "⚠ no --expect-sha-startswith supplied and `git rev-parse` returned "
+            "nothing; git_sha was NOT verified.",
+            file=sys.stderr,
+        )
 
     print(f"host:         {args.host}")
     print(f"semver:       {body.get('semver')}")

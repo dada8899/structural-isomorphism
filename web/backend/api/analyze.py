@@ -88,7 +88,12 @@ async def stream_analyze(
     request: Request,
     b_id: str = Query(...),
     a_id: Optional[str] = Query(None),
-    text_a: Optional[str] = Query(None),
+    text_a: Optional[str] = Query(
+        None,
+        max_length=2000,
+        description="User's free-text question. Capped at 2000 chars to "
+        "prevent unbounded payload growth in persisted reports.",
+    ),
     lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
     persist: int = Query(
         0,
@@ -270,8 +275,12 @@ async def stream_analyze(
                 yield sse("section", {"key": key, "data": value})
             ***REMOVED*** M1.4: optional persist even on cache hit — same payload, new
             ***REMOVED*** share token / row, so the user gets a shareable URL each time
-            ***REMOVED*** they explicitly ask for it.
-            persist_payload = _maybe_persist(cached, is_partial=False)
+            ***REMOVED*** they explicitly ask for it. Belt-and-suspenders: re-check
+            ***REMOVED*** quality so a stale cached fallback doesn't get persisted as
+            ***REMOVED*** is_partial=False (Validator session-***REMOVED***16 P2).
+            cached_missing = len(EXPECTED_SECTIONS - set(cached.keys())) if cached else 9
+            cached_partial = cached_missing >= MAX_MISSING_SECTIONS
+            persist_payload = _maybe_persist(cached, is_partial=cached_partial)
             if persist_payload is not None:
                 yield sse("persisted", persist_payload)
             yield sse("done", {"report": cached, "from_cache": True})

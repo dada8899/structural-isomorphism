@@ -302,6 +302,16 @@ class TestFeedback:
         )
         assert counts == {"total_up": 0, "total_down": 1}
 
+    def test_payload_size_cap_rejects_oversize(self, store):
+        """Validator P2: payload > 256 KB should raise so the caller can
+        decide what to do instead of silently writing a bloated row."""
+        huge_payload = {"shared_structure": {"description": "x" * (300 * 1024)}}
+        with pytest.raises(ValueError, match="too large"):
+            store.create(
+                query="q", b_id="b", lang="en",
+                payload=huge_payload, model="m",
+            )
+
     def test_anonymous_voter_one_overall_vote_only(self, store, sample_payload):
         """voter_anon=None now collapses to 'anon'; one anonymous voter
         can only have one overall vote per report (no NULL pile-up)."""

@@ -194,6 +194,15 @@ class ReportStore:
         token = sign_share_token(rid)
         created_at = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         payload_json = json.dumps(payload, ensure_ascii=False)
+        ***REMOVED*** Validator session-***REMOVED***16 P2 — cap payload at 256 KB. A real 9-section
+        ***REMOVED*** report is ~30-50 KB; anything 5× that is almost certainly an
+        ***REMOVED*** accident or attack. We raise rather than silently truncate so
+        ***REMOVED*** the caller decides (analyze.py logs and continues without
+        ***REMOVED*** tearing down the SSE stream).
+        if len(payload_json.encode("utf-8")) > 256 * 1024:
+            raise ValueError(
+                f"report payload too large: {len(payload_json)} bytes > 256KB cap"
+            )
 
         try:
             with self._connect() as conn:
