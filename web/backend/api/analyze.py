@@ -21,6 +21,7 @@ from services.auth import verify_api_token
 from services.cache import MappingCache
 from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
+from services.ask_orchestrator import ASK_MODEL  # canonical source of truth
 from services.report_store import ReportStore, sign_share_token
 from services.translation import translate_kb_item
 
@@ -30,10 +31,6 @@ router = APIRouter(tags=["analyze"])
 _cache: Optional[MappingCache] = None
 _llm: Optional[LLMService] = None
 _report_store: Optional[ReportStore] = None
-
-# Default ASK model — matches the one main.py /api/version reports so
-# persisted reports record what the running code is actually using.
-ASK_MODEL_DEFAULT = "deepseek/deepseek-chat:nitro"
 
 
 def _build_share_url(request: Request, report_id: str, token: str) -> str:
@@ -201,7 +198,9 @@ async def stream_analyze(
     # doesn't bucket every anon-less call together.
     anon_id_raw = request.headers.get("x-anon-id", "").strip() or None
     creator_tier = tier if isinstance(tier, str) else None
-    ask_model = os.getenv("ASK_LLM_MODEL", ASK_MODEL_DEFAULT)
+    # ASK_MODEL is imported from ask_orchestrator (single source of truth);
+    # it already honours the ASK_LLM_MODEL env override.
+    ask_model = ASK_MODEL
 
     def _maybe_persist(report: dict, is_partial: bool) -> Optional[dict]:
         """Persist the report if persist=1 and we have a non-empty payload.
@@ -376,7 +375,14 @@ async def stream_analyze(
         # share URL alongside the final report in one SSE flush. Treat
         # an incomplete/retried-then-failed report as is_partial=True so
         # the frontend can dim the share button.
-        is_partial = final_report is None or _report_quality(final_report)[0]
+        # Validator session #16 P1: also flag is_partial when >= 4 sections
+        # missing, not just on fallback-name match (a report with 5/9
+        # sections doesn't have the fallback name but is still partial).
+        if final_report is None:
+            is_partial = True
+        else:
+            is_fb, missing_count = _report_quality(final_report)
+            is_partial = is_fb or missing_count >= MAX_MISSING_SECTIONS
         persist_payload = _maybe_persist(final_report or {}, is_partial=is_partial)
         if persist_payload is not None:
             yield sse("persisted", persist_payload)

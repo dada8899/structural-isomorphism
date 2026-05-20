@@ -326,9 +326,12 @@ async def version():
         except Exception:
             git_sha = "unknown"
     # Session #16 — surface the ask-model + deploy timestamp so dogfood scripts
-    # can fingerprint-check prod in a single request. Default matches
-    # ask_orchestrator.ASK_MODEL so the two never drift silently.
-    model = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
+    # can fingerprint-check prod in a single request. Import the canonical
+    # value from ask_orchestrator so the two NEVER drift (Validator session
+    # #16 P1: literal duplication was identified as a session-15 regression
+    # path).
+    from services.ask_orchestrator import ASK_MODEL as _ASK_MODEL  # noqa: WPS433
+    model = _ASK_MODEL
     build_date = os.getenv("STRUCTURAL_BUILD_DATE", "unknown")
     deployed_at = os.getenv("STRUCTURAL_DEPLOYED_AT", build_date)
     return {
