@@ -131,18 +131,24 @@ class _NoopCache:
 
 
 @pytest.fixture
-def app(isolated):
-    """Sub-app exposing analyze + report routers (no search lifespan)."""
-    from api import analyze, report
+def app(isolated, monkeypatch):
+    """Sub-app exposing analyze + report routers (no search lifespan).
 
-    ***REMOVED*** Patch verify_api_token so requests without keys are allowed.
-    from services import auth as auth_mod
+    monkeypatch is used (not direct attribute assignment) so the patch
+    is rolled back at fixture teardown — leaking auth state between
+    tests was causing 7 unrelated test_auth_* failures in full-suite
+    runs (caught session-***REMOVED***16 wrap-up).
+    """
+    from api import analyze, report
 
     def _allow_all(_request):
         return "free"  ***REMOVED*** any non-None tier passes
 
-    import services.auth
-    services.auth.verify_api_token = _allow_all  ***REMOVED*** type: ignore
+    ***REMOVED*** Patch the symbol the analyze module already imported (the
+    ***REMOVED*** function reference is bound at import time, so patching
+    ***REMOVED*** services.auth.verify_api_token alone is not enough — patch
+    ***REMOVED*** api.analyze.verify_api_token where it's actually called).
+    monkeypatch.setattr("api.analyze.verify_api_token", _allow_all)
 
     a = FastAPI()
     a.include_router(analyze.router, prefix="/api")
