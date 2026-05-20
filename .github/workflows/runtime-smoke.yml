@@ -1,0 +1,134 @@
+name: Runtime smoke (prod-shaped deps)
+
+***REMOVED*** Session ***REMOVED***16 — close the SESSION-15-INCIDENT ***REMOVED***2 gap.
+***REMOVED***
+***REMOVED*** The five-day stale-deploy disaster in session ***REMOVED***15 had multiple causes;
+***REMOVED*** one was: requirements.txt pinned a sentence-transformers version that
+***REMOVED*** *did* install in CI but, after a transitive dep upgrade in prod, no
+***REMOVED*** longer imported successfully at runtime. Our CI tests imported with
+***REMOVED*** the *test* deps only (mocked search), so the failure mode never showed
+***REMOVED*** up until the systemd service tried to load the real model.
+***REMOVED***
+***REMOVED*** This workflow installs `web/backend/requirements.txt` EXACTLY as prod
+***REMOVED*** would (no test-only mocks) and tries to import every heavy dep + load
+***REMOVED*** the actual SearchService. It runs on every PR + nightly so we catch
+***REMOVED*** requirements drift before it ships.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/backend/requirements.txt'
+      - 'web/backend/services/search_service.py'
+      - 'web/backend/services/llm_service.py'
+      - 'web/backend/main.py'
+      - '.github/workflows/runtime-smoke.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web/backend/requirements.txt'
+      - 'web/backend/services/search_service.py'
+      - 'web/backend/services/llm_service.py'
+      - 'web/backend/main.py'
+      - '.github/workflows/runtime-smoke.yml'
+  schedule:
+    ***REMOVED*** Nightly at 06:00 UTC — catches transitive-dep regressions even
+    ***REMOVED*** when no one touched requirements.txt.
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: runtime-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import-smoke:
+    name: Import + model-load smoke (Linux, py3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: web/backend/requirements.txt
+
+      - name: Install prod deps exactly as requirements.txt declares
+        ***REMOVED*** No --upgrade, no test-only deps, no shortcuts. If this fails,
+        ***REMOVED*** prod restart would also fail.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r web/backend/requirements.txt
+
+      - name: Import every heavy module that prod loads at startup
+        ***REMOVED*** We do not load the actual KB embeddings (gated behind models/
+        ***REMOVED*** restore on VPS). What we DO verify is that each import works
+        ***REMOVED*** under the resolved transitive graph — exactly the failure mode
+        ***REMOVED*** the session ***REMOVED***15 incident missed.
+        run: |
+          python - <<'PY'
+          import importlib, sys
+          mods = [
+              "sentence_transformers",
+              "transformers",
+              "torch",
+              "httpx",
+              "fastapi",
+              "uvicorn",
+              "pydantic",
+              "slowapi",
+              "structlog",
+              "dotenv",
+              "starlette",
+          ]
+          failed = []
+          for m in mods:
+              try:
+                  importlib.import_module(m)
+                  print(f"OK  {m}")
+              except Exception as e:
+                  print(f"FAIL {m}: {type(e).__name__}: {e}", file=sys.stderr)
+                  failed.append(m)
+          if failed:
+              sys.exit(f"runtime smoke failed for: {failed}")
+          PY
+
+      - name: Load SearchService with a tiny in-memory KB
+        ***REMOVED*** Construct the real SearchService class, pass it 2 dummy KB rows,
+        ***REMOVED*** let it load the SentenceTransformer model and embed both. This
+        ***REMOVED*** exercises (a) model download / load, (b) tokenizer compat, (c)
+        ***REMOVED*** the path search_service.py walks at FastAPI startup.
+        env:
+          STRUCTURAL_LOG_LEVEL: WARNING
+        run: |
+          cd web/backend
+          PYTHONPATH=. python - <<'PY'
+          import json, tempfile, sys
+          from pathlib import Path
+
+          ***REMOVED*** Smallest viable KB — search_service.py reads (data_dir / kb_file).
+          kb_rows = [
+              {"id": "k1", "name": "test phenomenon 1", "domain": "test",
+               "type_id": "T", "description": "A small test card."},
+              {"id": "k2", "name": "test phenomenon 2", "domain": "test",
+               "type_id": "T", "description": "Another small test card."},
+          ]
+          tmpdir = Path(tempfile.mkdtemp())
+          kb_path = tmpdir / "smoke_kb.jsonl"
+          with open(kb_path, "w") as f:
+              for r in kb_rows:
+                  f.write(json.dumps(r) + "\n")
+
+          try:
+              from services.search_service import SearchService
+              svc = SearchService(data_dir=str(tmpdir), kb_file="smoke_kb.jsonl")
+              ***REMOVED*** Verify it actually answers — model + tokenizer + encode path all live.
+              hits = svc.search("test phenomenon", top_k=2)
+              assert len(hits) >= 1, f"expected ≥1 hit, got {len(hits)}"
+              print(f"OK SearchService loaded, kb_size={svc.kb_size}, hits={len(hits)}")
+          except Exception as e:
+              print(f"FAIL SearchService: {type(e).__name__}: {e}", file=sys.stderr)
+              sys.exit(1)
+          PY
