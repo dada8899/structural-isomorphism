@@ -396,5 +396,125 @@ class OutOfScopeStreamTests(unittest.TestCase):
 ***REMOVED*** Real-env e2e is intentionally NOT automated here because it costs real
 ***REMOVED*** OpenRouter $; track as follow-up in docs/dogfood-ask-2026-05-15.md.
 
+***REMOVED*** --------------------------------------------------------------------------
+***REMOVED*** Layer C: forecasting-intent keyword gate (session ***REMOVED***16)
+***REMOVED*** --------------------------------------------------------------------------
+
+from services.ask_orchestrator import _is_forecasting_intent  ***REMOVED*** noqa: E402
+
+
+class ForecastingIntentGateTests(unittest.TestCase):
+    """Pure-function tests on _is_forecasting_intent.
+
+    Catches the "AI 能不能预测股票" class of query that retrieves OK
+    (KB has "科技泡沫" / "投资判断" with decent cosine) but whose intent
+    we deterministically refuse.
+    """
+
+    ***REMOVED*** ---- positive: should trip ---------------------------------------- ***REMOVED***
+
+    def test_predict_crypto_zh(self):
+        self.assertTrue(_is_forecasting_intent("AI 能不能预测加密货币", "zh"))
+
+    def test_predict_stock_zh(self):
+        self.assertTrue(_is_forecasting_intent("帮我预测股价走势", "zh"))
+
+    def test_tomorrow_rise_zh(self):
+        self.assertTrue(_is_forecasting_intent("BTC 明天涨吗", "zh"))
+
+    def test_recommend_stock_zh(self):
+        self.assertTrue(_is_forecasting_intent("推荐股票，下周买什么", "zh"))
+
+    def test_price_target_zh(self):
+        self.assertTrue(_is_forecasting_intent("茅台涨到多少", "zh"))
+
+    def test_predict_crypto_en(self):
+        self.assertTrue(_is_forecasting_intent("Can AI predict crypto prices", "en"))
+
+    def test_will_rise_tomorrow_en(self):
+        self.assertTrue(_is_forecasting_intent("Will Tesla rise tomorrow", "en"))
+
+    def test_stock_pick_en(self):
+        self.assertTrue(_is_forecasting_intent("Stock pick for next week", "en"))
+
+    ***REMOVED*** ---- negative: in-scope questions must NOT trip ------------------- ***REMOVED***
+
+    def test_structural_question_zh_passes(self):
+        """The keyword 预测 alone is OK if not paired with a financial asset."""
+        self.assertFalse(
+            _is_forecasting_intent("临界相变能不能提前预警", "zh")
+        )
+
+    def test_isomorphism_question_zh_passes(self):
+        self.assertFalse(
+            _is_forecasting_intent("银行挤兑和森林大火的级联机制是什么", "zh")
+        )
+
+    def test_cascade_question_en_passes(self):
+        self.assertFalse(
+            _is_forecasting_intent("How do bank runs cascade", "en")
+        )
+
+    def test_empty_query_returns_false(self):
+        self.assertFalse(_is_forecasting_intent("", "zh"))
+        self.assertFalse(_is_forecasting_intent("", "en"))
+
+
+class ForecastingRefusalPayloadTests(unittest.TestCase):
+    """Verify _build_refusal_payload emits a forecasting-specific message
+    when scope_reason='forecasting_intent', not the generic 'no_cards' one."""
+
+    def setUp(self):
+        self.orch = AskOrchestrator(search_service=_FakeSearch([]))
+
+    def test_forecasting_refusal_zh_specific_wording(self):
+        payload = self.orch._build_refusal_payload(
+            "AI 预测股票",
+            cards=[],
+            lang="zh",
+            scope_reason="forecasting_intent",
+        )
+        ans = payload["answer"]
+        ***REMOVED*** Forecasting-specific phrasing — NOT the generic out-of-scope text
+        self.assertIn("预测", ans)
+        ***REMOVED*** Must call out that no AI tool can do this
+        self.assertTrue(
+            "包括 AI" in ans or "AI" in ans,
+            f"expected AI-disclaimer in answer, got: {ans[:200]}",
+        )
+        ***REMOVED*** Must offer a pivot (the in-scope rephrasing)
+        self.assertTrue(
+            "级联" in ans or "相变" in ans or "结构" in ans,
+            f"expected in-scope pivot offered, got: {ans[:200]}",
+        )
+
+    def test_forecasting_refusal_en_specific_wording(self):
+        payload = self.orch._build_refusal_payload(
+            "Can AI predict crypto",
+            cards=[],
+            lang="en",
+            scope_reason="forecasting_intent",
+        )
+        ans = payload["answer"]
+        self.assertTrue("forecast" in ans.lower() or "predict" in ans.lower())
+        self.assertTrue(
+            "cascade" in ans.lower() or "phase transition" in ans.lower()
+            or "fragility" in ans.lower(),
+            f"expected in-scope pivot offered, got: {ans[:200]}",
+        )
+
+    def test_generic_refusal_still_works(self):
+        """Make sure adding forecasting branch didn't break the no_cards path."""
+        payload = self.orch._build_refusal_payload(
+            "1+1=?",
+            cards=[],
+            lang="zh",
+            scope_reason="no_cards",
+        )
+        ***REMOVED*** No_cards path — should NOT trigger forecasting-specific phrasing
+        self.assertNotIn("预测涨跌", payload["answer"])
+        self.assertNotIn("不预测资产价格", payload["answer"])
+
+
 if __name__ == "__main__":
     unittest.main()
