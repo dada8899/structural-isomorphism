@@ -326,9 +326,12 @@ async def version():
         except Exception:
             git_sha = "unknown"
     ***REMOVED*** Session ***REMOVED***16 — surface the ask-model + deploy timestamp so dogfood scripts
-    ***REMOVED*** can fingerprint-check prod in a single request. Default matches
-    ***REMOVED*** ask_orchestrator.ASK_MODEL so the two never drift silently.
-    model = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
+    ***REMOVED*** can fingerprint-check prod in a single request. Import the canonical
+    ***REMOVED*** value from ask_orchestrator so the two NEVER drift (Validator session
+    ***REMOVED*** ***REMOVED***16 P1: literal duplication was identified as a session-15 regression
+    ***REMOVED*** path).
+    from services.ask_orchestrator import ASK_MODEL as _ASK_MODEL  ***REMOVED*** noqa: WPS433
+    model = _ASK_MODEL
     build_date = os.getenv("STRUCTURAL_BUILD_DATE", "unknown")
     deployed_at = os.getenv("STRUCTURAL_DEPLOYED_AT", build_date)
     return {

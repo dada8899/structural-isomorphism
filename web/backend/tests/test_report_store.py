@@ -284,3 +284,36 @@ class TestFeedback:
             query="q", b_id="b", lang="en", payload=sample_payload, model="m",
         )
         assert store.feedback_counts(out["id"]) == {"total_up": 0, "total_down": 0}
+
+    def test_overall_vote_same_voter_upserts(self, store, sample_payload):
+        """Validator session-***REMOVED***16 P1: section=None used to accumulate because
+        SQLite UNIQUE indexes treat NULL != NULL. Now normalised to '',
+        the UPSERT actually fires. Pin behaviour so we don't regress."""
+        out = store.create(
+            query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+        )
+        ***REMOVED*** First overall up-vote
+        store.record_feedback(
+            report_id=out["id"], section=None, vote=1, voter_anon="V",
+        )
+        ***REMOVED*** Same voter flips to down — should overwrite, not double-count.
+        counts = store.record_feedback(
+            report_id=out["id"], section=None, vote=-1, voter_anon="V",
+        )
+        assert counts == {"total_up": 0, "total_down": 1}
+
+    def test_anonymous_voter_one_overall_vote_only(self, store, sample_payload):
+        """voter_anon=None now collapses to 'anon'; one anonymous voter
+        can only have one overall vote per report (no NULL pile-up)."""
+        out = store.create(
+            query="q", b_id="b", lang="en", payload=sample_payload, model="m",
+        )
+        store.record_feedback(
+            report_id=out["id"], section=None, vote=1, voter_anon=None,
+        )
+        store.record_feedback(
+            report_id=out["id"], section=None, vote=1, voter_anon=None,
+        )
+        counts = store.feedback_counts(out["id"])
+        ***REMOVED*** Two clicks from the same (None→'anon') bucket → one row, one up.
+        assert counts == {"total_up": 1, "total_down": 0}

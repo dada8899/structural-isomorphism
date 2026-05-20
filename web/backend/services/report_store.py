@@ -44,15 +44,27 @@ logger = logging.getLogger(__name__)
 def _share_secret() -> bytes:
     """Resolve the HMAC secret.
 
-    Priority: STRUCTURAL_SHARE_TOKEN_SECRET env > derived-from-DB-path
-    fallback (deterministic but not committed). In prod we set the env;
-    in tests / dev we want a usable default rather than a hard error.
+    Priority: STRUCTURAL_SHARE_TOKEN_SECRET env > deterministic dev
+    fallback. In **prod** (STRUCTURAL_ENV=prod) the env MUST be set —
+    we raise rather than silently fall back, because the fallback is
+    predictable from cwd and the prod cwd is well-known
+    (/root/Projects/structural-isomorphism/web/backend). Letting that
+    secret leak by accident defeats the share-token capability model.
+
+    Validator review (session ***REMOVED***16) found this fallback exploitable in
+    prod; this guard closes the gap.
     """
     s = os.getenv("STRUCTURAL_SHARE_TOKEN_SECRET", "")
     if s:
         return s.encode("utf-8")
-    ***REMOVED*** Deterministic dev default — does NOT leak between machines because
-    ***REMOVED*** every cwd hashes differently. Acceptable for local dev / tests.
+    env = os.getenv("STRUCTURAL_ENV", "dev").lower()
+    if env == "prod":
+        raise RuntimeError(
+            "STRUCTURAL_SHARE_TOKEN_SECRET is not set in prod. "
+            "Set it in /root/Projects/structural-isomorphism/web/backend/.env "
+            "(stable across deploys — rotating breaks existing share URLs)."
+        )
+    ***REMOVED*** Dev / test fallback — deterministic per-cwd is fine here.
     fallback = f"dev-share-secret-{Path.cwd()}".encode("utf-8")
     return hashlib.sha256(fallback).digest()
 
@@ -103,9 +115,13 @@ CREATE INDEX IF NOT EXISTS idx_reports_share_token
 CREATE TABLE IF NOT EXISTS report_feedback (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     report_id   TEXT NOT NULL,
-    section     TEXT,
+    -- section is '' for an overall-report vote (NOT NULL). SQLite treats
+    -- NULL != NULL in UNIQUE indexes, so storing NULL here would silently
+    -- let one voter accumulate multiple overall-votes. Validator review
+    -- (session ***REMOVED***16) caught this; the conversion happens in record_feedback.
+    section     TEXT NOT NULL DEFAULT '',
     vote        INTEGER NOT NULL CHECK(vote IN (-1, 1)),
-    voter_anon  TEXT,
+    voter_anon  TEXT NOT NULL DEFAULT 'anon',
     note        TEXT,
     created_at  TEXT NOT NULL,
     FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
@@ -275,6 +291,12 @@ class ReportStore:
         """
         if vote not in (-1, 1):
             raise ValueError("vote must be -1 or +1")
+        ***REMOVED*** Normalise None → '' so the UNIQUE index actually fires on
+        ***REMOVED*** overall-report votes (SQLite treats NULL != NULL in unique
+        ***REMOVED*** indexes; without this, repeated overall votes by one voter
+        ***REMOVED*** accumulate instead of upserting). Validator session-***REMOVED***16 P1.
+        section_norm = section if section is not None else ""
+        voter_norm = voter_anon if voter_anon is not None else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
             ***REMOVED*** Use INSERT ... ON CONFLICT to upsert.
@@ -288,7 +310,7 @@ class ReportStore:
                     note = excluded.note,
                     created_at = excluded.created_at
                 """,
-                (report_id, section, vote, voter_anon, note, now),
+                (report_id, section_norm, vote, voter_norm, note, now),
             )
             counts = conn.execute(
                 """
