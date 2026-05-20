@@ -92,6 +92,55 @@ TYPEWRITER_SLEEP_S = 0.025
 RELEVANCE_TOP1_MIN = float(os.getenv("ASK_RELEVANCE_TOP1_MIN", "0.75"))
 RELEVANCE_TOP3_MEAN_MIN = float(os.getenv("ASK_RELEVANCE_TOP3_MEAN_MIN", "0.65"))
 
+# Session #16 — forecasting-intent gate (SESSION-15-VERDICT backlog A).
+# Some forecasting queries score high enough to bypass the retrieval gate
+# above (e.g. "AI 能不能预测加密货币" retrieves "科技泡沫" / "投资判断" with
+# decent cosine), yet the intent is the one thing Structural absolutely can
+# not honour: predicting future prices / movements. We add a tiny keyword
+# layer that runs BEFORE the retrieval gate so it short-circuits regardless
+# of score. Two-layer defence: the score gate (probabilistic) + the intent
+# keyword gate (deterministic). Either trip is enough.
+#
+# Keep this list short and specific. Over-matching false-positives ("预测"
+# inside "预测临界相变能不能提前预警" — which IS in scope) are avoided by
+# pairing "predict / 预测" with financial-asset markers.
+_FORECAST_KEYWORDS_ZH = (
+    "预测加密", "预测股", "预测币", "预测涨跌", "预测走势", "预测行情",
+    "明天涨", "明天跌", "明天会涨", "明天会跌",
+    "下周涨", "下周跌", "下个月涨", "下个月跌",
+    "什么时候涨", "什么时候跌",
+    "买什么股", "买哪只", "推荐股票", "推荐币", "推荐基金",
+    "BTC 明天", "BTC明天", "比特币明天",
+    "AI 能不能预测", "ai 能不能预测", "AI能预测", "AI 预测股", "AI预测股",
+    "涨到多少", "跌到多少", "目标价",
+)
+_FORECAST_KEYWORDS_EN = (
+    "predict crypto", "predict stock", "predict price",
+    "rise tomorrow", "fall tomorrow", "go up tomorrow", "go down tomorrow",
+    "rise next week", "fall next week",
+    "next week's price", "next month's price",
+    "stock pick", "stock picks", "which stock to buy",
+    "buy or sell", "buy bitcoin tomorrow", "buy btc tomorrow",
+    "price target", "price prediction", "forecast price",
+    "can ai predict", "ai predict stock", "ai predict crypto",
+)
+
+
+def _is_forecasting_intent(query: str, lang: str) -> bool:
+    """Cheap keyword check for forecasting / price-prediction intent.
+
+    Runs BEFORE the retrieval gate. Returns True iff the query text contains
+    a phrase we deterministically refuse (regardless of how well it retrieves).
+    Substring match on a lowercased / NFKC-normalised query; deliberately
+    permissive — false positives here are cheap (one extra refusal) while
+    false negatives are expensive (a hallucinated forecast in prod).
+    """
+    if not query:
+        return False
+    q = query.lower().strip()
+    kws = _FORECAST_KEYWORDS_EN if lang == "en" else _FORECAST_KEYWORDS_ZH
+    return any(k.lower() in q for k in kws)
+
 
 def _sse(event: str, data: Dict) -> str:
     """Format a single SSE event line."""
@@ -353,7 +402,16 @@ class AskOrchestrator:
         # forced analogy). Refusing locally drops that to ~1-3s and kills
         # the "硬拗类比" failure mode outright — a code-layer guardrail
         # per the global "不信任 LLM 输出" rule.
-        low_relevance, relevance_reason = self._evaluate_relevance(cards)
+        # Two-layer scope gate (session #16):
+        #   (1) forecasting-intent keyword gate — deterministic, runs first
+        #   (2) retrieval-score gate — probabilistic, runs second
+        # Either trip refuses. The intent gate catches the "AI 能不能预测股票"
+        # class of query that retrieves OK but is the one thing we must not
+        # answer.
+        if _is_forecasting_intent(query, lang_norm):
+            low_relevance, relevance_reason = True, "forecasting_intent"
+        else:
+            low_relevance, relevance_reason = self._evaluate_relevance(cards)
         if low_relevance:
             logger.info(
                 "[ask] low-relevance query refused locally; "
@@ -1008,8 +1066,20 @@ KB 现象列表（结构相似度排序）：
         `_fallback_payload` and possible future tailoring; not used today.
         """
         no_cards = scope_reason == "no_cards"
+        forecasting = scope_reason == "forecasting_intent"
         if lang == "en":
-            if no_cards:
+            if forecasting:
+                answer = (
+                    "Structural can't forecast asset prices or market "
+                    "movements — that's not a structural-isomorphism question, "
+                    "it's a prediction question, and no analytical tool "
+                    "(AI or otherwise) reliably solves it. What Structural "
+                    "can help with is the *shape* of how shocks propagate: "
+                    "cascade dynamics, critical phase transitions, network "
+                    "fragility. Re-phrase your question that way and the "
+                    "knowledge base will have something useful."
+                )
+            elif no_cards:
                 answer = (
                     "This question doesn't match anything in Structural's "
                     "knowledge base. Structural is built for cross-disciplinary "
@@ -1033,7 +1103,16 @@ KB 现象列表（结构相似度排序）：
                 "How does network topology determine the scale of cascading failures?",
             ]
         else:
-            if no_cards:
+            if forecasting:
+                answer = (
+                    "Structural 不预测资产价格、不预测涨跌——这不是结构同构问题，"
+                    "是预测问题，没有任何分析工具（包括 AI）能可靠地做到。"
+                    "Structural 能帮的是「冲击如何传播」的结构层面：级联动力学、"
+                    "临界相变、网络脆弱性。把问题改写成这个层面（比如「银行挤兑"
+                    "的级联机制是什么」、「市场恐慌怎么扩散」），知识库就能给你"
+                    "有用的答案。"
+                )
+            elif no_cards:
                 answer = (
                     "这个问题没有匹配到 Structural 知识库里的任何现象。"
                     "Structural 擅长的是跨学科的结构同构——比如地震、银行挤兑、"
