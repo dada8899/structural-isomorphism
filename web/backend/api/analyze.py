@@ -99,6 +99,16 @@ async def stream_analyze(
             "backward-compatible."
         ),
     ),
+    anon_id: Optional[str] = Query(
+        None,
+        max_length=128,
+        description=(
+            "Anonymous user id. Used to populate reports.creator_anon_id "
+            "when persist=1. Provided as a query param because EventSource "
+            "(used by the frontend) can not set custom headers. Falls back "
+            "to the X-Anon-Id header for callers using fetch + ReadableStream."
+        ),
+    ),
 ):
     ***REMOVED*** Auth tier classification — None means token was provided but invalid.
     tier = verify_api_token(request)
@@ -193,10 +203,14 @@ async def stream_analyze(
     MAX_MISSING_SECTIONS = 4
 
     ***REMOVED*** Session ***REMOVED***16 M1.4 — capture identity bits for optional persist=1.
-    ***REMOVED*** X-Anon-Id is the same anonymous cookie/localStorage UUID used by
-    ***REMOVED*** services/flags / history; treat empty as None so list_by_anon
-    ***REMOVED*** doesn't bucket every anon-less call together.
-    anon_id_raw = request.headers.get("x-anon-id", "").strip() or None
+    ***REMOVED*** Two sources accepted (EventSource can't set headers): query param
+    ***REMOVED*** `anon_id` wins, then X-Anon-Id header, finally None. Treat empty as
+    ***REMOVED*** None so list_by_anon doesn't bucket every anon-less call together.
+    anon_id_raw = (
+        (anon_id or "").strip()
+        or (request.headers.get("x-anon-id", "").strip())
+        or None
+    )
     creator_tier = tier if isinstance(tier, str) else None
     ***REMOVED*** ASK_MODEL is imported from ask_orchestrator (single source of truth);
     ***REMOVED*** it already honours the ASK_LLM_MODEL env override.

@@ -1414,3 +1414,157 @@ ol.md-list li::before {
     gap: var(--space-1);
   }
 }
+
+/* ============================================================
+   Session ***REMOVED***16 M1.4 — share-bar + feedback buttons
+   ============================================================ */
+
+.analyze-share-bar {
+  margin: var(--space-3) 0 var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  background: ***REMOVED***fafaf9;
+  border: 1px solid ***REMOVED***e7e5e4;
+  border-radius: 10px;
+}
+.analyze-share-bar__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.analyze-share-bar__icon { font-size: 16px; color: ***REMOVED***57534e; }
+.analyze-share-bar__url {
+  flex: 1 1 280px;
+  min-width: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  padding: 6px 10px;
+  background: ***REMOVED***fff;
+  border: 1px solid ***REMOVED***d6d3d1;
+  border-radius: 6px;
+  color: ***REMOVED***44403c;
+}
+.analyze-share-bar__url:focus { outline: 2px solid ***REMOVED***3b82f6; outline-offset: 1px; }
+.analyze-share-bar__btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  background: ***REMOVED***fff;
+  border: 1px solid ***REMOVED***d6d3d1;
+  border-radius: 6px;
+  color: ***REMOVED***44403c;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.analyze-share-bar__btn:hover { background: ***REMOVED***f5f5f4; }
+.analyze-share-bar__feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed ***REMOVED***e7e5e4;
+  font-size: 13px;
+  color: ***REMOVED***57534e;
+}
+.analyze-vote {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 10px;
+  background: ***REMOVED***fff;
+  border: 1px solid ***REMOVED***d6d3d1;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  color: ***REMOVED***44403c;
+}
+.analyze-vote:hover { background: ***REMOVED***f5f5f4; }
+.analyze-vote--active {
+  background: ***REMOVED***fef3c7;
+  border-color: ***REMOVED***fbbf24;
+  color: ***REMOVED***78350f;
+}
+.analyze-vote__count {
+  display: inline-block;
+  min-width: 1.2em;
+  font-variant-numeric: tabular-nums;
+}
+.analyze-share-bar__partial {
+  margin-top: var(--space-2);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: ***REMOVED***92400e;
+  background: ***REMOVED***fffbeb;
+  border-left: 3px solid ***REMOVED***f59e0b;
+  border-radius: 4px;
+}
+
+/* Session ***REMOVED***16 M1.4 — persisted-report viewer page (report.html) */
+
+.report-section {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid ***REMOVED***f5f5f4;
+}
+.report-section__title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  color: ***REMOVED***1c1917;
+}
+.report-section__body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: ***REMOVED***292524;
+}
+.report-section__body p { margin: 0 0 var(--space-2); }
+.report-section__body ul { padding-left: var(--space-3); margin: 0 0 var(--space-2); }
+.report-section__body li { margin-bottom: var(--space-1); }
+.report-section__feedback {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-1);
+}
+.report-field {
+  margin-bottom: var(--space-2);
+}
+.report-field__label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: ***REMOVED***57534e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.report-object { margin: var(--space-1) 0; }
+
+.report-meta__row { margin-bottom: var(--space-3); }
+.report-meta__query {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+  color: ***REMOVED***1c1917;
+}
+.report-meta__attrs {
+  font-size: 13px;
+  color: ***REMOVED***78716c;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.report-meta__model {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  background: ***REMOVED***f5f5f4;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: ***REMOVED***57534e;
+}
+.report-meta__partial {
+  background: ***REMOVED***fffbeb;
+  color: ***REMOVED***92400e;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.muted { color: ***REMOVED***a8a29e; font-style: italic; font-size: 14px; }

@@ -116,6 +116,38 @@
 
       <div id="analyze-header" class="analyze-header"></div>
       <nav id="analyze-progress" class="analyze-progress"></nav>
+
+      <!-- M1.4 (session ***REMOVED***16): persisted-share bar. Hidden until the
+           backend emits the `persisted` SSE event. Renders the share
+           URL + copy button + per-report 👍/👎 feedback. -->
+      <div id="analyze-share-bar" class="analyze-share-bar" hidden>
+        <div class="analyze-share-bar__row">
+          <span class="analyze-share-bar__icon" aria-hidden="true">🔗</span>
+          <input
+            type="text"
+            id="analyze-share-url"
+            class="analyze-share-bar__url"
+            readonly
+            aria-label="Share URL"
+          />
+          <button type="button" id="analyze-share-copy"
+                  class="analyze-share-bar__btn"
+                  data-i18n="page.analyze.share_copy">复制</button>
+          <button type="button" id="analyze-share-open"
+                  class="analyze-share-bar__btn"
+                  data-i18n="page.analyze.share_open">打开</button>
+        </div>
+        <div class="analyze-share-bar__feedback">
+          <span data-i18n="page.analyze.feedback_overall">这份报告对你有用吗?</span>
+          <button type="button" class="analyze-vote analyze-vote--up"
+                  data-section="" data-vote="1" aria-label="useful">👍 <span class="analyze-vote__count" id="analyze-vote-up-count">0</span></button>
+          <button type="button" class="analyze-vote analyze-vote--down"
+                  data-section="" data-vote="-1" aria-label="not useful">👎 <span class="analyze-vote__count" id="analyze-vote-down-count">0</span></button>
+        </div>
+        <div id="analyze-share-bar__partial" class="analyze-share-bar__partial" hidden
+             data-i18n="page.analyze.share_partial">⚠ 报告未完整生成 — 分享前请确认.</div>
+      </div>
+
       <div id="analyze-tldr" class="analyze-tldr" hidden></div>
       <div id="analyze-sections"></div>
     </div>
