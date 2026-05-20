@@ -73,10 +73,46 @@ jobs:
             CODE=$(curl -s -o /dev/null -w "%{http_code}" https://beta.structural.bytedance.city/api/health || echo "000")
             if [ "$CODE" = "200" ]; then
               echo "[verify] prod healthy (attempt $i)"
-              exit 0
+              break
             fi
             echo "[verify] retry $i, got $CODE"
             sleep 5
+            if [ "$i" = "5" ]; then
+              echo "[verify] FAIL: /api/health did not return 200 after 5 retries"
+              exit 1
+            fi
           done
-          echo "[verify] FAIL: /api/health did not return 200 after 5 retries"
-          exit 1
+
+      - name: Verify deploy fingerprint matches the just-deployed commit
+        ***REMOVED*** Session ***REMOVED***16: close the SESSION-15-INCIDENT gap.
+        ***REMOVED*** /api/version returns git_sha + model, written into .env.runtime
+        ***REMOVED*** by scripts/deploy-vps.sh. If they don't match what we just pushed,
+        ***REMOVED*** the deploy didn't actually take — fail loudly.
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA=$(git rev-parse --short=7 HEAD)
+          EXPECTED_MODEL="${EXPECTED_MODEL:-deepseek/deepseek-chat:nitro}"
+
+          BODY=$(curl -s --max-time 10 https://beta.structural.bytedance.city/api/version)
+          echo "[verify] /api/version response: $BODY"
+
+          ***REMOVED*** Use python (preinstalled on the runner) instead of jq to keep
+          ***REMOVED*** the workflow free of an extra apt install.
+          python3 - <<PY
+          import json, sys
+          body = json.loads('''$BODY''')
+          expected_sha = "$EXPECTED_SHA"
+          expected_model = "$EXPECTED_MODEL"
+          got_sha = body.get("git_sha", "")
+          got_model = body.get("model", "")
+          fails = []
+          if not got_sha.startswith(expected_sha):
+              fails.append(f"git_sha mismatch: got {got_sha!r}, expected starts-with {expected_sha!r}")
+          if got_model != expected_model:
+              fails.append(f"model mismatch: got {got_model!r}, expected {expected_model!r}")
+          if fails:
+              for f in fails:
+                  print(f"[verify] FAIL: {f}", file=sys.stderr)
+              sys.exit(1)
+          print("[verify] fingerprint OK — prod runs the just-deployed commit + expected model")
+          PY
