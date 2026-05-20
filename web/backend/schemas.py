@@ -336,13 +336,24 @@ class HealthResponse(BaseModel):
 
 
 class VersionResponse(BaseModel):
-    """GET /api/version — build & version metadata."""
+    """GET /api/version — build & version metadata.
+
+    Session ***REMOVED***16 added `model` + `deployed_at` after the session ***REMOVED***15
+    deploy-pipeline incident: dogfood scripts need a single endpoint to
+    fingerprint-check that prod is running the latest code AND that the model
+    variant matches expectations (e.g. `:nitro` vs non-nitro DeepSeek).
+    """
 
     semver: str
     git_sha: str
     build_date: str
     python_version: str
     env: str
+    ***REMOVED*** New in session ***REMOVED***16 — model identifier the /api/ask endpoint will use.
+    model: str
+    ***REMOVED*** Deploy timestamp, distinct from build_date (image built once, deployed
+    ***REMOVED*** many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
+    deployed_at: str
 
 
 class WhoAmIResponse(BaseModel):
