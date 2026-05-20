@@ -283,6 +283,7 @@ class StreamingPipelineTests(unittest.TestCase):
             "meta",
             "retrieval_done",
             "kb_cards",
+            "llm_start",
             "answer_chunk",
             "answer_done",
             "similar_phenomena",
@@ -290,6 +291,19 @@ class StreamingPipelineTests(unittest.TestCase):
             "done",
         ):
             self.assertIn(required, names, f"missing event: {required}")
+
+        ***REMOVED*** M1.2 fix 4 — llm_start must land between retrieval_done and the
+        ***REMOVED*** first answer_chunk so the frontend can advance progress UI before
+        ***REMOVED*** tokens start arriving. PR ***REMOVED***224 added the yield (commit 5090e4c)
+        ***REMOVED*** but the original test only asserted the log line, never the SSE
+        ***REMOVED*** event — leaving this regression-prone. Lock it in now.
+        retrieval_idx = names.index("retrieval_done")
+        llm_start_idx = names.index("llm_start")
+        first_chunk_idx = names.index("answer_chunk")
+        self.assertLess(retrieval_idx, llm_start_idx, "llm_start must follow retrieval_done")
+        self.assertLess(llm_start_idx, first_chunk_idx, "llm_start must precede first answer_chunk")
+        llm_start_ev = next(ev for name, ev in events if name == "llm_start")
+        self.assertIn("model", llm_start_ev, "llm_start payload must include model")
 
         ***REMOVED*** answer_chunks accumulate into the answer string.
         accumulated = "".join(

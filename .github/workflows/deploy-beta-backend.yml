@@ -48,23 +48,22 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Pull + deploy via scripts/deploy-vps.sh
+      - name: Pull + deploy via deploy-dispatcher (beta-backend route)
         env:
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
+          ***REMOVED*** The deploy key is `command="/root/scripts/deploy-dispatcher.sh"`
+          ***REMOVED*** restricted (SESSION-15 incident: pre-2026-05-20 it was forced to
+          ***REMOVED*** `deploy-phase-detector.sh`, which is why backend deploys 5 days
+          ***REMOVED*** of silent failure). The dispatcher routes by SSH_ORIGINAL_COMMAND
+          ***REMOVED*** — send "beta-backend" to trigger /root/scripts/deploy-beta-backend.sh
+          ***REMOVED*** which `git reset --hard origin/main` then runs scripts/deploy-vps.sh.
           ssh -i ~/.ssh/id_deploy \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes \
-              "$USER@$HOST" 'bash -s' <<'REMOTE'
-          set -euo pipefail
-          cd /root/Projects/structural-isomorphism-v4
-          git fetch origin main
-          git reset --hard origin/main
-          chmod +x scripts/deploy-vps.sh scripts/restore-models.sh
-          bash scripts/deploy-vps.sh
-          REMOTE
+              "$USER@$HOST" "beta-backend"
 
       - name: Verify prod health
         run: |

@@ -4,8 +4,14 @@ pydantic==2.6.1
 python-dotenv==1.0.1
 httpx==0.26.0
 numpy==1.26.3
-sentence-transformers==2.5.0
-torch==2.2.0
+***REMOVED*** sentence-transformers 5.x — KB embedding model on disk is in v5.5.0 format
+***REMOVED*** (saved by retrain pipeline). Pinning 2.5.0 here was a stale drift that broke
+***REMOVED*** prod restart 2026-05-20 when a forced `pip install -r requirements.txt`
+***REMOVED*** downgraded ST to 2.5.0 and the model loader threw "version 5.5.0 → 2.5.0"
+***REMOVED*** incompatibility. Allow 5.4+ but cap below 6 to preserve the load contract.
+sentence-transformers>=5.4.0,<6
+***REMOVED*** torch>=2.2 matches ST 5.x peer-dep range.
+torch>=2.2.0,<3
 ***REMOVED*** W14-D (session ***REMOVED***10): structured JSON logging + correlation IDs.
 structlog==25.5.0
 ***REMOVED*** W15-E (session ***REMOVED***10): feature flags YAML config.
