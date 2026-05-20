@@ -5,14 +5,14 @@ that edge queries like "我女朋友为什么生气" / "1+1=?" / "BTC 明天涨�
 硬拗 isomorphism answers despite all retrieved KB items scoring < 0.75.
 q6 burned 33s of LLM time producing 494 chars of forced analogy.
 
-Two-layer guardrail tested here:
-  - Layer A (code): AskOrchestrator._evaluate_relevance gates on
-    top-1 < RELEVANCE_TOP1_MIN  OR  top-3 mean < RELEVANCE_TOP3_MEAN_MIN
-  - Layer B (LLM):  _build_prompt(..., low_relevance=True) switches to
-    an out-of-scope branch that asks for a short, honest decline.
+M1.3 guardrail tested here:
+  - AskOrchestrator._evaluate_relevance gates on top-1 < RELEVANCE_TOP1_MIN
+    OR top-3 mean < RELEVANCE_TOP3_MEAN_MIN (or empty cards).
+  - When it trips, stream() SHORT-CIRCUITS with a local refusal
+    (_build_refusal_payload) and never calls the LLM.
 
-We mock the search service + LLM and verify the prompt path + the SSE
-event payload exposes `out_of_scope=True` on `answer_done`.
+We mock the search service and verify the refusal path makes zero LLM
+calls and the SSE `answer_done` payload carries `refused=True`.
 
 Run:
     cd web/backend
@@ -26,7 +26,6 @@ import re
 import sys
 import unittest
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 # Ensure web/backend is importable when running from repo root.
@@ -103,22 +102,6 @@ class _FakeSearch:
     def search(self, query: str, top_k: int = 5):
         return list(self._results)[:top_k]
 
-
-_MOCK_OUT_OF_SCOPE_JSON = json.dumps({
-    "answer": (
-        "这个问题超出 Structural 当前覆盖范围。Structural 专注于跨学科结构同构"
-        "（如地震 / 银行挤兑 / 神经放电的共同数学），不太适合直接回答。"
-        "建议查阅发展心理学 / 个人沟通类资源。"
-    ),
-    "citations": [
-        {"idx": 1, "kb_id": "phen-low-1", "label": "out-of-scope"},
-    ],
-    "followups": [
-        "级联失败在哪些系统中表现相似？",
-        "相变的临界点能否提前预测？",
-        "网络拓扑如何影响传播动力学？",
-    ],
-}, ensure_ascii=False)
 
 _MOCK_IN_SCOPE_JSON = json.dumps({
     "answer": "银行挤兑是经典的网络级联 [1]。深度足够。" + "x" * 50,
@@ -210,84 +193,173 @@ class RelevanceGateTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------
-# Layer B: LLM prompt branching
+# Layer B: in-scope prompt shape
 # --------------------------------------------------------------------------
 
-class PromptBranchingTests(unittest.TestCase):
-    """Verify _build_prompt switches branches when low_relevance=True."""
+class PromptTests(unittest.TestCase):
+    """`_build_prompt` always produces the in-scope synthesis prompt — the
+    out-of-scope branch was removed in M1.3 (refusal short-circuits before
+    the LLM is ever reached, so a low-relevance prompt is never built)."""
 
     def setUp(self):
         self.orch = AskOrchestrator(search_service=_FakeSearch([]))
 
-    def test_low_relevance_prompt_contains_out_of_scope_instruction(self):
+    def test_in_scope_prompt_shape(self):
+        """In-scope prompt asks for a 200-400 char answer with [n] citations."""
         prompt = self.orch._build_prompt(
-            "1+1=?", _LOW_REL_KB, lang="zh",
-            strict_json=False, low_relevance=True,
-        )
-        # Out-of-scope branch must explicitly tell the model to decline.
-        self.assertIn("超出", prompt)
-        self.assertIn("覆盖范围", prompt)
-        # Must tell the model NOT to use [n] citation markers.
-        self.assertIn("不要", prompt)
-
-    def test_low_relevance_prompt_english_branch(self):
-        prompt = self.orch._build_prompt(
-            "What's 1+1?", _LOW_REL_KB, lang="en",
-            strict_json=False, low_relevance=True,
-        )
-        self.assertIn("OUTSIDE", prompt)
-        self.assertIn("structural-isomorphism", prompt.lower())
-
-    def test_in_scope_prompt_unchanged(self):
-        """Regression: in-scope prompt MUST still ask for 200-400 char answer
-        with [n] citations. We don't want to accidentally degrade the
-        happy path."""
-        prompt = self.orch._build_prompt(
-            "SVB bank run?", _HIGH_REL_KB, lang="zh",
-            strict_json=False, low_relevance=False,
+            "SVB bank run?", _HIGH_REL_KB, lang="zh", strict_json=False,
         )
         self.assertIn("200-400", prompt)
         self.assertIn("[1] [2]", prompt)
+        # The removed out-of-scope wording must not leak back in.
         self.assertNotIn("超出 Structural 当前覆盖范围", prompt)
 
-    def test_low_relevance_flag_defaults_false(self):
-        """Backward compatibility: existing callers without low_relevance
-        kwarg get the original in-scope prompt."""
-        prompt = self.orch._build_prompt(
-            "test", _HIGH_REL_KB, lang="zh", strict_json=False,
+    def test_strict_json_appends_reminder(self):
+        """strict_json=True appends the JSON-only reminder block."""
+        normal = self.orch._build_prompt(
+            "q", _HIGH_REL_KB, lang="zh", strict_json=False,
         )
-        self.assertIn("200-400", prompt)
+        strict = self.orch._build_prompt(
+            "q", _HIGH_REL_KB, lang="zh", strict_json=True,
+        )
+        self.assertNotIn("严格要求", normal)
+        self.assertIn("严格要求", strict)
 
 
 # --------------------------------------------------------------------------
-# Integration: full SSE stream emits out_of_scope flag
+# M1.3: local refusal payload builder (pure function, no LLM)
+# --------------------------------------------------------------------------
+
+class RefusalPayloadTests(unittest.TestCase):
+    """Pure-function tests on AskOrchestrator._build_refusal_payload."""
+
+    def setUp(self):
+        self.orch = AskOrchestrator(search_service=_FakeSearch([]))
+
+    def test_no_cards_reason_zh(self):
+        p = self.orch._build_refusal_payload("1+1=?", [], "zh", "no_cards")
+        self.assertIn("没有匹配到", p["answer"])
+        self.assertEqual(len(p["followups"]), 3)
+
+    def test_low_score_reason_zh(self):
+        p = self.orch._build_refusal_payload(
+            "BTC?", _LOW_REL_KB, "zh", "top1_below_0.75")
+        self.assertIn("超出", p["answer"])
+        self.assertIn("覆盖范围", p["answer"])
+        self.assertEqual(len(p["followups"]), 3)
+
+    def test_english_branch(self):
+        p = self.orch._build_refusal_payload(
+            "What's 1+1?", _LOW_REL_KB, "en", "top3_mean_below_0.65")
+        self.assertIn("knowledge base", p["answer"])
+        self.assertEqual(len(p["followups"]), 3)
+
+    def test_answer_length_reasonable(self):
+        """Refusal answer stays short & honest across every reason / lang."""
+        for reason in ("no_cards", "top1_below_0.75", "top3_mean_below_0.65"):
+            for lang in ("zh", "en"):
+                p = self.orch._build_refusal_payload("q", [], lang, reason)
+                self.assertGreaterEqual(len(p["answer"]), 40)
+                self.assertLessEqual(len(p["answer"]), 600)
+
+    def test_no_citation_markers_in_answer(self):
+        """Refusal text must NOT contain [n] citation markers — the whole
+        point is to stop pretending the weak KB hits are relevant."""
+        p = self.orch._build_refusal_payload("q", _LOW_REL_KB, "zh", "no_cards")
+        self.assertNotRegex(p["answer"], r"\[\d+\]")
+
+    def test_followups_distinct_non_empty(self):
+        p = self.orch._build_refusal_payload("q", [], "zh", "no_cards")
+        fu = p["followups"]
+        self.assertEqual(len(fu), len(set(fu)))
+        self.assertTrue(all(isinstance(q, str) and q.strip() for q in fu))
+
+
+# --------------------------------------------------------------------------
+# Integration: M1.3 refusal short-circuits the SSE stream without an LLM call
 # --------------------------------------------------------------------------
 
 class OutOfScopeStreamTests(unittest.TestCase):
-    """End-to-end SSE behavior with the relevance gate engaged."""
+    """End-to-end SSE behavior with the M1.3 refusal short-circuit."""
 
-    def test_low_relevance_query_emits_out_of_scope_flag(self):
-        """Low-score retrieval → answer_done payload carries out_of_scope=True."""
-        search = _FakeSearch(_LOW_REL_KB)
-        orch = AskOrchestrator(search_service=search)
+    def _run_refused(self, kb, query):
+        """Run stream() with LLM-call counters. Returns (events, calls).
 
-        with patch.object(
-            AskOrchestrator, "_call_llm_once",
-            return_value=_MOCK_OUT_OF_SCOPE_JSON,
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("求 1+1 = ?", lang="zh")))
+        Both LLM entry points are patched with counting stand-ins so a
+        passing test PROVES the refusal path never touched the network —
+        an AssertionError would be swallowed by stream()'s broad
+        `except Exception`, so we assert call counts instead of raising.
+        """
+        orch = AskOrchestrator(search_service=_FakeSearch(kb))
+        calls = {"once": 0, "stream": 0}
 
-        events = _parse_sse(chunks)
+        async def _track_once(self, prompt):
+            calls["once"] += 1
+            return _MOCK_IN_SCOPE_JSON
+
+        async def _track_stream(self, prompt):
+            calls["stream"] += 1
+            yield ("error", "should-not-be-called")
+
+        with patch.object(AskOrchestrator, "_call_llm_once", new=_track_once), \
+             patch.object(AskOrchestrator, "_call_llm_stream", new=_track_stream), \
+             patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
+            chunks = asyncio.run(_collect(orch.stream(query, lang="zh")))
+        return _parse_sse(chunks), calls
+
+    def test_low_relevance_query_refused_without_llm(self):
+        """Low-score retrieval → local refusal, ZERO LLM calls."""
+        events, calls = self._run_refused(_LOW_REL_KB, "求 1+1 = ?")
+        self.assertEqual(calls["once"], 0, "refusal path must not call LLM")
+        self.assertEqual(calls["stream"], 0, "refusal path must not call LLM")
         answer_done = next(p for n, p in events if n == "answer_done")
-        # The guardrail must surface the gate decision so the frontend
-        # can render an out-of-scope badge.
         self.assertTrue(answer_done.get("out_of_scope"))
-        self.assertIn("scope_reason", answer_done)
-        # The reason label encodes which gate tripped (top1_below_*, etc.)
-        self.assertIsInstance(answer_done["scope_reason"], str)
+        self.assertTrue(answer_done.get("refused"))
+        self.assertIsInstance(answer_done.get("scope_reason"), str)
+        self.assertEqual(answer_done.get("citations"), [])
+        # The streamed answer is the LOCAL refusal text — honest & short.
+        self.assertIn("覆盖范围", answer_done["full_text"])
+        # No LLM call → no `llm_start` event.
+        self.assertNotIn("llm_start", [n for n, _ in events])
 
-    def test_high_relevance_query_does_not_emit_flag(self):
-        """SVB-style query: answer_done MUST NOT carry out_of_scope=True."""
+    def test_refusal_answer_chunks_reconstruct_full_text(self):
+        """Typewriter answer_chunks must concatenate exactly to full_text."""
+        events, _ = self._run_refused(_LOW_REL_KB, "BTC 明天涨跌?")
+        answer_done = next(p for n, p in events if n == "answer_done")
+        streamed = "".join(p["delta"] for n, p in events if n == "answer_chunk")
+        self.assertEqual(streamed, answer_done["full_text"])
+
+    def test_refusal_emits_three_in_scope_followups(self):
+        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
+        followups = next(p for n, p in events if n == "followups")
+        self.assertEqual(len(followups["questions"]), 3)
+
+    def test_refusal_emits_empty_similar_phenomena(self):
+        """Weak cards must NOT be surfaced as 'similar phenomena'."""
+        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
+        similar = next(p for n, p in events if n == "similar_phenomena")
+        self.assertEqual(similar["phenomena"], [])
+
+    def test_empty_search_results_trigger_refusal(self):
+        """No KB cards retrieved → refused with scope_reason=no_cards."""
+        events, calls = self._run_refused([], "?? ?? ??")
+        self.assertEqual(calls["once"] + calls["stream"], 0)
+        answer_done = next(p for n, p in events if n == "answer_done")
+        self.assertTrue(answer_done.get("refused"))
+        self.assertEqual(answer_done["scope_reason"], "no_cards")
+
+    def test_refusal_sse_sequence_well_formed(self):
+        """Refusal still emits a complete, ordered SSE event sequence."""
+        events, _ = self._run_refused(_LOW_REL_KB, "1+1=?")
+        names = [n for n, _ in events]
+        for required in ("meta", "retrieval_done", "kb_cards", "answer_done",
+                         "similar_phenomena", "followups", "done"):
+            self.assertIn(required, names)
+        self.assertEqual(names[-1], "done", "`done` must be the last event")
+
+    def test_high_relevance_query_not_refused(self):
+        """SVB-style query: in-scope path runs the LLM, no `refused` flag,
+        and M1.2 fix 4's `llm_start` event is emitted."""
         search = _FakeSearch(_HIGH_REL_KB)
         orch = AskOrchestrator(search_service=search)
 
@@ -298,52 +370,12 @@ class OutOfScopeStreamTests(unittest.TestCase):
             chunks = asyncio.run(_collect(orch.stream("Why do banks collapse?", lang="zh")))
 
         events = _parse_sse(chunks)
+        names = [n for n, _ in events]
         answer_done = next(p for n, p in events if n == "answer_done")
-        # Field either absent or False — both acceptable.
         self.assertFalse(answer_done.get("out_of_scope", False))
-
-    def test_low_relevance_prompt_handed_to_llm(self):
-        """Capture the prompt actually passed to the LLM and verify it
-        contains the out-of-scope branch instructions.
-
-        This is the load-bearing assertion: even if the SSE flag was
-        forgotten, the LLM still gets told to decline — which is the
-        thing that prevents q6's 494-char硬拗 answer.
-        """
-        captured_prompts: List[str] = []
-
-        async def fake_call(self, prompt):
-            captured_prompts.append(prompt)
-            return _MOCK_OUT_OF_SCOPE_JSON
-
-        search = _FakeSearch(_LOW_REL_KB)
-        orch = AskOrchestrator(search_service=search)
-
-        with patch.object(AskOrchestrator, "_call_llm_once", new=fake_call), \
-             patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            asyncio.run(_collect(orch.stream("BTC 明天涨跌?", lang="zh")))
-
-        self.assertEqual(len(captured_prompts), 1, "exactly one LLM call expected")
-        prompt = captured_prompts[0]
-        # Out-of-scope keywords MUST be in the actual delivered prompt.
-        self.assertIn("超出", prompt)
-        self.assertIn("覆盖范围", prompt)
-
-    def test_empty_search_results_trigger_out_of_scope(self):
-        """No KB cards retrieved → out_of_scope=True in answer_done."""
-        search = _FakeSearch([])
-        orch = AskOrchestrator(search_service=search)
-
-        with patch.object(
-            AskOrchestrator, "_call_llm_once",
-            return_value=_MOCK_OUT_OF_SCOPE_JSON,
-        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
-            chunks = asyncio.run(_collect(orch.stream("?? ?? ??", lang="zh")))
-
-        events = _parse_sse(chunks)
-        answer_done = next(p for n, p in events if n == "answer_done")
-        self.assertTrue(answer_done.get("out_of_scope"))
-        self.assertEqual(answer_done["scope_reason"], "no_cards")
+        self.assertFalse(answer_done.get("refused", False))
+        # M1.2 fix 4: the in-scope path signals the LLM call to the frontend.
+        self.assertIn("llm_start", names)
 
 
 # --------------------------------------------------------------------------
