@@ -21,6 +21,11 @@ _project_root = os.getenv("STRUCTURAL_PROJECT_ROOT") or str(
 sys.path.insert(0, _project_root)
 
 load_dotenv(Path(__file__).parent / ".env")
+# Session #16: deploy-vps.sh writes a `.env.runtime` next to .env with the
+# git SHA + deploy timestamp so /api/version can return real values (instead
+# of "unknown"). Loaded *after* .env so deploy-time values override anything
+# baked into a committed .env (which shouldn't happen, but defense in depth).
+load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 
 # W14-D: structlog + correlation IDs. configure_logging() installs a
 # JSON-line handler on the root logger (stdout) + a rotating file handler
@@ -317,12 +322,20 @@ async def version():
             ).decode().strip()
         except Exception:
             git_sha = "unknown"
+    # Session #16 — surface the ask-model + deploy timestamp so dogfood scripts
+    # can fingerprint-check prod in a single request. Default matches
+    # ask_orchestrator.ASK_MODEL so the two never drift silently.
+    model = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
+    build_date = os.getenv("STRUCTURAL_BUILD_DATE", "unknown")
+    deployed_at = os.getenv("STRUCTURAL_DEPLOYED_AT", build_date)
     return {
         "semver": app.version,
         "git_sha": git_sha,
-        "build_date": os.getenv("STRUCTURAL_BUILD_DATE", "unknown"),
+        "build_date": build_date,
         "python_version": _sys.version.split()[0],
         "env": os.getenv("STRUCTURAL_ENV", "dev"),
+        "model": model,
+        "deployed_at": deployed_at,
     }
 
 
