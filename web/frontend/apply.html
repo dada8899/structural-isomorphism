@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="description" content="方法反查——输入一个方法、算法或模型，看它在结构上还能套用到哪些其他领域的现象。">
+  <title>方法反查 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="方法反查 — Structural">
+  <meta property="og:description" content="这个方法还能用在哪 · 跨领域结构反查">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="方法反查 — Structural">
+  <meta name="twitter:description" content="这个方法还能用在哪 · 跨领域结构反查">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/apply.css?v=20260522">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260514e">
+
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="apply-page">
+    <div class="apply-container">
+      <nav class="apply-crumb">
+        <a href="/">首页</a>
+        <span class="apply-crumb__sep">/</span>
+        <span>方法反查</span>
+      </nav>
+
+      <section class="apply-intro">
+        <h1 class="apply-intro__title">这个方法还能用在哪？</h1>
+        <p class="apply-intro__sub">
+          输入一个方法、算法或模型——引擎会剥离它的领域外衣，提炼出它利用的底层结构，
+          再到知识库里找结构上同样适用的其他领域现象。
+        </p>
+      </section>
+
+      <form class="apply-form" id="apply-form" autocomplete="off">
+        <textarea
+          id="apply-input"
+          class="apply-form__input"
+          rows="3"
+          maxlength="1000"
+          placeholder="例如：梯度下降——在带噪声的反馈下沿局部信息迭代逼近最优解"
+          aria-label="方法描述"></textarea>
+        <div class="apply-form__row">
+          <span class="apply-form__hint" id="apply-count">0 / 1000</span>
+          <button type="submit" class="apply-form__btn" id="apply-submit">查找可套用的领域</button>
+        </div>
+      </form>
+
+      <div class="apply-examples" id="apply-examples">
+        <span class="apply-examples__label">试试：</span>
+        <button type="button" class="apply-chip" data-method="梯度下降——在带噪声的反馈下沿局部信息迭代逼近最优解">梯度下降</button>
+        <button type="button" class="apply-chip" data-method="模拟退火——以逐渐降低的随机扰动跳出局部最优，趋向全局最优">模拟退火</button>
+        <button type="button" class="apply-chip" data-method="二分查找——在有序结构上每次排除一半搜索空间">二分查找</button>
+        <button type="button" class="apply-chip" data-method="A/B 测试——通过随机分组对照来识别因果效应">A/B 测试</button>
+      </div>
+
+      <div id="apply-status" class="apply-status" hidden></div>
+
+      <section id="apply-result" class="apply-result" hidden>
+        <div class="apply-signature" id="apply-signature"></div>
+        <div class="apply-matches-head">
+          <h2 class="apply-matches-head__title">这个方法还能用在这些地方</h2>
+          <span class="apply-matches-head__count" id="apply-matches-count"></span>
+        </div>
+        <div class="apply-matches" id="apply-matches"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260514e"></script>
+  <script src="/assets/js/utils.js?v=20260514e"></script>
+  <script src="/assets/js/api.js?v=20260514e"></script>
+  <script src="/assets/js/apply.js?v=20260522"></script>
+  <script src="/assets/js/product-switcher.js?v=20260514e"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+</body>
+</html>

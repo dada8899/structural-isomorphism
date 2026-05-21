@@ -1,0 +1,63 @@
+"""Session ***REMOVED***18 e2e tests — A1 method-search (/apply page).
+
+Run: pytest web/tests/e2e/test_method_search.py -v
+
+@pytest.mark.post_deploy — only pass once Session ***REMOVED***18 ships apply.html.
+The orchestrator runs these; in baseline phase skip via `-k "not post_deploy"`.
+"""
+import pytest
+from playwright.sync_api import Page, expect
+
+BASE = "https://beta.structural.bytedance.city"
+
+
+@pytest.mark.post_deploy
+def test_apply_page_loads(page: Page):
+    """/apply should show the intro + method input form."""
+    page.goto(f"{BASE}/apply")
+    expect(page.locator(".apply-intro__title")).to_be_visible()
+    expect(page.locator("***REMOVED***apply-input")).to_be_visible()
+    expect(page.locator("***REMOVED***apply-submit")).to_be_visible()
+
+
+@pytest.mark.post_deploy
+def test_apply_example_chips_present(page: Page):
+    """Example chips should be rendered for one-click entry."""
+    page.goto(f"{BASE}/apply")
+    chips = page.locator(".apply-chip").all()
+    assert len(chips) >= 3, "should have at least 3 example chips"
+
+
+@pytest.mark.post_deploy
+def test_apply_short_input_rejected(page: Page):
+    """Submitting < 4 chars should surface an inline error, no result block."""
+    page.goto(f"{BASE}/apply")
+    page.fill("***REMOVED***apply-input", "ab")
+    page.click("***REMOVED***apply-submit")
+    expect(page.locator(".apply-status--error")).to_be_visible()
+    expect(page.locator("***REMOVED***apply-result")).to_be_hidden()
+
+
+@pytest.mark.post_deploy
+def test_apply_submit_shows_signature_and_matches(page: Page):
+    """A real method submit should render the signature + match cards."""
+    page.goto(f"{BASE}/apply")
+    page.fill("***REMOVED***apply-input", "梯度下降——在带噪声的反馈下沿局部信息迭代逼近最优解")
+    page.click("***REMOVED***apply-submit")
+    ***REMOVED*** Result block appears once /api/method/apply resolves.
+    expect(page.locator("***REMOVED***apply-result")).to_be_visible(timeout=30000)
+    expect(page.locator(".apply-signature__text")).to_be_visible()
+    cards = page.locator(".apply-card")
+    assert cards.count() >= 1, "expected at least one match card"
+
+
+@pytest.mark.post_deploy
+def test_apply_card_links_to_analyze(page: Page):
+    """The 深入分析 link on a card should point to /analyze with b_id+text_a."""
+    page.goto(f"{BASE}/apply")
+    page.fill("***REMOVED***apply-input", "模拟退火——以逐渐降低的随机扰动跳出局部最优")
+    page.click("***REMOVED***apply-submit")
+    expect(page.locator("***REMOVED***apply-result")).to_be_visible(timeout=30000)
+    href = page.locator(".apply-card__link").first.get_attribute("href")
+    assert href and href.startswith("/analyze?")
+    assert "b_id=" in href and "text_a=" in href
