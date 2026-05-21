@@ -1,0 +1,378 @@
+***REMOVED*** SESSION-17 · 发布前文案审查（Copy Review）
+
+- 日期：2026-05-21
+- 审查范围：`web/frontend/` 全站面向用户文案 —— index / analyze / report / reports / start-here / about / search / classes / discoveries 页面 + `assets/js/*.js`（ask / analyze / my-reports / i18n / search / classes / discoveries）+ `assets/data/i18n/{ui,content}.json`
+- 审查方式：逐条抠出页面标题、H1/H2、tagline、按钮、placeholder、错误/空状态/加载文案、报告 9 段标题、i18n 中英两版
+- 性质：只审查不改代码
+
+---
+
+***REMOVED******REMOVED*** 一句话总评
+
+文案整体专业、克制、有 AI for Science 的质感，但**离「成熟可发布」还差一关**：核心问题是**术语对非专业用户不解释**、**同一概念全站三种叫法**、**关键引流页 start-here 整页英文**。这三类问题会让产品经理 / 学生这类目标用户在前 30 秒就产生「这不是给我看的」的距离感。修掉 P0/P1 后即可发布。
+
+***REMOVED******REMOVED*** 严重度计数
+
+| severity | 数量 | 含义 |
+|---|---|---|
+| **P0** | 7 | 阻塞发布：核心用户看不懂 / 自相矛盾 / 整页语言错位 |
+| **P1** | 14 | 强烈建议发布前修：影响理解、一致性、引导性 |
+| **P2** | 12 | 打磨项：标点、措辞、可后续迭代 |
+
+***REMOVED******REMOVED*** Top 5 问题（按影响排序）
+
+1. **同一个概念全站三种叫法**（P0）—— 「共享模式 / 普适类 / 等价类 / universality classes」混用，导航、面包屑、i18n、JS 错误文案各叫各的。用户无法建立心智模型。
+2. **`/start-here` 整页英文**（P0）—— 这是导航第一项、定位为「10 分钟看懂」的引流主入口，却是纯英文长文，`<html lang="zh-CN">` 还自相矛盾。中文用户点进来直接劝退。
+3. **首屏 tagline 没说清「对我有什么用」**（P0）—— 「跨学科搜索引擎 — AI 从地震、神经、金融等领域为你找出结构相同的成熟解法」对物理外行是抽象的，10 秒内 get 不到价值。
+4. **专业术语零解释**（P1）—— 「结构同构」「等价类」「幂律」「相变」「级联」「b-value」散落全站，面向产品经理/学生却不给一句人话注释。
+5. **中英混杂未统一**（P1）—— 中文界面里夹「TL;DR」「MMR domain diversity guard」「peer review」「Phase Detector」「beta」，部分该译未译。
+
+---
+
+***REMOVED******REMOVED*** 详细逐条（现文案 → 建议文案）
+
+***REMOVED******REMOVED******REMOVED*** 一、命名一致性（最高优先）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** C-01 · 同一概念三种叫法 —— P0
+- 位置：`index.html` 导航 `共享模式` / `ui.json` `nav.universality_classes` = `普适类` / `analyze.js` `classes.js` 多处 = `等价类` / `classes.no_match` = `没有匹配的等价类`
+- 现文案：导航写「共享模式」、i18n 写「普适类」、JS 写「等价类」、英文写「universality classes / Shared patterns」
+- 问题：四个名字指向同一个东西。用户在导航看到「共享模式」，点进去面包屑/筛选/报告里又冒出「等价类」「普适类」，无法确认是不是同一页。这是发布级阻塞问题。
+- 建议：**全站统一为「共享模式」**（最通俗、对非专业用户最友好），英文统一 `Shared patterns`。需要同步修正的：
+  - `ui.json` → `nav.universality_classes` 的 zh 改为 `共享模式`（key 名可保留）
+  - `classes.js` → `没有匹配的等价类` → `没有匹配的共享模式`
+  - `analyze.js` SECTIONS 第 3 段 label 已是「共享结构」——可保留（指报告里的章节，与导航页区分），但建议在该段首句注明「共享结构 = 你的问题和源领域共用的那套数学骨架」
+- severity：P0
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** C-02 · 「结构同构 / 同构 / isomorphism」未统一且未解释 —— P1
+- 位置：`reports.html` `meta description` = 「跨领域同构报告」；`my-reports.js` 空状态 = 「跨领域同构分析报告」；`report.html` description = 「cross-domain isomorphism report」
+- 现文案：「同构」「结构同构」「isomorphism」混用，且从不解释「同构」是什么意思
+- 问题：「同构」是数学术语，产品经理/学生不懂。
+- 建议：对外统一用「**跨领域结构相似**」或「**结构同构（不同领域、同一套数学骨架）**」，首次出现处带括号解释。`reports.html` description → 「你在这台设备上保存过的跨领域研究报告——把别的学科的成熟解法借到你的问题上。」
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** C-03 · 产品名后缀 `beta` 小写未本地化 —— P2
+- 位置：`index.html` L64 `<span class="beta-badge">beta</span>`，`ui.json` `beta.badge`
+- 现文案：`beta`
+- 问题：可接受（beta 是通用词），但与「正式发布」语境略冲突；保持小写即可，无需翻译。
+- 建议：保留 `beta`，不译。仅提示团队：发布版若要去 beta 标记需同步 17 个 HTML。
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 二、首屏与价值传达
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** V-01 · 首屏 tagline 抽象，10 秒说不清价值 —— P0
+- 位置：`index.html` L87 `.ask-empty__tagline`
+- 现文案：`跨学科搜索引擎 — 输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法`
+- 问题：①「跨学科搜索引擎」是品类抽象词，用户不知道搜出来是什么。②「结构相同的成熟解法」太绕。③ 举例「地震、神经」对外行反而增加距离感——他们不关心地震。
+- 建议：`换个学科找答案 — 描述你卡住的难题，AI 会找出别的领域早就解决过的同款问题，把现成的方法借给你用`
+  - 副标可补一行小字：`比如：用户流失、团队氛围崩盘、谣言扩散，背后可能和地震、银行挤兑是同一道数学题。`
+- severity：P0
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** V-02 · meta description 与 tagline 不一致 —— P2
+- 位置：`index.html` L6 / L23
+- 现文案：`Structural — 跨学科搜索引擎。输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。`
+- 问题：与 tagline 同源同毛病；且 og:description 缺品牌前缀。
+- 建议：随 V-01 一起改成同一句话，保持站内外口径一致。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** V-03 · 探索卡标题用裸数字 + 术语 —— P1
+- 位置：`index.html` L137「23 个跨域等价类」、L143「39 个精选发现」
+- 现文案：`23 个跨域等价类` / 描述 `地震 / 银行挤兑 / 神经放电 — 同一套数学下的兄弟现象`
+- 问题：①「等价类」术语（见 C-01）。②「兄弟现象」口语生动但与全站专业语气略跳。③ 与 about 页统计「23 共享模式」「63 顶级发现」「39 精选发现」数字对不上——首页说 39，about 说 63，用户会困惑。
+- 建议：标题 → `23 组共享模式`；描述 → `地震、银行挤兑、神经放电——表面无关，其实是同一道数学题`。**并核对全站数字口径**（39 vs 63 必须统一，或明确区分「精选 39」「候选 63」）。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** V-04 · 示例 chip 文案 vs 实际查询不一致 —— P2
+- 位置：`index.html` L125-128
+- 现文案：chip 显示「月活衰减干预」，`data-example-q` 是「月活用户每月按固定比率掉 7%，怎么看怎么干预？」
+- 问题：placeholder 也用了「月活每月掉 7%」这个例子，与 chip 重复，新用户会觉得「就这一个会的」。
+- 建议：placeholder 和 chip 用不同例子分散覆盖面。chip 文案可更口语：「月活衰减干预」→「用户每月流失怎么破」。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** V-05 · 空状态引导标题口语化欠妥 —— P2
+- 位置：`index.html` L133 `.ask-empty__explore-label`
+- 现文案：`不知道问啥？看看这些`
+- 问题：「问啥」偏口语，与「描述一个你卡住的复杂问题」的专业语气有落差。
+- 建议：`没有头绪？从这些开始`
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 三、`/start-here` 页面（P0 重灾区）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** S-01 · 整页英文 —— P0
+- 位置：`start-here.html` 全文
+- 现文案：`<html lang="zh-CN">` 但 H1 `Why bank runs, earthquakes, and neural avalanches are the same thing`、副标、正文 ~1650 词全英文
+- 问题：这是导航**第一项「从这里开始」**、定位「10 分钟看懂、无数学、无术语」的核心引流页。中文用户点进来是满屏英文，`lang=zh-CN` 还和内容矛盾。这是单点最严重的发布阻塞。
+- 建议：**发布前必须出中文版**。两种做法选一：(a) 全文翻译为中文（推荐，与全站一致）；(b) 若保留英文原文，至少把导航项改为「Start here（英文长读）」并在页首加中文导语说明这是英文文章。H1 中文化建议：「为什么银行挤兑、地震、神经雪崩，其实是同一回事」。
+- severity：P0
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** S-02 · eyebrow / meta 全英文且与中文站脱节 —— P1（随 S-01 解决）
+- 位置：`start-here.html` L171 `Start here · ~10 min read · No math`、L182 `≈ 1,650 words · 2026-05-13 · plain English · no equations`
+- 建议：中文化 →「从这里开始 · 约 10 分钟 · 不用数学」/「约 1650 字 · 2026-05-13 · 大白话 · 零公式」。
+- severity：P1
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 四、报告生成页（analyze）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-01 · 报告 9 段标题专业但缺一句人话说明 —— P1
+- 位置：`analyze.js` L28-37 SECTIONS
+- 现文案（9 段）：`§1 本周行动` / `§2 可借用的工具` / `§3 共享结构` / `§4 你的问题拆解` / `§5 源领域讲解` / `§6 结构对照` / `§7 怎么结合` / `§8 研究方向` / `§9 迁移风险`
+- 问题：①「§」符号对非学术用户陌生（学术界用，PM/学生少见）。②「源领域」「迁移风险」「结构对照」是专业表述，外行需要猜。③「§5 源领域讲解」——「源领域」首次出现没解释。
+- 建议：
+  - `§` 可保留（紧凑、有质感），但首次进入报告时在顶部加一句导读：「报告分 9 段：先给你能马上做的事，再讲清楚为什么。」
+  - 个别标题更直白：`§5 源领域讲解` → `§5 那个领域是怎么回事`；`§9 迁移风险` → `§9 借用时的坑`；`§6 结构对照` → `§6 两个问题逐项对照`
+  - EN 版同步：`Source-domain primer` 已 OK。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-02 · 加载文案前后不一致 —— P1
+- 位置：`analyze.html` L113 = `通常需 30–60s`；`content.json` `loading_hint` = `8 段流式生成 · 60–90 秒`；`loading_title` 静态 HTML = `正在生成研究报告`，i18n = `正在生成深度分析报告`
+- 现文案：耗时一会儿说「30–60s」一会儿说「60–90 秒」；段数一会儿「9 段」（SECTIONS 实际 9 个）一会儿「8 段」
+- 问题：①时间预期不一致，用户等到 70s 会以为卡死。②段数 8 vs 9 自相矛盾（SECTIONS 数组明确是 9 个）。③标题「研究报告」vs「深度分析报告」不统一。
+- 建议：统一为 **`9 段流式生成 · 通常 30–90 秒`**；标题全站统一「正在生成研究报告」。把 `loading_hint` 和 HTML 静态文案对齐。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-03 · 面包屑「深度分析」vs 标题「研究报告」打架 —— P1
+- 位置：`content.json` `crumb_current` = `深度分析`；`meta_title` = `深度分析 — Structural`；但 `analyze.html` 静态 `<title>` = `研究报告 — Structural`、`crumb_current` 静态 = `研究报告`、description = `跨学科研究报告`
+- 问题：同一页面 HTML 静态文案说「研究报告」，i18n 说「深度分析」，i18n 加载后会把页面字眼换掉，用户看到名字跳变。
+- 建议：**全站统一「研究报告」**（更准确，9 段产出确实是一份报告）。改 `content.json` 的 `crumb_current`、`meta_title`、`crumb_back` 相关项 zh 值为「研究报告」。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-04 · 「LLM」直接暴露给用户 —— P1
+- 位置：`content.json` `loading_progress_line` = `已生成 {chars} 字 · LLM 正在写研究报告`；`error_hint` = `连接中断，可能是网络或 LLM 响应超时`
+- 现文案：含「LLM」
+- 问题：「LLM」是工程黑话，产品经理可能懂、学生大多不懂。全站其他地方都用「AI」（如首页「AI 从…为你找出」）。同一产品两个词。
+- 建议：统一为「AI」。`loading_progress_line` → `已生成 {chars} 字 · AI 正在写研究报告`（注：`analyze.js` L617 已经是「AI」，只有 content.json 漏改，属遗留不一致）；`error_hint` → `连接中断，可能是网络问题或响应超时`。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-05 · 标点：英文半角句号 / 问号混入中文 —— P2
+- 位置：`analyze.html` L141 `这份报告对你有用吗?`、L148 `⚠ 报告未完整生成 — 分享前请确认.`；`report.html` L52 / L68 / L75 同样问题
+- 现文案：用了半角 `?` 和半角 `.`
+- 问题：中文文案应使用全角标点 `？` `。`。「分享前请确认.」结尾半角句号尤其不规范。
+- 建议：`这份报告对你有用吗？`、`⚠ 报告未完整生成 —— 分享前请确认。`。全站 grep 半角 `?` `.` 结尾的中文句子统一修。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-06 · 错误重试文案技术腔 —— P2
+- 位置：`content.json` `retry_first_hint` = `模型刚刚没稳定输出，我们换个角度再来一次。`
+- 问题：「没稳定输出」是工程说法。
+- 建议：`刚才生成不太顺，我们换个角度再试一次。`
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** A-07 · toast 提示残留英文产品名 —— P2
+- 位置：`content.json` `toast_brief_copied` = `已复制为 Markdown 简报，可以粘贴到 Notion / Slack / 邮件`
+- 问题：「Markdown」对非技术用户是术语。Notion/Slack 是产品名可保留。
+- 建议：`已复制为简报（Markdown 格式），可直接粘到 Notion、Slack 或邮件里`
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 五、报告查看页（report.html）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** R-01 · `<html lang="zh-Hans">` 与全站 `zh-CN` 不一致 —— P2
+- 位置：`report.html` L2
+- 现文案：`lang="zh-Hans"`，其余页面均 `zh-CN`
+- 问题：技术属性不统一（不影响显示，但属严谨性问题）。
+- 建议：统一 `zh-CN`。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** R-02 · 错误页文案可加下一步动作 —— P1
+- 位置：`report.html` L50-54
+- 现文案：`报告不可用` / `这份报告可能已被删除,或链接已失效。<a href="/">返回首页</a> 重新生成。`
+- 问题：①「不可用」偏冷。②半角逗号 `,`。③「返回首页重新生成」——但用户手上没有原始问题，回首页也无从复现，引导其实是空的。
+- 建议：标题 → `没找到这份报告`；正文 → `这个链接可能已经失效，或报告已被删除。你可以<a href="/">回首页</a>提一个新问题，或在<a href="/reports">我的报告</a>里找找保存过的。`
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** R-03 · 「已保存的报告」面包屑 vs 导航「我的报告」不一致 —— P2
+- 位置：`report.html` L37 面包屑 `已保存的报告`；`reports.html` 导航/标题 `我的报告`
+- 问题：同一批内容两个名字。
+- 建议：单份详情页面包屑可用「报告详情」，列表页保持「我的报告」，避免与「已保存」混淆。
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 六、我的报告页（reports.html / my-reports.js）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** M-01 · 空状态引导清晰，但「勾选保存」与实际交互需核对 —— P1
+- 位置：`my-reports.js` L74-76
+- 现文案：`还没有保存的报告` / `生成一份跨领域同构分析报告后，勾选「保存」就会出现在这里。` / CTA `去生成第一份报告`
+- 问题：①「跨领域同构分析报告」术语堆叠（见 C-02）。②文案说「勾选『保存』」——需确认报告页是否真有一个叫「保存」的勾选框；`analyze.html` 里看到的是 share-bar 自动出现，没有「勾选保存」控件。**文案描述的交互可能与实际不符**，会误导用户找一个不存在的勾选框。
+- 建议：先与开发确认保存机制。若是自动保存：`你生成的研究报告会自动出现在这里，方便随时回看。`；若确有手动保存：把控件文案和这里对齐。术语 → 「跨领域研究报告」。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** M-02 · 加载失败文案 —— P2
+- 位置：`my-reports.js` L120 / L123
+- 现文案：`加载失败` / `稍后刷新重试。如果一直失败，可能是网络问题。` / 按钮 `加载失败，点击重试`
+- 问题：基本可用。「如果一直失败，可能是网络问题」略啰嗦。
+- 建议：`稍后刷新重试。若反复失败，多半是网络问题。`
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** M-03 · `(无标题)` / `(未命名)` 占位 —— P2
+- 位置：`my-reports.js` L55 `(无标题)`；`ask.js` L520 `(未命名)`
+- 问题：两处占位文案不一致；括号用半角。
+- 建议：统一「（未命名查询）」，全角括号。
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 七、ask.js 首页对话流文案
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** K-01 · 知识库 / 现象等术语直出 —— P1
+- 位置：`ask.js` L311「知识库命中 (top 5)」、L328「结构相同的现象」、L490「找到 N 篇相关现象，正在生成答案…」
+- 现文案：含「知识库命中 (top 5)」「现象」「篇」
+- 问题：①「知识库命中 (top 5)」是检索系统黑话，且括号半角 + 英文 top。②「现象」作量词单位用「篇」（篇用于文章），搭配不当——「N 篇相关现象」语法不顺。
+- 建议：`知识库命中 (top 5)` → `最相关的 5 个案例`；`结构相同的现象` → `结构相同的现象（其他领域）`；`找到 N 篇相关现象` → `找到 N 个相关现象，正在生成答案…`
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** K-02 · 错误文案口语化但缺动作 —— P2
+- 位置：`ask.js` L390「未知错误」、L451「后端错误」、L892「出错了：{message}」+ 重试按钮
+- 现文案：`未知错误` / `后端错误` / `出错了：...`
+- 问题：「后端错误」暴露架构层级，用户无感。「未知错误」无下一步。
+- 建议：`后端错误` → `服务暂时出了点问题`；`未知错误` → `出了点问题，请重试`。有重试按钮，动作已覆盖，可接受。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** K-03 · 「运行深度分析」与页面叫「研究报告」不一致 —— P1
+- 位置：`ask.js` L850「运行深度分析」
+- 现文案：按钮 `运行深度分析`
+- 问题：点这个按钮跳转到的页面（analyze）现在叫「研究报告」（见 A-03 建议）。按钮叫「深度分析」，落地页叫「研究报告」，断链。
+- 建议：随 A-03 统一 →「生成研究报告」。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** K-04 · 「正在思考...」省略号用半角 —— P2
+- 位置：`ask.js` L321「正在思考...」；`index.html` L172 followup placeholder「继续追问...」
+- 现文案：英文半角 `...`
+- 问题：中文应使用中文省略号 `……`。
+- 建议：`正在思考……` / `继续追问……`
+- severity：P2
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 八、搜索页（search.js）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** SR-01 · 空状态引导优秀，可作全站范本 —— P2（正向）
+- 位置：`search.js` L219-220
+- 现文案：`没有找到足够相似的现象` / `知识库暂时没有结构相似的匹配。<br>试着描述现象本身的行为模式，而不是问题或结论。`
+- 评价：这是全站**写得最好的空状态**——告诉了用户原因 + 下一步怎么改问法。建议把这种「原因 + 具体动作」模式推广到其他空/错状态。
+- 小问题：「现象本身的行为模式」对外行仍偏抽象，可补一个例子：`…比如描述「事情怎么一步步恶化的」，而不是直接问「该怎么办」。`
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** SR-02 · 「元问题」术语 —— P1
+- 位置：`search.js` L589 `assess_why_p2`
+- 现文案：`不擅长的：写作请求、元问题（"这个产品怎么用"）、闲聊、纯事实查询、纯个人琐事——`
+- 问题：「元问题」是哲学/逻辑学术语，目标用户基本不懂；引号用半角 `"`。
+- 建议：`不擅长的：帮你写东西、关于产品本身的问题（比如「这个产品怎么用」）、闲聊、查事实、个人琐事——这些场景没有「另一个学科里的同款现象」可借。`引号改全角「」。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** SR-03 · `classes.js` 加载失败把异常信息直接拼给用户 —— P1
+- 位置：`classes.js` L555、`discoveries.js` L455、`search.js` L513 附近
+- 现文案：`加载数据失败：${e.message}` / `加载失败：${err.message}`
+- 问题：把原始 JS 异常 message 拼到用户界面，可能出现 `Failed to fetch`、`Unexpected token <` 等英文技术信息，对用户无意义甚至吓人。
+- 建议：用户可见文案固定为中文 + 动作，原始 error 只 `console.error`：`加载失败，请刷新重试。若反复失败可能是网络问题。`
+- severity：P1
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 九、关于页（about.html）
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** AB-01 · 整体质量高，术语首次出现处建议加注 —— P1
+- 位置：`about.html` 多处：「结构同构」「幂律分布」「b-value」「标度律」「亚临界」「自组织临界」「Branching-process Self-Organized Criticality」
+- 评价：about 页文案专业、有说服力、举例（Shannon/Black-Scholes）到位，是全站文案标杆。
+- 问题：但术语密度高，且面向用户含学生。「b-value」「标度关系 γ=(α-1)/(τ-1)」「Branching-process SOC」对非物理用户是天书。
+- 建议：对**首次出现**的核心术语加一句括号白话注释。例：「幂律分布（少数事件极大、多数极小的那种典型分布）」「自组织临界（系统会自己滑到「一点就炸」的边缘）」。数学公式已折叠在 `<details>` 里，处理得当，保留。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** AB-02 · 中英混杂 —— P1
+- 位置：`about.html` L165 `MMR domain diversity guard`、L159 `hybrid ranking`、L176「AI 评审员」周边「peer review」语境
+- 现文案：中文段落里直接嵌 `MMR domain diversity guard`、`hybrid ranking (混合打分)` 顺序是英文在前
+- 问题：技术段落可以保留英文术语，但应「中文在前、英文括注」，且像 `MMR domain diversity guard` 这种纯英文短语应给中文。
+- 建议：`MMR domain diversity guard` → `领域多样性保护（MMR）`；`混合打分（hybrid ranking）` 顺序对调成中文在前。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** AB-03 · 统计数字与首页不一致 —— P0
+- 位置：`about.html` L83-97 统计区 `4,443 现象` / `63 顶级跨域发现` / `23 共享模式` / `5 实证验证`；对比 `index.html` L137「23 个跨域等价类」、L143「39 个精选发现」；`about.html` L184 又说「63 个跨域候选」「13 个领域实证闭环」；L136 标题「13 个独立领域」
+- 现文案：发现数 about=63、首页=39；实证数 about 统计区=5、about 正文=13、首页未提
+- 问题：**同一产品对外宣称的核心数字自相矛盾**。用户/潜在合作方一眼就看出口径混乱，严重损害可信度。这是发布阻塞。
+- 建议：发布前**锁定一套权威数字**并全站对齐。需明确：精选发现到底是 39 还是 63（若 63 是候选池、39 是精选，文案要写清「63 个候选中精选 39 个」）；实证领域是 5 还是 13（5 可能是旧数据）。建议在 `assets/data/site-stats.json` 建单一权威源，页面引用它。
+- severity：P0
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** AB-04 · 联系邮箱与品牌不一致 —— P2
+- 位置：`about.html` L207 `wanqinghui@gmail.com`
+- 问题：个人 gmail 作为「成熟产品」对外合作邮箱略显业余（但 beta 阶段可接受）。
+- 建议：发布正式版时考虑换 `hello@structural.bytedance.city` 之类域名邮箱。beta 阶段 P2。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** AB-05 · 论文链接域名不一致 —— P1
+- 位置：`about.html` L198 链接到 `https://structural.bytedance.city/paper-zh.html`，但任务说明线上 beta 是 `beta.structural.bytedance.city`
+- 问题：about 里的论文链接指向 `structural.bytedance.city`（无 beta），而 reports/report.html 的 Plausible domain 是 `beta.structural.bytedance.city`。域名口径不一致，链接可能 404。
+- 建议：核对正确域名，全站统一。`index.html` 的 Plausible 又是 `structural.bytedance.city`——三处域名三种写法，发布前必须统一。
+- severity：P1
+
+---
+
+***REMOVED******REMOVED******REMOVED*** 十、其他全局项
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** G-01 · `report.html` Plausible 指向公网 plausible.io —— P1（技术+隐私文案相关）
+- 位置：`report.html` L26-27 / `reports.html` L20-21 用 `https://plausible.io/js/script.js`；`index.html` / `analyze.html` 用自托管 `plausible.bytedance.city`
+- 问题：埋点脚本来源不一致。虽非纯文案问题，但涉及对外一致性，发布前应统一为自托管。
+- 建议：统一指向 `plausible.bytedance.city`。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** G-02 · 「Phase Detector」产品名未本地化 —— P2
+- 位置：`index.html` 导航 / 探索卡 / footer，`ui.json` `nav.phase_detector`
+- 现文案：`Phase Detector`
+- 问题：中文站里一个纯英文子产品名，且没说明它是什么。探索卡描述「100 家公司的状态评分」尚可，但导航项裸 `Phase Detector` 用户不知是啥。
+- 建议：产品名可保留英文，但导航项加副意：`Phase Detector` 维持，或中文站统一叫「相变检测器」。至少 hover title 给一句说明。
+- severity：P2
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** G-03 · footer「跨领域思维引擎」vs 首页「跨学科搜索引擎」—— P1
+- 位置：`ui.json` `footer.copyright` = `跨领域思维引擎`；`index.html` tagline / meta = `跨学科搜索引擎`
+- 现文案：footer 自我定位「思维引擎」，首屏自我定位「搜索引擎」
+- 问题：产品一句话定位在 footer 和首屏不一样。「跨学科」vs「跨领域」也是两个词混用。
+- 建议：选定一个定位词全站统一。建议 footer 也用「跨学科搜索引擎」或更口语的「换个学科找答案」。「跨学科」「跨领域」统一选一个（建议「跨学科」，更通俗）。
+- severity：P1
+
+***REMOVED******REMOVED******REMOVED******REMOVED*** G-04 · 导航「了解 Structural」措辞 —— P2
+- 位置：`index.html` L73 导航 `了解 Structural`，footer L199 也有「了解 Structural」，但 L73 链接 `/learn`、footer 链接 `/learn`
+- 现文案：`了解 Structural`
+- 问题：与「关于」（/about）功能重叠，用户分不清「了解 Structural」和「关于」差别。
+- 建议：明确分工——`/learn` 改叫「工作原理」或「它怎么用」，`/about` 保留「关于」。
+- severity：P2
+
+---
+
+***REMOVED******REMOVED*** 发布前必做清单（按 severity）
+
+**P0（7 项，阻塞）**
+- [ ] C-01 统一「共享模式」命名（导航/i18n/JS 全站）
+- [ ] V-01 首屏 tagline 改为说清价值的人话
+- [ ] S-01 `/start-here` 出中文版（或明确标注英文长读）
+- [ ] AB-03 锁定核心数字（发现数、实证领域数），全站对齐 + 建单一权威源
+- [ ] （V-01 连带）V-02 meta description 同步
+- [ ] （C-01 连带）首页探索卡、面包屑、classes 空状态术语对齐
+- [ ] （AB-03 连带）首页 39 vs about 63 口径说明
+
+**P1（14 项，强烈建议）**
+- [ ] C-02 「同构」统一并加白话注释
+- [ ] V-03 探索卡标题去术语 + 数字核对
+- [ ] S-02 start-here eyebrow/meta 中文化
+- [ ] A-01 报告 9 段加导读，个别标题更直白
+- [ ] A-02 加载文案时间/段数统一（9 段 · 30–90 秒）
+- [ ] A-03 「研究报告」vs「深度分析」全站统一
+- [ ] A-04 「LLM」全部改「AI」
+- [ ] R-02 报告 404 页给真实下一步
+- [ ] M-01 核对「保存」交互后修文案
+- [ ] K-01 ask.js 检索术语白话化
+- [ ] K-03 「运行深度分析」按钮随 A-03 统一
+- [ ] SR-02 「元问题」去术语
+- [ ] SR-03 / G-01 加载失败文案固化中文 + 域名/埋点统一
+- [ ] AB-01/AB-02/AB-05/G-03 about 术语注释、中英顺序、域名、定位词统一
+
+**P2（12 项，可迭代）**：A-05/A-06/A-07 标点与措辞、K-02/K-04、M-02/M-03、R-01/R-03、V-04/V-05、G-02/G-04、AB-04 —— 见上文各条。
+
+---
+
+***REMOVED******REMOVED*** 给团队的两条结构性建议
+
+1. **建立单一文案权威源**：核心数字（4443/63/39/23/5/13）、产品定位句、术语译名表，应集中在一个文件（如 `site-stats.json` + 一份术语表），页面引用而非各处硬编码。当前 39 vs 63、研究报告 vs 深度分析、共享模式 vs 等价类的混乱，根因都是缺单一权威源。
+2. **i18n 静态文案与 HTML 默认文案双轨漂移**：`analyze.html` 静态写「研究报告」、`content.json` 写「深度分析」，i18n 加载后字眼跳变。建议 HTML 静态默认文案与 i18n zh 值保持完全一致，作为发布前 CI 校验项。
