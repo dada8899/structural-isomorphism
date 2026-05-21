@@ -40,6 +40,10 @@ let allDiscoveries = [];
 let allTier2 = [];
 let currentFilter = 'all';
 let currentTier = 'a'; // 'a' = A-grade, 't2' = tier2 candidate pool
+// P0-4 (SESSION-17): when the data fetch fails we show a friendly error
+// state. The i18n re-render fires renderList() again later — guard it so
+// the error state is not clobbered with a misleading "没有匹配的发现".
+let loadFailed = false;
 
 // Normalize literature_status (English or Chinese) to (class, zhLabel).
 // The backend merges V2 and V3 A-level into a single feed; V2 originally used
@@ -222,6 +226,8 @@ function applyFilter(list) {
 function renderList() {
   const listEl = $('***REMOVED***disc-list');
   if (!listEl) return;
+  // Keep the friendly error state if the data never loaded.
+  if (loadFailed) return;
 
   if (currentTier === 't2') {
     renderTier2List(listEl);
@@ -434,7 +440,10 @@ function renderDiscSkeletons() {
 async function loadDiscoveries() {
   const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   try {
-    const data = await (await fetch('/api/discoveries')).json();
+    const resp = await fetch('/api/discoveries');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    loadFailed = false;
     allDiscoveries = data.discoveries || [];
     allTier2 = data.tier2 || [];
     window.__discStats = data.stats || {};
@@ -451,8 +460,29 @@ async function loadDiscoveries() {
       }
     } catch (e) {}
   } catch (err) {
+    // P0-4 (SESSION-17): never surface the raw JS exception (e.g. a JSON
+    // SyntaxError "Unexpected token '<'") to the user. Friendly empty state
+    // with a retry button; the real error goes to the console only.
     console.error('Failed to load discoveries:', err);
-    $('***REMOVED***disc-list').innerHTML = `<p style="text-align:center; color: var(--danger); padding: var(--space-7) 0">${T("page.discoveries.load_failed", "加载失败")}：${escapeHtml(err.message)}</p>`;
+    loadFailed = true;
+    const list = $('***REMOVED***disc-list');
+    if (list) {
+      list.innerHTML =
+        '<div class="disc-loaderror">' +
+          '<p class="disc-loaderror__text">' +
+            T('page.discoveries.load_failed_friendly', '内容暂时加载不出来，请稍后重试。') +
+          '</p>' +
+          '<button type="button" class="disc-loaderror__retry" id="disc-retry">' +
+            T('page.discoveries.retry', '重试') +
+          '</button>' +
+        '</div>';
+      const retry = document.getElementById('disc-retry');
+      if (retry) retry.addEventListener('click', () => {
+        loadFailed = false;
+        renderDiscSkeletons();
+        loadDiscoveries();
+      });
+    }
   }
 }
 

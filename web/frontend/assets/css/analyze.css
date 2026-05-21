@@ -1568,3 +1568,51 @@ ol.md-list li::before {
   font-weight: 600;
 }
 .muted { color: ***REMOVED***a8a29e; font-style: italic; font-size: 14px; }
+
+/* === Saved-report error card (SESSION-17 P0-3 / P1-3) ===
+ * The /report page error state. Sits inside the normal content container
+ * (header + footer come from site-chrome.js), uses a neutral border — not
+ * the accent blue, which reads as "selected input" rather than "error". */
+.report-errorcard {
+  max-width: 480px;
+  margin: 48px auto 64px;
+  padding: 36px 32px;
+  text-align: center;
+  background: var(--brand-paper-card, ***REMOVED***fff);
+  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border-radius: 16px;
+}
+.report-errorcard__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 14px;
+  color: var(--brand-muted, ***REMOVED***71717a);
+  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
+  border-radius: 50%;
+}
+.report-errorcard__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--brand-ink, ***REMOVED***18181b);
+}
+.report-errorcard__msg {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--brand-muted, ***REMOVED***71717a);
+}
+.report-errorcard__cta {
+  display: inline-block;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: ***REMOVED***fff;
+  background: var(--brand-ink, ***REMOVED***18181b);
+  border-radius: 9px;
+  text-decoration: none;
+}
+.report-errorcard__cta:hover { opacity: 0.9; }

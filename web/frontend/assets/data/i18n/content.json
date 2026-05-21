@@ -32,16 +32,16 @@
     "en": "Phenomena<br/>(natural-language knowledge base)"
   },
   "page.about.goal.stat2.label": {
-    "zh": "Top-tier discoveries<br/>（三代管道 A 级产出）",
-    "en": "Top-tier discoveries<br/>(A-grade output across three pipelines)"
+    "zh": "A 级精选发现<br/>（AI 评审通过）",
+    "en": "A-grade curated discoveries<br/>(passed AI review)"
   },
   "page.about.goal.stat3.label": {
     "zh": "Universality classes<br/>（V4 等价类引擎聚合）",
     "en": "Universality classes<br/>(aggregated by the V4 equivalence-class engine)"
   },
   "page.about.goal.stat4.label": {
-    "zh": "Empirical validations<br/>（Layer 5 实证复现）",
-    "en": "Empirical validations<br/>(Layer 5 empirical replication)"
+    "zh": "实证验证领域<br/>（真实数据复现）",
+    "en": "Empirically validated domains<br/>(reproduced on real data)"
   },
   "page.about.why.label": {
     "zh": "Why",
@@ -428,8 +428,8 @@
     "en": "Click the recommended card to stream an eight-section research report: the shared mathematical structure, the key variables, the mature tools available in the source domain, how to apply them concretely to your problem, the hypotheses that need testing, and the transfer risks."
   },
   "page.home.how.step3.time": {
-    "zh": "≈ 30–60s",
-    "en": "≈ 30–60s"
+    "zh": "≈ 2–3 分钟",
+    "en": "≈ 2–3 min"
   },
   "page.home.usecases.label": {
     "zh": "适合这样用",
@@ -532,8 +532,8 @@
     "en": "Structural is a cross-domain thinking engine built on a counterintuitive observation: phenomena that look entirely unrelated are often the same thing at the level of mathematical structure."
   },
   "page.classes.meta_title": {
-    "zh": "普适类 — Structural",
-    "en": "Universality classes — Structural"
+    "zh": "共享模式 — Structural",
+    "en": "Shared patterns — Structural"
   },
   "page.classes.meta_desc": {
     "zh": "从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类。每类带共享方程、不变量和可验证预测。",
@@ -572,8 +572,8 @@
     "en": "Equivalence classes · shared invariants · falsifiable predictions"
   },
   "page.classes.hero_title": {
-    "zh": "23 个跨领域<em>等价类</em>",
-    "en": "23 cross-domain <em>equivalence classes</em>"
+    "zh": "23 个跨领域<em>共享模式</em>",
+    "en": "23 cross-domain <em>shared patterns</em>"
   },
   "page.classes.hero_lede": {
     "zh": "每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href=\"***REMOVED***uc-footnote\">页脚</a>。",
@@ -688,8 +688,8 @@
     "en": "Full feasibility report: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>. Full V4 plan: <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>."
   },
   "page.classes.stat_total": {
-    "zh": "等价类总数",
-    "en": "Equivalence classes"
+    "zh": "共享模式总数",
+    "en": "Shared patterns"
   },
   "page.classes.stat_cross_domain": {
     "zh": "跨领域",
@@ -704,8 +704,8 @@
     "en": "Max spanned domains"
   },
   "page.classes.no_match": {
-    "zh": "没有匹配的等价类",
-    "en": "No matching equivalence classes"
+    "zh": "没有匹配的共享模式",
+    "en": "No matching shared patterns"
   },
   "page.discoveries.hero_lede": {
     "zh": "从三条检索管道（V1 广义 embedding / V2 严格 embedding / V3 StructTuple + LLM rerank）合并筛出，经 LLM 五维评分（创新性 / 严谨性 / 可行性 / 影响力 / 可写性），<strong>最终留下 39 条 A 级发现</strong>（V2 19 条 + V3 20 条，三管道发现零重叠）。每一条都是一个跨领域的数学同构，把两个看似无关的领域连在一起——并且带有可执行的论文化路径和建议期刊。",
@@ -936,8 +936,8 @@
     "en": "Falsifiable predictions"
   },
   "page.classes.back_to_list": {
-    "zh": "← 返回普适类列表",
-    "en": "← Back to universality classes"
+    "zh": "← 返回共享模式列表",
+    "en": "← Back to shared patterns"
   },
   "page.classes.hub_label": {
     "zh": "Hub 节点",
@@ -964,8 +964,8 @@
     "en": "📄 Paper →"
   },
   "page.classes.load_failed": {
-    "zh": "加载数据失败",
-    "en": "Failed to load data"
+    "zh": "内容暂时加载不出来，请稍后重试。",
+    "en": "Content could not be loaded. Please try again later."
   },
   "page.classes.verified_title": {
     "zh": "条预测已通过实证验证",
@@ -1060,8 +1060,8 @@
     "en": "Phenomenon"
   },
   "page.paper.crumb_back": {
-    "zh": "← 普适类",
-    "en": "← Universality classes"
+    "zh": "← 共享模式",
+    "en": "← Shared patterns"
   },
   "page.paper.dl_md": {
     "zh": "⬇ 下载 Markdown 原文",
@@ -1072,8 +1072,8 @@
     "en": "📂 Source + data (GitHub)"
   },
   "page.paper.back_to_list": {
-    "zh": "← 回到普适类目录",
-    "en": "← Back to universality classes"
+    "zh": "← 回到共享模式目录",
+    "en": "← Back to shared patterns"
   },
   "page.paper.md_loader_failed": {
     "zh": "Markdown 渲染器加载失败。",
@@ -1332,8 +1332,8 @@
     "en": "0s elapsed"
   },
   "page.analyze.timer_typical": {
-    "zh": "通常需 30–60s",
-    "en": "Typically 30–60s"
+    "zh": "约需 2–3 分钟 · 报告会分段逐步出现",
+    "en": "~2–3 min · sections appear as they finish"
   },
   "page.analyze.retry_first_hint": {
     "zh": "模型刚刚没稳定输出，我们换个角度再来一次。",
@@ -1932,8 +1932,8 @@
     "en": "verified phases"
   },
   "page.papers.stat_classes": {
-    "zh": "普适类",
-    "en": "universality classes"
+    "zh": "共享模式",
+    "en": "shared patterns"
   },
   "page.papers.stat_preprint": {
     "zh": "统一预印本",
@@ -2226,5 +2226,13 @@
   "page.taxv2.pattern_title": {
     "zh": "共享降级模式",
     "en": "A shared downgrade pattern"
+  },
+  "page.discoveries.load_failed_friendly": {
+    "zh": "内容暂时加载不出来，请稍后重试。",
+    "en": "Content could not be loaded. Please try again later."
+  },
+  "page.discoveries.retry": {
+    "zh": "重试",
+    "en": "Retry"
   }
 }

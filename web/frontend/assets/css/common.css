@@ -148,6 +148,111 @@
   color: var(--text-primary);
 }
 
+/* === Mobile menu (SESSION-17 P0-2) ===
+ * The 44x44 hamburger button + iOS-style drawer. The button is hidden on
+ * desktop (inline nav is shown instead); the breakpoint swap lives in
+ * responsive.css. */
+.site-header__menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Drawer overlay — appended to <body> by site-chrome.js. */
+.site-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.site-menu__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 24, 27, 0.32);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.site-menu__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(78vw, 300px);
+  display: flex;
+  flex-direction: column;
+  background: var(--brand-paper-card, ***REMOVED***fff);
+  box-shadow: -8px 0 32px rgba(24, 24, 27, 0.12);
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.site-menu--open .site-menu__scrim {
+  opacity: 1;
+}
+
+.site-menu--open .site-menu__panel {
+  transform: translateX(0);
+}
+
+.site-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--space-4) 0 var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.site-menu__title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-18, 18px);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.site-menu__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.site-menu__link {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 var(--space-5);
+  font-size: 17px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.site-menu__link[aria-current="page"] {
+  color: var(--brand-accent);
+  font-weight: var(--fw-medium);
+}
+
+.site-menu__link:active {
+  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
+}
+
 /* === Footer === */
 .site-footer {
   margin-top: var(--space-10);

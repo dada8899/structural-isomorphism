@@ -42,9 +42,13 @@
     font-size: var(--fs-13);
   }
 
-  /* Hide GitHub link on very small screens to save space */
-  .site-header__nav-link[href*="github"] {
+  /* SESSION-17 P0-2: at <=720px collapse the inline nav into the hamburger
+   * drawer so phone users can still reach every core page. */
+  .site-header__nav {
     display: none;
+  }
+  .site-header__menu-btn {
+    display: inline-flex;
   }
 
   /* === Home === */
@@ -396,18 +400,9 @@
     font-size: var(--fs-11, 11px);
   }
 
-  .site-header__nav {
-    gap: var(--space-3);
-  }
-
-  /* Mobile ≤480px: hide secondary nav items + clip overflow so the header
-   * never widens the document. Logo + lang toggle remain. Session ***REMOVED***7 fix. */
-  .site-header__nav .site-header__nav-link {
-    display: none;
-  }
-  .site-header__nav .site-header__lang-toggle {
-    display: inline-flex;
-  }
+  /* Mobile ≤480px: the inline nav is already collapsed into the hamburger
+   * drawer at ≤720px (see above). Just clip overflow so a stray wide child
+   * never widens the document. */
   html, body {
     overflow-x: hidden;
   }

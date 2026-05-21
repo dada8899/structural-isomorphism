@@ -1171,7 +1171,7 @@ function renderStreamError({ message, retryable }) {
         <p class="analyze-loading__hint">${T('page.analyze.loading_hint_long', '我们正在写一份跨学科迁移研究报告。')}</p>
         <div class="analyze-loading__timer-row">
           <span class="elapsed-timer" id="analyze-loading-timer">${T('page.analyze.timer_waiting', '已等待 0s')}</span>
-          <span class="analyze-loading__typical">${T('page.analyze.timer_typical', '通常需 30–60s')}</span>
+          <span class="analyze-loading__typical">${T('page.analyze.timer_typical', '约需 2–3 分钟 · 报告会分段逐步出现')}</span>
         </div>
       `;
       streamAnalysis(p);
@@ -1411,7 +1411,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const aId = getQueryParam('a_id');
 
   if (!bId) {
-    window.location.href = '/';
+    // SESSION-17 P2-4: don't silently bounce to "/". The "分析" nav item
+    // can land here with no context — show a friendly empty state that
+    // points the user back to the question box instead.
+    const loadingEl = $('***REMOVED***analyze-loading');
+    if (loadingEl) {
+      loadingEl.innerHTML =
+        '<h2 class="analyze-loading__title">从一个问题开始分析</h2>' +
+        '<p class="analyze-loading__hint">在首页描述一个你卡住的复杂问题，' +
+        'Structural 会为你生成一份跨领域研究报告。</p>' +
+        '<p style="margin-top:20px"><a href="/" class="report-errorcard__cta">' +
+        '回到首页，开始一个分析</a></p>';
+    }
     return;
   }
 

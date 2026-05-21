@@ -5,26 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>已保存的报告 — Structural</title>
-  <meta name="description" content="A persisted Structural cross-domain isomorphism report.">
+  <meta name="description" content="一份已保存的 Structural 跨领域结构同构报告。">
   <meta name="robots" content="noindex,nofollow">
 
-  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/reset.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260521a">
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260521s17">
 
-  <!-- KaTeX for inline math, same as analyze.html -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <!-- KaTeX for inline math — version aligned with analyze.html (0.16.11). -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
 
-  <!-- Plausible (telemetry) -->
-  <script defer data-domain="beta.structural.bytedance.city"
-          src="https://plausible.io/js/script.js"></script>
+  <!-- Plausible (telemetry) — self-hosted instance, consistent with the rest
+       of the site. -->
+  <script defer data-domain="structural.bytedance.city"
+          src="https://plausible.bytedance.city/js/script.js"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -46,12 +47,17 @@
         <h2 class="analyze-loading__title">正在加载报告</h2>
       </div>
 
-      <div id="report-error" class="analyze-loading" hidden>
-        <h2 class="analyze-loading__title">报告不可用</h2>
-        <p class="analyze-loading__hint" id="report-error-msg">
-          这份报告可能已被删除,或链接已失效。
-          <a href="/">返回首页</a> 重新生成。
+      <div id="report-error" class="report-errorcard" hidden>
+        <div class="report-errorcard__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+          </svg>
+        </div>
+        <h2 class="report-errorcard__title">报告暂时打不开</h2>
+        <p class="report-errorcard__msg" id="report-error-msg">
+          这份报告可能已被删除，或链接已失效。
         </p>
+        <a href="/" class="report-errorcard__cta">回到首页，重新生成一份</a>
       </div>
 
       <div id="report-meta" class="analyze-header" hidden></div>
@@ -72,7 +78,7 @@
                   data-section="" data-vote="-1">👎 <span class="analyze-vote__count" id="analyze-vote-down-count">0</span></button>
         </div>
         <div id="analyze-share-bar__partial" class="analyze-share-bar__partial" hidden>
-          ⚠ 报告未完整生成 — 分享前请确认.
+          ⚠ 报告未完整生成 — 分享前请确认。
         </div>
       </div>
 
@@ -106,7 +112,11 @@
        and the SECTIONS / renderers exports it set up. -->
   <script>window._suppressAnalyzeBoot = true;</script>
   <script src="/assets/js/i18n.js?v=20260521a"></script>
+  <!-- utils.js defines `$` and other helpers analyze.js's renderFinalReport
+       relies on — must load before analyze.js (mirrors analyze.html). -->
+  <script src="/assets/js/utils.js?v=20260521a"></script>
   <script src="/assets/js/analyze.js?v=20260521a"></script>
   <script src="/assets/js/report.js?v=20260521a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
 </body>
 </html>

@@ -4,8 +4,8 @@
     "en": "Start here"
   },
   "nav.universality_classes": {
-    "zh": "普适类",
-    "en": "Universality classes"
+    "zh": "共享模式",
+    "en": "Shared patterns"
   },
   "nav.discoveries": {
     "zh": "精选发现",
@@ -86,5 +86,17 @@
   "nav.phase_detector": {
     "zh": "Phase Detector",
     "en": "Phase Detector"
+  },
+  "nav.home": {
+    "zh": "首页",
+    "en": "Home"
+  },
+  "nav.analyze": {
+    "zh": "分析",
+    "en": "Analyze"
+  },
+  "nav.reports": {
+    "zh": "我的报告",
+    "en": "My reports"
   }
 }

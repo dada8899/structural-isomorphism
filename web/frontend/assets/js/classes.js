@@ -549,10 +549,11 @@ async function init() {
     }
     window.addEventListener('popstate', handlePopState);
   } catch (e) {
+    // P0-4 (SESSION-17): friendly error state — never dump the raw exception.
     console.error(e);
     const host = document.getElementById("uc-list");
     if (host) {
-      host.innerHTML = `<p style="color:***REMOVED***c44;padding:40px 0;text-align:center;">${T("page.classes.load_failed", "加载数据失败")}：${escapeHtml(e.message)}</p>`;
+      host.innerHTML = `<p style="color:var(--text-secondary,***REMOVED***52525b);padding:40px 0;text-align:center;font-size:14px;">${T("page.classes.load_failed", "内容暂时加载不出来，请稍后重试。")}</p>`;
     }
   }
 }

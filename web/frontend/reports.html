@@ -72,6 +72,10 @@
     }
     .myr-more:hover { border-color: var(--brand-line-strong, ***REMOVED***d6d3d1); }
     .myr-more[disabled] { opacity: .5; cursor: default; }
+    /* SESSION-17 P0-5: a class-selector `display:block` beats the UA
+     * `[hidden]` rule, so the "加载更多" button leaked into the empty
+     * state. Re-assert display:none for the hidden case. */
+    .myr-more[hidden] { display: none; }
 
     .myr-skeleton {
       height: 78px; border-radius: 12px;
@@ -81,25 +85,7 @@
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="site-header__inner">
-      <a href="/" class="site-header__logo">
-        <svg class="site-header__logo-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="6" cy="6" r="3"/>
-          <circle cx="18" cy="18" r="3"/>
-          <path d="M8.5 8.5l7 7"/>
-        </svg>
-        Structural<span class="beta-badge">beta</span>
-      </a>
-      <nav class="site-header__nav">
-        <a href="/classes" class="site-header__nav-link">共享模式</a>
-        <a href="/discoveries" class="site-header__nav-link">精选发现</a>
-        <a href="/papers" class="site-header__nav-link">论文</a>
-        <a href="/reports" class="site-header__nav-link" aria-current="page">我的报告</a>
-        <a href="/about" class="site-header__nav-link">关于</a>
-      </nav>
-    </div>
-  </header>
+  <header class="site-header"></header>
 
   <main class="myr-page">
     <div class="myr-container">
@@ -118,17 +104,9 @@
     </div>
   </main>
 
-  <footer class="site-footer">
-    <div class="site-footer__inner">
-      <div class="site-footer__copyright">© 2026 Structural · 跨领域思维引擎</div>
-      <div class="site-footer__links">
-        <a class="site-footer__link" href="/about">关于</a>
-        <a class="site-footer__link" href="/papers">论文</a>
-        <a class="site-footer__link" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
-      </div>
-    </div>
-  </footer>
+  <footer class="site-footer"></footer>
 
   <script src="/assets/js/my-reports.js?v=20260521a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
 </body>
 </html>

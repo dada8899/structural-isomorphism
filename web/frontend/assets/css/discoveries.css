@@ -958,3 +958,28 @@ pre.disc-item__equations {
     min-height: 325px;
   }
 }
+
+/* === Friendly load-error state (SESSION-17 P0-4) ===
+ * Replaces the old raw-exception red text. Quiet, neutral, with retry. */
+.disc-loaderror {
+  text-align: center;
+  padding: var(--space-8, 56px) var(--space-5, 20px);
+}
+.disc-loaderror__text {
+  margin: 0 0 16px;
+  font-size: var(--fs-14, 14px);
+  color: var(--text-secondary, ***REMOVED***52525b);
+}
+.disc-loaderror__retry {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--brand-ink, ***REMOVED***18181b);
+  background: transparent;
+  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border-radius: 9px;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+.disc-loaderror__retry:hover {
+  border-color: var(--brand-line-strong, ***REMOVED***d4d4d8);
+}
