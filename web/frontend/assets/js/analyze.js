@@ -895,11 +895,15 @@ function submitFeedback(btn) {
   })
     .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
     .then((body) => {
-      // Sync counters with server truth.
-      const up = document.getElementById('analyze-vote-up-count');
-      const down = document.getElementById('analyze-vote-down-count');
-      if (up) up.textContent = String(body.total_up || 0);
-      if (down) down.textContent = String(body.total_down || 0);
+      // The ***REMOVED***analyze-vote-*-count spans are the OVERALL share-bar counters.
+      // Only sync them for an overall vote — a section vote returns that
+      // section's counts and must not overwrite the overall display.
+      if (!section) {
+        const up = document.getElementById('analyze-vote-up-count');
+        const down = document.getElementById('analyze-vote-down-count');
+        if (up) up.textContent = String(body.total_up || 0);
+        if (down) down.textContent = String(body.total_down || 0);
+      }
       trackPlausible('Report Feedback', {
         section: section || 'overall',
         vote: vote === 1 ? 'up' : 'down',

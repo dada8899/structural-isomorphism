@@ -29,12 +29,19 @@ DEFAULT_HOST = "https://beta.structural.bytedance.city"
 
 
 def _local_git_sha() -> str:
-    """Best-effort short SHA of the local HEAD — used as default --expect-sha."""
+    """Short SHA of the most recent commit that touched *deployable* code.
+
+    Deploy never ships docs-only commits, so comparing prod's git_sha
+    against a docs-only local HEAD raised false 'FINGERPRINT MISMATCH'
+    alarms (session ***REMOVED***17). Exclude docs/ and top-level *.md so the
+    fingerprint tracks shippable state, not documentation churn.
+    """
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "--short=7", "HEAD"],
+            ["git", "log", "-1", "--format=%h",
+             "--", ".", ":(exclude)docs", ":(exclude)*.md"],
             stderr=subprocess.DEVNULL,
-            timeout=2,
+            timeout=3,
         ).decode().strip()
     except Exception:
         return ""

@@ -23,7 +23,7 @@
 
 | 问题 | 位置 | 级别 | 根因 | 修法 |
 |---|---|---|---|---|
-| 跨域配对 N² 全比对 | `structural_isomorphism/search.py:152-154` | P0 | `find_cross_domain_pairs()` 对 ~5k 知识库做全量两两比对 | 上近似最近邻（faiss `IndexFlatL2` / annoy / LSH），O(N²)→O(N log N) |
+| 跨域配对 N² 全比对 | `structural_isomorphism/search.py:152-154` | ~~P0~~ **P2（降级）** | `find_cross_domain_pairs()` 全仓只有 `notebooks/quickstart.ipynb` 调用 —— **不在 prod 请求路径上**。原 P0 评级有误 | demo KB 规模下现状够用；为 notebook 引入 faiss 重型依赖不值。如未来挪进 prod 再上 ANN |
 | `/api/version` 同步 subprocess | `web/backend/main.py:323-333` | P1 | git rev-parse 在端点内跑 | 已用 `asyncio.to_thread` 包；建议启动时预计算并缓存 |
 | 13MB embedding 每次重启全量入内存 | `web/backend/services/search_service.py:140` | P1 | `np.load` 全读 | 改 `mmap_mode='r'` 或共享内存层 |
 | 查询缓存无命中率监控 | `search_service.py:132` | P2 | LRU 1024 但无观测 | 命中率打到结构化日志 |
@@ -35,7 +35,7 @@
 | 地震/数据抓取逻辑跨 v2/v3/v4 三份复制 | `dataset/` + `v3/` + `v4/validation/soc-earthquake/` | P1 | 抽 `lib/data_fetchers/`，三处共用 |
 | 两套站点系统并存 | `site/`（136K）vs `site_mkdocs/`（6.2M） | P1 | 确认 `site/` 已废弃则删；`.gitignore` 已忽略两者，物理目录仍在 |
 | 后端主文件超长 | `web/backend/main.py`（~1843 行） | P2 | `/phase/*` 路由拆 `api/phase_routes.py` |
-| `requirements.txt` 留过时降级注释 | `web/backend/requirements.txt:7-11` | P1 | 清理 v2.5.0 历史注释，写清当前 5.4+ 的原因 |
+| ~~`requirements.txt` 注释~~（撤销）| `web/backend/requirements.txt:7-11` | — | 复核后撤销：该注释是 2026-05-20 prod 重启事故的现场记录，解释了 `>=5.4.0,<6` 的由来 —— 属于应保留的事故记忆，不删 |
 | 分享条 section 投票会改写「整体」计数器 | `analyze.js:898-902` `submitFeedback` | P2 | section 投票成功后无条件同步 `analyze-vote-*-count`（整体计数器），UI 语义错位；应只在 `section===''` 时同步 |
 
 ***REMOVED******REMOVED*** 4. 工程债
@@ -62,6 +62,21 @@
 3. **CORS `allow_headers` 收敛**（P1，安全）—— 显式列真实 fetch 头。
 4. **统一三份数据抓取逻辑**（P1，维护）—— 抽 `lib/data_fetchers/`。
 5. **去重 `site/` vs `site_mkdocs/`**（P1，清理）—— 确认废弃后删 `site/`。
+
+***REMOVED******REMOVED*** Session ***REMOVED***17 当场修复记录
+
+复核 Top 5 后按「根因 + 全局影响评估」收敛实际动手范围，**避免为高估的评级做无效工**：
+
+| 项 | 处置 | commit |
+|---|---|---|
+| `.env.bak-v1` 泄露 | ✅ untrack + gitignore（key 轮换待用户） | `3c90bb7` |
+| CORS `allow_headers="*"` | ✅ 收敛为显式 5 头列表（含真实 fetch 头 + 程序化客户端头） | 本轮 |
+| section 投票错改整体计数器 | ✅ `analyze.js submitFeedback` 加 `if (!section)` 守卫 | 本轮 |
+| `dogfood_fingerprint.py` docs-only 误报 | ✅ `_local_git_sha` 改取「最近非 docs commit」 | 本轮 |
+| N² 跨域配对 | ❌ 不修 —— notebook-only，非 prod 路径，降级 P2 | — |
+| 三份数据抓取去重 | ⏸ 暂缓 —— 散在 v4/tutorials/paper 等 10 个实验目录，零 prod 收益、回测风险大 | — |
+| `site/` vs `site_mkdocs/` | ⏸ 暂缓 —— 两者均已 gitignore，不在仓库内，删除仅本地清理无仓库价值 | — |
+| OpenRouter key 轮换 | 🔴 待用户 —— CC 无 OpenRouter 控制台权限 | — |
 
 ***REMOVED******REMOVED*** 既有优点
 

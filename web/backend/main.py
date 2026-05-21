@@ -185,7 +185,13 @@ app.add_middleware(
     allow_credentials=False,
     ***REMOVED*** W14-C: DELETE added for /api/privacy/delete (GDPR right-to-erasure).
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    ***REMOVED*** Session ***REMOVED***17: replace the "*" wildcard with the headers the browser
+    ***REMOVED*** frontend actually sends — keep in sync with web/frontend fetch()
+    ***REMOVED*** calls. X-API-Key / Authorization are kept for programmatic clients.
+    ***REMOVED*** If a new fetch header is added, list it here or its preflight 403s.
+    allow_headers=[
+        "Content-Type", "X-Anon-Id", "X-Device-ID", "X-API-Key", "Authorization",
+    ],
 )
 
 ***REMOVED*** W14-D: Correlation-ID middleware. Mounted last so it runs *first* for
