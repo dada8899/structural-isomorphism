@@ -40,6 +40,20 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  // B Data Flywheel (Session ***REMOVED***18) — revisit badge. A report the user has
+  // not yet recorded an outcome for gets a gentle '未回访' tag nudging them
+  // to come back and report whether the borrowed structure worked. A
+  // report already marked outcome='worked' gets a positive '已验证' tag.
+  function followupBadge(item) {
+    if (item && item.followup_outcome === 'worked') {
+      return '<span class="myr-card__badge myr-card__badge--verified">已验证</span>';
+    }
+    if (item && !item.has_followup) {
+      return '<span class="myr-card__badge myr-card__badge--todo">未回访</span>';
+    }
+    return '';
+  }
+
   function cardHtml(item) {
     // id is a server-minted opaque token, but escape it anyway — it lands
     // in an href; never trust a field straight into the DOM.
@@ -52,7 +66,10 @@
       '</div>';
     return (
       '<a class="myr-card" href="/report/' + id + '">' +
-        '<p class="myr-card__query">' + escapeHtml(item.query || '（未命名查询）') + '</p>' +
+        '<div class="myr-card__head">' +
+          '<p class="myr-card__query">' + escapeHtml(item.query || '（未命名查询）') + '</p>' +
+          followupBadge(item) +
+        '</div>' +
         meta +
       '</a>'
     );

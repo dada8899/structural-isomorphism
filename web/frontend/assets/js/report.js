@@ -238,11 +238,90 @@
   }
 
   // Fetch any previously recorded follow-up and render the panel.
-  function loadFollowup(reportId) {
+  // B Data Flywheel (Session ***REMOVED***18) — revisit nudge. If the report is ≥3
+  // days old and this device hasn't recorded an outcome yet, show a gentle
+  // prompt above the followup panel asking '上次这份报告你试了吗'. The goal
+  // is lifting followup-collection rate; it self-dismisses once dismissed
+  // (sessionStorage) or once the user actually fills in an outcome.
+  var REVISIT_NUDGE_DAYS = 3;
+
+  // Inject the nudge styling once. Kept in JS (not analyze.css, a shared
+  // stylesheet we must not touch) — scoped to .report-followup__nudge.
+  function ensureNudgeStyles() {
+    if (document.getElementById('rf-nudge-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'rf-nudge-styles';
+    s.textContent =
+      '.report-followup__nudge{display:flex;align-items:flex-start;' +
+      'justify-content:space-between;gap:12px;margin-bottom:16px;' +
+      'padding:14px 16px;background:***REMOVED***FFF8E6;border:1px solid ***REMOVED***F2DFA0;' +
+      'border-radius:12px;}' +
+      '.report-followup__nudge-body{display:flex;gap:10px;align-items:flex-start;}' +
+      '.report-followup__nudge-icon{font-size:18px;line-height:1.4;}' +
+      '.report-followup__nudge-title{margin:0;font-size:14px;font-weight:600;' +
+      'color:***REMOVED***6B5400;line-height:1.5;}' +
+      '.report-followup__nudge-sub{margin:2px 0 0;font-size:13px;' +
+      'color:***REMOVED***8A7330;line-height:1.5;}' +
+      '.report-followup__nudge-close{flex-shrink:0;border:0;background:none;' +
+      'cursor:pointer;font-size:20px;line-height:1;color:***REMOVED***B59A4A;padding:0 4px;}' +
+      '.report-followup__nudge-close:hover{color:***REMOVED***6B5400;}';
+    document.head.appendChild(s);
+  }
+
+  function reportAgeDays(createdAt) {
+    if (!createdAt) return 0;
+    var t = new Date(createdAt).getTime();
+    if (isNaN(t)) return 0;
+    return (Date.now() - t) / 86400000;
+  }
+
+  function maybeRenderRevisitNudge(reportId, createdAt, followupState) {
+    var st = followupState || {};
+    // Already reported an outcome → no nudge needed.
+    if (st.outcome) return;
+    if (reportAgeDays(createdAt) < REVISIT_NUDGE_DAYS) return;
+    var dismissKey = 'rf-nudge-dismissed:' + reportId;
+    try {
+      if (sessionStorage.getItem(dismissKey)) return;
+    } catch (e) { /* sessionStorage unavailable — show anyway */ }
+
+    var panel = document.getElementById('report-followup');
+    if (!panel || document.getElementById('rf-revisit-nudge')) return;
+    ensureNudgeStyles();
+    var nudge = document.createElement('div');
+    nudge.id = 'rf-revisit-nudge';
+    nudge.className = 'report-followup__nudge';
+    nudge.innerHTML =
+      '<div class="report-followup__nudge-body">' +
+        '<span class="report-followup__nudge-icon" aria-hidden="true">💡</span>' +
+        '<div>' +
+          '<p class="report-followup__nudge-title">上次这份报告你试了吗？结果如何？</p>' +
+          '<p class="report-followup__nudge-sub">花 10 秒记一笔，帮我们沉淀「真的管用」的跨领域方法。</p>' +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="report-followup__nudge-close" ' +
+        'id="rf-nudge-close" aria-label="关闭提示">×</button>';
+    panel.insertBefore(nudge, panel.firstChild);
+    var closeBtn = document.getElementById('rf-nudge-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        nudge.remove();
+        try { sessionStorage.setItem(dismissKey, '1'); } catch (e) {}
+        trackPlausible('Report Revisit Nudge Dismissed');
+      });
+    }
+    trackPlausible('Report Revisit Nudge Shown');
+  }
+
+  function loadFollowup(reportId, createdAt) {
     if (!reportId) return;
     fetch('/api/report/' + encodeURIComponent(reportId) + '/followup', { headers: anonHeaders() })
       .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
-      .then((data) => { renderFollowup(reportId, data && data.followup); })
+      .then((data) => {
+        var followup = data && data.followup;
+        renderFollowup(reportId, followup);
+        maybeRenderRevisitNudge(reportId, createdAt, followup);
+      })
       .catch((err) => {
         // GET failing shouldn't block the panel — show the empty form.
         console.warn('[report] followup load failed:', err);
@@ -354,7 +433,7 @@
 
         // SESSION-17 V6: load + render the report→action→outcome follow-up
         // panel below the action_plan section.
-        if (data.id) loadFollowup(data.id);
+        if (data.id) loadFollowup(data.id, data.created_at);
 
         trackPlausible('Report Share Page Viewed', {
           referrer: document.referrer ? 'external' : 'direct',

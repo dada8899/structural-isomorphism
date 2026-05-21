@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <title>数据洞察 — Structural</title>
+  <meta name="description" content="跨领域研究的数据飞轮——大家最常卡住的问题结构，以及真有人用成功过的「已验证同构」。">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260522a">
+  <link rel="stylesheet" href="/assets/css/insights.css?v=20260522a">
+
+  <!-- Plausible analytics (self-hosted, cookieless — matches the rest of the site). -->
+  <script defer data-domain="structural.bytedance.city"
+          src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="insights-page">
+    <div class="insights-container">
+
+      <div class="insights-head">
+        <h1 class="insights-head__title">数据洞察</h1>
+        <p class="insights-head__sub">大家用这个引擎在跨领域借方法。这里汇总了用得最多的问题结构，以及真有人回来确认「确实管用」的已验证同构。</p>
+      </div>
+
+      <!-- 总览数字卡 -->
+      <section class="insights-summary" id="insights-summary" aria-label="总览数字">
+        <div class="insights-stat insights-stat--skeleton"></div>
+        <div class="insights-stat insights-stat--skeleton"></div>
+        <div class="insights-stat insights-stat--skeleton"></div>
+        <div class="insights-stat insights-stat--skeleton"></div>
+      </section>
+
+      <!-- 最常卡住的问题结构 -->
+      <section class="insights-block" aria-labelledby="insights-stuck-title">
+        <h2 class="insights-block__title" id="insights-stuck-title">最常卡住的问题结构</h2>
+        <p class="insights-block__sub">用户提问最集中的目标现象。回访率与「确实管用」率越高，说明这条跨领域路线越靠谱。</p>
+        <div id="insights-stuck" class="insights-stuck">
+          <div class="insights-row insights-row--skeleton"></div>
+          <div class="insights-row insights-row--skeleton"></div>
+          <div class="insights-row insights-row--skeleton"></div>
+        </div>
+      </section>
+
+      <!-- 已验证同构库 -->
+      <section class="insights-block" aria-labelledby="insights-verified-title">
+        <h2 class="insights-block__title" id="insights-verified-title">已验证同构库</h2>
+        <p class="insights-block__sub">真有用户回来确认过「试了，管用」的报告。比模型自己打分的跨域对更可信。</p>
+        <div id="insights-verified" class="insights-verified">
+          <div class="insights-card insights-card--skeleton"></div>
+          <div class="insights-card insights-card--skeleton"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/insights.js?v=20260522a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+</body>
+</html>

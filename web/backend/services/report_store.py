@@ -330,6 +330,13 @@ class ReportStore:
 
         Convenience for the 'My Reports' page. NOT a security boundary
         — anyone with a share_token can still read.
+
+        B Data Flywheel (Session ***REMOVED***18): each row also carries the SAME
+        anon's followup summary (has_followup / followup_outcome) via a
+        LEFT JOIN report_followup. We join on the same anon_id so the
+        '未回访' badge reflects *this device's* revisit status, not some
+        other reader's. Reports with no followup row → has_followup=0,
+        followup_outcome=''.
         """
         if limit < 1 or limit > 200:
             limit = 50
@@ -338,15 +345,128 @@ class ReportStore:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT id, query, b_id, lang, created_at, view_count
-                FROM reports
-                WHERE creator_anon_id = ?
-                ORDER BY created_at DESC
+                SELECT r.id, r.query, r.b_id, r.lang, r.created_at,
+                       r.view_count,
+                       CASE WHEN f.report_id IS NULL THEN 0 ELSE 1 END
+                           AS has_followup,
+                       COALESCE(f.action_status, '') AS followup_status,
+                       COALESCE(f.outcome, '')        AS followup_outcome
+                FROM reports r
+                LEFT JOIN report_followup f
+                    ON f.report_id = r.id AND f.anon_id = ?
+                WHERE r.creator_anon_id = ?
+                ORDER BY r.created_at DESC
                 LIMIT ? OFFSET ?
                 """,
-                (anon_id, limit, offset),
+                (anon_id, anon_id, limit, offset),
             ).fetchall()
-        return [dict(r) for r in rows]
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["has_followup"] = bool(d.get("has_followup", 0))
+            out.append(d)
+        return out
+
+    ***REMOVED*** ------ B Data Flywheel (Session ***REMOVED***18) -------------------------- ***REMOVED***
+
+    def verified_isomorphisms(self, *, limit: int = 50) -> list[dict]:
+        """Reports whose followup outcome == 'worked' — i.e. a real user
+        came back and confirmed the borrowed structure actually helped.
+
+        These are stronger evidence than LLM-rated v2_pairs: someone tried
+        it and it worked. We aggregate per report (a report can be marked
+        'worked' by several anons → verifier_count). `payload` is decoded
+        so the caller can pull shared_structure / _credibility.
+        """
+        if limit < 1 or limit > 200:
+            limit = 50
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT r.id, r.query, r.b_id, r.lang, r.payload,
+                       r.created_at,
+                       COUNT(f.id)        AS verifier_count,
+                       MAX(f.updated_at)  AS last_verified_at
+                FROM reports r
+                JOIN report_followup f
+                    ON f.report_id = r.id AND f.outcome = 'worked'
+                GROUP BY r.id
+                ORDER BY last_verified_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["payload"] = json.loads(d["payload"]) if d["payload"] else {}
+            except json.JSONDecodeError:
+                d["payload"] = {}
+            out.append(d)
+        return out
+
+    def stuck_structures(self, *, limit: int = 20) -> list[dict]:
+        """Aggregate which problem targets (b_id) users hit most.
+
+        Per b_id: how many reports, how many got a followup, and the
+        worked-rate among reports that have a followup. Surfaces 'the
+        structures people keep getting stuck on'. Sorted by report_count.
+        """
+        if limit < 1 or limit > 200:
+            limit = 20
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT r.b_id,
+                       COUNT(DISTINCT r.id)         AS report_count,
+                       COUNT(DISTINCT f.report_id)  AS followup_count,
+                       SUM(CASE WHEN f.outcome = 'worked'
+                                THEN 1 ELSE 0 END)  AS worked_count
+                FROM reports r
+                LEFT JOIN report_followup f ON f.report_id = r.id
+                GROUP BY r.b_id
+                ORDER BY report_count DESC, r.b_id ASC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["report_count"] = d.get("report_count", 0) or 0
+            d["followup_count"] = d.get("followup_count", 0) or 0
+            d["worked_count"] = d.get("worked_count", 0) or 0
+            fc = d["followup_count"]
+            d["worked_rate"] = (
+                round(d["worked_count"] / fc, 3) if fc else 0.0
+            )
+            out.append(d)
+        return out
+
+    def insights_summary(self) -> dict:
+        """Top-line counters for the insights dashboard. Empty DB → zeros."""
+        with self._connect() as conn:
+            total_reports = conn.execute(
+                "SELECT COUNT(*) FROM reports"
+            ).fetchone()[0]
+            total_followups = conn.execute(
+                "SELECT COUNT(*) FROM report_followup"
+            ).fetchone()[0]
+            worked = conn.execute(
+                "SELECT COUNT(*) FROM report_followup WHERE outcome = 'worked'"
+            ).fetchone()[0]
+            ***REMOVED*** verified isomorphisms = distinct reports with a 'worked' followup
+            verified = conn.execute(
+                "SELECT COUNT(DISTINCT report_id) FROM report_followup "
+                "WHERE outcome = 'worked'"
+            ).fetchone()[0]
+        return {
+            "total_reports": total_reports or 0,
+            "total_followups": total_followups or 0,
+            "worked_count": worked or 0,
+            "verified_isomorphisms": verified or 0,
+        }
 
     def record_view(self, rid: str) -> None:
         """Bump view_count + last_viewed_at. Best-effort, never raises."""

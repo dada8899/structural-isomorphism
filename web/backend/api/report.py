@@ -56,6 +56,9 @@ class ReportListItem(BaseModel):
     lang: str
     created_at: str
     view_count: int
+    ***REMOVED*** B Data Flywheel (Session ***REMOVED***18) — revisit status for the '未回访' badge.
+    has_followup: bool = False
+    followup_outcome: str = ""
 
 
 class ReportListResponse(BaseModel):
@@ -237,6 +240,8 @@ async def list_my_reports(
                 "lang": it["lang"],
                 "created_at": it["created_at"],
                 "view_count": it.get("view_count", 0),
+                "has_followup": bool(it.get("has_followup", False)),
+                "followup_outcome": it.get("followup_outcome", "") or "",
             }
             for it in items
         ],
