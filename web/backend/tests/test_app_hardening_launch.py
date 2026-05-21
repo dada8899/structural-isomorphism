@@ -89,3 +89,83 @@ def test_security_headers_on_html_page(dev_client):
     r = dev_client.get("/")
     assert r.headers.get("X-Content-Type-Options") == "nosniff"
     assert "Content-Security-Policy" in r.headers
+
+
+***REMOVED*** --------- P1-5: unmatched /api 404 uses RFC 7807 --------- ***REMOVED***
+
+
+def test_unmatched_api_route_returns_problem_json(dev_client):
+    """An unknown /api/* path must answer with the RFC 7807 envelope,
+    not the ad-hoc `{"detail": "not found"}` that bypassed errors.py."""
+    r = dev_client.get("/api/report/r_deadbeef00000000")
+    assert r.status_code == 404
+    assert r.headers["content-type"].startswith("application/problem+json")
+    body = r.json()
+    ***REMOVED*** Canonical RFC 7807 members.
+    assert body["status"] == 404
+    assert body["type"].endswith("/not_found")
+    assert "title" in body and "detail" in body
+
+
+def test_unmatched_html_route_still_serves_404_page(dev_client):
+    """Non-/api unknown routes keep the full HTML 404 template."""
+    r = dev_client.get("/definitely-not-a-page")
+    assert r.status_code == 404
+    assert "text/html" in r.headers["content-type"]
+
+
+***REMOVED*** --------- P2-3: /api/version never forks a git subprocess --------- ***REMOVED***
+
+
+def test_version_no_subprocess_when_sha_present(dev_client, monkeypatch):
+    """With STRUCTURAL_GIT_SHA set, /api/version must not shell out."""
+    import subprocess as _sp
+
+    def _boom(*a, **k):  ***REMOVED*** any subprocess call = test failure
+        raise AssertionError("/api/version forked a subprocess")
+
+    monkeypatch.setattr(_sp, "check_output", _boom)
+    monkeypatch.setenv("STRUCTURAL_GIT_SHA", "feedface1234")
+    r = dev_client.get("/api/version")
+    assert r.status_code == 200
+    assert r.json()["git_sha"] == "feedface1234"
+
+
+def test_version_prod_missing_sha_returns_unknown(monkeypatch):
+    """In prod a missing SHA yields 'unknown' — never a git fork."""
+    import subprocess as _sp
+
+    monkeypatch.setattr(
+        _sp, "check_output",
+        lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("prod /api/version forked git")
+        ),
+    )
+    monkeypatch.delenv("STRUCTURAL_GIT_SHA", raising=False)
+    main = _fresh_main(monkeypatch, "prod")
+    client = TestClient(main.app)
+    r = client.get("/api/version")
+    assert r.status_code == 200
+    assert r.json()["git_sha"] == "unknown"
+
+
+***REMOVED*** --------- P2: query-embedding cache hit-rate observability --------- ***REMOVED***
+
+
+def test_search_service_cache_stats_shape():
+    """SearchService.cache_stats() reports LRU hits / misses / hit_rate."""
+    from services.search_service import SearchService
+
+    svc = SearchService(data_dir=None)  ***REMOVED*** no KB — we only exercise the cache
+    stats = svc.cache_stats()
+    assert set(stats) == {"hits", "misses", "hit_rate", "size", "maxsize"}
+    assert stats["maxsize"] == 1024
+    assert stats["hit_rate"] == 0.0  ***REMOVED*** nothing encoded yet
+
+    ***REMOVED*** Encode the same query twice → exactly one cache hit.
+    svc.encode_query("phase transition")
+    svc.encode_query("phase transition")
+    stats2 = svc.cache_stats()
+    assert stats2["hits"] == 1
+    assert stats2["misses"] == 1
+    assert stats2["hit_rate"] == 0.5

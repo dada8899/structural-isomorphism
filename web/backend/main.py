@@ -40,6 +40,13 @@ logger = get_logger("structural.web")
 ***REMOVED*** Shared state
 app_state = {}
 
+***REMOVED*** Session ***REMOVED***17 P2-3 — git SHA is resolved once at startup and cached here so
+***REMOVED*** /api/version never forks a `git` subprocess on the request path. In prod
+***REMOVED*** the SHA is expected via STRUCTURAL_GIT_SHA / .env.runtime; if it's missing
+***REMOVED*** we record "unknown" rather than shelling out (a misconfigured deploy
+***REMOVED*** shouldn't make every /api/version call spawn a process).
+_GIT_SHA_CACHE: str = ""
+
 ***REMOVED*** Launch P1-4 — in prod, the interactive API docs (/docs, /redoc) and the
 ***REMOVED*** raw OpenAPI schema (/openapi.json) hand an attacker a full map of the API
 ***REMOVED*** surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
@@ -52,10 +59,59 @@ _DOCS_KWARGS = (
 )
 
 
+def _resolve_git_sha() -> str:
+    """Resolve the build's git SHA once, at startup.
+
+    Order: STRUCTURAL_GIT_SHA env (set by deploy-vps.sh / .env.runtime) →
+    in dev only, a best-effort `git rev-parse`. In prod a missing SHA
+    yields "unknown" instead of forking git on a request.
+    """
+    sha = os.getenv("STRUCTURAL_GIT_SHA", "").strip()
+    if sha:
+        return sha[:12]
+    if _IS_PROD:
+        ***REMOVED*** Misconfigured deploy — don't shell out on the request path.
+        return "unknown"
+    try:
+        import subprocess as _sp
+        return _sp.check_output(
+            ["git", "rev-parse", "--short=12", "HEAD"],
+            cwd=str(Path(__file__).resolve().parent.parent.parent),
+            stderr=_sp.DEVNULL,
+            timeout=2,
+        ).decode().strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+async def _phase_urlopen_json(req, timeout: int) -> dict:
+    """Run a blocking urllib request off the event loop, return parsed JSON.
+
+    Session ***REMOVED***17 P2-6 — the /phase/* non-streaming endpoints used to call
+    `urllib.request.urlopen()` directly inside an `async def` handler, which
+    blocks the single event loop for up to `timeout` seconds and stalls every
+    other request on the Structural site. `run_in_threadpool` keeps the loop
+    free. (The /phase/*/stream endpoints already use httpx.AsyncClient.)
+    """
+    import json as _json
+    import urllib.request as _req
+    from starlette.concurrency import run_in_threadpool
+
+    def _blocking() -> dict:
+        with _req.urlopen(req, timeout=timeout) as resp:
+            return _json.loads(resp.read())
+
+    return await run_in_threadpool(_blocking)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("Starting Structural Web Backend...")
+
+    ***REMOVED*** Session ***REMOVED***17 P2-3 — precompute the git SHA so /api/version is fork-free.
+    global _GIT_SHA_CACHE
+    _GIT_SHA_CACHE = _resolve_git_sha()
 
     ***REMOVED*** Initialise structured JSON event logger + (optional) Sentry.
     try:
@@ -321,6 +377,12 @@ async def health(deep: int = 0):
         ***REMOVED*** LLM upstream env present
         checks["llm_env"] = "ok" if os.getenv("OPENROUTER_API_KEY") or os.getenv("DEEPSEEK_API_KEY") else "missing"
         body["checks"] = checks
+        ***REMOVED*** Session ***REMOVED***17 P2 — query-embedding cache hit rate, for operators.
+        if svc:
+            try:
+                body["query_cache"] = svc.cache_stats()
+            except Exception:
+                pass
         body["status"] = "ok" if all(v in ("ok", "missing") for v in checks.values()) else "degraded"
     return body
 
@@ -338,25 +400,11 @@ async def health(deep: int = 0):
 )
 async def version():
     import sys as _sys
-    import subprocess as _sp
-    import asyncio as _aio
-    git_sha = os.getenv("STRUCTURAL_GIT_SHA", "")
-    if not git_sha:
-        ***REMOVED*** Best-effort: short SHA from git, capped at 12 chars.
-        ***REMOVED*** Off-load to a thread so /api/version doesn't block the event
-        ***REMOVED*** loop for up to 2s when STRUCTURAL_GIT_SHA is unset (dev /
-        ***REMOVED*** misconfigured deploy). Validator session-***REMOVED***16 P2.
-        def _git_sha_blocking():
-            try:
-                return _sp.check_output(
-                    ["git", "rev-parse", "--short=12", "HEAD"],
-                    cwd=str(Path(__file__).resolve().parent.parent.parent),
-                    stderr=_sp.DEVNULL,
-                    timeout=2,
-                ).decode().strip()
-            except Exception:
-                return "unknown"
-        git_sha = await _aio.to_thread(_git_sha_blocking)
+    ***REMOVED*** Session ***REMOVED***17 P2-3 — git SHA was precomputed at startup (lifespan) and
+    ***REMOVED*** cached in `_GIT_SHA_CACHE`; this endpoint never forks a subprocess.
+    ***REMOVED*** `_resolve_git_sha()` fallback covers the rare case where the cache is
+    ***REMOVED*** still empty (e.g. /api/version hit before lifespan finished in tests).
+    git_sha = _GIT_SHA_CACHE or _resolve_git_sha()
     ***REMOVED*** Session ***REMOVED***16 — surface the ask-model + deploy timestamp so dogfood scripts
     ***REMOVED*** can fingerprint-check prod in a single request. Import the canonical
     ***REMOVED*** value from ask_orchestrator so the two NEVER drift (Validator session
@@ -635,8 +683,7 @@ Thesis 内容：
                 "X-Title": "phase-detector-redteam",
             },
         )
-        with _req.urlopen(req, timeout=120) as resp:
-            llm_data = _json.loads(resp.read())
+        llm_data = await _phase_urlopen_json(req, timeout=120)
         content = llm_data["choices"][0]["message"]["content"].strip()
         ***REMOVED*** Strip markdown fences
         if content.startswith("```"):
@@ -733,8 +780,7 @@ async def phase_api_deep_report(request: Request):
                 "X-Title": "phase-detector-deep-report",
             },
         )
-        with _req.urlopen(req, timeout=180) as resp:
-            llm_data = _json.loads(resp.read())
+        llm_data = await _phase_urlopen_json(req, timeout=180)
         report = llm_data["choices"][0]["message"]["content"].strip()
         ***REMOVED*** Strip leading code fences if present
         if report.startswith("```"):
@@ -884,8 +930,7 @@ async def phase_api_analogy(request: Request):
                     "X-Title": "phase-detector-analogy",
                 },
             )
-            with _req.urlopen(req, timeout=180) as resp:
-                llm_data = _json.loads(resp.read())
+            llm_data = await _phase_urlopen_json(req, timeout=180)
             content = llm_data["choices"][0]["message"]["content"].strip()
             if content.startswith("```"):
                 lines = content.split("\n")
@@ -1063,8 +1108,7 @@ note: {struct.get('note', '?')}
                     "X-Title": "phase-detector-analogy-detail",
                 },
             )
-            with _req.urlopen(req, timeout=240) as resp:
-                llm_data = _json.loads(resp.read())
+            llm_data = await _phase_urlopen_json(req, timeout=240)
             report = llm_data["choices"][0]["message"]["content"].strip()
             if report.startswith("```"):
                 lines = report.split("\n")
@@ -1828,6 +1872,13 @@ async def my_reports_page():
     return FileResponse(FRONTEND_DIR / "reports.html")
 
 
+***REMOVED*** Session ***REMOVED***17 — privacy policy page (footer link; GDPR endpoints live
+***REMOVED*** under /api/privacy/*).
+@app.get("/privacy")
+async def privacy_page():
+    return FileResponse(FRONTEND_DIR / "privacy.html")
+
+
 @app.get("/report/{report_id}")
 async def report_by_id_page(report_id: str):
     return FileResponse(FRONTEND_DIR / "report.html")
@@ -1871,8 +1922,12 @@ async def sitemap_xml():
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
-    ***REMOVED*** API routes return JSON; only HTML pages get the full 404 template.
+    ***REMOVED*** API routes return RFC 7807 problem+json; only HTML pages get the full
+    ***REMOVED*** 404 template. Launch P1-5: unmatched /api routes previously returned an
+    ***REMOVED*** ad-hoc `{"detail": "not found"}` that bypassed errors.py — the API
+    ***REMOVED*** surface now answers with one consistent envelope everywhere.
     path = request.url.path or ""
     if path.startswith("/api"):
-        return JSONResponse({"detail": "not found"}, status_code=404)
+        from errors import _problem_handler
+        return await _problem_handler(request, exc)
     return FileResponse(FRONTEND_DIR / "404.html", status_code=404)

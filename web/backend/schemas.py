@@ -333,6 +333,9 @@ class HealthResponse(BaseModel):
     llm_model: str = "unknown"
     ***REMOVED*** Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
     checks: Optional[Dict[str, str]] = None
+    ***REMOVED*** Deep mode also surfaces the query-embedding LRU cache hit rate
+    ***REMOVED*** (Session ***REMOVED***17 P2). Values are numeric (int counts + float hit_rate).
+    query_cache: Optional[Dict[str, float]] = None
 
 
 class VersionResponse(BaseModel):

@@ -236,6 +236,23 @@ class SearchService:
     def encode_query(self, query: str) -> np.ndarray:
         return self._encode_query_cached(query)
 
+    def cache_stats(self) -> Dict[str, float]:
+        """Query-embedding LRU cache stats — hits / misses / hit_rate.
+
+        Session ***REMOVED***17 P2 — the encode cache had no observability. Surfaced
+        via /api/health?deep=1 so operators can see whether the 1024-entry
+        cache is actually paying off (hit_rate trending up = good).
+        """
+        info = self._encode_query_cached.cache_info()
+        total = info.hits + info.misses
+        return {
+            "hits": info.hits,
+            "misses": info.misses,
+            "hit_rate": round(info.hits / total, 4) if total else 0.0,
+            "size": info.currsize,
+            "maxsize": info.maxsize or 0,
+        }
+
     @property
     def kb_size(self) -> int:
         return len(self.kb)
