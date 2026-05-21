@@ -57,17 +57,18 @@
   width: 100%;
   max-width: 660px;
   background: var(--brand-paper-card);
-  border: 1.5px solid var(--brand-line);
-  border-radius: 20px;
+  border: 1px solid var(--brand-line);
+  border-radius: 16px;
   padding: 18px 20px 12px;
-  /* Scheme A: lift the elevation so the box is the page's single
-     visual anchor — soft contact shadow + deeper ambient layer. */
-  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04), 0 8px 24px rgba(24, 24, 27, 0.08);
+  /* Scheme B: single elevation cue — a 1px hairline + one faint shadow.
+     Border and shadow are alternative "lift" techniques; stacking both
+     over-encapsulates the box. Keep it quiet so it sits *in* the page. */
+  box-shadow: 0 1px 3px rgba(24, 24, 27, 0.05);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ask-searchbox:focus-within {
-  border-color: var(--brand-accent);
-  box-shadow: 0 0 0 4px var(--brand-accent-ring), 0 4px 18px rgba(0, 0, 0, 0.05);
+  border-color: var(--brand-line-strong);
+  box-shadow: 0 0 0 3px var(--brand-accent-ring), 0 2px 8px rgba(24, 24, 27, 0.06);
 }
 
 .ask-searchbox__input {
@@ -94,9 +95,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--brand-line);
+  /* Scheme B: no internal divider — the box stays one whole piece. */
+  margin-top: 4px;
+  padding-top: 4px;
 }
 
 .ask-searchbox__hint {
@@ -160,14 +161,19 @@
   flex: none;
   width: 44px;
   height: 44px;
+  /* Scheme B: accent lives at the "soft fill" weight, not as a solid
+     high-saturation circle. Rounded square matches the 16px card. */
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.05s;
+}
+.ask-searchbox__submit:hover {
   background: var(--brand-accent);
   color: #fff;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.05s;
 }
-.ask-searchbox__submit:hover { background: var(--brand-accent-hover); }
 .ask-searchbox__submit:active { transform: scale(0.95); }
 .ask-searchbox__submit:disabled {
   background: var(--brand-line);
@@ -789,7 +795,7 @@
   }
   .ask-searchbox {
     padding: 12px 12px 8px;
-    border-radius: 14px;
+    border-radius: 12px;
   }
   .ask-searchbox__input {
     font-size: 15px;
