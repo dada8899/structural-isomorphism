@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="description" content="研究空白地图——26 个普适类 × 183 个领域的矩阵，找出结构上理论上应成立、但还没人验证的研究选题。">
+  <title>研究空白地图 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="研究空白地图 — Structural">
+  <meta property="og:description" content="找出结构上理论上应成立、但还没人验证的跨领域研究选题">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/whitespace.css?v=20260522">
+
+  <!-- Plausible analytics -->
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="ws-page">
+    <div class="ws-container">
+
+      <!-- Intro -->
+      <section class="ws-intro">
+        <nav class="ws-crumb">
+          <a href="/">首页</a>
+          <span class="ws-crumb__sep">/</span>
+          <span>研究空白地图</span>
+        </nav>
+        <h1 class="ws-intro__title">研究空白地图</h1>
+        <p class="ws-intro__lede">
+          把 <strong>26 个普适类</strong> 和 <strong>183 个领域</strong> 排成一个矩阵。
+          每个普适类已经验证过的领域是「已验证」；那些结构上理论上应该成立、
+          但还没人去验证的格子，就是 <strong>研究空白</strong>——一个可能值得做的研究选题。
+        </p>
+        <div class="ws-legend">
+          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--filled"></i>已验证</span>
+          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--lead"></i>研究空白</span>
+          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--empty"></i>结构不相关</span>
+        </div>
+        <div id="ws-stats" class="ws-stats" hidden></div>
+      </section>
+
+      <!-- Loading / error states -->
+      <div id="ws-loading" class="ws-loading">
+        <div class="ws-loading__spinner"></div>
+        <p>正在加载研究空白矩阵…</p>
+      </div>
+      <div id="ws-error" class="ws-error" hidden>
+        <p>研究空白数据暂不可用。请稍后再试。</p>
+      </div>
+
+      <!-- Matrix heatmap -->
+      <section id="ws-matrix-section" class="ws-section" hidden>
+        <div class="ws-section__head">
+          <h2 class="ws-section__title">矩阵热力图</h2>
+          <p class="ws-section__hint">
+            行为普适类，列为领域。每行只展示该普适类相似度最高的若干领域，
+            横向可滚动。点击任意「研究空白」格子可定位到下方的选题。
+          </p>
+        </div>
+        <div id="ws-matrix" class="ws-matrix" role="table" aria-label="研究空白矩阵"></div>
+      </section>
+
+      <!-- Leads list -->
+      <section id="ws-leads-section" class="ws-section" hidden>
+        <div class="ws-section__head">
+          <h2 class="ws-section__title">研究空白选题</h2>
+          <p class="ws-section__hint">按结构相似度排序——越靠前，越可能存在尚未被验证的同构现象。</p>
+        </div>
+        <div class="ws-filters">
+          <label class="ws-filter">
+            <span>普适类</span>
+            <select id="ws-filter-class"><option value="">全部</option></select>
+          </label>
+          <label class="ws-filter">
+            <span>目标领域</span>
+            <select id="ws-filter-domain"><option value="">全部</option></select>
+          </label>
+          <button type="button" id="ws-filter-reset" class="ws-btn ws-btn--ghost">重置</button>
+        </div>
+        <div id="ws-leads" class="ws-leads"></div>
+        <div id="ws-leads-empty" class="ws-leads-empty" hidden>没有符合条件的研究空白。</div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260514e"></script>
+  <script src="/assets/js/utils.js?v=20260514e"></script>
+  <script src="/assets/js/api.js?v=20260514e"></script>
+  <script src="/assets/js/whitespace.js?v=20260522"></script>
+  <script src="/assets/js/product-switcher.js?v=20260514e"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+</body>
+</html>
