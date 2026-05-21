@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="Structural — 跨学科搜索引擎。输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
+  <meta name="description" content="用户流失、谣言扩散、团队崩盘、资金挤兑——表面无关，骨子里常是同一套规律。描述你的难题，Structural 帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
   <meta name="theme-color" content="***REMOVED***FAFAF9">
-  <title>Structural — 跨学科搜索引擎</title>
+  <title>Structural — 你卡住的问题，可能别人早就解过</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
@@ -19,13 +19,13 @@
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-400-latin.woff2" crossorigin>
   <link rel="preconnect" href="https://plausible.bytedance.city" crossorigin>
 
-  <meta property="og:title" content="Structural — 跨学科搜索引擎">
-  <meta property="og:description" content="输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
+  <meta property="og:title" content="Structural — 你卡住的问题，可能别人早就解过">
+  <meta property="og:description" content="表面无关的难题，骨子里常是同一套规律。描述你的难题，我们帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Structural — 跨学科搜索引擎">
-  <meta name="twitter:description" content="输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法。">
+  <meta name="twitter:title" content="Structural — 你卡住的问题，可能别人早就解过">
+  <meta name="twitter:description" content="表面无关的难题，骨子里常是同一套规律。描述你的难题，我们帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
 
@@ -58,14 +58,14 @@
   <main class="ask-main">
     <!-- ===== Empty state ===== -->
     <section class="ask-empty" id="ask-empty">
-      <h1 class="ask-empty__brand">Structural</h1>
-      <p class="ask-empty__tagline">跨学科搜索引擎 — 输入复杂问题，AI 从地震、神经、金融等领域为你找出结构相同的成熟解法</p>
+      <h1 class="ask-empty__brand">你卡住的问题，可能是别人早就解过的同一道题</h1>
+      <p class="ask-empty__tagline">用户流失、谣言扩散、团队崩盘、连锁式的资金挤兑——表面八竿子打不着，骨子里常是同一套规律。描述你的难题，我们帮你找到那个已经把它研究透的学科，给你一份能照着做的清单：能借哪些方法、有哪些坑。</p>
 
       <form id="ask-form" class="ask-searchbox" role="search" autocomplete="off">
         <textarea
           class="ask-searchbox__input"
           id="ask-input"
-          placeholder="描述一个你卡住的复杂问题，比如「月活每月掉 7% 怎么干预」"
+          placeholder="描述一个你卡了很久的难题，比如：用户每月稳定流失 7%，拉新和召回都不管用"
           rows="1"
           autocomplete="off"
           spellcheck="false"
@@ -87,12 +87,14 @@
             aria-live="polite"
             hidden
           ><span data-counter-text>0 / 8000</span></div>
-          <button type="submit" class="ask-searchbox__submit" aria-label="开始搜索" disabled>
+          <button type="submit" class="ask-searchbox__submit" aria-label="生成研究报告" disabled>
             <svg class="ask-searchbox__submit-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             <span class="ask-searchbox__submit-spinner" aria-hidden="true"></span>
           </button>
         </div>
       </form>
+
+      <p class="ask-empty__hint">约 2–3 分钟，AI 会逐段推演 · 报告分段逐步出现</p>
 
       <div class="ask-empty__examples">
         <div class="ask-empty__examples-label">试试这些例子</div>

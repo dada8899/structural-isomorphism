@@ -33,22 +33,34 @@
   text-align: center;
 }
 
+/* SESSION-17: the hero headline is now a sentence (copy proposal D),
+   not the "Structural" wordmark — sized as an editorial headline, not a
+   72px logotype. The brand wordmark lives in the site-header. */
 .ask-empty__brand {
   font-family: "Noto Serif SC", serif;
-  font-size: 72px;
+  font-size: 38px;
   font-weight: 600;
-  letter-spacing: -1.5px;
+  letter-spacing: -0.5px;
   color: var(--brand-ink);
-  margin: 0 0 16px;
-  line-height: 1.05;
+  margin: 0 0 18px;
+  line-height: 1.32;
+  max-width: 16em;
 }
 
 .ask-empty__tagline {
   font-size: 16px;
   line-height: 1.65;
   color: var(--brand-ink-soft);
-  margin: 0 0 36px;
-  max-width: 560px;
+  margin: 0 0 32px;
+  max-width: 580px;
+}
+
+/* Wait-time expectation line under the search box (fixes the "no wait
+   expectation" P0 — a 2-3 min report must not feel like a hang). */
+.ask-empty__hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--brand-muted);
 }
 
 /* ---- searchbox (empty state, large) ---- */
@@ -716,7 +728,7 @@
     padding: 48px 0 40px;
   }
   .ask-empty__brand {
-    font-size: 48px;
+    font-size: 31px;
   }
   .ask-empty__tagline {
     font-size: 14px;
@@ -786,8 +798,8 @@
     padding: 32px 0 28px;
   }
   .ask-empty__brand {
-    font-size: 40px;
-    letter-spacing: -0.5px;
+    font-size: 26px;
+    letter-spacing: -0.3px;
   }
   .ask-empty__tagline {
     font-size: 13px;
