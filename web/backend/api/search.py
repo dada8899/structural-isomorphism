@@ -56,7 +56,19 @@ class SearchResult(BaseModel):
     domain: str
     type_id: str
     description: str
+    ***REMOVED*** Fused BM25+embedding ranking score, [0, 1]. Use for visual tiering.
     score: float
+    ***REMOVED*** Session ***REMOVED***17 V3 — unified relevance口径 in [0, 1]. This is the SAME
+    ***REMOVED*** value the /api/analyze scope gate uses, so a result shown here will
+    ***REMOVED*** not be self-contradictorily rejected by analyze.
+    relevance: float = 0.0
+    ***REMOVED*** Session ***REMOVED***17 V2 — True when this candidate's domain differs from the
+    ***REMOVED*** query's inferred surface domain (i.e. a genuine cross-domain mapping).
+    ***REMOVED*** True is also the default when no surface domain could be inferred.
+    cross_domain: bool = True
+    ***REMOVED*** The query's inferred surface domain; None when no domain dominates.
+    ***REMOVED*** Echoed on every result for frontend grouping convenience.
+    surface_domain: Optional[str] = None
 
 
 class SearchResponse(BaseModel):
@@ -92,6 +104,33 @@ async def search_phenomena(request: Request, req: SearchRequest):
     lang_norm = (req.lang or "zh").lower()
     if lang_norm not in ("zh", "en"):
         lang_norm = "zh"
+
+    ***REMOVED*** Session ***REMOVED***17 V3.3 — out-of-scope gate. Previously /api/search had NO
+    ***REMOVED*** scope check at all: "今天天气怎么样" still returned 12 candidates.
+    ***REMOVED*** /ask and /analyze both gate; search now matches that contract so the
+    ***REMOVED*** whole funnel is consistent. Deterministic only (arithmetic / chit-chat
+    ***REMOVED*** / trivia) — search has no LLM call on the fast path, and the genuine
+    ***REMOVED*** relevance floor is the analyze gate's job.
+    from services.scope_guard import is_out_of_scope as _is_oos
+    _oos, _oos_reason = _is_oos(original_query)
+    if _oos:
+        return {
+            "query": original_query,
+            "rewritten_query": None,
+            "count": 0,
+            "results": [],
+            "out_of_scope": True,
+            "scope_reason": _oos_reason,
+            "assessment": {
+                "worth_score": 0,
+                "category": "out_of_scope",
+                "coaching": None,
+                "rewrite_suggestion": None,
+                "pending": False,
+            },
+            "stats": {"types": [], "domains": [], "top_score": 0},
+            "v2_pairs_for_top": [],
+        }
     ***REMOVED*** Default assessment is a permissive passthrough so downstream code that
     ***REMOVED*** reads `assessment.worth_score` still sees a valid shape. The `category`
     ***REMOVED*** value stays ZH internally (enum shape) and is translated on output
@@ -190,16 +229,28 @@ async def search_phenomena(request: Request, req: SearchRequest):
         assessment = dict(assessment)
         assessment["category"] = translate_category(assessment.get("category"))
 
+    ***REMOVED*** Session ***REMOVED***17 V2 — surface-domain summary so the frontend can decide
+    ***REMOVED*** whether to recommend a cross-domain source or honestly warn the user
+    ***REMOVED*** that every candidate is same-domain ("跨域感≈0" report risk).
+    surface_domain = results[0].get("surface_domain") if results else None
+    cross_domain_count = sum(1 for r in results if r.get("cross_domain"))
+
     return {
         "query": original_query,
         "rewritten_query": rewritten,
         "count": len(results),
         "results": results,
+        "out_of_scope": False,
+        "scope_reason": "ok",
         "assessment": assessment,
         "stats": {
             "types": [{"id": t, "count": c} for t, c in type_counts.most_common(5)],
             "domains": [{"name": d, "count": c} for d, c in domain_counts.most_common(5)],
             "top_score": results[0]["score"] if results else 0,
+            ***REMOVED*** V2 cross-domain summary.
+            "surface_domain": surface_domain,
+            "cross_domain_count": cross_domain_count,
+            "same_domain_count": len(results) - cross_domain_count,
         },
         "v2_pairs_for_top": v2_pairs_for_top,
     }

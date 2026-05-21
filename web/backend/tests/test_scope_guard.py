@@ -59,6 +59,9 @@ def test_chitchat_is_out_of_scope(q):
 @pytest.mark.parametrize("q", [
     "今天几号", "现在几点", "今天星期几",
     "what time is it", "what's the weather",
+    ***REMOVED*** Session ***REMOVED***17 V3.3 — the canonical bug example. "今天天气怎么样" leads
+    ***REMOVED*** with "今天", so the bare "天气怎么样" prefix used to miss it.
+    "今天天气怎么样", "今天天气怎么样？", "今天的天气如何",
 ])
 def test_trivia_is_out_of_scope(q):
     oos, reason = is_out_of_scope(q)

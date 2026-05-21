@@ -411,3 +411,103 @@ class TestSchemaDriftMigration:
             query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
         )
         assert store.get_by_id(out["id"]) is not None
+
+
+***REMOVED*** --------- Session ***REMOVED***17 V6 — report followup (revisit loop) --------- ***REMOVED***
+
+
+class TestReportFollowup:
+    """ReportStore.record_followup / get_followup — V6 revisit loop."""
+
+    def _make_report(self, store, sample_payload):
+        return store.create(
+            query="q", b_id="b1", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="anon-1",
+        )["id"]
+
+    def test_record_and_read_followup(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        fu = store.record_followup(
+            report_id=rid, anon_id="anon-1",
+            action_status="tried", outcome="worked", note="留存涨了 3 个点",
+        )
+        assert fu["action_status"] == "tried"
+        assert fu["outcome"] == "worked"
+        got = store.get_followup(rid, "anon-1")
+        assert got["note"] == "留存涨了 3 个点"
+        ***REMOVED*** created_at == updated_at on first insert.
+        assert got["created_at"] == got["updated_at"]
+
+    def test_followup_upsert_latest_wins(self, store, sample_payload):
+        """Re-submitting updates the row, keeps created_at, bumps updated_at."""
+        rid = self._make_report(store, sample_payload)
+        first = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+        )
+        second = store.record_followup(
+            report_id=rid, anon_id="anon-1",
+            action_status="tried", outcome="partial",
+        )
+        ***REMOVED*** One row only — the unique (report_id, anon_id) upsert fired.
+        assert second["action_status"] == "tried"
+        assert second["outcome"] == "partial"
+        assert second["created_at"] == first["created_at"]
+
+    def test_followup_per_anon_isolated(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="tried",
+        )
+        store.record_followup(
+            report_id=rid, anon_id="anon-2", action_status="abandoned",
+        )
+        assert store.get_followup(rid, "anon-1")["action_status"] == "tried"
+        assert store.get_followup(rid, "anon-2")["action_status"] == "abandoned"
+
+    def test_followup_missing_anon_collapses_to_anon_bucket(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        store.record_followup(
+            report_id=rid, anon_id=None, action_status="planned",
+        )
+        assert store.get_followup(rid, None)["anon_id"] == "anon"
+
+    def test_followup_rejects_bad_action_status(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        with pytest.raises(ValueError):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status="garbage",
+            )
+
+    def test_followup_rejects_bad_outcome(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        with pytest.raises(ValueError):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status="tried",
+                outcome="exploded",
+            )
+
+    def test_get_followup_returns_none_when_absent(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        assert store.get_followup(rid, "nobody") is None
+
+    def test_followup_table_self_heals_on_drifted_db(self, tmp_path, sample_payload):
+        """A history.db lacking report_followup gets the table on open."""
+        import sqlite3
+        db = tmp_path / "drift.db"
+        ***REMOVED*** Simulate a pre-V6 DB: reports table exists, no report_followup.
+        conn = sqlite3.connect(str(db))
+        conn.execute(
+            "CREATE TABLE reports (id TEXT PRIMARY KEY, share_token TEXT, "
+            "query TEXT, b_id TEXT, lang TEXT, payload TEXT, model TEXT, "
+            "prompt_version TEXT, created_at TEXT)"
+        )
+        conn.commit()
+        conn.close()
+        store = ReportStore(db)  ***REMOVED*** CREATE TABLE IF NOT EXISTS adds followup
+        rid = store.create(
+            query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
+        )["id"]
+        fu = store.record_followup(
+            report_id=rid, anon_id="a", action_status="tried",
+        )
+        assert fu["action_status"] == "tried"

@@ -257,3 +257,89 @@ def test_feedback_different_voters_accumulate(client, isolated_store, sample_pay
     body = r.json()
     assert body["total_up"] == 3
     assert body["total_down"] == 1
+
+
+***REMOVED*** --------- Session ***REMOVED***17 V6 — /api/report/{id}/followup --------- ***REMOVED***
+
+
+def test_followup_404_for_missing_report(client):
+    r = client.post(
+        "/api/report/r_nope/followup",
+        json={"action_status": "tried"},
+    )
+    assert r.status_code == 404
+
+
+def test_followup_records_and_reads_back(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/followup",
+        json={"action_status": "tried", "outcome": "worked", "note": "成了"},
+        headers={"X-Anon-Id": "anon-x"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["action_status"] == "tried"
+    assert body["outcome"] == "worked"
+
+    ***REMOVED*** Read it back via GET — same anon.
+    g = client.get(
+        f"/api/report/{out['id']}/followup",
+        headers={"X-Anon-Id": "anon-x"},
+    )
+    assert g.status_code == 200
+    assert g.json()["followup"]["note"] == "成了"
+
+
+def test_followup_get_returns_null_when_absent(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    g = client.get(
+        f"/api/report/{out['id']}/followup",
+        headers={"X-Anon-Id": "nobody"},
+    )
+    assert g.status_code == 200
+    assert g.json()["followup"] is None
+
+
+def test_followup_upsert_via_api(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    hdr = {"X-Anon-Id": "anon-x"}
+    client.post(
+        f"/api/report/{out['id']}/followup",
+        json={"action_status": "planned"}, headers=hdr,
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/followup",
+        json={"action_status": "tried", "outcome": "partial"}, headers=hdr,
+    )
+    assert r.json()["action_status"] == "tried"
+    assert r.json()["outcome"] == "partial"
+
+
+def test_followup_rejects_bad_action_status(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/followup",
+        json={"action_status": "garbage"},
+    )
+    assert r.status_code == 400
+
+
+def test_followup_rejects_bad_outcome(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    r = client.post(
+        f"/api/report/{out['id']}/followup",
+        json={"action_status": "tried", "outcome": "exploded"},
+    )
+    assert r.status_code == 400

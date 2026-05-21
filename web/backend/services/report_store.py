@@ -112,6 +112,26 @@ CREATE INDEX IF NOT EXISTS idx_reports_anon
 CREATE INDEX IF NOT EXISTS idx_reports_share_token
     ON reports(share_token);
 
+-- Session ***REMOVED***17 V6 — report → action → result revisit loop. One row per
+-- (report_id, anon_id): the latest followup wins (upsert), so a user can
+-- come back and update "我试过了 / 结果如何" without piling up rows.
+CREATE TABLE IF NOT EXISTS report_followup (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_id   TEXT NOT NULL,
+    anon_id     TEXT NOT NULL DEFAULT 'anon',
+    -- action_status ∈ planned | in_progress | tried | abandoned
+    action_status TEXT NOT NULL,
+    -- outcome ∈ '' (not reported yet) | worked | partial | no_effect | too_early
+    outcome     TEXT NOT NULL DEFAULT '',
+    note        TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
+    UNIQUE (report_id, anon_id)
+);
+CREATE INDEX IF NOT EXISTS idx_followup_report
+    ON report_followup(report_id);
+
 CREATE TABLE IF NOT EXISTS report_feedback (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     report_id   TEXT NOT NULL,
@@ -410,6 +430,80 @@ class ReportStore:
             "total_up": (row["up"] if row else 0) or 0,
             "total_down": (row["down"] if row else 0) or 0,
         }
+
+    ***REMOVED*** ------ followup (Session ***REMOVED***17 V6) ------------------------------ ***REMOVED***
+
+    ***REMOVED*** Allowed enum values — validated here so a bad client value never
+    ***REMOVED*** lands in the DB. The API layer validates too (defence in depth).
+    ACTION_STATUSES = ("planned", "in_progress", "tried", "abandoned")
+    OUTCOMES = ("", "worked", "partial", "no_effect", "too_early")
+
+    def record_followup(
+        self,
+        *,
+        report_id: str,
+        anon_id: Optional[str],
+        action_status: str,
+        outcome: str = "",
+        note: Optional[str] = None,
+    ) -> dict:
+        """Idempotent upsert of a revisit record on (report_id, anon_id).
+
+        Re-submitting updates the existing row (latest wins) and preserves
+        the original created_at. Returns the stored followup dict.
+        """
+        if action_status not in self.ACTION_STATUSES:
+            raise ValueError(
+                f"action_status must be one of {self.ACTION_STATUSES}"
+            )
+        outcome = outcome or ""
+        if outcome not in self.OUTCOMES:
+            raise ValueError(f"outcome must be one of {self.OUTCOMES}")
+        anon_norm = anon_id if anon_id else "anon"
+        now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        with self._connect() as conn:
+            ***REMOVED*** created_at is set on first insert only; the upsert keeps it.
+            conn.execute(
+                """
+                INSERT INTO report_followup (
+                    report_id, anon_id, action_status, outcome, note,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(report_id, anon_id) DO UPDATE SET
+                    action_status = excluded.action_status,
+                    outcome = excluded.outcome,
+                    note = excluded.note,
+                    updated_at = excluded.updated_at
+                """,
+                (report_id, anon_norm, action_status, outcome, note, now, now),
+            )
+            row = conn.execute(
+                """
+                SELECT report_id, anon_id, action_status, outcome, note,
+                       created_at, updated_at
+                FROM report_followup
+                WHERE report_id = ? AND anon_id = ?
+                """,
+                (report_id, anon_norm),
+            ).fetchone()
+        return dict(row) if row else {}
+
+    def get_followup(
+        self, report_id: str, anon_id: Optional[str],
+    ) -> Optional[dict]:
+        """Return this anon's followup for the report, or None."""
+        anon_norm = anon_id if anon_id else "anon"
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT report_id, anon_id, action_status, outcome, note,
+                       created_at, updated_at
+                FROM report_followup
+                WHERE report_id = ? AND anon_id = ?
+                """,
+                (report_id, anon_norm),
+            ).fetchone()
+        return dict(row) if row else None
 
     ***REMOVED*** ------ internals --------------------------------------------- ***REMOVED***
 

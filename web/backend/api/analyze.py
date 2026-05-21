@@ -144,12 +144,17 @@ async def stream_analyze(
         ***REMOVED*** === Query mode ===
         rewritten = await _llm.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
 
-        import numpy as np
-        query_emb = svc.encode_query(rewritten)
         idx_kb = svc.idx_by_id.get(b_id)
         if idx_kb is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        similarity = float(np.dot(query_emb.flatten(), svc._embeddings[idx_kb]))
+        ***REMOVED*** Session ***REMOVED***17 V3.1/V3.2 — UNIFIED similarity口径. The old code did a
+        ***REMOVED*** raw np.dot of a normalized query embedding against an UN-normalized
+        ***REMOVED*** KB embedding (kb_v2_embeddings.npy has norms ~14-22), producing
+        ***REMOVED*** illegal meta.similarity values (9.5 / 4.76 observed). relevance_score
+        ***REMOVED*** returns a true cosine remapped to [0, 1] — the SAME口径 /api/search
+        ***REMOVED*** now exposes as `result.relevance`, so a result search ranked highly
+        ***REMOVED*** will not be self-contradictorily rejected by the scope gate below.
+        similarity = svc.relevance_score(rewritten, b_id)
 
         ***REMOVED*** SOURCE (a) = KB phenomenon; TARGET (b) = user's question.
         ***REMOVED*** The synthetic `b.domain` is hardcoded ZH; translate for lang=en.
@@ -169,12 +174,15 @@ async def stream_analyze(
         other = svc.get_by_id(a_id)
         if not other:
             raise HTTPException(404, "Phenomenon A not found")
-        import numpy as np
         idx_a = svc.idx_by_id.get(a_id)
         idx_b = svc.idx_by_id.get(b_id)
         if idx_a is None or idx_b is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
+        ***REMOVED*** V3.1 — same UN-normalized embedding bug applies to pair mode.
+        ***REMOVED*** Use the shared _cosine helper (divides by real norms) and remap
+        ***REMOVED*** to [0, 1] so meta.similarity stays in the same口径 as query mode.
+        _cos = svc._cosine(svc._embeddings[idx_a], svc._embeddings[idx_b])
+        similarity = round((_cos + 1.0) / 2.0, 4)
         a = other
         b = kb_phenom
         ***REMOVED*** Suffix lang onto pair-mode cache key so zh/en don't collide. Legacy
@@ -237,7 +245,11 @@ async def stream_analyze(
                 rewritten_query=(b.get("description") if user_query else None),
                 b_id=b_id,
                 lang=lang,
-                payload=report,
+                ***REMOVED*** V4: stash the credibility block inside the payload under a
+                ***REMOVED*** reserved key so saved/shared reports can render the moat
+                ***REMOVED*** badge too. renderFinalReport ignores non-section keys;
+                ***REMOVED*** _detail_dict lifts it back to a top-level field on read.
+                payload={**report, "_credibility": credibility},
                 model=ask_model,
                 prompt_version="v1",
                 creator_anon_id=anon_id_raw,
@@ -255,6 +267,43 @@ async def stream_analyze(
             logger.exception("[analyze] persist failed (persist=1)")
             return None
 
+    ***REMOVED*** Session ***REMOVED***17 V4 — credibility block. We audited the KB
+    ***REMOVED*** (data/kb-expanded.jsonl): it carries ONLY id/name/domain/type_id/
+    ***REMOVED*** description — there is NO per-phenomenon universality-class label,
+    ***REMOVED*** SIBD-63 membership flag, or review-score field. We therefore do NOT
+    ***REMOVED*** fabricate a "moat badge". What we CAN honestly surface, post-V3-fix:
+    ***REMOVED***   * similarity        — now a legal [0,1] relevance value;
+    ***REMOVED***   * source_domain     — the KB phenomenon's domain (the borrowed-from
+    ***REMOVED***                         field), and source_type_id;
+    ***REMOVED***   * has_verified_pairs— whether the SOURCE phenomenon appears in the
+    ***REMOVED***                         v2 cross-domain pair index (LLM-rated pairs,
+    ***REMOVED***                         the closest thing to "verified isomorphism").
+    ***REMOVED***   * verified_pair_count + best_verified_pair (top-rated neighbour).
+    ***REMOVED*** `kb_source` is True so the frontend knows this came from the curated
+    ***REMOVED*** KB, not free-text. No field here is invented.
+    from services.v2_pairs import get_pairs_for as _v2_pairs_for
+    _src_id = a.get("id") if isinstance(a, dict) else None
+    _verified_pairs = _v2_pairs_for(_src_id, limit=1) if _src_id else []
+    _all_verified = _v2_pairs_for(_src_id) if _src_id else []
+    credibility = {
+        "kb_source": bool(_src_id and _src_id != "__query__"),
+        "similarity": similarity,
+        "source_domain": a.get("domain") if isinstance(a, dict) else None,
+        "source_type_id": a.get("type_id") if isinstance(a, dict) else None,
+        "has_verified_pairs": len(_all_verified) > 0,
+        "verified_pair_count": len(_all_verified),
+        "best_verified_pair": (
+            {
+                "other_name": _verified_pairs[0].get("other_name"),
+                "other_domain": _verified_pairs[0].get("other_domain"),
+                "score": _verified_pairs[0].get("score"),
+                "similarity": _verified_pairs[0].get("similarity"),
+            }
+            if _verified_pairs
+            else None
+        ),
+    }
+
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
@@ -265,6 +314,8 @@ async def stream_analyze(
             "b": b,
             "similarity": similarity,
             "is_query_mode": user_query is not None,
+            ***REMOVED*** V4 — honest credibility data (see block above for what's real).
+            "credibility": credibility,
         })
 
         ***REMOVED*** Launch P1-3 — out-of-scope gate for query mode. The deep-report
@@ -273,15 +324,22 @@ async def stream_analyze(
         ***REMOVED*** Two layers, either trips:
         ***REMOVED***   (a) deterministic trivial/chit-chat detector (arithmetic,
         ***REMOVED***       greetings, trivia) — catches obvious junk;
-        ***REMOVED***   (b) similarity floor — the query-vs-KB cosine. A genuine
-        ***REMOVED***       cross-domain question lands well above this; pure noise
-        ***REMOVED***       does not. ANALYZE_SCOPE_MIN_SIMILARITY is env-tunable.
+        ***REMOVED***   (b) relevance floor — the UNIFIED query-vs-KB relevance, in
+        ***REMOVED***       [0, 1], the SAME口径 /api/search exposes as result.relevance.
+        ***REMOVED***       0.5 ≈ orthogonal; a genuine cross-domain match lands ~0.65+;
+        ***REMOVED***       pure noise sits near 0.5. ANALYZE_SCOPE_MIN_SIMILARITY is
+        ***REMOVED***       env-tunable. NOTE: because the口径 is now shared with search,
+        ***REMOVED***       this floor MUST stay <= the relevance search shows for a
+        ***REMOVED***       result, or search and analyze contradict each other (V3.2).
         ***REMOVED*** Pair mode (two KB phenomena) is in-scope by construction — skip.
         if user_query is not None:
             from services.scope_guard import is_out_of_scope as _is_oos
             oos, oos_reason = _is_oos(user_query)
+            ***REMOVED*** Default 0.50 — i.e. refuse only queries that are at-or-below
+            ***REMOVED*** orthogonal to the chosen KB phenomenon. Old default (0.30) was
+            ***REMOVED*** against a raw, unbounded np.dot and is meaningless now.
             scope_floor = float(
-                os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.30")
+                os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.50")
             )
             if not oos and similarity < scope_floor:
                 oos, oos_reason = True, "low_similarity"

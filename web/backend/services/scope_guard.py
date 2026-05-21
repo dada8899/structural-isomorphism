@@ -65,6 +65,11 @@ _CHITCHAT_PHRASES = {
 ***REMOVED*** questions. Matched as a leading prefix on a short query.
 _TRIVIA_PREFIXES_ZH = (
     "今天几号", "今天星期几", "现在几点", "天气怎么样", "明天天气",
+    ***REMOVED*** Session ***REMOVED***17 V3.3 — the canonical bug example "今天天气怎么样" started
+    ***REMOVED*** with "今天" so the bare "天气怎么样" prefix never matched it. Add the
+    ***REMOVED*** explicit "今天天气" / "今天的天气" leads so the weather-trivia class
+    ***REMOVED*** is actually caught.
+    "今天天气", "今天的天气",
 )
 _TRIVIA_PREFIXES_EN = (
     "what time is it", "what's the date", "what is the date",

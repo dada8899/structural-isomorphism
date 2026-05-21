@@ -265,6 +265,55 @@ class SearchService:
     def type_count(self) -> int:
         return len({item.get("type_id", "") for item in self.kb if item.get("type_id")})
 
+    ***REMOVED*** --- Unified similarity (Session ***REMOVED***17 V3) ---------------------------------
+
+    @staticmethod
+    def _cosine(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+        """Plain cosine similarity, guaranteed in [-1, 1].
+
+        The precomputed KB embedding files are NOT all L2-normalized
+        (kb_v2_embeddings.npy has norms ~14-22). encode_query() *is*
+        normalized (model.encode_texts default normalize=True). A raw
+        np.dot of those two therefore returns illegal values (9.5 / 4.76
+        observed in prod meta.similarity). We always divide by the actual
+        norms here so the result is a true cosine regardless of whether
+        the stored embeddings happen to be normalized.
+        """
+        a = np.asarray(vec_a, dtype=np.float64).flatten()
+        b = np.asarray(vec_b, dtype=np.float64).flatten()
+        na = float(np.linalg.norm(a))
+        nb = float(np.linalg.norm(b))
+        if na < 1e-12 or nb < 1e-12:
+            return 0.0
+        cos = float(np.dot(a, b) / (na * nb))
+        ***REMOVED*** Clamp tiny FP overshoot so the value is provably in [-1, 1].
+        return max(-1.0, min(1.0, cos))
+
+    def relevance_score(self, query: str, phenomenon_id: str) -> float:
+        """Unified [0, 1] relevance between a free-text query and a KB item.
+
+        Session ***REMOVED***17 V3.2 — search and analyze used different similarity
+        scales (search: min-max-normalized fused BM25+emb; analyze: raw
+        np.dot). A result search ranked at 0.80 could be rejected by the
+        analyze scope gate. This method is the SINGLE口径 both endpoints
+        now share for the scope decision.
+
+        Mapping: cosine ∈ [-1, 1] → relevance = (cosine + 1) / 2 ∈ [0, 1].
+        This is a monotonic, bounded transform — a genuine cross-domain
+        match (cosine ~0.3-0.6) lands at 0.65-0.80; pure noise (cosine ~0)
+        lands at ~0.50; an antonym (cosine <0) lands below 0.50.
+
+        Returns 0.0 if the phenomenon id is unknown / embeddings absent.
+        """
+        if self._embeddings is None:
+            return 0.0
+        idx = self.idx_by_id.get(phenomenon_id)
+        if idx is None:
+            return 0.0
+        q_emb = self.encode_query(query)
+        cos = self._cosine(q_emb, self._embeddings[idx])
+        return round((cos + 1.0) / 2.0, 4)
+
     ***REMOVED*** --- Hybrid retrieval core -----------------------------------------------
 
     ***REMOVED*** Weight knobs. BM25 carries lexical match; embeddings carry semantic
@@ -350,19 +399,64 @@ class SearchService:
                     break
         return head[:top_k]
 
+    ***REMOVED*** --- Cross-domain detection (Session ***REMOVED***17 V2) -----------------------------
+
+    ***REMOVED*** When the surface domain owns more than this fraction of a result's
+    ***REMOVED*** candidate pool, that domain is treated as "the obvious one" and its
+    ***REMOVED*** members are flagged same_domain so the frontend can de-emphasise them.
+    CROSS_DOMAIN_POOL_FRACTION = 0.30
+
+    def _infer_surface_domain(self, fused: np.ndarray) -> Optional[str]:
+        """Best-effort guess of the query's own surface domain.
+
+        We do NOT have the query's domain label — the user typed free text.
+        Heuristic: the surface domain is the domain that dominates the very
+        top of the lexical+semantic ranking. We take the top-8 fused hits
+        and return the modal domain *if* it owns >= 3 of those 8 slots
+        (a clear lexical-overlap cluster, e.g. a 留存 query pulling many
+        组织管理 phenomena). Otherwise we return None — the query has no
+        single obvious home domain, so nothing should be flagged same-domain.
+        """
+        if fused.size == 0:
+            return None
+        top = np.argsort(fused)[::-1][:8].tolist()
+        counts: Dict[str, int] = {}
+        for idx in top:
+            dom = self.kb[int(idx)].get("domain", "") or ""
+            if dom:
+                counts[dom] = counts.get(dom, 0) + 1
+        if not counts:
+            return None
+        modal_dom, modal_n = max(counts.items(), key=lambda kv: kv[1])
+        return modal_dom if modal_n >= 3 else None
+
     def search(
         self,
         query: str,
         top_k: int = 12,
         min_score: float = 0.05,
     ) -> List[Dict]:
-        """Search for structurally similar phenomena via hybrid BM25+embedding."""
+        """Search for structurally similar phenomena via hybrid BM25+embedding.
+
+        Session ***REMOVED***17 V2 — each result additionally carries:
+          * relevance     — unified [0,1] cosine口径 (same as analyze scope gate)
+          * cross_domain  — bool, True if the result's domain differs from the
+                            query's inferred surface domain
+          * surface_domain— the inferred surface domain (echoed on every result;
+                            None when no single domain dominates the pool)
+        """
         if self._embeddings is None or not query.strip():
             return []
 
         fused = self._fused_scores(query)
         if fused.size == 0:
             return []
+
+        surface_domain = self._infer_surface_domain(fused)
+        ***REMOVED*** Query embedding is already in the lru cache (encoded inside
+        ***REMOVED*** _fused_scores), so this re-fetch is free — used for per-result
+        ***REMOVED*** unified relevance.
+        q_emb = self.encode_query(query)
 
         ***REMOVED*** Take a larger candidate pool, then diversity-rank down to top_k.
         pool_size = min(len(self.kb), max(top_k * 4, 40))
@@ -375,17 +469,32 @@ class SearchService:
             if score < min_score:
                 continue
             item = self.kb[int(idx)]
+            dom = item.get("domain", "")
             ***REMOVED*** Return fused score directly in [0, 1.1]. Frontend is
             ***REMOVED*** responsible for mapping this to a visual tier (strong/medium/weak)
             ***REMOVED*** or a capped percentage (min(score, 1.0) * 100).
             display_score = round(min(score, 1.0), 4)
+            ***REMOVED*** V3 — unified relevance口径 (same transform as relevance_score()),
+            ***REMOVED*** so a value search shows here can be re-derived by the analyze
+            ***REMOVED*** scope gate without disagreement.
+            cos = self._cosine(q_emb, self._embeddings[int(idx)])
+            relevance = round((cos + 1.0) / 2.0, 4)
+            ***REMOVED*** V2 — cross_domain flag. When no surface domain dominates the
+            ***REMOVED*** pool (surface_domain is None) we cannot judge, so default to
+            ***REMOVED*** True (do not penalise — absence of evidence ≠ same-domain).
+            cross_domain = (
+                True if surface_domain is None else (dom != surface_domain)
+            )
             results.append({
                 "id": item.get("id", ""),
                 "name": item.get("name", ""),
-                "domain": item.get("domain", ""),
+                "domain": dom,
                 "type_id": item.get("type_id", ""),
                 "description": item.get("description", ""),
                 "score": display_score,
+                "relevance": relevance,
+                "cross_domain": cross_domain,
+                "surface_domain": surface_domain,
             })
             if len(results) >= top_k:
                 break

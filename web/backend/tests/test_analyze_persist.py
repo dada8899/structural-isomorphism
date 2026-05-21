@@ -64,6 +64,22 @@ class _FakeSearchService:
         import numpy as np
         return np.array([1.0, 0.0, 0.0], dtype=float)
 
+    def relevance_score(self, _q, _pid):
+        ***REMOVED*** Session ***REMOVED***17 V3 — analyze.py now calls this for the unified scope
+        ***REMOVED*** similarity口径. Return a high in-scope value so the existing
+        ***REMOVED*** query-mode tests (real cross-domain questions) keep passing the
+        ***REMOVED*** scope gate. The dedicated out-of-scope tests rely on the
+        ***REMOVED*** deterministic scope_guard layer, not this floor.
+        if _pid == "b_target":
+            return 0.85
+        return 0.0
+
+    @staticmethod
+    def _cosine(_a, _b):
+        ***REMOVED*** Pair-mode similarity helper. Not exercised by these query-mode
+        ***REMOVED*** tests, but present so the contract matches the real service.
+        return 1.0
+
 
 class _FakeLLM:
     """Minimal LLMService stand-in that streams a synthetic report."""
