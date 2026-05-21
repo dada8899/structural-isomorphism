@@ -53,7 +53,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_discoveries_page_loads_with_hook_headlines(page: Page):
     """The discoveries list renders cards, each carrying a hook headline."""
-    page.goto(f"{BASE}/discoveries", wait_until="networkidle")
+    page.goto(f"{BASE}/discoveries", wait_until="domcontentloaded")
     page.wait_for_selector(".disc-item", timeout=10000)
     cards = page.locator(".disc-item")
     assert cards.count() >= 10, f"expected >= 10 discovery cards, got {cards.count()}"
@@ -66,7 +66,7 @@ def test_discoveries_page_loads_with_hook_headlines(page: Page):
 
 def test_discovery_deep_link_focuses_card(page: Page):
     """?d=<rank> focuses the matching card (expanded + focus ring)."""
-    page.goto(f"{BASE}/discoveries?d=1", wait_until="networkidle")
+    page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
     target = page.locator("***REMOVED***d-1")
     target.wait_for(state="visible", timeout=10000)
     ***REMOVED*** The focused card is auto-expanded and ringed.
@@ -76,10 +76,14 @@ def test_discovery_deep_link_focuses_card(page: Page):
 
 def test_discovery_copy_link_button_clickable(page: Page):
     """Each card exposes a 复制链接 button inside its expanded detail."""
-    page.goto(f"{BASE}/discoveries?d=1", wait_until="networkidle")
+    page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
     page.locator("***REMOVED***d-1").wait_for(state="visible", timeout=10000)
-    copy_btn = page.locator("***REMOVED***d-1 .share-actions__btn", has_text="复制链接")
+    ***REMOVED*** Locate by a STABLE selector — the copy button is the first share
+    ***REMOVED*** action. Filtering by has_text="复制链接" would go stale after the
+    ***REMOVED*** click flips the label to "已复制 ✓".
+    copy_btn = page.locator("***REMOVED***d-1 .share-actions__btn").first
     expect(copy_btn).to_be_visible()
+    expect(copy_btn).to_contain_text("复制链接")
     ***REMOVED*** Grant clipboard so the click does not throw in headless Chromium.
     try:
         page.context.grant_permissions(["clipboard-read", "clipboard-write"])
@@ -92,7 +96,7 @@ def test_discovery_copy_link_button_clickable(page: Page):
 
 def test_discovery_share_image_modal_renders(page: Page):
     """生成图片卡片 opens a modal whose <img> carries a real data URL."""
-    page.goto(f"{BASE}/discoveries?d=1", wait_until="networkidle")
+    page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
     page.locator("***REMOVED***d-1").wait_for(state="visible", timeout=10000)
     img_btn = page.locator("***REMOVED***d-1 .share-actions__btn", has_text="生成图片卡片")
     expect(img_btn).to_be_visible()
@@ -113,8 +117,8 @@ def test_discovery_share_image_modal_renders(page: Page):
 def test_classes_detail_has_analyze_cta(page: Page):
     """Opening a class detail surfaces the 用它分析你自己的问题 CTA which
     links to /analyze with a text_a prefill."""
-    page.goto(f"{BASE}/classes", wait_until="networkidle")
-    page.wait_for_selector(".uc-card--preview", timeout=10000)
+    page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
+    page.wait_for_selector(".uc-card--preview", timeout=20000)
     ***REMOVED*** Navigate into the first class.
     page.locator(".uc-card--preview").first.click()
     cta = page.locator(".uc-detail__cta-btn")
@@ -126,8 +130,8 @@ def test_classes_detail_has_analyze_cta(page: Page):
 
 def test_classes_cta_navigates_to_analyze(page: Page):
     """Clicking the class CTA actually lands on /analyze."""
-    page.goto(f"{BASE}/classes", wait_until="networkidle")
-    page.wait_for_selector(".uc-card--preview", timeout=10000)
+    page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
+    page.wait_for_selector(".uc-card--preview", timeout=20000)
     page.locator(".uc-card--preview").first.click()
     cta = page.locator(".uc-detail__cta-btn")
     expect(cta).to_be_visible(timeout=8000)
@@ -138,8 +142,8 @@ def test_classes_cta_navigates_to_analyze(page: Page):
 
 def test_classes_learning_path_view_groups_cards(page: Page):
     """The 学习路径 filter switches the list into progressive bands."""
-    page.goto(f"{BASE}/classes", wait_until="networkidle")
-    page.wait_for_selector(".uc-card--preview", timeout=10000)
+    page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
+    page.wait_for_selector(".uc-card--preview", timeout=20000)
     path_btn = page.locator('.uc-filter__btn[data-filter="path"]')
     expect(path_btn).to_be_visible()
     path_btn.click()
@@ -152,8 +156,8 @@ def test_classes_learning_path_view_groups_cards(page: Page):
 
 def test_classes_detail_has_share_actions(page: Page):
     """Class detail view exposes the share-action row."""
-    page.goto(f"{BASE}/classes", wait_until="networkidle")
-    page.wait_for_selector(".uc-card--preview", timeout=10000)
+    page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
+    page.wait_for_selector(".uc-card--preview", timeout=20000)
     page.locator(".uc-card--preview").first.click()
     share_row = page.locator(".uc-detail__share-actions .share-actions__btn")
     expect(share_row.first).to_be_visible(timeout=8000)

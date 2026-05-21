@@ -327,6 +327,23 @@ app.include_router(auth_api.router, prefix="/api")
 from api import report as report_api  ***REMOVED*** noqa: E402
 app.include_router(report_api.router, prefix="/api")
 
+***REMOVED*** Session ***REMOVED***18 — value-mining A-G. Seven new product surfaces; each ships an
+***REMOVED*** isolated api module so registration is one block. See docs/sessions/
+***REMOVED*** SESSION-18-HANDOFF.md.
+from api import whitespace as whitespace_api  ***REMOVED*** noqa: E402 — A2 research whitespace map
+from api import insights as insights_api  ***REMOVED*** noqa: E402 — B data flywheel
+from api import method_search  ***REMOVED*** noqa: E402 — A1 method reverse-search
+from api import stress_test  ***REMOVED*** noqa: E402 — E structural stress test
+from api import struct_lint  ***REMOVED*** noqa: E402 — C2 structural lint
+from api import diagnose  ***REMOVED*** noqa: E402 — F structural diagnosis
+
+app.include_router(whitespace_api.router, prefix="/api")
+app.include_router(insights_api.router, prefix="/api")
+app.include_router(method_search.router, prefix="/api")
+app.include_router(stress_test.router, prefix="/api")
+app.include_router(struct_lint.router, prefix="/api")
+app.include_router(diagnose.router, prefix="/api")
+
 
 from schemas import HealthResponse, VersionResponse, WhoAmIResponse  ***REMOVED*** noqa: E402
 
@@ -1892,6 +1909,20 @@ async def papers_page():
 @app.get("/methods")
 async def methods_page():
     return FileResponse(FRONTEND_DIR / "methods.html")
+
+
+***REMOVED*** Session ***REMOVED***18 — value-mining A-G page routes. Each serves a static SPA shell;
+***REMOVED*** the .html alias keeps legacy / hand-typed URLs alive (matches /analyze.html).
+def _s18_page(name: str):
+    async def _serve():
+        return FileResponse(FRONTEND_DIR / f"{name}.html")
+    return _serve
+
+
+for _s18_name in ("tools", "whitespace", "insights", "apply",
+                  "stress-test", "lint", "diagnose"):
+    app.get(f"/{_s18_name}", include_in_schema=False)(_s18_page(_s18_name))
+    app.get(f"/{_s18_name}.html", include_in_schema=False)(_s18_page(_s18_name))
 
 
 @app.get("/taxonomy-v2")

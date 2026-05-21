@@ -99,6 +99,10 @@
     "zh": "分析",
     "en": "Analyze"
   },
+  "nav.tools": {
+    "zh": "工具",
+    "en": "Tools"
+  },
   "nav.reports": {
     "zh": "我的报告",
     "en": "My reports"

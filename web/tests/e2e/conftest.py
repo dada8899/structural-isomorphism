@@ -21,7 +21,13 @@ def browser(playwright_instance):
 
 @pytest.fixture
 def page(browser):
-    context = browser.new_context()
+    ***REMOVED*** Grant clipboard permissions so tests for copy-link / share buttons
+    ***REMOVED*** (Session ***REMOVED***18 education assets) exercise the real navigator.clipboard
+    ***REMOVED*** path — headless Chromium otherwise blocks writeText(). Harmless to
+    ***REMOVED*** tests that don't touch the clipboard.
+    context = browser.new_context(
+        permissions=["clipboard-read", "clipboard-write"],
+    )
     page = context.new_page()
     yield page
     context.close()

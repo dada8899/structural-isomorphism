@@ -28,8 +28,16 @@
   var NAV = [
     { href: '/', key: 'nav.home', label: '首页' },
     { href: '/analyze', key: 'nav.analyze', label: '分析' },
+    { href: '/tools', key: 'nav.tools', label: '工具' },
     { href: '/reports', key: 'nav.reports', label: '我的报告' },
     { href: '/about', key: 'nav.about', label: '关于' },
+  ];
+
+  // Pages that live under the 工具 hub (SESSION-18) — visiting any of them
+  // marks 工具 as the current nav item.
+  var TOOLS_PATHS = [
+    '/tools', '/whitespace', '/apply', '/stress-test', '/lint',
+    '/diagnose', '/insights', '/discoveries', '/classes',
   ];
 
   // Footer links — kept short and identical everywhere.
@@ -48,6 +56,8 @@
     if (p === '/index.html') return '/';
     // strip a trailing .html so /about.html matches /about
     var noExt = p.replace(/\.html$/, '');
+    // SESSION-18 — any tool page highlights the 工具 hub.
+    if (TOOLS_PATHS.indexOf(noExt) !== -1) return '/tools';
     return noExt || '/';
   }
 
