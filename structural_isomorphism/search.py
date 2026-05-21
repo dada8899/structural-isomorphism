@@ -144,27 +144,28 @@ class StructuralSearch:
             logger.warning("No knowledge base loaded.")
             return []
 
-        ***REMOVED*** Compute full similarity matrix
+        ***REMOVED*** Pairwise similarity matrix (dot product of KB embeddings).
         sim_matrix = np.dot(self._kb_embeddings, self._kb_embeddings.T)
 
+        ***REMOVED*** Vectorised threshold filter: only the upper-triangle pairs that
+        ***REMOVED*** clear `threshold` reach Python. Replaces the O(N^2) double loop —
+        ***REMOVED*** numpy does the N^2 scan in C, Python only iterates the (usually
+        ***REMOVED*** few) survivors. Result is identical to the old loop.
+        above = np.argwhere(np.triu(sim_matrix >= threshold, k=1))
+
         pairs = []
-        n = len(self.kb)
-        for i in range(n):
-            for j in range(i + 1, n):
-                sim = float(sim_matrix[i][j])
-                if sim < threshold:
-                    continue
-                ***REMOVED*** Skip same-type (already known)
-                if self.kb[i].get("type_id") == self.kb[j].get("type_id"):
-                    continue
-                ***REMOVED*** Skip same-domain (less interesting)
-                if self.kb[i].get("domain") == self.kb[j].get("domain"):
-                    continue
-                pairs.append({
-                    "item_a": self.kb[i],
-                    "item_b": self.kb[j],
-                    "similarity": sim,
-                })
+        for i, j in above:
+            i, j = int(i), int(j)
+            ***REMOVED*** Skip same-type (already known) and same-domain (less interesting).
+            if self.kb[i].get("type_id") == self.kb[j].get("type_id"):
+                continue
+            if self.kb[i].get("domain") == self.kb[j].get("domain"):
+                continue
+            pairs.append({
+                "item_a": self.kb[i],
+                "item_b": self.kb[j],
+                "similarity": float(sim_matrix[i][j]),
+            })
 
         pairs.sort(key=lambda x: x["similarity"], reverse=True)
         return pairs[:max_pairs]

@@ -73,9 +73,9 @@
 | CORS `allow_headers="*"` | ✅ 收敛为显式 5 头列表（含真实 fetch 头 + 程序化客户端头） | 本轮 |
 | section 投票错改整体计数器 | ✅ `analyze.js submitFeedback` 加 `if (!section)` 守卫 | 本轮 |
 | `dogfood_fingerprint.py` docs-only 误报 | ✅ `_local_git_sha` 改取「最近非 docs commit」 | 本轮 |
-| N² 跨域配对 | ❌ 不修 —— notebook-only，非 prod 路径，降级 P2 | — |
-| 三份数据抓取去重 | ⏸ 暂缓 —— 散在 v4/tutorials/paper 等 10 个实验目录，零 prod 收益、回测风险大 | — |
-| `site/` vs `site_mkdocs/` | ⏸ 暂缓 —— 两者均已 gitignore，不在仓库内，删除仅本地清理无仓库价值 | — |
+| N² 跨域配对 | ✅ 修了 —— `np.argwhere(np.triu(...))` 向量化替掉 Python 双重循环，120 节点合成数据对拍新旧产出完全一致；非 prod 路径但改动安全无害 | 本轮 |
+| 数据抓取去重 | ❌ 不做（有据）—— 重复发生在 `dataset/v1/...benchmark/`（**已发布、CITATION.cff + MANIFEST.json 校验和的冻结基准数据集**）与 `v4/validation/` 之间，两份 `fetch_earthquakes.py` 字节相同。把 benchmark 内的副本抽成外部 import 会破坏其「自包含 + 可复现」契约，使 MANIFEST 校验失效。这个「重复」是冻结发布物 + 实验分叉的正常形态，**不是该修的 bug** | — |
+| 删 `site/` | ❌ 不做（有据）—— 复核发现 `site/` 不是废弃构建产物（mkdocs 实际输出到 `site_mkdocs/`），而是 **7 个被 git 追踪的文件**：6 份 v2m/v3/v4 分析 markdown（仓库内唯一副本）+ index.html。删除 = 永久内容丢失。审计把它误判成 stale build | — |
 | OpenRouter key 轮换 | 🔴 待用户 —— CC 无 OpenRouter 控制台权限 | — |
 
 ***REMOVED******REMOVED*** 既有优点
