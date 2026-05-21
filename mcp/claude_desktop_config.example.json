@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "structural-isomorphism": {
+      "command": "/Users/dadamini/Projects/structural-isomorphism/.venv/bin/python",
+      "args": [
+        "/Users/dadamini/Projects/structural-isomorphism/mcp/server.py"
+      ],
+      "env": {
+        "STRUCTURAL_API_BASE": "https://beta.structural.bytedance.city"
+      }
+    }
+  }
+}
