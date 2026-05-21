@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>已保存的报告 — Structural</title>
-  <meta name="description" content="一份已保存的 Structural 跨领域结构同构报告。">
+  <title>报告详情 — Structural</title>
+  <meta name="description" content="一份已保存的 Structural 跨领域研究报告——把别的学科的成熟解法借到你的问题上。">
   <meta name="robots" content="noindex,nofollow">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260521s17">
@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260521s17">
 
   <!-- KaTeX for inline math — version aligned with analyze.html (0.16.11). -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
+  <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
+  <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
 
   <!-- Plausible (telemetry) — self-hosted instance, consistent with the rest
        of the site. -->
@@ -35,7 +35,7 @@
       <nav class="analyze-crumb">
         <a href="/" class="analyze-crumb__link">Structural</a>
         <span class="analyze-crumb__sep">/</span>
-        <span class="analyze-crumb__current">已保存的报告</span>
+        <span class="analyze-crumb__current">报告详情</span>
       </nav>
 
       <div id="report-loading" class="analyze-loading">
@@ -53,11 +53,14 @@
             <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
           </svg>
         </div>
-        <h2 class="report-errorcard__title">报告暂时打不开</h2>
+        <h2 class="report-errorcard__title">没找到这份报告</h2>
         <p class="report-errorcard__msg" id="report-error-msg">
-          这份报告可能已被删除，或链接已失效。
+          这个链接可能已经失效，或报告已被删除。你可以回首页提一个新问题，或在「我的报告」里找找保存过的。
         </p>
-        <a href="/" class="report-errorcard__cta">回到首页，重新生成一份</a>
+        <div class="report-errorcard__actions">
+          <a href="/" class="report-errorcard__cta">回首页提新问题</a>
+          <a href="/reports" class="report-errorcard__cta report-errorcard__cta--ghost">查看我的报告</a>
+        </div>
       </div>
 
       <div id="report-meta" class="analyze-header" hidden></div>
@@ -71,14 +74,14 @@
           <button type="button" id="analyze-share-open" class="analyze-share-bar__btn">打开</button>
         </div>
         <div class="analyze-share-bar__feedback">
-          <span>这份报告对你有用吗?</span>
+          <span>这份报告对你有用吗？</span>
           <button type="button" class="analyze-vote analyze-vote--up"
                   data-section="" data-vote="1">👍 <span class="analyze-vote__count" id="analyze-vote-up-count">0</span></button>
           <button type="button" class="analyze-vote analyze-vote--down"
                   data-section="" data-vote="-1">👎 <span class="analyze-vote__count" id="analyze-vote-down-count">0</span></button>
         </div>
         <div id="analyze-share-bar__partial" class="analyze-share-bar__partial" hidden>
-          ⚠ 报告未完整生成 — 分享前请确认。
+          ⚠ 报告未完整生成 —— 分享前请确认。
         </div>
       </div>
 

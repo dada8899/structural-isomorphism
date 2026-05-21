@@ -248,7 +248,7 @@
     "en": "<strong>StructTuple dynamics-family boost</strong> (+0.10) — the dynamical family is inferred from query keywords (e.g. \"delay\" → <code>DDE_delayed_feedback</code>, \"threshold\" → <code>Phase_transition_1st</code>), granting a small bonus to phenomena whose StructTuple matches."
   },
   "page.about.scoring.signal4": {
-    "zh": "<strong>MMR domain diversity guard</strong>（post-filter）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。",
+    "zh": "<strong>领域多样性保护（MMR）</strong>（后置过滤）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。",
     "en": "<strong>MMR domain-diversity guard</strong> (post-filter) — if more than two entries in the top-5 come from the same domain, the surplus are pushed down into the top-10 range to preserve cross-domain diversity."
   },
   "page.about.scoring.formula": {
@@ -308,8 +308,8 @@
     "en": "Paper and source code"
   },
   "page.about.resources.p": {
-    "zh": "完整的方法论、训练细节、评估结果和反向实验，请见 <a href=\"https://structural.bytedance.city/paper-zh.html\" target=\"_blank\">论文</a>。SIBD-63 数据集：<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\">GitHub</a> 上开源。V2 embedding 模型在 <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>。",
-    "en": "For the full methodology, training details, evaluation results, and ablation experiments, see the <a href=\"https://structural.bytedance.city/paper-zh.html\" target=\"_blank\">paper</a>. The SIBD-63 dataset lives at <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo (DOI 10.5281/zenodo.19615170)</a>. All code is open-sourced on <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\">GitHub</a>. The V2 embedding model is available on <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>."
+    "zh": "完整的方法论、训练细节、评估结果和反向实验，请见 <a href=\"/papers\">论文与方法</a>。SIBD-63 数据集：<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\" rel=\"noopener\">GitHub</a> 上开源。V2 embedding 模型在 <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>。",
+    "en": "For the full methodology, training details, evaluation results, and ablation experiments, see <a href=\"/papers\">Papers &amp; methods</a>. The SIBD-63 dataset lives at <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">Zenodo (DOI 10.5281/zenodo.19615170)</a>. All code is open-sourced on <a href=\"https://github.com/dada8899/structural-isomorphism\" target=\"_blank\" rel=\"noopener\">GitHub</a>. The V2 embedding model is available on <a href=\"https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded\" target=\"_blank\" rel=\"noopener\">HuggingFace</a>."
   },
   "page.about.contact.label": {
     "zh": "Contact",
@@ -360,8 +360,8 @@
     "en": "Describe in one sentence the phenomenon you've observed, the problem you're stuck on, or the research direction you're pursuing.\n(Optional) Add your background and what you've already tried, and I'll calibrate the depth of the transfer."
   },
   "page.home.search.submit_label": {
-    "zh": "深度分析",
-    "en": "Deep analysis"
+    "zh": "生成研究报告",
+    "en": "Generate report"
   },
   "page.home.search.hint": {
     "zh": "<kbd>⌘</kbd> + <kbd>Enter</kbd> 提交",
@@ -412,7 +412,7 @@
     "en": "Synthesize the main insight"
   },
   "page.home.how.step2.text": {
-    "zh": "把候选交给 LLM 综合分析，给你一段直接的答案 + 一张「最值得先看」的首推卡 + 两个补充视角（对立面 / 时间尺度 / 微观机制 / 跨尺度类比）。",
+    "zh": "把候选交给 AI 综合分析，给你一段直接的答案 + 一张「最值得先看」的首推卡 + 两个补充视角（对立面 / 时间尺度 / 微观机制 / 跨尺度类比）。",
     "en": "The candidates are passed to an LLM for synthesis: a direct answer, a \"start here\" recommended card, and two complementary angles (counterpoint, timescale, micro-mechanism, or cross-scale analogy)."
   },
   "page.home.how.step2.time": {
@@ -512,8 +512,8 @@
     "en": "Saved reports"
   },
   "page.home.favorites.title": {
-    "zh": "你保存的<em>深度分析</em>",
-    "en": "Your saved <em>deep analyses</em>"
+    "zh": "你保存的<em>研究报告</em>",
+    "en": "Your saved <em>research reports</em>"
   },
   "page.home.meta_title": {
     "zh": "Structural — 万物的形状都在重复",
@@ -552,8 +552,8 @@
     "en": "Search — Structural"
   },
   "page.analyze.meta_title": {
-    "zh": "深度分析 — Structural",
-    "en": "Deep analysis — Structural"
+    "zh": "研究报告 — Structural",
+    "en": "Research report — Structural"
   },
   "page.phenomenon.meta_title": {
     "zh": "现象详情 — Structural",
@@ -584,8 +584,8 @@
     "en": "Curated"
   },
   "page.classes.filter_llm": {
-    "zh": "LLM 辅助",
-    "en": "LLM-assisted"
+    "zh": "AI 辅助",
+    "en": "AI-assisted"
   },
   "page.classes.filter_all": {
     "zh": "全部",
@@ -776,8 +776,8 @@
     "en": "Practical value"
   },
   "page.discoveries.section_full_analysis": {
-    "zh": "完整深度分析",
-    "en": "Full deep analysis"
+    "zh": "完整研究报告",
+    "en": "Full research report"
   },
   "page.discoveries.label_var_mapping": {
     "zh": "变量映射",
@@ -812,8 +812,8 @@
     "en": "Failed to load"
   },
   "page.discoveries.cta_main": {
-    "zh": "生成深度分析报告",
-    "en": "Generate deep analysis report"
+    "zh": "生成研究报告",
+    "en": "Generate research report"
   },
   "page.discoveries.cta_hint": {
     "zh": "8 段跨学科迁移研究 · 流式生成 60-90 秒",
@@ -972,11 +972,11 @@
     "en": "predictions empirically verified"
   },
   "page.classes.uncurated_note": {
-    "zh": "LLM 自动生成，尚未人工审核",
+    "zh": "AI 自动生成，尚未人工审核",
     "en": "LLM-generated, not yet human-reviewed"
   },
   "page.classes.llm_note": {
-    "zh": "LLM 批注",
+    "zh": "AI 批注",
     "en": "LLM note"
   },
   "page.home.suggestions_label": {
@@ -987,6 +987,14 @@
     "zh": "结构",
     "en": "Structure"
   },
+  "page.home.daily_empty": {
+    "zh": "今日发现暂时加载不出来，先去",
+    "en": "Today's discoveries aren't available right now — "
+  },
+  "page.home.daily_empty_link": {
+    "zh": "看看全部精选发现",
+    "en": "browse all curated discoveries"
+  },
   "page.analyze.crumb_home": {
     "zh": "首页",
     "en": "Home"
@@ -996,8 +1004,8 @@
     "en": "Back"
   },
   "page.analyze.crumb_current": {
-    "zh": "深度分析",
-    "en": "Deep analysis"
+    "zh": "研究报告",
+    "en": "Research report"
   },
   "page.analyze.btn_brief": {
     "zh": "复制为简报",
@@ -1024,20 +1032,20 @@
     "en": "Favorite this report"
   },
   "page.analyze.loading_title": {
-    "zh": "正在生成深度分析报告",
-    "en": "Generating deep analysis report"
+    "zh": "正在生成研究报告",
+    "en": "Generating research report"
   },
   "page.analyze.loading_hint": {
-    "zh": "8 段流式生成 · 60–90 秒",
-    "en": "8 streaming sections · 60–90 seconds"
+    "zh": "9 段流式生成 · 通常 2–3 分钟",
+    "en": "9 streaming sections · usually 2–3 minutes"
   },
   "page.analyze.error_title": {
     "zh": "生成失败",
     "en": "Generation failed"
   },
   "page.analyze.error_hint": {
-    "zh": "连接中断，可能是网络或 LLM 响应超时",
-    "en": "Connection dropped — likely a network issue or LLM response timeout"
+    "zh": "连接中断，可能是网络问题或响应超时",
+    "en": "Connection dropped — likely a network issue or response timeout"
   },
   "page.analyze.btn_retry": {
     "zh": "刷新重试",
@@ -1148,11 +1156,11 @@
     "en": "Breakdown of your problem"
   },
   "page.analyze.section_target_domain_intro": {
-    "zh": "源领域讲解",
+    "zh": "那个领域是怎么回事",
     "en": "Source-domain primer"
   },
   "page.analyze.section_structural_mapping": {
-    "zh": "结构对照",
+    "zh": "两个问题逐项对照",
     "en": "Structural mapping"
   },
   "page.analyze.section_borrowable_insights": {
@@ -1168,7 +1176,7 @@
     "en": "Research directions"
   },
   "page.analyze.section_risks_and_limits": {
-    "zh": "迁移风险",
+    "zh": "借用时的坑",
     "en": "Transfer risks"
   },
   "page.analyze.section_action_plan": {
@@ -1308,8 +1316,8 @@
     "en": "{pct}% structural similarity"
   },
   "page.analyze.loading_progress_line": {
-    "zh": "已生成 {chars} 字 · LLM 正在写研究报告",
-    "en": "{chars} characters generated · the LLM is drafting the research report"
+    "zh": "已生成 {chars} 字 · AI 正在写研究报告",
+    "en": "{chars} characters generated · the AI is drafting the research report"
   },
   "page.analyze.loading_hint_long": {
     "zh": "我们正在写一份跨学科迁移研究报告。",
@@ -1336,8 +1344,8 @@
     "en": "~2–3 min · sections appear as they finish"
   },
   "page.analyze.retry_first_hint": {
-    "zh": "模型刚刚没稳定输出，我们换个角度再来一次。",
-    "en": "The model did not produce a stable response; retrying from a different angle."
+    "zh": "刚才生成不太顺，我们换个角度再试一次。",
+    "en": "That attempt did not go smoothly; retrying from a different angle."
   },
   "page.analyze.btn_retry_soft": {
     "zh": "重试",
@@ -1396,8 +1404,8 @@
     "en": "The report is still being generated — please try again in a moment"
   },
   "page.analyze.toast_brief_copied": {
-    "zh": "已复制为 Markdown 简报，可以粘贴到 Notion / Slack / 邮件",
-    "en": "Copied as a Markdown brief — ready to paste into Notion, Slack, or email"
+    "zh": "已复制为简报（Markdown 格式），可直接粘到 Notion、Slack 或邮件里",
+    "en": "Copied as a brief (Markdown) — ready to paste into Notion, Slack, or email"
   },
   "page.analyze.toast_copy_failed_perm": {
     "zh": "复制失败，请检查浏览器权限",
@@ -1556,16 +1564,16 @@
     "en": "What you'll get"
   },
   "page.search.primary_cta": {
-    "zh": "立即深度分析",
-    "en": "Run deep analysis now"
+    "zh": "生成研究报告",
+    "en": "Generate research report"
   },
   "page.search.alt_angle_default": {
     "zh": "补充视角",
     "en": "Alternative angle"
   },
   "page.search.deep_analysis": {
-    "zh": "深度分析",
-    "en": "Deep analysis"
+    "zh": "研究报告",
+    "en": "Research report"
   },
   "page.search.alt_angles_label": {
     "zh": "补充视角 — 从不同角度看你的问题",
@@ -1636,8 +1644,8 @@
     "en": "Structural is a cross-disciplinary <strong>structural isomorphism</strong> engine. It excels at mapping <em>phenomenon-level</em> questions (behavioral patterns, dynamics, critical points, trend changes) onto structurally identical cases in other disciplines."
   },
   "page.search.assess_why_p2": {
-    "zh": "不擅长的：写作请求、元问题（\"这个产品怎么用\"）、闲聊、纯事实查询、纯个人琐事——这些场景我们没有可借用的\"另一个学科里的同构现象\"。",
-    "en": "What it isn't good at: writing requests, meta-questions (\"how do I use this product\"), small talk, pure factual lookups, purely personal trivia — for these, there's no \"isomorphic phenomenon in another discipline\" to borrow from."
+    "zh": "不擅长的：帮你写东西、关于产品本身的问题（比如「这个产品怎么用」）、闲聊、查事实、个人琐事——这些场景没有「另一个学科里的同款现象」可借。",
+    "en": "What it isn't good at: writing requests, questions about the product itself (e.g. \"how do I use this\"), small talk, factual lookups, personal trivia — for these, there's no \"matching phenomenon in another discipline\" to borrow from."
   },
   "page.phenomenon.structure_prefix": {
     "zh": "结构",
@@ -1724,7 +1732,7 @@
     "en": "In the V2 pipeline this phenomenon was found to connect to"
   },
   "page.phenomenon.v2_caption_suffix": {
-    "zh": "个其他领域的现象。每对都经过 LLM 评分。",
+    "zh": "个其他领域的现象。每对都经过 AI 评分。",
     "en": "phenomena in other domains. Each pair was LLM-scored."
   },
   "page.phenomenon.v2_score_prefix": {
@@ -1736,28 +1744,28 @@
     "en": "pts"
   },
   "page.phenomenon.analyze_eyebrow": {
-    "zh": "深度分析",
-    "en": "Deep analysis"
+    "zh": "研究报告",
+    "en": "Research report"
   },
   "page.phenomenon.analyze_title": {
     "zh": "发起这个现象的跨学科迁移研究",
     "en": "Launch a cross-disciplinary transfer study for this phenomenon"
   },
   "page.phenomenon.analyze_caption": {
-    "zh": "8 段跨学科深度分析，约 60-90 秒流式生成",
-    "en": "8-section cross-disciplinary deep analysis, streamed in ~60-90s"
+    "zh": "9 段跨学科研究报告，通常 2–3 分钟流式生成",
+    "en": "9-section cross-disciplinary research report, streamed in ~2–3 min"
   },
   "page.phenomenon.analyze_text_prefix": {
     "zh": "以",
     "en": "Starting from"
   },
   "page.phenomenon.analyze_text_suffix": {
-    "zh": "为起点，让 LLM 沿着它的数学骨架跨越领域边界，生成一份 8 段结构化迁移报告：共享结构 → 参数对照 → 方法借用 → 行动建议。",
-    "en": ", let the LLM trace its mathematical skeleton across domain boundaries to produce an 8-section structured transfer report: shared structure → parameter mapping → method borrowing → action suggestions."
+    "zh": "为起点，让 AI 沿着它的数学骨架跨越领域边界，生成一份 9 段结构化研究报告：共享结构 → 参数对照 → 方法借用 → 行动建议。",
+    "en": ", let the AI trace its mathematical skeleton across domain boundaries to produce a 9-section structured research report: shared structure → parameter mapping → method borrowing → action suggestions."
   },
   "page.phenomenon.analyze_btn": {
-    "zh": "生成深度分析报告",
-    "en": "Generate deep-analysis report"
+    "zh": "生成研究报告",
+    "en": "Generate research report"
   },
   "page.phenomenon.analyze_hint": {
     "zh": "8 段跨学科迁移研究",
@@ -1768,7 +1776,7 @@
     "en": "Analyzing the structural mapping between the two phenomena"
   },
   "page.phenomenon.mapping_loading_hint": {
-    "zh": "LLM 生成可能需要 5-10 秒",
+    "zh": "AI 生成可能需要 5–10 秒",
     "en": "LLM generation may take 5-10 seconds"
   },
   "page.phenomenon.mapping_error_title": {

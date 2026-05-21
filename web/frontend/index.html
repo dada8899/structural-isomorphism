@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="用户流失、谣言扩散、团队崩盘、资金挤兑——表面无关，骨子里常是同一套规律。描述你的难题，Structural 帮你找到已经把它研究透的学科，给你一份能照着做的清单。">
   <meta name="theme-color" content="***REMOVED***FAFAF9">
   <title>Structural — 你卡住的问题，可能别人早就解过</title>
@@ -74,7 +74,16 @@
           aria-describedby="ask-char-counter"
         ></textarea>
         <div class="ask-searchbox__footer">
-          <div class="ask-searchbox__hint"><kbd>⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+          <!-- SESSION-17 P2-2: show the right modifier key per platform —
+               ⌘ on macOS, Ctrl elsewhere. -->
+          <div class="ask-searchbox__hint"><kbd id="ask-mod-key">⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+          <script>
+            (function () {
+              var k = document.getElementById('ask-mod-key');
+              var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+              if (k && !isMac) k.textContent = 'Ctrl';
+            })();
+          </script>
           <!-- W6-D (session ***REMOVED***7 P1 backlog): live char counter, warn at 75%,
                hard stop at 100% (8000). aria-live=polite so screen readers
                only announce the warning state changes. -->
@@ -107,22 +116,36 @@
       </div>
 
       <div class="ask-empty__explore">
-        <div class="ask-empty__explore-label">不知道问啥？看看这些</div>
+        <div class="ask-empty__explore-label">没有头绪？从这些开始</div>
         <div class="ask-empty__explore-cards">
+          <!-- SESSION-17 design P2-1: single-colour line icons (stroke 1.5,
+               matching the logo) instead of cross-OS-inconsistent emoji. -->
           <a href="/classes" class="explore-card">
-            <span class="explore-card__icon" aria-hidden="true">🧬</span>
-            <h3 class="explore-card__title">23 个跨域共享模式</h3>
-            <p class="explore-card__desc">地震 / 银行挤兑 / 神经放电 — 同一套数学下的兄弟现象</p>
+            <span class="explore-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5l7 7"/>
+              </svg>
+            </span>
+            <h3 class="explore-card__title">23 组跨域共享模式</h3>
+            <p class="explore-card__desc">地震、银行挤兑、神经放电——表面无关，其实是同一道数学题</p>
           </a>
           <a href="/discoveries" class="explore-card">
-            <span class="explore-card__icon" aria-hidden="true">✨</span>
+            <span class="explore-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/>
+              </svg>
+            </span>
             <h3 class="explore-card__title">39 个精选发现</h3>
-            <p class="explore-card__desc">AI peer review 过的高质量跨域结构同构</p>
+            <p class="explore-card__desc">经过 AI 多轮评审的高质量跨域结构同构</p>
           </a>
           <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="explore-card">
-            <span class="explore-card__icon" aria-hidden="true">📊</span>
+            <span class="explore-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"/><path d="M6 21V11M12 21V5M18 21v-7"/>
+              </svg>
+            </span>
             <h3 class="explore-card__title">Phase Detector ↗</h3>
-            <p class="explore-card__desc">100 家公司的状态评分 — 把同一套数学套到公司上</p>
+            <p class="explore-card__desc">100 家公司的状态评分——把同一套数学套到公司上</p>
           </a>
         </div>
       </div>
@@ -143,7 +166,7 @@
           <textarea
             class="ask-followup-box__input"
             id="ask-followup-input"
-            placeholder="继续追问..."
+            placeholder="继续追问……"
             rows="2"
             spellcheck="false"
             maxlength="8000"

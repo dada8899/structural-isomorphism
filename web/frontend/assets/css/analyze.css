@@ -1605,6 +1605,12 @@ ol.md-list li::before {
   line-height: 1.6;
   color: var(--brand-muted, ***REMOVED***71717a);
 }
+.report-errorcard__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 .report-errorcard__cta {
   display: inline-block;
   padding: 9px 20px;
@@ -1616,3 +1622,13 @@ ol.md-list li::before {
   text-decoration: none;
 }
 .report-errorcard__cta:hover { opacity: 0.9; }
+/* Secondary action — quiet outline, points at "我的报告". */
+.report-errorcard__cta--ghost {
+  color: var(--brand-ink, ***REMOVED***18181b);
+  background: transparent;
+  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+}
+.report-errorcard__cta--ghost:hover {
+  opacity: 1;
+  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
+}

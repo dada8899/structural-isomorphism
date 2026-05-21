@@ -36,6 +36,7 @@
   var FOOTER_LINKS = [
     { href: '/about', key: 'footer.about', label: '关于', external: false },
     { href: '/reports', key: 'nav.reports', label: '我的报告', external: false },
+    { href: '/privacy', key: 'footer.privacy', label: '隐私政策', external: false },
     { href: 'https://github.com/dada8899/structural-isomorphism', key: 'footer.github', label: 'GitHub', external: true },
   ];
 
@@ -189,7 +190,7 @@
     footer.innerHTML =
       '<div class="site-footer__inner">' +
         '<div class="site-footer__copyright" data-i18n="footer.copyright">' +
-          '© ' + year + ' Structural · 跨领域思维引擎</div>' +
+          '© ' + year + ' Structural · 换个学科找答案</div>' +
         '<div class="site-footer__links">' + links + '</div>' +
       '</div>';
   }

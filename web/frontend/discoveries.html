@@ -25,9 +25,9 @@
   <link rel="stylesheet" href="/assets/css/common.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/discoveries.css?v=20260417e">
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
+  <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
+  <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260417e">
   <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
@@ -53,9 +53,8 @@
 
   <main class="disc-page">
     <div class="disc-container">
-      <!-- Session ***REMOVED***9 W2-A: catch readers who land here and just want updates -->
-      <div id="newsletter-discoveries" class="newsletter newsletter--compact"></div>
-
+      <!-- SESSION-17 design P1-7: hero leads, the newsletter CTA sits below it
+           so the page's main title isn't outranked by a secondary signup card. -->
       <section class="disc-hero">
         <div class="disc-hero__eyebrow">
           <span class="disc-hero__dot"></span>
@@ -72,6 +71,9 @@
           <div class="disc-skeleton-stats" aria-hidden="true"></div>
         </div>
       </section>
+
+      <!-- Session ***REMOVED***9 W2-A: catch readers who land here and just want updates -->
+      <div id="newsletter-discoveries" class="newsletter newsletter--compact"></div>
 
       <div class="disc-filter" id="disc-filter">
         <!-- W1-B (2026-05-14): 2 rows = real render shape (tier-tabs + filter-row).

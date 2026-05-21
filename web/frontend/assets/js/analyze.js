@@ -30,11 +30,11 @@ const SECTIONS = [
   { key: 'borrowable_insights', label: '可借用的工具', label_key: 'page.analyze.section_borrowable_insights', num: '§2' },
   { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§3' },
   { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§4' },
-  { key: 'target_domain_intro', label: '源领域讲解', label_key: 'page.analyze.section_target_domain_intro', num: '§5' },
-  { key: 'structural_mapping', label: '结构对照', label_key: 'page.analyze.section_structural_mapping', num: '§6' },
+  { key: 'target_domain_intro', label: '那个领域是怎么回事', label_key: 'page.analyze.section_target_domain_intro', num: '§5' },
+  { key: 'structural_mapping', label: '两个问题逐项对照', label_key: 'page.analyze.section_structural_mapping', num: '§6' },
   { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§7' },
   { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§8' },
-  { key: 'risks_and_limits', label: '迁移风险', label_key: 'page.analyze.section_risks_and_limits', num: '§9' },
+  { key: 'risks_and_limits', label: '借用时的坑', label_key: 'page.analyze.section_risks_and_limits', num: '§9' },
 ];
 
 // The order backend SSE actually emits sections in (matches the LLM prompt's

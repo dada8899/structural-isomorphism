@@ -1,10 +1,7 @@
+***REMOVED*** beta.structural.bytedance.city is a pre-release beta — keep it out of
+***REMOVED*** search indexes so it doesn't compete with the future production domain.
+***REMOVED*** When promoting to the production domain, reinstate `Allow: /` there.
 User-agent: *
-Allow: /
-
-***REMOVED*** Block API endpoints from crawlers (waste of crawl budget)
-Disallow: /api/
-
-***REMOVED*** Block phase product sub-routes (separate site at phase.bytedance.city)
-Disallow: /phase/
+Disallow: /
 
 Sitemap: https://beta.structural.bytedance.city/sitemap.xml

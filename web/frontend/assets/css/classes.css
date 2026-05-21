@@ -170,14 +170,16 @@
 .uc-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  /* SESSION-17 design P1-4: roomier gutters so the 23-card grid reads as a
+     product page, not a dense data table. */
+  gap: 22px;
   align-items: start;
 }
 @media (min-width: 1440px) {
   .uc-list { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 820px) {
-  .uc-list { grid-template-columns: 1fr; gap: 12px; }
+  .uc-list { grid-template-columns: 1fr; gap: 16px; }
 }
 
 /* Preview cards are clickable */

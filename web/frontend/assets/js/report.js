@@ -137,7 +137,9 @@
   function load() {
     const route = parseRoute();
     if (!route) {
-      showError('无效的报告 URL。');
+      // Keep the static HTML error copy (which points at /reports) instead
+      // of overriding it with a terse "invalid URL" line. (SESSION-17 R-02)
+      showError();
       return;
     }
     const url = route.kind === 'share'
@@ -197,7 +199,8 @@
         // the console.
         console.error('[report] load failed:', err);
         if (String(err).indexOf('404') !== -1) {
-          showError('这份报告可能已被删除，或链接已失效。');
+          // Keep the richer static HTML copy (points at /reports). (R-02)
+          showError();
         } else {
           showError('报告暂时加载不出来，请稍后重试。');
         }

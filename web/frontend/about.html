@@ -135,7 +135,7 @@
         <li data-i18n="page.about.scoring.signal1"><strong>BM25 词项命中</strong>（权重 0.45）— 用 jieba 中文分词后做 BM25-Okapi，衡量查询词和现象描述的词汇重合度。先 min-max 归一化到 [0, 1]。</li>
         <li data-i18n="page.about.scoring.signal2"><strong>语义向量余弦相似</strong>（权重 0.55）— 把查询和现象描述都过自训练的语义模型，计算 768 维向量的余弦相似度。同样先 min-max 归一化到 [0, 1]。</li>
         <li data-i18n="page.about.scoring.signal3"><strong>结构化字段奖励</strong>（+0.10）— 从查询关键词推断动力学族（"延迟"→延迟反馈、"阈值"→临界翻转 等），给结构化档案里匹配的现象加一个轻奖励。</li>
-        <li data-i18n="page.about.scoring.signal4"><strong>MMR domain diversity guard</strong>（post-filter）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。</li>
+        <li data-i18n="page.about.scoring.signal4"><strong>领域多样性保护（MMR）</strong>（后置过滤）— 如果 top-5 有超过 2 个同领域结果，把多余的推到 top-10 位置，保证跨域结果的多样性。</li>
       </ul>
       <p data-i18n="page.about.scoring.formula">
         最终分数 = <code>0.45 × BM25 + 0.55 × embedding + 0.10 × dynamics_boost</code>，范围是 [0, 1.1]。前端把分数映射到三档：
@@ -168,7 +168,7 @@
       <div class="about-page__section-label" data-i18n="page.about.resources.label">Resources</div>
       <h2 class="about-page__section-title" data-i18n="page.about.resources.title">论文与源码</h2>
       <p data-i18n="page.about.resources.p">
-        完整的方法论、训练细节、评估结果和反向实验，请见 <a href="https://structural.bytedance.city/paper-zh.html" target="_blank">研究报告</a>。SIBD-63 数据集：<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a> 上开源。语义向量模型在 <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded" target="_blank" rel="noopener">HuggingFace 数据集</a>。
+        完整的方法论、训练细节、评估结果和反向实验，请见 <a href="/papers">论文与方法</a>。SIBD-63 数据集：<a href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Zenodo DOI 10.5281/zenodo.19615170</a>。所有代码在 <a href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a> 上开源。语义向量模型在 <a href="https://huggingface.co/qinghuiwan/structural-isomorphism-v2-expanded" target="_blank" rel="noopener">HuggingFace</a>。
       </p>
     </div>
 

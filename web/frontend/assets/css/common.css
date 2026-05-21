@@ -279,12 +279,15 @@
 .site-footer__links {
   display: flex;
   gap: var(--space-5);
+  flex-wrap: wrap;
 }
 
 .site-footer__link {
   font-size: var(--fs-13);
   color: var(--text-tertiary);
   transition: color var(--dur-fast) var(--ease-out);
+  /* SESSION-17 P1-5: never break a link label mid-word on narrow screens. */
+  white-space: nowrap;
 }
 
 .site-footer__link:hover {

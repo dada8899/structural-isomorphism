@@ -507,12 +507,13 @@ function renderResultsWithSynth() {
 function renderError(err) {
   const container = $('***REMOVED***search-results');
   if (!container) return;
-  const detail = escapeHtml(err && (err.message || String(err)) || T('page.search.unknown_error', '未知错误'));
+  // SESSION-17 copy SR-03: never surface the raw JS exception to the user —
+  // it goes to the console only; the UI shows a fixed friendly message.
+  console.error('Search error:', err);
   container.innerHTML = `
     <div class="search-error">
       <h2 class="search-error__title">${T('page.search.error_title', '搜索失败')}</h2>
-      <p class="search-error__text">${T('page.search.error_text', '可能是网络问题或服务暂时不可用。')}</p>
-      <p class="search-error__detail" style="color: var(--text-tertiary); font-size: var(--fs-12); margin-top: 4px;">${detail}</p>
+      <p class="search-error__text">${T('page.search.error_text', '可能是网络问题或服务暂时不可用，请稍后重试。')}</p>
       <div class="search-error__actions" style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
         <button type="button" class="btn btn--primary" id="search-retry-btn">${T('page.search.retry', '重试')}</button>
         <a href="/" class="btn btn--ghost">${T('page.search.rephrase', '换个说法')}</a>
@@ -586,7 +587,7 @@ function maybeRenderAssessmentGate(query, data) {
       <details class="assess-gate__why">
         <summary>${T('page.search.assess_why_summary', '为什么 Structural 拦下了这个问题')}</summary>
         <p>${T('page.search.assess_why_p1', 'Structural 是一个跨学科<strong>结构同构</strong>引擎，最擅长的是把"<em>现象级</em>"的问题（比如行为模式、动力学、临界点、趋势变化）映射到其他学科里结构相同的案例。')}</p>
-        <p>${T('page.search.assess_why_p2', '不擅长的：写作请求、元问题（"这个产品怎么用"）、闲聊、纯事实查询、纯个人琐事——这些场景我们没有可借用的"另一个学科里的同构现象"。')}</p>
+        <p>${T('page.search.assess_why_p2', '不擅长的：帮你写东西、关于产品本身的问题（比如「这个产品怎么用」）、闲聊、查事实、个人琐事——这些场景没有「另一个学科里的同款现象」可借。')}</p>
       </details>
     </div>
   `;

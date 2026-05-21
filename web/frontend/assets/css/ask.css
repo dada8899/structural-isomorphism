@@ -917,9 +917,13 @@
 }
 .explore-card:active { transform: scale(0.99); }
 .explore-card__icon {
-  font-size: 22px;
+  /* SESSION-17 P2-1: holds a single-colour line SVG icon. */
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
+  color: var(--brand-muted);
 }
+.explore-card:hover .explore-card__icon { color: var(--brand-accent); }
 .explore-card__title {
   margin: 0;
   font-size: 14px;

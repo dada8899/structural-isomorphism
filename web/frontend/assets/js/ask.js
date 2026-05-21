@@ -308,7 +308,7 @@
         '<div data-role="kb-section" hidden>' +
           '<div class="ask-section-label">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' +
-            '<span>知识库命中 (top 5)</span>' +
+            '<span>最相关的 5 个案例</span>' +
           '</div>' +
           '<div class="ask-thread-item__cards" data-role="cards"></div>' +
         '</div>' +
@@ -318,14 +318,14 @@
             '<span>回答</span>' +
           '</div>' +
           '<div class="ask-thread-item__answer" data-role="answer">' +
-            '<span class="ask-thread-item__answer-empty">正在思考...</span>' +
+            '<span class="ask-thread-item__answer-empty">正在思考……</span>' +
           '</div>' +
           '<div class="ask-thread-item__citations-bar" data-role="citations" hidden></div>' +
         '</div>' +
         '<div data-role="similar-section" hidden>' +
           '<div class="ask-section-label">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5l7 7"/></svg>' +
-            '<span>结构相同的现象</span>' +
+            '<span>结构相同的现象（其他领域）</span>' +
           '</div>' +
           '<div class="ask-thread-item__similar" data-role="similar"></div>' +
         '</div>' +
@@ -387,7 +387,7 @@
       })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
-        showError(item, err && err.message ? err.message : '未知错误', query);
+        showError(item, '出了点问题，请重试', query);
       });
   }
 
@@ -448,7 +448,7 @@
       case 'similar_phenomena': return handleSimilarEvent(item, data);
       case 'followups':       return handleFollowupsEvent(item, data);
       case 'done':            return handleDoneEvent(item, data);
-      case 'error':           return showError(item, (data && data.message) || '后端错误', item.getAttribute('data-query'));
+      case 'error':           return showError(item, '服务暂时出了点问题', item.getAttribute('data-query'));
       default:                return;
     }
   }
@@ -487,7 +487,7 @@
     var answerEl = item.querySelector('[data-role="answer"]');
     var empty = answerEl && answerEl.querySelector('.ask-thread-item__answer-empty');
     if (empty) {
-      empty.textContent = '找到 ' + count + ' 篇相关现象，正在生成答案…';
+      empty.textContent = '找到 ' + count + ' 个相关现象，正在生成答案……';
     }
 
     // W3-B-ish: track when retrieval_done landed. Distinct from
@@ -517,7 +517,7 @@
       // The backend renders phenomenon.html which reads ?id= for legacy compat.
       var href = c.id ? ('/phenomenon/' + encodeURIComponent(c.id)) : '***REMOVED***';
       var score = (typeof c.score === 'number') ? Math.round(c.score * 100) + '%' : '';
-      var name = c.name || '(未命名)';
+      var name = c.name || '（未命名查询）';
       // Tooltip: first 100 chars of description, fall back to domain+name.
       var descRaw = c.description || c.summary || c.key_metric || '';
       var tooltip = descRaw ? String(descRaw).slice(0, 100) : (c.domain ? (c.domain + ' · ' + name) : name);
@@ -847,7 +847,7 @@
 
     section.innerHTML =
       '<a class="ask-thread-item__deep-cta" href="' + url + '">' +
-        '<span>运行深度分析</span>' +
+        '<span>生成研究报告</span>' +
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>' +
       '</a>';
     section.hidden = false;

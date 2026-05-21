@@ -52,7 +52,7 @@
       '</div>';
     return (
       '<a class="myr-card" href="/report/' + id + '">' +
-        '<p class="myr-card__query">' + escapeHtml(item.query || '(无标题)') + '</p>' +
+        '<p class="myr-card__query">' + escapeHtml(item.query || '（未命名查询）') + '</p>' +
         meta +
       '</a>'
     );
@@ -72,7 +72,7 @@
   function showEmpty() {
     renderState(
       '还没有保存的报告',
-      '生成一份跨领域同构分析报告后，勾选「保存」就会出现在这里。',
+      '你生成的研究报告会自动出现在这里，方便随时回看。',
       '去生成第一份报告', '/'
     );
   }
@@ -117,7 +117,7 @@
       .catch(function (err) {
         console.error('[my-reports] load failed:', err);
         if (offset === 0) {
-          renderState('加载失败', '稍后刷新重试。如果一直失败，可能是网络问题。', '重试', '/reports');
+          renderState('加载失败', '稍后刷新重试。若反复失败，多半是网络问题。', '重试', '/reports');
         } else {
           moreBtn.disabled = false;
           moreBtn.textContent = '加载失败，点击重试';

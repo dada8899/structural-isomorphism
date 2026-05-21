@@ -398,9 +398,23 @@ function renderDailySkeleton() {
   `).join('');
 }
 
+// SESSION-17 design P1-1: render a friendly fallback instead of leaving the
+// skeleton cards stuck forever when /api/daily returns empty or fails.
+function renderDailyEmpty() {
+  const grid = $('***REMOVED***daily-grid');
+  if (!grid) return;
+  grid.innerHTML =
+    '<p class="home__daily-empty" style="grid-column:1/-1;text-align:center;' +
+    'color:var(--text-secondary,***REMOVED***52525b);font-size:14px;padding:32px 0;">' +
+    T('page.home.daily_empty', '今日发现暂时加载不出来，先去') +
+    ' <a href="/discoveries" style="color:var(--brand-accent,***REMOVED***2563EB);">' +
+    T('page.home.daily_empty_link', '看看全部精选发现') + '</a>。</p>';
+}
+
 function renderDaily(discoveries) {
   const grid = $('***REMOVED***daily-grid');
-  if (!grid || !discoveries.length) return;
+  if (!grid) return;
+  if (!discoveries.length) { renderDailyEmpty(); return; }
 
   grid.innerHTML = discoveries.map((d, i) => {
     const structureId = d.a.type_id || '—';
@@ -509,15 +523,22 @@ function renderFavorites() {
 }
 
 async function loadHomeData() {
-  try {
-    const [suggestResp, dailyResp] = await Promise.all([
-      StructuralAPI.getSuggestions(),
-      StructuralAPI.getDaily(),
-    ]);
-    renderSuggestions(suggestResp.suggestions || []);
-    renderDaily(dailyResp.discoveries || []);
-  } catch (err) {
-    console.error('Failed to load home data:', err);
+  // Settle each independently so one failing endpoint can't leave the other
+  // section's skeleton stuck (SESSION-17 design P1-1).
+  const [suggestRes, dailyRes] = await Promise.allSettled([
+    StructuralAPI.getSuggestions(),
+    StructuralAPI.getDaily(),
+  ]);
+  if (suggestRes.status === 'fulfilled') {
+    renderSuggestions(suggestRes.value.suggestions || []);
+  } else {
+    console.error('Failed to load suggestions:', suggestRes.reason);
+  }
+  if (dailyRes.status === 'fulfilled') {
+    renderDaily(dailyRes.value.discoveries || []);
+  } else {
+    console.error('Failed to load daily discoveries:', dailyRes.reason);
+    renderDailyEmpty();
   }
 }
 

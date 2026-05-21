@@ -28,8 +28,12 @@
     "en": "Switch to Chinese"
   },
   "footer.copyright": {
-    "zh": "© 2026 Structural · 跨领域思维引擎",
-    "en": "© 2026 Structural · Cross-domain thinking engine"
+    "zh": "© 2026 Structural · 换个学科找答案",
+    "en": "© 2026 Structural · Find answers in another field"
+  },
+  "footer.privacy": {
+    "zh": "隐私政策",
+    "en": "Privacy"
   },
   "footer.start_here": {
     "zh": "从这里开始",

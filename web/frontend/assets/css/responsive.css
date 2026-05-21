@@ -51,6 +51,17 @@
     display: inline-flex;
   }
 
+  /* SESSION-17 P1-5: footer stacks vertically on phones so the copyright
+   * and the link row each get their own line — no per-character wrapping. */
+  .site-footer__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .site-footer__links {
+    gap: var(--space-4) var(--space-5);
+  }
+
   /* === Home === */
   .home__eyebrow {
     font-size: var(--fs-11, 11px);

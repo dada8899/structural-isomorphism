@@ -30,9 +30,9 @@
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514e">
 
   <!-- KaTeX for math rendering -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="/assets/vendor/katex/katex.min.css?v=0.16.11">
+  <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
+  <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
@@ -110,14 +110,14 @@
                   data-i18n="page.analyze.share_open">打开</button>
         </div>
         <div class="analyze-share-bar__feedback">
-          <span data-i18n="page.analyze.feedback_overall">这份报告对你有用吗?</span>
+          <span data-i18n="page.analyze.feedback_overall">这份报告对你有用吗？</span>
           <button type="button" class="analyze-vote analyze-vote--up"
                   data-section="" data-vote="1" aria-label="useful">👍 <span class="analyze-vote__count" id="analyze-vote-up-count">0</span></button>
           <button type="button" class="analyze-vote analyze-vote--down"
                   data-section="" data-vote="-1" aria-label="not useful">👎 <span class="analyze-vote__count" id="analyze-vote-down-count">0</span></button>
         </div>
         <div id="analyze-share-bar__partial" class="analyze-share-bar__partial" hidden
-             data-i18n="page.analyze.share_partial">⚠ 报告未完整生成 — 分享前请确认.</div>
+             data-i18n="page.analyze.share_partial">⚠ 报告未完整生成 —— 分享前请确认。</div>
       </div>
 
       <div id="analyze-tldr" class="analyze-tldr" hidden></div>
