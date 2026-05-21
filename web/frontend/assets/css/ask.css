@@ -72,15 +72,19 @@
   border: 1px solid var(--brand-line);
   border-radius: 16px;
   padding: 18px 20px 12px;
-  /* Scheme B: single elevation cue — a 1px hairline + one faint shadow.
-     Border and shadow are alternative "lift" techniques; stacking both
-     over-encapsulates the box. Keep it quiet so it sits *in* the page. */
-  box-shadow: 0 1px 3px rgba(24, 24, 27, 0.05);
+  /* Soft floating elevation, à la Google's AI input box — a gentle
+     two-layer NEUTRAL shadow, no coloured ring. The earlier accent-blue
+     focus halo read as a harsh blue edge; dropped entirely. */
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04),
+              0 4px 16px rgba(24, 24, 27, 0.06);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ask-searchbox:focus-within {
+  /* Focus = the box lifts a little more. Border stays neutral, shadow
+     stays neutral — no blue. */
   border-color: var(--brand-line-strong);
-  box-shadow: 0 0 0 3px var(--brand-accent-ring), 0 2px 8px rgba(24, 24, 27, 0.06);
+  box-shadow: 0 2px 4px rgba(24, 24, 27, 0.05),
+              0 8px 28px rgba(24, 24, 27, 0.10);
 }
 
 .ask-searchbox__input {
