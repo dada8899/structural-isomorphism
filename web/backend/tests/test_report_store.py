@@ -327,3 +327,87 @@ class TestFeedback:
         counts = store.feedback_counts(out["id"])
         ***REMOVED*** Two clicks from the same (None→'anon') bucket → one row, one up.
         assert counts == {"total_up": 1, "total_down": 0}
+
+
+***REMOVED*** --------- P0-1: schema-drift self-heal migration --------- ***REMOVED***
+
+
+class TestSchemaDriftMigration:
+    """`_init_schema` ADDs any `reports` column an older DB is missing.
+
+    Root cause of the "report saved == lost" bug class: `report_store`
+    shares `history.db` and uses `CREATE TABLE IF NOT EXISTS`, which is a
+    no-op when `reports` already exists. A `reports` table created by a
+    pre-M1.4 schema lacked creator_anon_id / is_partial; every persist
+    then raised OperationalError (swallowed by analyze.py's best-effort
+    try/except) — the user's report silently never landed.
+    `_migrate_reports_columns` backfills the missing columns via ALTER
+    TABLE so a long-lived DB stays forward-compatible.
+    """
+
+    def _make_old_reports_db(self, path):
+        """Create a `reports` table with a pre-M1.4 (drifted) shape —
+        missing rewritten_query / creator_anon_id / is_partial / etc."""
+        import sqlite3
+        conn = sqlite3.connect(str(path))
+        conn.executescript(
+            """
+            CREATE TABLE reports (
+                id          TEXT PRIMARY KEY,
+                share_token TEXT,
+                query       TEXT,
+                b_id        TEXT,
+                lang        TEXT,
+                payload     TEXT,
+                model       TEXT,
+                prompt_version TEXT,
+                created_at  TEXT
+            );
+            """
+        )
+        conn.commit()
+        conn.close()
+
+    def test_old_reports_table_gets_missing_columns(self, tmp_path):
+        db = tmp_path / "drifted.db"
+        self._make_old_reports_db(db)
+
+        ***REMOVED*** Opening a ReportStore on it must self-heal the schema.
+        store = ReportStore(db)
+
+        import sqlite3
+        conn = sqlite3.connect(str(db))
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(reports)")}
+        conn.close()
+        for required in (
+            "rewritten_query", "creator_anon_id", "creator_tier",
+            "is_public", "view_count", "last_viewed_at", "is_partial",
+        ):
+            assert required in cols, f"migration must add {required!r}"
+
+    def test_persist_works_after_drift_migration(self, tmp_path, sample_payload):
+        """The whole point: after the self-heal, create()/list_by_anon()
+        work — i.e. the persist→list chain is no longer silently broken."""
+        db = tmp_path / "drifted.db"
+        self._make_old_reports_db(db)
+        store = ReportStore(db)
+
+        out = store.create(
+            query="q", b_id="b", lang="zh", payload=sample_payload,
+            model="m", creator_anon_id="anon-after-migrate",
+        )
+        listed = store.list_by_anon("anon-after-migrate")
+        assert [r["id"] for r in listed] == [out["id"]]
+        fetched = store.get_by_id(out["id"])
+        assert fetched["creator_anon_id"] == "anon-after-migrate"
+
+    def test_migration_is_idempotent(self, tmp_path, sample_payload):
+        """Re-opening an already-migrated DB must not error or duplicate."""
+        db = tmp_path / "drifted.db"
+        self._make_old_reports_db(db)
+        ReportStore(db)        ***REMOVED*** first heal
+        store = ReportStore(db)  ***REMOVED*** second open — must be a no-op
+        out = store.create(
+            query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
+        )
+        assert store.get_by_id(out["id"]) is not None

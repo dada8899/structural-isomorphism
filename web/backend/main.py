@@ -40,6 +40,17 @@ logger = get_logger("structural.web")
 ***REMOVED*** Shared state
 app_state = {}
 
+***REMOVED*** Launch P1-4 — in prod, the interactive API docs (/docs, /redoc) and the
+***REMOVED*** raw OpenAPI schema (/openapi.json) hand an attacker a full map of the API
+***REMOVED*** surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
+***REMOVED*** they stay on for dev / staging where they are useful.
+_IS_PROD = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
+_DOCS_KWARGS = (
+    {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    if _IS_PROD
+    else {}
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -94,6 +105,8 @@ app = FastAPI(
     license_info={
         "name": "Proprietary",
     },
+    ***REMOVED*** Launch P1-4 — disable /docs /redoc /openapi.json in prod.
+    **_DOCS_KWARGS,
     openapi_tags=[
         {"name": "ask", "description": "Perplexity-like Q&A over the KB"},
         {"name": "search", "description": "Vector search for phenomena"},
@@ -193,6 +206,13 @@ app.add_middleware(
         "Content-Type", "X-Anon-Id", "X-Device-ID", "X-API-Key", "Authorization",
     ],
 )
+
+***REMOVED*** Launch P0-3: security response headers (HSTS / X-Frame-Options /
+***REMOVED*** X-Content-Type-Options / Referrer-Policy / CSP). Injected on every
+***REMOVED*** response — API and static pages alike.
+from middleware.security_headers import install_security_headers  ***REMOVED*** noqa: E402
+
+install_security_headers(app)
 
 ***REMOVED*** W14-D: Correlation-ID middleware. Mounted last so it runs *first* for
 ***REMOVED*** inbound requests (Starlette middleware stack is LIFO). Reads X-Request-ID
@@ -429,7 +449,10 @@ if PHASE_DIR.exists():
         app.mount("/phase/data", StaticFiles(directory=PHASE_DIR / "data"), name="phase_data")
 
 
-@app.get("/")
+***REMOVED*** Launch P1-4 — accept HEAD on the root so health checkers / CDNs / crawlers
+***REMOVED*** that probe with HEAD get 200, not a misleading 405. FastAPI auto-derives
+***REMOVED*** HEAD from GET handlers only when HEAD is in `methods`, so list it here.
+@app.api_route("/", methods=["GET", "HEAD"])
 async def index():
     return FileResponse(FRONTEND_DIR / "index.html")
 

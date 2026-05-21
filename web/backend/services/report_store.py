@@ -159,13 +159,71 @@ class ReportStore:
             logger.warning("report_store WAL pragma failed: %s", e)
         return conn
 
+    ***REMOVED*** Columns the `reports` table MUST have. `CREATE TABLE IF NOT EXISTS`
+    ***REMOVED*** is a no-op when the table already exists, so a `reports` table created
+    ***REMOVED*** by an OLDER schema version silently keeps its old shape — any newer
+    ***REMOVED*** column (creator_anon_id / is_partial / ...) would then be missing and
+    ***REMOVED*** every INSERT would raise OperationalError. We additively self-heal via
+    ***REMOVED*** ALTER TABLE so a long-lived history.db stays forward-compatible.
+    ***REMOVED*** (col_name, sqlite column definition for ALTER TABLE ADD COLUMN)
+    _REPORTS_COLUMNS = (
+        ("share_token", "TEXT"),
+        ("query", "TEXT"),
+        ("rewritten_query", "TEXT"),
+        ("b_id", "TEXT"),
+        ("lang", "TEXT"),
+        ("payload", "TEXT"),
+        ("model", "TEXT"),
+        ("prompt_version", "TEXT"),
+        ("created_at", "TEXT"),
+        ("creator_anon_id", "TEXT"),
+        ("creator_tier", "TEXT"),
+        ("is_public", "INTEGER NOT NULL DEFAULT 0"),
+        ("view_count", "INTEGER NOT NULL DEFAULT 0"),
+        ("last_viewed_at", "TEXT"),
+        ("is_partial", "INTEGER NOT NULL DEFAULT 0"),
+    )
+
     def _init_schema(self) -> None:
         try:
             with self._connect() as conn:
+                ***REMOVED*** Migrate FIRST: on a drifted DB the `reports` table already
+                ***REMOVED*** exists with an old shape, and `_SCHEMA` below contains a
+                ***REMOVED*** `CREATE INDEX ... ON reports(creator_anon_id, ...)` that
+                ***REMOVED*** would fail if that column is still missing. Backfilling
+                ***REMOVED*** the columns before running `_SCHEMA` lets the index land.
+                ***REMOVED*** On a fresh DB the table doesn't exist yet, so the migrate
+                ***REMOVED*** step is a no-op (PRAGMA returns nothing) and `_SCHEMA`
+                ***REMOVED*** creates everything from scratch.
+                self._migrate_reports_columns(conn)
                 conn.executescript(_SCHEMA)
         except sqlite3.Error as e:
             logger.exception("report_store schema init failed: %s", e)
             raise
+
+    def _migrate_reports_columns(self, conn: sqlite3.Connection) -> None:
+        """Additively backfill any `reports` columns missing on an older DB.
+
+        Idempotent: only ADDs columns absent from PRAGMA table_info. Never
+        drops or rewrites data. Without this, a `reports` table created by a
+        pre-M1.4 schema version would lack creator_anon_id / is_partial and
+        every persist would fail (then get swallowed by analyze.py's
+        best-effort try/except — exactly the "report saved == lost" bug).
+        """
+        existing = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(reports)").fetchall()
+        }
+        if not existing:
+            ***REMOVED*** Fresh table just created by _SCHEMA — nothing to migrate.
+            return
+        for col, col_def in self._REPORTS_COLUMNS:
+            if col not in existing:
+                logger.warning(
+                    "report_store: reports table missing column %r — "
+                    "adding via ALTER TABLE (schema drift self-heal)", col,
+                )
+                conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {col_def}")
 
     ***REMOVED*** ------ create / read ------------------------------------------- ***REMOVED***
 

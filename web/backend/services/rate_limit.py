@@ -84,9 +84,18 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
         ***REMOVED*** Normalise legacy tier names (verify_api_token still returns
         ***REMOVED*** "anonymous" / "paid" in some code paths).
         tier_norm = (tier or "free").lower()
-        if tier_norm == "anonymous":
-            ***REMOVED*** Anonymous gets the per-endpoint default_anon floor — this
-            ***REMOVED*** is the whole point of the parameter.
+        ***REMOVED*** Launch P1-1 fix — anonymous traffic carries the per-endpoint
+        ***REMOVED*** `default_anon` floor. `TierResolutionMiddleware` resolves an
+        ***REMOVED*** un-keyed (anonymous) request to the "free" tier — there is no
+        ***REMOVED*** separate "anonymous" tier in middleware.rate_limit.TIER_LIMITS.
+        ***REMOVED*** So we MUST treat "free" the same as "anonymous" here, otherwise
+        ***REMOVED*** `default_anon` (e.g. 5/min on /api/ask) is dead code and anon
+        ***REMOVED*** traffic silently runs at the 60/min free-tier table value.
+        ***REMOVED*** An explicit free-tier API key is also rate-limited at the
+        ***REMOVED*** endpoint floor: the floor is always <= the table value, and a
+        ***REMOVED*** free key holder shouldn't get looser limits than an anon user
+        ***REMOVED*** on an LLM-expensive endpoint.
+        if tier_norm in ("anonymous", "free"):
             return default_anon
         if tier_norm == "paid":
             tier_norm = "pro"

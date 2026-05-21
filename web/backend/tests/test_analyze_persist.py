@@ -112,12 +112,19 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(report_api, "_store", fresh, raising=False)
 
     ***REMOVED*** Defeat the @tier_limit_decorator on /api/analyze/stream for tests by
-    ***REMOVED*** neutering the limiter. Avoids "60/minute" noise in the suite.
-    try:
-        from middleware.rate_limit import limiter
-        limiter.reset()
-    except Exception:
-        pass
+    ***REMOVED*** neutering the limiter between tests. `@tier_limit_decorator` (in
+    ***REMOVED*** api/analyze.py) binds the limiter from `services.rate_limit`, while
+    ***REMOVED*** the middleware uses its own `middleware.rate_limit` Limiter — reset
+    ***REMOVED*** BOTH so a multi-request test file doesn't accumulate counts and trip
+    ***REMOVED*** the (post-P1-1) 10/min anonymous floor.
+    for _mod in ("services.rate_limit", "middleware.rate_limit"):
+        try:
+            import importlib
+            _lim = getattr(importlib.import_module(_mod), "limiter", None)
+            if _lim is not None:
+                _lim.reset()
+        except Exception:
+            pass
 
     return fresh
 
@@ -255,3 +262,138 @@ def test_persisted_row_records_creator_anon(client, isolated):
     persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
     raw = isolated.get_by_id(persisted["id"])
     assert raw["creator_anon_id"] == "user-X"
+
+
+***REMOVED*** --------- P0-1 end-to-end: persist → /reports/mine → /report/{id} -------- ***REMOVED***
+***REMOVED***
+***REMOVED*** The reviewer (SESSION-17 usability P0-1/P0-3) reported that persisting a
+***REMOVED*** report and then calling /api/reports/mine with the SAME anon-id returned
+***REMOVED*** an empty list, and /api/report/{id} 404'd. These tests close that gap:
+***REMOVED*** they drive the FULL HTTP round-trip (persist via /api/analyze/stream →
+***REMOVED*** read back via /api/reports/mine AND /api/report/{id}) so any regression
+***REMOVED*** in the anon-id persist→list→get chain fails CI, not a live dogfood run.
+
+
+def test_persist_then_listed_in_reports_mine_header_anon(client, isolated):
+    """persist(X-Anon-Id=X) → /api/reports/mine (X-Anon-Id=X) lists it."""
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=teams%20split&persist=1",
+        headers={"X-Anon-Id": "review-anon-3"},
+    )
+    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
+
+    r = client.get("/api/reports/mine", headers={"X-Anon-Id": "review-anon-3"})
+    assert r.status_code == 200
+    body = r.json()
+    ids = [it["id"] for it in body["items"]]
+    assert persisted["id"] in ids, "persisted report must appear in /reports/mine"
+
+
+def test_persist_then_get_report_by_id_owner(client, isolated):
+    """persist(X-Anon-Id=X) → /api/report/{id} with the same anon-id → 200."""
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=teams%20split&persist=1",
+        headers={"X-Anon-Id": "review-anon-3"},
+    )
+    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
+
+    r = client.get(
+        f"/api/report/{persisted['id']}",
+        headers={"X-Anon-Id": "review-anon-3"},
+    )
+    assert r.status_code == 200
+    assert r.json()["id"] == persisted["id"]
+
+
+def test_persist_via_query_anon_id_listed_in_reports_mine(client, isolated):
+    """EventSource path: anon_id arrives as a QUERY param (no header).
+
+    The browser EventSource can't set headers, so analyze.py also accepts
+    `anon_id` as a query param. A report persisted that way must still be
+    findable via /api/reports/mine (which reads the X-Anon-Id header).
+    """
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=q&persist=1&anon_id=review-anon-q",
+    )
+    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
+
+    r = client.get("/api/reports/mine", headers={"X-Anon-Id": "review-anon-q"})
+    assert r.status_code == 200
+    ids = [it["id"] for it in r.json()["items"]]
+    assert persisted["id"] in ids
+
+
+def test_get_report_by_id_wrong_anon_is_404(client, isolated):
+    """A different anon-id reading someone's report → 404 (not 403)."""
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=q&persist=1",
+        headers={"X-Anon-Id": "owner-anon"},
+    )
+    persisted = next(p for n, p in _parse_sse(text) if n == "persisted")
+
+    r = client.get(
+        f"/api/report/{persisted['id']}",
+        headers={"X-Anon-Id": "someone-else"},
+    )
+    assert r.status_code == 404
+
+
+***REMOVED*** --------- P1-3: out-of-scope gate on /api/analyze/stream --------- ***REMOVED***
+
+
+def test_analyze_refuses_arithmetic_query(client, isolated):
+    """"1+1=?" must NOT generate a report — emits a terminal `error`."""
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=1%2B1%3D%3F",
+    )
+    events = _parse_sse(text)
+    names = [n for n, _ in events]
+    assert "error" in names
+    assert "section" not in names, "off-topic query must not produce sections"
+    err = next(p for n, p in events if n == "error")
+    assert err["code"] == "out_of_scope"
+
+
+def test_analyze_refuses_chitchat_query(client, isolated):
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=%E4%BD%A0%E5%A5%BD",  ***REMOVED*** 你好
+    )
+    events = _parse_sse(text)
+    assert "error" in [n for n, _ in events]
+
+
+***REMOVED*** --------- P0-2: daily LLM budget circuit breaker --------- ***REMOVED***
+
+
+def test_analyze_over_budget_emits_friendly_error(client, isolated, monkeypatch):
+    """When the daily cap is hit, /api/analyze/stream emits a friendly
+    `error` event (code budget_exceeded), NOT a crash and NOT a report."""
+    ***REMOVED*** Drive a tiny positive cap and exhaust it. Use the real singleton the
+    ***REMOVED*** endpoint imports. reset() AFTER setenv so the date/count are fresh.
+    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
+    from services.cost_ledger import ledger
+    ledger.reset()
+    assert ledger.snapshot()["cap"] == 1
+    ***REMOVED*** First request consumes the single allowed slot (real generation).
+    first = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=why%20teams%20split",
+    )
+    assert "section" in [n for n, _ in _parse_sse(first)]
+    ***REMOVED*** Second request is over budget.
+    text = _stream_text(
+        client,
+        "/api/analyze/stream?b_id=b_target&text_a=why%20teams%20split%20again",
+    )
+    events = _parse_sse(text)
+    err = next((p for n, p in events if n == "error"), None)
+    assert err is not None, "over-budget request must emit an error event"
+    assert err["code"] == "budget_exceeded"
+    assert "section" not in [n for n, _ in events]
+    ledger.reset()

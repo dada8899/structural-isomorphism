@@ -48,12 +48,29 @@ def resolver():
     return _extract_resolve_callable(dec)
 
 
-def test_resolver_free_tier_uses_table(resolver):
+def test_resolver_free_tier_uses_endpoint_floor(resolver):
+    """Launch P1-1 — `free` tier uses the per-endpoint `default_anon` floor.
+
+    `TierResolutionMiddleware` resolves an un-keyed (anonymous) request to
+    the "free" tier — there is no separate "anonymous" tier in TIER_LIMITS.
+    So `free` MUST resolve to the endpoint floor (here 5/minute), NOT the
+    60/minute table value. The old assertion encoded the bug: anonymous
+    LLM traffic silently ran at 60/min and `default_anon` was dead code.
+    """
     from middleware.rate_limit import CURRENT_TIER
     tok = CURRENT_TIER.set("free")
     try:
-        ***REMOVED*** free → 60/minute from TIER_LIMITS table
-        assert resolver() == "60/minute"
+        assert resolver() == "5/minute"
+    finally:
+        CURRENT_TIER.reset(tok)
+
+
+def test_resolver_anonymous_tier_uses_endpoint_floor(resolver):
+    """Explicit 'anonymous' tier also resolves to the endpoint floor."""
+    from middleware.rate_limit import CURRENT_TIER
+    tok = CURRENT_TIER.set("anonymous")
+    try:
+        assert resolver() == "5/minute"
     finally:
         CURRENT_TIER.reset(tok)
 

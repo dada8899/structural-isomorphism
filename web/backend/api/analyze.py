@@ -267,6 +267,43 @@ async def stream_analyze(
             "is_query_mode": user_query is not None,
         })
 
+        ***REMOVED*** Launch P1-3 — out-of-scope gate for query mode. The deep-report
+        ***REMOVED*** generator previously had NO scope check: "1+1 等于几" + any b_id
+        ***REMOVED*** produced a full 9-section report (验证型产品硬拗 = 信任崩).
+        ***REMOVED*** Two layers, either trips:
+        ***REMOVED***   (a) deterministic trivial/chit-chat detector (arithmetic,
+        ***REMOVED***       greetings, trivia) — catches obvious junk;
+        ***REMOVED***   (b) similarity floor — the query-vs-KB cosine. A genuine
+        ***REMOVED***       cross-domain question lands well above this; pure noise
+        ***REMOVED***       does not. ANALYZE_SCOPE_MIN_SIMILARITY is env-tunable.
+        ***REMOVED*** Pair mode (two KB phenomena) is in-scope by construction — skip.
+        if user_query is not None:
+            from services.scope_guard import is_out_of_scope as _is_oos
+            oos, oos_reason = _is_oos(user_query)
+            scope_floor = float(
+                os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.30")
+            )
+            if not oos and similarity < scope_floor:
+                oos, oos_reason = True, "low_similarity"
+            if oos:
+                logger.info(
+                    "[analyze] out-of-scope query refused; reason=%s "
+                    "similarity=%.3f", oos_reason, similarity,
+                )
+                yield sse("error", {
+                    "message": (
+                        "这个问题超出了 Structural 的能力范围。Structural "
+                        "做的是跨领域结构迁移——把一个领域里验证过的方法，"
+                        "迁移到另一个结构相似的问题上。简单计算、事实查询、"
+                        "闲聊这类问题，换用更对口的工具会更合适。"
+                    ),
+                    "code": "out_of_scope",
+                    "scope_reason": oos_reason,
+                    "retryable": False,
+                })
+                yield sse("done", {"report": None, "from_cache": False})
+                return
+
         ***REMOVED*** Check cache
         cached = _cache.get(cache_key_a, b_id)
         if cached:
@@ -284,6 +321,24 @@ async def stream_analyze(
             if persist_payload is not None:
                 yield sse("persisted", persist_payload)
             yield sse("done", {"report": cached, "from_cache": True})
+            return
+
+        ***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker. The cached path
+        ***REMOVED*** above is free (no LLM call) so it is intentionally NOT charged;
+        ***REMOVED*** only a genuine generation counts. Headers are already sent here,
+        ***REMOVED*** so an over-budget request is surfaced as a terminal SSE `error`
+        ***REMOVED*** event + `done` rather than an HTTP 429.
+        from services.cost_ledger import ledger as _cost_ledger
+        from errors import BudgetExceeded as _BudgetExceeded
+        try:
+            _cost_ledger.charge(endpoint="/api/analyze/stream")
+        except _BudgetExceeded as be:
+            yield sse("error", {
+                "message": be.detail,
+                "code": "budget_exceeded",
+                "retryable": False,
+            })
+            yield sse("done", {"report": None, "from_cache": False})
             return
 
         def _report_quality(report):

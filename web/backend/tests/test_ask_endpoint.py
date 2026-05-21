@@ -466,35 +466,123 @@ class TestAskStreamEndpoint:
             r = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
         assert r.status_code == 503
 
-    def test_rate_limit_free_tier_smoke(self, ask_app):
-        """Smoke: free-tier traffic flows without immediate 429.
+    def test_rate_limit_free_tier_enforces_endpoint_floor(self, ask_app):
+        """Launch P1-1 — anonymous/free /api/ask traffic is capped at the
+        endpoint floor (5/min), NOT the 60/min free-tier table value.
 
-        Updated for W11-C ContextVar-driven tier resolution: requests
-        without an X-API-Key resolve to tier='free' via
-        TierResolutionMiddleware, not 'anonymous'. The free-tier cap is
-        60/min from middleware.rate_limit.TIER_LIMITS, so a 6-request
-        burst should NOT trip the limiter (previous test asserted 429
-        on 6th under the broken static-5/min path that this fix removed).
+        Requests without an X-API-Key resolve to tier='free' via
+        TierResolutionMiddleware. `/api/ask/stream` is decorated with
+        `tier_limit_decorator(default_anon="5/minute")`. Before the P1-1
+        fix `free` walked the 60/min table branch and `default_anon` was
+        dead code — anonymous LLM traffic ran 12x looser than documented.
 
-        Strict per-tier spec resolution is unit-tested in
-        test_rate_limit_tier_contextvar.py — that file calls the inner
-        `_resolve_spec` directly under each ContextVar value.
+        This test asserts the protection actually fires: the first 5
+        requests pass, the 6th is rejected with 429. This is the
+        regression guard for the "限流形同虚设" finding.
         """
         with TestClient(ask_app) as client:
-            for _ in range(5):
+            for i in range(5):
                 with client.stream(
                     "POST",
                     "/api/ask/stream",
                     json={"query": "Why do banks collapse"},
                 ) as r:
-                    assert r.status_code == 200
+                    assert r.status_code == 200, f"request {i + 1} should pass"
                     for _line in r.iter_text():
                         pass
             r6 = client.post(
                 "/api/ask/stream", json={"query": "Why do banks collapse"}
             )
-        ***REMOVED*** Free tier 60/min: 6th request well under the cap.
-        assert r6.status_code == 200
+        ***REMOVED*** 6th request exceeds the 5/min floor → rate limited.
+        assert r6.status_code == 429
+
+
+***REMOVED*** --------------------------------------------------------------------------
+***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker on /api/ask/stream
+***REMOVED*** --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def ask_app_with_problem_handler(ask_app):
+    """ask_app + RFC 7807 handlers so BudgetExceeded → friendly 429.
+
+    The bare `ask_app` doesn't install problem handlers; the real main.py
+    does. BudgetExceeded is an RFC 7807 ProblemDetail, so without the
+    handler it would surface as a 500. This fixture mirrors prod.
+    """
+    from errors import install_problem_handlers
+    install_problem_handlers(ask_app)
+    return ask_app
+
+
+def test_ask_over_budget_returns_friendly_429(ask_app_with_problem_handler, monkeypatch):
+    """When the daily LLM cap is hit, /api/ask/stream returns a 429
+    RFC 7807 problem response (budget_exceeded), not a 500 and not a
+    real LLM call."""
+    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
+    from services.cost_ledger import ledger
+    ledger.reset()
+
+    with TestClient(ask_app_with_problem_handler) as client:
+        ***REMOVED*** First request consumes the single allowed slot.
+        with client.stream(
+            "POST", "/api/ask/stream", json={"query": "Why do banks collapse"}
+        ) as r1:
+            assert r1.status_code == 200
+            for _ in r1.iter_text():
+                pass
+        ***REMOVED*** Second request is over budget — friendly 429, not 500.
+        r2 = client.post(
+            "/api/ask/stream", json={"query": "Why do banks collapse again"}
+        )
+    assert r2.status_code == 429
+    body = r2.json()
+    ***REMOVED*** RFC 7807 envelope with the budget_exceeded type.
+    assert body["type"].endswith("/budget_exceeded")
+    assert "tomorrow" in body["detail"].lower()
+    ledger.reset()
+
+
+def test_ask_under_budget_unaffected(ask_app_with_problem_handler, monkeypatch):
+    """A generous cap leaves normal traffic untouched."""
+    monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1000")
+    from services.cost_ledger import ledger
+    ledger.reset()
+    with TestClient(ask_app_with_problem_handler) as client:
+        r = client.post("/api/ask/stream", json={"query": "Why do banks collapse"})
+    assert r.status_code == 200
+    ledger.reset()
+
+
+***REMOVED*** --------------------------------------------------------------------------
+***REMOVED*** Launch P1-2 — LLM errors map to stable codes, never leak str(exc)
+***REMOVED*** --------------------------------------------------------------------------
+
+
+def test_classify_upstream_error_maps_to_stable_codes():
+    """`_classify_upstream_error` returns a neutral code, never raw text."""
+    import httpx
+    from services.ask_orchestrator import _classify_upstream_error
+
+    assert _classify_upstream_error(httpx.TimeoutException("x")) == "upstream_timeout"
+    assert _classify_upstream_error(httpx.ConnectError("x")) == "upstream_unreachable"
+    ***REMOVED*** Unknown errors degrade to a generic, non-leaking code.
+    assert _classify_upstream_error(ValueError("secret-url-inside")) == "upstream_error"
+    ***REMOVED*** The code must NOT contain the original exception text.
+    for exc in (httpx.TimeoutException("https://internal:9000 timed out after 300s"),
+                RuntimeError("connection refused at 10.0.0.5")):
+        code = _classify_upstream_error(exc)
+        assert "internal" not in code and "10.0.0.5" not in code
+
+
+def test_classify_llm_error_maps_to_stable_codes():
+    """`_classify_llm_error` (llm_service) also returns neutral codes."""
+    import httpx
+    from services.llm_service import _classify_llm_error
+
+    assert _classify_llm_error(httpx.TimeoutException("x")) == "upstream_timeout"
+    assert _classify_llm_error(httpx.ConnectError("x")) == "upstream_unreachable"
+    assert _classify_llm_error(RuntimeError("boom")) == "upstream_error"
 
 
 if __name__ == "__main__":

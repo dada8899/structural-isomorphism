@@ -142,6 +142,25 @@ def _is_forecasting_intent(query: str, lang: str) -> bool:
     return any(k.lower() in q for k in kws)
 
 
+def _classify_upstream_error(exc: BaseException) -> str:
+    """Map an LLM-call exception to a stable, non-leaking error code.
+
+    P1-2 — the raw `str(exc)` of an httpx error can embed the upstream
+    URL, timeout seconds and connection internals. Callers only branch on
+    `kind == "error"` and never render the value to users today, but we
+    still return a neutral code (never the exception text) so a future
+    caller can't accidentally leak it. Full detail stays in the server log.
+    """
+    name = type(exc).__name__.lower()
+    if "timeout" in name:
+        return "upstream_timeout"
+    if "connect" in name or "network" in name or "proxy" in name:
+        return "upstream_unreachable"
+    if "status" in name or "httpstatus" in name:
+        return "upstream_error"
+    return "upstream_error"
+
+
 def _sse(event: str, data: Dict) -> str:
     """Format a single SSE event line."""
     payload = json.dumps(data, ensure_ascii=False)
@@ -408,7 +427,15 @@ class AskOrchestrator:
         ***REMOVED*** Either trip refuses. The intent gate catches the "AI 能不能预测股票"
         ***REMOVED*** class of query that retrieves OK but is the one thing we must not
         ***REMOVED*** answer.
-        if _is_forecasting_intent(query, lang_norm):
+        ***REMOVED*** P1-3 — deterministic trivial / chit-chat gate. Runs FIRST and
+        ***REMOVED*** catches obvious junk ("1+1=?", "你好", "今天几号") even when it
+        ***REMOVED*** happens to retrieve a KB card with a passable cosine. Cheaper +
+        ***REMOVED*** more reliable than leaning on the score gate for these classes.
+        from services.scope_guard import is_out_of_scope as _is_oos
+        oos, oos_reason = _is_oos(query)
+        if oos:
+            low_relevance, relevance_reason = True, f"off_topic_{oos_reason}"
+        elif _is_forecasting_intent(query, lang_norm):
             low_relevance, relevance_reason = True, "forecasting_intent"
         else:
             low_relevance, relevance_reason = self._evaluate_relevance(cards)
@@ -978,8 +1005,11 @@ class AskOrchestrator:
                     if emitted:
                         yield ("answer_delta", emitted)
         except Exception as e:
+            ***REMOVED*** P1-2 — never surface the raw exception string. httpx errors
+            ***REMOVED*** can carry the upstream URL / timeout / connection internals.
+            ***REMOVED*** Map to a stable, neutral code; full detail stays in the log.
             logger.error(f"[ask] LLM stream failed: {e}")
-            yield ("error", str(e))
+            yield ("error", _classify_upstream_error(e))
 
     def _build_prompt(
         self,
@@ -1065,8 +1095,12 @@ KB 现象列表（结构相似度排序）：
         `query` / `cards` are accepted for signature parity with
         `_fallback_payload` and possible future tailoring; not used today.
         """
-        no_cards = scope_reason == "no_cards"
         forecasting = scope_reason == "forecasting_intent"
+        ***REMOVED*** P1-3 — trivial / chit-chat / trivia queries (scope_reason
+        ***REMOVED*** "off_topic_*") get the same explicit "this isn't what Structural
+        ***REMOVED*** does — use a calculator / factual tool" wording as `no_cards`,
+        ***REMOVED*** which already names arithmetic & factual lookups by hand.
+        no_cards = scope_reason == "no_cards" or scope_reason.startswith("off_topic_")
         if lang == "en":
             if forecasting:
                 answer = (

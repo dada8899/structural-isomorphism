@@ -13,6 +13,23 @@ logger = logging.getLogger("structural.llm")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
+def _classify_llm_error(exc: BaseException) -> str:
+    """Map an LLM-call exception to a stable, non-leaking error code.
+
+    P1-2 — `str(exc)` from httpx can embed the upstream URL, timeout
+    seconds and connection internals. Endpoints surface the `message`
+    field of an error chunk to the frontend, so it MUST be a neutral
+    code, never the raw exception text. Full detail stays in the log.
+    """
+    if isinstance(exc, httpx.TimeoutException):
+        return "upstream_timeout"
+    if isinstance(exc, (httpx.ConnectError, httpx.NetworkError, httpx.ProxyError)):
+        return "upstream_unreachable"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return "upstream_error"
+    return "upstream_error"
+
+
 ***REMOVED*** Language clause appended to every system prompt so the LLM produces the
 ***REMOVED*** user-requested output language. Default lang="zh" preserves legacy behavior.
 _LANG_CLAUSE = {
@@ -780,8 +797,11 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 
                     yield {"type": "done", "report": final_report}
         except Exception as e:
+            ***REMOVED*** P1-2 — surface a stable error code, not the raw exception
+            ***REMOVED*** string (httpx errors leak the upstream URL / timeout / conn
+            ***REMOVED*** internals). Full detail stays server-side in the log line.
             logger.error(f"Deep analysis stream failed: {e}")
-            yield {"type": "error", "message": str(e)}
+            yield {"type": "error", "message": _classify_llm_error(e)}
             yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity, lang=lang)}
 
     ***REMOVED*** Sentinel strings used to detect a fallback report in downstream cache

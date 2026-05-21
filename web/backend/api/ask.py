@@ -113,6 +113,12 @@ async def ask_stream(request: Request, req: AskRequest):
     if search is None:
         raise HTTPException(503, "Search service not ready")
 
+    ***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker. Charge BEFORE the
+    ***REMOVED*** pipeline runs so an over-budget request never pays the API cost.
+    ***REMOVED*** BudgetExceeded is an RFC 7807 ProblemDetail → friendly 429, not 500.
+    from services.cost_ledger import ledger as _cost_ledger
+    _cost_ledger.charge(endpoint="/api/ask/stream")
+
     orchestrator = AskOrchestrator(search_service=search, llm=_get_llm())
     log.info("ask.response", tier=tier)
 
