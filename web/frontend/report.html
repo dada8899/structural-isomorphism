@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260521s17">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260521s17">
   <link rel="stylesheet" href="/assets/css/common.css?v=20260521s17">
-  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260521s17">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260521v2">
   <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260521s17">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260521s17">
 
@@ -85,6 +85,10 @@
         </div>
       </div>
 
+      <!-- SESSION-17 V1: core insight card, rendered by analyze.js's
+           renderTldrCard from the persisted payload. -->
+      <div id="analyze-tldr" class="analyze-tldr" hidden></div>
+
       <div id="analyze-sections"></div>
     </div>
   </main>
@@ -118,8 +122,8 @@
   <!-- utils.js defines `$` and other helpers analyze.js's renderFinalReport
        relies on — must load before analyze.js (mirrors analyze.html). -->
   <script src="/assets/js/utils.js?v=20260521a"></script>
-  <script src="/assets/js/analyze.js?v=20260521a"></script>
-  <script src="/assets/js/report.js?v=20260521a"></script>
+  <script src="/assets/js/analyze.js?v=20260521v2"></script>
+  <script src="/assets/js/report.js?v=20260521v2"></script>
   <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
 </body>
 </html>

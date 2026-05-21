@@ -25,16 +25,21 @@ var _tldrShownLogged = false;
 // SSE still emits sections in its prompt order (shared_structure first,
 // action_plan last); the TL;DR pinned card at the very top fills in as soon
 // as action_plan arrives so the user has the "answer" even before scrolling.
+// SESSION-17 V5: `risks_and_limits`（迁移风险）moved up to §3 — right after
+// the answer (action_plan / borrowable_insights). The migration-risk section
+// is the hardest part for a generic LLM to replicate; it must not be buried
+// at §9. Backend SSE emit order is unchanged (see STREAM_ORDER) — only the
+// display order shifts.
 const SECTIONS = [
   { key: 'action_plan', label: '本周行动', label_key: 'page.analyze.section_action_plan', num: '§1' },
   { key: 'borrowable_insights', label: '可借用的工具', label_key: 'page.analyze.section_borrowable_insights', num: '§2' },
-  { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§3' },
-  { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§4' },
-  { key: 'target_domain_intro', label: '那个领域是怎么回事', label_key: 'page.analyze.section_target_domain_intro', num: '§5' },
-  { key: 'structural_mapping', label: '两个问题逐项对照', label_key: 'page.analyze.section_structural_mapping', num: '§6' },
-  { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§7' },
-  { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§8' },
-  { key: 'risks_and_limits', label: '借用时的坑', label_key: 'page.analyze.section_risks_and_limits', num: '§9' },
+  { key: 'risks_and_limits', label: '借用时的坑', label_key: 'page.analyze.section_risks_and_limits', num: '§3' },
+  { key: 'shared_structure', label: '共享结构', label_key: 'page.analyze.section_shared_structure', num: '§4' },
+  { key: 'your_problem_breakdown', label: '你的问题拆解', label_key: 'page.analyze.section_your_problem_breakdown', num: '§5' },
+  { key: 'target_domain_intro', label: '那个领域是怎么回事', label_key: 'page.analyze.section_target_domain_intro', num: '§6' },
+  { key: 'structural_mapping', label: '两个问题逐项对照', label_key: 'page.analyze.section_structural_mapping', num: '§7' },
+  { key: 'how_to_combine', label: '怎么结合', label_key: 'page.analyze.section_how_to_combine', num: '§8' },
+  { key: 'research_directions', label: '研究方向', label_key: 'page.analyze.section_research_directions', num: '§9' },
 ];
 
 // The order backend SSE actually emits sections in (matches the LLM prompt's
@@ -434,6 +439,43 @@ const renderers = {
       `;
     };
 
+    // SESSION-17 V5: Rank-0 verification action. Before executing any
+    // cross-domain migration, the user should first self-check whether the
+    // analogy even holds. This is pinned ABOVE the full plan as "Rank 0" —
+    // the engine isn't changed; this is a fixed, honest pre-flight step.
+    // Concrete check items are pulled from the report's own
+    // how_to_combine.assumptions_to_verify when available, otherwise a
+    // generic "does the structural mapping survive contact with reality" prompt.
+    const renderRankZero = () => {
+      const report = window._finalReport || {};
+      const combine = report.how_to_combine || {};
+      const assumptions = Array.isArray(combine.assumptions_to_verify)
+        ? combine.assumptions_to_verify.slice(0, 3) : [];
+      const mapping = report.structural_mapping || {};
+      const pairs = Array.isArray(mapping.parameter_map) ? mapping.parameter_map : [];
+      const checks = assumptions.length > 0
+        ? assumptions
+        : (pairs.length > 0
+            ? [T('page.analyze.rank0_check_mapping', '逐项核对上面「两个问题逐项对照」里的每一对——有没有哪一对其实是牵强的')]
+            : [T('page.analyze.rank0_check_generic', '问自己：这个类比里最容易不成立的一环是什么？先验证它')]);
+      return `
+        <li class="action-item action-item--rank0">
+          <div class="action-item__header">
+            <span class="action-item__rank action-item__rank--zero">0</span>
+            <h3 class="action-item__title">${T('page.analyze.rank0_title', '先自检：这个类比成不成立')}</h3>
+            <span class="action-item__time">${T('page.analyze.rank0_time', '15–30 分钟')}</span>
+          </div>
+          <p class="action-item__rank0-why">${T('page.analyze.rank0_why', '下面的迁移动作全部建立在「你的问题和那个领域结构相同」这个假设上。先花半小时验证它再执行——类比一旦不成立，后面做得越多越偏。')}</p>
+          <div class="action-item__row">
+            <span class="action-item__row-label">${T('page.analyze.rank0_how_label', '怎么验证')}</span>
+            <ul class="action-item__rank0-checks">
+              ${checks.map(c => `<li>${md(c)}</li>`).join('')}
+            </ul>
+          </div>
+        </li>
+      `;
+    };
+
     return `
       ${intro ? `<p class="action-plan__intro">${md(intro)}</p>` : ''}
 
@@ -448,6 +490,7 @@ const renderers = {
       ${items.length > 0 ? `
         <h3 class="section__subtitle">${T('page.analyze.action_full_plan', '本周完整计划')}</h3>
         <ol class="action-list">
+          ${renderRankZero()}
           ${items.map(itemHtml).join('')}
         </ol>
       ` : ''}
@@ -515,11 +558,49 @@ function updateSection(key, data) {
   }
 }
 
-// === TL;DR pinned card ===
-// Lives above the section list. Fills in as soon as the backend streams
-// `action_plan` (last) or `shared_structure.intuition` (first). The whole
-// point: even though `action_plan` arrives last, the user sees the answer
-// in the same visual position they entered the page on, no scrolling.
+// === Core insight card (SESSION-17 V1 + V4) ===
+// Lives above the section list. The single most valuable thing on the page:
+//   1. one counter-intuitive insight  (shared_structure.intuition)
+//   2. three things to do right now   (action_plan.this_week, top 3)
+//   3. a credibility badge            (meta.credibility — V4)
+// The 9 sections below it default to a quieter, secondary role.
+// Reused verbatim by the saved/shared report page (report.js).
+
+// Map a similarity score [0,1] into a calm confidence tier.
+function credibilityTier(sim) {
+  const s = typeof sim === 'number' ? sim : 0;
+  if (s >= 0.55) return { label: T('page.analyze.cred_high', '高匹配置信度'), cls: 'cred--high' };
+  if (s >= 0.38) return { label: T('page.analyze.cred_mid', '中等匹配置信度'), cls: 'cred--mid' };
+  return { label: T('page.analyze.cred_low', '匹配置信度偏低'), cls: 'cred--low' };
+}
+
+// Build the V4 credibility badge from meta.credibility — REAL fields only.
+// Never invents numbers; if a field is missing, that line is simply omitted.
+function renderCredibilityBadge(credibility) {
+  const c = credibility || {};
+  if (typeof c.similarity !== 'number' && !c.has_verified_pairs) return '';
+  const parts = [];
+  if (typeof c.similarity === 'number') {
+    const tier = credibilityTier(c.similarity);
+    const pct = Math.round(Math.max(0, Math.min(1, c.similarity)) * 100);
+    parts.push(`
+      <span class="cred-badge__chip ${tier.cls}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        <span>${tier.label} · ${pct}%</span>
+      </span>`);
+  }
+  if (c.has_verified_pairs && c.verified_pair_count > 0) {
+    const n = c.verified_pair_count;
+    parts.push(`
+      <span class="cred-badge__chip cred-badge__chip--verified">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        <span>${T('page.analyze.cred_verified', '这个跨域映射有 {n} 个经 AI 评审验证过的同构对').replace('{n}', n)}</span>
+      </span>`);
+  }
+  if (!parts.length) return '';
+  return `<div class="cred-badge">${parts.join('')}</div>`;
+}
+
 function renderTldrCard() {
   const el = document.getElementById('analyze-tldr');
   if (!el) return;
@@ -528,10 +609,16 @@ function renderTldrCard() {
   const ifShort = action.if_time_short;
   const struct = r.shared_structure || {};
   const items = Array.isArray(action.this_week) ? action.this_week : [];
+  const meta = window._analyzeMeta || {};
+  const credibility = meta.credibility || null;
 
-  // Don't show the card at all until at least one of the two anchor sections
-  // has data — otherwise we'd flash an empty box right when the page loads.
-  if (!ifShort && !struct.intuition) {
+  // The counter-intuitive insight: prefer shared_structure.intuition; if that
+  // isn't in yet, fall back to the "if you only do one thing" rationale.
+  const insightText = struct.intuition || (ifShort && ifShort.rationale) || '';
+
+  // Don't show the card until we have either the insight or the action plan —
+  // otherwise we'd flash an empty box right when the page loads.
+  if (!insightText && !ifShort && items.length === 0) {
     el.hidden = true;
     return;
   }
@@ -547,32 +634,61 @@ function renderTldrCard() {
   }
 
   const md = window.mdInline || ((s) => escapeHtml(s || ''));
-  const isPending = !ifShort;
+  // "Pending" = the action plan hasn't streamed in yet.
+  const isPending = items.length === 0 && !ifShort;
   el.classList.toggle('analyze-tldr--pending', isPending);
 
-  const titleHtml = ifShort
-    ? `<h2 class="analyze-tldr__title">${md(ifShort.title || '')}</h2>
-       ${ifShort.rationale ? `<p class="analyze-tldr__rationale">${md(ifShort.rationale)}</p>` : ''}`
+  // --- 1. counter-intuitive insight ---
+  const insightHtml = insightText
+    ? `<p class="analyze-tldr__insight">${md(insightText)}</p>`
     : `<div class="analyze-tldr__waiting">
          <span class="analyze-tldr__waiting-dot"></span>
-         <span>${T('page.analyze.tldr_waiting', '本周行动正在生成…')}</span>
+         <span>${T('page.analyze.tldr_waiting', '核心洞察正在生成…')}</span>
        </div>`;
 
-  const coreHtml = struct.intuition
-    ? `<div class="analyze-tldr__core">
-         <span class="analyze-tldr__core-label">${T('page.analyze.tldr_core_label', '一句话核心')}</span>
-         <span class="analyze-tldr__core-text">${md(struct.intuition)}</span>
-       </div>`
-    : '';
+  // --- 2. three immediate actions (top 3 of this_week) ---
+  let actionsHtml = '';
+  const top3 = items.slice(0, 3);
+  if (top3.length > 0) {
+    actionsHtml = `
+      <div class="analyze-tldr__actions">
+        <div class="analyze-tldr__actions-label">${T('page.analyze.tldr_actions_label', '现在就能做的三件事')}</div>
+        <ol class="analyze-tldr__actions-list">
+          ${top3.map((it) => `<li>${md(it.title || '')}</li>`).join('')}
+        </ol>
+      </div>`;
+  } else if (!isPending && ifShort) {
+    // No this_week list but we have "if only one thing" — surface that.
+    actionsHtml = `
+      <div class="analyze-tldr__actions">
+        <div class="analyze-tldr__actions-label">${T('page.analyze.tldr_one_action_label', '如果只做一件事')}</div>
+        <ol class="analyze-tldr__actions-list">
+          <li>${md(ifShort.title || '')}</li>
+        </ol>
+      </div>`;
+  } else if (isPending) {
+    actionsHtml = `
+      <div class="analyze-tldr__actions analyze-tldr__actions--pending">
+        <div class="analyze-tldr__actions-label">${T('page.analyze.tldr_actions_label', '现在就能做的三件事')}</div>
+        <div class="analyze-tldr__waiting">
+          <span class="analyze-tldr__waiting-dot"></span>
+          <span>${T('page.analyze.tldr_actions_waiting', '本周行动正在生成…')}</span>
+        </div>
+      </div>`;
+  }
+
+  // --- 3. credibility badge (V4) ---
+  const badgeHtml = renderCredibilityBadge(credibility);
 
   const moreHtml = items.length
     ? `<a href="***REMOVED***section-action_plan" class="analyze-tldr__more">${T('page.analyze.tldr_more', '完整 {n} 步清单').replace('{n}', items.length)} ↓</a>`
     : '';
 
   el.innerHTML = `
-    <div class="analyze-tldr__label">${T('page.analyze.tldr_label', 'TL;DR · 如果你只能做一件事')}</div>
-    ${titleHtml}
-    ${coreHtml}
+    <div class="analyze-tldr__label">${T('page.analyze.tldr_label', '核心洞察')}</div>
+    ${insightHtml}
+    ${actionsHtml}
+    ${badgeHtml}
     ${moreHtml}
   `;
 }
@@ -921,6 +1037,9 @@ function submitFeedback(btn) {
 // Expose so the share-page (report.js) can reuse the same submitFeedback.
 window._m14_submitFeedback = submitFeedback;
 window._m14_renderShareBar = renderShareBar;
+// SESSION-17 V1: expose the core insight card renderer so report.js can
+// render the same card on the saved/shared report page.
+window.renderTldrCard = renderTldrCard;
 
 function updateProgressState(receivedKeys, currentStreamingKey) {
   $$('.analyze-progress__item').forEach(el => {

@@ -22,6 +22,68 @@ function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+// === SESSION-17 V2 helpers ===
+
+// A candidate is a "real cross-domain source" when the backend marks
+// `cross_domain === true`. When the field is absent we treat it as true —
+// the backend contract says cross_domain defaults to true when undecidable,
+// so being permissive here matches that intent.
+function isCrossDomain(r) {
+  return r && r.cross_domain !== false;
+}
+
+// Out-of-scope: the question isn't a phenomenon-shaped problem (arithmetic,
+// chitchat, trivia). Show a friendly explanation, not an empty result list.
+function renderOutOfScope(query, data) {
+  const summaryEl = $('***REMOVED***search-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div class="search-question">
+        <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
+        <div class="search-question__text">${escapeHtml(query)}</div>
+      </div>
+    `;
+  }
+  const reason = (data && data.scope_reason) || 'ok';
+  const reasonCopy = {
+    arithmetic: T('page.search.oos_arithmetic', '这看起来是一道算术 / 计算题——直接算就好，没有「另一个学科里的同款现象」可以借。'),
+    chitchat: T('page.search.oos_chitchat', '这像是闲聊。Structural 擅长的是把一个卡住的复杂现象映射到别的学科，闲聊没有可借的结构。'),
+    trivia: T('page.search.oos_trivia', '这像是一个查事实的问题。Structural 不是搜索引擎——它擅长的是给「行为像某种模式」的难题找跨学科解法。'),
+  };
+  const msg = reasonCopy[reason] || T('page.search.oos_default', '这个问题不太适合用跨学科结构同构来解——它没有一个可以映射到别的领域的「现象结构」。');
+
+  const resultsEl = $('***REMOVED***search-results');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = `
+    <div class="assess-gate">
+      <div class="assess-gate__icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+      </div>
+      <h2 class="assess-gate__title">${T('page.search.oos_title', '这个问题更适合别的工具')}</h2>
+      <p class="assess-gate__coaching">${msg}</p>
+      <div class="assess-gate__suggestion">
+        <div class="assess-gate__suggestion-label">${T('page.search.oos_what_fits', '💡 Structural 擅长什么')}</div>
+        <div class="assess-gate__suggestion-text">${T('page.search.oos_what_fits_text', '描述一个「行为像某种模式」的难题——比如增长卡住、留存下滑、组织效率塌陷、某个趋势莫名反转。这类问题往往在另一个学科里有结构相同的成熟解法。')}</div>
+      </div>
+      <div class="assess-gate__actions">
+        <a href="/" class="btn btn--primary">${T('page.search.back_home', '返回首页')}</a>
+        <a href="/about" class="btn btn--ghost">${T('page.search.learn_structural', '了解 Structural')}</a>
+      </div>
+    </div>
+  `;
+}
+
+// A small inline tag marking whether a candidate is truly cross-domain
+// relative to the user's surface domain.
+function crossDomainTag(r) {
+  if (isCrossDomain(r)) {
+    return `<span class="xd-tag xd-tag--cross">${T('page.search.xd_cross', '跨领域')}</span>`;
+  }
+  return `<span class="xd-tag xd-tag--same">${T('page.search.xd_same', '同领域')}</span>`;
+}
+
 function renderSkeleton() {
   const container = $('***REMOVED***search-results');
   if (!container) return;
@@ -200,12 +262,14 @@ let _lastQuery = '';
 let _lastResults = [];
 let _lastSynth = null;
 let _lastV2PairsForTop = [];
+let _lastStats = null;          // SESSION-17 V2: search `stats` (cross/same counts)
 
 function renderResults(query, data) {
   _lastQuery = query;
   _lastResults = data.results || [];
   _lastSynth = null;
   _lastV2PairsForTop = Array.isArray(data.v2_pairs_for_top) ? data.v2_pairs_for_top : [];
+  _lastStats = data.stats || null;
 
   const container = $('***REMOVED***search-results');
   if (!container) return;
@@ -234,6 +298,7 @@ function renderResults(query, data) {
   // unranked form with a soft "AI 排序中" hint at the top.
   container.innerHTML = `
     <div class="search-page__results">
+      ${renderCrossDomainBanner(query, null)}
       <div class="search-page__results-title">
         <span>${T('page.search.candidates_title', '跨领域证据')} · ${data.results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         <span class="search-page__results-hint">${T('page.search.results_pre_synth_hint', 'AI 正在挑选首推 · 现在已可点击查看')}</span>
@@ -246,6 +311,7 @@ function renderResults(query, data) {
                 <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
                 <span class="result-card__meta-dot"></span>
                 <span class="result-card__meta-type">${T('page.search.structure_prefix', '结构')} ${escapeHtml(r.type_id)}</span>
+                ${crossDomainTag(r)}
               </div>
               <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
               <p class="result-card__description">${escapeHtml(r.description)}</p>
@@ -258,6 +324,72 @@ function renderResults(query, data) {
             </div>
           </a>
         `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// SESSION-17 V2: the cross-domain guidance banner. Sits above the candidate
+// list. Three states:
+//   (a) no real cross-domain candidate  → honest "solve it in its own domain"
+//   (b) a cross-domain candidate exists  → name it + a one-line preview of
+//       what the report will reframe the problem through
+//   (c) recommendedResult given          → richer preview tied to that pick
+// `recommendedResult` is optional — when the synth has picked a primary, we
+// pass it so the preview names the exact source.
+function renderCrossDomainBanner(query, recommendedResult) {
+  const results = _lastResults || [];
+  const stats = _lastStats || {};
+  const surfaceDomain = stats.surface_domain || null;
+
+  // Count cross-domain candidates — prefer the backend stat, fall back to
+  // counting the results ourselves.
+  let crossCount = (typeof stats.cross_domain_count === 'number')
+    ? stats.cross_domain_count
+    : results.filter(isCrossDomain).length;
+
+  // (a) No real cross-domain source — be honest, don't push a flat answer.
+  if (crossCount === 0 && results.length > 0) {
+    return `
+      <div class="xd-banner xd-banner--same-domain">
+        <div class="xd-banner__icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </div>
+        <div class="xd-banner__body">
+          <div class="xd-banner__title">${T('page.search.xd_none_title', '这个问题更适合在它本来的领域里解决')}</div>
+          <p class="xd-banner__text">${T('page.search.xd_none_text', 'Structural 没有找到真正来自其他学科的同构现象——下面的候选都和你的问题在同一个领域里。跨领域类比在这里帮不上忙，直接用你这一行的成熟方法可能更快。')}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  if (crossCount === 0) return '';
+
+  // (b)/(c) There IS a cross-domain source. Name the recommended one.
+  // Pick the recommended result, else the first cross-domain candidate.
+  const pick = (recommendedResult && isCrossDomain(recommendedResult))
+    ? recommendedResult
+    : results.find(isCrossDomain);
+  if (!pick) return '';
+
+  const domainStrong = `<strong>${escapeHtml(pick.domain || '')}</strong>`;
+  const surfacePart = surfaceDomain
+    ? T('page.search.xd_preview_with_surface', '你的问题表面属于「{surface}」。')
+        .replace('{surface}', escapeHtml(surfaceDomain))
+    : '';
+  return `
+    <div class="xd-banner xd-banner--cross">
+      <div class="xd-banner__icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/><path d="M9 12h6"/></svg>
+      </div>
+      <div class="xd-banner__body">
+        <div class="xd-banner__title">${T('page.search.xd_preview_title', '生成报告时会发生什么')}</div>
+        <p class="xd-banner__text">
+          ${surfacePart}
+          ${T('page.search.xd_preview_text', '点开报告后，Structural 会用 {domain} 的成熟解法重新理解你的问题——这才是它和通用 AI 不一样的地方。')
+              .replace('{domain}', domainStrong)}
+        </p>
+        <p class="xd-banner__hint">${T('page.search.xd_preview_hint', '提示：选一个标着「跨领域」的候选，跨学科迁移才成立。')}</p>
       </div>
     </div>
   `;
@@ -335,6 +467,7 @@ function renderResultsWithSynth() {
     const v2PairsHtmlFallback = renderV2PairsForTop();
     container.innerHTML = `
       <div class="search-page__results">
+        ${renderCrossDomainBanner(query, null)}
         <div class="search-page__results-title">
           <span>${T('page.search.candidates_title', '跨领域证据')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         </div>
@@ -346,6 +479,7 @@ function renderResultsWithSynth() {
                   <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
                   <span class="result-card__meta-dot"></span>
                   <span class="result-card__meta-type">${T('page.search.structure_prefix', '结构')} ${escapeHtml(r.type_id)}</span>
+                  ${crossDomainTag(r)}
                 </div>
                 <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
                 <p class="result-card__description">${escapeHtml(r.description)}</p>
@@ -385,6 +519,7 @@ function renderResultsWithSynth() {
           <div class="rec-primary__body">
             <div class="rec-primary__meta">
               <span class="rec-primary__domain">${escapeHtml(pr.domain)}</span>
+              ${crossDomainTag(pr)}
               <span class="rec-primary__score">${scoreTier(pr.score).pct}% · ${scoreTier(pr.score).label}</span>
             </div>
             <h3 class="rec-primary__name">${escapeHtml(pr.name)}</h3>
@@ -423,7 +558,7 @@ function renderResultsWithSynth() {
         <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
           <div class="rec-alt__angle">${escapeHtml(alt.angle_label || T('page.search.alt_angle_default', '补充视角'))}</div>
           <h4 class="rec-alt__name">${escapeHtml(r.name)}</h4>
-          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}%</div>
+          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}% ${crossDomainTag(r)}</div>
           ${alt.reason ? `<p class="rec-alt__reason">${window.mdInline(alt.reason)}</p>` : ''}
           <div class="rec-alt__cta">
             ${T('page.search.deep_analysis', '深度分析')}
@@ -461,6 +596,7 @@ function renderResultsWithSynth() {
                 <div class="rec-other__main">
                   <div class="rec-other__meta">
                     <span class="rec-other__domain">${escapeHtml(r.domain)}</span>
+                    ${crossDomainTag(r)}
                   </div>
                   <div class="rec-other__name">${escapeHtml(r.name)}</div>
                   ${snippet ? `<p class="rec-other__snippet">${escapeHtml(snippet)}</p>` : `<p class="rec-other__desc">${escapeHtml(r.description)}</p>`}
@@ -476,8 +612,13 @@ function renderResultsWithSynth() {
 
   const v2PairsHtml = renderV2PairsForTop();
 
+  // SESSION-17 V2: banner names the recommended cross-domain source. `pr`
+  // is the synth's primary pick — pass it so the preview is specific.
+  const xdBanner = renderCrossDomainBanner(query, pr || null);
+
   container.innerHTML = `
     <div class="search-page__results">
+      ${xdBanner}
       ${primaryHtml}
       ${altHtml}
       ${v2PairsHtml}
@@ -635,6 +776,14 @@ async function performSearch(query) {
 
     const data = await searchPromise;
 
+    // SESSION-17 V2: out-of-scope questions (arithmetic / chitchat / trivia)
+    // get a friendly explanation instead of an empty result list. Stop here —
+    // no synth, no assessment gate.
+    if (data && data.out_of_scope) {
+      renderOutOfScope(query, data);
+      return;
+    }
+
     renderQuestionHeader(query, data);
     renderResults(query, data);
 
@@ -745,6 +894,11 @@ async function performSearch(query) {
       if (rewritten && rewritten !== query) {
         try {
           const better = await StructuralAPI.search(rewritten, 20);
+          // SESSION-17 V2: a rewritten query can also turn out-of-scope.
+          if (better && better.out_of_scope) {
+            renderOutOfScope(query, better);
+            return;
+          }
           better.rewritten_query = rewritten;
           currentData = better;
           renderQuestionHeader(query, better);
@@ -814,6 +968,7 @@ try {
           results: _lastResults,
           rewritten_query: null,
           v2_pairs_for_top: _lastV2PairsForTop,
+          stats: _lastStats,
         };
         renderQuestionHeader(q, data);
         if (_lastSynth) {

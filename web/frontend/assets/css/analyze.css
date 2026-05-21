@@ -1632,3 +1632,285 @@ ol.md-list li::before {
   opacity: 1;
   background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
 }
+
+/* ============================================================
+   SESSION-17 V1 — core insight card (insight + 3 actions)
+   ============================================================ */
+
+/* The counter-intuitive one-liner — the most valuable sentence on the page. */
+.analyze-tldr__insight {
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2.2vw, 25px);
+  font-weight: var(--fw-regular);
+  letter-spacing: -0.01em;
+  line-height: 1.42;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.analyze-tldr--pending .analyze-tldr__insight {
+  font-size: var(--fs-15, 15px);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* Three things to do right now. */
+.analyze-tldr__actions {
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-4);
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 10px);
+}
+
+.analyze-tldr__actions-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.analyze-tldr--pending .analyze-tldr__actions-label {
+  color: var(--text-tertiary);
+}
+
+.analyze-tldr__actions-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: tldr-act;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.analyze-tldr__actions-list li {
+  counter-increment: tldr-act;
+  position: relative;
+  padding-left: 30px;
+  font-size: var(--fs-14);
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.analyze-tldr__actions-list li::before {
+  content: counter(tldr-act);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  color: var(--accent);
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.08));
+  border-radius: 50%;
+}
+
+/* ============================================================
+   SESSION-17 V4 — credibility badge (moat surfacing)
+   ============================================================ */
+
+.cred-badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.cred-badge__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.4;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  color: var(--text-secondary);
+}
+
+.cred-badge__chip svg { flex-shrink: 0; }
+
+.cred-badge__chip.cred--high {
+  color: var(--success);
+  border-color: rgba(5, 150, 105, 0.25);
+  background: rgba(5, 150, 105, 0.06);
+}
+.cred-badge__chip.cred--mid {
+  color: var(--warning);
+  border-color: rgba(217, 119, 6, 0.25);
+  background: rgba(217, 119, 6, 0.06);
+}
+.cred-badge__chip.cred--low {
+  color: var(--text-tertiary);
+}
+
+.cred-badge__chip--verified {
+  color: var(--accent);
+  border-color: rgba(37, 99, 235, 0.22);
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.08));
+}
+
+/* ============================================================
+   SESSION-17 V5 — Rank-0 verification action
+   ============================================================ */
+
+.action-item--rank0 {
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.06));
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.action-item__rank--zero {
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+
+.action-item__rank0-why {
+  font-size: var(--fs-14);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3);
+}
+
+.action-item__rank0-checks {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: var(--fs-14);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+.action-item__rank0-checks li { margin-bottom: 6px; }
+.action-item__rank0-checks li:last-child { margin-bottom: 0; }
+.action-item__rank0-checks li::marker { color: var(--accent); }
+
+/* ============================================================
+   SESSION-17 V6 — report → action → outcome follow-up panel
+   ============================================================ */
+
+.report-followup {
+  margin: var(--space-6) 0;
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-tertiary, ***REMOVED***f8f7f3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.report-followup__head { margin-bottom: var(--space-4); }
+
+.report-followup__title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: var(--fw-regular);
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.report-followup__sub {
+  font-size: var(--fs-13, 13px);
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.report-followup__saved {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  padding: 4px 10px;
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full, 999px);
+}
+
+.report-followup__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* `display:flex` above would otherwise beat the [hidden] attribute. */
+.report-followup__field[hidden] { display: none; }
+
+.report-followup__label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+}
+
+.report-followup__optional {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-quaternary, ***REMOVED***c4c4c4);
+}
+
+.rf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rf-chip {
+  padding: 6px 14px;
+  font-size: var(--fs-13, 13px);
+  color: var(--text-secondary);
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full, 999px);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.rf-chip:hover { border-color: var(--text-tertiary); }
+.rf-chip--on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.08));
+  font-weight: var(--fw-medium);
+}
+
+.report-followup__note {
+  width: 100%;
+  padding: var(--space-3);
+  font-family: inherit;
+  font-size: var(--fs-14);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-primary, ***REMOVED***fafaf9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  resize: vertical;
+}
+.report-followup__note:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.report-followup__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-followup__msg { font-size: var(--fs-13, 13px); color: var(--text-tertiary); }
+.report-followup__msg--ok { color: var(--success); }
+.report-followup__msg--err { color: var(--danger); }
+
+@media (max-width: 768px) {
+  .report-followup { padding: var(--space-4); }
+  .analyze-tldr__actions { padding: var(--space-3); }
+}

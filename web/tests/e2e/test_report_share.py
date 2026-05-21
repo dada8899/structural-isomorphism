@@ -257,6 +257,22 @@ def test_persist_flow_share_token_round_trip(report_backend, seed_report):
     assert set(body["payload"]) == set(SECTION_KEYS)
 
 
+def test_credibility_lifted_from_payload(report_backend, seed_report):
+    """V4 — credibility persisted inside payload (_credibility) is lifted to
+    a top-level field on read, and the payload comes back section-only."""
+    cred = {"kb_source": True, "similarity": 0.84, "has_verified_pairs": True,
+            "verified_pair_count": 3}
+    payload = {**_sample_payload(), "_credibility": cred}
+    rep = seed_report(query="V4 徽章测试", payload=payload)
+    base = report_backend["base"]
+    status, body = _api("GET", f"{base}/api/report/share/{rep['share_token']}")
+    assert status == 200, body
+    assert body["credibility"] == cred
+    ***REMOVED*** _credibility must not leak into the section payload.
+    assert "_credibility" not in body["payload"]
+    assert set(body["payload"]) == set(SECTION_KEYS)
+
+
 def test_share_invalid_token_returns_404(report_backend):
     base = report_backend["base"]
     ***REMOVED*** Well-formed (32 hex) but unsigned token.

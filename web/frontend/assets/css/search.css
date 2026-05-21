@@ -1258,3 +1258,90 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ============================================================
+   SESSION-17 V2 — cross-domain tagging + guidance banner
+   ============================================================ */
+
+/* Inline tag on each candidate's meta row: 跨领域 vs 同领域. */
+.xd-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.xd-tag--cross {
+  color: var(--accent);
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.08));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+.xd-tag--same {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* The guidance banner above the candidate list. */
+.xd-banner {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg, 10px);
+  border: 1px solid var(--border-subtle);
+}
+.xd-banner--cross {
+  background: var(--accent-subtle, rgba(37, 99, 235, 0.06));
+  border-color: rgba(37, 99, 235, 0.2);
+}
+.xd-banner--same-domain {
+  background: rgba(217, 119, 6, 0.05);
+  border-color: rgba(217, 119, 6, 0.22);
+}
+
+.xd-banner__icon {
+  flex-shrink: 0;
+  display: flex;
+  padding-top: 1px;
+}
+.xd-banner--cross .xd-banner__icon { color: var(--accent); }
+.xd-banner--same-domain .xd-banner__icon { color: var(--warning); }
+
+.xd-banner__body { flex: 1; min-width: 0; }
+
+.xd-banner__title {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.xd-banner__text {
+  font-size: var(--fs-13, 13px);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.xd-banner__text strong { color: var(--text-primary); font-weight: var(--fw-medium); }
+
+.xd-banner__hint {
+  font-size: var(--fs-12);
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  margin: 6px 0 0;
+}
+
+.rec-primary__meta .xd-tag,
+.rec-alt__meta .xd-tag,
+.rec-other__meta .xd-tag {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .xd-banner { padding: var(--space-3) var(--space-4); }
+}

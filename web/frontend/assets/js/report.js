@@ -55,10 +55,20 @@
    * Chinese headings, structured cards, KaTeX formulas — instead of the old
    * raw key-value dump that exposed `if_time_short` / `this_week` etc.
    */
-  function renderReport(payload, container) {
+  function renderReport(payload, container, detail) {
     // Expose the payload + meta the way analyze.js expects so its renderers
     // and any i18n re-render path can read them.
     window._finalReport = payload || {};
+
+    // SESSION-17 V4: persisted reports do NOT carry `meta.credibility`
+    // (the report detail API only returns the 9-section `payload`). We still
+    // expose a meta object so the core insight card can render, but with
+    // `credibility: null` — renderCredibilityBadge() then honestly omits the
+    // badge rather than inventing numbers.
+    window._analyzeMeta = {
+      credibility: (detail && detail.credibility) || null,
+      similarity: (detail && typeof detail.similarity === 'number') ? detail.similarity : undefined,
+    };
 
     if (typeof window.renderFinalReport === 'function') {
       window.renderFinalReport(payload || {});
@@ -91,6 +101,153 @@
     }
     // Render any inline math the LLM emitted.
     if (typeof window.renderMath === 'function') window.renderMath(container);
+  }
+
+  // === SESSION-17 V6: report → action → outcome follow-up loop ===
+  // A quiet panel below the action_plan section. Lets the user record
+  // whether they acted on the report and how it went. GETs the existing
+  // state on load (back-fill), POSTs on submit.
+  const FOLLOWUP_STATUS = [
+    { v: 'planned', label: '打算试' },
+    { v: 'in_progress', label: '正在做' },
+    { v: 'tried', label: '已经试过' },
+    { v: 'abandoned', label: '放弃了' },
+  ];
+  const FOLLOWUP_OUTCOME = [
+    { v: 'worked', label: '有效' },
+    { v: 'partial', label: '部分有效' },
+    { v: 'no_effect', label: '没效果' },
+    { v: 'too_early', label: '还太早' },
+  ];
+
+  function anonHeaders() {
+    let anonId = '';
+    try { anonId = localStorage.getItem('anonId') || ''; } catch (e) {}
+    return anonId ? { 'X-Anon-Id': anonId } : {};
+  }
+
+  // followupState holds the last-known/server state; null = nothing recorded.
+  function renderFollowup(reportId, followupState) {
+    // Anchor the panel right after the action_plan section.
+    const anchor = document.getElementById('section-action_plan');
+    if (!anchor) return;
+    let panel = document.getElementById('report-followup');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'report-followup';
+      panel.className = 'report-followup';
+      anchor.insertAdjacentElement('afterend', panel);
+    }
+
+    const st = followupState || {};
+    const curStatus = st.action_status || '';
+    const curOutcome = st.outcome || '';
+    const curNote = st.note || '';
+    // Outcome only matters once the user has actually tried.
+    const showOutcome = curStatus === 'tried' || curStatus === 'in_progress';
+
+    const chip = (group, opt, selected) => `
+      <button type="button" class="rf-chip${selected ? ' rf-chip--on' : ''}"
+              data-group="${group}" data-value="${opt.v}">${escapeHtml(opt.label)}</button>`;
+
+    panel.innerHTML = `
+      <div class="report-followup__head">
+        <h3 class="report-followup__title">我试过了吗 · 结果如何</h3>
+        <p class="report-followup__sub">记一笔。下次回到这份报告时，能看到你当时做到哪一步。</p>
+      </div>
+      ${st.action_status ? `<div class="report-followup__saved" id="rf-saved-hint">上次记录：${escapeHtml((FOLLOWUP_STATUS.find(x => x.v === curStatus) || {}).label || curStatus)}${curOutcome ? ' · ' + escapeHtml((FOLLOWUP_OUTCOME.find(x => x.v === curOutcome) || {}).label || curOutcome) : ''}</div>` : ''}
+      <div class="report-followup__field">
+        <span class="report-followup__label">进展</span>
+        <div class="rf-chips" id="rf-status">
+          ${FOLLOWUP_STATUS.map(o => chip('status', o, o.v === curStatus)).join('')}
+        </div>
+      </div>
+      <div class="report-followup__field" id="rf-outcome-field" ${showOutcome ? '' : 'hidden'}>
+        <span class="report-followup__label">结果</span>
+        <div class="rf-chips" id="rf-outcome">
+          ${FOLLOWUP_OUTCOME.map(o => chip('outcome', o, o.v === curOutcome)).join('')}
+        </div>
+      </div>
+      <div class="report-followup__field">
+        <span class="report-followup__label">备注 <span class="report-followup__optional">选填</span></span>
+        <textarea class="report-followup__note" id="rf-note" rows="2" maxlength="2000"
+                  placeholder="试了之后有什么发现？">${escapeHtml(curNote)}</textarea>
+      </div>
+      <div class="report-followup__actions">
+        <button type="button" class="btn btn--primary btn--sm" id="rf-submit">保存</button>
+        <span class="report-followup__msg" id="rf-msg" aria-live="polite"></span>
+      </div>
+    `;
+
+    // Local selection state (seeded from server).
+    const sel = { status: curStatus, outcome: curOutcome };
+
+    panel.querySelectorAll('.rf-chip').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        // Toggle within group — clicking the active chip clears it.
+        const wasOn = btn.classList.contains('rf-chip--on');
+        panel.querySelectorAll(`.rf-chip[data-group="${group}"]`)
+          .forEach(b => b.classList.remove('rf-chip--on'));
+        if (!wasOn) btn.classList.add('rf-chip--on');
+        sel[group] = wasOn ? '' : value;
+        // Show/hide the outcome field based on status.
+        if (group === 'status') {
+          const of = document.getElementById('rf-outcome-field');
+          const reveal = sel.status === 'tried' || sel.status === 'in_progress';
+          if (of) of.hidden = !reveal;
+        }
+      });
+    });
+
+    const submitBtn = document.getElementById('rf-submit');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        const msg = document.getElementById('rf-msg');
+        if (!sel.status) {
+          if (msg) { msg.textContent = '先选一个进展'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+          return;
+        }
+        const note = (document.getElementById('rf-note') || {}).value || '';
+        const body = { action_status: sel.status };
+        if (sel.outcome) body.outcome = sel.outcome;
+        if (note.trim()) body.note = note.trim().slice(0, 2000);
+
+        submitBtn.disabled = true;
+        if (msg) { msg.textContent = '保存中…'; msg.className = 'report-followup__msg'; }
+
+        fetch('/api/report/' + encodeURIComponent(reportId) + '/followup', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, anonHeaders()),
+          body: JSON.stringify(body),
+        })
+          .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+          .then(() => {
+            submitBtn.disabled = false;
+            if (msg) { msg.textContent = '已保存'; msg.className = 'report-followup__msg report-followup__msg--ok'; }
+            trackPlausible('Report Followup', { action_status: sel.status, outcome: sel.outcome || 'none' });
+          })
+          .catch((err) => {
+            console.warn('[report] followup save failed:', err);
+            submitBtn.disabled = false;
+            if (msg) { msg.textContent = '没保存成功，请稍后再试'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+          });
+      });
+    }
+  }
+
+  // Fetch any previously recorded follow-up and render the panel.
+  function loadFollowup(reportId) {
+    if (!reportId) return;
+    fetch('/api/report/' + encodeURIComponent(reportId) + '/followup', { headers: anonHeaders() })
+      .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+      .then((data) => { renderFollowup(reportId, data && data.followup); })
+      .catch((err) => {
+        // GET failing shouldn't block the panel — show the empty form.
+        console.warn('[report] followup load failed:', err);
+        renderFollowup(reportId, null);
+      });
   }
 
   function renderMeta(meta, data) {
@@ -163,7 +320,14 @@
 
         const sectionsContainer = document.getElementById('analyze-sections');
         if (sectionsContainer) {
-          renderReport(data.payload || {}, sectionsContainer);
+          renderReport(data.payload || {}, sectionsContainer, data);
+        }
+
+        // SESSION-17 V1: render the core insight card on the saved/shared
+        // page too, using analyze.js's renderTldrCard (it reads the same
+        // window._finalReport + window._analyzeMeta we just populated).
+        if (typeof window.renderTldrCard === 'function') {
+          try { window.renderTldrCard(); } catch (e) { /* non-fatal */ }
         }
 
         // Stash persisted info so window._m14_submitFeedback can POST.
@@ -187,6 +351,10 @@
         if (window._m14_renderShareBar && shareToken) {
           window._m14_renderShareBar(window._persistedReport);
         }
+
+        // SESSION-17 V6: load + render the report→action→outcome follow-up
+        // panel below the action_plan section.
+        if (data.id) loadFollowup(data.id);
 
         trackPlausible('Report Share Page Viewed', {
           referrer: document.referrer ? 'external' : 'direct',
