@@ -5,9 +5,10 @@
 级联脆弱 / 自组织临界 等），为什么，不干预会怎样演化，该盯哪个信号，
 以及 1-2 条结构性建议。它不预测股价。
 
-普通 JSON 端点（非 SSE）—— 单次 LLM 调用、结构化结果，无需流式。
+普通 JSON 端点（非 SSE）—— LLM 调用 + KB 检索，结构化结果，无需流式。
 结构状态是代码里的固定白名单，LLM 只能从中选，输出经 guardrail 校验。
-LLM 不可用时返回 503，不假装能诊断。
+诊断书会额外挂一个「同结构的真实参照案例」（来自 KB），让结论有据可依；
+检索不可用时优雅降级，诊断照常完成。LLM 不可用时返回 503。
 """
 from __future__ import annotations
 
@@ -58,7 +59,17 @@ async def diagnose(request: Request, req: DiagnoseRequest):
             "结构诊断需要 LLM 服务，当前不可用。请稍后重试。",
         )
 
-    result = await run_diagnosis(situation)
+    ***REMOVED*** Best-effort: hand the KB search service to the diagnosis so it can
+    ***REMOVED*** anchor the result to a real same-structure phenomenon. When it is
+    ***REMOVED*** missing (not booted / tests) run_diagnosis just skips the lookup.
+    try:
+        from main import app_state
+
+        search_svc = app_state.get("search")
+    except Exception:  ***REMOVED*** noqa: BLE001 — search anchor is optional
+        search_svc = None
+
+    result = await run_diagnosis(situation, search_svc=search_svc)
     if result is None:
         ***REMOVED*** LLM call failed or returned unrecoverable garbage.
         raise HTTPException(

@@ -21,18 +21,42 @@
   function show(el) { if (el) el.hidden = false; }
   function hide(el) { if (el) el.hidden = true; }
 
-  // --- One-sentence research claim for a lead ---
+  // --- The research question for a lead ---
+  // When the build ran the LLM layer, each lead carries a concrete,
+  // verifiable research_question. Without a key the field is absent — fall
+  // back to a templated question so the page still works.
+  function leadQuestion(lead) {
+    if (lead.research_question) return String(lead.research_question);
+    return lead.domain + '中是否存在属于「' + lead.class_name +
+      '」的结构同构现象？' +
+      (lead.anchor_name ? '以「' + lead.anchor_name + '」为切入点验证。' : '');
+  }
+
+  // --- One-sentence research claim (fallback when no LLM rationale) ---
   function leadClaim(lead) {
+    if (lead.rationale) return esc(lead.rationale);
     return '「' + esc(lead.domain) + '」领域里，大概率存在属于 ' +
       '<em>' + esc(lead.class_name) + '</em> 的现象，但目前还没有人去验证。';
   }
 
+  // --- Plausibility badge (only when the LLM layer ran) ---
+  function plausibleBadge(lead) {
+    if (lead.plausible === 'yes') {
+      return '<span class="ws-lead__plausible ws-lead__plausible--yes" ' +
+        'title="LLM 评判：结构上几乎必然存在">大概率成立</span>';
+    }
+    if (lead.plausible === 'maybe') {
+      return '<span class="ws-lead__plausible ws-lead__plausible--maybe" ' +
+        'title="LLM 评判：有合理可能，需验证">值得验证</span>';
+    }
+    return '';
+  }
+
   // --- Build the /analyze prefill URL for a lead ---
+  // text_a = the concrete research question (LLM-generated when available).
   function analyzeUrl(lead) {
-    var question = lead.domain + '中是否存在属于「' + lead.class_name +
-      '」的结构？以「' + (lead.anchor_name || '') + '」为切入点验证。';
     var p = new URLSearchParams();
-    p.set('text_a', question);
+    p.set('text_a', leadQuestion(lead));
     if (lead.anchor_id) p.set('b_id', lead.anchor_id);
     return '/analyze?' + p.toString();
   }
@@ -149,6 +173,18 @@
       return true;
     });
 
+    // When the LLM layer ran, surface yes > maybe > (unjudged) first; then
+    // by score. Without LLM fields this is a stable no-op (all rank 1).
+    var plausRank = { yes: 0, maybe: 1 };
+    rows = rows.slice().sort(function (a, b) {
+      var ra = plausRank[a.plausible];
+      var rb = plausRank[b.plausible];
+      ra = (ra == null) ? 2 : ra;
+      rb = (rb == null) ? 2 : rb;
+      if (ra !== rb) return ra - rb;
+      return (b.score || 0) - (a.score || 0);
+    });
+
     host.innerHTML = '';
     if (rows.length === 0) { show(emptyEl); return; }
     hide(emptyEl);
@@ -167,13 +203,25 @@
           (lead.anchor_desc ? ' — ' + esc(lead.anchor_desc) : '') + '</p>';
       }
 
+      // The concrete research question — headline of the card when the LLM
+      // layer produced one; otherwise a templated question still shows.
+      var questionHtml = '<p class="ws-lead__question">' +
+        esc(leadQuestion(lead)) + '</p>';
+
+      // Rationale line: LLM's "why" when present, else the generic claim.
+      var rationaleHtml = '<p class="ws-lead__claim' +
+        (lead.rationale ? ' ws-lead__claim--llm' : '') + '">' +
+        leadClaim(lead) + '</p>';
+
       card.innerHTML =
         '<div class="ws-lead__top">' +
           '<span class="ws-lead__tag ws-lead__tag--class">' + esc(lead.class_name) + '</span>' +
           '<span class="ws-lead__tag ws-lead__tag--domain">' + esc(lead.domain) + '</span>' +
+          plausibleBadge(lead) +
           '<span class="ws-lead__score">相似度 ' + (lead.score || 0).toFixed(3) + '</span>' +
         '</div>' +
-        '<p class="ws-lead__claim">' + leadClaim(lead) + '</p>' +
+        questionHtml +
+        rationaleHtml +
         anchorHtml +
         '<div class="ws-lead__actions">' +
           '<a class="ws-btn ws-btn--primary" href="' + esc(analyzeUrl(lead)) +

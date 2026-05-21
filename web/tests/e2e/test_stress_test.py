@@ -77,3 +77,25 @@ def test_stress_test_weakest_link_rendered(page: Page):
     weakest = page.locator("***REMOVED***stress-weakest-text")
     expect(weakest).to_be_visible()
     assert len(weakest.inner_text().strip()) > 0, "weakest link should have text"
+
+
+@pytest.mark.post_deploy
+def test_stress_test_precedent_block_graceful(page: Page):
+    """The KB-precedent block either shows with real content or stays hidden.
+
+    Precedent depends on a KB search hit clearing the relevance floor — it
+    may legitimately be absent. When present it must carry a phenomenon
+    name + a failure-precedent sentence + a /phenomenon link.
+    """
+    page.goto(f"{BASE}/stress-test")
+    page.fill("***REMOVED***stress-claim", "这次 AI 泡沫和 2000 年互联网泡沫一样")
+    page.click("***REMOVED***stress-submit")
+    expect(page.locator("***REMOVED***stress-result")).to_be_visible(timeout=45000)
+    prec = page.locator("***REMOVED***stress-precedent")
+    if prec.is_visible():
+        name = page.locator("***REMOVED***stress-precedent-name").inner_text().strip()
+        failure = page.locator("***REMOVED***stress-precedent-failure").inner_text().strip()
+        assert len(name) > 0, "precedent should name a phenomenon"
+        assert len(failure) > 0, "precedent should explain how it broke"
+        href = page.locator("***REMOVED***stress-precedent-link").get_attribute("href") or ""
+        assert href.startswith("/phenomenon/"), f"bad precedent link: {href!r}"

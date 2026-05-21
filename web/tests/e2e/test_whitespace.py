@@ -57,6 +57,8 @@ _MATRIX = {
     },
 }
 
+***REMOVED*** Two leads carry LLM verdicts (yes / maybe), one does not (degraded path)
+***REMOVED*** — exercises both the LLM-enriched and the no-key fallback rendering.
 _LEADS = {
     "available": True,
     "total": 3,
@@ -65,10 +67,18 @@ _LEADS = {
     "leads": [
         {"class_id": "c2", "class_name": "二阶振子类", "domain": "海洋学",
          "score": 0.36, "anchor_id": "p-100", "anchor_name": "海气耦合",
-         "anchor_desc": "风浪与海面的耦合振荡。"},
+         "anchor_desc": "风浪与海面的耦合振荡。",
+         "signal": {"type_match": 0.71, "embedding_cos": 0.12,
+                    "used_type_signature": True},
+         "plausible": "yes", "rationale": "海气耦合具二阶阻尼振子结构。",
+         "research_question": "海洋学中的厄尔尼诺振荡是否符合阻尼二阶振子模型？"},
         {"class_id": "c1", "class_name": "阈值级联类", "domain": "医学",
          "score": 0.28, "anchor_id": "p-200", "anchor_name": "免疫级联",
-         "anchor_desc": "免疫反应的级联放大。"},
+         "anchor_desc": "免疫反应的级联放大。",
+         "signal": {"type_match": 0.55, "embedding_cos": 0.09,
+                    "used_type_signature": True},
+         "plausible": "maybe", "rationale": "免疫级联可能存在阈值触发。",
+         "research_question": "医学中的细胞因子风暴是否存在阈值触发的雪崩？"},
         {"class_id": "c2", "class_name": "二阶振子类", "domain": "金融",
          "score": 0.20, "anchor_id": "p-300", "anchor_name": "价格振荡",
          "anchor_desc": "市场价格的阻尼振荡。"},
@@ -167,12 +177,35 @@ def test_leads_render_with_analyze_link(local_server, chromium_browser):
     try:
         cards = page.locator(".ws-lead")
         assert cards.count() == 3
-        first_link = page.locator(".ws-lead").first.locator("a.ws-btn--primary")
+        first = page.locator(".ws-lead").first
+        first_link = first.locator("a.ws-btn--primary")
         href = first_link.get_attribute("href")
         assert href.startswith("/analyze?")
-        assert "text_a=" in href
+        ***REMOVED*** The /analyze prefill carries the concrete research question.
+        from urllib.parse import parse_qs, urlparse
+        qs = parse_qs(urlparse(href).query)
+        assert "厄尔尼诺振荡" in qs["text_a"][0]
         ***REMOVED*** Top lead anchors p-100 (海气耦合).
         assert "b_id=p-100" in href
+    finally:
+        page.context.close()
+
+
+def test_leads_show_llm_question_rationale_and_badge(local_server, chromium_browser):
+    """When the json carries LLM fields the card shows the research
+    question, the rationale, and a yes/maybe plausibility badge."""
+    page = _open_page(chromium_browser, local_server)
+    try:
+        first = page.locator(".ws-lead").first
+        ***REMOVED*** The concrete LLM research question is the card headline.
+        assert "厄尔尼诺振荡" in first.locator(".ws-lead__question").inner_text()
+        ***REMOVED*** The LLM rationale is rendered.
+        assert "二阶阻尼振子" in first.locator(".ws-lead__claim").inner_text()
+        ***REMOVED*** yes -> 大概率成立 badge; the maybe lead -> 值得验证.
+        assert first.locator(".ws-lead__plausible--yes").count() == 1
+        assert page.locator(".ws-lead__plausible--maybe").count() == 1
+        ***REMOVED*** The unjudged third lead has no badge.
+        assert page.locator(".ws-lead__plausible").count() == 2
     finally:
         page.context.close()
 

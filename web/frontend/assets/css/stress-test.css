@@ -321,6 +321,51 @@
   margin: 0;
 }
 
+/* Precedent — real KB phenomenon backing the weakest link.
+   Visually nested inside the weakest-link card, neutral tone so the
+   evidence reads as supporting fact, not another alarm. */
+.stress-precedent {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed rgba(220, 38, 38, 0.3);
+}
+.stress-precedent__label {
+  font-size: var(--fs-12, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, ***REMOVED***6b7280);
+  margin-bottom: var(--space-2);
+}
+.stress-precedent__phenom {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  text-decoration: none;
+  margin-bottom: var(--space-2);
+}
+.stress-precedent__phenom:hover .stress-precedent__name {
+  text-decoration: underline;
+}
+.stress-precedent__domain {
+  font-size: var(--fs-12, 0.75rem);
+  font-weight: 600;
+  color: var(--text-secondary, ***REMOVED***6b7280);
+  background: var(--bg-subtle, ***REMOVED***f3f4f6);
+  border-radius: var(--radius-sm, 4px);
+  padding: 1px 6px;
+}
+.stress-precedent__name {
+  font-size: var(--fs-14, 0.875rem);
+  font-weight: 600;
+  color: var(--brand-primary, ***REMOVED***2563eb);
+}
+.stress-precedent__failure {
+  font-size: var(--fs-14, 0.875rem);
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 560px) {
   .stress-pair {

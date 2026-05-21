@@ -269,15 +269,44 @@
   font-size: var(--fs-12);
   color: var(--text-tertiary);
 }
-.ws-lead__claim {
-  font-size: var(--fs-15);
-  line-height: var(--lh-relaxed, 1.65);
+/* LLM plausibility badge — only rendered when the LLM layer ran. */
+.ws-lead__plausible {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full, 999px);
+}
+.ws-lead__plausible--yes {
+  background: rgba(26, 127, 90, 0.14);
+  color: ***REMOVED***1a7f5a;
+}
+.ws-lead__plausible--maybe {
+  background: rgba(232, 161, 58, 0.16);
+  color: ***REMOVED***b9791e;
+}
+/* The concrete research question — the headline of the lead card. */
+.ws-lead__question {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug, 1.45);
   color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.ws-lead__claim {
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed, 1.65);
+  color: var(--text-secondary);
   margin: 0 0 var(--space-3);
 }
 .ws-lead__claim em {
   font-style: normal;
   font-weight: var(--fw-semibold);
+}
+/* LLM rationale gets a subtle left rule to mark it as a model judgment. */
+.ws-lead__claim--llm {
+  padding-left: var(--space-3);
+  border-left: 2px solid rgba(26, 127, 90, 0.25);
+  color: var(--text-secondary);
 }
 .ws-lead__anchor {
   font-size: var(--fs-13);

@@ -7,6 +7,7 @@ Three layers:
 """
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -215,9 +216,168 @@ def test_coerce_result_caps_correspondences():
     assert len(out["structural_correspondences"]) == sts.MAX_CORRESPONDENCES
 
 
+***REMOVED*** --------- build_precedent_query --------- ***REMOVED***
+
+
+def test_build_precedent_query_normal():
+    q = sts.build_precedent_query("网络效应在中国市场不成立", "我们的产品")
+    assert "网络效应" in q
+    assert "我们的产品" in q
+
+
+def test_build_precedent_query_no_target():
+    q = sts.build_precedent_query("规模假设崩了")
+    assert q == "规模假设崩了"
+
+
+def test_build_precedent_query_placeholder_returns_none():
+    ***REMOVED*** The placeholder coerce_result emits when LLM gave nothing.
+    assert sts.build_precedent_query("（模型未指出最薄弱环节）") is None
+
+
+def test_build_precedent_query_empty_and_nonstr_returns_none():
+    assert sts.build_precedent_query("") is None
+    assert sts.build_precedent_query("   ") is None
+    assert sts.build_precedent_query(None) is None
+    assert sts.build_precedent_query(123) is None
+
+
+def test_build_precedent_query_placeholder_target_skipped():
+    q = sts.build_precedent_query("有效薄弱环节", "（未识别）")
+    assert q == "有效薄弱环节"
+
+
+***REMOVED*** --------- coerce_precedent --------- ***REMOVED***
+
+
+def _kb_hit():
+    return {
+        "id": "ph-001",
+        "name": "种群崩溃",
+        "domain": "生态学",
+        "description": "猎物耗尽时捕食者种群骤降",
+        "relevance": 0.72,
+        "cross_domain": True,
+    }
+
+
+def test_coerce_precedent_normal():
+    out = sts.coerce_precedent(
+        {"failure_precedent": "猎物耗尽后种群在数月内崩溃。"}, _kb_hit()
+    )
+    assert out is not None
+    assert out["phenomenon_id"] == "ph-001"
+    assert out["phenomenon_name"] == "种群崩溃"
+    assert out["domain"] == "生态学"
+    assert out["relevance"] == 0.72
+    assert "崩溃" in out["failure_precedent"]
+
+
+def test_coerce_precedent_no_failure_text_returns_none():
+    assert sts.coerce_precedent({}, _kb_hit()) is None
+    assert sts.coerce_precedent({"failure_precedent": ""}, _kb_hit()) is None
+    assert sts.coerce_precedent({"failure_precedent": 42}, _kb_hit()) is None
+    assert sts.coerce_precedent(None, _kb_hit()) is None
+
+
+def test_coerce_precedent_bad_phenomenon_returns_none():
+    raw = {"failure_precedent": "有效文本"}
+    ***REMOVED*** Missing id.
+    assert sts.coerce_precedent(raw, {"name": "x"}) is None
+    ***REMOVED*** Missing name.
+    assert sts.coerce_precedent(raw, {"id": "x"}) is None
+    ***REMOVED*** Not a dict.
+    assert sts.coerce_precedent(raw, None) is None
+
+
+def test_coerce_precedent_missing_optional_fields_filled():
+    hit = {"id": "ph-9", "name": "现象", "failure_precedent": "ignored"}
+    out = sts.coerce_precedent({"failure_precedent": "崩了"}, hit)
+    assert out["domain"] == "（未知领域）"
+    assert out["description"] == ""
+    assert out["relevance"] is None
+
+
+***REMOVED*** --------- _pick_precedent_hit --------- ***REMOVED***
+
+
+def test_pick_precedent_hit_prefers_cross_domain():
+    results = [
+        {"id": "a", "relevance": 0.9, "cross_domain": False},
+        {"id": "b", "relevance": 0.6, "cross_domain": True},
+    ]
+    ***REMOVED*** Same-domain 0.9 loses to cross-domain 0.6.
+    assert sts._pick_precedent_hit(results)["id"] == "b"
+
+
+def test_pick_precedent_hit_below_floor_returns_none():
+    results = [{"id": "a", "relevance": 0.3, "cross_domain": True}]
+    assert sts._pick_precedent_hit(results) is None
+
+
+def test_pick_precedent_hit_falls_back_to_best_when_no_cross_domain():
+    results = [
+        {"id": "a", "relevance": 0.6, "cross_domain": False},
+        {"id": "b", "relevance": 0.8, "cross_domain": False},
+    ]
+    assert sts._pick_precedent_hit(results)["id"] == "b"
+
+
+def test_pick_precedent_hit_empty_or_bad_returns_none():
+    assert sts._pick_precedent_hit([]) is None
+    assert sts._pick_precedent_hit(None) is None
+    assert sts._pick_precedent_hit(["junk", {"no_id": 1}]) is None
+
+
+***REMOVED*** --------- enrich_with_precedent (degradation) --------- ***REMOVED***
+
+
+def test_enrich_no_search_svc_degrades():
+    result = sts.coerce_result(_good_raw())
+    out = asyncio.run(sts.enrich_with_precedent(result, None))
+    assert out["precedent"] is None
+
+
+def test_enrich_search_raises_degrades():
+    class _Boom:
+        def search(self, *a, **k):
+            raise RuntimeError("index down")
+
+    result = sts.coerce_result(_good_raw())
+    out = asyncio.run(sts.enrich_with_precedent(result, _Boom()))
+    assert out["precedent"] is None
+
+
+def test_enrich_no_hit_degrades():
+    class _Empty:
+        def search(self, *a, **k):
+            return []
+
+    result = sts.coerce_result(_good_raw())
+    out = asyncio.run(sts.enrich_with_precedent(result, _Empty()))
+    assert out["precedent"] is None
+
+
 ***REMOVED*** ============================================================== ***REMOVED***
 ***REMOVED*** Layer 2 — integration tests (TestClient + mocked llm_client)   ***REMOVED***
 ***REMOVED*** ============================================================== ***REMOVED***
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset slowapi's in-memory counters before each test.
+
+    The endpoint is decorated with a 10/minute limit; without a reset the
+    later tests in this file (now > 10 POSTs) would trip a 429.
+    """
+    try:
+        from services.rate_limit import limiter
+
+        if limiter is not None:
+            limiter.reset()
+    except Exception:
+        pass
+    yield
 
 
 @pytest.fixture
@@ -239,6 +399,9 @@ def mock_llm(monkeypatch):
     """Helper to stub the llm_client used by both api + service modules.
 
     Returns a setter: call set(available=..., json_return=...).
+    `json_return` may be a single value (returned for every complete_json
+    call) or a list (consumed call-by-call — the stress test makes one call
+    and the precedent enrichment makes a second).
     """
     from api import stress_test as st_api
     from services import stress_test_service as svc
@@ -249,8 +412,14 @@ def mock_llm(monkeypatch):
             st_api.llm_client, "llm_available", lambda: available
         )
 
-        async def _fake_complete_json(**kwargs):
-            return json_return
+        if isinstance(json_return, list):
+            queue = list(json_return)
+
+            async def _fake_complete_json(**kwargs):
+                return queue.pop(0) if queue else None
+        else:
+            async def _fake_complete_json(**kwargs):
+                return json_return
 
         ***REMOVED*** complete_json is called by the service module.
         monkeypatch.setattr(
@@ -258,6 +427,47 @@ def mock_llm(monkeypatch):
         )
 
     return _set
+
+
+@pytest.fixture
+def mock_search(monkeypatch):
+    """Stub the live KB search engine reachable via `main.app_state`.
+
+    Returns a setter: call set(results) — the endpoint will see a search
+    service whose .search() yields those results. set(None) makes app_state
+    have no search service (degraded path).
+    """
+    import main as main_mod
+
+    def _set(results):
+        if results is None:
+            main_mod.app_state.pop("search", None)
+            return
+
+        class _FakeSearch:
+            def search(self, query, top_k=12):
+                return results
+
+        main_mod.app_state["search"] = _FakeSearch()
+
+    yield _set
+    main_mod.app_state.pop("search", None)
+
+
+***REMOVED*** Strong cross-domain KB hit used by precedent integration tests.
+def _kb_search_results():
+    return [
+        {
+            "id": "ph-eco-1",
+            "name": "种群崩溃",
+            "domain": "生态学",
+            "type_id": "tip",
+            "description": "猎物耗尽时捕食者种群骤降",
+            "score": 0.8,
+            "relevance": 0.78,
+            "cross_domain": True,
+        }
+    ]
 
 
 def test_endpoint_success(client, mock_llm):
@@ -339,3 +549,78 @@ def test_endpoint_missing_claim_422(client, mock_llm):
     mock_llm(available=True, json_return=_good_raw())
     resp = client.post("/api/stress-test", json={})
     assert resp.status_code == 422
+
+
+***REMOVED*** --------- precedent integration --------- ***REMOVED***
+
+
+def test_endpoint_success_with_precedent(client, mock_llm, mock_search):
+    ***REMOVED*** 1st LLM call → stress result; 2nd → precedent failure text.
+    mock_llm(
+        available=True,
+        json_return=[
+            _good_raw(),
+            {"failure_precedent": "猎物耗尽后种群在数月内崩溃，规模假设同样脆弱。"},
+        ],
+    )
+    mock_search(_kb_search_results())
+    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["verdict"] == "CONDITIONAL"
+    prec = body["precedent"]
+    assert prec is not None
+    assert prec["phenomenon_id"] == "ph-eco-1"
+    assert prec["phenomenon_name"] == "种群崩溃"
+    assert prec["domain"] == "生态学"
+    assert "崩溃" in prec["failure_precedent"]
+
+
+def test_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_search):
+    ***REMOVED*** No search service in app_state → precedent null, verdict still emitted.
+    mock_llm(available=True, json_return=_good_raw())
+    mock_search(None)
+    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["verdict"] == "CONDITIONAL"
+    assert body["precedent"] is None
+
+
+def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
+    ***REMOVED*** Search returns nothing structurally close → precedent null.
+    mock_llm(available=True, json_return=_good_raw())
+    mock_search([])
+    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["precedent"] is None
+
+
+def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
+    ***REMOVED*** KB hit found but precedent LLM returns unusable JSON → precedent null,
+    ***REMOVED*** the stress test itself still succeeds.
+    mock_llm(
+        available=True,
+        json_return=[_good_raw(), {"noise": "no failure_precedent here"}],
+    )
+    mock_search(_kb_search_results())
+    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["verdict"] == "CONDITIONAL"
+    assert body["precedent"] is None
+
+
+def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_search):
+    ***REMOVED*** KB hit exists but relevance below the floor → not a real precedent.
+    weak = _kb_search_results()
+    weak[0]["relevance"] = 0.3
+    mock_llm(
+        available=True,
+        json_return=[_good_raw(), {"failure_precedent": "不该被用到"}],
+    )
+    mock_search(weak)
+    resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
+    assert resp.status_code == 200
+    assert resp.json()["precedent"] is None

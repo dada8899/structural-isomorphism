@@ -49,7 +49,17 @@ async def stress_test(request: Request, req: StressTestRequest):
             "结构压力测试需要 LLM 服务，当前不可用。请稍后重试。",
         )
 
-    result = await run_stress_test(claim)
+    ***REMOVED*** Fetch the live KB search engine so the weakest link can be backed by
+    ***REMOVED*** a real, structurally-isomorphic phenomenon. When it isn't ready the
+    ***REMOVED*** stress test still runs — precedent simply degrades to null.
+    try:
+        from main import app_state
+
+        search_svc = app_state.get("search")
+    except Exception:  ***REMOVED*** main not importable in some test harnesses
+        search_svc = None
+
+    result = await run_stress_test(claim, search_svc)
     if result is None:
         ***REMOVED*** LLM call failed or returned unrecoverable garbage.
         raise HTTPException(

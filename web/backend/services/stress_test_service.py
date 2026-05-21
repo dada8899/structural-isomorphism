@@ -30,6 +30,11 @@ CLAIM_MAX_LEN = 600
 ***REMOVED*** Cap how many correspondences we keep — a runaway LLM could emit dozens.
 MAX_CORRESPONDENCES = 12
 
+***REMOVED*** Precedent search — how many KB candidates to pull, and the relevance floor
+***REMOVED*** below which a hit is too weak to call a real structural precedent.
+PRECEDENT_TOP_K = 6
+PRECEDENT_MIN_RELEVANCE = 0.55
+
 _SYSTEM_PROMPT = """你是一个冷静、严苛的结构红队分析师（red team）。
 
 用户会给你一个商业类比或战略判断（例如"我们是中国版的 Notion"、\
@@ -70,6 +75,168 @@ _SYSTEM_PROMPT = """你是一个冷静、严苛的结构红队分析师（red te
   "verdict": "PASS | FAIL | CONDITIONAL",
   "verdict_reason": "给出该裁决的核心理由，2-3 句"
 }"""
+
+
+***REMOVED*** Precedent grounding — second LLM call. Takes the weakest link plus ONE real
+***REMOVED*** KB phenomenon that is structurally isomorphic, and explains how that real
+***REMOVED*** phenomenon broke. This is what turns the verdict from "a clever red-team
+***REMOVED*** LLM's opinion" into "backed by a verified cross-domain precedent".
+_PRECEDENT_SYSTEM_PROMPT = """你是结构红队分析师。下面给你一个商业类比里\
+【最薄弱的一环】，以及一个从知识库里检索到的、与这一环结构同构的真实现象。
+
+这个真实现象来自其他领域（物理、生态、金融、社会系统等），它和用户类比里\
+最薄弱那一环共享同一种底层结构。
+
+你的任务：基于这个真实现象作为锚点，说清楚——"同样的结构，在那个真实现象\
+里是怎么崩的、在什么条件下崩的"。这给用户的最薄弱环节提供一个真实先例证据。
+
+严格要求：
+- 必须紧扣给你的那个真实现象，不要泛泛而谈、不要编造现象细节。
+- 讲清楚那个现象失效/崩溃的【触发条件】，并点出用户的类比是否可能踩中同样的条件。
+- 简洁，2-4 句，像红队给出的一条硬证据，不要鼓励性废话。
+
+只输出 JSON：
+{
+  "failure_precedent": "那个真实现象在什么条件下崩过 / 它对用户最薄弱环节的警示，2-4 句"
+}"""
+
+
+def build_precedent_query(weakest_link: Any, target: Any = None) -> Optional[str]:
+    """Build a KB search query from the weakest-link description.
+
+    The query is the structural description of the weakest link — we want
+    SearchService to find phenomena that share that *structure*, not the
+    surface business vocabulary. Returns None when there is no usable
+    weakest-link text (e.g. the placeholder the LLM never filled in).
+    """
+    if not isinstance(weakest_link, str):
+        return None
+    stripped = weakest_link.strip()
+    ***REMOVED*** The placeholder coerce_result emits when the LLM gave nothing.
+    if not stripped or stripped.startswith("（"):
+        return None
+    parts = [stripped]
+    if isinstance(target, str) and target.strip() and not target.strip().startswith("（"):
+        parts.append(target.strip())
+    return " ".join(parts)
+
+
+def coerce_precedent(raw: Any, phenomenon: dict) -> Optional[dict]:
+    """Coerce the precedent LLM output + the KB hit into the precedent shape.
+
+    `phenomenon` is the trusted KB search result (id/name/domain/...).
+    `raw` is the untrusted LLM JSON. Returns a clean precedent dict, or None
+    when the LLM gave nothing usable — the caller then degrades precedent to
+    null without failing the whole stress test.
+    """
+    if not isinstance(phenomenon, dict):
+        return None
+    pid = phenomenon.get("id")
+    name = phenomenon.get("name")
+    if not isinstance(pid, str) or not pid.strip():
+        return None
+    if not isinstance(name, str) or not name.strip():
+        return None
+
+    failure = None
+    if isinstance(raw, dict):
+        fp = raw.get("failure_precedent")
+        if isinstance(fp, str) and fp.strip():
+            failure = fp.strip()
+    if not failure:
+        return None
+
+    domain = phenomenon.get("domain")
+    description = phenomenon.get("description")
+    relevance = phenomenon.get("relevance")
+    return {
+        "phenomenon_id": pid.strip(),
+        "phenomenon_name": name.strip(),
+        "domain": domain.strip() if isinstance(domain, str) and domain.strip() else "（未知领域）",
+        "description": description.strip() if isinstance(description, str) and description.strip() else "",
+        "relevance": round(float(relevance), 4) if isinstance(relevance, (int, float)) else None,
+        "failure_precedent": failure,
+    }
+
+
+def _pick_precedent_hit(results: Any) -> Optional[dict]:
+    """Pick the strongest cross-domain hit above the relevance floor.
+
+    Prefers cross-domain hits (a same-domain match is not an interesting
+    structural precedent). Falls back to the best hit overall if no
+    cross-domain one clears the bar. Returns None when nothing qualifies.
+    """
+    if not isinstance(results, list) or not results:
+        return None
+    usable = [
+        r
+        for r in results
+        if isinstance(r, dict)
+        and isinstance(r.get("relevance"), (int, float))
+        and r["relevance"] >= PRECEDENT_MIN_RELEVANCE
+        and isinstance(r.get("id"), str)
+        and r.get("id")
+    ]
+    if not usable:
+        return None
+    cross = [r for r in usable if r.get("cross_domain")]
+    pool = cross if cross else usable
+    return max(pool, key=lambda r: r["relevance"])
+
+
+async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
+    """Attach a `precedent` field to a coerced stress-test result.
+
+    Uses the KB search engine to find a real phenomenon structurally
+    isomorphic to the weakest link, then asks the LLM to explain how that
+    real phenomenon broke. `precedent` is set to None on any failure
+    (search unavailable, no hit, LLM failure) — the stress test still
+    returns a full verdict. Never raises.
+    """
+    result.setdefault("precedent", None)
+    if search_svc is None:
+        return result
+
+    query = build_precedent_query(result.get("weakest_link"), result.get("target"))
+    if query is None:
+        return result
+
+    try:
+        hits = search_svc.search(query, top_k=PRECEDENT_TOP_K)
+    except Exception as e:  ***REMOVED*** search must never break the stress test
+        logger.warning("enrich_with_precedent: search failed: %s", e)
+        return result
+
+    hit = _pick_precedent_hit(hits)
+    if hit is None:
+        logger.info("enrich_with_precedent: no qualifying KB precedent")
+        return result
+
+    user_prompt = (
+        f"用户类比里最薄弱的一环：\n{result.get('weakest_link', '')}\n\n"
+        f"知识库检索到的结构同构真实现象：\n"
+        f"领域：{hit.get('domain', '')}\n"
+        f"名称：{hit.get('name', '')}\n"
+        f"描述：{hit.get('description', '')}"
+    )
+    try:
+        raw = await llm_client.complete_json(
+            system=_PRECEDENT_SYSTEM_PROMPT,
+            user=user_prompt,
+            temperature=0.3,
+            max_tokens=600,
+        )
+    except Exception as e:
+        logger.warning("enrich_with_precedent: precedent LLM failed: %s", e)
+        return result
+
+    precedent = coerce_precedent(raw, hit)
+    if precedent is None:
+        logger.info("enrich_with_precedent: precedent LLM output unusable")
+        return result
+
+    result["precedent"] = precedent
+    return result
 
 
 def validate_claim(claim: Any) -> str:
@@ -198,12 +365,17 @@ def coerce_result(raw: Any) -> Optional[dict]:
         "weakest_link": weakest_str,
         "verdict": verdict,
         "verdict_reason": reason_str,
+        ***REMOVED*** Real KB precedent backing the weakest link — filled in by
+        ***REMOVED*** enrich_with_precedent(); stays None when no precedent is found.
+        "precedent": None,
     }
 
 
-async def run_stress_test(claim: str) -> Optional[dict]:
+async def run_stress_test(claim: str, search_svc: Any = None) -> Optional[dict]:
     """Run the full stress test for one claim.
 
+    When `search_svc` is provided, the weakest link is additionally backed
+    by a real, structurally-isomorphic KB phenomenon (the product's moat).
     Returns the coerced result dict, or None when the LLM is unavailable /
     failed / returned unrecoverable garbage. Never raises on LLM problems.
     """
@@ -220,6 +392,10 @@ async def run_stress_test(claim: str) -> Optional[dict]:
     coerced = coerce_result(raw)
     if coerced is None:
         logger.warning("run_stress_test: LLM output failed schema coercion")
+        return None
+    ***REMOVED*** Ground the weakest link in a real KB precedent. Degrades silently to
+    ***REMOVED*** precedent=None when search is unavailable or finds nothing.
+    coerced = await enrich_with_precedent(coerced, search_svc)
     return coerced
 
 
@@ -227,7 +403,12 @@ __all__ = [
     "VERDICTS",
     "CLAIM_MIN_LEN",
     "CLAIM_MAX_LEN",
+    "PRECEDENT_TOP_K",
+    "PRECEDENT_MIN_RELEVANCE",
     "validate_claim",
     "coerce_result",
+    "build_precedent_query",
+    "coerce_precedent",
+    "enrich_with_precedent",
     "run_stress_test",
 ]

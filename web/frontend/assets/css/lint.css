@@ -301,6 +301,53 @@
   color: var(--color-text, ***REMOVED***1a1a18);
 }
 
+/* --- structural-isomorphism anchor block --- */
+/* The moat: a real KB phenomenon whose structure matches the claim. */
+.lint-iso {
+  margin: 10px 0;
+  padding: 11px 13px;
+  background: var(--color-bg-subtle, ***REMOVED***f6f5f1);
+  border: 1px solid var(--color-border, ***REMOVED***e5e4df);
+  border-radius: 8px;
+}
+.lint-iso__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent, ***REMOVED***4a6fa5);
+  margin-bottom: 5px;
+}
+.lint-iso__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lint-iso__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, ***REMOVED***1a1a18);
+  text-decoration: none;
+}
+.lint-iso__name:hover { text-decoration: underline; }
+.lint-iso__meta {
+  font-size: 12px;
+  color: var(--color-text-muted, ***REMOVED***8a8a86);
+}
+.lint-iso__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary, ***REMOVED***44443e);
+  margin-top: 3px;
+}
+.lint-iso__analyze {
+  font-size: 12px;
+  color: var(--color-accent, ***REMOVED***4a6fa5);
+  text-decoration: none;
+  margin-top: 4px;
+}
+.lint-iso__analyze:hover { text-decoration: underline; }
+
 /* --- responsive --- */
 @media (max-width: 600px) {
   .lint-container { padding: 0 16px; }

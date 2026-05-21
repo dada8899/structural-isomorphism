@@ -78,6 +78,56 @@
     });
   }
 
+  // --- reference case -----------------------------------------------------
+  // Render the same-structure real KB phenomenon. Two shapes:
+  //   - a real KB hit (has id) → deep-linkable to /phenomenon/{id};
+  //   - a class-hub fallback (id is empty) → shown as text, no link.
+  // Absent / null reference → the whole block stays hidden.
+  function renderReference(ref) {
+    var blockEl = $('diagnose-reference');
+    if (!blockEl) return;
+
+    if (!ref || !ref.name) {
+      blockEl.hidden = true;
+      return;
+    }
+
+    var domainEl = $('diagnose-reference-domain');
+    var nameEl = $('diagnose-reference-name');
+    var linkEl = $('diagnose-reference-link');
+    var arrowEl = $('diagnose-reference-arrow');
+    var noteEl = $('diagnose-reference-note');
+
+    if (ref.domain) {
+      domainEl.textContent = ref.domain;
+      domainEl.hidden = false;
+    } else {
+      domainEl.hidden = true;
+    }
+    nameEl.textContent = ref.name;
+
+    // Deep link only when the case carries a real KB id.
+    if (ref.id) {
+      linkEl.setAttribute('href', '/phenomenon/' + encodeURIComponent(ref.id));
+      linkEl.classList.add('is-linked');
+      if (arrowEl) arrowEl.hidden = false;
+    } else {
+      linkEl.removeAttribute('href');
+      linkEl.classList.remove('is-linked');
+      if (arrowEl) arrowEl.hidden = true;
+    }
+
+    // Optional one-line "how that case evolved" note.
+    if (ref.note) {
+      noteEl.textContent = ref.note;
+      noteEl.hidden = false;
+    } else {
+      noteEl.hidden = true;
+    }
+
+    blockEl.hidden = false;
+  }
+
   function renderReport(data) {
     var primary = data.primary_state || {};
 
@@ -104,6 +154,9 @@
 
     $('diagnose-reasoning').textContent = data.reasoning || '';
     $('diagnose-evolution').textContent = data.evolution || '';
+
+    // Same-structure real reference case (KB-anchored).
+    renderReference(data.reference_case);
 
     // Signals — hide the whole block if empty.
     var signals = data.signals_to_watch || [];

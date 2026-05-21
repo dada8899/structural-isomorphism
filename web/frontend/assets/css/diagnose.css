@@ -318,6 +318,67 @@
   margin: 0;
 }
 
+/* reference case — same-structure real KB phenomenon */
+.diagnose-reference {
+  background: var(--accent-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.diagnose-reference__tag {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.diagnose-reference__lead {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  margin: var(--space-2) 0 var(--space-3);
+}
+.diagnose-reference__card {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  text-decoration: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+.diagnose-reference__card.is-linked {
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.diagnose-reference__card.is-linked:hover {
+  border-color: var(--border-focus);
+}
+.diagnose-reference__domain {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-2);
+}
+.diagnose-reference__name {
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.diagnose-reference__arrow {
+  font-size: var(--fs-13);
+  color: var(--accent);
+  margin-left: auto;
+}
+.diagnose-reference__note {
+  font-size: var(--fs-13);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: var(--space-3) 0 0;
+}
+
 /* lists */
 .diagnose-list {
   list-style: none;

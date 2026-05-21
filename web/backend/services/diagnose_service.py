@@ -12,6 +12,14 @@ The LLM may only PICK from it — it can never invent a state. Every field
 the LLM returns is treated as untrusted: schema, types, the state_id enum
 and the confidence range are validated / coerced before reaching the API.
 
+Deepening (Session ***REMOVED***18 — F to 90+): every diagnosis is anchored to a real
+cross-domain phenomenon from the KB (4443 items). After the LLM picks a
+primary_state we build a structural query and search the KB for a real
+phenomenon that shares the same structure — turning "the LLM says you are
+cascade-fragile" into "your structure matches this real, named case".
+Search is best-effort: when it is unavailable or returns nothing the
+diagnosis still completes, just without a reference_case.
+
 LLM access goes through the generic `llm_client` wrapper. When no API key
 is configured `complete_json` returns None — callers surface a clean 503.
 """
@@ -38,8 +46,13 @@ MAX_RECOMMENDATIONS = 5
 ***REMOVED***
 ***REMOVED*** 8 states. Each aligns loosely with a universality class the KB already
 ***REMOVED*** names (universality-classes.json), but is phrased for an org/team reader.
-***REMOVED*** `class_ref` records the related class_id purely for traceability — it is
-***REMOVED*** NOT surfaced as a hard claim.
+***REMOVED*** Per-state fields:
+***REMOVED***   - class_ref       related universality class_id (traceability only).
+***REMOVED***   - class_hub       the class's representative cross-domain phenomenon
+***REMOVED***                     name (from universality-classes.json hub_name). Used
+***REMOVED***                     as a fallback reference when KB search is unavailable.
+***REMOVED***   - structure_query a domain-neutral structural phrasing of the state,
+***REMOVED***                     used to query the KB for a same-structure real case.
 ***REMOVED*** --------------------------------------------------------------------------
 STRUCTURAL_STATES: dict[str, dict[str, str]] = {
     "damped_convergence": {
@@ -47,48 +60,64 @@ STRUCTURAL_STATES: dict[str, dict[str, str]] = {
         "definition": "受到扰动后会自己回到平衡，波动逐渐变小，结构健康。",
         "typical_signal": "出问题后指标能自行回落，不需要持续救火。",
         "class_ref": "",
+        "class_hub": "",
+        "structure_query": "负反馈调节 扰动后自我回到平衡 波动衰减 稳定不动点",
     },
     "positive_feedback_runaway": {
         "name": "正反馈失控",
         "definition": "某个变量自我放大、越走越偏，没有刹车机制，会持续脱离平衡。",
         "typical_signal": "同一类问题每次都比上次更严重，干预一次顶不了多久。",
         "class_ref": "motter_lai_network_cascade",
+        "class_hub": "建筑结构的渐进倒塌",
+        "structure_query": "正反馈自我放大 没有抑制机制 指数级偏离 失控发散",
     },
     "hysteresis_trap": {
         "name": "滞回陷阱（改了因还卡在旧果）",
         "definition": "导致问题的原因已经去掉，但系统因为路径依赖仍停在旧状态，不会自己回弹。",
         "typical_signal": "明明已经调整了策略/换了人，旧的局面却纹丝不动。",
         "class_ref": "hysteresis_preisach",
+        "class_hub": "热固性树脂凝胶点渗流相变",
+        "structure_query": "滞回 路径依赖 去掉原因后系统不回弹 多稳态记忆效应",
     },
     "cascade_fragility": {
         "name": "级联脆弱（一处断全线塌）",
         "definition": "关键节点高度耦合，任意一处失效会沿链条扩散，局部故障变成全局崩溃。",
         "typical_signal": "组织高度依赖某个人/某个系统/某个客户，缺了就全停。",
         "class_ref": "motter_lai_network_cascade",
+        "class_hub": "建筑结构的渐进倒塌",
+        "structure_query": "级联失效 节点高度耦合 局部故障沿链条扩散 全局崩溃",
     },
     "self_organized_criticality": {
         "name": "自组织临界（看似平稳实则临界）",
         "definition": "表面运转正常，但内部张力持续累积到临界点，随时可能被一件小事引爆。",
         "typical_signal": "长期『还行』，但谁都知道某根弦绷得很紧，就差一根稻草。",
         "class_ref": "soc_threshold_cascade",
+        "class_hub": "清算级联的链上流动性危机",
+        "structure_query": "自组织临界 阈值压力持续累积 小扰动触发幂律级联 沙堆",
     },
     "limit_cycle_oscillation": {
         "name": "极限环震荡（周期性反复）",
         "definition": "系统在两种状态之间周期性来回，既不崩溃也不稳定，反复消耗精力。",
         "typical_signal": "扩张—收缩、放权—收权、激进—保守，每隔一段就轮回一次。",
         "class_ref": "",
+        "class_hub": "",
+        "structure_query": "极限环 周期性震荡 两种状态之间反复来回 捕食者猎物循环",
     },
     "regime_shift_tipping": {
         "name": "临界突变前夜（Fold 分岔）",
         "definition": "正逼近一个不可逆的转折点，越过之后会突然跳到完全不同的状态，且难以退回。",
         "typical_signal": "韧性变差、恢复变慢、波动变大——临界放缓的典型先兆。",
         "class_ref": "scheffer_fold_bifurcation",
+        "class_hub": "蛋白质相分离的临界浓度阈值",
+        "structure_query": "临界相变 Fold 分岔 不可逆突变 临界放缓 状态突跳",
     },
     "self_fulfilling_run": {
         "name": "自我实现挤兑（信心崩塌）",
         "definition": "结果取决于大家的预期：一旦多数人开始撤，撤离本身就让结局成真。",
         "typical_signal": "核心人员/客户/投资人开始观望，越观望越想走。",
         "class_ref": "diamond_dybvig_self_fulfilling",
+        "class_hub": "银行挤兑",
+        "structure_query": "自我实现预期 信心崩塌 多重均衡 挤兑 协调失败博弈",
     },
 }
 
@@ -125,8 +154,10 @@ _SYSTEM_PROMPT = """你是一个冷静、专业的组织结构诊断师。
 3. 给出判定理由：基于描述里的哪些结构特征得出这个判断，要具体引用\
 描述中的事实，不要套话。
 4. 给出演化预测：如果不做结构性干预，这个状态接下来大概会怎么走。
-5. 指出该盯的关键信号 / 拐点：哪些可观测的迹象能最早告诉用户状态在\
-恶化或好转。
+5. 指出该盯的关键信号 / 拐点：必须是【具体、可观测、可量化】的指标或\
+拐点，结合用户描述里的真实情况。每条信号要写清楚「盯什么指标 + 朝哪个\
+方向变 + 大致到什么程度就该警觉」。禁止写「关注团队氛围」「留意风险」\
+这类无法落地的空泛话。
 6. 给 1-2 条结构性建议：针对的是结构本身（反馈回路、耦合、路径依赖），\
 不是头痛医头的战术动作。
 
@@ -135,6 +166,8 @@ _SYSTEM_PROMPT = """你是一个冷静、专业的组织结构诊断师。
 出现过的英文 id，原样照抄，不得改写、翻译或自创。
 - confidence 是 0 到 1 之间的小数，表示对 primary 判定的把握。
 - 诊断要基于结构，不要基于行业八卦或情绪。
+- signals_to_watch 的每条都必须可量化 / 可观测，结合用户处境里的具体\
+对象（某个指标、某段流程、某类人员），不要泛泛而谈。
 
 只输出 JSON，结构如下：
 {{
@@ -142,7 +175,7 @@ _SYSTEM_PROMPT = """你是一个冷静、专业的组织结构诊断师。
   "secondary_state": {{ "state_id": "清单里另一个英文 id" }},
   "reasoning": "判定理由，基于描述里的结构特征，3-5 句",
   "evolution": "不干预会如何演化，2-4 句",
-  "signals_to_watch": ["该盯的关键信号 / 拐点，每条一句"],
+  "signals_to_watch": ["具体可量化的信号，含指标+方向+阈值感，每条一句"],
   "recommendations": ["结构性建议，每条一句"]
 }}"""
 
@@ -297,8 +330,218 @@ def coerce_result(raw: Any) -> Optional[dict]:
     }
 
 
-async def run_diagnosis(situation: str) -> Optional[dict]:
+***REMOVED*** --------------------------------------------------------------------------
+***REMOVED*** Reference case — anchor the diagnosis to a real KB phenomenon.
+***REMOVED***
+***REMOVED*** The product's moat is the KB (4443 cross-domain phenomena). A diagnosis
+***REMOVED*** that just says "you are cascade-fragile" is an LLM opinion; a diagnosis
+***REMOVED*** that adds "your structure matches a real, named phenomenon" is evidence.
+***REMOVED*** --------------------------------------------------------------------------
+
+***REMOVED*** How many KB hits to ask SearchService for — we only keep the best one
+***REMOVED*** but a small pool lets us prefer a cross-domain hit over a same-domain one.
+_REFERENCE_TOP_K = 6
+
+***REMOVED*** A reference is only worth showing above this unified relevance. Below it
+***REMOVED*** the "same structure" claim is too weak to stand behind.
+_REFERENCE_MIN_RELEVANCE = 0.55
+
+***REMOVED*** Words pulled out of the user's situation that would just re-surface the
+***REMOVED*** user's own domain — we want a STRUCTURAL match, not a topical one. Kept
+***REMOVED*** tiny on purpose: the structure_query already dominates the query.
+_SITUATION_QUERY_CHARS = 120
+
+
+def build_reference_query(state_id: str, situation: str) -> str:
+    """Construct the KB search query for a state's reference case.
+
+    The structural phrasing of the state leads (so the search keys on
+    STRUCTURE, not on the user's industry), with a short slice of the
+    user's own words appended for mild grounding. Returns "" for an
+    unknown state id so the caller can skip the lookup.
+    """
+    meta = STRUCTURAL_STATES.get(state_id)
+    if meta is None:
+        return ""
+    structure = meta.get("structure_query", "").strip()
+    tail = (situation or "").strip().replace("\n", " ")[:_SITUATION_QUERY_CHARS]
+    if structure and tail:
+        return f"{structure} {tail}"
+    return structure or tail
+
+
+def _coerce_reference_case(hit: Any) -> Optional[dict]:
+    """Coerce one raw SearchService hit into the API reference_case shape.
+
+    Untrusted-input discipline: the search layer is in-house, but we still
+    validate types and require a usable id+name before surfacing a "real
+    case" claim. Returns None when the hit is unusable.
+    """
+    if not isinstance(hit, dict):
+        return None
+    pid = hit.get("id")
+    name = hit.get("name")
+    if not isinstance(pid, str) or not pid.strip():
+        return None
+    if not isinstance(name, str) or not name.strip():
+        return None
+    relevance = hit.get("relevance")
+    try:
+        rel = float(relevance)
+    except (TypeError, ValueError):
+        rel = 0.0
+    if rel != rel:  ***REMOVED*** NaN
+        rel = 0.0
+    rel = max(0.0, min(1.0, rel))
+    domain = hit.get("domain")
+    desc = hit.get("description")
+    return {
+        "id": pid.strip(),
+        "name": name.strip(),
+        "domain": domain.strip() if isinstance(domain, str) else "",
+        "description": desc.strip() if isinstance(desc, str) else "",
+        "relevance": round(rel, 4),
+        "source": "kb_search",
+    }
+
+
+def _fallback_reference_case(state_id: str) -> Optional[dict]:
+    """Fallback reference when KB search is unavailable / returns nothing.
+
+    Uses the representative phenomenon (hub_name) of the universality
+    class this state is aligned with. Has no KB id — the frontend renders
+    it without a deep link. Returns None when the state has no class hub.
+    """
+    meta = STRUCTURAL_STATES.get(state_id)
+    if meta is None:
+        return None
+    hub = meta.get("class_hub", "").strip()
+    if not hub:
+        return None
+    return {
+        "id": "",
+        "name": hub,
+        "domain": "",
+        "description": "",
+        "relevance": None,
+        "source": "class_hub",
+    }
+
+
+def fetch_reference_case(
+    state_id: str, situation: str, search_svc: Any
+) -> Optional[dict]:
+    """Find a real KB phenomenon that shares the diagnosed structure.
+
+    Best-effort: searches the KB via SearchService, prefers a cross-domain
+    hit that clears the relevance bar, and falls back to the state's
+    universality-class hub when search is unavailable or finds nothing.
+    Never raises — any failure degrades to the fallback or to None.
+    """
+    if state_id not in STATE_IDS:
+        return None
+
+    hits: list = []
+    if search_svc is not None:
+        query = build_reference_query(state_id, situation)
+        if query:
+            try:
+                raw_hits = search_svc.search(query, top_k=_REFERENCE_TOP_K)
+                if isinstance(raw_hits, list):
+                    hits = raw_hits
+            except Exception as e:  ***REMOVED*** noqa: BLE001 — search must never break F
+                logger.warning("fetch_reference_case: search failed: %s", e)
+
+    ***REMOVED*** Coerce + relevance-gate, keeping order (search already ranked them).
+    candidates: list[dict] = []
+    for hit in hits:
+        case = _coerce_reference_case(hit)
+        if case is not None and case["relevance"] >= _REFERENCE_MIN_RELEVANCE:
+            candidates.append((case, bool(hit.get("cross_domain"))))
+
+    if candidates:
+        ***REMOVED*** Prefer a cross-domain hit (the product's whole point), else the
+        ***REMOVED*** top-ranked one.
+        for case, is_cross in candidates:
+            if is_cross:
+                return case
+        return candidates[0][0]
+
+    ***REMOVED*** No usable search hit — fall back to the class hub.
+    return _fallback_reference_case(state_id)
+
+
+***REMOVED*** Prompt for the optional second LLM call that explains how the real
+***REMOVED*** reference case evolved — strictly grounded on the phenomenon we pass in.
+_REFERENCE_NOTE_PROMPT = """你是一个结构分析师。下面给你一个真实的跨领域\
+现象，以及一位用户当前组织/团队所处的结构状态。
+
+真实现象：『{domain}』领域的「{name}」
+现象描述：{description}
+
+用户当前的结构状态：{state_name}——{state_def}
+
+请用 1-2 句话说明：这个真实现象在【同一种结构】下，是怎样演化的（怎么\
+失稳、怎么崩、或怎么稳住的）。要求：
+- 只基于上面给的现象描述，不要编造现象里没有的细节；
+- 讲的是这个真实现象本身的演化，不是给用户的建议；
+- 平实、具体，不堆术语。
+
+只输出 JSON：{{"note": "1-2 句话"}}"""
+
+
+async def _build_reference_note(
+    case: dict, state_id: str
+) -> Optional[str]:
+    """Optionally enrich a KB reference case with a one-line evolution note.
+
+    Only attempted for real KB hits (source == kb_search) that carry a
+    description — there is nothing real to ground on otherwise. Best-effort:
+    any LLM failure simply yields None and the case ships without a note.
+    """
+    if case.get("source") != "kb_search":
+        return None
+    description = (case.get("description") or "").strip()
+    if not description:
+        return None
+    meta = STRUCTURAL_STATES.get(state_id)
+    if meta is None:
+        return None
+    prompt = _REFERENCE_NOTE_PROMPT.format(
+        domain=case.get("domain") or "未知",
+        name=case.get("name", ""),
+        description=description[:600],
+        state_name=meta["name"],
+        state_def=meta["definition"],
+    )
+    try:
+        raw = await llm_client.complete_json(
+            system="你只输出严格的 JSON。",
+            user=prompt,
+            temperature=0.3,
+            max_tokens=400,
+        )
+    except Exception as e:  ***REMOVED*** noqa: BLE001
+        logger.warning("_build_reference_note: LLM failed: %s", e)
+        return None
+    if not isinstance(raw, dict):
+        return None
+    note = raw.get("note")
+    if isinstance(note, str) and note.strip():
+        return note.strip()
+    return None
+
+
+async def run_diagnosis(
+    situation: str, search_svc: Any = None
+) -> Optional[dict]:
     """Run the full structural diagnosis for one situation description.
+
+    After the LLM picks a structural state we anchor the result to a real
+    KB phenomenon of the same structure (reference_case). The reference
+    lookup is best-effort: when `search_svc` is None / unavailable or
+    finds nothing the diagnosis still completes with reference_case set to
+    a class-hub fallback or None.
 
     Returns the coerced result dict, or None when the LLM is unavailable /
     failed / returned unrecoverable garbage. Never raises on LLM problems.
@@ -317,6 +560,24 @@ async def run_diagnosis(situation: str) -> Optional[dict]:
     coerced = coerce_result(raw)
     if coerced is None:
         logger.warning("run_diagnosis: LLM output failed schema coercion")
+        return None
+
+    ***REMOVED*** Anchor to a real KB phenomenon of the same structure. All failures
+    ***REMOVED*** here degrade gracefully — the core diagnosis is already done.
+    primary_id = coerced["primary_state"]["state_id"]
+    reference_case: Optional[dict] = None
+    try:
+        reference_case = fetch_reference_case(primary_id, situation, search_svc)
+    except Exception as e:  ***REMOVED*** noqa: BLE001
+        logger.warning("run_diagnosis: reference lookup failed: %s", e)
+        reference_case = None
+
+    if reference_case is not None:
+        note = await _build_reference_note(reference_case, primary_id)
+        if note:
+            reference_case["note"] = note
+
+    coerced["reference_case"] = reference_case
     return coerced
 
 
@@ -340,6 +601,8 @@ __all__ = [
     "SITUATION_MAX_LEN",
     "validate_situation",
     "coerce_result",
+    "build_reference_query",
+    "fetch_reference_case",
     "run_diagnosis",
     "list_states",
 ]

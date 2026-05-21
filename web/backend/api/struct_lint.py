@@ -72,7 +72,17 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
-    result = await lint_document(document)
+    ***REMOVED*** --- KB search service — the structural-isomorphism engine. Optional:
+    ***REMOVED*** when it isn't ready, lint_document degrades to a basic lint (every
+    ***REMOVED*** claim gets isomorph=None) rather than failing the request. ---
+    search_svc = None
+    try:
+        from main import app_state
+        search_svc = app_state.get("search")
+    except Exception:
+        logger.warning("struct_lint: search service unavailable, degrading")
+
+    result = await lint_document(document, search_svc=search_svc)
     if result is None:
         logger.error("struct_lint: lint_document returned no usable result")
         return JSONResponse(

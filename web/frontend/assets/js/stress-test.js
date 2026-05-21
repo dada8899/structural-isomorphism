@@ -103,6 +103,22 @@
       // --- weakest link ---
       $('stress-weakest-text').textContent = data.weakest_link || '（未指出）';
 
+      // --- precedent (real KB phenomenon backing the weakest link) ---
+      // Degrades gracefully: when precedent is null the block stays hidden
+      // and the verdict still reads fine on its own.
+      var precWrap = $('stress-precedent');
+      var prec = data.precedent;
+      if (prec && prec.phenomenon_id && prec.failure_precedent) {
+        $('stress-precedent-domain').textContent = prec.domain || '';
+        $('stress-precedent-name').textContent = prec.phenomenon_name || '';
+        $('stress-precedent-link').href =
+          '/phenomenon/' + encodeURIComponent(prec.phenomenon_id);
+        $('stress-precedent-failure').textContent = prec.failure_precedent;
+        precWrap.hidden = false;
+      } else {
+        precWrap.hidden = true;
+      }
+
       resultEl.hidden = false;
     }
 

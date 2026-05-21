@@ -76,6 +76,33 @@
   };
   var RISK_LABEL = { high: '高风险', medium: '中风险', low: '低风险' };
 
+  // --- structural-isomorphism anchor block ---
+  // Each claim may carry an `isomorph`: a real KB phenomenon whose
+  // underlying structure matches the claim. This is the product's moat —
+  // the failure mode above is grounded on this real cross-domain anchor,
+  // not free-form LLM speculation. Null when the KB found nothing.
+  function renderIsomorph(iso) {
+    if (!iso || !iso.id) return '';
+    var pct = Math.round((Number(iso.relevance) || 0) * 100);
+    var meta = esc(iso.domain || '') +
+      (pct ? ' · 结构相似度 ' + pct + '%' : '');
+    var desc = iso.description
+      ? '<div class="lint-iso__desc">' + esc(iso.description) + '</div>'
+      : '';
+    return '' +
+      '<div class="lint-iso">' +
+        '<div class="lint-iso__label">结构同构现象（来自知识库）</div>' +
+        '<div class="lint-iso__body">' +
+          '<a class="lint-iso__name" href="/phenomenon/' +
+            encodeURIComponent(iso.id) + '">' + esc(iso.name) + '</a>' +
+          '<span class="lint-iso__meta">' + meta + '</span>' +
+          desc +
+          '<a class="lint-iso__analyze" href="/analyze?id=' +
+            encodeURIComponent(iso.id) + '">用这个现象做深度迁移分析 →</a>' +
+        '</div>' +
+      '</div>';
+  }
+
   function renderClaim(claim) {
     var risk = RISK_LABEL[claim.risk_level] ? claim.risk_level : 'medium';
     var typeLabel = TYPE_LABEL[claim.claim_type] || claim.claim_type;
@@ -91,6 +118,7 @@
           '<div class="lint-claim__row-label">底层结构</div>' +
           '<div class="lint-claim__row-text">' + esc(claim.structure) + '</div>' +
         '</div>' +
+        renderIsomorph(claim.isomorph) +
         '<div class="lint-claim__row">' +
           '<div class="lint-claim__row-label">失效模式</div>' +
           '<div class="lint-claim__row-text">' + esc(claim.failure_mode) + '</div>' +
