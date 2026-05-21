@@ -9,9 +9,8 @@ hide:
 > underlying mathematical structure?**
 
 A pre-registered, cross-domain validation pipeline for universality classes
-in complex systems. One shared Python module
-([`v4/lib/soc_pipeline.py`](https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py),
-frozen at commit `7ee228c`) is applied unchanged to thirteen independent
+in complex systems. One shared Python package
+(`soc_pipeline`, frozen at commit `7ee228c`) is applied unchanged to thirteen independent
 datasets spanning geology, finance, neuroscience, ecology, banking history,
 software communities, power grids, and highway traffic — and a growing set
 of adversarial pre-registrations that have produced PASS, INCONCLUSIVE, and
@@ -37,11 +36,11 @@ v4 status                  # show pass/fail across 13 systems + 4 nulls
 Or run the pipeline programmatically:
 
 ```python
-from v4.lib.soc_pipeline import fit_clauset_powerlaw
+from soc_pipeline import fit_clauset_powerlaw
 
-result = fit_clauset_powerlaw(observations=my_event_sizes)
+result = fit_clauset_powerlaw(my_event_sizes)
 print(f"alpha = {result.alpha:.3f}, xmin = {result.xmin}")
-print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
+print(f"vs lognormal LR = {result.vs_lognormal_R:.3f}")
 ```
 
 See [Getting Started](getting-started.md) for the full walkthrough.
@@ -54,7 +53,7 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 
     ---
 
-    A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC).
+    A single shared Clauset MLE package (`soc_pipeline`).
     Runs unchanged across 13 empirical systems and 4 null controls. Reports
     power-law vs lognormal vs exponential, with pre-registered exponent
     bands.

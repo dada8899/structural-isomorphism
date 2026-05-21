@@ -33,7 +33,7 @@ first pre-registered validation locally.
     pip install soc-pipeline
     ```
 
-The shared analysis stack lives in `v4/lib/soc_pipeline.py` and has no heavy
+The shared analysis stack is exposed as `soc_pipeline` and has no heavy
 non-PyPI dependencies. The web backend (under `web/backend/`) additionally
 requires FastAPI and a small set of asynchronous client libraries; see
 `web/backend/requirements.txt`.
@@ -47,13 +47,13 @@ v4 status              # show pass/fail across 13 systems + 4 nulls
 Programmatic example:
 
 ```python
-from v4.lib.soc_pipeline import fit_clauset_powerlaw, vuong_lr
+from soc_pipeline import fit_clauset_powerlaw, vuong_lr_test
 
 result = fit_clauset_powerlaw(sizes, discrete=True)
-print(result.alpha, result.x_min, result.n_tail)
+print(result.alpha, result.xmin, result.n_tail)
 
-lr_ln  = vuong_lr(sizes, result, alternative="lognormal")
-lr_exp = vuong_lr(sizes, result, alternative="exponential")
+lr_ln  = vuong_lr_test(sizes, vs="lognormal", discrete=True)
+lr_exp = vuong_lr_test(sizes, vs="exponential", discrete=True)
 print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
 ```
 

@@ -28,7 +28,7 @@ The answer is *not* "yes" by assumption. We treat it as a falsifiable question: 
 <td width="33%" valign="top">
 
 ### 1. SOC pipeline
-A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unchanged across 13 empirical systems and 4 null controls. Reports power-law vs lognormal vs exponential, with pre-registered exponent bands.
+A single shared Clauset MLE package (`soc_pipeline`). Runs unchanged across 13 empirical systems and 4 null controls. Reports power-law vs lognormal vs exponential, with pre-registered exponent bands.
 
 [**→ Pipeline docs**](docs/pipeline.md)
 
@@ -67,11 +67,11 @@ v4 status                           # show pass/fail across 13 systems + 4 nulls
 Or run the pipeline programmatically:
 
 ```python
-from v4.lib.soc_pipeline import fit_clauset_powerlaw
+from soc_pipeline import fit_clauset_powerlaw
 
-result = fit_clauset_powerlaw(observations=my_event_sizes)
+result = fit_clauset_powerlaw(my_event_sizes)
 print(f"alpha = {result.alpha:.3f}, xmin = {result.xmin}")
-print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
+print(f"vs lognormal LR = {result.vs_lognormal_R:.3f}")
 ```
 
 ## Live demos

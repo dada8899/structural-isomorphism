@@ -1,6 +1,6 @@
 # Pipeline
 
-The shared analysis stack is implemented in `v4/lib/soc_pipeline.py` and
+The shared analysis stack is exposed by the `soc_pipeline` package and
 is frozen at commit `7ee228c`. It exposes one function per analytical
 operation; phase scripts call those functions with a domain-specific data
 loader and write the verdict to disk.
@@ -41,10 +41,10 @@ have serial correlation that an i.i.d. bootstrap would systematically
 narrow. Phases with very small $n_{\mathrm{total}}$ (under 200) widen the
 percentile band to 5-95 and use 300 resamples instead of the standard 100.
 
-### `vuong_lr(sizes, fit, alternative)`
+### `vuong_lr_test(sizes, vs="lognormal", discrete=False)`
 
 Clauset-Shalizi-Newman normalized log-likelihood ratio $R$ against
-`alternative` $\in \{$ "lognormal", "exponential" $\}$ with Vuong-style
+`vs` $\in \{$ "lognormal", "exponential" $\}$ with Vuong-style
 $p$-values. Positive $R$ favors power-law; $p < 0.05$ indicates statistical
 distinguishability. Rejection of exponential is necessary but not
 sufficient for a power-law claim; the harder test is against lognormal,

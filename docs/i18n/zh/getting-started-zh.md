@@ -31,7 +31,7 @@
     pip install soc-pipeline
     ```
 
-共享分析栈位于 `v4/lib/soc_pipeline.py`，没有重的 PyPI 之外的依赖。Web 后端（位于 `web/backend/`）额外依赖 FastAPI 和少量异步客户端库；详见 `web/backend/requirements.txt`。
+共享分析栈通过 `soc_pipeline` 暴露，没有重的 PyPI 之外的依赖。Web 后端（位于 `web/backend/`）额外依赖 FastAPI 和少量异步客户端库；详见 `web/backend/requirements.txt`。
 
 ## 入门示例——地震数据
 
@@ -42,13 +42,13 @@ v4 status              # 展示 13 个系统 + 4 个空对照的 PASS / FAIL
 编程方式调用示例：
 
 ```python
-from v4.lib.soc_pipeline import fit_clauset_powerlaw, vuong_lr
+from soc_pipeline import fit_clauset_powerlaw, vuong_lr_test
 
 result = fit_clauset_powerlaw(sizes, discrete=True)
-print(result.alpha, result.x_min, result.n_tail)
+print(result.alpha, result.xmin, result.n_tail)
 
-lr_ln  = vuong_lr(sizes, result, alternative="lognormal")
-lr_exp = vuong_lr(sizes, result, alternative="exponential")
+lr_ln  = vuong_lr_test(sizes, vs="lognormal", discrete=True)
+lr_exp = vuong_lr_test(sizes, vs="exponential", discrete=True)
 print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
 ```
 

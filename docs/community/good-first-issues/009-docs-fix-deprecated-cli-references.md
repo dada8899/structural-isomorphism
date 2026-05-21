@@ -2,7 +2,7 @@
 
 ## What
 
-After W8 we extracted the SOC pipeline to a standalone PyPI-ready package at `packages/soc-pipeline/`. The old import path `from v4.lib.soc_pipeline import ...` still works (with a `DeprecationWarning`) but several docs / notebooks / README snippets still show it as the canonical example. Replace them with the new path `from soc_pipeline import ...`.
+After W8 we extracted the SOC pipeline to a standalone PyPI-ready package at `packages/soc-pipeline/`. The old `v4.lib.soc_pipeline` path still works (with a `DeprecationWarning`) but several docs / notebooks / README snippets still show it as the canonical example. Replace them with the new path `from soc_pipeline import ...`.
 
 ## Why
 
@@ -24,7 +24,7 @@ Files known to reference the deprecated path (find with `grep -rn "v4.lib.soc_pi
    ```bash
    grep -rn "v4.lib.soc_pipeline\|v4\.lib\.soc_pipeline" --include="*.md" --include="*.py" --include="*.ipynb" .
    ```
-2. For each hit: replace `from v4.lib.soc_pipeline import X` with `from soc_pipeline import X`. Verify the symbol still exists in the new package's `__init__.py`.
+2. For each hit: replace the deprecated import with `from soc_pipeline import X`. Verify the symbol still exists in the new package's `__init__.py`.
 3. Where the deprecated wrapper has a different return shape (legacy dict vs new `FitResult` dataclass), update the example output accordingly.
 4. Re-run any modified notebook end-to-end to confirm it still works.
 
