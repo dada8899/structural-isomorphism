@@ -487,7 +487,7 @@ const renderers = {
         </div>
       ` : ''}
 
-      ${items.length > 0 ? `
+      ${(items.length > 0 || ifShort) ? `
         <h3 class="section__subtitle">${T('page.analyze.action_full_plan', '本周完整计划')}</h3>
         <ol class="action-list">
           ${renderRankZero()}
