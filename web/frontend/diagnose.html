@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="description" content="结构诊断——给一个组织、公司、团队的处境做结构状态诊断：你现在处于哪种结构状态、为什么、会怎么演化、该盯哪个信号。">
+  <title>结构诊断 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="结构诊断 — Structural">
+  <meta property="og:description" content="给组织/团队的处境做结构状态诊断">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="结构诊断 — Structural">
+  <meta name="twitter:description" content="给组织/团队的处境做结构状态诊断">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/diagnose.css?v=20260522">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260514e">
+
+  <!-- Plausible analytics. -->
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="diagnose-page">
+    <div class="diagnose-container">
+      <nav class="diagnose-crumb">
+        <a href="/">首页</a>
+        <span class="diagnose-crumb__sep">/</span>
+        <span>结构诊断</span>
+      </nav>
+
+      <!-- ── 输入区 ── -->
+      <section class="diagnose-intro" id="diagnose-input-section">
+        <h1 class="diagnose-intro__title">结构诊断</h1>
+        <p class="diagnose-intro__lead">
+          描述一个组织、公司、团队或项目现在的处境。我们不预测业绩，
+          而是给它的<strong>结构状态</strong>做一次诊断——告诉你它现在
+          处于哪种结构状态、为什么、不干预会怎样演化、该盯哪个信号。
+        </p>
+
+        <form id="diagnose-form" class="diagnose-form" novalidate>
+          <label for="diagnose-textarea" class="diagnose-form__label">处境描述</label>
+          <textarea
+            id="diagnose-textarea"
+            class="diagnose-form__textarea"
+            rows="6"
+            maxlength="1500"
+            placeholder="例如：我们是一家 30 人的公司，去年扩张很快。最近发现每加一个人，整体效率反而更慢了——开会越来越多，决策越来越慢，老员工开始抱怨。流程改过两次，但情况没什么变化……"
+          ></textarea>
+          <div class="diagnose-form__meta">
+            <span class="diagnose-form__count" id="diagnose-count">0 / 1500</span>
+          </div>
+
+          <div class="diagnose-examples">
+            <span class="diagnose-examples__label">没有头绪？试试：</span>
+            <button type="button" class="diagnose-example" data-example="我们是一家 30 人的公司，扩张很快。最近发现每加一个人，整体效率反而更慢——开会变多、决策变慢、老员工抱怨。流程改过两次，情况没变化。">30 人公司效率塌陷</button>
+            <button type="button" class="diagnose-example" data-example="团队整体看起来平稳运转，业绩没出问题。但所有人都知道核心系统年久失修、关键文档只在一个人脑子里，大家心照不宣地不去碰它，就怕碰了出事。">表面平稳但人人心虚</button>
+            <button type="button" class="diagnose-example" data-example="公司每隔一段时间就在『激进扩张』和『收缩过冬』之间来回切换。扩张时招人铺业务，半年后发现烧太快又裁员收缩，再过半年觉得错过机会又开始扩张。">扩张收缩反复横跳</button>
+          </div>
+
+          <button type="submit" class="diagnose-submit" id="diagnose-submit">
+            开始诊断
+          </button>
+        </form>
+      </section>
+
+      <!-- ── 加载态 ── -->
+      <section class="diagnose-loading" id="diagnose-loading" hidden>
+        <div class="diagnose-loading__dots">
+          <span></span><span></span><span></span>
+        </div>
+        <h2 class="diagnose-loading__title">正在做结构诊断</h2>
+        <p class="diagnose-loading__hint">我们正在分析这个处境的结构特征，判定它的结构状态。</p>
+        <span class="diagnose-loading__timer" id="diagnose-timer">已等待 0s</span>
+      </section>
+
+      <!-- ── 错误态 ── -->
+      <section class="diagnose-error" id="diagnose-error" hidden>
+        <div class="diagnose-error__icon">!</div>
+        <h2 class="diagnose-error__title" id="diagnose-error-title">诊断没能完成</h2>
+        <p class="diagnose-error__msg" id="diagnose-error-msg"></p>
+        <button type="button" class="diagnose-error__retry" id="diagnose-retry">重新诊断</button>
+      </section>
+
+      <!-- ── 诊断报告 ── -->
+      <section class="diagnose-report" id="diagnose-report" hidden>
+        <div class="diagnose-report__head">
+          <span class="diagnose-report__kicker">结构诊断报告</span>
+          <button type="button" class="diagnose-report__again" id="diagnose-again">重新诊断</button>
+        </div>
+
+        <!-- 主结构状态卡 -->
+        <div class="diagnose-state-card" id="diagnose-primary-card">
+          <div class="diagnose-state-card__top">
+            <span class="diagnose-state-card__tag">主结构状态</span>
+            <span class="diagnose-state-card__confidence" id="diagnose-confidence"></span>
+          </div>
+          <h2 class="diagnose-state-card__name" id="diagnose-state-name"></h2>
+          <p class="diagnose-state-card__def" id="diagnose-state-def"></p>
+          <p class="diagnose-state-card__signal" id="diagnose-state-signal"></p>
+        </div>
+
+        <!-- 判定理由 -->
+        <div class="diagnose-block">
+          <h3 class="diagnose-block__title">判定理由</h3>
+          <p class="diagnose-block__body" id="diagnose-reasoning"></p>
+        </div>
+
+        <!-- 演化预测 -->
+        <div class="diagnose-block">
+          <h3 class="diagnose-block__title">演化预测<span class="diagnose-block__hint">（不做结构性干预的话）</span></h3>
+          <p class="diagnose-block__body" id="diagnose-evolution"></p>
+        </div>
+
+        <!-- 要盯的信号 -->
+        <div class="diagnose-block" id="diagnose-signals-block">
+          <h3 class="diagnose-block__title">要盯的信号 / 拐点</h3>
+          <ul class="diagnose-list" id="diagnose-signals"></ul>
+        </div>
+
+        <!-- 结构性建议 -->
+        <div class="diagnose-block" id="diagnose-reco-block">
+          <h3 class="diagnose-block__title">结构性建议</h3>
+          <ul class="diagnose-list diagnose-list--reco" id="diagnose-recommendations"></ul>
+        </div>
+
+        <!-- 次可能状态 -->
+        <div class="diagnose-secondary" id="diagnose-secondary" hidden>
+          <h3 class="diagnose-secondary__title">次可能状态</h3>
+          <p class="diagnose-secondary__name" id="diagnose-secondary-name"></p>
+          <p class="diagnose-secondary__def" id="diagnose-secondary-def"></p>
+        </div>
+
+        <p class="diagnose-disclaimer">
+          结构诊断基于你提供的描述做结构层面的判断，不构成业绩预测或投资/经营建议。
+          描述越具体、越贴近真实，诊断越可靠。
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/diagnose.js?v=20260522"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+</body>
+</html>

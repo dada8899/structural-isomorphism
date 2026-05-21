@@ -1,0 +1,393 @@
+/* 结构诊断 (feature F, Session ***REMOVED***18).
+ *
+ * Quiet, professional "diagnostic report" aesthetic — white paper, ample
+ * whitespace, clear hierarchy. No flashy motion. Uses design-system tokens
+ * exclusively so dark mode + responsive come for free.
+ */
+
+.diagnose-page {
+  background: var(--bg-primary);
+  min-height: 60vh;
+  padding: var(--space-7) var(--space-4) var(--space-10);
+}
+
+.diagnose-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── breadcrumb ── */
+.diagnose-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-6);
+}
+.diagnose-crumb a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+.diagnose-crumb a:hover { color: var(--text-primary); }
+.diagnose-crumb__sep { color: var(--border-strong); }
+
+/* ── intro / input ── */
+.diagnose-intro__title {
+  font-size: var(--fs-32);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+}
+.diagnose-intro__lead {
+  font-size: var(--fs-15);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-6);
+}
+.diagnose-intro__lead strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.diagnose-form {
+  display: flex;
+  flex-direction: column;
+}
+.diagnose-form__label {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+.diagnose-form__textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+  padding: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--fs-15);
+  line-height: 1.7;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.diagnose-form__textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+.diagnose-form__textarea.is-invalid {
+  border-color: var(--danger-border);
+}
+.diagnose-form__textarea::placeholder {
+  color: var(--text-quaternary);
+}
+
+.diagnose-form__meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+.diagnose-form__count {
+  font-size: var(--fs-12);
+  color: var(--text-quaternary);
+}
+.diagnose-form__count.is-over { color: var(--danger-text); }
+
+/* ── quick examples ── */
+.diagnose-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-6);
+}
+.diagnose-examples__label {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+}
+.diagnose-example {
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.diagnose-example:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* ── submit ── */
+.diagnose-submit {
+  align-self: flex-start;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-6);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.diagnose-submit:hover { background: var(--accent-hover); }
+.diagnose-submit:active { transform: translateY(1px); }
+
+/* ── loading ── */
+.diagnose-loading {
+  text-align: center;
+  padding: var(--space-10) var(--space-4);
+}
+.diagnose-loading__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.diagnose-loading__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  animation: diagnose-bounce 1.2s infinite ease-in-out;
+}
+.diagnose-loading__dots span:nth-child(2) { animation-delay: 0.15s; }
+.diagnose-loading__dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes diagnose-bounce {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+.diagnose-loading__title {
+  font-size: var(--fs-20);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.diagnose-loading__hint {
+  font-size: var(--fs-14);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-4);
+}
+.diagnose-loading__timer {
+  font-size: var(--fs-12);
+  color: var(--text-quaternary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── error ── */
+.diagnose-error {
+  text-align: center;
+  padding: var(--space-9) var(--space-4);
+}
+.diagnose-error__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-24);
+  font-weight: 700;
+  color: var(--danger-text);
+  background: var(--danger-surface);
+  border-radius: var(--radius-full);
+}
+.diagnose-error__title {
+  font-size: var(--fs-20);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.diagnose-error__msg {
+  font-size: var(--fs-14);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 auto var(--space-5);
+  max-width: 460px;
+}
+.diagnose-error__retry,
+.diagnose-report__again {
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.diagnose-error__retry:hover,
+.diagnose-report__again:hover { background: var(--bg-subtle); }
+
+/* ── report ── */
+.diagnose-report__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+.diagnose-report__kicker {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* primary structural-state card */
+.diagnose-state-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+.diagnose-state-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.diagnose-state-card__tag {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+}
+.diagnose-state-card__confidence {
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.diagnose-state-card__name {
+  font-size: var(--fs-24);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.diagnose-state-card__def {
+  font-size: var(--fs-15);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3);
+}
+.diagnose-state-card__signal {
+  font-size: var(--fs-13);
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* report blocks */
+.diagnose-block {
+  margin-bottom: var(--space-6);
+}
+.diagnose-block__title {
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+}
+.diagnose-block__hint {
+  font-size: var(--fs-13);
+  font-weight: 400;
+  color: var(--text-quaternary);
+  margin-left: var(--space-1);
+}
+.diagnose-block__body {
+  font-size: var(--fs-14);
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* lists */
+.diagnose-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.diagnose-list li {
+  position: relative;
+  font-size: var(--fs-14);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  padding: var(--space-2) 0 var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.diagnose-list li:last-child { border-bottom: none; }
+.diagnose-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.95em;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+.diagnose-list--reco li::before { background: var(--accent); }
+
+/* secondary state */
+.diagnose-secondary {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.diagnose-secondary__title {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-2);
+}
+.diagnose-secondary__name {
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1);
+}
+.diagnose-secondary__def {
+  font-size: var(--fs-13);
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* disclaimer */
+.diagnose-disclaimer {
+  font-size: var(--fs-12);
+  line-height: 1.7;
+  color: var(--text-quaternary);
+  margin: 0;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── responsive ── */
+@media (max-width: 600px) {
+  .diagnose-page { padding: var(--space-5) var(--space-3) var(--space-9); }
+  .diagnose-intro__title { font-size: var(--fs-24); }
+  .diagnose-state-card { padding: var(--space-5); }
+  .diagnose-state-card__name { font-size: var(--fs-20); }
+  .diagnose-submit { align-self: stretch; text-align: center; }
+}
