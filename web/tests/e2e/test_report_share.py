@@ -403,8 +403,10 @@ def test_share_page_renders_in_browser(report_backend, seed_report):
         page = ctx.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector(".report-section", timeout=10000)
-            sections = page.locator(".report-section")
+            ***REMOVED*** report.js reuses analyze.js renderFinalReport — sections render
+            ***REMOVED*** as ***REMOVED***analyze-sections > section.section (one per 9-section key).
+            page.wait_for_selector("***REMOVED***analyze-sections .section", timeout=10000)
+            sections = page.locator("***REMOVED***analyze-sections .section")
             assert sections.count() == 9, "expected all 9 sections rendered"
             ***REMOVED*** Meta header (query title) is shown, loading spinner gone.
             assert page.locator("***REMOVED***report-meta").is_visible()
@@ -419,7 +421,7 @@ def test_share_page_renders_in_browser(report_backend, seed_report):
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
 def test_feedback_button_posts_in_browser(report_backend, seed_report):
-    """Scenario 3 (UI) — clicking a section 👍 fires a POST that returns 200."""
+    """Scenario 3 (UI) — clicking the share-bar 👍 fires a POST that 200s."""
     from playwright.sync_api import sync_playwright
 
     rep = seed_report()
@@ -432,8 +434,9 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report):
         page = ctx.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector(".report-section .analyze-vote--up", timeout=10000)
-            up_btn = page.locator(".report-section .analyze-vote--up").first
+            ***REMOVED*** Overall 👍/👎 live in the share bar (renderShareBar unhides it).
+            page.wait_for_selector("***REMOVED***analyze-share-bar .analyze-vote--up", timeout=10000)
+            up_btn = page.locator("***REMOVED***analyze-share-bar .analyze-vote--up").first
             with page.expect_response(
                 lambda r: feedback_path in r.url and r.request.method == "POST",
                 timeout=10000,
