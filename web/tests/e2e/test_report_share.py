@@ -164,6 +164,11 @@ def _byid(report_id: str):
     return FileResponse(FRONTEND / "report.html")
 
 
+@app.get("/reports")
+def _my_reports():
+    return FileResponse(FRONTEND / "reports.html")
+
+
 import uvicorn
 uvicorn.run(app, host="127.0.0.1", port={port}, log_level="warning")
 """
@@ -437,6 +442,58 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report):
             resp = resp_info.value
             assert resp.status == 200, resp.text()
             assert resp.json()["total_up"] == 1
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_my_reports_empty_state_in_browser(report_backend):
+    """/reports with no anonId in localStorage shows the empty state."""
+    from playwright.sync_api import sync_playwright
+
+    url = f"{report_backend['base']}/reports"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context()  ***REMOVED*** fresh — no anonId
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector(".myr-state", timeout=10000)
+            assert "还没有保存的报告" in page.locator(".myr-state").inner_text()
+            assert page.locator(".myr-card").count() == 0
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
+    """/reports lists this device's reports and each card links to /report/<id>."""
+    from playwright.sync_api import sync_playwright
+
+    anon = "myreports-browser-anon"
+    seed_report(query="蚁群优化与城市交通", creator_anon_id=anon)
+    seed_report(query="珊瑚白化与系统性金融风险", creator_anon_id=anon)
+
+    url = f"{report_backend['base']}/reports"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context()
+        ***REMOVED*** Seed anonId before any page script runs.
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector(".myr-card", timeout=10000)
+            cards = page.locator(".myr-card")
+            assert cards.count() == 2
+            text = page.locator("***REMOVED***myr-list").inner_text()
+            assert "蚁群优化与城市交通" in text
+            assert "珊瑚白化与系统性金融风险" in text
+            ***REMOVED*** Each card links to a report detail URL.
+            href = cards.first.get_attribute("href")
+            assert href and href.startswith("/report/r_")
         finally:
             ctx.close()
             browser.close()

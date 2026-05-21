@@ -1793,6 +1793,12 @@ async def report_share_page(token: str):
     return FileResponse(FRONTEND_DIR / "report.html")
 
 
+***REMOVED*** Session ***REMOVED***17 — "My Reports" list page (lists reports by device anonId).
+@app.get("/reports")
+async def my_reports_page():
+    return FileResponse(FRONTEND_DIR / "reports.html")
+
+
 @app.get("/report/{report_id}")
 async def report_by_id_page(report_id: str):
     return FileResponse(FRONTEND_DIR / "report.html")
