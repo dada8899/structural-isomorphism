@@ -250,6 +250,38 @@ function countVerifiedPredictions(cls) {
   return n;
 }
 
+// SESSION-18 (D): build a hook-style headline for a universality class
+// straight from its real fields — names a couple of its real member domains
+// and frames them as one shared pattern. No fabrication.
+function classHeadline(cls) {
+  const name = L(cls, 'name') || '';
+  const domains = (currentLang() === 'en' ? cls.domains_en : cls.domains) || cls.domains || [];
+  const en = currentLang() === 'en';
+  // Pick two distinct, human-readable domains for the hook.
+  const picked = [];
+  for (const dmn of domains) {
+    if (dmn && !picked.includes(dmn)) picked.push(dmn);
+    if (picked.length === 2) break;
+  }
+  if (picked.length === 2) {
+    return en
+      ? `${picked[0]} and ${picked[1]} obey the same law.`
+      : `${picked[0]}和${picked[1]}，遵循同一条规律。`;
+  }
+  return en ? `One pattern, many fields: ${name}` : `一个模式，跨越多个领域：${name}`;
+}
+
+// Absolute share URL for a single class.
+function classShareUrl(cls) {
+  return location.origin + '/classes?c=' + encodeURIComponent(cls.class_id);
+}
+
+// Seed text for the /analyze prefill — the class's hub phenomenon, which is
+// a concrete real example the user can edit into their own problem.
+function classAnalyzeSeed(cls) {
+  return L(cls, 'hub_name') || L(cls, 'name') || '';
+}
+
 function buildBadges(cls) {
   const isLlm = cls.curation_source === "llm";
   const nVerified = countVerifiedPredictions(cls);
@@ -309,6 +341,7 @@ function renderPreviewCard(cls) {
         </div>
         <div class="uc-card__badges">${badges.join("")}</div>
       </div>
+      <p class="uc-card__hook">${escapeHtml(classHeadline(cls))}</p>
       <div class="uc-card__hub">
         <span class="uc-card__hub-label">Hub</span>
         <span class="uc-card__hub-name">${escapeHtml(L(cls, "hub_name") || "—")}</span>
@@ -395,16 +428,55 @@ function renderDetail(cls) {
       <span class="uc-detail__hub-name">${escapeHtml(L(cls, "hub_name") || "—")}</span>
     </div>
 
+    <p class="uc-detail__hook">${escapeHtml(classHeadline(cls))}</p>
+
     ${L(cls, "summary") ? `<p class="uc-detail__lede">${escapeHtml(L(cls, "summary"))}</p>` : ''}
+
+    <div class="uc-detail__cta-card">
+      <div class="uc-detail__cta-text">
+        <h3 class="uc-detail__cta-title">${T("page.classes.cta_title", "用这个模式分析你自己的问题")}</h3>
+        <p class="uc-detail__cta-sub">${T("page.classes.cta_sub", "把你关心的现象输进去，看它和哪些领域共享同一套结构。")}</p>
+      </div>
+      <a class="uc-detail__cta-btn" href="/analyze?text_a=${encodeURIComponent(classAnalyzeSeed(cls))}">
+        ${T("page.classes.cta_btn", "开始分析")}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
 
     <div class="uc-detail__body">
       ${sections.join("")}
+    </div>
+
+    <div class="uc-detail__share">
+      <span class="uc-detail__share-label">${T("page.classes.share_label", "分享这个模式")}</span>
+      <div class="uc-detail__share-actions"></div>
     </div>
 
     <footer class="uc-detail__footer">
       <a href="/classes" data-back-link class="uc-detail__back-btn">${T("page.classes.back_to_list", "← 返回普适类列表")}</a>
     </footer>
   `;
+
+  // Wire share actions (DOM nodes for event safety).
+  const shareHost = host.querySelector('.uc-detail__share-actions');
+  if (shareHost && window.ShareCard && window.ShareCard.buildActions) {
+    const headline = classHeadline(cls);
+    const domains = (currentLang() === 'en' ? cls.domains_en : cls.domains) || cls.domains || [];
+    shareHost.appendChild(window.ShareCard.buildActions({
+      url: classShareUrl(cls),
+      shareTitle: headline,
+      shareText: headline + ' — Structural 跨领域结构同构引擎',
+      filename: 'structural-class-' + cls.class_id + '.png',
+      cardData: {
+        eyebrow: '跨域普适类 · ' + (cls.n_domains || domains.length) + ' 个领域',
+        headline: headline,
+        lineA: L(cls, 'name') || '',
+        lineB: L(cls, 'physics_prototype') || cls.physics_prototype || '',
+        footnote: L(cls, 'summary') || '',
+        url: 'structural.bytedance.city',
+      },
+    }));
+  }
 
   // KaTeX render
   if (window.renderMathInElement) {
@@ -430,6 +502,52 @@ function renderDetail(cls) {
   });
 }
 
+// SESSION-18 (D): "学习路径" view — group the 26 classes into 3 progressive
+// bands by how many domains they span, so the page reads as a curriculum
+// (从聚焦的少数领域，到横跨整个科学版图的普适模式) rather than a flat list.
+const PATH_BANDS = [
+  {
+    id: 'focused',
+    title: '入门 · 聚焦少数领域',
+    desc: '先从只跨 2–4 个领域的模式入手——结构清晰、最容易在直觉上"看懂"。',
+    test: (c) => (c.n_domains || 0) <= 4,
+  },
+  {
+    id: 'broad',
+    title: '进阶 · 跨多个领域',
+    desc: '这些模式横跨 5–8 个领域，开始显现出真正的跨学科迁移力。',
+    test: (c) => (c.n_domains || 0) >= 5 && (c.n_domains || 0) <= 8,
+  },
+  {
+    id: 'universal',
+    title: '普适 · 横跨科学版图',
+    desc: '跨越 9 个以上领域的"超级模式"——同一套数学结构连接起看似毫无关系的世界。',
+    test: (c) => (c.n_domains || 0) >= 9,
+  },
+];
+
+function renderPathGroups(host, list) {
+  const sorted = list.slice().sort((a, b) => (a.n_domains || 0) - (b.n_domains || 0));
+  const blocks = PATH_BANDS.map((band, idx) => {
+    const members = sorted.filter(band.test);
+    if (!members.length) return '';
+    return `
+      <section class="uc-path-band">
+        <div class="uc-path-band__head">
+          <span class="uc-path-band__step">${idx + 1}</span>
+          <div class="uc-path-band__meta">
+            <h2 class="uc-path-band__title">${escapeHtml(T('page.classes.path_' + band.id + '_title', band.title))}</h2>
+            <p class="uc-path-band__desc">${escapeHtml(T('page.classes.path_' + band.id + '_desc', band.desc))}</p>
+          </div>
+          <span class="uc-path-band__count">${members.length}</span>
+        </div>
+        <div class="uc-path-band__grid">${members.map(renderPreviewCard).join('')}</div>
+      </section>
+    `;
+  }).join('');
+  host.innerHTML = `<div class="uc-path">${blocks}</div>`;
+}
+
 function renderList(list) {
   const host = document.getElementById("uc-list");
   if (!host) return;
@@ -437,7 +555,11 @@ function renderList(list) {
     host.innerHTML = `<p style="color:***REMOVED***777;padding:40px 0;text-align:center;">${T("page.classes.no_match", "没有匹配的等价类")}。</p>`;
     return;
   }
-  host.innerHTML = list.map(renderPreviewCard).join("");
+  if (currentFilter === 'path') {
+    renderPathGroups(host, list);
+  } else {
+    host.innerHTML = list.map(renderPreviewCard).join("");
+  }
 
   // Intercept card clicks for SPA nav
   host.querySelectorAll('.uc-card--preview').forEach((card) => {
@@ -485,7 +607,8 @@ function navigate(classId, replace) {
 }
 
 function handlePopState() {
-  const id = new URLSearchParams(window.location.search).get('id');
+  const _qp = new URLSearchParams(window.location.search);
+  const id = _qp.get('id') || _qp.get('c');
   if (id) {
     const cls = allClasses.find((c) => c.class_id === id);
     if (cls) {
@@ -504,6 +627,8 @@ function applyFilter(filter) {
   document.querySelectorAll(".uc-filter__btn").forEach((btn) => {
     btn.classList.toggle("uc-filter__btn--active", btn.dataset.filter === filter);
   });
+  // "path" groups all classes into a curriculum; manual/llm filter the flat
+  // list; "all" is the flat list of everything.
   const source = filter === "manual" ? manualClasses :
                  filter === "llm" ? llmClasses : allClasses;
   renderList(source);
@@ -536,8 +661,10 @@ async function init() {
     updateFilterCounts();
     applyFilter("all");
 
-    // Routing: if URL has ?id=..., show detail directly
-    const initialId = new URLSearchParams(window.location.search).get('id');
+    // Routing: if URL has ?id=... or ?c=... (SESSION-18 share alias),
+    // show the detail view directly.
+    const _qp = new URLSearchParams(window.location.search);
+    const initialId = _qp.get('id') || _qp.get('c');
     if (initialId) {
       const cls = allClasses.find((c) => c.class_id === initialId);
       if (cls) {

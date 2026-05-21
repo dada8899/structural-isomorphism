@@ -39,6 +39,50 @@ function L(obj, baseKey) {
 let allDiscoveries = [];
 let allTier2 = [];
 let currentFilter = 'all';
+// SESSION-18 (D): when the URL carries ?d=<rank> we focus that card after
+// the list renders — scroll into view + auto-expand. Consumed once.
+let pendingFocusRank = null;
+
+// Build a hook-style headline straight from the discovery's real fields.
+// No fabrication: it just frames the two real phenomenon names as one
+// shared mathematical structure ("X 和 Y，其实是同一个数学结构").
+function discoveryHeadline(d) {
+  const a = L(d, 'a_name') || '';
+  const b = L(d, 'b_name') || '';
+  if (!a || !b) return L(d, 'paper_title') || '';
+  if (currentLang() === 'en') {
+    return `${a} and ${b} share the same equation.`;
+  }
+  return `${a}，和${b}，其实是同一个方程。`;
+}
+
+// Absolute share URL pointing at this specific discovery.
+function discoveryShareUrl(d) {
+  return location.origin + '/discoveries?d=' + encodeURIComponent(d.rank);
+}
+
+// Attach the share-action row + hook headline interactions to a card.
+function wireDiscoveryShare(article, d) {
+  const host = article.querySelector('.disc-item__share');
+  if (!host || !window.ShareCard || !window.ShareCard.buildActions) return;
+  const headline = discoveryHeadline(d);
+  const actions = window.ShareCard.buildActions({
+    url: discoveryShareUrl(d),
+    shareTitle: headline,
+    shareText: headline + ' — Structural 跨领域结构同构引擎',
+    filename: 'structural-discovery-' + d.rank + '.png',
+    compact: true,
+    cardData: {
+      eyebrow: '跨领域结构同构 ***REMOVED***' + d.rank,
+      headline: headline,
+      lineA: (L(d, 'a_domain') || '') + ' · ' + (L(d, 'a_name') || ''),
+      lineB: (L(d, 'b_domain') || '') + ' · ' + (L(d, 'b_name') || ''),
+      footnote: L(d, 'paper_title') || '',
+      url: 'structural.bytedance.city',
+    },
+  });
+  host.appendChild(actions);
+}
 let currentTier = 'a'; // 'a' = A-grade, 't2' = tier2 candidate pool
 // P0-4 (SESSION-17): when the data fetch fails we show a friendly error
 // state. The i18n re-render fires renderList() again later — guard it so
@@ -252,10 +296,11 @@ function renderList() {
     const verdict = L(d, "one_line_verdict") || L(d, "paper_title") || '';
 
     return `
-      <article class="disc-item" data-index="${i}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
+      <article class="disc-item" id="d-${d.rank}" data-index="${i}" data-rank="${d.rank}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
         <header class="disc-item__header">
           <div class="disc-item__rank">***REMOVED***${d.rank}</div>
           <div class="disc-item__body">
+            <p class="disc-item__hook">${escapeHtml(discoveryHeadline(d))}</p>
             <div class="disc-item__pair">
               <div class="disc-item__side">
                 <span class="disc-item__domain">${escapeHtml(L(d, "a_domain"))}</span>
@@ -359,11 +404,39 @@ function renderList() {
                 <span class="disc-item__cta-hint">${T("page.discoveries.cta_hint", "8 段跨学科迁移研究 · 流式生成 60-90 秒")}</span>
               </div>
             ` : ''}
+            <div class="disc-item__detail-block disc-item__share-block" style="grid-column: 1 / -1">
+              <h4>${T("page.discoveries.section_share", "分享这条发现")}</h4>
+              <div class="disc-item__share"></div>
+            </div>
           </div>
         </div>
       </article>
     `;
   }).join('');
+
+  // Wire per-card share actions (DOM nodes, not innerHTML, for event safety).
+  $$('.disc-item', listEl).forEach((article) => {
+    const rank = parseInt(article.dataset.rank, 10);
+    const d = filtered.find((x) => x.rank === rank);
+    if (d) wireDiscoveryShare(article, d);
+  });
+
+  // SESSION-18 (D): honor ?d=<rank> — scroll the matching card into view
+  // and expand it. We do this after render so the node exists.
+  if (pendingFocusRank != null) {
+    const target = document.getElementById('d-' + pendingFocusRank);
+    if (target) {
+      target.classList.add('disc-item--expanded', 'disc-item--focused');
+      if (window.renderMath) {
+        const detail = target.querySelector('.disc-item__detail');
+        if (detail) window.renderMath(detail);
+      }
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    pendingFocusRank = null;
+  }
 
   // Expand click handler (replaces any prior handler on re-render)
   listEl.onclick = (e) => {
@@ -488,6 +561,14 @@ async function loadDiscoveries() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
+  // SESSION-18 (D): read the deep-link target (?d=<rank>) once at startup.
+  try {
+    const dParam = new URLSearchParams(location.search).get('d');
+    if (dParam) {
+      const n = parseInt(dParam, 10);
+      if (!isNaN(n)) pendingFocusRank = n;
+    }
+  } catch (e) {}
   renderDiscSkeletons();
   loadDiscoveries();
 });

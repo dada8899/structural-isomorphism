@@ -283,4 +283,255 @@ async function copyCanvasToClipboard(canvas) {
   }
 }
 
-window.ShareCard = { render: renderShareCard, download: downloadCanvas, copy: copyCanvasToClipboard };
+/**
+ * Render a hook-style share card for a single discovery / universality class.
+ * Education-asset variant (Session ***REMOVED***18): a bold headline-driven layout,
+ * lighter than the dark mapping card above. Light background, big serif hook.
+ * @param {{headline, eyebrow, lineA, lineB, footnote, url}} data
+ * @returns {HTMLCanvasElement}
+ */
+function renderHookCard(data) {
+  const W = SHARE_CARD.width;
+  const H = SHARE_CARD.height;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const INK = '***REMOVED***18181B';
+  const SUB = '***REMOVED***52525B';
+  const FAINT = '***REMOVED***A1A1AA';
+  const ACCENT = '***REMOVED***3B82F6';
+  const pad = SHARE_CARD.padding;
+  const fontSans = '"Inter", "PingFang SC", -apple-system, system-ui, sans-serif';
+  const fontSerif = '"Noto Serif SC", "Songti SC", serif';
+
+  // === Background — warm off-white with a faint dot grid ===
+  ctx.fillStyle = '***REMOVED***FAFAF9';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,0.035)';
+  for (let x = pad; x < W - pad; x += 40) {
+    for (let y = 150; y < H - 120; y += 40) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // === Top: logo + eyebrow ===
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  // logo mark
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(pad + 6, pad + 10, 4, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(pad + 20, pad + 22, 4, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad + 9, pad + 13); ctx.lineTo(pad + 17, pad + 19); ctx.stroke();
+  ctx.fillStyle = INK;
+  ctx.font = `500 22px ${fontSerif}`;
+  ctx.fillText('Structural', pad + 34, pad + 6);
+  // eyebrow (right)
+  if (data.eyebrow) {
+    ctx.fillStyle = ACCENT;
+    ctx.font = `600 14px ${fontSans}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(data.eyebrow, W - pad, pad + 12);
+  }
+
+  // === Headline — the hook, large serif, up to 3 lines ===
+  ctx.textAlign = 'left';
+  ctx.fillStyle = INK;
+  ctx.font = `600 52px ${fontSerif}`;
+  const headlineLines = wrapText(ctx, data.headline || '', W - pad * 2).slice(0, 3);
+  let hy = 168;
+  headlineLines.forEach((line) => {
+    ctx.fillText(line, pad, hy);
+    hy += 66;
+  });
+
+  // === A ≅ B pairing line ===
+  let py = hy + 22;
+  if (data.lineA || data.lineB) {
+    ctx.font = `500 26px ${fontSans}`;
+    ctx.fillStyle = SUB;
+    const aText = data.lineA || '';
+    const bText = data.lineB || '';
+    ctx.fillText(aText, pad, py);
+    const aW = ctx.measureText(aText).width;
+    ctx.fillStyle = ACCENT;
+    ctx.font = `400 26px ${fontSerif}`;
+    ctx.fillText('  ≅  ', pad + aW, py);
+    const symW = ctx.measureText('  ≅  ').width;
+    ctx.fillStyle = SUB;
+    ctx.font = `500 26px ${fontSans}`;
+    ctx.fillText(bText, pad + aW + symW, py);
+  }
+
+  // === Footnote / structure name ===
+  if (data.footnote) {
+    ctx.fillStyle = FAINT;
+    ctx.font = `400 18px ${fontSans}`;
+    const fnLines = wrapText(ctx, data.footnote, W - pad * 2).slice(0, 2);
+    fnLines.forEach((line, i) => {
+      ctx.fillText(line, pad, py + 50 + i * 26);
+    });
+  }
+
+  // === Bottom URL ===
+  ctx.fillStyle = FAINT;
+  ctx.font = `400 16px ${fontSans}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(data.url || 'structural.bytedance.city', pad, H - pad - 4);
+
+  return canvas;
+}
+
+/**
+ * Build a share-action row (copy link + native share + image card) for a
+ * single education asset. Returns an HTMLElement to be appended into a card.
+ *
+ * @param {{
+ *   url: string,            // absolute share URL
+ *   shareTitle: string,     // text for navigator.share
+ *   shareText: string,      // body text for navigator.share
+ *   cardData: object,       // payload for renderHookCard
+ *   filename: string,       // download filename for the PNG
+ *   compact: boolean        // smaller variant
+ * }} opts
+ */
+function buildShareActions(opts) {
+  const wrap = document.createElement('div');
+  wrap.className = 'share-actions' + (opts.compact ? ' share-actions--compact' : '');
+
+  // --- Copy link ---
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'share-actions__btn';
+  copyBtn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+    '<span>复制链接</span>';
+  copyBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(opts.url);
+      ok = true;
+    } catch (_) {
+      // Fallback for non-secure contexts
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = opts.url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (_2) { ok = false; }
+    }
+    const span = copyBtn.querySelector('span');
+    span.textContent = ok ? '已复制 ✓' : '复制失败';
+    copyBtn.classList.toggle('share-actions__btn--done', ok);
+    setTimeout(() => {
+      span.textContent = '复制链接';
+      copyBtn.classList.remove('share-actions__btn--done');
+    }, 2000);
+  });
+  wrap.appendChild(copyBtn);
+
+  // --- Native share (mobile) — only if supported ---
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    const shareBtn = document.createElement('button');
+    shareBtn.type = 'button';
+    shareBtn.className = 'share-actions__btn';
+    shareBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>' +
+      '<span>分享</span>';
+    shareBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.share({
+        title: opts.shareTitle || 'Structural',
+        text: opts.shareText || '',
+        url: opts.url,
+      }).catch(() => {});
+    });
+    wrap.appendChild(shareBtn);
+  }
+
+  // --- Generate image card ---
+  const imgBtn = document.createElement('button');
+  imgBtn.type = 'button';
+  imgBtn.className = 'share-actions__btn';
+  imgBtn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
+    '<span>生成图片卡片</span>';
+  imgBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    try {
+      const canvas = renderHookCard(opts.cardData || {});
+      openShareCardModal(canvas, opts.filename || 'structural-card.png');
+    } catch (err) {
+      console.error('Share card render failed:', err);
+    }
+  });
+  wrap.appendChild(imgBtn);
+
+  return wrap;
+}
+
+/**
+ * Open a lightweight modal previewing the generated canvas with
+ * download + copy-to-clipboard actions.
+ */
+function openShareCardModal(canvas, filename) {
+  const existing = document.querySelector('.share-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'share-modal';
+  overlay.innerHTML =
+    '<div class="share-modal__panel" role="dialog" aria-modal="true">' +
+      '<button type="button" class="share-modal__close" aria-label="关闭">×</button>' +
+      '<div class="share-modal__preview"></div>' +
+      '<div class="share-modal__actions">' +
+        '<button type="button" class="share-modal__btn share-modal__btn--primary" data-act="download">下载图片</button>' +
+        '<button type="button" class="share-modal__btn" data-act="copy">复制到剪贴板</button>' +
+      '</div>' +
+      '<p class="share-modal__hint">分享到社交平台 · 1200×630</p>' +
+    '</div>';
+
+  // Display canvas scaled to fit
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  img.alt = '分享卡片预览';
+  img.className = 'share-modal__img';
+  overlay.querySelector('.share-modal__preview').appendChild(img);
+
+  const close = () => overlay.remove();
+  overlay.querySelector('.share-modal__close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function esc(ev) {
+    if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
+  });
+
+  overlay.querySelector('[data-act="download"]').addEventListener('click', () => {
+    downloadCanvas(canvas, filename);
+  });
+  const copyBtn = overlay.querySelector('[data-act="copy"]');
+  copyBtn.addEventListener('click', async () => {
+    const ok = await copyCanvasToClipboard(canvas);
+    copyBtn.textContent = ok ? '已复制 ✓' : '复制失败（请用下载）';
+    setTimeout(() => { copyBtn.textContent = '复制到剪贴板'; }, 2200);
+  });
+
+  document.body.appendChild(overlay);
+}
+
+window.ShareCard = {
+  render: renderShareCard,
+  renderHook: renderHookCard,
+  download: downloadCanvas,
+  copy: copyCanvasToClipboard,
+  buildActions: buildShareActions,
+  openModal: openShareCardModal,
+};

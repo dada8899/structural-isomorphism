@@ -983,3 +983,161 @@ pre.disc-item__equations {
 .disc-loaderror__retry:hover {
   border-color: var(--brand-line-strong, ***REMOVED***d4d4d8);
 }
+
+/* === SESSION-18 (D) — Education asset upgrades === */
+
+/* Hook headline — frames the card with a传播力 sentence above the pair. */
+.disc-item__hook {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-serif, "Noto Serif SC", serif);
+  font-size: var(--fs-18, 18px);
+  font-weight: var(--fw-medium, 500);
+  line-height: 1.5;
+  color: var(--text-primary, ***REMOVED***18181b);
+  letter-spacing: var(--ls-tight, -0.01em);
+}
+
+/* Deep-linked / focused card gets a soft ring so a shared link lands clearly. */
+.disc-item--focused {
+  box-shadow: 0 0 0 2px var(--brand-accent, ***REMOVED***3b82f6);
+}
+/* Keep the ring visible alongside the expanded shadow. */
+.disc-item--focused.disc-item--expanded {
+  box-shadow: 0 0 0 2px var(--brand-accent, ***REMOVED***3b82f6), var(--shadow-md);
+}
+
+/* Share block inside the expanded detail. */
+.disc-item__share-block {
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--border-subtle, ***REMOVED***e4e4e7);
+  margin-top: var(--space-3);
+}
+.disc-item__share {
+  margin-top: var(--space-2);
+}
+
+/* === Shared share-action row (discoveries + classes) === */
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.share-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, ***REMOVED***52525b);
+  background: var(--surface-1, ***REMOVED***fff);
+  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.share-actions__btn:hover {
+  color: var(--text-primary, ***REMOVED***18181b);
+  border-color: var(--border-strong, ***REMOVED***d4d4d8);
+}
+.share-actions__btn svg {
+  flex-shrink: 0;
+}
+.share-actions__btn--done {
+  color: ***REMOVED***16a34a;
+  border-color: ***REMOVED***86efac;
+}
+.share-actions--compact .share-actions__btn {
+  padding: 7px 13px;
+  font-size: 12.5px;
+}
+
+/* === Share-card preview modal === */
+.share-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 11, 0.55);
+  backdrop-filter: blur(3px);
+}
+.share-modal__panel {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: ***REMOVED***fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+.share-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-tertiary, ***REMOVED***a1a1aa);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.share-modal__close:hover {
+  color: var(--text-primary, ***REMOVED***18181b);
+  background: var(--surface-2, ***REMOVED***f4f4f5);
+}
+.share-modal__preview {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+}
+.share-modal__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.share-modal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.share-modal__btn {
+  flex: 1;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary, ***REMOVED***18181b);
+  background: var(--surface-1, ***REMOVED***fff);
+  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.share-modal__btn:hover {
+  border-color: var(--border-strong, ***REMOVED***d4d4d8);
+}
+.share-modal__btn--primary {
+  color: ***REMOVED***fff;
+  background: var(--text-primary, ***REMOVED***18181b);
+  border-color: var(--text-primary, ***REMOVED***18181b);
+}
+.share-modal__btn--primary:hover {
+  opacity: 0.9;
+}
+.share-modal__hint {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary, ***REMOVED***a1a1aa);
+}
+
+@media (max-width: 640px) {
+  .disc-item__hook { font-size: 16px; }
+  .share-modal__panel { padding: 20px; }
+  .share-actions__btn { flex: 1; justify-content: center; }
+}
