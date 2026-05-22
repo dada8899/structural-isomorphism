@@ -45,6 +45,15 @@
       body.has-history-sidebar { padding-left: 240px; }
       body.has-history-sidebar.history-sidebar-collapsed { padding-left: 56px; }
     }
+    /* SESSION-18: one-line "how to use this page" hint under the tagline.
+       Page-scoped — not promoted to ask.css. */
+    .ask-empty__subtagline {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--brand-muted);
+      margin: -18px 0 32px;
+      max-width: 580px;
+    }
   </style>
 
   <!-- Plausible analytics (W4-B G3, 2026-05-13). Loads only when DNS resolves;
@@ -60,6 +69,7 @@
     <section class="ask-empty" id="ask-empty">
       <h1 class="ask-empty__brand">你卡住的问题，可能是别人早就解过的同一道题</h1>
       <p class="ask-empty__tagline">用户流失、谣言扩散、团队崩盘、连锁式的资金挤兑——表面八竿子打不着，骨子里常是同一套规律。描述你的难题，我们帮你找到那个已经把它研究透的学科，给你一份能照着做的清单：能借哪些方法、有哪些坑。</p>
+      <p class="ask-empty__subtagline">下面这个框就是入口：把难题写进去，约 2–3 分钟拿到一份研究报告。想先了解这是什么、或者用别的工具，往下翻。</p>
 
       <form id="ask-form" class="ask-searchbox" role="search" autocomplete="off">
         <textarea
@@ -116,7 +126,7 @@
       </div>
 
       <div class="ask-empty__explore">
-        <div class="ask-empty__explore-label">没有头绪？从这些开始</div>
+        <div class="ask-empty__explore-label">不想提问，先随便看看？</div>
         <div class="ask-empty__explore-cards">
           <!-- SESSION-17 design P2-1: single-colour line icons (stroke 1.5,
                matching the logo) instead of cross-OS-inconsistent emoji. -->
@@ -145,13 +155,17 @@
               </svg>
             </span>
             <h3 class="explore-card__title">Phase Detector ↗</h3>
-            <p class="explore-card__desc">100 家公司的状态评分——把同一套数学套到公司上</p>
+            <p class="explore-card__desc">用同一套方法给 100 家公司打分：现在离"突然崩盘"还有多远</p>
           </a>
         </div>
       </div>
 
       <div class="ask-empty__footer">
         <a href="/learn" class="ask-empty__link">了解工作原理 →</a>
+        <span class="ask-empty__sep">·</span>
+        <a href="/tools" class="ask-empty__link">全部 9 个工具 →</a>
+        <span class="ask-empty__sep">·</span>
+        <a href="/about" class="ask-empty__link">关于这个项目 →</a>
         <span class="ask-empty__sep">·</span>
         <a href="https://phase.bytedance.city/" target="_blank" rel="noopener" class="ask-empty__link">Phase Detector ↗</a>
       </div>

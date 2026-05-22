@@ -186,7 +186,7 @@
       if (!resp.ok) {
         var msg = (body && body.message) ||
           (resp.status === 503
-            ? '结构 lint 服务暂时不可用，请稍后重试。'
+            ? '策略文档体检服务暂时不可用，请稍后重试。'
             : '请求失败（' + resp.status + '）。');
         showError(msg);
         return;

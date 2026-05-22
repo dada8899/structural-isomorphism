@@ -1940,6 +1940,21 @@ async def learn_page():
     return FileResponse(FRONTEND_DIR / "learn.html")
 
 
+***REMOVED*** waitlist.js redirects here after a successful signup — without this route
+***REMOVED*** the redirect 404'd. thank-you.html already exists, it just wasn't exposed.
+@app.get("/thank-you", include_in_schema=False)
+async def thank_you_page():
+    return FileResponse(FRONTEND_DIR / "thank-you.html")
+
+
+***REMOVED*** Bare /report (no id) — report.js parseRoute() degrades to a friendly
+***REMOVED*** "pick a report" error; serving the shell lets that fallback run instead
+***REMOVED*** of a hard 404.
+@app.get("/report", include_in_schema=False)
+async def report_index_page():
+    return FileResponse(FRONTEND_DIR / "report.html")
+
+
 ***REMOVED*** --- SEO: robots.txt + sitemap.xml (W3-D, 2026-05-14) ---
 @app.get("/robots.txt", include_in_schema=False)
 async def robots_txt():

@@ -4,17 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="***REMOVED***FAFAF9">
-  <meta name="description" content="给一份策略/方案文档做结构 lint——抽出里面的隐含假设、跨域类比、因果判断，逐条标出结构性风险和失效模式。">
-  <title>结构 lint — Structural</title>
+  <meta name="description" content="给一份策略/方案文档做体检——抽出里面的隐含假设、跨域类比、因果判断，逐条标出结构性风险和失效模式。">
+  <title>策略文档体检 — Structural</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
-  <meta property="og:title" content="结构 lint — Structural">
+  <meta property="og:title" content="策略文档体检 — Structural">
   <meta property="og:description" content="像代码审查一样审查你的策略文档 · 标出结构性风险">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="结构 lint — Structural">
+  <meta name="twitter:title" content="策略文档体检 — Structural">
   <meta name="twitter:description" content="像代码审查一样审查你的策略文档 · 标出结构性风险">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
@@ -37,15 +37,15 @@
       <nav class="lint-crumb">
         <a href="/">首页</a>
         <span class="lint-crumb__sep">/</span>
-        <span>结构 lint</span>
+        <span>策略文档体检</span>
       </nav>
 
       <!-- Input state -->
       <section id="lint-input" class="lint-input">
-        <h1 class="lint-input__title">结构 lint</h1>
+        <h1 class="lint-input__title">策略文档体检</h1>
         <p class="lint-input__intro">
           粘贴一份策略 / 方案文档。我们会像代码审查一样逐条找出里面的<strong>隐含假设</strong>、<strong>跨域类比</strong>和<strong>因果判断</strong>，
-          标出每一条的底层结构、最常见的失效模式和结构性风险。
+          标出每一条的底层结构、最常见的失效模式和结构性风险。简单说：在文档交出去之前，先帮你挑一遍刺。
         </p>
         <textarea
           id="lint-textarea"
@@ -56,7 +56,7 @@
           aria-label="策略文档内容"></textarea>
         <div class="lint-input__bar">
           <span id="lint-charcount" class="lint-charcount">0 / 20000</span>
-          <button type="button" id="lint-submit" class="lint-submit">开始结构 lint</button>
+          <button type="button" id="lint-submit" class="lint-submit">开始体检</button>
         </div>
         <p id="lint-input-error" class="lint-input__error" hidden></p>
         <div class="lint-examples" id="lint-examples">
@@ -74,7 +74,7 @@
           <span class="lint-loading__dot"></span>
           <span class="lint-loading__dot"></span>
         </div>
-        <h2 class="lint-loading__title">正在做结构 lint</h2>
+        <h2 class="lint-loading__title">正在做文档体检</h2>
         <p class="lint-loading__hint">我们在逐条抽取文档里的结构性主张并比对失效模式，约需 20–40 秒。</p>
         <span class="lint-loading__timer" id="lint-loading-timer">已等待 0s</span>
       </section>
@@ -82,7 +82,7 @@
       <!-- Error state -->
       <section id="lint-error" class="lint-error" hidden>
         <div class="lint-error__icon" aria-hidden="true">!</div>
-        <h2 class="lint-error__title">结构 lint 失败</h2>
+        <h2 class="lint-error__title">文档体检失败</h2>
         <p id="lint-error-msg" class="lint-error__msg"></p>
         <button type="button" id="lint-retry" class="lint-submit lint-submit--ghost">返回重试</button>
       </section>

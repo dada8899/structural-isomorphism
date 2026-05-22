@@ -29,10 +29,16 @@ def test_home_loads_perplexity_layout(page: Page):
 
 @pytest.mark.post_deploy
 def test_home_brand_h1(page: Page):
-    """Home should show Structural brand serif."""
+    """Home h1 is the value-proposition tagline (not the brand word).
+
+    The .ask-empty__brand h1 was redesigned to lead with a plain-language
+    value proposition rather than the literal "Structural" brand mark, so
+    a first-time visitor immediately understands what the product does.
+    Assert the h1 exists and carries that tagline copy.
+    """
     page.goto(f"{BASE}/")
     h1 = page.locator(".ask-empty__brand")
-    expect(h1).to_have_text("Structural")
+    expect(h1).to_have_text("你卡住的问题，可能是别人早就解过的同一道题")
 
 
 @pytest.mark.post_deploy

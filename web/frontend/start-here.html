@@ -81,6 +81,22 @@
       font-size: 13px; color: ***REMOVED***71717A; line-height: 1.6;
     }
 
+    /* SESSION-18: Chinese-reader hand-off note at the top of this EN essay. */
+    .essay__lang-note {
+      margin: 0 0 28px;
+      padding: 12px 16px;
+      background: ***REMOVED***FAFAF9;
+      border: 1px solid ***REMOVED***E4E4E7;
+      border-radius: 10px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: ***REMOVED***52525B;
+    }
+    .essay__lang-note a {
+      color: ***REMOVED***2563EB; text-decoration: none;
+      border-bottom: 1px solid rgba(37,99,235,0.3);
+    }
+
     .essay__pullquote {
       margin: 32px -4px;
       padding: 18px 24px;
@@ -150,6 +166,12 @@
       <span class="essay__eyebrow-dot"></span>
       <span>Start here · ~10 min read · No math</span>
     </div>
+
+    <!-- SESSION-18: this essay is English-only. Give Chinese readers a
+         clear hand-off to the Chinese pages instead of a dead end. -->
+    <p class="essay__lang-note">
+      这是一篇英文长文。想看中文，可以读 <a href="/learn">工作原理</a>、<a href="/about">关于本项目</a>，或直接回<a href="/">首页</a>提一个问题。
+    </p>
 
     <h1 class="essay__title">Why bank runs, earthquakes, and neural avalanches are the same thing</h1>
 

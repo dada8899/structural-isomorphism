@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="***REMOVED***FAFAF9">
-  <meta name="description" content="Structural 工具中心——研究空白地图、方法反查、结构压力测试、结构 lint、结构诊断，全部建立在跨领域结构同构引擎之上。">
+  <meta name="description" content="Structural 工具中心——研究空白地图、方法反查、结构压力测试、策略文档体检、结构诊断，全部建立在跨领域结构同构引擎之上。">
   <title>工具中心 — Structural</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
@@ -23,6 +23,30 @@
   <link rel="stylesheet" href="/assets/css/tools.css?v=20260522s18">
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260522s18">
 
+  <style>
+    /* SESSION-18: per-card "what you get" footer + group intro line.
+       Page-scoped — kept out of tools.css until the pattern stabilises. */
+    .tools-group__hint {
+      max-width: 600px;
+      margin: -8px 0 20px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-tertiary, ***REMOVED***9a958c);
+    }
+    .tool-card__meta {
+      margin: 12px 0 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text-tertiary, ***REMOVED***9a958c);
+    }
+    .tool-card__meta strong {
+      color: var(--text-secondary, ***REMOVED***57534e);
+      font-weight: 600;
+    }
+  </style>
+
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
 </head>
 <body>
@@ -32,12 +56,15 @@
     <div class="tools-page__eyebrow">— 工具中心 —</div>
     <h1 class="tools-page__title">一套工具，<br>同一个结构引擎</h1>
     <p class="tools-page__lede">
-      下面每个工具都建立在同一件事上：<strong>看似无关的现象，在数学结构层面往往是同一件事</strong>。
-      引擎有 4,443 个跨领域现象、26 个普适类。这些工具是它的不同用法。
+      这些工具都建立在同一件事上：<strong>看似无关的现象，骨子里常是同一道数学题</strong>——比如地震和银行挤兑。
+      我们把 4,443 个跨领域现象整理进了一个引擎，下面 9 个工具就是它的不同用法。
+      <br><br>
+      不确定从哪开始？<strong>有具体难题就用「深度迁移分析」；想先看看能搜出什么就翻「精选发现」。</strong>
     </p>
 
     <section class="tools-group" aria-labelledby="grp-analyze">
       <h2 class="tools-group__label" id="grp-analyze">分析与发现</h2>
+      <p class="tools-group__hint">手上有具体问题、或者想找研究选题时用这一组。</p>
       <div class="tools-grid">
 
         <a class="tool-card" href="/analyze">
@@ -48,6 +75,7 @@
             <span class="tool-card__name">深度迁移分析</span>
           </div>
           <p class="tool-card__desc">把你的问题，换成另一个领域已经解过的题，生成一份九段研究报告。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你卡在一个具体难题上，想知道有没有别的学科已经解过。<br><strong>会得到</strong>：一份分九段的报告——对应学科、可借的方法、要避的坑（约 2–3 分钟）。</p>
         </a>
 
         <a class="tool-card" href="/whitespace">
@@ -58,7 +86,8 @@
             <span class="tool-card__name">研究空白地图</span>
             <span class="tool-card__badge">新</span>
           </div>
-          <p class="tool-card__desc">26 个普适类 × 183 个领域的矩阵。空格子里那些“理论上应该成立、还没人验证”的，就是研究选题。</p>
+          <p class="tool-card__desc">23 个普适类 × 183 个领域的矩阵。空格子里那些“理论上应该成立、还没人验证”的，就是研究选题。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你在找一个还没人做过、值得研究的新课题。<br><strong>会得到</strong>：一张矩阵，高亮出"理论上该成立、目前还是空白"的格子。</p>
         </a>
 
         <a class="tool-card" href="/apply">
@@ -70,6 +99,7 @@
             <span class="tool-card__badge">新</span>
           </div>
           <p class="tool-card__desc">输入一个方法或算法，引擎反过来告诉你：它的结构还能套用在哪些别的领域。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你已经有一个好用的方法，想知道它还能用在哪。<br><strong>会得到</strong>：一份清单——这个方法的结构还适配哪些别的领域。</p>
         </a>
 
       </div>
@@ -77,6 +107,7 @@
 
     <section class="tools-group" aria-labelledby="grp-verify">
       <h2 class="tools-group__label" id="grp-verify">验证与诊断</h2>
+      <p class="tools-group__hint">你心里已经有一个判断、类比或方案，想让引擎帮你挑刺、查漏洞时用这一组。</p>
       <div class="tools-grid">
 
         <a class="tool-card" href="/stress-test">
@@ -88,6 +119,7 @@
             <span class="tool-card__badge">新</span>
           </div>
           <p class="tool-card__desc">给一个商业类比或战略判断，引擎只做证伪：这个类比结构上成不成立，最可能从哪一环崩。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你想用某个类比来说服别人，但不确定它站不站得住。<br><strong>会得到</strong>：一份"找茬报告"——这个类比哪一环最可能崩、为什么。</p>
         </a>
 
         <a class="tool-card" href="/lint">
@@ -95,10 +127,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h13"/><circle cx="18.5" cy="12" r="2.5"/><circle cx="20.5" cy="19" r="2.5"/></svg>
           </span>
           <div class="tool-card__head">
-            <span class="tool-card__name">结构 lint</span>
+            <span class="tool-card__name">策略文档体检</span>
             <span class="tool-card__badge">新</span>
           </div>
           <p class="tool-card__desc">喂一份策略文档，逐条标出里面的假设、类比、判断各自的结构性风险与失效模式。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你写完一份策略/方案文档，想在交出去前自查一遍。<br><strong>会得到</strong>：逐条批注——每个假设和判断的隐藏风险、可能怎么失效。</p>
         </a>
 
         <a class="tool-card" href="/diagnose">
@@ -110,6 +143,7 @@
             <span class="tool-card__badge">新</span>
           </div>
           <p class="tool-card__desc">描述一个组织或团队的处境，引擎诊断它正处于哪种结构状态、会怎样演化、该盯哪个信号。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你的团队或组织状态不太对劲，想搞清楚问题在哪。<br><strong>会得到</strong>：一份诊断——现在处于什么状态、接下来可能怎么走、该盯哪个信号。</p>
         </a>
 
       </div>
@@ -117,6 +151,7 @@
 
     <section class="tools-group" aria-labelledby="grp-explore">
       <h2 class="tools-group__label" id="grp-explore">浏览与洞察</h2>
+      <p class="tools-group__hint">不带具体问题、想随便逛逛、看看引擎里都有什么时用这一组。</p>
       <div class="tools-grid">
 
         <a class="tool-card" href="/discoveries">
@@ -127,6 +162,7 @@
             <span class="tool-card__name">精选发现</span>
           </div>
           <p class="tool-card__desc">39 个经多模型 AI 评审通过的跨域同构发现——地震和银行挤兑，其实是同一个方程。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：第一次来、想先看看引擎到底能挖出什么样的结果。<br><strong>会得到</strong>：39 个已验证的"跨领域撞衫"案例，可逐个点开看。</p>
         </a>
 
         <a class="tool-card" href="/classes">
@@ -136,7 +172,8 @@
           <div class="tool-card__head">
             <span class="tool-card__name">普适类</span>
           </div>
-          <p class="tool-card__desc">26 个跨学科共享模式。同一条规律，横跨十几个看似无关的领域。</p>
+          <p class="tool-card__desc">23 个跨学科共享模式。同一条规律，横跨十几个看似无关的领域。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：想系统了解"有哪些规律是反复出现、跨领域通用的"。<br><strong>会得到</strong>：23 个模式族，每个都列出它出现过的领域和共同的数学规律。</p>
         </a>
 
         <a class="tool-card" href="/insights">
@@ -148,6 +185,7 @@
             <span class="tool-card__badge">新</span>
           </div>
           <p class="tool-card__desc">用户最常卡住的问题结构，以及被真实结果验证过的同构库。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：好奇别人都拿这个引擎问什么、哪些同构最靠谱。<br><strong>会得到</strong>：用户高频问题的归类，加一个经真实数据验证过的同构清单。</p>
         </a>
 
       </div>
