@@ -73,6 +73,26 @@ def _audit_file() -> Path:
     return _data_dir() / "privacy_audit.jsonl"
 
 
+def _history_db() -> Path:
+    """history.db holds the structural_fingerprints table (G connections)."""
+    return _data_dir() / "history.db"
+
+
+def _delete_fingerprints(email: str) -> int:
+    """Delete the user's structural fingerprints (G connections feature).
+
+    Fingerprints live in a SQLite table, not the JSONL files — so the
+    JSONL rewrite path misses them. design §2.4 requires them to be in
+    DSAR delete scope. Returns rows removed; 0 if the DB doesn't exist yet.
+    """
+    db = _history_db()
+    if not db.exists():
+        return 0
+    from services.connections_store import ConnectionsStore
+
+    return ConnectionsStore(db).delete_all_for_user(email)
+
+
 ***REMOVED*** Random per-process fallback — see export.py for the rationale. An unset
 ***REMOVED*** STRUCTURAL_PRIVACY_MOCK_CODE must fail closed (unguessable), never fall back
 ***REMOVED*** to a public default that would expose the data-deletion endpoint.
@@ -261,6 +281,7 @@ async def delete_data(
         "newsletter_subscribers": 0,
         "mock_checkouts": 0,
         "error_log": 0,
+        "structural_fingerprints": 0,
     }
 
     try:
@@ -271,6 +292,7 @@ async def delete_data(
             removed["mock_checkouts"] = _filter_out_email(
                 _checkouts_file(), email
             )
+            removed["structural_fingerprints"] = _delete_fingerprints(email)
         if session_id:
             n = 0
             for f in _error_log_files():

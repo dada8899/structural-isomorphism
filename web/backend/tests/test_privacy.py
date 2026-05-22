@@ -298,3 +298,32 @@ def test_delete_code_fails_closed_when_env_unset(monkeypatch):
     code = del_mod._expected_verification_code()
     assert code != "123456"
     assert len(code) >= 16
+
+
+***REMOVED*** ===========================================================================
+***REMOVED*** DSAR delete scope: structural fingerprints (G connections) — design §2.4
+***REMOVED*** ===========================================================================
+
+
+def test_delete_removes_structural_fingerprints(app_with_data):
+    """A delete-by-email must also wipe the user's fingerprints, which live
+    in history.db's SQLite table — not the JSONL files."""
+    client, data_dir = app_with_data
+    from services.connections_store import ConnectionsStore
+
+    store = ConnectionsStore(data_dir / "history.db")
+    store.create_fingerprint(
+        user_email="alice@example.com", problem_summary="团队扩张后决策变慢"
+    )
+    store.create_fingerprint(
+        user_email="bob@example.com", problem_summary="留存率持续下滑"
+    )
+
+    r = client.request(
+        "DELETE", "/api/privacy/delete?email=alice@example.com&code=123456"
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["removed"]["structural_fingerprints"] == 1
+    ***REMOVED*** Alice's fingerprints gone, Bob's untouched.
+    assert store.list_by_user("alice@example.com") == []
+    assert len(store.list_by_user("bob@example.com")) == 1
