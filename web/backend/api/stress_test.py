@@ -7,8 +7,6 @@
 普通 JSON 端点（非 SSE）—— 单次 LLM 调用、结构化结果，无需流式。
 LLM 不可用时返回 503，不假装能测。
 """
-from __future__ import annotations
-
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
