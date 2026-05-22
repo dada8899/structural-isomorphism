@@ -1,0 +1,349 @@
+{
+  "domain": "GitHub event cascades (issue/PR burst after a hot main event)",
+  "phase": 6,
+  "predicted_class": "soc_threshold_cascade",
+  "cross_domain_test": true,
+  "cascade_definition": {
+    "main_event": "issue/PR with (comments+reactions) > mu + 2.0*sigma per repo",
+    "cascade": "events opened in same repo within 30d after a main event",
+    "size_observable": "count of derived events per cascade",
+    "omori_observable": "stacked delay (s) of derived events vs main"
+  },
+  "n_events": 29400,
+  "n_repos": 25,
+  "n_cascades": 823,
+  "n_omori_delays": 306183,
+  "preregistered_alpha_band": [
+    1.5,
+    3.5
+  ],
+  "preregistered_omori_band": [
+    0.3,
+    1.3
+  ],
+  "clauset_fit": {
+    "name": "github_cascade_size",
+    "alpha": 1.6959301180653776,
+    "sigma_alpha": 0.026044530096391898,
+    "xmin": 78.0,
+    "n_total": 823,
+    "n_tail": 714,
+    "vs_lognormal_R": -11.863400599480938,
+    "vs_lognormal_p": 1.8337322365919243e-32,
+    "vs_exponential_R": -14.631184407057319,
+    "vs_exponential_p": 1.776670960977341e-48,
+    "vs_powerlaw_lognormal_winner": "lognormal",
+    "rejects_power_law": true,
+    "ks_statistic": 0.17597597844510887
+  },
+  "bootstrap_ci": {
+    "ci_low": 1.6260949719623061,
+    "ci_high": 2.994976458433655,
+    "alpha_mean": 1.8642696930689489,
+    "alpha_std": 0.4383851143106231,
+    "n_boot_succeeded": 300
+  },
+  "alpha_in_band": true,
+  "omori": {
+    "p": 0.35814128237160026,
+    "p_sigma": 0.02074187252756845,
+    "c_days": 0.5,
+    "logK": 1.205795686905703,
+    "R2": 0.9490664711504209,
+    "n_aftershocks_in_fit": 306183,
+    "n_bins_used": 18,
+    "p_in_band": true
+  },
+  "verdict": "FAIL",
+  "verdict_reason": "a simpler model (lognormal/exponential) beats power-law; robust \u2014 power-law is rejected across every window/sigma setting and alpha drifts with the window, confirming there is no scale-free regime (not a single-parameter artefact)",
+  "sensitivity_sweep": [
+    {
+      "window_days": 30,
+      "main_sigma": 2.0,
+      "n_cascades": 823,
+      "mean_size": 373.36208991494533,
+      "alpha": 1.6959301180653776,
+      "ks": 0.17597597844510887,
+      "rejects_power_law": true,
+      "vs_lognormal_R": -11.863400599480938,
+      "vs_exponential_R": -14.631184407057319
+    },
+    {
+      "window_days": 7,
+      "main_sigma": 2.0,
+      "n_cascades": 823,
+      "mean_size": 137.7363304981774,
+      "alpha": 2.9519401931146843,
+      "ks": 0.09229420006198141,
+      "rejects_power_law": true,
+      "vs_lognormal_R": -2.9342881479609333,
+      "vs_exponential_R": -3.218980053115265
+    },
+    {
+      "window_days": 3,
+      "main_sigma": 2.0,
+      "n_cascades": 823,
+      "mean_size": 68.20291616038882,
+      "alpha": 2.445042170503239,
+      "ks": 0.09126982533965106,
+      "rejects_power_law": true,
+      "vs_lognormal_R": -3.3295000064173284,
+      "vs_exponential_R": -2.0367093942152197
+    },
+    {
+      "window_days": 1,
+      "main_sigma": 2.0,
+      "n_cascades": 823,
+      "mean_size": 26.55164034021871,
+      "alpha": 2.1732954606782373,
+      "ks": 0.07012227333313004,
+      "rejects_power_law": true,
+      "vs_lognormal_R": -3.412885694393677,
+      "vs_exponential_R": -0.08089594281394932
+    },
+    {
+      "window_days": 3,
+      "main_sigma": 3.0,
+      "n_cascades": 391,
+      "mean_size": 63.890025575447574,
+      "alpha": 2.4773870619116796,
+      "ks": 0.07990009775795925,
+      "rejects_power_law": true,
+      "vs_lognormal_R": -1.6911395830285523,
+      "vs_exponential_R": -0.4216327924516351
+    }
+  ],
+  "power_law_rejected_in_all_settings": true,
+  "per_repo": {
+    "kubernetes/kubernetes": {
+      "n_events": 1200,
+      "loud_mu": 6.489166666666667,
+      "loud_sigma": 4.834240647598016,
+      "main_threshold": 16.1576479618627,
+      "n_main_events": 41,
+      "mean_cascade_size": 365.7073170731707,
+      "max_cascade_size": 716
+    },
+    "facebook/react": {
+      "n_events": 1200,
+      "loud_mu": 3.4425,
+      "loud_sigma": 11.553572048649428,
+      "main_threshold": 26.549644097298856,
+      "n_main_events": 14,
+      "mean_cascade_size": 106.64285714285714,
+      "max_cascade_size": 256
+    },
+    "microsoft/vscode": {
+      "n_events": 1200,
+      "loud_mu": 0.8866666666666667,
+      "loud_sigma": 2.8470140303287734,
+      "main_threshold": 6.580694727324214,
+      "n_main_events": 14,
+      "mean_cascade_size": 432.0,
+      "max_cascade_size": 1109
+    },
+    "tensorflow/tensorflow": {
+      "n_events": 1200,
+      "loud_mu": 1.1425,
+      "loud_sigma": 2.5532059095706847,
+      "main_threshold": 6.2489118191413695,
+      "n_main_events": 22,
+      "mean_cascade_size": 79.31818181818181,
+      "max_cascade_size": 114
+    },
+    "pytorch/pytorch": {
+      "n_events": 1200,
+      "loud_mu": 3.47,
+      "loud_sigma": 6.342904171854824,
+      "main_threshold": 16.155808343709648,
+      "n_main_events": 10,
+      "mean_cascade_size": 343.0,
+      "max_cascade_size": 618
+    },
+    "rust-lang/rust": {
+      "n_events": 1200,
+      "loud_mu": 5.083333333333333,
+      "loud_sigma": 6.5025422378909274,
+      "main_threshold": 18.08841780911519,
+      "n_main_events": 49,
+      "mean_cascade_size": 480.18367346938777,
+      "max_cascade_size": 869
+    },
+    "nodejs/node": {
+      "n_events": 1200,
+      "loud_mu": 4.43,
+      "loud_sigma": 6.306089649431466,
+      "main_threshold": 17.042179298862933,
+      "n_main_events": 33,
+      "mean_cascade_size": 336.1818181818182,
+      "max_cascade_size": 590
+    },
+    "microsoft/TypeScript": {
+      "n_events": 1200,
+      "loud_mu": 5.615833333333334,
+      "loud_sigma": 19.728150343410864,
+      "main_threshold": 45.07213402015506,
+      "n_main_events": 12,
+      "mean_cascade_size": 138.83333333333334,
+      "max_cascade_size": 170
+    },
+    "golang/go": {
+      "n_events": 1200,
+      "loud_mu": 8.371666666666666,
+      "loud_sigma": 14.222817251007465,
+      "main_threshold": 36.817301168681595,
+      "n_main_events": 42,
+      "mean_cascade_size": 148.66666666666666,
+      "max_cascade_size": 659
+    },
+    "django/django": {
+      "n_events": 600,
+      "loud_mu": 1.9333333333333333,
+      "loud_sigma": 3.3628691453710906,
+      "main_threshold": 8.659071624075514,
+      "n_main_events": 24,
+      "mean_cascade_size": 157.41666666666666,
+      "max_cascade_size": 239
+    },
+    "flutter/flutter": {
+      "n_events": 1200,
+      "loud_mu": 2.7041666666666666,
+      "loud_sigma": 2.5790791584508526,
+      "main_threshold": 7.862324983568372,
+      "n_main_events": 45,
+      "mean_cascade_size": 762.0666666666667,
+      "max_cascade_size": 1075
+    },
+    "elastic/elasticsearch": {
+      "n_events": 1200,
+      "loud_mu": 2.6566666666666667,
+      "loud_sigma": 3.8408491537968814,
+      "main_threshold": 10.338364974260429,
+      "n_main_events": 17,
+      "mean_cascade_size": 795.4117647058823,
+      "max_cascade_size": 1186
+    },
+    "ansible/ansible": {
+      "n_events": 1200,
+      "loud_mu": 2.8075,
+      "loud_sigma": 3.606768232550205,
+      "main_threshold": 10.02103646510041,
+      "n_main_events": 38,
+      "mean_cascade_size": 71.47368421052632,
+      "max_cascade_size": 156
+    },
+    "angular/angular": {
+      "n_events": 1200,
+      "loud_mu": 3.2475,
+      "loud_sigma": 6.352262884201189,
+      "main_threshold": 15.952025768402379,
+      "n_main_events": 24,
+      "mean_cascade_size": 236.91666666666666,
+      "max_cascade_size": 538
+    },
+    "electron/electron": {
+      "n_events": 1200,
+      "loud_mu": 3.555,
+      "loud_sigma": 6.025112032153427,
+      "main_threshold": 15.605224064306853,
+      "n_main_events": 31,
+      "mean_cascade_size": 102.74193548387096,
+      "max_cascade_size": 505
+    },
+    "vercel/next.js": {
+      "n_events": 1200,
+      "loud_mu": 2.7908333333333335,
+      "loud_sigma": 5.014021935753994,
+      "main_threshold": 12.818877204841321,
+      "n_main_events": 43,
+      "mean_cascade_size": 218.67441860465115,
+      "max_cascade_size": 676
+    },
+    "denoland/deno": {
+      "n_events": 1200,
+      "loud_mu": 1.4708333333333334,
+      "loud_sigma": 2.0621548532757887,
+      "main_threshold": 5.595143039884911,
+      "n_main_events": 64,
+      "mean_cascade_size": 298.78125,
+      "max_cascade_size": 716
+    },
+    "home-assistant/core": {
+      "n_events": 1200,
+      "loud_mu": 1.9608333333333334,
+      "loud_sigma": 10.606490118738098,
+      "main_threshold": 23.17381357080953,
+      "n_main_events": 5,
+      "mean_cascade_size": 617.4,
+      "max_cascade_size": 1182
+    },
+    "grafana/grafana": {
+      "n_events": 1200,
+      "loud_mu": 1.2516666666666667,
+      "loud_sigma": 2.4765561886530163,
+      "main_threshold": 6.2047790439726995,
+      "n_main_events": 28,
+      "mean_cascade_size": 642.3571428571429,
+      "max_cascade_size": 899
+    },
+    "apache/airflow": {
+      "n_events": 1200,
+      "loud_mu": 1.7125,
+      "loud_sigma": 2.660171125447885,
+      "main_threshold": 7.03284225089577,
+      "n_main_events": 38,
+      "mean_cascade_size": 445.2631578947368,
+      "max_cascade_size": 862
+    },
+    "godotengine/godot": {
+      "n_events": 1200,
+      "loud_mu": 3.6725,
+      "loud_sigma": 5.228949265069099,
+      "main_threshold": 14.130398530138198,
+      "n_main_events": 31,
+      "mean_cascade_size": 542.1935483870968,
+      "max_cascade_size": 834
+    },
+    "ClickHouse/ClickHouse": {
+      "n_events": 1200,
+      "loud_mu": 1.7958333333333334,
+      "loud_sigma": 2.3953042894147893,
+      "main_threshold": 6.586441912162912,
+      "n_main_events": 60,
+      "mean_cascade_size": 536.5333333333333,
+      "max_cascade_size": 1018
+    },
+    "ray-project/ray": {
+      "n_events": 1200,
+      "loud_mu": 1.9208333333333334,
+      "loud_sigma": 1.9281854956293898,
+      "main_threshold": 5.7772043245921125,
+      "n_main_events": 67,
+      "mean_cascade_size": 283.8059701492537,
+      "max_cascade_size": 657
+    },
+    "huggingface/transformers": {
+      "n_events": 1200,
+      "loud_mu": 3.5741666666666667,
+      "loud_sigma": 4.786386873786484,
+      "main_threshold": 13.146940414239635,
+      "n_main_events": 34,
+      "mean_cascade_size": 340.3235294117647,
+      "max_cascade_size": 523
+    },
+    "n8n-io/n8n": {
+      "n_events": 1200,
+      "loud_mu": 3.3116666666666665,
+      "loud_sigma": 2.713766857258662,
+      "main_threshold": 8.739200381183991,
+      "n_main_events": 37,
+      "mean_cascade_size": 750.0,
+      "max_cascade_size": 1022
+    }
+  },
+  "method_refs": [
+    "Clauset-Shalizi-Newman 2009 (power-law MLE)",
+    "Omori 1894 / Utsu 1961 (aftershock-rate decay)",
+    "Vuong 1989 (LR model comparison)"
+  ]
+}
