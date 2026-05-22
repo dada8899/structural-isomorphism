@@ -38,6 +38,7 @@
   var TOOLS_PATHS = [
     '/tools', '/whitespace', '/apply', '/stress-test', '/lint',
     '/diagnose', '/insights', '/discoveries', '/classes',
+    '/connections',
   ];
 
   // Footer links — kept short and identical everywhere.

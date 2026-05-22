@@ -337,12 +337,16 @@ from api import stress_test  ***REMOVED*** noqa: E402 — E structural stress te
 from api import struct_lint  ***REMOVED*** noqa: E402 — C2 structural lint
 from api import diagnose  ***REMOVED*** noqa: E402 — F structural diagnosis
 
+***REMOVED*** Session ***REMOVED***19 — G connect-people MVP (P1 fingerprints + P2 matching / L1).
+from api import connections as connections_api  ***REMOVED*** noqa: E402 — G connect people
+
 app.include_router(whitespace_api.router, prefix="/api")
 app.include_router(insights_api.router, prefix="/api")
 app.include_router(method_search.router, prefix="/api")
 app.include_router(stress_test.router, prefix="/api")
 app.include_router(struct_lint.router, prefix="/api")
 app.include_router(diagnose.router, prefix="/api")
+app.include_router(connections_api.router, prefix="/api")
 
 
 from schemas import HealthResponse, VersionResponse, WhoAmIResponse  ***REMOVED*** noqa: E402
@@ -1920,7 +1924,8 @@ def _s18_page(name: str):
 
 
 for _s18_name in ("tools", "whitespace", "insights", "apply",
-                  "stress-test", "lint", "diagnose"):
+                  "stress-test", "lint", "diagnose",
+                  "connections"):  ***REMOVED*** Session ***REMOVED***19 — G connect-people MVP
     app.get(f"/{_s18_name}", include_in_schema=False)(_s18_page(_s18_name))
     app.get(f"/{_s18_name}.html", include_in_schema=False)(_s18_page(_s18_name))
 

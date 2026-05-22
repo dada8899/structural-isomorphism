@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="description" content="按问题结构连接人——把你正在解的结构性问题登记成指纹，看看有多少人正在解结构相同、但领域不同的问题。">
+  <title>结构邻居 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="结构邻居 — Structural">
+  <meta property="og:description" content="跨领域的人永远不会相遇，但他们可能正卡在同一道结构难题上。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260522s18">
+
+  <style>
+    /* Session ***REMOVED***19 G-MVP — page-scoped styles. Kept inline (no new CSS file)
+       until the connect-people surface stabilises, per tools.html pattern. */
+    .cn-page { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+    .cn-crumb { font-size: 13px; color: var(--text-tertiary, ***REMOVED***9a958c); margin-bottom: 18px; }
+    .cn-crumb a { color: var(--text-tertiary, ***REMOVED***9a958c); text-decoration: none; }
+    .cn-crumb a:hover { text-decoration: underline; }
+    .cn-title { font-size: 28px; font-weight: 700; margin: 0 0 12px;
+      color: var(--text-primary, ***REMOVED***292524); }
+    .cn-lede { font-size: 15px; line-height: 1.7; color: var(--text-secondary, ***REMOVED***57534e);
+      margin: 0 0 32px; }
+    .cn-lede strong { color: var(--text-primary, ***REMOVED***292524); }
+
+    .cn-card { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; background: ***REMOVED***fff; }
+    .cn-card__head { display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; }
+    .cn-card__summary { font-size: 15px; font-weight: 600; line-height: 1.5;
+      color: var(--text-primary, ***REMOVED***292524); margin: 0; }
+    .cn-card__meta { font-size: 12.5px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      margin: 6px 0 0; }
+
+    .cn-vis { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+      padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .cn-vis--L0 { background: ***REMOVED***f5f5f4; color: ***REMOVED***78716c; }
+    .cn-vis--L1 { background: ***REMOVED***e7f1ec; color: ***REMOVED***2f7d5b; }
+    .cn-vis--L2 { background: ***REMOVED***e9eef6; color: ***REMOVED***3b5c9a; }
+
+    .cn-card__actions { margin-top: 14px; padding-top: 14px;
+      border-top: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .cn-btn { font-size: 13px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); background: ***REMOVED***fff;
+      color: var(--text-secondary, ***REMOVED***57534e); }
+    .cn-btn:hover { background: ***REMOVED***faf9f7; }
+    .cn-btn--primary { background: ***REMOVED***292524; color: ***REMOVED***fff; border-color: ***REMOVED***292524; }
+    .cn-btn--primary:hover { background: ***REMOVED***44403c; }
+    .cn-btn--danger { color: ***REMOVED***b4453a; }
+    .cn-btn:disabled { opacity: .5; cursor: default; }
+
+    .cn-vis-pick { font-size: 13px; padding: 5px 8px; border-radius: 8px;
+      border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); color: var(--text-secondary, ***REMOVED***57534e); }
+
+    .cn-form { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
+      padding: 20px; margin-bottom: 32px; background: ***REMOVED***faf9f7; }
+    .cn-form__label { display: block; font-size: 13px; font-weight: 600;
+      color: var(--text-secondary, ***REMOVED***57534e); margin: 0 0 6px; }
+    .cn-input, .cn-textarea { width: 100%; box-sizing: border-box; font-size: 14px;
+      padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+      font-family: inherit; color: var(--text-primary, ***REMOVED***292524); }
+    .cn-textarea { min-height: 70px; resize: vertical; line-height: 1.6; }
+    .cn-form__row { display: flex; gap: 10px; margin-top: 12px; }
+    .cn-form__row .cn-field { flex: 1; }
+    .cn-form__hint { font-size: 12px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      margin: 8px 0 0; line-height: 1.6; }
+
+    .cn-section-title { font-size: 17px; font-weight: 700; margin: 0 0 14px;
+      color: var(--text-primary, ***REMOVED***292524); }
+
+    .cn-neighbors { margin-top: 14px; }
+    .cn-neighbor { border-left: 3px solid ***REMOVED***2f7d5b; padding: 10px 0 10px 14px;
+      margin-bottom: 10px; }
+    .cn-neighbor__summary { font-size: 14px; line-height: 1.55;
+      color: var(--text-primary, ***REMOVED***292524); }
+    .cn-neighbor__meta { font-size: 12px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      margin-top: 4px; }
+    .cn-neighbor-count { font-size: 14px; font-weight: 600; color: ***REMOVED***2f7d5b;
+      margin-bottom: 10px; }
+
+    .cn-empty { font-size: 14px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      padding: 24px; text-align: center; border: 1px dashed var(--border-subtle, ***REMOVED***ece8e1);
+      border-radius: 12px; }
+    .cn-msg { font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-bottom: 14px; }
+    .cn-msg--err { background: ***REMOVED***fbeae8; color: ***REMOVED***b4453a; }
+    .cn-msg--ok { background: ***REMOVED***e7f1ec; color: ***REMOVED***2f7d5b; }
+    .cn-hidden { display: none; }
+
+    /* Login gate */
+    .cn-gate { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
+      padding: 28px; text-align: center; background: ***REMOVED***faf9f7; }
+    .cn-gate__title { font-size: 17px; font-weight: 700; margin: 0 0 8px;
+      color: var(--text-primary, ***REMOVED***292524); }
+    .cn-gate__text { font-size: 14px; color: var(--text-secondary, ***REMOVED***57534e);
+      line-height: 1.7; margin: 0 0 18px; }
+    .cn-gate__form { display: flex; gap: 8px; max-width: 360px; margin: 0 auto; }
+    .cn-devlink { font-size: 12px; margin-top: 14px; word-break: break-all; }
+    .cn-devlink a { color: ***REMOVED***3b5c9a; }
+  </style>
+
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="cn-page">
+    <nav class="cn-crumb">
+      <a href="/">首页</a> / <a href="/tools">工具</a> / <span>结构邻居</span>
+    </nav>
+    <h1 class="cn-title">结构邻居</h1>
+    <p class="cn-lede">
+      做组织管理的人不会刷到做生态学的人——但他们可能正卡在<strong>同一道结构难题</strong>上。
+      把你正在解的问题登记成一个<strong>结构指纹</strong>，引擎会算出有多少人正在解
+      <strong>结构相同、但领域不同</strong>的问题。<br>
+      指纹默认<strong>私密（L0）</strong>，只属于你；只有你显式打开「结构可发现（L1）」，
+      它才会进入匿名计数——届时别人看到的也只是「有 N 人结构相同」这个数字，
+      <strong>看不到任何身份信息</strong>。
+    </p>
+
+    <div id="cn-msg" class="cn-msg cn-hidden"></div>
+
+    <!-- 未登录：magic-link 登录入口 -->
+    <section id="cn-gate" class="cn-gate cn-hidden">
+      <h2 class="cn-gate__title">登录后才能登记你的问题指纹</h2>
+      <p class="cn-gate__text">
+        结构指纹关联到你的账号——这样换设备也不会丢，也是隐私同意机制的地基。
+        输入邮箱，我们给你发一个一次性登录链接（无需密码）。
+      </p>
+      <form id="cn-login-form" class="cn-gate__form">
+        <input type="email" id="cn-login-email" class="cn-input" placeholder="you@example.com" required>
+        <button type="submit" class="cn-btn cn-btn--primary">发送登录链接</button>
+      </form>
+      <div id="cn-devlink" class="cn-devlink cn-hidden"></div>
+    </section>
+
+    <!-- 已登录：登记表单 + 我的指纹 -->
+    <section id="cn-app" class="cn-hidden">
+      <form id="cn-create-form" class="cn-form">
+        <h2 class="cn-section-title" style="margin-bottom:12px;">登记一个新指纹</h2>
+        <label class="cn-form__label" for="cn-summary">你正在解的问题（一句话）</label>
+        <textarea id="cn-summary" class="cn-textarea" maxlength="500" required
+          placeholder="例：一个 30 人公司，每加一个流程效率就降一截，但没人敢撤掉旧流程"></textarea>
+        <div class="cn-form__row">
+          <div class="cn-field">
+            <label class="cn-form__label" for="cn-domain">领域（可选）</label>
+            <input type="text" id="cn-domain" class="cn-input" maxlength="80"
+              placeholder="例：组织管理">
+          </div>
+          <div class="cn-field">
+            <label class="cn-form__label" for="cn-uclass">普适类（可选）</label>
+            <input type="text" id="cn-uclass" class="cn-input" maxlength="80"
+              placeholder="例：延迟—债务结构">
+          </div>
+        </div>
+        <p class="cn-form__hint">
+          新指纹默认私密（L0）。登记后可在下方逐个打开「结构可发现」。
+        </p>
+        <div style="margin-top:14px;">
+          <button type="submit" class="cn-btn cn-btn--primary">登记指纹</button>
+        </div>
+      </form>
+
+      <h2 class="cn-section-title">我的问题指纹</h2>
+      <div id="cn-loading" class="cn-empty">正在加载…</div>
+      <div id="cn-list"></div>
+      <div id="cn-empty" class="cn-empty cn-hidden">
+        还没有指纹。在上面登记一个你正在解的结构性问题吧。
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/i18n.js?v=20260522s18"></script>
+  <script src="/assets/js/utils.js?v=20260522s18"></script>
+  <script src="/assets/js/connections.js?v=20260523s19"></script>
+  <script src="/assets/js/product-switcher.js?v=20260522s18"></script>
+  <script src="/assets/js/site-chrome.js?v=20260523s19"></script>
+</body>
+</html>

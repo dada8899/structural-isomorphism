@@ -69,6 +69,12 @@ v4/product/d1_phase_detector/backtest/data/prices.meta.json
 web/backend/data/history.db
 web/backend/data/history.db-*
 
+***REMOVED*** Auth / connections runtime stores — per-deployment state, never committed
+web/backend/data/auth_users.jsonl
+web/backend/data/auth_rate_limit.jsonl
+web/backend/data/magic_tokens.jsonl
+web/backend/data/mock_email_outbox.jsonl
+
 ***REMOVED*** W12-A: a11y audit run-time artifacts (regenerable from pytest run)
 web/tests/e2e/a11y-artifacts/
 web/tests/e2e/.pytest_cache/
