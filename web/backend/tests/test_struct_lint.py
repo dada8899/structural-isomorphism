@@ -6,6 +6,7 @@ llm_client mocked — never a real OpenRouter call.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -18,6 +19,12 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 from services import struct_lint_service as svc  ***REMOVED*** noqa: E402
+
+
+@pytest.fixture
+def anyio_backend():
+    """Run @pytest.mark.anyio tests on the asyncio backend."""
+    return "asyncio"
 
 
 ***REMOVED*** =========================================================================
@@ -537,3 +544,213 @@ def test_endpoint_degrades_when_search_raises(client, monkeypatch):
     claims = r.json()["claims"]
     for c in claims:
         assert c["isomorph"] is None
+
+
+***REMOVED*** =========================================================================
+***REMOVED*** Unit — lint_document_streamed (the SSE pipeline generator)
+***REMOVED*** =========================================================================
+
+
+@pytest.mark.anyio
+async def test_streamed_emits_progress_then_done(monkeypatch):
+    """Happy path: extract → claims → isomorph progress events, then done.
+
+    Asserts the events actually appear (a `done` with a result), not just
+    that no exception was raised —加 log 行 ≠ 加 SSE event.
+    """
+    from services import struct_lint_service
+
+    _stub_two_llm_calls(
+        monkeypatch,
+        extract_reply=_GOOD_LLM_REPLY,
+        anchor_reply={"failure_mode": "同构重写后的失效模式", "suggestion": "重写建议"},
+    )
+    fake = _FakeSearch(hits=[
+        {"id": "ph-eco-01", "name": "捕食者-猎物震荡", "domain": "生态学",
+         "relevance": 0.78, "description": "周期性波动"},
+    ])
+
+    events = []
+    async for ev in struct_lint_service.lint_document_streamed(
+        "一段策略文档", search_svc=fake
+    ):
+        events.append(ev)
+
+    stages = [e.get("stage") for e in events if e.get("type") == "progress"]
+    ***REMOVED*** extract → claims → one isomorph event per claim (2 claims).
+    assert "extract" in stages
+    assert "claims" in stages
+    assert stages.count("isomorph") == 2
+
+    done = [e for e in events if e.get("type") == "done"]
+    assert len(done) == 1
+    result = done[0]["result"]
+    assert len(result["claims"]) == 2
+    ***REMOVED*** Anchor pass actually re-grounded the failure mode.
+    assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
+    assert result["claims"][0]["failure_mode"] == "同构重写后的失效模式"
+
+
+@pytest.mark.anyio
+async def test_streamed_emits_error_on_llm_failure(monkeypatch):
+    """First LLM call returns None → a single terminal error event."""
+    from services import struct_lint_service
+
+    async def fake_complete_json(**kwargs):
+        return None
+
+    monkeypatch.setattr(
+        struct_lint_service.llm_client, "complete_json", fake_complete_json
+    )
+
+    events = []
+    async for ev in struct_lint_service.lint_document_streamed("doc", search_svc=None):
+        events.append(ev)
+
+    assert any(e.get("type") == "error" for e in events)
+    assert not any(e.get("type") == "done" for e in events)
+
+
+@pytest.mark.anyio
+async def test_streamed_degrades_without_search(monkeypatch):
+    """No search service → no isomorph stage, but still a done event."""
+    from services import struct_lint_service
+
+    async def fake_complete_json(**kwargs):
+        return _GOOD_LLM_REPLY
+
+    monkeypatch.setattr(
+        struct_lint_service.llm_client, "complete_json", fake_complete_json
+    )
+
+    events = []
+    async for ev in struct_lint_service.lint_document_streamed("doc", search_svc=None):
+        events.append(ev)
+
+    stages = [e.get("stage") for e in events if e.get("type") == "progress"]
+    assert "isomorph" not in stages
+    done = [e for e in events if e.get("type") == "done"]
+    assert len(done) == 1
+    for c in done[0]["result"]["claims"]:
+        assert c["isomorph"] is None
+
+
+***REMOVED*** =========================================================================
+***REMOVED*** Integration — SSE endpoint /api/struct-lint/stream
+***REMOVED*** =========================================================================
+
+
+def _parse_sse(text: str):
+    """Parse a raw SSE response body into a list of (event, data) tuples."""
+    events = []
+    for block in text.strip().split("\n\n"):
+        if not block.strip():
+            continue
+        event_type = None
+        data_lines = []
+        for line in block.splitlines():
+            if line.startswith("event:"):
+                event_type = line[len("event:"):].strip()
+            elif line.startswith("data:"):
+                data_lines.append(line[len("data:"):].strip())
+        if event_type:
+            payload = "\n".join(data_lines)
+            try:
+                payload = json.loads(payload) if payload else {}
+            except json.JSONDecodeError:
+                pass
+            events.append((event_type, payload))
+    return events
+
+
+def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
+    """Happy path: the SSE stream emits meta → progress(s) → done.
+
+    Asserts each named event actually appears in the response body — a
+    log line is not an SSE event, so we parse and check the wire format.
+    """
+    fake = _FakeSearch(hits=[
+        {"id": "ph-eco-01", "name": "捕食者-猎物震荡", "domain": "生态学",
+         "relevance": 0.78, "description": "周期性波动"},
+    ])
+    _install_search(monkeypatch, fake)
+    _stub_two_llm_calls(
+        monkeypatch,
+        extract_reply=_GOOD_LLM_REPLY,
+        anchor_reply={"failure_mode": "同构失效模式", "suggestion": "建议"},
+    )
+
+    r = client.get("/api/struct-lint/stream", params={"document": "一段策略文档"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+
+    events = _parse_sse(r.text)
+    types = [e[0] for e in events]
+    assert types[0] == "meta"               ***REMOVED*** meta is sent first (fast first byte)
+    assert "progress" in types              ***REMOVED*** at least one progress event
+    assert types[-1] == "done"              ***REMOVED*** done is terminal
+
+    ***REMOVED*** The done event carries the full lint result.
+    done_event = next(e for e in events if e[0] == "done")
+    result = done_event[1]["result"]
+    assert result["summary"]
+    assert len(result["claims"]) == 2
+    assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
+
+    ***REMOVED*** Progress events cover the pipeline stages.
+    progress_stages = {
+        e[1].get("stage") for e in events if e[0] == "progress"
+    }
+    assert "extract" in progress_stages
+    assert "claims" in progress_stages
+    assert "isomorph" in progress_stages
+
+
+def test_stream_endpoint_empty_document_emits_error(client, monkeypatch):
+    """Empty doc → meta then a terminal error event (no HTTP 400)."""
+    from api import struct_lint as struct_lint_api
+
+    monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: True)
+    r = client.get("/api/struct-lint/stream", params={"document": "   "})
+    assert r.status_code == 200
+    events = _parse_sse(r.text)
+    err = next(e for e in events if e[0] == "error")
+    assert err[1]["error"] == "empty_document"
+    assert not any(e[0] == "done" for e in events)
+
+
+def test_stream_endpoint_llm_unavailable_emits_error(client, monkeypatch):
+    """No API key → terminal error event with llm_unavailable."""
+    from api import struct_lint as struct_lint_api
+
+    monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: False)
+    r = client.get("/api/struct-lint/stream", params={"document": "一段文档"})
+    assert r.status_code == 200
+    events = _parse_sse(r.text)
+    err = next(e for e in events if e[0] == "error")
+    assert err[1]["error"] == "llm_unavailable"
+
+
+def test_stream_endpoint_llm_failure_emits_error(client, monkeypatch):
+    """LLM returns None mid-pipeline → terminal error event, no done."""
+    from services import struct_lint_service
+
+    monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
+
+    async def fake_complete_json(**kwargs):
+        return None
+
+    monkeypatch.setattr(
+        struct_lint_service.llm_client, "complete_json", fake_complete_json
+    )
+    import main
+    monkeypatch.delitem(main.app_state, "search", raising=False)
+
+    r = client.get("/api/struct-lint/stream", params={"document": "一段文档"})
+    assert r.status_code == 200
+    events = _parse_sse(r.text)
+    types = [e[0] for e in events]
+    assert "meta" in types
+    err = next(e for e in events if e[0] == "error")
+    assert err[1]["error"] == "llm_failed"
+    assert "done" not in types

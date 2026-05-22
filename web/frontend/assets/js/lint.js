@@ -21,6 +21,7 @@
   var elInputError = document.getElementById('lint-input-error');
 
   var elLoadingTimer = document.getElementById('lint-loading-timer');
+  var elLoadingHint = document.querySelector('***REMOVED***lint-loading .lint-loading__hint');
   var elErrorMsg = document.getElementById('lint-error-msg');
   var elRetry = document.getElementById('lint-retry');
 
@@ -30,6 +31,10 @@
   var elAgain = document.getElementById('lint-again');
 
   var _timerInterval = null;
+  var _es = null;  // active EventSource for the current lint stream
+
+  // --- default loading hint, restored on each new run ---
+  var _DEFAULT_HINT = elLoadingHint ? elLoadingHint.textContent : '';
 
   // --- view switching ---
   function showOnly(section) {
@@ -154,8 +159,21 @@
     showOnly(elError);
   }
 
-  // --- submit handler ---
-  async function runLint() {
+  // --- close any live SSE connection ---
+  function closeStream() {
+    if (_es) {
+      try { _es.close(); } catch (e) { /* ignore */ }
+      _es = null;
+    }
+  }
+
+  // --- update the loading-block hint with live stage progress ---
+  function setLoadingHint(text) {
+    if (elLoadingHint) elLoadingHint.textContent = text || _DEFAULT_HINT;
+  }
+
+  // --- submit handler — consumes the SSE /api/struct-lint/stream endpoint ---
+  function runLint() {
     var doc = elTextarea.value.trim();
     elInputError.hidden = true;
 
@@ -170,38 +188,74 @@
       return;
     }
 
+    closeStream();
     showOnly(elLoading);
+    setLoadingHint(_DEFAULT_HINT);
     startTimer();
 
-    try {
-      var resp = await fetch('/api/struct-lint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document: doc })
-      });
+    // EventSource only does GET — the document rides as a query param.
+    // MAX_CHARS (20000) is well within URL-length limits for our nginx.
+    var url = '/api/struct-lint/stream?document=' + encodeURIComponent(doc);
+    var es = new EventSource(url);
+    _es = es;
+    var finished = false;  // guards against onerror after a clean done/error
 
-      var body = null;
-      try { body = await resp.json(); } catch (e) { body = null; }
+    // `meta` — stream is alive; first byte arrives in well under a second.
+    es.addEventListener('meta', function () {
+      setLoadingHint('正在连接分析服务……');
+    });
 
-      if (!resp.ok) {
-        var msg = (body && body.message) ||
-          (resp.status === 503
-            ? '策略文档体检服务暂时不可用，请稍后重试。'
-            : '请求失败（' + resp.status + '）。');
-        showError(msg);
-        return;
-      }
+    // `progress` — live stage updates: extract → claims → per-claim isomorph.
+    es.addEventListener('progress', function (e) {
+      var p = null;
+      try { p = JSON.parse(e.data); } catch (err) { p = null; }
+      if (p && p.message) setLoadingHint(p.message);
+    });
 
+    // `done` — final payload, identical shape to the old POST response.
+    es.addEventListener('done', function (e) {
+      finished = true;
+      closeStream();
       stopTimer();
-      renderResult(body || { summary: '', claims: [] });
-    } catch (e) {
-      showError('网络错误，请检查连接后重试。');
-    }
+      var payload = null;
+      try { payload = JSON.parse(e.data); } catch (err) { payload = null; }
+      var result = (payload && payload.result) || { summary: '', claims: [] };
+      renderResult(result);
+    });
+
+    // `error` — terminal application error (validation / LLM failure).
+    es.addEventListener('error', function (e) {
+      // EventSource fires `error` for BOTH a named SSE error event AND a
+      // transport drop. A transport drop has no parseable data; a real
+      // application error carries a JSON body with a message.
+      var body = null;
+      if (e && e.data) {
+        try { body = JSON.parse(e.data); } catch (err) { body = null; }
+      }
+      if (body) {
+        finished = true;
+        closeStream();
+        showError(body.message || '请稍后重试。');
+      }
+    });
+
+    // Transport-level failure (connection dropped, server unreachable).
+    es.onerror = function () {
+      if (finished) return;       // already handled by done / error event
+      if (es.readyState === EventSource.CLOSED) {
+        finished = true;
+        closeStream();
+        showError('网络错误，请检查连接后重试。');
+      }
+      // readyState CONNECTING → EventSource is auto-retrying; let it.
+    };
   }
 
   // --- reset to input view ---
   function backToInput() {
+    closeStream();
     stopTimer();
+    setLoadingHint(_DEFAULT_HINT);
     elInputError.hidden = true;
     showOnly(elInput);
   }

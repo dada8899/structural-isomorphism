@@ -23,7 +23,7 @@ degrades to None and C2 still returns a usable basic lint.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 from services import llm_client
 
@@ -369,6 +369,83 @@ async def lint_document(document: str, search_svc=None) -> Optional[dict]:
     return result
 
 
+async def lint_document_streamed(
+    document: str, search_svc=None
+) -> AsyncIterator[dict]:
+    """Run the structural lint, yielding progress events as it goes.
+
+    Same pipeline as lint_document(), but instead of blocking 36-165s on a
+    single return value it yields dict events the SSE endpoint can forward:
+
+      {"type": "progress", "stage": "extract",  "message": ...}
+      {"type": "progress", "stage": "claims",   "claim_count": N}
+      {"type": "progress", "stage": "isomorph", "current": i, "total": N,
+                            "message": ...}
+      {"type": "done",     "result": {"summary", "claims": [...]}}
+      {"type": "error",    "message": ...}
+
+    The result payload is byte-identical to lint_document()'s return value,
+    so the frontend renders it the same way. On any LLM failure it yields a
+    single `error` event and stops — never raises.
+    """
+    ***REMOVED*** --- Stage 1: extract structural claims (the long blocking LLM call) ---
+    yield {
+        "type": "progress",
+        "stage": "extract",
+        "message": "正在逐条抽取文档里的结构性主张……",
+    }
+    user_prompt = f"请对下面这份策略/方案文档做结构 lint：\n\n{document}"
+    raw = await llm_client.complete_json(
+        system=_SYSTEM_PROMPT,
+        user=user_prompt,
+        temperature=0.3,
+        max_tokens=3200,
+    )
+    if raw is None:
+        logger.warning("lint_document_streamed: LLM returned no payload")
+        yield {"type": "error", "message": "结构 lint 生成失败，请稍后重试。"}
+        return
+    result = normalize_lint_result(raw)
+    if result is None:
+        yield {"type": "error", "message": "结构 lint 生成失败，请稍后重试。"}
+        return
+
+    claims = result["claims"]
+    yield {
+        "type": "progress",
+        "stage": "claims",
+        "claim_count": len(claims),
+        "message": f"已抽取 {len(claims)} 条结构性主张，正在比对失效模式……",
+    }
+
+    ***REMOVED*** --- Stage 2: per-claim KB isomorphism pass (the per-claim LLM calls) ---
+    ***REMOVED*** Best-effort, same contract as _attach_isomorphs: any failure leaves the
+    ***REMOVED*** claim with isomorph=None and its first-pass failure mode intact.
+    if search_svc is not None and claims:
+        total = len(claims)
+        for i, claim in enumerate(claims, start=1):
+            yield {
+                "type": "progress",
+                "stage": "isomorph",
+                "current": i,
+                "total": total,
+                "message": f"正在为第 {i}/{total} 条主张匹配结构同构现象……",
+            }
+            try:
+                query = build_isomorph_query(claim)
+                anchor = _search_isomorph(search_svc, query)
+                if anchor is not None:
+                    claim["isomorph"] = anchor
+                    await _anchor_failure_mode(claim, anchor)
+            except Exception:
+                logger.warning(
+                    "lint_document_streamed: isomorph pass failed for a claim",
+                    exc_info=True,
+                )
+
+    yield {"type": "done", "result": result}
+
+
 __all__ = [
     "MAX_DOC_CHARS",
     "CLAIM_TYPES",
@@ -379,4 +456,5 @@ __all__ = [
     "build_isomorph_query",
     "normalize_isomorph",
     "lint_document",
+    "lint_document_streamed",
 ]
