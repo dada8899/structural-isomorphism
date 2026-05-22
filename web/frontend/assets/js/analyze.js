@@ -578,8 +578,21 @@ function credibilityTier(sim) {
 // Never invents numbers; if a field is missing, that line is simply omitted.
 function renderCredibilityBadge(credibility) {
   const c = credibility || {};
-  if (typeof c.similarity !== 'number' && !c.has_verified_pairs) return '';
+  // B Data Flywheel closure — real human-verification count. `human_verified_count`
+  // may be absent on older persisted reports → Number() coerces undefined to NaN,
+  // so we guard with a finite check and only show the badge when > 0 (never
+  // displays "0 人验证" — absence of a badge is the honest zero state).
+  const hvCount = Number(c.human_verified_count);
+  const hasHuman = Number.isFinite(hvCount) && hvCount > 0;
+  if (typeof c.similarity !== 'number' && !c.has_verified_pairs && !hasHuman) return '';
   const parts = [];
+  if (hasHuman) {
+    parts.push(`
+      <span class="cred-badge__chip cred-badge__chip--human">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        <span>${T('page.analyze.cred_human', '✓ {n} 人验证这个跨域迁移真的有效').replace('{n}', hvCount)}</span>
+      </span>`);
+  }
   if (typeof c.similarity === 'number') {
     const tier = credibilityTier(c.similarity);
     const pct = Math.round(Math.max(0, Math.min(1, c.similarity)) * 100);

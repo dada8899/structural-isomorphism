@@ -1761,6 +1761,16 @@ ol.md-list li::before {
   background: var(--accent-subtle, rgba(37, 99, 235, 0.08));
 }
 
+/* B Data Flywheel closure — real human-verification badge. The strongest
+   credibility signal (a person tried it and it worked), so it gets the
+   success colour + a slightly heavier weight. Still restrained, no glow. */
+.cred-badge__chip--human {
+  color: var(--success, ***REMOVED***16a34a);
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(22, 163, 74, 0.07);
+  font-weight: 600;
+}
+
 /* ============================================================
    SESSION-17 V5 — Rank-0 verification action
    ============================================================ */

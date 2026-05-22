@@ -72,6 +72,20 @@ def shape_verified(report_row: dict) -> dict:
     }
 
 
+def human_verified_for(store, b_id: str) -> dict:
+    """Human-verification stats for a single target phenomenon `b_id`.
+
+    Wraps ReportStore.count_human_verified — used by analyze.py to enrich
+    the credibility block. Never raises: a query failure degrades to
+    {count: 0, recent: ''} so it can never tear down the SSE report.
+    """
+    try:
+        return store.count_human_verified(b_id)
+    except Exception:  ***REMOVED*** pragma: no cover - defensive
+        logger.exception("count_human_verified failed for b_id=%s", b_id)
+        return {"count": 0, "recent": ""}
+
+
 def list_verified(store, *, limit: int = 50) -> list[dict]:
     """Return the verified-isomorphism library, shaped for the API.
 

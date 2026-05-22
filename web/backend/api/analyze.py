@@ -285,6 +285,14 @@ async def stream_analyze(
     _src_id = a.get("id") if isinstance(a, dict) else None
     _verified_pairs = _v2_pairs_for(_src_id, limit=1) if _src_id else []
     _all_verified = _v2_pairs_for(_src_id) if _src_id else []
+    ***REMOVED*** B Data Flywheel closure (Session ***REMOVED***18) — real human-verification count.
+    ***REMOVED*** Distinct users who marked outcome='worked' on a report targeting THIS
+    ***REMOVED*** b_id. This is NOT a fabricated badge: it comes straight from real
+    ***REMOVED*** report_followup data. 0 is reported honestly as 0. The query is one
+    ***REMOVED*** indexed JOIN; it runs before event_gen so it can't slow the stream,
+    ***REMOVED*** and degrades to {count:0} on any failure (never tears down the SSE).
+    from services.verified_isomorphisms import human_verified_for
+    _hv = human_verified_for(_report_store, b_id)
     credibility = {
         "kb_source": bool(_src_id and _src_id != "__query__"),
         "similarity": similarity,
@@ -302,6 +310,9 @@ async def stream_analyze(
             if _verified_pairs
             else None
         ),
+        ***REMOVED*** B Data Flywheel closure — real users who confirmed it worked.
+        "human_verified_count": int(_hv.get("count", 0) or 0),
+        "human_verified_recent": _hv.get("recent", "") or "",
     }
 
     async def event_gen():

@@ -406,6 +406,38 @@ class ReportStore:
             out.append(d)
         return out
 
+    def count_human_verified(self, b_id: str) -> dict:
+        """How many DISTINCT users marked outcome='worked' on a report whose
+        target phenomenon is `b_id`.
+
+        B Data Flywheel closure (Session ***REMOVED***18): this feeds the analyze
+        credibility badge "N 人验证这个跨域迁移真的有效". We count distinct
+        anon_id (not followup rows) so one user re-submitting doesn't
+        inflate the number. Empty b_id or no matches → count 0, recent ''.
+
+        Returns {count: int, recent: str}. `recent` is the latest
+        followup updated_at across matching 'worked' rows ('' if none).
+        """
+        if not b_id:
+            return {"count": 0, "recent": ""}
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT COUNT(DISTINCT f.anon_id) AS verifier_count,
+                       MAX(f.updated_at)         AS last_verified_at
+                FROM report_followup f
+                JOIN reports r ON r.id = f.report_id
+                WHERE r.b_id = ? AND f.outcome = 'worked'
+                """,
+                (b_id,),
+            ).fetchone()
+        if row is None:
+            return {"count": 0, "recent": ""}
+        return {
+            "count": int(row["verifier_count"] or 0),
+            "recent": row["last_verified_at"] or "",
+        }
+
     def stuck_structures(self, *, limit: int = 20) -> list[dict]:
         """Aggregate which problem targets (b_id) users hit most.
 
