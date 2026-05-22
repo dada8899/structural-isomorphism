@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict, deque
 from pathlib import Path
@@ -73,9 +74,28 @@ def _error_log_files() -> List[Path]:
     return [p for p in (base, rotated) if p.exists()]
 
 
+***REMOVED*** Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
+***REMOVED*** unset — it locks the endpoint (no one can guess it) instead of falling back
+***REMOVED*** to a public default. The old "123456" default meant anyone who knew a
+***REMOVED*** subscriber's email could pull their PII; an unset prod env must FAIL CLOSED.
+_FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
+
+
 def _expected_verification_code() -> str:
-    """Mock verification code. Phase 2 replaces with a real OTP store."""
-    return os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE", "123456")
+    """Mock verification code. Phase 2 replaces with a real OTP store.
+
+    Set STRUCTURAL_PRIVACY_MOCK_CODE in every real deployment. When unset we
+    return an unguessable random code (fail closed), not a public default.
+    """
+    code = os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE")
+    if code:
+        return code
+    logger.warning(
+        "STRUCTURAL_PRIVACY_MOCK_CODE unset — privacy export verification "
+        "uses a random per-process code; the endpoint is effectively locked "
+        "until an operator configures a real code."
+    )
+    return _FALLBACK_VERIFICATION_CODE
 
 
 def _check_rate_limit(key: str, now: float) -> bool:

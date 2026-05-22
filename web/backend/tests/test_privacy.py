@@ -277,3 +277,24 @@ def test_delete_no_identifier_returns_400(app_with_data):
     client, _ = app_with_data
     r = client.request("DELETE", "/api/privacy/delete?code=123456")
     assert r.status_code == 400
+
+
+***REMOVED*** ===========================================================================
+***REMOVED*** Fail-closed: STRUCTURAL_PRIVACY_MOCK_CODE unset must NOT accept "123456"
+***REMOVED*** ===========================================================================
+
+
+def test_export_code_fails_closed_when_env_unset(monkeypatch):
+    """With the env unset the verification code must be an unguessable random
+    value — never the old public "123456" default."""
+    monkeypatch.delenv("STRUCTURAL_PRIVACY_MOCK_CODE", raising=False)
+    code = exp_mod._expected_verification_code()
+    assert code != "123456"
+    assert len(code) >= 16
+
+
+def test_delete_code_fails_closed_when_env_unset(monkeypatch):
+    monkeypatch.delenv("STRUCTURAL_PRIVACY_MOCK_CODE", raising=False)
+    code = del_mod._expected_verification_code()
+    assert code != "123456"
+    assert len(code) >= 16

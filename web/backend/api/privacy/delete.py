@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict, deque
 from pathlib import Path
@@ -72,8 +73,24 @@ def _audit_file() -> Path:
     return _data_dir() / "privacy_audit.jsonl"
 
 
+***REMOVED*** Random per-process fallback — see export.py for the rationale. An unset
+***REMOVED*** STRUCTURAL_PRIVACY_MOCK_CODE must fail closed (unguessable), never fall back
+***REMOVED*** to a public default that would expose the data-deletion endpoint.
+_FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
+
+
 def _expected_verification_code() -> str:
-    return os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE", "123456")
+    """Set STRUCTURAL_PRIVACY_MOCK_CODE in every real deployment. When unset
+    we return an unguessable random code (fail closed)."""
+    code = os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE")
+    if code:
+        return code
+    logger.warning(
+        "STRUCTURAL_PRIVACY_MOCK_CODE unset — privacy delete verification "
+        "uses a random per-process code; the endpoint is effectively locked "
+        "until an operator configures a real code."
+    )
+    return _FALLBACK_VERIFICATION_CODE
 
 
 def _check_rate_limit(key: str, now: float) -> bool:
