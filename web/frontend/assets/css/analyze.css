@@ -1195,6 +1195,21 @@
   }
 }
 
+/* Mobile: the crumb row holds breadcrumb links + the action-button group.
+ * Without wrapping, the buttons crush and labels break per-character.
+ * Allow wrap and stop CJK labels from breaking mid-word. */
+@media (max-width: 640px) {
+  .analyze-crumb {
+    flex-wrap: wrap;
+    row-gap: var(--space-3);
+  }
+  .analyze-crumb > a,
+  .analyze-crumb__sep {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+}
+
 /* === Inline markdown lists (used by mdBlock for fields like
  * borrowable_insights[*].concrete_application) === */
 .md-list {

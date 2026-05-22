@@ -450,6 +450,34 @@
   .disc-item:hover {
     transform: none;
   }
+
+  /* SESSION-MOBILE: example/suggestion chips and tool buttons ship at 28–38px
+   * tall — below the 44px iOS minimum. Raise their tap height on touch devices
+   * only, so the desktop visual rhythm is untouched. inline-flex + center is
+   * needed because most are plain <button>s with top-aligned text. */
+  .stress-chip,
+  .lint-chip,
+  .diagnose-example,
+  .ask-chip,
+  .disc-tier-tab,
+  .disc-filter__btn,
+  .uc-filter__btn,
+  .newsletter-button,
+  .ws-btn,
+  .analyze-action-btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Footer links are text-only at ~20px tall — pad the hit area vertically
+   * without shifting the visible baseline (negative margin offsets the pad). */
+  .site-footer__link {
+    display: inline-block;
+    padding-block: 12px;
+    margin-block: -12px;
+  }
 }
 
 /* === Reduced motion === */

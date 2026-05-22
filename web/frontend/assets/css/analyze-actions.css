@@ -57,3 +57,23 @@
   width: 14px;
   text-align: center;
 }
+
+/* === Mobile (≤640px) ===
+ * On narrow screens the crumb row squeezes the three action buttons until
+ * their labels break per-character ("分\n享"). Let the row wrap and keep
+ * each button's label on one line with a comfortable tap height. */
+@media (max-width: 640px) {
+  .analyze-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .analyze-action-btn {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 8px 14px;
+    white-space: nowrap;
+  }
+}
