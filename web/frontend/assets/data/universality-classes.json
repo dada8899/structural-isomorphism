@@ -425,7 +425,8 @@
         "Phase 8 FDIC",
         "Phase 10 NIFC",
         "Phase 11 GOES"
-      ]
+      ],
+      "hub_id": "5k-14-039"
     },
     {
       "class_id": "hysteresis_preisach",
@@ -698,7 +699,8 @@
       "verified_phases": [
         "A2-Hysteresis NGSIM US-101 (traffic-Preisach sub-class)"
       ],
-      "b3_note": "REJECT as monolithic class; per-domain sub-classes survive. Traffic-Preisach verified."
+      "b3_note": "REJECT as monolithic class; per-domain sub-classes survive. Traffic-Preisach verified.",
+      "hub_id": "chem-mat-019"
     },
     {
       "class_id": "scheffer_fold_bifurcation",
@@ -912,7 +914,8 @@
       "verified": true,
       "verified_phases": [
         "A2-Scheffer Fox River dissolved oxygen"
-      ]
+      ],
+      "hub_id": "bio-035"
     },
     {
       "class_id": "diamond_dybvig_self_fulfilling",
@@ -1085,7 +1088,8 @@
       "verified": true,
       "verified_phases": [
         "Phase 8 FDIC bank failures (Diamond-Dybvig sub-class)"
-      ]
+      ],
+      "hub_id": "soc-001"
     },
     {
       "class_id": "motter_lai_network_cascade",
@@ -1244,7 +1248,8 @@
       "verified": true,
       "verified_phases": [
         "Phase 7 NERC/OE-417 power-grid cascades"
-      ]
+      ],
+      "hub_id": "5k-ee-127"
     },
     {
       "class_id": "tail_copula_contagion",
@@ -1382,7 +1387,8 @@
       "curation_source": "manual",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "Demoted — copula is a parametric family, not a mechanism. Session ***REMOVED***3 W2-B confirmed reject."
+      "b3_note": "Demoted — copula is a parametric family, not a mechanism. Session ***REMOVED***3 W2-B confirmed reject.",
+      "hub_id": "5k-14-005"
     },
     {
       "class_id": "gardner_collins_toggle_switch",
@@ -1509,7 +1515,8 @@
       "is_curated": true,
       "curation_source": "manual",
       "b3_consensus": "MERGE",
-      "verified": false
+      "verified": false,
+      "hub_id": "5k-06-061"
     },
     {
       "class_id": "schelling_credible_commitment",
@@ -1639,7 +1646,8 @@
       "curation_source": "manual",
       "physics_prototype_en": "Schelling 1960 credible commitment + Kydland-Prescott time inconsistency",
       "b3_consensus": "REJECT",
-      "verified": false
+      "verified": false,
+      "hub_id": "5k-12-072"
     },
     {
       "class_id": "extreme_value_tail_class",
@@ -1762,7 +1770,8 @@
       "curation_source": "llm",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "Limit-theorem class, not mechanism."
+      "b3_note": "Limit-theorem class, not mechanism.",
+      "hub_id": "5k-ef-245"
     },
     {
       "class_id": "delay_differential_debt",
@@ -1870,7 +1879,8 @@
       "curation_source": "llm",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "B3 demoted — delay-diff is a math framework not a mechanism."
+      "b3_note": "B3 demoted — delay-diff is a math framework not a mechanism.",
+      "hub_id": "5k-25-001"
     },
     {
       "class_id": "leaky_integrate_fire_threshold_class",
@@ -1978,7 +1988,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "SPLIT",
-      "verified": false
+      "verified": false,
+      "hub_id": "cell-049"
     },
     {
       "class_id": "reflexive_fixed_point_class",
@@ -2086,7 +2097,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "KEEP",
-      "verified": false
+      "verified": false,
+      "hub_id": "soc-048"
     },
     {
       "class_id": "adverse_selection_unraveling_class",
@@ -2199,7 +2211,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "SPLIT",
-      "verified": false
+      "verified": false,
+      "hub_id": "soc-033"
     },
     {
       "class_id": "motter_lai_network_cascade_v2",
@@ -2310,7 +2323,8 @@
       "verified": true,
       "verified_phases": [
         "Phase 7 NERC/OE-417 power-grid cascades"
-      ]
+      ],
+      "hub_id": "5k-29-002"
     },
     {
       "class_id": "hysteresis_first_order_transition",
@@ -2417,7 +2431,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "MERGE",
-      "verified": false
+      "verified": false,
+      "hub_id": "5k-20-071"
     },
     {
       "class_id": "gardner_collins_toggle_switch_v2",
@@ -2529,7 +2544,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "MERGE",
-      "verified": false
+      "verified": false,
+      "hub_id": "cell-023"
     },
     {
       "class_id": "scale_free_percolation_class",
@@ -2637,7 +2653,8 @@
       "curation_source": "llm",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "B3 demoted — folded into percolation_connectivity."
+      "b3_note": "B3 demoted — folded into percolation_connectivity.",
+      "hub_id": "5k-ef-205"
     },
     {
       "class_id": "percolation_connectivity",
@@ -2744,7 +2761,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "SPLIT",
-      "verified": false
+      "verified": false,
+      "hub_id": "soc-040"
     },
     {
       "class_id": "preferential_attachment",
@@ -2891,7 +2909,8 @@
       "verified_phases": [
         "Phase 6 GitHub stars",
         "Phase 13 Wikipedia pageviews"
-      ]
+      ],
+      "hub_id": "5k-30-052"
     },
     {
       "class_id": "reaction_diffusion_steady_state_class",
@@ -3002,7 +3021,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "KEEP",
-      "verified": false
+      "verified": false,
+      "hub_id": "cross-020"
     },
     {
       "class_id": "markov_chain_memory_fidelity_class",
@@ -3110,7 +3130,8 @@
       "curation_source": "llm",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "Statistical descriptor, not mechanism."
+      "b3_note": "Statistical descriptor, not mechanism.",
+      "hub_id": "bio-005"
     },
     {
       "class_id": "second_order_damped_oscillator",
@@ -3207,7 +3228,8 @@
       "is_curated": true,
       "curation_source": "llm",
       "b3_consensus": "KEEP",
-      "verified": false
+      "verified": false,
+      "hub_id": "5k-15-087"
     },
     {
       "class_id": "sir_contagion_network_class",
@@ -3308,7 +3330,8 @@
       "verified_phases": [
         "Session ***REMOVED***3 W2-C SIR confirm in progress"
       ],
-      "b3_note": "Verification in progress (W2-C)."
+      "b3_note": "Verification in progress (W2-C).",
+      "hub_id": "5k-ef-316"
     },
     {
       "class_id": "fractional_brownian_crossings",
@@ -3364,7 +3387,8 @@
       "last_curated": "2026-05-15",
       "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
       "b3_status": "PENDING",
-      "notes": "Pre-registered band alpha ∈ [1.5, 2.0] for H ∈ [0.5, 0.8]; cross-judge ensemble verification deferred (no API keys in worktree session)."
+      "notes": "Pre-registered band alpha ∈ [1.5, 2.0] for H ∈ [0.5, 0.8]; cross-judge ensemble verification deferred (no API keys in worktree session).",
+      "hub_id": null
     },
     {
       "class_id": "anderson_localization",
@@ -3422,7 +3446,8 @@
       "last_curated": "2026-05-15",
       "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
       "b3_status": "PENDING",
-      "notes": "Pre-registered band nu ∈ [1.55, 1.60] (3D orthogonal). Cross-judge ensemble verification deferred."
+      "notes": "Pre-registered band nu ∈ [1.55, 1.60] (3D orthogonal). Cross-judge ensemble verification deferred.",
+      "hub_id": null
     },
     {
       "class_id": "preisach_hysteresis_cascade",
@@ -3480,7 +3505,8 @@
       "last_curated": "2026-05-15",
       "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
       "b3_status": "PENDING",
-      "notes": "Sethna-Dahmen-Myers refinement of the B3-rejected hysteresis_preisach class. Pre-registered tau ∈ [1.5, 2.5]. Cross-judge ensemble verification deferred."
+      "notes": "Sethna-Dahmen-Myers refinement of the B3-rejected hysteresis_preisach class. Pre-registered tau ∈ [1.5, 2.5]. Cross-judge ensemble verification deferred.",
+      "hub_id": null
     }
   ]
 }

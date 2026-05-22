@@ -26,6 +26,9 @@ CANDIDATES = REPO_ROOT / "v4" / "results" / "candidate_classes.jsonl"
 LAYER3_AUTO = REPO_ROOT / "v4" / "results" / "layer3_auto_curated.jsonl"
 LAYER4_PREDICTIONS = REPO_ROOT / "v4" / "results" / "layer4_predictions.jsonl"
 OUT_FILE = REPO_ROOT / "web" / "frontend" / "assets" / "data" / "universality-classes.json"
+***REMOVED*** KB corpus — used to resolve each class's hub phenomenon to its real KB id,
+***REMOVED*** so the site can deep-link the hub into /analyze (which needs a phenomenon id).
+KB_STRUCT = REPO_ROOT / "v3" / "results" / "kb-expanded-struct.jsonl"
 
 ***REMOVED*** ---------------------------------------------------------------------------
 ***REMOVED*** Curated metadata — for the top classes we know.
@@ -336,12 +339,35 @@ def load_layer4_predictions():
     return out
 
 
+def load_kb_name_to_id():
+    """Map KB phenomenon name -> phenomenon_id, for hub deep-linking.
+    Empty dict if the corpus is missing (hub_id then stays None)."""
+    if not KB_STRUCT.exists():
+        return {}
+    out = {}
+    with KB_STRUCT.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            name = rec.get("name")
+            pid = rec.get("phenomenon_id")
+            if name and pid:
+                out[name] = pid
+    return out
+
+
 def build():
     with CANDIDATES.open("r", encoding="utf-8") as f:
         raw = [json.loads(line) for line in f if line.strip()]
 
     layer3 = load_layer3_auto()
     layer4 = load_layer4_predictions()
+    kb_name_to_id = load_kb_name_to_id()
 
     classes = []
     for rec in raw:
@@ -361,6 +387,9 @@ def build():
             "rank": rec.get("index"),
             "provenance": provenance,
             "hub_name": hub_name,
+            ***REMOVED*** Real KB phenomenon id for the hub (None if not resolvable) — the
+            ***REMOVED*** site needs this to deep-link the hub into /analyze.
+            "hub_id": kb_name_to_id.get(hub_name),
             "hub_degree": (rec.get("hub") or {}).get("degree_inside_class"),
             "size": rec.get("size"),
             "n_domains": rec.get("n_domains"),

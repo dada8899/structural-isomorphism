@@ -53,11 +53,12 @@
   }
 
   // --- Build the /analyze prefill URL for a lead ---
-  // text_a = the concrete research question (LLM-generated when available).
+  // analyze.js reads the `q`/`id` URL params (it translates them to the
+  // API's `text_a`/`b_id` itself). q = the concrete research question.
   function analyzeUrl(lead) {
     var p = new URLSearchParams();
-    p.set('text_a', leadQuestion(lead));
-    if (lead.anchor_id) p.set('b_id', lead.anchor_id);
+    p.set('q', leadQuestion(lead));
+    if (lead.anchor_id) p.set('id', lead.anchor_id);
     return '/analyze?' + p.toString();
   }
 

@@ -319,6 +319,21 @@ function classAnalyzeSeed(cls) {
   return L(cls, 'hub_name') || L(cls, 'name') || '';
 }
 
+// CTA target. /analyze needs a real KB phenomenon id; the hub's id ships in
+// the class data as `hub_id`. When it resolves we deep-link straight into
+// /analyze (analyze.js reads the `id`/`q` URL params). When it doesn't —
+// the 3 post-build classes whose hub isn't a KB phenomenon — we degrade to
+// /search so the CTA still does something useful instead of dead-ending on
+// the analyze empty state.
+function classAnalyzeHref(cls) {
+  var seed = classAnalyzeSeed(cls);
+  if (cls && cls.hub_id) {
+    return '/analyze?id=' + encodeURIComponent(cls.hub_id) +
+           '&q=' + encodeURIComponent(seed);
+  }
+  return '/search?q=' + encodeURIComponent(seed);
+}
+
 function buildBadges(cls) {
   const isLlm = cls.curation_source === "llm";
   const nVerified = countVerifiedPredictions(cls);
@@ -474,7 +489,7 @@ function renderDetail(cls) {
         <h3 class="uc-detail__cta-title">${T("page.classes.cta_title", "用这个模式分析你自己的问题")}</h3>
         <p class="uc-detail__cta-sub">${T("page.classes.cta_sub", "把你关心的现象输进去，看它和哪些领域共享同一套结构。")}</p>
       </div>
-      <a class="uc-detail__cta-btn" href="/analyze?text_a=${encodeURIComponent(classAnalyzeSeed(cls))}">
+      <a class="uc-detail__cta-btn" href="${classAnalyzeHref(cls)}">
         ${T("page.classes.cta_btn", "开始分析")}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </a>

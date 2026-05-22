@@ -73,13 +73,15 @@
   }
 
   function buildAnalyzeUrl(method, m) {
-    // text_a = 方法 + 现象（让 analyze 知道要把方法套到这个现象上）;
-    // b_id   = 现象 id，作为 analyze 的目标现象。
+    // analyze.js reads the `q`/`id` URL params (it translates them to the
+    // API's `text_a`/`b_id` itself).
+    // q  = 方法 + 现象（让 analyze 知道要把方法套到这个现象上）;
+    // id = 现象 id，作为 analyze 的目标现象。
     var textA = '能不能把「' + method + '」这个方法套用到「'
       + m.name + '」（' + m.domain + '）上？';
     var p = new URLSearchParams();
-    p.set('b_id', m.id);
-    p.set('text_a', textA);
+    p.set('id', m.id);
+    p.set('q', textA);
     return '/analyze?' + p.toString();
   }
 

@@ -840,10 +840,14 @@
     var query = item.getAttribute('data-query') || '';
     var cards = item._cards || [];
     var topKbId = cards.length ? cards[0].id : '';
-    // Use clean /analyze URL (no .html suffix) — matches site-wide convention
-    // in search.js, discoveries.js, home.js, phenomenon.js.
-    var url = '/analyze?text_a=' + encodeURIComponent(query);
-    if (topKbId) url += '&b_id=' + encodeURIComponent(topKbId);
+    // /analyze NEEDS a B-side phenomenon id to run — without one analyze.js
+    // bails to its empty state. Hide the CTA rather than ship a dead link.
+    if (!topKbId) { section.hidden = true; return; }
+    // Clean /analyze URL — analyze.js reads the `id`/`q` URL params (NOT the
+    // API's `b_id`/`text_a`); it translates them itself. Matches the
+    // site-wide convention in search.js / home.js / phenomenon.js.
+    var url = '/analyze?id=' + encodeURIComponent(topKbId) +
+              '&q=' + encodeURIComponent(query);
 
     section.innerHTML =
       '<a class="ask-thread-item__deep-cta" href="' + url + '">' +
