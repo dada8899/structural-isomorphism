@@ -1,6 +1,6 @@
 ***REMOVED*** D1 Phase Detector — Status
 
-> Last updated: 2026-05-14 (session ***REMOVED***7, Wave 1 Agent B)
+> Last updated: 2026-05-22 (D1 scale-up verification — full 500-row pass confirmed)
 
 ***REMOVED******REMOVED*** Inventory
 
@@ -10,7 +10,9 @@
 | `structtuples_2026-05-13.jsonl` | 100 | Output of `extract_structtuple.py` on the 100 row set (deepseek-v4-pro, 2026-05-13 batch) |
 | `sp500_tickers.json` | 503 | Wikipedia scrape via `fetch_sp500_tickers.py` (2026-05-14) |
 | `companies_500_input.jsonl` | 500 | Merged input (100 hand-curated + 400 SP500 additions, dedup by ticker) |
-| `companies_500.jsonl` | 55 (sample) | Output of `extract_structtuple_batch.py` (deepseek-v4-flash); 5-row pilot + 50-row sample, all ok=true |
+| `companies_500.jsonl` | 500 (full) | Output of `extract_structtuple_batch.py` (deepseek-v4-flash); full 500-row pass, 500/500 ok=true, 0 fail, no missing fields, every row has >=2 evidence anchors |
+| `backtest_result.json` | — | `backtest.py` walk-forward (6m hold, 54 snapshots) on full 500: Sharpe nc=0.238 / other=0.318, t=-0.41 p=0.68 — **null result** (no near-critical edge) |
+| `backtest/results/v0.1-1000-universe-*.json` | — | `backtest/engine.py` 1000-ticker daily engine (separate experiment): near-critical Sharpe 0.70 vs benchmark 0.77, p=0.57 — also **null result** |
 
 ***REMOVED******REMOVED*** Pipeline scale-up (100 → 500)
 
@@ -66,12 +68,20 @@ sign-off + a small price-check rerun, not by budget.
 
 ***REMOVED******REMOVED*** Pending / next session
 
-- [ ] Full 500-row LLM pass (`--limit 0`); estimated ~50min wall-clock at the
-  default sleep + retry settings.
-- [ ] Reconcile sector taxonomies: existing 100-row file uses fine-grained
-  `tech_software_db`, `financials_payments`, etc.; new SP500 rows use coarse
-  GICS buckets (`tech_software`, `financials`). Decision point for the
-  reviewer: collapse old to coarse, or upgrade SP500 to fine via a second LLM
-  pass (cost ~$0.05).
+- [x] Full 500-row LLM pass (`--limit 0`) — DONE. `companies_500.jsonl` holds
+  500/500 successful rows, all `model=deepseek-v4-flash`, 0 fail, 0 missing
+  fields. Family mix: linear_quasi_equilibrium 300, preferential_attachment 49,
+  hysteresis_preisach 30, soc_threshold_cascade 28, motter_lai_cascade 27,
+  mixed_or_unclear 21, scheffer_fold 18, reflexive_fixed_point 15,
+  extreme_value_tail 12. Only 2 rows have confidence < 0.5.
+- [x] Backtest on full 500 — DONE. `backtest.py` walk-forward (6m hold) re-run
+  2026-05-22, identical to prior result: **null result**, near-critical cohort
+  shows no edge (Sharpe 0.238 vs other 0.318, t=-0.41, p=0.68).
+- [x] Sector taxonomy — left as-is. The mixed fine/coarse `sector` tags do NOT
+  feed the extractor prompt or the backtest cohorting (cohorting is by
+  `critical_point_state`), so the inconsistency is cosmetic. No reconciliation
+  needed for D1.
 - [ ] Re-run the existing 100 under `deepseek-v4-flash` for apples-to-apples
-  comparison with the new 400 (current 100 are on v4-pro).
+  comparison — moot now: all 500 in `companies_500.jsonl` are already on
+  `deepseek-v4-flash`. The legacy `structtuples_2026-05-13.jsonl` (v4-pro) is
+  superseded by `companies_500.jsonl` for any downstream use.
