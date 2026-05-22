@@ -5,6 +5,9 @@
   padding: var(--space-6) 0 var(--space-9);
 }
 
+/* [hidden] must beat the flex/grid display values set below. */
+.apply-page [hidden] { display: none !important; }
+
 .apply-container {
   max-width: 760px;
   margin: 0 auto;

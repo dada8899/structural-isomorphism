@@ -48,11 +48,21 @@
     });
   }
 
-  function emptyHtml(title, hint) {
+  // Empty / error state. `variant` controls the tone:
+  //   'growing' — no data yet, but that's expected early on (positive framing)
+  //   'error'   — a fetch failed (quiet, retry-able tone)
+  // The growing variant carries a soft icon so the section reads as
+  // "数据在积累中", not "坏了".
+  function emptyHtml(title, hint, variant) {
+    var v = variant || 'growing';
+    var icon = v === 'error'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-3M13 16v-6M18 16v-9"/><circle cx="8" cy="13" r="0.6" fill="currentColor"/></svg>';
     return (
-      '<div class="insights-empty">' +
+      '<div class="insights-empty insights-empty--' + v + '">' +
+        '<span class="insights-empty__icon" aria-hidden="true">' + icon + '</span>' +
         '<p class="insights-empty__title">' + escapeHtml(title) + '</p>' +
-        '<p>' + escapeHtml(hint) + '</p>' +
+        '<p class="insights-empty__hint">' + escapeHtml(hint) + '</p>' +
       '</div>'
     );
   }
@@ -69,14 +79,24 @@
       { value: d.worked_count || 0, label: '标记「确实管用」' },
       { value: d.verified_isomorphisms || 0, label: '已验证同构' }
     ];
-    el.innerHTML = cards.map(function (c) {
+    // Early-stage framing: when everything is still zero, the row of "0"s
+    // should read as "刚起步" rather than a broken dashboard. A zero value
+    // gets a muted treatment + a small dash hint.
+    var html = cards.map(function (c) {
+      var n = parseInt(c.value, 10) || 0;
+      var zeroCls = n === 0 ? ' insights-stat--zero' : '';
       return (
-        '<div class="insights-stat">' +
-          '<div class="insights-stat__value">' + (parseInt(c.value, 10) || 0) + '</div>' +
+        '<div class="insights-stat' + zeroCls + '">' +
+          '<div class="insights-stat__value">' + n + '</div>' +
           '<div class="insights-stat__label">' + escapeHtml(c.label) + '</div>' +
         '</div>'
       );
     }).join('');
+    var allZero = cards.every(function (c) { return (parseInt(c.value, 10) || 0) === 0; });
+    if (allZero) {
+      html += '<p class="insights-summary__note">这个引擎刚开始被用起来——数字会随着每一份报告慢慢长出来。</p>';
+    }
+    el.innerHTML = html;
   }
 
   // ---- stuck structures ---- //
@@ -107,8 +127,8 @@
     var items = (data && data.items) || [];
     if (items.length === 0) {
       el.innerHTML = emptyHtml(
-        '还没有足够数据',
-        '等用户用起来——生成的报告多了，这里会显示大家最常卡住的问题结构。'
+        '数据正在积累中',
+        '每生成一份研究报告，这里就多一条线索。报告攒够了，大家最常卡住的问题结构会自动浮现。'
       );
       return;
     }
@@ -150,8 +170,8 @@
     var items = (data && data.items) || [];
     if (items.length === 0) {
       el.innerHTML = emptyHtml(
-        '还没有已验证的同构',
-        '当有用户回到报告页确认「试了，管用」，这份跨领域映射就会沉淀到这里。'
+        '第一条已验证同构还在路上',
+        '当有用户回到报告页确认「试了，管用」，这份跨领域映射就会沉淀到这里——成为比模型打分更硬的证据。'
       );
       return;
     }
@@ -163,7 +183,7 @@
   function showSectionError(elId) {
     var el = document.getElementById(elId);
     if (!el) return;
-    el.innerHTML = emptyHtml('加载失败', '稍后刷新重试。若反复失败，多半是网络问题。');
+    el.innerHTML = emptyHtml('这部分没加载出来', '稍后刷新重试。若反复失败，多半是网络问题。', 'error');
   }
 
   function load() {
@@ -172,7 +192,7 @@
       .catch(function (err) {
         console.error('[insights] summary failed:', err);
         var el = document.getElementById('insights-summary');
-        if (el) el.innerHTML = emptyHtml('加载失败', '稍后刷新重试。');
+        if (el) el.innerHTML = emptyHtml('总览没加载出来', '稍后刷新重试。', 'error');
       });
 
     getJson('/api/insights/stuck-structures?limit=10')

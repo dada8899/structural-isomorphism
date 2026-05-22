@@ -251,24 +251,61 @@ function countVerifiedPredictions(cls) {
 }
 
 // SESSION-18 (D): build a hook-style headline for a universality class
-// straight from its real fields — names a couple of its real member domains
-// and frames them as one shared pattern. No fabrication.
+// straight from its real fields. Like discoveries, this picks from several
+// sentence patterns keyed off the class's REAL signals so the 26 classes
+// don't all read off one mechanical template:
+//   · domains      — its real member fields
+//   · n_domains    — how broadly it reaches
+//   · name         — the class name
+//   · class_id     — stable index so the choice is deterministic
 function classHeadline(cls) {
   const name = L(cls, 'name') || '';
   const domains = (currentLang() === 'en' ? cls.domains_en : cls.domains) || cls.domains || [];
   const en = currentLang() === 'en';
+  const nDom = cls.n_domains || domains.length || 0;
+
   // Pick two distinct, human-readable domains for the hook.
   const picked = [];
   for (const dmn of domains) {
     if (dmn && !picked.includes(dmn)) picked.push(dmn);
     if (picked.length === 2) break;
   }
-  if (picked.length === 2) {
-    return en
-      ? `${picked[0]} and ${picked[1]} obey the same law.`
-      : `${picked[0]}和${picked[1]}，遵循同一条规律。`;
+
+  // Deterministic per-class index from class_id.
+  const idStr = String(cls.class_id || name || '');
+  let seed = 0;
+  for (let i = 0; i < idStr.length; i++) seed = (seed + idStr.charCodeAt(i)) % 997;
+
+  if (en) {
+    if (picked.length === 2) {
+      const enSet = [
+        `${picked[0]} and ${picked[1]} obey the same law.`,
+        `From ${picked[0]} to ${picked[1]}: one shared pattern.`,
+        `${picked[0]} and ${picked[1]} run on the same math.`,
+      ];
+      return enSet[seed % enSet.length];
+    }
+    return `One pattern across ${nDom || 'many'} fields: ${name}`;
   }
-  return en ? `One pattern, many fields: ${name}` : `一个模式，跨越多个领域：${name}`;
+
+  if (picked.length === 2) {
+    // For very broad classes lean on the "spans the whole map" angle.
+    if (nDom >= 9) {
+      const poolWide = [
+        `从${picked[0]}到${picked[1]}，${nDom} 个领域共用一条规律。`,
+        `${picked[0]}、${picked[1]}……${nDom} 个领域，同一个数学结构。`,
+        `一条规律，横跨 ${nDom} 个领域——包括${picked[0]}和${picked[1]}。`,
+      ];
+      return poolWide[seed % poolWide.length];
+    }
+    const pool = [
+      `${picked[0]}和${picked[1]}，遵循同一条规律。`,
+      `${picked[0]}的规律，原来也在管着${picked[1]}。`,
+      `${picked[0]}和${picked[1]}，跑的是同一套数学。`,
+    ];
+    return pool[seed % pool.length];
+  }
+  return `一个模式，跨越 ${nDom || '多个'} 个领域：${name}`;
 }
 
 // Absolute share URL for a single class.
@@ -448,7 +485,10 @@ function renderDetail(cls) {
     </div>
 
     <div class="uc-detail__share">
-      <span class="uc-detail__share-label">${T("page.classes.share_label", "分享这个模式")}</span>
+      <div class="uc-detail__share-head">
+        <span class="uc-detail__share-label">${T("page.classes.share_label", "分享这个模式")}</span>
+        <span class="uc-detail__share-hint">${T("page.classes.share_hint", "复制链接直达这一类，或生成图片卡片。")}</span>
+      </div>
       <div class="uc-detail__share-actions"></div>
     </div>
 

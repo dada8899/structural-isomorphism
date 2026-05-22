@@ -50,14 +50,21 @@
         <textarea
           id="lint-textarea"
           class="lint-textarea"
-          placeholder="把你的策略文档、方案、规划粘贴到这里……"
+          placeholder="把你的策略文档、方案、规划粘贴到这里——例如「我们计划复制小米的生态链模式，先用一款爆品打开市场，再横向扩张到周边品类，靠规模摊薄成本……」"
           maxlength="20000"
-          rows="14"></textarea>
+          rows="14"
+          aria-label="策略文档内容"></textarea>
         <div class="lint-input__bar">
           <span id="lint-charcount" class="lint-charcount">0 / 20000</span>
           <button type="button" id="lint-submit" class="lint-submit">开始结构 lint</button>
         </div>
         <p id="lint-input-error" class="lint-input__error" hidden></p>
+        <div class="lint-examples" id="lint-examples">
+          <span class="lint-examples__label">没有现成文档？试个示例：</span>
+          <button type="button" class="lint-chip" data-example="我们计划复制小米的生态链模式：先用一款高性价比爆品打开市场，建立品牌信任，再横向扩张到周边品类，靠统一供应链和规模效应摊薄成本。只要爆品成功，后面的品类就能顺势带起来。">小米生态链复制</button>
+          <button type="button" class="lint-chip" data-example="过去三个季度增长强劲，说明我们的增长引擎已经跑通。下一步只要把市场预算翻倍投入，增长就能线性放大。竞争对手反应慢，我们有先发优势的时间窗口。">增长引擎已跑通</button>
+          <button type="button" class="lint-chip" data-example="用户留存率最近上升了，证明产品体验改进起了作用。我们应该继续沿这个方向加大功能投入。团队士气也很高，大家都觉得方向是对的。">留存上升归因</button>
+        </div>
       </section>
 
       <!-- Loading state -->

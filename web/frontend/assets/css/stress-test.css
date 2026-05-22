@@ -7,6 +7,10 @@
   padding: var(--space-6) 0 var(--space-9);
 }
 
+/* [hidden] must always win over the display values set on flex/grid
+   sections below — otherwise loading/result leak into the initial view. */
+.stress-page [hidden] { display: none !important; }
+
 .stress-container {
   max-width: 780px;
   margin: 0 auto;
@@ -31,15 +35,16 @@
   margin-bottom: var(--space-7);
 }
 .stress-intro__title {
-  font-size: var(--fs-32, 1.875rem);
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-family: var(--font-serif);
+  font-size: var(--fs-32);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
   color: var(--text-primary);
   margin: 0 0 var(--space-3);
 }
 .stress-intro__lede {
-  font-size: var(--fs-16, 1rem);
-  line-height: 1.65;
+  font-size: var(--fs-16);
+  line-height: var(--lh-relaxed);
   color: var(--text-secondary);
   margin: 0;
   max-width: 56ch;
@@ -65,7 +70,7 @@
   width: 100%;
   font-family: inherit;
   font-size: var(--fs-15, 0.9375rem);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-primary);
   background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
   border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
@@ -197,7 +202,7 @@
 
 .stress-verdict__reason {
   font-size: var(--fs-15, 0.9375rem);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-primary);
   margin: 0;
 }
@@ -226,7 +231,7 @@
 }
 .stress-pair__text {
   font-size: var(--fs-15, 0.9375rem);
-  line-height: 1.55;
+  line-height: var(--lh-snug);
   color: var(--text-primary);
 }
 .stress-pair__vs {
@@ -241,7 +246,7 @@
 .stress-section { margin-bottom: var(--space-6); }
 .stress-section__title {
   font-size: var(--fs-16, 1rem);
-  font-weight: 650;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   margin: 0 0 var(--space-4);
 }
@@ -288,12 +293,12 @@
 .stress-corr__claim {
   font-size: var(--fs-14, 0.875rem);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: var(--lh-normal);
   color: var(--text-primary);
 }
 .stress-corr__stress {
   font-size: var(--fs-13, 0.8125rem);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-secondary);
   margin: 0;
   padding-left: 26px;
@@ -316,7 +321,7 @@
 }
 .stress-weakest__text {
   font-size: var(--fs-14, 0.875rem);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-primary);
   margin: 0;
 }
@@ -357,11 +362,11 @@
 .stress-precedent__name {
   font-size: var(--fs-14, 0.875rem);
   font-weight: 600;
-  color: var(--brand-primary, ***REMOVED***2563eb);
+  color: var(--accent);
 }
 .stress-precedent__failure {
   font-size: var(--fs-14, 0.875rem);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-primary);
   margin: 0;
 }

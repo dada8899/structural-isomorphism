@@ -48,7 +48,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_diagnose_page_renders_input(page: Page):
     """The page loads with the input form and quick-example chips."""
-    page.goto(f"{BASE}/diagnose", wait_until="networkidle")
+    page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     expect(page.locator(".diagnose-intro__title")).to_be_visible()
     expect(page.locator("***REMOVED***diagnose-textarea")).to_be_visible()
     expect(page.locator("***REMOVED***diagnose-submit")).to_be_visible()
@@ -58,7 +58,7 @@ def test_diagnose_page_renders_input(page: Page):
 
 def test_diagnose_example_fills_textarea(page: Page):
     """Clicking a quick-example chip populates the textarea."""
-    page.goto(f"{BASE}/diagnose", wait_until="networkidle")
+    page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     page.locator(".diagnose-example").first.click()
     value = page.locator("***REMOVED***diagnose-textarea").input_value()
     assert len(value) > 12
@@ -66,7 +66,7 @@ def test_diagnose_example_fills_textarea(page: Page):
 
 def test_diagnose_short_input_rejected_inline(page: Page):
     """Submitting too-short text keeps the user on the input view."""
-    page.goto(f"{BASE}/diagnose", wait_until="networkidle")
+    page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     page.locator("***REMOVED***diagnose-textarea").fill("太短")
     page.locator("***REMOVED***diagnose-submit").click()
     ***REMOVED*** Still on the input section — no loading / report shown.
@@ -84,7 +84,7 @@ def test_diagnose_submit_reaches_loading_or_result(page: Page):
     what we assert is that the input view is left and a terminal state
     is reached (no infinite loading).
     """
-    page.goto(f"{BASE}/diagnose", wait_until="networkidle")
+    page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     page.locator("***REMOVED***diagnose-textarea").fill(
         "我们是一家 30 人的公司，扩张很快。最近每加一个人效率反而更慢，"
         "开会变多、决策变慢、老员工抱怨。流程改过两次，情况没变化。"

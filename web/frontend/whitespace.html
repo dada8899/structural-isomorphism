@@ -60,7 +60,12 @@
         <p>正在加载研究空白矩阵…</p>
       </div>
       <div id="ws-error" class="ws-error" hidden>
-        <p>研究空白数据暂不可用。请稍后再试。</p>
+        <div class="ws-error__icon" aria-hidden="true">!</div>
+        <h2 class="ws-error__title">研究空白数据暂不可用</h2>
+        <p class="ws-error__msg">
+          矩阵数据还没准备好，或服务正在启动。这通常是临时状态，稍等片刻再试即可。
+        </p>
+        <button type="button" id="ws-error-retry" class="ws-error__retry">重新加载</button>
       </div>
 
       <!-- Matrix heatmap -->
@@ -93,7 +98,9 @@
           <button type="button" id="ws-filter-reset" class="ws-btn ws-btn--ghost">重置</button>
         </div>
         <div id="ws-leads" class="ws-leads"></div>
-        <div id="ws-leads-empty" class="ws-leads-empty" hidden>没有符合条件的研究空白。</div>
+        <div id="ws-leads-empty" class="ws-leads-empty" hidden>
+          当前筛选条件下没有研究空白选题。试着放宽普适类或目标领域的筛选，或点「重置」查看全部。
+        </div>
       </section>
 
     </div>

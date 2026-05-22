@@ -44,16 +44,71 @@ let currentFilter = 'all';
 let pendingFocusRank = null;
 
 // Build a hook-style headline straight from the discovery's real fields.
-// No fabrication: it just frames the two real phenomenon names as one
-// shared mathematical structure ("X 和 Y，其实是同一个数学结构").
+//
+// SESSION-18 design polish: instead of one mechanical template for all 39
+// cards, pick from several sentence patterns based on the discovery's REAL
+// signals (literature status / isomorphism depth / cross-domain distance).
+// Every variant is grounded in real fields — no fabrication, no hype:
+//   · a_name / b_name      — the two phenomena
+//   · a_domain / b_domain  — their fields (used to gauge "distance")
+//   · literature_status    — unexplored / partial / established
+//   · isomorphism_depth    — 0–5, structural depth of the match
+// A stable per-card index (rank) keeps the choice deterministic so the same
+// card always reads the same way (and an i18n re-render is idempotent).
 function discoveryHeadline(d) {
   const a = L(d, 'a_name') || '';
   const b = L(d, 'b_name') || '';
   if (!a || !b) return L(d, 'paper_title') || '';
-  if (currentLang() === 'en') {
-    return `${a} and ${b} share the same equation.`;
+
+  const en = currentLang() === 'en';
+  const aDom = L(d, 'a_domain') || '';
+  const bDom = L(d, 'b_domain') || '';
+  const st = statusInfo(d.literature_status);
+  const depth = Number(d.isomorphism_depth) || 0;
+  const crossDomain = aDom && bDom && aDom !== bDom;
+
+  // English keeps a small, calm variant set.
+  if (en) {
+    const enSet = [
+      `${a} and ${b} share the same equation.`,
+      `Underneath, ${a} and ${b} obey one structure.`,
+      `What if ${a} and ${b} were the same problem?`,
+    ];
+    return enSet[(d.rank || 0) % enSet.length];
   }
-  return `${a}，和${b}，其实是同一个方程。`;
+
+  // --- Chinese: choose a pool by the discovery's real character ---
+  // Pool 1 — literature-unexplored: lean on the "nobody has connected these" angle.
+  const poolUnexplored = [
+    `没人发现过：${a}和${b}，其实是同一个方程。`,
+    `${a}背后的数学，原来也在管着${b}。`,
+    `把${a}的方程拿来，竟然能算${b}。`,
+  ];
+  // Pool 2 — deep isomorphism (depth >= 3): emphasize "same skeleton, not just analogy".
+  const poolDeep = [
+    `${a}和${b}，共享同一套数学骨架。`,
+    `不是类比——${a}和${b}是同一个结构。`,
+    `${a}怎么演化，${b}就怎么演化。`,
+  ];
+  // Pool 3 — far-apart domains: emphasize the cross-field leap.
+  const poolCross = [
+    `${aDom}里的${a}，和${bDom}里的${b}，是同一回事。`,
+    `${a}和${b}隔着十万八千里，方程却一模一样。`,
+    `换个领域看：${a}就是另一种${b}。`,
+  ];
+  // Pool 0 — default / established / same-domain.
+  const poolDefault = [
+    `${a}，和${b}，其实是同一个方程。`,
+    `${a}和${b}，遵循同一条规律。`,
+    `解开${a}的那套数学，也能解开${b}。`,
+  ];
+
+  let pool = poolDefault;
+  if (st.cls === 'unknown') pool = poolUnexplored;
+  else if (depth >= 3) pool = poolDeep;
+  else if (crossDomain) pool = poolCross;
+
+  return pool[(d.rank || 0) % pool.length];
 }
 
 // Absolute share URL pointing at this specific discovery.
@@ -406,6 +461,7 @@ function renderList() {
             ` : ''}
             <div class="disc-item__detail-block disc-item__share-block" style="grid-column: 1 / -1">
               <h4>${T("page.discoveries.section_share", "分享这条发现")}</h4>
+              <p class="disc-item__share-hint">${T("page.discoveries.share_hint", "复制链接直达这张卡，或生成一张图片卡片发到社交平台。")}</p>
               <div class="disc-item__share"></div>
             </div>
           </div>

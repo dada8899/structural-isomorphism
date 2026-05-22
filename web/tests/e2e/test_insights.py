@@ -256,55 +256,39 @@ def _playwright_or_skip():
         pytest.skip("playwright not installed")
 
 
-def test_insights_page_renders_summary(insights_backend, store):
+def test_insights_page_renders_summary(insights_backend, store, page):
     """Browser: insights.html loads and the summary stat cards render."""
     _playwright_or_skip()
-    from playwright.sync_api import sync_playwright
-
     out = _seed(store, query="浏览器渲染测试", b_id="b_browser_e2e")
     store.record_followup(
         report_id=out["id"], anon_id="anon-B",
         action_status="tried", outcome="worked",
     )
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(insights_backend["base"] + "/insights", timeout=15000)
-            ***REMOVED*** Stat cards replace the skeletons once /summary resolves.
-            page.wait_for_selector(".insights-stat__value", timeout=8000)
-            values = page.locator(".insights-stat__value").all_inner_texts()
-            assert len(values) == 4
-            ***REMOVED*** total_reports card should be a non-negative integer.
-            assert int(values[0]) >= 1
-        finally:
-            browser.close()
+    page.goto(insights_backend["base"] + "/insights", timeout=15000)
+    ***REMOVED*** Stat cards replace the skeletons once /summary resolves.
+    page.wait_for_selector(".insights-stat__value", timeout=8000)
+    values = page.locator(".insights-stat__value").all_inner_texts()
+    assert len(values) == 4
+    ***REMOVED*** total_reports card should be a non-negative integer.
+    assert int(values[0]) >= 1
 
 
-def test_insights_page_verified_section_renders(insights_backend, store):
+def test_insights_page_verified_section_renders(insights_backend, store, page):
     """Browser: a seeded worked-followup shows in the verified library."""
     _playwright_or_skip()
-    from playwright.sync_api import sync_playwright
-
     out = _seed(store, query="浏览器已验证测试", b_id="b_browser_v")
     store.record_followup(
         report_id=out["id"], anon_id="anon-BV",
         action_status="tried", outcome="worked",
     )
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(insights_backend["base"] + "/insights", timeout=15000)
-            page.wait_for_selector(
-                ".insights-card, .insights-empty", timeout=8000,
-            )
-            content = page.content()
-            ***REMOVED*** Either real cards rendered, or (if another test's data is
-            ***REMOVED*** absent) a friendly empty state — never a raw error.
-            assert (
-                "insights-card__problem" in content
-                or "insights-empty" in content
-            )
-        finally:
-            browser.close()
+    page.goto(insights_backend["base"] + "/insights", timeout=15000)
+    page.wait_for_selector(
+        ".insights-card, .insights-empty", timeout=8000,
+    )
+    content = page.content()
+    ***REMOVED*** Either real cards rendered, or (if another test's data is
+    ***REMOVED*** absent) a friendly empty state — never a raw error.
+    assert (
+        "insights-card__problem" in content
+        or "insights-empty" in content
+    )

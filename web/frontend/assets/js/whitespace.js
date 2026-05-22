@@ -289,9 +289,12 @@
       });
   }
 
-  function init() {
+  function load() {
     var loading = $('ws-loading');
     var errorEl = $('ws-error');
+
+    hide(errorEl);
+    show(loading);
 
     Promise.all([
       fetchJson('/whitespace/matrix'),
@@ -319,6 +322,12 @@
       hide(loading);
       show(errorEl);
     });
+  }
+
+  function init() {
+    var retry = $('ws-error-retry');
+    if (retry) retry.addEventListener('click', load);
+    load();
   }
 
   if (document.readyState === 'loading') {

@@ -1006,11 +1006,23 @@ pre.disc-item__equations {
   box-shadow: 0 0 0 2px var(--brand-accent, ***REMOVED***3b82f6), var(--shadow-md);
 }
 
-/* Share block inside the expanded detail. */
+/* Share block inside the expanded detail — a calm panel, not just a rule,
+ * so "分享这条发现" reads as a deliberate action zone. */
 .disc-item__share-block {
-  padding-top: var(--space-4);
-  border-top: 1px dashed var(--border-subtle, ***REMOVED***e4e4e7);
   margin-top: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border-radius: var(--radius-md);
+}
+.disc-item__share-block h4 {
+  margin-bottom: 4px;
+}
+.disc-item__share-hint {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-12, 12px);
+  color: var(--text-tertiary);
+  line-height: var(--lh-relaxed, 1.6);
 }
 .disc-item__share {
   margin-top: var(--space-2);
@@ -1027,29 +1039,38 @@ pre.disc-item__equations {
   align-items: center;
   gap: 7px;
   padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--fs-13, 13px);
+  font-weight: var(--fw-medium, 500);
   color: var(--text-secondary, ***REMOVED***52525b);
-  background: var(--surface-1, ***REMOVED***fff);
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
-  border-radius: 9px;
+  background: var(--bg-primary, ***REMOVED***fff);
+  border: 1px solid var(--border-default, ***REMOVED***e4e4e7);
+  border-radius: var(--radius-md, 9px);
   cursor: pointer;
-  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+  transition: border-color var(--dur-fast, .15s) var(--ease-out, ease),
+              color var(--dur-fast, .15s) var(--ease-out, ease),
+              background-color var(--dur-fast, .15s) var(--ease-out, ease);
 }
 .share-actions__btn:hover {
   color: var(--text-primary, ***REMOVED***18181b);
   border-color: var(--border-strong, ***REMOVED***d4d4d8);
+  background: var(--bg-secondary, ***REMOVED***fafafa);
+}
+.share-actions__btn:focus-visible {
+  outline: none;
+  border-color: var(--accent, ***REMOVED***b45309);
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(180,83,9,.18));
 }
 .share-actions__btn svg {
   flex-shrink: 0;
 }
 .share-actions__btn--done {
-  color: ***REMOVED***16a34a;
+  color: ***REMOVED***15803d;
   border-color: ***REMOVED***86efac;
+  background: rgba(5, 150, 105, 0.06);
 }
 .share-actions--compact .share-actions__btn {
   padding: 7px 13px;
-  font-size: 12.5px;
+  font-size: var(--fs-12, 12.5px);
 }
 
 /* === Share-card preview modal === */

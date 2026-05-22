@@ -5,12 +5,25 @@
   min-height: calc(100vh - var(--header-height, 64px));
   background: var(--bg-primary);
   padding: var(--space-8) var(--space-5) var(--space-10);
+
+  /* Heatmap state colors — the only two non-token hues on the page.
+     "filled" uses the design-system success green; "lead" needs a
+     distinct amber the token set has no equivalent for, so it lives
+     here as a single authoritative local var. */
+  --ws-filled: var(--success);
+  --ws-filled-soft: rgba(5, 150, 105, 0.1);
+  --ws-lead: var(--warning);
+  --ws-lead-soft: var(--warning-subtle);
+  --ws-lead-ring: rgba(217, 119, 6, 0.16);
 }
 
 .ws-container {
   max-width: var(--max-content, 960px);
   margin: 0 auto;
 }
+
+/* [hidden] must beat the flex/grid display values set below. */
+.ws-page [hidden] { display: none !important; }
 
 /* --- Intro --- */
 .ws-crumb {
@@ -31,7 +44,7 @@
   font-weight: var(--fw-semibold);
   color: var(--text-primary);
   margin: 0 0 var(--space-3);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--ls-tight);
 }
 .ws-intro__lede {
   font-size: var(--fs-16);
@@ -57,8 +70,8 @@
   display: inline-block;
   border: 1px solid var(--border-default);
 }
-.ws-swatch--filled { background: ***REMOVED***1a7f5a; border-color: ***REMOVED***1a7f5a; }
-.ws-swatch--lead { background: ***REMOVED***e8a13a; border-color: ***REMOVED***d6912a; }
+.ws-swatch--filled { background: var(--ws-filled); border-color: var(--ws-filled); }
+.ws-swatch--lead { background: var(--ws-lead); border-color: var(--ws-lead); }
 .ws-swatch--empty { background: var(--bg-subtle); }
 
 .ws-stats {
@@ -92,10 +105,58 @@
 @keyframes ws-spin { to { transform: rotate(360deg); } }
 
 .ws-error {
-  padding: var(--space-8) 0;
   text-align: center;
+  padding: var(--space-9) var(--space-4);
+}
+.ws-error__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--fs-22);
+  font-weight: var(--fw-bold);
+}
+.ws-error__title {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.ws-error__msg {
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin: 0 auto var(--space-4);
+  max-width: 44ch;
+}
+.ws-error__retry {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ws-error__retry:hover { background: var(--bg-subtle); }
+
+/* leads empty state — richer than a bare line */
+.ws-leads-empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-xl);
   color: var(--text-tertiary);
   font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
 }
 
 /* --- Sections --- */
@@ -158,16 +219,16 @@
   cursor: default;
   transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
 }
-.ws-cell--filled { background: ***REMOVED***1a7f5a; border-color: ***REMOVED***1a7f5a; }
+.ws-cell--filled { background: var(--ws-filled); border-color: var(--ws-filled); }
 .ws-cell--lead {
-  background: ***REMOVED***e8a13a;
-  border-color: ***REMOVED***d6912a;
+  background: var(--ws-lead);
+  border-color: var(--ws-lead);
   cursor: pointer;
 }
 .ws-cell--lead:hover,
 .ws-cell--lead:focus-visible {
   transform: scale(1.18);
-  outline: 2px solid var(--brand-accent, ***REMOVED***1a7f5a);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 .ws-cell--empty { background: var(--bg-subtle); }
@@ -219,10 +280,10 @@
 }
 .ws-btn--ghost:hover { background: var(--bg-secondary); }
 .ws-btn--primary {
-  background: var(--brand-accent, ***REMOVED***1a7f5a);
-  color: ***REMOVED***fff;
+  background: var(--accent);
+  color: var(--text-inverse);
 }
-.ws-btn--primary:hover { background: var(--brand-accent-hover, ***REMOVED***166a4b); }
+.ws-btn--primary:hover { background: var(--accent-hover); }
 
 /* --- Leads list --- */
 .ws-leads {
@@ -243,8 +304,8 @@
   box-shadow: var(--shadow-sm);
 }
 .ws-lead--highlight {
-  border-color: ***REMOVED***d6912a;
-  box-shadow: 0 0 0 3px rgba(232, 161, 58, 0.15);
+  border-color: var(--ws-lead);
+  box-shadow: 0 0 0 3px var(--ws-lead-ring);
 }
 .ws-lead__top {
   display: flex;
@@ -261,8 +322,8 @@
   background: var(--accent-subtle, var(--bg-secondary));
   color: var(--text-secondary);
 }
-.ws-lead__tag--class { background: rgba(26, 127, 90, 0.1); color: ***REMOVED***1a7f5a; }
-.ws-lead__tag--domain { background: rgba(232, 161, 58, 0.14); color: ***REMOVED***b9791e; }
+.ws-lead__tag--class { background: var(--ws-filled-soft); color: var(--ws-filled); }
+.ws-lead__tag--domain { background: var(--ws-lead-soft); color: var(--warning); }
 .ws-lead__score {
   margin-left: auto;
   font-family: var(--font-mono);
@@ -277,12 +338,12 @@
   border-radius: var(--radius-full, 999px);
 }
 .ws-lead__plausible--yes {
-  background: rgba(26, 127, 90, 0.14);
-  color: ***REMOVED***1a7f5a;
+  background: var(--ws-filled-soft);
+  color: var(--ws-filled);
 }
 .ws-lead__plausible--maybe {
-  background: rgba(232, 161, 58, 0.16);
-  color: ***REMOVED***b9791e;
+  background: var(--ws-lead-soft);
+  color: var(--warning);
 }
 /* The concrete research question — the headline of the lead card. */
 .ws-lead__question {
@@ -305,7 +366,7 @@
 /* LLM rationale gets a subtle left rule to mark it as a model judgment. */
 .ws-lead__claim--llm {
   padding-left: var(--space-3);
-  border-left: 2px solid rgba(26, 127, 90, 0.25);
+  border-left: 2px solid var(--accent-subtle);
   color: var(--text-secondary);
 }
 .ws-lead__anchor {
@@ -315,13 +376,6 @@
 }
 .ws-lead__anchor b { color: var(--text-secondary); font-weight: var(--fw-medium); }
 .ws-lead__actions { display: flex; }
-
-.ws-leads-empty {
-  padding: var(--space-8) 0;
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: var(--fs-14);
-}
 
 /* --- Responsive --- */
 @media (max-width: 640px) {

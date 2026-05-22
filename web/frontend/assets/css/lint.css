@@ -1,205 +1,269 @@
 /* C2 structural lint — page styles (Session ***REMOVED***18).
    Notion / Linear-flavoured "lint report" aesthetic: white bg, generous
-   whitespace, clear hierarchy. Reuses shared design tokens. */
+   whitespace, clear hierarchy. All values go through design-system tokens. */
 
 .lint-page {
-  min-height: 60vh;
-  padding: 32px 0 80px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--bg-primary);
+  padding: var(--space-7) 0 var(--space-10);
 }
 
 .lint-container {
   max-width: 760px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--space-5);
 }
 
 /* --- breadcrumb --- */
 .lint-crumb {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
-  margin-bottom: 28px;
+  gap: var(--space-2);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-6);
 }
 .lint-crumb a {
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
+  color: var(--text-tertiary);
   text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
 }
-.lint-crumb a:hover { color: var(--color-text, ***REMOVED***1a1a18); }
-.lint-crumb__sep { color: ***REMOVED***c8c8c4; }
+.lint-crumb a:hover { color: var(--text-primary); }
+.lint-crumb__sep { color: var(--text-quaternary); }
 
 /* --- input state --- */
 .lint-input__title {
-  font-size: 30px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  color: var(--color-text, ***REMOVED***1a1a18);
-  margin: 0 0 12px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-32);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-tight);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
 }
 .lint-input__intro {
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--color-text-secondary, ***REMOVED***57564f);
-  margin: 0 0 24px;
+  font-size: var(--fs-15);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-5);
+  max-width: 60ch;
 }
 .lint-input__intro strong {
-  font-weight: 600;
-  color: var(--color-text, ***REMOVED***1a1a18);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
 }
 
 .lint-textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 16px 18px;
-  font-size: 15px;
-  line-height: 1.7;
-  font-family: inherit;
-  color: var(--color-text, ***REMOVED***1a1a18);
-  background: ***REMOVED***fff;
-  border: 1px solid ***REMOVED***e4e4e0;
-  border-radius: 12px;
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--fs-15);
+  line-height: var(--lh-relaxed);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
   resize: vertical;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
 }
+.lint-textarea::placeholder { color: var(--text-quaternary); }
 .lint-textarea:focus {
   outline: none;
-  border-color: ***REMOVED***b5b5af;
-  box-shadow: 0 0 0 3px rgba(140, 140, 130, 0.12);
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+/* --- example chips --- */
+.lint-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.lint-examples__label {
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
+}
+.lint-chip {
+  font-family: var(--font-sans);
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.lint-chip:hover {
+  background: var(--accent-subtle);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 .lint-input__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 .lint-charcount {
-  font-size: 12px;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
-.lint-charcount--over { color: ***REMOVED***c0392b; }
+.lint-charcount--over { color: var(--danger-text); }
 
 .lint-submit {
   appearance: none;
-  border: none;
-  background: ***REMOVED***1a1a18;
-  color: ***REMOVED***fff;
-  font-size: 14px;
-  font-weight: 550;
-  font-family: inherit;
-  padding: 11px 22px;
-  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  font-family: var(--font-sans);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: background var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
 }
-.lint-submit:hover { background: ***REMOVED***333330; }
-.lint-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+.lint-submit:hover:not(:disabled) { background: var(--accent-hover); }
+.lint-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 .lint-submit--ghost {
   background: transparent;
-  color: var(--color-text-secondary, ***REMOVED***57564f);
-  border: 1px solid ***REMOVED***e4e4e0;
-  margin-top: 28px;
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+  margin-top: var(--space-6);
 }
-.lint-submit--ghost:hover { background: ***REMOVED***f5f5f3; }
+.lint-submit--ghost:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
 
 .lint-input__error {
-  margin-top: 12px;
-  font-size: 13px;
-  color: ***REMOVED***c0392b;
+  margin-top: var(--space-3);
+  font-size: var(--fs-13);
+  color: var(--danger-text);
 }
 
 /* --- loading state --- */
 .lint-loading {
   text-align: center;
-  padding: 64px 0;
+  padding: var(--space-9) var(--space-4);
 }
 .lint-loading__dots {
   display: flex;
   justify-content: center;
-  gap: 7px;
-  margin-bottom: 24px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
 }
 .lint-loading__dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: ***REMOVED***c4c4be;
+  border-radius: var(--radius-full);
+  background: var(--accent);
   animation: lint-bounce 1.2s ease-in-out infinite;
 }
 .lint-loading__dot:nth-child(2) { animation-delay: 0.16s; }
 .lint-loading__dot:nth-child(3) { animation-delay: 0.32s; }
 @keyframes lint-bounce {
-  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
 .lint-loading__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text, ***REMOVED***1a1a18);
-  margin: 0 0 8px;
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
 }
 .lint-loading__hint {
-  font-size: 14px;
-  color: var(--color-text-secondary, ***REMOVED***57564f);
-  margin: 0 0 14px;
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-tertiary);
+  margin: 0 auto var(--space-3);
+  max-width: 44ch;
 }
 .lint-loading__timer {
-  font-size: 12px;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
+  font-size: var(--fs-12);
+  color: var(--text-quaternary);
   font-variant-numeric: tabular-nums;
 }
 
 /* --- error state --- */
 .lint-error {
   text-align: center;
-  padding: 56px 0;
+  padding: var(--space-9) var(--space-4);
 }
 .lint-error__icon {
   width: 44px;
   height: 44px;
-  line-height: 44px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  background: ***REMOVED***fdecea;
-  color: ***REMOVED***c0392b;
-  font-size: 22px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--danger-surface);
+  color: var(--danger-text);
+  font-size: var(--fs-22);
+  font-weight: var(--fw-bold);
 }
 .lint-error__title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px;
-  color: var(--color-text, ***REMOVED***1a1a18);
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
 }
 .lint-error__msg {
-  font-size: 14px;
-  color: var(--color-text-secondary, ***REMOVED***57564f);
-  margin: 0 0 8px;
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin: 0 auto var(--space-3);
+  max-width: 46ch;
 }
 
 /* --- result: summary banner --- */
 .lint-summary {
-  background: ***REMOVED***faf9f6;
-  border: 1px solid ***REMOVED***ecebe5;
-  border-radius: 12px;
-  padding: 18px 20px;
-  margin-bottom: 32px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-bottom: var(--space-7);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-strong);
+}
+/* risk-tinted summary edge — mirrors the highest-risk claim found */
+.lint-summary--high {
+  background: var(--danger-surface);
+  border-color: var(--danger-border);
+  border-left-color: var(--danger);
+}
+.lint-summary--medium {
+  background: var(--warning-subtle);
+  border-color: var(--warning-border);
+  border-left-color: var(--warning);
+}
+.lint-summary--low {
+  background: rgba(5, 150, 105, 0.06);
+  border-color: rgba(5, 150, 105, 0.28);
+  border-left-color: var(--success);
 }
 .lint-summary__label {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide);
   text-transform: uppercase;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
-  margin-bottom: 8px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
 }
 .lint-summary__text {
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--color-text, ***REMOVED***1a1a18);
+  font-size: var(--fs-15);
+  line-height: var(--lh-relaxed);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -207,155 +271,180 @@
 .lint-result__head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 .lint-result__title {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
   margin: 0;
-  color: var(--color-text, ***REMOVED***1a1a18);
+  color: var(--text-primary);
 }
 .lint-result__count {
-  font-size: 13px;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
+  font-size: var(--fs-13);
+  color: var(--text-tertiary);
 }
 
 .lint-claims {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 .lint-claim {
-  border: 1px solid ***REMOVED***e7e7e2;
-  border-radius: 12px;
-  padding: 18px 20px;
-  background: ***REMOVED***fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  background: var(--bg-tertiary);
+  border-left-width: 3px;
 }
 /* risk-tinted left edge */
-.lint-claim--high { border-left: 3px solid ***REMOVED***d6463a; }
-.lint-claim--medium { border-left: 3px solid ***REMOVED***d99a2b; }
-.lint-claim--low { border-left: 3px solid ***REMOVED***4a9d6a; }
+.lint-claim--high { border-left-color: var(--danger); }
+.lint-claim--medium { border-left-color: var(--warning); }
+.lint-claim--low { border-left-color: var(--success); }
 
 .lint-claim__head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
   flex-wrap: wrap;
 }
 
 .lint-tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 6px;
-  letter-spacing: 0.02em;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
+  letter-spacing: var(--ls-wide);
 }
 .lint-tag--type {
-  background: ***REMOVED***f0f0ec;
-  color: ***REMOVED***57564f;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
 }
 .lint-tag--risk-high {
-  background: ***REMOVED***fdecea;
-  color: ***REMOVED***c0392b;
+  background: var(--danger-surface);
+  color: var(--danger-text);
 }
 .lint-tag--risk-medium {
-  background: ***REMOVED***fdf3e0;
-  color: ***REMOVED***b07815;
+  background: var(--warning-subtle);
+  color: var(--warning);
 }
 .lint-tag--risk-low {
-  background: ***REMOVED***e9f5ee;
-  color: ***REMOVED***2f7d4f;
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--success);
 }
 
 .lint-claim__quote {
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--color-text, ***REMOVED***1a1a18);
-  border-left: 2px solid ***REMOVED***d8d8d2;
-  padding-left: 12px;
-  margin: 0 0 14px;
+  font-size: var(--fs-15);
+  line-height: var(--lh-snug);
+  color: var(--text-primary);
+  border-left: 2px solid var(--border-strong);
+  padding-left: var(--space-3);
+  margin: 0 0 var(--space-4);
   font-style: italic;
 }
 
 .lint-claim__row {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
 }
 .lint-claim__row:last-child { margin-bottom: 0; }
 .lint-claim__row-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide);
   text-transform: uppercase;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
-  margin-bottom: 3px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
 }
 .lint-claim__row-text {
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--color-text-secondary, ***REMOVED***44443e);
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
 }
 .lint-claim__row--suggestion .lint-claim__row-text {
-  color: var(--color-text, ***REMOVED***1a1a18);
+  color: var(--text-primary);
+}
+
+/* claims empty state — no structural claims found */
+.lint-claims-empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-xl);
+}
+.lint-claims-empty__title {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2);
+}
+.lint-claims-empty__text {
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+  color: var(--text-tertiary);
+  margin: 0;
 }
 
 /* --- structural-isomorphism anchor block --- */
 /* The moat: a real KB phenomenon whose structure matches the claim. */
 .lint-iso {
-  margin: 10px 0;
-  padding: 11px 13px;
-  background: var(--color-bg-subtle, ***REMOVED***f6f5f1);
-  border: 1px solid var(--color-border, ***REMOVED***e5e4df);
-  border-radius: 8px;
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--accent-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
 }
 .lint-iso__label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide);
   text-transform: uppercase;
-  color: var(--color-accent, ***REMOVED***4a6fa5);
-  margin-bottom: 5px;
+  color: var(--accent);
+  margin-bottom: var(--space-1);
 }
 .lint-iso__body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 .lint-iso__name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text, ***REMOVED***1a1a18);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
   text-decoration: none;
 }
-.lint-iso__name:hover { text-decoration: underline; }
+.lint-iso__name:hover { color: var(--accent); text-decoration: underline; }
 .lint-iso__meta {
-  font-size: 12px;
-  color: var(--color-text-muted, ***REMOVED***8a8a86);
+  font-size: var(--fs-12);
+  color: var(--text-tertiary);
 }
 .lint-iso__desc {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--color-text-secondary, ***REMOVED***44443e);
-  margin-top: 3px;
+  font-size: var(--fs-13);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
 }
 .lint-iso__analyze {
-  font-size: 12px;
-  color: var(--color-accent, ***REMOVED***4a6fa5);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--accent);
   text-decoration: none;
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .lint-iso__analyze:hover { text-decoration: underline; }
 
 /* --- responsive --- */
 @media (max-width: 600px) {
-  .lint-container { padding: 0 16px; }
-  .lint-input__title { font-size: 24px; }
+  .lint-page { padding-top: var(--space-6); }
+  .lint-container { padding: 0 var(--space-4); }
+  .lint-input__title { font-size: var(--fs-24); }
   .lint-input__bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--space-3);
   }
   .lint-submit { width: 100%; }
+  .lint-claim { padding: var(--space-4); }
 }

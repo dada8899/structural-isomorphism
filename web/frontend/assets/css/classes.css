@@ -1122,21 +1122,23 @@
   letter-spacing: -0.015em;
 }
 
-/* "用它分析你自己的问题" CTA card. */
+/* "用它分析你自己的问题" CTA card — the primary action of the detail page,
+ * so it carries a warm accent surface aligned with the site's brand. */
 .uc-detail__cta-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  margin: 22px 0 8px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, ***REMOVED***f8fafc 0%, ***REMOVED***eef2ff 100%);
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  margin: 24px 0 8px;
+  padding: 22px 26px;
+  background: var(--accent-subtle, ***REMOVED***fdf3e7);
+  border: 1px solid rgba(180, 83, 9, 0.2);
   border-radius: 14px;
 }
+.uc-detail__cta-text { flex: 1 1 260px; min-width: 0; }
 .uc-detail__cta-title {
-  margin: 0 0 4px;
+  margin: 0 0 5px;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary, ***REMOVED***18181b);
@@ -1173,20 +1175,32 @@
   transform: translateX(2px);
 }
 
-/* Share row in detail view. */
+/* Share zone in detail view — a calm panel matching /discoveries. */
 .uc-detail__share {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: ***REMOVED***FFFFFF;
+  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border-radius: 12px;
+}
+.uc-detail__share-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 28px;
-  padding-top: 20px;
-  border-top: 1px dashed var(--border-subtle, ***REMOVED***e4e4e7);
 }
 .uc-detail__share-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-secondary, ***REMOVED***52525b);
+  color: var(--text-primary, ***REMOVED***18181b);
+}
+.uc-detail__share-hint {
+  font-size: 12.5px;
+  color: var(--text-tertiary, ***REMOVED***a1a1aa);
+  line-height: 1.5;
 }
 
 /* === Learning-path grouped view === */
@@ -1270,22 +1284,34 @@
   align-items: center;
   gap: 7px;
   padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--fs-13, 13px);
+  font-weight: var(--fw-medium, 500);
   color: var(--text-secondary, ***REMOVED***52525b);
-  background: var(--surface-1, ***REMOVED***fff);
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
-  border-radius: 9px;
+  background: var(--bg-primary, ***REMOVED***fff);
+  border: 1px solid var(--border-default, ***REMOVED***e4e4e7);
+  border-radius: var(--radius-md, 9px);
   cursor: pointer;
-  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+  transition: border-color var(--dur-fast, .15s) var(--ease-out, ease),
+              color var(--dur-fast, .15s) var(--ease-out, ease),
+              background-color var(--dur-fast, .15s) var(--ease-out, ease);
 }
 .share-actions__btn:hover {
   color: var(--text-primary, ***REMOVED***18181b);
   border-color: var(--border-strong, ***REMOVED***d4d4d8);
+  background: var(--bg-secondary, ***REMOVED***fafafa);
+}
+.share-actions__btn:focus-visible {
+  outline: none;
+  border-color: var(--accent, ***REMOVED***b45309);
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(180,83,9,.18));
 }
 .share-actions__btn svg { flex-shrink: 0; }
-.share-actions__btn--done { color: ***REMOVED***16a34a; border-color: ***REMOVED***86efac; }
-.share-actions--compact .share-actions__btn { padding: 7px 13px; font-size: 12.5px; }
+.share-actions__btn--done {
+  color: ***REMOVED***15803d;
+  border-color: ***REMOVED***86efac;
+  background: rgba(5, 150, 105, 0.06);
+}
+.share-actions--compact .share-actions__btn { padding: 7px 13px; font-size: var(--fs-12, 12.5px); }
 
 .share-modal {
   position: fixed;
