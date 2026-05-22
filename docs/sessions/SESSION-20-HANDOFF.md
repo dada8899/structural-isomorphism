@@ -82,13 +82,24 @@
 | 🟢 | `tier_limit_decorator` 保留 `__globals__` | 502 的系统性根因。修了之后 `from __future__ import annotations` 可安全用于带该装饰器的 handler |
 | 🟢 | classes 页 23/26 数字 | 标题"23 跨领域" + 统计卡"26 等价类总数"并存，可接受但建议明确标注子集关系 |
 
-***REMOVED******REMOVED******REMOVED*** 多日 roadmap 大项（非单 session 量级，详见 docs 里 v4-next-roadmap）
+***REMOVED******REMOVED******REMOVED*** roadmap 大项 —— 本 session 已落地（commit 见 §4）
 
-- **Phase 6** GitHub 事件级联 SOC 验证（第 5 个跨域系统，2-3 天，需 GH Archive bigquery）
-- **B1** Layer 3 反向 critic pass（23 普适类反例库，1-2 周）
-- **D1** Phase Detector 100 → 250-500 家公司（4-6 周）
-- **C1 定稿**：本 session 出了草稿，正式投稿需人审解决 7 个 TODO
+- **Phase 6** GitHub 事件级联 SOC 验证 ✅ —— 真实拉 25 个 OSS repo / 29,400 事件，
+  判定 **FAIL（稳健）**：级联规模是 lognormal 不是幂律，Omori 时间衰减成立但
+  规模轴不成立。诚实负结果。`v4/validation/soc-github-cascade/`。
+- **B1** Layer 3 critic pass 定稿 ✅ —— 21 候选类收口为 **11 个 active 普适类**，
+  78 条反例库，剔 9 个 false-positive 成员。`v4/results/B1_final_taxonomy.jsonl`。
+- **D1** Phase Detector 500 家 ✅ —— 实为前序 session 已扩完；本 session 端到端
+  验证 500/500 提取成功，回测仍是 **null result**（p=0.68）。
+- **C1** 统一预印本 v0.2 ✅ —— 7 个 TODO 全闭合，发现 arxiv-02 有符号解读错误。
+  `docs/sessions/C1-unified-preprint-draft-v0.2.md`，文末留 6 项发布前人审 checklist。
+
+***REMOVED******REMOVED******REMOVED*** 仍未做
+
 - **G 方向**：按问题结构连接人，独立立项，设计文档 SESSION-18-G-connect-people-design.md
+- **C1 / Phase 1-5 论文的发布前人审**：C1 v0.2 文末 6 项 checklist（Zenodo DOI、
+  pipeline canonical tag、引用条目核对等），需人工签字；建议给 arxiv-02 发勘误。
+- **Phase 7-12** 其余 SOC 系统扩展（roadmap 原列）。
 
 ---
 
@@ -126,8 +137,13 @@ working tree 剩余未提交：
 
 ```
 读 SESSION-20-HANDOFF.md。站点健康，无 P0 阻塞。
+Phase 6 / B1 / D1 / C1 四个 roadmap 大项本 session 已落地（见 §2 + §4）。
 优先级：(1) 提醒用户轮换 OpenRouter key（CC 推不动）
        (2) key 轮换后跑 whitespace LLM 预计算
-       (3) 选一个 roadmap 大项做透：Phase 6 / B1 / C1 定稿
-宁可一个做透，不要全做一半。
+       (3) C1 v0.2 文末 6 项发布前 checklist 找用户拍板
+       (4) 可启动 G 方向 或 Phase 7-12
 ```
+
+> 注：本 session 起手只看到 ***REMOVED***19 留的 P0（502），结果一路做到全项目审查 +
+> 4 个 roadmap 大项。Phase 6 的 FAIL、D1 的 null result 都是诚实负结果，
+> 没有为了"做完"而美化——下个 session 接手时按真实结论推进。
