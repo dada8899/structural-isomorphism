@@ -17,7 +17,15 @@ def _load_a_grade():
     global _a_cache
     if _a_cache is not None:
         return _a_cache
-    path = Path(__file__).parent.parent.parent / "data" / "a_discoveries.json"
+    ***REMOVED*** Use the merged V2+V3 feed (39 items, each carrying a `pipeline` field).
+    ***REMOVED*** The legacy a_discoveries.json only held the 19 V2 items and lacked the
+    ***REMOVED*** pipeline tag, which broke the V2/V3 filter on the discoveries page and
+    ***REMOVED*** contradicted the "39 discoveries" copy in the UI/i18n.
+    path = Path(__file__).parent.parent.parent / "data" / "a_discoveries_merged.json"
+    if not path.exists():
+        ***REMOVED*** Fallback to the legacy file so a missing merged file degrades
+        ***REMOVED*** gracefully instead of returning an empty list.
+        path = Path(__file__).parent.parent.parent / "data" / "a_discoveries.json"
     if not path.exists():
         _a_cache = []
         return _a_cache
