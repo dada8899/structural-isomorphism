@@ -28,16 +28,34 @@ if str(_BACKEND) not in sys.path:
 def _extract_resolve_callable(decorator):
     """Reach into the decorator's closure to grab the inner spec callable.
 
-    `tier_limit_decorator(default_anon)` returns `limiter.limit(_resolve_spec)`
-    which is itself a function whose closure carries `_resolve_spec` as
-    `limit_value`. This helper plucks it out so we can call it directly
-    under different ContextVar states.
+    `tier_limit_decorator(default_anon)` returns a `_decorate` function
+    whose closure carries `_resolve_spec` (directly, and indirectly via
+    the slowapi `limiter.limit(_resolve_spec)` partial). The PEP-563
+    globals fix wraps the slowapi decorator one level deeper, so we walk
+    the closure tree recursively rather than assuming a fixed depth.
     """
-    ***REMOVED*** Walk slowapi's wrapper closure for the `limit_value` cell.
-    for cell in decorator.__closure__ or []:
-        val = cell.cell_contents
-        if callable(val) and getattr(val, "__name__", "") == "_resolve_spec":
-            return val
+    seen = set()
+
+    def _walk(fn):
+        if id(fn) in seen:
+            return None
+        seen.add(id(fn))
+        for cell in getattr(fn, "__closure__", None) or []:
+            try:
+                val = cell.cell_contents
+            except ValueError:  ***REMOVED*** empty cell
+                continue
+            if callable(val) and getattr(val, "__name__", "") == "_resolve_spec":
+                return val
+            if callable(val):
+                found = _walk(val)
+                if found is not None:
+                    return found
+        return None
+
+    found = _walk(decorator)
+    if found is not None:
+        return found
     raise AssertionError("Could not locate _resolve_spec inside decorator closure")
 
 

@@ -6,9 +6,106 @@ dependency with main.py. main.py imports this module at startup and registers
 `limiter` on the FastAPI app; routers import `limiter` here to decorate their
 endpoints.
 """
+import functools
 import logging
+import types
 
 logger = logging.getLogger("structural.rate_limit")
+
+
+class _ChainedGlobals(dict):
+    """A `__globals__` dict that chains lookups: handler module first,
+    then a fallback namespace (slowapi's own module).
+
+    A function's `__globals__` MUST be a real `dict`; this `dict`
+    subclass satisfies that. It is kept EMPTY itself; every lookup is a
+    live read of `_primary` (handler module) with `_fallback` (slowapi
+    module) as backstop — so symbols defined in either module after the
+    decorator runs are still resolved.
+    """
+
+    __slots__ = ("_primary", "_fallback")
+
+    def __init__(self, primary: dict, fallback: dict):
+        super().__init__()
+        self._primary = primary
+        self._fallback = fallback
+
+    def __missing__(self, key):
+        try:
+            return self._primary[key]
+        except KeyError:
+            return self._fallback[key]
+
+    def __contains__(self, key):
+        return (
+            super().__contains__(key)
+            or key in self._primary
+            or key in self._fallback
+        )
+
+
+def _rebind_to_handler_globals(wrapper, handler):
+    """Give the slowapi wrapper a `__globals__` that resolves BOTH the
+    handler's module symbols and slowapi's own runtime symbols.
+
+    ROOT-CAUSE FIX for the prod 502.
+
+    `slowapi`'s `limiter.limit()` builds its wrapper with
+    `functools.wraps(func)`. `functools.wraps` copies `__name__`,
+    `__doc__`, `__wrapped__`, `__annotations__`, ... but it CANNOT copy
+    `__globals__` — a function's `__globals__` is bound to its code
+    object and lives in the module where the code was compiled (here:
+    `slowapi.extension`).
+
+    FastAPI resolves a route's parameter annotations via
+    `get_typed_signature(call)`. On the prod-pinned FastAPI 0.110.0 that
+    is `globalns = getattr(call, "__globals__", {})` with NO
+    `inspect.unwrap`. So when a handler module uses
+    `from __future__ import annotations` (PEP 563), its annotations are
+    stringified ("DiagnoseRequest") and get evaluated against slowapi's
+    namespace — which has no such symbol — raising NameError at app
+    construction → startup crash → nginx 502.
+
+    Naively swapping `__globals__` to the handler's module is WRONG: the
+    slowapi `async_wrapper` body itself references slowapi's module-level
+    names (`Request`, `Response`, `Any`, ...) at *runtime*, so it would
+    then `NameError` on every request.
+
+    The fix re-creates the wrapper as a fresh `FunctionType` with the
+    SAME code object + closure (slowapi's rate-limiting behaviour is
+    byte-for-byte unchanged) but a `_ChainedGlobals` namespace:
+      * handler module symbols take precedence  → FastAPI annotation
+        resolution finds the local Pydantic models;
+      * slowapi's module globals are the fallback → slowapi's own
+        runtime body still finds `Request` / `Response` / `Any`.
+    This fixes the decorator mechanism itself — every PEP-563 handler is
+    safe, on every FastAPI version, without per-file patching.
+    """
+    handler_globals = getattr(handler, "__globals__", None)
+    wrapper_code = getattr(wrapper, "__code__", None)
+    wrapper_globals = getattr(wrapper, "__globals__", None)
+    if handler_globals is None or wrapper_code is None or wrapper_globals is None:
+        ***REMOVED*** Not a plain Python function (C wrapper / unusual slowapi build) —
+        ***REMOVED*** nothing safe to rebind; leave it untouched.
+        return wrapper
+
+    chained = _ChainedGlobals(primary=handler_globals, fallback=wrapper_globals)
+    rebound = types.FunctionType(
+        wrapper_code,
+        chained,
+        name=wrapper.__name__,
+        argdefs=wrapper.__defaults__,
+        closure=wrapper.__closure__,
+    )
+    rebound.__kwdefaults__ = wrapper.__kwdefaults__
+    ***REMOVED*** Carry over everything functools.wraps put on the slowapi wrapper
+    ***REMOVED*** (__wrapped__, __annotations__, __dict__, __qualname__, __doc__, ...).
+    functools.update_wrapper(rebound, wrapper)
+    ***REMOVED*** update_wrapper sets __wrapped__ = wrapper; we want it to point at the
+    ***REMOVED*** ORIGINAL handler so `inspect.unwrap` reaches the real function.
+    rebound.__wrapped__ = handler
+    return rebound
 
 try:
     from slowapi import Limiter
@@ -23,9 +120,19 @@ except Exception as e:  ***REMOVED*** pragma: no cover
 
 
 def limit(spec: str):
-    """Decorator wrapper: applies a slowapi limit if available, else no-op."""
+    """Decorator wrapper: applies a slowapi limit if available, else no-op.
+
+    The slowapi wrapper is rebound to the handler's `__globals__` — see
+    `_rebind_to_handler_globals` — so PEP-563 stringified annotations
+    resolve correctly on every FastAPI version.
+    """
     if _ENABLED and limiter is not None:
-        return limiter.limit(spec)
+        _slow = limiter.limit(spec)
+
+        def _decorate(handler):
+            return _rebind_to_handler_globals(_slow(handler), handler)
+
+        return _decorate
 
     def _noop(f):
         return f
@@ -107,4 +214,12 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
             return "1000000/minute"
         return f"{base}/minute"
 
-    return limiter.limit(_resolve_spec)
+    _slow = limiter.limit(_resolve_spec)
+
+    def _decorate(handler):
+        ***REMOVED*** Rebind the slowapi wrapper to the handler's own __globals__ so
+        ***REMOVED*** PEP-563 stringified annotations resolve on every FastAPI version
+        ***REMOVED*** (prod 502 root-cause fix — see `_rebind_to_handler_globals`).
+        return _rebind_to_handler_globals(_slow(handler), handler)
+
+    return _decorate

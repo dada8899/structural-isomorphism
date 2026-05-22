@@ -10,6 +10,8 @@
 诊断书会额外挂一个「同结构的真实参照案例」（来自 KB），让结论有据可依；
 检索不可用时优雅降级，诊断照常完成。LLM 不可用时返回 503。
 """
+from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
