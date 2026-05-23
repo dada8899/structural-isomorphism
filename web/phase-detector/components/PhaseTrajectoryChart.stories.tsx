@@ -1,20 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { PhaseTrajectoryChart } from "./PhaseTrajectoryChart";
-import {
-  companyApproaching,
-  companyAtCritical,
-  companyPost,
-  companyStable,
-  companyUnknown,
-} from "../.storybook/fixtures";
+import { MOCK_EWS_DETAIL } from "../lib/mock-data";
 
 /**
- * **PhaseTrajectoryChart** — full-sized SVG line chart for the company
- * detail page. Paints phase bands (stable / approaching / at_critical /
- * post) as horizontal background regions; line is rendered on top.
+ * **PhaseTrajectoryChart** — dual-axis line chart for the company detail
+ * page. Plots rolling lag-1 autocorrelation (AR1) on the left axis and
+ * rolling variance on the right. Trailing Kendall-tau is shown in the
+ * legend; both rising = textbook critical-slowing-down warning.
  *
- * SSR-friendly. Hydration adds: tooltip on hover, brush selection on the
- * x-axis, touch support, keyboard-focusable axis.
+ * 2026-05-23 PD-EWS rewrite: replaces the previous PRNG-synthesized
+ * trajectory with the real EWS series produced by
+ * `v4/product/d1_phase_detector/ews.py`.
  */
 const meta: Meta<typeof PhaseTrajectoryChart> = {
   title: "Visualization/PhaseTrajectoryChart",
@@ -23,60 +19,60 @@ const meta: Meta<typeof PhaseTrajectoryChart> = {
     docs: {
       description: {
         component:
-          "Server-rendered phase-distance trajectory chart. Phase bands " +
-          "= background regions, trajectory line = foreground. " +
-          "Hydration layer adds interactivity (tooltip + brush).",
+          "Real CSD (critical slowing down) signal: rolling AR1 + variance " +
+          "of daily log-returns over the trailing year. Both rising together " +
+          "is the warning; lone movers are capped at 'yellow' by design.",
       },
     },
     layout: "padded",
-  },
-  argTypes: {
-    months: {
-      control: { type: "range", min: 6, max: 36, step: 1 },
-      description: "Trailing window size (default 12).",
-    },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof PhaseTrajectoryChart>;
 
-export const Stable: Story = {
-  args: { company: companyStable, months: 12 },
+export const NvdaAtCritical: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["NVDA"], ticker: "NVDA" },
 };
 
-export const Approaching: Story = {
-  args: { company: companyApproaching, months: 12 },
+export const TslaAtCritical: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["TSLA"], ticker: "TSLA" },
 };
 
-export const AtCritical: Story = {
-  args: { company: companyAtCritical, months: 12 },
+export const AaplCalm: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["AAPL"], ticker: "AAPL" },
+};
+
+export const IntcPost: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["INTC"], ticker: "INTC" },
   parameters: {
     docs: {
-      description: {
-        story:
-          "Trajectory pinned in the upper red band — most visually loud variant.",
-      },
+      description: { story: "已翻转 — 尾部窗口内大幅回撤触发 post_critical_transition。" },
     },
   },
 };
 
-export const PostTransition: Story = {
-  args: { company: companyPost, months: 12 },
+export const TencentHk: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["0700.HK"], ticker: "0700.HK" },
+  parameters: {
+    docs: {
+      description: { story: "港股例子（腾讯 00700.HK），EWS 引擎对港股 ticker 直通。" },
+    },
+  },
 };
 
-export const Unknown: Story = {
-  args: { company: companyUnknown, months: 12 },
+export const MeituanHk: Story = {
+  args: { ewsDetail: MOCK_EWS_DETAIL["3690.HK"], ticker: "3690.HK" },
 };
 
-export const Long36mWindow: Story = {
-  args: { company: companyApproaching, months: 36 },
+export const EmptyState: Story = {
+  args: { ewsDetail: null, ticker: "WAIT.US" },
   parameters: {
     docs: {
       description: {
         story:
-          "36-month window — verifies the line stays legible and the " +
-          "x-axis ticks don't overlap.",
+          "Empty state for tickers not yet ingested by the nightly pipeline. " +
+          "Replaces the old PRNG-fake fallback with an honest 'data refreshing' notice.",
       },
     },
   },

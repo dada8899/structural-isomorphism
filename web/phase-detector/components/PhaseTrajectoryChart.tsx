@@ -1,159 +1,90 @@
 "use client";
 
-// W11-D — PhaseTrajectoryChart.
+// 2026-05-23 PD-EWS rewrite.
 //
-// Server-rendered SVG line chart that visualizes a company's "structural
-// distance to critical" over the trailing 12 months. Phase bands
-// (stable / approaching / at_critical / post / unknown) are painted as
-// horizontal background regions; the trajectory line is rendered on top.
+// PhaseTrajectoryChart now renders the *real* critical-slowing-down
+// indicators computed by `v4/product/d1_phase_detector/ews.py`:
 //
-// Hydration adds: tooltip on hover, brush selection on the x-axis,
-// touch support, and accessibility (keyboard-focusable axis).
+//   * rolling lag-1 autocorrelation (AR1) of daily log-returns
+//   * rolling variance of those returns
 //
-// Design choices:
-//   * Pure SVG, no external chart library — gzipped < 6 KB per page.
-//   * Time series is synthesized deterministically from the ticker until
-//     backend ships /api/company/<t>/trajectory. The shape is
-//     phase-coherent: companies at_critical drift upward, post_critical
-//     remain elevated, far_from_critical hover low.
-//   * "Distance to critical" is normalized to [0, 1] where 1 = on the
-//     critical surface. Threshold lines at 0.33 / 0.66 / 1.0 separate
-//     the band colors.
-//   * SSR-friendly: the static SVG path renders without JS; useEffect
-//     attaches hover/brush handlers post-hydration so the initial paint
-//     has zero layout shift.
+// Both series are plotted on a dual-y-axis (left=AR1 in [-1,1], right=var
+// normalised to its own observed max). When both rise together over the
+// trailing window, the underlying system is showing the textbook CSD
+// fingerprint — that is what the criticality score is summarising.
+//
+// Honest fallback: if no EWS data is provided (`ewsDetail` is null), we
+// render an inline "数据准备中" notice with an explanatory link, rather
+// than the old PRNG-fake trajectory.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Company } from "@/lib/types";
+import type { EwsResultFull } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
 
 interface Props {
-  company: Company;
-  months?: number; // default 12
+  /** EWS payload (full per-ticker form). Pass null while loading or if the
+   *  ticker hasn't been ingested yet — we'll render a meaningful empty state. */
+  ewsDetail: EwsResultFull | null;
+  /** Optional ticker fallback for the empty state copy. */
+  ticker?: string;
   className?: string;
-}
-
-interface DataPoint {
-  date: Date;
-  value: number; // 0..1 distance to critical
-  phase: string;
-}
-
-// Stable PRNG so SSR output === client output (no hydration mismatch).
-function hash32(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
-
-function makeRng(seed: number): () => number {
-  let state = seed | 0;
-  return () => {
-    state = (Math.imul(state, 1664525) + 1013904223) | 0;
-    return ((state >>> 0) % 1000000) / 1000000;
-  };
-}
-
-// Generate a deterministic monthly series biased toward the company's
-// current phase so the visualization tells a coherent story.
-function generateSeries(company: Company, months: number): DataPoint[] {
-  const rng = makeRng(hash32(company.ticker));
-  const phaseBias: Record<string, number> = {
-    far_from_critical: 0.15,
-    approaching_critical: 0.55,
-    at_critical: 0.82,
-    post_critical_transition: 0.7,
-    unknown: 0.4,
-  };
-  const target = phaseBias[company.critical_point_state] ?? 0.4;
-  const now = new Date();
-  const out: DataPoint[] = [];
-  // Start ~ random low/mid, drift toward target.
-  let prev = Math.max(0.05, Math.min(0.95, target - 0.35 - rng() * 0.1));
-  for (let i = months - 1; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const t = (months - 1 - i) / (months - 1); // 0..1, end-of-window highest
-    const drift = (target - prev) * 0.18;
-    const noise = (rng() - 0.5) * 0.08;
-    prev = Math.max(0, Math.min(1.05, prev + drift + noise + t * 0.01));
-    let phase = "far_from_critical";
-    if (prev >= 0.66) phase = "at_critical";
-    else if (prev >= 0.33) phase = "approaching_critical";
-    if (i === 0 && company.critical_point_state === "post_critical_transition") {
-      phase = "post_critical_transition";
-    }
-    out.push({ date: d, value: prev, phase });
-  }
-  return out;
 }
 
 const W = 640;
 const H = 220;
-const PAD = { top: 16, right: 16, bottom: 32, left: 40 };
+const PAD = { top: 16, right: 40, bottom: 32, left: 44 };
 
-// Phase band colors — derived from CPS_BADGE so the chart reads with the
-// rest of the page. Alpha lowered so the line on top stays legible.
-const BAND_COLORS: Array<{ from: number; to: number; fill: string; label: string }> = [
-  { from: 0, to: 0.33, fill: "rgba(16, 185, 129, 0.10)", label: "稳态" },
-  { from: 0.33, to: 0.66, fill: "rgba(245, 158, 11, 0.12)", label: "接近临界" },
-  { from: 0.66, to: 1, fill: "rgba(239, 68, 68, 0.12)", label: "临界点上" },
+// Light tint bands for the AR1 axis ranges that map to "warning zones".
+// AR1 > 0.5 means strong persistence which, combined with rising variance,
+// is the CSD red flag.
+const BAND_DEFS: Array<{ from: number; to: number; fill: string; label: string }> = [
+  { from: -1, to: 0.3, fill: "rgba(16, 185, 129, 0.08)", label: "稳态" },
+  { from: 0.3, to: 0.6, fill: "rgba(245, 158, 11, 0.10)", label: "接近临界" },
+  { from: 0.6, to: 1, fill: "rgba(239, 68, 68, 0.10)", label: "临界点上" },
 ];
 
-const PHASE_LABEL_ZH: Record<string, string> = {
-  far_from_critical: "稳态",
-  approaching_critical: "接近临界",
-  at_critical: "临界点上",
-  post_critical_transition: "已翻转",
-};
-
-function fmtDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+function fmtDate(iso: string): string {
+  // expect yyyy-mm-dd
+  return iso.slice(0, 7);
 }
 
-export function PhaseTrajectoryChart({
-  company,
-  months = 12,
-  className,
-}: Props) {
-  const series = useMemo(() => generateSeries(company, months), [company, months]);
+function fmtTau(tau: number | null): string {
+  if (tau == null) return "—";
+  return tau.toFixed(2);
+}
 
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
-  const xStep = innerW / Math.max(1, series.length - 1);
-
-  const xScale = (i: number) => PAD.left + i * xStep;
-  const yScale = (v: number) => PAD.top + (1 - Math.max(0, Math.min(1, v))) * innerH;
-
-  // Build the line path
-  const pathD = useMemo(() => {
-    return series
-      .map((p, i) => `${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`)
-      .join(" ");
-  }, [series]);
-
-  // W13-A: theme-aware palette for chart chrome (grid/axis/line/tooltip).
-  // Band fills stay constant but use lower-opacity in dark to avoid glare.
+export function PhaseTrajectoryChart({ ewsDetail, ticker, className }: Props) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const chartLine = isDark ? "#FAFAFA" : "#18181B";
+  const ar1Color = isDark ? "#FAFAFA" : "#18181B";
+  const varColor = isDark ? "#A78BFA" : "#3B82F6";
   const chartGrid = isDark ? "#27272A" : "#E4E4E7";
-  const chartAxisLabel = isDark ? "#A1A1AA" : "#71717A";
-  const chartHoverLine = isDark ? "#A78BFA" : "#3B82F6";
-  const chartTooltipBg = isDark ? "#18181B" : "#FFFFFF";
-  const chartTooltipBorder = isDark ? "#27272A" : "#E4E4E7";
-  const chartTooltipShadow = isDark
-    ? "0 4px 12px rgba(0,0,0,0.6)"
-    : "0 4px 12px rgba(0,0,0,0.08)";
-  const chartTooltipFg = isDark ? "#FAFAFA" : "#18181B";
-  const chartTooltipFgSecondary = isDark ? "#D4D4D8" : "#52525B";
+  const axisLabelColor = isDark ? "#A1A1AA" : "#71717A";
+  const tooltipBg = isDark ? "#18181B" : "#FFFFFF";
+  const tooltipBorder = isDark ? "#27272A" : "#E4E4E7";
+  const tooltipFg = isDark ? "#FAFAFA" : "#18181B";
+  const tooltipFgMuted = isDark ? "#D4D4D8" : "#52525B";
 
-  // Hydration-aware state for tooltip/brush.
+  // All hooks must run on every render (Rules of Hooks). We do the
+  // empty-state check AFTER hooks fire, returning JSX from a single
+  // branch at the end.
+  const points = useMemo(() => {
+    const ar1 = ewsDetail?.ar1;
+    const v = ewsDetail?.var;
+    if (!ar1 || !v) return [];
+    const aVals = ar1.values ?? [];
+    const vVals = v.values ?? [];
+    const dates = ar1.dates ?? [];
+    const n = Math.min(aVals.length, vVals.length, dates.length);
+    const out: { date: string; ar1: number | null; var: number | null }[] = [];
+    for (let i = 0; i < n; i += 1) {
+      if (aVals[i] == null && vVals[i] == null) continue;
+      out.push({ date: dates[i], ar1: aVals[i], var: vVals[i] });
+    }
+    return out;
+  }, [ewsDetail]);
+
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [brush, setBrush] = useState<{ start: number; end: number } | null>(null);
-  const [brushing, setBrushing] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -161,59 +92,83 @@ export function PhaseTrajectoryChart({
     setMounted(true);
   }, []);
 
-  // Compute idx from raw event coords so we don't rely on hoverIdx state
-  // (avoids the "first event has no idx yet" race that fails the brush test
-  // when the user clicks down before any pointermove fires).
-  const idxFromEvent = (e: { clientX: number }): number | null => {
+  // --- empty / degenerate states ---
+  if (!ewsDetail || !ewsDetail.ar1 || !ewsDetail.ar1.dates?.length) {
+    return (
+      <div className={className} data-testid="phase-trajectory-empty">
+        <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-sm text-zinc-600">
+          <p className="mb-2 font-medium text-zinc-800">
+            {ticker ?? "该公司"} 的 EWS 时序数据准备中
+          </p>
+          <p>
+            后台流水线每天收盘后重算一次。如果你刚好赶上窗口期，
+            稍后刷新即可。EWS 引擎只在每天的真实价格上跑，
+            <strong className="text-zinc-900"> 不再用任何合成或哈希数据。</strong>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (points.length < 2) {
+    return (
+      <div className={className} data-testid="phase-trajectory-empty">
+        <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-sm text-zinc-600">
+          样本不足以画出趋势（n={ewsDetail.n_returns}）。
+        </div>
+      </div>
+    );
+  }
+
+  const ar1Series = ewsDetail.ar1;
+  const varSeries = ewsDetail.var;
+
+  // y-axis ranges
+  const varMax = Math.max(
+    ...points.map((p) => (p.var == null ? 0 : Math.abs(p.var))),
+  ) || 1;
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const xStep = innerW / Math.max(1, points.length - 1);
+  const xScale = (i: number) => PAD.left + i * xStep;
+
+  // AR1 axis: [-0.4, 1.0] gives good range for daily returns AR(1)
+  const AR1_MIN = -0.4;
+  const AR1_MAX = 1.0;
+  const yAr1 = (v: number) =>
+    PAD.top + (1 - (Math.max(AR1_MIN, Math.min(AR1_MAX, v)) - AR1_MIN) / (AR1_MAX - AR1_MIN)) * innerH;
+  const yVar = (v: number) =>
+    PAD.top + (1 - Math.max(0, Math.min(varMax, v)) / varMax) * innerH;
+
+  const ar1Path = points
+    .map((p, i) =>
+      p.ar1 == null ? "" : `${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yAr1(p.ar1).toFixed(1)}`,
+    )
+    .filter(Boolean)
+    .join(" ");
+
+  const varPath = points
+    .map((p, i) =>
+      p.var == null ? "" : `${i === 0 ? "M" : "L"}${xScale(i).toFixed(1)},${yVar(p.var).toFixed(1)}`,
+    )
+    .filter(Boolean)
+    .join(" ");
+
+  const idxFromEvent = (e: { clientX: number }) => {
     const svg = svgRef.current;
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     const xRel = ((e.clientX - rect.left) / rect.width) * W - PAD.left;
     const idx = Math.round(xRel / xStep);
-    if (idx >= 0 && idx < series.length) return idx;
+    if (idx >= 0 && idx < points.length) return idx;
     return null;
   };
 
-  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    const idx = idxFromEvent(e);
-    if (idx === null) {
-      setHoverIdx(null);
-      return;
-    }
-    setHoverIdx(idx);
-    if (brushing && brush) {
-      setBrush({ start: brush.start, end: idx });
-    }
-  };
+  const hover = hoverIdx == null ? null : points[hoverIdx];
 
-  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    const idx = idxFromEvent(e);
-    if (idx === null) return;
-    e.preventDefault();
-    setBrushing(true);
-    setBrush({ start: idx, end: idx });
-    setHoverIdx(idx);
-  };
-
-  const handlePointerUp = () => {
-    setBrushing(false);
-    if (brush && brush.start === brush.end) {
-      setBrush(null); // a click without drag clears the brush
-    }
-  };
-
-  const handlePointerLeave = () => {
-    setHoverIdx(null);
-    setBrushing(false);
-  };
-
-  const resetBrush = () => setBrush(null);
-
-  const hoverPoint = hoverIdx !== null ? series[hoverIdx] : null;
-
-  const brushRange = brush
-    ? { start: Math.min(brush.start, brush.end), end: Math.max(brush.start, brush.end) }
-    : null;
+  // Provenance & summary line
+  const liveStr =
+    ewsDetail.price_provenance === "live" ? "真实价格" : "演示数据";
 
   return (
     <div
@@ -223,48 +178,20 @@ export function PhaseTrajectoryChart({
     >
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-900">
-          结构距离趋势（近 {months} 个月）
+          临界减速指标（trailing {points.length} 个交易日 · {liveStr}）
         </h3>
-        <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+        <div className="flex items-center gap-4 text-[11px] text-zinc-500">
           <span className="inline-flex items-center gap-1">
-            <span
-              aria-hidden="true"
-              className="inline-block h-2 w-3 rounded-sm"
-              style={{ background: "rgba(16,185,129,0.45)" }}
-            />
-            稳态
+            <span aria-hidden className="inline-block h-[2px] w-4" style={{ background: ar1Color }} />
+            AR1 τ={fmtTau(ar1Series.tau)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span
-              aria-hidden="true"
-              className="inline-block h-2 w-3 rounded-sm"
-              style={{ background: "rgba(245,158,11,0.55)" }}
-            />
-            接近临界
+            <span aria-hidden className="inline-block h-[2px] w-4" style={{ background: varColor }} />
+            方差 τ={fmtTau(varSeries.tau)}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <span
-              aria-hidden="true"
-              className="inline-block h-2 w-3 rounded-sm"
-              style={{ background: "rgba(239,68,68,0.55)" }}
-            />
-            临界点上
-          </span>
-          {brushRange && (
-            <button
-              type="button"
-              onClick={resetBrush}
-              className="ml-2 rounded border border-zinc-200 px-1.5 py-0.5 text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
-              data-testid="trajectory-reset-brush"
-            >
-              清除选区
-            </button>
-          )}
         </div>
       </div>
       <div
-        // Explicit aspect ratio container — keeps CLS = 0 by reserving space
-        // before SVG paints.
         style={{
           width: "100%",
           aspectRatio: `${W} / ${H}`,
@@ -277,167 +204,141 @@ export function PhaseTrajectoryChart({
           width="100%"
           height="100%"
           role="img"
-          aria-label={`${company.ticker} 结构距离趋势图`}
+          aria-label={`${ewsDetail.ticker} 临界减速 (AR1 + 方差) 趋势`}
           style={{
             display: "block",
             touchAction: "none",
             userSelect: "none",
             cursor: mounted ? "crosshair" : "default",
           }}
-          onPointerMove={mounted ? handlePointerMove : undefined}
-          onPointerDown={mounted ? handlePointerDown : undefined}
-          onPointerUp={mounted ? handlePointerUp : undefined}
-          onPointerLeave={mounted ? handlePointerLeave : undefined}
+          onPointerMove={mounted ? (e) => setHoverIdx(idxFromEvent(e)) : undefined}
+          onPointerLeave={mounted ? () => setHoverIdx(null) : undefined}
         >
-          {/* Phase bands */}
-          {BAND_COLORS.map((b, i) => (
+          {/* AR1 axis bands */}
+          {BAND_DEFS.map((b, i) => (
             <rect
               key={i}
               x={PAD.left}
-              y={yScale(b.to)}
+              y={yAr1(b.to)}
               width={innerW}
-              height={Math.abs(yScale(b.from) - yScale(b.to))}
+              height={Math.abs(yAr1(b.from) - yAr1(b.to))}
               fill={b.fill}
             />
           ))}
 
-          {/* Threshold lines */}
-          {[0.33, 0.66].map((t) => (
+          {/* AR1 zero & 0.5 threshold lines */}
+          {[0, 0.5].map((t) => (
             <line
               key={t}
               x1={PAD.left}
               x2={PAD.left + innerW}
-              y1={yScale(t)}
-              y2={yScale(t)}
+              y1={yAr1(t)}
+              y2={yAr1(t)}
               stroke={chartGrid}
               strokeDasharray="3 3"
               strokeWidth={1}
             />
           ))}
 
-          {/* Y-axis labels */}
-          {[0, 0.33, 0.66, 1].map((v) => (
-            <g key={v}>
-              <text
-                x={PAD.left - 6}
-                y={yScale(v) + 3}
-                fontSize={10}
-                fill={chartAxisLabel}
-                textAnchor="end"
-              >
-                {v.toFixed(2)}
-              </text>
-            </g>
+          {/* Left axis (AR1) labels */}
+          {[-0.4, 0, 0.5, 1].map((v) => (
+            <text
+              key={`a${v}`}
+              x={PAD.left - 6}
+              y={yAr1(v) + 3}
+              fontSize={10}
+              fill={axisLabelColor}
+              textAnchor="end"
+            >
+              {v.toFixed(1)}
+            </text>
           ))}
 
-          {/* X-axis tick labels (every other month for legibility) */}
-          {series.map((p, i) =>
-            i % 2 === 0 ? (
+          {/* Right axis (var) labels */}
+          {[0, varMax / 2, varMax].map((v, i) => (
+            <text
+              key={`v${i}`}
+              x={W - PAD.right + 6}
+              y={yVar(v) + 3}
+              fontSize={10}
+              fill={axisLabelColor}
+              textAnchor="start"
+            >
+              {v.toExponential(1)}
+            </text>
+          ))}
+
+          {/* X labels every Nth tick */}
+          {points.map((p, i) => {
+            const stride = Math.max(1, Math.floor(points.length / 6));
+            if (i % stride !== 0) return null;
+            return (
               <text
-                key={i}
+                key={`x${i}`}
                 x={xScale(i)}
-                y={H - PAD.bottom + 16}
+                y={H - PAD.bottom + 14}
                 fontSize={10}
-                fill={chartAxisLabel}
+                fill={axisLabelColor}
                 textAnchor="middle"
               >
                 {fmtDate(p.date)}
               </text>
-            ) : null,
-          )}
+            );
+          })}
 
-          {/* Brush highlight */}
-          {brushRange && (
-            <rect
-              x={xScale(brushRange.start)}
-              y={PAD.top}
-              width={Math.max(2, xScale(brushRange.end) - xScale(brushRange.start))}
-              height={innerH}
-              fill="rgba(59, 130, 246, 0.10)"
-              stroke="rgba(59, 130, 246, 0.5)"
-              strokeWidth={1}
-              data-testid="trajectory-brush"
-            />
-          )}
-
-          {/* Trajectory line */}
-          <path
-            d={pathD}
-            fill="none"
-            stroke={chartLine}
-            strokeWidth={1.75}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-
-          {/* Points */}
-          {series.map((p, i) => (
-            <circle
-              key={i}
-              cx={xScale(i)}
-              cy={yScale(p.value)}
-              r={hoverIdx === i ? 4 : 2.5}
-              fill={chartLine}
-              opacity={hoverIdx === i ? 1 : 0.7}
-            />
-          ))}
+          {/* var line */}
+          <path d={varPath} fill="none" stroke={varColor} strokeWidth={1.5} strokeOpacity={0.85} />
+          {/* AR1 line */}
+          <path d={ar1Path} fill="none" stroke={ar1Color} strokeWidth={1.75} />
 
           {/* Hover crosshair */}
-          {hoverIdx !== null && hoverPoint && (
-            <g pointerEvents="none" data-testid="trajectory-hover">
-              <line
-                x1={xScale(hoverIdx)}
-                x2={xScale(hoverIdx)}
-                y1={PAD.top}
-                y2={H - PAD.bottom}
-                stroke={chartHoverLine}
-                strokeDasharray="2 2"
-                strokeWidth={1}
-              />
-            </g>
+          {hoverIdx != null && hover && (
+            <line
+              x1={xScale(hoverIdx)}
+              x2={xScale(hoverIdx)}
+              y1={PAD.top}
+              y2={H - PAD.bottom}
+              stroke={varColor}
+              strokeDasharray="2 2"
+              strokeWidth={1}
+            />
           )}
         </svg>
 
-        {/* Tooltip — rendered as HTML overlay so it can wrap text */}
-        {hoverIdx !== null && hoverPoint && (
+        {hover && hoverIdx != null && (
           <div
-            data-testid="trajectory-tooltip"
             role="tooltip"
             style={{
               position: "absolute",
               left: `${(xScale(hoverIdx) / W) * 100}%`,
               top: 0,
-              transform:
-                xScale(hoverIdx) / W > 0.6
-                  ? "translate(-100%, 0)"
-                  : "translate(8px, 0)",
+              transform: xScale(hoverIdx) / W > 0.6 ? "translate(-100%, 0)" : "translate(8px, 0)",
               pointerEvents: "none",
-              background: chartTooltipBg,
-              border: `1px solid ${chartTooltipBorder}`,
-              boxShadow: chartTooltipShadow,
+              background: tooltipBg,
+              border: `1px solid ${tooltipBorder}`,
               padding: "6px 10px",
               fontSize: 12,
               borderRadius: 6,
               minWidth: 140,
               zIndex: 5,
+              boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.6)" : "0 4px 12px rgba(0,0,0,0.08)",
             }}
           >
-            <div style={{ fontWeight: 600, color: chartTooltipFg }}>
-              {fmtDate(hoverPoint.date)}
+            <div style={{ fontWeight: 600, color: tooltipFg }}>{fmtDate(hover.date)}</div>
+            <div style={{ color: tooltipFgMuted, fontSize: 11, marginTop: 2 }}>
+              AR1: <strong>{hover.ar1 == null ? "—" : hover.ar1.toFixed(3)}</strong>
             </div>
-            <div style={{ color: chartTooltipFgSecondary, fontSize: 11, marginTop: 2 }}>
-              结构距离 <strong>{hoverPoint.value.toFixed(2)}</strong>
-            </div>
-            <div style={{ color: chartTooltipFgSecondary, fontSize: 11 }}>
-              阶段 · {PHASE_LABEL_ZH[hoverPoint.phase] ?? hoverPoint.phase}
+            <div style={{ color: tooltipFgMuted, fontSize: 11 }}>
+              方差: <strong>{hover.var == null ? "—" : hover.var.toExponential(2)}</strong>
             </div>
           </div>
         )}
       </div>
       <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-        结构距离 = 系统状态到临界面的归一化距离（1 = 临界）。背景色带表示阶段区间，
-        虚线为阈值。鼠标悬停看具体月份；按住拖动可框选时间段。
-        当前为模型合成轨迹（BE 暂未提供时序），仅作可视化示意。
+        左轴：滑窗 lag-1 自相关（AR1）。右轴：滑窗方差。两个指标
+        <strong className="text-zinc-700"> 同时单调上行 </strong>
+        是 Scheffer/Dakos &ldquo;临界减速&rdquo;的标志。τ 是 Kendall 趋势检验值
+        （取了 stride 子采样去重叠的伪显著），趋势越强 |τ| 越接近 1。
       </p>
     </div>
   );

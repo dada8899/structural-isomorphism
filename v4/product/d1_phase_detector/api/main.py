@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 
 from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
+from .ews import router as ews_router
 
 
 # W8-D: ensure waitlist table exists on startup (idempotent).
@@ -95,6 +96,13 @@ app.add_middleware(
 )
 # W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
 app.include_router(universality_router)
+
+# 2026-05-23 (PD-EWS): /api/ews/* endpoints — the real critical-slowing-down
+# engine. Replaces the LLM-vibe "critical_point_state" classification as the
+# primary signal. Backed by a JSON cache that the nightly VPS cron refreshes
+# (see v4/product/d1_phase_detector/run_ews_pipeline.py). Frontend reads
+# this for the trajectory chart, leaderboard, and screener defaults.
+app.include_router(ews_router)
 
 
 # -------- pydantic models --------
