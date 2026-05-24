@@ -52,15 +52,34 @@ Each entry is a JSON object with the following fields:
 
 ### Knowledge Base (Supplementary)
 
-In addition to the training data, we provide a knowledge base of 500 real-world phenomena:
+The knowledge base of real-world phenomena has been expanded across SESSION-21 → SESSION-23. As of 2026-05-25 the KB contains **5,388 entries**:
 
-| File | Entries | Coverage |
-|---|---|---|
-| `kb-science.jsonl` | 170 | Natural science phenomena |
-| `kb-social.jsonl` | 170 | Social science & humanities |
-| `kb-cross.jsonl` | 160 | Cross-disciplinary phenomena |
+| Wave | Δ entries | Total after | Coverage |
+|---|---|---|---|
+| Baseline (v0.1) | 500 | 500 | Science (170) + Social (170) + Cross (160) |
+| Wave A (SESSION-21) | +3,975 | 4,475 | Mechanism graph backfill |
+| Wave X1 (SESSION-22) | +335 | 4,810 | Linguistics 150 / Neuroscience 80 / Urban-Social 105 |
+| Wave X3 (SESSION-22) | +78 | 4,888 | KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom textbook classes |
+| Wave 3B (SESSION-23) | +200 | 5,088 | Reproducible data-layer pilot (4 domains × 50 entries) |
+| Wave 3C (SESSION-23) | +300 | 5,388 | 10 long-tail domains × 30 entries each |
+| **Total** | — | **5,388** | — |
 
-Knowledge base entries include an additional `id` and `name` field.
+KB entries include `id`, `name`, `type_id`, `domain`, `description`, and (from Wave 3B onward) `data_provenance` ∈ {REAL, SYNTHETIC, MIXED} + source citation.
+
+### Universality classes & validation systems (v0.4)
+
+The KB supports a cross-domain universality-class taxonomy. Counts reflect the v0.4 batch closing 2026-05-25:
+
+| Metric | v0.3 (2026-05-24) | v0.4 (2026-05-25) | Δ |
+|---|---|---|---|
+| KB entries | 4,888 | **5,388** | +500 |
+| Candidate universality classes | 26 | **~27–28** (net of 5 SPLITs + 1 MERGE) | +1–2 net |
+| SOC validation systems with empirical anchor | 27 | **45+** | +18 (Wave 2A/B/C) |
+| Closed-verdict classes | 10 of 26 | **18 of 18 v0.4 batch closed** (10 PASS + 6 REJECT + 2 INCONCLUSIVE) | +8 closure |
+| SPLIT decisions in taxonomy graph | 0 | **5** | +5 |
+| MERGE recommendations | 0 | **1** (preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality) | +1 |
+
+The v0.4 18-class verdict matrix is reported in `docs/sessions/C1-unified-preprint-draft-v0.4.md` §3.5.2. Each class carries a sub-agent verdict report at `docs/sessions/v04-<class>-report.md` and reproducible artefacts at `v4/validation/<class>/{run_validation.py, results.json, verdict.{md,txt}}`.
 
 ## Usage
 
