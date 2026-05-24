@@ -52,19 +52,32 @@ Each entry is a JSON object with the following fields:
 
 ### Knowledge Base (Supplementary)
 
-The knowledge base of real-world phenomena has been expanded across SESSION-21 → SESSION-23. As of 2026-05-25 the KB contains **5,388 entries**:
+The knowledge base of real-world phenomena has been expanded across SESSION-21 → SESSION-23. As of 2026-05-25 the **main KB file** (`data/kb-5000-merged.jsonl`) holds **4,888 entries**, with **445 additional entries staged in `data/kb-additions-2026-05-25-*.jsonl` pending merge** and a **200-entry `data_layer` overlay** in `data/kb-reproducible-data-layer-2026-05-25.jsonl` (applied to existing main-KB rows, so it does not add new rows). The merge ceiling is therefore **5,333 entries**:
 
-| Wave | Δ entries | Total after | Coverage |
+| Wave | Δ rows | Cumulative rows | Coverage |
 |---|---|---|---|
 | Baseline (v0.1) | 500 | 500 | Science (170) + Social (170) + Cross (160) |
 | Wave A (SESSION-21) | +3,975 | 4,475 | Mechanism graph backfill |
 | Wave X1 (SESSION-22) | +335 | 4,810 | Linguistics 150 / Neuroscience 80 / Urban-Social 105 |
 | Wave X3 (SESSION-22) | +78 | 4,888 | KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom textbook classes |
-| Wave 3B (SESSION-23) | +200 | 5,088 | Reproducible data-layer pilot (4 domains × 50 entries) |
-| Wave 3C (SESSION-23) | +300 | 5,388 | 10 long-tail domains × 30 entries each |
-| **Total** | — | **5,388** | — |
+| **Main KB total (current, on disk)** | — | **4,888** | `data/kb-5000-merged.jsonl` |
+| Wave 2 (SESSION-23, pending merge) | +145 | 5,033 | 19 class-specific anchor batches under `data/kb-additions-2026-05-25-<class>.jsonl` |
+| Wave 3C (SESSION-23, pending merge) | +300 | 5,333 | 10 long-tail domains × 30 entries each (`data/kb-additions-2026-05-25-long-tail-batch.jsonl`) |
+| **Merge ceiling** | — | **5,333** | run `python3 scripts/merge_kb_additions.py --apply --output …` to realise |
+| Wave 3B `data_layer` overlay | overlay only (200 rows updated, 0 added) | 5,333 | reproducible-data-layer pilot (4 domains × 50 entries) — adds a `data_layer` field to 200 existing main-KB rows |
 
-KB entries include `id`, `name`, `type_id`, `domain`, `description`, and (from Wave 3B onward) `data_provenance` ∈ {REAL, SYNTHETIC, MIXED} + source citation.
+> Earlier drafts of this card reported **5,388 entries / +500** — that figure double-counted the Wave 3B 200-entry overlay as new rows. The corrected merge ceiling is **5,333**.
+
+KB entries carry the following fields. Wave 3B entries additionally carry a nested `data_layer` object (see schema below):
+
+| Field | Required | Description |
+|---|---|---|
+| `id` | yes | Unique entry identifier |
+| `name` | yes | Short title (often the phenomenon or anchor case name) |
+| `type_id` | yes | Two-digit structural type identifier ("01"…"84") tied to the 84-row taxonomy |
+| `domain` | yes | Domain label |
+| `description` | yes | Plain-language description of the phenomenon |
+| `data_layer` | Wave 3B only | Nested object carrying the reproducible-data-layer overlay (raw-data link, fit metadata, provenance notes); structure defined per-domain in `data/kb-reproducible-data-layer-2026-05-25.jsonl`. There is no top-level `data_provenance` field — the earlier draft of this card mentioned one, but it was never written to the KB |
 
 ### Universality classes & validation systems (v0.4)
 
@@ -72,7 +85,9 @@ The KB supports a cross-domain universality-class taxonomy. Counts reflect the v
 
 | Metric | v0.3 (2026-05-24) | v0.4 (2026-05-25) | Δ |
 |---|---|---|---|
-| KB entries | 4,888 | **5,388** | +500 |
+| KB main-file entries | 4,888 | 4,888 (unchanged on disk) | 0 |
+| KB merge ceiling (main + Wave 2 + Wave 3C additions) | 4,888 | **5,333** | +445 |
+| KB `data_layer` overlay rows (Wave 3B) | 0 | 200 (overlay on existing rows, no row growth) | new |
 | Candidate universality classes | 26 | **~27–28** (net of 5 SPLITs + 1 MERGE) | +1–2 net |
 | SOC validation systems with empirical anchor | 27 | **45+** | +18 (Wave 2A/B/C) |
 | Closed-verdict classes | 10 of 26 | **18 of 18 v0.4 batch closed** (10 PASS + 6 REJECT + 2 INCONCLUSIVE) | +8 closure |

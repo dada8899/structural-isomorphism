@@ -20,7 +20,7 @@
 - 本 session 30+ commits 全部 push origin/main（commit list 见 §2，主对话补）
 - C1 v0.4 草稿：`docs/sessions/C1-unified-preprint-draft-v0.4.md`（459 lines, ~7,700 words）
 - v0.3 草稿保留作 baseline（`docs/sessions/C1-unified-preprint-draft-v0.3.md`, 488 lines）
-- dataset_card.md 已更新 5,388 KB / 45+ SOC systems / v0.4 verdict matrix
+- dataset_card.md 已更新 KB merge ceiling 5,333（4,888 main + 145 Wave 2 class additions + 300 long-tail，pending merge）/ 45+ SOC systems / v0.4 verdict matrix（**订正：原文档误写 5,388 / +500，audit-3 修订**）
 - 4 new candidate PyPI 包 ready in `packages/`：`reject-aware-critic`（commit 已含）
 
 ---
@@ -31,7 +31,9 @@
 |---|---|---|---|
 | SOC validation systems | 27 | **45+** | +18（Wave 2A/B/C 18 class verdicts） |
 | 闭环 class verdicts | 10 of 26 | **18 of 18 v0.4 batch closed** | +8 closure |
-| KB entries | 4,888 | **5,388** | +500（Wave 3B +200 + Wave 3C +300） |
+| KB entries (main file) | 4,888 | 4,888（unchanged, pending merge） | 0 |
+| KB merge ceiling (main + Wave 2 + Wave 3C) | 4,888 | **5,333** | +445（Wave 2 class additions +145 + Wave 3C long-tail +300）|
+| KB Wave 3B data-layer overlay | absent | **200 entries with `data_layer` field**（overlay on existing rows, no row growth） | new column |
 | Universality classes (net) | 26 candidate | **~27–28**（net of 5 SPLIT + 1 MERGE） | +1–2 net |
 | SPLIT decisions in taxonomy | 0 | **5** | +5 |
 | MERGE recommendations | 0 | **1**（preisach_cascade + rfim_barkhausen → crackling_noise_universality） | +1 |
@@ -64,12 +66,12 @@
 |---|---|---|---|---|
 | W2A.1 | gardner_collins_toggle_switch | KEEP | INCONCLUSIVE | n=3.26, dwell 38d (synth-only) |
 | W2A.2 | extreme_value_tail_class | REJECT | **REJECT-CONFIRMED** | ξ-spread 1.996 / 5 datasets |
-| W2A.3 | tail_copula_contagion | REJECT (2 prior) | **REJECT-CONFIRMED** (3rd verdict) | Gumbel BIC win 999–3224 |
+| W2A.3 | tail_copula_contagion | REJECT (2 prior) | **REJECT-CONFIRMED** (3rd verdict) | SOC mechanism ΔAIC loss 999–3224 vs copula descriptor (Gumbel BIC win 346–1645) |
 | W2A.4 | reflexive_fixed_point_class | KEEP | **PASS-CONFIRMED** | α=2.97, ĉ=0.65, sham null |
 | W2A.5 | reaction_diffusion_steady_state | KEEP | **PASS-CONFIRMED** | λ=5.54±1.24 km, 3 domains |
 | W2A.6 | gardner_collins_toggle_v2 | MERGE-cand | **PASS + SPLIT vs v1** | 0/3 MERGE crits met |
 | W2B.1 | delay_differential_debt | REJECT | **REJECT-CONFIRMED** | T_period CV 1.184 / 6 DDE |
-| W2B.2 | percolation_connectivity | KEEP | **PASS + SPLIT vs SF** | τ=1.94 (textbook 187/91) |
+| W2B.2 | percolation_connectivity | KEEP | **PASS + SPLIT vs SF** | τ=1.94 in band [1.85, 2.2] (textbook 187/91 ≈ 2.055) |
 | W2B.3 | schelling_credible_commitment | REJECT (rank 5) | INCONCLUSIVE | b=2.04 + sham null OK, magnitude over-spec |
 | W2B.4 | hysteresis_first_order_transition | KEEP | **PASS + 2-way SPLIT** | ΔL=2.73, inner-loop R² 0.005 vs Preisach |
 | W2B.5 | scale_free_percolation_class | MERGE-cand | **PASS + SPLIT vs perco** | CAIDA γ=2.146 |
@@ -78,7 +80,7 @@
 | W2C.2 | adverse_selection_unraveling | SPLIT | **PASS-CONFIRMED** (econ-side) | α/β=1.201, Spence q_floor +0.335 |
 | W2C.3 | fractional_brownian_crossings | REJECT | **REJECT-CONFIRMED** | H-spread 0.361 / 3 stationary |
 | W2C.4 | preisach_hysteresis_cascade | KEEP | **PASS + MERGE w/ rfim_barkhausen** | τ_s=1.490 (MF 3/2) |
-| W2C.5 | anderson_localization | KEEP | **PASS-CONFIRMED** | ν=1.620 (textbook 1.572) |
+| W2C.5 | anderson_localization | KEEP | **PASS-CONFIRMED** | ν=1.620 in band [1.45, 1.7] (textbook 1.572) |
 | W2C.6 | markov_memory_fidelity | REJECT | **REJECT-CONFIRMED** | τ_mix log10 spread 2.98 decades |
 
 **Aggregate**: 10 PASS + 6 REJECT + 2 INCONCLUSIVE + 5 SPLIT decisions + 1 MERGE recommendation。
@@ -115,7 +117,7 @@
 读 SESSION-23-HANDOFF.md。
 当前 main HEAD: <主对话最新 commit hash>（all SESSION-23 工作已 push）。
 站点健康，repo PUBLIC，3 PyPI 包 live，45+ SOC validation systems，
-KB 5,388 entries，C1 v0.4 §3.5 完成（18 class verdicts: 10 PASS + 6 REJECT + 2 INCONCLUSIVE + 5 SPLIT + 1 MERGE），
+KB main 4,888 entries + merge ceiling 5,333（Wave 2/3 additions pending merge via `scripts/merge_kb_additions.py`），C1 v0.4 §3.5 完成（18 class verdicts: 10 PASS + 6 REJECT + 2 INCONCLUSIVE + 5 SPLIT + 1 MERGE），
 ~27–28 net universality classes，新方法学 cross-domain scatter threshold 落地。
 
 立即可启动（按 ROI 排序）：
@@ -174,7 +176,7 @@ KB 5,388 entries，C1 v0.4 §3.5 完成（18 class verdicts: 10 PASS + 6 REJECT 
 | Cross-domain scatter threshold impl | `packages/soc-pipeline/src/soc_pipeline/descriptor_screen.py`（如已创建） | §3.5.3 二元筛 |
 | reject-aware-critic 包 scaffold | `packages/reject-aware-critic/` | PyPI 候选 |
 | Senior outreach 邮件草稿 | `docs/launch/outreach-2026-05-25-*.md` | 6 封 |
-| dataset_card.md | `dataset_card.md` | 已更新 5,388 KB / 45+ systems / verdict matrix |
+| dataset_card.md | `dataset_card.md` | KB merge ceiling 5,333 (main 4,888 + Wave 2 +145 + Wave 3C +300; Wave 3B 200 是 data_layer overlay 不增行) / 45+ systems / verdict matrix |
 
 ---
 
