@@ -9,7 +9,7 @@ from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** Default data paths
+# Default data paths
 DEFAULT_DATA_DIR = Path(__file__).parent.parent / "data"
 KB_FILES = ["kb-science.jsonl", "kb-social.jsonl", "kb-cross.jsonl"]
 
@@ -28,7 +28,7 @@ def load_jsonl(filepath: str) -> List[Dict]:
     with open(filepath, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
-            if not line or line.startswith("***REMOVED***"):
+            if not line or line.startswith("#"):
                 continue
             try:
                 items.append(json.loads(line))

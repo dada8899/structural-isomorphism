@@ -1,4 +1,4 @@
-***REMOVED*** W7-B Engineering Value Roadmap — 18-Month Plan for Real Adoption
+# W7-B Engineering Value Roadmap — 18-Month Plan for Real Adoption
 
 > Author: W7-B subagent (senior engineering strategist hat — production systems / ML infra / OSS community)
 > Date: 2026-05-13
@@ -7,7 +7,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. Executive summary
+## 0. Executive summary
 
 **Premise.** structural-isomorphism today is a research project with one shipped product surface (D1 Phase Detector, 100 companies, sqlite, no auth). The repo is PRIVATE. There is no PyPI package, no docs site, no CI, no LICENSE in `setup.py` install path, no contributor pipeline. The 213-test suite (W6-E) and 339-line v4 pipeline are real engineering, but **none of it is reusable outside this repo today.**
 
@@ -31,7 +31,7 @@ The phase-detector product itself (D1) is a *consumer* of these libraries, not t
 
 ---
 
-***REMOVED******REMOVED*** 1. What does "engineering value" mean for this project?
+## 1. What does "engineering value" mean for this project?
 
 Four flavours of engineering value, in increasing strategic depth:
 
@@ -61,9 +61,9 @@ The principle: **the most generic code in this repo is the most under-leveraged.
 
 ---
 
-***REMOVED******REMOVED*** 2. Honest engineering-quality audit (as of 2026-05-13)
+## 2. Honest engineering-quality audit (as of 2026-05-13)
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Strengths
+### 2.1 Strengths
 
 - **Test coverage is real.** W6-E shipped 213 tests across unit / integration / e2e with proper pytest markers and ~5s runtime.
 - **CLI is clean.** `v4/cli.py` is a 413-line dispatch layer with `status`, `list`, `validate`, `collapse`, `calibrate`, `critic` — sensible UX for a research project.
@@ -71,9 +71,9 @@ The principle: **the most generic code in this repo is the most under-leveraged.
 - **Schema-first LLM design.** `v4/lib/llm_schemas.py` (314 lines) + `llm_guardrail.py` is the kind of architecture most LangChain projects don't bother with.
 - **Setup.py is correct.** W6-A fixed `install_requires` + url. Wheel builds.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Weaknesses (each must be fixed for "real engineering value")
+### 2.2 Weaknesses (each must be fixed for "real engineering value")
 
-| ***REMOVED*** | Weakness | Severity | Fix effort |
+| # | Weakness | Severity | Fix effort |
 |---|---|---|---|
 | W1 | **Repo is PRIVATE.** Zero discovery, zero external contribution path. | P0 | 1h |
 | W2 | **No PyPI release.** `pip install structural-isomorphism` fails. | P0 | 2-3 days |
@@ -92,7 +92,7 @@ The principle: **the most generic code in this repo is the most under-leveraged.
 
 **P0 must-fix before any external user touches this repo:** W1, W2, W3, W4, W6 (security).
 
-***REMOVED******REMOVED******REMOVED*** 2.3 What's surprisingly already good
+### 2.3 What's surprisingly already good
 
 - W6-E's 213 tests already give us coverage badge potential ≥70% on `v4/lib/` paths.
 - The B1/B3 verdict matrix is **fully reproducible** at ~$0.10/panel per W5-B's note. That's a citable property — most ML projects can't claim that.
@@ -100,13 +100,13 @@ The principle: **the most generic code in this repo is the most under-leveraged.
 
 ---
 
-***REMOVED******REMOVED*** 3. 18-month engineering roadmap
+## 3. 18-month engineering roadmap
 
-***REMOVED******REMOVED******REMOVED*** A. Python package family
+### A. Python package family
 
 Three PyPI packages, each independently versioned, each living in its own GitHub repo (extracted from monorepo) but the monorepo retains them as `git subtree` for in-repo development:
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** A.1 `guarded-llm` (extracted from `v4/lib/llm_guardrail.py` + `llm_schemas.py`)
+#### A.1 `guarded-llm` (extracted from `v4/lib/llm_guardrail.py` + `llm_schemas.py`)
 - **Pitch:** Strict-JSON LLM caller with schema validation, retry-with-exponential-backoff, cost budget tracking. Vendor-agnostic (Anthropic / OpenAI / DeepSeek / Kimi / vLLM / Ollama).
 - **Differentiator vs. existing:**
   - `instructor` — Pydantic-first, OpenAI-centric, no cost budget
@@ -122,13 +122,13 @@ Three PyPI packages, each independently versioned, each living in its own GitHub
       schema=MyPydanticModel,
       prompt="...",
       max_retries=3,
-      on_validation_fail="repair",  ***REMOVED*** or "raise"
+      on_validation_fail="repair",  # or "raise"
   )
   ```
 - **Repo:** `dada8899/guarded-llm`
 - **Target launch:** Month 4
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** A.2 `cross-judge` (extracted from `v4/scripts/b3_ensemble.py`)
+#### A.2 `cross-judge` (extracted from `v4/scripts/b3_ensemble.py`)
 - **Pitch:** Cross-vendor LLM ensemble judging framework. Define task schema → register reviewer LLMs (different vendors / models / prompts) → get versioned verdict matrix with consensus rules (majority / Bayesian / Dawid-Skene).
 - **Differentiator:** existing eval frameworks (`promptfoo`, `langsmith`, `helicone`) focus on *building* prompts. `cross-judge` focuses on *judging completed artefacts* with reproducible multi-reviewer protocol — a missing piece in LLM-as-judge research.
 - **Surface:**
@@ -148,13 +148,13 @@ Three PyPI packages, each independently versioned, each living in its own GitHub
 - **Repo:** `dada8899/cross-judge`
 - **Target launch:** Month 6
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** A.3 `soc-pipeline` (extracted from `v4/lib/soc_pipeline.py`)
+#### A.3 `soc-pipeline` (extracted from `v4/lib/soc_pipeline.py`)
 - **Pitch:** Reproducibility-grade self-organized-criticality fitter. Wraps `powerlaw` + adds Clauset goodness-of-fit + bootstrap CI + null model + seed control + JSON-serializable result objects.
 - **Differentiator vs. `powerlaw`:** the underlying `powerlaw` package is mature but has reproducibility footguns (no seed surfaced through API, bootstrap is manual, no JSON serialization). `soc-pipeline` is the "batteries-included reproducible wrapper".
 - **Target launch:** Month 3 (smallest scope, ships first)
 - **Audience:** complexity science, neuroscience (neuronal avalanche analysis), seismology, finance (drawdown distributions).
 
-***REMOVED******REMOVED******REMOVED*** B. Documentation site
+### B. Documentation site
 
 - **Stack:** `mkdocs-material` (Python-native, low maintenance, good search) or Astro Starlight (better for static + interactive). Recommend **mkdocs-material** for v0 — author already knows Python, plugin ecosystem mature.
 - **Structure:**
@@ -177,9 +177,9 @@ Three PyPI packages, each independently versioned, each living in its own GitHub
 - **Hosting:** `structural-isomorphism.github.io` via GitHub Pages, custom domain `docs.structural.bytedance.city` via CNAME.
 - **Target launch:** Month 2-3 scaffold + 5 tutorials. Month 4-6 reach 10 tutorials. Month 6+ continuous.
 
-***REMOVED******REMOVED******REMOVED*** C. CI / quality gates
+### C. CI / quality gates
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** C.1 GitHub Actions workflows
+#### C.1 GitHub Actions workflows
 
 | Workflow | Trigger | Steps | Budget |
 |---|---|---|---|
@@ -189,7 +189,7 @@ Three PyPI packages, each independently versioned, each living in its own GitHub
 | `coverage.yml` | weekly | run pytest --cov, push badge to README | < 5 min |
 | `link-check.yml` | weekly | check all links in docs/ | < 2 min |
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** C.2 Pre-commit hooks (`.pre-commit-config.yaml`)
+#### C.2 Pre-commit hooks (`.pre-commit-config.yaml`)
 - `ruff` (lint + import sort)
 - `black` (format)
 - `mypy` (gradually-typed: start with `v4/lib/`)
@@ -197,18 +197,18 @@ Three PyPI packages, each independently versioned, each living in its own GitHub
 - `detect-secrets` (P0 — W6 leaked key) + `truffleHog` on push
 - `mixed-line-ending`, `trailing-whitespace`, `end-of-file-fixer`
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** C.3 Coverage targets
+#### C.3 Coverage targets
 
 - Month 1: 50% on `v4/lib/`
 - Month 3: 70% on `v4/lib/`, 50% on `v4/product/`
 - Month 6: 80% library, 60% product
 - README coverage badge from codecov.io.
 
-***REMOVED******REMOVED******REMOVED*** D. LLM guardrail framework (`guarded-llm`)
+### D. LLM guardrail framework (`guarded-llm`)
 
 Specifically what to do to make `v4/lib/llm_guardrail.py` into a real PyPI lib.
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** D.1 Refactor checklist
+#### D.1 Refactor checklist
 - [ ] Extract to `dada8899/guarded-llm` (new public repo).
 - [ ] Vendor-agnostic interface (currently hardcoded for Anthropic + DeepSeek). Add adapter pattern for OpenAI, Kimi, Gemini, Ollama, vLLM.
 - [ ] Replace inline schemas with Pydantic v2 models (current uses dataclasses + manual validation).
@@ -219,14 +219,14 @@ Specifically what to do to make `v4/lib/llm_guardrail.py` into a real PyPI lib.
 - [ ] CLI: `guarded-llm test --schema my_schema.json --prompt "..."` for ad-hoc testing.
 - [ ] Test suite: 50+ unit tests, mocked-vendor integration tests, **cassette-based real-vendor tests** (record once, replay forever).
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** D.2 Differentiation pitch (1 sentence)
+#### D.2 Differentiation pitch (1 sentence)
 > `instructor` made strict-JSON ergonomic for OpenAI-Pydantic devs. `guarded-llm` makes it ergonomic for **multi-vendor production LLM pipelines with cost budgets and reproducible retry semantics.**
 
-***REMOVED******REMOVED******REMOVED*** E. B3 ensemble framework (`cross-judge`)
+### E. B3 ensemble framework (`cross-judge`)
 
 Specifically what to do to make `v4/scripts/b3_ensemble.py` into a real PyPI lib.
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** E.1 Refactor checklist
+#### E.1 Refactor checklist
 - [ ] Extract to `dada8899/cross-judge`.
 - [ ] Decouple reviewer prompts from structural-isomorphism task. Reviewer prompts are user-supplied (markdown or .txt files).
 - [ ] Task schema is user-supplied (Pydantic / JSON schema).
@@ -237,10 +237,10 @@ Specifically what to do to make `v4/scripts/b3_ensemble.py` into a real PyPI lib
 - [ ] CLI: `cross-judge run --config judges.yaml --candidates cands.jsonl --out verdicts.jsonl`.
 - [ ] Built-in cost estimator: pre-flight `--dry-run` reports estimated $.
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** E.2 Differentiation pitch
+#### E.2 Differentiation pitch
 > `promptfoo` makes it easy to A/B test prompts. `cross-judge` makes it easy to **judge artefacts with reproducible multi-reviewer multi-vendor protocols** — the missing piece in "LLM-as-judge" research.
 
-***REMOVED******REMOVED******REMOVED*** F. D1 Phase Detector — from demo to SaaS pilot
+### F. D1 Phase Detector — from demo to SaaS pilot
 
 This is the *product* track (W7-C will detail), but the engineering side:
 
@@ -257,9 +257,9 @@ This is the *product* track (W7-C will detail), but the engineering side:
 
 **Target:** 1000 companies + auth + Stripe pilot by Month 9.
 
-***REMOVED******REMOVED******REMOVED*** G. Open-source community
+### G. Open-source community
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** G.1 Repo PUBLIC checklist (P0, Month 1)
+#### G.1 Repo PUBLIC checklist (P0, Month 1)
 - [ ] **Secrets audit first** (W6 — flagged DeepSeek key). Use `git-filter-repo` to scrub if needed. Rotate key.
 - [ ] LICENSE: MIT (already declared in setup.py — verify LICENSE file exists at root).
 - [ ] CONTRIBUTING.md: dev setup, branch naming, PR template, review SLA.
@@ -270,13 +270,13 @@ This is the *product* track (W7-C will detail), but the engineering side:
 - [ ] README.md polish: hero badges (CI, coverage, PyPI, license), 30-second pitch, install, quickstart, link to docs.
 - [ ] Set repo → public + announce in 3 channels (HN, /r/MachineLearning, complexity science Discord).
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** G.2 Community infra (Month 2-3)
+#### G.2 Community infra (Month 2-3)
 - [ ] GitHub Discussions enabled.
 - [ ] First "Good first issue" label batch (10 issues, each 2-4h scope).
 - [ ] Discord server (low maintenance, low priority — defer to Month 6+ if traction).
 - [ ] Monthly office-hours (1h video call, public RSVP).
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** G.3 Contribution funnel KPIs
+#### G.3 Contribution funnel KPIs
 
 | Month | Stars | PyPI dl/mo (combined 3 packages) | External PRs merged | Contributors |
 |---|---|---|---|---|
@@ -288,7 +288,7 @@ This is the *product* track (W7-C will detail), but the engineering side:
 
 These are *aspirational*; the 5x acceleration between month 6 → 12 requires the package + docs combo to land.
 
-***REMOVED******REMOVED******REMOVED*** H. Integration ecosystem (Month 12-18)
+### H. Integration ecosystem (Month 12-18)
 
 Once the core libraries are stable and have non-trivial adoption, expand surface area:
 
@@ -302,7 +302,7 @@ Once the core libraries are stable and have non-trivial adoption, expand surface
 | **Docker image** — `ghcr.io/dada8899/structural-isomorphism:latest` | 2 days | Month 1 (also needed for CI) |
 | **Cloud notebook** — Colab badge + Binder config | 1 day | Month 1 (low cost, high SEO) |
 
-***REMOVED******REMOVED******REMOVED*** I. Dev tools / DX
+### I. Dev tools / DX
 
 - **CLI ergonomics:** add `rich` for progress bars, `click` for commands (currently `argparse`), `prompt-toolkit` for interactive flows (`v4 init`, `v4 doctor`).
 - **`v4 doctor`:** like `gh auth status` — checks Python version, optional deps, API keys, sqlite/postgres, last-run cost. Massive DX win for onboarding.
@@ -312,7 +312,7 @@ Once the core libraries are stable and have non-trivial adoption, expand surface
 
 ---
 
-***REMOVED******REMOVED*** 4. NOT to do (next 12 months)
+## 4. NOT to do (next 12 months)
 
 | Avoid | Why |
 |---|---|
@@ -328,7 +328,7 @@ Once the core libraries are stable and have non-trivial adoption, expand surface
 
 ---
 
-***REMOVED******REMOVED*** 5. Milestone roadmap (1-18 months)
+## 5. Milestone roadmap (1-18 months)
 
 | Month | Milestone | KPI for "done" |
 |---|---|---|
@@ -353,11 +353,11 @@ Once the core libraries are stable and have non-trivial adoption, expand surface
 
 ---
 
-***REMOVED******REMOVED*** 6. Next 30 days — 10 actionable tasks
+## 6. Next 30 days — 10 actionable tasks
 
 Ordered by **impact / effort** ratio. Each lists agent role + estimated time + measurable outcome.
 
-| ***REMOVED*** | Task | Effort | Impact | Agent role |
+| # | Task | Effort | Impact | Agent role |
 |---|---|---|---|---|
 | 1 | **Secret rotation + git-history scrub for DeepSeek key in `v4/scripts/b3_ensemble.py`** (W5-B P0) | 2-3h | **P0 security** — blocks repo-public | infra-security |
 | 2 | Repo → PUBLIC after audit + LICENSE file + CONTRIBUTING.md + ISSUE_TEMPLATES + PR template + SECURITY.md | 1 day | unlocks all OSS leverage | oss-maintainer |
@@ -374,11 +374,11 @@ Ordered by **impact / effort** ratio. Each lists agent role + estimated time + m
 
 ---
 
-***REMOVED******REMOVED*** 7. Wave 8 dispatch candidates
+## 7. Wave 8 dispatch candidates
 
 Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up immediately. Each is independent, parallelizable, and has a measurable deliverable.
 
-***REMOVED******REMOVED******REMOVED*** W8-A: Security audit + secret scrub + repo PUBLIC checklist execution
+### W8-A: Security audit + secret scrub + repo PUBLIC checklist execution
 
 - **Role:** infra-security senior engineer
 - **Goal:** repo becomes public-safe by end of session
@@ -394,7 +394,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 - **Verification:** `gh repo view --json visibility` shows public-eligible; `truffleHog` scan returns clean on HEAD (history scrub decision deferred to user); CONTRIBUTING covers all sections in checklist
 - **Budget:** 0 LLM calls (pure infra work). 4-6h human-equivalent.
 
-***REMOVED******REMOVED******REMOVED*** W8-B: GitHub Actions CI scaffold (PR tests + nightly e2e + release)
+### W8-B: GitHub Actions CI scaffold (PR tests + nightly e2e + release)
 
 - **Role:** devops engineer
 - **Goal:** every PR is gated by green CI; nightly e2e runs; release workflow ready
@@ -409,7 +409,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 - **Verification:** all workflows show green on a test PR; pre-commit installs cleanly; mypy passes on `v4/lib/`
 - **Budget:** $0. 6-8h.
 
-***REMOVED******REMOVED******REMOVED*** W8-C: `soc-pipeline` PyPI extraction (smallest package, ships first as proof)
+### W8-C: `soc-pipeline` PyPI extraction (smallest package, ships first as proof)
 
 - **Role:** python-package-author
 - **Goal:** ship first PyPI release of the family
@@ -426,7 +426,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 - **Verification:** `pip install -i https://test.pypi.org/simple/ soc-pipeline==0.1.0a1` succeeds in clean venv + the 5-line README example runs
 - **Budget:** $0 LLM. 3 engineering days.
 
-***REMOVED******REMOVED******REMOVED*** W8-D: `guarded-llm` extraction kickoff (highest leverage, partial scope)
+### W8-D: `guarded-llm` extraction kickoff (highest leverage, partial scope)
 
 - **Role:** python-package-author (with LLM-infra background)
 - **Goal:** scaffold the package, ship first working Anthropic + DeepSeek adapter, defer multi-vendor expansion to W9
@@ -444,7 +444,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 - **Verification:** clean venv `pip install -e .` works, `pytest` 100% green, example in README runs against real Anthropic API
 - **Budget:** ≤$2 LLM (for cassette recording). 3 engineering days.
 
-***REMOVED******REMOVED******REMOVED*** W8-E: mkdocs-material docs site scaffold + landing + 1 tutorial
+### W8-E: mkdocs-material docs site scaffold + landing + 1 tutorial
 
 - **Role:** tech-writer (with Python + ML background)
 - **Goal:** docs.structural.bytedance.city live within session
@@ -462,7 +462,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 - **Verification:** local `mkdocs serve` works, GH Pages preview URL works, all internal links pass linkcheck, Lighthouse mobile score ≥90
 - **Budget:** $0. 2 engineering days.
 
-***REMOVED******REMOVED******REMOVED*** W8-F (bonus): D1 Phase Detector — sqlite → postgres migration plan + scale-to-1000 plan
+### W8-F (bonus): D1 Phase Detector — sqlite → postgres migration plan + scale-to-1000 plan
 
 - **Role:** backend engineer (FastAPI + postgres)
 - **Goal:** unblock D1 to grow past 100 companies (W5-C P0)
@@ -477,7 +477,7 @@ Five concrete mini-briefs (≥5 required) that downstream W8 agents can pick up 
 
 ---
 
-***REMOVED******REMOVED*** 8. Scoring rubric: how we measure "real engineering value"
+## 8. Scoring rubric: how we measure "real engineering value"
 
 Six primary KPIs, refreshed quarterly:
 
@@ -505,7 +505,7 @@ Secondary signals (qualitative, but track):
 
 ---
 
-***REMOVED******REMOVED*** 9. Single highest-leverage move
+## 9. Single highest-leverage move
 
 > **Extract `v4/lib/llm_guardrail.py` (+ `llm_schemas.py`) into a standalone `guarded-llm` PyPI package within 30 days.**
 
@@ -522,7 +522,7 @@ Secondary signals (qualitative, but track):
 
 ---
 
-***REMOVED******REMOVED*** 10. Closing note — what success looks like at Month 18
+## 10. Closing note — what success looks like at Month 18
 
 If this roadmap executes:
 

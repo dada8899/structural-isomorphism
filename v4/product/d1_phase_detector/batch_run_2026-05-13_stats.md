@@ -1,12 +1,12 @@
-***REMOVED*** D1 batch run 2026-05-13 — stats
+# D1 batch run 2026-05-13 — stats
 
-***REMOVED******REMOVED*** Counts
+## Counts
 
 - rows processed: **100**
 - ok: **97**
 - failed: **3**
 
-***REMOVED******REMOVED*** Dynamics family distribution (ok rows)
+## Dynamics family distribution (ok rows)
 
 | family | count | pct |
 |---|---:|---:|
@@ -20,7 +20,7 @@
 | extreme_value_tail | 3 | 3.1% |
 | mixed_or_unclear | 1 | 1.0% |
 
-***REMOVED******REMOVED*** Critical-point state distribution (ok rows)
+## Critical-point state distribution (ok rows)
 
 | state | count | pct |
 |---|---:|---:|
@@ -30,13 +30,13 @@
 | at_critical | 9 | 9.3% |
 | unknown | 1 | 1.0% |
 
-***REMOVED******REMOVED*** Agreement with a-priori expectation
+## Agreement with a-priori expectation
 
 - match: **63** (65.6% of 96 priored rows)
 - differ: 33
 - no_prior: 1
 
-***REMOVED******REMOVED******REMOVED*** LLM family vs a-priori (where prior exists)
+### LLM family vs a-priori (where prior exists)
 
 | a-priori expected | LLM assigned | count |
 |---|---|---:|
@@ -70,7 +70,7 @@
 | soc_threshold_cascade | scheffer_fold | 1 |
 | soc_threshold_cascade | hysteresis_preisach | 1 |
 
-***REMOVED******REMOVED*** LLM cost (DeepSeek v4-pro direct API, estimated)
+## LLM cost (DeepSeek v4-pro direct API, estimated)
 
 - prompt tokens total: 72,702
 - prompt cache hit: 9,600 (13.2%)
@@ -82,6 +82,6 @@
 - total LLM attempts: 108 (avg 1.11/row)
 - total elapsed (sum across parallel batches): 6151.8s
 
-***REMOVED******REMOVED*** Output
+## Output
 
 - merged jsonl: `structtuples_2026-05-13.jsonl` (100 rows)

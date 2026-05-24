@@ -16,11 +16,11 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api.privacy import export as exp_mod  ***REMOVED*** noqa: E402
-from api.privacy import delete as del_mod  ***REMOVED*** noqa: E402
+from api.privacy import export as exp_mod  # noqa: E402
+from api.privacy import delete as del_mod  # noqa: E402
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def app_with_data(tmp_path, monkeypatch):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
 
-    ***REMOVED*** Seed newsletter
+    # Seed newsletter
     nl = data_dir / "newsletter-subscribers.jsonl"
     nl.write_text(
         json.dumps({"email": "alice@example.com", "source": "test", "ts": 1, "iso": "x"})
@@ -39,7 +39,7 @@ def app_with_data(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    ***REMOVED*** Seed mock_checkouts
+    # Seed mock_checkouts
     ck = data_dir / "mock_checkouts.jsonl"
     ck.write_text(
         json.dumps({"email": "alice@example.com", "tier": "pro", "ts": 3, "iso": "z"})
@@ -49,7 +49,7 @@ def app_with_data(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    ***REMOVED*** Seed error_log
+    # Seed error_log
     el = data_dir / "error_log.jsonl"
     el.write_text(
         json.dumps({"message": "foo", "sessionId": "sess-1", "ts": 5})
@@ -59,15 +59,15 @@ def app_with_data(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    ***REMOVED*** Monkeypatch _data_dir in both modules
+    # Monkeypatch _data_dir in both modules
     monkeypatch.setattr(exp_mod, "_data_dir", lambda: data_dir)
     monkeypatch.setattr(del_mod, "_data_dir", lambda: data_dir)
 
-    ***REMOVED*** Reset rate-limit buckets
+    # Reset rate-limit buckets
     exp_mod._buckets.clear()
     del_mod._buckets.clear()
 
-    ***REMOVED*** Ensure deterministic mock code
+    # Ensure deterministic mock code
     monkeypatch.setenv("STRUCTURAL_PRIVACY_MOCK_CODE", "123456")
 
     app = FastAPI()
@@ -76,9 +76,9 @@ def app_with_data(tmp_path, monkeypatch):
     return TestClient(app), data_dir
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Export
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Export
+# ===========================================================================
 
 
 def test_export_returns_correct_shape(app_with_data):
@@ -105,7 +105,7 @@ def test_export_finds_user_records(app_with_data):
     body = r.json()
     assert len(body["data"]["newsletter_subscribers"]) == 1
     assert len(body["data"]["mock_checkouts"]) == 2
-    ***REMOVED*** No session id supplied → error_log empty even though sess-1 exists
+    # No session id supplied → error_log empty even though sess-1 exists
     assert body["data"]["error_log"] == []
 
 
@@ -151,10 +151,10 @@ def test_export_no_identifier_returns_400(app_with_data):
 
 def test_export_rate_limit_kicks_in(app_with_data):
     client, _ = app_with_data
-    ***REMOVED*** First request OK
+    # First request OK
     r1 = client.get("/api/privacy/export?email=alice@example.com&code=123456")
     assert r1.status_code == 200
-    ***REMOVED*** Second within 1h hits limit
+    # Second within 1h hits limit
     r2 = client.get("/api/privacy/export?email=alice@example.com&code=123456")
     assert r2.status_code == 429
     assert r2.json()["error"] == "rate_limited"
@@ -168,9 +168,9 @@ def test_export_rate_limit_independent_per_email(app_with_data):
     assert r.status_code == 200
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Delete
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Delete
+# ===========================================================================
 
 
 def test_delete_removes_data(app_with_data):
@@ -185,10 +185,10 @@ def test_delete_removes_data(app_with_data):
     assert body["removed"]["newsletter_subscribers"] == 1
     assert body["removed"]["mock_checkouts"] == 2
 
-    ***REMOVED*** Confirm files no longer contain alice
+    # Confirm files no longer contain alice
     nl = (data_dir / "newsletter-subscribers.jsonl").read_text(encoding="utf-8")
     assert "alice@example.com" not in nl
-    assert "bob@example.com" in nl  ***REMOVED*** bob preserved
+    assert "bob@example.com" in nl  # bob preserved
 
     ck = (data_dir / "mock_checkouts.jsonl").read_text(encoding="utf-8")
     assert "alice@example.com" not in ck
@@ -218,7 +218,7 @@ def test_delete_with_session_removes_errors(app_with_data):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["removed"]["error_log"] == 1
-    ***REMOVED*** sess-2 preserved
+    # sess-2 preserved
     el = (data_dir / "error_log.jsonl").read_text(encoding="utf-8")
     assert "sess-2" in el
     assert "sess-1" not in el
@@ -269,7 +269,7 @@ def test_delete_nonexistent_email_still_audited(app_with_data):
     body = r.json()
     assert body["removed"]["newsletter_subscribers"] == 0
 
-    ***REMOVED*** Audit still written
+    # Audit still written
     audit = data_dir / "privacy_audit.jsonl"
     assert audit.exists()
 
@@ -280,9 +280,9 @@ def test_delete_no_identifier_returns_400(app_with_data):
     assert r.status_code == 400
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Fail-closed: STRUCTURAL_PRIVACY_MOCK_CODE unset must NOT accept "123456"
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Fail-closed: STRUCTURAL_PRIVACY_MOCK_CODE unset must NOT accept "123456"
+# ===========================================================================
 
 
 def test_export_code_fails_closed_when_env_unset(monkeypatch):
@@ -301,9 +301,9 @@ def test_delete_code_fails_closed_when_env_unset(monkeypatch):
     assert len(code) >= 16
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** DSAR delete scope: structural fingerprints (G connections) — design §2.4
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# DSAR delete scope: structural fingerprints (G connections) — design §2.4
+# ===========================================================================
 
 
 def test_delete_removes_structural_fingerprints(app_with_data):
@@ -325,15 +325,15 @@ def test_delete_removes_structural_fingerprints(app_with_data):
     )
     assert r.status_code == 200, r.text
     assert r.json()["removed"]["structural_fingerprints"] == 1
-    ***REMOVED*** Alice's fingerprints gone, Bob's untouched.
+    # Alice's fingerprints gone, Bob's untouched.
     assert store.list_by_user("alice@example.com") == []
     assert len(store.list_by_user("bob@example.com")) == 1
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** DSAR export scope: structural fingerprints — SESSION-22 §8 (symmetry with
-***REMOVED*** delete-side fingerprint integration that landed in SESSION-21 §6)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# DSAR export scope: structural fingerprints — SESSION-22 §8 (symmetry with
+# delete-side fingerprint integration that landed in SESSION-21 §6)
+# ===========================================================================
 
 
 def test_export_includes_structural_fingerprints(app_with_data):
@@ -359,9 +359,9 @@ def test_export_includes_structural_fingerprints(app_with_data):
     body = r.json()
     fps = body["data"]["structural_fingerprints"]
     assert len(fps) == 2, f"expected 2 alice fingerprints, got {len(fps)}"
-    ***REMOVED*** Cross-user isolation — Bob's row must not leak into Alice's export.
+    # Cross-user isolation — Bob's row must not leak into Alice's export.
     assert all(fp["user_email"] == "alice@example.com" for fp in fps)
-    ***REMOVED*** Sanity check on payload shape — at least the summary survives the trip.
+    # Sanity check on payload shape — at least the summary survives the trip.
     summaries = {fp["problem_summary"] for fp in fps}
     assert summaries == {"团队扩张后决策变慢", "留存率持续下滑"}
 

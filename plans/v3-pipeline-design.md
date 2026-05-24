@@ -1,8 +1,8 @@
-***REMOVED*** V3 Pipeline 设计草案
+# V3 Pipeline 设计草案
 
 > 目标：突破 V2 (embedding) 的天花板——让"真正的数学同构"和"表面相似"在系统层面可区分。
 
-***REMOVED******REMOVED*** 1. 问题诊断：为什么 V2 碰到天花板
+## 1. 问题诊断：为什么 V2 碰到天花板
 
 V2 成绩：4533 候选 → 94 五分（2.1% 密度）→ 19 A 级（深度分析后 20% 命中）
 
@@ -14,20 +14,20 @@ V2 成绩：4533 候选 → 94 五分（2.1% 密度）→ 19 A 级（深度分�
 
 根本矛盾：embedding 是**统计关联**工具，而结构同构是**代数结构**问题。这一层不改，深度分析后命中率天花板约 20%。
 
-***REMOVED******REMOVED*** 2. 两个候选方向（择一或串联）
+## 2. 两个候选方向（择一或串联）
 
-***REMOVED******REMOVED******REMOVED*** 方向 A：结构化表征 — StructTuple（推荐）
+### 方向 A：结构化表征 — StructTuple（推荐）
 
 每个现象由 LLM 抽取为结构化六元组：
 
 ```
 StructTuple = (
-    state_vars: List[str],         ***REMOVED*** 状态变量，如 ["温度T", "放热速率r"]
-    dynamics: str,                  ***REMOVED*** 标准方程族：ODE1/ODE2/DDE/PDE/Markov/Percolation
-    feedback_topology: str,         ***REMOVED*** 反馈拓扑：positive_loop / negative_loop / delayed_loop / bistable
-    timescale: float,               ***REMOVED*** 特征时间（对数刻度，s）
-    boundary_behavior: str,         ***REMOVED*** 边界行为：runaway / saturation / limit_cycle / bifurcation
-    invariants: List[str]           ***REMOVED*** 守恒量 / 对称性 / 幂律指数
+    state_vars: List[str],         # 状态变量，如 ["温度T", "放热速率r"]
+    dynamics: str,                  # 标准方程族：ODE1/ODE2/DDE/PDE/Markov/Percolation
+    feedback_topology: str,         # 反馈拓扑：positive_loop / negative_loop / delayed_loop / bistable
+    timescale: float,               # 特征时间（对数刻度，s）
+    boundary_behavior: str,         # 边界行为：runaway / saturation / limit_cycle / bifurcation
+    invariants: List[str]           # 守恒量 / 对称性 / 幂律指数
 )
 ```
 
@@ -54,7 +54,7 @@ Phenomenon text
 - 跨域召回：不降（因为 StructTuple 是高层抽象，跨域 phenomena 更容易匹配到同一 dynamics 家族）
 - LLM 抽取成本：4443 现象 × ~400 tokens in + 200 out ≈ 2.7M tokens total，用 Kimi K2.5 大约 $3-5
 
-***REMOVED******REMOVED******REMOVED*** 方向 B：LLM 交叉编码器 rerank（作为后置滤网）
+### 方向 B：LLM 交叉编码器 rerank（作为后置滤网）
 
 V2 已给出 4533 对。用 Opus 做 **pairwise yes/no**：
 
@@ -69,7 +69,7 @@ Prompt: "给定两个现象描述，判断是否存在严格的数学同构（�
 - 4533 → StructTuple 匹配 → 1000 → LLM rerank → 200 高置信对
 - 在这 200 上做深度分析，命中率可预期 **50-60%**（因为 LLM 已经看过 pair，而不是只看单个现象）
 
-***REMOVED******REMOVED*** 3. 推荐架构：A + B 串联
+## 3. 推荐架构：A + B 串联
 
 ```
 4443 KB ── LLM extractor ──→ KB + StructTuple (one-time cost)
@@ -97,7 +97,7 @@ Query phenomenon ─── StructTuple ─┘
                           A-level candidates
 ```
 
-***REMOVED******REMOVED*** 4. 实施计划（2-3 周，Solo + Mac M4）
+## 4. 实施计划（2-3 周，Solo + Mac M4）
 
 | Week | 任务 | 产出 |
 |---|---|---|
@@ -108,7 +108,7 @@ Query phenomenon ─── StructTuple ─┘
 | W3 D1-D3 | LLM pairwise rerank（1000 对，每对 1 次 API call） | v3-rerank-top200.jsonl |
 | W3 D4-D5 | 深度分析 + 对比 V2 效果 | v3-deep-analysis.jsonl + evaluation report |
 
-***REMOVED******REMOVED*** 5. 预期指标提升
+## 5. 预期指标提升
 
 | 指标 | V2 | V3 (预期) | 机制 |
 |---|---|---|---|
@@ -117,7 +117,7 @@ Query phenomenon ─── StructTuple ─┘
 | 计算成本 | 0（已跑完）| $10-20 LLM API | 一次性预处理 + 选择性 rerank |
 | 解释性 | 低（黑盒 embedding）| **高**（每对都有 shared_equation 字段）| 论文写作直接受益 |
 
-***REMOVED******REMOVED*** 6. 风险 + 回退
+## 6. 风险 + 回退
 
 - **风险 1**：LLM 抽取 StructTuple 不稳定 → 同一现象多次抽取结果差异大  
   缓解：对 20% 样本做两次抽取对比，方差大的现象做投票取中位数
@@ -128,7 +128,7 @@ Query phenomenon ─── StructTuple ─┘
 
 **回退方案**：若 V3 最终效果不显著，保留 V2 作为主管道，V3 方向 A 的 StructTuple 仍可作为论文"结构化发现"方法论的独立贡献。
 
-***REMOVED******REMOVED*** 7. 成功标准
+## 7. 成功标准
 
 - 在 4443 KB 上跑完完整 pipeline
 - 深度分析后 A 级命中率 ≥ V2 的 1.5 倍（即 ≥30%）

@@ -19,7 +19,7 @@ window.escapeHtml = (s) => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&***REMOVED***39;');
+    .replace(/'/g, '&#39;');
 };
 
 window.formatScore = (score) => {
@@ -245,7 +245,7 @@ window.mdInline = (text) => {
        .replace(/</g, '&lt;')
        .replace(/>/g, '&gt;')
        .replace(/"/g, '&quot;')
-       .replace(/'/g, '&***REMOVED***39;');
+       .replace(/'/g, '&#39;');
   // Step 2: protect inline `code` first so its contents aren't matched by bold/italic
   const codeStash = [];
   s = s.replace(/`([^`\n]+)`/g, (_, c) => {

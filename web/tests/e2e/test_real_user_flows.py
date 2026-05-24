@@ -1,4 +1,4 @@
-"""Session ***REMOVED***9 Wave 3-A — Real user flow e2e + CLS measurement.
+"""Session #9 Wave 3-A — Real user flow e2e + CLS measurement.
 
 Tests 4 core flows on prod (beta.structural.bytedance.city + phase.bytedance.city)
 across desktop (1920x1080) + mobile (375x667 iPhone SE) viewports.
@@ -25,15 +25,15 @@ from typing import Any
 import pytest
 from playwright.sync_api import Page, sync_playwright, TimeoutError as PWTimeout
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Configuration
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
 
 BETA = "https://beta.structural.bytedance.city"
 PHASE = "https://phase.bytedance.city"
 
 DESKTOP = {"width": 1920, "height": 1080}
-MOBILE = {"width": 375, "height": 667}  ***REMOVED*** iPhone SE
+MOBILE = {"width": 375, "height": 667}  # iPhone SE
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCREENSHOT_DIR = REPO_ROOT / "web" / "tests" / "e2e" / "screenshots" / "session-9-w3-a"
@@ -41,7 +41,7 @@ RESULTS_DIR = REPO_ROOT / "web" / "tests" / "e2e" / "results"
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-***REMOVED*** Accumulator (results.json written at session end).
+# Accumulator (results.json written at session end).
 _RESULTS: list[dict[str, Any]] = []
 
 
@@ -69,14 +69,14 @@ def _shot(page: Page, name: str) -> str:
     path = SCREENSHOT_DIR / f"{name}.png"
     try:
         page.screenshot(path=str(path), full_page=False)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return f"<screenshot-failed: {e}>"
     return str(path.relative_to(REPO_ROOT))
 
 
-***REMOVED*** CLS measurement script — uses PerformanceObserver layout-shift entries.
-***REMOVED*** We sample for ~5s after load, then sum every shift's value (excluding
-***REMOVED*** entries where hadRecentInput=true, per Web Vitals spec).
+# CLS measurement script — uses PerformanceObserver layout-shift entries.
+# We sample for ~5s after load, then sum every shift's value (excluding
+# entries where hadRecentInput=true, per Web Vitals spec).
 _CLS_SCRIPT = """
 () => {
   return new Promise((resolve) => {
@@ -114,19 +114,19 @@ def _measure_cls(page: Page, url: str) -> dict[str, Any]:
         page.goto(url, wait_until="load", timeout=30000)
     except PWTimeout:
         return {"cls": None, "error": "navigation-timeout", "url": url}
-    ***REMOVED*** Wait for fonts/late shifts to settle.
+    # Wait for fonts/late shifts to settle.
     try:
         result = page.evaluate(_CLS_SCRIPT)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return {"cls": None, "error": f"eval-fail: {e}", "url": url}
     result["url"] = url
     result["nav_ms"] = int((time.time() - t0) * 1000)
     return result
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Fixtures (override conftest to get fresh contexts per viewport).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Fixtures (override conftest to get fresh contexts per viewport).
+# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def pw():
@@ -156,9 +156,9 @@ def _make_context(browser, viewport: dict[str, int], is_mobile: bool = False):
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Flow 1: beta home → search → answer → followup
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Flow 1: beta home → search → answer → followup
+# ---------------------------------------------------------------------------
 
 def _run_flow_1(browser, viewport_name: str, viewport: dict[str, int], is_mobile: bool):
     """Beta home → search → wait for answer → followup → wait for second answer."""
@@ -170,26 +170,26 @@ def _run_flow_1(browser, viewport_name: str, viewport: dict[str, int], is_mobile
     success = False
     try:
         page.goto(f"{BETA}/", wait_until="load", timeout=30000)
-        ***REMOVED*** Empty state visible.
-        asserts["empty_visible"] = page.locator("***REMOVED***ask-empty").is_visible()
+        # Empty state visible.
+        asserts["empty_visible"] = page.locator("#ask-empty").is_visible()
         asserts["brand_text"] = page.locator(".ask-empty__brand").inner_text()
         _shot(page, f"flow1-{viewport_name}-1-home")
 
-        ***REMOVED*** Fill query.
+        # Fill query.
         q1 = "为什么硅谷银行挤兑后市场反应这么剧烈？还有哪些类似的级联系统？"
-        page.fill("***REMOVED***ask-input", q1)
-        asserts["input_filled"] = (page.input_value("***REMOVED***ask-input") == q1)
+        page.fill("#ask-input", q1)
+        asserts["input_filled"] = (page.input_value("#ask-input") == q1)
 
-        ***REMOVED*** Submit.
+        # Submit.
         page.click(".ask-searchbox__submit")
-        ***REMOVED*** Thread should appear.
-        page.wait_for_selector("***REMOVED***ask-thread:not([hidden])", timeout=10000)
+        # Thread should appear.
+        page.wait_for_selector("#ask-thread:not([hidden])", timeout=10000)
         asserts["thread_visible"] = True
-        ***REMOVED*** Wait for first answer item — give SSE up to 60s for stream completion.
-        ***REMOVED*** We look for a thread item with rendered content (any text).
+        # Wait for first answer item — give SSE up to 60s for stream completion.
+        # We look for a thread item with rendered content (any text).
         try:
             page.wait_for_function(
-                "() => { const items = document.querySelectorAll('***REMOVED***ask-thread-items > *'); "
+                "() => { const items = document.querySelectorAll('#ask-thread-items > *'); "
                 "return items.length > 0 && items[0].innerText.length > 100; }",
                 timeout=60000,
             )
@@ -199,13 +199,13 @@ def _run_flow_1(browser, viewport_name: str, viewport: dict[str, int], is_mobile
             asserts["answer_timeout"] = True
         _shot(page, f"flow1-{viewport_name}-2-answer")
 
-        ***REMOVED*** Followup.
+        # Followup.
         if asserts.get("answer_received"):
-            page.fill("***REMOVED***ask-followup-input", "团队相变 有类似机制吗")
+            page.fill("#ask-followup-input", "团队相变 有类似机制吗")
             page.click(".ask-followup-box__submit")
             try:
                 page.wait_for_function(
-                    "() => { const items = document.querySelectorAll('***REMOVED***ask-thread-items > *'); "
+                    "() => { const items = document.querySelectorAll('#ask-thread-items > *'); "
                     "return items.length >= 2 && items[1].innerText.length > 100; }",
                     timeout=60000,
                 )
@@ -214,7 +214,7 @@ def _run_flow_1(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                 asserts["followup_answered"] = False
             _shot(page, f"flow1-{viewport_name}-3-followup")
         success = asserts.get("answer_received", False)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         error = f"{type(e).__name__}: {e}"
     finally:
         duration = int((time.time() - t0) * 1000)
@@ -230,9 +230,9 @@ def test_flow1_mobile(browser):
     _run_flow_1(browser, "mobile", MOBILE, is_mobile=True)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Flow 2: /classes → click first card → /phenomenon deep-link
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Flow 2: /classes → click first card → /phenomenon deep-link
+# ---------------------------------------------------------------------------
 
 def _run_flow_2(browser, viewport_name: str, viewport: dict[str, int], is_mobile: bool):
     ctx = _make_context(browser, viewport, is_mobile)
@@ -243,10 +243,10 @@ def _run_flow_2(browser, viewport_name: str, viewport: dict[str, int], is_mobile
     success = False
     try:
         page.goto(f"{BETA}/classes", wait_until="load", timeout=30000)
-        ***REMOVED*** Wait for filter "all" active.
+        # Wait for filter "all" active.
         page.wait_for_selector('[data-filter="all"].uc-filter__btn--active', timeout=10000)
         asserts["filter_all_active"] = True
-        ***REMOVED*** Wait for cards rendered (skeletons replaced) — list children > 1.
+        # Wait for cards rendered (skeletons replaced) — list children > 1.
         try:
             page.wait_for_function(
                 "() => { const list = document.getElementById('uc-list'); "
@@ -257,22 +257,22 @@ def _run_flow_2(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                 timeout=20000,
             )
             card_count = page.evaluate(
-                "() => document.querySelectorAll('***REMOVED***uc-list > *').length"
+                "() => document.querySelectorAll('#uc-list > *').length"
             )
             asserts["card_count"] = card_count
             asserts["cards_loaded"] = card_count >= 5
         except PWTimeout:
             asserts["cards_loaded"] = False
             asserts["card_count"] = page.evaluate(
-                "() => document.querySelectorAll('***REMOVED***uc-list > *').length"
+                "() => document.querySelectorAll('#uc-list > *').length"
             )
         _shot(page, f"flow2-{viewport_name}-1-classes")
 
-        ***REMOVED*** Click first card if available.
+        # Click first card if available.
         if asserts.get("cards_loaded"):
             try:
-                first_card = page.locator("***REMOVED***uc-list > *").first
-                ***REMOVED*** Get inner link/clickable.
+                first_card = page.locator("#uc-list > *").first
+                # Get inner link/clickable.
                 link = first_card.locator("a").first
                 if link.count() > 0:
                     href_before = link.get_attribute("href")
@@ -280,7 +280,7 @@ def _run_flow_2(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                     link.click()
                     page.wait_for_load_state("load", timeout=10000)
                     asserts["after_click_url"] = page.url
-                    ***REMOVED*** phenomenon or class detail.
+                    # phenomenon or class detail.
                     asserts["nav_succeeded"] = (
                         "phenomenon" in page.url
                         or "class" in page.url
@@ -293,9 +293,9 @@ def _run_flow_2(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                     asserts["nav_succeeded"] = page.url != f"{BETA}/classes"
                 _shot(page, f"flow2-{viewport_name}-2-detail")
                 success = asserts.get("nav_succeeded", False)
-            except Exception as e:  ***REMOVED*** noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 asserts["click_error"] = str(e)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         error = f"{type(e).__name__}: {e}"
     finally:
         duration = int((time.time() - t0) * 1000)
@@ -311,9 +311,9 @@ def test_flow2_mobile(browser):
     _run_flow_2(browser, "mobile", MOBILE, is_mobile=True)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Flow 3: phase home → company → backtest
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Flow 3: phase home → company → backtest
+# ---------------------------------------------------------------------------
 
 def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile: bool):
     ctx = _make_context(browser, viewport, is_mobile)
@@ -324,21 +324,21 @@ def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile
     success = False
     try:
         page.goto(f"{PHASE}/", wait_until="load", timeout=30000)
-        ***REMOVED*** Wait for any hydration.
+        # Wait for any hydration.
         page.wait_for_timeout(2500)
-        ***REMOVED*** Look for p = 0.681 in body text (transparency banner).
+        # Look for p = 0.681 in body text (transparency banner).
         body_text = page.locator("body").inner_text(timeout=5000)
         asserts["has_p_value"] = "p = 0.681" in body_text or "0.681" in body_text
         asserts["has_phase_brand"] = "Phase Detector" in body_text or "Phase" in body_text
         _shot(page, f"flow3-{viewport_name}-1-phase-home")
 
-        ***REMOVED*** Find first signal/company card. Phase uses Next.js — most cards
-        ***REMOVED*** are within main content. We'll look for any clickable card-like
-        ***REMOVED*** element with a ticker symbol (3-5 uppercase letters).
-        ***REMOVED*** Strategy: find anchor or button whose text contains a ticker.
+        # Find first signal/company card. Phase uses Next.js — most cards
+        # are within main content. We'll look for any clickable card-like
+        # element with a ticker symbol (3-5 uppercase letters).
+        # Strategy: find anchor or button whose text contains a ticker.
         clicked = False
         try:
-            ***REMOVED*** Try data-ticker first.
+            # Try data-ticker first.
             cards = page.locator("[data-ticker], a[href*='/c/'], a[href*='company']")
             count = cards.count()
             asserts["candidate_cards"] = count
@@ -347,13 +347,13 @@ def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                 page.wait_for_load_state("load", timeout=10000)
                 clicked = True
                 asserts["after_card_click_url"] = page.url
-        except Exception as e:  ***REMOVED*** noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             asserts["card_click_error"] = str(e)
 
         if not clicked:
-            ***REMOVED*** Fallback: click any element with text matching a ticker pattern.
+            # Fallback: click any element with text matching a ticker pattern.
             try:
-                ***REMOVED*** Look for clickable items in main area.
+                # Look for clickable items in main area.
                 page.evaluate(
                     "() => { const els = document.querySelectorAll('main a, main button'); "
                     "for (const el of els) { const t = el.innerText || ''; "
@@ -363,12 +363,12 @@ def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile
                 page.wait_for_timeout(2000)
                 asserts["after_fallback_click_url"] = page.url
                 clicked = page.url != f"{PHASE}/"
-            except Exception as e:  ***REMOVED*** noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 asserts["fallback_click_error"] = str(e)
 
         _shot(page, f"flow3-{viewport_name}-2-company")
 
-        ***REMOVED*** Navigate to backtest regardless.
+        # Navigate to backtest regardless.
         page.goto(f"{PHASE}/backtest", wait_until="load", timeout=30000)
         page.wait_for_timeout(2000)
         backtest_text = page.locator("body").inner_text(timeout=5000)
@@ -376,7 +376,7 @@ def _run_flow_3(browser, viewport_name: str, viewport: dict[str, int], is_mobile
         asserts["backtest_url"] = page.url
         _shot(page, f"flow3-{viewport_name}-3-backtest")
         success = asserts["has_p_value"] and asserts["backtest_page_has_content"]
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         error = f"{type(e).__name__}: {e}"
     finally:
         duration = int((time.time() - t0) * 1000)
@@ -392,9 +392,9 @@ def test_flow3_mobile(browser):
     _run_flow_3(browser, "mobile", MOBILE, is_mobile=True)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Flow 4: newsletter signup at /start-here
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Flow 4: newsletter signup at /start-here
+# ---------------------------------------------------------------------------
 
 def _run_flow_4(browser, viewport_name: str, viewport: dict[str, int], is_mobile: bool):
     ctx = _make_context(browser, viewport, is_mobile)
@@ -405,47 +405,47 @@ def _run_flow_4(browser, viewport_name: str, viewport: dict[str, int], is_mobile
     success = False
     try:
         page.goto(f"{BETA}/start-here", wait_until="load", timeout=30000)
-        ***REMOVED*** Newsletter mounts via JS; wait for form.
+        # Newsletter mounts via JS; wait for form.
         try:
-            page.wait_for_selector("***REMOVED***newsletter-start-here .newsletter-form", timeout=10000)
+            page.wait_for_selector("#newsletter-start-here .newsletter-form", timeout=10000)
             asserts["newsletter_form_visible"] = True
         except PWTimeout:
             asserts["newsletter_form_visible"] = False
 
         if asserts.get("newsletter_form_visible"):
-            ***REMOVED*** Scroll to newsletter.
-            page.locator("***REMOVED***newsletter-start-here").scroll_into_view_if_needed()
+            # Scroll to newsletter.
+            page.locator("#newsletter-start-here").scroll_into_view_if_needed()
             page.wait_for_timeout(500)
             _shot(page, f"flow4-{viewport_name}-1-newsletter")
 
-            ***REMOVED*** Fill + submit.
-            input_sel = "***REMOVED***newsletter-start-here input[name='email']"
+            # Fill + submit.
+            input_sel = "#newsletter-start-here input[name='email']"
             page.fill(input_sel, "e2e-test+w3a@example.com")
             asserts["email_filled"] = (
                 page.input_value(input_sel) == "e2e-test+w3a@example.com"
             )
-            ***REMOVED*** Click submit.
-            page.click("***REMOVED***newsletter-start-here button[type='submit']")
-            ***REMOVED*** Wait for status text to appear (success or error response).
+            # Click submit.
+            page.click("#newsletter-start-here button[type='submit']")
+            # Wait for status text to appear (success or error response).
             try:
                 page.wait_for_function(
-                    "() => { const s = document.querySelector('***REMOVED***newsletter-start-here .newsletter-status'); "
+                    "() => { const s = document.querySelector('#newsletter-start-here .newsletter-status'); "
                     "return s && s.innerText && s.innerText.trim().length > 0; }",
                     timeout=15000,
                 )
                 status_text = page.locator(
-                    "***REMOVED***newsletter-start-here .newsletter-status"
+                    "#newsletter-start-here .newsletter-status"
                 ).inner_text()
                 asserts["status_text"] = status_text
-                ***REMOVED*** Status may be success OR a 4xx hint (e.g. test domain blocked).
-                ***REMOVED*** We treat "form responded" as success — i.e. flow completed
-                ***REMOVED*** the round-trip, not that the email is actually subscribed.
+                # Status may be success OR a 4xx hint (e.g. test domain blocked).
+                # We treat "form responded" as success — i.e. flow completed
+                # the round-trip, not that the email is actually subscribed.
                 asserts["form_responded"] = len(status_text) > 0
                 success = asserts["form_responded"]
             except PWTimeout:
                 asserts["form_responded"] = False
             _shot(page, f"flow4-{viewport_name}-2-submitted")
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         error = f"{type(e).__name__}: {e}"
     finally:
         duration = int((time.time() - t0) * 1000)
@@ -461,9 +461,9 @@ def test_flow4_mobile(browser):
     _run_flow_4(browser, "mobile", MOBILE, is_mobile=True)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLS measurements (desktop + mobile, 3 pages each).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLS measurements (desktop + mobile, 3 pages each).
+# ---------------------------------------------------------------------------
 
 _CLS_TARGETS = [
     ("beta-home", f"{BETA}/"),
@@ -501,9 +501,9 @@ def test_cls_mobile(browser):
     _measure_all_cls(browser, "mobile", MOBILE, is_mobile=True)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Session-end write of results.json
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Session-end write of results.json
+# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="session", autouse=True)
 def _write_results_at_end():

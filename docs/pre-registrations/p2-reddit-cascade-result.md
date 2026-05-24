@@ -1,6 +1,6 @@
-***REMOVED*** Pre-registered replication P2 — Reddit comment cascade sizes
+# Pre-registered replication P2 — Reddit comment cascade sizes
 
-**Status.** Complete (2026-05-15, session ***REMOVED***10, W7-C). Partial fetch (8 of 10
+**Status.** Complete (2026-05-15, session #10, W7-C). Partial fetch (8 of 10
 intended subreddits, sample stopped early to respect session time budget;
 22 522 cascades is still ~10x typical Cheng-2014 working samples).
 **Verdict.** **CONFIRMED** — $\hat\alpha$ inside the pre-registered
@@ -17,7 +17,7 @@ predicted band; same procedural lognormal-vs-power-law caveat as v0.3 §6.6.
 
 ---
 
-***REMOVED******REMOVED*** 1. Data source + provenance
+## 1. Data source + provenance
 
 We pulled top-level submissions from 10 high-traffic English-language
 subreddits over a 30-day retrospective window using the public
@@ -54,7 +54,7 @@ is in the 5-20 range, similar to the present sample's median of 11).
 A future replicator wanting the full $n \sim 30\,000$ sample can
 simply re-run `fetch_reddit.py` without interruption.
 
-***REMOVED******REMOVED*** 2. Construction of the observable
+## 2. Construction of the observable
 
 Following **Cheng et al. 2014 "Can cascades be predicted?"** and the
 broader Reddit-cascade literature, we use `num_comments` as the
@@ -80,7 +80,7 @@ Distribution summary (n = 22 522 cascades):
 | $\geq 100$ | $\sim$ 2 400 (10.8%) |
 | $\geq 1\,000$ | $\sim$ 230 (1.0%) |
 
-***REMOVED******REMOVED*** 3. Frozen pipeline output
+## 3. Frozen pipeline output
 
 We imported the package `soc_pipeline` (installed from
 `packages/soc-pipeline/` in editable mode) **without modification** and
@@ -120,7 +120,7 @@ the KS-$x_\min$ landscape rather than instability of the underlying
 exponent. This is a known property of Clauset bootstrap CIs on
 finite-size cascades and is reported honestly here without retraction.
 
-***REMOVED******REMOVED*** 4. Verdict
+## 4. Verdict
 
 **VERDICT: CONFIRMED within the pre-registered predicted band.**
 
@@ -145,7 +145,7 @@ and BCH (see P1 result).
 The pre-registration committed only to the alpha-band decision rule
 (§8.3). On that rule, P2 is unambiguously **CONFIRMED**.
 
-***REMOVED******REMOVED*** 5. Caveats — to be reported in the §5 discussion of the short paper
+## 5. Caveats — to be reported in the §5 discussion of the short paper
 
 1. **Partial fetch.** 8 of 10 subreddits; 22 522 of an intended ~30 000
    cascades. The missing subs (gaming, wallstreetbets) would have
@@ -164,7 +164,7 @@ The pre-registration committed only to the alpha-band decision rule
 6. **Vuong lognormal-vs-power-law.** Same v0.3 §6.6 ambiguity as P1.
 7. **Bootstrap CI bimodality on $x_\min$.** As discussed in §3.
 
-***REMOVED******REMOVED*** 6. Files
+## 6. Files
 
 | path | content |
 |---|---|
@@ -177,13 +177,13 @@ The pre-registration committed only to the alpha-band decision rule
 | `v4/validation/pre-reg-p2-reddit/p2_ccdf.json` | empirical CCDF for plotting |
 | `paper/figures/pre-reg/fig_p2_reddit_ccdf.pdf` | CCDF figure |
 
-***REMOVED******REMOVED*** 7. Reproducibility
+## 7. Reproducibility
 
 ```bash
-python3 v4/validation/pre-reg-p2-reddit/fetch_reddit.py     ***REMOVED*** ~25-30 min on free tier
-***REMOVED*** Or, if stopping early:
+python3 v4/validation/pre-reg-p2-reddit/fetch_reddit.py     # ~25-30 min on free tier
+# Or, if stopping early:
 python3 v4/validation/pre-reg-p2-reddit/convert_partial.py
-python3 v4/validation/pre-reg-p2-reddit/analyze_reddit.py   ***REMOVED*** ~5 sec
+python3 v4/validation/pre-reg-p2-reddit/analyze_reddit.py   # ~5 sec
 python3 paper/figures/pre-reg/make_figures.py
 ```
 

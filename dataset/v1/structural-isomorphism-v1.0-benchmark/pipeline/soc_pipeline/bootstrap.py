@@ -54,7 +54,7 @@ def bootstrap_ci(
         a result with error set.
     """
     try:
-        import powerlaw  ***REMOVED*** type: ignore
+        import powerlaw  # type: ignore
     except Exception as exc:
         return BootstrapResult(error=f"powerlaw missing: {exc}")
 

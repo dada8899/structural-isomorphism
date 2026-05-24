@@ -1,4 +1,4 @@
-***REMOVED*** Governance
+# Governance
 
 > **Version**: v2 (2026-05-15) — supersedes v1 (BDFL-only, 2026-Q1)
 > **Scope**: project decision-making, leadership, conflict resolution, succession, license + trademark policy
@@ -6,13 +6,13 @@
 
 This document is normative. Where it conflicts with informal practice, this document wins.
 
-***REMOVED******REMOVED*** 1. Current state
+## 1. Current state
 
 structural-isomorphism is currently led by a single **Benevolent Dictator For Life** (BDFL): @dada8899. The BDFL has 100% commit authority and final say on all decisions. This is appropriate for a sub-50-contributor, pre-v1.0 project; it is **not** intended to be the long-term governance model.
 
 This file documents both how we are governed today **and** the explicit, time-bound path to a 3-member Maintainer Council.
 
-***REMOVED******REMOVED*** 2. Decision-making (today, under BDFL)
+## 2. Decision-making (today, under BDFL)
 
 | Category | Procedure | Quorum |
 |---|---|---|
@@ -24,7 +24,7 @@ This file documents both how we are governed today **and** the explicit, time-bo
 | License changes | Forbidden unilaterally (see § 9) | N/A under BDFL alone |
 | CoC enforcement | Per CODE_OF_CONDUCT.md ladder | BDFL (with documented rationale) |
 
-***REMOVED******REMOVED*** 3. Transition trigger — when BDFL → Council
+## 3. Transition trigger — when BDFL → Council
 
 Council formation is triggered by **whichever of these comes first**:
 
@@ -34,7 +34,7 @@ Council formation is triggered by **whichever of these comes first**:
 
 The first of these to fire opens a 90-day council-formation window per § 5.
 
-***REMOVED******REMOVED*** 4. Council composition & authority
+## 4. Council composition & authority
 
 Once triggered, the project is governed by a **3-member Maintainer Council**:
 
@@ -57,23 +57,23 @@ The BDFL retains:
 - Ownership of the project name (which is **not trademarked**; see § 10)
 - Tie-breaker authority on a 2-2 split if council expands to 4 (rare; rebalance via § 11)
 
-***REMOVED******REMOVED*** 5. First-council nomination process
+## 5. First-council nomination process
 
 When the trigger in § 3 fires, the BDFL announces the council-formation window publicly within 14 days. The 90-day window proceeds as:
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Open call for nominations (days 0 - 30)
+### 5.1 Open call for nominations (days 0 - 30)
 
 - Public announcement in: GitHub Discussions, Discord, monthly newsletter, the repo README.
 - Anyone may **self-nominate or nominate another person**. Nomination form: brief (≤ 500 words) describing technical or scientific contributions to structural-isomorphism + commitment to a 12-month term.
 - All nominations published in `docs/community/council-2027/nominations/`.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Public comment period (days 30 - 44)
+### 5.2 Public comment period (days 30 - 44)
 
 - 14-day comment period. Anyone may comment publicly on any nomination via GitHub issues with `council-nomination` label.
 - BDFL responds to every nomination within the comment window (acknowledge + ask clarifying questions if needed).
 - Bad-faith comments (per CoC) removed; commenter warned per CoC ladder.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 BDFL ratification (days 44 - 60)
+### 5.3 BDFL ratification (days 44 - 60)
 
 - BDFL selects 2 council members from nominees.
 - Selection criteria (published in advance):
@@ -82,21 +82,21 @@ When the trigger in § 3 fires, the BDFL announces the council-formation window 
   3. Stated commitment to a 12-month term + ~ 4 hours/week of project work
 - BDFL publishes the selection rationale in `docs/community/council-2027/selection-rationale.md`.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 BDFL veto (limited)
+### 5.4 BDFL veto (limited)
 
 The BDFL may **only** veto a nominee under documented conflict-of-interest (e.g. nominee's employer holds adversarial IP claims against the project, or nominee is currently subject to an unresolved CoC complaint). All other "preferences" must be exercised through ratification choice, not veto.
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Public acceptance & oath (days 60 - 90)
+### 5.5 Public acceptance & oath (days 60 - 90)
 
 - Selected council members publicly accept via PR adding themselves to `MAINTAINERS.md`.
 - Brief written statement of commitment included in the PR.
 - Council is officially seated on the merge date.
 
-***REMOVED******REMOVED******REMOVED*** 5.6 Subsequent rotations
+### 5.6 Subsequent rotations
 
 After the first council is seated, **the council itself** (not the BDFL alone) runs nomination + ratification for replacement seats. The BDFL retains a single vote and the same veto power (conflict-of-interest only). The process otherwise mirrors § 5.1 - 5.5.
 
-***REMOVED******REMOVED*** 6. Council voting
+## 6. Council voting
 
 | Decision class | Threshold | Notes |
 |---|---|---|
@@ -111,24 +111,24 @@ After the first council is seated, **the council itself** (not the BDFL alone) r
 
 Abstentions count as "no" for supermajority thresholds.
 
-***REMOVED******REMOVED*** 7. Term length & rotation
+## 7. Term length & rotation
 
 - **External council seats**: 12 months, renewable indefinitely with re-nomination. Renewal is via § 5 process — no automatic re-up.
 - **BDFL seat**: perpetual until **voluntary stepdown** (see below) or **incapacity** (see § 8.3).
 - **Staggered terms**: of the two external seats, one is initially seated to a 12-month term and the other to an 18-month term. This prevents simultaneous turnover and preserves institutional memory.
 - **Voluntary BDFL stepdown**: BDFL announces ≥ 60 days in advance; council elects new BDFL via 2/3 vote among themselves + 1 nominee from open call. New BDFL inherits the BDFL seat but **not** automatic perpetual tenure (a stepped-down founder is rare; the next BDFL's term is initially 24 months, renewable by council 2/3 vote).
 
-***REMOVED******REMOVED*** 8. Emergency procedures
+## 8. Emergency procedures
 
-***REMOVED******REMOVED******REMOVED*** 8.1 Security vulnerabilities
+### 8.1 Security vulnerabilities
 
 Reported per `.github/SECURITY.md`. Triage SLA: 14 days for acknowledgement; 90 days for fix (or coordinated disclosure if longer needed). Any council member can issue an emergency patch release without full quorum if at least one other council member is reachable for sign-off. The remaining member is informed within 24 hours.
 
-***REMOVED******REMOVED******REMOVED*** 8.2 Legal / DMCA / takedown notices
+### 8.2 Legal / DMCA / takedown notices
 
 Council member receiving the notice forwards to all council members + BDFL within 24 hours. Council deliberates within 7 days. If urgent action required (court order, etc.), § 6 emergency-action clause applies.
 
-***REMOVED******REMOVED******REMOVED*** 8.3 Abrupt BDFL absence
+### 8.3 Abrupt BDFL absence
 
 - **≥ 30 days no response** (email, GitHub, Discord all unreachable):
   - Remaining council can **co-opt a third member** for quorum purposes from the most recent nomination list, or from a fast-track nomination (7-day window if no existing nominations).
@@ -141,7 +141,7 @@ Council member receiving the notice forwards to all council members + BDFL withi
   - Council elects permanent BDFL per the procedure above.
   - GitHub org ownership and any secrets (per `docs/SECRETS_BREAK_GLASS.md`) transfer per documented escrow.
 
-***REMOVED******REMOVED******REMOVED*** 8.4 Council disbandment / quorum loss
+### 8.4 Council disbandment / quorum loss
 
 If 2 of 3 council seats simultaneously vacate (resignation, removal, or incapacity), the remaining member + BDFL (if separate) can:
 
@@ -149,9 +149,9 @@ If 2 of 3 council seats simultaneously vacate (resignation, removal, or incapaci
 2. Request NumFOCUS (or fiscal sponsor) mediation to ensure continuity.
 3. As a last resort, **escrow the project** to NumFOCUS or to a successor open-source community (e.g. astropy, scikit-learn) per § 12 handoff procedure.
 
-***REMOVED******REMOVED*** 9. License & trademark policy
+## 9. License & trademark policy
 
-***REMOVED******REMOVED******REMOVED*** 9.1 License lock
+### 9.1 License lock
 
 - Source code: **MIT License**, locked.
 - Datasets: **CC-BY-4.0**, locked.
@@ -159,15 +159,15 @@ If 2 of 3 council seats simultaneously vacate (resignation, removal, or incapaci
 
 Changing any of these requires the full § 6 license-change procedure: 2/3 council supermajority + 60-day public comment + BDFL co-sign. We are deliberately making this the hardest decision in the project; "going closed-source" is essentially infeasible by design.
 
-***REMOVED******REMOVED******REMOVED*** 9.2 Trademark
+### 9.2 Trademark
 
 The project does **not** hold and does **not** intend to seek a trademark on the name "structural-isomorphism". The name and logos (when designed) are CC-BY-4.0. Anyone may fork and use the name, **subject to one rule**: forks must not misrepresent NumFOCUS sponsorship status, fiscal sponsorship, or council endorsement.
 
-***REMOVED******REMOVED******REMOVED*** 9.3 Contributor sign-off
+### 9.3 Contributor sign-off
 
 We use the [Developer Certificate of Origin](https://developercertificate.org/) (DCO) via signed Git commits. We do **not** require a CLA. Contributors retain copyright on their contributions and grant the project a perpetual MIT/CC-BY-4.0 license via the DCO.
 
-***REMOVED******REMOVED*** 10. Conflict of interest
+## 10. Conflict of interest
 
 Council members must disclose to the rest of the council:
 
@@ -178,7 +178,7 @@ Council members must disclose to the rest of the council:
 
 Disclosures live in `docs/community/coi/<member>.md`. Updates required within 30 days of any material change. A council member with a COI on a specific decision **recuses** from that decision; the recusal is logged.
 
-***REMOVED******REMOVED*** 11. Amendments
+## 11. Amendments
 
 This GOVERNANCE.md can be amended via:
 
@@ -189,9 +189,9 @@ This GOVERNANCE.md can be amended via:
 
 License-related amendments additionally require the § 9 60-day comment window.
 
-Amendments take effect on merge. Each amendment includes a `***REMOVED******REMOVED*** Changelog` entry (added at bottom of this file) summarizing what changed and why.
+Amendments take effect on merge. Each amendment includes a `## Changelog` entry (added at bottom of this file) summarizing what changed and why.
 
-***REMOVED******REMOVED*** 12. Project handoff / dissolution
+## 12. Project handoff / dissolution
 
 If the council dissolves, the project merges with another OSS project (e.g. NumFOCUS adopts us into a larger umbrella), or all council members and the BDFL collectively decide to wind down, the following handoff requirements apply:
 
@@ -209,11 +209,11 @@ If the council dissolves, the project merges with another OSS project (e.g. NumF
 
 No member of the council or BDFL has the right to take the project private, sell the trademark (we have none), or close-source the codebase on dissolution. The project either continues under new governance or archives publicly.
 
-***REMOVED******REMOVED*** 13. Current maintainers
+## 13. Current maintainers
 
 - @dada8899 (founder, BDFL) — sole maintainer as of 2026-05-15
 
-***REMOVED******REMOVED*** 14. Contact
+## 14. Contact
 
 For governance questions: GitHub Discussions "Meta" category, or email the BDFL.
 For CoC reports: per `CODE_OF_CONDUCT.md`.
@@ -221,9 +221,9 @@ For security: per `.github/SECURITY.md`.
 
 ---
 
-***REMOVED******REMOVED*** Changelog
+## Changelog
 
-***REMOVED******REMOVED******REMOVED*** v2 (2026-05-15) — this version
+### v2 (2026-05-15) — this version
 - Added explicit transition trigger (whichever-comes-first: 5 PRs/quarter, first arXiv acceptance, or 2027-01-01)
 - Added 3-member council composition (BDFL + 2 external)
 - Added detailed first-council nomination process (90-day window, 5 sub-phases)
@@ -235,7 +235,7 @@ For security: per `.github/SECURITY.md`.
 - Added formal amendment process
 - Added COI disclosure framework
 
-***REMOVED******REMOVED******REMOVED*** v1 (2026-Q1) — superseded
+### v1 (2026-Q1) — superseded
 - BDFL-only governance with future-council placeholder
 - Vague trigger ("≥10 external contributors + ≥12 months project age")
 - No detailed transition procedure

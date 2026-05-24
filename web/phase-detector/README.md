@@ -1,4 +1,4 @@
-***REMOVED*** Phase Detector — Screener UI (D1 / W3-C)
+# Phase Detector — Screener UI (D1 / W3-C)
 
 Next.js 14 (app router) + Tailwind frontend for the Structural Isomorphism
 **Phase Detector** product. Lets the user filter companies by:
@@ -11,27 +11,27 @@ Next.js 14 (app router) + Tailwind frontend for the Structural Isomorphism
 …and shows a **30-second TL;DR card** per company plus a full report detail
 page.
 
-***REMOVED******REMOVED*** Pages
+## Pages
 
 | Path | Component | Purpose |
 | --- | --- | --- |
 | `/` | `app/page.tsx` | Screener home: stats bar + filter sidebar + card grid |
 | `/company/[ticker]` | `app/company/[ticker]/page.tsx` | Detail page: TL;DR, primary indicators, confidence, caveats, raw response |
 
-***REMOVED******REMOVED*** Dev
+## Dev
 
 ```bash
 cd web/phase-detector
-pnpm install   ***REMOVED*** or: npm install
+pnpm install   # or: npm install
 cp .env.example .env.local
-***REMOVED*** .env.local default uses NEXT_PUBLIC_USE_MOCK=true → no backend needed
-pnpm dev       ***REMOVED*** next dev on http://localhost:3000
+# .env.local default uses NEXT_PUBLIC_USE_MOCK=true → no backend needed
+pnpm dev       # next dev on http://localhost:3000
 ```
 
 To hit the real backend (W3-B):
 
 ```bash
-***REMOVED*** In .env.local
+# In .env.local
 NEXT_PUBLIC_USE_MOCK=false
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 ```
@@ -44,14 +44,14 @@ Backend endpoints consumed:
 
 Response schema is described in `lib/types.ts`.
 
-***REMOVED******REMOVED*** Build
+## Build
 
 ```bash
-pnpm build   ***REMOVED*** production build, must pass before PR merge
-pnpm start   ***REMOVED*** serve built app on :3000
+pnpm build   # production build, must pass before PR merge
+pnpm start   # serve built app on :3000
 ```
 
-***REMOVED******REMOVED*** Deploy
+## Deploy
 
 Target subdomain: **phase.bytedance.city** (live).
 
@@ -60,7 +60,7 @@ Target subdomain: **phase.bytedance.city** (live).
 3. `certbot --nginx -d phase.bytedance.city`
 4. systemd: `phase-detector-web` (3210) + `phase-detector-api` (8200)
 
-***REMOVED******REMOVED******REMOVED*** ⚠️ build-time env (重要)
+### ⚠️ build-time env (重要)
 
 Next.js `NEXT_PUBLIC_*` 是 **build-time** 烧入 bundle 的。**必须**在 `pnpm build`
 前准备好 `.env.production`（已 commit 到 repo）：
@@ -83,7 +83,7 @@ export NVM_DIR="/root/.nvm" && . "$NVM_DIR/nvm.sh"
 pnpm build && systemctl restart phase-detector-web
 ```
 
-***REMOVED******REMOVED*** Auto-deploy
+## Auto-deploy
 
 Push 到 `main` 且改动落在 `web/phase-detector/**` 时，GitHub Actions
 workflow [`.github/workflows/deploy-phase-detector.yml`](../../.github/workflows/deploy-phase-detector.yml)
@@ -105,14 +105,14 @@ workflow [`.github/workflows/deploy-phase-detector.yml`](../../.github/workflows
 非零退出，不会以损坏配置 build 出问题 bundle。改 `.env.production`
 本身就会触发本 workflow（`web/phase-detector/**` paths 命中）。
 
-***REMOVED******REMOVED*** Component Library (Storybook)
+## Component Library (Storybook)
 
 Run Storybook locally for visual QA of individual components:
 
 ```bash
 cd web/phase-detector
-pnpm storybook         ***REMOVED*** → http://localhost:6006
-pnpm storybook:build   ***REMOVED*** → ./storybook-static (static bundle)
+pnpm storybook         # → http://localhost:6006
+pnpm storybook:build   # → ./storybook-static (static bundle)
 ```
 
 The live component library deploys to **GitHub Pages** at
@@ -125,7 +125,7 @@ CI check via `.github/workflows/storybook.yml` (no deploy).
 Stories cover ≥15 components (see `.storybook/intro.mdx` for the
 priority list + conventions).
 
-***REMOVED******REMOVED*** Architecture notes
+## Architecture notes
 
 - API client (`lib/api.ts`) supports both real-API and mock modes via
   `NEXT_PUBLIC_USE_MOCK`. Mocks are in `lib/mock-data.ts`.

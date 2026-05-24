@@ -1,5 +1,5 @@
 """
-Magic-link auth scaffold (W15-B, session ***REMOVED***10).
+Magic-link auth scaffold (W15-B, session #10).
 
 Passwordless login flow:
     POST /api/auth/request-link  { email }       → mock-sends magic link
@@ -54,16 +54,16 @@ logger = logging.getLogger("structural.auth")
 
 router = APIRouter(tags=["auth"])
 
-***REMOVED*** --- Config ---
-_TOKEN_TTL_MIN = 15            ***REMOVED*** magic-link freshness window
-_SESSION_TTL_DAYS = 30         ***REMOVED*** JWT lifetime
-_RATE_LIMIT_PER_HOUR = 3       ***REMOVED*** link requests per email per hour
+# --- Config ---
+_TOKEN_TTL_MIN = 15            # magic-link freshness window
+_SESSION_TTL_DAYS = 30         # JWT lifetime
+_RATE_LIMIT_PER_HOUR = 3       # link requests per email per hour
 _DEFAULT_TIER = "free"
 _COOKIE_NAME = "phase_session"
 _JWT_ALG = "HS256"
 _DEV_FALLBACK_SECRET = "dev-jwt-secret-do-not-use-in-prod-32-chars-min-please"
 
-***REMOVED*** RFC-5322-ish pragmatic email regex (same as newsletter.py).
+# RFC-5322-ish pragmatic email regex (same as newsletter.py).
 _EMAIL_RE = re.compile(
     r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
 )
@@ -79,7 +79,7 @@ def _jwt_secret() -> str:
     return os.getenv("JWT_SECRET") or _DEV_FALLBACK_SECRET
 
 
-***REMOVED*** --- Storage paths (lazy, overridable in tests) ---
+# --- Storage paths (lazy, overridable in tests) ---
 
 def _data_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "data"
@@ -105,7 +105,7 @@ def _rate_limit_file() -> Path:
     return _data_dir() / "auth_rate_limit.jsonl"
 
 
-***REMOVED*** --- JSONL helpers ---
+# --- JSONL helpers ---
 
 def _append_jsonl(path: Path, record: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,7 +129,7 @@ def _read_jsonl(path: Path) -> list[dict]:
     return rows
 
 
-***REMOVED*** --- Schemas ---
+# --- Schemas ---
 
 class RequestLinkBody(BaseModel):
     email: str = Field(..., min_length=3, max_length=_MAX_EMAIL_LEN)
@@ -139,7 +139,7 @@ class VerifyBody(BaseModel):
     token: str = Field(..., min_length=10, max_length=200)
 
 
-***REMOVED*** --- Helpers: email validation, rate limit, token gen, JWT ---
+# --- Helpers: email validation, rate limit, token gen, JWT ---
 
 def _normalize_email(raw: str) -> Optional[str]:
     e = (raw or "").strip().lower()
@@ -214,9 +214,9 @@ def _is_jti_revoked(jti: str) -> bool:
 
 def _cookie_args(request: Request) -> dict:
     """Cookie security: HttpOnly + SameSite=Lax always; Secure when HTTPS."""
-    ***REMOVED*** request.url.scheme is "https" behind a proper proxy that sets
-    ***REMOVED*** X-Forwarded-Proto, but TestClient uses "http". So we relax Secure
-    ***REMOVED*** in tests; production deploys MUST run behind nginx/HTTPS.
+    # request.url.scheme is "https" behind a proper proxy that sets
+    # X-Forwarded-Proto, but TestClient uses "http". So we relax Secure
+    # in tests; production deploys MUST run behind nginx/HTTPS.
     secure = request.url.scheme == "https"
     return {
         "httponly": True,
@@ -227,7 +227,7 @@ def _cookie_args(request: Request) -> dict:
     }
 
 
-***REMOVED*** --- Endpoints ---
+# --- Endpoints ---
 
 @router.post("/auth/request-link", summary="Request a magic-link email")
 async def request_link(body: RequestLinkBody, request: Request):
@@ -260,9 +260,9 @@ async def request_link(body: RequestLinkBody, request: Request):
     }
     _append_jsonl(_tokens_file(), record)
 
-    ***REMOVED*** Mock email send: write to outbox.jsonl. Dev frontend reads this file
-    ***REMOVED*** via NEXT_PUBLIC_AUTH_DEV_MODE inline display. Prod replaces this with
-    ***REMOVED*** a real SMTP / SendGrid call.
+    # Mock email send: write to outbox.jsonl. Dev frontend reads this file
+    # via NEXT_PUBLIC_AUTH_DEV_MODE inline display. Prod replaces this with
+    # a real SMTP / SendGrid call.
     base_url = os.getenv("AUTH_LINK_BASE_URL", "http://localhost:3000")
     magic_link = f"{base_url}/auth/verify?token={token}"
     _append_jsonl(_outbox_file(), {
@@ -274,8 +274,8 @@ async def request_link(body: RequestLinkBody, request: Request):
 
     logger.info("auth.magic_link_requested email=%s", email)
 
-    ***REMOVED*** Dev mode: return the link inline so the frontend can show it.
-    ***REMOVED*** In prod, response always omits the link (regardless of dev flag).
+    # Dev mode: return the link inline so the frontend can show it.
+    # In prod, response always omits the link (regardless of dev flag).
     body_out: dict = {"ok": True}
     if os.getenv("AUTH_DEV_MODE", "").lower() in ("1", "true", "yes"):
         body_out["dev_link"] = magic_link
@@ -304,13 +304,13 @@ async def verify(body: VerifyBody, request: Request, response: Response):
             {"ok": False, "error": "invalid token"}, status_code=400
         )
 
-    ***REMOVED*** Replay guard: consumed tokens can't be re-used.
+    # Replay guard: consumed tokens can't be re-used.
     if match.get("consumed_at"):
         return JSONResponse(
             {"ok": False, "error": "token already used"}, status_code=400
         )
 
-    ***REMOVED*** Expiry check.
+    # Expiry check.
     try:
         expires_at = datetime.fromisoformat(match["expires_at"])
         if expires_at.tzinfo is None:
@@ -324,10 +324,10 @@ async def verify(body: VerifyBody, request: Request, response: Response):
             {"ok": False, "error": "token expired"}, status_code=400
         )
 
-    ***REMOVED*** Mark consumed by appending a tombstone record. Linear scan reads will
-    ***REMOVED*** see both the original (with consumed_at=None) AND the tombstone; the
-    ***REMOVED*** logic should treat any tombstone as consumed. Simpler: just rewrite
-    ***REMOVED*** the file. At Alpha scale (~100s of tokens), full rewrite is cheap.
+    # Mark consumed by appending a tombstone record. Linear scan reads will
+    # see both the original (with consumed_at=None) AND the tombstone; the
+    # logic should treat any tombstone as consumed. Simpler: just rewrite
+    # the file. At Alpha scale (~100s of tokens), full rewrite is cheap.
     consumed_marker = datetime.now(timezone.utc).isoformat()
     new_rows = []
     for r in rows:
@@ -340,11 +340,11 @@ async def verify(body: VerifyBody, request: Request, response: Response):
         for r in new_rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    ***REMOVED*** Create user if first sign-in.
+    # Create user if first sign-in.
     email = match["email"]
     user = _ensure_user(email)
 
-    ***REMOVED*** Issue JWT + set cookie.
+    # Issue JWT + set cookie.
     jwt_token, _jti = _issue_jwt(email=email, tier=user["tier"])
 
     logger.info("auth.verified email=%s tier=%s", email, user["tier"])
@@ -381,7 +381,7 @@ async def logout(request: Request):
             logger.info("auth.logout jti=%s email=%s", claims["jti"], claims.get("sub"))
 
     resp = JSONResponse({"ok": True})
-    ***REMOVED*** delete_cookie matches the path the cookie was set on.
+    # delete_cookie matches the path the cookie was set on.
     resp.delete_cookie(key=_COOKIE_NAME, path="/")
     return resp
 
@@ -408,7 +408,7 @@ async def me(request: Request):
         )
 
     email = claims.get("sub", "")
-    ***REMOVED*** Look up canonical user record so tier changes propagate.
+    # Look up canonical user record so tier changes propagate.
     rows = _read_jsonl(_users_file())
     user = next((u for u in rows if u.get("email") == email), None)
     if not user:
@@ -426,12 +426,12 @@ async def me(request: Request):
     })
 
 
-***REMOVED*** --- Test helpers ---
+# --- Test helpers ---
 
 def _override_data_dir_for_tests(tmp_dir: Path) -> None:
     """Repoint all storage to tmp_dir. Used by test fixtures only."""
     global _data_dir
-    _data_dir = lambda: tmp_dir  ***REMOVED*** noqa: E731
+    _data_dir = lambda: tmp_dir  # noqa: E731
 
 
 __all__ = ["router"]

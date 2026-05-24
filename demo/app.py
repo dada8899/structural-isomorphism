@@ -9,13 +9,13 @@ Usage:
 import sys
 from pathlib import Path
 
-***REMOVED*** Add project root to path
+# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import gradio as gr
 from structural_isomorphism import StructuralSearch
 
-***REMOVED*** Global search engine instance (loaded once)
+# Global search engine instance (loaded once)
 search = None
 
 
@@ -33,22 +33,22 @@ def do_search(query: str, top_k: int) -> str:
     results = engine.query(query, top_k=int(top_k))
 
     if not results:
-        return "<p style='color: ***REMOVED***888;'>No results found. Check that knowledge base files exist in data/.</p>"
+        return "<p style='color: #888;'>No results found. Check that knowledge base files exist in data/.</p>"
 
     html_parts = []
     for i, r in enumerate(results, 1):
-        score_color = "***REMOVED***22c55e" if r["score"] > 0.7 else "***REMOVED***eab308" if r["score"] > 0.4 else "***REMOVED***ef4444"
+        score_color = "#22c55e" if r["score"] > 0.7 else "#eab308" if r["score"] > 0.4 else "#ef4444"
         html_parts.append(f"""
-        <div style="border: 1px solid ***REMOVED***e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <div>
-                    <span style="font-weight: 700; font-size: 1.1em;">***REMOVED***{i} {r['name']}</span>
-                    <span style="background: ***REMOVED***f3f4f6; padding: 2px 8px; border-radius: 4px; margin-left: 8px; font-size: 0.9em;">{r['domain']}</span>
-                    <span style="background: ***REMOVED***f3f4f6; padding: 2px 8px; border-radius: 4px; margin-left: 4px; font-size: 0.85em; color: ***REMOVED***6b7280;">Type {r['type_id']}</span>
+                    <span style="font-weight: 700; font-size: 1.1em;">#{i} {r['name']}</span>
+                    <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 4px; margin-left: 8px; font-size: 0.9em;">{r['domain']}</span>
+                    <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 4px; margin-left: 4px; font-size: 0.85em; color: #6b7280;">Type {r['type_id']}</span>
                 </div>
                 <span style="color: {score_color}; font-weight: 700; font-size: 1.1em;">{r['score']:.3f}</span>
             </div>
-            <p style="color: ***REMOVED***374151; margin: 0; line-height: 1.6;">{r['description']}</p>
+            <p style="color: #374151; margin: 0; line-height: 1.6;">{r['description']}</p>
         </div>
         """)
 
@@ -64,7 +64,7 @@ EXAMPLES = [
 ]
 
 DESCRIPTION = """
-***REMOVED*** Structural Isomorphism Search Engine
+# Structural Isomorphism Search Engine
 
 Discover hidden cross-domain structural connections. Describe any phenomenon in natural language,
 and the engine will find structurally similar phenomena from completely different domains.

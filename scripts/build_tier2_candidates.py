@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Build tier-2 candidate pool from v2m-top5.jsonl (94 pairs).
 Excludes the 19 A-grade already in a_discoveries.json.
@@ -19,7 +19,7 @@ TARGET = WEB_DATA / "a_discoveries_tier2.json"
 
 
 def main():
-    ***REMOVED*** KB name → id lookup
+    # KB name → id lookup
     kb = {}
     with open(KB_FILE) as f:
         for line in f:
@@ -28,7 +28,7 @@ def main():
                 kb[item["name"]] = item["id"]
     print(f"KB: {len(kb)} phenomena")
 
-    ***REMOVED*** Load A-grade pairs so we can dedupe
+    # Load A-grade pairs so we can dedupe
     with open(A_GRADE) as f:
         a_data = json.load(f)
     a_pairs = set()
@@ -37,12 +37,12 @@ def main():
         a_pairs.add((x.get("b_name"), x.get("a_name")))
     print(f"A-grade pairs to exclude: {len(a_data.get('discoveries', []))}")
 
-    ***REMOVED*** Load top5 tier
+    # Load top5 tier
     with open(TOP5) as f:
         top5 = [json.loads(l) for l in f if l.strip()]
     print(f"top5 pool: {len(top5)} pairs")
 
-    ***REMOVED*** Filter out A-grade, sort by similarity desc, enrich with KB ids
+    # Filter out A-grade, sort by similarity desc, enrich with KB ids
     tier2 = []
     missing_ids = 0
     for x in top5:
@@ -57,7 +57,7 @@ def main():
             continue
 
         sim = x.get("similarity") or x.get("_score") or 0
-        ***REMOVED*** Normalize: model gives cosine similarity 0-1
+        # Normalize: model gives cosine similarity 0-1
         tier2.append({
             "a_id": a_id,
             "b_id": b_id,
@@ -72,14 +72,14 @@ def main():
             "verdict": x.get("verdict", ""),
         })
 
-    ***REMOVED*** Sort by similarity desc and rank 1..N
+    # Sort by similarity desc and rank 1..N
     tier2.sort(key=lambda x: x["similarity"], reverse=True)
     for i, x in enumerate(tier2, 1):
         x["rank"] = i
 
     print(f"tier2 final: {len(tier2)} (skipped: missing_ids={missing_ids})")
 
-    ***REMOVED*** Write
+    # Write
     payload = {
         "generated_at": str(date.today()),
         "source": "v2m-top5.jsonl (excluding A-grade)",
@@ -93,7 +93,7 @@ def main():
 
     print("\n=== top 5 of tier2 preview ===")
     for x in tier2[:5]:
-        print(f"  ***REMOVED***{x['rank']} [sim={x['similarity']:.3f}] {x['a_name']} × {x['b_name']}")
+        print(f"  #{x['rank']} [sim={x['similarity']:.3f}] {x['a_name']} × {x['b_name']}")
         print(f"       {x['a_domain']} ↔ {x['b_domain']}")
         if x.get('reason'): print(f"       {x['reason'][:100]}")
 

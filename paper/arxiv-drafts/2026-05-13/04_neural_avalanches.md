@@ -1,6 +1,6 @@
-***REMOVED*** Criticality Without Mean-Field Self-Organized Criticality: Neural Avalanche Scaling on Task-Active Mouse Anterior Lateral Motor Cortex
+# Criticality Without Mean-Field Self-Organized Criticality: Neural Avalanche Scaling on Task-Active Mouse Anterior Lateral Motor Cortex
 
-***REMOVED******REMOVED*** Authors
+## Authors
 
 Wan Qinghui (万庆徽)$^{1,*}$
 
@@ -8,15 +8,15 @@ $^{1}$ Independent Research, Structural Isomorphism Project, https://structural.
 
 $^{*}$ Correspondence: `dada8899@users.noreply.github.com` *(placeholder — author affiliation and contact details to be finalized prior to formal submission)*
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 We apply the same Layer 5 self-organized-criticality (SOC) analysis pipeline that has now validated three distinct domains — USGS earthquakes, S&P 500 daily returns, and DeFi liquidations across Aave V2 / Compound V2 / MakerDAO — to a fourth natural-kind category: single-unit cortical spiking recorded from a mouse performing a delay-response task (DANDI Archive 000006, 1,392,414 spikes from 71 sorted units over 2266 s). We first verify the pipeline on 200,000 synthetic avalanches from a critical Bienaymé-Galton-Watson branching process, recovering the mean-field predictions $\tau = 1.50$ and $\alpha_T = 1.92$ at negligible error. On the real neural recording, a bin-factor sweep across 1$\times$ to 16$\times$ mean inter-event-interval yields two clear findings. First, the SOC scaling relation $\gamma = (\alpha_T - 1)/(\tau - 1)$ is satisfied to within 2-3% at every bin scale (measured $\gamma \approx 1.10$), and the cross-bin stability of $\gamma$ over a 16-fold binning range is the strongest possible statistical signature that the system is genuinely critical. Second, the specific tail exponents are **not** the mean-field Beggs-Plenz values: $\tau \in [2.17, 3.00]$ and $\alpha_T \in [2.49, 2.94]$ depending on bin width, consistently larger than the canonical $\tau = 3/2$, $\alpha_T = 2$ of spontaneous cortical activity. This is not a failure of criticality — it places the recording in a **different SOC sub-class** consistent with Priesemann-Munk-Wibral 2014's characterization of task-related cortex as sub-critical (branching ratio $m < 1$). The V4 equivalence-class claim that neural avalanches belong in the SOC hub alongside earthquakes and DeFi liquidations is therefore not contradicted; it is refined by the finding that the specific sub-class depends on brain state (spontaneous vs. task). Same pipeline, four very different systems, four coherent results.
 
-***REMOVED******REMOVED*** Keywords
+## Keywords
 
 self-organized criticality; neural avalanches; Beggs-Plenz; scaling relation; task-active cortex; sub-critical dynamics; universality sub-class; branching process
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The Structural Isomorphism project's Layer 5 empirical validation program [1, 2] now spans four phases across three natural-kind categories: physics (Phase 1 — earthquakes [3]), finance (Phase 2 — S&P 500 [4]; Phase 3 — DeFi liquidations on three protocols [5]), and now biology (Phase 4 — mouse cortex, this paper). Each phase applies an identical analysis stack — power-law fitting via Clauset-Shalizi-Newman 2009 [6], cross-comparison with lognormal and exponential alternatives, and scaling-relation diagnostics — to a dataset drawn from a V4 SOC-hub member.
 
@@ -31,19 +31,19 @@ The specific contributions are:
 3. Demonstration that the SOC scaling relation $\gamma = (\alpha_T - 1)/(\tau - 1)$ is satisfied at every bin scale ($R^2_\mathrm{scaling} = 0.998$-$0.999$), the sharpest statistical test for criticality.
 4. Identification of a distinct **task-active sub-critical** SOC sub-class with $\tau \in [2.17, 3.00]$ and $\alpha_T \in [2.49, 2.94]$, well-separated from spontaneous mean-field Beggs-Plenz values, in the direction predicted by Priesemann et al. [8].
 
-***REMOVED******REMOVED*** 2. Data and Methods
+## 2. Data and Methods
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Datasets
+### 2.1 Datasets
 
 **Synthetic.** 200,000 Bienaymé-Galton-Watson avalanches with Poisson offspring distribution at mean branching ratio $m = 1$ (critical). Each avalanche seed spawns Poisson-distributed offspring each generation; the avalanche size is the total descendants; the duration is the number of generations. This is the canonical mean-field SOC generator.
 
 **Real.** DANDI Archive dataset 000006 [10], session `sub-anm369962_ses-20170313.nwb` (11.5 MB, HDF5/NWB format). Mouse ALM cortex extracellular ephys, 71 sorted units, 1,392,414 spikes over a 2266 s recording during a delay-response behavioral task.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Avalanche definition (Beggs-Plenz 2003)
+### 2.2 Avalanche definition (Beggs-Plenz 2003)
 
 We pool all spikes across units into a single sorted time series. We bin at width $\Delta t = f \cdot \langle \mathrm{IEI} \rangle$ where $\langle \mathrm{IEI} \rangle$ is the mean inter-event interval of the pooled spike train and $f$ is a bin factor (we sweep $f \in \{1, 2, 4, 8, 16\}$). An **avalanche** is a maximal run of consecutive non-empty bins bordered by at least one empty bin on each side. Avalanche **size** is the total spike count in the run; **duration** is the bin count.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Power-law fit and scaling relation
+### 2.3 Power-law fit and scaling relation
 
 The same Clauset-Shalizi-Newman 2009 continuous power-law fit [6] used in the earthquake [3], stock [4], and DeFi [5] phases, with the `discrete=True` option for count data. We fit $P(s) \propto s^{-\tau}$ and $P(T) \propto T^{-\alpha_T}$ separately. We additionally fit the scaling relation
 $$
@@ -54,13 +54,13 @@ $$
 \gamma = \frac{\alpha_T - 1}{\tau - 1}.
 $$
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Statistical controls
+### 2.4 Statistical controls
 
 Two controls are explicit: (i) likelihood-ratio tests against lognormal and exponential alternatives for both $P(s)$ and $P(T)$; and (ii) cross-bin-factor stability of $\gamma$, which is the diagnostic that distinguishes genuine criticality from spurious power-law-looking distributions [12].
 
-***REMOVED******REMOVED*** 3. Results
+## 3. Results
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Synthetic pipeline validation
+### 3.1 Synthetic pipeline validation
 
 **Table 1.** Fits on 200,000 synthetic critical-branching-process avalanches.
 
@@ -72,7 +72,7 @@ Two controls are explicit: (i) likelihood-ratio tests against lognormal and expo
 
 The power-law form dominates lognormal ($p = 7 \times 10^{-16}$) and exponential ($p \approx 0$) for both $P(s)$ and $P(T)$. The measured scaling-relation exponent $\gamma = 1.78$ is within 11% of the mean-field value 2.0; the small shortfall reflects a known finite-sample bias in the $\langle s | T \rangle$ estimator [12]. The pipeline recovers mean-field SOC cleanly on synthetic ground truth.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Neural recording: bin-width sensitivity
+### 3.2 Neural recording: bin-width sensitivity
 
 **Table 2.** Fits on real neural avalanches, across 5 bin factors (bin width $= f \cdot 1.64$ ms).
 
@@ -84,7 +84,7 @@ The power-law form dominates lognormal ($p = 7 \times 10^{-16}$) and exponential
 | 8$\times$ | $\sim$38,000 | $2.62 \pm 0.11$ | $2.85 \pm 0.13$ | $\sim 1.1$ | $\sim 1.12$ | — |
 | 16$\times$ | $\sim$19,000 | $2.17 \pm 0.09$ | $2.49 \pm 0.12$ | $\sim 1.1$ | $\sim 1.27$ | — |
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Interpretation
+### 3.3 Interpretation
 
 **Finding 1: the scaling relation holds at every bin scale.** Across a 16-fold sweep of bin widths, the directly measured $\gamma$ stays near 1.10 and agrees with $(\alpha_T - 1)/(\tau - 1)$ to within 2-3% at each factor. This is a strong test for criticality — a non-critical system fails the scaling relation [12]. The mouse ALM cortex during task is **critical**.
 
@@ -92,7 +92,7 @@ The power-law form dominates lognormal ($p = 7 \times 10^{-16}$) and exponential
 
 **Finding 3: the direction of deviation matches published expectations.** Priesemann, Munk, and Wibral [8] explicitly show that cortical recordings during active behavior shift toward the sub-critical side of the SOC phase diagram ($m < 1$), with correspondingly steeper tails. Our task-active recording exhibits exactly that signature. Beggs-Plenz canonical values are recovered on spontaneous cortex, not task cortex; the cortex appears to leave the critical fixed point during behavior in a controlled, sub-critical direction [13, 14].
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Joint five-phase comparison
+### 3.4 Joint five-phase comparison
 
 **Table 3.** All Layer 5 empirical validations to date.
 
@@ -108,23 +108,23 @@ The power-law form dominates lognormal ($p = 7 \times 10^{-16}$) and exponential
 
 DeFi and real-neural measurements are validated by **scaling relations** holding within each system; the absolute exponents span a wide range reflecting distinct sub-classes of the SOC equivalence class.
 
-***REMOVED******REMOVED*** 4. Discussion
+## 4. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Universality-class assignment: task-active sub-critical sub-class
+### 4.1 Universality-class assignment: task-active sub-critical sub-class
 
 The pipeline transfer across four natural-kind categories — geology, equities, decentralized finance, neuroscience — proceeded without any domain-specific tuning. The synthetic check recovered mean-field SOC at high precision, so the pipeline is verified as correctly implemented. On real neural data, the scaling relation is satisfied (the sharp test for criticality [12]); the tail exponents differ from spontaneous Beggs-Plenz values in a direction and magnitude consistent with sub-critical task activity in the published neural literature [8, 13, 14].
 
 We flag this as a **partial confirmation** rather than an unambiguous one because the V4 Layer 4 prediction band for this class was phrased around mean-field Beggs-Plenz values. The prediction band should be updated to reflect that the SOC equivalence class in biology contains *at least* two clearly distinguishable sub-classes — spontaneous cortical SOC (mean-field, $\tau \approx 3/2$) and task-active cortical sub-critical ($\tau \approx 2.8$) — and that brain-state labeling is a first-class feature of any neural SOC dataset. This is a calibration refinement, not a failure of the class hypothesis.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Mechanism candidates
+### 4.2 Mechanism candidates
 
 The task-active sub-critical state has a clean theoretical interpretation. The cortex appears to operate near a critical point during rest [7] but actively pushes itself slightly below criticality during behavior to gain dynamic-range stability and noise robustness [13]. The branching ratio $m$ drops from $m \approx 1$ to $m < 1$, and the avalanche tail steepens correspondingly: $\tau$ rises from $3/2$ toward $5/2$-$3$ as the process becomes more sub-critical. Our measurement of $\tau \in [2.17, 3.00]$ across bin factors is consistent with this scenario.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Why the cross-domain pipeline still works
+### 4.3 Why the cross-domain pipeline still works
 
 A reasonable concern is whether our pipeline, trained on physics SOC (Phase 1) and on continuous-diffusion finance (Phase 2), is "the right tool" for neural avalanches. The synthetic validation of Section 3.1 settles this: the pipeline recovers mean-field branching-process exponents at negligible error. The deviation observed in the real-data fit is therefore not a method artifact; it is a genuine deviation of the cortex from the mean-field critical point during the recorded behavior. This is exactly the kind of result the pipeline-validation gate of Phase 1 [3] was designed to enable: deviations observed downstream are interpretable as physics, not method noise.
 
-***REMOVED******REMOVED*** 5. Limitations
+## 5. Limitations
 
 1. **Single session, single animal, single brain region.** ALM is one cortical area; the finding may not generalize across cortex. Multi-session, multi-animal, and multi-area scans are needed.
 2. **Task context not controlled.** We did not segment the recording by trial phase (delay vs. cue vs. response). A trial-phase-resolved analysis could localize where criticality breaks down during behavior.
@@ -132,31 +132,31 @@ A reasonable concern is whether our pipeline, trained on physics SOC (Phase 1) a
 4. **Tail exponents drift monotonically with bin factor.** This may partly reflect subsampling (finite-N) effects; a formal subsampling correction [8] would sharpen interpretation.
 5. **No direct branching-ratio estimator.** We report exponents, not $m$ itself. Fitting $m$ via a multi-generation branching-process likelihood [15] would explicitly place the recording on the critical phase diagram.
 
-***REMOVED******REMOVED*** 6. Conclusion
+## 6. Conclusion
 
 A SOC analysis pipeline that was previously validated on USGS earthquakes, S&P 500 daily returns, and DeFi liquidations across three protocols also produces a coherent and falsifiable result on 1.39 million spikes from mouse ALM cortex during a delay-response task. The pipeline correctly recovers mean-field branching-process exponents on synthetic ground truth, and on real data it shows that (i) the SOC scaling relation $\gamma = (\alpha_T - 1)/(\tau - 1)$ is satisfied to within 2-3% across a 16-fold bin-factor sweep, confirming criticality, but (ii) the absolute tail exponents are consistently steeper than the canonical Beggs-Plenz mean-field values, placing the recording in a distinct task-active sub-critical SOC sub-class in agreement with prior neural literature. The V4 equivalence-class claim that neural avalanches belong in the SOC hub is not contradicted; it is refined to recognize the spontaneous-vs-task sub-class distinction as a first-class feature of any biological SOC dataset.
 
-***REMOVED******REMOVED*** Data Availability
+## Data Availability
 
 All raw and processed data are at the Structural Isomorphism project repository, `v4/validation/soc-neural/` (https://github.com/dada8899/structural-isomorphism), including the per-bin-factor avalanche JSONL files (`bf_{1,2,4,8,16}.jsonl`), synthetic avalanches (`synthetic_avalanches.jsonl`), and fit-result JSONs (`bf_{1,2,4,8,16}_fit.json`, `synthetic_results.json`, `neural_results.json`). The underlying neural recording is at DANDI Archive dataset 000006 [10] under the dataset's open-data license.
 
-***REMOVED******REMOVED*** Code Availability
+## Code Availability
 
 All analysis scripts are at the same repository (`v4/validation/soc-neural/`):
 
 ```
-python3 generate_synthetic.py       ***REMOVED*** critical Bienaymé-Galton-Watson generator
-python3 extract_nwb_avalanches.py   ***REMOVED*** NWB → pooled spike train → avalanche extraction
-python3 analyze_avalanches.py       ***REMOVED*** Clauset fit + scaling relation per bin factor
+python3 generate_synthetic.py       # critical Bienaymé-Galton-Watson generator
+python3 extract_nwb_avalanches.py   # NWB → pooled spike train → avalanche extraction
+python3 analyze_avalanches.py       # Clauset fit + scaling relation per bin factor
 ```
 
 Dependencies: `numpy`, `h5py`, `powerlaw` on Python 3.9 or later. Commit hash for the analysis in this paper: see repository tag `v4/phase4-neural-2026-04-16`.
 
-***REMOVED******REMOVED*** Acknowledgments
+## Acknowledgments
 
 We thank the DANDI Archive for hosting and curating the mouse ALM dataset [10] under open-data terms. We thank the original recording group (Li et al., 2015 — Janelia Research Campus) for the experimental work that produced the data. The `powerlaw` and `h5py` Python packages provide the entire fitting and I/O infrastructure; we thank their maintainers. The Phase 1 [3], Phase 2 [4], and Phase 3 [5] companion papers established the pipeline this paper applies. AI assistance (Anthropic Claude Opus 4.x via Claude Code; DeepSeek for cross-check on prose drafts) was used in code drafting, prose polishing, and literature triangulation; all data-analysis decisions, numerical results, and scientific claims are the author's responsibility. No funding was received for this work.
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Structural Isomorphism Project, "V1-V4 architecture: cross-domain universality-class identification," project documentation, https://structural.bytedance.city (2026).
 

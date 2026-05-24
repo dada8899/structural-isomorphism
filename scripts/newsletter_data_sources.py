@@ -43,12 +43,12 @@ HTTP_TIMEOUT_S = 15
 USER_AGENT = "structural-isomorphism-newsletter/0.1 (+https://github.com/dada8899/structural-isomorphism)"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. Phase Detector — recent flips
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. Phase Detector — recent flips
+# ---------------------------------------------------------------------------
 
-***REMOVED*** Mirror of send_weekly.py vocabulary — keeping them in sync is a maintenance
-***REMOVED*** tax we accept for now; could move to a shared constants module later.
+# Mirror of send_weekly.py vocabulary — keeping them in sync is a maintenance
+# tax we accept for now; could move to a shared constants module later.
 TIPPING_STATES = frozenset({"near_critical", "approaching_critical", "at_critical"})
 STABLE_STATES = frozenset({"subcritical", "far_from_critical"})
 
@@ -80,7 +80,7 @@ def fetch_phase_flips(
           "tldr": "...",
         }
     """
-    ***REMOVED*** Path (a): explicit file diff against last-week state
+    # Path (a): explicit file diff against last-week state
     if structtuples_path is not None:
         return _diff_structtuples(
             structtuples_path,
@@ -90,11 +90,11 @@ def fetch_phase_flips(
             max_results=max_results,
         )
 
-    ***REMOVED*** Path (b): live API
+    # Path (b): live API
     if api_url:
         return _fetch_phase_api(api_url, max_results=max_results)
 
-    ***REMOVED*** Path (c): auto-discover
+    # Path (c): auto-discover
     data_dir = REPO_ROOT / "v4" / "product" / "d1_phase_detector"
     candidates = sorted(data_dir.glob("structtuples_*.jsonl"))
     if not candidates:
@@ -125,9 +125,9 @@ def _diff_structtuples(
         prev = last_week.get(ticker) or {}
         prev_state = (prev.get("critical_point_state") or "").lower()
 
-        ***REMOVED*** entered tipping
+        # entered tipping
         entered = cur_state in TIPPING_STATES and prev_state not in TIPPING_STATES
-        ***REMOVED*** returned to stable
+        # returned to stable
         returned = prev_state in TIPPING_STATES and cur_state in STABLE_STATES
 
         if not (entered or returned):
@@ -238,9 +238,9 @@ def _fetch_phase_api(api_url: str, *, max_results: int) -> list[dict[str, Any]]:
     return rows[:max_results]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. arXiv — recent cross-domain SOC / universality preprints
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. arXiv — recent cross-domain SOC / universality preprints
+# ---------------------------------------------------------------------------
 
 ARXIV_API_URL = "http://export.arxiv.org/api/query"
 ARXIV_DEFAULT_QUERY = (
@@ -266,7 +266,7 @@ def fetch_arxiv_papers(
         "search_query": query,
         "sortBy": "submittedDate",
         "sortOrder": "descending",
-        "max_results": str(max(max_results * 4, 20)),  ***REMOVED*** over-fetch then date-filter
+        "max_results": str(max(max_results * 4, 20)),  # over-fetch then date-filter
     }
     url = ARXIV_API_URL + "?" + urllib.parse.urlencode(params)
     try:
@@ -314,8 +314,8 @@ def _parse_arxiv(body: bytes, *, week_start: dt.date, max_results: int) -> list[
         except ValueError:
             continue
 
-        ***REMOVED*** Date filter — last 7 days from week_start. Newsletter shouldn't show
-        ***REMOVED*** papers from 6 months ago even if they match the query.
+        # Date filter — last 7 days from week_start. Newsletter shouldn't show
+        # papers from 6 months ago even if they match the query.
         if not (week_start <= published < week_end):
             continue
 
@@ -331,22 +331,22 @@ def _parse_arxiv(body: bytes, *, week_start: dt.date, max_results: int) -> list[
 
         out.append(
             {
-                "id": link.split("/")[-1],  ***REMOVED*** e.g. "2405.01234v1"
+                "id": link.split("/")[-1],  # e.g. "2405.01234v1"
                 "title": title,
-                "authors": authors[:3],  ***REMOVED*** at most 3, "et al." in template
+                "authors": authors[:3],  # at most 3, "et al." in template
                 "url": link,
                 "abstract_one_liner": one_liner,
                 "published": published.isoformat(),
             }
         )
-    ***REMOVED*** Deterministic order: newest first, ties broken by arxiv id ascending.
+    # Deterministic order: newest first, ties broken by arxiv id ascending.
     out.sort(key=lambda r: (r["published"], r["id"]), reverse=True)
     return out[:max_results]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. GitHub — repo activity
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. GitHub — repo activity
+# ---------------------------------------------------------------------------
 
 DEFAULT_REPO = "dada8899/structural-isomorphism"
 
@@ -371,7 +371,7 @@ def fetch_github_activity(
           "total_forks": int,
           "new_contributors": int,
           "new_issues": int,
-          "new_prs_external": int,  ***REMOVED*** external (non-owner) PRs only
+          "new_prs_external": int,  # external (non-owner) PRs only
         }
     """
     runner = _runner or _run_gh
@@ -391,14 +391,14 @@ def fetch_github_activity(
     iso_start = week_start.isoformat()
     iso_end = week_end.isoformat()
 
-    ***REMOVED*** Repo overview (stargazers_count / forks_count)
+    # Repo overview (stargazers_count / forks_count)
     repo_blob = safe_call(["repo", "view", repo, "--json", "stargazerCount,forkCount"])
     try:
         repo_json = json.loads(repo_blob) if repo_blob else {}
     except json.JSONDecodeError:
         repo_json = {}
 
-    ***REMOVED*** New issues + PRs in the week (search API caps at 1000; fine for our scale)
+    # New issues + PRs in the week (search API caps at 1000; fine for our scale)
     issues_blob = safe_call(
         [
             "api",
@@ -427,13 +427,13 @@ def fetch_github_activity(
     )
 
     return {
-        "new_stars": 0,  ***REMOVED*** GitHub API doesn't expose per-week stargazer count
-                        ***REMOVED*** without paginating /stargazers; we leave 0 and report
-                        ***REMOVED*** total instead.
+        "new_stars": 0,  # GitHub API doesn't expose per-week stargazer count
+                        # without paginating /stargazers; we leave 0 and report
+                        # total instead.
         "total_stars": int(repo_json.get("stargazerCount", 0) or 0),
         "new_forks": 0,
         "total_forks": int(repo_json.get("forkCount", 0) or 0),
-        "new_contributors": 0,  ***REMOVED*** would require diffing contributor lists week-over-week
+        "new_contributors": 0,  # would require diffing contributor lists week-over-week
         "new_issues": _safe_int(issues_blob),
         "new_prs_external": _safe_int(prs_blob),
     }
@@ -469,13 +469,13 @@ def _safe_int(s: Any) -> int:
         return 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. Methodology spotlight — rotating topic
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. Methodology spotlight — rotating topic
+# ---------------------------------------------------------------------------
 
-***REMOVED*** Pool of methodology micro-essays. One gets rotated in per ISO week.
-***REMOVED*** Each is ~2 short paragraphs; written once, reused on a slow loop.
-***REMOVED*** Add new entries here; ID = stable slug, body = pre-rendered markdown.
+# Pool of methodology micro-essays. One gets rotated in per ISO week.
+# Each is ~2 short paragraphs; written once, reused on a slow loop.
+# Add new entries here; ID = stable slug, body = pre-rendered markdown.
 SPOTLIGHT_POOL: list[dict[str, str]] = [
     {
         "id": "soc-universality-class",
@@ -625,9 +625,9 @@ def all_spotlight_slugs() -> list[str]:
     return [s["id"] for s in SPOTLIGHT_POOL]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. /api/ask top queries — placeholder
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. /api/ask top queries — placeholder
+# ---------------------------------------------------------------------------
 
 def fetch_top_ask_queries(*, week_start: dt.date) -> list[dict[str, Any]]:
     """Return top /api/ask queries for the week.

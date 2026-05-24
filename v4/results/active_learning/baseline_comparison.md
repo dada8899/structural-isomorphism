@@ -1,4 +1,4 @@
-***REMOVED*** F2 Active Learning — Baseline Strategy Comparison
+# F2 Active Learning — Baseline Strategy Comparison
 
 **Goal**: compare three query-selection strategies (random / uncertainty / critic) at the same labelling budget to test whether the critic-based selection adds value beyond a random or uncertainty baseline.
 
@@ -6,14 +6,14 @@
 - Train pool size: 65
 - Eval split size: 15
 
-***REMOVED******REMOVED*** Vanilla baseline (no AL, unit TF-IDF weights)
+## Vanilla baseline (no AL, unit TF-IDF weights)
 
 - R@5:        0.400
 - R@10:       0.600
 - MRR:        0.461
 - Silhouette: 0.032
 
-***REMOVED******REMOVED*** Strategy comparison
+## Strategy comparison
 
 | Strategy | n_selected | n_pos | n_neg | R@5 | R@10 | MRR | Silhouette | Δ R@5 vs baseline |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -21,15 +21,15 @@
 | **uncertainty** | 65 | 24 | 41 | 0.400 | 0.800 | 0.460 | 0.037 | +0.000 |
 | **critic** | 65 | 24 | 41 | 0.400 | 0.800 | 0.460 | 0.037 | +0.000 |
 
-***REMOVED******REMOVED*** Interpretation
+## Interpretation
 
 ⚠️ Random sampling ties or beats critic-based selection (0.400 ≥ 0.400). At this budget the critic signal is **not** distinguishable from random labels — consider increasing budget, refining critic prompt, or using a stronger uncertainty model.
 
-***REMOVED******REMOVED*** Caveat
+## Caveat
 
 This is a simulation on TF-IDF char n-grams, not real V1/V2 sentence-transformer fine-tuning. The relative deltas between strategies are informative; absolute numbers are not directly comparable to the production V3 fine-tune. See `f2_simulate_active_learning.py` and `v4/lib/F2_active_learning_design.md` §3 for the real-run swap.
 
-***REMOVED******REMOVED*** Method
+## Method
 
 1. Load all mined pairs (positives + hard negatives) from `f2_mine_hard_negatives.py` output.
 2. Train/eval split (stratified by label, seed=42).

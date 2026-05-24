@@ -31,4 +31,4 @@ def test_synthetic_null_single_kind():
 @pytest.mark.sanity
 def test_synthetic_null_invalid_kind():
     with pytest.raises(ValueError):
-        synthetic_null(kind="bogus_dist", n=1000)  ***REMOVED*** type: ignore[arg-type]
+        synthetic_null(kind="bogus_dist", n=1000)  # type: ignore[arg-type]

@@ -20,18 +20,18 @@ SCRIPTS = ROOT / "v4" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-***REMOVED*** Import the script as a module via a synthetic name
+# Import the script as a module via a synthetic name
 import importlib.util
 
 _spec = importlib.util.spec_from_file_location(
     "_f3_fwer", str(SCRIPTS / "F3_apply_fwer_correction.py")
 )
-_f3 = importlib.util.module_from_spec(_spec)  ***REMOVED*** type: ignore[arg-type]
+_f3 = importlib.util.module_from_spec(_spec)  # type: ignore[arg-type]
 sys.modules["_f3_fwer"] = _f3
-_spec.loader.exec_module(_f3)  ***REMOVED*** type: ignore[union-attr]
+_spec.loader.exec_module(_f3)  # type: ignore[union-attr]
 
 
-***REMOVED*** --- _safe_get ---
+# --- _safe_get ---
 
 
 def test_safe_get_single_level():
@@ -64,7 +64,7 @@ def test_safe_get_none_value_returns_none():
     assert _f3._safe_get(d, "a") is None
 
 
-***REMOVED*** --- _coerce_p ---
+# --- _coerce_p ---
 
 
 def test_coerce_p_none():
@@ -111,7 +111,7 @@ def test_coerce_p_int():
     assert _f3._coerce_p(1) == 1.0
 
 
-***REMOVED*** --- FwerSummary dataclass ---
+# --- FwerSummary dataclass ---
 
 
 def test_fwer_summary_dataclass_construction():
@@ -126,7 +126,7 @@ def test_fwer_summary_dataclass_construction():
     assert s.n_significant_raw == 5
 
 
-***REMOVED*** --- harvest_pvalues with synthetic validation tree ---
+# --- harvest_pvalues with synthetic validation tree ---
 
 
 def test_harvest_pvalues_empty_validation_dir(tmp_path, monkeypatch):
@@ -154,7 +154,7 @@ def test_harvest_pvalues_with_stockmarket(tmp_path, monkeypatch):
     }))
     monkeypatch.setattr(_f3, "VALIDATION", validation)
     out = _f3.harvest_pvalues()
-    assert len(out) == 2  ***REMOVED*** two LR tests
+    assert len(out) == 2  # two LR tests
     systems = {r["system"] for r in out}
     assert "stockmarket" in systems
     tests = {r["test"] for r in out}
@@ -219,7 +219,7 @@ def test_harvest_pvalues_skips_missing_key(tmp_path, monkeypatch, capsys):
     validation = tmp_path / "validation"
     sm = validation / "soc-stockmarket"
     sm.mkdir(parents=True)
-    (sm / "gr_results.json").write_text(json.dumps({}))  ***REMOVED*** missing clauset_fit
+    (sm / "gr_results.json").write_text(json.dumps({}))  # missing clauset_fit
     monkeypatch.setattr(_f3, "VALIDATION", validation)
     out = _f3.harvest_pvalues()
     captured = capsys.readouterr()
@@ -280,12 +280,12 @@ def test_main_writes_summary_files(tmp_path, monkeypatch, capsys):
 
     _f3.main()
     captured = capsys.readouterr()
-    ***REMOVED*** Output files present
+    # Output files present
     out_jsonl = results / "F3_fwer_corrected.jsonl"
     out_summary = results / "F3_fwer_summary.json"
     assert out_jsonl.exists()
     assert out_summary.exists()
     summary = json.loads(out_summary.read_text())
     assert "n_tests" in summary
-    assert summary["n_tests"] == 2  ***REMOVED*** ln + exp
+    assert summary["n_tests"] == 2  # ln + exp
     assert "alpha" in summary

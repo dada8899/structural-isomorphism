@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch NOAA SWPC solar-wind plasma data and extract speed-burst events.
 
 Strategy
@@ -25,7 +25,7 @@ Output: solar_wind_bursts.jsonl with one record per burst:
       "duration_s": float,
       "peak_speed_kms": float,
       "integrated_excess_kms_s": float,
-      "inter_event_s": float,  ***REMOVED*** gap to PREVIOUS burst
+      "inter_event_s": float,  # gap to PREVIOUS burst
     }
 
 Pre-registered band (from Freeman & Watkins 2002 / task spec):
@@ -48,12 +48,12 @@ OUT_JSONL = OUT_DIR / "solar_wind_bursts.jsonl"
 FETCH_LOG = OUT_DIR / "fetch_log.json"
 RAW_NPZ = OUT_DIR / "raw_plasma.npz"
 
-***REMOVED*** Pre-registration constants
-BURST_SIGMA_THRESHOLD = 2.0  ***REMOVED*** mu + 2*sigma
-ROLLING_WINDOW_HOURS = 30 * 24  ***REMOVED*** 30-day window
-MAX_BURST_DURATION_S = 6 * 3600  ***REMOVED*** 6 hours
-MIN_BURST_DURATION_S = 5 * 60  ***REMOVED*** 5 minutes
-SAMPLE_INTERVAL_S = 60  ***REMOVED*** 1 minute SWPC native
+# Pre-registration constants
+BURST_SIGMA_THRESHOLD = 2.0  # mu + 2*sigma
+ROLLING_WINDOW_HOURS = 30 * 24  # 30-day window
+MAX_BURST_DURATION_S = 6 * 3600  # 6 hours
+MIN_BURST_DURATION_S = 5 * 60  # 5 minutes
+SAMPLE_INTERVAL_S = 60  # 1 minute SWPC native
 
 NOAA_PLASMA_URL = (
     "https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json"
@@ -71,7 +71,7 @@ def fetch_noaa_swpc(timeout: float = 15.0) -> tuple[np.ndarray, np.ndarray] | No
         r = requests.get(NOAA_PLASMA_URL, timeout=timeout)
         r.raise_for_status()
         data = r.json()
-        ***REMOVED*** Header: ["time_tag", "density", "speed", "temperature"]
+        # Header: ["time_tag", "density", "speed", "temperature"]
         header = data[0]
         idx_t = header.index("time_tag")
         idx_v = header.index("speed")
@@ -107,7 +107,7 @@ def fetch_noaa_swpc(timeout: float = 15.0) -> tuple[np.ndarray, np.ndarray] | No
 
 
 def synth_solar_wind(
-    n_hours: int = 365 * 24 * 5,  ***REMOVED*** 5 years hourly
+    n_hours: int = 365 * 24 * 5,  # 5 years hourly
     seed: int = 42,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Synthetic solar-wind speed series consistent with OMNIWeb 5-year stats.
@@ -117,29 +117,29 @@ def synth_solar_wind(
     Returns (timestamps[s], V_p[km/s]) at 1-hour cadence.
     """
     rng = np.random.default_rng(seed)
-    ***REMOVED*** AR(1) on log-speed
+    # AR(1) on log-speed
     rho = 0.92
-    sigma_log = 0.22  ***REMOVED*** log-units, matches Veltri 1999
+    sigma_log = 0.22  # log-units, matches Veltri 1999
     mu_log = np.log(440.0)
     x = np.zeros(n_hours)
     x[0] = mu_log
     eps = rng.normal(0, sigma_log * np.sqrt(1 - rho**2), size=n_hours)
     for i in range(1, n_hours):
         x[i] = mu_log + rho * (x[i - 1] - mu_log) + eps[i]
-    ***REMOVED*** Add intermittent burst overlay — fat-tailed CME-style enhancements
-    n_bursts = int(n_hours / 50)  ***REMOVED*** ~1 burst per 50 hours on average
+    # Add intermittent burst overlay — fat-tailed CME-style enhancements
+    n_bursts = int(n_hours / 50)  # ~1 burst per 50 hours on average
     burst_times = rng.integers(0, n_hours, size=n_bursts)
-    ***REMOVED*** Burst amplitude drawn from power-law tail (alpha = 2.0)
+    # Burst amplitude drawn from power-law tail (alpha = 2.0)
     burst_amp = rng.pareto(1.0, size=n_bursts) * 0.15 + 0.05
     for t, a in zip(burst_times, burst_amp):
-        ***REMOVED*** burst lasts 1-6 hours, exponential tail
+        # burst lasts 1-6 hours, exponential tail
         dur = max(1, int(rng.exponential(2.5)))
         for k in range(dur):
             if t + k < n_hours:
                 x[t + k] += a * np.exp(-k / 2.5)
     speeds = np.exp(x)
     speeds = np.clip(speeds, 250, 1800)
-    timestamps = np.arange(n_hours, dtype=float) * 3600.0 + 1262304000.0  ***REMOVED*** 2010-01-01
+    timestamps = np.arange(n_hours, dtype=float) * 3600.0 + 1262304000.0  # 2010-01-01
     return timestamps, speeds
 
 
@@ -148,7 +148,7 @@ def extract_bursts(times: np.ndarray, speeds: np.ndarray) -> list[dict[str, Any]
     dt = np.median(np.diff(times))
     window_n = max(48, int(ROLLING_WINDOW_HOURS * 3600 / dt))
 
-    ***REMOVED*** Rolling mean and std (simple stride)
+    # Rolling mean and std (simple stride)
     rolling_mu = np.zeros_like(speeds)
     rolling_sd = np.zeros_like(speeds)
     half = window_n // 2
@@ -211,12 +211,12 @@ def main():
     }
     real_data = fetch_noaa_swpc()
     if real_data is not None and len(real_data[1]) >= 1000:
-        ***REMOVED*** Real 7-day data is too short for clean tail statistics
-        ***REMOVED*** (~10k samples → maybe 5-15 bursts). We pair it with a synthetic
-        ***REMOVED*** 5-year baseline for adequate tail statistics, and flag honestly
-        ***REMOVED*** in RESULT.md.
+        # Real 7-day data is too short for clean tail statistics
+        # (~10k samples → maybe 5-15 bursts). We pair it with a synthetic
+        # 5-year baseline for adequate tail statistics, and flag honestly
+        # in RESULT.md.
         synth_t, synth_s = synth_solar_wind()
-        ***REMOVED*** Offset real data to follow synthetic timeline contiguously
+        # Offset real data to follow synthetic timeline contiguously
         real_t, real_s = real_data
         real_t = real_t - real_t[0] + synth_t[-1] + 3600.0
         times = np.concatenate([synth_t, real_t])

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B4 — Heterogeneous-vendor ensemble review of universality-class candidates.
 
 B3 (`v4/scripts/b3_ensemble.py`) addressed only WITHIN-vendor disagreement
@@ -46,8 +46,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Paths
+# ---------------------------------------------------------------------------
+# Paths
 
 REPO = Path(__file__).resolve().parents[2]
 CRITIC_IN = REPO / "v4" / "results" / "layer3_critic.jsonl"
@@ -55,8 +55,8 @@ YAML_DIR = REPO / "v4" / "taxonomy" / "classes"
 OUT_JSONL = REPO / "v4" / "results" / "B4_heterogeneous_ensemble.jsonl"
 OUT_SUMMARY = REPO / "v4" / "results" / "B4_ensemble_summary.md"
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** API config
+# ---------------------------------------------------------------------------
+# API config
 
 DEEPSEEK_BASE = "https://api.deepseek.com/v1/chat/completions"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions"
@@ -69,7 +69,7 @@ def _load_dotenv() -> None:
         return
     for line in env_path.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("***REMOVED***") or "=" not in line:
+        if not line or line.startswith("#") or "=" not in line:
             continue
         k, _, v = line.partition("=")
         k = k.strip()
@@ -83,8 +83,8 @@ _load_dotenv()
 DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
 OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Reviewer roster (cross-architecture)
+# ---------------------------------------------------------------------------
+# Reviewer roster (cross-architecture)
 
 
 def build_reviewers(allow_openrouter: bool) -> tuple[list[dict], list[str]]:
@@ -151,9 +151,9 @@ def build_reviewers(allow_openrouter: bool) -> tuple[list[dict], list[str]]:
         )
         notes.append("Third reviewer = Kimi-K2.5 via OpenRouter (cross-architecture)")
     else:
-        ***REMOVED*** Fallback: another DeepSeek slot with very different temperature.
-        ***REMOVED*** This still leaves B4 INTRA-vendor for the third slot, but B4's
-        ***REMOVED*** value-add over B3 is documented as conditional on Kimi reachability.
+        # Fallback: another DeepSeek slot with very different temperature.
+        # This still leaves B4 INTRA-vendor for the third slot, but B4's
+        # value-add over B3 is documented as conditional on Kimi reachability.
         reviewers.append(
             {
                 "id": "deepseek-pro-high-creativity",
@@ -175,8 +175,8 @@ def build_reviewers(allow_openrouter: bool) -> tuple[list[dict], list[str]]:
     return reviewers, notes
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Prompt template
+# ---------------------------------------------------------------------------
+# Prompt template
 
 PROMPT_TEMPLATE = """Review this candidate universality class for whether it forms a valid cross-domain universality class in the dynamical-systems sense (shared equation form + shared scaling exponents + shared critical mechanism).
 
@@ -221,35 +221,35 @@ Decision guide:
 Output ONLY the JSON object, no preamble or explanation outside the JSON.
 """
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Reuse the b3_ensemble yaml-loader and JSON-extractor
-***REMOVED***
-***REMOVED*** b3_ensemble raises at import time if DEEPSEEK_API_KEY is not set. For B4
-***REMOVED*** --dry-run we want to load without that requirement (the dry-run does no
-***REMOVED*** API calls). We temporarily set a placeholder DEEPSEEK_API_KEY for the
-***REMOVED*** import, then restore. This is purely a module-load gate; B4's real API
-***REMOVED*** path requires a real key checked separately below.
+# ---------------------------------------------------------------------------
+# Reuse the b3_ensemble yaml-loader and JSON-extractor
+#
+# b3_ensemble raises at import time if DEEPSEEK_API_KEY is not set. For B4
+# --dry-run we want to load without that requirement (the dry-run does no
+# API calls). We temporarily set a placeholder DEEPSEEK_API_KEY for the
+# import, then restore. This is purely a module-load gate; B4's real API
+# path requires a real key checked separately below.
 
 sys.path.insert(0, str(REPO / "v4" / "scripts"))
 _restore_deepseek_key: str | None = None
 if not os.environ.get("DEEPSEEK_API_KEY"):
-    _restore_deepseek_key = ""  ***REMOVED*** marker: we set a placeholder
+    _restore_deepseek_key = ""  # marker: we set a placeholder
     os.environ["DEEPSEEK_API_KEY"] = "placeholder-for-b3-import-only"
 try:
-    from b3_ensemble import load_yaml_class, extract_json  ***REMOVED*** noqa: E402
+    from b3_ensemble import load_yaml_class, extract_json  # noqa: E402
 finally:
     if _restore_deepseek_key is not None:
-        ***REMOVED*** Remove the placeholder we added.
+        # Remove the placeholder we added.
         if os.environ.get("DEEPSEEK_API_KEY") == "placeholder-for-b3-import-only":
             del os.environ["DEEPSEEK_API_KEY"]
-        ***REMOVED*** Re-load any real key from .env (in case it was there).
+        # Re-load any real key from .env (in case it was there).
         _load_dotenv()
         DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 
 def load_critic_data() -> list[dict[str, Any]]:
     if not CRITIC_IN.exists():
-        ***REMOVED*** B4 can fall back to enumerating the yaml directory directly.
+        # B4 can fall back to enumerating the yaml directory directly.
         rows: list[dict[str, Any]] = []
         for p in sorted(YAML_DIR.glob("*.yaml")):
             rows.append({"class_id": p.stem, "review_verdict": "n/a", "confidence": "n/a"})
@@ -263,8 +263,8 @@ def load_critic_data() -> list[dict[str, Any]]:
     return rows
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Universal API caller
+# ---------------------------------------------------------------------------
+# Universal API caller
 
 
 def call_llm(reviewer: dict, user: str) -> tuple[str | None, str | None]:
@@ -319,12 +319,12 @@ def call_llm(reviewer: dict, user: str) -> tuple[str | None, str | None]:
         return None, f"HTTP {e.code}: {body}"
     except urllib.error.URLError as e:
         return None, f"URLError: {e.reason}"
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         return None, f"{type(e).__name__}: {e}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Prompt builder (mirror of b3)
+# ---------------------------------------------------------------------------
+# Prompt builder (mirror of b3)
 
 
 def build_user_prompt(class_id: str, b1_row: dict, yaml: dict) -> str:
@@ -354,8 +354,8 @@ def build_user_prompt(class_id: str, b1_row: dict, yaml: dict) -> str:
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Consensus + summary writer
+# ---------------------------------------------------------------------------
+# Consensus + summary writer
 
 
 def consensus_of(verdicts: list[str]) -> str:
@@ -381,7 +381,7 @@ def write_summary(
         by_class.setdefault(r["class_id"], []).append(r)
 
     lines: list[str] = []
-    lines.append("***REMOVED*** B4 — Heterogeneous-vendor ensemble review summary\n")
+    lines.append("# B4 — Heterogeneous-vendor ensemble review summary\n")
     lines.append(f"**Date**: {time.strftime('%Y-%m-%d')}  ")
     lines.append(f"**Reviewers**: {', '.join(reviewer_ids)}  ")
     lines.append(f"**Classes reviewed**: {len(by_class)}  ")
@@ -389,13 +389,13 @@ def write_summary(
     lines.append(f"**Errors**: {n_errors}, **Parse failures**: {n_parse_fail}  ")
     lines.append(f"**Total wall time**: {elapsed_s / 60:.1f} min  ")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Setup notes\n")
+    lines.append("## Setup notes\n")
     for note in setup_notes:
         lines.append(f"- {note}")
     lines.append("")
 
-    ***REMOVED*** Per-class verdict table
-    lines.append("***REMOVED******REMOVED*** Per-class verdict table\n")
+    # Per-class verdict table
+    lines.append("## Per-class verdict table\n")
     header = "| class_id | " + " | ".join(reviewer_ids) + " | B4 consensus | avg_conf |"
     lines.append(header)
     lines.append("|" + "|".join(["---"] * (header.count("|") - 1)) + "|")
@@ -416,17 +416,17 @@ def write_summary(
             + f" | **{consensus}** | {avg_conf:.2f} |"
         )
 
-    lines.append("\n***REMOVED******REMOVED*** B4 consensus distribution\n")
+    lines.append("\n## B4 consensus distribution\n")
     for k in ("KEEP", "REJECT", "SPLIT", "MERGE", "UNCLEAR"):
         lines.append(f"- **{k}**: {b4_verdict_counts.get(k, 0)}")
 
-    ***REMOVED*** Comparison hook to B3 (only available if B3 jsonl exists)
+    # Comparison hook to B3 (only available if B3 jsonl exists)
     b3_jsonl = REPO / "v4" / "results" / "B3_ensemble_review.jsonl"
     if b3_jsonl.exists():
-        lines.append("\n***REMOVED******REMOVED*** B3 vs B4 agreement (see B3_taxonomy_v2.jsonl for B3 consensus)\n")
+        lines.append("\n## B3 vs B4 agreement (see B3_taxonomy_v2.jsonl for B3 consensus)\n")
         lines.append("Compare B4 consensus column above with B3 consensus from B3_taxonomy_v2.jsonl.")
 
-    lines.append("\n***REMOVED******REMOVED*** Methodology notes\n")
+    lines.append("\n## Methodology notes\n")
     lines.append(
         "- B4 adds cross-vendor / cross-architecture probe to address the "
         "B3 limitation that 3 DeepSeek reviewers probe within-model "
@@ -447,8 +447,8 @@ def write_summary(
     OUT_SUMMARY.write_text("\n".join(lines))
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
+# ---------------------------------------------------------------------------
+# Main
 
 
 def main() -> int:
@@ -481,7 +481,7 @@ def main() -> int:
     )
 
     if args.dry_run:
-        ***REMOVED*** Just exercise prompt-build path on first class as a smoke test.
+        # Just exercise prompt-build path on first class as a smoke test.
         if classes:
             cls = classes[0]
             yaml = load_yaml_class(cls["class_id"])

@@ -1,4 +1,4 @@
-***REMOVED*** F5 — r_shape null distribution (W7-D)
+# F5 — r_shape null distribution (W7-D)
 
 **Date:** 2026-05-15
 **Reviewer concern (W5-A §4.4(a),(b) / §7.6):** "The paper currently calls
@@ -10,7 +10,7 @@ run the same row-centered ratio computation. The empirical value's
 percentile rank against that null distribution is the actual significance
 statement."
 
-***REMOVED******REMOVED*** Key finding: r_shape is a combinatorial artifact
+## Key finding: r_shape is a combinatorial artifact
 
 When the matrix has no NaN entries and shape (S, B) = (7 systems, 20 bins),
 the **r_shape ratio is mathematically equal to**:
@@ -50,14 +50,14 @@ that would be returned whether the data is (a) actual SOC tails, (b)
 independent random Gaussians, or (c) the same row repeated 7 times — provided
 the matrix is row-centered before the ratio is computed.
 
-***REMOVED******REMOVED******REMOVED*** Algebraic identity (informal)
+### Algebraic identity (informal)
 
 After row-centering, sum_j A[i,j] = 0 for each row i. The cross-system
 variance averaged over columns and the within-system variance averaged over
 rows both collapse to scaled sums over the same set of squared deviations
 (modulo a (S-1)·(B-1) / S·B Bessel-correction ratio).
 
-***REMOVED******REMOVED*** Substituted statistic: shape-collapse RMSE
+## Substituted statistic: shape-collapse RMSE
 
 To produce a non-degenerate measure of cross-system shape similarity, we
 substitute the **shape-collapse RMSE**:
@@ -69,14 +69,14 @@ RMSE = sqrt( mean_{i, j} (row_centered[i, j] - mean_curve[j])^2 )
 This statistic IS data-dependent and provides a meaningful test against the
 null "rows are independent Gaussians."
 
-***REMOVED******REMOVED*** Null distribution
+## Null distribution
 
 Under H0 = "no shared shape across systems", we draw each system's log-y row
 as `N(mu_i, sigma_i^2)` independently, with mu_i and sigma_i^2 being the
 empirical row mean and stddev of the actual data. We compute RMSE on 10,000
 such surrogate replicates.
 
-***REMOVED******REMOVED*** Results
+## Results
 
 | Statistic | Observed | Null (Gaussian surrogate) | p_left | p_right |
 |---|---:|---|---:|---:|
@@ -95,7 +95,7 @@ such surrogate replicates.
   floor, p < 0.0001 means the observed collapse is in the lower-0.01-percent
   tail of the null.
 
-***REMOVED******REMOVED*** Reviewer-defensible reframing for the manuscript
+## Reviewer-defensible reframing for the manuscript
 
 **Replace** §4.4-§4.5 headline ("first quantitative confirmation of
 universality-class membership ... r_shape = 1.11 well inside the 'excellent'
@@ -115,7 +115,7 @@ the W5-A §4.4 critique fully (admitting r_shape is degenerate) AND produces
 a non-degenerate alternative test with an unambiguous low p-value supporting
 the original universality claim.
 
-***REMOVED******REMOVED*** Outputs
+## Outputs
 
 - `paper/figures/methodology/F5_r_shape_null.pdf` — two-panel figure:
   (a) RMSE histogram + observed line, (b) degenerate r_shape null
@@ -124,7 +124,7 @@ the original universality claim.
 - `paper/figures/methodology/F5_r_shape_null_data.json` — raw numerics
 - `paper/figures/methodology/generate_F5.py` — generator script
 
-***REMOVED******REMOVED*** References
+## References
 
 - Lübeck S (2004). "Universal scaling behavior of non-equilibrium phase
   transitions." *Int. J. Mod. Phys. B* 18, 3977-4118.

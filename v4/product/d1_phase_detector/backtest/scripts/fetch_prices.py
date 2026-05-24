@@ -8,10 +8,10 @@ Time window: 2020-01-01 to 2025-12-31 (5+ years; spans COVID + zero-rate +
 tightening + AI rally).
 
 Usage:
-  python3 fetch_prices.py                            ***REMOVED*** full universe (cached)
-  python3 fetch_prices.py --limit 50                 ***REMOVED*** smoke test on 50
-  python3 fetch_prices.py --tickers AAPL,TSLA,NVDA   ***REMOVED*** subset
-  python3 fetch_prices.py --force                    ***REMOVED*** ignore cache
+  python3 fetch_prices.py                            # full universe (cached)
+  python3 fetch_prices.py --limit 50                 # smoke test on 50
+  python3 fetch_prices.py --tickers AAPL,TSLA,NVDA   # subset
+  python3 fetch_prices.py --force                    # ignore cache
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def load_universe(path: str, limit: int | None = None) -> list[str]:
 
 
 def _cache_path(prices_dir: str, ticker: str) -> str:
-    ***REMOVED*** Sanitize ticker for filesystem (dots become underscores)
+    # Sanitize ticker for filesystem (dots become underscores)
     safe = ticker.replace(".", "_").replace("/", "_")
     return os.path.join(prices_dir, f"{safe}.csv")
 
@@ -91,8 +91,8 @@ def fetch_yfinance_batch(
 ) -> tuple[dict[str, list[tuple[dt.date, float, float, float, float, int]]], list[str]]:
     """Fetch daily OHLCV. Returns (results, failed_tickers)."""
     try:
-        import yfinance as yf  ***REMOVED*** type: ignore
-        import pandas as pd  ***REMOVED*** type: ignore
+        import yfinance as yf  # type: ignore
+        import pandas as pd  # type: ignore
     except ImportError:
         LOG.error("yfinance not installed; pip install yfinance pandas")
         return {}, list(tickers)
@@ -128,7 +128,7 @@ def fetch_yfinance_batch(
             time.sleep(sleep_s)
             continue
 
-        ***REMOVED*** parse single vs multi ticker DataFrame
+        # parse single vs multi ticker DataFrame
         if len(batch) == 1:
             t = batch[0]
             rows = _extract_ohlcv(df)
@@ -138,7 +138,7 @@ def fetch_yfinance_batch(
                 failed.append(t)
         else:
             try:
-                level0 = set(df.columns.levels[0])  ***REMOVED*** ticker level
+                level0 = set(df.columns.levels[0])  # ticker level
             except AttributeError:
                 level0 = set()
             for t in batch:
@@ -170,7 +170,7 @@ def _extract_ohlcv(df) -> list[tuple[dt.date, float, float, float, float, int]]:
             try:
                 d = ts.date() if hasattr(ts, "date") else dt.date.fromisoformat(str(ts)[:10])
                 o, h, l, cl, v = float(row["Open"]), float(row["High"]), float(row["Low"]), float(row["Close"]), int(row["Volume"]) if row["Volume"] == row["Volume"] else 0
-                if cl != cl:  ***REMOVED*** NaN check
+                if cl != cl:  # NaN check
                     continue
                 rows.append((d, o, h, l, cl, v))
             except (ValueError, TypeError):
@@ -203,7 +203,7 @@ def main(argv: list[str] | None = None) -> int:
         universe = load_universe(args.universe, args.limit)
     LOG.info("Universe: %d tickers", len(universe))
 
-    ***REMOVED*** Skip cached tickers unless --force
+    # Skip cached tickers unless --force
     if args.force:
         to_fetch = universe
     else:
@@ -221,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
             _write_ticker_csv(args.prices_dir, t, rows)
         LOG.info("Wrote %d ticker CSVs to %s", len(fetched), args.prices_dir)
 
-    ***REMOVED*** Count final coverage (cache + new fetches)
+    # Count final coverage (cache + new fetches)
     covered = [t for t in universe if _is_cached(args.prices_dir, t)]
     meta = {
         "version": "0.1",

@@ -34,13 +34,13 @@ from typing import Optional
 
 logger = logging.getLogger("structural.auth")
 
-***REMOVED*** Tier ordering: higher tier wins if a token is registered in multiple buckets.
+# Tier ordering: higher tier wins if a token is registered in multiple buckets.
 _TIER_RANK = {"paid": 2, "free": 1, "anonymous": 0}
 
 _COOKIE_NAME = "structural_api_token"
 _BEARER_PREFIX = "Bearer "
 
-***REMOVED*** Per-tier rate-limit policy. Tweak via env if needed without code change.
+# Per-tier rate-limit policy. Tweak via env if needed without code change.
 _DEFAULT_LIMITS = {
     "paid": "60/minute",
     "free": "10/minute",
@@ -74,7 +74,7 @@ def _parse_token_env() -> dict[str, str]:
             token = chunk
         if not token:
             continue
-        ***REMOVED*** If a token is reused across tiers, keep the higher tier.
+        # If a token is reused across tiers, keep the higher tier.
         prev = out.get(token)
         if prev is None or _TIER_RANK[tier] > _TIER_RANK[prev]:
             out[token] = tier
@@ -83,17 +83,17 @@ def _parse_token_env() -> dict[str, str]:
 
 def _extract_token(request) -> Optional[str]:
     """Pull a token from Authorization header or cookie. Returns None if absent."""
-    ***REMOVED*** Header takes precedence.
+    # Header takes precedence.
     auth = request.headers.get("Authorization") or request.headers.get("authorization")
     if auth:
         if auth.startswith(_BEARER_PREFIX):
             tok = auth[len(_BEARER_PREFIX):].strip()
             if tok:
                 return tok
-    ***REMOVED*** Cookie fallback (handy for browser flows).
+    # Cookie fallback (handy for browser flows).
     try:
         cookie_val = request.cookies.get(_COOKIE_NAME)
-    except Exception:  ***REMOVED*** pragma: no cover — non-FastAPI Request types
+    except Exception:  # pragma: no cover — non-FastAPI Request types
         cookie_val = None
     if cookie_val:
         return cookie_val.strip()
@@ -114,7 +114,7 @@ def verify_api_token(request) -> Optional[str]:
     allow = _parse_token_env()
     tier = allow.get(token)
     if tier is None:
-        ***REMOVED*** Provided but invalid → caller should raise 401.
+        # Provided but invalid → caller should raise 401.
         return None
     return tier
 
@@ -144,12 +144,12 @@ def tier_limit(request) -> str:
     tier = verify_api_token(request)
     if tier is None:
         tier = "anonymous"
-    ***REMOVED*** Best-effort IP extraction; slowapi.util.get_remote_address handles
-    ***REMOVED*** X-Forwarded-For but we don't depend on slowapi here (it may be absent
-    ***REMOVED*** in test environments).
+    # Best-effort IP extraction; slowapi.util.get_remote_address handles
+    # X-Forwarded-For but we don't depend on slowapi here (it may be absent
+    # in test environments).
     try:
         ip = request.client.host if request.client else "unknown"
-    except Exception:  ***REMOVED*** pragma: no cover
+    except Exception:  # pragma: no cover
         ip = "unknown"
     return f"{tier}:{ip}"
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>深度类比 — Phase Detector</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,20 +17,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --green: ***REMOVED***059669;
-      --amber: ***REMOVED***D97706;
-      --red: ***REMOVED***DC2626;
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -241,8 +241,8 @@
 
     .error-box {
       padding: 40px 32px;
-      background: ***REMOVED***FEF2F2;
-      border: 1px solid ***REMOVED***FECACA;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
       border-radius: 12px;
       color: var(--red);
       text-align: center;
@@ -312,7 +312,7 @@
   </footer>
 
   <script>
-    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     // Read context from sessionStorage (set by list page)
     let context = null;
@@ -644,7 +644,7 @@
           // 已有部分内容，标注中断
           renderLive(true);
           const warn = document.createElement('div');
-          warn.style.cssText = 'margin-top: 16px; padding: 12px 16px; background: ***REMOVED***FEF2F2; border-left: 3px solid ***REMOVED***DC2626; border-radius: 6px; color: ***REMOVED***991B1B; font-size: 13px;';
+          warn.style.cssText = 'margin-top: 16px; padding: 12px 16px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 6px; color: #991B1B; font-size: 13px;';
           warn.textContent = `流式中断：${err.message}`;
           liveReport.insertAdjacentElement('afterend', warn);
         }

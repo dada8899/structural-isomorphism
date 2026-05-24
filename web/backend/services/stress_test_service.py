@@ -1,4 +1,4 @@
-"""Structural stress-test service (Session ***REMOVED***18, feature E).
+"""Structural stress-test service (Session #18, feature E).
 
 The product takes ONE business analogy / strategic claim and ONLY tries to
 falsify it. It never flatters, never agrees for the sake of agreeing. It
@@ -20,18 +20,18 @@ from services import llm_client
 
 logger = logging.getLogger("structural.stress_test")
 
-***REMOVED*** Verdict enum — the only three values the API will ever emit.
+# Verdict enum — the only three values the API will ever emit.
 VERDICTS = ("PASS", "FAIL", "CONDITIONAL")
 
-***REMOVED*** Hard input bounds. A claim is one sentence-ish; anything past this is abuse.
+# Hard input bounds. A claim is one sentence-ish; anything past this is abuse.
 CLAIM_MIN_LEN = 4
 CLAIM_MAX_LEN = 600
 
-***REMOVED*** Cap how many correspondences we keep — a runaway LLM could emit dozens.
+# Cap how many correspondences we keep — a runaway LLM could emit dozens.
 MAX_CORRESPONDENCES = 12
 
-***REMOVED*** Precedent search — how many KB candidates to pull, and the relevance floor
-***REMOVED*** below which a hit is too weak to call a real structural precedent.
+# Precedent search — how many KB candidates to pull, and the relevance floor
+# below which a hit is too weak to call a real structural precedent.
 PRECEDENT_TOP_K = 6
 PRECEDENT_MIN_RELEVANCE = 0.55
 
@@ -77,10 +77,10 @@ _SYSTEM_PROMPT = """你是一个冷静、严苛的结构红队分析师（red te
 }"""
 
 
-***REMOVED*** Precedent grounding — second LLM call. Takes the weakest link plus ONE real
-***REMOVED*** KB phenomenon that is structurally isomorphic, and explains how that real
-***REMOVED*** phenomenon broke. This is what turns the verdict from "a clever red-team
-***REMOVED*** LLM's opinion" into "backed by a verified cross-domain precedent".
+# Precedent grounding — second LLM call. Takes the weakest link plus ONE real
+# KB phenomenon that is structurally isomorphic, and explains how that real
+# phenomenon broke. This is what turns the verdict from "a clever red-team
+# LLM's opinion" into "backed by a verified cross-domain precedent".
 _PRECEDENT_SYSTEM_PROMPT = """你是结构红队分析师。下面给你一个商业类比里\
 【最薄弱的一环】，以及一个从知识库里检索到的、与这一环结构同构的真实现象。
 
@@ -112,7 +112,7 @@ def build_precedent_query(weakest_link: Any, target: Any = None) -> Optional[str
     if not isinstance(weakest_link, str):
         return None
     stripped = weakest_link.strip()
-    ***REMOVED*** The placeholder coerce_result emits when the LLM gave nothing.
+    # The placeholder coerce_result emits when the LLM gave nothing.
     if not stripped or stripped.startswith("（"):
         return None
     parts = [stripped]
@@ -203,7 +203,7 @@ async def enrich_with_precedent(result: dict, search_svc: Any) -> dict:
 
     try:
         hits = search_svc.search(query, top_k=PRECEDENT_TOP_K)
-    except Exception as e:  ***REMOVED*** search must never break the stress test
+    except Exception as e:  # search must never break the stress test
         logger.warning("enrich_with_precedent: search failed: %s", e)
         return result
 
@@ -266,7 +266,7 @@ def _coerce_verdict(raw: Any) -> Optional[str]:
     norm = raw.strip().upper()
     if norm in VERDICTS:
         return norm
-    ***REMOVED*** Common synonyms an LLM might drift into.
+    # Common synonyms an LLM might drift into.
     synonyms = {
         "PASSED": "PASS",
         "VALID": "PASS",
@@ -292,7 +292,7 @@ def _coerce_correspondence(item: Any) -> Optional[dict]:
     stress = item.get("stress_result")
     stress_str = stress.strip() if isinstance(stress, str) else ""
     holds = item.get("holds")
-    ***REMOVED*** holds defaults to False — an unproven correspondence is not "holds".
+    # holds defaults to False — an unproven correspondence is not "holds".
     holds_bool = holds is True
     return {
         "claim": claim.strip(),
@@ -328,8 +328,8 @@ def coerce_result(raw: Any) -> Optional[dict]:
 
     verdict = _coerce_verdict(raw.get("verdict"))
 
-    ***REMOVED*** If the LLM gave us neither correspondences nor a verdict, there is
-    ***REMOVED*** nothing worth showing — treat as a failure.
+    # If the LLM gave us neither correspondences nor a verdict, there is
+    # nothing worth showing — treat as a failure.
     if not correspondences and verdict is None:
         return None
 
@@ -347,8 +347,8 @@ def coerce_result(raw: Any) -> Optional[dict]:
         else "（模型未给出裁决理由）"
     )
 
-    ***REMOVED*** When verdict is missing/illegal, fall back deterministically from the
-    ***REMOVED*** correspondence results rather than emitting an invalid enum.
+    # When verdict is missing/illegal, fall back deterministically from the
+    # correspondence results rather than emitting an invalid enum.
     if verdict is None:
         if correspondences and all(c["holds"] for c in correspondences):
             verdict = "PASS"
@@ -365,8 +365,8 @@ def coerce_result(raw: Any) -> Optional[dict]:
         "weakest_link": weakest_str,
         "verdict": verdict,
         "verdict_reason": reason_str,
-        ***REMOVED*** Real KB precedent backing the weakest link — filled in by
-        ***REMOVED*** enrich_with_precedent(); stays None when no precedent is found.
+        # Real KB precedent backing the weakest link — filled in by
+        # enrich_with_precedent(); stays None when no precedent is found.
         "precedent": None,
     }
 
@@ -383,7 +383,7 @@ async def run_stress_test(claim: str, search_svc: Any = None) -> Optional[dict]:
     raw = await llm_client.complete_json(
         system=_SYSTEM_PROMPT,
         user=user_prompt,
-        temperature=0.3,  ***REMOVED*** low — we want consistent, critical reasoning
+        temperature=0.3,  # low — we want consistent, critical reasoning
         max_tokens=2600,
     )
     if raw is None:
@@ -393,8 +393,8 @@ async def run_stress_test(claim: str, search_svc: Any = None) -> Optional[dict]:
     if coerced is None:
         logger.warning("run_stress_test: LLM output failed schema coercion")
         return None
-    ***REMOVED*** Ground the weakest link in a real KB precedent. Degrades silently to
-    ***REMOVED*** precedent=None when search is unavailable or finds nothing.
+    # Ground the weakest link in a real KB precedent. Degrades silently to
+    # precedent=None when search is unavailable or finds nothing.
     coerced = await enrich_with_precedent(coerced, search_svc)
     return coerced
 

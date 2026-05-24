@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 try:
-    import jsonschema  ***REMOVED*** type: ignore
+    import jsonschema  # type: ignore
     _HAS_JSONSCHEMA = True
 except ImportError:
     _HAS_JSONSCHEMA = False
@@ -44,11 +44,11 @@ def _best_validator():
     return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-***REMOVED*** MERGE_WITH(<token>) where <token> is a class-id-ish identifier
+# MERGE_WITH(<token>) where <token> is a class-id-ish identifier
 _MERGE_WITH_RE = re.compile(r"^MERGE_WITH\(([A-Za-z0-9_.\-]+)\)$")
 
 
@@ -82,9 +82,9 @@ def _check_type(value: Any, name: str, expected: type | tuple[type, ...]) -> str
     return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** JSON Schema wrapper (new public API)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# JSON Schema wrapper (new public API)
+# ---------------------------------------------------------------------------
 
 
 class LLMSchema:
@@ -121,7 +121,7 @@ class LLMSchema:
                 "LLMSchema requires `jsonschema>=3.2`. "
                 "Install with `pip install jsonschema`."
             )
-        ***REMOVED*** Eagerly validate the meta-schema so misconfiguration surfaces early.
+        # Eagerly validate the meta-schema so misconfiguration surfaces early.
         try:
             validator_cls.check_schema(schema)
         except jsonschema.exceptions.SchemaError as e:
@@ -156,9 +156,9 @@ def validate_response(d: Any, schema: "LLMSchema | type") -> tuple[bool, str | N
     return False, f"schema {schema!r} has no .validate() method", None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Legacy dataclass schemas (used by structural-isomorphism V4 pipeline)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Legacy dataclass schemas (used by structural-isomorphism V4 pipeline)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -321,8 +321,8 @@ class B3EnsembleReview:
 
     class_id: str
     model_id: str
-    verdict: str  ***REMOVED*** KEEP / REJECT / UNCLEAR
-    confidence: float  ***REMOVED*** 0.0 - 1.0
+    verdict: str  # KEEP / REJECT / UNCLEAR
+    confidence: float  # 0.0 - 1.0
     rationale: str
 
     VERDICTS: tuple[str, ...] = field(
@@ -378,9 +378,9 @@ class B3EnsembleReview:
         )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Dispatch helper (legacy name; kept for backwards compat with v4/lib path)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Dispatch helper (legacy name; kept for backwards compat with v4/lib path)
+# ---------------------------------------------------------------------------
 
 
 def validate(d: Any, schema_cls: type) -> tuple[bool, str | None, Any]:

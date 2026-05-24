@@ -10,7 +10,7 @@ from soc_pipeline import time_resolution_sweep
 @pytest.mark.sanity
 def test_time_resolution_sweep_returns_sweep_entries():
     rng = np.random.default_rng(0)
-    ***REMOVED*** 5000 events over 30 days
+    # 5000 events over 30 days
     times = np.sort(rng.uniform(0, 30 * 86400, 5000))
     out = time_resolution_sweep(times, bin_sizes_sec=(300.0, 3600.0, 86400.0))
     assert "sweep" in out

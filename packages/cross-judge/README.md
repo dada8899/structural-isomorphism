@@ -1,4 +1,4 @@
-***REMOVED*** cross-judge
+# cross-judge
 
 **Multi-vendor LLM ensemble-judge framework with KEEP / REJECT / SPLIT / MERGE
 verdicts and Krippendorff α disagreement metrics.**
@@ -9,7 +9,7 @@ consensus label, plus tells you *how much they disagreed*. It's a thin,
 focused library for the **LLM-as-judge** methodology with a deliberately
 small public surface (`Critic`, `Ensemble`, `Verdict`).
 
-***REMOVED******REMOVED*** 5-second pitch
+## 5-second pitch
 
 ```python
 from cross_judge import Critic, Ensemble
@@ -22,12 +22,12 @@ critics = [
 result = Ensemble(critics, voting="majority").judge(
     "Is this candidate a valid universality class?"
 )
-print(result.consensus)          ***REMOVED*** "KEEP"
-print(result.agreement_pct)      ***REMOVED*** 0.67
-print(result.krippendorff_alpha) ***REMOVED*** 0.0  (2 vs 1 = chance-level)
+print(result.consensus)          # "KEEP"
+print(result.agreement_pct)      # 0.67
+print(result.krippendorff_alpha) # 0.0  (2 vs 1 = chance-level)
 ```
 
-***REMOVED******REMOVED*** Why
+## Why
 
 LLM-as-judge results from a single model inherit that model's biases —
 anchoring, alignment, vendor-specific quirks. Running the same judgment
@@ -43,11 +43,11 @@ This package was extracted from the [structural-isomorphism](https://github.com/
 project's B3 / B4 ensemble review pipeline (multi-vendor LLM review of
 candidate cross-domain universality classes).
 
-***REMOVED******REMOVED*** Install
+## Install
 
 ```bash
 pip install cross-judge
-***REMOVED*** or, with the openai-python client as a convenience:
+# or, with the openai-python client as a convenience:
 pip install 'cross-judge[openai]'
 ```
 
@@ -58,13 +58,13 @@ required at v0.1 — we ship a minimal httpx-based POST to
 cross-judge independently. (`guarded-llm` is a sibling package for
 single-call safety / cost guards.)
 
-***REMOVED******REMOVED*** Quickstart: 3-model judge
+## Quickstart: 3-model judge
 
 ```python
 from cross_judge import Critic, Ensemble
 
-***REMOVED*** Each critic: own model, own temperature, own prompt template.
-***REMOVED*** Templates use str.format with {query} and optional context keys.
+# Each critic: own model, own temperature, own prompt template.
+# Templates use str.format with {query} and optional context keys.
 
 claude = Critic(
     name="claude-strict",
@@ -123,13 +123,13 @@ export OPENROUTER_API_KEY='sk-or-...'
 export DEEPSEEK_API_KEY='sk-...'
 ```
 
-***REMOVED******REMOVED*** Versioned prompts (recommended pattern)
+## Versioned prompts (recommended pattern)
 
 Prompts have semantics, so they deserve semver. Ship YAML prompts under
 git-tracked files and pin to specific versions in production:
 
 ```yaml
-***REMOVED*** prompts/b3_universality_critic.yaml
+# prompts/b3_universality_critic.yaml
 version: "0.1"
 system_prompt: "You are a rigorous universality-class critic ..."
 user_prompt_template: |
@@ -142,7 +142,7 @@ user_prompt_template: |
 critic = Critic.from_yaml_prompt(
     name="b3-rigor",
     model="deepseek-v4-pro",
-    yaml_path="prompts/b3_universality_critic.yaml",  ***REMOVED*** git-tagged
+    yaml_path="prompts/b3_universality_critic.yaml",  # git-tagged
 )
 ```
 
@@ -153,7 +153,7 @@ default prompts ship under `cross_judge/prompts/`:
 - `b3_universality_critic.yaml` — research-grade universality-class critic
 - `generic_universality_judge.yaml` — domain-agnostic version
 
-***REMOVED******REMOVED*** VerdictKind vocabulary
+## VerdictKind vocabulary
 
 The default vocabulary is `Literal["KEEP", "REJECT", "SPLIT", "MERGE",
 "UNCLEAR", "ERROR", "PARSE_FAIL"]`:
@@ -171,7 +171,7 @@ The default vocabulary is `Literal["KEEP", "REJECT", "SPLIT", "MERGE",
 Free-form labels (`PASS`, `FAIL`, etc.) are also accepted — pass them as
 plain strings.
 
-***REMOVED******REMOVED*** Voting strategies
+## Voting strategies
 
 | name | rule | use when |
 |---|---|---|
@@ -180,14 +180,14 @@ plain strings.
 | (custom)     | pass any `Callable[[list[Verdict]], (str, bool)]`       | weighted / domain-specific |
 
 ```python
-***REMOVED*** Conservative: only accept items all 3 critics endorsed
+# Conservative: only accept items all 3 critics endorsed
 ensemble = Ensemble(critics, voting="unanimous", voting_kwargs={"fallback": "NEEDS_REVIEW"})
 
-***REMOVED*** Tie-break toward rejection (recall-leaning)
+# Tie-break toward rejection (recall-leaning)
 ensemble = Ensemble(critics, voting="majority", voting_kwargs={"priority": ["REJECT", "KEEP"]})
 ```
 
-***REMOVED******REMOVED*** Disagreement metrics primer
+## Disagreement metrics primer
 
 cross-judge reports two metrics per ensemble call:
 
@@ -210,7 +210,7 @@ The metric is computed via the coincidence-matrix formulation for nominal
 data (Krippendorff 2011 eq. 4), with the small-sample (N-1) correction.
 Errored verdicts are excluded from the denominator.
 
-***REMOVED******REMOVED*** Reproducibility
+## Reproducibility
 
 `temperature=0.0` gives near-deterministic LLM behavior per vendor (cache
 behavior varies — DeepSeek and OpenAI are usually deterministic at temp=0;
@@ -218,7 +218,7 @@ OpenRouter passes through). For paper-grade reproducibility:
 
 ```python
 critic = Critic(name="..., model="...", temperature=0.0)
-***REMOVED*** Pin the prompt YAML version:
+# Pin the prompt YAML version:
 critic = Critic.from_yaml_prompt(..., yaml_path="prompts/b3_universality_critic@v0.1.yaml")
 ```
 
@@ -226,7 +226,7 @@ Combine with deterministic aggregation (`voting="unanimous"` or
 `voting="majority"` with explicit `priority`) for end-to-end reproducible
 runs.
 
-***REMOVED******REMOVED*** Error handling
+## Error handling
 
 Critic calls catch all exceptions and return
 `Verdict(kind="ERROR", error="...")` rather than raising. Aggregation
@@ -235,7 +235,7 @@ strategies skip errored verdicts — they don't tank consensus. Inspect
 produce `Verdict(kind="PARSE_FAIL", error="parse_fail")` with the raw
 response captured in `raw_response` for audit.
 
-***REMOVED******REMOVED*** Legacy API
+## Legacy API
 
 The original `Reviewer` / `JudgePanel` / aggregation surface is preserved
 for backward compatibility with the structural-isomorphism
@@ -243,7 +243,7 @@ for backward compatibility with the structural-isomorphism
 `Critic` / `Ensemble` / `Verdict`. See `cross_judge/reviewer.py` and
 `cross_judge/panel.py` for legacy docstrings.
 
-***REMOVED******REMOVED*** API stability (v0.1 → v1.0 plan)
+## API stability (v0.1 → v1.0 plan)
 
 cross-judge follows semver. The **v0.1 public surface** below is locked
 through the 1.0 release — any breaking change requires a major bump and a
@@ -262,11 +262,11 @@ Internal modules (`cross_judge.aggregation`, `cross_judge.vendors`,
 private helpers prefixed `_`) carry no stability guarantee — pin a
 specific version if you import them directly.
 
-***REMOVED******REMOVED*** License
+## License
 
 MIT. See `LICENSE`.
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 If cross-judge contributes to a paper, please cite the structural-isomorphism
 project where the multi-vendor ensemble judging pattern + Krippendorff α

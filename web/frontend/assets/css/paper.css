@@ -5,7 +5,7 @@
 
 .paper-page {
   padding: 40px 0 120px;
-  background: ***REMOVED***fcfbf8;
+  background: #fcfbf8;
   min-height: calc(100vh - 120px);
 }
 
@@ -20,26 +20,26 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: ***REMOVED***808080;
+  color: #808080;
   margin-bottom: 32px;
 }
 
 .paper-breadcrumb a {
-  color: ***REMOVED***d97757;
+  color: #d97757;
   text-decoration: none;
   border-bottom: 1px dashed rgba(217, 119, 87, 0.4);
 }
 
 .paper-breadcrumb a:hover {
-  border-bottom-color: ***REMOVED***d97757;
+  border-bottom-color: #d97757;
 }
 
 .paper-breadcrumb__sep {
-  color: ***REMOVED***ccc;
+  color: #ccc;
 }
 
 .paper-breadcrumb__current {
-  color: ***REMOVED***555;
+  color: #555;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   letter-spacing: 0.02em;
@@ -48,7 +48,7 @@
 /* --- Main article --- */
 
 .paper-article {
-  background: ***REMOVED***fff;
+  background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;
   padding: 64px 72px 72px;
@@ -56,7 +56,7 @@
   font-family: 'Crimson Pro', 'Noto Serif SC', Georgia, serif;
   font-size: 17px;
   line-height: 1.75;
-  color: ***REMOVED***1d1d1d;
+  color: #1d1d1d;
 }
 
 .paper-article h1 {
@@ -66,7 +66,7 @@
   line-height: 1.28;
   margin: 0 0 16px;
   letter-spacing: -0.005em;
-  color: ***REMOVED***111;
+  color: #111;
 }
 
 .paper-article h2 {
@@ -77,7 +77,7 @@
   margin: 48px 0 16px;
   padding-bottom: 6px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  color: ***REMOVED***111;
+  color: #111;
 }
 
 .paper-article h3 {
@@ -85,7 +85,7 @@
   font-size: 16.5px;
   font-weight: 600;
   margin: 32px 0 10px;
-  color: ***REMOVED***222;
+  color: #222;
 }
 
 .paper-article h4 {
@@ -93,7 +93,7 @@
   font-size: 14.5px;
   font-weight: 600;
   margin: 22px 0 8px;
-  color: ***REMOVED***333;
+  color: #333;
 }
 
 .paper-article p {
@@ -107,24 +107,24 @@
 }
 
 .paper-article strong {
-  color: ***REMOVED***111;
+  color: #111;
   font-weight: 600;
 }
 
 .paper-article em {
   font-style: italic;
-  color: ***REMOVED***333;
+  color: #333;
 }
 
 .paper-article a {
-  color: ***REMOVED***80492a;
+  color: #80492a;
   text-decoration: none;
   border-bottom: 1px solid rgba(128, 73, 42, 0.4);
 }
 
 .paper-article a:hover {
-  border-bottom-color: ***REMOVED***80492a;
-  color: ***REMOVED***60361f;
+  border-bottom-color: #80492a;
+  color: #60361f;
 }
 
 /* --- Horizontal rule --- */
@@ -147,14 +147,14 @@
 .paper-article code {
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   font-size: 13.5px;
-  background: ***REMOVED***f4f2ed;
-  color: ***REMOVED***6a4a25;
+  background: #f4f2ed;
+  color: #6a4a25;
   padding: 1px 6px;
   border-radius: 3px;
 }
 
 .paper-article pre {
-  background: ***REMOVED***f8f6f0;
+  background: #f8f6f0;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;
   padding: 16px 18px;
@@ -166,7 +166,7 @@
 
 .paper-article pre code {
   background: transparent;
-  color: ***REMOVED***333;
+  color: #333;
   padding: 0;
   font-size: 13px;
 }
@@ -193,7 +193,7 @@
   border-left: 3px solid rgba(217, 119, 87, 0.5);
   border-radius: 0 6px 6px 0;
   font-style: italic;
-  color: ***REMOVED***444;
+  color: #444;
 }
 
 .paper-article blockquote p {
@@ -222,9 +222,9 @@
 }
 
 .paper-article th {
-  background: ***REMOVED***faf9f6;
+  background: #faf9f6;
   font-weight: 600;
-  color: ***REMOVED***333;
+  color: #333;
   border-bottom: 2px solid rgba(0, 0, 0, 0.15);
 }
 
@@ -252,7 +252,7 @@
 
 .paper-skeleton__line {
   height: 18px;
-  background: linear-gradient(90deg, ***REMOVED***f5f2eb 0%, ***REMOVED***faf7f0 50%, ***REMOVED***f5f2eb 100%);
+  background: linear-gradient(90deg, #f5f2eb 0%, #faf7f0 50%, #f5f2eb 100%);
   background-size: 200% 100%;
   border-radius: 4px;
   margin-bottom: 12px;
@@ -292,8 +292,8 @@
   font-weight: 500;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 999px;
-  background: ***REMOVED***fff;
-  color: ***REMOVED***444;
+  background: #fff;
+  color: #444;
   text-decoration: none;
   transition: all 0.18s ease;
   font-family: 'Inter', sans-serif;
@@ -301,7 +301,7 @@
 
 .paper-action:hover {
   border-color: rgba(217, 119, 87, 0.5);
-  color: ***REMOVED***80492a;
+  color: #80492a;
 }
 
 /* --- Responsive --- */

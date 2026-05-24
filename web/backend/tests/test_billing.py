@@ -25,20 +25,20 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import billing  ***REMOVED*** noqa: E402
+from api import billing  # noqa: E402
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    ***REMOVED*** Redirect SQLite to tmp
+    # Redirect SQLite to tmp
     monkeypatch.setattr(
         billing, "_data_file",
         lambda: tmp_path / "data" / "billing.db",
     )
-    ***REMOVED*** Force mock mode by default (no Stripe key). Individual tests can opt in.
+    # Force mock mode by default (no Stripe key). Individual tests can opt in.
     monkeypatch.delenv("STRIPE_TEST_SECRET_KEY", raising=False)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
 
@@ -47,7 +47,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-***REMOVED*** ---------- Checkout session ----------
+# ---------- Checkout session ----------
 
 def test_checkout_mock_fallback_when_no_key(client):
     """No STRIPE_TEST_SECRET_KEY → falls back to mock mode."""
@@ -59,13 +59,13 @@ def test_checkout_mock_fallback_when_no_key(client):
     data = r.json()
     assert data["mode"] == "mock"
     assert data["session_id"].startswith("mock_cs_")
-    assert data["amount_cents"] == 1900  ***REMOVED*** $19.00
+    assert data["amount_cents"] == 1900  # $19.00
     assert "url" in data
     assert "session_id=mock_cs_" in data["url"]
 
 
 def test_checkout_validation_errors(client):
-    ***REMOVED*** Bad tier
+    # Bad tier
     r = client.post(
         "/api/billing/checkout-session",
         json={"tier": "enterprise", "interval": "month", "email": "x@y.com"},
@@ -73,7 +73,7 @@ def test_checkout_validation_errors(client):
     assert r.status_code == 400
     assert "invalid tier" in r.json()["error"]
 
-    ***REMOVED*** Bad interval
+    # Bad interval
     r = client.post(
         "/api/billing/checkout-session",
         json={"tier": "pro", "interval": "decade", "email": "x@y.com"},
@@ -81,7 +81,7 @@ def test_checkout_validation_errors(client):
     assert r.status_code == 400
     assert "invalid interval" in r.json()["error"]
 
-    ***REMOVED*** Bad email
+    # Bad email
     r = client.post(
         "/api/billing/checkout-session",
         json={"tier": "pro", "interval": "month", "email": "not-an-email"},
@@ -97,10 +97,10 @@ def test_checkout_team_year_amount(client):
     )
     assert r.status_code == 200
     data = r.json()
-    assert data["amount_cents"] == 99000  ***REMOVED*** $990.00
+    assert data["amount_cents"] == 99000  # $990.00
 
 
-***REMOVED*** ---------- Webhook ----------
+# ---------- Webhook ----------
 
 def test_webhook_persists_event(client):
     """Webhook stores event into billing_events table and returns 200."""
@@ -119,9 +119,9 @@ def test_webhook_persists_event(client):
     assert data["ok"] is True
     assert data["event_id"] == "evt_test_001"
     assert data["event_type"] == "checkout.session.completed"
-    assert data["verified"] is False  ***REMOVED*** no secret configured → verified=0
+    assert data["verified"] is False  # no secret configured → verified=0
 
-    ***REMOVED*** Verify in DB
+    # Verify in DB
     with sqlite3.connect(str(billing._data_file())) as conn:
         conn.row_factory = sqlite3.Row
         rows = list(conn.execute("SELECT * FROM billing_events"))
@@ -129,7 +129,7 @@ def test_webhook_persists_event(client):
         assert rows[0]["event_id"] == "evt_test_001"
         assert rows[0]["verified"] == 0
 
-    ***REMOVED*** Recent events endpoint
+    # Recent events endpoint
     r2 = client.get("/api/billing/events/recent")
     assert r2.status_code == 200
     assert r2.json()["count"] == 1
@@ -171,7 +171,7 @@ def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     evt = {"id": "evt_sig_001", "type": "x", "data": {}}
     body = json.dumps(evt)
 
-    ***REMOVED*** No signature header
+    # No signature header
     r = client.post(
         "/api/billing/webhook",
         content=body,
@@ -180,7 +180,7 @@ def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     assert r.status_code == 400
     assert r.json()["error"] == "signature_mismatch"
 
-    ***REMOVED*** Bad signature
+    # Bad signature
     r2 = client.post(
         "/api/billing/webhook",
         content=body,
@@ -191,7 +191,7 @@ def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     )
     assert r2.status_code == 400
 
-    ***REMOVED*** Correct sha256-prefixed signature → accepted with verified=true
+    # Correct sha256-prefixed signature → accepted with verified=true
     expected = hmac.new(
         b"whsec_test_secret_xyz", body.encode("utf-8"), hashlib.sha256,
     ).hexdigest()
@@ -207,7 +207,7 @@ def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     assert r3.json()["verified"] is True
 
 
-***REMOVED*** ---------- Real Stripe path (mocked SDK) ----------
+# ---------- Real Stripe path (mocked SDK) ----------
 
 def test_checkout_uses_stripe_when_key_present(client, monkeypatch):
     """When STRIPE_TEST_SECRET_KEY is set + SDK importable, the endpoint calls

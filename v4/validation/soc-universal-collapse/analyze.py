@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Phase 12 runner — universal-collapse polish.
 
 Usage:
@@ -14,7 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import polish_collapse  ***REMOVED*** noqa: E402
+import polish_collapse  # noqa: E402
 
 
 def main() -> None:

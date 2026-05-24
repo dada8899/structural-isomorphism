@@ -10,9 +10,9 @@ copyright: Copyright &copy; 2026 dada8899 — MIT License
 docs_dir: docs
 site_dir: site_mkdocs
 
-***REMOVED*** Existing files under docs/ that are not part of the public navigation but
-***REMOVED*** would otherwise warn under --strict. They remain in the repo for internal
-***REMOVED*** reference.
+# Existing files under docs/ that are not part of the public navigation but
+# would otherwise warn under --strict. They remain in the repo for internal
+# reference.
 exclude_docs: |
   PUBLIC_READINESS_CHECKLIST.md
   API_AUTH.md
@@ -174,7 +174,7 @@ nav:
       - Company detail audit: phase-company-detail-audit-2026-05-15.md
       - Dogfood — /api/ask quality: dogfood-ask-2026-05-15.md
       - LLM A/B test: llm-ab-test-2026-05-14.md
-      - "Real-env e2e (session ***REMOVED***9)": session-9-real-e2e-2026-05-15.md
+      - "Real-env e2e (session #9)": session-9-real-e2e-2026-05-15.md
   - Pre-registrations:
       - Index: pre-registrations.md
       - P1 — Bitcoin Cash daily log returns: pre-registrations/p1-bitcoin-cash-result.md

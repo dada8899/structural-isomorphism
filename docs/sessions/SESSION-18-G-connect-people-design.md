@@ -1,12 +1,12 @@
-***REMOVED*** G — 按「问题结构」连接人 · 设计方案
+# G — 按「问题结构」连接人 · 设计方案
 
-> Session ***REMOVED***18 产出。**这是方案文档，不是本 session 的实现项。**
+> Session #18 产出。**这是方案文档，不是本 session 的实现项。**
 > G 是一次产品定位级的转向（工具 → 网络），需独立立项。本文写清
 > 愿景、前置条件、架构方案、分阶段路径、风险，作为立项依据。
 
 ---
 
-***REMOVED******REMOVED*** 1. 愿景
+## 1. 愿景
 
 引擎现在已经在回答一个判断：**两个问题结构同不同构**。
 
@@ -28,42 +28,42 @@ G 让「结构同构」这件已经被引擎算出来的事，变成一条真实
 
 ---
 
-***REMOVED******REMOVED*** 2. 前置条件清单（立项必须先解决）
+## 2. 前置条件清单（立项必须先解决）
 
 G 不能在当前架构上直接长出来。以下每一条都是硬前置：
 
-***REMOVED******REMOVED******REMOVED*** 2.1 用户身份体系 🔴 最大前置
+### 2.1 用户身份体系 🔴 最大前置
 - **现状**：只有匿名 `anonId`（设备级，存 cookie / localStorage）。换设备、清缓存即失联，无法联系，无法承载档案。
 - **需要**：稳定账号（注册 / 登录）、email 验证、可联系渠道、个人档案。
 - **迁移**：登录后把历史 `anonId` 的报告归并到 user（已有 `reports.creator_anon_id`，可做一次性 claim）。
 - 这本身就是一个独立的中型工程，是 G 的 Phase 0。
 
-***REMOVED******REMOVED******REMOVED*** 2.2 问题结构指纹（structural fingerprint）
+### 2.2 问题结构指纹（structural fingerprint）
 - 把一个用户「在解的问题」归约成一个稳定、可比较的结构表示。
 - **现成可用的料**：analyze 报告的 `shared_structure` 段、`b_id`、
   `_credibility.source_type_id`、KB 的 `type_id`、v4 的 26 个普适类。
 - **需要新建**：一个 fingerprint 表示（建议 = `shared_structure` 文本的
   embedding + `type_id` + 普适类标签 三元组）+ 一个稳定的相似度度量。
 
-***REMOVED******REMOVED******REMOVED*** 2.3 匹配引擎
+### 2.3 匹配引擎
 - 给定一个用户的 fingerprint，找出**结构同构但领域不同**的其他用户。
 - 领域相同的匹配没有跨域价值——必须显式拉开 domain distance。
 - **冷启动**：用户基数小时无人可匹配（见 §5 缓解）。
 
-***REMOVED******REMOVED******REMOVED*** 2.4 隐私与同意机制 🔴 产品成败所在
+### 2.4 隐私与同意机制 🔴 产品成败所在
 - 默认不暴露任何人的任何信息。连接必须**显式 opt-in**、**双向同意**。
 - 已有 `/api/privacy/*`（导出 / 删除）需延伸到新数据。
 - 一次隐私事故 = 信任崩，对一个「验证型」产品是致命的。
 
-***REMOVED******REMOVED******REMOVED*** 2.5 社区 / 通知形态
+### 2.5 社区 / 通知形态
 - 连接建立后在哪交流？需要选定形态：站内信 / 引荐邮件 / 每周 digest。
 - 需要 moderation（反 spam、反招聘推销滥用）。
 
 ---
 
-***REMOVED******REMOVED*** 3. 架构方案
+## 3. 架构方案
 
-***REMOVED******REMOVED******REMOVED*** 3.1 数据模型（新增表）
+### 3.1 数据模型（新增表）
 
 ```
 users
@@ -96,7 +96,7 @@ introductions / messages           -- match 达成后的交流载体
 `anonId → user` 的升级：登录时若带历史 anonId，把该 anonId 名下的
 reports 关联到 user，并允许用户把其中任意报告「升级成可连接的指纹」。
 
-***REMOVED******REMOVED******REMOVED*** 3.2 匹配算法
+### 3.2 匹配算法
 
 ```
 fingerprint(report)
@@ -117,7 +117,7 @@ rank = structural_similarity × domain_distance × 双方活跃度因子
 普适类映射、KB 的 `type_id` 体系。匹配引擎是这些已有能力的组合，
 **算法不是难点——身份体系和隐私才是**。
 
-***REMOVED******REMOVED******REMOVED*** 3.3 隐私机制（核心设计）
+### 3.3 隐私机制（核心设计）
 
 三级可见性，默认最严：
 
@@ -140,7 +140,7 @@ rank = structural_similarity × domain_distance × 双方活跃度因子
 任何时候可撤回 opt-in；fingerprint 可单独删除；纳入 `/api/privacy/*`
 的导出与删除范围。
 
-***REMOVED******REMOVED******REMOVED*** 3.4 交互形态
+### 3.4 交互形态
 
 - **报告页**：底部一个克制的 opt-in 开关——「让在解结构相同问题的人能发现这个问题」。
 - **`/connections` 页**：我的可连接问题 / 收到的 match 建议 / 已连接的人。
@@ -149,7 +149,7 @@ rank = structural_similarity × domain_distance × 双方活跃度因子
 
 ---
 
-***REMOVED******REMOVED*** 4. 分阶段落地路径
+## 4. 分阶段落地路径
 
 每个阶段独立可上线、独立有价值，**不必一次做完**：
 
@@ -167,7 +167,7 @@ P3 是真正的产品赌注，应在 P2 验证需求后再投入。
 
 ---
 
-***REMOVED******REMOVED*** 5. 风险与开放问题
+## 5. 风险与开放问题
 
 - **冷启动**：用户基数小时无人可匹配。缓解：P2 的「N 人结构相同」纯数字
   在小基数下也不尴尬；可先用历史报告（已脱敏）做"结构邻居"展示。
@@ -179,7 +179,7 @@ P3 是真正的产品赌注，应在 P2 验证需求后再投入。
 
 ---
 
-***REMOVED******REMOVED*** 6. 为什么必须独立立项
+## 6. 为什么必须独立立项
 
 账号体系、结构指纹、匹配引擎、隐私同意、社区形态——**每一块都是独立的
 中大型模块**，合起来还把产品的形态从工具升级成网络。这是产品定位级的

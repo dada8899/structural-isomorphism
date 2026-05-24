@@ -49,7 +49,7 @@ dev = [
     "pytest-mock>=3.10",
     "build>=1.0",
 ]
-***REMOVED*** Optional convenience: use openai-python client instead of the bundled httpx client.
+# Optional convenience: use openai-python client instead of the bundled httpx client.
 openai = [
     "openai>=1.0",
 ]

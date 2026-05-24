@@ -172,7 +172,7 @@
     box-shadow: 0 1px 3px rgba(24, 24, 27, 0.04);
   }
   50% {
-    background: ***REMOVED***F8F9FB;
+    background: #F8F9FB;
     box-shadow: 0 2px 12px rgba(24, 24, 27, 0.05);
   }
 }
@@ -253,7 +253,7 @@
   display: inline-block;
   width: 2px;
   height: 1.1em;
-  background: var(--accent, ***REMOVED***2563eb);
+  background: var(--accent, #2563eb);
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: synth-caret-blink 1s step-start infinite;

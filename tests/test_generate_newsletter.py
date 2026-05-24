@@ -33,7 +33,7 @@ def _load_generator():
     )
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
-    ***REMOVED*** Make sure sibling module resolves
+    # Make sure sibling module resolves
     sys.path.insert(0, str(SCRIPTS_DIR))
     spec.loader.exec_module(mod)
     return mod
@@ -44,15 +44,15 @@ def _load_data_sources():
     return importlib.import_module("newsletter_data_sources")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** parse_iso_week
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# parse_iso_week
+# ---------------------------------------------------------------------------
 
 
 class TestParseIsoWeek:
     def test_happy_path(self):
         gen = _load_generator()
-        ***REMOVED*** 2026 W19 starts Monday 2026-05-04
+        # 2026 W19 starts Monday 2026-05-04
         assert gen.parse_iso_week("2026-W19") == dt.date(2026, 5, 4)
         assert gen.parse_iso_week("2025-W01") == dt.date(2024, 12, 30)
 
@@ -79,9 +79,9 @@ class TestParseIsoWeek:
             gen.parse_iso_week("2026-W00")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Template substitution
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Template substitution
+# ---------------------------------------------------------------------------
 
 
 class TestRender:
@@ -130,14 +130,14 @@ class TestRender:
     def test_basic_substitution(self):
         gen = _load_generator()
         template = (
-            "***REMOVED*** {{week_label}}\n"
+            "# {{week_label}}\n"
             "Start: {{week_start}}, End: {{week_end}}\n"
             "{{phase_flips_section}}\n"
             "{{spotlight_title}}\n"
         )
         inputs = self._stub_inputs()
         out = gen.render(template, **inputs)
-        assert "***REMOVED*** 2026-W19" in out
+        assert "# 2026-W19" in out
         assert "Start: 2026-05-04" in out
         assert "End: 2026-05-10" in out
         assert "NVDA" in out
@@ -165,7 +165,7 @@ class TestRender:
         template = "{{phase_flips_section}}"
         out = gen.render(template, **inputs)
         assert "No high-confidence structural flips" in out
-        assert "_" in out  ***REMOVED*** italics marker
+        assert "_" in out  # italics marker
 
     def test_empty_papers_emits_placeholder(self):
         gen = _load_generator()
@@ -180,7 +180,7 @@ class TestRender:
         inputs = self._stub_inputs()
         template = "{{ask_section}}"
         out = gen.render(template, **inputs)
-        ***REMOVED*** When ask_queries is [] (the default in W9-C), placeholder fires
+        # When ask_queries is [] (the default in W9-C), placeholder fires
         assert "not yet exposed" in out or "Coming in W10" in out
 
     def test_zero_github_activity_emits_helpful_hint(self):
@@ -197,16 +197,16 @@ class TestRender:
         assert "gh CLI may be unauthenticated" in out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Idempotency
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Idempotency
+# ---------------------------------------------------------------------------
 
 
 class TestIdempotency:
     def test_same_input_same_output(self, tmp_path):
         gen = _load_generator()
         template = (
-            "***REMOVED*** {{week_label}}\n{{phase_flips_section}}\n"
+            "# {{week_label}}\n{{phase_flips_section}}\n"
             "{{spotlight_body}}\n{{arxiv_section}}\n"
         )
         inputs = {
@@ -246,13 +246,13 @@ class TestIdempotency:
         }
         last = {"A": {"critical_point_state": "subcritical"},
                 "B": {"critical_point_state": "subcritical"}}
-        ***REMOVED*** write tmp files to feed into _diff_structtuples directly
+        # write tmp files to feed into _diff_structtuples directly
         out = ds._diff_structtuples.__wrapped__ if hasattr(
             ds._diff_structtuples, "__wrapped__"
         ) else None
-        ***REMOVED*** We use the internal function via patching: simpler test = use
-        ***REMOVED*** diff via fetch_phase_flips with stubbed paths.
-        ***REMOVED*** Direct internal test:
+        # We use the internal function via patching: simpler test = use
+        # diff via fetch_phase_flips with stubbed paths.
+        # Direct internal test:
         tickers = [r["ticker"] for r in sorted(
             current.values(), key=lambda r: r["ticker"]
         )]
@@ -263,7 +263,7 @@ class TestIdempotency:
         out1 = tmp_path / "n1.md"
         out2 = tmp_path / "n2.md"
         env = {"PYTHONUNBUFFERED": "1"}
-        ***REMOVED*** Use system python; pytest already running so we know it works.
+        # Use system python; pytest already running so we know it works.
         for out in (out1, out2):
             r = subprocess.run(
                 [sys.executable, str(GENERATOR),
@@ -282,15 +282,15 @@ class TestIdempotency:
         assert out1.read_bytes() == out2.read_bytes()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** arXiv parser robustness
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# arXiv parser robustness
+# ---------------------------------------------------------------------------
 
 
 class TestArxivParser:
     def test_empty_feed_returns_empty(self):
         ds = _load_data_sources()
-        ***REMOVED*** Minimal valid atom feed with no <entry>
+        # Minimal valid atom feed with no <entry>
         body = (
             b'<?xml version="1.0" encoding="UTF-8"?>'
             b'<feed xmlns="http://www.w3.org/2005/Atom">'
@@ -357,13 +357,13 @@ class TestArxivParser:
             b'</entry></feed>'
         )
         out = ds._parse_arxiv(body, week_start=dt.date(2026, 5, 4), max_results=5)
-        ***REMOVED*** Out of week window
+        # Out of week window
         assert out == []
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Methodology spotlight
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Methodology spotlight
+# ---------------------------------------------------------------------------
 
 
 class TestMethodologySpotlight:
@@ -377,8 +377,8 @@ class TestMethodologySpotlight:
         """Sanity: across 8 different weeks we hit at least 2 distinct slugs."""
         ds = _load_data_sources()
         slugs = set()
-        ***REMOVED*** 8 consecutive ISO weeks
-        base = dt.date(2026, 1, 5)  ***REMOVED*** ISO Monday
+        # 8 consecutive ISO weeks
+        base = dt.date(2026, 1, 5)  # ISO Monday
         for i in range(8):
             d = base + dt.timedelta(weeks=i)
             slugs.add(ds.methodology_spotlight(week_start=d)["id"])
@@ -390,7 +390,7 @@ class TestMethodologySpotlight:
             week_start=dt.date(2026, 5, 4),
             override_slug="ews-variance-autocorr",
         )
-        ***REMOVED*** Existing slugs in pool — fall through to the actual slug name
+        # Existing slugs in pool — fall through to the actual slug name
         assert s["id"] in [p["id"] for p in ds.SPOTLIGHT_POOL]
 
     def test_known_override_slug_picked(self):
@@ -408,13 +408,13 @@ class TestMethodologySpotlight:
             week_start=dt.date(2026, 5, 4),
             override_slug="not-a-real-slug",
         )
-        ***REMOVED*** Falls back to auto-rotation, which still returns a valid pool entry
+        # Falls back to auto-rotation, which still returns a valid pool entry
         assert s["id"] in [p["id"] for p in ds.SPOTLIGHT_POOL]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Phase flip diff
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Phase flip diff
+# ---------------------------------------------------------------------------
 
 
 class TestPhaseFlipDiff:
@@ -422,7 +422,7 @@ class TestPhaseFlipDiff:
         ds = _load_data_sources()
         current_path = tmp_path / "current.jsonl"
         state_path = tmp_path / "state.json"
-        ***REMOVED*** current: AAPL near_critical
+        # current: AAPL near_critical
         current_path.write_text(json.dumps({
             "ok": True,
             "struct_tuple": {
@@ -434,7 +434,7 @@ class TestPhaseFlipDiff:
                 "tldr": "Network effects.",
             }
         }) + "\n", encoding="utf-8")
-        ***REMOVED*** last week: AAPL subcritical
+        # last week: AAPL subcritical
         state_path.write_text(json.dumps({
             "AAPL": {"critical_point_state": "subcritical"}
         }), encoding="utf-8")
@@ -519,27 +519,27 @@ class TestPhaseFlipDiff:
             structtuples_path=current_path,
             last_week_state_path=state_path,
         )
-        ***REMOVED*** Missing last-week data → unknown → treated as "entered"
+        # Missing last-week data → unknown → treated as "entered"
         assert len(flips) == 1
         assert flips[0]["from_state"] == "unknown"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** GitHub activity
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# GitHub activity
+# ---------------------------------------------------------------------------
 
 
 class TestGitHubActivity:
     def test_zero_activity_when_gh_missing(self):
         ds = _load_data_sources()
-        ***REMOVED*** Inject runner that always raises — simulates gh CLI missing
+        # Inject runner that always raises — simulates gh CLI missing
         def boom(_argv):
             raise FileNotFoundError("gh not installed")
-        ***REMOVED*** Bypass shutil.which check by passing runner
+        # Bypass shutil.which check by passing runner
         out = ds.fetch_github_activity(
             week_start=dt.date(2026, 5, 4), _runner=boom
         )
-        ***REMOVED*** All counters present, all zero
+        # All counters present, all zero
         assert out["total_stars"] == 0
         assert out["new_prs_external"] == 0
 
@@ -550,8 +550,8 @@ class TestGitHubActivity:
             if "repo" in argv and "view" in argv:
                 return json.dumps({"stargazerCount": 42, "forkCount": 7})
             if "search/issues" in " ".join(argv):
-                ***REMOVED*** First call = issues, second = PRs. Both return same number
-                ***REMOVED*** for simplicity; CLI verifies presence not exact split.
+                # First call = issues, second = PRs. Both return same number
+                # for simplicity; CLI verifies presence not exact split.
                 return "3"
             return ""
 

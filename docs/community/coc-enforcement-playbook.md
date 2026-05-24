@@ -1,4 +1,4 @@
-***REMOVED*** Code of Conduct Enforcement Playbook
+# Code of Conduct Enforcement Playbook
 
 A **maintainer-facing** playbook for handling Code of Conduct (COC) reports in
 the Structural Isomorphism community (Discord, GitHub, mailing list, off-
@@ -13,14 +13,14 @@ companion to `CODE_OF_CONDUCT.md` (which states the *what*) and answers the
 
 ---
 
-***REMOVED******REMOVED*** Step 1 — Triage (who responds)
+## Step 1 — Triage (who responds)
 
-When a new COC ticket opens in `***REMOVED***coc-reports` or arrives via
+When a new COC ticket opens in `#coc-reports` or arrives via
 `coc@structural.bytedance.city`:
 
 **Default responder**: the BDFL (project founder).
 **If the BDFL is unavailable for >48h**: rotating on-call council member
-(rotation tracked in `***REMOVED***maintainer-council` pinned message; weekly).
+(rotation tracked in `#maintainer-council` pinned message; weekly).
 **If conflict of interest**: any maintainer named in the report (or who has
 a close personal/professional relationship with named parties) **must
 recuse**. Recusal is logged in the ticket; another council member takes over.
@@ -37,12 +37,12 @@ tier 1-2 cases, within 14 days for tier 3-4 cases.
 
 ---
 
-***REMOVED******REMOVED*** Step 2 — Gather evidence
+## Step 2 — Gather evidence
 
 Before any response, lock down the evidence:
 
 1. **Restrict the offending message** if still public: in Discord, react with
-   a flag emoji and `@maintainer` ping in `***REMOVED***maintainer-council` so the team
+   a flag emoji and `@maintainer` ping in `#maintainer-council` so the team
    sees it; do *not* delete yet (you'll need the message for the audit log).
 2. **Copy raw text** of the message into the ticket: full text, exact
    timestamp, channel name, author Discord ID (right-click → Copy ID with
@@ -64,7 +64,7 @@ identity link to the project (Discord handle, GitHub username, etc.).
 
 ---
 
-***REMOVED******REMOVED*** Step 3 — Engage
+## Step 3 — Engage
 
 Send the standard first-contact DM (see templates below). Tone: warm but
 firm. We're not trying to escalate; we're naming a behavior, requesting a
@@ -87,7 +87,7 @@ the reported party's responses unless they consent.
 
 ---
 
-***REMOVED******REMOVED*** Step 4 — Escalate (4-tier policy)
+## Step 4 — Escalate (4-tier policy)
 
 | Tier | Action | When |
 |---|---|---|
@@ -113,17 +113,17 @@ council notification within 24h.
 
 ---
 
-***REMOVED******REMOVED*** Step 5 — Log
+## Step 5 — Log
 
 Every COC action is logged in two places:
 
 **Public-facing summary** (anonymized, posted quarterly in
-`***REMOVED***announcements`):
+`#announcements`):
 > "This quarter the maintainer council issued: N warnings, N 24h timeouts,
 > N 7d timeouts, N bans. Most common rule violated: [rule]. No reports
 > remain unresolved."
 
-**Sealed audit log** (private, in `***REMOVED***maintainer-council`, age-encrypted to
+**Sealed audit log** (private, in `#maintainer-council`, age-encrypted to
 the maintainer set, retained 3 years):
 - Ticket ID
 - Date opened, date resolved
@@ -140,19 +140,19 @@ only memory of patterns across cases.
 
 ---
 
-***REMOVED******REMOVED*** Standard templates
+## Standard templates
 
-***REMOVED******REMOVED******REMOVED*** Template A — First-warning DM (tier 1)
+### Template A — First-warning DM (tier 1)
 
 ```
 Hi [name],
 
 I'm reaching out as a maintainer of the Structural Isomorphism community.
-A member raised a concern about your message in ***REMOVED***[channel] on [date]:
+A member raised a concern about your message in #[channel] on [date]:
 
 > [quoted text]
 
-Under server rule ***REMOVED***[N] ([rule short name]), this isn't something we allow
+Under server rule #[N] ([rule short name]), this isn't something we allow
 here. I want to be clear: this is a first-step conversation, not a punishment.
 We're asking you to:
 
@@ -170,13 +170,13 @@ Thanks,
 [maintainer name], on behalf of the Structural Isomorphism maintainer council
 ```
 
-***REMOVED******REMOVED******REMOVED*** Template B — Timeout notice (tier 2-3)
+### Template B — Timeout notice (tier 2-3)
 
 ```
 Hi [name],
 
 A second/third concern was raised about your conduct in
-***REMOVED***[channel]/***REMOVED***[GitHub thread]. Specifically:
+#[channel]/#[GitHub thread]. Specifically:
 
 > [quoted text or summary]
 
@@ -198,7 +198,7 @@ Thanks,
 [maintainer name]
 ```
 
-***REMOVED******REMOVED******REMOVED*** Template C — Appeal-rejection notice
+### Template C — Appeal-rejection notice
 
 ```
 Hi [name],
@@ -223,7 +223,7 @@ Thanks,
 [maintainer name], on behalf of the maintainer council
 ```
 
-***REMOVED******REMOVED******REMOVED*** Template D — Permanent ban notice (tier 4)
+### Template D — Permanent ban notice (tier 4)
 
 ```
 [name],
@@ -256,7 +256,7 @@ The maintainer council
 
 ---
 
-***REMOVED******REMOVED*** Appeal process
+## Appeal process
 
 **Window**: 14 days from the date the action notice was sent.
 
@@ -278,9 +278,9 @@ against council capture.
 
 ---
 
-***REMOVED******REMOVED*** Edge cases
+## Edge cases
 
-***REMOVED******REMOVED******REMOVED*** Maintainer-vs-maintainer
+### Maintainer-vs-maintainer
 
 The accused maintainer recuses. The reporting maintainer recuses. The
 remaining 3 maintainers handle as a normal tier triage; if conflict
@@ -289,14 +289,14 @@ Maintainer-on-maintainer cases default to **one tier higher** than a
 non-maintainer case with identical facts (we hold ourselves to a higher
 standard).
 
-***REMOVED******REMOVED******REMOVED*** Contributor-vs-newcomer (power asymmetry)
+### Contributor-vs-newcomer (power asymmetry)
 
 Newcomer-on-contributor: standard triage.
 Contributor-on-newcomer: escalate by **one tier** (newcomer-protection
 multiplier; codified in the severity multiplier list). A first offense
 becomes tier 2 instead of tier 1.
 
-***REMOVED******REMOVED******REMOVED*** Mass-spam / brigade attacks
+### Mass-spam / brigade attacks
 
 If 5+ accounts show similar suspicious patterns within 24h (linked usernames,
 similar message content, similar join times), enact temporary server-wide
@@ -304,7 +304,7 @@ slowmode (Carl-bot lockdown), then ban the ringleader account and apply tier
 2 timeouts to follower accounts pending investigation. Do not engage publicly.
 Document the pattern thoroughly — these patterns repeat.
 
-***REMOVED******REMOVED******REMOVED*** External doxing / off-server harassment
+### External doxing / off-server harassment
 
 If a member is doxed or harassed off-server by another member, treat as
 tier 4 (immediate permanent ban) regardless of prior record. The harm done
@@ -312,7 +312,7 @@ off-server is the same harm done on-server. Coordinate with platform
 reporting (Twitter, Reddit, etc.) and consider whether law-enforcement
 referral is appropriate. The BDFL coordinates external reporting.
 
-***REMOVED******REMOVED******REMOVED*** Reporter retaliation
+### Reporter retaliation
 
 If a reporter is retaliated against (publicly named, harassed, "called out"
 by allies of the reported party), the retaliation is itself a tier-3 or
@@ -321,7 +321,7 @@ reporting pipeline itself.
 
 ---
 
-***REMOVED******REMOVED*** Annual policy review
+## Annual policy review
 
 Every January, the maintainer council reviews:
 - All COC tickets from the prior year (sealed log)
@@ -329,5 +329,5 @@ Every January, the maintainer council reviews:
 - Newcomer survival rate (do newcomers stay after a COC interaction?)
 - Whether this playbook needs updates
 
-The review output is a 1-page memo posted in `***REMOVED***announcements` (anonymized
+The review output is a 1-page memo posted in `#announcements` (anonymized
 stats) and the full playbook diff (public PR on this file).

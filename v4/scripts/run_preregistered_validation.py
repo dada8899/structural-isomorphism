@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Run a pre-registered validation against a yaml spec.
 
 Usage:
@@ -40,34 +40,34 @@ REPO = Path(__file__).resolve().parents[2]
 VALIDATION_DIR = REPO / "v4" / "validation"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Yaml loader (minimal, no PyYAML dependency)
-***REMOVED***
-***REMOVED*** We support a small subset of yaml sufficient for the pre-registration spec:
-***REMOVED***   scalar key: value
-***REMOVED***   list key:
-***REMOVED***     - item
-***REMOVED***     - item
-***REMOVED***   block scalar key: |
-***REMOVED***     multi-line text
-***REMOVED***     until indentation ends
-***REMOVED*** This mirrors v4/scripts/b3_ensemble.py's load_yaml_class approach.
+# ---------------------------------------------------------------------------
+# Yaml loader (minimal, no PyYAML dependency)
+#
+# We support a small subset of yaml sufficient for the pre-registration spec:
+#   scalar key: value
+#   list key:
+#     - item
+#     - item
+#   block scalar key: |
+#     multi-line text
+#     until indentation ends
+# This mirrors v4/scripts/b3_ensemble.py's load_yaml_class approach.
 
 def _strip_inline_comment(value: str) -> str:
-    """Strip trailing inline yaml comment ' ***REMOVED*** ...' from a scalar value.
+    """Strip trailing inline yaml comment ' # ...' from a scalar value.
 
-    Only strips when the '***REMOVED***' is preceded by whitespace, so values like
-    'soc_cascade  ***REMOVED*** comment' become 'soc_cascade', while URLs and tokens
-    containing '***REMOVED***' are preserved.
+    Only strips when the '#' is preceded by whitespace, so values like
+    'soc_cascade  # comment' become 'soc_cascade', while URLs and tokens
+    containing '#' are preserved.
     """
-    if "***REMOVED***" not in value:
+    if "#" not in value:
         return value
     out = []
     i = 0
     while i < len(value):
         ch = value[i]
-        if ch == "***REMOVED***" and i > 0 and value[i - 1] in (" ", "\t"):
-            ***REMOVED*** strip trailing whitespace before the '***REMOVED***'
+        if ch == "#" and i > 0 and value[i - 1] in (" ", "\t"):
+            # strip trailing whitespace before the '#'
             while out and out[-1] in (" ", "\t"):
                 out.pop()
             break
@@ -85,24 +85,24 @@ def _parse_scalar(raw: str) -> Any:
     s = _strip_inline_comment(raw).strip()
     if not s:
         return ""
-    ***REMOVED*** quoted
+    # quoted
     if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
         return s[1:-1]
-    ***REMOVED*** bracket-list inline (e.g. [1.3, 2.0])
+    # bracket-list inline (e.g. [1.3, 2.0])
     if s.startswith("[") and s.endswith("]"):
         inner = s[1:-1].strip()
         if not inner:
             return []
         parts = [p.strip() for p in inner.split(",")]
         return [_parse_scalar(p) for p in parts]
-    ***REMOVED*** boolean / null
+    # boolean / null
     if s.lower() == "true":
         return True
     if s.lower() == "false":
         return False
     if s.lower() in ("null", "~"):
         return None
-    ***REMOVED*** numeric
+    # numeric
     try:
         if "." in s or "e" in s.lower():
             return float(s)
@@ -121,11 +121,11 @@ def load_yaml(path: Path) -> dict[str, Any]:
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
-        ***REMOVED*** skip empty / comment-only lines
-        if not stripped or stripped.startswith("***REMOVED***"):
+        # skip empty / comment-only lines
+        if not stripped or stripped.startswith("#"):
             i += 1
             continue
-        ***REMOVED*** top-level key: must start at column 0
+        # top-level key: must start at column 0
         if not line.startswith(" "):
             if ":" not in line:
                 i += 1
@@ -133,7 +133,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
             key, _, rest = line.partition(":")
             key = key.strip()
             rest = rest
-            ***REMOVED*** block scalar (key: |)
+            # block scalar (key: |)
             if rest.strip() == "|" or rest.strip() == ">":
                 i += 1
                 buf: list[str] = []
@@ -144,16 +144,16 @@ def load_yaml(path: Path) -> dict[str, Any]:
                         i += 1
                     else:
                         break
-                ***REMOVED*** trim trailing empties
+                # trim trailing empties
                 while buf and not buf[-1].strip():
                     buf.pop()
                 out[key] = "\n".join(buf)
                 continue
-            ***REMOVED*** list (key: followed by - lines)
+            # list (key: followed by - lines)
             if rest.strip() == "":
                 i += 1
                 items: list[Any] = []
-                ***REMOVED*** Check whether next non-empty line is a list item or a sub-key.
+                # Check whether next non-empty line is a list item or a sub-key.
                 sub: dict[str, Any] = {}
                 mode: str | None = None
                 while i < len(lines):
@@ -182,17 +182,17 @@ def load_yaml(path: Path) -> dict[str, Any]:
                 else:
                     out[key] = ""
                 continue
-            ***REMOVED*** plain scalar (key: value)
+            # plain scalar (key: value)
             out[key] = _parse_scalar(rest)
             i += 1
             continue
-        ***REMOVED*** ignore non-top-level lines at this layer (handled in block above)
+        # ignore non-top-level lines at this layer (handled in block above)
         i += 1
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Validation of the loaded spec
+# ---------------------------------------------------------------------------
+# Validation of the loaded spec
 
 REQUIRED_FIELDS = [
     "system",
@@ -215,7 +215,7 @@ def validate_spec(spec: dict[str, Any]) -> list[str]:
     for field in REQUIRED_FIELDS:
         if field not in spec or spec.get(field) in (None, "", []):
             errors.append(f"missing required field: {field}")
-    ***REMOVED*** predicted_band shape
+    # predicted_band shape
     band = spec.get("predicted_band")
     if band is not None:
         if not isinstance(band, list) or len(band) != 2:
@@ -227,7 +227,7 @@ def validate_spec(spec: dict[str, Any]) -> list[str]:
                     errors.append(f"predicted_band low {lo} >= high {hi}")
             except (TypeError, ValueError):
                 errors.append(f"predicted_band entries must be numeric: {band!r}")
-    ***REMOVED*** predicted_exponent (optional but if present, must be numeric + in band)
+    # predicted_exponent (optional but if present, must be numeric + in band)
     pred_exp = spec.get("predicted_exponent")
     if pred_exp is not None and band and isinstance(band, list) and len(band) == 2:
         try:
@@ -242,8 +242,8 @@ def validate_spec(spec: dict[str, Any]) -> list[str]:
     return errors
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Data acquisition (placeholder for now — real fetches deferred)
+# ---------------------------------------------------------------------------
+# Data acquisition (placeholder for now — real fetches deferred)
 
 
 def fetch_data(spec: dict[str, Any], system_dir: Path) -> tuple[Path | None, str | None]:
@@ -258,8 +258,8 @@ def fetch_data(spec: dict[str, Any], system_dir: Path) -> tuple[Path | None, str
     return None, "data-fetch path not implemented in W1-C; deferred to future session"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Pipeline call wrapper
+# ---------------------------------------------------------------------------
+# Pipeline call wrapper
 
 
 def run_fit(data_path: Path, system: str) -> dict[str, Any]:
@@ -277,8 +277,8 @@ def run_fit(data_path: Path, system: str) -> dict[str, Any]:
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Verdict logic
+# ---------------------------------------------------------------------------
+# Verdict logic
 
 
 def compute_verdict(
@@ -306,7 +306,7 @@ def compute_verdict(
         return {"verdict": "INCONCLUSIVE", "reason": "no alpha in fit_result"}
     n_tail = fit_result.get("n_tail", 0)
     in_band = lo <= alpha <= hi
-    ***REMOVED*** null rejection count
+    # null rejection count
     vuong = fit_result.get("vuong_pvals", {}) or {}
     n_null_rejected = sum(1 for p in vuong.values() if p is not None and p < 0.1)
     if not in_band:
@@ -333,8 +333,8 @@ def compute_verdict(
     return {"verdict": verdict, "reason": reason, "alpha_measured": alpha}
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
+# ---------------------------------------------------------------------------
+# Main
 
 
 def main() -> int:
@@ -361,7 +361,7 @@ def main() -> int:
 
     try:
         spec = load_yaml(yaml_path)
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         print(f"[preregister] FATAL: yaml parse error: {e}", file=sys.stderr)
         return 2
 
@@ -394,7 +394,7 @@ def main() -> int:
         )
         return 0
 
-    ***REMOVED*** Non-dry-run path: data fetch + fit + verdict
+    # Non-dry-run path: data fetch + fit + verdict
     system_dir = VALIDATION_DIR / system
     system_dir.mkdir(parents=True, exist_ok=True)
     result_path = system_dir / "result.json"
@@ -422,7 +422,7 @@ def main() -> int:
 
     t_start = time.time()
 
-    ***REMOVED*** Fetch
+    # Fetch
     data_path, fetch_err = fetch_data(spec, system_dir)
     if fetch_err:
         result: dict[str, Any] = {
@@ -444,9 +444,9 @@ def main() -> int:
         )
         return 0
 
-    ***REMOVED*** Fit
+    # Fit
     try:
-        fit_result = run_fit(data_path, system)  ***REMOVED*** type: ignore[arg-type]
+        fit_result = run_fit(data_path, system)  # type: ignore[arg-type]
     except NotImplementedError as e:
         result = {
             "system": system,

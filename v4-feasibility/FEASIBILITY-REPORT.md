@@ -1,10 +1,10 @@
-***REMOVED*** V4 Feasibility Report
+# V4 Feasibility Report
 
 **Date**: 2026-04-14  
 **Tests run**: Q1 (direct vs retrieval) + Q2 (3-model schema agreement)  
 **Total LLM calls**: ~80 (~3 hours wall time, ~$0 because of Claude subscription + Kimi budget)
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 **V4 应降级为 methodology paper 的框架，而不是构建成 retrieval pipeline。**
 
@@ -16,15 +16,15 @@
 - Q1 < 70% AND Q2 > 0.7 → V4 值得做（原计划）
 - **Q1 ≥ 70% AND Q2 > 0.7 → 新决策**：框架可用，但不建 retrieval pipeline
 
-***REMOVED******REMOVED*** Q1 Results: Direct Opus vs Mock V4 Pipeline
+## Q1 Results: Direct Opus vs Mock V4 Pipeline
 
-***REMOVED******REMOVED******REMOVED*** 实验设计
+### 实验设计
 - 10 个跨域问题（组织行为、供应链、软件工程、机器学习、宏观经济、城市规划、医学统计、语言学、气候科学、组织学习）
 - Set A (Direct Opus)：Opus 4.6 直接用自身推理回答
 - Set B (Mock V4)：Opus 4.6 先从 63 候选池（V2 19 A + V3 20 A + kb-expanded-struct 4443）检索，再套用变形基元
 - Judge：独立 Opus agent，5 维盲评分（specificity / falsifiability / novelty / correctness / actionability），每维 1-5 分，总分 /25
 
-***REMOVED******REMOVED******REMOVED*** 结果
+### 结果
 
 | 指标 | Direct Opus (A) | Mock V4 (B) |
 |---|---|---|
@@ -33,7 +33,7 @@
 | 平均总分 | **22.3 / 25** | 17.9 / 25 |
 | ≥18 "satisfactory" 率 | **10/10 = 100%** | 6/10 |
 
-***REMOVED******REMOVED******REMOVED*** 五维对比
+### 五维对比
 
 | 维度 | 胜者 | 差距 | 解释 |
 |---|---|---|---|
@@ -43,15 +43,15 @@
 | Correctness | **A** | 中 | V4 在 p04/p08 的类比映射稍牵强 |
 | Actionability | **A** | 大 | Direct 的"明天能开工"方案更多 |
 
-***REMOVED******REMOVED******REMOVED*** 关键发现
+### 关键发现
 
 **V4 retrieval 反而约束了 LLM 的具体化能力**。Mock V4 虽然 retrieval hit rate = 10/10，strict commitment 到具体候选，但答案变得 *less* specific，因为它被绑在了已有发现的"类比视角"上，无法发挥 LLM 的自由联想和数值推理能力。
 
 这是一个反直觉但重要的发现：**现代大模型的跨域类比能力已经超过了"retrieval + transform" 管道所能提供的增量**。
 
-***REMOVED******REMOVED*** Q2 Results: Transformation Primitive Schema Agreement
+## Q2 Results: Transformation Primitive Schema Agreement
 
-***REMOVED******REMOVED******REMOVED*** 实验设计
+### 实验设计
 - 20 个经典历史跨域迁移（Kepler→Newton、Maxwell→Einstein、Darwin→经济、Boltzmann→Shannon 等）
 - 3 个独立模型各自用 8 基元 schema 做多标签标注：
   - Opus 4.6（via Claude Code agent）
@@ -59,7 +59,7 @@
   - Qwen3-Max（via OpenRouter）
 - 计算 pairwise Jaccard similarity + majority vote agreement
 
-***REMOVED******REMOVED******REMOVED*** 结果
+### 结果
 
 | 指标 | 值 | 阈值判断 |
 |---|---|---|
@@ -70,7 +70,7 @@
 | Opus ↔ Qwen | 0.775 | 最高 |
 | Avg Jaccard vs majority vote | **0.853** | 很高 — 3 模型都围绕同一"真值"聚集 |
 
-***REMOVED******REMOVED******REMOVED*** 基元分布（3 模型共识）
+### 基元分布（3 模型共识）
 
 | Primitive | Opus | Kimi | Qwen | 说明 |
 |---|---|---|---|---|
@@ -83,7 +83,7 @@
 | `variable_rename` | 1 | 0 | 0 | 极罕见（Boltzmann→Shannon 才算）|
 | `causal_inversion` | 0 | 3 | 1 | Kimi 过度使用 |
 
-***REMOVED******REMOVED******REMOVED*** 关键发现
+### 关键发现
 
 **变形基元框架是真的**：
 1. Mean Jaccard 0.721 > 0.7 门槛，说明 3 个独立模型确实在对同一现象做相似判断
@@ -94,14 +94,14 @@
 1. **分布极不平衡**：concept_transfer 占 95%，其他 7 个加起来才 5% — 预测器会退化成 "always predict concept_transfer"
 2. **variable_rename 几乎不应用**：只有 1 次（Boltzmann→Shannon）— 说明早上 V2 数据里"100% variable_rename"是因为 V2 候选本身就是浅同构，不是硬同构
 
-***REMOVED******REMOVED*** 综合判决
+## 综合判决
 
-***REMOVED******REMOVED******REMOVED*** 按决策门原规则
+### 按决策门原规则
 - Q1 必须 < 70%（Direct 差） **AND** Q2 必须 > 0.7（Schema 好）→ 才值得投 V4
 - 实测：Q1 = 100% (satisfied by Direct) **AND** Q2 = 0.721 ✓
 - **原规则判定：V4 pipeline 不应建**
 
-***REMOVED******REMOVED******REMOVED*** 但不要扔掉全部 V4 idea
+### 但不要扔掉全部 V4 idea
 
 **保留的部分**（有实证支持）：
 - 变形基元是可识别的真实维度（Q2 证据）
@@ -113,7 +113,7 @@
 - "Train transformation predictor" 作为独立模型 → 删（数据分布不平衡，会训出退化预测器）
 - "V4 beat GPT-5/Opus baseline" 作为论文卖点 → 删（Q1 证明打不过）
 
-***REMOVED******REMOVED******REMOVED*** 新的 V4 定位：Methodology Paper，不是 Retrieval Pipeline
+### 新的 V4 定位：Methodology Paper，不是 Retrieval Pipeline
 
 把 V4 从"跨域求解器"降级为"跨域创造力的定量分析框架"：
 
@@ -125,7 +125,7 @@
    - 这回答了一个方法论问题："什么样的跨域发现值得写论文"
 3. **可选第三层**：在 case study 论文里，把变形基元作为可解释性工具，标注每个 A 级发现的变形路径
 
-***REMOVED******REMOVED*** 推荐后续路径
+## 推荐后续路径
 
 **立即（本周）**：
 - 把 V4 改名为"Transformation Primitive Framework"
@@ -142,7 +142,7 @@
 - 不需要训练 transformation predictor
 - 框架本身作为论文贡献就够了
 
-***REMOVED******REMOVED*** 附：原始数据文件
+## 附：原始数据文件
 
 - `q1-problems.jsonl` — 10 跨域问题
 - `q1-direct-opus.jsonl` — Direct Opus baseline 答案
@@ -154,7 +154,7 @@
 - `q2-qwen-labels.jsonl` — Qwen3 Max 变形基元标注
 - `transformation-primitives.md` — 8 基元 schema 文档
 
-***REMOVED******REMOVED*** 诚实结论
+## 诚实结论
 
 1. **V4 的 idea 大部分是错的**——retrieval 不会打败 direct LLM reasoning
 2. **V4 的底层直觉有一部分是对的**——变形基元确实是个可识别的维度

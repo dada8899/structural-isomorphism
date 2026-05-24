@@ -1,4 +1,4 @@
-// phases_smoke.js — k6 smoke test for cheap GET endpoint (W14-B, session ***REMOVED***10)
+// phases_smoke.js — k6 smoke test for cheap GET endpoint (W14-B, session #10)
 //
 // Install k6:
 //   macOS:  brew install k6

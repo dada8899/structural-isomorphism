@@ -128,7 +128,7 @@ function wireDiscoveryShare(article, d) {
     filename: 'structural-discovery-' + d.rank + '.png',
     compact: true,
     cardData: {
-      eyebrow: '跨领域结构同构 ***REMOVED***' + d.rank,
+      eyebrow: '跨领域结构同构 #' + d.rank,
       headline: headline,
       lineA: (L(d, 'a_domain') || '') + ' · ' + (L(d, 'a_name') || ''),
       lineB: (L(d, 'b_domain') || '') + ' · ' + (L(d, 'b_name') || ''),
@@ -216,7 +216,7 @@ function renderDimScores(d) {
 }
 
 function renderStats(stats, count) {
-  const statsEl = $('***REMOVED***disc-hero-stats');
+  const statsEl = $('#disc-hero-stats');
   if (!statsEl) return;
 
   // by_status may use English (unexplored/partial/established) or Chinese keys.
@@ -241,7 +241,7 @@ function renderStats(stats, count) {
 }
 
 function renderFilters(stats, total) {
-  const filterEl = $('***REMOVED***disc-filter');
+  const filterEl = $('#disc-filter');
   if (!filterEl) return;
 
   const unknownCount = allDiscoveries.filter(d => statusInfo(d.literature_status).cls === 'unknown').length;
@@ -323,7 +323,7 @@ function applyFilter(list) {
 }
 
 function renderList() {
-  const listEl = $('***REMOVED***disc-list');
+  const listEl = $('#disc-list');
   if (!listEl) return;
   // Keep the friendly error state if the data never loaded.
   if (loadFailed) return;
@@ -353,7 +353,7 @@ function renderList() {
     return `
       <article class="disc-item" id="d-${d.rank}" data-index="${i}" data-rank="${d.rank}" style="animation: fadeInUp 500ms var(--ease-out-expo) ${Math.min(i * 30, 400)}ms both">
         <header class="disc-item__header">
-          <div class="disc-item__rank">***REMOVED***${d.rank}</div>
+          <div class="disc-item__rank">#${d.rank}</div>
           <div class="disc-item__body">
             <p class="disc-item__hook">${escapeHtml(discoveryHeadline(d))}</p>
             <div class="disc-item__pair">
@@ -517,7 +517,7 @@ function renderTier2List(listEl) {
 
   listEl.innerHTML = allTier2.map((d, i) => `
     <article class="disc-t2-item" data-index="${i}" style="animation: fadeInUp 400ms var(--ease-out-expo) ${Math.min(i * 20, 300)}ms both">
-      <div class="disc-t2-item__rank">***REMOVED***${d.rank}</div>
+      <div class="disc-t2-item__rank">#${d.rank}</div>
       <div class="disc-t2-item__body">
         <div class="disc-t2-item__pair">
           <div class="disc-t2-item__side">
@@ -552,14 +552,14 @@ function renderTier2List(listEl) {
 // (hero stats / filter / list) BEFORE fetch resolves so the page reserves
 // vertical space and does not visibly shift when the real nodes pop in.
 function renderDiscSkeletons() {
-  const statsEl = $('***REMOVED***disc-hero-stats');
+  const statsEl = $('#disc-hero-stats');
   if (statsEl) statsEl.innerHTML = '<div class="disc-skeleton-stats" aria-hidden="true"></div>';
-  const filterEl = $('***REMOVED***disc-filter');
+  const filterEl = $('#disc-filter');
   // W1-B (2026-05-14): 2 rows match real render (tier-tabs + filter-row).
   if (filterEl) filterEl.innerHTML =
     '<div class="disc-skeleton-filter" aria-hidden="true"></div>' +
     '<div class="disc-skeleton-filter" aria-hidden="true"></div>';
-  const listEl = $('***REMOVED***disc-list');
+  const listEl = $('#disc-list');
   if (listEl) listEl.innerHTML =
     '<div class="disc-skeleton-card" aria-hidden="true"></div>' +
     '<div class="disc-skeleton-card" aria-hidden="true"></div>' +
@@ -594,7 +594,7 @@ async function loadDiscoveries() {
     // with a retry button; the real error goes to the console only.
     console.error('Failed to load discoveries:', err);
     loadFailed = true;
-    const list = $('***REMOVED***disc-list');
+    const list = $('#disc-list');
     if (list) {
       list.innerHTML =
         '<div class="disc-loaderror">' +

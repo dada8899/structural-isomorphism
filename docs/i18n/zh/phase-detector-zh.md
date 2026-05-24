@@ -1,10 +1,10 @@
-***REMOVED*** Phase Detector
+# Phase Detector
 
 [English](../../phase-detector.md) | **简体中文**
 
 Phase Detector（项目代号 **D1**）将共享流水线封装成一个可查询的服务。目标用户是希望把一个 size 向量或时间序列扔进托管 endpoint，就能拿回判定结果（PASS / INCONCLUSIVE / FAIL）、带置信区间的拟合指数、以及替代分布拟合的诊断比较——**而无需在本地搭起完整 Python 流水线**的研究人员和工程师。
 
-***REMOVED******REMOVED*** 架构
+## 架构
 
 Phase Detector 是 `web/backend/` 下的一个薄层 FastAPI 服务，封装了共享分析库。请求路径是：
 
@@ -26,11 +26,11 @@ client  ──POST /api/ask──▶  编排器  ──▶  soc_pipeline.fit_*
 
 SSE 设计与 Perplexity 风格答案流式器使用的是同一套；事件 schema 的权威实现见 `web/backend/services/ask_orchestrator.py`。
 
-***REMOVED******REMOVED*** 用法
+## 用法
 
 托管 endpoint 按 tier 限流。免费 tier 接受 size 向量长度 $n \leq 5000$；付费 tier 接受 $n \leq 50000$，并把 bootstrap 迭代次数作为请求参数暴露出来。
 
-***REMOVED******REMOVED******REMOVED*** 流式 endpoint
+### 流式 endpoint
 
 ```bash
 curl -N -X POST https://api.structural-isomorphism.org/api/ask/stream \
@@ -44,7 +44,7 @@ curl -N -X POST https://api.structural-isomorphism.org/api/ask/stream \
 
 响应是一个 `event-stream`，按上述 7 个事件顺序推送。
 
-***REMOVED******REMOVED******REMOVED*** 同步 endpoint
+### 同步 endpoint
 
 对于较小输入和快速测试，同步 endpoint 一次返回完整结果表：
 
@@ -72,12 +72,12 @@ curl -X POST https://api.structural-isomorphism.org/api/ask \
 }
 ```
 
-***REMOVED******REMOVED*** Phase Detector 不做的事
+## Phase Detector 不做的事
 
 - **它不替你预注册预测**。如果你需要预注册判定，请按 `v4/preregistration/` 中的 schema 写一个 YAML，并在拉取数据**之前**提交。然后 Phase Detector 会消费这个 YAML；参见 [预注册方法论](../../methodology/pre-registration.md)。
 - **它不裁决普适类归属**。一个系统是否属于某个普适类，需要的不仅是一条幂律尾巴——参见 [跨判评审集成](../../methodology/cross-judge.md) 中分类法 review 的流程，Phase Detector 明确把这件事委托出去。
 
-***REMOVED******REMOVED*** 自托管
+## 自托管
 
 Phase Detector 是开源的。本地运行方式：
 

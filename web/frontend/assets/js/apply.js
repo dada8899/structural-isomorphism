@@ -1,4 +1,4 @@
-/* Structural — A1 方法反查页 (Session ***REMOVED***18)
+/* Structural — A1 方法反查页 (Session #18)
  *
  * 用户输入一个方法 → POST /api/method/apply → 展示结构签名 +
  * "这个方法还能用在这些地方" 的现象卡片。每张卡片可跳到 /analyze 预填。

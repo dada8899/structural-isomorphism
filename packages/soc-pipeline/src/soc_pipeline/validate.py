@@ -159,7 +159,7 @@ def validate(
         )
 
     if n_boot <= 0:
-        ***REMOVED*** caller explicitly disabled bootstrap (fast path for tests / CI)
+        # caller explicitly disabled bootstrap (fast path for tests / CI)
         ci_lo, ci_hi = _NAN, _NAN
     else:
         boot = bootstrap_ci(arr, n_boot=n_boot, seed=seed, discrete=discrete)
@@ -179,14 +179,14 @@ def validate(
     R_exp = float(fit.vs_exponential_R) if fit.vs_exponential_R is not None else _NAN
     p_exp = float(fit.vs_exponential_p) if fit.vs_exponential_p is not None else _NAN
 
-    ***REMOVED*** band check
+    # band check
     if expected_band is None:
         in_band: bool | None = None
     else:
         lo, hi = expected_band
         in_band = bool(lo <= alpha <= hi)
 
-    ***REMOVED*** alternative-model rejection (Clauset 2009 §6 rule of thumb)
+    # alternative-model rejection (Clauset 2009 §6 rule of thumb)
     rejects = False
     rejection_reason = ""
     if np.isfinite(R_ln) and R_ln < 0 and np.isfinite(p_ln) and p_ln < 0.1:

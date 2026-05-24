@@ -32,7 +32,7 @@ let _phPairId = null;
 let _phFromQuery = null;
 
 function renderLoadingHero() {
-  const container = $('***REMOVED***ph-content');
+  const container = $('#ph-content');
   container.innerHTML = `
     <div class="ph-hero">
       <div class="skeleton" style="width: 120px; height: 10px; margin-bottom: 16px"></div>
@@ -675,7 +675,7 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
 
   // Update title and breadcrumb
   document.title = `${p.name} — Structural`;
-  const crumbName = $('***REMOVED***ph-crumb-name');
+  const crumbName = $('#ph-crumb-name');
   if (crumbName) crumbName.textContent = p.name;
 
   // Show "返回搜索" only if there's actually a recent query stash
@@ -684,15 +684,15 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
     const stash = sessionStorage.getItem('structural_last_search');
     if (stash) lastQuery = JSON.parse(stash).query;
   } catch (e) { /* ignore */ }
-  const backLink = $('***REMOVED***ph-crumb-back');
-  const backSep = $('***REMOVED***ph-crumb-back-sep');
+  const backLink = $('#ph-crumb-back');
+  const backSep = $('#ph-crumb-back-sep');
   if (lastQuery && backLink && backSep) {
     backLink.removeAttribute('hidden');
     backSep.removeAttribute('hidden');
     backLink.setAttribute('href', `/search?q=${encodeURIComponent(lastQuery)}`);
   }
 
-  const container = $('***REMOVED***ph-content');
+  const container = $('#ph-content');
 
   // Layout depends on whether user came from a query or from a pair click
   if (fromQuery) {
@@ -709,7 +709,7 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
     `;
 
     // Mapping stream
-    const slot = $('***REMOVED***ph-mapping-slot');
+    const slot = $('#ph-mapping-slot');
     slot.innerHTML = renderMappingLoading();
     streamMapping({ kind: 'text', value: fromQuery }, id, slot, p);
 
@@ -719,14 +719,14 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
       if (!queryResults) {
         queryResults = await fetchSearchResults(fromQuery);
       }
-      const moreSlot = $('***REMOVED***ph-more-answers-slot');
+      const moreSlot = $('#ph-more-answers-slot');
       if (moreSlot) {
         moreSlot.innerHTML = renderMoreAnswers(queryResults, id, fromQuery);
       }
     })();
 
     // "About this phenomenon" — compact hero with a link to deep-dive
-    const aboutSlot = $('***REMOVED***ph-about-slot');
+    const aboutSlot = $('#ph-about-slot');
     if (aboutSlot) {
       aboutSlot.innerHTML = `
         <section class="ph-section ph-section--muted">
@@ -755,7 +755,7 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
       ${renderCrossDomainList(data.similar || [], id)}
       ${renderSameStructure(data.same_structure || [])}
     `;
-    const slot = $('***REMOVED***ph-mapping-slot');
+    const slot = $('#ph-mapping-slot');
     slot.innerHTML = renderMappingLoading();
     streamMapping({ kind: 'id', value: id }, pairId, slot, p);
   } else {
@@ -774,12 +774,12 @@ function renderPhenomenon(data, id, pairId, fromQuery) {
 
 function renderPhenomenonError(err) {
   console.error('Load phenomenon failed:', err);
-  const container = $('***REMOVED***ph-content');
+  const container = $('#ph-content');
   const isNotFound = /\b404\b/.test(err.message || '');
   if (isNotFound) {
     // Match the full-page /404 empty state: "现象未被收录"
     document.title = T('page.phenomenon.not_found_title', '没找到 — Structural');
-    const crumbName = $('***REMOVED***ph-crumb-name');
+    const crumbName = $('#ph-crumb-name');
     if (crumbName) crumbName.textContent = T('page.phenomenon.not_found_crumb', '未找到');
     container.innerHTML = `
       <div class="search-empty" style="padding: var(--space-8) var(--space-5); text-align: center;">

@@ -10,45 +10,45 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: ***REMOVED***3370ff;
-      --primary-light: ***REMOVED***e8f0fe;
-      --primary-dark: ***REMOVED***2860e0;
-      --bg: ***REMOVED***f5f6f7;
-      --bg-sidebar: ***REMOVED***ffffff;
-      --bg-content: ***REMOVED***ffffff;
-      --text: ***REMOVED***1f2329;
-      --text-secondary: ***REMOVED***646a73;
-      --text-muted: ***REMOVED***8f959e;
-      --border: ***REMOVED***dee0e3;
-      --border-light: ***REMOVED***eef0f2;
-      --hover-bg: ***REMOVED***f0f1f2;
-      --active-bg: ***REMOVED***e1eaff;
+      --primary: #3370ff;
+      --primary-light: #e8f0fe;
+      --primary-dark: #2860e0;
+      --bg: #f5f6f7;
+      --bg-sidebar: #ffffff;
+      --bg-content: #ffffff;
+      --text: #1f2329;
+      --text-secondary: #646a73;
+      --text-muted: #8f959e;
+      --border: #dee0e3;
+      --border-light: #eef0f2;
+      --hover-bg: #f0f1f2;
+      --active-bg: #e1eaff;
       --topbar-h: 52px;
       --sidebar-w: 280px;
       --toc-w: 220px;
       --shadow: 0 1px 2px rgba(0,0,0,0.06);
       --radius: 6px;
-      --code-bg: ***REMOVED***f4f5f6;
-      --blockquote-bg: ***REMOVED***f0f4ff;
+      --code-bg: #f4f5f6;
+      --blockquote-bg: #f0f4ff;
     }
 
     [data-theme="dark"] {
-      --primary: ***REMOVED***4e83fd;
-      --primary-light: ***REMOVED***1a2744;
-      --primary-dark: ***REMOVED***6b9bff;
-      --bg: ***REMOVED***1a1a1a;
-      --bg-sidebar: ***REMOVED***1e1e1e;
-      --bg-content: ***REMOVED***222222;
-      --text: ***REMOVED***d4d4d4;
-      --text-secondary: ***REMOVED***a0a0a0;
-      --text-muted: ***REMOVED***707070;
-      --border: ***REMOVED***333333;
-      --border-light: ***REMOVED***2a2a2a;
-      --hover-bg: ***REMOVED***2a2a2a;
-      --active-bg: ***REMOVED***1a2744;
+      --primary: #4e83fd;
+      --primary-light: #1a2744;
+      --primary-dark: #6b9bff;
+      --bg: #1a1a1a;
+      --bg-sidebar: #1e1e1e;
+      --bg-content: #222222;
+      --text: #d4d4d4;
+      --text-secondary: #a0a0a0;
+      --text-muted: #707070;
+      --border: #333333;
+      --border-light: #2a2a2a;
+      --hover-bg: #2a2a2a;
+      --active-bg: #1a2744;
       --shadow: 0 1px 2px rgba(0,0,0,0.2);
-      --code-bg: ***REMOVED***2d2d2d;
-      --blockquote-bg: ***REMOVED***1a2744;
+      --code-bg: #2d2d2d;
+      --blockquote-bg: #1a2744;
     }
 
     body {
@@ -81,7 +81,7 @@
       background: var(--primary);
       border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
-      color: ***REMOVED***fff; font-weight: 700; font-size: 12px;
+      color: #fff; font-weight: 700; font-size: 12px;
       flex-shrink: 0;
     }
     .topbar-title {
@@ -295,7 +295,7 @@
       transition: width 0.6s;
     }
     .progress-fill.v1 { background: var(--primary); width: 35%; }
-    .progress-fill.v2 { background: ***REMOVED***34a853; width: 10%; }
+    .progress-fill.v2 { background: #34a853; width: 10%; }
     .status-label {
       font-size: 12px;
       color: var(--text-muted);
@@ -339,14 +339,14 @@
       gap: 16px;
       align-items: center;
     }
-    ***REMOVED***content h1 {
+    #content h1 {
       font-size: 28px;
       font-weight: 700;
       margin-bottom: 8px;
       line-height: 1.4;
       letter-spacing: -0.3px;
     }
-    ***REMOVED***content h2 {
+    #content h2 {
       font-size: 21px;
       font-weight: 600;
       margin-top: 40px;
@@ -354,79 +354,79 @@
       padding-bottom: 8px;
       border-bottom: 1px solid var(--border-light);
     }
-    ***REMOVED***content h3 {
+    #content h3 {
       font-size: 17px;
       font-weight: 600;
       margin-top: 28px;
       margin-bottom: 10px;
     }
-    ***REMOVED***content h4 {
+    #content h4 {
       font-size: 15px;
       font-weight: 600;
       margin-top: 20px;
       margin-bottom: 8px;
     }
-    ***REMOVED***content p {
+    #content p {
       margin-bottom: 14px;
       line-height: 1.8;
     }
-    ***REMOVED***content ul, ***REMOVED***content ol {
+    #content ul, #content ol {
       margin-bottom: 14px;
       padding-left: 24px;
     }
-    ***REMOVED***content li {
+    #content li {
       margin-bottom: 4px;
       line-height: 1.8;
     }
-    ***REMOVED***content blockquote {
+    #content blockquote {
       border-left: 3px solid var(--primary);
       padding: 12px 20px;
       margin: 14px 0;
       background: var(--blockquote-bg);
       border-radius: 0 var(--radius) var(--radius) 0;
     }
-    ***REMOVED***content blockquote p { margin-bottom: 0; }
-    ***REMOVED***content code {
+    #content blockquote p { margin-bottom: 0; }
+    #content code {
       font-family: "JetBrains Mono", "Menlo", monospace;
       font-size: 0.88em;
       background: var(--code-bg);
       padding: 2px 5px;
       border-radius: 3px;
     }
-    ***REMOVED***content pre {
+    #content pre {
       margin: 14px 0;
       border-radius: 8px;
       overflow-x: auto;
     }
-    ***REMOVED***content pre code {
+    #content pre code {
       display: block;
       padding: 16px 20px;
       background: var(--code-bg);
       line-height: 1.6;
       font-size: 13px;
     }
-    ***REMOVED***content table {
+    #content table {
       width: 100%;
       border-collapse: collapse;
       margin: 14px 0;
       font-size: 13px;
     }
-    ***REMOVED***content th, ***REMOVED***content td {
+    #content th, #content td {
       border: 1px solid var(--border);
       padding: 8px 12px;
       text-align: left;
     }
-    ***REMOVED***content th {
+    #content th {
       background: var(--hover-bg);
       font-weight: 600;
     }
-    ***REMOVED***content strong { font-weight: 600; }
-    ***REMOVED***content hr {
+    #content strong { font-weight: 600; }
+    #content hr {
       border: none;
       border-top: 1px solid var(--border-light);
       margin: 28px 0;
     }
-    ***REMOVED***content img {
+    #content img {
       max-width: 100%;
       border-radius: var(--radius);
     }
@@ -511,8 +511,8 @@
       .main { margin-left: 0; }
       .main-inner { padding: 24px 18px 60px; }
       .menu-toggle { display: block; }
-      ***REMOVED***content h1 { font-size: 22px; }
-      ***REMOVED***content h2 { font-size: 18px; }
+      #content h1 { font-size: 22px; }
+      #content h2 { font-size: 18px; }
       .welcome h1 { font-size: 24px; }
       .status-grid { grid-template-columns: 1fr; }
     }
@@ -522,7 +522,7 @@
 
 <nav class="topbar">
   <div class="topbar-left">
-    <button class="menu-toggle" id="menuToggle">&***REMOVED***9776;</button>
+    <button class="menu-toggle" id="menuToggle">&#9776;</button>
     <div class="topbar-logo">SI</div>
     <span class="topbar-title">Structural Isomorphism</span>
   </div>
@@ -530,7 +530,7 @@
     <a href="https://beta.structural.bytedance.city" target="_blank">Live Beta</a>
     <a href="https://doi.org/10.5281/zenodo.19615170" target="_blank">Dataset DOI</a>
     <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a>
-    <button id="themeToggle" title="Toggle dark mode">&***REMOVED***9789;</button>
+    <button id="themeToggle" title="Toggle dark mode">&#9789;</button>
   </div>
 </nav>
 
@@ -729,7 +729,7 @@ marked.setOptions({
 function navigateTo(slug) {
   if (slug) {
     currentSlug = slug;
-    history.pushState({ slug }, '', `***REMOVED***${slug}`);
+    history.pushState({ slug }, '', `#${slug}`);
     loadDoc(slug);
     setActiveItem(slug);
     // Close mobile sidebar
@@ -775,19 +775,19 @@ function showWelcome() {
         <div class="status-card">
           <h3>\u7B2C\u4E8C\u4EE3</h3>
           <div class="version">V2 — Strict Embedding (5689)</div>
-          <div class="progress-bar"><div class="progress-fill v2" style="width:100%; background:***REMOVED***34a853;"></div></div>
+          <div class="progress-bar"><div class="progress-fill v2" style="width:100%; background:#34a853;"></div></div>
           <div class="status-label">精准筛 · 4533 对 · <b>19 A 级</b> · \u5DF2\u5B8C\u6210</div>
         </div>
         <div class="status-card">
           <h3>\u7B2C\u4E09\u4EE3</h3>
           <div class="version">V3 — StructTuple + LLM Rerank</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:100%; background:***REMOVED***9333ea;"></div></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%; background:#9333ea;"></div></div>
           <div class="status-label">结构代数 · 1000 对 · <b>20 A + 34 B+</b> · \u5DF2\u5B8C\u6210</div>
         </div>
       </div>
       <p style="text-align:center; margin-top:20px; color:var(--text-secondary); font-size:14px;">
         三代 pipeline 共积累 <b>63 个独立顶级跨域同构候选</b>，三管道完全零重叠 —
-        <a href="***REMOVED***" onclick="navigateTo('v3-full-run');return false;" style="color:var(--primary);">查看 V3 最新发现 →</a>
+        <a href="#" onclick="navigateTo('v3-full-run');return false;" style="color:var(--primary);">查看 V3 最新发现 →</a>
       </p>
       <div class="quick-links">
         ${quickItems.map(q => `<a class="quick-link" data-slug="${q.slug}">\u2192 ${q.label}</a>`).join('')}
@@ -826,7 +826,7 @@ async function loadDoc(slug) {
     var html = marked.parse(md);
 
     // Word count from source
-    var textOnly = md.replace(/[***REMOVED****_\[\]()>|\-`]/g, '').replace(/\s+/g, '');
+    var textOnly = md.replace(/[#*_\[\]()>|\-`]/g, '').replace(/\s+/g, '');
     var words = textOnly.length;
     var readTime = Math.ceil(words / 500);
 
@@ -851,13 +851,13 @@ async function loadDoc(slug) {
 
     // Highlight code
     if (typeof hljs !== 'undefined') {
-      document.querySelectorAll('***REMOVED***content pre code').forEach(function(block) {
+      document.querySelectorAll('#content pre code').forEach(function(block) {
         try { hljs.highlightElement(block); } catch(e) {}
       });
     }
 
     // Page title
-    var h1 = document.querySelector('***REMOVED***content h1');
+    var h1 = document.querySelector('#content h1');
     if (h1) document.title = h1.textContent + ' — 结构同构';
 
     // Build TOC
@@ -865,7 +865,7 @@ async function loadDoc(slug) {
 
   } catch (e) {
     console.error('loadDoc error:', e);
-    mainInner.innerHTML = '<div class="loading"><p>文档加载失败：' + slug + '</p><p>' + e.message + '</p><p style="margin-top:12px"><a href="***REMOVED***" onclick="navigateTo(null);return false;" style="color:var(--primary)">返回首页</a></p></div>';
+    mainInner.innerHTML = '<div class="loading"><p>文档加载失败：' + slug + '</p><p>' + e.message + '</p><p style="margin-top:12px"><a href="#" onclick="navigateTo(null);return false;" style="color:var(--primary)">返回首页</a></p></div>';
     var tocEl = document.getElementById('toc');
     if (tocEl) tocEl.style.display = 'none';
     var mainEl = document.getElementById('main');
@@ -876,7 +876,7 @@ async function loadDoc(slug) {
 // === TOC ===
 function buildTOC() {
   const toc = document.getElementById('toc');
-  const headings = document.querySelectorAll('***REMOVED***content h2, ***REMOVED***content h3');
+  const headings = document.querySelectorAll('#content h2, #content h3');
 
   if (headings.length === 0) {
     toc.style.display = 'none';
@@ -894,7 +894,7 @@ function buildTOC() {
     const id = 'sec-' + i;
     h.id = id;
     const a = document.createElement('a');
-    a.href = '***REMOVED***' + id;
+    a.href = '#' + id;
     a.textContent = h.textContent;
     if (h.tagName === 'H3') a.classList.add('toc-h3');
     a.addEventListener('click', e => {
@@ -940,7 +940,7 @@ buildSidebar();
 
 // Handle hash navigation
 function handleHash() {
-  const hash = location.hash.replace('***REMOVED***', '');
+  const hash = location.hash.replace('#', '');
   if (hash && ALL_DOCS.find(d => d.slug === hash)) {
     currentSlug = hash;
     loadDoc(hash);

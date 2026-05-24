@@ -1,12 +1,12 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** smoke_lang_api.sh — verify the ?lang=en / ?lang=zh contract on the deployed backend.
-***REMOVED***
-***REMOVED*** Strategy: hit one representative LLM endpoint in each language and count
-***REMOVED*** Chinese (CJK) vs English (ASCII letter) characters in the response body.
-***REMOVED*** - zh response should have mostly CJK characters
-***REMOVED*** - en response should have mostly ASCII letters and almost no CJK
-***REMOVED***
-***REMOVED*** Uses /api/search/assess (POST, LLM-backed, one-shot JSON — cheapest to probe).
+#!/usr/bin/env bash
+# smoke_lang_api.sh — verify the ?lang=en / ?lang=zh contract on the deployed backend.
+#
+# Strategy: hit one representative LLM endpoint in each language and count
+# Chinese (CJK) vs English (ASCII letter) characters in the response body.
+# - zh response should have mostly CJK characters
+# - en response should have mostly ASCII letters and almost no CJK
+#
+# Uses /api/search/assess (POST, LLM-backed, one-shot JSON — cheapest to probe).
 
 set -u
 
@@ -18,7 +18,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 pass=0
 fail=0
 
-***REMOVED*** count_cjk FILE -> prints number of CJK unified ideograph codepoints
+# count_cjk FILE -> prints number of CJK unified ideograph codepoints
 count_cjk() {
   python3 -c '
 import sys, re
@@ -27,7 +27,7 @@ print(len(re.findall(r"[\u4e00-\u9fff]", data)))
 ' "$1"
 }
 
-***REMOVED*** count_ascii_letters FILE -> number of a-zA-Z characters
+# count_ascii_letters FILE -> number of a-zA-Z characters
 count_ascii_letters() {
   python3 -c '
 import sys, re
@@ -65,7 +65,7 @@ echo "zh response: CJK=$zh_cjk  ASCII-letters=$zh_ascii"
 echo "en response: CJK=$en_cjk  ASCII-letters=$en_ascii"
 echo
 
-***REMOVED*** zh regression: must have meaningful Chinese output
+# zh regression: must have meaningful Chinese output
 if [ "$zh_cjk" -gt 30 ]; then
   echo "PASS  zh still returns Chinese (CJK=$zh_cjk > 30)"
   pass=$((pass+1))
@@ -77,7 +77,7 @@ else
   fail=$((fail+1))
 fi
 
-***REMOVED*** en: ASCII letters must dominate CJK
+# en: ASCII letters must dominate CJK
 if [ "$en_ascii" -gt "$en_cjk" ] && [ "$en_ascii" -gt 50 ]; then
   echo "PASS  en returns predominantly English (ASCII=$en_ascii > CJK=$en_cjk)"
   pass=$((pass+1))

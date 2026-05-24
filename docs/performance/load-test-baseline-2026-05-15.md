@@ -1,11 +1,11 @@
-***REMOVED*** Load test baseline — 2026-05-15
+# Load test baseline — 2026-05-15
 
-**Wave:** W14-B (session ***REMOVED***10)
+**Wave:** W14-B (session #10)
 **Tool:** k6 (Grafana). Five scripts under `tests/load/`.
 **Target:** beta.structural.bytedance.city (FastAPI on VPS) and local dev.
 **Author:** w14-b sub-agent
 
-***REMOVED******REMOVED*** Why this exists
+## Why this exists
 
 W14-B introduces an automated load-test surface for the structural-isomorphism
 backend. The W11-C rate-limit middleware introduced free/pro/team/admin tiers
@@ -14,47 +14,47 @@ backend. The W11-C rate-limit middleware introduced free/pro/team/admin tiers
 where `/api/daily` (the cheapest GET) starts returning 5xx. This baseline
 gives us a starting number and a CI knob to detect regressions.
 
-***REMOVED******REMOVED*** How to run
+## How to run
 
-***REMOVED******REMOVED******REMOVED*** Local dev
+### Local dev
 
 ```bash
-***REMOVED*** 1. Install k6
-brew install k6   ***REMOVED*** macOS
-***REMOVED*** Linux: see header of tests/load/phases_smoke.js for apt instructions.
+# 1. Install k6
+brew install k6   # macOS
+# Linux: see header of tests/load/phases_smoke.js for apt instructions.
 
-***REMOVED*** 2. Run the cheap-GET smoke (fastest signal)
+# 2. Run the cheap-GET smoke (fastest signal)
 BASE_URL=http://localhost:8000 k6 run tests/load/phases_smoke.js
 
-***REMOVED*** 3. Full suite (~10–15 min wall clock)
+# 3. Full suite (~10–15 min wall clock)
 BASE_URL=http://localhost:8000 ./tests/load/run_all.sh
 
-***REMOVED*** 4. Just the LLM-bound check (costs real LLM budget)
+# 4. Just the LLM-bound check (costs real LLM budget)
 BASE_URL=http://localhost:8000 k6 run tests/load/ask_smoke.js
 ```
 
-***REMOVED******REMOVED******REMOVED*** Against staging (beta.structural.bytedance.city)
+### Against staging (beta.structural.bytedance.city)
 
 ```bash
-***REMOVED*** Polite mode: 1-2 VUs, smokes only, no stress, no LLM cost.
+# Polite mode: 1-2 VUs, smokes only, no stress, no LLM cost.
 BASE_URL=https://beta.structural.bytedance.city SAFE=1 ./tests/load/run_all.sh
 
-***REMOVED*** Full mixed-traffic profile (asks permission of the owner first):
+# Full mixed-traffic profile (asks permission of the owner first):
 BASE_URL=https://beta.structural.bytedance.city k6 run tests/load/mixed_realistic.js
 
-***REMOVED*** Stress endpoint requires explicit acknowledgement against prod:
+# Stress endpoint requires explicit acknowledgement against prod:
 I_KNOW_WHAT_I_AM_DOING=yes BASE_URL=https://beta.structural.bytedance.city \
   k6 run tests/load/stress_ramp.js
 ```
 
-***REMOVED******REMOVED******REMOVED*** CI
+### CI
 
 GitHub Actions workflow `.github/workflows/load-smoke.yml` is
 `workflow_dispatch` only — pick a target (`local` / `beta` / custom URL) and
 the smoke scenario. No automatic trigger; load tests are too expensive (and
 too contended on shared CI runners) to fire on every PR.
 
-***REMOVED******REMOVED*** Endpoint mapping note
+## Endpoint mapping note
 
 The W14 task brief named `/api/phases` for the cheap-GET case. The shipped
 backend exposes `/api/daily` as the canonical cheap GET (pre-computed rotating
@@ -68,7 +68,7 @@ returns 404 on beta — the W10-E PR has not merged to main yet (verified
 gracefully accept 404 so it can run today and detect the moment the endpoint
 ships.
 
-***REMOVED******REMOVED*** Baseline numbers — beta.structural.bytedance.city (1 client, curl)
+## Baseline numbers — beta.structural.bytedance.city (1 client, curl)
 
 `k6` is not yet installed locally; the numbers below come from `curl -w` with
 five sequential probes per endpoint. These are *single-client TTFB / total
@@ -98,7 +98,7 @@ Observations:
    missing from the rsync. Worth a 5-min check with the W10/W11 deploy
    owner; not blocking for load test scaffolding.
 
-***REMOVED******REMOVED*** Tier thresholds (W11-C) — does the free-tier 60/min actually hold?
+## Tier thresholds (W11-C) — does the free-tier 60/min actually hold?
 
 The 60-req/min free-tier limit translates to **1 req/sec per IP**. Under
 `mixed_realistic.js` with 50 VUs from a single IP we expect:
@@ -110,13 +110,13 @@ The 60-req/min free-tier limit translates to **1 req/sec per IP**. Under
 
 ```bash
 BASE_URL=https://beta.structural.bytedance.city k6 run tests/load/phases_smoke.js
-***REMOVED*** Expected: ~60 successful in first second, then 429 wall. error_rate ≈ 1 - (60/total).
+# Expected: ~60 successful in first second, then 429 wall. error_rate ≈ 1 - (60/total).
 ```
 
 If `error_rate` does not climb after second 1, the rate-limit middleware
 is not wired — file a P0 against `web/backend/middleware/rate_limit.py`.
 
-***REMOVED******REMOVED*** Saturation point — `/api/daily`
+## Saturation point — `/api/daily`
 
 Estimating without a real k6 run: VPS is 16C/32G, FastAPI single-process
 gunicorn (per `scripts/deploy-vps.sh`, verify). Cheap-GET with ~6 KB JSON
@@ -139,7 +139,7 @@ load 10 000 RPS**. We expect:
 record the exact VU count at first 1 % 5xx. Update this doc with the real
 number. Until that run happens, **estimated saturation ≈ 500 VUs (~5 kRPS)**.
 
-***REMOVED******REMOVED*** Comparison to W11-C rate-limit tiers
+## Comparison to W11-C rate-limit tiers
 
 Tier req/min limits, normalised to req/sec:
 
@@ -162,7 +162,7 @@ think time 1 s). So:
   limit doesn't actually protect us at the team tier — application/server
   saturates first. Documented; not a bug for free tier.
 
-***REMOVED******REMOVED*** Next steps
+## Next steps
 
 1. Install k6 on the dev box; run the full local suite and overwrite the
    curl-derived baseline numbers above with real P50/P95/P99.
@@ -176,7 +176,7 @@ think time 1 s). So:
 5. If `/phase/api/companies` returning empty list is unintended, file a
    ticket with the deploy owner.
 
-***REMOVED******REMOVED*** Files
+## Files
 
 - `tests/load/phases_smoke.js` — 10 VUs × 30 s cheap GET
 - `tests/load/ask_smoke.js` — 5 VUs × 60 s LLM-bound POST

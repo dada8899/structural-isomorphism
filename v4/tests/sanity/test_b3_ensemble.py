@@ -34,19 +34,19 @@ import os
 import sys
 from pathlib import Path
 
-***REMOVED*** Make the env var defined before b3_ensemble.py is imported (module-level
-***REMOVED*** check would otherwise abort).
+# Make the env var defined before b3_ensemble.py is imported (module-level
+# check would otherwise abort).
 os.environ.setdefault("DEEPSEEK_API_KEY", "sk-test-dummy-not-real")
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "v4" / "scripts"))
 
-import b3_ensemble  ***REMOVED*** noqa: E402
+import b3_ensemble  # noqa: E402
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** consensus_of() — W6-A class-based
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# consensus_of() — W6-A class-based
+# ---------------------------------------------------------------------------
 
 
 class TestConsensusOf:
@@ -63,7 +63,7 @@ class TestConsensusOf:
         assert b3_ensemble.consensus_of(["UNCLEAR", "UNCLEAR", "UNCLEAR"]) == "UNCLEAR"
 
     def test_three_way_split_falls_to_unclear(self):
-        ***REMOVED*** KEEP=1, REJECT=1, SPLIT=1 — no label hits >=2, falls to UNCLEAR
+        # KEEP=1, REJECT=1, SPLIT=1 — no label hits >=2, falls to UNCLEAR
         assert b3_ensemble.consensus_of(["KEEP", "REJECT", "SPLIT"]) == "UNCLEAR"
 
     def test_majority_split(self):
@@ -73,25 +73,25 @@ class TestConsensusOf:
         assert b3_ensemble.consensus_of(["MERGE", "MERGE", "UNCLEAR"]) == "MERGE"
 
     def test_priority_keep_over_split(self):
-        ***REMOVED*** Both KEEP and SPLIT hit 2; KEEP wins because it's checked first.
-        ***REMOVED*** This test pins the documented priority order.
-        ***REMOVED*** Five reviewers: 2 KEEP, 2 SPLIT, 1 UNCLEAR
+        # Both KEEP and SPLIT hit 2; KEEP wins because it's checked first.
+        # This test pins the documented priority order.
+        # Five reviewers: 2 KEEP, 2 SPLIT, 1 UNCLEAR
         result = b3_ensemble.consensus_of(["KEEP", "KEEP", "SPLIT", "SPLIT", "UNCLEAR"])
         assert result == "KEEP"
 
     def test_empty_input(self):
-        ***REMOVED*** Edge case: no reviewers (shouldn't happen in prod but mustn't crash)
+        # Edge case: no reviewers (shouldn't happen in prod but mustn't crash)
         assert b3_ensemble.consensus_of([]) == "UNCLEAR"
 
     def test_error_verdicts_pass_through_unclear(self):
-        ***REMOVED*** ERROR / PARSE_FAIL are not in the priority list, so they fall through
-        ***REMOVED*** to UNCLEAR (correct: errors shouldn't drive consensus).
+        # ERROR / PARSE_FAIL are not in the priority list, so they fall through
+        # to UNCLEAR (correct: errors shouldn't drive consensus).
         assert b3_ensemble.consensus_of(["ERROR", "PARSE_FAIL", "ERROR"]) == "UNCLEAR"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** extract_json() — W6-A class-based
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# extract_json() — W6-A class-based
+# ---------------------------------------------------------------------------
 
 
 class TestExtractJson:
@@ -132,42 +132,42 @@ class TestExtractJson:
         assert b3_ensemble.extract_json("{") is None
 
     def test_unbalanced_json_returns_none(self):
-        ***REMOVED*** This is genuinely invalid JSON (no closing brace at all)
+        # This is genuinely invalid JSON (no closing brace at all)
         assert b3_ensemble.extract_json("{ no closing brace ever") is None
 
     def test_trailing_comma_lenient_recovery(self):
-        ***REMOVED*** Some models emit trailing commas; the lenient path strips them.
+        # Some models emit trailing commas; the lenient path strips them.
         raw = '{"verdict": "KEEP",\n"confidence": 0.5,\n}'
         out = b3_ensemble.extract_json(raw)
         assert out is not None
         assert out["verdict"] == "KEEP"
 
     def test_missing_field_still_parses(self):
-        ***REMOVED*** Caller is responsible for field validation; the parser shouldn't
-        ***REMOVED*** reject incomplete JSON.
+        # Caller is responsible for field validation; the parser shouldn't
+        # reject incomplete JSON.
         raw = '{"verdict": "KEEP"}'
         out = b3_ensemble.extract_json(raw)
         assert out == {"verdict": "KEEP"}
         assert "confidence" not in out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** write_taxonomy_v2() — IO contract (W6-A class-based)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# write_taxonomy_v2() — IO contract (W6-A class-based)
+# ---------------------------------------------------------------------------
 
 
 class TestWriteTaxonomyV2:
     def _make_rows_and_classes(self):
         """Synthesize 2 classes with 3 reviewer verdicts each."""
         rows = [
-            ***REMOVED*** class_a: B1=KEEP, B3 = 3x KEEP → final KEEP_strong
+            # class_a: B1=KEEP, B3 = 3x KEEP → final KEEP_strong
             {"class_id": "class_a", "model_id": "deepseek-pro-rigorous",
              "verdict": "KEEP", "confidence": 0.9, "rationale": "r1"},
             {"class_id": "class_a", "model_id": "deepseek-flash-rigorous",
              "verdict": "KEEP", "confidence": 0.8, "rationale": "r2"},
             {"class_id": "class_a", "model_id": "deepseek-pro-creative",
              "verdict": "KEEP", "confidence": 0.7, "rationale": "r3"},
-            ***REMOVED*** class_b: B1=REJECT, B3 = 3x REJECT → final REJECT_strong
+            # class_b: B1=REJECT, B3 = 3x REJECT → final REJECT_strong
             {"class_id": "class_b", "model_id": "deepseek-pro-rigorous",
              "verdict": "REJECT", "confidence": 0.85, "rationale": "r4"},
             {"class_id": "class_b", "model_id": "deepseek-flash-rigorous",
@@ -195,13 +195,13 @@ class TestWriteTaxonomyV2:
 
         assert by_cid["class_a"]["final_verdict"] == "KEEP_strong"
         assert by_cid["class_a"]["b3_consensus"] == "KEEP"
-        assert by_cid["class_a"]["b3_avg_confidence"] == 0.8  ***REMOVED*** (0.9+0.8+0.7)/3
+        assert by_cid["class_a"]["b3_avg_confidence"] == 0.8  # (0.9+0.8+0.7)/3
 
         assert by_cid["class_b"]["final_verdict"] == "REJECT_strong"
         assert by_cid["class_b"]["b3_consensus"] == "REJECT"
 
     def test_contested_keep_vs_reject(self, monkeypatch, tmp_path):
-        ***REMOVED*** B1 KEEP but B3 majority REJECT → CONTESTED(B1=KEEP,B3=REJECT)
+        # B1 KEEP but B3 majority REJECT → CONTESTED(B1=KEEP,B3=REJECT)
         rows = [
             {"class_id": "class_x", "model_id": "deepseek-pro-rigorous",
              "verdict": "REJECT", "confidence": 0.8, "rationale": "r"},
@@ -222,9 +222,9 @@ class TestWriteTaxonomyV2:
         assert "B3=REJECT" in rec["final_verdict"]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** write_summary() — schema smoke (W6-A class-based)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# write_summary() — schema smoke (W6-A class-based)
+# ---------------------------------------------------------------------------
 
 
 class TestWriteSummary:
@@ -248,13 +248,13 @@ class TestWriteSummary:
         assert "B3 consensus distribution" in text
         assert "B1 critic vs B3 ensemble agreement" in text
         assert "Methodology notes" in text
-        ***REMOVED*** Consensus for c1 should be KEEP (2/3)
+        # Consensus for c1 should be KEEP (2/3)
         assert "**KEEP**" in text or "KEEP" in text
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Module-level: env var enforcement (W6-A)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Module-level: env var enforcement (W6-A)
+# ---------------------------------------------------------------------------
 
 
 def test_module_raises_when_env_unset(monkeypatch):
@@ -263,7 +263,7 @@ def test_module_raises_when_env_unset(monkeypatch):
     spawn a subprocess."""
     import subprocess
     script = REPO / "v4" / "scripts" / "b3_ensemble.py"
-    ***REMOVED*** Strip env var explicitly
+    # Strip env var explicitly
     env = {k: v for k, v in os.environ.items() if k != "DEEPSEEK_API_KEY"}
     result = subprocess.run(
         [sys.executable, "-c", f"import sys; sys.path.insert(0, '{script.parent}'); import b3_ensemble"],
@@ -275,9 +275,9 @@ def test_module_raises_when_env_unset(monkeypatch):
     assert "DEEPSEEK_API_KEY" in result.stderr
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** load_yaml_class() — minimal yaml parser (W6-E additions, NOT covered by W6-A)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# load_yaml_class() — minimal yaml parser (W6-E additions, NOT covered by W6-A)
+# ---------------------------------------------------------------------------
 
 
 def test_load_yaml_class_missing_file_returns_empty(monkeypatch, tmp_path):
@@ -318,9 +318,9 @@ def test_load_yaml_class_parses_fields(monkeypatch, tmp_path):
     assert "Some notes" in out["notes"]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** build_user_prompt() — W6-E additions, NOT covered by W6-A
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# build_user_prompt() — W6-E additions, NOT covered by W6-A
+# ---------------------------------------------------------------------------
 
 
 def test_build_user_prompt_basic_substitution():
@@ -346,7 +346,7 @@ def test_build_user_prompt_basic_substitution():
     assert "alpha ~ 1.5" in prompt
     assert "earthquake" in prompt
     assert "lottery" in prompt
-    ***REMOVED*** B1 prior verdict is included
+    # B1 prior verdict is included
     assert "KEEP" in prompt
 
 
@@ -363,7 +363,7 @@ def test_build_user_prompt_truncation_long_summary():
         "notes": "q" * 1000,
     }
     prompt = b3_ensemble.build_user_prompt("huge_class", b1_row, yaml)
-    ***REMOVED*** prompt is rendered, no exception
+    # prompt is rendered, no exception
     assert "huge_class" in prompt
 
 
@@ -372,13 +372,13 @@ def test_build_user_prompt_missing_yaml_fields():
     b1_row = {"review_verdict": "UNCLEAR", "confidence": 0.5}
     prompt = b3_ensemble.build_user_prompt("bare_class", b1_row, {})
     assert "bare_class" in prompt
-    ***REMOVED*** Falls back to '(none)'
+    # Falls back to '(none)'
     assert "(none)" in prompt
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Edge-case verdict normalization in the main loop (W6-E addition)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Edge-case verdict normalization in the main loop (W6-E addition)
+# ---------------------------------------------------------------------------
 
 
 def test_verdict_normalization_prefix():

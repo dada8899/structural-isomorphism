@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 4 — Step 1: Generate synthetic neural avalanche data.
 
@@ -37,7 +37,7 @@ def simulate_avalanche(m: float, rng: np.random.Generator, cap: int = 50000):
     duration follow the canonical mean-field SOC power laws.
     Cap prevents infinite runs on super-critical parameter draws.
     """
-    gen = 1  ***REMOVED*** start with the seed
+    gen = 1  # start with the seed
     size = 1
     alive = 1
     duration = 1
@@ -53,8 +53,8 @@ def simulate_avalanche(m: float, rng: np.random.Generator, cap: int = 50000):
 
 def main():
     rng = np.random.default_rng(42)
-    n_avalanches = 200_000   ***REMOVED*** big enough to see a clean power-law tail
-    m = 1.0                  ***REMOVED*** critical
+    n_avalanches = 200_000   # big enough to see a clean power-law tail
+    m = 1.0                  # critical
 
     sizes, durations = [], []
     for i in range(n_avalanches):

@@ -1,14 +1,14 @@
-***REMOVED*** /discoveries CLS verification — W3-B skeleton effectiveness
+# /discoveries CLS verification — W3-B skeleton effectiveness
 
 **Date**: 2026-05-14
-**Session**: ***REMOVED***8 (W1-B frontend polish)
+**Session**: #8 (W1-B frontend polish)
 **Tool**: Playwright Chromium + PerformanceObserver `layout-shift`
 **Script**: `scripts/measure_cls_discoveries.py`
 **Page**: `https://beta.structural.bytedance.city/discoveries`
 **Viewport**: 1280×800 desktop, headless Chromium
 **Measurement**: navigate → networkidle → wait 3s → 1px scroll tick → read `__clsValue`
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 | Phase                                   | CLS     | Web Vitals rating  |
 |-----------------------------------------|---------|--------------------|
@@ -18,19 +18,19 @@
 
 W1-B reduced CLS by **0.0219 absolute (-10%)**. The page is still above the 0.1 "good" threshold because of one dominant shift not addressable from CSS alone (web-font swap of `Noto Serif SC` on the hero `<h1>`).
 
-***REMOVED******REMOVED*** Top shift contributors (post W1-B)
+## Top shift contributors (post W1-B)
 
 | Rank | Value  | Time   | Source (top node)                                  | Cause                                                                                                    |
 |------|--------|--------|----------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| ***REMOVED***1   | 0.1845 | 1115ms | `MAIN.disc-page` (descendant glyph reflow)         | Web-font swap of `Noto Serif SC` on `.disc-hero__title` — system fallback baseline ≠ web-font baseline. |
-| ***REMOVED***2   | 0.0078 | 1580ms | `***REMOVED***disc-filter` (dy=+34px)                          | Filter skeleton was overshooting actual rendered height; tuned to 2 rows (was 3).                       |
-| ***REMOVED***3   | 0.0025 | 1533ms | `***REMOVED***disc-filter` (dy=-20px)                          | Intermediate render between skeleton and final.                                                          |
-| ***REMOVED***4   | 0.0018 | 1949ms | text inside `.disc-hero__eyebrow` (dy=+2px)        | Sub-pixel reflow from font metrics.                                                                      |
-| ***REMOVED***5   | ~0     | 10460ms| ***REMOVED***text (dy=-3px)                                    | Cosmetic, not a real shift (rounding).                                                                   |
+| #1   | 0.1845 | 1115ms | `MAIN.disc-page` (descendant glyph reflow)         | Web-font swap of `Noto Serif SC` on `.disc-hero__title` — system fallback baseline ≠ web-font baseline. |
+| #2   | 0.0078 | 1580ms | `#disc-filter` (dy=+34px)                          | Filter skeleton was overshooting actual rendered height; tuned to 2 rows (was 3).                       |
+| #3   | 0.0025 | 1533ms | `#disc-filter` (dy=-20px)                          | Intermediate render between skeleton and final.                                                          |
+| #4   | 0.0018 | 1949ms | text inside `.disc-hero__eyebrow` (dy=+2px)        | Sub-pixel reflow from font metrics.                                                                      |
+| #5   | ~0     | 10460ms| #text (dy=-3px)                                    | Cosmetic, not a real shift (rounding).                                                                   |
 
-Shift ***REMOVED***1 alone is **94% of total CLS**. Without it, CLS would be 0.012 — well under the "good" 0.1 threshold.
+Shift #1 alone is **94% of total CLS**. Without it, CLS would be 0.012 — well under the "good" 0.1 threshold.
 
-***REMOVED******REMOVED*** Pre-vs-post shift breakdown
+## Pre-vs-post shift breakdown
 
 | Shift                                  | Pre W1-B | Post W1-B | Δ        |
 |----------------------------------------|----------|-----------|----------|
@@ -40,7 +40,7 @@ Shift ***REMOVED***1 alone is **94% of total CLS**. Without it, CLS would be 0.0
 | Misc text reflow (eyebrow, text shifts)| 0.0018   | 0.0019    | ±0       |
 | **Total**                              | **0.2186** | **0.1967** | **-0.0219** |
 
-***REMOVED******REMOVED*** What W1-B changed
+## What W1-B changed
 
 1. **`disc-filter` skeleton: 3 rows → 2 rows** (matches real render — `.disc-tier-tabs` + 1 `.disc-filter-row`)
    - File: `web/frontend/discoveries.html` + `web/frontend/assets/js/discoveries.js`
@@ -49,7 +49,7 @@ Shift ***REMOVED***1 alone is **94% of total CLS**. Without it, CLS would be 0.0
 3. **`.disc-hero__stats` min-height: 80px + flex `align-items: center`** (matches skeleton)
    - File: `web/frontend/assets/css/discoveries.css`
 
-***REMOVED******REMOVED*** What still needs fixing (out of W1-B scope)
+## What still needs fixing (out of W1-B scope)
 
 The dominant remaining CLS source is **`Noto Serif SC` web-font swap on hero `<h1>`**.
 
@@ -81,7 +81,7 @@ The dominant remaining CLS source is **`Noto Serif SC` web-font swap on hero `<h
 
 Expected outcome: dominant shift → ≤0.005 → **total CLS ≈ 0.015 ("GOOD")**.
 
-***REMOVED******REMOVED*** Reproducibility
+## Reproducibility
 
 ```bash
 cd /Users/dadamini/Projects/structural-isomorphism

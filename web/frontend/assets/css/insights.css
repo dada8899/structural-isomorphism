@@ -1,4 +1,4 @@
-/* Insights dashboard — B Data Flywheel (Session ***REMOVED***18).
+/* Insights dashboard — B Data Flywheel (Session #18).
  *
  * Quiet, dashboard-style layout. Built entirely on shared design tokens
  * (shared-tokens.css / design-system.css) — white base, generous
@@ -19,14 +19,14 @@
   font-family: var(--font-hero-page, var(--font-serif));
   font-size: var(--fs-32, 32px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   margin: 0 0 var(--space-2, 8px);
   letter-spacing: var(--ls-tight, -0.01em);
   line-height: var(--lh-tight, 1.15);
 }
 .insights-head__sub {
   font-size: var(--fs-15, 15px);
-  color: var(--text-secondary, ***REMOVED***57534e);
+  color: var(--text-secondary, #57534e);
   margin: 0;
   line-height: var(--lh-relaxed, 1.65);
   max-width: 640px;
@@ -40,8 +40,8 @@
   margin-bottom: var(--space-9, 64px);
 }
 .insights-stat {
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-default, ***REMOVED***e7e3db);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e7e3db);
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 18px) var(--space-4, 18px) var(--space-3, 14px);
 }
@@ -49,23 +49,23 @@
   font-family: var(--font-mono, monospace);
   font-size: var(--fs-32, 30px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   line-height: var(--lh-tight, 1.1);
   letter-spacing: var(--ls-tight, -0.02em);
   font-feature-settings: "tnum";
 }
 .insights-stat__label {
   font-size: var(--fs-12, 12px);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   margin-top: var(--space-1, 6px);
 }
 /* Zero values read as "刚起步", not as missing data. */
 .insights-stat--zero .insights-stat__value {
-  color: var(--text-quaternary, ***REMOVED***c2bdb3);
+  color: var(--text-quaternary, #c2bdb3);
 }
 .insights-stat--skeleton {
   height: 86px;
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
+  background: var(--bg-subtle, #f5f3ef);
   border-color: transparent;
 }
 /* Friendly note shown when every summary number is still zero. */
@@ -74,7 +74,7 @@
   margin: var(--space-1, 4px) 0 0;
   font-size: var(--fs-13, 13px);
   line-height: var(--lh-relaxed, 1.6);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
 }
 
 /* ---- section block ---- */
@@ -83,13 +83,13 @@
 .insights-block__title {
   font-size: var(--fs-18, 18px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   margin: 0 0 var(--space-1, 4px);
   letter-spacing: var(--ls-tight, -0.01em);
 }
 .insights-block__sub {
   font-size: var(--fs-13, 13px);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   margin: 0 0 var(--space-4, 16px);
   line-height: var(--lh-relaxed, 1.6);
   max-width: 600px;
@@ -105,18 +105,18 @@
   display: flex;
   align-items: center;
   gap: var(--space-4, 14px);
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-default, ***REMOVED***e7e3db);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e7e3db);
   border-radius: var(--radius-md, 10px);
   padding: var(--space-3, 14px) var(--space-4, 16px);
   transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease);
 }
 .insights-row:hover {
-  border-color: var(--border-strong, ***REMOVED***d6d0c6);
+  border-color: var(--border-strong, #d6d0c6);
 }
 .insights-row--skeleton {
   height: 56px;
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
+  background: var(--bg-subtle, #f5f3ef);
   border-color: transparent;
 }
 .insights-row__rank {
@@ -129,40 +129,40 @@
   font-family: var(--font-mono, monospace);
   font-size: var(--fs-12, 12px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
+  color: var(--text-tertiary, #9a958c);
+  background: var(--bg-subtle, #f5f3ef);
   border-radius: var(--radius-sm, 6px);
 }
 /* Top-3 ranks get a touch of accent so the leaderboard reads at a glance. */
 .insights-row:nth-child(-n+3) .insights-row__rank {
-  color: var(--accent, ***REMOVED***b45309);
-  background: var(--accent-subtle, ***REMOVED***fdf3e7);
+  color: var(--accent, #b45309);
+  background: var(--accent-subtle, #fdf3e7);
 }
 .insights-row__body { flex: 1 1 auto; min-width: 0; }
 .insights-row__name {
   font-size: var(--fs-15, 14.5px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .insights-row__meta {
   font-size: var(--fs-12, 12px);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   margin-top: 3px;
 }
 .insights-row__rate {
   flex-shrink: 0;
   font-size: var(--fs-13, 13px);
   font-weight: var(--fw-semibold, 600);
-  color: ***REMOVED***15803d;
+  color: #15803d;
   text-align: right;
   min-width: 64px;
   font-feature-settings: "tnum";
 }
 .insights-row__rate--none {
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   font-weight: var(--fw-regular, 400);
 }
 
@@ -173,18 +173,18 @@
   gap: var(--space-3, 10px);
 }
 .insights-card {
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-default, ***REMOVED***e7e3db);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e7e3db);
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 16px) var(--space-4, 18px);
   transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease);
 }
 .insights-card:hover {
-  border-color: var(--border-strong, ***REMOVED***d6d0c6);
+  border-color: var(--border-strong, #d6d0c6);
 }
 .insights-card--skeleton {
   height: 96px;
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
+  background: var(--bg-subtle, #f5f3ef);
   border-color: transparent;
 }
 .insights-card__top {
@@ -196,18 +196,18 @@
 .insights-card__problem {
   font-size: var(--fs-15, 15px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   line-height: var(--lh-snug, 1.45);
   margin: 0;
   flex: 1 1 auto;
   text-decoration: none;
 }
-a.insights-card__problem:hover { color: var(--accent, ***REMOVED***b45309); }
+a.insights-card__problem:hover { color: var(--accent, #b45309); }
 .insights-card__verified-tag {
   flex-shrink: 0;
   font-size: var(--fs-11, 11px);
   font-weight: var(--fw-semibold, 600);
-  color: ***REMOVED***15803d;
+  color: #15803d;
   background: rgba(5, 150, 105, 0.1);
   border: 1px solid rgba(5, 150, 105, 0.28);
   border-radius: var(--radius-full, 999px);
@@ -221,22 +221,22 @@ a.insights-card__problem:hover { color: var(--accent, ***REMOVED***b45309); }
   flex-wrap: wrap;
   margin-top: var(--space-3, 10px);
   font-size: var(--fs-13, 13px);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
 }
 .insights-card__flow-arrow {
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   font-size: var(--fs-12, 12px);
 }
 .insights-card__chip {
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
-  border: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+  background: var(--bg-subtle, #f5f3ef);
+  border: 1px solid var(--border-subtle, #ece8e1);
   border-radius: var(--radius-sm, 6px);
   padding: 3px 9px;
   font-size: var(--fs-12, 12.5px);
 }
 .insights-card__meta {
   font-size: var(--fs-12, 12px);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   margin-top: var(--space-3, 10px);
 }
 
@@ -250,12 +250,12 @@ a.insights-card__problem:hover { color: var(--accent, ***REMOVED***b45309); }
   align-items: center;
   text-align: center;
   padding: var(--space-8, 48px) var(--space-5, 24px);
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
-  border: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+  background: var(--bg-subtle, #f5f3ef);
+  border: 1px solid var(--border-subtle, #ece8e1);
   border-radius: var(--radius-lg, 12px);
 }
 .insights-empty--error {
-  background: var(--bg-primary, ***REMOVED***fff);
+  background: var(--bg-primary, #fff);
   border-style: dashed;
 }
 .insights-empty__icon {
@@ -266,24 +266,24 @@ a.insights-card__problem:hover { color: var(--accent, ***REMOVED***b45309); }
   height: 40px;
   margin-bottom: var(--space-3, 12px);
   border-radius: var(--radius-md, 8px);
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-subtle, #ece8e1);
+  color: var(--text-tertiary, #9a958c);
 }
 .insights-empty--growing .insights-empty__icon {
-  color: var(--accent, ***REMOVED***b45309);
+  color: var(--accent, #b45309);
 }
 .insights-empty__icon svg { width: 20px; height: 20px; }
 .insights-empty__title {
   font-size: var(--fs-15, 14.5px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   margin: 0 0 var(--space-1, 6px);
 }
 .insights-empty__hint {
   font-size: var(--fs-13, 13px);
   line-height: var(--lh-relaxed, 1.65);
-  color: var(--text-secondary, ***REMOVED***57534e);
+  color: var(--text-secondary, #57534e);
   margin: 0;
   max-width: 380px;
 }
@@ -294,9 +294,9 @@ a.insights-card__problem:hover { color: var(--accent, ***REMOVED***b45309); }
 .insights-card--skeleton {
   background-image: linear-gradient(
     90deg,
-    var(--bg-subtle, ***REMOVED***f5f3ef) 0%,
-    var(--border-subtle, ***REMOVED***ece8e1) 50%,
-    var(--bg-subtle, ***REMOVED***f5f3ef) 100%
+    var(--bg-subtle, #f5f3ef) 0%,
+    var(--border-subtle, #ece8e1) 50%,
+    var(--bg-subtle, #f5f3ef) 100%
   );
   background-size: 200% 100%;
   animation: insights-shimmer 1.4s ease-in-out infinite;

@@ -1,14 +1,14 @@
-***REMOVED*** [docs] Fix deprecated `v4.lib.soc_pipeline` references in tutorials and docs
+# [docs] Fix deprecated `v4.lib.soc_pipeline` references in tutorials and docs
 
-***REMOVED******REMOVED*** What
+## What
 
 After W8 we extracted the SOC pipeline to a standalone PyPI-ready package at `packages/soc-pipeline/`. The old import path `from v4.lib.soc_pipeline import ...` still works (with a `DeprecationWarning`) but several docs / notebooks / README snippets still show it as the canonical example. Replace them with the new path `from soc_pipeline import ...`.
 
-***REMOVED******REMOVED*** Why
+## Why
 
 External users following the README or tutorials will see deprecation warnings on their first run — which looks unmaintained. We want every published example to use the current import path.
 
-***REMOVED******REMOVED*** Where
+## Where
 
 Files known to reference the deprecated path (find with `grep -rn "v4.lib.soc_pipeline" --include="*.md" --include="*.ipynb" .`):
 
@@ -18,7 +18,7 @@ Files known to reference the deprecated path (find with `grep -rn "v4.lib.soc_pi
 - `notebooks/` (check each)
 - `README.md` (verify code blocks)
 
-***REMOVED******REMOVED*** How to start
+## How to start
 
 1. Run:
    ```bash
@@ -28,12 +28,12 @@ Files known to reference the deprecated path (find with `grep -rn "v4.lib.soc_pi
 3. Where the deprecated wrapper has a different return shape (legacy dict vs new `FitResult` dataclass), update the example output accordingly.
 4. Re-run any modified notebook end-to-end to confirm it still works.
 
-***REMOVED******REMOVED*** Definition of done
+## Definition of done
 
 - [ ] No remaining `v4.lib.soc_pipeline` imports in any user-facing doc / notebook / tutorial
 - [ ] Each modified notebook re-executed (clear output cells if you prefer, but make sure import works)
 - [ ] `docs/getting-started.md` quickstart still works copy-paste
 
-***REMOVED******REMOVED*** Difficulty
+## Difficulty
 
 ★ (mechanical search-and-replace + verification)

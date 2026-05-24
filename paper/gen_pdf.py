@@ -14,19 +14,19 @@ from weasyprint import HTML
 PAPER_DIR = Path(__file__).parent
 FIGURES_DIR = PAPER_DIR / 'figures'
 
-***REMOVED*** Academic CSS
+# Academic CSS
 CSS = """
 @page {
     size: A4;
     margin: 2.5cm 2cm;
-    @bottom-center { content: counter(page); font-size: 10px; color: ***REMOVED***666; }
+    @bottom-center { content: counter(page); font-size: 10px; color: #666; }
 }
 
 body {
     font-family: "Times New Roman", "Noto Serif", "SimSun", serif;
     font-size: 11pt;
     line-height: 1.6;
-    color: ***REMOVED***1a1a1a;
+    color: #1a1a1a;
     max-width: 100%;
 }
 
@@ -40,14 +40,14 @@ h1 {
 h1 + p, h1 + blockquote {
     text-align: center;
     font-style: italic;
-    color: ***REMOVED***555;
+    color: #555;
 }
 
 h2 {
     font-size: 14pt;
     margin-top: 24px;
     margin-bottom: 8px;
-    border-bottom: 1px solid ***REMOVED***ddd;
+    border-bottom: 1px solid #ddd;
     padding-bottom: 4px;
 }
 
@@ -64,10 +64,10 @@ p {
 }
 
 blockquote {
-    border-left: 3px solid ***REMOVED***2563eb;
+    border-left: 3px solid #2563eb;
     padding: 8px 16px;
     margin: 12px 0;
-    background: ***REMOVED***f8f9ff;
+    background: #f8f9ff;
     font-style: italic;
 }
 
@@ -81,26 +81,26 @@ table {
 }
 
 th, td {
-    border: 1px solid ***REMOVED***ccc;
+    border: 1px solid #ccc;
     padding: 6px 10px;
     text-align: left;
 }
 
 th {
-    background: ***REMOVED***f5f5f5;
+    background: #f5f5f5;
     font-weight: bold;
 }
 
 code {
     font-family: "Courier New", monospace;
     font-size: 9.5pt;
-    background: ***REMOVED***f4f4f4;
+    background: #f4f4f4;
     padding: 1px 4px;
     border-radius: 2px;
 }
 
 pre {
-    background: ***REMOVED***f8f8f8;
+    background: #f8f8f8;
     padding: 12px;
     border-radius: 4px;
     overflow-x: auto;
@@ -126,7 +126,7 @@ em { font-style: italic; }
 .figure-caption {
     text-align: center;
     font-size: 10pt;
-    color: ***REMOVED***555;
+    color: #555;
     margin-top: -8px;
     margin-bottom: 16px;
 }
@@ -137,20 +137,20 @@ def convert_paper(input_file, output_file, css=CSS):
     print(f"Reading {input_file}...")
     md_text = input_file.read_text(encoding='utf-8')
 
-    ***REMOVED*** Strip YAML frontmatter if present
+    # Strip YAML frontmatter if present
     if md_text.startswith('---'):
         end = md_text.index('---', 3)
         md_text = md_text[end+3:].strip()
 
-    ***REMOVED*** Convert figure references to actual image paths
+    # Convert figure references to actual image paths
     md_text = md_text.replace('[Figure ', '[Figure ')
 
-    ***REMOVED*** Render Markdown to HTML
+    # Render Markdown to HTML
     md = markdown_it.MarkdownIt('commonmark', {'html': True})
     md.enable('table')
     html_body = md.render(md_text)
 
-    ***REMOVED*** Wrap in full HTML
+    # Wrap in full HTML
     html_full = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -167,17 +167,17 @@ def convert_paper(input_file, output_file, css=CSS):
     print(f"Done! {output_file} ({output_file.stat().st_size / 1024:.0f} KB)")
 
 if __name__ == '__main__':
-    ***REMOVED*** English paper
+    # English paper
     en_input = PAPER_DIR / 'paper.md'
     en_output = PAPER_DIR / 'paper-en.pdf'
     if en_input.exists():
         convert_paper(en_input, en_output)
 
-    ***REMOVED*** Chinese paper (if exists)
+    # Chinese paper (if exists)
     zh_input = PAPER_DIR / 'paper-zh.md'
     zh_output = PAPER_DIR / 'paper-zh.pdf'
     if zh_input.exists():
-        ***REMOVED*** Use different CSS for Chinese
+        # Use different CSS for Chinese
         zh_css = CSS.replace(
             '"Times New Roman", "Noto Serif", "SimSun", serif',
             '"PingFang SC", "Noto Sans CJK SC", "SimSun", "Times New Roman", serif'

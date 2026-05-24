@@ -1,4 +1,4 @@
-***REMOVED*** W5-C PM Review — D1 Phase Detector + structural-isomorphism
+# W5-C PM Review — D1 Phase Detector + structural-isomorphism
 
 > Reviewer: senior PM (B2B fintech data products, 10+ yrs — Bloomberg Terminal / Sentieo / FactSet background)
 > Date: 2026-05-13
@@ -7,7 +7,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. TL;DR — 该不该做这个产品？
+## 1. TL;DR — 该不该做这个产品？
 
 **Verdict: 现在不是一个 product，是一个非常聪明的 demo。一年内能不能从 demo 走到 product，取决于接下来 6 个月做什么。**
 
@@ -27,9 +27,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. D1 Phase Detector 产品 review
+## 2. D1 Phase Detector 产品 review
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Value proposition
+### 2.1 Value proposition
 
 **Tagline 评分**：
 - 中文："别用市盈率筛股，用数学结构筛股" — **8/10**。punchy、对立鲜明、零行业黑话、能从 HN/Twitter 标题路过 5 秒抓住人。在中文 quant Twitter 圈这条 tagline 自带传播力。
@@ -46,7 +46,7 @@
 
 把这个 ICP 想清楚之后，screener 的 UI 就要重新设计——见 § 2.2。
 
-***REMOVED******REMOVED******REMOVED*** 2.2 User journey — 大量 friction
+### 2.2 User journey — 大量 friction
 
 **入口 friction**：
 - 主页 hero 同时塞了 4 个 CTA（"打开结构筛选器" / "📜 相位演变" / "🕰️ 类比引擎" / 还有顶部 nav 6 个链接）。**对新用户认知负荷过高**。Bloomberg power user 习惯 deep nav，但他们花了 6 个月学。新用户应该被强制走 happy path。
@@ -70,7 +70,7 @@
 - 没有 `deep_analysis_completion_rate`（30s 等 LLM 多少人等到了？）
 - 看到 `docs/analytics/` 目录在，但 W4-B Plausible 是 nginx log 级别，**缺业务事件 layer**。这是 product-led growth 必需层。
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Trust & explainability
+### 2.3 Trust & explainability
 
 **Trust 问题最严重的产品块。** LLM 标签 + LLM 类比 + LLM 深度分析 + 零回测 = 用户每读一份报告心里都在打折。
 
@@ -80,9 +80,9 @@
 - **Confidence bar 没看到校准说明**。从 `critical_signals.json` 字段 `c.confidence` 在 hero 区显示 "置信度 67%"，但用户问 "67% 是怎么算的"——是 LLM 自评？历史回测？模型集成投票？目前没回答。Bloomberg Terminal 上每一个估值数字都会标 source + methodology link，phase 这边缺这层。
 - **TL;DR 写得够 layperson 吗**：sample `01-nflx.md` 第一段 "Netflix 不是成长股了，它是一家被市场误解为 SaaS 的老牌制片厂" 写得**极好**——这就是 publication-grade journalism quality。但 screener / company 主页面没有这种叙述性 TL;DR，全是结构化字段。应该把 sample md 里的核心观点抽出来做 `<div class="tldr-banner">` 顶部展示。
 
-***REMOVED******REMOVED******REMOVED*** 2.4 100 公司样本 — too small to be useful
+### 2.4 100 公司样本 — too small to be useful
 
-**这是 product-killer ***REMOVED***1。**
+**这是 product-killer #1。**
 
 `phase/data/companies_struct.jsonl` + `companies_opus_N.jsonl` 当前覆盖 100-204 家（数字在多个 surface 不一致——hero 写 204、screener 默认 fetch /api/companies 数量未定、samples manifest 显示 10 份深度报告）。**先 fix 数字一致性**（QA blocker）。
 
@@ -102,7 +102,7 @@
 
 LLM 标签成本：Claude Sonnet 4.5 ~$0.02/公司 × 500 ≈ $10。**这是 30 天可完成的成本最低 milestone**。
 
-***REMOVED******REMOVED******REMOVED*** 2.5 Pricing / monetization
+### 2.5 Pricing / monetization
 
 **当前 monetization = waitlist 邮件收集，零 revenue stream。** about.html 第四节列了 6 个"未来可能场景"全是 feature，**没有一个标 price**。
 
@@ -129,9 +129,9 @@ LLM 标签成本：Claude Sonnet 4.5 ~$0.02/公司 × 500 ≈ $10。**这是 30 
 
 ---
 
-***REMOVED******REMOVED*** 3. structural.bytedance.city 主站 review
+## 3. structural.bytedance.city 主站 review
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Audience confusion
+### 3.1 Audience confusion
 
 **主站最大问题：身份分裂。**
 
@@ -149,7 +149,7 @@ LLM 标签成本：Claude Sonnet 4.5 ~$0.02/公司 × 500 ≈ $10。**这是 30 
 
 Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs practitioner），效果很好。
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Hero message
+### 3.2 Hero message
 
 **当前 hero**: "13 verified universality systems across SOC / PA / Hysteresis / Scheffer + 1 unified preprint"
 
@@ -165,7 +165,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - Hero H1 改 layperson-friendly: "We discovered that **bank failures, neural avalanches, and earthquakes obey the same equation**. Here's the math—and a tool that finds these patterns in 200+ companies."
 - 学术细节放 H2 subhead："Open dataset (Zenodo DOI), 13 verified universality classes, peer-review preprint."
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Content strategy
+### 3.3 Content strategy
 
 20 篇 paper / thinking notes 现在全在 sidebar tree 平铺。**对没有 prior context 的读者，不知道从哪读起。**
 
@@ -177,9 +177,9 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 4. 4 类 user persona 各自 journey
+## 4. 4 类 user persona 各自 journey
 
-***REMOVED******REMOVED******REMOVED*** Persona A: Hedge fund quant (35yo, $200M AUM mid-cap fund)
+### Persona A: Hedge fund quant (35yo, $200M AUM mid-cap fund)
 
 **进 phase. 干什么**: 看 "这个 alpha source 是不是真的，能不能 backtest"
 - 第一停留点：sample reports（要看 methodology）
@@ -188,7 +188,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - **Fix**: 给 quant 用户单独一条 path — 标注 "B2B API · for institutional use only" 隐藏正面的 academic-honesty 自检，offer 直接的 backtest 数据 + sample CSV
 - **Conversion likelihood**: 现状 < 1%。提供 backtest + API 后可到 10%。
 
-***REMOVED******REMOVED******REMOVED*** Persona B: VC analyst (28yo, early-stage SaaS focused)
+### Persona B: VC analyst (28yo, early-stage SaaS focused)
 
 **进 phase. 干什么**: 看新公司能不能套这个框架
 - 第一停留点：screener — filter Tier-1 大公司，找不到自己关注的 Series B/C 公司
@@ -197,7 +197,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - **Fix**: 显式说明 "Currently public equities only. VC private-market expansion on roadmap." 不要假装服务 VC。
 - **Conversion likelihood**: < 1%。这个 persona 应该 deprioritize。
 
-***REMOVED******REMOVED******REMOVED*** Persona C: Academic 物理学家 (45yo, complex systems researcher)
+### Persona C: Academic 物理学家 (45yo, complex systems researcher)
 
 **进 structural. 看 paper**
 - 第一停留点：site index → 思考链路 → v2 expanded screening — 看 dataset + 4 个 preprints
@@ -207,7 +207,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - **Conversion likelihood**: 引用 → 写 1 篇基于这个 dataset 的 paper 概率 = 5-10% (decent for academic project)
 - **Action**: 把 CITATION.cff 在主站每个 paper 页上方暴露 + 加 "Email me if you use this in your research" 邮件订阅。
 
-***REMOVED******REMOVED******REMOVED*** Persona D: Tech curious / writer (Hacker News 来的 sysadmin)
+### Persona D: Tech curious / writer (Hacker News 来的 sysadmin)
 
 **进 phase. 5 分钟内能 walk away with story 吗？**
 - 第一停留点：hero → "别用市盈率筛股，用数学结构筛股" → "📜 相位演变" CTA
@@ -219,7 +219,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 5. 与现有竞品对比
+## 5. 与现有竞品对比
 
 | 竞品 | 它做的好 | Phase Detector 做的差 / 好 |
 |---|---|---|
@@ -240,11 +240,11 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 6. Roadmap recommendation (12-month)
+## 6. Roadmap recommendation (12-month)
 
 按 PM 优先级排序，每个标 effort (S=1wk / M=1mo / L=3mo) + impact (S/M/L)。
 
-***REMOVED******REMOVED******REMOVED*** P0 (Next 30 days)
+### P0 (Next 30 days)
 
 | Item | Effort | Impact |
 |---|---|---|
@@ -255,7 +255,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 | Events tracking layer：screener_filter / company_view / waitlist_signup 写 Plausible custom events | S | M |
 | "Start here" 入门 essay (1500 字 layperson) for 主站 | S | M |
 
-***REMOVED******REMOVED******REMOVED*** P1 (Day 31-90)
+### P1 (Day 31-90)
 
 | Item | Effort | Impact |
 |---|---|---|
@@ -266,7 +266,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 | Confidence bar 校准 methodology page + UI tooltip | S | M |
 | 主站 "Who are you?" segmentation gate + 3 条 learning path | M | M |
 
-***REMOVED******REMOVED******REMOVED*** P2 (Day 91-180)
+### P2 (Day 91-180)
 
 | Item | Effort | Impact |
 |---|---|---|
@@ -277,7 +277,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 | 历史回测一份：用 Phase 标签选股 vs S&P 500，至少 3 年 historical | L | L (trust unlock) |
 | HN launch + Substack relaunch + Twitter thread campaign | S | L |
 
-***REMOVED******REMOVED******REMOVED*** P3 (Day 181-365)
+### P3 (Day 181-365)
 
 | Item | Effort | Impact |
 |---|---|---|
@@ -295,7 +295,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 7. Pricing model proposal
+## 7. Pricing model proposal
 
 **Free tier (acquisition layer)**：
 - 100 家公司 screener
@@ -343,9 +343,9 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 8. Distribution / GTM
+## 8. Distribution / GTM
 
-***REMOVED******REMOVED******REMOVED*** HN launch readiness — **NO**
+### HN launch readiness — **NO**
 
 当前不 ready 上 HN：
 - Sample count 数字不一致（HN crowd 30 秒就发现）
@@ -357,7 +357,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 2. 把 sample 数从 10 扩到 30 公司（HN reader 第一件事是 ctrl-F 找他们关心的 ticker）
 3. Title 不要写 "I built X"，要写 "**Why bank failures and earthquakes obey the same equation (and what it means for stock screening)**" — story-first not tool-first
 
-***REMOVED******REMOVED******REMOVED*** Other channels
+### Other channels
 
 - **Reddit r/investing / r/SecurityAnalysis**: ICP 完美匹配。先发 substack memo 内容（不是产品），再 link to 产品
 - **Reddit r/quant**: 不投。Quant crowd 会 demand backtest，没就嘲笑
@@ -366,7 +366,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - **Substack** + **小红书 + 雪球**: 已有内容（`phase/content/*`），cadence 拉到每周
 - **YouTube**: 不在前 6 个月 priority。视频 production 成本太高
 
-***REMOVED******REMOVED******REMOVED*** Key KPI / North Star Metric
+### Key KPI / North Star Metric
 
 **Star metric**: **WAU (Weekly Active Users) who view ≥ 2 company pages**
 - 这是 "看一篇是好奇，看两篇是真的在用" 的临界
@@ -381,9 +381,9 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 
 ---
 
-***REMOVED******REMOVED*** 9. Top 3 product 风险
+## 9. Top 3 product 风险
 
-***REMOVED******REMOVED******REMOVED*** Risk 1: "Insight 看起来聪明，但 alpha 不存在"
+### Risk 1: "Insight 看起来聪明，但 alpha 不存在"
 
 **这是 founder-level existential risk。** 当前 0 回测、PELT 不 work、PE-based 筛选未被证伪。如果 6 个月内某个真实用户跑了 N=100 公司 backtest 发现 "用 Phase Detector 分类选股 vs 随机选股 alpha = 0"，**整个 narrative 崩塌**。
 
@@ -392,7 +392,7 @@ Sornette's Financial Crisis Observatory 自己做过类似分流（researcher vs
 - 真正 differentiated 的 value 是**叙事生产力**，不是预测——独立分析师订 Pro 是因为他能用这个写出 sub-stack 文章，不是因为他靠这个赚钱
 - 内部做一份非 promoted 回测，结果不公开但用来内部 sanity check。如果 alpha ≈ 0 + IR < 0.3，accept 这是 "narrative tool" 不是 "alpha tool"
 
-***REMOVED******REMOVED******REMOVED*** Risk 2: "LLM hallucination / 数据可信度" 的长期破窗效应
+### Risk 2: "LLM hallucination / 数据可信度" 的长期破窗效应
 
 LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一处事实硬伤（比如 "Tesla 像 1998 年的 Cisco"——但 Cisco 1998 年的市值/PE 数字写错），就会**普遍质疑所有内容**。Bloomberg 数据 PM 圈有句话叫 "trust is binary"。
 
@@ -402,7 +402,7 @@ LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一�
 - 每个深度分析 publish 前过一遍 fact-check pass（Sonnet 4.5 self-critic）
 - 给每页加 "Report inaccuracy" 按钮，建立 user-as-QA 飞轮
 
-***REMOVED******REMOVED******REMOVED*** Risk 3: ICP 长期模糊 → 增长卡死
+### Risk 3: ICP 长期模糊 → 增长卡死
 
 当前产品同时讨好 4 个 persona（quant / VC / academic / curious tech），**每个都不到位**。增长不来自"对每个用户都还行"，而来自"对一类用户极致 obsessed"。
 
@@ -413,7 +413,7 @@ LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一�
 
 ---
 
-***REMOVED******REMOVED*** 10. Top 5 Quick Wins (next 7 days actionable)
+## 10. Top 5 Quick Wins (next 7 days actionable)
 
 1. **修 sample count 不一致** (4 hours) — hero 写 204 / about 写 204 / screener load 83 / signal show 6——选一个 single source of truth 改 4 处。这是 polish 但 HN crowd 第一眼就抓
 2. **Pre-bake "深度分析" 静态文件** (1 day) — 当前 30s LLM 等待是体验杀手。把 sample 10 公司的深度分析全 pre-render 成 markdown，company.html 直接显示
@@ -423,7 +423,7 @@ LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一�
 
 ---
 
-***REMOVED******REMOVED*** 11. Final Scores
+## 11. Final Scores
 
 | 维度 | 分数 | 评注 |
 |---|---|---|
@@ -438,7 +438,7 @@ LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一�
 | GTM readiness | 4/10 | HN/Reddit 任一渠道现在都不该 launch |
 | **Overall product readiness** | **6.0/10** | 聪明 demo ➜ product 之间还差 90 天 PM-discipline 收敛 |
 
-***REMOVED******REMOVED******REMOVED*** Recommended next 30-day priority
+### Recommended next 30-day priority
 
 **"Sample 扩 5x + 内容飞轮 + 单一 ICP" 三件套**：
 
@@ -450,7 +450,7 @@ LLM 标签 + LLM 类比 + LLM 深度分析全栈使用。一旦用户发现一�
 
 ---
 
-***REMOVED******REMOVED*** 12. Closing PM thought
+## 12. Closing PM thought
 
 这个项目让我想起 2014 年的 Sentieo 早期阶段——一个聪明 founder + 一个非显然的 wedge + 真实的 data 资产，但还没找到 monetization 锁。Sentieo 走通靠两件事：（1）找到 mid-market hedge fund 的明确 pain（"transcript search"）；（2）建立了 inter-rater 可信度（不是 LLM-only，有 human review layer）。
 

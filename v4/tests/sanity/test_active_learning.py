@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from embedding_finetune import (  ***REMOVED*** type: ignore  ***REMOVED*** noqa: E402
+from embedding_finetune import (  # type: ignore  # noqa: E402
     ContrastiveFinetuner,
     FinetuneMetrics,
     TrainingPair,
@@ -37,16 +37,16 @@ SCRIPT_MINE = REPO / "v4" / "scripts" / "f2_mine_hard_negatives.py"
 SCRIPT_SIM = REPO / "v4" / "scripts" / "f2_simulate_active_learning.py"
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** fixtures
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# fixtures
+# ----------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def mocked_taxonomy(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     """Synthetic taxonomy + classes dir for miner unit tests."""
     base = tmp_path_factory.mktemp("mock_tax")
     classes_dir = base / "classes"
     classes_dir.mkdir()
-    ***REMOVED*** Three classes: KEEP / REJECT / SPLIT
+    # Three classes: KEEP / REJECT / SPLIT
     keep_yaml = """
 class_id: mock_keep
 positive_examples:
@@ -119,9 +119,9 @@ positive_examples:
     }
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** 1. miner correctness
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# 1. miner correctness
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_miner_keep_yields_positives_reject_yields_negatives(
     mocked_taxonomy: dict[str, Path], tmp_path: Path
@@ -151,19 +151,19 @@ def test_miner_keep_yields_positives_reject_yields_negatives(
     assert pos_path.exists()
     assert neg_path.exists()
 
-    ***REMOVED*** KEEP class with 3 positives -> C(3,2) = 3 pair
+    # KEEP class with 3 positives -> C(3,2) = 3 pair
     pos_lines = [json.loads(line) for line in pos_path.read_text().splitlines() if line.strip()]
     assert len(pos_lines) == 3
     assert all(p["label"] == 1 for p in pos_lines)
     assert all(p["source_verdict"] == "KEEP" for p in pos_lines)
     assert all(p["source_class"] == "mock_keep" for p in pos_lines)
 
-    ***REMOVED*** REJECT class with 4 positives -> C(4,2) = 6 pair
+    # REJECT class with 4 positives -> C(4,2) = 6 pair
     neg_lines = [json.loads(line) for line in neg_path.read_text().splitlines() if line.strip()]
     assert len(neg_lines) == 6
     assert all(p["label"] == 0 for p in neg_lines)
     assert all(p["source_verdict"] == "REJECT" for p in neg_lines)
-    ***REMOVED*** rationale propagated
+    # rationale propagated
     assert all("mock rationale" in p["rejection_reason"] for p in neg_lines)
 
 
@@ -200,7 +200,7 @@ def test_miner_drops_split_classes(
         for line in (out_dir / "hard_negatives_drop.jsonl").read_text().splitlines()
         if line.strip()
     ]
-    ***REMOVED*** No pair should have source_class=="mock_split"
+    # No pair should have source_class=="mock_split"
     assert not any(p["source_class"] == "mock_split" for p in pos_lines + neg_lines)
 
 
@@ -213,17 +213,17 @@ def test_miner_real_b3_smoke() -> None:
     neg = [json.loads(l) for l in NEGATIVES.read_text().splitlines() if l.strip()]
     assert len(pos) >= 5, f"too few positives mined: {len(pos)}"
     assert len(neg) >= 5, f"too few hard negatives mined: {len(neg)}"
-    ***REMOVED*** all positives have label==1, all negatives label==0
+    # all positives have label==1, all negatives label==0
     assert all(p["label"] == 1 for p in pos)
     assert all(p["label"] == 0 for p in neg)
-    ***REMOVED*** source_verdict propagated
+    # source_verdict propagated
     assert all(p["source_verdict"] == "KEEP" for p in pos)
     assert all(p["source_verdict"] == "REJECT" for p in neg)
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** 2. ContrastiveFinetuner interface
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# 2. ContrastiveFinetuner interface
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_load_pairs_round_trip(tmp_path: Path) -> None:
     """load_pairs reads positives + negatives jsonl, returns mixed list."""
@@ -239,7 +239,7 @@ def test_load_pairs_round_trip(tmp_path: Path) -> None:
     ft = ContrastiveFinetuner(mode="simulated")
     pairs = ft.load_pairs(pos, neg)
     assert len(pairs) == 2
-    assert sum(p.label for p in pairs) == 1  ***REMOVED*** one positive
+    assert sum(p.label for p in pairs) == 1  # one positive
     assert all(isinstance(p, TrainingPair) for p in pairs)
 
 
@@ -266,7 +266,7 @@ def test_fit_evaluate_round_trip() -> None:
     assert 0.0 <= eval_m.r_at_5 <= 1.0
     assert 0.0 <= eval_m.r_at_10 <= 1.0
     assert 0.0 <= eval_m.mrr <= 1.0
-    ***REMOVED*** silhouette in [-1, 1]
+    # silhouette in [-1, 1]
     assert -1.0 <= eval_m.silhouette <= 1.0
 
 
@@ -298,7 +298,7 @@ def test_info_nce_loss_basic() -> None:
     """Loss helper sanity: closer-positive => lower loss than far-positive."""
     import numpy as np
 
-    ***REMOVED*** 3-D vectors. Anchor close to positive, far from neg.
+    # 3-D vectors. Anchor close to positive, far from neg.
     anchor = np.array([1.0, 0.0, 0.0])
     pos_close = np.array([0.95, 0.05, 0.0])
     pos_far = np.array([0.0, 1.0, 0.0])
@@ -308,9 +308,9 @@ def test_info_nce_loss_basic() -> None:
     assert loss_close < loss_far
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** 3. simulation end-to-end
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# 3. simulation end-to-end
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_simulation_produces_report() -> None:
     """End-to-end: simulate script produces a report file with metric table."""
@@ -370,7 +370,7 @@ def test_simulation_metric_monotonicity_weak() -> None:
         "mrr": after["mrr"] - baseline["mrr"],
         "silhouette": after["silhouette"] - baseline["silhouette"],
     }
-    ***REMOVED*** At least one metric should be ≥ 0 (weak monotonicity).
+    # At least one metric should be ≥ 0 (weak monotonicity).
     assert any(d >= -1e-9 for d in deltas.values()), (
         f"all metrics regressed: {deltas}"
     )

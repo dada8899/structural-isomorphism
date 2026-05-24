@@ -1,7 +1,7 @@
 """Generate PWA icons for Phase Detector.
 
 W12-E: produces 192x192, 512x512 (regular) and 512x512 (maskable) PNG icons
-with a wordmark "P" on the Phase Detector brand purple (***REMOVED***5B21B6).
+with a wordmark "P" on the Phase Detector brand purple (#5B21B6).
 
 Run once at build time; output committed under
 ``web/phase-detector/public/icons/``.
@@ -12,13 +12,13 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-BRAND_BG = (91, 33, 182)  ***REMOVED*** ***REMOVED***5B21B6 — Phase Detector primary
+BRAND_BG = (91, 33, 182)  # #5B21B6 — Phase Detector primary
 LETTER_COLOR = (255, 255, 255)
 OUT_DIR = Path(__file__).resolve().parents[1] / "web" / "phase-detector" / "public" / "icons"
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont:
-    ***REMOVED*** Try common system fonts on macOS / Linux; fall back to PIL default.
+    # Try common system fonts on macOS / Linux; fall back to PIL default.
     candidates = [
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
         "/System/Library/Fonts/SFNS.ttf",
@@ -38,14 +38,14 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
 def _draw_icon(size: int, maskable: bool) -> Image.Image:
     img = Image.new("RGBA", (size, size), BRAND_BG + (255,))
     draw = ImageDraw.Draw(img)
-    ***REMOVED*** For maskable, leave ~10% safe area; render letter slightly smaller.
+    # For maskable, leave ~10% safe area; render letter slightly smaller.
     letter_size = int(size * (0.45 if maskable else 0.6))
     font = _load_font(letter_size)
     text = "P"
     bbox = draw.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
-    ***REMOVED*** Center precisely (textbbox returns offsets that include side-bearing).
+    # Center precisely (textbbox returns offsets that include side-bearing).
     x = (size - tw) // 2 - bbox[0]
     y = (size - th) // 2 - bbox[1]
     draw.text((x, y), text, fill=LETTER_COLOR, font=font)

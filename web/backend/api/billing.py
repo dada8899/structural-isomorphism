@@ -59,15 +59,15 @@ logger = logging.getLogger("structural.billing")
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
-***REMOVED*** Tier pricing — authoritative source. Frontend pricing.html duplicates the
-***REMOVED*** numbers for display, but the receipt amount comes from here.
+# Tier pricing — authoritative source. Frontend pricing.html duplicates the
+# numbers for display, but the receipt amount comes from here.
 _TIER_PRICING = {
-    "pro":  {"month": 1900, "year": 19000},   ***REMOVED*** cents
+    "pro":  {"month": 1900, "year": 19000},   # cents
     "team": {"month": 9900, "year": 99000},
 }
 
-***REMOVED*** Display strings (kept here so frontend can fetch via a future GET endpoint
-***REMOVED*** rather than hardcode). USD only for v0.1.
+# Display strings (kept here so frontend can fetch via a future GET endpoint
+# rather than hardcode). USD only for v0.1.
 _TIER_DISPLAY = {
     "pro":  {"name": "Pro",  "month_usd": 19,  "year_usd": 190},
     "team": {"name": "Team", "month_usd": 99,  "year_usd": 990},
@@ -99,13 +99,13 @@ def _connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA journal_mode=WAL")
-    except sqlite3.Error:  ***REMOVED*** pragma: no cover
+    except sqlite3.Error:  # pragma: no cover
         pass
     conn.executescript(_SCHEMA)
     return conn
 
 
-***REMOVED*** --------------------- Stripe SDK lazy import ---------------------
+# --------------------- Stripe SDK lazy import ---------------------
 
 def _stripe_module():
     """Lazy import — if `stripe` SDK isn't installed (e.g. minimal dev env),
@@ -113,9 +113,9 @@ def _stripe_module():
     fake module.
     """
     try:
-        import stripe  ***REMOVED*** type: ignore
+        import stripe  # type: ignore
         return stripe
-    except Exception:  ***REMOVED*** pragma: no cover — import guard
+    except Exception:  # pragma: no cover — import guard
         return None
 
 
@@ -136,7 +136,7 @@ def _mode() -> str:
     return "mock"
 
 
-***REMOVED*** --------------------- Checkout session ---------------------
+# --------------------- Checkout session ---------------------
 
 class CheckoutBody(BaseModel):
     tier: str
@@ -152,7 +152,7 @@ async def checkout_session(body: CheckoutBody, request: Request):
     interval = (body.interval or "month").strip().lower()
     email = (body.email or "").strip().lower()
 
-    ***REMOVED*** --- Validation (mirrors checkout_mock semantics) ---
+    # --- Validation (mirrors checkout_mock semantics) ---
     if tier not in _TIER_PRICING:
         return JSONResponse(
             {"error": "invalid tier", "allowed": list(_TIER_PRICING.keys())},
@@ -215,7 +215,7 @@ async def checkout_session(body: CheckoutBody, request: Request):
                 status_code=502,
             )
 
-    ***REMOVED*** --- Mock mode ---
+    # --- Mock mode ---
     fake_id = "mock_cs_" + uuid.uuid4().hex[:24]
     url = f"{success_url}&session_id={fake_id}"
     logger.info(
@@ -230,7 +230,7 @@ async def checkout_session(body: CheckoutBody, request: Request):
     })
 
 
-***REMOVED*** --------------------- Webhook ---------------------
+# --------------------- Webhook ---------------------
 
 def _verify_signature(payload_bytes: bytes, sig_header: str, secret: str) -> bool:
     """HMAC-SHA256 of the raw payload, formatted like Stripe's `t=,v1=` header.
@@ -245,11 +245,11 @@ def _verify_signature(payload_bytes: bytes, sig_header: str, secret: str) -> boo
         payload_bytes,
         hashlib.sha256,
     ).hexdigest()
-    ***REMOVED*** Accept either format
+    # Accept either format
     if sig_header.startswith("sha256="):
         provided = sig_header.split("=", 1)[1].strip()
         return hmac.compare_digest(provided, expected)
-    ***REMOVED*** Stripe-style: t=...,v1=...
+    # Stripe-style: t=...,v1=...
     parts = dict(
         p.split("=", 1) for p in sig_header.split(",") if "=" in p
     )
@@ -312,7 +312,7 @@ async def webhook(request: Request):
                     "event_type": event_type, "verified": bool(verified),
                 })
             except sqlite3.IntegrityError:
-                ***REMOVED*** Duplicate event_id — Stripe retries are normal; ack 200.
+                # Duplicate event_id — Stripe retries are normal; ack 200.
                 logger.info("billing webhook duplicate id=%s", event_id)
                 return JSONResponse({
                     "ok": True, "event_id": event_id,
@@ -339,6 +339,6 @@ async def events_recent(limit: int = 20):
                 "count": len(rows),
                 "events": [dict(r) for r in rows],
             })
-    except sqlite3.Error as e:  ***REMOVED*** pragma: no cover
+    except sqlite3.Error as e:  # pragma: no cover
         logger.error("billing events_recent failed: %s", e)
         return JSONResponse({"count": 0, "events": []})

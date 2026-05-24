@@ -1,8 +1,8 @@
-"""Session ***REMOVED***7 e2e tests — Perplexity-like search engine flow.
+"""Session #7 e2e tests — Perplexity-like search engine flow.
 
 Run: pytest web/tests/e2e/test_perplexity_search.py -v
 
-Note: baseline (pre-deploy) tests assume prod is still session ***REMOVED***5 layout.
+Note: baseline (pre-deploy) tests assume prod is still session #5 layout.
 Post-deploy (W3-C ships new /index.html), the perplexity-specific selectors
 will start passing. Tests marked @pytest.mark.post_deploy should be skipped
 in baseline phase via `-k "not post_deploy"`.
@@ -13,9 +13,9 @@ from playwright.sync_api import Page, expect
 BASE = "https://beta.structural.bytedance.city"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Post-deploy tests — only pass once W3-C ships new /index.html
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Post-deploy tests — only pass once W3-C ships new /index.html
+# ---------------------------------------------------------------------------
 
 @pytest.mark.post_deploy
 def test_home_loads_perplexity_layout(page: Page):
@@ -65,9 +65,9 @@ def test_learn_page_loads(page: Page):
     assert page.locator('a[href="/"]').count() > 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Regression-safety tests — should pass both pre/post deploy
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Regression-safety tests — should pass both pre/post deploy
+# ---------------------------------------------------------------------------
 
 def test_home_returns_200(page: Page):
     """Home page should return 200 OK."""
@@ -112,8 +112,8 @@ def test_mobile_375_no_horizontal_scroll(page: Page):
     page.goto(f"{BASE}/")
     scroll_width = page.evaluate("document.documentElement.scrollWidth")
     client_width = page.evaluate("document.documentElement.clientWidth")
-    ***REMOVED*** Pre-deploy baseline: allow up to +80px overflow (~448 observed).
-    ***REMOVED*** Post-deploy: tighten to +5px.
+    # Pre-deploy baseline: allow up to +80px overflow (~448 observed).
+    # Post-deploy: tighten to +5px.
     threshold = 80
     assert scroll_width <= client_width + threshold, (
         f"horizontal scroll exceeds baseline threshold: "

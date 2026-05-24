@@ -25,10 +25,10 @@ from run_poc import (
     validate_break_point,
 )
 
-***REMOVED*** 跨 family、跨 sector 挑的 25 家
-***REMOVED*** (ticker, name_zh, expected_family) — family 只是标签，不影响算法
+# 跨 family、跨 sector 挑的 25 家
+# (ticker, name_zh, expected_family) — family 只是标签，不影响算法
 TICKERS = [
-    ***REMOVED*** 大科技 / 成长股
+    # 大科技 / 成长股
     ("AAPL", "苹果", "ODE1_saturating"),
     ("MSFT", "微软", "ODE1_linear"),
     ("GOOGL", "谷歌", "ODE1_saturating"),
@@ -36,26 +36,26 @@ TICKERS = [
     ("META", "Meta", "Phase_transition_2nd"),
     ("NVDA", "NVIDIA", "ODE1_exponential_growth"),
     ("NFLX", "Netflix", "ODE1_saturating"),
-    ***REMOVED*** EV / 消费
+    # EV / 消费
     ("TSLA", "Tesla", "Bistable_switch"),
     ("PTON", "Peloton", "Fold_bifurcation"),
     ("SHOP", "Shopify", "ODE1_logistic"),
     ("SBUX", "Starbucks", "ODE1_linear"),
     ("CMG", "Chipotle", "ODE1_logistic"),
     ("BYND", "Beyond Meat", "Fold_bifurcation"),
-    ***REMOVED*** 金融
+    # 金融
     ("JPM", "摩根大通", "ODE1_linear"),
     ("GS", "高盛", "ODE2_damped_oscillation"),
     ("V", "Visa", "ODE1_linear"),
-    ***REMOVED*** 能源 / 周期
+    # 能源 / 周期
     ("XOM", "埃克森美孚", "ODE2_damped_oscillation"),
     ("CVX", "雪佛龙", "ODE2_damped_oscillation"),
     ("FCX", "自由港麦克莫兰", "ODE2_damped_oscillation"),
-    ***REMOVED*** 老牌 / 衰退
+    # 老牌 / 衰退
     ("INTC", "英特尔", "ODE1_exponential_decay"),
     ("IBM", "IBM", "ODE1_linear"),
     ("T", "AT&T", "ODE1_linear"),
-    ***REMOVED*** 社交 / 博弈
+    # 社交 / 博弈
     ("SNAP", "Snap", "Phase_transition_2nd"),
     ("PINS", "Pinterest", "ODE1_saturating"),
     ("GME", "GameStop", "Self_fulfilling_prophecy"),
@@ -106,7 +106,7 @@ def main():
             print(f"失败: {e}")
             continue
 
-    ***REMOVED*** 聚合统计
+    # 聚合统计
     n = len(all_v)
     if n == 0:
         print("\n没有有效数据。")
@@ -122,13 +122,13 @@ def main():
     ret_diffs = [abs(v["return_after"] - v["return_before"]) for v in all_v]
     vol_ratios = [v["vol_after"] / (v["vol_before"] + 1e-6) for v in all_v]
 
-    ***REMOVED*** 分类型
+    # 分类型
     type_counts = {}
     for v in all_v:
         t = v["regime_change"]
         type_counts[t] = type_counts.get(t, 0) + 1
 
-    ***REMOVED*** 按 score 分层：高分（>3）、中分（2-3）、低分（1.5-2）的 regime change 比例
+    # 按 score 分层：高分（>3）、中分（2-3）、低分（1.5-2）的 regime change 比例
     tiers = {"高分 (>3)": [], "中分 (2-3)": [], "低分 (1.5-2)": []}
     for v in all_v:
         s = v["score"]
@@ -139,14 +139,14 @@ def main():
         else:
             tiers["低分 (1.5-2)"].append(v)
 
-    ***REMOVED*** 输出
+    # 输出
     out = []
-    out.append(f"***REMOVED*** PELT POC 扩展版 — 25 家公司聚合结果\n")
+    out.append(f"# PELT POC 扩展版 — 25 家公司聚合结果\n")
     out.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
     out.append(f"样本：{len(per_ticker)}/{len(TICKERS)} 家公司有足够数据\n")
     out.append(f"总拐点数：{n}\n\n")
 
-    out.append(f"***REMOVED******REMOVED*** 🎯 核心指标\n\n")
+    out.append(f"## 🎯 核心指标\n\n")
     out.append(f"| 指标 | 数字 | 比例 |\n")
     out.append(f"|-----|-----|-----|\n")
     out.append(f"| 总拐点数 | {n} | — |\n")
@@ -155,13 +155,13 @@ def main():
     out.append(f"| 拐点前后累计收益差（中位数）| {np.median(ret_diffs)*100:.1f}pp | — |\n")
     out.append(f"| 拐点前后波动率比（中位数）| {np.median(vol_ratios):.2f}x | — |\n\n")
 
-    out.append(f"***REMOVED******REMOVED*** 📊 Regime 变化类型分布\n\n")
+    out.append(f"## 📊 Regime 变化类型分布\n\n")
     out.append(f"| 类型 | 数量 | 比例 |\n|---|---|---|\n")
     for t, c in sorted(type_counts.items(), key=lambda x: -x[1]):
         out.append(f"| {t} | {c} | {c/n*100:.1f}% |\n")
     out.append("\n")
 
-    out.append(f"***REMOVED******REMOVED*** 🔬 按置信度分层（更重要）\n\n")
+    out.append(f"## 🔬 按置信度分层（更重要）\n\n")
     out.append(f"高置信拐点是不是更靠谱？\n\n")
     out.append(f"| 分层 | 样本数 | 有 regime 变化 | 比例 |\n|---|---|---|---|\n")
     for tier_name, vs in tiers.items():
@@ -171,8 +171,8 @@ def main():
         out.append(f"| {tier_name} | {len(vs)} | {rc} | **{rc/len(vs)*100:.1f}%** |\n")
     out.append("\n")
 
-    ***REMOVED*** 按 family 统计
-    out.append(f"***REMOVED******REMOVED*** 🏷️ 按 dynamics_family 分层\n\n")
+    # 按 family 统计
+    out.append(f"## 🏷️ 按 dynamics_family 分层\n\n")
     out.append(f"不同类型公司的拐点是否更显著？\n\n")
     fam_stats = {}
     for ticker, (name, fam, vs) in per_ticker.items():
@@ -191,13 +191,13 @@ def main():
         )
     out.append("\n")
 
-    ***REMOVED*** 每家公司明细
-    out.append(f"***REMOVED******REMOVED*** 📋 每家公司明细\n\n")
+    # 每家公司明细
+    out.append(f"## 📋 每家公司明细\n\n")
     for ticker, (name, fam, vs) in per_ticker.items():
         if not vs:
             continue
         rc = sum(1 for v in vs if v["regime_change"] != "无明显变化")
-        out.append(f"***REMOVED******REMOVED******REMOVED*** {ticker} · {name}（{fam}）\n\n")
+        out.append(f"### {ticker} · {name}（{fam}）\n\n")
         out.append(f"{len(vs)} 个拐点，{rc} 个有 regime 变化\n\n")
         out.append(f"| 日期 | 置信度 | 前 60 天 | 后 60 天 | 判断 |\n|---|---|---|---|---|\n")
         for v in vs:
@@ -208,8 +208,8 @@ def main():
             )
         out.append("\n")
 
-    ***REMOVED*** 最终判断
-    out.append(f"***REMOVED******REMOVED*** ⚖️ 最终判断\n\n")
+    # 最终判断
+    out.append(f"## ⚖️ 最终判断\n\n")
     rc_rate = regime_changes / n
     if rc_rate >= 0.60:
         out.append(f"✅ **算法可用**：{rc_rate*100:.0f}% 的拐点对应真实 regime 变化，可以上 MVP。\n")

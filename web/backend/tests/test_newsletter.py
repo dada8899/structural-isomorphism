@@ -1,4 +1,4 @@
-"""Unit tests for api.newsletter — session ***REMOVED***9 W2-A.
+"""Unit tests for api.newsletter — session #9 W2-A.
 
 Run with:
     cd web/backend
@@ -15,15 +15,15 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import newsletter as nl  ***REMOVED*** noqa: E402
+from api import newsletter as nl  # noqa: E402
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    ***REMOVED*** Redirect storage to tmp_path so tests don't write to the repo.
+    # Redirect storage to tmp_path so tests don't write to the repo.
     tmp_file = tmp_path / "data" / "newsletter-subscribers.jsonl"
     monkeypatch.setattr(nl, "_data_file", lambda: tmp_file)
 
@@ -122,7 +122,7 @@ def test_count_endpoint(client):
         "/api/newsletter/subscribe",
         json={"email": "c2@example.com", "source": "test"},
     )
-    ***REMOVED*** Duplicate doesn't bump count.
+    # Duplicate doesn't bump count.
     client.post(
         "/api/newsletter/subscribe",
         json={"email": "c1@example.com", "source": "test"},
@@ -131,7 +131,7 @@ def test_count_endpoint(client):
 
 
 def test_email_normalized_to_lowercase_in_storage(client, tmp_path, monkeypatch):
-    ***REMOVED*** Re-mount with a fresh tmp file we can read directly.
+    # Re-mount with a fresh tmp file we can read directly.
     tmp_file = tmp_path / "data" / "subs.jsonl"
     monkeypatch.setattr(nl, "_data_file", lambda: tmp_file)
     app = FastAPI()

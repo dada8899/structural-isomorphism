@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-***REMOVED*** Path setup
+# Path setup
 REPO = Path.home() / "projects" / "structural-isomorphism"
 sys.path.insert(0, str(REPO))
 
@@ -50,7 +50,7 @@ def main():
     np.save(OUTPUT_NPY, embeddings)
     print(f"Saved embeddings to {OUTPUT_NPY} ({OUTPUT_NPY.stat().st_size / 1024 / 1024:.1f} MB)")
 
-    ***REMOVED*** Save IDs in parallel order for verification
+    # Save IDs in parallel order for verification
     ids = [item.get("id", "") for item in items]
     with open(OUTPUT_IDS, "w") as f:
         json.dump(ids, f)

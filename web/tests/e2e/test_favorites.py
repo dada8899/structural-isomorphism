@@ -1,4 +1,4 @@
-"""W15-C (session ***REMOVED***10, 2026-05-15) — User favorites end-to-end test.
+"""W15-C (session #10, 2026-05-15) — User favorites end-to-end test.
 
 Two phases:
 
@@ -74,7 +74,7 @@ def _wait_port(host: str, port: int, timeout: float = 10.0) -> bool:
     return False
 
 
-***REMOVED*** ---------------- A. local FastAPI shim ----------------
+# ---------------- A. local FastAPI shim ----------------
 
 
 @pytest.fixture(scope="module")
@@ -84,7 +84,7 @@ def local_backend(tmp_path_factory):
     data_dir = tmp_path_factory.mktemp("fav-data")
     fav_path = data_dir / "favorites.jsonl"
 
-    ***REMOVED*** Seed two API keys: one free, one pro.
+    # Seed two API keys: one free, one pro.
     keys_path = data_dir / "api_keys.jsonl"
     keys_path.write_text(
         "\n".join(
@@ -122,7 +122,7 @@ from api import favorites as fav_mod
 from errors import install_problem_handlers
 from auth import api_key as auth_mod
 
-***REMOVED*** Force fresh store with env-overridden path.
+# Force fresh store with env-overridden path.
 auth_mod._store = None
 
 app = FastAPI()
@@ -223,9 +223,9 @@ def test_delete_idempotent(local_backend):
 def test_merge_endpoint(local_backend):
     hdr = {"X-API-Key": "sk_test_e2e_pro"}
     base = local_backend["base"]
-    ***REMOVED*** Seed user with one.
+    # Seed user with one.
     _api("POST", f"{base}/api/favorites/AAPL", headers=hdr)
-    ***REMOVED*** Merge anon tickers.
+    # Merge anon tickers.
     s, body = _api(
         "POST",
         f"{base}/api/favorites/merge",
@@ -242,7 +242,7 @@ def test_anonymous_write_rejected(local_backend):
     assert s == 401
 
 
-***REMOVED*** ---------------- B. browser-side localStorage + UI ----------------
+# ---------------- B. browser-side localStorage + UI ----------------
 
 PHASE_BASE = os.environ.get(
     "PHASE_BASE", "https://phase.bytedance.city"
@@ -278,7 +278,7 @@ def test_anon_localStorage_round_trip():
             page.goto(
                 f"{PHASE_BASE}/companies", wait_until="domcontentloaded", timeout=15000
             )
-            ***REMOVED*** Clear pre-existing state.
+            # Clear pre-existing state.
             page.evaluate(
                 "() => { try { localStorage.removeItem('phase_favorites_anon');"
                 " localStorage.removeItem('phase_api_key');"
@@ -320,13 +320,13 @@ def test_me_favorites_page_renders():
             )
             if resp and resp.status == 404:
                 pytest.skip("/me/favorites not yet deployed to PHASE_BASE")
-            ***REMOVED*** Empty-state element should exist when no favorites are present.
+            # Empty-state element should exist when no favorites are present.
             page.evaluate(
                 """() => { try { localStorage.removeItem('phase_favorites_anon');
                                 localStorage.removeItem('phase_api_key'); } catch(e){} }"""
             )
             page.reload(wait_until="domcontentloaded")
-            ***REMOVED*** Title appears.
+            # Title appears.
             title = page.locator("h1", has_text="我的收藏")
             if title.count() == 0:
                 pytest.skip("/me/favorites not yet deployed to PHASE_BASE")
@@ -354,15 +354,15 @@ def test_favorite_button_present_on_company_card():
                 wait_until="domcontentloaded",
                 timeout=15000,
             )
-            ***REMOVED*** Wait for at least one card to be rendered.
+            # Wait for at least one card to be rendered.
             try:
                 page.wait_for_selector(
                     '[data-testid^="favorite-button-"]', timeout=8000
                 )
             except Exception:
-                ***REMOVED*** If site is deployed but cards haven't hydrated favorites
-                ***REMOVED*** (e.g. older deploy), don't hard-fail — assert the page
-                ***REMOVED*** at least loaded.
+                # If site is deployed but cards haven't hydrated favorites
+                # (e.g. older deploy), don't hard-fail — assert the page
+                # at least loaded.
                 assert page.title()
                 pytest.skip("favorite buttons not yet deployed to PHASE_BASE")
             count = page.locator('[data-testid^="favorite-button-"]').count()

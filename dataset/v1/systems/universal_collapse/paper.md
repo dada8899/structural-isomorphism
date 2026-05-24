@@ -1,4 +1,4 @@
-***REMOVED*** Universal Collapse of Event-Size Distributions across Seven Self-Organized Critical Systems: A Finite-Size Scaling Analysis
+# Universal Collapse of Event-Size Distributions across Seven Self-Organized Critical Systems: A Finite-Size Scaling Analysis
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -8,13 +8,13 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 We test the strongest empirical signature of cross-system universality available to the Structural Isomorphism Layer 5 program: finite-size scaling collapse of event-size distributions onto a single master curve across seven domains that previously passed the SOC threshold-cascade pipeline independently (earthquakes, S&P 500, DeFi liquidations, mouse cortex, wildfires, solar flares, bank failures), plus one preferential-attachment control (GitHub stars). The scaling ansatz is $P(s, s_*) = s^{-\alpha} f(s / s_*)$, with $s_*$ the 99th-percentile cutoff per system; rescaled axes are $x' = s / s_*$ and $y' = s_*^{\alpha - 1} \hat p(s)$. Strict $\alpha$-collapse fails: the recovered tail exponents span $\alpha \in [1.5, 3.0]$ across observables, as predicted by V4 ("same equation class, different conjugate observable $\Rightarrow$ different scaling exponent"). What does collapse is the *functional shape*: after subtracting per-system mean log-y, the cross-system variance / within-system variance ratio is $1.11$ ("excellent" by the threshold $r < 2$), versus $184$ on the raw rescaled axis where unit prefactors dominate. Log-binned density estimation with Poisson error bars replaces the naïve CCDF and reveals tail noise that the cumulative form hides. Bayesian model selection (BIC) across power-law, power-law-with-exponential-cutoff, and lognormal alternatives prefers **power-law + exp cutoff in 5/7 systems** ($\Delta\mathrm{BIC} \in [33, 967]$), pure power-law in 2/7 (earthquake, bank_failure; $\Delta\mathrm{BIC} \approx 4$ — pl_cutoff not statistically preferable on these tails), and lognormal in 0/7. The cross-domain SOC class is therefore confirmed at the level of *functional form plus shape collapse*, while the absolute exponent is — and was always expected to be — observable-dependent.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Finite-size scaling [1–3] is the technical statement of universality in critical phenomena: near a critical point, the order parameter and its fluctuations are governed by a scaling function $f(\cdot)$ that depends only on a dimensionless ratio between event size and a finite-size cutoff, not on microscopic details. The Bak–Tang–Wiesenfeld sandpile [4], the Drossel–Schwabl forest-fire model [5], and the Olami–Feder–Christensen earthquake automaton [6] all share an identical structural form: slow drive, fast threshold release, separation of timescales — and produce power-law avalanche-size distributions with system-specific exponents that obey the same finite-size scaling relation [7, 8].
 
@@ -28,9 +28,9 @@ This paper is Phase 12 of the Layer 5 validation program. Earlier phases [9–14
 2. **Bayesian model comparison** across three candidate tail models — pure power-law, power-law with exponential cutoff, and lognormal — using BIC ranking, not visual judgement.
 3. **Quantitative collapse quality metric** based on cross-system vs. within-system variance of the shape-normalized log master curve, with named thresholds ($r < 2$ excellent, $r < 5$ good, $r < 10$ moderate, $> 10$ poor).
 
-***REMOVED******REMOVED*** 2. Theoretical background
+## 2. Theoretical background
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Scaling ansatz
+### 2.1 Scaling ansatz
 
 For a finite system of characteristic size $L$ near a critical point, the event-size distribution is conjectured to factorize as
 $$P(s, L) = s^{-\alpha} f(s / L^D)$$
@@ -38,17 +38,17 @@ where $D$ is the scaling dimension (in lattice SOC, the avalanche cluster fracta
 
 In real-system applications $L$ is rarely well-defined; the working substitution is $s_* = L^D$, a system-specific cutoff scale estimable from the data. We use $s_* = $ 99th percentile of the empirical distribution as a robust proxy for the natural cutoff.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Strict vs. narrow-band universality
+### 2.2 Strict vs. narrow-band universality
 
 Strict universality demands shared $\alpha$ across systems. Narrow-band universality demands shared $f$. The V4 prediction is the latter: different observables on the same underlying physics give different $\alpha$ but the same $f$ (the shape of the cutoff function). Our seven systems span $\alpha \in [1.5, 3.0]$, so strict universality is rejected by construction; the meaningful test is whether $f$ — the shape under appropriate rescaling — is shared.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Why log-binned density is necessary
+### 2.3 Why log-binned density is necessary
 
 The empirical CCDF $\hat C(s) = \Pr(S > s)$ is biased toward the bulk: it accumulates probability mass from below, so the upper-tail decade contains very few independent samples but appears smooth because each bin inherits density from all bins below. This visual smoothness underestimates tail noise and inflates apparent collapse quality. The log-binned PDF $\hat p(s) = (\text{count in bin}) / (n \cdot \text{bin width})$, with Poisson error bars $\sqrt{\text{count}} / (n \cdot \text{width})$, is the standard fix [15, 18]. We use 12 bins per decade and Poisson errors throughout.
 
-***REMOVED******REMOVED*** 3. Methods
+## 3. Methods
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Data sources
+### 3.1 Data sources
 
 Seven systems with $n \geq 3{,}960$ events each, all previously verified in their own Phase paper:
 
@@ -64,17 +64,17 @@ Seven systems with $n \geq 3{,}960$ events each, all previously verified in thei
 
 Each system supplies a one-dimensional series of strictly positive event sizes. No domain-specific preprocessing beyond what was used in the original Phase paper.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Log-binned density
+### 3.2 Log-binned density
 
 For each system, we take the tail $\{s : s \geq s_{50}\}$ (50th-percentile floor — the upper half of the distribution, which is where SOC scaling lives), construct geometrically spaced bins with 12 bins per decade spanning $[\min s, \max s]$ in the tail, and compute density $\hat p(b) = c_b / (n \cdot w_b)$ with Poisson errors $\sigma(b) = \sqrt{\max(c_b, 1)} / (n \cdot w_b)$, where $c_b$ is the count in bin $b$, $w_b$ the bin width, and $n$ the tail size. Bins with $c_b = 0$ are dropped.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Rescaling
+### 3.3 Rescaling
 
 For each system we use the literature-fitted $\alpha$ from the corresponding Phase paper (see Table 1) and define
 $$x' = s / s_*, \qquad y' = s_*^{\alpha - 1} \hat p(s)$$
 with $s_*$ the 99th-percentile cutoff. Under the scaling ansatz, $y'$ is a function of $x'$ alone — all systems collapse onto a single curve.
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Bayesian model comparison
+### 3.4 Bayesian model comparison
 
 For each system's log-binned tail $(b_i, \hat p_i, \sigma_i)$, we fit three candidate tail models by weighted least squares in log space (Gaussian-residuals approximation with $\sigma_{\log} = \sigma / \hat p$):
 
@@ -86,7 +86,7 @@ We compute the Bayesian Information Criterion $\mathrm{BIC} = k \log n - 2 \log 
 
 The Gaussian-in-log-space WLS approximation is a pragmatic choice on log-binned density data; it does not reproduce exact MLE on the raw tail but yields self-consistent BIC differences across models within each system, which is the comparison this paper relies on.
 
-***REMOVED******REMOVED******REMOVED*** 3.5 Collapse quality metric
+### 3.5 Collapse quality metric
 
 Project all systems' rescaled $(x', y')$ curves onto a shared logarithmic $x'$-grid of 20 points spanning the common $x'$-range. Let $M_{ij} = \log y'_{ij}$ be the interpolated log-y at grid bin $j$ for system $i$.
 
@@ -98,9 +98,9 @@ Threshold table: $r < 2$ excellent, $r < 5$ good, $r < 10$ moderate, $r \geq 10$
 
 The shape-normalized ratio is the operationally meaningful collapse quantity for cross-system comparison.
 
-***REMOVED******REMOVED*** 4. Results
+## 4. Results
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Per-system tail summary
+### 4.1 Per-system tail summary
 
 | System | $\alpha$ (lit.) | $n$ | $s_*$ (99-pctl) | $n_\mathrm{tail}$ | $n_\mathrm{bins}$ | Best model | $\Delta\mathrm{BIC}$ vs. 2nd |
 |---|---|---|---|---|---|---|---|
@@ -114,19 +114,19 @@ The shape-normalized ratio is the operationally meaningful collapse quantity for
 
 The literature $\alpha$ values come from each system's own Phase paper; for earthquake and solar these are derived from physical scaling laws applied to magnitude/class data, for the others from a Clauset MLE on the tail. The number of log-bins ranges from 17 (stockmarket, narrow $|\text{return}|$ range) to 148 (defi_aave, 24 decades of wei).
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Panel A: raw log-binned density
+### 4.2 Panel A: raw log-binned density
 
 In native units the seven systems span eight orders of magnitude in $s$ on the x-axis and nine on $\hat p$ — visual decoupling is total. Earthquake energies live near $10^{10}$ J, stockmarket returns near $10^{-3}$, defi liquidations near $10^{20}$ wei. The Poisson error bars are visible in the upper tail decade of each system, where bin counts drop to single digits.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Panel B: 99-pctl rescaled
+### 4.3 Panel B: 99-pctl rescaled
 
 Under $x' = s / s_*$, $y' = s_*^{\alpha - 1} \hat p(s)$, the seven curves shift toward each other but do not visually overlay. The y-axis still differs by 10+ orders across systems because $s_*^{\alpha - 1}$ does not absorb the per-system unit prefactor (a stockmarket density of $10^{2}$ per $|\text{return}|^{-1}$ and an earthquake density of $10^{-13}$ per J$^{-1}$ are unit-incommensurable). This is panel B as displayed in V4 A3 and is the source of the original "partial collapse" verdict.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Panel C: log-binned + best-fit overlay + mean curve
+### 4.4 Panel C: log-binned + best-fit overlay + mean curve
 
 Panel C plots the same rescaled $(x', y')$ data with Poisson errors and overlays the cross-system mean curve. To the eye the curves still appear vertically offset, again driven by the unit prefactor: the *shapes* of the curves track each other along their common $x'$-range $[0.14, 2.96]$ (a 1.3-decade overlap window after rescaling), but absolute heights differ.
 
-***REMOVED******REMOVED******REMOVED*** 4.5 Collapse quality
+### 4.5 Collapse quality
 
 | Quantity | Value | Verdict |
 |---|---|---|
@@ -138,7 +138,7 @@ Panel C plots the same rescaled $(x', y')$ data with Poisson errors and overlays
 
 The two-orders-of-magnitude gap between $r_{\text{abs}} = 184$ and $r_{\text{shape}} = 1.11$ is the central numerical result of this paper. The poor absolute collapse is a unit-prefactor artifact: $s_*^{\alpha-1}$ has units of $s^{\alpha - 1}$ and absorbs scale, but not units. A wildfire is measured in acres, a stockmarket return is dimensionless, a defi liquidation is in wei — these do not commensurate without an extra conversion. The excellent shape collapse, after each system is centered on its own mean log-y, says that the *functional dependence* of $\log y'$ on $\log x'$ is shared. That is what the universal-collapse claim means in any non-trivial reading.
 
-***REMOVED******REMOVED******REMOVED*** 4.6 Bayesian model ranking
+### 4.6 Bayesian model ranking
 
 Across the seven systems:
 
@@ -150,19 +150,19 @@ This is the strongest empirical statement we can make: the cross-system tail sig
 
 The lognormal rejection here is interesting because Phase 2 (S&P 500, Reed–Hughes 2002 critique) and Phase 10 (wildfire) reported that lognormal beats power-law on the raw tail by Vuong's likelihood-ratio test [15, 20]. The opposite ranking here is not a contradiction: the previous comparison was raw tail (CCDF + Clauset MLE), this comparison is log-binned PDF with WLS. The two procedures weight bins differently — Vuong's test is sensitive to upper-tail individual events that dominate the LN likelihood, while log-binned WLS averages across decades. We do not claim one of these is "correct"; the discrepancy is a real ambiguity at $n \sim 10^3$–$10^4$ tail sizes, and we report it openly. (See § 5.)
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Why $\alpha$-collapse fails and that's the point
+### 5.1 Why $\alpha$-collapse fails and that's the point
 
 The seven recovered $\alpha$ values are 1.66, 1.68, 1.79, 1.90, 2.19, 2.87, 3.00 — a 2× spread. Christensen–Moloney's strict universality definition demands these match within CI; they don't. This is *not* a failure of the SOC class — it is a confirmation of V4's prediction that *the observable choice determines the readout exponent*. Earthquake energy ($10^{1.5M}$) and earthquake count (Gutenberg–Richter $b \approx 1$) live on the same physics with different exponents because one is a $1.5\times$-stretched transform of the other. Stockmarket $|\text{return}|$ exponent 3.0 vs. earthquake energy 1.79 is a similar transform — financial returns are read out as price differences, not as energy releases. The numerical $\alpha$ is *not* the universal quantity; the *functional shape* is.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Why power-law + exponential cutoff wins (in log-binned)
+### 5.2 Why power-law + exponential cutoff wins (in log-binned)
 
 The cutoff factor $\exp(-s / s_c)$ in the pl_cutoff model captures the finite-size truncation of the tail at $s \approx s_*$. In real systems the upper tail is never strictly power-law: ecosystems have maximum fire area (continental size), markets have crash limits (regulatory halts), seismic catalogs are truncated by the largest historical event. The exponential cutoff fits this finite-size truncation directly, while pure power-law cannot. On log-binned data where the cutoff region has multiple bins and Poisson error bars, the BIC clearly prefers the explicit cutoff model.
 
 For earthquake and bank_failure, the cutoff is degenerate ($s_c \to \infty$, $\Delta\mathrm{BIC} \approx 4$): these two tails do not yet show a finite-size truncation in the available data. For earthquake this is plausible (the cutoff would be at planet-scale ruptures, far beyond M=9). For bank_failure ($n = 3960$, smallest sample in our set), it is plausibly statistical — more decades of failed-bank data would expose the cutoff.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Lognormal: when it wins and when it doesn't
+### 5.3 Lognormal: when it wins and when it doesn't
 
 Reed and Hughes [20] argued that lognormal distributions arise generically from multiplicative growth processes and that on finite tail samples a lognormal often fits as well as or better than a power-law. Phase 2 and Phase 10 (CCDF + Vuong) confirmed this for S&P 500 and wildfire. Phase 12 (log-binned + BIC) rejects lognormal decisively in all seven systems. What gives?
 
@@ -170,7 +170,7 @@ The Vuong likelihood-ratio test compares two models on the raw data; lognormal h
 
 A genuinely decisive test would require $n_\mathrm{tail} \gtrsim 10^5$ across 4+ decades, plus an independent constraint from the generative mechanism (e.g., direct measurement of the slow-driving rate in an SOC system, or of the multiplicative-step variance in a lognormal generator). We do not have this on any of the seven domains.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Limitations
+### 5.4 Limitations
 
 1. **Only seven systems.** SOC has been claimed for many more domains (solar wind, neural avalanches in multiple species, sandpile rice-pile experiments, drainage networks, etc.). Seven is enough for a first cross-system collapse demonstration but not enough to bound the universality class.
 
@@ -182,13 +182,13 @@ A genuinely decisive test would require $n_\mathrm{tail} \gtrsim 10^5$ across 4+
 
 5. **The GitHub stars system (preferential attachment, not SOC) is included.** This was intentional: PA produces a power-law-with-cutoff tail too, by an entirely different mechanism (Yule–Simon process vs. threshold cascade). Phase 11 verified the PA mechanism on the same data. Its inclusion in the cross-system collapse is therefore an *adversarial* test — if GitHub stars also collapses onto the master curve, the master curve is not specific to SOC but to "any heavy-tailed distribution with a finite-size cutoff". The shape-normalized ratio of 1.11 includes GitHub stars; the BIC also prefers pl_cutoff there. We accept this as a feature: the functional shape "power-law tail with exponential truncation" is broader than SOC, but the SOC-domain systems (1–6 of our 7) do all fall onto it, which is the narrower claim we set out to test.
 
-***REMOVED******REMOVED*** 6. Conclusion
+## 6. Conclusion
 
 Functional-form universal collapse across seven event-size distributions is confirmed: shape-normalized cross-system / within-system variance ratio of $1.11$, well inside the "excellent" threshold $r < 2$. The strict universality claim (shared $\alpha$) is refuted, as predicted by the V4 observable-dependence theory: $\alpha$ spans $[1.5, 3.0]$ because the seven systems read out their underlying cascade through different conjugate observables. Bayesian model selection across 7 systems × 3 candidate tail models prefers power-law + exponential cutoff in 5/7 cases (decisive), pure power-law in 2/7 (cutoff degenerate), lognormal in 0/7. The cross-system signature of the SOC threshold-cascade class is therefore: (i) tail of power-law-times-exponential-cutoff functional form; (ii) shape-collapse under finite-size rescaling with a 99-percentile cutoff proxy; (iii) observable-dependent $\alpha$ inside a band of roughly $[1.5, 3.0]$.
 
 Future work: (a) bootstrap calibration of the shape-collapse ratio against matched synthetic non-SOC nulls; (b) add additional SOC phases (neural avalanches across species, rice piles, drainage networks) to broaden $n_\mathrm{system}$ from 7 toward 15+; (c) replace WLS-on-log-bins with raw-tail MLE for the BIC comparison.
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] M. E. Fisher, *Critical phenomena*, Proc. Enrico Fermi School (1971).
 [2] H. E. Stanley, *Introduction to Phase Transitions and Critical Phenomena*, Oxford (1971).
@@ -211,16 +211,16 @@ Future work: (a) bootstrap calibration of the shape-collapse ratio against match
 [19] R. E. Kass, A. E. Raftery, *Bayes factors*, J. Am. Stat. Assoc. 90, 773 (1995).
 [20] W. J. Reed, B. D. Hughes, *From gene families and genera to incomes and Internet file sizes: why power laws are so common in nature*, Phys. Rev. E 66, 067103 (2002).
 
-***REMOVED******REMOVED*** Data & Code Availability
+## Data & Code Availability
 
 Code, fitted parameters, and full per-bin density data:
 ```
 v4/validation/soc-universal-collapse/
-├── polish_collapse.py     ***REMOVED*** collapse + fits + plots, ~620 LOC
-├── analyze.py             ***REMOVED*** runner entry point
-├── results.json           ***REMOVED*** per-system tail data, fits, ranking, collapse metric
-├── plot_panel_C.png       ***REMOVED*** three-panel figure (A raw / B 99pctl rescale / C log-binned + mean)
-└── plot_residuals.png     ***REMOVED*** per-system shape residuals vs mean curve
+├── polish_collapse.py     # collapse + fits + plots, ~620 LOC
+├── analyze.py             # runner entry point
+├── results.json           # per-system tail data, fits, ranking, collapse metric
+├── plot_panel_C.png       # three-panel figure (A raw / B 99pctl rescale / C log-binned + mean)
+└── plot_residuals.png     # per-system shape residuals vs mean curve
 ```
 
 Per-Phase upstream data lives in `v4/validation/soc-{earthquake, stockmarket, wildfire, solar, bank-failures, github-stars, defi}/`.

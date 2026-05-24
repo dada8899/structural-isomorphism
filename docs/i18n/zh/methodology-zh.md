@@ -1,4 +1,4 @@
-***REMOVED*** 统计稳健性修复 — F1-F5 汇总 (W7-D)
+# 统计稳健性修复 — F1-F5 汇总 (W7-D)
 
 [English](../../methodology/statistical-robustness-2026-05-15.md) | **简体中文**
 
@@ -6,7 +6,7 @@
 **来源：** W5-A 学者评审 (`docs/reviews/W5-A-scholar-review-2026-05-13.md`)
 **驱动力：** F1-F5 是资深统计物理审稿人指出的"决定 reviewer 是否放行"的五大核心问题，直接关系到 *PRE* / *Chaos* 投稿能否通过，以及 C1 v0.3 手稿的可信度。
 
-***REMOVED******REMOVED*** 总览表
+## 总览表
 
 | 修复项 | W5-A § 引用 | 状态 | 核心结论 | 对手稿的影响 |
 |---|---|---|---|---|
@@ -16,9 +16,9 @@
 | **F4** xmin 敏感性扫描 | §3.8, §4.1 | 已落（约 12 系统中 8 个） | 3 稳健 / 2 轻度漂移 / 2 显著漂移 | 补充图 + Table 1 新增列 |
 | **F5** r_shape 空分布 | §3.6, §4.4-4.5, §7.6 | 已落 — **重大发现** | r_shape = 1.11 是组合常数，需替换为 RMSE 统计量，p < 0.0001 | **§4.4-4.5 核心论述必须重写** |
 
-***REMOVED******REMOVED*** 各修复细节
+## 各修复细节
 
-***REMOVED******REMOVED******REMOVED*** F1 — Bootstrap n=100 → 10,000 重跑
+### F1 — Bootstrap n=100 → 10,000 重跑
 
 **问题：** "全文 bootstrap n_boot = 100。低于当前最佳实践；置信区间端点带约 10% 标准误。"[W5-A §3.6, §4.1]
 
@@ -30,7 +30,7 @@
 
 **核心结论：** 置信区间宽度在 n=1000 到 n=10000 之间收敛到 ~1% 以内；点估计和判定不变。n=100 确实太小（置信区间端点有 ~10% 蒙特卡洛标准误），但不会翻转任何判定。
 
-***REMOVED******REMOVED******REMOVED*** F2 — Scheffer Kendall-tau 块自助法（复核）
+### F2 — Scheffer Kendall-tau 块自助法（复核）
 
 **问题：** "AR(1) p = 1.6e-186（Scheffer、Fox River）几乎肯定是数值下溢，或对 4,686 个高度自相关样本误用 Kendall-tau 渐近，而非真实概率。"[W5-A §3.9, §7.5]
 
@@ -40,7 +40,7 @@
 
 **核心结论：** 块自助法 p 落在 [1e-10, 1e-30] 范围内；定性结论（AR1 和方差都在上升，经典 Scheffer EWS）不变。
 
-***REMOVED******REMOVED******REMOVED*** F3 — 族错误率（FWER）校正
+### F3 — 族错误率（FWER）校正
 
 **问题：** "13 系统 × 每系统至少 2 个似然比检验 + ... = 至少 30 个统计决策。没做 Bonferroni、没做 Benjamini-Hochberg、没讨论 alpha 膨胀。FWER 大概率超过 0.5。**决定 reviewer 是否放行的最重要一条问题。**"[W5-A §3.3, §7.1]
 
@@ -54,7 +54,7 @@
 
 **核心结论：** 在 FWER = 0.05 下，Bonferroni-Holm 校正后**没有任何判定翻转**。被拒绝的"对数正态 vs 幂律"检验校正后 p_holm < 1e-5；inconclusive 的还是 inconclusive。**这是手稿可辩护性上的强正面结果**——所有统计判定对 FWER 校正稳健。
 
-***REMOVED******REMOVED******REMOVED*** F4 — xmin 敏感性滑窗扫描
+### F4 — xmin 敏感性滑窗扫描
 
 **问题：** "对小 n 阶段的 xmin 选择稳健性未做压力测试。Clauset KS 最小化的 xmin 对 n < 200 尾部样本已知会过拟合。"[W5-A §3.8, §4.1]
 
@@ -72,7 +72,7 @@
 
 显著漂移的两个案例（S&P 500、GitHub stars）与已上报的 Vuong-LN inconclusive 判定一致，最合适的解读是 **有限样本下幂律与对数正态共存**（Mitzenmacher 2004）。修复策略 = 在点估计旁如实报告漂移区间。
 
-***REMOVED******REMOVED******REMOVED*** F5 — r_shape 空分布
+### F5 — r_shape 空分布
 
 **问题：** "建议：生成 10,000 个 surrogate 数据集，其中 7 个系统每一个都被独立拟合为对数正态... 报告经验 r_shape 的分位排名。"[W5-A §4.4(b)]
 
@@ -96,7 +96,7 @@
 
 详见 `docs/methodology/F5-r-shape-null-2026-05-15.md`。
 
-***REMOVED******REMOVED*** 手稿编辑合并清单
+## 手稿编辑合并清单
 
 C1 v0.3（下一版预印本），按优先级执行如下编辑：
 
@@ -110,7 +110,7 @@ C1 v0.3（下一版预印本），按优先级执行如下编辑：
 
 5. **[MEDIUM] 补充 Fig S4**（F4）：从 `paper/figures/methodology/F4_xmin_sensitivity.pdf` 加 xmin 敏感性栅格图。Table 1 新增"漂移区间"列。
 
-***REMOVED******REMOVED*** 新增工件清单 (W7-D)
+## 新增工件清单 (W7-D)
 
 | 路径 | 类型 | 用途 |
 |---|---|---|
@@ -133,7 +133,7 @@ C1 v0.3（下一版预印本），按优先级执行如下编辑：
 | `docs/methodology/statistical-robustness-2026-05-15.md` | 文档 | 本汇总 |
 | `scripts/F1_full_rerun_overnight.sh` | 脚本 | 全量 13 系统 10k 重跑队列 |
 
-***REMOVED******REMOVED*** reviewer 通过率估计
+## reviewer 通过率估计
 
 W7-D 修复前，W5-A 学者评审把手稿评为 **"扎实 B+ / A- ... PRE 第二轮约 65% 接受概率"**。上述五项修复直接命中四个 blocking 问题：
 

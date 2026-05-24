@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 3: Fetch Aave V2 LiquidationCall events via Etherscan V2 API.
 
@@ -54,15 +54,15 @@ CHAIN_ID = 1
 AAVE_V2_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
 LIQUIDATION_TOPIC0 = "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286"
 
-***REMOVED*** Aave V2 launch was Dec 1 2020 ~ block 11362579
+# Aave V2 launch was Dec 1 2020 ~ block 11362579
 START_BLOCK = 11362579
-***REMOVED*** End at a reasonable cap: block 19000000 ~ Jan 2024 (comfortable buffer,
-***REMOVED*** enough for ~3 years of data; can extend later)
+# End at a reasonable cap: block 19000000 ~ Jan 2024 (comfortable buffer,
+# enough for ~3 years of data; can extend later)
 END_BLOCK = 19000000
 
-CHUNK_BLOCKS = 50000  ***REMOVED*** initial chunk size
-MIN_CHUNK = 500       ***REMOVED*** stop recursing below this
-SLEEP_SEC = 0.22      ***REMOVED*** ~4.5 req/sec (under Etherscan 5/sec limit)
+CHUNK_BLOCKS = 50000  # initial chunk size
+MIN_CHUNK = 500       # stop recursing below this
+SLEEP_SEC = 0.22      # ~4.5 req/sec (under Etherscan 5/sec limit)
 
 
 def hex_to_int(s: str) -> int:
@@ -72,7 +72,7 @@ def hex_to_int(s: str) -> int:
 
 
 def topic_to_address(t: str) -> str:
-    ***REMOVED*** Addresses in topics are 32-byte left-padded
+    # Addresses in topics are 32-byte left-padded
     return "0x" + t[-40:].lower()
 
 
@@ -81,11 +81,11 @@ def parse_event(rec: dict) -> dict:
     data = rec.get("data", "0x")
     if data.startswith("0x"):
         data = data[2:]
-    ***REMOVED*** data slots (each 64 hex chars = 32 bytes):
-    ***REMOVED***   [0] debtToCover (uint256)
-    ***REMOVED***   [1] liquidatedCollateralAmount (uint256)
-    ***REMOVED***   [2] liquidator (address)
-    ***REMOVED***   [3] receiveAToken (bool)
+    # data slots (each 64 hex chars = 32 bytes):
+    #   [0] debtToCover (uint256)
+    #   [1] liquidatedCollateralAmount (uint256)
+    #   [2] liquidator (address)
+    #   [3] receiveAToken (bool)
     debt_to_cover = hex_to_int("0x" + data[0:64]) if len(data) >= 64 else 0
     collateral_amount = hex_to_int("0x" + data[64:128]) if len(data) >= 128 else 0
 
@@ -138,7 +138,7 @@ def fetch_chunk(from_block: int, to_block: int, depth: int = 0) -> list:
         if status == "0" and "rate limit" in str(message).lower():
             time.sleep(1.0)
             continue
-        ***REMOVED*** Other non-OK — just return empty
+        # Other non-OK — just return empty
         print(f"    non-OK status={status} message={message!r}", file=sys.stderr)
         return []
     return []
@@ -147,15 +147,15 @@ def fetch_chunk(from_block: int, to_block: int, depth: int = 0) -> list:
 def scan_range(from_block: int, to_block: int, depth: int = 0) -> list:
     """Recursive chunker to cope with 1000-cap ceiling."""
     out = []
-    ***REMOVED*** Recursion base: small chunk
+    # Recursion base: small chunk
     results = fetch_chunk(from_block, to_block)
     time.sleep(SLEEP_SEC)
     if len(results) < 1000:
         out.extend(results)
         return out
-    ***REMOVED*** Hit the cap — split into 2 halves
+    # Hit the cap — split into 2 halves
     if to_block - from_block < MIN_CHUNK:
-        ***REMOVED*** Edge case: more than 1000 events in a tiny window; accept what we have
+        # Edge case: more than 1000 events in a tiny window; accept what we have
         out.extend(results)
         return out
     mid = (from_block + to_block) // 2

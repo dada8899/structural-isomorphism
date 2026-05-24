@@ -1,17 +1,17 @@
-***REMOVED*** Getting started
+# Getting started
 
 **English** | [简体中文](i18n/zh/getting-started-zh.md)
 
 This page walks through installing **Structural Isomorphism** and running a
 first pre-registered validation locally.
 
-***REMOVED******REMOVED*** Prerequisites
+## Prerequisites
 
 - Python 3.12 or newer (3.14 is the development target).
 - macOS or Linux. Windows is untested.
 - About 5 GB of free disk for cached datasets.
 
-***REMOVED******REMOVED*** Install
+## Install
 
 === "From source (recommended)"
 
@@ -29,7 +29,7 @@ first pre-registered validation locally.
     Until then, install editable from the cloned repo as shown on the left.
 
     ```bash
-    ***REMOVED*** placeholder — coming soon
+    # placeholder — coming soon
     pip install soc-pipeline
     ```
 
@@ -38,10 +38,10 @@ non-PyPI dependencies. The web backend (under `web/backend/`) additionally
 requires FastAPI and a small set of asynchronous client libraries; see
 `web/backend/requirements.txt`.
 
-***REMOVED******REMOVED*** Quickstart — earthquakes
+## Quickstart — earthquakes
 
 ```bash
-v4 status              ***REMOVED*** show pass/fail across 13 systems + 4 nulls
+v4 status              # show pass/fail across 13 systems + 4 nulls
 ```
 
 Programmatic example:
@@ -59,7 +59,7 @@ print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
 
 See [Pipeline](pipeline.md) for the full API surface.
 
-***REMOVED******REMOVED*** Run an existing validation
+## Run an existing validation
 
 Each system has a folder under `v4/validation/`. To replay a fit:
 
@@ -80,7 +80,7 @@ Verdicts are PASS, INCONCLUSIVE, or FAIL according to the rules in the
 YAML. The pipeline does no per-system tuning: the same code path produces
 all verdicts.
 
-***REMOVED******REMOVED*** Tests
+## Tests
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q
@@ -90,7 +90,7 @@ At the time of writing the web backend test suite has 30+ passing tests
 covering the SSE orchestrator, rate-limited API endpoints, and the pipeline
 result serializer.
 
-***REMOVED******REMOVED*** Where to go next
+## Where to go next
 
 - Read the [Pipeline](pipeline.md) overview to understand the seven
   analytical operations exposed by the shared library.

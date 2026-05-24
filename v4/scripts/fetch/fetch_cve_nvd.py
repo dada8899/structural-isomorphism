@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Minimal NVD CVE fetcher for pre-registered validation.
 
 Pulls CVEs from NIST NVD REST API v2.0 for a configurable date range and
@@ -66,7 +66,7 @@ def fetch_window(start: datetime, end: datetime, results_per_page: int = 2000) -
             url,
             headers={"User-Agent": "structural-isomorphism-v4-research/0.1"},
         )
-        ***REMOVED*** Retry once on transient errors
+        # Retry once on transient errors
         last_err: Exception | None = None
         for attempt in range(3):
             try:
@@ -76,7 +76,7 @@ def fetch_window(start: datetime, end: datetime, results_per_page: int = 2000) -
                 break
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
                 last_err = e
-                ***REMOVED*** NVD 503 = rate limit; back off harder
+                # NVD 503 = rate limit; back off harder
                 wait = 8 * (attempt + 1)
                 print(f"  [fetch] retry {attempt+1} after {wait}s: {e}", file=sys.stderr)
                 time.sleep(wait)
@@ -94,7 +94,7 @@ def fetch_window(start: datetime, end: datetime, results_per_page: int = 2000) -
         pages += 1
         if not vulns or start_index >= total:
             break
-        ***REMOVED*** public rate limit ~ 5 req / 30s; sleep 7s between pages
+        # public rate limit ~ 5 req / 30s; sleep 7s between pages
         time.sleep(7)
     return out
 
@@ -108,7 +108,7 @@ def extract_disclosures(vulns: list[dict]) -> list[dict]:
         if not published:
             continue
         metrics = cve.get("metrics", {}) or {}
-        ***REMOVED*** prefer cvssMetricV31; fallback v30
+        # prefer cvssMetricV31; fallback v30
         score = None
         for key in ("cvssMetricV31", "cvssMetricV30"):
             arr = metrics.get(key) or []
@@ -148,7 +148,7 @@ def aggregate_monthly_counts(records: list[dict]) -> dict[str, int]:
     buckets: Counter[str] = Counter()
     for r in records:
         pub = r["published"]
-        ***REMOVED*** NVD ISO 8601 like '2023-01-15T14:30:00.000'
+        # NVD ISO 8601 like '2023-01-15T14:30:00.000'
         month = pub[:7]
         buckets[month] += 1
     return dict(sorted(buckets.items()))
@@ -171,7 +171,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     all_vulns: list[dict] = []
-    ***REMOVED*** NVD allows window <= 120 days; chunk by 90 days.
+    # NVD allows window <= 120 days; chunk by 90 days.
     year = args.year_start
     cur = datetime(year, 1, 1, tzinfo=timezone.utc)
     end_cap = datetime(args.year_end, 12, 31, 23, 59, 59, tzinfo=timezone.utc)

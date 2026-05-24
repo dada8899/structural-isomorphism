@@ -1,12 +1,12 @@
 name: Weekly Newsletter
 
-***REMOVED*** W9-C: every Sunday 23:00 UTC, generate the current ISO week's digest and
-***REMOVED*** open a PR for human review. Real send is gated on PR merge — this workflow
-***REMOVED*** never sends to actual subscribers.
+# W9-C: every Sunday 23:00 UTC, generate the current ISO week's digest and
+# open a PR for human review. Real send is gated on PR merge — this workflow
+# never sends to actual subscribers.
 
 on:
   schedule:
-    ***REMOVED*** Sunday 23:00 UTC = Monday 07:00 China = Sunday 16:00 PT
+    # Sunday 23:00 UTC = Monday 07:00 China = Sunday 16:00 PT
     - cron: "0 23 * * 0"
   workflow_dispatch:
     inputs:
@@ -36,8 +36,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install minimal dependencies
-        ***REMOVED*** generate-newsletter.py uses stdlib only; no pip install needed.
-        ***REMOVED*** Confirm version + a few stdlib modules are accessible.
+        # generate-newsletter.py uses stdlib only; no pip install needed.
+        # Confirm version + a few stdlib modules are accessible.
         run: |
           python --version
           python -c "import urllib.request, xml.etree.ElementTree, json"
@@ -48,21 +48,21 @@ jobs:
           if [ -n "${{ inputs.week }}" ]; then
             WEEK="${{ inputs.week }}"
           else
-            ***REMOVED*** ISO week in Bash via `date -u +%G-W%V`
+            # ISO week in Bash via `date -u +%G-W%V`
             WEEK="$(date -u +%G-W%V)"
           fi
           echo "Computed week: $WEEK"
-          ***REMOVED*** Extract numeric week for the filename
+          # Extract numeric week for the filename
           WEEKNUM="$(echo "$WEEK" | sed 's/^[0-9]*-W//')"
           echo "week=$WEEK" >> "$GITHUB_OUTPUT"
           echo "weeknum=$WEEKNUM" >> "$GITHUB_OUTPUT"
 
       - name: Generate newsletter
         env:
-          ***REMOVED*** CI uses --skip-network so the generator doesn't hit arXiv / GitHub
-          ***REMOVED*** API during workflow run (avoids rate-limits + flakiness). Real
-          ***REMOVED*** data sources are wired but disabled until W10 when we add a
-          ***REMOVED*** secrets-injected real run.
+          # CI uses --skip-network so the generator doesn't hit arXiv / GitHub
+          # API during workflow run (avoids rate-limits + flakiness). Real
+          # data sources are wired but disabled until W10 when we add a
+          # secrets-injected real run.
           PYTHONUNBUFFERED: "1"
         run: |
           mkdir -p docs/community/newsletters
@@ -81,7 +81,7 @@ jobs:
             --verbose
           echo "out=$OUT" >> "$GITHUB_OUTPUT"
 
-          ***REMOVED*** Sanity: file is non-empty
+          # Sanity: file is non-empty
           test -s "$OUT" || (echo "ERROR: generator produced empty file" && exit 1)
           wc -l "$OUT"
 
@@ -102,8 +102,8 @@ jobs:
           git checkout -b "$BRANCH"
           git add "$OUT"
 
-          ***REMOVED*** If nothing changed (re-run on same week without spotlight override),
-          ***REMOVED*** exit gracefully instead of failing.
+          # If nothing changed (re-run on same week without spotlight override),
+          # exit gracefully instead of failing.
           if git diff --cached --quiet; then
             echo "No changes — skipping PR creation."
             exit 0

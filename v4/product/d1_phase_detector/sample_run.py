@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """D1 — Sample run: extract StructTuples for 5 diverse companies.
 
 Picks 5 companies covering different expected dynamics families:
@@ -24,7 +24,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from extract_structtuple import extract_one, DEFAULT_MODEL  ***REMOVED*** noqa: E402
+from extract_structtuple import extract_one, DEFAULT_MODEL  # noqa: E402
 
 
 SAMPLE_TICKERS = ["AAPL", "BBY", "JPM", "AIG", "KO"]
@@ -134,7 +134,7 @@ def main() -> int:
 
     stats["wall_time_s"] = round(time.time() - t_start, 2)
 
-    ***REMOVED*** Print expected-vs-actual matrix
+    # Print expected-vs-actual matrix
     print("\n[D1-sample] === expected-vs-actual summary ===", file=sys.stderr)
     print(f"{'ticker':6s} {'expected':30s} {'actual':30s} {'match':10s} {'conf':5s}", file=sys.stderr)
     for r in results:
@@ -150,7 +150,7 @@ def main() -> int:
             conf = "-"
         print(f"{r['ticker']:6s} {exp:30s} {actual:30s} {match:10s} {conf:5s}", file=sys.stderr)
 
-    ***REMOVED*** Aggregate stats
+    # Aggregate stats
     if stats["n_ok"] > 0:
         stats["avg_prompt_tokens"] = stats["total_prompt_tokens"] / stats["n_ok"]
         stats["avg_completion_tokens"] = stats["total_completion_tokens"] / stats["n_ok"]

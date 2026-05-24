@@ -166,7 +166,7 @@ def main():
             try:
                 raw = call_openrouter(DEFAULT_MODEL, prompt)
                 parsed = parse_json(raw)
-                ***REMOVED*** Ensure ticker is set correctly
+                # Ensure ticker is set correctly
                 parsed["ticker"] = t["ticker"]
                 parsed["_source"] = DEFAULT_MODEL
                 f.write(json.dumps(parsed, ensure_ascii=False) + "\n")

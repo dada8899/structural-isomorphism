@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Pre-reg P1 — fetch Bitcoin Cash daily price series + compute log returns.
 
 Per the pre-registration in `paper/v0-unified-pipeline-2026-05-13.md` §8.2:
@@ -51,7 +51,7 @@ def main():
         print(f"[skip] {RAW} exists; remove to refetch.")
         rows = []
         with open(RAW) as f:
-            next(f)  ***REMOVED*** header
+            next(f)  # header
             for line in f:
                 t, c = line.strip().split(",")
                 rows.append((int(t), float(c)))
@@ -68,7 +68,7 @@ def main():
                 f.write(f"{t},{c}\n")
         print(f"[ok] wrote {len(rows)} daily candles -> {RAW}")
 
-    ***REMOVED*** Compute log returns
+    # Compute log returns
     returns = []
     for i in range(1, len(rows)):
         t0, c0 = rows[i - 1]
@@ -92,8 +92,8 @@ def main():
         "date_start_utc": datetime.fromtimestamp(t_min, tz=timezone.utc).isoformat(),
         "date_end_utc": datetime.fromtimestamp(t_max, tz=timezone.utc).isoformat(),
         "construction": "r_t = log(close_t / close_{t-1}); |r_t| as power-law observable",
-        ***REMOVED*** Field name kept as 'intervals_seconds' for compatibility with analyze script;
-        ***REMOVED*** in this P1 file it stores |log returns|, not seconds. Field unit recorded above.
+        # Field name kept as 'intervals_seconds' for compatibility with analyze script;
+        # in this P1 file it stores |log returns|, not seconds. Field unit recorded above.
         "observable": "abs_daily_log_return",
         "intervals_seconds": abs_returns,
     }

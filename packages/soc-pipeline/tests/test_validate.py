@@ -31,7 +31,7 @@ def _pareto(alpha: float, n: int, scale: float = 10.0, seed: int = 0) -> np.ndar
     return (rng.pareto(alpha - 1, size=n) + 1) * scale
 
 
-***REMOVED*** ---------- 1. PASS case (Pareto α≈2.5, band [2.3, 2.7]) ---------------------
+# ---------- 1. PASS case (Pareto α≈2.5, band [2.3, 2.7]) ---------------------
 
 
 def test_validate_pass_pareto_alpha_2p5_in_band() -> None:
@@ -41,7 +41,7 @@ def test_validate_pass_pareto_alpha_2p5_in_band() -> None:
     assert v.verdict == "PASS", f"expected PASS got {v.verdict}: {v.reason}"
     assert v.in_band is True
     assert 2.3 <= v.alpha <= 2.7, f"alpha={v.alpha} drifted outside band"
-    ***REMOVED*** CI numbers should be finite
+    # CI numbers should be finite
     assert math.isfinite(v.alpha_ci_lo)
     assert math.isfinite(v.alpha_ci_hi)
     assert v.alpha_ci_lo <= v.alpha <= v.alpha_ci_hi
@@ -49,21 +49,21 @@ def test_validate_pass_pareto_alpha_2p5_in_band() -> None:
     assert v.pre_registered_band == (2.3, 2.7)
 
 
-***REMOVED*** ---------- 2. FAIL — alpha outside pre-registered band ----------------------
+# ---------- 2. FAIL — alpha outside pre-registered band ----------------------
 
 
 def test_validate_fail_pareto_alpha_4_outside_band() -> None:
-    ***REMOVED*** n_boot=0 → skip bootstrap (Pareto α=4 is slow because powerlaw.Fit's
-    ***REMOVED*** KS xmin search is O(n²) and most samples cluster near the threshold).
+    # n_boot=0 → skip bootstrap (Pareto α=4 is slow because powerlaw.Fit's
+    # KS xmin search is O(n²) and most samples cluster near the threshold).
     data = _pareto(4.0, n=2000, seed=123)
     v = validate(data, label="pareto_4p0", expected_band=(2.4, 2.6), n_boot=0)
     assert v.verdict == "FAIL", f"expected FAIL got {v.verdict}: {v.reason}"
     assert v.in_band is False
-    ***REMOVED*** alpha should be far above the band ceiling
+    # alpha should be far above the band ceiling
     assert v.alpha > 2.6
 
 
-***REMOVED*** ---------- 3. INCONCLUSIVE — sample size too small --------------------------
+# ---------- 3. INCONCLUSIVE — sample size too small --------------------------
 
 
 def test_validate_inconclusive_small_sample() -> None:
@@ -72,34 +72,34 @@ def test_validate_inconclusive_small_sample() -> None:
     assert v.verdict == "INCONCLUSIVE"
     assert v.in_band is None
     assert "too few values" in v.reason
-    ***REMOVED*** numeric fields should be safe NaN, not raise
+    # numeric fields should be safe NaN, not raise
     assert math.isnan(v.alpha)
     assert math.isnan(v.alpha_ci_lo)
     assert math.isnan(v.alpha_ci_hi)
 
 
-***REMOVED*** ---------- 4. lognormal alternative preferred -------------------------------
+# ---------- 4. lognormal alternative preferred -------------------------------
 
 
 def test_validate_lognormal_alternative_preferred() -> None:
     rng = np.random.default_rng(2026)
-    ***REMOVED*** A strongly lognormal sample is unlikely to look power-law in the tail.
+    # A strongly lognormal sample is unlikely to look power-law in the tail.
     data = rng.lognormal(mean=0.0, sigma=1.0, size=2000)
-    ***REMOVED*** No band -> verdict only depends on alternative-model preference.
+    # No band -> verdict only depends on alternative-model preference.
     v = validate(data, label="lognormal_sample", n_boot=0)
-    ***REMOVED*** We do not assert the specific R sign here (some seeds yield inconclusive
-    ***REMOVED*** alternative tests); but if lognormal IS preferred with low p, we expect
-    ***REMOVED*** the validator to flag FAIL.
+    # We do not assert the specific R sign here (some seeds yield inconclusive
+    # alternative tests); but if lognormal IS preferred with low p, we expect
+    # the validator to flag FAIL.
     if math.isfinite(v.vs_lognormal_R) and v.vs_lognormal_R < 0 and v.vs_lognormal_p < 0.1:
         assert v.verdict == "FAIL"
         assert "lognormal preferred" in v.reason
     else:
-        ***REMOVED*** Worst case: at least confirm the function returns a valid Verdict
-        ***REMOVED*** and does not crash on a non-power-law sample.
+        # Worst case: at least confirm the function returns a valid Verdict
+        # and does not crash on a non-power-law sample.
         assert v.verdict in {"PASS", "FAIL", "INCONCLUSIVE"}
 
 
-***REMOVED*** ---------- 5. exponential alternative preferred -----------------------------
+# ---------- 5. exponential alternative preferred -----------------------------
 
 
 def test_validate_exponential_alternative_preferred() -> None:
@@ -117,17 +117,17 @@ def test_validate_exponential_alternative_preferred() -> None:
         assert v.verdict in {"PASS", "FAIL", "INCONCLUSIVE"}
 
 
-***REMOVED*** ---------- 6. Reproducibility — same seed → identical output ----------------
+# ---------- 6. Reproducibility — same seed → identical output ----------------
 
 
 def test_validate_reproducible_with_same_seed() -> None:
     data = _pareto(2.5, n=1500, seed=1234)
-    ***REMOVED*** Bootstrap on, but small n_boot — we are testing seed determinism, not
-    ***REMOVED*** convergence of the CI to a tight band.
+    # Bootstrap on, but small n_boot — we are testing seed determinism, not
+    # convergence of the CI to a tight band.
     v1 = validate(data, label="repeat", expected_band=(2.3, 2.7), seed=42, n_boot=30)
     v2 = validate(data, label="repeat", expected_band=(2.3, 2.7), seed=42, n_boot=30)
-    ***REMOVED*** The fit is deterministic given the data; the CI is deterministic given
-    ***REMOVED*** the seed. So every numeric field should match exactly.
+    # The fit is deterministic given the data; the CI is deterministic given
+    # the seed. So every numeric field should match exactly.
     assert v1.verdict == v2.verdict
     assert v1.alpha == pytest.approx(v2.alpha)
     assert v1.xmin == pytest.approx(v2.xmin)

@@ -25,7 +25,7 @@ def test_lr_on_exponential_against_exponential():
     samples = rng.exponential(scale=1.0, size=5000)
     result = vuong_lr_test(samples, vs="exponential")
     assert result.R is not None
-    ***REMOVED*** Either winner=exponential or inconclusive; not power-law
+    # Either winner=exponential or inconclusive; not power-law
     assert result.winner != "power_law"
 
 

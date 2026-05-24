@@ -1,11 +1,11 @@
-***REMOVED*** Visualization architecture — 2026-05-15 (W11-D)
+# Visualization architecture — 2026-05-15 (W11-D)
 
 > Three new interactive visualizations shipped for `/company/[ticker]`,
 > `/universality/[class_id]`, and the `/companies` screener. This doc
 > captures the choices, the bundle/perf trade-offs, and a recipe for
 > adding a new viz.
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 - **No external chart library** — every viz is hand-written SVG +
   React state. We considered `d3` modules and `@observablehq/plot`;
@@ -21,7 +21,7 @@
 - All three are SSR-safe (deterministic seeded layout), respect
   `prefers-reduced-motion`, and reserve aspect-ratio space so CLS = 0.
 
-***REMOVED******REMOVED*** Why not @observablehq/plot or d3?
+## Why not @observablehq/plot or d3?
 
 `@observablehq/plot` is a great library — declarative, well-tested,
 ~80 kB unminified. But:
@@ -44,7 +44,7 @@
 Net: **0 kB** added to the bundle for charting library; we pay only
 for the components themselves.
 
-***REMOVED******REMOVED*** Bundle sizes (production build, gzipped estimate)
+## Bundle sizes (production build, gzipped estimate)
 
 Measured from `next build` route weights minus the page's pre-W11-D
 baseline:
@@ -60,7 +60,7 @@ After gzip these are roughly 35-40% of the wire size:
 **UniversalityAnalogueMap ≈ 2.5 kB** gzipped. All under the 50 kB
 per-viz budget by 20×.
 
-***REMOVED******REMOVED*** Component composition
+## Component composition
 
 ```
 /company/[ticker]/page.tsx
@@ -81,7 +81,7 @@ the existing convention where every reusable React component is flat
 under one directory. If we add 5+ more visualizations we will pull
 them into `components/viz/`.
 
-***REMOVED******REMOVED*** Performance trade-offs
+## Performance trade-offs
 
 1. **No canvas, no WebGL** — SVG is plenty for ≤ ~200 nodes/points.
    Switching to canvas would add 5-10 kB of canvas-rendering code
@@ -104,7 +104,7 @@ them into `components/viz/`.
    uses `viewBox` so it scales without changing the parent's
    reserved space.
 
-***REMOVED******REMOVED*** Recipe: adding a new viz
+## Recipe: adding a new viz
 
 1. **Pick the data**. If it's < 1 kB JSON and SVG-shaped (line, dots,
    small graph), keep going. For real-time streams, scientific
@@ -133,7 +133,7 @@ them into `components/viz/`.
    any new viz that surfaces structural-distance. The vocabulary
    of "稳态 / 接近临界 / 临界点上" should always read the same.
 
-***REMOVED******REMOVED*** Files
+## Files
 
 - `web/phase-detector/components/PhaseTrajectoryChart.tsx`
 - `web/phase-detector/components/UniversalityAnalogueMap.tsx`
@@ -143,7 +143,7 @@ them into `components/viz/`.
 - `web/phase-detector/components/CompanyCard.tsx` (integration)
 - `web/tests/e2e/test_viz_interactions.py` (e2e)
 
-***REMOVED******REMOVED*** Deferred for a follow-up
+## Deferred for a follow-up
 
 - Real time-series from BE — needs `/api/company/<t>/trajectory`
   endpoint shipping numeric points. Once present, drop the

@@ -1,4 +1,4 @@
-***REMOVED*** Structural Isomorphism
+# Structural Isomorphism
 
 **English** | [简体中文](README-zh.md)
 
@@ -8,7 +8,7 @@
 [![Preprint](https://img.shields.io/badge/Preprint-arXiv_pending-orange.svg)](paper/v0-unified-pipeline-2026-05-13.md)
 [![Cite](https://img.shields.io/badge/Cite-CITATION.cff-blue.svg)](CITATION.cff)
 [![Methodology](https://img.shields.io/badge/Methodology-Anti--p--hacking-blueviolet.svg)](paper/anti-phacking-unified-2026-05-15.md)
-[![Tests](https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg)](***REMOVED***tests)
+[![Tests](https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg)](#tests)
 [![Coverage](https://img.shields.io/badge/coverage-85.6%25-brightgreen.svg)](.github/workflows/coverage.yml)
 [![A11y](https://img.shields.io/badge/a11y-WCAG_2.1_AA-brightgreen.svg)](docs/accessibility/a11y-report-2026-05-15.md)
 [![Performance](https://img.shields.io/badge/Performance-CWV_Good_(all_pages)-brightgreen.svg)](docs/performance/perf-fixes-2026-05-15.md)
@@ -21,13 +21,13 @@ Universality classes are one of the most consequential ideas in modern statistic
 
 The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance.
 
-***REMOVED******REMOVED*** What's in this repo
+## What's in this repo
 
 <table>
 <tr>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 1. SOC pipeline
+### 1. SOC pipeline
 A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unchanged across 13 empirical systems and 4 null controls. Reports power-law vs lognormal vs exponential, with pre-registered exponent bands.
 
 [**→ Pipeline docs**](docs/pipeline.md)
@@ -35,7 +35,7 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 </td>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 2. SIBD-63 dataset
+### 2. SIBD-63 dataset
 63 A-level cross-domain candidate pairs, each with shared equations, variable mappings, and provenance. Curated by a multi-model LLM critic ensemble (Claude · DeepSeek · Kimi · GLM-5).
 
 [**→ Zenodo DOI**](https://doi.org/10.5281/zenodo.19615170)
@@ -43,7 +43,7 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 </td>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 3. Phase Detector
+### 3. Phase Detector
 A research-preview consumer product. Tags 100 public companies with their current dynamical phase (stable / accumulating / near-critical / reversed / recovering) against nine universality patterns.
 
 **Backtest v0.1 (1000-ticker walk-forward, 2020-2025)**: Sharpe lift of `near_critical` cohort vs equal-weight benchmark = **−0.07** (p = 0.57, NOT significant). Published openly per W7-D Track A → positioning pivot to structured-research-narrative. See [`/backtest`](https://phase.bytedance.city/backtest) for the full transparency report.
@@ -54,14 +54,14 @@ A research-preview consumer product. Tags 100 public companies with their curren
 </tr>
 </table>
 
-***REMOVED******REMOVED*** Quickstart
+## Quickstart
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-v4 status                           ***REMOVED*** show pass/fail across 13 systems + 4 nulls
+v4 status                           # show pass/fail across 13 systems + 4 nulls
 ```
 
 Or run the pipeline programmatically:
@@ -74,29 +74,29 @@ print(f"alpha = {result.alpha:.3f}, xmin = {result.xmin}")
 print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 ```
 
-***REMOVED******REMOVED*** Live demos
+## Live demos
 
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
 | Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.1 (null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
 
-***REMOVED******REMOVED*** API reference
+## API reference
 
 - **HTTP API** (Phase Detector / Structural Search): [`/api/docs`](https://structural.bytedance.city/api/docs) (Swagger UI) — see also [`docs/api/index.md`](docs/api/index.md).
 - **Python packages** (`soc-pipeline`, `cross-judge`, `guarded-llm`): auto-generated from docstrings at [docs/api/packages/](docs/api/packages/index.md). Hosted: <https://dada8899.github.io/structural-isomorphism/api/packages/>.
 
-***REMOVED******REMOVED*** Tests
+## Tests
 
 ```bash
-pytest v4/tests/sanity -m sanity -q     ***REMOVED*** 38 sanity tests, ~3.6s
-pytest -m "not e2e"                     ***REMOVED*** full backend, no live network
-pytest -m e2e                           ***REMOVED*** live deployments (slow, may flake)
+pytest v4/tests/sanity -m sanity -q     # 38 sanity tests, ~3.6s
+pytest -m "not e2e"                     # full backend, no live network
+pytest -m e2e                           # live deployments (slow, may flake)
 ```
 
 CI runs the sanity + integration suites on every PR. The e2e suite runs nightly against prod.
 
-***REMOVED******REMOVED*** Methodology
+## Methodology
 
 The pipeline is the *same* function applied across every system — no per-domain hyperparameters. Three commitments make the framework falsifiable rather than confirmatory:
 
@@ -106,7 +106,7 @@ The pipeline is the *same* function applied across every system — no per-domai
 
 Reference: A. Clauset, C. R. Shalizi, and M. E. J. Newman, "Power-law distributions in empirical data," *SIAM Review* 51(4), 661–703 (2009). See also [`paper/anti-phacking-unified-2026-05-15.md`](paper/anti-phacking-unified-2026-05-15.md) for the anti-p-hacking discipline applied to LLM-in-the-loop science.
 
-***REMOVED******REMOVED*** Datasets
+## Datasets
 
 | Name | Records | Location | License |
 |---|---|---|---|
@@ -116,7 +116,7 @@ Reference: A. Clauset, C. R. Shalizi, and M. E. J. Newman, "Power-law distributi
 
 Full dataset card: [`dataset_card.md`](dataset_card.md). Model card: [`model_card.md`](model_card.md).
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 ```bibtex
 @dataset{sibd63-2026,
@@ -143,7 +143,7 @@ Full dataset card: [`dataset_card.md`](dataset_card.md). Model card: [`model_car
 
 A machine-readable [`CITATION.cff`](CITATION.cff) is provided at the repo root and is honored by GitHub's "Cite this repository" button.
 
-***REMOVED******REMOVED*** Repository layout
+## Repository layout
 
 ```
 structural-isomorphism/
@@ -166,7 +166,7 @@ structural-isomorphism/
 
 For contributor details — build conventions, deployment SOP, session retrospectives — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/sessions/HANDOFF.md`](docs/sessions/HANDOFF.md). The original dev-focused README is preserved at [`docs/legacy-readme.md`](docs/legacy-readme.md).
 
-***REMOVED******REMOVED*** Status
+## Status
 
 | Component | Status |
 |---|---|
@@ -177,7 +177,7 @@ For contributor details — build conventions, deployment SOP, session retrospec
 | Unified preprint (C1) | v0.3.1 ready; arXiv submission pending. |
 | Solo arXiv drafts | 4 complete (earthquakes, S&P 500, DeFi, neural). |
 
-***REMOVED******REMOVED*** Contributing
+## Contributing
 
 We welcome:
 
@@ -188,12 +188,12 @@ We welcome:
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, code style, and the PR review process. By contributing you agree to the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
-***REMOVED******REMOVED*** License
+## License
 
 Code: MIT — see [`LICENSE`](LICENSE).
 Datasets: CC-BY-4.0 — see individual dataset cards.
 
-***REMOVED******REMOVED*** Acknowledgments
+## Acknowledgments
 
 - Statistical methodology: A. Clauset, C. R. Shalizi, and M. E. J. Newman (2009).
 - Universality class concepts: M. Scheffer (fold bifurcations), Motter & Lai (network cascades), Gardner & Collins (toggle switches), Diamond & Dybvig (self-fulfilling bank runs).

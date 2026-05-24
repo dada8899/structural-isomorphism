@@ -1,4 +1,4 @@
-"""Feature F — 结构诊断 /diagnose page e2e (Session ***REMOVED***18).
+"""Feature F — 结构诊断 /diagnose page e2e (Session #18).
 
 Asserts the diagnose page renders its contractual blocks and the
 input → loading → report / error flow works in a real browser.
@@ -36,7 +36,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -50,9 +50,9 @@ def test_diagnose_page_renders_input(page: Page):
     """The page loads with the input form and quick-example chips."""
     page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     expect(page.locator(".diagnose-intro__title")).to_be_visible()
-    expect(page.locator("***REMOVED***diagnose-textarea")).to_be_visible()
-    expect(page.locator("***REMOVED***diagnose-submit")).to_be_visible()
-    ***REMOVED*** At least the 3 quick examples.
+    expect(page.locator("#diagnose-textarea")).to_be_visible()
+    expect(page.locator("#diagnose-submit")).to_be_visible()
+    # At least the 3 quick examples.
     assert page.locator(".diagnose-example").count() >= 3
 
 
@@ -60,18 +60,18 @@ def test_diagnose_example_fills_textarea(page: Page):
     """Clicking a quick-example chip populates the textarea."""
     page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
     page.locator(".diagnose-example").first.click()
-    value = page.locator("***REMOVED***diagnose-textarea").input_value()
+    value = page.locator("#diagnose-textarea").input_value()
     assert len(value) > 12
 
 
 def test_diagnose_short_input_rejected_inline(page: Page):
     """Submitting too-short text keeps the user on the input view."""
     page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
-    page.locator("***REMOVED***diagnose-textarea").fill("太短")
-    page.locator("***REMOVED***diagnose-submit").click()
-    ***REMOVED*** Still on the input section — no loading / report shown.
-    expect(page.locator("***REMOVED***diagnose-input-section")).to_be_visible()
-    expect(page.locator("***REMOVED***diagnose-textarea")).to_have_class(
+    page.locator("#diagnose-textarea").fill("太短")
+    page.locator("#diagnose-submit").click()
+    # Still on the input section — no loading / report shown.
+    expect(page.locator("#diagnose-input-section")).to_be_visible()
+    expect(page.locator("#diagnose-textarea")).to_have_class(
         __import__("re").compile(r"is-invalid")
     )
 
@@ -85,20 +85,20 @@ def test_diagnose_submit_reaches_loading_or_result(page: Page):
     is reached (no infinite loading).
     """
     page.goto(f"{BASE}/diagnose", wait_until="domcontentloaded")
-    page.locator("***REMOVED***diagnose-textarea").fill(
+    page.locator("#diagnose-textarea").fill(
         "我们是一家 30 人的公司，扩张很快。最近每加一个人效率反而更慢，"
         "开会变多、决策变慢、老员工抱怨。流程改过两次，情况没变化。"
     )
-    page.locator("***REMOVED***diagnose-submit").click()
-    ***REMOVED*** Wait for a terminal view — report or error — within 60s.
+    page.locator("#diagnose-submit").click()
+    # Wait for a terminal view — report or error — within 60s.
     page.wait_for_selector(
-        "***REMOVED***diagnose-report:not([hidden]), ***REMOVED***diagnose-error:not([hidden])",
+        "#diagnose-report:not([hidden]), #diagnose-error:not([hidden])",
         timeout=60_000,
     )
-    report_visible = page.locator("***REMOVED***diagnose-report").is_visible()
-    error_visible = page.locator("***REMOVED***diagnose-error").is_visible()
+    report_visible = page.locator("#diagnose-report").is_visible()
+    error_visible = page.locator("#diagnose-error").is_visible()
     assert report_visible or error_visible
     if report_visible:
-        ***REMOVED*** Primary structural-state card must carry a non-empty name.
-        name = page.locator("***REMOVED***diagnose-state-name").inner_text()
+        # Primary structural-state card must carry a non-empty name.
+        name = page.locator("#diagnose-state-name").inner_text()
         assert name.strip()

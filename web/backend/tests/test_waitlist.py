@@ -23,18 +23,18 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import waitlist as wl  ***REMOVED*** noqa: E402
+from api import waitlist as wl  # noqa: E402
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    ***REMOVED*** Redirect SQLite file to tmp so tests don't pollute repo data/
+    # Redirect SQLite file to tmp so tests don't pollute repo data/
     tmp_db = tmp_path / "data" / "waitlist.db"
     monkeypatch.setattr(wl, "_data_file", lambda: tmp_db)
-    ***REMOVED*** Reset per-IP rate buckets so tests don't interfere
+    # Reset per-IP rate buckets so tests don't interfere
     wl._reset_rate_limits()
 
     app = FastAPI()
@@ -42,7 +42,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-***REMOVED*** ---------- Happy path ----------
+# ---------- Happy path ----------
 
 def test_happy_path_creates_row(client):
     r = client.post(
@@ -53,7 +53,7 @@ def test_happy_path_creates_row(client):
     data = r.json()
     assert data == {"ok": True, "created": True, "email": "alice@example.com"}
 
-    ***REMOVED*** Row landed in SQLite with correct shape
+    # Row landed in SQLite with correct shape
     with sqlite3.connect(str(wl._data_file())) as conn:
         conn.row_factory = sqlite3.Row
         rows = list(conn.execute("SELECT * FROM waitlist_signups"))
@@ -61,15 +61,15 @@ def test_happy_path_creates_row(client):
         r0 = rows[0]
         assert r0["email"] == "alice@example.com"
         assert r0["source"] == "homepage-hero"
-        assert r0["created_at"]  ***REMOVED*** non-empty ISO timestamp
+        assert r0["created_at"]  # non-empty ISO timestamp
 
-    ***REMOVED*** Count endpoint reflects it
+    # Count endpoint reflects it
     r2 = client.get("/api/waitlist/count")
     assert r2.status_code == 200
     assert r2.json()["count"] == 1
 
 
-***REMOVED*** ---------- Duplicate email ----------
+# ---------- Duplicate email ----------
 
 def test_duplicate_email_returns_created_false(client):
     body = {"email": "dup@example.com", "source": "homepage-hero"}
@@ -82,7 +82,7 @@ def test_duplicate_email_returns_created_false(client):
         "ok": True, "created": False, "email": "dup@example.com"
     }
 
-    ***REMOVED*** Only one row in DB
+    # Only one row in DB
     with sqlite3.connect(str(wl._data_file())) as conn:
         n = conn.execute(
             "SELECT COUNT(*) FROM waitlist_signups"
@@ -90,7 +90,7 @@ def test_duplicate_email_returns_created_false(client):
         assert n == 1
 
 
-***REMOVED*** ---------- Validation failures ----------
+# ---------- Validation failures ----------
 
 def test_invalid_email_rejected(client):
     r = client.post(
@@ -110,7 +110,7 @@ def test_invalid_source_rejected(client):
     assert r.json()["error"] == "invalid source"
 
 
-***REMOVED*** ---------- Rate limit ----------
+# ---------- Rate limit ----------
 
 def test_rate_limit_after_5_signups(client):
     """6th signup from the same IP within the window should be 429."""
@@ -129,7 +129,7 @@ def test_rate_limit_after_5_signups(client):
     assert r6.json()["error"] == "rate_limited"
 
 
-***REMOVED*** ---------- UTM capture ----------
+# ---------- UTM capture ----------
 
 def test_utm_params_persisted(client):
     r = client.post(
@@ -157,4 +157,4 @@ def test_utm_params_persisted(client):
         assert row["utm_medium"] == "tweet"
         assert row["utm_campaign"] == "phase-launch"
         assert row["utm_content"] == "thread-1"
-        assert row["utm_term"] is None  ***REMOVED*** not provided → NULL
+        assert row["utm_term"] is None  # not provided → NULL

@@ -42,7 +42,7 @@
     PHASE_COMPANY_VIEW: "view_company",
     PHASE_SOURCE_CLICK: "click_source",
 
-    // W10-B (session ***REMOVED***10) — Stripe Pro mock funnel. Mirrors phase-detector
+    // W10-B (session #10) — Stripe Pro mock funnel. Mirrors phase-detector
     // app/lib/analytics.ts Events. Keep both in sync when adding events.
     PRICING_VIEW: "pricing_view",
     CHECKOUT_STARTED: "checkout_started",

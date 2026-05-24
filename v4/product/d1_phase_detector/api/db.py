@@ -44,8 +44,8 @@ def get_cursor(db_url: str | None = None) -> Iterator[tuple[Any, str]]:
             conn.close()
     else:
         try:
-            import psycopg2  ***REMOVED*** type: ignore
-            import psycopg2.extras  ***REMOVED*** type: ignore
+            import psycopg2  # type: ignore
+            import psycopg2.extras  # type: ignore
         except ImportError as exc:
             raise RuntimeError(
                 "psycopg2 not installed; set DB_URL=sqlite:///... or pip install psycopg2-binary"
@@ -66,9 +66,9 @@ def row_to_dict(row: Any, driver: str) -> dict[str, Any]:
     """Normalize a row to a plain dict regardless of driver."""
     if driver == "sqlite":
         d = dict(row)
-    else:  ***REMOVED*** postgres RealDictCursor
+    else:  # postgres RealDictCursor
         d = dict(row)
-    ***REMOVED*** decode JSON-encoded text columns when on sqlite
+    # decode JSON-encoded text columns when on sqlite
     for jcol in ("primary_indicators", "raw_response"):
         v = d.get(jcol)
         if isinstance(v, str):

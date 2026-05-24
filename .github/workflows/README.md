@@ -1,17 +1,17 @@
-***REMOVED*** GitHub Actions Workflows
+# GitHub Actions Workflows
 
 This directory contains CI / observability workflows for the structural-isomorphism
 project. All workflows run on `ubuntu-latest`.
 
-***REMOVED******REMOVED*** Workflows
+## Workflows
 
-***REMOVED******REMOVED******REMOVED*** `ci.yml` (pre-existing)
+### `ci.yml` (pre-existing)
 
 Multi-Python-version matrix for full test suite (sanity + integration) and
 package tests. Triggered on push / PR to `main`. Slower (~5-10 min); the
 authoritative correctness gate.
 
-***REMOVED******REMOVED******REMOVED*** `sanity.yml` (this batch)
+### `sanity.yml` (this batch)
 
 Minimal sanity-only workflow on Python 3.11. Runs `pytest v4/tests/sanity -m sanity`
 in quiet mode with short tracebacks. Purpose:
@@ -21,7 +21,7 @@ in quiet mode with short tracebacks. Purpose:
 
 Triggered on push / PR to `main`.
 
-***REMOVED******REMOVED******REMOVED*** `site-smoke.yml` (this batch)
+### `site-smoke.yml` (this batch)
 
 Curls the three public hosts every 6 hours to confirm they return HTTP 200:
 
@@ -33,13 +33,13 @@ Any non-200 fails the job and surfaces in the Actions tab. Purpose: catch
 silent VPS / nginx / DNS regressions without requiring an external uptime
 service.
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** How to trigger manually
+#### How to trigger manually
 
 ```
-***REMOVED*** via gh CLI
+# via gh CLI
 gh workflow run site-smoke.yml
 
-***REMOVED*** via GitHub UI
+# via GitHub UI
 Actions tab -> "site smoke" -> "Run workflow" -> "Run workflow" (main branch)
 ```
 
@@ -47,7 +47,7 @@ Schedule: cron `0 */6 * * *` (every 6h on the hour, UTC). GitHub may delay
 scheduled runs during high load; `workflow_dispatch` is the always-reliable
 manual escape hatch.
 
-***REMOVED******REMOVED*** Adding a new workflow
+## Adding a new workflow
 
 1. Drop the `.yml` file in this directory
 2. Validate locally: `python -c "import yaml; yaml.safe_load(open('.github/workflows/<name>.yml'))"`

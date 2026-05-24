@@ -1,4 +1,4 @@
-***REMOVED*** Recovering Barabási-Albert Preferential-Attachment Exponents on 8,398 GitHub Repositories: A Different Universality Class for Phase 6 of a Cross-Domain Pipeline
+# Recovering Barabási-Albert Preferential-Attachment Exponents on 8,398 GitHub Repositories: A Different Universality Class for Phase 6 of a Cross-Domain Pipeline
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -7,11 +7,11 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 The Structural Isomorphism project's V4 layer-5 pipeline has been exercised on six SOC threshold-cascade systems; this paper is the first test on a second class. We fit the Clauset-Shalizi-Newman power-law to the stargazer counts of 8,398 GitHub repositories from stratified search-API queries (star range 248-500,996; snapshot 2026-05-13). The MLE returns $\alpha = 2.867 \pm 0.050$ with bootstrap 95% CI $[2.781, 3.000]$, $x_\mathrm{min} = 25{,}585$ stars, $n_\mathrm{tail} = 1{,}417$. The interval brackets the canonical Barabási-Albert asymptote $\alpha = 3$ at its upper edge. Power-law crushes exponential ($R = +5.45$, $p \approx 5 \times 10^{-8}$); the test against lognormal is inconclusive ($R = -1.45$, $p = 0.15$) — lognormal cannot be ruled out but is not preferred. Per-language sub-fits ($n \geq 300$) span $\alpha \in [2.61, 3.00]$, all inside the predicted band; JavaScript ($n = 1{,}039$) hits $\alpha = 3.00$ to two decimal places. Three matched-$n$ non-power-law nulls are correctly rejected. The result is independent validation, not discovery, and is the first empirical evidence that V4's class separation between SOC threshold cascade and Yule-Simon-style cumulative advantage is operationally meaningful.
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Heavy-tailed distributions arise from at least two structurally distinct mechanisms in the universality-class taxonomy used by the Structural Isomorphism project. The first is the self-organized-criticality (SOC) threshold-cascade family of Bak, Tang, and Wiesenfeld [1], in which slowly driven systems with local thresholds shed accumulated stress in power-law-distributed avalanches; canonical examples (tectonic seismicity, solar flares, neural avalanches) were addressed in earlier phases. The second is preferential attachment, in which a growing population accumulates "popularity" at a rate proportional to the popularity already held, written down by Yule [2] for species per genus, generalized by Simon [3] to word frequencies, applied to citations by de Solla Price [4] as "cumulative advantage", and rediscovered for network topology by Barabási and Albert [5]. Albert and Barabási [6] and Newman [7] survey the resulting empirical exponents, which cluster in $\alpha \in [1.8, 3.5]$ across systems ranging from city populations to actor collaborations.
 
@@ -19,13 +19,13 @@ The two classes share a power-law functional form but differ on essentially ever
 
 GitHub stars are a near-textbook preferential-attachment system: stars accumulate over time, trending pages weight by recent velocity, users are more likely to star already-popular repositories, and new repositories enter at zero. None of this resembles SOC threshold cascade. Borges and Valente [8] fit a power-law to a smaller GitHub sample and reported an exponent in the BA range; Lima et al. [9] and Cosentino et al. [10] place the platform's social structure in the scale-free-network literature. Our contribution is not to discover that GitHub stars are heavy-tailed but to verify that the unmodified V4 pipeline, calibrated against SOC systems, returns the right exponent in the right band when pointed at a preferential-attachment system. If it returned $\alpha \approx 1.7$, the V4 class separation would be empirically wrong. It does not.
 
-***REMOVED******REMOVED*** 2. Data
+## 2. Data
 
 The catalog was retrieved from the GitHub Search API (`https://api.github.com/search/repositories`) on 2026-05-13. The API caps results at 1,000 per query and orders by stars descending. To span the distribution we used ten stratified `stars:>N` bucket queries with $N \in \{100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000\}$, fetching 100 results per page across up to ten pages per bucket. Duplicates across buckets were collapsed by the API `id` field. The catalog contains 8,398 unique repositories with star counts spanning 248 to 500,996, median 4,734.5 and mean 12,950.6. Per-language counts (where `language` is populated) are Python $= 1{,}506$, JavaScript $= 1{,}039$, TypeScript $= 905$, Go $= 545$, C++ $= 476$, Java $= 471$.
 
 The 1,000-per-query API cap is the dominant sampling artifact: low-star repositories (single-star, fork-noise, abandoned) are systematically absent. Stratification gives effective coverage over four decades in stars (250 to 500k); the Clauset MLE selects $x_\mathrm{min}$ well above the cap-affected regime (Section 4.1), so the fitted tail is not artifact-distorted, but the catalog as a whole is not a uniform random sample from all of GitHub. The snapshot is cross-sectional, so we test only the steady-state signature of preferential attachment, not its dynamics.
 
-***REMOVED******REMOVED*** 3. Methods
+## 3. Methods
 
 The analysis uses the shared `v4/lib/soc_pipeline.py` module unchanged from Phase 1 (earthquakes) through Phase 11 (solar flares).
 
@@ -39,9 +39,9 @@ The analysis uses the shared `v4/lib/soc_pipeline.py` module unchanged from Phas
 
 **Null control.** Three matched-$n$ non-power-law synthetics (lognormal $\sigma = 1.5$, exponential $\lambda^{-1} = 5000$, uniform on $[1, 10^5]$) are passed through the pipeline; passing requires correct rejection on all three.
 
-***REMOVED******REMOVED*** 4. Results
+## 4. Results
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Whole-dataset power-law fit
+### 4.1 Whole-dataset power-law fit
 
 The Clauset MLE selects $x_\mathrm{min} = 25{,}585$ stars, leaves $n_\mathrm{tail} = 1{,}417$ in the fitted tail, and returns
 $$
@@ -51,7 +51,7 @@ with a 100-resample bootstrap 95% CI of $[2.781, 3.000]$. The interval lies enti
 
 The likelihood-ratio test against exponential returns $R = +5.45$, $p = 5 \times 10^{-8}$: power-law decisively crushes exponential. Against lognormal the test is inconclusive, $R = -1.45$, $p = 0.15$: on the 1,417-repository tail neither alternative is significantly preferred. Mitzenmacher [13] and Clauset et al. [11] both note that distinguishing power-law from lognormal below $n \sim 10^4$ in the tail is generically hard. We do not read the inconclusive sign as evidence against the BA mechanism — the fitted exponent matches the BA asymptotic prediction quantitatively, and the inability to reject a smooth alternative at this $n$ is a known discriminator limitation, not a mechanism failure.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Per-language stability
+### 4.2 Per-language stability
 
 The six languages with $n \geq 300$ are summarized in Table 1. All six exponents lie inside the predicted band $[2.0, 3.0]$.
 
@@ -68,15 +68,15 @@ The six languages with $n \geq 300$ are summarized in Table 1. All six exponents
 
 JavaScript — the language with the largest sample and the most mature open-source ecosystem — hits $\alpha = 2.995$, matching the BA asymptote $\alpha = 3$ to two decimal places. C++ sits at $\alpha = 2.98$; the newer or more niche ecosystems (Go, Java) sit at the low end near $\alpha \approx 2.6$. One plausible reading is that ecosystems with longer continuous accumulation history are closer to the BA steady-state limit, while still-growing ecosystems have not yet relaxed to the asymptotic slope; Krapivsky, Redner, and Leyvraz [14] derive the dependence of $\alpha$ on seeding and finite-time corrections, and the qualitative direction is consistent. We do not over-interpret on six points: this is an observation worth a dedicated follow-up, not a settled finding.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 No temporal analysis
+### 4.3 No temporal analysis
 
 Unlike earlier phases, we do not stack post-trigger event rates. Preferential attachment makes no Omori prediction — it is a growth law, not a relaxation law — so running the SOC temporal stacker on stargazer arrival times would be category-confused. Its absence is by design, not by oversight.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Null control
+### 4.4 Null control
 
 All three matched-$n$ non-power-law synthetics are correctly rejected: lognormal-source data returns a strongly negative power-law-vs-lognormal $R$; exponential-source data favors exponential under the matched test; uniform-source data fails to admit a stable $x_\mathrm{min}$. The pipeline does not produce false-positive power-law verdicts at the relevant $n$.
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
 Phase 6 is the seventh layer-5 system tested by the Structural Isomorphism pipeline, joining tectonic seismicity (Phase 1), the S&P 500 (Phase 7), three DeFi protocols (Phase 8), mouse visual cortex (Phase 9), U.S. wildfires (Phase 10), and GOES solar flares (Phase 11). The previous six targeted `soc_threshold_cascade` and used the Omori-Utsu temporal stacker; Phase 6 targets `preferential_attachment` and is the first phase to exercise V4's prediction that the two classes are operationally distinct.
 
@@ -86,7 +86,7 @@ Future Phase 6-style targets: Wikipedia views, arXiv/OpenAlex citations, Stack O
 
 A methodological note: the shared pipeline is named for SOC but is a class-agnostic power-law fitter with optional Omori stacking. The class-specific content lives in the prediction band — `soc_threshold_cascade` predicts $\alpha \in [1.5, 2.0]$ plus positive Omori $p$; `preferential_attachment` predicts $\alpha \in [2.0, 3.0]$ and no Omori prediction. This separation is what lets one code base test two distinct claims without confounding them.
 
-***REMOVED******REMOVED*** 6. Limitations
+## 6. Limitations
 
 1. **GitHub Search API top-1000 cap.** Each `stars:>N` query returns at most 1,000 repositories. Stratification recovers four decades of coverage but cannot reach the zero/one-star tail; the Clauset $x_\mathrm{min}$ at 25,585 sits well above the cap-affected regime, but the catalog is not a uniform random sample.
 2. **Self-selection.** Only repositories with public starring activity enter the catalog. The result characterizes the visible public-stargazer slice, not "all software development".
@@ -97,11 +97,11 @@ A methodological note: the shared pipeline is named for SOC but is a class-agnos
 
 None of these affects the basic Phase 6 finding: the pipeline recovers $\alpha = 2.87$ on a fresh 8,398-repository sample, the bootstrap CI brackets the BA asymptote, and the result lies inside the V4 layer-4 prediction band for the preferential-attachment class.
 
-***REMOVED******REMOVED*** 7. Conclusion
+## 7. Conclusion
 
 The layer-5 pipeline, run unchanged on 8,398 GitHub repositories, returns $\alpha = 2.867$ with bootstrap 95% CI $[2.781, 3.000]$, inside the predicted band $[2.0, 3.0]$ for the Barabási-Albert class. JavaScript hits the canonical BA asymptote $\alpha = 3$ to two decimal places; all six languages with $n \geq 300$ sit inside the band. Power-law beats exponential by $R = +5.45$; the lognormal test is inconclusive, as is generically expected at $n \sim 10^3$. The result is independent validation of a known platform-level preferential-attachment signature, and is the first empirical evidence in this project that V4's class separation is operationally meaningful: the same code base, applied to systems from two classes, returns exponents in two non-overlapping predicted bands.
 
-***REMOVED******REMOVED*** 8. References
+## 8. References
 
 [1] P. Bak, C. Tang, and K. Wiesenfeld, "Self-organized criticality: An explanation of 1/f noise," *Phys. Rev. Lett.* **59**, 381 (1987).
 

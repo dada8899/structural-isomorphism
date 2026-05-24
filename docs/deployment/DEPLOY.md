@@ -1,8 +1,8 @@
-***REMOVED*** Deployment Guide — structural-isomorphism
+# Deployment Guide — structural-isomorphism
 
 > 本文档为 VPS 部署的权威操作手册。事故复盘见末尾。
 
-***REMOVED******REMOVED*** 1. VPS 拓扑
+## 1. VPS 拓扑
 
 VPS 上有两份代码目录，各司其职：
 
@@ -13,7 +13,7 @@ VPS 上有两份代码目录，各司其职：
 
 systemd 服务 `structural-web.service` 的 `WorkingDirectory` 和 `ExecStart` 都指向 deploy target。
 
-***REMOVED******REMOVED*** 2. systemd 服务
+## 2. systemd 服务
 
 主服务：`structural-web.service`
 
@@ -22,7 +22,7 @@ systemd 服务 `structural-web.service` 的 `WorkingDirectory` 和 `ExecStart` �
 - `ExecStart=/root/Projects/structural-isomorphism/venv/bin/python -m uvicorn ...`
 - `EnvironmentFile=/root/Projects/structural-isomorphism/.env.production`
 
-***REMOVED******REMOVED*** 3. Fixture 清单（必须 deploy target 维护，不在 git）
+## 3. Fixture 清单（必须 deploy target 维护，不在 git）
 
 以下路径在 `.gitignore` 中排除，**git source 没有**，但 deploy target 运行时**必须存在**。任何 deploy 流程都不能误删它们。
 
@@ -35,14 +35,14 @@ systemd 服务 `structural-web.service` 的 `WorkingDirectory` 和 `ExecStart` �
 | `venv/` | Python virtualenv | `python -m venv venv && pip install -r requirements.txt` |
 | `node_modules/`、`.next/` | 前端构建产物 | `pnpm install && pnpm build` |
 
-***REMOVED******REMOVED*** 4. 标准 deploy 流程
+## 4. 标准 deploy 流程
 
 ```bash
-***REMOVED*** 1) git source 拉新代码
+# 1) git source 拉新代码
 cd /root/Projects/structural-isomorphism-v4
 git pull origin main
 
-***REMOVED*** 2) 同步到 deploy target（默认 update-only，安全）
+# 2) 同步到 deploy target（默认 update-only，安全）
 bash scripts/deploy-vps.sh
 ```
 
@@ -51,13 +51,13 @@ bash scripts/deploy-vps.sh
 - 跑完自动调用 `restore-models.sh` 确保模型存在
 - 自动重启 `structural-web` 服务并检查健康
 
-***REMOVED******REMOVED******REMOVED*** 4.1 dry-run 预览
+### 4.1 dry-run 预览
 
 ```bash
 bash scripts/deploy-vps.sh --dry-run
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4.2 需要 prune（删除 deploy target 多余文件）
+### 4.2 需要 prune（删除 deploy target 多余文件）
 
 ```bash
 bash scripts/deploy-vps.sh --prune-with-safety-list
@@ -65,7 +65,7 @@ bash scripts/deploy-vps.sh --prune-with-safety-list
 
 会先 dry-run 显示**将被删除的文件列表**，等人工 `y` 确认后才执行。**任何时候都不要用裸 `rsync --delete`**。
 
-***REMOVED******REMOVED*** 5. 模型恢复（独立调用）
+## 5. 模型恢复（独立调用）
 
 如果发现 `models/structural-v2/` 丢失或损坏：
 
@@ -78,15 +78,15 @@ bash scripts/restore-models.sh
 1. `structural-isomorphism/structural-v1`（理想模型，可能不存在）
 2. `shibing624/text2vec-base-chinese`（base 模型，2026-05-14 实战恢复用）
 
-***REMOVED******REMOVED*** 6. 健康检查
+## 6. 健康检查
 
 ```bash
 systemctl is-active structural-web
 journalctl -u structural-web -n 50 --no-pager
-curl -fsS http://localhost:8000/health  ***REMOVED*** 替换实际端口
+curl -fsS http://localhost:8000/health  # 替换实际端口
 ```
 
-***REMOVED******REMOVED*** 7. 2026-05-14 事故复盘
+## 7. 2026-05-14 事故复盘
 
 **事件**：prod 502，持续 ~25 分钟。
 
@@ -110,9 +110,9 @@ SentenceTransformer('shibing624/text2vec-base-chinese').save(
 - `scripts/deploy-vps.sh` — 默认 `-avu` 禁用 delete；prune 前 dry-run 预览 + 人工确认；包含 `--exclude=models/` 等关键 fixture
 - 本文档 fixture 清单显式化
 
-memory 链接：`feedback_rsync_delete_prod_fixture_wipe.md`（session ***REMOVED***9 W2-F 引入）
+memory 链接：`feedback_rsync_delete_prod_fixture_wipe.md`（session #9 W2-F 引入）
 
-***REMOVED******REMOVED*** 8. 旧文档
+## 8. 旧文档
 
 - `nginx-structural-beta.conf` — Nginx 配置参考
 - `phase-bytedance-city.md` — 域名 / 子域配置

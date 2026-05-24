@@ -1,9 +1,9 @@
-***REMOVED*** V3 变形预测器 — 8 种变形基元
-***REMOVED*** machine-readable definitions, 用于训练数据标注和模型输出 schema
-***REMOVED*** 新基元按需扩展，但每次扩展要回归测试现有案例覆盖率
-***REMOVED***
-***REMOVED*** v2 变更：把过于宽泛的 dim_subst 拆成 variable_rename 和 concept_transfer
-***REMOVED*** 原因：第一次覆盖率测试显示 dim_subst 在 9/9 发现里 100% 出现，失去区分度
+# V3 变形预测器 — 8 种变形基元
+# machine-readable definitions, 用于训练数据标注和模型输出 schema
+# 新基元按需扩展，但每次扩展要回归测试现有案例覆盖率
+#
+# v2 变更：把过于宽泛的 dim_subst 拆成 variable_rename 和 concept_transfer
+# 原因：第一次覆盖率测试显示 dim_subst 在 9/9 发现里 100% 出现，失去区分度
 
 version: 2
 total_types: 8
@@ -119,7 +119,7 @@ types:
       - source: "化学反应的速率方程（慢）"
         target: "激发态动力学（快）"
 
-***REMOVED*** coverage validation:
-***REMOVED***   运行 scripts/v4_coverage_check.py 对 24 个 tier-1 发现做回归测试
-***REMOVED***   每个发现的"变形路径"必须能被这 7 种之一（或组合）覆盖
-***REMOVED***   若覆盖率 < 80% → 扩展基元集合（如"拓扑保持变形"、"对偶转换"等）
+# coverage validation:
+#   运行 scripts/v4_coverage_check.py 对 24 个 tier-1 发现做回归测试
+#   每个发现的"变形路径"必须能被这 7 种之一（或组合）覆盖
+#   若覆盖率 < 80% → 扩展基元集合（如"拓扑保持变形"、"对偶转换"等）

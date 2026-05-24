@@ -1,4 +1,4 @@
-"""POST /api/struct-lint — C2 structural-lint endpoint (Session ***REMOVED***18).
+"""POST /api/struct-lint — C2 structural-lint endpoint (Session #18).
 
 Takes a strategy / plan document and returns its structural claims with
 failure modes and risk levels. See services/struct_lint_service.py for
@@ -50,7 +50,7 @@ async def struct_lint(req: StructLintRequest):
     """
     document = req.document or ""
 
-    ***REMOVED*** --- Input validation (cheap, before any LLM call) ---
+    # --- Input validation (cheap, before any LLM call) ---
     err = check_doc_length(document)
     if err == "empty_document":
         return JSONResponse(
@@ -68,7 +68,7 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
-    ***REMOVED*** --- LLM availability gate — fail clean, don't attempt a doomed call ---
+    # --- LLM availability gate — fail clean, don't attempt a doomed call ---
     if not llm_client.llm_available():
         logger.warning("struct_lint: no OPENROUTER_API_KEY configured")
         return JSONResponse(
@@ -79,9 +79,9 @@ async def struct_lint(req: StructLintRequest):
             },
         )
 
-    ***REMOVED*** --- KB search service — the structural-isomorphism engine. Optional:
-    ***REMOVED*** when it isn't ready, lint_document degrades to a basic lint (every
-    ***REMOVED*** claim gets isomorph=None) rather than failing the request. ---
+    # --- KB search service — the structural-isomorphism engine. Optional:
+    # when it isn't ready, lint_document degrades to a basic lint (every
+    # claim gets isomorph=None) rather than failing the request. ---
     search_svc = None
     try:
         from main import app_state
@@ -127,10 +127,10 @@ async def struct_lint_stream(
     async def event_gen():
         doc = document or ""
 
-        ***REMOVED*** meta first — gives the client an instant "stream is alive" signal.
+        # meta first — gives the client an instant "stream is alive" signal.
         yield sse("meta", {"max_doc_chars": MAX_DOC_CHARS})
 
-        ***REMOVED*** --- Input validation (same checks as the POST endpoint) ---
+        # --- Input validation (same checks as the POST endpoint) ---
         err = check_doc_length(doc)
         if err == "empty_document":
             yield sse("error", {
@@ -147,7 +147,7 @@ async def struct_lint_stream(
             })
             return
 
-        ***REMOVED*** --- LLM availability gate ---
+        # --- LLM availability gate ---
         if not llm_client.llm_available():
             logger.warning("struct_lint_stream: no OPENROUTER_API_KEY configured")
             yield sse("error", {
@@ -156,7 +156,7 @@ async def struct_lint_stream(
             })
             return
 
-        ***REMOVED*** --- Optional KB search service (degrades to basic lint) ---
+        # --- Optional KB search service (degrades to basic lint) ---
         search_svc = None
         try:
             from main import app_state
@@ -164,7 +164,7 @@ async def struct_lint_stream(
         except Exception:
             logger.warning("struct_lint_stream: search service unavailable, degrading")
 
-        ***REMOVED*** --- Run the streamed pipeline, forwarding each event ---
+        # --- Run the streamed pipeline, forwarding each event ---
         try:
             async for ev in lint_document_streamed(doc, search_svc=search_svc):
                 etype = ev.get("type")

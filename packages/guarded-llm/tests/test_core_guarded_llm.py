@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 pydantic = pytest.importorskip("pydantic")
-from pydantic import BaseModel, Field  ***REMOVED*** noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
 
 from guarded_llm import (
     GuardedLLM,
@@ -27,7 +27,7 @@ class Verdict(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
 
 
-***REMOVED*** --- Stub provider --------------------------------------------------------
+# --- Stub provider --------------------------------------------------------
 
 
 class _StubProvider(BaseProvider):
@@ -57,7 +57,7 @@ def _reset_stub():
     yield
 
 
-***REMOVED*** --- Tests ----------------------------------------------------------------
+# --- Tests ----------------------------------------------------------------
 
 
 def test_guarded_llm_call_returns_pydantic_instance():
@@ -155,9 +155,9 @@ def test_guarded_llm_budget_consumed_across_calls():
         schema=Verdict,
         budget=budget,
     )
-    llm.call("test1")  ***REMOVED*** OK, spent 0.03
+    llm.call("test1")  # OK, spent 0.03
     with pytest.raises(BudgetExceeded):
-        llm.call("test2")  ***REMOVED*** would push to 0.06 > 0.05
+        llm.call("test2")  # would push to 0.06 > 0.05
 
 
 def test_call_as_result_returns_result_on_failure():
@@ -200,7 +200,7 @@ def test_init_validation():
             provider="stub_core",
             model="m",
             schema=Verdict,
-            budget="cheap",  ***REMOVED*** type: ignore[arg-type]
+            budget="cheap",  # type: ignore[arg-type]
         )
 
 

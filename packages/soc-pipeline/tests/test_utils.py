@@ -15,7 +15,7 @@ def test_empirical_ccdf_shape_and_monotonic():
     assert grid is not None and ccdf is not None
     assert grid.shape == (100,)
     assert ccdf.shape == (100,)
-    ***REMOVED*** CCDF is non-increasing along the grid
+    # CCDF is non-increasing along the grid
     assert np.all(np.diff(ccdf) <= 0)
 
 

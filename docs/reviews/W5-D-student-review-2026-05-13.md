@@ -1,13 +1,13 @@
-***REMOVED*** W5-D Student Review — undergraduate physics/CS perspective
+# W5-D Student Review — undergraduate physics/CS perspective
 
 > Reviewer: 物理/CS 本科高年级学生（接近研一），熟 Python 与 Jupyter，听过 SOC 但只在一门复杂系统选修课里浅尝；对 phase transition / universality 充满好奇但没有自己跑过 power-law MLE。
 > Date: 2026-05-13
-> Session: V4 session ***REMOVED***3 W5-D
+> Session: V4 session #3 W5-D
 > Repo state: commit 8cde1c4 (post W4-E main-site refresh)
 
 ---
 
-***REMOVED******REMOVED*** 1. 第一印象
+## 1. 第一印象
 
 打开 `https://beta.structural.bytedance.city/` 那一瞬间，我的反应分两段：
 
@@ -19,7 +19,7 @@
 
 C1 v0.2 preprint 给出的 abstract 也是同样问题：一句话 850+ 词，密度堪比 PRE 投稿。我作为一个能读 Phys. Rev. E 摘要的学生，读完第一句 ("Universality-class membership claims have empirical content only if a single analysis pipeline, with no per-domain tuning, can recover the predicted signatures across systems...") 大概要 20 秒才转过弯来。
 
-***REMOVED******REMOVED*** 2. Tutorial 实操（实际跑一遍）
+## 2. Tutorial 实操（实际跑一遍）
 
 我按 `tutorials/README.md` 的指示，在 venv (`.venv/bin/python` Python 3.14.3) 里直接跑 `01_phase_1_quick.py`。
 
@@ -60,7 +60,7 @@ real    0m5.234s
 - Cell 17 的 Vuong test 解读 ("正 R 利好 PL，small p 拒绝平局") 写得很清楚，赞。
 - Cell 22 (Discussion) 把"在哪里不 work"列出来（非构造性地震、单断层 aftershock、tail < 200）——非常诚实，学生会信任作者。
 
-***REMOVED******REMOVED******REMOVED*** Tutorial 改进建议（学生视角，最实操）
+### Tutorial 改进建议（学生视角，最实操）
 
 1. **`README` ETA 修正**：写 "~5 min" 实际 5 sec，应改成 "5-60 sec depending on USGS load"。学生第一次会以为 hang 了。
 2. **加一个 `--use-cached` flag**：跑过一次后 cache USGS pull 到 `~/.cache/structural-isomorphism/usgs_2020.parquet`，再跑就秒出。当前每次都重新请求 USGS。
@@ -68,9 +68,9 @@ real    0m5.234s
 4. **notebook 加 "Aki 公式怎么来的" 一段 markdown**：3 行字解释最大似然推导，节省学生去查 paper 的时间。
 5. **`xmin_distance="D"` 加一句话**：解释 "D" 是 Kolmogorov-Smirnov 距离，是 Clauset 2009 默认。
 
-***REMOVED******REMOVED*** 3. 文档 review
+## 3. 文档 review
 
-***REMOVED******REMOVED******REMOVED*** 3.1 README / 主入口
+### 3.1 README / 主入口
 
 打开 repo 根目录我看到的是 `README.md`（13.7 KB）。它写得像 PyPI README——quick start 例子 + key results 表格 + installation。**对一个研究项目来说，这是面向 ML practitioner 的，不是面向学生的**。
 
@@ -80,7 +80,7 @@ real    0m5.234s
 - **README 没说"如果你是学生，先读哪个文件"** —— 没有 audience 分流。一个 "If you are a student trying to reproduce universality results" / "If you are a researcher looking for the pipeline code" / "If you are looking for the search engine API" 的三段分流会救一大批人。
 - **没有 `HANDOFF.md` / `CLAUDE.md` 在 repo 根**——这其实是好事（说明根目录干净），但 `docs/sessions/` 下有 session-{N}-end 文档显然是 internal handoff，audience 不是学生。这部分文档对学生没用，但学生不知道它对自己没用——需要明确标注。
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Paper readability
+### 3.2 Paper readability
 
 **C1 v0.2 unified preprint** (`paper/v0-unified-pipeline-2026-05-13.md`，~10,400 字)——
 
@@ -99,7 +99,7 @@ real    0m5.234s
 
 **单个 arXiv draft** (`01_earthquake_soc.md`)——明显**更易读**。范围窄、abstract 短、公式都解释了、有 contribution list、有 limitation 段。**这才是学生该先读的入口**，不是 unified preprint。**建议**：unified preprint 的 README 链接里第一条应该是 "如果你是新读者，从 01_earthquake_soc.md 开始"。
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Code readability
+### 3.3 Code readability
 
 `v4/lib/soc_pipeline.py` (339 行) ——我打开 `fit_clauset_powerlaw`：
 
@@ -111,7 +111,7 @@ real    0m5.234s
 
 **copy-paste 可用性**：可以，依赖少 (`numpy + powerlaw + scipy`)，函数式 API。我可以把这个文件单独拖到我的作业仓库里跑——这是好事。
 
-***REMOVED******REMOVED*** 4. Phase Detector 站点
+## 4. Phase Detector 站点
 
 `phase.bytedance.city` ——
 
@@ -133,7 +133,7 @@ real    0m5.234s
 
 **我会怎么用 phase 站点做 final project？** ——大概是 "选 20 只大盘股 → 跑 dynamics family 分类 → 和 RV-implied tail risk 对比 → 写一篇 8 页报告"。但这个 workflow 需要 API 支持，目前没有。
 
-***REMOVED******REMOVED*** 5. Repro / setup friction
+## 5. Repro / setup friction
 
 **假设我 fork 这个 repo 在本地（M1 Mac）跑全套**：
 
@@ -157,7 +157,7 @@ real    0m5.234s
 
 但目前 README 没把这条路径写出来。
 
-***REMOVED******REMOVED*** 6. 我可以用这个项目做什么？
+## 6. 我可以用这个项目做什么？
 
 具体场景：
 
@@ -169,7 +169,7 @@ real    0m5.234s
 | **个人学习** | ✅ 推荐 | tutorial + notebook + soc_pipeline.py 是一套很好的 self-study 材料。 |
 | **给老师 pitch 做 RA** | ⚠️ 谨慎 | "我看了一个独立研究者的 preprint 想复现" ——大部分导师听了会说 "你先复现公认的 BTW 1987 / Clauset 2009 再说"。**这个项目作为 RA pitch 主线 不够 ——作为 sub-task OK**。 |
 
-***REMOVED******REMOVED*** 7. 缺什么学习资源
+## 7. 缺什么学习资源
 
 实操层面缺：
 1. **"Math prerequisites" list** ——读懂 paper 需要：MLE / hypothesis testing / Vuong test / power-law fitting / BIC——最好列一个 reading list。
@@ -178,7 +178,7 @@ real    0m5.234s
 4. **Exercise / Q&A** ——给学生 3-5 道 "改 minmag → 看 b 怎么变" 这种小练习。
 5. **推荐书目** ——Sornette 《Critical Phenomena in Natural Sciences》 / Newman 《Networks: An Introduction》 / Christensen-Moloney 《Complexity and Criticality》——这三本是入门必读，README 该列。
 
-***REMOVED******REMOVED*** 8. 我的实际困惑（跑完一遍后真的还困惑的）
+## 8. 我的实际困惑（跑完一遍后真的还困惑的）
 
 1. **为什么 1 yr 的 `n_fit=121` 这么少，但 b-value 还是对的？**——README 说 "5 yr 才匹配 paper headline"，但 1 yr 的 b 也 ≈ 1.086 接近 paper 的 1.084。是不是 b-value 比 Clauset α 更 stable？
 2. **`xmin_distance="D"` 和 KS-test 的关系是什么？**——`powerlaw.Fit` 默认是 D，但 paper 里有时说 "BIC"，有时说 "KS"——这俩在 pipeline 里是不同步骤还是同步骤？
@@ -191,7 +191,7 @@ real    0m5.234s
 9. **`v3` 和 `v4` 是 ML 模型的两个版本，还是 paper 的两个版本？**——README key results 表里 V1/V2 model 指 sentence transformer，但 v3/v4 目录又指 paper pipeline，命名混淆。
 10. **为什么 cellular avalanche (Phase 4) 的 τ ∈ [2.17, 3.00] 跨度这么大？**——所有其他 phase 都给一个数字，唯独这个给一个区间。是 bin-scale-dependent 吗？
 
-***REMOVED******REMOVED*** 9. 改进建议（学生视角，优先级排序）
+## 9. 改进建议（学生视角，优先级排序）
 
 1. **【P0】修 setup.py 依赖** ——`install_requires` 加上 `powerlaw / scipy / pandas / matplotlib / requests`，或拆 `extras_require={"tutorials": [...]}`。**`pip install -e .` 后 tutorial 应该一键跑通**。
 2. **【P0】修 setup.py URL** ——`yourusername` 改成 `dada8899`。
@@ -209,7 +209,7 @@ real    0m5.234s
 14. **【P4】Phase Detector 加 API + CSV export** ——让学生能接到自己的 notebook。
 15. **【P4】v3/v4 命名澄清** ——README 加一段 "v3 指 paper v3, V2 model 指 sentence transformer v2，两者无关"。
 
-***REMOVED******REMOVED*** 10. Final scores (each /10)
+## 10. Final scores (each /10)
 
 - **Onboarding 难度（低分 = 难入门）**: **5/10** ——主站术语门槛高，但 tutorial 一旦找到就丝滑。
 - **Tutorial 实操可用**: **9/10** ——5 秒跑通、数字对、verdict 清晰。如果不是 setup.py 依赖缺失就给 10。

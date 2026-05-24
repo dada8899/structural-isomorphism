@@ -4,10 +4,10 @@ about: Suggest an idea or new validation phase
 labels: enhancement
 ---
 
-***REMOVED******REMOVED*** What problem does this solve?
+## What problem does this solve?
 
-***REMOVED******REMOVED*** Proposed solution
+## Proposed solution
 
-***REMOVED******REMOVED*** Alternatives considered
+## Alternatives considered
 
-***REMOVED******REMOVED*** Additional context
+## Additional context

@@ -126,7 +126,7 @@ def validate_excess(price_daily, spy_daily, break_date, window_days=60):
     excess_before = co_ret_before - spy_ret_before
     excess_after = co_ret_after - spy_ret_after
 
-    ***REMOVED*** 超额收益的 regime change 判断
+    # 超额收益的 regime change 判断
     if np.sign(excess_before) != np.sign(excess_after) and abs(excess_before - excess_after) > 0.08:
         regime = "超额趋势反转"
     elif abs(excess_after - excess_before) > 0.12:
@@ -250,23 +250,23 @@ def main():
                      if not v["macro_event"] and v["regime_change"] != "无明显变化")
 
     lines = []
-    lines.append("***REMOVED*** PELT POC 最终版 — 超额收益（alpha）信号\n\n")
+    lines.append("# PELT POC 最终版 — 超额收益（alpha）信号\n\n")
     lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 🎯 三版对比\n\n")
+    lines.append("## 🎯 三版对比\n\n")
     lines.append("| 版本 | 高置信拐点 | regime 变化 | 非宏观真信号 | 真信号比例 |\n|---|---|---|---|---|\n")
     lines.append("| 单信号原始版 | 48 | 26 | — | — |\n")
     lines.append("| 多信号交叉版 | 26 | 16 | — | — |\n")
     lines.append("| 多信号+宏观过滤 | 26 | 16 | 3 | 12% |\n")
     lines.append(f"| **超额收益版** | **{n}** | **{rc}** | **{real_signal}** | **{real_signal/n*100:.0f}%** |\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 📊 核心指标\n\n")
+    lines.append("## 📊 核心指标\n\n")
     lines.append(f"- 总拐点: {n}\n")
     lines.append(f"- 有超额 regime 变化: {rc} = {rc/n*100:.0f}%\n")
     lines.append(f"- 宏观期拐点: {macro_driven} = {macro_driven/n*100:.0f}%\n")
     lines.append(f"- **非宏观真信号**: {real_signal} = **{real_signal/n*100:.0f}%**\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 🎯 筛出的公司真信号（核心成果）\n\n")
+    lines.append("## 🎯 筛出的公司真信号（核心成果）\n\n")
     lines.append("下面这些拐点不在宏观事件附近，且公司超额收益有真实 regime 变化——最值得看。\n\n")
     lines.append("| 公司 | 日期 | 置信度 | 公司前 60 天 | SPY 同期 | 超额前 | 公司后 60 天 | SPY 后 | 超额后 | 判断 |\n")
     lines.append("|---|---|---|---|---|---|---|---|---|---|\n")
@@ -281,7 +281,7 @@ def main():
         )
     lines.append("\n")
 
-    ***REMOVED*** 按 family 分层真信号
+    # 按 family 分层真信号
     fam_stats = defaultdict(lambda: {"n": 0, "real": 0, "tickers": set()})
     for r in results:
         fam = r["family"]
@@ -290,7 +290,7 @@ def main():
             if not v["macro_event"] and v["regime_change"] != "无明显变化":
                 fam_stats[fam]["real"] += 1
             fam_stats[fam]["tickers"].add(r["ticker"])
-    lines.append("***REMOVED******REMOVED*** 🏷️ 按 dynamics_family 看真信号出现率\n\n")
+    lines.append("## 🏷️ 按 dynamics_family 看真信号出现率\n\n")
     lines.append("| Family | 总拐点 | 真信号 | 比例 | 公司 |\n|---|---|---|---|---|\n")
     for fam, st in sorted(fam_stats.items(), key=lambda x: -(x[1]["real"] / max(x[1]["n"], 1))):
         if st["n"] == 0:
@@ -301,8 +301,8 @@ def main():
         )
     lines.append("\n")
 
-    ***REMOVED*** 最终判断
-    lines.append("***REMOVED******REMOVED*** ⚖️ 判断\n\n")
+    # 最终判断
+    lines.append("## ⚖️ 判断\n\n")
     lift_vs_12 = (real_signal / n) / 0.12 if real_signal > 0 else 0
     if real_signal / n >= 0.40:
         lines.append(f"✅ **有显著提升**：{real_signal/n*100:.0f}%（相比原版 12% 提升 {lift_vs_12:.1f}x）\n")

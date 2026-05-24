@@ -6,7 +6,7 @@ Usage:
         strategy="majority",
     )
     result = panel.ask(item_id="taxonomy_class_42", user_prompt="...")
-    ***REMOVED*** → EnsembleResult(item_id=..., verdicts=[...], consensus="KEEP", ...)
+    # → EnsembleResult(item_id=..., verdicts=[...], consensus="KEEP", ...)
 
 The panel makes one call per reviewer per item. Calls are sequential by
 default (simpler error handling, no rate-limit fan-out). For parallel calls,

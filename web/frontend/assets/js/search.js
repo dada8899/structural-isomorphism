@@ -35,7 +35,7 @@ function isCrossDomain(r) {
 // Out-of-scope: the question isn't a phenomenon-shaped problem (arithmetic,
 // chitchat, trivia). Show a friendly explanation, not an empty result list.
 function renderOutOfScope(query, data) {
-  const summaryEl = $('***REMOVED***search-summary');
+  const summaryEl = $('#search-summary');
   if (summaryEl) {
     summaryEl.innerHTML = `
       <div class="search-question">
@@ -52,7 +52,7 @@ function renderOutOfScope(query, data) {
   };
   const msg = reasonCopy[reason] || T('page.search.oos_default', '这个问题不太适合用跨学科结构同构来解——它没有一个可以映射到别的领域的「现象结构」。');
 
-  const resultsEl = $('***REMOVED***search-results');
+  const resultsEl = $('#search-results');
   if (!resultsEl) return;
   resultsEl.innerHTML = `
     <div class="assess-gate">
@@ -85,7 +85,7 @@ function crossDomainTag(r) {
 }
 
 function renderSkeleton() {
-  const container = $('***REMOVED***search-results');
+  const container = $('#search-results');
   if (!container) return;
   container.innerHTML = `
     <div class="search-skeleton">
@@ -117,7 +117,7 @@ function getSynthPhases() {
 }
 
 function renderQuestionHeader(query, data) {
-  const container = $('***REMOVED***search-summary');
+  const container = $('#search-summary');
   if (!container) return;
 
   if (data.count === 0) {
@@ -231,7 +231,7 @@ function toParagraphs(text) {
 }
 
 function renderSynthBlock(synth) {
-  const container = $('***REMOVED***search-synth');
+  const container = $('#search-synth');
   // Stop synth elapsed timer regardless of outcome
   if (_synthTimerStop) { _synthTimerStop(); _synthTimerStop = null; }
   if (!container) return;
@@ -271,7 +271,7 @@ function renderResults(query, data) {
   _lastV2PairsForTop = Array.isArray(data.v2_pairs_for_top) ? data.v2_pairs_for_top : [];
   _lastStats = data.stats || null;
 
-  const container = $('***REMOVED***search-results');
+  const container = $('#search-results');
   if (!container) return;
 
   if (!data.results || data.results.length === 0) {
@@ -450,7 +450,7 @@ function renderResultsWithSynth() {
   const query = _lastQuery;
   const results = _lastResults;
   const synth = _lastSynth;
-  const container = $('***REMOVED***search-results');
+  const container = $('#search-results');
   if (!container || !results.length) return;
 
   const primary = synth && synth.primary_recommendation;
@@ -646,7 +646,7 @@ function renderResultsWithSynth() {
 }
 
 function renderError(err) {
-  const container = $('***REMOVED***search-results');
+  const container = $('#search-results');
   if (!container) return;
   // SESSION-17 copy SR-03: never surface the raw JS exception to the user —
   // it goes to the console only; the UI shows a fixed friendly message.
@@ -685,7 +685,7 @@ function maybeRenderAssessmentGate(query, data) {
   const suggestion = assess.rewrite_suggestion;
   const category = assess.category || T('page.search.assess_category_other', '其他');
 
-  const summaryEl = $('***REMOVED***search-summary');
+  const summaryEl = $('#search-summary');
   if (summaryEl) {
     summaryEl.innerHTML = `
       <div class="search-question">
@@ -695,7 +695,7 @@ function maybeRenderAssessmentGate(query, data) {
     `;
   }
 
-  const resultsEl = $('***REMOVED***search-results');
+  const resultsEl = $('#search-results');
   if (!resultsEl) return true;
 
   resultsEl.innerHTML = `
@@ -804,7 +804,7 @@ async function performSearch(query) {
       // Replace the loading placeholder with a typewriter preview slot. We
       // keep the AI label visible from the start so the user sees that
       // something is happening even before the first delta lands.
-      const synthEl = $('***REMOVED***search-synth');
+      const synthEl = $('#search-synth');
       if (synthEl) {
         synthEl.classList.remove('search-synth--loading');
         synthEl.innerHTML = `
@@ -839,7 +839,7 @@ async function performSearch(query) {
         onError: (err) => {
           _activeSynthStream = null;
           console.error('Synthesize stream failed:', err);
-          const e = $('***REMOVED***search-synth');
+          const e = $('#search-synth');
           if (e) e.remove();
           renderResultsWithSynth();
         },

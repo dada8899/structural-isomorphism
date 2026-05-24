@@ -1,4 +1,4 @@
-***REMOVED*** NumFOCUS Comprehensive Fiscal Sponsorship Application — structural-isomorphism
+# NumFOCUS Comprehensive Fiscal Sponsorship Application — structural-isomorphism
 
 **Status**: Draft v0.1 (2026-05-15)
 **Target submission window**: 2026-Q4 / 2027-Q1 (after first arXiv acceptance and ≥ 5 external contributors)
@@ -11,7 +11,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. Project Mission
+## 1. Project Mission
 
 structural-isomorphism is open infrastructure for cross-domain universality-class validation. We collect, normalize, and analyze event-stream datasets from physically and socially diverse systems — neural avalanches, solar flares, earthquakes, DeFi liquidation cascades, bank failures, wildfire propagation, lake dissolved-oxygen excursions, freeway traffic jams, and GitHub-star bursts — and run a unified statistical pipeline (avalanche-size scaling, branching parameter, crackling-noise exponent collapse, autocorrelation, finite-size scaling) to test whether they belong to the same universality class as self-organized criticality (SOC).
 
@@ -23,7 +23,7 @@ We provide three things the scientific-computing community currently lacks:
 
 The project sits squarely inside NumFOCUS' focus areas: open-source scientific Python tooling, reproducible research, and infrastructure that lowers the cost of replication. Our long-term aim is for structural-isomorphism to play the role for cross-domain criticality research that astropy plays for astronomy or scikit-learn for ML — a community-owned baseline that any working scientist can pip-install and trust.
 
-***REMOVED******REMOVED*** 2. Open Source License
+## 2. Open Source License
 
 - **Source code**: MIT License (`LICENSE` in repo root). MIT was chosen for maximum reusability; we explicitly want our pipeline absorbed into downstream commercial and academic tooling without friction.
 - **Datasets**: CC-BY-4.0 (`data/LICENSE.data`). Attribution back to upstream sources (FDIC, USGS, NOAA, etc.) is preserved per-record; structural-isomorphism's contribution is the normalization and cross-domain schema.
@@ -31,13 +31,13 @@ The project sits squarely inside NumFOCUS' focus areas: open-source scientific P
 
 All three licenses are OSI-approved or recognized by the Open Definition. No CLA is required from contributors — we use the Developer Certificate of Origin (DCO) via signed commits. We have explicitly chosen not to dual-license or relicense for monetization.
 
-***REMOVED******REMOVED*** 3. Project Leadership
+## 3. Project Leadership
 
-***REMOVED******REMOVED******REMOVED*** Current state (2026-05)
+### Current state (2026-05)
 
 - **BDFL**: @dada8899 (founder, sole maintainer). Final authority on all decisions per `GOVERNANCE.md`.
 
-***REMOVED******REMOVED******REMOVED*** Planned transition: 3-member Maintainer Council
+### Planned transition: 3-member Maintainer Council
 
 `GOVERNANCE.md` documents the transition trigger and procedure. In summary:
 
@@ -48,11 +48,11 @@ All three licenses are OSI-approved or recognized by the Open Definition. No CLA
 
 The council structure is deliberately small at first (3 members) to keep coordination cost low while we are sub-50 contributors; it can expand to 5-7 via amendment vote.
 
-***REMOVED******REMOVED******REMOVED*** Succession
+### Succession
 
 Per `GOVERNANCE.md` § Emergency Procedures: ≥ 30 days of unresponsive BDFL → council can co-opt a third member for quorum; ≥ 90 days → council can elect an interim BDFL via 2/3 vote, with NumFOCUS notified.
 
-***REMOVED******REMOVED*** 4. Code of Conduct
+## 4. Code of Conduct
 
 The project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md), with an explicit enforcement-contact line and escalation path. Reports route to `conduct@structural-isomorphism.org` (alias TBD; for now: @dada8899 via GitHub Discussions Meta category, with the option to email directly for privacy-sensitive reports).
 
@@ -65,7 +65,7 @@ Enforcement actions follow the Contributor Covenant Enforcement Ladder:
 
 The 100%-consensus requirement for CoC actions against fellow council members (per GOVERNANCE.md) is deliberate: governance rot in OSS communities most often starts with the inability to discipline insiders. We want the bar to be high enough that no single faction can capture enforcement, but the floor to be a real floor — council members are not above the CoC.
 
-***REMOVED******REMOVED*** 5. Public Roadmap
+## 5. Public Roadmap
 
 We publish roadmaps as living markdown documents under `docs/future/`:
 
@@ -78,11 +78,11 @@ Each roadmap has dated milestones, owners, and verification criteria. Quarterly 
 
 GitHub Projects mirrors the roadmaps for tactical execution; the markdown is the source of truth.
 
-***REMOVED******REMOVED*** 6. Funding Need
+## 6. Funding Need
 
 We anticipate a modest, predictable funding need of **$5,000 - $15,000 / year** in the first two years of NumFOCUS sponsorship, growing to ~$30,000/year by year three if external adoption hits W7-A goals.
 
-***REMOVED******REMOVED******REMOVED*** Year 1 budget (estimated $8,000)
+### Year 1 budget (estimated $8,000)
 
 | Category | Amount | Notes |
 |---|---|---|
@@ -94,7 +94,7 @@ We anticipate a modest, predictable funding need of **$5,000 - $15,000 / year** 
 | Swag for first contributors (stickers, postcards) | $400 | First-PR gifts |
 | Contingency / buffer | $800 | |
 
-***REMOVED******REMOVED******REMOVED*** Year 2-3 scaling
+### Year 2-3 scaling
 
 If external adoption grows (W7-A goal: 3 papers cite us, ≥ 50 GitHub-stars-from-academic-institutions), budget grows to support:
 
@@ -105,7 +105,7 @@ If external adoption grows (W7-A goal: 3 papers cite us, ≥ 50 GitHub-stars-fro
 
 We deliberately under-budget compute: long-running heavy experiments (e.g. full re-derivation of universality-class boundaries on 100+ systems) we expect to run on academic compute allocations the maintainers already have access to. NumFOCUS funds should subsidize community work, not science compute.
 
-***REMOVED******REMOVED******REMOVED*** Revenue sources
+### Revenue sources
 
 - Initial: NumFOCUS pass-through donations (individual + corporate)
 - Mid-term: research grants (NSF CSSI, Sloan, Templeton-style cross-disciplinary) routed through NumFOCUS' 501(c)(3) status
@@ -113,11 +113,11 @@ We deliberately under-budget compute: long-running heavy experiments (e.g. full 
 
 We do **not** plan to charge for any service, run a SaaS, or sell a "Pro" version. The pipeline and dataset stay free forever; that commitment is enshrined in `GOVERNANCE.md` § License-Change Threshold (requires 2/3 council supermajority + 60-day public-comment period + BDFL co-sign).
 
-***REMOVED******REMOVED*** 7. Community Building
+## 7. Community Building
 
 We are at the early phase of community formation (sub-10 external contributors as of 2026-05). Existing infrastructure:
 
-- **Discord server** — scaffolded per W9-E with channels for `***REMOVED***help`, `***REMOVED***research`, `***REMOVED***dev`, `***REMOVED***announcements`, `***REMOVED***good-first-issues`. Auto-invite link in README.
+- **Discord server** — scaffolded per W9-E with channels for `#help`, `#research`, `#dev`, `#announcements`, `#good-first-issues`. Auto-invite link in README.
 - **Newsletter** — monthly `docs/newsletter/` rollup, published as RSS + sendable digest.
 - **Good-first-issues** — labeled per CONTRIBUTING.md, each with brief, acceptance criteria, and effort estimate. Mentored by BDFL or council member.
 - **Tutorials** — `docs/tutorials/` covers (1) running the pipeline against a new dataset, (2) interpreting the LLM judge audit, (3) writing a pre-registration. Each is reproducible end-to-end in a fresh venv.
@@ -130,20 +130,20 @@ Planned 2026-H2:
 - "Universality-class challenge" — open call for community-submitted datasets, with leaderboard + DOI
 - Translations (Chinese, Spanish, Portuguese) of getting-started.md — bounty-funded
 
-***REMOVED******REMOVED*** 8. Existing Citations / External Adoption
+## 8. Existing Citations / External Adoption
 
 Honest current state (2026-05-15):
 
 - **External citations**: 0. Our preprint (`docs/papers.md`) is under preparation; arXiv submission planned 2026-Q3. No published paper yet cites structural-isomorphism by name.
 - **Zenodo dataset DOI**: pending first formal release; we expect to mint the DOI on v1.0 tag (planned 2026-Q4).
-- **GitHub stars**: ~early-stage (single digits to low double digits as of session ***REMOVED***9). Tracked weekly in `docs/maintenance/star-history.md`.
+- **GitHub stars**: ~early-stage (single digits to low double digits as of session #9). Tracked weekly in `docs/maintenance/star-history.md`.
 - **External merged PRs**: 0 from outside @dada8899's controlled accounts. (Counted strictly: only PRs from email domains the BDFL does not own.)
 - **Downloads**: pip package not yet published; downloads tracked from time of first PyPI release.
 - **Mentions in academic talks**: 0 known.
 
 We are filing this application aware that we are at the very early end of NumFOCUS' adoption criteria. Our position: **submit with honest numbers, plan B (Open Collective) as fallback**, and use the application process itself as forcing function for the W7-A milestones (preprint, dataset DOI, first three external citations) that will make a year-2 resubmission strong.
 
-***REMOVED******REMOVED*** 9. References
+## 9. References
 
 NumFOCUS Comprehensive Fiscal Sponsorship typically asks for 2-3 senior researchers willing to vouch for the project's scientific merit and the maintainer's character. The following are candidate referees; **explicit consent has not yet been obtained** and obtaining it is part of W9-B follow-up.
 
@@ -156,7 +156,7 @@ Strategy for obtaining consent: cold-email each in 2026-Q3 with the preprint, a 
 
 A secondary list of referees (younger PIs, postdocs, industry researchers) is in `docs/community/REFEREES_INTERNAL.md` (not public; do not commit).
 
-***REMOVED******REMOVED*** 10. Plan B if Rejected
+## 10. Plan B if Rejected
 
 NumFOCUS Comprehensive FS has a real bar, and we may not clear it on first submission. Contingencies, in order of preference:
 
@@ -167,7 +167,7 @@ NumFOCUS Comprehensive FS has a real bar, and we may not clear it on first submi
 
 In all four cases, the governance structure (3-member council per GOVERNANCE.md) and license commitments (MIT + CC-BY-4.0, locked) stay the same. NumFOCUS adoption is a force-multiplier, not a foundation; the project's commitments to the community do not depend on it.
 
-***REMOVED******REMOVED*** 11. Financial Transparency Commitments
+## 11. Financial Transparency Commitments
 
 If accepted by NumFOCUS, we commit to:
 
@@ -176,7 +176,7 @@ If accepted by NumFOCUS, we commit to:
 - **Conflict-of-interest disclosures** — any council member whose employer or grant sponsor donates to the project recuses from related budgeting decisions, with the recusal logged.
 - **No undisclosed sponsorships** — any organizational sponsor that wants to fund a specific feature, dataset, or maintainer time must be disclosed publicly. We will not accept "ghost-sponsored" work.
 
-***REMOVED******REMOVED*** 12. Reproducibility & Scientific Standards
+## 12. Reproducibility & Scientific Standards
 
 We commit to (and currently practice):
 
@@ -186,7 +186,7 @@ We commit to (and currently practice):
 - **Negative results published** — `docs/papers.md` § Anti-p-hacking commits to publishing universality-class membership tests **even when they fail** (e.g. domains that look SOC-like but don't pass the full battery). Negative results are scientifically valuable and the field underpublishes them.
 - **Reviewer onboarding** — `docs/methodology/reviewer-checklist.md` describes what a third-party reviewer should check on a paper or PR that uses our pipeline.
 
-***REMOVED******REMOVED*** 13. Maintainer Bandwidth & Bus Factor
+## 13. Maintainer Bandwidth & Bus Factor
 
 Honest assessment:
 
@@ -196,19 +196,19 @@ Honest assessment:
 
 The bus-factor-1 state is the largest risk we are knowingly running with right now. Council formation is the primary mitigation.
 
-***REMOVED******REMOVED*** 14. Conflict-of-Interest Statement
+## 14. Conflict-of-Interest Statement
 
 - **BDFL @dada8899**: no current paid affiliation with any organization whose interests conflict with structural-isomorphism. Operates the project on personal time + personal infrastructure. Funding sought via NumFOCUS would be received via NumFOCUS pass-through, not personally.
 - **No grants or contracts** currently fund the project. If/when grants are secured, they will be disclosed in `docs/community/finance/`.
 - **No paid endorsements** of vendors. The multi-vendor LLM judging framework deliberately uses 3-4 providers to avoid single-vendor capture.
 
-***REMOVED******REMOVED*** 15. Brand & Trademark
+## 15. Brand & Trademark
 
 We hold **no trademark** on the name "structural-isomorphism" and have no intention to seek one. The name and logos (when designed) will be CC-BY-4.0 along with documentation. Forks may use the name freely as long as they do not misrepresent NumFOCUS sponsorship status.
 
 If NumFOCUS adoption proceeds, we will adopt the standard NumFOCUS trademark policy by reference.
 
-***REMOVED******REMOVED*** 16. Application Checklist (Internal Tracking)
+## 16. Application Checklist (Internal Tracking)
 
 Pre-submission gates we want to clear before pressing "submit" on the actual NumFOCUS form:
 
@@ -223,7 +223,7 @@ Pre-submission gates we want to clear before pressing "submit" on the actual Num
 
 Expected submission window: **2027-Q1** if all above clear; **2027-Q3** as fallback.
 
-***REMOVED******REMOVED*** 17. Acknowledgments
+## 17. Acknowledgments
 
 This application draft draws on the public submission templates and post-mortems of:
 

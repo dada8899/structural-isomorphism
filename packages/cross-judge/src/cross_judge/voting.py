@@ -82,7 +82,7 @@ def majority_vote(
         for p in priority:
             if p in tied:
                 return p, disagree
-    ***REMOVED*** else preserve insertion order
+    # else preserve insertion order
     seen: list[str] = []
     for v in verdicts:
         if v.error is None and v.kind in tied and v.kind not in seen:
@@ -154,9 +154,9 @@ def krippendorff_alpha(verdicts: list[Verdict]) -> float | None:
     counts = _label_counts(valid)
     total = n
 
-    ***REMOVED*** D_observed: count of disagreeing pairs out of C(N,2)
-    ***REMOVED*** For each pair of critics (i, j), if their labels differ → +1
-    ***REMOVED*** Equivalently: D_obs = C(N,2) - sum_c C(n_c, 2)
+    # D_observed: count of disagreeing pairs out of C(N,2)
+    # For each pair of critics (i, j), if their labels differ → +1
+    # Equivalently: D_obs = C(N,2) - sum_c C(n_c, 2)
     total_pairs = n * (n - 1) // 2
     same_pairs = sum(c * (c - 1) // 2 for c in counts.values())
     disagreeing_pairs = total_pairs - same_pairs
@@ -164,23 +164,23 @@ def krippendorff_alpha(verdicts: list[Verdict]) -> float | None:
     if total_pairs == 0:
         return None
 
-    ***REMOVED*** D_observed normalized to per-pair rate
+    # D_observed normalized to per-pair rate
     d_observed = disagreeing_pairs / total_pairs
 
-    ***REMOVED*** D_expected: probability two randomly chosen labels differ given marginals
-    ***REMOVED*** = 1 - sum_c (n_c / N) * ((n_c - 1) / (N - 1))   (sampling without replacement)
+    # D_expected: probability two randomly chosen labels differ given marginals
+    # = 1 - sum_c (n_c / N) * ((n_c - 1) / (N - 1))   (sampling without replacement)
     if total == 1:
         return None
     same_chance = sum((c / total) * ((c - 1) / (total - 1)) for c in counts.values())
     d_expected = 1.0 - same_chance
 
     if d_expected == 0.0:
-        ***REMOVED*** All critics had to agree by structure (e.g. only 1 label observed)
+        # All critics had to agree by structure (e.g. only 1 label observed)
         return 1.0 if d_observed == 0.0 else 0.0
 
     alpha = 1.0 - (d_observed / d_expected)
-    ***REMOVED*** Clamp to [-1, 1] for numerical safety; α can go slightly negative for
-    ***REMOVED*** systematic disagreement but should never exceed 1.0.
+    # Clamp to [-1, 1] for numerical safety; α can go slightly negative for
+    # systematic disagreement but should never exceed 1.0.
     return max(-1.0, min(1.0, alpha))
 
 
@@ -193,7 +193,7 @@ VOTING_STRATEGIES: dict[str, VotingStrategy] = {
 def get_voting_strategy(name_or_fn: str | VotingStrategy) -> VotingStrategy:
     """Resolve a voting strategy by name or pass through if already callable."""
     if callable(name_or_fn):
-        return name_or_fn  ***REMOVED*** type: ignore[return-value]
+        return name_or_fn  # type: ignore[return-value]
     key = str(name_or_fn).lower()
     if key not in VOTING_STRATEGIES:
         raise KeyError(

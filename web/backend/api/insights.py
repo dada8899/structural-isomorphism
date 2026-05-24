@@ -1,6 +1,6 @@
 """GET /api/insights/* — aggregate data-flywheel dashboard.
 
-B Data Flywheel (Session ***REMOVED***18).
+B Data Flywheel (Session #18).
 
 Three read-only endpoints powering /insights:
   * /api/insights/summary           — top-line counters
@@ -42,7 +42,7 @@ def _get_store() -> ReportStore:
     return _store
 
 
-***REMOVED*** ---------------- response shapes ----------------------------------- ***REMOVED***
+# ---------------- response shapes ----------------------------------- #
 
 
 class SummaryResponse(BaseModel):
@@ -80,7 +80,7 @@ class VerifiedResponse(BaseModel):
     items: list[VerifiedItem]
 
 
-***REMOVED*** ---------------- endpoints ----------------------------------------- ***REMOVED***
+# ---------------- endpoints ----------------------------------------- #
 
 
 @router.get(

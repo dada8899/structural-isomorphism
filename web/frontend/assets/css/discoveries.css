@@ -392,12 +392,12 @@
 
 .disc-item__meta-tag--unknown {
   background: rgba(5, 150, 105, 0.1);
-  color: ***REMOVED***059669;
+  color: #059669;
 }
 
 .disc-item__meta-tag--partial {
   background: rgba(217, 119, 6, 0.1);
-  color: ***REMOVED***B45309;
+  color: #B45309;
 }
 
 .disc-item__meta-tag--known {
@@ -838,12 +838,12 @@
   margin-right: 6px;
 }
 .disc-item__pipeline--v2 {
-  background: ***REMOVED***E0E7FF;
-  color: ***REMOVED***3730A3;
+  background: #E0E7FF;
+  color: #3730A3;
 }
 .disc-item__pipeline--v3 {
-  background: ***REMOVED***DCFCE7;
-  color: ***REMOVED***166534;
+  background: #DCFCE7;
+  color: #166534;
 }
 
 /* List rendering in detail blocks */
@@ -870,7 +870,7 @@
 
 /* Code block for equations */
 pre.disc-item__equations {
-  background: var(--bg-subtle, ***REMOVED***F4F4F5);
+  background: var(--bg-subtle, #F4F4F5);
   padding: 12px 14px;
   border-radius: 6px;
   font-family: 'JetBrains Mono', 'Menlo', monospace;
@@ -935,7 +935,7 @@ pre.disc-item__equations {
 /* ============================================================
  * Newsletter container reservation (W4-A 2026-05-14)
  *
- * ***REMOVED***newsletter-discoveries is empty until window.mountNewsletter()
+ * #newsletter-discoveries is empty until window.mountNewsletter()
  * injects the .newsletter-card markup after JS load. Without a
  * reserved height the entire page below shifts down by ~325px
  * on mobile / ~255px on desktop when the card mounts — this was
@@ -944,17 +944,17 @@ pre.disc-item__equations {
  * Reserve min-height matching the rendered card so the mount is
  * a zero-shift swap. Heights tuned per viewport.
  * ============================================================ */
-***REMOVED***newsletter-discoveries:empty {
+#newsletter-discoveries:empty {
   display: block;
   min-height: 255px;
   margin: 24px auto;
   max-width: 640px;
   border-radius: 16px;
-  background: linear-gradient(135deg, ***REMOVED***FAFAF9, ***REMOVED***FFFFFF);
-  border: 1px solid ***REMOVED***E4E4E7;
+  background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+  border: 1px solid #E4E4E7;
 }
 @media (max-width: 640px) {
-  ***REMOVED***newsletter-discoveries:empty {
+  #newsletter-discoveries:empty {
     min-height: 325px;
   }
 }
@@ -968,20 +968,20 @@ pre.disc-item__equations {
 .disc-loaderror__text {
   margin: 0 0 16px;
   font-size: var(--fs-14, 14px);
-  color: var(--text-secondary, ***REMOVED***52525b);
+  color: var(--text-secondary, #52525b);
 }
 .disc-loaderror__retry {
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--brand-ink, ***REMOVED***18181b);
+  color: var(--brand-ink, #18181b);
   background: transparent;
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: 9px;
   padding: 8px 20px;
   cursor: pointer;
 }
 .disc-loaderror__retry:hover {
-  border-color: var(--brand-line-strong, ***REMOVED***d4d4d8);
+  border-color: var(--brand-line-strong, #d4d4d8);
 }
 
 /* === SESSION-18 (D) — Education asset upgrades === */
@@ -993,17 +993,17 @@ pre.disc-item__equations {
   font-size: var(--fs-18, 18px);
   font-weight: var(--fw-medium, 500);
   line-height: 1.5;
-  color: var(--text-primary, ***REMOVED***18181b);
+  color: var(--text-primary, #18181b);
   letter-spacing: var(--ls-tight, -0.01em);
 }
 
 /* Deep-linked / focused card gets a soft ring so a shared link lands clearly. */
 .disc-item--focused {
-  box-shadow: 0 0 0 2px var(--brand-accent, ***REMOVED***3b82f6);
+  box-shadow: 0 0 0 2px var(--brand-accent, #3b82f6);
 }
 /* Keep the ring visible alongside the expanded shadow. */
 .disc-item--focused.disc-item--expanded {
-  box-shadow: 0 0 0 2px var(--brand-accent, ***REMOVED***3b82f6), var(--shadow-md);
+  box-shadow: 0 0 0 2px var(--brand-accent, #3b82f6), var(--shadow-md);
 }
 
 /* Share block inside the expanded detail — a calm panel, not just a rule,
@@ -1012,7 +1012,7 @@ pre.disc-item__equations {
   margin-top: var(--space-3);
   padding: var(--space-4) var(--space-5);
   background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border: 1px solid var(--border-subtle, #e4e4e7);
   border-radius: var(--radius-md);
 }
 .disc-item__share-block h4 {
@@ -1041,9 +1041,9 @@ pre.disc-item__equations {
   padding: 9px 16px;
   font-size: var(--fs-13, 13px);
   font-weight: var(--fw-medium, 500);
-  color: var(--text-secondary, ***REMOVED***52525b);
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-default, ***REMOVED***e4e4e7);
+  color: var(--text-secondary, #52525b);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e4e4e7);
   border-radius: var(--radius-md, 9px);
   cursor: pointer;
   transition: border-color var(--dur-fast, .15s) var(--ease-out, ease),
@@ -1051,21 +1051,21 @@ pre.disc-item__equations {
               background-color var(--dur-fast, .15s) var(--ease-out, ease);
 }
 .share-actions__btn:hover {
-  color: var(--text-primary, ***REMOVED***18181b);
-  border-color: var(--border-strong, ***REMOVED***d4d4d8);
-  background: var(--bg-secondary, ***REMOVED***fafafa);
+  color: var(--text-primary, #18181b);
+  border-color: var(--border-strong, #d4d4d8);
+  background: var(--bg-secondary, #fafafa);
 }
 .share-actions__btn:focus-visible {
   outline: none;
-  border-color: var(--accent, ***REMOVED***b45309);
+  border-color: var(--accent, #b45309);
   box-shadow: var(--shadow-focus, 0 0 0 3px rgba(180,83,9,.18));
 }
 .share-actions__btn svg {
   flex-shrink: 0;
 }
 .share-actions__btn--done {
-  color: ***REMOVED***15803d;
-  border-color: ***REMOVED***86efac;
+  color: #15803d;
+  border-color: #86efac;
   background: rgba(5, 150, 105, 0.06);
 }
 .share-actions--compact .share-actions__btn {
@@ -1089,7 +1089,7 @@ pre.disc-item__equations {
   position: relative;
   width: 100%;
   max-width: 560px;
-  background: ***REMOVED***fff;
+  background: #fff;
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
@@ -1102,20 +1102,20 @@ pre.disc-item__equations {
   height: 32px;
   font-size: 22px;
   line-height: 1;
-  color: var(--text-tertiary, ***REMOVED***a1a1aa);
+  color: var(--text-tertiary, #a1a1aa);
   background: transparent;
   border: none;
   border-radius: 8px;
   cursor: pointer;
 }
 .share-modal__close:hover {
-  color: var(--text-primary, ***REMOVED***18181b);
-  background: var(--surface-2, ***REMOVED***f4f4f5);
+  color: var(--text-primary, #18181b);
+  background: var(--surface-2, #f4f4f5);
 }
 .share-modal__preview {
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  border: 1px solid var(--border-subtle, #e4e4e7);
 }
 .share-modal__img {
   display: block;
@@ -1132,20 +1132,20 @@ pre.disc-item__equations {
   padding: 11px 16px;
   font-size: 13.5px;
   font-weight: 600;
-  color: var(--text-primary, ***REMOVED***18181b);
-  background: var(--surface-1, ***REMOVED***fff);
-  border: 1px solid var(--border-subtle, ***REMOVED***e4e4e7);
+  color: var(--text-primary, #18181b);
+  background: var(--surface-1, #fff);
+  border: 1px solid var(--border-subtle, #e4e4e7);
   border-radius: 10px;
   cursor: pointer;
   transition: border-color .15s ease, background-color .15s ease;
 }
 .share-modal__btn:hover {
-  border-color: var(--border-strong, ***REMOVED***d4d4d8);
+  border-color: var(--border-strong, #d4d4d8);
 }
 .share-modal__btn--primary {
-  color: ***REMOVED***fff;
-  background: var(--text-primary, ***REMOVED***18181b);
-  border-color: var(--text-primary, ***REMOVED***18181b);
+  color: #fff;
+  background: var(--text-primary, #18181b);
+  border-color: var(--text-primary, #18181b);
 }
 .share-modal__btn--primary:hover {
   opacity: 0.9;
@@ -1154,7 +1154,7 @@ pre.disc-item__equations {
   margin: 12px 0 0;
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary, ***REMOVED***a1a1aa);
+  color: var(--text-tertiary, #a1a1aa);
 }
 
 @media (max-width: 640px) {

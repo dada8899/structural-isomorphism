@@ -1,4 +1,4 @@
-***REMOVED*** Block-bootstrap correction for Kendall-τ early-warning signals on autocorrelated environmental time series
+# Block-bootstrap correction for Kendall-τ early-warning signals on autocorrelated environmental time series
 
 **Working draft v0.1 — 2026-05-15.** Target venue: *Methods in Ecology and Evolution* (Method article, primary); *Journal of Theoretical Biology* (fallback).
 
@@ -8,7 +8,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 The Scheffer-Dakos-van Nes early-warning-signal (EWS) framework detects approach to a saddle-node bifurcation by testing for a monotone rise in rolling lag-1 autocorrelation (AR1) or rolling variance using Kendall's τ against time. The Kendall-τ test in standard practice is applied with the iid p-value returned by, for example, `scipy.stats.kendalltau` or the `earlywarnings` R package. We show that this p-value is severely anti-conservative *for the rolling-window framework itself*: through a controlled Monte Carlo study we measure that the empirical Type-I rejection rate of the naive Kendall-τ EWS test sits at 75-80 % at nominal α = 0.05 across all AR1 coefficients $\phi \in [0, 0.95]$, including the iid case $\phi = 0$. The dominant inflation mechanism is window overlap, not input autocorrelation: consecutive rolling windows overlap in $w-1$ of $w$ observations and the indicator inherits the resulting near-unit correlation by construction, making the iid Kendall-τ null inapplicable regardless of whether the input series is serially correlated. A moving-block bootstrap applied to the raw series (recomputing the indicator on each resample) restores Type-I control at the nominal 0.04-0.08 across the full φ range. We re-analyse a recent application of the EWS framework to a 14-year daily dissolved-oxygen record from the Fox River (USGS station 040851385, $n = 5052$ days, lag-1 ρ ≈ 0.85) where the naive Kendall-τ returned $p_{\mathrm{AR1}} = 1.6 \times 10^{-245}$ — a value the original analysts initially read as overwhelming evidence of a regime-shift signature. A Politis-Romano (1994) moving-block bootstrap at block length ℓ = 30 d returns $p_{\mathrm{AR1}} = 0.074$ and $p_{\mathrm{Var}} = 0.21$, retiring the original finding to inconclusive. We argue that block-bootstrap correction is *required for the rolling-EWS Kendall-τ framework itself*, not an optional refinement, and we provide a 290-line dependency-light Python reference implementation including Politis-White (2004) automatic block-length selection. We close with a four-item checklist for ecology practitioners and journals.
 
@@ -16,7 +16,7 @@ The Scheffer-Dakos-van Nes early-warning-signal (EWS) framework detects approach
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The early-warning-signal (EWS) literature initiated by Scheffer et al. [1] and operationalised by Dakos et al. [2] and van Nes & Scheffer [3] predicts that systems approaching a saddle-node ("fold") bifurcation exhibit *critical slowing down*: the dominant eigenvalue of the linearised dynamics approaches zero, perturbation recovery time diverges, and the system's response variance and lag-1 autocorrelation rise. The standard statistical instrument for detecting this rise on observational time series is the same in essentially every application paper from Dakos et al. (2008, lake sediment cores) [2] through Boettiger & Hastings (2012, statistical pitfalls) [4] through Drake & Griffen (2010, planktonic *Daphnia*) [5] through the recent `earlywarnings` R package [6] and the live tipping-point forecasters of the past two years: a rolling window is slid across the series, lag-1 autocorrelation and variance are computed in each window, and Kendall's τ is computed between the rolling indicator and the time index. Significance is assessed by the iid p-value returned by the underlying Kendall-τ routine.
 
@@ -30,9 +30,9 @@ We are *not* claiming the block-bootstrap is a new statistical contribution — 
 
 ---
 
-***REMOVED******REMOVED*** 2. The problem: serial correlation and naive bootstrap
+## 2. The problem: serial correlation and naive bootstrap
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Setup
+### 2.1 Setup
 
 Let $X_t$ be a real-valued time series of length $n$. Define the rolling lag-1 autocorrelation indicator
 
@@ -48,7 +48,7 @@ $$
 
 operationalised by Kendall's $\tau(A_i, i)$ and the two-sided p-value of $\tau$ under the iid null.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Why the iid p-value fails
+### 2.2 Why the iid p-value fails
 
 Under no-trend stationary noise, $\tau$ is asymptotically normal with variance $\mathrm{Var}(\tau) = \frac{2(2n+5)}{9n(n-1)}$ *if the* $A_i$ *are independent*. But the rolling indicator $A_i$ is almost never independent across $i$. Two mechanisms drive the dependence and both inflate Type-I error:
 
@@ -64,7 +64,7 @@ Under no-trend stationary noise, $\tau$ is asymptotically normal with variance $
 
 The result is that the effective sample size of the $A_i$ sequence, in the Politis-Romano sense, is much smaller than $n - w + 1$, and the true variance of $\tau$ is much larger than the iid formula predicts. The iid p-value is therefore severely anti-conservative regardless of whether the input is correlated.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Simulation: Type-I inflation under AR1(φ)
+### 2.3 Simulation: Type-I inflation under AR1(φ)
 
 We quantified this Type-I inflation under the no-trend null. For each $\phi \in \{0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95\}$ we generated 100 synthetic AR1(φ) series of length $n = 300$ with unit-variance Gaussian innovations and no embedded trend, computed the rolling AR1 indicator with window $w = 60$, and tested
 
@@ -95,13 +95,13 @@ A practical implication, sharper than the one we drew in §1: *every* rolling-wi
 
 ---
 
-***REMOVED******REMOVED*** 3. The fix: stationary block bootstrap
+## 3. The fix: stationary block bootstrap
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Politis-Romano in one paragraph
+### 3.1 Politis-Romano in one paragraph
 
 The stationary block bootstrap [8] resamples a serially-correlated time series in a way that preserves the within-block dependence structure. Block lengths are drawn iid from a geometric distribution with mean $\ell$, and block start positions are uniform on $\{0,\dots,n-1\}$ with circular wrap. Concatenating blocks until length $n$ is reached produces a resample $X^\star$ that is, by construction, stationary under the bootstrap law (in contrast to Künsch's [10] moving-block bootstrap, which is not). Both schemes recover the joint distribution of any smooth functional of $X$ up to first order under mild mixing conditions. For rolling-EWS Kendall-τ the choice between stationary and moving-block makes a minor numerical difference; we recommend the stationary scheme by default because of its theoretical cleanliness, but include both in our reference implementation.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Algorithm
+### 3.2 Algorithm
 
 ```
 INPUT  X[1..n] (the raw environmental series, e.g. daily DO)
@@ -113,17 +113,17 @@ A_obs   <- rolling_AR1(X, w)
 tau_obs <- Kendall_tau(A_obs, time_index)
 
 for b in 1..B:
-    X_star <- stationary_block_resample(X, l)   ***REMOVED*** geometric block draws, circular wrap
+    X_star <- stationary_block_resample(X, l)   # geometric block draws, circular wrap
     A_star <- rolling_AR1(X_star, w)
     tau_b  <- Kendall_tau(A_star, time_index)
 
-p_block <- (1 + ***REMOVED***{|tau_b| >= |tau_obs|}) / (1 + B)
+p_block <- (1 + #{|tau_b| >= |tau_obs|}) / (1 + B)
 CI95    <- 2.5%, 97.5% percentiles of tau_b
 ```
 
 Crucially, the bootstrap resamples the *raw series* $X$ and *recomputes* the rolling indicator on each resample. Resampling the indicator directly would mis-estimate variance because the iid-resample of $A_i$ destroys the legitimate inter-window correlation that is *part of* the null distribution.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Block-length selection
+### 3.3 Block-length selection
 
 Three practical options:
 
@@ -133,7 +133,7 @@ Three practical options:
 
 3. **Sensitivity analysis.** Whatever default is chosen, the EWS practitioner should report $p_{\mathrm{block}}$ at $\ell \in \{15, 30, 60, 90\}$ days and confirm that the substantive conclusion is invariant. A finding that flips from significant to insignificant across this range is itself the finding — and the result should be reported as inconclusive.
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Reference implementation
+### 3.4 Reference implementation
 
 The full 290-line reference module is at `paper/code/d1_block_bootstrap_reference.py` in the supplementary repository. It exposes:
 
@@ -147,9 +147,9 @@ Dependencies are `numpy` and `scipy.stats.kendalltau` only. The module is licens
 
 ---
 
-***REMOVED******REMOVED*** 4. Empirical demonstration: re-analysing the Fox River lake-DO Scheffer case
+## 4. Empirical demonstration: re-analysing the Fox River lake-DO Scheffer case
 
-***REMOVED******REMOVED******REMOVED*** 4.1 The original analysis
+### 4.1 The original analysis
 
 A recent universality-class-replication preprint (referred to here as the "v0.2 preprint") applied the Scheffer-Dakos EWS protocol to a 14-year daily dissolved-oxygen (DO) record from USGS station 040851385 (FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI), 2011-03-04 to 2024-12-31, $n = 5052$ daily observations, 4838 non-NaN after interpolation of small gaps. After day-of-year deseasonalisation and 60-day rolling-drift removal, the rolling lag-1 autocorrelation indicator (window = 365 d) and rolling variance indicator (window = 365 d) were computed. Kendall's τ against time index returned
 
@@ -158,11 +158,11 @@ A recent universality-class-replication preprint (referred to here as the "v0.2 
 
 The pre-correction interpretation, recorded in v0.2 of the preprint, was that this constituted "overwhelming evidence" of the rising-AR1 + rising-variance critical-slowing-down signature predicted by Scheffer-Dakos.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 What went wrong
+### 4.2 What went wrong
 
 The lag-1 autocorrelation of the deseasoned daily-DO residual is approximately 0.85. The iid Kendall-τ p-value is therefore meaningless. A scholar-review pass on the preprint (recorded as W5-A response, [7]) flagged this and the authors re-ran the analysis with a moving-block bootstrap.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Re-analysis with block bootstrap
+### 4.3 Re-analysis with block bootstrap
 
 We applied the moving-block bootstrap (ℓ = 30 days, $n_{\mathrm{boot}} = 1000$, seed = 42) to the same deseasoned series. The procedure resampled the residual series in 30-day blocks, recomputed the rolling AR1 / variance indicators on each resample, and recomputed Kendall's τ against the time index. The block-bootstrap two-sided p-value is the empirical fraction of $|\tau_{\mathrm{boot}}| \geq |\tau_{\mathrm{obs}}|$.
 
@@ -177,11 +177,11 @@ The bootstrap null distribution for τ has mean ≈ 0.006 (AR1) / −0.003 (Var)
 
 **Figure 2.** Bar chart of $-\log_{10}(p)$ for the Fox River Scheffer test, comparing naive Kendall-τ to block-bootstrap (ℓ = 30 d). `paper/figures/d1/fig2_lake_naive_vs_block.pdf`.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Block-length sensitivity
+### 4.4 Block-length sensitivity
 
 We re-ran with $\ell \in \{15, 30, 60, 90\}$ days. The qualitative conclusion (both p-values > 0.05) is invariant across this range; quantitatively $p_{\mathrm{block,AR1}}$ ranges from 0.04 to 0.12 as ℓ varies. This is itself the diagnostic that the original $10^{-245}$ was meaningless — a fragile dependence of orders of magnitude on a default parameter would signal that the block-bootstrap correction itself has not converged, but here the conclusion is stable in the range "marginal, not significant at α = 0.05 after multiple-comparison correction, definitely not 10⁻²⁴⁵."
 
-***REMOVED******REMOVED******REMOVED*** 4.5 Cross-validation on other environmental time series
+### 4.5 Cross-validation on other environmental time series
 
 To verify that the Type-I inflation is not specific to the Fox River case we surveyed three additional EWS publications where naive Kendall-τ on daily-resolution autocorrelated series produced extreme p-values:
 
@@ -193,7 +193,7 @@ A full re-analysis of these three series is *future work*; we list them here to 
 
 ---
 
-***REMOVED******REMOVED*** 5. Recommendations for ecology practitioners
+## 5. Recommendations for ecology practitioners
 
 The block-bootstrap correction is cheap (≈ 30 s for $n_{\mathrm{boot}} = 1000$ on a daily 14-year series on a 2024 laptop), well-established for three decades, and trivially available in Python (this paper's reference implementation) and R (`tseries::tsbootstrap` and the `boot` package). Four recommendations follow.
 
@@ -211,13 +211,13 @@ The block-bootstrap correction is cheap (≈ 30 s for $n_{\mathrm{boot}} = 1000$
 
 ---
 
-***REMOVED******REMOVED*** 6. Limitations and future work
+## 6. Limitations and future work
 
 (i) **Block-length automatic selection is approximate.** Politis-White (2004) is one of several competing automatic-block-length rules; Andrews & Monahan (1992) plug-in estimators and Lahiri (1999) double-block bootstrap also exist. We do not claim Politis-White is optimal for the EWS-Kendall-τ functional specifically; a comparison study under the rolling-statistic functional is open. (ii) **Block bootstrap is not the only option.** Pre-whitening followed by iid Kendall-τ (Yue & Pilon 2004) is a sometimes-cheaper alternative when the AR1 coefficient can be estimated cleanly; AR-sieve bootstrap (Bühlmann 1997) is another. Our recommendation is block bootstrap for its model-freeness, but practitioners with strong AR(p) assumptions on the noise structure may prefer alternatives. (iii) **Multiple-comparison correction is orthogonal.** If a study tests EWS on AR1 *and* variance indicators across $k$ sites, the resulting $2k$ block-bootstrap p-values should be Bonferroni-corrected. The Fox River single-site result $p_{\mathrm{AR1}} = 0.074$ is, even ignoring serial correlation, only marginal under a 2-test correction. (iv) **The retrospective re-analysis of the published EWS literature is in scope for follow-up.** A systematic survey of, say, the 50 most-cited Dakos-framework EWS application papers since 2008, re-running each with block bootstrap on the original data where archived, is a natural Track-D-2 extension and would establish the empirical fraction of published EWS findings that survive serial-correlation correction. We expect this fraction is substantially less than 100 %.
 
 ---
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Scheffer M, Bascompte J, Brock WA, Brovkin V, Carpenter SR, Dakos V, Held H, van Nes EH, Rietkerk M, Sugihara G. *Early-warning signals for critical transitions.* Nature 461, 53-59 (2009).
 

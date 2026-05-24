@@ -1,13 +1,13 @@
-***REMOVED*** W5-B Researcher Review — CS/ML perspective
+# W5-B Researcher Review — CS/ML perspective
 
 > Reviewer: ML/AI senior researcher (NeurIPS / ICML / ICLR scope)
 > Date: 2026-05-13
-> Scope: structural-isomorphism repo @ commit `8cde1c4` (post session ***REMOVED***3 W4-A..W4-E merges)
+> Scope: structural-isomorphism repo @ commit `8cde1c4` (post session #3 W4-A..W4-E merges)
 > Focus: 5-layer pipeline, B1/B3 critic ensemble, F1 embedding bridge, F2 active learning, D1 Phase Detector, C4 reject-aware paper, engineering quality.
 
 ---
 
-***REMOVED******REMOVED*** 1. TL;DR
+## 1. TL;DR
 
 The project delivers a non-trivial amount of engineering: 5-layer pipeline, two-stage LLM critic (B1 single Opus + B3 3-DeepSeek), F1 embedding bridge with TF-IDF fallback, an F2 active-learning scaffold with mined positives/hard-negatives, a 100-company `StructTuple` phase detector with FastAPI backend + Next.js UI, and a methodology preprint (C4). The 65-test sanity suite runs in ~5s and is properly tagged. The B1/B3 verdict matrix is the most defensible scientific artefact in the repo: it is fully reproducible at ~$0.10 per panel, prompts and rationales are versioned, and the 14% → 33% rejection-rate lift is a real and reportable number.
 
@@ -15,9 +15,9 @@ That said, several core claims will *not* survive a careful ML-conference review
 
 Recommendation: the project is real research with a real (smaller) novel contribution. Hedge the headline claims, fix the security and reproducibility smells, and target *Findings of EMNLP* / NeurIPS Datasets-and-Benchmarks / a workshop at ICML — not the main NeurIPS track yet.
 
-***REMOVED******REMOVED*** 2. Pipeline architecture review
+## 2. Pipeline architecture review
 
-***REMOVED******REMOVED******REMOVED*** 2.1 5-layer pipeline design (V1–V5)
+### 2.1 5-layer pipeline design (V1–V5)
 
 The architecture documented in `paper/c4-reject-aware-pipeline-2026-05-13.md` §2 is, on its face, reasonable: Layer 1 phenomenon extraction → Layer 2 equivalence-class discovery (connected components + Louvain intersection) → Layer 3 LLM curation → Layer 3.5 B1 critic → Layer 3.6 B3 ensemble → Layer 4 prediction → Layer 5 empirical validation. Each layer's output is a typed JSONL artefact, each layer is independently re-runnable, and the critic stages can be replayed without re-running upstream LLM curation. That is genuinely good engineering hygiene.
 
@@ -34,7 +34,7 @@ Alternative architectures the paper does not engage with:
 - **Self-consistency / chain-of-thought voting** within a single model family (Wang et al., 2022, ICLR 2023) — this is the most obvious cheaper baseline against which a 3-DeepSeek ensemble should be measured.
 - **Constitutional / debate-style adjudication** where two models argue and a third moderates (Du et al., 2023; Khan et al., 2024 *Debate as a tool for scalable oversight*) — directly relevant to the "creative dissenter at T=0.6" design but uncited.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 LLM critic methodology (B1 + B3)
+### 2.2 LLM critic methodology (B1 + B3)
 
 `v4/scripts/b3_ensemble.py` (576 LOC) is well-organized: 3 reviewer configurations with explicit `temperature`, `max_tokens`, and `system` prompt fields, a clean `call_deepseek` function (lines 236-277) with HTTP error handling, a defensive `extract_json` (lines 280-307) with markdown-fence stripping and trailing-comma cleanup, a plurality `consensus_of` rule (lines 422-430) with explicit category priority, and a `write_taxonomy_v2` (lines 516-572) that produces a faithful B1⊗B3 record per class. The prompt template (lines 96-137) is reproduced verbatim in the paper's Appendix A. So far, methodologically clean.
 
@@ -56,7 +56,7 @@ Alternative architectures the paper does not engage with:
 - **Dawid-Skene latent-truth model** [18] is *cited* in the references but never *applied*. Implementing D-S on the 63-verdict matrix is a one-evening exercise and would meaningfully strengthen the paper.
 - **Plurality with conservative tie-breaking** (REJECT > SPLIT > MERGE > KEEP > UNCLEAR, paper §3.4) is a defensible operational choice but is *not* derived from any decision-theoretic principle (it is conservative-by-construction, which is a value judgement). Reviewers will ask why REJECT > MERGE rather than the reverse.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 F1 embedding bridge + F2 active learning
+### 2.3 F1 embedding bridge + F2 active learning
 
 `v4/lib/embedding_bridge.py` (499 LOC) is the most generic, library-quality piece of code in the repo: clean dataclasses (`Neighbor`), proper L2-normalization, explicit `version` parameter, file-path resolution from `Path(__file__).resolve()`, separation of `_encode_query_to_v_space` (real-model path) from `_tfidf_proxy_neighbors` (fallback). The docstring (lines 1-38) honestly labels the fallback as a "2-hop approximation." That is exactly the right scientific posture.
 
@@ -78,9 +78,9 @@ With n_eval = 15 the R@5 / R@10 standard error is ≈ √(0.4·0.6/15) ≈ 0.13.
 
 **V1/V2 fine-tune path is under-specified.** The design doc `v4/lib/F2_active_learning_design.md` is not in the working tree at HEAD of main from this view; the README in `v4/README.md` mentions V3 fine-tune on VPS as the production path but I do not see a script that exercises a real `sentence-transformers` `MultipleNegativesRankingLoss` or `ContrastiveLoss` training loop in this repo. The Active Learning literature standard (Gal et al., 2017 *Deep Bayesian active learning*; Settles 2010 *Active Learning Literature Survey*) recommends comparing AL acquisition policy against random sampling — the simulation report compares baseline vs after-AL with no random-sampling control. Without that comparison, even if the deltas were significant, we could not attribute them to AL specifically.
 
-***REMOVED******REMOVED*** 3. Code engineering quality
+## 3. Code engineering quality
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Repo structure
+### 3.1 Repo structure
 
 The repo is mixed-state. `structural_isomorphism/` (the Python package), `v3/`, `v4/`, `v4-feasibility/`, `phase/`, `web/`, `paper/`, `site/`, `validation/`, `notebooks/`, `tutorials/`, `data/`, `results/`, `plans/` and `docs/` all sit at the top level. The `v3/` and `v4/` subtrees are clearly versioned generations; `v4-feasibility/` is a sibling experimental subtree. This is a research repo, not a product repo, and the asymmetry is forgivable — but a reviewer trying to find "the code" will spend 10 minutes orienting before finding `v4/scripts/b3_ensemble.py`.
 
@@ -89,7 +89,7 @@ The repo is mixed-state. `structural_isomorphism/` (the Python package), `v3/`, 
 - `v4/__init__.py` exists but the package is not installed via `pyproject.toml` (none found at HEAD; only `setup.py`). The `sys.path.insert(0, str(REPO / "v4" / "lib"))` workaround in `v4/scripts/f2_simulate_active_learning.py:34` is a code smell — it works in CI but breaks any downstream importer that tries to `from v4.lib.embedding_finetune import ...`.
 - File naming is mostly consistent (snake_case Python, kebab-case Markdown) but `v3/` and `v4/` both use `b3_ensemble.py`-style numeric prefixes that encode milestone identifiers in filenames — fragile if milestones are renumbered.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Testing coverage
+### 3.2 Testing coverage
 
 `pytest.ini` declares `testpaths = v4/tests` with a `sanity` marker (10s budget). Counted 78 `def test_` across `v4/tests/sanity/`; the brief said 65, the discrepancy may be parametrized cases. The suite runs ~5s by self-report. That is good for fast CI.
 
@@ -103,14 +103,14 @@ The repo is mixed-state. `structural_isomorphism/` (the Python package), `v3/`, 
 
 The 11 active-learning tests in `test_active_learning.py` (376 LOC) are the most substantive — they exercise the `ContrastiveFinetuner.fit` → `.evaluate` → metric-delta pipeline. But again, all on the TF-IDF stand-in. The acid test for F2 is a real V1/V2 fine-tune on VPS; that is not in CI by design, which means the F2 PR's main claim has no automated verification.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 CI / reproducibility
+### 3.3 CI / reproducibility
 
 - **`pytest.ini` is sanity-only.** No `integration` test bucket. No nightly job that exercises a real LLM call (even a tiny one against a mocked API) to ensure the B3 prompt template still produces parseable JSON.
 - **Deterministic seeding** is present in `f2_simulate_active_learning.py:191` (`--seed 42` default propagated to `random.Random`), but numpy's global RNG and torch's seed are not pinned. `test_active_learning.py` would need `np.random.seed(42)` and `torch.manual_seed(42)` at fixture level to be reproducible across machines; without checking the file's fixtures I cannot certify this, but the pattern is missing from `f2_simulate_active_learning.py` (only `random.Random(seed)` is used).
 - **Requirements drift.** `setup.py` pins `sentence-transformers>=2.0` only; `web/backend/requirements.txt` pins `sentence-transformers==2.5.0` and `torch==2.2.0`. There is no top-level `pyproject.toml` consolidating these. A reviewer trying to reproduce will get whichever `pip` resolves at install time. This is the single easiest thing to fix.
 - **DeepSeek API key in plaintext** at `v4/scripts/b3_ensemble.py:48`: `DEEPSEEK_KEY = "sk-REDACTED-BY-SCRUB-20260524"`. This is a P0 security issue *and* a P1 reproducibility issue — if the key is rotated, every downstream user is broken; if the key is not rotated, it is leaked in `git log`. Standard fix: `os.environ.get("DEEPSEEK_API_KEY")` with a clear `if not key: sys.exit("set DEEPSEEK_API_KEY")` guard. Has to be rotated *and* removed from history before any public release.
 
-***REMOVED******REMOVED******REMOVED*** 3.4 LLM guardrail (E4)
+### 3.4 LLM guardrail (E4)
 
 `v4/lib/llm_guardrail.py` (441 LOC) is the strongest single piece of engineering in the repo. The 3-layer (extract → state-machine fix → schema validate) design with a retry orchestrator (`guardrailed_llm_call`, lines 383-434) is genuinely good. The state-machine fixes — markdown-fence strip, NaN/Infinity → null, single→double quote, unescaped-interior-quote escape, trailing-comma removal — each handle a known LLM failure mode and each are individually unit-testable.
 
@@ -118,9 +118,9 @@ That said, the fixer applies all transformations unconditionally in `state_machi
 
 Coverage: `test_llm_guardrail.py` is 394 LOC and looks thorough; this is the test file the project should be proudest of.
 
-***REMOVED******REMOVED*** 4. D1 Phase Detector product review
+## 4. D1 Phase Detector product review
 
-***REMOVED******REMOVED******REMOVED*** 4.1 ML perspective
+### 4.1 ML perspective
 
 **Distribution.** The brief said "linear_quasi_equilibrium 30% (too much linear suggests LLM bias)." Actual distribution from `phase/data/companies_struct.jsonl` (n=204):
 
@@ -146,7 +146,7 @@ This is *more balanced than the brief described* — the top class is 10% of 204
 
 None of these are in the repo.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Engineering perspective
+### 4.2 Engineering perspective
 
 **FastAPI + SQLite (or JSONL?) at 204 companies is fine** — `phase/code/screener_backend.py` uses a JSONL file with a module-level cache (`_companies_cache`, line 56). At 204 rows in-memory this is trivial. The scaling break-point is somewhere around 10K-100K companies when the global-cache pattern (no concurrency safety, no eviction) becomes a memory burden. The natural migration is SQLite → Postgres + an indexed `dynamics_family` column. The brief mentioned Postgres ingestion in W3-B; I see references to that in commit log but no Postgres schema in the working tree.
 
@@ -154,7 +154,7 @@ None of these are in the repo.
 
 **W4-D deploy architecture** (uvicorn + Next.js + nginx + SSL) at `phase.bytedance.city` is appropriate for the scale. Production hardening missing: no rate limiting on `/phase/api/screen`, no caching layer in front of FastAPI, no obvious metric/log emission for SLO tracking. For a research-grade demo that is acceptable; for "production grade" it is not.
 
-***REMOVED******REMOVED*** 5. C4 reject-aware paper evaluation
+## 5. C4 reject-aware paper evaluation
 
 **Novelty.** The "LLM-as-judge ensemble for taxonomy adjudication" is *not* novel in 2026 — Zheng et al. 2023 *MT-Bench* is the canonical reference for LLM-as-judge, and Chen et al. 2024 *LLM-Blender* is the canonical reference for LLM-ensemble aggregation. The paper cites neither. Wei et al. 2024 (reference [32] in the paper, listed as "An empirical analysis of LLM ensemble methods for technical reasoning tasks") appears to be a placeholder citation (the arXiv id is `arXiv:2402.xxxxx` — a placeholder, not a real id). A reviewer will run the placeholder citation through Google Scholar in 30 seconds and find the gap.
 
@@ -176,7 +176,7 @@ The *specific* novel contribution — applying multi-model LLM critic to cross-d
 - **NeurIPS Workshop (e.g., AutoML / Foundation Models / SafetyML)**: best near-term fit while the cross-vendor B4 work catches up.
 - **arXiv stat.ML / cs.CL preprint**: should be done now; the work as-is is a defensible preprint regardless of the conference outcome.
 
-***REMOVED******REMOVED*** 6. F2 active learning evaluation
+## 6. F2 active learning evaluation
 
 Re-reading the actual `simulation_report.md` numbers vs the brief:
 
@@ -197,7 +197,7 @@ Brief reported Silhouette 0.032 → 0.040 (+25%). Actual is 0.032 → 0.037 (+12
 
 **Expected V1/V2 real fine-tune outcome:** Hard to predict from TF-IDF. Sentence-transformer fine-tunes with `MultipleNegativesRankingLoss` on n=80 cross-domain pairs typically show R@5 deltas of +0.05-0.15 in published embedding work (Reimers & Gurevych 2019; sbert.net training reports). With the F2 mined pair count (29 positives, 51 hard-negatives), a real fine-tune would likely show *some* R@5 lift, but whether it is large enough to be detectable on n_eval=15 is anyone's guess. The right protocol is to scale n_eval to ≥100 by holding out more pairs from the start.
 
-***REMOVED******REMOVED*** 7. The "real research vs LLM fluff" line
+## 7. The "real research vs LLM fluff" line
 
 Breakdown of the project, honestly:
 
@@ -220,7 +220,7 @@ This is a defensible mix for a 2026 individual-researcher project. The honest fr
 2. The F2 simulation report numbers are reproducible (random.Random(42) seeded; sklearn.TfidfVectorizer is deterministic).
 3. The empirical validation phases in `validation/` (earthquake, solar, neural, defi, etc.) are reproducible from public datasets.
 
-***REMOVED******REMOVED*** 8. Most risky claims (reviewer-bait, in order)
+## 8. Most risky claims (reviewer-bait, in order)
 
 1. **"Multi-model ensembles materially raise the rejection rate over single-model critics"** (paper §1, claim 1) — true on the 21-class panel, but the ensemble is same-vendor and the paper itself §5.5 admits the architectural-variance claim is unsupported. *Hedge to*: "Within-vendor 3-reviewer ensembles raise the rejection rate from 14% (1 reviewer) to 33% (3 reviewers, plurality vote) on a 21-class panel; cross-vendor generalization is future work."
 
@@ -232,7 +232,7 @@ This is a defensible mix for a 2026 individual-researcher project. The honest fr
 
 5. **D1 Phase Detector's dynamics-family extractions are accurate** (implied by the screener product framing) — no ground-truth validation exists. A user querying "show me all Hopf bifurcation companies" gets 5 hits (2% of 204), but there is no guarantee those 5 are correct. *Suggested fix*: ship the screener with a "confidence" filter and a "this is alpha; assignments are LLM-extracted and unverified" disclaimer.
 
-***REMOVED******REMOVED*** 9. Engineering improvements (prioritised)
+## 9. Engineering improvements (prioritised)
 
 **P0 (security / blocking for any public release):**
 1. Move `DEEPSEEK_KEY` out of `v4/scripts/b3_ensemble.py:48` to environment variable. Rotate the key. Scrub history with `git filter-repo` or `bfg-repo-cleaner` before going public.
@@ -256,7 +256,7 @@ This is a defensible mix for a 2026 individual-researcher project. The honest fr
 13. Add adversarial fuzz testing for `llm_guardrail.state_machine_fix` — feed adversarial inputs and assert the fixer never makes parseable JSON unparseable.
 14. Consolidate the two JSON extractors in `b3_ensemble.py:extract_json` and `llm_guardrail._strip_fences_and_locate` — divergent implementations of the same logic.
 
-***REMOVED******REMOVED*** 10. Final score (each /10)
+## 10. Final score (each /10)
 
 - **Architecture**: **7/10**. 5-layer pipeline with clean artefact contracts; over-claimed methodological diversification at Layer 2; no ablation on layer ordering.
 - **Code quality**: **7/10**. `llm_guardrail.py` and `embedding_bridge.py` are library-quality; `b3_ensemble.py` is solid except hardcoded API key; repo has mixed v3/v4/v4-feasibility organization that hurts orientability.

@@ -1,4 +1,4 @@
-***REMOVED*** Changelog
+# Changelog
 
 All notable changes to **structural-isomorphism** are documented here.
 
@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-***REMOVED******REMOVED*** [Unreleased]
+## [Unreleased]
 
 - arXiv submission (5 papers, awaiting user account)
 - PyPI publish (3 packages, awaiting `PYPI_TOKEN`)
@@ -20,15 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-***REMOVED******REMOVED*** [0.4.0] — 2026-05-15 (Session ***REMOVED***10 Closeout)
+## [0.4.0] — 2026-05-15 (Session #10 Closeout)
 
-Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes: paper / dataset / PyPI publishing readiness, community launch infrastructure, full UX polish, a11y AA compliance, perf budget enforcement, and honest pivot from "alpha screener" to "structured research narrative" positioning based on the 1000-ticker NULL backtest result.
+Session #10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes: paper / dataset / PyPI publishing readiness, community launch infrastructure, full UX polish, a11y AA compliance, perf budget enforcement, and honest pivot from "alpha screener" to "structured research narrative" positioning based on the 1000-ticker NULL backtest result.
 
-***REMOVED******REMOVED******REMOVED*** Added
+### Added
 
 - **3 new universality classes** (W11-E): fractional Brownian motion (fBm), Anderson localization, Preisach hysteresis
 - **2 new datasets** (W11-E): solar wind speed time series, GitHub repository star cascades
-- **5 new papers** ready for arXiv submission (W6-B figures + W7-A/B/C/D/E paper batch + W2-C from session ***REMOVED***9):
+- **5 new papers** ready for arXiv submission (W6-B figures + W7-A/B/C/D/E paper batch + W2-C from session #9):
   - C1 anti-p-hacking adversarial pre-registration unified
   - C4 reject-aware pipeline v0.2 (Patterns target)
   - D1 block-bootstrap EWS methodology
@@ -45,7 +45,7 @@ Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes:
 - **1000-ticker walk-forward backtest engine v0.1** (W10-A) — produced NULL result (t=-0.412, p=0.681), now publicly displayed as trust signal
 - **i18n zh-CN translations** (W11-B): README + landing + docs + lang switcher
 - **`/compare` multi-company comparison page** + **`/universality` analogue explorer** (W10-E)
-- **Newsletter pipeline + issue ***REMOVED***001** (W9-C + W10-D): weekly newsletter MJML template + archive page + CI
+- **Newsletter pipeline + issue #001** (W9-C + W10-D): weekly newsletter MJML template + archive page + CI
 - **Discord server scaffold + COC enforcement playbook** (W9-E)
 - **NumFOCUS Fiscal Sponsorship application draft** + governance v2 + security policy (W9-B)
 - **15 good-first-issue drafts + GitHub issues opened** (W9-A)
@@ -65,7 +65,7 @@ Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes:
 - **C4 paper 5 figures** (W6-B) + reproducible `generate.py` script
 - **`/company/[ticker]` detail page** polished from 3.4 → 9/10 (W6-C)
 
-***REMOVED******REMOVED******REMOVED*** Changed
+### Changed
 
 - **README rewrite** for OSS public-readiness (W6-E): removed internal jargon, added badges, contributor guide pointer, dedup universality phenomena list
 - **C4 paper v0.2** (W7-B): vendor-confound disclosure added, Patterns submission-ready
@@ -73,27 +73,27 @@ Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes:
 - **Pipeline architecture**: 5→3 layer compression after refactor (orchestrator → validators → publishers)
 - **Product positioning**: "alpha screener" → "structured research narrative" based on 1000-ticker NULL backtest (W10-A + W12-B + W10-C copy)
 - **Landing redesign v2** (W10-C): hero transparency banner front-and-center, NULL backtest as trust signal
-- **react-query default sync ON** (session ***REMOVED***9 carryover): history remote sync now opt-out instead of opt-in
+- **react-query default sync ON** (session #9 carryover): history remote sync now opt-out instead of opt-in
 - **next/font self-host** (W3-B carryover): zero Google Fonts cross-origin requests on phase-detector
 
-***REMOVED******REMOVED******REMOVED*** Fixed
+### Fixed
 
 - **0 critical/serious WCAG AA/AAA a11y violations** (W12-A): full audit + fixes across 10 pages
 - **0 console errors** in production (W14-A integration e2e gate)
-- **0 commit-boundary violations** across 40+ sub-agents in session ***REMOVED***10 (manual worktree enforcement)
+- **0 commit-boundary violations** across 40+ sub-agents in session #10 (manual worktree enforcement)
 - **F1-F5 statistical concerns** addressed (W7-D): multiple-testing correction + vendor confound disclosure + r_shape combinatorial artifact
 - **r_shape combinatorial artifact** corrected — recomputed all v4 results with bias-free formulation (W7-D)
-- **CompanyCard not clickable** (W4-B session ***REMOVED***9 carry-over, surfaced by W3-A real-env e2e)
-- **Newsletter form 'submitting' state stuck** (W4-C session ***REMOVED***9 carry-over)
-- **discoveries mobile CLS 0.485 → 0.0** (W4-A session ***REMOVED***9 carry-over, CJK font subset fix)
+- **CompanyCard not clickable** (W4-B session #9 carry-over, surfaced by W3-A real-env e2e)
+- **Newsletter form 'submitting' state stuck** (W4-C session #9 carry-over)
+- **discoveries mobile CLS 0.485 → 0.0** (W4-A session #9 carry-over, CJK font subset fix)
 - **Search index stale across deploy** (W13-E): rebuild now precedes Next.js build in CI pipeline
-- **Layout.tsx sibling-PR conflicts** during W11-B + W13-A: resolved via cherry-pick onto current main pattern (lesson documented in session ***REMOVED***10 quirks ***REMOVED***3)
+- **Layout.tsx sibling-PR conflicts** during W11-B + W13-A: resolved via cherry-pick onto current main pattern (lesson documented in session #10 quirks #3)
 
-***REMOVED******REMOVED******REMOVED*** Deprecated
+### Deprecated
 
 - (None yet. Will revisit at v0.5 — likely candidates: legacy `/analyze` alias, v0/v1 result formats.)
 
-***REMOVED******REMOVED******REMOVED*** Performance
+### Performance
 
 - **CLS (Cumulative Layout Shift)**: 0.58 → **0.0** across all 10 pages (W4-A + W12-A + W13-B)
 - **/backtest First Load JS**: **-52%** (route segment splitting + dynamic imports, W13-B)
@@ -102,7 +102,7 @@ Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes:
 - **First Load JS budget**: 200KB CI gate enforced (W13-B)
 - **Search palette**: <50ms client-side query latency (W13-E flexsearch)
 
-***REMOVED******REMOVED******REMOVED*** Security
+### Security
 
 - **API rate limit** with RFC7807 problem-details errors (W11-C)
 - **API-key auth scaffold** ready for prod activation (W11-C)
@@ -110,20 +110,20 @@ Session ***REMOVED***10 shipped 9 waves (W6-W14) totaling ~45 PRs. Major themes:
 - **CSP headers** tightened (W12-B SEO polish carry-over)
 - **GDPR DSAR endpoint** (W14-C): data subject access request handler
 
-***REMOVED******REMOVED******REMOVED*** Infrastructure
+### Infrastructure
 
 - **mkdocs GH Pages deploy CI** (W8-D)
 - **Storybook GH Pages deploy CI** (W13-D)
 - **Perf budget CI gate** (W13-B): Lighthouse + bundle size enforced
 - **Coverage CI gate** (W11-A): critical modules ≥90%
 - **k6 load test baseline** (W14-B)
-- **Model v2 deployed to prod** via VPS rsync (W5-C session ***REMOVED***9, stable throughout session ***REMOVED***10)
+- **Model v2 deployed to prod** via VPS rsync (W5-C session #9, stable throughout session #10)
 
 ---
 
-***REMOVED******REMOVED*** [0.3.x] — Session ***REMOVED***9 (2026-05-14)
+## [0.3.x] — Session #9 (2026-05-14)
 
-See `docs/sessions/SESSION-10-HANDOFF.md` for full session ***REMOVED***9 inventory (15-19 PR merged, 4 waves W1-W4, +1 W5 closeout):
+See `docs/sessions/SESSION-10-HANDOFF.md` for full session #9 inventory (15-19 PR merged, 4 waves W1-W4, +1 W5 closeout):
 
 - anti-p-hacking adversarial pre-registration unified paper (358 lines, 6445 words)
 - deploy infra 防灾 三件套 (W2-F): `scripts/deploy-vps.sh`, `scripts/restore-models.sh`, `docs/deployment/DEPLOY.md`
@@ -141,9 +141,9 @@ See `docs/sessions/SESSION-10-HANDOFF.md` for full session ***REMOVED***9 invent
 
 ---
 
-***REMOVED******REMOVED*** [0.2.x] — Session ***REMOVED***8 (2026-05-13/14)
+## [0.2.x] — Session #8 (2026-05-13/14)
 
-See `docs/sessions/SESSION-9-HANDOFF.md` for full session ***REMOVED***8 inventory:
+See `docs/sessions/SESSION-9-HANDOFF.md` for full session #8 inventory:
 
 - Phase-detector `/backtest` transparency page with walk-forward NULL result
 - B4 deepseek 3-model heterogeneous ensemble (replaces OpenRouter Kimi)
@@ -157,15 +157,15 @@ See `docs/sessions/SESSION-9-HANDOFF.md` for full session ***REMOVED***8 invento
 
 ---
 
-***REMOVED******REMOVED*** [0.1.x] — Sessions ***REMOVED***1-***REMOVED***7
+## [0.1.x] — Sessions #1-#7
 
-Initial structural-isomorphism v4 universality classifier, phase-detector v0.1 prod deployment, S6 dogfooding stress test (29399-word 《赡养人类》 → 12 P1 backlog + 8000-char cap discovery), session ***REMOVED***7 5-direction ship + Perplexity-like SSE 7-event live, v0.4.0 dev tag.
+Initial structural-isomorphism v4 universality classifier, phase-detector v0.1 prod deployment, S6 dogfooding stress test (29399-word 《赡养人类》 → 12 P1 backlog + 8000-char cap discovery), session #7 5-direction ship + Perplexity-like SSE 7-event live, v0.4.0 dev tag.
 
 See `docs/sessions/structural-iso-session-{1,2,3}-end.md` + `docs/sessions/SESSION-{4,5,6,7,8}-{STARTER,end,HANDOFF}.md` for full historical record.
 
 ---
 
-***REMOVED******REMOVED*** Versioning Policy
+## Versioning Policy
 
 - **MAJOR** version (`1.x.x`): public OSS launch (after PyPI publish + PUBLIC flip + arXiv submit)
 - **MINOR** version (`0.X.x`): per session closeout (each session = 1 minor version)
@@ -175,13 +175,13 @@ Pre-1.0, the API is considered unstable. Breaking changes may occur at any minor
 
 ---
 
-***REMOVED******REMOVED*** Tagging Procedure
+## Tagging Procedure
 
 After session closeout, tag with annotated tag:
 
 ```bash
 git checkout main && git pull origin main
-git tag -a v<MAJOR>.<MINOR>.0 -m "Release v<MAJOR>.<MINOR>.0 — session ***REMOVED***<N> closeout: <summary>"
+git tag -a v<MAJOR>.<MINOR>.0 -m "Release v<MAJOR>.<MINOR>.0 — session #<N> closeout: <summary>"
 git push origin v<MAJOR>.<MINOR>.0
 gh release create v<MAJOR>.<MINOR>.0 --title "v<MAJOR>.<MINOR>.0" --notes-from-tag
 ```

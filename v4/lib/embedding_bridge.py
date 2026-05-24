@@ -48,7 +48,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** ---------- repo paths (resolved relative to this file) ----------
+# ---------- repo paths (resolved relative to this file) ----------
 _THIS = Path(__file__).resolve()
 REPO = _THIS.parents[2]
 DEFAULT_KB_FILE = REPO / "data" / "kb-5000-merged.jsonl"
@@ -67,7 +67,7 @@ class Neighbor:
     name: str
     domain: str
     description: str
-    similarity: float  ***REMOVED*** cosine, in [-1, 1] after L2 normalisation
+    similarity: float  # cosine, in [-1, 1] after L2 normalisation
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -117,7 +117,7 @@ class EmbeddingBridge:
       - V1 cache is already L2-normalized; V2 is not, we normalize on load.
 
     Example:
-        >>> bridge = EmbeddingBridge()              ***REMOVED*** auto-pick mode
+        >>> bridge = EmbeddingBridge()              # auto-pick mode
         >>> phen = {"description": "..."}
         >>> bridge.suggest_neighbors(phen, k=5)
         [Neighbor(...), ...]
@@ -141,7 +141,7 @@ class EmbeddingBridge:
         self.version = version
         self.fallback_mode = fallback_mode
 
-        ***REMOVED*** --- resolve cache paths -----------------------------------------
+        # --- resolve cache paths -----------------------------------------
         if version == "v1":
             self._npy_path = Path(npy_file or DEFAULT_V1_NPY)
             self._ids_path = Path(ids_file or DEFAULT_V1_IDS)
@@ -150,7 +150,7 @@ class EmbeddingBridge:
             self._ids_path = Path(ids_file or DEFAULT_V2_IDS)
         self._kb_path = Path(kb_file or DEFAULT_KB_FILE)
 
-        ***REMOVED*** --- load cache --------------------------------------------------
+        # --- load cache --------------------------------------------------
         if not self._npy_path.exists():
             raise FileNotFoundError(
                 f"Embedding cache not found at {self._npy_path}. "
@@ -169,7 +169,7 @@ class EmbeddingBridge:
                 f"count ({len(self._ids)})"
             )
 
-        ***REMOVED*** Normalize V2 (V1 is already normalized but we re-normalize defensively)
+        # Normalize V2 (V1 is already normalized but we re-normalize defensively)
         self._emb = _l2_normalize(self._emb).astype(np.float32)
         self._id_to_idx: dict[str, int] = {i: k for k, i in enumerate(self._ids)}
         logger.info(
@@ -180,7 +180,7 @@ class EmbeddingBridge:
             self._npy_path.name,
         )
 
-        ***REMOVED*** --- load KB metadata for nice neighbour rendering ---------------
+        # --- load KB metadata for nice neighbour rendering ---------------
         if not self._kb_path.exists():
             raise FileNotFoundError(f"KB file not found at {self._kb_path}")
         self._kb_by_id: dict[str, dict[str, Any]] = {}
@@ -190,7 +190,7 @@ class EmbeddingBridge:
                 self._kb_by_id[iid] = item
         logger.info("Loaded %d KB items from %s", len(self._kb_by_id), self._kb_path.name)
 
-        ***REMOVED*** --- decide encode strategy --------------------------------------
+        # --- decide encode strategy --------------------------------------
         self._real_model = None
         self._tfidf_vectorizer = None
         self._tfidf_matrix = None
@@ -198,18 +198,18 @@ class EmbeddingBridge:
         self._mode: str = "uninitialized"
 
         if model_path is None:
-            ***REMOVED*** auto-detect default location
+            # auto-detect default location
             if DEFAULT_MODEL_DIR.exists():
                 model_path = str(DEFAULT_MODEL_DIR)
 
         if model_path and Path(model_path).exists():
             try:
-                from sentence_transformers import SentenceTransformer  ***REMOVED*** noqa: WPS433
+                from sentence_transformers import SentenceTransformer  # noqa: WPS433
 
                 self._real_model = SentenceTransformer(model_path)
                 self._mode = "real_model"
                 logger.info("Real V1/V2 model loaded from %s", model_path)
-            except Exception as e:  ***REMOVED*** pragma: no cover - depends on env
+            except Exception as e:  # pragma: no cover - depends on env
                 logger.warning(
                     "Failed to load real model at %s (%s); falling back to %s",
                     model_path,
@@ -226,9 +226,9 @@ class EmbeddingBridge:
                     f"Real model unavailable and unknown fallback_mode={fallback_mode!r}"
                 )
 
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** public properties
-    ***REMOVED*** ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # public properties
+    # ------------------------------------------------------------------
     @property
     def mode(self) -> str:
         """Either 'real_model' or 'tfidf'."""
@@ -238,9 +238,9 @@ class EmbeddingBridge:
     def num_phenomena(self) -> int:
         return self._emb.shape[0]
 
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** core encoding
-    ***REMOVED*** ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # core encoding
+    # ------------------------------------------------------------------
     def _fit_tfidf(self) -> None:
         """Fit a TF-IDF vectorizer over the KB descriptions.
 
@@ -249,7 +249,7 @@ class EmbeddingBridge:
         overlap, not semantic similarity. Use real V1/V2 model on VPS for prod.
         """
         try:
-            from sklearn.feature_extraction.text import TfidfVectorizer  ***REMOVED*** noqa: WPS433
+            from sklearn.feature_extraction.text import TfidfVectorizer  # noqa: WPS433
         except ImportError as e:
             raise RuntimeError(
                 "scikit-learn is required for tfidf fallback. "
@@ -263,9 +263,9 @@ class EmbeddingBridge:
             if item and item.get("description"):
                 descriptions.append(item["description"])
                 ids.append(iid)
-        ***REMOVED*** If KB description coverage is incomplete, still keep order aligned
-        ***REMOVED*** to whatever subset we have. For a full KB (4475/4443) coverage should
-        ***REMOVED*** be complete, so this is a defensive branch only.
+        # If KB description coverage is incomplete, still keep order aligned
+        # to whatever subset we have. For a full KB (4475/4443) coverage should
+        # be complete, so this is a defensive branch only.
         self._tfidf_ids = ids
         self._tfidf_vectorizer = TfidfVectorizer(
             analyzer="char_wb",
@@ -310,9 +310,9 @@ class EmbeddingBridge:
         assert self._tfidf_vectorizer is not None
         assert self._tfidf_matrix is not None
         qv = self._tfidf_vectorizer.transform([text])
-        ***REMOVED*** cosine sim = qv . X^T (both L2-normalised by TfidfVectorizer with
-        ***REMOVED*** sublinear_tf=True + ngram char_wb; we re-normalise to be safe)
-        from sklearn.preprocessing import normalize  ***REMOVED*** noqa: WPS433
+        # cosine sim = qv . X^T (both L2-normalised by TfidfVectorizer with
+        # sublinear_tf=True + ngram char_wb; we re-normalise to be safe)
+        from sklearn.preprocessing import normalize  # noqa: WPS433
 
         qv_n = normalize(qv, norm="l2", axis=1)
         mat_n = normalize(self._tfidf_matrix, norm="l2", axis=1)
@@ -326,9 +326,9 @@ class EmbeddingBridge:
                 out.append((kb_idx, float(scores[ti])))
         return out
 
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** public API
-    ***REMOVED*** ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # public API
+    # ------------------------------------------------------------------
     def suggest_neighbors(
         self,
         phenomenon: dict[str, Any] | str,
@@ -360,23 +360,23 @@ class EmbeddingBridge:
             if own_id:
                 excludes.add(own_id)
 
-        ***REMOVED*** Path 1: real model -> direct cosine in V1/V2 space
+        # Path 1: real model -> direct cosine in V1/V2 space
         qvec = self._encode_query_to_v_space(text)
         if qvec is not None:
-            scores = self._emb @ qvec  ***REMOVED*** (N,)
+            scores = self._emb @ qvec  # (N,)
             order = np.argsort(-scores)
             return self._collect(order, scores, k, excludes)
 
-        ***REMOVED*** Path 2: tfidf proxy -> use V1/V2 cache of tfidf-nearest items as
-        ***REMOVED*** the candidate pool, then re-rank inside that pool by V1/V2 cosine
-        ***REMOVED*** against the *centroid of those candidates* (a poor man's pseudo-
-        ***REMOVED*** query in V-space). This keeps results within the trained latent
-        ***REMOVED*** geometry while still working without the model.
+        # Path 2: tfidf proxy -> use V1/V2 cache of tfidf-nearest items as
+        # the candidate pool, then re-rank inside that pool by V1/V2 cosine
+        # against the *centroid of those candidates* (a poor man's pseudo-
+        # query in V-space). This keeps results within the trained latent
+        # geometry while still working without the model.
         proxy = self._tfidf_proxy_neighbors(text, k_tfidf=max(20, k * 4))
         if not proxy:
             return []
         proxy_idx = [i for i, _ in proxy]
-        pool_emb = self._emb[proxy_idx]  ***REMOVED*** (m, d)
+        pool_emb = self._emb[proxy_idx]  # (m, d)
         centroid = _l2_normalize(pool_emb.mean(axis=0))
         scores_full = self._emb @ centroid
         order = np.argsort(-scores_full)
@@ -420,9 +420,9 @@ class EmbeddingBridge:
             )
             return []
 
-        ***REMOVED*** Build exclude set: ids whose description matches any positive_example
-        ***REMOVED*** or negative_example. Cheap substring matching because positives are
-        ***REMOVED*** usually short phrases not full descriptions.
+        # Build exclude set: ids whose description matches any positive_example
+        # or negative_example. Cheap substring matching because positives are
+        # usually short phrases not full descriptions.
         excludes: set[str] = set()
         neg_names: list[str] = []
         for ex in class_yaml.get("negative_examples", []) or []:
@@ -438,14 +438,14 @@ class EmbeddingBridge:
                     excludes.add(iid)
                     break
 
-        ***REMOVED*** Centroid of positive descriptions in V1/V2 space.
+        # Centroid of positive descriptions in V1/V2 space.
         seed_vecs: list[np.ndarray] = []
         for t in positives:
             v = self._encode_query_to_v_space(t)
             if v is not None:
                 seed_vecs.append(v)
             else:
-                ***REMOVED*** tfidf path: use centroid of tfidf-proxy pool as proxy vector
+                # tfidf path: use centroid of tfidf-proxy pool as proxy vector
                 proxy = self._tfidf_proxy_neighbors(t, k_tfidf=per_seed_k * 2)
                 if proxy:
                     pool = self._emb[[i for i, _ in proxy]]
@@ -457,9 +457,9 @@ class EmbeddingBridge:
         order = np.argsort(-scores)
         return self._collect(order, scores, k, excludes)
 
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** helpers
-    ***REMOVED*** ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # helpers
+    # ------------------------------------------------------------------
     def _extract_text(self, phenomenon: dict[str, Any] | str) -> str:
         if isinstance(phenomenon, str):
             return phenomenon

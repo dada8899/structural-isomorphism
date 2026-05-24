@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Pre-reg P2 — Clauset 2009 power-law fit on Reddit cascade sizes.
 
 Imports the FROZEN pipeline from `soc_pipeline` package; does not modify it.
@@ -47,7 +47,7 @@ def main():
     print(f"[load] n_cascades={len(sizes)} median={int(np.median(sizes))} "
           f"max={int(sizes.max())} mean={sizes.mean():.1f}")
 
-    ***REMOVED*** Cascade sizes are integer counts — use discrete fit
+    # Cascade sizes are integer counts — use discrete fit
     fit = fit_clauset_powerlaw(sizes, name="P2_reddit_cascade_sizes", discrete=True)
     print(f"[fit] alpha={fit.alpha} xmin={fit.xmin} sigma={fit.sigma} "
           f"n_tail={fit.n_tail} ks={fit.ks_statistic}")

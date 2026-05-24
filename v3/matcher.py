@@ -7,11 +7,11 @@ from itertools import combinations
 
 V3_DIR = Path(__file__).parent
 
-***REMOVED*** Dynamics family similarity matrix — related families are not identical but close
-***REMOVED*** Specificity weight per family: catch-all families get downweighted to avoid
-***REMOVED*** dominating the top because they include too many phenomena.
+# Dynamics family similarity matrix — related families are not identical but close
+# Specificity weight per family: catch-all families get downweighted to avoid
+# dominating the top because they include too many phenomena.
 FAMILY_SPECIFICITY = {
-    ***REMOVED*** Generic catch-alls (logistic/saturating = most common dynamics)
+    # Generic catch-alls (logistic/saturating = most common dynamics)
     "ODE1_saturating": 0.4,
     "ODE1_linear": 0.4,
     "ODE1_exponential_growth": 0.6,
@@ -21,7 +21,7 @@ FAMILY_SPECIFICITY = {
     "Random_walk": 0.6,
     "Unknown": 0.0,
 }
-***REMOVED*** All other specific families get specificity 1.0
+# All other specific families get specificity 1.0
 
 
 def family_specificity(family: str) -> float:
@@ -29,7 +29,7 @@ def family_specificity(family: str) -> float:
 
 
 DYNAMICS_SIMILARITY = {
-    ***REMOVED*** Groups of closely related families (mutual similarity 0.7 if not identical)
+    # Groups of closely related families (mutual similarity 0.7 if not identical)
     "ode1_group": {
         "ODE1_linear", "ODE1_exponential_growth", "ODE1_exponential_decay",
         "ODE1_logistic", "ODE1_saturating",
@@ -88,9 +88,9 @@ def timescale_sim(a, b):
     ta = a.get("timescale_log10_s")
     tb = b.get("timescale_log10_s")
     if ta is None or tb is None:
-        return 0.5  ***REMOVED*** unknown - neutral
+        return 0.5  # unknown - neutral
     diff = abs(ta - tb)
-    ***REMOVED*** Exp decay: same scale=1.0, 3 orders diff=0.5, 6 orders diff=0.25
+    # Exp decay: same scale=1.0, 3 orders diff=0.5, 6 orders diff=0.25
     return 2 ** (-diff / 3)
 
 
@@ -116,7 +116,7 @@ def equation_quality(item) -> float:
 
 def score_pair(a, b):
     """Return (score, components) for a StructTuple pair."""
-    ***REMOVED*** Skip same-domain pairs (not cross-domain)
+    # Skip same-domain pairs (not cross-domain)
     if a.get("domain") == b.get("domain"):
         return -1.0, {"reason": "same_domain"}
 
@@ -124,21 +124,21 @@ def score_pair(a, b):
     fam_b = b.get("dynamics_family", "")
     ds = dynamics_sim(fam_a, fam_b)
     if ds == 0.0:
-        ***REMOVED*** hard gate: no dynamics overlap → cannot be same family
+        # hard gate: no dynamics overlap → cannot be same family
         return 0.0, {"reason": "dynamics_mismatch", "dynamics_sim": 0.0}
 
-    ***REMOVED*** Hard timescale gating: reject if scales differ by more than 8 orders of magnitude
-    ***REMOVED*** EXCEPT for PDE families — diffusion/wave math is scale-invariant (same equation
-    ***REMOVED*** whether electrons in ns or water in years). Only apply gate to ODE/DDE/Markov etc.
+    # Hard timescale gating: reject if scales differ by more than 8 orders of magnitude
+    # EXCEPT for PDE families — diffusion/wave math is scale-invariant (same equation
+    # whether electrons in ns or water in years). Only apply gate to ODE/DDE/Markov etc.
     is_pde_family = fam_a.startswith("PDE_") and fam_b.startswith("PDE_")
     if not is_pde_family and timescale_gap_reject(a, b):
         return 0.0, {"reason": "timescale_gap", "dynamics_sim": ds}
 
-    ***REMOVED*** Specificity: catch-all families (ODE1_saturating etc.) get downweighted
+    # Specificity: catch-all families (ODE1_saturating etc.) get downweighted
     spec = min(family_specificity(fam_a), family_specificity(fam_b))
 
-    ***REMOVED*** Equation quality: families requiring quantitative equations (DDE, PDE, ODE2)
-    ***REMOVED*** get penalty if one side lacks canonical_equation
+    # Equation quality: families requiring quantitative equations (DDE, PDE, ODE2)
+    # get penalty if one side lacks canonical_equation
     eq_sensitive = fam_a.startswith(("DDE_", "PDE_", "ODE2_"))
     if eq_sensitive:
         eq_quality = min(equation_quality(a), equation_quality(b))
@@ -151,7 +151,7 @@ def score_pair(a, b):
     bb = field_match(a, b, "boundary_behavior")
     ts = timescale_sim(a, b)
 
-    ***REMOVED*** weighted score: dynamics (specificity-adjusted) dominates, others modulate
+    # weighted score: dynamics (specificity-adjusted) dominates, others modulate
     score = 0.55 * ds_weighted + 0.15 * fb + 0.15 * bb + 0.15 * ts
     return score, {
         "dynamics_sim": ds,

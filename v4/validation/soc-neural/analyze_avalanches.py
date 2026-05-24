@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 4 — Step 2: Fit Beggs-Plenz SOC exponents on avalanche data.
 
@@ -73,7 +73,7 @@ def mean_size_given_duration(sizes, durations):
     mean_s = []
     for T in T_unique:
         mask = (durations == T)
-        if mask.sum() < 30:    ***REMOVED*** need decent stats per bin
+        if mask.sum() < 30:    # need decent stats per bin
             continue
         T_bins.append(T)
         mean_s.append(sizes[mask].mean())
@@ -81,7 +81,7 @@ def mean_size_given_duration(sizes, durations):
         return {"error": f"too few T bins with enough stats"}
     T_bins = np.array(T_bins, dtype=float)
     mean_s = np.array(mean_s, dtype=float)
-    ***REMOVED*** log-log linear fit mean_s = A * T^gamma
+    # log-log linear fit mean_s = A * T^gamma
     mask = (T_bins > 0) & (mean_s > 0)
     x = np.log10(T_bins[mask])
     y = np.log10(mean_s[mask])
@@ -90,7 +90,7 @@ def mean_size_given_duration(sizes, durations):
     ss_res = np.sum((y - pred) ** 2)
     ss_tot = np.sum((y - y.mean()) ** 2)
     r2 = 1 - ss_res / ss_tot if ss_tot > 0 else None
-    ***REMOVED*** sigma of slope
+    # sigma of slope
     n = len(x)
     mse = ss_res / max(n - 2, 1)
     var_slope = mse / np.sum((x - x.mean()) ** 2)
@@ -140,9 +140,9 @@ def main():
     else:
         print(f"  {rel.get('error')}")
 
-    ***REMOVED*** Predicted values (mean-field SOC / Beggs-Plenz)
-    ***REMOVED*** Scaling relation: <s|T> ∝ T^gamma where gamma = (alpha_dur - 1)/(tau - 1)
-    ***REMOVED*** For MF: gamma = (2-1)/(1.5-1) = 1/0.5 = 2.0
+    # Predicted values (mean-field SOC / Beggs-Plenz)
+    # Scaling relation: <s|T> ∝ T^gamma where gamma = (alpha_dur - 1)/(tau - 1)
+    # For MF: gamma = (2-1)/(1.5-1) = 1/0.5 = 2.0
     predicted = {
         "tau_size": 1.5,
         "alpha_duration": 2.0,

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Generate a weekly newsletter markdown file (W9-C).
 
 Sibling-script to scripts/newsletter/send_weekly.py:
@@ -27,11 +27,11 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-***REMOVED*** Allow `python scripts/generate-newsletter.py` from anywhere — add this
-***REMOVED*** script's directory to sys.path so `newsletter_data_sources` resolves.
+# Allow `python scripts/generate-newsletter.py` from anywhere — add this
+# script's directory to sys.path so `newsletter_data_sources` resolves.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from newsletter_data_sources import (  ***REMOVED*** noqa: E402
+from newsletter_data_sources import (  # noqa: E402
     all_spotlight_slugs,
     fetch_arxiv_papers,
     fetch_github_activity,
@@ -46,9 +46,9 @@ DEFAULT_TEMPLATE = REPO_ROOT / "docs" / "community" / "newsletters" / "template.
 logger = logging.getLogger("newsletter.generate")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Week-label parsing
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Week-label parsing
+# ---------------------------------------------------------------------------
 
 _WEEK_RE = re.compile(r"^(\d{4})-W(\d{1,2})$")
 
@@ -63,16 +63,16 @@ def parse_iso_week(week_label: str) -> dt.date:
     year, week = int(m.group(1)), int(m.group(2))
     if not (1 <= week <= 53):
         raise ValueError(f"ISO week must be 1..53; got {week}")
-    ***REMOVED*** Python 3.8+ supports date.fromisocalendar
+    # Python 3.8+ supports date.fromisocalendar
     try:
         return dt.date.fromisocalendar(year, week, 1)
     except ValueError as e:
         raise ValueError(f"invalid ISO week {week_label}: {e}") from e
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Rendering
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Rendering
+# ---------------------------------------------------------------------------
 
 def render_phase_flips_section(flips: list[dict[str, Any]]) -> str:
     if not flips:
@@ -187,9 +187,9 @@ def render(
     return re.sub(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}", _replace, template_text)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLI
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
@@ -279,7 +279,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     logger.info("generating newsletter for %s (week starts %s)", args.week, week_start)
 
-    ***REMOVED*** --- Fetch each data source ---
+    # --- Fetch each data source ---
     flips = fetch_phase_flips(
         api_url=(args.phase_api_url if args.phase_source == "api" else None),
     )
@@ -310,7 +310,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     ask_queries = fetch_top_ask_queries(week_start=week_start)
 
-    ***REMOVED*** --- Render ---
+    # --- Render ---
     if not args.template.exists():
         logger.error("template not found: %s", args.template)
         return 2
@@ -327,7 +327,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         ask_queries=ask_queries,
     )
 
-    ***REMOVED*** --- Emit ---
+    # --- Emit ---
     if args.dry_run or args.out is None:
         sys.stdout.write(output)
         sys.stdout.flush()

@@ -1,6 +1,6 @@
 """GET /api/privacy/export — GDPR data subject access (DSAR) endpoint.
 
-W14-C (session ***REMOVED***10, 2026-05-15): self-service data export.
+W14-C (session #10, 2026-05-15): self-service data export.
 
 Returns a JSON document with every record we hold for the given email
 identifier across:
@@ -45,13 +45,13 @@ from fastapi.responses import JSONResponse
 router = APIRouter(tags=["privacy"], prefix="/privacy")
 logger = logging.getLogger("structural.privacy.export")
 
-***REMOVED*** --- Tuning ---
-RATE_LIMIT_WINDOW_S = 3600  ***REMOVED*** 1 hour
-RATE_LIMIT_MAX = 1  ***REMOVED*** one export per hour per email
+# --- Tuning ---
+RATE_LIMIT_WINDOW_S = 3600  # 1 hour
+RATE_LIMIT_MAX = 1  # one export per hour per email
 _MAX_EMAIL_LEN = 200
 
-***REMOVED*** In-memory bucket. Cleared on restart — acceptable (worst case: user gets
-***REMOVED*** one extra export after a server restart, not a security risk).
+# In-memory bucket. Cleared on restart — acceptable (worst case: user gets
+# one extra export after a server restart, not a security risk).
 _buckets: Dict[str, Deque[float]] = defaultdict(deque)
 
 
@@ -95,10 +95,10 @@ def _export_fingerprints(email: str) -> List[Dict[str, Any]]:
     return ConnectionsStore(db).export_all_for_user(email)
 
 
-***REMOVED*** Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
-***REMOVED*** unset — it locks the endpoint (no one can guess it) instead of falling back
-***REMOVED*** to a public default. The old "123456" default meant anyone who knew a
-***REMOVED*** subscriber's email could pull their PII; an unset prod env must FAIL CLOSED.
+# Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
+# unset — it locks the endpoint (no one can guess it) instead of falling back
+# to a public default. The old "123456" default meant anyone who knew a
+# subscriber's email could pull their PII; an unset prod env must FAIL CLOSED.
 _FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
 
 
@@ -145,7 +145,7 @@ def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
                 try:
                     out.append(json.loads(line))
                 except Exception:
-                    ***REMOVED*** Single bad line shouldn't tank the whole export.
+                    # Single bad line shouldn't tank the whole export.
                     continue
     except Exception as e:
         logger.warning("read jsonl failed path=%s err=%s", path, e)
@@ -180,7 +180,7 @@ async def export_data(
     """
     now = time.time()
 
-    ***REMOVED*** --- Input validation ---
+    # --- Input validation ---
     if not email and not session_id:
         return JSONResponse(
             {"ok": False, "error": "must supply email or session_id"},
@@ -203,7 +203,7 @@ async def export_data(
             status_code=401,
         )
 
-    ***REMOVED*** --- Rate limit (after auth so 401 doesn't burn quota) ---
+    # --- Rate limit (after auth so 401 doesn't burn quota) ---
     rl_key = (email or session_id or "").lower()
     if not _check_rate_limit(rl_key, now):
         return JSONResponse(
@@ -215,7 +215,7 @@ async def export_data(
             status_code=429,
         )
 
-    ***REMOVED*** --- Gather data ---
+    # --- Gather data ---
     payload: Dict[str, Any] = {
         "ok": True,
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
@@ -225,8 +225,8 @@ async def export_data(
             "newsletter_subscribers": [],
             "mock_checkouts": [],
             "error_log": [],
-            "structural_fingerprints": [],  ***REMOVED*** G connections feature, SESSION-22 §8
-            "search_history": [],  ***REMOVED*** local-only, never on server; documented
+            "structural_fingerprints": [],  # G connections feature, SESSION-22 §8
+            "search_history": [],  # local-only, never on server; documented
         },
     }
 
@@ -240,7 +240,7 @@ async def export_data(
         payload["data"]["structural_fingerprints"] = _export_fingerprints(email)
 
     if session_id:
-        ***REMOVED*** error_log can span current file + 1 rotated segment
+        # error_log can span current file + 1 rotated segment
         error_rows: List[Dict[str, Any]] = []
         for f in _error_log_files():
             error_rows.extend(_filter_by_session(_read_jsonl(f), session_id))

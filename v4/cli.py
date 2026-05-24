@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """structural-isomorphism v4 unified CLI.
 
 A thin dispatch layer over v4/validation/<phase>/*.py analyze scripts.
@@ -24,9 +24,9 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Paths
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
 
 REPO = Path(__file__).resolve().parent.parent
 V4 = REPO / "v4"
@@ -36,22 +36,22 @@ SCRIPTS = V4 / "scripts"
 LIB = V4 / "lib"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Phase registry
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED***
-***REMOVED*** Each phase points at:
-***REMOVED***   dir       — subdir under v4/validation/
-***REMOVED***   scripts   — ordered list of analyze scripts to run when `v4 validate <slug>`
-***REMOVED***   results   — primary results JSON file(s) read by `v4 status`
-***REMOVED***   label     — human-readable phase label
-***REMOVED***
-***REMOVED*** Note: a few phases don't have a single canonical analyze.py:
-***REMOVED***   - earthquake: Gutenberg-Richter fit + Omori decay split into 2 scripts
-***REMOVED***   - stockmarket: single combined fetch_and_analyze.py
-***REMOVED***   - neural: extract_nwb_avalanches.py then analyze_avalanches.py
-***REMOVED***   - null-controls: generate_and_analyze.py
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Phase registry
+# ---------------------------------------------------------------------------
+#
+# Each phase points at:
+#   dir       — subdir under v4/validation/
+#   scripts   — ordered list of analyze scripts to run when `v4 validate <slug>`
+#   results   — primary results JSON file(s) read by `v4 status`
+#   label     — human-readable phase label
+#
+# Note: a few phases don't have a single canonical analyze.py:
+#   - earthquake: Gutenberg-Richter fit + Omori decay split into 2 scripts
+#   - stockmarket: single combined fetch_and_analyze.py
+#   - neural: extract_nwb_avalanches.py then analyze_avalanches.py
+#   - null-controls: generate_and_analyze.py
+# ---------------------------------------------------------------------------
 
 PHASES: dict[str, dict[str, Any]] = {
     "earthquake": {
@@ -111,9 +111,9 @@ PHASES: dict[str, dict[str, Any]] = {
 }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def venv_python() -> str:
@@ -153,7 +153,7 @@ def _extract_summary(slug: str, payload: dict[str, Any]) -> dict[str, Any]:
     Different phases store these under different keys; we walk the
     common nesting points and pick the first match.
     """
-    ***REMOVED*** candidate sub-objects that may hold the powerlaw fit
+    # candidate sub-objects that may hold the powerlaw fit
     fit_keys = [
         "powerlaw_fit",
         "clauset_fit",
@@ -177,7 +177,7 @@ def _extract_summary(slug: str, payload: dict[str, Any]) -> dict[str, Any]:
                      payload.get("n_repos"))
     n_tail = _first(fit.get("n_tail"), payload.get("n_tail"))
 
-    ***REMOVED*** bootstrap CI – multiple shapes
+    # bootstrap CI – multiple shapes
     alpha_ci = None
     bs = payload.get("bootstrap_ci") or fit.get("bootstrap_ci")
     if isinstance(bs, dict):
@@ -190,7 +190,7 @@ def _extract_summary(slug: str, payload: dict[str, Any]) -> dict[str, Any]:
         if len(ci) == 2:
             alpha_ci = tuple(ci)
 
-    ***REMOVED*** verdict — phase-specific fallbacks
+    # verdict — phase-specific fallbacks
     verdict = payload.get("verdict")
     if verdict is None:
         if slug == "null-controls":
@@ -218,9 +218,9 @@ def _fmt(v: Any, prec: int = 3) -> str:
     return str(v)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Subcommands
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Subcommands
+# ---------------------------------------------------------------------------
 
 
 def cmd_list(_args: argparse.Namespace) -> int:
@@ -242,7 +242,7 @@ def cmd_status(_args: argparse.Namespace) -> int:
 
     parsed = 0
     for slug, meta in PHASES.items():
-        ***REMOVED*** try each candidate results file, take first that loads
+        # try each candidate results file, take first that loads
         payload: dict[str, Any] | None = None
         for r in meta["results"]:
             payload = _load_json(phase_dir(slug) / r)
@@ -308,7 +308,7 @@ def _validate_one(slug: str) -> int:
             print(f"!! {slug}/{script} exited non-zero: {rc}", file=sys.stderr)
             rc_total = max(rc_total, rc)
 
-    ***REMOVED*** Quick check: did expected results files materialize?
+    # Quick check: did expected results files materialize?
     for r in meta["results"]:
         rp = pdir / r
         if rp.exists():
@@ -356,11 +356,11 @@ def cmd_calibrate(_args: argparse.Namespace) -> int:
 
 
 def cmd_critic(_args: argparse.Namespace) -> int:
-    ***REMOVED*** Prefer printing the latest summary if it exists (LLM critic produces
-    ***REMOVED*** layer3_critic_summary.md). No-LLM fallback = just show the summary.
+    # Prefer printing the latest summary if it exists (LLM critic produces
+    # layer3_critic_summary.md). No-LLM fallback = just show the summary.
     summary = RESULTS / "layer3_critic_summary.md"
     if summary.exists():
-        print(f"***REMOVED*** {summary.relative_to(REPO)}\n")
+        print(f"# {summary.relative_to(REPO)}\n")
         try:
             print(summary.read_text(encoding="utf-8"))
         except OSError as e:
@@ -376,9 +376,9 @@ def cmd_critic(_args: argparse.Namespace) -> int:
     return 2
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Argparse entrypoint
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Argparse entrypoint
+# ---------------------------------------------------------------------------
 
 
 def build_parser() -> argparse.ArgumentParser:

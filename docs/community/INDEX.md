@@ -1,4 +1,4 @@
-***REMOVED*** `docs/community/` — Index
+# `docs/community/` — Index
 
 Landing page for everything community-facing in the Structural Isomorphism
 project. One-line summary per doc, grouped by purpose.
@@ -8,7 +8,7 @@ project. One-line summary per doc, grouped by purpose.
 
 ---
 
-***REMOVED******REMOVED*** Discord server (W9-E)
+## Discord server (W9-E)
 
 🟢 [`discord-setup.md`](./discord-setup.md) — server name, 8 categories,
 22 channels, 5 roles, permission matrix, slowmode policy. 10-min admin
@@ -24,7 +24,7 @@ ordering + disaster fallbacks.
 → role) + pointers to good-first-issues, newsletter, COC.
 
 🟢 [`discord-rules.md`](./discord-rules.md) — 10 server rules pinned in
-`***REMOVED***rules`, aligned with `CODE_OF_CONDUCT.md`. Covers harassment,
+`#rules`, aligned with `CODE_OF_CONDUCT.md`. Covers harassment,
 on-topic, commercial promo, pre-reg, COI, doxing, reporting flow.
 
 🟢 [`coc-enforcement-playbook.md`](./coc-enforcement-playbook.md) —
@@ -38,7 +38,7 @@ nginx redirect (`structural.bytedance.city/discord`) until server hits
 Boost L3 (~100 members), then claim `discord.gg/structuralisomorphism`.
 Don't pay for boosts.
 
-***REMOVED******REMOVED*** Code-of-Conduct & governance (W9-B / project root)
+## Code-of-Conduct & governance (W9-B / project root)
 
 ✅ [`/CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — the *what*: rules
 & values. The *how* lives in `coc-enforcement-playbook.md` above.
@@ -55,7 +55,7 @@ reporting (private channel, 90-day disclosure window).
 ✅ [`NUMFOCUS_APPLICATION.md`](./NUMFOCUS_APPLICATION.md) — Fiscally
 Sponsored Project application draft for NumFOCUS membership.
 
-***REMOVED******REMOVED*** First-contribution onramps (W9-A)
+## First-contribution onramps (W9-A)
 
 ✅ [`good-first-issues/INDEX.md`](./good-first-issues/INDEX.md) — index of
 15 sized-down first-time-contributor issues across datasets, classes,
@@ -63,7 +63,7 @@ tests, docs, tutorials, perf, i18n, web. Each in its own
 `NNN-<category>-<slug>.md` file with scope, expected effort (≤4h),
 acceptance criteria, mentor.
 
-***REMOVED******REMOVED*** Outreach & roadmap (W7-C)
+## Outreach & roadmap (W7-C)
 
 ✅ [`/docs/future/W7-C-community-roadmap-2026-05-13.md`](../future/W7-C-community-roadmap-2026-05-13.md)
 — umbrella roadmap that schedules W9-A through W9-E (and beyond).
@@ -77,9 +77,9 @@ acceptance criteria, mentor.
 ✅ [`/docs/newsletter/samples/digest-2026-05-13.md`](../newsletter/samples/digest-2026-05-13.md)
 — sample digest issue.
 
-***REMOVED******REMOVED*** Scoped, upcoming
+## Scoped, upcoming
 
-⚪ **W9-C newsletter v2** — issue ***REMOVED***2, signup-to-issue funnel polish.
+⚪ **W9-C newsletter v2** — issue #2, signup-to-issue funnel polish.
 
 ⚪ **W9-D launch announcement** — coordinated HN / arXiv / Twitter / mailing-list
 announcement post.
@@ -89,11 +89,11 @@ on-call rotation. Currently lives partially in `coc-enforcement-playbook.md`
 and `discord-bot-config.md`. Extract & consolidate in a future wave.
 
 ⚪ **Annual COC review memo** — January each year, posted in
-`***REMOVED***announcements`. First instance: January 2027.
+`#announcements`. First instance: January 2027.
 
 ---
 
-***REMOVED******REMOVED*** Quick links for new community members
+## Quick links for new community members
 
 If you're a **new member** landing here, start with:
 
@@ -118,7 +118,7 @@ If you're an **admin spinning up the Discord server**:
    order
 3. [`discord-welcome-message.md`](./discord-welcome-message.md) — paste
    into Carl-bot welcome template
-4. [`discord-rules.md`](./discord-rules.md) — pin in `***REMOVED***rules`
+4. [`discord-rules.md`](./discord-rules.md) — pin in `#rules`
 5. [`discord-vanity-url-plan.md`](./discord-vanity-url-plan.md) — set up
    the redirect; defer vanity URL
 

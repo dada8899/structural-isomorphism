@@ -38,7 +38,7 @@ def test_rejects_lognormal():
     samples = samples[samples > 0]
     result = fit_clauset_powerlaw(samples, name="synthetic_lognormal").to_dict()
     assert "vs_lognormal_R" in result, f"missing vs_lognormal_R: {result}"
-    ***REMOVED*** Either lognormal preferred (R<0) or inconclusive — must not declare power_law cleanly
+    # Either lognormal preferred (R<0) or inconclusive — must not declare power_law cleanly
     winner = result.get("vs_powerlaw_lognormal_winner")
     assert winner in ("lognormal", "inconclusive", "power_law"), f"unknown winner: {winner}"
 
@@ -50,7 +50,7 @@ def test_rejects_exponential():
     samples = np.random.exponential(scale=1.0, size=5000)
     result = fit_clauset_powerlaw(samples, name="synthetic_exponential").to_dict()
     assert "vs_exponential_R" in result, f"missing vs_exponential_R: {result}"
-    ***REMOVED*** rejects_power_law should be True for non-heavy-tail synthetic data
+    # rejects_power_law should be True for non-heavy-tail synthetic data
     assert result.get("rejects_power_law") is True, (
         f"pipeline failed to reject exponential as power-law: {result}"
     )

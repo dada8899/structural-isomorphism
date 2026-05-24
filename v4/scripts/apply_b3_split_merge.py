@@ -27,10 +27,10 @@ B3_JSONL = REPO_ROOT / "v4" / "results" / "B3_taxonomy_v2.jsonl"
 SUMMARY_MD = REPO_ROOT / "v4" / "taxonomy" / "B1_B3_split_merge_summary.md"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Verdict normalization: B3 consensus wins over B1 when they disagree
-***REMOVED*** (per CLAUDE.md ensemble-review policy — multi-model B3 trumps single-pass B1)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Verdict normalization: B3 consensus wins over B1 when they disagree
+# (per CLAUDE.md ensemble-review policy — multi-model B3 trumps single-pass B1)
+# ---------------------------------------------------------------------------
 
 def normalize_verdict(final_verdict: str, b3_consensus: str) -> str:
     """Collapse final_verdict variants to one of KEEP / REJECT / SPLIT / MERGE.
@@ -41,10 +41,10 @@ def normalize_verdict(final_verdict: str, b3_consensus: str) -> str:
     return b3_consensus.upper()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Split / Merge plans
-***REMOVED*** Hand-authored from B3 ensemble rationales (see v4/results/B3_ensemble_review.jsonl)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Split / Merge plans
+# Hand-authored from B3 ensemble rationales (see v4/results/B3_ensemble_review.jsonl)
+# ---------------------------------------------------------------------------
 
 SPLIT_PLANS: dict[str, list[dict]] = {
     "adverse_selection_unraveling_class": [
@@ -147,9 +147,9 @@ SPLIT_PLANS: dict[str, list[dict]] = {
     ],
 }
 
-***REMOVED*** Merge plans: each maps source class → target class id (the parent it folds into).
-***REMOVED*** motter_lai_network_cascade_social is a special case: the parent is being SPLIT,
-***REMOVED*** so we redirect it into motter_lai_network_cascade__threshold_contagion child.
+# Merge plans: each maps source class → target class id (the parent it folds into).
+# motter_lai_network_cascade_social is a special case: the parent is being SPLIT,
+# so we redirect it into motter_lai_network_cascade__threshold_contagion child.
 MERGE_PLANS: dict[str, str] = {
     "gardner_collins_toggle_switch_Th1Th2": "gardner_collins_toggle_switch",
     "gardner_collins_toggle_switch_apoptosis": "gardner_collins_toggle_switch",
@@ -158,9 +158,9 @@ MERGE_PLANS: dict[str, str] = {
 }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Driver
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Driver
+# ---------------------------------------------------------------------------
 
 def load_verdicts() -> dict[str, dict]:
     out: dict[str, dict] = {}
@@ -225,7 +225,7 @@ def build_split_child(parent_yaml: dict, parent_id: str, plan: dict, verdict_row
     child["members_kept_after_split"] = plan["members_kept"]
     child["b3_verdict"] = verdict_row["final_verdict"]
     child["b3_avg_confidence"] = verdict_row["b3_avg_confidence"]
-    ***REMOVED*** Inherited positive/negative/edge examples remain — flagged for review.
+    # Inherited positive/negative/edge examples remain — flagged for review.
     child["needs_b4_review"] = (
         "Inherited B4 examples from parent. Filter / re-curate after split."
     )
@@ -238,7 +238,7 @@ def main() -> int:
     summary_rows: list[dict] = []
     new_files: list[str] = []
 
-    ***REMOVED*** 1) Apply SPLITs first (so MERGE targets can point at split children).
+    # 1) Apply SPLITs first (so MERGE targets can point at split children).
     for parent_id, plans in SPLIT_PLANS.items():
         parent_path = CLASSES_DIR / f"{parent_id}.yaml"
         if not parent_path.exists():
@@ -249,7 +249,7 @@ def main() -> int:
             f"{parent_id}__{p['suffix']}" for p in plans
         )
         parent_yaml = annotate_in_place(parent_path, vr, action)
-        ***REMOVED*** Mark parent explicitly as superseded.
+        # Mark parent explicitly as superseded.
         parent_yaml["superseded_by_split"] = [f"{parent_id}__{p['suffix']}" for p in plans]
         dump_yaml(parent_path, parent_yaml)
 
@@ -274,7 +274,7 @@ def main() -> int:
             "confidence": vr["b3_avg_confidence"],
         })
 
-    ***REMOVED*** 2) Apply MERGEs.
+    # 2) Apply MERGEs.
     for source_id, target_id in MERGE_PLANS.items():
         src_path = CLASSES_DIR / f"{source_id}.yaml"
         if not src_path.exists():
@@ -294,8 +294,8 @@ def main() -> int:
             "confidence": vr["b3_avg_confidence"],
         })
 
-        ***REMOVED*** Annotate the merge target with `merged_from` (target is either an existing
-        ***REMOVED*** parent yaml or a SPLIT child we just created).
+        # Annotate the merge target with `merged_from` (target is either an existing
+        # parent yaml or a SPLIT child we just created).
         tgt_path = CLASSES_DIR / f"{target_id}.yaml"
         if not tgt_path.exists():
             print(f"WARN: merge target yaml not found: {tgt_path}", file=sys.stderr)
@@ -307,7 +307,7 @@ def main() -> int:
         tgt["merged_from"] = merged_from
         dump_yaml(tgt_path, tgt)
 
-    ***REMOVED*** 3) Annotate REJECT classes.
+    # 3) Annotate REJECT classes.
     for cid, vr in verdicts.items():
         if cid in SPLIT_PLANS or cid in MERGE_PLANS:
             continue
@@ -334,12 +334,12 @@ def main() -> int:
                 "verdict": vr["final_verdict"],
                 "confidence": vr["b3_avg_confidence"],
             })
-        else:  ***REMOVED*** SPLIT / MERGE that fell through above (shouldn't happen)
+        else:  # SPLIT / MERGE that fell through above (shouldn't happen)
             print(f"WARN: unhandled verdict for {cid}: {norm}", file=sys.stderr)
 
-    ***REMOVED*** 4) Write summary markdown.
+    # 4) Write summary markdown.
     lines: list[str] = []
-    lines.append("***REMOVED*** B1 ⊗ B3 Split / Merge / Reject / Keep — Summary")
+    lines.append("# B1 ⊗ B3 Split / Merge / Reject / Keep — Summary")
     lines.append("")
     lines.append("> Generated by `v4/scripts/apply_b3_split_merge.py` from `v4/results/B3_taxonomy_v2.jsonl`.")
     lines.append("> Per CLAUDE.md ensemble-review policy: when B1 single-pass and B3 multi-model consensus disagree, B3 wins.")
@@ -349,7 +349,7 @@ def main() -> int:
         rows = [r for r in summary_rows if r["action"] == action]
         if not rows:
             return
-        lines.append(f"***REMOVED******REMOVED*** {title} ({len(rows)})")
+        lines.append(f"## {title} ({len(rows)})")
         lines.append("")
         lines.append("| class_id | parent / target | B3 final_verdict | B3 avg conf |")
         lines.append("|---|---|---|---|")
@@ -365,13 +365,13 @@ def main() -> int:
     section("MERGE — sources folded into targets", "MERGE_SOURCE")
     section("REJECT — kept as historical record", "REJECT")
 
-    lines.append("***REMOVED******REMOVED*** File-level changes")
+    lines.append("## File-level changes")
     lines.append("")
     lines.append(f"- New yaml files: {len(new_files)}")
     for name in sorted(new_files):
         lines.append(f"  - `v4/taxonomy/classes/{name}`")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Net taxonomy count")
+    lines.append("## Net taxonomy count")
     lines.append("")
     before = len(list(CLASSES_DIR.glob("*.yaml"))) - len(new_files)
     after = len(list(CLASSES_DIR.glob("*.yaml")))

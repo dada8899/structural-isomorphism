@@ -1,12 +1,12 @@
-***REMOVED*** structural-isomorphism · session 1 收尾 (2026-05-13)
+# structural-isomorphism · session 1 收尾 (2026-05-13)
 
 > 这是 B 机 (dadamini) 重启 structural-isomorphism 项目的第 1 个 session。
 > 上次实质推进是 2026-04-16 的 Phase 5 null validation；之后 4 周项目重心在 renai-cross / ipos / openclaw。
 > 本 session 任务：完成 V4 路线图维度 A (Layer 5 phase 扩展) + 维度 B (方法论加固) 全部能做的部分。
 
-***REMOVED******REMOVED*** 本 session 产出
+## 本 session 产出
 
-***REMOVED******REMOVED******REMOVED*** 数据/科学层
+### 数据/科学层
 
 | Phase | 系统 | 数据源 | α | CI | n | Verdict |
 |---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@
 
 **preferential_attachment class 首次 verified**（GitHub Phase 6）
 
-***REMOVED******REMOVED******REMOVED*** 工程层
+### 工程层
 
 | 工件 | 路径 | 价值 |
 |---|---|---|
@@ -32,7 +32,7 @@
 | B4 yaml taxonomy | `v4/taxonomy/classes/<class_id>.yaml × 24` + `SCHEMA.md` | well-established=2, emerging=14, speculative=8；每类含 positive/negative/edge_cases |
 | /classes site 更新 | `web/frontend/assets/data/universality-classes.json` + 4 paper.md copies | 8 verified predictions / 4 新 paper 链接上线（部署需 push prod） |
 
-***REMOVED******REMOVED******REMOVED*** 维度 A / B 完成度
+### 维度 A / B 完成度
 
 | 维度 | 计划 | 完成 | 备注 |
 |---|---|---|---|
@@ -44,7 +44,7 @@
 | **B3** Multi-model ensemble | 3 模型投票 | ❌ SKIPPED | OpenRouter Anthropic/Gemini CN region-block + DeepSeek 单源不足 |
 | **B4** Positive/negative yaml | 23 类 | ✅ 24 类 yaml + SCHEMA | 高质量；每 yaml 有 positive (with CI) / negative (mechanism mismatch) / edge_cases |
 
-***REMOVED******REMOVED******REMOVED*** Skipped 任务 + 原因
+### Skipped 任务 + 原因
 
 - **Phase 7 NERC TADS** — 电网中断数据是 PDF 报告，解析复杂超 session 预算
 - **Phase 9 Reddit** — Pushshift API 停服 + Reddit API OAuth 流程超 session 预算
@@ -52,7 +52,7 @@
 - **A2 Hysteresis / Scheffer / Toggle 等** — 时间预算被吃完
 - **B3 Multi-model ensemble** — OpenRouter CN region block
 
-***REMOVED******REMOVED******REMOVED*** 关键观察 (新发现)
+### 关键观察 (新发现)
 
 1. **functional-form universality > strict α universality**: 7 verified SOC 系统 α 横跨 [1.5, 3.0]，但全都是 power-law tail + (variable) Omori，证明 universal class 共享 functional form 而非 exact exponent。这是项目最强 cross-domain claim。
 
@@ -68,7 +68,7 @@
    - SPLIT: hysteresis_preisach (hub 实为 percolation, mis-rooted)
    - 23 → 15 active classes 推荐
 
-***REMOVED******REMOVED******REMOVED*** 待续：next session (***REMOVED***2) 建议优先
+### 待续：next session (#2) 建议优先
 
 ```
 1. Phase 7 NERC TADS (Motter-Lai 亚类 explicit)  — 2-3d
@@ -79,7 +79,7 @@
 6. 跨产品 publish push: /classes 站点 redeploy
 ```
 
-***REMOVED******REMOVED******REMOVED*** Commit 总结
+### Commit 总结
 
 | Commit | Hash | 内容 |
 |---|---|---|
@@ -89,7 +89,7 @@
 
 Total: 3 commit, 全部本地 + 仓内审过；**未 push**（main protection，需要 user 授权 direct push 或 PR flow）。
 
-***REMOVED******REMOVED******REMOVED*** Push 决策待定
+### Push 决策待定
 
 `git push origin main` 被 sandbox 拒（"pushing directly to main bypasses PR review"）。下次：
 - (a) user 授权 direct push → `git push origin main`
@@ -97,7 +97,7 @@ Total: 3 commit, 全部本地 + 仓内审过；**未 push**（main protection，
 
 考虑到这是 solo work + 改动全是新文件无 conflict 风险，(a) 更顺。
 
-***REMOVED******REMOVED******REMOVED*** 资产盘点
+### 资产盘点
 
 ```
 v4/lib/soc_pipeline.py                        (shared library)
@@ -120,7 +120,7 @@ web/frontend/assets/data/papers/*.md                (4 new)
 plans/v4-next-roadmap-2026-05-13.md           (session 0 produced)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 单 session 单 Mac 性能记录
+### 单 session 单 Mac 性能记录
 
 - 总 wall-clock ≈ 3 小时
 - subagent dispatch: 8 个 (Phase 10 fetch / Phase 6 fetch / Phase 11 fetch / Phase 10 paper / Phase 11 paper / Phase 6 paper / Phase 8 paper / B1 critic / B4 yaml)

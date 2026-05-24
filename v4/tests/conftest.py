@@ -24,13 +24,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 
-***REMOVED*** Prepend repo root for `from v4.lib.X import ...` imports.
+# Prepend repo root for `from v4.lib.X import ...` imports.
 sys.path.insert(0, str(REPO))
 
-***REMOVED*** Prepend tests dir for `from sanity_helpers import ...`.
+# Prepend tests dir for `from sanity_helpers import ...`.
 sys.path.insert(0, str(Path(__file__).parent))
 
-***REMOVED*** Append v4/lib (NOT prepend) so editable real packages win over shims.
+# Append v4/lib (NOT prepend) so editable real packages win over shims.
 _v4_lib = str(REPO / "v4" / "lib")
 if _v4_lib not in sys.path:
     sys.path.append(_v4_lib)

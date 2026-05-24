@@ -1,8 +1,8 @@
-***REMOVED*** guarded-llm release runbook
+# guarded-llm release runbook
 
 Steps to publish `packages/guarded-llm/` to PyPI. Run from the repo root.
 
-***REMOVED******REMOVED*** 0. Prerequisites
+## 0. Prerequisites
 
 - A PyPI account with maintainer access to the `guarded-llm` project.
 - A PyPI API token stored in `~/.pypirc` or in the env as
@@ -11,13 +11,13 @@ Steps to publish `packages/guarded-llm/` to PyPI. Run from the repo root.
 - `python -m build`, `twine`, and `pytest` installed (all included in
   `guarded-llm[dev]`).
 
-***REMOVED******REMOVED*** 1. Bump the version
+## 1. Bump the version
 
 Edit `packages/guarded-llm/pyproject.toml`:
 
 ```toml
 [project]
-version = "0.1.1"     ***REMOVED*** or 0.2.0, or 1.0.0, …
+version = "0.1.1"     # or 0.2.0, or 1.0.0, …
 ```
 
 And `packages/guarded-llm/src/guarded_llm/__init__.py`:
@@ -29,7 +29,7 @@ __version__ = "0.1.1"
 Keep these two strings in sync — there's a smoke test that verifies
 `__version__` matches the wheel filename.
 
-***REMOVED******REMOVED*** 2. Run the full test suite
+## 2. Run the full test suite
 
 ```bash
 cd packages/guarded-llm
@@ -39,19 +39,19 @@ python -m pytest tests/ -v
 All tests must pass. If anything's flaky, fix the flake before releasing
 (don't ship a release that depends on retries to look green).
 
-***REMOVED******REMOVED*** 3. Build the artifacts
+## 3. Build the artifacts
 
 ```bash
 cd packages/guarded-llm
 rm -rf dist/ build/ *.egg-info
 python -m build
 ls dist/
-***REMOVED*** Expected:
-***REMOVED***   guarded_llm-0.1.1-py3-none-any.whl
-***REMOVED***   guarded_llm-0.1.1.tar.gz
+# Expected:
+#   guarded_llm-0.1.1-py3-none-any.whl
+#   guarded_llm-0.1.1.tar.gz
 ```
 
-***REMOVED******REMOVED*** 4. Sanity-check the wheel in a clean venv
+## 4. Sanity-check the wheel in a clean venv
 
 ```bash
 python3 -m venv /tmp/test-guarded-llm
@@ -63,7 +63,7 @@ print('version:', __import__('guarded_llm').__version__)
 "
 ```
 
-***REMOVED******REMOVED*** 5. Upload to TestPyPI first
+## 5. Upload to TestPyPI first
 
 ```bash
 twine upload --repository testpypi dist/*
@@ -76,7 +76,7 @@ pip install --index-url https://test.pypi.org/simple/ \
     --extra-index-url https://pypi.org/simple guarded-llm==0.1.1
 ```
 
-***REMOVED******REMOVED*** 6. Upload to PyPI proper
+## 6. Upload to PyPI proper
 
 ```bash
 twine upload dist/*
@@ -84,14 +84,14 @@ twine upload dist/*
 
 Verify on https://pypi.org/project/guarded-llm/.
 
-***REMOVED******REMOVED*** 7. Tag the release
+## 7. Tag the release
 
 ```bash
 git tag -a guarded-llm-v0.1.1 -m "guarded-llm 0.1.1"
 git push origin guarded-llm-v0.1.1
 ```
 
-***REMOVED******REMOVED*** 8. GitHub release
+## 8. GitHub release
 
 ```bash
 gh release create guarded-llm-v0.1.1 \
@@ -100,17 +100,17 @@ gh release create guarded-llm-v0.1.1 \
     packages/guarded-llm/dist/*
 ```
 
-***REMOVED******REMOVED*** Rollback
+## Rollback
 
 If a release is broken on PyPI, you can't unpublish (only yank). Yank with:
 
 ```bash
-***REMOVED*** via the PyPI web UI: Manage → Releases → 0.1.1 → Yank
+# via the PyPI web UI: Manage → Releases → 0.1.1 → Yank
 ```
 
 Then immediately ship `0.1.2` with the fix.
 
-***REMOVED******REMOVED*** Notes
+## Notes
 
 - We do NOT auto-publish from CI for `guarded-llm`. The release is manual to
   prevent accidental publishes from a misclicked workflow.

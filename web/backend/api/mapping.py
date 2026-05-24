@@ -34,7 +34,7 @@ def _init():
 class MappingRequest(BaseModel):
     a_id: str
     b_id: str
-    ***REMOVED*** i18n: "zh" (default, legacy) or "en"
+    # i18n: "zh" (default, legacy) or "en"
     lang: str = "zh"
 
 
@@ -54,14 +54,14 @@ async def generate_mapping(request: Request, req: MappingRequest):
     if not a or not b:
         raise HTTPException(404, "Phenomenon not found")
 
-    ***REMOVED*** Normalize lang + derive cache key. Legacy zh keeps unsuffixed cache key
-    ***REMOVED*** so existing entries stay valid; en gets a separate namespace.
+    # Normalize lang + derive cache key. Legacy zh keeps unsuffixed cache key
+    # so existing entries stay valid; en gets a separate namespace.
     lang = (req.lang or "zh").lower()
     if lang not in ("zh", "en"):
         lang = "zh"
     cache_key_a = req.a_id if lang == "zh" else f"{req.a_id}__en"
 
-    ***REMOVED*** Check cache first
+    # Check cache first
     cached = _cache.get(cache_key_a, req.b_id)
     if cached:
         return {
@@ -71,7 +71,7 @@ async def generate_mapping(request: Request, req: MappingRequest):
             "mapping": cached,
         }
 
-    ***REMOVED*** Compute similarity from embeddings — O(1) via idx_by_id.
+    # Compute similarity from embeddings — O(1) via idx_by_id.
     import numpy as np
     idx_a = svc.idx_by_id.get(req.a_id)
     idx_b = svc.idx_by_id.get(req.b_id)
@@ -79,10 +79,10 @@ async def generate_mapping(request: Request, req: MappingRequest):
         raise HTTPException(404, "Phenomenon not in KB")
     similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
 
-    ***REMOVED*** Generate with LLM
+    # Generate with LLM
     mapping = await _llm.generate_mapping(a, b, similarity, lang=lang)
 
-    ***REMOVED*** Save to cache if successful
+    # Save to cache if successful
     if mapping and mapping.get("structure_name") != "结构分析暂不可用":
         _cache.put(cache_key_a, req.b_id, mapping)
 
@@ -130,13 +130,13 @@ async def stream_mapping(
     if not b:
         raise HTTPException(404, "Phenomenon B not found")
 
-    ***REMOVED*** Normalize lang once at the top
+    # Normalize lang once at the top
     lang = (lang or "zh").lower()
     if lang not in ("zh", "en"):
         lang = "zh"
 
     if a_id:
-        ***REMOVED*** Pair mode: both sides are real KB phenomena
+        # Pair mode: both sides are real KB phenomena
         a = svc.get_by_id(a_id)
         if not a:
             raise HTTPException(404, "Phenomenon A not found")
@@ -147,17 +147,17 @@ async def stream_mapping(
         if idx_a is None or idx_b is None:
             raise HTTPException(404, "Phenomenon not in KB")
         similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
-        ***REMOVED*** Suffix lang onto cache key so zh/en don't collide. Legacy zh stays
-        ***REMOVED*** unsuffixed to preserve existing cache entries.
+        # Suffix lang onto cache key so zh/en don't collide. Legacy zh stays
+        # unsuffixed to preserve existing cache entries.
         cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
     elif text_a:
-        ***REMOVED*** Query mode: text_a is user's free-text question
-        ***REMOVED***
-        ***REMOVED*** Product semantics: the user wants to BORROW methods FROM a known
-        ***REMOVED*** phenomenon (KB) TO solve their own question. So the KB phenomenon
-        ***REMOVED*** is the SOURCE (A, left) and the user's question is the TARGET (B, right).
-        ***REMOVED*** This makes the LLM's "A domain -> B domain" action suggestions point
-        ***REMOVED*** in the correct direction: from known answers to the user's problem.
+        # Query mode: text_a is user's free-text question
+        #
+        # Product semantics: the user wants to BORROW methods FROM a known
+        # phenomenon (KB) TO solve their own question. So the KB phenomenon
+        # is the SOURCE (A, left) and the user's question is the TARGET (B, right).
+        # This makes the LLM's "A domain -> B domain" action suggestions point
+        # in the correct direction: from known answers to the user's problem.
         from services.llm_service import LLMService
         llm_for_rewrite = _llm or LLMService()
 
@@ -170,7 +170,7 @@ async def stream_mapping(
             raise HTTPException(404, "Phenomenon not in KB")
         similarity = float(np.dot(query_emb.flatten(), svc._embeddings[idx_b_requested]))
 
-        ***REMOVED*** Swap: KB phenomenon becomes A (source), query becomes B (target)
+        # Swap: KB phenomenon becomes A (source), query becomes B (target)
         kb_phenom = svc.get_by_id(b_id)
         query_phenom = {
             "id": "__query__",
@@ -182,7 +182,7 @@ async def stream_mapping(
         }
         a = kb_phenom
         b = query_phenom
-        cache_key_a = None  ***REMOVED*** no caching for free-text queries
+        cache_key_a = None  # no caching for free-text queries
     else:
         raise HTTPException(400, "Must provide either a_id or text_a")
 
@@ -190,10 +190,10 @@ async def stream_mapping(
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
 
-        ***REMOVED*** Meta event first — so client can render pair header immediately
+        # Meta event first — so client can render pair header immediately
         yield sse("meta", {"a": a, "b": b, "similarity": similarity})
 
-        ***REMOVED*** Check cache only in pair mode
+        # Check cache only in pair mode
         if cache_key_a:
             cached = _cache.get(cache_key_a, b_id)
             if cached:
@@ -201,7 +201,7 @@ async def stream_mapping(
                 yield sse("done", {"mapping": cached, "from_cache": True})
                 return
 
-        ***REMOVED*** Stream LLM generation
+        # Stream LLM generation
         final_mapping = None
         async for chunk in _llm.stream_mapping(a, b, similarity, lang=lang):
             ctype = chunk.get("type")
@@ -216,7 +216,7 @@ async def stream_mapping(
             elif ctype == "error":
                 yield sse("error", {"message": chunk.get("message", "unknown error")})
 
-        ***REMOVED*** Cache only in pair mode
+        # Cache only in pair mode
         if cache_key_a and final_mapping and final_mapping.get("structure_name") != "结构分析暂不可用":
             _cache.put(cache_key_a, b_id, final_mapping)
 
@@ -225,7 +225,7 @@ async def stream_mapping(
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  ***REMOVED*** Nginx: disable buffering
+            "X-Accel-Buffering": "no",  # Nginx: disable buffering
         },
     )
 

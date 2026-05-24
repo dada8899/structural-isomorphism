@@ -1,4 +1,4 @@
-***REMOVED*** Structural Signals — Week {{week_label}}
+# Structural Signals — Week {{week_label}}
 
 > *Daily structural signals from 1000+ public companies — same physics that
 > describes earthquakes, neural avalanches, and power-grid cascades.*
@@ -7,7 +7,7 @@ _Issue covers {{week_start}} → {{week_end}}._
 
 ---
 
-***REMOVED******REMOVED*** 🔄 This week's phase flips
+## 🔄 This week's phase flips
 
 Companies whose **critical-state classification changed** since last week. We
 flag both directions: entering `near_critical` (rising variance, amplifying
@@ -19,7 +19,7 @@ feedback) and returning to `subcritical`.
 
 ---
 
-***REMOVED******REMOVED*** 📑 Methodology spotlight: {{spotlight_title}}
+## 📑 Methodology spotlight: {{spotlight_title}}
 
 {{spotlight_body}}
 
@@ -29,7 +29,7 @@ for the full series.)*
 
 ---
 
-***REMOVED******REMOVED*** 📰 Recent papers we're watching
+## 📰 Recent papers we're watching
 
 Selected from arXiv preprints published this week matching our cross-domain
 SOC / universality / power-law query:
@@ -38,13 +38,13 @@ SOC / universality / power-law query:
 
 ---
 
-***REMOVED******REMOVED*** 🔍 Top reader questions (via /api/ask)
+## 🔍 Top reader questions (via /api/ask)
 
 {{ask_section}}
 
 ---
 
-***REMOVED******REMOVED*** 🛠️ Repo activity
+## 🛠️ Repo activity
 
 [github.com/dada8899/structural-isomorphism](https://github.com/dada8899/structural-isomorphism):
 
@@ -52,13 +52,13 @@ SOC / universality / power-law query:
 
 ---
 
-***REMOVED******REMOVED*** 💬 Discussion
+## 💬 Discussion
 
 Questions, disagreements, or "I tried this in domain X and it broke" — please:
 
 - Open a [GitHub Discussion](https://github.com/dada8899/structural-isomorphism/discussions)
 - Reply to this email (we read every one)
-- Ping us on the project [Discord](https://github.com/dada8899/structural-isomorphism***REMOVED***community) (link in repo)
+- Ping us on the project [Discord](https://github.com/dada8899/structural-isomorphism#community) (link in repo)
 
 ---
 

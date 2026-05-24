@@ -6,16 +6,16 @@ on:
   pull_request:
     branches: [main]
 
-***REMOVED*** Cancel duplicate runs on the same PR / branch — keeps queue clean.
+# Cancel duplicate runs on the same PR / branch — keeps queue clean.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 1) Backend: full Python matrix (3.10/3.11/3.12 × ubuntu/macos/windows)
-  ***REMOVED***    Sanity + integration suites. Slow tests skipped — those run nightly.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 1) Backend: full Python matrix (3.10/3.11/3.12 × ubuntu/macos/windows)
+  #    Sanity + integration suites. Slow tests skipped — those run nightly.
+  # ---------------------------------------------------------------------------
   backend:
     name: backend (py${{ matrix.python-version }} / ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -24,21 +24,21 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        ***REMOVED*** Windows excluded: prod is Linux-only (VPS) and macOS is dev-only.
-        ***REMOVED*** Windows surfaces three classes of failures unrelated to logic:
-        ***REMOVED***   1. cp1252 default codec breaks pathlib.read_text() on UTF-8 JSON
-        ***REMOVED***      (e.g. site_data fixtures containing ≥, ±, etc.).
-        ***REMOVED***   2. cp1252 stdout/file write fails on UTF-8 chars like ≥.
-        ***REMOVED***   3. sys.path.insert() in subprocess tests behaves differently
-        ***REMOVED***      under D:\a\... runner paths (ModuleNotFoundError for v4/scripts).
-        ***REMOVED*** Fixing these globally (encoding='utf-8' everywhere + Windows path
-        ***REMOVED*** normalisation) is large surface for zero deploy value. Revisit if
-        ***REMOVED*** Windows support becomes a product requirement.
-        ***REMOVED*** See: docs/ci-matrix-decisions.md
+        # Windows excluded: prod is Linux-only (VPS) and macOS is dev-only.
+        # Windows surfaces three classes of failures unrelated to logic:
+        #   1. cp1252 default codec breaks pathlib.read_text() on UTF-8 JSON
+        #      (e.g. site_data fixtures containing ≥, ±, etc.).
+        #   2. cp1252 stdout/file write fails on UTF-8 chars like ≥.
+        #   3. sys.path.insert() in subprocess tests behaves differently
+        #      under D:\a\... runner paths (ModuleNotFoundError for v4/scripts).
+        # Fixing these globally (encoding='utf-8' everywhere + Windows path
+        # normalisation) is large surface for zero deploy value. Revisit if
+        # Windows support becomes a product requirement.
+        # See: docs/ci-matrix-decisions.md
         os: [ubuntu-latest, macos-latest]
         exclude:
-          ***REMOVED*** 3.10 only validated on ubuntu as a minimum-floor check;
-          ***REMOVED*** macos-latest needs 3.11+ for runner image alignment.
+          # 3.10 only validated on ubuntu as a minimum-floor check;
+          # macos-latest needs 3.11+ for runner image alignment.
           - os: macos-latest
             python-version: "3.10"
     steps:
@@ -65,10 +65,10 @@ jobs:
           pip install pyyaml
 
       - name: Install local packages (editable)
-        ***REMOVED*** v4 sanity / integration tests import via deprecated shims at
-        ***REMOVED*** v4/lib/{llm_guardrail,soc_pipeline}.py that re-export from
-        ***REMOVED*** packages/*. Without these editable installs sanity collects
-        ***REMOVED*** ModuleNotFoundError. cross-judge also pulls in pyyaml.
+        # v4 sanity / integration tests import via deprecated shims at
+        # v4/lib/{llm_guardrail,soc_pipeline}.py that re-export from
+        # packages/*. Without these editable installs sanity collects
+        # ModuleNotFoundError. cross-judge also pulls in pyyaml.
         run: |
           pip install -e packages/soc-pipeline
           pip install -e packages/guarded-llm
@@ -78,15 +78,15 @@ jobs:
         run: pytest v4/tests/sanity -m sanity -v -m "not slow"
 
       - name: Run integration tests (skip slow)
-        ***REMOVED*** PR-time integration: must pass fast. Slow + requires_internet/llm
-        ***REMOVED*** excluded — those are nightly-only signal.
+        # PR-time integration: must pass fast. Slow + requires_internet/llm
+        # excluded — those are nightly-only signal.
         run: pytest v4/tests/integration -v -m "not slow and not requires_internet and not requires_llm" || true
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 2) Packages: in-tree libs (soc-pipeline, guarded-llm, cross-judge)
-  ***REMOVED***    Single Python version — packages have their own internal matrix
-  ***REMOVED***    needs if they grow. Cached pip per-package.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 2) Packages: in-tree libs (soc-pipeline, guarded-llm, cross-judge)
+  #    Single Python version — packages have their own internal matrix
+  #    needs if they grow. Cached pip per-package.
+  # ---------------------------------------------------------------------------
   packages:
     name: packages (py3.11)
     runs-on: ubuntu-latest
@@ -123,10 +123,10 @@ jobs:
           pip install -e .[dev] || true
           pytest tests/ -v -m "not slow" || true
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 3) Frontend: Next.js (phase-detector). Lint + build smoke.
-  ***REMOVED***    Runs in parallel with backend/packages — keeps total wall time low.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 3) Frontend: Next.js (phase-detector). Lint + build smoke.
+  #    Runs in parallel with backend/packages — keeps total wall time low.
+  # ---------------------------------------------------------------------------
   frontend:
     name: frontend (node 20)
     runs-on: ubuntu-latest
@@ -137,11 +137,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      ***REMOVED*** phase-detector is a pnpm project — only pnpm-lock.yaml is committed
-      ***REMOVED*** (no package-lock.json). `cache: npm` pointed setup-node at a
-      ***REMOVED*** non-existent package-lock.json and failed at the cache step with
-      ***REMOVED*** "Some specified paths were not resolved". Match storybook.yml /
-      ***REMOVED*** docs.yml: pnpm install + pnpm-lock.yaml cache key.
+      # phase-detector is a pnpm project — only pnpm-lock.yaml is committed
+      # (no package-lock.json). `cache: npm` pointed setup-node at a
+      # non-existent package-lock.json and failed at the cache step with
+      # "Some specified paths were not resolved". Match storybook.yml /
+      # docs.yml: pnpm install + pnpm-lock.yaml cache key.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -164,11 +164,11 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 4) e2e: live network tests (skipped on PR unless label `run-e2e` present;
-  ***REMOVED***    on push to main runs as a soft-fail signal). Heavy real-network tests
-  ***REMOVED***    are nightly-only via `slow` / `requires_internet` markers.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 4) e2e: live network tests (skipped on PR unless label `run-e2e` present;
+  #    on push to main runs as a soft-fail signal). Heavy real-network tests
+  #    are nightly-only via `slow` / `requires_internet` markers.
+  # ---------------------------------------------------------------------------
   e2e:
     name: e2e (live, soft-fail)
     runs-on: ubuntu-latest

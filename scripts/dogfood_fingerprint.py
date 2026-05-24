@@ -1,7 +1,7 @@
-***REMOVED***!/usr/bin/env python3
-"""Session ***REMOVED***16 — Single-shot prod fingerprint check.
+#!/usr/bin/env python3
+"""Session #16 — Single-shot prod fingerprint check.
 
-The session ***REMOVED***15 incident: prod was running stale code for 5 days while local
+The session #15 incident: prod was running stale code for 5 days while local
 TTFT measurements LOOKED fine because they implicitly hit local. Root cause:
 no single endpoint exposed "what model is the running code actually about
 to call?". Now `/api/version` returns `model` + `git_sha` + `deployed_at`,
@@ -33,7 +33,7 @@ def _local_git_sha() -> str:
 
     Deploy never ships docs-only commits, so comparing prod's git_sha
     against a docs-only local HEAD raised false 'FINGERPRINT MISMATCH'
-    alarms (session ***REMOVED***17). Exclude docs/ and top-level *.md so the
+    alarms (session #17). Exclude docs/ and top-level *.md so the
     fingerprint tracks shippable state, not documentation churn.
     """
     try:
@@ -79,12 +79,12 @@ def main() -> int:
         return 0
 
     failed = []
-    ***REMOVED*** Model check — the most important one (session-15 root cause).
+    # Model check — the most important one (session-15 root cause).
     if args.expect_model and body.get("model") != args.expect_model:
         failed.append(
             f"model mismatch: prod={body.get('model')!r} expected={args.expect_model!r}"
         )
-    ***REMOVED*** SHA check — if user passed --expect-sha-startswith="" we skip silently.
+    # SHA check — if user passed --expect-sha-startswith="" we skip silently.
     if args.expect_sha_startswith:
         sha = body.get("git_sha", "")
         if not sha.startswith(args.expect_sha_startswith):
@@ -92,8 +92,8 @@ def main() -> int:
                 f"git_sha mismatch: prod={sha!r} expected starts-with={args.expect_sha_startswith!r}"
             )
     else:
-        ***REMOVED*** Validator session-***REMOVED***16 P2 — silent empty default can mask real
-        ***REMOVED*** drift. Emit a stderr warning rather than appearing to verify SHA.
+        # Validator session-#16 P2 — silent empty default can mask real
+        # drift. Emit a stderr warning rather than appearing to verify SHA.
         print(
             "⚠ no --expect-sha-startswith supplied and `git rev-parse` returned "
             "nothing; git_sha was NOT verified.",

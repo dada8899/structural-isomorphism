@@ -1,11 +1,11 @@
 """Pandas Series `.soc` accessor — ergonomic SOC validation for working scientists.
 
 Usage:
-    >>> import pandas as pd, numpy as np, soc_pipeline  ***REMOVED*** noqa: F401 (registers accessor)
+    >>> import pandas as pd, numpy as np, soc_pipeline  # noqa: F401 (registers accessor)
     >>> s = pd.Series((np.random.default_rng(0).pareto(1.5, 5000) + 1.0), name="magnitudes")
-    >>> s.soc.fit_alpha()         ***REMOVED*** -> float
-    >>> s.soc.validate(expected_band=(2.4, 2.6))  ***REMOVED*** -> Verdict
-    >>> s.soc.is_pass(expected_band=(2.4, 2.6))   ***REMOVED*** -> bool
+    >>> s.soc.fit_alpha()         # -> float
+    >>> s.soc.validate(expected_band=(2.4, 2.6))  # -> Verdict
+    >>> s.soc.is_pass(expected_band=(2.4, 2.6))   # -> bool
 
 Design notes:
     - Registered as a pandas Series extension accessor (`@pd.api.extensions.register_series_accessor`)
@@ -96,7 +96,7 @@ class Verdict:
             d["error"] = self.error
         return d
 
-    def __repr__(self) -> str:  ***REMOVED*** pragma: no cover - cosmetic
+    def __repr__(self) -> str:  # pragma: no cover - cosmetic
         if self.error:
             return f"Verdict(label={self.label!r}, verdict=ERROR, error={self.error!r})"
         ci = ""
@@ -162,7 +162,7 @@ def validate(
         underlying = "INCONCLUSIVE"
         in_band = False
 
-    ***REMOVED*** Quick-look gating verdict
+    # Quick-look gating verdict
     if expected_band is None:
         coarse = "INCONCLUSIVE"
     elif in_band and not fit.rejects_power_law:

@@ -8,13 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 
-***REMOVED*** Ensure web/backend is on sys.path so `services.*` resolves regardless of
-***REMOVED*** the pytest invocation directory.
+# Ensure web/backend is on sys.path so `services.*` resolves regardless of
+# the pytest invocation directory.
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
-from services.auth import (  ***REMOVED*** noqa: E402
+from services.auth import (  # noqa: E402
     get_rate_limit_tier,
     tier_limit,
     verify_api_token,
@@ -31,7 +31,7 @@ def _make_request(headers: dict | None = None, cookies: dict | None = None,
     )
 
 
-***REMOVED*** ---------------- verify_api_token ----------------
+# ---------------- verify_api_token ----------------
 
 
 def test_no_token_returns_anonymous(monkeypatch):
@@ -108,11 +108,11 @@ def test_malformed_bearer_falls_through_to_anonymous(monkeypatch):
     """Authorization header without the Bearer prefix is ignored."""
     monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
     req = _make_request(headers={"Authorization": "Basic abcd"})
-    ***REMOVED*** No bearer found, no cookie → anonymous (not None).
+    # No bearer found, no cookie → anonymous (not None).
     assert verify_api_token(req) == "anonymous"
 
 
-***REMOVED*** ---------------- get_rate_limit_tier ----------------
+# ---------------- get_rate_limit_tier ----------------
 
 
 def test_get_rate_limit_tier_known():
@@ -127,13 +127,13 @@ def test_get_rate_limit_tier_case_insensitive():
 
 
 def test_get_rate_limit_tier_unknown_falls_back_to_anonymous():
-    ***REMOVED*** Conservative default: never accidentally promote unknown tiers.
+    # Conservative default: never accidentally promote unknown tiers.
     assert get_rate_limit_tier("vip") == "5/minute"
     assert get_rate_limit_tier("") == "5/minute"
-    assert get_rate_limit_tier(None) == "5/minute"  ***REMOVED*** type: ignore[arg-type]
+    assert get_rate_limit_tier(None) == "5/minute"  # type: ignore[arg-type]
 
 
-***REMOVED*** ---------------- tier_limit (key/limit string for slowapi) ----------------
+# ---------------- tier_limit (key/limit string for slowapi) ----------------
 
 
 def test_tier_limit_anonymous_has_ip_suffix(monkeypatch):

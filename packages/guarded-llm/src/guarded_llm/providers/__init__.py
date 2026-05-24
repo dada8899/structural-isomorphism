@@ -33,7 +33,7 @@ class BaseProvider(ABC):
         ...
 
 
-***REMOVED*** Registry: provider-name -> BaseProvider subclass
+# Registry: provider-name -> BaseProvider subclass
 PROVIDERS: dict[str, type[BaseProvider]] = {}
 
 
@@ -61,12 +61,12 @@ def list_providers() -> list[str]:
     return sorted(PROVIDERS.keys())
 
 
-***REMOVED*** Eagerly import built-in providers so they self-register
-from . import deepseek  ***REMOVED*** noqa: E402, F401
-from . import anthropic  ***REMOVED*** noqa: E402, F401
-from . import openai  ***REMOVED*** noqa: E402, F401
-from . import kimi  ***REMOVED*** noqa: E402, F401
-from . import glm  ***REMOVED*** noqa: E402, F401
+# Eagerly import built-in providers so they self-register
+from . import deepseek  # noqa: E402, F401
+from . import anthropic  # noqa: E402, F401
+from . import openai  # noqa: E402, F401
+from . import kimi  # noqa: E402, F401
+from . import glm  # noqa: E402, F401
 
 
 __all__ = [

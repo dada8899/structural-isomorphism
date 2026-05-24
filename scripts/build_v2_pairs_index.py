@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Build a reverse index from v2m-top4plus.jsonl (761 cross-domain pairs).
 
@@ -38,7 +38,7 @@ OUT = WEB_DATA / "v2_pairs_index.json"
 
 
 def main():
-    ***REMOVED*** KB lookup
+    # KB lookup
     kb_name_to_id = {}
     with open(KB_FILE) as f:
         for line in f:
@@ -47,7 +47,7 @@ def main():
                 kb_name_to_id[item["name"]] = item["id"]
     print(f"KB: {len(kb_name_to_id)} phenomena")
 
-    ***REMOVED*** Load all pairs
+    # Load all pairs
     with open(TOP4_FILE) as f:
         pairs = [json.loads(l) for l in f if l.strip()]
     print(f"v2 pairs loaded: {len(pairs)}")
@@ -62,8 +62,8 @@ def main():
         if not a_id or not b_id:
             skipped += 1
             continue
-        ***REMOVED*** `_score` is numeric (4 or 5). `potential` is sometimes a string label
-        ***REMOVED*** like "高" / "中" / "低" — keep it as a string and don't coerce.
+        # `_score` is numeric (4 or 5). `potential` is sometimes a string label
+        # like "高" / "中" / "低" — keep it as a string and don't coerce.
         try:
             score = int(p.get("_score") or 0)
         except (TypeError, ValueError):
@@ -73,7 +73,7 @@ def main():
         value_type = p.get("value_type", "")
         potential = p.get("potential", "")
 
-        ***REMOVED*** Index under a_id with b as the "other"
+        # Index under a_id with b as the "other"
         by_id[a_id].append({
             "other_id": b_id,
             "other_name": b_name,
@@ -85,7 +85,7 @@ def main():
             "value_type": value_type,
             "potential": potential,
         })
-        ***REMOVED*** Index under b_id with a as the "other"
+        # Index under b_id with a as the "other"
         by_id[b_id].append({
             "other_id": a_id,
             "other_name": a_name,
@@ -98,11 +98,11 @@ def main():
             "potential": potential,
         })
 
-    ***REMOVED*** Sort each phenomenon's neighborhood by similarity desc
+    # Sort each phenomenon's neighborhood by similarity desc
     for k in by_id:
         by_id[k].sort(key=lambda x: x["similarity"], reverse=True)
 
-    ***REMOVED*** Stats
+    # Stats
     max_pairs = max(len(v) for v in by_id.values()) if by_id else 0
     hub_phenomena = sorted(by_id.items(), key=lambda kv: -len(kv[1]))[:10]
     print(f"\nIndexed {len(by_id)} phenomena ({skipped} pairs skipped due to missing IDs)")

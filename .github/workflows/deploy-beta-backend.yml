@@ -1,17 +1,17 @@
 name: Deploy Beta Backend
 
-***REMOVED*** Auto-deploy beta.structural.bytedance.city (FastAPI + static frontend) on
-***REMOVED*** push to main. Replaces the manual flow:
-***REMOVED***   ssh vps; cd structural-isomorphism-v4; git pull; bash scripts/deploy-vps.sh
-***REMOVED***
-***REMOVED*** Path filter scopes deploys to web app + deploy scripts only — pure docs /
-***REMOVED*** v4 lib / phase-detector changes do not trigger this workflow (phase-detector
-***REMOVED*** has its own deploy workflow).
-***REMOVED***
-***REMOVED*** Secrets used (same pattern as deploy-phase-detector.yml):
-***REMOVED***   VPS_DEPLOY_KEY  — SSH private key authorized on VPS
-***REMOVED***   VPS_HOST        — VPS hostname / IP
-***REMOVED***   VPS_USER        — SSH user (typically root)
+# Auto-deploy beta.structural.bytedance.city (FastAPI + static frontend) on
+# push to main. Replaces the manual flow:
+#   ssh vps; cd structural-isomorphism-v4; git pull; bash scripts/deploy-vps.sh
+#
+# Path filter scopes deploys to web app + deploy scripts only — pure docs /
+# v4 lib / phase-detector changes do not trigger this workflow (phase-detector
+# has its own deploy workflow).
+#
+# Secrets used (same pattern as deploy-phase-detector.yml):
+#   VPS_DEPLOY_KEY  — SSH private key authorized on VPS
+#   VPS_HOST        — VPS hostname / IP
+#   VPS_USER        — SSH user (typically root)
 
 on:
   push:
@@ -24,7 +24,7 @@ on:
       - '.github/workflows/deploy-beta-backend.yml'
   workflow_dispatch: {}
 
-***REMOVED*** Serialize deploys so two pushes do not race on the VPS rsync + restart.
+# Serialize deploys so two pushes do not race on the VPS rsync + restart.
 concurrency:
   group: deploy-beta-backend
   cancel-in-progress: false
@@ -54,12 +54,12 @@ jobs:
           USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
-          ***REMOVED*** The deploy key is `command="/root/scripts/deploy-dispatcher.sh"`
-          ***REMOVED*** restricted (SESSION-15 incident: pre-2026-05-20 it was forced to
-          ***REMOVED*** `deploy-phase-detector.sh`, which is why backend deploys 5 days
-          ***REMOVED*** of silent failure). The dispatcher routes by SSH_ORIGINAL_COMMAND
-          ***REMOVED*** — send "beta-backend" to trigger /root/scripts/deploy-beta-backend.sh
-          ***REMOVED*** which `git reset --hard origin/main` then runs scripts/deploy-vps.sh.
+          # The deploy key is `command="/root/scripts/deploy-dispatcher.sh"`
+          # restricted (SESSION-15 incident: pre-2026-05-20 it was forced to
+          # `deploy-phase-detector.sh`, which is why backend deploys 5 days
+          # of silent failure). The dispatcher routes by SSH_ORIGINAL_COMMAND
+          # — send "beta-backend" to trigger /root/scripts/deploy-beta-backend.sh
+          # which `git reset --hard origin/main` then runs scripts/deploy-vps.sh.
           ssh -i ~/.ssh/id_deploy \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes \
@@ -84,10 +84,10 @@ jobs:
           done
 
       - name: Verify deploy fingerprint matches the just-deployed commit
-        ***REMOVED*** Session ***REMOVED***16: close the SESSION-15-INCIDENT gap.
-        ***REMOVED*** /api/version returns git_sha + model, written into .env.runtime
-        ***REMOVED*** by scripts/deploy-vps.sh. If they don't match what we just pushed,
-        ***REMOVED*** the deploy didn't actually take — fail loudly.
+        # Session #16: close the SESSION-15-INCIDENT gap.
+        # /api/version returns git_sha + model, written into .env.runtime
+        # by scripts/deploy-vps.sh. If they don't match what we just pushed,
+        # the deploy didn't actually take — fail loudly.
         run: |
           set -euo pipefail
           EXPECTED_SHA=$(git rev-parse --short=7 HEAD)
@@ -96,8 +96,8 @@ jobs:
           BODY=$(curl -s --max-time 10 https://beta.structural.bytedance.city/api/version)
           echo "[verify] /api/version response: $BODY"
 
-          ***REMOVED*** Use python (preinstalled on the runner) instead of jq to keep
-          ***REMOVED*** the workflow free of an extra apt install.
+          # Use python (preinstalled on the runner) instead of jq to keep
+          # the workflow free of an extra apt install.
           python3 - <<PY
           import json, sys
           body = json.loads('''$BODY''')

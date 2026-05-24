@@ -1,4 +1,4 @@
-***REMOVED*** Backtest Engine v0.1
+# Backtest Engine v0.1
 
 Backtest harness for the **Phase Detector** hypothesis:
 
@@ -6,7 +6,7 @@ Backtest harness for the **Phase Detector** hypothesis:
 
 This is the commercialisation fork — if `near_critical` segment shows positive expected return + statistically distinct distribution, we have a publishable / monetisable signal. v0.1 is the plumbing layer; real-data validation is the next session.
 
-***REMOVED******REMOVED*** What's here
+## What's here
 
 | File | Role |
 |------|------|
@@ -18,16 +18,16 @@ This is the commercialisation fork — if `near_critical` segment shows positive
 | `data/backtest_result.json` | Summary JSON (mean / std / Sharpe / Welch t,p / group sizes). |
 | `data/backtest_cumulative.csv` | Time-series of group-mean cumulative returns. |
 
-***REMOVED******REMOVED*** Quickstart
+## Quickstart
 
 ```bash
-***REMOVED*** 1. Generate synthetic prices (writes data/prices.csv)
+# 1. Generate synthetic prices (writes data/prices.csv)
 python3 v4/product/d1_phase_detector/fetch_prices.py --dry-run
 
-***REMOVED*** 2. Run backtest end-to-end on synthetic (no inputs needed)
+# 2. Run backtest end-to-end on synthetic (no inputs needed)
 python3 v4/product/d1_phase_detector/backtest.py --dry-run
 
-***REMOVED*** 3. OR run against the real StructTuple file with synthetic prices
+# 3. OR run against the real StructTuple file with synthetic prices
 python3 v4/product/d1_phase_detector/fetch_prices.py --dry-run
 python3 v4/product/d1_phase_detector/backtest.py \
     --companies v4/product/d1_phase_detector/companies_500.jsonl \
@@ -35,7 +35,7 @@ python3 v4/product/d1_phase_detector/backtest.py \
     --snapshot 2026-05-14 --period 6m
 ```
 
-***REMOVED******REMOVED*** Algorithm
+## Algorithm
 
 1. **Load StructTuples** — `companies_500.jsonl` (Wave 1, 55 rows) preferred, fallback `companies.jsonl`. Reader accepts both the `{ticker, struct_tuple:{...}}` wrapper form and a flat form.
 2. **Group split** — `near_critical = {approaching_critical, at_critical}`, `other = {far_from_critical, post_critical_transition}`. Unknown / null state rows dropped.
@@ -44,7 +44,7 @@ python3 v4/product/d1_phase_detector/backtest.py \
 5. **Significance** — Welch two-sample t-test (scipy). Fallback: stdlib normal-approx.
 6. **Cumulative curves** — equal-weighted normalised price path per group, sampled at month-end grid; written to CSV for plotting.
 
-***REMOVED******REMOVED*** Current limitations (v0.1)
+## Current limitations (v0.1)
 
 - **Synthetic prices are the default.** Stooq fetch (`--real`) likely fails from many egress IPs; the script logs `WARNING: USING SYNTHETIC FOR DEV` and proceeds. Numbers from synthetic mode are mechanically meaningful but **not market-truth**.
 - **One snapshot only.** No walk-forward yet — every company gets the same `T`. Real backtest needs many overlapping snapshots.
@@ -53,7 +53,7 @@ python3 v4/product/d1_phase_detector/backtest.py \
 - **No transaction costs / shorting / sector neutralisation.** Pure long-only group means.
 - **No look-ahead protection beyond timestamp ordering.** Trust that StructTuple's `critical_point_state` was assigned from data available ≤ snapshot.
 
-***REMOVED******REMOVED*** Roadmap (next session)
+## Roadmap (next session)
 
 1. **Real data** — switch to a cached daily-bars provider (e.g. polygon.io free tier or a local CSV mirror); run from 2023-01 onwards.
 2. **Walk-forward** — generate one StructTuple snapshot per quarter for last 8 quarters; run backtest at each anchor; aggregate.
@@ -61,21 +61,21 @@ python3 v4/product/d1_phase_detector/backtest.py \
 4. **Multiple testing correction** — Benjamini-Hochberg over sector x state cells.
 5. **Sensitivity** — vary period (3m, 6m, 12m, 24m); vary inclusion threshold for `near_critical`.
 
-***REMOVED******REMOVED*** Test
+## Test
 
 ```bash
 python3 -m pytest v4/product/d1_phase_detector/tests/test_backtest.py -v
 ```
 
-***REMOVED******REMOVED*** Why "near_critical → 6mo return" is the commercialisation hinge
+## Why "near_critical → 6mo return" is the commercialisation hinge
 
 The Phase Detector outputs a class label per company. If the label has zero correlation with subsequent risk-adjusted returns, the product is interesting science but not monetisable. v0.1 is the cheapest possible test that the wiring works: can we even *measure* a difference, given the Wave 1 sample size and synthetic noise? Real-data run in session 8 will tell us whether to invest further or pivot the productisation angle.
 
-***REMOVED******REMOVED*** Real-data findings (2026-05-14)
+## Real-data findings (2026-05-14)
 
 **v0.2: walk-forward backtest on real SP500 monthly prices (yfinance, 5y history, 497/500 tickers).**
 
-***REMOVED******REMOVED******REMOVED*** Setup
+### Setup
 
 - 500 SP500 StructTuples from `companies_500.jsonl` (Wave 1, classified by `deepseek-v4-flash`)
 - Group split: **65 `near_critical`** (approaching_critical + at_critical) vs **434 `other`** (far_from_critical + post_critical_transition); 1 null state dropped
@@ -83,7 +83,7 @@ The Phase Detector outputs a class label per company. If the label has zero corr
 - Coverage: 497/500 tickers fetched (3 missing: `RE` delisted, `BF.B` / `BRK.B` dotted-ticker yfinance bug; Stooq fallback also missed those 3)
 - Method: **rolling 6-month forward return** at every month-end snapshot T (54 snapshots × ~497 companies). Welch's t-test (scipy) on the flat pooled observations: 3470 `near_critical` × 23113 `other`.
 
-***REMOVED******REMOVED******REMOVED*** Result
+### Result
 
 | metric | near_critical | other |
 |---|---|---|
@@ -94,7 +94,7 @@ The Phase Detector outputs a class label per company. If the label has zero corr
 
 **Welch's t = −0.412, p = 0.681.**
 
-***REMOVED******REMOVED******REMOVED*** Interpretation
+### Interpretation
 
 > **商业化路径暂未打开（p ≫ 0.05）。** On 5-year SP500 walk-forward, the Phase Detector's `near_critical` label produces statistically indistinguishable 6-month forward returns from `other`. Mean returns differ by only 27 bp (likely noise); `near_critical` shows higher dispersion (36.7% vs 28.6% std) → slightly *worse* risk-adjusted return (Sharpe 0.24 vs 0.32).
 
@@ -105,7 +105,7 @@ This null result is informative — but not damning:
 3. **Definition of `near_critical` is wide.** 13% of universe labelled `near_critical` is large enough that any signal gets diluted.
 4. **6 months may be the wrong horizon.** Phase transitions can play out over years (preferential_attachment companies) or weeks (panic / contagion). Sensitivity over 3m / 12m / 24m is open.
 
-***REMOVED******REMOVED******REMOVED*** Next experiments (priority order)
+### Next experiments (priority order)
 
 1. **Per-snapshot label refresh** — re-run StructTuple extraction at quarterly anchors, then backtest. Removes label-leakage.
 2. **Universe broadening** — Russell 2000 or sector ETFs (where `near_critical` events are more impactful).
@@ -113,16 +113,16 @@ This null result is informative — but not damning:
 4. **Threshold tuning** — restrict `near_critical` to high-confidence (`confidence >= 0.8`) labels only.
 5. **Horizon sensitivity** — 3m / 12m / 24m grid.
 
-***REMOVED******REMOVED******REMOVED*** Reproduce
+### Reproduce
 
 ```bash
-***REMOVED*** Fetch (~3 min for 500 tickers via yfinance)
+# Fetch (~3 min for 500 tickers via yfinance)
 python3 v4/product/d1_phase_detector/fetch_prices.py \
     --tickers v4/product/d1_phase_detector/companies_500.jsonl \
     --output v4/product/d1_phase_detector/prices_500.csv \
     --period 5y --interval 1mo
 
-***REMOVED*** Walk-forward backtest (~2 sec)
+# Walk-forward backtest (~2 sec)
 python3 v4/product/d1_phase_detector/backtest.py \
     --companies v4/product/d1_phase_detector/companies_500.jsonl \
     --period 6m --real-prices

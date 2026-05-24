@@ -19,7 +19,7 @@ class TinyAnswer(BaseModel):
 
 
 def main() -> None:
-    ***REMOVED*** 50 cents lifetime, 5 cents per individual call.
+    # 50 cents lifetime, 5 cents per individual call.
     budget = Budget(usd_total=0.50, usd_per_call=0.05)
 
     llm = GuardedLLM(
@@ -34,7 +34,7 @@ def main() -> None:
         "What is 2 + 2? Answer in JSON: {answer: '...'}",
         "What is the capital of France? Answer in JSON: {answer: '...'}",
         "What year was the Eiffel Tower built? JSON: {answer: '...'}",
-        ***REMOVED*** Many more rounds — eventually hits cumulative cap
+        # Many more rounds — eventually hits cumulative cap
     ] * 30
 
     for i, q in enumerate(questions, 1):

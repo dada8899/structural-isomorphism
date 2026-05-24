@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 V4 Layer 5 (Product): Build frontend-friendly JSON from candidate_classes.jsonl.
 
@@ -26,18 +26,18 @@ CANDIDATES = REPO_ROOT / "v4" / "results" / "candidate_classes.jsonl"
 LAYER3_AUTO = REPO_ROOT / "v4" / "results" / "layer3_auto_curated.jsonl"
 LAYER4_PREDICTIONS = REPO_ROOT / "v4" / "results" / "layer4_predictions.jsonl"
 OUT_FILE = REPO_ROOT / "web" / "frontend" / "assets" / "data" / "universality-classes.json"
-***REMOVED*** KB corpus — used to resolve each class's hub phenomenon to its real KB id,
-***REMOVED*** so the site can deep-link the hub into /analyze (which needs a phenomenon id).
+# KB corpus — used to resolve each class's hub phenomenon to its real KB id,
+# so the site can deep-link the hub into /analyze (which needs a phenomenon id).
 KB_STRUCT = REPO_ROOT / "v3" / "results" / "kb-expanded-struct.jsonl"
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Curated metadata — for the top classes we know.
-***REMOVED*** Keys are the hub node display names from candidate_classes.jsonl.
-***REMOVED*** Provenance filter helps when multiple overlapping classes share a hub.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Curated metadata — for the top classes we know.
+# Keys are the hub node display names from candidate_classes.jsonl.
+# Provenance filter helps when multiple overlapping classes share a hub.
+# ---------------------------------------------------------------------------
 
 CURATED = {
-    ***REMOVED*** SOC mega-cluster (connected_component top 1)
+    # SOC mega-cluster (connected_component top 1)
     ("清算级联的链上流动性危机", "connected_component"): {
         "class_id": "soc_threshold_cascade",
         "name_zh": "阈值级联 / 自组织临界类",
@@ -108,7 +108,7 @@ CURATED = {
             },
         ],
     },
-    ***REMOVED*** Hysteresis cluster (connected_component top 2)
+    # Hysteresis cluster (connected_component top 2)
     ("热固性树脂凝胶点渗流相变", "connected_component"): {
         "class_id": "hysteresis_preisach",
         "name_zh": "磁滞 / 一阶相变类",
@@ -128,7 +128,7 @@ CURATED = {
         ],
         "predictions": [],
     },
-    ***REMOVED*** Scheffer fold bifurcation cluster (connected_component top 3)
+    # Scheffer fold bifurcation cluster (connected_component top 3)
     ("蛋白质相分离的临界浓度阈值", "connected_component"): {
         "class_id": "scheffer_fold_bifurcation",
         "name_zh": "Scheffer 突变 / Fold 分岔类",
@@ -148,13 +148,13 @@ CURATED = {
         ],
         "predictions": [],
     },
-    ***REMOVED*** Motter-Lai sub-community (louvain of ***REMOVED***1)
+    # Motter-Lai sub-community (louvain of #1)
     ("建筑结构的渐进倒塌", "louvain_community"): {
         "class_id": "motter_lai_network_cascade",
         "name_zh": "Motter-Lai 网络级联类",
         "name_en": "Motter-Lai Network Cascade",
         "physics_prototype": "Motter-Lai model (2002) for network cascading failure",
-        "taxonomy_match": "soc_threshold_cascade",  ***REMOVED*** sub-class of SOC
+        "taxonomy_match": "soc_threshold_cascade",  # sub-class of SOC
         "confidence": "high",
         "summary_zh": (
             "SOC 巨簇经 Louvain 社区发现自动拆出的一个亚类——专门描述物理基础设施网络上的级联失效。"
@@ -169,7 +169,7 @@ CURATED = {
         ],
         "predictions": [],
     },
-    ***REMOVED*** Diamond-Dybvig sub-community (louvain of ***REMOVED***1)
+    # Diamond-Dybvig sub-community (louvain of #1)
     ("银行挤兑", "louvain_community"): {
         "class_id": "diamond_dybvig_self_fulfilling",
         "name_zh": "Diamond-Dybvig 自实现挤兑类",
@@ -198,13 +198,13 @@ CURATED = {
             }
         ],
     },
-    ***REMOVED*** Tail copula cluster
+    # Tail copula cluster
     ("相关性崩溃的尾部传染效应", "connected_component"): {
         "class_id": "tail_copula_contagion",
         "name_zh": "尾部相关 / Copula 传染类",
         "name_en": "Tail Copula Contagion",
         "physics_prototype": "Copula extreme value theory + Minsky moments",
-        "taxonomy_match": None,  ***REMOVED*** new class, not in seed
+        "taxonomy_match": None,  # new class, not in seed
         "confidence": "medium",
         "summary_zh": (
             "平常状态下相关性低、多元化有效的系统，在极端压力下相关性跳涨到接近 1。"
@@ -218,13 +218,13 @@ CURATED = {
         ],
         "predictions": [],
     },
-    ***REMOVED*** Toggle switch cluster
+    # Toggle switch cluster
     ("Th1/Th2极化与疾病偏向", "connected_component"): {
         "class_id": "gardner_collins_toggle_switch",
         "name_zh": "双稳态 Toggle Switch 类",
         "name_en": "Gardner-Collins Bistable Toggle",
         "physics_prototype": "Gardner-Collins-Cantor toggle switch (2000 Nature)",
-        "taxonomy_match": None,  ***REMOVED*** new class, not in seed
+        "taxonomy_match": None,  # new class, not in seed
         "confidence": "high",
         "summary_zh": (
             "两个相互抑制的元件构成开关，具有两个稳定状态。只要初始条件不同，系统被锁定在不同的状态。"
@@ -238,13 +238,13 @@ CURATED = {
         ],
         "predictions": [],
     },
-    ***REMOVED*** Credible commitment cluster
+    # Credible commitment cluster
     ("进入威慑与产能过度承诺", "connected_component"): {
         "class_id": "schelling_credible_commitment",
         "name_zh": "可信承诺 / 时间不一致类",
         "name_en": "Schelling Credible Commitment",
         "physics_prototype": "Schelling 1960 credible commitment + Kydland-Prescott 时间不一致",
-        "taxonomy_match": None,  ***REMOVED*** new class, not in seed
+        "taxonomy_match": None,  # new class, not in seed
         "confidence": "high",
         "summary_zh": (
             "理性主体面临承诺难题：最优事前策略在事后会被背叛。只有承诺不可逆（沉没成本、声誉、"
@@ -374,7 +374,7 @@ def build():
         hub_name = (rec.get("hub") or {}).get("name")
         provenance = rec.get("provenance")
 
-        ***REMOVED*** Priority: manual CURATED > layer3 auto > unnamed
+        # Priority: manual CURATED > layer3 auto > unnamed
         manual = CURATED.get((hub_name, provenance))
         auto = layer3.get((hub_name, provenance))
         source = "manual" if manual else ("llm" if auto else "none")
@@ -387,8 +387,8 @@ def build():
             "rank": rec.get("index"),
             "provenance": provenance,
             "hub_name": hub_name,
-            ***REMOVED*** Real KB phenomenon id for the hub (None if not resolvable) — the
-            ***REMOVED*** site needs this to deep-link the hub into /analyze.
+            # Real KB phenomenon id for the hub (None if not resolvable) — the
+            # site needs this to deep-link the hub into /analyze.
             "hub_id": kb_name_to_id.get(hub_name),
             "hub_degree": (rec.get("hub") or {}).get("degree_inside_class"),
             "size": rec.get("size"),
@@ -411,7 +411,7 @@ def build():
         }
         classes.append(item)
 
-    ***REMOVED*** Sort: manual > llm > uncurated, then by size * n_domains * avg_score
+    # Sort: manual > llm > uncurated, then by size * n_domains * avg_score
     def rank(c):
         source_priority = {"manual": 0, "llm": 1, "none": 2}
         score_key = -(c["size"] * c["n_domains"] * (c["avg_edge_score"] or 1))

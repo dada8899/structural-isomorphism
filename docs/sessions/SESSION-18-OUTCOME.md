@@ -1,11 +1,11 @@
-***REMOVED*** Session ***REMOVED***18 成果 — 价值挖掘 A–G
+# Session #18 成果 — 价值挖掘 A–G
 
 > 输入：`SESSION-18-HANDOFF.md`。本文记录实际产出与待办。
 > 全部 A–G 七个方向均已实现并通过测试。**尚未部署**——部署需用户授权。
 
 ---
 
-***REMOVED******REMOVED*** 0. 一句话
+## 0. 一句话
 
 A–G 七个产品方向全部落地：9 个特性建成并各自三层测试，其中 4 个在初版后
 按「不到 90 分就深化」回炉，把 C2/E/F 接上 KB 同构引擎、A2 换上有区分度的
@@ -13,7 +13,7 @@ A–G 七个产品方向全部落地：9 个特性建成并各自三层测试，
 
 ---
 
-***REMOVED******REMOVED*** 1. 交付清单
+## 1. 交付清单
 
 | 方向 | 交付 | 入口 | 后端 | 测试 |
 |---|---|---|---|---|
@@ -31,7 +31,7 @@ A–G 七个产品方向全部落地：9 个特性建成并各自三层测试，
 - 通用 LLM 客户端 `services/llm_client.py`（complete_json / complete_text / stream_text）。
 - 后端 `pytest tests/` **703 passed**（基线 501 → +202）。
 
-***REMOVED******REMOVED*** 2. 深化记录（90 分回炉）
+## 2. 深化记录（90 分回炉）
 
 初版后诚实打分，4 个方向不到 90，已回炉：
 
@@ -42,16 +42,16 @@ A–G 七个产品方向全部落地：9 个特性建成并各自三层测试，
   挂真实同构现象、E 给最薄弱环节挂失效先例、F 给诊断挂同结构参照案例，
   全部经 SearchService，search 不可用时降级为 null。
 
-***REMOVED******REMOVED*** 3. 待办（部署相关，CC 推不动）
+## 3. 待办（部署相关，CC 推不动）
 
 | 优先级 | 动作 | 说明 |
 |---|---|---|
-| 🔴 P0 | 轮换 OpenRouter API key | 旧 key 曾在 public 仓库泄露（沿用 ***REMOVED***17 未办事项） |
+| 🔴 P0 | 轮换 OpenRouter API key | 旧 key 曾在 public 仓库泄露（沿用 #17 未办事项） |
 | 🟡 | 触发部署 | `gh workflow run "Deploy Beta Backend"` —— 高危，需用户授权 |
 | 🟡 | 部署后跑 whitespace LLM 预计算 | `OPENROUTER_API_KEY=... python scripts/build_whitespace_matrix.py --llm`，给 A2 的 leads 补 plausible/研究问题（约 400+ 次 LLM 调用，一次性） |
 | 🟢 | 部署后跑 `@post_deploy` e2e | method_search / stress_test / struct_lint / diagnose 的 e2e 标了 `post_deploy`，需线上 + LLM key 才能跑完整提交流程 |
 
-***REMOVED******REMOVED*** 4. 验证情况
+## 4. 验证情况
 
 - **三层验收**：单元 + 集成（FastAPI TestClient，LLM 全 mock）+ 真实浏览器。
 - 真实环境（本地起后端 + Playwright）：7 个新页面渲染无报错、导航一致；
@@ -59,7 +59,7 @@ A–G 七个产品方向全部落地：9 个特性建成并各自三层测试，
   `/lint` 无 key 时优雅 503。
 - 未做的：线上环境的 LLM 完整链路（需部署 + key）——见 §3。
 
-***REMOVED******REMOVED*** 5. 起手指令（下个 session）
+## 5. 起手指令（下个 session）
 
 > 读 `SESSION-18-OUTCOME.md`，跑 fingerprint check。若用户授权部署：
 > 触发 Deploy Beta Backend → 复验 fingerprint → 跑 whitespace `--llm` 预计算

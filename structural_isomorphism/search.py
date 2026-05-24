@@ -48,10 +48,10 @@ class StructuralSearch:
         """
         logger.info("Initializing StructuralSearch...")
 
-        ***REMOVED*** Load model
+        # Load model
         self.model = load_model(model_path=model_path, device=device)
 
-        ***REMOVED*** Load knowledge base
+        # Load knowledge base
         self.kb = load_knowledge_base(data_dir=data_dir)
         if not self.kb:
             logger.warning(
@@ -62,7 +62,7 @@ class StructuralSearch:
             )
             self._kb_embeddings = None
         else:
-            ***REMOVED*** Pre-compute knowledge base embeddings
+            # Pre-compute knowledge base embeddings
             descriptions = [item["description"] for item in self.kb]
             self._kb_embeddings = encode_texts(
                 self.model, descriptions, show_progress=True
@@ -98,13 +98,13 @@ class StructuralSearch:
             logger.warning("No knowledge base loaded. Returning empty results.")
             return []
 
-        ***REMOVED*** Encode query
+        # Encode query
         query_embedding = encode_texts(self.model, text)
 
-        ***REMOVED*** Compute cosine similarities
+        # Compute cosine similarities
         similarities = np.dot(self._kb_embeddings, query_embedding.T).flatten()
 
-        ***REMOVED*** Rank by similarity
+        # Rank by similarity
         top_indices = np.argsort(similarities)[::-1][:top_k]
 
         results = []
@@ -144,19 +144,19 @@ class StructuralSearch:
             logger.warning("No knowledge base loaded.")
             return []
 
-        ***REMOVED*** Pairwise similarity matrix (dot product of KB embeddings).
+        # Pairwise similarity matrix (dot product of KB embeddings).
         sim_matrix = np.dot(self._kb_embeddings, self._kb_embeddings.T)
 
-        ***REMOVED*** Vectorised threshold filter: only the upper-triangle pairs that
-        ***REMOVED*** clear `threshold` reach Python. Replaces the O(N^2) double loop —
-        ***REMOVED*** numpy does the N^2 scan in C, Python only iterates the (usually
-        ***REMOVED*** few) survivors. Result is identical to the old loop.
+        # Vectorised threshold filter: only the upper-triangle pairs that
+        # clear `threshold` reach Python. Replaces the O(N^2) double loop —
+        # numpy does the N^2 scan in C, Python only iterates the (usually
+        # few) survivors. Result is identical to the old loop.
         above = np.argwhere(np.triu(sim_matrix >= threshold, k=1))
 
         pairs = []
         for i, j in above:
             i, j = int(i), int(j)
-            ***REMOVED*** Skip same-type (already known) and same-domain (less interesting).
+            # Skip same-type (already known) and same-domain (less interesting).
             if self.kb[i].get("type_id") == self.kb[j].get("type_id"):
                 continue
             if self.kb[i].get("domain") == self.kb[j].get("domain"):

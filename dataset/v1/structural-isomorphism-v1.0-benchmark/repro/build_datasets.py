@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 build_datasets.py — populate the bundle's `datasets/` tree.
 
@@ -22,13 +22,13 @@ import os
 import shutil
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]  ***REMOVED*** repo root
-BUNDLE = Path(__file__).resolve().parents[1]  ***REMOVED*** .../structural-isomorphism-v1.0-benchmark
+ROOT = Path(__file__).resolve().parents[4]  # repo root
+BUNDLE = Path(__file__).resolve().parents[1]  # .../structural-isomorphism-v1.0-benchmark
 DEST = BUNDLE / "datasets"
-LARGE_THRESHOLD_BYTES = 50 * 1024 * 1024  ***REMOVED*** 50 MB
+LARGE_THRESHOLD_BYTES = 50 * 1024 * 1024  # 50 MB
 
-***REMOVED*** 13 primary phases per paper v0 §3 + 2 non-PL invariant phases (12, 13_hyst).
-***REMOVED*** slot -> (v4 source dir, phase number, short label, source URL)
+# 13 primary phases per paper v0 §3 + 2 non-PL invariant phases (12, 13_hyst).
+# slot -> (v4 source dir, phase number, short label, source URL)
 SYSTEMS = {
     "01_earthquake": ("soc-earthquake", 1, "USGS earthquake catalog 2020-2025",
                       "https://earthquake.usgs.gov/fdsnws/event/1/"),
@@ -71,7 +71,7 @@ def write_large_file_stub(dest: Path, src: Path, source_url: str) -> None:
     h = sha256_file(src)
     size = src.stat().st_size
     rel_src = src.relative_to(ROOT)
-    text = f"""***REMOVED*** {src.name} (large file)
+    text = f"""# {src.name} (large file)
 
 This file is **not bundled** because it exceeds the
 {LARGE_THRESHOLD_BYTES // (1024 * 1024)} MB inline-bundle threshold.
@@ -85,7 +85,7 @@ This file is **not bundled** because it exceeds the
 | source_url | {source_url} |
 | repo_path | `{rel_src}` |
 
-***REMOVED******REMOVED*** To obtain
+## To obtain
 
 Option A — re-fetch from upstream using the bundled fetch script:
 
@@ -105,7 +105,7 @@ After obtaining the file, verify with:
 
 ```bash
 sha256sum {src.name}
-***REMOVED*** expected: {h}
+# expected: {h}
 ```
 """
     dest.write_text(text)

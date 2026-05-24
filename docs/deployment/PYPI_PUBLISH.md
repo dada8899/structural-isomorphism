@@ -1,4 +1,4 @@
-***REMOVED*** PyPI Publishing — `structural-isomorphism` packages
+# PyPI Publishing — `structural-isomorphism` packages
 
 Publishing 3 PyPI packages from this monorepo, fully automated via tag-push:
 
@@ -12,7 +12,7 @@ Workflow file: [`.github/workflows/publish-pypi.yml`](../../.github/workflows/pu
 
 ---
 
-***REMOVED******REMOVED*** TL;DR — first-time setup (3 steps, ~5 min)
+## TL;DR — first-time setup (3 steps, ~5 min)
 
 1. **Create a PyPI API token** (account-scoped first time)
    - Log in at <https://pypi.org/manage/account/token/>
@@ -42,7 +42,7 @@ Workflow file: [`.github/workflows/publish-pypi.yml`](../../.github/workflows/pu
 
 ---
 
-***REMOVED******REMOVED*** How the workflow works
+## How the workflow works
 
 **Trigger**: push of any tag matching `v*` (e.g. `v0.1.0`, `v1.2.3`, `v1.2.3-rc1`).
 Manual trigger also supported via **Actions → Publish to PyPI → Run workflow** (with optional `dry_run=true` to build-only).
@@ -64,7 +64,7 @@ Manual trigger also supported via **Actions → Publish to PyPI → Run workflow
 
 ---
 
-***REMOVED******REMOVED*** Alternative: OIDC trusted publisher (no secret)
+## Alternative: OIDC trusted publisher (no secret)
 
 OIDC is more secure than long-lived API tokens — it issues short-lived credentials per workflow run, scoped to a specific repo + environment.
 
@@ -92,7 +92,7 @@ OIDC is more secure than long-lived API tokens — it issues short-lived credent
 
 ---
 
-***REMOVED******REMOVED*** Release checklist (per release)
+## Release checklist (per release)
 
 Before tagging:
 
@@ -116,7 +116,7 @@ If a publish fails mid-matrix (e.g. soc-pipeline ok, guarded-llm fails):
 
 ---
 
-***REMOVED******REMOVED*** Troubleshooting
+## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -128,7 +128,7 @@ If a publish fails mid-matrix (e.g. soc-pipeline ok, guarded-llm fails):
 
 ---
 
-***REMOVED******REMOVED*** Manual dry-run (no upload)
+## Manual dry-run (no upload)
 
 To verify the workflow without publishing:
 
@@ -141,7 +141,7 @@ Builds + `twine check` runs for all 3 packages; upload step is skipped.
 
 ---
 
-***REMOVED******REMOVED*** Files referenced
+## Files referenced
 
 - `.github/workflows/publish-pypi.yml` — the workflow itself
 - `packages/soc-pipeline/pyproject.toml` — hatchling build backend

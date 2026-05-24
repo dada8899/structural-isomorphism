@@ -36,14 +36,14 @@ from services.llm_service import OPENROUTER_URL, _get_http_client
 
 logger = logging.getLogger("structural.translation")
 
-***REMOVED*** Process-local cache: id -> translated dict (at minimum name/domain/description)
+# Process-local cache: id -> translated dict (at minimum name/domain/description)
 _TRANSLATE_CACHE: Dict[str, Dict[str, str]] = {}
-***REMOVED*** Locks to avoid duplicate concurrent translations of the same id.
+# Locks to avoid duplicate concurrent translations of the same id.
 _TRANSLATE_LOCKS: Dict[str, asyncio.Lock] = {}
 _GLOBAL_LOCK = asyncio.Lock()
 
-***REMOVED*** Category enum mapping (Chinese -> English). These come from
-***REMOVED*** `assess_and_rewrite` in llm_service.py.
+# Category enum mapping (Chinese -> English). These come from
+# `assess_and_rewrite` in llm_service.py.
 CATEGORY_EN = {
     "现象描述": "phenomenon description",
     "学术方向": "academic direction",
@@ -64,8 +64,8 @@ def translate_category(zh_category: Optional[str]) -> str:
 
 
 def _get_lock(cache_key: str) -> asyncio.Lock:
-    ***REMOVED*** Single-thread asyncio, so we can create locks lazily. No race here
-    ***REMOVED*** because we're inside the event loop.
+    # Single-thread asyncio, so we can create locks lazily. No race here
+    # because we're inside the event loop.
     lock = _TRANSLATE_LOCKS.get(cache_key)
     if lock is None:
         lock = asyncio.Lock()
@@ -85,7 +85,7 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
     if not api_key or not items:
         return []
 
-    ***REMOVED*** Build a compact JSON payload the model translates in-place.
+    # Build a compact JSON payload the model translates in-place.
     payload_in = [
         {
             "i": i,
@@ -114,7 +114,7 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
                 "Content-Type": "application/json",
             },
             json={
-                ***REMOVED*** Use a fast + cheap model; translation doesn't need reasoning.
+                # Use a fast + cheap model; translation doesn't need reasoning.
                 "model": os.getenv("LLM_TRANSLATE_MODEL", "anthropic/claude-haiku-4.5"),
                 "messages": [
                     {"role": "user", "content": prompt},
@@ -132,7 +132,7 @@ async def _llm_translate_batch(items: List[Dict]) -> List[Dict[str, str]]:
             content = content.strip("`").lstrip("json").strip()
         parsed = json.loads(content)
         out_items = parsed.get("items") or []
-        ***REMOVED*** Index by i
+        # Index by i
         by_i: Dict[int, Dict[str, str]] = {}
         for rec in out_items:
             try:
@@ -167,7 +167,7 @@ async def translate_kb_item(item: Optional[Dict], lang: str) -> Optional[Dict]:
     if cache_key and cache_key in _TRANSLATE_CACHE:
         return _merge_translation(item, _TRANSLATE_CACHE[cache_key])
 
-    ***REMOVED*** Guard concurrent translations of the same id.
+    # Guard concurrent translations of the same id.
     if cache_key:
         lock = _get_lock(cache_key)
         async with lock:
@@ -177,10 +177,10 @@ async def translate_kb_item(item: Optional[Dict], lang: str) -> Optional[Dict]:
             if batch and batch[0]:
                 _TRANSLATE_CACHE[cache_key] = batch[0]
                 return _merge_translation(item, batch[0])
-            ***REMOVED*** Failure: passthrough
+            # Failure: passthrough
             return item
 
-    ***REMOVED*** No id — translate inline without caching.
+    # No id — translate inline without caching.
     batch = await _llm_translate_batch([item])
     if batch and batch[0]:
         return _merge_translation(item, batch[0])
@@ -197,7 +197,7 @@ async def translate_kb_items(items: Iterable[Dict], lang: str) -> List[Dict]:
     if (lang or "zh").lower() != "en" or not items_list:
         return items_list
 
-    ***REMOVED*** Figure out which items need translation
+    # Figure out which items need translation
     to_fetch: List[Dict] = []
     to_fetch_positions: List[int] = []
     out: List[Optional[Dict]] = [None] * len(items_list)
@@ -224,10 +224,10 @@ async def translate_kb_items(items: Iterable[Dict], lang: str) -> List[Dict]:
                     _TRANSLATE_CACHE[cache_key] = tr
                 out[orig_pos] = _merge_translation(orig_item, tr)
             else:
-                ***REMOVED*** Fallback: passthrough Chinese
+                # Fallback: passthrough Chinese
                 out[orig_pos] = orig_item
 
-    return [x for x in out]  ***REMOVED*** mypy: all populated
+    return [x for x in out]  # mypy: all populated
 
 
 def _merge_translation(original: Dict, tr: Dict[str, str]) -> Dict:

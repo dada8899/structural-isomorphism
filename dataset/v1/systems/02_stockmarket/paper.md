@@ -1,4 +1,4 @@
-***REMOVED*** Cross-Domain SOC Validation: Inverse Cubic Law and Omori Decay on S&P 500 Daily Returns
+# Cross-Domain SOC Validation: Inverse Cubic Law and Omori Decay on S&P 500 Daily Returns
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -8,13 +8,13 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 If a universality class has empirical content beyond linguistic analogy, the same analysis pipeline should recover its canonical scaling laws on systems drawn from very different domains. Layer 5 Phase 1 of the Structural Isomorphism project validated a self-organized-criticality (SOC) analysis stack on the USGS global earthquake catalog (84,724 events, $b = 1.084 \pm 0.005$, Omori $p = 0.941 \pm 0.017$). Here we apply the *same* pipeline to 9,060 S&P 500 daily log returns (Yahoo Finance, 1990-2025), one cross-domain member of the V4 SOC equivalence class (price-impact cascades, margin spirals, flash crashes). Without any parameter tuning, the Clauset-Shalizi-Newman continuous power-law fit on $|r|$ returns $\alpha = 2.998 \pm 0.041$, reproducing Gopikrishnan et al. 1998's "inverse cubic law" to within $0.07\%$ of the canonical 3.0, with the power-law model strongly dominating lognormal ($p < 10^{-9}$). An Omori-Utsu fit on stacked post-shock volatility from 318 $3\sigma$ main shocks yields $p = 0.286 \pm 0.034$ ($R^2 = 0.71$), inside the published daily-scale band of $[0.3, 0.6]$ (Weber et al. 2007) but outside the intraday band of $[0.7, 1.0]$; this is a scale-dependent feature, not a deviation. The combined result is the first cross-domain reproduction of SOC scaling by the V4 pipeline and strengthens the empirical basis for treating earthquake, finance, and infrastructure cascades as members of a single universality class.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The Structural Isomorphism project (V1–V4, DOI: 10.5281/zenodo.19547879) asks whether cross-domain "same mathematical structure" claims can be made rigorous. Its V4 Layer 2 community-discovery step groups 17 phenomena — earthquakes, DeFi liquidations, bank runs, margin spirals, power grid cascades, supply chain collapses, social cascades, flash crashes, and others — into a single SOC threshold-cascade equivalence class. Layer 4 attaches quantitative predictions to each class (critical exponents with numerical bands), and Layer 5 is the empirical validation step.
 
@@ -29,17 +29,17 @@ The contributions are:
 3. Recovery of daily-scale Omori decay in the published $[0.3, 0.6]$ band and a calibration note on our initial Layer 4 prompt that confused intraday and daily scales.
 4. An explicit joint table comparing Phase 1 (earthquakes) and Phase 2 (stocks), showing the same functional form and scaling-class membership while their absolute exponents differ, as universality class theory predicts.
 
-***REMOVED******REMOVED*** 2. Data and Methods
+## 2. Data and Methods
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Dataset
+### 2.1 Dataset
 
 S&P 500 (`^GSPC`) daily close prices were downloaded via `yfinance` 1.2.0 on 2026-04-15. The window is 1990-01-01 through 2025-12-31. Rows: 9,066. Log returns are computed as $r_t = \log(P_t / P_{t-1})$, giving 9,065 values with $\sigma = 0.0114$ and range $[-0.1277, +0.1096]$.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Power-law tail analysis (Clauset 2009)
+### 2.2 Power-law tail analysis (Clauset 2009)
 
 The continuous power-law fit uses the `powerlaw` Python package with the Clauset-Shalizi-Newman 2009 estimator of $\alpha$ and auto-selection of $x_\mathrm{min}$ by minimising the Kolmogorov-Smirnov distance between the empirical and fitted CDF. The statistic is applied to $|r_t|$ (not $r_t^2$ and not raw $r_t$; the unsigned magnitude is the established quantity for stock-return universality). For model comparison we run `distribution_compare` between power-law and two alternatives (lognormal, exponential), reporting the normalized log-likelihood ratio $R$ and significance $p$.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Omori aftershock stacking
+### 2.3 Omori aftershock stacking
 
 Main-shock days are defined as $|r_t| > 3\sigma$ (threshold ≈ 3.42%). For each main shock, the stacked "aftershock rate" at lag $\tau \in \{1, 2, \dots, 30\}$ trading days is
 
@@ -47,9 +47,9 @@ $$ n(\tau) \;=\; \frac{1}{N_\mathrm{main}} \sum_{k=1}^{N_\mathrm{main}} |r_{t_k 
 
 i.e. the conditional expected absolute return at lag $\tau$ minus the unconditional baseline. We then fit $n(\tau) = K (\tau + c)^{-p}$ by weighted log-linear regression with a grid search over $c \in \{0.1, 0.3, 0.5, 1.0, 1.5, 2.0\}$ days, selecting $c$ that maximizes weighted $R^2$. This is the same log-linear estimator used in Phase 1.
 
-***REMOVED******REMOVED*** 3. Results
+## 3. Results
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Inverse cubic law
+### 3.1 Inverse cubic law
 
 | Quantity | Value |
 |---|---|
@@ -62,7 +62,7 @@ i.e. the conditional expected absolute return at lag $\tau$ minus the unconditio
 
 The exponent $\alpha = 2.998 \pm 0.041$ matches Gopikrishnan et al.'s 1998 canonical value of 3 to within 0.07%, well inside one standard error. The power-law model **strongly dominates lognormal** by a clean log-likelihood ratio ($p \approx 10^{-9}$). Power-law versus exponential is inconclusive ($p = 0.60$), which is expected for $n_\mathrm{tail} = 2{,}327$: the two functional forms become difficult to distinguish over a narrow dynamic range, and the decisive discriminator is versus the more flexible lognormal, which fails decisively.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Omori decay
+### 3.2 Omori decay
 
 | Quantity | Value |
 |---|---|
@@ -78,7 +78,7 @@ The observed $p = 0.286 \pm 0.034$ is inside the published **daily-scale** Omori
 
 The $R^2 = 0.71$ is lower than Phase 1's 0.99 on earthquakes. Daily-scale financial data has a much higher noise-to-signal ratio than seismic aftershock sequences (318 shocks × 30 lag bins ≈ 9,500 aftershock-day observations is an order of magnitude less than 24,680 seismic aftershocks), and daily returns are noisier intrinsically. A slope-zero null hypothesis is cleanly rejected at $p \ll 0.01$, so the fit is statistically meaningful even if not as sharp as the seismic case.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Joint comparison with Phase 1
+### 3.3 Joint comparison with Phase 1
 
 **Table 1.** Cross-phase comparison of SOC analyses on earthquakes and stock returns.
 
@@ -89,13 +89,13 @@ The $R^2 = 0.71$ is lower than Phase 1's 0.99 on earthquakes. Daily-scale financ
 
 The raw tail exponents differ: earthquake $\alpha_\mathrm{energy} = 1.79$ is the exponent on seismic energy $s = 10^{1.5 M}$ and corresponds to $b \approx 1.08$; stock $\alpha_{|r|} = 3.00$ is the exponent on normalized return magnitude. These are measuring different observables via different microscopic-to-macroscopic conversions (Hanks-Kanamori moment scaling for seismic energy; normalized price change for returns). Universality class theory predicts that the **functional form** (power-law tail + Omori relaxation) is shared, while the absolute exponent depends on the microscopic observable definition. Both systems show the functional form; both are in the predicted literature bands; the cross-domain claim holds.
 
-***REMOVED******REMOVED*** 4. Discussion
+## 4. Discussion
 
 The inverse cubic law and Omori-like volatility decay are well-established in econophysics; Phase 2 is not a rediscovery but a **pipeline-transfer test**. What matters is that the same fit stack — same Clauset fitter, same `powerlaw` library, same log-linear Omori regression, same main-shock definition up to threshold scale — runs against a completely different data source and recovers published scaling on the first try.
 
 Taken together with Phase 1, this gives the Structural Isomorphism project its first empirical two-point validation of cross-domain universality-class membership: the SOC hub identified by V4 Layer 2 from pair-level analogies is backed, for at least two of its seventeen members, by quantitative recovery of canonical scaling laws via a unified pipeline. The remaining members (DeFi liquidations, bank runs, power grid cascades, neural avalanches, social cascades, supply chain collapses) are testable one at a time with the same stack as soon as data ingress is resolved.
 
-***REMOVED******REMOVED*** 5. Limitations
+## 5. Limitations
 
 1. **Autocorrelation in squared returns**: volatility clustering is a well-known property and the Omori fit here **detects** that clustering — we do not claim new physics but the quantitative decay exponent value. The reader should interpret $p = 0.286$ as a measurement of how slowly post-shock daily volatility returns to baseline, not as evidence for a causal "cascade" narrative.
 2. **Main-shock threshold robustness**: $3\sigma$ is one reasonable choice among several. Petersen et al. 2010 use multiple percentile thresholds. We do not run a robustness sweep here; this is flagged as future work.
@@ -103,7 +103,7 @@ Taken together with Phase 1, this gives the Structural Isomorphism project its f
 4. **Window length**: 30 trading days may undercapture late-tail decay. Extending to 90 days should not change $p$ much (log-linear fit dominated by early lags) but is worth checking.
 5. **Only S&P 500**: one index is a single instantiation. Gopikrishnan et al. 1998 and Plerou et al. 1999 already show $\alpha \approx 3$ across many international indices; this paper does not add that cross-market robustness.
 
-***REMOVED******REMOVED*** 6. Data and code availability
+## 6. Data and code availability
 
 All analysis code and outputs are on GitHub:
 https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-stockmarket
@@ -116,7 +116,7 @@ https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-s
 
 Python 3.9+; dependencies `numpy, scipy, pandas, powerlaw, yfinance, requests`.
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Gopikrishnan, P., Meyer, M., Amaral, L. A. N., & Stanley, H. E. (1998). "Inverse cubic law for the distribution of stock price variations." *European Physical Journal B* **3**, 139.
 

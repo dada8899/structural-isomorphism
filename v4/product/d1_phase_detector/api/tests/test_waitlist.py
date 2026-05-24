@@ -21,8 +21,8 @@ PROJECT_DIR = Path(__file__).resolve().parents[2]
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     db_path = tmp_path / "wd1.sqlite"
-    ***REMOVED*** waitlist tests don't require seeded company rows; we just need the file
-    ***REMOVED*** to be a valid sqlite db that the app can open.
+    # waitlist tests don't require seeded company rows; we just need the file
+    # to be a valid sqlite db that the app can open.
     sqlite3.connect(str(db_path)).close()
 
     monkeypatch.setenv("DB_URL", f"sqlite:///{db_path}")
@@ -34,12 +34,12 @@ def client(tmp_path, monkeypatch):
     importlib.reload(db_mod)
     importlib.reload(main_mod)
 
-    ***REMOVED*** TestClient as context manager → triggers startup → ensures table exists.
+    # TestClient as context manager → triggers startup → ensures table exists.
     with TestClient(main_mod.app) as c:
         yield c
 
 
-***REMOVED*** ---------- POST /api/waitlist ----------
+# ---------- POST /api/waitlist ----------
 
 
 def test_signup_success(client):
@@ -98,7 +98,7 @@ def test_signup_unknown_source_gets_normalized(client):
     )
     assert r.status_code == 200
     assert r.json()["created"] is True
-    ***REMOVED*** Verify the stored source was normalized to the default.
+    # Verify the stored source was normalized to the default.
     import v4.product.d1_phase_detector.api.db as db_mod
 
     with db_mod.get_cursor() as (cur, driver):
@@ -133,7 +133,7 @@ def test_signup_with_placement_and_referrer(client):
         assert row[2] == "https://structural.bytedance.city/"
 
 
-***REMOVED*** ---------- GET /api/waitlist/count ----------
+# ---------- GET /api/waitlist/count ----------
 
 
 def test_count_empty(client):
@@ -145,12 +145,12 @@ def test_count_empty(client):
 def test_count_increments(client):
     client.post("/api/waitlist", data={"email": "a@example.com"})
     client.post("/api/waitlist", data={"email": "b@example.com"})
-    client.post("/api/waitlist", data={"email": "a@example.com"})  ***REMOVED*** duplicate
+    client.post("/api/waitlist", data={"email": "a@example.com"})  # duplicate
     r = client.get("/api/waitlist/count")
     assert r.json()["count"] == 2
 
 
-***REMOVED*** ---------- CORS preflight ----------
+# ---------- CORS preflight ----------
 
 
 def test_waitlist_cors_allows_post(client):
@@ -162,6 +162,6 @@ def test_waitlist_cors_allows_post(client):
             "Access-Control-Request-Headers": "content-type",
         },
     )
-    ***REMOVED*** FastAPI's CORSMiddleware returns 200 on the preflight when accepted.
+    # FastAPI's CORSMiddleware returns 200 on the preflight when accepted.
     assert r.status_code in (200, 204)
     assert "POST" in r.headers.get("access-control-allow-methods", "")

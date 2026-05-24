@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Pre-reg P2 — fetch Reddit comment-cascade sizes from arctic_shift archive.
 
 Data source: arctic-shift.photon-reddit.com (public Reddit archive replacing
@@ -39,7 +39,7 @@ META_FILE = OUT_DIR / "fetch_meta.json"
 
 API_BASE = "https://arctic-shift.photon-reddit.com/api/posts/search"
 
-***REMOVED*** Subreddits chosen for high traffic + diverse topical mix
+# Subreddits chosen for high traffic + diverse topical mix
 SUBREDDITS = [
     "AskReddit",
     "news",
@@ -53,12 +53,12 @@ SUBREDDITS = [
     "wallstreetbets",
 ]
 
-***REMOVED*** 30-day window ending 2 days ago (avoid edge of archive ingestion)
+# 30-day window ending 2 days ago (avoid edge of archive ingestion)
 END_TS = int((datetime.now(timezone.utc) - timedelta(days=2)).timestamp())
 START_TS = END_TS - 30 * 86400
-PAGE_LIMIT = 100  ***REMOVED*** arctic_shift max
+PAGE_LIMIT = 100  # arctic_shift max
 SLEEP_BETWEEN_CALLS = 1.2
-MAX_PAGES_PER_SUB = 60  ***REMOVED*** bound runtime ~6000 posts / sub
+MAX_PAGES_PER_SUB = 60  # bound runtime ~6000 posts / sub
 
 
 def fetch_page(subreddit: str, after: int, before: int) -> list[dict]:
@@ -100,7 +100,7 @@ def main():
                     for p in page:
                         fout.write(json.dumps(p) + "\n")
                     sub_count += len(page)
-                    ***REMOVED*** cursor: oldest created_utc - 1
+                    # cursor: oldest created_utc - 1
                     oldest = min(int(p["created_utc"]) for p in page)
                     if oldest <= START_TS:
                         break
@@ -113,7 +113,7 @@ def main():
                 print(f"  -> {sub_count} posts (pages={pages+1})")
         print(f"[ok] total {total} posts -> {POSTS_FILE}")
 
-    ***REMOVED*** Load and dedupe by id
+    # Load and dedupe by id
     posts: dict[str, dict] = {}
     with open(POSTS_FILE) as f:
         for line in f:
@@ -124,7 +124,7 @@ def main():
     posts_list = list(posts.values())
     print(f"[load] {len(posts_list)} unique posts after dedupe")
 
-    ***REMOVED*** Cascade sizes
+    # Cascade sizes
     sizes = [int(p.get("num_comments") or 0) for p in posts_list]
     sizes = [s for s in sizes if s > 0]
     print(f"[stats] {len(sizes)} cascades with num_comments > 0; "

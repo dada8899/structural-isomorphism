@@ -1,11 +1,11 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Minimal cross-judge example: 3 reviewers vote on a synthetic classification.
 
 Usage:
-    ***REMOVED*** Mock mode (no API key, no network):
+    # Mock mode (no API key, no network):
     python examples/classify_taxonomy.py --mock
 
-    ***REMOVED*** Live mode (requires DEEPSEEK_API_KEY in env):
+    # Live mode (requires DEEPSEEK_API_KEY in env):
     export DEEPSEEK_API_KEY='sk-...'
     python examples/classify_taxonomy.py
 """

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """D1 — batch StructTuple extraction at 500-company scale.
 
 Thin wrapper around ``extract_structtuple.extract_one`` (re-uses the same
@@ -35,44 +35,44 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 
-***REMOVED*** Wire the guarded_llm package (editable install path may be stale across
-***REMOVED*** worktrees, so we hard-add the in-repo src dir as a fallback).
+# Wire the guarded_llm package (editable install path may be stale across
+# worktrees, so we hard-add the in-repo src dir as a fallback).
 _GUARDED_SRC = REPO_ROOT / "packages" / "guarded-llm" / "src"
 if _GUARDED_SRC.exists() and str(_GUARDED_SRC) not in sys.path:
     sys.path.insert(0, str(_GUARDED_SRC))
 
-***REMOVED*** Auto-load .env (DEEPSEEK_API_KEY) so the script works without manual `export`.
+# Auto-load .env (DEEPSEEK_API_KEY) so the script works without manual `export`.
 _ENV_FILE = REPO_ROOT / ".env"
 if _ENV_FILE.exists():
     for _line in _ENV_FILE.read_text().splitlines():
         _line = _line.strip()
-        if not _line or _line.startswith("***REMOVED***") or "=" not in _line:
+        if not _line or _line.startswith("#") or "=" not in _line:
             continue
         k, v = _line.split("=", 1)
         k, v = k.strip(), v.strip().strip("\"'")
         os.environ.setdefault(k, v)
 
-***REMOVED*** We need to import extract_structtuple, but it raises at import time if the
-***REMOVED*** DeepSeek key is missing — which we want to gate on --dry-run. So fall back
-***REMOVED*** to importing make_prompt only when dry-running.
+# We need to import extract_structtuple, but it raises at import time if the
+# DeepSeek key is missing — which we want to gate on --dry-run. So fall back
+# to importing make_prompt only when dry-running.
 sys.path.insert(0, str(HERE))
 
 
 def _load_real_extractor():
     """Import the real extractor module. Raises at import if no key."""
-    import extract_structtuple as ex  ***REMOVED*** noqa: WPS433
+    import extract_structtuple as ex  # noqa: WPS433
 
     return ex
 
 
 def _load_prompt_only():
     """Import only ``make_prompt`` for dry-run, bypassing the API-key check."""
-    ***REMOVED*** We can't import extract_structtuple directly without DEEPSEEK_API_KEY,
-    ***REMOVED*** so re-implement make_prompt's import by reading the file in module form.
+    # We can't import extract_structtuple directly without DEEPSEEK_API_KEY,
+    # so re-implement make_prompt's import by reading the file in module form.
     import importlib.util
     import os
 
-    ***REMOVED*** Set a dummy key just for import-time so we can pull make_prompt.
+    # Set a dummy key just for import-time so we can pull make_prompt.
     placeholder = False
     if "DEEPSEEK_API_KEY" not in os.environ:
         os.environ["DEEPSEEK_API_KEY"] = "dry-run-placeholder"
@@ -84,11 +84,11 @@ def _load_prompt_only():
     )
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
-    ***REMOVED*** Register before exec so dataclass-decorated classes can look up their
-    ***REMOVED*** owning module on Python 3.14+.
+    # Register before exec so dataclass-decorated classes can look up their
+    # owning module on Python 3.14+.
     sys.modules[mod_name] = mod
     try:
-        spec.loader.exec_module(mod)  ***REMOVED*** type: ignore[union-attr]
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
     finally:
         if placeholder:
             os.environ.pop("DEEPSEEK_API_KEY", None)
@@ -184,7 +184,7 @@ def main() -> int:
     companies = load_companies(args.input)
     print(f"[D1-batch] loaded {len(companies)} rows from {args.input}", file=sys.stderr)
 
-    ***REMOVED*** Resume bookkeeping.
+    # Resume bookkeeping.
     existing: dict[str, dict] = {}
     if not args.no_resume and not args.dry_run:
         existing = load_existing_results(args.output)
@@ -200,7 +200,7 @@ def main() -> int:
         queue = queue[: args.limit]
     print(f"[D1-batch] queue size after limit/resume: {len(queue)}", file=sys.stderr)
 
-    ***REMOVED*** ---------------- DRY RUN ----------------
+    # ---------------- DRY RUN ----------------
     if args.dry_run:
         mod = _load_prompt_only()
         for i, company in enumerate(queue, 1):
@@ -213,7 +213,7 @@ def main() -> int:
         )
         return 0
 
-    ***REMOVED*** ---------------- LIVE RUN ----------------
+    # ---------------- LIVE RUN ----------------
     ex = _load_real_extractor()
 
     mode = "a" if (existing and not args.no_resume) else "w"

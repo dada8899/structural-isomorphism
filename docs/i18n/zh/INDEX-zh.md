@@ -1,4 +1,4 @@
-***REMOVED*** 中文文档索引
+# 中文文档索引
 
 [English](../../index.md) | **简体中文**
 
@@ -6,7 +6,7 @@
 >
 > 翻译版本可能滞后于英文原文若干次提交。如发现内容不一致，**以英文原文为准**，并欢迎提 PR 同步更新。
 
-***REMOVED******REMOVED*** 已翻译文档
+## 已翻译文档
 
 | 主题 | 中文版 | 英文原文 |
 |---|---|---|
@@ -14,7 +14,7 @@
 | 方法论 (统计稳健性 F1-F5) | [方法论](methodology-zh.md) | [Statistical robustness F1-F5](../../methodology/statistical-robustness-2026-05-15.md) |
 | Phase Detector | [Phase Detector](phase-detector-zh.md) | [Phase Detector](../../phase-detector.md) |
 
-***REMOVED******REMOVED*** 术语对照表
+## 术语对照表
 
 | 英文 | 中文 |
 |---|---|
@@ -34,13 +34,13 @@
 | cross-judge ensemble | 跨判评审集成 |
 | null control | 空对照 |
 
-***REMOVED******REMOVED*** 待翻译（按优先级）
+## 待翻译（按优先级）
 
 - 流水线（Pipeline）API 概览
 - 预注册方法论详解
 - F1-F5 各项稳健性测试单文件
 - 数据集卡片 (`dataset_card.md`)
 
-***REMOVED******REMOVED*** 反馈
+## 反馈
 
 发现翻译错误或不准确？请在 [GitHub Issues](https://github.com/dada8899/structural-isomorphism/issues) 留言，或直接提 PR。

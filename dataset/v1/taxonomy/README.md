@@ -1,11 +1,11 @@
-***REMOVED*** Taxonomy — bundle-level README
+# Taxonomy — bundle-level README
 
 This directory bundles the **B1 ⊗ B3 universality-class verdict matrix**
 produced by the V4 universality-class engine (Layer 3 curator → Layer 3.5
 B1 single-Opus critic → Layer 3.6 B3 three-DeepSeek ensemble critic) of
 the structural-isomorphism project, evaluated at git commit `607906c`.
 
-***REMOVED******REMOVED*** Files
+## Files
 
 | File                          | Lines | Description |
 |-------------------------------|-------|-------------|
@@ -16,7 +16,7 @@ the structural-isomorphism project, evaluated at git commit `607906c`.
 | `universality_classes.yaml`   | —     | Top-level class index |
 | `SCHEMA.md`                   | —     | YAML schema specification for the class files |
 
-***REMOVED******REMOVED*** Headline counts
+## Headline counts
 
 | Metric                              | Count |
 |-------------------------------------|-------|
@@ -30,7 +30,7 @@ the structural-isomorphism project, evaluated at git commit `607906c`.
 
 (See `B3_ensemble_summary.md` for the per-class breakdown.)
 
-***REMOVED******REMOVED*** Methodology in two sentences
+## Methodology in two sentences
 
 The B3 ensemble is a *three-reviewer plurality vote* across
 `deepseek-v4-pro@temp=0.0` (rigorous main reviewer),
@@ -40,7 +40,7 @@ The B3 ensemble is a *three-reviewer plurality vote* across
 (KEEP/REJECT/SPLIT/MERGE/UNCLEAR), that category is the B3 consensus;
 otherwise UNCLEAR (no class hit UNCLEAR in this run).
 
-***REMOVED******REMOVED*** Known limitations
+## Known limitations
 
 1. **Same-family**: all 3 reviewers are DeepSeek v4 family. OpenRouter
    access to Anthropic Claude and Google Gemini was region-blocked from CN
@@ -58,17 +58,17 @@ otherwise UNCLEAR (no class hit UNCLEAR in this run).
    ensemble critiques the 21 top-level classes; the 14 sub-variants
    document the within-class diversity.
 
-***REMOVED******REMOVED*** Reproduce
+## Reproduce
 
 ```bash
 export DEEPSEEK_API_KEY='sk-...'
 python3 dataset/v1/pipeline/b3_ensemble.py \
     --classes dataset/v1/taxonomy/classes/ \
     --output  dataset/v1/taxonomy/B3_ensemble_review_rerun.jsonl
-***REMOVED*** ~10 min wall-clock, ~$1 LLM cost
+# ~10 min wall-clock, ~$1 LLM cost
 diff <(jq -c '.consensus_verdict' dataset/v1/taxonomy/B3_taxonomy_v2.jsonl | sort) \
      <(jq -c '.consensus_verdict' dataset/v1/taxonomy/B3_ensemble_review_rerun.jsonl | sort)
-***REMOVED*** At most 1-2 classes may differ due to creative-reviewer stochasticity.
+# At most 1-2 classes may differ due to creative-reviewer stochasticity.
 ```
 
 See `pipeline/README.md` for full reproducibility instructions.

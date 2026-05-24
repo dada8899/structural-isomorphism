@@ -1,4 +1,4 @@
-***REMOVED*** First-Order Phase Transition and Hysteresis Loop in Highway Traffic Flow: Test of the Preisach Universality Class on NGSIM US-101 and Calibrated Fundamental-Diagram Literature
+# First-Order Phase Transition and Hysteresis Loop in Highway Traffic Flow: Test of the Preisach Universality Class on NGSIM US-101 and Calibrated Fundamental-Diagram Literature
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -8,17 +8,17 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
-The Structural Isomorphism Layer 5 validation program has so far tested only the self-organized-criticality (SOC) threshold-cascade class (A1), across ten heterogeneous domains. This paper opens the second axis, A2, by testing whether highway traffic flow belongs to the *hysteresis_preisach* class — an ensemble of heterogeneous bistable elements producing a macroscopic hysteresis loop in the flow-density fundamental diagram. We use the Next Generation Simulation (NGSIM) US-101 vehicle-trajectory dataset (4.8M frame samples, southbound 7:50-8:35am, 2005-06-15) and aggregate it server-side via the Socrata Open Data API into 5,012 lane × 30-s × 200-ft cells. Per cell we recover macroscopic density ρ (veh/km/lane) and flow q (veh/h/lane) via Edie's generalised definitions, retaining n = 4,538 cells after a physical-capacity cap (q ≤ 2,800 veh/h/lane). On this empirical fundamental diagram we observe (i) a clear *first-order* signature: at 25 of 55 monitored locations (45 %, all with ≥ 30 time bins) the cell mean speed drops sharply from the free-flow band (v ≥ 60 km/h) into the congested band (v ≤ 40 km/h) with median crossing duration 630 s — the meta-stable interior is traversed quickly rather than dwelt in, the canonical first-order discontinuity signature in traffic literature [Treiber & Kesting 2013]. We cannot, however, measure the loop-width ratio q_c1 / q_c2 directly from NGSIM, because the 45-minute peak-hour window contains only the loading half of the hysteresis cycle (free → jam) with no congestion-recovery half (jam → free). We therefore anchor (ii) the loop-width signature to two independent literature replications: the Treiber & Kesting 2013 chap. 8 A5 motorway calibration (q_c1 = 2,200 / q_c2 = 1,600 → ratio 1.38) and the Geroliminis & Daganzo 2008 Yokohama macroscopic-fundamental-diagram numbers (ratio 1.38). Both ratios fall inside the Layer-4 predicted band [1.25, 1.55] for the hysteresis_preisach class. Combined with the NGSIM first-order signature, we report a CONFIRMED_COMPOSITE verdict: traffic flow exhibits both the discontinuity and the loop-width signatures of the Preisach class. We are explicit that this is V4 taxonomy class ***REMOVED***2 — the first non-SOC class to receive an empirical attempt — and that the verdict relies on a hybrid (empirical first-order signature + literature loop width) rather than a single self-contained empirical loop measurement.
+The Structural Isomorphism Layer 5 validation program has so far tested only the self-organized-criticality (SOC) threshold-cascade class (A1), across ten heterogeneous domains. This paper opens the second axis, A2, by testing whether highway traffic flow belongs to the *hysteresis_preisach* class — an ensemble of heterogeneous bistable elements producing a macroscopic hysteresis loop in the flow-density fundamental diagram. We use the Next Generation Simulation (NGSIM) US-101 vehicle-trajectory dataset (4.8M frame samples, southbound 7:50-8:35am, 2005-06-15) and aggregate it server-side via the Socrata Open Data API into 5,012 lane × 30-s × 200-ft cells. Per cell we recover macroscopic density ρ (veh/km/lane) and flow q (veh/h/lane) via Edie's generalised definitions, retaining n = 4,538 cells after a physical-capacity cap (q ≤ 2,800 veh/h/lane). On this empirical fundamental diagram we observe (i) a clear *first-order* signature: at 25 of 55 monitored locations (45 %, all with ≥ 30 time bins) the cell mean speed drops sharply from the free-flow band (v ≥ 60 km/h) into the congested band (v ≤ 40 km/h) with median crossing duration 630 s — the meta-stable interior is traversed quickly rather than dwelt in, the canonical first-order discontinuity signature in traffic literature [Treiber & Kesting 2013]. We cannot, however, measure the loop-width ratio q_c1 / q_c2 directly from NGSIM, because the 45-minute peak-hour window contains only the loading half of the hysteresis cycle (free → jam) with no congestion-recovery half (jam → free). We therefore anchor (ii) the loop-width signature to two independent literature replications: the Treiber & Kesting 2013 chap. 8 A5 motorway calibration (q_c1 = 2,200 / q_c2 = 1,600 → ratio 1.38) and the Geroliminis & Daganzo 2008 Yokohama macroscopic-fundamental-diagram numbers (ratio 1.38). Both ratios fall inside the Layer-4 predicted band [1.25, 1.55] for the hysteresis_preisach class. Combined with the NGSIM first-order signature, we report a CONFIRMED_COMPOSITE verdict: traffic flow exhibits both the discontinuity and the loop-width signatures of the Preisach class. We are explicit that this is V4 taxonomy class #2 — the first non-SOC class to receive an empirical attempt — and that the verdict relies on a hybrid (empirical first-order signature + literature loop width) rather than a single self-contained empirical loop measurement.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The Layer 5 validation program of the Structural Isomorphism project asks a deliberately narrow question for every universality class in the taxonomy: *given the class-level prediction (one or more dimensionless invariants), does an off-the-shelf empirical dataset reproduce the prediction within its declared band, using one shared analysis stack*. Phases 1 through 10 have so far covered ten domains within a single class — *soc_threshold_cascade* — namely seismic catalogs, S&P 500 daily returns, three DeFi liquidation feeds, mouse cortical avalanches, NIFC US wildfires, solar flare X-ray catalogs, OFC sandpile-on-power-grid blackouts, GitHub star-burst events, US bank-failure catalogs, and a universal-collapse mixed control. A1 has accumulated enough cross-domain evidence that the class can plausibly be regarded as empirically well-supported.
 
-This paper opens A2 — the first attempt at a non-SOC class. The candidate class is *hysteresis_preisach* (taxonomy v4 class ***REMOVED***2): macroscopic hysteresis arising from an ensemble of heterogeneous bistable hysterons, each with its own (α, β) switching thresholds, aggregated into a Preisach density [Preisach 1935, Mayergoyz 2003, Bertotti 1998]. The class is distinct from a single-bistable Scheffer-fold or Gardner-Collins toggle in that it predicts a continuous distribution of switching events and a loop with nested minor loops (the *wiping-out property*). Layer-4 lists four candidate domains: thermosetting resin gel-point percolation, ferromagnetic hysteresis, soil liquefaction, and *highway traffic phase transition*. Of these, highway traffic has by far the largest publicly accessible empirical record and the cleanest predicted invariant (the ratio of the upper to the lower critical flow on the fundamental diagram).
+This paper opens A2 — the first attempt at a non-SOC class. The candidate class is *hysteresis_preisach* (taxonomy v4 class #2): macroscopic hysteresis arising from an ensemble of heterogeneous bistable hysterons, each with its own (α, β) switching thresholds, aggregated into a Preisach density [Preisach 1935, Mayergoyz 2003, Bertotti 1998]. The class is distinct from a single-bistable Scheffer-fold or Gardner-Collins toggle in that it predicts a continuous distribution of switching events and a loop with nested minor loops (the *wiping-out property*). Layer-4 lists four candidate domains: thermosetting resin gel-point percolation, ferromagnetic hysteresis, soil liquefaction, and *highway traffic phase transition*. Of these, highway traffic has by far the largest publicly accessible empirical record and the cleanest predicted invariant (the ratio of the upper to the lower critical flow on the fundamental diagram).
 
 Traffic engineering literature has known since Greenshields 1935 that the flow-density relation q(ρ) is non-monotone — flow rises with density at low ρ, peaks at a critical density ρ_c, then falls as the platoon enters the congested branch. Kerner's three-phase theory [Kerner 2002], the Treiber & Kesting 2013 textbook, and the macroscopic-fundamental-diagram literature [Geroliminis & Daganzo 2008] all report that the *upper* critical flow q_c1 — the maximum sustained free-flow capacity before the system loses stability — exceeds the *lower* critical flow q_c2 — the maximum that a congested branch can re-organise into before releasing back to free flow. Typical values lie in the range q_c1 / q_c2 ∈ [1.3, 1.4]. Layer-4 of this project's taxonomy declares the Preisach-class prediction band as [1.25, 1.55].
 
@@ -26,7 +26,7 @@ The first-order character of the transition is independent of the loop-width mea
 
 This paper uses NGSIM US-101 (federally archived, open-access via Socrata SODA) to test the first-order signature directly, and replicates the loop-width ratio from two independent literature sources. The intent is honest: the ratio cannot be measured end-to-end from a 45-minute trajectory dataset that captures only the loading half-cycle. We acknowledge this limitation explicitly rather than fabricating a missing recovery half from a noisier source.
 
-***REMOVED******REMOVED*** 2. Data
+## 2. Data
 
 **Primary empirical source.** The NGSIM US-101 dataset, retrieved from
 ```
@@ -49,7 +49,7 @@ After filtering to mainline lanes 1-5 and dropping cells with n_obs < 30 (bounda
 
 Both anchor ratios fall well inside the Layer-4 predicted band [1.25, 1.55] and agree with each other to within 1 %.
 
-***REMOVED******REMOVED*** 3. Methods
+## 3. Methods
 
 The analysis is implemented in two scripts inside `v4/validation/hysteresis-traffic/`:
 
@@ -64,7 +64,7 @@ The analysis is implemented in two scripts inside `v4/validation/hysteresis-traf
 
 **Composite verdict.** A CONFIRMED_COMPOSITE verdict requires (i) NGSIM to satisfy the first-order discontinuity criterion and (ii) all literature anchor ratios to fall inside the predicted band. A CONFIRMED_LITERATURE_ONLY verdict requires (ii) only. A PARTIAL_FIRST_ORDER_ONLY verdict requires (i) only.
 
-***REMOVED******REMOVED*** 4. Results
+## 4. Results
 
 **Fundamental diagram shape.** Binning the 4,538 NGSIM cells into 25 equal-width density bins from ρ = 2.1 to ρ = 205.1 veh/km/lane reproduces the classical reverse-S fundamental diagram. The 95-th-percentile flow rises with density from q_p95 = 492 at ρ ≈ 6 to q_p95 ≈ 2,700 at ρ ≈ 90, then *falls* in the deep congested branch: q_p95 ≈ 2,266 at ρ ≈ 160 and q_p95 ≈ 1,724 at ρ ≈ 184. The implied space-mean speed at high density drops from 67 km/h (ρ ≈ 14) to 8 km/h (ρ ≈ 185), confirming that the high-density bins are real jam states rather than aggregation noise. This shape — monotone rise, peak plateau, then visible decline — is the qualitative first-order signature visible directly in the static fundamental diagram, and consistent with calibrated FD literature [Treiber & Kesting 2013 fig. 8.2].
 
@@ -88,7 +88,7 @@ The two anchors agree to within 1 % despite measuring different operational regi
 
 Verdict: **CONFIRMED_COMPOSITE**.
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
 **Why this is a hybrid result.** Direct empirical measurement of the loop-width ratio q_c1 / q_c2 requires a dataset that captures both halves of the hysteresis cycle: the free-flow capacity just before tipping into congestion (loading), and the congested-branch capacity just before release back to free flow (unloading). NGSIM US-101 captures only the loading half. A loop measurement would require either (a) PeMS multi-day archival data covering full diurnal cycles including the afternoon peak-release transition, which requires registered access; (b) a controlled microscopic simulation calibrated to a real bottleneck; or (c) literature replication from FD calibrations that have done the multi-day measurement. We chose (c) because both Treiber & Kesting 2013 and Geroliminis & Daganzo 2008 are textbook-grade reference calibrations widely used in traffic engineering.
 
@@ -102,7 +102,7 @@ The first-order discontinuity signature, in contrast, *can* be measured directly
 
 **Comparison to A1 phases.** All ten A1 (SOC) phases reported CONFIRMED verdicts — that is, the point estimate of α fell inside the predicted band [1.3, 2.5], with bootstrap CIs that overlap the band. Several phases (wildfires, S&P 500, mouse cortex) carried *qualified* verdicts because the Clauset likelihood-ratio test preferred lognormal over power-law. The present A2 phase reports CONFIRMED_COMPOSITE — slightly weaker than CONFIRMED — because the loop-width signature is literature-anchored rather than end-to-end empirical. We treat this as honest reporting of a structural-isomorphism finding: traffic *does* satisfy the Preisach class prediction, but the empirical infrastructure needed to verify both signatures simultaneously is not in the public-access NGSIM record.
 
-***REMOVED******REMOVED*** 6. Conclusion
+## 6. Conclusion
 
 We tested the *hysteresis_preisach* class on highway traffic flow as the first non-SOC validation in the Structural Isomorphism Layer 5 program. The two class signatures — first-order discontinuous transition between free-flow and congested branches, and loop-width ratio q_c1 / q_c2 in [1.25, 1.55] — were tested separately:
 
@@ -111,11 +111,11 @@ We tested the *hysteresis_preisach* class on highway traffic flow as the first n
 
 Composite verdict: **CONFIRMED_COMPOSITE**. Traffic flow belongs to the Preisach hysteresis class on both signatures, with the explicit caveat that the loop-width is anchored to literature rather than measured end-to-end from NGSIM. This first non-SOC empirical phase establishes that the Layer 5 program's class-level validation framework is portable beyond SOC: the analysis stack (branch-percentile-ratio + temporal-discontinuity-scan) is structurally different from the SOC stack (Clauset MLE + bootstrap CI + Omori-Utsu), and is calibrated against a different invariant family (loop width and discontinuity-time), yet produces the same shape of verdict — point estimate inside predicted band, with honest reporting of the limitations of the underlying dataset.
 
-The natural next steps are: (a) replication on Caltrans PeMS multi-day archival data to obtain an end-to-end NGSIM-style measurement of the loop-width ratio, closing the literature-anchor gap; (b) extension to the remaining V4 taxonomy classes ***REMOVED***3-***REMOVED***24 to broaden the non-SOC coverage of the Layer 5 program; (c) per-driver microscopic verification of the Preisach density wiping-out property using long-duration trajectory data from instrumented vehicles.
+The natural next steps are: (a) replication on Caltrans PeMS multi-day archival data to obtain an end-to-end NGSIM-style measurement of the loop-width ratio, closing the literature-anchor gap; (b) extension to the remaining V4 taxonomy classes #3-#24 to broaden the non-SOC coverage of the Layer 5 program; (c) per-driver microscopic verification of the Preisach density wiping-out property using long-duration trajectory data from instrumented vehicles.
 
 ---
 
-***REMOVED******REMOVED*** References
+## References
 
 1. F. Preisach, *Z. Physik* **94**, 277 (1935).
 2. I. D. Mayergoyz, *Mathematical Models of Hysteresis and Their Applications* (Academic Press, 2003).
@@ -130,13 +130,13 @@ The natural next steps are: (a) replication on Caltrans PeMS multi-day archival 
 
 ---
 
-***REMOVED******REMOVED*** Appendix A: Reproducibility
+## Appendix A: Reproducibility
 
 Run order from `v4/validation/hysteresis-traffic/`:
 
 ```
-python3 fetch_traffic.py          ***REMOVED*** ~1 s if cached, ~20 s if re-fetching
-python3 analyze_hysteresis.py     ***REMOVED*** ~3 s
+python3 fetch_traffic.py          # ~1 s if cached, ~20 s if re-fetching
+python3 analyze_hysteresis.py     # ~3 s
 ```
 
 Outputs:

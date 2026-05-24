@@ -70,8 +70,8 @@ def build_matrix() -> tuple[np.ndarray, list[str], dict]:
     data = json.loads(COLLAPSE_RESULTS.read_text())
     per_system = data.get("per_system", {})
 
-    ***REMOVED*** Same procedure as collapse_quality(): collect (x_rescaled, y_rescaled),
-    ***REMOVED*** log them, project onto a shared log-spaced x' grid.
+    # Same procedure as collapse_quality(): collect (x_rescaled, y_rescaled),
+    # log them, project onto a shared log-spaced x' grid.
     x_mins, x_maxs = [], []
     raw_xy = []
     names = []
@@ -211,10 +211,10 @@ def null_distribution_gaussian_surrogate(
     """
     rng = np.random.default_rng(seed)
     n_sys, n_bins = mat.shape
-    ***REMOVED*** Per-system empirical mean and std (over the finite columns)
+    # Per-system empirical mean and std (over the finite columns)
     row_mu = np.array([np.nanmean(mat[s]) for s in range(n_sys)])
     row_sigma = np.array([np.nanstd(mat[s], ddof=1) for s in range(n_sys)])
-    ***REMOVED*** Mask of which cells are finite (only generate at those columns)
+    # Mask of which cells are finite (only generate at those columns)
     finite_mask = np.isfinite(mat)
 
     r_null = np.zeros(n_perm)
@@ -256,7 +256,7 @@ def null_distribution_permutation_sanity(
     return r_null
 
 
-***REMOVED*** Backwards-compat alias used by main() / tests
+# Backwards-compat alias used by main() / tests
 null_distribution = null_distribution_gaussian_surrogate
 
 
@@ -271,7 +271,7 @@ def main():
     n_sys, n_bins = mat.shape
     print(f"[F5] matrix shape: {mat.shape} systems: {names}")
 
-    ***REMOVED*** Statistic A: paper's r_shape (combinatorial-constant artifact)
+    # Statistic A: paper's r_shape (combinatorial-constant artifact)
     r_obs = compute_r_shape(mat)
     combinatorial_constant = ((n_bins - 1) / n_bins) * (n_sys / (n_sys - 1))
     print(f"[F5] observed r_shape = {r_obs:.6f}")
@@ -286,17 +286,17 @@ def main():
         f"(diff = {abs(r_obs - combinatorial_constant):.4f})"
     )
 
-    ***REMOVED*** Statistic B: shape-collapse RMSE (data-dependent)
+    # Statistic B: shape-collapse RMSE (data-dependent)
     rmse_obs = compute_shape_collapse_rmse(mat)
     print(f"[F5] observed shape-collapse RMSE = {rmse_obs:.4f}")
 
-    ***REMOVED*** Null distribution on the RMSE statistic
+    # Null distribution on the RMSE statistic
     print(f"[F5] running {args.n_perm} Gaussian-surrogate null on RMSE...")
     r_null = null_distribution_gaussian_surrogate_rmse(
         mat, n_perm=args.n_perm, seed=args.seed
     )
 
-    ***REMOVED*** Sanity: degenerate r_shape null (proves degeneracy)
+    # Sanity: degenerate r_shape null (proves degeneracy)
     print("[F5] running 200-rep r_shape null (degenerate, for confirmation)...")
     r_shape_null = null_distribution_permutation_sanity(
         mat, n_perm=200, seed=args.seed
@@ -307,7 +307,7 @@ def main():
         f"unique={len(np.unique(np.round(r_shape_null, 8)))}"
     )
 
-    ***REMOVED*** RMSE p-values
+    # RMSE p-values
     p_left = float((np.sum(r_null <= rmse_obs) + 1) / (len(r_null) + 1))
     p_right = float((np.sum(r_null >= rmse_obs) + 1) / (len(r_null) + 1))
     two_sided = float(min(1.0, 2 * min(p_left, p_right)))
@@ -317,17 +317,17 @@ def main():
     print(f"[F5] p_right (RMSE_obs >= null) = {p_right:.4g}")
     print(f"[F5] two-sided p = {two_sided:.4g}")
 
-    ***REMOVED*** Plot: two panels — (a) RMSE histogram with observed, (b) sanity r_shape null
+    # Plot: two panels — (a) RMSE histogram with observed, (b) sanity r_shape null
     fig, axes = plt.subplots(1, 2, figsize=(15, 5.4))
 
     ax = axes[0]
     ax.hist(
-        r_null, bins=60, color="***REMOVED***9aa0a6", edgecolor="white", alpha=0.85,
+        r_null, bins=60, color="#9aa0a6", edgecolor="white", alpha=0.85,
         density=True, label=f"null (n={args.n_perm})",
     )
-    ax.axvline(rmse_obs, color="***REMOVED***d62728", lw=2.2,
+    ax.axvline(rmse_obs, color="#d62728", lw=2.2,
                label=f"observed RMSE = {rmse_obs:.3f}")
-    ax.axvline(np.median(r_null), color="***REMOVED***1f77b4", lw=1.2, ls="--",
+    ax.axvline(np.median(r_null), color="#1f77b4", lw=1.2, ls="--",
                alpha=0.85, label=f"null median = {np.median(r_null):.3f}")
     ax.set_xlabel("shape-collapse RMSE (log-y units, row-centered)")
     ax.set_ylabel("density")
@@ -339,17 +339,17 @@ def main():
     ax.grid(True, alpha=0.3)
 
     ax = axes[1]
-    ***REMOVED*** Range hack for degenerate null
+    # Range hack for degenerate null
     width = max(0.001, 2 * abs(r_obs - combinatorial_constant) + 0.05)
     bins = np.linspace(combinatorial_constant - width,
                        combinatorial_constant + width, 30)
     ax.hist(
-        r_shape_null, bins=bins, color="***REMOVED***9aa0a6", edgecolor="white", alpha=0.85,
+        r_shape_null, bins=bins, color="#9aa0a6", edgecolor="white", alpha=0.85,
         density=True, label="r_shape null (200 reps)",
     )
-    ax.axvline(r_obs, color="***REMOVED***d62728", lw=2.2,
+    ax.axvline(r_obs, color="#d62728", lw=2.2,
                label=f"observed r_shape = {r_obs:.4f}")
-    ax.axvline(combinatorial_constant, color="***REMOVED***2ca02c", lw=1.6, ls=":",
+    ax.axvline(combinatorial_constant, color="#2ca02c", lw=1.6, ls=":",
                label=f"((B-1)/B)(S/(S-1)) = {combinatorial_constant:.4f}")
     ax.set_xlabel(r"r_shape (paper formula)")
     ax.set_ylabel("density")

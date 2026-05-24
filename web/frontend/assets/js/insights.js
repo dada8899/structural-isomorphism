@@ -1,5 +1,5 @@
 /**
- * Structural — Insights dashboard (B Data Flywheel, Session ***REMOVED***18).
+ * Structural — Insights dashboard (B Data Flywheel, Session #18).
  *
  * Fetches three aggregate endpoints and renders:
  *   - GET /api/insights/summary           → top-line stat cards
@@ -16,7 +16,7 @@
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&***REMOVED***39;' }[c];
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 

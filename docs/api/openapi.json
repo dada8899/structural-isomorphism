@@ -24,7 +24,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/SearchRequest"
+                "$ref": "#/components/schemas/SearchRequest"
               }
             }
           },
@@ -44,7 +44,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -64,7 +64,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/AssessRequest"
+                "$ref": "#/components/schemas/AssessRequest"
               }
             }
           },
@@ -84,7 +84,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -136,7 +136,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -155,7 +155,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/MappingRequest"
+                "$ref": "#/components/schemas/MappingRequest"
               }
             }
           },
@@ -175,7 +175,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -264,7 +264,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -297,7 +297,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/DailyResponse"
+                  "$ref": "#/components/schemas/DailyResponse"
                 }
               }
             }
@@ -307,7 +307,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -328,7 +328,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/ExamplesResponse"
+                  "$ref": "#/components/schemas/ExamplesResponse"
                 }
               }
             }
@@ -369,7 +369,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -390,7 +390,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/DiscoveriesResponse"
+                  "$ref": "#/components/schemas/DiscoveriesResponse"
                 }
               }
             }
@@ -474,7 +474,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -493,7 +493,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/SynthesizeRequest"
+                "$ref": "#/components/schemas/SynthesizeRequest"
               }
             }
           },
@@ -513,7 +513,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -533,7 +533,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/SynthesizeRequest"
+                "$ref": "#/components/schemas/SynthesizeRequest"
               }
             }
           },
@@ -553,7 +553,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -573,7 +573,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/AskRequest"
+                "$ref": "#/components/schemas/AskRequest"
               }
             }
           },
@@ -593,7 +593,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -650,7 +650,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -687,7 +687,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/HistoryRecordRequest"
+                "$ref": "#/components/schemas/HistoryRecordRequest"
               }
             }
           }
@@ -706,7 +706,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -762,7 +762,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -781,7 +781,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/SubscribeBody"
+                "$ref": "#/components/schemas/SubscribeBody"
               }
             }
           },
@@ -801,7 +801,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -823,7 +823,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/NewsletterCountResponse"
+                  "$ref": "#/components/schemas/NewsletterCountResponse"
                 }
               }
             }
@@ -843,7 +843,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/CheckoutBody"
+                "$ref": "#/components/schemas/CheckoutBody"
               }
             }
           },
@@ -863,7 +863,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -902,7 +902,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/ErrorReportBody"
+                "$ref": "#/components/schemas/ErrorReportBody"
               }
             }
           },
@@ -914,7 +914,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/ErrorAcceptedResponse"
+                  "$ref": "#/components/schemas/ErrorAcceptedResponse"
                 }
               }
             }
@@ -924,7 +924,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1012,7 +1012,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1100,7 +1100,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1183,7 +1183,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1223,7 +1223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/FlagsResponse"
+                  "$ref": "#/components/schemas/FlagsResponse"
                 }
               }
             }
@@ -1233,7 +1233,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1281,7 +1281,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1329,7 +1329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1386,7 +1386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1441,7 +1441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1461,7 +1461,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/RequestLinkBody"
+                "$ref": "#/components/schemas/RequestLinkBody"
               }
             }
           },
@@ -1481,7 +1481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1501,7 +1501,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "***REMOVED***/components/schemas/VerifyBody"
+                "$ref": "#/components/schemas/VerifyBody"
               }
             }
           },
@@ -1521,7 +1521,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1595,7 +1595,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HealthResponse"
+                  "$ref": "#/components/schemas/HealthResponse"
                 },
                 "example": {
                   "status": "ok",
@@ -1610,7 +1610,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1632,7 +1632,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/VersionResponse"
+                  "$ref": "#/components/schemas/VersionResponse"
                 }
               }
             }
@@ -1654,7 +1654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/WhoAmIResponse"
+                  "$ref": "#/components/schemas/WhoAmIResponse"
                 }
               }
             }
@@ -1754,7 +1754,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1871,7 +1871,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "***REMOVED***/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2339,7 +2339,7 @@
         "properties": {
           "detail": {
             "items": {
-              "$ref": "***REMOVED***/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/ValidationError"
             },
             "type": "array",
             "title": "Detail"

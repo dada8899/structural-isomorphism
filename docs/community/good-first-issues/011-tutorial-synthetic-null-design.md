@@ -1,20 +1,20 @@
-***REMOVED*** [tutorial] New tutorial — designing synthetic null controls
+# [tutorial] New tutorial — designing synthetic null controls
 
-***REMOVED******REMOVED*** What
+## What
 
 Add `tutorials/04_synthetic_null_design.ipynb` walking through how to design a *synthetic null control* for a candidate SOC dataset. The notebook should explain why naive shuffling is insufficient, demonstrate the project's `synthetic_null` helper, and walk through one worked example end-to-end.
 
-***REMOVED******REMOVED*** Why
+## Why
 
 In our dogfooding sessions we keep seeing contributors confused about "why your fit looks SOC-like on shuffled data — is your detector broken?" — the answer is "you need a synthetic null, not a shuffle null." This is a known pedagogy gap. Filling it pre-empts the next 20 GitHub issues.
 
-***REMOVED******REMOVED*** Where
+## Where
 
 - New file: `tutorials/04_synthetic_null_design.ipynb`
 - Helper to demo: `packages/soc-pipeline/src/soc_pipeline/null_controls.py::synthetic_null`
 - Reference style: `tutorials/01_reproduce_earthquake_soc.ipynb` (good rhythm of motivation → code → result → interpretation)
 
-***REMOVED******REMOVED*** How to start
+## How to start
 
 1. Open `01_reproduce_earthquake_soc.ipynb` to study the tutorial pattern (markdown cell → code cell → result discussion).
 2. Section structure suggestion:
@@ -26,7 +26,7 @@ In our dogfooding sessions we keep seeing contributors confused about "why your 
 3. Render the notebook with `jupyter nbconvert --execute` and commit cell outputs.
 4. Add an entry to `tutorials/README.md`.
 
-***REMOVED******REMOVED*** Definition of done
+## Definition of done
 
 - [ ] Notebook runs cell-by-cell in < 60 s on a laptop
 - [ ] At least 3 figures (motivation, recipe, verdict matrix)
@@ -34,6 +34,6 @@ In our dogfooding sessions we keep seeing contributors confused about "why your 
 - [ ] Linked from `docs/index.md` learning path
 - [ ] No outbound API calls (synthetic data only)
 
-***REMOVED******REMOVED*** Difficulty
+## Difficulty
 
 ★★ (pedagogy + light statistics)

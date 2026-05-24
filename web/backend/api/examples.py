@@ -5,19 +5,19 @@ from schemas import ExamplesResponse
 
 router = APIRouter(tags=["examples"])
 
-***REMOVED*** Handpicked 3 most "wow" discoveries for the homepage.
-***REMOVED*** These should showcase the full range: physics, social, business
+# Handpicked 3 most "wow" discoveries for the homepage.
+# These should showcase the full range: physics, social, business
 EXAMPLE_PAIRS = [
-    ***REMOVED*** 放射性衰变 <-> 遗忘曲线
+    # 放射性衰变 <-> 遗忘曲线
     {"a_query": "不稳定的原子核自发释放粒子", "b_query": "学习后随时间遗忘知识"},
-    ***REMOVED*** 排队 <-> 交通
+    # 排队 <-> 交通
     {"a_query": "车辆在道路上排队行驶", "b_query": "水流在管道中受阻"},
-    ***REMOVED*** 相变 <-> 社会临界点
+    # 相变 <-> 社会临界点
     {"a_query": "水在零度突然结冰", "b_query": "观点突然传遍整个群体"},
 ]
 
-***REMOVED*** Module-level cache: the examples never change for a given KB, so we compute
-***REMOVED*** them once on first request and reuse forever. Lives until process restart.
+# Module-level cache: the examples never change for a given KB, so we compute
+# them once on first request and reuse forever. Lives until process restart.
 _CACHED_EXAMPLES: "list | None" = None
 
 
@@ -29,7 +29,7 @@ def _compute_examples(svc) -> list:
         if not a_results or not b_results:
             continue
         a = a_results[0]
-        ***REMOVED*** Pick b that's cross-domain to a
+        # Pick b that's cross-domain to a
         b = next((r for r in b_results if r["domain"] != a["domain"]), b_results[0])
         examples.append({
             "a": a,

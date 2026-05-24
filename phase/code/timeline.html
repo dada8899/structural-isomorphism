@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>相位演变时间线 — Phase Detector</title>
   <meta name="description" content="一家公司 10-15 年走过的结构相位切换，每个点配触发条件和关键数据。">
 
@@ -17,20 +17,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --green: ***REMOVED***059669;
-      --amber: ***REMOVED***D97706;
-      --red: ***REMOVED***DC2626;
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -324,7 +324,7 @@
     .trigger-banner {
       margin: 0 0 32px;
       padding: 16px 22px;
-      background: ***REMOVED***FFFBEB;
+      background: #FFFBEB;
       border: 1px solid rgba(217, 119, 6, 0.30);
       border-left: 4px solid var(--amber);
       border-radius: 0 8px 8px 0;
@@ -440,7 +440,7 @@
   </footer>
 
   <script>
-    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     const PHASE_CN = {
       'growth_phase': '成长期',

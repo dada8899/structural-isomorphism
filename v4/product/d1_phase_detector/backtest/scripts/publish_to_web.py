@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     with open(sj, "r", encoding="utf-8") as f:
         summary = json.load(f)
 
-    ***REMOVED*** Build legacy-compatible result.json schema
+    # Build legacy-compatible result.json schema
     s_nc = summary["stats"]["near_critical_llm"]
     s_oth = summary["stats"]["other_llm"]
     s_bench = summary["stats"]["benchmark_ew"]
@@ -57,15 +57,15 @@ def main(argv: list[str] | None = None) -> int:
     p = summary["params"]
 
     legacy = {
-        ***REMOVED*** legacy v0.2 schema (page reads these)
+        # legacy v0.2 schema (page reads these)
         "version": "0.1-1000ticker",
         "mode": "walk_forward",
         "snapshot_anchor": "2026-05-15",
         "period_months": p["hold_months"],
         "n_snapshots": s_bench.get("n_months", 0),
-        ***REMOVED*** In v0.1 1000-ticker schema: cohort sizes (ticker counts), not obs counts.
-        ***REMOVED*** near_critical_llm = 65 SP500 tickers tagged approaching_critical|at_critical
-        ***REMOVED*** other_llm = 434 SP500 tickers tagged far_from_critical|post_critical_transition
+        # In v0.1 1000-ticker schema: cohort sizes (ticker counts), not obs counts.
+        # near_critical_llm = 65 SP500 tickers tagged approaching_critical|at_critical
+        # other_llm = 434 SP500 tickers tagged far_from_critical|post_critical_transition
         "n_near_critical": summary.get("cohort_counts", {}).get("near_critical_llm", 0),
         "n_other": summary.get("cohort_counts", {}).get("other_llm", 0),
         "mean_return_nc": s_nc.get("mean_monthly", 0.0),
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             "n_universe_covered": p["n_universe_covered"],
             "generated_at": summary["generated_at"],
         },
-        ***REMOVED*** NEW v0.1 fields layered on top
+        # NEW v0.1 fields layered on top
         "v01_extensions": {
             "engine": "walk_forward_1000ticker",
             "universe_composition": {
@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         "generated_at": summary["generated_at"],
     }
 
-    ***REMOVED*** Replace any NaN with null so JSON is valid
+    # Replace any NaN with null so JSON is valid
     def _clean(o):
         if isinstance(o, dict):
             return {k: _clean(v) for k, v in o.items()}
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Wrote {out_main}")
     print(f"Wrote {out_v01}")
 
-    ***REMOVED*** Build cumulative.csv from monthly time-series (LLM near_critical + other + benchmark)
+    # Build cumulative.csv from monthly time-series (LLM near_critical + other + benchmark)
     cum_path = os.path.join(args.public, "cumulative.csv")
     cum_nc = 0.0
     cum_oth = 0.0

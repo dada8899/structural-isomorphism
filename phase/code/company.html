@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>加载中… — Phase Detector</title>
   <meta name="description" content="单家公司的结构化分析：动力学家族、相位阶段、反馈拓扑、临界点、核心方程。">
 
@@ -17,20 +17,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --green: ***REMOVED***059669;
-      --amber: ***REMOVED***D97706;
-      --red: ***REMOVED***DC2626;
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -233,8 +233,8 @@
       align-items: center;
       gap: 8px;
     }
-    .btn-primary { background: var(--accent); color: ***REMOVED***FFFFFF; }
-    .btn-primary:hover { background: ***REMOVED***1D4ED8; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #FFFFFF; }
+    .btn-primary:hover { background: #1D4ED8; text-decoration: none; }
     .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
     .btn-ghost { background: transparent; color: var(--text-muted); border-color: transparent; padding: 12px 14px; }
@@ -501,7 +501,7 @@
     };
 
     function escapeHtml(s) {
-      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     function getTickerFromUrl() {
@@ -736,9 +736,9 @@
       md = md.replace(/\\\([\s\S]+?\\\)/g, stash);
 
       let html = escapeHtml(md);
-      html = html.replace(/^***REMOVED******REMOVED******REMOVED*** (.+)$/gm, '<h3>$1</h3>');
-      html = html.replace(/^***REMOVED******REMOVED*** (.+)$/gm, '<h2>$1</h2>');
-      html = html.replace(/^***REMOVED*** (.+)$/gm, '<h1>$1</h1>');
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
       html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       html = html.replace(/`([^`]+)`/g, '<code>$1</code>');

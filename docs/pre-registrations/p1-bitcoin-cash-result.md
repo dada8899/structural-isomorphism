@@ -1,6 +1,6 @@
-***REMOVED*** Pre-registered replication P1 — Bitcoin Cash daily log returns
+# Pre-registered replication P1 — Bitcoin Cash daily log returns
 
-**Status.** Complete (2026-05-15, session ***REMOVED***10, W7-C).
+**Status.** Complete (2026-05-15, session #10, W7-C).
 **Verdict.** **CONFIRMED** within the pre-registered band — with one
 honest qualification on the lognormal-vs-power-law procedural ambiguity
 already flagged in v0.3 §6.6 of the umbrella preprint.
@@ -16,7 +16,7 @@ already flagged in v0.3 §6.6 of the umbrella preprint.
 
 ---
 
-***REMOVED******REMOVED*** 1. Data source + provenance
+## 1. Data source + provenance
 
 We pulled the **daily close of Bitcoin Cash (BCH/USD)** from the public
 CryptoCompare `histoday` endpoint
@@ -47,7 +47,7 @@ power-law regime, not chain-level inter-event times. We retain the
 blockchair plumbing in `fetch_bch.py` history but the primary data is the
 CryptoCompare daily close.
 
-***REMOVED******REMOVED*** 2. Construction of the observable
+## 2. Construction of the observable
 
 For each daily candle pair $(t_{i-1}, t_i)$ with positive closes
 $p_{i-1}, p_i$, we computed $r_i = \log(p_i / p_{i-1})$. The full series
@@ -66,7 +66,7 @@ different (younger, less liquid) asset class lands in the same
 literature band**. The pre-registration is therefore a portability test,
 not a methodological one.
 
-***REMOVED******REMOVED*** 3. Frozen pipeline output
+## 3. Frozen pipeline output
 
 We imported the package `soc_pipeline` (installed from
 `packages/soc-pipeline/` in editable mode) **without modification** and
@@ -102,7 +102,7 @@ lower edge brushes the band boundary, which is the right behaviour for
 a $n_\mathrm{tail} = 750$ tail with this much daily-return finite-size
 truncation.
 
-***REMOVED******REMOVED*** 4. Verdict — and the honest lognormal qualification
+## 4. Verdict — and the honest lognormal qualification
 
 **VERDICT: CONFIRMED within the pre-registered predicted band.**
 
@@ -124,7 +124,7 @@ The pre-registration committed only to the alpha-band decision rule
 (§8.3). On that rule, P1 is unambiguously **CONFIRMED**. We report the
 Vuong $R < 0$ result without retraction.
 
-***REMOVED******REMOVED*** 5. Caveats — to be reported in the §5 discussion of the short paper
+## 5. Caveats — to be reported in the §5 discussion of the short paper
 
 1. **Window truncation.** 2020-11 → 2026-05, not 2017 → 2025. A 2017-2020
    extension would add the chaotic post-fork era and almost certainly
@@ -143,7 +143,7 @@ Vuong $R < 0$ result without retraction.
 4. **Single asset, single venue.** No cross-exchange aggregation; no
    bid-ask spread correction; no liquidity-conditional binning.
 
-***REMOVED******REMOVED*** 6. Files
+## 6. Files
 
 | path | content |
 |---|---|
@@ -155,7 +155,7 @@ Vuong $R < 0$ result without retraction.
 | `v4/validation/pre-reg-p1-bch/p1_ccdf.json` | empirical CCDF for plotting |
 | `paper/figures/pre-reg/fig_p1_bch_ccdf.pdf` | CCDF figure with predicted/literature band overlays |
 
-***REMOVED******REMOVED*** 7. Reproducibility
+## 7. Reproducibility
 
 ```bash
 python3 v4/validation/pre-reg-p1-bch/fetch_bch.py

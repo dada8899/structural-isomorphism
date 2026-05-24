@@ -59,7 +59,7 @@ def validate_seed(seed: dict, valid_types: set[str]) -> list[str]:
         elif field != "source_refs" and not val:
             errs.append(f"[{sid}] empty field: {field}")
 
-    ***REMOVED*** Validate transformations
+    # Validate transformations
     transforms = seed.get("transformations", [])
     if not isinstance(transforms, list) or not transforms:
         errs.append(f"[{sid}] transformations must be non-empty list")
@@ -113,14 +113,14 @@ def main():
 
     print(f"\n{len(seeds)} seeds, {len(all_errors)} errors")
 
-    ***REMOVED*** Domain coverage
+    # Domain coverage
     from collections import Counter
     src_domains = Counter(s.get("source_domain", "?") for s in seeds)
     tgt_domains = Counter(s.get("target_domain", "?") for s in seeds)
     print(f"\nSource domains: {dict(src_domains)}")
     print(f"Target domains: {dict(tgt_domains)}")
 
-    ***REMOVED*** Primitive usage
+    # Primitive usage
     prim_usage = Counter()
     for s in seeds:
         for t in s.get("transformations", []):

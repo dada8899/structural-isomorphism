@@ -1,46 +1,46 @@
-***REMOVED*** Contributing to structural-isomorphism
+# Contributing to structural-isomorphism
 
 Thanks for your interest. This project welcomes contributions from researchers, engineers, students, and anyone curious about cross-domain validation of self-organized criticality. Whether you want to file a one-line typo fix, add a new dataset, or co-author a paper — there's a path for you here.
 
-***REMOVED******REMOVED*** Code of Conduct
+## Code of Conduct
 
 This project adheres to the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By participating you agree to uphold its terms. Reports go to the contact listed in `CODE_OF_CONDUCT.md`.
 
-***REMOVED******REMOVED*** TL;DR — your first PR in 10 minutes
+## TL;DR — your first PR in 10 minutes
 
 ```bash
-***REMOVED*** 1. Fork and clone
+# 1. Fork and clone
 git clone git@github.com:<your-username>/structural-isomorphism.git
 cd structural-isomorphism
 
-***REMOVED*** 2. Set up dev environment
+# 2. Set up dev environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,tutorials]"
-pre-commit install              ***REMOVED*** installs lint + format + DCO hooks
+pre-commit install              # installs lint + format + DCO hooks
 
-***REMOVED*** 3. Make a topic branch
+# 3. Make a topic branch
 git checkout -b feat/your-short-desc
 
-***REMOVED*** 4. Hack. Run the fast sanity suite continuously
+# 4. Hack. Run the fast sanity suite continuously
 pytest v4/tests/sanity -m sanity -v
 
-***REMOVED*** 5. Before pushing: run full lint + tests
+# 5. Before pushing: run full lint + tests
 pre-commit run --all-files
 pytest v4/tests/sanity -v
 pytest v4/tests/integration -v
 
-***REMOVED*** 6. Commit with sign-off (DCO required)
+# 6. Commit with sign-off (DCO required)
 git commit -sm "feat(scope): one-line summary"
 
-***REMOVED*** 7. Push and open PR against main
+# 7. Push and open PR against main
 git push -u origin feat/your-short-desc
 gh pr create --fill
 ```
 
 That's it. A maintainer will review within the SLA below.
 
-***REMOVED******REMOVED*** Ways to contribute
+## Ways to contribute
 
 - **Bug reports** — [GitHub Issues](https://github.com/dada8899/structural-isomorphism/issues) with the `bug` template
 - **Feature suggestions** — Issues with the `enhancement` template
@@ -51,15 +51,15 @@ That's it. A maintainer will review within the SLA below.
 - **Adversarial test cases** — propose pre-registered exponent bands designed to falsify our claims
 - **Code review** — yes, you can review PRs as a non-maintainer; we welcome it
 
-***REMOVED******REMOVED*** Setup details
+## Setup details
 
-***REMOVED******REMOVED******REMOVED*** System requirements
+### System requirements
 
 - Python 3.11+
 - ~ 2 GB free disk space for full dataset checkout
 - (Optional) `git-lfs` if you want to pull large binary fixtures locally
 
-***REMOVED******REMOVED******REMOVED*** Install
+### Install
 
 ```bash
 python3 -m venv .venv
@@ -70,7 +70,7 @@ pip install -e ".[dev,tutorials]"
 The `dev` extra includes: `pytest`, `ruff`, `black`, `mypy`, `pre-commit`, `mkdocs`, `mkdocs-material`.
 The `tutorials` extra adds: `jupyter`, `ipywidgets`, `matplotlib`, `seaborn`.
 
-***REMOVED******REMOVED******REMOVED*** Pre-commit hooks
+### Pre-commit hooks
 
 ```bash
 pre-commit install
@@ -87,7 +87,7 @@ This installs hooks that run on every `git commit`:
 
 You can run hooks manually any time: `pre-commit run --all-files`.
 
-***REMOVED******REMOVED******REMOVED*** Test commands
+### Test commands
 
 | Command | What it runs | Time |
 |---|---|---|
@@ -98,7 +98,7 @@ You can run hooks manually any time: `pre-commit run --all-files`.
 | `make lint` | ruff + black --check + mypy | < 30 s |
 | `make docs` | mkdocs build (verifies docs render) | ~ 30 s |
 
-***REMOVED******REMOVED*** Pull request workflow
+## Pull request workflow
 
 1. **Open an issue first** for any non-trivial change (anything beyond typo / one-line bugfix). This lets us discuss approach before you spend hours on it.
 2. **Fork** the repository.
@@ -113,16 +113,16 @@ You can run hooks manually any time: `pre-commit run --all-files`.
 10. **Address review feedback** promptly — usually within the same week. If you go silent for > 30 days, we may close the PR (you can always reopen).
 11. **Squash-merge** is our default (one logical change per PR → one commit in main).
 
-***REMOVED******REMOVED*** Code style
+## Code style
 
-***REMOVED******REMOVED******REMOVED*** Python
+### Python
 
 - **PEP 8** enforced by `ruff` + `black` (configured in `pyproject.toml`).
 - **Type hints** strongly encouraged on all new code; required on public APIs.
 - **Docstrings** in NumPy or Google style; required on every public function, class, and module.
 - **One semantic change per commit**; one feature per PR.
 
-***REMOVED******REMOVED******REMOVED*** Commit messages
+### Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/), e.g.:
 
@@ -135,17 +135,17 @@ You can run hooks manually any time: `pre-commit run --all-files`.
 
 Common scopes: `soc-pipeline`, `v4-validation`, `d1`, `web`, `docs`, `ci`, `infra`, `tests`.
 
-***REMOVED******REMOVED******REMOVED*** Markdown
+### Markdown
 
 - `YYYY-MM-DD` date format
-- Headings ATX-style (`***REMOVED***`, not underline)
+- Headings ATX-style (`#`, not underline)
 - Code fences with language tag (` ```python `, not bare ` ``` `)
 
-***REMOVED******REMOVED*** Test requirements
+## Test requirements
 
 Any change with **logic** needs all three layers, per project policy:
 
-***REMOVED******REMOVED******REMOVED*** 1. Unit tests (`v4/tests/sanity`)
+### 1. Unit tests (`v4/tests/sanity`)
 
 - 3 - 5 cases per core function: normal + edge + error
 - Heuristic functions (classifiers, exponent estimators): **20+ cases including adversarial inputs**
@@ -156,7 +156,7 @@ Any change with **logic** needs all three layers, per project policy:
   - Schema / config validators
   - Pure utility functions
 
-***REMOVED******REMOVED******REMOVED*** 2. Integration tests (`v4/tests/integration`)
+### 2. Integration tests (`v4/tests/integration`)
 
 - For each API endpoint: success + 404 + bad-input + permission-denied
 - Schema changes require migration test + version assertion
@@ -166,7 +166,7 @@ Any change with **logic** needs all three layers, per project policy:
   - Database schema or queries
   - Multi-module interactions
 
-***REMOVED******REMOVED******REMOVED*** 3. End-to-end / real-environment (`v4/tests/e2e`)
+### 3. End-to-end / real-environment (`v4/tests/e2e`)
 
 - Browser-driven (Playwright) for web changes
 - Real DB (run `python -m db.migrate` against test DB first)
@@ -180,7 +180,7 @@ If your change is **pure visual polish** (color, spacing, font), unit + integrat
 
 **Failing any required layer = PR not ready for merge.**
 
-***REMOVED******REMOVED*** Documentation requirement
+## Documentation requirement
 
 - **New public API** (function, class, CLI subcommand, HTTP endpoint) needs:
   - Docstring or schema with usage example
@@ -195,7 +195,7 @@ If your change is **pure visual polish** (color, spacing, font), unit + integrat
 
 PRs that add code without docs will be asked to add docs before merge. PRs that add docs without code are very welcome and have an expedited review SLA.
 
-***REMOVED******REMOVED*** Review SLA
+## Review SLA
 
 We commit to:
 
@@ -209,19 +209,19 @@ We commit to:
 
 For **urgent security fixes**: per `.github/SECURITY.md`, do not open a public PR. Email instead. We aim for 14-day acknowledgement and 90-day fix.
 
-***REMOVED******REMOVED*** Good first issues + mentorship
+## Good first issues + mentorship
 
 - Browse [good-first-issue](https://github.com/dada8899/structural-isomorphism/labels/good-first-issue) labeled issues. Each has:
   - Clear brief
   - Acceptance criteria
   - Effort estimate (S / M / L)
   - Suggested mentor (maintainer who's offered to help)
-- Join the project Discord (invite in README → `***REMOVED***good-first-issues` channel) for synchronous help.
+- Join the project Discord (invite in README → `#good-first-issues` channel) for synchronous help.
 - We hold office hours every fortnight (calendar in Discord); bring questions in any state of half-bakedness.
 
 If you've never contributed to OSS before and you want a guided first PR, comment on a good-first-issue saying so — a mentor will walk you through fork → PR step by step.
 
-***REMOVED******REMOVED*** Reporting research / methodological issues
+## Reporting research / methodological issues
 
 We treat methodological concerns as **top priority**, above performance or feature work.
 
@@ -232,7 +232,7 @@ We treat methodological concerns as **top priority**, above performance or featu
 
 If you are submitting an adversarial replication or counter-claim, see `docs/pre-registrations.md` for the pre-registration template.
 
-***REMOVED******REMOVED*** Releases & versioning
+## Releases & versioning
 
 - SemVer for `packages/*`
 - Releases tagged `vX.Y.Z` on `main`
@@ -240,11 +240,11 @@ If you are submitting an adversarial replication or counter-claim, see `docs/pre
 - Release notes in `CHANGELOG.md` and on GitHub Releases
 - Datasets versioned independently with content-addressed SHA + Zenodo DOI per major release
 
-***REMOVED******REMOVED*** Sponsorship & funding disclosures
+## Sponsorship & funding disclosures
 
 If your contribution is funded (grant, employer time, etc.), please disclose in the PR description. We do not require this for individual unpaid contributors. See `GOVERNANCE.md` § 10 for the full COI framework.
 
-***REMOVED******REMOVED*** Questions
+## Questions
 
 - General questions: [GitHub Discussions](https://github.com/dada8899/structural-isomorphism/discussions)
 - Real-time chat: Discord (invite in README)

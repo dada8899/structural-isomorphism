@@ -1,4 +1,4 @@
-***REMOVED*** Git History Scrub — Audit & Runbook (2026-05-24)
+# Git History Scrub — Audit & Runbook (2026-05-24)
 
 > **Status:** DRY-RUN COMPLETE. Refs were not modified. Force-push is BLOCKED on explicit operator GO.
 > **Closes P0 item:** `docs/PUBLIC_READINESS_CHECKLIST.md` line 15 — "Credentials scrubbed from git history".
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 - **2 real API keys** still live in `dada8899/structural-isomorphism` PUBLIC history (and in current `main` HEAD too).
 - **21 raw occurrences across history** (OpenRouter ×9, DeepSeek ×12); **17 distinct file-blob entries** in the filter-repo fast-export.
@@ -16,7 +16,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. Scope & method
+## 1. Scope & method
 
 Scan command:
 ```bash
@@ -30,18 +30,18 @@ Refs covered: `--all` includes 572 commits across `main` + 116 side branches + 3
 
 ---
 
-***REMOVED******REMOVED*** 2. Findings (redacted)
+## 2. Findings (redacted)
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Two confirmed live keys
+### 2.1 Two confirmed live keys
 
-| ***REMOVED*** | Vendor    | Prefix (first 8) | Length | Hits in history | First commit (ages → today) | Files at current HEAD |
+| # | Vendor    | Prefix (first 8) | Length | Hits in history | First commit (ages → today) | Files at current HEAD |
 |---|-----------|------------------|--------|-----------------|------------------------------|------------------------|
 | 1 | OpenRouter | `sk-or-v1-af9ae735` | 64 char body | 9 | `aa044dd` 2026-04-16 (~38d) | `web/scripts/deploy.sh:39`, `docs/sessions/SESSION-9-HANDOFF.md:84` |
 | 2 | DeepSeek   | `sk-ad62cc6d`       | 32 char body | 12 | `a88dbef` 2026-05-13 (~11d) | `docs/reviews/W5-B-researcher-review-2026-05-13.md:111`, `docs/sessions/SESSION-9-HANDOFF.md:83` |
 
 Both keys are **also present in `.git/objects` reachable from `main` HEAD** — i.e. they leak via `git clone` today, not just via `git log -p`.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Commit list (per key, redacted)
+### 2.2 Commit list (per key, redacted)
 
 OpenRouter `sk-or-v1-af9ae735…` introduced/persisted by:
 - `aa044dd` 2026-04-16 — `web/backend/.env.bak-v1`, `web/scripts/deploy.sh`
@@ -58,7 +58,7 @@ DeepSeek `sk-ad62cc6d…` introduced/persisted by:
 - `53f997b` 2026-05-14 — `docs/sessions/SESSION-9-HANDOFF.md`
 - `1e3282a` 2026-05-20 — `docs/security/2026-05-20-history-key-audit.md`
 
-***REMOVED******REMOVED******REMOVED*** 2.3 No other vendor keys found
+### 2.3 No other vendor keys found
 
 Cross-checked patterns for: `sk-ant-` (Anthropic), `sk-proj-` (OpenAI Projects), `AKIA*` (AWS), `xoxb-` (Slack), Stripe, GitHub PAT (`ghp_`/`gho_`), HuggingFace, Cohere, Together, Fireworks, Groq, Moonshot, Volc, Doubao, Tencent — **0 hits**.
 
@@ -66,7 +66,7 @@ The current `.env` (gitignored, untracked) holds the **rotated** DeepSeek key `s
 
 ---
 
-***REMOVED******REMOVED*** 3. Dry-run results
+## 3. Dry-run results
 
 Command run (via `scripts/scrub-history.sh --dry-run`):
 ```
@@ -86,7 +86,7 @@ Repo size delta after `--execute` + `git gc --aggressive`: expected to be **roug
 
 ---
 
-***REMOVED******REMOVED*** 4. Artifacts produced
+## 4. Artifacts produced
 
 | Path | Tracked? | Purpose |
 |---|---|---|
@@ -99,62 +99,62 @@ Repo size delta after `--execute` + `git gc --aggressive`: expected to be **roug
 
 ---
 
-***REMOVED******REMOVED*** 5. Run plan (after operator GO)
+## 5. Run plan (after operator GO)
 
 **Pre-condition:** Both keys must already be **rotated at the vendor dashboard** (the keys have been public for 11–38 days, so rotation is irreducible — scrubbing history without rotation is theater).
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Prep
+### 5.1 Prep
 
 ```bash
 cd ~/Projects/structural-isomorphism
 git fetch --all --prune
-git status   ***REMOVED*** MUST be clean — commit / stash all in-flight first
+git status   # MUST be clean — commit / stash all in-flight first
 git checkout main
 git pull --ff-only
 ```
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Rotate keys (vendor dashboard — manual)
+### 5.2 Rotate keys (vendor dashboard — manual)
 
 - OpenRouter dashboard → revoke `sk-or-v1-af9ae735…`, mint new key
 - DeepSeek dashboard → revoke `sk-ad62cc6d…`, mint new key (note: `sk-b34ab7372…` already in `.env` may itself be a rotated successor — confirm chain)
 - Update `~/.env`, deploy server `.env`, VPS `~/Projects/structural-isomorphism/web/backend/.env`, GitHub Actions secrets
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Execute scrub
+### 5.3 Execute scrub
 
 ```bash
-***REMOVED*** 1. Final confirmation dry-run
+# 1. Final confirmation dry-run
 bash scripts/scrub-history.sh --dry-run
 
-***REMOVED*** 2. Tag backup + bundle + rewrite history
+# 2. Tag backup + bundle + rewrite history
 bash scripts/scrub-history.sh --execute
 
-***REMOVED*** 3. Verify zero residuals
-git log --all --full-history -p | grep -c "sk-or-v1-REDACTED-BY-SCRUB-20260524"   ***REMOVED*** → 0
-git log --all --full-history -p | grep -c "sk-REDACTED-BY-SCRUB-20260524"                                          ***REMOVED*** → 0
-gitleaks detect --no-banner --redact --log-level=warn                                                                    ***REMOVED*** → no high-confidence findings
+# 3. Verify zero residuals
+git log --all --full-history -p | grep -c "sk-or-v1-REDACTED-BY-SCRUB-20260524"   # → 0
+git log --all --full-history -p | grep -c "sk-REDACTED-BY-SCRUB-20260524"                                          # → 0
+gitleaks detect --no-banner --redact --log-level=warn                                                                    # → no high-confidence findings
 
-***REMOVED*** 4. Inspect a sample
-git show ${LEAK_COMMIT}:web/scripts/deploy.sh | grep OPENROUTER   ***REMOVED*** should show REDACTED marker
+# 4. Inspect a sample
+git show ${LEAK_COMMIT}:web/scripts/deploy.sh | grep OPENROUTER   # should show REDACTED marker
 ```
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Push (THIS is the irreversible step)
+### 5.4 Push (THIS is the irreversible step)
 
 ```bash
-git remote -v   ***REMOVED*** CONFIRM 'origin' == github.com/dada8899/structural-isomorphism.git
+git remote -v   # CONFIRM 'origin' == github.com/dada8899/structural-isomorphism.git
 git push --force-with-lease --all origin
 git push --force-with-lease --tags origin
 ```
 
 > `--force-with-lease` aborts if remote moved since last fetch. Run `git fetch` immediately before pushing to refresh the lease.
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Post-push
+### 5.5 Post-push
 
 ```bash
-***REMOVED*** Re-scan remote
+# Re-scan remote
 git clone --bare https://github.com/dada8899/structural-isomorphism.git /tmp/post-scrub-check
 cd /tmp/post-scrub-check
-gitleaks detect --no-banner --redact --log-level=warn   ***REMOVED*** → 0 high-conf
-git log --all -p | grep -c "sk-or-v1-af9ae735\|sk-ad62cc6d"   ***REMOVED*** → 0
+gitleaks detect --no-banner --redact --log-level=warn   # → 0 high-conf
+git log --all -p | grep -c "sk-or-v1-af9ae735\|sk-ad62cc6d"   # → 0
 rm -rf /tmp/post-scrub-check
 ```
 
@@ -165,7 +165,7 @@ GitHub side:
 
 ---
 
-***REMOVED******REMOVED*** 6. Downstream impact
+## 6. Downstream impact
 
 | Stakeholder | What changes | Action required |
 |---|---|---|
@@ -178,7 +178,7 @@ GitHub side:
 
 ---
 
-***REMOVED******REMOVED*** 7. Rollback plan
+## 7. Rollback plan
 
 The `--execute` script creates two safety nets before touching refs:
 
@@ -188,7 +188,7 @@ The `--execute` script creates two safety nets before touching refs:
 **Recovery (before pushing):**
 ```bash
 git reset --hard refs/tags/pre-scrub-backup-YYYYMMDD-HHMMSS
-git tag -d <scrub backup tag>   ***REMOVED*** only after confidence
+git tag -d <scrub backup tag>   # only after confidence
 ```
 
 **Recovery (after pushing — disaster path):**
@@ -209,7 +209,7 @@ git reflog expire --expire=now --all && git gc --prune=now --aggressive
 
 ---
 
-***REMOVED******REMOVED*** 8. Why this is final-pre-flip
+## 8. Why this is final-pre-flip
 
 `PUBLIC_READINESS_CHECKLIST.md` P0 list — once this scrub + push + re-scan succeeds **and** keys are rotated, the only remaining P0 is the TODO sweep in `setup.py` / `pyproject.toml` / papers.
 
@@ -217,7 +217,7 @@ Decision gate ownership: founder `@dada8899` — see checklist line 35 ("Force p
 
 ---
 
-***REMOVED******REMOVED*** 9. Open questions for operator GO
+## 9. Open questions for operator GO
 
 1. Confirm both keys are rotated? (yes/no — if no, rotate first)
 2. Coordinate timing with any in-flight PRs / collaborators? (`gh pr list` showed 0 at dry-run time)

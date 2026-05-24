@@ -55,8 +55,8 @@ def _read_cumulative(path: str) -> Tuple[int, bytes]:
 
 def make_handler(result_path: str, cum_path: str):
     class Handler(BaseHTTPRequestHandler):
-        ***REMOVED*** quieter default logging
-        def log_message(self, fmt, *args):  ***REMOVED*** noqa: N802
+        # quieter default logging
+        def log_message(self, fmt, *args):  # noqa: N802
             LOG.info("%s - %s", self.address_string(), fmt % args)
 
         def _send(self, status: int, body: bytes, ctype: str = "application/json") -> None:
@@ -69,10 +69,10 @@ def make_handler(result_path: str, cum_path: str):
             self.end_headers()
             self.wfile.write(body)
 
-        def do_OPTIONS(self) -> None:  ***REMOVED*** noqa: N802
+        def do_OPTIONS(self) -> None:  # noqa: N802
             self._send(204, b"")
 
-        def do_GET(self) -> None:  ***REMOVED*** noqa: N802
+        def do_GET(self) -> None:  # noqa: N802
             path = self.path.split("?", 1)[0]
             if path == "/health":
                 self._send(200, json.dumps({"status": "ok"}).encode("utf-8"))

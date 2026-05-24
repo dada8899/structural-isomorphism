@@ -19,7 +19,7 @@ def _v(name: str, kind: str, conf: float = 1.0, error: str | None = None) -> Ver
     return Verdict(critic_id=name, kind=kind, confidence=conf, reasoning="", error=error)
 
 
-***REMOVED*** --- majority_vote ------------------------------------------------------------
+# --- majority_vote ------------------------------------------------------------
 
 
 def test_majority_vote_2_keep_1_reject():
@@ -50,7 +50,7 @@ def test_majority_vote_fallback_no_valid():
     assert disagree is False
 
 
-***REMOVED*** --- unanimous ----------------------------------------------------------------
+# --- unanimous ----------------------------------------------------------------
 
 
 def test_unanimous_all_agree():
@@ -67,7 +67,7 @@ def test_unanimous_disagreement_returns_fallback():
     assert disagree is True
 
 
-***REMOVED*** --- agreement_pct ------------------------------------------------------------
+# --- agreement_pct ------------------------------------------------------------
 
 
 def test_agreement_pct_full():
@@ -82,14 +82,14 @@ def test_agreement_pct_partial():
 
 def test_agreement_pct_excludes_errored():
     vs = [_v("a", "KEEP"), _v("b", "KEEP"), _v("c", "X", error="boom")]
-    assert agreement_pct(vs, "KEEP") == 1.0  ***REMOVED*** errored excluded → 2/2
+    assert agreement_pct(vs, "KEEP") == 1.0  # errored excluded → 2/2
 
 
 def test_agreement_pct_empty():
     assert agreement_pct([], "KEEP") == 0.0
 
 
-***REMOVED*** --- krippendorff_alpha -------------------------------------------------------
+# --- krippendorff_alpha -------------------------------------------------------
 
 
 def test_krippendorff_perfect_agreement():
@@ -102,8 +102,8 @@ def test_krippendorff_total_disagreement_two_critics():
     """2 critics, different labels → α = 0.0 (random chance for 2 categories of 1 each)."""
     vs = [_v("a", "KEEP"), _v("b", "REJECT")]
     alpha = krippendorff_alpha(vs)
-    ***REMOVED*** With 2 raters & 2 different labels, observed disagreement = 1, expected = 1
-    ***REMOVED*** → α = 0.0 (chance-level)
+    # With 2 raters & 2 different labels, observed disagreement = 1, expected = 1
+    # → α = 0.0 (chance-level)
     assert alpha is not None
     assert abs(alpha) < 1e-9
 
@@ -155,11 +155,11 @@ def test_krippendorff_excludes_errored():
         _v("c", "X", error="boom"),
     ]
     alpha = krippendorff_alpha(vs)
-    ***REMOVED*** Only 2 valid critics, both KEEP → perfect agreement
+    # Only 2 valid critics, both KEEP → perfect agreement
     assert alpha == 1.0
 
 
-***REMOVED*** --- registry -----------------------------------------------------------------
+# --- registry -----------------------------------------------------------------
 
 
 def test_get_voting_strategy_by_name():

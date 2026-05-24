@@ -57,7 +57,7 @@ def test_ensemble_majority_2_keep_1_reject():
     assert abs(result.agreement_pct - 2 / 3) < 1e-9
     assert result.voting == "majority"
     assert len(result.verdicts) == 3
-    ***REMOVED*** Krippendorff α: 2 KEEP + 1 REJECT → α = 0.0 (see test_voting)
+    # Krippendorff α: 2 KEEP + 1 REJECT → α = 0.0 (see test_voting)
     assert result.krippendorff_alpha is not None
     assert abs(result.krippendorff_alpha) < 1e-9
 

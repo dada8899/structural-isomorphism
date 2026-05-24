@@ -1,22 +1,22 @@
-***REMOVED*** B1 — Layer-3 Critic Pass: Final Authoritative Taxonomy
+# B1 — Layer-3 Critic Pass: Final Authoritative Taxonomy
 
 **Date**: 2026-05-22
 **Candidates reviewed**: 21
 **Active universality classes (final)**: 11
 
-***REMOVED******REMOVED*** 一句话总结
+## 一句话总结
 
 21 个候选普适类经 Layer-3 critic 逐条审查 + ensemble 交叉核验后，收口为 **11 个站得住的 active 普适类**：3 个被 REJECT（统计极限定理伪装 / 博弈论概念簇，不是动力学普适类），4 个被 SPLIT（机制不纯，拆成更紧的子类），4 个 provenance 重复变体被 MERGE 进规范类。反例库共 78 条，并从成员列表剔除 9 个 false-positive 成员。
 
-***REMOVED******REMOVED*** 权威性说明
+## 权威性说明
 
 - **权威基准 = B1 critic**（人工逐条审查，`layer3_critic.jsonl`）。本脚本只是把已有的 critic 结论固化成结构化清单，没有推翻 critic 判断。
 - B3 / B4 ensemble 是**辅助视角**。特别注意 B4 DeepSeek 用了极严苛 prompt，把几乎所有类都判 REJECT（连 scheffer / second_order_damped 这种铁打 KEEP 也 REJECT），因此 B4 **不作权威**，只用于给真正悬而未决的 merge 问题做 tie-break。
 - DeepSeek V4 补判**只对悬而未决的类调用**（critic 自己用 'possibly/could/consider/subtle' 犹豫措辞、且 ensemble 又不同意），不全量重跑。
 
-***REMOVED******REMOVED*** 最终 11 个 Active 普适类
+## 最终 11 个 Active 普适类
 
-| ***REMOVED*** | class_id | 中文名 | critic verdict | 干净成员 | 反例 | 来源 |
+| # | class_id | 中文名 | critic verdict | 干净成员 | 反例 | 来源 |
 |---|---|---|---|---|---|---|
 | 1 | `scheffer_fold_bifurcation` | Scheffer 折叠分岔类 | KEEP (high) | 9 | 13 | critic |
 | 2 | `motter_lai_network_cascade` | Motter-Lai 负载重分配网络级联类 | KEEP (high) | 3 | 8 | critic |
@@ -30,7 +30,7 @@
 | 10 | `scale_free_percolation_class` | 无标度网络渗流与级联类 | KEEP (medium) | 2 | 6 | critic+DeepSeek |
 | 11 | `gardner_collins_toggle_switch` | Hill 超敏正反馈双稳态开关类 | KEEP (high) | 7 | 14 | critic |
 
-***REMOVED******REMOVED******REMOVED*** 每个 active 类为什么留下
+### 每个 active 类为什么留下
 
 **1. Scheffer 折叠分岔类** (`scheffer_fold_bifurcation`)
 
@@ -103,7 +103,7 @@
 - 干净成员 7 个；剔除 false-positive 1 个: 胰岛素信号通路与发育时序门控
 - 反例库 14 条
 
-***REMOVED******REMOVED*** 被 REJECT 的 3 个候选（站不住，不进 active 清单）
+## 被 REJECT 的 3 个候选（站不住，不进 active 清单）
 
 - **`schelling_credible_commitment`** (confidence medium)
   - Schelling credible-commitment is a GAME-THEORETIC equilibrium-selection phenomenon, not a dynamical universality class. The shared 'equation' (payoff(commit) > payoff(flexible) iff sunk_cost > defection_gain) is a static inequality, not a scaling law or critical exponent. (1) 时间不一致性 is the Kydland-Prescott problem about policy reoptimization, distinct from Schelling commitment (no sunk cost device
@@ -112,7 +112,7 @@
 - **`markov_chain_memory_fidelity_class`** (confidence high)
   - First-order Markov property is a VERY GENERIC statistical structure that any memoryless or near-memoryless process exhibits — like CLT and EVT, it is a limit theorem (the property of being well-approximated by a Markov chain is preserved across an enormous diversity of mechanisms). Calling this a universality class is a category error: ALL of (a) DNA methylation inheritance via DNMT1, (b) X-inacti
 
-***REMOVED******REMOVED*** 被 SPLIT 的 4 个候选（机制不纯，拆解后不作单一 active 类）
+## 被 SPLIT 的 4 个候选（机制不纯，拆解后不作单一 active 类）
 
 - **`hysteresis_preisach`** (confidence medium)
   - 拆分方案: Split into (a) Preisach-Mayergoyz distributed hysteron class (magnetism, soil-moisture retention, possibly DeFi liquidation cycles) — keeps the ∫∫μ(α,β) machinery; (b) Maxwell first-order transition with simple hysteresis (gelation, traffic phase transition, liquefaction) — uses Landau φ⁴ or Ginzburg-Landau free energy.
@@ -123,14 +123,14 @@
 - **`sir_contagion_network_class`** (confidence medium)
   - 拆分方案: Split into (a) true SIR with recovery (epidemics, rumor with stifling, marketing-fatigue) — needs R₀, γ; (b) financial cascade with NO recovery (already in motter_lai_network_cascade class). Then this class becomes a true SIR class. Without split, this class conflates SIR with SI/M-L.
 
-***REMOVED******REMOVED*** 被 MERGE 的 4 个变体（provenance 重复，并入规范类）
+## 被 MERGE 的 4 个变体（provenance 重复，并入规范类）
 
 - `gardner_collins_toggle_switch_Th1Th2` → 并入 `gardner_collins_toggle_switch`
 - `gardner_collins_toggle_switch_apoptosis` → 并入 `gardner_collins_toggle_switch`
 - `hysteresis_first_order_transition_fertility` → 并入 `scheffer_fold_bifurcation`
 - `motter_lai_network_cascade_social` → 并入 `motter_lai_network_cascade`
 
-***REMOVED******REMOVED*** LLM 补判记录
+## LLM 补判记录
 
 识别出 3 个悬而未决的类（critic 犹豫 + ensemble 分歧）：
 
@@ -144,14 +144,14 @@
   - DeepSeek V4 判定: **INDEPENDENT** (merge_target=None, conf=0.9)
   - 理由: Scale-free percolation concerns critical behavior (e.g., threshold vanishing, non-mean-field exponents for 2<γ<3) on fixed heterogeneous networks, while preferential attachment describes the dynamical growth rule that generates the degree distribution. Their equation forms (order parameter vs. attac
 
-***REMOVED******REMOVED*** 反例库规模
+## 反例库规模
 
 - 总计 **78 条反例**，分两类：
   - near_miss: critic 精选的「表面像但机制不同」的近似现象
   - false_positive_member: 从候选成员列表中被剔除的 9 个机制不匹配成员
 - 反例库已结构化写入 B1_final_taxonomy.jsonl 每个 active 类的 negative_examples 字段。
 
-***REMOVED******REMOVED*** 输出文件
+## 输出文件
 
 - `v4/results/B1_final_taxonomy.jsonl` — 每个 active 类一行（id / 中英文名 / 机制原型 / 不变量 / 干净成员 / 反例库 / verdict 来源）
 - `v4/results/B1_final_summary.md` — 本文件

@@ -1,35 +1,35 @@
-***REMOVED*** Session ***REMOVED***7 — Retrospective (WIP)
+# Session #7 — Retrospective (WIP)
 
 > Started: 2026-05-14 ~13:00 CST
 > End: TBD (still in session)
-> User authorization: full delegation, do all 5 directions (***REMOVED***1/***REMOVED***2/***REMOVED***3/***REMOVED***4/***REMOVED***6) + Perplexity-like 主页面 + 一直跑到 context 90% / 完全没事可做为止
+> User authorization: full delegation, do all 5 directions (#1/#2/#3/#4/#6) + Perplexity-like 主页面 + 一直跑到 context 90% / 完全没事可做为止
 
 ---
 
-***REMOVED******REMOVED*** Session Summary
+## Session Summary
 
-Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨度 ship —— 5 个方向同时推进，最终目标 = 主页面定型为 Perplexity-like 真搜索引擎。
+Session #7 是 session #5 之后第一次系统性大跨度 ship —— 5 个方向同时推进，最终目标 = 主页面定型为 Perplexity-like 真搜索引擎。
 
 **全部 merge 进 main 的 PR**:
 
 | PR | Title | Wave / Agent | Commit |
 |---|---|---|---|
-| ***REMOVED***64 | SESSION-7-PLAN master plan | main | f3e9c92 |
-| ***REMOVED***65 | POST /api/ask/stream Perplexity SSE orchestrator | W1-A | f29c85b |
-| ***REMOVED***67 | CI workflows + history SQLite + observability | W1-D | 0529b68 |
-| ***REMOVED***68 | Phase Detector 100→500 + batch extract | W1-B | db68684 |
-| ***REMOVED***69 | Pre-registration infra + B4 ensemble script + taxonomy expand | W1-C | 34f2a81 |
-| ***REMOVED***70 | Perplexity-like /index.html (frontend) | W2-A | 2566c39 |
-| ***REMOVED***71 | Backtest engine v0.1 (near_critical vs other) | W2-B | 8b2fc68 |
-| ***REMOVED***72 | API auth tier + history remote + i18n EN 100% | W2-D | 42888c0 |
-| ***REMOVED***73 | B4 ensemble sample + taxonomy expand + CVE preregister FAIL | W2-C | 53b0f32 |
+| #64 | SESSION-7-PLAN master plan | main | f3e9c92 |
+| #65 | POST /api/ask/stream Perplexity SSE orchestrator | W1-A | f29c85b |
+| #67 | CI workflows + history SQLite + observability | W1-D | 0529b68 |
+| #68 | Phase Detector 100→500 + batch extract | W1-B | db68684 |
+| #69 | Pre-registration infra + B4 ensemble script + taxonomy expand | W1-C | 34f2a81 |
+| #70 | Perplexity-like /index.html (frontend) | W2-A | 2566c39 |
+| #71 | Backtest engine v0.1 (near_critical vs other) | W2-B | 8b2fc68 |
+| #72 | API auth tier + history remote + i18n EN 100% | W2-D | 42888c0 |
+| #73 | B4 ensemble sample + taxonomy expand + CVE preregister FAIL | W2-C | 53b0f32 |
 | (Wave 3) | TBD | W3-A/B/C | — |
 
 ---
 
-***REMOVED******REMOVED*** 方向交付 summary
+## 方向交付 summary
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***1 Phase Detector (W1-B + W2-B)
+### #1 Phase Detector (W1-B + W2-B)
 
 ✅ **shipped**:
 - 503 SP500 ticker (Wikipedia + fallback)
@@ -41,12 +41,12 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 - README_BACKTEST.md 设计文档
 - /backtest API endpoint (stdlib http.server, NOT auto-started)
 
-⚠️ **deferred to session ***REMOVED***8**:
+⚠️ **deferred to session #8**:
 - 剩余 445 ticker 全量 LLM StructTuple pass (~$0.45, ~45min)
 - 真实价格数据接入（当前 synthetic + provenance flag）
 - Backtest 跑全部 500 公司 + walk-forward validation
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***2 UX 第三轮 (W3-A + W3-B)
+### #2 UX 第三轮 (W3-A + W3-B)
 
 🔄 **in progress (Wave 3)**:
 - Playwright e2e 套件 + baseline 截图
@@ -55,7 +55,7 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 - /discoveries layout shift skeleton
 - GlossaryTooltip v2 5 新词 (相变 / 标度形式 / 涌现 / 反馈环 / 阈值效应)
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***3 科学纵深 (W1-C + W2-C)
+### #3 科学纵深 (W1-C + W2-C)
 
 ✅ **shipped**:
 - 3 pre-registration yaml (NYC fires / CVE / WSB)
@@ -78,7 +78,7 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 - Full B4 ensemble on remaining 15/23 classes
 - Full 2010-2025 NVD CVE pull (needs API key)
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***4 工程平台 (W1-D + W2-D)
+### #4 工程平台 (W1-D + W2-D)
 
 ✅ **shipped**:
 - GitHub Actions CI: sanity.yml (push/PR pytest) + site-smoke.yml (every-6h curl 3 hosts)
@@ -95,7 +95,7 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 - History frontend remote-source 默认 enable (currently localStorage authoritative + opt-in remote)
 - Branch protection rules on main
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***6 Perplexity-like 主搜索引擎 (W1-A + W2-A) — 北极星目标
+### #6 Perplexity-like 主搜索引擎 (W1-A + W2-A) — 北极星目标
 
 ✅ **shipped** —— 这是 session 的核心交付:
 
@@ -125,9 +125,9 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 
 ---
 
-***REMOVED******REMOVED*** Quirks / lessons (写 memory)
+## Quirks / lessons (写 memory)
 
-***REMOVED******REMOVED******REMOVED*** Form 4 silent fallback 重现 (所有 4 个 Wave 1 agent)
+### Form 4 silent fallback 重现 (所有 4 个 Wave 1 agent)
 
 主 worktree 不隔离 — 4 个并行 subagent (W1-A/B/C/D) 全部检测到主 worktree 被 sibling agents 切 HEAD / 留 untracked。
 
@@ -139,15 +139,15 @@ Session ***REMOVED***7 是 session ***REMOVED***5 之后第一次系统性大跨
 
 ❌ **未来改进**：subagent prompt 强制开头加 `git worktree add ...` 命令而不是依赖 `isolation: "worktree"` flag（实测 form-4 silent fallback 仍发生）
 
-***REMOVED******REMOVED******REMOVED*** Cherry-pick rebase 必备
+### Cherry-pick rebase 必备
 
 Wave 1/2 所有 agent branch 都基于老 main (5d66bee 或 d6f2191)，merge 时显示几千行 deletion (其他 agent 的文件)。**全部用 cherry-pick 重做到 current main 解决**（无 conflict on 不相交文件）。仅 `web/backend/main.py` 需要手动解 conflict (W1-A + W1-D 都加 router import)。
 
-***REMOVED******REMOVED******REMOVED*** CVE pre-registration 第一次真出 FAIL — 科学完整性信号
+### CVE pre-registration 第一次真出 FAIL — 科学完整性信号
 
 W2-C 跑 CVE NVD 2023 数据，α=2.668 outside pre-registered band [1.5, 2.5]。这是 V4 pipeline 第一次 verdict=FAIL 在 pre-registration 流程下 —— **方法论上是好事**：band 先锁定，失败可解释（Patch-Tuesday administrative bursts ≠ SOC）。写论文 §8 时这个 case 是最强的 anti-p-hacking 证据。
 
-***REMOVED******REMOVED******REMOVED*** B4 ensemble 揭示 B3 fragility
+### B4 ensemble 揭示 B3 fragility
 
 3/7 类在 B4 ensemble (DeepSeek-pro/flash + Kimi/T-fallback) 下从 B3 的 KEEP/REJECT 降级到 UNCLEAR：
 - `delay_differential_debt`
@@ -158,34 +158,34 @@ W2-C 跑 CVE NVD 2023 数据，α=2.668 outside pre-registered band [1.5, 2.5]�
 
 ---
 
-***REMOVED******REMOVED*** Final HEAD + git status
+## Final HEAD + git status
 
 ```
 $ git log --oneline -10
-7025b72 Merge pull request ***REMOVED***73 from dada8899/session7/b4-ensemble-v2
-53b0f32 feat(v4): B4 ensemble sample + taxonomy expand batch + CVE preregister real fit (***REMOVED***3 W2-C)
-f9c1637 Merge pull request ***REMOVED***72 from dada8899/session7/eng-polish-v2
-42888c0 feat(eng): API auth tier + history remote endpoint + i18n EN expansion (***REMOVED***4 W2-D)
-d7aa0b0 Merge pull request ***REMOVED***71 from dada8899/session7/backtest
-8b2fc68 feat(phase-detector): backtest engine v0.1 (near_critical vs other) (***REMOVED***1 W2-B)
-04b81d5 Merge pull request ***REMOVED***70 from dada8899/session7/ask-ui
-2566c39 feat(structural-web): Perplexity-like /index.html — unified search engine (***REMOVED***6 W2-A)
-159205e Merge pull request ***REMOVED***69 from dada8899/session7/preregister-setup-v2
-145a6cc Merge pull request ***REMOVED***68 from dada8899/session7/phase-500-v2
+7025b72 Merge pull request #73 from dada8899/session7/b4-ensemble-v2
+53b0f32 feat(v4): B4 ensemble sample + taxonomy expand batch + CVE preregister real fit (#3 W2-C)
+f9c1637 Merge pull request #72 from dada8899/session7/eng-polish-v2
+42888c0 feat(eng): API auth tier + history remote endpoint + i18n EN expansion (#4 W2-D)
+d7aa0b0 Merge pull request #71 from dada8899/session7/backtest
+8b2fc68 feat(phase-detector): backtest engine v0.1 (near_critical vs other) (#1 W2-B)
+04b81d5 Merge pull request #70 from dada8899/session7/ask-ui
+2566c39 feat(structural-web): Perplexity-like /index.html — unified search engine (#6 W2-A)
+159205e Merge pull request #69 from dada8899/session7/preregister-setup-v2
+145a6cc Merge pull request #68 from dada8899/session7/phase-500-v2
 ```
 
 ---
 
-***REMOVED******REMOVED*** Wave 3 完成（所有 5 directions ship + verified）
+## Wave 3 完成（所有 5 directions ship + verified）
 
-✅ W3-A (PR ***REMOVED***74): Playwright e2e 11 tests + 8 baseline screenshots
-✅ W3-B (PR ***REMOVED***77): mobile 480px + Plausible 14 events + /discoveries skeleton + glossary v2
+✅ W3-A (PR #74): Playwright e2e 11 tests + 8 baseline screenshots
+✅ W3-B (PR #77): mobile 480px + Plausible 14 events + /discoveries skeleton + glossary v2
 ✅ W3-C (主 session): VPS deploy + smoke verify + post-deploy screenshots
 ✅ 主 session 中 3 hotfix:
-  - PR ***REMOVED***75: tier_limit_decorator slowapi 签名 mismatch
-  - PR ***REMOVED***76: /learn route missing
-  - PR ***REMOVED***78: mobile ≤480px nav overflow
-✅ PR ***REMOVED***79: docs(sessions) deploy verified + 8 post-deploy screenshots + SOP
+  - PR #75: tier_limit_decorator slowapi 签名 mismatch
+  - PR #76: /learn route missing
+  - PR #78: mobile ≤480px nav overflow
+✅ PR #79: docs(sessions) deploy verified + 8 post-deploy screenshots + SOP
 
 **Live verification (post-deploy)**:
 - `curl https://beta.structural.bytedance.city/api/ask/stream` 完整 7-event SSE ✓
@@ -194,14 +194,14 @@ d7aa0b0 Merge pull request ***REMOVED***71 from dada8899/session7/backtest
 
 ---
 
-***REMOVED******REMOVED*** Deferred to Session ***REMOVED***8 (优先级降序)
+## Deferred to Session #8 (优先级降序)
 
 **P0 — Token 依赖（不动）**:
-- PyPI publish soc-pipeline + guarded-llm (wheels ready since session ***REMOVED***3)
+- PyPI publish soc-pipeline + guarded-llm (wheels ready since session #3)
 - Zenodo mint DOI for dataset/v1
 - arXiv submission C1 v0.3.1 + 4 solo + C4
 
-**P1 — Phase Detector 商业化（推荐 session ***REMOVED***8 主菜）**:
+**P1 — Phase Detector 商业化（推荐 session #8 主菜）**:
 - 跑完剩余 445 ticker StructTuple ($0.45, 45min)
 - 真实价格数据接入（Stooq / yfinance）
 - Walk-forward backtest 真数据 t-test
@@ -227,26 +227,26 @@ d7aa0b0 Merge pull request ***REMOVED***71 from dada8899/session7/backtest
 
 ---
 
-***REMOVED******REMOVED*** Session ***REMOVED***7 Final HEAD
+## Session #7 Final HEAD
 
 ```
 $ git log --oneline -16
-23484f7 Merge pull request ***REMOVED***79 from dada8899/session7/deploy-verify
-98c8d5f docs(sessions): session ***REMOVED***7 deploy verified + 8 post-deploy screenshots
-3255586 Merge pull request ***REMOVED***78 from dada8899/session7/fix-mobile-overflow
+23484f7 Merge pull request #79 from dada8899/session7/deploy-verify
+98c8d5f docs(sessions): session #7 deploy verified + 8 post-deploy screenshots
+3255586 Merge pull request #78 from dada8899/session7/fix-mobile-overflow
 70ce543 fix(structural-web): mobile ≤480px nav overflow
-817e77a Merge pull request ***REMOVED***77 from dada8899/session7/ux-polish-v2
-bcf10e4 feat(structural-web): UX 3rd round — mobile + Plausible + discoveries skeleton + glossary v2 (***REMOVED***2 W3-B)
-2ddb55f Merge pull request ***REMOVED***76 from dada8899/session7/learn-route
+817e77a Merge pull request #77 from dada8899/session7/ux-polish-v2
+bcf10e4 feat(structural-web): UX 3rd round — mobile + Plausible + discoveries skeleton + glossary v2 (#2 W3-B)
+2ddb55f Merge pull request #76 from dada8899/session7/learn-route
 7ce45dd feat(structural-web): add /learn route for legacy home backup
-1c971de Merge pull request ***REMOVED***75 from dada8899/session7/fix-rate-limit
+1c971de Merge pull request #75 from dada8899/session7/fix-rate-limit
 e439aeb fix(eng): tier_limit_decorator slowapi dynamic-limit signature
-7264937 Merge pull request ***REMOVED***74 from dada8899/session7/e2e-v2
-9d2942f test(e2e): Playwright Perplexity flow + baseline screenshots (***REMOVED***2 W3-A)
-7025b72 Merge pull request ***REMOVED***73 from dada8899/session7/b4-ensemble-v2
-53b0f32 feat(v4): B4 ensemble sample + taxonomy expand batch + CVE preregister real fit (***REMOVED***3 W2-C)
-f9c1637 Merge pull request ***REMOVED***72 from dada8899/session7/eng-polish-v2
-42888c0 feat(eng): API auth tier + history remote endpoint + i18n EN expansion (***REMOVED***4 W2-D)
+7264937 Merge pull request #74 from dada8899/session7/e2e-v2
+9d2942f test(e2e): Playwright Perplexity flow + baseline screenshots (#2 W3-A)
+7025b72 Merge pull request #73 from dada8899/session7/b4-ensemble-v2
+53b0f32 feat(v4): B4 ensemble sample + taxonomy expand batch + CVE preregister real fit (#3 W2-C)
+f9c1637 Merge pull request #72 from dada8899/session7/eng-polish-v2
+42888c0 feat(eng): API auth tier + history remote endpoint + i18n EN expansion (#4 W2-D)
 ```
 
 15 PR merged · 11 subagents in 3 waves · 6 hotfix iterations · ~9700 LOC insertions · 30 backend tests + 11 e2e all pass · ~$0.5 total LLM cost · ~2.5h main session + 4h total agent wall time

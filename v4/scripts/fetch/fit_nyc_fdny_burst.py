@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fit NYC FDNY fire-incident dispatch sizes to a power-law (Clauset 2009).
 
 Pre-registration: v4/preregistration/nyc-fdny-fires.yaml
@@ -35,7 +35,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "packages" / "soc-pipeline" / "src"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402  (after path setup)
+from soc_pipeline import (  # noqa: E402  (after path setup)
     bootstrap_ci,
     fit_clauset_powerlaw,
     vuong_lr_test,
@@ -89,7 +89,7 @@ def _fit_one(
         except Exception as e:
             vuong_results[alt] = {"error": str(e)}
 
-    ***REMOVED*** Echo from FitResult for cross-check
+    # Echo from FitResult for cross-check
     vuong_results["from_fit_result"] = {
         "vs_lognormal_R": _opt_float(getattr(fit, "vs_lognormal_R", None)),
         "vs_lognormal_p": _opt_float(getattr(fit, "vs_lognormal_p", None)),
@@ -97,12 +97,12 @@ def _fit_one(
         "vs_exponential_p": _opt_float(getattr(fit, "vs_exponential_p", None)),
     }
 
-    ***REMOVED*** Per pre-registration yaml: PASS requires Vuong p > 0.1 (PL NOT rejected)
-    ***REMOVED*** vs both lognormal AND exponential. If R < 0 and p < 0.1, the alternative
-    ***REMOVED*** significantly wins -> PL is rejected -> NOT a pass.
-    ***REMOVED*** n_alt_not_winning counts comparisons where PL is NOT decisively beaten.
+    # Per pre-registration yaml: PASS requires Vuong p > 0.1 (PL NOT rejected)
+    # vs both lognormal AND exponential. If R < 0 and p < 0.1, the alternative
+    # significantly wins -> PL is rejected -> NOT a pass.
+    # n_alt_not_winning counts comparisons where PL is NOT decisively beaten.
     n_alt_not_winning = 0
-    n_alt_winning = 0  ***REMOVED*** alternatives that decisively beat PL (R<0, p<0.1)
+    n_alt_winning = 0  # alternatives that decisively beat PL (R<0, p<0.1)
     for k, v in vuong_results.items():
         if k == "from_fit_result":
             continue
@@ -113,10 +113,10 @@ def _fit_one(
         if p > 0.1:
             n_alt_not_winning += 1
         elif R < 0:
-            ***REMOVED*** alternative wins decisively
+            # alternative wins decisively
             n_alt_winning += 1
         else:
-            ***REMOVED*** PL wins decisively (R>0, p<0.1) — also counts as "not beaten"
+            # PL wins decisively (R>0, p<0.1) — also counts as "not beaten"
             n_alt_not_winning += 1
 
     alpha = fit.alpha
@@ -136,9 +136,9 @@ def _fit_one(
             "(sample size insufficient for definitive verdict)"
         )
     elif n_alt_winning >= 1:
-        ***REMOVED*** Pre-reg yaml: any alternative significantly winning is a FAIL-grade flag.
-        ***REMOVED*** We mark INCONCLUSIVE if alpha still in band (geometry/cutoff plausible),
-        ***REMOVED*** FAIL only when alpha also misses; aligned with yaml verdict_rules.
+        # Pre-reg yaml: any alternative significantly winning is a FAIL-grade flag.
+        # We mark INCONCLUSIVE if alpha still in band (geometry/cutoff plausible),
+        # FAIL only when alpha also misses; aligned with yaml verdict_rules.
         verdict = "INCONCLUSIVE"
         reason = (
             f"alpha={alpha:.3f} in band but {n_alt_winning} alternative(s) "
@@ -157,7 +157,7 @@ def _fit_one(
             f"alpha={alpha:.3f} in band [{lo}, {hi}]; "
             f"PL not beaten by {n_alt_not_winning} alternatives; n_tail={n_tail}"
         )
-    n_null_rejected = n_alt_not_winning  ***REMOVED*** alias retained for downstream compat
+    n_null_rejected = n_alt_not_winning  # alias retained for downstream compat
 
     return {
         "series": name,
@@ -232,7 +232,7 @@ def main() -> int:
     per_series: dict[str, dict] = {}
     for name, raw_list in series_inputs.items():
         arr = np.array([int(x) for x in raw_list if int(x) > 0], dtype=float)
-        ***REMOVED*** For short series, allow smaller min_samples so we still get something.
+        # For short series, allow smaller min_samples so we still get something.
         min_s = min(args.min_samples, max(5, arr.size // 2))
         per_series[name] = _fit_one(
             arr,
@@ -242,7 +242,7 @@ def main() -> int:
             min_samples_fit=min_s,
         )
 
-    ***REMOVED*** PRIMARY verdict = units_dispatched_all (per pre-reg yaml)
+    # PRIMARY verdict = units_dispatched_all (per pre-reg yaml)
     primary = per_series["units_dispatched_all"]
 
     result = {

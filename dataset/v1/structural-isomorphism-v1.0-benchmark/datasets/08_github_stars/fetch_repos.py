@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch GitHub repository star counts to test preferential_attachment / SOC class.
 
 Strategy: stratified search over `stars:>N` buckets to span 5 orders of magnitude
@@ -87,7 +87,7 @@ def fetch_bucket(q: str, max_pages: int = 10) -> tuple[list[dict], dict]:
             if r.status_code == 200:
                 break
             if r.status_code in (403, 429):
-                ***REMOVED*** rate-limited
+                # rate-limited
                 reset = r.headers.get("X-RateLimit-Reset")
                 if reset:
                     wait = max(0, int(reset) - int(time.time())) + 2
@@ -126,7 +126,7 @@ def fetch_bucket(q: str, max_pages: int = 10) -> tuple[list[dict], dict]:
         info["got"] = len(items)
         if len(page_items) < 100:
             break
-        time.sleep(1)  ***REMOVED*** API courtesy
+        time.sleep(1)  # API courtesy
     return items, info
 
 
@@ -140,7 +140,7 @@ def main() -> int:
         print(f"  → {info}")
         for it in items:
             all_repos[it["full_name"]] = it
-        ***REMOVED*** If hit rate limit hard, save what we have and stop
+        # If hit rate limit hard, save what we have and stop
         if info.get("error", "").startswith("http 403") and "rate limit" in str(info.get("error", "")).lower():
             log["aborted"] = q
             break
@@ -151,7 +151,7 @@ def main() -> int:
             f.write(json.dumps(v) + "\n")
     LOG.write_text(json.dumps(log, indent=2))
     print(f"\n[fetch] wrote {len(all_repos)} unique repos to {OUT}")
-    ***REMOVED*** Quick stats
+    # Quick stats
     stars = sorted([r["stars"] for r in all_repos.values()], reverse=True)
     if stars:
         print(f"  star range: [{stars[-1]}, {stars[0]}]")

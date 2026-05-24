@@ -1,6 +1,6 @@
 """verified_isomorphisms — the "result-verified" isomorphism library.
 
-B Data Flywheel (Session ***REMOVED***18).
+B Data Flywheel (Session #18).
 
 A *verified isomorphism* is a persisted analyze report that at least one
 real user came back and marked `outcome='worked'` in report_followup. It
@@ -81,7 +81,7 @@ def human_verified_for(store, b_id: str) -> dict:
     """
     try:
         return store.count_human_verified(b_id)
-    except Exception:  ***REMOVED*** pragma: no cover - defensive
+    except Exception:  # pragma: no cover - defensive
         logger.exception("count_human_verified failed for b_id=%s", b_id)
         return {"count": 0, "recent": ""}
 
@@ -95,14 +95,14 @@ def list_verified(store, *, limit: int = 50) -> list[dict]:
     """
     try:
         rows = store.verified_isomorphisms(limit=limit)
-    except Exception:  ***REMOVED*** pragma: no cover - defensive
+    except Exception:  # pragma: no cover - defensive
         logger.exception("verified_isomorphisms query failed")
         return []
     out: list[dict] = []
     for row in rows:
         try:
             out.append(shape_verified(row))
-        except Exception:  ***REMOVED*** pragma: no cover - defensive
+        except Exception:  # pragma: no cover - defensive
             logger.warning(
                 "skipping malformed verified row %s", row.get("id")
             )

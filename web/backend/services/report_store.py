@@ -1,6 +1,6 @@
 """ReportStore — persisted analyze.py reports + share tokens + feedback.
 
-Session ***REMOVED***16 / M1.4. PRD: `docs/sessions/M1.4-report-generator-prd.md`.
+Session #16 / M1.4. PRD: `docs/sessions/M1.4-report-generator-prd.md`.
 
 Schema (added to existing `history.db`):
     reports          — one row per persisted analyze report
@@ -38,7 +38,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
-***REMOVED*** ---------------- Share token helpers --------------------------------- ***REMOVED***
+# ---------------- Share token helpers --------------------------------- #
 
 
 def _share_secret() -> bytes:
@@ -51,7 +51,7 @@ def _share_secret() -> bytes:
     (/root/Projects/structural-isomorphism/web/backend). Letting that
     secret leak by accident defeats the share-token capability model.
 
-    Validator review (session ***REMOVED***16) found this fallback exploitable in
+    Validator review (session #16) found this fallback exploitable in
     prod; this guard closes the gap.
     """
     s = os.getenv("STRUCTURAL_SHARE_TOKEN_SECRET", "")
@@ -64,7 +64,7 @@ def _share_secret() -> bytes:
             "Set it in /root/Projects/structural-isomorphism/web/backend/.env "
             "(stable across deploys — rotating breaks existing share URLs)."
         )
-    ***REMOVED*** Dev / test fallback — deterministic per-cwd is fine here.
+    # Dev / test fallback — deterministic per-cwd is fine here.
     fallback = f"dev-share-secret-{Path.cwd()}".encode("utf-8")
     return hashlib.sha256(fallback).digest()
 
@@ -85,7 +85,7 @@ def new_report_id() -> str:
     return "r_" + secrets.token_hex(8)
 
 
-***REMOVED*** ---------------- Schema --------------------------------------------- ***REMOVED***
+# ---------------- Schema --------------------------------------------- #
 
 
 _SCHEMA = """
@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_reports_anon
 CREATE INDEX IF NOT EXISTS idx_reports_share_token
     ON reports(share_token);
 
--- Session ***REMOVED***17 V6 — report → action → result revisit loop. One row per
+-- Session #17 V6 — report → action → result revisit loop. One row per
 -- (report_id, anon_id): the latest followup wins (upsert), so a user can
 -- come back and update "我试过了 / 结果如何" without piling up rows.
 CREATE TABLE IF NOT EXISTS report_followup (
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS report_feedback (
     -- section is '' for an overall-report vote (NOT NULL). SQLite treats
     -- NULL != NULL in UNIQUE indexes, so storing NULL here would silently
     -- let one voter accumulate multiple overall-votes. Validator review
-    -- (session ***REMOVED***16) caught this; the conversion happens in record_feedback.
+    -- (session #16) caught this; the conversion happens in record_feedback.
     section     TEXT NOT NULL DEFAULT '',
     vote        INTEGER NOT NULL CHECK(vote IN (-1, 1)),
     voter_anon  TEXT NOT NULL DEFAULT 'anon',
@@ -152,7 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_feedback_report
 """
 
 
-***REMOVED*** ---------------- ReportStore ---------------------------------------- ***REMOVED***
+# ---------------- ReportStore ---------------------------------------- #
 
 
 class ReportStore:
@@ -170,22 +170,22 @@ class ReportStore:
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
-        ***REMOVED*** Foreign keys are off by default in sqlite3 — enable so the
-        ***REMOVED*** ON DELETE CASCADE on report_feedback actually fires.
+        # Foreign keys are off by default in sqlite3 — enable so the
+        # ON DELETE CASCADE on report_feedback actually fires.
         conn.execute("PRAGMA foreign_keys=ON")
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  ***REMOVED*** pragma: no cover
+        except sqlite3.Error as e:  # pragma: no cover
             logger.warning("report_store WAL pragma failed: %s", e)
         return conn
 
-    ***REMOVED*** Columns the `reports` table MUST have. `CREATE TABLE IF NOT EXISTS`
-    ***REMOVED*** is a no-op when the table already exists, so a `reports` table created
-    ***REMOVED*** by an OLDER schema version silently keeps its old shape — any newer
-    ***REMOVED*** column (creator_anon_id / is_partial / ...) would then be missing and
-    ***REMOVED*** every INSERT would raise OperationalError. We additively self-heal via
-    ***REMOVED*** ALTER TABLE so a long-lived history.db stays forward-compatible.
-    ***REMOVED*** (col_name, sqlite column definition for ALTER TABLE ADD COLUMN)
+    # Columns the `reports` table MUST have. `CREATE TABLE IF NOT EXISTS`
+    # is a no-op when the table already exists, so a `reports` table created
+    # by an OLDER schema version silently keeps its old shape — any newer
+    # column (creator_anon_id / is_partial / ...) would then be missing and
+    # every INSERT would raise OperationalError. We additively self-heal via
+    # ALTER TABLE so a long-lived history.db stays forward-compatible.
+    # (col_name, sqlite column definition for ALTER TABLE ADD COLUMN)
     _REPORTS_COLUMNS = (
         ("share_token", "TEXT"),
         ("query", "TEXT"),
@@ -207,14 +207,14 @@ class ReportStore:
     def _init_schema(self) -> None:
         try:
             with self._connect() as conn:
-                ***REMOVED*** Migrate FIRST: on a drifted DB the `reports` table already
-                ***REMOVED*** exists with an old shape, and `_SCHEMA` below contains a
-                ***REMOVED*** `CREATE INDEX ... ON reports(creator_anon_id, ...)` that
-                ***REMOVED*** would fail if that column is still missing. Backfilling
-                ***REMOVED*** the columns before running `_SCHEMA` lets the index land.
-                ***REMOVED*** On a fresh DB the table doesn't exist yet, so the migrate
-                ***REMOVED*** step is a no-op (PRAGMA returns nothing) and `_SCHEMA`
-                ***REMOVED*** creates everything from scratch.
+                # Migrate FIRST: on a drifted DB the `reports` table already
+                # exists with an old shape, and `_SCHEMA` below contains a
+                # `CREATE INDEX ... ON reports(creator_anon_id, ...)` that
+                # would fail if that column is still missing. Backfilling
+                # the columns before running `_SCHEMA` lets the index land.
+                # On a fresh DB the table doesn't exist yet, so the migrate
+                # step is a no-op (PRAGMA returns nothing) and `_SCHEMA`
+                # creates everything from scratch.
                 self._migrate_reports_columns(conn)
                 conn.executescript(_SCHEMA)
         except sqlite3.Error as e:
@@ -235,7 +235,7 @@ class ReportStore:
             for row in conn.execute("PRAGMA table_info(reports)").fetchall()
         }
         if not existing:
-            ***REMOVED*** Fresh table just created by _SCHEMA — nothing to migrate.
+            # Fresh table just created by _SCHEMA — nothing to migrate.
             return
         for col, col_def in self._REPORTS_COLUMNS:
             if col not in existing:
@@ -245,7 +245,7 @@ class ReportStore:
                 )
                 conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {col_def}")
 
-    ***REMOVED*** ------ create / read ------------------------------------------- ***REMOVED***
+    # ------ create / read ------------------------------------------- #
 
     def create(
         self,
@@ -272,11 +272,11 @@ class ReportStore:
         token = sign_share_token(rid)
         created_at = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         payload_json = json.dumps(payload, ensure_ascii=False)
-        ***REMOVED*** Validator session-***REMOVED***16 P2 — cap payload at 256 KB. A real 9-section
-        ***REMOVED*** report is ~30-50 KB; anything 5× that is almost certainly an
-        ***REMOVED*** accident or attack. We raise rather than silently truncate so
-        ***REMOVED*** the caller decides (analyze.py logs and continues without
-        ***REMOVED*** tearing down the SSE stream).
+        # Validator session-#16 P2 — cap payload at 256 KB. A real 9-section
+        # report is ~30-50 KB; anything 5× that is almost certainly an
+        # accident or attack. We raise rather than silently truncate so
+        # the caller decides (analyze.py logs and continues without
+        # tearing down the SSE stream).
         if len(payload_json.encode("utf-8")) > 256 * 1024:
             raise ValueError(
                 f"report payload too large: {len(payload_json)} bytes > 256KB cap"
@@ -331,7 +331,7 @@ class ReportStore:
         Convenience for the 'My Reports' page. NOT a security boundary
         — anyone with a share_token can still read.
 
-        B Data Flywheel (Session ***REMOVED***18): each row also carries the SAME
+        B Data Flywheel (Session #18): each row also carries the SAME
         anon's followup summary (has_followup / followup_outcome) via a
         LEFT JOIN report_followup. We join on the same anon_id so the
         '未回访' badge reflects *this device's* revisit status, not some
@@ -367,7 +367,7 @@ class ReportStore:
             out.append(d)
         return out
 
-    ***REMOVED*** ------ B Data Flywheel (Session ***REMOVED***18) -------------------------- ***REMOVED***
+    # ------ B Data Flywheel (Session #18) -------------------------- #
 
     def verified_isomorphisms(self, *, limit: int = 50) -> list[dict]:
         """Reports whose followup outcome == 'worked' — i.e. a real user
@@ -410,7 +410,7 @@ class ReportStore:
         """How many DISTINCT users marked outcome='worked' on a report whose
         target phenomenon is `b_id`.
 
-        B Data Flywheel closure (Session ***REMOVED***18): this feeds the analyze
+        B Data Flywheel closure (Session #18): this feeds the analyze
         credibility badge "N 人验证这个跨域迁移真的有效". We count distinct
         anon_id (not followup rows) so one user re-submitting doesn't
         inflate the number. Empty b_id or no matches → count 0, recent ''.
@@ -488,7 +488,7 @@ class ReportStore:
             worked = conn.execute(
                 "SELECT COUNT(*) FROM report_followup WHERE outcome = 'worked'"
             ).fetchone()[0]
-            ***REMOVED*** verified isomorphisms = distinct reports with a 'worked' followup
+            # verified isomorphisms = distinct reports with a 'worked' followup
             verified = conn.execute(
                 "SELECT COUNT(DISTINCT report_id) FROM report_followup "
                 "WHERE outcome = 'worked'"
@@ -513,7 +513,7 @@ class ReportStore:
         except sqlite3.Error:
             logger.exception("record_view failed for %s", rid)
 
-    ***REMOVED*** ------ feedback ----------------------------------------------- ***REMOVED***
+    # ------ feedback ----------------------------------------------- #
 
     def record_feedback(
         self,
@@ -530,15 +530,15 @@ class ReportStore:
         """
         if vote not in (-1, 1):
             raise ValueError("vote must be -1 or +1")
-        ***REMOVED*** Normalise None → '' so the UNIQUE index actually fires on
-        ***REMOVED*** overall-report votes (SQLite treats NULL != NULL in unique
-        ***REMOVED*** indexes; without this, repeated overall votes by one voter
-        ***REMOVED*** accumulate instead of upserting). Validator session-***REMOVED***16 P1.
+        # Normalise None → '' so the UNIQUE index actually fires on
+        # overall-report votes (SQLite treats NULL != NULL in unique
+        # indexes; without this, repeated overall votes by one voter
+        # accumulate instead of upserting). Validator session-#16 P1.
         section_norm = section if section is not None else ""
         voter_norm = voter_anon if voter_anon is not None else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
-            ***REMOVED*** Use INSERT ... ON CONFLICT to upsert.
+            # Use INSERT ... ON CONFLICT to upsert.
             conn.execute(
                 """
                 INSERT INTO report_feedback (
@@ -583,10 +583,10 @@ class ReportStore:
             "total_down": (row["down"] if row else 0) or 0,
         }
 
-    ***REMOVED*** ------ followup (Session ***REMOVED***17 V6) ------------------------------ ***REMOVED***
+    # ------ followup (Session #17 V6) ------------------------------ #
 
-    ***REMOVED*** Allowed enum values — validated here so a bad client value never
-    ***REMOVED*** lands in the DB. The API layer validates too (defence in depth).
+    # Allowed enum values — validated here so a bad client value never
+    # lands in the DB. The API layer validates too (defence in depth).
     ACTION_STATUSES = ("planned", "in_progress", "tried", "abandoned")
     OUTCOMES = ("", "worked", "partial", "no_effect", "too_early")
 
@@ -614,7 +614,7 @@ class ReportStore:
         anon_norm = anon_id if anon_id else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
-            ***REMOVED*** created_at is set on first insert only; the upsert keeps it.
+            # created_at is set on first insert only; the upsert keeps it.
             conn.execute(
                 """
                 INSERT INTO report_followup (
@@ -657,13 +657,13 @@ class ReportStore:
             ).fetchone()
         return dict(row) if row else None
 
-    ***REMOVED*** ------ internals --------------------------------------------- ***REMOVED***
+    # ------ internals --------------------------------------------- #
 
     def _row_to_dict(self, row: Optional[sqlite3.Row]) -> Optional[dict]:
         if row is None:
             return None
         d = dict(row)
-        ***REMOVED*** Decode JSON payload eagerly so callers can treat it as a dict.
+        # Decode JSON payload eagerly so callers can treat it as a dict.
         try:
             d["payload"] = json.loads(d["payload"]) if d["payload"] else {}
         except json.JSONDecodeError:

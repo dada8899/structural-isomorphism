@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 reproduce_all.py — one-shot reproducibility entry point for the benchmark bundle.
 
@@ -38,8 +38,8 @@ from pathlib import Path
 BUNDLE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BUNDLE / "pipeline"))
 
-***REMOVED*** Headline targets from paper/v0-unified-pipeline-2026-05-13.md
-***REMOVED*** (slot, target_metric, frozen_value, tolerance)
+# Headline targets from paper/v0-unified-pipeline-2026-05-13.md
+# (slot, target_metric, frozen_value, tolerance)
 TARGETS = {
     "01_earthquake": {"metric": "b_value", "frozen": 1.084, "tol": 0.15},
     "02_stockmarket": {"metric": "alpha", "frozen": 3.0, "tol": 1.0},
@@ -191,7 +191,7 @@ def main():
     print(f"\nWrote {args.out}")
     print(f"  sha256 = {digest}")
 
-    ***REMOVED*** Check expected hash if MANIFEST has one (full mode only)
+    # Check expected hash if MANIFEST has one (full mode only)
     if args.full:
         manifest_path = BUNDLE / "MANIFEST.json"
         if manifest_path.exists():

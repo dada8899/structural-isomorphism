@@ -67,7 +67,7 @@ def test_panel_weighted(make_mock_client):
     ]
     panel = JudgePanel(reviewers=reviewers, strategy="weighted")
     result = panel.ask("item-w", "u")
-    ***REMOVED*** weighted by confidence: REJECT (0.95) > KEEP (0.3)
+    # weighted by confidence: REJECT (0.95) > KEEP (0.3)
     assert result.consensus == "REJECT"
 
 
@@ -80,7 +80,7 @@ def test_panel_handles_errored_reviewer(make_mock_client):
     good2 = _make_reviewer_with_verdict("g2", "KEEP", 0.8, make_mock_client)
     panel = JudgePanel(reviewers=[bad_reviewer, good, good2], strategy="majority")
     result = panel.ask("item-e", "u")
-    ***REMOVED*** the bad reviewer doesn't tank consensus
+    # the bad reviewer doesn't tank consensus
     assert result.consensus == "KEEP"
     assert any(v.error is not None for v in result.verdicts)
     assert any(v.verdict == "ERROR" for v in result.verdicts)

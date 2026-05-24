@@ -71,7 +71,7 @@ checklist at the end of this file.
 ====================================================================
 -->
 
-***REMOVED*** A pipeline for cross-domain validation of self-organized criticality: five systems, one method
+# A pipeline for cross-domain validation of self-organized criticality: five systems, one method
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -81,13 +81,13 @@ checklist at the end of this file.
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 A universality-class membership claim has empirical content only if a single, fixed analysis pipeline — applied with no per-domain tuning — recovers the predicted scaling signatures across systems drawn from very different domains, *and* correctly fails to find those signatures in matched non-class data. We assemble such a pipeline (Clauset–Shalizi–Newman 2009 maximum-likelihood power-law fitting with Kolmogorov–Smirnov-driven `x_min` selection, a likelihood-ratio test against lognormal and exponential alternatives, and Omori–Utsu temporal-decay stacking) into one shared Python package and apply it unchanged to five independent systems: USGS tectonic earthquakes (Phase 1), S&P 500 daily returns (Phase 2), DeFi liquidation cascades across three protocols (Phase 3), task-active mouse-cortex neural avalanches (Phase 4), and a set of four synthetic non-self-organized-criticality (non-SOC) null sources (Phase 5). On real data the pipeline recovers canonical exponents: a Gutenberg–Richter b-value of 1.084 ± 0.005 on 37,281 earthquakes above the completeness magnitude (Omori p = 0.941 ± 0.017); an inverse-cubic tail exponent α = 2.998 ± 0.041 on 9,060 S&P 500 daily returns; tail exponents α ∈ [1.567, 1.684] across 43,065 on-chain DeFi liquidations spanning three architecturally distinct lending protocols (Omori p ∈ [0.69, 0.76]); and, on 1.39 M mouse-cortex spikes, a self-organized-criticality scaling relation satisfied to within 2 % at every bin scale (measured γ ≈ 1.10) although the recording's specific exponents (τ ∈ [2.17, 3.00]) place it in a task-active sub-class rather than the canonical mean-field regime. All four synthetic non-SOC nulls (folded normal, exponential, Poisson inter-arrival, Poisson Omori) are correctly rejected, with power-law-vs-alternative likelihood ratios of −16 to −45 and an Omori-fit R² ≈ 0.002 — ruling out the trivial failure mode "the pipeline fits everything as a power law." We report three qualifications honestly. (i) The lognormal alternative is not rejected in every raw-tail test: in particular, for S&P 500 the raw-tail likelihood ratio favors lognormal (R = −6.12), and the SOC verdict for that system rests on exponent-band agreement (α = 2.998 vs the canonical 3.0) rather than on rejecting the lognormal. (ii) The pipeline is constructed to detect *endogenous* threshold-cascade signatures and — as is a known property of SOC threshold-cascade methods — is not expected to flag externally driven crises (Phase 5 validates only the null-rejection direction). (iii) The project's downstream cross-domain *predictions* (Layer 4) remain unverified — their target data has not been collected, so we can give only prior-based credible intervals, not frequentist confidence intervals on observed data. Within those limits, the joint result is an internally consistent, single-pipeline cross-domain test of self-organized-criticality universality across geophysics, equity finance, decentralized finance, and neuroscience.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Universality classes are the sharpest tool statistical physics offers for cross-system comparison: two systems in the same class share a small set of critical exponents that are independent of microscopic detail [1, 2]. The concept was extended from equilibrium critical phenomena to non-equilibrium dynamics through the theory of self-organized criticality (SOC) of Bak, Tang, and Wiesenfeld [3], in which slowly driven threshold-cascade systems generically exhibit power-law event-size distributions, Omori-like temporal relaxation, and associated scaling relations without parameter tuning. Tectonic seismicity is the canonical natural realization [3, 4], and the Gutenberg–Richter and Omori–Utsu laws [5, 6] are its most widely reproduced quantitative signatures. Beggs and Plenz [7] opened the biological side of the class with cortical avalanches showing P(s) ∝ s⁻³ᐟ² and P(T) ∝ T⁻². Sornette [8] extended the picture to financial cascades.
 
@@ -107,17 +107,17 @@ The paper is organized as follows. Section 2 specifies the shared pipeline. Sect
 
 ---
 
-***REMOVED******REMOVED*** 2. The shared pipeline
+## 2. The shared pipeline
 
 The shared analysis stack is implemented as one Python package and exposed to every phase as a small set of functions. The pipeline is intentionally minimal: each step corresponds to a single published estimator, the parameters are fixed across phases, and the only domain-specific code lives in the per-phase data loaders. No phase modifies the pipeline; no phase tunes a fitting parameter; no phase adds a domain-specific prior.
 
 **Implementation and provenance.** The authoritative implementation is the standalone Python package `soc-pipeline` (version 0.1.0, MIT licence), located at `packages/soc-pipeline/` in the project repository. It is split into one module per analytical operation: `fit.py` (Clauset maximum-likelihood power-law fit), `bootstrap.py` (bootstrap confidence intervals), `lr_test.py` (likelihood-ratio tests), `omori.py` (Omori–Utsu stacking and fitting), `null_controls.py` (synthetic null generators), `b_value.py` (Aki maximum-likelihood b-value), `universal_collapse.py`, and supporting utilities; it depends only on `numpy`, `scipy`, `pandas`, and `powerlaw`. A legacy path `v4/lib/soc_pipeline.py` is retained for backward compatibility, but it is now a thin (≈75-line) deprecation shim that re-exports the package and emits a `DeprecationWarning`; it is *not* the implementation. The canonical release against which the C1 Phase 1–5 numbers are confirmed is tagged in the project git repository as **`soc-pipeline-v0.1.0`** (annotated tag at C1-draft commit `4169928a`, pinning the most recent package-touching commit `cd19782` to the package's `pyproject.toml` version 0.1.0); reviewers wishing to reproduce the numbers in this paper should check out that tag. We note one provenance caveat: the thirteen-system sibling manuscript describes the pipeline as "`v4/lib/soc_pipeline.py`, 339 lines, frozen at commit `7ee228c`," a description that predates the extraction of the code into the `soc-pipeline` package and is no longer literally accurate for the current repository layout. The Phase 1–5 source papers (2026-04-15/16) predate the package extraction as well and describe the same *logical* pipeline through per-phase analysis scripts (e.g. `v4/validation/soc-stockmarket/fetch_and_analyze.py`, `v4/validation/null-controls/generate_and_analyze.py`) tagged per phase in the repository (`v4/phase1-earthquake-2026-04-15`, `v4/phase2-stockmarket-2026-04-15`, …). The logical pipeline is identical across all of these.
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Clauset–Shalizi–Newman maximum-likelihood power-law fit
+### 2.1 Clauset–Shalizi–Newman maximum-likelihood power-law fit
 
 For each dataset we fit a continuous power-law p(s) ∝ s⁻ᵅ for s ≥ `x_min` using the Clauset–Shalizi–Newman estimator [9]. The lower cutoff `x_min` is selected automatically by minimizing the Kolmogorov–Smirnov distance between the empirical and fitted cumulative distribution functions on the candidate tail; α is then estimated by maximum likelihood (Hill-form estimator) on that tail. We use the Alstott–Bullmore–Plenz `powerlaw` library [10] as the canonical implementation, with the discrete-data option set only for explicitly integer-valued data (Phase 4 avalanche sizes and durations). For each fit we report α, the analytic (Hill-form) standard error σ(α), the fitted `x_min` in the domain's natural units, and the tail size `n_tail`.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Uncertainty quantification and bootstrap
+### 2.2 Uncertainty quantification and bootstrap
 
 We report two kinds of uncertainty, and — importantly — *not every phase uses the same one*; the source papers differ here, and we state the per-phase situation explicitly rather than impose a false uniformity.
 
@@ -126,23 +126,23 @@ We report two kinds of uncertainty, and — importantly — *not every phase use
 
 For completeness we note that the `soc-pipeline` package does provide a `bootstrap_ci` routine (default 200 resamples, ≥200 recommended), and the thirteen-system sibling manuscript additionally reports 100-resample bootstrap CIs for its consolidated runs. But the Phase 1–5 numbers quoted in *this* paper are exactly as in the five source papers: bootstrap for Phase 1's b-value (500 resamples), analytic Hill error elsewhere. Appendix A, Table A2 lists the per-phase choice. A reviewer who wishes to report a uniform bootstrap CI for all four real phases would need to re-run Phases 2–4 through the package's `bootstrap_ci`; that is a possible methodological upgrade, not a correction of an error.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Likelihood-ratio tests against alternatives
+### 2.3 Likelihood-ratio tests against alternatives
 
 For each fit we compute the Clauset–Shalizi–Newman normalized log-likelihood ratio R against two alternatives — lognormal and exponential — with associated (Vuong-style) p-values [9]. In the Clauset convention, **a positive R favors the power-law and a negative R favors the alternative**; p < 0.05 indicates the preference is statistically distinguishable. Rejection of exponential is necessary but not sufficient for a power-law claim; the harder test is against lognormal, which can mimic a power-law tail over a finite dynamic range. Clauset et al. [9] caution that the likelihood-ratio test has limited power for small tails (n_tail < ~50), in which case "inconclusive" must not be read as evidence for either model. The sign convention matters: §3.2 and §6.1 below turn on it.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Omori–Utsu temporal decay
+### 2.4 Omori–Utsu temporal decay
 
 Where a system has a meaningful event time series, we estimate temporal aftershock decay following the Omori–Utsu form n(t) = K / (t + c)ᵖ [6]. We identify a main-shock threshold by percentile or by a multiple of the standard deviation, stack post-trigger event counts across all main shocks in a forward window, log-bin the stack, and fit (p, c, K) by weighted log-log regression with c grid-searched. Goodness of fit is reported as a weighted R² in log space. Phase 4's avalanche-size observables are fitted for size scaling only; the Omori stack is not applied where the class makes no temporal-relaxation prediction.
 
-***REMOVED******REMOVED******REMOVED*** 2.5 Synthetic null controls
+### 2.5 Synthetic null controls
 
 For each phase we generate matched-`n` synthetic samples from non-power-law sources and run the identical pipeline on each. Passing requires correct rejection: the synthetic-null likelihood-ratio against the matching alternative must be strongly negative, or the fit must fail to converge on a stable `x_min`. Phase 5 is a dedicated null-control phase across four canonical non-SOC sources (Section 3.5).
 
 ---
 
-***REMOVED******REMOVED*** 3. Five validation phases
+## 3. Five validation phases
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Phase 1 — USGS earthquakes (ground-truth gate test)
+### 3.1 Phase 1 — USGS earthquakes (ground-truth gate test)
 
 **Data.** 84,724 tectonic earthquakes from the USGS Federated Digital Seismograph Network (FDSN) event service, 2020-01-01 to 2025-01-01, M ≥ 3.5, restricted to `type = earthquake`. No declustering is applied at catalog construction time, since declustering would bias the Gutenberg–Richter fit being measured.
 
@@ -150,7 +150,7 @@ For each phase we generate matched-`n` synthetic samples from non-power-law sour
 
 **Role.** Phase 1 is the gate test. Before running the pipeline on any non-physics target, it must recover canonical behavior on a system whose ground truth is not in dispute. It does: both exponents fall inside canonical seismological ranges.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Phase 2 — S&P 500 daily returns (first cross-domain transfer)
+### 3.2 Phase 2 — S&P 500 daily returns (first cross-domain transfer)
 
 **Data.** 9,066 daily close prices of the S&P 500 index (`^GSPC`, Yahoo Finance via the `yfinance` package, 1990-01-01 to 2025-12-31), giving 9,065 log returns with σ = 0.0114 and range [−0.1277, +0.1096].
 
@@ -160,7 +160,7 @@ For each phase we generate matched-`n` synthetic samples from non-power-law sour
 
 *Important scope qualification (added at v0.3 reviewer pre-empt).* The canonical "inverse cubic law" α ≈ 3 is the *empirically observed* tail exponent of stock-return distributions [Gopikrishnan et al. 1998, Plerou et al. 1999, Gabaix et al. 2003], not an SOC universality class exponent derived from first principles. The strongest published form of the law is on *individual-stock* and *sub-daily-resolution* data, where n_tail reaches 10⁵–10⁶ and the Vuong test has good discriminating power. The C1 measurement is the daily-index transfer of the law (S&P 500 daily, n_tail = 2,327), which has independent published confirmation in Weber et al. 2007 (ref 26) and Petersen et al. 2010 (ref 25) but is the weaker form of the claim. The result here is "the S&P 500 daily return tail reproduces the empirical inverse-cubic value to within one analytic standard error," not "the S&P 500 reproduces the SOC-predicted exponent."
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Phase 3 — DeFi liquidation cascades across three protocols
+### 3.3 Phase 3 — DeFi liquidation cascades across three protocols
 
 **Data.** 43,065 on-chain liquidation events from three architecturally distinct DeFi lending protocols: Aave V2 (auction-based; 25,601 stablecoin-debt events), Compound V2 (direct liquidation with incentive spread; 11,244 stablecoin-debt events), and MakerDAO's Dog/Clip Liquidation 2.0 (Dutch clipper auctions; 1,985 events). Block ranges span 2020 to 2024.
 
@@ -168,7 +168,7 @@ For each phase we generate matched-`n` synthetic samples from non-power-law sour
 
 **Interpretation.** Three different liquidation mechanisms producing α values within 0.12 of each other is the cross-instance consistency a universality-class claim requires. With per-protocol σ(α) ≈ 0.010–0.016 the 0.12 spread is technically 7–12 standard errors — the three α values are *not* statistically identical, and the source paper does not claim they are — but the spread is small on any practical scale and well separated from the stock-return regime (α ≈ 3.0). The DeFi exponents form a tight sub-cluster near earthquake energy exponents (α ≈ 1.6–1.8), evidence for a "discrete threshold-cascade" sub-class of SOC spanning geology and decentralized finance.
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Phase 4 — neural avalanches on task-active mouse cortex
+### 3.4 Phase 4 — neural avalanches on task-active mouse cortex
 
 **Data.** DANDI Archive dataset 000006, session `sub-anm369962_ses-20170313` — 1,392,414 spikes from 71 sorted units recorded over a 2,266 s delay-response behavioral task in mouse anterior lateral motor (ALM) cortex. A synthetic check uses 200,000 critical Bienaymé–Galton–Watson branching-process avalanches.
 
@@ -176,7 +176,7 @@ For each phase we generate matched-`n` synthetic samples from non-power-law sour
 
 **Interpretation.** This is not a failure of criticality. Task-active and subsampled cortical recordings are known to shift exponents upward (Priesemann et al.); the recording therefore sits in a task-active SOC sub-class rather than the spontaneous-activity mean-field regime. The equivalence-class claim that neural avalanches belong with earthquakes and DeFi liquidations is not contradicted — it is refined by the observation that the sub-class depends on brain state.
 
-***REMOVED******REMOVED******REMOVED*** 3.5 Phase 5 — synthetic non-SOC null controls
+### 3.5 Phase 5 — synthetic non-SOC null controls
 
 **Purpose.** Phases 1–4 each found power-law tails. A standard reviewer concern is "would the pipeline fit a power law to noise too?" A positive null result would fatally weaken every prior claim.
 
@@ -195,7 +195,7 @@ Across three independent non-power-law size distributions the pipeline correctly
 
 ---
 
-***REMOVED******REMOVED*** 4. Cross-domain comparison
+## 4. Cross-domain comparison
 
 Table 1 places the four real systems side by side. The headline observation is that one fixed pipeline, applied with zero per-domain re-tuning, recovers a coherent SOC signature in each of geophysics, equity finance, decentralized finance, and neuroscience, while Phase 5 confirms the pipeline does not manufacture that signature from non-SOC data.
 
@@ -217,7 +217,7 @@ The most striking single number is the within-Phase-3 consistency: three DeFi pr
 
 ---
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
 **One pipeline, four domains.** The central claim of this preprint is methodological as much as physical. Each of the four real systems has been studied before, individually, in its own literature — Gutenberg–Richter for earthquakes, the inverse cubic law for equity returns, branching-process criticality for neural avalanches. What has not been done at this breadth is to fix a single Clauset-grade fitting stack and transfer it, with no re-tuning, across geophysics, equity finance, decentralized finance, and neuroscience. The fact that the same code path recovers a canonical signature in each domain is the empirical content of the "they belong to one universality class" claim that the project's Layer 2 community-discovery step proposed from mechanism graphs alone.
 
@@ -229,7 +229,7 @@ The most striking single number is the within-Phase-3 consistency: three DeFi pr
 
 ---
 
-***REMOVED******REMOVED*** 6. Limitations
+## 6. Limitations
 
 This section is deliberately explicit. The honest scope of the result is narrower than "we proved cross-domain SOC."
 
@@ -251,13 +251,13 @@ We flag two procedural points the referee should weigh before drawing a conclusi
 
 ---
 
-***REMOVED******REMOVED*** 7. Conclusion
+## 7. Conclusion
 
 We assembled a single Clauset-grade analysis pipeline and applied it, without per-domain tuning, to four independent real systems — USGS earthquakes, S&P 500 daily returns, DeFi liquidations across three protocols, and task-active mouse-cortex neural avalanches — plus four synthetic non-SOC null sources. The pipeline recovered canonical SOC signatures on all four real systems (Gutenberg–Richter b = 1.084 ± 0.005; inverse-cubic α = 2.998 ± 0.041; DeFi α ∈ [1.567, 1.684] with cross-protocol spread 0.12; neural scaling relation γ ≈ 1.10 stable across a 16-fold binning range) and correctly rejected the power-law hypothesis on all four nulls. The result is a single-pipeline, cross-domain test of self-organized-criticality universality, deliberately conservative in its claims: the lognormal alternative is not rejected in every raw-tail test — for S&P 500 it is favored, and the SOC verdict there rests on exponent-band agreement — the pipeline targets only endogenous threshold-cascade dynamics, and the project's downstream cross-domain predictions remain unverified for lack of target data. Within those limits, four very different systems gave four coherent results from one method — which is the minimum empirical bar a universality-class claim must clear.
 
 ---
 
-***REMOVED******REMOVED*** References
+## References
 
 The list below is consolidated and de-duplicated from the individually checked bibliographies of the five Phase 1–5 source papers. Each entry was cross-checked against at least one source paper's reference list. Entries that could not be cross-verified within the project repository are marked **[待核]** (verify bibliographic detail before submission).
 
@@ -331,7 +331,7 @@ The list below is consolidated and de-duplicated from the individually checked b
 
 ---
 
-***REMOVED******REMOVED*** Appendix A — Data and reproducibility
+## Appendix A — Data and reproducibility
 
 **Table A1.** Data sources and analysis samples.
 
@@ -359,7 +359,7 @@ The list below is consolidated and de-duplicated from the individually checked b
 
 ---
 
-***REMOVED******REMOVED*** Pre-submission checklist (人工确认项 — must be closed by a human before any submission)
+## Pre-submission checklist (人工确认项 — must be closed by a human before any submission)
 
 The seven v0.1 [TODO 待核实] markers have been closed in this v0.2 draft (see the META block changelog at the top). The six v0.2 checklist items have all received CC-level closure work in the 2026-05-24 session (see status below; each item still requires human/author final sign-off):
 

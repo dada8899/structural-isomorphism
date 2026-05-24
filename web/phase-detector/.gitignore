@@ -1,38 +1,38 @@
-***REMOVED*** dependencies
+# dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-***REMOVED*** testing
+# testing
 /coverage
 
-***REMOVED*** next.js
+# next.js
 /.next/
 /out/
 
-***REMOVED*** production
+# production
 /build
 
-***REMOVED*** misc
+# misc
 .DS_Store
 *.pem
 
-***REMOVED*** debug
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-***REMOVED*** env
+# env
 .env*.local
 .env
 
-***REMOVED*** typescript
+# typescript
 *.tsbuildinfo
 next-env.d.ts.bak
 
-***REMOVED*** vercel
+# vercel
 .vercel
 
-***REMOVED*** storybook static build (output of `pnpm storybook:build`)
+# storybook static build (output of `pnpm storybook:build`)
 /storybook-static

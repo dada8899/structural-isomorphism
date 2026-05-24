@@ -1,5 +1,5 @@
 /**
- * Structural — Persisted Report Viewer (M1.4 PR ***REMOVED***5).
+ * Structural — Persisted Report Viewer (M1.4 PR #5).
  *
  * Reads the URL (either /report/share/<token> or /report/<id>), fetches
  * the corresponding /api/report/share/<token> or /api/report/<id>, and
@@ -22,7 +22,7 @@
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&***REMOVED***39;',
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     })[c]);
   }
 
@@ -47,7 +47,7 @@
   }
 
   /**
-   * Render the 9-section report into ***REMOVED***analyze-sections.
+   * Render the 9-section report into #analyze-sections.
    *
    * P0-1 (SESSION-17): reuse analyze.js's `renderFinalReport`, which drives
    * the same per-section `renderers` the live /analyze page uses. This makes
@@ -238,7 +238,7 @@
   }
 
   // Fetch any previously recorded follow-up and render the panel.
-  // B Data Flywheel (Session ***REMOVED***18) — revisit nudge. If the report is ≥3
+  // B Data Flywheel (Session #18) — revisit nudge. If the report is ≥3
   // days old and this device hasn't recorded an outcome yet, show a gentle
   // prompt above the followup panel asking '上次这份报告你试了吗'. The goal
   // is lifting followup-collection rate; it self-dismisses once dismissed
@@ -254,17 +254,17 @@
     s.textContent =
       '.report-followup__nudge{display:flex;align-items:flex-start;' +
       'justify-content:space-between;gap:12px;margin-bottom:16px;' +
-      'padding:14px 16px;background:***REMOVED***FFF8E6;border:1px solid ***REMOVED***F2DFA0;' +
+      'padding:14px 16px;background:#FFF8E6;border:1px solid #F2DFA0;' +
       'border-radius:12px;}' +
       '.report-followup__nudge-body{display:flex;gap:10px;align-items:flex-start;}' +
       '.report-followup__nudge-icon{font-size:18px;line-height:1.4;}' +
       '.report-followup__nudge-title{margin:0;font-size:14px;font-weight:600;' +
-      'color:***REMOVED***6B5400;line-height:1.5;}' +
+      'color:#6B5400;line-height:1.5;}' +
       '.report-followup__nudge-sub{margin:2px 0 0;font-size:13px;' +
-      'color:***REMOVED***8A7330;line-height:1.5;}' +
+      'color:#8A7330;line-height:1.5;}' +
       '.report-followup__nudge-close{flex-shrink:0;border:0;background:none;' +
-      'cursor:pointer;font-size:20px;line-height:1;color:***REMOVED***B59A4A;padding:0 4px;}' +
-      '.report-followup__nudge-close:hover{color:***REMOVED***6B5400;}';
+      'cursor:pointer;font-size:20px;line-height:1;color:#B59A4A;padding:0 4px;}' +
+      '.report-followup__nudge-close:hover{color:#6B5400;}';
     document.head.appendChild(s);
   }
 

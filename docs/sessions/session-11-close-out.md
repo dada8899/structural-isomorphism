@@ -1,14 +1,14 @@
-***REMOVED*** Session ***REMOVED***11 真正 close-out (2026-05-15)
+# Session #11 真正 close-out (2026-05-15)
 
-> Session ***REMOVED***10 收尾 HEAD `1d9ce82` → Session ***REMOVED***11 收尾 HEAD（main + 17 PR merged）
+> Session #10 收尾 HEAD `1d9ce82` → Session #11 收尾 HEAD（main + 17 PR merged）
 > 用户授权 auto mode 跑到 context ≈ 90%
 > 起手过程中误派 6 个 audit agent 到 renai-cross（项目搞错），已纠正切到 structural-isomorphism
 
 ---
 
-***REMOVED******REMOVED*** 1. 17 PR merged 一览（***REMOVED***199-***REMOVED***214）
+## 1. 17 PR merged 一览（#199-#214）
 
-| ***REMOVED*** | Layer | 主题 | 影响 |
+| # | Layer | 主题 | 影响 |
 |---|---|---|---|
 | 199 | CI infra | install editable packages/* + pyyaml + mkdocstrings | sanity/CI/types-sync/docs unblock 第一层 |
 | 200 | Backend | FastAPI on_event → lifespan | 消 20+ deprecation warning |
@@ -18,7 +18,7 @@
 | 204 | API | OpenAPI sync + 9 response_model | 空 schema 55→47, 32→40 typed |
 | 205 | Frontend | storybook fixtures schema align | frontend build unblock |
 | 206 | CI | perf_check_bundle regex 修 | bundle parser 29/29 routes |
-| 207 | Types | regen api-types.ts 跟 ***REMOVED***204 同步 | **types-sync ✅ 转绿** |
+| 207 | Types | regen api-types.ts 跟 #204 同步 | **types-sync ✅ 转绿** |
 | 208 | Deploy | export CI=true in deploy-vps.sh | beta-backend unblock |
 | 209 | Deps | pnpm-lock.yaml refresh | storybook CI 数据正确 |
 | 210 | CI | coverage workflow 装 pyjwt/structlog/openai/sklearn + continue-on-collection-errors | coverage 48.7%→实测 83% local |
@@ -31,34 +31,34 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. CI 最终状态
+## 2. CI 最终状态
 
 | Workflow | Status | 备注 |
 |---|---|---|
-| **types-sync** | ✅ SUCCESS | F11 ***REMOVED***207 修 |
+| **types-sync** | ✅ SUCCESS | F11 #207 修 |
 | **deploy-phase-detector** | ✅ SUCCESS at 04:21 | F12 + VPS patch 起作用 |
-| **docs (mkdocs build)** | ✅ SUCCESS | F14 ***REMOVED***211 修 |
+| **docs (mkdocs build)** | ✅ SUCCESS | F14 #211 修 |
 | **docs (GH Pages deploy)** | ❌ 404 Not Found | **user-input only blocker** — Settings → Pages → "GitHub Actions" |
 | **sanity** | ✅ SUCCESS at 04:29:30 | F15+F17 双层修真起作用（PYTHONPATH shadow + sklearn dep） |
 | **perf** | ⏳ RUNNING (post F16) | 新 run 跟 F16 push 后触发 |
 
 ---
 
-***REMOVED******REMOVED*** Wave 4 addendum (2026-05-20)
+## Wave 4 addendum (2026-05-20)
 
 Repo went PUBLIC during the 5-day gap. New work this round:
 
 | PR | 主题 |
 |---|---|
-| *****REMOVED***217** | ci: matrix exclude windows-latest (3 root causes: cp1252 decode/encode, sys.path subprocess paths) |
-| *****REMOVED***218** | feat(ci): PyPI publish workflow + docs (tag-trigger, token/OIDC dual-auth) |
-| *****REMOVED***219** | fix(docs): cp 4 community files + fix 7 broken links + re-enable mkdocs --strict |
-| *****REMOVED***220** | fix(eslint): re-enable react/no-unescaped-entities + fix 22 CJK quote sites |
-| *****REMOVED***221** | fix(ci): coverage workflow — add -p to 5 coverage runs for true parallel combine |
+| **#217** | ci: matrix exclude windows-latest (3 root causes: cp1252 decode/encode, sys.path subprocess paths) |
+| **#218** | feat(ci): PyPI publish workflow + docs (tag-trigger, token/OIDC dual-auth) |
+| **#219** | fix(docs): cp 4 community files + fix 7 broken links + re-enable mkdocs --strict |
+| **#220** | fix(eslint): re-enable react/no-unescaped-entities + fix 22 CJK quote sites |
+| **#221** | fix(ci): coverage workflow — add -p to 5 coverage runs for true parallel combine |
 
 `+` v0.5.0 git tag + GH release + GH Pages enable (`gh api ... -X POST -f build_type=workflow`)
 
-**21 PRs total this session ***REMOVED***11** (***REMOVED***199-***REMOVED***221).
+**21 PRs total this session #11** (#199-#221).
 
 **Wave 4 CI state**:
 | Workflow | Status |
@@ -71,22 +71,22 @@ Repo went PUBLIC during the 5-day gap. New work this round:
 **Discovered but not solved** (audit findings):
 - 2 active LLM keys still in main HEAD plaintext: OpenRouter `sk-or-v1-af9ae...` (since 2026-04-16, 34d) + DeepSeek `sk-ad62cc...` (since 2026-05-13, 7d). PUBLIC repo + `Eudes-Crabe` fork already mirrored. Audit doc on `audit/p0-history-key-scrub-1779210404` branch (NOT merged). User must rotate at vendor dashboards then approve scrub.
 - Independent CI reds noted: `packages (py3.11)` Verdict.alpha_ci_lo API drift, `frontend (node 20)` LFS pointer cache key (out of session scope)
-| **deploy-beta-backend** | ❌ pre-F12 fail at 04:01 | F12 ***REMOVED***208 已修 deploy-vps.sh; 未自动 re-trigger (paths-filtered workflow) |
+| **deploy-beta-backend** | ❌ pre-F12 fail at 04:01 | F12 #208 已修 deploy-vps.sh; 未自动 re-trigger (paths-filtered workflow) |
 | **coverage** | ❌ 54.3% < 90% gate | **真覆盖率债务**（不在 session scope；需补测试） |
 | **CI matrix** | 部分红 | macOS/Windows runner 上 sanity matrix 可能仍有 platform 差异 |
 
 ---
 
-***REMOVED******REMOVED*** 3. Prod 故障恢复
+## 3. Prod 故障恢复
 
 - **3 cert 续期** (bytedance.city / cc / monitor) → 主站 + VPS CC + AI Monitor 恢复 200 ✅
 - **certbot.timer root cause**: 从未 enable (OpenCloudOS 9 preset=disabled，跟 Ubuntu snap 默认 auto-enable 不同) → 已 `systemctl enable --now`
-- **VPS-side `/root/scripts/deploy-phase-detector.sh`** patched (加 `export CI=true` 在 pnpm 之前)，repo F12 ***REMOVED***208 patch repo's `deploy-vps.sh`
+- **VPS-side `/root/scripts/deploy-phase-detector.sh`** patched (加 `export CI=true` 在 pnpm 之前)，repo F12 #208 patch repo's `deploy-vps.sh`
 - Prod 4 域名 (phase / beta.structural / bytedance.city / monitor) 全程 200
 
 ---
 
-***REMOVED******REMOVED*** 4. 仍 user-input only blocker（继承 + 本 session 验证）
+## 4. 仍 user-input only blocker（继承 + 本 session 验证）
 
 | Item | Why |
 |---|---|
@@ -102,7 +102,7 @@ CC 全准备完毕。配齐 4 个 token + 1 个 enable 后，1 小时一键 OSS 
 
 ---
 
-***REMOVED******REMOVED*** 5. 真正剩下的 code 工作（next session）
+## 5. 真正剩下的 code 工作（next session）
 
 P1（CI 稳定性）:
 1. `coverage` 90% gate — 真覆盖率债务，需补 test 或调 threshold
@@ -120,7 +120,7 @@ P3（feature）:
 
 ---
 
-***REMOVED******REMOVED*** 6. 关键数字
+## 6. 关键数字
 
 - **17 PR squash-merged**，全 admin override，0 race
 - **8 fix subagent** (F1 / F2 / F3 / F4 / F5 / F6 wave-1) + **9** (F7-F17 wave-2/3)
@@ -131,7 +131,7 @@ P3（feature）:
 
 ---
 
-***REMOVED******REMOVED*** 7. session ***REMOVED***12 推荐起手
+## 7. session #12 推荐起手
 
 > "user 配 4 个 token (PYPI_TOKEN / HF_TOKEN / ZENODO_ACCESS_TOKEN / arXiv 账号) + GH Pages enable，CC 1 小时全部完成 OSS launch（arXiv submit + PyPI publish + Zenodo DOI mint + HF Hub push + GH Pages activate + 5 senior outreach + 4-platform launch posts）"
 

@@ -32,8 +32,8 @@
     },
     {
       "id": "arxiv-drafts",
-      "title_zh": "arXiv 单系统稿件 (Session ***REMOVED***3)",
-      "title_en": "arXiv solo drafts (Session ***REMOVED***3)",
+      "title_zh": "arXiv 单系统稿件 (Session #3)",
+      "title_en": "arXiv solo drafts (Session #3)",
       "desc_zh": "C2 工作流产出，4 篇可独立投出的 arXiv 草稿。",
       "desc_en": "C2 workflow products — four standalone arXiv-ready drafts.",
       "papers": [

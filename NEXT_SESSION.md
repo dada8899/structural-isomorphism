@@ -1,8 +1,8 @@
-***REMOVED*** 👋 Hi, next-session Claude — read this first
+# 👋 Hi, next-session Claude — read this first
 
-User authorized everything in session ***REMOVED***3 close-out but ran out of time to actually execute the irreversible / token-gated last-mile actions.
+User authorized everything in session #3 close-out but ran out of time to actually execute the irreversible / token-gated last-mile actions.
 
-***REMOVED******REMOVED*** Your single source of truth
+## Your single source of truth
 
 → **`docs/sessions/SESSION-4-STARTER.md`** ← read this, follow §0 → §2 step by step
 
@@ -13,12 +13,12 @@ It has:
 - §5 acceptance checklist (10 boxes)
 - §6 prompt template if user wants to re-prime you
 
-***REMOVED******REMOVED*** TL;DR for the first turn
+## TL;DR for the first turn
 
 ```bash
 cd ~/Projects/structural-isomorphism
 git pull
-git log --oneline -3                            ***REMOVED*** head should be 0380327 or later
+git log --oneline -3                            # head should be 0380327 or later
 cat docs/sessions/SESSION-4-STARTER.md | head -80
 gh auth status
 env | grep -iE "deepseek|pypi|zenodo" | sed 's/=.*/=<SET>/'
@@ -28,14 +28,14 @@ Then ask the user once: "Tokens to supply now (PYPI_TOKEN / ZENODO_ACCESS_TOKEN)
 
 After that, full auto mode. Don't re-plan — the plan is in SESSION-4-STARTER.md.
 
-***REMOVED******REMOVED*** What NOT to redo
+## What NOT to redo
 
-- Don't re-read session ***REMOVED***3 W*-* reviews / roadmaps unless user asks. They're cited in SESSION-4-STARTER.md when needed.
+- Don't re-read session #3 W*-* reviews / roadmaps unless user asks. They're cited in SESSION-4-STARTER.md when needed.
 - Don't re-build packages/wheels — they're already in `packages/*/dist/`. Just `twine check` to confirm.
 - Don't write new paper drafts — 6 are ready (`paper/v0-unified-pipeline-2026-05-13.md` v0.3, `paper/arxiv-drafts/2026-05-13/01-04*.md`, `paper/c4-reject-aware-pipeline-2026-05-13.md`).
 
-***REMOVED******REMOVED*** Hard rule
+## Hard rule
 
-The 2 P1 bugs from W6-E are already fixed in F1 (PR ***REMOVED***44). Don't accidentally reintroduce them.
+The 2 P1 bugs from W6-E are already fixed in F1 (PR #44). Don't accidentally reintroduce them.
 
-Good luck. The hard work is done — session ***REMOVED***4 is just shipping it.
+Good luck. The hard work is done — session #4 is just shipping it.

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """F2 active-learning: mine hard negatives + positives from B3 critic verdicts.
 
 Reads:
@@ -41,9 +41,9 @@ import yaml
 
 logger = logging.getLogger("f2_mine")
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** resolve repo root (works whether script is in v4/scripts or symlinked)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# resolve repo root (works whether script is in v4/scripts or symlinked)
+# ---------------------------------------------------------------------------
 THIS = Path(__file__).resolve()
 REPO = THIS.parents[2]
 B3_REVIEW = REPO / "v4" / "results" / "B3_ensemble_review.jsonl"
@@ -58,12 +58,12 @@ class TrainingPair:
 
     text_a: str
     text_b: str
-    label: int          ***REMOVED*** 1 = positive (same class), 0 = hard negative (rejected pair)
+    label: int          # 1 = positive (same class), 0 = hard negative (rejected pair)
     source_class: str
-    source_verdict: str  ***REMOVED*** "KEEP" or "REJECT"
+    source_verdict: str  # "KEEP" or "REJECT"
     confidence: float
     weight: float
-    rejection_reason: str = ""  ***REMOVED*** populated for hard negatives only
+    rejection_reason: str = ""  # populated for hard negatives only
 
     def to_jsonl(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -185,13 +185,13 @@ def mine_pairs(
             continue
 
         positives_list = yaml_row.get("positive_examples") or []
-        ***REMOVED*** Map each positive_example to a clean phenomenon string
+        # Map each positive_example to a clean phenomenon string
         texts: list[str] = []
         for ex in positives_list:
             t = extract_phenomenon_text(ex)
             if t:
                 texts.append(t)
-        ***REMOVED*** de-dup while preserving order
+        # de-dup while preserving order
         seen: set[str] = set()
         uniq_texts: list[str] = []
         for t in texts:
@@ -220,7 +220,7 @@ def mine_pairs(
                 )
             stats[f"reject_classes"] += 1
             stats["hard_negative_pairs"] += len(list(combinations(uniq_texts, 2)))
-        else:  ***REMOVED*** KEEP
+        else:  # KEEP
             for a, b in combinations(uniq_texts, 2):
                 positives.append(
                     TrainingPair(
@@ -254,25 +254,25 @@ def write_summary(
 ) -> None:
     out_md.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = []
-    lines.append("***REMOVED*** F2 Active Learning — Miner Summary")
+    lines.append("# F2 Active Learning — Miner Summary")
     lines.append("")
     lines.append(f"- Positives mined: **{len(positives)}**")
     lines.append(f"- Hard negatives mined: **{len(negatives)}**")
     lines.append(f"- Source: `v4/results/B3_taxonomy_v2.jsonl`")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Per-bucket stats")
+    lines.append("## Per-bucket stats")
     lines.append("")
     for k in sorted(stats):
         lines.append(f"- `{k}`: {stats[k]}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Classes contributing positives (KEEP consensus)")
+    lines.append("## Classes contributing positives (KEEP consensus)")
     lines.append("")
     keep_classes = sorted({p.source_class for p in positives})
     for c in keep_classes:
         n = sum(1 for p in positives if p.source_class == c)
         lines.append(f"- `{c}`: {n} pairs")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Classes contributing hard negatives (REJECT consensus)")
+    lines.append("## Classes contributing hard negatives (REJECT consensus)")
     lines.append("")
     rej_classes = sorted({p.source_class for p in negatives})
     for c in rej_classes:

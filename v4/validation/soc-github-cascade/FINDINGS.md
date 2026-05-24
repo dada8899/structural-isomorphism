@@ -1,4 +1,4 @@
-***REMOVED*** Phase 6 Findings — GitHub Event Cascades
+# Phase 6 Findings — GitHub Event Cascades
 
 **Date:** 2026-05-22
 **Pipeline:** `packages/soc-pipeline/` (frozen, identical to Phase 1-5)
@@ -7,7 +7,7 @@
 This is an honest negative, in the same spirit as the Phase 5 null controls:
 a real FAIL is worth more than a manufactured PASS.
 
-***REMOVED******REMOVED*** Data
+## Data
 
 - **29,400 real events** (issues + PRs) from **25 large, active OSS repos**
   (kubernetes, react, vscode, tensorflow, pytorch, rust, node, TypeScript,
@@ -19,7 +19,7 @@ a real FAIL is worth more than a manufactured PASS.
 - 823 main events (loudness > mu + 2sigma) -> **823 cascades**, 306,183
   stacked Omori delays.
 
-***REMOVED******REMOVED*** Pipeline results
+## Pipeline results
 
 | Metric | Value | Pre-registered band | In band? |
 |---|---|---|---|
@@ -30,7 +30,7 @@ a real FAIL is worth more than a manufactured PASS.
 | vs exponential | R = **-14.63**, p ~ 2e-48 | — | **exponential wins** |
 | Omori **p** | 0.358 +/- 0.021, R2 = 0.95 | [0.3, 1.3] | yes |
 
-***REMOVED******REMOVED*** Why FAIL
+## Why FAIL
 
 Although the fitted alpha (1.70) lands *inside* the pre-registered band, the
 **Clauset 2009 model-comparison test decisively rejects the power-law**: both
@@ -41,7 +41,7 @@ project's standard verdict logic (same as Phase 1-5 `validate()`), "a simpler
 model beats power-law" is an automatic FAIL — alpha being in-band does not
 rescue it.
 
-***REMOVED******REMOVED*** The FAIL is robust (sensitivity sweep)
+## The FAIL is robust (sensitivity sweep)
 
 A genuine scale-free regime gives a **window-invariant** alpha. It does not:
 
@@ -57,7 +57,7 @@ Power-law is rejected in **every** setting, and alpha drifts 1.7 -> 3.0 with
 the window — direct evidence that there is no scale-free regime. The FAIL is
 not a single-parameter artefact.
 
-***REMOVED******REMOVED*** What *does* partially match
+## What *does* partially match
 
 The **Omori timing holds**: stacked derived-event delays decay as
 rate ~ K/(t+c)^p with p = 0.36 and an excellent R2 = 0.95 (n ~ 306k delays).
@@ -67,7 +67,7 @@ follow-on events per burst is lognormal/exponential, not power-law. A SOC
 system needs *both*; GitHub cascades have the timing signature but not the
 scale-free size signature.
 
-***REMOVED******REMOVED*** Honest limitations
+## Honest limitations
 
 1. **Cascade separation.** With 1,200 events/repo spanning anywhere from
    8 days (vscode) to 308 days (react), a 30-day window often swallows much
@@ -84,7 +84,7 @@ scale-free size signature.
 4. None of these limitations point toward a power-law — every robustness
    check pushed further *away* from SOC, so the negative conclusion is safe.
 
-***REMOVED******REMOVED*** Bottom line
+## Bottom line
 
 GitHub event cascades join the list of systems that look heavy-tailed but
 are **not** self-organized critical on the size axis. Of the project's

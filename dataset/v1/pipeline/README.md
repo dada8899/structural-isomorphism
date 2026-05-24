@@ -1,4 +1,4 @@
-***REMOVED*** Pipeline reproducibility README
+# Pipeline reproducibility README
 
 This directory contains the frozen versions of the three core pipeline
 scripts used to produce every headline α, τ, b-value, Omori-p, and
@@ -16,20 +16,20 @@ too. For a frozen-by-value copy, dereference at tarball time (`tar -czh`).
 
 ---
 
-***REMOVED******REMOVED*** 1. Setup
+## 1. Setup
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 
-***REMOVED*** Python 3.10+ recommended
+# Python 3.10+ recommended
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-***REMOVED*** (or `pip install numpy scipy powerlaw pandas pyyaml httpx tenacity` if
-***REMOVED***  the repo doesn't ship a requirements.txt at the commit you've checked out)
+# (or `pip install numpy scipy powerlaw pandas pyyaml httpx tenacity` if
+#  the repo doesn't ship a requirements.txt at the commit you've checked out)
 
-***REMOVED*** Only required for re-running the B3 ensemble critic (step 4 below):
+# Only required for re-running the B3 ensemble critic (step 4 below):
 export DEEPSEEK_API_KEY='sk-...'
 ```
 
@@ -40,32 +40,32 @@ verdicts are already in `dataset/v1/taxonomy/B3_*.jsonl`.
 
 ---
 
-***REMOVED******REMOVED*** 2. Reproduce a single system's headline result
+## 2. Reproduce a single system's headline result
 
-***REMOVED******REMOVED******REMOVED*** Example: earthquake Gutenberg-Richter b-value
+### Example: earthquake Gutenberg-Richter b-value
 
 ```bash
 cd structural-isomorphism
 python3 dataset/v1/systems/01_earthquake/data/gutenberg_richter.py
-***REMOVED*** Expected output:
-***REMOVED***   b = 1.084  (CI [1.073, 1.094])
-***REMOVED***   n above Mc = 4.45: 37281
-***REMOVED***   matches dataset/v1/systems/01_earthquake/paper.md within 0.001
+# Expected output:
+#   b = 1.084  (CI [1.073, 1.094])
+#   n above Mc = 4.45: 37281
+#   matches dataset/v1/systems/01_earthquake/paper.md within 0.001
 ```
 
-***REMOVED******REMOVED******REMOVED*** Example: stockmarket inverse-cubic α
+### Example: stockmarket inverse-cubic α
 
 ```bash
 python3 dataset/v1/systems/02_stockmarket/data/fetch_and_analyze.py
-***REMOVED*** Expected output:
-***REMOVED***   α ≈ 3.0 (CI ~ [2.95, 3.05])
-***REMOVED***   matches paper.md headline
+# Expected output:
+#   α ≈ 3.0 (CI ~ [2.95, 3.05])
+#   matches paper.md headline
 ```
 
-***REMOVED******REMOVED******REMOVED*** Example: all 16 systems
+### Example: all 16 systems
 
 ```bash
-***REMOVED*** Recipe pseudocode (see paper.md inside each slot for the exact runner)
+# Recipe pseudocode (see paper.md inside each slot for the exact runner)
 for slot in dataset/v1/systems/*/; do
   if [ -f "$slot/data/analyze.py" ]; then
     python3 "$slot/data/analyze.py"
@@ -78,21 +78,21 @@ and 04_neural with their bin-factor sweeps).
 
 ---
 
-***REMOVED******REMOVED*** 3. Verify the 4 synthetic null controls (must be rejected)
+## 3. Verify the 4 synthetic null controls (must be rejected)
 
 ```bash
 python3 dataset/v1/null_controls/_generator.py
-***REMOVED*** Re-runs the 4 null generators with rng_seed=42, applies the same
-***REMOVED*** fitting pipeline, prints verdict.
-***REMOVED***
-***REMOVED*** Expected: all 4 cases return pipeline_verdict = "rejected".
-***REMOVED*** All 4 also have vs_exponential_p ≪ 0.05 (the LR test correctly
-***REMOVED*** prefers exponential / folded-normal over power-law).
+# Re-runs the 4 null generators with rng_seed=42, applies the same
+# fitting pipeline, prints verdict.
+#
+# Expected: all 4 cases return pipeline_verdict = "rejected".
+# All 4 also have vs_exponential_p ≪ 0.05 (the LR test correctly
+# prefers exponential / folded-normal over power-law).
 ```
 
 ---
 
-***REMOVED******REMOVED*** 4. Re-run the B3 ensemble critic (LLM cost ~ $1)
+## 4. Re-run the B3 ensemble critic (LLM cost ~ $1)
 
 ```bash
 export DEEPSEEK_API_KEY='sk-...'
@@ -100,14 +100,14 @@ cd structural-isomorphism
 python3 dataset/v1/pipeline/b3_ensemble.py \
     --classes dataset/v1/taxonomy/classes/ \
     --output dataset/v1/taxonomy/B3_ensemble_review_rerun.jsonl
-***REMOVED*** Wall-clock: ~10 min (21 classes × 3 reviewers = 63 calls × ~10s each)
-***REMOVED*** Cost: ~$0.50-$1.00 depending on context length
-***REMOVED***
-***REMOVED*** Then diff vs. the frozen verdicts:
+# Wall-clock: ~10 min (21 classes × 3 reviewers = 63 calls × ~10s each)
+# Cost: ~$0.50-$1.00 depending on context length
+#
+# Then diff vs. the frozen verdicts:
 diff <(jq -c '.consensus_verdict' dataset/v1/taxonomy/B3_taxonomy_v2.jsonl | sort) \
      <(jq -c '.consensus_verdict' dataset/v1/taxonomy/B3_ensemble_review_rerun.jsonl | sort)
-***REMOVED*** Should be identical or differ on at most 1-2 classes due to temperature=0.6
-***REMOVED*** adversarial dissenter being stochastic by design.
+# Should be identical or differ on at most 1-2 classes due to temperature=0.6
+# adversarial dissenter being stochastic by design.
 ```
 
 If you don't have a DeepSeek key, you can also point `b3_ensemble.py` at
@@ -116,20 +116,20 @@ non-CN IPs) — see the `DEEPSEEK_BASE` constant at the top of the script.
 
 ---
 
-***REMOVED******REMOVED*** 5. Run the 17-test sanity regression suite
+## 5. Run the 17-test sanity regression suite
 
 ```bash
 cd structural-isomorphism
 pytest dataset/v1/tests/sanity/ -v
-***REMOVED*** Expected: all 17 test files pass at git commit 607906c
-***REMOVED***
-***REMOVED*** What the tests check:
-***REMOVED*** - Each system's headline α / τ / b-value lies within its frozen target band
-***REMOVED*** - Each system's CI is sane (lower < estimate < upper, σ > 0)
-***REMOVED*** - Null controls all produce pipeline_verdict = "rejected"
-***REMOVED*** - Universal-collapse panel residuals are within 2σ of zero
-***REMOVED*** - LLM guardrail rejects malformed structured outputs
-***REMOVED*** - B3 ensemble plurality voting agrees with cached verdicts
+# Expected: all 17 test files pass at git commit 607906c
+#
+# What the tests check:
+# - Each system's headline α / τ / b-value lies within its frozen target band
+# - Each system's CI is sane (lower < estimate < upper, σ > 0)
+# - Null controls all produce pipeline_verdict = "rejected"
+# - Universal-collapse panel residuals are within 2σ of zero
+# - LLM guardrail rejects malformed structured outputs
+# - B3 ensemble plurality voting agrees with cached verdicts
 ```
 
 If a test fails after a fresh fetch, the most common cause is an
@@ -139,7 +139,7 @@ The bundle ships frozen jsonl/csv/parquet snapshots inside each
 
 ---
 
-***REMOVED******REMOVED*** 6. Expected outputs vs. paper headlines
+## 6. Expected outputs vs. paper headlines
 
 | System                  | Headline metric             | Expected value (CI)         | Source paper |
 |-------------------------|------------------------------|------------------------------|--------------|
@@ -164,7 +164,7 @@ input.
 
 ---
 
-***REMOVED******REMOVED*** 7. Troubleshooting
+## 7. Troubleshooting
 
 **`ImportError: powerlaw`** — the Clauset MLE uses the `powerlaw` package.
 `pip install powerlaw` (it's not in scipy).
@@ -183,6 +183,6 @@ entry "OpenRouter Anthropic/Gemini在 CN被 region-block").
 
 ---
 
-***REMOVED******REMOVED*** 8. License
+## 8. License
 
 These pipeline scripts are MIT-licensed. See `dataset/v1/LICENSE`.

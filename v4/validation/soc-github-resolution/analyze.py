@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Run the frozen SOC pipeline on GitHub-issue resolution times.
 
 Pre-registered band (committed *before* inspecting the verdict):
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "packages" / "soc-pipeline" / "src"))
 
-from soc_pipeline import validate  ***REMOVED*** noqa: E402
+from soc_pipeline import validate  # noqa: E402
 
 DATA = ROOT.parent / "github_resolutions.jsonl"
 VERDICT_PATH = ROOT.parent / "verdict.json"

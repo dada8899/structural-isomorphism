@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Parse nginx combined-format access logs into a privacy-friendly weekly report.
 
 Backup analytics while Plausible self-hosted instance is not yet deployed
@@ -31,9 +31,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable, Iterator, Optional, TextIO
 
-***REMOVED*** nginx default combined log format:
-***REMOVED***   $remote_addr - $remote_user [$time_local] "$request"
-***REMOVED***       $status $body_bytes_sent "$http_referer" "$http_user_agent"
+# nginx default combined log format:
+#   $remote_addr - $remote_user [$time_local] "$request"
+#       $status $body_bytes_sent "$http_referer" "$http_user_agent"
 LOG_RE = re.compile(
     r'^(?P<ip>\S+) \S+ \S+ '
     r'\[(?P<ts>[^\]]+)\] '
@@ -43,7 +43,7 @@ LOG_RE = re.compile(
     r'"(?P<ua>[^"]*)"'
 )
 
-***REMOVED*** Bot UA fingerprint — coarse, intentional. We just want to subtract them.
+# Bot UA fingerprint — coarse, intentional. We just want to subtract them.
 BOT_UA_RE = re.compile(
     r'bot|crawler|spider|slurp|bing|google|yahoo|duckduck|baidu|yandex|'
     r'curl|wget|python-requests|httpclient|scrapy|facebookexternalhit|'
@@ -52,7 +52,7 @@ BOT_UA_RE = re.compile(
 )
 MOBILE_UA_RE = re.compile(r'mobile|android|iphone|ipad', re.IGNORECASE)
 
-***REMOVED*** Static-asset paths we don't count as "page views".
+# Static-asset paths we don't count as "page views".
 STATIC_EXT_RE = re.compile(
     r'\.(css|js|png|jpe?g|gif|svg|ico|woff2?|ttf|map|webp|avif)(\?|$)',
     re.IGNORECASE,
@@ -100,7 +100,7 @@ def _is_page(path: str) -> bool:
 def _normalize_referer(ref: str) -> str:
     if not ref or ref == "-":
         return "(direct)"
-    ***REMOVED*** strip query string for sanity
+    # strip query string for sanity
     return ref.split("?", 1)[0]
 
 
@@ -144,7 +144,7 @@ def aggregate(records: Iterable[dict]) -> dict:
         ua_kind = _classify_ua(r["ua"])
         if ua_kind == "bot":
             bot_hits += 1
-            ***REMOVED*** bots still counted in 5xx etc but NOT in pageviews / uniques
+            # bots still counted in 5xx etc but NOT in pageviews / uniques
             continue
 
         if r["method"] not in ("GET", "HEAD"):
@@ -175,7 +175,7 @@ def aggregate(records: Iterable[dict]) -> dict:
 
 def render_markdown(agg: dict, since: datetime, until: datetime) -> str:
     lines: list[str] = []
-    lines.append("***REMOVED*** Nginx access log — weekly analytics")
+    lines.append("# Nginx access log — weekly analytics")
     lines.append("")
     lines.append(
         f"Window: `{since.strftime('%Y-%m-%d')}` → `{until.strftime('%Y-%m-%d')}` "
@@ -186,8 +186,8 @@ def render_markdown(agg: dict, since: datetime, until: datetime) -> str:
                  "from pageviews/uniques. See `parse_nginx_logs.py` header.")
     lines.append("")
 
-    ***REMOVED*** daily table
-    lines.append("***REMOVED******REMOVED*** Daily traffic")
+    # daily table
+    lines.append("## Daily traffic")
     lines.append("")
     lines.append("| Day | Pageviews | Unique visitors (est.) |")
     lines.append("|---|---:|---:|")
@@ -198,11 +198,11 @@ def render_markdown(agg: dict, since: datetime, until: datetime) -> str:
         lines.append(f"| {d} | {pv} | {uv} |")
     lines.append("")
 
-    ***REMOVED*** top pages
-    lines.append("***REMOVED******REMOVED*** Top 10 pages")
+    # top pages
+    lines.append("## Top 10 pages")
     lines.append("")
     if agg["pages"]:
-        lines.append("| ***REMOVED*** | Path | Hits |")
+        lines.append("| # | Path | Hits |")
         lines.append("|---:|---|---:|")
         for i, (path, hits) in enumerate(agg["pages"].most_common(10), 1):
             lines.append(f"| {i} | `{path}` | {hits} |")
@@ -210,11 +210,11 @@ def render_markdown(agg: dict, since: datetime, until: datetime) -> str:
         lines.append("_no page requests in window_")
     lines.append("")
 
-    ***REMOVED*** top referers
-    lines.append("***REMOVED******REMOVED*** Top 10 referers")
+    # top referers
+    lines.append("## Top 10 referers")
     lines.append("")
     if agg["referers"]:
-        lines.append("| ***REMOVED*** | Referer | Hits |")
+        lines.append("| # | Referer | Hits |")
         lines.append("|---:|---|---:|")
         for i, (ref, hits) in enumerate(agg["referers"].most_common(10), 1):
             lines.append(f"| {i} | `{ref}` | {hits} |")
@@ -222,8 +222,8 @@ def render_markdown(agg: dict, since: datetime, until: datetime) -> str:
         lines.append("_no referers in window_")
     lines.append("")
 
-    ***REMOVED*** UA + status breakdown
-    lines.append("***REMOVED******REMOVED*** Device & status mix")
+    # UA + status breakdown
+    lines.append("## Device & status mix")
     lines.append("")
     lines.append("| Bucket | Count |")
     lines.append("|---|---:|")

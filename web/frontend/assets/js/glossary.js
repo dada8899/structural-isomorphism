@@ -21,7 +21,7 @@
 (function () {
   'use strict';
 
-  // The 7 terms that genuinely appear in user-facing copy as of session ***REMOVED***5.
+  // The 7 terms that genuinely appear in user-facing copy as of session #5.
   // Each: short plain-language gloss (~30-50 chars). Keep terse — long
   // tooltips defeat the "60-second understanding" goal.
   const GLOSSARY = {
@@ -32,7 +32,7 @@
     '普适类': '物理细节不同的系统，只要结构（维度、对称性）一样，临界附近的行为就完全一致。这是跨学科借用的根据。',
     '标度律': '某个量按幂律 y ~ x^α 随系统大小变化。同一普适类的 α 相同。',
     '临界假说': '声明：观察到的现象不是巧合，而是系统正处在临界点附近——所以借用临界点工具能解释它。',
-    // W3-B (session ***REMOVED***7): Glossary v2 expansion — five new terms that
+    // W3-B (session #7): Glossary v2 expansion — five new terms that
     // recur across discoveries / classes / paper copy.
     '相变': '系统在某个临界点突然改变性质，比如水到 100°C 突然变成蒸汽。在跨学科中，市场崩盘、银行挤兑、神经放电都属于相变现象。',
     '标度形式': '用一个数学公式描述不同尺度上行为的规律，比如 P(s) ~ s^(-α)。标度律告诉我们：大事件和小事件遵循同一套规律，只是出现的频率按幂律递减。',
@@ -226,7 +226,7 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&***REMOVED***39;');
+      .replace(/'/g, '&#39;');
   }
 
   // === Event wiring ===

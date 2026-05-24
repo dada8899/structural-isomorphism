@@ -37,11 +37,11 @@ def _get_llm() -> LLMService:
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     top_k: int = Field(12, ge=1, le=30)
-    ***REMOVED*** Default False: the fast path skips the LLM rewrite/assessment entirely.
-    ***REMOVED*** The frontend calls /api/search/assess separately when it wants the gate.
+    # Default False: the fast path skips the LLM rewrite/assessment entirely.
+    # The frontend calls /api/search/assess separately when it wants the gate.
     rewrite: bool = Field(False, description="Use LLM to rewrite query for better matching")
-    ***REMOVED*** i18n: "zh" (default, legacy) or "en" — controls output language of the
-    ***REMOVED*** optional LLM rewrite/assessment. Vector search itself is language-neutral.
+    # i18n: "zh" (default, legacy) or "en" — controls output language of the
+    # optional LLM rewrite/assessment. Vector search itself is language-neutral.
     lang: str = Field("zh", description="Output language for LLM-generated text: 'zh' or 'en'")
 
 
@@ -56,35 +56,35 @@ class SearchResult(BaseModel):
     domain: str
     type_id: str
     description: str
-    ***REMOVED*** Fused BM25+embedding ranking score, [0, 1]. Use for visual tiering.
+    # Fused BM25+embedding ranking score, [0, 1]. Use for visual tiering.
     score: float
-    ***REMOVED*** Session ***REMOVED***17 V3 — unified relevance口径 in [0, 1]. This is the SAME
-    ***REMOVED*** value the /api/analyze scope gate uses, so a result shown here will
-    ***REMOVED*** not be self-contradictorily rejected by analyze.
+    # Session #17 V3 — unified relevance口径 in [0, 1]. This is the SAME
+    # value the /api/analyze scope gate uses, so a result shown here will
+    # not be self-contradictorily rejected by analyze.
     relevance: float = 0.0
-    ***REMOVED*** Session ***REMOVED***17 V2 — True when this candidate's domain differs from the
-    ***REMOVED*** query's inferred surface domain (i.e. a genuine cross-domain mapping).
-    ***REMOVED*** True is also the default when no surface domain could be inferred.
+    # Session #17 V2 — True when this candidate's domain differs from the
+    # query's inferred surface domain (i.e. a genuine cross-domain mapping).
+    # True is also the default when no surface domain could be inferred.
     cross_domain: bool = True
-    ***REMOVED*** The query's inferred surface domain; None when no domain dominates.
-    ***REMOVED*** Echoed on every result for frontend grouping convenience.
+    # The query's inferred surface domain; None when no domain dominates.
+    # Echoed on every result for frontend grouping convenience.
     surface_domain: Optional[str] = None
 
 
 class SearchResponse(BaseModel):
     query: str
     count: int
-    results: list  ***REMOVED*** list of SearchResult
+    results: list  # list of SearchResult
 
 
 def _looks_like_question(query: str) -> bool:
     """Heuristic: does this query look like a natural-language question?"""
     if len(query) < 8:
         return False
-    ***REMOVED*** Punctuation-based
+    # Punctuation-based
     if "?" in query or "？" in query:
         return True
-    ***REMOVED*** Common Chinese question words
+    # Common Chinese question words
     markers = ["为什么", "怎么", "如何", "什么时候", "哪里", "是不是", "会不会", "能不能"]
     return any(m in query for m in markers)
 
@@ -105,12 +105,12 @@ async def search_phenomena(request: Request, req: SearchRequest):
     if lang_norm not in ("zh", "en"):
         lang_norm = "zh"
 
-    ***REMOVED*** Session ***REMOVED***17 V3.3 — out-of-scope gate. Previously /api/search had NO
-    ***REMOVED*** scope check at all: "今天天气怎么样" still returned 12 candidates.
-    ***REMOVED*** /ask and /analyze both gate; search now matches that contract so the
-    ***REMOVED*** whole funnel is consistent. Deterministic only (arithmetic / chit-chat
-    ***REMOVED*** / trivia) — search has no LLM call on the fast path, and the genuine
-    ***REMOVED*** relevance floor is the analyze gate's job.
+    # Session #17 V3.3 — out-of-scope gate. Previously /api/search had NO
+    # scope check at all: "今天天气怎么样" still returned 12 candidates.
+    # /ask and /analyze both gate; search now matches that contract so the
+    # whole funnel is consistent. Deterministic only (arithmetic / chit-chat
+    # / trivia) — search has no LLM call on the fast path, and the genuine
+    # relevance floor is the analyze gate's job.
     from services.scope_guard import is_out_of_scope as _is_oos
     _oos, _oos_reason = _is_oos(original_query)
     if _oos:
@@ -131,20 +131,20 @@ async def search_phenomena(request: Request, req: SearchRequest):
             "stats": {"types": [], "domains": [], "top_score": 0},
             "v2_pairs_for_top": [],
         }
-    ***REMOVED*** Default assessment is a permissive passthrough so downstream code that
-    ***REMOVED*** reads `assessment.worth_score` still sees a valid shape. The `category`
-    ***REMOVED*** value stays ZH internally (enum shape) and is translated on output
-    ***REMOVED*** when lang=en.
+    # Default assessment is a permissive passthrough so downstream code that
+    # reads `assessment.worth_score` still sees a valid shape. The `category`
+    # value stays ZH internally (enum shape) and is translated on output
+    # when lang=en.
     assessment = {
         "worth_score": 5,
         "category": "现象描述",
         "coaching": None,
         "rewrite_suggestion": None,
-        "pending": True,  ***REMOVED*** frontend should still call /search/assess for the real gate
+        "pending": True,  # frontend should still call /search/assess for the real gate
     }
 
-    ***REMOVED*** Optional inline LLM pre-flight (rewrite + worthiness) — opt-in via req.rewrite.
-    ***REMOVED*** The default path skips this entirely so /api/search returns in <1s.
+    # Optional inline LLM pre-flight (rewrite + worthiness) — opt-in via req.rewrite.
+    # The default path skips this entirely so /api/search returns in <1s.
     if req.rewrite:
         try:
             llm = _get_llm()
@@ -161,24 +161,24 @@ async def search_phenomena(request: Request, req: SearchRequest):
                 "pending": False,
             }
         except Exception:
-            ***REMOVED*** Fail open: if the LLM pre-flight misbehaves, don't block results.
+            # Fail open: if the LLM pre-flight misbehaves, don't block results.
             pass
 
     results = svc.search(effective_query, top_k=req.top_k)
 
-    ***REMOVED*** When lang=en, translate KB results (name/domain/description). Other
-    ***REMOVED*** fields (id/type_id/score) pass through. Domain stats are computed
-    ***REMOVED*** AFTER translation so the aggregated domain names are also in EN.
+    # When lang=en, translate KB results (name/domain/description). Other
+    # fields (id/type_id/score) pass through. Domain stats are computed
+    # AFTER translation so the aggregated domain names are also in EN.
     if lang_norm == "en":
         results = await translate_kb_items(results, lang_norm)
 
-    ***REMOVED*** Aggregate stats for the results page UI
+    # Aggregate stats for the results page UI
     type_counts = Counter(r["type_id"] for r in results if r.get("type_id"))
     domain_counts = Counter(r["domain"] for r in results if r.get("domain"))
 
-    ***REMOVED*** Phase 2: enrich with v2 cross-domain pairs for the top phenomena.
-    ***REMOVED*** Walk the results in order and collect up to 3 phenomena that actually
-    ***REMOVED*** have v2-rated cross-domain neighbors. Skip ones without pairs.
+    # Phase 2: enrich with v2 cross-domain pairs for the top phenomena.
+    # Walk the results in order and collect up to 3 phenomena that actually
+    # have v2-rated cross-domain neighbors. Skip ones without pairs.
     v2_pairs_for_top: list = []
     for r in results:
         if len(v2_pairs_for_top) >= 3:
@@ -198,15 +198,15 @@ async def search_phenomena(request: Request, req: SearchRequest):
             }
             for p in raw_pairs
         ]
-        ***REMOVED*** When lang=en, translate the "other" side of each pair too so the
-        ***REMOVED*** UI renders a uniform English block.
+        # When lang=en, translate the "other" side of each pair too so the
+        # UI renders a uniform English block.
         if lang_norm == "en" and trimmed_pairs:
             as_items = [
                 {
                     "id": p["other_id"],
                     "name": p.get("other_name") or "",
                     "domain": p.get("other_domain") or "",
-                    "description": "",  ***REMOVED*** unused for pair cards
+                    "description": "",  # unused for pair cards
                 }
                 for p in trimmed_pairs
             ]
@@ -224,14 +224,14 @@ async def search_phenomena(request: Request, req: SearchRequest):
             }
         )
 
-    ***REMOVED*** Translate the hard-coded ZH category enum on the way out.
+    # Translate the hard-coded ZH category enum on the way out.
     if lang_norm == "en":
         assessment = dict(assessment)
         assessment["category"] = translate_category(assessment.get("category"))
 
-    ***REMOVED*** Session ***REMOVED***17 V2 — surface-domain summary so the frontend can decide
-    ***REMOVED*** whether to recommend a cross-domain source or honestly warn the user
-    ***REMOVED*** that every candidate is same-domain ("跨域感≈0" report risk).
+    # Session #17 V2 — surface-domain summary so the frontend can decide
+    # whether to recommend a cross-domain source or honestly warn the user
+    # that every candidate is same-domain ("跨域感≈0" report risk).
     surface_domain = results[0].get("surface_domain") if results else None
     cross_domain_count = sum(1 for r in results if r.get("cross_domain"))
 
@@ -247,7 +247,7 @@ async def search_phenomena(request: Request, req: SearchRequest):
             "types": [{"id": t, "count": c} for t, c in type_counts.most_common(5)],
             "domains": [{"name": d, "count": c} for d, c in domain_counts.most_common(5)],
             "top_score": results[0]["score"] if results else 0,
-            ***REMOVED*** V2 cross-domain summary.
+            # V2 cross-domain summary.
             "surface_domain": surface_domain,
             "cross_domain_count": cross_domain_count,
             "same_domain_count": len(results) - cross_domain_count,

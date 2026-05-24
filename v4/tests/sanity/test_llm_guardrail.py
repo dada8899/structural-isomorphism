@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import pytest
 
-***REMOVED*** Import the deprecated shims via their canonical `v4.lib.*` package path.
-***REMOVED*** Historically these used bare `import llm_guardrail`, which required a
-***REMOVED*** sys.path.insert(0, v4/lib) hack — but that prepend shadowed the
-***REMOVED*** editable-installed `soc_pipeline` real package in sibling test modules.
-***REMOVED*** Using the dotted path keeps shim-coverage intact without polluting sys.path.
+# Import the deprecated shims via their canonical `v4.lib.*` package path.
+# Historically these used bare `import llm_guardrail`, which required a
+# sys.path.insert(0, v4/lib) hack — but that prepend shadowed the
+# editable-installed `soc_pipeline` real package in sibling test modules.
+# Using the dotted path keeps shim-coverage intact without polluting sys.path.
 from v4.lib.llm_guardrail import (
     state_machine_fix,
     validate_json,
@@ -27,9 +27,9 @@ from v4.lib.llm_schemas import (
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Helpers: a valid baseline JSON for each schema
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers: a valid baseline JSON for each schema
+# ---------------------------------------------------------------------------
 
 VALID_L3 = {
     "class_id": "soc_earthquake",
@@ -57,9 +57,9 @@ VALID_B3 = {
 }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. Valid input → parse success (for all 3 schemas)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. Valid input → parse success (for all 3 schemas)
+# ---------------------------------------------------------------------------
 
 
 def test_01_valid_layer3_passes():
@@ -89,9 +89,9 @@ def test_01d_merge_with_verdict_passes():
     assert inst.review_verdict == "MERGE_WITH(soc_solar)"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. Trailing comma
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. Trailing comma
+# ---------------------------------------------------------------------------
 
 
 def test_02_trailing_comma():
@@ -105,9 +105,9 @@ def test_02_trailing_comma():
     assert inst.class_id == "x"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. Single quotes
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Single quotes
+# ---------------------------------------------------------------------------
 
 
 def test_03_single_quotes():
@@ -120,9 +120,9 @@ def test_03_single_quotes():
     assert ok, err
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. Markdown fence
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. Markdown fence
+# ---------------------------------------------------------------------------
 
 
 def test_04_markdown_fence():
@@ -138,9 +138,9 @@ def test_04_markdown_fence():
     assert ok, err
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. C-style comments
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. C-style comments
+# ---------------------------------------------------------------------------
 
 
 def test_05_c_comments():
@@ -159,13 +159,13 @@ def test_05_c_comments():
     assert ok, err
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 6. NaN → null
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 6. NaN → null
+# ---------------------------------------------------------------------------
 
 
 def test_06_nan_to_null():
-    ***REMOVED*** NaN in non-required field; Layer4 lets evidence_url be null
+    # NaN in non-required field; Layer4 lets evidence_url be null
     raw = (
         '{"class_id": "x", "target_system": "solar", "physical_quantity": "alpha", '
         '"predicted_band": [1.0, 2.0], "evidence_url": NaN, "journal_target": "ApJ"}'
@@ -176,13 +176,13 @@ def test_06_nan_to_null():
     assert inst.evidence_url is None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 7. Unescaped interior quote
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 7. Unescaped interior quote
+# ---------------------------------------------------------------------------
 
 
 def test_07_unescaped_interior_quote():
-    ***REMOVED*** LLM emits: "reasoning": "He said "hi"."
+    # LLM emits: "reasoning": "He said "hi"."
     raw = (
         '{"class_id": "x", "review_verdict": "KEEP", "confidence": "low",'
         ' "flagged_count": 0, "reasoning": "He said "hi"."}'
@@ -193,9 +193,9 @@ def test_07_unescaped_interior_quote():
     assert '"hi"' in inst.reasoning or "hi" in inst.reasoning
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 8. Invalid verdict value → reject
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 8. Invalid verdict value → reject
+# ---------------------------------------------------------------------------
 
 
 def test_08_invalid_verdict():
@@ -207,9 +207,9 @@ def test_08_invalid_verdict():
     assert inst is None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 9. Missing required field → reject
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 9. Missing required field → reject
+# ---------------------------------------------------------------------------
 
 
 def test_09_missing_required_field():
@@ -218,14 +218,14 @@ def test_09_missing_required_field():
     assert not ok
     assert err is not None
     assert "missing" in err.lower()
-    ***REMOVED*** Must name at least one missing field
+    # Must name at least one missing field
     assert "review_verdict" in err
     assert inst is None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 10. Type mismatch → reject
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 10. Type mismatch → reject
+# ---------------------------------------------------------------------------
 
 
 def test_10_type_mismatch():
@@ -251,9 +251,9 @@ def test_10c_confidence_out_of_range():
     assert "confidence" in err
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 11. Retry exhausted (mock LLM always returns garbage)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 11. Retry exhausted (mock LLM always returns garbage)
+# ---------------------------------------------------------------------------
 
 
 def test_11_retry_exhausted():
@@ -274,22 +274,22 @@ def test_11_retry_exhausted():
     assert parsed is None
     assert len(errors) == 3
     assert len(call_log) == 3
-    ***REMOVED*** Retry prompts should reference the previous error
+    # Retry prompts should reference the previous error
     assert "Previous error" in call_log[1]
     assert "Previous error" in call_log[2]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 12. First attempt fails, second passes (stateful mock)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 12. First attempt fails, second passes (stateful mock)
+# ---------------------------------------------------------------------------
 
 
 def test_12_first_fails_second_passes():
     call_log: list[str] = []
     responses = [
-        ***REMOVED*** First: garbage
+        # First: garbage
         "not json",
-        ***REMOVED*** Second: valid JSON (in a fence + with a trailing comma to exercise fixer)
+        # Second: valid JSON (in a fence + with a trailing comma to exercise fixer)
         (
             "```json\n"
             '{"class_id": "soc_earthquake", "review_verdict": "KEEP",'
@@ -315,13 +315,13 @@ def test_12_first_fails_second_passes():
     assert parsed is not None
     assert parsed.class_id == "soc_earthquake"
     assert parsed.flagged_count == 2
-    assert len(errors) == 1  ***REMOVED*** one earlier failure
-    assert len(call_log) == 2  ***REMOVED*** only two LLM calls (success on 2nd)
+    assert len(errors) == 1  # one earlier failure
+    assert len(call_log) == 2  # only two LLM calls (success on 2nd)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 13. Extra: state-machine-fix is idempotent on already-clean JSON
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 13. Extra: state-machine-fix is idempotent on already-clean JSON
+# ---------------------------------------------------------------------------
 
 
 def test_13_fixer_idempotent_on_clean():
@@ -330,15 +330,15 @@ def test_13_fixer_idempotent_on_clean():
         '"flagged_count": 0, "reasoning": "ok"}'
     )
     fixed = state_machine_fix(clean)
-    ***REMOVED*** parse both, compare
+    # parse both, compare
     import json
 
     assert json.loads(fixed) == json.loads(clean)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 14. llm_caller raises — recorded as error, retry continues
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 14. llm_caller raises — recorded as error, retry continues
+# ---------------------------------------------------------------------------
 
 
 def test_14_llm_caller_exception_is_caught():
@@ -364,9 +364,9 @@ def test_14_llm_caller_exception_is_caught():
     assert "network blip" in errors[0]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 15. Combined drift: fences + comments + single quotes + trailing comma
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 15. Combined drift: fences + comments + single quotes + trailing comma
+# ---------------------------------------------------------------------------
 
 
 def test_15_combined_drift():

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch + normalize North American power grid disturbance events (OE-417 / NERC class).
 
 Source priority:
@@ -64,7 +64,7 @@ def try_eia_api() -> list[dict] | None:
         body = json.loads(r.read())
         routes = body.get("response", {}).get("routes", [])
         route_ids = {x.get("id") for x in routes}
-        ***REMOVED*** No "disturbance" / "oe-417" route. Confirmed via root probe.
+        # No "disturbance" / "oe-417" route. Confirmed via root probe.
         if any("disturbance" in (rid or "").lower() for rid in route_ids):
             print("[eia] disturbance route found — implement extraction",
                   file=sys.stderr)
@@ -88,7 +88,7 @@ def try_doe_oe417() -> list[dict] | None:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
             r = urllib.request.urlopen(req, timeout=15, context=_ssl_ctx())
             print(f"[doe] {url} -> {r.status}", file=sys.stderr)
-            ***REMOVED*** Reachable but requires interactive session; cannot scrape blindly
+            # Reachable but requires interactive session; cannot scrape blindly
             return None
         except Exception as exc:
             print(f"[doe] {url} FAIL: {type(exc).__name__}: {str(exc)[:80]}",
@@ -97,33 +97,33 @@ def try_doe_oe417() -> list[dict] | None:
     return None
 
 
-***REMOVED*** ----------------------------------------------------------------------------
-***REMOVED*** Hardcoded literature-validated dataset
-***REMOVED*** ----------------------------------------------------------------------------
-***REMOVED***
-***REMOVED*** Each entry is sourced from one or more of:
-***REMOVED***   [C16]  Carreras, Newman, Dobson 2016 IEEE T-PS — esp Table V (4 WECC events
-***REMOVED***          with corrected MW: Jan 17 1994 / Dec 14 1994 / Jul 2 1996 / Aug 10 1996)
-***REMOVED***   [H09]  Hines, Apt, Talukdar 2009 Energy Policy — NERC DAWG 1984-2006
-***REMOVED***   [WP]   Wikipedia "List of major power outages" cross-validated against US
-***REMOVED***          government incident reports
-***REMOVED***   [USCA] US-Canada Power System Outage Task Force 2004 (Aug 14 2003 event)
-***REMOVED***   [FERC] FERC/NERC post-event reports for individual major events
-***REMOVED***
-***REMOVED*** Where MW or customer count is uncertain, we tag the field as "estimated" in
-***REMOVED*** notes and use the round-figure published in the source. We do NOT fabricate
-***REMOVED*** events; every entry corresponds to a real, documented blackout.
-***REMOVED***
-***REMOVED*** Conversion convention: MW = peak load shed at event start (firm load shed).
-***REMOVED*** Customers = peak customer interruption count.
-***REMOVED*** ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# Hardcoded literature-validated dataset
+# ----------------------------------------------------------------------------
+#
+# Each entry is sourced from one or more of:
+#   [C16]  Carreras, Newman, Dobson 2016 IEEE T-PS — esp Table V (4 WECC events
+#          with corrected MW: Jan 17 1994 / Dec 14 1994 / Jul 2 1996 / Aug 10 1996)
+#   [H09]  Hines, Apt, Talukdar 2009 Energy Policy — NERC DAWG 1984-2006
+#   [WP]   Wikipedia "List of major power outages" cross-validated against US
+#          government incident reports
+#   [USCA] US-Canada Power System Outage Task Force 2004 (Aug 14 2003 event)
+#   [FERC] FERC/NERC post-event reports for individual major events
+#
+# Where MW or customer count is uncertain, we tag the field as "estimated" in
+# notes and use the round-figure published in the source. We do NOT fabricate
+# events; every entry corresponds to a real, documented blackout.
+#
+# Conversion convention: MW = peak load shed at event start (firm load shed).
+# Customers = peak customer interruption count.
+# ----------------------------------------------------------------------------
 
-***REMOVED*** Curated major North American power outage events 1984-2024.
-***REMOVED*** Format: (date, area, mw_loss, customers, source, notes)
+# Curated major North American power outage events 1984-2024.
+# Format: (date, area, mw_loss, customers, source, notes)
 LITERATURE_EVENTS: list[tuple] = [
-    ***REMOVED*** 1984-1998: Carreras 2002 PRE dataset era, NERC DAWG 218 events.
-    ***REMOVED*** Largest 4 WECC events have Carreras-corrected MW (C16 Table V).
-    ***REMOVED*** We populate the documented majors here.
+    # 1984-1998: Carreras 2002 PRE dataset era, NERC DAWG 218 events.
+    # Largest 4 WECC events have Carreras-corrected MW (C16 Table V).
+    # We populate the documented majors here.
     ("1984-12-22", "Western US",            1900,    1500000, "C16+H09", "NERC DAWG"),
     ("1985-05-17", "Florida",                900,    4500000, "WP+H09",  "everglades brushfire transmission"),
     ("1989-03-13", "Quebec",                21500,   6000000, "H09+NERC","geomagnetic storm Hydro-Quebec"),
@@ -200,10 +200,10 @@ LITERATURE_EVENTS: list[tuple] = [
     ("2024-05-16", "Houston",                700,     900000, "WP",      "May derecho"),
     ("2024-07-08", "Texas-LA",              2700,    2700000, "WP",      "Hurricane Beryl"),
     ("2024-09-27", "Southeast",             4500,    4500000, "WP",      "Hurricane Helene"),
-    ***REMOVED*** Mid-tier events 1984-2024 to fill the tail and improve Clauset fit.
-    ***REMOVED*** These are smaller events from Hines 2009 Table 2 distribution (n=547
-    ***REMOVED*** service-interruption events; we draw representatives near each decile).
-    ***REMOVED*** Sizes are documented OE-417 reportable thresholds and below.
+    # Mid-tier events 1984-2024 to fill the tail and improve Clauset fit.
+    # These are smaller events from Hines 2009 Table 2 distribution (n=547
+    # service-interruption events; we draw representatives near each decile).
+    # Sizes are documented OE-417 reportable thresholds and below.
     ("1984-07-12", "Mid-Atlantic",           300,     120000, "H09", "heat wave"),
     ("1985-09-27", "Pennsylvania",           400,     200000, "H09", "Hurricane Gloria"),
     ("1986-09-10", "Southeast",              250,      80000, "H09", "T-storm"),
@@ -304,20 +304,20 @@ def dedupe(events: list[dict]) -> list[dict]:
 def main() -> int:
     print("[fetch] Phase 7 — power-grid cascade events fetcher", file=sys.stderr)
 
-    ***REMOVED*** 1st: EIA OE-417 v2 API
+    # 1st: EIA OE-417 v2 API
     events = try_eia_api()
     source_used = None
     if events:
         source_used = "eia_oe417_api"
         print(f"[fetch] EIA returned {len(events)} events", file=sys.stderr)
     else:
-        ***REMOVED*** 2nd: DOE OE-417 annual summaries
+        # 2nd: DOE OE-417 annual summaries
         events = try_doe_oe417()
         if events:
             source_used = "doe_oe417_pdf"
             print(f"[fetch] DOE returned {len(events)} events", file=sys.stderr)
         else:
-            ***REMOVED*** 3rd: hardcoded literature dataset
+            # 3rd: hardcoded literature dataset
             events = hardcode_dataset()
             source_used = "literature_meta_review"
             print(

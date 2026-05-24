@@ -1,11 +1,11 @@
-***REMOVED*** Structural Signals — Week of {date}
+# Structural Signals — Week of {date}
 
 > Once-a-week structural read on 100 global public companies. Same physics that
 > explains earthquakes, bank runs, and power-grid cascades.
 
 ---
 
-***REMOVED******REMOVED*** 🆕 This week's tipping companies
+## 🆕 This week's tipping companies
 
 Companies that **entered** `near_critical` since last issue (variance rising,
 amplifying feedback starting to dominate, no jump yet).
@@ -14,7 +14,7 @@ amplifying feedback starting to dominate, no jump yet).
 
 ---
 
-***REMOVED******REMOVED*** ✅ Returning to stable
+## ✅ Returning to stable
 
 Companies that left `near_critical` and went back to `subcritical` /
 `far_from_critical`.
@@ -23,7 +23,7 @@ Companies that left `near_critical` and went back to `subcritical` /
 
 ---
 
-***REMOVED******REMOVED*** 🔭 Spotlight: {spotlight_ticker}
+## 🔭 Spotlight: {spotlight_ticker}
 
 {spotlight_paragraph}
 
@@ -31,13 +31,13 @@ Read full report → {spotlight_url}
 
 ---
 
-***REMOVED******REMOVED*** 📚 What we're reading
+## 📚 What we're reading
 
 {reading_list}
 
 ---
 
-***REMOVED******REMOVED*** 🧪 Methodology note
+## 🧪 Methodology note
 
 {methodology_paragraph}
 
@@ -46,6 +46,6 @@ Read full report → {spotlight_url}
 ---
 
 *Research preview. Not investment advice. AI-extracted data — please verify
-independently. Forwarded by a friend? [Subscribe](https://phase.bytedance.city***REMOVED***waitlist).*
+independently. Forwarded by a friend? [Subscribe](https://phase.bytedance.city#waitlist).*
 
 *To unsubscribe, click the link in the email footer.*

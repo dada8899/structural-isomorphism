@@ -1,4 +1,4 @@
-***REMOVED*** W7-C — Community / Open-Source Roadmap
+# W7-C — Community / Open-Source Roadmap
 
 > **Date**: 2026-05-13
 > **Author**: W7-C subagent (open-source maintainer + DevRel + community-builder lens)
@@ -9,7 +9,7 @@
 
 ---
 
-***REMOVED******REMOVED*** TL;DR (read first if you skim)
+## TL;DR (read first if you skim)
 
 1. **Real OSS value ≠ stars.** It's external researchers/devs adopting the code in their own pipelines + contributing back. The only honest north-star metric: **external commits merged per quarter**.
 2. **structural-isomorphism has community-fit potential, but the brand name is wrong for discovery.** Search-friendly handles are *"self-organized criticality" (SOC)* and *"cross-domain LLM ensemble judging"* — these are the public-facing names of the carved-out sub-repos.
@@ -21,7 +21,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. What does "open-source value" actually mean for this project?
+## 1. What does "open-source value" actually mean for this project?
 
 A repo can be on GitHub and still be effectively closed if nobody outside the founder can navigate it. The four hallmarks of *real* OSS value:
 
@@ -40,7 +40,7 @@ A repo can be on GitHub and still be effectively closed if nobody outside the fo
 
 **The honest north-star metric**: *external commits merged per quarter*. If this number is `>0` and growing, the community is real. If it's 0 after month 6, something is broken.
 
-***REMOVED******REMOVED******REMOVED*** Does structural-isomorphism actually have community-fit potential?
+### Does structural-isomorphism actually have community-fit potential?
 
 **Verdict: yes, but only for two of the three pillars.**
 
@@ -54,7 +54,7 @@ A repo can be on GitHub and still be effectively closed if nobody outside the fo
 
 ---
 
-***REMOVED******REMOVED*** 2. Audience candidates — who do we serve, who do we drop?
+## 2. Audience candidates — who do we serve, who do we drop?
 
 I'll evaluate each candidate community on three axes:
 
@@ -62,7 +62,7 @@ I'll evaluate each candidate community on three axes:
 - **Fit**: does our artifact solve a real problem they have
 - **Likelihood of contributing back**: are they a contribute-prone culture?
 
-| ***REMOVED*** | Community | Reach | Fit | Contribute-back | Verdict |
+| # | Community | Reach | Fit | Contribute-back | Verdict |
 |---|---|---|---|---|---|
 | 1 | Complex-systems researchers (Santa Fe Institute, CSH Vienna, NetSci circles) | Medium (~10k worldwide) | **Very high** — they've wanted a reusable SOC detector for years; most use ad-hoc MATLAB scripts | High — academic culture rewards software citations | **Tier 1 target** |
 | 2 | Quant-finance practitioners (DeFi liquidation analysts, market-microstructure) | High (~50k) | **High** — they want crash-precursor signals; our SOC + phase-transition framework directly applies | Medium — proprietary culture, but DeFi/open quant subset contributes | **Tier 1 target** |
@@ -74,7 +74,7 @@ I'll evaluate each candidate community on three axes:
 
 **Decision**: focus all community-building effort on Tiers 1 (target users + contributors) and Tier 2 (content consumers, drives newsletter). Drop the rest. Don't dilute message trying to be everything.
 
-***REMOVED******REMOVED******REMOVED*** Three-line community personas (write these on the README)
+### Three-line community personas (write these on the README)
 
 > **Riya, complex-systems PhD candidate.** Has a 5-year earthquake catalog and wants to test if it's SOC. Today: writes 200 lines of MATLAB. With `soc-pipeline`: 3 lines of Python, plus a confidence interval on the power-law exponent.
 >
@@ -84,7 +84,7 @@ I'll evaluate each candidate community on three axes:
 
 ---
 
-***REMOVED******REMOVED*** 3. Current OSS-readiness barriers (honest audit)
+## 3. Current OSS-readiness barriers (honest audit)
 
 | Barrier | Severity | Evidence |
 |---|---|---|
@@ -99,7 +99,7 @@ I'll evaluate each candidate community on three axes:
 | Secrets / API-keys risk in commit history | **Critical to audit** | Before any PUBLIC push, do a `git log -p | grep -i 'sk-\|api\|key\|token'` scrub + BFG repo-cleaner pass if needed. |
 | No `pyproject.toml` for the pipeline | **High** | `pip install soc-pipeline` doesn't work today. Carve-out fixes this. |
 
-***REMOVED******REMOVED******REMOVED*** Critical pre-PUBLIC checklist (do once, do thoroughly)
+### Critical pre-PUBLIC checklist (do once, do thoroughly)
 
 ```
 [ ] Audit git history for secrets (BFG / git-filter-repo if found)
@@ -117,9 +117,9 @@ I'll evaluate each candidate community on three axes:
 
 ---
 
-***REMOVED******REMOVED*** 4. The 6–12-month OSS strategy
+## 4. The 6–12-month OSS strategy
 
-***REMOVED******REMOVED******REMOVED*** A. Repo carve-out architecture
+### A. Repo carve-out architecture
 
 ```
 structural-isomorphism (PRIVATE → PUBLIC after unified preprint, month 3-4)
@@ -150,7 +150,7 @@ cross-judge (PUBLIC, month 6)
 - **Three** = e.g. carving out a "phase-detection" package separately from `soc-pipeline` → premature, no one is asking for it independently. **YAGNI.**
 - **Two** = honest minimum. Each carve-out has a clear standalone story.
 
-***REMOVED******REMOVED******REMOVED*** B. Governance model (evolve over time, don't over-design upfront)
+### B. Governance model (evolve over time, don't over-design upfront)
 
 | Phase | Governance | Trigger to next phase |
 |---|---|---|
@@ -166,7 +166,7 @@ cross-judge (PUBLIC, month 6)
 
 **Don't yak-shave**: I've seen projects spend 3 months on governance docs before shipping anything. Resist. Phase 1 doc = 1 page each.
 
-***REMOVED******REMOVED******REMOVED*** C. "Good first issue" path
+### C. "Good first issue" path
 
 Target: **15 labeled good-first-issues** at `soc-pipeline` PUBLIC launch.
 
@@ -204,7 +204,7 @@ Initial 15 (mix of difficulty / domain):
 
 **Pairing every good-first-issue with a mentor**: founder available for one async 1:1 per week. Set the expectation publicly.
 
-***REMOVED******REMOVED******REMOVED*** D. Multi-channel presence
+### D. Multi-channel presence
 
 | Channel | Purpose | Effort | Priority |
 |---|---|---|---|
@@ -217,17 +217,17 @@ Initial 15 (mix of difficulty / domain):
 | **LinkedIn** | Skip (low ROI for technical OSS) | — | Skip |
 
 **Discord server structure** (when launched):
-- `***REMOVED***announcements` (founder-only)
-- `***REMOVED***general`
-- `***REMOVED***help-soc-pipeline`
-- `***REMOVED***help-cross-judge`
-- `***REMOVED***showcase` (community demos)
-- `***REMOVED***research-discussion` (academic side)
-- `***REMOVED***contributors` (private to active contributors)
+- `#announcements` (founder-only)
+- `#general`
+- `#help-soc-pipeline`
+- `#help-cross-judge`
+- `#showcase` (community demos)
+- `#research-discussion` (academic side)
+- `#contributors` (private to active contributors)
 
 **Anti-pattern to avoid**: launching all channels at once. Each unfilled channel signals "dead project". Launch sequentially: GitHub → Mastodon → Discord → others.
 
-***REMOVED******REMOVED******REMOVED*** E. Content marketing (this is what builds the funnel)
+### E. Content marketing (this is what builds the funnel)
 
 | Channel | Cadence | Effort | KPI |
 |---|---|---|---|
@@ -247,7 +247,7 @@ Initial 15 (mix of difficulty / domain):
 
 **Newsletter format** (3-section): community spotlight (1 PR or contributor), what's new, what's coming.
 
-***REMOVED******REMOVED******REMOVED*** F. Partnerships + outreach
+### F. Partnerships + outreach
 
 | Target | Approach | Status |
 |---|---|---|
@@ -261,7 +261,7 @@ Initial 15 (mix of difficulty / domain):
 
 **Inviting senior advisors**: 2-3 non-binding advisors. Approach via warm intros if possible. Be specific about the ask: "review CONTRIBUTING.md once; appear in 1 community call per year". Low burden = high acceptance rate.
 
-***REMOVED******REMOVED******REMOVED*** G. Sustainability / funding (Y2+)
+### G. Sustainability / funding (Y2+)
 
 | Funder | Fit | When to apply | Likely award |
 |---|---|---|---|
@@ -277,7 +277,7 @@ Initial 15 (mix of difficulty / domain):
 
 ---
 
-***REMOVED******REMOVED*** 5. Things NOT to do (anti-patterns)
+## 5. Things NOT to do (anti-patterns)
 
 | Anti-pattern | Why it's bad |
 |---|---|
@@ -295,7 +295,7 @@ Initial 15 (mix of difficulty / domain):
 
 ---
 
-***REMOVED******REMOVED*** 6. Milestone roadmap (12–18 months)
+## 6. Milestone roadmap (12–18 months)
 
 | Month | Milestone | KPI | Risk |
 |---|---|---|---|
@@ -313,7 +313,7 @@ Initial 15 (mix of difficulty / domain):
 
 ---
 
-***REMOVED******REMOVED*** 7. Next 30 days — actionable items
+## 7. Next 30 days — actionable items
 
 Ordered by leverage × low-effort:
 
@@ -330,9 +330,9 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED*** 8. Wave 8 dispatch — 6 ready-to-launch mini-briefs
+## 8. Wave 8 dispatch — 6 ready-to-launch mini-briefs
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-1: Repo PUBLIC preparation audit
+### W8-CM-1: Repo PUBLIC preparation audit
 
 **Mission**: complete pre-PUBLIC audit for both main repo and carve-out targets. Identify all blockers.
 
@@ -352,7 +352,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-2: `soc-pipeline` carve-out architecture spec
+### W8-CM-2: `soc-pipeline` carve-out architecture spec
 
 **Mission**: design the standalone PyPI package architecture without writing code.
 
@@ -370,7 +370,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-3: CONTRIBUTING + governance docs (Phase 1 minimal)
+### W8-CM-3: CONTRIBUTING + governance docs (Phase 1 minimal)
 
 **Mission**: produce the 4 minimum docs needed for external contributions.
 
@@ -388,7 +388,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-4: 15 good-first-issue drafts
+### W8-CM-4: 15 good-first-issue drafts
 
 **Mission**: write 15 ready-to-file good-first-issues for `soc-pipeline`.
 
@@ -405,7 +405,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-5: External-facing READMEs
+### W8-CM-5: External-facing READMEs
 
 **Mission**: write public-audience READMEs for both carved-out repos.
 
@@ -428,7 +428,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** W8-CM-6: HN launch playbook
+### W8-CM-6: HN launch playbook
 
 **Mission**: produce a complete launch playbook for the day main-repo goes PUBLIC.
 
@@ -449,7 +449,7 @@ Ordered by leverage × low-effort:
 
 ---
 
-***REMOVED******REMOVED*** 9. Scoring rubric — how we know community-building is working
+## 9. Scoring rubric — how we know community-building is working
 
 Tracked monthly. Reviewed quarterly.
 
@@ -479,7 +479,7 @@ Tracked monthly. Reviewed quarterly.
 
 ---
 
-***REMOVED******REMOVED*** 10. Highest-leverage single action
+## 10. Highest-leverage single action
 
 If only ONE thing happens in the next 30 days, make it: **ship `soc-pipeline` as a standalone PyPI-installable package with 5 verified-system reproducibility notebooks**.
 
@@ -494,7 +494,7 @@ Everything else in this doc (governance, partnerships, content) is *amplificatio
 
 ---
 
-***REMOVED******REMOVED*** 11. Open questions for user / founder decision
+## 11. Open questions for user / founder decision
 
 1. **Carve-out timing**: ship `soc-pipeline` PUBLIC before main repo PUBLIC (per this plan), or wait? Recommendation: ship first. User decision.
 2. **PyPI naming**: `soc-pipeline` vs `soc-toolkit` vs `pyselforg` vs `socology` — check availability first. Recommendation: `soc-pipeline` (descriptive, search-friendly).
@@ -504,7 +504,7 @@ Everything else in this doc (governance, partnerships, content) is *amplificatio
 
 ---
 
-***REMOVED******REMOVED*** 12. Cross-reference
+## 12. Cross-reference
 
 - D-struct-3 (main repo PUBLIC after unified preprint) — RESPECTED. Carve-outs are preprint-independent.
 - W6-D narrative fixes — feeds into external-facing README tone (less academic, more user-empathy).

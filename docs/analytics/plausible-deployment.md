@@ -1,4 +1,4 @@
-***REMOVED*** Plausible Community Edition — VPS self-hosted deployment
+# Plausible Community Edition — VPS self-hosted deployment
 
 > **Status (2026-05-13, W4-B G3)**: scaffold only. Plausible JS snippet is already
 > wired into the site (`web/frontend/*.html` + `web/phase-detector/app/layout.tsx`)
@@ -11,7 +11,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. Why self-host
+## 1. Why self-host
 
 - Plausible Cloud is $9/month for 10k pageviews. Cheap, but we already have a
   VPS with spare capacity.
@@ -21,7 +21,7 @@
   (pageviews, referrers, top pages, sources). What CE lacks vs Cloud: funnels,
   saved segments, multi-user team plans — none of which we need yet.
 
-***REMOVED******REMOVED*** 2. Prerequisites
+## 2. Prerequisites
 
 | Item | Status / how |
 |---|---|
@@ -32,7 +32,7 @@
 | Disk space | ~2 GB initial, grows ~1 MB / 100k pageviews |
 | Memory | 2 GB headroom recommended (Postgres + ClickHouse + Plausible) |
 
-***REMOVED******REMOVED*** 3. docker-compose.yml
+## 3. docker-compose.yml
 
 Save to `/root/plausible/docker-compose.yml`:
 
@@ -86,8 +86,8 @@ volumes:
 Generate secrets:
 
 ```bash
-openssl rand -base64 48      ***REMOVED*** SECRET_KEY_BASE
-openssl rand -base64 24      ***REMOVED*** POSTGRES_PASSWORD (substitute in BOTH places)
+openssl rand -base64 48      # SECRET_KEY_BASE
+openssl rand -base64 24      # POSTGRES_PASSWORD (substitute in BOTH places)
 ```
 
 Plus the two ClickHouse logging configs (minimal, suppress noise):
@@ -114,16 +114,16 @@ Plus the two ClickHouse logging configs (minimal, suppress noise):
 </clickhouse>
 ```
 
-***REMOVED******REMOVED*** 4. Bring up
+## 4. Bring up
 
 ```bash
 cd /root/plausible
 docker compose up -d
-docker compose logs -f plausible       ***REMOVED*** watch for "Running PlausibleWeb.Endpoint"
-curl -I http://127.0.0.1:8000          ***REMOVED*** should 200 / 302
+docker compose logs -f plausible       # watch for "Running PlausibleWeb.Endpoint"
+curl -I http://127.0.0.1:8000          # should 200 / 302
 ```
 
-***REMOVED******REMOVED*** 5. DNS
+## 5. DNS
 
 DNSPod (manual or via tccli):
 
@@ -138,7 +138,7 @@ tccli dnspod CreateRecord --cli-unfold-argument \
 
 Wait ~1 min, verify: `dig plausible.bytedance.city +short` → `43.156.233.71`.
 
-***REMOVED******REMOVED*** 6. nginx reverse proxy
+## 6. nginx reverse proxy
 
 Create `/etc/nginx/conf.d/plausible.conf`:
 
@@ -163,7 +163,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/plausible.bytedance.city/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/plausible.bytedance.city/privkey.pem;
 
-    ***REMOVED*** Plausible needs websocket support for the live dashboard
+    # Plausible needs websocket support for the live dashboard
     proxy_http_version 1.1;
     proxy_set_header   Upgrade           $http_upgrade;
     proxy_set_header   Connection        "upgrade";
@@ -186,7 +186,7 @@ Test + reload:
 nginx -t && systemctl reload nginx
 ```
 
-***REMOVED******REMOVED*** 7. SSL via certbot
+## 7. SSL via certbot
 
 ```bash
 certbot --nginx -d plausible.bytedance.city \
@@ -196,7 +196,7 @@ certbot --nginx -d plausible.bytedance.city \
 certbot auto-rewrites the conf to add the cert paths and `ssl_session_cache`,
 `ssl_protocols TLSv1.2 TLSv1.3`, etc.
 
-***REMOVED******REMOVED*** 8. First-time setup
+## 8. First-time setup
 
 1. Browse to `https://plausible.bytedance.city/register`. Because we set
    `DISABLE_REGISTRATION=invite_only`, only the first user can register before
@@ -215,20 +215,20 @@ certbot auto-rewrites the conf to add the cert paths and `ssl_session_cache`,
    the site config in Plausible, not the HTML.
 5. Add second site for `phase.bytedance.city` (when that subdomain ships).
 
-***REMOVED******REMOVED*** 9. Verify
+## 9. Verify
 
 ```bash
-curl -I https://plausible.bytedance.city/js/script.js   ***REMOVED*** expect 200
-curl -A 'Mozilla/5.0' https://structural.bytedance.city/   ***REMOVED*** warm a page
-***REMOVED*** wait ~10 s, check dashboard → "Realtime"
+curl -I https://plausible.bytedance.city/js/script.js   # expect 200
+curl -A 'Mozilla/5.0' https://structural.bytedance.city/   # warm a page
+# wait ~10 s, check dashboard → "Realtime"
 ```
 
 Send 1-2 page views from a different network / phone to confirm capture.
 
-***REMOVED******REMOVED*** 10. Backups
+## 10. Backups
 
 ```bash
-***REMOVED*** nightly cron, /etc/cron.d/plausible-backup
+# nightly cron, /etc/cron.d/plausible-backup
 0 3 * * * root cd /root/plausible && docker compose exec -T plausible_db \
   pg_dump -U postgres plausible_db | gzip > /root/backups/plausible-pg-$(date +\%F).sql.gz
 ```
@@ -236,7 +236,7 @@ Send 1-2 page views from a different network / phone to confirm capture.
 ClickHouse events DB is replayable from Postgres in a pinch; don't bother
 backing it up unless we grow past ~1M events.
 
-***REMOVED******REMOVED*** 11. Upgrades
+## 11. Upgrades
 
 ```bash
 cd /root/plausible
@@ -247,14 +247,14 @@ docker compose up -d
 Plausible CE follows semver; minor versions are non-breaking. Check the release
 notes for major bumps (rare).
 
-***REMOVED******REMOVED*** 12. Cost
+## 12. Cost
 
 - VPS: already paid for.
 - Domain: already paid for.
 - Disk: negligible until ~1M events.
 - **Marginal cost: $0/month.**
 
-***REMOVED******REMOVED*** 13. Failure modes / rollback
+## 13. Failure modes / rollback
 
 - If Plausible container OOMs: bump VPS or `docker compose down plausible` and
   go back to nginx access log analytics (`scripts/analytics/parse_nginx_logs.py`).
@@ -263,7 +263,7 @@ notes for major bumps (rare).
 - The site snippet is harmless if Plausible is down — `defer` + non-blocking +
   silent DNS fail.
 
-***REMOVED******REMOVED*** 14. Privacy disclosure
+## 14. Privacy disclosure
 
 We've already committed `docs/privacy-policy.md`. Plausible CE is cookieless
 and doesn't store IPs, so no additional disclosure is needed once deployed.

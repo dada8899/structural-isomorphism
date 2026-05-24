@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-***REMOVED*** soc_pipeline lives in packages/soc-pipeline/src — make it importable
+# soc_pipeline lives in packages/soc-pipeline/src — make it importable
 _PKG = Path(__file__).resolve().parents[3] / "packages" / "soc-pipeline" / "src"
 if str(_PKG) not in sys.path:
     sys.path.insert(0, str(_PKG))
@@ -30,9 +30,9 @@ HERE = Path(__file__).parent
 RAW = HERE / "raw_posts.jsonl"
 OUT = HERE / "fit_result.json"
 
-***REMOVED*** pre-reg bands from wsb-posts.yaml
-P1_BAND = (0.7, 1.3)   ***REMOVED*** Omori p
-P2_BAND = (1.7, 2.3)   ***REMOVED*** cascade-size alpha
+# pre-reg bands from wsb-posts.yaml
+P1_BAND = (0.7, 1.3)   # Omori p
+P2_BAND = (1.7, 2.3)   # cascade-size alpha
 
 
 def load_rows():
@@ -45,7 +45,7 @@ def fit_primary_omori(rows, label: str) -> dict:
     times = np.array(sorted(r["created_utc"] for r in rows if r.get("created_utc")), dtype=float)
     if len(times) < 100:
         return {"label": label, "error": f"too few posts ({len(times)})"}
-    ***REMOVED*** bin_seconds chosen so that mean ~ 5-10 posts/bin (WSB posts ~per 3 min in dense windows)
+    # bin_seconds chosen so that mean ~ 5-10 posts/bin (WSB posts ~per 3 min in dense windows)
     res = bin_and_omori_from_events(times, bin_seconds=300.0, sigma_k=2.5, window_bins=48)
     out = {
         "label": label,
@@ -70,12 +70,12 @@ def fit_primary_omori(rows, label: str) -> dict:
 def fit_secondary_clauset(rows, label: str) -> dict:
     """P2: Clauset power-law on cascade size = num_comments."""
     sizes = np.array([r.get("num_comments") or 0 for r in rows], dtype=int)
-    sizes = sizes[sizes >= 1]  ***REMOVED*** Clauset needs positive
+    sizes = sizes[sizes >= 1]  # Clauset needs positive
     if len(sizes) < 100:
         return {"label": label, "error": f"too few cascades ({len(sizes)})"}
     fit = fit_clauset_powerlaw(sizes, name=f"wsb_cascade_{label}", discrete=True)
     fd = fit.to_dict()
-    ***REMOVED*** bootstrap CI
+    # bootstrap CI
     try:
         boot = bootstrap_ci(sizes, n_boot=200, seed=42, discrete=True)
         if not boot.error:
@@ -113,7 +113,7 @@ def derive_verdict(primary: dict, secondary: dict) -> str:
     p_in = primary.get("in_band")
     s_in = secondary.get("in_band")
 
-    ***REMOVED*** INCONCLUSIVE only if PRIMARY fit failed entirely
+    # INCONCLUSIVE only if PRIMARY fit failed entirely
     if p_err is not None:
         return "INCONCLUSIVE"
 
@@ -123,7 +123,7 @@ def derive_verdict(primary: dict, secondary: dict) -> str:
         return "PARTIAL"
     if p_in is False and s_in is True:
         return "PARTIAL"
-    ***REMOVED*** primary outside band
+    # primary outside band
     return "FAIL"
 
 
@@ -164,7 +164,7 @@ def main():
         print(f"  secondary alpha={secondary.get('alpha')!r} in_band={secondary.get('in_band')!r}")
         print(f"  verdict: {verdict}")
 
-    ***REMOVED*** headline verdict = pre-reg's primary slice = pre_2021 (adversarial robustness pick)
+    # headline verdict = pre-reg's primary slice = pre_2021 (adversarial robustness pick)
     result["headline_slice"] = "pre_2021"
     result["headline_verdict"] = result["slices"]["pre_2021"]["verdict"]
 

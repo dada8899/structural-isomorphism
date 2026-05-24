@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """F2 baseline ablation: compare 3 active-learning query selection strategies.
 
 W5-B reviewer feedback flagged that `f2_simulate_active_learning.py` shows the
@@ -48,12 +48,12 @@ REPO = THIS.parents[2]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 sys.path.insert(0, str(REPO / "v4" / "scripts"))
 
-from embedding_finetune import (  ***REMOVED*** noqa: E402
+from embedding_finetune import (  # noqa: E402
     ContrastiveFinetuner,
     FinetuneMetrics,
     TrainingPair,
 )
-from f2_simulate_active_learning import (  ***REMOVED*** noqa: E402
+from f2_simulate_active_learning import (  # noqa: E402
     _all_text,
     baseline_metrics,
     load_pairs,
@@ -67,9 +67,9 @@ NEGATIVES = REPO / "v4" / "results" / "active_learning" / "hard_negatives_v1.jso
 REPORT = REPO / "v4" / "results" / "active_learning" / "baseline_comparison.md"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Selection strategies
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Selection strategies
+# ---------------------------------------------------------------------------
 
 
 def select_random(
@@ -97,21 +97,21 @@ def select_uncertainty(
     """
     baseline = ContrastiveFinetuner(lr=0.0, mode="simulated")
     baseline.fit(train_pairs, epochs=1, batch_size=64, vocab_corpus=vocab_corpus)
-    if baseline._weights is not None:  ***REMOVED*** type: ignore[attr-defined]
-        baseline._weights = np.ones_like(baseline._weights)  ***REMOVED*** type: ignore[attr-defined]
+    if baseline._weights is not None:  # type: ignore[attr-defined]
+        baseline._weights = np.ones_like(baseline._weights)  # type: ignore[attr-defined]
 
     sims = []
     for p in train_pairs:
         try:
-            emb_a = baseline._encode_one(p.text_a)  ***REMOVED*** type: ignore[attr-defined]
-            emb_b = baseline._encode_one(p.text_b)  ***REMOVED*** type: ignore[attr-defined]
+            emb_a = baseline._encode_one(p.text_a)  # type: ignore[attr-defined]
+            emb_b = baseline._encode_one(p.text_b)  # type: ignore[attr-defined]
             denom = (np.linalg.norm(emb_a) * np.linalg.norm(emb_b)) or 1.0
             sims.append(float(np.dot(emb_a, emb_b) / denom))
         except Exception:
-            sims.append(0.5)  ***REMOVED*** fallback to neutral
+            sims.append(0.5)  # fallback to neutral
 
     boundary = float(np.median(sims)) if sims else 0.5
-    ***REMOVED*** Distance from boundary — smaller = more uncertain
+    # Distance from boundary — smaller = more uncertain
     distance = [abs(s - boundary) for s in sims]
     order = np.argsort(distance)
     if budget >= len(train_pairs):
@@ -127,8 +127,8 @@ def select_critic(
     """Critic-based: use all miner-mined pairs (these were selected by the
     B1/B3 critic feedback in `f2_mine_hard_negatives.py`). Truncate to budget
     if oversized."""
-    ***REMOVED*** Pairs with higher confidence + non-zero source_verdict carry stronger
-    ***REMOVED*** critic signal; prefer those.
+    # Pairs with higher confidence + non-zero source_verdict carry stronger
+    # critic signal; prefer those.
     scored = sorted(
         train_pairs,
         key=lambda p: (1 if p.source_verdict else 0, p.confidence, p.weight),
@@ -137,9 +137,9 @@ def select_critic(
     return scored[:budget] if budget < len(scored) else scored
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Train + eval per strategy
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Train + eval per strategy
+# ---------------------------------------------------------------------------
 
 
 def run_strategy(
@@ -171,9 +171,9 @@ def run_strategy(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Report
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
 
 
 def write_report(
@@ -186,7 +186,7 @@ def write_report(
 ) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = []
-    lines.append("***REMOVED*** F2 Active Learning — Baseline Strategy Comparison")
+    lines.append("# F2 Active Learning — Baseline Strategy Comparison")
     lines.append("")
     lines.append("**Goal**: compare three query-selection strategies (random / uncertainty / critic) at the same labelling budget to test whether the critic-based selection adds value beyond a random or uncertainty baseline.")
     lines.append("")
@@ -194,14 +194,14 @@ def write_report(
     lines.append(f"- Train pool size: {n_train}")
     lines.append(f"- Eval split size: {n_eval}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Vanilla baseline (no AL, unit TF-IDF weights)")
+    lines.append("## Vanilla baseline (no AL, unit TF-IDF weights)")
     lines.append("")
     lines.append(f"- R@5:        {baseline.r_at_5:.3f}")
     lines.append(f"- R@10:       {baseline.r_at_10:.3f}")
     lines.append(f"- MRR:        {baseline.mrr:.3f}")
     lines.append(f"- Silhouette: {baseline.silhouette:.3f}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Strategy comparison")
+    lines.append("## Strategy comparison")
     lines.append("")
     lines.append("| Strategy | n_selected | n_pos | n_neg | R@5 | R@10 | MRR | Silhouette | Δ R@5 vs baseline |")
     lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
@@ -213,7 +213,7 @@ def write_report(
             f"{m.r_at_5:.3f} | {m.r_at_10:.3f} | {m.mrr:.3f} | {m.silhouette:.3f} | {delta:+.3f} |"
         )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Interpretation")
+    lines.append("## Interpretation")
     lines.append("")
     by_name = {s["name"]: s["metrics"].r_at_5 for s in strategies}
     if "critic" in by_name and "random" in by_name and "uncertainty" in by_name:
@@ -229,11 +229,11 @@ def write_report(
         else:
             lines.append("Strategies are within noise of each other at this budget; larger budget needed to discriminate.")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Caveat")
+    lines.append("## Caveat")
     lines.append("")
     lines.append("This is a simulation on TF-IDF char n-grams, not real V1/V2 sentence-transformer fine-tuning. The relative deltas between strategies are informative; absolute numbers are not directly comparable to the production V3 fine-tune. See `f2_simulate_active_learning.py` and `v4/lib/F2_active_learning_design.md` §3 for the real-run swap.")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Method")
+    lines.append("## Method")
     lines.append("")
     lines.append("1. Load all mined pairs (positives + hard negatives) from `f2_mine_hard_negatives.py` output.")
     lines.append("2. Train/eval split (stratified by label, seed=42).")
@@ -247,9 +247,9 @@ def write_report(
     out.write_text("\n".join(lines), encoding="utf-8")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 
 def main() -> int:
@@ -283,11 +283,11 @@ def main() -> int:
     vocab_corpus = _all_text(train) + _all_text(evalset)
     logger.info("Split: %d train / %d eval", len(train), len(evalset))
 
-    ***REMOVED*** Equal-budget comparison: default = use the full train pool so each
-    ***REMOVED*** strategy gets the same number of pairs.
+    # Equal-budget comparison: default = use the full train pool so each
+    # strategy gets the same number of pairs.
     budget = args.budget if args.budget > 0 else len(train)
 
-    ***REMOVED*** Vanilla baseline (unit weights, no selection)
+    # Vanilla baseline (unit weights, no selection)
     baseline = baseline_metrics(evalset, vocab_corpus=vocab_corpus)
     logger.info(
         "Baseline (no AL): R@5=%.3f MRR=%.3f", baseline.r_at_5, baseline.mrr,
@@ -319,7 +319,7 @@ def main() -> int:
     )
     logger.info("Wrote report -> %s", args.report)
 
-    ***REMOVED*** Also dump JSON to stdout for programmatic consumers
+    # Also dump JSON to stdout for programmatic consumers
     print(json.dumps(
         {
             "baseline_r5": baseline.r_at_5,

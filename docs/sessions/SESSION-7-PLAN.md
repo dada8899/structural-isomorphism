@@ -1,13 +1,13 @@
-***REMOVED*** Session ***REMOVED***7 — Master Plan
+# Session #7 — Master Plan
 
 > Started: 2026-05-14
-> Authorization: user 全权授权，5 个方向（***REMOVED***1 ***REMOVED***2 ***REMOVED***3 ***REMOVED***4 ***REMOVED***6）做完 + 主页面定型 Perplexity-like 真搜索引擎
+> Authorization: user 全权授权，5 个方向（#1 #2 #3 #4 #6）做完 + 主页面定型 Perplexity-like 真搜索引擎
 > Execution: 多 agent 并行 + worktree 隔离 + 3 wave 推进
 > Stop condition: 上下文 ≥ 90% OR 所有 wave 全部 merged + 部署 + smoke 通过
 
 ---
 
-***REMOVED******REMOVED*** 0. 北极星 (North Star)
+## 0. 北极星 (North Star)
 
 **最终主页面 = Perplexity-like 真搜索引擎**：
 
@@ -53,9 +53,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. 任务全景 (5 directions × N tasks)
+## 1. 任务全景 (5 directions × N tasks)
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***6 Perplexity-like 真搜索引擎（最高优先级，最终主页面）
+### #6 Perplexity-like 真搜索引擎（最高优先级，最终主页面）
 
 **Backend**：
 - 新 endpoint `POST /api/ask/stream` (SSE)：
@@ -78,7 +78,7 @@
 - 至少 3 个 follow-up 可点击触发新查询
 - Mobile 375px 不破
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***1 Phase Detector backtest + scale 500
+### #1 Phase Detector backtest + scale 500
 
 **Backtest engine v0.1**：
 - `v4/product/d1_phase_detector/backtest.py`
@@ -98,7 +98,7 @@
 - 至少 500 家公司有 StructTuple
 - phase.bytedance.city 加 `/backtest` 页面（基础版可以）
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***3 科学纵深
+### #3 科学纵深
 
 **(a) Adversarial pre-registration (3 systems)**：
 - 复盘 C1 v0.3 §8 列的 5 个候选系统
@@ -119,7 +119,7 @@
 - 24 个 `v4/taxonomy/classes/*.yaml` 加 negative_examples + edge_cases 字段
 - Script: `v4/scripts/expand_taxonomy_yaml.py` (LLM-assisted)
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***4 工程平台
+### #4 工程平台
 
 **(a) GitHub Actions CI**：
 - `.github/workflows/sanity.yml` — push/PR 跑 38 sanity tests + lint
@@ -145,7 +145,7 @@
 - 检查 `i18n.js` 缺哪些 key
 - 补齐英文翻译（重点新 `/` 页 + /analyze + /search）
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***2 UX 第三轮
+### #2 UX 第三轮
 
 **(a) Playwright MCP 跑全栈 e2e**：
 - 测试新 `/` Perplexity-like 全流（input → short answer → similar cards → follow-up → deep analysis link）
@@ -161,7 +161,7 @@
 - 老页面也补 `glossary_tooltip_opened` / `tldr_card_shown`
 
 **(d) /discoveries layout shift 修**：
-- PR-6 模式应用：`***REMOVED***disc-hero-stats / ***REMOVED***disc-filter / ***REMOVED***disc-list` 加 skeleton
+- PR-6 模式应用：`#disc-hero-stats / #disc-filter / #disc-list` 加 skeleton
 
 **(e) GlossaryTooltip v2 词汇**：
 - 加 5 词：相变 / 标度形式 / 涌现 / 反馈环 / 阈值效应
@@ -169,40 +169,40 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. Wave 结构 (3 waves, agent assignment)
+## 2. Wave 结构 (3 waves, agent assignment)
 
-***REMOVED******REMOVED******REMOVED*** Wave 1 — Foundations & long-running (4 agents parallel, isolated worktrees)
+### Wave 1 — Foundations & long-running (4 agents parallel, isolated worktrees)
 
 | Agent | Branch | 任务 | 估时 | 输出 |
 |---|---|---|---|---|
-| **W1-A** | `session7/ask-orchestrator` | ***REMOVED***6 Backend: `/api/ask/stream` + `ask_orchestrator.py` + pydantic schema + test | 30-45min | endpoint + 1 unit test + curl example |
-| **W1-B** | `session7/phase-500` | ***REMOVED***1 Scale 100→500 + StructTuple batch extract (DeepSeek-v4-flash) | 60-90min (LLM batch) | `companies_500.jsonl` |
-| **W1-C** | `session7/preregister-setup` | ***REMOVED***3 Adversarial pre-register infra (3 yaml + soc_pipeline runner) + B4 ensemble script | 30-45min | infra + scripts + 1 system run example |
-| **W1-D** | `session7/eng-foundation` | ***REMOVED***4 GitHub Actions CI + history DB schema + SQLite migration script | 30-45min | `.github/workflows/*.yml` + history.db schema |
+| **W1-A** | `session7/ask-orchestrator` | #6 Backend: `/api/ask/stream` + `ask_orchestrator.py` + pydantic schema + test | 30-45min | endpoint + 1 unit test + curl example |
+| **W1-B** | `session7/phase-500` | #1 Scale 100→500 + StructTuple batch extract (DeepSeek-v4-flash) | 60-90min (LLM batch) | `companies_500.jsonl` |
+| **W1-C** | `session7/preregister-setup` | #3 Adversarial pre-register infra (3 yaml + soc_pipeline runner) + B4 ensemble script | 30-45min | infra + scripts + 1 system run example |
+| **W1-D** | `session7/eng-foundation` | #4 GitHub Actions CI + history DB schema + SQLite migration script | 30-45min | `.github/workflows/*.yml` + history.db schema |
 
 **Wave 1 必须先于 Wave 2 完成。** Wave 1 全 merged 后启 Wave 2。
 
-***REMOVED******REMOVED******REMOVED*** Wave 2 — Frontend rebuild + science follow-up (4 agents parallel)
+### Wave 2 — Frontend rebuild + science follow-up (4 agents parallel)
 
 | Agent | Branch | 任务 | 估时 | 输出 |
 |---|---|---|---|---|
-| **W2-A** | `session7/ask-ui` | ***REMOVED***6 Frontend: new `/` Perplexity-like UI + ask.js SSE + ask.css | 60-90min | new `index.html` + `ask.js` + `ask.css` |
-| **W2-B** | `session7/backtest` | ***REMOVED***1 Backtest engine math + JSON output + `/backtest` page on phase | 60-90min | `backtest.py` + result JSON + UI page |
-| **W2-C** | `session7/b4-ensemble-run` | ***REMOVED***3 B4 ensemble run 23 类 + yaml schema 扩展 + 2 个 pre-register system 跑 | 60-90min (LLM batch) | `B4_*.jsonl` + 24 yaml updated + 2 system validation |
-| **W2-D** | `session7/eng-polish` | ***REMOVED***4 auth/rate limit + Sentry + i18n EN | 45-60min | auth middleware + structured logger + i18n EN coverage |
+| **W2-A** | `session7/ask-ui` | #6 Frontend: new `/` Perplexity-like UI + ask.js SSE + ask.css | 60-90min | new `index.html` + `ask.js` + `ask.css` |
+| **W2-B** | `session7/backtest` | #1 Backtest engine math + JSON output + `/backtest` page on phase | 60-90min | `backtest.py` + result JSON + UI page |
+| **W2-C** | `session7/b4-ensemble-run` | #3 B4 ensemble run 23 类 + yaml schema 扩展 + 2 个 pre-register system 跑 | 60-90min (LLM batch) | `B4_*.jsonl` + 24 yaml updated + 2 system validation |
+| **W2-D** | `session7/eng-polish` | #4 auth/rate limit + Sentry + i18n EN | 45-60min | auth middleware + structured logger + i18n EN coverage |
 
-***REMOVED******REMOVED******REMOVED*** Wave 3 — UX verification + integration + deploy (3 agents parallel + main session)
+### Wave 3 — UX verification + integration + deploy (3 agents parallel + main session)
 
 | Agent | Branch | 任务 | 估时 | 输出 |
 |---|---|---|---|---|
-| **W3-A** | `session7/e2e-playwright` | ***REMOVED***2 (a) Playwright MCP 跑全栈 e2e + 截图 | 45-60min | screenshots + 1 markdown report |
-| **W3-B** | `session7/ux-polish` | ***REMOVED***2 (b)+(c)+(d)+(e) mobile + Plausible + /discoveries + glossary v2 | 60-90min | 多 PR |
-| **W3-C** | `session7/preregister-3rd` | ***REMOVED***3 第 3 个 pre-register system 跑 + summary draft | 45-60min | 1 system + draft md |
+| **W3-A** | `session7/e2e-playwright` | #2 (a) Playwright MCP 跑全栈 e2e + 截图 | 45-60min | screenshots + 1 markdown report |
+| **W3-B** | `session7/ux-polish` | #2 (b)+(c)+(d)+(e) mobile + Plausible + /discoveries + glossary v2 | 60-90min | 多 PR |
+| **W3-C** | `session7/preregister-3rd` | #3 第 3 个 pre-register system 跑 + summary draft | 45-60min | 1 system + draft md |
 | **Main** | n/a | 部署 VPS + smoke + HANDOFF.md + SESSION-7-end.md + Git tag v0.4.0 | 30-45min | deploy verified + retro shipped |
 
 ---
 
-***REMOVED******REMOVED*** 3. 协同规则（避免踩 commit boundary 雷）
+## 3. 协同规则（避免踩 commit boundary 雷）
 
 1. **每个 agent 用 `isolation: "worktree"`** — 给独立 branch + 独立 fs（防 form 1-6 silent fallback）
 2. **每个 agent 报告 commit SHA**，主 session 验证后 squash merge + delete branch
@@ -214,7 +214,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 4. Stop conditions
+## 4. Stop conditions
 
 继续做的条件：
 - ✅ 上下文 < 90%
@@ -228,12 +228,12 @@
 
 ---
 
-***REMOVED******REMOVED*** 5. Session 收尾产物
+## 5. Session 收尾产物
 
 1. `docs/sessions/SESSION-7-end.md` — 完整 retro，commits 表，PR 表，verdict
-2. `docs/sessions/HANDOFF.md` 更新指向 session ***REMOVED***8
+2. `docs/sessions/HANDOFF.md` 更新指向 session #8
 3. `docs/sessions/SESSION-8-STARTER.md` — 下个 session 起手扫描
-4. Git tag `v0.4.0`（如果 ***REMOVED***6 完整 ship + 3 wave 全过）
+4. Git tag `v0.4.0`（如果 #6 完整 ship + 3 wave 全过）
 5. 部署 + smoke verified（beta.structural / phase / 主 `/` 新页面）
 
 ---

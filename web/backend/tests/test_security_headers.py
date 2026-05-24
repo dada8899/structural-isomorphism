@@ -16,7 +16,7 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from middleware.security_headers import install_security_headers  ***REMOVED*** noqa: E402
+from middleware.security_headers import install_security_headers  # noqa: E402
 
 
 def _client() -> TestClient:
@@ -38,7 +38,7 @@ def test_all_security_headers_present():
     assert h.get("X-Content-Type-Options") == "nosniff"
     assert h.get("Referrer-Policy") == "strict-origin-when-cross-origin"
     assert "Content-Security-Policy" in h
-    ***REMOVED*** HSTS sent on the default (https-assumed) path.
+    # HSTS sent on the default (https-assumed) path.
     assert "Strict-Transport-Security" in h
     assert "max-age=31536000" in h["Strict-Transport-Security"]
 
@@ -47,10 +47,10 @@ def test_csp_whitelists_cdn_dependencies():
     """The CSP must NOT break the frontend's external resources:
     KaTeX (cdn.jsdelivr.net) and Plausible (both hosts)."""
     csp = _client().get("/api/ping").headers["Content-Security-Policy"]
-    assert "cdn.jsdelivr.net" in csp           ***REMOVED*** KaTeX
-    assert "plausible.bytedance.city" in csp   ***REMOVED*** self-hosted analytics
-    assert "plausible.io" in csp               ***REMOVED*** report.html legacy host
-    ***REMOVED*** Clickjacking hard-stop.
+    assert "cdn.jsdelivr.net" in csp           # KaTeX
+    assert "plausible.bytedance.city" in csp   # self-hosted analytics
+    assert "plausible.io" in csp               # report.html legacy host
+    # Clickjacking hard-stop.
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp
 

@@ -25,13 +25,13 @@ _store: Optional[ReportStore] = None
 def _get_store() -> ReportStore:
     global _store
     if _store is None:
-        ***REMOVED*** Reuse history.db (same file as analyze.py / history_db.py).
+        # Reuse history.db (same file as analyze.py / history_db.py).
         db_path = Path(__file__).parent.parent / "data" / "history.db"
         _store = ReportStore(db_path)
     return _store
 
 
-***REMOVED*** ---------------- response shapes ----------------------------------- ***REMOVED***
+# ---------------- response shapes ----------------------------------- #
 
 
 class ReportDetailResponse(BaseModel):
@@ -56,7 +56,7 @@ class ReportListItem(BaseModel):
     lang: str
     created_at: str
     view_count: int
-    ***REMOVED*** B Data Flywheel (Session ***REMOVED***18) — revisit status for the '未回访' badge.
+    # B Data Flywheel (Session #18) — revisit status for the '未回访' badge.
     has_followup: bool = False
     followup_outcome: str = ""
 
@@ -84,7 +84,7 @@ class FeedbackResponse(BaseModel):
     total_down: int
 
 
-***REMOVED*** Session ***REMOVED***17 V6 — report → action → result revisit loop.
+# Session #17 V6 — report → action → result revisit loop.
 _ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "tried", "abandoned"}
 _ALLOWED_OUTCOMES = {"", "worked", "partial", "no_effect", "too_early"}
 
@@ -131,15 +131,15 @@ _ALLOWED_SECTIONS = {
 }
 
 
-***REMOVED*** ---------------- endpoints ----------------------------------------- ***REMOVED***
+# ---------------- endpoints ----------------------------------------- #
 
 
 def _detail_dict(r: dict) -> dict:
     """Project a store row to the public detail shape (drops share_token)."""
     payload = r["payload"]
-    ***REMOVED*** V4: credibility was persisted inside the payload under a reserved key
-    ***REMOVED*** (see analyze.py _maybe_persist) — lift it to a top-level field and
-    ***REMOVED*** hand back a section-only payload. Older reports lack it → None.
+    # V4: credibility was persisted inside the payload under a reserved key
+    # (see analyze.py _maybe_persist) — lift it to a top-level field and
+    # hand back a section-only payload. Older reports lack it → None.
     credibility = None
     if isinstance(payload, dict) and "_credibility" in payload:
         payload = dict(payload)
@@ -177,10 +177,10 @@ async def get_report_by_share(token: str):
     r = store.get_by_share_token(token)
     if r is None:
         raise HTTPException(404, "Report not found")
-    ***REMOVED*** Constant-time check that the token actually signs this row (defence
-    ***REMOVED*** against a future schema change that lets non-HMAC tokens slip in).
+    # Constant-time check that the token actually signs this row (defence
+    # against a future schema change that lets non-HMAC tokens slip in).
     if not verify_share_token(r["id"], token):
-        ***REMOVED*** Token DB row exists but HMAC doesn't verify — config drift.
+        # Token DB row exists but HMAC doesn't verify — config drift.
         logger.warning("share token verify mismatch for report %s", r["id"])
         raise HTTPException(404, "Report not found")
     store.record_view(r["id"])
@@ -207,7 +207,7 @@ async def get_report_by_id(
         raise HTTPException(404, "Report not found")
     owner = r.get("creator_anon_id")
     if owner and owner != (x_anon_id or ""):
-        ***REMOVED*** Hide existence rather than leak via 403.
+        # Hide existence rather than leak via 403.
         raise HTTPException(404, "Report not found")
     store.record_view(report_id)
     return _detail_dict(r)
@@ -224,8 +224,8 @@ async def list_my_reports(
     offset: int = Query(0, ge=0),
 ):
     if not x_anon_id:
-        ***REMOVED*** No anon-id ≈ no history. Return empty rather than 401 so
-        ***REMOVED*** frontend can render "no reports yet" cleanly.
+        # No anon-id ≈ no history. Return empty rather than 401 so
+        # frontend can render "no reports yet" cleanly.
         return {"items": [], "has_more": False}
     store = _get_store()
     items = store.list_by_anon(x_anon_id, limit=limit + 1, offset=offset)
@@ -291,7 +291,7 @@ async def submit_feedback(
 @router.post(
     "/report/{report_id}/followup",
     response_model=FollowupResponse,
-    summary="Record a report → action → result revisit (Session ***REMOVED***17 V6)",
+    summary="Record a report → action → result revisit (Session #17 V6)",
 )
 async def submit_followup(
     report_id: str,
@@ -338,7 +338,7 @@ async def submit_followup(
 
 @router.get(
     "/report/{report_id}/followup",
-    summary="Read the current anon's followup for a report (Session ***REMOVED***17 V6)",
+    summary="Read the current anon's followup for a report (Session #17 V6)",
 )
 async def get_followup(
     report_id: str,

@@ -1,5 +1,5 @@
-***REMOVED***!/usr/bin/env python3
-"""W13-E (session ***REMOVED***10): build client-side Cmd+K search index.
+#!/usr/bin/env python3
+"""W13-E (session #10): build client-side Cmd+K search index.
 
 Scans the repo for searchable content and outputs a single JSON blob to
 `web/phase-detector/public/search-index.json` for the Cmd+K palette to
@@ -21,7 +21,7 @@ Output schema:
       "subtitle": string,
       "url":      string,
       "keywords": [string],
-      "weight":   float    ***REMOVED*** 0..1 — used for ranking ties
+      "weight":   float    # 0..1 — used for ranking ties
     },
     ...
   ]
@@ -51,7 +51,7 @@ NEWSLETTER_DIR = REPO_ROOT / "docs" / "community" / "newsletters"
 DOCS_DIR = REPO_ROOT / "docs"
 OUTPUT = REPO_ROOT / "web" / "phase-detector" / "public" / "search-index.json"
 
-***REMOVED*** Type weight — used as a tiebreaker after match score.
+# Type weight — used as a tiebreaker after match score.
 TYPE_WEIGHT = {
     "company": 1.0,
     "universality_class": 0.95,
@@ -60,7 +60,7 @@ TYPE_WEIGHT = {
     "docs": 0.6,
 }
 
-***REMOVED*** Sector → readable label (mirrors lib/labels.ts roughly).
+# Sector → readable label (mirrors lib/labels.ts roughly).
 SECTOR_LABELS = {
     "tech_hardware": "Technology · Hardware",
     "tech_software": "Technology · Software",
@@ -110,7 +110,7 @@ def extract_keywords(*values: str) -> list[str]:
     for v in values:
         if not v:
             continue
-        ***REMOVED*** Split on whitespace + punctuation; keep CJK characters intact.
+        # Split on whitespace + punctuation; keep CJK characters intact.
         tokens = re.split(r"[\s,;.\-_/()\[\]{}'\"<>!?]+", v.lower())
         for t in tokens:
             t = t.strip()
@@ -181,8 +181,8 @@ def index_universality_classes() -> list[dict[str, Any]]:
         else:
             subtitle = f"Universality class · status: {status}"
 
-        ***REMOVED*** Keywords: include class_id, display name, zh name, status.
-        ***REMOVED*** hub_phenomenon truncated to first 80 chars (avoid index bloat).
+        # Keywords: include class_id, display name, zh name, status.
+        # hub_phenomenon truncated to first 80 chars (avoid index bloat).
         hub_short = hub[:80]
         entries.append({
             "id": f"universality-{class_id}",
@@ -203,23 +203,23 @@ def index_universality_classes() -> list[dict[str, Any]]:
 
 
 def _extract_md_title(text: str, fallback: str) -> str:
-    """Return the first `***REMOVED*** Heading` line, else fallback."""
+    """Return the first `# Heading` line, else fallback."""
     for line in text.splitlines()[:20]:
-        m = re.match(r"^***REMOVED***\s+(.+)$", line.strip())
+        m = re.match(r"^#\s+(.+)$", line.strip())
         if m:
             return m.group(1).strip()
     return fallback
 
 
 def _extract_md_headings(text: str, max_n: int = 6) -> list[tuple[str, str]]:
-    """Return [(slug, heading)] for ***REMOVED******REMOVED*** headings (skip the top-level title)."""
+    """Return [(slug, heading)] for ## headings (skip the top-level title)."""
     out: list[tuple[str, str]] = []
     for line in text.splitlines():
-        m = re.match(r"^***REMOVED******REMOVED***\s+(.+)$", line.strip())
+        m = re.match(r"^##\s+(.+)$", line.strip())
         if not m:
             continue
         h = m.group(1).strip()
-        ***REMOVED*** Strip leading numbering "1.", "2.1", etc.
+        # Strip leading numbering "1.", "2.1", etc.
         h_clean = re.sub(r"^[\d.]+\s*", "", h)
         slug = slugify(h_clean) or slugify(h)
         if slug:
@@ -231,7 +231,7 @@ def _extract_md_headings(text: str, max_n: int = 6) -> list[tuple[str, str]]:
 
 def index_papers() -> list[dict[str, Any]]:
     """Index paper/*.md files; each top-level paper becomes 1 entry +
-    1 entry per ***REMOVED******REMOVED*** heading (anchor)."""
+    1 entry per ## heading (anchor)."""
     if not PAPER_DIR.exists():
         return []
     entries: list[dict[str, Any]] = []
@@ -242,7 +242,7 @@ def index_papers() -> list[dict[str, Any]]:
             continue
         slug = path.stem
         title = _extract_md_title(text, slug)
-        ***REMOVED*** Date in filename if present: "...-2026-05-15.md"
+        # Date in filename if present: "...-2026-05-15.md"
         date_match = re.search(r"(\d{4}-\d{2}-\d{2})", slug)
         date = date_match.group(1) if date_match else ""
         subtitle = f"Paper · {date}" if date else "Paper"
@@ -251,19 +251,19 @@ def index_papers() -> list[dict[str, Any]]:
             "type": "paper",
             "title": title,
             "subtitle": subtitle,
-            "url": f"/methodology***REMOVED***{slug}",
+            "url": f"/methodology#{slug}",
             "keywords": extract_keywords(title, slug, "paper"),
             "weight": TYPE_WEIGHT["paper"],
             "date": date,
         })
-        ***REMOVED*** Add up to 4 section anchors (lighter weight than paper itself).
+        # Add up to 4 section anchors (lighter weight than paper itself).
         for hslug, heading in _extract_md_headings(text, max_n=4):
             entries.append({
                 "id": f"paper-{slug}-{hslug}",
                 "type": "paper",
                 "title": heading,
                 "subtitle": f"in: {title}",
-                "url": f"/methodology***REMOVED***{slug}-{hslug}",
+                "url": f"/methodology#{slug}-{hslug}",
                 "keywords": extract_keywords(heading, slug, "paper"),
                 "weight": TYPE_WEIGHT["paper"] * 0.75,
                 "date": date,
@@ -281,17 +281,17 @@ def index_newsletters() -> list[dict[str, Any]]:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        ***REMOVED*** Filename pattern: issue-001-2026-05-15.md
+        # Filename pattern: issue-001-2026-05-15.md
         m = re.match(r"^issue-(\d+)-(\d{4}-\d{2}-\d{2})$", path.stem)
         if not m:
             continue
         issue_num, date = m.group(1), m.group(2)
-        title = _extract_md_title(text, f"Issue ***REMOVED***{issue_num}")
+        title = _extract_md_title(text, f"Issue #{issue_num}")
         entries.append({
             "id": f"newsletter-{issue_num}",
             "type": "newsletter",
             "title": title,
-            "subtitle": f"Newsletter · Issue ***REMOVED***{issue_num} · {date}",
+            "subtitle": f"Newsletter · Issue #{issue_num} · {date}",
             "url": f"/newsletter/{issue_num.zfill(3)}",
             "keywords": extract_keywords(title, f"issue {issue_num}", date, "newsletter"),
             "weight": TYPE_WEIGHT["newsletter"],
@@ -300,7 +300,7 @@ def index_newsletters() -> list[dict[str, Any]]:
     return entries
 
 
-***REMOVED*** Docs subtrees we exclude (machine output, drafts, internal handoffs).
+# Docs subtrees we exclude (machine output, drafts, internal handoffs).
 _DOCS_EXCLUDE = {
     "_build",
     "arxiv-drafts",
@@ -317,14 +317,14 @@ def index_docs() -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for path in sorted(DOCS_DIR.rglob("*.md")):
         rel = path.relative_to(DOCS_DIR)
-        ***REMOVED*** Skip newsletters (own bucket) + excluded subtrees.
+        # Skip newsletters (own bucket) + excluded subtrees.
         parts = rel.parts
         if parts and parts[0] == "community" and len(parts) > 1 and parts[1] == "newsletters":
             continue
         if any(p in _DOCS_EXCLUDE for p in parts):
             continue
         if rel.name.lower() == "readme.md":
-            ***REMOVED*** Allow only top-level READMEs (skip nested noise).
+            # Allow only top-level READMEs (skip nested noise).
             if len(parts) > 2:
                 continue
         try:
@@ -333,8 +333,8 @@ def index_docs() -> list[dict[str, Any]]:
             continue
         title = _extract_md_title(text, rel.stem.replace("-", " ").title())
         slug = slugify(rel.with_suffix("").as_posix().replace("/", "-"))
-        ***REMOVED*** Build a docs URL — best-effort: not all docs are statically served.
-        ***REMOVED*** MkDocs convention: docs/foo/bar.md → /docs/foo/bar/
+        # Build a docs URL — best-effort: not all docs are statically served.
+        # MkDocs convention: docs/foo/bar.md → /docs/foo/bar/
         url_path = rel.with_suffix("").as_posix()
         entries.append({
             "id": f"docs-{slug}",

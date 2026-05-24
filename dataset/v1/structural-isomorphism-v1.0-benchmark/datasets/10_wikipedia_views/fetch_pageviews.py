@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 13 — Wikipedia pageview catalog.
 
 Pulls Top-1000 English Wikipedia articles for each month of 2024 from the
@@ -28,10 +28,10 @@ import urllib.request
 from pathlib import Path
 
 UA = "structural-isomorphism/1.0 (contact:https://structural.bytedance.city)"
-***REMOVED*** Span 2023 + 2024 (24 months) — Wikimedia REST has gaps for some 2024 months
-***REMOVED*** (2024-09 and 2024-12 return 404 with "data not loaded"). Doubling the
-***REMOVED*** window (a) compensates and (b) gives n > 5000 unique articles for a robust
-***REMOVED*** Clauset tail fit.
+# Span 2023 + 2024 (24 months) — Wikimedia REST has gaps for some 2024 months
+# (2024-09 and 2024-12 return 404 with "data not loaded"). Doubling the
+# window (a) compensates and (b) gives n > 5000 unique articles for a robust
+# Clauset tail fit.
 YEAR_MONTH_PAIRS: list[tuple[int, int]] = [
     (y, m) for y in (2023, 2024) for m in range(1, 13)
 ]
@@ -39,9 +39,9 @@ OUT_DIR = Path(__file__).resolve().parent
 OUT_JSONL = OUT_DIR / "pageviews_2023_2024.jsonl"
 LOG_PATH = OUT_DIR / "fetch_log.json"
 
-***REMOVED*** Excluded by Wikimedia top-list itself (the API returns them, but they are
-***REMOVED*** not user-readable articles — Main Page, Special:Search, etc.). We drop them
-***REMOVED*** defensively so they cannot dominate the tail.
+# Excluded by Wikimedia top-list itself (the API returns them, but they are
+# not user-readable articles — Main Page, Special:Search, etc.). We drop them
+# defensively so they cannot dominate the tail.
 EXCLUDED_PREFIXES = (
     "Special:",
     "Wikipedia:",
@@ -54,7 +54,7 @@ EXCLUDED_PREFIXES = (
 )
 EXCLUDED_EXACT = {
     "Main_Page",
-    "-",  ***REMOVED*** API returns this as a sentinel sometimes
+    "-",  # API returns this as a sentinel sometimes
     "Wikipedia",
     "Special:Search",
     "Special:CreateAccount",
@@ -85,7 +85,7 @@ def fetch_top(year: int, month: int, max_retry: int = 3) -> list[dict]:
             ]
         except urllib.error.HTTPError as e:
             last_err = f"HTTP {e.code}: {e.reason}"
-            ***REMOVED*** 429 / 5xx → retry with linear backoff; 4xx other → bail
+            # 429 / 5xx → retry with linear backoff; 4xx other → bail
             if e.code in (429, 500, 502, 503, 504) and attempt < max_retry:
                 time.sleep(2.0 * attempt)
                 continue
@@ -141,10 +141,10 @@ def main() -> int:
             f"  {y}-{m:02d}: raw={len(rows):4d} kept={len(kept):4d} "
             f"unique_so_far={len(aggregate):5d}"
         )
-        ***REMOVED*** very light rate-limit hygiene
+        # very light rate-limit hygiene
         time.sleep(0.1)
 
-    ***REMOVED*** Write JSONL
+    # Write JSONL
     n_articles = len(aggregate)
     with OUT_JSONL.open("w") as f:
         for article, views in sorted(aggregate.items(), key=lambda kv: -kv[1]):

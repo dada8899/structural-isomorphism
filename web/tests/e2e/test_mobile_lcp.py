@@ -1,4 +1,4 @@
-"""W6-D (session ***REMOVED***7 P1 backlog): mobile first-fold LCP < 2.5s.
+"""W6-D (session #7 P1 backlog): mobile first-fold LCP < 2.5s.
 
 Measures Largest Contentful Paint on the beta production home page at a
 375×667 viewport (iPhone SE-ish). Asserts LCP < 2500ms — Google CWV
@@ -19,7 +19,7 @@ import pytest
 
 BASE = "https://beta.structural.bytedance.city"
 
-***REMOVED*** CWV LCP "good" threshold (Google). Anything <2500ms passes.
+# CWV LCP "good" threshold (Google). Anything <2500ms passes.
 LCP_BUDGET_MS = 2500
 
 
@@ -33,8 +33,8 @@ def _measure_lcp(url: str, viewport: dict, browser) -> dict:
     page = context.new_page()
     try:
         page.goto(url, wait_until="load")
-        ***REMOVED*** The LCP event can land *after* `load`; give the page a settle
-        ***REMOVED*** window similar to what Chrome's CrUX collector uses (~3s).
+        # The LCP event can land *after* `load`; give the page a settle
+        # window similar to what Chrome's CrUX collector uses (~3s).
         page.wait_for_timeout(3000)
         entries = page.evaluate(
             """() => new Promise((resolve) => {
@@ -70,8 +70,8 @@ def _measure_lcp(url: str, viewport: dict, browser) -> dict:
 
     if not entries or "error" in entries[0]:
         pytest.fail(f"failed to capture LCP entry for {url}: {entries!r}")
-    ***REMOVED*** Pick the LATEST (largest) candidate — LCP can fire multiple times,
-    ***REMOVED*** and the final entry is the one CWV uses.
+    # Pick the LATEST (largest) candidate — LCP can fire multiple times,
+    # and the final entry is the one CWV uses.
     return entries[-1]
 
 

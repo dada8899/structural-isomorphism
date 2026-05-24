@@ -1,4 +1,4 @@
-"""W13-A (session ***REMOVED***10, 2026-05-15) — Dark mode + theme provider e2e.
+"""W13-A (session #10, 2026-05-15) — Dark mode + theme provider e2e.
 
 Tests the 3-mode theme system mounted at app/layout.tsx via <ThemeProvider>:
   1. Default theme (no localStorage) = system.
@@ -130,33 +130,33 @@ def fresh_page(browser, next_dev):
     context.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. Default theme (no localStorage) = system → renders without .dark class on
-***REMOVED***    server, then client effect applies it iff prefers-color-scheme: dark.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. Default theme (no localStorage) = system → renders without .dark class on
+#    server, then client effect applies it iff prefers-color-scheme: dark.
+# ---------------------------------------------------------------------------
 
 
 def test_default_theme_is_system(fresh_page):
     page, base = fresh_page
-    ***REMOVED*** Force light system preference so we can deterministically assert no .dark.
+    # Force light system preference so we can deterministically assert no .dark.
     page.emulate_media(color_scheme="light")
     page.goto(base + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Tour may auto-open — dismiss it via localStorage to avoid interference.
+    # Tour may auto-open — dismiss it via localStorage to avoid interference.
     page.evaluate("() => localStorage.setItem('phase_tour_seen', 'true')")
     page.reload(wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Wait until the theme toggle is visible (ensures ThemeProvider mounted).
+    # Wait until the theme toggle is visible (ensures ThemeProvider mounted).
     page.wait_for_selector('[data-testid="theme-toggle"]', state="attached", timeout=8000)
     stored = page.evaluate("() => localStorage.getItem('phase_theme')")
-    ***REMOVED*** We never set localStorage on first visit unless the user clicked the toggle.
+    # We never set localStorage on first visit unless the user clicked the toggle.
     assert stored is None, f"expected no localStorage on first visit, got {stored!r}"
-    ***REMOVED*** No `.dark` class on <html> when system pref is light.
+    # No `.dark` class on <html> when system pref is light.
     has_dark = page.evaluate("() => document.documentElement.classList.contains('dark')")
     assert has_dark is False, "html.dark should NOT be present when system=light"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. Toggle to dark → applies .dark
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. Toggle to dark → applies .dark
+# ---------------------------------------------------------------------------
 
 
 def test_toggle_to_dark_applies_class(fresh_page):
@@ -164,7 +164,7 @@ def test_toggle_to_dark_applies_class(fresh_page):
     page.emulate_media(color_scheme="light")
     page.add_init_script("localStorage.setItem('phase_tour_seen', 'true');")
     page.goto(base + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Wait for the toggle to be ready (ThemeProvider mounted, useTheme wired).
+    # Wait for the toggle to be ready (ThemeProvider mounted, useTheme wired).
     page.wait_for_selector('[data-testid="theme-toggle-dark"]', state="visible", timeout=8000)
     page.locator('[data-testid="theme-toggle-dark"]').first.click()
     page.wait_for_function(
@@ -173,19 +173,19 @@ def test_toggle_to_dark_applies_class(fresh_page):
     )
     stored = page.evaluate("() => localStorage.getItem('phase_theme')")
     assert stored == "dark", f"localStorage should be 'dark', got {stored!r}"
-    ***REMOVED*** color-scheme inline style flips so native form controls match.
+    # color-scheme inline style flips so native form controls match.
     cs = page.evaluate("() => document.documentElement.style.colorScheme")
     assert cs == "dark", f"colorScheme should be 'dark', got {cs!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. Toggle to light → removes .dark
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Toggle to light → removes .dark
+# ---------------------------------------------------------------------------
 
 
 def test_toggle_to_light_removes_class(fresh_page):
     page, base = fresh_page
-    ***REMOVED*** Start from dark so we can verify the flip.
+    # Start from dark so we can verify the flip.
     page.emulate_media(color_scheme="dark")
     page.add_init_script(
         "localStorage.setItem('phase_tour_seen', 'true'); localStorage.setItem('phase_theme', 'dark');"
@@ -204,9 +204,9 @@ def test_toggle_to_light_removes_class(fresh_page):
     assert stored == "light", f"localStorage should be 'light', got {stored!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. Persistence across reload
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. Persistence across reload
+# ---------------------------------------------------------------------------
 
 
 def test_theme_persists_across_reload(fresh_page):
@@ -220,7 +220,7 @@ def test_theme_persists_across_reload(fresh_page):
         timeout=4000,
     )
     page.reload(wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** After reload, ThemeProvider's mount effect should re-apply the dark class.
+    # After reload, ThemeProvider's mount effect should re-apply the dark class.
     page.wait_for_function(
         "() => document.documentElement.classList.contains('dark')",
         timeout=4000,
@@ -229,15 +229,15 @@ def test_theme_persists_across_reload(fresh_page):
     assert stored == "dark"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. system mode follows prefers-color-scheme
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. system mode follows prefers-color-scheme
+# ---------------------------------------------------------------------------
 
 
 def test_system_mode_follows_prefers_color_scheme(fresh_page):
     page, base = fresh_page
-    ***REMOVED*** Explicit `system` mode in storage so we test the system-tracking branch
-    ***REMOVED*** rather than the no-localStorage default branch.
+    # Explicit `system` mode in storage so we test the system-tracking branch
+    # rather than the no-localStorage default branch.
     page.emulate_media(color_scheme="dark")
     page.add_init_script(
         "localStorage.setItem('phase_tour_seen', 'true'); localStorage.setItem('phase_theme', 'system');"
@@ -247,7 +247,7 @@ def test_system_mode_follows_prefers_color_scheme(fresh_page):
         "() => document.documentElement.classList.contains('dark')",
         timeout=4000,
     )
-    ***REMOVED*** Flip system preference and verify the html class follows.
+    # Flip system preference and verify the html class follows.
     page.emulate_media(color_scheme="light")
     page.wait_for_function(
         "() => !document.documentElement.classList.contains('dark')",
@@ -255,21 +255,21 @@ def test_system_mode_follows_prefers_color_scheme(fresh_page):
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 6. Charts re-render with theme-aware palette
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 6. Charts re-render with theme-aware palette
+# ---------------------------------------------------------------------------
 
 
 def test_sparkline_recolors_in_dark_mode(fresh_page):
     page, base = fresh_page
     page.emulate_media(color_scheme="light")
     page.add_init_script("localStorage.setItem('phase_tour_seen', 'true');")
-    ***REMOVED*** SparkLine renders inside CompanyCard on the /companies screener page,
-    ***REMOVED*** not on the landing page (which uses ExploreCardsGrid).
+    # SparkLine renders inside CompanyCard on the /companies screener page,
+    # not on the landing page (which uses ExploreCardsGrid).
     page.goto(base + "/companies", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Wait for at least one SparkLine to render.
+    # Wait for at least one SparkLine to render.
     page.wait_for_selector('[data-testid="sparkline"]', state="attached", timeout=15000)
-    ***REMOVED*** Grab the first segment's stroke color in light mode.
+    # Grab the first segment's stroke color in light mode.
     light_strokes = page.evaluate(
         """
         () => {
@@ -282,13 +282,13 @@ def test_sparkline_recolors_in_dark_mode(fresh_page):
         """
     )
     assert len(light_strokes) > 0, "expected at least one path in SparkLine"
-    ***REMOVED*** Toggle to dark.
+    # Toggle to dark.
     page.locator('[data-testid="theme-toggle-dark"]').first.click()
     page.wait_for_function(
         "() => document.documentElement.classList.contains('dark')",
         timeout=4000,
     )
-    ***REMOVED*** Re-read the same first sparkline's stroke colors.
+    # Re-read the same first sparkline's stroke colors.
     dark_strokes = page.evaluate(
         """
         () => {
@@ -299,15 +299,15 @@ def test_sparkline_recolors_in_dark_mode(fresh_page):
         }
         """
     )
-    ***REMOVED*** At least one color should differ between light and dark palettes.
+    # At least one color should differ between light and dark palettes.
     assert (
         light_strokes != dark_strokes
     ), f"SparkLine should recolor in dark mode (light={light_strokes[:3]}, dark={dark_strokes[:3]})"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 7. No hydration mismatch warning in console
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 7. No hydration mismatch warning in console
+# ---------------------------------------------------------------------------
 
 
 def test_no_hydration_mismatch_warning(fresh_page):
@@ -316,7 +316,7 @@ def test_no_hydration_mismatch_warning(fresh_page):
 
     def on_console(msg):
         text = msg.text
-        ***REMOVED*** React 18 hydration mismatch warnings.
+        # React 18 hydration mismatch warnings.
         lower = text.lower()
         if (
             "did not match" in lower
@@ -335,17 +335,17 @@ def test_no_hydration_mismatch_warning(fresh_page):
         "() => document.documentElement.classList.contains('dark')",
         timeout=4000,
     )
-    ***REMOVED*** Allow React to flush any deferred errors.
+    # Allow React to flush any deferred errors.
     page.wait_for_timeout(1500)
-    ***REMOVED*** `suppressHydrationWarning` on <html> should mute the class-mismatch warning.
+    # `suppressHydrationWarning` on <html> should mute the class-mismatch warning.
     assert console_messages == [], (
         f"unexpected hydration warnings in console: {console_messages[:3]}"
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 8. WCAG AAA body-text contrast in both themes (≥ 7:1 normal text)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 8. WCAG AAA body-text contrast in both themes (≥ 7:1 normal text)
+# ---------------------------------------------------------------------------
 
 
 def test_wcag_aaa_body_contrast(fresh_page):
@@ -385,22 +385,22 @@ def test_wcag_aaa_body_contrast(fresh_page):
     assert light_ratio is not None, "could not compute light contrast"
     assert light_ratio >= 7.0, f"light body contrast {light_ratio:.2f}:1 < AAA 7.0:1"
 
-    ***REMOVED*** Toggle to dark.
+    # Toggle to dark.
     page.locator('[data-testid="theme-toggle-dark"]').first.click()
     page.wait_for_function(
         "() => document.documentElement.classList.contains('dark')",
         timeout=4000,
     )
-    ***REMOVED*** Let the 300ms color transition complete.
+    # Let the 300ms color transition complete.
     page.wait_for_timeout(400)
     dark_ratio = page.evaluate(contrast_script)
     assert dark_ratio is not None, "could not compute dark contrast"
     assert dark_ratio >= 7.0, f"dark body contrast {dark_ratio:.2f}:1 < AAA 7.0:1"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 9. Mobile drawer also exposes the toggle (touchable in compact mode)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 9. Mobile drawer also exposes the toggle (touchable in compact mode)
+# ---------------------------------------------------------------------------
 
 
 def test_theme_toggle_visible_in_mobile_drawer(browser, next_dev):
@@ -410,9 +410,9 @@ def test_theme_toggle_visible_in_mobile_drawer(browser, next_dev):
         page.add_init_script("localStorage.setItem('phase_tour_seen', 'true');")
         page.goto(next_dev["base"] + "/", wait_until="domcontentloaded", timeout=30000)
         page.locator('[data-testid="mobile-nav-toggle"]').click()
-        ***REMOVED*** Drawer renders a second theme-toggle group.
+        # Drawer renders a second theme-toggle group.
         page.wait_for_selector(
-            '***REMOVED***mobile-nav-drawer [data-testid="theme-toggle"]',
+            '#mobile-nav-drawer [data-testid="theme-toggle"]',
             state="visible",
             timeout=4000,
         )

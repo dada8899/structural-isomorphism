@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Convert the partial reddit_posts.jsonl to reddit_cascade_sizes.json.
 
 Used if `fetch_reddit.py` is stopped early (e.g. due to rate-limit, network
@@ -15,7 +15,7 @@ OUT_DIR = Path(__file__).resolve().parent
 POSTS_FILE = OUT_DIR / "reddit_posts.jsonl"
 SIZES_FILE = OUT_DIR / "reddit_cascade_sizes.json"
 
-***REMOVED*** Match fetch_reddit.py constants — keep in sync if those change
+# Match fetch_reddit.py constants — keep in sync if those change
 SUBREDDITS = [
     "AskReddit", "news", "worldnews", "politics", "todayilearned",
     "science", "technology", "movies", "gaming", "wallstreetbets",
@@ -39,7 +39,7 @@ def main():
     sizes = [int(p.get("num_comments") or 0) for p in posts_list]
     sizes = [s for s in sizes if s > 0]
 
-    ***REMOVED*** Window edges from the actual data
+    # Window edges from the actual data
     ts = [int(p.get("created_utc") or 0) for p in posts_list]
     ts = [t for t in ts if t > 0]
     t_min, t_max = min(ts), max(ts)

@@ -1,12 +1,12 @@
-***REMOVED*** W5-A Scholar Review — structural-isomorphism v4/session3
+# W5-A Scholar Review — structural-isomorphism v4/session3
 
 > **Reviewer persona.** Senior statistical-physics / SOC-criticality researcher; referee experience for *PRE*, *Chaos*, *J. Stat. Mech.*, *Nat. Commun.*, *Phys. Rev. Lett.*; SOC / cascade / heavy-tail working group.
 > **Date.** 2026-05-13.
-> **Scope.** Full project state after session ***REMOVED***3 — `paper/v0-unified-pipeline-2026-05-13.md` (C1, ~12.5k words, v0.2), four solo arXiv drafts (`paper/arxiv-drafts/2026-05-13/01..04_*.md`, ~3.3-4.2k words each), the C4 methodology preprint (`paper/c4-reject-aware-pipeline-2026-05-13.md`, ~8.2k words), the reproduction tutorial (`tutorials/01_reproduce_earthquake_soc.ipynb`, 23 cells), and supporting v4/ pipeline + B3 ensemble results.
+> **Scope.** Full project state after session #3 — `paper/v0-unified-pipeline-2026-05-13.md` (C1, ~12.5k words, v0.2), four solo arXiv drafts (`paper/arxiv-drafts/2026-05-13/01..04_*.md`, ~3.3-4.2k words each), the C4 methodology preprint (`paper/c4-reject-aware-pipeline-2026-05-13.md`, ~8.2k words), the reproduction tutorial (`tutorials/01_reproduce_earthquake_soc.ipynb`, 23 cells), and supporting v4/ pipeline + B3 ensemble results.
 
 ---
 
-***REMOVED******REMOVED*** 1. Overall verdict (TL;DR)
+## 1. Overall verdict (TL;DR)
 
 This is an unusually **honest** and **methodologically self-aware** single-author cross-domain SOC project, well above the average preprint of its kind. The infrastructure is impressive — one frozen pipeline, thirteen independently fetched datasets, four explicit synthetic nulls, a multi-model taxonomy critic — and the writing is candid about its weak spots in a way most universality-claim papers refuse to be. **However, the headline "universality class verified across thirteen systems" claim is currently *oversold by half a step*.** The strongest defensible result is **"a single Clauset-grade pipeline recovers literature-consistent exponents across thirteen domains without per-domain tuning, plus a shape-normalized collapse on seven of them"** — which is *already a publishable, novel methodological contribution*. The leap from that to "first quantitative confirmation of universality-class membership" (§4.4, §4.5) is rhetorically larger than the statistics support.
 
@@ -19,7 +19,7 @@ This is an unusually **honest** and **methodologically self-aware** single-autho
 
 ---
 
-***REMOVED******REMOVED*** 2. Strengths (what holds up)
+## 2. Strengths (what holds up)
 
 1. **The pipeline freeze is a methodological gold standard for this literature.** `v4/lib/soc_pipeline.py` at commit `7ee228c` with zero per-phase tuning, all data loaders externalized, the same `powerlaw` calls everywhere — this is exactly what Clauset, Shalizi & Newman (2009) wished the field would adopt. Reviewer paragraph 1 should and will praise this.
 
@@ -39,7 +39,7 @@ This is an unusually **honest** and **methodologically self-aware** single-autho
 
 ---
 
-***REMOVED******REMOVED*** 3. Critical concerns (what doesn't)
+## 3. Critical concerns (what doesn't)
 
 1. **§4.4 / §4.5 headline ("first positive proof of universality class membership") is overreach** given the underlying $r_{\rm shape} = 1.11$ ratio depends on (i) only 7 systems, (ii) row-centered log-PDFs (a transformation that absorbs the very prefactor whose dimensional incommensurability is the obstacle to claiming class membership), and (iii) no formal hypothesis test. See §4 below. **Recommended downgrade:** "consistent with shared functional form" rather than "first positive proof."
 
@@ -63,9 +63,9 @@ This is an unusually **honest** and **methodologically self-aware** single-autho
 
 ---
 
-***REMOVED******REMOVED*** 4. Methodological assessment
+## 4. Methodological assessment
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Statistical inference (Clauset 2009 pipeline)
+### 4.1 Statistical inference (Clauset 2009 pipeline)
 
 **`xmin` selection.** Standard `powerlaw.Fit` with KS-distance minimization is used throughout (C1 §2.1, line 68). This is correct in principle but has documented edge-case behavior on small $n$ and on distributions with curvature near the candidate `xmin` regime. The paper does not report sensitivity of $\alpha$ to perturbations in `xmin`. For Phase 7 ($n_{\rm tail} = 40$), Phase 4 ($\tau$ varying across bin factors 2-16), Phase 13 (Top-1000-truncated catalog), and Phase 11 (GOES bandpass-thermal effects), this is a real concern. **Recommended:** for each phase, add a supplementary figure showing $\alpha(x_{\rm min})$ on a sliding window across the support, with the chosen KS-minimum `xmin` marked. Existing best-practice references: Corral & González 2019 (*Geophys. J. Int.*); Voitalov et al. 2019.
 
@@ -75,7 +75,7 @@ This is an unusually **honest** and **methodologically self-aware** single-autho
 
 **Multiple testing correction.** Not addressed (see §3.3). The Vuong $p$-values reported as $10^{-9}$, $10^{-25}$, etc. for raw exponential rejection are so far below any reasonable FWER threshold that they survive even paranoid Bonferroni; the lognormal *failures* and the *inconclusive* verdicts (Phase 6, Phase 8, Phase 11) are where multiple-testing matters and is absent.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Universality class taxonomy (B3 ensemble)
+### 4.2 Universality class taxonomy (B3 ensemble)
 
 **24 → 21 → 5 KEEP convergence.** Layer 3 reduces 24 candidates to 21 by curator-driven merger. B1 (single Opus) keeps 11, splits 4, merges 3, rejects 3. B3 (3× DeepSeek) keeps 5, rejects 7, splits 5, merges 4. The B3 convergence on the "mathematical framework masquerading as universality class" filter — converging across all three DeepSeek calls on `delay_differential_debt`, `tail_copula_contagion`, `scale_free_percolation_class`, and `hysteresis_preisach` monolith — is the **single most defensible methodological result in the project**. The filter is correct: each of these four is genuinely a parametric family / limit theorem / generative model, not a mechanism-defined universality class. **Keep this; even if everything else weakens under reviewer scrutiny, this section is publishable as a standalone methodology contribution.**
 
@@ -85,7 +85,7 @@ This is an unusually **honest** and **methodologically self-aware** single-autho
 
 **"ensemble" claim — three DeepSeek runs.** Already discussed in §3.4. The single-vendor ensemble is *not* an architectural disagreement test; it's a temperature/decoding-variant self-consistency test on one model. The B3 7/21 = 33% rejection rate vs B1 3/21 = 14% comparison in C4 §4 *is real and methodologically interesting* (because it tells us a fresh forward pass at $T=0.6$ catches things a single $T=0$ Opus call missed), but the lift from 14% → 33% says **"DeepSeek-flash and DeepSeek-pro at $T=0$ and $T=0.6$ disagree with Opus at $T=0$ on 4 cases"** — which is a within-vs-cross-model disagreement test, not a within-vs-within-model false positive rate test. The paper should be more careful with the framing. **Recommended downgrade:** "cross-vendor reviewer disagreement" → "cross-vendor reviewer comparison."
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Empirical validation depth
+### 4.3 Empirical validation depth
 
 Per-phase verdict-evidence-strength inventory:
 
@@ -108,7 +108,7 @@ Per-phase verdict-evidence-strength inventory:
 
 **Universal collapse Phase 12 (shape-norm = 1.11)** — this is the headline claim and the most overstated one in the manuscript. See §4.4-4.5 of C1, then §4 below.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 The shape-normalized collapse number — what does $r_{\rm shape} = 1.11$ actually buy?
+### 4.4 The shape-normalized collapse number — what does $r_{\rm shape} = 1.11$ actually buy?
 
 The mathematics: take seven systems' log-binned PDFs on a shared rescaled grid, compute $M_{ij} = \log y'_{ij}$, then **row-center** to get $\tilde M_{ij} = M_{ij} - \overline{M_{i \cdot}}$, and report cross-system variance / within-system variance = 1.11.
 
@@ -124,9 +124,9 @@ Two concerns:
 
 ---
 
-***REMOVED******REMOVED*** 5. Paper-by-paper detailed feedback
+## 5. Paper-by-paper detailed feedback
 
-***REMOVED******REMOVED******REMOVED*** 5.1 C1 unified preprint v0.2 (`paper/v0-unified-pipeline-2026-05-13.md`)
+### 5.1 C1 unified preprint v0.2 (`paper/v0-unified-pipeline-2026-05-13.md`)
 
 **Length.** 12,538 words / 60 references / 1 mermaid figure / 1 numeric table. Slightly long for a single-letter venue, fine for *PRE* / *Chaos* / *arXiv*. **Recommended cuts:** §1 introduction can lose 200 words (lines 32-46 over-rehearse the history every SOC reader knows); §6.4 ("cross-class portability") can fold into §6.1; the Acknowledgments boilerplate around OpenRouter/DeepSeek can be cut to one sentence.
 
@@ -149,7 +149,7 @@ Two concerns:
 4. Demote §4.5 headline to "consistent with shared tail shape" and add the surrogate-null permutation test for $r_{\rm shape}$.
 5. Add a Bonferroni / B-H discussion sidebar somewhere in §2 or §6 — even a paragraph saying "we report nominal $p$-values; FWER across 30+ tests would shift inconclusive verdicts to inconclusive at $\alpha_{\rm FWER}$ but does not change any rejected/confirmed verdict" would close the issue.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 C2 4 solo arXiv drafts (`paper/arxiv-drafts/2026-05-13/01..04_*.md`)
+### 5.2 C2 4 solo arXiv drafts (`paper/arxiv-drafts/2026-05-13/01..04_*.md`)
 
 Words: Earthquake 4249 / S&P 3279 / DeFi 3870 / Neural 3335. References: ~35 each.
 
@@ -167,7 +167,7 @@ Words: Earthquake 4249 / S&P 3279 / DeFi 3870 / Neural 3335. References: ~35 eac
 
 **Inter-paper citation consistency.** Papers 1, 2, 3, 4 cite each other as `[5]`, `[6]`, etc. — confirm during finalization that the cross-citation numbers resolve correctly after author-list-finalization and Zenodo-doi assignment. **Currently the placeholder email `dada8899@users.noreply.github.com` and "*placeholder — author affiliation and contact details to be finalized prior to formal submission*"** appears in all four — this must be resolved (real institutional email + ORCID) before any arXiv post; arXiv's moderation pipeline will reject placeholders.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 C4 reject-aware pipeline (`paper/c4-reject-aware-pipeline-2026-05-13.md`)
+### 5.3 C4 reject-aware pipeline (`paper/c4-reject-aware-pipeline-2026-05-13.md`)
 
 8164 words / 45 references / Mermaid pipeline diagram.
 
@@ -187,7 +187,7 @@ Words: Earthquake 4249 / S&P 3279 / DeFi 3870 / Neural 3335. References: ~35 eac
 - "0 API errors" is a robustness claim that's nice to make but immaterial to the methodology. Cut from headline; keep in §3.
 - The five-layer pipeline diagram (§2) is sound but could compress to three layers (extract / curate / critic+predict / validate); the L3.5 / L3.6 distinction is fine-grained and probably better as a single "critic gate" layer with two sub-stages.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Tutorial (`tutorials/01_reproduce_earthquake_soc.ipynb`)
+### 5.4 Tutorial (`tutorials/01_reproduce_earthquake_soc.ipynb`)
 
 23 cells / 385 lines / ~30 min ETA / produces $b$-value, Clauset $\alpha$, Vuong LR, log-log plot, verdict.
 
@@ -214,7 +214,7 @@ Words: Earthquake 4249 / S&P 3279 / DeFi 3870 / Neural 3335. References: ~35 eac
 
 ---
 
-***REMOVED******REMOVED*** 6. Universality / cross-domain claim strength assessment
+## 6. Universality / cross-domain claim strength assessment
 
 **Maximum claim being made:** "universal collapse across 7 systems (shape-norm = 1.11), first quantitative confirmation of universality-class membership rather than isolated coincident power laws."
 
@@ -233,7 +233,7 @@ So 1.11 is *mediocre* by within-system finite-size scaling standards, but those 
 
 ---
 
-***REMOVED******REMOVED*** 7. Statistical concerns / red flags (consolidated)
+## 7. Statistical concerns / red flags (consolidated)
 
 Five (actually nine) statistical / methodological issues, in priority order:
 
@@ -257,7 +257,7 @@ Five (actually nine) statistical / methodological issues, in priority order:
 
 ---
 
-***REMOVED******REMOVED*** 8. If I were arXiv (PRE) referee
+## 8. If I were arXiv (PRE) referee
 
 Three reviewer paragraphs I'd write:
 
@@ -271,7 +271,7 @@ Three reviewer paragraphs I'd write:
 
 ---
 
-***REMOVED******REMOVED*** 9. Path to legitimacy — 12-month roadmap
+## 9. Path to legitimacy — 12-month roadmap
 
 In priority order (urgent first):
 
@@ -301,7 +301,7 @@ In priority order (urgent first):
 
 ---
 
-***REMOVED******REMOVED*** 10. Final score (each /10)
+## 10. Final score (each /10)
 
 | Dimension | Score | Note |
 |---|---|---|
@@ -314,7 +314,7 @@ In priority order (urgent first):
 
 ---
 
-***REMOVED******REMOVED*** Appendix A: Specific line-level edits for C1 v0.2
+## Appendix A: Specific line-level edits for C1 v0.2
 
 Highest-impact edits:
 
@@ -328,7 +328,7 @@ Highest-impact edits:
 
 ---
 
-***REMOVED******REMOVED*** Appendix B: What this project is, framed honestly
+## Appendix B: What this project is, framed honestly
 
 Strip the universality-class rhetoric and the project is: **a working cross-domain empirical-analysis pipeline at one commit hash, applied honestly to 13 datasets, with a multi-model taxonomy critic that catches mechanism-vs-limit-theorem confusions.** That framing is publishable, novel, and would survive peer review.
 

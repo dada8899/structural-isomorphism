@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title id="paper-title">论文 — Structural</title>
   <meta name="description" data-i18n-meta="page.paper.meta_desc" content="Structural 项目产出的跨领域结构同构研究论文">
 
@@ -75,7 +75,7 @@
 
       function render(md) {
         if (typeof marked === "undefined") {
-          target.innerHTML = `<p style='color:***REMOVED***c44;'>${T("page.paper.md_loader_failed", "Markdown 渲染器加载失败.")}</p>`;
+          target.innerHTML = `<p style='color:#c44;'>${T("page.paper.md_loader_failed", "Markdown 渲染器加载失败.")}</p>`;
           return;
         }
         marked.setOptions({ gfm: true, breaks: false });
@@ -116,7 +116,7 @@
           }
         })
         .catch((e) => {
-          target.innerHTML = `<p style="color:***REMOVED***c44; text-align:center; padding:60px 0;">${T("page.paper.load_failed", "论文加载失败")}: ${e.message}</p>`;
+          target.innerHTML = `<p style="color:#c44; text-align:center; padding:60px 0;">${T("page.paper.load_failed", "论文加载失败")}: ${e.message}</p>`;
         });
     })();
   </script>

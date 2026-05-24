@@ -1,4 +1,4 @@
-"""Integration tests for /api/connections/* (G-MVP, Session ***REMOVED***19).
+"""Integration tests for /api/connections/* (G-MVP, Session #19).
 
 FastAPI TestClient against a focused sub-app. Auth: we mint a real
 magic-link JWT via api.auth._issue_jwt and set it as the session cookie,
@@ -23,7 +23,7 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def isolated_store(tmp_path, monkeypatch):
 
     fresh = ConnectionsStore(tmp_path / "test_conn.db")
     monkeypatch.setattr(conn_api, "_store", fresh)
-    ***REMOVED*** Isolate auth JSONL storage (user records / revoked sessions).
+    # Isolate auth JSONL storage (user records / revoked sessions).
     auth_api._override_data_dir_for_tests(tmp_path)
     return fresh
 
@@ -62,7 +62,7 @@ def _session_cookie(email: str) -> dict:
     return {_COOKIE_NAME: token}
 
 
-***REMOVED*** --------- auth gate --------- ***REMOVED***
+# --------- auth gate --------- #
 
 
 def test_create_requires_login(client):
@@ -77,7 +77,7 @@ def test_list_requires_login(client):
     assert client.get("/api/connections/fingerprints").status_code == 401
 
 
-***REMOVED*** --------- fingerprint lifecycle --------- ***REMOVED***
+# --------- fingerprint lifecycle --------- #
 
 
 def test_create_and_list_fingerprint(client):
@@ -94,9 +94,9 @@ def test_create_and_list_fingerprint(client):
     assert r.status_code == 200
     fp = r.json()["fingerprint"]
     assert fp["problem_summary"] == "30 人公司的效率塌陷"
-    ***REMOVED*** 默认 L0（私密）。
+    # 默认 L0（私密）。
     assert fp["visibility_level"] == "L0"
-    ***REMOVED*** No SearchService in tests → embedding absent (graceful degrade).
+    # No SearchService in tests → embedding absent (graceful degrade).
     assert fp["has_embedding"] is False
 
     r2 = client.get("/api/connections/fingerprints", cookies=cookies)
@@ -107,7 +107,7 @@ def test_create_and_list_fingerprint(client):
 def test_create_rejects_too_short_summary(client):
     r = client.post(
         "/api/connections/fingerprints",
-        json={"problem_summary": "ab"},  ***REMOVED*** < 4 chars → 422
+        json={"problem_summary": "ab"},  # < 4 chars → 422
         cookies=_session_cookie("alice@x.com"),
     )
     assert r.status_code == 422
@@ -135,7 +135,7 @@ def test_users_only_see_own_fingerprints(client):
     assert r.json()["fingerprints"] == []
 
 
-***REMOVED*** --------- visibility patch --------- ***REMOVED***
+# --------- visibility patch --------- #
 
 
 def test_patch_visibility_opt_in(client):
@@ -162,7 +162,7 @@ def test_patch_visibility_owner_only(client):
         cookies=_session_cookie("alice@x.com"),
     ).json()["fingerprint"]["id"]
 
-    ***REMOVED*** Bob can't flip Alice's fingerprint — 404 (no existence leak).
+    # Bob can't flip Alice's fingerprint — 404 (no existence leak).
     r = client.patch(
         f"/api/connections/fingerprints/{fid}",
         json={"visibility_level": "L2"},
@@ -186,7 +186,7 @@ def test_patch_visibility_rejects_bad_level(client):
     assert r.status_code == 400
 
 
-***REMOVED*** --------- delete --------- ***REMOVED***
+# --------- delete --------- #
 
 
 def test_delete_fingerprint_owner_only(client):
@@ -197,22 +197,22 @@ def test_delete_fingerprint_owner_only(client):
         cookies=cookies,
     ).json()["fingerprint"]["id"]
 
-    ***REMOVED*** Bob can't delete.
+    # Bob can't delete.
     assert client.delete(
         f"/api/connections/fingerprints/{fid}",
         cookies=_session_cookie("bob@x.com"),
     ).status_code == 404
-    ***REMOVED*** Alice can.
+    # Alice can.
     assert client.delete(
         f"/api/connections/fingerprints/{fid}", cookies=cookies
     ).status_code == 200
-    ***REMOVED*** Gone.
+    # Gone.
     assert client.get(
         "/api/connections/fingerprints", cookies=cookies
     ).json()["fingerprints"] == []
 
 
-***REMOVED*** --------- neighbors --------- ***REMOVED***
+# --------- neighbors --------- #
 
 
 def test_neighbors_owner_only(client):
@@ -255,7 +255,7 @@ def test_neighbors_response_hides_identity(client, isolated_store):
     from services.connections_match import encode_to_blob
 
     base = np.random.default_rng(42).standard_normal(16).astype("<f4")
-    ***REMOVED*** Alice's own fingerprint (L0, organization domain).
+    # Alice's own fingerprint (L0, organization domain).
     alice_fid = isolated_store.create_fingerprint(
         user_email="alice@x.com",
         problem_summary="alice org problem",
@@ -264,7 +264,7 @@ def test_neighbors_response_hides_identity(client, isolated_store):
         universality_class="delay-debt",
         visibility_level="L0",
     )
-    ***REMOVED*** Bob's discoverable cross-domain fingerprint, near-identical vector.
+    # Bob's discoverable cross-domain fingerprint, near-identical vector.
     isolated_store.create_fingerprint(
         user_email="bob@x.com",
         problem_summary="bob ecology problem",
@@ -282,7 +282,7 @@ def test_neighbors_response_hides_identity(client, isolated_store):
     body = r.json()
     assert body["neighbor_count"] == 1
     n = body["neighbors"][0]
-    ***REMOVED*** Identity must be stripped — L1 is "N people", not "who".
+    # Identity must be stripped — L1 is "N people", not "who".
     assert "user_email" not in n
     assert "fingerprint_id" not in n
     assert n["problem_summary"] == "bob ecology problem"

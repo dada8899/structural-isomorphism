@@ -12,7 +12,7 @@ API_KEY = os.environ["OPENROUTER_API_KEY"]
 
 PROMPT_TMPL = """You are labeling transformation primitives for a cross-domain analogy study.
 
-***REMOVED*** 8 Transformation Primitives
+# 8 Transformation Primitives
 
 1. **variable_rename** — Same math, only symbols/units change. E.g., thermodynamic entropy (J/K) → Shannon entropy (bits). Apply only when literally nothing but naming changes.
 2. **concept_transfer** — Replace a physical quantity with a structurally analogous one. E.g., mass → inductance when mapping mechanics to LC circuits. Reinterpretation, not renaming.
@@ -23,7 +23,7 @@ PROMPT_TMPL = """You are labeling transformation primitives for a cross-domain a
 7. **stochastic_toggle** — Add or remove randomness (deterministic ODE → Gillespie stochastic sim).
 8. **time_scaling** — Change time scale or regime (equilibrium → non-equilibrium, fast → slow variables).
 
-***REMOVED*** Your task
+# Your task
 
 Label the following historical transfer with the MINIMAL set of primitives that captures what transformation happened between the source and target. Apply each only when it genuinely fits. Empty list is OK.
 
@@ -33,14 +33,14 @@ Strict rules:
 - `dim_shift` only if effective dimensionality changed
 - Return ONLY a valid JSON object, no markdown, no explanation outside JSON
 
-***REMOVED*** Input
+# Input
 
 ID: {id}
 Source: {source_name} ({source_domain})
 Target: {target_name} ({target_domain})
 Description: {description}
 
-***REMOVED*** Output schema
+# Output schema
 
 {{"id": "{id}", "primitives": ["list", "of", "primitive", "ids"], "primitive_reasons": {{"primitive_id": "brief why"}}, "confidence": 0.0-1.0, "notes": "optional"}}
 

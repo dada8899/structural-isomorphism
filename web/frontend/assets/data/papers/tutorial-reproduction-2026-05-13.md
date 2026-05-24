@@ -1,9 +1,9 @@
-***REMOVED*** Reproduction tutorials
+# Reproduction tutorials
 
 > 30-minute, from-scratch reproductions of the structural-isomorphism Phase 1 results.
 > No GPU, no credentials, no private data. Just `pip install` and a USGS REST call.
 
-***REMOVED******REMOVED*** What's here
+## What's here
 
 | File | What it does | ETA |
 |---|---|---|
@@ -12,7 +12,7 @@
 
 The notebook is for understanding (each step explained, intermediate plots). The script is for batch runs (CI, dogfooding, "just give me the number").
 
-***REMOVED******REMOVED*** Prerequisites
+## Prerequisites
 
 - Python **3.11+**
 - ~200 MB free disk (USGS pull + matplotlib cache)
@@ -24,28 +24,28 @@ The notebook installs everything from a single cell, so the only manual step is 
 pip install jupyter numpy scipy pandas matplotlib requests powerlaw
 ```
 
-***REMOVED******REMOVED*** Run the notebook
+## Run the notebook
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism
 cd structural-isomorphism/tutorials
 jupyter notebook 01_reproduce_earthquake_soc.ipynb
-***REMOVED*** or
+# or
 jupyter lab 01_reproduce_earthquake_soc.ipynb
 ```
 
 Then **Run All Cells**. The slow steps are the USGS pull (~10-30 s for a 1-year window) and the Clauset `powerlaw.Fit` (~20-60 s on 10k tail events).
 
-***REMOVED******REMOVED*** Run the script
+## Run the script
 
 ```bash
-python 01_phase_1_quick.py                                            ***REMOVED*** 1-year window, fastest
-python 01_phase_1_quick.py --start 2020-01-01 --end 2025-01-01        ***REMOVED*** full 5-year, ~37k tail events
+python 01_phase_1_quick.py                                            # 1-year window, fastest
+python 01_phase_1_quick.py --start 2020-01-01 --end 2025-01-01        # full 5-year, ~37k tail events
 ```
 
 The 1-year default is enough to clear the verdict. Use the 5-year window if you want to match the published headline numbers exactly.
 
-***REMOVED******REMOVED*** Acceptance criterion
+## Acceptance criterion
 
 You have successfully reproduced Phase 1 if you see:
 
@@ -55,9 +55,9 @@ You have successfully reproduced Phase 1 if you see:
 
 The 5-year run should land within ~1% of the paper's headline: $b = 1.084$, CI $[1.073, 1.094]$, $\alpha \approx 1.79$, $n_\text{tail} = 37281$.
 
-***REMOVED******REMOVED*** Troubleshooting
+## Troubleshooting
 
-***REMOVED******REMOVED******REMOVED*** `pip install powerlaw` fails
+### `pip install powerlaw` fails
 
 `powerlaw` depends on `mpmath` and pulls a Fortran-compiled `scipy` on some platforms. If the install errors out:
 
@@ -69,7 +69,7 @@ pip install powerlaw
 
 On Apple Silicon you may need `pip install --no-cache-dir powerlaw`.
 
-***REMOVED******REMOVED******REMOVED*** USGS API rate-limit / 503 / timeout
+### USGS API rate-limit / 503 / timeout
 
 USGS rate-limits queries that return more than ~20 000 events in a single window. The notebook's default 1-year M>=3.5 window stays well under that. If you hit a 503:
 
@@ -79,7 +79,7 @@ USGS rate-limits queries that return more than ~20 000 events in a single window
 
 The 5-year, M>=3.5 window will _not_ fit in one call and will return only the first 20 000 events; use the [batched fetcher in the main repo](../v4/validation/soc-earthquake/fetch_earthquakes.py) for that case.
 
-***REMOVED******REMOVED******REMOVED*** "Mc looks too low" or "b looks too high"
+### "Mc looks too low" or "b looks too high"
 
 A common gotcha is including induced seismicity (fracking, reservoirs) or quarry blasts. Both inflate $b$. The notebook already filters on `type == "earthquake"`. If your number is off:
 
@@ -87,11 +87,11 @@ A common gotcha is including induced seismicity (fracking, reservoirs) or quarry
 - Try restricting to a tectonic region (`latitude`, `longitude` bounds on the geojson features).
 - Use a stricter $M_c$ (Wiemer-Wyss 2000 max-curvature is the standard; some authors prefer Mc+0.2 conservative offset).
 
-***REMOVED******REMOVED******REMOVED*** Bootstrap CI is suspiciously wide
+### Bootstrap CI is suspiciously wide
 
 You probably have fewer than ~500 tail events. Pull a longer window. The CI shrinks as $\sqrt{n}$, so 5 yr cuts the width to ~$1/\sqrt{5} \approx 45\%$ of the 1 yr width.
 
-***REMOVED******REMOVED*** Planned future tutorials
+## Planned future tutorials
 
 | File | Phase | Domain |
 |---|---|---|
@@ -101,6 +101,6 @@ You probably have fewer than ~500 tail events. Pull a longer window. The CI shri
 
 Until those land, the script `v4/validation/soc-earthquake/gutenberg_richter.py` in the main repo runs the canonical pipeline, and `paper/` has the writeups for all phases.
 
-***REMOVED******REMOVED*** Citing
+## Citing
 
 If you use this tutorial in published work, please cite the repository (see top-level `CITATION.cff`) and the original method papers: Aki 1965, Bak-Tang-Wiesenfeld 1987, Wiemer-Wyss 2000, Clauset-Shalizi-Newman 2009.

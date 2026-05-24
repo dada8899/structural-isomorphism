@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <meta name="description" content="按问题结构连接人——把你正在解的结构性问题登记成指纹，看看有多少人正在解结构相同、但领域不同的问题。">
   <title>结构邻居 — Structural</title>
 
@@ -23,92 +23,92 @@
   <link rel="stylesheet" href="/assets/css/responsive.css?v=20260522s18">
 
   <style>
-    /* Session ***REMOVED***19 G-MVP — page-scoped styles. Kept inline (no new CSS file)
+    /* Session #19 G-MVP — page-scoped styles. Kept inline (no new CSS file)
        until the connect-people surface stabilises, per tools.html pattern. */
     .cn-page { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
-    .cn-crumb { font-size: 13px; color: var(--text-tertiary, ***REMOVED***9a958c); margin-bottom: 18px; }
-    .cn-crumb a { color: var(--text-tertiary, ***REMOVED***9a958c); text-decoration: none; }
+    .cn-crumb { font-size: 13px; color: var(--text-tertiary, #9a958c); margin-bottom: 18px; }
+    .cn-crumb a { color: var(--text-tertiary, #9a958c); text-decoration: none; }
     .cn-crumb a:hover { text-decoration: underline; }
     .cn-title { font-size: 28px; font-weight: 700; margin: 0 0 12px;
-      color: var(--text-primary, ***REMOVED***292524); }
-    .cn-lede { font-size: 15px; line-height: 1.7; color: var(--text-secondary, ***REMOVED***57534e);
+      color: var(--text-primary, #292524); }
+    .cn-lede { font-size: 15px; line-height: 1.7; color: var(--text-secondary, #57534e);
       margin: 0 0 32px; }
-    .cn-lede strong { color: var(--text-primary, ***REMOVED***292524); }
+    .cn-lede strong { color: var(--text-primary, #292524); }
 
-    .cn-card { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
-      padding: 20px; margin-bottom: 16px; background: ***REMOVED***fff; }
+    .cn-card { border: 1px solid var(--border-subtle, #ece8e1); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; background: #fff; }
     .cn-card__head { display: flex; justify-content: space-between; align-items: flex-start;
       gap: 12px; }
     .cn-card__summary { font-size: 15px; font-weight: 600; line-height: 1.5;
-      color: var(--text-primary, ***REMOVED***292524); margin: 0; }
-    .cn-card__meta { font-size: 12.5px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      color: var(--text-primary, #292524); margin: 0; }
+    .cn-card__meta { font-size: 12.5px; color: var(--text-tertiary, #9a958c);
       margin: 6px 0 0; }
 
     .cn-vis { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
       padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-    .cn-vis--L0 { background: ***REMOVED***f5f5f4; color: ***REMOVED***78716c; }
-    .cn-vis--L1 { background: ***REMOVED***e7f1ec; color: ***REMOVED***2f7d5b; }
-    .cn-vis--L2 { background: ***REMOVED***e9eef6; color: ***REMOVED***3b5c9a; }
+    .cn-vis--L0 { background: #f5f5f4; color: #78716c; }
+    .cn-vis--L1 { background: #e7f1ec; color: #2f7d5b; }
+    .cn-vis--L2 { background: #e9eef6; color: #3b5c9a; }
 
     .cn-card__actions { margin-top: 14px; padding-top: 14px;
-      border-top: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+      border-top: 1px solid var(--border-subtle, #ece8e1);
       display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .cn-btn { font-size: 13px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
-      border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); background: ***REMOVED***fff;
-      color: var(--text-secondary, ***REMOVED***57534e); }
-    .cn-btn:hover { background: ***REMOVED***faf9f7; }
-    .cn-btn--primary { background: ***REMOVED***292524; color: ***REMOVED***fff; border-color: ***REMOVED***292524; }
-    .cn-btn--primary:hover { background: ***REMOVED***44403c; }
-    .cn-btn--danger { color: ***REMOVED***b4453a; }
+      border: 1px solid var(--border-subtle, #ece8e1); background: #fff;
+      color: var(--text-secondary, #57534e); }
+    .cn-btn:hover { background: #faf9f7; }
+    .cn-btn--primary { background: #292524; color: #fff; border-color: #292524; }
+    .cn-btn--primary:hover { background: #44403c; }
+    .cn-btn--danger { color: #b4453a; }
     .cn-btn:disabled { opacity: .5; cursor: default; }
 
     .cn-vis-pick { font-size: 13px; padding: 5px 8px; border-radius: 8px;
-      border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); color: var(--text-secondary, ***REMOVED***57534e); }
+      border: 1px solid var(--border-subtle, #ece8e1); color: var(--text-secondary, #57534e); }
 
-    .cn-form { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
-      padding: 20px; margin-bottom: 32px; background: ***REMOVED***faf9f7; }
+    .cn-form { border: 1px solid var(--border-subtle, #ece8e1); border-radius: 12px;
+      padding: 20px; margin-bottom: 32px; background: #faf9f7; }
     .cn-form__label { display: block; font-size: 13px; font-weight: 600;
-      color: var(--text-secondary, ***REMOVED***57534e); margin: 0 0 6px; }
+      color: var(--text-secondary, #57534e); margin: 0 0 6px; }
     .cn-input, .cn-textarea { width: 100%; box-sizing: border-box; font-size: 14px;
-      padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
-      font-family: inherit; color: var(--text-primary, ***REMOVED***292524); }
+      padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border-subtle, #ece8e1);
+      font-family: inherit; color: var(--text-primary, #292524); }
     .cn-textarea { min-height: 70px; resize: vertical; line-height: 1.6; }
     .cn-form__row { display: flex; gap: 10px; margin-top: 12px; }
     .cn-form__row .cn-field { flex: 1; }
-    .cn-form__hint { font-size: 12px; color: var(--text-tertiary, ***REMOVED***9a958c);
+    .cn-form__hint { font-size: 12px; color: var(--text-tertiary, #9a958c);
       margin: 8px 0 0; line-height: 1.6; }
 
     .cn-section-title { font-size: 17px; font-weight: 700; margin: 0 0 14px;
-      color: var(--text-primary, ***REMOVED***292524); }
+      color: var(--text-primary, #292524); }
 
     .cn-neighbors { margin-top: 14px; }
-    .cn-neighbor { border-left: 3px solid ***REMOVED***2f7d5b; padding: 10px 0 10px 14px;
+    .cn-neighbor { border-left: 3px solid #2f7d5b; padding: 10px 0 10px 14px;
       margin-bottom: 10px; }
     .cn-neighbor__summary { font-size: 14px; line-height: 1.55;
-      color: var(--text-primary, ***REMOVED***292524); }
-    .cn-neighbor__meta { font-size: 12px; color: var(--text-tertiary, ***REMOVED***9a958c);
+      color: var(--text-primary, #292524); }
+    .cn-neighbor__meta { font-size: 12px; color: var(--text-tertiary, #9a958c);
       margin-top: 4px; }
-    .cn-neighbor-count { font-size: 14px; font-weight: 600; color: ***REMOVED***2f7d5b;
+    .cn-neighbor-count { font-size: 14px; font-weight: 600; color: #2f7d5b;
       margin-bottom: 10px; }
 
-    .cn-empty { font-size: 14px; color: var(--text-tertiary, ***REMOVED***9a958c);
-      padding: 24px; text-align: center; border: 1px dashed var(--border-subtle, ***REMOVED***ece8e1);
+    .cn-empty { font-size: 14px; color: var(--text-tertiary, #9a958c);
+      padding: 24px; text-align: center; border: 1px dashed var(--border-subtle, #ece8e1);
       border-radius: 12px; }
     .cn-msg { font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-bottom: 14px; }
-    .cn-msg--err { background: ***REMOVED***fbeae8; color: ***REMOVED***b4453a; }
-    .cn-msg--ok { background: ***REMOVED***e7f1ec; color: ***REMOVED***2f7d5b; }
+    .cn-msg--err { background: #fbeae8; color: #b4453a; }
+    .cn-msg--ok { background: #e7f1ec; color: #2f7d5b; }
     .cn-hidden { display: none; }
 
     /* Login gate */
-    .cn-gate { border: 1px solid var(--border-subtle, ***REMOVED***ece8e1); border-radius: 12px;
-      padding: 28px; text-align: center; background: ***REMOVED***faf9f7; }
+    .cn-gate { border: 1px solid var(--border-subtle, #ece8e1); border-radius: 12px;
+      padding: 28px; text-align: center; background: #faf9f7; }
     .cn-gate__title { font-size: 17px; font-weight: 700; margin: 0 0 8px;
-      color: var(--text-primary, ***REMOVED***292524); }
-    .cn-gate__text { font-size: 14px; color: var(--text-secondary, ***REMOVED***57534e);
+      color: var(--text-primary, #292524); }
+    .cn-gate__text { font-size: 14px; color: var(--text-secondary, #57534e);
       line-height: 1.7; margin: 0 0 18px; }
     .cn-gate__form { display: flex; gap: 8px; max-width: 360px; margin: 0 auto; }
     .cn-devlink { font-size: 12px; margin-top: 14px; word-break: break-all; }
-    .cn-devlink a { color: ***REMOVED***3b5c9a; }
+    .cn-devlink a { color: #3b5c9a; }
   </style>
 
   <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>

@@ -3,7 +3,7 @@
   "source_dir": "v4/validation/tail-copula",
   "results": {
     "phase": "A2-Copula",
-    "universality_class": "***REMOVED***6 tail copula",
+    "universality_class": "#6 tail copula",
     "data_sources": [
       "S&P 500 daily returns (Yahoo Finance, local 1990-2025)",
       "NOAA Storm Events Database (1996-2024, public CSV)"

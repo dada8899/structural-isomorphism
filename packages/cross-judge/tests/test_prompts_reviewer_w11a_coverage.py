@@ -12,7 +12,7 @@ from cross_judge.reviewer import Reviewer, _extract_json
 from cross_judge.schema import Verdict as ReviewerVerdict
 
 
-***REMOVED*** --- prompts.py ---
+# --- prompts.py ---
 
 
 def test_default_system_prompt_nonempty():
@@ -44,7 +44,7 @@ def test_render_user_prompt_many_labels():
     assert "A | B | C | D" in out
 
 
-***REMOVED*** --- reviewer._extract_json ---
+# --- reviewer._extract_json ---
 
 
 def test_reviewer_extract_json_valid():
@@ -70,7 +70,7 @@ def test_reviewer_extract_json_trailing_comma():
     assert out == {"v": 1}
 
 
-***REMOVED*** --- Reviewer empty/error paths ---
+# --- Reviewer empty/error paths ---
 
 
 class _FakeChoice:
@@ -165,5 +165,5 @@ def test_reviewer_get_client_default_creates(monkeypatch):
     except ImportError:
         pytest.skip("openai package not installed")
     assert c is not None
-    ***REMOVED*** Second call returns same instance
+    # Second call returns same instance
     assert r._get_client() is c

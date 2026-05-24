@@ -1,6 +1,6 @@
 """POST/GET /api/connections/* — G 方向「按问题结构连接人」(P1+P2)。
 
-Session ***REMOVED***19 G-MVP。设计依据：docs/sessions/SESSION-18-G-connect-people-design.md。
+Session #19 G-MVP。设计依据：docs/sessions/SESSION-18-G-connect-people-design.md。
 
 落地范围（设计 §4 的分阶段路径）：
   * P1  指纹抽取与存储 —— 用户把一份 analyze 报告「升级成可连接的指纹」
@@ -57,7 +57,7 @@ def _get_store() -> ConnectionsStore:
     return _store
 
 
-***REMOVED*** ---------------- 鉴权 helper ---------------------------------------- ***REMOVED***
+# ---------------- 鉴权 helper ---------------------------------------- #
 
 
 def _current_user_email(request: Request) -> Optional[str]:
@@ -90,18 +90,18 @@ def _require_login(request: Request):
     return email, None
 
 
-***REMOVED*** ---------------- 请求 / 响应 schema --------------------------------- ***REMOVED***
+# ---------------- 请求 / 响应 schema --------------------------------- #
 
 
 class CreateFingerprintBody(BaseModel):
-    ***REMOVED*** 指纹可来自一份 analyze 报告（推荐），也可纯手动登记。
+    # 指纹可来自一份 analyze 报告（推荐），也可纯手动登记。
     source_report_id: Optional[str] = Field(None, max_length=64)
     problem_summary: str = Field(..., min_length=4, max_length=500)
     b_id: Optional[str] = Field(None, max_length=64)
     domain: Optional[str] = Field(None, max_length=80)
     type_id: Optional[str] = Field(None, max_length=40)
     universality_class: Optional[str] = Field(None, max_length=80)
-    ***REMOVED*** 可见性默认 L0；前端 opt-in 开关可直接传 L1。
+    # 可见性默认 L0；前端 opt-in 开关可直接传 L1。
     visibility_level: str = Field("L0")
 
 
@@ -109,7 +109,7 @@ class SetVisibilityBody(BaseModel):
     visibility_level: str = Field(...)
 
 
-***REMOVED*** ---------------- 指纹向量抽取 --------------------------------------- ***REMOVED***
+# ---------------- 指纹向量抽取 --------------------------------------- #
 
 
 def _encode_problem(text: str) -> Optional[bytes]:
@@ -126,7 +126,7 @@ def _encode_problem(text: str) -> Optional[bytes]:
             return None
         vec = search.encode_query(text)
         return encode_to_blob(vec)
-    except Exception as e:  ***REMOVED*** pragma: no cover — defensive
+    except Exception as e:  # pragma: no cover — defensive
         logger.warning("connections: encode_problem failed: %s", e)
         return None
 
@@ -137,7 +137,7 @@ def _get_matcher() -> ConnectionsMatcher:
     try:
         from main import app_state
         search = app_state.get("search")
-    except Exception:  ***REMOVED*** pragma: no cover
+    except Exception:  # pragma: no cover
         pass
     return ConnectionsMatcher(search_service=search)
 
@@ -159,7 +159,7 @@ def _public_fingerprint(row: dict) -> dict:
     }
 
 
-***REMOVED*** ---------------- 端点 ----------------------------------------------- ***REMOVED***
+# ---------------- 端点 ----------------------------------------------- #
 
 
 @router.post("/fingerprints", summary="登记一个问题结构指纹")
@@ -224,7 +224,7 @@ async def update_visibility(fid: str, body: SetVisibilityBody, request: Request)
         )
     ok = _get_store().set_visibility(fid, email, body.visibility_level)
     if not ok:
-        ***REMOVED*** 不区分「不存在」vs「非 owner」——避免泄露指纹是否存在。
+        # 不区分「不存在」vs「非 owner」——避免泄露指纹是否存在。
         return JSONResponse(
             {"ok": False, "error": "fingerprint not found"}, status_code=404
         )
@@ -273,8 +273,8 @@ async def neighbors(fid: str, request: Request):
     matcher = _get_matcher()
     matches = matcher.match(target, candidates, limit=20)
 
-    ***REMOVED*** MVP 隐私边界：剥掉 user_email + fingerprint_id —— L1 只给「N 人 + 结构
-    ***REMOVED*** 描述」，不给任何能定位到人的标识。身份交换是 P3 的双向同意流程。
+    # MVP 隐私边界：剥掉 user_email + fingerprint_id —— L1 只给「N 人 + 结构
+    # 描述」，不给任何能定位到人的标识。身份交换是 P3 的双向同意流程。
     safe = [
         {
             "problem_summary": m["problem_summary"],
@@ -294,7 +294,7 @@ async def neighbors(fid: str, request: Request):
     })
 
 
-***REMOVED*** ---------------- 测试 helper ---------------------------------------- ***REMOVED***
+# ---------------- 测试 helper ---------------------------------------- #
 
 
 def _override_store_for_tests(store: ConnectionsStore) -> None:

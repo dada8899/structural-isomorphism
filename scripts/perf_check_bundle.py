@@ -19,25 +19,25 @@ import re
 import sys
 from pathlib import Path
 
-***REMOVED*** Match Next.js 14.2.x build route table lines.
-***REMOVED***
-***REMOVED*** Examples (note the various tree-drawing chars Next emits):
-***REMOVED***   ┌ ○ /                                    4.17 kB         111 kB
-***REMOVED***   ├ ○ /_not-found                          161 B          87.6 kB
-***REMOVED***   │ └ ƒ /company/[ticker]                  6.01 kB         109 kB
-***REMOVED***   └ ○ /zh                                  3.35 kB         110 kB
-***REMOVED***
-***REMOVED*** Both 14.2.15 and 14.2.35 emit this same layout, but in 14.2.x the root
-***REMOVED*** corner "┌" was missing from the original char class, and "/\S+" rejected
-***REMOVED*** the bare root route "/" (no chars after the slash). Both bugs combined
-***REMOVED*** could mask the root route, and on builds where the route table was
-***REMOVED*** preceded by additional log noise (typecheck warnings interleaved with
-***REMOVED*** tree chars), more lines could fall through. The pattern below is
-***REMOVED*** robust to:
-***REMOVED***   - Any leading whitespace (incl. NBSP via \s in re.UNICODE)
-***REMOVED***   - Any combination of tree characters before the type marker
-***REMOVED***   - Bare "/" route (route path can be just "/")
-***REMOVED***   - Whitespace/size tokens separated by 1+ spaces
+# Match Next.js 14.2.x build route table lines.
+#
+# Examples (note the various tree-drawing chars Next emits):
+#   ┌ ○ /                                    4.17 kB         111 kB
+#   ├ ○ /_not-found                          161 B          87.6 kB
+#   │ └ ƒ /company/[ticker]                  6.01 kB         109 kB
+#   └ ○ /zh                                  3.35 kB         110 kB
+#
+# Both 14.2.15 and 14.2.35 emit this same layout, but in 14.2.x the root
+# corner "┌" was missing from the original char class, and "/\S+" rejected
+# the bare root route "/" (no chars after the slash). Both bugs combined
+# could mask the root route, and on builds where the route table was
+# preceded by additional log noise (typecheck warnings interleaved with
+# tree chars), more lines could fall through. The pattern below is
+# robust to:
+#   - Any leading whitespace (incl. NBSP via \s in re.UNICODE)
+#   - Any combination of tree characters before the type marker
+#   - Bare "/" route (route path can be just "/")
+#   - Whitespace/size tokens separated by 1+ spaces
 ROUTE_LINE = re.compile(
     r"^[\s│├└┌─]*[○ƒλ]\s+(/\S*)\s+([0-9.]+)\s+(B|kB|MB)\s+([0-9.]+)\s+(B|kB|MB)"
 )
@@ -76,12 +76,12 @@ def main():
 
     rows = parse_build_log(Path(args.build_log))
     if not rows:
-        ***REMOVED*** No route table found. Most often this means `next build` aborted
-        ***REMOVED*** before emitting it (lint / typecheck error, OOM, network fail
-        ***REMOVED*** fetching fonts on a sandboxed runner, ...) and the upstream step
-        ***REMOVED*** used `tee` without `pipefail`, so the real error was swallowed.
-        ***REMOVED*** Surface a hint + tail of the log so the true root cause is one
-        ***REMOVED*** scroll away rather than buried under a regex.
+        # No route table found. Most often this means `next build` aborted
+        # before emitting it (lint / typecheck error, OOM, network fail
+        # fetching fonts on a sandboxed runner, ...) and the upstream step
+        # used `tee` without `pipefail`, so the real error was swallowed.
+        # Surface a hint + tail of the log so the true root cause is one
+        # scroll away rather than buried under a regex.
         log_path = Path(args.build_log)
         size = log_path.stat().st_size if log_path.exists() else 0
         print(
@@ -113,11 +113,11 @@ def main():
         print(f"  {route:40} route={route_kb:>6.1f} kB  First Load JS={fl_kb:>6.1f} kB{flag}")
 
     if args.markdown:
-        md = [f"***REMOVED*** Bundle size check (budget: {limit} kB First Load JS)\n"]
+        md = [f"# Bundle size check (budget: {limit} kB First Load JS)\n"]
         if failures:
-            md.append("***REMOVED******REMOVED*** Status: FAIL\n")
+            md.append("## Status: FAIL\n")
         else:
-            md.append("***REMOVED******REMOVED*** Status: PASS\n")
+            md.append("## Status: PASS\n")
         md.append("| Route | Route size | First Load JS | Status |")
         md.append("|---|---:|---:|:---:|")
         for route, route_kb, fl_kb in rows:

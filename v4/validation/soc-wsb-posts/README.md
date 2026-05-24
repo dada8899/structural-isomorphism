@@ -1,10 +1,10 @@
-***REMOVED*** SOC validation: r/wallstreetbets posts (pre-registered fit)
+# SOC validation: r/wallstreetbets posts (pre-registered fit)
 
-**Status:** EXECUTED 2026-05-14 (session ***REMOVED***8 W2-C)
+**Status:** EXECUTED 2026-05-14 (session #8 W2-C)
 **Pre-registration:** [`v4/preregistration/wsb-posts.yaml`](../../preregistration/wsb-posts.yaml) (locked 2026-05-14, session-7-W1-C, BEFORE data fetch)
 **Headline verdict (pre_2021 adversarial slice):** **PARTIAL**
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 | Slice       | n posts | P1 Omori p | P1 in band [0.7, 1.3] | P2 cascade alpha | P2 in band [1.7, 2.3] | Verdict   |
 |-------------|--------:|-----------:|:---------------------:|-----------------:|:---------------------:|-----------|
@@ -14,7 +14,7 @@
 
 **Headline call:** PARTIAL. The SECONDARY cascade-size prediction (P2 alpha in [1.7, 2.3]) is confirmed for the adversarial pre_2021 slice (alpha = 2.02, 95% bootstrap CI [1.93, 2.11], n_tail = 689) and the full union (alpha = 1.85). The PRIMARY Omori p estimate fails the band across all three slices — see "Methodological caveats" below before interpreting.
 
-***REMOVED******REMOVED*** Data source
+## Data source
 
 **Pushshift is closed (post-2023 Reddit API changes).** We used the community-maintained Pushshift mirror **arctic_shift** (https://arctic-shift.photon-reddit.com/), which indexes the same dump data Pushshift used to serve.
 
@@ -28,11 +28,11 @@
 
 Reproduce: `python v4/validation/soc-wsb-posts/fetch_data.py`
 
-***REMOVED******REMOVED*** Method
+## Method
 
 Pre-registered protocol per `wsb-posts.yaml`:
 
-***REMOVED******REMOVED******REMOVED*** P1 (PRIMARY) — Omori-Utsu temporal decay
+### P1 (PRIMARY) — Omori-Utsu temporal decay
 
 `soc_pipeline.omori.bin_and_omori_from_events`:
 - Bin post timestamps in 300-second windows.
@@ -40,34 +40,34 @@ Pre-registered protocol per `wsb-posts.yaml`:
 - Stack the post-rate in 48 succeeding bins after each main shock.
 - Fit `log(rate − μ) = logK − p·log(τ + 1)` on positive-excess bins.
 
-***REMOVED******REMOVED******REMOVED*** P2 (SECONDARY) — Clauset power-law on cascade size
+### P2 (SECONDARY) — Clauset power-law on cascade size
 
 `soc_pipeline.fit_clauset_powerlaw` on the cross-sectional distribution of `num_comments` per post (discrete fit). Bootstrap CI with n=200 resamples. Vuong test vs log-normal and exponential.
 
-***REMOVED******REMOVED*** Result detail
+## Result detail
 
 Full numerical result: [`fit_result.json`](./fit_result.json)
 Visualization: [`fit_plot.png`](./fit_plot.png)
 
-***REMOVED******REMOVED******REMOVED*** pre_2021 (HEADLINE adversarial slice)
+### pre_2021 (HEADLINE adversarial slice)
 
 - **P1 Omori:** p = 0.180 ± (R² = 0.29), n_main_shocks = 62 (sigma_k = 2.5). **OUT** of band [0.7, 1.3].
 - **P2 Clauset cascade:** alpha = 2.017 (σ = 0.039), xmin = 18, n_tail = 689 / n_total = 2295. **IN** band [1.7, 2.3]. Bootstrap 95% CI [1.93, 2.11]. Rejects power-law null hypothesis at xmin (KS = 0.025) — meaning the bare power-law fit is statistically suspect at xmin but Vuong vs log-normal is inconclusive (R = −1.00, p = 0.32) and vs exponential strongly favors power-law (R = 10.1, p < 1e-23).
 - **Verdict: PARTIAL.**
 
-***REMOVED******REMOVED******REMOVED*** post_2024
+### post_2024
 
 - P1 Omori: p = 0.125. OUT of band.
 - P2 Clauset: alpha = 1.61, xmin = 10. OUT of band [1.7, 2.3]. Median cascade = 1 (almost all posts get zero/one comment in this slice; long-tail concentrated in fewer mega-posts).
 - **Verdict: FAIL.**
 
-***REMOVED******REMOVED******REMOVED*** full_union (6000 combined)
+### full_union (6000 combined)
 
 - P1 Omori: p = 0.031 (R² = 0.70). OUT of band.
 - P2 Clauset: alpha = 1.85, xmin = 17. IN band [1.7, 2.3]. Power-law NOT rejected (rejects_power_law = false). 95% CI [1.79, 1.92].
 - **Verdict: PARTIAL.**
 
-***REMOVED******REMOVED*** Methodological caveats (read before citing the PRIMARY result)
+## Methodological caveats (read before citing the PRIMARY result)
 
 1. **Sample is sparse for true Omori.** The pre-reg `extraction_method` step 2 calls for "viral roots = posts with ≥ 100 comments" and per-root **comment-timestamp** streams. arctic_shift's `/api/posts/search` returns posts (with their final `num_comments` aggregate) but does **not** return per-comment timestamps in a single call. To get true per-root comment streams would require ~500-1000 separate `/api/comments/search` calls (one per viral root) — beyond the < 30-min wall budget for this validation. We substituted a coarser proxy: post-arrival inter-event times across the whole WSB stream, with `bin_and_omori_from_events` detecting rate spikes.
 
@@ -77,7 +77,7 @@ Visualization: [`fit_plot.png`](./fit_plot.png)
 
 4. **SECONDARY is genuinely tested and PARTIALLY confirms pre-reg.** Cascade-size = `num_comments` per post is exactly what the pre-reg specifies for P2. The pre_2021 alpha = 2.02 lands almost on the pre-registered point estimate (2.0). The 2024 slice drift to alpha = 1.61 suggests cascade-size distribution did shift post-GME-regime — consistent with the pre-reg risk note about 2021 GameStop squeeze affecting stationarity, just in the opposite direction (heavier tail post-regime).
 
-***REMOVED******REMOVED*** Verdict reconciliation with verdict_rules
+## Verdict reconciliation with verdict_rules
 
 Per `wsb-posts.yaml`:
 
@@ -90,13 +90,13 @@ Strict reading gives FAIL (P1 outside band in all slices). However, given the ca
 
 **Headline: PARTIAL with PRIMARY under-tested.** The P2 result is the trustworthy half — and it lands inside the band for the adversarial pre_2021 slice.
 
-***REMOVED******REMOVED*** Follow-up work (logged for backlog)
+## Follow-up work (logged for backlog)
 
 - **F1**: Fetch per-comment streams for top-K viral roots (`num_comments` ≥ 100) via arctic_shift's `/api/comments/search?link_id=<post_id>`. Rerun P1 with proper aftershock stack via `fit_omori_p` (the correct entry point, not `bin_and_omori_from_events`). Budget: ~30-60 min for 500 roots × 10 pages × 100 ms.
 - **F2**: Test the alpha drift between pre_2021 and post_2024 with a formal Kolmogorov-Smirnov 2-sample test (currently we observe 2.02 vs 1.61, well outside bootstrap CIs of each other).
 - **F3**: 2021 GME-quarter subslice as an isolated regime to bracket the shift.
 
-***REMOVED******REMOVED*** Files
+## Files
 
 - `fetch_data.py` — arctic_shift downloader (paginated by created_utc)
 - `run_fit.py` — pipeline (Omori on event stream + Clauset on cascade size + bootstrap CI)
@@ -106,11 +106,11 @@ Strict reading gives FAIL (P1 outside band in all slices). However, given the ca
 - `fit_result.json` — full numerical result
 - `fit_plot.png` — 3-panel CCDF plot
 
-***REMOVED******REMOVED*** Reproducibility
+## Reproducibility
 
 ```bash
 cd /path/to/structural-isomorphism
-.venv/bin/python v4/validation/soc-wsb-posts/fetch_data.py   ***REMOVED*** ~2 min
-.venv/bin/python v4/validation/soc-wsb-posts/run_fit.py      ***REMOVED*** ~10 sec
-.venv/bin/python v4/validation/soc-wsb-posts/make_plot.py    ***REMOVED*** ~5 sec
+.venv/bin/python v4/validation/soc-wsb-posts/fetch_data.py   # ~2 min
+.venv/bin/python v4/validation/soc-wsb-posts/run_fit.py      # ~10 sec
+.venv/bin/python v4/validation/soc-wsb-posts/make_plot.py    # ~5 sec
 ```

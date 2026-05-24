@@ -43,7 +43,7 @@ def _exponential_sample(n: int = 1000, seed: int = SEED) -> np.ndarray:
     return rng.exponential(scale=2.0, size=n)
 
 
-***REMOVED*** --- _inconclusive helper ----------------------------------------------------
+# --- _inconclusive helper ----------------------------------------------------
 
 
 def test_inconclusive_helper_defaults_nan_fields():
@@ -64,7 +64,7 @@ def test_inconclusive_helper_no_band():
     assert v.pre_registered_band is None
 
 
-***REMOVED*** --- small-sample INCONCLUSIVE ----------------------------------------------
+# --- small-sample INCONCLUSIVE ----------------------------------------------
 
 
 def test_validate_too_few_samples_returns_inconclusive():
@@ -85,35 +85,35 @@ def test_validate_custom_min_samples_threshold():
     """Below custom min_samples → INCONCLUSIVE; above → tries fit."""
     data = np.arange(1, 50, dtype=float)
     v = validate(data, label="m", min_samples=10, n_boot=0)
-    ***REMOVED*** Now 49 ≥ 10 → goes through to fit (may PASS/FAIL/INCONCLUSIVE)
+    # Now 49 ≥ 10 → goes through to fit (may PASS/FAIL/INCONCLUSIVE)
     assert v.verdict in ("PASS", "FAIL", "INCONCLUSIVE")
 
 
-***REMOVED*** --- non-finite / non-positive filtering -------------------------------------
+# --- non-finite / non-positive filtering -------------------------------------
 
 
 def test_validate_filters_nan_and_inf():
     base = _powerlaw_sample(n=300, seed=SEED)
     polluted = np.concatenate([base, [float("nan"), float("inf"), -1.0, 0.0]])
     v = validate(polluted, label="filtered", n_boot=0)
-    ***REMOVED*** Should not crash; should produce some verdict
+    # Should not crash; should produce some verdict
     assert v.verdict in ("PASS", "FAIL", "INCONCLUSIVE")
 
 
-***REMOVED*** --- no expected_band PASS path ---------------------------------------------
+# --- no expected_band PASS path ---------------------------------------------
 
 
 def test_validate_pareto_no_band_passes():
     data = _powerlaw_sample(alpha=2.5, n=2000, seed=SEED)
     v = validate(data, label="pl_noband", expected_band=None, n_boot=0)
-    ***REMOVED*** No band → either PASS or rejects on alternative
+    # No band → either PASS or rejects on alternative
     assert v.verdict in ("PASS", "FAIL")
-    assert v.in_band is None  ***REMOVED*** no band → None
+    assert v.in_band is None  # no band → None
     if v.verdict == "PASS":
         assert "no band check" in v.reason
 
 
-***REMOVED*** --- band-pass / band-fail ---------------------------------------------------
+# --- band-pass / band-fail ---------------------------------------------------
 
 
 def test_validate_pareto_band_pass():
@@ -129,13 +129,13 @@ def test_validate_pareto_band_fail_alpha_outside():
     """Fit succeeds but alpha falls outside the pre-registered band → FAIL."""
     data = _powerlaw_sample(alpha=2.5, n=2000, seed=SEED)
     v = validate(data, label="pl_out_band", expected_band=(4.0, 5.0), n_boot=0)
-    ***REMOVED*** Real fit would give ~2.5, outside [4, 5] → FAIL (or INCONCLUSIVE)
+    # Real fit would give ~2.5, outside [4, 5] → FAIL (or INCONCLUSIVE)
     if v.verdict == "FAIL":
         assert v.in_band is False
         assert "outside" in v.reason
 
 
-***REMOVED*** --- bootstrap-disabled fast path -------------------------------------------
+# --- bootstrap-disabled fast path -------------------------------------------
 
 
 def test_validate_n_boot_zero_skips_bootstrap():
@@ -150,22 +150,22 @@ def test_validate_n_boot_positive_computes_ci():
     """Small n_boot still produces ci_lo / ci_hi (could be NaN if boot errors)."""
     data = _powerlaw_sample(n=500, seed=SEED)
     v = validate(data, label="with_boot", n_boot=10, seed=1)
-    ***REMOVED*** CI fields exist; may be NaN if bootstrap fails
+    # CI fields exist; may be NaN if bootstrap fails
     assert hasattr(v, "alpha_ci_lo")
     assert hasattr(v, "alpha_ci_hi")
 
 
-***REMOVED*** --- alternative-model FAIL path ---------------------------------------------
+# --- alternative-model FAIL path ---------------------------------------------
 
 
 def test_validate_lognormal_data_may_fail_or_inconclusive():
     """Lognormal data may have LR test prefer lognormal → FAIL (or PASS/INCONCLUSIVE)."""
     data = _lognormal_sample(n=2000, seed=SEED)
     v = validate(data, label="ln_data", expected_band=(2.0, 3.0), n_boot=0)
-    ***REMOVED*** Allow any outcome since LR tests are stochastic
+    # Allow any outcome since LR tests are stochastic
     assert v.verdict in ("PASS", "FAIL", "INCONCLUSIVE")
     if v.verdict == "FAIL" and "preferred" in v.reason:
-        ***REMOVED*** The FAIL was due to alternative model winning
+        # The FAIL was due to alternative model winning
         assert "lognormal" in v.reason or "exponential" in v.reason
 
 
@@ -175,7 +175,7 @@ def test_validate_exponential_data():
     assert v.verdict in ("PASS", "FAIL", "INCONCLUSIVE")
 
 
-***REMOVED*** --- reproducibility ---------------------------------------------------------
+# --- reproducibility ---------------------------------------------------------
 
 
 def test_validate_label_preserved():

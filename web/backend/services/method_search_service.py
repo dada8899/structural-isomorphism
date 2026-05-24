@@ -1,4 +1,4 @@
-"""A1 method-search service — Session ***REMOVED***18.
+"""A1 method-search service — Session #18.
 
 Reverse direction of the engine: the user gives a *method* (an algorithm /
 model / technique) and we find KB phenomena whose underlying *structure*
@@ -24,11 +24,11 @@ from typing import Optional
 
 logger = logging.getLogger("structural.method_search")
 
-***REMOVED*** --- input / output bounds (guardrails) --------------------------------------
+# --- input / output bounds (guardrails) --------------------------------------
 MAX_METHOD_LEN = 1000
 MIN_METHOD_LEN = 4
 MAX_SIGNATURE_LEN = 600
-MAX_QUERY_LEN = 400          ***REMOVED*** SearchService query is capped at 500
+MAX_QUERY_LEN = 400          # SearchService query is capped at 500
 MAX_NOTE_LEN = 240
 DEFAULT_TOP_N = 8
 MAX_TOP_N = 20
@@ -36,7 +36,7 @@ MAX_KEYWORDS = 6
 MAX_KEYWORD_LEN = 30
 
 
-***REMOVED*** --- structural signature -----------------------------------------------------
+# --- structural signature -----------------------------------------------------
 
 _SIGNATURE_SYSTEM = (
     "你是一个跨学科结构分析专家。用户会给你一个方法/算法/模型。"
@@ -102,7 +102,7 @@ async def extract_signature(method_text: str) -> dict:
             temperature=0.3,
             max_tokens=600,
         )
-    except Exception as e:  ***REMOVED*** noqa: BLE001 — defensive; client already guards
+    except Exception as e:  # noqa: BLE001 — defensive; client already guards
         logger.error("extract_signature LLM call failed: %s", e)
         raw = None
     return _coerce_signature(raw, method_text)
@@ -122,7 +122,7 @@ def build_query(signature: dict) -> str:
     return query[:MAX_QUERY_LEN]
 
 
-***REMOVED*** --- applicability notes ------------------------------------------------------
+# --- applicability notes ------------------------------------------------------
 
 _NOTE_SYSTEM = (
     "你是一个跨学科迁移顾问。用户给你一个方法的结构签名，以及若干个来自"
@@ -143,7 +143,7 @@ def _coerce_notes(raw: Optional[dict], valid_ids: set[str]) -> dict[str, str]:
     out: dict[str, str] = {}
     for pid, note in notes_obj.items():
         if pid not in valid_ids:
-            continue  ***REMOVED*** never trust an LLM-invented id
+            continue  # never trust an LLM-invented id
         if not isinstance(note, str):
             continue
         note = note.strip()[:MAX_NOTE_LEN]
@@ -180,13 +180,13 @@ async def annotate_matches(signature: dict, matches: list[dict]) -> dict[str, st
             temperature=0.4,
             max_tokens=1400,
         )
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.error("annotate_matches LLM call failed: %s", e)
         raw = None
     return _coerce_notes(raw, valid_ids)
 
 
-***REMOVED*** --- ranking ------------------------------------------------------------------
+# --- ranking ------------------------------------------------------------------
 
 def rank_matches(results: list[dict], notes: dict[str, str], top_n: int) -> list[dict]:
     """Shape + rank the final match list.
@@ -215,7 +215,7 @@ def rank_matches(results: list[dict], notes: dict[str, str], top_n: int) -> list
     return out
 
 
-***REMOVED*** --- orchestration ------------------------------------------------------------
+# --- orchestration ------------------------------------------------------------
 
 def normalize_top_n(value: Optional[int]) -> int:
     """Clamp a requested top_n into [1, MAX_TOP_N]."""
@@ -237,10 +237,10 @@ async def run_method_search(method_text: str, search_svc, top_n: int) -> dict:
     sig = await extract_signature(method_text)
     query = build_query(sig)
 
-    ***REMOVED*** Search a slightly larger pool than top_n so ranking has headroom.
+    # Search a slightly larger pool than top_n so ranking has headroom.
     results = search_svc.search(query, top_k=min(top_n * 2, 30)) if query else []
 
-    ***REMOVED*** Annotate only the slice we will actually return.
+    # Annotate only the slice we will actually return.
     head = rank_matches(results, {}, top_n)
     notes = await annotate_matches(sig, head)
     matches = rank_matches(results, notes, top_n)

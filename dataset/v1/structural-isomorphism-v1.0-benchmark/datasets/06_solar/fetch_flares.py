@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch NOAA NGDC GOES X-ray flare catalog 2000-2016.
 
 URL pattern:
@@ -38,7 +38,7 @@ BASE = (
     "https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/"
     "solar-flares/x-rays/goes/xrs/goes-xrs-report_{year}.txt"
 )
-YEARS = list(range(2000, 2017))  ***REMOVED*** 2000-2016 inclusive
+YEARS = list(range(2000, 2017))  # 2000-2016 inclusive
 
 CLASS_BASE_FLUX = {
     "A": 1e-8,
@@ -53,10 +53,10 @@ def parse_line(line: str, default_year: int) -> dict | None:
     """Parse one GOES XRS report line. Returns None if unparseable."""
     if len(line) < 60:
         return None
-    ***REMOVED*** Date prefix: positions 5-10 (0-based 5,6 = YY, 7,8 = MM, 9,10 = DD)
-    ***REMOVED*** Example "31777160101" → 16=YY, 01=MM, 01=DD
+    # Date prefix: positions 5-10 (0-based 5,6 = YY, 7,8 = MM, 9,10 = DD)
+    # Example "31777160101" → 16=YY, 01=MM, 01=DD
     prefix = line[:11].strip()
-    ***REMOVED*** Take last 6 chars of prefix (YYMMDD)
+    # Take last 6 chars of prefix (YYMMDD)
     if len(prefix) < 6:
         return None
     ymd = prefix[-6:]
@@ -64,9 +64,9 @@ def parse_line(line: str, default_year: int) -> dict | None:
         yy = int(ymd[:2])
         mm = int(ymd[2:4])
         dd = int(ymd[4:6])
-        ***REMOVED*** NGDC uses 2-digit year. <50 → 20YY, else 19YY.
+        # NGDC uses 2-digit year. <50 → 20YY, else 19YY.
         year = 2000 + yy if yy < 50 else 1900 + yy
-        ***REMOVED*** cross-check year
+        # cross-check year
         if year != default_year and year != default_year - 1 and year != default_year + 1:
             return None
     except ValueError:
@@ -88,11 +88,11 @@ def parse_line(line: str, default_year: int) -> dict | None:
     if cls_letter not in CLASS_BASE_FLUX:
         return None
     try:
-        ***REMOVED*** Subnumber: positions 61-63 (e.g. " 62" = 6.2)
+        # Subnumber: positions 61-63 (e.g. " 62" = 6.2)
         sub_str = line[61:64].strip()
         if not sub_str:
             return None
-        ***REMOVED*** "62" → 6.2; "100" → 10.0
+        # "62" → 6.2; "100" → 10.0
         if len(sub_str) >= 3:
             sub = int(sub_str[:2]) + int(sub_str[2]) / 10.0
         else:
@@ -104,7 +104,7 @@ def parse_line(line: str, default_year: int) -> dict | None:
 
     peak_flux = CLASS_BASE_FLUX[cls_letter] * sub
 
-    ***REMOVED*** Integrated flux (J/m²) at position 68-75
+    # Integrated flux (J/m²) at position 68-75
     integrated_flux = None
     try:
         if_str = line[68:76].strip()
@@ -163,9 +163,9 @@ def main() -> int:
         log["per_year"].append(info)
         print(f" {info['status']} (events={info.get('events_parsed', 0)})")
         all_events.extend(events)
-        time.sleep(0.3)  ***REMOVED*** be gentle to NOAA
+        time.sleep(0.3)  # be gentle to NOAA
 
-    ***REMOVED*** Dedup by (peak_ts, class_letter, subnumber) — same event may appear twice if multiple GOES satellites recorded it
+    # Dedup by (peak_ts, class_letter, subnumber) — same event may appear twice if multiple GOES satellites recorded it
     seen = set()
     deduped = []
     for e in all_events:
@@ -185,7 +185,7 @@ def main() -> int:
     LOG.write_text(json.dumps(log, indent=2))
     print(f"\n[fetch] wrote {len(deduped)} unique flares to {OUT}")
     print(f"[fetch] log: {LOG}")
-    ***REMOVED*** Quick class distribution
+    # Quick class distribution
     from collections import Counter
     dist = Counter(e["class_letter"] for e in deduped)
     print(f"[fetch] class distribution: {dict(dist)}")

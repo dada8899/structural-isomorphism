@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from embedding_bridge import (  ***REMOVED*** type: ignore  ***REMOVED*** noqa: E402
+from embedding_bridge import (  # type: ignore  # noqa: E402
     EmbeddingBridge,
     Neighbor,
 )
@@ -41,15 +41,15 @@ def bridge_v1() -> EmbeddingBridge:
     return EmbeddingBridge(version="v1", fallback_mode="tfidf")
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** construction + basic invariants
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# construction + basic invariants
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_construction_loads_cache(bridge_v2: EmbeddingBridge) -> None:
     """Bridge must load V2 cache (4443 phenomena, 768-dim)."""
     assert bridge_v2.num_phenomena > 4000
     assert bridge_v2.mode in {"real_model", "tfidf"}
-    ***REMOVED*** In CI / local dev the model is not present, so we expect tfidf.
+    # In CI / local dev the model is not present, so we expect tfidf.
     assert bridge_v2.mode == "tfidf"
 
 
@@ -65,9 +65,9 @@ def test_invalid_version_raises() -> None:
         EmbeddingBridge(version="v9", fallback_mode="tfidf")
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** suggest_neighbors
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# suggest_neighbors
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_suggest_neighbors_basic(bridge_v2: EmbeddingBridge) -> None:
     """Top-5 neighbours of a percolation-like description should be
@@ -80,14 +80,14 @@ def test_suggest_neighbors_basic(bridge_v2: EmbeddingBridge) -> None:
     assert isinstance(out, list)
     assert len(out) == 5
     assert all(isinstance(n, Neighbor) for n in out)
-    ***REMOVED*** similarities must be descending
+    # similarities must be descending
     sims = [n.similarity for n in out]
     assert sims == sorted(sims, reverse=True)
-    ***REMOVED*** each Neighbor must have an id and a description
+    # each Neighbor must have an id and a description
     for n in out:
         assert n.id
         assert n.description
-        assert -1.0 <= n.similarity <= 1.0 + 1e-6  ***REMOVED*** cosine bounds
+        assert -1.0 <= n.similarity <= 1.0 + 1e-6  # cosine bounds
 
 
 @pytest.mark.sanity
@@ -119,18 +119,18 @@ def test_exclude_ids_filters_out(bridge_v2: EmbeddingBridge) -> None:
 @pytest.mark.sanity
 def test_self_id_auto_excluded(bridge_v2: EmbeddingBridge) -> None:
     """If query dict has its own id, that id must be auto-excluded."""
-    ***REMOVED*** Pick any real KB id
+    # Pick any real KB id
     sample_id = "5k-01-001"
-    bridge_kb = bridge_v2._kb_by_id[sample_id]  ***REMOVED*** noqa: SLF001 (test peek)
+    bridge_kb = bridge_v2._kb_by_id[sample_id]  # noqa: SLF001 (test peek)
     query = {"id": sample_id, "description": bridge_kb["description"]}
     out = bridge_v2.suggest_neighbors(query, k=5)
     out_ids = {n.id for n in out}
     assert sample_id not in out_ids
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** expand_candidate_class
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# expand_candidate_class
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_expand_percolation_class(bridge_v2: EmbeddingBridge) -> None:
     """The percolation_connectivity class has 5 positive_examples.
@@ -141,7 +141,7 @@ def test_expand_percolation_class(bridge_v2: EmbeddingBridge) -> None:
     out = bridge_v2.expand_candidate_class(class_yaml, k=10)
     assert len(out) > 0
     assert len(out) <= 10
-    ***REMOVED*** All returned Neighbors must have ids
+    # All returned Neighbors must have ids
     assert all(n.id for n in out)
 
 
@@ -161,9 +161,9 @@ def test_expand_handles_missing_positive_examples_key(
     assert out == []
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** Neighbor.to_dict serialisation
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Neighbor.to_dict serialisation
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_neighbor_to_dict(bridge_v2: EmbeddingBridge) -> None:
     out = bridge_v2.suggest_neighbors("percolation transition", k=1)
@@ -173,9 +173,9 @@ def test_neighbor_to_dict(bridge_v2: EmbeddingBridge) -> None:
     assert isinstance(d["similarity"], float)
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** walkthrough on a second real class: helps catch tight-coupling bugs
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# walkthrough on a second real class: helps catch tight-coupling bugs
+# ----------------------------------------------------------------------
 @pytest.mark.sanity
 def test_expand_hysteresis_class(bridge_v2: EmbeddingBridge) -> None:
     yaml_path = CLASSES_DIR / "hysteresis_first_order_transition.yaml"
@@ -184,8 +184,8 @@ def test_expand_hysteresis_class(bridge_v2: EmbeddingBridge) -> None:
     with open(yaml_path, encoding="utf-8") as f:
         class_yaml = yaml.safe_load(f)
     out = bridge_v2.expand_candidate_class(class_yaml, k=8)
-    ***REMOVED*** We only assert non-error and well-formedness; quality of suggestions
-    ***REMOVED*** depends on real V1/V2 model which isn't loaded here.
+    # We only assert non-error and well-formedness; quality of suggestions
+    # depends on real V1/V2 model which isn't loaded here.
     assert isinstance(out, list)
     for n in out:
         assert isinstance(n, Neighbor)

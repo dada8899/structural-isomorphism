@@ -55,7 +55,7 @@ def load_tickers(path: str, limit: int | None) -> List[str]:
                 tickers.append(t.upper())
             if limit and len(tickers) >= limit:
                 break
-    ***REMOVED*** de-dup preserving order
+    # de-dup preserving order
     seen: set = set()
     uniq: List[str] = []
     for t in tickers:
@@ -65,9 +65,9 @@ def load_tickers(path: str, limit: int | None) -> List[str]:
     return uniq
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** yfinance fetcher (batched)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# yfinance fetcher (batched)
+# ---------------------------------------------------------------------------
 
 def fetch_yfinance(
     tickers: List[str],
@@ -83,8 +83,8 @@ def fetch_yfinance(
     Tickers that fail across all retries are simply absent from the result.
     """
     try:
-        import yfinance as yf  ***REMOVED*** type: ignore
-        import pandas as pd  ***REMOVED*** type: ignore  ***REMOVED*** noqa: F401
+        import yfinance as yf  # type: ignore
+        import pandas as pd  # type: ignore  # noqa: F401
     except ImportError:
         LOG.error("yfinance not installed; pip install yfinance pandas")
         return {}
@@ -109,7 +109,7 @@ def fetch_yfinance(
                     threads=True,
                 )
                 break
-            except Exception as exc:  ***REMOVED*** broad: yfinance throws many flavors
+            except Exception as exc:  # broad: yfinance throws many flavors
                 wait = (2 ** attempt) + random.uniform(0, 1)
                 LOG.warning("batch %d attempt %d failed: %s; sleep %.1fs", batch_idx + 1, attempt, exc, wait)
                 time.sleep(wait)
@@ -119,7 +119,7 @@ def fetch_yfinance(
             time.sleep(sleep_between_batches_s)
             continue
 
-        ***REMOVED*** parse single vs multi
+        # parse single vs multi
         if len(batch) == 1:
             t = batch[0]
             series_df = df
@@ -162,9 +162,9 @@ def _extract_close_series(df) -> List[Tuple[dt.date, float]]:
         return []
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Stooq fallback (daily -> monthly aggregate)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Stooq fallback (daily -> monthly aggregate)
+# ---------------------------------------------------------------------------
 
 def fetch_stooq_daily(ticker: str, start: dt.date, end: dt.date) -> List[Tuple[dt.date, float]]:
     """Pull daily closes from Stooq. Returns [] on failure."""
@@ -215,9 +215,9 @@ def fetch_stooq_monthly(ticker: str, start: dt.date, end: dt.date) -> List[Tuple
     return aggregate_daily_to_monthly(daily)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Synthetic fallback (only if explicitly enabled)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Synthetic fallback (only if explicitly enabled)
+# ---------------------------------------------------------------------------
 
 def synthetic_series(ticker: str, dates: List[dt.date], seed: int = 0) -> List[float]:
     h = abs(hash(ticker)) % 100
@@ -259,9 +259,9 @@ def month_ends(start: dt.date, end: dt.date) -> List[dt.date]:
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Output
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
 
 def write_prices_csv(out_path: str, records: Iterable[Tuple[str, dt.date, float]]) -> int:
     out_dir = os.path.dirname(out_path) or "."
@@ -290,9 +290,9 @@ def parse_period_to_days(period: str) -> int:
     return int(period)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLI
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -326,7 +326,7 @@ def main(argv: List[str] | None = None) -> int:
         return 2
     LOG.info("Loaded %d tickers, date range %s -> %s", len(tickers), start, end)
 
-    ***REMOVED*** PHASE 1: yfinance batch
+    # PHASE 1: yfinance batch
     yf_result: Dict[str, List[Tuple[dt.date, float]]] = {}
     if not args.no_yfinance:
         yf_result = fetch_yfinance(
@@ -338,7 +338,7 @@ def main(argv: List[str] | None = None) -> int:
             max_retries=args.retries,
         )
 
-    ***REMOVED*** PHASE 2: Stooq fallback for missing
+    # PHASE 2: Stooq fallback for missing
     missing_after_yf = [t for t in tickers if t not in yf_result]
     stooq_result: Dict[str, List[Tuple[dt.date, float]]] = {}
     if missing_after_yf and not args.no_stooq:
@@ -352,7 +352,7 @@ def main(argv: List[str] | None = None) -> int:
             time.sleep(0.2)
         LOG.info("Stooq fetched %d/%d tickers", len(stooq_result), len(missing_after_yf))
 
-    ***REMOVED*** PHASE 3: optional synthetic for residual
+    # PHASE 3: optional synthetic for residual
     missing_final = [t for t in tickers if t not in yf_result and t not in stooq_result]
     synth_result: Dict[str, List[Tuple[dt.date, float]]] = {}
     if missing_final and args.allow_synthetic:
@@ -362,7 +362,7 @@ def main(argv: List[str] | None = None) -> int:
             ser = synthetic_series(t, dates, seed=args.seed)
             synth_result[t] = list(zip(dates, ser))
 
-    ***REMOVED*** Merge in priority order
+    # Merge in priority order
     merged: Dict[str, List[Tuple[dt.date, float]]] = {}
     merged.update(synth_result)
     merged.update(stooq_result)

@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** Deploy Structural Web to beta.structural.bytedance.city
+#!/bin/bash
+# Deploy Structural Web to beta.structural.bytedance.city
 set -e
 
 VPS="vps"

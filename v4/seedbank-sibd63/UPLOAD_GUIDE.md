@@ -1,19 +1,19 @@
-***REMOVED*** 如何把 SIBD-63 上传到 Zenodo 拿 DOI
+# 如何把 SIBD-63 上传到 Zenodo 拿 DOI
 
 **预估时间：10-15 分钟。不需要任何编程。**
 
-***REMOVED******REMOVED*** Step 1: 准备好你的 Zenodo 账号
+## Step 1: 准备好你的 Zenodo 账号
 
 - 访问 https://zenodo.org
 - 如果没账号，右上角 **Sign up**（推荐用 GitHub 或 ORCID 一键登录，免填表）
 - 如果你还没有 **ORCID**（学术唯一身份），强烈建议现在注册一个：https://orcid.org/register （3 分钟，永久免费，所有学术平台都用它）
 
-***REMOVED******REMOVED*** Step 2: 创建新的 Upload
+## Step 2: 创建新的 Upload
 
 1. 登录后点右上角 **"+ New upload"**
 2. 选 **"Dataset"**（因为我们是数据集，不是 software / publication）
 
-***REMOVED******REMOVED*** Step 3: 上传文件
+## Step 3: 上传文件
 
 **单个 zip（最快）**：
 - 拖 `v4/seedbank-sibd63/SIBD-63-v1.0.zip` 到上传区
@@ -32,9 +32,9 @@
 7. `zenodo.json`
 8. `scripts/build.py` — 重建脚本
 
-***REMOVED******REMOVED*** Step 4: 填元数据（**关键：复制粘贴即可**）
+## Step 4: 填元数据（**关键：复制粘贴即可**）
 
-***REMOVED******REMOVED******REMOVED*** Basic information
+### Basic information
 
 | 字段 | 填什么 |
 |---|---|
@@ -44,7 +44,7 @@
 | **Creators** | Add creator → Name: `Wan, Qinghui`，Affiliation: `Independent researcher, Structural Isomorphism Project`，ORCID: 你的 ORCID（如果有） |
 | **Description** | 复制 `zenodo.json` 里的 `description` 字段 HTML，粘贴到描述框（Zenodo 支持 HTML） |
 
-***REMOVED******REMOVED******REMOVED*** Keywords（逐个添加）
+### Keywords（逐个添加）
 
 - `structural isomorphism`
 - `cross-domain analogy`
@@ -55,19 +55,19 @@
 - `dataset`
 - `seed bank`
 
-***REMOVED******REMOVED******REMOVED*** License
+### License
 
 选 **Creative Commons Attribution 4.0 International (CC-BY-4.0)**
 
-***REMOVED******REMOVED******REMOVED*** Version
+### Version
 
 `1.0`
 
-***REMOVED******REMOVED******REMOVED*** Language
+### Language
 
 `English`
 
-***REMOVED******REMOVED******REMOVED*** Related identifiers
+### Related identifiers
 
 Add 2 个 related identifier：
 
@@ -79,11 +79,11 @@ Add 2 个 related identifier：
    - Relation: `is supplemented by this upload`
    - Resource type: `Other / Machine Learning Model`
 
-***REMOVED******REMOVED******REMOVED*** References（可以贴或跳过）
+### References（可以贴或跳过）
 
 可选。贴或不贴都行。
 
-***REMOVED******REMOVED*** Step 5: Submit
+## Step 5: Submit
 
 - 滚到页面底部，检查一下
 - 点 **"Save draft"** — 它会给你一个预览链接
@@ -91,7 +91,7 @@ Add 2 个 related identifier：
 
 **⚠️ 重要：一旦 Publish，该版本的文件和元数据就被永久锁定（DOI 永久有效）。** 你以后仍可以创建新版本（"New version"），但这一版不能改。
 
-***REMOVED******REMOVED*** Step 6: 拿到 DOI 之后
+## Step 6: 拿到 DOI 之后
 
 发布后 Zenodo 会显示一个类似这样的 DOI：
 
@@ -111,13 +111,13 @@ Add 2 个 related identifier：
 ```bash
 cd ~/Projects/structural-isomorphism
 grep -rl "10.5281/zenodo.19615170" v4/seedbank-sibd63/
-***REMOVED*** 然后逐个 sed 替换：
+# 然后逐个 sed 替换：
 sed -i '' 's|10.5281/zenodo.19615170|10.5281/zenodo.1234567|g' v4/seedbank-sibd63/*.md v4/seedbank-sibd63/*.json v4/seedbank-sibd63/*.cff
 ```
 
 然后 git commit 一下："replace Zenodo DOI placeholder with real DOI"。
 
-***REMOVED******REMOVED*** Step 7: 把 DOI 挂到项目的其他地方
+## Step 7: 把 DOI 挂到项目的其他地方
 
 1. **项目 GitHub README**：加 Zenodo DOI badge
    ```markdown
@@ -127,7 +127,7 @@ sed -i '' 's|10.5281/zenodo.19615170|10.5281/zenodo.1234567|g' v4/seedbank-sibd6
 3. **/about 页面**：同上
 4. **Twitter / 公众号**：发一条 "SIBD-63 seed bank is now on Zenodo with DOI..."
 
-***REMOVED******REMOVED*** Step 8: 每次更新数据集
+## Step 8: 每次更新数据集
 
 当你补充新的同构（比如扩到 SIBD-100）时：
 
@@ -137,21 +137,21 @@ sed -i '' 's|10.5281/zenodo.19615170|10.5281/zenodo.1234567|g' v4/seedbank-sibd6
 4. 版本号 `1.1` / `2.0` 按 semver
 5. **DOI 会变**，但旧 DOI 永远指向旧版本，符合学术引用要求
 
-***REMOVED******REMOVED*** 常见问题
+## 常见问题
 
-***REMOVED******REMOVED******REMOVED*** Q: 为什么不用 HuggingFace Datasets？
+### Q: 为什么不用 HuggingFace Datasets？
 
 A: HF 适合训练数据，Zenodo 适合有 DOI 引用需求的学术资产。两边都上也可以，但 Zenodo 是引用锚点。
 
-***REMOVED******REMOVED******REMOVED*** Q: 文件 65KB 太小会不会被拒？
+### Q: 文件 65KB 太小会不会被拒？
 
 A: 不会。Zenodo 没有文件大小下限，上传 1 字节的 txt 都可以拿 DOI。
 
-***REMOVED******REMOVED******REMOVED*** Q: 可以挂私有吗？
+### Q: 可以挂私有吗？
 
 A: 可以选 "Restricted"，但**那样没人能看你的 seed**，完全失去意义。建议选 Open Access + CC-BY-4.0。
 
-***REMOVED******REMOVED******REMOVED*** Q: 别人如果直接把你的 seed 拿去发论文不引用呢？
+### Q: 别人如果直接把你的 seed 拿去发论文不引用呢？
 
 A: 有几层防护：
 1. Zenodo DOI 有时间戳——proof-of-priority 铁证
@@ -162,7 +162,7 @@ A: 有几层防护：
 
 ---
 
-***REMOVED******REMOVED*** 做完这些之后你会有什么
+## 做完这些之后你会有什么
 
 1. **一个可引用的 DOI** — 所有未来的 outreach 邮件都可以附
 2. **一个永久被索引的 dataset 页面** — Google Scholar 会抓
@@ -172,7 +172,7 @@ A: 有几层防护：
 
 ---
 
-***REMOVED******REMOVED*** 上传完成后，立刻做的事情
+## 上传完成后，立刻做的事情
 
 1. 用新 DOI 替换代码里所有 PLACEHOLDER，git commit + push
 2. 在 LinkedIn / Twitter 发一条带 DOI 的介绍

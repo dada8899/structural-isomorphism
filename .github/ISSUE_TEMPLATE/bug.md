@@ -4,19 +4,19 @@ about: Report a problem with the code, pipeline, or site
 labels: bug
 ---
 
-***REMOVED******REMOVED*** Description
+## Description
 What went wrong?
 
-***REMOVED******REMOVED*** To reproduce
+## To reproduce
 1.
 2.
 3.
 
-***REMOVED******REMOVED*** Expected behavior
+## Expected behavior
 
-***REMOVED******REMOVED*** Environment
+## Environment
 - OS:
 - Python version:
 - Package version (or commit hash):
 
-***REMOVED******REMOVED*** Logs / screenshots
+## Logs / screenshots

@@ -23,9 +23,9 @@ for p in (_BACKEND, _ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from services.search_service import _detect_lang  ***REMOVED*** noqa: E402
-from services import query_expansion as qe  ***REMOVED*** noqa: E402
-from services import retrieval_pipeline as rp  ***REMOVED*** noqa: E402
+from services.search_service import _detect_lang  # noqa: E402
+from services import query_expansion as qe  # noqa: E402
+from services import retrieval_pipeline as rp  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +42,7 @@ def _async(coro):
     return asyncio.run(coro)
 
 
-***REMOVED*** --- 1. 中文 query 直走 -----------------------------------------------------
+# --- 1. 中文 query 直走 -----------------------------------------------------
 
 
 def test_chinese_query_skips_translation():
@@ -52,7 +52,7 @@ def test_chinese_query_skips_translation():
     translate_calls = []
     async def mock_llm(*, system, user, **kwargs):
         translate_calls.append(system[:20])
-        return {"expansions": ["a", "b", "c"]}  ***REMOVED*** only expansion is called
+        return {"expansions": ["a", "b", "c"]}  # only expansion is called
 
     def search_fn(q, top_k):
         return [{"id": "k1", "score": 0.8}]
@@ -64,11 +64,11 @@ def test_chinese_query_skips_translation():
     ))
     assert out["lang_detected"] == "zh"
     assert out["translation_used"] is False
-    ***REMOVED*** No call should hit the translation system prompt
+    # No call should hit the translation system prompt
     assert not any("翻译" in s for s in translate_calls)
 
 
-***REMOVED*** --- 2. EN query 走翻译路径 -----------------------------------------------
+# --- 2. EN query 走翻译路径 -----------------------------------------------
 
 
 def test_english_query_triggers_translation_and_parallel_seed():
@@ -98,19 +98,19 @@ def test_english_query_triggers_translation_and_parallel_seed():
     ))
     assert out["lang_detected"] == "en"
     assert out["translation_used"] is True
-    ***REMOVED*** Both EN original (BM25 lane) and ZH translation (embedding lane) issued
+    # Both EN original (BM25 lane) and ZH translation (embedding lane) issued
     assert "power-law distribution in social networks" in out["candidate_queries"]
     assert "幂律分布" in out["candidate_queries"]
-    ***REMOVED*** Translated ZH yielded the top hit (k2 with 0.85)
+    # Translated ZH yielded the top hit (k2 with 0.85)
     assert out["results"][0]["id"] == "k2"
 
 
-***REMOVED*** --- 3. 混合双语 query 兜底 ------------------------------------------------
+# --- 3. 混合双语 query 兜底 ------------------------------------------------
 
 
 def test_mixed_lang_query_falls_through_without_translation():
     """Mixed CJK + ASCII query → 'mixed', translation skipped (already has ZH)."""
-    ***REMOVED*** CJK=4 (挤兑现象) + ASCII letters=14 (power+law+and) → ratio > 0.3 → mixed
+    # CJK=4 (挤兑现象) + ASCII letters=14 (power+law+and) → ratio > 0.3 → mixed
     assert _detect_lang("挤兑现象 and power law") == "mixed"
 
     translate_calls = []

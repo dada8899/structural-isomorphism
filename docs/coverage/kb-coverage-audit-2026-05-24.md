@@ -1,10 +1,10 @@
-***REMOVED*** KB 覆盖度量化审计 — 2026-05-24
+# KB 覆盖度量化审计 — 2026-05-24
 
 > 用户反馈"经常找近似现象却找不到对应"。本审计专攻**内容缺口**侧，定量回答：KB 里到底缺什么、缺多严重、补哪 3 块 ROI 最高。匹配算法问题另议。
 
 ---
 
-***REMOVED******REMOVED*** 0. 数据基线
+## 0. 数据基线
 
 | 文件 | 条数 | 字段 | 说明 |
 |---|---|---|---|
@@ -17,9 +17,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. 当前覆盖统计
+## 1. 当前覆盖统计
 
-***REMOVED******REMOVED******REMOVED*** 1.1 学科大类分布（基于 kb-5000-merged 4475 条，22 学科聚合）
+### 1.1 学科大类分布（基于 kb-5000-merged 4475 条，22 学科聚合）
 
 ```
 economics      ████████████ 703  (15.7%)
@@ -49,13 +49,13 @@ math_stats     ▏             18  ( 0.4%)
 
 **结论**：经济 / 工程 / 地球 / CS / 物理 / 生物 6 大类占 56%；社会科学 + 人文一共 ~12%；neuroscience / urban / ecology 都 < 2%。
 
-***REMOVED******REMOVED******REMOVED*** 1.2 现象类型（type_id 1–84）分布
+### 1.2 现象类型（type_id 1–84）分布
 
 - 头部 5 名（占 14.8%）：`03 对数关系 174`、`08 幂律增长/衰减 150`、`18 正反馈 144`、`06 指数衰减 124`、`25 一阶相变 123`
 - 尾部 10 名（每个 < 15 条）：`77 长程相关/1f 噪声 8`、`80 小波变换 8`、`81 对偶性 8`、`79 傅里叶变换 9`、`84 维度灾难 9`、`65 形式语言与语法 11`、`74 元胞自动机 11`、`68 自组织临界性 12`、`60 群/对称 12`、`39 变分原理 12`
 - type_id × discipline 交叉表共 **84 × 21 = 1764** 个 cell，其中 **1023 个 = 0**（58% 空白）
 
-***REMOVED******REMOVED******REMOVED*** 1.3 时间 / 空间尺度（用关键词正则归类）
+### 1.3 时间 / 空间尺度（用关键词正则归类）
 
 | 时间尺度 | 数量 | 空间尺度 | 数量 |
 |---|---|---|---|
@@ -71,17 +71,17 @@ math_stats     ▏             18  ( 0.4%)
 
 → KB 描述里**绝大多数没有显式时间/空间尺度标签**（>70%），导致"跨尺度同构搜索"无 metadata 可用。这是 schema 缺陷，不是内容缺陷，但直接影响"近似但找不到"。
 
-***REMOVED******REMOVED******REMOVED*** 1.4 数据成熟度
+### 1.4 数据成熟度
 
 显式标注实证 / 理论 / 案例的 < 135 条（3%）。绝大多数 description 是案例叙述体，**无 confidence flag**。
 
 ---
 
-***REMOVED******REMOVED*** 2. 稀疏 / 缺失领域 Top 20
+## 2. 稀疏 / 缺失领域 Top 20
 
 按"该 cell 是经典理论应有 × KB 实际 = 0 或 < 3"判定。
 
-| ***REMOVED*** | 领域 / 现象 | KB 命中 | 经典出处 |
+| # | 领域 / 现象 | KB 命中 | 经典出处 |
 |---|---|---|---|
 | 1 | **linguistics × 大多数 type_id**（22/84 = 0；正反馈/指数增长/扩散方程/相变/级联在语言学里全空） | 多数为 0 | Newman / Croft 语言变化 |
 | 2 | **neuroscience × 多 type_id**（指数增长/衰减、扩散、网络级联、混沌、时滞反馈全 0） | 多数为 0 | Beggs–Plenz neural avalanche |
@@ -106,7 +106,7 @@ math_stats     ▏             18  ( 0.4%)
 
 ---
 
-***REMOVED******REMOVED*** 3. 跨域同构对子覆盖测试
+## 3. 跨域同构对子覆盖测试
 
 10 对用户最可能搜的"近似现象"，验 KB 两侧是否都有：
 
@@ -127,28 +127,28 @@ math_stats     ▏             18  ( 0.4%)
 
 ---
 
-***REMOVED******REMOVED*** 4. 扩展优先级建议
+## 4. 扩展优先级建议
 
 按 **「用户最可能搜 × 当前最稀疏 × 数据获取性」** 三维打分。
 
-***REMOVED******REMOVED******REMOVED*** Top 1 ★★★ — Linguistics 全谱补足（+150 条）
+### Top 1 ★★★ — Linguistics 全谱补足（+150 条）
 - **理由**：22/84 个 type_id 在 linguistics 完全 0；Zipf / Heaps / 语言变化 S-curve / 词汇衰减 / 句法演化都是经典案例，且用户对子测试有 3 个缺口落在 culture/language 侧。
 - **数据可获取性**：高。WALS、PHOIBLE、Google Ngrams、Zipf 词频数据都是公开 dataset。
 - **关键现象 candidates**：词频 Zipf 律、词汇半衰期、语言扩散波（wave model）、grammatical change S-curve、phonological merger、句法 island constraint、code-switching cascade、loanword diffusion、语言死亡阈值。
 
-***REMOVED******REMOVED******REMOVED*** Top 2 ★★★ — Neuroscience × 跨 type_id 补足（+80 条）
+### Top 2 ★★★ — Neuroscience × 跨 type_id 补足（+80 条）
 - **理由**：neuroscience 只有 53 条，且基本只覆盖 type_id 23/42，**指数衰减 / 扩散方程 / 时滞反馈 / 混沌 / 一阶相变 / 网络级联**全 = 0；但用户做"市场 ↔ 大脑"同构搜索是高频需求（neural avalanche ↔ liquidity shock 已是经典对）。
 - **数据可获取性**：高。OpenNeuro、Allen Brain Atlas、SfN 教材现象级清单。
 - **关键现象**：synaptic depression（指数衰减）、calcium wave（扩散）、heart rate variability 1/f 噪声、epileptic seizure（一阶相变）、EEG gamma synchrony、cortical traveling wave、dopamine RPE 时滞反馈、连接组小世界。
 
-***REMOVED******REMOVED******REMOVED*** Top 3 ★★ — Urban / Computational Social Science（+100 条）
+### Top 3 ★★ — Urban / Computational Social Science（+100 条）
 - **理由**：urban 仅 37 条，社会学 103 条但 type_id × discipline 大量空白；用户 §3 的对子 2/9/10 全在这个方向缺口；同时是 Bettencourt / Barabási / Watts 等经典著作的核心案例库。
 - **数据可获取性**：中-高。CitySDK、SafeGraph、Twitter/Weibo 公开数据集、政府开放数据。
 - **关键现象**：城市标度律（GDP/人口/犯罪/专利的超线性）、交通拥堵相变、电网级联停电、suburb sprawl 扩散、housing bubble 一阶相变、opinion polarization 临界、virality cascade、urban heat island 反馈。
 
 ---
 
-***REMOVED******REMOVED*** 5. 横向 schema 建议（非内容缺口，但放大"找不到"）
+## 5. 横向 schema 建议（非内容缺口，但放大"找不到"）
 
 1. **加 `discipline` 字段**：当前 183 个 domain 自由文本里有 `加密货币与DeFi` / `加密货币/DeFi` / `crypto` 等 5 种写法 → 归一后 670 条 unmapped 可挂回主学科。
 2. **加 `time_scale` / `space_scale` 字段**：现在 70%+ 描述里时间/空间尺度只能靠正则推断，加显式标签后跨尺度搜索可行。
@@ -157,7 +157,7 @@ math_stats     ▏             18  ( 0.4%)
 
 ---
 
-***REMOVED******REMOVED*** 6. 关键结论（一句话版）
+## 6. 关键结论（一句话版）
 
 > 当前 4475 条 KB 主要覆盖了**经济/工程/物理/生物**的中频现象；**linguistics / neuroscience / urban / sociology** 在中高频 type_id 上**结构性空白**（type_id × discipline 矩阵 58% cell = 0）。用户感受到的"找不到对应"主要来自这三块缺口 + 70% 描述无 time/space scale 元数据 + 专有名词缺 alias。补全 Top 3 优先级（+330 条）可覆盖最常见的跨域搜索路径。
 

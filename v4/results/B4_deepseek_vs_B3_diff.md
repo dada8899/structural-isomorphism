@@ -1,10 +1,10 @@
-***REMOVED*** B4 DeepSeek heterogeneous ensemble vs B3 — diff report
+# B4 DeepSeek heterogeneous ensemble vs B3 — diff report
 
-**Date**: 2026-05-14 (session ***REMOVED***8 rerun, DeepSeek-only no OpenRouter)
+**Date**: 2026-05-14 (session #8 rerun, DeepSeek-only no OpenRouter)
 
 **Setup**: 3 DeepSeek direct-API reviewers — pro T=0.0 (rigorous), flash T=0.0 (rigorous), pro T=0.7 (chat-baseline). DeepSeek-chat / DeepSeek-reasoner unavailable on this account; v4-pro / v4-flash substituted with 3 temperature / system-prompt variations.
 
-***REMOVED******REMOVED*** Per-class verdict diff
+## Per-class verdict diff
 
 | class_id | B3 | B4-deepseek | pattern | B4-orig | reviewers (v_A / v_B / v_C) |
 |---|---|---|---|---|---|
@@ -30,7 +30,7 @@
 | `sir_contagion_network_class` | SPLIT | **SPLIT** | 2/3 | REJECT | SPLIT / REJECT / SPLIT |
 | `tail_copula_contagion` | REJECT | **REJECT** | 3/3 | REJECT | REJECT / REJECT / REJECT |
 
-***REMOVED******REMOVED*** Aggregate metrics
+## Aggregate metrics
 
 - **Classes compared**: 21
 - **3/3 unanimous**: 11 (52%)
@@ -41,7 +41,7 @@
 - **B4-deepseek vs B3 DIFFER**: 6 / 21 (29%)
 - **B4-deepseek vs B4-original AGREE**: 12 / 21 (57%)
 
-***REMOVED******REMOVED*** B4-deepseek consensus distribution
+## B4-deepseek consensus distribution
 
 - **KEEP**: 1
 - **REJECT**: 12
@@ -49,17 +49,17 @@
 - **MERGE**: 3
 - **UNCLEAR**: 1
 
-***REMOVED******REMOVED*** Interpretation
+## Interpretation
 
-***REMOVED******REMOVED******REMOVED*** Q1: Is the original B4 (62% disagree) replicable with a different third-reviewer config?
+### Q1: Is the original B4 (62% disagree) replicable with a different third-reviewer config?
 
 NO — B4-deepseek matches B4-original on only 57% of classes. Third-reviewer config (T=0.7 chat baseline vs T=1.0 cross-domain physicist persona) materially changes the verdict.
 
-***REMOVED******REMOVED******REMOVED*** Q2: Is 'DeepSeek 3-config' an acceptable heterogeneity proxy?
+### Q2: Is 'DeepSeek 3-config' an acceptable heterogeneity proxy?
 
 **MIXED** — 11/21 unanimous, 9/21 2/3 majority, 1/21 all-disagree. Heterogeneity is present but moderate; useful as a confidence indicator, less so as a robust cross-architecture replacement.
 
-***REMOVED******REMOVED*** Methodology notes
+## Methodology notes
 
 - DeepSeek-chat / DeepSeek-reasoner unavailable on this account (api.deepseek.com/models returns only deepseek-v4-pro / deepseek-v4-flash). Substituted with 3 temperature / system-prompt variations of v4-pro/v4-flash.
 - Cost budget: $5 USD enforced via per-call running-total check; actual spend logged in script stderr.

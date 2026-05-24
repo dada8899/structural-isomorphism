@@ -1,10 +1,10 @@
-***REMOVED*** Cmd+K Search — design notes (W13-E, 2026-05-15)
+# Cmd+K Search — design notes (W13-E, 2026-05-15)
 
-Wave 13-E (session ***REMOVED***10) ships a site-wide command palette across
+Wave 13-E (session #10) ships a site-wide command palette across
 `phase-detector` (and reused, eventually, on `beta.structural`). This doc
 captures the design choices, trade-offs, and forward roadmap.
 
-***REMOVED******REMOVED*** Why a client-side index
+## Why a client-side index
 
 We considered three architectures:
 
@@ -32,7 +32,7 @@ The build script is `scripts/build_search_index.py`. It is idempotent
 (deterministic ordering, stable IDs) and intended to run on every
 commit via either a pre-commit hook or the next deploy script.
 
-***REMOVED******REMOVED*** Index size & build time trade-offs
+## Index size & build time trade-offs
 
 | Aspect            | Current  | Threshold                           |
 | ----------------- | -------- | ----------------------------------- |
@@ -55,7 +55,7 @@ be ~600 KB raw / ~120 KB gzipped — borderline. At that point we move to
 a chunked index (group by sector) or transition to a server endpoint.
 The signal to switch: first-open fetch time exceeds 200 ms on cellular.
 
-***REMOVED******REMOVED*** Scoring
+## Scoring
 
 Hand-rolled scorer (`web/phase-detector/lib/search.ts`):
 
@@ -74,7 +74,7 @@ Plus tiebreakers:
 No external library — fuse.js would add ~12 KB gzipped for behavior we
 don't need. The hand-rolled implementation is <1 KB.
 
-***REMOVED******REMOVED*** Keyboard
+## Keyboard
 
 - Cmd+K (Mac) / Ctrl+K (Win/Linux) — open everywhere, including inside
   text inputs (the modifier disambiguates from regular typing)
@@ -84,7 +84,7 @@ don't need. The hand-rolled implementation is <1 KB.
 - Enter — activate
 - Tab — focus trap inside dialog
 
-***REMOVED******REMOVED*** Plausible events
+## Plausible events
 
 - `search_opened` (props: `source` = "shortcut" | "nav-click" | "deep-link")
 - `search_query` (props: `query_length`, `result_count`) — debounced 350 ms
@@ -94,7 +94,7 @@ We deliberately do not log raw queries — Plausible is cookie-less and we
 keep it that way. Aggregate query length distribution + result-count
 histograms tell us enough about whether the index covers user intent.
 
-***REMOVED******REMOVED*** Accessibility
+## Accessibility
 
 - `role="dialog"` + `aria-modal="true"`
 - Input is `role="combobox"` + `aria-controls` + `aria-activedescendant`
@@ -104,20 +104,20 @@ histograms tell us enough about whether the index covers user intent.
 - WCAG 1.4.4 (text resize) preserved — we use `100dvh` not `100vh` so
   iOS Safari's URL bar collapse doesn't crop the modal
 
-***REMOVED******REMOVED*** Mobile
+## Mobile
 
 - < 640 px: full-screen overlay (rounded corners off, no margin)
 - ≥ 640 px: centered modal, 600 px wide, 10 vh top margin
 - Soft keyboard pushes content because we use `100dvh`
 
-***REMOVED******REMOVED*** Future: semantic search
+## Future: semantic search
 
 Today's index is lexical only. Two known weaknesses:
 
 - "earthquake" should also surface `soc_threshold_cascade` even though
   the user typed in English and the class name is Chinese
 - Methodology questions ("how do you compute critical state?") should
-  pull in the relevant ***REMOVED******REMOVED*** sections of `paper/paper.md`
+  pull in the relevant ## sections of `paper/paper.md`
 
 Roadmap:
 

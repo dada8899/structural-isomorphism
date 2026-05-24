@@ -1,4 +1,4 @@
-"""Unit tests for api.checkout_mock — W10-B (session ***REMOVED***10).
+"""Unit tests for api.checkout_mock — W10-B (session #10).
 
 Asserts:
   - Endpoint contract (status / customer_id / checkout_session_id shape)
@@ -24,15 +24,15 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import checkout_mock as cm  ***REMOVED*** noqa: E402
+from api import checkout_mock as cm  # noqa: E402
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    ***REMOVED*** Redirect jsonl persistence to tmp so tests don't pollute repo data dir.
+    # Redirect jsonl persistence to tmp so tests don't pollute repo data dir.
     tmp_file = tmp_path / "data" / "mock_checkouts.jsonl"
     monkeypatch.setattr(cm, "_data_file", lambda: tmp_file)
 
@@ -41,7 +41,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-***REMOVED*** ---------- POST /api/checkout/mock ----------
+# ---------- POST /api/checkout/mock ----------
 
 def test_success_returns_customer_and_session_ids(client):
     r = client.post(
@@ -96,7 +96,7 @@ def test_declined_path_returns_reason(client):
     data = r.json()
     assert data["status"] == "declined"
     assert data["reason"] == "card_declined"
-    ***REMOVED*** Decline path should NOT leak customer/session ids
+    # Decline path should NOT leak customer/session ids
     assert "customer_id" not in data
     assert "checkout_session_id" not in data
 
@@ -191,11 +191,11 @@ def test_card_last4_only_digits_kept(client):
         },
     )
     rows = [json.loads(ln) for ln in cm._data_file().read_text().splitlines() if ln.strip()]
-    ***REMOVED*** First 4 digits extracted: "4242"
+    # First 4 digits extracted: "4242"
     assert rows[0]["card_last4"] == "4242"
 
 
-***REMOVED*** ---------- GET /api/usage ----------
+# ---------- GET /api/usage ----------
 
 def test_usage_default_is_free(client):
     r = client.get("/api/usage")

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Time-resolution sweep: re-fit Clauset power-law across multiple temporal
 bin widths and report whether the scaling exponent is stable, drifting,
@@ -42,10 +42,10 @@ Aggregate summary lands at
 
 Usage
 -----
-    ***REMOVED*** All built-in phases
+    # All built-in phases
     python3 v4/scripts/time_resolution_sweep.py
 
-    ***REMOVED*** Single phase
+    # Single phase
     python3 v4/scripts/time_resolution_sweep.py --phase soc-earthquake
 """
 
@@ -62,8 +62,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
-***REMOVED*** powerlaw library emits many edge-of-range / log-of-nan warnings during
-***REMOVED*** distribution_compare; they are cosmetic for our purposes.
+# powerlaw library emits many edge-of-range / log-of-nan warnings during
+# distribution_compare; they are cosmetic for our purposes.
 warnings.filterwarnings("ignore", category=UserWarning, module="powerlaw")
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="powerlaw")
 
@@ -73,19 +73,19 @@ RESULTS_DIR = REPO_ROOT / "v4" / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-***REMOVED*** --------- phase configurations ---------
+# --------- phase configurations ---------
 
 @dataclass
 class PhaseConfig:
     slug: str
     raw_data_loader: Callable[[], List[Tuple[float, float]]]
     base_bin_seconds: float
-    aggregate: str  ***REMOVED*** "sum" or "count"
+    aggregate: str  # "sum" or "count"
     bin_factors: List[int]
     description: str
 
 
-***REMOVED*** ---- Phase 1: earthquakes ----------
+# ---- Phase 1: earthquakes ----------
 
 def _load_earthquake_events() -> List[Tuple[float, float]]:
     """Return list of (time_seconds, energy_proxy) tuples.
@@ -120,16 +120,16 @@ def _load_earthquake_events() -> List[Tuple[float, float]]:
                 t_ms = float(t_ms)
             except (TypeError, ValueError):
                 continue
-            if not (mag >= 4.5):  ***REMOVED*** rough Mc to mirror Phase 1 Mc=4.45
+            if not (mag >= 4.5):  # rough Mc to mirror Phase 1 Mc=4.45
                 continue
-            ***REMOVED*** log-energy proxy
+            # log-energy proxy
             log_energy = 1.5 * mag
             energy = 10.0 ** log_energy
             events.append((t_ms / 1000.0, energy))
     return events
 
 
-***REMOVED*** ---- Phase 3: DeFi liquidations -------
+# ---- Phase 3: DeFi liquidations -------
 
 def _load_defi_events() -> List[Tuple[float, float]]:
     """Return list of (time_seconds, debt_to_cover_normalised) tuples.
@@ -156,8 +156,8 @@ def _load_defi_events() -> List[Tuple[float, float]]:
                 except json.JSONDecodeError:
                     continue
                 ts = d.get("ts_unix")
-                ***REMOVED*** `debt_to_cover_raw` is a numeric string (wei-like
-                ***REMOVED*** huge ints); use float for sizing
+                # `debt_to_cover_raw` is a numeric string (wei-like
+                # huge ints); use float for sizing
                 raw = d.get("debt_to_cover_raw") or d.get("debtToCoverRaw")
                 if ts is None or raw is None:
                     continue
@@ -172,7 +172,7 @@ def _load_defi_events() -> List[Tuple[float, float]]:
     return out
 
 
-***REMOVED*** ---- Phase 4: neural avalanches (precomputed) ----
+# ---- Phase 4: neural avalanches (precomputed) ----
 
 def _load_neural_precomputed() -> Optional[Dict[str, Any]]:
     """Use the already-fit Beggs-Plenz neural avalanche results.
@@ -185,7 +185,7 @@ def _load_neural_precomputed() -> Optional[Dict[str, Any]]:
     """
     neural_dir = VALIDATION_DIR / "soc-neural"
     bf_factors = [1, 2, 4, 8, 16]
-    ***REMOVED*** Neural base bin is 4 ms (Beggs-Plenz pipeline default).
+    # Neural base bin is 4 ms (Beggs-Plenz pipeline default).
     neural_base_bin_seconds = 0.004
     results = []
     for bf in bf_factors:
@@ -219,7 +219,7 @@ def _load_neural_precomputed() -> Optional[Dict[str, Any]]:
     }
 
 
-***REMOVED*** --------- core sweep machinery ---------
+# --------- core sweep machinery ---------
 
 def bin_events(
     events: List[Tuple[float, float]],
@@ -249,7 +249,7 @@ def bin_events(
         out = np.bincount(bin_idx, minlength=n_bins).astype(float)
     else:
         raise ValueError(f"unknown aggregate: {aggregate}")
-    ***REMOVED*** Drop empty bins (zero sizes)
+    # Drop empty bins (zero sizes)
     return out[out > 0]
 
 
@@ -267,16 +267,16 @@ def fit_clauset(values: np.ndarray) -> Dict[str, Any]:
         sigma_alpha = float(fit.power_law.sigma)
         xmin = float(fit.power_law.xmin)
         n_tail = int(np.sum(values >= xmin))
-        ***REMOVED*** KS-style D statistic from powerlaw is the goodness-of-fit
-        ***REMOVED*** distance. powerlaw exposes it as fit.power_law.KS.
+        # KS-style D statistic from powerlaw is the goodness-of-fit
+        # distance. powerlaw exposes it as fit.power_law.KS.
         try:
             ks_d = float(fit.power_law.KS())
         except Exception:
             ks_d = None
-        ***REMOVED*** p_ks approximation: powerlaw provides Clauset bootstrap p
-        ***REMOVED*** only when explicitly requested; here we report the D distance
-        ***REMOVED*** and let downstream interpret. We *do* compute the convenient
-        ***REMOVED*** R-comparisons.
+        # p_ks approximation: powerlaw provides Clauset bootstrap p
+        # only when explicitly requested; here we report the D distance
+        # and let downstream interpret. We *do* compute the convenient
+        # R-comparisons.
         try:
             R_ln, p_ln = fit.distribution_compare(
                 "power_law", "lognormal", normalized_ratio=True
@@ -293,7 +293,7 @@ def fit_clauset(values: np.ndarray) -> Dict[str, Any]:
             "n_tail": n_tail,
             "n_total": int(len(values)),
             "ks_d": ks_d,
-            "p_ks": ks_d,  ***REMOVED*** report the KS distance as p_ks proxy
+            "p_ks": ks_d,  # report the KS distance as p_ks proxy
             "vs_lognormal_R": float(R_ln) if R_ln is not None else None,
             "vs_lognormal_p": float(p_ln) if p_ln is not None else None,
             "vs_exponential_R": float(R_exp) if R_exp is not None else None,
@@ -389,32 +389,32 @@ def run_phase(cfg: PhaseConfig) -> Dict[str, Any]:
     }
 
 
-***REMOVED*** --------- phase registry ---------
+# --------- phase registry ---------
 
 def get_phase_configs() -> List[PhaseConfig]:
     return [
         PhaseConfig(
             slug="soc-earthquake",
             raw_data_loader=_load_earthquake_events,
-            base_bin_seconds=3600.0,  ***REMOVED*** 1 hour
+            base_bin_seconds=3600.0,  # 1 hour
             aggregate="sum",
-            bin_factors=[1, 2, 6, 12, 24, 72, 168],  ***REMOVED*** 1h ... 1wk
+            bin_factors=[1, 2, 6, 12, 24, 72, 168],  # 1h ... 1wk
             description="Phase 1 USGS earthquakes; per-bin total energy proxy "
             "(10^(1.5m)); Mc=4.5",
         ),
         PhaseConfig(
             slug="soc-defi",
             raw_data_loader=_load_defi_events,
-            base_bin_seconds=600.0,  ***REMOVED*** 10 min
+            base_bin_seconds=600.0,  # 10 min
             aggregate="sum",
-            bin_factors=[1, 3, 6, 12, 24, 72, 144],  ***REMOVED*** 10m ... 24h
+            bin_factors=[1, 3, 6, 12, 24, 72, 144],  # 10m ... 24h
             description="Phase 3 DeFi liquidations (Aave + Compound + Maker); "
             "per-bin total debt_to_cover_raw",
         ),
     ]
 
 
-***REMOVED*** --------- driver ---------
+# --------- driver ---------
 
 def write_phase_result(phase_slug: str, result: Dict[str, Any]) -> Path:
     out = RESULTS_DIR / f"{phase_slug}_time_resolution_sweep.json"
@@ -425,7 +425,7 @@ def write_phase_result(phase_slug: str, result: Dict[str, Any]) -> Path:
 def write_summary(all_results: List[Dict[str, Any]]) -> Path:
     """Aggregate markdown summary."""
     lines: List[str] = [
-        "***REMOVED*** Time-Resolution Sweep — Aggregate Summary",
+        "# Time-Resolution Sweep — Aggregate Summary",
         "",
         "Generated by `v4/scripts/time_resolution_sweep.py`. For each phase",
         "we refit Clauset power-law at multiple time-bin widths and classify",
@@ -436,7 +436,7 @@ def write_summary(all_results: List[Dict[str, Any]]) -> Path:
         "- **drift**: alpha varies > 5% (finite-size or bin-dependence effect)",
         "- **breakdown**: power-law fails at some bin factors",
         "",
-        "***REMOVED******REMOVED*** Per-phase outcomes",
+        "## Per-phase outcomes",
         "",
         "| phase | n_events | bin factors | scaling_dependence | mean alpha | spread | note |",
         "|---|---:|---|---|---:|---:|---|",
@@ -461,10 +461,10 @@ def write_summary(all_results: List[Dict[str, Any]]) -> Path:
         )
 
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Detail per phase")
+    lines.append("## Detail per phase")
     lines.append("")
     for r in all_results:
-        lines.append(f"***REMOVED******REMOVED******REMOVED*** {r['phase_slug']}")
+        lines.append(f"### {r['phase_slug']}")
         lines.append("")
         lines.append(f"- {r.get('description', '')}")
         lines.append(f"- aggregate: `{r.get('aggregate', 'n/a')}`")
@@ -527,7 +527,7 @@ def main() -> int:
 
     all_results: List[Dict[str, Any]] = []
 
-    ***REMOVED*** 1. Computed phases (earthquake, defi)
+    # 1. Computed phases (earthquake, defi)
     for cfg in cfgs:
         try:
             r = run_phase(cfg)
@@ -547,14 +547,14 @@ def main() -> int:
         print(f"[{cfg.slug}] wrote {out}", file=sys.stderr)
         all_results.append(r)
 
-    ***REMOVED*** 2. Neural precomputed harvest
+    # 2. Neural precomputed harvest
     if not args.skip_neural and (args.phase is None or args.phase == "soc-neural"):
         neural = _load_neural_precomputed()
         if neural is None:
             print("[soc-neural] WARNING: precomputed bf fits missing, skipping",
                   file=sys.stderr)
         else:
-            ***REMOVED*** reuse the same classifier
+            # reuse the same classifier
             dep, note = classify_scaling_dependence(neural["results"])
             neural["scaling_dependence"] = dep
             neural["note"] = note

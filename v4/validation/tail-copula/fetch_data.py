@@ -24,7 +24,7 @@ import pandas as pd
 DATA_DIR = Path(__file__).parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-***REMOVED*** NOAA file index (canonical filenames discovered 2026-05-13 via index page)
+# NOAA file index (canonical filenames discovered 2026-05-13 via index page)
 NOAA_FILES = {
     1996: "StormEvents_details-ftp_v1.0_d1996_c20260323.csv.gz",
     1997: "StormEvents_details-ftp_v1.0_d1997_c20260323.csv.gz",
@@ -84,13 +84,13 @@ def download_year(year: int) -> Path:
     url = BASE_URL + fname
     print(f"  downloading {year}...", flush=True)
     urlretrieve(url, out)
-    time.sleep(0.3)  ***REMOVED*** be nice to NOAA
+    time.sleep(0.3)  # be nice to NOAA
     return out
 
 
 def load_year(year: int) -> pd.DataFrame:
     path = download_year(year)
-    ***REMOVED*** Read only needed columns
+    # Read only needed columns
     cols = [
         "BEGIN_YEARMONTH",
         "BEGIN_DAY",
@@ -102,7 +102,7 @@ def load_year(year: int) -> pd.DataFrame:
     df["damage_property_usd"] = df["DAMAGE_PROPERTY"].apply(parse_damage)
     df["damage_crops_usd"] = df["DAMAGE_CROPS"].apply(parse_damage)
     df["total_damage_usd"] = df["damage_property_usd"] + df["damage_crops_usd"]
-    ***REMOVED*** Build date
+    # Build date
     ym = df["BEGIN_YEARMONTH"].astype(int).astype(str).str.zfill(6)
     dd = df["BEGIN_DAY"].astype(int).astype(str).str.zfill(2)
     df["date"] = pd.to_datetime(ym + dd, format="%Y%m%d", errors="coerce")
@@ -124,7 +124,7 @@ def main():
     raw = pd.concat(pieces, ignore_index=True)
     print(f"Total raw events: {len(raw):,}", flush=True)
 
-    ***REMOVED*** Aggregate daily
+    # Aggregate daily
     daily = (
         raw.groupby("date")
         .agg(

@@ -1,13 +1,13 @@
-***REMOVED*** API
+# API
 
 The hosted Phase Detector exposes two endpoints. See
 [Phase Detector](phase-detector.md) for the architectural overview.
 
-***REMOVED******REMOVED*** `POST /api/ask`
+## `POST /api/ask`
 
 Synchronous fit. Returns the full result table in one response.
 
-***REMOVED******REMOVED******REMOVED*** Request
+### Request
 
 ```json
 {
@@ -25,7 +25,7 @@ Synchronous fit. Returns the full result table in one response.
 - `alternatives`: list of alternatives to compare against. Currently
   `lognormal` and `exponential` are supported.
 
-***REMOVED******REMOVED******REMOVED*** Response
+### Response
 
 ```json
 {
@@ -42,16 +42,16 @@ Synchronous fit. Returns the full result table in one response.
 }
 ```
 
-***REMOVED******REMOVED*** `POST /api/ask/stream`
+## `POST /api/ask/stream`
 
 Streaming fit. Returns Server-Sent Events with seven event types. See
 [Phase Detector](phase-detector.md) for the full event catalog.
 
-***REMOVED******REMOVED******REMOVED*** Request
+### Request
 
 Identical to `/api/ask`.
 
-***REMOVED******REMOVED******REMOVED*** Response
+### Response
 
 `Content-Type: text/event-stream`. Each event has the form:
 
@@ -64,7 +64,7 @@ Event types in order: `task_received`, `data_ingested`,
 `xmin_search_start`, `xmin_found`, `bootstrap_running`,
 `vuong_complete`, `verdict`.
 
-***REMOVED******REMOVED*** Authentication and rate limits
+## Authentication and rate limits
 
 The current public deployment is open access with per-IP rate limiting:
 
@@ -76,7 +76,7 @@ The current public deployment is open access with per-IP rate limiting:
 Authentication uses bearer tokens. To request a token, open an issue
 on the repository.
 
-***REMOVED******REMOVED*** Errors
+## Errors
 
 Errors are returned as JSON with an `error_code` and a human-readable
 `message`:

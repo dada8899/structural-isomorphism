@@ -55,26 +55,26 @@ def test_pipeline_end_to_end_with_mock(tmp_path, bt_mod):
     assert "summary" in result
     assert "meta" in result
 
-    ***REMOVED*** 3 years × 12 months − 1 (we need d2 = next month) = 35 rebalances
+    # 3 years × 12 months − 1 (we need d2 = next month) = 35 rebalances
     assert result["summary"]["n_rebalances"] == 35
 
-    ***REMOVED*** Sharpe values are finite numbers
+    # Sharpe values are finite numbers
     s = result["summary"]
     for key in ("cohort_sharpe", "spy_sharpe", "sharpe_lift",
                 "cohort_cum_return", "spy_cum_return",
                 "cohort_max_drawdown", "spy_max_drawdown"):
         v = s[key]
         assert isinstance(v, (int, float))
-        assert v == v  ***REMOVED*** NaN check (NaN != NaN)
+        assert v == v  # NaN check (NaN != NaN)
 
-    ***REMOVED*** Avg turnover is in [0, 1]
+    # Avg turnover is in [0, 1]
     assert 0.0 <= s["avg_turnover"] <= 1.0
 
-    ***REMOVED*** Meta carries data_source label
+    # Meta carries data_source label
     assert result["meta"]["data_source"] == "mock"
     assert result["meta"]["version"] == "v0.1"
 
-    ***REMOVED*** Markdown reports the mock honesty banner
+    # Markdown reports the mock honesty banner
     md = md_path.read_text(encoding="utf-8")
     assert "MOCK data" in md
     assert "v0.1" in md
@@ -83,32 +83,32 @@ def test_pipeline_end_to_end_with_mock(tmp_path, bt_mod):
 def test_edge_cases(bt_mod):
     """month_starts: inclusive; cohort_for_month: missing month is empty;
     monthly_return: zero-divide guarded."""
-    ***REMOVED*** month_starts inclusive on both ends
+    # month_starts inclusive on both ends
     months = bt_mod.month_starts(dt.date(2020, 1, 1), dt.date(2020, 4, 1))
     assert months == [
         dt.date(2020, 1, 1), dt.date(2020, 2, 1),
         dt.date(2020, 3, 1), dt.date(2020, 4, 1),
     ]
 
-    ***REMOVED*** Single-month range
+    # Single-month range
     months1 = bt_mod.month_starts(dt.date(2021, 6, 1), dt.date(2021, 6, 1))
     assert months1 == [dt.date(2021, 6, 1)]
 
-    ***REMOVED*** cohort_for_month with missing key returns empty
+    # cohort_for_month with missing key returns empty
     cos = [{"ticker": "X", "phases": {"2020-01": "stable"}}]
     assert bt_mod.cohort_for_month(cos, "2020-02") == []
-    assert bt_mod.cohort_for_month(cos, "2020-01") == []  ***REMOVED*** not near_critical
+    assert bt_mod.cohort_for_month(cos, "2020-01") == []  # not near_critical
 
-    ***REMOVED*** near_critical hit
+    # near_critical hit
     cos2 = [{"ticker": "Y", "phases": {"2020-01": "near_critical"}}]
     assert bt_mod.cohort_for_month(cos2, "2020-01") == ["Y"]
 
-    ***REMOVED*** monthly_return: zero-divide returns None
+    # monthly_return: zero-divide returns None
     prices = {"2020-01-01": 0.0, "2020-02-01": 100.0}
     assert bt_mod.monthly_return(prices, dt.date(2020, 1, 1), dt.date(2020, 2, 1)) is None
-    ***REMOVED*** Missing date → None
+    # Missing date → None
     assert bt_mod.monthly_return(prices, dt.date(2020, 3, 1), dt.date(2020, 4, 1)) is None
-    ***REMOVED*** Happy path
+    # Happy path
     prices2 = {"2020-01-01": 100.0, "2020-02-01": 110.0}
     r = bt_mod.monthly_return(prices2, dt.date(2020, 1, 1), dt.date(2020, 2, 1))
     assert r is not None and abs(r - 0.10) < 1e-9

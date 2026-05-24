@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B2 — Attach honest 95% confidence intervals to Layer 4 numerical predictions.
 
 Roadmap reference: plans/v4-next-roadmap-2026-05-13.md §B2.
@@ -45,8 +45,8 @@ each numerical band, into v4/results/layer4_predictions_with_ci.jsonl, plus a
 markdown summary.
 
 Usage:
-    python3 scripts/add_prediction_ci.py            ***REMOVED*** run
-    python3 scripts/add_prediction_ci.py --dry-run  ***REMOVED*** parse + report, no write
+    python3 scripts/add_prediction_ci.py            # run
+    python3 scripts/add_prediction_ci.py --dry-run  # parse + report, no write
 """
 
 from __future__ import annotations
@@ -61,18 +61,18 @@ from typing import Any
 
 import numpy as np
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Paths
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
 REPO = Path(__file__).resolve().parents[1]
 PREDS_IN = REPO / "v4" / "results" / "layer4_predictions.jsonl"
 PREDS_OUT = REPO / "v4" / "results" / "layer4_predictions_with_ci.jsonl"
 SUMMARY_OUT = REPO / "v4" / "results" / "B2_ci_summary.md"
 VALIDATION_DIR = REPO / "v4" / "validation"
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Logging — structured, function-entry/exit at INFO
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Logging — structured, function-entry/exit at INFO
+# --------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-7s | %(message)s",
@@ -81,25 +81,25 @@ logging.basicConfig(
 log = logging.getLogger("add_prediction_ci")
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Numerical-band extraction from prediction text
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** The LLM writes numerical uncertainty in three styles. We extract all three.
-***REMOVED***
-***REMOVED***   1. bracket band   "[1.5, 3.0]" / "∈ [0.08, 0.22]" / "[4%, 9%]"
-***REMOVED***   2. center±error   "0.85±0.05" / "0.55 ± 0.10"  -> center with explicit sigma
-***REMOVED***   3. hyphen range   "0.3-0.5" / "60-180 天"        -> low-high range
-***REMOVED***
-***REMOVED*** Style 2 is the most informative: ± gives an explicit sigma, so it yields a
-***REMOVED*** genuine analytic CI rather than a prior-based one.
+# --------------------------------------------------------------------------
+# Numerical-band extraction from prediction text
+# --------------------------------------------------------------------------
+# The LLM writes numerical uncertainty in three styles. We extract all three.
+#
+#   1. bracket band   "[1.5, 3.0]" / "∈ [0.08, 0.22]" / "[4%, 9%]"
+#   2. center±error   "0.85±0.05" / "0.55 ± 0.10"  -> center with explicit sigma
+#   3. hyphen range   "0.3-0.5" / "60-180 天"        -> low-high range
+#
+# Style 2 is the most informative: ± gives an explicit sigma, so it yields a
+# genuine analytic CI rather than a prior-based one.
 _BAND_RE = re.compile(
     r"\[\s*(-?\d+(?:\.\d+)?)\s*%?\s*[,，]\s*(-?\d+(?:\.\d+)?)\s*%?\s*\]"
 )
 _PM_RE = re.compile(
     r"(-?\d+(?:\.\d+)?)\s*[±±]\s*(\d+(?:\.\d+)?)"
 )
-***REMOVED*** Hyphen range: two numbers joined by - or ~ ; guarded against matching
-***REMOVED*** subtraction / dates by requiring both to be plain numbers adjacent to "-".
+# Hyphen range: two numbers joined by - or ~ ; guarded against matching
+# subtraction / dates by requiring both to be plain numbers adjacent to "-".
 _HYPHEN_RE = re.compile(
     r"(?<![\d.\-])(\d+(?:\.\d+)?)\s*[\-~至]\s*(\d+(?:\.\d+)?)(?![\d.])"
 )
@@ -121,7 +121,7 @@ def extract_bands(text: str) -> list[dict[str, Any]]:
     def overlaps(a: int, b: int) -> bool:
         return any(not (b <= s or a >= e) for s, e in consumed)
 
-    ***REMOVED*** 1. bracket bands
+    # 1. bracket bands
     for m in _BAND_RE.finditer(text or ""):
         low, high = float(m.group(1)), float(m.group(2))
         if low > high:
@@ -130,7 +130,7 @@ def extract_bands(text: str) -> list[dict[str, Any]]:
                       "raw": m.group(0), "kind": "bracket", "sigma": None})
         consumed.append(m.span())
 
-    ***REMOVED*** 2. center ± error  (explicit sigma)
+    # 2. center ± error  (explicit sigma)
     for m in _PM_RE.finditer(text or ""):
         if overlaps(*m.span()):
             continue
@@ -142,16 +142,16 @@ def extract_bands(text: str) -> list[dict[str, Any]]:
                       "kind": "pm", "sigma": sigma, "center": center})
         consumed.append(m.span())
 
-    ***REMOVED*** 3. hyphen / 至 ranges
+    # 3. hyphen / 至 ranges
     for m in _HYPHEN_RE.finditer(text or ""):
         if overlaps(*m.span()):
             continue
         low, high = float(m.group(1)), float(m.group(2))
-        if low >= high:  ***REMOVED*** not a valid ascending range
+        if low >= high:  # not a valid ascending range
             continue
-        ***REMOVED*** Reject year ranges (e.g. "2020-2025"): both endpoints are 4-digit
-        ***REMOVED*** integers in a plausible-year window. These are time windows, not
-        ***REMOVED*** predicted quantities.
+        # Reject year ranges (e.g. "2020-2025"): both endpoints are 4-digit
+        # integers in a plausible-year window. These are time windows, not
+        # predicted quantities.
         if (low.is_integer() and high.is_integer()
                 and 1900 <= low <= 2100 and 1900 <= high <= 2100):
             continue
@@ -162,9 +162,9 @@ def extract_bands(text: str) -> list[dict[str, Any]]:
     return bands
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Bootstrap core — non-parametric percentile CI on a power-law tail exponent
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Bootstrap core — non-parametric percentile CI on a power-law tail exponent
+# --------------------------------------------------------------------------
 def clauset_alpha(vals: np.ndarray, xmin: float) -> float | None:
     """Continuous Clauset MLE power-law exponent for x >= xmin.
 
@@ -229,9 +229,9 @@ def bootstrap_alpha_ci(
     }
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Bayesian credible interval on an LLM band (Monte Carlo)
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Bayesian credible interval on an LLM band (Monte Carlo)
+# --------------------------------------------------------------------------
 def bayesian_band_ci(low: float, high: float, n_mc: int = 50_000,
                      seed: int = 42) -> dict[str, Any] | None:
     """95% Bayesian credible interval for an LLM-authored band [low, high].
@@ -270,7 +270,7 @@ def bayesian_band_ci(low: float, high: float, n_mc: int = 50_000,
     rng = np.random.default_rng(seed)
     mode = (low + high) / 2.0
     sigma_tail = width / 4.0
-    ***REMOVED*** 90% draws from triangular prior inside the band, 10% from Gaussian tail.
+    # 90% draws from triangular prior inside the band, 10% from Gaussian tail.
     n_tri = int(n_mc * 0.9)
     n_gauss = n_mc - n_tri
     tri = rng.triangular(low, mode, high, size=n_tri)
@@ -284,14 +284,14 @@ def bayesian_band_ci(low: float, high: float, n_mc: int = 50_000,
     }
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Validation-directory index — real observed exponents with genuine CIs
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Each entry pairs a validation system with the predictions it can inform.
-***REMOVED*** These CIs ARE frequentist (bootstrap / MLE standard error on observed data);
-***REMOVED*** they are attached to a prediction only as a cross-reference observation, not
-***REMOVED*** as the prediction's own CI (the prediction targets a different time window /
-***REMOVED*** venue). class_ids = Layer 4 classes this verified system structurally maps to.
+# --------------------------------------------------------------------------
+# Validation-directory index — real observed exponents with genuine CIs
+# --------------------------------------------------------------------------
+# Each entry pairs a validation system with the predictions it can inform.
+# These CIs ARE frequentist (bootstrap / MLE standard error on observed data);
+# they are attached to a prediction only as a cross-reference observation, not
+# as the prediction's own CI (the prediction targets a different time window /
+# venue). class_ids = Layer 4 classes this verified system structurally maps to.
 _VERIFIED_FIT_FILES: list[dict[str, Any]] = [
     {
         "system": "soc-defi (Aave V2 liquidations, 2020-12..2024-01, n=25601)",
@@ -383,9 +383,9 @@ def match_verified(class_id: str, prediction_text: str,
     return None
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Per-prediction processing
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Per-prediction processing
+# --------------------------------------------------------------------------
 def process_prediction(pred: dict[str, Any],
                         verified: list[dict[str, Any]]) -> dict[str, Any]:
     """Attach 95% CI fields to one prediction record.
@@ -404,7 +404,7 @@ def process_prediction(pred: dict[str, Any],
     """
     text = pred.get("prediction", "")
     bands = extract_bands(text)
-    pred = dict(pred)  ***REMOVED*** shallow copy, do not mutate caller's dict
+    pred = dict(pred)  # shallow copy, do not mutate caller's dict
 
     out_bands: list[dict[str, Any]] = []
     for b in bands:
@@ -416,7 +416,7 @@ def process_prediction(pred: dict[str, Any],
             "band_kind": b["kind"],
         }
         if b["kind"] == "pm" and b.get("sigma"):
-            ***REMOVED*** Explicit sigma -> standard analytic normal 95% CI.
+            # Explicit sigma -> standard analytic normal 95% CI.
             center, sigma = b["center"], b["sigma"]
             rec["ci_available"] = True
             rec["ci_low"] = round(center - 1.96 * sigma, 6)
@@ -451,7 +451,7 @@ def process_prediction(pred: dict[str, Any],
     pred["ci_bands"] = out_bands
     pred["n_ci_bands"] = len(out_bands)
 
-    ***REMOVED*** Cross-reference: a real verified observation, if structurally matched.
+    # Cross-reference: a real verified observation, if structurally matched.
     vmatch = match_verified(pred.get("_class_id", ""), text, verified)
     if vmatch is not None:
         pred["verified_cross_reference"] = {
@@ -470,9 +470,9 @@ def process_prediction(pred: dict[str, Any],
     return pred
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Main
+# --------------------------------------------------------------------------
 def load_predictions(path: Path) -> list[dict[str, Any]]:
     """Read the JSONL prediction file. Raises on missing/corrupt input."""
     log.info("load_predictions: reading %s", path)
@@ -534,11 +534,11 @@ def build_summary(rows: list[dict[str, Any]]) -> str:
     w = np.asarray(widths) if widths else np.asarray([0.0])
     method_lines = [f"- `{m}`: {c}" for m, c in sorted(method_counts.items())]
     lines = [
-        "***REMOVED*** B2 — Layer 4 prediction 95% confidence intervals",
+        "# B2 — Layer 4 prediction 95% confidence intervals",
         "",
         f"**Generated**: by `scripts/add_prediction_ci.py`",
         "",
-        "***REMOVED******REMOVED*** Coverage",
+        "## Coverage",
         "",
         f"- Class records: **{len(rows)}**",
         f"- Predictions: **{n_pred}**",
@@ -548,17 +548,17 @@ def build_summary(rows: list[dict[str, Any]]) -> str:
         f"- Predictions with NO numerical band at all: **{preds_no_band}**",
         f"- Predictions with a verified cross-reference: **{xref}**",
         "",
-        "***REMOVED******REMOVED*** CI method breakdown",
+        "## CI method breakdown",
         "",
         *method_lines,
         "",
-        "***REMOVED******REMOVED*** CI width distribution (CI-available bands)",
+        "## CI width distribution (CI-available bands)",
         "",
         f"- min: {w.min():.4f}",
         f"- median: {np.median(w):.4f}",
         f"- max: {w.max():.4f}",
         "",
-        "***REMOVED******REMOVED*** Method",
+        "## Method",
         "",
         "All 24 predictions have status=待验证 — the numerical bands are LLM",
         "structural-isomorphism extrapolations, and the target data has not",
@@ -577,7 +577,7 @@ def build_summary(rows: list[dict[str, Any]]) -> str:
         "- **`ci_available=false`** — degenerate (zero-width) bands get no",
         "  fabricated number, only a reason.",
         "",
-        "***REMOVED******REMOVED*** Limitations",
+        "## Limitations",
         "",
         "- The triangular prior assumes the LLM band marks the central",
         "  plausible region; the LLM never specified band semantics.",

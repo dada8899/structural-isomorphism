@@ -36,16 +36,16 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** data classes
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# data classes
+# ---------------------------------------------------------------------------
 @dataclass
 class TrainingPair:
     """One contrastive training pair."""
 
     text_a: str
     text_b: str
-    label: int          ***REMOVED*** 1 = similar (positive), 0 = dissimilar (hard negative)
+    label: int          # 1 = similar (positive), 0 = dissimilar (hard negative)
     weight: float = 1.0
     source_class: str = ""
     source_verdict: str = ""
@@ -83,10 +83,10 @@ class FinetuneMetrics:
         return asdict(self)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** loss helper (math reference — not used in simulation path, but here so
-***REMOVED*** tests / readers can sanity-check the contrastive loss)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# loss helper (math reference — not used in simulation path, but here so
+# tests / readers can sanity-check the contrastive loss)
+# ---------------------------------------------------------------------------
 def info_nce_loss(
     anchor: np.ndarray,
     positive: np.ndarray,
@@ -106,15 +106,15 @@ def info_nce_loss(
     ns = negatives / np.linalg.norm(negatives, axis=1, keepdims=True).clip(1e-12, None)
     sim_pos = float(a @ p) / temperature
     sim_negs = (ns @ a) / temperature
-    ***REMOVED*** logsumexp for numerical stability
+    # logsumexp for numerical stability
     m = max(sim_pos, float(sim_negs.max()))
     denom = math.exp(sim_pos - m) + float(np.exp(sim_negs - m).sum())
     return -(sim_pos - m - math.log(denom))
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** main scaffold
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# main scaffold
+# ---------------------------------------------------------------------------
 class ContrastiveFinetuner:
     """Scaffold for V1/V2 -> V3 contrastive fine-tune.
 
@@ -145,8 +145,8 @@ class ContrastiveFinetuner:
         self.margin = margin
         self.temperature = temperature
         self.mode = mode
-        ***REMOVED*** default to a tmp dir-style location *inside* the test (callers
-        ***REMOVED*** passing out_dir win); keep this off-repo to avoid stray artefacts.
+        # default to a tmp dir-style location *inside* the test (callers
+        # passing out_dir win); keep this off-repo to avoid stray artefacts.
         import tempfile
         self.out_dir = (
             Path(out_dir)
@@ -157,15 +157,15 @@ class ContrastiveFinetuner:
         if mode not in ("simulated", "real"):
             raise ValueError(f"mode must be 'simulated' or 'real', got {mode!r}")
 
-        ***REMOVED*** Lazily fitted on `load_pairs` (simulated mode).
+        # Lazily fitted on `load_pairs` (simulated mode).
         self._vectorizer: Any = None
         self._pair_corpus: list[str] = []
-        ***REMOVED*** Per-feature weight vector that fit() updates ("the model" in
-        ***REMOVED*** simulated mode).
+        # Per-feature weight vector that fit() updates ("the model" in
+        # simulated mode).
         self._weights: np.ndarray | None = None
         self._last_metrics: FinetuneMetrics | None = None
 
-    ***REMOVED*** ---------- I/O ----------------------------------------------------------
+    # ---------- I/O ----------------------------------------------------------
     def load_pairs(
         self,
         positives_path: str | Path,
@@ -206,7 +206,7 @@ class ContrastiveFinetuner:
         )
         return pairs
 
-    ***REMOVED*** ---------- training ----------------------------------------------------
+    # ---------- training ----------------------------------------------------
     def fit(
         self,
         pairs: list[TrainingPair],
@@ -236,10 +236,10 @@ class ContrastiveFinetuner:
                 "See v4/lib/F2_active_learning_design.md §3."
             )
 
-        ***REMOVED*** ---- simulated fit -------------------------------------------------
+        # ---- simulated fit -------------------------------------------------
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
-        except ImportError as e:  ***REMOVED*** pragma: no cover
+        except ImportError as e:  # pragma: no cover
             raise RuntimeError(
                 "scikit-learn required for simulated mode."
             ) from e
@@ -259,21 +259,21 @@ class ContrastiveFinetuner:
             sublinear_tf=True,
         )
         self._vectorizer.fit(fit_corpus)
-        X = self._vectorizer.transform(pair_corpus)  ***REMOVED*** (2N, F)
+        X = self._vectorizer.transform(pair_corpus)  # (2N, F)
         n_features = X.shape[1]
         weights = np.ones(n_features, dtype=np.float32)
 
-        ***REMOVED*** Iterate (epochs) over pairs; accumulate small per-feature deltas.
-        ***REMOVED*** The update rule (gradient-free, math-faithful to contrastive
-        ***REMOVED*** objective):
-        ***REMOVED***   - for a positive pair: boost weights on features both texts share
-        ***REMOVED***     (those features signal "same class")
-        ***REMOVED***   - for a hard negative: cut weights on features both texts share
-        ***REMOVED***     (those features falsely linked them in the old space)
-        ***REMOVED*** Magnitude scales with `lr * pair.weight * (margin - target*sim)`,
-        ***REMOVED*** the standard hinge-style step. We allow weights to grow up to 10x
-        ***REMOVED*** and shrink to 0.1x — a one-decade dynamic range that's plenty for
-        ***REMOVED*** rerank purposes.
+        # Iterate (epochs) over pairs; accumulate small per-feature deltas.
+        # The update rule (gradient-free, math-faithful to contrastive
+        # objective):
+        #   - for a positive pair: boost weights on features both texts share
+        #     (those features signal "same class")
+        #   - for a hard negative: cut weights on features both texts share
+        #     (those features falsely linked them in the old space)
+        # Magnitude scales with `lr * pair.weight * (margin - target*sim)`,
+        # the standard hinge-style step. We allow weights to grow up to 10x
+        # and shrink to 0.1x — a one-decade dynamic range that's plenty for
+        # rerank purposes.
         total_loss = 0.0
         loss_count = 0
         rng = np.random.default_rng(seed=42)
@@ -295,14 +295,14 @@ class ContrastiveFinetuner:
                         continue
                     sim = float(wva @ wvb / (na * nb))
                     target = 1.0 if p.label == 1 else -1.0
-                    ***REMOVED*** hinge-style margin: only update if we're inside the margin
+                    # hinge-style margin: only update if we're inside the margin
                     margin_violation = self.margin - target * sim
                     if margin_violation <= 0:
                         continue
-                    shared = va * vb  ***REMOVED*** nonneg; nonzero only on shared features
+                    shared = va * vb  # nonneg; nonzero only on shared features
                     if shared.max() <= 0:
                         continue
-                    ***REMOVED*** normalise shared so per-pair update magnitude is bounded
+                    # normalise shared so per-pair update magnitude is bounded
                     shared = shared / max(shared.max(), 1e-12)
                     delta = self.lr * target * p.weight * margin_violation * shared
                     weights = np.clip(weights + delta, 0.1, 10.0)
@@ -320,8 +320,8 @@ class ContrastiveFinetuner:
         )
         self._last_metrics = metrics
 
-        ***REMOVED*** Persist a small "checkpoint" — the weight vector + vocabulary names.
-        ***REMOVED*** Real run would call SentenceTransformer.save(self.out_dir).
+        # Persist a small "checkpoint" — the weight vector + vocabulary names.
+        # Real run would call SentenceTransformer.save(self.out_dir).
         try:
             self.out_dir.mkdir(parents=True, exist_ok=True)
             np.save(self.out_dir / "weights.npy", weights)
@@ -338,7 +338,7 @@ class ContrastiveFinetuner:
         )
         return metrics
 
-    ***REMOVED*** ---------- evaluation --------------------------------------------------
+    # ---------- evaluation --------------------------------------------------
     def evaluate(
         self,
         eval_pairs: list[TrainingPair],
@@ -358,18 +358,18 @@ class ContrastiveFinetuner:
         if self._vectorizer is None or self._weights is None:
             raise RuntimeError("Call fit() before evaluate()")
 
-        ***REMOVED*** encode all eval texts
+        # encode all eval texts
         texts: list[str] = []
         for p in eval_pairs:
             texts.append(p.text_a)
             texts.append(p.text_b)
         X = self._vectorizer.transform(texts).toarray() * self._weights
-        ***REMOVED*** L2 normalize rows
+        # L2 normalize rows
         norms = np.linalg.norm(X, axis=1, keepdims=True)
         norms = np.where(norms == 0, 1.0, norms)
         Xn = X / norms
 
-        ***REMOVED*** R@k / MRR over positives
+        # R@k / MRR over positives
         ranks: list[int] = []
         cross_domain_hits: list[int] = []
         cross_domain_total = 0
@@ -378,9 +378,9 @@ class ContrastiveFinetuner:
             a_row = pos_idx * 2
             b_row = pos_idx * 2 + 1
             sims = Xn @ Xn[a_row]
-            sims[a_row] = -np.inf  ***REMOVED*** exclude self
+            sims[a_row] = -np.inf  # exclude self
             order = np.argsort(-sims)
-            ***REMOVED*** rank of correct partner
+            # rank of correct partner
             rank = int(np.where(order == b_row)[0][0]) + 1
             ranks.append(rank)
 
@@ -388,7 +388,7 @@ class ContrastiveFinetuner:
         r_at_10 = float(sum(1 for r in ranks if r <= 10) / max(1, len(ranks)))
         mrr = float(sum(1.0 / r for r in ranks) / max(1, len(ranks)))
 
-        ***REMOVED*** silhouette proxy: positives' sim should beat negatives' sim
+        # silhouette proxy: positives' sim should beat negatives' sim
         sim_pos: list[float] = []
         sim_neg: list[float] = []
         for i, p in enumerate(eval_pairs):
@@ -400,10 +400,10 @@ class ContrastiveFinetuner:
             sil = float(np.median(sim_pos))
         else:
             sil = 0.0
-        ***REMOVED*** squash to [-1, 1]
+        # squash to [-1, 1]
         sil = max(-1.0, min(1.0, sil))
 
-        ***REMOVED*** cross-domain R@5: only valid if kb_domains aligned with eval texts
+        # cross-domain R@5: only valid if kb_domains aligned with eval texts
         if kb_domains and len(kb_domains) == len(texts):
             ranks_xd: list[int] = []
             for pos_idx, pair in positives:
@@ -439,7 +439,7 @@ class ContrastiveFinetuner:
         )
         return m
 
-    ***REMOVED*** ---------- introspection -----------------------------------------------
+    # ---------- introspection -----------------------------------------------
     @property
     def is_fitted(self) -> bool:
         return self._weights is not None

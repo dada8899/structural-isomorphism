@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 
 pydantic = pytest.importorskip("pydantic")
-from pydantic import BaseModel, Field  ***REMOVED*** noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
 
-from guarded_llm import SchemaValidator  ***REMOVED*** noqa: E402
+from guarded_llm import SchemaValidator  # noqa: E402
 
 
 class Verdict(BaseModel):
@@ -54,7 +54,7 @@ def test_validator_init_rejects_non_model():
 
 def test_validator_init_rejects_instance_instead_of_class():
     with pytest.raises(TypeError):
-        SchemaValidator(Verdict(verdict="KEEP", confidence=0.5))  ***REMOVED*** type: ignore[arg-type]
+        SchemaValidator(Verdict(verdict="KEEP", confidence=0.5))  # type: ignore[arg-type]
 
 
 def test_model_property_returns_class():

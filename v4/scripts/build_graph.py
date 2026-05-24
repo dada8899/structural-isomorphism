@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 V4 Layer 1: Build equivalence-class graph from V1/V2/V3 results.
 
@@ -150,8 +150,8 @@ def build_graph():
             n_kept += 1
         filtered_counts[tag] = n_kept
 
-    ***REMOVED*** Build nodes
-    ***REMOVED*** Node key: canonical_id -> node record
+    # Build nodes
+    # Node key: canonical_id -> node record
     nodes: dict = {}
 
     def add_node(raw_name: str, domain: str):
@@ -160,7 +160,7 @@ def build_graph():
         if cid not in nodes:
             nodes[cid] = {
                 "id": cid,
-                "name": canonical_display,  ***REMOVED*** prefer canonical name if aliased
+                "name": canonical_display,  # prefer canonical name if aliased
                 "domains": set(),
                 "aliases": set(),
                 "degree": 0,
@@ -173,14 +173,14 @@ def build_graph():
         add_node(p["a_name"], p["a_domain"])
         add_node(p["b_name"], p["b_domain"])
 
-    ***REMOVED*** Build edges, dedup by canonical pair
+    # Build edges, dedup by canonical pair
     edge_map: dict = {}
     for p in all_pairs:
         u = canonical_node_id(p["a_name"])
         v = canonical_node_id(p["b_name"])
         if u == v:
             continue
-        ***REMOVED*** undirected key
+        # undirected key
         key = tuple(sorted((u, v)))
         if key not in edge_map:
             edge_map[key] = {
@@ -198,12 +198,12 @@ def build_graph():
         e["pipelines"].add(p["pipeline"])
         e["raw_names"].add(f"{p['a_name']} <-> {p['b_name']}")
 
-    ***REMOVED*** Compute degree
+    # Compute degree
     for e in edge_map.values():
         nodes[e["src"]]["degree"] += 1
         nodes[e["dst"]]["degree"] += 1
 
-    ***REMOVED*** Finalize for JSON
+    # Finalize for JSON
     node_list = []
     for cid, n in sorted(nodes.items(), key=lambda kv: -kv[1]["degree"]):
         node_list.append({
@@ -243,7 +243,7 @@ def build_graph():
     with OUT_FILE.open("w", encoding="utf-8") as f:
         json.dump(graph, f, ensure_ascii=False, indent=2)
 
-    ***REMOVED*** Print summary
+    # Print summary
     print(f"=== V4 Layer 1 Graph Build ===")
     print(f"Source counts: {source_counts}")
     print(f"Filtered counts (kept pairs): {filtered_counts}")

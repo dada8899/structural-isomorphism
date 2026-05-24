@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 
 playwright = pytest.importorskip("playwright")
-from playwright.sync_api import Page, expect, sync_playwright  ***REMOVED*** noqa: E402
+from playwright.sync_api import Page, expect, sync_playwright  # noqa: E402
 
 BASE_URL = "https://beta.structural.bytedance.city"
 
@@ -36,9 +36,9 @@ def page(browser):
     ctx.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Home route
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Home route
+# ---------------------------------------------------------------------------
 
 
 def test_home_loads(page: Page):
@@ -63,28 +63,28 @@ def test_home_has_main_content(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
     body = page.locator("body")
     text = body.inner_text(timeout=10000)
-    ***REMOVED*** The site is bilingual; either zh or en home content
+    # The site is bilingual; either zh or en home content
     assert "Structural" in text or "structural" in text.lower()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Sub-routes (optional, may not exist yet)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Sub-routes (optional, may not exist yet)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("route", ["/classes", "/papers", "/methods", "/taxonomy"])
 def test_subroute_loads_or_404_gracefully(page: Page, route: str):
     """Each subroute either loads (200) or shows a clean 404 page (not a crash)."""
     resp = page.goto(f"{BASE_URL}{route}", wait_until="domcontentloaded", timeout=20000)
-    ***REMOVED*** Either a real page or a 404 — both are acceptable, just not 5xx
+    # Either a real page or a 404 — both are acceptable, just not 5xx
     assert resp is not None
     if resp.status >= 500:
         pytest.fail(f"server error on {route}: status {resp.status}")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Static HTML routes (file-based)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Static HTML routes (file-based)
+# ---------------------------------------------------------------------------
 
 
 def test_html_route_classes_html(page: Page):
@@ -95,35 +95,35 @@ def test_html_route_classes_html(page: Page):
     if resp is None or not resp.ok:
         pytest.skip("classes.html not present")
     body_text = page.locator("body").inner_text(timeout=10000)
-    assert len(body_text) > 50  ***REMOVED*** not an empty stub
+    assert len(body_text) > 50  # not an empty stub
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** i18n toggle
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# i18n toggle
+# ---------------------------------------------------------------------------
 
 
 def test_i18n_toggle_if_present(page: Page):
     """If the site has a 中/EN toggle, clicking it should change content language."""
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    ***REMOVED*** Look for an i18n toggle (we don't know the exact selector — try a few)
+    # Look for an i18n toggle (we don't know the exact selector — try a few)
     toggles = page.locator('[data-i18n-toggle], [data-lang-switch], button:has-text("中"), button:has-text("EN")')
     if toggles.count() == 0:
         pytest.skip("no visible i18n toggle on home")
     first = toggles.first
     if not first.is_visible(timeout=1000):
         pytest.skip("toggle present but not visible")
-    ***REMOVED*** Just verify clickability without strict change-assertion (selector unknown)
+    # Just verify clickability without strict change-assertion (selector unknown)
     first.click(timeout=2000)
-    ***REMOVED*** Any change to <html lang> attribute or body re-render is success
+    # Any change to <html lang> attribute or body re-render is success
     page.wait_for_timeout(500)
     lang = page.evaluate("document.documentElement.lang")
     assert lang in ("zh-CN", "zh", "en", "en-US"), f"unexpected lang: {lang}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Performance / page-weight sanity
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Performance / page-weight sanity
+# ---------------------------------------------------------------------------
 
 
 def test_home_loads_under_10s(page: Page):

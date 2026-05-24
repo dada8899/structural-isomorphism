@@ -18,7 +18,7 @@ from guarded_llm import (
 )
 
 
-***REMOVED*** --- Stub provider ---------------------------------------------------------
+# --- Stub provider ---------------------------------------------------------
 
 
 class _StubProvider(BaseProvider):
@@ -64,7 +64,7 @@ def schema():
     )
 
 
-***REMOVED*** --- Tests -----------------------------------------------------------------
+# --- Tests -----------------------------------------------------------------
 
 
 def test_provider_call_success_first_try(schema):
@@ -126,7 +126,7 @@ def test_provider_call_exhausts_retries(schema):
 
 def test_provider_call_budget_exceeded(schema):
     _StubProvider.responses = [
-        {"text": "garbage", "cost_usd": 0.5},  ***REMOVED*** already over cap
+        {"text": "garbage", "cost_usd": 0.5},  # already over cap
     ]
     with pytest.raises(BudgetExceededError) as exc:
         guardrailed_llm_call(
@@ -180,15 +180,15 @@ def test_provider_call_retry_hint_injected(schema):
     )
     assert result.ok
     assert len(seen_messages) == 2
-    ***REMOVED*** First call: original prompt only
+    # First call: original prompt only
     assert "Previous output failed" not in seen_messages[0][-1]["content"]
-    ***REMOVED*** Second call: retry hint appended
+    # Second call: retry hint appended
     assert "Previous output failed" in seen_messages[1][-1]["content"]
 
 
 def test_provider_call_missing_args_raises():
     with pytest.raises(ValueError, match="provider-style call requires"):
-        guardrailed_llm_call(provider="stub", model="m")  ***REMOVED*** missing messages, schema
+        guardrailed_llm_call(provider="stub", model="m")  # missing messages, schema
 
 
 def test_provider_call_with_dataclass_schema():

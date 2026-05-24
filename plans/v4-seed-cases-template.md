@@ -1,9 +1,9 @@
-***REMOVED*** V3 种子案例填写模板
+# V3 种子案例填写模板
 
 > 这份文件给**用户**填。目标：20-30 条经典科学史跨域迁移案例，作为 V3 变形预测器的训练数据种子。
 > 填好后，交给另一个 session 跑 `scripts/v4_expand_seeds.py` 扩展到 200 条。
 
-***REMOVED******REMOVED*** 为什么需要你填
+## 为什么需要你填
 
 LLM 扩展数据的质量取决于种子分布。你的种子案例决定了：
 1. **覆盖哪些变形类型**（见 `v4-variant-types.yaml`）
@@ -12,20 +12,20 @@ LLM 扩展数据的质量取决于种子分布。你的种子案例决定了：
 
 填 20-30 条就够，不求全，但求准。
 
-***REMOVED******REMOVED*** Schema
+## Schema
 
 每条种子包含以下字段：
 
 ```yaml
 - id: seed-01
-  source_domain: 经典力学           ***REMOVED*** 源领域
-  source_concept: 简谐振子          ***REMOVED*** 源概念
-  source_equation: "m·ẍ + k·x = 0"  ***REMOVED*** 源方程（纯文本，可用 unicode）
-  target_domain: 电路理论            ***REMOVED*** 目标领域
-  target_concept: LC 振荡回路        ***REMOVED*** 目标概念
+  source_domain: 经典力学           # 源领域
+  source_concept: 简谐振子          # 源概念
+  source_equation: "m·ẍ + k·x = 0"  # 源方程（纯文本，可用 unicode）
+  target_domain: 电路理论            # 目标领域
+  target_concept: LC 振荡回路        # 目标概念
   target_equation: "L·Q̈ + (1/C)·Q = 0"
-  transformations:                  ***REMOVED*** 变形序列，按顺序
-    - type: dim_subst                ***REMOVED*** 对照 v4-variant-types.yaml 的 id
+  transformations:                  # 变形序列，按顺序
+    - type: dim_subst                # 对照 v4-variant-types.yaml 的 id
       mapping: "m → L"
       reason: "惯性量类比：机械质量 ↔ 电感"
     - type: dim_subst
@@ -39,7 +39,7 @@ LLM 扩展数据的质量取决于种子分布。你的种子案例决定了：
     - "Maxwell 1873 — A Treatise on Electricity and Magnetism"
 ```
 
-***REMOVED******REMOVED*** 填写建议
+## 填写建议
 
 **领域分布**（建议至少覆盖以下 pair）：
 - [ ] 物理 ↔ 信息论（Maxwell 妖 / Landauer / Shannon 熵）
@@ -57,7 +57,7 @@ LLM 扩展数据的质量取决于种子分布。你的种子案例决定了：
 
 ---
 
-***REMOVED******REMOVED*** 填写区（以下是你要填的部分）
+## 填写区（以下是你要填的部分）
 
 ```yaml
 seeds:
@@ -76,7 +76,7 @@ seeds:
     source_refs: []
 
   - id: seed-02
-    ***REMOVED*** ...
+    # ...
 ```
 
 > 填完后，保存为 `plans/v4-seed-cases.yaml`（去掉 `-template` 后缀）。

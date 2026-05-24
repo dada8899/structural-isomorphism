@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from v4.lib.multitest_correction import (  ***REMOVED*** noqa: E402
+from v4.lib.multitest_correction import (  # noqa: E402
     CorrectionResult,
     apply_corrections,
     benjamini_hochberg,
@@ -30,7 +30,7 @@ from v4.lib.multitest_correction import (  ***REMOVED*** noqa: E402
 )
 
 
-***REMOVED*** --- empty-input early returns ----------------------------------------------
+# --- empty-input early returns ----------------------------------------------
 
 
 def test_bonferroni_empty_input_returns_zero_rows():
@@ -56,7 +56,7 @@ def test_bonferroni_holm_empty_input_returns_zero_rows():
     assert r.method == "bonferroni-holm"
 
 
-***REMOVED*** --- apply_corrections wrapper -----------------------------------------------
+# --- apply_corrections wrapper -----------------------------------------------
 
 
 def test_apply_corrections_returns_three_methods():
@@ -75,7 +75,7 @@ def test_apply_corrections_empty_input():
     assert all(v.n_tests == 0 for v in results.values())
 
 
-***REMOVED*** --- CorrectionResult.to_dict -----------------------------------------------
+# --- CorrectionResult.to_dict -----------------------------------------------
 
 
 def test_correction_result_to_dict_roundtrip():
@@ -86,26 +86,26 @@ def test_correction_result_to_dict_roundtrip():
     assert len(d["p_raw"]) == 3
     assert len(d["p_adjusted"]) == 3
     assert len(d["reject"]) == 3
-    ***REMOVED*** Mutating returned lists should not mutate the dataclass
+    # Mutating returned lists should not mutate the dataclass
     d["p_raw"].append(0.99)
     assert len(r.p_raw) == 3
 
 
-***REMOVED*** --- _clean_pvalues edge cases -----------------------------------------------
+# --- _clean_pvalues edge cases -----------------------------------------------
 
 
 def test_bonferroni_handles_nan():
     """NaN inputs become 1.0 (never reject)."""
     r = bonferroni([float("nan"), 0.01])
-    assert r.reject[0] is False or r.reject[0] == False  ***REMOVED*** NaN→1.0→stays at 1.0
-    ***REMOVED*** 0.01 * 2 = 0.02 ≤ 0.05 → True
+    assert r.reject[0] is False or r.reject[0] == False  # NaN→1.0→stays at 1.0
+    # 0.01 * 2 = 0.02 ≤ 0.05 → True
     assert r.reject[1] is True
 
 
 def test_bonferroni_clips_above_one():
     """p > 1 gets clipped to 1.0."""
     r = bonferroni([1.5, 0.01])
-    assert r.p_raw[0] == 1.0  ***REMOVED*** clipped
+    assert r.p_raw[0] == 1.0  # clipped
 
 
 def test_bonferroni_clips_below_zero():
@@ -117,9 +117,9 @@ def test_bh_handles_unsorted_input():
     """BH preserves output order matching input order."""
     pvals = [0.5, 0.01, 0.04]
     r = benjamini_hochberg(pvals, alpha=0.05)
-    ***REMOVED*** Adjusted values should map back to input positions
+    # Adjusted values should map back to input positions
     assert len(r.p_adjusted) == 3
-    ***REMOVED*** The 0.01 (smallest, index 1) should give smallest adjusted
+    # The 0.01 (smallest, index 1) should give smallest adjusted
     assert r.p_adjusted[1] <= r.p_adjusted[0]
     assert r.p_adjusted[1] <= r.p_adjusted[2]
 
@@ -128,7 +128,7 @@ def test_bonferroni_holm_monotone_step_down():
     """Holm enforces monotone non-decreasing adjusted p-values when sorted."""
     pvals = [0.001, 0.01, 0.02, 0.03, 0.5]
     r = bonferroni_holm(pvals, alpha=0.05)
-    ***REMOVED*** Sort by input
+    # Sort by input
     order = np.argsort(pvals)
     sorted_adj = [r.p_adjusted[i] for i in order]
     for i in range(1, len(sorted_adj)):

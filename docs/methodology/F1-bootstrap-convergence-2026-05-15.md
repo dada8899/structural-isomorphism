@@ -1,4 +1,4 @@
-***REMOVED*** F1 — Bootstrap convergence: n=100 vs n=10,000 (W7-D)
+# F1 — Bootstrap convergence: n=100 vs n=10,000 (W7-D)
 
 **Date:** 2026-05-15
 **Reviewer concern (W5-A §3.6 / §4.1 / §7.2):** "Bootstrap n_boot = 100
@@ -9,7 +9,7 @@ is documented as 'conservatively widens the reported CI' is not quite right:
 at 100 resamples, the *CI endpoints themselves* have ~10% standard error.
 Rerun at n_boot = 10000. (Cost: ~1 CPU-hour per phase. Trivial.)"
 
-***REMOVED******REMOVED*** Approach
+## Approach
 
 Rather than re-running all 13 systems at 10,000 reps (which would be ~12 hr
 wall-clock single-core through the auto-xmin search), we ran a **validation
@@ -29,7 +29,7 @@ The full-13 overnight rerun (with auto-xmin per the paper's published
 methodology) is queued in `scripts/F1_full_rerun_overnight.sh` for the next
 compute pass before the C1 v0.3 publication.
 
-***REMOVED******REMOVED*** Implementation
+## Implementation
 
 `v4/scripts/F1_bootstrap_10k_subset.py`
 
@@ -41,12 +41,12 @@ compute pass before the C1 v0.3 publication.
   `v4/results/F1_bootstrap10k_subset.jsonl`.
 - Seed = 42 for reproducibility.
 
-***REMOVED******REMOVED*** Results
+## Results
 
 **Source:** `v4/results/F1_bootstrap10k_subset.jsonl` (produced by the F1
 script's most recent run).
 
-***REMOVED******REMOVED******REMOVED*** Per-system convergence table
+### Per-system convergence table
 
 Source: `v4/results/F1_bootstrap10k_subset.jsonl` (script run on 2026-05-15,
 fixed-xmin Hill MLE, seed=42).
@@ -63,7 +63,7 @@ fixed-xmin Hill MLE, seed=42).
 | solar | 1,000 | 2.1944 | 2.1606 | 2.2322 | 0.0716 | 0.2s |
 | solar | 10,000 | 2.1948 | 2.1600 | 2.2308 | 0.0708 | 1.9s |
 
-***REMOVED******REMOVED******REMOVED*** CI-width convergence (n=100 -> n=10000)
+### CI-width convergence (n=100 -> n=10000)
 
 | System | CI width n=100 | CI width n=10000 | Delta | Relative |
 |---|---:|---:|---:|---:|
@@ -76,7 +76,7 @@ review's theory) shows up as ±6% jitter in the CI width vs n=10000. At
 n=10000 the CI endpoint MC error is ~1%, so the reported CI widths are
 trustworthy to 3 significant figures.
 
-***REMOVED******REMOVED******REMOVED*** Auto-xmin comparison (earthquake from the auto-xmin variant)
+### Auto-xmin comparison (earthquake from the auto-xmin variant)
 
 A separate run of the original `bootstrap_ci()` with **auto-xmin search**
 (the same code path as the published paper) on the earthquake dataset
@@ -88,7 +88,7 @@ support and softening the slope. Both estimates are within their respective
 Aki-b vs Clauset-alpha 3-sigma offset (alpha = 1 + b/1.5 = 1.72 vs Clauset
 1.79 vs Hill fixed-xmin 1.89).
 
-***REMOVED******REMOVED******REMOVED*** Convergence verdict
+### Convergence verdict
 
 Expected behavior (based on standard bootstrap theory):
 
@@ -106,7 +106,7 @@ Expected behavior (based on standard bootstrap theory):
    of the 3 systems**. The W5-A scholar review's concern is about CI
    precision claims in Table 1, not about verdict correctness.
 
-***REMOVED******REMOVED*** Implication for C1 v0.3 publication
+## Implication for C1 v0.3 publication
 
 1. The W7-D subset run is sufficient to demonstrate convergence.
 2. The full-13 overnight rerun (queued in
@@ -116,7 +116,7 @@ Expected behavior (based on standard bootstrap theory):
    noting that the extension to all 13 loaders is a 1-2 hour code task
    (extend `SUBSET` list in `v4/scripts/F1_bootstrap_10k_subset.py`).
 
-***REMOVED******REMOVED*** Recommended manuscript edit
+## Recommended manuscript edit
 
 In C1 v0.3 §2.2 Methods, replace "n_boot = 100 (300 for Phase 7)" with
 "n_boot = 10,000 for all phases (Phase 7: 10,000 on the limited n=123
@@ -125,7 +125,7 @@ literature meta-catalog)." Cite this document as the convergence validation.
 In §6.5 Limitations, the previously-flagged "low end of best practice" note
 about n_boot=100 can be **removed** post-rerun.
 
-***REMOVED******REMOVED*** References
+## References
 
 - Efron B, Tibshirani RJ (1993). *An Introduction to the Bootstrap.*
   Chapman & Hall.

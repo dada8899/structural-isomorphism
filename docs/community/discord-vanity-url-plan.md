@@ -1,4 +1,4 @@
-***REMOVED*** Discord Vanity URL Plan
+# Discord Vanity URL Plan
 
 Discord's `discord.gg/<vanity>` URLs require **Server Boost Level 3** (14
 boosts). For a small research community starting from zero, this is a
@@ -8,18 +8,18 @@ want to bootstrap on paid promotion.
 This doc lays out the **interim** (no vanity URL) and **target** (post-boost)
 strategy.
 
-***REMOVED******REMOVED*** Phase 0 — pre-launch (current)
+## Phase 0 — pre-launch (current)
 
 Server doesn't exist yet. The redirect endpoint at
 `structural.bytedance.city/discord` returns a `503 server not yet open` with
 a "join the waitlist" form pointing at the W9-C newsletter signup.
 
-***REMOVED******REMOVED*** Phase 1 — Interim (launch → 100 members)
+## Phase 1 — Interim (launch → 100 members)
 
 Goal: zero friction join, no vanity URL needed.
 
 1. **Permanent invite link**: in Discord server settings → Invites → create
-   one **never-expiring, no member-cap** invite from `***REMOVED***rules`. Format:
+   one **never-expiring, no member-cap** invite from `#rules`. Format:
    `discord.gg/abc123xyz` (7-character random code).
 2. **Redirect**: `structural.bytedance.city/discord` (nginx 302) → the
    permanent invite URL. Document the redirect target in
@@ -33,7 +33,7 @@ Goal: zero friction join, no vanity URL needed.
 
 This works perfectly fine; vanity URLs are aesthetic, not functional.
 
-***REMOVED******REMOVED*** Phase 2 — Vanity URL (post 100+ members + Boost Level 3)
+## Phase 2 — Vanity URL (post 100+ members + Boost Level 3)
 
 When the server reaches **~100 active members and Boost Level 3**:
 
@@ -54,7 +54,7 @@ When the server reaches **~100 active members and Boost Level 3**:
 4. Keep the old random-code invite **active** for 30 days post-cutover (some
    bookmarks will use it); after 30 days, revoke.
 
-***REMOVED******REMOVED*** Reaching Boost Level 3
+## Reaching Boost Level 3
 
 Level 3 = 14 boosts. We will **not** ask members to boost ("please pay us
 $5/month for cosmetics"). Acceptable paths:
@@ -71,7 +71,7 @@ $5/month for cosmetics"). Acceptable paths:
 Estimated timeline: 6-18 months from server launch to vanity URL, depending
 on growth rate.
 
-***REMOVED******REMOVED*** Interim asset checklist
+## Interim asset checklist
 
 The redirect-only approach is fine for everything except:
 - **arXiv paper supplementary**: must include a stable URL. Use
@@ -83,7 +83,7 @@ The redirect-only approach is fine for everything except:
 The redirect URL stays stable for the lifetime of the project. Invite codes
 can rotate freely behind it.
 
-***REMOVED******REMOVED*** Risk: vanity URL squatting
+## Risk: vanity URL squatting
 
 If someone hostile claims `structuralisomorphism` before we reach Boost
 Level 3, we have limited recourse (Discord won't transfer in absence of
@@ -96,7 +96,7 @@ trademark grounds). Mitigation:
 - If squatted by an unrelated active community: choose the fallback
   vanity (`structural-isomorphism`)
 
-***REMOVED******REMOVED*** Summary
+## Summary
 
 | Phase | Have | Use |
 |---|---|---|

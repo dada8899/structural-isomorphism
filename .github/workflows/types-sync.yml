@@ -1,13 +1,13 @@
 name: types-sync
 
-***REMOVED*** W15-A (session ***REMOVED***10, 2026-05-15): keep the auto-generated TS types
-***REMOVED*** (web/phase-detector/lib/api-types.ts) in lockstep with the Pydantic
-***REMOVED*** schemas at web/backend/schemas.py.
-***REMOVED***
-***REMOVED*** The workflow regenerates the file on every PR and fails if the result
-***REMOVED*** differs from what was committed. Authors who change a Pydantic model
-***REMOVED*** but forget to run `bash scripts/gen_ts_types.sh` see a red check, get
-***REMOVED*** a comment on the PR with the diff, and can copy/paste the fix.
+# W15-A (session #10, 2026-05-15): keep the auto-generated TS types
+# (web/phase-detector/lib/api-types.ts) in lockstep with the Pydantic
+# schemas at web/backend/schemas.py.
+#
+# The workflow regenerates the file on every PR and fails if the result
+# differs from what was committed. Authors who change a Pydantic model
+# but forget to run `bash scripts/gen_ts_types.sh` see a red check, get
+# a comment on the PR with the diff, and can copy/paste the fix.
 
 on:
   pull_request:
@@ -81,7 +81,7 @@ jobs:
               diff = '(diff command failed — re-run the workflow locally)';
             }
             const body = [
-              '***REMOVED******REMOVED******REMOVED*** types-sync: api-types.ts is stale',
+              '### types-sync: api-types.ts is stale',
               '',
               'A Pydantic schema in `web/backend/schemas.py` (or one of the',
               'endpoints it mirrors) changed without regenerating the TS file.',

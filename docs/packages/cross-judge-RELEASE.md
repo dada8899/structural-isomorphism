@@ -1,30 +1,30 @@
-***REMOVED*** cross-judge 0.1.0 — PyPI Release Runbook
+# cross-judge 0.1.0 — PyPI Release Runbook
 
-***REMOVED******REMOVED*** Pre-flight
+## Pre-flight
 
 ```bash
 cd packages/cross-judge
 
-***REMOVED*** 1. Verify tests pass
+# 1. Verify tests pass
 ../../.venv/bin/python -m pytest tests/ -v
-***REMOVED*** expected: 82 passed (37 legacy + 45 new)
+# expected: 82 passed (37 legacy + 45 new)
 
-***REMOVED*** 2. Verify version + metadata
+# 2. Verify version + metadata
 grep -E '^version|^name|^description' pyproject.toml
 
-***REMOVED*** 3. Clean stale artifacts
+# 3. Clean stale artifacts
 rm -rf dist/ build/ src/*.egg-info
 
-***REMOVED*** 4. Build sdist + wheel
+# 4. Build sdist + wheel
 ../../.venv/bin/pip install build --quiet
 ../../.venv/bin/python -m build
 ls dist/
-***REMOVED*** expected:
-***REMOVED***   cross_judge-0.1.0-py3-none-any.whl
-***REMOVED***   cross_judge-0.1.0.tar.gz
+# expected:
+#   cross_judge-0.1.0-py3-none-any.whl
+#   cross_judge-0.1.0.tar.gz
 ```
 
-***REMOVED******REMOVED*** Clean-venv smoke test (mandatory before upload)
+## Clean-venv smoke test (mandatory before upload)
 
 ```bash
 python3 -m venv /tmp/cj-smoke
@@ -38,22 +38,22 @@ print('public API OK')
 rm -rf /tmp/cj-smoke
 ```
 
-***REMOVED******REMOVED*** TestPyPI upload (dry-run)
+## TestPyPI upload (dry-run)
 
 ```bash
-***REMOVED*** 1. Register account at https://test.pypi.org/
-***REMOVED*** 2. Generate API token, save to ~/.pypirc:
-***REMOVED***    [testpypi]
-***REMOVED***    username = __token__
-***REMOVED***    password = pypi-AgENdGV...
-***REMOVED***
-***REMOVED*** 3. Install twine
+# 1. Register account at https://test.pypi.org/
+# 2. Generate API token, save to ~/.pypirc:
+#    [testpypi]
+#    username = __token__
+#    password = pypi-AgENdGV...
+#
+# 3. Install twine
 ../../.venv/bin/pip install twine --quiet
 
-***REMOVED*** 4. Upload to TestPyPI
+# 4. Upload to TestPyPI
 ../../.venv/bin/twine upload --repository testpypi dist/*
 
-***REMOVED*** 5. Verify install from TestPyPI
+# 5. Verify install from TestPyPI
 python3 -m venv /tmp/cj-test
 /tmp/cj-test/bin/pip install --index-url https://test.pypi.org/simple/ \
     --extra-index-url https://pypi.org/simple/ \
@@ -62,24 +62,24 @@ python3 -m venv /tmp/cj-test
 rm -rf /tmp/cj-test
 ```
 
-***REMOVED******REMOVED*** Production PyPI upload
+## Production PyPI upload
 
 ```bash
-***REMOVED*** 1. Register at https://pypi.org/
-***REMOVED*** 2. Generate API token, add to ~/.pypirc:
-***REMOVED***    [pypi]
-***REMOVED***    username = __token__
-***REMOVED***    password = pypi-AgENdGV...
-***REMOVED***
-***REMOVED*** 3. Upload
+# 1. Register at https://pypi.org/
+# 2. Generate API token, add to ~/.pypirc:
+#    [pypi]
+#    username = __token__
+#    password = pypi-AgENdGV...
+#
+# 3. Upload
 ../../.venv/bin/twine upload dist/*
 
-***REMOVED*** 4. Verify
+# 4. Verify
 pip install cross-judge==0.1.0
 python -c "from cross_judge import Critic, Ensemble; print('PyPI OK')"
 ```
 
-***REMOVED******REMOVED*** Post-release
+## Post-release
 
 1. Tag the release in git:
    ```bash
@@ -92,7 +92,7 @@ python -c "from cross_judge import Critic, Ensemble; print('PyPI OK')"
 4. Bump version in `pyproject.toml` + `__init__.py` to `0.2.0.dev0` to
    prevent accidental re-release of `0.1.0`.
 
-***REMOVED******REMOVED*** Changelog (0.1.0)
+## Changelog (0.1.0)
 
 - Initial PyPI-ready release.
 - Public API: `Critic`, `Ensemble`, `Verdict`, `VerdictKind`,
@@ -110,7 +110,7 @@ python -c "from cross_judge import Critic, Ensemble; print('PyPI OK')"
 - Backward-compat: legacy `Reviewer` / `JudgePanel` / aggregation API
   preserved for `v4/scripts/b3_ensemble.py`.
 
-***REMOVED******REMOVED*** Known limitations
+## Known limitations
 
 - v0.1 makes sequential LLM calls in `Ensemble.judge`. For parallel calls,
   drive `Critic.judge` externally and pass verdicts to

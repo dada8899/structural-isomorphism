@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Phase 6 — run the frozen SOC pipeline on GitHub event cascades.
 
 Reads events.jsonl (issue/PR open timestamps + engagement counts) produced by
@@ -50,7 +50,7 @@ ROOT = Path(__file__).resolve()
 REPO_ROOT = ROOT.parents[3]
 sys.path.insert(0, str(REPO_ROOT / "packages" / "soc-pipeline" / "src"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_ci,
     fit_clauset_powerlaw,
     fit_omori_p,
@@ -59,12 +59,12 @@ from soc_pipeline import (  ***REMOVED*** noqa: E402
 EVENTS = ROOT.parent / "events.jsonl"
 RESULT_JSON = ROOT.parent / "cascade_results.json"
 
-***REMOVED*** --- pre-registered parameters (frozen before inspecting the verdict) -------
+# --- pre-registered parameters (frozen before inspecting the verdict) -------
 PREREG_ALPHA_BAND = (1.5, 3.5)
 PREREG_OMORI_BAND = (0.3, 1.3)
-MAIN_SIGMA = 2.0          ***REMOVED*** main-event threshold = mu + 2*sigma loudness
-CASCADE_WINDOW_DAYS = 30  ***REMOVED*** derived events counted within 30 days of main
-MIN_DELAY_SEC = 3600.0    ***REMOVED*** ignore <1h (co-submitted noise), Omori lower edge
+MAIN_SIGMA = 2.0          # main-event threshold = mu + 2*sigma loudness
+CASCADE_WINDOW_DAYS = 30  # derived events counted within 30 days of main
+MIN_DELAY_SEC = 3600.0    # ignore <1h (co-submitted noise), Omori lower edge
 N_BOOT = 300
 
 
@@ -108,7 +108,7 @@ def build_cascades(rows: list[dict]) -> dict:
         repo_sizes: list[int] = []
         for mi in main_idx:
             t0 = ts[mi]
-            ***REMOVED*** derived events strictly after the main event, within window
+            # derived events strictly after the main event, within window
             mask = (ts > t0) & (ts <= t0 + window_s)
             delays = ts[mask] - t0
             size = int(mask.sum())
@@ -205,7 +205,7 @@ def main() -> None:
         print(f"cascade size: min={sizes.min():.0f} max={sizes.max():.0f} "
               f"mean={sizes.mean():.1f} median={np.median(sizes):.0f}")
 
-    ***REMOVED*** --- power-law fit on cascade SIZE ------------------------------------
+    # --- power-law fit on cascade SIZE ------------------------------------
     fit = fit_clauset_powerlaw(sizes, name="github_cascade_size", discrete=True)
     boot = bootstrap_ci(sizes, n_boot=N_BOOT, discrete=True)
 
@@ -224,7 +224,7 @@ def main() -> None:
         in_band = False
         print(f"\nCLAUSET FIT FAILED: {fit.error}")
 
-    ***REMOVED*** --- Omori-Utsu p on stacked delays -----------------------------------
+    # --- Omori-Utsu p on stacked delays -----------------------------------
     omori = fit_omori_p(delays)
     if omori.error:
         print(f"\nOMORI: {omori.error}")
@@ -236,7 +236,7 @@ def main() -> None:
               f"c={omori.c_days}d R2={omori.R2:.3f} "
               f"n_aftershocks={omori.n_aftershocks_in_fit}")
 
-    ***REMOVED*** --- sensitivity sweep: is the verdict robust to window/sigma? --------
+    # --- sensitivity sweep: is the verdict robust to window/sigma? --------
     print("\nsensitivity sweep (window x sigma):")
     sweep = sensitivity_sweep(rows)
     for s in sweep:

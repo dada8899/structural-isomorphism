@@ -16,7 +16,7 @@ from ..exceptions import LLMCallError
 from . import BaseProvider, register_provider
 
 
-***REMOVED*** Public sticker prices in USD per million tokens (Apr 2026 snapshot).
+# Public sticker prices in USD per million tokens (Apr 2026 snapshot).
 _DEFAULT_PRICING_USD_PER_M = {
     "claude-sonnet-4.5": (3.0, 15.0),
     "claude-opus-4.5": (15.0, 75.0),
@@ -57,7 +57,7 @@ class AnthropicProvider(BaseProvider):
             )
         url = (base_url or self.base_url).rstrip("/") + "/messages"
 
-        ***REMOVED*** Anthropic expects `system` as a separate top-level field, not in messages
+        # Anthropic expects `system` as a separate top-level field, not in messages
         sys_msg = system
         chat_messages: list[dict] = []
         for m in messages:
@@ -101,7 +101,7 @@ class AnthropicProvider(BaseProvider):
             raise LLMCallError(f"anthropic response not JSON: {e}") from e
 
         try:
-            ***REMOVED*** content is a list of blocks: [{"type": "text", "text": "..."}]
+            # content is a list of blocks: [{"type": "text", "text": "..."}]
             blocks = data.get("content") or []
             text_parts = [b.get("text", "") for b in blocks if b.get("type") == "text"]
             text = "".join(text_parts)

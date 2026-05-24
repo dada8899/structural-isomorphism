@@ -1,11 +1,11 @@
-***REMOVED*** Pipeline
+# Pipeline
 
 The shared analysis stack is implemented in `v4/lib/soc_pipeline.py` and
 is frozen at commit `7ee228c`. It exposes one function per analytical
 operation; phase scripts call those functions with a domain-specific data
 loader and write the verdict to disk.
 
-***REMOVED******REMOVED*** Design principles
+## Design principles
 
 1. **One module, no per-system tuning.** Every phase paper calls the same
    function signatures. Tuning a parameter on one system would invalidate
@@ -19,12 +19,12 @@ loader and write the verdict to disk.
    vectors, fit logs, and result JSON files are all under
    `v4/validation/<system>/` and can be re-fit deterministically.
 
-***REMOVED******REMOVED*** The seven analytical operations
+## The seven analytical operations
 
 The pipeline supplies one function per operation. The names below are the
 canonical exports.
 
-***REMOVED******REMOVED******REMOVED*** `fit_clauset_powerlaw(sizes, discrete=False)`
+### `fit_clauset_powerlaw(sizes, discrete=False)`
 
 Continuous or discrete power-law tail fit per Clauset, Shalizi, and Newman
 (2009). $x_{\mathrm{min}}$ is selected by minimizing the Kolmogorov-Smirnov
@@ -33,7 +33,7 @@ is then estimated by maximum likelihood on the resulting tail using the
 Hill-form estimator. Returns $\alpha$, the Hill-form $\sigma(\alpha)$,
 $x_{\mathrm{min}}$, and $n_{\mathrm{tail}}$.
 
-***REMOVED******REMOVED******REMOVED*** `bootstrap_ci(sizes, fit, n_boot=1000)`
+### `bootstrap_ci(sizes, fit, n_boot=1000)`
 
 Non-parametric block bootstrap on $\alpha$ with default block length
 $\sqrt{n}$. The block bootstrap is used because most empirical burst series
@@ -41,7 +41,7 @@ have serial correlation that an i.i.d. bootstrap would systematically
 narrow. Phases with very small $n_{\mathrm{total}}$ (under 200) widen the
 percentile band to 5-95 and use 300 resamples instead of the standard 100.
 
-***REMOVED******REMOVED******REMOVED*** `vuong_lr(sizes, fit, alternative)`
+### `vuong_lr(sizes, fit, alternative)`
 
 Clauset-Shalizi-Newman normalized log-likelihood ratio $R$ against
 `alternative` $\in \{$ "lognormal", "exponential" $\}$ with Vuong-style
@@ -50,7 +50,7 @@ distinguishability. Rejection of exponential is necessary but not
 sufficient for a power-law claim; the harder test is against lognormal,
 which can mimic a power-law over finite dynamic range.
 
-***REMOVED******REMOVED******REMOVED*** `omori_utsu_stack(events, T_window, n_bootstrap=1000)`
+### `omori_utsu_stack(events, T_window, n_bootstrap=1000)`
 
 Time-domain aftershock-decay fit per Omori-Utsu. For systems with
 identifiable main-shock events (earthquakes, neural avalanches, market
@@ -58,7 +58,7 @@ cascades), the aftershock density should follow
 $\lambda(t) \propto (t + c)^{-p}$ with $p \in [0.6, 1.4]$. Bootstrap is
 used for the CI on $p$.
 
-***REMOVED******REMOVED******REMOVED*** `null_control(generator, n, alternative)`
+### `null_control(generator, n, alternative)`
 
 Synthetic null control: generate $n$ samples from a non-power-law generator
 (Gaussian-walk increments, exponential variates, homogeneous Poisson
@@ -66,20 +66,20 @@ inter-arrival times, homogeneous Poisson Omori stack) and pass them through
 the same fitting pipeline. The pipeline should reject power-law against
 the relevant alternative; if it does not, the pipeline is over-claiming.
 
-***REMOVED******REMOVED******REMOVED*** `log_binned_density(sizes, n_bins=40)`
+### `log_binned_density(sizes, n_bins=40)`
 
 Logarithmically spaced density estimator with Poisson error bars on each
 bin. Used for the universal collapse polish (the cross-system
 shape-normalized log-variance ratio $r_{\mathrm{shape}}$).
 
-***REMOVED******REMOVED******REMOVED*** `bic_select(sizes, fit, alternatives)`
+### `bic_select(sizes, fit, alternatives)`
 
 Bayesian Information Criterion ranking on a log-binned density. The
 universal collapse polish prefers power-law + exponential cutoff to
 lognormal in 5 of 7 systems with $\Delta\mathrm{BIC} \in [33, 967]$
 (decisive on the standard Kass-Raftery scale).
 
-***REMOVED******REMOVED*** Verdict assembly
+## Verdict assembly
 
 The orchestrating script `v4/scripts/run_preregistered_validation.py`
 composes the operations into a single fit, applies the verdict rules from
@@ -103,7 +103,7 @@ The FDNY result is an example of the third branch: point estimate in
 band but CI extending past the band and Vuong rejection in favor of
 both alternatives yields INCONCLUSIVE on the primary series.
 
-***REMOVED******REMOVED*** Frozen at commit `7ee228c`
+## Frozen at commit `7ee228c`
 
 The module is intentionally frozen. Improvements proceed by versioning:
 a v5 pipeline would be a separate module with its own tag, not an edit

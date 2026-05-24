@@ -26,8 +26,8 @@ for p in (_BACKEND, _ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from services import query_expansion as qe  ***REMOVED*** noqa: E402
-from services import retrieval_pipeline as rp  ***REMOVED*** noqa: E402
+from services import query_expansion as qe  # noqa: E402
+from services import retrieval_pipeline as rp  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ def _async(coro):
     return asyncio.run(coro)
 
 
-***REMOVED*** --- 1. Unit: mock LLM → original + 3 expansions -------------------------
+# --- 1. Unit: mock LLM → original + 3 expansions -------------------------
 
 
 def test_expand_query_unit_mock_llm_returns_original_plus_expansions():
@@ -61,7 +61,7 @@ def test_expand_query_unit_mock_llm_returns_original_plus_expansions():
     mock_llm.assert_awaited_once()
 
 
-***REMOVED*** --- 2. Integration: 4 条 query 并联召回 + fusion + 隐私日志 -------------
+# --- 2. Integration: 4 条 query 并联召回 + fusion + 隐私日志 -------------
 
 
 def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
@@ -79,7 +79,7 @@ def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
     calls = []
     by_query = {
         "硅谷银行挤兑":      [{"id": "k1", "score": 0.85}],
-        "银行挤兑":         [{"id": "k1", "score": 0.92},  ***REMOVED*** overlap, higher
+        "银行挤兑":         [{"id": "k1", "score": 0.92},  # overlap, higher
                             {"id": "k2", "score": 0.70}],
         "流动性危机":        [{"id": "k3", "score": 0.78}],
         "bank run":         [{"id": "k4", "score": 0.55}],
@@ -96,16 +96,16 @@ def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
         top_k=10,
     ))
 
-    ***REMOVED*** 4 candidates issued, search called 4 times
+    # 4 candidates issued, search called 4 times
     assert len(out["candidate_queries"]) == 4
     assert len(calls) == 4
-    ***REMOVED*** k1 retained the higher score 0.92 (cross-query max-fuse)
+    # k1 retained the higher score 0.92 (cross-query max-fuse)
     k1 = next(r for r in out["results"] if r["id"] == "k1")
     assert k1["score"] == 0.92
-    ***REMOVED*** All 4 distinct ids appear in fused result
+    # All 4 distinct ids appear in fused result
     assert {r["id"] for r in out["results"]} == {"k1", "k2", "k3", "k4"}
 
-    ***REMOVED*** Retrieval log written, hashed only, no raw query content leaked
+    # Retrieval log written, hashed only, no raw query content leaked
     import json
     rows = log_path.read_text(encoding="utf-8").strip().split("\n")
     assert len(rows) == 1
@@ -116,7 +116,7 @@ def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
     assert row["top_5_kb_ids"][:1] == ["k1"]
 
 
-***REMOVED*** --- 3. 缓存命中 ----------------------------------------------------------
+# --- 3. 缓存命中 ----------------------------------------------------------
 
 
 def test_cache_hit_avoids_second_llm_call():
@@ -127,12 +127,12 @@ def test_cache_hit_avoids_second_llm_call():
     r1 = _async(qe.expand_query(q, llm_complete_json=mock_llm))
     r2 = _async(qe.expand_query(q, llm_complete_json=mock_llm))
     assert r1 == r2
-    assert mock_llm.await_count == 1  ***REMOVED*** cache spared the second LLM call
+    assert mock_llm.await_count == 1  # cache spared the second LLM call
     stats = qe.cache_stats()
     assert stats["cache_hits"] == 1
 
 
-***REMOVED*** --- 4. 降级路径 -----------------------------------------------------------
+# --- 4. 降级路径 -----------------------------------------------------------
 
 
 def test_llm_failure_falls_back_to_original_only():
@@ -144,12 +144,12 @@ def test_llm_failure_falls_back_to_original_only():
     assert stats["fallbacks"] >= 1
 
 
-***REMOVED*** --- 5. cost 超限 ----------------------------------------------------------
+# --- 5. cost 超限 ----------------------------------------------------------
 
 
 def test_cost_cap_blocks_llm_call(monkeypatch):
     """Per-call estimate above EXPANSION_MAX_COST_USD → no LLM call."""
-    monkeypatch.setattr(qe, "_ESTIMATED_COST_PER_CALL_USD", 0.005)  ***REMOVED*** > 0.001 cap
+    monkeypatch.setattr(qe, "_ESTIMATED_COST_PER_CALL_USD", 0.005)  # > 0.001 cap
     mock_llm = AsyncMock(return_value={"expansions": ["x", "y", "z"]})
     result = _async(qe.expand_query("expensive query", llm_complete_json=mock_llm))
     assert result == ["expensive query"]

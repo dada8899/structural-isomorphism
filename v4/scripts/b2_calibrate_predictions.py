@@ -1,7 +1,7 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B2 — Layer 4 predictions: explicit 95% CI + reverse-fill in_band for verified phases.
 
-This is the W1-D session ***REMOVED***3 calibration pass. It complements the earlier
+This is the W1-D session #3 calibration pass. It complements the earlier
 `calibrate_predictions_ci.py` by:
 
 1. **Explicit 95% CI per prediction band** (every band gets ci_95_lower/upper).
@@ -41,20 +41,20 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import bootstrap_alpha_ci  ***REMOVED*** noqa: E402
+from soc_pipeline import bootstrap_alpha_ci  # noqa: E402
 
 PREDS_IN = REPO / "v4" / "results" / "layer4_predictions.jsonl"
 OUT = REPO / "v4" / "results" / "layer4_predictions_v2_with_ci.jsonl"
 SUMMARY = REPO / "v4" / "results" / "B2_calibration_summary.md"
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Verified observations table (13 verified phases from HANDOFF.md §1 + paper.md)
-***REMOVED*** Each: {value, sigma (or ci_low/ci_high), source, method, domain_keys}
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Verified observations table (13 verified phases from HANDOFF.md §1 + paper.md)
+# Each: {value, sigma (or ci_low/ci_high), source, method, domain_keys}
+# ──────────────────────────────────────────────────────────────────────────────
 
 VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
-    ***REMOVED*** Phase 1 — USGS earthquakes
+    # Phase 1 — USGS earthquakes
     "earthquake_alpha_energy": {
         "applicable_class_ids": [
             "motter_lai_network_cascade", "extreme_value_tail_class",
@@ -95,7 +95,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "p_omori",
         "value_range_plausible": [0.3, 1.5],
     },
-    ***REMOVED*** Phase 2 — S&P 500 returns
+    # Phase 2 — S&P 500 returns
     "stockmarket_alpha_returns": {
         "applicable_class_ids": [
             "tail_copula_contagion",
@@ -123,7 +123,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "p_omori",
         "value_range_plausible": [0.0, 1.5],
     },
-    ***REMOVED*** Phase 3 — DeFi liquidations
+    # Phase 3 — DeFi liquidations
     "defi_aave_alpha": {
         "applicable_class_ids": ["motter_lai_network_cascade"],
         "value": 1.684,
@@ -154,7 +154,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.0, 3.0],
     },
-    ***REMOVED*** Phase 4 — Mouse cortex neural avalanches
+    # Phase 4 — Mouse cortex neural avalanches
     "neural_tau_avalanche_size": {
         "applicable_class_ids": ["leaky_integrate_fire_threshold_class", "motter_lai_network_cascade"],
         "value": 2.58,
@@ -167,7 +167,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "tau",
         "value_range_plausible": [1.0, 4.0],
     },
-    ***REMOVED*** Phase 6 — GitHub stars (PA)
+    # Phase 6 — GitHub stars (PA)
     "github_stars_alpha": {
         "applicable_class_ids": ["preferential_attachment", "scale_free_percolation_class"],
         "value": 2.867,
@@ -181,7 +181,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.5, 5.0],
     },
-    ***REMOVED*** Phase 7 — Power grid cascades (Motter-Lai)
+    # Phase 7 — Power grid cascades (Motter-Lai)
     "powergrid_mw_alpha": {
         "applicable_class_ids": ["motter_lai_network_cascade"],
         "value": 2.018,
@@ -194,7 +194,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.0, 4.0],
     },
-    ***REMOVED*** Phase 8 — FDIC bank failures
+    # Phase 8 — FDIC bank failures
     "bank_failure_alpha": {
         "applicable_class_ids": [
             "motter_lai_network_cascade", "delay_differential_debt",
@@ -211,7 +211,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.0, 4.0],
     },
-    ***REMOVED*** Phase 10 — NIFC wildfires
+    # Phase 10 — NIFC wildfires
     "wildfire_alpha": {
         "applicable_class_ids": ["motter_lai_network_cascade", "scale_free_percolation_class"],
         "value": 1.660,
@@ -226,7 +226,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.0, 4.0],
     },
-    ***REMOVED*** Phase 11 — GOES solar flares
+    # Phase 11 — GOES solar flares
     "solar_flare_alpha": {
         "applicable_class_ids": ["motter_lai_network_cascade"],
         "value": 2.194,
@@ -240,7 +240,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.0, 4.0],
     },
-    ***REMOVED*** Phase 13 — Wikipedia pageviews (PA)
+    # Phase 13 — Wikipedia pageviews (PA)
     "wiki_pageviews_alpha": {
         "applicable_class_ids": ["preferential_attachment", "scale_free_percolation_class"],
         "value": 2.034,
@@ -253,7 +253,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "alpha",
         "value_range_plausible": [1.5, 4.0],
     },
-    ***REMOVED*** A2-1 — NGSIM US-101 traffic hysteresis (Q-K ratio)
+    # A2-1 — NGSIM US-101 traffic hysteresis (Q-K ratio)
     "traffic_hysteresis_ratio": {
         "applicable_class_ids": ["hysteresis_preisach", "hysteresis_first_order_transition_fertility"],
         "value": 0.926,
@@ -265,7 +265,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
         "quantity": "ratio",
         "value_range_plausible": [0.5, 2.0],
     },
-    ***REMOVED*** A2-2 — Fox River Green Bay DO (Scheffer fold), AR(1) tau
+    # A2-2 — Fox River Green Bay DO (Scheffer fold), AR(1) tau
     "scheffer_ar1_tau": {
         "applicable_class_ids": ["scheffer_fold_bifurcation"],
         "value": 0.284,
@@ -281,12 +281,12 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, Any]] = {
 }
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Numerical band extraction
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Numerical band extraction
+# ──────────────────────────────────────────────────────────────────────────────
 
-***REMOVED*** Order matters: more specific keys checked first.
-***REMOVED*** Each band's context window is scanned for the first quantity whose alias appears.
+# Order matters: more specific keys checked first.
+# Each band's context window is scanned for the first quantity whose alias appears.
 QUANTITY_ALIASES = {
     "ar1": ["AR(1)", "自相关系数", "auto-correlation"],
     "p_omori": ["p_omori", "Omori 指数", "Omori p", "余震衰减指数", "p_o", "omori"],
@@ -334,9 +334,9 @@ def parse_prediction_bands(pred_text: str) -> list[dict[str, Any]]:
     return bands
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Method A: rescale LLM band as ±~2σ to 95% CI
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Method A: rescale LLM band as ±~2σ to 95% CI
+# ──────────────────────────────────────────────────────────────────────────────
 
 def rescale_band_to_95ci(band: dict[str, Any]) -> dict[str, float]:
     """Treat LLM-given band [a, b] as ~2σ envelope around midpoint.
@@ -345,8 +345,8 @@ def rescale_band_to_95ci(band: dict[str, Any]) -> dict[str, float]:
     Since LLM bands are heuristic, this is a conservative rescaling.
     """
     mid = (band["low"] + band["high"]) / 2.0
-    half_width = (band["high"] - band["low"]) / 2.0  ***REMOVED*** treat as ~2σ
-    sigma_est = half_width / 2.0  ***REMOVED*** half-width / 2 ≈ σ if band is ±2σ
+    half_width = (band["high"] - band["low"]) / 2.0  # treat as ~2σ
+    sigma_est = half_width / 2.0  # half-width / 2 ≈ σ if band is ±2σ
     ci_95_half = 1.96 * sigma_est
     return {
         "ci_95_lower": mid - ci_95_half,
@@ -356,9 +356,9 @@ def rescale_band_to_95ci(band: dict[str, Any]) -> dict[str, float]:
     }
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Method B: bootstrap CI for verified-phase systems (where raw data exists)
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Method B: bootstrap CI for verified-phase systems (where raw data exists)
+# ──────────────────────────────────────────────────────────────────────────────
 
 def refresh_alpha_ci_earthquake() -> dict[str, Any] | None:
     try:
@@ -395,9 +395,9 @@ def refresh_alpha_ci_stockmarket() -> dict[str, Any] | None:
     return bootstrap_alpha_ci(abs_rets, n_boot=100, discrete=False)
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Reverse-fill in_band for verified phases
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Reverse-fill in_band for verified phases
+# ──────────────────────────────────────────────────────────────────────────────
 
 def match_verified_observations(
     class_id: str,
@@ -418,27 +418,27 @@ def match_verified_observations(
     for band in bands:
         band_matches = []
         for obs_key, obs in VERIFIED_OBSERVATIONS.items():
-            ***REMOVED*** Class filter
+            # Class filter
             if class_id not in obs.get("applicable_class_ids", []):
                 continue
-            ***REMOVED*** Domain keyword filter
+            # Domain keyword filter
             if not any(kw.lower() in blob for kw in obs.get("domain_keys", [])):
                 continue
-            ***REMOVED*** Quantity filter (if band quantity inferred)
+            # Quantity filter (if band quantity inferred)
             band_q = band.get("inferred_quantity")
             obs_q = obs.get("quantity")
             if band_q and obs_q and band_q != obs_q:
-                ***REMOVED*** alpha and tau are sometimes interchangeable in SOC literature
+                # alpha and tau are sometimes interchangeable in SOC literature
                 if not ((band_q == "alpha" and obs_q == "tau") or (band_q == "tau" and obs_q == "alpha")):
                     continue
-            ***REMOVED*** Plausibility filter: band must overlap the observation's plausible range
+            # Plausibility filter: band must overlap the observation's plausible range
             plausible = obs.get("value_range_plausible")
             if plausible is not None:
                 if band["high"] < plausible[0] or band["low"] > plausible[1]:
                     continue
-            ***REMOVED*** All filters passed → compute verdict
+            # All filters passed → compute verdict
             observed = obs["value"]
-            ***REMOVED*** Primary in_band test uses the rescaled 95% CI (Method A bounds)
+            # Primary in_band test uses the rescaled 95% CI (Method A bounds)
             ci_lo = band.get("ci_95_lower", band["low"])
             ci_hi = band.get("ci_95_upper", band["high"])
             in_band = ci_lo <= observed <= ci_hi
@@ -465,9 +465,9 @@ def match_verified_observations(
     return matches_per_band
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Main
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Main
+# ──────────────────────────────────────────────────────────────────────────────
 
 def main():
     print(f"Loading {PREDS_IN}…")
@@ -476,7 +476,7 @@ def main():
     total_preds = sum(len(c.get("predictions", [])) for c in preds)
     print(f"  {total_classes} classes / {total_preds} predictions")
 
-    ***REMOVED*** Step 1: refresh bootstrap CIs for the data we have
+    # Step 1: refresh bootstrap CIs for the data we have
     print("\nStep 1: bootstrap CI refresh on verified observations (raw data)…")
     fresh_cis: dict[str, dict[str, Any] | None] = {}
 
@@ -488,14 +488,14 @@ def main():
     fresh_cis["stockmarket_alpha_returns"] = refresh_alpha_ci_stockmarket()
     print(f"    → {fresh_cis['stockmarket_alpha_returns']}")
 
-    ***REMOVED*** Inject fresh CIs back into VERIFIED_OBSERVATIONS
+    # Inject fresh CIs back into VERIFIED_OBSERVATIONS
     for key, ci in fresh_cis.items():
         if isinstance(ci, dict) and "ci_low" in ci:
             VERIFIED_OBSERVATIONS[key]["bootstrap_ci_low"] = ci["ci_low"]
             VERIFIED_OBSERVATIONS[key]["bootstrap_ci_high"] = ci["ci_high"]
             VERIFIED_OBSERVATIONS[key]["n_bootstrap"] = ci.get("n_boot_succeeded")
 
-    ***REMOVED*** Step 2: process each prediction
+    # Step 2: process each prediction
     print("\nStep 2: rescaling bands → 95% CI + reverse-fill in_band…")
     out_records = []
     total_bands = 0
@@ -513,7 +513,7 @@ def main():
             target = p.get("target", "")
             pred_text = p.get("prediction", "")
             bands = parse_prediction_bands(pred_text)
-            ***REMOVED*** Pre-attach ci_95 bounds so matcher can use them
+            # Pre-attach ci_95 bounds so matcher can use them
             for band in bands:
                 ci_rescaled = rescale_band_to_95ci(band)
                 band["ci_95_lower"] = ci_rescaled["ci_95_lower"]
@@ -529,10 +529,10 @@ def main():
                     **band,
                     "ci_method": "literature_band_rescaled",
                 }
-                ***REMOVED*** Method B: if matched verified observation, attach observed + in_band
+                # Method B: if matched verified observation, attach observed + in_band
                 obs_matches = obs_matches_per_band[i] if i < len(obs_matches_per_band) else []
                 if obs_matches:
-                    ***REMOVED*** Use first match (typically the most relevant)
+                    # Use first match (typically the most relevant)
                     best = obs_matches[0]
                     band_record["observed_value"] = best["observed_value"]
                     band_record["observed_source"] = best["source"]
@@ -540,13 +540,13 @@ def main():
                     band_record["all_matches"] = obs_matches
                     bands_with_observed += 1
                     verdict_dist[best["in_band"]] += 1
-                    ***REMOVED*** If observation has bootstrap CI, prefer that as method
+                    # If observation has bootstrap CI, prefer that as method
                     obs_key = best["observation_key"]
                     obs = VERIFIED_OBSERVATIONS[obs_key]
                     if obs.get("n_bootstrap"):
                         band_record["ci_method"] = "bootstrap"
                         band_record["n_bootstrap"] = obs["n_bootstrap"]
-                        ***REMOVED*** Override CI bounds with bootstrap of observed
+                        # Override CI bounds with bootstrap of observed
                         if obs.get("bootstrap_ci_low") is not None:
                             band_record["observed_ci_95_lower"] = obs["bootstrap_ci_low"]
                             band_record["observed_ci_95_upper"] = obs["bootstrap_ci_high"]
@@ -575,7 +575,7 @@ def main():
     print(f"  {bands_with_observed} bands matched to verified observations")
     print(f"  verdict distribution: {verdict_dist}")
 
-    ***REMOVED*** Step 3: summary markdown
+    # Step 3: summary markdown
     surprises = []
     for cls in out_records:
         for p in cls["predictions_calibrated"]:
@@ -594,17 +594,17 @@ def main():
     mismatch_n = verdict_dist["complete_mismatch"]
 
     md = []
-    md.append("***REMOVED*** B2 — Layer 4 prediction calibration (v2, W1-D)\n")
-    md.append("**Run date**: 2026-05-13 (session ***REMOVED***3, W1-D)\n")
+    md.append("# B2 — Layer 4 prediction calibration (v2, W1-D)\n")
+    md.append("**Run date**: 2026-05-13 (session #3, W1-D)\n")
     md.append("**Script**: `v4/scripts/b2_calibrate_predictions.py`\n")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Overview\n")
+    md.append("## Overview\n")
     md.append(f"- Classes processed: **{total_classes}**")
     md.append(f"- Predictions processed: **{total_preds}**")
     md.append(f"- Extracted numerical bands (total): **{total_bands}**")
     md.append(f"- Bands matched to a verified observation: **{bands_with_observed}** / {total_bands} ({bands_with_observed*100/total_bands:.0f}%)")
     md.append("")
-    md.append("***REMOVED******REMOVED*** 95% CI method per band\n")
+    md.append("## 95% CI method per band\n")
     md.append("| Method | Count | Description |")
     md.append("|---|---|---|")
     method_counts = {"literature_band_rescaled": 0, "bootstrap": 0}
@@ -615,7 +615,7 @@ def main():
     md.append(f"| `literature_band_rescaled` | {method_counts['literature_band_rescaled']} | Treat LLM band as ±2σ → 95% CI = mid ± 1.96σ_est |")
     md.append(f"| `bootstrap` | {method_counts['bootstrap']} | Verified phase: bootstrap CI on observed value attached |")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Reverse-filled verdicts on verified phases\n")
+    md.append("## Reverse-filled verdicts on verified phases\n")
     if bands_with_observed > 0:
         md.append(f"Among **{bands_with_observed}** bands matched to a verified observation:\n")
         md.append("| Verdict | Count | % | Meaning |")
@@ -626,7 +626,7 @@ def main():
     else:
         md.append("(no bands matched to verified observations)")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Bootstrap CI refresh on raw data\n")
+    md.append("## Bootstrap CI refresh on raw data\n")
     md.append("| Observation | Median α | Bootstrap 95% CI | n_boot |")
     md.append("|---|---|---|---|")
     for k, v in fresh_cis.items():
@@ -636,17 +636,17 @@ def main():
             err = v.get('error') if isinstance(v, dict) else v
             md.append(f"| {k} | — | failed: {err} | — |")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Surprises — LLM bands that miss the observed value\n")
+    md.append("## Surprises — LLM bands that miss the observed value\n")
     if surprises:
         md.extend(surprises)
     else:
         md.append("(none — all matched predictions land in_band or out_band_partial)")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Methodology\n")
+    md.append("## Methodology\n")
     md.append("**Method A — `literature_band_rescaled` (default)**\n")
     md.append("LLM predictions give heuristic ranges (e.g. `[0.08, 0.22]`). We treat each band\n"
               "as a ~2σ envelope around its midpoint, then rescale to a 95% CI:\n\n"
-              "```\nmid = (low + high) / 2\nsigma_est = (high - low) / 4   ***REMOVED*** half-width / 2\nCI_95 = mid ± 1.96 × sigma_est\n```\n\n"
+              "```\nmid = (low + high) / 2\nsigma_est = (high - low) / 4   # half-width / 2\nCI_95 = mid ± 1.96 × sigma_est\n```\n\n"
               "This widens narrow LLM bands by ~5% and shrinks very wide ones — conservative but\n"
               "honest given the LLM never specified what its band meant. All 24 predictions have\n"
               "all extracted bands rescaled this way as a baseline.\n")
@@ -657,7 +657,7 @@ def main():
               "domain keyword. Verdict = `in_band` if observed lies inside the rescaled predicted CI,\n"
               "`out_band_partial` if predicted band overlaps literature but not observed, else\n"
               "`complete_mismatch`.\n")
-    md.append("***REMOVED******REMOVED*** Limitations\n")
+    md.append("## Limitations\n")
     md.append("- LLM bands have no specified semantic (1σ? 2σ? P5-P95?). Choosing 2σ is a\n"
               "  middle-ground assumption; if true semantic is 1σ, our 95% CI is too narrow.\n")
     md.append("- Quantity inference uses heuristic context window — a band labelled 'ratio' may\n"

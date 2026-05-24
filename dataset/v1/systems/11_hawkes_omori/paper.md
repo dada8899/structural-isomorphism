@@ -1,17 +1,17 @@
-***REMOVED*** Hawkes-Process Omori Kernel Across Three SOC Domains: A Cross-Domain Test of Self-Excitation
+# Hawkes-Process Omori Kernel Across Three SOC Domains: A Cross-Domain Test of Self-Excitation
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
-**Date.** 2026-05-13. Version: V4 Phase 14 validation note (W2-A, session ***REMOVED***3).
+**Date.** 2026-05-13. Version: V4 Phase 14 validation note (W2-A, session #3).
 **Keywords.** Hawkes process; Omori-Utsu kernel; self-organized criticality; branching ratio; ETAS; cross-domain universality; DeFi liquidations; neural avalanches.
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 The Hawkes process with an Omori-Utsu power-law triggering kernel (ETAS in the seismological literature) is the standard generative model for self-excited point processes in seismicity, and has been independently proposed for DeFi liquidation cascades and neural avalanches. If the SOC threshold-cascade universality class genuinely organizes these three domains, the underlying Hawkes branching ratio $\eta$ should be sub-critical ($\eta < 1$) in all three, and the Omori exponent $p$ should fall inside the empirical seismological window $p \in [0.5, 1.5]$ in all three. We attempted joint MLE of $(\mu, K, c, p)$ on raw event timestamps from a 2020-2025 USGS earthquake catalogue, pooled DeFi liquidation events (Aave v2 / Compound v2 / Maker), and unit spike times from a Plenz-lab cortical recording. The MLE is numerically unstable on the earthquake and DeFi catalogues at our subsample cap ($N = 1500$) and on a single-process Hawkes specification (parameter $p$ runs to the upper boundary on earthquakes; $\eta$ collapses to baseline-only on neural data). We therefore quote a hybrid result: the raw MLE attempt is preserved in `results.json` for transparency, and the headline cross-domain comparison uses literature meta-review values (Helmstetter-Sornette 2003 for earthquakes; Werner et al. 2024 for DeFi; Plenz-lab / Lombardi et al. 2017 for neural). All three literature consensuses agree on sub-critical $\eta \in [0.45, 0.99]$ and Omori $p \in [0.6, 1.3]$, consistent with shared SOC self-excitation. We document the MLE failure modes so future iterations can address them via marked Hawkes / multivariate spectra / longer catalogues.
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The Hawkes process $\lambda(t) = \mu + \sum_{t_j < t} \phi(t - t_j)$ generalizes the Poisson process by adding a triggering kernel $\phi$ whose integral, the *branching ratio* $\eta = \int_0^\infty \phi(s)\,ds$, controls the criticality of the resulting cascade: $\eta < 1$ gives sub-critical self-excitation with finite-mean offspring, $\eta = 1$ is critical, and $\eta > 1$ is super-critical and (in the absence of finite-population cutoffs) blows up [1, 2]. With an Omori-Utsu kernel $\phi(s) = K (s + c)^{-(1+p)}$ this is the ETAS model [3, 4], the workhorse generative model for global and regional seismicity.
 
@@ -22,9 +22,9 @@ The cross-domain claim of interest is the following. If the SOC threshold-cascad
 
 These two predictions are independent of the absolute scale of $K$, $c$, $\mu$, or the time-unit. The current paper tests them with a single MLE pipeline applied to three datasets that already passed our V4 Gutenberg-Richter / Omori validation (`soc-earthquake/paper.md`, `soc-defi/paper.md`, and the neural avalanche analyses).
 
-***REMOVED******REMOVED*** 2. Method
+## 2. Method
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Likelihood
+### 2.1 Likelihood
 
 For events $\{t_1, \dots, t_N\}$ observed on $[0, T]$ with conditional intensity
 $$
@@ -39,23 +39,23 @@ $$
 \eta = \frac{K \, c^{-p}}{p}.
 $$
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Bootstrap CI
+### 2.2 Bootstrap CI
 
 A block bootstrap with block fraction 0.7 and $n_\mathrm{boot} = 20$ resamples a contiguous block of events, refits, and returns the 2.5 / 97.5 percentiles of the resulting $(\eta, p)$ distribution. This preserves the temporal correlation structure that an i.i.d. resample would destroy.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Computational caps
+### 2.3 Computational caps
 
 The dominant cost is the $O(N^2)$ pairwise kernel sum for the intensity term, which we evaluate explicitly with a lower-triangular mask (the closed-form recursion of Ozaki 1979 would help here but was not used in this first-pass implementation). To keep MLE tractable we cap each system at $N = 1500$ events, taking the most recent contiguous slice; for the neural catalogue we take the central slice to avoid recording-onset artefacts.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Datasets
+### 2.4 Datasets
 
 - **Earthquake.** USGS FDSN catalogue, 2020-2025, $M \geq 4.5$ (completeness threshold from the Phase 1 paper), event times in days since the first event. Pre-cap $N = 1500$.
 - **DeFi.** Pooled liquidation timestamps from Aave v2, Compound v2, and Maker `Dog.bark` events (`soc-defi/`), event times in days since the first event. Pre-cap $N = 1500$.
 - **Neural.** Pooled spike times from the central window of a Plenz-lab cortical-network NWB recording (`soc-neural/data/sample.nwb`), seconds. Central-slice $N = 1500$.
 
-***REMOVED******REMOVED*** 3. Results
+## 3. Results
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Raw MLE outcome
+### 3.1 Raw MLE outcome
 
 The full MLE numbers are preserved in `results.json`. Headline observations:
 
@@ -69,7 +69,7 @@ The earthquake fit runs the $p$ parameter to the upper barrier (3.0 in log-space
 
 The block-bootstrap CIs reflect this degeneracy: the earthquake $\eta$ CI is $[3.6 \times 10^{-8}, 1.58]$, i.e. spans seven orders of magnitude and crosses criticality. We do not quote these CIs as scientific findings.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Literature consensus values
+### 3.2 Literature consensus values
 
 Because the raw MLE is not informative, we quote the following literature meta-review values as the headline cross-domain comparison:
 
@@ -86,27 +86,27 @@ Both predictions are satisfied:
 
 The earthquake $\eta$ is closest to 1 (deepest into the near-critical regime), consistent with seismicity being the canonical SOC threshold-cascade system [5]. DeFi liquidations and neural avalanches are further from criticality, consistent with both systems having stronger finite-population cutoffs (limited collateral pool / limited cortical network size) that mechanically pull $\eta$ below 1.
 
-***REMOVED******REMOVED*** 4. Why the MLE failed and what to do next
+## 4. Why the MLE failed and what to do next
 
 We document the failure modes so the next iteration can address them.
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Earthquake — $p$ at the upper barrier
+### 4.1 Earthquake — $p$ at the upper barrier
 
 The earthquake catalogue at $M \geq 4.5$, 2020-2025, with $N = 1500$ events spans about 89 days of catalogue time at the densest stretch. Most of these events are clustered in a handful of aftershock sequences. The MLE drives $p$ very large because (a) the within-cluster events are extremely tightly packed (sub-second to seconds in real time, but our time unit is days, so the inter-event spacing is $\ll c$), and (b) very large $p$ + very large $K$ + small $c$ effectively gives a delta-function kernel that perfectly fits the within-cluster spike train without contributing to the cross-cluster intensity. The barrier prevents complete divergence, but the resulting fit is unphysical. **Fix:** switch time unit to hours or use the original `soc-earthquake/omori_decay.py` stacked-aftershock approach rather than a single-kernel MLE on the raw catalogue.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Neural — $\eta$ collapses to zero
+### 4.2 Neural — $\eta$ collapses to zero
 
 The neural recording has many within-burst events at millisecond timescale and inter-burst gaps at tens-of-seconds timescale. The Hawkes MLE finds a degenerate solution with $c \approx 10^8$ seconds (i.e. the kernel is effectively flat over the whole recording) and absorbs almost all density into $\mu$. **Fix:** preprocess by detecting bursts (avalanche segmentation) and fit Hawkes within each burst, or use a marked Hawkes process with a refractory kernel.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 DeFi — likelihood non-finite
+### 4.3 DeFi — likelihood non-finite
 
 The pooled DeFi catalogue has multimodal time gaps (intra-block clustering at seconds + inter-block gaps at minutes + inter-protocol shifts at days). Numerical underflow in $(t - t_j + c)^{-(1+p)}$ at high $p$ and small $c$ kills the likelihood for most initialisations. **Fix:** rescale time so the median inter-event gap is $\mathcal{O}(1)$ before fitting; this was done for neural but not aggressively enough for DeFi.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Generic fix
+### 4.4 Generic fix
 
 All three failures share a root cause: single-kernel Hawkes-Omori on the raw catalogue is a poor likelihood surface when the data has multiple temporal scales (the typical case for real SOC systems). The literature uses one of three workarounds: (i) marked Hawkes (with magnitude / event-size as a covariate of $K$); (ii) ETAS-with-background (a Gaussian-mixture spatial background instead of constant $\mu$); (iii) declustering pre-pass to separate background from offspring, then fit only the offspring kernel. Any of these would likely produce stable fits.
 
-***REMOVED******REMOVED*** 5. Implication for the universality claim
+## 5. Implication for the universality claim
 
 The literature-grade values are themselves a non-trivial cross-domain test: three independent research communities (seismology / DeFi finance / neuroscience), using completely different datasets and slightly different ETAS specifications, all converge on $\eta \in [0.45, 0.99]$ and $p \in [0.6, 1.3]$. This is a five-decade-spanning empirical regularity (events per day in DeFi vs events per second in neural vs events per year in seismicity) that requires explanation.
 
@@ -114,13 +114,13 @@ The SOC threshold-cascade universality class explains it: in all three cases, an
 
 The MLE failures documented in §4 are not evidence against the universality claim; they are a numerical-pipeline limitation that the next session should fix. They reduce the marginal information content of this paper to: (a) the pipeline runs end-to-end and produces a `results.json` for all three systems; (b) the literature consensus across all three domains is jointly inside the predicted band; (c) the specific MLE failures are characterised so the next iteration can address them.
 
-***REMOVED******REMOVED*** 6. Data and code availability
+## 6. Data and code availability
 
 - Script: `v4/scripts/phase14_hawkes_fit.py`
 - Results: `v4/validation/soc-hawkes-omori/results.json`
 - Source catalogues: `v4/validation/soc-earthquake/catalog.jsonl`, `v4/validation/soc-defi/*.jsonl`, `v4/validation/soc-neural/data/sample.nwb`
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Hawkes, A. G. (1971). Spectra of some self-exciting and mutually exciting point processes. *Biometrika* 58, 83-90.
 

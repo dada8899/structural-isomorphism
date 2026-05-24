@@ -13,7 +13,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
-***REMOVED*** Load scripts/perf_check_bundle.py without making scripts/ a package
+# Load scripts/perf_check_bundle.py without making scripts/ a package
 _SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "perf_check_bundle.py"
 _spec = importlib.util.spec_from_file_location("perf_check_bundle", _SCRIPT_PATH)
 _module = importlib.util.module_from_spec(_spec)
@@ -26,9 +26,9 @@ to_kb = _module.to_kb
 parse_build_log = _module.parse_build_log
 
 
-***REMOVED*** Verbatim Next.js 14.2.35 build output from `pnpm build` (W13-B perf gate).
-***REMOVED*** Includes root corner "┌", middle branches "├", terminator "└", and
-***REMOVED*** both static "○" and dynamic "ƒ" markers.
+# Verbatim Next.js 14.2.35 build output from `pnpm build` (W13-B perf gate).
+# Includes root corner "┌", middle branches "├", terminator "└", and
+# both static "○" and dynamic "ƒ" markers.
 NEXT_14_2_35_FIXTURE = """\
 Route (app)                              Size     First Load JS
 ┌ ○ /                                    4.17 kB         111 kB
@@ -49,7 +49,7 @@ Route (app)                              Size     First Load JS
 """
 
 
-***REMOVED*** Older Next.js 14.2.15 format — visually identical in this respect.
+# Older Next.js 14.2.15 format — visually identical in this respect.
 NEXT_14_2_15_FIXTURE = """\
 Route (app)                              Size     First Load JS
 ┌ ○ /                                    3.50 kB         105 kB
@@ -102,7 +102,7 @@ def test_byte_unit_route_matches():
     assert m is not None
     route, sz, unit, fl, fl_unit = m.groups()
     assert (route, unit, fl_unit) == ("/_not-found", "B", "kB")
-    assert to_kb(float(sz), unit) < 1.0  ***REMOVED*** 161 B = ~0.157 kB
+    assert to_kb(float(sz), unit) < 1.0  # 161 B = ~0.157 kB
 
 
 def test_full_fixture_route_count():
@@ -145,7 +145,7 @@ def test_parse_build_log_file(tmp_path: Path):
     p.write_text(NEXT_14_2_35_FIXTURE)
     rows = parse_build_log(p)
     assert len(rows) == 8
-    ***REMOVED*** Root route must be there and have ~111 kB First Load JS
+    # Root route must be there and have ~111 kB First Load JS
     root_rows = [r for r in rows if r[0] == "/"]
     assert len(root_rows) == 1
     assert 110.0 <= root_rows[0][2] <= 112.0

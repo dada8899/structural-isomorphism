@@ -1,4 +1,4 @@
-***REMOVED*** structural-isomorphism V4 后续深入路线图
+# structural-isomorphism V4 后续深入路线图
 
 **文档状态**：v0.1 规划稿（2026-05-13 起草，B 机 dadamini）
 **前置状态**：V4 Layer 5 Phase 1-5 全部完成（2026-04-16 19:15 截止）
@@ -7,9 +7,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 一. 当前家底（盘点）
+## 一. 当前家底（盘点）
 
-***REMOVED******REMOVED******REMOVED*** 1.1 方法论层（已就绪）
+### 1.1 方法论层（已就绪）
 
 V4 完整管道 5 层：
 | Layer | 内容 | 状态 |
@@ -20,7 +20,7 @@ V4 完整管道 5 层：
 | L4 跨域预测生成 | 27 条可验证预测（数值 band + 真实数据源 + 期刊目标） | ✅ |
 | L5 实证验证 | 5 phases 全过（4 真实数据 + 1 null control） | ✅ |
 
-***REMOVED******REMOVED******REMOVED*** 1.2 实证结果（Layer 5 Phase 1-5）
+### 1.2 实证结果（Layer 5 Phase 1-5）
 
 | Phase | 系统 | 关键指标 | 结论 |
 |---|---|---|---|
@@ -32,14 +32,14 @@ V4 完整管道 5 层：
 
 **已发表 paper（站内）**：4 篇（earthquake / stockmarket / defi / neural）+ null 写到方法论 footer。
 
-***REMOVED******REMOVED******REMOVED*** 1.3 产品层（已上线）
+### 1.3 产品层（已上线）
 
 - **structural.bytedance.city**（V1+V2 主站，30 篇文档）
 - **beta.structural.bytedance.city/classes**（V4 普适类页，23 类全渲染）
 - **/paper/{slug}**（4 篇论文页面 + KaTeX 排版）
 - i18n round 3 已全站中英切换
 
-***REMOVED******REMOVED******REMOVED*** 1.4 资产边界（B 机本地状态）
+### 1.4 资产边界（B 机本地状态）
 
 - ✅ GitHub clone 完整（74 commits / 252M）
 - ✅ 关键数据全在：`data/` `v4/validation/` `v4/results/` `paper/` `plans/`
@@ -48,9 +48,9 @@ V4 完整管道 5 层：
 
 ---
 
-***REMOVED******REMOVED*** 二. 后续深入方向（按维度展开）
+## 二. 后续深入方向（按维度展开）
 
-***REMOVED******REMOVED******REMOVED*** 维度 A：科学层 — Layer 5 实证扩展（高密度产出）
+### 维度 A：科学层 — Layer 5 实证扩展（高密度产出）
 
 **核心模式**：每个普适类做一个跨域实证 → 产出 1 篇 arXiv 子论文 + /classes 卡片 +1 个绿色 verified badge。
 
@@ -64,16 +64,16 @@ V4 完整管道 5 层：
 | **Phase 9 — 社交传染** | Reddit Pushshift cascade / Twitter virality | Hawkes process Omori p / branching ratio | 2-3d |
 | **Phase 10 — 山火** | CalFire / Copernicus EMS | 经典 SOC 系统，应严格匹配 BTW 沙堆模型 | 1-2d |
 | **Phase 11 — 太阳耀斑** | GOES X-ray flux historical | Lu-Hamilton 1991 经典结果，pipeline 复现 | 1d |
-| **Phase 12 — 流量拥堵** | PeMS / OpenStreetMap routing | 交通相变（与 ***REMOVED***2 Hysteresis 一起） | 3d |
+| **Phase 12 — 流量拥堵** | PeMS / OpenStreetMap routing | 交通相变（与 #2 Hysteresis 一起） | 3d |
 
 **A2. 其他普适类的首次实证**（每类至少 1 个）
 
 | 普适类 | 优先候选系统 | 难度 |
 |---|---|---|
-| ***REMOVED***2 Hysteresis (Preisach) | 交通拥堵 hysteresis loop（PeMS speed-density） | 中 |
-| ***REMOVED***3 Scheffer / Fold | 湖泊富营养化（USGS lake DO 公开数据） | 中 |
-| ***REMOVED***6 Copula tail dependence | 巨灾 + 股市同向尾部（FRED + NOAA） | 中高 |
-| ***REMOVED***7 Toggle switch | 合成生物学公开 dataset（Gardner 2000 重做） | 高（生物学专业） |
+| #2 Hysteresis (Preisach) | 交通拥堵 hysteresis loop（PeMS speed-density） | 中 |
+| #3 Scheffer / Fold | 湖泊富营养化（USGS lake DO 公开数据） | 中 |
+| #6 Copula tail dependence | 巨灾 + 股市同向尾部（FRED + NOAA） | 中高 |
+| #7 Toggle switch | 合成生物学公开 dataset（Gardner 2000 重做） | 高（生物学专业） |
 | LLM-提议的 5 类（extreme value / leaky IF / Akerlof / Markov fidelity / SIR contagion） | SIR 走 COVID openly published / Akerlof 走 used car market | 中 |
 
 **A3. 方法论扩展**
@@ -86,7 +86,7 @@ V4 完整管道 5 层：
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 B：方法论加固 — 现有 23 个候选类的纵深
+### 维度 B：方法论加固 — 现有 23 个候选类的纵深
 
 **B1. Layer 3 critic pass**（debug 模式）
 
@@ -118,11 +118,11 @@ V4 现在 Layer 3 完全靠 Opus。引入异构模型：
 
 每个等价类 yaml 文件加：
 ```yaml
-positive_examples:  ***REMOVED*** 已验证属于此类
+positive_examples:  # 已验证属于此类
   - {phenomenon: ..., evidence_url: ...}
-negative_examples:  ***REMOVED*** 看起来像但不是
+negative_examples:  # 看起来像但不是
   - {phenomenon: ..., reason: surface_analogy_only}
-edge_cases:        ***REMOVED*** 临界，有争议
+edge_cases:        # 临界，有争议
   - {phenomenon: ..., debate: ...}
 ```
 
@@ -130,7 +130,7 @@ edge_cases:        ***REMOVED*** 临界，有争议
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 C：学术发表 — 从站内 paper 升级到正式 arXiv
+### 维度 C：学术发表 — 从站内 paper 升级到正式 arXiv
 
 **C1. 合成 unified preprint**
 
@@ -170,7 +170,7 @@ edge_cases:        ***REMOVED*** 临界，有争议
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 D：产品层 — Phase Detector 落地
+### 维度 D：产品层 — Phase Detector 落地
 
 `plans/company-analysis-product.md` v0.2 已设计完整（5 功能 Screener / Report / Projections / Chat / Index API），但**未开工**。这是把科学成果商业化的接口。
 
@@ -198,7 +198,7 @@ edge_cases:        ***REMOVED*** 临界，有争议
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 E：基础设施 / 工程化
+### 维度 E：基础设施 / 工程化
 
 **E1. Pipeline reproducibility**
 
@@ -225,7 +225,7 @@ edge_cases:        ***REMOVED*** 临界，有争议
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 F：数据资产复活 — V1+V2+V3 → V4 的桥接
+### 维度 F：数据资产复活 — V1+V2+V3 → V4 的桥接
 
 V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充分用。
 
@@ -243,7 +243,7 @@ V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充�
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 维度 G：生态 / 影响力
+### 维度 G：生态 / 影响力
 
 **G1. 社区曝光**
 
@@ -265,22 +265,22 @@ V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充�
 
 ---
 
-***REMOVED******REMOVED*** 三. 优先级建议（基于"差异化 × 成本 × 转化"）
+## 三. 优先级建议（基于"差异化 × 成本 × 转化"）
 
-***REMOVED******REMOVED******REMOVED*** 立刻能做（1-2 周，单 session 可吃下）
+### 立刻能做（1-2 周，单 session 可吃下）
 
 1. **Phase 6 GitHub 事件级联** — 数据公开易拉，1 篇站内 paper +1 个 verified badge（A1）
 2. **B2 数值 band calibration** — 不需要新数据，把已有 27 条预测重写为 95% CI（B2）
 3. **C1 unified preprint v0.1 草稿** — Opus subagent 一晚上写完，人审校 1 周（C1）
 
-***REMOVED******REMOVED******REMOVED*** 中期（1-2 月）
+### 中期（1-2 月）
 
 4. **Phase 7-9** — 电网 / 银行 / 社交（A1，每个 2-4d）
 5. **D1 Phase Detector MVP** — 100 公司 StructTuple + Screener（D1）
 6. **B1 Layer 3 critic pass** — 23 类 reject pass，定型 v2 taxonomy（B1）
 7. **C2 4 篇 solo paper arXiv 化** — 已有站内稿改格式即可（C2）
 
-***REMOVED******REMOVED******REMOVED*** 长期（3-6 月）
+### 长期（3-6 月）
 
 8. **C3 Taxonomy v2 论文**（高难度高回报）
 9. **D2 / D3 产品扩展 + B2B Index API**（D2 D3）
@@ -289,7 +289,7 @@ V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充�
 
 ---
 
-***REMOVED******REMOVED*** 四. 不建议做 / 慎做
+## 四. 不建议做 / 慎做
 
 - **V3 老 solver 方向**（已正式 deprecated，2026-04-14 被 Direct Opus 9/10 打穿）
 - **Random new 普适类发明** — 没有真实数据支撑的新类一律不写入 taxonomy
@@ -298,9 +298,9 @@ V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充�
 
 ---
 
-***REMOVED******REMOVED*** 五. 第一个 sprint 建议
+## 五. 第一个 sprint 建议
 
-**B 机 session ***REMOVED***N+1（约 8-10h）**：
+**B 机 session #N+1（约 8-10h）**：
 
 1. 起手：`git pull` + 读本 roadmap + 看 progress.md（30min）
 2. **Sprint A — Phase 6 GitHub 事件级联**（5h）
@@ -320,7 +320,7 @@ V1 模型（Silhouette 0.85, R@5 100%）+ V2 3017 跨域匹配 现在 V4 没充�
 
 ---
 
-***REMOVED******REMOVED*** 六. 待定决策点（需用户拍板再开工）
+## 六. 待定决策点（需用户拍板再开工）
 
 | ID | 议题 | 默认选项 |
 |---|---|---|

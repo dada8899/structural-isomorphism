@@ -1,5 +1,5 @@
 /**
- * Structural — My Reports list page (session ***REMOVED***17).
+ * Structural — My Reports list page (session #17).
  *
  * Lists the reports persisted under this device's anonId via
  * GET /api/reports/mine. Soft-privacy only: a different device / cleared
@@ -17,7 +17,7 @@
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&***REMOVED***39;' }[c];
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
@@ -40,7 +40,7 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  // B Data Flywheel (Session ***REMOVED***18) — revisit badge. A report the user has
+  // B Data Flywheel (Session #18) — revisit badge. A report the user has
   // not yet recorded an outcome for gets a gentle '未回访' tag nudging them
   // to come back and report whether the borrowed structure worked. A
   // report already marked outcome='worked' gets a positive '已验证' tag.

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 5 — NULL VALIDATION.
 
@@ -81,10 +81,10 @@ def fit_powerlaw(vals, name):
     n_tail = int(np.sum(vals >= xmin))
     R_ln, p_ln = fit.distribution_compare("power_law", "lognormal", normalized_ratio=True)
     R_exp, p_exp = fit.distribution_compare("power_law", "exponential", normalized_ratio=True)
-    ***REMOVED*** Verdict: if power-law DOES NOT decisively beat both alternatives
-    ***REMOVED*** (no significant negative R or significantly positive R against the
-    ***REMOVED*** right competitor), we say "SOC-like signature absent".
-    rejects_power_law = (R_exp < 0 or R_ln < 0)  ***REMOVED*** power-law is the loser
+    # Verdict: if power-law DOES NOT decisively beat both alternatives
+    # (no significant negative R or significantly positive R against the
+    # right competitor), we say "SOC-like signature absent".
+    rejects_power_law = (R_exp < 0 or R_ln < 0)  # power-law is the loser
     return {
         "name": name,
         "alpha": alpha,
@@ -133,7 +133,7 @@ def bin_and_omori(times, bin_seconds: float = 1.0, sigma_k: float = 3.0,
                 "note": "no excess post-shock activity (no Omori decay)"}
     t_fit = tau_b[keep]
     r_fit = rates[keep]
-    ***REMOVED*** Try a fit
+    # Try a fit
     x = np.log10(t_fit + 1.0)
     y = np.log10(r_fit)
     slope, intercept = np.polyfit(x, y, 1)
@@ -182,8 +182,8 @@ def main():
     omori = bin_and_omori(times, bin_seconds=1.0)
     results["poisson_omori"] = omori
     print(f"    {omori}")
-    ***REMOVED*** Also check: Poisson size distribution = the inter-arrival times themselves
-    ***REMOVED*** are exponential (no power law)
+    # Also check: Poisson size distribution = the inter-arrival times themselves
+    # are exponential (no power law)
     print("    + Power-law fit on inter-arrival times (should reject):")
     iat = np.diff(times)
     pl_iat = fit_powerlaw(iat, "poisson_iat")
@@ -192,7 +192,7 @@ def main():
           f"vs exp R={pl_iat.get('vs_exponential_R'):.2f}")
     print(f"    rejects_power_law: {pl_iat.get('rejects_power_law')}")
 
-    ***REMOVED*** Joint verdict
+    # Joint verdict
     correctly_rejected = (
         results["gaussian_walk"].get("rejects_power_law", False)
         and results["exponential"].get("rejects_power_law", False)

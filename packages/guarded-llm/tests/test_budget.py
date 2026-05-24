@@ -22,7 +22,7 @@ def test_per_call_cap_blocks_single_oversized_charge():
     with pytest.raises(BudgetExceeded) as exc:
         b.consume(0.10)
     assert "per-call cap" in str(exc.value)
-    assert b.spent_usd == 0.0  ***REMOVED*** state not mutated on rejection
+    assert b.spent_usd == 0.0  # state not mutated on rejection
 
 
 def test_total_cap_blocks_when_cumulative_exceeds():
@@ -32,13 +32,13 @@ def test_total_cap_blocks_when_cumulative_exceeds():
     with pytest.raises(BudgetExceeded) as exc:
         b.consume(0.10)
     assert "total cap" in str(exc.value)
-    assert b.spent_usd == pytest.approx(0.25)  ***REMOVED*** state unchanged
+    assert b.spent_usd == pytest.approx(0.25)  # state unchanged
 
 
 def test_default_per_call_cap_is_infinite():
     b = Budget(usd_total=100.0)
     assert math.isinf(b.usd_per_call)
-    b.consume(50.0)  ***REMOVED*** would have failed if there were a finite per-call cap
+    b.consume(50.0)  # would have failed if there were a finite per-call cap
 
 
 def test_reset_clears_spend():
@@ -58,14 +58,14 @@ def test_rejects_negative_charge():
 def test_rejects_non_numeric_charge():
     b = Budget(usd_total=1.0)
     with pytest.raises(TypeError):
-        b.consume("free")  ***REMOVED*** type: ignore[arg-type]
+        b.consume("free")  # type: ignore[arg-type]
 
 
 def test_rejects_bool_charge():
     """bool is a subclass of int; we still want to reject it for type clarity."""
     b = Budget(usd_total=1.0)
     with pytest.raises(TypeError):
-        b.consume(True)  ***REMOVED*** type: ignore[arg-type]
+        b.consume(True)  # type: ignore[arg-type]
 
 
 def test_init_validation():
@@ -74,11 +74,11 @@ def test_init_validation():
     with pytest.raises(ValueError):
         Budget(usd_total=1.0, usd_per_call=-0.5)
     with pytest.raises(TypeError):
-        Budget(usd_total="cheap")  ***REMOVED*** type: ignore[arg-type]
+        Budget(usd_total="cheap")  # type: ignore[arg-type]
 
 
 def test_remaining_never_negative_after_partial_state():
     """If somebody manually pokes spent_usd over usd_total, remaining stays >= 0."""
     b = Budget(usd_total=1.0)
-    b.spent_usd = 1.5  ***REMOVED*** simulate manual override
+    b.spent_usd = 1.5  # simulate manual override
     assert b.remaining_usd == 0.0

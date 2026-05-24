@@ -24,8 +24,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMAS_PATH = REPO_ROOT / "web" / "backend" / "schemas.py"
 TS_PATH = REPO_ROOT / "web" / "phase-detector" / "lib" / "api-types.ts"
 
-***REMOVED*** Public surface the frontend relies on. Keep alphabetically sorted to
-***REMOVED*** minimise merge noise when adding new models.
+# Public surface the frontend relies on. Keep alphabetically sorted to
+# minimise merge noise when adding new models.
 EXPECTED_MODELS = sorted(
     [
         "AnswerDone",
@@ -134,7 +134,7 @@ def test_no_any_for_critical_fields() -> None:
     Pydantic side (e.g. switching to `Field(...)` with no type).
     """
     content = TS_PATH.read_text(encoding="utf-8")
-    ***REMOVED*** Find AskRequest block and check `query` is string
+    # Find AskRequest block and check `query` is string
     ask = re.search(
         r"interface AskRequest \{([^}]*)\}", content, re.DOTALL
     )

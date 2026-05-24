@@ -1,4 +1,4 @@
-"""W10-B (session ***REMOVED***10) — Pricing page + mock-checkout e2e.
+"""W10-B (session #10) — Pricing page + mock-checkout e2e.
 
 Tests:
   1. Pricing page renders 3 tiers (Free, Pro, Team)
@@ -154,7 +154,7 @@ def next_dev(backend):
                 pass
             out = (proc.stdout.read(8192) if proc.stdout else b"").decode(errors="replace")
             pytest.fail(f"next dev on :{port} did not start in {timeout}s\n{out[-2000:]}")
-        ***REMOVED*** Wait for the app to be reachable (compile on first request).
+        # Wait for the app to be reachable (compile on first request).
         deadline = time.time() + 60
         while time.time() < deadline:
             try:
@@ -175,7 +175,7 @@ def next_dev(backend):
             proc.kill()
 
 
-***REMOVED*** ---------- Backend smoke (no browser) ----------
+# ---------- Backend smoke (no browser) ----------
 
 
 def test_backend_checkout_success_smoke(backend):
@@ -247,19 +247,19 @@ def test_backend_persists_to_jsonl(backend):
     assert f.exists()
     content = f.read_text(encoding="utf-8")
     assert "jsonl-check@example.com" in content
-    ***REMOVED*** Most recent line should be valid JSON with success
+    # Most recent line should be valid JSON with success
     last = content.strip().splitlines()[-1]
     row = json.loads(last)
     assert row["status"] == "success"
 
 
-***REMOVED*** ---------- Browser-driven e2e (Next.js dev server) ----------
-***REMOVED*** These are slower; skip whole class if Next isn't installed.
+# ---------- Browser-driven e2e (Next.js dev server) ----------
+# These are slower; skip whole class if Next isn't installed.
 
 
 def _have_playwright_chromium() -> bool:
     try:
-        from playwright.sync_api import sync_playwright  ***REMOVED*** noqa
+        from playwright.sync_api import sync_playwright  # noqa
         return True
     except Exception:
         return False
@@ -267,8 +267,8 @@ def _have_playwright_chromium() -> bool:
 
 def _new_context(browser, api_base: str):
     ctx = browser.new_context()
-    ***REMOVED*** Inject API base BEFORE any page JS runs, so React components pick it up
-    ***REMOVED*** via window.__API_BASE__ on first fetch.
+    # Inject API base BEFORE any page JS runs, so React components pick it up
+    # via window.__API_BASE__ on first fetch.
     ctx.add_init_script(f"window.__API_BASE__ = {api_base!r};")
     return ctx
 
@@ -285,14 +285,14 @@ def test_pricing_page_renders_three_tiers(next_dev):
         page = ctx.new_page()
         try:
             page.goto(f"{base}/pricing", wait_until="domcontentloaded", timeout=60000)
-            ***REMOVED*** Wait for the three tier cards to render.
+            # Wait for the three tier cards to render.
             page.wait_for_selector('[data-testid="tier-free"]', timeout=20000)
             page.wait_for_selector('[data-testid="tier-pro"]', timeout=5000)
             page.wait_for_selector('[data-testid="tier-team"]', timeout=5000)
-            ***REMOVED*** Most popular badge is on Pro
+            # Most popular badge is on Pro
             pro_html = page.inner_html('[data-testid="tier-pro"]')
             assert "Most popular" in pro_html
-            ***REMOVED*** CTAs visible
+            # CTAs visible
             assert page.locator('[data-testid="cta-free"]').is_visible()
             assert page.locator('[data-testid="cta-pro"]').is_visible()
             assert page.locator('[data-testid="cta-team"]').is_visible()
@@ -314,19 +314,19 @@ def test_pricing_interval_toggle_changes_price(next_dev):
         try:
             page.goto(f"{base}/pricing", wait_until="domcontentloaded", timeout=60000)
             page.wait_for_selector('[data-testid="tier-pro"]', timeout=20000)
-            ***REMOVED*** Wait for client-side hydration so the toggle button has its
-            ***REMOVED*** React onClick handler bound.
+            # Wait for client-side hydration so the toggle button has its
+            # React onClick handler bound.
             page.wait_for_selector(
                 '[data-testid="pricing-table"][data-hydrated="true"]',
                 timeout=15000,
             )
             month_text = page.inner_text('[data-testid="tier-pro"]')
             assert "$19" in month_text, f"Pro should show $19/month: {month_text[:200]}"
-            ***REMOVED*** Click annual toggle and wait for price to update.
-            ***REMOVED*** Annual displayed as $/mo equivalent — Pro is $19*10/12 ≈ $16.
+            # Click annual toggle and wait for price to update.
+            # Annual displayed as $/mo equivalent — Pro is $19*10/12 ≈ $16.
             page.click('[data-testid="interval-year"]')
-            ***REMOVED*** Poll the rendered text rather than relying on wait_for_function
-            ***REMOVED*** — Next.js hydration can race with our wait window.
+            # Poll the rendered text rather than relying on wait_for_function
+            # — Next.js hydration can race with our wait window.
             import time as _t
             deadline = _t.time() + 8
             year_text = ""
@@ -361,8 +361,8 @@ def test_checkout_mock_success_flow(next_dev):
                 timeout=60000,
             )
             page.wait_for_selector('[data-testid="checkout-mock-form"]', timeout=20000)
-            ***REMOVED*** Wait until React has hydrated; otherwise the click triggers the
-            ***REMOVED*** form's native GET submission (no onSubmit handler bound yet).
+            # Wait until React has hydrated; otherwise the click triggers the
+            # form's native GET submission (no onSubmit handler bound yet).
             page.wait_for_selector(
                 '[data-testid="checkout-mock-form"][data-hydrated="true"]',
                 timeout=15000,
@@ -371,12 +371,12 @@ def test_checkout_mock_success_flow(next_dev):
             page.fill('[data-testid="name-input"]', "E2E Success")
             page.fill('[data-testid="card-input"]', "4242")
             page.click('[data-testid="submit-checkout"]')
-            ***REMOVED*** router.push is racing with Next dev HMR; give it generous time
-            ***REMOVED*** and use commit (URL change) rather than 'load'.
+            # router.push is racing with Next dev HMR; give it generous time
+            # and use commit (URL change) rather than 'load'.
             page.wait_for_url("**/thank-you*", timeout=30000, wait_until="commit")
             assert "tier=pro" in page.url
             assert "mock=1" in page.url
-            ***REMOVED*** Success banner should render once the thank-you page hydrates.
+            # Success banner should render once the thank-you page hydrates.
             page.wait_for_selector(
                 '[data-testid="checkout-success-banner"]',
                 timeout=15000,

@@ -1,4 +1,4 @@
-***REMOVED*** Beta Browser Functional Review — `beta.structural.bytedance.city`
+# Beta Browser Functional Review — `beta.structural.bytedance.city`
 
 **Date:** 2026-04-13
 **Tester:** Claude (subagent)
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Pages reachable (HTTP)
+## Pages reachable (HTTP)
 
 | Route | HTTP | Bytes | Title | Notes |
 |---|---|---|---|---|
@@ -16,18 +16,18 @@
 | `/search?q=` (empty) | 200 | 3080 | — | `search.js:649` redirects to `/` when `q` is falsy — OK |
 | `/analyze` | 200 | 7460 | 深度分析 — Structural | requires `?id=`; `analyze.js` redirects to `/` if missing |
 | `/phenomenon/5k-ef-362` (real) | 200 | 3507 | 现象详情 | hydrated by `phenomenon.js` |
-| `/phenomenon/fake-id` | **200** | 3507 | 现象详情 | shell still served — JS hits `/api/phenomenon/fake-id` (real 404) and presumably renders an error state. **Server should ideally 404 the SPA route too, or make sure the JS path renders the friendly empty state — see P1 ***REMOVED***2.** |
+| `/phenomenon/fake-id` | **200** | 3507 | 现象详情 | shell still served — JS hits `/api/phenomenon/fake-id` (real 404) and presumably renders an error state. **Server should ideally 404 the SPA route too, or make sure the JS path renders the friendly empty state — see P1 #2.** |
 | `/nonexistent` | 404 | 2280 | 没找到 — Structural | nice 404 page with serif “404 / 这个现象还没有被收录 / 返回首页” |
 | `/about` | 200 | 7526 | 关于 — Structural | h1 + 5 sections, all internal/external links resolve |
 
 External links from footer + about: `https://structural.bytedance.city/paper-zh.html` → 200, `https://github.com/dada8899` → 200. No dead links found.
 
-***REMOVED******REMOVED*** Backend endpoints (called directly)
+## Backend endpoints (called directly)
 
 | Endpoint | HTTP | Notes |
 |---|---|---|
 | `GET /api/health` | 200 | `{"status":"ok","kb_size":4443,"llm_model":"anthropic/claude-sonnet-4.6"}` |
-| `GET /api/daily` | 200 | 3 pairs returned, **but every `a.id`/`b.id` is `""`** (empty) and `a.type_id`/`description` empty — see P0 ***REMOVED***1 |
+| `GET /api/daily` | 200 | 3 pairs returned, **but every `a.id`/`b.id` is `""`** (empty) and `a.type_id`/`description` empty — see P0 #1 |
 | `GET /api/examples` | 200 | 3 pairs, all `id`s present and well-formed |
 | `GET /api/suggest` | 200 | 7 chip strings |
 | `GET /api/discoveries` | 200 | `count: 39` items |
@@ -41,12 +41,12 @@ External links from footer + about: `https://structural.bytedance.city/paper-zh.
 
 ---
 
-***REMOVED******REMOVED*** P0 — broken / blocking
+## P0 — broken / blocking
 
-1. **`/api/daily` returns empty `id` fields.** Payload: `"a":{"id":"","name":"限流的令牌桶",...}`, same for `b`. Effect: the homepage "今日发现" cards on `home.html` (`***REMOVED***daily-grid`) cannot link to `/phenomenon/{id}` — clicks land on `/phenomenon/` (or do nothing depending on `home.js`). This is the most prominent CTA below the fold and it dead-ends. Compare to `/api/examples`, which returns proper IDs. Fix: backend should populate `a.id/b.id/type_id/description` in the daily payload (same shape as `/api/examples`).
+1. **`/api/daily` returns empty `id` fields.** Payload: `"a":{"id":"","name":"限流的令牌桶",...}`, same for `b`. Effect: the homepage "今日发现" cards on `home.html` (`#daily-grid`) cannot link to `/phenomenon/{id}` — clicks land on `/phenomenon/` (or do nothing depending on `home.js`). This is the most prominent CTA below the fold and it dead-ends. Compare to `/api/examples`, which returns proper IDs. Fix: backend should populate `a.id/b.id/type_id/description` in the daily payload (same shape as `/api/examples`).
 2. **First search is shockingly slow.** `POST /api/search` for the suggested normal query took **17.7s** end-to-end; English took 5.5s; long Chinese 6.0s; single-char 0.7s. The 17s outlier blows past `analyze-loading__typical "通常需 30–60s"` for *just the search step*. There's no streaming/partial render hint to the user during this window; the search.html shell only shows skeleton cards. P0 because first-time users will assume the site is dead.
 
-***REMOVED******REMOVED*** P1 — confusing / missing states
+## P1 — confusing / missing states
 
 1. **Stat mismatches between marketing copy and API.**
    - Hero says "**87** 学科 / **4,475** 现象"; `/api/health` returns `kb_size: 4443` (32-item drift).
@@ -57,7 +57,7 @@ External links from footer + about: `https://structural.bytedance.city/paper-zh.
 4. **Single-char/garbage queries return low-signal results without coaching.** Searching `"a"` returns 3 phenomena with top score 6.9 and `worth_score: 4`; the API has a `coaching` and `rewrite_suggestion` slot but both come back null. Either suppress results below a quality threshold or surface the coaching string.
 5. **Daily payload has `similarity: 0.0082–0.0092`.** Hero evidence shows "94%". The `home.js` either renders these as percentages anyway (so user sees "1%") or there's a separate score field never populated. Verify what users actually see — if it's "1%", that's a P0; flagged here as P1 pending visual confirmation.
 
-***REMOVED******REMOVED*** P2 — polish
+## P2 — polish
 
 1. **Long search latency without progressive feedback.** `searchbox__hint` says `⌘+Enter`, but no inline timer/progress like `analyze-loading__timer-row`. Add a visible elapsed-time indicator after 3s.
 2. **Mobile (375×?)**: `responsive.css` has only 1024 / 768 / 480 breakpoints — 375px viewports get the smallest tier. Cannot verify layout without a real browser, but the home hero has fixed inline padding via `--space-*` tokens and a 3-column `usecases-grid` that needs to collapse — visually verify on first manual pass.
@@ -65,17 +65,17 @@ External links from footer + about: `https://structural.bytedance.city/paper-zh.
 4. **Footer `paper-zh.html`** points to the production domain `structural.bytedance.city`, not beta. Intentional? Inconsistent vs. other beta-internal links.
 5. **No persistent global nav on `/about`, `/discoveries`, `/search`, `/analyze`, `/phenomenon/*`** beyond the `site-header` on each page (verified all five pages include `site-header__nav` markup with links to `/discoveries`, `/about`, `/`). So navigation back home is always available — good. The header logo is the home link in every shell.
 
-***REMOVED******REMOVED*** Console errors
+## Console errors
 
 **Not measurable** without a live browser session. The static JS read clean (`api.js`, `home.js`, `search.js`, `analyze.js` all parse, all use modern `async/await` + `URLSearchParams` with no obvious syntax issues). The only place an unhandled rejection is likely is `apiFetch` → throws on non-2xx; needs visual confirmation that callers `try/catch`.
 
-***REMOVED******REMOVED*** UX overall
+## UX overall
 
 The site is a polished single-purpose tool: server-rendered shells + thin JS hydration, clear copy, sensible 404, well-structured nav. Backend is fast for trivial queries but the headline normal query (17.7s) is a UX cliff. The biggest gap is the broken `/api/daily` payload — that section is on the homepage and silently dead-ends users.
 
-***REMOVED******REMOVED*** Top 5 fixes (do these first)
+## Top 5 fixes (do these first)
 
-1. **Fix `/api/daily`** to return real IDs / type_id / description (mirror `/api/examples`). Until then, `***REMOVED***daily-grid` is a dead CTA on the most-trafficked page.
+1. **Fix `/api/daily`** to return real IDs / type_id / description (mirror `/api/examples`). Until then, `#daily-grid` is a dead CTA on the most-trafficked page.
 2. **Reconcile homepage stat numbers** with `/api/health` (4443 vs 4475; 19 vs 39 discoveries). Build-time substitution is fine.
 3. **Investigate the 17s normal-query latency** for `/api/search`. Either cache, warm the embedding model, or stream partial results — and add elapsed-time UI in the skeleton state after 3s.
 4. **Make `/phenomenon/{unknown}` reach the 404 page** (or have `phenomenon.js` render the friendly empty state on API 404). 200-with-empty-shell is the worst of both worlds.
@@ -83,7 +83,7 @@ The site is a polished single-purpose tool: server-rendered shells + thin JS hyd
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** What still needs a real-browser pass
+### What still needs a real-browser pass
 
 - Visual verification of mobile (375px) layout on home / discoveries / phenomenon detail.
 - Whether `daily-grid` cards actually render and what link they point to (since `id=""`).

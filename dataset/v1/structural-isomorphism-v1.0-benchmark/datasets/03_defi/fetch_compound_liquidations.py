@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Fetch Compound V2 LiquidateBorrow events per cToken (stablecoin debt markets).
 
@@ -43,7 +43,7 @@ API_URL = "https://api.etherscan.io/v2/api"
 CHAIN_ID = 1
 LIQ_BORROW_TOPIC0 = "0x298637f684da70674f26509b10f07ec2fbc77a335ab1e7d6215a4b2484d8bb52"
 
-***REMOVED*** cToken -> (symbol, underlying_decimals, debt_asset_symbol)
+# cToken -> (symbol, underlying_decimals, debt_asset_symbol)
 CTOKENS = {
     "0x39AA39c021dfbaE8faC545936693aC917d5E7563": ("cUSDC", 6, "USDC"),
     "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643": ("cDAI", 18, "DAI"),
@@ -52,9 +52,9 @@ CTOKENS = {
     "0xccF4429DB6322D5C611ee964527D42E5d685DD6a": ("cWBTC2", 8, "WBTC"),
 }
 
-START_BLOCK = 11362579   ***REMOVED*** Match Aave window for comparability
+START_BLOCK = 11362579   # Match Aave window for comparability
 END_BLOCK = 19000000
-CHUNK = 100000           ***REMOVED*** Compound has fewer events per block than Aave
+CHUNK = 100000           # Compound has fewer events per block than Aave
 SLEEP = 0.22
 MIN_CHUNK = 500
 
@@ -69,7 +69,7 @@ def parse(rec, ctoken_addr, debt_sym, debt_dec):
     data = rec.get("data", "0x")
     if data.startswith("0x"):
         data = data[2:]
-    ***REMOVED*** LiquidateBorrow has 5 non-indexed params in data
+    # LiquidateBorrow has 5 non-indexed params in data
     liquidator = "0x" + data[0:64][-40:].lower() if len(data) >= 64 else None
     borrower = "0x" + data[64:128][-40:].lower() if len(data) >= 128 else None
     repay_raw = hex_to_int("0x" + data[128:192]) if len(data) >= 192 else 0

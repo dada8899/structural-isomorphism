@@ -1,9 +1,9 @@
-***REMOVED*** Session ***REMOVED***7 — Deploy + e2e verified
+# Session #7 — Deploy + e2e verified
 
 > 2026-05-14 ~15:10 CST
 > Status: **all live on prod, 11/11 e2e PASS**
 
-***REMOVED******REMOVED*** Live URLs (post-deploy)
+## Live URLs (post-deploy)
 
 | URL | Status | Notes |
 |---|---|---|
@@ -18,7 +18,7 @@
 | https://structural.bytedance.city/ | 200 | Legacy 学术静态 (不动) |
 | https://phase.bytedance.city/ | 200 | Phase Detector |
 
-***REMOVED******REMOVED*** /api/ask/stream 实测（curl SSE）
+## /api/ask/stream 实测（curl SSE）
 
 输入：`{"query": "为什么银行挤兑这么吓人", "lang": "zh"}`
 
@@ -48,7 +48,7 @@ event: answer_done / similar_phenomena / followups / done
 
 **Latency**: ≤2s 出 kb_cards / ≤8s 出完整 answer / ≤12s 全部完成 — 符合 Perplexity-like 设计要求。
 
-***REMOVED******REMOVED*** e2e (11/11 PASS, 20s 全跑)
+## e2e (11/11 PASS, 20s 全跑)
 
 ```
 test_home_loads_perplexity_layout PASSED
@@ -64,28 +64,28 @@ test_phase_detector_loads PASSED
 test_legacy_structural_site_loads PASSED
 ```
 
-***REMOVED******REMOVED*** Hotfix patches during deploy
+## Hotfix patches during deploy
 
-1. **PR ***REMOVED***75** — `tier_limit_decorator` slowapi 签名 mismatch（W2-D bug）→ 500 on /api/ask/stream
+1. **PR #75** — `tier_limit_decorator` slowapi 签名 mismatch（W2-D bug）→ 500 on /api/ask/stream
    - Bug: `_spec_for(request)` but slowapi 调用 `__limit_provider()` no-arg
    - Fix: 回退到静态 default_anon。tier auth 仍在 endpoint 顶部生效
 
-2. **PR ***REMOVED***76** — `/learn` route missing → 404
+2. **PR #76** — `/learn` route missing → 404
    - W2-A 加了 `learn.html` 文件但没加 FastAPI route
    - Fix: 加 `@app.get("/learn")` 5 行
 
-3. **PR ***REMOVED***78** — Mobile 375px nav overflow → e2e fail
+3. **PR #78** — Mobile 375px nav overflow → e2e fail
    - `.site-header__nav` 300px 在 375px viewport 越界
    - Fix: `@media (max-width: 480px)` hide 次要 nav-link + `html overflow-x: hidden`
 
-***REMOVED******REMOVED*** 部署管道（实证 SOP）
+## 部署管道（实证 SOP）
 
 ```bash
-***REMOVED*** Frontend
+# Frontend
 rsync -av --delete --exclude='.DS_Store' web/frontend/ \
   root@43.156.233.71:/root/Projects/structural-isomorphism/web/frontend/
 
-***REMOVED*** Backend services + api
+# Backend services + api
 rsync -av web/backend/services/ask_orchestrator.py web/backend/services/ask_schemas.py \
   web/backend/services/auth.py web/backend/services/rate_limit.py \
   web/backend/services/history_db.py web/backend/services/observability.py \
@@ -94,13 +94,13 @@ rsync -av web/backend/api/ask.py web/backend/api/history.py web/backend/api/anal
   root@43.156.233.71:/root/Projects/structural-isomorphism/web/backend/api/
 rsync -av web/backend/main.py root@43.156.233.71:/root/Projects/structural-isomorphism/web/backend/main.py
 
-***REMOVED*** Verify imports + restart
+# Verify imports + restart
 ssh root@43.156.233.71 'cd /root/Projects/structural-isomorphism && \
   PYTHONPATH=/root/Projects/structural-isomorphism:web/backend venv/bin/python -c \
   "from api import ask, history; from services.ask_orchestrator import AskOrchestrator; print(\"ok\")"'
 ssh root@43.156.233.71 'systemctl restart structural-web && sleep 3 && systemctl is-active structural-web'
 
-***REMOVED*** Smoke
+# Smoke
 curl -s -o /dev/null -w "%{http_code}\n" https://beta.structural.bytedance.city/
 curl -s -o /dev/null -w "%{http_code}\n" https://beta.structural.bytedance.city/learn
 ```

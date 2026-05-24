@@ -1,4 +1,4 @@
-"""Tests for feature F — structural diagnosis (Session ***REMOVED***18).
+"""Tests for feature F — structural diagnosis (Session #18).
 
 Two layers in one file:
   1. Unit — whitelist coercion, schema coercion / degradation, confidence
@@ -19,12 +19,12 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services import diagnose_service as ds  ***REMOVED*** noqa: E402
+from services import diagnose_service as ds  # noqa: E402
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — validate_situation
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — validate_situation
+# ===========================================================================
 
 
 def test_validate_situation_strips_and_returns():
@@ -43,12 +43,12 @@ def test_validate_situation_rejects_too_long():
 
 def test_validate_situation_rejects_non_str():
     with pytest.raises(ValueError):
-        ds.validate_situation(12345)  ***REMOVED*** type: ignore[arg-type]
+        ds.validate_situation(12345)  # type: ignore[arg-type]
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — _coerce_state_id (whitelist guardrail)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — _coerce_state_id (whitelist guardrail)
+# ===========================================================================
 
 
 def test_coerce_state_id_accepts_whitelist_id():
@@ -60,7 +60,7 @@ def test_coerce_state_id_case_insensitive():
 
 
 def test_coerce_state_id_accepts_chinese_name():
-    ***REMOVED*** LLM sometimes returns the display name instead of the id.
+    # LLM sometimes returns the display name instead of the id.
     assert ds._coerce_state_id("阻尼收敛（稳定）") == "damped_convergence"
 
 
@@ -73,9 +73,9 @@ def test_coerce_state_id_rejects_non_str():
     assert ds._coerce_state_id(42) is None
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — _coerce_confidence (boundary clamping)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — _coerce_confidence (boundary clamping)
+# ===========================================================================
 
 
 def test_coerce_confidence_in_range():
@@ -99,9 +99,9 @@ def test_coerce_confidence_non_numeric_defaults():
     assert ds._coerce_confidence(None) == 0.5
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — coerce_result (schema coercion / degradation)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — coerce_result (schema coercion / degradation)
+# ===========================================================================
 
 
 def _good_raw() -> dict:
@@ -168,7 +168,7 @@ def test_coerce_result_fills_missing_text_fields():
     assert out["evolution"].startswith("（模型未")
     assert out["signals_to_watch"] == []
     assert out["recommendations"] == []
-    ***REMOVED*** Missing confidence → neutral default.
+    # Missing confidence → neutral default.
     assert out["primary_state"]["confidence"] == 0.5
 
 
@@ -188,16 +188,16 @@ def test_coerce_result_filters_non_string_list_items():
     assert out["signals_to_watch"] == ["有效信号", "另一个"]
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — build_reference_query (state → KB search query)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — build_reference_query (state → KB search query)
+# ===========================================================================
 
 
 def test_build_reference_query_leads_with_structure():
     q = ds.build_reference_query("cascade_fragility", "我们公司依赖一个核心客户")
-    ***REMOVED*** The structural phrasing of the state must lead the query.
+    # The structural phrasing of the state must lead the query.
     assert q.startswith(ds.STRUCTURAL_STATES["cascade_fragility"]["structure_query"])
-    ***REMOVED*** The user's words are appended for grounding.
+    # The user's words are appended for grounding.
     assert "核心客户" in q
 
 
@@ -207,7 +207,7 @@ def test_build_reference_query_unknown_state_returns_empty():
 
 def test_build_reference_query_truncates_long_situation():
     q = ds.build_reference_query("damped_convergence", "处" * 5000)
-    ***REMOVED*** structure_query + at most _SITUATION_QUERY_CHARS of user text.
+    # structure_query + at most _SITUATION_QUERY_CHARS of user text.
     structure = ds.STRUCTURAL_STATES["damped_convergence"]["structure_query"]
     assert len(q) <= len(structure) + 1 + ds._SITUATION_QUERY_CHARS
 
@@ -217,9 +217,9 @@ def test_build_reference_query_structure_only_when_no_situation():
     assert q == ds.STRUCTURAL_STATES["hysteresis_trap"]["structure_query"]
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — _coerce_reference_case (reference_case schema guardrail)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — _coerce_reference_case (reference_case schema guardrail)
+# ===========================================================================
 
 
 def _good_hit() -> dict:
@@ -269,9 +269,9 @@ def test_coerce_reference_case_clamps_bad_relevance():
     assert ds._coerce_reference_case(h2)["relevance"] == 1.0
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Unit — fetch_reference_case (search degradation + fallback)
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Unit — fetch_reference_case (search degradation + fallback)
+# ===========================================================================
 
 
 class _FakeSearch:
@@ -311,10 +311,10 @@ def test_fetch_reference_case_prefers_cross_domain_hit():
 
 def test_fetch_reference_case_drops_low_relevance_hits():
     weak = _good_hit()
-    weak["relevance"] = 0.20  ***REMOVED*** below _REFERENCE_MIN_RELEVANCE
+    weak["relevance"] = 0.20  # below _REFERENCE_MIN_RELEVANCE
     svc = _FakeSearch(hits=[weak])
     out = ds.fetch_reference_case("cascade_fragility", "处境描述", svc)
-    ***REMOVED*** Falls back to the class hub (a string, no id).
+    # Falls back to the class hub (a string, no id).
     assert out is not None
     assert out["source"] == "class_hub"
     assert out["id"] == ""
@@ -330,13 +330,13 @@ def test_fetch_reference_case_falls_back_when_no_search_svc():
 def test_fetch_reference_case_degrades_when_search_raises():
     svc = _FakeSearch(raises=True)
     out = ds.fetch_reference_case("hysteresis_trap", "处境", svc)
-    ***REMOVED*** Search exploded → fall back to class hub, never raise.
+    # Search exploded → fall back to class hub, never raise.
     assert out is not None
     assert out["source"] == "class_hub"
 
 
 def test_fetch_reference_case_none_when_no_hub_and_no_search():
-    ***REMOVED*** damped_convergence has an empty class_hub → no fallback possible.
+    # damped_convergence has an empty class_hub → no fallback possible.
     out = ds.fetch_reference_case("damped_convergence", "处境", None)
     assert out is None
 
@@ -346,9 +346,9 @@ def test_fetch_reference_case_unknown_state_returns_none():
     assert ds.fetch_reference_case("made_up_state", "处境", svc) is None
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Integration — POST /api/diagnose
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Integration — POST /api/diagnose
+# ===========================================================================
 
 
 @pytest.fixture
@@ -385,7 +385,7 @@ def mock_llm(monkeypatch):
 
     async def _complete_json(**kwargs):
         user = kwargs.get("user", "")
-        if "真实现象" in user:  ***REMOVED*** the reference-note enrichment call
+        if "真实现象" in user:  # the reference-note enrichment call
             return {"note": state["note"]}
         return state["raw"]
 
@@ -440,8 +440,8 @@ def test_endpoint_503_when_llm_returns_none(client, mock_llm):
 
 
 def test_endpoint_503_when_llm_returns_illegal_state(client, mock_llm):
-    ***REMOVED*** Guardrail: an LLM that invents a state must NOT leak through — the
-    ***REMOVED*** service coerces to None, the endpoint degrades to 503.
+    # Guardrail: an LLM that invents a state must NOT leak through — the
+    # service coerces to None, the endpoint degrades to 503.
     mock_llm["raw"] = {
         "primary_state": {"state_id": "totally_made_up", "confidence": 0.9},
         "reasoning": "x",
@@ -465,7 +465,7 @@ def test_endpoint_rejects_empty_situation(client, mock_llm):
 
 
 def test_endpoint_rejects_whitespace_only(client, mock_llm):
-    ***REMOVED*** Passes pydantic min_length=1, rejected by validate_situation after strip.
+    # Passes pydantic min_length=1, rejected by validate_situation after strip.
     r = client.post("/api/diagnose", json={"situation": "          "})
     assert r.status_code == 422
 
@@ -486,9 +486,9 @@ def test_states_catalogue_endpoint(client):
     assert all("state_id" in s and "name" in s for s in states)
 
 
-***REMOVED*** ===========================================================================
-***REMOVED*** Integration — reference_case (KB anchor) on POST /api/diagnose
-***REMOVED*** ===========================================================================
+# ===========================================================================
+# Integration — reference_case (KB anchor) on POST /api/diagnose
+# ===========================================================================
 
 
 def test_endpoint_includes_reference_case_from_search(client, mock_llm, mock_search):
@@ -502,14 +502,14 @@ def test_endpoint_includes_reference_case_from_search(client, mock_llm, mock_sea
     assert ref is not None
     assert ref["id"] == "phen_0421"
     assert ref["source"] == "kb_search"
-    ***REMOVED*** The reference-note enrichment ran (mock_llm answers the 2nd call).
+    # The reference-note enrichment ran (mock_llm answers the 2nd call).
     assert ref["note"] == "那个案例最终崩了。"
 
 
 def test_endpoint_reference_case_falls_back_when_no_search(client, mock_llm):
     """No search service in app_state → degrade to a class-hub reference."""
-    ***REMOVED*** mock_search not used → app_state has no "search"; hysteresis_trap has
-    ***REMOVED*** a class_hub so a fallback reference is still produced.
+    # mock_search not used → app_state has no "search"; hysteresis_trap has
+    # a class_hub so a fallback reference is still produced.
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
@@ -549,7 +549,7 @@ def test_endpoint_survives_search_failure(client, mock_llm, mock_search):
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
     )
     assert r.status_code == 200
-    ***REMOVED*** Diagnosis still completes; reference degrades to the class hub.
+    # Diagnosis still completes; reference degrades to the class hub.
     ref = r.json()["reference_case"]
     assert ref is not None
     assert ref["source"] == "class_hub"

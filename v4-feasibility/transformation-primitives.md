@@ -1,4 +1,4 @@
-***REMOVED*** 8 Transformation Primitives (V4 schema)
+# 8 Transformation Primitives (V4 schema)
 
 When taking a solved problem from domain A and applying it to domain B, the "transformation" can be decomposed into combinations of these 8 primitive operations:
 
@@ -13,7 +13,7 @@ When taking a solved problem from domain A and applying it to domain B, the "tra
 | `stochastic_toggle` | Stochasticity toggle | Add or remove random noise | Deterministic Lotka-Volterra ODE → Gillespie stochastic simulation |
 | `time_scaling` | Time scaling / regime shift | Change the time scale or temporal regime | Thermodynamic equilibrium → non-equilibrium dynamics |
 
-***REMOVED******REMOVED*** Labeling rules
+## Labeling rules
 
 - Each historical case is labeled with a **set** of applied primitives (can be 0-N).
 - If no transformation is needed (pure isomorphism with same variables), label with empty set.

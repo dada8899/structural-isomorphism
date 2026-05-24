@@ -1,11 +1,11 @@
-***REMOVED*** Feature flags + A/B experiments — session ***REMOVED***10 W15-E.
-***REMOVED***
-***REMOVED*** Two top-level sections:
-***REMOVED***   - flags:       boolean toggles (enabled? rollout%? tier-gated?)
-***REMOVED***   - experiments: A/B variants with weighted allocation
-***REMOVED***
-***REMOVED*** Edit this file to ship/toggle. Backend hot-reloads on a 30s TTL.
-***REMOVED*** See docs/dev/feature-flags-2026-05-15.md for the full how-to.
+# Feature flags + A/B experiments — session #10 W15-E.
+#
+# Two top-level sections:
+#   - flags:       boolean toggles (enabled? rollout%? tier-gated?)
+#   - experiments: A/B variants with weighted allocation
+#
+# Edit this file to ship/toggle. Backend hot-reloads on a 30s TTL.
+# See docs/dev/feature-flags-2026-05-15.md for the full how-to.
 
 flags:
   new_pricing_layout:
@@ -13,7 +13,7 @@ flags:
     description: W10-B 3-tier Pro/Team pricing
     rollout:
       type: percentage
-      value: 100  ***REMOVED*** 100% of users
+      value: 100  # 100% of users
 
   dark_mode_default:
     enabled: false
@@ -27,7 +27,7 @@ flags:
     description: W11-D interactive viz (vs static recharts fallback)
     rollout:
       type: segment
-      segments: [pro, team, admin]  ***REMOVED*** tier-based
+      segments: [pro, team, admin]  # tier-based
 
   newsletter_double_optin:
     enabled: false

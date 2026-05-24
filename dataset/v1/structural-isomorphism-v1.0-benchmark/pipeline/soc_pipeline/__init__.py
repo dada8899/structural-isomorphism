@@ -24,31 +24,31 @@ from .utils import empirical_ccdf, verdict_from_alpha_band
 
 __all__ = [
     "__version__",
-    ***REMOVED*** fit
+    # fit
     "fit_clauset_powerlaw",
     "FitResult",
-    ***REMOVED*** bootstrap
+    # bootstrap
     "bootstrap_ci",
     "BootstrapResult",
-    ***REMOVED*** null
+    # null
     "synthetic_null",
     "NullCase",
-    ***REMOVED*** LR test
+    # LR test
     "vuong_lr_test",
     "LRResult",
-    ***REMOVED*** collapse
+    # collapse
     "shape_normalized_collapse",
     "CollapseResult",
-    ***REMOVED*** omori
+    # omori
     "fit_omori_p",
     "OmoriResult",
     "bin_and_omori_from_events",
-    ***REMOVED*** b-value
+    # b-value
     "fit_b_value",
     "b_to_clauset_alpha",
-    ***REMOVED*** time resolution
+    # time resolution
     "time_resolution_sweep",
-    ***REMOVED*** utils
+    # utils
     "empirical_ccdf",
     "verdict_from_alpha_band",
 ]

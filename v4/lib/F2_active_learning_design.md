@@ -1,10 +1,10 @@
-***REMOVED*** F2 — Active Learning Loop (Production Plan)
+# F2 — Active Learning Loop (Production Plan)
 
 **Status**: scaffold shipped, GPU fine-tune deferred to F2.1.
 **Owner**: W4-C subagent (this session) → operations owner TBD for F2.1.
 **Related**: `v4/lib/active_learning_design.md`, `v4/lib/embedding_finetune.py`, `v4/scripts/f2_simulate_active_learning.py`.
 
-***REMOVED******REMOVED*** 1. Goal
+## 1. Goal
 
 Close the loop:
 
@@ -12,7 +12,7 @@ V4 critic (B3 ensemble) → curated REJECT/KEEP pairs → contrastive fine-tune 
 
 Net effect: every batch of human-or-LLM critique becomes embedding weight.
 
-***REMOVED******REMOVED*** 2. Data flow (mermaid)
+## 2. Data flow (mermaid)
 
 ```mermaid
 flowchart TD
@@ -45,7 +45,7 @@ flowchart TD
     F1 --> B
 ```
 
-***REMOVED******REMOVED*** 3. VPS deployment plan
+## 3. VPS deployment plan
 
 **Target box**: existing VPS `43.156.233.71` (the box already holds the 782 MB V1 model + V2 cache; same path conventions).
 
@@ -56,9 +56,9 @@ flowchart TD
 ```
 /root/Projects/structural-isomorphism/
 ├── models/
-│   ├── structural-v1/                  ***REMOVED*** frozen V1 (768d, 782 MB)
-│   ├── structural-v2/                  ***REMOVED*** frozen V2
-│   └── structural-v3/                  ***REMOVED*** produced by F2 fine-tune  ⟵ NEW
+│   ├── structural-v1/                  # frozen V1 (768d, 782 MB)
+│   ├── structural-v2/                  # frozen V2
+│   └── structural-v3/                  # produced by F2 fine-tune  ⟵ NEW
 ├── data/
 │   └── kb-5000-merged.jsonl
 ├── v4/results/
@@ -66,23 +66,23 @@ flowchart TD
 │   │   ├── positives_v3.jsonl
 │   │   ├── hard_negatives_v3.jsonl
 │   │   ├── eval_report_v3.md
-│   │   └── ckpt_v3/                    ***REMOVED*** transient training artefacts
+│   │   └── ckpt_v3/                    # transient training artefacts
 └── web/data/
     ├── kb_v2_embeddings.npy
-    └── kb_v3_embeddings.npy            ***REMOVED*** regenerated post-deploy
+    └── kb_v3_embeddings.npy            # regenerated post-deploy
 ```
 
 **Cron / batch trigger** (initially manual, eventually weekly):
 
 ```
-***REMOVED*** /etc/cron.d/structural-iso-active-learn (proposed)
+# /etc/cron.d/structural-iso-active-learn (proposed)
 0 3 * * 0 root /root/Projects/structural-isomorphism/scripts/active_learning_weekly.sh
 ```
 
 That weekly script:
 1. Pulls latest `B3_ensemble_review.jsonl` from main.
 2. Runs `f2_mine_hard_negatives.py` to refresh `positives_vN+1.jsonl` / `hard_negatives_vN+1.jsonl`.
-3. If ***REMOVED*** new pairs ≥ 50: kick off `embedding_finetune.py` with V_{N} as base, produce V_{N+1}.
+3. If # new pairs ≥ 50: kick off `embedding_finetune.py` with V_{N} as base, produce V_{N+1}.
 4. Evaluate; auto-approve and swap *only if* every gate in §7 of `active_learning_design.md` passes.
 5. Push commit (artifacts only, model checkpoints gitignored — pushed to private S3 bucket).
 6. Notify via daily-summary cron.
@@ -93,7 +93,7 @@ That weekly script:
 - Wall-clock per epoch → systemd journal, parseable
 - If R@5 drops > 5 pp mid-training → auto-abort the run
 
-***REMOVED******REMOVED*** 4. Base model checkpoint location
+## 4. Base model checkpoint location
 
 - V1: `models/structural-v1/` (sentence-transformer, 768d, miniLM-style backbone, fine-tuned on 1217 cross-domain pairs in 2025-Q4).
 - V2: `models/structural-v2/` (V1 + 3017 additional pairs in 2026-Q1).
@@ -101,7 +101,7 @@ That weekly script:
 
 We never re-train from scratch; F2 is always a small delta on V_{latest}.
 
-***REMOVED******REMOVED*** 5. Training data scale per round
+## 5. Training data scale per round
 
 | Source | Per round (today) | Per round (1-year target) |
 |---|---|---|
@@ -113,7 +113,7 @@ We never re-train from scratch; F2 is always a small delta on V_{latest}.
 
 Small numbers are OK because we only fine-tune (not pre-train). Even 80 high-quality pairs shift the geometry meaningfully when the model already has a ~5 k-pair head start.
 
-***REMOVED******REMOVED*** 6. Loss function
+## 6. Loss function
 
 InfoNCE / SimCSE with hard negatives (see §6 of `active_learning_design.md`).
 
@@ -126,7 +126,7 @@ InfoNCE / SimCSE with hard negatives (see §6 of `active_learning_design.md`).
 - weight decay: 0.01
 - max sequence length: 128 tokens
 
-***REMOVED******REMOVED*** 7. Hyperparameter search (one-time, before production)
+## 7. Hyperparameter search (one-time, before production)
 
 We will run a small (4-way) grid before locking the recipe:
 
@@ -139,13 +139,13 @@ We will run a small (4-way) grid before locking the recipe:
 
 Pick the combination that maximises Cross-domain R@5 on the holdout split while not regressing R@5 on in-domain. Lock the recipe; future rounds only re-tune if eval gates ever fail (signal of distribution shift).
 
-***REMOVED******REMOVED*** 8. F1 handshake
+## 8. F1 handshake
 
 F1 (`v4/lib/embedding_bridge.py`) is **version-agnostic** by design: it loads whatever `web/data/kb_<version>_embeddings.npy` we point it at via the `version=` argument. F2's deploy step *replaces those npy files in place* (after the eval gate passes). F1 picks up the new geometry on next process boot — zero code change, zero migration.
 
 For zero-downtime: deploy step (a) writes `kb_v3_embeddings.npy` alongside V2's, (b) flips a config feature flag `EMBEDDING_VERSION=v3`, (c) F1 reads the flag at startup. Rollback = flip the flag back.
 
-***REMOVED******REMOVED*** 9. Q4 2026 / Q1 2027 timeline
+## 9. Q4 2026 / Q1 2027 timeline
 
 | Quarter | Milestone | Acceptance |
 |---|---|---|
@@ -156,7 +156,7 @@ For zero-downtime: deploy step (a) writes `kb_v3_embeddings.npy` alongside V2's,
 | 2027-Q1 (Feb) | F2.4: augmented training data via KB-NN harvesting | training set ≥ 500 pairs/round |
 | 2027-Q1 (Mar) | F2.5: SPLIT verdict subset mining | critic schema extended; SPLIT contributes train pairs |
 
-***REMOVED******REMOVED*** 10. Risk register
+## 10. Risk register
 
 | Risk | Mitigation |
 |---|---|
@@ -166,13 +166,13 @@ For zero-downtime: deploy step (a) writes `kb_v3_embeddings.npy` alongside V2's,
 | Hard-negative collisions with future KEEP labels | mine timestamp + verdict version; expire pairs older than 6 months |
 | Cost runaway (GPU rental) | budget cap per round = $5; abort if epoch wall-clock × LR-schedule predicts > cap |
 
-***REMOVED******REMOVED*** 11. Out of scope
+## 11. Out of scope
 
 - Online (per-query) fine-tune
 - Multi-modal embedding (text + equation LaTeX)
 - Auto-curation of REJECT pairs by a *second* LLM critic (we keep human-curated B3 as the gold signal)
 
-***REMOVED******REMOVED*** 12. Open questions (carry to next session)
+## 12. Open questions (carry to next session)
 
 1. Should we keep V3 alongside V2 indefinitely (parallel cache, A/B routing) or hard-cut over once gates pass?
    - Tentative: keep both for 4 weeks, then archive V2.

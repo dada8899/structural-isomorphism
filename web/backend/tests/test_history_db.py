@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-***REMOVED*** Ensure web/backend is on sys.path so `services.*` resolves regardless of
-***REMOVED*** pytest invocation cwd.
+# Ensure web/backend is on sys.path so `services.*` resolves regardless of
+# pytest invocation cwd.
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
-from services.history_db import HistoryDB  ***REMOVED*** noqa: E402
+from services.history_db import HistoryDB  # noqa: E402
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def test_record_no_summary(db: HistoryDB) -> None:
     assert rid > 0
     rows = db.list_recent("dev1")
     assert len(rows) == 1
-    ***REMOVED*** None summary survives the roundtrip
+    # None summary survives the roundtrip
     assert rows[0]["result_summary"] is None
 
 
@@ -55,10 +55,10 @@ def test_list_recent(db: HistoryDB) -> None:
 
     rows = db.list_recent("dev1")
     assert len(rows) == 3
-    ***REMOVED*** Most recent first
+    # Most recent first
     queries = [r["query"] for r in rows]
     assert queries == ["q3", "q2", "q1"]
-    ***REMOVED*** JSON roundtrips
+    # JSON roundtrips
     assert rows[0]["result_summary"] == {"i": 3}
 
 
@@ -80,15 +80,15 @@ def test_delete(db: HistoryDB) -> None:
     rid = db.record("dev1", "q", "ask", {})
     assert db.delete("dev1", rid) is True
     assert db.list_recent("dev1") == []
-    ***REMOVED*** Idempotent: second delete returns False
+    # Idempotent: second delete returns False
     assert db.delete("dev1", rid) is False
 
 
 def test_delete_wrong_device(db: HistoryDB) -> None:
     rid = db.record("dev1", "q", "ask", {})
-    ***REMOVED*** dev2 cannot delete dev1's row.
+    # dev2 cannot delete dev1's row.
     assert db.delete("dev2", rid) is False
-    ***REMOVED*** Row still present.
+    # Row still present.
     assert len(db.list_recent("dev1")) == 1
 
 
@@ -104,14 +104,14 @@ def test_device_isolation(db: HistoryDB) -> None:
     assert len(bob_rows) == 1
     assert all(r["device_id"] == "alice" for r in alice_rows)
     assert all(r["device_id"] == "bob" for r in bob_rows)
-    ***REMOVED*** No leakage of bob's query into alice's view.
+    # No leakage of bob's query into alice's view.
     assert "bob q1" not in [r["query"] for r in alice_rows]
 
 
 def test_unserializable_summary_does_not_crash(db: HistoryDB) -> None:
-    ***REMOVED*** set is not JSON-serialisable; record should still succeed with a
-    ***REMOVED*** placeholder rather than raise.
-    rid = db.record("dev1", "q", "ask", {"bad": {1, 2, 3}})  ***REMOVED*** type: ignore[dict-item]
+    # set is not JSON-serialisable; record should still succeed with a
+    # placeholder rather than raise.
+    rid = db.record("dev1", "q", "ask", {"bad": {1, 2, 3}})  # type: ignore[dict-item]
     assert rid > 0
     rows = db.list_recent("dev1")
     assert len(rows) == 1

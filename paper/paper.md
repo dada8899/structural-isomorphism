@@ -1,12 +1,12 @@
-***REMOVED*** Beyond Semantic Similarity: Contrastive Learning for Cross-Domain Structural Isomorphism Detection
+# Beyond Semantic Similarity: Contrastive Learning for Cross-Domain Structural Isomorphism Detection
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 Scientific breakthroughs frequently arise from recognizing that two phenomena in unrelated domains share the same underlying mathematical structure --- a property we term *structural isomorphism*. Yet existing sentence embedding models conflate structural similarity with surface semantic similarity, failing to detect connections such as that between heat conduction and option pricing (both governed by the diffusion equation). We introduce the **Structural Isomorphism Benchmark Dataset (SIBD)**, comprising 1,214 cross-domain natural language descriptions spanning 84 mathematical structure types and 20 categories, and fine-tune a Chinese BERT-based sentence encoder (110M parameters) using contrastive learning with 8,223 positive pairs. After training, the model achieves a Silhouette Score of 0.85 (up from -0.01), Retrieval@5 of 100% (up from 20.3%), and expands the intra-class versus inter-class similarity gap from 0.074 to 0.758. Applied at scale to a knowledge base of 500 scientific phenomena, our V2 pipeline identifies 3,017 high-similarity cross-domain pairs, from which multi-round LLM screening and equation-level verification yield 6 discoveries with confirmed mathematical correspondence. We further develop a **V3 pipeline** that replaces pure embedding cosine similarity with a **StructTuple** structured representation (state variables, dynamics family, feedback topology, boundary behavior, timescale, canonical equation) followed by LLM pairwise reranking. Applied to an expanded knowledge base of 4,443 phenomena, V3 extracts 2,625 matchable items and produces 203 paper-worthy candidates (20.3%, a 3.4$\times$ improvement over V2's 6%) and 54 actionable findings after deep analysis, with every top candidate accompanied by an explicit shared equation and variable-level mapping. Across V1, V2, and V3 the top discoveries exhibit **zero overlap** (63 independent candidates), indicating that the three pipelines are complementary views rather than redundant. Three counter-experiments establish that the framework covers approximately 60% of known scientific innovations, identify six blocking mechanisms that prevent structural similarity from translating into innovation, and confirm discriminability against random baselines (average score 1.27 vs. 4.5 for innovation cases). We release the dataset, model, and full pipeline to support future research on AI-assisted scientific discovery.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Many of the most celebrated scientific breakthroughs share a common pattern: a researcher recognizes that a well-understood structure in one domain applies, in transformed form, to an apparently unrelated domain. Shannon borrowed the concept of entropy from thermodynamics to found information theory [Shannon, 1948]. Black and Scholes mapped the heat equation onto financial derivatives pricing [Black and Scholes, 1973]. Simulated annealing transplanted the metallurgical process of slow cooling into combinatorial optimization [Kirkpatrick et al., 1983]. In each case, the surface-level vocabularies of the source and target domains share almost nothing in common, yet the underlying mathematical structure is isomorphic.
 
@@ -26,29 +26,29 @@ The core technical challenge is that modern sentence embedding models are optimi
 
 ---
 
-***REMOVED******REMOVED*** 2. Related Work
+## 2. Related Work
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Analogical Reasoning and Structure Mapping
+### 2.1 Analogical Reasoning and Structure Mapping
 
 Gentner's Structure Mapping Theory (SMT) [Gentner, 1983] established the theoretical foundation for computational analogy by distinguishing structural alignment (shared relational patterns) from surface similarity (shared object attributes). Subsequent work on the Structure Mapping Engine (SME) [Falkenhainer et al., 1989] provided algorithmic implementations, and Learning Analogies by Collaborating (LABC) [Turney, 2008] explored corpus-based approaches. More recently, large language models have shown emergent analogical reasoning capabilities [Webb et al., 2023], though these remain limited to within-context analogies rather than systematic cross-domain search. Our work operationalizes Gentner's distinction at scale by training an embedding model that explicitly learns structural rather than semantic similarity.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 AI for Scientific Discovery
+### 2.2 AI for Scientific Discovery
 
 The past two years have seen rapid progress in AI systems for science. The AI Scientist [Lu et al., 2024] demonstrated end-to-end automated research including idea generation, experimentation, and paper writing. Google's AI Co-Scientist [Gottweis et al., 2025] showed multi-agent systems could generate and validate scientific hypotheses. DeepMind's AlphaFold [Jumper et al., 2021] and AlphaGeometry [Trinh et al., 2024] achieved breakthroughs in protein structure prediction and mathematical reasoning. FunSearch [Romera-Paredes et al., 2024] used large language models to discover new mathematical constructions. However, these systems primarily operate within single domains. Our approach is orthogonal: rather than solving problems within a domain, we aim to discover *connections between* domains that may inspire new problem formulations.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Sentence Embeddings and Contrastive Learning
+### 2.3 Sentence Embeddings and Contrastive Learning
 
 Sentence-BERT [Reimers and Gurevych, 2019] demonstrated that fine-tuning BERT with siamese networks produces semantically meaningful sentence embeddings. SimCSE [Gao et al., 2021] showed that simple contrastive objectives could dramatically improve embedding quality. More recent work on instruction-tuned embeddings [Su et al., 2023] and task-aware retrieval [Xiao et al., 2024] has pushed the frontier further. Our work applies contrastive learning to a fundamentally different objective --- learning *structural* rather than *semantic* similarity --- using mathematical isomorphism as ground-truth supervision.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Cross-Domain Knowledge Transfer
+### 2.4 Cross-Domain Knowledge Transfer
 
 Systematic cross-domain innovation has been pursued through several frameworks. TRIZ [Altshuller, 1996] codifies inventive principles extracted from patent analysis. Biomimicry databases [Helms et al., 2009] catalog nature-inspired design solutions. AskNature [Deldin and Schuknecht, 2014] provides a structured repository linking biological strategies to engineering challenges. Analogy mining from patent databases [Fu et al., 2013; Hope et al., 2017] uses NLP to find functional analogies across technological domains. Our approach differs in three ways: (1) we use mathematical structure types as an intermediate representation, providing a more rigorous basis for comparison than functional descriptions; (2) we train a dedicated embedding model rather than relying on general-purpose embeddings; and (3) we validate our framework through counter-experiments, not just positive examples.
 
 ---
 
-***REMOVED******REMOVED*** 3. The Structural Isomorphism Benchmark Dataset (SIBD)
+## 3. The Structural Isomorphism Benchmark Dataset (SIBD)
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Taxonomy Design
+### 3.1 Taxonomy Design
 
 We constructed a taxonomy of 84 mathematical structure types organized into 20 categories, covering the major recurring patterns observed across scientific disciplines. The taxonomy was built through a two-source generation and merge process:
 
@@ -70,7 +70,7 @@ The 20 categories span: (1) Proportionality and Scaling (e.g., linear proportion
 | Phase Transition | Critical threshold | Discontinuous state change at $p_c$ | Boiling point, percolation, social tipping points |
 | Network | Small-world | High clustering + short path length | Social networks, neural networks, power grids |
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Data Generation and Quality Control
+### 3.2 Data Generation and Quality Control
 
 For each of the 84 structure types, we generated natural language descriptions from multiple scientific domains. Each description satisfies three constraints:
 
@@ -88,7 +88,7 @@ Generation employed four LLMs (Claude Opus, DeepSeek R1, GPT-4, and Gemini) to e
 
 The final dataset comprises **1,214 clean entries** across 84 types (~14.5 descriptions per type on average) spanning 40+ scientific domains, stored in JSONL format.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Dataset Statistics and Analysis
+### 3.3 Dataset Statistics and Analysis
 
 [Figure 1] shows the distribution of descriptions across categories and domains. The dataset is intentionally balanced at the category level but exhibits natural variation in per-type counts, reflecting the differing number of domains in which each structure manifests. The most represented domains include physics, biology, economics, and computer science; less common but deliberately included domains encompass linguistics, culinary science, music theory, and law.
 
@@ -96,9 +96,9 @@ The final dataset comprises **1,214 clean entries** across 84 types (~14.5 descr
 
 ---
 
-***REMOVED******REMOVED*** 4. Method
+## 4. Method
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Problem Formulation
+### 4.1 Problem Formulation
 
 We formalize our objective as follows. Let $\mathcal{D}$ be a set of natural language descriptions of phenomena, and let $s: \mathcal{D} \rightarrow \{1, \ldots, 84\}$ assign each description to its mathematical structure type. We seek an embedding function $f: \mathcal{D} \rightarrow \mathbb{R}^d$ such that:
 
@@ -108,7 +108,7 @@ where $\text{sim}(\cdot, \cdot)$ denotes cosine similarity. Crucially, this must
 
 This objective is fundamentally different from standard semantic similarity. A standard embedding model would place "radioactive decay" close to "nuclear fission" (same domain, different structure) and far from "forgetting curve" (different domain, same structure). Our model must invert this: "radioactive decay" should be close to "forgetting curve" and far from "nuclear fission."
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Contrastive Training
+### 4.2 Contrastive Training
 
 **Base model.** We use `shibing624/text2vec-base-chinese`, a Chinese BERT-base model (110M parameters, 768-dimensional output) pretrained for sentence embedding tasks. This model provides a strong initialization for Chinese text but, as our experiments confirm, has no innate ability to detect structural isomorphism.
 
@@ -122,7 +122,7 @@ where $(d_i, d_j)$ is a positive pair, $B$ is the batch size, and $\tau$ is a te
 
 **Hardware.** All training was conducted on an Apple M4 chip using Metal Performance Shaders (MPS) acceleration. Total training time: **122.6 minutes**.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Six Blocking Mechanisms as Post-Processing Filters
+### 4.3 Six Blocking Mechanisms as Post-Processing Filters
 
 Our critical analysis (Section 7) identifies six mechanisms by which structural isomorphism fails to yield meaningful innovation. These serve as post-processing filters in our discovery pipeline:
 
@@ -135,7 +135,7 @@ Our critical analysis (Section 7) identifies six mechanisms by which structural 
 
 These mechanisms are not mutually exclusive and can co-occur.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Relation to First Principles Thinking
+### 4.4 Relation to First Principles Thinking
 
 An apparent tension exists between our approach and first principles thinking, which advocates reasoning from basic facts rather than analogy [as popularized by Musk, among others]. We argue that the two are complementary rather than contradictory, forming a sequential pipeline:
 
@@ -144,7 +144,7 @@ An apparent tension exists between our approach and first principles thinking, w
 
 First principles thinking without structural transfer yields insight without solutions (knowing that traffic congestion is a percolation problem but having no tools to address it). Structural transfer without first principles yields surface analogy (saying "traffic is like water" without precision). The combination --- first decompose to structure, then transfer across domains --- produces the most actionable innovations.
 
-***REMOVED******REMOVED******REMOVED*** 4.5 V3 Pipeline: StructTuple + LLM Pairwise Rerank
+### 4.5 V3 Pipeline: StructTuple + LLM Pairwise Rerank
 
 The V2 pipeline (Section 6) relies on embedding cosine similarity to surface candidate pairs, followed by LLM screening. While effective, this design has two intrinsic limitations: (i) cosine similarity operates on an opaque 768-dimensional space and cannot *explain* why two phenomena are matched, and (ii) LLM screening is applied *after* a potentially lossy retrieval step. The V3 pipeline addresses both by introducing an intermediate **structured representation** — the StructTuple — and promoting LLM reasoning from a post-hoc filter to a core matching component.
 
@@ -180,9 +180,9 @@ Crucially, every V3 top candidate is accompanied by an *explicit* shared equatio
 
 ---
 
-***REMOVED******REMOVED*** 5. Experiments
+## 5. Experiments
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Setup
+### 5.1 Setup
 
 **Evaluation metrics.** We evaluate our fine-tuned model on four axes:
 
@@ -193,7 +193,7 @@ Crucially, every V3 top candidate is accompanied by an *explicit* shared equatio
 
 **Baseline.** The unmodified `shibing624/text2vec-base-chinese` model, which represents a strong general-purpose Chinese sentence encoder.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Main Results
+### 5.2 Main Results
 
 [Table 2] summarizes the main results.
 
@@ -212,7 +212,7 @@ The perfect Retrieval@5 and Retrieval@10 scores mean that for any description in
 
 **Training dynamics.** The final training loss of 0.204 and validation loss of 0.154 indicate that the model generalizes well and is not overfitting. The lower validation loss suggests that the validation set (constructed from the same structure types but held-out pairs) is slightly easier, likely because some structure types have particularly distinctive phenomenological signatures.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Case Studies
+### 5.3 Case Studies
 
 To evaluate the model's behavior on realistic cross-domain comparisons, we constructed 10 test pairs spanning five scenarios [Table 3].
 
@@ -233,7 +233,7 @@ To evaluate the model's behavior on realistic cross-domain comparisons, we const
 
 The case studies reveal a consistent pattern: the fine-tuned model dramatically amplifies similarity for structurally isomorphic pairs (0.61--0.92) while suppressing it for structurally dissimilar pairs (0.09--0.24), regardless of surface semantic overlap.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Control Experiment
+### 5.4 Control Experiment
 
 To verify that our structural isomorphism scores are not trivially inflatable --- that is, to ensure the framework does not assign high scores to arbitrary concept pairs --- we conducted a control experiment with 30 randomly paired cross-domain concepts.
 
@@ -250,7 +250,7 @@ To verify that our structural isomorphism scores are not trivially inflatable --
 
 The distributions are completely non-overlapping (random max: 3.1; innovation min: 3.9). The mean random pair score of **1.27** ($\sigma = 0.52$) versus the mean innovation case score of **4.5** ($\sigma = 0.30$) yields a separation factor of 3.5$\times$, confirming that our scoring framework has strong discriminative power ($p < 0.001$, Mann-Whitney U test).
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Ablation Studies
+### 5.5 Ablation Studies
 
 We examine the contribution of key design choices:
 
@@ -262,13 +262,13 @@ We examine the contribution of key design choices:
 
 ---
 
-***REMOVED******REMOVED*** 6. Application: Discovering Unknown Cross-Domain Connections
+## 6. Application: Discovering Unknown Cross-Domain Connections
 
-***REMOVED******REMOVED******REMOVED*** 6.1 Knowledge Base Construction
+### 6.1 Knowledge Base Construction
 
 To demonstrate the practical utility of our trained model, we constructed a knowledge base of **500 scientific phenomena** (499 ultimately processed) spanning physics, chemistry, biology, ecology, economics, sociology, psychology, computer science, engineering, medicine, linguistics, and everyday life. Each phenomenon is described in the same format as the training data: a natural language description of 50--100 Chinese characters, with its associated structure type and domain label.
 
-***REMOVED******REMOVED******REMOVED*** 6.2 Pipeline
+### 6.2 Pipeline
 
 The discovery pipeline operates in four stages:
 
@@ -292,7 +292,7 @@ Results: **684 pairs pass** (22.7%), of which **281 are rated high-potential** (
 
 [Figure 2] illustrates the progressive filtering: $124{,}251 \rightarrow 3{,}017 \rightarrow 684 \rightarrow 281 \rightarrow 72 \rightarrow 6$.
 
-***REMOVED******REMOVED******REMOVED*** 6.3 Results Summary
+### 6.3 Results Summary
 
 [Table 4] summarizes the funnel metrics.
 
@@ -307,7 +307,7 @@ Results: **684 pairs pass** (22.7%), of which **281 are rated high-potential** (
 
 The steep funnel (from 3,017 to 6) reflects two realities: (1) high embedding similarity is necessary but not sufficient for genuine structural isomorphism, and (2) even genuine isomorphisms may lack novelty, actionability, or mathematical depth. The 22.7% LLM screening pass rate indicates that roughly three-quarters of high-embedding-similarity pairs are either trivially obvious, known metaphors, or model errors (e.g., conflating positive and negative feedback).
 
-***REMOVED******REMOVED******REMOVED*** 6.4 Case Studies: Three Exemplary Discoveries
+### 6.4 Case Studies: Three Exemplary Discoveries
 
 We present three of the six top-ranked discoveries in detail.
 
@@ -334,7 +334,7 @@ Bettencourt et al. [2007] established that urban innovation output scales superl
 
 Both systems involve state transitions on conservation constraint surfaces: collisions preserve the elliptical surface defined by energy and momentum conservation; trades on Uniswap V2 move along the $xy = k$ hyperbola. The mapping yields novel concepts: *trading scattering cross-section* (probability that a trade of given size produces slippage exceeding a threshold), *potential wells* (Uniswap V3 concentrated liquidity positions), and *multi-body scattering* (multi-pool arbitrage dynamics). While the mathematical correspondence $xy = k$ is well-studied in the DeFi literature [Angeris et al., 2020; Adams et al., 2021], no prior work has adopted the collision-theoretic perspective, which provides mature analytical tools (differential cross-sections, resonance analysis) that may reveal structural vulnerabilities in AMM designs.
 
-***REMOVED******REMOVED******REMOVED*** 6.5 V3 Results: StructTuple + LLM Rerank at Scale
+### 6.5 V3 Results: StructTuple + LLM Rerank at Scale
 
 We apply the V3 pipeline (Section 4.5) to an expanded knowledge base of **4,443 phenomena**. [Table 5] summarizes the V3 funnel alongside V2 for direct comparison.
 
@@ -365,7 +365,7 @@ The DeFi $\leftrightarrow$ earthquake pair is representative of a broader insigh
 
 All extracted StructTuples, the 1,000 structural candidates, the 203 paper-worthy reranked pairs, and the 54 deep-analysis briefs are released alongside the V2 artifacts; see §8.5.
 
-***REMOVED******REMOVED******REMOVED*** 6.6 V4: From 63 discrete candidates to universality-class aggregation
+### 6.6 V4: From 63 discrete candidates to universality-class aggregation
 
 The §6.5 results expose a deeper structural pattern. Among the 63 tier-1 discoveries, many instances where **$A \cong B$ and $A \cong C$ simultaneously** are not coincidental — they reflect the same underlying mathematical-physical regularity expressed in different domains. Earthquake stress triggering, DeFi liquidation cascades, bank runs, flash-crash liquidity spirals, power-grid cascading failures, social cascades, and supply-chain collapses are all pairwise identified as isomorphic by V1–V3, but their shared structure is actually the **branching-process family of Self-Organized Criticality (SOC)**. Discrete pairs cannot naturally express this "structural family" relationship.
 
@@ -379,7 +379,7 @@ V4 (the Universality Class Engine) aggregates discrete A≅B pairs into **univer
 
 V4 is not a new retrieval pipeline — it is a downstream aggregator over V1–V3. Its value is upgrading "63 discrete cross-domain analogies" into "23 structural families with falsifiable numerical predictions", and supplying Layer 5 with directly actionable hypotheses.
 
-***REMOVED******REMOVED******REMOVED*** 6.7 Layer 5: Cross-domain empirical validation of the SOC universality class
+### 6.7 Layer 5: Cross-domain empirical validation of the SOC universality class
 
 We chose SOC as our first empirical target because its theory is the most mature: mean-field branching-process SOC predicts an uncut power-law event-size distribution with $\tau \approx 1.5$, energy exponent $\alpha \approx 2.0$, lifetime exponent $\gamma \approx 2.0$, and the three exponents are mutually constrained by the scaling relation $\gamma=(\alpha-1)/(\tau-1)$. We applied the same Clauset–Shalizi–Newman (2009) power-law fitting pipeline with distribution_compare (vs. lognormal / exponential / truncated power-law) in **five mutually independent domains**:
 
@@ -399,7 +399,7 @@ Three empirical observations deserve emphasis:
 
 Fitting scripts, data-acquisition scripts, result JSON files, and the paper Markdown for all five domains are open-sourced at `v4/validation/`; each domain has a 5–8 page arXiv-style companion paper, readable at the bottom of the `/classes` page on the Structural site.
 
-***REMOVED******REMOVED******REMOVED*** 6.8 SIBD-63: Releasing the cross-domain isomorphism seed bank
+### 6.8 SIBD-63: Releasing the cross-domain isomorphism seed bank
 
 To facilitate reuse by domain experts, we package the 63 tier-1 discoveries (24 from V1 + 19 from V2 + 20 from V3, pairwise zero-overlap) as a standalone academic dataset, **SIBD-63**:
 
@@ -412,11 +412,11 @@ To facilitate reuse by domain experts, we package the 63 tier-1 discoveries (24 
 
 ---
 
-***REMOVED******REMOVED*** 7. Critical Analysis and Limitations
+## 7. Critical Analysis and Limitations
 
 We believe that honest reporting of limitations is essential for the credibility of any framework that claims to model innovation. We conducted three counter-experiments designed to stress-test and ultimately bound the claims of our approach.
 
-***REMOVED******REMOVED******REMOVED*** 7.1 Three Counter-Experiments
+### 7.1 Three Counter-Experiments
 
 **Counter-experiment 1: High structure, no innovation (10 cases).**
 
@@ -449,7 +449,7 @@ This yields a coverage estimate of **~60%** when "partially transfer-based" case
 
 As reported in Section 5.4, randomly paired concepts yield a mean structural isomorphism score of 1.27 versus 4.5 for known innovation cases, with non-overlapping distributions. This confirms that **the scoring framework is discriminative, not a universal high-score generator**.
 
-***REMOVED******REMOVED******REMOVED*** 7.2 Framework Revision: ~60% Coverage, Not Universal
+### 7.2 Framework Revision: ~60% Coverage, Not Universal
 
 Based on these counter-experiments, we revise our initial hypothesis from "innovation is structural transfer" to the more modest and defensible:
 
@@ -457,11 +457,11 @@ Based on these counter-experiments, we revise our initial hypothesis from "innov
 
 This revision represents a deliberate *downgrade* from a universal theory to a bounded tool. We argue that this makes the framework more honest and more useful: it clearly delineates where our system can and cannot help.
 
-***REMOVED******REMOVED******REMOVED*** 7.3 Six Blocking Mechanisms
+### 7.3 Six Blocking Mechanisms
 
 The six blocking mechanisms identified in Counter-experiment 1 (detailed in Section 4.3) serve as a practical checklist for evaluating candidate discoveries. In our V2 pipeline, the LLM screening stage explicitly evaluates each candidate against these mechanisms, and this is a primary reason for the steep drop from 3,017 candidates to 684 passing ones.
 
-***REMOVED******REMOVED******REMOVED*** 7.4 LLM Scoring Bias and Mitigation
+### 7.4 LLM Scoring Bias and Mitigation
 
 Our pipeline relies heavily on LLM-based evaluation at the screening stage, which introduces potential biases:
 
@@ -477,9 +477,9 @@ These biases are not fully eliminated and represent a fundamental limitation of 
 
 ---
 
-***REMOVED******REMOVED*** 8. Discussion
+## 8. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 8.1 Implications for AI for Science
+### 8.1 Implications for AI for Science
 
 Our results suggest a complementary role for AI in scientific discovery that differs from the dominant paradigm. While systems like The AI Scientist [Lu et al., 2024] and AI Co-Scientist [Gottweis et al., 2025] aim to automate the *execution* of research (hypothesis testing, experiment design, paper writing), our approach targets the *generation* of research questions through systematic cross-domain connection.
 
@@ -489,7 +489,7 @@ The 22.7% LLM screening pass rate and the distribution of rejection reasons (tri
 
 The V3 pipeline (Sections 4.5 and 6.5) addresses these failure modes directly by replacing the opaque embedding geometry with a structured representation that the LLM can reason over field by field. Two observations support this design choice. First, V3's 3.4$\times$ improvement in paper-worthy density indicates that the gains from structural decomposition outweigh the gains from a more aggressive embedding objective alone. Second, the zero overlap between V1, V2, and V3 top candidates shows that the three pipelines are *orthogonal* views: embedding similarity captures phenomenological kinship, StructTuple matching captures dynamical kinship, and pre-contrastive heuristics capture surface-form kinship. A practical discovery system should run all three and take the union, rather than treating any single method as the final word.
 
-***REMOVED******REMOVED******REMOVED*** 8.2 The Shadow Mode Vision
+### 8.2 The Shadow Mode Vision
 
 Our V2 pipeline instantiates a design pattern we call *shadow mode for science*, inspired by autonomous driving's shadow mode [where the AI runs in parallel with a human driver, generating predictions that are compared against actual human decisions]. In our context:
 
@@ -499,13 +499,13 @@ Our V2 pipeline instantiates a design pattern we call *shadow mode for science*,
 
 This pattern does not require "curiosity" or "intrinsic motivation" --- properties often cited as prerequisites for genuine scientific discovery. Instead, it replaces curiosity's functional role (attention allocation, persistence in pursuing anomalies, intrinsic drive) with systematic computation (exhaustive pairwise comparison, threshold-based anomaly detection, automated pipeline execution). Whether this constitutes "real" discovery is a philosophical question we do not attempt to resolve; pragmatically, the 6 equation-verified discoveries suggest the approach produces outputs of genuine scientific interest.
 
-***REMOVED******REMOVED******REMOVED*** 8.3 Relation to First Principles Thinking
+### 8.3 Relation to First Principles Thinking
 
 As discussed in Section 4.4, our framework is complementary to first principles reasoning. First principles thinking performs *vertical decomposition* --- stripping away surface phenomena to reveal underlying structure. Structural isomorphism detection performs *horizontal search* --- scanning across domains at the structural level. The combination produces what neither can achieve alone: first principles without cross-domain search yields insight without solutions; cross-domain search without first principles yields surface analogy without depth.
 
 This perspective resolves a common objection to analogy-based innovation: that analogies are merely "reasoning by similarity" and therefore inferior to "reasoning from first principles." Our framework shows that the strongest innovations combine both, and that the cross-domain search step can be partially automated.
 
-***REMOVED******REMOVED******REMOVED*** 8.4 Broader Implications and Future Directions
+### 8.4 Broader Implications and Future Directions
 
 Several directions for future work emerge from our analysis:
 
@@ -519,7 +519,7 @@ Several directions for future work emerge from our analysis:
 
 5. **Scaling the knowledge base**: Our current 500-phenomenon knowledge base is small relative to the total space of scientific phenomena. The V3 expansion to 4,443 phenomena is a first step in this direction; scaling further to 10,000+ phenomena with automated description generation could yield qualitatively different discovery patterns.
 
-***REMOVED******REMOVED******REMOVED*** 8.5 Reproducibility and Release
+### 8.5 Reproducibility and Release
 
 All artifacts required to reproduce V1–V4 results are publicly released:
 
@@ -532,7 +532,7 @@ All artifacts required to reproduce V1–V4 results are publicly released:
 
 ---
 
-***REMOVED******REMOVED*** 9. Conclusion
+## 9. Conclusion
 
 We have presented a framework for detecting cross-domain structural isomorphism --- the deep mathematical correspondence between phenomena in seemingly unrelated fields --- and demonstrated its potential as a tool for AI-assisted scientific discovery. Our contributions include:
 
@@ -558,7 +558,7 @@ The deeper question our work raises is whether innovation can be partially *mech
 
 ---
 
-***REMOVED******REMOVED*** References
+## References
 
 Adams, H., Zinsmeister, M., Uniswap Team. (2021). Uniswap v3 Core. *Uniswap Protocol Whitepaper*.
 
@@ -644,7 +644,7 @@ Xiao, S., et al. (2024). C-Pack: Packaged resources to advance general Chinese e
 
 ---
 
-***REMOVED******REMOVED*** Appendix A: Full Taxonomy of 84 Structure Types
+## Appendix A: Full Taxonomy of 84 Structure Types
 
 [Table A1] lists all 84 structure types organized by category, with mathematical form and representative cross-domain instances. Due to space constraints, we show the first 20 types here; the complete taxonomy is available in the supplementary materials.
 
@@ -671,7 +671,7 @@ Xiao, S., et al. (2024). C-Pack: Packaged resources to advance general Chinese e
 | 19 | Feedback | Homeostasis | Multi-variable negative feedback equilibrium |
 | 20 | Threshold | Phase transition | Discontinuous state change at critical parameter |
 
-***REMOVED******REMOVED*** Appendix B: Five-Dimensional Structural Analysis Framework
+## Appendix B: Five-Dimensional Structural Analysis Framework
 
 We evaluate structural isomorphism across five dimensions:
 

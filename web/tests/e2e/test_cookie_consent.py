@@ -1,4 +1,4 @@
-"""W14-C (session ***REMOVED***10, 2026-05-15) — Cookie consent banner e2e.
+"""W14-C (session #10, 2026-05-15) — Cookie consent banner e2e.
 
 Tests the 3-tier cookie consent system mounted via <CookieConsent />:
   1. First visit (no localStorage) shows the banner.
@@ -140,51 +140,51 @@ def dnt_page(browser, next_dev):
     """Fresh context with DNT header — emulates a privacy-conscious user."""
     context = browser.new_context(extra_http_headers={"DNT": "1"})
     page = context.new_page()
-    ***REMOVED*** navigator.doNotTrack is the client-side flag the banner checks.
+    # navigator.doNotTrack is the client-side flag the banner checks.
     page.add_init_script("Object.defineProperty(navigator, 'doNotTrack', { value: '1', configurable: true });")
     yield page, next_dev["base"]
     context.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. First visit shows banner
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. First visit shows banner
+# ---------------------------------------------------------------------------
 def test_first_visit_shows_banner(fresh_page):
     page, base = fresh_page
     page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_selector('[data-testid="cookie-consent"]', state="visible", timeout=8000)
-    ***REMOVED*** No localStorage choice yet
+    # No localStorage choice yet
     stored = page.evaluate("() => localStorage.getItem('cookie_consent_v1')")
     assert stored is None, f"expected no consent on first visit, got {stored!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. Accept all → consent saved + Plausible loads
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. Accept all → consent saved + Plausible loads
+# ---------------------------------------------------------------------------
 def test_accept_all_loads_plausible(fresh_page):
     page, base = fresh_page
     page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_selector('[data-testid="cookie-accept-all"]', state="visible", timeout=8000)
     page.locator('[data-testid="cookie-accept-all"]').click()
-    ***REMOVED*** Banner closes
+    # Banner closes
     page.wait_for_selector(
         '[data-testid="cookie-consent"]', state="detached", timeout=5000
     )
-    ***REMOVED*** Consent persisted
+    # Consent persisted
     stored = page.evaluate("() => JSON.parse(localStorage.getItem('cookie_consent_v1'))")
     assert stored["analytics"] is True
     assert stored["essential"] is True
     assert stored["version"] == 1
-    ***REMOVED*** Plausible script injected
+    # Plausible script injected
     has_plausible = page.evaluate(
         "() => !!document.getElementById('plausible-script')"
     )
     assert has_plausible is True
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. Essential only → Plausible NOT loaded
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Essential only → Plausible NOT loaded
+# ---------------------------------------------------------------------------
 def test_essential_only_suppresses_plausible(fresh_page):
     page, base = fresh_page
     page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
@@ -201,46 +201,46 @@ def test_essential_only_suppresses_plausible(fresh_page):
     assert has_plausible is False
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. DNT auto-disables analytics + hides banner
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. DNT auto-disables analytics + hides banner
+# ---------------------------------------------------------------------------
 def test_dnt_auto_disables_analytics(dnt_page):
     page, base = dnt_page
     page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Banner should not appear within a reasonable window
-    ***REMOVED*** (we wait_for_timeout 1s then assert hidden)
+    # Banner should not appear within a reasonable window
+    # (we wait_for_timeout 1s then assert hidden)
     page.wait_for_timeout(1500)
     visible = page.evaluate(
         "() => { const el = document.querySelector('[data-testid=\"cookie-consent\"]'); return el && el.offsetParent !== null; }"
     )
     assert not visible, "banner should be hidden for DNT users"
-    ***REMOVED*** Implicit consent record stored with analytics=false
+    # Implicit consent record stored with analytics=false
     stored = page.evaluate("() => JSON.parse(localStorage.getItem('cookie_consent_v1'))")
     assert stored is not None and stored["analytics"] is False
-    ***REMOVED*** Plausible NOT injected
+    # Plausible NOT injected
     has_plausible = page.evaluate(
         "() => !!document.getElementById('plausible-script')"
     )
     assert has_plausible is False
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. Manage preferences reopens the banner from privacy page button
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. Manage preferences reopens the banner from privacy page button
+# ---------------------------------------------------------------------------
 def test_manage_preferences_reopens(fresh_page):
     page, base = fresh_page
-    ***REMOVED*** First, accept all to dismiss banner
+    # First, accept all to dismiss banner
     page.goto(base + "/privacy", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_selector('[data-testid="cookie-accept-all"]', state="visible", timeout=8000)
     page.locator('[data-testid="cookie-accept-all"]').click()
     page.wait_for_selector(
         '[data-testid="cookie-consent"]', state="detached", timeout=5000
     )
-    ***REMOVED*** Now click "Manage cookies" button on the privacy page
+    # Now click "Manage cookies" button on the privacy page
     page.locator('[data-testid="manage-cookies-button"]').click()
-    ***REMOVED*** Banner reopens in customize mode
+    # Banner reopens in customize mode
     page.wait_for_selector('[data-testid="cookie-consent"]', state="visible", timeout=5000)
-    ***REMOVED*** Analytics checkbox should reflect prior choice (checked)
+    # Analytics checkbox should reflect prior choice (checked)
     checked = page.evaluate(
         "() => document.querySelector('[data-testid=\"cookie-tier-analytics\"]').checked"
     )

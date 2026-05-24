@@ -20,7 +20,7 @@ from playwright.sync_api import sync_playwright
 
 DEFAULT_URL = "https://beta.structural.bytedance.city/discoveries"
 
-***REMOVED*** Inject before any page script runs so we catch shifts from the very first frame.
+# Inject before any page script runs so we catch shifts from the very first frame.
 INIT_SCRIPT = """
 window.__clsEntries = [];
 window.__clsValue = 0;
@@ -34,7 +34,7 @@ try {
           value: entry.value,
           startTime: entry.startTime,
           sources: (entry.sources || []).map(s => ({
-            node: s.node ? (s.node.nodeName + (s.node.id ? '***REMOVED***' + s.node.id : '') + (s.node.className ? '.' + String(s.node.className).split(' ').join('.') : '')) : '?',
+            node: s.node ? (s.node.nodeName + (s.node.id ? '#' + s.node.id : '') + (s.node.className ? '.' + String(s.node.className).split(' ').join('.') : '')) : '?',
             prevRect: s.previousRect ? {x: s.previousRect.x, y: s.previousRect.y, w: s.previousRect.width, h: s.previousRect.height} : null,
             currRect: s.currentRect ? {x: s.currentRect.x, y: s.currentRect.y, w: s.currentRect.width, h: s.currentRect.height} : null,
           })),
@@ -62,9 +62,9 @@ def measure(url: str) -> dict:
 
         t0 = time.time()
         page.goto(url, wait_until="networkidle", timeout=45_000)
-        ***REMOVED*** Wait a bit more for any deferred async rendering (i18n, discoveries.js fetch).
+        # Wait a bit more for any deferred async rendering (i18n, discoveries.js fetch).
         page.wait_for_timeout(3000)
-        ***REMOVED*** Trigger a small viewport tick to flush any pending observer callbacks.
+        # Trigger a small viewport tick to flush any pending observer callbacks.
         page.evaluate("() => window.scrollBy(0, 1)")
         page.wait_for_timeout(500)
         page.evaluate("() => window.scrollBy(0, -1)")

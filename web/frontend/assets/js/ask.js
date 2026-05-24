@@ -64,14 +64,14 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&***REMOVED***39;');
+      .replace(/'/g, '&#39;');
   }
 
   // ============================================================
   // Init
   // ============================================================
   // ============================================================
-  // W6-D (session ***REMOVED***7 P1 backlog): char counter for ask + follow-up inputs.
+  // W6-D (session #7 P1 backlog): char counter for ask + follow-up inputs.
   // Reads data-limit / data-warn from the counter <div>, updates count
   // every input event, sets data-state to '' | 'warn' | 'stop' so CSS can
   // color the count + show the "已达上限" label. The textarea's
@@ -125,10 +125,10 @@
   }
 
   function initAskPage() {
-    var form = qs('***REMOVED***ask-form');
+    var form = qs('#ask-form');
     if (form) {
       var submitBtn = qs('.ask-searchbox__submit', form);
-      var input = qs('***REMOVED***ask-input');
+      var input = qs('#ask-input');
 
       // Scheme A: keep the circular submit inert until there is text.
       function syncSubmitState() {
@@ -170,25 +170,25 @@
       }
     }
 
-    var followForm = qs('***REMOVED***ask-followup-form');
+    var followForm = qs('#ask-followup-form');
     if (followForm) {
       followForm.addEventListener('submit', function (ev) {
         ev.preventDefault();
-        var input = qs('***REMOVED***ask-followup-input');
+        var input = qs('#ask-followup-input');
         var q = input ? input.value.trim() : '';
         if (!q) return;
         submitQuery(q);
         if (input) {
           input.value = '';
           // Reset the follow-up counter since the field emptied.
-          var fc = qs('***REMOVED***ask-followup-char-counter');
+          var fc = qs('#ask-followup-char-counter');
           if (fc) {
             fc.hidden = true;
             fc.removeAttribute('data-state');
           }
         }
       });
-      var fInput = qs('***REMOVED***ask-followup-input');
+      var fInput = qs('#ask-followup-input');
       if (fInput) {
         fInput.addEventListener('keydown', function (ev) {
           if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
@@ -201,8 +201,8 @@
 
     // W6-D: wire the counters for both inputs. Safe no-op if elements
     // missing (e.g. on alternate page layouts).
-    bindCharCounter('***REMOVED***ask-input', '***REMOVED***ask-char-counter');
-    bindCharCounter('***REMOVED***ask-followup-input', '***REMOVED***ask-followup-char-counter');
+    bindCharCounter('#ask-input', '#ask-char-counter');
+    bindCharCounter('#ask-followup-input', '#ask-followup-char-counter');
 
     bindExampleChips();
 
@@ -246,8 +246,8 @@
     }
 
     // Switch to thread state on first submit
-    var emptyEl = qs('***REMOVED***ask-empty');
-    var threadEl = qs('***REMOVED***ask-thread');
+    var emptyEl = qs('#ask-empty');
+    var threadEl = qs('#ask-thread');
     var wasEmpty = emptyEl && !emptyEl.hidden;
     if (wasEmpty) {
       emptyEl.hidden = true;
@@ -298,7 +298,7 @@
   function renderThreadItem(query) {
     threadCounter += 1;
     var id = 'ask-item-' + threadCounter;
-    var container = qs('***REMOVED***ask-thread-items');
+    var container = qs('#ask-thread-items');
     if (!container) return null;
 
     var html =
@@ -341,7 +341,7 @@
       '</article>';
 
     container.insertAdjacentHTML('beforeend', html);
-    return qs('***REMOVED***' + id);
+    return qs('#' + id);
   }
 
   // ============================================================
@@ -515,7 +515,7 @@
       var idx = i + 1;
       // Polished route: /phenomenon/{id} is the canonical URL.
       // The backend renders phenomenon.html which reads ?id= for legacy compat.
-      var href = c.id ? ('/phenomenon/' + encodeURIComponent(c.id)) : '***REMOVED***';
+      var href = c.id ? ('/phenomenon/' + encodeURIComponent(c.id)) : '#';
       var score = (typeof c.score === 'number') ? Math.round(c.score * 100) + '%' : '';
       var name = c.name || '（未命名查询）';
       // Tooltip: first 100 chars of description, fall back to domain+name.
@@ -544,7 +544,7 @@
     // W3-B: kb_cards_received — latency from submit to first cards.
     track('kb_cards_received', { count: cards.length, latency_ms: elapsedSince(item._t0) });
 
-    // W6-D (session ***REMOVED***7 P1 backlog): citation click-through tracking.
+    // W6-D (session #7 P1 backlog): citation click-through tracking.
     // We delegate one capture-phase listener on each thread item. The
     // listener handles three click surfaces:
     //   - `.ask-kb-card` (top KB card rows)
@@ -580,7 +580,7 @@
         var phenomenonId = citEl.getAttribute('data-kb-id');
         if (!phenomenonId) {
           var href = citEl.getAttribute('href') || '';
-          var m = href.match(/\/phenomenon\/([^\/?***REMOVED***]+)/);
+          var m = href.match(/\/phenomenon\/([^\/?#]+)/);
           if (m) phenomenonId = decodeURIComponent(m[1]);
         }
         var surface = citEl.classList.contains('ask-kb-card') ? 'kb_card'
@@ -688,7 +688,7 @@
           var src = cardsById[cit.kb_id];
           var label = cit.label || (src ? src.name : 'source');
           // Canonical /phenomenon/{id} route.
-          var href = cit.kb_id ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '***REMOVED***';
+          var href = cit.kb_id ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '#';
           var descRaw = src ? (src.description || src.summary || src.key_metric || '') : '';
           var tooltip = descRaw
             ? String(descRaw).slice(0, 100)
@@ -727,7 +727,7 @@
     if (!container) return;
 
     container.innerHTML = phens.slice(0, 3).map(function (p, i) {
-      var href = p.kb_id ? ('/phenomenon/' + encodeURIComponent(p.kb_id)) : '***REMOVED***';
+      var href = p.kb_id ? ('/phenomenon/' + encodeURIComponent(p.kb_id)) : '#';
       var name = p.name || '';
       var descRaw = p.description || p.summary || p.key_metric || '';
       var tooltip = descRaw ? String(descRaw).slice(0, 100) : (p.domain ? (p.domain + ' · ' + name) : name);
@@ -814,7 +814,7 @@
       var idx = parseInt(m[1], 10);
       var cit = citsByIdx[idx];
       var src = cit ? cardsById[cit.kb_id] : null;
-      var href = (cit && cit.kb_id) ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '***REMOVED***';
+      var href = (cit && cit.kb_id) ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '#';
       // Tooltip: first 100 chars of description, fall back to name·domain.
       var descRaw = src ? (src.description || src.summary || src.key_metric || '') : '';
       var title = descRaw
@@ -901,7 +901,7 @@
         var q = retryBtn.getAttribute('data-retry-q') || '';
         if (q.trim()) {
           // Remove this item, then resubmit
-          var container = qs('***REMOVED***ask-thread-items');
+          var container = qs('#ask-thread-items');
           if (item && item.parentNode === container) container.removeChild(item);
           submitQuery(q.trim());
         }

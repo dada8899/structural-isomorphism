@@ -18,10 +18,10 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import checkout_mock as cm  ***REMOVED*** noqa: E402
+from api import checkout_mock as cm  # noqa: E402
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-***REMOVED*** --- _data_file (line 86) ----------------------------------------------------
+# --- _data_file (line 86) ----------------------------------------------------
 
 
 def test_data_file_returns_path_inside_backend_data_dir():
@@ -41,11 +41,11 @@ def test_data_file_returns_path_inside_backend_data_dir():
     p = cm._data_file()
     assert isinstance(p, Path)
     assert p.name == "mock_checkouts.jsonl"
-    ***REMOVED*** Should be inside web/backend/data/
+    # Should be inside web/backend/data/
     assert "data" in p.parts
 
 
-***REMOVED*** --- random decline branch (line 139) ----------------------------------------
+# --- random decline branch (line 139) ----------------------------------------
 
 
 def test_random_decline_path_taken_when_no_force(client, monkeypatch):
@@ -58,7 +58,7 @@ def test_random_decline_path_taken_when_no_force(client, monkeypatch):
             "interval": "month",
             "email": "a@b.co",
             "name": "Test User",
-            ***REMOVED*** NO force_status — exercises probabilistic line 139
+            # NO force_status — exercises probabilistic line 139
         },
     )
     assert resp.status_code == 200
@@ -84,7 +84,7 @@ def test_random_success_path_taken_when_no_force(client, monkeypatch):
     assert body["amount_usd"] == 190
 
 
-***REMOVED*** --- _persist exception handler (lines 210-211) ------------------------------
+# --- _persist exception handler (lines 210-211) ------------------------------
 
 
 def test_persist_failure_does_not_break_endpoint(client, monkeypatch):
@@ -94,17 +94,17 @@ def test_persist_failure_does_not_break_endpoint(client, monkeypatch):
     (a directory we can't actually open as a file) — exercises the
     `except Exception` arm.
     """
-    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  ***REMOVED*** force success
+    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  # force success
 
     def boom_open(*a, **kw):
         raise PermissionError("disk full")
 
-    ***REMOVED*** Patch the builtin `open` used inside _persist
+    # Patch the builtin `open` used inside _persist
     import builtins
     real_open = builtins.open
 
     def selective_open(file, *a, **kw):
-        ***REMOVED*** Only fail when writing the mock_checkouts.jsonl
+        # Only fail when writing the mock_checkouts.jsonl
         if "mock_checkouts.jsonl" in str(file):
             raise PermissionError("simulated disk full")
         return real_open(file, *a, **kw)
@@ -115,14 +115,14 @@ def test_persist_failure_does_not_break_endpoint(client, monkeypatch):
         "/api/checkout/mock",
         json={"tier": "pro", "interval": "month", "email": "z@b.co"},
     )
-    ***REMOVED*** Endpoint must still succeed despite persist failing
+    # Endpoint must still succeed despite persist failing
     assert resp.status_code == 200
     assert resp.json()["status"] == "success"
 
 
 def test_persist_failure_on_decline_path(client, monkeypatch):
     """Decline branch also persists; failure must not break user response."""
-    monkeypatch.setattr(cm.random, "random", lambda: 0.0)  ***REMOVED*** force decline
+    monkeypatch.setattr(cm.random, "random", lambda: 0.0)  # force decline
 
     import builtins
     real_open = builtins.open
@@ -142,7 +142,7 @@ def test_persist_failure_on_decline_path(client, monkeypatch):
     assert resp.json()["status"] == "declined"
 
 
-***REMOVED*** --- /api/usage q_tier path (line 247) ---------------------------------------
+# --- /api/usage q_tier path (line 247) ---------------------------------------
 
 
 def test_usage_q_tier_promotes_to_pro_when_localhost(client):
@@ -173,7 +173,7 @@ def test_usage_q_tier_blank_falls_back(client):
     assert resp.json()["tier"] == "free"
 
 
-***REMOVED*** --- additional edge cases for robustness ------------------------------------
+# --- additional edge cases for robustness ------------------------------------
 
 
 def test_checkout_invalid_tier_returns_400(client):
@@ -217,7 +217,7 @@ def test_checkout_email_too_long_returns_400(client):
 
 def test_checkout_card_last4_extracts_digits_only(client, monkeypatch, tmp_path):
     """card_last4 with mixed chars: only last-4 digits kept."""
-    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  ***REMOVED*** force success
+    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  # force success
     tmp_file = tmp_path / "data" / "mock_checkouts.jsonl"
     monkeypatch.setattr(cm, "_data_file", lambda: tmp_file)
 
@@ -235,7 +235,7 @@ def test_checkout_card_last4_extracts_digits_only(client, monkeypatch, tmp_path)
 
 def test_checkout_force_status_success_localhost(client, monkeypatch):
     """force_status=success on localhost → success path even if random.random() < 0.1."""
-    monkeypatch.setattr(cm.random, "random", lambda: 0.0)  ***REMOVED*** would decline normally
+    monkeypatch.setattr(cm.random, "random", lambda: 0.0)  # would decline normally
     resp = client.post(
         "/api/checkout/mock",
         json={
@@ -250,7 +250,7 @@ def test_checkout_force_status_success_localhost(client, monkeypatch):
 
 
 def test_checkout_force_status_declined_localhost(client, monkeypatch):
-    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  ***REMOVED*** would succeed normally
+    monkeypatch.setattr(cm.random, "random", lambda: 0.99)  # would succeed normally
     resp = client.post(
         "/api/checkout/mock",
         json={
@@ -272,7 +272,7 @@ def test_checkout_name_truncated_to_max_len(client, monkeypatch):
             "tier": "pro",
             "interval": "month",
             "email": "x@y.co",
-            "name": "x" * 500,  ***REMOVED*** over _MAX_NAME_LEN (100)
+            "name": "x" * 500,  # over _MAX_NAME_LEN (100)
         },
     )
     assert resp.status_code == 200

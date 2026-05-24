@@ -21,7 +21,7 @@ from services.auth import verify_api_token
 from services.cache import MappingCache
 from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
-from services.ask_orchestrator import ASK_MODEL  ***REMOVED*** canonical source of truth
+from services.ask_orchestrator import ASK_MODEL  # canonical source of truth
 from services.report_store import ReportStore, sign_share_token
 from services.translation import translate_kb_item
 
@@ -57,8 +57,8 @@ def _init():
     if _llm is None:
         _llm = LLMService()
     if _report_store is None:
-        ***REMOVED*** Reuse the existing history.db file so we don't fragment storage.
-        ***REMOVED*** Path matches services/history_db.py initialiser in main.py lifespan.
+        # Reuse the existing history.db file so we don't fragment storage.
+        # Path matches services/history_db.py initialiser in main.py lifespan.
         db_path = Path(__file__).parent.parent / "data" / "history.db"
         _report_store = ReportStore(db_path)
 
@@ -98,7 +98,7 @@ async def stream_analyze(
     persist: int = Query(
         0,
         description=(
-            "Session ***REMOVED***16 M1.4 — if 1, persist the final report to the "
+            "Session #16 M1.4 — if 1, persist the final report to the "
             "report store and emit a `persisted` SSE event with id + "
             "share_url before `done`. Default 0 keeps existing callers "
             "backward-compatible."
@@ -115,7 +115,7 @@ async def stream_analyze(
         ),
     ),
 ):
-    ***REMOVED*** Auth tier classification — None means token was provided but invalid.
+    # Auth tier classification — None means token was provided but invalid.
     tier = verify_api_token(request)
     if tier is None:
         raise HTTPException(401, "Invalid API token")
@@ -128,36 +128,36 @@ async def stream_analyze(
     if not svc:
         raise HTTPException(503, "Search service not ready")
 
-    ***REMOVED*** Always fetch the KB phenomenon (used as SOURCE)
+    # Always fetch the KB phenomenon (used as SOURCE)
     kb_phenom = svc.get_by_id(b_id)
     if not kb_phenom:
         raise HTTPException(404, "Phenomenon not found")
 
-    user_query = None  ***REMOVED*** original question for query mode
+    user_query = None  # original question for query mode
 
-    ***REMOVED*** Normalize the lang parameter once
+    # Normalize the lang parameter once
     lang = (lang or "zh").lower()
     if lang not in ("zh", "en"):
         lang = "zh"
 
     if text_a:
-        ***REMOVED*** === Query mode ===
+        # === Query mode ===
         rewritten = await _llm.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
 
         idx_kb = svc.idx_by_id.get(b_id)
         if idx_kb is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        ***REMOVED*** Session ***REMOVED***17 V3.1/V3.2 — UNIFIED similarity口径. The old code did a
-        ***REMOVED*** raw np.dot of a normalized query embedding against an UN-normalized
-        ***REMOVED*** KB embedding (kb_v2_embeddings.npy has norms ~14-22), producing
-        ***REMOVED*** illegal meta.similarity values (9.5 / 4.76 observed). relevance_score
-        ***REMOVED*** returns a true cosine remapped to [0, 1] — the SAME口径 /api/search
-        ***REMOVED*** now exposes as `result.relevance`, so a result search ranked highly
-        ***REMOVED*** will not be self-contradictorily rejected by the scope gate below.
+        # Session #17 V3.1/V3.2 — UNIFIED similarity口径. The old code did a
+        # raw np.dot of a normalized query embedding against an UN-normalized
+        # KB embedding (kb_v2_embeddings.npy has norms ~14-22), producing
+        # illegal meta.similarity values (9.5 / 4.76 observed). relevance_score
+        # returns a true cosine remapped to [0, 1] — the SAME口径 /api/search
+        # now exposes as `result.relevance`, so a result search ranked highly
+        # will not be self-contradictorily rejected by the scope gate below.
         similarity = svc.relevance_score(rewritten, b_id)
 
-        ***REMOVED*** SOURCE (a) = KB phenomenon; TARGET (b) = user's question.
-        ***REMOVED*** The synthetic `b.domain` is hardcoded ZH; translate for lang=en.
+        # SOURCE (a) = KB phenomenon; TARGET (b) = user's question.
+        # The synthetic `b.domain` is hardcoded ZH; translate for lang=en.
         a = kb_phenom
         b = {
             "id": "__query__",
@@ -170,7 +170,7 @@ async def stream_analyze(
         user_query = text_a
         cache_key_a = _query_cache_key(text_a, b_id, lang=lang)
     elif a_id:
-        ***REMOVED*** === Pair mode ===
+        # === Pair mode ===
         other = svc.get_by_id(a_id)
         if not other:
             raise HTTPException(404, "Phenomenon A not found")
@@ -178,30 +178,30 @@ async def stream_analyze(
         idx_b = svc.idx_by_id.get(b_id)
         if idx_a is None or idx_b is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        ***REMOVED*** V3.1 — same UN-normalized embedding bug applies to pair mode.
-        ***REMOVED*** Use the shared _cosine helper (divides by real norms) and remap
-        ***REMOVED*** to [0, 1] so meta.similarity stays in the same口径 as query mode.
+        # V3.1 — same UN-normalized embedding bug applies to pair mode.
+        # Use the shared _cosine helper (divides by real norms) and remap
+        # to [0, 1] so meta.similarity stays in the same口径 as query mode.
         _cos = svc._cosine(svc._embeddings[idx_a], svc._embeddings[idx_b])
         similarity = round((_cos + 1.0) / 2.0, 4)
         a = other
         b = kb_phenom
-        ***REMOVED*** Suffix lang onto pair-mode cache key so zh/en don't collide. Legacy
-        ***REMOVED*** zh entries keep their unsuffixed keys, preserving the existing cache.
+        # Suffix lang onto pair-mode cache key so zh/en don't collide. Legacy
+        # zh entries keep their unsuffixed keys, preserving the existing cache.
         cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
     else:
         raise HTTPException(400, "Must provide either a_id or text_a")
 
-    ***REMOVED*** When lang=en, translate the KB fields in a/b before emitting meta.
-    ***REMOVED*** `b` in query mode is the user's own question (not KB) so we skip it;
-    ***REMOVED*** its fields are either user-written or already produced by the LLM
-    ***REMOVED*** rewrite in the target language.
+    # When lang=en, translate the KB fields in a/b before emitting meta.
+    # `b` in query mode is the user's own question (not KB) so we skip it;
+    # its fields are either user-written or already produced by the LLM
+    # rewrite in the target language.
     if lang == "en":
         a = await translate_kb_item(a, lang) or a
         if user_query is None:
-            ***REMOVED*** Pair mode — b is a KB item too.
+            # Pair mode — b is a KB item too.
             b = await translate_kb_item(b, lang) or b
 
-    ***REMOVED*** Expected 9 top-level sections in a complete report
+    # Expected 9 top-level sections in a complete report
     EXPECTED_SECTIONS = {
         "shared_structure",
         "your_problem_breakdown",
@@ -215,18 +215,18 @@ async def stream_analyze(
     }
     MAX_MISSING_SECTIONS = 4
 
-    ***REMOVED*** Session ***REMOVED***16 M1.4 — capture identity bits for optional persist=1.
-    ***REMOVED*** Two sources accepted (EventSource can't set headers): query param
-    ***REMOVED*** `anon_id` wins, then X-Anon-Id header, finally None. Treat empty as
-    ***REMOVED*** None so list_by_anon doesn't bucket every anon-less call together.
+    # Session #16 M1.4 — capture identity bits for optional persist=1.
+    # Two sources accepted (EventSource can't set headers): query param
+    # `anon_id` wins, then X-Anon-Id header, finally None. Treat empty as
+    # None so list_by_anon doesn't bucket every anon-less call together.
     anon_id_raw = (
         (anon_id or "").strip()
         or (request.headers.get("x-anon-id", "").strip())
         or None
     )
     creator_tier = tier if isinstance(tier, str) else None
-    ***REMOVED*** ASK_MODEL is imported from ask_orchestrator (single source of truth);
-    ***REMOVED*** it already honours the ASK_LLM_MODEL env override.
+    # ASK_MODEL is imported from ask_orchestrator (single source of truth);
+    # it already honours the ASK_LLM_MODEL env override.
     ask_model = ASK_MODEL
 
     def _maybe_persist(report: dict, is_partial: bool) -> Optional[dict]:
@@ -245,10 +245,10 @@ async def stream_analyze(
                 rewritten_query=(b.get("description") if user_query else None),
                 b_id=b_id,
                 lang=lang,
-                ***REMOVED*** V4: stash the credibility block inside the payload under a
-                ***REMOVED*** reserved key so saved/shared reports can render the moat
-                ***REMOVED*** badge too. renderFinalReport ignores non-section keys;
-                ***REMOVED*** _detail_dict lifts it back to a top-level field on read.
+                # V4: stash the credibility block inside the payload under a
+                # reserved key so saved/shared reports can render the moat
+                # badge too. renderFinalReport ignores non-section keys;
+                # _detail_dict lifts it back to a top-level field on read.
                 payload={**report, "_credibility": credibility},
                 model=ask_model,
                 prompt_version="v1",
@@ -267,30 +267,30 @@ async def stream_analyze(
             logger.exception("[analyze] persist failed (persist=1)")
             return None
 
-    ***REMOVED*** Session ***REMOVED***17 V4 — credibility block. We audited the KB
-    ***REMOVED*** (data/kb-expanded.jsonl): it carries ONLY id/name/domain/type_id/
-    ***REMOVED*** description — there is NO per-phenomenon universality-class label,
-    ***REMOVED*** SIBD-63 membership flag, or review-score field. We therefore do NOT
-    ***REMOVED*** fabricate a "moat badge". What we CAN honestly surface, post-V3-fix:
-    ***REMOVED***   * similarity        — now a legal [0,1] relevance value;
-    ***REMOVED***   * source_domain     — the KB phenomenon's domain (the borrowed-from
-    ***REMOVED***                         field), and source_type_id;
-    ***REMOVED***   * has_verified_pairs— whether the SOURCE phenomenon appears in the
-    ***REMOVED***                         v2 cross-domain pair index (LLM-rated pairs,
-    ***REMOVED***                         the closest thing to "verified isomorphism").
-    ***REMOVED***   * verified_pair_count + best_verified_pair (top-rated neighbour).
-    ***REMOVED*** `kb_source` is True so the frontend knows this came from the curated
-    ***REMOVED*** KB, not free-text. No field here is invented.
+    # Session #17 V4 — credibility block. We audited the KB
+    # (data/kb-expanded.jsonl): it carries ONLY id/name/domain/type_id/
+    # description — there is NO per-phenomenon universality-class label,
+    # SIBD-63 membership flag, or review-score field. We therefore do NOT
+    # fabricate a "moat badge". What we CAN honestly surface, post-V3-fix:
+    #   * similarity        — now a legal [0,1] relevance value;
+    #   * source_domain     — the KB phenomenon's domain (the borrowed-from
+    #                         field), and source_type_id;
+    #   * has_verified_pairs— whether the SOURCE phenomenon appears in the
+    #                         v2 cross-domain pair index (LLM-rated pairs,
+    #                         the closest thing to "verified isomorphism").
+    #   * verified_pair_count + best_verified_pair (top-rated neighbour).
+    # `kb_source` is True so the frontend knows this came from the curated
+    # KB, not free-text. No field here is invented.
     from services.v2_pairs import get_pairs_for as _v2_pairs_for
     _src_id = a.get("id") if isinstance(a, dict) else None
     _verified_pairs = _v2_pairs_for(_src_id, limit=1) if _src_id else []
     _all_verified = _v2_pairs_for(_src_id) if _src_id else []
-    ***REMOVED*** B Data Flywheel closure (Session ***REMOVED***18) — real human-verification count.
-    ***REMOVED*** Distinct users who marked outcome='worked' on a report targeting THIS
-    ***REMOVED*** b_id. This is NOT a fabricated badge: it comes straight from real
-    ***REMOVED*** report_followup data. 0 is reported honestly as 0. The query is one
-    ***REMOVED*** indexed JOIN; it runs before event_gen so it can't slow the stream,
-    ***REMOVED*** and degrades to {count:0} on any failure (never tears down the SSE).
+    # B Data Flywheel closure (Session #18) — real human-verification count.
+    # Distinct users who marked outcome='worked' on a report targeting THIS
+    # b_id. This is NOT a fabricated badge: it comes straight from real
+    # report_followup data. 0 is reported honestly as 0. The query is one
+    # indexed JOIN; it runs before event_gen so it can't slow the stream,
+    # and degrades to {count:0} on any failure (never tears down the SSE).
     from services.verified_isomorphisms import human_verified_for
     _hv = human_verified_for(_report_store, b_id)
     credibility = {
@@ -310,7 +310,7 @@ async def stream_analyze(
             if _verified_pairs
             else None
         ),
-        ***REMOVED*** B Data Flywheel closure — real users who confirmed it worked.
+        # B Data Flywheel closure — real users who confirmed it worked.
         "human_verified_count": int(_hv.get("count", 0) or 0),
         "human_verified_recent": _hv.get("recent", "") or "",
     }
@@ -319,36 +319,36 @@ async def stream_analyze(
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
 
-        ***REMOVED*** Emit meta first so the client can render the pair header
+        # Emit meta first so the client can render the pair header
         yield sse("meta", {
             "a": a,
             "b": b,
             "similarity": similarity,
             "is_query_mode": user_query is not None,
-            ***REMOVED*** V4 — honest credibility data (see block above for what's real).
+            # V4 — honest credibility data (see block above for what's real).
             "credibility": credibility,
         })
 
-        ***REMOVED*** Launch P1-3 — out-of-scope gate for query mode. The deep-report
-        ***REMOVED*** generator previously had NO scope check: "1+1 等于几" + any b_id
-        ***REMOVED*** produced a full 9-section report (验证型产品硬拗 = 信任崩).
-        ***REMOVED*** Two layers, either trips:
-        ***REMOVED***   (a) deterministic trivial/chit-chat detector (arithmetic,
-        ***REMOVED***       greetings, trivia) — catches obvious junk;
-        ***REMOVED***   (b) relevance floor — the UNIFIED query-vs-KB relevance, in
-        ***REMOVED***       [0, 1], the SAME口径 /api/search exposes as result.relevance.
-        ***REMOVED***       0.5 ≈ orthogonal; a genuine cross-domain match lands ~0.65+;
-        ***REMOVED***       pure noise sits near 0.5. ANALYZE_SCOPE_MIN_SIMILARITY is
-        ***REMOVED***       env-tunable. NOTE: because the口径 is now shared with search,
-        ***REMOVED***       this floor MUST stay <= the relevance search shows for a
-        ***REMOVED***       result, or search and analyze contradict each other (V3.2).
-        ***REMOVED*** Pair mode (two KB phenomena) is in-scope by construction — skip.
+        # Launch P1-3 — out-of-scope gate for query mode. The deep-report
+        # generator previously had NO scope check: "1+1 等于几" + any b_id
+        # produced a full 9-section report (验证型产品硬拗 = 信任崩).
+        # Two layers, either trips:
+        #   (a) deterministic trivial/chit-chat detector (arithmetic,
+        #       greetings, trivia) — catches obvious junk;
+        #   (b) relevance floor — the UNIFIED query-vs-KB relevance, in
+        #       [0, 1], the SAME口径 /api/search exposes as result.relevance.
+        #       0.5 ≈ orthogonal; a genuine cross-domain match lands ~0.65+;
+        #       pure noise sits near 0.5. ANALYZE_SCOPE_MIN_SIMILARITY is
+        #       env-tunable. NOTE: because the口径 is now shared with search,
+        #       this floor MUST stay <= the relevance search shows for a
+        #       result, or search and analyze contradict each other (V3.2).
+        # Pair mode (two KB phenomena) is in-scope by construction — skip.
         if user_query is not None:
             from services.scope_guard import is_out_of_scope as _is_oos
             oos, oos_reason = _is_oos(user_query)
-            ***REMOVED*** Default 0.50 — i.e. refuse only queries that are at-or-below
-            ***REMOVED*** orthogonal to the chosen KB phenomenon. Old default (0.30) was
-            ***REMOVED*** against a raw, unbounded np.dot and is meaningless now.
+            # Default 0.50 — i.e. refuse only queries that are at-or-below
+            # orthogonal to the chosen KB phenomenon. Old default (0.30) was
+            # against a raw, unbounded np.dot and is meaningless now.
             scope_floor = float(
                 os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.50")
             )
@@ -373,17 +373,17 @@ async def stream_analyze(
                 yield sse("done", {"report": None, "from_cache": False})
                 return
 
-        ***REMOVED*** Check cache
+        # Check cache
         cached = _cache.get(cache_key_a, b_id)
         if cached:
-            ***REMOVED*** Emit each section as a separate event so frontend renders uniformly
+            # Emit each section as a separate event so frontend renders uniformly
             for key, value in cached.items():
                 yield sse("section", {"key": key, "data": value})
-            ***REMOVED*** M1.4: optional persist even on cache hit — same payload, new
-            ***REMOVED*** share token / row, so the user gets a shareable URL each time
-            ***REMOVED*** they explicitly ask for it. Belt-and-suspenders: re-check
-            ***REMOVED*** quality so a stale cached fallback doesn't get persisted as
-            ***REMOVED*** is_partial=False (Validator session-***REMOVED***16 P2).
+            # M1.4: optional persist even on cache hit — same payload, new
+            # share token / row, so the user gets a shareable URL each time
+            # they explicitly ask for it. Belt-and-suspenders: re-check
+            # quality so a stale cached fallback doesn't get persisted as
+            # is_partial=False (Validator session-#16 P2).
             cached_missing = len(EXPECTED_SECTIONS - set(cached.keys())) if cached else 9
             cached_partial = cached_missing >= MAX_MISSING_SECTIONS
             persist_payload = _maybe_persist(cached, is_partial=cached_partial)
@@ -392,11 +392,11 @@ async def stream_analyze(
             yield sse("done", {"report": cached, "from_cache": True})
             return
 
-        ***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker. The cached path
-        ***REMOVED*** above is free (no LLM call) so it is intentionally NOT charged;
-        ***REMOVED*** only a genuine generation counts. Headers are already sent here,
-        ***REMOVED*** so an over-budget request is surfaced as a terminal SSE `error`
-        ***REMOVED*** event + `done` rather than an HTTP 429.
+        # Launch P0-2 — daily LLM budget circuit breaker. The cached path
+        # above is free (no LLM call) so it is intentionally NOT charged;
+        # only a genuine generation counts. Headers are already sent here,
+        # so an over-budget request is surfaced as a terminal SSE `error`
+        # event + `done` rather than an HTTP 429.
         from services.cost_ledger import ledger as _cost_ledger
         from errors import BudgetExceeded as _BudgetExceeded
         try:
@@ -455,7 +455,7 @@ async def stream_analyze(
                     local_err = chunk.get("message", "unknown error")
             yield ("result", local_final, local_err)
 
-        ***REMOVED*** ---- First attempt: stream progressively ----
+        # ---- First attempt: stream progressively ----
         final_report = None
         first_err = None
         async for item in _stream_once():
@@ -472,7 +472,7 @@ async def stream_analyze(
         )
 
         if needs_retry:
-            ***REMOVED*** Inform the client the first pass was incomplete and we'll retry.
+            # Inform the client the first pass was incomplete and we'll retry.
             reason_parts = []
             if final_report is None:
                 reason_parts.append("final JSON parse failed")
@@ -485,7 +485,7 @@ async def stream_analyze(
             reason = "; ".join(reason_parts) or "incomplete report"
             yield sse("retry", {"reason": reason})
 
-            ***REMOVED*** Second attempt — fresh LLM call, bypass cache.
+            # Second attempt — fresh LLM call, bypass cache.
             final_report = None
             second_err = None
             async for item in _stream_once():
@@ -512,19 +512,19 @@ async def stream_analyze(
                 if second_err:
                     err_reason_parts.append(second_err)
                 err_reason = "; ".join(err_reason_parts) or "retry failed"
-                ***REMOVED*** Preserve backward-compat error shape; only ADD retryable flag.
+                # Preserve backward-compat error shape; only ADD retryable flag.
                 yield sse("error", {
                     "message": err_reason,
                     "retryable": False,
                 })
 
-        ***REMOVED*** M1.4: persist BEFORE the `done` event so clients see the
-        ***REMOVED*** share URL alongside the final report in one SSE flush. Treat
-        ***REMOVED*** an incomplete/retried-then-failed report as is_partial=True so
-        ***REMOVED*** the frontend can dim the share button.
-        ***REMOVED*** Validator session ***REMOVED***16 P1: also flag is_partial when >= 4 sections
-        ***REMOVED*** missing, not just on fallback-name match (a report with 5/9
-        ***REMOVED*** sections doesn't have the fallback name but is still partial).
+        # M1.4: persist BEFORE the `done` event so clients see the
+        # share URL alongside the final report in one SSE flush. Treat
+        # an incomplete/retried-then-failed report as is_partial=True so
+        # the frontend can dim the share button.
+        # Validator session #16 P1: also flag is_partial when >= 4 sections
+        # missing, not just on fallback-name match (a report with 5/9
+        # sections doesn't have the fallback name but is still partial).
         if final_report is None:
             is_partial = True
         else:
@@ -536,8 +536,8 @@ async def stream_analyze(
 
         yield sse("done", {"report": final_report, "from_cache": False})
 
-        ***REMOVED*** Cache successful reports (both first-try and retry-try). Skip the
-        ***REMOVED*** fallback sentinel in either language so we don't poison the cache.
+        # Cache successful reports (both first-try and retry-try). Skip the
+        # fallback sentinel in either language so we don't poison the cache.
         if final_report and final_report.get("shared_structure", {}).get("name") not in (
             LLMService.FALLBACK_STRUCTURE_NAME_ZH,
             LLMService.FALLBACK_STRUCTURE_NAME_EN,

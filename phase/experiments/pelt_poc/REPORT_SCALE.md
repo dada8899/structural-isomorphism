@@ -1,9 +1,9 @@
-***REMOVED*** PELT POC 扩展版 — 25 家公司聚合结果
+# PELT POC 扩展版 — 25 家公司聚合结果
 生成时间: 2026-04-16 13:37
 样本：25/25 家公司有足够数据
 总拐点数：48
 
-***REMOVED******REMOVED*** 🎯 核心指标
+## 🎯 核心指标
 
 | 指标 | 数字 | 比例 |
 |-----|-----|-----|
@@ -13,7 +13,7 @@
 | 拐点前后累计收益差（中位数）| 11.4pp | — |
 | 拐点前后波动率比（中位数）| 1.12x | — |
 
-***REMOVED******REMOVED*** 📊 Regime 变化类型分布
+## 📊 Regime 变化类型分布
 
 | 类型 | 数量 | 比例 |
 |---|---|---|
@@ -23,7 +23,7 @@
 | 趋势减速 | 4 | 8.3% |
 | 趋势加速 | 1 | 2.1% |
 
-***REMOVED******REMOVED*** 🔬 按置信度分层（更重要）
+## 🔬 按置信度分层（更重要）
 
 高置信拐点是不是更靠谱？
 
@@ -32,7 +32,7 @@
 | 高分 (>3) | 44 | 22 | **50.0%** |
 | 中分 (2-3) | 4 | 4 | **100.0%** |
 
-***REMOVED******REMOVED*** 🏷️ 按 dynamics_family 分层
+## 🏷️ 按 dynamics_family 分层
 
 不同类型公司的拐点是否更显著？
 
@@ -48,9 +48,9 @@
 | ODE2_damped_oscillation | 10 | 5 | **50%** | GS, XOM, CVX, FCX |
 | ODE1_exponential_growth | 4 | 1 | **25%** | NVDA |
 
-***REMOVED******REMOVED*** 📋 每家公司明细
+## 📋 每家公司明细
 
-***REMOVED******REMOVED******REMOVED*** AAPL · 苹果（ODE1_saturating）
+### AAPL · 苹果（ODE1_saturating）
 
 2 个拐点，1 个有 regime 变化
 
@@ -59,7 +59,7 @@
 | 2019-10 | 7.73 | +10.2% | +19.4% | **无明显变化** |
 | 2021-06 | 8.40 | -0.9% | +17.4% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** MSFT · 微软（ODE1_linear）
+### MSFT · 微软（ODE1_linear）
 
 2 个拐点，0 个有 regime 变化
 
@@ -68,7 +68,7 @@
 | 2017-04 | 7.98 | +2.5% | +8.0% | **无明显变化** |
 | 2022-04 | 9.23 | -0.7% | -11.5% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** GOOGL · 谷歌（ODE1_saturating）
+### GOOGL · 谷歌（ODE1_saturating）
 
 1 个拐点，0 个有 regime 变化
 
@@ -76,7 +76,7 @@
 |---|---|---|---|---|
 | 2021-01 | 3.18 | +7.9% | +19.9% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** AMZN · 亚马逊（ODE1_logistic）
+### AMZN · 亚马逊（ODE1_logistic）
 
 2 个拐点，1 个有 regime 变化
 
@@ -85,7 +85,7 @@
 | 2021-06 | 8.02 | -0.1% | +3.4% | **无明显变化** |
 | 2023-07 | 6.99 | +25.8% | +3.6% | **趋势减速** |
 
-***REMOVED******REMOVED******REMOVED*** META · Meta（Phase_transition_2nd）
+### META · Meta（Phase_transition_2nd）
 
 4 个拐点，2 个有 regime 变化
 
@@ -96,7 +96,7 @@
 | 2023-04 | 10.96 | +42.3% | +23.2% | **趋势减速** |
 | 2024-12 | 6.06 | +0.3% | +14.2% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** NVDA · NVIDIA（ODE1_exponential_growth）
+### NVDA · NVIDIA（ODE1_exponential_growth）
 
 4 个拐点，1 个有 regime 变化
 
@@ -107,7 +107,7 @@
 | 2023-07 | 6.66 | +50.0% | +15.0% | **趋势减速** |
 | 2024-10 | 6.14 | +13.2% | +18.2% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** NFLX · Netflix（ODE1_saturating）
+### NFLX · Netflix（ODE1_saturating）
 
 2 个拐点，2 个有 regime 变化
 
@@ -116,7 +116,7 @@
 | 2021-11 | 4.85 | +17.3% | -10.1% | **趋势反转** |
 | 2023-02 | 4.72 | +13.2% | -4.6% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** PTON · Peloton（Fold_bifurcation）
+### PTON · Peloton（Fold_bifurcation）
 
 1 个拐点，0 个有 regime 变化
 
@@ -124,7 +124,7 @@
 |---|---|---|---|---|
 | 2021-06 | 7.60 | +1.1% | +8.4% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** SHOP · Shopify（ODE1_logistic）
+### SHOP · Shopify（ODE1_logistic）
 
 2 个拐点，1 个有 regime 变化
 
@@ -133,7 +133,7 @@
 | 2021-09 | 8.72 | -0.9% | -4.7% | **无明显变化** |
 | 2023-05 | 5.50 | +17.7% | +34.9% | **波动率突增** |
 
-***REMOVED******REMOVED******REMOVED*** SBUX · Starbucks（ODE1_linear）
+### SBUX · Starbucks（ODE1_linear）
 
 1 个拐点，1 个有 regime 变化
 
@@ -141,7 +141,7 @@
 |---|---|---|---|---|
 | 2016-06 | 5.97 | -8.6% | +5.9% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** CMG · Chipotle（ODE1_logistic）
+### CMG · Chipotle（ODE1_logistic）
 
 4 个拐点，2 个有 regime 变化
 
@@ -152,7 +152,7 @@
 | 2021-11 | 6.00 | -6.5% | -3.0% | **无明显变化** |
 | 2025-03 | 6.39 | -10.5% | -6.8% | **波动率突增** |
 
-***REMOVED******REMOVED******REMOVED*** BYND · Beyond Meat（Fold_bifurcation）
+### BYND · Beyond Meat（Fold_bifurcation）
 
 1 个拐点，1 个有 regime 变化
 
@@ -160,7 +160,7 @@
 |---|---|---|---|---|
 | 2021-07 | 7.74 | +24.6% | -20.6% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** JPM · 摩根大通（ODE1_linear）
+### JPM · 摩根大通（ODE1_linear）
 
 2 个拐点，2 个有 regime 变化
 
@@ -169,7 +169,7 @@
 | 2020-03 | 2.35 | -17.2% | -18.6% | **波动率突增** |
 | 2023-02 | 6.03 | +7.3% | -6.6% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** GS · 高盛（ODE2_damped_oscillation）
+### GS · 高盛（ODE2_damped_oscillation）
 
 1 个拐点，0 个有 regime 变化
 
@@ -177,7 +177,7 @@
 |---|---|---|---|---|
 | 2024-05 | 5.84 | +8.8% | +6.6% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** V · Visa（ODE1_linear）
+### V · Visa（ODE1_linear）
 
 1 个拐点，0 个有 regime 变化
 
@@ -185,7 +185,7 @@
 |---|---|---|---|---|
 | 2013-12 | 7.25 | +6.3% | +5.8% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** XOM · 埃克森美孚（ODE2_damped_oscillation）
+### XOM · 埃克森美孚（ODE2_damped_oscillation）
 
 4 个拐点，3 个有 regime 变化
 
@@ -196,7 +196,7 @@
 | 2021-01 | 11.20 | +24.2% | +38.2% | **无明显变化** |
 | 2023-02 | 8.11 | +8.6% | -3.7% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** CVX · 雪佛龙（ODE2_damped_oscillation）
+### CVX · 雪佛龙（ODE2_damped_oscillation）
 
 3 个拐点，1 个有 regime 变化
 
@@ -206,7 +206,7 @@
 | 2021-01 | 10.08 | +18.8% | +22.2% | **无明显变化** |
 | 2023-02 | 8.90 | -1.4% | -3.9% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** FCX · 自由港麦克莫兰（ODE2_damped_oscillation）
+### FCX · 自由港麦克莫兰（ODE2_damped_oscillation）
 
 2 个拐点，1 个有 regime 变化
 
@@ -215,7 +215,7 @@
 | 2014-10 | 3.03 | -12.3% | -14.9% | **波动率突增** |
 | 2016-06 | 5.14 | +17.6% | +22.3% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** INTC · 英特尔（ODE1_exponential_decay）
+### INTC · 英特尔（ODE1_exponential_decay）
 
 1 个拐点，1 个有 regime 变化
 
@@ -223,7 +223,7 @@
 |---|---|---|---|---|
 | 2021-11 | 2.05 | -8.8% | +5.1% | **趋势反转** |
 
-***REMOVED******REMOVED******REMOVED*** IBM · IBM（ODE1_linear）
+### IBM · IBM（ODE1_linear）
 
 2 个拐点，2 个有 regime 变化
 
@@ -232,7 +232,7 @@
 | 2021-01 | 3.69 | +13.1% | -1.3% | **趋势反转** |
 | 2023-12 | 7.47 | +13.9% | +16.6% | **波动率突增** |
 
-***REMOVED******REMOVED******REMOVED*** T · AT&T（ODE1_linear）
+### T · AT&T（ODE1_linear）
 
 2 个拐点，0 个有 regime 变化
 
@@ -241,7 +241,7 @@
 | 2017-04 | 5.86 | -1.4% | -5.8% | **无明显变化** |
 | 2024-05 | 9.70 | +2.2% | +12.9% | **无明显变化** |
 
-***REMOVED******REMOVED******REMOVED*** SNAP · Snap（Phase_transition_2nd）
+### SNAP · Snap（Phase_transition_2nd）
 
 2 个拐点，2 个有 regime 变化
 
@@ -250,7 +250,7 @@
 | 2019-05 | 6.61 | +12.3% | +27.7% | **趋势加速** |
 | 2021-11 | 8.93 | -28.9% | -11.0% | **趋势减速** |
 
-***REMOVED******REMOVED******REMOVED*** GME · GameStop（Self_fulfilling_prophecy）
+### GME · GameStop（Self_fulfilling_prophecy）
 
 2 个拐点，2 个有 regime 变化
 
@@ -259,6 +259,6 @@
 | 2019-05 | 4.17 | -22.7% | -35.7% | **波动率突增** |
 | 2024-05 | 3.00 | -27.1% | +126.3% | **趋势反转** |
 
-***REMOVED******REMOVED*** ⚖️ 最终判断
+## ⚖️ 最终判断
 
 ⚠️ **弱可用**：54% regime 变化比例。7 家样本的 50% 稳住了，说明算法底子在。但单一信号不够做付费产品，下一步需要加 **多指标交叉验证** 或 **领域事件匹配**。

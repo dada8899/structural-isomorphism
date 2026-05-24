@@ -1,4 +1,4 @@
-***REMOVED*** API Auth & Tier Limits
+# API Auth & Tier Limits
 
 The Structural HTTP API is anonymous-first. Any unauthenticated caller can
 hit `/api/ask/stream`, `/api/analyze/stream`, and friends — but their
@@ -6,7 +6,7 @@ requests are bucketed into the strictest rate-limit tier (`anonymous`,
 5/min). Operators can issue tokens to promote select callers to a looser
 tier without touching code.
 
-***REMOVED******REMOVED*** Tiers
+## Tiers
 
 | Tier        | Identifies via                          | Rate limit |
 |-------------|------------------------------------------|------------|
@@ -19,7 +19,7 @@ endpoint may override the anonymous floor via the `default_anon` argument
 (e.g. `@tier_limit_decorator(default_anon="5/minute")` on `/ask/stream`,
 which is more expensive to serve).
 
-***REMOVED******REMOVED*** Token configuration
+## Token configuration
 
 Tokens are configured via the `STRUCTURAL_API_TOKENS` environment variable.
 Format:
@@ -38,7 +38,7 @@ Example:
 If the same string appears under multiple tiers, the higher tier wins
 (`paid` > `free` > `anonymous`).
 
-***REMOVED******REMOVED******REMOVED*** Security notes
+### Security notes
 
 - Tokens are **environment-only**. They MUST NOT be committed to git.
 - Tokens are matched by exact string equality. Pick something at least
@@ -47,16 +47,16 @@ If the same string appears under multiple tiers, the higher tier wins
 - Invalid tokens (provided but not on the allowlist) trigger an HTTP 401
   on the protected endpoint. Missing tokens fall through to anonymous.
 
-***REMOVED******REMOVED*** Passing a token
+## Passing a token
 
-***REMOVED******REMOVED******REMOVED*** Authorization header (preferred)
+### Authorization header (preferred)
 
     curl -H "Authorization: Bearer tok_live_3K9zXq2" \
          -H "Content-Type: application/json" \
          -X POST https://structural.bytedance.city/api/ask/stream \
          -d '{"query": "why do crowds clap in sync?"}'
 
-***REMOVED******REMOVED******REMOVED*** Cookie (browser flows)
+### Cookie (browser flows)
 
 The frontend may set `structural_api_token` on the user's behalf:
 
@@ -65,13 +65,13 @@ The frontend may set `structural_api_token` on the user's behalf:
 The backend looks up the cookie automatically when no `Authorization`
 header is present.
 
-***REMOVED******REMOVED*** Rate-limit response
+## Rate-limit response
 
 When over-limit, slowapi returns HTTP 429 with a `Retry-After` header.
 Clients should back off and retry rather than retrying immediately —
 hammering 429s does not promote the request to a looser tier.
 
-***REMOVED******REMOVED*** Operator quick-reference
+## Operator quick-reference
 
 | Action                       | Command                                                |
 |------------------------------|--------------------------------------------------------|
@@ -80,7 +80,7 @@ hammering 429s does not promote the request to a looser tier.
 | Verify a token is recognised | `curl -H "Authorization: Bearer <tok>" /api/health`    |
 | Revoke a token               | remove from env, restart service                       |
 
-***REMOVED******REMOVED*** Implementation pointers
+## Implementation pointers
 
 - `web/backend/services/auth.py` — `verify_api_token`, `get_rate_limit_tier`, `tier_limit`.
 - `web/backend/services/rate_limit.py` — `tier_limit_decorator`.

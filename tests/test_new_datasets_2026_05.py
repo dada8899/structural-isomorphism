@@ -1,6 +1,6 @@
 """Sanity-check the 2 new empirical datasets added in Wave 11-E.
 
-Newly added (session ***REMOVED***10):
+Newly added (session #10):
     - v4/validation/soc-solar-wind/   (Phase 14: solar-wind speed bursts)
     - v4/validation/soc-github-resolution/  (Phase 15: GitHub issue resolution times)
 
@@ -22,7 +22,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-***REMOVED*** Make soc-pipeline importable
+# Make soc-pipeline importable
 SRC = REPO_ROOT / "packages" / "soc-pipeline" / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -31,7 +31,7 @@ SOLAR_WIND = REPO_ROOT / "v4" / "validation" / "soc-solar-wind" / "solar_wind_bu
 GITHUB = REPO_ROOT / "v4" / "validation" / "soc-github-resolution" / "github_resolutions.jsonl"
 
 
-***REMOVED*** --- Solar wind ---
+# --- Solar wind ---
 
 
 def test_solar_wind_file_exists() -> None:
@@ -86,7 +86,7 @@ def test_solar_wind_pipeline_runs() -> None:
     assert v.alpha is not None and np.isfinite(v.alpha)
 
 
-***REMOVED*** --- GitHub resolution ---
+# --- GitHub resolution ---
 
 
 def test_github_file_exists() -> None:

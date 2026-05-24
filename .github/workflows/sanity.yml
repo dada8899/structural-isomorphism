@@ -15,30 +15,30 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          ***REMOVED*** scikit-learn required: v4/lib/embedding_bridge.py uses
-          ***REMOVED*** TfidfVectorizer as fallback when V1/V2 SentenceTransformer
-          ***REMOVED*** models unavailable in CI. Mirrors coverage.yml dep list.
+          # scikit-learn required: v4/lib/embedding_bridge.py uses
+          # TfidfVectorizer as fallback when V1/V2 SentenceTransformer
+          # models unavailable in CI. Mirrors coverage.yml dep list.
           pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
       - name: Install local packages (editable)
-        ***REMOVED*** v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
-        ***REMOVED*** re-export from packages/*. Sanity tests import via the shims
-        ***REMOVED*** (and one test imports `yaml` directly), so we MUST install:
-        ***REMOVED***   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
-        ***REMOVED***   * guarded-llm        → guarded_llm.guardrail symbols
-        ***REMOVED***   * cross-judge        → pulls in pyyaml + cross_judge prompts
+        # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
+        # re-export from packages/*. Sanity tests import via the shims
+        # (and one test imports `yaml` directly), so we MUST install:
+        #   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
+        #   * guarded-llm        → guarded_llm.guardrail symbols
+        #   * cross-judge        → pulls in pyyaml + cross_judge prompts
         run: |
           pip install -e packages/soc-pipeline
           pip install -e packages/guarded-llm
           pip install -e packages/cross-judge
       - name: Run sanity tests
-        ***REMOVED*** IMPORTANT: do NOT add v4/lib to PYTHONPATH. v4/lib/soc_pipeline.py
-        ***REMOVED*** and v4/lib/llm_guardrail.py are deprecated re-export shims; when
-        ***REMOVED*** v4/lib is on PYTHONPATH first, `from soc_pipeline import ...`
-        ***REMOVED*** resolves to the shim, which re-imports itself and fails with
-        ***REMOVED*** ImportError. The editable installs above provide the real
-        ***REMOVED*** packages — let normal resolution find them. Tests that target the
-        ***REMOVED*** shim itself (test_llm_guardrail.py) add v4/lib to sys.path locally.
-        ***REMOVED*** web/backend is kept on PYTHONPATH for tests importing site-data modules.
+        # IMPORTANT: do NOT add v4/lib to PYTHONPATH. v4/lib/soc_pipeline.py
+        # and v4/lib/llm_guardrail.py are deprecated re-export shims; when
+        # v4/lib is on PYTHONPATH first, `from soc_pipeline import ...`
+        # resolves to the shim, which re-imports itself and fails with
+        # ImportError. The editable installs above provide the real
+        # packages — let normal resolution find them. Tests that target the
+        # shim itself (test_llm_guardrail.py) add v4/lib to sys.path locally.
+        # web/backend is kept on PYTHONPATH for tests importing site-data modules.
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/web/backend"
           pytest v4/tests/sanity -m sanity -q --tb=short

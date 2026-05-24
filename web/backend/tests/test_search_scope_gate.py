@@ -1,4 +1,4 @@
-"""Session ***REMOVED***17 V3.3 — /api/search out-of-scope gate.
+"""Session #17 V3.3 — /api/search out-of-scope gate.
 
 Before V3.3 the search endpoint had NO scope check: "今天天气怎么样" still
 returned 12 candidates. /ask and /analyze both gate; search now matches
@@ -53,7 +53,7 @@ def client(monkeypatch):
     monkeypatch.setattr(
         "main.app_state", {"search": _FakeSearchService()}, raising=False
     )
-    ***REMOVED*** Neuter the rate limiter so a multi-request test file doesn't trip it.
+    # Neuter the rate limiter so a multi-request test file doesn't trip it.
     for _mod in ("services.rate_limit", "middleware.rate_limit"):
         try:
             import importlib
@@ -68,13 +68,13 @@ def client(monkeypatch):
     return TestClient(app)
 
 
-***REMOVED*** --------- V3.3 — out-of-scope refusal --------- ***REMOVED***
+# --------- V3.3 — out-of-scope refusal --------- #
 
 
 @pytest.mark.parametrize("q", [
     "1+1=?",
     "你好",
-    "今天天气怎么样",  ***REMOVED*** the canonical V3.3 bug example
+    "今天天气怎么样",  # the canonical V3.3 bug example
 ])
 def test_out_of_scope_query_returns_no_results(client, q):
     r = client.post("/api/search", json={"query": q})
@@ -96,7 +96,7 @@ def test_out_of_scope_response_shape_is_stable(client):
         assert key in body
 
 
-***REMOVED*** --------- in-scope path still works + carries V2 fields --------- ***REMOVED***
+# --------- in-scope path still works + carries V2 fields --------- #
 
 
 def test_in_scope_query_returns_results_with_v2_fields(client):

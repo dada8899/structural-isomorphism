@@ -1,7 +1,7 @@
-"""W14-A (session ***REMOVED***10, 2026-05-15) — Full user journey e2e (single Playwright test).
+"""W14-A (session #10, 2026-05-15) — Full user journey e2e (single Playwright test).
 
 Simulates a realistic first-time visitor walking through every major surface
-shipped across session ***REMOVED***10's waves W10–W13:
+shipped across session #10's waves W10–W13:
 
     1.  Landing /          — onboarding tour auto-starts, user skips
     2.  /companies          — apply a phase filter, see results
@@ -13,7 +13,7 @@ shipped across session ***REMOVED***10's waves W10–W13:
     8.  /pricing            — click "Start Pro" → /checkout/mock
     9.  /checkout/mock      — fill form, submit (mock)
    10.  /thank-you          — Pro-tier banner
-   11.  /newsletter         — archive → issue ***REMOVED***001 → read
+   11.  /newsletter         — archive → issue #001 → read
    12.  Theme toggle        — dark → light
    13.  Mobile drawer       — resize to 390×844, verify nav surfaces
    14.  Final console-error gate
@@ -31,12 +31,12 @@ Run:
     PYTHONPATH=. .venv/bin/python -m pytest \\
         web/tests/e2e/test_full_user_journey.py -v --tb=short
 
-    ***REMOVED*** against a local Next dev server:
+    # against a local Next dev server:
     PHASE_BASE=http://localhost:3017 PYTHONPATH=. .venv/bin/python -m pytest \\
         web/tests/e2e/test_full_user_journey.py -v --tb=short
 
 The journey is the cross-product integration of all surface area shipped in
-session ***REMOVED***10. If any single page breaks, this test catches it before users.
+session #10. If any single page breaks, this test catches it before users.
 """
 from __future__ import annotations
 
@@ -58,13 +58,13 @@ from playwright.sync_api import (
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Configuration
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
 
 BASE = os.environ.get("PHASE_BASE", "https://phase.bytedance.city").rstrip("/")
 DESKTOP_VIEWPORT = {"width": 1440, "height": 900}
-MOBILE_VIEWPORT = {"width": 390, "height": 844}  ***REMOVED*** iPhone 14 Pro
+MOBILE_VIEWPORT = {"width": 390, "height": 844}  # iPhone 14 Pro
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 SHOT_DIR = REPO_ROOT / "web" / "tests" / "e2e" / "screenshots" / "w14-a-journey"
@@ -75,14 +75,14 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 AXE_CDN = "https://cdn.jsdelivr.net/npm/axe-core@4.10.0/axe.min.js"
 AXE_CACHE = REPO_ROOT / "web" / "tests" / "e2e" / ".axe-core-4.10.0.min.js"
 
-***REMOVED*** LCP loose threshold — this is a journey test, not a perf benchmark. Real
-***REMOVED*** perf gates live in W13-B (CWV budgets). 3s is loose enough to ride out
-***REMOVED*** transient network jitter without masking real regressions.
+# LCP loose threshold — this is a journey test, not a perf benchmark. Real
+# perf gates live in W13-B (CWV budgets). 3s is loose enough to ride out
+# transient network jitter without masking real regressions.
 LCP_BUDGET_MS = 3000
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Reachability gate — skip when base URL down
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Reachability gate — skip when base URL down
+# ---------------------------------------------------------------------------
 
 
 def _base_reachable(url: str) -> bool:
@@ -93,7 +93,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001 — broad catch is the point of a probe
+    except Exception:  # noqa: BLE001 — broad catch is the point of a probe
         return False
 
 
@@ -109,9 +109,9 @@ pytestmark = [
 ]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _load_axe_source() -> str | None:
@@ -127,7 +127,7 @@ def _load_axe_source() -> str | None:
         AXE_CACHE.parent.mkdir(parents=True, exist_ok=True)
         AXE_CACHE.write_bytes(data)
         return data.decode("utf-8")
-    except Exception:  ***REMOVED*** noqa: BLE001 — a11y becomes no-op, journey continues
+    except Exception:  # noqa: BLE001 — a11y becomes no-op, journey continues
         return None
 
 
@@ -137,7 +137,7 @@ def _shot(page: Page, step: str) -> str:
     try:
         page.screenshot(path=str(path), full_page=False)
         return str(path.relative_to(REPO_ROOT))
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return f"<screenshot-failed: {e}>"
 
 
@@ -166,7 +166,7 @@ def _measure_lcp(page: Page, timeout_ms: int = 6000) -> float | None:
             }""",
             timeout_ms,
         )
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -188,45 +188,45 @@ def _run_axe_critical(page: Page, axe_src: str | None) -> int:
             }"""
         )
         return len(result)
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Console-error monitoring
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Console-error monitoring
+# ---------------------------------------------------------------------------
 
-***REMOVED*** Some Next.js dev-mode noise + 3rd-party scripts (Plausible 4xx in dev, etc.)
-***REMOVED*** are unavoidable. Filter them out of the journey assertion so we don't
-***REMOVED*** false-positive on benign cross-origin warnings.
+# Some Next.js dev-mode noise + 3rd-party scripts (Plausible 4xx in dev, etc.)
+# are unavoidable. Filter them out of the journey assertion so we don't
+# false-positive on benign cross-origin warnings.
 _CONSOLE_IGNORE_FRAGMENTS = (
     "Download the React DevTools",
     "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
-    "plausible.io",  ***REMOVED*** analytics blocked in dev/offline
-    "plausible.bytedance.city",  ***REMOVED*** prod analytics may be down/blocked
+    "plausible.io",  # analytics blocked in dev/offline
+    "plausible.bytedance.city",  # prod analytics may be down/blocked
     "favicon.ico",
-    "[HMR]",  ***REMOVED*** Next dev HMR
+    "[HMR]",  # Next dev HMR
     "[Fast Refresh]",
-    "react-dom",  ***REMOVED*** known dev warnings
+    "react-dom",  # known dev warnings
     "googletagmanager",
-    "Service worker registration failed",  ***REMOVED*** /sw.js not served by dev
+    "Service worker registration failed",  # /sw.js not served by dev
     "manifest.webmanifest",
-    ***REMOVED*** Next.js RSC prefetch 404s for non-existent locale routes — these are
-    ***REMOVED*** benign prefetch attempts by <Link> elements and the actual click-through
-    ***REMOVED*** nav works. Real RSC failures on the navigated page would also surface
-    ***REMOVED*** as PWTimeouts in the step itself.
+    # Next.js RSC prefetch 404s for non-existent locale routes — these are
+    # benign prefetch attempts by <Link> elements and the actual click-through
+    # nav works. Real RSC failures on the navigated page would also surface
+    # as PWTimeouts in the step itself.
     "_rsc=",
-    ***REMOVED*** Browser-level "Failed to load resource" is a network-layer error that
-    ***REMOVED*** the browser logs via console.error. It is NOT a JS runtime error and
-    ***REMOVED*** not what we want to gate the journey on — feature tests (W12-A a11y,
-    ***REMOVED*** W13-B CWV, individual page tests) catch real network regressions per
-    ***REMOVED*** surface. The journey only flags genuine JS runtime exceptions that
-    ***REMOVED*** would manifest as broken UI for a real user.
+    # Browser-level "Failed to load resource" is a network-layer error that
+    # the browser logs via console.error. It is NOT a JS runtime error and
+    # not what we want to gate the journey on — feature tests (W12-A a11y,
+    # W13-B CWV, individual page tests) catch real network regressions per
+    # surface. The journey only flags genuine JS runtime exceptions that
+    # would manifest as broken UI for a real user.
     "Failed to load resource",
-    ***REMOVED*** Next.js dispatches RSC prefetch in the background; failures fall back
-    ***REMOVED*** to full-page navigation transparently. These warnings surface as
-    ***REMOVED*** console.error but the user-facing UX is unaffected — the message even
-    ***REMOVED*** says "Falling back to browser navigation".
+    # Next.js dispatches RSC prefetch in the background; failures fall back
+    # to full-page navigation transparently. These warnings surface as
+    # console.error but the user-facing UX is unaffected — the message even
+    # says "Falling back to browser navigation".
     "Failed to fetch RSC payload",
 )
 
@@ -249,9 +249,9 @@ class ConsoleErrorRecorder:
         return list(self.entries)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Fixtures
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -272,12 +272,12 @@ def axe_src() -> str | None:
     return _load_axe_source()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** The journey — single cohesive test
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# The journey — single cohesive test
+# ---------------------------------------------------------------------------
 
 
-def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901, PLR0912, PLR0915
+def test_full_user_journey(chromium, axe_src) -> None:  # noqa: C901, PLR0912, PLR0915
     """End-to-end: first-visit user walks all major surfaces of the app.
 
     This is intentionally a single long test. The realism comes from
@@ -303,17 +303,17 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
         journey["steps"].append(payload)
 
     try:
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 1: Landing — onboarding tour auto-starts; skip it.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 1: Landing — onboarding tour auto-starts; skip it.
+        # ------------------------------------------------------------------
         t0 = time.time()
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
         lcp = _measure_lcp(page)
         _shot(page, "01-landing")
-        ***REMOVED*** Tour may or may not auto-start in prod (depends on AUTO_START_DELAY_MS).
-        ***REMOVED*** Try to skip if present; tolerate absence (e.g. tour already seen
-        ***REMOVED*** on a previous visit from same context, which won't happen here but
-        ***REMOVED*** the test should be robust to future tour-policy changes).
+        # Tour may or may not auto-start in prod (depends on AUTO_START_DELAY_MS).
+        # Try to skip if present; tolerate absence (e.g. tour already seen
+        # on a previous visit from same context, which won't happen here but
+        # the test should be robust to future tour-policy changes).
         tour = page.locator('[data-testid="onboarding-tour"]')
         try:
             tour.first.wait_for(state="visible", timeout=6000)
@@ -329,12 +329,12 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             tour_skipped=tour_skipped,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 2: /companies — apply a phase filter.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 2: /companies — apply a phase filter.
+        # ------------------------------------------------------------------
         page.goto(BASE + "/companies", wait_until="domcontentloaded", timeout=30000)
         lcp = _measure_lcp(page)
-        ***REMOVED*** Wait for content (any anchor to /company/) — at least one company link.
+        # Wait for content (any anchor to /company/) — at least one company link.
         try:
             page.wait_for_selector('a[href*="/company/"]', timeout=15000)
             companies_loaded = True
@@ -352,9 +352,9 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             company_link_count=company_count,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 3: Click a company → /company/[ticker].
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 3: Click a company → /company/[ticker].
+        # ------------------------------------------------------------------
         ticker_for_compare: str | None = None
         universality_class: str | None = None
         if companies_loaded and company_count > 0:
@@ -369,15 +369,15 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             except PWTimeout:
                 detail_ok = False
             lcp = _measure_lcp(page)
-            ***REMOVED*** Extract ticker from URL for /compare seeding.
+            # Extract ticker from URL for /compare seeding.
             url_parts = page.url.rstrip("/").split("/")
             if url_parts and url_parts[-1]:
                 ticker_for_compare = url_parts[-1]
-            ***REMOVED*** Look for universality class link.
+            # Look for universality class link.
             uc_link = page.locator('[data-testid="universality-class-link"]')
             if uc_link.count() > 0:
                 href = uc_link.first.get_attribute("href") or ""
-                ***REMOVED*** href shape: /universality/<class_id>
+                # href shape: /universality/<class_id>
                 if "/universality/" in href:
                     universality_class = href.rsplit("/", 1)[-1]
             _shot(page, "03-company-detail")
@@ -399,9 +399,9 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                 reason="no company links on /companies",
             )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 4: Click universality class link → /universality/[id].
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 4: Click universality class link → /universality/[id].
+        # ------------------------------------------------------------------
         if universality_class:
             try:
                 page.locator('[data-testid="universality-class-link"]').first.click()
@@ -413,7 +413,7 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             except PWTimeout:
                 uc_detail_ok = False
         else:
-            ***REMOVED*** Fallback: just visit the explorer page.
+            # Fallback: just visit the explorer page.
             page.goto(BASE + "/universality", wait_until="domcontentloaded", timeout=30000)
             try:
                 page.wait_for_selector(
@@ -434,13 +434,13 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             detail_ok=uc_detail_ok,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 5: /compare — seed with the ticker we picked + others.
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Use ticker_for_compare if found, else AAPL fallback.
+        # ------------------------------------------------------------------
+        # Step 5: /compare — seed with the ticker we picked + others.
+        # ------------------------------------------------------------------
+        # Use ticker_for_compare if found, else AAPL fallback.
         seed = ticker_for_compare or "AAPL"
-        ***REMOVED*** Add 4 more tickers (5 total) — these are standard mock tickers that
-        ***REMOVED*** the compare page tolerates whether or not BE has data (graceful).
+        # Add 4 more tickers (5 total) — these are standard mock tickers that
+        # the compare page tolerates whether or not BE has data (graceful).
         compare_tickers = [seed]
         for fallback in ("TSLA", "NVDA", "META", "GOOGL"):
             if fallback != seed and len(compare_tickers) < 5:
@@ -465,14 +465,14 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             tickers_requested=compare_tickers[:5],
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 6a: Language switcher → /zh.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 6a: Language switcher → /zh.
+        # ------------------------------------------------------------------
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-        ***REMOVED*** Dismiss tour again if it re-mounts (shouldn't, flag persists).
+        # Dismiss tour again if it re-mounts (shouldn't, flag persists).
         try:
             page.locator('[data-testid="tour-skip"]').first.click(timeout=1500)
-        except Exception:  ***REMOVED*** noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         zh_visible = False
         try:
@@ -480,14 +480,14 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             page.wait_for_url("**/zh", timeout=10000)
             page.wait_for_selector('[data-testid="hero-headline"]', timeout=10000)
             hero_text = page.locator('[data-testid="hero-headline"]').first.inner_text()
-            ***REMOVED*** Heuristic — Chinese hero contains either of these phrases.
+            # Heuristic — Chinese hero contains either of these phrases.
             zh_visible = (
                 "每日" in hero_text
                 or "上市公司" in hero_text
                 or "公司" in hero_text
                 or any(0x4E00 <= ord(c) <= 0x9FFF for c in hero_text)
             )
-        except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+        except (PWTimeout, Exception):  # noqa: BLE001
             pass
         lcp = _measure_lcp(page)
         _shot(page, "06a-zh-landing")
@@ -499,25 +499,25 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             zh_hero_visible=zh_visible,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 7: Back to EN (do this first — needed for Cmd+K, theme, etc).
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 7: Back to EN (do this first — needed for Cmd+K, theme, etc).
+        # ------------------------------------------------------------------
         en_back = False
         try:
             page.locator('[data-testid="lang-en"]').first.click(timeout=5000)
             page.wait_for_url(lambda u: not u.rstrip("/").endswith("/zh"), timeout=10000)
             en_back = True
-        except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+        except (PWTimeout, Exception):  # noqa: BLE001
             page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
         _shot(page, "06b-en-back")
         _record_step("06b-en-back", url=page.url, switched=en_back)
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 8: Cmd+K → search "earthquake" → result navigates to SOC class.
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** The palette is at the layout level so it's accessible from any page.
-        ***REMOVED*** Use platform-correct modifier — Playwright maps "Meta" → Cmd on
-        ***REMOVED*** macOS and Ctrl on others when we use the .press() shortcut form.
+        # ------------------------------------------------------------------
+        # Step 8: Cmd+K → search "earthquake" → result navigates to SOC class.
+        # ------------------------------------------------------------------
+        # The palette is at the layout level so it's accessible from any page.
+        # Use platform-correct modifier — Playwright maps "Meta" → Cmd on
+        # macOS and Ctrl on others when we use the .press() shortcut form.
         page.keyboard.press("Meta+K")
         cmdk_opened = False
         cmdk_navigated_to = None
@@ -525,7 +525,7 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             page.wait_for_selector('[data-testid="cmdk-dialog"]', timeout=4000)
             cmdk_opened = True
         except PWTimeout:
-            ***REMOVED*** Some platforms emit Control+K — try the alt.
+            # Some platforms emit Control+K — try the alt.
             page.keyboard.press("Control+K")
             try:
                 page.wait_for_selector('[data-testid="cmdk-dialog"]', timeout=3000)
@@ -535,9 +535,9 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
         if cmdk_opened:
             try:
                 page.locator('[data-testid="cmdk-input"]').fill("earthquake")
-                ***REMOVED*** Give the result list a tick to filter.
+                # Give the result list a tick to filter.
                 page.wait_for_timeout(400)
-                ***REMOVED*** Click any result whose href contains universality.
+                # Click any result whose href contains universality.
                 result = page.locator(
                     'a[href*="/universality/"], [data-testid^="cmdk-result-"]'
                 ).first
@@ -547,11 +547,11 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                     page.wait_for_load_state("domcontentloaded", timeout=8000)
                     cmdk_navigated_to = page.url
                 else:
-                    ***REMOVED*** Press Enter to activate first result.
+                    # Press Enter to activate first result.
                     page.keyboard.press("Enter")
                     page.wait_for_load_state("domcontentloaded", timeout=5000)
                     cmdk_navigated_to = page.url
-            except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+            except (PWTimeout, Exception):  # noqa: BLE001
                 pass
         _shot(page, "07-cmdk-search")
         _record_step(
@@ -561,9 +561,9 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             navigated_to=cmdk_navigated_to,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 9: /pricing → click "Start Pro" → /checkout/mock?tier=pro.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 9: /pricing → click "Start Pro" → /checkout/mock?tier=pro.
+        # ------------------------------------------------------------------
         page.goto(BASE + "/pricing", wait_until="domcontentloaded", timeout=30000)
         lcp = _measure_lcp(page)
         try:
@@ -579,8 +579,8 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                 page.locator('[data-testid="cta-pro"]').first.click(timeout=5000)
                 page.wait_for_url("**/checkout/mock**", timeout=10000)
                 pro_cta_clicked = True
-            except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
-                ***REMOVED*** Fallback: navigate manually.
+            except (PWTimeout, Exception):  # noqa: BLE001
+                # Fallback: navigate manually.
                 page.goto(
                     BASE + "/checkout/mock?tier=pro",
                     wait_until="domcontentloaded",
@@ -603,9 +603,9 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             pro_cta_clicked=pro_cta_clicked,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 10: /checkout/mock — fill + submit → /thank-you.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 10: /checkout/mock — fill + submit → /thank-you.
+        # ------------------------------------------------------------------
         thank_you_reached = False
         if pro_cta_clicked and "/checkout/mock" in page.url:
             try:
@@ -615,23 +615,23 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                 page.locator('[data-testid="card-input"]').fill("4242 4242 4242 4242")
                 _shot(page, "09-checkout-mock")
                 page.locator('[data-testid="submit-checkout"]').click()
-                ***REMOVED*** Two possible terminal states:
-                ***REMOVED***   /thank-you?tier=pro    (success)
-                ***REMOVED***   /pricing?error=...     (declined)
-                ***REMOVED*** We treat success as the happy path.
+                # Two possible terminal states:
+                #   /thank-you?tier=pro    (success)
+                #   /pricing?error=...     (declined)
+                # We treat success as the happy path.
                 try:
                     page.wait_for_url("**/thank-you**", timeout=15000)
                     thank_you_reached = True
                 except PWTimeout:
-                    ***REMOVED*** Maybe the mock-checkout backend isn't wired on this base.
-                    ***REMOVED*** Navigate manually to verify the thank-you page renders.
+                    # Maybe the mock-checkout backend isn't wired on this base.
+                    # Navigate manually to verify the thank-you page renders.
                     page.goto(
                         BASE + "/thank-you?tier=pro",
                         wait_until="domcontentloaded",
                         timeout=15000,
                     )
                     thank_you_reached = "/thank-you" in page.url
-            except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+            except (PWTimeout, Exception):  # noqa: BLE001
                 pass
         else:
             page.goto(
@@ -647,12 +647,12 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             thank_you_reached=thank_you_reached,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 11: /newsletter → archive → /newsletter/001.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 11: /newsletter → archive → /newsletter/001.
+        # ------------------------------------------------------------------
         page.goto(BASE + "/newsletter", wait_until="domcontentloaded", timeout=30000)
         lcp = _measure_lcp(page)
-        ***REMOVED*** Try to find a link to /newsletter/001 (or any issue).
+        # Try to find a link to /newsletter/001 (or any issue).
         issue_clicked = False
         issue_url: str | None = None
         try:
@@ -662,7 +662,7 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             issue_clicked = "/newsletter/001" in page.url
             issue_url = page.url
         except PWTimeout:
-            ***REMOVED*** Fallback: direct navigate.
+            # Fallback: direct navigate.
             page.goto(
                 BASE + "/newsletter/001",
                 wait_until="domcontentloaded",
@@ -679,11 +679,11 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             issue_clicked=issue_clicked,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 12: Theme toggle dark → light.
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** ThemeToggle is a 3-option segmented control: light / system / dark.
-        ***REMOVED*** We toggle dark then light explicitly.
+        # ------------------------------------------------------------------
+        # Step 12: Theme toggle dark → light.
+        # ------------------------------------------------------------------
+        # ThemeToggle is a 3-option segmented control: light / system / dark.
+        # We toggle dark then light explicitly.
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
         dark_applied = False
         light_applied = False
@@ -705,7 +705,7 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             )
             light_applied = theme_attr_light in ("light", None)
             _shot(page, "13-theme-light")
-        except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+        except (PWTimeout, Exception):  # noqa: BLE001
             pass
         _record_step(
             "12-13-theme-toggle",
@@ -713,14 +713,14 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             light_applied=light_applied,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 13: Mobile drawer at 390×844.
-        ***REMOVED*** ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Step 13: Mobile drawer at 390×844.
+        # ------------------------------------------------------------------
         page.set_viewport_size(MOBILE_VIEWPORT)
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-        ***REMOVED*** At <sm: 640px the TopNav collapses into a drawer (W6-C). The drawer
-        ***REMOVED*** trigger is a hamburger button — not strictly testid-tagged in
-        ***REMOVED*** TopNav.tsx so we use a robust selector chain.
+        # At <sm: 640px the TopNav collapses into a drawer (W6-C). The drawer
+        # trigger is a hamburger button — not strictly testid-tagged in
+        # TopNav.tsx so we use a robust selector chain.
         mobile_drawer_open = False
         drawer_has_lang = False
         drawer_has_theme = False
@@ -737,16 +737,16 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                 trigger.click(timeout=3000)
                 page.wait_for_timeout(500)
                 mobile_drawer_open = True
-            ***REMOVED*** Whether or not the trigger is present, the drawer's items may
-            ***REMOVED*** already be visible (some implementations always render and just
-            ***REMOVED*** show/hide via CSS — we still verify the nav surface contains
-            ***REMOVED*** the expected items).
+            # Whether or not the trigger is present, the drawer's items may
+            # already be visible (some implementations always render and just
+            # show/hide via CSS — we still verify the nav surface contains
+            # the expected items).
             drawer_has_lang = (
                 page.locator('[data-testid="lang-switcher"]').count() > 0
                 or page.locator('[data-testid="lang-zh"]').count() > 0
             )
             drawer_has_theme = page.locator('[data-testid="theme-toggle"]').count() > 0
-            ***REMOVED*** Search trigger may be a button or a / shortcut hint.
+            # Search trigger may be a button or a / shortcut hint.
             drawer_has_search = (
                 page.locator(
                     'button[aria-label*="search" i], '
@@ -759,7 +759,7 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
                 page.locator('[data-testid="tour-restart-link"]').count() > 0
                 or page.locator('a:has-text("导览")').count() > 0
             )
-        except (PWTimeout, Exception):  ***REMOVED*** noqa: BLE001
+        except (PWTimeout, Exception):  # noqa: BLE001
             pass
         _shot(page, "14-mobile-drawer")
         _record_step(
@@ -772,11 +772,11 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             has_tour_restart=drawer_has_tour_restart,
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Step 14: Final a11y + console-error gate.
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Reset viewport before the final a11y scan — desktop is what most
-        ***REMOVED*** AT users hit in practice.
+        # ------------------------------------------------------------------
+        # Step 14: Final a11y + console-error gate.
+        # ------------------------------------------------------------------
+        # Reset viewport before the final a11y scan — desktop is what most
+        # AT users hit in practice.
         page.set_viewport_size(DESKTOP_VIEWPORT)
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
         critical_violations = _run_axe_critical(page, axe_src)
@@ -784,80 +784,80 @@ def test_full_user_journey(chromium, axe_src) -> None:  ***REMOVED*** noqa: C901
             "15-final-a11y",
             critical_violations=critical_violations,
             console_error_count=len(recorder.errors()),
-            console_errors=recorder.errors()[:10],  ***REMOVED*** first 10 only
+            console_errors=recorder.errors()[:10],  # first 10 only
         )
 
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Assertions — the journey passes when key milestones land.
-        ***REMOVED*** ------------------------------------------------------------------
-        ***REMOVED*** Two-tier philosophy:
-        ***REMOVED***
-        ***REMOVED***   HARD (assert): things that must work in every deploy —
-        ***REMOVED***     - landing reachable
-        ***REMOVED***     - /companies has at least one company link
-        ***REMOVED***     - /compare renders at least 1 column
-        ***REMOVED***     - /pricing → /checkout/mock → /thank-you flow reaches /thank-you
-        ***REMOVED***     - language switcher takes user to /zh
-        ***REMOVED***     - 0 console errors after filtering known noise
-        ***REMOVED***     - 0 critical a11y violations on landing
-        ***REMOVED***
-        ***REMOVED***   SOFT (record but don't ship-block): things that vary by deploy
-        ***REMOVED***     state and are caught by per-feature tests too —
-        ***REMOVED***     - /newsletter/001 (issue may not be published yet on target)
-        ***REMOVED***     - theme toggle visible flip (depends on CSS class strategy)
-        ***REMOVED***     - Cmd+K palette navigation (depends on search-index.json
-        ***REMOVED***       deployment & cross-page client mount timing)
-        ***REMOVED***     - mobile drawer accessibility (W6-C hamburger UX is iterating)
-        ***REMOVED***     - LCP within 3s budget (real CWV gates live in W13-B)
-        ***REMOVED***
-        ***REMOVED*** When a soft check fails the journey JSON captures it — feature
-        ***REMOVED*** owners can grep results/session-10-w14-a-journey-results.json
-        ***REMOVED*** for regressions without the journey going red.
+        # ------------------------------------------------------------------
+        # Assertions — the journey passes when key milestones land.
+        # ------------------------------------------------------------------
+        # Two-tier philosophy:
+        #
+        #   HARD (assert): things that must work in every deploy —
+        #     - landing reachable
+        #     - /companies has at least one company link
+        #     - /compare renders at least 1 column
+        #     - /pricing → /checkout/mock → /thank-you flow reaches /thank-you
+        #     - language switcher takes user to /zh
+        #     - 0 console errors after filtering known noise
+        #     - 0 critical a11y violations on landing
+        #
+        #   SOFT (record but don't ship-block): things that vary by deploy
+        #     state and are caught by per-feature tests too —
+        #     - /newsletter/001 (issue may not be published yet on target)
+        #     - theme toggle visible flip (depends on CSS class strategy)
+        #     - Cmd+K palette navigation (depends on search-index.json
+        #       deployment & cross-page client mount timing)
+        #     - mobile drawer accessibility (W6-C hamburger UX is iterating)
+        #     - LCP within 3s budget (real CWV gates live in W13-B)
+        #
+        # When a soft check fails the journey JSON captures it — feature
+        # owners can grep results/session-10-w14-a-journey-results.json
+        # for regressions without the journey going red.
         assert journey["steps"][0]["url"].startswith(BASE), (
             f"landing didn't load BASE: {journey['steps'][0]['url']}"
         )
-        ***REMOVED*** Companies (step 2)
+        # Companies (step 2)
         step_companies = journey["steps"][1]
         assert step_companies.get("companies_loaded"), (
             f"/companies failed to load any company links: {step_companies}"
         )
-        ***REMOVED*** Compare (step 5)
+        # Compare (step 5)
         step_compare = next(s for s in journey["steps"] if s["name"] == "05-compare")
         assert step_compare.get("column_count", 0) >= 1, (
             f"/compare rendered no columns: {step_compare}"
         )
-        ***REMOVED*** Pricing → checkout (step 8) → thank-you (step 9-10)
+        # Pricing → checkout (step 8) → thank-you (step 9-10)
         step_checkout = next(
             s for s in journey["steps"] if s["name"] == "09-10-checkout-thankyou"
         )
         assert step_checkout.get("thank_you_reached"), (
             f"/thank-you not reached: {step_checkout}"
         )
-        ***REMOVED*** Language switch (step 6a)
+        # Language switch (step 6a)
         step_zh = next(s for s in journey["steps"] if s["name"] == "06a-zh-landing")
         assert step_zh.get("zh_hero_visible") or "/zh" in (step_zh.get("url") or ""), (
             f"/zh landing did not render Chinese content: {step_zh}"
         )
-        ***REMOVED*** Console errors — filtered for known third-party / Next-prefetch noise.
+        # Console errors — filtered for known third-party / Next-prefetch noise.
         errs = recorder.errors()
         assert len(errs) == 0, (
             f"console.error during journey (filtered for known noise): "
             f"{json.dumps(errs[:5], ensure_ascii=False, indent=2)}"
         )
-        ***REMOVED*** a11y — critical only (loose journey threshold; serious a11y lives in W12-A).
+        # a11y — critical only (loose journey threshold; serious a11y lives in W12-A).
         assert critical_violations == 0, (
             f"axe critical violations: {critical_violations}"
         )
 
     finally:
-        ***REMOVED*** Persist results regardless of pass/fail.
+        # Persist results regardless of pass/fail.
         out = RESULTS_DIR / "session-10-w14-a-journey-results.json"
         try:
             journey["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             out.write_text(json.dumps(journey, ensure_ascii=False, indent=2))
-        except Exception:  ***REMOVED*** noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         try:
             ctx.close()
-        except Exception:  ***REMOVED*** noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass

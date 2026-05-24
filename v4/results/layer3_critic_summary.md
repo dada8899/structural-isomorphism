@@ -1,4 +1,4 @@
-***REMOVED*** V4 Layer 3 — Critic Pass on Universality-Class Candidates
+# V4 Layer 3 — Critic Pass on Universality-Class Candidates
 
 **Date**: 2026-05-13
 **Pass**: B1 critic rejection
@@ -7,7 +7,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Overview Table
+## Overview Table
 
 | class_id | review_verdict | confidence | flagged_count |
 |---|---|---|---|
@@ -40,59 +40,59 @@
 
 ---
 
-***REMOVED******REMOVED*** Top 5 Most Problematic Classes
+## Top 5 Most Problematic Classes
 
-***REMOVED******REMOVED******REMOVED*** 1. extreme_value_tail_class — REJECT (high confidence)
+### 1. extreme_value_tail_class — REJECT (high confidence)
 
 This is the textbook example of the critic-pass concern. EVT (Fisher-Tippett-Gnedenko + Pickands-Balkema-de Haan) is a **statistical limit theorem**, structurally analogous to the Central Limit Theorem. It tells you: if X_i are iid with regularly varying tail, then max(X_i) converges in distribution to GEV. This is true across an enormous diversity of underlying mechanisms — the universality is in the limit object, not in the generating process.
 
 Members include seed dispersal distances (mechanism: Lévy-flight wind transport), catastrophe-bond pricing (mechanism: compound Poisson event arrival), and wind loads on tall buildings (mechanism: Davenport spectrum + atmospheric boundary layer turbulence). These share *literally zero* mechanism in common; they share only the empirical fact that their tails are heavy enough to be GEV-fittable. Calling this a "universality class" in the dynamical-systems sense is a category error. Recommend demoting to a "statistical regularity" catalog rather than claiming it forms a unified class.
 
-***REMOVED******REMOVED******REMOVED*** 2. markov_chain_memory_fidelity_class — REJECT (high confidence)
+### 2. markov_chain_memory_fidelity_class — REJECT (high confidence)
 
 Companion failure to EVT. First-order Markov property is also a statistical-limit-theorem property: many disparate physical processes are well-approximated by Markovian dynamics in appropriate limits (separation of timescales, weak memory). DNA methylation inheritance (enzymatic copying via DNMT1), X-chromosome inactivation (bistable Xist/Tsix regulatory loop), and generator on/off scheduling (unit-commitment optimization under operating constraints) share the property "transitions are approximately one-step memoryless" — which is true of dice rolls and queueing systems and ion channels and weather states. The shared π = πP equation is a statistical descriptor with no mechanistic content.
 
 This class is exactly what the V4 critic pass is supposed to catch. Demote to descriptor-catalog.
 
-***REMOVED******REMOVED******REMOVED*** 3. schelling_credible_commitment — REJECT (medium confidence)
+### 3. schelling_credible_commitment — REJECT (medium confidence)
 
 This class clusters game-theoretic concepts — commitment with sunk costs, Kydland-Prescott time inconsistency, holdup with incomplete contracts, multi-issue bargaining linkage. The shared "equation" (payoff(commit) > payoff(flexible) iff sunk_cost > defection_gain) is a static inequality, not a scaling law. There are no critical exponents, no continuous order parameters, no shared dynamics. This is a topical cluster of related strategic-behavior concepts in game theory, not a universality class in the physics sense. It also has the lowest avg_edge_score (5.575) in V4 — the embedding model was already signaling weakness.
 
-***REMOVED******REMOVED******REMOVED*** 4. hysteresis_preisach — SPLIT (medium confidence)
+### 4. hysteresis_preisach — SPLIT (medium confidence)
 
 The Preisach model is very specific: an ensemble of independent two-state hysterons with a continuous distribution μ(α,β) of switching thresholds, giving wiping-out and congruency properties. Many members of this class share "has a hysteresis loop" surface phenomenology but use different mechanisms: Granovetter threshold cascades (single collective state, one-shot tipping), Maxwell-construction first-order transitions (free-energy double well, single order parameter), and martensitic transformations (strain-compatibility-driven). All produce loops; none uses the Preisach hysteron ensemble. Recommend splitting into (a) genuine Preisach distributed-hysteron class, (b) Maxwell first-order transition class. The hub phenomenon itself (thermoset resin gelation) is actually Flory-Stockmayer percolation, not hysteresis — a structural mis-rooting.
 
-***REMOVED******REMOVED******REMOVED*** 5. adverse_selection_unraveling_class — SPLIT (high confidence)
+### 5. adverse_selection_unraveling_class — SPLIT (high confidence)
 
 Akerlof lemons unraveling has a *very specific* mechanism: (1) hidden quality dimension, (2) E[q|p] conditioning, (3) monotone exit of high-quality types, (4) market collapse. The auto-curator grouped silent-spiral opinion dynamics (Noelle-Neumann) and recommender-algorithm filter bubbles into this class on the surface basis that "diversity decreases over time." But silent-spiral has no hidden quality dimension — everyone observes opinions; the driver is conformity pressure. Filter bubbles are algorithmic engagement-optimization feedback; no information asymmetry. Recommend splitting into (a) genuine economic adverse-selection (lemons, insurance death spiral, credit rationing), (b) social conformity-driven homogenization (handled by DeGroot, Deffuant, opinion-dynamics models).
 
 ---
 
-***REMOVED******REMOVED*** Top 5 Rock-Solid Classes
+## Top 5 Rock-Solid Classes
 
-***REMOVED******REMOVED******REMOVED*** 1. second_order_damped_oscillator — KEEP (high)
+### 1. second_order_damped_oscillator — KEEP (high)
 
 The cleanest universality class in V4. All three members (tall-building wind vibration with TMD, power-system small-signal oscillation with PSS, transient-stability swing equation) reduce to M·ẍ + C·ẋ + K·x = F(t) in the small-amplitude limit. The TMD↔PSS duality is well-established. ω₀ and ζ are real shared scaling parameters. The Q-factor 1/(2ζ) is a universal invariant. Could be expanded with LCR circuits, MEMS resonators, atomic spectroscopy linewidths — all share the same mathematical skeleton.
 
-***REMOVED******REMOVED******REMOVED*** 2. reaction_diffusion_steady_state_class — KEEP (high)
+### 2. reaction_diffusion_steady_state_class — KEEP (high)
 
 All three members (urban heat island, dewatering groundwater funnel, morphogen-gradient axis polarization) solve identically: ∂c/∂t = D∇²c − kc + S = 0, giving exponential or logarithmic radial profiles with characteristic length λ = √(D/k). Linear PDE, clean. The only caveat is the misnomer "reaction-diffusion" (which conventionally implies nonlinear reaction terms and Turing patterns) — should be renamed to "linear screening/diffusion" or "modified Helmholtz steady-state" to avoid confusion with the actual nonlinear reaction-diffusion universality class.
 
-***REMOVED******REMOVED******REMOVED*** 3. gardner_collins_toggle_switch (after merging Th1Th2 + apoptosis) — KEEP (high)
+### 3. gardner_collins_toggle_switch (after merging Th1Th2 + apoptosis) — KEEP (high)
 
 The strongest evidence-rich class in V4 once the two duplicate hubs are merged. The skeleton dS/dt = αS^n/(K^n + S^n) − βS with Hill coefficient n>1 giving bistability via saddle-node-pair geometry holds across Caspase apoptosis, T-helper polarization (Th1/Th2), synthetic-biology toggle switches, X-inactivation, cell-cycle G1/S Rb switch, and bacterial quorum sensing. Hill function ultrasensitivity is the shared mechanism, not just analogy. Recovers ~10 members across immunology, developmental biology, synthetic biology, and microbiology.
 
-***REMOVED******REMOVED******REMOVED*** 4. percolation_connectivity — KEEP (high)
+### 4. percolation_connectivity — KEEP (high)
 
 Order parameter ∝ (p − p_c)^β with explicit critical exponents (β_{2D} = 5/36, ν = 4/3) is a genuine universality class in the statistical-physics sense. Members (social identity contagion, competitive defense thresholds) plausibly share these exponents — though that's the layer-4 prediction to validate. The class definition is conceptually airtight; the question is empirical membership. Just remove the active/index liquidity outlier which is a continuous price-impact feedback rather than connectivity percolation.
 
-***REMOVED******REMOVED******REMOVED*** 5. motter_lai_network_cascade (after merging social variant) — KEEP (high)
+### 5. motter_lai_network_cascade (after merging social variant) — KEEP (high)
 
 Load-redistribution cascade with capacity-bounded nodes, Eisenberg-Noe clearing vector. The shared equation is explicit and mechanism-specific (not just "things cascade"). Solid members: electric-grid blackouts, progressive building collapse, flash-crash liquidity spirals, bank runs, DeFi protocol liquidations. Recommend pruning bystander-effect (no load redistribution, no capacity), GPS rerouting (congestion game not load-shedding), and Coulomb earthquake stress transfer (continuous-medium elasticity, belongs in SOC). The remaining core is one of the most physically grounded classes in the catalog.
 
 ---
 
-***REMOVED******REMOVED*** Methodology
+## Methodology
 
 The critic pass applied four explicit filters:
 
@@ -120,7 +120,7 @@ Common patterns of false-positive membership in candidate classes:
 
 ---
 
-***REMOVED******REMOVED*** Recommended Taxonomy v2 Changes
+## Recommended Taxonomy v2 Changes
 
 **Mergers** (reduces 21 → 18):
 - `gardner_collins_toggle_switch_Th1Th2` + `gardner_collins_toggle_switch_apoptosis` → single `gardner_collins_toggle_switch` (recovers taxonomy seed name).

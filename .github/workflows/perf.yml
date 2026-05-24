@@ -1,18 +1,18 @@
 name: perf budget
 
-***REMOVED*** W13-B (2026-05-15) — performance budget gate.
-***REMOVED***
-***REMOVED*** On every PR + push to main, this workflow:
-***REMOVED***   1. Builds the phase-detector Next.js app with mock data.
-***REMOVED***   2. Verifies First Load JS per route stays under perf-budget.json
-***REMOVED***      (currently 200 kB).
-***REMOVED***   3. Starts the production server and runs scripts/perf_audit.py
-***REMOVED***      across 10 pages × 2 viewports, capturing LCP / CLS / TBT / INP*.
-***REMOVED***   4. Verifies all numbers are under the perf-budget.json thresholds.
-***REMOVED***   5. Posts a comment on the PR with the full metric table.
-***REMOVED***
-***REMOVED*** Failing any check blocks merge. To intentionally relax a budget, edit
-***REMOVED*** perf-budget.json and explain the rationale in the PR description.
+# W13-B (2026-05-15) — performance budget gate.
+#
+# On every PR + push to main, this workflow:
+#   1. Builds the phase-detector Next.js app with mock data.
+#   2. Verifies First Load JS per route stays under perf-budget.json
+#      (currently 200 kB).
+#   3. Starts the production server and runs scripts/perf_audit.py
+#      across 10 pages × 2 viewports, capturing LCP / CLS / TBT / INP*.
+#   4. Verifies all numbers are under the perf-budget.json thresholds.
+#   5. Posts a comment on the PR with the full metric table.
+#
+# Failing any check blocks merge. To intentionally relax a budget, edit
+# perf-budget.json and explain the rationale in the PR description.
 
 on:
   push:
@@ -64,10 +64,10 @@ jobs:
         working-directory: web/phase-detector
         env:
           NEXT_PUBLIC_USE_MOCK: 'true'
-        ***REMOVED*** set -o pipefail so `pnpm build` failure surfaces here (not in
-        ***REMOVED*** downstream "Check bundle budget" as a confusing parse error).
-        ***REMOVED*** Without pipefail, `tee` swallows the non-zero exit and the step
-        ***REMOVED*** appears green even when next build aborts in lint / typecheck.
+        # set -o pipefail so `pnpm build` failure surfaces here (not in
+        # downstream "Check bundle budget" as a confusing parse error).
+        # Without pipefail, `tee` swallows the non-zero exit and the step
+        # appears green even when next build aborts in lint / typecheck.
         shell: bash
         run: |
           set -o pipefail
@@ -94,7 +94,7 @@ jobs:
         run: |
           nohup pnpm start > /tmp/server.log 2>&1 &
           echo $! > /tmp/server.pid
-          ***REMOVED*** Wait for server to be ready (max 30s)
+          # Wait for server to be ready (max 30s)
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3017/ > /dev/null; then
               echo "server up after ${i}s"
@@ -146,7 +146,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let body = '***REMOVED******REMOVED*** Performance audit\n\n';
+            let body = '## Performance audit\n\n';
             try {
               body += fs.readFileSync('/tmp/bundle-report.md', 'utf8') + '\n\n---\n\n';
             } catch (e) {}
@@ -158,7 +158,7 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            const existing = comments.find(c => c.body && c.body.startsWith('***REMOVED******REMOVED*** Performance audit'));
+            const existing = comments.find(c => c.body && c.body.startsWith('## Performance audit'));
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,

@@ -1,4 +1,4 @@
-***REMOVED*** Phase Detector
+# Phase Detector
 
 **English** | [简体中文](i18n/zh/phase-detector-zh.md)
 
@@ -9,7 +9,7 @@ back a verdict (PASS / INCONCLUSIVE / FAIL), a fitted exponent with
 confidence interval, and the diagnostic alternative-fit comparisons —
 without standing up the Python pipeline locally.
 
-***REMOVED******REMOVED*** Architecture
+## Architecture
 
 The detector is a thin FastAPI service in `web/backend/` that wraps the
 shared library. The request path is:
@@ -35,13 +35,13 @@ The SSE design is the same one used in the Perplexity-like answer
 streamer; see the orchestrator implementation in
 `web/backend/services/ask_orchestrator.py` for the canonical event schema.
 
-***REMOVED******REMOVED*** Usage
+## Usage
 
 The hosted endpoint is rate-limited per tier. The free tier accepts
 size vectors up to $n = 5000$; the paid tier accepts $n = 50000$ and
 exposes the bootstrap-iteration count as a request parameter.
 
-***REMOVED******REMOVED******REMOVED*** Streaming endpoint
+### Streaming endpoint
 
 ```bash
 curl -N -X POST https://api.structural-isomorphism.org/api/ask/stream \
@@ -55,7 +55,7 @@ curl -N -X POST https://api.structural-isomorphism.org/api/ask/stream \
 
 The response is an `event-stream` of the seven events listed above.
 
-***REMOVED******REMOVED******REMOVED*** Synchronous endpoint
+### Synchronous endpoint
 
 For small inputs and quick checks the synchronous endpoint returns the
 full result table in one response:
@@ -84,7 +84,7 @@ curl -X POST https://api.structural-isomorphism.org/api/ask \
 }
 ```
 
-***REMOVED******REMOVED*** What the detector does not do
+## What the detector does not do
 
 - **It does not pre-register predictions for you.** If you want a
   pre-registered verdict, write a YAML against the schema in
@@ -96,7 +96,7 @@ curl -X POST https://api.structural-isomorphism.org/api/ask \
   see [Cross-judge ensemble](methodology/cross-judge.md) for the
   taxonomy review that the detector explicitly delegates to.
 
-***REMOVED******REMOVED*** Self-host
+## Self-host
 
 The detector is open source. To run locally:
 

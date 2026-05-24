@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>结构类比引擎 — Phase Detector</title>
   <meta name="description" content="输入一家公司，找出历史上结构最相似的 3 个公司，看它们后来发生了什么。">
 
@@ -13,20 +13,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --green: ***REMOVED***059669;
-      --amber: ***REMOVED***D97706;
-      --red: ***REMOVED***DC2626;
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -127,7 +127,7 @@
     button.btn-primary {
       padding: 10px 20px;
       background: var(--accent);
-      color: ***REMOVED***FFFFFF;
+      color: #FFFFFF;
       border: 0;
       border-radius: 8px;
       font-size: 14px;
@@ -136,7 +136,7 @@
       transition: background 0.15s;
       font-family: inherit;
     }
-    button.btn-primary:hover { background: ***REMOVED***1D4ED8; }
+    button.btn-primary:hover { background: #1D4ED8; }
     button.btn-primary:disabled {
       background: var(--text-dim);
       cursor: not-allowed;
@@ -265,7 +265,7 @@
 
     .lesson {
       padding: 14px 18px;
-      background: ***REMOVED***FFFBEB;
+      background: #FFFBEB;
       border-left: 3px solid var(--amber);
       border-radius: 0 6px 6px 0;
       font-size: 14px;
@@ -414,7 +414,7 @@
   </footer>
 
   <script>
-    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     let COMPANIES = [];
     let SELECTED = null;

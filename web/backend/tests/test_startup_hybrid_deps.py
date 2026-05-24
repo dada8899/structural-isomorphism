@@ -32,18 +32,18 @@ for p in (_BACKEND, _ROOT):
 def test_jieba_installed_and_tokenization_works():
     """jieba + rank_bm25 declared in requirements.txt; tokenization no longer
     falls back to single-char (the dogfood q2 字面 hack root cause)."""
-    ***REMOVED*** 1) Both deps importable (regression guard on requirements.txt drift)
-    import jieba  ***REMOVED*** noqa: F401
-    from rank_bm25 import BM25Okapi  ***REMOVED*** noqa: F401
+    # 1) Both deps importable (regression guard on requirements.txt drift)
+    import jieba  # noqa: F401
+    from rank_bm25 import BM25Okapi  # noqa: F401
 
-    ***REMOVED*** 2) Service-level jieba handle is non-None
+    # 2) Service-level jieba handle is non-None
     from services.search_service import _tokenize, _JIEBA
     assert _JIEBA is not None, (
         "X2 W1: _JIEBA is None — hybrid BM25 will degrade to char-level. "
         "Check requirements.txt + venv install."
     )
 
-    ***REMOVED*** 3) "相变恢复" must produce multi-char tokens, NOT 4 single chars
+    # 3) "相变恢复" must produce multi-char tokens, NOT 4 single chars
     toks = _tokenize("相变恢复")
     assert "相变" in toks or "恢复" in toks, (
         f"jieba broken: expected ['相变', '恢复'] presence, got {toks}"
@@ -52,7 +52,7 @@ def test_jieba_installed_and_tokenization_works():
         f"Tokenization degraded to single chars: {toks}"
     )
 
-    ***REMOVED*** 4) main.py contains the fail-fast assert (structural check)
+    # 4) main.py contains the fail-fast assert (structural check)
     main_src = (_BACKEND / "main.py").read_text(encoding="utf-8")
     assert "import jieba" in main_src and "import rank_bm25" in main_src, (
         "main.py is missing the jieba/rank_bm25 startup assert (X2 W1)"

@@ -69,7 +69,7 @@ def test_schema_rejects_invalid_schema_input():
 
 def test_schema_rejects_non_dict_schema():
     with pytest.raises(TypeError):
-        LLMSchema("not a dict")  ***REMOVED*** type: ignore[arg-type]
+        LLMSchema("not a dict")  # type: ignore[arg-type]
 
 
 def test_validate_response_routes_llmschema(simple_schema):

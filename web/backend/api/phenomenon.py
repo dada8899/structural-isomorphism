@@ -27,11 +27,11 @@ async def get_phenomenon(
         item.get("type_id", ""), exclude_id=phenomenon_id, limit=5
     )
 
-    ***REMOVED*** V2 cross-domain pairs enrichment (hub view)
+    # V2 cross-domain pairs enrichment (hub view)
     v2_pairs = get_pairs_for(phenomenon_id, limit=20)
 
-    ***REMOVED*** When lang=en, translate the Chinese KB fields on-the-fly. The zh path
-    ***REMOVED*** is a no-op passthrough, so legacy behavior is preserved.
+    # When lang=en, translate the Chinese KB fields on-the-fly. The zh path
+    # is a no-op passthrough, so legacy behavior is preserved.
     lang_norm = (lang or "zh").lower()
     if lang_norm == "en":
         item = await translate_kb_item(item, lang_norm)

@@ -1,5 +1,5 @@
 """
-RFC 7807 problem-details error responses (W11-C, session ***REMOVED***10).
+RFC 7807 problem-details error responses (W11-C, session #10).
 
 This module replaces ad-hoc `{"error": "..."}` JSON bodies with a structured
 `Content-Type: application/problem+json` envelope per RFC 7807:
@@ -46,13 +46,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger("structural.errors")
 
-***REMOVED*** Type URI prefix — points to error type catalog. Real URL doesn't need to
-***REMOVED*** resolve (RFC 7807 §4.2 allows "about:blank") but a stable string lets
-***REMOVED*** clients map error types to localized messages without parsing `title`.
+# Type URI prefix — points to error type catalog. Real URL doesn't need to
+# resolve (RFC 7807 §4.2 allows "about:blank") but a stable string lets
+# clients map error types to localized messages without parsing `title`.
 _ERROR_TYPE_PREFIX = "https://structural.bytedance.city/errors/"
 
-***REMOVED*** When true, full tracebacks are returned in `detail` instead of being only
-***REMOVED*** logged. Should be false in production.
+# When true, full tracebacks are returned in `detail` instead of being only
+# logged. Should be false in production.
 _DEBUG = os.getenv("STRUCTURAL_DEBUG", "").lower() in ("1", "true", "yes")
 
 
@@ -81,7 +81,7 @@ class ProblemDetail(Exception):
         self.title = title if title is not None else self.default_title
         self.detail = detail or self.default_title
         self.type_slug = type_slug or self.type_slug
-        ***REMOVED*** Arbitrary extension fields per RFC 7807 §3.2.
+        # Arbitrary extension fields per RFC 7807 §3.2.
         self.extensions = {k: v for k, v in extensions.items() if v is not None}
         super().__init__(self.detail)
 
@@ -94,14 +94,14 @@ class ProblemDetail(Exception):
         }
         if instance:
             body["instance"] = instance
-        ***REMOVED*** Merge extensions last so they never override the canonical fields.
+        # Merge extensions last so they never override the canonical fields.
         for k, v in self.extensions.items():
             if k not in body:
                 body[k] = v
         return body
 
 
-***REMOVED*** ------------- concrete subclasses -------------
+# ------------- concrete subclasses -------------
 
 
 class InvalidInput(ProblemDetail):
@@ -152,13 +152,13 @@ class InternalError(ProblemDetail):
     type_slug = "internal_error"
 
 
-***REMOVED*** ------------- handlers -------------
+# ------------- handlers -------------
 
 
 def _problem_response(exc: ProblemDetail, request: Request) -> JSONResponse:
     body = exc.to_dict(instance=str(request.url.path) if request.url else None)
     headers = {}
-    ***REMOVED*** Surface retry-after on rate-limit so HTTP clients honour it.
+    # Surface retry-after on rate-limit so HTTP clients honour it.
     if isinstance(exc, RateLimitExceeded):
         retry = exc.extensions.get("retry_after_s")
         if retry is not None:
@@ -184,7 +184,7 @@ async def _problem_handler(request: Request, exc: Exception) -> JSONResponse:
         return _problem_response(exc, request)
 
     if isinstance(exc, SlowAPIRateLimitExceeded):
-        ***REMOVED*** slowapi packs the limit string into exc.detail (e.g. "60/minute").
+        # slowapi packs the limit string into exc.detail (e.g. "60/minute").
         limit_spec = getattr(exc, "detail", "unknown")
         retry_after = _parse_retry_after(limit_spec)
         wrapped = RateLimitExceeded(
@@ -195,7 +195,7 @@ async def _problem_handler(request: Request, exc: Exception) -> JSONResponse:
         return _problem_response(wrapped, request)
 
     if isinstance(exc, RequestValidationError):
-        ***REMOVED*** Surface pydantic errors as `errors` extension list.
+        # Surface pydantic errors as `errors` extension list.
         errs = []
         for err in exc.errors():
             errs.append({
@@ -210,8 +210,8 @@ async def _problem_handler(request: Request, exc: Exception) -> JSONResponse:
         return _problem_response(wrapped, request)
 
     if isinstance(exc, StarletteHTTPException):
-        ***REMOVED*** Map common HTTP status codes back into our class hierarchy so the
-        ***REMOVED*** response envelope is consistent across the API surface.
+        # Map common HTTP status codes back into our class hierarchy so the
+        # response envelope is consistent across the API surface.
         status = exc.status_code
         detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
         klass = {
@@ -226,8 +226,8 @@ async def _problem_handler(request: Request, exc: Exception) -> JSONResponse:
         wrapped = klass(detail=detail or klass.default_title, status=status)
         return _problem_response(wrapped, request)
 
-    ***REMOVED*** Unknown exception — log full trace server-side, but only echo a generic
-    ***REMOVED*** message to the client unless DEBUG mode is on.
+    # Unknown exception — log full trace server-side, but only echo a generic
+    # message to the client unless DEBUG mode is on.
     tb = traceback.format_exc()
     logger.error("unhandled exception on %s: %s\n%s", request.url.path, exc, tb)
     if _DEBUG:
@@ -272,7 +272,7 @@ def install_problem_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, _problem_handler)
     app.add_exception_handler(StarletteHTTPException, _problem_handler)
     app.add_exception_handler(SlowAPIRateLimitExceeded, _problem_handler)
-    ***REMOVED*** Catch-all — only kicks in if nothing else matched.
+    # Catch-all — only kicks in if nothing else matched.
     app.add_exception_handler(Exception, _problem_handler)
 
 

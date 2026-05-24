@@ -1,14 +1,14 @@
-***REMOVED*** Filtered: kept [fit] lines + first/last warnings sample
-***REMOVED*** Total raw lines: 4901
-***REMOVED*** === Sample of warnings (first 6) ===
+# Filtered: kept [fit] lines + first/last warnings sample
+# Total raw lines: 4901
+# === Sample of warnings (first 6) ===
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
 /Users/dadamini/Projects/structural-isomorphism/.venv/lib/python3.14/site-packages/powerlaw/distributions.py:743: OptimizeWarning: Initial guess is not within the specified bounds
-***REMOVED*** ... (many similar warnings during bootstrap fits, suppressed) ...
-***REMOVED*** === Final [fit] summary lines ===
+# ... (many similar warnings during bootstrap fits, suppressed) ...
+# === Final [fit] summary lines ===
 [fit] primary_series=units_dispatched_all
 [fit] primary_verdict=INCONCLUSIVE
 [fit] alpha=1.739 in band but 2 alternative(s) decisively beat power-law (Vuong R<0, p<0.1). Likely heavy-tailed but better fit by lognormal/exp at this resolution.

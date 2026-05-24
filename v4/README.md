@@ -1,18 +1,18 @@
-***REMOVED*** V4: Universality Class Discovery Engine
+# V4: Universality Class Discovery Engine
 
 > Status: **Feasibility CONFIRMED** (2026-04-15), moving to full pipeline build
 > Plan: [`plans/v4-universality-class-engine.md`](../plans/v4-universality-class-engine.md)
 > Findings: [`v4/results/FINDINGS-2026-04-15.md`](results/FINDINGS-2026-04-15.md)
 
-***REMOVED******REMOVED*** 一句话
+## 一句话
 
 把 V1/V2/V3 积累的 63 + 191 pair 级同构发现升级为**等价类/普适类地图**——从"发现 A≅B 的个别 pair"跃迁到"发现 M 个跨领域普适类，每个带共享方程 + 不变量 + 可验证预测"。
 
-***REMOVED******REMOVED*** 为什么这是正确的 V4
+## 为什么这是正确的 V4
 
 老 V4（`plans/v4-solver-direction.md`，已标记 DEPRECATED）试图做 retrieve+transform 求解器，在 04-14 被 Direct Opus 打穿 9/10。被打穿的真正原因不是方向错，而是**在错误的抽象层上和 Opus 竞争**。新 V4 换到更高抽象层：**把 Opus 当成 pipeline 里的一道工序**，不正面竞争。
 
-***REMOVED******REMOVED*** 目录结构
+## 目录结构
 
 ```
 v4/
@@ -29,7 +29,7 @@ v4/
 └── validation/                  ← P6 实证验证工作区 (未启动)
 ```
 
-***REMOVED******REMOVED*** 当前状态（2026-04-15）
+## 当前状态（2026-04-15）
 
 - [x] **P0**：物理普适类 taxonomy seed (12 类) 
 - [x] **P1**：Layer 1 图构建脚本 + 运行 → 180 nodes, 143 edges
@@ -41,19 +41,19 @@ v4/
 - [ ] **P6**：第一个实证验证（SOC × DeFi 清算）
 - [ ] **P7**：论文初稿 + 投稿
 
-***REMOVED******REMOVED*** 快速复现
+## 快速复现
 
 ```bash
 cd ~/Projects/structural-isomorphism
-python3 v4/scripts/build_graph.py    ***REMOVED*** ~2 seconds, outputs v4/results/graph.json
-python3 v4/scripts/hub_detect.py     ***REMOVED*** ~3 seconds, outputs v4/results/candidate_classes.jsonl
+python3 v4/scripts/build_graph.py    # ~2 seconds, outputs v4/results/graph.json
+python3 v4/scripts/hub_detect.py     # ~3 seconds, outputs v4/results/candidate_classes.jsonl
 ```
 
 依赖：`networkx>=2.8`（Python 标准库之外只这一个）
 
-***REMOVED******REMOVED*** 前 5 个等价类（来自第一次运行）
+## 前 5 个等价类（来自第一次运行）
 
-| ***REMOVED*** | Hub 节点 | 成员数 | 领域数 | 物理学对应 |
+| # | Hub 节点 | 成员数 | 领域数 | 物理学对应 |
 |---|---|---|---|---|
 | 1 | 清算级联的链上流动性危机 | 21 | 12 | **SOC / threshold cascade** |
 | 2 | 热固性树脂凝胶点渗流相变 | 14 | 12 | **Hysteresis / Preisach** |

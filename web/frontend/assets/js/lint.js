@@ -1,5 +1,5 @@
 /**
- * Structural — C2 structural lint page (Session ***REMOVED***18).
+ * Structural — C2 structural lint page (Session #18).
  *
  * Posts a document to /api/struct-lint and renders the extracted
  * structural claims with failure modes + risk levels. Pure vanilla JS.
@@ -21,7 +21,7 @@
   var elInputError = document.getElementById('lint-input-error');
 
   var elLoadingTimer = document.getElementById('lint-loading-timer');
-  var elLoadingHint = document.querySelector('***REMOVED***lint-loading .lint-loading__hint');
+  var elLoadingHint = document.querySelector('#lint-loading .lint-loading__hint');
   var elErrorMsg = document.getElementById('lint-error-msg');
   var elRetry = document.getElementById('lint-retry');
 

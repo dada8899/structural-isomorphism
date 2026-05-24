@@ -30,7 +30,7 @@ class SynthesizeRequest(BaseModel):
     query: str
     rewritten_query: Optional[str] = None
     results: List[dict]
-    ***REMOVED*** i18n: "zh" (default) or "en". Controls output language of the synthesis.
+    # i18n: "zh" (default) or "en". Controls output language of the synthesis.
     lang: str = "zh"
 
 

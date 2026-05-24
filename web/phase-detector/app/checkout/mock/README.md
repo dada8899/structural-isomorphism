@@ -1,16 +1,16 @@
-***REMOVED*** /checkout/mock — Stripe Pro mock (W10-B, session ***REMOVED***10)
+# /checkout/mock — Stripe Pro mock (W10-B, session #10)
 
 A simulated Stripe Checkout page. **No real charges happen.** Real Stripe
 integration is deferred until PMF signal (target Q3 2026).
 
-***REMOVED******REMOVED*** What this directory contains
+## What this directory contains
 
 - `page.tsx` — server component shell that renders `<CheckoutMockForm>` in a
   `<Suspense>` boundary (required by `useSearchParams`).
 - `../../components/CheckoutMockForm.tsx` — client component with the form
   state, validation, and `/api/checkout/mock` POST handling.
 
-***REMOVED******REMOVED*** How the mock flow works
+## How the mock flow works
 
 1. User clicks **Start Pro** / **Start Team** on `/pricing` → navigates to
    `/checkout/mock?tier=pro&interval=month`.
@@ -23,7 +23,7 @@ integration is deferred until PMF signal (target Q3 2026).
 6. All attempts (success + decline) persist to
    `web/backend/data/mock_checkouts.jsonl` as a "would-have-paid" waitlist.
 
-***REMOVED******REMOVED*** Test-only overrides (localhost only)
+## Test-only overrides (localhost only)
 
 - `?force=success` or `?force=declined` query param → deterministic branch.
   Backend honours this only when the request comes from `127.0.0.1`,
@@ -33,7 +33,7 @@ integration is deferred until PMF signal (target Q3 2026).
   `next.config.js` rewrite (rewrites trigger HMR rebuilds that race with
   `router.push()`).
 
-***REMOVED******REMOVED*** Migration to real Stripe (Q3 2026 target)
+## Migration to real Stripe (Q3 2026 target)
 
 When PMF signal arrives:
 
@@ -50,7 +50,7 @@ When PMF signal arrives:
    DO NOT use FastAPI's JSON parser), idempotency on `event_id` to
    dedupe Stripe retries, enqueue-then-200 (don't block).
 
-***REMOVED******REMOVED*** Why mock now instead of real Stripe
+## Why mock now instead of real Stripe
 
 - **PMF gate**: with < $X MRR signal, the integration tax (webhook
   reliability, dispute handling, dunning, tax compliance, SCA, refunds,

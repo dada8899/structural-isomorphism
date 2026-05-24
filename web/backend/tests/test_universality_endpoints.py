@@ -27,8 +27,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-***REMOVED*** Make sure project root + d1_phase_detector are importable when this test
-***REMOVED*** is collected from `web/backend/tests/`.
+# Make sure project root + d1_phase_detector are importable when this test
+# is collected from `web/backend/tests/`.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -139,20 +139,20 @@ def client(tmp_path, monkeypatch):
     db_path = tmp_path / "d1.sqlite"
     _seed_db(db_path)
     monkeypatch.setenv("DB_URL", f"sqlite:///{db_path}")
-    ***REMOVED*** Reload modules so DB_URL is picked up + class loader cache is fresh.
+    # Reload modules so DB_URL is picked up + class loader cache is fresh.
     import v4.product.d1_phase_detector.api.db as db_mod
     import v4.product.d1_phase_detector.api.universality as uni_mod
     import v4.product.d1_phase_detector.api.main as main_mod
     importlib.reload(db_mod)
     importlib.reload(uni_mod)
     importlib.reload(main_mod)
-    ***REMOVED*** Bust the lru_cache so taxonomy is re-loaded under monkeypatched env.
-    main_mod.universality_router  ***REMOVED*** noqa: B018 -- side-effect: ensure registered
+    # Bust the lru_cache so taxonomy is re-loaded under monkeypatched env.
+    main_mod.universality_router  # noqa: B018 -- side-effect: ensure registered
     uni_mod._load_all_classes.cache_clear()
     return TestClient(main_mod.app)
 
 
-***REMOVED*** ---------- /api/universality/classes ----------
+# ---------- /api/universality/classes ----------
 
 
 def test_list_classes_returns_count_and_array(client):
@@ -162,8 +162,8 @@ def test_list_classes_returns_count_and_array(client):
     assert "count" in body
     assert "classes" in body
     assert isinstance(body["classes"], list)
-    ***REMOVED*** Should have at least 12 classes (umbrella file alone has 12; with
-    ***REMOVED*** per-class files we expect 20+).
+    # Should have at least 12 classes (umbrella file alone has 12; with
+    # per-class files we expect 20+).
     assert body["count"] >= 12, f"only {body['count']} classes loaded"
 
 
@@ -174,9 +174,9 @@ def test_list_classes_card_shape(client):
     for key in ("class_id", "display_name", "definition", "status",
                 "exponent_band", "evidence_count"):
         assert key in sample, f"card missing {key}: {sample.keys()}"
-    ***REMOVED*** Status sort: well-established or emerging should bubble first.
+    # Status sort: well-established or emerging should bubble first.
     statuses = [c["status"] for c in cards]
-    ***REMOVED*** Find first speculative — every well-established/emerging should be earlier.
+    # Find first speculative — every well-established/emerging should be earlier.
     if "speculative" in statuses and "well-established" in statuses:
         first_spec = statuses.index("speculative")
         last_well = max(
@@ -189,12 +189,12 @@ def test_list_classes_card_shape(client):
 def test_list_classes_contains_known_class(client):
     r = client.get("/api/universality/classes")
     ids = {c["class_id"] for c in r.json()["classes"]}
-    ***REMOVED*** These are known to exist in the taxonomy (per-class file + umbrella).
+    # These are known to exist in the taxonomy (per-class file + umbrella).
     assert "soc_threshold_cascade" in ids
     assert "preferential_attachment" in ids
 
 
-***REMOVED*** ---------- /api/universality/classes/{class_id} ----------
+# ---------- /api/universality/classes/{class_id} ----------
 
 
 def test_class_detail_hit(client):
@@ -226,7 +226,7 @@ def test_class_detail_soc_loads_via_umbrella_fallback(client):
     assert body["definition"], "soc must have a non-empty definition"
 
 
-***REMOVED*** ---------- /api/universality/companies/{class_id} ----------
+# ---------- /api/universality/companies/{class_id} ----------
 
 
 def test_companies_for_class_returns_matches(client):
@@ -237,17 +237,17 @@ def test_companies_for_class_returns_matches(client):
     assert body["count"] == 2
     tickers = {c["ticker"] for c in body["companies"]}
     assert tickers == {"LEH", "GME"}
-    ***REMOVED*** Sort: highest extraction_confidence first.
+    # Sort: highest extraction_confidence first.
     assert body["companies"][0]["ticker"] == "LEH"
 
 
 def test_companies_for_class_empty_for_unmatched(client):
     """A real taxonomy class with no companies in the seeded DB returns
     count=0, not 404."""
-    ***REMOVED*** Pick a class that exists in taxonomy but isn't on any seed company.
+    # Pick a class that exists in taxonomy but isn't on any seed company.
     r = client.get("/api/universality/companies/kuramoto_sync")
-    ***REMOVED*** Either 200 with empty list (class exists in umbrella YAML) or 404
-    ***REMOVED*** if taxonomy load failed. Class exists in umbrella so expect 200.
+    # Either 200 with empty list (class exists in umbrella YAML) or 404
+    # if taxonomy load failed. Class exists in umbrella so expect 200.
     assert r.status_code == 200
     body = r.json()
     assert body["count"] == 0

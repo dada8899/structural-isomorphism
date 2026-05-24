@@ -29,47 +29,47 @@ from .time_resolution import time_resolution_sweep
 from .utils import empirical_ccdf, verdict_from_alpha_band
 from .validate import Verdict, validate
 
-***REMOVED*** Register pandas `.soc` accessor (side-effect import).
-***REMOVED*** Only re-export SocAccessor: pandas_accessor defines its OWN Series-oriented
-***REMOVED*** Verdict/validate (fields alpha_ci_low/high). Re-exporting them here used to
-***REMOVED*** silently shadow the canonical validate.py Verdict/validate (alpha_ci_lo/hi)
-***REMOVED*** imported just above — breaking `from soc_pipeline import validate` for every
-***REMOVED*** caller and the whole test_validate.py suite.
-from . import pandas_accessor as _pandas_accessor  ***REMOVED*** noqa: F401
+# Register pandas `.soc` accessor (side-effect import).
+# Only re-export SocAccessor: pandas_accessor defines its OWN Series-oriented
+# Verdict/validate (fields alpha_ci_low/high). Re-exporting them here used to
+# silently shadow the canonical validate.py Verdict/validate (alpha_ci_lo/hi)
+# imported just above — breaking `from soc_pipeline import validate` for every
+# caller and the whole test_validate.py suite.
+from . import pandas_accessor as _pandas_accessor  # noqa: F401
 from .pandas_accessor import SocAccessor
 
 __all__ = [
     "__version__",
-    ***REMOVED*** unified validation entry point (recommended)
+    # unified validation entry point (recommended)
     "validate",
     "Verdict",
-    ***REMOVED*** fit
+    # fit
     "fit_clauset_powerlaw",
     "FitResult",
-    ***REMOVED*** bootstrap
+    # bootstrap
     "bootstrap_ci",
     "BootstrapResult",
-    ***REMOVED*** null
+    # null
     "synthetic_null",
     "NullCase",
-    ***REMOVED*** LR test
+    # LR test
     "vuong_lr_test",
     "LRResult",
-    ***REMOVED*** collapse
+    # collapse
     "shape_normalized_collapse",
     "CollapseResult",
-    ***REMOVED*** omori
+    # omori
     "fit_omori_p",
     "OmoriResult",
     "bin_and_omori_from_events",
-    ***REMOVED*** b-value
+    # b-value
     "fit_b_value",
     "b_to_clauset_alpha",
-    ***REMOVED*** time resolution
+    # time resolution
     "time_resolution_sweep",
-    ***REMOVED*** utils
+    # utils
     "empirical_ccdf",
     "verdict_from_alpha_band",
-    ***REMOVED*** pandas accessor
+    # pandas accessor
     "SocAccessor",
 ]

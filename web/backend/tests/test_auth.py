@@ -1,4 +1,4 @@
-"""Unit tests for api.auth — W15-B (session ***REMOVED***10).
+"""Unit tests for api.auth — W15-B (session #10).
 
 Covers magic-link request, verify, logout, /me, JWT signature, rate
 limiting, expiry, replay attack, invalid token.
@@ -23,10 +23,10 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import auth as auth_mod  ***REMOVED*** noqa: E402
+from api import auth as auth_mod  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -40,8 +40,8 @@ def _fixed_jwt_secret(monkeypatch):
 def client(tmp_path, monkeypatch):
     """Spin up an isolated FastAPI app with auth router + tmp data dir."""
     monkeypatch.setattr(auth_mod, "_data_dir", lambda: tmp_path)
-    ***REMOVED*** Reset any state — module-level files all derive from _data_dir(),
-    ***REMOVED*** so changing _data_dir() is enough to isolate this test's data.
+    # Reset any state — module-level files all derive from _data_dir(),
+    # so changing _data_dir() is enough to isolate this test's data.
 
     app = FastAPI()
     app.include_router(auth_mod.router, prefix="/api")
@@ -52,19 +52,19 @@ def _request_link(client, email: str = "alice@example.com"):
     return client.post("/api/auth/request-link", json={"email": email})
 
 
-***REMOVED*** ---------------- request-link ----------------
+# ---------------- request-link ----------------
 
 def test_request_link_happy_path(client, tmp_path):
     r = _request_link(client, "alice@example.com")
     assert r.status_code == 200, r.text
     assert r.json()["ok"] is True
-    ***REMOVED*** Token file should now contain 1 record.
+    # Token file should now contain 1 record.
     tokens = (tmp_path / "magic_tokens.jsonl").read_text(encoding="utf-8").strip().splitlines()
     assert len(tokens) == 1
     row = json.loads(tokens[0])
     assert row["email"] == "alice@example.com"
     assert row["consumed_at"] is None
-    ***REMOVED*** Mock outbox should also have the link.
+    # Mock outbox should also have the link.
     outbox = (tmp_path / "mock_email_outbox.jsonl").read_text(encoding="utf-8").strip().splitlines()
     assert len(outbox) == 1
     assert "auth/verify?token=" in json.loads(outbox[0])["link"]
@@ -77,7 +77,7 @@ def test_request_link_invalid_email(client):
 
 
 def test_request_link_missing_email(client):
-    ***REMOVED*** pydantic enforces the required field → 422
+    # pydantic enforces the required field → 422
     r = client.post("/api/auth/request-link", json={})
     assert r.status_code == 422
 
@@ -90,7 +90,7 @@ def test_request_link_normalizes_email(client, tmp_path):
 
 
 def test_request_link_rate_limit(client):
-    ***REMOVED*** 3 requests allowed per hour per email, 4th should 429.
+    # 3 requests allowed per hour per email, 4th should 429.
     for _ in range(3):
         r = _request_link(client, "rl@example.com")
         assert r.status_code == 200
@@ -107,7 +107,7 @@ def test_request_link_dev_mode_returns_link(client, monkeypatch):
     assert body["dev_link"].startswith("http")
 
 
-***REMOVED*** ---------------- verify ----------------
+# ---------------- verify ----------------
 
 def _extract_latest_token(tmp_path) -> str:
     rows = (tmp_path / "magic_tokens.jsonl").read_text(encoding="utf-8").strip().splitlines()
@@ -124,7 +124,7 @@ def test_verify_happy_path(client, tmp_path):
     assert body["ok"] is True
     assert body["user"]["email"] == "bob@example.com"
     assert body["user"]["tier"] == "free"
-    ***REMOVED*** Session cookie set.
+    # Session cookie set.
     assert "phase_session" in r.cookies
 
 
@@ -136,7 +136,7 @@ def test_verify_invalid_token(client):
 
 def test_verify_expired_token(client, tmp_path, monkeypatch):
     _request_link(client, "exp@example.com")
-    ***REMOVED*** Rewrite the expires_at to be in the past.
+    # Rewrite the expires_at to be in the past.
     path = tmp_path / "magic_tokens.jsonl"
     rows = [json.loads(l) for l in path.read_text().strip().splitlines()]
     rows[-1]["expires_at"] = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
@@ -164,7 +164,7 @@ def test_verify_missing_token(client):
     assert r.status_code == 422
 
 
-***REMOVED*** ---------------- /me ----------------
+# ---------------- /me ----------------
 
 def test_me_no_session(client):
     r = client.get("/api/auth/me")
@@ -177,7 +177,7 @@ def test_me_after_verify(client, tmp_path):
     token = _extract_latest_token(tmp_path)
     v = client.post("/api/auth/verify", json={"token": token})
     assert v.status_code == 200
-    ***REMOVED*** TestClient carries the cookie automatically.
+    # TestClient carries the cookie automatically.
     r = client.get("/api/auth/me")
     assert r.status_code == 200, r.text
     assert r.json()["user"]["email"] == "me@example.com"
@@ -196,7 +196,7 @@ def test_me_tampered_signature(client, tmp_path):
     token = _extract_latest_token(tmp_path)
     client.post("/api/auth/verify", json={"token": token})
     real = client.cookies.get("phase_session")
-    ***REMOVED*** Forge a token with the SAME claims but a different secret.
+    # Forge a token with the SAME claims but a different secret.
     claims = pyjwt.decode(real, options={"verify_signature": False})
     forged = pyjwt.encode(claims, "wrong-secret", algorithm="HS256")
     client.cookies.clear()
@@ -205,7 +205,7 @@ def test_me_tampered_signature(client, tmp_path):
     assert r.status_code == 401, "tampered JWT must be rejected"
 
 
-***REMOVED*** ---------------- logout ----------------
+# ---------------- logout ----------------
 
 def test_logout_clears_cookie(client, tmp_path):
     _request_link(client, "out@example.com")
@@ -215,11 +215,11 @@ def test_logout_clears_cookie(client, tmp_path):
 
     r = client.post("/api/auth/logout")
     assert r.status_code == 200
-    ***REMOVED*** After logout, /me should 401.
-    ***REMOVED*** TestClient retains cookies unless we explicitly clear; the
-    ***REMOVED*** Set-Cookie header from the logout response carries Max-Age=0 which
-    ***REMOVED*** clears the cookie in a real browser. TestClient doesn't always
-    ***REMOVED*** honor that, so we clear manually to mimic browser behavior.
+    # After logout, /me should 401.
+    # TestClient retains cookies unless we explicitly clear; the
+    # Set-Cookie header from the logout response carries Max-Age=0 which
+    # clears the cookie in a real browser. TestClient doesn't always
+    # honor that, so we clear manually to mimic browser behavior.
     client.cookies.clear()
     r2 = client.get("/api/auth/me")
     assert r2.status_code == 401
@@ -234,7 +234,7 @@ def test_logout_revokes_jti(client, tmp_path):
     assert jwt_str
 
     client.post("/api/auth/logout")
-    ***REMOVED*** Replay the old cookie.
+    # Replay the old cookie.
     client.cookies.clear()
     client.cookies.set("phase_session", jwt_str)
     r = client.get("/api/auth/me")
@@ -247,7 +247,7 @@ def test_logout_no_session_still_200(client):
     assert r.status_code == 200
 
 
-***REMOVED*** ---------------- JWT structural checks ----------------
+# ---------------- JWT structural checks ----------------
 
 def test_jwt_has_required_claims(client, tmp_path):
     _request_link(client, "claims@example.com")
@@ -258,5 +258,5 @@ def test_jwt_has_required_claims(client, tmp_path):
     assert claims["sub"] == "claims@example.com"
     assert claims["tier"] == "free"
     assert "iat" in claims and "exp" in claims and "jti" in claims
-    ***REMOVED*** 30-day TTL.
+    # 30-day TTL.
     assert claims["exp"] - claims["iat"] == 30 * 24 * 3600

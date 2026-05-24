@@ -55,9 +55,9 @@ import numpy as np
 from scipy.stats import kendalltau
 
 
-***REMOVED*** -----------------------------------------------------------------------
-***REMOVED*** Rolling indicators
-***REMOVED*** -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# Rolling indicators
+# -----------------------------------------------------------------------
 
 def rolling_ar1(x: np.ndarray, window: int) -> np.ndarray:
     """Rolling lag-1 autocorrelation. Returns array of length n-window+1.
@@ -79,9 +79,9 @@ def rolling_ar1(x: np.ndarray, window: int) -> np.ndarray:
     else:
         x_for_calc = x
 
-    ***REMOVED*** Strided (n_win, window) view, then split into 'a' (first w-1) and 'b' (last w-1).
+    # Strided (n_win, window) view, then split into 'a' (first w-1) and 'b' (last w-1).
     from numpy.lib.stride_tricks import sliding_window_view
-    W = sliding_window_view(x_for_calc, window)  ***REMOVED*** shape (n_win, window)
+    W = sliding_window_view(x_for_calc, window)  # shape (n_win, window)
     a = W[:, :-1]
     b = W[:, 1:]
     ma = a.mean(axis=1, keepdims=True)
@@ -127,9 +127,9 @@ def rolling_variance(x: np.ndarray, window: int) -> np.ndarray:
     return out
 
 
-***REMOVED*** -----------------------------------------------------------------------
-***REMOVED*** Kendall-tau on indicator
-***REMOVED*** -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# Kendall-tau on indicator
+# -----------------------------------------------------------------------
 
 def kendall_tau_vs_time(indicator: np.ndarray) -> Tuple[float, float]:
     """Observed Kendall-tau between the rolling indicator and time.
@@ -149,9 +149,9 @@ def kendall_tau_vs_time(indicator: np.ndarray) -> Tuple[float, float]:
     return float(tau), float(p)
 
 
-***REMOVED*** -----------------------------------------------------------------------
-***REMOVED*** Optimal block length (Politis & White 2004 / White & Politis 2009)
-***REMOVED*** -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# Optimal block length (Politis & White 2004 / White & Politis 2009)
+# -----------------------------------------------------------------------
 
 def _autocov(x: np.ndarray, max_lag: int) -> np.ndarray:
     x = x - np.mean(x)
@@ -186,9 +186,9 @@ def politis_white_optimal_block_length(
     if acov[0] <= 0 or not np.isfinite(acov[0]):
         return int(np.ceil(np.sqrt(n)))
     rho = acov / acov[0]
-    ***REMOVED*** Politis-White (2004) flat-top lag-window estimate.
-    ***REMOVED*** m = smallest lag k such that |rho(k+j)| < c * sqrt(log10(n)/n)
-    ***REMOVED*** for j = 1..K_N, with c = 2 and K_N = max(5, sqrt(log10(n))).
+    # Politis-White (2004) flat-top lag-window estimate.
+    # m = smallest lag k such that |rho(k+j)| < c * sqrt(log10(n)/n)
+    # for j = 1..K_N, with c = 2 and K_N = max(5, sqrt(log10(n))).
     c = 2.0
     threshold = c * np.sqrt(np.log10(n) / n)
     K_N = max(5, int(np.ceil(np.sqrt(np.log10(n)))))
@@ -198,9 +198,9 @@ def politis_white_optimal_block_length(
             m_hat = k
             break
     M = min(2 * m_hat, max_lag)
-    ***REMOVED*** G_hat = sum_{k=-M..M} |k| * lambda(k/M) * rho(k)
-    ***REMOVED*** D_hat = (4/3) * (sum_{k=-M..M} lambda(k/M) * rho(k))^2
-    ***REMOVED*** b_hat = (2 * G_hat^2 / D_hat)^(1/3) * n^(1/3)
+    # G_hat = sum_{k=-M..M} |k| * lambda(k/M) * rho(k)
+    # D_hat = (4/3) * (sum_{k=-M..M} lambda(k/M) * rho(k))^2
+    # b_hat = (2 * G_hat^2 / D_hat)^(1/3) * n^(1/3)
     def lam(t: float) -> float:
         a = abs(t)
         if a <= 0.5:
@@ -216,7 +216,7 @@ def politis_white_optimal_block_length(
         w = lam(k / M)
         G += abs(k) * w * rk
         D_sum += w * rk
-    ***REMOVED*** For stationary bootstrap, the optimum is g = (2 * G^2 / D)^{1/3} * n^{1/3}
+    # For stationary bootstrap, the optimum is g = (2 * G^2 / D)^{1/3} * n^{1/3}
     D = (4.0 / 3.0) * D_sum * D_sum
     if D <= 0 or not np.isfinite(G) or not np.isfinite(D):
         return int(np.ceil(np.sqrt(n)))
@@ -225,9 +225,9 @@ def politis_white_optimal_block_length(
     return b_int
 
 
-***REMOVED*** -----------------------------------------------------------------------
-***REMOVED*** Block-bootstrap variants
-***REMOVED*** -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# Block-bootstrap variants
+# -----------------------------------------------------------------------
 
 def _resample_moving_block(
     x: np.ndarray, block_length: int, rng: np.random.Generator
@@ -281,7 +281,7 @@ def moving_block_bootstrap(
           'tau_obs': float,
           'p_naive': float,
           'tau_boot': np.ndarray of shape (n_replicates,),
-          'p_block': float,                  ***REMOVED*** two-sided
+          'p_block': float,                  # two-sided
           'ci_lo_95': float, 'ci_hi_95': float,
           'block_length': int,
         }
@@ -376,12 +376,12 @@ def stationary_block_bootstrap(
     }
 
 
-***REMOVED*** -----------------------------------------------------------------------
-***REMOVED*** Smoke test
-***REMOVED*** -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# Smoke test
+# -----------------------------------------------------------------------
 
 if __name__ == "__main__":
-    ***REMOVED*** Quick demo: AR1(0.8) series of n=500, no trend.
+    # Quick demo: AR1(0.8) series of n=500, no trend.
     rng = np.random.default_rng(0)
     n = 500
     phi = 0.8

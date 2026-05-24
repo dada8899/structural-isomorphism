@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 compute_manifest.py — Compute manifest.json for dataset/v1.
 
@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent  ***REMOVED*** dataset/v1/
+ROOT = Path(__file__).resolve().parent.parent  # dataset/v1/
 REPO_ROOT = ROOT.parent.parent
 MANIFEST_PATH = ROOT / "manifest.json"
 
@@ -34,11 +34,11 @@ def walk_dataset():
     We intentionally skip directories themselves.
     """
     for dirpath, dirnames, filenames in os.walk(ROOT, followlinks=True):
-        ***REMOVED*** Skip ourselves writing manifest.json mid-walk
+        # Skip ourselves writing manifest.json mid-walk
         for fn in filenames:
             full = Path(dirpath) / fn
             try:
-                ***REMOVED*** Resolve to real file (follow symlinks)
+                # Resolve to real file (follow symlinks)
                 real = full.resolve(strict=True)
             except (FileNotFoundError, OSError):
                 continue
@@ -53,8 +53,8 @@ def walk_dataset():
 def main():
     files = []
     total_size = 0
-    ***REMOVED*** First pass — list all files w/ size only (sha256 only on smaller files to keep manifest small)
-    SHA_MAX_BYTES = 50 * 1024 * 1024  ***REMOVED*** 50 MB cap on sha256 for huge data files
+    # First pass — list all files w/ size only (sha256 only on smaller files to keep manifest small)
+    SHA_MAX_BYTES = 50 * 1024 * 1024  # 50 MB cap on sha256 for huge data files
     for rel, real, size in walk_dataset():
         if rel == "manifest.json":
             continue
@@ -73,9 +73,9 @@ def main():
 
     files.sort(key=lambda x: x["path"])
 
-    ***REMOVED*** Counts
+    # Counts
     systems_count = len([f for f in files if f["path"].startswith("systems/")
-                         and f["path"].count("/") == 1 + 1  ***REMOVED*** systems/<slot>/<file>
+                         and f["path"].count("/") == 1 + 1  # systems/<slot>/<file>
                          and f["path"].endswith("paper.md")])
     null_count = sum(1 for slot in ["gaussian", "exponential", "poisson", "poisson_omori"]
                      if (ROOT / "null_controls" / slot / "results.json").exists())
@@ -91,7 +91,7 @@ def main():
         "release_date": datetime.utcnow().strftime("%Y-%m-%d"),
         "license_data": "CC-BY-4.0",
         "license_code": "MIT",
-        "git_commit": "607906c",  ***REMOVED*** main HEAD when bundle assembled (W8-A)
+        "git_commit": "607906c",  # main HEAD when bundle assembled (W8-A)
         "systems_count": systems_count,
         "null_controls_count": null_count,
         "taxonomy_classes_count": taxonomy_classes_count,
@@ -105,7 +105,7 @@ def main():
 
     with open(MANIFEST_PATH, "w") as fp:
         json.dump(manifest, fp, indent=2)
-    ***REMOVED*** Console summary
+    # Console summary
     print(f"manifest written: {MANIFEST_PATH}")
     print(f"  systems_count          = {manifest['systems_count']}")
     print(f"  null_controls_count    = {manifest['null_controls_count']}")

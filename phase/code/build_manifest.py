@@ -29,7 +29,7 @@ def title_of(slug):
     if not md.exists():
         return slug
     txt = md.read_text(encoding="utf-8")
-    m = re.search(r"^***REMOVED***\s+(.+)$", txt, re.MULTILINE)
+    m = re.search(r"^#\s+(.+)$", txt, re.MULTILINE)
     return m.group(1).strip() if m else slug
 
 

@@ -44,46 +44,46 @@ from typing import Iterable, List, Optional, Tuple
 
 logger = logging.getLogger("structural.query_expansion")
 
-***REMOVED*** --- Cost / size budgets ----------------------------------------------------
+# --- Cost / size budgets ----------------------------------------------------
 
-***REMOVED*** DeepSeek-chat on OpenRouter is ~$0.27/M input + $1.10/M output as of
-***REMOVED*** 2026-05. With max_tokens=160 and a ~250-token system+user prompt the
-***REMOVED*** worst-case cost per call is ~$0.0002. We cap at $0.001 to absorb price
-***REMOVED*** fluctuation while still keeping per-query cost in the negligible range.
+# DeepSeek-chat on OpenRouter is ~$0.27/M input + $1.10/M output as of
+# 2026-05. With max_tokens=160 and a ~250-token system+user prompt the
+# worst-case cost per call is ~$0.0002. We cap at $0.001 to absorb price
+# fluctuation while still keeping per-query cost in the negligible range.
 EXPANSION_MAX_COST_USD = 0.001
 
-***REMOVED*** Heuristic per-call cost estimate. We don't get usage tokens back from
-***REMOVED*** the wrapper, so we assume a fixed price ceiling rather than the wire
-***REMOVED*** bytes. If the model is ever swapped to GPT-4o-mini ($0.15/M in,
-***REMOVED*** $0.60/M out) the estimate is still inside budget.
+# Heuristic per-call cost estimate. We don't get usage tokens back from
+# the wrapper, so we assume a fixed price ceiling rather than the wire
+# bytes. If the model is ever swapped to GPT-4o-mini ($0.15/M in,
+# $0.60/M out) the estimate is still inside budget.
 _ESTIMATED_COST_PER_CALL_USD = 0.0003
 
-***REMOVED*** Max length of any expansion candidate (chars). Anything longer is
-***REMOVED*** likely a hallucination ("expanded" into a full paragraph instead of a
-***REMOVED*** query rephrase) — we truncate and log, never crash.
+# Max length of any expansion candidate (chars). Anything longer is
+# likely a hallucination ("expanded" into a full paragraph instead of a
+# query rephrase) — we truncate and log, never crash.
 _MAX_EXPANSION_LEN = 80
 
-***REMOVED*** Number of expanded queries we want from the LLM (besides the original).
-***REMOVED*** X2 spec: 3 expansions + 1 original = 4 queries total.
+# Number of expanded queries we want from the LLM (besides the original).
+# X2 spec: 3 expansions + 1 original = 4 queries total.
 _TARGET_EXPANSIONS = 3
 
-***REMOVED*** LLM call timeout. Default budget is "quick win" — slow expansion is
-***REMOVED*** worse UX than no expansion, so we keep it tight.
+# LLM call timeout. Default budget is "quick win" — slow expansion is
+# worse UX than no expansion, so we keep it tight.
 _LLM_TIMEOUT_SEC = 5.0
 
 
-***REMOVED*** --- LRU cache --------------------------------------------------------------
+# --- LRU cache --------------------------------------------------------------
 
-***REMOVED*** OrderedDict-based LRU. We use a threading.Lock (not asyncio.Lock) so the
-***REMOVED*** cache is safe across multiple event loops too — tests create+tear down a
-***REMOVED*** fresh loop per call (asyncio.run), which would invalidate an asyncio.Lock.
-***REMOVED*** Dict ops in CPython are atomic anyway; the lock is to protect the
-***REMOVED*** OrderedDict.move_to_end + popitem sequence from interleaving.
+# OrderedDict-based LRU. We use a threading.Lock (not asyncio.Lock) so the
+# cache is safe across multiple event loops too — tests create+tear down a
+# fresh loop per call (asyncio.run), which would invalidate an asyncio.Lock.
+# Dict ops in CPython are atomic anyway; the lock is to protect the
+# OrderedDict.move_to_end + popitem sequence from interleaving.
 _CACHE_MAX = 256
 _cache: "OrderedDict[str, List[str]]" = OrderedDict()
 _cache_lock = threading.Lock()
 
-***REMOVED*** Lightweight counters for observability (surfaced via cache_stats()).
+# Lightweight counters for observability (surfaced via cache_stats()).
 _stats = {
     "calls": 0,
     "hits": 0,
@@ -93,8 +93,8 @@ _stats = {
     "fallbacks": 0,
 }
 
-***REMOVED*** Running total of expansion cost (estimated). Bounded by
-***REMOVED*** EXPANSION_MAX_COST_USD per call; total is informational only.
+# Running total of expansion cost (estimated). Bounded by
+# EXPANSION_MAX_COST_USD per call; total is informational only.
 _running_cost_usd: float = 0.0
 
 
@@ -120,7 +120,7 @@ def _cache_get(query: str) -> Optional[List[str]]:
     with _cache_lock:
         key = _cache_key(query)
         if key in _cache:
-            ***REMOVED*** LRU touch
+            # LRU touch
             _cache.move_to_end(key)
             return list(_cache[key])
         return None
@@ -144,7 +144,7 @@ def reset_cache_for_tests() -> None:
     _running_cost_usd = 0.0
 
 
-***REMOVED*** --- LLM prompt -------------------------------------------------------------
+# --- LLM prompt -------------------------------------------------------------
 
 _EXPANSION_SYSTEM = """你是一个跨领域知识检索助手。\
 用户向一个研究跨学科结构同构现象的知识库提问，但 KB 收录的是"通用现象"\
@@ -164,7 +164,7 @@ _EXPANSION_USER_TPL = """原查询：{query}
 输出 3 条候选，严格 JSON 格式。"""
 
 
-***REMOVED*** --- Public API -------------------------------------------------------------
+# --- Public API -------------------------------------------------------------
 
 
 async def expand_query(
@@ -197,17 +197,17 @@ async def expand_query(
 
     original = query.strip()
 
-    ***REMOVED*** Cache fast path
+    # Cache fast path
     cached = _cache_get(original)
     if cached is not None:
         _stats["hits"] += 1
         return cached
 
-    ***REMOVED*** Cost guardrail — if we've already burnt the per-call budget on this
-    ***REMOVED*** particular call (we haven't, by definition), short-circuit. Real
-    ***REMOVED*** check: ensure ONE more call stays under the cap.
+    # Cost guardrail — if we've already burnt the per-call budget on this
+    # particular call (we haven't, by definition), short-circuit. Real
+    # check: ensure ONE more call stays under the cap.
     if _ESTIMATED_COST_PER_CALL_USD > EXPANSION_MAX_COST_USD:
-        ***REMOVED*** Defensive: model upgrade pushed cost above cap.
+        # Defensive: model upgrade pushed cost above cap.
         _stats["cost_capped"] += 1
         _stats["fallbacks"] += 1
         logger.warning(
@@ -218,11 +218,11 @@ async def expand_query(
         _cache_put(original, result)
         return result
 
-    ***REMOVED*** LLM call
+    # LLM call
     if llm_complete_json is None:
         try:
             from services.llm_client import complete_json as llm_complete_json
-        except Exception as e:  ***REMOVED*** pragma: no cover
+        except Exception as e:  # pragma: no cover
             logger.warning("query expansion: llm_client import failed: %s", e)
             _stats["fallbacks"] += 1
             return [original]
@@ -250,10 +250,10 @@ async def expand_query(
         _stats["fallbacks"] += 1
         return [original]
 
-    ***REMOVED*** Account for the spend AFTER the call (regardless of success — paid for it).
+    # Account for the spend AFTER the call (regardless of success — paid for it).
     _running_cost_usd += _ESTIMATED_COST_PER_CALL_USD
 
-    ***REMOVED*** Parse + sanitise
+    # Parse + sanitise
     expansions: List[str] = []
     if isinstance(raw, dict):
         candidates = raw.get("expansions") or []
@@ -265,7 +265,7 @@ async def expand_query(
                 c = c.strip()
                 if not c or len(c) > _MAX_EXPANSION_LEN:
                     continue
-                ***REMOVED*** Drop trivial dupes of the original
+                # Drop trivial dupes of the original
                 if c.lower() in seen:
                     continue
                 seen.add(c.lower())
@@ -274,7 +274,7 @@ async def expand_query(
                     break
 
     if not expansions:
-        ***REMOVED*** LLM responded but didn't give usable expansions
+        # LLM responded but didn't give usable expansions
         _stats["fallbacks"] += 1
         result = [original]
     else:
@@ -284,7 +284,7 @@ async def expand_query(
     return result
 
 
-***REMOVED*** --- Result fusion ----------------------------------------------------------
+# --- Result fusion ----------------------------------------------------------
 
 
 def fuse_results(
@@ -301,7 +301,7 @@ def fuse_results(
     `relevance`, `cross_domain`, `surface_domain` from the strongest
     hit). Stable ordering by score desc.
     """
-    best: dict = {}  ***REMOVED*** id -> result dict (with current max score)
+    best: dict = {}  # id -> result dict (with current max score)
     for run in per_query_results:
         for r in run or []:
             rid = r.get("id")
@@ -310,12 +310,12 @@ def fuse_results(
             score = float(r.get("score") or 0.0)
             prev = best.get(rid)
             if prev is None or score > float(prev.get("score") or 0.0):
-                ***REMOVED*** Tag the fused result so downstream can tell if expansion helped
+                # Tag the fused result so downstream can tell if expansion helped
                 tagged = dict(r)
                 tagged.setdefault("_expansion_boosted", prev is not None)
                 best[rid] = tagged
             else:
-                ***REMOVED*** Same id appeared again from a different expansion → mark
+                # Same id appeared again from a different expansion → mark
                 prev["_expansion_boosted"] = True
     ranked = sorted(
         best.values(),
@@ -325,11 +325,11 @@ def fuse_results(
     return ranked[:top_k]
 
 
-***REMOVED*** --- X2 W3 — EN → ZH translation cache ------------------------------------
+# --- X2 W3 — EN → ZH translation cache ------------------------------------
 
-***REMOVED*** Translation cache is keyed separately from expansion so the two paths
-***REMOVED*** don't collide. Translations are cheaper (shorter prompt) and even more
-***REMOVED*** repetition-friendly than expansions ("power-law" appears everywhere).
+# Translation cache is keyed separately from expansion so the two paths
+# don't collide. Translations are cheaper (shorter prompt) and even more
+# repetition-friendly than expansions ("power-law" appears everywhere).
 _translate_cache: "OrderedDict[str, str]" = OrderedDict()
 _translate_lock = threading.Lock()
 _TRANSLATE_CACHE_MAX = 256
@@ -368,7 +368,7 @@ async def translate_en_to_zh(
     if llm_complete_json is None:
         try:
             from services.llm_client import complete_json as llm_complete_json
-        except Exception:  ***REMOVED*** pragma: no cover
+        except Exception:  # pragma: no cover
             return None
 
     try:
@@ -381,7 +381,7 @@ async def translate_en_to_zh(
             ),
             timeout=timeout,
         )
-    except (asyncio.TimeoutError, Exception) as e:  ***REMOVED*** noqa: BLE001
+    except (asyncio.TimeoutError, Exception) as e:  # noqa: BLE001
         logger.warning("translate_en_to_zh failed: %s", e)
         return None
 
@@ -404,7 +404,7 @@ def reset_translate_cache_for_tests() -> None:
     _translate_cache.clear()
 
 
-***REMOVED*** --- Utilities --------------------------------------------------------------
+# --- Utilities --------------------------------------------------------------
 
 
 def _hash(s: str) -> str:

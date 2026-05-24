@@ -33,7 +33,7 @@ log = logging.getLogger("ingest")
 
 DEFAULT_DB_URL = "postgresql://localhost:5432/phase_detector"
 THIS_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = THIS_DIR.parent  ***REMOVED*** v4/product/d1_phase_detector
+PROJECT_DIR = THIS_DIR.parent  # v4/product/d1_phase_detector
 MIGRATIONS_DIR = PROJECT_DIR / "migrations"
 
 
@@ -51,14 +51,14 @@ def open_connection(parsed: dict[str, Any]):
     if parsed["driver"] == "sqlite":
         import sqlite3
 
-        ***REMOVED*** ensure parent dir exists
+        # ensure parent dir exists
         Path(parsed["path"]).parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(parsed["path"])
         conn.execute("PRAGMA foreign_keys=ON")
         return conn, "sqlite"
     elif parsed["driver"] == "postgres":
         try:
-            import psycopg2  ***REMOVED*** type: ignore
+            import psycopg2  # type: ignore
         except ImportError as exc:
             raise SystemExit(
                 "psycopg2 not installed. Either `pip install psycopg2-binary` "
@@ -129,12 +129,12 @@ def extract_row(record: dict[str, Any], company_lookup: dict[str, dict[str, Any]
     evidence = st.get("evidence_anchors")
     caveats = st.get("caveats")
     if not caveats and evidence:
-        ***REMOVED*** surface the first evidence anchor 'fact' as a faint caveat fallback
+        # surface the first evidence anchor 'fact' as a faint caveat fallback
         caveats = None
 
     extracted_at_str = st.get("as_of_date") or st.get("extracted_at")
     if extracted_at_str:
-        ***REMOVED*** accept either YYYY-MM-DD or full ISO
+        # accept either YYYY-MM-DD or full ISO
         try:
             if len(extracted_at_str) == 10:
                 extracted_at = datetime.strptime(extracted_at_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -235,7 +235,7 @@ def upsert_row(conn, driver: str, row: dict[str, Any]) -> str:
         inserted = cur.fetchone()[0]
         return "inserted" if inserted else "updated"
     else:
-        ***REMOVED*** sqlite: encode JSON fields as text; check existence first to count properly
+        # sqlite: encode JSON fields as text; check existence first to count properly
         cur.execute("SELECT 1 FROM d1_companies WHERE ticker = ?", (row["ticker"],))
         existed = cur.fetchone() is not None
         params = dict(row)
@@ -272,7 +272,7 @@ def ingest(jsonl_path: Path, db_url: str, companies_path: Path | None) -> dict[s
                 try:
                     result = upsert_row(conn, driver, row)
                     counts[result] += 1
-                except Exception as exc:  ***REMOVED*** noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
                     log.error("L%d ticker=%s upsert failed: %s", lineno, row.get("ticker"), exc)
                     counts["errors"] += 1
         conn.commit()

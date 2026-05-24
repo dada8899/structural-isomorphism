@@ -49,4 +49,4 @@ def test_register_provider_rejects_non_subclass():
         pass
 
     with pytest.raises(TypeError):
-        register_provider("bad", NotAProvider)  ***REMOVED*** type: ignore[arg-type]
+        register_provider("bad", NotAProvider)  # type: ignore[arg-type]

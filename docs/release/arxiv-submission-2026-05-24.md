@@ -1,4 +1,4 @@
-***REMOVED*** arXiv submission instructions — 2026-05-24
+# arXiv submission instructions — 2026-05-24
 
 **Status.** Local submission bundle ready. Waiting for user to log in to arXiv and upload. **Once submitted, the announcement is not reversible** — replacements via `replace` are fine, but the v1 fingerprint is permanent and search-indexed within 1–3 days of moderation.
 
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Files prepared (under `release/arxiv/c1-unified-preprint-v0.3/`)
+## Files prepared (under `release/arxiv/c1-unified-preprint-v0.3/`)
 
 | File | Purpose |
 |---|---|
@@ -18,7 +18,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Recommended arXiv categories
+## Recommended arXiv categories
 
 | Slot | Category | Rationale |
 |---|---|---|
@@ -30,7 +30,7 @@ Optional secondary cross-lists if the moderator pushes back: `nlin.AO` (Adaptati
 
 ---
 
-***REMOVED******REMOVED*** Step-by-step upload
+## Step-by-step upload
 
 1. **Log in to arXiv.** https://arxiv.org → top-right → Login. Use an institutionally-endorsed account if available (the independent-researcher endorsement is currently in place via the project's existing arXiv author identifier).
 2. **Pre-check endorsement.** First-time submitters to `q-bio.NC` or `q-fin.ST` need a primary-category endorsement. If the account is not yet endorsed for the primary category (`physics.soc-ph`), request endorsement via https://arxiv.org/auth/endorse — endorsement turnaround is usually 24–48 hours; **do not start the submission until endorsement is in hand**, otherwise the submission will be returned without moderation.
@@ -59,7 +59,7 @@ Optional secondary cross-lists if the moderator pushes back: `nlin.AO` (Adaptati
 
 ---
 
-***REMOVED******REMOVED*** After moderation succeeds (= you have an arXiv ID)
+## After moderation succeeds (= you have an arXiv ID)
 
 Hand the arXiv ID (e.g. `2606.01234`) back to the main session. The main session will then:
 
@@ -74,7 +74,7 @@ Hand the arXiv ID (e.g. `2606.01234`) back to the main session. The main session
 
 ---
 
-***REMOVED******REMOVED*** Notes / gotchas
+## Notes / gotchas
 
 - **Companion preprints (Phases 1–4).** The cover letter states intent to submit them the same day. If that does NOT happen, the references to `arXiv:XXXX.XXXXX` for refs 41–44 stay as placeholders. The C1 paper should still be submitted alone — it is self-contained. **Decide before submission: solo or coordinated.**
 - **`%` in LaTeX comments inside `main.tex`.** Pandoc preserves comment markers correctly; do not strip them, they're load-bearing.
@@ -84,6 +84,6 @@ Hand the arXiv ID (e.g. `2606.01234`) back to the main session. The main session
 
 ---
 
-***REMOVED******REMOVED*** One-line user upload step
+## One-line user upload step
 
 > Log in to https://arxiv.org → New submission → upload a zip containing `main.tex` + `references.bib` → set primary category `physics.soc-ph` and cross-list `q-fin.ST` + `q-bio.NC` → paste `abstract.txt` into the abstract field and `cover-letter.txt` content into the submission notes (with the real Zenodo DOI substituted in) → preview the server-built PDF → Submit → wait 1–3 days for moderation → record the arXiv ID back to the main session.

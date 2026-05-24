@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B3 — Multi-model ensemble review of universality-class candidates.
 
 Calls DeepSeek API directly (bypass OpenRouter CN region-block) with
@@ -9,9 +9,9 @@ For each of the 21 candidate universality classes (curated by Layer 3 LLM
 auto-curator and reviewed by the B1 critic), this script invokes three
 DeepSeek reviewers in independent calls. Outputs:
 
-  v4/results/B3_ensemble_review.jsonl   ***REMOVED*** 21*3 = 63 raw verdicts
-  v4/results/B3_ensemble_summary.md     ***REMOVED*** per-class consensus table
-  v4/results/B3_taxonomy_v2.jsonl       ***REMOVED*** merged B1 + B3 final taxonomy v2
+  v4/results/B3_ensemble_review.jsonl   # 21*3 = 63 raw verdicts
+  v4/results/B3_ensemble_summary.md     # per-class consensus table
+  v4/results/B3_taxonomy_v2.jsonl       # merged B1 + B3 final taxonomy v2
 
 Limitation: same-model-family ensemble probes within-model confidence drift
 (temperature + reasoning-length variations), not cross-architecture
@@ -30,8 +30,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Paths
+# ---------------------------------------------------------------------------
+# Paths
 
 REPO = Path(__file__).resolve().parents[2]
 CRITIC_IN = REPO / "v4" / "results" / "layer3_critic.jsonl"
@@ -41,8 +41,8 @@ OUT_JSONL = REPO / "v4" / "results" / "B3_ensemble_review.jsonl"
 OUT_SUMMARY = REPO / "v4" / "results" / "B3_ensemble_summary.md"
 TAXONOMY_OUT = REPO / "v4" / "results" / "B3_taxonomy_v2.jsonl"
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** DeepSeek API config
+# ---------------------------------------------------------------------------
+# DeepSeek API config
 
 DEEPSEEK_BASE = "https://api.deepseek.com/v1/chat/completions"
 DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
@@ -98,8 +98,8 @@ REVIEWERS = [
     },
 ]
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Prompt template
+# ---------------------------------------------------------------------------
+# Prompt template
 
 PROMPT_TEMPLATE = """Review this candidate universality class for whether it forms a valid cross-domain universality class in the dynamical-systems sense (shared equation form + shared scaling exponents + shared critical mechanism).
 
@@ -144,8 +144,8 @@ Decision guide:
 Output ONLY the JSON object, no preamble or explanation outside the JSON.
 """
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Data loading
+# ---------------------------------------------------------------------------
+# Data loading
 
 
 def load_yaml_class(class_id: str) -> dict[str, Any]:
@@ -173,7 +173,7 @@ def load_yaml_class(class_id: str) -> dict[str, Any]:
         elif line.startswith("hub_phenomenon:"):
             out["hub"] = line.split(":", 1)[1].strip().strip('"')
         elif line.startswith("shared_equation:"):
-            ***REMOVED*** collect block scalar
+            # collect block scalar
             i += 1
             buf = []
             while i < len(lines) and (lines[i].startswith("  ") or lines[i].strip() == ""):
@@ -215,7 +215,7 @@ def load_yaml_class(class_id: str) -> dict[str, Any]:
             out["negative_examples"] = ex2
             continue
         elif line.startswith("notes:"):
-            ***REMOVED*** block scalar starting with |
+            # block scalar starting with |
             i += 1
             buf2 = []
             while i < len(lines) and (lines[i].startswith("  ") or lines[i].strip() == ""):
@@ -237,8 +237,8 @@ def load_critic_data() -> list[dict[str, Any]]:
     return rows
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** DeepSeek call
+# ---------------------------------------------------------------------------
+# DeepSeek call
 
 
 def call_deepseek(
@@ -281,7 +281,7 @@ def call_deepseek(
         return None, f"HTTP {e.code}: {body}"
     except urllib.error.URLError as e:
         return None, f"URLError: {e.reason}"
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         return None, f"{type(e).__name__}: {e}"
 
 
@@ -289,16 +289,16 @@ def extract_json(raw: str) -> dict | None:
     """Best-effort extract JSON object from raw string (strip markdown fences,
     find outermost {...} pair, parse)."""
     s = raw.strip()
-    ***REMOVED*** strip leading ```json or ``` fences
+    # strip leading ```json or ``` fences
     if s.startswith("```"):
-        ***REMOVED*** remove first fence line
+        # remove first fence line
         parts = s.split("\n", 1)
         if len(parts) == 2:
             s = parts[1]
-        ***REMOVED*** remove trailing ``` if present
+        # remove trailing ``` if present
         if s.endswith("```"):
             s = s[: -3].rstrip()
-    ***REMOVED*** locate JSON object
+    # locate JSON object
     i = s.find("{")
     j = s.rfind("}")
     if i < 0 or j < 0 or j <= i:
@@ -307,7 +307,7 @@ def extract_json(raw: str) -> dict | None:
     try:
         return json.loads(candidate)
     except json.JSONDecodeError:
-        ***REMOVED*** try to be lenient: remove trailing commas
+        # try to be lenient: remove trailing commas
         cleaned = candidate.replace(",\n}", "\n}").replace(",\n]", "\n]")
         try:
             return json.loads(cleaned)
@@ -315,8 +315,8 @@ def extract_json(raw: str) -> dict | None:
             return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main loop
+# ---------------------------------------------------------------------------
+# Main loop
 
 
 def build_user_prompt(class_id: str, b1_row: dict, yaml: dict) -> str:
@@ -431,7 +431,7 @@ def consensus_of(verdicts: list[str]) -> str:
     counts: dict[str, int] = {}
     for v in verdicts:
         counts[v] = counts.get(v, 0) + 1
-    ***REMOVED*** priority order: majority KEEP/REJECT > SPLIT/MERGE > else UNCLEAR
+    # priority order: majority KEEP/REJECT > SPLIT/MERGE > else UNCLEAR
     for label in ("KEEP", "REJECT", "SPLIT", "MERGE"):
         if counts.get(label, 0) >= 2:
             return label
@@ -448,7 +448,7 @@ def write_summary(rows: list[dict], classes_in: list[dict], elapsed_s: float,
     b1_by_class = {c["class_id"]: c for c in classes_in}
 
     lines: list[str] = []
-    lines.append("***REMOVED*** B3 — Multi-model ensemble review summary\n")
+    lines.append("# B3 — Multi-model ensemble review summary\n")
     lines.append("**Date**: 2026-05-13  ")
     lines.append("**Reviewers**: 3 (deepseek-v4-pro rigorous T=0.0, deepseek-v4-flash rigorous T=0.0, deepseek-v4-pro creative T=0.6)  ")
     lines.append(f"**Classes reviewed**: {len(by_class)}  ")
@@ -457,8 +457,8 @@ def write_summary(rows: list[dict], classes_in: list[dict], elapsed_s: float,
     lines.append(f"**Total wall time**: {elapsed_s/60:.1f} min  ")
     lines.append("")
 
-    ***REMOVED*** Per-class table
-    lines.append("***REMOVED******REMOVED*** Per-class verdict table\n")
+    # Per-class table
+    lines.append("## Per-class verdict table\n")
     header = "| class_id | B1 | " + " | ".join(reviewer_ids) + " | B3 consensus | avg_conf |"
     lines.append(header)
     lines.append("|" + "|".join(["---"] * (header.count("|") - 1)) + "|")
@@ -478,21 +478,21 @@ def write_summary(rows: list[dict], classes_in: list[dict], elapsed_s: float,
             + f" | **{consensus}** | {avg_conf:.2f} |"
         )
 
-    ***REMOVED*** Aggregate stats
-    lines.append("\n***REMOVED******REMOVED*** B3 consensus distribution\n")
+    # Aggregate stats
+    lines.append("\n## B3 consensus distribution\n")
     for k in ("KEEP", "REJECT", "SPLIT", "MERGE", "UNCLEAR"):
         lines.append(f"- **{k}**: {b3_verdict_counts.get(k, 0)}")
 
-    ***REMOVED*** Raw verdict distribution
+    # Raw verdict distribution
     verdict_counts: dict[str, int] = {}
     for r in rows:
         verdict_counts[r["verdict"]] = verdict_counts.get(r["verdict"], 0) + 1
-    lines.append("\n***REMOVED******REMOVED*** Raw verdict distribution (across all 63 calls)\n")
+    lines.append("\n## Raw verdict distribution (across all 63 calls)\n")
     for k in sorted(verdict_counts, key=lambda x: -verdict_counts[x]):
         lines.append(f"- **{k}**: {verdict_counts[k]}")
 
-    ***REMOVED*** B1 vs B3 agreement
-    lines.append("\n***REMOVED******REMOVED*** B1 critic vs B3 ensemble agreement\n")
+    # B1 vs B3 agreement
+    lines.append("\n## B1 critic vs B3 ensemble agreement\n")
     agree = 0
     disagree = 0
     for cid in by_class:
@@ -507,8 +507,8 @@ def write_summary(rows: list[dict], classes_in: list[dict], elapsed_s: float,
     lines.append(f"- Agree (B1 simplified == B3 consensus): **{agree}** / {len(by_class)}")
     lines.append(f"- Disagree: **{disagree}** / {len(by_class)}")
 
-    ***REMOVED*** Methodology
-    lines.append("\n***REMOVED******REMOVED*** Methodology notes\n")
+    # Methodology
+    lines.append("\n## Methodology notes\n")
     lines.append("- 3 DeepSeek-only reviewers (same vendor, different model/temperature configurations).")
     lines.append("- v4-pro @ T=0.0 = main rigorous reviewer (full chain-of-thought reasoning).")
     lines.append("- v4-flash @ T=0.0 = faster light-weight reviewer (less reasoning depth, similar prompt).")
@@ -539,7 +539,7 @@ def write_taxonomy_v2(rows: list[dict], classes_in: list[dict]) -> None:
             b3_cons = consensus_of(b3_verdicts)
             b3_avg_conf = sum(b3_confs) / max(1, len(b3_confs))
 
-            ***REMOVED*** final verdict logic
+            # final verdict logic
             b1_simple = (
                 "KEEP" if b1_verdict.startswith("KEEP")
                 else "REJECT" if b1_verdict.startswith("REJECT")
@@ -560,7 +560,7 @@ def write_taxonomy_v2(rows: list[dict], classes_in: list[dict]) -> None:
             elif b1_simple == "REJECT" and b3_cons == "KEEP":
                 final = "CONTESTED(B1=REJECT,B3=KEEP)"
             elif b1_simple in ("SPLIT", "MERGE"):
-                ***REMOVED*** structural action from B1; B3 KEEP/REJECT becomes annotation
+                # structural action from B1; B3 KEEP/REJECT becomes annotation
                 final = f"{b1_verdict}+B3={b3_cons}"
             elif b3_cons == "UNCLEAR":
                 final = f"NEEDS_MORE_DATA(B1={b1_simple},B3=UNCLEAR)"

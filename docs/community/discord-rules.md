@@ -1,4 +1,4 @@
-***REMOVED*** Server Rules — pinned in ***REMOVED***rules
+# Server Rules — pinned in #rules
 
 These rules apply to everyone in the **Structural Isomorphism** Discord
 server. They sit alongside (and never contradict) the project-wide
@@ -6,7 +6,7 @@ server. They sit alongside (and never contradict) the project-wide
 
 ---
 
-***REMOVED******REMOVED*** The rules
+## The rules
 
 **1. Be kind, be specific, be wrong gracefully.**
 We're a research community. Disagreement is welcome. Personal attacks,
@@ -22,15 +22,15 @@ four-tier escalation policy.
 
 **3. Stay on topic per channel.**
 Pipeline-specific questions go in `🧪 Pipeline`. Phase Detector questions
-in `🔬 Phase Detector`. Off-topic chat in `***REMOVED***general`. Posting the same
+in `🔬 Phase Detector`. Off-topic chat in `#general`. Posting the same
 question in 4 channels at once ("forum-shopping") earns a friendly nudge,
 then a soft delete.
 
-**4. No commercial promotion — except in `***REMOVED***showcase`.**
-Built a paid product on top of the pipeline? Cool, post it in `***REMOVED***showcase`,
+**4. No commercial promotion — except in `#showcase`.**
+Built a paid product on top of the pipeline? Cool, post it in `#showcase`,
 once per week max, with a clear disclosure that it's commercial. Anywhere
 else, commercial links get deleted on sight. Job postings: ping a
-maintainer first; we'll allow exceptional ones in `***REMOVED***announcements`.
+maintainer first; we'll allow exceptional ones in `#announcements`.
 
 **5. No spam, no LLM-generated noise.**
 Auto-generated comment threads, low-effort copy-pasted ChatGPT responses,
@@ -40,13 +40,13 @@ get banned.
 
 **6. Pre-registration matters.**
 If you're posting empirical claims (especially around the Phase Detector or
-SOC validation), drop a pre-registration in `***REMOVED***pre-registrations` BEFORE
+SOC validation), drop a pre-registration in `#pre-registrations` BEFORE
 running the analysis when feasible. Post-hoc fits with no pre-reg get
-flagged in `***REMOVED***methodology`. This isn't gatekeeping — it's how we keep the
+flagged in `#methodology`. This isn't gatekeeping — it's how we keep the
 project's reputation clean.
 
 **7. Respect the COI flag.**
-If you have a financial position in a company discussed in `***REMOVED***company-deep-dives`,
+If you have a financial position in a company discussed in `#company-deep-dives`,
 disclose it in the first line of your post. Failure to disclose = warning;
 repeated failure = removal of `@verified-researcher`.
 
@@ -58,17 +58,17 @@ severe cases.
 
 **9. English is the working language.**
 For maximum accessibility. Side conversations in other languages are fine
-in `***REMOVED***general` and voice; technical questions please post in English so
+in `#general` and voice; technical questions please post in English so
 maintainers and the broader community can help and search later.
 
 **10. Report problems privately.**
-If you see a rule violation, open a ticket in `***REMOVED***coc-reports` (TicketTool).
+If you see a rule violation, open a ticket in `#coc-reports` (TicketTool).
 Don't pile on in public. Don't DM the user yourself. Don't @maintainer in a
 public channel — the ticket route is faster and more private.
 
 ---
 
-***REMOVED******REMOVED*** What enforcement looks like
+## What enforcement looks like
 
 We follow a four-tier escalation, documented in
 [`coc-enforcement-playbook.md`](./coc-enforcement-playbook.md):
@@ -84,7 +84,7 @@ call. See the playbook for templates and edge cases.
 
 ---
 
-***REMOVED******REMOVED*** What you can expect from us
+## What you can expect from us
 
 - We read every COC ticket within 48 hours.
 - We will not retaliate against good-faith reporters, ever.
@@ -95,7 +95,7 @@ call. See the playbook for templates and edge cases.
 
 ---
 
-***REMOVED******REMOVED*** Acknowledgements
+## Acknowledgements
 
 These rules borrow from the Rust Code of Conduct, Numpy's Community Code,
 and several years of running smaller research servers. If you have feedback

@@ -39,16 +39,16 @@ from .exceptions import BudgetExceededError
 from .schemas import LLMSchema, validate_response
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Layer 0 + 1: extraction and state-machine fixer
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Layer 0 + 1: extraction and state-machine fixer
+# ---------------------------------------------------------------------------
 
-***REMOVED*** Strip ```json ... ``` and ``` ... ``` fences (greedy: take outermost block).
+# Strip ```json ... ``` and ``` ... ``` fences (greedy: take outermost block).
 _FENCE_RE = re.compile(
     r"```(?:json|javascript|js)?\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE
 )
 
-***REMOVED*** Locate the outermost { ... } or [ ... ] envelope (used after fence strip).
+# Locate the outermost { ... } or [ ... ] envelope (used after fence strip).
 _JSON_OBJ_RE = re.compile(r"(\{.*\}|\[.*\])", re.DOTALL)
 
 
@@ -313,9 +313,9 @@ def state_machine_fix(raw: str) -> str:
     return s
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Layer 2 + 3: parse + schema validate
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Layer 2 + 3: parse + schema validate
+# ---------------------------------------------------------------------------
 
 
 def validate_json(raw_or_dict: Any, schema_cls: Any) -> tuple[bool, str | None, Any]:
@@ -338,9 +338,9 @@ def validate_json(raw_or_dict: Any, schema_cls: Any) -> tuple[bool, str | None, 
     return validate_response(parsed, schema_cls)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Result type
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Result type
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -367,9 +367,9 @@ class GuardrailResult:
         return self.parsed is not None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Retry orchestrator
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Retry orchestrator
+# ---------------------------------------------------------------------------
 
 
 def _legacy_call(
@@ -430,14 +430,14 @@ def _provider_call(
     Routes to a registered provider in `guarded_llm.providers`, runs the full
     guardrail loop, tracks cost, and returns a GuardrailResult.
     """
-    from .providers import get_provider  ***REMOVED*** local import to avoid circular
+    from .providers import get_provider  # local import to avoid circular
 
     prov = get_provider(provider)
     result = GuardrailResult(parsed=None)
     last_err: str | None = None
 
     for attempt in range(max_retries):
-        ***REMOVED*** Inject retry hint into last user message if we've seen an error
+        # Inject retry hint into last user message if we've seen an error
         attempt_messages = list(messages)
         if last_err is not None and attempt_messages:
             hint = (
@@ -534,7 +534,7 @@ def guardrailed_llm_call(
     raw_outputs metadata. The legacy style returns the (parsed, errors) tuple
     unchanged from v4/lib/llm_guardrail.py.
     """
-    ***REMOVED*** Provider-style: keyword args route here
+    # Provider-style: keyword args route here
     if provider is not None or messages is not None:
         if provider is None or model is None or messages is None or schema is None:
             raise ValueError(
@@ -552,7 +552,7 @@ def guardrailed_llm_call(
             **kwargs,
         )
 
-    ***REMOVED*** Legacy style
+    # Legacy style
     if prompt_fn is None or llm_caller is None or schema_cls is None:
         raise ValueError(
             "legacy call requires prompt_fn, llm_caller, schema_cls positional args"

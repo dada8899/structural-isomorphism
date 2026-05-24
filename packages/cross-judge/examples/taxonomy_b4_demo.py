@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Reproduce a small slice of B4 (universality-class ensemble review) via cross-judge.
 
 This demo mirrors the v4/scripts/b4_deepseek_ensemble.py pipeline of the
@@ -13,8 +13,8 @@ Pipeline parity points:
   - majority consensus aggregation
 
 Run:
-    python examples/taxonomy_b4_demo.py --mock        ***REMOVED*** offline demo
-    python examples/taxonomy_b4_demo.py               ***REMOVED*** live, requires DEEPSEEK_API_KEY
+    python examples/taxonomy_b4_demo.py --mock        # offline demo
+    python examples/taxonomy_b4_demo.py               # live, requires DEEPSEEK_API_KEY
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from typing import Any
 from cross_judge import JudgePanel, Reviewer
 
 
-***REMOVED*** Verbatim from v4/scripts/b4_deepseek_ensemble.py
+# Verbatim from v4/scripts/b4_deepseek_ensemble.py
 SYS_RIGOROUS = (
     "You are a rigorous universality-class critic for cross-domain "
     "dynamical systems. Apply Clauset 2009 + Stumpf-Porter 2012 "
@@ -64,7 +64,7 @@ Output JSON only:
 }}
 """
 
-***REMOVED*** Synthetic demo classes (subset; real b4 has 21 from B3 taxonomy v2)
+# Synthetic demo classes (subset; real b4 has 21 from B3 taxonomy v2)
 DEMO_CLASSES = [
     {
         "class_id": "self-organized-criticality",
@@ -111,7 +111,7 @@ def build_live_panel() -> JudgePanel:
             system_prompt=SYS_CHAT_BASELINE,
         ),
     ]
-    ***REMOVED*** Tiebreaker priority matches b4: KEEP/REJECT > SPLIT/MERGE > UNCLEAR
+    # Tiebreaker priority matches b4: KEEP/REJECT > SPLIT/MERGE > UNCLEAR
     return JudgePanel(
         reviewers=reviewers,
         strategy="majority",
@@ -134,8 +134,8 @@ def build_mock_panel() -> JudgePanel:
     class _Resp:
         choices: list
 
-    ***REMOVED*** Pre-canned verdict pattern indexed by call number (round-robins per reviewer).
-    ***REMOVED*** Each reviewer judges 3 items, so call_count tracks position.
+    # Pre-canned verdict pattern indexed by call number (round-robins per reviewer).
+    # Each reviewer judges 3 items, so call_count tracks position.
     class _MockCompletions:
         def __init__(self, verdicts_for_3_items: list[dict[str, Any]]):
             self._scripted = verdicts_for_3_items
@@ -155,19 +155,19 @@ def build_mock_panel() -> JudgePanel:
         def __init__(self, scripted):
             self.chat = _Chat(scripted)
 
-    ***REMOVED*** Rigorous pro: KEEP, KEEP, REJECT
+    # Rigorous pro: KEEP, KEEP, REJECT
     pro_script = [
         {"verdict": "KEEP", "confidence": 0.92, "rationale": "SOC has shared 1/f^a + avalanche exponent."},
         {"verdict": "KEEP", "confidence": 0.88, "rationale": "DP has shared exponents β, ν⊥, ν∥."},
         {"verdict": "REJECT", "confidence": 0.95, "rationale": "Limit theorem, not dynamical universality."},
     ]
-    ***REMOVED*** Rigorous flash: matches pro
+    # Rigorous flash: matches pro
     flash_script = [
         {"verdict": "KEEP", "confidence": 0.85, "rationale": "Accept SOC."},
         {"verdict": "KEEP", "confidence": 0.80, "rationale": "Accept DP."},
         {"verdict": "REJECT", "confidence": 0.90, "rationale": "Reject — limit-theorem confusion."},
     ]
-    ***REMOVED*** Chat baseline T=0.7: mostly agrees but more lenient on the bad one
+    # Chat baseline T=0.7: mostly agrees but more lenient on the bad one
     chat_script = [
         {"verdict": "KEEP", "confidence": 0.78, "rationale": "Plausible class."},
         {"verdict": "UNCLEAR", "confidence": 0.50, "rationale": "Need more empirical support."},
@@ -216,7 +216,7 @@ def main() -> int:
             print(f"     - {v.reviewer_id:28s} {v.verdict:10s} conf={v.confidence:.2f} [{tag}]")
         print()
 
-    ***REMOVED*** Quick summary like B4 output
+    # Quick summary like B4 output
     print("=== Consensus distribution ===")
     dist: dict[str, int] = {}
     for r in results:

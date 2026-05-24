@@ -1,4 +1,4 @@
-***REMOVED*** V4：普适类发现引擎（Universality Class Discovery Engine）
+# V4：普适类发现引擎（Universality Class Discovery Engine）
 
 > 创建日期：2026-04-15
 > 状态：规划中，等待启动
@@ -7,13 +7,13 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. 一句话定义
+## 0. 一句话定义
 
 **V4 不再做"给 B 问题找 A 解法"的 pair 级求解（老 V4 方向），而是把 V1/V2/V3 已经产出的 63 个 A 级候选升级为"普适类地图"——从 pair 级离散发现跃迁到等价类级统一抽象**。
 
 ---
 
-***REMOVED******REMOVED*** 1. 为什么这是正确的 V4（相对于老 V4）
+## 1. 为什么这是正确的 V4（相对于老 V4）
 
 老 V4 被 04-14 的可行性测试正确地否决：Direct Opus 在 10 个跨域求解问题上 9/10 胜过 retrieve+transform pipeline。结论是对的，但解读需要更深一层：
 
@@ -36,15 +36,15 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. 核心概念
+## 2. 核心概念
 
-***REMOVED******REMOVED******REMOVED*** 2.1 等价类（equivalence class）
+### 2.1 等价类（equivalence class）
 项目在 V3 的 A 级结果里已经自然产生了等价类——**"清算级联的链上流动性危机"一个节点连接了至少 6 个其他现象**（闪崩、保证金螺旋、地震、银行挤兑、对手方风险、社会级联）。如果同构是合格的等价关系，这 6+1 个现象构成一个等价类。但项目目前没有把它当成等价类显式暴露，只展示成 6 条独立的 pair。
 
-***REMOVED******REMOVED******REMOVED*** 2.2 普适类（universality class）
+### 2.2 普适类（universality class）
 等价类是数据观察，普适类是对这个等价类底层规律的数学刻画。物理学中已经建立的普适类（以本项目已暴露的 hub 为例）：
 
-**候选普适类 ***REMOVED***1：阈值级联 + 自组织临界性（SOC）**
+**候选普适类 #1：阈值级联 + 自组织临界性（SOC）**
 - 已暴露成员：DeFi 清算 / 地震 / 闪崩 / 保证金螺旋 / 银行挤兑 / 社会级联
 - 共享方程（V3 已写出）：`∑ⱼ K_ij · δⱼ > threshold_i → failure_i + stress transfer`
 - 共享标度律：Gutenberg-Richter 幂律（规模分布 P(s) ∝ s^(-τ)，τ ≈ 1.5）+ Omori 律（时间衰减 n(t) ∝ 1/t^p）
@@ -54,7 +54,7 @@
 
 **这是一个活的案例，不是假设的。** V3 的数据已经把这个普适类的 6 个跨域实例摆在桌面上了。V4 的工作是把它从"6 条 pair 结果"升级为"1 个带完整数学结构 + 可验证预测的普适类"。
 
-***REMOVED******REMOVED******REMOVED*** 2.3 关键不变量（invariant）
+### 2.3 关键不变量（invariant）
 V4 要从每个等价类里提取的核心对象。分类：
 
 - **标度律（scaling law）**：幂律指数、分形维数、标度函数
@@ -69,7 +69,7 @@ V4 要从每个等价类里提取的核心对象。分类：
 
 ---
 
-***REMOVED******REMOVED*** 3. 评估产品上的影响（"V4 对用户到底带来什么"）
+## 3. 评估产品上的影响（"V4 对用户到底带来什么"）
 
 当前 discoveries 页面的用户体验：
 
@@ -92,7 +92,7 @@ V4 交付后的用户体验：
 
 ---
 
-***REMOVED******REMOVED*** 4. 架构（4 层 pipeline）
+## 4. 架构（4 层 pipeline）
 
 ```
 V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
@@ -126,7 +126,7 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
         - 输出：每个普适类 1-3 条具体预测 + 数据来源 + 验证 pipeline 设计
 ```
 
-***REMOVED******REMOVED******REMOVED*** Layer 1 细节：图构建
+### Layer 1 细节：图构建
 - 输入：`results/v2m-a-rated.jsonl` (19) + `v3/results/v3-a-rated.jsonl` (20) + V1 tier-1 (24) + B+ 扩展（34）
 - 节点合并：同一现象在 V1/V2/V3 可能有不同表述，用 LLM judge pairwise 合并（如"DeFi 清算级联" ≡ "链上流动性危机"）
 - 边权重：max(V1_score, V2_score, V3_score) 或加权平均
@@ -143,7 +143,7 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** Layer 2 细节：Hub 检测
+### Layer 2 细节：Hub 检测
 - 算法：NetworkX 的 degree centrality + connected components + Louvain
 - 人工阈值（初版）：
   - hub 定义：degree ≥ 3
@@ -155,7 +155,7 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
   - 成员数（越多越好）
 - 输出：`v4/results/candidate_classes.jsonl`
 
-***REMOVED******REMOVED******REMOVED*** Layer 3 细节：不变量提取
+### Layer 3 细节：不变量提取
 这是 V4 最需要 LLM 工序精细设计的一步。参考 MiroThinker 的 Local/Global Verifier 模式做双层验证：
 
 - **Step 1（generator，Opus）**：给定等价类所有成员 + 所有 shared_equation，生成候选 master equation
@@ -183,7 +183,7 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
 - 演化博弈 / 复制方程
 - ...（约 30 类）
 
-***REMOVED******REMOVED******REMOVED*** Layer 4 细节：可验证预测
+### Layer 4 细节：可验证预测
 对每个高置信度普适类，跑一遍"标度律翻译"：
 
 ```
@@ -210,7 +210,7 @@ V1/V2/V3 A 级 + B+ 结果 (63 + ~34 候选)
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** Layer 5 细节：实证验证与 Phase 命名
+### Layer 5 细节：实证验证与 Phase 命名
 
 Layer 5 把 Layer 4 产出的可验证预测真正拿真实世界数据跑一遍。由于每次验证都锁定**一个具体的领域目标**（地震 / 股市 / DeFi / 神经雪崩 / ...），我们用"Phase N"给每一轮验证编号，每个 Phase 对应**一篇独立的 preprint + 一条 /classes 卡片上的 ✅ 已实证标签**。
 
@@ -250,9 +250,9 @@ Phase 4+ 候选目标（按可得性和工作量排序）：
 
 ---
 
-***REMOVED******REMOVED*** 5. 成功判据
+## 5. 成功判据
 
-***REMOVED******REMOVED******REMOVED*** 必须达到（MVP 通过线）
+### 必须达到（MVP 通过线）
 - [ ] Layer 1 产出一张清洗后的图，节点数 ≥ 50，边数 ≥ 60
 - [ ] Layer 2 检出 ≥ 5 个等价类（≥3 成员、≥2 领域）
 - [ ] Layer 3 为 ≥ 3 个等价类产出 master equation + 通过 critic 检验
@@ -260,12 +260,12 @@ Phase 4+ 候选目标（按可得性和工作量排序）：
 - [ ] 至少 1 条预测进入实证验证阶段（有数据，有初步结果）
 - [ ] discoveries 页面新增"普适类视图"，至少展示 5 个等价类卡片
 
-***REMOVED******REMOVED******REMOVED*** 卓越达到（值得写论文）
+### 卓越达到（值得写论文）
 - [ ] 至少 1 个等价类被实证验证（如 DeFi 清算确实服从 τ ≈ 1.5 幂律 + Omori 1/t^p）
 - [ ] 论文初稿投出（Nature Physics / PNAS / PRL 级别）
 - [ ] 至少 1 个等价类是物理学 taxonomy 里**未被标注的跨域实例**（如"原来没人知道 X 也属于 SOC 类"）
 
-***REMOVED******REMOVED******REMOVED*** 明确的停止信号
+### 明确的停止信号
 - ⛔ Layer 1 之后没有任何 hub degree ≥ 3（说明 V1/V2/V3 的结果太分散，V4 前置不成立）
 - ⛔ Layer 3 的 critic 否决率超过 80%（说明 master equation 抽象不起来，只是表面相似）
 - ⛔ 选定的第一个实证预测在 2 周内无法获得合格数据（说明预测过于空泛）
@@ -275,7 +275,7 @@ Phase 4+ 候选目标（按可得性和工作量排序）：
 
 ---
 
-***REMOVED******REMOVED*** 6. 阶段与时间表
+## 6. 阶段与时间表
 
 | Phase | 内容 | 工期 | 依赖 | 交付物 |
 |---|---|---|---|---|
@@ -297,7 +297,7 @@ Phase 4+ 候选目标（按可得性和工作量排序）：
 
 ---
 
-***REMOVED******REMOVED*** 7. 和 V1/V2/V3 的关系
+## 7. 和 V1/V2/V3 的关系
 
 V4 **不替代** V1/V2/V3，而是**加在它们上面的一层抽象层**。
 
@@ -319,9 +319,9 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 
 ---
 
-***REMOVED******REMOVED*** 8. 风险与缓解
+## 8. 风险与缓解
 
-***REMOVED******REMOVED******REMOVED*** 风险 1：Hub 是检索假象
+### 风险 1：Hub 是检索假象
 **问题**：V3 的 hub（清算级联连 6 个）可能只是因为"DeFi 相关现象在 KB 里被反复表述"导致的人为聚集，不是真正的结构 hub。
 
 **缓解**：
@@ -329,7 +329,7 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 - Hub 的成员**必须跨 ≥2 个领域**才算合格
 - 对每个 hub 做 ablation：去掉某个 V1/V2/V3 管道后 hub 是否还存在
 
-***REMOVED******REMOVED******REMOVED*** 风险 2：Master equation 是表面套壳
+### 风险 2：Master equation 是表面套壳
 **问题**：LLM 很容易把"都是级联"这种表面描述写成一个伪方程。
 
 **缓解**：
@@ -338,7 +338,7 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 - Master equation 必须能从每个成员方程通过具体变量替换化约得出
 - 引入反例检测：主动构造"看起来像但不是"的反例
 
-***REMOVED******REMOVED******REMOVED*** 风险 3：实证验证失败
+### 风险 3：实证验证失败
 **问题**：P6 阶段可能发现 DeFi 清算其实不服从 τ = 1.5 幂律（因为数据量不够、市场结构特殊等）。
 
 **缓解**：
@@ -346,7 +346,7 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 - 失败本身是可发表的（"我们证伪了 A 普适类适用于 X 领域"）
 - 有备选普适类可切换（若 SOC 在 DeFi 上失败，可以试平衡态相变 + 银行挤兑）
 
-***REMOVED******REMOVED******REMOVED*** 风险 4：被 AI for Science 行业提前抢跑
+### 风险 4：被 AI for Science 行业提前抢跑
 **问题**：AI for Science 是热门领域，其他团队可能在做类似事情。
 
 **缓解**：
@@ -354,7 +354,7 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 - 优先产出 discoveries 页面的产品层（可见证据）
 - 论文里显式引用本项目 V1/V2/V3 作为 discovery source，确立方法论时间戳
 
-***REMOVED******REMOVED******REMOVED*** 风险 5：单人带宽不够
+### 风险 5：单人带宽不够
 **问题**：P0-P7 全流程约 3-4 个月，可能被其他项目打断。
 
 **缓解**：
@@ -364,7 +364,7 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 
 ---
 
-***REMOVED******REMOVED*** 9. 和"10-discovery-after-isomorphism.md"的关系
+## 9. 和"10-discovery-after-isomorphism.md"的关系
 
 项目现存文档 `site/docs/10-discovery-after-isomorphism.md` 明确说了发现同构后的四件事：
 1. 搬解法 → V1 阶段重点
@@ -378,17 +378,17 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 
 ---
 
-***REMOVED******REMOVED*** 10. 即时行动清单（启动前两周）
+## 10. 即时行动清单（启动前两周）
 
 **P0 + P1 并行启动**：
 
-***REMOVED******REMOVED******REMOVED*** 用户侧（达达）
+### 用户侧（达达）
 - [ ] 审核本 plan，确认方向、边界、成功判据
 - [ ] 决定是否立即启动（vs. 等别的项目告一段落）
 - [ ] 提供物理学 taxonomy 种子：5-10 个你最熟的普适类 + 典型实例（冷启动 P0）
 - [ ] 确认产品层（P5）是否要在 beta 站还是主站发布
 
-***REMOVED******REMOVED******REMOVED*** 执行侧
+### 执行侧
 - [ ] 创建 `~/Projects/structural-isomorphism/v4/` 目录结构：
   - `v4/taxonomy/` — 物理学普适类库
   - `v4/results/` — pipeline 产出
@@ -398,17 +398,17 @@ V4 的输入是已有数据，**不需要扩 KB、不需要改 pipeline、不需
 - [ ] P0 taxonomy schema 定稿（基于第 4 节 Layer 3 的 30 类清单）
 - [ ] 先选 1 个已经看起来最成熟的 hub（SOC × DeFi 清算）做 end-to-end 贯通，验证 pipeline 每层都能跑出东西再扩展
 
-***REMOVED******REMOVED******REMOVED*** Day 1 的具体动作
+### Day 1 的具体动作
 ```bash
 cd ~/Projects/structural-isomorphism
 mkdir -p v4/{taxonomy,results,scripts,validation}
 cp plans/v4-universality-class-engine.md v4/README.md
-***REMOVED*** 然后写 v4/scripts/build_graph.py
+# 然后写 v4/scripts/build_graph.py
 ```
 
 ---
 
-***REMOVED******REMOVED*** 11. 备忘：为什么这件事现在就应该做
+## 11. 备忘：为什么这件事现在就应该做
 
 1. **前置条件已满足**：V1/V2/V3 的 63 个 A 级候选就是 V4 的输入，不需要额外采数据
 2. **已有明确 hub 证据**：V3 的清算级联一个节点连 6 个现象，不是假设性的
@@ -423,11 +423,11 @@ cp plans/v4-universality-class-engine.md v4/README.md
 
 ---
 
-***REMOVED******REMOVED*** 附录 A：第一个端到端验证的 SOC × DeFi 案例
+## 附录 A：第一个端到端验证的 SOC × DeFi 案例
 
 作为 P3-P7 的贯穿示例，预先写出完整执行路径作为 MVP 脚本的测试用例。
 
-***REMOVED******REMOVED******REMOVED*** A.1 等价类定义
+### A.1 等价类定义
 ```yaml
 class_id: SOC_threshold_cascade
 name: 阈值级联自组织临界类
@@ -445,10 +445,10 @@ members:
   - id: social_cascade_failure
     domain: 计算社会科学
 domains_covered: 5
-scale_span_orders: 10  ***REMOVED*** 秒级清算 → 千年地震
+scale_span_orders: 10  # 秒级清算 → 千年地震
 ```
 
-***REMOVED******REMOVED******REMOVED*** A.2 Master equation 候选
+### A.2 Master equation 候选
 ```
 系统状态：N 个耦合元件，每个元件有状态 sᵢ 和阈值 θᵢ
 动力学：dsᵢ/dt = f(sᵢ) + ∑ⱼ K_ij · g(sⱼ)
@@ -456,32 +456,32 @@ scale_span_orders: 10  ***REMOVED*** 秒级清算 → 千年地震
 临界条件：平均分支因子 ξ = <∑ⱼ K_ij> → 1
 ```
 
-***REMOVED******REMOVED******REMOVED*** A.3 不变量清单
+### A.3 不变量清单
 - Gutenberg-Richter 幂律 P(s) ∝ s^(-τ)，τ = 1.5（平均场值）
 - Omori 衰减律 n(t) ∝ 1/t^p，p ≈ 1（平均场值）
 - 临界指数 β, ν, η 对应 mean-field directed percolation
 - 分形维数 d_f = 4（平均场值）
 - Waiting time 分布 Pareto 尾
 
-***REMOVED******REMOVED******REMOVED*** A.4 翻译到 DeFi 的可测预测
+### A.4 翻译到 DeFi 的可测预测
 1. **清算规模分布**：单次清算级联的总 USD 规模服从 τ = 1.5 ± 0.2 幂律（拟合 MLE + KS 检验）
 2. **级联间隔分布**：大清算后的次生清算频率衰减服从 Omori 1/t^p，p ≈ 1
 3. **传染网络度分布**：清算触发图（A 清算 → B 被触发）的度分布服从幂律
 
-***REMOVED******REMOVED******REMOVED*** A.5 数据源
+### A.5 数据源
 - **主源**：DeFiLlama liquidations API（2020-2026，所有主流协议）
 - **补充**：Dune Analytics 自定义查询（逐块清算事件）
 - **预期样本量**：≥ 50,000 清算事件
 - **分析工具**：powerlaw Python package（Clauset 2009 方法）
 
-***REMOVED******REMOVED******REMOVED*** A.6 论文骨架
+### A.6 论文骨架
 - **题目**：Earthquakes in Code: Self-Organized Criticality Governs DeFi Liquidation Cascades
 - **摘要**：We show DeFi liquidation cascades exhibit the same Gutenberg-Richter scaling and Omori-law aftershock decay as seismic fault networks, providing the first high-frequency empirical test of branching-process SOC universality outside geophysics.
 - **目标期刊**：Nature Physics / PRL / PNAS
 - **预估工期**：数据准备 2 周 + 分析 2 周 + 写作 4 周 = 8 周
 - **单人可行**：是
 
-***REMOVED******REMOVED******REMOVED*** A.7 成功/失败判据
+### A.7 成功/失败判据
 - **成功**：τ ∈ [1.3, 1.7] 且 Omori p ∈ [0.8, 1.2]，两者同时满足
 - **部分成功**：仅其中一个标度律成立（值得一篇方法论文而非物理论文）
 - **失败**：两个都拒绝零假设 → SOC 不适用 DeFi，回到 taxonomy 重找

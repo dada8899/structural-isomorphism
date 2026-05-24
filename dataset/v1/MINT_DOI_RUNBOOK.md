@@ -1,4 +1,4 @@
-***REMOVED*** Mint DOI runbook (Zenodo v1)
+# Mint DOI runbook (Zenodo v1)
 
 **Status:** pre-mint snapshot. The DOI is not yet reserved. This document is
 the step-by-step recipe for minting the permanent DOI for
@@ -9,7 +9,7 @@ step 4 (publish) without explicit user sign-off.
 
 ---
 
-***REMOVED******REMOVED*** Prerequisites
+## Prerequisites
 
 - A Zenodo account at https://zenodo.org (use ORCID-linked if available).
 - Optional: link the GitHub repo to Zenodo (Account → GitHub) so that future
@@ -20,29 +20,29 @@ step 4 (publish) without explicit user sign-off.
 
 ---
 
-***REMOVED******REMOVED*** Step 1 — Prepare the upload artifact
+## Step 1 — Prepare the upload artifact
 
 The bundle uses symlinks to keep the in-repo footprint near zero. Zenodo
 needs concrete files. Choose one of:
 
-***REMOVED******REMOVED******REMOVED*** Option A: Tarball (recommended for direct upload)
+### Option A: Tarball (recommended for direct upload)
 
 ```bash
 cd /path/to/structural-isomorphism
-***REMOVED*** Dereference symlinks (-h) so the tarball is self-contained
+# Dereference symlinks (-h) so the tarball is self-contained
 tar -czhf zenodo-soc-dataset-v1-2026-05-13.tar.gz dataset/v1/
 ls -lh zenodo-soc-dataset-v1-2026-05-13.tar.gz
-***REMOVED*** Expected: ~25-40 MB compressed
+# Expected: ~25-40 MB compressed
 ```
 
-***REMOVED******REMOVED******REMOVED*** Option B: GitHub release link
+### Option B: GitHub release link
 
 ```bash
-***REMOVED*** Tag the bundle commit
+# Tag the bundle commit
 git tag -a dataset-v1.0.0 -m "Zenodo dataset v1.0.0 release"
 git push origin dataset-v1.0.0
-***REMOVED*** Then on GitHub: Releases → Create release from tag dataset-v1.0.0
-***REMOVED*** Zenodo can ingest the release via its GitHub integration.
+# Then on GitHub: Releases → Create release from tag dataset-v1.0.0
+# Zenodo can ingest the release via its GitHub integration.
 ```
 
 We recommend **Option A** for the first mint (full control over what gets
@@ -51,7 +51,7 @@ auto-Zenodo-on-GitHub-release pipeline.
 
 ---
 
-***REMOVED******REMOVED*** Step 2 — Create the Zenodo upload
+## Step 2 — Create the Zenodo upload
 
 1. Log in to https://zenodo.org
 2. **Upload → New Upload**
@@ -87,16 +87,16 @@ auto-Zenodo-on-GitHub-release pipeline.
 
 ---
 
-***REMOVED******REMOVED*** Step 3 — Update bundle with the reserved DOI
+## Step 3 — Update bundle with the reserved DOI
 
 Once Step 2 reserves a DOI like `10.5281/zenodo.12345678`, update the
 in-bundle references **before** publishing:
 
 ```bash
-***REMOVED*** In the working checkout of structural-isomorphism (any branch will do —
-***REMOVED*** the bundle update is a regular commit on the working branch):
+# In the working checkout of structural-isomorphism (any branch will do —
+# the bundle update is a regular commit on the working branch):
 
-***REMOVED*** 3a. Update manifest.json
+# 3a. Update manifest.json
 python3 -c "
 import json
 m = json.load(open('dataset/v1/manifest.json'))
@@ -105,24 +105,24 @@ m['doi'] = '10.5281/zenodo.12345678'
 json.dump(m, open('dataset/v1/manifest.json', 'w'), indent=2)
 "
 
-***REMOVED*** 3b. Update CITATION.cff
+# 3b. Update CITATION.cff
 sed -i.bak 's|10.5281/zenodo.PLACEHOLDER|10.5281/zenodo.12345678|' dataset/v1/CITATION.cff
 rm dataset/v1/CITATION.cff.bak
 
-***REMOVED*** 3c. Update README.md DOI placeholder
+# 3c. Update README.md DOI placeholder
 sed -i.bak 's|10.5281/zenodo.PLACEHOLDER|10.5281/zenodo.12345678|g; s|10.5281/zenodo.XXXXXXX|10.5281/zenodo.12345678|g' dataset/v1/README.md
 rm dataset/v1/README.md.bak
 
-***REMOVED*** 3d. Commit
+# 3d. Commit
 git add dataset/v1/manifest.json dataset/v1/CITATION.cff dataset/v1/README.md
 git commit -m "dataset(v1): lock-in Zenodo DOI 10.5281/zenodo.12345678"
 git push
 
-***REMOVED*** 3e. Rebuild the upload tarball with the locked-in DOI
+# 3e. Rebuild the upload tarball with the locked-in DOI
 tar -czhf zenodo-soc-dataset-v1-2026-05-13.tar.gz dataset/v1/
 
-***REMOVED*** 3f. On Zenodo, REPLACE the uploaded file (Files → Delete old,
-***REMOVED***     Upload new) — the reserved DOI is preserved.
+# 3f. On Zenodo, REPLACE the uploaded file (Files → Delete old,
+#     Upload new) — the reserved DOI is preserved.
 ```
 
 Now the bundle Zenodo sees has the DOI baked into manifest.json, CITATION.cff,
@@ -130,7 +130,7 @@ and README.md.
 
 ---
 
-***REMOVED******REMOVED*** Step 4 — Publish (PERMANENT)
+## Step 4 — Publish (PERMANENT)
 
 ⚠️ **This step is irreversible.** Once published, the DOI is permanent and
 the deposit cannot be deleted, only superseded by a v1.1.
@@ -145,25 +145,25 @@ the deposit cannot be deleted, only superseded by a v1.1.
 
 ---
 
-***REMOVED******REMOVED*** Step 5 — Update upstream references
+## Step 5 — Update upstream references
 
 After publishing:
 
 ```bash
-***REMOVED*** 5a. Top-level repo README — add the DOI badge
-***REMOVED*** (Zenodo provides a badge URL like:
-***REMOVED***  https://zenodo.org/badge/DOI/10.5281/zenodo.12345678.svg)
+# 5a. Top-level repo README — add the DOI badge
+# (Zenodo provides a badge URL like:
+#  https://zenodo.org/badge/DOI/10.5281/zenodo.12345678.svg)
 
-***REMOVED*** 5b. Forthcoming Scientific Data manuscript — update Section "Data Records"
-***REMOVED***     with the DOI
+# 5b. Forthcoming Scientific Data manuscript — update Section "Data Records"
+#     with the DOI
 
-***REMOVED*** 5c. The C1 manuscript (paper/c4-reject-aware-pipeline-2026-05-13.md) —
-***REMOVED***     add the DOI to the "Code and Data Availability" section
+# 5c. The C1 manuscript (paper/c4-reject-aware-pipeline-2026-05-13.md) —
+#     add the DOI to the "Code and Data Availability" section
 ```
 
 ---
 
-***REMOVED******REMOVED*** Step 6 — Future versions (v1.1, v2.0)
+## Step 6 — Future versions (v1.1, v2.0)
 
 Zenodo's *version* feature gives each subsequent version a new
 DOI plus a parent "concept DOI" that resolves to the latest. To release
@@ -186,7 +186,7 @@ Recommended cadence for this dataset:
 
 ---
 
-***REMOVED******REMOVED*** Troubleshooting
+## Troubleshooting
 
 **"My tarball is too big for Zenodo."** Zenodo's default per-file limit is
 50 GB. This dataset is ~25-40 MB compressed → no issue.
@@ -212,7 +212,7 @@ authors, message). Fix and re-validate.
 
 ---
 
-***REMOVED******REMOVED*** Approval gates
+## Approval gates
 
 - [ ] User confirms: dataset content is final at git commit 607906c.
 - [ ] User confirms: tarball was rebuilt with the DOI locked-in (Step 3).

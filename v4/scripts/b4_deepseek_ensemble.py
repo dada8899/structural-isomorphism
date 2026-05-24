@@ -1,5 +1,5 @@
-***REMOVED***!/usr/bin/env python3
-"""B4 DeepSeek heterogeneous ensemble rerun (session ***REMOVED***8, 2026-05-14).
+#!/usr/bin/env python3
+"""B4 DeepSeek heterogeneous ensemble rerun (session #8, 2026-05-14).
 
 Context: user refused OpenRouter Kimi as cross-architecture probe (CN
 region-block on certain vendors). Instead, this rerun uses **3 DeepSeek
@@ -55,7 +55,7 @@ def _load_dotenv() -> None:
         return
     for line in env_path.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("***REMOVED***") or "=" not in line:
+        if not line or line.startswith("#") or "=" not in line:
             continue
         k, _, v = line.partition("=")
         k = k.strip()
@@ -66,8 +66,8 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Reviewer roster (3 DeepSeek-only configurations)
+# ---------------------------------------------------------------------------
+# Reviewer roster (3 DeepSeek-only configurations)
 
 SYS_RIGOROUS = (
     "You are a rigorous universality-class critic for cross-domain "
@@ -114,9 +114,9 @@ REVIEWERS: list[dict[str, Any]] = [
     },
 ]
 
-***REMOVED*** DeepSeek published pricing (per 1M tokens, USD); deepseek-v4-* same scale
-***REMOVED*** as official deepseek-chat: input ~$0.27 / output ~$1.10. We use these as
-***REMOVED*** rough cost-tracking constants for budget guard.
+# DeepSeek published pricing (per 1M tokens, USD); deepseek-v4-* same scale
+# as official deepseek-chat: input ~$0.27 / output ~$1.10. We use these as
+# rough cost-tracking constants for budget guard.
 COST_PER_M_INPUT_USD = 0.27
 COST_PER_M_OUTPUT_USD = 1.10
 COST_BUDGET_USD = 5.0
@@ -163,13 +163,13 @@ Decision guide:
 Output ONLY the JSON object, no preamble or explanation outside the JSON.
 """
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Reuse b3_ensemble yaml-loader and JSON-extractor (already proven). The
-***REMOVED*** import path requires DEEPSEEK_API_KEY to be set (b3_ensemble checks at
-***REMOVED*** module-load) which is already true since we _load_dotenv above.
+# ---------------------------------------------------------------------------
+# Reuse b3_ensemble yaml-loader and JSON-extractor (already proven). The
+# import path requires DEEPSEEK_API_KEY to be set (b3_ensemble checks at
+# module-load) which is already true since we _load_dotenv above.
 
 sys.path.insert(0, str(REPO / "v4" / "scripts"))
-from b3_ensemble import load_yaml_class, extract_json  ***REMOVED*** noqa: E402
+from b3_ensemble import load_yaml_class, extract_json  # noqa: E402
 
 
 def load_b3_taxonomy() -> list[dict[str, Any]]:
@@ -249,7 +249,7 @@ def call_deepseek(reviewer: dict, user: str, api_key: str) -> tuple[str | None, 
         return None, f"HTTP {e.code}: {body}", usage_out
     except urllib.error.URLError as e:
         return None, f"URLError: {e.reason}", usage_out
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         return None, f"{type(e).__name__}: {e}", usage_out
 
 
@@ -263,7 +263,7 @@ def call_with_retries(
     last_usage: dict = {}
     for attempt in range(max_retries + 1):
         raw, err, usage = call_deepseek(reviewer, user, api_key)
-        ***REMOVED*** accumulate usage even if parse fails (we still spent tokens)
+        # accumulate usage even if parse fails (we still spent tokens)
         for k, v in (usage or {}).items():
             last_usage[k] = last_usage.get(k, 0) + (v if isinstance(v, (int, float)) else 0)
         if raw is None:
@@ -351,7 +351,7 @@ def main() -> int:
             print(f"\n[B4-deepseek] [{ci}/{len(rows)}] {class_id}", file=sys.stderr)
 
             for r in REVIEWERS:
-                ***REMOVED*** Budget guard before each call
+                # Budget guard before each call
                 current_cost = estimate_cost(usage_total)
                 if current_cost > args.budget:
                     print(
@@ -418,7 +418,7 @@ def main() -> int:
         + (" | ABORTED(budget)" if aborted else ""),
         file=sys.stderr,
     )
-    ***REMOVED*** Also write a tiny meta line at end for downstream tooling
+    # Also write a tiny meta line at end for downstream tooling
     print(f"[B4-deepseek] tokens: {usage_total}", file=sys.stderr)
     return 0 if not aborted else 2
 

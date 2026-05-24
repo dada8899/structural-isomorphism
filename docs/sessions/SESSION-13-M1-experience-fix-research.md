@@ -1,13 +1,13 @@
-***REMOVED*** M1.1 — 问答体验硬伤根因调研
+# M1.1 — 问答体验硬伤根因调研
 
-> 2026-05-20 · session ***REMOVED***13 · 供 M1.2 / M1.3 实施直接照此执行。
+> 2026-05-20 · session #13 · 供 M1.2 / M1.3 实施直接照此执行。
 > 主战场文件：`web/backend/services/ask_orchestrator.py`（+ `llm_service.py`、`api/ask.py` 注释同步）。
 
 ---
 
-***REMOVED******REMOVED*** 硬伤 1：首 token 延迟 18–32 秒
+## 硬伤 1：首 token 延迟 18–32 秒
 
-***REMOVED******REMOVED******REMOVED*** 根因
+### 根因
 
 `AskOrchestrator.stream()`（`ask_orchestrator.py:272`）完全串行，首个 `answer_chunk` 必须等前序步骤跑完。三段拆解：
 
@@ -17,9 +17,9 @@
 
 **结论**：18–32s ≈ 检索 1–3s +（OpenRouter/DeepSeek 长 TTFT 8–25s）+ JSON 信封前缀。
 
-***REMOVED******REMOVED******REMOVED*** 修复方案（按性价比）
+### 修复方案（按性价比）
 
-| ***REMOVED*** | 方案 | 改哪 | 工作量 |
+| # | 方案 | 改哪 | 工作量 |
 |---|---|---|---|
 | 1 | **换快模型** — `ASK_MODEL` 默认值改 `deepseek-chat:nitro`（强制最快 provider）或换 Kimi/MiniMax 级快模型 | `ask_orchestrator.py:54` | 10 分钟，立即见效（TTFT 8–25s→2–6s）|
 | 2 | **去 `json_object` 模式** — LLM 直接流式吐纯 markdown 正文，`answer_chunk` 转发 raw delta，`_AnswerFieldExtractor` 下线；citations 改从答案文本正则抽 `[n]` + 复用 `_validate_citations`（第 487 行）反查 cards | `_call_llm_stream`(843–852)、`_build_prompt`(886) | 0.5–1 天 |
@@ -30,15 +30,15 @@
 
 ---
 
-***REMOVED******REMOVED*** 硬伤 2：out-of-scope 不拒答
+## 硬伤 2：out-of-scope 不拒答
 
-***REMOVED******REMOVED******REMOVED*** 根因
+### 根因
 
 `_evaluate_relevance`（第 534 行）判定逻辑本身对（阈值 top-1<0.75 / top-3 mean<0.65 经 dogfood 校准，"1+1=?" 会正确 trip）。问题是**结果只当软信号**：第 349 行算出 `low_relevance` 后，第 379 行 `_stream_llm_answer_with_retry` 照常调 LLM，"拒答"全靠 `_build_prompt`（930–992 行）求 LLM 配合写委婉文案——违反「不信任 LLM 输出」，且仍烧一次完整 LLM 调用。`out_of_scope` 只是 `answer_done` 里的展示 flag。
 
 **一句话**：relevance gate 是检测器，缺一条「检测为真 → 短路 LLM」的执行分支。
 
-***REMOVED******REMOVED******REMOVED*** 修复方案
+### 修复方案
 
 核心：`stream()`（342–453 行）在第 349 行 `_evaluate_relevance` 之后、LLM 调用之前，插入**不调 LLM 的本地拒答短路分支**：
 
@@ -46,7 +46,7 @@
 low_relevance, relevance_reason = self._evaluate_relevance(cards)
 if low_relevance:
     payload = self._build_refusal_payload(query, cards, lang_norm, relevance_reason)
-    for chunk in self._typewriter_chunks(payload["answer"]):   ***REMOVED*** 复用 477 行
+    for chunk in self._typewriter_chunks(payload["answer"]):   # 复用 477 行
         yield _sse("answer_chunk", {"delta": chunk}); await asyncio.sleep(TYPEWRITER_SLEEP_S)
     yield _sse("answer_done", {"full_text": payload["answer"], "citations": [],
                "out_of_scope": True, "scope_reason": relevance_reason, "refused": True})
@@ -67,6 +67,6 @@ if low_relevance:
 
 ---
 
-***REMOVED******REMOVED*** 实施顺序建议
+## 实施顺序建议
 
 M1.2（硬伤 1）方案 1 先单独上线试 TTFT → 方案 2/3/4 一并做。M1.3（硬伤 2）独立，可与 M1.2 并行。两者都在 `ask_orchestrator.py`，注意 commit 边界拆清。

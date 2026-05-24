@@ -62,18 +62,18 @@ def fetch_slice(after_ts: int, before_ts: int, max_posts: int, label: str) -> li
         cursor = max(int(p.get("created_utc", cursor)) for p in data) + 1
         if page % 5 == 0:
             print(f"[{label}] page {page} n={len(out)} cursor={cursor}", file=sys.stderr)
-        ***REMOVED*** be polite — arctic_shift has unpublished rate limits
+        # be polite — arctic_shift has unpublished rate limits
         time.sleep(0.15)
     return out[:max_posts]
 
 
 def main():
-    ***REMOVED*** two slices to test pre-reg's "pre-2021 separately" robustness note
+    # two slices to test pre-reg's "pre-2021 separately" robustness note
     slices = [
-        ***REMOVED*** pre-regime-shift: 2019-2020 (before GME squeeze)
-        ("pre_2021", 1546300800, 1609459200, 3000),   ***REMOVED*** 2019-01-01 to 2021-01-01
-        ***REMOVED*** post-regime: 2024
-        ("post_2024", 1704067200, 1735689600, 3000),  ***REMOVED*** 2024-01-01 to 2025-01-01
+        # pre-regime-shift: 2019-2020 (before GME squeeze)
+        ("pre_2021", 1546300800, 1609459200, 3000),   # 2019-01-01 to 2021-01-01
+        # post-regime: 2024
+        ("post_2024", 1704067200, 1735689600, 3000),  # 2024-01-01 to 2025-01-01
     ]
     all_rows: list[dict] = []
     meta = {"slices": {}}

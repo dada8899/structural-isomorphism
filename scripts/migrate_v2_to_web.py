@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Migrate v2m-final-ranked.jsonl (19 A-grade) to the web product's
 a_discoveries.json format. Backs up v1 first.
@@ -40,7 +40,7 @@ def map_lit_status(value):
 
 
 def main():
-    ***REMOVED*** 1. Load KB → name:id lookup
+    # 1. Load KB → name:id lookup
     kb_name_to_id = {}
     with open(KB_FILE) as f:
         for line in f:
@@ -49,12 +49,12 @@ def main():
                 kb_name_to_id[item["name"]] = item["id"]
     print(f"KB loaded: {len(kb_name_to_id)} phenomena")
 
-    ***REMOVED*** 2. Load v2 A-grade
+    # 2. Load v2 A-grade
     with open(V2_FILE) as f:
         items = [json.loads(l) for l in f if l.strip()]
     print(f"v2 A-grade loaded: {len(items)} items")
 
-    ***REMOVED*** 3. Sort by final_weighted_score desc and renumber rank 1..N
+    # 3. Sort by final_weighted_score desc and renumber rank 1..N
     items.sort(key=lambda x: x.get("final_weighted_score", 0), reverse=True)
 
     lit_status_seen = set()
@@ -69,7 +69,7 @@ def main():
             missing.append((a_name, b_name, a_id, b_id))
 
         iso_conf = it.get("isomorphism_confidence", 0)
-        ***REMOVED*** Normalize 0-1 float to 0-100 int
+        # Normalize 0-1 float to 0-100 int
         if isinstance(iso_conf, float) and iso_conf <= 1.0:
             iso_conf = round(iso_conf * 100)
         else:
@@ -82,7 +82,7 @@ def main():
         lit_status_seen.add(str(lit).lower() if lit else "<empty>")
 
         out.append({
-            ***REMOVED*** === Core display fields (used by existing discoveries.js) ===
+            # === Core display fields (used by existing discoveries.js) ===
             "rank": i,
             "a_id": a_id or "",
             "b_id": b_id or "",
@@ -102,7 +102,7 @@ def main():
             "time_estimate": it.get("time_estimate", ""),
             "solo_feasible": bool(it.get("solo_feasible", False)),
 
-            ***REMOVED*** === New v2-specific fields (shown in expanded detail) ===
+            # === New v2-specific fields (shown in expanded detail) ===
             "rating": it.get("rating", "A"),
             "paper_title": it.get("paper_title", ""),
             "target_venue": it.get("target_venue", ""),
@@ -120,12 +120,12 @@ def main():
             "v2_weighted_score": it.get("final_weighted_score"),
         })
 
-    ***REMOVED*** 4. Backup v1
+    # 4. Backup v1
     if TARGET.exists() and not BACKUP.exists():
         shutil.copy(TARGET, BACKUP)
         print(f"Backed up v1 → {BACKUP}")
 
-    ***REMOVED*** 5. Write new
+    # 5. Write new
     payload = {
         "generated_at": str(date.today()),
         "schema_version": "v2.0",
@@ -138,7 +138,7 @@ def main():
         json.dump(payload, f, ensure_ascii=False, indent=2)
     print(f"Wrote {TARGET}: {len(out)} items")
 
-    ***REMOVED*** 6. Report
+    # 6. Report
     print("\n=== Literature status distribution (as received) ===")
     for s in sorted(lit_status_seen):
         print(f"  '{s}'")
@@ -151,7 +151,7 @@ def main():
 
     print("\n=== Preview (top 5) ===")
     for item in out[:5]:
-        print(f"  ***REMOVED***{item['rank']} [{item['final_score']}] {item['a_name']} × {item['b_name']}")
+        print(f"  #{item['rank']} [{item['final_score']}] {item['a_name']} × {item['b_name']}")
         print(f"       {item['a_domain']} ↔ {item['b_domain']}")
 
 

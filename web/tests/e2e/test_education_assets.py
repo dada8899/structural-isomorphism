@@ -1,4 +1,4 @@
-"""Session ***REMOVED***18 (Track D) — Education / growth-asset e2e.
+"""Session #18 (Track D) — Education / growth-asset e2e.
 
 Covers the "资料陈列 → 增长引擎" upgrade of /discoveries and /classes:
 
@@ -39,7 +39,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -49,7 +49,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-***REMOVED*** --- /discoveries ----------------------------------------------------------
+# --- /discoveries ----------------------------------------------------------
 
 def test_discoveries_page_loads_with_hook_headlines(page: Page):
     """The discoveries list renders cards, each carrying a hook headline."""
@@ -57,7 +57,7 @@ def test_discoveries_page_loads_with_hook_headlines(page: Page):
     page.wait_for_selector(".disc-item", timeout=10000)
     cards = page.locator(".disc-item")
     assert cards.count() >= 10, f"expected >= 10 discovery cards, got {cards.count()}"
-    ***REMOVED*** Every visible card has a non-empty hook headline.
+    # Every visible card has a non-empty hook headline.
     hooks = page.locator(".disc-item__hook")
     assert hooks.count() == cards.count(), "each card should have one hook headline"
     first_hook = hooks.first.inner_text().strip()
@@ -67,9 +67,9 @@ def test_discoveries_page_loads_with_hook_headlines(page: Page):
 def test_discovery_deep_link_focuses_card(page: Page):
     """?d=<rank> focuses the matching card (expanded + focus ring)."""
     page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
-    target = page.locator("***REMOVED***d-1")
+    target = page.locator("#d-1")
     target.wait_for(state="visible", timeout=10000)
-    ***REMOVED*** The focused card is auto-expanded and ringed.
+    # The focused card is auto-expanded and ringed.
     expect(target).to_have_class(re.compile(r"disc-item--focused"))
     expect(target).to_have_class(re.compile(r"disc-item--expanded"))
 
@@ -77,28 +77,28 @@ def test_discovery_deep_link_focuses_card(page: Page):
 def test_discovery_copy_link_button_clickable(page: Page):
     """Each card exposes a 复制链接 button inside its expanded detail."""
     page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
-    page.locator("***REMOVED***d-1").wait_for(state="visible", timeout=10000)
-    ***REMOVED*** Locate by a STABLE selector — the copy button is the first share
-    ***REMOVED*** action. Filtering by has_text="复制链接" would go stale after the
-    ***REMOVED*** click flips the label to "已复制 ✓".
-    copy_btn = page.locator("***REMOVED***d-1 .share-actions__btn").first
+    page.locator("#d-1").wait_for(state="visible", timeout=10000)
+    # Locate by a STABLE selector — the copy button is the first share
+    # action. Filtering by has_text="复制链接" would go stale after the
+    # click flips the label to "已复制 ✓".
+    copy_btn = page.locator("#d-1 .share-actions__btn").first
     expect(copy_btn).to_be_visible()
     expect(copy_btn).to_contain_text("复制链接")
-    ***REMOVED*** Grant clipboard so the click does not throw in headless Chromium.
+    # Grant clipboard so the click does not throw in headless Chromium.
     try:
         page.context.grant_permissions(["clipboard-read", "clipboard-write"])
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         pass
     copy_btn.click()
-    ***REMOVED*** Button label flips to a confirmation state.
+    # Button label flips to a confirmation state.
     expect(copy_btn).to_contain_text("已复制", timeout=3000)
 
 
 def test_discovery_share_image_modal_renders(page: Page):
     """生成图片卡片 opens a modal whose <img> carries a real data URL."""
     page.goto(f"{BASE}/discoveries?d=1", wait_until="domcontentloaded")
-    page.locator("***REMOVED***d-1").wait_for(state="visible", timeout=10000)
-    img_btn = page.locator("***REMOVED***d-1 .share-actions__btn", has_text="生成图片卡片")
+    page.locator("#d-1").wait_for(state="visible", timeout=10000)
+    img_btn = page.locator("#d-1 .share-actions__btn", has_text="生成图片卡片")
     expect(img_btn).to_be_visible()
     img_btn.click()
     modal = page.locator(".share-modal")
@@ -107,19 +107,19 @@ def test_discovery_share_image_modal_renders(page: Page):
     expect(modal_img).to_be_visible()
     src = modal_img.get_attribute("src") or ""
     assert src.startswith("data:image/png"), f"share card image not generated: {src[:40]!r}"
-    ***REMOVED*** Modal closes cleanly.
+    # Modal closes cleanly.
     page.locator(".share-modal__close").click()
     expect(modal).to_have_count(0)
 
 
-***REMOVED*** --- /classes --------------------------------------------------------------
+# --- /classes --------------------------------------------------------------
 
 def test_classes_detail_has_analyze_cta(page: Page):
     """Opening a class detail surfaces the 用它分析你自己的问题 CTA which
     links to /analyze with a text_a prefill."""
     page.goto(f"{BASE}/classes", wait_until="domcontentloaded")
     page.wait_for_selector(".uc-card--preview", timeout=20000)
-    ***REMOVED*** Navigate into the first class.
+    # Navigate into the first class.
     page.locator(".uc-card--preview").first.click()
     cta = page.locator(".uc-detail__cta-btn")
     expect(cta).to_be_visible(timeout=8000)
@@ -150,7 +150,7 @@ def test_classes_learning_path_view_groups_cards(page: Page):
     bands = page.locator(".uc-path-band")
     expect(bands.first).to_be_visible(timeout=5000)
     assert bands.count() >= 2, f"expected >= 2 path bands, got {bands.count()}"
-    ***REMOVED*** Cards still render inside the bands.
+    # Cards still render inside the bands.
     assert page.locator(".uc-path-band .uc-card--preview").count() >= 10
 
 

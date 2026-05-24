@@ -1,4 +1,4 @@
-***REMOVED*** Structural Isomorphism — MCP Server
+# Structural Isomorphism — MCP Server
 
 An [MCP](https://modelcontextprotocol.io) server that exposes the
 **Structural Isomorphism** cross-domain engine as agent-callable tools.
@@ -11,7 +11,7 @@ epidemics, traffic jams, and forest fires.
 The server is a thin MCP wrapper over the deployed backend at
 `https://beta.structural.bytedance.city`. It runs over **stdio** transport.
 
-***REMOVED******REMOVED*** Tools
+## Tools
 
 | Tool | What it does | Speed |
 |------|--------------|-------|
@@ -29,22 +29,22 @@ failure `{"ok": false, "error": "<kind>", "message": "..."}` — kinds include
 `timeout`, `unreachable`, `http_error`, `not_found`, `bad_request`,
 `empty_report`, `out_of_scope`. No raw exceptions ever surface to the agent.
 
-***REMOVED******REMOVED*** Install
+## Install
 
 ```bash
-***REMOVED*** from the repo root, into the project venv
+# from the repo root, into the project venv
 .venv/bin/pip install -r mcp/requirements.txt
 ```
 
 Dependencies: `mcp` (official Python SDK) + `httpx`.
 
-***REMOVED******REMOVED*** Configuration
+## Configuration
 
 The backend base URL is read from the `STRUCTURAL_API_BASE` environment
 variable. Default: `https://beta.structural.bytedance.city`. Point it at a
 local backend (`http://localhost:8000`) for development.
 
-***REMOVED******REMOVED*** Use in Claude Code
+## Use in Claude Code
 
 Register the server (run once):
 
@@ -58,7 +58,7 @@ claude mcp add structural-isomorphism \
 Then in a Claude Code session the four tools are available as
 `mcp__structural-isomorphism__search_isomorphism`, etc.
 
-***REMOVED******REMOVED*** Use in Claude Desktop
+## Use in Claude Desktop
 
 Add this to `claude_desktop_config.json` (macOS path:
 `~/Library/Application Support/Claude/claude_desktop_config.json`) and
@@ -79,7 +79,7 @@ restart Claude Desktop. See `claude_desktop_config.example.json`:
 > Use an **absolute** path to the venv `python` — the SDK launches the
 > server as a subprocess and does not inherit your shell's `PATH`.
 
-***REMOVED******REMOVED*** Testing
+## Testing
 
 ```bash
 .venv/bin/python -m pytest mcp/test_server.py -q
@@ -89,7 +89,7 @@ restart Claude Desktop. See `claude_desktop_config.example.json`:
 timeout, unreachable, SSE multi-event assembly, partial reports, cached
 inline reports, and empty results.
 
-***REMOVED******REMOVED*** Notes
+## Notes
 
 - `analyze_isomorphism` / `find_isomorphism` are intentionally slow (the
   report is LLM-generated). The HTTP timeout is 360s. Agents should call

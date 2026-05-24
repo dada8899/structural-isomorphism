@@ -1,5 +1,5 @@
 /**
- * Structural — Structural stress-test page (Session ***REMOVED***18, feature E).
+ * Structural — Structural stress-test page (Session #18, feature E).
  *
  * Submits one analogy / strategic claim to POST /api/stress-test and renders
  * the falsification result: source vs target, per-correspondence stress

@@ -30,15 +30,15 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
-from services.ask_orchestrator import (  ***REMOVED*** noqa: E402
+from services.ask_orchestrator import (  # noqa: E402
     AskOrchestrator,
     _AnswerFieldExtractor,
 )
 
 
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
-***REMOVED*** 1. JSON answer-field extractor unit tests                          ***REMOVED***
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
+# ------------------------------------------------------------------ #
+# 1. JSON answer-field extractor unit tests                          #
+# ------------------------------------------------------------------ #
 
 
 class AnswerFieldExtractorTests(unittest.TestCase):
@@ -48,7 +48,7 @@ class AnswerFieldExtractorTests(unittest.TestCase):
         raw = '{"answer": "你好世界", "citations": []}'
         out = ext.feed(raw)
         self.assertEqual(out, "你好世界")
-        ***REMOVED*** State machine should have closed.
+        # State machine should have closed.
         self.assertEqual(ext.state, _AnswerFieldExtractor.DONE)
 
     def test_chunked_feed_yields_incrementally(self):
@@ -83,7 +83,7 @@ class AnswerFieldExtractorTests(unittest.TestCase):
     def test_preamble_with_whitespace(self):
         """Realistic OpenRouter stream may emit whitespace between key/value."""
         ext = _AnswerFieldExtractor()
-        ***REMOVED*** Note tabs + newlines between key and value.
+        # Note tabs + newlines between key and value.
         raw = '{\n  "answer"\t :\t  "abc"\n}'
         out = ext.feed(raw)
         self.assertEqual(out, "abc")
@@ -105,9 +105,9 @@ class AnswerFieldExtractorTests(unittest.TestCase):
         self.assertEqual(more, "")
 
 
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
-***REMOVED*** 2. SSE pipeline integration: retrieval_done comes BEFORE answer    ***REMOVED***
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
+# ------------------------------------------------------------------ #
+# 2. SSE pipeline integration: retrieval_done comes BEFORE answer    #
+# ------------------------------------------------------------------ #
 
 _FIXED_KB = [
     {
@@ -198,8 +198,8 @@ def _mock_stream_factory(json_payload: str, chunk_size: int = 16):
         ("answer_delta", str)  — driven by feeding through the extractor
     The orchestrator's stream() consumes this directly.
     """
-    async def fake(self, prompt):  ***REMOVED*** noqa: ARG001 (signature match)
-        ***REMOVED*** Re-import inside to dodge stale binding across patches.
+    async def fake(self, prompt):  # noqa: ARG001 (signature match)
+        # Re-import inside to dodge stale binding across patches.
         from services.ask_orchestrator import _AnswerFieldExtractor as _Ext
         ext = _Ext()
         for i in range(0, len(json_payload), chunk_size):
@@ -208,8 +208,8 @@ def _mock_stream_factory(json_payload: str, chunk_size: int = 16):
             emitted = ext.feed(piece)
             if emitted:
                 yield ("answer_delta", emitted)
-            ***REMOVED*** Microscopic await so other coroutines can interleave; mirrors
-            ***REMOVED*** real network arrival pattern more closely.
+            # Microscopic await so other coroutines can interleave; mirrors
+            # real network arrival pattern more closely.
             await asyncio.sleep(0)
     return fake
 
@@ -231,8 +231,8 @@ class StreamingPipelineTests(unittest.TestCase):
         events = _parse_sse_events(chunks)
         names = [e[0] for e in events]
 
-        ***REMOVED*** retrieval_done must appear, and must appear BEFORE the first
-        ***REMOVED*** answer_chunk. This is the spec-anchored guarantee from the task.
+        # retrieval_done must appear, and must appear BEFORE the first
+        # answer_chunk. This is the spec-anchored guarantee from the task.
         self.assertIn("retrieval_done", names, f"missing retrieval_done in {names}")
         first_retr = names.index("retrieval_done")
         first_chunk = names.index("answer_chunk")
@@ -242,7 +242,7 @@ class StreamingPipelineTests(unittest.TestCase):
             f"retrieval_done (at {first_retr}) must precede first answer_chunk (at {first_chunk})",
         )
 
-        ***REMOVED*** retrieval_done payload sanity.
+        # retrieval_done payload sanity.
         retr_data = events[first_retr][1]
         self.assertEqual(retr_data["count"], 3)
         self.assertEqual(len(retr_data["candidates"]), 3)
@@ -292,11 +292,11 @@ class StreamingPipelineTests(unittest.TestCase):
         ):
             self.assertIn(required, names, f"missing event: {required}")
 
-        ***REMOVED*** M1.2 fix 4 — llm_start must land between retrieval_done and the
-        ***REMOVED*** first answer_chunk so the frontend can advance progress UI before
-        ***REMOVED*** tokens start arriving. PR ***REMOVED***224 added the yield (commit 5090e4c)
-        ***REMOVED*** but the original test only asserted the log line, never the SSE
-        ***REMOVED*** event — leaving this regression-prone. Lock it in now.
+        # M1.2 fix 4 — llm_start must land between retrieval_done and the
+        # first answer_chunk so the frontend can advance progress UI before
+        # tokens start arriving. PR #224 added the yield (commit 5090e4c)
+        # but the original test only asserted the log line, never the SSE
+        # event — leaving this regression-prone. Lock it in now.
         retrieval_idx = names.index("retrieval_done")
         llm_start_idx = names.index("llm_start")
         first_chunk_idx = names.index("answer_chunk")
@@ -305,14 +305,14 @@ class StreamingPipelineTests(unittest.TestCase):
         llm_start_ev = next(ev for name, ev in events if name == "llm_start")
         self.assertIn("model", llm_start_ev, "llm_start payload must include model")
 
-        ***REMOVED*** answer_chunks accumulate into the answer string.
+        # answer_chunks accumulate into the answer string.
         accumulated = "".join(
             ev["delta"] for name, ev in events if name == "answer_chunk"
         )
         answer_done = next(ev for name, ev in events if name == "answer_done")
         self.assertEqual(accumulated, answer_done["full_text"])
 
-        ***REMOVED*** Citations validated (3 in mock, all in range).
+        # Citations validated (3 in mock, all in range).
         self.assertEqual(len(answer_done["citations"]), 3)
         for cit in answer_done["citations"]:
             self.assertIn(cit["idx"], (1, 2, 3))
@@ -321,7 +321,7 @@ class StreamingPipelineTests(unittest.TestCase):
     def test_fallback_when_envelope_never_matches_answer_key(self):
         """If the mocked stream produces no `answer` field, we still emit a chunk via fallback typewriter."""
 
-        ***REMOVED*** JSON with NO `answer` field — extractor never matches; full JSON also fails pydantic.
+        # JSON with NO `answer` field — extractor never matches; full JSON also fails pydantic.
         bad_json = json.dumps({
             "reply": "wrong shape",
             "citations": [],
@@ -337,19 +337,19 @@ class StreamingPipelineTests(unittest.TestCase):
         ), patch.object(
             AskOrchestrator,
             "_call_llm_once",
-            ***REMOVED*** Async mock returning the same bad JSON twice → triggers fallback.
+            # Async mock returning the same bad JSON twice → triggers fallback.
             lambda self, prompt: _async_value(bad_json),
         ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
             chunks = asyncio.run(_collect(orch.stream("Q", lang="zh")))
 
         events = _parse_sse_events(chunks)
         names = [e[0] for e in events]
-        ***REMOVED*** Even on full fallback we still must emit answer_chunk (typewriter
-        ***REMOVED*** path) + answer_done so the frontend isn't stuck.
+        # Even on full fallback we still must emit answer_chunk (typewriter
+        # path) + answer_done so the frontend isn't stuck.
         self.assertIn("answer_chunk", names)
         self.assertIn("answer_done", names)
         answer_done = next(ev for n, ev in events if n == "answer_done")
-        ***REMOVED*** Fallback answer is the localized "synthesizer unavailable" line.
+        # Fallback answer is the localized "synthesizer unavailable" line.
         self.assertGreater(len(answer_done["full_text"]), 20)
 
 
@@ -357,9 +357,9 @@ async def _async_value(v):
     return v
 
 
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
-***REMOVED*** 3. The streaming forwarding latency invariant                       ***REMOVED***
-***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
+# ------------------------------------------------------------------ #
+# 3. The streaming forwarding latency invariant                       #
+# ------------------------------------------------------------------ #
 
 
 class StreamingLatencyTests(unittest.TestCase):
@@ -369,23 +369,23 @@ class StreamingLatencyTests(unittest.TestCase):
     def test_answer_chunks_interleave_with_stream(self):
         """The first answer_chunk must come well before the final stream chunk."""
 
-        ***REMOVED*** Build a JSON payload where the `answer` field is filled across many
-        ***REMOVED*** tiny chunks, then citations come much later in the stream.
-        big_answer = "a" * 300  ***REMOVED*** 300 chars of trivial answer text
+        # Build a JSON payload where the `answer` field is filled across many
+        # tiny chunks, then citations come much later in the stream.
+        big_answer = "a" * 300  # 300 chars of trivial answer text
         payload = json.dumps({
             "answer": big_answer,
             "citations": [{"idx": 1, "kb_id": "phen-1", "label": "x"}],
             "followups": ["q1?", "q2?"],
         }, ensure_ascii=False)
 
-        ***REMOVED*** Track at which raw_chunk index the first answer_delta gets emitted.
-        ***REMOVED*** If the extractor works, it should be early — well before the
-        ***REMOVED*** citations / followups portions of the JSON arrive.
+        # Track at which raw_chunk index the first answer_delta gets emitted.
+        # If the extractor works, it should be early — well before the
+        # citations / followups portions of the JSON arrive.
         chunk_size = 8
         first_answer_at = {"i": None}
         last_chunk_at = {"i": 0}
 
-        async def instrumented_stream(self, prompt):  ***REMOVED*** noqa: ARG001
+        async def instrumented_stream(self, prompt):  # noqa: ARG001
             from services.ask_orchestrator import _AnswerFieldExtractor as _Ext
             ext = _Ext()
             i = 0
@@ -411,10 +411,10 @@ class StreamingLatencyTests(unittest.TestCase):
         self.assertIsNotNone(
             first_answer_at["i"], "extractor never emitted any answer_delta"
         )
-        ***REMOVED*** First answer chars should land in the first ~10% of stream chunks.
-        ***REMOVED*** The JSON envelope is `{"answer": "` (~13 chars) + 300 chars of `a`
-        ***REMOVED*** + closing + citations + followups. With chunk_size=8 the answer
-        ***REMOVED*** value starts emitting around chunk 2 and stays well below chunk 30.
+        # First answer chars should land in the first ~10% of stream chunks.
+        # The JSON envelope is `{"answer": "` (~13 chars) + 300 chars of `a`
+        # + closing + citations + followups. With chunk_size=8 the answer
+        # value starts emitting around chunk 2 and stays well below chunk 30.
         self.assertLess(
             first_answer_at["i"],
             last_chunk_at["i"] // 3,

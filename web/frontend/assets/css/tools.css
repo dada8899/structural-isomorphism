@@ -1,4 +1,4 @@
-/* Tools hub — Session ***REMOVED***18.
+/* Tools hub — Session #18.
    The discovery surface for the seven A-G product directions. Calm, white,
    generous whitespace; one card grid per functional group. */
 
@@ -11,7 +11,7 @@
 .tools-page__eyebrow {
   font-size: var(--fs-13, 13px);
   letter-spacing: var(--ls-wide, 0.06em);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   text-align: center;
   margin-bottom: var(--space-4, 16px);
 }
@@ -21,7 +21,7 @@
   font-size: var(--fs-48, 44px);
   line-height: var(--lh-tight, 1.15);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   text-align: center;
   margin: 0 0 var(--space-5, 24px);
 }
@@ -31,12 +31,12 @@
   margin: 0 auto var(--space-9, 64px);
   font-size: var(--fs-18, 18px);
   line-height: var(--lh-relaxed, 1.7);
-  color: var(--text-secondary, ***REMOVED***57534e);
+  color: var(--text-secondary, #57534e);
   text-align: center;
 }
 
 .tools-page__lede strong {
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
   font-weight: var(--fw-semibold, 600);
 }
 
@@ -51,10 +51,10 @@
   font-weight: var(--fw-semibold, 600);
   letter-spacing: var(--ls-wide, 0.06em);
   text-transform: uppercase;
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  color: var(--text-tertiary, #9a958c);
   margin: 0 0 var(--space-4, 16px);
   padding-bottom: var(--space-2, 8px);
-  border-bottom: 1px solid var(--border-subtle, ***REMOVED***ece8e1);
+  border-bottom: 1px solid var(--border-subtle, #ece8e1);
 }
 
 /* --- card grid --- */
@@ -67,8 +67,8 @@
 .tool-card {
   display: block;
   padding: var(--space-5, 24px);
-  background: var(--bg-primary, ***REMOVED***fff);
-  border: 1px solid var(--border-default, ***REMOVED***e7e3db);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #e7e3db);
   border-radius: var(--radius-lg, 12px);
   text-decoration: none;
   transition: border-color var(--dur-fast, 120ms) var(--ease-out, ease),
@@ -77,14 +77,14 @@
 }
 
 .tool-card:hover {
-  border-color: var(--border-strong, ***REMOVED***d6d0c6);
+  border-color: var(--border-strong, #d6d0c6);
   box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.06));
   transform: translateY(-2px);
 }
 
 .tool-card:focus-visible {
   outline: none;
-  border-color: var(--accent, ***REMOVED***b45309);
+  border-color: var(--accent, #b45309);
   box-shadow: var(--shadow-focus, 0 0 0 3px rgba(180,83,9,.18));
 }
 
@@ -97,8 +97,8 @@
   height: 38px;
   margin-bottom: var(--space-3, 12px);
   border-radius: var(--radius-md, 8px);
-  background: var(--bg-subtle, ***REMOVED***f5f3ef);
-  color: var(--text-tertiary, ***REMOVED***9a958c);
+  background: var(--bg-subtle, #f5f3ef);
+  color: var(--text-tertiary, #9a958c);
   transition: background var(--dur-fast, 120ms) var(--ease-out, ease),
               color var(--dur-fast, 120ms) var(--ease-out, ease);
 }
@@ -110,8 +110,8 @@
 
 .tool-card:hover .tool-card__icon,
 .tool-card:focus-visible .tool-card__icon {
-  background: var(--accent-subtle, ***REMOVED***fdf3e7);
-  color: var(--accent, ***REMOVED***b45309);
+  background: var(--accent-subtle, #fdf3e7);
+  color: var(--accent, #b45309);
 }
 
 .tool-card__head {
@@ -124,7 +124,7 @@
 .tool-card__name {
   font-size: var(--fs-16, 16px);
   font-weight: var(--fw-semibold, 600);
-  color: var(--text-primary, ***REMOVED***1c1917);
+  color: var(--text-primary, #1c1917);
 }
 
 .tool-card__badge {
@@ -133,15 +133,15 @@
   line-height: 1;
   padding: 3px 6px;
   border-radius: var(--radius-sm, 5px);
-  color: var(--accent, ***REMOVED***b45309);
-  background: var(--accent-subtle, ***REMOVED***fdf3e7);
+  color: var(--accent, #b45309);
+  background: var(--accent-subtle, #fdf3e7);
 }
 
 .tool-card__desc {
   margin: 0;
   font-size: var(--fs-14, 14px);
   line-height: var(--lh-relaxed, 1.65);
-  color: var(--text-secondary, ***REMOVED***57534e);
+  color: var(--text-secondary, #57534e);
 }
 
 @media (max-width: 600px) {

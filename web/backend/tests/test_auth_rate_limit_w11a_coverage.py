@@ -10,7 +10,7 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services.auth import (  ***REMOVED*** noqa: E402
+from services.auth import (  # noqa: E402
     _DEFAULT_LIMITS,
     _extract_token,
     _parse_token_env,
@@ -29,7 +29,7 @@ class _FakeRequest:
         )
 
 
-***REMOVED*** --- _parse_token_env ---
+# --- _parse_token_env ---
 
 
 def test_parse_token_env_empty(monkeypatch):
@@ -99,7 +99,7 @@ def test_parse_token_env_multiple_tokens(monkeypatch):
     assert out["f1"] == "free"
 
 
-***REMOVED*** --- _extract_token ---
+# --- _extract_token ---
 
 
 def test_extract_token_bearer_header():
@@ -115,7 +115,7 @@ def test_extract_token_lowercase_authorization():
 def test_extract_token_bearer_empty():
     """Bearer with empty token → None (header is present but token empty)."""
     req = _FakeRequest(headers={"Authorization": "Bearer "})
-    ***REMOVED*** Bearer prefix with empty content; falls through to cookie (also none)
+    # Bearer prefix with empty content; falls through to cookie (also none)
     assert _extract_token(req) is None
 
 
@@ -139,7 +139,7 @@ def test_extract_token_none_when_absent():
     assert _extract_token(req) is None
 
 
-***REMOVED*** --- verify_api_token ---
+# --- verify_api_token ---
 
 
 def test_verify_api_token_anonymous_when_no_token(monkeypatch):
@@ -166,7 +166,7 @@ def test_verify_api_token_invalid_returns_none(monkeypatch):
     assert verify_api_token(req) is None
 
 
-***REMOVED*** --- get_rate_limit_tier ---
+# --- get_rate_limit_tier ---
 
 
 def test_get_rate_limit_tier_paid():
@@ -182,7 +182,7 @@ def test_get_rate_limit_tier_anonymous():
 
 
 def test_get_rate_limit_tier_unknown_falls_back_to_strictest():
-    assert get_rate_limit_tier("enterprise") == "5/minute"  ***REMOVED*** anonymous bucket
+    assert get_rate_limit_tier("enterprise") == "5/minute"  # anonymous bucket
 
 
 def test_get_rate_limit_tier_case_insensitive():
@@ -190,11 +190,11 @@ def test_get_rate_limit_tier_case_insensitive():
 
 
 def test_get_rate_limit_tier_non_string_falls_back():
-    assert get_rate_limit_tier(None) == "5/minute"  ***REMOVED*** type: ignore[arg-type]
-    assert get_rate_limit_tier(42) == "5/minute"  ***REMOVED*** type: ignore[arg-type]
+    assert get_rate_limit_tier(None) == "5/minute"  # type: ignore[arg-type]
+    assert get_rate_limit_tier(42) == "5/minute"  # type: ignore[arg-type]
 
 
-***REMOVED*** --- tier_limit ---
+# --- tier_limit ---
 
 
 def test_tier_limit_anonymous_format(monkeypatch):
@@ -222,11 +222,11 @@ def test_tier_limit_invalid_token_falls_back_to_anonymous(monkeypatch):
 
 def test_tier_limit_no_client_uses_unknown_ip(monkeypatch):
     monkeypatch.delenv("STRUCTURAL_API_TOKENS", raising=False)
-    req = _FakeRequest()  ***REMOVED*** no client
+    req = _FakeRequest()  # no client
     assert tier_limit(req) == "anonymous:unknown"
 
 
-***REMOVED*** --- rate_limit module ---
+# --- rate_limit module ---
 
 
 def test_rate_limit_limit_returns_callable():

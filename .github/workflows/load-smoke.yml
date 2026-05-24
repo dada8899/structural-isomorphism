@@ -1,8 +1,8 @@
 name: Load smoke (k6)
 
-***REMOVED*** Manually triggered only — load tests are too expensive and too noisy
-***REMOVED*** to run on every PR. workflow_dispatch lets ops kick off a baseline run
-***REMOVED*** against staging or a custom URL on demand.
+# Manually triggered only — load tests are too expensive and too noisy
+# to run on every PR. workflow_dispatch lets ops kick off a baseline run
+# against staging or a custom URL on demand.
 
 on:
   workflow_dispatch:

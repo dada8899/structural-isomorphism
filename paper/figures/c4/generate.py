@@ -26,11 +26,11 @@ def render(out_dir: Path) -> None:
     ax.set_ylim(0, 6)
     ax.axis("off")
 
-    ***REMOVED*** palette
-    extract_color = "***REMOVED***2c7fb8"
-    curate_color = "***REMOVED***7a0177"
-    critic_color = "***REMOVED***cc4c02"
-    arrow_color = "***REMOVED***444444"
+    # palette
+    extract_color = "#2c7fb8"
+    curate_color = "#7a0177"
+    critic_color = "#cc4c02"
+    arrow_color = "#444444"
 
     def box(x, y, w, h, label, sublabel, color):
         patch = FancyBboxPatch(
@@ -49,10 +49,10 @@ def render(out_dir: Path) -> None:
         ax.text(
             x + w / 2, y + h / 2 - 0.15, sublabel,
             ha="center", va="center",
-            fontsize=9, color="***REMOVED***222222",
+            fontsize=9, color="#222222",
         )
 
-    ***REMOVED*** Layer 1: extract
+    # Layer 1: extract
     box(
         0.3, 3.4, 2.6, 1.8,
         "1. Extract",
@@ -60,7 +60,7 @@ def render(out_dir: Path) -> None:
         extract_color,
     )
 
-    ***REMOVED*** Layer 2: curate
+    # Layer 2: curate
     box(
         3.6, 3.4, 2.8, 1.8,
         "2. Curate",
@@ -68,7 +68,7 @@ def render(out_dir: Path) -> None:
         curate_color,
     )
 
-    ***REMOVED*** Layer 3: critic + predict (joint)
+    # Layer 3: critic + predict (joint)
     box(
         7.1, 3.4, 2.6, 1.8,
         "3. Critic + Predict",
@@ -76,7 +76,7 @@ def render(out_dir: Path) -> None:
         critic_color,
     )
 
-    ***REMOVED*** arrows between layers
+    # arrows between layers
     def arrow(xa, ya, xb, yb):
         a = FancyArrowPatch(
             (xa, ya), (xb, yb),
@@ -88,43 +88,43 @@ def render(out_dir: Path) -> None:
     arrow(2.95, 4.3, 3.55, 4.3)
     arrow(6.45, 4.3, 7.05, 4.3)
 
-    ***REMOVED*** downstream validation (dashed, outside the 3-layer)
+    # downstream validation (dashed, outside the 3-layer)
     box(
         2.9, 0.4, 4.2, 1.6,
         "Empirical validation (downstream)",
         "13 systems + 4 nulls + A2 phases\nKEEP-verdict predictions tested\nagainst real data",
-        "***REMOVED***3f3f3f",
+        "#3f3f3f",
     )
 
-    ***REMOVED*** dashed connector
+    # dashed connector
     ax.annotate(
         "", xy=(5.0, 2.0), xytext=(8.4, 3.35),
-        arrowprops=dict(arrowstyle="->", color="***REMOVED***666666",
+        arrowprops=dict(arrowstyle="->", color="#666666",
                         linestyle="dashed", linewidth=1.2),
     )
 
-    ***REMOVED*** title
+    # title
     ax.text(
         5.0, 5.7,
         "Reject-aware pipeline (v0.2, compressed 3-layer)",
         ha="center", va="center",
-        fontsize=14, fontweight="bold", color="***REMOVED***111111",
+        fontsize=14, fontweight="bold", color="#111111",
     )
     ax.text(
         5.0, 5.35,
         "extract → curate → critic+predict",
         ha="center", va="center",
-        fontsize=10.5, color="***REMOVED***444444",
+        fontsize=10.5, color="#444444",
         style="italic",
     )
 
-    ***REMOVED*** legend (B1 vs B3)
+    # legend (B1 vs B3)
     legend_handles = [
         Line2D([0], [0], marker="s", linestyle="",
                markerfacecolor="white", markeredgecolor=critic_color,
                markersize=10, label="B1: single Opus critic (3/21 REJECT, 14%)"),
         Line2D([0], [0], marker="s", linestyle="",
-               markerfacecolor="white", markeredgecolor="***REMOVED***a63603",
+               markerfacecolor="white", markeredgecolor="#a63603",
                markersize=10, label="B3: 3× DeepSeek ensemble (7/21 REJECT, 33%)"),
     ]
     ax.legend(

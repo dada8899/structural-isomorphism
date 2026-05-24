@@ -70,7 +70,7 @@ class Verdict(BaseModel):
         """
         if not isinstance(data, dict):
             return data
-        ***REMOVED*** don't overwrite if both forms present; new name wins
+        # don't overwrite if both forms present; new name wins
         if "kind" not in data and "verdict" in data:
             data["kind"] = data.pop("verdict")
         if "reasoning" not in data and "rationale" in data:
@@ -79,7 +79,7 @@ class Verdict(BaseModel):
             data["critic_id"] = data.pop("reviewer_id")
         return data
 
-    ***REMOVED*** Compatibility properties: older code reads `verdict` / `rationale` / `reviewer_id`.
+    # Compatibility properties: older code reads `verdict` / `rationale` / `reviewer_id`.
     @property
     def verdict(self) -> str:
         """Alias for `kind` (backward compat with legacy schema)."""

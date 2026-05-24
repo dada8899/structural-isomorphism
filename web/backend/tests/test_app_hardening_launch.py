@@ -24,11 +24,11 @@ if str(_BACKEND) not in sys.path:
 def _fresh_main(monkeypatch, env: str):
     """Reload `main` under a given STRUCTURAL_ENV and return the module."""
     monkeypatch.setenv("STRUCTURAL_ENV", env)
-    ***REMOVED*** prod path requires the share-token secret env (report_store guards it).
+    # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
     if "main" in sys.modules:
         del sys.modules["main"]
-    import main  ***REMOVED*** noqa: WPS433 — deliberate reload
+    import main  # noqa: WPS433 — deliberate reload
     return main
 
 
@@ -44,7 +44,7 @@ def prod_client(monkeypatch):
     return TestClient(main.app)
 
 
-***REMOVED*** --------- P1-4: HEAD / --------- ***REMOVED***
+# --------- P1-4: HEAD / --------- #
 
 
 def test_head_root_returns_200(dev_client):
@@ -58,7 +58,7 @@ def test_get_root_still_works(dev_client):
     assert r.status_code == 200
 
 
-***REMOVED*** --------- P1-4: docs gating by env --------- ***REMOVED***
+# --------- P1-4: docs gating by env --------- #
 
 
 def test_docs_open_in_dev(dev_client):
@@ -73,7 +73,7 @@ def test_docs_disabled_in_prod(prod_client):
     assert prod_client.get("/redoc").status_code == 404
 
 
-***REMOVED*** --------- P0-3: security headers on the real app --------- ***REMOVED***
+# --------- P0-3: security headers on the real app --------- #
 
 
 def test_security_headers_on_main_app(dev_client):
@@ -91,7 +91,7 @@ def test_security_headers_on_html_page(dev_client):
     assert "Content-Security-Policy" in r.headers
 
 
-***REMOVED*** --------- P1-5: unmatched /api 404 uses RFC 7807 --------- ***REMOVED***
+# --------- P1-5: unmatched /api 404 uses RFC 7807 --------- #
 
 
 def test_unmatched_api_route_returns_problem_json(dev_client):
@@ -101,7 +101,7 @@ def test_unmatched_api_route_returns_problem_json(dev_client):
     assert r.status_code == 404
     assert r.headers["content-type"].startswith("application/problem+json")
     body = r.json()
-    ***REMOVED*** Canonical RFC 7807 members.
+    # Canonical RFC 7807 members.
     assert body["status"] == 404
     assert body["type"].endswith("/not_found")
     assert "title" in body and "detail" in body
@@ -114,14 +114,14 @@ def test_unmatched_html_route_still_serves_404_page(dev_client):
     assert "text/html" in r.headers["content-type"]
 
 
-***REMOVED*** --------- P2-3: /api/version never forks a git subprocess --------- ***REMOVED***
+# --------- P2-3: /api/version never forks a git subprocess --------- #
 
 
 def test_version_no_subprocess_when_sha_present(dev_client, monkeypatch):
     """With STRUCTURAL_GIT_SHA set, /api/version must not shell out."""
     import subprocess as _sp
 
-    def _boom(*a, **k):  ***REMOVED*** any subprocess call = test failure
+    def _boom(*a, **k):  # any subprocess call = test failure
         raise AssertionError("/api/version forked a subprocess")
 
     monkeypatch.setattr(_sp, "check_output", _boom)
@@ -149,20 +149,20 @@ def test_version_prod_missing_sha_returns_unknown(monkeypatch):
     assert r.json()["git_sha"] == "unknown"
 
 
-***REMOVED*** --------- P2: query-embedding cache hit-rate observability --------- ***REMOVED***
+# --------- P2: query-embedding cache hit-rate observability --------- #
 
 
 def test_search_service_cache_stats_shape():
     """SearchService.cache_stats() reports LRU hits / misses / hit_rate."""
     from services.search_service import SearchService
 
-    svc = SearchService(data_dir=None)  ***REMOVED*** no KB — we only exercise the cache
+    svc = SearchService(data_dir=None)  # no KB — we only exercise the cache
     stats = svc.cache_stats()
     assert set(stats) == {"hits", "misses", "hit_rate", "size", "maxsize"}
     assert stats["maxsize"] == 1024
-    assert stats["hit_rate"] == 0.0  ***REMOVED*** nothing encoded yet
+    assert stats["hit_rate"] == 0.0  # nothing encoded yet
 
-    ***REMOVED*** Encode the same query twice → exactly one cache hit.
+    # Encode the same query twice → exactly one cache hit.
     svc.encode_query("phase transition")
     svc.encode_query("phase transition")
     stats2 = svc.cache_stats()

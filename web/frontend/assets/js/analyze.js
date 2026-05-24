@@ -507,7 +507,7 @@ const renderers = {
 
 // === Progress tracker ===
 function renderProgress() {
-  const el = $('***REMOVED***analyze-progress');
+  const el = $('#analyze-progress');
   if (!el) return;
   el.innerHTML = SECTIONS.map(s => `
     <button class="analyze-progress__item" data-key="${s.key}">${escapeHtml(sectionLabel(s))}</button>
@@ -516,7 +516,7 @@ function renderProgress() {
   el.addEventListener('click', (e) => {
     const btn = e.target.closest('.analyze-progress__item');
     if (btn) {
-      const target = $(`***REMOVED***section-${btn.dataset.key}`);
+      const target = $(`#section-${btn.dataset.key}`);
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       // W3-B: user clicked the progress nav to jump to / expand a section.
       trackPlausible('analyze_section_expanded', { section_name: btn.dataset.key || 'unknown' });
@@ -546,12 +546,12 @@ function renderSections(container) {
 function updateSection(key, data) {
   const renderer = renderers[key];
   if (!renderer) return;
-  const body = $(`***REMOVED***section-body-${key}`);
+  const body = $(`#section-body-${key}`);
   if (!body) return;
   const html = renderer(data);
   if (html) {
     body.innerHTML = html;
-    const section = $(`***REMOVED***section-${key}`);
+    const section = $(`#section-${key}`);
     if (section && !section.classList.contains('revealed')) {
       section.classList.add('revealed');
     }
@@ -694,7 +694,7 @@ function renderTldrCard() {
   const badgeHtml = renderCredibilityBadge(credibility);
 
   const moreHtml = items.length
-    ? `<a href="***REMOVED***section-action_plan" class="analyze-tldr__more">${T('page.analyze.tldr_more', '完整 {n} 步清单').replace('{n}', items.length)} ↓</a>`
+    ? `<a href="#section-action_plan" class="analyze-tldr__more">${T('page.analyze.tldr_more', '完整 {n} 步清单').replace('{n}', items.length)} ↓</a>`
     : '';
 
   el.innerHTML = `
@@ -708,7 +708,7 @@ function renderTldrCard() {
 
 // === Header renderers ===
 function renderHeader(meta) {
-  const el = $('***REMOVED***analyze-header');
+  const el = $('#analyze-header');
   if (!el) return;
   const isQuery = meta.is_query_mode;
   const a = meta.a;
@@ -732,16 +732,16 @@ function renderHeader(meta) {
 
 // === Progress overlay updates ===
 function updateLoadingProgress(chars) {
-  const line = $('***REMOVED***analyze-loading .analyze-loading__progress-line');
+  const line = $('#analyze-loading .analyze-loading__progress-line');
   if (!line) {
-    const loading = $('***REMOVED***analyze-loading');
+    const loading = $('#analyze-loading');
     if (loading) {
       const p = document.createElement('div');
       p.className = 'analyze-loading__progress-line';
       loading.appendChild(p);
     }
   }
-  const lineEl = $('***REMOVED***analyze-loading .analyze-loading__progress-line');
+  const lineEl = $('#analyze-loading .analyze-loading__progress-line');
   if (lineEl) {
     lineEl.textContent = T('page.analyze.loading_progress_line', '已生成 {chars} 字 · AI 正在写研究报告').replace('{chars}', chars);
   }
@@ -759,7 +759,7 @@ function appendStreamContent(delta) {
   if (_streamBuffer.length > 5000) {
     _streamBuffer = _streamBuffer.slice(-5000);
   }
-  const loading = $('***REMOVED***analyze-loading');
+  const loading = $('#analyze-loading');
   if (!loading) return;
   let previewEl = loading.querySelector('.analyze-loading__stream-preview');
   if (!previewEl) {
@@ -780,13 +780,13 @@ function appendStreamContent(delta) {
 }
 function clearStreamPreview() {
   _streamBuffer = '';
-  const previewEl = $('***REMOVED***analyze-loading .analyze-loading__stream-preview');
+  const previewEl = $('#analyze-loading .analyze-loading__stream-preview');
   if (previewEl) previewEl.remove();
 }
 
 // === Final render: all sections at once with stagger animation ===
 function renderFinalReport(report) {
-  const container = $('***REMOVED***analyze-sections');
+  const container = $('#analyze-sections');
   if (!container) return;
 
   container.innerHTML = SECTIONS.map((s, i) => {
@@ -847,7 +847,7 @@ function streamingBodyHtml(key) {
 }
 
 function renderSectionSkeleton() {
-  const container = $('***REMOVED***analyze-sections');
+  const container = $('#analyze-sections');
   if (!container) return;
   container.innerHTML = SECTIONS.map(s => `
     <section class="section section--pending" id="section-${s.key}" data-key="${s.key}">
@@ -911,7 +911,7 @@ function setStreamingSection(key) {
 }
 
 function revealSection(key, data) {
-  const section = $(`***REMOVED***section-${key}`);
+  const section = $(`#section-${key}`);
   if (!section) return;
   const renderer = renderers[key];
   if (!renderer) return;
@@ -934,7 +934,7 @@ function revealSection(key, data) {
 }
 
 // =====================================================================
-// Session ***REMOVED***16 M1.4 — share-bar + feedback wiring
+// Session #16 M1.4 — share-bar + feedback wiring
 // =====================================================================
 
 function renderShareBar(persistedPayload) {
@@ -1024,7 +1024,7 @@ function submitFeedback(btn) {
   })
     .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
     .then((body) => {
-      // The ***REMOVED***analyze-vote-*-count spans are the OVERALL share-bar counters.
+      // The #analyze-vote-*-count spans are the OVERALL share-bar counters.
       // Only sync them for an overall vote — a section vote returns that
       // section's counts and must not overwrite the overall display.
       if (!section) {
@@ -1075,7 +1075,7 @@ function streamAnalysis(params) {
 
   // Start the overall elapsed timer for the loading block
   let stopLoadingTimer = null;
-  const loadingTimerEl = $('***REMOVED***analyze-loading-timer');
+  const loadingTimerEl = $('#analyze-loading-timer');
   if (loadingTimerEl && window.startElapsedTimer) {
     stopLoadingTimer = window.startElapsedTimer(loadingTimerEl);
   }
@@ -1102,7 +1102,7 @@ function streamAnalysis(params) {
     // node must remain in the DOM. It gets fully removed once the first
     // section actually arrives (existing handler below).
     if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
-    const loading = $('***REMOVED***analyze-loading');
+    const loading = $('#analyze-loading');
     if (loading) {
       loading.classList.add('analyze-loading--fading');
       // After the fade-out animation, hide via display:none. Stays in DOM.
@@ -1130,7 +1130,7 @@ function streamAnalysis(params) {
     if (!firstSectionSeen) {
       firstSectionSeen = true;
       if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
-      const loading = $('***REMOVED***analyze-loading');
+      const loading = $('#analyze-loading');
       if (loading) {
         loading.classList.add('analyze-loading--fading');
         setTimeout(() => loading.remove(), 400);
@@ -1161,7 +1161,7 @@ function streamAnalysis(params) {
     }
   });
 
-  // Session ***REMOVED***16 M1.4 — handles the new `persisted` SSE event emitted
+  // Session #16 M1.4 — handles the new `persisted` SSE event emitted
   // when persist=1. Payload: {id, share_token, share_url, created_at,
   // is_partial}. We stash the id (for feedback POSTs) and render the
   // sticky share-bar.
@@ -1193,7 +1193,7 @@ function streamAnalysis(params) {
     }
     if (stopLoadingTimer) { stopLoadingTimer(); stopLoadingTimer = null; }
     if (_currentStreamTimerStop) { _currentStreamTimerStop(); _currentStreamTimerStop = null; }
-    const loading = $('***REMOVED***analyze-loading');
+    const loading = $('#analyze-loading');
     if (loading) loading.remove();
     updateProgressState(receivedKeys, null);
     renderTldrCard();
@@ -1207,13 +1207,13 @@ function streamAnalysis(params) {
     // Make sure the loading block is visible again — meta-arrival path has
     // hidden it via .analyze-loading--hidden, but a retry warrants surfacing
     // the message there.
-    const loadingBlock = $('***REMOVED***analyze-loading');
+    const loadingBlock = $('#analyze-loading');
     if (loadingBlock) {
       loadingBlock.classList.remove('analyze-loading--hidden');
       loadingBlock.classList.remove('analyze-loading--fading');
     }
-    const titleEl = $('***REMOVED***analyze-loading .analyze-loading__title');
-    const hintEl = $('***REMOVED***analyze-loading .analyze-loading__hint');
+    const titleEl = $('#analyze-loading .analyze-loading__title');
+    const hintEl = $('#analyze-loading .analyze-loading__hint');
     if (titleEl) titleEl.textContent = T('page.analyze.retry_first', '首次生成失败，正在重试...');
     if (hintEl) hintEl.textContent = T('page.analyze.retry_first_hint', '模型刚刚没稳定输出，我们换个角度再来一次。');
   });
@@ -1259,7 +1259,7 @@ function streamAnalysis(params) {
 // `retryable === false`  → show "重试" button (user can click to re-request)
 // otherwise              → show T("page.analyze.btn_retry", "刷新重试") (full reload) as the safer default
 function renderStreamError({ message, retryable }) {
-  const loading = $('***REMOVED***analyze-loading');
+  const loading = $('#analyze-loading');
   if (!loading) return;
   // After meta arrives we hide the loading block via .analyze-loading--hidden
   // (display:none). An error event needs to bring it back so the user sees
@@ -1271,7 +1271,7 @@ function renderStreamError({ message, retryable }) {
     ? `<a href="javascript:location.reload()" class="btn btn--primary">${T("page.analyze.btn_retry", "刷新重试")}</a>`
     : `<button type="button" class="btn btn--primary" id="analyze-retry-btn">${T('page.analyze.btn_retry_soft', '重试')}</button>`;
   loading.innerHTML = `
-    <h2 class="analyze-loading__title" style="color: var(--danger, ***REMOVED***dc2626)">${T("page.analyze.error_title", "生成失败")}</h2>
+    <h2 class="analyze-loading__title" style="color: var(--danger, #dc2626)">${T("page.analyze.error_title", "生成失败")}</h2>
     <p class="analyze-loading__hint">${msg}</p>
     <p style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
       ${buttonHtml}
@@ -1338,7 +1338,7 @@ function buildBriefMarkdown() {
   const ifShort = action.if_time_short;
 
   const lines = [];
-  lines.push(`***REMOVED*** ${T('page.analyze.brief_title', 'Structural · 跨学科分析简报')}`);
+  lines.push(`# ${T('page.analyze.brief_title', 'Structural · 跨学科分析简报')}`);
   lines.push('');
   if (userQuery) {
     lines.push(`> **${T('page.analyze.brief_your_question', '你的问题')}**: ${userQuery}`);
@@ -1354,14 +1354,14 @@ function buildBriefMarkdown() {
 
   // Core insight
   if (struct.intuition) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.brief_one_liner', '一句话核心')}`);
+    lines.push(`## ${T('page.analyze.brief_one_liner', '一句话核心')}`);
     lines.push(clean(struct.intuition));
     lines.push('');
   }
 
   // Top 3 borrowable insights — translated_to_target is the punchy summary
   if (insights.length > 0) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.brief_top_insights', '三条最关键的洞察')}`);
+    lines.push(`## ${T('page.analyze.brief_top_insights', '三条最关键的洞察')}`);
     insights.slice(0, 3).forEach((ins, i) => {
       const tool = ins.tool || '';
       const translated = clean(ins.translated_to_target || '');
@@ -1372,14 +1372,14 @@ function buildBriefMarkdown() {
 
   // Action plan — the money shot
   if (ifShort) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.action_if_only_one', '⭐ 如果你只能做一件事')}`);
+    lines.push(`## ${T('page.analyze.action_if_only_one', '⭐ 如果你只能做一件事')}`);
     lines.push(`**${ifShort.title || ''}**`);
     if (ifShort.rationale) lines.push(clean(ifShort.rationale));
     lines.push('');
   }
 
   if (actions.length > 0) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.brief_weekly_actions', '本周行动清单')}`);
+    lines.push(`## ${T('page.analyze.brief_weekly_actions', '本周行动清单')}`);
     actions.forEach((it) => {
       const rank = it.rank || '?';
       const time = it.estimated_time ? ` _（${it.estimated_time}）_` : '';
@@ -1393,14 +1393,14 @@ function buildBriefMarkdown() {
   }
 
   if (action.next_week_followup) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.action_next_week', '下周回头看')}`);
+    lines.push(`## ${T('page.analyze.action_next_week', '下周回头看')}`);
     lines.push(clean(action.next_week_followup));
     lines.push('');
   }
 
   // Risks
   if (risks.length > 0) {
-    lines.push(`***REMOVED******REMOVED*** ${T('page.analyze.section_risks_and_limits', '迁移风险')}`);
+    lines.push(`## ${T('page.analyze.section_risks_and_limits', '迁移风险')}`);
     risks.slice(0, 3).forEach((rk) => {
       const sev = rk.severity ? `[${rk.severity}] ` : '';
       lines.push(`- ${sev}**${rk.risk_name || ''}** — ${clean(rk.explanation || '')}`);
@@ -1531,7 +1531,7 @@ function initAnalyzeActions() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Session ***REMOVED***16 M1.4 — report.html reuses this file for its section
+  // Session #16 M1.4 — report.html reuses this file for its section
   // renderers but does NOT want the analyze SSE boot to fire.
   if (window._suppressAnalyzeBoot) return;
 
@@ -1546,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // SESSION-17 P2-4: don't silently bounce to "/". The "分析" nav item
     // can land here with no context — show a friendly empty state that
     // points the user back to the question box instead.
-    const loadingEl = $('***REMOVED***analyze-loading');
+    const loadingEl = $('#analyze-loading');
     if (loadingEl) {
       loadingEl.innerHTML =
         '<h2 class="analyze-loading__title">从一个问题开始分析</h2>' +
@@ -1570,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Session ***REMOVED***16 M1.4 — persist by default so users get a shareable URL
+  // Session #16 M1.4 — persist by default so users get a shareable URL
   // for every report they read. Override with ?persist=0 in the URL.
   // anon_id is the same UUID used by /api/flags / favorites / history.
   const persistFlag = getQueryParam('persist');

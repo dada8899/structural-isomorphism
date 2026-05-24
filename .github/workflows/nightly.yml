@@ -1,9 +1,9 @@
 name: Nightly (full suite)
 
-***REMOVED*** Runs daily 02:00 UTC (10:00 Beijing). Full suite incl. slow + e2e + load
-***REMOVED*** smoke (1 VU sanity). Posts a summary to a tracking GitHub issue on failure.
-***REMOVED***
-***REMOVED*** Manual dispatch supported for ad-hoc runs (e.g. before a release tag).
+# Runs daily 02:00 UTC (10:00 Beijing). Full suite incl. slow + e2e + load
+# smoke (1 VU sanity). Posts a summary to a tracking GitHub issue on failure.
+#
+# Manual dispatch supported for ad-hoc runs (e.g. before a release tag).
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -14,9 +14,9 @@ permissions:
   issues: write
 
 jobs:
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 1) Full backend matrix — same axes as CI but WITH slow tests included.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 1) Full backend matrix — same axes as CI but WITH slow tests included.
+  # ---------------------------------------------------------------------------
   backend-full:
     name: backend full (py${{ matrix.python-version }} / ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -56,9 +56,9 @@ jobs:
       - name: Run sanity + integration (incl. slow)
         run: pytest v4/tests -v -m "not requires_llm" || true
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 2) Full e2e (live network, all flavors).
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 2) Full e2e (live network, all flavors).
+  # ---------------------------------------------------------------------------
   e2e-full:
     name: e2e full
     runs-on: ubuntu-latest
@@ -94,9 +94,9 @@ jobs:
             pytest web/tests/e2e -v -m "not requires_llm" || true
           fi
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 3) Load smoke (k6, 1 VU sanity). Prod-safe budget.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 3) Load smoke (k6, 1 VU sanity). Prod-safe budget.
+  # ---------------------------------------------------------------------------
   load-smoke-1vu:
     name: load smoke (k6, 1 VU)
     runs-on: ubuntu-latest
@@ -143,9 +143,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  ***REMOVED*** ---------------------------------------------------------------------------
-  ***REMOVED*** 4) Summary — post failure summary to tracking issue.
-  ***REMOVED*** ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 4) Summary — post failure summary to tracking issue.
+  # ---------------------------------------------------------------------------
   summary:
     name: post nightly summary
     runs-on: ubuntu-latest

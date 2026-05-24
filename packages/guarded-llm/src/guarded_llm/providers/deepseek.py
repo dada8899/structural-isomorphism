@@ -23,7 +23,7 @@ from . import BaseProvider, register_provider
 
 
 _DEFAULT_PRICING_USD_PER_M = {
-    ***REMOVED*** model_id -> (input_price_per_M_tokens, output_price_per_M_tokens)
+    # model_id -> (input_price_per_M_tokens, output_price_per_M_tokens)
     "deepseek-chat": (0.27, 1.10),
     "deepseek-v4-flash": (0.07, 0.27),
     "deepseek-v4-pro": (0.55, 2.19),
@@ -52,7 +52,7 @@ class DeepSeekProvider(BaseProvider):
         response_format: dict | None = None,
         **kwargs: Any,
     ) -> dict:
-        import requests  ***REMOVED*** local import to keep top-level fast
+        import requests  # local import to keep top-level fast
 
         key = api_key or self.api_key
         if not key:
@@ -66,7 +66,7 @@ class DeepSeekProvider(BaseProvider):
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
-        ***REMOVED*** Request JSON mode when a schema is present
+        # Request JSON mode when a schema is present
         if response_format is not None:
             body["response_format"] = response_format
         elif schema is not None:

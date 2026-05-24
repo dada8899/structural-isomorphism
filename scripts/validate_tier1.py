@@ -9,8 +9,8 @@ Usage:
     python validate_tier1.py --layer 1
     python validate_tier1.py --layer 2
     python validate_tier1.py --layer 3
-    python validate_tier1.py --layer 1 --smoke    ***REMOVED*** smoke test: 2 rows only
-    python validate_tier1.py --layer 1 --summary  ***REMOVED*** re-compute survivors from existing results
+    python validate_tier1.py --layer 1 --smoke    # smoke test: 2 rows only
+    python validate_tier1.py --layer 1 --summary  # re-compute survivors from existing results
 
 Outputs:
     validation/layer{1,2,3}-results.jsonl    (append-only, resume-safe)
@@ -36,22 +36,22 @@ ENV_FILE = PROJECT_DIR / "web" / "backend" / ".env"
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-***REMOVED*** Layer 1 — literature cross-check (3 heterogeneous, JSON-reliable models)
-***REMOVED*** Dropped GPT-5 (returns None content due to reasoning tokens eating budget)
-***REMOVED*** Swapped to Kimi K2.5: different training corpus, broad Chinese+English lit.
+# Layer 1 — literature cross-check (3 heterogeneous, JSON-reliable models)
+# Dropped GPT-5 (returns None content due to reasoning tokens eating budget)
+# Swapped to Kimi K2.5: different training corpus, broad Chinese+English lit.
 LAYER1_MODELS = [
-    "anthropic/claude-opus-4.1",     ***REMOVED*** anthropic family
-    "google/gemini-2.5-pro",          ***REMOVED*** google family (needs reasoning bound)
-    "moonshotai/kimi-k2.5",           ***REMOVED*** chinese flagship, independent view
+    "anthropic/claude-opus-4.1",     # anthropic family
+    "google/gemini-2.5-pro",          # google family (needs reasoning bound)
+    "moonshotai/kimi-k2.5",           # chinese flagship, independent view
 ]
 
-***REMOVED*** Layer 2 — blind rating (Layer 1 set + 2 more heterogeneous)
+# Layer 2 — blind rating (Layer 1 set + 2 more heterogeneous)
 LAYER2_MODELS = LAYER1_MODELS + [
     "deepseek/deepseek-r1",
     "z-ai/glm-5",
 ]
 
-***REMOVED*** Layer 3 — prediction generation (single high-quality model)
+# Layer 3 — prediction generation (single high-quality model)
 LAYER3_MODEL = "anthropic/claude-opus-4.1"
 
 
@@ -99,8 +99,8 @@ def call_openrouter(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    ***REMOVED*** Bound reasoning tokens for reasoning-heavy models so visible content isn't starved.
-    ***REMOVED*** OpenRouter rejects specifying both effort+max_tokens together — pick one.
+    # Bound reasoning tokens for reasoning-heavy models so visible content isn't starved.
+    # OpenRouter rejects specifying both effort+max_tokens together — pick one.
     if any(k in model for k in ["gemini-2.5-pro", "deepseek-r1", "o1", "o3"]):
         body["reasoning"] = {"max_tokens": 500}
     elif "gpt-5" in model:
@@ -108,8 +108,8 @@ def call_openrouter(
     last_err = None
     for attempt in range(retries):
         try:
-            ***REMOVED*** trust_env=False bypasses HTTP_PROXY/HTTPS_PROXY; some local proxies
-            ***REMOVED*** (e.g. Clash on :7890) stall on long LLM responses.
+            # trust_env=False bypasses HTTP_PROXY/HTTPS_PROXY; some local proxies
+            # (e.g. Clash on :7890) stall on long LLM responses.
             with httpx.Client(timeout=timeout, trust_env=False) as client:
                 resp = client.post(OPENROUTER_URL, headers=headers, json=body)
                 if resp.status_code != 200:
@@ -118,7 +118,7 @@ def call_openrouter(
                     continue
                 data = resp.json()
                 msg = data["choices"][0]["message"]
-                ***REMOVED*** Prefer visible content; fall back to reasoning field if content is empty
+                # Prefer visible content; fall back to reasoning field if content is empty
                 text = msg.get("content") or ""
                 if not text:
                     reasoning = msg.get("reasoning") or msg.get("reasoning_content") or ""
@@ -150,11 +150,11 @@ def extract_json(text: str) -> dict | None:
     if not text:
         return None
     t = text.strip()
-    ***REMOVED*** Strip markdown fences
+    # Strip markdown fences
     if t.startswith("```"):
         lines = t.split("\n")
         t = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
-    ***REMOVED*** Find first { and last }
+    # Find first { and last }
     start = t.find("{")
     end = t.rfind("}")
     if start == -1 or end == -1 or end < start:
@@ -164,14 +164,14 @@ def extract_json(text: str) -> dict | None:
         return json.loads(raw)
     except json.JSONDecodeError:
         pass
-    ***REMOVED*** Lenient: escape invalid backslash sequences
+    # Lenient: escape invalid backslash sequences
     try:
         return json.loads(_fix_invalid_escapes(raw))
     except json.JSONDecodeError:
         return None
 
 
-***REMOVED*** ========== Layer 1: Literature Cross-Check ==========
+# ========== Layer 1: Literature Cross-Check ==========
 
 LAYER1_PROMPT_TEMPLATE = """你是一位跨学科研究专家，精通物理、生物、经济、信息论、计算机系统、社会学等领域的学术文献。
 
@@ -209,7 +209,7 @@ def run_layer1(api_key: str, smoke: bool = False) -> None:
 
     out_file = VALIDATION_DIR / ("layer1-results.smoke.jsonl" if smoke else "layer1-results.jsonl")
 
-    ***REMOVED*** Resume: only skip successful parses (retry errors + parse failures)
+    # Resume: only skip successful parses (retry errors + parse failures)
     done: set[tuple[int, str]] = set()
     if out_file.exists():
         with open(out_file) as f:
@@ -314,7 +314,7 @@ def summarize_layer1(results_file: Path) -> None:
     print(f"  Wrote: {survivors_file}")
 
 
-***REMOVED*** ========== Layer 2: Blind rating ==========
+# ========== Layer 2: Blind rating ==========
 
 LAYER2_PROMPT_TEMPLATE = """评审下面这个跨域结构同构。不要问这是谁提出的，只看内容本身。
 
@@ -356,7 +356,7 @@ def run_layer2(api_key: str, smoke: bool = False) -> None:
         print(f"ERROR: {survivors_file} not found. Run Layer 1 first.", file=sys.stderr)
         sys.exit(1)
 
-    ***REMOVED*** Layer 1 survivors have {idx, a_name, b_name, verdicts}. Need to re-join with tier1-input for equations.
+    # Layer 1 survivors have {idx, a_name, b_name, verdicts}. Need to re-join with tier1-input for equations.
     tier1 = {r["_idx"]: r for r in load_tier1()}
     survivors = []
     with open(survivors_file) as f:
@@ -378,7 +378,7 @@ def run_layer2(api_key: str, smoke: bool = False) -> None:
             for line in f:
                 try:
                     r = json.loads(line)
-                    ***REMOVED*** only resume successful parses
+                    # only resume successful parses
                     if r.get("parsed") is not None:
                         done.add((r["idx"], r["model"]))
                 except Exception:
@@ -464,7 +464,7 @@ def summarize_layer2(results_file: Path) -> None:
     survivors = []
     eliminated = []
     for idx, rec in sorted(per_idx.items()):
-        ***REMOVED*** Average total score across models (only models with all 3 scores)
+        # Average total score across models (only models with all 3 scores)
         totals = []
         q3_ge4 = 0
         for model, s in rec["model_scores"].items():
@@ -498,7 +498,7 @@ def summarize_layer2(results_file: Path) -> None:
     print(f"  Wrote: {out}")
 
 
-***REMOVED*** ========== Layer 3: Prediction generation ==========
+# ========== Layer 3: Prediction generation ==========
 
 LAYER3_PROMPT_TEMPLATE = """基于下面这个已通过筛选的跨域结构同构，推理并生成 3 个候选"可证伪的新预测"。
 
@@ -614,17 +614,17 @@ def run_layer3(api_key: str, smoke: bool = False) -> None:
 def render_layer3_markdown(results_file: Path) -> None:
     """Render Layer 3 predictions to human-review markdown."""
     out = VALIDATION_DIR / "predictions.md"
-    lines = ["***REMOVED*** Layer 3 预测力测试结果", "", "> 对 Layer 2 幸存的发现生成 3 个候选可证伪预测。", "> 用户 + Scholar 搜索逐条审核。", ""]
+    lines = ["# Layer 3 预测力测试结果", "", "> 对 Layer 2 幸存的发现生成 3 个候选可证伪预测。", "> 用户 + Scholar 搜索逐条审核。", ""]
     with open(results_file) as f:
         for line in f:
             r = json.loads(line)
-            lines.append(f"***REMOVED******REMOVED*** [idx={r['idx']}] {r['a_name']} ↔ {r['b_name']}")
+            lines.append(f"## [idx={r['idx']}] {r['a_name']} ↔ {r['b_name']}")
             lines.append("")
             lines.append(f"**核心机制**：{r.get('equations', '')}")
             lines.append("")
             parsed = r.get("parsed") or {}
             for p in parsed.get("predictions", []):
-                lines.append(f"***REMOVED******REMOVED******REMOVED*** {p.get('id', '?')}: {p.get('statement', '')}")
+                lines.append(f"### {p.get('id', '?')}: {p.get('statement', '')}")
                 lines.append("")
                 lines.append(f"- **推导**：{p.get('derivation', '')}")
                 lines.append(f"- **可观测性**：{p.get('observability', '')}")
@@ -643,7 +643,7 @@ def render_layer3_markdown(results_file: Path) -> None:
     print(f"  Wrote: {out}")
 
 
-***REMOVED*** ========== Main ==========
+# ========== Main ==========
 
 def main():
     parser = argparse.ArgumentParser()

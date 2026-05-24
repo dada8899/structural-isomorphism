@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 11 — solar flare peak-flux SOC validation.
 
 System: NOAA NGDC GOES X-ray flare catalog 2000-2016
@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     omori_from_aftershock_stack,
@@ -52,23 +52,23 @@ def main():
     flux = np.array([f["peak_flux_W_m2"] for f in flares if "peak_flux_W_m2" in f])
     flux = flux[flux > 0]
     print(f"  peak_flux_W_m2 range: [{flux.min():.2e}, {flux.max():.2e}]")
-    ***REMOVED*** Class distribution
+    # Class distribution
     from collections import Counter
     dist = Counter(f["class_letter"] for f in flares if "class_letter" in f)
     print(f"  class distribution: {dict(dist)}")
 
-    ***REMOVED*** 1. Clauset power-law fit
+    # 1. Clauset power-law fit
     print("\n[1] Clauset power-law fit on peak_flux (W/m²)...")
     pl = fit_clauset_powerlaw(flux, "flare_peak_flux", discrete=False)
     for k, v in pl.items():
         print(f"  {k}: {v}")
 
-    ***REMOVED*** 2. Bootstrap CI
+    # 2. Bootstrap CI
     print("\n[2] Bootstrap 95% CI on α (n_boot=100, takes ~20s)...")
     ci = bootstrap_alpha_ci(flux, n_boot=100, discrete=False)
     print(f"  CI: {ci}")
 
-    ***REMOVED*** 3. Omori on inter-flare times after X-class events
+    # 3. Omori on inter-flare times after X-class events
     print("\n[3] Omori on inter-flare times after X-class mainshocks...")
     rows = []
     for f in flares:
@@ -96,27 +96,27 @@ def main():
     print(f"  n stacked aftershocks: {len(dts_sec)}")
     omori = omori_from_aftershock_stack(
         dts_sec,
-        min_sec=300.0,  ***REMOVED*** 5 minutes
+        min_sec=300.0,  # 5 minutes
         max_sec=aftershock_window_hours * 3600,
         n_bins=20,
         c_grid_days=(0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2),
     )
     print(f"  Omori result: {omori}")
 
-    ***REMOVED*** 4. Power-law on inter-arrival times (Wheatland 2000)
+    # 4. Power-law on inter-arrival times (Wheatland 2000)
     print("\n[4] Power-law fit on inter-arrival times...")
-    iat = np.diff(times)  ***REMOVED*** seconds between successive flares
+    iat = np.diff(times)  # seconds between successive flares
     iat = iat[iat > 0]
     pl_iat = fit_clauset_powerlaw(iat, "flare_interarrival", discrete=False)
     print(f"  IAT α: {pl_iat.get('alpha')}, R vs lognormal: {pl_iat.get('vs_lognormal_R')}")
 
-    ***REMOVED*** 5. Null control
+    # 5. Null control
     print("\n[5] Null control (matched n)...")
     null_n = min(len(flux), 20000)
     nulls = run_size_null_controls(seed=42, n=null_n)
     print(f"  all_rejected: {nulls['all_rejected']}")
 
-    ***REMOVED*** Verdict
+    # Verdict
     predicted_narrow = (1.5, 2.5)
     literature = (1.5, 2.5)
     alpha = pl.get("alpha")

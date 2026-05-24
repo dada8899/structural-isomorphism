@@ -1,4 +1,4 @@
-***REMOVED*** Query Failure Analysis — 匹配算法 & 用户查询失败模式
+# Query Failure Analysis — 匹配算法 & 用户查询失败模式
 
 **Date**: 2026-05-24
 **Scope**: 用户反映"找近似现象但找不到对应的现象"。本报告专攻匹配算法 + 用户查询失败模式（KB 内容缺口由另一 agent 处理）。
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** TL;DR — 三大快赢 + Top 3 失败模式
+## TL;DR — 三大快赢 + Top 3 失败模式
 
 **Top 3 失败模式**（按估算占比，N=7 dogfood 真实 query + 算法 dry-run 验证）：
 1. **BM25 中文分词坏掉 → 字面 hack（~30%）** — `jieba` 未装在 backend，分词退化到单字 → "团队**相变恢复**" 命中"形状记忆合金**相变恢复**" score=1.0
@@ -20,7 +20,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. 数据源清单
+## 1. 数据源清单
 
 | 来源 | 路径 | 信号量 | 备注 |
 |---|---|---|---|
@@ -36,9 +36,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. 失败模式分类（含真实例子 + 占比）
+## 2. 失败模式分类（含真实例子 + 占比）
 
-***REMOVED******REMOVED******REMOVED*** 2.1 BM25 字面 hack 召回（粗估 ~30%，置信度高）
+### 2.1 BM25 字面 hack 召回（粗估 ~30%，置信度高）
 
 **Root cause**：`web/backend/services/search_service.py:58-77` 的 `_tokenize` 在 jieba 不可用时回退到 char-level 切分，**但 `web/backend/requirements.txt` 里没列 `jieba` 也没列 `rank_bm25`**。Prod 实际行为有两种可能（取决于 venv 装没装）：
 - 真的没 jieba → 中文被切成单字，BM25 完全字面匹配单字，无任何短语语义
@@ -54,7 +54,7 @@ Top-5:  团队规模的沟通成本（score=0.82，管理学）— 真相关的�
 
 **还有其他被波及的 query**：q6 "1+1" 召回"母线差动保护"（"求和"字面）；q3 "MAU 流失 7%" 召回 "Horton 河流分级"（"分级"字面）。
 
-***REMOVED******REMOVED******REMOVED*** 2.2 专名 / 案例名召回全 miss（粗估 ~25%，置信度高）
+### 2.2 专名 / 案例名召回全 miss（粗估 ~25%，置信度高）
 
 **Root cause**：KB 收"通用现象"（5k-01-001 ~ 5k-99-xxx 全是"XX 的 YY 现象"），但用户自然语言会带具体案例名（公司名、人名、事件名）。Probe 结果：
 
@@ -73,7 +73,7 @@ Top-1:  银行挤兑（score=0.94）— 这条侥幸救场，因为"挤兑"是�
 ```
 但如果用户问 "Theranos 是怎么崩的"（KB 里 `Theranos` 描述命中 1 条但不是主 entry）或 "WeWork 为什么估值崩盘"（0 命中）→ retrieval 退到 0.55-0.65 区间，触发 scope gate refusal。**用户感知就是"找不到"**。
 
-***REMOVED******REMOVED******REMOVED*** 2.3 跨语 retrieval 单边瘸（粗估 ~20%，置信度中）
+### 2.3 跨语 retrieval 单边瘸（粗估 ~20%，置信度中）
 
 **Root cause**：embedding 是 `shibing624/text2vec-base-chinese`（base fallback，W1 disaster 后没恢复 v2 finetuned），训练以中文为主。BM25 全部 doc 是中文。但用户大概率会用英文查（论文、Stack Overflow 习惯）。
 
@@ -90,7 +90,7 @@ Top-1:  银行挤兑（score=0.94）— 这条侥幸救场，因为"挤兑"是�
 
 **Example**：英文 query "What is self-organized criticality" 在 LLM AB test 里 DeepSeek 用 base embedding 召回了"分权改革的俘获风险"——拼音相关（SOC 想成 Society？）的乱命中。Sonnet 4.6 因为它自身的 multilingual 能力能在 prompt 阶段救场，但 retrieval 本身仍是错的。
 
-***REMOVED******REMOVED******REMOVED*** 2.4 别名 / 同义词不归一（粗估 ~10%，置信度中）
+### 2.4 别名 / 同义词不归一（粗估 ~10%，置信度中）
 
 **Root cause**：没有同义词字典 / 别名归一。
 
@@ -100,7 +100,7 @@ Top-1:  银行挤兑（score=0.94）— 这条侥幸救场，因为"挤兑"是�
 - "羊群效应" / "herding" / "bandwagon" / "信息级联" / "群体盲从" → KB 里有 3 条但 "羊群行为" 和 "羊群效应" 算两个 phenomena
 - "回声室" / "信息茧房" / "filter bubble" / "echo chamber" → 多个变体
 
-***REMOVED******REMOVED******REMOVED*** 2.5 过宽 / 抽象 query 召回多但都浅（粗估 ~8%，置信度中）
+### 2.5 过宽 / 抽象 query 召回多但都浅（粗估 ~8%，置信度中）
 
 **Example (dogfood q5)**：
 ```
@@ -110,7 +110,7 @@ Top-3:  朋友圈信息的回声室效应（0.80）/ 语言的递归嵌套（0.6
 ```
 query 抽象 + 跨人类情感场景，每条召回都"沾点边"但都不深。dogfood honesty 评 1/5。**当前 scope_guard 没拦住**（top-1=0.82 高于 0.75 阈值）。
 
-***REMOVED******REMOVED******REMOVED*** 2.6 时态 / 否定 / 假设 query（粗估 ~5%，置信度低）
+### 2.6 时态 / 否定 / 假设 query（粗估 ~5%，置信度低）
 
 **Example (dogfood q7)**：
 ```
@@ -119,15 +119,15 @@ Top-1:  股价随机漫步（0.65）— 这个是对的，但卡在 top1 < 0.75 
 ```
 q7 实际被 `_is_forecasting_intent` 关键词 gate 抢先拦截了，这层处理正确。问题在"假设性"和"反例"类（"什么情况下幂律会失效？"、"反过来如果不存在级联会怎样？"）：embedding 不擅长否定语义反转，KB 又没收 anti-pattern 文档。这层数据量太小，本报告估算保守 5%。
 
-***REMOVED******REMOVED******REMOVED*** 2.7 跨域桥接缺失 / 排序错位（粗估 ~2%，置信度中）
+### 2.7 跨域桥接缺失 / 排序错位（粗估 ~2%，置信度中）
 
 **Example**：q3 "MAU 流失 7%" 最该召回"SaaS 客户生命周期价值"（KB 里有 score=0.74），但排到第 5；"Horton 河流分级"（0.78）排到第 2。`_domain_guard` MMR-lite 是为了多样性，但在 query 已经明确是商业领域时反而稀释了正确域。
 
 ---
 
-***REMOVED******REMOVED*** 3. 算法改进建议清单（按 ROI 排序）
+## 3. 算法改进建议清单（按 ROI 排序）
 
-| ***REMOVED*** | 改进 | 针对失败模式 | 工时 | 预期召回提升 | ROI |
+| # | 改进 | 针对失败模式 | 工时 | 预期召回提升 | ROI |
 |---|---|---|---|---|---|
 | 1 | **装 `jieba` + `rank_bm25` 到 requirements.txt + startup assert** | 2.1 | 半天 | top-1 质量 +15-25 pct（消除字面 hack 类） | **★★★★★** |
 | 2 | **LLM query expansion**：在 retrieval 前调用一次轻量 LLM，把专名 → 通用概念 + 同义词 + 翻译。结果作为多 query 并联检索，结果 union 再 rerank | 2.2 / 2.3 / 2.4 | 1 天 | 专名 query 召回 0% → 60%+；EN query +30% | **★★★★★** |
@@ -141,9 +141,9 @@ q7 实际被 `_is_forecasting_intent` 关键词 gate 抢先拦截了，这层处
 
 ---
 
-***REMOVED******REMOVED*** 4. 快赢清单（1 周可上线，按上线顺序）
+## 4. 快赢清单（1 周可上线，按上线顺序）
 
-***REMOVED******REMOVED******REMOVED*** 快赢 ***REMOVED***1（Day 1，半天）— 把 BM25 真正修好
+### 快赢 #1（Day 1，半天）— 把 BM25 真正修好
 ```
 1. requirements.txt 加 jieba>=0.42.1 + rank_bm25>=0.2.2
 2. main.py / startup_check.py 加 assert：
@@ -154,7 +154,7 @@ q7 实际被 `_is_forecasting_intent` 关键词 gate 抢先拦截了，这层处
 ```
 **预期**：q2 top-1 从"形状记忆合金"换成"团队规模沟通成本"，retrieval 评分从 3/5 提到 4/5。
 
-***REMOVED******REMOVED******REMOVED*** 快赢 ***REMOVED***2（Day 2-3，1 天）— LLM query expansion
+### 快赢 #2（Day 2-3，1 天）— LLM query expansion
 ```
 1. ask_orchestrator 在 retrieval 之前加 _expand_query(query, lang):
    - prompt: "把这句话转成 1 条通用概念 + 2 条相近表述 + 1 条英文表述，每条 < 20 字"
@@ -164,7 +164,7 @@ q7 实际被 `_is_forecasting_intent` 关键词 gate 抢先拦截了，这层处
 ```
 **预期**：q1 "硅谷银行挤兑" → expansion 出 "银行挤兑 / 流动性危机 / bank run"，retrieval 稳定召回"银行挤兑"+"信息级联"+"网络效应"。专名类 query 召回从 0% 到 60%+。
 
-***REMOVED******REMOVED******REMOVED*** 快赢 ***REMOVED***3（Day 4，半天）— 英文 query 翻译再 embedding
+### 快赢 #3（Day 4，半天）— 英文 query 翻译再 embedding
 ```
 1. 在 search_service.encode_query() 前加 _detect_lang(query)：
    ASCII 字母占比 > 50% → 视为 EN
@@ -173,19 +173,19 @@ q7 实际被 `_is_forecasting_intent` 关键词 gate 抢先拦截了，这层处
 ```
 **预期**：现在 EN query 跑出来的 retrieval 不再是"分权改革俘获风险"乱命中类，大概率能上 0.7+。
 
-***REMOVED******REMOVED******REMOVED*** 上线后监控
+### 上线后监控
 - 加 `ask.retrieval` 结构化日志记 **原始 query**（脱敏后）+ top-5 KB ids + scores（**当前日志只记 `query_len` 是这次分析最大障碍**）
 - 1 周后再跑一次 100 条真实 query 的失败模式量化，把粗估占比换成精确数
 
 ---
 
-***REMOVED******REMOVED*** 5. Caveats & 限制
+## 5. Caveats & 限制
 
 1. **占比是粗估，不是统计**：N=7 dogfood + 算法探针不构成统计学样本。上线日志后必须用 100+ 条真实 query 重做。
 2. **jieba 状态不 100% 确定**：本报告基于 backend requirements.txt 没有 + 本地 .venv 装不到推断 prod 也没装。建议 SSH 上 VPS 实测 `python -c "import jieba"` 验证（出于本任务 read-only 约束未跑）。
 3. **本报告不动 search_service 代码**（任务约束）：所有改进是分析建议，由后续 milestone 执行。
 4. **未覆盖**：性能 / 延迟 / cache hit rate / cost 失败模式（这些在 dogfood P1 已分析）。本报告专注"召回正确性"维度。
-5. **优先建议先做 ***REMOVED***1 + ***REMOVED***2 + ***REMOVED***3 三件套**，做完再评估是否值得上 cross-encoder（***REMOVED***5）或换 embedding 模型（***REMOVED***6）——后两者工时大，应等快赢 baseline 跑出来再决定 ROI。
+5. **优先建议先做 #1 + #2 + #3 三件套**，做完再评估是否值得上 cross-encoder（#5）或换 embedding 模型（#6）——后两者工时大，应等快赢 baseline 跑出来再决定 ROI。
 
 ---
 

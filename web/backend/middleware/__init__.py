@@ -3,7 +3,7 @@
 Re-exports the rate-limit installer so main.py can do:
     from middleware import install_rate_limit
 """
-from middleware.rate_limit import (  ***REMOVED*** noqa: F401
+from middleware.rate_limit import (  # noqa: F401
     CURRENT_PATH,
     CURRENT_TIER,
     TIER_LIMITS,

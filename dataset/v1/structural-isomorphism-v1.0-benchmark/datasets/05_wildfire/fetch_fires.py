@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch + normalize NIFC InteragencyFirePerimeterHistory wildfire catalog.
 
 Source:
@@ -61,7 +61,7 @@ def _parse_float(s: str) -> float | None:
         v = float(s)
     except ValueError:
         return None
-    if v != v or v <= 0:  ***REMOVED*** NaN or non-positive
+    if v != v or v <= 0:  # NaN or non-positive
         return None
     return v
 
@@ -71,7 +71,7 @@ def _parse_date(s: str) -> str | None:
     if not s:
         return None
     s = s.strip()
-    ***REMOVED*** Handle '2022/11/19 03:32:33+00' style
+    # Handle '2022/11/19 03:32:33+00' style
     if "/" in s[:10]:
         date_part = s.split(" ", 1)[0]
         try:
@@ -79,7 +79,7 @@ def _parse_date(s: str) -> str | None:
             return f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
         except (ValueError, IndexError):
             return None
-    ***REMOVED*** ISO style
+    # ISO style
     if "-" in s[:10] and "T" in s[:11]:
         return s[:10]
     if len(s) >= 10 and s[4] == "-" and s[7] == "-":

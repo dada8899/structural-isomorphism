@@ -25,7 +25,7 @@ OUT = DATA / "timeline_snapshots.jsonl"
 
 API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not API_KEY:
-    ***REMOVED*** try to read from VPS-style .env
+    # try to read from VPS-style .env
     env_path = ROOT.parent / "web" / "backend" / ".env"
     if env_path.exists():
         for line in env_path.read_text().splitlines():
@@ -35,7 +35,7 @@ if not API_KEY:
 if not API_KEY:
     print("ERROR: OPENROUTER_API_KEY not set"); sys.exit(1)
 
-***REMOVED*** 20 家公司清单（ticker + 中文名 + 行业 hint）
+# 20 家公司清单（ticker + 中文名 + 行业 hint）
 COMPANIES = [
     ("NFLX", "Netflix", "流媒体/内容订阅"),
     ("NVDA", "NVIDIA", "GPU/AI 数据中心"),
@@ -142,7 +142,7 @@ def call_llm(company_name, ticker, industry):
     with urllib.request.urlopen(req, timeout=180) as resp:
         data = json.loads(resp.read())
     content = data["choices"][0]["message"]["content"].strip()
-    ***REMOVED*** 去 markdown 代码块
+    # 去 markdown 代码块
     content = re.sub(r"^```(?:json)?\s*", "", content)
     content = re.sub(r"\s*```\s*$", "", content)
     return json.loads(content)
@@ -180,7 +180,7 @@ def main():
             continue
         time.sleep(0.5)
 
-    ***REMOVED*** 按公司清单顺序写入
+    # 按公司清单顺序写入
     with OUT.open("w", encoding="utf-8") as f:
         for ticker, name, industry in COMPANIES:
             if ticker in results:

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """V4 A2 phase 7: SIR contagion universality class validation.
 
 Pipeline:
@@ -29,12 +29,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-***REMOVED*** Add v4/lib for soc_pipeline import
+# Add v4/lib for soc_pipeline import
 HERE = Path(__file__).resolve().parent
 V4_ROOT = HERE.parent
 sys.path.insert(0, str(V4_ROOT / "lib"))
 
-from soc_pipeline import fit_clauset_powerlaw as _fit_clauset_powerlaw_strict  ***REMOVED*** noqa: E402
+from soc_pipeline import fit_clauset_powerlaw as _fit_clauset_powerlaw_strict  # noqa: E402
 
 
 def fit_powerlaw_relaxed(vals: np.ndarray, name: str = "values") -> dict:
@@ -87,16 +87,16 @@ def fit_powerlaw_relaxed(vals: np.ndarray, name: str = "values") -> dict:
 
 fit_clauset_powerlaw = fit_powerlaw_relaxed
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Config
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Config
+# -----------------------------------------------------------------------------
 
 DATA_CSV = V4_ROOT / "validation" / "sir-contagion" / "data" / "jhu_global.csv"
 OUT_DIR = V4_ROOT / "validation" / "sir-contagion"
 OUT_RESULTS = OUT_DIR / "results.json"
 
-***REMOVED*** Countries chosen for waves clarity + geographic diversity.
-***REMOVED*** Keep the list moderate (we still want enough waves; >10 gets noisy).
+# Countries chosen for waves clarity + geographic diversity.
+# Keep the list moderate (we still want enough waves; >10 gets noisy).
 COUNTRIES = [
     "US",
     "United Kingdom",
@@ -150,25 +150,25 @@ COUNTRIES = [
     "Taiwan*",
 ]
 
-SERIAL_INTERVAL_DAYS = 7  ***REMOVED*** standard COVID estimate (Cori et al 2013, Wallinga-Lipsitch)
-SMOOTH_WINDOW = 7  ***REMOVED*** 7-day rolling mean to kill weekend effects
+SERIAL_INTERVAL_DAYS = 7  # standard COVID estimate (Cori et al 2013, Wallinga-Lipsitch)
+SMOOTH_WINDOW = 7  # 7-day rolling mean to kill weekend effects
 
-***REMOVED*** Wave detection params
-PEAK_MIN_HEIGHT_FRAC = 0.10  ***REMOVED*** peaks must exceed 10% of country max
-PEAK_MIN_DISTANCE_DAYS = 45  ***REMOVED*** at least 45 days between peaks
-WAVE_TROUGH_FRAC = 0.20  ***REMOVED*** wave boundary = where cases fall below 20% of peak
+# Wave detection params
+PEAK_MIN_HEIGHT_FRAC = 0.10  # peaks must exceed 10% of country max
+PEAK_MIN_DISTANCE_DAYS = 45  # at least 45 days between peaks
+WAVE_TROUGH_FRAC = 0.20  # wave boundary = where cases fall below 20% of peak
 
-***REMOVED*** R0 estimate window: search peak R_t inside the first 14-28 days of wave rise
+# R0 estimate window: search peak R_t inside the first 14-28 days of wave rise
 R0_RISE_WINDOW_MIN = 7
 R0_RISE_WINDOW_MAX = 28
 
-***REMOVED*** Filtering
-MIN_WAVE_SIZE = 5000  ***REMOVED*** drop waves with cumulative new cases < 5k (low signal)
+# Filtering
+MIN_WAVE_SIZE = 5000  # drop waves with cumulative new cases < 5k (low signal)
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Helpers
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
 
 
 def load_country_series(csv_path: Path) -> dict[str, pd.Series]:
@@ -179,11 +179,11 @@ def load_country_series(csv_path: Path) -> dict[str, pd.Series]:
     negatives to 0 (data corrections), then 7-day rolling mean.
     """
     df = pd.read_csv(csv_path)
-    ***REMOVED*** Aggregate over provinces
+    # Aggregate over provinces
     grouped = df.groupby("Country/Region").sum(numeric_only=True)
-    ***REMOVED*** Drop Lat/Long columns
+    # Drop Lat/Long columns
     grouped = grouped.drop(columns=["Lat", "Long"], errors="ignore")
-    ***REMOVED*** Columns are date strings like "1/22/20"
+    # Columns are date strings like "1/22/20"
     date_cols = list(grouped.columns)
     dates = pd.to_datetime(date_cols, format="%m/%d/%y")
 
@@ -195,7 +195,7 @@ def load_country_series(csv_path: Path) -> dict[str, pd.Series]:
         cum = grouped.loc[country].values.astype(float)
         new = np.diff(cum, prepend=cum[0])
         new = np.clip(new, 0, None)
-        ***REMOVED*** 7-day rolling mean
+        # 7-day rolling mean
         s = pd.Series(new, index=dates).rolling(SMOOTH_WINDOW, min_periods=1).mean()
         out[country] = s
     return out
@@ -224,21 +224,21 @@ def detect_waves(s: pd.Series) -> list[tuple[int, int, int]]:
     for p in peaks:
         peak_val = vals[p]
         threshold = WAVE_TROUGH_FRAC * peak_val
-        ***REMOVED*** walk left
+        # walk left
         start = p
         while start > 0 and vals[start] >= threshold:
             start -= 1
-        ***REMOVED*** walk right
+        # walk right
         end = p
         while end < len(vals) - 1 and vals[end] >= threshold:
             end += 1
         waves.append((int(start), int(p), int(end)))
-    ***REMOVED*** Merge overlapping waves
+    # Merge overlapping waves
     waves.sort()
     merged: list[tuple[int, int, int]] = []
     for w in waves:
         if merged and w[0] <= merged[-1][2]:
-            ***REMOVED*** overlap: keep the one with higher peak
+            # overlap: keep the one with higher peak
             prev = merged[-1]
             if vals[w[1]] > vals[prev[1]]:
                 merged[-1] = (min(prev[0], w[0]), w[1], max(prev[2], w[2]))
@@ -264,15 +264,15 @@ def estimate_R0_wave(s: pd.Series, start: int, peak: int) -> float | None:
     ratios = []
     for i in range(lo, hi + 1):
         denom = vals[i - tau]
-        if denom < 10:  ***REMOVED*** avoid noise on tiny denominators
+        if denom < 10:  # avoid noise on tiny denominators
             continue
         r = vals[i] / denom
-        ***REMOVED*** R_t = r^(1/(tau/serial_interval)) but with tau=serial_interval this == r,
-        ***REMOVED*** then take 1/(tau-power) correction. With our tau=7 and serial=7, R_t = r.
+        # R_t = r^(1/(tau/serial_interval)) but with tau=serial_interval this == r,
+        # then take 1/(tau-power) correction. With our tau=7 and serial=7, R_t = r.
         ratios.append(r)
     if not ratios:
         return None
-    ***REMOVED*** Cap at 99th percentile to suppress outliers, then take max
+    # Cap at 99th percentile to suppress outliers, then take max
     arr = np.array(ratios)
     if len(arr) >= 5:
         cap = np.percentile(arr, 99)
@@ -285,9 +285,9 @@ def final_size_wave(s: pd.Series, start: int, end: int) -> float:
     return float(np.sum(s.values[start : end + 1]))
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
 
 
 def main() -> None:
@@ -295,7 +295,7 @@ def main() -> None:
     country_series = load_country_series(DATA_CSV)
     print(f"[load] {len(country_series)} countries loaded")
 
-    all_waves = []  ***REMOVED*** rows: country / wave_idx / start_date / peak_date / end_date / R0 / final_size
+    all_waves = []  # rows: country / wave_idx / start_date / peak_date / end_date / R0 / final_size
     for country, s in country_series.items():
         waves = detect_waves(s)
         for i, (start, peak, end) in enumerate(waves):
@@ -321,7 +321,7 @@ def main() -> None:
     n_countries = len({w["country"] for w in all_waves})
     print(f"[summary] {n_countries} countries, {n_waves} waves total")
 
-    ***REMOVED*** R0 distribution
+    # R0 distribution
     R0_vals = [w["R0"] for w in all_waves if w["R0"] is not None and 1.0 < w["R0"] < 20.0]
     R0_arr = np.array(R0_vals)
     R0_mean = float(np.mean(R0_arr)) if len(R0_arr) > 0 else None
@@ -334,13 +334,13 @@ def main() -> None:
         R0_ci_low = R0_ci_high = None
     print(f"[R0] n={len(R0_arr)} mean={R0_mean:.3f} median={R0_median:.3f} 95%CI=[{R0_ci_low}, {R0_ci_high}]")
 
-    ***REMOVED*** Final-size power law
+    # Final-size power law
     sizes = np.array([w["final_size"] for w in all_waves])
     print(f"[final_size] n={len(sizes)} min={sizes.min():.0f} max={sizes.max():.0f}")
     pl_fit = fit_clauset_powerlaw(sizes, name="final_size")
     print(f"[powerlaw] alpha={pl_fit['alpha']:.3f} ± {pl_fit['sigma_alpha']:.3f} xmin={pl_fit['xmin']:.0f} n_tail={pl_fit['n_tail']}")
 
-    ***REMOVED*** Bootstrap alpha CI on final-size powerlaw
+    # Bootstrap alpha CI on final-size powerlaw
     rng = np.random.default_rng(20260513)
     boot_alphas = []
     for _ in range(200):
@@ -359,8 +359,8 @@ def main() -> None:
         alpha_ci_low = alpha_ci_high = alpha_boot_mean = None
     print(f"[bootstrap] n_boot={len(boot_alphas)} alpha 95%CI=[{alpha_ci_low}, {alpha_ci_high}]")
 
-    ***REMOVED*** Verdict: SIR contagion universality predicts alpha in [1.5, 3.0]
-    ***REMOVED*** AND R0 mean roughly in known COVID range [1.5, 4.5]
+    # Verdict: SIR contagion universality predicts alpha in [1.5, 3.0]
+    # AND R0 mean roughly in known COVID range [1.5, 4.5]
     alpha = pl_fit["alpha"]
     verdict = "rejects"
     if alpha and 1.5 <= alpha <= 3.0 and R0_mean and 1.5 <= R0_mean <= 4.5:

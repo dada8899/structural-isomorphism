@@ -53,10 +53,10 @@ from schemas import ErrorAcceptedResponse
 router = APIRouter(tags=["errors"])
 logger = logging.getLogger("structural.errors")
 
-***REMOVED*** --- Tuning constants ---
+# --- Tuning constants ---
 RATE_LIMIT_WINDOW_S = 60
 RATE_LIMIT_MAX = 10
-MAX_LOG_BYTES = 10 * 1024 * 1024  ***REMOVED*** 10 MB
+MAX_LOG_BYTES = 10 * 1024 * 1024  # 10 MB
 _MAX_MESSAGE = 500
 _MAX_STACK = 4000
 _MAX_URL = 500
@@ -64,9 +64,9 @@ _MAX_UA = 300
 _MAX_SESSION = 64
 _MAX_DIGEST = 64
 
-***REMOVED*** Rate limiter state: sessionId -> deque[timestamps]. In-memory only; restarts
-***REMOVED*** reset the window. Sufficient for client-side error reports — we tolerate a
-***REMOVED*** slight burst right after process restart.
+# Rate limiter state: sessionId -> deque[timestamps]. In-memory only; restarts
+# reset the window. Sufficient for client-side error reports — we tolerate a
+# slight burst right after process restart.
 _buckets: Dict[str, Deque[float]] = defaultdict(deque)
 
 
@@ -91,7 +91,7 @@ def _rotate_if_needed(path: Path) -> None:
             rotated.unlink()
         os.replace(path, rotated)
         logger.info("error_log rotated: %s -> %s", path.name, rotated.name)
-    except Exception as e:  ***REMOVED*** pragma: no cover — best-effort
+    except Exception as e:  # pragma: no cover — best-effort
         logger.warning("error_log rotate failed: %s", e)
 
 
@@ -134,7 +134,7 @@ class ErrorReportBody(BaseModel):
     sessionId: Optional[str] = Field(default=None, max_length=_MAX_SESSION)
     fatal: Optional[bool] = False
 
-    model_config = {"extra": "forbid"}  ***REMOVED*** reject unknown fields (privacy)
+    model_config = {"extra": "forbid"}  # reject unknown fields (privacy)
 
 
 @router.post("/errors", response_model=ErrorAcceptedResponse, response_model_exclude_none=True)
@@ -142,14 +142,14 @@ async def submit_error(body: ErrorReportBody, request: Request):
     now = time.time()
     client_ip = request.client.host if request.client else "?"
 
-    ***REMOVED*** --- Rate limit ---
+    # --- Rate limit ---
     key = _bucket_key(body.sessionId, client_ip)
     if not _check_rate_limit(key, now):
         return JSONResponse(
             {"accepted": False, "reason": "rate_limited"}, status_code=200
         )
 
-    ***REMOVED*** --- Normalise ---
+    # --- Normalise ---
     record = {
         "message": body.message[:_MAX_MESSAGE],
         "stack": (body.stack or "")[:_MAX_STACK] or None,
@@ -163,14 +163,14 @@ async def submit_error(body: ErrorReportBody, request: Request):
         "client_ip": client_ip,
     }
 
-    ***REMOVED*** --- Persist ---
+    # --- Persist ---
     f = _data_file()
     f.parent.mkdir(parents=True, exist_ok=True)
     _rotate_if_needed(f)
     try:
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         logger.error("error_log write failed: %s", e)
         return JSONResponse(
             {"accepted": False, "reason": "storage_failure"}, status_code=500

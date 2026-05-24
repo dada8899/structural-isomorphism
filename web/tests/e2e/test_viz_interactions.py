@@ -35,7 +35,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -45,23 +45,23 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Phase trajectory chart on /company/[ticker]
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Phase trajectory chart on /company/[ticker]
+# ---------------------------------------------------------------------------
 
 
 def test_company_trajectory_chart_renders(page: Page):
     """PhaseTrajectoryChart SVG renders with a non-trivial line path."""
-    ***REMOVED*** Pick a ticker that will definitely exist — try AAPL first, then
-    ***REMOVED*** fall back to whatever the screener returns. The chart synthesizes
-    ***REMOVED*** its own series so the only requirement is that the company page
-    ***REMOVED*** itself loads.
+    # Pick a ticker that will definitely exist — try AAPL first, then
+    # fall back to whatever the screener returns. The chart synthesizes
+    # its own series so the only requirement is that the company page
+    # itself loads.
     page.goto(f"{BASE}/company/NVDA", wait_until="networkidle")
     page.wait_for_selector('[data-testid="phase-trajectory-chart"]', timeout=10000)
     chart = page.locator('[data-testid="phase-trajectory-chart"]')
     expect(chart).to_be_visible()
-    ***REMOVED*** The trajectory line is a single <path> with d="M... L..."; the d
-    ***REMOVED*** attribute must contain at least one L (>= 2 points).
+    # The trajectory line is a single <path> with d="M... L..."; the d
+    # attribute must contain at least one L (>= 2 points).
     path_d = chart.locator("svg path").first.get_attribute("d") or ""
     assert "L" in path_d, "trajectory path must have >= 2 points"
 
@@ -74,8 +74,8 @@ def test_company_trajectory_hover_shows_tooltip(page: Page):
     svg = chart.locator("svg")
     box = svg.bounding_box()
     assert box is not None
-    ***REMOVED*** Hover near the middle of the chart — anywhere within the drawing
-    ***REMOVED*** area should produce a tooltip via pointermove.
+    # Hover near the middle of the chart — anywhere within the drawing
+    # area should produce a tooltip via pointermove.
     page.mouse.move(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.5)
     page.wait_for_timeout(150)
     tooltip = chart.locator('[data-testid="trajectory-tooltip"]')
@@ -98,14 +98,14 @@ def test_company_trajectory_brush_selection(page: Page):
     page.mouse.move(end_x, y, steps=8)
     page.mouse.up()
     page.wait_for_timeout(100)
-    ***REMOVED*** Brush rect should be visible after drag.
+    # Brush rect should be visible after drag.
     brush = chart.locator('[data-testid="trajectory-brush"]')
     expect(brush).to_be_visible()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Universality analogue map on /universality/[class_id]
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Universality analogue map on /universality/[class_id]
+# ---------------------------------------------------------------------------
 
 
 def _first_universality_class_id(page: Page) -> str:
@@ -116,7 +116,7 @@ def _first_universality_class_id(page: Page) -> str:
         page.wait_for_selector(
             '[data-testid="universality-class-card"]', timeout=10000
         )
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         pytest.skip("/universality has no class cards on this environment")
     first = page.locator('[data-testid="universality-class-card"]').first
     cid = first.get_attribute("data-class-id")
@@ -133,11 +133,11 @@ def test_universality_analogue_map_renders(page: Page):
     )
     map_root = page.locator('[data-testid="universality-analogue-map"]')
     expect(map_root).to_be_visible()
-    ***REMOVED*** Center node always present.
+    # Center node always present.
     expect(map_root.locator('[data-testid="analogue-center-node"]')).to_have_count(1)
     nodes = map_root.locator('[data-testid="analogue-node"]').count()
-    ***REMOVED*** The class detail might have only 1 evidence_system / prototype, so
-    ***REMOVED*** require >= 1 analogue node, target 13.
+    # The class detail might have only 1 evidence_system / prototype, so
+    # require >= 1 analogue node, target 13.
     assert nodes >= 1, f"expected >= 1 analogue node, got {nodes}"
 
 
@@ -156,16 +156,16 @@ def test_universality_analogue_map_hover_tooltip(page: Page):
     expect(tooltip).to_be_visible()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Sparklines on /companies
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Sparklines on /companies
+# ---------------------------------------------------------------------------
 
 
 def test_companies_sparklines_present(page: Page):
     """Companies screener page renders sparklines on each card."""
     page.goto(f"{BASE}/companies", wait_until="networkidle")
-    ***REMOVED*** Sparklines live inside CompanyCard, which is rendered by the
-    ***REMOVED*** /companies screener. Wait for cards to load.
+    # Sparklines live inside CompanyCard, which is rendered by the
+    # /companies screener. Wait for cards to load.
     page.wait_for_selector('[data-testid="sparkline"]', timeout=15000)
     sparks = page.locator('[data-testid="sparkline"]')
     count = sparks.count()

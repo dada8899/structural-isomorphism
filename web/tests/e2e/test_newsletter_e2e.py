@@ -1,8 +1,8 @@
-"""Session ***REMOVED***9 W4-C — Newsletter form e2e test (local server, no prod pollution).
+"""Session #9 W4-C — Newsletter form e2e test (local server, no prod pollution).
 
 W3-A flow 4 observed: "Newsletter form caught at '提交中…' within 15s" — the
 submit roundtrip fired but the success/error final state wasn't visible. Root
-cause analysis (session ***REMOVED***9 W4-C):
+cause analysis (session #9 W4-C):
 
   - newsletter.js had no client-side request timeout. If the prod
     /api/newsletter/subscribe response hangs (nginx slow / cold-start / network
@@ -34,10 +34,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_BACKEND = REPO_ROOT / "web" / "backend"
 WEB_FRONTEND = REPO_ROOT / "web" / "frontend"
 
-***REMOVED*** Resolve a usable Python interpreter for the local backend subprocess.
-***REMOVED*** Tests may run from a git worktree without its own .venv, so we fall back
-***REMOVED*** to the main repo's .venv (the project's known good install) and finally
-***REMOVED*** to sys.executable.
+# Resolve a usable Python interpreter for the local backend subprocess.
+# Tests may run from a git worktree without its own .venv, so we fall back
+# to the main repo's .venv (the project's known good install) and finally
+# to sys.executable.
 _LOCAL_VENV = REPO_ROOT / ".venv" / "bin" / "python"
 _MAIN_VENV = Path.home() / "Projects" / "structural-isomorphism" / ".venv" / "bin" / "python"
 
@@ -78,8 +78,8 @@ def local_backend(tmp_path_factory):
     port = _free_port()
     data_dir = tmp_path_factory.mktemp("nl-data")
 
-    ***REMOVED*** We patch the data-file location via env var consumed by a small shim
-    ***REMOVED*** script. Shim writes its own data file in tmp.
+    # We patch the data-file location via env var consumed by a small shim
+    # script. Shim writes its own data file in tmp.
     shim_code = f"""
 import sys
 sys.path.insert(0, {str(WEB_BACKEND)!r})
@@ -89,7 +89,7 @@ from fastapi.staticfiles import StaticFiles
 from api import newsletter as nl_mod
 from pathlib import Path
 
-***REMOVED*** Override data file to tmp dir.
+# Override data file to tmp dir.
 def _patched_data_file():
     return Path({str(data_dir)!r}) / "subs.jsonl"
 nl_mod._data_file = _patched_data_file
@@ -100,8 +100,8 @@ app.add_middleware(
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], allow_credentials=False,
 )
 app.include_router(nl_mod.router, prefix="/api")
-***REMOVED*** Serve the frontend statically from the same origin (mirrors prod behaviour
-***REMOVED*** where nginx proxies /api/* to backend and serves /* from disk).
+# Serve the frontend statically from the same origin (mirrors prod behaviour
+# where nginx proxies /api/* to backend and serves /* from disk).
 app.mount("/", StaticFiles(directory={str(WEB_FRONTEND)!r}, html=True), name="frontend")
 
 import uvicorn
@@ -158,30 +158,30 @@ def test_newsletter_success_state_visible(local_backend):
         page = ctx.new_page()
         try:
             page.goto(f"{base}/start-here.html", wait_until="domcontentloaded", timeout=10000)
-            ***REMOVED*** Form mounts after JS runs — wait for input element.
-            page.wait_for_selector("***REMOVED***newsletter-start-here .newsletter-input", timeout=5000)
+            # Form mounts after JS runs — wait for input element.
+            page.wait_for_selector("#newsletter-start-here .newsletter-input", timeout=5000)
             page.fill(
-                "***REMOVED***newsletter-start-here .newsletter-input",
+                "#newsletter-start-here .newsletter-input",
                 "e2e-success+w4c@example.com",
             )
-            page.click("***REMOVED***newsletter-start-here .newsletter-button")
-            ***REMOVED*** The key assertion W4-C is designed to make pass: success state
-            ***REMOVED*** visible inside the test's wait budget. Old code (no timeout)
-            ***REMOVED*** could leave UI stuck on "提交中…" if backend slow. With local
-            ***REMOVED*** backend this completes <500ms typically.
+            page.click("#newsletter-start-here .newsletter-button")
+            # The key assertion W4-C is designed to make pass: success state
+            # visible inside the test's wait budget. Old code (no timeout)
+            # could leave UI stuck on "提交中…" if backend slow. With local
+            # backend this completes <500ms typically.
             page.wait_for_selector(
-                "***REMOVED***newsletter-start-here .newsletter-status.is-ok",
+                "#newsletter-start-here .newsletter-status.is-ok",
                 timeout=10000,
             )
             status_text = page.text_content(
-                "***REMOVED***newsletter-start-here .newsletter-status"
+                "#newsletter-start-here .newsletter-status"
             )
             assert status_text and "已订阅" in status_text, (
                 f"unexpected success text: {status_text!r}"
             )
-            ***REMOVED*** Input should be cleared on success.
+            # Input should be cleared on success.
             input_val = page.input_value(
-                "***REMOVED***newsletter-start-here .newsletter-input"
+                "#newsletter-start-here .newsletter-input"
             )
             assert input_val == "", f"expected empty input, got {input_val!r}"
         finally:
@@ -197,7 +197,7 @@ def test_newsletter_duplicate_state_visible(local_backend):
     base = local_backend["base"]
     email = "e2e-dup+w4c@example.com"
 
-    ***REMOVED*** First subscribe via API to seed the dedupe scan.
+    # First subscribe via API to seed the dedupe scan.
     import urllib.request
     req = urllib.request.Request(
         f"{base}/api/newsletter/subscribe",
@@ -215,14 +215,14 @@ def test_newsletter_duplicate_state_visible(local_backend):
         page = ctx.new_page()
         try:
             page.goto(f"{base}/start-here.html", wait_until="domcontentloaded", timeout=10000)
-            page.wait_for_selector("***REMOVED***newsletter-start-here .newsletter-input", timeout=5000)
-            page.fill("***REMOVED***newsletter-start-here .newsletter-input", email)
-            page.click("***REMOVED***newsletter-start-here .newsletter-button")
+            page.wait_for_selector("#newsletter-start-here .newsletter-input", timeout=5000)
+            page.fill("#newsletter-start-here .newsletter-input", email)
+            page.click("#newsletter-start-here .newsletter-button")
             page.wait_for_selector(
-                "***REMOVED***newsletter-start-here .newsletter-status.is-dup",
+                "#newsletter-start-here .newsletter-status.is-dup",
                 timeout=10000,
             )
-            text = page.text_content("***REMOVED***newsletter-start-here .newsletter-status")
+            text = page.text_content("#newsletter-start-here .newsletter-status")
             assert text and "已经订阅" in text, f"unexpected dup text: {text!r}"
         finally:
             ctx.close()
@@ -241,9 +241,9 @@ def test_newsletter_timeout_falls_back_to_err(local_backend):
         page = ctx.new_page()
         try:
             page.goto(f"{base}/start-here.html", wait_until="domcontentloaded", timeout=10000)
-            page.wait_for_selector("***REMOVED***newsletter-start-here .newsletter-input", timeout=5000)
+            page.wait_for_selector("#newsletter-start-here .newsletter-input", timeout=5000)
 
-            ***REMOVED*** Override fetch to never respond, simulating prod nginx hang.
+            # Override fetch to never respond, simulating prod nginx hang.
             page.evaluate(
                 """
                 (function() {
@@ -267,27 +267,27 @@ def test_newsletter_timeout_falls_back_to_err(local_backend):
                 """
             )
 
-            ***REMOVED*** Patch REQUEST_TIMEOUT_MS isn't exposed, but the constant is 10s.
-            ***REMOVED*** We'd rather not wait 10s — just verify the contract: UI moves
-            ***REMOVED*** off "提交中…" within the budget. To keep test under 15s, we
-            ***REMOVED*** accept the 10s wait once.
+            # Patch REQUEST_TIMEOUT_MS isn't exposed, but the constant is 10s.
+            # We'd rather not wait 10s — just verify the contract: UI moves
+            # off "提交中…" within the budget. To keep test under 15s, we
+            # accept the 10s wait once.
             page.fill(
-                "***REMOVED***newsletter-start-here .newsletter-input",
+                "#newsletter-start-here .newsletter-input",
                 "e2e-timeout+w4c@example.com",
             )
-            page.click("***REMOVED***newsletter-start-here .newsletter-button")
-            ***REMOVED*** Verify "提交中…" appears first.
+            page.click("#newsletter-start-here .newsletter-button")
+            # Verify "提交中…" appears first.
             page.wait_for_function(
-                "document.querySelector('***REMOVED***newsletter-start-here .newsletter-status')"
+                "document.querySelector('#newsletter-start-here .newsletter-status')"
                 ".textContent.indexOf('提交中') >= 0",
                 timeout=3000,
             )
-            ***REMOVED*** Then after timeout (~10s), should switch to is-err.
+            # Then after timeout (~10s), should switch to is-err.
             page.wait_for_selector(
-                "***REMOVED***newsletter-start-here .newsletter-status.is-err",
+                "#newsletter-start-here .newsletter-status.is-err",
                 timeout=13000,
             )
-            text = page.text_content("***REMOVED***newsletter-start-here .newsletter-status")
+            text = page.text_content("#newsletter-start-here .newsletter-status")
             assert text and ("超时" in text or "网络错误" in text), (
                 f"unexpected timeout text: {text!r}"
             )

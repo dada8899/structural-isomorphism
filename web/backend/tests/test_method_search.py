@@ -1,4 +1,4 @@
-"""Tests for A1 method-search (Session ***REMOVED***18).
+"""Tests for A1 method-search (Session #18).
 
 Layer 1 — unit: signature coercion, note coercion, ranking, top_n clamp.
 Layer 2 — integration: TestClient against the method_search router, with
@@ -17,12 +17,12 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services import method_search_service as mss  ***REMOVED*** noqa: E402
+from services import method_search_service as mss  # noqa: E402
 
 
-***REMOVED*** ============================ Layer 1: unit ============================ ***REMOVED***
+# ============================ Layer 1: unit ============================ #
 
-***REMOVED*** --- _coerce_signature --- ***REMOVED***
+# --- _coerce_signature --- #
 
 def test_coerce_signature_valid():
     raw = {"signature": "  沿局部信息迭代逼近极值  ", "keywords": ["迭代", "局部"]}
@@ -42,11 +42,11 @@ def test_coerce_signature_none_falls_back_to_method_text():
 
 def test_coerce_signature_malformed_payload():
     """Malformed: signature missing / wrong type / keywords non-list+dirty."""
-    ***REMOVED*** signature is not a string
+    # signature is not a string
     assert mss._coerce_signature({"signature": 123}, "m")["llm"] is False
-    ***REMOVED*** empty signature string
+    # empty signature string
     assert mss._coerce_signature({"signature": "   "}, "m")["llm"] is False
-    ***REMOVED*** keywords with non-strings, dups, over-long → cleaned + capped
+    # keywords with non-strings, dups, over-long → cleaned + capped
     raw = {
         "signature": "x",
         "keywords": ["a", "a", 5, None, "b" * 99] + [f"k{i}" for i in range(10)],
@@ -64,7 +64,7 @@ def test_coerce_signature_caps_long_signature():
     assert len(out["signature"]) <= mss.MAX_SIGNATURE_LEN
 
 
-***REMOVED*** --- _coerce_notes --- ***REMOVED***
+# --- _coerce_notes --- #
 
 def test_coerce_notes_drops_unknown_ids():
     """LLM may invent ids — only ids in the valid set survive."""
@@ -77,7 +77,7 @@ def test_coerce_notes_drops_unknown_ids():
 def test_coerce_notes_malformed_and_empty():
     assert mss._coerce_notes(None, {"p1"}) == {}
     assert mss._coerce_notes({"notes": "not a dict"}, {"p1"}) == {}
-    ***REMOVED*** non-string note value dropped, blank note dropped
+    # non-string note value dropped, blank note dropped
     raw = {"notes": {"p1": 42, "p2": "  ", "p3": "ok"}}
     assert mss._coerce_notes(raw, {"p1", "p2", "p3"}) == {"p3": "ok"}
 
@@ -88,28 +88,28 @@ def test_coerce_notes_caps_length():
     assert len(out["p1"]) <= mss.MAX_NOTE_LEN
 
 
-***REMOVED*** --- build_query --- ***REMOVED***
+# --- build_query --- #
 
 def test_build_query_combines_and_caps():
     sig = {"signature": "迭代逼近极值", "keywords": ["局部信息", "噪声反馈"]}
     q = mss.build_query(sig)
     assert "迭代逼近极值" in q and "局部信息" in q
     assert len(q) <= mss.MAX_QUERY_LEN
-    ***REMOVED*** empty keywords still works
+    # empty keywords still works
     assert mss.build_query({"signature": "abc", "keywords": []}) == "abc"
 
 
-***REMOVED*** --- normalize_top_n --- ***REMOVED***
+# --- normalize_top_n --- #
 
 def test_normalize_top_n_bounds():
     assert mss.normalize_top_n(8) == 8
-    assert mss.normalize_top_n(0) == 1          ***REMOVED*** below floor
-    assert mss.normalize_top_n(999) == mss.MAX_TOP_N  ***REMOVED*** above ceiling
+    assert mss.normalize_top_n(0) == 1          # below floor
+    assert mss.normalize_top_n(999) == mss.MAX_TOP_N  # above ceiling
     assert mss.normalize_top_n(None) == mss.DEFAULT_TOP_N
-    assert mss.normalize_top_n("bad") == mss.DEFAULT_TOP_N  ***REMOVED*** wrong type
+    assert mss.normalize_top_n("bad") == mss.DEFAULT_TOP_N  # wrong type
 
 
-***REMOVED*** --- rank_matches --- ***REMOVED***
+# --- rank_matches --- #
 
 def test_rank_matches_attaches_notes_and_trims():
     results = [
@@ -121,9 +121,9 @@ def test_rank_matches_attaches_notes_and_trims():
          "description": "d3", "relevance": 0.5, "score": 0.4},
     ]
     out = mss.rank_matches(results, {"p1": "套用 p1"}, top_n=2)
-    assert len(out) == 2  ***REMOVED*** trimmed
+    assert len(out) == 2  # trimmed
     assert out[0]["apply_note"] == "套用 p1"
-    assert out[1]["apply_note"] == ""  ***REMOVED*** no note → empty string
+    assert out[1]["apply_note"] == ""  # no note → empty string
 
 
 def test_rank_matches_skips_idless_rows():
@@ -132,7 +132,7 @@ def test_rank_matches_skips_idless_rows():
     assert len(out) == 1 and out[0]["id"] == "p1"
 
 
-***REMOVED*** --- run_method_search degrade path (no LLM, sync helpers) --- ***REMOVED***
+# --- run_method_search degrade path (no LLM, sync helpers) --- #
 
 class _FakeSearch:
     """Minimal SearchService stand-in."""
@@ -157,7 +157,7 @@ async def test_run_method_search_degrades_without_llm(monkeypatch):
     assert out["llm_used"] is False
     assert out["signature"] == "梯度下降"
     assert out["count"] == 1
-    assert out["matches"][0]["apply_note"] == ""  ***REMOVED*** no LLM → no note
+    assert out["matches"][0]["apply_note"] == ""  # no LLM → no note
 
 
 @pytest.fixture
@@ -165,7 +165,7 @@ def anyio_backend():
     return "asyncio"
 
 
-***REMOVED*** ========================= Layer 2: integration ========================= ***REMOVED***
+# ========================= Layer 2: integration ========================= #
 
 @pytest.fixture
 def app():
@@ -203,10 +203,10 @@ def patched(monkeypatch):
     ctrl = {"llm": True}
 
     async def fake_complete_json(*, system, user, **kw):
-        if "结构分析专家" in system:  ***REMOVED*** signature call
+        if "结构分析专家" in system:  # signature call
             return {"signature": "在反馈下沿局部信息迭代逼近最优",
                     "keywords": ["迭代", "局部信息"]}
-        ***REMOVED*** note call
+        # note call
         return {"notes": {"p1": "用信息素强化类比方法的更新步",
                           "p2": "把路网当作搜索地形"}}
 
@@ -226,7 +226,7 @@ def test_endpoint_success_with_llm(client, patched):
     assert body["keywords"] == ["迭代", "局部信息"]
     assert body["count"] == 2
     assert body["matches"][0]["id"] == "p1"
-    assert body["matches"][0]["apply_note"]  ***REMOVED*** note present
+    assert body["matches"][0]["apply_note"]  # note present
 
 
 def test_endpoint_degrades_when_llm_unavailable(client, patched):
@@ -236,7 +236,7 @@ def test_endpoint_degrades_when_llm_unavailable(client, patched):
     assert resp.status_code == 200
     body = resp.json()
     assert body["llm_used"] is False
-    assert body["signature"] == "梯度下降算法"  ***REMOVED*** raw method text
+    assert body["signature"] == "梯度下降算法"  # raw method text
     assert body["count"] == 2
     assert all(m["apply_note"] == "" for m in body["matches"])
 

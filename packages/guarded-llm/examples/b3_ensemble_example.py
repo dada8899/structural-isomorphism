@@ -5,7 +5,7 @@ ask N independent models the same question, validate each response against
 B3EnsembleReview, then majority-vote the verdicts.
 
 It's a real production pattern for taxonomy refinement — see the
-structural-isomorphism B3 taxonomy v2 (session ***REMOVED***2).
+structural-isomorphism B3 taxonomy v2 (session #2).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from guarded_llm import (
 )
 
 
-***REMOVED*** (provider, model, env_key) tuples for the ensemble
+# (provider, model, env_key) tuples for the ensemble
 ENSEMBLE = [
     ("deepseek", "deepseek-v4-flash", "DEEPSEEK_API_KEY"),
     ("kimi", "kimi-k2.5", "KIMI_API_KEY"),
@@ -64,7 +64,7 @@ def ensemble_vote(class_id: str, question: str) -> tuple[str | None, list[dict]]
             print(f"[fail] {provider}: {result.errors}")
             continue
         review = result.parsed
-        ***REMOVED*** Override model_id with our actual model name (some LLMs hallucinate it)
+        # Override model_id with our actual model name (some LLMs hallucinate it)
         review.model_id = f"{provider}/{model}"
         reviews.append(review)
         print(f"[ ok ] {provider}: verdict={review.verdict}, conf={review.confidence:.2f}")
@@ -72,7 +72,7 @@ def ensemble_vote(class_id: str, question: str) -> tuple[str | None, list[dict]]
     if not reviews:
         return None, []
 
-    ***REMOVED*** Confidence-weighted majority vote
+    # Confidence-weighted majority vote
     weighted: Counter[str] = Counter()
     for r in reviews:
         weighted[r.verdict] += r.confidence

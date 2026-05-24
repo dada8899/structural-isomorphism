@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Fetch MakerDAO Dog 'Bark' events (Liquidation 2.0, 2021+).
 
@@ -49,10 +49,10 @@ if not API_KEY:
 API_URL = "https://api.etherscan.io/v2/api"
 CHAIN_ID = 1
 DOG = "0x135954d155898D42C90D2a57824C690e0c7BEf1B"
-***REMOVED*** Bark topic0
+# Bark topic0
 BARK_TOPIC0 = "0x85258d09e1e4ef299ff3fc11e74af99563f022d21f3f940db982229dc2a3358c"
 
-START_BLOCK = 12486800   ***REMOVED*** Dog contract deployed May 2021
+START_BLOCK = 12486800   # Dog contract deployed May 2021
 END_BLOCK = 19000000
 CHUNK = 100000
 SLEEP = 0.22
@@ -105,8 +105,8 @@ def parse(rec):
         "art_raw": str(art),
         "due_raw": str(due),
         "clip": clip,
-        ***REMOVED*** Approximate DAI-denominated debt size (exact requires multiplying by ilk rate).
-        ***REMOVED*** art is 18-decimal RAD-adjusted normalized debt; for power-law fitting scale drops out.
+        # Approximate DAI-denominated debt size (exact requires multiplying by ilk rate).
+        # art is 18-decimal RAD-adjusted normalized debt; for power-law fitting scale drops out.
         "debt_dai_approx": art / 1e18,
         "due_dai": due / 1e18,
     }

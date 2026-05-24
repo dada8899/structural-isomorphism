@@ -12,7 +12,7 @@ the handler's own module.
 FastAPI resolves a route's parameter annotations with
 `get_typed_signature(call)`:
   * FastAPI 0.110.0 (prod, pinned in web/backend/requirements.txt):
-        globalns = getattr(call, "__globals__", {})   ***REMOVED*** NO inspect.unwrap
+        globalns = getattr(call, "__globals__", {})   # NO inspect.unwrap
   * FastAPI 0.136.x (local .venv):
         unwrapped = inspect.unwrap(call); globalns = unwrapped.__globals__
 
@@ -49,11 +49,11 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services.rate_limit import _ENABLED, tier_limit_decorator  ***REMOVED*** noqa: E402
+from services.rate_limit import _ENABLED, tier_limit_decorator  # noqa: E402
 
-***REMOVED*** A PEP-563 handler module: annotations are stringified, local Pydantic model
-***REMOVED*** lives ONLY in this module's namespace. This is exactly the shape that broke
-***REMOVED*** diagnose.py / stress_test.py in prod.
+# A PEP-563 handler module: annotations are stringified, local Pydantic model
+# lives ONLY in this module's namespace. This is exactly the shape that broke
+# diagnose.py / stress_test.py in prod.
 _HANDLER_SRC = """
 from __future__ import annotations
 
@@ -149,10 +149,10 @@ def test_stringified_annotation_resolves_both_fastapi_paths():
         globalns = resolver(wrapped)
         ref = ForwardRef("LocalOnlyModel")
         try:
-            ***REMOVED*** typing._eval_type is what FastAPI's evaluate_forwardref calls
-            ***REMOVED*** under the hood; cross-version stable for resolving a bare name.
+            # typing._eval_type is what FastAPI's evaluate_forwardref calls
+            # under the hood; cross-version stable for resolving a bare name.
             resolved = typing._eval_type(ref, globalns, globalns, ())
-        except NameError as exc:  ***REMOVED*** pragma: no cover - this IS the regression
+        except NameError as exc:  # pragma: no cover - this IS the regression
             pytest.fail(
                 f"FastAPI {label} annotation resolution crashed: {exc!r}. "
                 "The rate-limit wrapper lost the handler's __globals__."
@@ -195,8 +195,8 @@ def test_pep563_handler_mounts_on_fastapi_app():
     fastapi_utils.get_typed_signature = _get_typed_signature_0110
     try:
         app = FastAPI()
-        ***REMOVED*** add_api_route triggers annotation resolution — this is where the
-        ***REMOVED*** prod app crashed at startup.
+        # add_api_route triggers annotation resolution — this is where the
+        # prod app crashed at startup.
         app.add_api_route("/_pep563_probe", wrapped, methods=["POST"])
     finally:
         fastapi_utils.get_typed_signature = original

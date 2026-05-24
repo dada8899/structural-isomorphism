@@ -3,7 +3,7 @@ Observability foundation: structured JSON logging + optional Sentry SDK.
 
 Wire-up:
     from services.observability import setup_logging, log_event
-    setup_logging()                      ***REMOVED*** call once at app startup
+    setup_logging()                      # call once at app startup
     log_event("user_query", device_id=d, kind="ask", latency_ms=120)
 
 The JSON formatter emits one event per line on stdout, suitable for systemd /
@@ -40,14 +40,14 @@ class JsonFormatter(logging.Formatter):
         if isinstance(fields, dict):
             for k, v in fields.items():
                 if k in payload:
-                    continue  ***REMOVED*** don't clobber reserved keys
+                    continue  # don't clobber reserved keys
                 payload[k] = v
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         try:
             return json.dumps(payload, ensure_ascii=False, default=str)
         except (TypeError, ValueError):
-            ***REMOVED*** Last-resort fallback so logging never raises into the app.
+            # Last-resort fallback so logging never raises into the app.
             return json.dumps({"ts": payload["ts"], "level": payload["level"], "msg": payload["msg"]})
 
 
@@ -62,7 +62,7 @@ def setup_logging(level: str | int | None = None) -> None:
     lvl_env = level if level is not None else os.getenv("OBS_LOG_LEVEL", "INFO")
     lvl = getattr(logging, str(lvl_env).upper(), logging.INFO) if isinstance(lvl_env, str) else lvl_env
 
-    ***REMOVED*** Idempotent handler install
+    # Idempotent handler install
     has_json = any(getattr(h, "_obs_json", False) for h in _logger.handlers)
     if not has_json:
         handler = logging.StreamHandler(sys.stdout)
@@ -70,13 +70,13 @@ def setup_logging(level: str | int | None = None) -> None:
         setattr(handler, "_obs_json", True)
         _logger.addHandler(handler)
     _logger.setLevel(lvl)
-    _logger.propagate = False  ***REMOVED*** avoid double-logging via root
+    _logger.propagate = False  # avoid double-logging via root
 
-    ***REMOVED*** Optional Sentry init — guarded import, env-gated.
+    # Optional Sentry init — guarded import, env-gated.
     dsn = os.getenv("SENTRY_DSN")
     if dsn:
-        try:  ***REMOVED*** pragma: no cover — depends on optional dep
-            import sentry_sdk  ***REMOVED*** type: ignore
+        try:  # pragma: no cover — depends on optional dep
+            import sentry_sdk  # type: ignore
 
             sentry_sdk.init(
                 dsn=dsn,
@@ -88,7 +88,7 @@ def setup_logging(level: str | int | None = None) -> None:
             _logger.info("sentry_initialized", extra={"fields": {"env": os.getenv("SENTRY_ENV", "production")}})
         except ImportError:
             _logger.info("sentry_sdk not installed; SENTRY_DSN ignored")
-        except Exception as e:  ***REMOVED*** pragma: no cover
+        except Exception as e:  # pragma: no cover
             _logger.warning("sentry_init_failed: %s", e)
 
 

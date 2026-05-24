@@ -19,8 +19,8 @@ from services.whitespace_service import WhitespaceService
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["whitespace"])
 
-***REMOVED*** Module-level singleton — loaded lazily on first request, cached thereafter.
-***REMOVED*** Tests monkeypatch this attribute to inject an isolated fixture.
+# Module-level singleton — loaded lazily on first request, cached thereafter.
+# Tests monkeypatch this attribute to inject an isolated fixture.
 _service: Optional[WhitespaceService] = None
 
 

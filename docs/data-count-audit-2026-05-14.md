@@ -1,12 +1,12 @@
-***REMOVED*** Phase Detector data-count audit — 2026-05-14
+# Phase Detector data-count audit — 2026-05-14
 
-> session ***REMOVED***9, Wave 1 sub-agent B. Trigger: README claims "500 publicly listed
+> session #9, Wave 1 sub-agent B. Trigger: README claims "500 publicly listed
 > companies" but the live phase.bytedance.city hero copy reads "100 家全球公司".
 > Same product, two numbers in user-visible surfaces → trust killer. This doc
 > establishes the ground truth and reconciles all surfaces to one consistent
 > story.
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 | Surface | Number before | Number after | Rationale |
 |---|---|---|---|
@@ -18,9 +18,9 @@
 | README.md § "Status snapshot" | Live at 500 companies + backtest v0.1 | Live at 100 companies + 500-ticker S&P 500 backtest v0.1 | Same |
 | `v4/product/d1_phase_detector/README_BACKTEST.md` | "497/500 tickers" / "500 SP500 StructTuples" | unchanged | These numbers describe the backtest universe and are accurate (see below). |
 
-***REMOVED******REMOVED*** Ground truth — where each number comes from
+## Ground truth — where each number comes from
 
-***REMOVED******REMOVED******REMOVED*** Production product universe = **100 companies**
+### Production product universe = **100 companies**
 
 This is what `phase.bytedance.city` actually serves.
 
@@ -38,7 +38,7 @@ reasoning, higher cost ≈ $0.05). The 100-row roster was hand-curated to give
 diverse sector coverage + explicit a-priori expected dynamics families for
 calibration purposes.
 
-***REMOVED******REMOVED******REMOVED*** Backtest universe = **500 / 497 fetched** tickers
+### Backtest universe = **500 / 497 fetched** tickers
 
 This is a different artefact: a walk-forward statistical backtest that ran
 against a much larger universe to test whether the `near_critical` label
@@ -59,7 +59,7 @@ returns vs `other` on the SP500 universe (p ≫ 0.05). This is documented as a
 **negative result** in `README_BACKTEST.md` ("商业化路径暂未打开"). The 500-ticker
 universe is therefore a research artefact, not a product feature.
 
-***REMOVED******REMOVED******REMOVED*** Why the README said 500
+### Why the README said 500
 
 Likely written aspirationally during the M11+M12 scale-up sprint (commit log
 references `companies_500.jsonl` work). The intent was to ship a 500-company
@@ -67,7 +67,7 @@ product after the backtest validated the signal — but the backtest came back
 negative, so the production deploy stayed on the 100-row curated set while the
 README was never walked back. Classic "documentation lags actual ship".
 
-***REMOVED******REMOVED*** Decision
+## Decision
 
 1. **Frontend wins** — every user-visible surface on `phase.bytedance.city`
    already says 100. The data layer agrees. Don't touch the frontend.
@@ -78,7 +78,7 @@ README was never walked back. Classic "documentation lags actual ship".
 3. **Leave `README_BACKTEST.md` alone** — the 497/500 / 500 SP500 numbers there
    describe the backtest run accurately.
 
-***REMOVED******REMOVED*** Future-proofing
+## Future-proofing
 
 If we ever ship a 500-company production roster (i.e. ingest
 `companies_500.jsonl` outputs into `d1_companies` and serve them via
@@ -96,7 +96,7 @@ If we ever ship a 500-company production roster (i.e. ingest
 In other words: do not change one surface in isolation. The "100" string lives
 in 8 places and they must move together.
 
-***REMOVED******REMOVED*** References
+## References
 
 - README change committed in this PR (`session-9/w1-b-data-count-reconcile`)
 - Audit performed in worktree `/tmp/structural-w1-b-*`

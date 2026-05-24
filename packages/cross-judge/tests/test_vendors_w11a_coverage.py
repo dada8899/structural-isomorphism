@@ -38,7 +38,7 @@ def test_get_vendor_unknown_raises_keyerror():
 def test_vendor_config_immutable():
     """VendorConfig is frozen dataclass."""
     cfg = VENDORS["deepseek"]
-    with pytest.raises(Exception):  ***REMOVED*** FrozenInstanceError
+    with pytest.raises(Exception):  # FrozenInstanceError
         cfg.name = "changed"
 
 
@@ -46,7 +46,7 @@ def test_vendors_dict_keys():
     assert set(VENDORS.keys()) == {"deepseek", "openai", "openrouter"}
 
 
-***REMOVED*** --- make_client -----------------------------------------------------------
+# --- make_client -----------------------------------------------------------
 
 
 def test_make_client_missing_api_key_raises(monkeypatch):
@@ -64,7 +64,7 @@ def test_make_client_with_explicit_api_key(monkeypatch):
     except ImportError as e:
         pytest.skip(f"openai package not installed: {e}")
     assert client is not None
-    ***REMOVED*** Verify base_url got set from vendor config
+    # Verify base_url got set from vendor config
     assert "deepseek.com" in str(client.base_url)
 
 

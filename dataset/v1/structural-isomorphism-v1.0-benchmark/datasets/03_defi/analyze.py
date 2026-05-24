@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 3: SOC analysis on Aave V2 liquidation events.
 
@@ -42,7 +42,7 @@ INPUT = OUT_DIR / "aave_v2_liquidations.jsonl"
 GR_OUT = OUT_DIR / "gr_results.json"
 OMORI_OUT = OUT_DIR / "omori_results.json"
 
-***REMOVED*** Stablecoin token addresses on Ethereum mainnet (all lowercase)
+# Stablecoin token addresses on Ethereum mainnet (all lowercase)
 STABLES = {
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": ("USDC", 6),
     "0xdac17f958d2ee523a2206206994597c13d831ec7": ("USDT", 6),
@@ -152,11 +152,11 @@ def fit_omori(counts_series, sigma_k=3.0, window_bins=30, bin_unit_label="day"):
     if len(valid) < 10:
         return {"error": f"too few main shocks: {len(valid)}", "threshold": float(threshold), "mu": float(mu), "sigma": float(sigma)}
 
-    ***REMOVED*** Stack post-shock counts, subtract baseline
+    # Stack post-shock counts, subtract baseline
     rates = np.zeros(window_bins)
     for tau in range(1, window_bins + 1):
         v = counts_series[valid + tau]
-        rates[tau - 1] = v.mean() - mu  ***REMOVED*** excess rate
+        rates[tau - 1] = v.mean() - mu  # excess rate
     tau_days = np.arange(1, window_bins + 1, dtype=float)
     keep = rates > 0
     if keep.sum() < 6:
@@ -219,7 +219,7 @@ def main():
     events = load_events()
     print(f"  total events: {len(events)}")
 
-    ***REMOVED*** Asset breakdown
+    # Asset breakdown
     debt_assets = {}
     for e in events:
         a = (e.get("debt_asset") or "").lower()
@@ -230,7 +230,7 @@ def main():
         sym = STABLES.get(a, (a[:12] + "…", 0))[0]
         print(f"    {sym:8s} {n:6d}")
 
-    ***REMOVED*** Power-law on stablecoin USD sizes
+    # Power-law on stablecoin USD sizes
     sizes = compute_stable_usd_sizes(events)
     print(f"\n  stablecoin-debt events: {len(sizes)}")
     if len(sizes) > 0:
@@ -249,7 +249,7 @@ def main():
     if "compare_vs_truncated_p" in pl and pl["compare_vs_truncated_p"] is not None:
         print(f"  vs truncated_power_law: R={pl['compare_vs_truncated_R']:.3f}, p={pl['compare_vs_truncated_p']:.4g}")
 
-    alpha_pred = (1.5, 3.0)  ***REMOVED*** wide band — DeFi liquidation sizes have no established literature value
+    alpha_pred = (1.5, 3.0)  # wide band — DeFi liquidation sizes have no established literature value
     alpha_ok = False
     if "alpha" in pl:
         alpha_ok = alpha_pred[0] <= pl["alpha"] <= alpha_pred[1]
@@ -290,7 +290,7 @@ def main():
         else:
             print(f"    {fit.get('error', 'no fit')}")
 
-    ***REMOVED*** Pick best fit by R2 * (1/p_sigma)
+    # Pick best fit by R2 * (1/p_sigma)
     best_scale = max(
         (k for k in om_results if "p" in om_results[k]),
         key=lambda k: (om_results[k].get("R2") or 0) * (1.0 / max(om_results[k].get("p_sigma") or 1, 0.01)),
@@ -314,7 +314,7 @@ def main():
     print(f"  saved: {OMORI_OUT}")
     print(f"  best scale: {best_scale}")
 
-    ***REMOVED*** Use best scale for final verdict
+    # Use best scale for final verdict
     best = om_results.get(best_scale, {}) if best_scale else {}
     print()
     print("=== VERDICT ===")

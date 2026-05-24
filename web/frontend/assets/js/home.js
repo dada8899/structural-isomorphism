@@ -183,23 +183,23 @@ let _heroIdx = 0;
 let _heroInterval = null;
 
 function renderHeroEvidence(idx, animate) {
-  const wrapper = $('***REMOVED***hero-evidence');
+  const wrapper = $('#hero-evidence');
   if (!wrapper) return;
   const card = wrapper.querySelector('.hero-evidence__card');
   const ex = DEMO_EXAMPLES[idx];
   if (!ex) return;
   const apply = () => {
     const set = (sel, val) => { const el = $(sel); if (el) el.textContent = val; };
-    set('***REMOVED***he-a-domain', __pick(ex.a.domain, ex.a.domain_en));
-    set('***REMOVED***he-a-name',   __pick(ex.a.name, ex.a.name_en));
-    set('***REMOVED***he-a-desc',   __pick(ex.a.desc, ex.a.desc_en));
-    set('***REMOVED***he-b-domain', __pick(ex.b.domain, ex.b.domain_en));
-    set('***REMOVED***he-b-name',   __pick(ex.b.name, ex.b.name_en));
-    set('***REMOVED***he-b-desc',   __pick(ex.b.desc, ex.b.desc_en));
-    const cap = $('***REMOVED***he-caption');
+    set('#he-a-domain', __pick(ex.a.domain, ex.a.domain_en));
+    set('#he-a-name',   __pick(ex.a.name, ex.a.name_en));
+    set('#he-a-desc',   __pick(ex.a.desc, ex.a.desc_en));
+    set('#he-b-domain', __pick(ex.b.domain, ex.b.domain_en));
+    set('#he-b-name',   __pick(ex.b.name, ex.b.name_en));
+    set('#he-b-desc',   __pick(ex.b.desc, ex.b.desc_en));
+    const cap = $('#he-caption');
     if (cap) cap.innerHTML = __pick(ex.caption, ex.caption_en) || '';
     // Update dots
-    const dots = $('***REMOVED***he-dots');
+    const dots = $('#he-dots');
     if (dots) {
       dots.querySelectorAll('.hero-evidence__dot').forEach((d, i) => {
         d.setAttribute('aria-selected', i === idx ? 'true' : 'false');
@@ -231,7 +231,7 @@ function startHeroEvidenceTimer() {
 
 function initHeroEvidence() {
   // Build dot indicators (one per example) — lets users see there are more + jump to any
-  const dots = $('***REMOVED***he-dots');
+  const dots = $('#he-dots');
   if (dots) {
     dots.innerHTML = '';
     DEMO_EXAMPLES.forEach((_, i) => {
@@ -254,7 +254,7 @@ function initHeroEvidence() {
   renderHeroEvidence(_heroIdx, false);
   startHeroEvidenceTimer();
 
-  const rotateBtn = $('***REMOVED***he-rotate');
+  const rotateBtn = $('#he-rotate');
   if (rotateBtn) {
     rotateBtn.addEventListener('click', () => {
       nextHeroEvidence();
@@ -287,7 +287,7 @@ function initHeroEvidence() {
 
 // === Search form ===
 function initSearch() {
-  const form = $('***REMOVED***search-form');
+  const form = $('#search-form');
   const input = $('.searchbox__input');
 
   if (form && input) {
@@ -342,7 +342,7 @@ function EXAMPLE_CHIPS() {
 }
 
 function renderSuggestions(_suggestionsFromServer) {
-  const container = $('***REMOVED***home-suggestions');
+  const container = $('#home-suggestions');
   if (!container) return;
 
   container.innerHTML = `
@@ -373,7 +373,7 @@ function renderSuggestions(_suggestionsFromServer) {
 // space before fetchDaily() lands. Without this, the homepage footer jumps
 // down by ~220px when the grid populates — a classic CLS issue.
 function renderDailySkeleton() {
-  const grid = $('***REMOVED***daily-grid');
+  const grid = $('#daily-grid');
   if (!grid || grid.children.length > 0) return;
   grid.innerHTML = Array.from({ length: 3 }).map(() => `
     <article class="disc-card disc-card--skeleton" aria-busy="true">
@@ -401,18 +401,18 @@ function renderDailySkeleton() {
 // SESSION-17 design P1-1: render a friendly fallback instead of leaving the
 // skeleton cards stuck forever when /api/daily returns empty or fails.
 function renderDailyEmpty() {
-  const grid = $('***REMOVED***daily-grid');
+  const grid = $('#daily-grid');
   if (!grid) return;
   grid.innerHTML =
     '<p class="home__daily-empty" style="grid-column:1/-1;text-align:center;' +
-    'color:var(--text-secondary,***REMOVED***52525b);font-size:14px;padding:32px 0;">' +
+    'color:var(--text-secondary,#52525b);font-size:14px;padding:32px 0;">' +
     T('page.home.daily_empty', '今日发现暂时加载不出来，先去') +
-    ' <a href="/discoveries" style="color:var(--brand-accent,***REMOVED***2563EB);">' +
+    ' <a href="/discoveries" style="color:var(--brand-accent,#2563EB);">' +
     T('page.home.daily_empty_link', '看看全部精选发现') + '</a>。</p>';
 }
 
 function renderDaily(discoveries) {
-  const grid = $('***REMOVED***daily-grid');
+  const grid = $('#daily-grid');
   if (!grid) return;
   if (!discoveries.length) { renderDailyEmpty(); return; }
 
@@ -458,8 +458,8 @@ function renderDaily(discoveries) {
 
 // === Local history chips ===
 function renderHistory() {
-  const section = $('***REMOVED***home-history');
-  const chipsEl = $('***REMOVED***home-history-chips');
+  const section = $('#home-history');
+  const chipsEl = $('#home-history-chips');
   if (!section || !chipsEl) return;
 
   const list = (window.getHistory && window.getHistory()) || [];
@@ -486,8 +486,8 @@ function renderHistory() {
 
 // === Favorited reports ===
 function renderFavorites() {
-  const section = $('***REMOVED***home-favorites');
-  const listEl = $('***REMOVED***home-favorites-list');
+  const section = $('#home-favorites');
+  const listEl = $('#home-favorites-list');
   if (!section || !listEl) return;
 
   const favs = (window.getFavorites && window.getFavorites()) || [];
@@ -567,8 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderDailySkeleton();
   loadHomeData();
 
-  // If the URL hash is ***REMOVED***home-favorites (from the nav link), scroll there
-  if (window.location.hash === '***REMOVED***home-favorites') {
+  // If the URL hash is #home-favorites (from the nav link), scroll there
+  if (window.location.hash === '#home-favorites') {
     requestAnimationFrame(() => {
       const el = document.getElementById('home-favorites');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -1,9 +1,9 @@
-***REMOVED*** cross-judge default prompt: generic universality-class judge.
-***REMOVED***
-***REMOVED*** Domain-agnostic version of b3_universality_critic.yaml. Use this when you
-***REMOVED*** have a candidate "universality class" or "shared pattern" but don't have
-***REMOVED*** the dynamical-systems context. Calibrate vocabulary to your domain by
-***REMOVED*** overriding `system_prompt`.
+# cross-judge default prompt: generic universality-class judge.
+#
+# Domain-agnostic version of b3_universality_critic.yaml. Use this when you
+# have a candidate "universality class" or "shared pattern" but don't have
+# the dynamical-systems context. Calibrate vocabulary to your domain by
+# overriding `system_prompt`.
 version: "0.1"
 description: |
   Generic universality-class / shared-pattern judge. Domain-agnostic.

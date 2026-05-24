@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 10 — wildfire size distribution SOC validation.
 
 System: NIFC Interagency Fire Perimeter History (US, 2010s-2024)
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     omori_from_aftershock_stack,
@@ -53,20 +53,20 @@ def main():
     print(f"  size_acres range: [{sizes.min():.2f}, {sizes.max():.0f}]")
     print(f"  median: {np.median(sizes):.1f}, mean: {sizes.mean():.1f}")
 
-    ***REMOVED*** 1. Clauset power-law fit on size
+    # 1. Clauset power-law fit on size
     print("\n[1] Clauset power-law fit on size (acres)...")
     pl = fit_clauset_powerlaw(sizes, "wildfire_size", discrete=False)
     for k, v in pl.items():
         print(f"  {k}: {v}")
 
-    ***REMOVED*** 2. Bootstrap CI on alpha
+    # 2. Bootstrap CI on alpha
     print("\n[2] Bootstrap 95% CI on α (n_boot=100, takes ~30s)...")
     ci = bootstrap_alpha_ci(sizes, n_boot=100, discrete=False)
     print(f"  CI: {ci}")
 
-    ***REMOVED*** 3. Inter-fire time Omori — stack waiting times after "main" fires
+    # 3. Inter-fire time Omori — stack waiting times after "main" fires
     print("\n[3] Omori on inter-fire times after main fires (>=95th pctl)...")
-    ***REMOVED*** Build event-times in seconds from date strings
+    # Build event-times in seconds from date strings
     from datetime import datetime
     rows = []
     for f in fires:
@@ -94,20 +94,20 @@ def main():
     print(f"  n stacked aftershocks: {len(dts_sec)}")
     omori = omori_from_aftershock_stack(
         dts_sec,
-        min_sec=86400.0,  ***REMOVED*** daily resolution (date-only data)
+        min_sec=86400.0,  # daily resolution (date-only data)
         max_sec=aftershock_window_days * 86400,
         n_bins=12,
         c_grid_days=(0.5, 1.0, 2.0, 5.0, 10.0),
     )
     print(f"  Omori result: {omori}")
 
-    ***REMOVED*** 4. Null control (matched n)
+    # 4. Null control (matched n)
     print("\n[4] Null control (matched n synthetic non-SOC)...")
     null_n = min(len(sizes), 20000)
     nulls = run_size_null_controls(seed=42, n=null_n)
     print(f"  all_rejected: {nulls['all_rejected']}")
 
-    ***REMOVED*** Verdict
+    # Verdict
     predicted_narrow = (1.3, 2.5)
     literature = (1.3, 2.5)
     alpha = pl.get("alpha")

@@ -32,8 +32,8 @@ class AskAnswerPayload(BaseModel):
     """Top-level shape returned by the LLM for the /ask/stream Phase B call."""
 
     answer: str = Field(..., min_length=20, max_length=2000)
-    ***REMOVED*** Pydantic v2 uses `min_length` / `max_length` on List fields (the legacy
-    ***REMOVED*** `min_items` / `max_items` aliases still work but emit a deprecation
-    ***REMOVED*** warning). Stay on the v2-native names for forward compat.
+    # Pydantic v2 uses `min_length` / `max_length` on List fields (the legacy
+    # `min_items` / `max_items` aliases still work but emit a deprecation
+    # warning). Stay on the v2-native names for forward compat.
     citations: List[Citation] = Field(..., min_length=1, max_length=10)
     followups: List[str] = Field(..., min_length=2, max_length=5)

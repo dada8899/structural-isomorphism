@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Run the frozen SOC pipeline on solar-wind burst statistics.
 
 Pre-registered bands (committed to fetch_solar_wind.py and RESULT.md
@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "packages" / "soc-pipeline" / "src"))
 
-from soc_pipeline import validate  ***REMOVED*** noqa: E402
+from soc_pipeline import validate  # noqa: E402
 
 DATA = ROOT.parent / "solar_wind_bursts.jsonl"
 VERDICT_PATH = ROOT.parent / "verdict.json"
@@ -37,7 +37,7 @@ PREREG_BAND_INTER_EVENT = (1.5, 2.5)
 
 def _verdict_to_dict(v):
     d = asdict(v)
-    ***REMOVED*** Replace tuples/Nones with JSON-safe types
+    # Replace tuples/Nones with JSON-safe types
     for k, val in d.items():
         if isinstance(val, tuple):
             d[k] = list(val)

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Sanity-check a new SOC fit result against the persistent null-validation registry.
 
@@ -20,13 +20,13 @@ The registry lives at v4/validation/null-controls/registry.jsonl
 
 Usage
 -----
-    ***REMOVED*** As a script
+    # As a script
     python3 v4/scripts/check_against_null_registry.py \
         --fit '{"alpha_clauset": 1.79, "vs_lognormal_R": +20.5,
                  "vs_exponential_R": +18.2, "vs_lognormal_p": 1e-15,
                  "vs_exponential_p": 1e-12, "n_tail": 1071}'
 
-    ***REMOVED*** As a library
+    # As a library
     from v4.scripts.check_against_null_registry import (
         load_registry, score_against_registry, verdict_from_scores,
     )
@@ -48,20 +48,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / "v4" / "validation" / "null-controls" / "registry.jsonl"
 
 
-***REMOVED*** Indicator weights — these capture how strongly each indicator
-***REMOVED*** discriminates "null" from "real SOC". A small distance (z-like
-***REMOVED*** similarity) along an indicator with HIGH weight is more concerning.
+# Indicator weights — these capture how strongly each indicator
+# discriminates "null" from "real SOC". A small distance (z-like
+# similarity) along an indicator with HIGH weight is more concerning.
 INDICATOR_WEIGHTS: Dict[str, float] = {
-    ***REMOVED*** Tail exponent: nulls tend to peg near alpha ≈ 3.0 (Clauset boundary).
+    # Tail exponent: nulls tend to peg near alpha ≈ 3.0 (Clauset boundary).
     "alpha_clauset": 1.0,
-    ***REMOVED*** vs lognormal: nulls have strongly negative R (lognormal wins).
+    # vs lognormal: nulls have strongly negative R (lognormal wins).
     "vs_lognormal_R": 2.0,
-    ***REMOVED*** vs exponential: nulls have weakly-negative or near-zero R; real
-    ***REMOVED*** SOC has positive R (power-law beats exponential).
+    # vs exponential: nulls have weakly-negative or near-zero R; real
+    # SOC has positive R (power-law beats exponential).
     "vs_exponential_R": 2.5,
-    ***REMOVED*** Tail size n_tail: a soft prior — vanishingly small tail is suspicious.
+    # Tail size n_tail: a soft prior — vanishingly small tail is suspicious.
     "n_tail": 0.5,
-    ***REMOVED*** Omori-specific fields (only used if both sides have them):
+    # Omori-specific fields (only used if both sides have them):
     "omori_p": 1.5,
     "omori_R2": 2.0,
 }
@@ -75,7 +75,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> List[Dict[str, Any]]:
     with path.open() as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("***REMOVED***"):
+            if not line or line.startswith("#"):
                 continue
             try:
                 cases.append(json.loads(line))
@@ -105,12 +105,12 @@ def _scale_for(indicator: str) -> float:
     similarity scores are interpretable.
     """
     return {
-        "alpha_clauset": 0.5,        ***REMOVED*** alpha typically lives in [1.3, 3.5]
-        "vs_lognormal_R": 15.0,      ***REMOVED*** R values seen range from -45 to +100
+        "alpha_clauset": 0.5,        # alpha typically lives in [1.3, 3.5]
+        "vs_lognormal_R": 15.0,      # R values seen range from -45 to +100
         "vs_exponential_R": 15.0,
-        "n_tail": 5000.0,            ***REMOVED*** n_tail varies orders of magnitude
-        "omori_p": 0.5,              ***REMOVED*** p around 1.0 for real, around 0 for null
-        "omori_R2": 0.3,             ***REMOVED*** R^2 around 0.3-0.99 real, near 0 null
+        "n_tail": 5000.0,            # n_tail varies orders of magnitude
+        "omori_p": 0.5,              # p around 1.0 for real, around 0 for null
+        "omori_R2": 0.3,             # R^2 around 0.3-0.99 real, near 0 null
     }.get(indicator, 1.0)
 
 
@@ -134,7 +134,7 @@ def score_against_case(
         if v_new is None or v_null is None:
             continue
         scale = _scale_for(indicator)
-        ***REMOVED*** Gaussian kernel on standardised difference.
+        # Gaussian kernel on standardised difference.
         diff = (v_new - v_null) / scale
         sim_i = math.exp(-0.5 * diff * diff)
         contribs[indicator] = sim_i
@@ -269,7 +269,7 @@ PHASE_1_EARTHQUAKE_FIT = {
     "alpha_clauset": 1.7936887559930417,
     "vs_lognormal_R": -1.1693943507700288,
     "vs_lognormal_p": 0.24224478485654988,
-    "vs_exponential_R": 18.0,  ***REMOVED*** estimated; real GR-derived energies blow exponential away
+    "vs_exponential_R": 18.0,  # estimated; real GR-derived energies blow exponential away
     "n_tail": 1071,
     "_note": "Phase 1 earthquake Clauset fit (energies, b-value derived)",
 }
@@ -280,16 +280,16 @@ def main() -> int:
 
     if args.demo:
         new_fit = PHASE_1_EARTHQUAKE_FIT
-        print("***REMOVED*** demo: checking Phase 1 earthquake fit against null registry")
+        print("# demo: checking Phase 1 earthquake fit against null registry")
     elif args.demo_null:
-        ***REMOVED*** Use the Gaussian null itself — this should score high similarity.
+        # Use the Gaussian null itself — this should score high similarity.
         new_fit = {
             "alpha_clauset": 2.999,
             "vs_lognormal_R": -28.5,
             "vs_exponential_R": -44.7,
             "n_tail": 8646,
         }
-        print("***REMOVED*** demo: feeding a Gaussian-walk-like fit (should match null_001)")
+        print("# demo: feeding a Gaussian-walk-like fit (should match null_001)")
     elif args.fit:
         new_fit = json.loads(args.fit)
     elif args.fit_file:

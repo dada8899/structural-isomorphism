@@ -1,18 +1,18 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED***
-***REMOVED*** measure-cls.sh — quick CLS measurement wrapper
-***REMOVED***
-***REMOVED*** Usage:
-***REMOVED***   bash scripts/measure-cls.sh [url] [viewport] [--throttle]
-***REMOVED***
-***REMOVED*** viewport: desktop (default, 1920×1080) or mobile (375×667 + iOS UA)
-***REMOVED*** --throttle: emulate slow 3G (400 kbps, 400ms RTT) + 4× CPU on mobile
-***REMOVED***
-***REMOVED*** Examples:
-***REMOVED***   bash scripts/measure-cls.sh http://localhost:8128/discoveries.html mobile --throttle
-***REMOVED***   bash scripts/measure-cls.sh https://beta.structural.bytedance.city/discoveries
-***REMOVED***
-***REMOVED*** Built for W4-A (2026-05-14) /discoveries CLS regression hunt.
+#!/usr/bin/env bash
+#
+# measure-cls.sh — quick CLS measurement wrapper
+#
+# Usage:
+#   bash scripts/measure-cls.sh [url] [viewport] [--throttle]
+#
+# viewport: desktop (default, 1920×1080) or mobile (375×667 + iOS UA)
+# --throttle: emulate slow 3G (400 kbps, 400ms RTT) + 4× CPU on mobile
+#
+# Examples:
+#   bash scripts/measure-cls.sh http://localhost:8128/discoveries.html mobile --throttle
+#   bash scripts/measure-cls.sh https://beta.structural.bytedance.city/discoveries
+#
+# Built for W4-A (2026-05-14) /discoveries CLS regression hunt.
 set -euo pipefail
 
 URL="${1:-https://beta.structural.bytedance.city/discoveries}"
@@ -22,7 +22,7 @@ THROTTLE_FLAG="${3:-}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY="${REPO_ROOT}/.venv/bin/python"
 
-***REMOVED*** Fallback: try common monorepo / git-worktree sibling locations.
+# Fallback: try common monorepo / git-worktree sibling locations.
 if [[ ! -x "$PY" ]]; then
   for cand in \
       "$HOME/Projects/structural-isomorphism/.venv/bin/python" \
@@ -95,7 +95,7 @@ with sync_playwright() as p:
     cls = page.evaluate(CLS_EVAL)
     suffix = " (throttled)" if throttle else ""
     print(f"{vp} CLS{suffix} = {cls:.4f}  [url={url}]")
-    ***REMOVED*** Web Vitals thresholds: good < 0.10, needs-improvement < 0.25.
+    # Web Vitals thresholds: good < 0.10, needs-improvement < 0.25.
     if cls < 0.1:
         rating = "good"
     elif cls < 0.25:

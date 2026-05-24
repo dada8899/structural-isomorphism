@@ -1,17 +1,17 @@
-***REMOVED*** A3 — Universal-collapse master curve
+# A3 — Universal-collapse master curve
 
 **Date**: 2026-05-13  
 
 **Systems**: 7 verified SOC systems  
 
 
-***REMOVED******REMOVED*** Methodology
+## Methodology
 
 For each verified system we compute the empirical complementary CDF P(S > s) on a log-spaced grid and overlay all systems on log-log axes (panel A). For panel B we rescale by the 99th-percentile cutoff s*: x → s/s*, y → s*^(α-1) · CCDF(s).
 
 Under the finite-size scaling ansatz P(s) = s^(-α) · f(s/s*), all systems should collapse onto a single master function f(·) up to system-specific α and s*. Strict universal collapse requires shared α, which is NOT what V4 expects across observables (different conjugate variables → different α). What V4 predicts is shared FUNCTIONAL FORM (power-law tail + exponential cutoff), giving partial collapse.
 
-***REMOVED******REMOVED*** Per-system summary
+## Per-system summary
 
 | System | α | n | s* (99th pctl) | range |
 |---|---|---|---|---|
@@ -23,7 +23,7 @@ Under the finite-size scaling ansatz P(s) = s^(-α) · f(s/s*), all systems shou
 | github_stars | 2.87 | 8398 | 1.11e+05 | [2.5e+02, 5e+05] |
 | defi_aave | 1.68 | 28943 | 2.24e+23 | [1, 5.3e+24] |
 
-***REMOVED******REMOVED*** Result
+## Result
 
 Panel A shows the raw spread — 6-7 systems span ~12 orders of magnitude in s, none coincident on raw axes. Panel B shows the rescaled view — under x/s* and y·s*^(α-1), the tails align over 2-3 decades for most systems, supporting the claim that they share functional form (power-law tail with exponential cutoff). The α spread [1.5, 3.0] across observables is consistent with the universality-class theory: same equations of motion, different conjugate observables → different scaling exponents.
 

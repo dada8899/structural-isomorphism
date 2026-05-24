@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Generate the W7-D weekly signals newsletter (2026-05-24).
 
 Pipeline:
@@ -18,13 +18,13 @@ Distinct from:
     described in `docs/future/W7-D-product-value-roadmap-2026-05-13.md` § 8.
 
 Usage:
-    ***REMOVED*** default — writes newsletter/weekly/{Monday of this ISO week}.md
+    # default — writes newsletter/weekly/{Monday of this ISO week}.md
     python3 scripts/generate_weekly_signals.py
 
-    ***REMOVED*** explicit week + out file
+    # explicit week + out file
     python3 scripts/generate_weekly_signals.py --week 2026-05-25 --out /tmp/test.md
 
-    ***REMOVED*** force mock mode (skip LLM call even if key present)
+    # force mock mode (skip LLM call even if key present)
     python3 scripts/generate_weekly_signals.py --no-llm
 """
 from __future__ import annotations
@@ -42,17 +42,17 @@ logger = logging.getLogger("structural.weekly_signals")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-***REMOVED*** Phase-detector data sources we look at — first hit wins.
+# Phase-detector data sources we look at — first hit wins.
 _PHASE_DATA_CANDIDATES = [
     REPO_ROOT / "data" / "phase-detector" / "latest.json",
     REPO_ROOT / "web" / "frontend" / "phase" / "data" / "companies_struct.jsonl",
 ]
 
-***REMOVED*** Default chart output path. Newsletters reference this relative to the .md.
+# Default chart output path. Newsletters reference this relative to the .md.
 _CHART_REL_PATH = "alpha-signal.png"
 
 
-***REMOVED*** ---------------------- Phase data loading ----------------------
+# ---------------------- Phase data loading ----------------------
 
 def load_phase_data() -> tuple[list[dict[str, Any]], str]:
     """Return (companies_list, source_label).
@@ -65,7 +65,7 @@ def load_phase_data() -> tuple[list[dict[str, Any]], str]:
             continue
         try:
             text = candidate.read_text(encoding="utf-8")
-            ***REMOVED*** JSONL?
+            # JSONL?
             if candidate.suffix == ".jsonl":
                 rows = []
                 for line in text.splitlines():
@@ -94,14 +94,14 @@ def _mock_companies() -> list[dict[str, Any]]:
     D1 v0.2 lands the real 100-company snapshot. Numbers are reasonable but
     not real — labelled `mock` in the output footer."""
     return [
-        ***REMOVED*** 6 high-confidence near_critical (will be picked as the headline 6)
+        # 6 high-confidence near_critical (will be picked as the headline 6)
         {"ticker": "WBA",  "name": "Walgreens Boots Alliance", "phase": "near_critical", "confidence": 0.91, "dynamics_family": "bistable",     "delta_signal": -0.42, "primary_quote": "Reaffirming guidance amid persistent margin pressure"},
         {"ticker": "PARA", "name": "Paramount Global",        "phase": "near_critical", "confidence": 0.88, "dynamics_family": "phase_transition","delta_signal": -0.38, "primary_quote": "Strategic alternatives under review"},
         {"ticker": "F",    "name": "Ford Motor",              "phase": "near_critical", "confidence": 0.85, "dynamics_family": "bifurcation",    "delta_signal":  0.21, "primary_quote": "EV transition timeline narrowed"},
         {"ticker": "BA",   "name": "Boeing",                  "phase": "near_critical", "confidence": 0.82, "dynamics_family": "metastable",     "delta_signal": -0.55, "primary_quote": "Production rate hold pending FAA review"},
         {"ticker": "T",    "name": "AT&T",                    "phase": "near_critical", "confidence": 0.80, "dynamics_family": "bistable",       "delta_signal":  0.12, "primary_quote": "Fiber deployment ahead of plan"},
         {"ticker": "GME",  "name": "GameStop",                "phase": "near_critical", "confidence": 0.78, "dynamics_family": "phase_transition","delta_signal":  0.67, "primary_quote": "Cash deployment policy update"},
-        ***REMOVED*** baseline noise
+        # baseline noise
         {"ticker": "AAPL", "name": "Apple",                   "phase": "stable",        "confidence": 0.95, "dynamics_family": "stationary"},
         {"ticker": "MSFT", "name": "Microsoft",               "phase": "stable",        "confidence": 0.94, "dynamics_family": "stationary"},
         {"ticker": "NVDA", "name": "NVIDIA",                  "phase": "trending",      "confidence": 0.81, "dynamics_family": "growth_regime"},
@@ -116,7 +116,7 @@ def select_near_critical(companies: list[dict[str, Any]], n: int = 6) -> list[di
     return nc[:n]
 
 
-***REMOVED*** ---------------------- Chart ----------------------
+# ---------------------- Chart ----------------------
 
 def render_alpha_chart(picks: list[dict[str, Any]], out_path: Path) -> bool:
     """Render a simple bar chart of delta_signal per pick. Lazy-import
@@ -125,21 +125,21 @@ def render_alpha_chart(picks: list[dict[str, Any]], out_path: Path) -> bool:
     Returns True iff the chart was written.
     """
     try:
-        import matplotlib  ***REMOVED*** type: ignore
-        matplotlib.use("Agg")  ***REMOVED*** headless
-        import matplotlib.pyplot as plt  ***REMOVED*** type: ignore
+        import matplotlib  # type: ignore
+        matplotlib.use("Agg")  # headless
+        import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
         logger.warning("matplotlib unavailable — skipping chart")
         return False
 
     labels = [c["ticker"] for c in picks]
     values = [float(c.get("delta_signal") or 0.0) for c in picks]
-    colors = ["***REMOVED***15803D" if v >= 0 else "***REMOVED***B91C1C" for v in values]
+    colors = ["#15803D" if v >= 0 else "#B91C1C" for v in values]
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(7.2, 3.2), dpi=150)
-    ax.bar(labels, values, color=colors, edgecolor="***REMOVED***1C1917", linewidth=0.6)
-    ax.axhline(0, color="***REMOVED***1C1917", linewidth=0.8)
+    ax.bar(labels, values, color=colors, edgecolor="#1C1917", linewidth=0.6)
+    ax.axhline(0, color="#1C1917", linewidth=0.8)
     ax.set_title("Δ-signal across this week's near-critical cohort", fontsize=11)
     ax.set_ylabel("Δ-signal (last vs prior quarter)", fontsize=9)
     ax.tick_params(labelsize=9)
@@ -151,7 +151,7 @@ def render_alpha_chart(picks: list[dict[str, Any]], out_path: Path) -> bool:
     return True
 
 
-***REMOVED*** ---------------------- LLM commentary ----------------------
+# ---------------------- LLM commentary ----------------------
 
 def _openrouter_key() -> Optional[str]:
     return os.environ.get("OPENROUTER_API_KEY")
@@ -169,7 +169,7 @@ def generate_commentary(picks: list[dict[str, Any]], allow_llm: bool = True) -> 
     try:
         import urllib.request
         import urllib.error
-    except ImportError:  ***REMOVED*** pragma: no cover
+    except ImportError:  # pragma: no cover
         return _mock_commentary(picks), "mock"
 
     summary_lines = []
@@ -234,7 +234,7 @@ def _mock_commentary(picks: list[dict[str, Any]]) -> str:
     )
 
 
-***REMOVED*** ---------------------- Render markdown ----------------------
+# ---------------------- Render markdown ----------------------
 
 def render_markdown(
     week_start: dt.date,
@@ -246,18 +246,18 @@ def render_markdown(
 ) -> str:
     """Compose the issue markdown. Idempotent given identical inputs."""
     lines: list[str] = []
-    lines.append(f"***REMOVED*** Structural Signals — week of {week_start.isoformat()}")
+    lines.append(f"# Structural Signals — week of {week_start.isoformat()}")
     lines.append("")
     lines.append(f"_6 companies sitting near a structural regime change. Methodology + receipts below._")
     lines.append("")
     if chart_rel_path:
         lines.append(f"![Alpha signal Δ across the cohort]({chart_rel_path})")
         lines.append("")
-    lines.append("***REMOVED******REMOVED*** Editor's note")
+    lines.append("## Editor's note")
     lines.append("")
     lines.append(commentary)
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** This week's 6")
+    lines.append("## This week's 6")
     lines.append("")
     lines.append("| Ticker | Name | Family | Confidence | Δ-signal | Primary quote |")
     lines.append("|---|---|---|---:|---:|---|")
@@ -271,7 +271,7 @@ def render_markdown(
             f"| {c.get('primary_quote','—')} |"
         )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Methodology footer")
+    lines.append("## Methodology footer")
     lines.append("")
     lines.append(
         "- Phase classifier: D1 v0.1 (`stable | trending | near_critical | post_crisis`)."
@@ -290,7 +290,7 @@ def render_markdown(
     return "\n".join(lines) + "\n"
 
 
-***REMOVED*** ---------------------- Week / file helpers ----------------------
+# ---------------------- Week / file helpers ----------------------
 
 def monday_of_iso_week(d: dt.date) -> dt.date:
     """Return the Monday of d's ISO week (Monday=1)."""
@@ -310,7 +310,7 @@ def default_out_path(week_start: dt.date) -> Path:
     return REPO_ROOT / "newsletter" / "weekly" / f"{week_start.isoformat()}.md"
 
 
-***REMOVED*** ---------------------- CLI ----------------------
+# ---------------------- CLI ----------------------
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Generate weekly structural signals newsletter")

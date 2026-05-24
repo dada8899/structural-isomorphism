@@ -1,14 +1,14 @@
-***REMOVED*** arXiv Submission Checklist
+# arXiv Submission Checklist
 
-**Generated:** 2026-05-13 by W3-E subagent (structural-isomorphism Phase v4 / Session ***REMOVED***3, agent `w3e-arxiv-drafts`).
+**Generated:** 2026-05-13 by W3-E subagent (structural-isomorphism Phase v4 / Session #3, agent `w3e-arxiv-drafts`).
 
 **Scope.** Markdown drafts only. No LaTeX, no actual upload. The four drafts in `2026-05-13/` are first-pass arXiv-format reorganizations of existing site papers. Before any real arXiv submission, every item in this checklist must be addressed.
 
 ---
 
-***REMOVED******REMOVED*** Drafts produced
+## Drafts produced
 
-| ***REMOVED*** | File | Phase | Topic | Word count (approx.) |
+| # | File | Phase | Topic | Word count (approx.) |
 |---|------|-------|-------|----------------------|
 | 01 | `2026-05-13/01_earthquake_soc.md` | 1 | USGS earthquake SOC (Gutenberg-Richter + Omori-Utsu) | ~5,200 |
 | 02 | `2026-05-13/02_stockmarket_inverse_cubic.md` | 2 | S&P 500 inverse-cubic + daily-scale Omori | ~4,600 |
@@ -19,9 +19,9 @@ All four follow the same arXiv-style structure: Authors/Affiliation → Abstract
 
 ---
 
-***REMOVED******REMOVED*** Critical pre-submission TODOs
+## Critical pre-submission TODOs
 
-***REMOVED******REMOVED******REMOVED*** 1. LaTeX conversion
+### 1. LaTeX conversion
 
 The arXiv main-stream submission format is LaTeX. The Markdown drafts must be converted before submission:
 
@@ -33,7 +33,7 @@ The arXiv main-stream submission format is LaTeX. The Markdown drafts must be co
 - [ ] Validate that all math renders correctly under `pdflatex` (check `\langle ... \rangle`, `\mathrm{}`, table cells with math).
 - [ ] Run `arxiv-sanity-check` or equivalent to confirm size limits and font embedding.
 
-***REMOVED******REMOVED******REMOVED*** 2. Authors and affiliations — placeholder removal
+### 2. Authors and affiliations — placeholder removal
 
 Every draft currently uses:
 
@@ -51,7 +51,7 @@ Before submission decide:
 - [ ] **ORCID.** Register and include if not already.
 - [ ] **Chinese-English name consistency.** Confirm preferred Pinyin form ("Wan Qinghui" vs. "Qinghui Wan" vs. "Q. Wan" — arXiv typically prefers `Q. Wan` for the inline citation form).
 
-***REMOVED******REMOVED******REMOVED*** 3. Co-author invitation decisions (D-struct-1)
+### 3. Co-author invitation decisions (D-struct-1)
 
 The Structural Isomorphism project as a whole is currently single-author. Two reasonable models for the Phase 1-4 papers:
 
@@ -60,7 +60,7 @@ The Structural Isomorphism project as a whole is currently single-author. Two re
 
 - [ ] **Decision needed: D-struct-1.** Pick the route per paper. Default: solo for Phase 1-3 (where the pipeline-validation framing carries the paper), invite for Phase 4 (where domain knowledge of brain-state classification adds substantively).
 
-***REMOVED******REMOVED******REMOVED*** 4. Target journal / preprint server selection
+### 4. Target journal / preprint server selection
 
 - [ ] **arXiv categories per paper:**
   - Phase 1 (earthquake): primary `physics.geo-ph`, secondary `stat.AP`, `cond-mat.stat-mech`.
@@ -74,17 +74,17 @@ The Structural Isomorphism project as a whole is currently single-author. Two re
   - Phase 4: *J. Neurosci.* / *Phys. Rev. E* / *Neural Comput.*.
 - [ ] **Cross-paper bundling decision.** Consider submitting as a coordinated 4-paper series with mutual cross-citations finalized at the same time (currently drafts cite each other by Phase 1-4 numbers and "this work" rather than by arXiv ID).
 
-***REMOVED******REMOVED******REMOVED*** 5. DOI and identifier allocation
+### 5. DOI and identifier allocation
 
 - [ ] **Zenodo deposit per paper.** The project-level Zenodo deposit (10.5281/zenodo.19547879) covers the V1-V4 snapshot. Each Phase paper should get its own Zenodo DOI for the analysis code + data subset, cross-referenced from the paper's Data Availability section.
 - [ ] **GitHub release per paper.** Tag the analysis code at the exact commit used. Suggested tags: `v4/phase1-earthquake-2026-04-15`, `v4/phase2-stockmarket-2026-04-15`, `v4/phase3-defi-2026-04-16`, `v4/phase4-neural-2026-04-16`.
 - [ ] **arXiv IDs.** Once preprints go up, retrofit Markdown drafts (and any LaTeX versions) with the actual arXiv IDs for inter-paper cross-references.
 
-***REMOVED******REMOVED******REMOVED*** 6. AI assistance disclosure language
+### 6. AI assistance disclosure language
 
 All four drafts include the same Acknowledgments paragraph crediting Anthropic Claude Opus 4.x (via Claude Code) and DeepSeek for code drafting / prose polishing / literature triangulation, with the standard disclaimer that all decisions and claims are the author's responsibility. This matches current arXiv and journal best practice (e.g., *Nature* policy 2023+, *Science* policy 2024+). Re-review the exact disclosure language against target journal policy before submission. Some journals (e.g., *Cell*) require slightly different phrasing.
 
-***REMOVED******REMOVED******REMOVED*** 7. Figures
+### 7. Figures
 
 The Markdown drafts contain **no figures** — all numerical results are in tables. Before formal submission, each paper should include at minimum:
 
@@ -93,12 +93,12 @@ The Markdown drafts contain **no figures** — all numerical results are in tabl
 - [ ] **Phase 3**: (a) per-protocol CCDF of liquidation sizes (3 panels); (b) per-protocol Omori fits at 1-hour aggregation; (c) summary scatter of $\alpha$ vs. $p$ for the three protocols + Phase 1 + Phase 2 anchors.
 - [ ] **Phase 4**: (a) synthetic validation panel ($P(s)$ and $P(T)$ on BGW avalanches with mean-field prediction); (b) real-data $P(s)$ vs. bin factor (5 panels or single overlay); (c) scaling relation $\langle s | T \rangle$ vs. $T$ with $\gamma$ fit.
 
-***REMOVED******REMOVED******REMOVED*** 8. License
+### 8. License
 
 - [ ] Decide arXiv license per paper. Default recommendation: `CC BY 4.0` (most reuse-permissive consistent with author retention).
 - [ ] Confirm GitHub repo license is compatible (currently mixed; pin a single license at repo root before tagging release for paper).
 
-***REMOVED******REMOVED******REMOVED*** 9. ATBD-style supplementary materials
+### 9. ATBD-style supplementary materials
 
 For Phase 1 (earthquake) in particular, seismological reviewers will expect more depth on:
 
@@ -111,7 +111,7 @@ For Phase 4 (neural):
 - [ ] Per-trial-phase analysis (delay vs. cue vs. response) as a supplementary if time allows.
 - [ ] Subsampling-correction estimate of true cortical $\tau$ following Priesemann 2014.
 
-***REMOVED******REMOVED******REMOVED*** 10. Inter-paper citation finalization
+### 10. Inter-paper citation finalization
 
 Each Markdown draft cites the other three by Phase number and "this work" placeholders. After LaTeX conversion and arXiv submission:
 
@@ -120,7 +120,7 @@ Each Markdown draft cites the other three by Phase number and "this work" placeh
 
 ---
 
-***REMOVED******REMOVED*** Production sanity checks (before any upload)
+## Production sanity checks (before any upload)
 
 - [ ] All math compiles: $\alpha$, $\tau$, $\langle \cdot \rangle$, subscripts/superscripts in tables.
 - [ ] All hyperlinks resolve: DANDI dataset URL, USGS FDSN endpoint, GitHub repo paths, MakerDAO docs URL.
@@ -133,7 +133,7 @@ Each Markdown draft cites the other three by Phase number and "this work" placeh
 
 ---
 
-***REMOVED******REMOVED*** What this checklist deliberately does NOT cover
+## What this checklist deliberately does NOT cover
 
 - Co-author negotiation specifics (who to invite, what fraction of authorship).
 - Funding-acknowledgment language (none received; if any retroactive grant is identified before submission, include the grant number).
@@ -141,4 +141,4 @@ Each Markdown draft cites the other three by Phase number and "this work" placeh
 - Reviewer suggestions (some journals ask for these; build a list per paper based on the reference list).
 - Cover-letter drafts.
 
-These are downstream of the Markdown-draft scope assigned to this subagent (W3-E, structural-isomorphism Session ***REMOVED***3, C2 task) and should be picked up by a follow-on subagent or by the author directly.
+These are downstream of the Markdown-draft scope assigned to this subagent (W3-E, structural-isomorphism Session #3, C2 task) and should be picked up by a follow-on subagent or by the author directly.

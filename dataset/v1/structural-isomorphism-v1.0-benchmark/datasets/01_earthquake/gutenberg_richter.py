@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 — Phase 2: Gutenberg-Richter b-value and equivalent power-law tau.
 
@@ -50,7 +50,7 @@ def load_catalog():
                 if line:
                     rows.append(json.loads(line))
         df = pd.DataFrame(rows)
-    ***REMOVED*** Keep only tectonic earthquakes with valid mag
+    # Keep only tectonic earthquakes with valid mag
     if "type" in df.columns:
         df = df[df["type"] == "earthquake"].copy()
     df = df.dropna(subset=["mag"])
@@ -102,13 +102,13 @@ def clauset_powerlaw_on_energy(mags: np.ndarray):
     except Exception as e:
         return {"skipped": f"powerlaw package unavailable: {e}"}
     s = np.power(10.0, 1.5 * mags)
-    ***REMOVED*** Remove zeros and ensure finite
+    # Remove zeros and ensure finite
     s = s[np.isfinite(s) & (s > 0)]
     fit = powerlaw.Fit(s, discrete=False, xmin_distance="D", verbose=False)
     alpha = float(fit.power_law.alpha)
     xmin = float(fit.power_law.xmin)
     sigma = float(fit.power_law.sigma)
-    ***REMOVED*** Compare against lognormal alternative
+    # Compare against lognormal alternative
     try:
         R, p = fit.distribution_compare("power_law", "lognormal", normalized_ratio=True)
     except Exception:
@@ -146,7 +146,7 @@ def main():
     ci_lo, ci_hi = bootstrap_b(above, mc, n_boot=500)
     print(f"  b 95% CI = [{ci_lo:.3f}, {ci_hi:.3f}]")
 
-    ***REMOVED*** Equivalent power-law exponent on energy
+    # Equivalent power-law exponent on energy
     tau_from_b = 1.0 + b / 1.5
     print(f"  tau (energy) from b/1.5: {tau_from_b:.3f}")
 
@@ -154,13 +154,13 @@ def main():
     pl = clauset_powerlaw_on_energy(above)
     print(f"  Clauset result: {pl}")
 
-    ***REMOVED*** Decision — b is the primary statistic, tau is derived
-    ***REMOVED*** Global b-value is 0.8-1.2 per seismological literature (accepted canonical b=1)
-    ***REMOVED*** Narrow prediction band [0.9, 1.1] from V4 Layer 4 prompt
-    ***REMOVED*** Broader literature band [0.8, 1.2] as soft acceptance
+    # Decision — b is the primary statistic, tau is derived
+    # Global b-value is 0.8-1.2 per seismological literature (accepted canonical b=1)
+    # Narrow prediction band [0.9, 1.1] from V4 Layer 4 prompt
+    # Broader literature band [0.8, 1.2] as soft acceptance
     b_within_narrow = 0.9 <= b <= 1.1
     b_within_literature = 0.8 <= b <= 1.2
-    tau_literature_range = [1.6, 1.8]  ***REMOVED*** energy power law exponent, standard
+    tau_literature_range = [1.6, 1.8]  # energy power law exponent, standard
     tau_within_literature = tau_literature_range[0] <= tau_from_b <= tau_literature_range[1]
 
     if b_within_narrow and tau_within_literature:

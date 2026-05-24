@@ -1,7 +1,7 @@
 """Tests for /api/version endpoint.
 
-Session ***REMOVED***16 added `model` + `deployed_at` to the response so dogfood scripts
-can fingerprint-check prod in a single request (session ***REMOVED***15 incident: 5-day
+Session #16 added `model` + `deployed_at` to the response so dogfood scripts
+can fingerprint-check prod in a single request (session #15 incident: 5-day
 deploy pipeline failure was undetected because no single endpoint exposed
 the actually-running model).
 
@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-***REMOVED*** Ensure web/backend is on sys.path
+# Ensure web/backend is on sys.path
 _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
@@ -28,19 +28,19 @@ def client(monkeypatch):
 
     We import main *after* monkeypatching env so version() picks up our overrides.
     """
-    ***REMOVED*** Set deterministic env so the assertions don't drift with the host.
+    # Set deterministic env so the assertions don't drift with the host.
     monkeypatch.setenv("STRUCTURAL_GIT_SHA", "abc123def456")
     monkeypatch.setenv("STRUCTURAL_BUILD_DATE", "2026-05-20T15:00:00Z")
     monkeypatch.setenv("STRUCTURAL_DEPLOYED_AT", "2026-05-20T16:30:00Z")
     monkeypatch.setenv("STRUCTURAL_ENV", "test")
     monkeypatch.setenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
 
-    ***REMOVED*** Reload main to pick up fresh env.
+    # Reload main to pick up fresh env.
     if "main" in sys.modules:
         del sys.modules["main"]
-    import main as _main  ***REMOVED*** noqa: WPS433
+    import main as _main  # noqa: WPS433
 
-    ***REMOVED*** Avoid the lifespan startup (loads the heavy search service).
+    # Avoid the lifespan startup (loads the heavy search service).
     with TestClient(_main.app, raise_server_exceptions=True) as c:
         yield c
 
@@ -51,13 +51,13 @@ def test_version_returns_all_required_fields(client):
     assert r.status_code == 200, r.text
     body = r.json()
 
-    ***REMOVED*** Original fields (must not regress)
+    # Original fields (must not regress)
     assert "semver" in body
     assert "git_sha" in body
     assert "build_date" in body
     assert "python_version" in body
     assert "env" in body
-    ***REMOVED*** New in session ***REMOVED***16 — the fields that close the session-15 incident gap
+    # New in session #16 — the fields that close the session-15 incident gap
     assert "model" in body, "model field is required for dogfood fingerprint check"
     assert "deployed_at" in body, "deployed_at field is required to detect stale deploys"
 
@@ -82,7 +82,7 @@ def test_version_deployed_at_falls_back_to_build_date(monkeypatch):
 
     if "main" in sys.modules:
         del sys.modules["main"]
-    import main as _main  ***REMOVED*** noqa: WPS433
+    import main as _main  # noqa: WPS433
 
     with TestClient(_main.app) as c:
         r = c.get("/api/version")
@@ -100,12 +100,12 @@ def test_version_model_default_when_env_missing(monkeypatch):
 
     if "main" in sys.modules:
         del sys.modules["main"]
-    import main as _main  ***REMOVED*** noqa: WPS433
+    import main as _main  # noqa: WPS433
 
     with TestClient(_main.app) as c:
         r = c.get("/api/version")
     body = r.json()
-    ***REMOVED*** Default in main.version() matches ask_orchestrator.ASK_MODEL default.
+    # Default in main.version() matches ask_orchestrator.ASK_MODEL default.
     assert body["model"] == "deepseek/deepseek-chat:nitro"
 
 

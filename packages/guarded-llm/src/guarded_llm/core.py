@@ -22,7 +22,7 @@ Example::
     )
 
     out = llm.call("Is gravity a self-organized criticality system?")
-    print(out.verdict, out.confidence)         ***REMOVED*** real Pydantic instance
+    print(out.verdict, out.confidence)         # real Pydantic instance
 """
 
 from __future__ import annotations
@@ -59,13 +59,13 @@ def _coerce_schema(schema: Any) -> Any:
     Returns an object with a `.validate(d)` method that the lower-level
     `validate_json` understands.
     """
-    ***REMOVED*** Pydantic BaseModel subclass → wrap in SchemaValidator
+    # Pydantic BaseModel subclass → wrap in SchemaValidator
     if _HAS_PYDANTIC and isinstance(schema, type) and issubclass(schema, BaseModel):
         return SchemaValidator(schema)
-    ***REMOVED*** Raw dict treated as JSON Schema
+    # Raw dict treated as JSON Schema
     if isinstance(schema, dict):
         return LLMSchema(schema)
-    ***REMOVED*** Anything else passed through unchanged (must already expose .validate)
+    # Anything else passed through unchanged (must already expose .validate)
     return schema
 
 
@@ -91,9 +91,9 @@ class GuardedLLM:
     Public API::
 
         llm = GuardedLLM(provider, model, schema, budget=..., retry=...)
-        out = llm.call("prompt")            ***REMOVED*** returns validated instance
-        llm.last_stats.cost_usd             ***REMOVED*** cost of the last call
-        llm.budget.spent_usd                ***REMOVED*** cumulative spend
+        out = llm.call("prompt")            # returns validated instance
+        llm.last_stats.cost_usd             # cost of the last call
+        llm.budget.spent_usd                # cumulative spend
     """
 
     def __init__(
@@ -126,7 +126,7 @@ class GuardedLLM:
         self.provider_kwargs = dict(provider_kwargs)
         self.last_stats: GuardedCallStats = GuardedCallStats()
 
-    ***REMOVED*** ------------------------------------------------------------------ call
+    # ------------------------------------------------------------------ call
 
     def call(
         self,
@@ -213,11 +213,11 @@ class GuardedLLM:
             stats.raw_outputs.append(raw)
             stats.cost_usd += cost
 
-            ***REMOVED*** Charge the budget BEFORE checking schema, so a runaway loop
-            ***REMOVED*** can't keep burning money on a bad prompt.
+            # Charge the budget BEFORE checking schema, so a runaway loop
+            # can't keep burning money on a bad prompt.
             if self.budget is not None:
-                ***REMOVED*** Budget.consume() raises BudgetExceeded if we'd exceed any cap.
-                ***REMOVED*** Reset stats first so caller can inspect partial spend.
+                # Budget.consume() raises BudgetExceeded if we'd exceed any cap.
+                # Reset stats first so caller can inspect partial spend.
                 self.last_stats = stats
                 self.budget.consume(cost)
 
@@ -237,7 +237,7 @@ class GuardedLLM:
             last_raw=stats.raw_outputs[-1] if stats.raw_outputs else None,
         )
 
-    ***REMOVED*** -------------------------------------------------------------- as_result
+    # -------------------------------------------------------------- as_result
 
     def call_as_result(
         self,
@@ -260,7 +260,7 @@ class GuardedLLM:
                 raw_outputs=list(self.last_stats.raw_outputs),
             )
         except BudgetExceededError:
-            ***REMOVED*** Re-raise — budget is a hard stop, not a soft validation failure.
+            # Re-raise — budget is a hard stop, not a soft validation failure.
             raise
         return GuardrailResult(
             parsed=parsed,

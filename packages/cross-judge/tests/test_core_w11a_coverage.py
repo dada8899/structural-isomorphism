@@ -20,7 +20,7 @@ from cross_judge.core import Critic, _extract_json
 from cross_judge.verdict import Verdict
 
 
-***REMOVED*** --- _extract_json ----------------------------------------------------------
+# --- _extract_json ----------------------------------------------------------
 
 
 def test_extract_json_no_braces_returns_none():
@@ -68,7 +68,7 @@ def test_extract_json_brace_order_invalid():
     assert _extract_json(raw) is None
 
 
-***REMOVED*** --- Critic._resolved_base_url ----------------------------------------------
+# --- Critic._resolved_base_url ----------------------------------------------
 
 
 def test_critic_base_url_explicit_wins():
@@ -83,7 +83,7 @@ def test_critic_base_url_unknown_vendor_raises():
     assert "Unknown vendor" in str(exc.value)
 
 
-***REMOVED*** --- Critic._resolved_api_key -----------------------------------------------
+# --- Critic._resolved_api_key -----------------------------------------------
 
 
 def test_critic_api_key_explicit_wins(monkeypatch):
@@ -113,7 +113,7 @@ def test_critic_api_key_custom_vendor_no_key_raises(monkeypatch):
     assert "Missing api_key" in str(exc.value)
 
 
-***REMOVED*** --- Critic._get_client default --------------------------------------------
+# --- Critic._get_client default --------------------------------------------
 
 
 def test_critic_get_client_default_creates_httpx():
@@ -122,11 +122,11 @@ def test_critic_get_client_default_creates_httpx():
     assert c.http_client is None
     client = c._get_client()
     assert client is not None
-    ***REMOVED*** Second call returns same instance
+    # Second call returns same instance
     assert c._get_client() is client
 
 
-***REMOVED*** --- Critic._render_prompt -------------------------------------------------
+# --- Critic._render_prompt -------------------------------------------------
 
 
 def test_critic_render_prompt_missing_key_raises():
@@ -158,7 +158,7 @@ def test_critic_render_prompt_with_context():
     assert "domain=earthquakes" in out
 
 
-***REMOVED*** --- Critic.judge — empty response path ------------------------------------
+# --- Critic.judge — empty response path ------------------------------------
 
 
 class _FakeResp:
@@ -231,7 +231,7 @@ def test_critic_judge_success(monkeypatch):
     assert v.confidence == 0.8
 
 
-***REMOVED*** --- _parse_verdict edge cases ---------------------------------------------
+# --- _parse_verdict edge cases ---------------------------------------------
 
 
 def test_parse_verdict_non_numeric_confidence_falls_back_to_zero():
@@ -239,7 +239,7 @@ def test_parse_verdict_non_numeric_confidence_falls_back_to_zero():
     c = Critic(name="x", model="m")
     v = c._parse_verdict('{"kind": "KEEP", "confidence": "high"}', elapsed=0.1)
     assert v.kind == "KEEP"
-    assert v.confidence == 0.0  ***REMOVED*** could not parse "high" → 0.0
+    assert v.confidence == 0.0  # could not parse "high" → 0.0
 
 
 def test_parse_verdict_none_confidence_falls_back_to_zero():

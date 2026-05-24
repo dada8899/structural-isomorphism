@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Python helper: read a CSV, pick the first numeric column, fit Clauset 2009.
 
 Usage:
@@ -41,7 +41,7 @@ def main() -> int:
 
     try:
         import numpy as np
-        from soc_pipeline import validate  ***REMOVED*** type: ignore
+        from soc_pipeline import validate  # type: ignore
         arr = np.asarray(nums, dtype=float)
         arr = arr[np.isfinite(arr) & (arr > 0)]
         v = validate(arr, expected_band=None, n_boot=0)

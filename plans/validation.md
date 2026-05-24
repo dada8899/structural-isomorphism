@@ -1,4 +1,4 @@
-***REMOVED*** 24 条 tier-1 发现真实性审计
+# 24 条 tier-1 发现真实性审计
 
 > 启动日期：2026-04-13
 > 状态：待执行
@@ -6,7 +6,7 @@
 > 依赖：无
 > 阻塞：V3 Phase 2 及之后
 
-***REMOVED******REMOVED*** 目标
+## 目标
 
 把 `results/exp-final-*/tier1.jsonl` 里的 24 条发现过三层漏斗，分类：
 
@@ -15,13 +15,13 @@
 - (c) 真的新但无解释力 → 标"灵感"
 - (d) 真的新且能产生新预测 → 写进论文
 
-***REMOVED******REMOVED*** 输入
+## 输入
 
 `results/exp-final-*/tier1.jsonl`（24 条，每条含：现象 A、现象 B、结构签名、LLM 生成的同构描述）
 
 ---
 
-***REMOVED******REMOVED*** Layer 1：LLM 文献查重
+## Layer 1：LLM 文献查重
 
 **用 3 个异构模型独立判决**：
 - `anthropic/claude-opus-4.1`
@@ -31,7 +31,7 @@
 > 注：原计划用 GPT-5，但 OpenRouter 上 GPT-5 的 reasoning tokens 会吃掉 content 导致返回空，
 > 已换成 Kimi K2.5 作为第 3 个异构源（中文旗舰，独立训练语料，差异视角足够）。
 
-***REMOVED******REMOVED******REMOVED*** Prompt 模板
+### Prompt 模板
 
 ```
 你是一位跨学科研究专家，精通物理、生物、经济、信息论、社会学等领域的文献。
@@ -60,13 +60,13 @@ verdict 定义：
 - UNCERTAIN：记忆模糊，建议人工核查
 ```
 
-***REMOVED******REMOVED******REMOVED*** 通过规则
+### 通过规则
 
 - ≥2 模型判 KNOWN → 排除
 - 3 模型都判 UNKNOWN → 进 Layer 2
 - 其它组合 → 进 Layer 2 但打 `flag_ambiguous`
 
-***REMOVED******REMOVED******REMOVED*** 输出
+### 输出
 
 - `validation/layer1-results.jsonl`：每条发现 × 3 模型判决
 - `validation/layer1-survivors.jsonl`：通过 Layer 1 的发现
@@ -75,7 +75,7 @@ verdict 定义：
 
 ---
 
-***REMOVED******REMOVED*** Layer 2：多模型盲评
+## Layer 2：多模型盲评
 
 对 Layer 1 幸存者，用 5 个异构模型盲评：
 - `anthropic/claude-opus-4.1`
@@ -84,7 +84,7 @@ verdict 定义：
 - `deepseek/deepseek-r1`
 - `z-ai/glm-5`
 
-***REMOVED******REMOVED******REMOVED*** 三问 Prompt
+### 三问 Prompt
 
 ```
 评审下面这个跨域结构同构。不要问这是谁提出的，只看内容本身。
@@ -108,13 +108,13 @@ Q3 预测力种子：能否基于此同构生成至少一个"B 领域尚未验�
 }
 ```
 
-***REMOVED******REMOVED******REMOVED*** 通过规则
+### 通过规则
 
 - 5 模型 Q1+Q2+Q3 均分 ≥12/15
 - 且 ≥3 模型在 Q3 给出 ≥4
 - → 进 Layer 3
 
-***REMOVED******REMOVED******REMOVED*** 输出
+### 输出
 
 - `validation/layer2-scores.jsonl`
 - `validation/layer2-survivors.jsonl`
@@ -123,11 +123,11 @@ Q3 预测力种子：能否基于此同构生成至少一个"B 领域尚未验�
 
 ---
 
-***REMOVED******REMOVED*** Layer 3：预测力测试 ★ 论文价值分水岭
+## Layer 3：预测力测试 ★ 论文价值分水岭
 
 对 Layer 2 幸存者（预计 5-10 个），用 Opus 生成候选预测，用户+Scholar 审核。
 
-***REMOVED******REMOVED******REMOVED*** 预测生成 Prompt
+### 预测生成 Prompt
 
 ```
 基于下面这个结构同构：
@@ -144,18 +144,18 @@ A 领域已知 X：[描述]
 给出 3 个候选 Y，按"新奇度 × 可证伪性"排序。严格 JSON 输出。
 ```
 
-***REMOVED******REMOVED******REMOVED*** 人工评审
+### 人工评审
 
 对每个候选 Y，用户 + Scholar / arXiv 搜索：
 - **已被验证** → 有预测力 ✅ 进论文 Discovery 案例
 - **部分被验证** → 写进论文 Related Findings
 - **未被验证** → 作为"开放预测"写进论文 Discussion
 
-***REMOVED******REMOVED******REMOVED*** 硬门槛
+### 硬门槛
 
 **如果 24 条发现导不出 ≥1 个"强预测"**（被验证或值得立项的），V3 定位必须从"求解引擎"降级为"灵感工具"。这个结论本身比任何发现都重要——它决定论文走学术路线还是科普路线。
 
-***REMOVED******REMOVED******REMOVED*** 输出
+### 输出
 
 - `validation/layer3-predictions.md`：每个幸存发现 + 3 预测 + 人工评审结论
 - `validation/tier1-final.md`：最终分类（已知/灵感/有预测力），作为论文 Discovery 章节原始素材
@@ -164,19 +164,19 @@ A 领域已知 X：[描述]
 
 ---
 
-***REMOVED******REMOVED*** 执行
+## 执行
 
-***REMOVED******REMOVED******REMOVED*** 交付代码
+### 交付代码
 - `scripts/validate_tier1.py`（三层子命令独立运行：`--layer 1|2|3`）
 - 复用现有 OpenRouter 客户端 + API key（见 `.env`）
 - 失败重试 + token 统计 + 中间结果保存
 
-***REMOVED******REMOVED******REMOVED*** 执行顺序
+### 执行顺序
 1. Layer 1 先跑（~30 min）→ 用户看结果决定是否继续
 2. Layer 2（~2 h）
 3. Layer 3 生成候选预测（~1 h）→ **切人工评审**
 4. 人工评审结果写回 `tier1-final.md`
 
-***REMOVED******REMOVED******REMOVED*** 对 V3 的反哺
+### 对 V3 的反哺
 
 Layer 2+3 产出的"真新"发现，作为 V3 变形预测器训练数据的"现代案例"补充（占比 ~10-20%），用来对冲科学史老案例的分布偏差。

@@ -8,7 +8,7 @@ from sanity_helpers import VALIDATION_DIR, load_json_or_skip
 
 RESULTS_FILE = VALIDATION_DIR / "null-controls" / "null_results.json"
 
-***REMOVED*** Datasets that should be rejected as power-law
+# Datasets that should be rejected as power-law
 REJECT_DATASETS = ("gaussian_walk", "exponential", "poisson_iat")
 
 

@@ -127,7 +127,7 @@
   opacity: 1;
 }
 
-/* W6-D (session ***REMOVED***7 P1 backlog): live char counter.
+/* W6-D (session #7 P1 backlog): live char counter.
  * Default: muted gray, only visible when typing.
  * Warn (data-state="warn"): orange at ≥75% of cap.
  * Stop (data-state="stop"): red at ≥100% (8000); paired with maxlength
@@ -141,10 +141,10 @@
   transition: color 0.15s;
 }
 .ask-searchbox__counter[data-state="warn"] {
-  color: ***REMOVED***c97a18;
+  color: #c97a18;
 }
 .ask-searchbox__counter[data-state="stop"] {
-  color: ***REMOVED***c03030;
+  color: #c03030;
   font-weight: 500;
 }
 .ask-searchbox__counter[data-state="stop"]::after {
@@ -188,7 +188,7 @@
 }
 .ask-searchbox__submit:hover {
   background: var(--brand-accent);
-  color: ***REMOVED***fff;
+  color: #fff;
 }
 .ask-searchbox__submit:active { transform: scale(0.95); }
 .ask-searchbox__submit:disabled {
@@ -209,7 +209,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: ***REMOVED***fff;
+  border-top-color: #fff;
   border-radius: 50%;
   animation: ask-spin 0.6s linear infinite;
 }
@@ -612,7 +612,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .ask-thread-item__deep-cta:hover {
-  background: ***REMOVED***000;
+  background: #000;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .ask-thread-item__deep-cta:active { transform: scale(0.98); }
@@ -621,11 +621,11 @@
 
 .ask-thread-item__error {
   padding: 16px 20px;
-  background: ***REMOVED***FFF7ED;
-  border: 1px solid ***REMOVED***FDBA74;
+  background: #FFF7ED;
+  border: 1px solid #FDBA74;
   border-radius: 10px;
   font-size: 14px;
-  color: ***REMOVED***9A3412;
+  color: #9A3412;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -633,8 +633,8 @@
 }
 .ask-thread-item__error-retry {
   padding: 6px 14px;
-  background: ***REMOVED***9A3412;
-  color: ***REMOVED***FFF;
+  background: #9A3412;
+  color: #FFF;
   border: none;
   border-radius: 6px;
   font-family: inherit;
@@ -642,7 +642,7 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.ask-thread-item__error-retry:hover { background: ***REMOVED***7C2D12; }
+.ask-thread-item__error-retry:hover { background: #7C2D12; }
 
 /* ---- loading skeleton ---- */
 
@@ -713,7 +713,7 @@
   flex-shrink: 0;
   transition: background 0.15s, transform 0.05s;
 }
-.ask-followup-box__submit:hover { background: ***REMOVED***000; }
+.ask-followup-box__submit:hover { background: #000; }
 .ask-followup-box__submit:active { transform: scale(0.96); }
 .ask-followup-box__submit:disabled {
   background: var(--brand-line-strong);
@@ -877,7 +877,7 @@
 }
 
 /* ============================================================
- * Explore cards (W3-C session ***REMOVED***9 first-fold strengthening)
+ * Explore cards (W3-C session #9 first-fold strengthening)
  * ------------------------------------------------------------
  * Sits between examples chips and footer links. Three cards in
  * a row on desktop, single column on mobile. Visual style stays

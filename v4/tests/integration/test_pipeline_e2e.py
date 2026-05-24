@@ -16,23 +16,23 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-***REMOVED*** Wire v4/lib on sys.path
+# Wire v4/lib on sys.path
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     fit_clauset_powerlaw,
     run_size_null_controls,
     verdict_from_alpha_band,
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Synthetic power-law generators
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Synthetic power-law generators
+# ---------------------------------------------------------------------------
 
 
 def _sample_power_law(alpha: float, xmin: float, n: int, seed: int = 42) -> np.ndarray:
@@ -42,9 +42,9 @@ def _sample_power_law(alpha: float, xmin: float, n: int, seed: int = 42) -> np.n
     return xmin * u ** (-1.0 / (alpha - 1.0))
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Positive control: power-law-distributed data
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Positive control: power-law-distributed data
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("true_alpha,seed", [(2.5, 42), (2.0, 7), (3.0, 99)])
@@ -57,7 +57,7 @@ def test_powerlaw_recovers_alpha_in_band(true_alpha, seed):
     assert true_alpha - 0.3 <= alpha <= true_alpha + 0.3, (
         f"alpha={alpha:.3f} not within 0.3 of true {true_alpha}"
     )
-    assert out["n_total"] >= 4000  ***REMOVED*** almost all positive after filter
+    assert out["n_total"] >= 4000  # almost all positive after filter
 
 
 def test_verdict_band_positive():
@@ -83,17 +83,17 @@ def test_verdict_band_inconclusive_on_none():
     assert v == "INCONCLUSIVE"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Negative control: non-power-law data
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Negative control: non-power-law data
+# ---------------------------------------------------------------------------
 
 
 def test_null_controls_all_reject_powerlaw():
     """Pipeline must correctly REJECT the power-law on gaussian / exponential /
     poisson IAT — this is the headline V4 Phase-5 null-control result.
     """
-    out = run_size_null_controls(seed=42, n=10_000)  ***REMOVED*** smaller n to keep test < 30s
-    ***REMOVED*** All three controls must trigger rejects_power_law=True
+    out = run_size_null_controls(seed=42, n=10_000)  # smaller n to keep test < 30s
+    # All three controls must trigger rejects_power_law=True
     for k in ("gaussian_walk", "exponential", "poisson_iat"):
         assert out[k].get("rejects_power_law") is True, (
             f"null control {k} not rejected: {out[k]}"
@@ -101,9 +101,9 @@ def test_null_controls_all_reject_powerlaw():
     assert out["all_rejected"] is True
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Insufficient data handling
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Insufficient data handling
+# ---------------------------------------------------------------------------
 
 
 def test_powerlaw_too_few_samples_returns_error():
@@ -115,9 +115,9 @@ def test_powerlaw_too_few_samples_returns_error():
 def test_powerlaw_filters_nonpositive():
     """Negative and zero values are filtered before fitting."""
     vals = _sample_power_law(2.5, xmin=1.0, n=2000, seed=42)
-    ***REMOVED*** Inject negatives + zeros
+    # Inject negatives + zeros
     mixed = np.concatenate([vals, [-1.0, 0.0, -10.0] * 100])
     out = fit_clauset_powerlaw(mixed, name="mixed")
     assert "error" not in out
-    ***REMOVED*** Result should be near the underlying clean fit
+    # Result should be near the underlying clean fit
     assert 2.0 <= out["alpha"] <= 3.0

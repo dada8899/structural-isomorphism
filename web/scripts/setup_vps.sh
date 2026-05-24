@@ -1,6 +1,6 @@
-***REMOVED***!/bin/bash
-***REMOVED*** Run this ON THE VPS after deploy.sh completes.
-***REMOVED*** Creates venv, installs deps, sets up systemd + nginx + ssl.
+#!/bin/bash
+# Run this ON THE VPS after deploy.sh completes.
+# Creates venv, installs deps, sets up systemd + nginx + ssl.
 set -e
 
 ROOT=/root/Projects/structural-isomorphism

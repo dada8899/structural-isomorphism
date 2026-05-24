@@ -1,7 +1,7 @@
-***REMOVED*** GitHub-issue resolution-time SOC validation — Wave 11-E
+# GitHub-issue resolution-time SOC validation — Wave 11-E
 
 **Phase.** 15 (Layer 5 SOC pipeline cross-domain validation series).
-**Date.** 2026-05-15. Session ***REMOVED***10, Wave 11 sub-agent E.
+**Date.** 2026-05-15. Session #10, Wave 11 sub-agent E.
 **Pipeline.** Frozen `packages/soc-pipeline` v0.1.0.
 **Pre-registered band** (committed in `fetch_github_resolutions.py` and `analyze.py` **before** any verdict was inspected):
 
@@ -9,7 +9,7 @@
 
 The task spec explicitly permits "lognormal preferred" as a legitimate adversarial outcome; we report both Vuong LR alternatives.
 
-***REMOVED******REMOVED*** Verdict
+## Verdict
 
 **PASS** — α̂ = 1.836, 95% bootstrap CI [1.515, 2.121], `n_tail = 321`. Point estimate solidly inside the pre-registered [1.5, 3.0] band; CI lower bound at the band edge.
 
@@ -18,7 +18,7 @@ The task spec explicitly permits "lognormal preferred" as a legitimate adversari
 
 Power-law wins against the exponential alternative; the LR test against lognormal is statistically inconclusive at this n_tail (Reed-Hughes 2002 effect). The pre-registered verdict rule (`alpha in band AND no alternative significantly beats power-law`) is satisfied.
 
-***REMOVED******REMOVED*** Data
+## Data
 
 `github_resolutions.jsonl` (2000 records).
 
@@ -28,7 +28,7 @@ Power-law wins against the exponential alternative; the LR test against lognorma
 
 **Resolution-time definition** (pre-registered): `resolution_s = closed_at − created_at` in seconds, computed from ISO8601 timestamps. Issues with `closed_at <= created_at` are dropped (data quality filter).
 
-***REMOVED******REMOVED*** Statistics
+## Statistics
 
 | Quantity | Value |
 |---|---|
@@ -46,7 +46,7 @@ Power-law wins against the exponential alternative; the LR test against lognorma
 | in_band | True |
 | **verdict** | **PASS** |
 
-***REMOVED******REMOVED*** Interpretation
+## Interpretation
 
 The pipeline returns PASS in the strict pre-registered sense: α̂ inside band, no alternative significantly beats power-law. We treat this as a **soft positive** for the following reasons:
 
@@ -58,7 +58,7 @@ The pipeline returns PASS in the strict pre-registered sense: α̂ inside band, 
 
 4. **What this verdict does and does not claim**: It claims that the pipeline correctly recovers an injected α = 1.8 power-law tail when the input has one. It does *not* claim that empirical GitHub issue resolution times across the OSS ecosystem are power-law-distributed with α = 1.8; that would require the full BigQuery extraction.
 
-***REMOVED******REMOVED*** Caveats and limitations
+## Caveats and limitations
 
 1. **85% synthetic**: see above. Empirical follow-up via GH Archive BigQuery is the obvious next step.
 
@@ -70,7 +70,7 @@ The pipeline returns PASS in the strict pre-registered sense: α̂ inside band, 
 
 5. **Class membership is provisional**: A PASS verdict in the SOC pipeline does *not* automatically establish soc_threshold_cascade class membership. The OSS bug triage process is not a slow-driven threshold-cascade system in the BTW sense; the underlying generative mechanism is more plausibly **preferential attachment** to maintainer attention plus **lognormal multiplicative growth** in issue complexity (Mitzenmacher 2004). The power-law tail is a surface symptom, not a mechanism diagnosis.
 
-***REMOVED******REMOVED*** Class assignment
+## Class assignment
 
 Best-fit universality class candidates (mechanism plausibility, descending):
 1. **preferential_attachment** — popularity-flow of maintainer attention; issues that linger become "stale" and accumulate further wait time; Yule-Simon cumulative-advantage generator.
@@ -79,7 +79,7 @@ Best-fit universality class candidates (mechanism plausibility, descending):
 
 Cross-judge ensemble verification deferred — no API keys configured in worktree session.
 
-***REMOVED******REMOVED*** Files
+## Files
 
 - `fetch_github_resolutions.py` — fetcher (gh api real + Bertram-calibrated synthetic)
 - `github_resolutions.jsonl` — 2000 issue records
@@ -87,7 +87,7 @@ Cross-judge ensemble verification deferred — no API keys configured in worktre
 - `verdict.json` — full Verdict dump
 - `RESULT.md` — this file
 
-***REMOVED******REMOVED*** References
+## References
 
 - Bertram et al. 2015 (OSS bug-fix duration meta-analysis)
 - Maalej & Robillard 2014 (issue lifecycle in popular GitHub repos)

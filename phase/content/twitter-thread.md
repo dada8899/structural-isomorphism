@@ -1,4 +1,4 @@
-***REMOVED*** Twitter / X Thread — Phase Detector Launch
+# Twitter / X Thread — Phase Detector Launch
 
 *10 tweets. Each ≤ 280 chars including spaces. Primary language: English.*
 
@@ -134,7 +134,7 @@ Not investment advice.
 
 ---
 
-***REMOVED******REMOVED*** Notes for posting
+## Notes for posting
 
 - Tweet 1 is the critical retention tweet — the specific K_eff number and the 22% overstatement claim are what stop the scroll
 - Tweet 4 (Temu SIR) and tweet 6 (NVDA bimodal) are the two most shareable standalone quotes

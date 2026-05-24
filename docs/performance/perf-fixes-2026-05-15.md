@@ -1,12 +1,12 @@
-***REMOVED*** Performance fixes — Phase Detector
+# Performance fixes — Phase Detector
 
 **Date:** 2026-05-15
-**Wave:** W13-B (session ***REMOVED***10)
+**Wave:** W13-B (session #10)
 **Auditor:** Playwright + Performance Observer (Chromium headless)
 **Scope:** 10 routes × 2 viewports (desktop 1280×800, mobile 390×844 w/ 4× CPU + slow-4G throttle) = 20 audits
 **Target:** Core Web Vitals "Good" bucket on every audited page, First Load JS < 200 kB everywhere.
 
-***REMOVED******REMOVED*** Summary
+## Summary
 
 | Metric | Baseline (worst page) | After fixes (worst page) | Status |
 |---|---|---|---|
@@ -23,7 +23,7 @@ import waterfall. This is a deliberate budget exemption documented in
 `perf-budget.json` — the bundle savings (~30 kB gz off the route) justify
 a ~100 ms LCP delta on slow 4G.
 
-***REMOVED******REMOVED*** Pages audited (mirrors W12-A accessibility audit)
+## Pages audited (mirrors W12-A accessibility audit)
 
 1. `/` — landing
 2. `/companies` — companies list
@@ -36,11 +36,11 @@ a ~100 ms LCP delta on slow 4G.
 9. `/about` — about
 10. `/methodology` — methodology
 
-***REMOVED******REMOVED*** Bottom 20 % findings (baseline)
+## Bottom 20 % findings (baseline)
 
 Ranked by severity (impact × user-visible).
 
-***REMOVED******REMOVED******REMOVED*** P0 — `/universality/[class_id]` desktop CLS = 0.58
+### P0 — `/universality/[class_id]` desktop CLS = 0.58
 
 The class-detail page is `"use client"` with `useEffect`-driven data
 fetch. The previous behaviour:
@@ -54,23 +54,23 @@ fetch. The previous behaviour:
 The wholesale subtree replacement registered as a single 0.58 layout
 shift. This was unambiguously the worst CWV regression in the app.
 
-***REMOVED******REMOVED******REMOVED*** P1 — `/backtest` First Load JS 199 kB
+### P1 — `/backtest` First Load JS 199 kB
 
 `app/backtest/page.tsx` is server-rendered but eagerly imports
 `./CumulativeChart` (recharts). Recharts ships ~80 kB gzipped of its own
 client bundle even though the chart is below the fold and only renders
 once the user scrolls past the methodology + null-result narrative.
 
-***REMOVED******REMOVED******REMOVED*** P2 — Mobile LCP near threshold
+### P2 — Mobile LCP near threshold
 
 Every page logged 2.0–2.3 s mobile LCP under 4× CPU + slow-4G throttle.
 All under the 2.5 s "Good" bar, but the headroom is thin enough that any
 new image or font addition would tip the budget. No fix applied
 (already inside budget), but a permanent CI gate now prevents drift.
 
-***REMOVED******REMOVED*** Fixes
+## Fixes
 
-***REMOVED******REMOVED******REMOVED*** 1. CLS — eliminate the loading-state DOM swap
+### 1. CLS — eliminate the loading-state DOM swap
 
 **File:** `web/phase-detector/app/universality/[class_id]/page.tsx`
 
@@ -96,7 +96,7 @@ CLS measurement (desktop, 1280×800, 5 s post-load window):
 | After skeleton-matches-loaded | 0.32 | grid block still re-mounted |
 | Final (stable tree) | **0.000** | single tree, only inner-text reflow |
 
-***REMOVED******REMOVED******REMOVED*** 2. Bundle — code-split recharts off `/backtest`
+### 2. Bundle — code-split recharts off `/backtest`
 
 **Files:** `web/phase-detector/app/backtest/page.tsx`,
 `web/phase-detector/app/backtest/CumulativeChartLazy.tsx` (new).
@@ -126,15 +126,15 @@ The 360-px reserved placeholder matches the live chart's container
 height, so the hydration swap contributes zero CLS. Build report
 confirms `/backtest` First Load JS dropped from 199 kB → **95.4 kB**.
 
-***REMOVED******REMOVED******REMOVED*** 3. Bundle — code-split `PhaseTrajectoryChart` on company detail
+### 3. Bundle — code-split `PhaseTrajectoryChart` on company detail
 
 **File:** `web/phase-detector/app/company/[ticker]/page.tsx`
 
-Same pattern as ***REMOVED***2 but applied inline in the existing `"use client"`
+Same pattern as #2 but applied inline in the existing `"use client"`
 page. Saves ~7 kB gzipped. Reserved 280-px placeholder prevents CLS on
 chart hydration.
 
-***REMOVED******REMOVED******REMOVED*** 4. Bundle — code-split `UniversalityAnalogueMap` on class detail
+### 4. Bundle — code-split `UniversalityAnalogueMap` on class detail
 
 **File:** `web/phase-detector/app/universality/[class_id]/page.tsx`
 
@@ -146,7 +146,7 @@ pushing the route's mobile LCP from 2.23 s to 2.53 s. Just over the
 2.5 s "Good" bar, but the bundle savings justify it. This is the only
 budget exemption in `perf-budget.json`.
 
-***REMOVED******REMOVED*** Final numbers
+## Final numbers
 
 Full post-fixes audit (desktop / mobile means; full per-page table in
 `docs/performance/perf-audit-2026-05-15-final.json`):
@@ -167,7 +167,7 @@ Full post-fixes audit (desktop / mobile means; full per-page table in
 All ten pages now sit inside the Core Web Vitals "Good" bucket (with the
 documented single exemption on universality class detail mobile LCP).
 
-***REMOVED******REMOVED*** Perf budget + CI gate
+## Perf budget + CI gate
 
 Two new files lock the wins in place:
 
@@ -194,7 +194,7 @@ NEXT_PUBLIC_USE_MOCK=true PORT=3017 pnpm start &
 .venv/bin/python scripts/perf_check_budget.py --audit docs/performance/perf-audit.json --budget perf-budget.json
 ```
 
-***REMOVED******REMOVED*** Remaining concerns
+## Remaining concerns
 
 1. **INP via `event-timing` is a proxy.** We synthesise a scroll + click
    to drive an interaction, but the LoAF / event-timing data is dominated

@@ -13,7 +13,7 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services.report_store import (  ***REMOVED*** noqa: E402
+from services.report_store import (  # noqa: E402
     ReportStore,
     new_report_id,
     sign_share_token,
@@ -21,7 +21,7 @@ from services.report_store import (  ***REMOVED*** noqa: E402
 )
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def sample_payload():
     }
 
 
-***REMOVED*** --------- share token helpers --------- ***REMOVED***
+# --------- share token helpers --------- #
 
 
 class TestShareToken:
@@ -54,7 +54,7 @@ class TestShareToken:
         rid = "r_abc123"
         tok = sign_share_token(rid)
         assert len(tok) == 32
-        int(tok, 16)  ***REMOVED*** must be valid hex
+        int(tok, 16)  # must be valid hex
 
     def test_token_is_deterministic(self):
         """Same rid + same env → same token (so we can re-derive on lookup)."""
@@ -82,14 +82,14 @@ class TestReportId:
     def test_new_id_format(self):
         rid = new_report_id()
         assert rid.startswith("r_")
-        assert len(rid) == 18  ***REMOVED*** "r_" + 16 hex chars
+        assert len(rid) == 18  # "r_" + 16 hex chars
 
     def test_new_ids_are_unique(self):
         ids = {new_report_id() for _ in range(50)}
         assert len(ids) == 50
 
 
-***REMOVED*** --------- CRUD --------- ***REMOVED***
+# --------- CRUD --------- #
 
 
 class TestCreate:
@@ -103,7 +103,7 @@ class TestCreate:
         )
         assert out["id"].startswith("r_")
         assert len(out["share_token"]) == 32
-        assert "Z" in out["created_at"]  ***REMOVED*** ISO-8601 with Z suffix
+        assert "Z" in out["created_at"]  # ISO-8601 with Z suffix
 
     def test_create_persists_all_fields(self, store, sample_payload):
         out = store.create(
@@ -128,7 +128,7 @@ class TestCreate:
         assert r["creator_tier"] == "free"
         assert r["is_public"] is True
         assert r["is_partial"] is False
-        ***REMOVED*** payload is decoded back to dict
+        # payload is decoded back to dict
         assert r["payload"]["shared_structure"]["name"] == "Cascade dynamics"
 
     def test_payload_preserves_unicode(self, store):
@@ -168,7 +168,7 @@ class TestRead:
                 creator_anon_id=anon,
             )
             ids.append(out["id"])
-        ***REMOVED*** Different anon — must not appear in the list
+        # Different anon — must not appear in the list
         store.create(
             query="other", b_id="b", lang="en",
             payload=sample_payload, model="m",
@@ -176,7 +176,7 @@ class TestRead:
         )
         listing = store.list_by_anon(anon)
         assert len(listing) == 3
-        ***REMOVED*** Newest first
+        # Newest first
         listing_ids = [r["id"] for r in listing]
         assert listing_ids == list(reversed(ids))
 
@@ -203,7 +203,7 @@ class TestRead:
         assert r2["last_viewed_at"] is not None
 
 
-***REMOVED*** --------- feedback --------- ***REMOVED***
+# --------- feedback --------- #
 
 
 class TestFeedback:
@@ -286,17 +286,17 @@ class TestFeedback:
         assert store.feedback_counts(out["id"]) == {"total_up": 0, "total_down": 0}
 
     def test_overall_vote_same_voter_upserts(self, store, sample_payload):
-        """Validator session-***REMOVED***16 P1: section=None used to accumulate because
+        """Validator session-#16 P1: section=None used to accumulate because
         SQLite UNIQUE indexes treat NULL != NULL. Now normalised to '',
         the UPSERT actually fires. Pin behaviour so we don't regress."""
         out = store.create(
             query="q", b_id="b", lang="en", payload=sample_payload, model="m",
         )
-        ***REMOVED*** First overall up-vote
+        # First overall up-vote
         store.record_feedback(
             report_id=out["id"], section=None, vote=1, voter_anon="V",
         )
-        ***REMOVED*** Same voter flips to down — should overwrite, not double-count.
+        # Same voter flips to down — should overwrite, not double-count.
         counts = store.record_feedback(
             report_id=out["id"], section=None, vote=-1, voter_anon="V",
         )
@@ -325,11 +325,11 @@ class TestFeedback:
             report_id=out["id"], section=None, vote=1, voter_anon=None,
         )
         counts = store.feedback_counts(out["id"])
-        ***REMOVED*** Two clicks from the same (None→'anon') bucket → one row, one up.
+        # Two clicks from the same (None→'anon') bucket → one row, one up.
         assert counts == {"total_up": 1, "total_down": 0}
 
 
-***REMOVED*** --------- P0-1: schema-drift self-heal migration --------- ***REMOVED***
+# --------- P0-1: schema-drift self-heal migration --------- #
 
 
 class TestSchemaDriftMigration:
@@ -372,7 +372,7 @@ class TestSchemaDriftMigration:
         db = tmp_path / "drifted.db"
         self._make_old_reports_db(db)
 
-        ***REMOVED*** Opening a ReportStore on it must self-heal the schema.
+        # Opening a ReportStore on it must self-heal the schema.
         store = ReportStore(db)
 
         import sqlite3
@@ -405,15 +405,15 @@ class TestSchemaDriftMigration:
         """Re-opening an already-migrated DB must not error or duplicate."""
         db = tmp_path / "drifted.db"
         self._make_old_reports_db(db)
-        ReportStore(db)        ***REMOVED*** first heal
-        store = ReportStore(db)  ***REMOVED*** second open — must be a no-op
+        ReportStore(db)        # first heal
+        store = ReportStore(db)  # second open — must be a no-op
         out = store.create(
             query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
         )
         assert store.get_by_id(out["id"]) is not None
 
 
-***REMOVED*** --------- Session ***REMOVED***17 V6 — report followup (revisit loop) --------- ***REMOVED***
+# --------- Session #17 V6 — report followup (revisit loop) --------- #
 
 
 class TestReportFollowup:
@@ -435,7 +435,7 @@ class TestReportFollowup:
         assert fu["outcome"] == "worked"
         got = store.get_followup(rid, "anon-1")
         assert got["note"] == "留存涨了 3 个点"
-        ***REMOVED*** created_at == updated_at on first insert.
+        # created_at == updated_at on first insert.
         assert got["created_at"] == got["updated_at"]
 
     def test_followup_upsert_latest_wins(self, store, sample_payload):
@@ -448,7 +448,7 @@ class TestReportFollowup:
             report_id=rid, anon_id="anon-1",
             action_status="tried", outcome="partial",
         )
-        ***REMOVED*** One row only — the unique (report_id, anon_id) upsert fired.
+        # One row only — the unique (report_id, anon_id) upsert fired.
         assert second["action_status"] == "tried"
         assert second["outcome"] == "partial"
         assert second["created_at"] == first["created_at"]
@@ -494,7 +494,7 @@ class TestReportFollowup:
         """A history.db lacking report_followup gets the table on open."""
         import sqlite3
         db = tmp_path / "drift.db"
-        ***REMOVED*** Simulate a pre-V6 DB: reports table exists, no report_followup.
+        # Simulate a pre-V6 DB: reports table exists, no report_followup.
         conn = sqlite3.connect(str(db))
         conn.execute(
             "CREATE TABLE reports (id TEXT PRIMARY KEY, share_token TEXT, "
@@ -503,7 +503,7 @@ class TestReportFollowup:
         )
         conn.commit()
         conn.close()
-        store = ReportStore(db)  ***REMOVED*** CREATE TABLE IF NOT EXISTS adds followup
+        store = ReportStore(db)  # CREATE TABLE IF NOT EXISTS adds followup
         rid = store.create(
             query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
         )["id"]

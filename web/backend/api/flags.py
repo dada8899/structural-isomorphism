@@ -1,6 +1,6 @@
 """GET /api/flags — return resolved flags + experiment variants for current user.
 
-Session ***REMOVED***10 W15-E. Lightweight, no DB hit, just reads from in-process cache.
+Session #10 W15-E. Lightweight, no DB hit, just reads from in-process cache.
 
 User identity resolution (in order):
   1. session/auth — if request has authenticated user, use their stable id
@@ -42,12 +42,12 @@ def _resolve_user_id(request: Request, x_anon_id: Optional[str]) -> Optional[str
 
     Priority: authenticated user > X-Anon-Id header > None.
     """
-    ***REMOVED*** 1. Authenticated user (if auth middleware set request.state.user_id).
+    # 1. Authenticated user (if auth middleware set request.state.user_id).
     user = getattr(request.state, "user_id", None)
     if user:
         return str(user)
 
-    ***REMOVED*** 2. Anonymous header (frontend sets a stable cookie/localStorage UUID).
+    # 2. Anonymous header (frontend sets a stable cookie/localStorage UUID).
     if x_anon_id:
         return x_anon_id.strip() or None
 
@@ -65,8 +65,8 @@ async def get_flags(
     flags = get_all_flags(user_id)
     experiments = get_all_experiments(user_id)
 
-    ***REMOVED*** Also return resolved variant content (so frontend doesn't need to
-    ***REMOVED*** know the mapping).
+    # Also return resolved variant content (so frontend doesn't need to
+    # know the mapping).
     cfg = _load_config()
     exp_cfg = cfg.get("experiments", {})
     variants: dict[str, str] = {}

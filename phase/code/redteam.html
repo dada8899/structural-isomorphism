@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>Thesis Red Team — Phase Detector</title>
   <meta name="description" content="上传你的投资 thesis，结构化分析找出 3 个最脆弱的假设 + 历史结构孪生。">
 
@@ -13,20 +13,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --red: ***REMOVED***DC2626;
+      --red: #DC2626;
       --red-dim: rgba(220, 38, 38, 0.06);
-      --amber: ***REMOVED***D97706;
+      --amber: #D97706;
       --mono: 'JetBrains Mono', monospace;
       --serif: 'Noto Serif SC', serif;
       --sans: 'Inter', -apple-system, sans-serif;
@@ -97,8 +97,8 @@
       align-items: center;
       gap: 8px;
     }
-    .btn-primary { background: var(--red); color: ***REMOVED***FFFFFF; }
-    .btn-primary:hover { background: ***REMOVED***ef6060; text-decoration: none; }
+    .btn-primary { background: var(--red); color: #FFFFFF; }
+    .btn-primary:hover { background: #ef6060; text-decoration: none; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Example thesis */
@@ -388,7 +388,7 @@ NVIDIA 2026 年仍有 50%+ 上行空间。理由：(1) 数据中心需求继续�
           data.vulnerabilities.forEach((v, i) => {
             html += `
               <div class="vuln-card">
-                <div class="vuln-number">脆弱点 ***REMOVED***${i + 1}</div>
+                <div class="vuln-number">脆弱点 #${i + 1}</div>
                 <div class="vuln-title">${escapeHtml(v.title || '')}</div>
                 <div class="vuln-body">
                   <span class="vuln-label">原 thesis 的假设</span>
@@ -433,7 +433,7 @@ NVIDIA 2026 年仍有 50%+ 上行空间。理由：(1) 数据中心需求继续�
     }
 
     function escapeHtml(s) {
-      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     // If URL has ?t=NVDA, preload that ticker

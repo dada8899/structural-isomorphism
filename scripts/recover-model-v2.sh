@@ -1,29 +1,29 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** recover-model-v2.sh — restore structural-v2 weights from multiple sources
-***REMOVED***
-***REMOVED*** Background:
-***REMOVED***   2026-05-14 W1 prod disaster: rsync --delete wiped VPS models/structural-v2/.
-***REMOVED***   W2-F recovery used HF base fallback (shibing624/text2vec-base-chinese) — got
-***REMOVED***   service back online, but the saved files are BASE weights, NOT real finetuned
-***REMOVED***   v2. W4-D dogfood confirmed retrieval degraded (e.g. 形状记忆 → 团队氛围 false
-***REMOVED***   match) because base lacks structural isomorphism signal.
-***REMOVED***
-***REMOVED***   This script defines the canonical recovery path. Strategy 1+2 are real
-***REMOVED***   recovery (true finetuned weights); strategy 3 is the W2-F survival fallback
-***REMOVED***   (clearly labeled WARN to avoid silent degradation).
-***REMOVED***
-***REMOVED*** Env vars (with defaults):
-***REMOVED***   REPO_ROOT     — repo root (default: $(pwd))
-***REMOVED***   MODEL_DIR     — where to save model (default: $REPO_ROOT/models/structural-v2)
-***REMOVED***   VENV_PYTHON   — python with sentence-transformers (default: $REPO_ROOT/.venv/bin/python)
-***REMOVED***   HF_TARGET_ID  — HF id to try first (default: dada8899/structural-v2)
-***REMOVED***   ALLOW_RETRAIN — set to 1 to allow strategy 2 (local re-finetune, 30min-2h)
-***REMOVED***   ALLOW_BASE    — set to 1 to allow strategy 3 (base fallback, degraded)
-***REMOVED***
-***REMOVED*** Exit codes:
-***REMOVED***   0 — real v2 weights restored (HF or re-finetune)
-***REMOVED***   1 — only base fallback applied (WARN: degraded retrieval)
-***REMOVED***   2 — all strategies failed
+#!/usr/bin/env bash
+# recover-model-v2.sh — restore structural-v2 weights from multiple sources
+#
+# Background:
+#   2026-05-14 W1 prod disaster: rsync --delete wiped VPS models/structural-v2/.
+#   W2-F recovery used HF base fallback (shibing624/text2vec-base-chinese) — got
+#   service back online, but the saved files are BASE weights, NOT real finetuned
+#   v2. W4-D dogfood confirmed retrieval degraded (e.g. 形状记忆 → 团队氛围 false
+#   match) because base lacks structural isomorphism signal.
+#
+#   This script defines the canonical recovery path. Strategy 1+2 are real
+#   recovery (true finetuned weights); strategy 3 is the W2-F survival fallback
+#   (clearly labeled WARN to avoid silent degradation).
+#
+# Env vars (with defaults):
+#   REPO_ROOT     — repo root (default: $(pwd))
+#   MODEL_DIR     — where to save model (default: $REPO_ROOT/models/structural-v2)
+#   VENV_PYTHON   — python with sentence-transformers (default: $REPO_ROOT/.venv/bin/python)
+#   HF_TARGET_ID  — HF id to try first (default: dada8899/structural-v2)
+#   ALLOW_RETRAIN — set to 1 to allow strategy 2 (local re-finetune, 30min-2h)
+#   ALLOW_BASE    — set to 1 to allow strategy 3 (base fallback, degraded)
+#
+# Exit codes:
+#   0 — real v2 weights restored (HF or re-finetune)
+#   1 — only base fallback applied (WARN: degraded retrieval)
+#   2 — all strategies failed
 
 set -euo pipefail
 
@@ -38,10 +38,10 @@ mkdir -p "$MODEL_DIR"
 
 log() { echo "[recover-model-v2] $*"; }
 
-***REMOVED*** Idempotency: if MODEL_DIR already has a finetuned-looking model, exit early.
-***REMOVED*** We detect "finetuned" heuristically: presence of saved training args or non-trivial size.
+# Idempotency: if MODEL_DIR already has a finetuned-looking model, exit early.
+# We detect "finetuned" heuristically: presence of saved training args or non-trivial size.
 if [[ -d "$MODEL_DIR" ]] && [[ -f "$MODEL_DIR/model.safetensors" ]]; then
-  ***REMOVED*** Check if this looks like a real v2 (vs base fallback) by inspecting README
+  # Check if this looks like a real v2 (vs base fallback) by inspecting README
   if [[ -f "$MODEL_DIR/README.md" ]] && grep -q "structural-v2\|finetune\|MultipleNegativesRanking" "$MODEL_DIR/README.md" 2>/dev/null; then
     log "$MODEL_DIR appears to be real v2 (README signals finetune), skipping"
     exit 0
@@ -49,9 +49,9 @@ if [[ -d "$MODEL_DIR" ]] && [[ -f "$MODEL_DIR/model.safetensors" ]]; then
   log "WARN: $MODEL_DIR exists but appears to be base fallback (README lacks v2 signal)"
 fi
 
-***REMOVED*** ============================================================
-***REMOVED*** Strategy 1: HuggingFace Hub snapshot_download
-***REMOVED*** ============================================================
+# ============================================================
+# Strategy 1: HuggingFace Hub snapshot_download
+# ============================================================
 log "Strategy 1: trying HF Hub $HF_TARGET_ID..."
 if "$VENV_PYTHON" -c "
 import sys
@@ -69,9 +69,9 @@ except Exception as e:
 fi
 log "Strategy 1 failed (model not on HF Hub or hub_hub not installed)"
 
-***REMOVED*** ============================================================
-***REMOVED*** Strategy 2: Local re-finetune from training data
-***REMOVED*** ============================================================
+# ============================================================
+# Strategy 2: Local re-finetune from training data
+# ============================================================
 if [[ "$ALLOW_RETRAIN" == "1" ]]; then
   TRAIN_SCRIPT="$REPO_ROOT/scripts/train_v2.py"
   TRAIN_DATA="$REPO_ROOT/data/clean-expanded.jsonl"
@@ -94,9 +94,9 @@ else
   log "Strategy 2 skipped: ALLOW_RETRAIN!=1 (set to 1 to enable, takes 30min-2h)"
 fi
 
-***REMOVED*** ============================================================
-***REMOVED*** Strategy 3: Base model fallback (W2-F survival mode)
-***REMOVED*** ============================================================
+# ============================================================
+# Strategy 3: Base model fallback (W2-F survival mode)
+# ============================================================
 if [[ "$ALLOW_BASE" == "1" ]]; then
   log "Strategy 3: WARN base fallback shibing624/text2vec-base-chinese"
   log "  (this is the W2-F prod recovery state — degraded retrieval, not real v2)"

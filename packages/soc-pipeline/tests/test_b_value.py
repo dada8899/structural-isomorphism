@@ -22,7 +22,7 @@ def test_fit_b_value_recovers_true_b():
     rng = np.random.default_rng(42)
     b_true = 1.0
     mc = 4.0
-    ***REMOVED*** mag = mc + Exponential(1/(b*ln10))
+    # mag = mc + Exponential(1/(b*ln10))
     mags = mc + rng.exponential(scale=1.0 / (b_true * math.log(10)), size=10000)
     result = fit_b_value(mags, mc=mc)
     assert result.error is None
@@ -45,10 +45,10 @@ def test_fit_b_value_with_bootstrap():
 @pytest.mark.sanity
 def test_estimate_mc_maxc():
     rng = np.random.default_rng(0)
-    ***REMOVED*** Drop-off below mc=4.0
+    # Drop-off below mc=4.0
     mags = np.concatenate([
-        rng.uniform(2.0, 4.0, 100),  ***REMOVED*** incomplete
-        4.0 + rng.exponential(scale=1.0 / math.log(10), size=5000),  ***REMOVED*** complete
+        rng.uniform(2.0, 4.0, 100),  # incomplete
+        4.0 + rng.exponential(scale=1.0 / math.log(10), size=5000),  # complete
     ])
     mc = estimate_mc_maxc(mags)
     assert 3.5 < mc < 4.5, f"mc={mc} not near true 4.0"

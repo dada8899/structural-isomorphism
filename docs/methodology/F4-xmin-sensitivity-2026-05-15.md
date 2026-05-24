@@ -1,4 +1,4 @@
-***REMOVED*** F4 — xmin sensitivity sliding-window scan (W7-D)
+# F4 — xmin sensitivity sliding-window scan (W7-D)
 
 **Date:** 2026-05-15
 **Reviewer concern (W5-A §3.8 / §4.1):** Standard `powerlaw.Fit` with
@@ -9,7 +9,7 @@ in xmin. Recommended: for each phase, add a supplementary figure showing
 alpha(xmin) on a sliding window across the support, with the chosen
 KS-minimum xmin marked.
 
-***REMOVED******REMOVED*** Implementation
+## Implementation
 
 `paper/figures/methodology/generate_F4.py` — sweeps xmin in log-space across
 [baseline × 0.5, baseline × 2.0] in 20 steps. At each xmin, fits a fixed-xmin
@@ -20,7 +20,7 @@ phase's `*_results.json` (e.g. `powerlaw_fit.xmin` or `clauset_fit.xmin`).
 Earthquake uses energy-domain median (Aki MLE doesn't expose a Clauset
 xmin in the energy units).
 
-***REMOVED******REMOVED*** Systems swept (8 of 13)
+## Systems swept (8 of 13)
 
 | System | n | baseline xmin | alpha range | drift |
 |---|---:|---:|---|---|
@@ -38,7 +38,7 @@ xmin in the energy units).
 - 0.2 <= range < 0.5 -> mild_drift
 - range >= 0.5 -> substantial_drift
 
-***REMOVED******REMOVED*** Five-system not covered
+## Five-system not covered
 
 DeFi compound, DeFi maker, mouse cortex (Phase 4), and power-grid (Phase 7)
 are deferred to a follow-up round:
@@ -50,15 +50,15 @@ are deferred to a follow-up round:
 - **Power grid** (Phase 7) is n=123 literature meta, baseline xmin not
   directly applicable.
 
-***REMOVED******REMOVED*** Findings interpretation
+## Findings interpretation
 
-***REMOVED******REMOVED******REMOVED*** Robust (3 of 8): wildfire, solar, bank_failure
+### Robust (3 of 8): wildfire, solar, bank_failure
 
 Alpha varies by < 0.2 across a 4×-multiplicative xmin range. These three
 systems' Clauset MLE alpha is well-determined and not artifactually
 dependent on the xmin choice. The published verdicts are defensible.
 
-***REMOVED******REMOVED******REMOVED*** Mild drift (2 of 8): earthquake, wikipedia
+### Mild drift (2 of 8): earthquake, wikipedia
 
 Alpha varies by 0.27-0.28 across the sweep. For earthquake this likely
 reflects the b-value vs Clauset-energy-fit discrepancy (paper notes the
@@ -68,7 +68,7 @@ beats PL by 6.3 sigma, top-1000 truncation), the drift is a third independent
 reason to demote the verdict label from "CONFIRMED" to "consistent within
 caveats."
 
-***REMOVED******REMOVED******REMOVED*** Substantial drift (2 of 8): stockmarket, github_stars
+### Substantial drift (2 of 8): stockmarket, github_stars
 
 Alpha varies by > 0.7 across the sweep. This is the **largest new finding
 from F4** — both systems where the Clauset fit climbs to the alpha=3.0 power-law
@@ -83,7 +83,7 @@ github_stars should be reported with their drift range (e.g.,
 "alpha = 3.00 +/- 0.04 (Clauset) with xmin-sensitivity range alpha in
 [2.29, 3.00] across 0.5x-2x xmin sweep"). This is the honest reading.
 
-***REMOVED******REMOVED******REMOVED*** defi_aave fitting failure
+### defi_aave fitting failure
 
 DeFi Aave V2 liquidation `debt_to_cover_raw` (wei-denominated integers
 spanning many decades) trips `powerlaw.Fit`'s edge-case handling — alpha
@@ -94,14 +94,14 @@ fits not the raw input). For F4, this means the defi_aave row in the figure
 should be read as N/A. A follow-up F4-bis with discrete=True and proper
 xmax handling would close this gap.
 
-***REMOVED******REMOVED*** Output
+## Output
 
 - `paper/figures/methodology/F4_xmin_sensitivity.pdf` — 8-panel grid
 - `paper/figures/methodology/F4_xmin_sensitivity.png` — same in PNG
 - `paper/figures/methodology/F4_xmin_sensitivity_data.json` — raw alpha(xmin)
   data per system
 
-***REMOVED******REMOVED*** Recommended manuscript edit
+## Recommended manuscript edit
 
 Add as supplementary figure to C1 v0.3 with a paragraph:
 
@@ -116,7 +116,7 @@ Add as supplementary figure to C1 v0.3 with a paragraph:
 > with the Vuong LR inconclusive verdicts already reported. We add the drift
 > range to Table 1 columns.
 
-***REMOVED******REMOVED*** References
+## References
 
 - Clauset A, Shalizi CR, Newman MEJ (2009). "Power-law distributions in
   empirical data." *SIAM Rev.* 51, 661-703.

@@ -1,10 +1,10 @@
-***REMOVED*** Honest Adversarial Replication: First Two of Five Pre-Registered Systems
+# Honest Adversarial Replication: First Two of Five Pre-Registered Systems
 
-> Draft v0.1 (2026-05-15, session ***REMOVED***10 Wave 7 C)
+> Draft v0.1 (2026-05-15, session #10 Wave 7 C)
 > Status: P1 + P2 shipped with full honest verdicts; P3-P5 tracked as GitHub issues
 > Author: dada8899
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 We report the first two of five pre-registered adversarial replications of
 the Layer-5 cross-domain validation pipeline introduced in
@@ -31,7 +31,7 @@ rule. The aggregate $k/5$ readout from v0.3 §8.3 cannot be evaluated on
 is robust or marginal on the basis of P1 + P2, and ship the result with
 the partial 2/5 status flagged clearly in §5.
 
-***REMOVED******REMOVED*** 1. Why pre-registration matters
+## 1. Why pre-registration matters
 
 The umbrella `v0-unified-pipeline-2026-05-13.md` framework reported 11/11
 or 9/9 within-band coverage across the V4 calibration phases — a result
@@ -51,7 +51,7 @@ informative. The present short paper does the symmetric thing on
 mostly inside them; if they are too wide, the bands will need
 recalibration; if they are too narrow, the framework over-claimed.
 
-***REMOVED******REMOVED******REMOVED*** 1.1 Adversarial selection criteria
+### 1.1 Adversarial selection criteria
 
 The pre-registered systems P1-P5 were chosen with two specific
 constraints that make them adversarial against the V4 calibration set:
@@ -73,7 +73,7 @@ distinct V4 universality classes. A 5/5 outcome would be evidence for
 the framework's cross-class portability; a $\leq 2/5$ outcome would
 indicate that the cross-class claim was over-generalised.
 
-***REMOVED******REMOVED******REMOVED*** 1.2 What this paper does and does not claim
+### 1.2 What this paper does and does not claim
 
 This paper reports two of the five pre-registered systems. It does **not**
 make the aggregate §8.3 readout claim. It does **not** retroactively
@@ -86,9 +86,9 @@ of whether it would support the umbrella framing — i.e. the publication
 threshold for this paper is "P1 and P2 are done", not "P1 and P2 came
 back the way we wanted".
 
-***REMOVED******REMOVED*** 2. The five pre-registered systems (status table)
+## 2. The five pre-registered systems (status table)
 
-| ***REMOVED*** | System | Class | Predicted band | Status |
+| # | System | Class | Predicted band | Status |
 |---|---|---|---|---|
 | **P1** | Bitcoin Cash daily log returns (2020-2026, CryptoCompare) | SOC threshold-cascade (financial) | $\alpha = 2.8 \pm 0.3$ | **DONE — CONFIRMED** (§3) |
 | **P2** | Reddit comment cascade sizes (arctic_shift, 8 top subreddits, 30-day window) | preferential-attachment + cascade | $\alpha = 2.0 \pm 0.3$ | **DONE — CONFIRMED** (§4) |
@@ -103,9 +103,9 @@ until P3-P5 are also fit; we report the partial 2/5 status and *do not*
 make any "framework strengthened / robust / marginal / failed" claim on
 this incomplete sample (§5).
 
-***REMOVED******REMOVED*** 3. P1 — Bitcoin Cash daily log returns
+## 3. P1 — Bitcoin Cash daily log returns
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Methods
+### 3.1 Methods
 
 Daily close of BCH/USD pulled from `min-api.cryptocompare.com/data/v2/histoday`
 (free public endpoint, no API key required) capped at 2 001 days by the
@@ -119,7 +119,7 @@ $|r_i|$ into the frozen `soc_pipeline.fit_clauset_powerlaw` function
 plus `bootstrap_ci` with project-default settings ($n_\mathrm{boot} =
 200$, seed 42). No pipeline code was modified.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Verdict
+### 3.2 Verdict
 
 | metric | value |
 |---|---|
@@ -144,9 +144,9 @@ the pre-registration committed to. Full discussion in
 `docs/pre-registrations/p1-bitcoin-cash-result.md`. Figure:
 `paper/figures/pre-reg/fig_p1_bch_ccdf.pdf`.
 
-***REMOVED******REMOVED*** 4. P2 — Reddit comment cascade sizes
+## 4. P2 — Reddit comment cascade sizes
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Methods
+### 4.1 Methods
 
 We pulled top-level submissions from 10 high-traffic English-language
 subreddits over a 30-day retrospective window (2026-04-12 → 2026-05-12
@@ -162,7 +162,7 @@ positive-cascade filter, $n = 22\,522$ cascades remained. We fed these
 into `soc_pipeline.fit_clauset_powerlaw(discrete=True)` plus
 `bootstrap_ci`, project-default settings.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Verdict
+### 4.2 Verdict
 
 | metric | value |
 |---|---|
@@ -189,7 +189,7 @@ the tail is heavy-tailed rather than exponentially-truncated. Full
 discussion in `docs/pre-registrations/p2-reddit-cascade-result.md`.
 Figure: `paper/figures/pre-reg/fig_p2_reddit_ccdf.pdf`.
 
-***REMOVED******REMOVED*** 5. Discussion — partial readout against v0.3 §8.3 decision rule
+## 5. Discussion — partial readout against v0.3 §8.3 decision rule
 
 The umbrella pre-registration in v0.3 §8.3 committed to a $k/5$
 inside-band readout:
@@ -249,7 +249,7 @@ date-stamp regardless of the P1/P2 outcomes. The fact that the present
 verdict happens to be 2/2 CONFIRMED is reported with the same level of
 caveat we would apply to a 2/2 DEVIATING result.
 
-***REMOVED******REMOVED*** 6. Future work — P3, P4, P5 + GitHub issues
+## 6. Future work — P3, P4, P5 + GitHub issues
 
 Three systems remain to complete the v0.3 §8.3 readout:
 
@@ -278,7 +278,7 @@ Three systems remain to complete the v0.3 §8.3 readout:
 Each is a self-contained $\sim$ 1-day replication for a future session;
 once shipped, the v0.3 §8.3 readout becomes fully evaluable.
 
-***REMOVED******REMOVED*** 6.1 Why P3-P5 are not in this paper
+## 6.1 Why P3-P5 are not in this paper
 
 The pre-registration in v0.3 §8.2 listed all five systems as a single
 adversarial set. We separate P1+P2 (this paper) from P3-P5 (issues) for
@@ -302,7 +302,7 @@ script.
 Future replicators should ship P3-P5 as separate PRs, each updating
 the §2 status table in this paper and the §8.3 readout count.
 
-***REMOVED******REMOVED*** 6.2 What we did *not* do
+## 6.2 What we did *not* do
 
 For transparency, here are choices we considered and rejected:
 
@@ -323,18 +323,18 @@ For transparency, here are choices we considered and rejected:
   this would be over-claim on $n = 2$ adversarial systems. We do not
   do this.
 
-***REMOVED******REMOVED*** 7. Reproducibility
+## 7. Reproducibility
 
 ```bash
-***REMOVED*** P1
+# P1
 python3 v4/validation/pre-reg-p1-bch/fetch_bch.py
 python3 v4/validation/pre-reg-p1-bch/analyze_bch.py
 
-***REMOVED*** P2
-python3 v4/validation/pre-reg-p2-reddit/fetch_reddit.py   ***REMOVED*** or stop early + convert_partial.py
+# P2
+python3 v4/validation/pre-reg-p2-reddit/fetch_reddit.py   # or stop early + convert_partial.py
 python3 v4/validation/pre-reg-p2-reddit/analyze_reddit.py
 
-***REMOVED*** figures
+# figures
 python3 paper/figures/pre-reg/make_figures.py
 ```
 
@@ -342,7 +342,7 @@ Run time end-to-end: P1 is $\sim$ 5 seconds; P2 fetch is $\sim$ 25-30
 minutes on the free-tier arctic_shift API (10 subreddits × 30 days × ~100
 posts per page × 1.2 s sleep), fit is $\sim$ 10 seconds.
 
-***REMOVED******REMOVED*** 8. Data + script provenance
+## 8. Data + script provenance
 
 | file | purpose |
 |---|---|

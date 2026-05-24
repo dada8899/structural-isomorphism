@@ -81,7 +81,7 @@ def extract_json(text: str) -> dict | None:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        ***REMOVED*** relaxed escape fix
+        # relaxed escape fix
         fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw)
         try:
             return json.loads(fixed)
@@ -170,7 +170,7 @@ def main():
             else:
                 print(f"  ? [idx={row['_idx']:2d}] parse error")
 
-    ***REMOVED*** Summary
+    # Summary
     covered = sum(1 for r in results if r["parsed"] and r["parsed"].get("covered_by_7"))
     total = len(results)
     pct = (covered / total * 100) if total else 0
@@ -185,7 +185,7 @@ def main():
     else:
         print("✓ 7 primitives cover ≥80% of survivors. Proceed with training data construction.")
 
-    ***REMOVED*** Count primitive usage
+    # Count primitive usage
     from collections import Counter
     usage = Counter()
     for r in results:

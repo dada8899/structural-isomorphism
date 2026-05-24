@@ -1,4 +1,4 @@
-***REMOVED*** D1 — Phase Detector MVP groundwork
+# D1 — Phase Detector MVP groundwork
 
 **Status**: scaffold + sample validated (this session, 2026-05-13)
 **Branch**: `v4/session2-mega-sprint`
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** What this is
+## What this is
 
 Phase Detector is the V4 "structural dynamics" research stack made into a screener product (see `plans/company-analysis-product.md` v0.2). The unit of data is a **StructTuple** — one company's structural fingerprint at a point in time, anchoring it to one of the V4 universality classes plus a critical-point state and 2-5 verifiable evidence facts.
 
@@ -24,7 +24,7 @@ extract_structtuple.py  ── DeepSeek-v4-pro ──>  StructTuple per company
 
 ---
 
-***REMOVED******REMOVED*** What's in this directory
+## What's in this directory
 
 | File | Status | Purpose |
 |---|---|---|
@@ -39,7 +39,7 @@ extract_structtuple.py  ── DeepSeek-v4-pro ──>  StructTuple per company
 
 ---
 
-***REMOVED******REMOVED*** How to reproduce the sample
+## How to reproduce the sample
 
 ```bash
 cd /Users/dadamini/Projects/structural-isomorphism
@@ -61,7 +61,7 @@ Projected cost: **~$0.19**, serial latency **~78 min**, 5-way parallel **~15 min
 
 ---
 
-***REMOVED******REMOVED*** Sample dogfood result (2026-05-13)
+## Sample dogfood result (2026-05-13)
 
 5/5 calls succeeded on first attempt (0 retries, 0 guardrail-required fixes):
 
@@ -81,9 +81,9 @@ These priors are **loose sanity checks**, not ground truth. Real calibration nee
 
 ---
 
-***REMOVED******REMOVED*** TODO — next session (E1 / E2 or D2)
+## TODO — next session (E1 / E2 or D2)
 
-***REMOVED******REMOVED******REMOVED*** Blocking for MVP launch
+### Blocking for MVP launch
 
 - [ ] **Full 100-company batch run** via `extract_structtuple.py` (≤30 min, ≤$0.50 total)
 - [ ] **Quality calibration**: re-score 20-company subset with `deepseek-v4-flash` + a non-DeepSeek model (Claude-Sonnet-4.5 / Kimi-K2.5) and compute inter-model agreement
@@ -93,7 +93,7 @@ These priors are **loose sanity checks**, not ground truth. Real calibration nee
 - [ ] **Screener UI** (Next.js): filter sidebar (dynamics_family / critical_point_state / sector / market-cap) + result list with 30-second TL;DR cards
 - [ ] **`phase.bytedance.city` deploy**: nginx config, Let's Encrypt cert, project-site skill
 
-***REMOVED******REMOVED******REMOVED*** Nice-to-have
+### Nice-to-have
 
 - [ ] **Detail / drill-down page** per ticker showing full StructTuple + evidence_anchors + early_warning_indicators with charts
 - [ ] **Refresh cadence cron**: re-run extraction quarterly (or on news trigger)
@@ -101,7 +101,7 @@ These priors are **loose sanity checks**, not ground truth. Real calibration nee
 - [ ] **Public Index API** (B2B) — paid tier, JSONL streaming
 - [ ] **Validation against the V4 taxonomy v2** (B3 output): populate `v4_class_alignment` field by computing softmax similarity from the company description to each surviving class in `B3_taxonomy_v2.jsonl`
 
-***REMOVED******REMOVED******REMOVED*** Open questions
+### Open questions
 
 - Cost-vs-quality A/B between v4-pro and v4-flash — flash is ~3-4× cheaper, run side-by-side to see if dynamics_family accuracy holds
 - Ensemble of 3 models vs single v4-pro: does 3-way agreement filter add enough signal to justify 3× cost?
@@ -109,7 +109,7 @@ These priors are **loose sanity checks**, not ground truth. Real calibration nee
 
 ---
 
-***REMOVED******REMOVED*** File map (paths)
+## File map (paths)
 
 ```
 v4/product/d1_phase_detector/
@@ -124,12 +124,12 @@ v4/product/d1_phase_detector/
 └── cost_projection.md                 (measured + projected)
 ```
 
-***REMOVED******REMOVED*** Dependencies on existing v4 code
+## Dependencies on existing v4 code
 
 - `v4/lib/llm_guardrail.py` — `state_machine_fix` + `validate_json` (consumed by `extract_one`)
 - `v4/scripts/b3_ensemble.py` — referenced as the prior-art DeepSeek call pattern (not imported)
 
-***REMOVED******REMOVED*** What this session deliberately did NOT do
+## What this session deliberately did NOT do
 
 - No Postgres schema / migration
 - No FastAPI endpoints

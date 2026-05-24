@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 6 — GitHub repository star counts.
 
 System: Top 8,398 GitHub repos by stars (stratified sample 250 to 500k stars).
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     run_size_null_controls,
@@ -53,18 +53,18 @@ def main():
     print(f"  star range: [{stars.min()}, {stars.max()}]")
     print(f"  median: {np.median(stars)}, mean: {stars.mean():.1f}")
 
-    ***REMOVED*** 1. Clauset power-law fit on stars
+    # 1. Clauset power-law fit on stars
     print("\n[1] Clauset power-law fit on stars (discrete)...")
     pl = fit_clauset_powerlaw(stars.astype(float), "github_stars", discrete=True)
     for k, v in pl.items():
         print(f"  {k}: {v}")
 
-    ***REMOVED*** 2. Bootstrap CI
+    # 2. Bootstrap CI
     print("\n[2] Bootstrap 95% CI on α (n_boot=100)...")
     ci = bootstrap_alpha_ci(stars.astype(float), n_boot=100, discrete=True)
     print(f"  CI: {ci}")
 
-    ***REMOVED*** 3. Per-language breakdown
+    # 3. Per-language breakdown
     print("\n[3] Per-language top exponents (selected popular languages)...")
     from collections import defaultdict
     by_lang = defaultdict(list)
@@ -86,13 +86,13 @@ def main():
         }
         print(f"  {lang:18s} n={len(vals):5d}  α={f.get('alpha'):.3f}  winner={f.get('vs_powerlaw_lognormal_winner')}")
 
-    ***REMOVED*** 4. Null control
+    # 4. Null control
     print("\n[4] Null control (matched n)...")
     null_n = min(len(stars), 8000)
     nulls = run_size_null_controls(seed=42, n=null_n)
     print(f"  all_rejected: {nulls['all_rejected']}")
 
-    ***REMOVED*** Verdict
+    # Verdict
     predicted_narrow = (2.0, 3.0)
     literature = (1.8, 3.5)
     alpha = pl.get("alpha")

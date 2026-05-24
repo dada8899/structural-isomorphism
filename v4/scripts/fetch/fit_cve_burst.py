@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fit per-month CVE disclosure-burst counts to a power-law (Clauset 2009).
 
 Inputs:
@@ -32,7 +32,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "packages" / "soc-pipeline" / "src"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402  (after path setup)
+from soc_pipeline import (  # noqa: E402  (after path setup)
     bootstrap_ci,
     fit_clauset_powerlaw,
     vuong_lr_test,
@@ -71,10 +71,10 @@ def main() -> int:
             "fit_status": "skipped_insufficient_data",
         }
     else:
-        ***REMOVED*** Discrete distribution: monthly counts are integers.
-        ***REMOVED*** min_samples relaxed because sample-fetch (24 months) is intentionally small.
+        # Discrete distribution: monthly counts are integers.
+        # min_samples relaxed because sample-fetch (24 months) is intentionally small.
         fit = fit_clauset_powerlaw(arr, name="cve_monthly_burst", discrete=True, min_samples=5)
-        ***REMOVED*** bootstrap_ci requires min_samples=200 default; relax for sample run.
+        # bootstrap_ci requires min_samples=200 default; relax for sample run.
         try:
             ci = bootstrap_ci(arr, n_boot=args.n_boot, discrete=True, min_samples=5)
             ci_low, ci_high = ci.ci_low, ci.ci_high
@@ -82,7 +82,7 @@ def main() -> int:
             ci_low, ci_high = None, None
             print(f"  [fit] bootstrap_ci skipped: {e}", file=sys.stderr)
 
-        ***REMOVED*** Vuong tests vs lognormal + exponential. signature: vuong_lr_test(x, vs=..., discrete=...)
+        # Vuong tests vs lognormal + exponential. signature: vuong_lr_test(x, vs=..., discrete=...)
         vuong_results: dict[str, dict] = {}
         for alt in ("lognormal", "exponential"):
             try:
@@ -96,7 +96,7 @@ def main() -> int:
             except Exception as e:
                 vuong_results[alt] = {"error": str(e)}
 
-        ***REMOVED*** Also expose pre-computed vs_lognormal / vs_exponential from FitResult directly
+        # Also expose pre-computed vs_lognormal / vs_exponential from FitResult directly
         vuong_results["from_fit_result"] = {
             "vs_lognormal_R": getattr(fit, "vs_lognormal_R", None),
             "vs_lognormal_p": getattr(fit, "vs_lognormal_p", None),
@@ -161,7 +161,7 @@ def main() -> int:
     fit_path = out_dir / "fit_result.json"
     result_path = out_dir / "result.json"
 
-    ***REMOVED*** honest provenance metadata
+    # honest provenance metadata
     result["computed_at"] = datetime.now(timezone.utc).isoformat()
     result["yaml_spec"] = "v4/preregistration/cve-vulnerabilities.yaml"
     result["fetcher"] = "v4/scripts/fetch/fetch_cve_nvd.py"

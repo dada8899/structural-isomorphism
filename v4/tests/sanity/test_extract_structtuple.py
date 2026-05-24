@@ -25,14 +25,14 @@ EX_PATH = REPO / "v4" / "product" / "d1_phase_detector" / "extract_structtuple.p
 
 @pytest.fixture(scope="module")
 def ex():
-    ***REMOVED*** Wire v4/lib into sys.path BEFORE loading the module (module itself does
-    ***REMOVED*** this when imported normally, but we're path-loading via spec).
+    # Wire v4/lib into sys.path BEFORE loading the module (module itself does
+    # this when imported normally, but we're path-loading via spec).
     sys.path.insert(0, str(REPO / "v4" / "lib"))
     spec = importlib.util.spec_from_file_location("extract_structtuple", EX_PATH)
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
-    ***REMOVED*** Register in sys.modules BEFORE exec — dataclasses look up cls.__module__
-    ***REMOVED*** in sys.modules at decoration time.
+    # Register in sys.modules BEFORE exec — dataclasses look up cls.__module__
+    # in sys.modules at decoration time.
     sys.modules["extract_structtuple"] = mod
     spec.loader.exec_module(mod)
     return mod
@@ -60,9 +60,9 @@ def _good_record() -> dict:
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Happy path
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Happy path
+# ---------------------------------------------------------------------------
 
 
 def test_validate_happy_path(ex):
@@ -103,14 +103,14 @@ def test_to_dict_round_trip(ex):
     d = inst.to_dict()
     assert d["ticker"] == "AAPL"
     assert d["evidence_anchors"][0]["fact"].startswith("$3.5T")
-    ***REMOVED*** Re-validate the round-trip
+    # Re-validate the round-trip
     ok2, _, inst2 = ex.StructTuple.validate(d)
     assert ok2 is True
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Error paths
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Error paths
+# ---------------------------------------------------------------------------
 
 
 def test_validate_rejects_non_dict(ex):
@@ -216,7 +216,7 @@ def test_validate_alignment_filters_non_numeric(ex):
     rec = _good_record()
     rec["v4_class_alignment"] = {
         "preferential_attachment": 0.9,
-        "soc": "high",  ***REMOVED*** not numeric -> dropped
+        "soc": "high",  # not numeric -> dropped
         "fold": 0.3,
     }
     ok, _, inst = ex.StructTuple.validate(rec)
@@ -226,9 +226,9 @@ def test_validate_alignment_filters_non_numeric(ex):
     assert "soc" not in inst.v4_class_alignment
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** make_prompt()
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# make_prompt()
+# ---------------------------------------------------------------------------
 
 
 def test_make_prompt_with_market_cap(ex):
@@ -262,9 +262,9 @@ def test_make_prompt_enums_present(ex):
             assert fam in p
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Enum coverage
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Enum coverage
+# ---------------------------------------------------------------------------
 
 
 def test_all_dynamics_families_accepted(ex):

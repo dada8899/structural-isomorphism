@@ -39,7 +39,7 @@ def main():
     failures = 0
     for url in URLS:
         code = check(url)
-        ***REMOVED*** 2xx/3xx = live; 4xx = server up but path missing (acceptable for baseline)
+        # 2xx/3xx = live; 4xx = server up but path missing (acceptable for baseline)
         ok = 200 <= code < 500 and code != 0
         marker = "OK  " if 200 <= code < 400 else ("404 " if code == 404 else "FAIL")
         print(f"{marker} {code} {url}")

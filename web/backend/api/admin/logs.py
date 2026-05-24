@@ -17,7 +17,7 @@ Response:
     {
       "log_file":  "/path/to/server.jsonl",
       "returned":  198,
-      "lines":     [ { ...parsed JSON... }, ... ]   ***REMOVED*** newest LAST
+      "lines":     [ { ...parsed JSON... }, ... ]   # newest LAST
     }
 
 If a line cannot be parsed as JSON it's returned as `{"raw": "...",
@@ -96,14 +96,14 @@ def _tail_lines(path: Path, n: int) -> List[str]:
     except OSError:
         return []
 
-    ***REMOVED*** For small files just read everything; simpler + handles edge cases.
+    # For small files just read everything; simpler + handles edge cases.
     if size <= 256 * 1024:
         with open(path, "rb") as f:
             data = f.read()
         lines = data.splitlines()
         return [ln.decode("utf-8", errors="replace") for ln in lines[-n:]]
 
-    ***REMOVED*** Streaming tail.
+    # Streaming tail.
     chunk = 16 * 1024
     pos = size
     collected: list[bytes] = []
@@ -115,16 +115,16 @@ def _tail_lines(path: Path, n: int) -> List[str]:
             f.seek(pos)
             buf = f.read(read_size) + remainder
             parts = buf.split(b"\n")
-            ***REMOVED*** First part may be a fragment continuing from earlier in the
-            ***REMOVED*** file — hold onto it until we read more.
+            # First part may be a fragment continuing from earlier in the
+            # file — hold onto it until we read more.
             if pos == 0:
                 remainder = b""
-                ***REMOVED*** All parts are complete now.
+                # All parts are complete now.
                 pieces = parts
             else:
                 remainder = parts[0]
                 pieces = parts[1:]
-            ***REMOVED*** Prepend (reverse-order accumulation).
+            # Prepend (reverse-order accumulation).
             collected = pieces + collected
             if pos == 0:
                 break
@@ -138,8 +138,8 @@ def _parse_line(raw: str) -> dict:
     if not raw:
         return {"raw": raw, "parse_error": True}
     try:
-        ***REMOVED*** stdlib json is fine here — these are small lines and orjson is
-        ***REMOVED*** not required for correctness.
+        # stdlib json is fine here — these are small lines and orjson is
+        # not required for correctness.
         import json as _json
 
         return _json.loads(raw)
@@ -173,8 +173,8 @@ async def tail_logs(
     path = current_log_file()
     raw_lines = _tail_lines(path, n=n)
 
-    ***REMOVED*** Optional substring + level filters. We over-read a bit to compensate
-    ***REMOVED*** for filtered-out lines but cap at _MAX_N to bound work.
+    # Optional substring + level filters. We over-read a bit to compensate
+    # for filtered-out lines but cap at _MAX_N to bound work.
     parsed: List[dict] = []
     f_lower = filter.lower() if filter else None
     lvl_norm = level.upper() if level else None

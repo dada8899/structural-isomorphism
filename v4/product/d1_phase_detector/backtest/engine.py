@@ -19,10 +19,10 @@ Pipeline
 
 Usage
 -----
-  python3 engine.py                              ***REMOVED*** full universe, full window
+  python3 engine.py                              # full universe, full window
   python3 engine.py --tickers AAPL,TSLA --start 2024-01-01 --end 2024-12-31
   python3 engine.py --hold-months 1 --strategy long_short
-  python3 engine.py --skip-cache-check          ***REMOVED*** don't validate price cache
+  python3 engine.py --skip-cache-check          # don't validate price cache
 
 Outputs
 -------
@@ -65,16 +65,16 @@ def _setup_logging(verbose: bool) -> None:
     logging.basicConfig(level=level, format="[%(asctime)s] %(levelname)s %(message)s")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Loaders
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Loaders
+# ---------------------------------------------------------------------------
 
 @dataclass
 class TickerSeries:
     ticker: str
-    ***REMOVED*** month_end -> close
+    # month_end -> close
     monthly_close: Dict[dt.date, float] = field(default_factory=dict)
-    ***REMOVED*** for heuristic features: rolling daily returns by date
+    # for heuristic features: rolling daily returns by date
     daily_close: List[Tuple[dt.date, float]] = field(default_factory=list)
 
 
@@ -111,7 +111,7 @@ def load_ticker_csv(prices_dir: str, ticker: str) -> Optional[TickerSeries]:
     except OSError:
         return None
     ts.daily_close.sort(key=lambda x: x[0])
-    ***REMOVED*** Build monthly closes (last close of each month)
+    # Build monthly closes (last close of each month)
     by_month: Dict[Tuple[int, int], Tuple[dt.date, float]] = {}
     for d, c in ts.daily_close:
         k = (d.year, d.month)
@@ -119,7 +119,7 @@ def load_ticker_csv(prices_dir: str, ticker: str) -> Optional[TickerSeries]:
         if prev is None or d > prev[0]:
             by_month[k] = (d, c)
     for _, (d, c) in by_month.items():
-        ***REMOVED*** Anchor at month-end
+        # Anchor at month-end
         month_end = _month_end(d.year, d.month)
         ts.monthly_close[month_end] = c
     return ts
@@ -150,9 +150,9 @@ def load_llm_labels(path: str) -> Dict[str, str]:
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Date helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Date helpers
+# ---------------------------------------------------------------------------
 
 def _month_end(year: int, month: int) -> dt.date:
     if month == 12:
@@ -183,13 +183,13 @@ def _add_months(d: dt.date, months: int) -> dt.date:
     return _month_end(y, m)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Heuristic regime classifier
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Heuristic regime classifier
+# ---------------------------------------------------------------------------
 
 def realized_vol_90d(daily: List[Tuple[dt.date, float]], anchor: dt.date) -> Optional[float]:
     """Std-dev of last 90 daily log-returns ending <= anchor."""
-    cutoff = anchor - dt.timedelta(days=130)  ***REMOVED*** ~90 trading days
+    cutoff = anchor - dt.timedelta(days=130)  # ~90 trading days
     window = [(d, c) for d, c in daily if cutoff <= d <= anchor]
     if len(window) < 30:
         return None
@@ -215,7 +215,7 @@ def max_drawdown_180d(daily: List[Tuple[dt.date, float]], anchor: dt.date) -> Op
         dd = (c - peak) / peak
         if dd < mdd:
             mdd = dd
-    return mdd  ***REMOVED*** negative; closer to 0 = less drawdown
+    return mdd  # negative; closer to 0 = less drawdown
 
 
 def ar1_monthly(monthly_close: Dict[dt.date, float], anchor: dt.date, n: int = 12) -> Optional[float]:
@@ -263,9 +263,9 @@ def heuristic_score(
     return score
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Cohort formation per snapshot
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Cohort formation per snapshot
+# ---------------------------------------------------------------------------
 
 def llm_cohort(
     label_map: Dict[str, str],
@@ -305,9 +305,9 @@ def heuristic_cohort_at_snapshot(
     return {"near_critical_heuristic": near, "stable_heuristic": stable}
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Return calculations
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Return calculations
+# ---------------------------------------------------------------------------
 
 def forward_return(ts: TickerSeries, snapshot: dt.date, hold_months: int) -> Optional[float]:
     """Monthly forward return: (close[T + hold] / close[T]) - 1.
@@ -361,9 +361,9 @@ def cohort_monthly_return(
     return statistics.fmean(rets), len(rets)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Performance stats
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Performance stats
+# ---------------------------------------------------------------------------
 
 def sharpe_annualized(returns: List[float], freq: int = 12) -> float:
     """Annualised Sharpe from a return series of frequency `freq` per year."""
@@ -414,7 +414,7 @@ def t_test_paired(diffs: List[float]) -> Tuple[float, float]:
     if len(diffs) < 2:
         return (float("nan"), float("nan"))
     try:
-        from scipy import stats  ***REMOVED*** type: ignore
+        from scipy import stats  # type: ignore
         res = stats.ttest_1samp(diffs, 0.0)
         return float(res.statistic), float(res.pvalue)
     except ImportError:
@@ -428,9 +428,9 @@ def t_test_paired(diffs: List[float]) -> Tuple[float, float]:
         return (t, p)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main walk-forward
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main walk-forward
+# ---------------------------------------------------------------------------
 
 def run_walk_forward(
     universe_tickers: List[str],
@@ -447,7 +447,7 @@ def run_walk_forward(
     Returns a dict with monthly_rows and aggregate_stats per cohort.
     """
     month_ends = _iter_month_ends(start, end)
-    ***REMOVED*** Drop trailing months that don't have hold_months of forward data.
+    # Drop trailing months that don't have hold_months of forward data.
     month_ends = month_ends[: max(0, len(month_ends) - hold_months)]
     LOG.info("Walk-forward: %d snapshots from %s to %s, hold=%dmo",
              len(month_ends), month_ends[0] if month_ends else "—",
@@ -455,13 +455,13 @@ def run_walk_forward(
 
     universe_obj = [series_map[t] for t in universe_tickers if t in series_map]
 
-    ***REMOVED*** Static LLM cohort (uses only sp500 subset since R1000 supplement has no labels)
+    # Static LLM cohort (uses only sp500 subset since R1000 supplement has no labels)
     llm_groups = llm_cohort(llm_labels, universe_tickers)
     LOG.info("Static LLM cohort: near_critical=%d, other=%d",
              len(llm_groups["near_critical"]), len(llm_groups["other"]))
 
     monthly_rows: List[Dict] = []
-    ***REMOVED*** cohort -> [returns]
+    # cohort -> [returns]
     cohort_rets: Dict[str, List[float]] = {
         "near_critical_llm": [],
         "other_llm": [],
@@ -471,9 +471,9 @@ def run_walk_forward(
     }
 
     for T in month_ends:
-        ***REMOVED*** Dynamic heuristic cohorts at this snapshot.
+        # Dynamic heuristic cohorts at this snapshot.
         h_groups = heuristic_cohort_at_snapshot(T, universe_obj, decile=decile)
-        ***REMOVED*** Benchmark = equal-weight across all tickers with valid forward return.
+        # Benchmark = equal-weight across all tickers with valid forward return.
         bench_tickers = [t for t in universe_tickers if t in series_map]
         bench_ret, n_bench = cohort_monthly_return(bench_tickers, series_map, T, hold_months)
 
@@ -507,7 +507,7 @@ def run_walk_forward(
             "n_stable_heuristic": n_st_h,
         })
 
-    ***REMOVED*** Aggregate stats per cohort
+    # Aggregate stats per cohort
     stats_out: Dict[str, Dict] = {}
     bench = cohort_rets["benchmark_ew"]
     bench_sharpe = sharpe_annualized(bench)
@@ -526,7 +526,7 @@ def run_walk_forward(
         for r in rets:
             cumret *= (1 + r)
         cumret -= 1.0
-        ***REMOVED*** vs benchmark: pair on shared months
+        # vs benchmark: pair on shared months
         if name != "benchmark_ew":
             n_pair = min(len(rets), len(bench))
             diffs = [rets[i] - bench[i] for i in range(n_pair)] if n_pair > 0 else []
@@ -560,9 +560,9 @@ def run_walk_forward(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLI
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Walk-forward backtest engine v0.1")
@@ -583,7 +583,7 @@ def main(argv: List[str] | None = None) -> int:
 
     _setup_logging(args.verbose)
 
-    ***REMOVED*** Load universe
+    # Load universe
     if args.tickers:
         universe = [(t.strip().upper(), "cli") for t in args.tickers.split(",") if t.strip()]
     else:
@@ -595,7 +595,7 @@ def main(argv: List[str] | None = None) -> int:
     universe_source = {t: s for t, s in universe}
     LOG.info("Universe: %d tickers", len(universe_tickers))
 
-    ***REMOVED*** Load price series
+    # Load price series
     series_map: Dict[str, TickerSeries] = {}
     missing: List[str] = []
     for t in universe_tickers:
@@ -611,7 +611,7 @@ def main(argv: List[str] | None = None) -> int:
         LOG.error("No ticker series loaded. Run fetch_prices.py first.")
         return 2
 
-    ***REMOVED*** Load LLM labels
+    # Load LLM labels
     llm_labels = load_llm_labels(args.llm_labels)
     LOG.info("Loaded %d LLM labels", len(llm_labels))
 
@@ -636,7 +636,7 @@ def main(argv: List[str] | None = None) -> int:
     monthly_csv = os.path.join(args.results_dir, f"v0.1-monthly-{tag}-{timestamp}.csv")
     summary_json = os.path.join(args.results_dir, f"v0.1-{tag}-{timestamp}.json")
 
-    ***REMOVED*** Monthly CSV
+    # Monthly CSV
     if res["monthly_rows"]:
         keys = list(res["monthly_rows"][0].keys())
         with open(monthly_csv, "w", encoding="utf-8", newline="") as f:
@@ -647,7 +647,7 @@ def main(argv: List[str] | None = None) -> int:
                 w.writerow(row_out)
         LOG.info("Wrote monthly CSV -> %s (%d rows)", monthly_csv, len(res["monthly_rows"]))
 
-    ***REMOVED*** Summary JSON
+    # Summary JSON
     summary = {
         "version": "0.1",
         "engine": "walk_forward_1000ticker",
@@ -672,7 +672,7 @@ def main(argv: List[str] | None = None) -> int:
         json.dump(summary, f, indent=2, default=str)
     LOG.info("Wrote summary JSON -> %s", summary_json)
 
-    ***REMOVED*** Print headline
+    # Print headline
     bench_sh = res["stats"]["benchmark_ew"].get("sharpe_annualised", float("nan"))
     nc_llm_sh = res["stats"]["near_critical_llm"].get("sharpe_annualised", float("nan"))
     nc_llm_lift = res["stats"]["near_critical_llm"].get("sharpe_lift_vs_bench", float("nan"))

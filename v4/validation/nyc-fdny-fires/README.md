@@ -1,10 +1,10 @@
-***REMOVED*** NYC FDNY Fires Pre-Registered Validation Result
+# NYC FDNY Fires Pre-Registered Validation Result
 
 **Pre-registration**: `v4/preregistration/nyc-fdny-fires.yaml` (pre-registered 2026-05-14, session-7-W1-C)
 **Session running fit**: session-7-W2-D (this file produced 2026-05-14)
 **Author**: dada8899
 
-***REMOVED******REMOVED*** Result summary
+## Result summary
 
 | Field | Value |
 |---|---|
@@ -18,7 +18,7 @@
 | Vuong vs lognormal | R = -52.95, p = 0.0 → **lognormal decisively wins** |
 | Vuong vs exponential | R = -46.33, p = 0.0 → **exponential decisively wins** |
 
-***REMOVED******REMOVED*** Per-series breakdown
+## Per-series breakdown
 
 The primary metric (per pre-registration yaml § extraction_method) is **units
 dispatched per fire-related incident**. We additionally report three secondary
@@ -31,7 +31,7 @@ series for diagnostic value.
 | `daily_counts_all` (incident count per day, all fire groups) | INCONCLUSIVE | 1.798 | [1.79, 3.00] | 31 / 31 | n/a (n too small) | n/a |
 | `daily_counts_strict` (incident count per day, strict fire groups) | INCONCLUSIVE | 1.772 | [1.75, 3.00] | 31 / 31 | n/a | n/a |
 
-***REMOVED******REMOVED*** Data sample provenance
+## Data sample provenance
 
 | Field | Value |
 |---|---|
@@ -59,7 +59,7 @@ Per-group counts in sample (50k dispatch records → 50k unique incidents):
 | NonStructural Fires | 754 |
 | Medical MFAs | 188 |
 
-***REMOVED******REMOVED*** Honest scope caveats
+## Honest scope caveats
 
 1. **Time slice**: `--limit 50000` with `$order=incident_datetime` returns the
    first ~31 days of 2023, NOT a full year. This is intentional for a
@@ -78,7 +78,7 @@ Per-group counts in sample (50k dispatch records → 50k unique incidents):
    informative number; the upper bound reflects fit instability on resampled
    tails.
 
-***REMOVED******REMOVED*** Interpretation
+## Interpretation
 
 Per pre-registration § verdict_rules:
 
@@ -112,7 +112,7 @@ So the verdict **INCONCLUSIVE** is the scientifically honest call:
   natural next step; the yaml explicitly allows
   `power-law-with-cutoff preferred by BIC` as PASS-compatible.
 
-***REMOVED******REMOVED*** Comparison to CVE FAIL verdict
+## Comparison to CVE FAIL verdict
 
 The CVE 2023 sample (`v4/validation/cve-vulnerabilities/`) was a **FAIL**:
 - alpha = 2.668, OUTSIDE band [1.5, 2.5]
@@ -131,14 +131,14 @@ verdict shows the v4 framework correctly distinguishes:
 - SOC-compatible heavy-tailed systems with geometric cutoff (NYC fires)
 - vs administrative-burst systems that are NOT SOC at all (CVE Patch-Tue)
 
-***REMOVED******REMOVED*** Reproducibility
+## Reproducibility
 
 ```bash
-***REMOVED*** 1. Fetch (no API key, public Socrata, ~3-5 min for 50k records)
+# 1. Fetch (no API key, public Socrata, ~3-5 min for 50k records)
 .venv/bin/python v4/scripts/fetch/fetch_nyc_fdny.py \
   --year 2023 --limit 50000 --page-size 10000
 
-***REMOVED*** 2. Fit (~30s, 1000-iter bootstrap)
+# 2. Fit (~30s, 1000-iter bootstrap)
 .venv/bin/python v4/scripts/fetch/fit_nyc_fdny_burst.py
 ```
 
@@ -156,7 +156,7 @@ To force a synthetic SOC sample for pipeline e2e validation (no network):
 .venv/bin/python v4/scripts/fetch/fit_nyc_fdny_burst.py
 ```
 
-***REMOVED******REMOVED*** Files in this directory
+## Files in this directory
 
 | File | Purpose |
 |---|---|
@@ -167,7 +167,7 @@ To force a synthetic SOC sample for pipeline e2e validation (no network):
 | `raw_2023.json` | Provenance metadata + first 1000 records sample |
 | `incident_sizes_2023.json` | Aggregated unit-counts + daily-counts + per-group counts |
 
-***REMOVED******REMOVED*** Next steps (deferred)
+## Next steps (deferred)
 
 1. **Full-year fit**: `--full` flag pulls all ~660k 2023 dispatch records;
    should give ~280k fire-related incidents and 365 daily-count buckets.

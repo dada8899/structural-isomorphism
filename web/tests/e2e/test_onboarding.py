@@ -1,4 +1,4 @@
-"""W12-D (session ***REMOVED***10, 2026-05-15) — First-time user onboarding tour e2e.
+"""W12-D (session #10, 2026-05-15) — First-time user onboarding tour e2e.
 
 Tests the 4-step pure-React tour mounted globally in app/layout.tsx:
   1. First visit triggers tour auto-start (after AUTO_START_DELAY_MS).
@@ -82,7 +82,7 @@ def next_dev():
     env = os.environ.copy()
     env["NEXT_TELEMETRY_DISABLED"] = "1"
     env["PORT"] = str(port)
-    env["NEXT_PUBLIC_USE_MOCK"] = "true"  ***REMOVED*** avoids needing the FastAPI backend
+    env["NEXT_PUBLIC_USE_MOCK"] = "true"  # avoids needing the FastAPI backend
 
     proc = subprocess.Popen(
         [str(PHASE_DIR / "node_modules" / ".bin" / "next"), "dev", "--port", str(port)],
@@ -101,7 +101,7 @@ def next_dev():
                 pass
             out = (proc.stdout.read(8192) if proc.stdout else b"").decode(errors="replace")
             pytest.fail(f"next dev on :{port} did not start in {timeout}s\n{out[-2000:]}")
-        ***REMOVED*** Wait for compile-on-first-request.
+        # Wait for compile-on-first-request.
         deadline = time.time() + 60
         last_status = None
         while time.time() < deadline:
@@ -137,25 +137,25 @@ def _wait_for_tour_visible(page, timeout: int = 8000) -> None:
     page.wait_for_selector('[data-testid="onboarding-tour"]', state="visible", timeout=timeout)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. First visit triggers the tour
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. First visit triggers the tour
+# ---------------------------------------------------------------------------
 
 def test_first_visit_auto_starts_tour(fresh_page):
     page, base = fresh_page
     page.goto(base + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Tour auto-starts after a 1500ms idle delay.
+    # Tour auto-starts after a 1500ms idle delay.
     _wait_for_tour_visible(page, timeout=8000)
     tooltip = page.locator('[data-testid="tour-tooltip"]')
     assert tooltip.is_visible()
-    ***REMOVED*** Step counter shows 1 / 4.
+    # Step counter shows 1 / 4.
     text = tooltip.inner_text()
     assert "1 / 4" in text, f"expected '1 / 4' counter, got: {text!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. Skip dismisses and sets localStorage
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. Skip dismisses and sets localStorage
+# ---------------------------------------------------------------------------
 
 def test_skip_dismisses_and_persists_flag(fresh_page):
     page, base = fresh_page
@@ -167,9 +167,9 @@ def test_skip_dismisses_and_persists_flag(fresh_page):
     assert flag == "true", f"phase_tour_seen should be 'true' after skip, got {flag!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. Next/Prev navigation works
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Next/Prev navigation works
+# ---------------------------------------------------------------------------
 
 def test_next_prev_navigation(fresh_page):
     page, base = fresh_page
@@ -177,7 +177,7 @@ def test_next_prev_navigation(fresh_page):
     _wait_for_tour_visible(page)
     tooltip = page.locator('[data-testid="tour-tooltip"]')
 
-    ***REMOVED*** Click Next → step 2 / 4
+    # Click Next → step 2 / 4
     page.locator('[data-testid="tour-next"]').click()
     page.wait_for_function(
         "() => document.querySelector('[data-testid=\"onboarding-tour\"]')?.dataset.tourStep === '2'",
@@ -185,7 +185,7 @@ def test_next_prev_navigation(fresh_page):
     )
     assert "2 / 4" in tooltip.inner_text()
 
-    ***REMOVED*** Click Prev → back to 1 / 4
+    # Click Prev → back to 1 / 4
     page.locator('[data-testid="tour-prev"]').click()
     page.wait_for_function(
         "() => document.querySelector('[data-testid=\"onboarding-tour\"]')?.dataset.tourStep === '1'",
@@ -194,15 +194,15 @@ def test_next_prev_navigation(fresh_page):
     assert "1 / 4" in tooltip.inner_text()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. Completion sets localStorage and closes
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. Completion sets localStorage and closes
+# ---------------------------------------------------------------------------
 
 def test_completion_closes_and_persists(fresh_page):
     page, base = fresh_page
     page.goto(base + "/", wait_until="domcontentloaded", timeout=30000)
     _wait_for_tour_visible(page)
-    ***REMOVED*** Click Next 4 times — last click is "Get started" / completion.
+    # Click Next 4 times — last click is "Get started" / completion.
     for _ in range(4):
         page.locator('[data-testid="tour-next"]').click()
         page.wait_for_timeout(150)
@@ -211,9 +211,9 @@ def test_completion_closes_and_persists(fresh_page):
     assert flag == "true", f"phase_tour_seen should be 'true' after completion, got {flag!r}"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. ESC closes
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. ESC closes
+# ---------------------------------------------------------------------------
 
 def test_escape_closes_tour(fresh_page):
     page, base = fresh_page
@@ -225,31 +225,31 @@ def test_escape_closes_tour(fresh_page):
     assert flag == "true"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 6. Restart from TopNav link works after dismissal
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 6. Restart from TopNav link works after dismissal
+# ---------------------------------------------------------------------------
 
 def test_restart_from_nav_link(fresh_page):
     page, base = fresh_page
-    ***REMOVED*** Pre-set the seen flag so auto-start is suppressed.
+    # Pre-set the seen flag so auto-start is suppressed.
     page.add_init_script("localStorage.setItem('phase_tour_seen', 'true');")
     page.goto(base + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Auto-start suppressed: tour should not be visible after 2s wait.
+    # Auto-start suppressed: tour should not be visible after 2s wait.
     page.wait_for_timeout(2200)
     assert page.locator('[data-testid="onboarding-tour"]').count() == 0
-    ***REMOVED*** Click the restart link in TopNav.
+    # Click the restart link in TopNav.
     page.locator('[data-testid="tour-restart-link"]').first.click()
     _wait_for_tour_visible(page, timeout=4000)
-    ***REMOVED*** localStorage was cleared by restart helper.
+    # localStorage was cleared by restart helper.
     flag = page.evaluate("() => localStorage.getItem('phase_tour_seen')")
     assert flag in (None, "false") or flag != "true", (
         f"restart should clear seen flag, got {flag!r}"
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 7. Mobile viewport responsive
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 7. Mobile viewport responsive
+# ---------------------------------------------------------------------------
 
 def test_mobile_viewport_renders_tour(browser, next_dev):
     context = browser.new_context(viewport={"width": 375, "height": 812})
@@ -260,9 +260,9 @@ def test_mobile_viewport_renders_tour(browser, next_dev):
         tooltip = page.locator('[data-testid="tour-tooltip"]')
         box = tooltip.bounding_box()
         assert box is not None, "tooltip should have a bounding box on mobile"
-        ***REMOVED*** Tooltip must fit within the viewport width (with margin slack).
+        # Tooltip must fit within the viewport width (with margin slack).
         assert box["width"] <= 375, f"tooltip overflows mobile viewport: width={box['width']}"
-        ***REMOVED*** Buttons ≥ 44px (touch-friendly).
+        # Buttons ≥ 44px (touch-friendly).
         next_btn = page.locator('[data-testid="tour-next"]')
         nb = next_btn.bounding_box()
         assert nb and nb["height"] >= 40, f"next button too small for touch: {nb}"
@@ -270,9 +270,9 @@ def test_mobile_viewport_renders_tour(browser, next_dev):
         context.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 8. /onboarding deep-link force-opens
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 8. /onboarding deep-link force-opens
+# ---------------------------------------------------------------------------
 
 def test_onboarding_deep_link_force_opens(browser, next_dev):
     """Even with seen=true, /onboarding force-opens the tour."""
@@ -288,9 +288,9 @@ def test_onboarding_deep_link_force_opens(browser, next_dev):
         context.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 9. Accessibility: dialog role + aria-modal
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 9. Accessibility: dialog role + aria-modal
+# ---------------------------------------------------------------------------
 
 def test_tour_dialog_a11y(fresh_page):
     page, base = fresh_page

@@ -1,4 +1,4 @@
-/* Structural — Structural stress-test page (Session ***REMOVED***18, feature E).
+/* Structural — Structural stress-test page (Session #18, feature E).
  * Cold red-team tool: restrained, white, generous whitespace,
  * clear hierarchy. No flashy motion. */
 
@@ -53,8 +53,8 @@
 
 /* === Input === */
 .stress-input {
-  background: var(--brand-paper-card, ***REMOVED***fff);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  background: var(--brand-paper-card, #fff);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-5);
   margin-bottom: var(--space-6);
@@ -72,8 +72,8 @@
   font-size: var(--fs-15, 0.9375rem);
   line-height: var(--lh-relaxed);
   color: var(--text-primary);
-  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  background: var(--brand-paper-soft, #f4f4f5);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: var(--radius-md, 8px);
   padding: var(--space-3);
   resize: vertical;
@@ -82,9 +82,9 @@
 }
 .stress-input__field:focus {
   outline: none;
-  border-color: var(--brand-accent, ***REMOVED***2563eb);
+  border-color: var(--brand-accent, #2563eb);
   box-shadow: 0 0 0 3px var(--brand-accent-ring, rgba(37,99,235,0.12));
-  background: var(--brand-paper-card, ***REMOVED***fff);
+  background: var(--brand-paper-card, #fff);
 }
 
 .stress-input__row {
@@ -108,8 +108,8 @@
 .stress-chip {
   font-size: var(--fs-12, 0.75rem);
   color: var(--text-secondary);
-  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  background: var(--brand-paper-soft, #f4f4f5);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: 999px;
   padding: 4px 10px;
   cursor: pointer;
@@ -118,14 +118,14 @@
 }
 .stress-chip:hover {
   background: var(--brand-accent-soft, rgba(37,99,235,0.08));
-  color: var(--brand-accent, ***REMOVED***2563eb);
+  color: var(--brand-accent, #2563eb);
 }
 
 .stress-submit {
   font-size: var(--fs-14, 0.875rem);
   font-weight: 600;
-  color: ***REMOVED***fff;
-  background: var(--brand-ink, ***REMOVED***18181b);
+  color: #fff;
+  background: var(--brand-ink, #18181b);
   border: none;
   border-radius: var(--radius-md, 8px);
   padding: 10px 20px;
@@ -134,13 +134,13 @@
   transition: background var(--dur-fast) var(--ease-out),
               opacity var(--dur-fast) var(--ease-out);
 }
-.stress-submit:hover:not(:disabled) { background: ***REMOVED***000; }
+.stress-submit:hover:not(:disabled) { background: #000; }
 .stress-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .stress-input__error {
   margin-top: var(--space-3);
   font-size: var(--fs-13);
-  color: var(--brand-danger, ***REMOVED***dc2626);
+  color: var(--brand-danger, #dc2626);
 }
 
 /* === Loading === */
@@ -154,8 +154,8 @@
 .stress-loading__spinner {
   width: 28px;
   height: 28px;
-  border: 2.5px solid var(--brand-line, ***REMOVED***e4e4e7);
-  border-top-color: var(--brand-ink, ***REMOVED***18181b);
+  border: 2.5px solid var(--brand-line, #e4e4e7);
+  border-top-color: var(--brand-ink, #18181b);
   border-radius: 50%;
   animation: stress-spin 700ms linear infinite;
 }
@@ -177,7 +177,7 @@
   gap: var(--space-3);
   padding: var(--space-5);
   border-radius: var(--radius-lg, 12px);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border: 1px solid var(--brand-line, #e4e4e7);
   margin-bottom: var(--space-6);
 }
 .stress-verdict--pass { background: rgba(5, 150, 105, 0.06); border-color: rgba(5, 150, 105, 0.3); }
@@ -194,11 +194,11 @@
   text-transform: uppercase;
   padding: 5px 12px;
   border-radius: 999px;
-  color: ***REMOVED***fff;
+  color: #fff;
 }
-.stress-verdict__badge--pass { background: var(--brand-success, ***REMOVED***059669); }
-.stress-verdict__badge--fail { background: var(--brand-danger, ***REMOVED***dc2626); }
-.stress-verdict__badge--conditional { background: var(--brand-warning, ***REMOVED***d97706); }
+.stress-verdict__badge--pass { background: var(--brand-success, #059669); }
+.stress-verdict__badge--fail { background: var(--brand-danger, #dc2626); }
+.stress-verdict__badge--conditional { background: var(--brand-warning, #d97706); }
 
 .stress-verdict__reason {
   font-size: var(--fs-15, 0.9375rem);
@@ -216,8 +216,8 @@
   margin-bottom: var(--space-6);
 }
 .stress-pair__col {
-  background: var(--brand-paper-card, ***REMOVED***fff);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  background: var(--brand-paper-card, #fff);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: var(--radius-md, 8px);
   padding: var(--space-4);
 }
@@ -261,14 +261,14 @@
   gap: var(--space-3);
 }
 .stress-corr {
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-left-width: 3px;
   border-radius: var(--radius-md, 8px);
   padding: var(--space-4);
-  background: var(--brand-paper-card, ***REMOVED***fff);
+  background: var(--brand-paper-card, #fff);
 }
-.stress-corr--holds { border-left-color: var(--brand-success, ***REMOVED***059669); }
-.stress-corr--breaks { border-left-color: var(--brand-danger, ***REMOVED***dc2626); }
+.stress-corr--holds { border-left-color: var(--brand-success, #059669); }
+.stress-corr--breaks { border-left-color: var(--brand-danger, #dc2626); }
 
 .stress-corr__head {
   display: flex;
@@ -285,11 +285,11 @@
   line-height: 18px;
   text-align: center;
   border-radius: 50%;
-  color: ***REMOVED***fff;
+  color: #fff;
   margin-top: 1px;
 }
-.stress-corr--holds .stress-corr__mark { background: var(--brand-success, ***REMOVED***059669); }
-.stress-corr--breaks .stress-corr__mark { background: var(--brand-danger, ***REMOVED***dc2626); }
+.stress-corr--holds .stress-corr__mark { background: var(--brand-success, #059669); }
+.stress-corr--breaks .stress-corr__mark { background: var(--brand-danger, #dc2626); }
 .stress-corr__claim {
   font-size: var(--fs-14, 0.875rem);
   font-weight: 600;
@@ -306,7 +306,7 @@
 
 /* Weakest link */
 .stress-weakest {
-  border: 1px solid var(--brand-danger, ***REMOVED***dc2626);
+  border: 1px solid var(--brand-danger, #dc2626);
   background: rgba(220, 38, 38, 0.05);
   border-radius: var(--radius-md, 8px);
   padding: var(--space-4);
@@ -316,7 +316,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--brand-danger, ***REMOVED***dc2626);
+  color: var(--brand-danger, #dc2626);
   margin-bottom: var(--space-2);
 }
 .stress-weakest__text {
@@ -338,7 +338,7 @@
   font-size: var(--fs-12, 0.75rem);
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: var(--text-secondary, ***REMOVED***6b7280);
+  color: var(--text-secondary, #6b7280);
   margin-bottom: var(--space-2);
 }
 .stress-precedent__phenom {
@@ -354,8 +354,8 @@
 .stress-precedent__domain {
   font-size: var(--fs-12, 0.75rem);
   font-weight: 600;
-  color: var(--text-secondary, ***REMOVED***6b7280);
-  background: var(--bg-subtle, ***REMOVED***f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-subtle, #f3f4f6);
   border-radius: var(--radius-sm, 4px);
   padding: 1px 6px;
 }

@@ -169,7 +169,7 @@ references:
   - "Birkeland & Landry 2002 Geophys. Res. Lett. 29, 1554 (snow slab failure)"
   - "Preisach 1935 Z. Physik 94, 277 (original hysteresis model — note this is non-cascade)"
 last_curated: 2026-05-15
-last_curated_by: Wave 11 sub-agent E (session ***REMOVED***10)
+last_curated_by: Wave 11 sub-agent E (session #10)
 last_curated_note: |
   Initial draft. Cross-judge ensemble verification deferred — no API keys
   configured in this worktree session. Class proposed as Sethna-style

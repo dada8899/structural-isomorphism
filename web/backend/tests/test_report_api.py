@@ -17,7 +17,7 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ def sample_payload():
     }
 
 
-***REMOVED*** --------- /api/report/{id} --------- ***REMOVED***
+# --------- /api/report/{id} --------- #
 
 
 def test_get_by_id_not_found(client):
@@ -73,8 +73,8 @@ def test_get_by_id_anonymous_owner_allows_read(client, isolated_store, sample_pa
     body = r.json()
     assert body["id"] == out["id"]
     assert body["payload"]["shared_structure"]["name"] == "Cascade"
-    ***REMOVED*** Owner-shape response must NOT include the share_token (caller of
-    ***REMOVED*** this endpoint already has the id; the token is for the /share path).
+    # Owner-shape response must NOT include the share_token (caller of
+    # this endpoint already has the id; the token is for the /share path).
     assert "share_token" not in body
 
 
@@ -83,10 +83,10 @@ def test_get_by_id_with_owner_requires_matching_anon(client, isolated_store, sam
         query="q", b_id="b1", lang="en", payload=sample_payload, model="m",
         creator_anon_id="A",
     )
-    ***REMOVED*** Wrong anon-id → 404 (hide existence, NOT 403)
+    # Wrong anon-id → 404 (hide existence, NOT 403)
     r = client.get(f"/api/report/{out['id']}", headers={"X-Anon-Id": "B"})
     assert r.status_code == 404
-    ***REMOVED*** Right anon-id → 200
+    # Right anon-id → 200
     r = client.get(f"/api/report/{out['id']}", headers={"X-Anon-Id": "A"})
     assert r.status_code == 200
 
@@ -101,7 +101,7 @@ def test_get_by_id_records_view(client, isolated_store, sample_payload):
     assert r.json()["view_count"] >= 2
 
 
-***REMOVED*** --------- /api/report/share/{token} --------- ***REMOVED***
+# --------- /api/report/share/{token} --------- #
 
 
 def test_get_by_share_token_round_trip(client, isolated_store, sample_payload):
@@ -109,7 +109,7 @@ def test_get_by_share_token_round_trip(client, isolated_store, sample_payload):
         query="q", b_id="b", lang="en", payload=sample_payload, model="m",
         creator_anon_id="A",
     )
-    ***REMOVED*** No anon-id needed for share access — that's the whole point.
+    # No anon-id needed for share access — that's the whole point.
     r = client.get(f"/api/report/share/{out['share_token']}")
     assert r.status_code == 200
     body = r.json()
@@ -126,7 +126,7 @@ def test_get_by_share_token_unknown(client):
     assert r.status_code == 404
 
 
-***REMOVED*** --------- /api/reports/mine --------- ***REMOVED***
+# --------- /api/reports/mine --------- #
 
 
 def test_list_mine_without_anon_returns_empty(client):
@@ -175,7 +175,7 @@ def test_list_mine_pagination(client, isolated_store, sample_payload):
     assert body2["has_more"] is False
 
 
-***REMOVED*** --------- POST /api/report/{id}/feedback --------- ***REMOVED***
+# --------- POST /api/report/{id}/feedback --------- #
 
 
 def test_feedback_up_vote(client, isolated_store, sample_payload):
@@ -248,7 +248,7 @@ def test_feedback_different_voters_accumulate(client, isolated_store, sample_pay
             json={"section": "action_plan", "vote": 1},
             headers={"X-Anon-Id": v},
         )
-    ***REMOVED*** One more down-vote from a new voter
+    # One more down-vote from a new voter
     r = client.post(
         f"/api/report/{out['id']}/feedback",
         json={"section": "action_plan", "vote": -1},
@@ -259,7 +259,7 @@ def test_feedback_different_voters_accumulate(client, isolated_store, sample_pay
     assert body["total_down"] == 1
 
 
-***REMOVED*** --------- Session ***REMOVED***17 V6 — /api/report/{id}/followup --------- ***REMOVED***
+# --------- Session #17 V6 — /api/report/{id}/followup --------- #
 
 
 def test_followup_404_for_missing_report(client):
@@ -285,7 +285,7 @@ def test_followup_records_and_reads_back(client, isolated_store, sample_payload)
     assert body["action_status"] == "tried"
     assert body["outcome"] == "worked"
 
-    ***REMOVED*** Read it back via GET — same anon.
+    # Read it back via GET — same anon.
     g = client.get(
         f"/api/report/{out['id']}/followup",
         headers={"X-Anon-Id": "anon-x"},

@@ -1,4 +1,4 @@
-"""M1.4 PR ***REMOVED***5 e2e — persisted report share + feedback flow (session ***REMOVED***17).
+"""M1.4 PR #5 e2e — persisted report share + feedback flow (session #17).
 
 Covers the 5 acceptance scenarios from
 `docs/sessions/M1.4-frontend-integration-guide.md` §5:
@@ -43,8 +43,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_BACKEND = REPO_ROOT / "web" / "backend"
 FRONTEND_DIR = REPO_ROOT / "web" / "frontend"
 
-***REMOVED*** Fixed secret shared by the test process (seeding) and the shim (verifying)
-***REMOVED*** so HMAC share tokens match across both. Set before importing report_store.
+# Fixed secret shared by the test process (seeding) and the shim (verifying)
+# so HMAC share tokens match across both. Set before importing report_store.
 _SHARE_SECRET = "e2e-test-share-secret-session-17"
 os.environ["STRUCTURAL_SHARE_TOKEN_SECRET"] = _SHARE_SECRET
 os.environ["STRUCTURAL_ENV"] = "test"
@@ -52,7 +52,7 @@ os.environ["STRUCTURAL_ENV"] = "test"
 _LOCAL_VENV = REPO_ROOT / ".venv" / "bin" / "python"
 _MAIN_VENV = Path.home() / "Projects" / "structural-isomorphism" / ".venv" / "bin" / "python"
 
-***REMOVED*** The 9 canonical section keys (mirror of report.py _ALLOWED_SECTIONS).
+# The 9 canonical section keys (mirror of report.py _ALLOWED_SECTIONS).
 SECTION_KEYS = [
     "shared_structure",
     "your_problem_breakdown",
@@ -102,7 +102,7 @@ def _sample_payload() -> dict:
     }
 
 
-***REMOVED*** ---------------- shim + store fixtures ------------------------------ ***REMOVED***
+# ---------------- shim + store fixtures ------------------------------ #
 
 
 @pytest.fixture(scope="module")
@@ -137,7 +137,7 @@ except Exception:
 
 FRONTEND = Path({str(FRONTEND_DIR)!r})
 
-***REMOVED*** Point the router's lazily-initialised store at our temp DB.
+# Point the router's lazily-initialised store at our temp DB.
 report_api._store = ReportStore({str(db_path)!r})
 
 app = FastAPI()
@@ -203,7 +203,7 @@ def seed_report(report_backend):
     """
     if str(WEB_BACKEND) not in sys.path:
         sys.path.insert(0, str(WEB_BACKEND))
-    from services.report_store import ReportStore  ***REMOVED*** noqa: WPS433
+    from services.report_store import ReportStore  # noqa: WPS433
 
     store = ReportStore(report_backend["db_path"])
 
@@ -241,7 +241,7 @@ def _api(method: str, url: str, headers: dict | None = None, body=None):
             return e.code, {"_raw": payload.decode(errors="replace")}
 
 
-***REMOVED*** =================== Phase A — API contract ========================= ***REMOVED***
+# =================== Phase A — API contract ========================= #
 
 
 def test_persist_flow_share_token_round_trip(report_backend, seed_report):
@@ -252,7 +252,7 @@ def test_persist_flow_share_token_round_trip(report_backend, seed_report):
     assert status == 200, body
     assert body["id"] == rep["id"]
     assert body["query"] == "为什么蚁群能找到最短路径"
-    ***REMOVED*** payload comes back as a parsed dict with all 9 sections.
+    # payload comes back as a parsed dict with all 9 sections.
     assert isinstance(body["payload"], dict)
     assert set(body["payload"]) == set(SECTION_KEYS)
 
@@ -268,17 +268,17 @@ def test_credibility_lifted_from_payload(report_backend, seed_report):
     status, body = _api("GET", f"{base}/api/report/share/{rep['share_token']}")
     assert status == 200, body
     assert body["credibility"] == cred
-    ***REMOVED*** _credibility must not leak into the section payload.
+    # _credibility must not leak into the section payload.
     assert "_credibility" not in body["payload"]
     assert set(body["payload"]) == set(SECTION_KEYS)
 
 
 def test_share_invalid_token_returns_404(report_backend):
     base = report_backend["base"]
-    ***REMOVED*** Well-formed (32 hex) but unsigned token.
+    # Well-formed (32 hex) but unsigned token.
     status, _ = _api("GET", f"{base}/api/report/share/{'a' * 32}")
     assert status == 404
-    ***REMOVED*** Malformed length — also 404, never 500.
+    # Malformed length — also 404, never 500.
     status2, _ = _api("GET", f"{base}/api/report/share/tooshort")
     assert status2 == 404
 
@@ -369,7 +369,7 @@ def test_feedback_on_missing_report_404(report_backend):
 def test_reports_mine_lists_only_my_reports(report_backend, seed_report):
     """/api/reports/mine filters by X-Anon-Id, newest first."""
     seed_report(query="anonA report 1", creator_anon_id="list-anon-A")
-    time.sleep(0.01)  ***REMOVED*** keep created_at strictly ordered
+    time.sleep(0.01)  # keep created_at strictly ordered
     seed_report(query="anonA report 2", creator_anon_id="list-anon-A")
     seed_report(query="anonB report", creator_anon_id="list-anon-B")
 
@@ -383,7 +383,7 @@ def test_reports_mine_lists_only_my_reports(report_backend, seed_report):
     assert "anonA report 1" in queries
     assert "anonA report 2" in queries
     assert "anonB report" not in queries
-    ***REMOVED*** Newest first.
+    # Newest first.
     assert queries.index("anonA report 2") < queries.index("anonA report 1")
 
 
@@ -394,12 +394,12 @@ def test_reports_mine_without_anon_id_is_empty(report_backend):
     assert body == {"items": [], "has_more": False}
 
 
-***REMOVED*** =================== Phase B — browser ============================== ***REMOVED***
+# =================== Phase B — browser ============================== #
 
 try:
-    from playwright.sync_api import sync_playwright  ***REMOVED*** noqa: F401
+    from playwright.sync_api import sync_playwright  # noqa: F401
     _PLAYWRIGHT = True
-except Exception:  ***REMOVED*** pragma: no cover - env without playwright
+except Exception:  # pragma: no cover - env without playwright
     _PLAYWRIGHT = False
 
 
@@ -414,22 +414,22 @@ def test_share_page_renders_in_browser(report_backend, seed_report):
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        ***REMOVED*** A brand-new context == incognito: no localStorage anonId.
+        # A brand-new context == incognito: no localStorage anonId.
         ctx = browser.new_context()
         page = ctx.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            ***REMOVED*** report.js reuses analyze.js renderFinalReport — sections render
-            ***REMOVED*** as ***REMOVED***analyze-sections > section.section (one per 9-section key).
-            page.wait_for_selector("***REMOVED***analyze-sections .section", timeout=10000)
-            sections = page.locator("***REMOVED***analyze-sections .section")
+            # report.js reuses analyze.js renderFinalReport — sections render
+            # as #analyze-sections > section.section (one per 9-section key).
+            page.wait_for_selector("#analyze-sections .section", timeout=10000)
+            sections = page.locator("#analyze-sections .section")
             assert sections.count() == 9, "expected all 9 sections rendered"
-            ***REMOVED*** Meta header (query title) is shown, loading spinner gone.
-            assert page.locator("***REMOVED***report-meta").is_visible()
-            assert "跨领域同构 e2e 渲染测试" in page.locator("***REMOVED***report-meta").inner_text()
-            assert page.locator("***REMOVED***report-loading").is_hidden()
-            ***REMOVED*** Share bar is wired for a share-route load.
-            assert page.locator("***REMOVED***analyze-share-bar").count() == 1
+            # Meta header (query title) is shown, loading spinner gone.
+            assert page.locator("#report-meta").is_visible()
+            assert "跨领域同构 e2e 渲染测试" in page.locator("#report-meta").inner_text()
+            assert page.locator("#report-loading").is_hidden()
+            # Share bar is wired for a share-route load.
+            assert page.locator("#analyze-share-bar").count() == 1
         finally:
             ctx.close()
             browser.close()
@@ -450,9 +450,9 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report):
         page = ctx.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            ***REMOVED*** Overall 👍/👎 live in the share bar (renderShareBar unhides it).
-            page.wait_for_selector("***REMOVED***analyze-share-bar .analyze-vote--up", timeout=10000)
-            up_btn = page.locator("***REMOVED***analyze-share-bar .analyze-vote--up").first
+            # Overall 👍/👎 live in the share bar (renderShareBar unhides it).
+            page.wait_for_selector("#analyze-share-bar .analyze-vote--up", timeout=10000)
+            up_btn = page.locator("#analyze-share-bar .analyze-vote--up").first
             with page.expect_response(
                 lambda r: feedback_path in r.url and r.request.method == "POST",
                 timeout=10000,
@@ -474,7 +474,7 @@ def test_my_reports_empty_state_in_browser(report_backend):
     url = f"{report_backend['base']}/reports"
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context()  ***REMOVED*** fresh — no anonId
+        ctx = browser.new_context()  # fresh — no anonId
         page = ctx.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
@@ -499,7 +499,7 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         ctx = browser.new_context()
-        ***REMOVED*** Seed anonId before any page script runs.
+        # Seed anonId before any page script runs.
         ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
         page = ctx.new_page()
         try:
@@ -507,10 +507,10 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
             page.wait_for_selector(".myr-card", timeout=10000)
             cards = page.locator(".myr-card")
             assert cards.count() == 2
-            text = page.locator("***REMOVED***myr-list").inner_text()
+            text = page.locator("#myr-list").inner_text()
             assert "蚁群优化与城市交通" in text
             assert "珊瑚白化与系统性金融风险" in text
-            ***REMOVED*** Each card links to a report detail URL.
+            # Each card links to a report detail URL.
             href = cards.first.get_attribute("href")
             assert href and href.startswith("/report/r_")
         finally:

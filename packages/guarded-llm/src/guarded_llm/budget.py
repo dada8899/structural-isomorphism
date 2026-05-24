@@ -3,7 +3,7 @@
 Public types::
 
     Budget(usd_total: float, usd_per_call: float = inf)
-        .consume(usd: float) -> None    ***REMOVED*** raises BudgetExceeded if either cap hit
+        .consume(usd: float) -> None    # raises BudgetExceeded if either cap hit
         .spent_usd -> float
         .remaining_usd -> float
 
@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from .exceptions import BudgetExceededError
 
 
-***REMOVED*** Public alias — matches the name used in README/quickstart.
+# Public alias — matches the name used in README/quickstart.
 BudgetExceeded = BudgetExceededError
 
 
@@ -36,10 +36,10 @@ class Budget:
     Example::
 
         b = Budget(usd_total=0.50, usd_per_call=0.10)
-        b.consume(0.03)            ***REMOVED*** OK
-        b.consume(0.50)            ***REMOVED*** raises BudgetExceeded (over per-call cap)
-        b.spent_usd                ***REMOVED*** 0.03
-        b.remaining_usd            ***REMOVED*** 0.47
+        b.consume(0.03)            # OK
+        b.consume(0.50)            # raises BudgetExceeded (over per-call cap)
+        b.spent_usd                # 0.03
+        b.remaining_usd            # 0.47
     """
 
     usd_total: float

@@ -1,8 +1,8 @@
-***REMOVED*** D1 Phase Detector — Screener API
+# D1 Phase Detector — Screener API
 
 FastAPI service exposing the StructTuple universe to the W3-C frontend.
 
-***REMOVED******REMOVED*** Endpoints
+## Endpoints
 
 | Method | Path                       | Description                                                                     |
 |--------|----------------------------|---------------------------------------------------------------------------------|
@@ -13,10 +13,10 @@ FastAPI service exposing the StructTuple universe to the W3-C frontend.
 
 OpenAPI auto-docs: `/docs` (swagger) and `/redoc`.
 
-***REMOVED******REMOVED*** Quick start
+## Quick start
 
 ```bash
-***REMOVED*** from repo root, with .venv activated and dependencies installed
+# from repo root, with .venv activated and dependencies installed
 PYTHONPATH=. \
   .venv/bin/uvicorn v4.product.d1_phase_detector.api.main:app --reload --port 8000
 ```
@@ -30,23 +30,23 @@ curl http://localhost:8000/company/AAPL
 curl http://localhost:8000/stats
 ```
 
-***REMOVED******REMOVED*** Environment
+## Environment
 
 | Var      | Default                                                  | Notes                                                |
 |----------|----------------------------------------------------------|------------------------------------------------------|
 | `DB_URL` | `sqlite:///<api>/../d1.sqlite`                            | Use `postgresql://...` for prod. SQLite is the dev / test default. |
 
-***REMOVED******REMOVED*** Data loading
+## Data loading
 
 Ingest StructTuple JSONL into the DB:
 
 ```bash
-***REMOVED*** SQLite (default for dev)
+# SQLite (default for dev)
 .venv/bin/python v4/product/d1_phase_detector/scripts/ingest_to_postgres.py \
   v4/product/d1_phase_detector/structtuples_2026-05-13.jsonl \
   --db-url sqlite:///v4/product/d1_phase_detector/d1.sqlite
 
-***REMOVED*** Postgres
+# Postgres
 .venv/bin/python v4/product/d1_phase_detector/scripts/ingest_to_postgres.py \
   v4/product/d1_phase_detector/structtuples_2026-05-13.jsonl \
   --db-url postgresql://user:pass@host:5432/phase_detector
@@ -59,7 +59,7 @@ The ingestion script:
 3. Upserts by `ticker` (`ON CONFLICT DO UPDATE`).
 4. Logs `N inserted / N updated / N skipped / N errors`.
 
-***REMOVED******REMOVED*** Tests
+## Tests
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m pytest v4/product/d1_phase_detector/api/tests/ -v --override-ini="testpaths="
@@ -73,7 +73,7 @@ Tests use SQLite in-temp-dir fixtures, no external DB required. All 16 cases cov
 - `/company/{ticker}` hit / case-insensitive / 404
 - CORS
 
-***REMOVED******REMOVED*** Production deploy (sketch — not part of this PR)
+## Production deploy (sketch — not part of this PR)
 
 Target host: `phase.bytedance.city`.
 
@@ -83,11 +83,11 @@ Target host: `phase.bytedance.city`.
 4. nginx reverse-proxies `phase.bytedance.city → 127.0.0.1:8000`.
 5. certbot Let's Encrypt cert via nginx plugin.
 
-***REMOVED******REMOVED*** CORS
+## CORS
 
 `allow_origins=["*"]` for dev. Tighten to the W3-C origin before prod.
 
-***REMOVED******REMOVED*** Schema
+## Schema
 
 Postgres: `migrations/0001_companies_structtuples.sql`
 SQLite fallback: `migrations/0001_companies_structtuples_sqlite.sql` (mirrors columns; JSON stored as TEXT).

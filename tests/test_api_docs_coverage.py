@@ -22,21 +22,21 @@ from pathlib import Path
 
 import pytest
 
-***REMOVED*** Add the three package src/ dirs so the test runs without requiring an
-***REMOVED*** editable install of the workspace.
+# Add the three package src/ dirs so the test runs without requiring an
+# editable install of the workspace.
 _REPO = Path(__file__).resolve().parents[1]
 for _pkg in ("soc-pipeline", "cross-judge", "guarded-llm"):
     _src = _REPO / "packages" / _pkg / "src"
     if str(_src) not in sys.path:
         sys.path.insert(0, str(_src))
 
-import cross_judge  ***REMOVED*** noqa: E402
-import guarded_llm  ***REMOVED*** noqa: E402
-import soc_pipeline  ***REMOVED*** noqa: E402
+import cross_judge  # noqa: E402
+import guarded_llm  # noqa: E402
+import soc_pipeline  # noqa: E402
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Symbols that are type aliases / module constants — exempt from __doc__.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Symbols that are type aliases / module constants — exempt from __doc__.
+# ---------------------------------------------------------------------------
 _TYPE_ALIAS_EXEMPT = {
     ("cross_judge", "VerdictKind"),
     ("cross_judge", "VotingStrategy"),
@@ -49,10 +49,10 @@ _TYPE_ALIAS_EXEMPT = {
     ("guarded_llm", "__version__"),
 }
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Tier 1 — the top public API. Strict Google-style enforcement applies.
-***REMOVED*** These are the names CTAs in package READMEs / docs cards point at.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Tier 1 — the top public API. Strict Google-style enforcement applies.
+# These are the names CTAs in package READMEs / docs cards point at.
+# ---------------------------------------------------------------------------
 _TIER_1_PUBLIC_API = {
     ("soc_pipeline", "validate"),
     ("soc_pipeline", "Verdict"),
@@ -69,11 +69,11 @@ _TIER_1_PUBLIC_API = {
     ("guarded_llm", "SchemaValidator"),
 }
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Symbols where Args/Returns are documented in a class-level Attributes block.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Symbols where Args/Returns are documented in a class-level Attributes block.
+# ---------------------------------------------------------------------------
 _ATTRIBUTES_DOCUMENTED = {
-    ***REMOVED*** dataclasses / Pydantic models — params documented via Attributes
+    # dataclasses / Pydantic models — params documented via Attributes
     ("soc_pipeline", "Verdict"),
     ("soc_pipeline", "FitResult"),
     ("soc_pipeline", "BootstrapResult"),
@@ -92,7 +92,7 @@ _ATTRIBUTES_DOCUMENTED = {
     ("guarded_llm", "Layer3CriticVerdict"),
     ("guarded_llm", "Layer4Prediction"),
     ("guarded_llm", "B3EnsembleReview"),
-    ***REMOVED*** Pydantic models with field-level docstring/description
+    # Pydantic models with field-level docstring/description
     ("guarded_llm", "Budget"),
     ("guarded_llm", "RetryPolicy"),
 }

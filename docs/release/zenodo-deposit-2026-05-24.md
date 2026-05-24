@@ -1,4 +1,4 @@
-***REMOVED*** Zenodo deposit instructions — 2026-05-24
+# Zenodo deposit instructions — 2026-05-24
 
 **Status.** Local bundle ready. Waiting for user (or designated co-author) to log in and upload. The DOI is **permanent and cannot be retracted** once minted, so confirm metadata before clicking Publish.
 
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Files prepared (under `release/zenodo/`)
+## Files prepared (under `release/zenodo/`)
 
 | File | Purpose |
 |---|---|
@@ -25,7 +25,7 @@ Bundle SHA-256:
 
 ---
 
-***REMOVED******REMOVED*** Step-by-step upload
+## Step-by-step upload
 
 1. **Log in to Zenodo.** https://zenodo.org → top-right → "Log in" with GitHub or ORCID (use the account you intend to mint the DOI under — the DOI's creator field cannot be changed later).
 2. **Pre-check ORCID.** `.zenodo.json` carries an `orcid: 0000-0000-0000-0000` placeholder. Update it with the real ORCID (https://orcid.org/my-orcid) before publishing — it is rendered on the deposit page and indexed by DataCite.
@@ -47,7 +47,7 @@ Bundle SHA-256:
 
 ---
 
-***REMOVED******REMOVED*** After getting the DOI
+## After getting the DOI
 
 Hand the DOI back to the main session, which will:
 
@@ -65,7 +65,7 @@ The arXiv submission step (`docs/release/arxiv-submission-2026-05-24.md`) waits 
 
 ---
 
-***REMOVED******REMOVED*** Notes / gotchas
+## Notes / gotchas
 
 - **Bundle versioning.** This is `dataset-v1.0`. If the dataset evolves, mint a *new version* on the same Zenodo concept-DOI (Zenodo's "New version" button), not a brand-new DOI. The concept-DOI always resolves to the latest version; the per-version DOI is what papers cite.
 - **Per-system data licences.** The bundle is CC-BY-4.0 for derived/processed data, but upstream raw catalogues have their own licences (USGS public domain, Yahoo Finance ToS, DANDI CC-BY-4.0, NIFC public domain, etc.). The Zenodo deposit description should mention this; per-system folders in the bundle ideally carry a `LICENSE.txt` or `data-license-notes.md`. **Action item before publish.** Spot-check that every system folder makes provenance clear; if any folder is unattributed, decide before publish.
@@ -74,6 +74,6 @@ The arXiv submission step (`docs/release/arxiv-submission-2026-05-24.md`) waits 
 
 ---
 
-***REMOVED******REMOVED*** One-line user upload step
+## One-line user upload step
 
 > Log in to https://zenodo.org → New upload → drag `release/zenodo/dataset-v1.tar.gz` → import metadata from `release/zenodo/.zenodo.json` (paste into the form) → set real ORCID → Save draft → review preview → Publish → record the DOI back to the main session.

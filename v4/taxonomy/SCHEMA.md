@@ -1,6 +1,6 @@
-***REMOVED*** V4 Per-Class YAML Taxonomy Schema
+# V4 Per-Class YAML Taxonomy Schema
 
-***REMOVED******REMOVED*** Overview
+## Overview
 
 The V4 taxonomy is a corpus of universality-class definitions used by the Structural Isomorphism pipeline. Each class file at `v4/taxonomy/classes/<class_id>.yaml` is a self-contained declarative spec covering: identity, mechanism (shared equation), measurable invariants, verified positive examples, plausible-but-rejected negatives, contested edge cases, and reference literature.
 
@@ -8,62 +8,62 @@ The corpus is intentionally normative: each class makes falsifiable claims about
 
 The legacy single-file seed taxonomy at `v4/taxonomy/universality_classes.yaml` is preserved unchanged for backwards compatibility with the V4 Layer 3 / 4 pipeline. The new per-class files in `v4/taxonomy/classes/` are the authoritative source going forward.
 
-***REMOVED******REMOVED*** File location & naming
+## File location & naming
 
 - Directory: `v4/taxonomy/classes/`
 - Filename: `<class_id>.yaml`
 - `class_id` is snake_case, ASCII, lowercase, globally unique within the taxonomy
 - Sub-class variants follow `<parent>_<variant_suffix>` (e.g. `gardner_collins_toggle_switch_Th1Th2`)
 
-***REMOVED******REMOVED*** Required keys
+## Required keys
 
 ```yaml
-class_id: <snake_case_string>          ***REMOVED*** globally unique identifier
-status: <tier>                          ***REMOVED*** well-established | emerging | speculative
-display_name: <english_short_title>     ***REMOVED*** human-readable English name
-display_name_zh: <chinese_short_title>  ***REMOVED*** human-readable Chinese name
-hub_phenomenon: <one_line_summary>      ***REMOVED*** the central phenomenon the class describes
-shared_equation: <multiline_string>     ***REMOVED*** master equation(s) defining the class
-key_invariants:                         ***REMOVED*** 3-7 measurable scaling laws / structural features
+class_id: <snake_case_string>          # globally unique identifier
+status: <tier>                          # well-established | emerging | speculative
+display_name: <english_short_title>     # human-readable English name
+display_name_zh: <chinese_short_title>  # human-readable Chinese name
+hub_phenomenon: <one_line_summary>      # the central phenomenon the class describes
+shared_equation: <multiline_string>     # master equation(s) defining the class
+key_invariants:                         # 3-7 measurable scaling laws / structural features
   - <string>
   - <string>
-positive_examples:                      ***REMOVED*** phenomena confirmed (or strongly candidate) as members
+positive_examples:                      # phenomena confirmed (or strongly candidate) as members
   - phenomenon: <name>
     evidence: <one-paragraph quantitative summary>
     verified_at: <YYYY-MM-DD | "candidate">
-    paper: <path_to_validation_paper>   ***REMOVED*** optional; only when Layer 5 verified
-negative_examples:                      ***REMOVED*** 3-5 plausible near-misses
+    paper: <path_to_validation_paper>   # optional; only when Layer 5 verified
+negative_examples:                      # 3-5 plausible near-misses
   - phenomenon: <name>
     reason: <mechanism mismatch + correct class assignment>
-edge_cases:                             ***REMOVED*** 1-3 contested / borderline phenomena
+edge_cases:                             # 1-3 contested / borderline phenomena
   - phenomenon: <name>
     debate: <description of why class membership is uncertain>
-references:                             ***REMOVED*** 5-10 canonical literature pointers
+references:                             # 5-10 canonical literature pointers
   - <citation_string>
 ```
 
 Optional keys (used when needed):
 
 ```yaml
-notes: <multiline string>               ***REMOVED*** extra context, especially for speculative classes
+notes: <multiline string>               # extra context, especially for speculative classes
 ```
 
-***REMOVED******REMOVED*** Status tiers
+## Status tiers
 
 The `status` field declares the maturity of class evidence and governs how the pipeline weights membership claims.
 
-***REMOVED******REMOVED******REMOVED*** `well-established`
+### `well-established`
 - ≥ 1 Layer 5 phase verification has been completed (real-data fit of predicted exponents within band, controls passed, paper drafted)
 - Class definition is stable; new members map cleanly without redefining the equation
 - Currently: 2 classes — `soc_threshold_cascade` (6 verified systems: earthquake, S&P 500, DeFi × 3 protocols, mouse cortex, wildfire, solar flare) and `preferential_attachment` (1 verified: GitHub stars Phase 6)
 
-***REMOVED******REMOVED******REMOVED*** `emerging`
+### `emerging`
 - Strong theoretical basis (canonical physics/math prototype identified)
 - ≥ 3 cross-domain candidate members listed in V3 mechanism graph
 - No Layer 5 verification yet, but predictions are concrete and falsifiable
 - Currently: 13 classes — `delay_differential_debt`, `extreme_value_tail_class`, `gardner_collins_toggle_switch`, `hysteresis_first_order_transition`, `leaky_integrate_fire_threshold_class`, `markov_chain_memory_fidelity_class`, `motter_lai_network_cascade`, `percolation_connectivity`, `reaction_diffusion_steady_state_class`, `reflexive_fixed_point_class`, `scale_free_percolation_class`, `second_order_damped_oscillator`, `sir_contagion_network_class`, `adverse_selection_unraveling_class`
 
-***REMOVED******REMOVED******REMOVED*** `speculative`
+### `speculative`
 - LLM-proposed sub-class or cluster from automated taxonomy match
 - Either narrows an emerging class to a specific domain instance, or aggregates loosely-related phenomena without sharp quantitative invariant
 - May overlap heavily with a parent class; consolidation review pending
@@ -71,32 +71,32 @@ The `status` field declares the maturity of class evidence and governs how the p
 
 Promotion path: `speculative` → `emerging` requires consolidation review + canonical prototype identification. `emerging` → `well-established` requires Layer 5 paper with positive verdict.
 
-***REMOVED******REMOVED*** How to use the corpus
+## How to use the corpus
 
-***REMOVED******REMOVED******REMOVED*** For automated taxonomy match (Layer 3)
+### For automated taxonomy match (Layer 3)
 1. Score candidate hub against each class's `shared_equation` and `key_invariants` for semantic similarity
 2. Boost scores for `well-established` classes (prior weight)
 3. Penalize matches that fall into any `negative_examples` entry (mechanism mismatch is a strong signal)
 4. Flag `edge_cases` matches for human review
 
-***REMOVED******REMOVED******REMOVED*** For Layer 4 prediction generation
+### For Layer 4 prediction generation
 1. Read the class's `shared_equation` and `key_invariants` to construct testable numerical bands
 2. Use `positive_examples` evidence as calibration anchors for prediction ranges
 3. The `paper` field links to ground-truth validation runs for transferable exponent values
 
-***REMOVED******REMOVED******REMOVED*** For Layer 5 verification audit
+### For Layer 5 verification audit
 1. After running a real-data fit, compare result against `key_invariants` quantitative bands
 2. Pass → append to `positive_examples` with `verified_at` and `paper` path
 3. Mismatch but mechanism still applies → record as `edge_cases` with debate description
 4. Mismatch and mechanism fails → record as `negative_examples` to prevent future misclassification
 
-***REMOVED******REMOVED******REMOVED*** For new-class admission
+### For new-class admission
 1. Draft full yaml against this schema (status: `speculative` initial)
 2. Confirm uniqueness of `class_id` against existing files
 3. Add ≥ 3 candidate `positive_examples` and ≥ 3 `negative_examples`
 4. Submit for consolidation review; merge with parent class if overlap > 70%
 
-***REMOVED******REMOVED*** Validation
+## Validation
 
 The schema can be validated programmatically (planned: `v4/lib/taxonomy_lint.py`):
 - All required keys present
@@ -106,7 +106,7 @@ The schema can be validated programmatically (planned: `v4/lib/taxonomy_lint.py`
 - Cross-reference: every `paper` path exists on disk
 - Uniqueness: no two yaml files share the same `class_id`
 
-***REMOVED******REMOVED*** Versioning
+## Versioning
 
 Files are tracked in git. Schema changes go through:
 1. Update this SCHEMA.md

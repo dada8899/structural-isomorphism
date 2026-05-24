@@ -1,6 +1,6 @@
-***REMOVED*** Universe selection — backtest v0.1 (1000-ticker)
+# Universe selection — backtest v0.1 (1000-ticker)
 
-***REMOVED******REMOVED*** Composition
+## Composition
 
 | Source | Count | File row label |
 |---|---|---|
@@ -10,16 +10,16 @@
 
 Output: `backtest/data/1000_universe.csv` (columns: `ticker`, `source`).
 
-***REMOVED******REMOVED*** Methodology
+## Methodology
 
-***REMOVED******REMOVED******REMOVED*** S&P 500 component
+### S&P 500 component
 Sourced directly from `v4/product/d1_phase_detector/companies_500.jsonl`, the
 Wave 1 input list. Each of these 500 tickers has a `critical_point_state`
 label assigned by `deepseek-v4-flash` at snapshot 2026-05-13. These labels
 power the headline LLM-based hypothesis test (`near_critical` cohort vs
 benchmark).
 
-***REMOVED******REMOVED******REMOVED*** Russell 1000 supplement
+### Russell 1000 supplement
 A curated 501-ticker static list, hand-sampled from public Russell 1000
 weight tables (iShares IWB ETF holdings, nasdaq.com Russell weights, April
 2026 snapshot). Names selected to:
@@ -35,20 +35,20 @@ freely redistributable in CSV form. This curated 501-name sample is a
 representative ~50% slice of Russell 1000 non-S&P-500 names. We treat it as
 "supplementary universe" — not a strict R1000 reconstitution.
 
-***REMOVED******REMOVED*** Why these counts (not exactly 1000)
+## Why these counts (not exactly 1000)
 
 Target was 1000 tickers (per W7-D Track A). Actual = 1001 after dedupe
 (S&P 500 list itself has some name overlap with our seed Russell list which
 were dropped). The off-by-one is cosmetic; for backtest purposes "1000" is
 the order-of-magnitude scale that matters.
 
-***REMOVED******REMOVED*** Coverage at fetch time
+## Coverage at fetch time
 
 Expect ~3-5% fetch failures (delisted tickers, dotted-ticker yfinance bugs
 like `BRK.B`/`BF.B`, ETF symbols accidentally included). Final n_universe
 after price-fetch coverage is logged in `prices.meta.json`.
 
-***REMOVED******REMOVED*** Two-tier label structure
+## Two-tier label structure
 
 The walk-forward backtest produces results in two layered cohorts:
 
@@ -72,7 +72,7 @@ baseline. If `near_critical_heuristic` produces a similar (or larger) Sharpe
 lift than `near_critical_llm`, the LLM is not adding economic value on this
 horizon.
 
-***REMOVED******REMOVED*** Future work — true Russell 1000
+## Future work — true Russell 1000
 
 The Russell 1000 reconstitutes annually in late June. A production version of
 this universe should:

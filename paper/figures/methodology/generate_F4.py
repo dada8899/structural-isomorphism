@@ -80,11 +80,11 @@ def _load_earthquake_energy() -> tuple[np.ndarray, float]:
             except Exception:
                 continue
     energy = np.power(10.0, 1.5 * np.array(mags)) if mags else np.array([])
-    ***REMOVED*** baseline xmin: use Clauset fit's xmin from gr_results.json if available
+    # baseline xmin: use Clauset fit's xmin from gr_results.json if available
     gr = VALIDATION / "soc-earthquake" / "gr_results.json"
     if gr.exists():
         d = json.loads(gr.read_text())
-        ***REMOVED*** Earthquake uses b-value, not Clauset-xmin in energy. Use median energy
+        # Earthquake uses b-value, not Clauset-xmin in energy. Use median energy
         baseline = float(np.median(energy)) if len(energy) else 1e8
     else:
         baseline = float(np.median(energy)) if len(energy) else 1e8
@@ -104,7 +104,7 @@ def _load_stockmarket() -> tuple[np.ndarray, float]:
     rets = np.diff(np.log(prices))
     abs_rets = np.abs(rets[np.isfinite(rets)])
     abs_rets = abs_rets[abs_rets > 0]
-    ***REMOVED*** baseline xmin from gr_results.json clauset_fit.xmin
+    # baseline xmin from gr_results.json clauset_fit.xmin
     gr = VALIDATION / "soc-stockmarket" / "gr_results.json"
     baseline = 0.01
     if gr.exists():
@@ -133,23 +133,23 @@ def _baseline_from_results(json_path: Path, *keys: str, default: float = 1.0) ->
         return default
 
 
-***REMOVED*** Per-system loader returning (vals, baseline_xmin, label)
+# Per-system loader returning (vals, baseline_xmin, label)
 def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
     out: list[tuple[str, np.ndarray, float, str]] = []
 
-    ***REMOVED*** Earthquake (use magnitude as observable since b-value uses mag)
+    # Earthquake (use magnitude as observable since b-value uses mag)
     eq_vals, eq_baseline = _load_earthquake_energy()
     if len(eq_vals) > 0:
-        ***REMOVED*** For energy data, xmin baseline from data percentile (50th)
+        # For energy data, xmin baseline from data percentile (50th)
         out.append(("earthquake", eq_vals, float(np.percentile(eq_vals, 50)),
                     "earthquake energy (J)"))
 
-    ***REMOVED*** Stockmarket
+    # Stockmarket
     sp_vals, sp_baseline = _load_stockmarket()
     if len(sp_vals) > 0:
         out.append(("stockmarket", sp_vals, sp_baseline, "S&P 500 |daily ret|"))
 
-    ***REMOVED*** DeFi Aave
+    # DeFi Aave
     aave = _load_jsonl_field(VALIDATION / "soc-defi" / "aave_v2_liquidations.jsonl",
                               ("debt_to_cover_raw", "debt_to_cover"))
     if len(aave) > 0:
@@ -159,7 +159,7 @@ def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
         )
         out.append(("defi_aave", aave, baseline, "DeFi Aave V2 liquidations"))
 
-    ***REMOVED*** Wildfire
+    # Wildfire
     wf = _load_jsonl_field(VALIDATION / "soc-wildfire" / "fires.jsonl",
                             ("size_acres",))
     if len(wf) > 0:
@@ -169,7 +169,7 @@ def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
         )
         out.append(("wildfire", wf, baseline, "wildfire (acres)"))
 
-    ***REMOVED*** Solar flares
+    # Solar flares
     sol = _load_jsonl_field(VALIDATION / "soc-solar" / "flares.jsonl",
                              ("peak_flux_W_m2", "peak_flux"))
     if len(sol) > 0:
@@ -179,7 +179,7 @@ def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
         )
         out.append(("solar", sol, baseline, "solar flare peak flux"))
 
-    ***REMOVED*** Bank failures
+    # Bank failures
     bf = _load_jsonl_field(VALIDATION / "soc-bank-failures" / "bank_failures.jsonl",
                             ("assets_usd",))
     if len(bf) > 0:
@@ -189,7 +189,7 @@ def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
         )
         out.append(("bank_failure", bf, baseline, "bank assets (USD)"))
 
-    ***REMOVED*** GitHub stars
+    # GitHub stars
     gh = _load_jsonl_field(VALIDATION / "soc-github-stars" / "repos.jsonl",
                             ("stars", "stargazers_count"))
     if len(gh) > 0:
@@ -199,7 +199,7 @@ def make_systems() -> list[tuple[str, np.ndarray, float, str]]:
         )
         out.append(("github_stars", gh, baseline, "GitHub stargazers"))
 
-    ***REMOVED*** Wikipedia
+    # Wikipedia
     wk = _load_jsonl_field(VALIDATION / "soc-wikipedia-views" / "pageviews_2023_2024.jsonl",
                             ("views_total", "views", "pageviews"))
     if len(wk) > 0:
@@ -259,8 +259,8 @@ def sweep_xmin(
         "alpha_range": float(np.nanmax(arr) - np.nanmin(arr)),
         "alpha_std": float(np.nanstd(arr)),
         "baseline_xmin": float(baseline),
-        ***REMOVED*** Drift = absolute alpha range across xmin sweep
-        ***REMOVED*** < 0.2 = robust, 0.2-0.5 = mild drift, > 0.5 = substantial drift
+        # Drift = absolute alpha range across xmin sweep
+        # < 0.2 = robust, 0.2-0.5 = mild drift, > 0.5 = substantial drift
         "drift_assessment": (
             "robust" if (np.nanmax(arr) - np.nanmin(arr)) < 0.2 else
             "mild_drift" if (np.nanmax(arr) - np.nanmin(arr)) < 0.5 else
@@ -288,7 +288,7 @@ def main():
     OUT_DATA.write_text(json.dumps(results, indent=2))
     print(f"[F4] wrote {OUT_DATA}")
 
-    ***REMOVED*** Plot grid
+    # Plot grid
     n_sys = len(results)
     ncols = 3
     nrows = (n_sys + ncols - 1) // ncols
@@ -302,11 +302,11 @@ def main():
             for a in info["alphas"]
         ])
         baseline_xmin = info.get("baseline_xmin", x[len(x) // 2])
-        ***REMOVED*** Normalize x to baseline ratio
+        # Normalize x to baseline ratio
         x_ratio = x / baseline_xmin
-        ax.plot(x_ratio, y, "o-", color="***REMOVED***1f77b4", lw=1.5, ms=4, alpha=0.85)
+        ax.plot(x_ratio, y, "o-", color="#1f77b4", lw=1.5, ms=4, alpha=0.85)
         ax.axvline(1.0, color="k", ls="--", alpha=0.5, lw=1, label="baseline")
-        ***REMOVED*** Reference band: baseline alpha plus/minus 0.2
+        # Reference band: baseline alpha plus/minus 0.2
         finite = y[np.isfinite(y)]
         if len(finite) > 0:
             alpha_mean = float(np.mean(finite))
@@ -320,7 +320,7 @@ def main():
                      fontsize=9)
         ax.grid(True, which="both", alpha=0.3)
 
-    ***REMOVED*** Hide unused axes
+    # Hide unused axes
     for ax in axes_flat[len(results):]:
         ax.axis("off")
 

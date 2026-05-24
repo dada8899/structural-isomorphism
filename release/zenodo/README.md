@@ -1,4 +1,4 @@
-***REMOVED*** Structural Isomorphism: Cross-domain SOC validation dataset and pipeline (v1.0)
+# Structural Isomorphism: Cross-domain SOC validation dataset and pipeline (v1.0)
 
 **Version.** 1.0.0 — 2026-05-24
 **Author.** Wan Qihui (万庆徽), Structural Isomorphism Project (independent researcher)
@@ -8,11 +8,11 @@
 
 ---
 
-***REMOVED******REMOVED*** What this is
+## What this is
 
 A single fixed analysis pipeline applied **unchanged** to thirteen independent empirical systems and four synthetic non-SOC null controls, to test cross-domain self-organized-criticality (SOC) universality claims. The dataset bundle (`dataset-v1.tar.gz`) contains the raw inputs, fit results, taxonomy outputs, and pipeline source code needed to reproduce every number reported in the companion preprint.
 
-***REMOVED******REMOVED*** What is inside `dataset-v1.tar.gz`
+## What is inside `dataset-v1.tar.gz`
 
 ```
 v4/validation/         <- 13 empirical systems + 4 null controls (raw + fit results)
@@ -26,7 +26,7 @@ packages/soc-pipeline/ <- pipeline source code snapshot (src + tests +
 
 Bundle size: 44 MB compressed (~206 MB uncompressed, 521 files).
 
-***REMOVED******REMOVED******REMOVED*** Systems covered (13 real + 4 null)
+### Systems covered (13 real + 4 null)
 
 | Folder under `v4/validation/`     | System                                     | Phase |
 |-----------------------------------|--------------------------------------------|-------|
@@ -54,7 +54,7 @@ Bundle size: 44 MB compressed (~206 MB uncompressed, 521 files).
 | `soc-universal-collapse/`         | Phase-3 universal-collapse data            | —     |
 | `nyc-fdny-fires/`                 | NYC FDNY fire response data                | —     |
 
-***REMOVED******REMOVED******REMOVED*** Layer 1–4 outputs (`v4/results/`)
+### Layer 1–4 outputs (`v4/results/`)
 
 - `B1_final_taxonomy.jsonl` + `B3_taxonomy_v2.jsonl` — 21-candidate universality-class taxonomy from the multi-model LLM ensemble critic (B1 baseline + B3 calibrated v2).
 - `B3_ensemble_summary.md` / `B4_heterogeneous_ensemble.jsonl` — heterogeneous-ensemble cross-check.
@@ -62,7 +62,7 @@ Bundle size: 44 MB compressed (~206 MB uncompressed, 521 files).
 - `layer4_predictions_v2_with_ci.jsonl` — Layer-4 cross-domain predictions with credible intervals.
 - `F1_bootstrap10k_subset.jsonl` + `F3_fwer_corrected.jsonl` — bootstrap and FWER multiple-comparison correction.
 
-***REMOVED******REMOVED*** Pipeline
+## Pipeline
 
 Authoritative implementation: `packages/soc-pipeline/` (version 0.1.0, MIT, ~1,595 LOC across 12 modules):
 
@@ -80,25 +80,25 @@ Authoritative implementation: `packages/soc-pipeline/` (version 0.1.0, MIT, ~1,5
 
 Legacy entry point `v4/lib/soc_pipeline.py` is a 75-line deprecation shim re-exporting the package (kept for paper provenance — the companion C1 preprint and the 13-system sibling manuscript both still cite the legacy "339-line" description).
 
-***REMOVED******REMOVED*** Reproducibility
+## Reproducibility
 
 ```bash
-***REMOVED*** 1. Extract
+# 1. Extract
 tar -xzf dataset-v1.tar.gz
 
-***REMOVED*** 2. Install pipeline
+# 2. Install pipeline
 cd packages/soc-pipeline
-pip install -e .            ***REMOVED*** or: pip install soc-pipeline
+pip install -e .            # or: pip install soc-pipeline
 
-***REMOVED*** 3. Reproduce per-system fits (example — Phase 1 earthquakes)
+# 3. Reproduce per-system fits (example — Phase 1 earthquakes)
 python -m soc_pipeline.b_value \
     --catalog v4/validation/soc-earthquake/catalog.jsonl \
     --mc 4.45 --bootstrap 500 --seed 42
 
-***REMOVED*** 4. Reproduce null controls (Phase 5)
+# 4. Reproduce null controls (Phase 5)
 python -m soc_pipeline.null_controls --out v4/validation/null-controls/
 
-***REMOVED*** 5. Verify against published numbers
+# 5. Verify against published numbers
 diff <(python -m soc_pipeline.fit --json v4/validation/soc-defi/aave_v2_liquidations.jsonl) \
      v4/validation/soc-defi/gr_results.json
 ```
@@ -111,11 +111,11 @@ Expected canonical numbers (from companion preprint §3):
 - Phase 4 (mouse cortex, n=1,392,414 spikes): γ ≈ 1.10, τ ∈ [2.17, 3.00]
 - Phase 5 (nulls): LR(power-law vs. alt.) ∈ [−45, −16], all rejected
 
-***REMOVED******REMOVED*** Integrity
+## Integrity
 
 See `manifest.txt` for SHA-256 of `dataset-v1.tar.gz` and per-file SHA-256 of every file in the bundle (521 files total).
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 If you use this dataset or pipeline, please cite both the Zenodo deposit and the companion arXiv preprint:
 
@@ -140,7 +140,7 @@ If you use this dataset or pipeline, please cite both the Zenodo deposit and the
 }
 ```
 
-***REMOVED******REMOVED*** Contact
+## Contact
 
 Project site: https://structural.bytedance.city
 Issues: https://github.com/dada8899/structural-isomorphism/issues

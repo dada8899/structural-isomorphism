@@ -1,8 +1,8 @@
-***REMOVED*** D1 Phase Detector — Status
+# D1 Phase Detector — Status
 
 > Last updated: 2026-05-22 (D1 scale-up verification — full 500-row pass confirmed)
 
-***REMOVED******REMOVED*** Inventory
+## Inventory
 
 | Artifact | Rows | Notes |
 |---|---|---|
@@ -14,7 +14,7 @@
 | `backtest_result.json` | — | `backtest.py` walk-forward (6m hold, 54 snapshots) on full 500: Sharpe nc=0.238 / other=0.318, t=-0.41 p=0.68 — **null result** (no near-critical edge) |
 | `backtest/results/v0.1-1000-universe-*.json` | — | `backtest/engine.py` 1000-ticker daily engine (separate experiment): near-critical Sharpe 0.70 vs benchmark 0.77, p=0.57 — also **null result** |
 
-***REMOVED******REMOVED*** Pipeline scale-up (100 → 500)
+## Pipeline scale-up (100 → 500)
 
 Scripts added in this milestone:
 
@@ -33,7 +33,7 @@ Scripts added in this milestone:
    - PYTHONPATH fix-up for `guarded_llm` (editable install paths drift across
      worktrees)
 
-***REMOVED******REMOVED*** Cost / budget
+## Cost / budget
 
 deepseek-v4-flash, ~750 prompt + ~970 completion tokens per row (reasoning model):
 - 5-row pilot: 3727 in / 4186 out → ~$0.005
@@ -43,30 +43,30 @@ deepseek-v4-flash, ~750 prompt + ~970 completion tokens per row (reasoning model
 Well under the $5 standing batch budget. Full 500-row run is gated by reviewer
 sign-off + a small price-check rerun, not by budget.
 
-***REMOVED******REMOVED*** Reproduce
+## Reproduce
 
 ```bash
-***REMOVED*** 1. ticker list (Wikipedia or fallback)
+# 1. ticker list (Wikipedia or fallback)
 .venv/bin/python3 v4/product/d1_phase_detector/fetch_sp500_tickers.py
 
-***REMOVED*** 2. merge -> 500-row input (inline script in commit message;
-***REMOVED***    rerunning fetch + edit script is idempotent)
-***REMOVED*** (companies_500_input.jsonl is committed; only regenerate if SP500 membership changes)
+# 2. merge -> 500-row input (inline script in commit message;
+#    rerunning fetch + edit script is idempotent)
+# (companies_500_input.jsonl is committed; only regenerate if SP500 membership changes)
 
-***REMOVED*** 3. dry-run sanity check
+# 3. dry-run sanity check
 .venv/bin/python3 v4/product/d1_phase_detector/extract_structtuple_batch.py \
     --dry-run --limit 3
 
-***REMOVED*** 4. 50-row sample (resume-safe)
+# 4. 50-row sample (resume-safe)
 .venv/bin/python3 v4/product/d1_phase_detector/extract_structtuple_batch.py \
     --limit 50
 
-***REMOVED*** 5. full 500-row pass (after reviewer)
+# 5. full 500-row pass (after reviewer)
 .venv/bin/python3 v4/product/d1_phase_detector/extract_structtuple_batch.py \
     --limit 0 --model deepseek-v4-flash
 ```
 
-***REMOVED******REMOVED*** Pending / next session
+## Pending / next session
 
 - [x] Full 500-row LLM pass (`--limit 0`) — DONE. `companies_500.jsonl` holds
   500/500 successful rows, all `model=deepseek-v4-flash`, 0 fail, 0 missing

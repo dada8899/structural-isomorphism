@@ -16,9 +16,9 @@ Public v0.1 PyPI API:
 Legacy API (preserved for cross_judge.examples and v4/scripts/b3_ensemble.py):
 
     from cross_judge import Reviewer, JudgePanel
-    ***REMOVED*** see docstrings on Reviewer / JudgePanel for usage.
+    # see docstrings on Reviewer / JudgePanel for usage.
 """
-***REMOVED*** New v0.1 PyPI public surface
+# New v0.1 PyPI public surface
 from .core import VENDOR_DEFAULTS, Critic
 from .ensemble import Ensemble
 from .verdict import EnsembleVerdict, Verdict, VerdictKind
@@ -32,7 +32,7 @@ from .voting import (
     unanimous,
 )
 
-***REMOVED*** Legacy public surface (preserved for backward compatibility)
+# Legacy public surface (preserved for backward compatibility)
 from .aggregation import (
     AggregationStrategy,
     avg_confidence,
@@ -49,14 +49,14 @@ from .vendors import VENDORS, VendorConfig, get_vendor, make_client
 __version__ = "0.1.0"
 
 __all__ = [
-    ***REMOVED*** New v0.1 surface
+    # New v0.1 surface
     "Critic",
     "Ensemble",
     "Verdict",
     "VerdictKind",
     "EnsembleVerdict",
     "VENDOR_DEFAULTS",
-    ***REMOVED*** Voting / disagreement metrics
+    # Voting / disagreement metrics
     "majority_vote",
     "unanimous",
     "agreement_pct",
@@ -64,7 +64,7 @@ __all__ = [
     "get_voting_strategy",
     "VOTING_STRATEGIES",
     "VotingStrategy",
-    ***REMOVED*** Legacy surface
+    # Legacy surface
     "Reviewer",
     "JudgePanel",
     "EnsembleResult",

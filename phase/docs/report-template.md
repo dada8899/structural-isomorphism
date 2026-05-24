@@ -1,16 +1,16 @@
-***REMOVED*** Structural Report Template
+# Structural Report Template
 
 Each sample report should follow this structure. 1500-2500 words, markdown format.
 
 ---
 
-***REMOVED******REMOVED*** Company Header
+## Company Header
 - **Ticker & Name**: [TICKER] (Company Name)
 - **Industry**: [Sector]
 - **Market Cap**: $XX B (as of YYYY-MM-DD)
 - **Current Price**: $XX (approximate, mark as "not advice")
 
-***REMOVED******REMOVED*** 1. Structural Signature (1-2 paragraphs)
+## 1. Structural Signature (1-2 paragraphs)
 
 Describe the company's current state as a dynamical system:
 - State variables (what's changing over time?)
@@ -21,11 +21,11 @@ Describe the company's current state as a dynamical system:
 
 One sentence conclusion: "This company is a [dynamics_family] system, currently [stable/approaching critical/post-transition]."
 
-***REMOVED******REMOVED*** 2. Three Cross-Domain Structural Twins
+## 2. Three Cross-Domain Structural Twins
 
 For each of 3 frameworks from non-business domains:
 
-***REMOVED******REMOVED******REMOVED*** Twin ***REMOVED***N: [Framework Name] (from [Physics/Biology/Ecology/Network Science])
+### Twin #N: [Framework Name] (from [Physics/Biology/Ecology/Network Science])
 
 **Shared equation**: `[equation]`
 
@@ -49,7 +49,7 @@ For each of 3 frameworks from non-business domains:
 2. [Condition 2]
 3. [Condition 3]
 
-***REMOVED******REMOVED*** 3. Quantified Projection (optional but preferred)
+## 3. Quantified Projection (optional but preferred)
 
 If one of the 3 frameworks is a well-parameterized model:
 - Model: [e.g. Verhulst-Pearl logistic]
@@ -57,23 +57,23 @@ If one of the 3 frameworks is a well-parameterized model:
 - Base case forecast: [year] → [value] (95% CI: [low]-[high])
 - Show the math briefly so readers can reproduce
 
-***REMOVED******REMOVED*** 4. Red Team (3 vulnerabilities in the consensus bull/bear thesis)
+## 4. Red Team (3 vulnerabilities in the consensus bull/bear thesis)
 
 Pick 2-3 specific assumptions the market currently holds about this company and explain why each could fail structurally:
 1. **Assumption**: [current consensus] → **Structural flaw**: [mechanism that breaks it]
 2. ...
 
-***REMOVED******REMOVED*** 5. Observable Early-Warning Metrics (5-8 specific indicators)
+## 5. Observable Early-Warning Metrics (5-8 specific indicators)
 
 What should you monitor in the next earnings call or quarterly data to see if any of the structural scenarios are materializing?
 - Metric 1: [what to watch, threshold, why]
 - Metric 2: ...
 
-***REMOVED******REMOVED*** 6. One-Paragraph TL;DR
+## 6. One-Paragraph TL;DR
 
 Bottom line: what's the non-consensus structural insight a reader should walk away with?
 
-***REMOVED******REMOVED*** Footer
+## Footer
 
 **Disclaimer**: This is a structural analysis based on public data, not investment advice. Numbers are model projections, not forecasts. Do not trade based on this.
 

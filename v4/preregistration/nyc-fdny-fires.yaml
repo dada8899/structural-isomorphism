@@ -1,11 +1,11 @@
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Adversarial pre-registration: NYC FDNY fire-incident cascade
-***REMOVED***
-***REMOVED*** Locked BEFORE data acquisition and BEFORE pipeline run. Once committed +
-***REMOVED*** pushed to git, the predicted band cannot be silently widened post-hoc.
-***REMOVED*** This is the same date-stamped pre-registration discipline outlined in
-***REMOVED*** paper/v0-unified-pipeline-2026-05-13.md §8.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Adversarial pre-registration: NYC FDNY fire-incident cascade
+#
+# Locked BEFORE data acquisition and BEFORE pipeline run. Once committed +
+# pushed to git, the predicted band cannot be silently widened post-hoc.
+# This is the same date-stamped pre-registration discipline outlined in
+# paper/v0-unified-pipeline-2026-05-13.md §8.
+# ---------------------------------------------------------------------------
 
 system: nyc-fdny-fires
 pre_registered_at: 2026-05-14

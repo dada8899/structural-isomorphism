@@ -1,16 +1,16 @@
-***REMOVED*** cross-judge default prompt: B3-style universality-class critic.
-***REMOVED***
-***REMOVED*** Source: structural-isomorphism v4/scripts/b3_ensemble.py REVIEWERS[0]
-***REMOVED*** Use case: judging whether a candidate cross-domain pattern qualifies as
-***REMOVED*** a universality class (Clauset 2009 + Stumpf-Porter 2012 standards).
-***REMOVED***
-***REMOVED*** Versioning: bump `version` whenever you change semantics. Pin to a specific
-***REMOVED*** version in production:
-***REMOVED***   critic = Critic.from_yaml_prompt(
-***REMOVED***       name="ds-pro-rigor",
-***REMOVED***       model="deepseek-v4-pro",
-***REMOVED***       yaml_path="prompts/b3_universality_critic.yaml@v0.1",  ***REMOVED*** git-tagged
-***REMOVED***   )
+# cross-judge default prompt: B3-style universality-class critic.
+#
+# Source: structural-isomorphism v4/scripts/b3_ensemble.py REVIEWERS[0]
+# Use case: judging whether a candidate cross-domain pattern qualifies as
+# a universality class (Clauset 2009 + Stumpf-Porter 2012 standards).
+#
+# Versioning: bump `version` whenever you change semantics. Pin to a specific
+# version in production:
+#   critic = Critic.from_yaml_prompt(
+#       name="ds-pro-rigor",
+#       model="deepseek-v4-pro",
+#       yaml_path="prompts/b3_universality_critic.yaml@v0.1",  # git-tagged
+#   )
 version: "0.1"
 description: |
   Rigorous universality-class critic for cross-domain dynamical systems.

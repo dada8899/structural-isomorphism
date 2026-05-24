@@ -14,8 +14,8 @@ from typing import Optional
 
 logger = logging.getLogger("structural.whitespace")
 
-***REMOVED*** web/data/whitespace_matrix.json relative to this file:
-***REMOVED*** services/ -> backend/ -> web/ -> web/data/
+# web/data/whitespace_matrix.json relative to this file:
+# services/ -> backend/ -> web/ -> web/data/
 _DEFAULT_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "whitespace_matrix.json"
 
 
@@ -39,7 +39,7 @@ class WhitespaceService:
         try:
             with open(self.data_file, "r", encoding="utf-8") as f:
                 raw = json.load(f)
-            ***REMOVED*** Minimal shape validation — guard against a truncated / wrong file.
+            # Minimal shape validation — guard against a truncated / wrong file.
             if not isinstance(raw, dict) or "matrix" not in raw or "leads" not in raw:
                 logger.error("whitespace_matrix.json has unexpected shape — serving empty data.")
                 self._data = self._empty()
@@ -97,7 +97,7 @@ class WhitespaceService:
             leads = [x for x in leads if x.get("class_id") == class_id]
         if domain:
             leads = [x for x in leads if x.get("domain") == domain]
-        ***REMOVED*** leads in the json are already score-desc sorted; defensive re-sort.
+        # leads in the json are already score-desc sorted; defensive re-sort.
         leads = sorted(leads, key=lambda x: -x.get("score", 0.0))
         total = len(leads)
         limit = max(1, min(int(limit), 500))

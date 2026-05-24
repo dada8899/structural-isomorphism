@@ -1,4 +1,4 @@
-"""Session ***REMOVED***17 V2 + V3 — SearchService unified-similarity / cross-domain tests.
+"""Session #17 V2 + V3 — SearchService unified-similarity / cross-domain tests.
 
 V3 — the信任 bugs:
   * relevance_score() must always return a value in [0, 1] even when the
@@ -33,11 +33,11 @@ for p in (_BACKEND, _ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from services.search_service import SearchService  ***REMOVED*** noqa: E402
+from services.search_service import SearchService  # noqa: E402
 
 
-***REMOVED*** A tiny synthetic KB: 3 同域 (组织管理) + 3 跨域 phenomena. Mirrors the
-***REMOVED*** Session ***REMOVED***17 实测 case — a 留存 query has 组织管理 as its surface domain.
+# A tiny synthetic KB: 3 同域 (组织管理) + 3 跨域 phenomena. Mirrors the
+# Session #17 实测 case — a 留存 query has 组织管理 as its surface domain.
 _TINY_KB = """\
 {"id": "p1", "name": "用户留存衰减", "domain": "组织管理", "type_id": "06", "description": "新用户在产品使用早期快速流失，留存率每月持续下降，越到后期流失速度反而趋缓。"}
 {"id": "p2", "name": "团队协作效率塌陷", "domain": "组织管理", "type_id": "07", "description": "团队规模扩大后沟通成本急剧上升，整体效率不升反降。"}
@@ -56,7 +56,7 @@ def svc(tmp_path_factory):
     return SearchService(data_dir=str(d), kb_file="tiny_kb.jsonl")
 
 
-***REMOVED*** --------- V3.1 — _cosine: legal range even for un-normalized input --------- ***REMOVED***
+# --------- V3.1 — _cosine: legal range even for un-normalized input --------- #
 
 
 class TestCosineLegality:
@@ -89,14 +89,14 @@ class TestCosineLegality:
     @pytest.mark.parametrize("seed", range(8))
     def test_random_vectors_always_in_range(self, seed):
         rng = np.random.default_rng(seed)
-        ***REMOVED*** Deliberately un-normalized, arbitrary magnitude.
+        # Deliberately un-normalized, arbitrary magnitude.
         a = rng.normal(size=64) * rng.uniform(0.1, 30)
         b = rng.normal(size=64) * rng.uniform(0.1, 30)
         c = SearchService._cosine(a, b)
         assert -1.0 <= c <= 1.0
 
 
-***REMOVED*** --------- V3.2 — relevance_score: unified [0,1]口径 --------- ***REMOVED***
+# --------- V3.2 — relevance_score: unified [0,1]口径 --------- #
 
 
 class TestRelevanceScore:
@@ -120,13 +120,13 @@ class TestRelevanceScore:
         results = svc.search(q, top_k=6)
         by_id = {r["id"]: r for r in results}
         assert "p1" in by_id
-        ***REMOVED*** Same query, same phenomenon → identical relevance value.
+        # Same query, same phenomenon → identical relevance value.
         assert by_id["p1"]["relevance"] == pytest.approx(
             svc.relevance_score(q, "p1"), abs=1e-3
         )
 
 
-***REMOVED*** --------- V2 — cross-domain detection --------- ***REMOVED***
+# --------- V2 — cross-domain detection --------- #
 
 
 class TestCrossDomainDetection:
@@ -160,7 +160,7 @@ class TestCrossDomainDetection:
     def test_no_surface_domain_defaults_cross_true(self, svc):
         """When no domain dominates the pool, surface_domain is None and
         every result defaults to cross_domain=True (no false penalty)."""
-        ***REMOVED*** A vague query that won't cluster strongly into one domain.
+        # A vague query that won't cluster strongly into one domain.
         results = svc.search("能量损耗", top_k=6)
         if results and results[0]["surface_domain"] is None:
             assert all(r["cross_domain"] for r in results)

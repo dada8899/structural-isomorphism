@@ -1,4 +1,4 @@
-***REMOVED*** guarded-llm
+# guarded-llm
 
 > Strict-JSON LLM call with budget + retry + 5-vendor support in 5 lines.
 
@@ -19,23 +19,23 @@ If any layer fails, the prompt is retried with the previous error injected
 back as a hint. Cumulative spend is tracked against an optional `Budget`, and
 a `BudgetExceeded` exception fires before runaway loops eat your monthly cap.
 
-***REMOVED******REMOVED*** Install
+## Install
 
 ```bash
 pip install guarded-llm
 
-***REMOVED*** Optional vendor extras (only if you want the official SDK alongside the
-***REMOVED*** built-in HTTP adapter — the built-ins work fine on their own)
+# Optional vendor extras (only if you want the official SDK alongside the
+# built-in HTTP adapter — the built-ins work fine on their own)
 pip install guarded-llm[anthropic]
 pip install guarded-llm[deepseek]
 pip install guarded-llm[kimi]
 pip install guarded-llm[glm]
 pip install guarded-llm[openai]
-pip install guarded-llm[all]            ***REMOVED*** all five
-pip install guarded-llm[dev]            ***REMOVED*** pytest, respx, ruff, mypy, build
+pip install guarded-llm[all]            # all five
+pip install guarded-llm[dev]            # pytest, respx, ruff, mypy, build
 ```
 
-***REMOVED******REMOVED*** 5-line quickstart
+## 5-line quickstart
 
 ```python
 from pydantic import BaseModel
@@ -52,7 +52,7 @@ print(out.verdict, out.confidence)
 
 Set `DEEPSEEK_API_KEY` in your env (or pass `api_key=` into the constructor).
 
-***REMOVED******REMOVED*** Why this exists
+## Why this exists
 
 LLMs in production pipelines have three failure modes that single-shot
 `requests.post` doesn't handle:
@@ -69,11 +69,11 @@ LLMs in production pipelines have three failure modes that single-shot
 `guarded-llm` fixes all three in ~500 LOC. No SDK lock-in, no heavyweight
 runtime, no opinions about your application architecture.
 
-***REMOVED******REMOVED*** Quickstart per vendor
+## Quickstart per vendor
 
 All four use the same `GuardedLLM` class — only `provider=` and `model=` change.
 
-***REMOVED******REMOVED******REMOVED*** Anthropic Claude
+### Anthropic Claude
 
 ```python
 import os
@@ -92,11 +92,11 @@ llm = GuardedLLM(
 print(llm.call("What is 2+2? Reply as JSON: {answer: '...'}").answer)
 ```
 
-***REMOVED******REMOVED******REMOVED*** DeepSeek (direct or via OpenRouter)
+### DeepSeek (direct or via OpenRouter)
 
 ```python
 llm = GuardedLLM(provider="deepseek", model="deepseek-v4-flash", schema=Out)
-***REMOVED*** Override base_url for OpenRouter:
+# Override base_url for OpenRouter:
 llm = GuardedLLM(
     provider="deepseek",
     model="deepseek/deepseek-chat",
@@ -106,19 +106,19 @@ llm = GuardedLLM(
 )
 ```
 
-***REMOVED******REMOVED******REMOVED*** Kimi (Moonshot)
+### Kimi (Moonshot)
 
 ```python
 llm = GuardedLLM(provider="kimi", model="kimi-k2.5", schema=Out)
 ```
 
-***REMOVED******REMOVED******REMOVED*** GLM (Zhipu BigModel)
+### GLM (Zhipu BigModel)
 
 ```python
 llm = GuardedLLM(provider="glm", model="glm-4.6", schema=Out)
 ```
 
-***REMOVED******REMOVED*** Budget enforcement
+## Budget enforcement
 
 ```python
 from guarded_llm import GuardedLLM, Budget, BudgetExceeded
@@ -140,7 +140,7 @@ instance, so a single budget can guard an entire pipeline. Charges are recorded
 **before** the schema-validate step, which means a runaway retry loop can't keep
 spending after you've hit the cap.
 
-***REMOVED******REMOVED*** Retry semantics
+## Retry semantics
 
 ```python
 from guarded_llm import RetryPolicy
@@ -167,7 +167,7 @@ message as a hint:
 
 This is enough to recover from drift bugs in ~95% of cases in production.
 
-***REMOVED******REMOVED*** Multi-vendor failover
+## Multi-vendor failover
 
 ```python
 from guarded_llm import GuardedLLM, RetryExhausted
@@ -186,7 +186,7 @@ raise RuntimeError("all vendors failed")
 See `examples/03_multi_vendor_failover.py` for the full pattern (with budget
 sharing across vendors).
 
-***REMOVED******REMOVED*** Extending with a new vendor
+## Extending with a new vendor
 
 Adding a new vendor is ~30 lines:
 
@@ -206,16 +206,16 @@ class TogetherProvider(BaseProvider):
         data = resp.json()
         return {
             "text": data["choices"][0]["message"]["content"],
-            "cost_usd": 0.0,  ***REMOVED*** fill in your pricing logic
+            "cost_usd": 0.0,  # fill in your pricing logic
         }
 
 register_provider("together", TogetherProvider)
 
-***REMOVED*** Now any call site can use it:
+# Now any call site can use it:
 llm = GuardedLLM(provider="together", model="meta-llama/Llama-3-70b", schema=Out)
 ```
 
-***REMOVED******REMOVED*** Environment variables
+## Environment variables
 
 | Provider | API key env | Base URL env |
 |---|---|---|
@@ -227,7 +227,7 @@ llm = GuardedLLM(provider="together", model="meta-llama/Llama-3-70b", schema=Out
 
 All can also be passed inline via `GuardedLLM(..., api_key=..., base_url=...)`.
 
-***REMOVED******REMOVED*** How it compares
+## How it compares
 
 | Feature | guarded-llm | instructor | outlines | guidance |
 |---|---|---|---|---|
@@ -245,11 +245,11 @@ defensive parsing**. If you're using local HF models, prefer `outlines`'
 grammar-level approach; if you're already deep in Pydantic, `instructor` is
 elegant — but it doesn't track cost.
 
-***REMOVED******REMOVED*** License
+## License
 
 MIT — see [LICENSE](./LICENSE).
 
-***REMOVED******REMOVED*** Source
+## Source
 
 Lives inside the [structural-isomorphism](https://github.com/dada8899/structural-isomorphism)
 monorepo at `packages/guarded-llm/`. PRs welcome.

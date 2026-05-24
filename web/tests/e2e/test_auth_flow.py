@@ -1,4 +1,4 @@
-"""W15-B (session ***REMOVED***10) magic-link auth e2e — UI shell + real backend.
+"""W15-B (session #10) magic-link auth e2e — UI shell + real backend.
 
 Booting Next.js in CI is heavy. Following the W13-E `test_cmdk_search.py`
 pattern, this test stands up:
@@ -40,7 +40,7 @@ def _pick_free_port() -> int:
         return s.getsockname()[1]
 
 
-***REMOVED*** ---- Backend harness ----
+# ---- Backend harness ----
 
 @pytest.fixture
 def backend(tmp_path, monkeypatch):
@@ -51,11 +51,11 @@ def backend(tmp_path, monkeypatch):
     monkeypatch.setenv("JWT_SECRET", "e2e-test-secret-deterministic-key-32+")
     monkeypatch.setenv("AUTH_DEV_MODE", "true")
 
-    ***REMOVED*** Late import so env vars are read fresh.
-    from api import auth as auth_mod  ***REMOVED*** noqa: E402
-    from fastapi import FastAPI  ***REMOVED*** noqa: E402
-    from fastapi.responses import HTMLResponse  ***REMOVED*** noqa: E402
-    import uvicorn  ***REMOVED*** noqa: E402
+    # Late import so env vars are read fresh.
+    from api import auth as auth_mod  # noqa: E402
+    from fastapi import FastAPI  # noqa: E402
+    from fastapi.responses import HTMLResponse  # noqa: E402
+    import uvicorn  # noqa: E402
 
     auth_mod._data_dir = lambda: tmp_path
 
@@ -64,14 +64,14 @@ def backend(tmp_path, monkeypatch):
 
     @app.get("/", response_class=HTMLResponse)
     def _shell_root():
-        return _shell_html("")  ***REMOVED*** same-origin → backend URL empty
+        return _shell_html("")  # same-origin → backend URL empty
 
     port = _pick_free_port()
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
-    ***REMOVED*** Wait for startup.
+    # Wait for startup.
     deadline = time.time() + 5
     while time.time() < deadline and not server.started:
         time.sleep(0.05)
@@ -84,12 +84,12 @@ def backend(tmp_path, monkeypatch):
     thread.join(timeout=2)
 
 
-***REMOVED*** ---- Frontend shell (minimal HTML mirroring the React pages) ----
+# ---- Frontend shell (minimal HTML mirroring the React pages) ----
 
-***REMOVED*** We serve this from a separate http.server on a different port so the
-***REMOVED*** fetch from JS → backend is same-origin via a /api/ proxy on the shell
-***REMOVED*** side. Simpler: bake the backend URL into the page and use absolute
-***REMOVED*** fetch with credentials="include".
+# We serve this from a separate http.server on a different port so the
+# fetch from JS → backend is same-origin via a /api/ proxy on the shell
+# side. Simpler: bake the backend URL into the page and use absolute
+# fetch with credentials="include".
 
 def _shell_html(backend_url: str) -> str:
     return f"""<!DOCTYPE html>
@@ -168,7 +168,7 @@ def _shell_html(backend_url: str) -> str:
       const j = await r.json();
       if (j.ok) {{
         root.innerHTML = `<div data-testid="auth-verify-success">成功，跳转中…</div>`;
-        setTimeout(() => {{ location.hash = "***REMOVED***/me"; route(); }}, 200);
+        setTimeout(() => {{ location.hash = "#/me"; route(); }}, 200);
       }} else {{
         root.innerHTML = `<div data-testid="auth-verify-error">${{j.error}}</div>`;
       }}
@@ -191,18 +191,18 @@ def _shell_html(backend_url: str) -> str:
       `;
       root.querySelector('[data-testid="me-logout"]').addEventListener("click", async () => {{
         await fetch(BACKEND + "/api/auth/logout", {{ method: "POST", credentials: "include" }});
-        location.hash = "***REMOVED***/auth/login";
+        location.hash = "#/auth/login";
         route();
       }});
     }}
 
     function route() {{
       const h = location.hash;
-      if (h.startsWith("***REMOVED***/auth/verify")) {{
+      if (h.startsWith("#/auth/verify")) {{
         const q = h.split("?")[1] || "";
         const params = new URLSearchParams(q);
         renderVerify(params.get("token"));
-      }} else if (h.startsWith("***REMOVED***/me")) {{
+      }} else if (h.startsWith("#/me")) {{
         renderMe();
       }} else {{
         renderLogin();
@@ -223,7 +223,7 @@ def shell(backend):
     return backend
 
 
-***REMOVED*** ---- Tests ----
+# ---- Tests ----
 
 def test_login_form_renders(page, shell):
     page.goto(shell)
@@ -255,10 +255,10 @@ def test_verify_redirects_to_me(page, shell):
     token = page.locator('[data-testid="auth-login-dev-link"]').get_attribute("data-dev-token")
     assert token
 
-    ***REMOVED*** Navigate to the verify route with the token.
-    page.evaluate(f"location.hash = '***REMOVED***/auth/verify?token={token}'")
+    # Navigate to the verify route with the token.
+    page.evaluate(f"location.hash = '#/auth/verify?token={token}'")
     page.wait_for_selector('[data-testid="auth-verify-success"]', timeout=3000)
-    ***REMOVED*** The success state should auto-redirect to /me.
+    # The success state should auto-redirect to /me.
     page.wait_for_selector('[data-testid="me-email"]', timeout=3000)
     assert page.locator('[data-testid="me-email"]').text_content() == "e2eflow@example.com"
     assert page.locator('[data-testid="me-tier"]').text_content() == "free"
@@ -275,17 +275,17 @@ def test_logout_clears_state(page, shell):
     )
     token = page.locator('[data-testid="auth-login-dev-link"]').get_attribute("data-dev-token")
 
-    page.evaluate(f"location.hash = '***REMOVED***/auth/verify?token={token}'")
+    page.evaluate(f"location.hash = '#/auth/verify?token={token}'")
     page.wait_for_selector('[data-testid="me-email"]', timeout=3000)
 
     page.locator('[data-testid="me-logout"]').click()
     page.wait_for_selector('[data-testid="auth-login-form"]')
-    ***REMOVED*** Re-visit /me — should now show no session.
-    page.evaluate("location.hash = '***REMOVED***/me'")
+    # Re-visit /me — should now show no session.
+    page.evaluate("location.hash = '#/me'")
     page.wait_for_selector('[data-testid="me-no-session"]')
 
 
 def test_verify_missing_token_shows_error(page, shell):
     page.goto(shell)
-    page.evaluate("location.hash = '***REMOVED***/auth/verify'")
+    page.evaluate("location.hash = '#/auth/verify'")
     page.wait_for_selector('[data-testid="auth-verify-missing"]')

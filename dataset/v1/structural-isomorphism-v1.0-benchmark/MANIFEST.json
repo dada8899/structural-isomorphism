@@ -40,7 +40,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/01_earthquake/catalog.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "5187e6dc051b6f38ba58b92da1b018e8a53d6403b70749c7bf09bb6f6b48dcb0",
       "size_bytes": 22087130
     },
@@ -138,7 +138,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/02_stockmarket/sp500_daily.csv",
-      "schema_ref": "README.md***REMOVED***5-schemas-csv",
+      "schema_ref": "README.md#5-schemas-csv",
       "sha256": "7213dfdbe457ff2bee40986815b68a78ca55ab7de206170b3fe1f6d02900a6db",
       "size_bytes": 979832
     },
@@ -152,7 +152,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/03_defi/aave_v2_liquidations.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "a43503b398a80e007be860b825582a7fadf2a604f20f5aceea4a350147db80be",
       "size_bytes": 12889578
     },
@@ -173,7 +173,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/03_defi/compound_v2_liquidations.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "eaf11159424166321d4170fd1c2f3e67dcce2622921c04dc305171b91cb9b858",
       "size_bytes": 6612343
     },
@@ -215,7 +215,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/03_defi/maker_dog_liquidations.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "775a4098edcd356a424e73883e6418d8207ff14950bb691bc1215c12152d1db7",
       "size_bytes": 1348041
     },
@@ -257,14 +257,14 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/bf_1.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "cff1ddbe3e0007b74c0cf47838f83bfb2d733de01131347dbd9a3281051aa47c",
       "size_bytes": 8170109
     },
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/bf_16.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "98c8a9804dc2bcac489021b5ac10db627e6eb7b76f508882d8253808a8ffaf26",
       "size_bytes": 5080
     },
@@ -299,7 +299,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/bf_2.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "125229228cb9836ed239d0281ddfe148679406a6e8dbf2eac55b35518424465a",
       "size_bytes": 2165216
     },
@@ -320,7 +320,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/bf_4.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "1fae16b7edd11f1b73dd5be90c8780d91bb05db455dbdc671d81b76bf871ba30",
       "size_bytes": 245052
     },
@@ -341,7 +341,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/bf_8.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "7635dc339b093efcd37bd87af906197366561a51b8811089e89c5d4d0c9f3693",
       "size_bytes": 12861
     },
@@ -376,7 +376,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/neural_avalanches.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "cff1ddbe3e0007b74c0cf47838f83bfb2d733de01131347dbd9a3281051aa47c",
       "size_bytes": 8170109
     },
@@ -404,7 +404,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/04_neural/synthetic_avalanches.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "b149861511b93a3cd8038aece70b0d581bf55d4e59af423bfd2e0337cca30bc2",
       "size_bytes": 5512674
     },
@@ -432,7 +432,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/05_wildfire/fires.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "5ca882323cf2aa99b207046e887f7d5930cb1904e79f8d284fc86d3845167442",
       "size_bytes": 1956859
     },
@@ -474,7 +474,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/06_solar/flares.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "a5e6aeb941bcba4ff3b0cdd193bea8cb079d6af688a74527382fd3987e9aa3a7",
       "size_bytes": 5695346
     },
@@ -502,7 +502,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/07_bank_failures/bank_failures.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "41225e60bb4fb32e5b93987a6e79875a455e5bcb7094654ceefcc3f7c18acb52",
       "size_bytes": 991627
     },
@@ -565,7 +565,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/08_github_stars/repos.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "e5d075e69dcc054f81a66065990ac101bc31c8b29f5e5a4779db45ffa09d7488",
       "size_bytes": 1106640
     },
@@ -586,7 +586,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/09_power_grid/disturbances.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "5173a4bb9c83e9bea62ea7fb255e219ee15f3809fc37dd9d35bb4501ad3e85ef",
       "size_bytes": 19565
     },
@@ -649,7 +649,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/10_wikipedia_views/pageviews_2023_2024.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "4622d81455a7af37d270b1f550581c2fc36b2766241244bb19e56971f95302fe",
       "size_bytes": 426721
     },
@@ -719,7 +719,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/12_scheffer_lake/lake_do_timeseries.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "18b3516102b00a297992df8e459faa0323dffdd3c768685cb1454312ba958885",
       "size_bytes": 698206
     },
@@ -789,7 +789,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/13_hysteresis_traffic/traffic_qrho.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-jsonl",
+      "schema_ref": "README.md#5-schemas-jsonl",
       "sha256": "6f47e1a834ce9958c6a0d8f5599341fca259709d60552a0c09bf11d0dccb278e",
       "size_bytes": 945014
     },
@@ -803,7 +803,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "datasets/13_hysteresis_traffic/us101_ngsim_agg_raw.csv",
-      "schema_ref": "README.md***REMOVED***5-schemas-csv",
+      "schema_ref": "README.md#5-schemas-csv",
       "sha256": "0b8bb59553e13f32653b152529c083a5fe2d51cb4ab8ae939135e1f2c1673352",
       "size_bytes": 236284
     },
@@ -838,7 +838,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "nulls/_registry.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-nulls-jsonl",
+      "schema_ref": "README.md#5-schemas-nulls-jsonl",
       "sha256": "d3faad1e874488c201ed7be32d12f16d761f8e5ce305c1ec673f1bd16c2126a4",
       "size_bytes": 3144
     },
@@ -1006,7 +1006,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "results/B3_ensemble_review.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-results-jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
       "sha256": "e9fd79c6176fd32359e358f1cd1aeff47683fc8197f8c75895f97036b0b788e3",
       "size_bytes": 39361
     },
@@ -1020,14 +1020,14 @@
     {
       "license": "CC-BY-4.0",
       "path": "results/B3_taxonomy_v2.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-taxonomy-jsonl",
+      "schema_ref": "README.md#5-schemas-taxonomy-jsonl",
       "sha256": "98bd13194a2259c8527de58b545a9503ff52a87cc24bde9cc953a0f8c27667a8",
       "size_bytes": 5689
     },
     {
       "license": "CC-BY-4.0",
       "path": "results/layer3_critic.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-results-jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
       "sha256": "fbe0a5e5e5544713337d571d91745b7b06c857f387028087973431714551ec45",
       "size_bytes": 42913
     },
@@ -1041,7 +1041,7 @@
     {
       "license": "CC-BY-4.0",
       "path": "results/layer4.jsonl",
-      "schema_ref": "README.md***REMOVED***5-schemas-results-jsonl",
+      "schema_ref": "README.md#5-schemas-results-jsonl",
       "sha256": "75c4cd942acbe607ff7e2f87ecb310c2a8bdf637cdbe177b4b5693464cbbd8d4",
       "size_bytes": 25153
     },

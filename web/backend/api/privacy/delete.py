@@ -1,6 +1,6 @@
 """DELETE /api/privacy/delete — GDPR right-to-erasure endpoint.
 
-W14-C (session ***REMOVED***10, 2026-05-15): self-service data deletion.
+W14-C (session #10, 2026-05-15): self-service data deletion.
 
 Removes records tied to a given email from:
   • newsletter-subscribers.jsonl
@@ -93,9 +93,9 @@ def _delete_fingerprints(email: str) -> int:
     return ConnectionsStore(db).delete_all_for_user(email)
 
 
-***REMOVED*** Random per-process fallback — see export.py for the rationale. An unset
-***REMOVED*** STRUCTURAL_PRIVACY_MOCK_CODE must fail closed (unguessable), never fall back
-***REMOVED*** to a public default that would expose the data-deletion endpoint.
+# Random per-process fallback — see export.py for the rationale. An unset
+# STRUCTURAL_PRIVACY_MOCK_CODE must fail closed (unguessable), never fall back
+# to a public default that would expose the data-deletion endpoint.
 _FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
 
 
@@ -143,9 +143,9 @@ def _filter_out_email(path: Path, email: str) -> int:
                 try:
                     row = json.loads(stripped)
                 except Exception:
-                    ***REMOVED*** Preserve malformed lines verbatim — we can't decide if
-                    ***REMOVED*** they belong to this user, so keep them rather than risk
-                    ***REMOVED*** deleting someone else's data.
+                    # Preserve malformed lines verbatim — we can't decide if
+                    # they belong to this user, so keep them rather than risk
+                    # deleting someone else's data.
                     dst.write(line if line.endswith("\n") else line + "\n")
                     continue
                 row_email = (row.get("email") or "").lower()
@@ -156,7 +156,7 @@ def _filter_out_email(path: Path, email: str) -> int:
         os.replace(tmp, path)
     except Exception as e:
         logger.error("delete rewrite failed path=%s err=%s", path, e)
-        ***REMOVED*** Clean up tmp if still around
+        # Clean up tmp if still around
         try:
             tmp.unlink(missing_ok=True)
         except Exception:
@@ -304,7 +304,7 @@ async def delete_data(
             {"ok": False, "error": "storage failure"}, status_code=500
         )
 
-    ***REMOVED*** Audit + mock email regardless of removed counts (request was valid).
+    # Audit + mock email regardless of removed counts (request was valid).
     _audit(email, session_id, client_ip, removed)
     if email:
         _mock_send_confirmation(email, removed)

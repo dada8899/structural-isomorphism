@@ -1,25 +1,25 @@
-***REMOVED*** B2 — Layer 4 prediction calibration (v2, W1-D)
+# B2 — Layer 4 prediction calibration (v2, W1-D)
 
-**Run date**: 2026-05-13 (session ***REMOVED***3, W1-D)
+**Run date**: 2026-05-13 (session #3, W1-D)
 
 **Script**: `v4/scripts/b2_calibrate_predictions.py`
 
 
-***REMOVED******REMOVED*** Overview
+## Overview
 
 - Classes processed: **21**
 - Predictions processed: **24**
 - Extracted numerical bands (total): **42**
 - Bands matched to a verified observation: **3** / 42 (7%)
 
-***REMOVED******REMOVED*** 95% CI method per band
+## 95% CI method per band
 
 | Method | Count | Description |
 |---|---|---|
 | `literature_band_rescaled` | 42 | Treat LLM band as ±2σ → 95% CI = mid ± 1.96σ_est |
 | `bootstrap` | 0 | Verified phase: bootstrap CI on observed value attached |
 
-***REMOVED******REMOVED*** Reverse-filled verdicts on verified phases
+## Reverse-filled verdicts on verified phases
 
 Among **3** bands matched to a verified observation:
 
@@ -29,18 +29,18 @@ Among **3** bands matched to a verified observation:
 | `out_band_partial` | 3 | 100% | Predicted band overlaps literature band but not observed |
 | `complete_mismatch` | 0 | 0% | Predicted band misses both observed and literature |
 
-***REMOVED******REMOVED*** Bootstrap CI refresh on raw data
+## Bootstrap CI refresh on raw data
 
 | Observation | Median α | Bootstrap 95% CI | n_boot |
 |---|---|---|---|
 | earthquake_alpha_energy | 1.803 | [1.753, 1.838] | 100 |
 | stockmarket_alpha_returns | 2.993 | [2.738, 3.000] | 100 |
 
-***REMOVED******REMOVED*** Surprises — LLM bands that miss the observed value
+## Surprises — LLM bands that miss the observed value
 
 (none — all matched predictions land in_band or out_band_partial)
 
-***REMOVED******REMOVED*** Methodology
+## Methodology
 
 **Method A — `literature_band_rescaled` (default)**
 
@@ -49,7 +49,7 @@ as a ~2σ envelope around its midpoint, then rescale to a 95% CI:
 
 ```
 mid = (low + high) / 2
-sigma_est = (high - low) / 4   ***REMOVED*** half-width / 2
+sigma_est = (high - low) / 4   # half-width / 2
 CI_95 = mid ± 1.96 × sigma_est
 ```
 
@@ -66,7 +66,7 @@ domain keyword. Verdict = `in_band` if observed lies inside the rescaled predict
 `out_band_partial` if predicted band overlaps literature but not observed, else
 `complete_mismatch`.
 
-***REMOVED******REMOVED*** Limitations
+## Limitations
 
 - LLM bands have no specified semantic (1σ? 2σ? P5-P95?). Choosing 2σ is a
   middle-ground assumption; if true semantic is 1σ, our 95% CI is too narrow.

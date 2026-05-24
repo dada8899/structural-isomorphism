@@ -1,6 +1,6 @@
-***REMOVED*** Cross-Protocol Self-Organized Criticality in DeFi Liquidation Cascades: 43,065 Events Across Aave V2, Compound V2, and MakerDAO
+# Cross-Protocol Self-Organized Criticality in DeFi Liquidation Cascades: 43,065 Events Across Aave V2, Compound V2, and MakerDAO
 
-***REMOVED******REMOVED*** Authors
+## Authors
 
 Wan Qinghui (万庆徽)$^{1,*}$
 
@@ -8,15 +8,15 @@ $^{1}$ Independent Research, Structural Isomorphism Project, https://structural.
 
 $^{*}$ Correspondence: `dada8899@users.noreply.github.com` *(placeholder — author affiliation and contact details to be finalized prior to formal submission)*
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 A universality-class claim is only as strong as its cross-instance consistency. We apply a single self-organized-criticality (SOC) analysis pipeline to 43,065 on-chain liquidation events drawn from three architecturally distinct decentralized-finance (DeFi) lending protocols: Aave V2 (auction-based liquidation), Compound V2 (direct liquidation with incentive spread), and MakerDAO's Dog/Clipper (Liquidation 2.0 via Dutch clipper auctions). Despite completely different liquidation mechanisms, incentive structures, and codebases, the three protocols converge on tightly compatible SOC signatures: Clauset-Shalizi-Newman power-law tail exponents $\alpha = 1.684 \pm 0.010$ (Aave), $1.649 \pm 0.016$ (Compound), and $1.567 \pm 0.015$ (MakerDAO) — a cross-protocol spread of 0.12 — and Omori-Utsu aftershock decay at 1-hour aggregation $p = 0.733 \pm 0.045$, $0.761 \pm 0.042$, $0.692 \pm 0.071$ — a spread of 0.07. Every per-protocol power-law fit decisively rejects lognormal and exponential alternatives ($p < 10^{-9}$). Combined with the Phase 1 earthquake validation ($\alpha_E = 1.79$, $p = 0.94$) and the Phase 2 S&P 500 validation ($\alpha_r = 3.00$, $p = 0.29$), this gives a four-way empirical cross-domain comparison in which DeFi liquidations form a tight sub-cluster near earthquake energy exponents and well-separated from continuous-diffusion stock-return exponents — evidence for a "discrete threshold-cascade" sub-class of SOC that covers both geology and decentralized finance.
 
-***REMOVED******REMOVED*** Keywords
+## Keywords
 
 self-organized criticality; DeFi liquidation; Gutenberg-Richter; Omori-Utsu; Aave; Compound; MakerDAO; cross-protocol universality; on-chain analytics; smart contracts
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The Structural Isomorphism project [1, 2] groups seventeen phenomena — earthquakes, DeFi liquidations, bank runs, margin spirals, power-grid cascades, neural avalanches, social cascades — into a single SOC threshold-cascade equivalence class [3, 4] via its V4 Layer 2 community-discovery step. Layers 3-4 attach predictions; Layer 5 tests them. A Phase 1 companion paper [5] validated the analysis stack on USGS earthquakes (ground-truth physics). A Phase 2 companion paper [6] reproduced known econophysics scaling on S&P 500 daily returns. Phase 3 (this paper) takes the flagship step: testing the SOC prediction on DeFi liquidations, the anchor non-physics member of the V4 SOC hub, where no prior published scaling measurement exists.
 
@@ -29,9 +29,9 @@ The contributions are:
 3. Demonstration that three distinct liquidation mechanisms (auction, direct, Dutch clipper) produce $\alpha$ values within 0.12 of each other and Omori $p$ within 0.07 — a cross-protocol consistency consistent with sharing a universality class.
 4. A joint four-phase comparison table placing DeFi liquidations quantitatively into a "discrete threshold" SOC sub-class alongside earthquakes and separated from continuous-diffusion finance returns.
 
-***REMOVED******REMOVED*** 2. Data and Methods
+## 2. Data and Methods
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Three protocol datasets
+### 2.1 Three protocol datasets
 
 **Aave V2 (auction-based liquidation).** The Aave V2 `LendingPool` proxy at address `0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9` on Ethereum mainnet emits a `LiquidationCall` event with signature `(address indexed collateralAsset, address indexed debtAsset, address indexed user, uint256 debtToCover, uint256 liquidatedCollateralAmount, address liquidator, bool receiveAToken)`. We fetch all such events in the block range 11,362,579 → 19,000,000 (December 2020 to January 2024). Total raw events: 28,943. Stablecoin-debt subset (USDC, DAI, USDT, BUSD, sUSD, TUSD, FRAX, USDP, LUSD): **25,601**.
 
@@ -41,25 +41,25 @@ The contributions are:
 
 **Cumulative total across the three protocols: 43,065 liquidation events.**
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Size extraction and filtering
+### 2.2 Size extraction and filtering
 
 Each protocol gets its own USD-denominated size via a protocol-specific event parser (Section 2.1). Aave and Compound use stablecoin debt amounts (`debtToCover / 10^{decimals}` and `repayAmount / 10^{decimals}`). MakerDAO uses `art / 10^{18}`. Non-stablecoin debt events (e.g., WETH/WBTC debt on Compound cETH and cWBTC2, non-stablecoin ilks on MakerDAO) are excluded from the tail-exponent analysis to keep the size variable homogeneous; they remain in the Omori count analysis, which depends only on event timestamps.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Power-law fit
+### 2.3 Power-law fit
 
 Identical to the Phase 1 [5] and Phase 2 [6] pipelines: the `powerlaw` Python package implementing the Clauset-Shalizi-Newman 2009 continuous power-law fit [7], with auto-selected $x_\mathrm{min}$ (KS-distance minimization). The `distribution_compare` function provides likelihood-ratio tests against lognormal, exponential, and truncated-power-law alternatives. The reported $\alpha$ is the pure power-law MLE; the truncated-power-law fit is reported separately as a robustness diagnostic.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Omori-Utsu fit (multi-scale)
+### 2.4 Omori-Utsu fit (multi-scale)
 
 Identical to Phase 2 [6]: identify main-shock bins where the event count exceeds $\mu + 3\sigma$ of the bin-count series, stack the post-shock excess counts, and fit $n(\tau) = K(\tau + c)^{-p}$ by weighted log-linear regression with grid search over $c$. We test three aggregation scales (1 day, 6 hour, 1 hour) and pick the scale that maximizes the $R^2 / \sigma(p)$ tradeoff. For DeFi event rates this is 1 hour for all three protocols.
 
-***REMOVED******REMOVED******REMOVED*** 2.5 Statistical controls
+### 2.5 Statistical controls
 
 Three controls are explicit: (i) likelihood-ratio tests against lognormal and exponential alternatives for each protocol's tail fit; (ii) cross-protocol consistency check on the three independent $\alpha$ values; and (iii) a slope-zero null hypothesis test on each Omori fit (rejected at $p < 10^{-9}$ for all three protocols).
 
-***REMOVED******REMOVED*** 3. Results
+## 3. Results
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Per-protocol power-law exponents
+### 3.1 Per-protocol power-law exponents
 
 **Table 1.** Per-protocol Clauset power-law fits on stablecoin-denominated liquidation sizes.
 
@@ -73,7 +73,7 @@ The three exponents span a range of 0.12 (1.567-1.684). Given individual uncerta
 
 Crucially, every protocol rejects lognormal and exponential alternatives by very large margins. The power-law form is not a close call — it wins every comparison on every protocol.
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Per-protocol Omori exponents at 1-hour aggregation
+### 3.2 Per-protocol Omori exponents at 1-hour aggregation
 
 **Table 2.** Per-protocol Omori fits at 1-hour aggregation (the best $R^2/\sigma(p)$ scale in each case).
 
@@ -87,17 +87,17 @@ The three $p$ values span 0.07 (0.692-0.761). All three sit well inside the Lill
 
 $R^2$ values of 0.24-0.36 are modest (lower than the 0.99 of Phase 1 [5] but comparable to the 0.71 of Phase 2 [6]) because DeFi event rates are sparse per hourly bin. The slope is, however, far from zero for each protocol — at Compound's $p = 0.761 \pm 0.042$, the null hypothesis of flat post-shock rate is rejected at approximately $18\sigma$.
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Cross-protocol consistency
+### 3.3 Cross-protocol consistency
 
 The core empirical claim of this paper is the joint observation across Table 1 and Table 2: **three protocols with totally different liquidation mechanics (auction / direct / Dutch clipper), different incentive structures (5% / 8% / per-ilk penalty), different collateral-factor schemes, different debt-accounting conventions (normalized vs. direct), and different smart-contract codebases all converge on $\alpha \in [1.57, 1.68]$ and $p \in [0.69, 0.76]$**.
 
 If the power-law signature were a Aave-mechanism-specific artifact, the three values should not cluster. The observed spread of 0.12 in $\alpha$ and 0.07 in $p$ is much smaller than the 1.3-unit gap between DeFi and stock-return exponents (the cross-domain comparison of Section 3.5), so DeFi lending forms an internally-coherent cluster that is well-separated from other SOC sub-classes.
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Pooled fit (sanity check, not primary claim)
+### 3.4 Pooled fit (sanity check, not primary claim)
 
 Pooling all three protocols into one size distribution gives $\alpha_\mathrm{pooled} = 2.99$ at an $x_\mathrm{min}$ of $\$2.09$ million — a strikingly different number driven by the very extreme tail of the combined distribution. This is not a contradiction: mixing distributions with different tail cutoffs can produce a composite with a steeper effective exponent in the far tail. We **do not report the pooled fit as the DeFi SOC exponent**; the per-protocol exponents (1.57-1.68) are the physical answer. The pooled fit is reported for completeness only.
 
-***REMOVED******REMOVED******REMOVED*** 3.5 Joint four-phase comparison
+### 3.5 Joint four-phase comparison
 
 **Table 3.** Four-phase comparison of the Layer 5 SOC pipeline across all tested systems.
 
@@ -109,7 +109,7 @@ Pooling all three protocols into one size distribution gives $\alpha_\mathrm{poo
 | 3b (this) | Compound V2 DeFi | 2020-2024 | 11,244 | $\alpha = 1.649 \pm 0.016$ | $0.761 \pm 0.042$ (1-hour) | 0.36 |
 | 3c (this) | MakerDAO Dog | 2021-2024 | 1,985 | $\alpha = 1.567 \pm 0.015$ | $0.692 \pm 0.071$ (1-hour) | 0.24 |
 
-***REMOVED******REMOVED******REMOVED*** 3.6 Interpretation of the four-phase comparison
+### 3.6 Interpretation of the four-phase comparison
 
 Six observations, ordered by strength:
 
@@ -125,25 +125,25 @@ Six observations, ordered by strength:
 
 6. **The V4 Layer 2 SOC equivalence class has been empirically validated on five instances** (global earthquakes, S&P 500, Aave, Compound, MakerDAO). That is a substantially stronger empirical base than the original V3 pair-level analogy evidence that identified the class in the first place.
 
-***REMOVED******REMOVED*** 4. Discussion
+## 4. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Mechanism candidates
+### 4.1 Mechanism candidates
 
 The Aave-only v1 result showed that Aave V2 liquidations fit SOC; this paper shows that **the SOC structure is a property of the DeFi lending asset class, not of Aave's auction mechanism**. Three protocols with completely different liquidation designs — Aave's incentive-spread auction, Compound's direct-liquidation-with-spread model, MakerDAO's Dutch-clipper price-falling auction — converge on scaling exponents that are practically indistinguishable.
 
 The natural mechanism story is a Motter-Lai-style network-cascade model [8] embedded in an on-chain collateral network: positions become unhealthy when collateral prices fall through their liquidation threshold, the resulting forced sales push prices further, and the cascade propagates until the network stabilizes. Independent realizations of this mechanism — Aave / Compound / MakerDAO — produce the same exponent because the threshold-cascade structure is the universality-controlling feature, not the specific incentive design.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Universality-class assignment: discrete threshold sub-class
+### 4.2 Universality-class assignment: discrete threshold sub-class
 
 The joint comparison with earthquakes and stock returns is equally important. DeFi ($\alpha \approx 1.6$-$1.7$) sits much closer to earthquakes ($\alpha_E = 1.79$) than to stocks ($\alpha_r = 3.00$). This is not a coincidence — both earthquakes and DeFi liquidations are **discrete threshold-crossing events**, whereas stock returns are **continuous innovations**. The universality class contains a "discrete threshold" sub-cluster and a "continuous diffusion" sub-cluster, and the automatic V4 Layer 2 Louvain community detection on our pair-level isomorphism graph already found this structure (separating Motter-Lai network cascades from Diamond-Dybvig self-fulfilling equilibria). The multi-protocol validation here supports that split empirically.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Implications
+### 4.3 Implications
 
 This matters for three reasons. First, it retires the worry that the v1 Aave result was mechanism-specific; the cross-protocol cluster is tight enough to rule that out. Second, it elevates the equivalence-class claim from "this one protocol happens to fit a scaling law" to "this asset class exhibits universality across implementations," which is the standard physics-literature threshold for claiming a universality class holds. Third, it opens a productive research program: if Aave, Compound, and MakerDAO all give $\alpha \approx 1.6$ and $p \approx 0.7$, then **any new lending protocol's liquidation tail should also give these numbers** — a falsifiable prediction on future DeFi protocols.
 
 Practical implications we do not yet claim but the data make plausible: the rich SOC-based risk-management machinery from seismology (precursor volatility, branching-process aftershock forecasting, mean-field critical-point estimation) is structurally tractable for on-chain DeFi risk. This paper does not port any of that; it provides the empirical base.
 
-***REMOVED******REMOVED*** 5. Limitations
+## 5. Limitations
 
 1. **Cross-protocol $\alpha$ is technically heterogeneous.** With $\sigma(\alpha) \approx 0.010$-$0.016$ per protocol, the 0.12 spread corresponds to 7-12 standard errors. Statistical tests would reject exact equality of the three $\alpha$ values. Our claim is that the spread is small relative to the DeFi-to-stock gap and small enough to be consistent with a single universality class with protocol-level microscopic variations. We do not claim the three are statistically indistinguishable.
 
@@ -159,32 +159,32 @@ Practical implications we do not yet claim but the data make plausible: the rich
 
 7. **No main-shock threshold sweep.** The threshold is fixed at $\mu + 3\sigma$ for Omori; we did not scan over 2, 2.5, 3.5, 4$\sigma$ as a robustness check.
 
-***REMOVED******REMOVED*** 6. Conclusion
+## 6. Conclusion
 
 Three architecturally distinct DeFi lending protocols — Aave V2 (auction), Compound V2 (direct), MakerDAO (Dutch clipper) — totaling 43,065 on-chain liquidation events converge on SOC scaling exponents within 0.12 ($\alpha$) and 0.07 (Omori $p$) of each other. This convergence is robust to differences in incentive structure, debt accounting, and codebase. Combined with the earthquake and stock-return phases of this pipeline, the four-way comparison places DeFi liquidations in a "discrete threshold-cascade" SOC sub-cluster alongside earthquakes, well-separated from continuous-diffusion stock-return scaling. The Structural Isomorphism V4 SOC equivalence class is empirically validated on five instances, and a falsifiable prediction is now on the record for any future DeFi lending protocol: its liquidation tail should give $\alpha \approx 1.6$ and Omori $p \approx 0.7$ at 1-hour aggregation.
 
-***REMOVED******REMOVED*** Data Availability
+## Data Availability
 
 All raw and processed data are at the Structural Isomorphism project repository, `v4/validation/soc-defi/` (https://github.com/dada8899/structural-isomorphism). Specifically, the per-protocol JSONL files (`aave_v2_liquidations.jsonl`, `compound_v2_liquidations.jsonl`, `maker_dog_liquidations.jsonl`) contain the raw on-chain event data. The underlying Ethereum events are also retrievable directly from any archival Ethereum node via `eth_getLogs` on the contract addresses listed in Section 2.1.
 
-***REMOVED******REMOVED*** Code Availability
+## Code Availability
 
 All analysis scripts are at the same repository (`v4/validation/soc-defi/`):
 
 ```
-python3 fetch_aave_liquidations.py       ***REMOVED*** Aave V2 LiquidationCall fetcher
-python3 fetch_compound_liquidations.py   ***REMOVED*** Compound V2 LiquidateBorrow fetcher (5 cTokens)
-python3 fetch_maker_liquidations.py      ***REMOVED*** MakerDAO Dog Bark fetcher
-python3 analyze_multiprotocol.py         ***REMOVED*** unified per-protocol + pooled analysis
+python3 fetch_aave_liquidations.py       # Aave V2 LiquidationCall fetcher
+python3 fetch_compound_liquidations.py   # Compound V2 LiquidateBorrow fetcher (5 cTokens)
+python3 fetch_maker_liquidations.py      # MakerDAO Dog Bark fetcher
+python3 analyze_multiprotocol.py         # unified per-protocol + pooled analysis
 ```
 
 Dependencies: `numpy`, `powerlaw`, `requests`, `pycryptodome` on Python 3.9 or later. Commit hash for the analysis in this paper: see repository tag `v4/phase3-defi-2026-04-16`.
 
-***REMOVED******REMOVED*** Acknowledgments
+## Acknowledgments
 
 We thank the Aave, Compound Labs, and MakerDAO teams for publishing their smart-contract code and event schemas openly. The Ethereum archival-node ecosystem (Infura, Alchemy, public RPC endpoints) makes this kind of cross-protocol historical analysis feasible at zero cost. The Phase 1 [5] and Phase 2 [6] companion papers established the pipeline that this paper applies. AI assistance (Anthropic Claude Opus 4.x via Claude Code; DeepSeek for cross-check on prose drafts) was used in code drafting, prose polishing, and literature triangulation; all data-analysis decisions, numerical results, and scientific claims are the author's responsibility. No funding was received for this work.
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Structural Isomorphism Project, "V1-V4 architecture: cross-domain universality-class identification," project documentation, https://structural.bytedance.city (2026).
 

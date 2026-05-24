@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 build_bundle.py — copy paper.md + results.json per system slot.
 
@@ -13,11 +13,11 @@ import json
 import shutil
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent  ***REMOVED*** dataset/v1/
+ROOT = Path(__file__).resolve().parent.parent  # dataset/v1/
 SYSTEMS = ROOT / "systems"
-REPO_ROOT = ROOT.parent.parent  ***REMOVED*** repo root
+REPO_ROOT = ROOT.parent.parent  # repo root
 
-***REMOVED*** slot -> v4/validation/ subdir
+# slot -> v4/validation/ subdir
 SYSTEM_MAP = {
     "01_earthquake": "soc-earthquake",
     "02_stockmarket": "soc-stockmarket",
@@ -37,8 +37,8 @@ SYSTEM_MAP = {
     "universal_collapse": "soc-universal-collapse",
 }
 
-***REMOVED*** Files inside each v4/validation/<src>/ that we treat as the canonical results bundle.
-***REMOVED*** We aggregate them into a single results.json per slot.
+# Files inside each v4/validation/<src>/ that we treat as the canonical results bundle.
+# We aggregate them into a single results.json per slot.
 RESULT_FILE_CANDIDATES = [
     "results.json",
     "gr_results.json",
@@ -64,11 +64,11 @@ def main():
     for slot, src in SYSTEM_MAP.items():
         slot_dir = SYSTEMS / slot
         src_dir = REPO_ROOT / "v4" / "validation" / src
-        ***REMOVED*** paper.md
+        # paper.md
         paper_src = src_dir / "paper.md"
         if paper_src.exists():
             shutil.copy(paper_src, slot_dir / "paper.md")
-        ***REMOVED*** results.json (aggregated)
+        # results.json (aggregated)
         agg = {"slot": slot, "source_dir": str(src_dir.relative_to(REPO_ROOT))}
         any_results = False
         for cand in RESULT_FILE_CANDIDATES:
@@ -83,7 +83,7 @@ def main():
         if any_results:
             with open(slot_dir / "results.json", "w") as fp:
                 json.dump(agg, fp, indent=2)
-        ***REMOVED*** Verdict copy if exists
+        # Verdict copy if exists
         for verdict_name in [
             "VERDICT-2026-04-15.md",
             "VERDICT-2026-04-16.md",

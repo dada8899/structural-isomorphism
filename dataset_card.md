@@ -14,17 +14,17 @@ size_categories:
   - 1K<n<10K
 ---
 
-***REMOVED*** SIBD: Structural Isomorphism Benchmark Dataset
+# SIBD: Structural Isomorphism Benchmark Dataset
 
-***REMOVED******REMOVED*** Dataset Description
+## Dataset Description
 
 SIBD (Structural Isomorphism Benchmark Dataset) is a dataset of 1,214 natural language descriptions spanning 84 distinct structural types. Each structural type is described in 10+ different real-world domains, using plain language without domain-specific jargon.
 
 The dataset is designed to train and evaluate models that recognize **structural similarity** across domains -- the ability to see that a thermostat and blood sugar regulation share the same feedback loop structure, even though they come from completely different fields.
 
-***REMOVED******REMOVED*** Dataset Structure
+## Dataset Structure
 
-***REMOVED******REMOVED******REMOVED*** Data Format
+### Data Format
 
 Each entry is a JSON object with the following fields:
 
@@ -35,14 +35,14 @@ Each entry is a JSON object with the following fields:
 | `domain` | string | Domain of the description (e.g., "Physics", "Economics") |
 | `description` | string | Plain-language description of a phenomenon exhibiting this structure |
 
-***REMOVED******REMOVED******REMOVED*** Example
+### Example
 
 ```json
 {"type_id": "05", "type_name": "Exponential Growth", "domain": "Biology", "description": "A bacterial colony doubles every 20 minutes..."}
 {"type_id": "05", "type_name": "Exponential Growth", "domain": "Finance", "description": "Compound interest means your money grows faster and faster..."}
 ```
 
-***REMOVED******REMOVED******REMOVED*** Statistics
+### Statistics
 
 - **Total entries**: 1,214
 - **Structural types**: 84
@@ -50,7 +50,7 @@ Each entry is a JSON object with the following fields:
 - **Language**: Chinese
 - **Domains include**: Physics, Chemistry, Biology, Economics, Law, Education, Medicine, Agriculture, Engineering, Sports, and 70+ more
 
-***REMOVED******REMOVED******REMOVED*** Knowledge Base (Supplementary)
+### Knowledge Base (Supplementary)
 
 In addition to the training data, we provide a knowledge base of 500 real-world phenomena:
 
@@ -62,28 +62,28 @@ In addition to the training data, we provide a knowledge base of 500 real-world 
 
 Knowledge base entries include an additional `id` and `name` field.
 
-***REMOVED******REMOVED*** Usage
+## Usage
 
 ```python
 from datasets import load_dataset
 
-***REMOVED*** Load training data
+# Load training data
 dataset = load_dataset("structural-isomorphism/SIBD", split="train")
 
-***REMOVED*** Or load locally
+# Or load locally
 import json
 with open("data/clean.jsonl") as f:
     data = [json.loads(line) for line in f if line.strip()]
 ```
 
-***REMOVED******REMOVED*** Intended Use
+## Intended Use
 
 - Training embedding models for structural similarity
 - Evaluating cross-domain analogy recognition
 - Research on structural isomorphism and knowledge transfer
 - Building search engines for cross-domain inspiration
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 ```bibtex
 @article{structural-isomorphism-2026,
@@ -94,6 +94,6 @@ with open("data/clean.jsonl") as f:
 }
 ```
 
-***REMOVED******REMOVED*** License
+## License
 
 MIT

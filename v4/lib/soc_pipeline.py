@@ -6,10 +6,10 @@ extracted into the standalone PyPI-ready package `soc-pipeline` (under
 
 To migrate:
 
-    ***REMOVED*** before
+    # before
     from v4.lib.soc_pipeline import fit_clauset_powerlaw
 
-    ***REMOVED*** after
+    # after
     pip install -e packages/soc-pipeline
     from soc_pipeline import fit_clauset_powerlaw
 
@@ -30,14 +30,14 @@ warnings.warn(
 )
 
 try:
-    from soc_pipeline import (  ***REMOVED*** noqa: F401
+    from soc_pipeline import (  # noqa: F401
         FitResult,
         bootstrap_ci,
         fit_clauset_powerlaw as _new_fit,
         synthetic_null,
         verdict_from_alpha_band,
     )
-    from soc_pipeline.omori import (  ***REMOVED*** noqa: F401
+    from soc_pipeline.omori import (  # noqa: F401
         bin_and_omori_from_events,
         fit_omori_p as omori_from_aftershock_stack,
     )
@@ -50,9 +50,9 @@ try:
         """Legacy wrapper around synthetic_null returning dict shape."""
         out = {}
         cases = synthetic_null(n=n, seed=seed)
-        for k, case in cases.items():  ***REMOVED*** type: ignore[union-attr]
+        for k, case in cases.items():  # type: ignore[union-attr]
             out[k] = case.fit.to_dict()
-        out["all_rejected"] = all(case.correctly_rejected for case in cases.values())  ***REMOVED*** type: ignore[union-attr]
+        out["all_rejected"] = all(case.correctly_rejected for case in cases.values())  # type: ignore[union-attr]
         return out
 
     def bootstrap_alpha_ci(vals, n_boot=200, seed=42, discrete=False,
@@ -71,5 +71,5 @@ try:
             "n_boot_succeeded": r.n_boot_succeeded,
         }
 except ImportError:
-    ***REMOVED*** Package not installed yet — keep this module importable but no-op.
+    # Package not installed yet — keep this module importable but no-op.
     pass

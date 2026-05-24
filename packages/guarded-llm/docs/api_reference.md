@@ -1,28 +1,28 @@
-***REMOVED*** API reference
+# API reference
 
-***REMOVED******REMOVED*** `guardrailed_llm_call(...)`
+## `guardrailed_llm_call(...)`
 
 Two call styles. **Provider-style** is the recommended public API.
 
-***REMOVED******REMOVED******REMOVED*** Provider-style (keyword)
+### Provider-style (keyword)
 
 ```python
 result = guardrailed_llm_call(
-    provider: str,                   ***REMOVED*** e.g. "deepseek", "anthropic", "openai", "kimi"
-    model: str,                      ***REMOVED*** vendor model id
-    messages: list[dict],            ***REMOVED*** OpenAI-style chat messages
-    schema: LLMSchema | type,        ***REMOVED*** validation target
+    provider: str,                   # e.g. "deepseek", "anthropic", "openai", "kimi"
+    model: str,                      # vendor model id
+    messages: list[dict],            # OpenAI-style chat messages
+    schema: LLMSchema | type,        # validation target
     max_retries: int = 3,
     max_tokens: int = 2048,
     budget_cap_usd: float | None = None,
     retry_backoff_s: float = 0.0,
-    **kwargs,                        ***REMOVED*** forwarded to the provider's .call()
+    **kwargs,                        # forwarded to the provider's .call()
 ) -> GuardrailResult
 ```
 
 Returns a `GuardrailResult` (see below).
 
-***REMOVED******REMOVED******REMOVED*** Legacy (positional)
+### Legacy (positional)
 
 ```python
 parsed, errors = guardrailed_llm_call(
@@ -35,22 +35,22 @@ parsed, errors = guardrailed_llm_call(
 
 Kept for backwards compatibility with the v4 pipeline.
 
-***REMOVED******REMOVED*** `GuardrailResult`
+## `GuardrailResult`
 
 ```python
 @dataclass
 class GuardrailResult:
-    parsed: Any              ***REMOVED*** validated instance, or None on full failure
-    errors: list[str]        ***REMOVED*** per-attempt error strings
-    attempts: int            ***REMOVED*** actual LLM calls made
-    cost_usd: float          ***REMOVED*** estimated cumulative USD cost
-    raw_outputs: list[str]   ***REMOVED*** raw LLM text from each attempt (for debug)
+    parsed: Any              # validated instance, or None on full failure
+    errors: list[str]        # per-attempt error strings
+    attempts: int            # actual LLM calls made
+    cost_usd: float          # estimated cumulative USD cost
+    raw_outputs: list[str]   # raw LLM text from each attempt (for debug)
 
     @property
     def ok(self) -> bool: ...
 ```
 
-***REMOVED******REMOVED*** `LLMSchema(schema: dict)`
+## `LLMSchema(schema: dict)`
 
 Wraps a JSON Schema (Draft 2020-12) for validation.
 
@@ -61,28 +61,28 @@ ok, err, inst = schema.validate(parsed_dict)
 
 Raises `ValueError` if the schema itself is invalid.
 
-***REMOVED******REMOVED*** `validate_response(d, schema)`
+## `validate_response(d, schema)`
 
 Generic dispatcher — works with both `LLMSchema` instances and dataclass schemas
 exposing `.validate(d) -> (ok, err, instance)`.
 
-***REMOVED******REMOVED*** `state_machine_fix(raw: str) -> str`
+## `state_machine_fix(raw: str) -> str`
 
 Best-effort cleanup of common LLM JSON drift. Never raises.
 
-***REMOVED******REMOVED*** `validate_json(raw_or_dict, schema)`
+## `validate_json(raw_or_dict, schema)`
 
 Convenience: `state_machine_fix` + `json.loads` + `validate_response` in one
 call. Returns `(ok, err, instance)`.
 
-***REMOVED******REMOVED*** Provider registry
+## Provider registry
 
 - `get_provider(name) -> BaseProvider` — fetch a provider instance.
 - `list_providers() -> list[str]` — sorted list of registered providers.
 - `register_provider(name, cls)` — register a `BaseProvider` subclass.
 - `BaseProvider` — abstract base; implement `.call(messages, model, max_tokens, schema=None, **kwargs) -> {"text": str, "cost_usd": float}`.
 
-***REMOVED******REMOVED*** Built-in providers
+## Built-in providers
 
 | Name | Class | API key env |
 |---|---|---|
@@ -93,16 +93,16 @@ call. Returns `(ok, err, instance)`.
 
 All built-in providers also accept `api_key=` and `base_url=` kwargs.
 
-***REMOVED******REMOVED*** Exceptions
+## Exceptions
 
 ```
-GuardrailError                  ***REMOVED*** base
-├── SchemaValidationError       ***REMOVED*** all retries exhausted with bad output
-├── LLMCallError                ***REMOVED*** provider HTTP / auth / format error
-└── BudgetExceededError         ***REMOVED*** cumulative cost > budget_cap_usd
+GuardrailError                  # base
+├── SchemaValidationError       # all retries exhausted with bad output
+├── LLMCallError                # provider HTTP / auth / format error
+└── BudgetExceededError         # cumulative cost > budget_cap_usd
 ```
 
-***REMOVED******REMOVED*** Legacy dataclass schemas
+## Legacy dataclass schemas
 
 Imported from `guarded_llm` for backwards compat with the structural-
 isomorphism V4 pipeline:

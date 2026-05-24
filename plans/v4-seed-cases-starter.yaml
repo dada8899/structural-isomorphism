@@ -1,16 +1,16 @@
-***REMOVED*** V3 种子案例 — 10 条起手式
-***REMOVED***
-***REMOVED*** 这是我根据科学史经典跨域迁移起的 draft。不是"让你照搬"，
-***REMOVED*** 而是"省你从零开始"。请审核：
-***REMOVED***   - 删掉你不同意的
-***REMOVED***   - 改掉标注错的 transformations
-***REMOVED***   - 补 10-20 条你觉得更重要的
-***REMOVED*** 审完保存为 plans/v4-seed-cases.yaml（去掉 -starter 后缀）
-***REMOVED***
-***REMOVED*** 注意事项：
-***REMOVED***   - 每条 transformations 用 v4-variant-types.yaml 的 id
-***REMOVED***   - source_equation / target_equation 可以简化但必须保留核心结构
-***REMOVED***   - historical_note 写一句话说清楚"谁在什么时候把两者联系起来的"
+# V3 种子案例 — 10 条起手式
+#
+# 这是我根据科学史经典跨域迁移起的 draft。不是"让你照搬"，
+# 而是"省你从零开始"。请审核：
+#   - 删掉你不同意的
+#   - 改掉标注错的 transformations
+#   - 补 10-20 条你觉得更重要的
+# 审完保存为 plans/v4-seed-cases.yaml（去掉 -starter 后缀）
+#
+# 注意事项：
+#   - 每条 transformations 用 v4-variant-types.yaml 的 id
+#   - source_equation / target_equation 可以简化但必须保留核心结构
+#   - historical_note 写一句话说清楚"谁在什么时候把两者联系起来的"
 
 version: 1
 
@@ -203,12 +203,12 @@ seeds:
       - "Stauffer & Aharony 1994 — Introduction to Percolation Theory"
       - "Albert, Jeong, Barabási 2000 — Attack and error tolerance of complex networks"
 
-***REMOVED*** ===== 建议你补充的方向 =====
-***REMOVED***
-***REMOVED*** 我起的这 10 条偏物理 → 其他。可以再补：
-***REMOVED***   - 化学反应（反应扩散）↔ 图灵斑图 / 生物形态发生
-***REMOVED***   - 控制论 ↔ 大脑皮层 / 稳态调节
-***REMOVED***   - 量子力学 ↔ 概率数据库 / 不确定性推理
-***REMOVED***   - 语言学（生成语法）↔ 程序语言（Chomsky 层级）
-***REMOVED***   - 相对论时空 ↔ 机器学习中的流形学习
-***REMOVED***   - 博弈论 ↔ 进化稳定策略
+# ===== 建议你补充的方向 =====
+#
+# 我起的这 10 条偏物理 → 其他。可以再补：
+#   - 化学反应（反应扩散）↔ 图灵斑图 / 生物形态发生
+#   - 控制论 ↔ 大脑皮层 / 稳态调节
+#   - 量子力学 ↔ 概率数据库 / 不确定性推理
+#   - 语言学（生成语法）↔ 程序语言（Chomsky 层级）
+#   - 相对论时空 ↔ 机器学习中的流形学习
+#   - 博弈论 ↔ 进化稳定策略

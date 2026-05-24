@@ -14,12 +14,12 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[
-        ***REMOVED*** Core engine
+        # Core engine
         "sentence-transformers>=2.0",
         "numpy",
         "torch",
-        ***REMOVED*** Statistical / data processing (used by phase detector, validation,
-        ***REMOVED*** tutorial reproductions, and the active-learning simulation)
+        # Statistical / data processing (used by phase detector, validation,
+        # tutorial reproductions, and the active-learning simulation)
         "scipy",
         "pandas",
         "powerlaw",

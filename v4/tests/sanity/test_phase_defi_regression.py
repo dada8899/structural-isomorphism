@@ -8,7 +8,7 @@ from sanity_helpers import VALIDATION_DIR, load_json_or_skip
 
 RESULTS_FILE = VALIDATION_DIR / "soc-defi" / "multiprotocol_results.json"
 
-***REMOVED*** Per-protocol alpha must be in [1.5, 1.8]
+# Per-protocol alpha must be in [1.5, 1.8]
 PROTOCOLS = ("aave_v2", "compound_v2", "maker_dog")
 
 
@@ -46,7 +46,7 @@ def test_defi_total_events():
     for p in PROTOCOLS:
         if p not in d:
             continue
-        ***REMOVED*** Prefer the raw event count which matches the brief's intent.
+        # Prefer the raw event count which matches the brief's intent.
         raw = d[p].get("n_events_total")
         if isinstance(raw, int):
             total += raw

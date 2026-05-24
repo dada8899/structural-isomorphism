@@ -1,4 +1,4 @@
-"""B Data Flywheel e2e — insights dashboard (Session ***REMOVED***18).
+"""B Data Flywheel e2e — insights dashboard (Session #18).
 
 Covers:
   A. API contract — drives a FastAPI shim with the insights + report
@@ -76,7 +76,7 @@ def _sample_payload() -> dict:
     }
 
 
-***REMOVED*** ---------------- shim + store fixtures ------------------------------ ***REMOVED***
+# ---------------- shim + store fixtures ------------------------------ #
 
 
 @pytest.fixture(scope="module")
@@ -103,7 +103,7 @@ from services.report_store import ReportStore
 
 FRONTEND = Path({str(FRONTEND_DIR)!r})
 
-***REMOVED*** Both routers share the same temp DB.
+# Both routers share the same temp DB.
 store = ReportStore({str(db_path)!r})
 insights_api._store = store
 report_api._store = store
@@ -161,7 +161,7 @@ def store(insights_backend):
     """ReportStore opened on the same temp DB the shim serves."""
     if str(WEB_BACKEND) not in sys.path:
         sys.path.insert(0, str(WEB_BACKEND))
-    from services.report_store import ReportStore  ***REMOVED*** noqa: WPS433
+    from services.report_store import ReportStore  # noqa: WPS433
 
     return ReportStore(insights_backend["db_path"])
 
@@ -180,7 +180,7 @@ def _seed(store, *, query="测试查询", b_id="b_demo", anon="anon-A"):
     )
 
 
-***REMOVED*** ============================ Phase A — API ======================== ***REMOVED***
+# ============================ Phase A — API ======================== #
 
 
 def test_summary_endpoint_with_seeded_data(insights_backend, store):
@@ -246,12 +246,12 @@ def test_stuck_structures_limit_rejected(insights_backend):
         assert e.code == 422
 
 
-***REMOVED*** ====================== Phase B — Browser ========================== ***REMOVED***
+# ====================== Phase B — Browser ========================== #
 
 
 def _playwright_or_skip():
     try:
-        from playwright.sync_api import sync_playwright  ***REMOVED*** noqa: F401
+        from playwright.sync_api import sync_playwright  # noqa: F401
     except Exception:
         pytest.skip("playwright not installed")
 
@@ -265,11 +265,11 @@ def test_insights_page_renders_summary(insights_backend, store, page):
         action_status="tried", outcome="worked",
     )
     page.goto(insights_backend["base"] + "/insights", timeout=15000)
-    ***REMOVED*** Stat cards replace the skeletons once /summary resolves.
+    # Stat cards replace the skeletons once /summary resolves.
     page.wait_for_selector(".insights-stat__value", timeout=8000)
     values = page.locator(".insights-stat__value").all_inner_texts()
     assert len(values) == 4
-    ***REMOVED*** total_reports card should be a non-negative integer.
+    # total_reports card should be a non-negative integer.
     assert int(values[0]) >= 1
 
 
@@ -286,8 +286,8 @@ def test_insights_page_verified_section_renders(insights_backend, store, page):
         ".insights-card, .insights-empty", timeout=8000,
     )
     content = page.content()
-    ***REMOVED*** Either real cards rendered, or (if another test's data is
-    ***REMOVED*** absent) a friendly empty state — never a raw error.
+    # Either real cards rendered, or (if another test's data is
+    # absent) a friendly empty state — never a raw error.
     assert (
         "insights-card__problem" in content
         or "insights-empty" in content

@@ -35,7 +35,7 @@ from typing import Any
 
 from playwright.sync_api import sync_playwright
 
-***REMOVED*** 10 pages mirroring W12-A audit
+# 10 pages mirroring W12-A audit
 PAGES: list[tuple[str, str]] = [
     ("landing", "/"),
     ("companies", "/companies"),
@@ -54,7 +54,7 @@ VIEWPORTS = {
     "mobile": {"width": 390, "height": 844, "isMobile": True},
 }
 
-***REMOVED*** Inject before any page script runs so we catch every relevant entry.
+# Inject before any page script runs so we catch every relevant entry.
 INIT_SCRIPT = r"""
 window.__perf = {
   lcp: 0,
@@ -72,7 +72,7 @@ try {
     for (const e of list.getEntries()) {
       // LCP keeps the latest (largest) candidate
       window.__perf.lcp = e.startTime;
-      window.__perf.lcpElement = e.element ? (e.element.tagName + (e.element.id ? '***REMOVED***' + e.element.id : '')) : null;
+      window.__perf.lcpElement = e.element ? (e.element.tagName + (e.element.id ? '#' + e.element.id : '')) : null;
     }
   }).observe({ type: 'largest-contentful-paint', buffered: true });
 } catch (e) {}
@@ -129,7 +129,7 @@ def compute_tbt(long_tasks: list[dict[str, float]], fcp_ms: float, max_ms: float
     for t in long_tasks:
         start = t["start"]
         dur = t["duration"]
-        ***REMOVED*** Clip to observation window
+        # Clip to observation window
         win_start = fcp_ms
         win_end = max_ms
         clipped_start = max(start, win_start)
@@ -182,16 +182,16 @@ def audit_one(
             viewport={"width": viewport["width"], "height": viewport["height"]},
             is_mobile=viewport["isMobile"],
             device_scale_factor=2 if viewport["isMobile"] else 1,
-            ***REMOVED*** Throttle CPU 4x to simulate mid-tier mobile when on mobile viewport
+            # Throttle CPU 4x to simulate mid-tier mobile when on mobile viewport
         )
-        ***REMOVED*** CPU throttling via CDP for mobile
+        # CPU throttling via CDP for mobile
         page = context.new_page()
         page.add_init_script(INIT_SCRIPT)
 
         if viewport["isMobile"]:
             cdp = context.new_cdp_session(page)
             cdp.send("Emulation.setCPUThrottlingRate", {"rate": 4})
-            ***REMOVED*** Simulate slow 4G
+            # Simulate slow 4G
             cdp.send(
                 "Network.emulateNetworkConditions",
                 {
@@ -211,20 +211,20 @@ def audit_one(
             results.append({"error": f"navigation failed: {exc}"})
             continue
 
-        ***REMOVED*** Wait for network idle + extra settle time so async chunks/images stop shifting
+        # Wait for network idle + extra settle time so async chunks/images stop shifting
         try:
             page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
             pass
         page.wait_for_timeout(2000)
 
-        ***REMOVED*** Try interacting with a clickable element to get INP measurement
+        # Try interacting with a clickable element to get INP measurement
         try:
             page.evaluate("window.scrollBy(0, 200)")
             page.wait_for_timeout(300)
             page.evaluate("window.scrollBy(0, -200)")
             page.wait_for_timeout(300)
-            ***REMOVED*** Click on first visible link/button to measure event timing
+            # Click on first visible link/button to measure event timing
             page.evaluate(
                 """
                 () => {
@@ -243,7 +243,7 @@ def audit_one(
         except Exception:
             pass
 
-        ***REMOVED*** Compute FCP from paint entries
+        # Compute FCP from paint entries
         fcp_ms = page.evaluate(
             """
             () => {
@@ -266,7 +266,7 @@ def audit_one(
         """
         )
 
-        ***REMOVED*** Navigation timing
+        # Navigation timing
         nav = page.evaluate(
             """
             () => {
@@ -286,10 +286,10 @@ def audit_one(
         loaf = perf.get("loaf", [])
         events = perf.get("events", [])
 
-        ***REMOVED*** TBT calculation
+        # TBT calculation
         tbt = compute_tbt(long_tasks, fcp_ms, fcp_ms + 5000)
 
-        ***REMOVED*** INP proxy: worst event duration OR worst LoAF duration
+        # INP proxy: worst event duration OR worst LoAF duration
         worst_event = max((e["duration"] for e in events), default=0)
         worst_loaf = max((e["duration"] for e in loaf), default=0)
         inp_proxy = max(worst_event, worst_loaf)
@@ -318,7 +318,7 @@ def audit_one(
 
         browser.close()
 
-    ***REMOVED*** Aggregate runs (median for stability)
+    # Aggregate runs (median for stability)
     if not results or "error" in results[0]:
         return {"error": results[0].get("error", "no results"), "runs": runs}
 

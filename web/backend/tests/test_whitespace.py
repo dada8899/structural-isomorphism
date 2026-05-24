@@ -21,7 +21,7 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 def _sample_matrix() -> dict:
@@ -88,7 +88,7 @@ def client(service, monkeypatch):
     return TestClient(a)
 
 
-***REMOVED*** --------- unit: WhitespaceService --------- ***REMOVED***
+# --------- unit: WhitespaceService --------- #
 
 
 def test_get_matrix_normal(service):
@@ -124,7 +124,7 @@ def test_get_leads_limit_clamped(service):
     """limit below 1 or absurdly large is clamped to the [1, 500] band."""
     assert service.get_leads(limit=0)["limit"] == 1
     assert service.get_leads(limit=99999)["limit"] == 500
-    ***REMOVED*** limit smaller than total truncates the list.
+    # limit smaller than total truncates the list.
     out = service.get_leads(limit=1)
     assert out["count"] == 1 and out["total"] == 3
 
@@ -159,7 +159,7 @@ def test_malformed_json_degrades_gracefully(tmp_path):
     assert svc2.available is False
 
 
-***REMOVED*** --------- integration: endpoints --------- ***REMOVED***
+# --------- integration: endpoints --------- #
 
 
 def test_endpoint_matrix_success(client):
@@ -196,11 +196,11 @@ def test_endpoint_leads_limit_out_of_range_rejected(client):
     """Param validation: limit outside [1, 500] -> 422 from FastAPI Query."""
     assert client.get("/api/whitespace/leads", params={"limit": 0}).status_code == 422
     assert client.get("/api/whitespace/leads", params={"limit": 9999}).status_code == 422
-    ***REMOVED*** valid boundary passes.
+    # valid boundary passes.
     assert client.get("/api/whitespace/leads", params={"limit": 500}).status_code == 200
 
 
-***REMOVED*** --------- integration: LLM-enriched vs degraded json shapes --------- ***REMOVED***
+# --------- integration: LLM-enriched vs degraded json shapes --------- #
 
 
 def test_endpoint_leads_passes_through_llm_fields(client):
@@ -208,7 +208,7 @@ def test_endpoint_leads_passes_through_llm_fields(client):
     research_question), the leads endpoint surfaces them unchanged."""
     body = client.get("/api/whitespace/leads").json()
     enriched = [x for x in body["leads"] if x.get("plausible")]
-    assert len(enriched) == 2  ***REMOVED*** two fixture leads have LLM verdicts
+    assert len(enriched) == 2  # two fixture leads have LLM verdicts
     yes = next(x for x in enriched if x["plausible"] == "yes")
     assert yes["rationale"]
     assert "二阶振子" in yes["research_question"]
@@ -244,15 +244,15 @@ def test_endpoint_leads_degraded_no_llm_fields(tmp_path, monkeypatch):
     assert body["available"] is True
     assert body["total"] == 1
     lead = body["leads"][0]
-    assert lead["anchor_name"] == "免疫级联"          ***REMOVED*** old field intact
-    assert "plausible" not in lead                     ***REMOVED*** LLM field absent
+    assert lead["anchor_name"] == "免疫级联"          # old field intact
+    assert "plausible" not in lead                     # LLM field absent
     assert "research_question" not in lead
 
 
-***REMOVED*** --------- unit: build script signal + LLM-verdict guardrails --------- ***REMOVED***
-***REMOVED***
-***REMOVED*** The build script imports `structural_isomorphism.model` lazily inside
-***REMOVED*** main(), so importing the module is cheap and model-free.
+# --------- unit: build script signal + LLM-verdict guardrails --------- #
+#
+# The build script imports `structural_isomorphism.model` lazily inside
+# main(), so importing the module is cheap and model-free.
 
 def _build_module():
     import importlib.util
@@ -266,11 +266,11 @@ def _build_module():
 
 def test_histogram_normalizes_and_handles_empty():
     b = _build_module()
-    h = b.histogram(["a", "a", "b", ""])  ***REMOVED*** "" ignored
+    h = b.histogram(["a", "a", "b", ""])  # "" ignored
     assert abs(sum(h.values()) - 1.0) < 1e-9
     assert h["a"] == pytest.approx(2 / 3)
-    assert b.histogram([]) == {}            ***REMOVED*** edge: no type_ids
-    assert b.histogram(["", "", ""]) == {}  ***REMOVED*** edge: all blank
+    assert b.histogram([]) == {}            # edge: no type_ids
+    assert b.histogram(["", "", ""]) == {}  # edge: all blank
 
 
 def test_type_enrichment_rewards_concentration_not_common_types():
@@ -279,11 +279,11 @@ def test_type_enrichment_rewards_concentration_not_common_types():
     not, even though the class also has it."""
     b = _build_module()
     sig = {"rare": 0.5, "common": 0.5}
-    baseline = {"rare": 0.05, "common": 0.5}  ***REMOVED*** 'rare' is rare globally
+    baseline = {"rare": 0.05, "common": 0.5}  # 'rare' is rare globally
     enriched = b.type_enrichment(sig, {"rare": 0.8, "common": 0.2}, baseline)
     generic = b.type_enrichment(sig, {"rare": 0.0, "common": 1.0}, baseline)
     assert enriched > generic
-    ***REMOVED*** edge: empty signature / profile / baseline -> 0.0, no exception.
+    # edge: empty signature / profile / baseline -> 0.0, no exception.
     assert b.type_enrichment({}, {"x": 1.0}, baseline) == 0.0
     assert b.type_enrichment(sig, {}, baseline) == 0.0
     assert b.type_enrichment(sig, {"rare": 1.0}, {}) == 0.0
@@ -293,7 +293,7 @@ def test_squash_enrichment_bounded_and_monotone():
     b = _build_module()
     assert b.squash_enrichment(0.0) == 0.0
     assert 0.0 < b.squash_enrichment(1.0) < b.squash_enrichment(10.0) < 1.0
-    assert b.squash_enrichment(-5.0) == 0.0  ***REMOVED*** negative clamped
+    assert b.squash_enrichment(-5.0) == 0.0  # negative clamped
 
 
 def test_coerce_llm_verdict_enum_and_malformed():
@@ -303,9 +303,9 @@ def test_coerce_llm_verdict_enum_and_malformed():
     ok = b._coerce_llm_verdict(
         {"plausible": "YES", "rationale": "r", "research_question": "q"})
     assert ok["plausible"] == "yes" and ok["research_question"] == "q"
-    ***REMOVED*** 'no' -> minimal dict signalling a drop.
+    # 'no' -> minimal dict signalling a drop.
     assert b._coerce_llm_verdict({"plausible": "no"}) == {"plausible": "no"}
-    ***REMOVED*** malformed -> None (rejected).
+    # malformed -> None (rejected).
     assert b._coerce_llm_verdict({"plausible": "banana"}) is None
     assert b._coerce_llm_verdict("not a dict") is None
     assert b._coerce_llm_verdict(None) is None
@@ -318,8 +318,8 @@ def test_coerce_llm_verdict_missing_research_question():
     b = _build_module()
     v = b._coerce_llm_verdict({"plausible": "maybe", "rationale": "r"})
     assert v["plausible"] == "maybe"
-    assert v["research_question"] == ""          ***REMOVED*** caller fills the fallback
-    ***REMOVED*** the templated fallback is non-empty and mentions class + domain.
+    assert v["research_question"] == ""          # caller fills the fallback
+    # the templated fallback is non-empty and mentions class + domain.
     fb = b._fallback_research_question("阈值级联类", "医学", "免疫级联")
     assert "阈值级联类" in fb and "医学" in fb
 
@@ -327,7 +327,7 @@ def test_coerce_llm_verdict_missing_research_question():
 def test_coerce_llm_verdict_missing_rationale_gets_placeholder():
     b = _build_module()
     v = b._coerce_llm_verdict({"plausible": "yes", "research_question": "q"})
-    assert v["rationale"]  ***REMOVED*** non-empty placeholder, never blank
+    assert v["rationale"]  # non-empty placeholder, never blank
 
 
 def test_run_llm_layer_mocked(monkeypatch):
@@ -341,7 +341,7 @@ def test_run_llm_layer_mocked(monkeypatch):
 
     async def fake_complete_json(**kwargs):
         calls["n"] += 1
-        ***REMOVED*** second candidate of c1 simulates a network/parse failure.
+        # second candidate of c1 simulates a network/parse failure.
         if calls["n"] == 2:
             return None
         return {"plausible": "yes", "rationale": "结构吻合",
@@ -354,6 +354,6 @@ def test_run_llm_layer_mocked(monkeypatch):
     candidates = {"c1": [{"domain": "医学", "anchor": {"name": "a", "description": "d"}},
                          {"domain": "金融", "anchor": None}]}
     verdicts = asyncio.run(b.run_llm_layer(classes, candidates))
-    assert "医学" in verdicts["c1"]                 ***REMOVED*** first candidate judged
+    assert "医学" in verdicts["c1"]                 # first candidate judged
     assert verdicts["c1"]["医学"]["plausible"] == "yes"
-    assert "金融" not in verdicts["c1"]              ***REMOVED*** None reply -> skipped
+    assert "金融" not in verdicts["c1"]              # None reply -> skipped

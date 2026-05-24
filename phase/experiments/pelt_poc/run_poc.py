@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import ruptures as rpt
 
-***REMOVED*** macOS 上的中文字体
+# macOS 上的中文字体
 import platform
 if platform.system() == "Darwin":
     plt.rcParams["font.sans-serif"] = ["PingFang SC", "Hiragino Sans GB", "STHeiti", "Arial Unicode MS"]
@@ -37,8 +37,8 @@ else:
     plt.rcParams["font.sans-serif"] = ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
-***REMOVED*** 每家公司我们"心里预期"应该出现的结构拐点 —— 用来事后打分
-***REMOVED*** 格式: (ticker, 公司名, 业务指标描述, 预期拐点年份 + 文字描述)
+# 每家公司我们"心里预期"应该出现的结构拐点 —— 用来事后打分
+# 格式: (ticker, 公司名, 业务指标描述, 预期拐点年份 + 文字描述)
 CASES = [
     ("NFLX", "Netflix",
      "从 DVD 租赁转流媒体 + 全球扩张后饱和",
@@ -91,7 +91,7 @@ def fetch_quarterly_revenue(ticker, years=15):
     tk = yf.Ticker(ticker)
     rows = []
 
-    ***REMOVED*** 1. Quarterly (last ~8 quarters)
+    # 1. Quarterly (last ~8 quarters)
     try:
         q = tk.quarterly_financials
         if q is not None and not q.empty and "Total Revenue" in q.index:
@@ -101,7 +101,7 @@ def fetch_quarterly_revenue(ticker, years=15):
     except Exception as e:
         print(f"  [{ticker}] quarterly_financials failed: {e}")
 
-    ***REMOVED*** 2. Annual (further back)
+    # 2. Annual (further back)
     try:
         a = tk.financials
         if a is not None and not a.empty and "Total Revenue" in a.index:
@@ -111,7 +111,7 @@ def fetch_quarterly_revenue(ticker, years=15):
     except Exception as e:
         print(f"  [{ticker}] financials failed: {e}")
 
-    ***REMOVED*** 3. Income statement (older)
+    # 3. Income statement (older)
     try:
         inc = tk.income_stmt
         if inc is not None and not inc.empty and "Total Revenue" in inc.index:
@@ -141,7 +141,7 @@ def fetch_price_history(ticker, years=15):
 
     tk = yf.Ticker(ticker)
 
-    ***REMOVED*** 月度（长序列，用于 PELT）
+    # 月度（长序列，用于 PELT）
     hist_m = tk.history(period="max", interval="1mo")
     df = pd.DataFrame(columns=["date", "price"])
     if hist_m is not None and not hist_m.empty:
@@ -152,7 +152,7 @@ def fetch_price_history(ticker, years=15):
         df = df[df["date"] >= cutoff].reset_index(drop=True)
         df.to_csv(cache_path, index=False)
 
-    ***REMOVED*** 日度（短窗口内 60 天 = 40+ 交易日，用于验证）
+    # 日度（短窗口内 60 天 = 40+ 交易日，用于验证）
     hist_d = tk.history(period="max", interval="1d")
     daily = pd.DataFrame(columns=["date", "price"])
     if hist_d is not None and not hist_d.empty:
@@ -184,10 +184,10 @@ def compute_yoy_growth(revenue_df):
     df["date"] = pd.to_datetime(df["date"])
     df = df.set_index("date")
 
-    ***REMOVED*** 对齐到季度：annual 数据重采样成 QE
+    # 对齐到季度：annual 数据重采样成 QE
     q = df["revenue"].resample("QE").last().dropna()
     if len(q) < 8:
-        ***REMOVED*** 数据太稀疏，改用年度
+        # 数据太稀疏，改用年度
         y = df["revenue"].resample("YE").last().dropna()
         if len(y) < 5:
             return pd.DataFrame()
@@ -208,7 +208,7 @@ def run_pelt(values, pen=3.0, model="rbf"):
     signal = np.asarray(values).reshape(-1, 1)
     algo = rpt.Pelt(model=model, min_size=6).fit(signal)
     breaks = algo.predict(pen=pen)
-    ***REMOVED*** ruptures 返回的最后一个 index 是序列末尾，不是真的断点；去掉
+    # ruptures 返回的最后一个 index 是序列末尾，不是真的断点；去掉
     return [b - 1 for b in breaks[:-1]]
 
 
@@ -224,7 +224,7 @@ def score_breaks(values, break_indices):
     global_std = np.std(values) + 1e-9
     scored = []
     for i, b in enumerate(break_indices):
-        ***REMOVED*** 前后窗口：从前一个拐点到这个，这个到下一个拐点
+        # 前后窗口：从前一个拐点到这个，这个到下一个拐点
         left_start = break_indices[i - 1] if i > 0 else 0
         right_end = break_indices[i + 1] if i + 1 < len(break_indices) else len(values)
         left = values[left_start:b]
@@ -233,7 +233,7 @@ def score_breaks(values, break_indices):
             continue
         mean_diff = abs(np.mean(right) - np.mean(left))
         n_min = min(len(left), len(right))
-        ***REMOVED*** T 统计量近似：差异 / 波动 × 样本平方根
+        # T 统计量近似：差异 / 波动 × 样本平方根
         score = (mean_diff / global_std) * np.sqrt(n_min)
         scored.append((b, float(score)))
     return sorted(scored, key=lambda x: -x[1])
@@ -243,25 +243,25 @@ def top_k_breaks(values, break_indices, k=4, min_score=1.5):
     """只保留置信度最高的 k 个拐点，且置信度 >= min_score。"""
     scored = score_breaks(values, break_indices)
     kept = [(b, s) for b, s in scored if s >= min_score][:k]
-    return sorted(kept, key=lambda x: x[0])  ***REMOVED*** 按时间重排
+    return sorted(kept, key=lambda x: x[0])  # 按时间重排
 
 
 def plot_company(ticker, name, revenue_df, yoy_df, price_df, breaks_yoy, breaks_price, expected, out_path):
     fig, axes = plt.subplots(3, 1, figsize=(11, 10), sharex=True,
                               gridspec_kw={"height_ratios": [2, 2, 2.5]})
 
-    ***REMOVED*** 顶部：营收绝对值
+    # 顶部：营收绝对值
     ax1 = axes[0]
     if not revenue_df.empty:
-        ax1.plot(revenue_df["date"], revenue_df["revenue"] / 1e9, "o-", color="***REMOVED***1f77b4", markersize=4)
+        ax1.plot(revenue_df["date"], revenue_df["revenue"] / 1e9, "o-", color="#1f77b4", markersize=4)
     ax1.set_ylabel("季度营收 (十亿 USD)")
     ax1.set_title(f"{ticker} · {name} — 结构拐点检测 POC", fontsize=13, loc="left", fontweight="bold")
     ax1.grid(True, alpha=0.3)
 
-    ***REMOVED*** 中间：YoY 增长率 + PELT 找到的拐点
+    # 中间：YoY 增长率 + PELT 找到的拐点
     ax2 = axes[1]
     if not yoy_df.empty:
-        ax2.plot(yoy_df["date"], yoy_df["yoy"] * 100, "o-", color="***REMOVED***2ca02c", markersize=4)
+        ax2.plot(yoy_df["date"], yoy_df["yoy"] * 100, "o-", color="#2ca02c", markersize=4)
         ax2.axhline(0, color="gray", lw=0.6, linestyle="--")
         for b in breaks_yoy:
             if b < len(yoy_df):
@@ -272,10 +272,10 @@ def plot_company(ticker, name, revenue_df, yoy_df, price_df, breaks_yoy, breaks_
     ax2.set_ylabel("YoY 营收增长率 (%)")
     ax2.grid(True, alpha=0.3)
 
-    ***REMOVED*** 底部：股价（log scale）+ PELT 在股价上的拐点
+    # 底部：股价（log scale）+ PELT 在股价上的拐点
     ax3 = axes[2]
     if not price_df.empty:
-        ax3.plot(price_df["date"], price_df["price"], "-", color="***REMOVED***ff7f0e", lw=1)
+        ax3.plot(price_df["date"], price_df["price"], "-", color="#ff7f0e", lw=1)
         ax3.set_yscale("log")
         for b in breaks_price:
             if b < len(price_df):
@@ -317,13 +317,13 @@ def validate_break_point(price_df, break_date, window_days=60):
     ret_before = float(before["price"].iloc[-1] / before["price"].iloc[0] - 1.0)
     ret_after = float(after["price"].iloc[-1] / after["price"].iloc[0] - 1.0)
 
-    ***REMOVED*** 月度序列的日收益近似：用 pct_change
+    # 月度序列的日收益近似：用 pct_change
     ret_b_series = before["price"].pct_change().dropna()
     ret_a_series = after["price"].pct_change().dropna()
     vol_before = float(ret_b_series.std()) if len(ret_b_series) > 1 else 0.0
     vol_after = float(ret_a_series.std()) if len(ret_a_series) > 1 else 0.0
 
-    ***REMOVED*** 判断类型
+    # 判断类型
     if np.sign(ret_before) != np.sign(ret_after) and abs(ret_before - ret_after) > 0.10:
         regime = "趋势反转"
     elif vol_after > vol_before * 1.5:
@@ -345,7 +345,7 @@ def validate_break_point(price_df, break_date, window_days=60):
 def score_vs_expected(detected_dates, expected):
     """PELT 找到的拐点日期 vs 我们预期的年份，看命中率。"""
     if expected == [("—", "预期不应该有强信号（对照组）")]:
-        ***REMOVED*** 对照组：找到越少越好
+        # 对照组：找到越少越好
         return ("对照组", f"检出 {len(detected_dates)} 个拐点（期望 ≤1 个才算好）")
 
     hits = []
@@ -358,7 +358,7 @@ def score_vs_expected(detected_dates, expected):
             y = int(year)
         except Exception:
             continue
-        ***REMOVED*** ±1 年算命中
+        # ±1 年算命中
         if any(abs(dy - y) <= 1 for dy in detected_years):
             hits.append(f"{year}✓ {desc}")
         else:
@@ -368,10 +368,10 @@ def score_vs_expected(detected_dates, expected):
 
 def main():
     report_lines = []
-    all_validations = []  ***REMOVED*** for aggregate stats
-    report_lines.append("***REMOVED*** PELT 结构拐点 POC — 中文结论\n")
+    all_validations = []  # for aggregate stats
+    report_lines.append("# PELT 结构拐点 POC — 中文结论\n")
     report_lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
-    report_lines.append("***REMOVED******REMOVED*** 方法\n")
+    report_lines.append("## 方法\n")
     report_lines.append("1. 从 yfinance 拉每家公司季度+年度营收\n")
     report_lines.append("2. 算 YoY 同比营收增长率\n")
     report_lines.append("3. 用 PELT（惩罚式线性时间算法，model=rbf）自动找「均值或方差明显变化」的拐点\n")
@@ -379,15 +379,15 @@ def main():
 
     for ticker, name, desc, expected in CASES:
         print(f"\n=== {ticker} {name} ===")
-        report_lines.append(f"***REMOVED******REMOVED*** {ticker} · {name}\n")
+        report_lines.append(f"## {ticker} · {name}\n")
         report_lines.append(f"**业务描述**：{desc}\n")
 
         rev = fetch_quarterly_revenue(ticker)
         price, price_daily = fetch_price_history(ticker)
-        ***REMOVED*** yfinance 免费版营收历史不全。用 YoY 股价变化当代理（同 sector 同向性强）
+        # yfinance 免费版营收历史不全。用 YoY 股价变化当代理（同 sector 同向性强）
         yoy_from_rev = compute_yoy_growth(rev)
         yoy_from_price = compute_price_growth_yoy(price)
-        ***REMOVED*** 优先用营收；数据不够就退回股价
+        # 优先用营收；数据不够就退回股价
         yoy = yoy_from_rev if len(yoy_from_rev) >= 8 else yoy_from_price
         yoy_source = "营收 YoY" if len(yoy_from_rev) >= 8 else "股价 YoY（营收数据不足时的代理）"
         report_lines.append(f"**信号源**：{yoy_source}（{len(yoy)} 个数据点）\n")
@@ -397,7 +397,7 @@ def main():
             report_lines.append(f"**结果**：数据不足，无法分析。\n\n")
             continue
 
-        ***REMOVED*** 保守参数：先让 PELT 找候选，再用置信度过滤出 top-4
+        # 保守参数：先让 PELT 找候选，再用置信度过滤出 top-4
         pen_yoy = 6.0 if yoy_source.startswith("股价") else 4.0
         raw_breaks_yoy = run_pelt(yoy["yoy"].values, pen=pen_yoy)
         top_yoy = top_k_breaks(yoy["yoy"].values, raw_breaks_yoy, k=4, min_score=1.5)
@@ -411,7 +411,7 @@ def main():
         yoy_break_dates = [yoy["date"].iloc[i] for i in breaks_yoy_idx if i < len(yoy)]
         price_break_dates = [price["date"].iloc[i] for i in breaks_price_idx if i < len(price)]
 
-        ***REMOVED*** 对每个 YoY 拐点做"后 60 天验证" —— 用日度数据，窗口内有 40+ 交易日
+        # 对每个 YoY 拐点做"后 60 天验证" —— 用日度数据，窗口内有 40+ 交易日
         validations = []
         for i, b_date in enumerate(yoy_break_dates):
             v = validate_break_point(price_daily, b_date, window_days=60)
@@ -422,11 +422,11 @@ def main():
                 validations.append(v)
                 all_validations.append(v)
 
-        ***REMOVED*** 输出图
+        # 输出图
         img_path = os.path.join(OUT_DIR, f"{ticker}.png")
         plot_company(ticker, name, rev, yoy, price, breaks_yoy_idx, breaks_price_idx, expected, img_path)
 
-        ***REMOVED*** 评分
+        # 评分
         score_label, detail = score_vs_expected(yoy_break_dates, expected)
 
         report_lines.append(f"**预期拐点**：\n")
@@ -463,9 +463,9 @@ def main():
         print(f"  Price 拐点: {[d.strftime('%Y-%m') for d in price_break_dates]}")
         print(f"  评分: {score_label}")
 
-    ***REMOVED*** 聚合统计：所有拐点的前后表现对比
+    # 聚合统计：所有拐点的前后表现对比
     if all_validations:
-        report_lines.insert(5, "\n***REMOVED******REMOVED*** 🔬 关键验证：拐点真的有投资意义吗？\n\n")
+        report_lines.insert(5, "\n## 🔬 关键验证：拐点真的有投资意义吗？\n\n")
         report_lines.insert(6, "对所有找到的高置信度拐点，统计「拐点前 60 天」vs「拐点后 60 天」的股价表现：\n\n")
 
         n = len(all_validations)
@@ -493,7 +493,7 @@ def main():
             report_lines.insert(8, "**❌ 信号噪声大**：<30% 的拐点有真实意义，这个方向需要重新设计。\n\n")
         report_lines.insert(9, "---\n\n")
 
-    ***REMOVED*** 最终报告
+    # 最终报告
     report_path = os.path.join(os.path.dirname(__file__), "REPORT.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("".join(report_lines))

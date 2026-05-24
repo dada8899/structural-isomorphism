@@ -1,4 +1,4 @@
-"""Unit tests for api.favorites — W15-C, session ***REMOVED***10.
+"""Unit tests for api.favorites — W15-C, session #10.
 
 Run with:
     cd web/backend
@@ -31,15 +31,15 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api import favorites as fav  ***REMOVED*** noqa: E402
-from auth import api_key as auth_mod  ***REMOVED*** noqa: E402
-from errors import install_problem_handlers  ***REMOVED*** noqa: E402
+from api import favorites as fav  # noqa: E402
+from auth import api_key as auth_mod  # noqa: E402
+from errors import install_problem_handlers  # noqa: E402
 
 
-***REMOVED*** ---- fixtures ----
+# ---- fixtures ----
 
 
 def _seed_keys_file(tmp_path: Path) -> Path:
@@ -81,14 +81,14 @@ def _seed_keys_file(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    ***REMOVED*** Redirect storage to tmp_path.
+    # Redirect storage to tmp_path.
     fav_path = tmp_path / "favorites.jsonl"
     monkeypatch.setenv("STRUCTURAL_FAVORITES_PATH", str(fav_path))
 
-    ***REMOVED*** Force a fresh API-key store backed by our seed file.
+    # Force a fresh API-key store backed by our seed file.
     keys_path = _seed_keys_file(tmp_path)
     monkeypatch.setenv("STRUCTURAL_API_KEYS_PATH", str(keys_path))
-    ***REMOVED*** Reset cached store instance so the env var actually takes effect.
+    # Reset cached store instance so the env var actually takes effect.
     monkeypatch.setattr(auth_mod, "_store", None, raising=False)
 
     app = FastAPI()
@@ -101,7 +101,7 @@ def _hdr(key: str | None) -> dict:
     return {"X-API-Key": key} if key else {}
 
 
-***REMOVED*** ---- GET ----
+# ---- GET ----
 
 
 def test_get_anonymous_returns_empty(client):
@@ -116,7 +116,7 @@ def test_get_new_user_returns_empty(client):
     assert r.json() == {"tickers": []}
 
 
-***REMOVED*** ---- POST add ----
+# ---- POST add ----
 
 
 def test_post_adds_ticker(client):
@@ -126,7 +126,7 @@ def test_post_adds_ticker(client):
     assert body["added"] is True
     assert body["ticker"] == "AAPL"
 
-    ***REMOVED*** Now GET should include it.
+    # Now GET should include it.
     r2 = client.get("/api/favorites", headers=_hdr("sk_test_free"))
     assert r2.status_code == 200
     assert r2.json()["tickers"] == ["AAPL"]
@@ -170,7 +170,7 @@ def test_post_anonymous_rejected(client):
     assert r.status_code == 401
 
 
-***REMOVED*** ---- DELETE ----
+# ---- DELETE ----
 
 
 def test_delete_removes_ticker(client):
@@ -182,7 +182,7 @@ def test_delete_removes_ticker(client):
 
 
 def test_delete_idempotent(client):
-    ***REMOVED*** Deleting non-existent should still return 204.
+    # Deleting non-existent should still return 204.
     r = client.delete("/api/favorites/NEVERFAVED", headers=_hdr("sk_test_free"))
     assert r.status_code == 204
 
@@ -192,7 +192,7 @@ def test_delete_anonymous_rejected(client):
     assert r.status_code == 401
 
 
-***REMOVED*** ---- tier limits ----
+# ---- tier limits ----
 
 
 def test_free_tier_caps_at_50(client):
@@ -202,27 +202,27 @@ def test_free_tier_caps_at_50(client):
             f"/api/favorites/T{i:03d}", headers=_hdr("sk_test_free")
         )
         assert r.status_code == 201, f"failed at {i}: {r.status_code}"
-    ***REMOVED*** 51st add should fail.
+    # 51st add should fail.
     r = client.post("/api/favorites/OVER", headers=_hdr("sk_test_free"))
     assert r.status_code == 429
     body = r.json()
     assert "type" in body and "favorites_limit_exceeded" in body["type"]
-    ***REMOVED*** ext fields present.
+    # ext fields present.
     assert body.get("tier") == "free"
     assert body.get("cap") == 50
 
 
 def test_pro_tier_larger_cap(client):
-    ***REMOVED*** Sanity: pro accepts 51+ entries (just check it crosses 50 threshold).
+    # Sanity: pro accepts 51+ entries (just check it crosses 50 threshold).
     for i in range(60):
         r = client.post(f"/api/favorites/T{i:03d}", headers=_hdr("sk_test_pro"))
         assert r.status_code == 201
 
 
 def test_team_tier_unlimited(client):
-    ***REMOVED*** Push past the pro cap of 500. We send 50 to keep test fast — we're
-    ***REMOVED*** really checking the cap-checking branch returns None and doesn't 429.
-    ***REMOVED*** (Setting up 500 entries is too slow for CI.)
+    # Push past the pro cap of 500. We send 50 to keep test fast — we're
+    # really checking the cap-checking branch returns None and doesn't 429.
+    # (Setting up 500 entries is too slow for CI.)
     for i in range(50):
         r = client.post(
             f"/api/favorites/T{i:03d}", headers=_hdr("sk_test_team")
@@ -238,13 +238,13 @@ def test_admin_tier_unlimited(client):
         assert r.status_code == 201
 
 
-***REMOVED*** ---- merge ----
+# ---- merge ----
 
 
 def test_merge_unions(client):
-    ***REMOVED*** Seed user state with one ticker.
+    # Seed user state with one ticker.
     client.post("/api/favorites/AAPL", headers=_hdr("sk_test_free"))
-    ***REMOVED*** Merge two new + the existing one.
+    # Merge two new + the existing one.
     r = client.post(
         "/api/favorites/merge",
         json={"tickers": ["TSLA", "AAPL", "NVDA"]},
@@ -257,11 +257,11 @@ def test_merge_unions(client):
 
 
 def test_merge_caps_overflow(client):
-    ***REMOVED*** Pre-fill free user to 49 entries.
+    # Pre-fill free user to 49 entries.
     for i in range(49):
         r = client.post(f"/api/favorites/T{i:03d}", headers=_hdr("sk_test_free"))
         assert r.status_code == 201
-    ***REMOVED*** Merge 5 more → 1 fits, 4 dropped.
+    # Merge 5 more → 1 fits, 4 dropped.
     r = client.post(
         "/api/favorites/merge",
         json={"tickers": ["NEW1", "NEW2", "NEW3", "NEW4", "NEW5"]},
@@ -298,7 +298,7 @@ def test_merge_anonymous_rejected(client):
     assert r.status_code == 401
 
 
-***REMOVED*** ---- atomic write safety (concurrent POST) ----
+# ---- atomic write safety (concurrent POST) ----
 
 
 def test_concurrent_adds_no_lost_writes(client):
@@ -318,7 +318,7 @@ def test_concurrent_adds_no_lost_writes(client):
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(add, tickers))
 
-    ***REMOVED*** All should be 201 (no duplicates among the 40 unique tickers).
+    # All should be 201 (no duplicates among the 40 unique tickers).
     assert all(s == 201 for s in results), f"non-201 in {results}"
 
     r = client.get("/api/favorites", headers=_hdr("sk_test_pro"))

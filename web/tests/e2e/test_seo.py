@@ -1,4 +1,4 @@
-"""W12-B (session ***REMOVED***10, 2026-05-15) — SEO surface e2e tests.
+"""W12-B (session #10, 2026-05-15) — SEO surface e2e tests.
 
 Verifies the SEO scaffolding added in W12-B:
 
@@ -100,7 +100,7 @@ def next_devserver():
         log_fh.close()
 
 
-***REMOVED*** ---- OG card assets (static, no devserver needed) ---------------------
+# ---- OG card assets (static, no devserver needed) ---------------------
 
 
 def test_og_cards_generated():
@@ -122,7 +122,7 @@ def test_og_cards_are_1200x630():
             assert img.size == (1200, 630), f"{p.name} is {img.size}, expected 1200x630"
 
 
-***REMOVED*** ---- Static files (robots.txt, sitemap.ts source) ---------------------
+# ---- Static files (robots.txt, sitemap.ts source) ---------------------
 
 
 def test_static_robots_txt_present():
@@ -132,7 +132,7 @@ def test_static_robots_txt_present():
     body = p.read_text(encoding="utf-8")
     assert "User-agent: *" in body
     assert "Sitemap:" in body
-    assert "/api/" in body  ***REMOVED*** at minimum API is disallowed
+    assert "/api/" in body  # at minimum API is disallowed
 
 
 def test_google_verification_placeholder_present():
@@ -144,7 +144,7 @@ def test_google_verification_placeholder_present():
     assert "Search Console" in txt
 
 
-***REMOVED*** ---- Live SEO assertions via devserver --------------------------------
+# ---- Live SEO assertions via devserver --------------------------------
 
 
 PAGES_TO_CHECK = [
@@ -219,7 +219,7 @@ def test_og_image_assets_served(next_devserver):
         status, body, headers = _fetch(url, timeout=15.0)
         assert status == 200, f"{url} → {status}"
         assert len(body) > 1000, f"{url} body too small ({len(body)} bytes)"
-        ***REMOVED*** Sanity check content-type.
+        # Sanity check content-type.
         ctype = headers.get("Content-Type", "")
         assert "image/png" in ctype.lower() or "octet-stream" in ctype.lower(), (
             f"{url} unexpected content-type {ctype}"
@@ -237,7 +237,7 @@ def test_json_ld_parses_on_landing(next_devserver):
     )
     assert len(matches) >= 2, f"expected ≥2 JSON-LD scripts on /, got {len(matches)}"
     for raw in matches:
-        ***REMOVED*** Un-escape the `<` we emit in serialize().
+        # Un-escape the `<` we emit in serialize().
         decoded = raw.encode("utf-8").decode("unicode_escape")
         try:
             obj = json.loads(decoded)
@@ -254,10 +254,10 @@ def test_sitemap_has_dynamic_entries(next_devserver):
     """sitemap.xml has ≥100 URLs and includes static + per-ticker + per-class."""
     _, body, _ = _fetch(next_devserver["base"] + "/sitemap.xml", timeout=30.0)
     text = body.decode("utf-8", errors="replace")
-    ***REMOVED*** Cheap URL count via regex (no namespace gymnastics needed).
+    # Cheap URL count via regex (no namespace gymnastics needed).
     urls = re.findall(r"<loc>([^<]+)</loc>", text)
     assert len(urls) >= 100, f"sitemap has only {len(urls)} URLs, expected ≥100"
-    ***REMOVED*** Spot checks across the categories we added.
+    # Spot checks across the categories we added.
     assert any(u.endswith("/companies") for u in urls), "missing /companies"
     assert any(u.endswith("/universality") for u in urls), "missing /universality"
     assert any("/company/" in u for u in urls), "missing per-ticker pages"
@@ -265,7 +265,7 @@ def test_sitemap_has_dynamic_entries(next_devserver):
         "missing per-class pages"
     )
     assert any("/newsletter/001" in u for u in urls), "missing newsletter issue"
-    ***REMOVED*** XML must be well-formed.
+    # XML must be well-formed.
     ET.fromstring(text)
 
 
@@ -275,7 +275,7 @@ def test_robots_txt_endpoint(next_devserver):
     text = body.decode("utf-8", errors="replace")
     assert "User-agent" in text or "User-Agent" in text
     assert "Sitemap" in text or "sitemap" in text
-    assert "/api/" in text  ***REMOVED*** at minimum API blocked
+    assert "/api/" in text  # at minimum API blocked
 
 
 def test_newsletter_rss_valid(next_devserver):

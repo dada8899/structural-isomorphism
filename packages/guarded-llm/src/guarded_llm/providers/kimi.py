@@ -13,7 +13,7 @@ from ..exceptions import LLMCallError
 from . import BaseProvider, register_provider
 
 
-***REMOVED*** Approx public pricing snapshot (¥ converted to USD assuming 7 CNY/USD).
+# Approx public pricing snapshot (¥ converted to USD assuming 7 CNY/USD).
 _DEFAULT_PRICING_USD_PER_M = {
     "kimi-k2": (0.85, 4.30),
     "kimi-k2.5": (1.0, 5.0),

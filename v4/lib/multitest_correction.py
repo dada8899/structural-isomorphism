@@ -70,7 +70,7 @@ class CorrectionResult:
 
 def _clean_pvalues(p: Iterable[float]) -> np.ndarray:
     arr = np.asarray(list(p), dtype=float)
-    ***REMOVED*** Replace NaN with 1.0 (never reject), clamp to [0,1]
+    # Replace NaN with 1.0 (never reject), clamp to [0,1]
     arr = np.where(np.isnan(arr), 1.0, arr)
     arr = np.clip(arr, 0.0, 1.0)
     return arr
@@ -115,15 +115,15 @@ def bonferroni_holm(pvalues: Iterable[float], alpha: float = 0.05) -> Correction
 
     order = np.argsort(p, kind="stable")
     p_sorted = p[order]
-    ***REMOVED*** multipliers (n - i + 1) for i=1..n => n, n-1, ..., 1
+    # multipliers (n - i + 1) for i=1..n => n, n-1, ..., 1
     multipliers = (n - np.arange(n)).astype(float)
     p_adj_sorted_raw = multipliers * p_sorted
-    ***REMOVED*** Enforce monotonicity (running cummax) and clip to [0,1]
+    # Enforce monotonicity (running cummax) and clip to [0,1]
     p_adj_sorted = np.minimum.accumulate(p_adj_sorted_raw[::-1])[::-1]
     p_adj_sorted = np.maximum.accumulate(p_adj_sorted)
     p_adj_sorted = np.minimum(p_adj_sorted, 1.0)
 
-    ***REMOVED*** Unsort
+    # Unsort
     p_adj = np.empty_like(p_adj_sorted)
     p_adj[order] = p_adj_sorted
 
@@ -159,7 +159,7 @@ def benjamini_hochberg(
     ranks = np.arange(1, n + 1)
     multipliers = n / ranks
     p_adj_sorted_raw = multipliers * p_sorted
-    ***REMOVED*** Monotone non-decreasing from the right (step-up)
+    # Monotone non-decreasing from the right (step-up)
     p_adj_sorted = np.minimum.accumulate(p_adj_sorted_raw[::-1])[::-1]
     p_adj_sorted = np.minimum(p_adj_sorted, 1.0)
 

@@ -19,7 +19,7 @@ class MappingCache:
         self._load()
 
     def _key(self, id_a: str, id_b: str) -> str:
-        ***REMOVED*** 排序后 key，保证 (a,b) 和 (b,a) 共享缓存
+        # 排序后 key，保证 (a,b) 和 (b,a) 共享缓存
         x, y = sorted([id_a, id_b])
         return f"{x}__{y}"
 

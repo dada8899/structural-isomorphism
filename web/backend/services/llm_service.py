@@ -30,8 +30,8 @@ def _classify_llm_error(exc: BaseException) -> str:
     return "upstream_error"
 
 
-***REMOVED*** Language clause appended to every system prompt so the LLM produces the
-***REMOVED*** user-requested output language. Default lang="zh" preserves legacy behavior.
+# Language clause appended to every system prompt so the LLM produces the
+# user-requested output language. Default lang="zh" preserves legacy behavior.
 _LANG_CLAUSE = {
     "zh": "请全程用中文输出。",
     "en": "Respond entirely in English. Use academic, precise tone; do not mix Chinese into the output.",
@@ -47,11 +47,11 @@ def _with_lang(system_prompt: str, lang: Optional[str]) -> str:
     """Append the language clause to a system prompt with high recency bias."""
     return f"{system_prompt}\n\n{_lang_clause(lang)}"
 
-***REMOVED*** Shared module-level client so we reuse the underlying TCP / TLS connection
-***REMOVED*** pool across all LLM calls. Creating a fresh AsyncClient per call adds
-***REMOVED*** ~100-300ms of TLS handshake overhead, which adds up for a multi-call flow.
-***REMOVED*** The client has no default timeout — each call passes its own (short for
-***REMOVED*** assess, long for streaming) via `timeout=` kwarg to the request method.
+# Shared module-level client so we reuse the underlying TCP / TLS connection
+# pool across all LLM calls. Creating a fresh AsyncClient per call adds
+# ~100-300ms of TLS handshake overhead, which adds up for a multi-call flow.
+# The client has no default timeout — each call passes its own (short for
+# assess, long for streaming) via `timeout=` kwarg to the request method.
 _HTTP_CLIENT: Optional[httpx.AsyncClient] = None
 
 
@@ -83,11 +83,11 @@ class LLMService:
         Combined query rewrite + worthiness assessment in a single LLM call.
         Returns a dict:
         {
-            "rewritten": str,                  ***REMOVED*** phenomenon-style description
-            "worth_score": int,                ***REMOVED*** 1-5, higher = more analyzable
-            "category": str,                   ***REMOVED*** 现象描述/元问题/命令式/闲聊/太抽象/个人事务/学术方向
-            "coaching": str | None,            ***REMOVED*** advice when worth_score < 3, else None
-            "rewrite_suggestion": str | None,  ***REMOVED*** concrete rewritten query when score < 3
+            "rewritten": str,                  # phenomenon-style description
+            "worth_score": int,                # 1-5, higher = more analyzable
+            "category": str,                   # 现象描述/元问题/命令式/闲聊/太抽象/个人事务/学术方向
+            "coaching": str | None,            # advice when worth_score < 3, else None
+            "rewrite_suggestion": str | None,  # concrete rewritten query when score < 3
         }
         On any failure, returns a permissive fallback (worth_score=4) so the
         user is never silently blocked due to an LLM error.
@@ -99,14 +99,14 @@ class LLMService:
             "coaching": None,
             "rewrite_suggestion": None,
         }
-        ***REMOVED*** Only short-circuit on truly empty input. Even 3-char queries like
-        ***REMOVED*** "为什么" should hit the LLM gate so they don't silently slip through.
+        # Only short-circuit on truly empty input. Even 3-char queries like
+        # "为什么" should hit the LLM gate so they don't silently slip through.
         if not self.api_key or len(query.strip()) < 2:
             return fallback
 
-        ***REMOVED*** Prepend language clause to the user prompt since there is no
-        ***REMOVED*** separate system message for this call. Put it near the final output
-        ***REMOVED*** instruction as well to maximize recency bias.
+        # Prepend language clause to the user prompt since there is no
+        # separate system message for this call. Put it near the final output
+        # instruction as well to maximize recency bias.
         _lang_prefix = _lang_clause(lang)
         prompt = f"""{_lang_prefix}
 
@@ -115,15 +115,15 @@ class LLMService:
 1. 评估这个输入对 Structural 的适配度（worth_score 1-5）
 2. 把它改写成客观的现象描述（60-120 字）以便检索
 
-***REMOVED*** Structural 是什么
+# Structural 是什么
 Structural 接收用户描述的"现象"——某种行为模式、动力学、变化趋势、临界点——然后从 4475 个跨学科现象中找出**结构相同**的对应物（比如生态学/物理学/经济学里的同构案例），合成一份跨学科迁移分析报告。
 
-***REMOVED*** 适合 Structural 的输入
+# 适合 Structural 的输入
 - 现象描述：「团队规模变大后效率反而下降」「市场越成熟创新越慢」
 - 学术研究方向：「无序到有序的相变现象」「群体智能的涌现机制」
 - 行为/动力学问题：「为什么短视频会让人上瘾」「为什么有些市场必然赢家通吃」
 
-***REMOVED*** 不适合 Structural 的输入（worth_score 应 ≤ 2）
+# 不适合 Structural 的输入（worth_score 应 ≤ 2）
 - **命令式 prompt**：「帮我写一篇关于 XX 的论文」「给我一个商业计划书」
 - **元问题**：「Structural 怎么用」「这个产品是干嘛的」
 - **闲聊**：「你好」「在吗」「天气怎么样」
@@ -132,10 +132,10 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 - **纯事实查询**：「北京到上海多远」「水的沸点是多少」（百科类，不是同构问题）
 - **要求生成内容**：「写首诗」「翻译这段话」
 
-***REMOVED*** 用户输入
+# 用户输入
 {query}
 
-***REMOVED*** 请输出严格 JSON（不要 markdown 代码块）
+# 请输出严格 JSON（不要 markdown 代码块）
 {{
   "rewritten": "<60-120 字的客观现象描述。如用户已经在描述现象，微调润色即可。如果输入完全不适合改写，原样返回>",
   "worth_score": <1-5 的整数>,
@@ -156,7 +156,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "anthropic/claude-haiku-4.5",  ***REMOVED*** fast + cheap
+                    "model": "anthropic/claude-haiku-4.5",  # fast + cheap
                     "messages": [
                         {"role": "user", "content": prompt},
                     ],
@@ -170,12 +170,12 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                 resp.raise_for_status()
                 data = resp.json()
                 content = data["choices"][0]["message"]["content"].strip()
-                ***REMOVED*** Strip stray markdown fences if the model added them
+                # Strip stray markdown fences if the model added them
                 if content.startswith("```"):
                     content = content.strip("`").lstrip("json").strip()
                 parsed = json.loads(content)
 
-                ***REMOVED*** Validate + clamp
+                # Validate + clamp
                 rewritten = (parsed.get("rewritten") or query).strip().strip('"「」').strip() or query
                 try:
                     worth = int(parsed.get("worth_score", 4))
@@ -261,7 +261,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                     except json.JSONDecodeError:
                         continue
 
-                ***REMOVED*** Parse the final JSON
+                # Parse the final JSON
                 try:
                     parsed = json.loads(accumulated)
                     normalized = self._normalize(parsed)
@@ -334,8 +334,8 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
             return self._fallback_mapping(a, b, similarity)
 
     def _build_prompt(self, a: Dict, b: Dict, similarity: float, lang: str = "zh") -> str:
-        ***REMOVED*** Language-dependent content-language instruction. Structural field
-        ***REMOVED*** names stay in English (JSON schema), only the *text values* change.
+        # Language-dependent content-language instruction. Structural field
+        # names stay in English (JSON schema), only the *text values* change.
         if (lang or "zh").lower() == "en":
             lang_rule = (
                 "- All string values in the JSON must be written in English. "
@@ -424,7 +424,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         if not self.api_key or not top_results:
             return None
 
-        ***REMOVED*** Take top 5 for synthesis
+        # Take top 5 for synthesis
         top5 = top_results[:5]
         results_block = ""
         for i, r in enumerate(top5, 1):
@@ -552,8 +552,8 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
         for i, r in enumerate(top5, 1):
             results_block += f"\n[{i}] {r.get('name', '')}（领域：{r.get('domain', '')}）\n    {r.get('description', '')[:220]}\n"
 
-        ***REMOVED*** Reuse the same prompt as the blocking version so the schema and
-        ***REMOVED*** behavior stay identical — only transport changes.
+        # Reuse the same prompt as the blocking version so the schema and
+        # behavior stay identical — only transport changes.
         prompt = f"""用户的问题是：
 "{query}"
 {f'改写后的现象描述：' + rewritten_query if rewritten_query and rewritten_query != query else ''}
@@ -645,7 +645,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                     if not line:
                         continue
                     if line.startswith(": "):
-                        ***REMOVED*** SSE comment / heartbeat — ignore
+                        # SSE comment / heartbeat — ignore
                         continue
                     if not line.startswith("data: "):
                         continue
@@ -666,11 +666,11 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                         logger.debug(f"Skipping malformed stream chunk: {e}")
                         continue
 
-            ***REMOVED*** Parse the full accumulated JSON
+            # Parse the full accumulated JSON
             if not accumulated.strip():
                 yield {"type": "error", "message": "empty_response"}
                 return
-            ***REMOVED*** Strip stray markdown fences (model sometimes wraps in ```json ... ```)
+            # Strip stray markdown fences (model sometimes wraps in ```json ... ```)
             cleaned = accumulated.strip()
             if cleaned.startswith("```"):
                 cleaned = cleaned.strip("`")
@@ -753,7 +753,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                                     "content": delta,
                                     "total_length": len(accumulated),
                                 }
-                                ***REMOVED*** Check if any new top-level section has been completed
+                                # Check if any new top-level section has been completed
                                 try:
                                     completed = find_complete_top_sections(accumulated)
                                     for key, value in completed:
@@ -769,7 +769,7 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                         except json.JSONDecodeError:
                             continue
 
-                    ***REMOVED*** Final: parse whole JSON with LaTeX fix, fallback to repair
+                    # Final: parse whole JSON with LaTeX fix, fallback to repair
                     final_report = None
                     fixed = _fix_latex_escapes(accumulated)
                     try:
@@ -784,8 +784,8 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
                         logger.error(f"JSON repair failed. Head: {accumulated[:300]}")
                         final_report = self._fallback_deep_report(a, b, similarity, lang=lang)
                     else:
-                        ***REMOVED*** Emit any remaining sections that weren't caught during streaming
-                        ***REMOVED*** (e.g., the very last one if the parser was more conservative)
+                        # Emit any remaining sections that weren't caught during streaming
+                        # (e.g., the very last one if the parser was more conservative)
                         for key in final_report:
                             if key not in emitted_keys:
                                 yield {
@@ -797,15 +797,15 @@ Structural 接收用户描述的"现象"——某种行为模式、动力学、�
 
                     yield {"type": "done", "report": final_report}
         except Exception as e:
-            ***REMOVED*** P1-2 — surface a stable error code, not the raw exception
-            ***REMOVED*** string (httpx errors leak the upstream URL / timeout / conn
-            ***REMOVED*** internals). Full detail stays server-side in the log line.
+            # P1-2 — surface a stable error code, not the raw exception
+            # string (httpx errors leak the upstream URL / timeout / conn
+            # internals). Full detail stays server-side in the log line.
             logger.error(f"Deep analysis stream failed: {e}")
             yield {"type": "error", "message": _classify_llm_error(e)}
             yield {"type": "done", "report": self._fallback_deep_report(a, b, similarity, lang=lang)}
 
-    ***REMOVED*** Sentinel strings used to detect a fallback report in downstream cache
-    ***REMOVED*** logic. Keep them in sync with `_fallback_deep_report`.
+    # Sentinel strings used to detect a fallback report in downstream cache
+    # logic. Keep them in sync with `_fallback_deep_report`.
     FALLBACK_STRUCTURE_NAME_ZH = "结构分析暂不可用"
     FALLBACK_STRUCTURE_NAME_EN = "Structural analysis unavailable"
 
@@ -910,7 +910,7 @@ def _fix_latex_escapes(text: str) -> str:
             i += 1
             continue
 
-        ***REMOVED*** === Inside a string ===
+        # === Inside a string ===
         if ch == "\\" and i + 1 < n:
             nxt = text[i + 1]
             if nxt == "\\":
@@ -918,28 +918,28 @@ def _fix_latex_escapes(text: str) -> str:
                 i += 2
                 continue
             if nxt in '"/bfnrtu':
-                ***REMOVED*** Valid JSON escape — keep
+                # Valid JSON escape — keep
                 out.append(ch)
                 out.append(nxt)
                 i += 2
                 continue
-            ***REMOVED*** Invalid escape (LaTeX command) — double it
+            # Invalid escape (LaTeX command) — double it
             out.append("\\\\")
             i += 1
             continue
 
         if ch == '"':
             if is_terminator_ahead(i):
-                ***REMOVED*** Real closing quote
+                # Real closing quote
                 out.append(ch)
                 in_string = False
             else:
-                ***REMOVED*** Stray internal quote — escape it
+                # Stray internal quote — escape it
                 out.append("\\\"")
             i += 1
             continue
 
-        ***REMOVED*** Other chars — pass through
+        # Other chars — pass through
         out.append(ch)
         i += 1
 
@@ -1005,7 +1005,7 @@ def _find_value_end(text: str, start: int) -> int:
         while i < n and text[i] in "-+0123456789.eE":
             i += 1
         return i
-    ***REMOVED*** Literals
+    # Literals
     for literal in ("true", "false", "null"):
         if text[i : i + len(literal)] == literal:
             return i + len(literal)
@@ -1020,28 +1020,28 @@ def find_complete_top_sections(text: str) -> "list[tuple[str, object]]":
     Used during streaming — as new text arrives, more sections become 'complete' and
     can be yielded to the frontend for progressive rendering.
     """
-    ***REMOVED*** Fix LaTeX escapes in place first — LLMs often emit \frac instead of \\frac
+    # Fix LaTeX escapes in place first — LLMs often emit \frac instead of \\frac
     text = _fix_latex_escapes(text)
 
     stripped = text.lstrip()
     if not stripped.startswith("{"):
         return []
 
-    ***REMOVED*** Find the '{' position in the original string
+    # Find the '{' position in the original string
     offset = len(text) - len(stripped)
     i = offset + 1
     n = len(text)
     completed = []
 
     while i < n:
-        ***REMOVED*** Skip whitespace and commas
+        # Skip whitespace and commas
         while i < n and text[i] in " \t\n\r,":
             i += 1
         if i >= n:
             break
         if text[i] == "}":
             break
-        ***REMOVED*** Expect a string key
+        # Expect a string key
         if text[i] != '"':
             break
         key_start = i + 1
@@ -1050,28 +1050,28 @@ def find_complete_top_sections(text: str) -> "list[tuple[str, object]]":
             break
         key = text[key_start:key_end]
         i = key_end + 1
-        ***REMOVED*** Skip whitespace before ':'
+        # Skip whitespace before ':'
         while i < n and text[i] in " \t\n\r":
             i += 1
         if i >= n or text[i] != ":":
             break
         i += 1
-        ***REMOVED*** Skip whitespace before value
+        # Skip whitespace before value
         while i < n and text[i] in " \t\n\r":
             i += 1
         if i >= n:
             break
-        ***REMOVED*** Read value
+        # Read value
         value_start = i
         value_end = _find_value_end(text, i)
         if value_end < 0:
-            break  ***REMOVED*** incomplete value — stop scanning
+            break  # incomplete value — stop scanning
         value_text = text[value_start:value_end]
         try:
             value = json.loads(value_text)
             completed.append((key, value))
         except json.JSONDecodeError:
-            ***REMOVED*** Malformed — stop
+            # Malformed — stop
             break
         i = value_end
 
@@ -1091,11 +1091,11 @@ def _try_repair_json(text: str) -> Optional[Dict]:
 
     s = text.strip()
 
-    ***REMOVED*** Track bracket depth and string state
-    depth_stack = []  ***REMOVED*** stack of '{' or '['
+    # Track bracket depth and string state
+    depth_stack = []  # stack of '{' or '['
     in_string = False
     escape = False
-    last_safe = -1  ***REMOVED*** last position where we can safely cut (after , or value)
+    last_safe = -1  # last position where we can safely cut (after , or value)
 
     for i, ch in enumerate(s):
         if escape:
@@ -1107,7 +1107,7 @@ def _try_repair_json(text: str) -> Optional[Dict]:
         if ch == '"' and not escape:
             in_string = not in_string
             if not in_string:
-                ***REMOVED*** Just closed a string — could be a safe cut point
+                # Just closed a string — could be a safe cut point
                 last_safe = i
             continue
         if in_string:
@@ -1124,15 +1124,15 @@ def _try_repair_json(text: str) -> Optional[Dict]:
     if last_safe < 0:
         return None
 
-    ***REMOVED*** Cut at last_safe
+    # Cut at last_safe
     candidate = s[: last_safe + 1]
 
-    ***REMOVED*** If we cut at a comma, remove the trailing comma to avoid invalid JSON
+    # If we cut at a comma, remove the trailing comma to avoid invalid JSON
     candidate = candidate.rstrip()
     while candidate.endswith(","):
         candidate = candidate[:-1].rstrip()
 
-    ***REMOVED*** Recompute depth stack for the candidate
+    # Recompute depth stack for the candidate
     depth_stack = []
     in_string = False
     escape = False
@@ -1154,7 +1154,7 @@ def _try_repair_json(text: str) -> Optional[Dict]:
             if depth_stack:
                 depth_stack.pop()
 
-    ***REMOVED*** Close any remaining brackets
+    # Close any remaining brackets
     for opener in reversed(depth_stack):
         candidate += "}" if opener == "{" else "]"
 

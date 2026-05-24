@@ -19,11 +19,11 @@ from structural_isomorphism.model import load_model, encode_texts
 logger = logging.getLogger("structural.search_service")
 
 
-***REMOVED*** --- Hybrid retrieval config -------------------------------------------------
+# --- Hybrid retrieval config -------------------------------------------------
 
-***REMOVED*** Rule-based trigger phrases -> dynamics_family. Matched against the raw query.
-***REMOVED*** When any trigger fires, phenomena from the corresponding family receive a
-***REMOVED*** +BOOST_DYNAMICS bonus on their normalized fused score.
+# Rule-based trigger phrases -> dynamics_family. Matched against the raw query.
+# When any trigger fires, phenomena from the corresponding family receive a
+# +BOOST_DYNAMICS bonus on their normalized fused score.
 DYNAMICS_TRIGGERS: List[tuple] = [
     (("延迟", "滞后", "迟滞", "时滞", "delay", "lag"),
      ("DDE_delayed_feedback",)),
@@ -45,25 +45,25 @@ DYNAMICS_TRIGGERS: List[tuple] = [
 ]
 
 
-***REMOVED*** Lightweight English stopwords (to dampen uninformative BM25 scores)
+# Lightweight English stopwords (to dampen uninformative BM25 scores)
 _EN_STOP = {"the", "a", "an", "of", "in", "on", "to", "for", "and", "or",
             "is", "are", "was", "were", "be", "been", "by", "with", "as",
             "at", "from", "this", "that", "it", "its", "into", "not"}
-***REMOVED*** Chinese question words / fillers
+# Chinese question words / fillers
 _ZH_STOP = {"为什么", "怎么", "如何", "什么", "吗", "呢", "的", "了", "是",
             "有", "会", "在", "和", "与", "或", "以及", "为", "对", "给",
             "那么", "反而", "更", "一个", "一些", "一种"}
 
 
-***REMOVED*** X2 W1 (2026-05-24) \u2014 eager jieba import. Previously imported lazily inside
-***REMOVED*** _tokenize() with a bare `except Exception` fallback to char-level, which
-***REMOVED*** silently masked a real prod gap (jieba not in requirements.txt). main.py
-***REMOVED*** lifespan asserts jieba is importable; here we expose the module-level
-***REMOVED*** `_JIEBA` handle so unit tests can introspect availability via
-***REMOVED*** `search_service._JIEBA is not None`.
+# X2 W1 (2026-05-24) \u2014 eager jieba import. Previously imported lazily inside
+# _tokenize() with a bare `except Exception` fallback to char-level, which
+# silently masked a real prod gap (jieba not in requirements.txt). main.py
+# lifespan asserts jieba is importable; here we expose the module-level
+# `_JIEBA` handle so unit tests can introspect availability via
+# `search_service._JIEBA is not None`.
 try:
     import jieba as _JIEBA
-except ImportError:  ***REMOVED*** pragma: no cover \u2014 main.py lifespan asserts this
+except ImportError:  # pragma: no cover \u2014 main.py lifespan asserts this
     _JIEBA = None
 
 
@@ -88,26 +88,26 @@ def _tokenize(text: str) -> List[str]:
         if not t or t in _EN_STOP or t in _ZH_STOP:
             continue
         if len(t) == 1 and not re.match(r"[\u4e00-\u9fff]", t):
-            ***REMOVED*** drop single ASCII char / punctuation
+            # drop single ASCII char / punctuation
             continue
         toks.append(t)
     return toks
 
 
-***REMOVED*** X2 W3 (2026-05-24) — language detection for translate-before-embed.
-***REMOVED*** Root cause: KB embedding model is `text2vec-base-chinese`, KB is 100%
-***REMOVED*** Chinese. EN queries like "power-law distribution" had 0 BM25 字面 hits
-***REMOVED*** AND embedding-similarity bias toward translated noise (LLM AB test:
-***REMOVED*** DeepSeek mapped "self-organized criticality" to "分权改革俘获风险").
-***REMOVED*** We detect EN-dominant queries up-front so the orchestrator can issue a
-***REMOVED*** translation call before encoding.
+# X2 W3 (2026-05-24) — language detection for translate-before-embed.
+# Root cause: KB embedding model is `text2vec-base-chinese`, KB is 100%
+# Chinese. EN queries like "power-law distribution" had 0 BM25 字面 hits
+# AND embedding-similarity bias toward translated noise (LLM AB test:
+# DeepSeek mapped "self-organized criticality" to "分权改革俘获风险").
+# We detect EN-dominant queries up-front so the orchestrator can issue a
+# translation call before encoding.
 try:
-    from langdetect import detect_langs as _detect_langs  ***REMOVED*** type: ignore
-    from langdetect import DetectorFactory as _DetectorFactory  ***REMOVED*** type: ignore
-    ***REMOVED*** langdetect is non-deterministic by default; seed for reproducibility.
+    from langdetect import detect_langs as _detect_langs  # type: ignore
+    from langdetect import DetectorFactory as _DetectorFactory  # type: ignore
+    # langdetect is non-deterministic by default; seed for reproducibility.
     _DetectorFactory.seed = 0
     _LANGDETECT_OK = True
-except ImportError:  ***REMOVED*** pragma: no cover — falls back to ASCII heuristic
+except ImportError:  # pragma: no cover — falls back to ASCII heuristic
     _LANGDETECT_OK = False
 
 
@@ -132,7 +132,7 @@ def _detect_lang(query: str) -> str:
     ascii_letters = sum(1 for c in text if c.isascii() and c.isalpha())
     total_meaningful = cjk + ascii_letters
     if total_meaningful == 0:
-        return "zh"  ***REMOVED*** digits/punctuation only — default to KB lang
+        return "zh"  # digits/punctuation only — default to KB lang
     ascii_ratio = ascii_letters / total_meaningful
     if cjk > 0 and ascii_ratio > 0.3:
         return "mixed"
@@ -150,7 +150,7 @@ def _infer_dynamics_families(query: str) -> List[str]:
     for triggers, families in DYNAMICS_TRIGGERS:
         if any(t.lower() in q for t in triggers):
             hits.extend(families)
-    ***REMOVED*** de-dup preserving order
+    # de-dup preserving order
     seen = set()
     out = []
     for f in hits:
@@ -188,16 +188,16 @@ class SearchService:
         self.kb_file = kb_file
         self.model = load_model(model_path=model_path)
 
-        ***REMOVED*** Load KB
+        # Load KB
         self.kb: List[Dict] = []
         self.kb_by_id: Dict[str, Dict] = {}
         self.idx_by_id: Dict[str, int] = {}
         self._load_kb()
 
-        ***REMOVED*** Per-instance query encode cache (replaced on reload)
+        # Per-instance query encode cache (replaced on reload)
         self._encode_query_cached = lru_cache(maxsize=1024)(self._encode_query_uncached)
 
-        ***REMOVED*** Load precomputed or encode fresh embeddings
+        # Load precomputed or encode fresh embeddings
         self._embeddings = None
         if precomputed_embeddings:
             pre_path = Path(precomputed_embeddings)
@@ -225,7 +225,7 @@ class SearchService:
             self._embeddings = encode_texts(self.model, descriptions, show_progress=True)
             logger.info(f"Embeddings shape: {self._embeddings.shape}")
 
-        ***REMOVED*** Build BM25 index over name + description (name doubled for weighting)
+        # Build BM25 index over name + description (name doubled for weighting)
         self._bm25 = None
         self._bm25_corpus_len = 0
         try:
@@ -242,13 +242,13 @@ class SearchService:
             logger.warning(f"BM25 init failed, falling back to embedding-only: {e}")
             self._bm25 = None
 
-        ***REMOVED*** Load StructTuple index (phenomenon_id -> struct record)
+        # Load StructTuple index (phenomenon_id -> struct record)
         self._struct_by_id: Dict[str, Dict] = {}
         struct_path = None
         if struct_file:
             struct_path = Path(struct_file)
         elif self.data_dir:
-            ***REMOVED*** default: v3/results/kb-expanded-struct.jsonl relative to project root
+            # default: v3/results/kb-expanded-struct.jsonl relative to project root
             candidate = self.data_dir.parent / "v3" / "results" / "kb-expanded-struct.jsonl"
             if candidate.exists():
                 struct_path = candidate
@@ -294,7 +294,7 @@ class SearchService:
                     logger.warning(f"Skipping malformed line: {e}")
         logger.info(f"Loaded {len(self.kb)} phenomena from {kb_path}")
 
-    ***REMOVED*** --- Query embedding cache -------------------------------------------------
+    # --- Query embedding cache -------------------------------------------------
     def _encode_query_uncached(self, query: str) -> np.ndarray:
         emb = encode_texts(self.model, query)
         return np.asarray(emb, dtype=np.float32)
@@ -305,7 +305,7 @@ class SearchService:
     def cache_stats(self) -> Dict[str, float]:
         """Query-embedding LRU cache stats — hits / misses / hit_rate.
 
-        Session ***REMOVED***17 P2 — the encode cache had no observability. Surfaced
+        Session #17 P2 — the encode cache had no observability. Surfaced
         via /api/health?deep=1 so operators can see whether the 1024-entry
         cache is actually paying off (hit_rate trending up = good).
         """
@@ -331,7 +331,7 @@ class SearchService:
     def type_count(self) -> int:
         return len({item.get("type_id", "") for item in self.kb if item.get("type_id")})
 
-    ***REMOVED*** --- Unified similarity (Session ***REMOVED***17 V3) ---------------------------------
+    # --- Unified similarity (Session #17 V3) ---------------------------------
 
     @staticmethod
     def _cosine(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
@@ -352,13 +352,13 @@ class SearchService:
         if na < 1e-12 or nb < 1e-12:
             return 0.0
         cos = float(np.dot(a, b) / (na * nb))
-        ***REMOVED*** Clamp tiny FP overshoot so the value is provably in [-1, 1].
+        # Clamp tiny FP overshoot so the value is provably in [-1, 1].
         return max(-1.0, min(1.0, cos))
 
     def relevance_score(self, query: str, phenomenon_id: str) -> float:
         """Unified [0, 1] relevance between a free-text query and a KB item.
 
-        Session ***REMOVED***17 V3.2 — search and analyze used different similarity
+        Session #17 V3.2 — search and analyze used different similarity
         scales (search: min-max-normalized fused BM25+emb; analyze: raw
         np.dot). A result search ranked at 0.80 could be rejected by the
         analyze scope gate. This method is the SINGLE口径 both endpoints
@@ -380,15 +380,15 @@ class SearchService:
         cos = self._cosine(q_emb, self._embeddings[idx])
         return round((cos + 1.0) / 2.0, 4)
 
-    ***REMOVED*** --- Hybrid retrieval core -----------------------------------------------
+    # --- Hybrid retrieval core -----------------------------------------------
 
-    ***REMOVED*** Weight knobs. BM25 carries lexical match; embeddings carry semantic
-    ***REMOVED*** structure. For short keyword queries BM25 dominates naturally; for long
-    ***REMOVED*** NL queries embeddings keep control. 0.45/0.55 is the balanced default.
+    # Weight knobs. BM25 carries lexical match; embeddings carry semantic
+    # structure. For short keyword queries BM25 dominates naturally; for long
+    # NL queries embeddings keep control. 0.45/0.55 is the balanced default.
     BM25_WEIGHT = 0.45
     EMB_WEIGHT = 0.55
-    BOOST_DYNAMICS = 0.10  ***REMOVED*** added to fused score for matching dynamics_family
-    DOMAIN_CAP_IN_TOP5 = 2  ***REMOVED*** diversity guard threshold
+    BOOST_DYNAMICS = 0.10  # added to fused score for matching dynamics_family
+    DOMAIN_CAP_IN_TOP5 = 2  # diversity guard threshold
 
     def _fused_scores(self, query: str) -> np.ndarray:
         """Return a (N,) array of fused scores aligned with self.kb."""
@@ -396,12 +396,12 @@ class SearchService:
         if n == 0 or self._embeddings is None:
             return np.zeros(0, dtype=np.float32)
 
-        ***REMOVED*** --- Embedding similarity ---
+        # --- Embedding similarity ---
         q_emb = self.encode_query(query)
         emb_sims = np.dot(self._embeddings, q_emb.T).flatten().astype(np.float32)
         emb_norm = _minmax(emb_sims)
 
-        ***REMOVED*** --- BM25 ---
+        # --- BM25 ---
         if self._bm25 is not None:
             q_tokens = _tokenize(query)
             if q_tokens:
@@ -414,7 +414,7 @@ class SearchService:
 
         fused = self.BM25_WEIGHT * bm25_norm + self.EMB_WEIGHT * emb_norm
 
-        ***REMOVED*** --- StructTuple dynamics_family boost ---
+        # --- StructTuple dynamics_family boost ---
         families = _infer_dynamics_families(query)
         if families and self._struct_by_id:
             fam_set = set(families)
@@ -449,7 +449,7 @@ class SearchService:
             item = self.kb[idx]
             dom = item.get("domain", "") or "_unknown"
             used = domain_count.get(dom, 0)
-            ***REMOVED*** Only enforce cap while filling the first cap_window slots.
+            # Only enforce cap while filling the first cap_window slots.
             if len(head) < cap_window and used >= self.DOMAIN_CAP_IN_TOP5:
                 tail.append(idx)
                 continue
@@ -465,11 +465,11 @@ class SearchService:
                     break
         return head[:top_k]
 
-    ***REMOVED*** --- Cross-domain detection (Session ***REMOVED***17 V2) -----------------------------
+    # --- Cross-domain detection (Session #17 V2) -----------------------------
 
-    ***REMOVED*** When the surface domain owns more than this fraction of a result's
-    ***REMOVED*** candidate pool, that domain is treated as "the obvious one" and its
-    ***REMOVED*** members are flagged same_domain so the frontend can de-emphasise them.
+    # When the surface domain owns more than this fraction of a result's
+    # candidate pool, that domain is treated as "the obvious one" and its
+    # members are flagged same_domain so the frontend can de-emphasise them.
     CROSS_DOMAIN_POOL_FRACTION = 0.30
 
     def _infer_surface_domain(self, fused: np.ndarray) -> Optional[str]:
@@ -504,7 +504,7 @@ class SearchService:
     ) -> List[Dict]:
         """Search for structurally similar phenomena via hybrid BM25+embedding.
 
-        Session ***REMOVED***17 V2 — each result additionally carries:
+        Session #17 V2 — each result additionally carries:
           * relevance     — unified [0,1] cosine口径 (same as analyze scope gate)
           * cross_domain  — bool, True if the result's domain differs from the
                             query's inferred surface domain
@@ -519,12 +519,12 @@ class SearchService:
             return []
 
         surface_domain = self._infer_surface_domain(fused)
-        ***REMOVED*** Query embedding is already in the lru cache (encoded inside
-        ***REMOVED*** _fused_scores), so this re-fetch is free — used for per-result
-        ***REMOVED*** unified relevance.
+        # Query embedding is already in the lru cache (encoded inside
+        # _fused_scores), so this re-fetch is free — used for per-result
+        # unified relevance.
         q_emb = self.encode_query(query)
 
-        ***REMOVED*** Take a larger candidate pool, then diversity-rank down to top_k.
+        # Take a larger candidate pool, then diversity-rank down to top_k.
         pool_size = min(len(self.kb), max(top_k * 4, 40))
         top_pool = np.argsort(fused)[::-1][:pool_size].tolist()
         ranked = self._domain_guard(top_pool, top_k)
@@ -536,18 +536,18 @@ class SearchService:
                 continue
             item = self.kb[int(idx)]
             dom = item.get("domain", "")
-            ***REMOVED*** Return fused score directly in [0, 1.1]. Frontend is
-            ***REMOVED*** responsible for mapping this to a visual tier (strong/medium/weak)
-            ***REMOVED*** or a capped percentage (min(score, 1.0) * 100).
+            # Return fused score directly in [0, 1.1]. Frontend is
+            # responsible for mapping this to a visual tier (strong/medium/weak)
+            # or a capped percentage (min(score, 1.0) * 100).
             display_score = round(min(score, 1.0), 4)
-            ***REMOVED*** V3 — unified relevance口径 (same transform as relevance_score()),
-            ***REMOVED*** so a value search shows here can be re-derived by the analyze
-            ***REMOVED*** scope gate without disagreement.
+            # V3 — unified relevance口径 (same transform as relevance_score()),
+            # so a value search shows here can be re-derived by the analyze
+            # scope gate without disagreement.
             cos = self._cosine(q_emb, self._embeddings[int(idx)])
             relevance = round((cos + 1.0) / 2.0, 4)
-            ***REMOVED*** V2 — cross_domain flag. When no surface domain dominates the
-            ***REMOVED*** pool (surface_domain is None) we cannot judge, so default to
-            ***REMOVED*** True (do not penalise — absence of evidence ≠ same-domain).
+            # V2 — cross_domain flag. When no surface domain dominates the
+            # pool (surface_domain is None) we cannot judge, so default to
+            # True (do not penalise — absence of evidence ≠ same-domain).
             cross_domain = (
                 True if surface_domain is None else (dom != surface_domain)
             )

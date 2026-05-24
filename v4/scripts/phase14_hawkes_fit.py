@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Phase 14 — Hawkes process Omori cross-domain fit.
 
@@ -48,37 +48,37 @@ import numpy as np
 from scipy.optimize import minimize
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKTREE = Path(__file__).resolve().parents[1].parent  ***REMOVED*** .../agent-w2a
+WORKTREE = Path(__file__).resolve().parents[1].parent  # .../agent-w2a
 OUT_DIR = ROOT / "v4" / "validation" / "soc-hawkes-omori"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-***REMOVED*** Numerical guard rails
+# Numerical guard rails
 EPS = 1e-12
-MAX_EVENTS = 800  ***REMOVED*** cap per system to keep MLE tractable (O(N^2))
+MAX_EVENTS = 800  # cap per system to keep MLE tractable (O(N^2))
 
-***REMOVED*** Parameter bounds (in linear space, applied as soft barriers in NLL)
+# Parameter bounds (in linear space, applied as soft barriers in NLL)
 MU_MIN, MU_MAX = 1e-8, 1e6
 K_MIN, K_MAX = 1e-10, 1e6
 C_MIN, C_MAX = 1e-6, 1e3
-P_MIN, P_MAX = 0.2, 3.0  ***REMOVED*** Omori p is empirically in [0.5, 1.5]
+P_MIN, P_MAX = 0.2, 3.0  # Omori p is empirically in [0.5, 1.5]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Hawkes Omori-Utsu likelihood (vectorised over upper-triangular pairs).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Hawkes Omori-Utsu likelihood (vectorised over upper-triangular pairs).
+# ---------------------------------------------------------------------------
 def _intensity_contrib(t: np.ndarray, c: float, p: float) -> np.ndarray:
     """For each event i, return sum_{j<i} (t_i - t_j + c)^{-(1+p)}.
 
     O(N^2) memory; only used for N <= MAX_EVENTS so this is fine.
     """
     N = len(t)
-    ***REMOVED*** diff[i,j] = t_i - t_j  for j < i, 0 elsewhere
+    # diff[i,j] = t_i - t_j  for j < i, 0 elsewhere
     diff = t[:, None] - t[None, :]
     mask = np.tri(N, N, k=-1, dtype=bool)
     out = np.zeros(N)
     if N <= 1:
         return out
-    ***REMOVED*** only evaluate (diff + c)^... where mask is True to avoid 0**-x warnings
+    # only evaluate (diff + c)^... where mask is True to avoid 0**-x warnings
     base = np.where(mask, diff + c, 1.0)
     g = np.where(mask, base ** (-(1.0 + p)), 0.0)
     out = g.sum(axis=1)
@@ -106,7 +106,7 @@ def neg_log_lik(theta: np.ndarray, t: np.ndarray, T: float) -> float:
     p = math.exp(log_p)
     if not np.isfinite([mu, K, c, p]).all():
         return 1e18
-    ***REMOVED*** soft box constraints
+    # soft box constraints
     penalty = 0.0
     for v, lo, hi in (
         (mu, MU_MIN, MU_MAX),
@@ -120,7 +120,7 @@ def neg_log_lik(theta: np.ndarray, t: np.ndarray, T: float) -> float:
             penalty += (math.log(v) - math.log(hi)) ** 2 * 100
     if penalty > 0:
         return penalty + 1e6
-    ***REMOVED*** intensity at each event
+    # intensity at each event
     lam = mu + K * _intensity_contrib(t, c, p)
     if (lam <= 0).any() or not np.isfinite(lam).all():
         return 1e18
@@ -152,7 +152,7 @@ def _dedup_jitter(t: np.ndarray, eps: float | None = None) -> np.ndarray:
             eps = 1e-9
         else:
             eps = float(positive.min()) * 0.01
-    ***REMOVED*** add cumulative tiny offset to any duplicate
+    # add cumulative tiny offset to any duplicate
     out = t.copy()
     for i in range(1, len(out)):
         if out[i] <= out[i - 1]:
@@ -177,7 +177,7 @@ def fit_hawkes_omori(
         T = float(t[-1]) * 1.02 + 1e-3
     rate = N / T
     iei = T / N
-    ***REMOVED*** build a small grid of starts spanning the plausible region
+    # build a small grid of starts spanning the plausible region
     starts: list[tuple[float, float, float, float]] = []
     if init is not None:
         starts.append(init)
@@ -185,7 +185,7 @@ def fit_hawkes_omori(
         for eta0 in (0.3, 0.6, 0.85):
             for c_frac in (0.05, 0.3):
                 c0 = max(iei * c_frac, C_MIN * 10)
-                ***REMOVED*** given eta = K c^{-p}/p  =>  K = eta * p * c^p
+                # given eta = K c^{-p}/p  =>  K = eta * p * c^p
                 K0 = max(eta0 * p0 * (c0 ** p0), K_MIN * 10)
                 mu0 = max(rate * (1 - eta0), MU_MIN * 10)
                 starts.append((math.log(mu0), math.log(K0), math.log(c0), math.log(p0)))
@@ -267,9 +267,9 @@ def bootstrap_ci(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Data loaders
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Data loaders
+# ---------------------------------------------------------------------------
 def _subsample_sorted(times: np.ndarray, cap: int = MAX_EVENTS) -> np.ndarray:
     """Take the LAST `cap` events (most recent, dense stretch) to keep
     MLE tractable while preserving the temporal clustering structure.
@@ -282,12 +282,12 @@ def _subsample_sorted(times: np.ndarray, cap: int = MAX_EVENTS) -> np.ndarray:
 def load_earthquake() -> tuple[np.ndarray, float, dict]:
     path = ROOT / "v4" / "validation" / "soc-earthquake" / "catalog.jsonl"
     times = []
-    mag_min = 4.5  ***REMOVED*** completeness threshold to thin catalogue
+    mag_min = 4.5  # completeness threshold to thin catalogue
     with path.open() as f:
         for line in f:
             r = json.loads(line)
             if r.get("type") == "earthquake" and (r.get("mag") or 0) >= mag_min:
-                times.append(float(r["time_ms"]) / 1000.0 / 86400.0)  ***REMOVED*** days
+                times.append(float(r["time_ms"]) / 1000.0 / 86400.0)  # days
     times = np.sort(np.asarray(times))
     if len(times) > MAX_EVENTS:
         times = _subsample_sorted(times)
@@ -313,10 +313,10 @@ def load_defi() -> tuple[np.ndarray, float, dict]:
                 r = json.loads(line)
                 ts = r.get("ts_unix")
                 if ts is not None:
-                    times.append(float(ts) / 86400.0)  ***REMOVED*** days
+                    times.append(float(ts) / 86400.0)  # days
     times = np.sort(np.asarray(times))
     if len(times) > MAX_EVENTS:
-        ***REMOVED*** Use the densest contiguous MAX_EVENTS window (last events)
+        # Use the densest contiguous MAX_EVENTS window (last events)
         times = _subsample_sorted(times)
     times = times - times[0]
     T = float(times[-1]) * 1.02
@@ -331,10 +331,10 @@ def load_neural() -> tuple[np.ndarray, float, dict]:
     path = ROOT / "v4" / "validation" / "soc-neural" / "data" / "sample.nwb"
     with h5py.File(path, "r") as f:
         spike_times = f["units/spike_times"][:]
-    pooled = np.sort(spike_times)  ***REMOVED*** seconds
+    pooled = np.sort(spike_times)  # seconds
     if len(pooled) > MAX_EVENTS:
-        ***REMOVED*** Take a contiguous slice from the middle of the recording to avoid
-        ***REMOVED*** boundary artefacts of unit onset / experiment end.
+        # Take a contiguous slice from the middle of the recording to avoid
+        # boundary artefacts of unit onset / experiment end.
         start = (len(pooled) - MAX_EVENTS) // 2
         pooled = pooled[start : start + MAX_EVENTS]
     pooled = pooled - pooled[0]
@@ -343,9 +343,9 @@ def load_neural() -> tuple[np.ndarray, float, dict]:
     return pooled, T, meta
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Driver
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Driver
+# ---------------------------------------------------------------------------
 LITERATURE_FALLBACK = {
     "earthquake": {
         "eta": 0.93,
@@ -417,7 +417,7 @@ def main() -> None:
             entry["bootstrap"] = ci
             entry["bootstrap_wall_sec"] = round(_time.time() - t_boot0, 2)
             entry["fit_source"] = "data"
-        except Exception as exc:  ***REMOVED*** noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             print(f"[{name}] FALLBACK to literature: {exc!r}")
             lit = LITERATURE_FALLBACK[name]
             entry["fit"] = {

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch NYC FDNY Fire Incident Dispatch Data for SOC pre-registered validation.
 
 Pre-registration spec: v4/preregistration/nyc-fdny-fires.yaml
@@ -39,8 +39,8 @@ SOCRATA_BASE = "https://data.cityofnewyork.us/resource/8m42-w767.json"
 REPO = Path(__file__).resolve().parents[3]
 OUT_DIR = REPO / "v4" / "validation" / "nyc-fdny-fires"
 
-***REMOVED*** Fields we keep (subset of full schema, for raw_*.json space budget).
-***REMOVED*** Note: real Socrata field is `valid_incident_rspns_time_indc` (no 'o' in 'rsponse')
+# Fields we keep (subset of full schema, for raw_*.json space budget).
+# Note: real Socrata field is `valid_incident_rspns_time_indc` (no 'o' in 'rsponse')
 KEEP_FIELDS = (
     "starfire_incident_id",
     "incident_datetime",
@@ -66,7 +66,7 @@ def fetch_page(year: int, offset: int, page_size: int) -> list[dict]:
         "$offset": str(offset),
         "$where": where,
         "$select": ",".join(KEEP_FIELDS),
-        "$order": "incident_datetime",  ***REMOVED*** deterministic + spans full year for small samples
+        "$order": "incident_datetime",  # deterministic + spans full year for small samples
     }
     qs = urllib.parse.urlencode(params, safe=":,'")
     url = f"{SOCRATA_BASE}?{qs}"
@@ -90,15 +90,15 @@ def fetch_page(year: int, offset: int, page_size: int) -> list[dict]:
     raise RuntimeError(f"Socrata fetch failed after retries: {last_err}")
 
 
-***REMOVED*** Pre-registration: filter to fire-incident-types only (drop EMS / medical).
-***REMOVED*** NYC FDNY classification groups for fires:
+# Pre-registration: filter to fire-incident-types only (drop EMS / medical).
+# NYC FDNY classification groups for fires:
 FIRE_GROUPS = {
     "Structural Fires",
     "NonStructural Fires",
-    "NonMedical MFAs",  ***REMOVED*** Multiple Fire Alarms — fire-related false alarms / triggers
-    "NonMedical Emergencies",  ***REMOVED*** gas leaks, smoke, hazmat — fire-adjacent dispatch load
+    "NonMedical MFAs",  # Multiple Fire Alarms — fire-related false alarms / triggers
+    "NonMedical Emergencies",  # gas leaks, smoke, hazmat — fire-adjacent dispatch load
 }
-***REMOVED*** Strict fire-only (used for secondary daily-count series):
+# Strict fire-only (used for secondary daily-count series):
 STRICT_FIRE_GROUPS = {"Structural Fires", "NonStructural Fires"}
 
 
@@ -112,7 +112,7 @@ def aggregate_sizes(records: list[dict]) -> dict:
       - daily_counts_strict: per YYYY-MM-DD count (STRICT_FIRE_GROUPS)
       - per_group_counts: per incident_classification_group count (all)
     """
-    ***REMOVED*** Group by starfire_incident_id; an incident can have multiple dispatch rows.
+    # Group by starfire_incident_id; an incident can have multiple dispatch rows.
     incidents: dict[str, dict] = {}
     for r in records:
         sid = r.get("starfire_incident_id")
@@ -147,7 +147,7 @@ def aggregate_sizes(records: list[dict]) -> dict:
             units_strict.append(info["units"])
         dt = info["datetime"]
         if dt:
-            day = dt[:10]  ***REMOVED*** YYYY-MM-DD
+            day = dt[:10]  # YYYY-MM-DD
             if in_fire:
                 daily_all[day] += 1
             if in_strict:
@@ -183,12 +183,12 @@ def synthetic_fallback(n: int = 50000) -> list[dict]:
     random.seed(42)
     alpha = 1.65
     out = []
-    ***REMOVED*** Approx: u ~ U(0,1), x = floor((1-u)^(-1/(alpha-1)))
+    # Approx: u ~ U(0,1), x = floor((1-u)^(-1/(alpha-1)))
     base = datetime(2023, 1, 1)
     for i in range(n):
         u = random.random()
         x = int((1 - u) ** (-1.0 / (alpha - 1.0)))
-        x = max(1, min(x, 200))  ***REMOVED*** cap for realism
+        x = max(1, min(x, 200))  # cap for realism
         day_offset = i % 365
         day = base.replace(day=1)
         day_str = f"2023-{1 + (day_offset // 31):02d}-{1 + (day_offset % 28):02d}"
@@ -265,8 +265,8 @@ def main() -> int:
                 print(f"[fetch] hit --limit cap {cap}", file=sys.stderr)
                 break
             if len(page_records) < args.page_size:
-                break  ***REMOVED*** final page
-            ***REMOVED*** Light pace to be polite (Socrata is generous but be nice)
+                break  # final page
+            # Light pace to be polite (Socrata is generous but be nice)
             time.sleep(0.5)
 
         if not records and network_error:
@@ -285,7 +285,7 @@ def main() -> int:
         "year": args.year,
         "n_records": len(records),
         "network_error": network_error,
-        ***REMOVED*** subset of records to save disk (first 1000) — full records aggregated already
+        # subset of records to save disk (first 1000) — full records aggregated already
         "records_sample": records[:1000],
     }
     sizes_payload = {

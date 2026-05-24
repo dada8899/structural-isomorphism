@@ -30,7 +30,7 @@ def _resolve_db_path() -> Path:
     override = os.getenv("STRUCTURAL_HISTORY_DB")
     if override:
         return Path(override)
-    ***REMOVED*** web/backend/api/history.py → web/backend/data/history.db
+    # web/backend/api/history.py → web/backend/data/history.db
     return Path(__file__).resolve().parent.parent / "data" / "history.db"
 
 

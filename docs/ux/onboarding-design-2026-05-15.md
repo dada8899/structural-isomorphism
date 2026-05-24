@@ -1,9 +1,9 @@
-***REMOVED*** Onboarding Tour Design — 2026-05-15 (W12-D)
+# Onboarding Tour Design — 2026-05-15 (W12-D)
 
 > First-time user onboarding for Phase Detector. Pure-React, 4 steps,
 > auto-start on first visit + restart from TopNav.
 
-***REMOVED******REMOVED*** Why 4 steps (not 7, not 2)
+## Why 4 steps (not 7, not 2)
 
 We tested three step-count framings:
 
@@ -25,7 +25,7 @@ The four steps map 1:1 to the four questions a new visitor asks in their
 first 30 seconds: *what is this site* → *what's the colored thing* →
 *what's the cross-reference* → *how do I keep up*.
 
-***REMOVED******REMOVED*** Spotlight pattern reference
+## Spotlight pattern reference
 
 Implementation references consulted (open source + commercial):
 
@@ -43,7 +43,7 @@ Implementation references consulted (open source + commercial):
   implementation is ~6kB gzipped (no external deps, inline styles via
   styled-jsx).
 
-***REMOVED******REMOVED*** Accessibility decisions
+## Accessibility decisions
 
 - `role="dialog" aria-modal="true"` with `aria-labelledby`/`describedby`
   so screen readers announce the step title + description on focus.
@@ -61,7 +61,7 @@ Implementation references consulted (open source + commercial):
   taps do nothing intentionally; surprise clicks would be worse than the
   extra travel.
 
-***REMOVED******REMOVED*** Trigger logic
+## Trigger logic
 
 - **First visit**: `localStorage.phase_tour_seen` absent or `false`.
   Auto-start after 1500ms idle delay — gives LCP time to settle so the
@@ -77,7 +77,7 @@ Implementation references consulted (open source + commercial):
   `<OnboardingTour forceOpen>`. Useful for marketing email landings;
   bypasses the seen flag entirely.
 
-***REMOVED******REMOVED*** Plausible events
+## Plausible events
 
 | Event | Props | When |
 |---|---|---|
@@ -90,7 +90,7 @@ Implementation references consulted (open source + commercial):
 These give us a funnel: started → next_2 → next_3 → next_4 → completed.
 Drop-offs surface which step is too long or off-target.
 
-***REMOVED******REMOVED*** Localization placeholder
+## Localization placeholder
 
 Current copy is Simplified Chinese (zh-CN), matching the rest of the
 phase-detector UI. EN translations are TODO — to be added when the EN
@@ -105,7 +105,7 @@ const STEPS_BY_LOCALE = { "zh-CN": DEFAULT_STEPS, "en": EN_STEPS };
 Step structure (TourStep interface) is already locale-neutral — only the
 `title` / `description` / `nextLabel` strings change.
 
-***REMOVED******REMOVED*** Bundle delta
+## Bundle delta
 
 ~6kB gzipped for `OnboardingTour.tsx` + ~1kB for the TopNav restart wiring.
 No new npm dependencies. Compares favorably to shepherd.js (~28kB) and

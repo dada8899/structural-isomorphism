@@ -134,7 +134,7 @@
     wireLangToggle();
   }
 
-  // i18n.js wires ***REMOVED***lang-toggle once at its own boot; since site-chrome may
+  // i18n.js wires #lang-toggle once at its own boot; since site-chrome may
   // inject the button afterwards, wire it here too (idempotent).
   function wireLangToggle() {
     var btn = document.getElementById('lang-toggle');

@@ -1,4 +1,4 @@
-***REMOVED*** B3 — Multi-model ensemble review summary
+# B3 — Multi-model ensemble review summary
 
 **Date**: 2026-05-13  
 **Reviewers**: 3 (deepseek-v4-pro rigorous T=0.0, deepseek-v4-flash rigorous T=0.0, deepseek-v4-pro creative T=0.6)  
@@ -7,7 +7,7 @@
 **Errors**: 0, **Parse failures**: 0  
 **Total wall time**: 40.8 min  
 
-***REMOVED******REMOVED*** Per-class verdict table
+## Per-class verdict table
 
 | class_id | B1 | deepseek-pro-rigorous | deepseek-flash-rigorous | deepseek-pro-creative | B3 consensus | avg_conf |
 |---|---|---|---|---|---|---|
@@ -33,7 +33,7 @@
 | `sir_contagion_network_class` | SPLIT | SPLIT | REJECT | SPLIT | **SPLIT** | 0.83 |
 | `tail_copula_contagion` | KEEP | REJECT | REJECT | SPLIT | **REJECT** | 0.76 |
 
-***REMOVED******REMOVED*** B3 consensus distribution
+## B3 consensus distribution
 
 - **KEEP**: 5
 - **REJECT**: 7
@@ -41,7 +41,7 @@
 - **MERGE**: 4
 - **UNCLEAR**: 0
 
-***REMOVED******REMOVED*** Raw verdict distribution (across all 63 calls)
+## Raw verdict distribution (across all 63 calls)
 
 - **REJECT**: 22
 - **KEEP**: 16
@@ -49,12 +49,12 @@
 - **MERGE**: 10
 - **UNCLEAR**: 1
 
-***REMOVED******REMOVED*** B1 critic vs B3 ensemble agreement
+## B1 critic vs B3 ensemble agreement
 
 - Agree (B1 simplified == B3 consensus): **14** / 21
 - Disagree: **7** / 21
 
-***REMOVED******REMOVED*** Methodology notes
+## Methodology notes
 
 - 3 DeepSeek-only reviewers (same vendor, different model/temperature configurations).
 - v4-pro @ T=0.0 = main rigorous reviewer (full chain-of-thought reasoning).

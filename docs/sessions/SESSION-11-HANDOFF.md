@@ -1,127 +1,127 @@
-***REMOVED*** Session ***REMOVED***11 起手交接文档
+# Session #11 起手交接文档
 
-> 上 session (***REMOVED***10) 完成于 2026-05-15 CST
+> 上 session (#10) 完成于 2026-05-15 CST
 > Main HEAD post-Wave-14: 见 `git log --oneline -5`（Wave 14 PR 全部 squash-merged 后）
-> Session ***REMOVED***10 共 ~45 PR squash-merged across 9 waves (W6-W14), manual worktree 模式
+> Session #10 共 ~45 PR squash-merged across 9 waves (W6-W14), manual worktree 模式
 > 用户身份: 达达 (dada8899) · repo **PRIVATE**（W3 destructive ops 仍 user-blocked, see §3）
 > 长期愿景: structural-isomorphism v4 + phase-detector v0.1 已 ~95% OSS-ready, 仅差 3 步 user-input 即可一键发布
 
 ---
 
-***REMOVED******REMOVED*** 0. 起手 60 秒
+## 0. 起手 60 秒
 
 ```bash
 cd ~/Projects/structural-isomorphism
 git pull origin main
-git log --oneline -25                 ***REMOVED*** 验证 Wave 14 全 merge
+git log --oneline -25                 # 验证 Wave 14 全 merge
 
-gh auth status                        ***REMOVED*** ✓ dada8899
+gh auth status                        # ✓ dada8899
 
-***REMOVED*** Tests
-PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q   ***REMOVED*** 期望 200+ pass
-PYTHONPATH=. .venv/bin/python -m pytest web/tests/e2e/ -q       ***REMOVED*** 期望 80+ pass
+# Tests
+PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q   # 期望 200+ pass
+PYTHONPATH=. .venv/bin/python -m pytest web/tests/e2e/ -q       # 期望 80+ pass
 
-***REMOVED*** Prod health
-curl -s -o /dev/null -w "%{http_code}\n" https://beta.structural.bytedance.city/api/health   ***REMOVED*** 200
-curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/                       ***REMOVED*** 200
-curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/backtest               ***REMOVED*** 200
-curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/api/backtest-result    ***REMOVED*** 200
-curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/compare                ***REMOVED*** 200 (W10-E)
-curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/universality           ***REMOVED*** 200 (W10-E)
+# Prod health
+curl -s -o /dev/null -w "%{http_code}\n" https://beta.structural.bytedance.city/api/health   # 200
+curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/                       # 200
+curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/backtest               # 200
+curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/api/backtest-result    # 200
+curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/compare                # 200 (W10-E)
+curl -s -o /dev/null -w "%{http_code}\n" https://phase.bytedance.city/universality           # 200 (W10-E)
 
-***REMOVED*** Worktree cleanup（session ***REMOVED***10 用了大量 /tmp/structural-w*）
+# Worktree cleanup（session #10 用了大量 /tmp/structural-w*）
 git worktree list
 git worktree prune
-rm -rf /tmp/structural-w*  ***REMOVED*** 安全：所有 wave 14 worktree 已合并到 main
+rm -rf /tmp/structural-w*  # 安全：所有 wave 14 worktree 已合并到 main
 
-***REMOVED*** Coverage 验证
-PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-missing | tail -3   ***REMOVED*** 期望 ≥85%
+# Coverage 验证
+PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-missing | tail -3   # 期望 ≥85%
 ```
 
 ---
 
-***REMOVED******REMOVED*** 1. Session ***REMOVED***10 已交付（~45 PRs，9 waves，全部 squash-merged）
+## 1. Session #10 已交付（~45 PRs，9 waves，全部 squash-merged）
 
-***REMOVED******REMOVED******REMOVED*** Wave 6 — 4 PR + 1 train run（PRs ***REMOVED***122-***REMOVED***125, merged 2026-05-15 早段）
-
-| PR | Agent | 交付 |
-|---|---|---|
-| *****REMOVED***122** | W6-B | anti-p-hacking 5 figures + `generate.py` reproducible script |
-| *****REMOVED***123** | W6-E | public-readiness trio: README polish + universality dedupe + React error fix |
-| *****REMOVED***124** | W6-C | `/company/[ticker]` detail page polish 3.4 → 9/10 |
-| *****REMOVED***125** | W6-D | char cap UX + citation tracking + mobile LCP（session ***REMOVED***7 P1 backlog top 3） |
-
-***REMOVED******REMOVED******REMOVED*** Wave 7 — 5 PR（PRs ***REMOVED***126-***REMOVED***130, paper / dataset / methodology batch）
+### Wave 6 — 4 PR + 1 train run（PRs #122-#125, merged 2026-05-15 早段）
 
 | PR | Agent | 交付 |
 |---|---|---|
-| *****REMOVED***126** | W7-B | C4 reject-aware paper v0.2 — Patterns target submission-ready |
-| *****REMOVED***127** | W7-E | D1 block-bootstrap EWS method paper draft |
-| *****REMOVED***128** | W7-A | Zenodo v1.0 benchmark dataset bundle + Scientific Data paper draft |
-| *****REMOVED***129** | W7-D | F1-F5 statistical robustness — multiple-testing correction, vendor confound disclosure |
-| *****REMOVED***130** | W7-C | Pre-reg P1 Bitcoin Cash + P2 Reddit cascade replication ship |
+| **#122** | W6-B | anti-p-hacking 5 figures + `generate.py` reproducible script |
+| **#123** | W6-E | public-readiness trio: README polish + universality dedupe + React error fix |
+| **#124** | W6-C | `/company/[ticker]` detail page polish 3.4 → 9/10 |
+| **#125** | W6-D | char cap UX + citation tracking + mobile LCP（session #7 P1 backlog top 3） |
 
-***REMOVED******REMOVED******REMOVED*** Wave 8 — 5 PR（PRs ***REMOVED***134-***REMOVED***138, docs site + 3 PyPI packages + Jupyter integration）
-
-| PR | Agent | 交付 |
-|---|---|---|
-| *****REMOVED***134** | W8-D | mkdocs Material site + GH Pages deploy CI |
-| *****REMOVED***135** | W8-B | `guarded-llm` 0.1.0 PyPI-ready 包（multi-vendor LLM guardrails） |
-| *****REMOVED***136** | W8-C | `cross-judge` 0.1.0 PyPI-ready 包（multi-vendor ensemble judge） |
-| *****REMOVED***137** | W8-A | `soc-pipeline` 0.1.0 PyPI-ready 包（SOC validation pipeline） |
-| *****REMOVED***138** | W8-E | Jupyter widget + Pandas `.soc` accessor（科研用户 UX） |
-
-***REMOVED******REMOVED******REMOVED*** Wave 9 — 5 PR（PRs ***REMOVED***139, ***REMOVED***140, ***REMOVED***143, ***REMOVED***157, ***REMOVED***158, community / launch batch）
+### Wave 7 — 5 PR（PRs #126-#130, paper / dataset / methodology batch）
 
 | PR | Agent | 交付 |
 |---|---|---|
-| *****REMOVED***139** | W9-B | NumFOCUS Fiscal Sponsorship application draft + governance v2 + security policy |
-| *****REMOVED***140** | W9-A | 15 good-first-issue drafts + GH issues opened |
-| *****REMOVED***143** | W9-D | Launch posts (HN/Twitter/Mastodon/Reddit) + 5 senior researcher outreach drafts |
-| *****REMOVED***157** | W9-E | Discord server scaffold + Code-of-Conduct enforcement playbook |
-| *****REMOVED***158** | W9-C | Weekly newsletter pipeline + MJML template + CI |
+| **#126** | W7-B | C4 reject-aware paper v0.2 — Patterns target submission-ready |
+| **#127** | W7-E | D1 block-bootstrap EWS method paper draft |
+| **#128** | W7-A | Zenodo v1.0 benchmark dataset bundle + Scientific Data paper draft |
+| **#129** | W7-D | F1-F5 statistical robustness — multiple-testing correction, vendor confound disclosure |
+| **#130** | W7-C | Pre-reg P1 Bitcoin Cash + P2 Reddit cascade replication ship |
 
-***REMOVED******REMOVED******REMOVED*** Wave 10 — 5 PR（PRs ***REMOVED***159-***REMOVED***164, landing redesign + commercialization batch）
-
-| PR | Agent | 交付 |
-|---|---|---|
-| *****REMOVED***159** | W10-C | Phase-detector alpha-screener landing redesign v2 |
-| *****REMOVED***160** | W10-D | Newsletter issue ***REMOVED***001 + archive page + MJML rendering |
-| *****REMOVED***161** | W10-A | **1000-ticker walk-forward backtest v0.1** → NULL result（W7-D decision gate honest pivot）|
-| *****REMOVED***162** | W10-E | `/compare` 多公司对照 + `/universality` analogue explorer |
-| *****REMOVED***164** | W10-B | Stripe Pro tier mock + paywall + analytics（commercialization scaffold）|
-
-***REMOVED******REMOVED******REMOVED*** Wave 11 — 5 PR（PRs ***REMOVED***165-***REMOVED***169, internationalization + API hardening + viz + data + coverage）
+### Wave 8 — 5 PR（PRs #134-#138, docs site + 3 PyPI packages + Jupyter integration）
 
 | PR | Agent | 交付 |
 |---|---|---|
-| *****REMOVED***165** | W11-B | zh-CN translations: README + landing + docs + lang switcher |
-| *****REMOVED***166** | W11-C | API rate limit + RFC7807 errors + OpenAPI polish + API-key auth scaffold |
-| *****REMOVED***167** | W11-D | Interactive phase trajectory + universality analogue map + sparklines（D3/Observable Plot） |
-| *****REMOVED***168** | W11-E | 3 new classes（fBm / Anderson / Preisach）+ 2 new datasets（solar wind / GitHub stars） |
-| *****REMOVED***169** | W11-A | Coverage ≥90% on critical modules + CI gate |
+| **#134** | W8-D | mkdocs Material site + GH Pages deploy CI |
+| **#135** | W8-B | `guarded-llm` 0.1.0 PyPI-ready 包（multi-vendor LLM guardrails） |
+| **#136** | W8-C | `cross-judge` 0.1.0 PyPI-ready 包（multi-vendor ensemble judge） |
+| **#137** | W8-A | `soc-pipeline` 0.1.0 PyPI-ready 包（SOC validation pipeline） |
+| **#138** | W8-E | Jupyter widget + Pandas `.soc` accessor（科研用户 UX） |
 
-***REMOVED******REMOVED******REMOVED*** Wave 12 — 5 PR（PRs ***REMOVED***170, ***REMOVED***172, ***REMOVED***174, ***REMOVED***175, ***REMOVED***177, UX polish + a11y + SEO + mobile + PWA batch）
-
-| PR | Agent | 交付 |
-|---|---|---|
-| *****REMOVED***170** | W12-D | 4-step onboarding tour + restart link + a11y compliant |
-| *****REMOVED***172** | W12-C | Mobile touch + safe-area + gestures + landscape polish |
-| *****REMOVED***174** | W12-B | Per-page metadata + OG cards + JSON-LD + sitemap polish |
-| *****REMOVED***175** | W12-A | WCAG AA/AAA a11y audit + 0 critical/serious violations |
-| *****REMOVED***177** | W12-E | Error boundary + PWA offline + structured error log |
-
-***REMOVED******REMOVED******REMOVED*** Wave 13 — 5 PR（PRs ***REMOVED***178, ***REMOVED***179, ***REMOVED***181, ***REMOVED***182, ***REMOVED***183, docs + search + Storybook + dark mode + perf budget）
+### Wave 9 — 5 PR（PRs #139, #140, #143, #157, #158, community / launch batch）
 
 | PR | Agent | 交付 |
 |---|---|---|
-| *****REMOVED***178** | W13-C | Auto-generated API reference docs + Google-style docstrings + type hints |
-| *****REMOVED***179** | W13-E | Cmd+K search palette + client-side search index + tracking |
-| *****REMOVED***181** | W13-D | Storybook 8 + 17 component stories + GH Pages deploy CI |
-| *****REMOVED***182** | W13-A | Dark mode + theme provider + WCAG AAA tokens |
-| *****REMOVED***183** | W13-B | CWV (Core Web Vitals) Good on all 10 pages + 200KB First Load JS budget CI gate |
+| **#139** | W9-B | NumFOCUS Fiscal Sponsorship application draft + governance v2 + security policy |
+| **#140** | W9-A | 15 good-first-issue drafts + GH issues opened |
+| **#143** | W9-D | Launch posts (HN/Twitter/Mastodon/Reddit) + 5 senior researcher outreach drafts |
+| **#157** | W9-E | Discord server scaffold + Code-of-Conduct enforcement playbook |
+| **#158** | W9-C | Weekly newsletter pipeline + MJML template + CI |
 
-***REMOVED******REMOVED******REMOVED*** Wave 14 — 5 PR（in flight / squash-merging）
+### Wave 10 — 5 PR（PRs #159-#164, landing redesign + commercialization batch）
+
+| PR | Agent | 交付 |
+|---|---|---|
+| **#159** | W10-C | Phase-detector alpha-screener landing redesign v2 |
+| **#160** | W10-D | Newsletter issue #001 + archive page + MJML rendering |
+| **#161** | W10-A | **1000-ticker walk-forward backtest v0.1** → NULL result（W7-D decision gate honest pivot）|
+| **#162** | W10-E | `/compare` 多公司对照 + `/universality` analogue explorer |
+| **#164** | W10-B | Stripe Pro tier mock + paywall + analytics（commercialization scaffold）|
+
+### Wave 11 — 5 PR（PRs #165-#169, internationalization + API hardening + viz + data + coverage）
+
+| PR | Agent | 交付 |
+|---|---|---|
+| **#165** | W11-B | zh-CN translations: README + landing + docs + lang switcher |
+| **#166** | W11-C | API rate limit + RFC7807 errors + OpenAPI polish + API-key auth scaffold |
+| **#167** | W11-D | Interactive phase trajectory + universality analogue map + sparklines（D3/Observable Plot） |
+| **#168** | W11-E | 3 new classes（fBm / Anderson / Preisach）+ 2 new datasets（solar wind / GitHub stars） |
+| **#169** | W11-A | Coverage ≥90% on critical modules + CI gate |
+
+### Wave 12 — 5 PR（PRs #170, #172, #174, #175, #177, UX polish + a11y + SEO + mobile + PWA batch）
+
+| PR | Agent | 交付 |
+|---|---|---|
+| **#170** | W12-D | 4-step onboarding tour + restart link + a11y compliant |
+| **#172** | W12-C | Mobile touch + safe-area + gestures + landscape polish |
+| **#174** | W12-B | Per-page metadata + OG cards + JSON-LD + sitemap polish |
+| **#175** | W12-A | WCAG AA/AAA a11y audit + 0 critical/serious violations |
+| **#177** | W12-E | Error boundary + PWA offline + structured error log |
+
+### Wave 13 — 5 PR（PRs #178, #179, #181, #182, #183, docs + search + Storybook + dark mode + perf budget）
+
+| PR | Agent | 交付 |
+|---|---|---|
+| **#178** | W13-C | Auto-generated API reference docs + Google-style docstrings + type hints |
+| **#179** | W13-E | Cmd+K search palette + client-side search index + tracking |
+| **#181** | W13-D | Storybook 8 + 17 component stories + GH Pages deploy CI |
+| **#182** | W13-A | Dark mode + theme provider + WCAG AAA tokens |
+| **#183** | W13-B | CWV (Core Web Vitals) Good on all 10 pages + 200KB First Load JS budget CI gate |
+
+### Wave 14 — 5 PR（in flight / squash-merging）
 
 | Agent | 计划交付 | 状态 |
 |---|---|---|
@@ -131,11 +131,11 @@ PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-miss
 | **W14-D** | structlog rollout: switch backend logging from f-string → structlog JSON | 跑中 |
 | **W14-E** | **本文件** + CHANGELOG.md + git tag instructions | 完成中 |
 
-> 注: W14 实际 merge 数取决于 sub-agent 完成度。预计 4-5 PR 进 main, session ***REMOVED***11 起手 git pull 可验证 `git log --oneline -10` ≈ HEAD-5..HEAD 全是 w14-*。
+> 注: W14 实际 merge 数取决于 sub-agent 完成度。预计 4-5 PR 进 main, session #11 起手 git pull 可验证 `git log --oneline -10` ≈ HEAD-5..HEAD 全是 w14-*。
 
 ---
 
-***REMOVED******REMOVED*** 2. Session ***REMOVED***10 metrics
+## 2. Session #10 metrics
 
 - **~45 PR merged** across 9 waves (W6=4 + W7=5 + W8=5 + W9=5 + W10=5 + W11=5 + W12=5 + W13=5 + W14=5)
 - **0 commit-boundary 违反** — manual worktree 自救 pattern 钉死, 9 wave 40+ sub-agent 0 race
@@ -153,7 +153,7 @@ PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-miss
 
 ---
 
-***REMOVED******REMOVED*** 3. ⚠️ 仍 user-input only items（继承 session ***REMOVED***10 §3 + Wave 9-14 新增 / 解锁）
+## 3. ⚠️ 仍 user-input only items（继承 session #10 §3 + Wave 9-14 新增 / 解锁）
 
 | Item | Blocker | CC 准备度 |
 |---|---|---|
@@ -171,11 +171,11 @@ PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-miss
 
 ---
 
-***REMOVED******REMOVED*** 4. 关键文件入口
+## 4. 关键文件入口
 
 | 文件 / 目录 | 用途 |
 |---|---|
-| **本文件** `docs/sessions/SESSION-11-HANDOFF.md` | Session ***REMOVED***11 起手快速摘要 |
+| **本文件** `docs/sessions/SESSION-11-HANDOFF.md` | Session #11 起手快速摘要 |
 | `docs/sessions/SESSION-10-HANDOFF.md` | 上 session 起手交接（更新 footer 指向本文件）|
 | `CHANGELOG.md` | **v0.4.0 entry**（Keep a Changelog format, W14-E 新增）|
 | `paper/anti-phacking-unified-2026-05-15.md` | C1 anti-p-hacking 方法论 paper（W2-C, 5 figures W6-B） |
@@ -201,30 +201,30 @@ PYTHONPATH=. .venv/bin/python -m pytest --cov=web/backend --cov-report=term-miss
 | `docs/API_AUTH.md` | API key auth + rate limit scheme（W11-C） |
 | `docs/MODEL_RECOVERY.md` | Model v2 真权重恢复 SOP |
 | `v4/product/d1_phase_detector/README_BACKTEST.md` | walk-forward 1000-ticker NULL result + caveats |
-| `docs/sessions/milestones/` | session ***REMOVED***7 P1 backlog 索引 |
+| `docs/sessions/milestones/` | session #7 P1 backlog 索引 |
 
 ---
 
-***REMOVED******REMOVED*** 5. 必备 quirks（session ***REMOVED***10 新增，继承 ***REMOVED***8/***REMOVED***9）
+## 5. 必备 quirks（session #10 新增，继承 #8/#9）
 
-继承 session ***REMOVED***8 §6 + session ***REMOVED***9 §5 全部 quirks（CC safety guard / worktree cleanup / nginx exact-match / arctic_shift / pnpm-vs-npm / rsync --delete 杀手 / harness 拦 prod .env / explicit git add / 真实 dogfood > 单测全过）
+继承 session #8 §6 + session #9 §5 全部 quirks（CC safety guard / worktree cleanup / nginx exact-match / arctic_shift / pnpm-vs-npm / rsync --delete 杀手 / harness 拦 prod .env / explicit git add / 真实 dogfood > 单测全过）
 
-session ***REMOVED***10 新增:
+session #10 新增:
 
 1. **mkdocstrings + Storybook GH Pages 需要协调 deploy（单 artifact）** — W8-D mkdocs 走 `gh-pages` 分支 / W13-D Storybook 走 `gh-pages/storybook/` 子目录；如果两者同时 push 会撞 branch tip。**解法**: 两 workflow 都用 `concurrency: group: pages` 串行化；如果重新 enable 需要 user 在 Settings → Pages 选 source = "GitHub Actions"（不是 branch）。
 2. **Search index rebuild 需 deploy 前先跑** — W13-E Cmd+K 搜索用 client-side flexsearch + 预编译 index；deploy 流程需先跑 `pnpm build:search-index` 再 `next build`，否则搜索结果为空。CI 已编排，但本地 dev 需手动触发。
-3. **Dark mode + zh i18n 都改 layout.tsx — sibling PR 永远撞 layout** — W11-B + W13-A 撞了 3 次 layout.tsx，全靠 cherry-pick onto current main 解决。**预期: session ***REMOVED***11+ 任何涉及 layout 的 sub-agent 必须明确 sequential, 不能 parallel**。
+3. **Dark mode + zh i18n 都改 layout.tsx — sibling PR 永远撞 layout** — W11-B + W13-A 撞了 3 次 layout.tsx，全靠 cherry-pick onto current main 解决。**预期: session #11+ 任何涉及 layout 的 sub-agent 必须明确 sequential, 不能 parallel**。
 4. **1000-ticker backtest 产出 NULL → 产品定位调整为 "structured research narrative"** — W10-A backtest t=-0.412 p=0.681 → W7-D 决策 gate 触发: 不再宣传 "alpha screener"，而是定位为 "structural-isomorphism universality classifier + transparent NULL backtest as trust signal"。所有 landing copy + SEO meta (W12-B) + paper claims (W7-D) 全部调整。
 5. **Stripe Pro tier 现为 mock — `STRIPE_SECRET_KEY` 不在 prod env** — W10-B `/api/checkout` 走 mock session, 真实付款链路需要 user 在 Stripe dashboard 拿 key + 配 webhook endpoint。**注**: paywall UI 完整 + analytics 完整, 切换到真 Stripe 只需 1 env var + 1 webhook URL。
 6. **PWA install prompt + service-worker cache** — W12-E 新加 service worker, prod 缓存策略 `stale-while-revalidate`；deploy 后用户可能看到旧版几分钟。**Lesson**: hot-fix 类紧急 deploy 需要 `?v=<commit-sha>` query param bust cache。
-7. **Coverage ≥90% gate on critical modules only** — W11-A 设置 critical 模块（`web/backend/api/`, `web/backend/services/`, `web/backend/db/`）≥90%, 全项目 85.6%。新加文件需要明示 `***REMOVED*** pragma: no cover` 或加测试，否则 CI 卡。
-8. **Sequential squash merge in single session + git pull between merges** (继承 + 强化) — session ***REMOVED***10 9 wave 全部 sequential, 0 conflict 进 main。`gh pr merge --admin --squash` + 每个 merge 后 `git pull origin main` 是铁律, 任何并行 merge 都会 stale base。
+7. **Coverage ≥90% gate on critical modules only** — W11-A 设置 critical 模块（`web/backend/api/`, `web/backend/services/`, `web/backend/db/`）≥90%, 全项目 85.6%。新加文件需要明示 `# pragma: no cover` 或加测试，否则 CI 卡。
+8. **Sequential squash merge in single session + git pull between merges** (继承 + 强化) — session #10 9 wave 全部 sequential, 0 conflict 进 main。`gh pr merge --admin --squash` + 每个 merge 后 `git pull origin main` 是铁律, 任何并行 merge 都会 stale base。
 
 ---
 
-***REMOVED******REMOVED*** 6. Session ***REMOVED***11 推荐起手
+## 6. Session #11 推荐起手
 
-***REMOVED******REMOVED******REMOVED*** Option A — 3-step publish（user 20 分钟解锁 OSS launch）
+### Option A — 3-step publish（user 20 分钟解锁 OSS launch）
 
 前提: user 完成以下 3 步:
 1. arXiv 注册 + 上传 5 papers（CC 已准备 metadata + abstract + PDF）
@@ -242,16 +242,16 @@ CC 一键完成（~30 分钟）:
 
 **预期产出**: 真 OSS launch — 5 arXiv preprints + 3 PyPI packages + DOI + HF Hub model + senior outreach + 4-platform launch posts。
 
-***REMOVED******REMOVED******REMOVED*** Option B — 继续 Wave 15+ polish（CC 独立, 无 user 介入）
+### Option B — 继续 Wave 15+ polish（CC 独立, 无 user 介入）
 
-session ***REMOVED***10 收尾后剩余:
+session #10 收尾后剩余:
 - W14 sibling 还有 P1/P2 工作（e2e flake fix / real prod deploy of all w13 work / dark mode prod验证 / search prod 验证）
-- `docs/sessions/milestones/` session ***REMOVED***7 12 P1 backlog 还有未做（如：rich-text annotation, citation density viz, multi-author collab）
+- `docs/sessions/milestones/` session #7 12 P1 backlog 还有未做（如：rich-text annotation, citation density viz, multi-author collab）
 - Model v3 训练（多语言 + 更大 KB + LoRA refresh）
 
-CC 可独立做 Wave 15-17, 类似 ***REMOVED***10 流程 5 wave × 5 agent。
+CC 可独立做 Wave 15-17, 类似 #10 流程 5 wave × 5 agent。
 
-***REMOVED******REMOVED******REMOVED*** Option C — Launch Wave 6 alpha — 5-10 real scientific users dogfood
+### Option C — Launch Wave 6 alpha — 5-10 real scientific users dogfood
 
 前提: PUBLIC flip + 1-day staggered outreach（含在 Option A）
 
@@ -263,16 +263,16 @@ CC 可独立做 Wave 15-17, 类似 ***REMOVED***10 流程 5 wave × 5 agent。
 
 ---
 
-***REMOVED******REMOVED*** 7. 用户当下需求理解
+## 7. 用户当下需求理解
 
-Session ***REMOVED***10 用户授权 "auto mode 跑 ~5h, 完整覆盖 W6→W14 9 wave", 全部完成。45 PR + 5 papers + 3 PyPI packages + Zenodo + HF + dark mode + search + PWA + a11y + perf budget + Storybook + 1000-ticker backtest, 已 ~95% OSS-ready。
+Session #10 用户授权 "auto mode 跑 ~5h, 完整覆盖 W6→W14 9 wave", 全部完成。45 PR + 5 papers + 3 PyPI packages + Zenodo + HF + dark mode + search + PWA + a11y + perf budget + Storybook + 1000-ticker backtest, 已 ~95% OSS-ready。
 
-**session ***REMOVED***11 起手第一句话建议**:
+**session #11 起手第一句话建议**:
 
 > **"arXiv submit + PyPI publish + GitHub PUBLIC flip — 3 个 user-input only step（20-30 分钟）, CC 立即 1 小时内完成 OSS 真发布"**
 
 原因:
-- session ***REMOVED***10 已把所有 OSS-ready 前置工作做完
+- session #10 已把所有 OSS-ready 前置工作做完
 - 只差 user 必须做的 3 步 manual action（账号 / token / 翻 PUBLIC）
 - CC 一旦拿到, 1 小时全部完成（5 arXiv + 3 PyPI + DOI + HF push + senior outreach + 4-platform launch posts）
 
@@ -280,7 +280,7 @@ Session ***REMOVED***10 用户授权 "auto mode 跑 ~5h, 完整覆盖 W6→W14 9
 
 ---
 
-***REMOVED******REMOVED*** 8. Session ***REMOVED***10 stats summary
+## 8. Session #10 stats summary
 
 - **~45 PR merged** across 9 waves (W6-W14), all squash-merged
 - **40+ sub-agents** in waves of 4-5（manual worktree 自救, 0 form-N silent fallback after W4 prompt enforcement）
@@ -297,7 +297,7 @@ Wave 3 destructive ops + arXiv/PyPI/PUBLIC 全部 user-input on key rotation 这
 
 ---
 
-***REMOVED******REMOVED*** 9. Final steps after Wave 14 PR merge (git tag v0.4.0)
+## 9. Final steps after Wave 14 PR merge (git tag v0.4.0)
 
 After all Wave 14 PRs squash-merged into main, run these commands to tag v0.4.0:
 
@@ -305,19 +305,19 @@ After all Wave 14 PRs squash-merged into main, run these commands to tag v0.4.0:
 cd ~/Projects/structural-isomorphism
 git checkout main && git pull origin main
 
-***REMOVED*** Verify all w14 PRs merged
+# Verify all w14 PRs merged
 git log --oneline -10 | grep -E "(w14-|session-10)" | head -5
 
-***REMOVED*** Tag v0.4.0
-git tag -a v0.4.0 -m "Release v0.4.0 — session ***REMOVED***10 closeout: 45 PRs, model v2 deployed, dark mode, search, PyPI ready"
+# Tag v0.4.0
+git tag -a v0.4.0 -m "Release v0.4.0 — session #10 closeout: 45 PRs, model v2 deployed, dark mode, search, PyPI ready"
 git push origin v0.4.0
 
-***REMOVED*** GitHub release
+# GitHub release
 gh release create v0.4.0 \
-  --title "v0.4.0 — Session ***REMOVED***10 Closeout" \
+  --title "v0.4.0 — Session #10 Closeout" \
   --notes-from-tag
 
-***REMOVED*** Verify
+# Verify
 gh release view v0.4.0
 git tag --list 'v*' | tail -5
 ```
@@ -333,10 +333,10 @@ git tag --list 'v*' | tail -5
 
 ---
 
-***REMOVED******REMOVED*** 10. 起手 checklist for Session ***REMOVED***11
+## 10. 起手 checklist for Session #11
 
 1. [ ] `cd ~/Projects/structural-isomorphism && git pull origin main`
-2. [ ] `git log --oneline -25` → 确认 W14 全 merge（PR ***REMOVED*** 应该是 184-188 左右）
+2. [ ] `git log --oneline -25` → 确认 W14 全 merge（PR # 应该是 184-188 左右）
 3. [ ] 跑 §0 起手 60 秒 健康检查（tests + prod curl）
 4. [ ] 验证 `CHANGELOG.md` v0.4.0 entry 存在
 5. [ ] 验证 `git tag --list` 含 `v0.4.0`（如果 Wave 14 squash-merged 后 tag 已跑则验, 否则按 §9 跑 tag）
@@ -345,37 +345,37 @@ git tag --list 'v*' | tail -5
 
 ---
 
-> Session ***REMOVED***11 起手必读: 本文件 → CHANGELOG.md v0.4.0 entry → SESSION-10-HANDOFF.md footer addendum → 验证 §0 健康
+> Session #11 起手必读: 本文件 → CHANGELOG.md v0.4.0 entry → SESSION-10-HANDOFF.md footer addendum → 验证 §0 健康
 > 任何疑问翻 `docs/sessions/SESSION-10-HANDOFF.md` 找 W6→W13 详情
 
 ---
 
-***REMOVED******REMOVED*** 11. Session ***REMOVED***10 末态 addendum (2026-05-15 写于 close-out)
+## 11. Session #10 末态 addendum (2026-05-15 写于 close-out)
 
-W14-E 提交本文件后，session ***REMOVED***10 继续跑了 Wave 15 (5 sub-agents) + 1 个 hotfix。
+W14-E 提交本文件后，session #10 继续跑了 Wave 15 (5 sub-agents) + 1 个 hotfix。
 
-***REMOVED******REMOVED******REMOVED*** 11.1 Wave 14 + 15 + 1 hotfix 全清单
+### 11.1 Wave 14 + 15 + 1 hotfix 全清单
 
 | PR | 主题 |
 |---|---|
 | **Wave 14** | |
-| ***REMOVED***184 | docs: SESSION-11 handoff + CHANGELOG v0.4.0 (w14-e) |
-| ***REMOVED***185 | test(load): k6 scripts + baseline (w14-b) |
-| ***REMOVED***186 | feat(obs): structlog + correlation ID (w14-d) |
-| ***REMOVED***188 | feat(privacy): GDPR cookie consent + export/delete (w14-c rebased) |
-| ***REMOVED***189 | test(e2e): full user journey (w14-a) |
+| #184 | docs: SESSION-11 handoff + CHANGELOG v0.4.0 (w14-e) |
+| #185 | test(load): k6 scripts + baseline (w14-b) |
+| #186 | feat(obs): structlog + correlation ID (w14-d) |
+| #188 | feat(privacy): GDPR cookie consent + export/delete (w14-c rebased) |
+| #189 | test(e2e): full user journey (w14-a) |
 | **Wave 15** | |
-| ***REMOVED***190 | ci: matrix Python 3.10/11/12 × OS + nightly (w15-d) |
-| ***REMOVED***191 | feat(flags): feature flags + A/B framework (w15-e) |
-| ***REMOVED***192 | feat(types): Pydantic→TS sync + CI gate (w15-a) |
-| ***REMOVED***194 | feat(favorites): user bookmarks (w15-c rebased) |
-| ***REMOVED***197 | feat(auth): magic-link scaffold (w15-b rebased) |
+| #190 | ci: matrix Python 3.10/11/12 × OS + nightly (w15-d) |
+| #191 | feat(flags): feature flags + A/B framework (w15-e) |
+| #192 | feat(types): Pydantic→TS sync + CI gate (w15-a) |
+| #194 | feat(favorites): user bookmarks (w15-c rebased) |
+| #197 | feat(auth): magic-link scaffold (w15-b rebased) |
 | **Hotfix** | |
-| ***REMOVED***196 | fix(topnav): restore 266 LOC after rebase truncation |
+| #196 | fix(topnav): restore 266 LOC after rebase truncation |
 
-**累计 session ***REMOVED***10: 50 PR merged** (W6-W15 + hotfix). 8 PRs superseded by rebase versions: 163, 171, 173, 176, 180, 187, 193, 195.
+**累计 session #10: 50 PR merged** (W6-W15 + hotfix). 8 PRs superseded by rebase versions: 163, 171, 173, 176, 180, 187, 193, 195.
 
-***REMOVED******REMOVED******REMOVED*** 11.2 最终 metrics
+### 11.2 最终 metrics
 
 - Backend tests 75 → **271**
 - Coverage 54.1% → **85.6%**
@@ -383,15 +383,15 @@ W14-E 提交本文件后，session ***REMOVED***10 继续跑了 Wave 15 (5 sub-a
 - 0 commit-boundary violations / 0 quota burns
 - ~10 rebases auto-resolved
 
-***REMOVED******REMOVED******REMOVED*** 11.3 TopNav 截断 bug (W12-C/W13-A 后遗症，已修 ***REMOVED***196)
+### 11.3 TopNav 截断 bug (W12-C/W13-A 后遗症，已修 #196)
 
 W12-C → W13-A rebase 时 conflict resolution 用 `re.sub(...DOTALL)` 正则太贪婪，吃掉 TopNav.tsx 主体 248 行 (只剩 19 行 imports)。直到 W15-B agent 报错才发现。
 
-PR ***REMOVED***196 已恢复：`git show 66fa69b:TopNav.tsx` → 266 行 + 手插 ThemeToggle import.
+PR #196 已恢复：`git show 66fa69b:TopNav.tsx` → 266 行 + 手插 ThemeToggle import.
 
 **教训**: rebase 用正则合并 conflict marker 不安全。下次用 `git checkout --conflict=diff3` 手动 review，或合后验证 `wc -l` 没塌陷。
 
-***REMOVED******REMOVED******REMOVED*** 11.4 v2 模型部署状态 ⏳
+### 11.4 v2 模型部署状态 ⏳
 
 - ✅ 本地训练完成 (49.5min, 2 epoch, eval_loss 1.088 → 0.696, **-36%**)
 - ✅ 本地 smoke test 通过 (768-dim, earthquake↔neural avalanche sim=0.586)
@@ -402,15 +402,15 @@ PR ***REMOVED***196 已恢复：`git show 66fa69b:TopNav.tsx` → 266 行 + 手�
 
 **为什么慢**: Mac→SG ISP 上行 + ISP QoS 长连接限速 + 100-200ms RTT 导致 TCP slow-start。开始 140 KB/s，几小时后降到 13-17 KB/s。**网络层面随机性**，非代码 bug。
 
-**Session ***REMOVED***11 验证 v2 已部署**:
+**Session #11 验证 v2 已部署**:
 ```bash
 ssh vps "ls -la /root/Projects/structural-isomorphism/models/structural-v2/model.safetensors"
-***REMOVED*** 应看 size = 391M (vs 当前 409M base fallback) + timestamp = 2026-05-15 之后
+# 应看 size = 391M (vs 当前 409M base fallback) + timestamp = 2026-05-15 之后
 ```
 
 **如果还在跑**: 不需介入。如果想加速:
 ```bash
-***REMOVED*** 仅当卡死时
+# 仅当卡死时
 pgrep -f "rsync.*structural-v2" | xargs kill
 nohup rsync -avu --partial --progress \
   -e "ssh -i ~/.ssh/id_ed25519 -c aes128-gcm@openssh.com -o TCPKeepAlive=yes" \
@@ -419,7 +419,7 @@ nohup rsync -avu --partial --progress \
   > /tmp/rsync_resume.log 2>&1 &
 ```
 
-***REMOVED******REMOVED******REMOVED*** 11.5 Session ***REMOVED***11 推荐起手 (升级版)
+### 11.5 Session #11 推荐起手 (升级版)
 
 **Option A — 3-step OSS publish (推荐 highest ROI)**
 1. 用户 20 分钟: arXiv 注册 + PYPI_TOKEN GH secret + GH Pages 切 "GitHub Actions"
@@ -440,14 +440,14 @@ nohup rsync -avu --partial --progress \
 
 ---
 
-***REMOVED******REMOVED*** 12. Session ***REMOVED***10 close checklist
+## 12. Session #10 close checklist
 
 - [x] Wave 6-15 全 5/5 完成
 - [x] 50 PR merged + 1 hotfix
 - [x] CHANGELOG.md v0.4.0 entry
 - [x] SESSION-11 handoff (本文件) 含完整清单 + addendum
-- [x] TopNav 截断 bug 修复 (***REMOVED***196)
+- [x] TopNav 截断 bug 修复 (#196)
 - [ ] v2 模型 VPS rsync 完成 (in-flight 91%, 后台自动跑)
-- [ ] git tag v0.4.0 (session ***REMOVED***11 起手可打，或等 v2 prod 验证后)
+- [ ] git tag v0.4.0 (session #11 起手可打，或等 v2 prod 验证后)
 - [ ] HF Hub push v2 model (user: HF_TOKEN)
 - [ ] arXiv submit / PyPI publish / PUBLIC flip (Option A user-input)

@@ -1,4 +1,4 @@
-***REMOVED*** A cross-domain SOC + critical-systems benchmark with synthetic nulls and multi-model class curation
+# A cross-domain SOC + critical-systems benchmark with synthetic nulls and multi-model class curation
 
 **Target venue.** *Scientific Data* (Nature), data descriptor format.
 
@@ -10,11 +10,11 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 We present `structural-isomorphism-v1.0-benchmark`, a frozen, Zenodo-deposited cross-domain dataset suitable for reproducibility and methodology research on self-organized criticality (SOC), preferential attachment, and adjacent universality classes. The bundle ships thirteen empirical systems — USGS earthquakes, S&P 500 daily returns, three DeFi liquidation streams, mouse cortex neural avalanches from DANDI:000006, NIFC US wildfires, GOES X-ray solar flares 2000-2016, FDIC bank failures 1934-2026, GitHub star counts on 8398 repositories, a literature-meta catalog of North American power-grid cascades, English Wikipedia pageviews 2023-2024, a Hawkes-Omori synthetic baseline, USGS Fox River dissolved-oxygen for a Scheffer fold-bifurcation reference, and the US-101 NGSIM q-rho hysteresis panel — together with four synthetic null controls (Gaussian walk, exponential, Poisson inter-arrival, Poisson-Omori stack) that the same fitting pipeline correctly rejects. We further include the frozen analytical pipeline as a reusable Python package, a 35-class universality-class taxonomy with two layers of LLM-critic curation, the full critic JSONL outputs, a one-shot reproducibility entry point, and a tutorial notebook that reproduces the headline Phase 1 earthquake b-value (1.084 with bootstrap 95% CI [1.073, 1.094]) in roughly thirty minutes of wall-clock time on a laptop. The bundle's design lets any researcher drop in a new system, run the same pipeline, and compare the headline α, τ, b-value, and Omori-p against thirteen baselines without writing a single line of fitting code.
 
-***REMOVED******REMOVED*** 1. Background
+## 1. Background
 
 The empirical literature on power-law tails and SOC across domains is large but methodologically uneven. Earthquake catalogs follow the Gutenberg-Richter law with b≈1 [1]; solar X-ray flares have an integrated-energy distribution with α ≈ 1.7-1.9 [2]; FDIC bank-failure event sizes show a long upper tail consistent with α ≈ 2.0-2.5 [3]; cortical neural avalanches in vitro and in vivo follow size distributions with α ≈ 1.5 and duration exponent ≈ 2.0 [4]; English Wikipedia pageview popularity follows a preferential-attachment-consistent tail with α ≈ 2.0 [5]; and so on. Each result has historically been published with its own fetching code, its own fitting pipeline (often *not* the Clauset-Shalizi-Newman maximum-likelihood + Vuong likelihood-ratio recipe [6] that is now the methodological standard), its own choice of x_min, and its own (or no) null-control baseline. The result is a literature in which any individual claim is plausible but cross-domain *comparability* is weak: when reviewers ask "did you use the same x_min finder as the other phases?" or "did you reject the lognormal alternative explicitly?", the answer is often "no" or "the previous paper didn't either".
 
@@ -26,13 +26,13 @@ Two specific gaps motivate this dataset descriptor:
 
 A third, methodology-research motivation: the LLM-in-the-loop curation step is novel and produces a *quantitative* methodology result (B3 three-model DeepSeek ensemble rejects 33 % of candidate universality classes, vs single-Opus 14 %) [8] that we want others to be able to replicate. The bundle includes both the B1 and B3 verdicts plus the prompts and the structured-output schema, so the methodology is auditable and the disagreement statistics are reproducible.
 
-***REMOVED******REMOVED******REMOVED*** 1.1 Why thirteen, and why these thirteen?
+### 1.1 Why thirteen, and why these thirteen?
 
 The number thirteen is not motivated by statistical sufficiency — five well-chosen cross-domain systems would arguably make the same universality argument. The number is motivated by *coverage of mechanisms*. The thirteen systems span the seven distinct mechanistic universality classes that the v0.3 methods paper [8] identifies as having reached cross-domain empirical support: threshold-cascade SOC (earthquakes, neural avalanches), preferential attachment (Wikipedia views, GitHub stars), heavy-tailed inverse-cubic (S&P 500 returns), Motter-Lai cascade (power grid, banking, DeFi), Drossel-Schwabl forest-fire (wildfires, solar flares), Scheffer fold bifurcation (lake regime shift), and Bouc-Wen/Preisach hysteresis (NGSIM traffic). Two further phases are reserved as synthetic baselines (Hawkes-Omori; the four nulls) so that any cross-domain claim has both a positive control (Hawkes generates a realistic Omori-p) and a battery of negative controls.
 
 Two phases (`12_scheffer_lake`, `13_hysteresis_traffic`) are non-power-law and serve as a deliberate methodological reminder: not every interesting collective phenomenon yields a power law, and the same fitting pipeline should report "no power law here" on lake nutrient time series (where the EWS is critical slowing down, not heavy tail) and on traffic q-ρ (where the invariant is hysteresis loop area). The bundle's value is not "everything is SOC" — it is "the same pipeline, applied uniformly, reports the right answer per system".
 
-***REMOVED******REMOVED******REMOVED*** 1.2 Prior art and what this bundle adds
+### 1.2 Prior art and what this bundle adds
 
 Three precedents are worth naming explicitly:
 
@@ -44,9 +44,9 @@ Three precedents are worth naming explicitly:
 
 The bundle is not in competition with any of these — it is a different scope. Its closest competitor in *deposit form* is the various Zenodo deposits associated with individual published papers (e.g. specific datasets accompanying individual earthquake catalogs), none of which is multi-domain or includes a fitting pipeline.
 
-***REMOVED******REMOVED*** 2. Methods
+## 2. Methods
 
-***REMOVED******REMOVED******REMOVED*** 2.1 The frozen analytical pipeline
+### 2.1 The frozen analytical pipeline
 
 The bundle ships the `soc_pipeline` Python package (`pipeline/soc_pipeline/`, ~1.1k LoC) covering:
 
@@ -66,7 +66,7 @@ Two design choices in the pipeline are worth noting because they are the most co
 - **x_min selection.** The pipeline uses KS-statistic minimization on a grid from the 5th to the 95th percentile of the input distribution. Empirically this is robust for tails with ≥ 100 events; for smaller tails (such as the n=123 power-grid case) we additionally report the KS-distance curve so that downstream users can see whether the x_min landed at a local minimum or at the boundary.
 - **Vuong LR test direction.** The test is reported as one-sided in favor of the power-law null; a negative R with significant p indicates the alternative (lognormal or exponential) provides a better fit. The bundle reports R and p separately so users can apply their own significance threshold. We do not pre-commit to a particular threshold because what counts as "rejecting the alternative" depends on the question — physicists with hard predictions tolerate looser thresholds than reviewers asking "is this *really* a power law".
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Dataset selection criteria
+### 2.2 Dataset selection criteria
 
 The thirteen systems were selected by three criteria, in order:
 
@@ -74,7 +74,7 @@ The thirteen systems were selected by three criteria, in order:
 2. **Independence between domains.** We deliberately span seismology, finance, decentralized finance, neuroscience, fire ecology, solar physics, banking, software, electrical engineering, traffic flow, ecology, applied probability, and web traffic. Any cross-domain universality claim made on this bundle has to survive *across* domains, not within a single sub-field.
 3. **Sample size sufficient for Clauset fitting.** The bundle's smallest tail is the power-grid literature-meta catalog (n=123). Clauset recommends n_tail ≥ 50 for non-trivial CI [6]; we err on the side of permissiveness because the power-grid case is one where the literature-meta is itself the value (further fetches would require FOIA / DOE OE-417 release and are deferred to a v2 deposit).
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Synthetic null controls
+### 2.3 Synthetic null controls
 
 The four synthetic null controls are designed to fail the cross-domain SOC test in four mechanistically distinct ways:
 
@@ -87,7 +87,7 @@ The four synthetic null controls are designed to fail the cross-domain SOC test 
 
 All four have deterministic seeds and the pipeline correctly rejects all four (`nulls/_VERDICT.md`). This is the bundle's negative-control axis: any claim that a new system passes the SOC test has to survive the same pipeline that rejects all four nulls.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 B3 critic curation
+### 2.4 B3 critic curation
 
 The bundle's taxonomy step (35 candidate universality classes -> 21 final-curated) was done in two layers:
 
@@ -98,7 +98,7 @@ The disagreement between B1 and B3 is a quantitative methodology result: the mul
 
 We classify the seven classes that the B3 ensemble *kept while* the layer-3 critic flagged at least one false-positive member as "contested-strong-keep" — these are the classes where the universality claim survives plural review but the cluster membership has to be pruned. Examples: `motter_lai_network_cascade` keeps the cascade hub but the layer-3 critic rejects the "static earthquake stress triggering" member (mechanistically Olami-Feder-Christensen, not Motter-Lai). Examples of clean KEEPs with no flagged members: `scheffer_fold_bifurcation` (lake regime shift + drug toxicity hub clean). Examples of clean REJECTs: `extreme_value_tail_class` (recognised as statistical phenomenon, not mechanistic universality).
 
-***REMOVED******REMOVED******REMOVED*** 2.5 What is *not* in the bundle (and why)
+### 2.5 What is *not* in the bundle (and why)
 
 Five candidate inclusions were deliberately excluded:
 
@@ -108,9 +108,9 @@ Five candidate inclusions were deliberately excluded:
 - **SIR contagion synthetic.** Useful for methodology but the headline metric is the epidemic-curve shape, not a single power-law α. Available at `v4/validation/sir-contagion/` for users who want it; not in the v1.0 deposit.
 - **Tail-copula joint extremes.** This is a statistical phenomenon (P(X > q | Y > q) limit), not a mechanistic universality class — the B3 critic correctly flagged this. Class YAML is bundled in `taxonomy/classes/` for transparency, but the bundle does not claim it as a v1.0 empirical class.
 
-***REMOVED******REMOVED*** 3. Data Records
+## 3. Data Records
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Table 1 — empirical phases
+### 3.1 Table 1 — empirical phases
 
 | slot | source | format | size on disk | n_tail (post-x_min) | headline metric |
 | --- | --- | --- | ---: | ---: | --- |
@@ -128,7 +128,7 @@ Five candidate inclusions were deliberately excluded:
 | 12_scheffer_lake | USGS | JSONL | 1.0 MB | ~9k days × 12 stations | AR(1) → 0.85 ± 0.05 pre-tip |
 | 13_hysteresis_traffic | FHWA NGSIM | CSV | 1.2 MB | ~21k bins | loop ratio 0.08-0.22 |
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Table 2 — synthetic null controls
+### 3.2 Table 2 — synthetic null controls
 
 | case_id | mechanism | n_samples | pipeline verdict |
 | --- | --- | --- | --- |
@@ -137,17 +137,17 @@ Five candidate inclusions were deliberately excluded:
 | null_003_poisson_iat | inter-arrivals of Poisson(1) | 49999 | rejected (Vuong R = -24.39 vs exponential) |
 | null_004_poisson_omori | Poisson + Omori detector | 23 main shocks | rejected (R² = 0.0015) |
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Universality-class records
+### 3.3 Universality-class records
 
 Per-class records live at `taxonomy/classes/<id>.yaml` (35 candidate classes; YAML schema at `taxonomy/SCHEMA.md`). The 21 surviving classes per the B3 plurality verdict are listed in `taxonomy/universality_classes.yaml`. Examples of canonical hub phenomena retained: Olami-Feder-Christensen / Gutenberg-Richter (earthquakes); Bak-Tang-Wiesenfeld sandpile (avalanches); Motter-Lai cascade (power grid, banking, DeFi); Scheffer fold bifurcation (lakes, drug-toxicity); Gardner-Collins toggle switch (cell-fate decisions); Watts-Strogatz preferential attachment (Wikipedia, GitHub). Examples of candidates the B3 ensemble rejected or contested: delay-differential debt (contested KEEP/REJECT); extreme-value tail (rejected — recognised as statistical phenomenon not a mechanistic universality class).
 
-***REMOVED******REMOVED******REMOVED*** 3.4 Layer-3 critic records (`results/layer3_critic.jsonl`)
+### 3.4 Layer-3 critic records (`results/layer3_critic.jsonl`)
 
 One record per class with `review_verdict`, `members_flagged_as_false_positive` (members the critic says don't belong), `negative_examples` (phenomena that *look* like the class but mechanistically aren't), and free-form `notes`. This is the dataset's contribution to LLM-in-the-loop methodology research: each row contains a critic's reasoning trace for whether a candidate class is genuinely a universality class or a "mathematical framework masquerading as universality class" [8].
 
-***REMOVED******REMOVED*** 4. Technical Validation
+## 4. Technical Validation
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Reproducibility script
+### 4.1 Reproducibility script
 
 `repro/reproduce_all.py` runs in two modes:
 
@@ -156,39 +156,39 @@ One record per class with `review_verdict`, `members_flagged_as_false_positive` 
 
 Empirically, all PASS verdicts hold on a fresh clone. Two systems (`scheffer_lake`, `hysteresis_traffic`) report `NO_VALUE` because their headline metric is not a single scalar (AR(1) trajectory; hysteresis loop area ratio) — the reproducibility script does not invent a fake summary; instead it ships the full result blob and flags the case as "needs human inspection / no scalar headline".
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Manifest hash stability
+### 4.2 Manifest hash stability
 
 `repro/generate_manifest.py` produces a byte-stable `MANIFEST.json` across reruns. We verify this by running:
 
 ```bash
 python repro/generate_manifest.py && md5sum MANIFEST.json > a
 python repro/generate_manifest.py && md5sum MANIFEST.json > b
-diff a b   ***REMOVED*** empty
+diff a b   # empty
 ```
 
 The manifest's `bundle_sha256` field is the citation primitive — downstream papers pin this hash to lock to the exact bundle state. Re-running the manifest builder on a modified bundle (after, e.g., a v1.1 fetch update) produces a new hash and a new Zenodo deposit version.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Null-control rejection
+### 4.3 Null-control rejection
 
 All four synthetic nulls are correctly rejected by the same pipeline that PASS-es the 13 empirical phases. Verdicts at `nulls/_VERDICT.md`; per-case details at `nulls/_registry.jsonl`. The Vuong LR statistics against lognormal and exponential alternatives are reported in each `nulls/<case>/results.json` to make the rejection auditable.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 In-band coverage
+### 4.4 In-band coverage
 
 The bundle's 13 empirical phases span 11 of the 21 final-curated universality classes (with each phase mapping to one or two classes via the B3 layer-3 critic). The remaining 10 classes are either (a) derived (split / merge of an existing class with an empirical anchor) or (b) hub-only — i.e. the class has a strong canonical mechanism and predictions in `results/layer4.jsonl` but no v1.0 empirical fit yet. These 10 classes are explicit targets for the v1.1 deposit's pre-registered fetch.
 
-***REMOVED******REMOVED******REMOVED*** 4.5 Internal headline consistency
+### 4.5 Internal headline consistency
 
 The 13 systems' headline metrics are pairwise consistent with the v0.3 methods paper [8] within 0.5σ for the systems whose paper-reported CI is in the bundle (`01_earthquake`, `02_stockmarket`, `06_solar`, `10_wikipedia_views`). Where they differ, the bundle is the canonical reference because the bundle's fits are recomputed by the frozen `soc_pipeline` package at deposit time, while the methods paper's tables were assembled across the project's development arc with intermediate pipeline versions. Downstream papers should cite the bundle's value, not the methods paper's table value, when there is a discrepancy.
 
 The Vuong LR statistics also support the cross-domain SOC claim *as a methodology result, not as a sweeping ontological claim about reality*. Eight of the 13 phases (01, 03, 05, 06, 07, 08, 09, 10) have R < 0 and p < 0.05 against both lognormal and exponential alternatives, supporting power-law preference; three (02, 04, 11) are statistically distinguishable but with weaker preference (R between -10 and -2); two (12, 13) are non-power-law and we report the alternative-favored fit as expected. This 8/13 result is the bundle's empirical headline.
 
-***REMOVED******REMOVED******REMOVED*** 4.6 Cross-version reproducibility
+### 4.6 Cross-version reproducibility
 
 The git commit recorded in `MANIFEST.json:git_commit` resolves the exact state of the source repo from which this bundle was built. Re-running `repro/build_datasets.py` and `repro/generate_manifest.py` from a fresh clone at that commit will produce a `MANIFEST.json` whose `bundle_sha256` matches the deposited value, provided the upstream data sources have not changed. (USGS occasionally re-processes old events, so the earthquake catalog hash is the most likely cross-version drift; see §5.2 for our policy.)
 
-***REMOVED******REMOVED*** 5. Usage Notes
+## 5. Usage Notes
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Three example research questions
+### 5.1 Three example research questions
 
 **Q1 — Does system X follow the same SOC pipeline that succeeds on 13 baselines?** Fetch system X's event sizes, run `pipeline/soc_pipeline/fit.py:fit_clauset_powerlaw`, compare α and Vuong-LR against the 13 baselines in `datasets/*/`. The 30-line earthquake quickstart in `README.md` is the template.
 
@@ -196,7 +196,7 @@ The git commit recorded in `MANIFEST.json:git_commit` resolves the exact state o
 
 **Q3 — Is a candidate "universality class" actually a statistical artefact?** Use `nulls/_registry.jsonl` as a template to construct a domain-specific null. Pipeline acceptance on the candidate + pipeline rejection on the matched null is the joint condition for universality-class membership. (This is the "reject-aware pipeline" methodology of paper C4.)
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Reproducibility policy across upstream changes
+### 5.2 Reproducibility policy across upstream changes
 
 USGS, FDIC, and NIFC occasionally update or re-process historical events. Our policy:
 
@@ -204,7 +204,7 @@ USGS, FDIC, and NIFC occasionally update or re-process historical events. Our po
 - If a downstream paper re-fetches and gets a different number, the difference is *evidence about upstream stability*, not a bundle error.
 - Each system's `fetch_log.json` records the exact upstream URL parameters and timestamp used for the bundle's snapshot.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Limitations of the bundle
+### 5.3 Limitations of the bundle
 
 Three limitations should be acknowledged up front:
 
@@ -212,11 +212,11 @@ Three limitations should be acknowledged up front:
 - **CN-region LLM endpoint constraints.** OpenRouter's `anthropic/*` and `google/gemini/*` endpoints are intermittently region-blocked from CN IPs, which is why DeepSeek was chosen as the B3 ensemble backbone. The methodology is portable — a future v1.x deposit using a different multi-model ensemble (e.g. Anthropic Claude + Gemini + DeepSeek) is on the roadmap. The bundle's `pipeline/b3_ensemble.py` accepts pluggable backends.
 - **Sample-size asymmetry across domains.** The earthquake catalog has ~37k tail events; the power-grid catalog has 123. Asymmetric Clauset CI is therefore expected and is *not* a bundle defect — it reflects the empirical reality of how cleanly each domain's event catalogs have been assembled in the literature.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 LLM critic outputs are research data
+### 5.4 LLM critic outputs are research data
 
 The B3 ensemble outputs in `results/layer3_critic.jsonl` are themselves a contribution. They contain mechanism-level reasoning about whether 35 candidate classes are genuine universality classes. This is the bundle's per-row contribution to the LLM-in-the-loop literature: rather than treating critic outputs as opaque labels, the bundle ships the full reasoning trace.
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Worked example — fitting a new system
+### 5.5 Worked example — fitting a new system
 
 Suppose a reader wants to test whether earthquake catalogs from a new region (say, the 2023-2024 Türkiye sequence) belong to the same Gutenberg-Richter universality class as the bundle's global catalog. The intended workflow:
 
@@ -228,7 +228,7 @@ Suppose a reader wants to test whether earthquake catalogs from a new region (sa
 
 A failure to reject the lognormal alternative is *not* evidence against universality; the SOC literature has well-known examples (e.g. swarm-dominated regions) where the fits are noisier. The bundle's value is that the protocol is now uniform: a paper claiming "this region's b-value is anomalous" can be compared against the bundle's pipeline-uniform global value rather than against a different paper's bespoke fit.
 
-***REMOVED******REMOVED******REMOVED*** 5.6 Worked example — testing a new LLM critic
+### 5.6 Worked example — testing a new LLM critic
 
 Suppose a reader has built a new LLM critic and wants to know if its taxonomy verdicts agree with B3 ensemble. Workflow:
 
@@ -240,7 +240,7 @@ Suppose a reader has built a new LLM critic and wants to know if its taxonomy ve
 
 This is the methodology research the bundle is designed to support. A null result ("my critic agrees perfectly with B3") would itself be informative — it would mean DeepSeek's mechanism-level reasoning is robust across model families.
 
-***REMOVED******REMOVED*** 6. Code availability
+## 6. Code availability
 
 The frozen analytical pipeline is at `pipeline/soc_pipeline/` (also available on GitHub at https://github.com/dada8899/structural-isomorphism/tree/main/packages/soc-pipeline). The B3 ensemble critic is at `pipeline/b3_ensemble.py`; the structured-output guardrail is at `pipeline/llm_guardrail.py`. All code is released under MIT (`LICENSE`).
 
@@ -248,7 +248,7 @@ The reproducibility entry point is at `repro/reproduce_all.py` with two modes (`
 
 The bundle itself is deposited at Zenodo with DOI `10.5281/zenodo.PLACEHOLDER`. Reissue history is recorded in the Zenodo metadata.
 
-***REMOVED******REMOVED******REMOVED*** 6.1 How to extend the bundle
+### 6.1 How to extend the bundle
 
 To add a new system to a v1.x extension:
 
@@ -265,13 +265,13 @@ To add a new universality-class candidate:
 4. Append concrete downstream predictions to `results/layer4.jsonl`.
 5. Re-generate the manifest. The bundle's `bundle_sha256` now pins the new state.
 
-***REMOVED******REMOVED******REMOVED*** 6.2 Versioning policy
+### 6.2 Versioning policy
 
 - **v1.x** (minor) — additive: new systems, new classes, refined LLM critic verdicts. Headline fit values for v1.0 systems do not change.
 - **v2.0** (major) — backward-incompatible: refit headline values (e.g. due to upstream USGS reprocessing), reorganised directory layout, or pipeline algorithm changes.
 - Each release gets a new Zenodo DOI; the DOI of the latest version is also available via the Zenodo concept-DOI redirect.
 
-***REMOVED******REMOVED*** 7. References
+## 7. References
 
 [1] Gutenberg, B. & Richter, C. F. (1944). *Frequency of earthquakes in California.* Bulletin of the Seismological Society of America 34, 185-188.
 

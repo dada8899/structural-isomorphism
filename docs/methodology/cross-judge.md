@@ -1,4 +1,4 @@
-***REMOVED*** Cross-judge ensemble methodology
+# Cross-judge ensemble methodology
 
 A power-law tail alone does not adjudicate universality class membership.
 A system can show $\alpha \in [1.3, 2.0]$ for reasons that do not satisfy
@@ -8,7 +8,7 @@ fail the test under finite-size or contamination effects. The
 **cross-judge ensemble** is the methodological apparatus that catches both
 failure modes.
 
-***REMOVED******REMOVED*** B3: multi-model taxonomy review
+## B3: multi-model taxonomy review
 
 The B3 pass runs three reviewer language models over the candidate
 universality class catalog. Each reviewer issues one of four verdicts on
@@ -39,7 +39,7 @@ B3-driven demotions: `delay_differential_debt`, `hysteresis_preisach`
 `tail_copula_contagion` were rejected on grounds of mechanism-vs-limit-
 theorem confusion.
 
-***REMOVED******REMOVED*** B4: cross-judge calibration
+## B4: cross-judge calibration
 
 B4 takes a different cut at the same problem. Instead of asking reviewers
 to assess classes, B4 has them assess **individual system fits**. Each
@@ -53,7 +53,7 @@ A fit is published only if it receives a B4 mean score above 3.0 with at
 least two reviewers above 4.0. The remaining fits are queued for
 additional data acquisition or pre-registration revision.
 
-***REMOVED******REMOVED*** Why ensemble
+## Why ensemble
 
 Single-reviewer adjudication has a well-known pathology: each reviewer
 has blind spots (training-data gaps, prior-anchor preferences, calibration
@@ -64,7 +64,7 @@ diverse: two model variants (v4-pro vs v4-flash) and two prompt styles
 (rigorous vs creative). Future passes will broaden the pool to include
 non-DeepSeek models.
 
-***REMOVED******REMOVED*** Failure modes documented
+## Failure modes documented
 
 The B3 ⊗ B1 (single-model) consensus agrees on 14 of 21 classes. The
 remaining seven disagreements are documented in the unified preprint and
@@ -72,7 +72,7 @@ re-examined at each pipeline release. B4 calibration scores below 3.0
 have flagged three system fits for additional bootstrap iterations and
 one for re-fetching with a higher resolution data source.
 
-***REMOVED******REMOVED*** How to consume the ensemble in your own work
+## How to consume the ensemble in your own work
 
 The cross-judge artifacts are stored under `v4/taxonomy/` and are
 re-runnable. To re-run B3 on the current class catalog:

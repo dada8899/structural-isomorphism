@@ -1,5 +1,5 @@
 """
-Tier-aware rate limiting (W11-C, session ***REMOVED***10).
+Tier-aware rate limiting (W11-C, session #10).
 
 slowapi's dynamic-limit callable doesn't receive the request object —
 per memory `feedback_slowapi_dynamic_limit_signature.md`, the callable
@@ -42,15 +42,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("structural.middleware.rate_limit")
 
-***REMOVED*** Tier -> req/minute. `admin` is sentinel for "no slowapi limit".
+# Tier -> req/minute. `admin` is sentinel for "no slowapi limit".
 TIER_LIMITS = {
     "free": 60,
     "pro": 1000,
     "team": 5000,
-    "admin": None,  ***REMOVED*** unlimited
+    "admin": None,  # unlimited
 }
 
-***REMOVED*** Endpoints (path-prefix match) that consume LLM tokens — halve the bucket.
+# Endpoints (path-prefix match) that consume LLM tokens — halve the bucket.
 EXPENSIVE_ENDPOINT_PREFIXES = (
     "/api/ask",
     "/api/analyze",
@@ -59,9 +59,9 @@ EXPENSIVE_ENDPOINT_PREFIXES = (
 )
 
 
-***REMOVED*** Per-request context populated by middleware *before* slowapi runs its
-***REMOVED*** key_func / limit callable. The closures below read these to make
-***REMOVED*** tier-aware decisions.
+# Per-request context populated by middleware *before* slowapi runs its
+# key_func / limit callable. The closures below read these to make
+# tier-aware decisions.
 CURRENT_TIER: ContextVar[str] = ContextVar("rl_current_tier", default="free")
 CURRENT_PATH: ContextVar[str] = ContextVar("rl_current_path", default="")
 
@@ -83,7 +83,7 @@ def _resolve_limit_spec() -> str:
     path = CURRENT_PATH.get()
     base = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
     if base is None:
-        ***REMOVED*** admin — effectively unlimited.
+        # admin — effectively unlimited.
         return "1000000/minute"
     if _is_expensive(path):
         base = max(1, base // 2)
@@ -96,29 +96,29 @@ def _composite_key(request: Request) -> str:
     Separating buckets per-tier prevents a single team-tier user from
     starving the free pool (or vice versa).
     """
-    ***REMOVED*** Re-resolve tier from request here as a safety net — middleware
-    ***REMOVED*** should have already set it, but a misconfigured app could call into
-    ***REMOVED*** slowapi without going through middleware first.
+    # Re-resolve tier from request here as a safety net — middleware
+    # should have already set it, but a misconfigured app could call into
+    # slowapi without going through middleware first.
     tier = CURRENT_TIER.get()
     ip = get_remote_address(request)
     return f"{tier}:{ip}"
 
 
-***REMOVED*** ---- public objects ----
+# ---- public objects ----
 
 
-***REMOVED*** The Limiter is registered via `app.state.limiter` in `install_rate_limit`.
-***REMOVED*** default_limits is empty: every endpoint specifies its own spec via the
-***REMOVED*** dynamic callable below.
+# The Limiter is registered via `app.state.limiter` in `install_rate_limit`.
+# default_limits is empty: every endpoint specifies its own spec via the
+# dynamic callable below.
 limiter = Limiter(
     key_func=_composite_key,
     default_limits=[],
-    ***REMOVED*** headers_enabled=True would force every decorated endpoint to declare
-    ***REMOVED*** a `response: Response` parameter so slowapi can inject X-RateLimit-*
-    ***REMOVED*** headers — that's intrusive for the existing route signatures. We
-    ***REMOVED*** surface tier via our own middleware header (X-Rate-Limit-Tier) and
-    ***REMOVED*** only add Retry-After on actual 429 responses, which is enough for
-    ***REMOVED*** most clients.
+    # headers_enabled=True would force every decorated endpoint to declare
+    # a `response: Response` parameter so slowapi can inject X-RateLimit-*
+    # headers — that's intrusive for the existing route signatures. We
+    # surface tier via our own middleware header (X-Rate-Limit-Tier) and
+    # only add Retry-After on actual 429 responses, which is enough for
+    # most clients.
     headers_enabled=False,
 )
 
@@ -139,7 +139,7 @@ def tier_aware_limit():
     return limiter.limit(_resolve_limit_spec)
 
 
-***REMOVED*** ---- middleware ----
+# ---- middleware ----
 
 
 class TierResolutionMiddleware(BaseHTTPMiddleware):
@@ -158,13 +158,13 @@ class TierResolutionMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable],
     ):
-        ***REMOVED*** Local imports avoid circular dependency on errors.py at import
-        ***REMOVED*** time when this module is loaded by main.py.
+        # Local imports avoid circular dependency on errors.py at import
+        # time when this module is loaded by main.py.
         from auth.api_key import resolve_tier_from_request
         from errors import Unauthenticated, _problem_handler
 
-        ***REMOVED*** Only run on /api/* — static assets and HTML pages don't need
-        ***REMOVED*** rate-limiting (and slowapi would just add noise).
+        # Only run on /api/* — static assets and HTML pages don't need
+        # rate-limiting (and slowapi would just add noise).
         path = request.url.path or ""
         CURRENT_PATH.set(path)
         if not path.startswith("/api/"):
@@ -178,13 +178,13 @@ class TierResolutionMiddleware(BaseHTTPMiddleware):
 
         CURRENT_TIER.set(tier)
         response = await call_next(request)
-        ***REMOVED*** Annotate response so downstream proxies / browsers can see the
-        ***REMOVED*** tier without parsing the API-key header back.
+        # Annotate response so downstream proxies / browsers can see the
+        # tier without parsing the API-key header back.
         response.headers["X-Rate-Limit-Tier"] = tier
         return response
 
 
-***REMOVED*** ---- 429 handler producing RFC 7807 body ----
+# ---- 429 handler producing RFC 7807 body ----
 
 
 async def _ratelimit_problem_handler(
@@ -194,10 +194,10 @@ async def _ratelimit_problem_handler(
     from errors import RateLimitExceeded as PD_RateLimitExceeded
     from errors import _problem_response
 
-    ***REMOVED*** slowapi stores the offending limit spec on exc.detail.
+    # slowapi stores the offending limit spec on exc.detail.
     spec = getattr(exc, "detail", "unknown")
     tier = CURRENT_TIER.get()
-    retry_after = 60  ***REMOVED*** all our limits are per-minute
+    retry_after = 60  # all our limits are per-minute
     wrapped = PD_RateLimitExceeded(
         detail=f"Rate limit {spec} exceeded for tier '{tier}'",
         tier=tier,
@@ -207,7 +207,7 @@ async def _ratelimit_problem_handler(
     return _problem_response(wrapped, request)
 
 
-***REMOVED*** ---- installer ----
+# ---- installer ----
 
 
 def install_rate_limit(app: FastAPI) -> None:

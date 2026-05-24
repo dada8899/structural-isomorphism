@@ -1,5 +1,5 @@
-***REMOVED***!/usr/bin/env python3
-"""Session ***REMOVED***15 M1.2/M1.3 dogfood — measure TTFT (time to first answer_chunk)
+#!/usr/bin/env python3
+"""Session #15 M1.2/M1.3 dogfood — measure TTFT (time to first answer_chunk)
 and verify out-of-scope queries hit the local-refusal short-circuit.
 
 Usage:
@@ -25,12 +25,12 @@ from typing import Any
 import httpx
 
 QUERIES = [
-    ***REMOVED*** in-scope (q1-q4): expected to retrieve KB cards + run LLM
+    # in-scope (q1-q4): expected to retrieve KB cards + run LLM
     ("q1", "in_scope", "SVB 怎么倒的"),
     ("q2", "in_scope", "团队为什么散"),
     ("q3", "in_scope", "用户流失原因"),
     ("q4", "in_scope", "传言怎么扩散"),
-    ***REMOVED*** out-of-scope (q5-q7): expected to short-circuit with refusal
+    # out-of-scope (q5-q7): expected to short-circuit with refusal
     ("q5", "out_of_scope", "女朋友为什么生气"),
     ("q6", "out_of_scope", "1+1=?"),
     ("q7", "out_of_scope", "BTC 明天涨跌"),
@@ -102,7 +102,7 @@ def probe_one(host: str, qid: str, expected: str, query: str) -> dict[str, Any]:
                                 pass
                 if result["t_answer_done_s"] is not None:
                     break
-    except Exception as exc:  ***REMOVED*** noqa: BLE001 — top-level probe guard
+    except Exception as exc:  # noqa: BLE001 — top-level probe guard
         result["error"] = f"{type(exc).__name__}: {exc}"
     return result
 
@@ -130,7 +130,7 @@ def main() -> int:
                 f" events={','.join(r['events_seen'])}"
             )
 
-    ***REMOVED*** Summary table
+    # Summary table
     print("\n" + "=" * 72)
     print(f"{'qid':4s} {'expected':14s} {'TTFT':>9s} {'done':>9s} {'OOS':>5s} {'llm':>4s}  query")
     print("-" * 72)
@@ -141,13 +141,13 @@ def main() -> int:
         llm = "Y" if r["llm_start_seen"] else "N"
         print(f"{r['qid']:4s} {r['expected']:14s} {ttft:>9s} {done:>9s} {oos:>5s} {llm:>4s}  {r['query']}")
 
-    ***REMOVED*** Persist JSON
+    # Persist JSON
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(results, ensure_ascii=False, indent=2))
     print(f"\nJSON: {out_path}")
 
-    ***REMOVED*** Verdict per M1 spec
+    # Verdict per M1 spec
     in_scope = [r for r in results if r["expected"] == "in_scope"]
     out_of_scope_qs = [r for r in results if r["expected"] == "out_of_scope"]
     in_scope_ttfts = [r["ttft_s"] for r in in_scope if r["ttft_s"] is not None]

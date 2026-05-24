@@ -1,4 +1,4 @@
-"""Unit + integration tests for C2 structural lint (Session ***REMOVED***18).
+"""Unit + integration tests for C2 structural lint (Session #18).
 
 Unit: doc-length validation, enum guardrails, LLM-output normalization.
 Integration: TestClient on a sub-app mounting struct_lint.router, with
@@ -18,7 +18,7 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services import struct_lint_service as svc  ***REMOVED*** noqa: E402
+from services import struct_lint_service as svc  # noqa: E402
 
 
 @pytest.fixture
@@ -27,9 +27,9 @@ def anyio_backend():
     return "asyncio"
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — check_doc_length
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — check_doc_length
+# =========================================================================
 
 
 def test_check_doc_length_normal_ok():
@@ -45,13 +45,13 @@ def test_check_doc_length_empty_rejected():
 def test_check_doc_length_over_cap_rejected():
     too_long = "x" * (svc.MAX_DOC_CHARS + 1)
     assert svc.check_doc_length(too_long) == "document_too_long"
-    ***REMOVED*** Exactly at the cap is allowed.
+    # Exactly at the cap is allowed.
     assert svc.check_doc_length("x" * svc.MAX_DOC_CHARS) is None
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — normalize_lint_result guardrail
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — normalize_lint_result guardrail
+# =========================================================================
 
 
 def test_normalize_valid_payload_passes_through():
@@ -117,16 +117,16 @@ def test_normalize_drops_claim_without_quote():
 
 
 def test_normalize_handles_non_dict_and_missing_fields():
-    ***REMOVED*** Non-dict top-level → None.
+    # Non-dict top-level → None.
     assert svc.normalize_lint_result(["not", "a", "dict"]) is None
     assert svc.normalize_lint_result(None) is None
-    ***REMOVED*** claims not a list → treated as empty.
+    # claims not a list → treated as empty.
     out = svc.normalize_lint_result({"summary": "s", "claims": "oops"})
     assert out["claims"] == []
-    ***REMOVED*** Non-dict claim entries are dropped.
+    # Non-dict claim entries are dropped.
     out2 = svc.normalize_lint_result({"claims": ["string", 42, None]})
     assert out2["claims"] == []
-    ***REMOVED*** Missing summary gets a sensible fallback.
+    # Missing summary gets a sensible fallback.
     assert out2["summary"]
 
 
@@ -161,9 +161,9 @@ def test_normalize_claim_carries_isomorph_key():
     assert out["claims"][0]["isomorph"] is None
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — build_isomorph_query (claim → KB search query)
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — build_isomorph_query (claim → KB search query)
+# =========================================================================
 
 
 def test_build_query_uses_structure_and_failure_mode():
@@ -190,9 +190,9 @@ def test_build_query_structure_only_when_no_failure_mode():
     assert q == "线性外推的因果链条"
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — normalize_isomorph (KB search result → anchor)
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — normalize_isomorph (KB search result → anchor)
+# =========================================================================
 
 
 def test_normalize_isomorph_valid():
@@ -225,9 +225,9 @@ def test_normalize_isomorph_clamps_bad_relevance():
     assert svc.normalize_isomorph({"id": "x", "relevance": "oops"})["relevance"] == 0.0
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — _search_isomorph degradation
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — _search_isomorph degradation
+# =========================================================================
 
 
 def test_search_isomorph_degrades_when_no_service():
@@ -264,9 +264,9 @@ def test_search_isomorph_returns_top_anchor():
     assert out["id"] == "ph-9"
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Integration — TestClient against struct_lint.router
-***REMOVED*** =========================================================================
+# =========================================================================
+# Integration — TestClient against struct_lint.router
+# =========================================================================
 
 
 @pytest.fixture
@@ -374,11 +374,11 @@ def test_endpoint_filters_malformed_claims(client, monkeypatch):
                     "failure_mode": "f",
                     "suggestion": "g",
                 },
-                ***REMOVED*** bad claim_type → dropped
+                # bad claim_type → dropped
                 {"quote": "坏类型", "claim_type": "nonsense", "risk_level": "low"},
-                ***REMOVED*** no quote → dropped
+                # no quote → dropped
                 {"claim_type": "assumption", "risk_level": "low"},
-                ***REMOVED*** bad risk_level → kept, normalized to medium
+                # bad risk_level → kept, normalized to medium
                 {"quote": "坏风险", "claim_type": "analogy", "risk_level": "???"},
             ],
         }
@@ -415,9 +415,9 @@ def test_endpoint_llm_returns_unusable_payload(client, monkeypatch):
     assert r.json()["error"] == "llm_failed"
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Integration — Session ***REMOVED***18 deepening: KB structural-isomorphism pass
-***REMOVED*** =========================================================================
+# =========================================================================
+# Integration — Session #18 deepening: KB structural-isomorphism pass
+# =========================================================================
 
 
 class _FakeSearch:
@@ -494,9 +494,9 @@ def test_endpoint_attaches_isomorph_on_kb_hit(client, monkeypatch):
         assert c["isomorph"]["id"] == "ph-eco-01"
         assert c["isomorph"]["domain"] == "生态学"
         assert c["isomorph"]["relevance"] == 0.78
-        ***REMOVED*** Failure mode re-grounded by the anchor pass.
+        # Failure mode re-grounded by the anchor pass.
         assert "同构" in c["failure_mode"]
-    ***REMOVED*** The KB was actually queried — one search per claim.
+    # The KB was actually queried — one search per claim.
     assert len(fake.calls) == 2
 
 
@@ -513,7 +513,7 @@ def test_endpoint_degrades_when_search_unavailable(client, monkeypatch):
     assert len(claims) == 2
     for c in claims:
         assert c["isomorph"] is None
-        ***REMOVED*** Failure mode falls back to the first-pass LLM output.
+        # Failure mode falls back to the first-pass LLM output.
         assert c["failure_mode"]
 
 
@@ -529,7 +529,7 @@ def test_endpoint_degrades_on_empty_kb_match(client, monkeypatch):
     assert len(claims) == 2
     for c in claims:
         assert c["isomorph"] is None
-    ***REMOVED*** Searched, but found nothing.
+    # Searched, but found nothing.
     assert len(fake.calls) == 2
 
 
@@ -546,9 +546,9 @@ def test_endpoint_degrades_when_search_raises(client, monkeypatch):
         assert c["isomorph"] is None
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Unit — lint_document_streamed (the SSE pipeline generator)
-***REMOVED*** =========================================================================
+# =========================================================================
+# Unit — lint_document_streamed (the SSE pipeline generator)
+# =========================================================================
 
 
 @pytest.mark.anyio
@@ -577,7 +577,7 @@ async def test_streamed_emits_progress_then_done(monkeypatch):
         events.append(ev)
 
     stages = [e.get("stage") for e in events if e.get("type") == "progress"]
-    ***REMOVED*** extract → claims → one isomorph event per claim (2 claims).
+    # extract → claims → one isomorph event per claim (2 claims).
     assert "extract" in stages
     assert "claims" in stages
     assert stages.count("isomorph") == 2
@@ -586,7 +586,7 @@ async def test_streamed_emits_progress_then_done(monkeypatch):
     assert len(done) == 1
     result = done[0]["result"]
     assert len(result["claims"]) == 2
-    ***REMOVED*** Anchor pass actually re-grounded the failure mode.
+    # Anchor pass actually re-grounded the failure mode.
     assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
     assert result["claims"][0]["failure_mode"] == "同构重写后的失效模式"
 
@@ -635,9 +635,9 @@ async def test_streamed_degrades_without_search(monkeypatch):
         assert c["isomorph"] is None
 
 
-***REMOVED*** =========================================================================
-***REMOVED*** Integration — SSE endpoint /api/struct-lint/stream
-***REMOVED*** =========================================================================
+# =========================================================================
+# Integration — SSE endpoint /api/struct-lint/stream
+# =========================================================================
 
 
 def _parse_sse(text: str):
@@ -686,18 +686,18 @@ def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
 
     events = _parse_sse(r.text)
     types = [e[0] for e in events]
-    assert types[0] == "meta"               ***REMOVED*** meta is sent first (fast first byte)
-    assert "progress" in types              ***REMOVED*** at least one progress event
-    assert types[-1] == "done"              ***REMOVED*** done is terminal
+    assert types[0] == "meta"               # meta is sent first (fast first byte)
+    assert "progress" in types              # at least one progress event
+    assert types[-1] == "done"              # done is terminal
 
-    ***REMOVED*** The done event carries the full lint result.
+    # The done event carries the full lint result.
     done_event = next(e for e in events if e[0] == "done")
     result = done_event[1]["result"]
     assert result["summary"]
     assert len(result["claims"]) == 2
     assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
 
-    ***REMOVED*** Progress events cover the pipeline stages.
+    # Progress events cover the pipeline stages.
     progress_stages = {
         e[1].get("stage") for e in events if e[0] == "progress"
     }

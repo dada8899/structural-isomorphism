@@ -1,4 +1,4 @@
-***REMOVED*** Twitter / X launch thread — 2026-05-15
+# Twitter / X launch thread — 2026-05-15
 
 Posted: 2026-05-15 morning PT (09:00 PT optimal window)
 Account: @dada8899 (or project handle)

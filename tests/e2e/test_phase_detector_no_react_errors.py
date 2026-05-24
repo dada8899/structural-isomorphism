@@ -2,7 +2,7 @@
 
 Background
 ----------
-Session ***REMOVED***9 W6-E audit captured a React client-side exception on
+Session #9 W6-E audit captured a React client-side exception on
 https://phase.bytedance.city after `page.waitForLoadState('networkidle')`:
 
     "Application error: a client-side exception has occurred while loading
@@ -52,7 +52,7 @@ from pathlib import Path
 import pytest
 
 playwright = pytest.importorskip("playwright")
-from playwright.sync_api import Page, sync_playwright  ***REMOVED*** noqa: E402
+from playwright.sync_api import Page, sync_playwright  # noqa: E402
 
 BASE_URL = "https://phase.bytedance.city"
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -60,23 +60,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 pytestmark = [pytest.mark.e2e, pytest.mark.requires_internet]
 
 
-***REMOVED*** Console messages we treat as transient (not regression-class).
-***REMOVED*** Limited to truly-known-noise patterns — must not swallow real React errors.
+# Console messages we treat as transient (not regression-class).
+# Limited to truly-known-noise patterns — must not swallow real React errors.
 _IGNORABLE_SUBSTRINGS = (
-    "favicon",                ***REMOVED*** 404 favicon on first load is benign
-    "Failed to load resource",  ***REMOVED*** generic; cross-check below
+    "favicon",                # 404 favicon on first load is benign
+    "Failed to load resource",  # generic; cross-check below
 )
 
 
-***REMOVED*** Hard regression markers — if any of these appear, fail the test.
-***REMOVED*** These are the substrings observed in the W6-E captured error.
+# Hard regression markers — if any of these appear, fail the test.
+# These are the substrings observed in the W6-E captured error.
 _REGRESSION_MARKERS = (
     "Application error: a client-side exception",
     "Failed to find Server Action",
     "Cannot read properties of undefined (reading 'workers')",
     "Cannot read properties of undefined (reading 'default')",
     "Hydration failed",
-    "did not match",  ***REMOVED*** SSR/CSR hydration mismatch warning
+    "did not match",  # SSR/CSR hydration mismatch warning
 )
 
 
@@ -96,9 +96,9 @@ def page(browser):
     ctx.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Static guards (run even when prod is unreachable)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Static guards (run even when prod is unreachable)
+# ---------------------------------------------------------------------------
 
 
 def test_error_boundary_files_present():
@@ -131,9 +131,9 @@ def test_safe_json_helper_present():
     )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Live regression checks (skip on transient network failure, fail on regression)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Live regression checks (skip on transient network failure, fail on regression)
+# ---------------------------------------------------------------------------
 
 
 def _try_goto(page: Page, url: str, wait_until: str = "networkidle"):
@@ -176,10 +176,10 @@ def test_no_console_errors_strict(page: Page):
 
     page.on("console", _on_console)
     _try_goto(page, BASE_URL, "networkidle")
-    ***REMOVED*** Drain any late-firing errors after networkidle settles.
+    # Drain any late-firing errors after networkidle settles.
     page.wait_for_timeout(2000)
 
-    ***REMOVED*** Partition: hard regressions vs ignorable noise.
+    # Partition: hard regressions vs ignorable noise.
     regressions = [
         e for e in errors
         if any(m in e for m in _REGRESSION_MARKERS)
@@ -189,8 +189,8 @@ def test_no_console_errors_strict(page: Page):
         f"{regressions}"
     )
 
-    ***REMOVED*** All other errors that aren't on the ignorable list still fail —
-    ***REMOVED*** tighter than the live test which uses pytest.skip.
+    # All other errors that aren't on the ignorable list still fail —
+    # tighter than the live test which uses pytest.skip.
     unexpected = [
         e for e in errors
         if not any(s.lower() in e.lower() for s in _IGNORABLE_SUBSTRINGS)

@@ -1,6 +1,6 @@
 """Sanity-check the 3 new universality-class YAMLs added in Wave 11-E.
 
-Newly added (session ***REMOVED***10):
+Newly added (session #10):
     - fractional_brownian_crossings
     - anderson_localization
     - preisach_hysteresis_cascade

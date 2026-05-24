@@ -39,7 +39,7 @@ def _generate(kind: NullKind, n: int, rng: np.random.Generator) -> np.ndarray:
     if kind == "exponential":
         return rng.exponential(scale=1.0, size=n)
     if kind == "poisson_iat":
-        ***REMOVED*** inter-arrival times of a Poisson process
+        # inter-arrival times of a Poisson process
         return rng.exponential(scale=0.1, size=n)
     raise ValueError(f"unknown null kind: {kind}")
 
@@ -74,10 +74,10 @@ def synthetic_null(
 
     out: dict[str, NullCase] = {}
     for k in ("gaussian_walk", "exponential", "poisson_iat"):
-        sample = _generate(k, n, rng)  ***REMOVED*** type: ignore[arg-type]
+        sample = _generate(k, n, rng)  # type: ignore[arg-type]
         fit = fit_clauset_powerlaw(sample, name=k)
         out[k] = NullCase(
-            name=k,  ***REMOVED*** type: ignore[arg-type]
+            name=k,  # type: ignore[arg-type]
             fit=fit,
             correctly_rejected=bool(fit.rejects_power_law),
         )

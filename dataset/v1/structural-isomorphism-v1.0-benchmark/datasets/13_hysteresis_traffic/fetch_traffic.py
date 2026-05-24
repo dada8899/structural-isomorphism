@@ -27,19 +27,19 @@ import sys
 import urllib.request
 from pathlib import Path
 
-***REMOVED*** ---- constants ----
+# ---- constants ----
 HERE = Path(__file__).parent
 NGSIM_RAW = HERE / "us101_ngsim_agg_raw.csv"
 QRHO_OUT = HERE / "traffic_qrho.jsonl"
 LIT_OUT = HERE / "literature_fallback.json"
 
-***REMOVED*** NGSIM US-101 frame rate (Hz). Each row in raw trajectory dataset is
-***REMOVED*** one (vehicle, frame) sample at 10 Hz, i.e. 0.1 s of vehicle time.
+# NGSIM US-101 frame rate (Hz). Each row in raw trajectory dataset is
+# one (vehicle, frame) sample at 10 Hz, i.e. 0.1 s of vehicle time.
 NGSIM_DT_S = 0.1
 
-***REMOVED*** Aggregation cell parameters (must match SoQL query that produced raw CSV).
-T_BIN_S = 30.0  ***REMOVED*** seconds per time bin
-S_BIN_FT = 200.0  ***REMOVED*** feet per space bin
+# Aggregation cell parameters (must match SoQL query that produced raw CSV).
+T_BIN_S = 30.0  # seconds per time bin
+S_BIN_FT = 200.0  # feet per space bin
 FT_PER_MILE = 5280.0
 
 
@@ -57,8 +57,8 @@ def fetch_ngsim_aggregated(
         print(f"[fetch_ngsim] cached: {NGSIM_RAW} ({NGSIM_RAW.stat().st_size} B)")
         return NGSIM_RAW
 
-    ***REMOVED*** SoQL: server-side group by lane x 30-s time bin x 200-ft space bin
-    ***REMOVED*** Time origin = 1118846979700 ms (min global_time on US-101).
+    # SoQL: server-side group by lane x 30-s time bin x 200-ft space bin
+    # Time origin = 1118846979700 ms (min global_time on US-101).
     soql = (
         "select lane_id, "
         "floor((global_time - 1118846979700)/30000) as t_bin, "
@@ -98,11 +98,11 @@ def edie_qrho_per_cell(n_obs: int, v_mean_fts: float) -> tuple[float, float]:
     """
     veh_time_s = n_obs * NGSIM_DT_S
     veh_dist_ft = n_obs * NGSIM_DT_S * v_mean_fts
-    cell_area_s_ft = T_BIN_S * S_BIN_FT  ***REMOVED*** vehicle-second-feet
-    ***REMOVED*** rho [veh / ft] = veh-time / (T*X)
+    cell_area_s_ft = T_BIN_S * S_BIN_FT  # vehicle-second-feet
+    # rho [veh / ft] = veh-time / (T*X)
     rho_per_ft = veh_time_s / cell_area_s_ft
     rho_per_mile = rho_per_ft * FT_PER_MILE
-    ***REMOVED*** q [veh / s] = veh-dist / (T*X)
+    # q [veh / s] = veh-dist / (T*X)
     q_per_s = veh_dist_ft / cell_area_s_ft
     q_per_h = q_per_s * 3600.0
     return rho_per_mile, q_per_h
@@ -125,16 +125,16 @@ def derive_qrho_from_ngsim(min_n_obs: int = 30) -> tuple[list[dict], dict]:
                 t_bin = int(row["t_bin"])
                 s_bin = int(row["s_bin"])
                 n_obs = int(row["n_obs"])
-                v_mean = float(row["v_mean"])  ***REMOVED*** ft/s
+                v_mean = float(row["v_mean"])  # ft/s
             except (KeyError, ValueError):
                 continue
             if n_obs < min_n_obs:
                 continue
-            ***REMOVED*** restrict to mainline lanes 1-5 (US-101 has 5 mainline + 2 aux)
+            # restrict to mainline lanes 1-5 (US-101 has 5 mainline + 2 aux)
             if lane < 1 or lane > 5:
                 continue
             rho, q = edie_qrho_per_cell(n_obs, v_mean)
-            ***REMOVED*** convert per-mile to per-km for consistency with literature
+            # convert per-mile to per-km for consistency with literature
             rho_per_km = rho / 1.609
             records.append(
                 {
@@ -186,15 +186,15 @@ def write_literature_fallback() -> dict:
     payload = {
         "treiber2013_chap8_a5_motorway": {
             "q_c1_veh_per_h_per_lane": 2200.0,
-            "q_c2_veh_per_h_per_lane": 1600.0,  ***REMOVED*** midpoint of 1500-1700
+            "q_c2_veh_per_h_per_lane": 1600.0,  # midpoint of 1500-1700
             "ratio": 2200.0 / 1600.0,
             "rho_crit_veh_per_km_per_lane": 25.0,
             "v_free_kmh": 110.0,
             "source": "Treiber & Kesting 2013 chap.8 table 8.1",
         },
         "geroliminis2008_yokohama_mfd": {
-            ***REMOVED*** Network-level MFD; numbers are per-intersection capacity,
-            ***REMOVED*** not per-lane. Used as a second literature anchor.
+            # Network-level MFD; numbers are per-intersection capacity,
+            # not per-lane. Used as a second literature anchor.
             "q_c1_veh_per_h": 18.0,
             "q_c2_veh_per_h": 13.0,
             "ratio": 18.0 / 13.0,

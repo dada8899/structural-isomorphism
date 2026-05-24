@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Dogfood /api/ask/stream on prod with 7 real queries.
 
 Categories:
@@ -40,7 +40,7 @@ import requests
 PROD_URL = "https://beta.structural.bytedance.city/api/ask/stream"
 
 QUERIES = [
-    ***REMOVED*** Class 1: cross-domain isomorphism classics
+    # Class 1: cross-domain isomorphism classics
     {
         "id": "q1",
         "category": "cross-domain",
@@ -51,7 +51,7 @@ QUERIES = [
         "category": "cross-domain",
         "text": "团队氛围崩了之后为什么很难恢复？跟相变有关系吗？",
     },
-    ***REMOVED*** Class 2: business / product
+    # Class 2: business / product
     {
         "id": "q3",
         "category": "business",
@@ -62,7 +62,7 @@ QUERIES = [
         "category": "business",
         "text": "为什么有些谣言会爆，另一些悄悄消散？区别在哪？",
     },
-    ***REMOVED*** Class 3: edge / adversarial
+    # Class 3: edge / adversarial
     {
         "id": "q5",
         "category": "edge-irrelevant",
@@ -145,12 +145,12 @@ def run_query(q: dict) -> dict:
                 if evt_name == "answer_done":
                     answer_done_at = now
                 events.append((evt_name, data))
-    except Exception as exc:  ***REMOVED*** noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         error = f"{type(exc).__name__}: {exc}"
 
     duration = time.time() - start
 
-    ***REMOVED*** Aggregate by event type
+    # Aggregate by event type
     type_counts: dict[str, int] = {}
     answer_chunks: list[str] = []
     full_text: str = ""
@@ -229,7 +229,7 @@ def main() -> None:
             flush=True,
         )
         results.append(result)
-        time.sleep(2)  ***REMOVED*** be nice to prod rate limit (5/min anon)
+        time.sleep(2)  # be nice to prod rate limit (5/min anon)
     out_path.write_text(json.dumps(results, ensure_ascii=False, indent=2))
     print(f"Wrote {out_path} ({len(results)} results)")
 

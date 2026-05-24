@@ -45,7 +45,7 @@ def compute_rolling_vol_monthly(price_daily, window=60):
     df = df.dropna(subset=["vol"])
     if df.empty:
         return pd.DataFrame()
-    ***REMOVED*** 月末值
+    # 月末值
     df = df.set_index("date")
     monthly = df["vol"].resample("ME").last().dropna()
     return monthly.reset_index().rename(columns={"vol": "value"})
@@ -93,12 +93,12 @@ def cross_signal_filter(breaks_by_signal, window_days=60, min_signals=2):
         return []
     all_breaks.sort(key=lambda x: x[0])
 
-    ***REMOVED*** 聚类：相邻 ±60 天的拐点归为一组
+    # 聚类：相邻 ±60 天的拐点归为一组
     clusters = []
     for d, s, sig in all_breaks:
         placed = False
         for c in clusters:
-            ***REMOVED*** 若 d 与 cluster 中任何 point 的时差 ≤ window_days
+            # 若 d 与 cluster 中任何 point 的时差 ≤ window_days
             if any(abs((d - cd).days) <= window_days for cd, _, _ in c):
                 c.append((d, s, sig))
                 placed = True
@@ -106,12 +106,12 @@ def cross_signal_filter(breaks_by_signal, window_days=60, min_signals=2):
         if not placed:
             clusters.append([(d, s, sig)])
 
-    ***REMOVED*** 只保留包含 ≥min_signals 种不同信号源的 cluster
+    # 只保留包含 ≥min_signals 种不同信号源的 cluster
     result = []
     for c in clusters:
         unique_sigs = set(sig for _, _, sig in c)
         if len(unique_sigs) >= min_signals:
-            ***REMOVED*** 取 cluster 的中间日期（或最高分的日期）
+            # 取 cluster 的中间日期（或最高分的日期）
             c_sorted = sorted(c, key=lambda x: -x[1])
             top_date = c_sorted[0][0]
             avg_score = np.mean([s for _, s, _ in c])
@@ -139,10 +139,10 @@ def analyze_ticker(ticker, name, fam):
         "sharpe": find_breaks_with_scores(sharpe, pen=2.0),
     }
 
-    ***REMOVED*** 多信号交叉过滤 — 窗口放宽到 120 天（4 个月）
+    # 多信号交叉过滤 — 窗口放宽到 120 天（4 个月）
     high_conf = cross_signal_filter(breaks_by_sig, window_days=120, min_signals=2)
 
-    ***REMOVED*** 对每个高置信拐点做 60 天前后验证
+    # 对每个高置信拐点做 60 天前后验证
     validations = []
     for hc in high_conf:
         v = validate_break_point(price_daily, hc["date"], window_days=60)
@@ -184,7 +184,7 @@ def main():
             print(f"失败: {e}")
             continue
 
-    ***REMOVED*** 聚合
+    # 聚合
     all_hc = []
     for r in results:
         all_hc.extend(r["high_conf"])
@@ -203,17 +203,17 @@ def main():
     )
     ret_diffs = [abs(v["return_after"] - v["return_before"]) for v in all_hc]
 
-    ***REMOVED*** 按信号数分组
+    # 按信号数分组
     by_n_sig = defaultdict(list)
     for v in all_hc:
         by_n_sig[v["n_signals"]].append(v)
 
-    ***REMOVED*** 输出
+    # 输出
     lines = []
-    lines.append("***REMOVED*** PELT POC 多信号版 — 25 家公司\n")
+    lines.append("# PELT POC 多信号版 — 25 家公司\n")
     lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 🎯 对比：单信号 vs 多信号\n\n")
+    lines.append("## 🎯 对比：单信号 vs 多信号\n\n")
     lines.append("| 版本 | 拐点数 | 有 regime 变化 | 比例 |\n|---|---|---|---|\n")
     lines.append(f"| 单信号（YoY only）| 48 | 26 | **54.2%** |\n")
     lines.append(f"| **多信号（≥2 个信号一致）** | **{n}** | **{regime_changes}** | **{regime_changes/n*100:.1f}%** |\n\n")
@@ -227,7 +227,7 @@ def main():
         verdict = f"❌ **没提升**：{regime_changes/n*100:.0f}%，多信号过滤没用"
     lines.append(f"{verdict}\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 📊 按信号一致数分层\n\n")
+    lines.append("## 📊 按信号一致数分层\n\n")
     lines.append("| 一致信号数 | 样本 | 有 regime 变化 | 比例 |\n|---|---|---|---|\n")
     for k in sorted(by_n_sig.keys()):
         vs = by_n_sig[k]
@@ -235,17 +235,17 @@ def main():
         lines.append(f"| {k} 信号一致 | {len(vs)} | {rc} | **{rc/len(vs)*100:.1f}%** |\n")
     lines.append("\n")
 
-    ***REMOVED*** regime 类型
+    # regime 类型
     type_counts = defaultdict(int)
     for v in all_hc:
         type_counts[v["regime_change"]] += 1
-    lines.append("***REMOVED******REMOVED*** 🔬 Regime 变化类型\n\n")
+    lines.append("## 🔬 Regime 变化类型\n\n")
     lines.append("| 类型 | 数量 | 比例 |\n|---|---|---|\n")
     for t, c in sorted(type_counts.items(), key=lambda x: -x[1]):
         lines.append(f"| {t} | {c} | {c/n*100:.1f}% |\n")
     lines.append("\n")
 
-    ***REMOVED*** 按 family
+    # 按 family
     fam_stats = defaultdict(lambda: {"n": 0, "rc": 0, "tickers": set()})
     for r in results:
         fam = r["family"]
@@ -254,7 +254,7 @@ def main():
             if v["regime_change"] != "无明显变化":
                 fam_stats[fam]["rc"] += 1
             fam_stats[fam]["tickers"].add(r["ticker"])
-    lines.append("***REMOVED******REMOVED*** 🏷️ 按 dynamics_family 分层\n\n")
+    lines.append("## 🏷️ 按 dynamics_family 分层\n\n")
     lines.append("| Family | 拐点 | 有 regime 变化 | 比例 | 公司 |\n|---|---|---|---|---|\n")
     for fam, st in sorted(fam_stats.items(), key=lambda x: -(x[1]["rc"] / max(x[1]["n"], 1))):
         if st["n"] == 0:
@@ -265,13 +265,13 @@ def main():
         )
     lines.append("\n")
 
-    ***REMOVED*** 每家公司明细
-    lines.append("***REMOVED******REMOVED*** 📋 每家公司高置信拐点\n\n")
+    # 每家公司明细
+    lines.append("## 📋 每家公司高置信拐点\n\n")
     for r in results:
         hc = r["high_conf"]
         if not hc:
             continue
-        lines.append(f"***REMOVED******REMOVED******REMOVED*** {r['ticker']} · {r['name']}（{r['family']}）\n\n")
+        lines.append(f"### {r['ticker']} · {r['name']}（{r['family']}）\n\n")
         lines.append("| 日期 | 置信度 | 信号 | 前 60 天 | 后 60 天 | 判断 |\n|---|---|---|---|---|---|\n")
         for v in hc:
             lines.append(
@@ -282,7 +282,7 @@ def main():
             )
         lines.append("\n")
 
-    ***REMOVED*** 保存原始数据给 LLM 步骤用
+    # 保存原始数据给 LLM 步骤用
     hc_data = [
         {
             "ticker": v["ticker"],

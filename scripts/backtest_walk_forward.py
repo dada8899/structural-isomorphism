@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Walk-forward backtest v0.1 — W7-D mini-brief 4 (2026-05-24).
 
 Hypothesis (per W7-D § 4.B):
@@ -34,8 +34,8 @@ Outputs:
     backtest/results/walk-forward-v0.1.md      — short report
 
 Usage:
-    python3 scripts/backtest_walk_forward.py            ***REMOVED*** mock if data absent
-    python3 scripts/backtest_walk_forward.py --mock     ***REMOVED*** explicit
+    python3 scripts/backtest_walk_forward.py            # mock if data absent
+    python3 scripts/backtest_walk_forward.py --mock     # explicit
     python3 scripts/backtest_walk_forward.py --start 2020-01-01 --end 2024-12-31
 """
 from __future__ import annotations
@@ -60,7 +60,7 @@ DEFAULT_COMPANIES = REPO_ROOT / "data" / "phase-detector" / "companies.json"
 DEFAULT_PRICES = REPO_ROOT / "data" / "phase-detector" / "prices.csv"
 
 
-***REMOVED*** ----------------- Mock data generation -----------------
+# ----------------- Mock data generation -----------------
 
 _MOCK_TICKERS = [f"M{i:03d}" for i in range(100)]
 
@@ -78,11 +78,11 @@ def _mock_companies() -> list[dict[str, Any]]:
     for t in _MOCK_TICKERS:
         family = rng.choice(families)
         phases: dict[str, str] = {}
-        ***REMOVED*** 60 months 2020-01 .. 2024-12
+        # 60 months 2020-01 .. 2024-12
         for y in range(2020, 2025):
             for m in range(1, 13):
                 key = f"{y:04d}-{m:02d}"
-                ***REMOVED*** Higher chance of near_critical in dec 2021 / mar 2023 for variety
+                # Higher chance of near_critical in dec 2021 / mar 2023 for variety
                 p = rng.random()
                 if (y == 2021 and m == 12) or (y == 2023 and m == 3):
                     label = "near_critical" if p < 0.30 else "stable"
@@ -105,7 +105,7 @@ def _mock_prices(tickers: list[str], months: list[dt.date]) -> dict[str, dict[st
         p = 100.0
         per_month: dict[str, float] = {}
         for m in months:
-            mu = 0.006 if k == "SPY" else 0.005  ***REMOVED*** ~7%/yr drift, slightly higher for SPY
+            mu = 0.006 if k == "SPY" else 0.005  # ~7%/yr drift, slightly higher for SPY
             sigma = 0.03 if k == "SPY" else 0.06
             r = rng.gauss(mu, sigma)
             p *= (1.0 + r)
@@ -114,7 +114,7 @@ def _mock_prices(tickers: list[str], months: list[dt.date]) -> dict[str, dict[st
     return prices
 
 
-***REMOVED*** ----------------- Data loading -----------------
+# ----------------- Data loading -----------------
 
 def load_companies(path: Optional[Path]) -> tuple[list[dict[str, Any]], str]:
     """Load companies file. Return (list, source_label)."""
@@ -161,7 +161,7 @@ def load_prices(
     return _mock_prices(tickers, months), "mock"
 
 
-***REMOVED*** ----------------- Walk-forward loop -----------------
+# ----------------- Walk-forward loop -----------------
 
 def month_starts(start: dt.date, end: dt.date) -> list[dt.date]:
     """Inclusive list of first-day-of-month dates between start and end."""
@@ -215,7 +215,7 @@ def run_walk_forward(
         d1, d2 = months[i], months[i + 1]
         ym = d1.strftime("%Y-%m")
         cohort = cohort_for_month(companies, ym)
-        ***REMOVED*** Equal-weighted; if zero, fall through to SPY (cash equivalent)
+        # Equal-weighted; if zero, fall through to SPY (cash equivalent)
         rets: list[float] = []
         for t in cohort:
             r = monthly_return(prices.get(t, {}), d1, d2)
@@ -299,7 +299,7 @@ def _summarize(
     }
 
 
-***REMOVED*** ----------------- Report rendering -----------------
+# ----------------- Report rendering -----------------
 
 def render_report_md(
     result: dict[str, Any],
@@ -317,13 +317,13 @@ def render_report_md(
         )
 
     lines = [
-        f"***REMOVED*** Walk-forward backtest v0.1",
+        f"# Walk-forward backtest v0.1",
         "",
         f"_Window_: {start.isoformat()} → {end.isoformat()}",
         f"_Data source_: **{data_label}**",
         f"_Rebalances_: {s['n_rebalances']} months",
         honesty,
-        "***REMOVED******REMOVED*** Headline numbers",
+        "## Headline numbers",
         "",
         "| Metric | Cohort (`near_critical`) | SPY benchmark |",
         "|---|---:|---:|",
@@ -333,7 +333,7 @@ def render_report_md(
         f"| Sharpe lift | **{s['sharpe_lift']:+.2f}** | — |",
         f"| Avg turnover / rebalance | **{s['avg_turnover']*100:.1f}%** | — |",
         "",
-        "***REMOVED******REMOVED*** Reading guide",
+        "## Reading guide",
         "",
         "Per W7-D § 4.B pre-commits:",
         "",
@@ -343,7 +343,7 @@ def render_report_md(
         "| Weak signal | +0.1 .. +0.4 | Honest positioning, transparent methodology |",
         "| Null result | ≤ +0.1 | Pivot to structured-research-narrative product |",
         "",
-        "***REMOVED******REMOVED*** Pipeline notes",
+        "## Pipeline notes",
         "",
         "- Walk-forward, point-in-time cohort lookup (no look-ahead bias)",
         "- Equal-weight monthly rebalance",
@@ -351,7 +351,7 @@ def render_report_md(
         "- Turnover = symmetric-difference / union of holdings month-over-month",
         "- v0.1 limitations: no transaction costs, no shorts, no factor decomposition",
         "",
-        "***REMOVED******REMOVED*** Next steps for v0.2",
+        "## Next steps for v0.2",
         "",
         "- Replace mock prices with yfinance close-prices for SPY + 100 mock tickers (real tickers TBD)",
         "- Wire D1 monthly snapshots (one JSON per month, 60 months 2020-01..2024-12)",
@@ -361,7 +361,7 @@ def render_report_md(
     return "\n".join(lines) + "\n"
 
 
-***REMOVED*** ----------------- CLI -----------------
+# ----------------- CLI -----------------
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Walk-forward backtest v0.1")

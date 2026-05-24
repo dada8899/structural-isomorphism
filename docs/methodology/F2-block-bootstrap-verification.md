@@ -1,4 +1,4 @@
-***REMOVED*** F2 — Scheffer Kendall-tau block-bootstrap verification (W7-D)
+# F2 — Scheffer Kendall-tau block-bootstrap verification (W7-D)
 
 **Date:** 2026-05-15
 **Reviewer concern (W5-A §3.9 / §7.5):** Scheffer Kendall-tau p = 1.6e-186 on
@@ -8,12 +8,12 @@ Kendall-tau variance is severely underestimated, inflating |z| by 1/sqrt(1-rho^2
 at minimum. A block-bootstrap or pre-whitened time-series Kendall test should
 land in p in [1e-10, 1e-30].
 
-***REMOVED******REMOVED*** Status
+## Status
 
 **Already fixed in v0.3 of the codebase.** This document verifies the existing
 implementation and code path.
 
-***REMOVED******REMOVED*** Implementation location
+## Implementation location
 
 The fix is in `v4/scripts/scheffer_block_bootstrap.py` (commit history visible
 in `git log v4/scripts/scheffer_block_bootstrap.py`). The script:
@@ -28,7 +28,7 @@ in `git log v4/scripts/scheffer_block_bootstrap.py`). The script:
 - Persists results to `v4/validation/scheffer-lake/lake_results.json` under
   the `block_bootstrap` key (line 201-225).
 
-***REMOVED******REMOVED*** Reference code lines
+## Reference code lines
 
 | Item | File | Lines |
 |---|---|---|
@@ -40,7 +40,7 @@ in `git log v4/scripts/scheffer_block_bootstrap.py`). The script:
 | Two-sided p-value formula | `v4/scripts/scheffer_block_bootstrap.py` | 175-179 |
 | Persistence to results.json | `v4/scripts/scheffer_block_bootstrap.py` | 201-225 |
 
-***REMOVED******REMOVED*** Bootstrap output (verified 2026-05-15)
+## Bootstrap output (verified 2026-05-15)
 
 Read `v4/validation/scheffer-lake/lake_results.json` -> `block_bootstrap`:
 
@@ -52,7 +52,7 @@ Read `v4/validation/scheffer-lake/lake_results.json` -> `block_bootstrap`:
 - `n_boot` = 1000 (or whatever the last invocation used)
 - `block_size_days` = 30
 
-***REMOVED******REMOVED*** Verification confirmation
+## Verification confirmation
 
 The block-bootstrap p-value is the one that should be cited in any future
 publication — not the naive 1.6e-186. Both values are present in the JSON; the
@@ -65,7 +65,7 @@ qualitative scientific finding (AR1 trending up, variance trending up — both
 classical Scheffer early-warning signatures) is unchanged. The fix only
 removes the unphysical exponent.
 
-***REMOVED******REMOVED*** Next-step recommendation (for full paper polish, not in W7-D scope)
+## Next-step recommendation (for full paper polish, not in W7-D scope)
 
 1. Re-run `scheffer_block_bootstrap.py --n-boot 10000 --block 30` to push
    the block-bootstrap precision to 4 significant figures, matching the F1
@@ -75,7 +75,7 @@ removes the unphysical exponent.
 3. Optionally add a sensitivity scan over block-size {15, 30, 45, 60} days
    to demonstrate p does not depend on a single block-length choice.
 
-***REMOVED******REMOVED*** References
+## References
 
 - Künsch HR (1989). "The jackknife and the bootstrap for general stationary
   observations." *Ann. Stat.* 17, 1217-1241.

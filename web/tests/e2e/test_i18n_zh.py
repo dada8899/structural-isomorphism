@@ -35,7 +35,7 @@ def test_zh_landing_hero_in_chinese(page):
     assert "每日" in text and "1000+" in text and "上市公司" in text, (
         f"/zh hero missing Chinese positioning: {text!r}"
     )
-    ***REMOVED*** The original EN headline must not be the primary on /zh.
+    # The original EN headline must not be the primary on /zh.
     assert "Daily structural signals" not in text, (
         f"/zh hero unexpectedly shows EN copy: {text!r}"
     )
@@ -83,12 +83,12 @@ def test_switch_zh_to_en(page):
     en_btn.wait_for(state="visible", timeout=5000)
     href = en_btn.get_attribute("href")
     assert href is not None
-    ***REMOVED*** Either "/" or absolute with /. (Not /zh.)
+    # Either "/" or absolute with /. (Not /zh.)
     assert href.endswith("/") or not href.endswith("/zh"), (
         f"EN link href shouldn't keep /zh: {href!r}"
     )
     en_btn.click()
-    ***REMOVED*** The base URL "/" — we wait for the page where headline is English.
+    # The base URL "/" — we wait for the page where headline is English.
     page.wait_for_function(
         """() => {
             const h = document.querySelector('[data-testid=\"hero-headline\"]');
@@ -105,16 +105,16 @@ def test_localstorage_persists_locale_choice(page):
     zh_btn.wait_for(state="visible", timeout=5000)
     zh_btn.click()
     page.wait_for_url("**/zh", timeout=10000)
-    ***REMOVED*** Confirm localStorage written.
+    # Confirm localStorage written.
     stored = page.evaluate(
         "() => window.localStorage.getItem('phase-detector-locale')"
     )
     assert stored == "zh", f"localStorage locale not persisted: {stored!r}"
-    ***REMOVED*** Clear the session redirect flag so auto-redirect fires on next /.
+    # Clear the session redirect flag so auto-redirect fires on next /.
     page.evaluate(
         "() => window.sessionStorage.removeItem('phase-detector-locale-redirected')"
     )
-    ***REMOVED*** Now navigate to / — should auto-redirect to /zh because localStorage='zh'.
+    # Now navigate to / — should auto-redirect to /zh because localStorage='zh'.
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_url("**/zh", timeout=10000)
 

@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-PROJECT_DIR = Path(__file__).resolve().parents[2]  ***REMOVED*** v4/product/d1_phase_detector
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # v4/product/d1_phase_detector
 MIGRATION = PROJECT_DIR / "migrations" / "0001_companies_structtuples_sqlite.sql"
 
 
@@ -127,7 +127,7 @@ def client(tmp_path, monkeypatch):
     _seed(db_path, _sample_rows())
     monkeypatch.setenv("DB_URL", f"sqlite:///{db_path}")
 
-    ***REMOVED*** reload the api modules so they pick up the new DB_URL
+    # reload the api modules so they pick up the new DB_URL
     import v4.product.d1_phase_detector.api.db as db_mod
     import v4.product.d1_phase_detector.api.main as main_mod
     importlib.reload(db_mod)
@@ -135,7 +135,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(main_mod.app)
 
 
-***REMOVED*** ---------- /health ----------
+# ---------- /health ----------
 
 
 def test_health(client):
@@ -144,7 +144,7 @@ def test_health(client):
     assert r.json() == {"status": "ok"}
 
 
-***REMOVED*** ---------- /stats ----------
+# ---------- /stats ----------
 
 
 def test_stats(client):
@@ -160,7 +160,7 @@ def test_stats(client):
     assert body["by_universality_class"]["soc_threshold_cascade"] == 2
 
 
-***REMOVED*** ---------- /screener ----------
+# ---------- /screener ----------
 
 
 def test_screener_no_filter(client):
@@ -168,7 +168,7 @@ def test_screener_no_filter(client):
     assert r.status_code == 200
     items = r.json()
     assert len(items) == 5
-    ***REMOVED*** ordered by confidence desc
+    # ordered by confidence desc
     assert items[0]["ticker"] == "LEH"
     assert items[0]["extraction_confidence"] == 0.92
 
@@ -209,7 +209,7 @@ def test_screener_min_confidence(client):
     r = client.get("/screener", params={"min_confidence": 0.8})
     assert r.status_code == 200
     tickers = {i["ticker"] for i in r.json()}
-    ***REMOVED*** LEH 0.92, AAPL 0.85, BBY 0.85
+    # LEH 0.92, AAPL 0.85, BBY 0.85
     assert tickers == {"LEH", "AAPL", "BBY"}
 
 
@@ -240,7 +240,7 @@ def test_screener_empty_result(client):
     assert r.json() == []
 
 
-***REMOVED*** ---------- /company/{ticker} ----------
+# ---------- /company/{ticker} ----------
 
 
 def test_company_detail_hit(client):
@@ -264,7 +264,7 @@ def test_company_detail_404(client):
     assert "not found" in r.json()["detail"]
 
 
-***REMOVED*** ---------- CORS ----------
+# ---------- CORS ----------
 
 
 def test_cors_headers(client):
@@ -276,7 +276,7 @@ def test_cors_headers(client):
     assert r.headers.get("access-control-allow-origin") == "*"
 
 
-***REMOVED*** ---------- W6-E extended edge cases ----------
+# ---------- W6-E extended edge cases ----------
 
 
 def test_screener_combo_dynamics_critical_state(client):
@@ -296,7 +296,7 @@ def test_screener_min_confidence_boundary_inclusive(client):
     r = client.get("/screener", params={"min_confidence": 0.85})
     assert r.status_code == 200
     tickers = {i["ticker"] for i in r.json()}
-    ***REMOVED*** LEH 0.92, AAPL 0.85, BBY 0.85 (all >= 0.85)
+    # LEH 0.92, AAPL 0.85, BBY 0.85 (all >= 0.85)
     assert tickers == {"LEH", "AAPL", "BBY"}
 
 
@@ -312,7 +312,7 @@ def test_screener_large_limit_capped(client):
     """limit=500 should not 4xx; returns all available."""
     r = client.get("/screener", params={"limit": 500})
     assert r.status_code == 200
-    assert len(r.json()) == 5  ***REMOVED*** all seeded rows
+    assert len(r.json()) == 5  # all seeded rows
 
 
 def test_screener_nonexistent_sector_empty_not_404(client):
@@ -333,7 +333,7 @@ def test_screener_three_filter_combo_empty(client):
         },
     )
     assert r.status_code == 200
-    ***REMOVED*** SOC rows are LEH (tipped) + GME (near_critical), neither is far_from_critical
+    # SOC rows are LEH (tipped) + GME (near_critical), neither is far_from_critical
     assert r.json() == []
 
 
@@ -343,7 +343,7 @@ def test_screener_ordering_by_confidence_desc(client):
     assert r.status_code == 200
     items = r.json()
     confs = [i["extraction_confidence"] for i in items if i["extraction_confidence"] is not None]
-    ***REMOVED*** Confidences should be non-increasing
+    # Confidences should be non-increasing
     for a, b in zip(confs, confs[1:]):
         assert a >= b, f"ordering broken: {a} then {b}"
 
@@ -366,7 +366,7 @@ def test_screener_universality_class_none(client):
     """Rows where universality_class IS NULL should NOT match a filter."""
     r = client.get("/screener", params={"universality_class": "soc_threshold_cascade"})
     tickers = {i["ticker"] for i in r.json()}
-    ***REMOVED*** AAPL has 'bose_einstein_network'; BBY/LOWCONF have NULL universality_class
+    # AAPL has 'bose_einstein_network'; BBY/LOWCONF have NULL universality_class
     assert "BBY" not in tickers
     assert "LOWCONF" not in tickers
 
@@ -376,7 +376,7 @@ def test_health_response_shape(client):
     body = r.json()
     assert "status" in body
     assert body["status"] == "ok"
-    ***REMOVED*** Defensive: no unexpected keys
+    # Defensive: no unexpected keys
     assert set(body.keys()) == {"status"}
 
 
@@ -387,7 +387,7 @@ def test_stats_top_level_keys(client):
     for k in ("total", "by_dynamics_family", "by_critical_point_state",
               "by_universality_class", "by_sector"):
         assert k in body, f"stats response missing {k}"
-    ***REMOVED*** All by_* dicts have nonneg int values
+    # All by_* dicts have nonneg int values
     for k, dct in body.items():
         if isinstance(dct, dict):
             for label, n in dct.items():

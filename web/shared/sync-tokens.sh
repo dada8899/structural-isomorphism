@@ -1,6 +1,6 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** Sync the canonical web/shared/tokens.css to the two site-local mirrors.
-***REMOVED*** Run this after editing tokens.css.
+#!/usr/bin/env bash
+# Sync the canonical web/shared/tokens.css to the two site-local mirrors.
+# Run this after editing tokens.css.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -20,7 +20,7 @@ for t in "${TARGETS[@]}"; do
   echo "synced → $t"
 done
 
-***REMOVED*** Verify the mirrors are byte-identical
+# Verify the mirrors are byte-identical
 for t in "${TARGETS[@]}"; do
   if ! cmp -s "$SRC" "$t"; then
     echo "error: $t diverges from $SRC after copy" >&2

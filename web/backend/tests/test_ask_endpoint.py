@@ -20,14 +20,14 @@ from pathlib import Path
 from typing import List
 from unittest.mock import patch
 
-***REMOVED*** Ensure `web/backend` is on sys.path when running directly so the
-***REMOVED*** `services.*` imports resolve the same way as in production.
+# Ensure `web/backend` is on sys.path when running directly so the
+# `services.*` imports resolve the same way as in production.
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
-from services.ask_orchestrator import AskOrchestrator  ***REMOVED*** noqa: E402
-from services.ask_schemas import AskAnswerPayload  ***REMOVED*** noqa: E402
+from services.ask_orchestrator import AskOrchestrator  # noqa: E402
+from services.ask_schemas import AskAnswerPayload  # noqa: E402
 
 
 class _FakeSearch:
@@ -109,7 +109,7 @@ def _parse_sse_events(chunks: List[str]):
     """Convert raw SSE-formatted strings into a list of (event, data) tuples."""
     out = []
     text = "".join(chunks)
-    ***REMOVED*** Each event is "event: <name>\ndata: <json>\n\n"
+    # Each event is "event: <name>\ndata: <json>\n\n"
     for block in re.split(r"\n\n", text):
         block = block.strip()
         if not block:
@@ -139,8 +139,8 @@ class AskOrchestratorTests(unittest.TestCase):
         search = _FakeSearch(_FIXED_KB)
         orch = AskOrchestrator(search_service=search)
 
-        ***REMOVED*** Patch out the network call and the typewriter sleep so the test
-        ***REMOVED*** runs in <100ms regardless of asyncio loop scheduling.
+        # Patch out the network call and the typewriter sleep so the test
+        # runs in <100ms regardless of asyncio loop scheduling.
         with patch.object(AskOrchestrator, "_call_llm_once", return_value=_MOCK_LLM_JSON), \
              patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
             chunks = asyncio.run(_collect(orch.stream("为什么银行系统会突然崩溃？", lang="zh")))
@@ -148,14 +148,14 @@ class AskOrchestratorTests(unittest.TestCase):
         events = _parse_sse_events(chunks)
         names = [e[0] for e in events]
 
-        ***REMOVED*** Spec ordering: meta first, retrieval_done before kb_cards, done last.
-        ***REMOVED*** (retrieval_done was added in W5-B to give the user a < 5s signal
-        ***REMOVED*** before the kb_cards payload arrives.)
+        # Spec ordering: meta first, retrieval_done before kb_cards, done last.
+        # (retrieval_done was added in W5-B to give the user a < 5s signal
+        # before the kb_cards payload arrives.)
         self.assertEqual(names[0], "meta")
         self.assertEqual(names[-1], "done")
         self.assertLess(names.index("retrieval_done"), names.index("kb_cards"))
 
-        ***REMOVED*** All required event types present (retrieval_done is new in W5-B).
+        # All required event types present (retrieval_done is new in W5-B).
         for required in (
             "meta",
             "retrieval_done",
@@ -168,19 +168,19 @@ class AskOrchestratorTests(unittest.TestCase):
         ):
             self.assertIn(required, names, f"missing event: {required}")
 
-        ***REMOVED*** meta payload sanity.
+        # meta payload sanity.
         meta_data = events[names.index("meta")][1]
         self.assertEqual(meta_data["query"], "为什么银行系统会突然崩溃？")
         self.assertEqual(meta_data["lang"], "zh")
         self.assertIn("started_at", meta_data)
 
-        ***REMOVED*** kb_cards: 5 cards from fixture.
+        # kb_cards: 5 cards from fixture.
         kb_data = events[names.index("kb_cards")][1]
         self.assertEqual(kb_data["count"], 5)
         self.assertEqual(len(kb_data["cards"]), 5)
         self.assertEqual(kb_data["cards"][0]["id"], "phen-1")
 
-        ***REMOVED*** answer_chunk events accumulate to the full answer text.
+        # answer_chunk events accumulate to the full answer text.
         accumulated = "".join(
             ev["delta"] for name, ev in events if name == "answer_chunk"
         )
@@ -188,14 +188,14 @@ class AskOrchestratorTests(unittest.TestCase):
         self.assertEqual(accumulated, answer_done["full_text"])
         self.assertGreater(len(answer_done["full_text"]), 20)
 
-        ***REMOVED*** Citations: 3 emitted, all idx in 1..5, kb_id rewritten to canonical.
+        # Citations: 3 emitted, all idx in 1..5, kb_id rewritten to canonical.
         citations = answer_done["citations"]
         self.assertEqual(len(citations), 3)
         for cit in citations:
             self.assertIn(cit["idx"], (1, 2, 3, 4, 5))
             self.assertTrue(cit["kb_id"].startswith("phen-"))
 
-        ***REMOVED*** similar_phenomena: top-3 with key_metric and kb_id.
+        # similar_phenomena: top-3 with key_metric and kb_id.
         sim = next(ev for name, ev in events if name == "similar_phenomena")
         self.assertEqual(len(sim["phenomena"]), 3)
         for p in sim["phenomena"]:
@@ -204,21 +204,21 @@ class AskOrchestratorTests(unittest.TestCase):
             self.assertIn("key_metric", p)
             self.assertIn("kb_id", p)
 
-        ***REMOVED*** followups: 3 questions, all non-empty strings.
+        # followups: 3 questions, all non-empty strings.
         fu = next(ev for name, ev in events if name == "followups")
         self.assertEqual(len(fu["questions"]), 3)
         for q in fu["questions"]:
             self.assertIsInstance(q, str)
             self.assertGreater(len(q.strip()), 0)
 
-        ***REMOVED*** done: latency_ms is a non-negative int.
+        # done: latency_ms is a non-negative int.
         done = next(ev for name, ev in events if name == "done")
         self.assertGreaterEqual(done["latency_ms"], 0)
 
     def test_citation_idx_out_of_cards_range_dropped(self):
         """LLM returns idx=8 (passes schema 1-20 but exceeds cards=5) -> dropped at canonicalization."""
-        ***REMOVED*** idx=8 satisfies the pydantic schema (1..20) but our fake KB has
-        ***REMOVED*** only 5 cards, so _validate_citations must drop it.
+        # idx=8 satisfies the pydantic schema (1..20) but our fake KB has
+        # only 5 cards, so _validate_citations must drop it.
         partly_bad = json.dumps({
             "answer": "网络级联 [1] 与森林火灾 [8] 是同一结构。" * 3,
             "citations": [
@@ -237,8 +237,8 @@ class AskOrchestratorTests(unittest.TestCase):
 
         events = _parse_sse_events(chunks)
         answer_done = next(ev for name, ev in events if name == "answer_done")
-        ***REMOVED*** The idx=8 must be dropped at the cards-range validation step;
-        ***REMOVED*** only the valid idx=1 survives with canonical kb_id from cards.
+        # The idx=8 must be dropped at the cards-range validation step;
+        # only the valid idx=1 survives with canonical kb_id from cards.
         self.assertEqual(len(answer_done["citations"]), 1)
         self.assertEqual(answer_done["citations"][0]["idx"], 1)
         self.assertEqual(answer_done["citations"][0]["kb_id"], "phen-1")
@@ -247,30 +247,30 @@ class AskOrchestratorTests(unittest.TestCase):
         """Sanity-check the schema rejects too-short answers."""
         with self.assertRaises(Exception):
             AskAnswerPayload(
-                answer="short",  ***REMOVED*** < 20 chars → reject
+                answer="short",  # < 20 chars → reject
                 citations=[{"idx": 1, "kb_id": "k", "label": "L"}],
                 followups=["a?", "b?"],
             )
 
 
-***REMOVED******REMOVED*** ---------------------------------------------------------------------
-***REMOVED******REMOVED*** HTTP-level tests for POST /api/ask/stream
-***REMOVED******REMOVED***
-***REMOVED******REMOVED*** The above suite covers the orchestrator's SSE generator in isolation.
-***REMOVED******REMOVED*** This second block wires the FastAPI router into a TestClient + mocks
-***REMOVED******REMOVED*** the orchestrator's network calls, so we exercise the actual request
-***REMOVED******REMOVED*** shape that the frontend hits: pydantic body validation, auth/tier
-***REMOVED******REMOVED*** flow, SSE response headers, abort cleanup, and the rate-limit decorator
-***REMOVED******REMOVED*** wiring. We avoid importing main.py because it boots a sentence-encoder
-***REMOVED******REMOVED*** at startup; instead we build a minimal FastAPI app inline.
-***REMOVED******REMOVED*** ---------------------------------------------------------------------
+## ---------------------------------------------------------------------
+## HTTP-level tests for POST /api/ask/stream
+##
+## The above suite covers the orchestrator's SSE generator in isolation.
+## This second block wires the FastAPI router into a TestClient + mocks
+## the orchestrator's network calls, so we exercise the actual request
+## shape that the frontend hits: pydantic body validation, auth/tier
+## flow, SSE response headers, abort cleanup, and the rate-limit decorator
+## wiring. We avoid importing main.py because it boots a sentence-encoder
+## at startup; instead we build a minimal FastAPI app inline.
+## ---------------------------------------------------------------------
 
-import importlib  ***REMOVED*** noqa: E402
-import os  ***REMOVED*** noqa: E402
+import importlib  # noqa: E402
+import os  # noqa: E402
 
-import pytest  ***REMOVED*** noqa: E402
-from fastapi import FastAPI  ***REMOVED*** noqa: E402
-from fastapi.testclient import TestClient  ***REMOVED*** noqa: E402
+import pytest  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 
 class _FakeSearchService:
@@ -290,23 +290,23 @@ def ask_app(monkeypatch):
     constructing the app ourselves and stuffing a fake SearchService into
     the shared `app_state` dict that api.ask reaches into.
     """
-    ***REMOVED*** Force the api.ask module to (re-)import cleanly and capture refs
-    ***REMOVED*** to the shared state it consumes.
+    # Force the api.ask module to (re-)import cleanly and capture refs
+    # to the shared state it consumes.
     main_mod = importlib.import_module("main")
     monkeypatch.setitem(main_mod.app_state, "search", _FakeSearchService())
 
-    ***REMOVED*** Patch the orchestrator so no live LLM calls happen. Patching at the
-    ***REMOVED*** AskOrchestrator class level so any instance constructed by the
-    ***REMOVED*** endpoint picks it up.
+    # Patch the orchestrator so no live LLM calls happen. Patching at the
+    # AskOrchestrator class level so any instance constructed by the
+    # endpoint picks it up.
     monkeypatch.setattr(
         "services.ask_orchestrator.AskOrchestrator._call_llm_once",
-        ***REMOVED*** _call_llm_once is async; return a coroutine that resolves to JSON.
+        # _call_llm_once is async; return a coroutine that resolves to JSON.
         lambda self, prompt: _async_value(_MOCK_LLM_JSON),
         raising=True,
     )
     monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0, raising=False)
 
-    ***REMOVED*** Build the app with rate-limit + ask router only.
+    # Build the app with rate-limit + ask router only.
     from services.rate_limit import limiter
     from api import ask as ask_module
 
@@ -316,8 +316,8 @@ def ask_app(monkeypatch):
         from slowapi.errors import RateLimitExceeded
         app.state.limiter = limiter
         app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-        ***REMOVED*** Reset slowapi's in-memory counters between tests so the rate-limit
-        ***REMOVED*** case starts from zero and unrelated tests aren't tripped.
+        # Reset slowapi's in-memory counters between tests so the rate-limit
+        # case starts from zero and unrelated tests aren't tripped.
         try:
             limiter.reset()
         except Exception:
@@ -363,14 +363,14 @@ class TestAskStreamEndpoint:
             ) as r:
                 assert r.status_code == 200
                 assert r.headers["content-type"].startswith("text/event-stream")
-                ***REMOVED*** The 'X-Accel-Buffering' header tells nginx not to buffer; the
-                ***REMOVED*** endpoint is supposed to set it explicitly.
+                # The 'X-Accel-Buffering' header tells nginx not to buffer; the
+                # endpoint is supposed to set it explicitly.
                 assert r.headers.get("x-accel-buffering") == "no"
                 chunks = _consume_sse(r)
         full = "".join(chunks)
-        ***REMOVED*** 'meta' is the first event the orchestrator emits per the spec.
+        # 'meta' is the first event the orchestrator emits per the spec.
         assert "event: meta" in full
-        assert "event: done" in full  ***REMOVED*** stream actually completed
+        assert "event: done" in full  # stream actually completed
 
     def test_empty_query_rejected_422(self, ask_app):
         """Pydantic min_length=1 → empty string → 422."""
@@ -384,11 +384,11 @@ class TestAskStreamEndpoint:
             r = client.post("/api/ask/stream", json={"query": "x" * 8001})
         assert r.status_code == 422
         body = r.json()
-        ***REMOVED*** When the request fails the structural cap *exactly* at the boundary
-        ***REMOVED*** (8001 = MAX_QUERY_CHARS + 1), our handler still runs and shapes the
-        ***REMOVED*** error body. Beyond that (e.g. 9000) pydantic catches it first and
-        ***REMOVED*** surfaces its own 'detail' shape — both are acceptable 422 outcomes
-        ***REMOVED*** but for the boundary case we assert the friendly shape.
+        # When the request fails the structural cap *exactly* at the boundary
+        # (8001 = MAX_QUERY_CHARS + 1), our handler still runs and shapes the
+        # error body. Beyond that (e.g. 9000) pydantic catches it first and
+        # surfaces its own 'detail' shape — both are acceptable 422 outcomes
+        # but for the boundary case we assert the friendly shape.
         if "error" in body:
             assert body["error"] == "input_too_long"
             assert body["limit"] == 8000
@@ -403,7 +403,7 @@ class TestAskStreamEndpoint:
                 "/api/ask/stream",
                 json={"query": "Why " + ("do banks collapse " * 250)},
             ) as r:
-                ***REMOVED*** New cap allows long inputs; 200 + event-stream.
+                # New cap allows long inputs; 200 + event-stream.
                 assert r.status_code == 200, f"expected 200 within cap, got {r.status_code}"
                 assert r.headers["content-type"].startswith("text/event-stream")
 
@@ -448,7 +448,7 @@ class TestAskStreamEndpoint:
 
     def test_invalid_bearer_token_returns_401(self, ask_app, monkeypatch):
         """Token provided but not in allowlist → 401 (verify_api_token → None)."""
-        ***REMOVED*** Configure a single 'free' token; we send a different one.
+        # Configure a single 'free' token; we send a different one.
         monkeypatch.setenv("STRUCTURAL_API_TOKENS", "free:tok-real-one")
         with TestClient(ask_app) as client:
             r = client.post(
@@ -493,13 +493,13 @@ class TestAskStreamEndpoint:
             r6 = client.post(
                 "/api/ask/stream", json={"query": "Why do banks collapse"}
             )
-        ***REMOVED*** 6th request exceeds the 5/min floor → rate limited.
+        # 6th request exceeds the 5/min floor → rate limited.
         assert r6.status_code == 429
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker on /api/ask/stream
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Launch P0-2 — daily LLM budget circuit breaker on /api/ask/stream
+# --------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -524,20 +524,20 @@ def test_ask_over_budget_returns_friendly_429(ask_app_with_problem_handler, monk
     ledger.reset()
 
     with TestClient(ask_app_with_problem_handler) as client:
-        ***REMOVED*** First request consumes the single allowed slot.
+        # First request consumes the single allowed slot.
         with client.stream(
             "POST", "/api/ask/stream", json={"query": "Why do banks collapse"}
         ) as r1:
             assert r1.status_code == 200
             for _ in r1.iter_text():
                 pass
-        ***REMOVED*** Second request is over budget — friendly 429, not 500.
+        # Second request is over budget — friendly 429, not 500.
         r2 = client.post(
             "/api/ask/stream", json={"query": "Why do banks collapse again"}
         )
     assert r2.status_code == 429
     body = r2.json()
-    ***REMOVED*** RFC 7807 envelope with the budget_exceeded type.
+    # RFC 7807 envelope with the budget_exceeded type.
     assert body["type"].endswith("/budget_exceeded")
     assert "tomorrow" in body["detail"].lower()
     ledger.reset()
@@ -554,9 +554,9 @@ def test_ask_under_budget_unaffected(ask_app_with_problem_handler, monkeypatch):
     ledger.reset()
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Launch P1-2 — LLM errors map to stable codes, never leak str(exc)
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Launch P1-2 — LLM errors map to stable codes, never leak str(exc)
+# --------------------------------------------------------------------------
 
 
 def test_classify_upstream_error_maps_to_stable_codes():
@@ -566,9 +566,9 @@ def test_classify_upstream_error_maps_to_stable_codes():
 
     assert _classify_upstream_error(httpx.TimeoutException("x")) == "upstream_timeout"
     assert _classify_upstream_error(httpx.ConnectError("x")) == "upstream_unreachable"
-    ***REMOVED*** Unknown errors degrade to a generic, non-leaking code.
+    # Unknown errors degrade to a generic, non-leaking code.
     assert _classify_upstream_error(ValueError("secret-url-inside")) == "upstream_error"
-    ***REMOVED*** The code must NOT contain the original exception text.
+    # The code must NOT contain the original exception text.
     for exc in (httpx.TimeoutException("https://internal:9000 timed out after 300s"),
                 RuntimeError("connection refused at 10.0.0.5")):
         code = _classify_upstream_error(exc)

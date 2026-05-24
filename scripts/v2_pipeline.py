@@ -19,12 +19,12 @@ from collections import defaultdict
 from pathlib import Path
 from sentence_transformers import SentenceTransformer, util
 
-***REMOVED*** === Config ===
+# === Config ===
 PROJECT_DIR = Path(__file__).parent.parent
 MODEL_DIR = PROJECT_DIR / "models" / "structural-v1"
 KB_DIR = PROJECT_DIR / "data"
 OUTPUT_DIR = PROJECT_DIR / "results"
-SIMILARITY_THRESHOLD = 0.70  ***REMOVED*** only consider pairs above this
+SIMILARITY_THRESHOLD = 0.70  # only consider pairs above this
 
 def load_knowledge_base():
     """Load all phenomena from knowledge base files."""
@@ -33,7 +33,7 @@ def load_knowledge_base():
         with open(kb_file) as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('***REMOVED***'):
+                if not line or line.startswith('#'):
                     continue
                 try:
                     item = json.loads(line)
@@ -50,20 +50,20 @@ def compute_all_similarities(kb, model):
     embeddings = model.encode(descriptions, show_progress_bar=True, convert_to_numpy=True)
 
     print("Computing pairwise similarities...")
-    ***REMOVED*** Use efficient batch computation
+    # Use efficient batch computation
     sim_matrix = util.cos_sim(embeddings, embeddings).numpy()
 
-    ***REMOVED*** Extract pairs above threshold
+    # Extract pairs above threshold
     pairs = []
     n = len(kb)
     for i in range(n):
         for j in range(i + 1, n):
             sim = float(sim_matrix[i][j])
             if sim >= SIMILARITY_THRESHOLD:
-                ***REMOVED*** Skip same-type pairs (already known to be similar)
+                # Skip same-type pairs (already known to be similar)
                 if kb[i].get('type_id') == kb[j].get('type_id'):
                     continue
-                ***REMOVED*** Skip same-domain pairs (less interesting)
+                # Skip same-domain pairs (less interesting)
                 if kb[i].get('domain') == kb[j].get('domain'):
                     continue
                 pairs.append({
@@ -81,10 +81,10 @@ def filter_known_analogies_simple(pairs):
     Simple filter: check if the two phenomena names commonly co-occur.
     (Full Semantic Scholar integration can be added later)
     """
-    ***REMOVED*** For now, use a simple heuristic:
-    ***REMOVED*** If both names contain very common analogy keywords, likely known
+    # For now, use a simple heuristic:
+    # If both names contain very common analogy keywords, likely known
     KNOWN_ANALOGIES = {
-        ***REMOVED*** Known cross-domain pairs that are already well-documented
+        # Known cross-domain pairs that are already well-documented
         frozenset(["自然选择", "市场竞争"]),
         frozenset(["热力学熵", "信息熵"]),
         frozenset(["神经网络", "人工神经网络"]),
@@ -102,7 +102,7 @@ def filter_known_analogies_simple(pairs):
         name_b = pair['item_b'].get('name', '')
         pair_set = frozenset([name_a, name_b])
 
-        ***REMOVED*** Check if this is a known analogy
+        # Check if this is a known analogy
         is_known = False
         for known in KNOWN_ANALOGIES:
             if any(k in name_a for k in known) and any(k in name_b for k in known):
@@ -122,7 +122,7 @@ def generate_report(pairs, output_file, top_n=50):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     report = []
-    report.append("***REMOVED*** V2 Structural Isomorphism: Unknown Cross-Domain Connections")
+    report.append("# V2 Structural Isomorphism: Unknown Cross-Domain Connections")
     report.append(f"\nGenerated: {time.strftime('%Y-%m-%d %H:%M')}")
     report.append(f"Total candidates: {len(pairs)}")
     report.append(f"Showing top {min(top_n, len(pairs))}\n")
@@ -133,7 +133,7 @@ def generate_report(pairs, output_file, top_n=50):
         b = pair['item_b']
         sim = pair['similarity']
 
-        report.append(f"***REMOVED******REMOVED*** ***REMOVED***{rank} | Similarity: {sim:.4f}")
+        report.append(f"## #{rank} | Similarity: {sim:.4f}")
         report.append(f"")
         report.append(f"**A: {a.get('name', 'Unknown')}** ({a.get('domain', '?')})")
         report.append(f"  Structure type: {a.get('type_id', '?')}-{a.get('type_name', '?') if 'type_name' in a else ''}")
@@ -150,7 +150,7 @@ def generate_report(pairs, output_file, top_n=50):
 
     print(f"Report saved to: {output_file}")
 
-    ***REMOVED*** Also save as JSONL for programmatic access
+    # Also save as JSONL for programmatic access
     jsonl_file = output_file.with_suffix('.jsonl')
     with open(jsonl_file, 'w') as f:
         for rank, pair in enumerate(pairs[:top_n], 1):
@@ -181,7 +181,7 @@ def main():
     global SIMILARITY_THRESHOLD
     SIMILARITY_THRESHOLD = args.threshold
 
-    ***REMOVED*** Step 1: Load knowledge base
+    # Step 1: Load knowledge base
     print("=" * 60)
     print("Step 1: Loading knowledge base")
     print("=" * 60)
@@ -190,27 +190,27 @@ def main():
         print(f"WARNING: Only {len(kb)} phenomena loaded. Expected 500+.")
         print("Make sure kb-*.jsonl files exist in data/ directory.")
 
-    ***REMOVED*** Step 2: Load model and compute similarities
+    # Step 2: Load model and compute similarities
     print("\n" + "=" * 60)
     print("Step 2: Computing structural similarities")
     print("=" * 60)
     model = SentenceTransformer(str(MODEL_DIR))
     pairs = compute_all_similarities(kb, model)
 
-    ***REMOVED*** Step 3: Filter known analogies
+    # Step 3: Filter known analogies
     print("\n" + "=" * 60)
     print("Step 3: Filtering known analogies")
     print("=" * 60)
     pairs = filter_known_analogies_simple(pairs)
 
-    ***REMOVED*** Step 4: Generate report
+    # Step 4: Generate report
     print("\n" + "=" * 60)
     print("Step 4: Generating report")
     print("=" * 60)
     output_file = OUTPUT_DIR / "v2-discoveries.md"
     generate_report(pairs, output_file, top_n=args.top_n)
 
-    ***REMOVED*** Summary
+    # Summary
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)

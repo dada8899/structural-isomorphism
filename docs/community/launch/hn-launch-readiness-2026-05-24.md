@@ -1,4 +1,4 @@
-***REMOVED*** HN launch readiness audit + day-of playbook — 2026-05-24
+# HN launch readiness audit + day-of playbook — 2026-05-24
 
 **Status**: not-yet-launched. Final go/no-go gate at end of doc.
 **Companion**: [hn-launch-2026-05-15.md](hn-launch-2026-05-15.md) — drafted post body.
@@ -10,13 +10,13 @@ This doc audits what we have, what's missing, and what we do on launch day.
 
 ---
 
-***REMOVED******REMOVED*** 1. Readiness checklist
+## 1. Readiness checklist
 
 Items marked **(blocker)** must be true before launch. Items marked **(strong)**
 are not strictly required but materially affect outcome. Items marked **(nice)**
 can be deferred.
 
-***REMOVED******REMOVED******REMOVED*** Content + story
+### Content + story
 
 - [x] Show HN body drafted ([hn-launch-2026-05-15.md](hn-launch-2026-05-15.md))
 - [x] Honest limitations section included (within-vendor ensemble, alpha-near-3 cases, etc.)
@@ -27,7 +27,7 @@ can be deferred.
 - [ ] **(nice)** Three publicly written case studies (1 hit / 1 miss / 1 in-progress) — boost trust signal
 - [ ] **(nice)** Single canonical 90-second video explainer linked from repo README
 
-***REMOVED******REMOVED******REMOVED*** Technical readiness
+### Technical readiness
 
 - [x] Public live URL works without auth: `beta.structural.bytedance.city`, `phase.bytedance.city`
 - [x] Repo public at `dada8899/structural-isomorphism`; README scannable in 30s
@@ -41,7 +41,7 @@ can be deferred.
 - [ ] **(strong)** Error tracking (Sentry or equivalent) on both apps catching JS errors + 5xx
 - [ ] **(nice)** Backup mirror for the demo URL in case primary CDN flakes
 
-***REMOVED******REMOVED******REMOVED*** Funnel + retention
+### Funnel + retention
 
 - [x] Waitlist form live (this PR — W7-D mini-brief 1)
 - [x] Plausible custom events instrumented (`Waitlist Signup`, `Checkout Start`)
@@ -49,14 +49,14 @@ can be deferred.
 - [ ] **(strong)** Twitter/X account `@structural_signals` exists with bio + pinned tweet linking to product (deferred per ~/.../W7-D § 8 item 9)
 - [ ] **(nice)** Pricing page with Stripe test-mode checkout (this PR — W7-D mini-brief 2; status: live but pre-PMF, "early access" framing)
 
-***REMOVED******REMOVED******REMOVED*** Compliance + caveat
+### Compliance + caveat
 
 - [x] Persistent "not financial advice" caveat in footer of phase detector
 - [x] Methodology page exists (W6-B)
 - [ ] **(strong)** First-visit caveat toast on `phase.bytedance.city` (W7-D § 5 trust-checklist item)
 - [ ] **(nice)** Per-company-page disclaimer for the StructTuple JSON
 
-***REMOVED******REMOVED******REMOVED*** Backtest gate (W7-D § 4.B is the "make or break")
+### Backtest gate (W7-D § 4.B is the "make or break")
 
 The W7-D doc explicitly says: **"No HN launch before backtest done — one shot only, must have ammunition."**
 
@@ -69,27 +69,27 @@ The W7-D doc explicitly says: **"No HN launch before backtest done — one shot 
 
 ---
 
-***REMOVED******REMOVED*** 2. Show HN title — 3 candidates (A/B/C)
+## 2. Show HN title — 3 candidates (A/B/C)
 
 The 2026-05-15 draft uses title **A**. Variants B and C are alternative
 framings for the 3 backtest outcomes from § 4.B. Pick at launch based on
 the backtest result.
 
-***REMOVED******REMOVED******REMOVED*** A — Methodology-first (current 2026-05-15 draft)
+### A — Methodology-first (current 2026-05-15 draft)
 > **Show HN: Structural Isomorphism — testing whether one Clauset MLE pipeline transfers across 13 scientific domains**
 
 - Strengths: signals seriousness, falsifiability-forward, accurate
 - Risks: 80 chars is borderline; "Clauset MLE" is jargon for non-stat-physics audiences; lower CTR than action-oriented titles
 - Best fit: Null/Weak backtest outcome — methodology IS the product
 
-***REMOVED******REMOVED******REMOVED*** B — Alpha-forward (use only if Strong backtest)
+### B — Alpha-forward (use only if Strong backtest)
 > **Show HN: Phase classifier for 500 public companies, transparent methodology, open backtest**
 
 - Strengths: concrete, scannable, names the audience (analysts), invites scrutiny via "open backtest"
 - Risks: dangerously close to "prediction service" framing — could attract financial advice complaints
 - Best fit: Strong backtest outcome (Sharpe ≥ 0.5) only
 
-***REMOVED******REMOVED******REMOVED*** C — Curiosity hook
+### C — Curiosity hook
 > **Show HN: We tested if neural avalanches and bank runs obey the same equation. They do.**
 
 - Strengths: highest CTR potential — concrete, surprising, true claim
@@ -100,12 +100,12 @@ the backtest result.
 
 ---
 
-***REMOVED******REMOVED*** 3. Top 10 anticipated objections + prepared answers
+## 3. Top 10 anticipated objections + prepared answers
 
 These are the FAQ comments to have prepped in a draft Google Doc on launch day,
 so the founder can respond within 5 minutes and not lose comment momentum.
 
-***REMOVED******REMOVED******REMOVED*** Q1: "13/13 in-band feels like p-hacking. Where are the failures?"
+### Q1: "13/13 in-band feels like p-hacking. Where are the failures?"
 
 > Sharing the concern — that's why we pre-registered FAIL cases up front.
 > The companion paper (`paper/anti-phacking-unified-2026-05-15.md`) walks
@@ -117,7 +117,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > systems (Bitcoin Cash transactions, FluNet ILI, Flickr cascades) before
 > fetching data.
 
-***REMOVED******REMOVED******REMOVED*** Q2: "Several alpha values sit near 3.0 — that's the boundary. How is the band test diagnostic there?"
+### Q2: "Several alpha values sit near 3.0 — that's the boundary. How is the band test diagnostic there?"
 
 > Correct, and it's a real concern. We report it explicitly in the paper.
 > S&P 500 returns and GitHub star cascades both have CIs that touch
@@ -127,7 +127,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > stricter than we are. The harder test is whether a NEW system can be
 > rejected.
 
-***REMOVED******REMOVED******REMOVED*** Q3: "Why no Claude / GPT-5 in the ensemble? Three DeepSeek decodings is not multi-vendor."
+### Q3: "Why no Claude / GPT-5 in the ensemble? Three DeepSeek decodings is not multi-vendor."
 
 > Fair and we say so in § 6 of v0.3 and § 8 of v0.4. The
 > architecturally-diverse B4 ensemble (Claude Opus + GPT-5 + DeepSeek +
@@ -136,7 +136,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > limitation, not pitched it as "ensemble". Multi-vendor proper is a Q3
 > 2026 deliverable.
 
-***REMOVED******REMOVED******REMOVED*** Q4: "Is this financial advice? You list public companies and a 'near critical' label."
+### Q4: "Is this financial advice? You list public companies and a 'near critical' label."
 
 > No. Persistent footer caveat on every page; methodology page makes it
 > clear we extract structural state from disclosures, we do not predict
@@ -145,7 +145,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > investors looking for buy signals. The dynamics_family + confidence
 > score is an extraction, not a forecast.
 
-***REMOVED******REMOVED******REMOVED*** Q5: "Cool but is the alpha real?"
+### Q5: "Cool but is the alpha real?"
 
 > v0.1 of the backtest is in this commit set; v0.2 (real data, full S&P
 > 500, 2020–2024 walk-forward) is the next 30 days. Per our
@@ -153,7 +153,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > → "modest alpha, transparent"; ≤ 0.1 → pivot to structured-narrative.
 > Whatever the result is, we'll publish it.
 
-***REMOVED******REMOVED******REMOVED*** Q6: "How does this differ from Bloomberg / Sentieo / Koyfin / TIKR?"
+### Q6: "How does this differ from Bloomberg / Sentieo / Koyfin / TIKR?"
 
 > Doesn't replace any of them. Bloomberg = everything. Sentieo / AlphaSense
 > = LLM Q&A on filings. Koyfin / TIKR = charts + financials. We sit one
@@ -161,7 +161,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > source quote + LLM prompt hash. Sits next to Koyfin in your tab bar,
 > not as a replacement for any of them.
 
-***REMOVED******REMOVED******REMOVED*** Q7: "Why power laws? Power laws are everywhere."
+### Q7: "Why power laws? Power laws are everywhere."
 
 > Power laws alone are weak evidence — Stumpf & Porter 2012 already
 > dismantled the "everything is power-law" enthusiasm. What we test is
@@ -170,14 +170,14 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > exponential alternatives AND pass block-bootstrap CIs. It's the
 > conjunction that's diagnostic, not "alpha is in (2, 3)".
 
-***REMOVED******REMOVED******REMOVED*** Q8: "Open source?"
+### Q8: "Open source?"
 
 > MIT-licensed code, CC-BY-4.0 datasets. PyPI: `pip install
 > structural-soc-pipeline`. Repo: `dada8899/structural-isomorphism`. The
 > 339-LOC frozen pipeline is `v4/lib/soc_pipeline.py` at commit
 > `7ee228c`. The Phase Detector data extraction prompts are also open.
 
-***REMOVED******REMOVED******REMOVED*** Q9: "Sample size — 13 systems is small. What's the statistical power on the meta-claim?"
+### Q9: "Sample size — 13 systems is small. What's the statistical power on the meta-claim?"
 
 > Correct, 13 is small and we don't argue otherwise. The roadmap
 > (paper § 8) lists 6 next-batch systems for pre-registration; the
@@ -185,7 +185,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 > more diagnostic with each fresh in-band hit and especially with each
 > fresh fail.
 
-***REMOVED******REMOVED******REMOVED*** Q10: "How do you make money?"
+### Q10: "How do you make money?"
 
 > Two paths, gated by the v0.2 backtest. Strong-signal path: Pro $19/mo,
 > Team $99/mo for analysts; B2B Structural Index API at $500/mo for
@@ -195,9 +195,9 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 
 ---
 
-***REMOVED******REMOVED*** 4. Day-of playbook
+## 4. Day-of playbook
 
-***REMOVED******REMOVED******REMOVED*** T -24h (Monday morning, day before launch)
+### T -24h (Monday morning, day before launch)
 
 - [ ] Confirm backtest v0.2 result + decide title A vs B
 - [ ] Run final dogfood pass: anonymous incognito → land → submit → screen
@@ -209,7 +209,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 - [ ] Open prepared-answers Google Doc, paste in the 10 Q&A from §3 above
 - [ ] Set Slack + iPhone push notifications for monitor.bytedance.city alerts
 
-***REMOVED******REMOVED******REMOVED*** T -1h (Tuesday, 7:30 AM ET)
+### T -1h (Tuesday, 7:30 AM ET)
 
 - [ ] Sanity-check: `curl -I https://beta.structural.bytedance.city` → 200
 - [ ] Sanity-check: `curl -I https://phase.bytedance.city` → 200
@@ -221,14 +221,14 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 - [ ] Have repo + paper + Zenodo DOI tabs all preloaded
 - [ ] Coffee
 
-***REMOVED******REMOVED******REMOVED*** T 0 (Tuesday 8:00 AM ET — submit)
+### T 0 (Tuesday 8:00 AM ET — submit)
 
 - [ ] Submit Show HN post with title A (or B if backtest greenlights)
 - [ ] Watch the first 5 minutes — is it climbing? If it stalls at rank 25+ → don't bump; let it ride
 - [ ] Within 10 min, post first comment (the body — Show HN auto-includes
       URL but body lives in the first comment)
 
-***REMOVED******REMOVED******REMOVED*** T +1h .. T +6h (peak)
+### T +1h .. T +6h (peak)
 
 - [ ] Respond to every top-level comment within 15 minutes
 - [ ] Watch monitor.bytedance.city dashboard: latency p95, error rate, RPS
@@ -237,7 +237,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 - [ ] Pin the 3-5 best questions; reply with prepared answers from § 3
 - [ ] DO NOT delete or vote-manipulate any comments. HN flags this.
 
-***REMOVED******REMOVED******REMOVED*** T +6h .. T +24h
+### T +6h .. T +24h
 
 - [ ] Continue answering every comment, even if slower
 - [ ] At T +12h, post a comment summarizing the top 3 questions + answers (helps
@@ -245,7 +245,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 - [ ] Schedule the "Thank you HN, here are the top concerns" follow-up post
       for T +48h (NOT a "Show HN") on /r/algotrading or directly on the blog
 
-***REMOVED******REMOVED******REMOVED*** T +24h .. T +48h
+### T +24h .. T +48h
 
 - [ ] Send the W7-D weekly-signals newsletter with a "from HN" subject line
       tag (the pipeline is in this PR — content needs human editorial)
@@ -253,7 +253,7 @@ so the founder can respond within 5 minutes and not lose comment momentum.
 - [ ] Write the retrospective doc: `docs/community/launch/hn-launch-retro-YYYY-MM-DD.md`
       with traffic curve + top objections actually surfaced + waitlist conversion
 
-***REMOVED******REMOVED******REMOVED*** Rollback conditions
+### Rollback conditions
 
 If any of the following → take down the linkpost via `delete` on HN
 (allowed within first 2h):
@@ -268,7 +268,7 @@ let it slide off front page naturally.
 
 ---
 
-***REMOVED******REMOVED*** 5. Go / no-go gate
+## 5. Go / no-go gate
 
 Launch only if **ALL** of:
 
@@ -288,7 +288,7 @@ Next checkpoint: 2026-06-24 (one month).
 
 ---
 
-***REMOVED******REMOVED*** Appendix — link-checks ran in this audit
+## Appendix — link-checks ran in this audit
 
 | Link | Status (2026-05-24) |
 |---|---|

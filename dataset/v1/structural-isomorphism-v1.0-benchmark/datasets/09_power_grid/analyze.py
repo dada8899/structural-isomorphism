@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 7 — North American power-grid cascade size distribution.
 
 System: OE-417/NERC reportable electric disturbance events (1984-2024)
@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     run_size_null_controls,
@@ -77,8 +77,8 @@ def fit_observable(values: np.ndarray, name: str) -> dict:
         print(f"  {k}: {v}")
     out["powerlaw_fit"] = pl
 
-    ***REMOVED*** Bootstrap CI only viable if n >= 200; for ~120 we use n_boot=200 and
-    ***REMOVED*** report widened CI as a known small-sample caveat.
+    # Bootstrap CI only viable if n >= 200; for ~120 we use n_boot=200 and
+    # report widened CI as a known small-sample caveat.
     if out["n_positive"] >= 200:
         ci = bootstrap_alpha_ci(values, n_boot=200, discrete=False)
         out["bootstrap_ci"] = ci
@@ -86,8 +86,8 @@ def fit_observable(values: np.ndarray, name: str) -> dict:
             print(f"  bootstrap_ci: [{ci['ci_low']:.3f}, {ci['ci_high']:.3f}] "
                   f"(mean={ci['alpha_mean']:.3f}, std={ci['alpha_std']:.3f})")
     else:
-        ***REMOVED*** Manual bootstrap below the soc_pipeline.bootstrap_alpha_ci floor (200).
-        ***REMOVED*** We still want a bootstrap for n=100-200 but flag the wider band.
+        # Manual bootstrap below the soc_pipeline.bootstrap_alpha_ci floor (200).
+        # We still want a bootstrap for n=100-200 but flag the wider band.
         out["bootstrap_ci"] = _small_n_bootstrap(values)
         if out["bootstrap_ci"]:
             ci = out["bootstrap_ci"]
@@ -120,7 +120,7 @@ def _small_n_bootstrap(vals: np.ndarray, n_boot: int = 300, seed: int = 42) -> d
         "alpha_mean": float(arr.mean()),
         "alpha_median": float(np.median(arr)),
         "alpha_std": float(arr.std()),
-        ***REMOVED*** widen to 5/95 instead of 2.5/97.5 because n<200 → CI tails noisy
+        # widen to 5/95 instead of 2.5/97.5 because n<200 → CI tails noisy
         "ci_low": float(np.percentile(arr, 5.0)),
         "ci_high": float(np.percentile(arr, 95.0)),
         "n_boot_succeeded": int(len(arr)),
@@ -154,27 +154,27 @@ def main():
                      if e.get("customers") is not None], dtype=float)
     print(f"  n_with_mw: {len(mw)}, n_with_customers: {len(cust)}")
 
-    ***REMOVED*** 1. MW loss
+    # 1. MW loss
     mw_result = fit_observable(mw, "mw_loss")
-    ***REMOVED*** 2. Customers affected
+    # 2. Customers affected
     cust_result = fit_observable(cust, "customers_affected")
 
-    ***REMOVED*** 3. Null control on matched n
+    # 3. Null control on matched n
     print("\n=== Null control ===")
     null_n = max(min(int(np.median([len(mw), len(cust)])), 20000), 500)
     nulls = run_size_null_controls(seed=42, n=null_n)
     print(f"  all_rejected (synthetic non-SOC): {nulls['all_rejected']}")
 
-    ***REMOVED*** Verdicts
+    # Verdicts
     alpha_mw = mw_result.get("powerlaw_fit", {}).get("alpha")
     alpha_cust = cust_result.get("powerlaw_fit", {}).get("alpha")
     verdict_mw = verdict(alpha_mw)
     verdict_cust = verdict(alpha_cust)
 
-    ***REMOVED*** Overall verdict logic:
-    ***REMOVED*** CONFIRMED if either observable falls in predicted band
-    ***REMOVED*** CONFIRMED (literature) if either falls in literature band but neither in predicted
-    ***REMOVED*** DEVIATING if both outside literature band
+    # Overall verdict logic:
+    # CONFIRMED if either observable falls in predicted band
+    # CONFIRMED (literature) if either falls in literature band but neither in predicted
+    # DEVIATING if both outside literature band
     if "CONFIRMED" in verdict_mw and verdict_mw == "CONFIRMED":
         overall = "CONFIRMED"
     elif "CONFIRMED" in verdict_cust and verdict_cust == "CONFIRMED":

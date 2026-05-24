@@ -1,4 +1,4 @@
-***REMOVED*** Session ***REMOVED***16 交接文档（人话版）
+# Session #16 交接文档（人话版）
 
 > 给下个 CC session 的技术版：`SESSION-16-HANDOFF.md` / `SESSION-17-START-PROMPT.md`
 > 本文档是给项目负责人看的「人话版」。
@@ -6,15 +6,15 @@
 
 ---
 
-***REMOVED******REMOVED*** 一句话总结
+## 一句话总结
 
-这个 session 把 **M1.4 报告生成器** 从 0 做到端到端上线 prod，顺手清了 session ***REMOVED***15 那次「5 天哑炮」事故的根因，修了一轮独立审查发现的安全漏洞。**16 个 commit，全部已上线 beta.structural.bytedance.city。**
+这个 session 把 **M1.4 报告生成器** 从 0 做到端到端上线 prod，顺手清了 session #15 那次「5 天哑炮」事故的根因，修了一轮独立审查发现的安全漏洞。**16 个 commit，全部已上线 beta.structural.bytedance.city。**
 
 ---
 
-***REMOVED******REMOVED*** 1. 这个 session 做完了什么
+## 1. 这个 session 做完了什么
 
-***REMOVED******REMOVED******REMOVED*** 主线：M1.4 报告生成器（5 个 PR 全部完成）
+### 主线：M1.4 报告生成器（5 个 PR 全部完成）
 
 之前 `/api/analyze/stream` 能生成 9 段研究报告，但报告**关掉就没了**——不能存、不能分享、不能反馈。现在：
 
@@ -25,9 +25,9 @@
 | 查看历史 | ❌ | ✅ `/api/reports/mine` 按设备列出（后端就绪，列表页 UI 待做） |
 | 反馈有用/没用 | ❌ | ✅ 每段 + 整体 👍/👎 按钮 |
 
-***REMOVED******REMOVED******REMOVED*** 配套修的事
+### 配套修的事
 
-- **`/api/version` 升级**：现在返回 `model` / `git_sha` / `deployed_at`——一条命令 `scripts/dogfood_fingerprint.py` 就能查 prod 跑的是不是最新代码。**这直接堵死了 session ***REMOVED***15「prod 跑老代码 5 天没人发现」的事故**。
+- **`/api/version` 升级**：现在返回 `model` / `git_sha` / `deployed_at`——一条命令 `scripts/dogfood_fingerprint.py` 就能查 prod 跑的是不是最新代码。**这直接堵死了 session #15「prod 跑老代码 5 天没人发现」的事故**。
 - **deploy 流程加 fingerprint 校验**：以后 deploy 完如果 prod 代码跟推的不一致，CI 立即报错，不会再哑炮。
 - **q7 预测拦截**：用户问「AI 能不能预测股票」这类问题，现在会礼貌拒答（不硬拗），prod 已验证生效。
 - **CI 加 runtime smoke test**：每晚自动装 prod 依赖跑一遍，防依赖漂移。
@@ -35,7 +35,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. 当前 prod 状态（已验证）
+## 2. 当前 prod 状态（已验证）
 
 ```
 站点    https://beta.structural.bytedance.city
@@ -47,7 +47,7 @@ M1.4    后端 + 前端 + 分享页全部上线，可用
 
 ---
 
-***REMOVED******REMOVED*** 3. 你需要知道的几件事
+## 3. 你需要知道的几件事
 
 1. **那个分享密钥永远不要动**
    这个 session 在 VPS `.env` 里设了 `STRUCTURAL_SHARE_TOKEN_SECRET`。它**一旦 rotate（更换），所有已经分享出去的报告链接全部失效**。已备份在 VPS 的 `.env.bak-*`。别删别改。
@@ -62,7 +62,7 @@ M1.4    后端 + 前端 + 分享页全部上线，可用
 
 ---
 
-***REMOVED******REMOVED*** 4. 下一步建议（优先级排序）
+## 4. 下一步建议（优先级排序）
 
 | 优先级 | 事项 | 估时 | 谁做 |
 |---|---|---|---|
@@ -75,7 +75,7 @@ M1.4    后端 + 前端 + 分享页全部上线，可用
 
 ---
 
-***REMOVED******REMOVED*** 5. 数字总账
+## 5. 数字总账
 
 - 19 个任务：18 完成 + 1（prod 密钥，已在 session 末解锁）
 - 16 个 commit 到 main
@@ -86,7 +86,7 @@ M1.4    后端 + 前端 + 分享页全部上线，可用
 
 ---
 
-***REMOVED******REMOVED*** 6. 关键文件索引
+## 6. 关键文件索引
 
 | 文件 | 用途 |
 |---|---|

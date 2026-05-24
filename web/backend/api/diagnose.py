@@ -1,4 +1,4 @@
-"""POST /api/diagnose — 结构诊断（Session ***REMOVED***18, feature F）.
+"""POST /api/diagnose — 结构诊断（Session #18, feature F）.
 
 输入一段对组织/公司/团队/项目处境的自然语言描述，产品给出一份「结构
 诊断」：判定它处于哪种结构状态（阻尼收敛 / 正反馈失控 / 滞回陷阱 /
@@ -31,8 +31,8 @@ router = APIRouter(tags=["diagnose"])
 
 
 class DiagnoseRequest(BaseModel):
-    ***REMOVED*** Bounds mirror diagnose_service.validate_situation — pydantic rejects
-    ***REMOVED*** the obvious abuse early; validate_situation re-checks after .strip().
+    # Bounds mirror diagnose_service.validate_situation — pydantic rejects
+    # the obvious abuse early; validate_situation re-checks after .strip().
     situation: str = Field(..., min_length=1, max_length=SITUATION_MAX_LEN)
 
 
@@ -46,32 +46,32 @@ async def diagnose_states():
 @tier_limit_decorator(default_anon="10/minute")
 async def diagnose(request: Request, req: DiagnoseRequest):
     """Run a structural diagnosis on one organisation/team situation."""
-    ***REMOVED*** Re-validate after strip — pydantic min_length doesn't strip whitespace.
+    # Re-validate after strip — pydantic min_length doesn't strip whitespace.
     try:
         situation = validate_situation(req.situation)
     except ValueError as e:
         raise HTTPException(422, str(e))
 
-    ***REMOVED*** No API key locally / in tests → be honest, don't fake a diagnosis.
+    # No API key locally / in tests → be honest, don't fake a diagnosis.
     if not llm_client.llm_available():
         raise HTTPException(
             503,
             "结构诊断需要 LLM 服务，当前不可用。请稍后重试。",
         )
 
-    ***REMOVED*** Best-effort: hand the KB search service to the diagnosis so it can
-    ***REMOVED*** anchor the result to a real same-structure phenomenon. When it is
-    ***REMOVED*** missing (not booted / tests) run_diagnosis just skips the lookup.
+    # Best-effort: hand the KB search service to the diagnosis so it can
+    # anchor the result to a real same-structure phenomenon. When it is
+    # missing (not booted / tests) run_diagnosis just skips the lookup.
     try:
         from main import app_state
 
         search_svc = app_state.get("search")
-    except Exception:  ***REMOVED*** noqa: BLE001 — search anchor is optional
+    except Exception:  # noqa: BLE001 — search anchor is optional
         search_svc = None
 
     result = await run_diagnosis(situation, search_svc=search_svc)
     if result is None:
-        ***REMOVED*** LLM call failed or returned unrecoverable garbage.
+        # LLM call failed or returned unrecoverable garbage.
         raise HTTPException(
             503,
             "结构诊断未能完成（模型无响应或输出无法解析）。请稍后重试。",

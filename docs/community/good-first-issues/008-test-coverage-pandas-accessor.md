@@ -1,20 +1,20 @@
-***REMOVED*** [tests] Improve test coverage of `soc_pipeline.pandas_accessor`
+# [tests] Improve test coverage of `soc_pipeline.pandas_accessor`
 
-***REMOVED******REMOVED*** What
+## What
 
 The `.soc` pandas accessor (`packages/soc-pipeline/src/soc_pipeline/pandas_accessor.py`, shipped in W8-e) currently has only the happy-path test from `tutorials/03_pandas_accessor.ipynb`. Add comprehensive unit tests covering: empty Series, NaN-containing Series, non-numeric dtype, MultiIndex inputs, and the `validate()` shortcut method.
 
-***REMOVED******REMOVED*** Why
+## Why
 
 The accessor is the user-facing surface that newcomers will hit first (literally `df['size'].soc.fit()`). Bugs here will be the first thing external researchers notice. Right now if a user passes a Series with even one NaN the behaviour is undocumented.
 
-***REMOVED******REMOVED*** Where
+## Where
 
 - Target file: `packages/soc-pipeline/src/soc_pipeline/pandas_accessor.py`
 - Place new tests at: `packages/soc-pipeline/tests/test_pandas_accessor.py`
 - Existing happy-path notebook: `tutorials/03_pandas_accessor.ipynb`
 
-***REMOVED******REMOVED*** How to start
+## How to start
 
 1. Baseline coverage:
    ```bash
@@ -31,13 +31,13 @@ The accessor is the user-facing surface that newcomers will hit first (literally
    - `.soc.validate()` chained call returns a verdict object
 3. Update `packages/soc-pipeline/README.md` to document the policy decisions you make.
 
-***REMOVED******REMOVED*** Definition of done
+## Definition of done
 
 - [ ] Coverage ≥ 90 % on `pandas_accessor.py`
 - [ ] Policy for NaN / empty / wrong-dtype documented in README
 - [ ] Tests run in < 5 s
 - [ ] CI green
 
-***REMOVED******REMOVED*** Difficulty
+## Difficulty
 
 ★ (well-scoped pandas / pytest work)

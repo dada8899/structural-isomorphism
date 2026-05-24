@@ -1,43 +1,43 @@
-***REMOVED*** SESSION-22 §1 — bumped from 0.110.0 to 0.115.14 as second-layer defense
-***REMOVED*** against the slowapi PEP 563 __globals__ crash root-fixed in SESSION-21 §2.
-***REMOVED*** 0.115.x is the last stable line with the same minor API surface as 0.110;
-***REMOVED*** 0.116+ introduces new behaviors not yet vetted here. The rate_limit.py
-***REMOVED*** _ChainedGlobals shim is the primary fix; this bump is belt-and-suspenders.
+# SESSION-22 §1 — bumped from 0.110.0 to 0.115.14 as second-layer defense
+# against the slowapi PEP 563 __globals__ crash root-fixed in SESSION-21 §2.
+# 0.115.x is the last stable line with the same minor API surface as 0.110;
+# 0.116+ introduces new behaviors not yet vetted here. The rate_limit.py
+# _ChainedGlobals shim is the primary fix; this bump is belt-and-suspenders.
 fastapi==0.115.14
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
 python-dotenv==1.0.1
 httpx==0.26.0
 numpy==1.26.3
-***REMOVED*** sentence-transformers 5.x — KB embedding model on disk is in v5.5.0 format
-***REMOVED*** (saved by retrain pipeline). Pinning 2.5.0 here was a stale drift that broke
-***REMOVED*** prod restart 2026-05-20 when a forced `pip install -r requirements.txt`
-***REMOVED*** downgraded ST to 2.5.0 and the model loader threw "version 5.5.0 → 2.5.0"
-***REMOVED*** incompatibility. Allow 5.4+ but cap below 6 to preserve the load contract.
+# sentence-transformers 5.x — KB embedding model on disk is in v5.5.0 format
+# (saved by retrain pipeline). Pinning 2.5.0 here was a stale drift that broke
+# prod restart 2026-05-20 when a forced `pip install -r requirements.txt`
+# downgraded ST to 2.5.0 and the model loader threw "version 5.5.0 → 2.5.0"
+# incompatibility. Allow 5.4+ but cap below 6 to preserve the load contract.
 sentence-transformers>=5.4.0,<6
-***REMOVED*** torch>=2.2 matches ST 5.x peer-dep range.
+# torch>=2.2 matches ST 5.x peer-dep range.
 torch>=2.2.0,<3
-***REMOVED*** W14-D (session ***REMOVED***10): structured JSON logging + correlation IDs.
+# W14-D (session #10): structured JSON logging + correlation IDs.
 structlog==25.5.0
-***REMOVED*** W15-E (session ***REMOVED***10): feature flags YAML config.
+# W15-E (session #10): feature flags YAML config.
 PyYAML>=6.0,<7.0
-***REMOVED*** W15-B (session ***REMOVED***10): JWT session tokens for magic-link auth scaffold.
+# W15-B (session #10): JWT session tokens for magic-link auth scaffold.
 pyjwt==2.12.1
-***REMOVED*** W7-D mini-brief 2 (2026-05-24): Stripe SDK for real test-mode checkout.
-***REMOVED*** Optional — billing.py auto-falls-back to mock mode if `stripe` is absent
-***REMOVED*** OR if STRIPE_TEST_SECRET_KEY is unset. Pin to a stable line; 7.x is the
-***REMOVED*** active major as of 2026-05.
+# W7-D mini-brief 2 (2026-05-24): Stripe SDK for real test-mode checkout.
+# Optional — billing.py auto-falls-back to mock mode if `stripe` is absent
+# OR if STRIPE_TEST_SECRET_KEY is unset. Pin to a stable line; 7.x is the
+# active major as of 2026-05.
 stripe>=7.0.0,<9
-***REMOVED*** X2 W1 (2026-05-24) — hybrid BM25 retrieval requires Chinese segmentation.
-***REMOVED*** Previously jieba/rank_bm25 were imported lazily inside services/search_service.py
-***REMOVED*** without being declared here, which let BM25 silently degrade to char-level
-***REMOVED*** tokenization in prod (X2 root-cause: dogfood q2 "团队相变恢复" → "形状记忆合金
-***REMOVED*** 相变恢复" score=1.0 via 4-char字面 hack). main.py lifespan now fails fast at
-***REMOVED*** startup if either is missing instead of silently degrading.
+# X2 W1 (2026-05-24) — hybrid BM25 retrieval requires Chinese segmentation.
+# Previously jieba/rank_bm25 were imported lazily inside services/search_service.py
+# without being declared here, which let BM25 silently degrade to char-level
+# tokenization in prod (X2 root-cause: dogfood q2 "团队相变恢复" → "形状记忆合金
+# 相变恢复" score=1.0 via 4-char字面 hack). main.py lifespan now fails fast at
+# startup if either is missing instead of silently degrading.
 jieba>=0.42.1
 rank_bm25>=0.2.2
-***REMOVED*** X2 W3 (2026-05-24) — language detection for EN→ZH translate-before-embed.
-***REMOVED*** Used in services/search_service.py:_detect_lang(). Lightweight pure-Python
-***REMOVED*** port of Google's compact language detector. Optional fallback to ASCII-ratio
-***REMOVED*** heuristic when import fails (search_service handles ImportError gracefully).
+# X2 W3 (2026-05-24) — language detection for EN→ZH translate-before-embed.
+# Used in services/search_service.py:_detect_lang(). Lightweight pure-Python
+# port of Google's compact language detector. Optional fallback to ASCII-ratio
+# heuristic when import fails (search_service handles ImportError gracefully).
 langdetect>=1.0.9

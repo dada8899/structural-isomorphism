@@ -2,7 +2,7 @@ name: site smoke
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'   ***REMOVED*** every 6h
+    - cron: '0 */6 * * *'   # every 6h
 jobs:
   smoke:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-***REMOVED*** Pre-registration methodology
+# Pre-registration methodology
 
 Pre-registration is the discipline of committing — in writing, with a
 verifiable timestamp — to the prediction, the data extraction recipe, and
@@ -8,7 +8,7 @@ the verifiable artifact is a YAML specification under
 `v4/preregistration/`. Once pushed, the predicted band cannot be silently
 widened post hoc.
 
-***REMOVED******REMOVED*** Why this is necessary
+## Why this is necessary
 
 In retrospective analysis the analyst has many degrees of freedom:
 choice of aggregation, choice of filter, choice of fit method, choice of
@@ -19,7 +19,7 @@ paths** problem. Pre-registration collapses the degrees of freedom: the
 YAML specifies every choice in advance, and the fitter consumes the YAML
 byte-for-byte. The verdict is then a function of the data alone.
 
-***REMOVED******REMOVED*** Schema
+## Schema
 
 Each pre-registration YAML has the following stanzas (see
 `v4/preregistration/cve-vulnerabilities.yaml` for a complete example):
@@ -58,7 +58,7 @@ risks_and_caveats:
   - <list of known data-quality risks documented in advance>
 ```
 
-***REMOVED******REMOVED*** The verdict triad
+## The verdict triad
 
 The three permitted verdicts are:
 
@@ -78,7 +78,7 @@ produced one FAIL (CVE) and one INCONCLUSIVE (NYC FDNY) alongside the
 thirteen PASS results, and the asymmetric distribution of outcomes is
 itself an argument that the pipeline is not over-claiming.
 
-***REMOVED******REMOVED*** Worked example
+## Worked example
 
 The CVE falsification is the canonical worked example. The YAML at
 `v4/preregistration/cve-vulnerabilities.yaml` was committed on 2026-05-14
@@ -96,7 +96,7 @@ data could very plausibly have been reported as "consistent with
 preferential attachment at $\alpha \approx 2.7$." Pre-registration
 forecloses that move.
 
-***REMOVED******REMOVED*** How to write your own
+## How to write your own
 
 To pre-register a new system:
 

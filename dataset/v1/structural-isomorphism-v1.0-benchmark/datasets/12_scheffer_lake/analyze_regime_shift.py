@@ -40,20 +40,20 @@ RESULTS_PATH = ROOT / "lake_results.json"
 PANEL_PNG = ROOT / "lake_panel.png"
 TS_PNG = ROOT / "lake_timeseries.png"
 
-WINDOW_DAYS = 365          ***REMOVED*** rolling window for indicators
-***REMOVED*** CUSUM tuned conservatively: k=0.5 std slack, h=15 std threshold; this
-***REMOVED*** suppresses seasonal-residual flicker (k=0.5 / h=5 yielded ~39 events, too
-***REMOVED*** many for the Scheffer regime-shift framing). h=15 keeps only persistent
-***REMOVED*** mean-level departures that survive >~1 month of consistent z-score >0.5.
+WINDOW_DAYS = 365          # rolling window for indicators
+# CUSUM tuned conservatively: k=0.5 std slack, h=15 std threshold; this
+# suppresses seasonal-residual flicker (k=0.5 / h=5 yielded ~39 events, too
+# many for the Scheffer regime-shift framing). h=15 keeps only persistent
+# mean-level departures that survive >~1 month of consistent z-score >0.5.
 CUSUM_K = 0.5
 CUSUM_H = 15.0
-CLUSTER_GAP = 180          ***REMOVED*** days; merge changepoints closer than this (was 90)
-PRE_WINDOW = 730           ***REMOVED*** days before shift to test for indicator rise
+CLUSTER_GAP = 180          # days; merge changepoints closer than this (was 90)
+PRE_WINDOW = 730           # days before shift to test for indicator rise
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Loading & preprocessing
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Loading & preprocessing
+# ---------------------------------------------------------------------------
 def load_jsonl(path: Path) -> tuple[np.ndarray, np.ndarray, dict]:
     """Return dates (datetime[]), do_values, meta."""
     dates: list[datetime] = []
@@ -80,26 +80,26 @@ def align_daily(dates: np.ndarray, vals: np.ndarray) -> tuple[np.ndarray, np.nda
     n_days = (d1 - d0).days + 1
     grid = np.array([d0 + timedelta(days=i) for i in range(n_days)])
     out = np.full(n_days, np.nan)
-    ***REMOVED*** map raw points
+    # map raw points
     for d, v in zip(dates, vals):
         idx = (d - d0).days
         out[idx] = v
-    ***REMOVED*** interpolate gaps <=7 days
+    # interpolate gaps <=7 days
     isnan = np.isnan(out)
     if isnan.any():
         idx_valid = np.where(~isnan)[0]
         if len(idx_valid) >= 2:
-            ***REMOVED*** find gaps
+            # find gaps
             i = 0
             while i < len(out):
                 if np.isnan(out[i]):
-                    ***REMOVED*** gap start
+                    # gap start
                     j = i
                     while j < len(out) and np.isnan(out[j]):
                         j += 1
                     gap_len = j - i
                     if gap_len <= 7 and i > 0 and j < len(out):
-                        ***REMOVED*** linear interp
+                        # linear interp
                         v0, v1 = out[i-1], out[j]
                         for k in range(i, j):
                             out[k] = v0 + (v1 - v0) * (k - i + 1) / (gap_len + 1)
@@ -122,7 +122,7 @@ def seasonal_detrend(x: np.ndarray, period: int = 365) -> np.ndarray:
         sel = (doy == d) & ~np.isnan(x)
         if sel.sum() >= 3:
             climo[d] = np.nanmean(x[sel])
-    ***REMOVED*** fill missing climo days via simple interpolation
+    # fill missing climo days via simple interpolation
     valid = ~np.isnan(climo)
     if valid.sum() < period:
         idx_v = np.where(valid)[0]
@@ -145,9 +145,9 @@ def detrend_residual(x: np.ndarray, window: int = 60) -> np.ndarray:
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Rolling indicators
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Rolling indicators
+# ---------------------------------------------------------------------------
 def rolling_ac1(x: np.ndarray, window: int) -> np.ndarray:
     """Lag-1 autocorrelation in trailing window."""
     n = len(x)
@@ -189,9 +189,9 @@ def rolling_skew(x: np.ndarray, window: int) -> np.ndarray:
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Changepoint detection
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Changepoint detection
+# ---------------------------------------------------------------------------
 def detect_changepoints_cusum(x: np.ndarray, k: float = CUSUM_K,
                               h: float = CUSUM_H,
                               cluster: int = CLUSTER_GAP) -> list[int]:
@@ -216,9 +216,9 @@ def detect_changepoints_cusum(x: np.ndarray, k: float = CUSUM_K,
         sl = min(0.0, sl + z[i] + k)
         if sh > h or sl < -h:
             raw_events.append(i)
-            sh = sl = 0.0  ***REMOVED*** reset after detection
+            sh = sl = 0.0  # reset after detection
 
-    ***REMOVED*** cluster: keep first of each run separated by >= cluster days
+    # cluster: keep first of each run separated by >= cluster days
     if not raw_events:
         return []
     clustered = [raw_events[0]]
@@ -228,9 +228,9 @@ def detect_changepoints_cusum(x: np.ndarray, k: float = CUSUM_K,
     return clustered
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** EWS trend test (Kendall tau over pre-shift window)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# EWS trend test (Kendall tau over pre-shift window)
+# ---------------------------------------------------------------------------
 def kendall_trend(indicator: np.ndarray, end_idx: int,
                   pre_window: int = PRE_WINDOW) -> dict:
     start = max(0, end_idx - pre_window)
@@ -243,19 +243,19 @@ def kendall_trend(indicator: np.ndarray, end_idx: int,
     return {"tau": float(tau), "p_value": float(p), "n": int(mask.sum())}
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Plotting
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Plotting
+# ---------------------------------------------------------------------------
 def plot_timeseries(grid: np.ndarray, raw: np.ndarray, detrended: np.ndarray,
                     changepoints: list[int], path: Path) -> None:
     fig, axes = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
     for ax in axes:
         ax.grid(False)
-    axes[0].plot(grid, raw, lw=0.6, color="***REMOVED***1f77b4", label="DO (mg/L)")
+    axes[0].plot(grid, raw, lw=0.6, color="#1f77b4", label="DO (mg/L)")
     axes[0].set_ylabel("DO (mg/L)")
     axes[0].set_title("Daily mean dissolved oxygen — raw")
     axes[0].legend(loc="upper right", fontsize=8)
-    axes[1].plot(grid, detrended, lw=0.5, color="***REMOVED***2ca02c", alpha=0.8)
+    axes[1].plot(grid, detrended, lw=0.5, color="#2ca02c", alpha=0.8)
     axes[1].axhline(0.0, color="k", lw=0.4)
     axes[1].set_ylabel("DO anomaly\n(seasonal removed)")
     for cp in changepoints:
@@ -272,12 +272,12 @@ def plot_panel(grid: np.ndarray, ac1: np.ndarray, var: np.ndarray,
     fig, axes = plt.subplots(3, 1, figsize=(11, 8), sharex=True)
     for ax in axes:
         ax.grid(False)
-    axes[0].plot(grid, ac1, color="***REMOVED***d62728", lw=0.8)
+    axes[0].plot(grid, ac1, color="#d62728", lw=0.8)
     axes[0].set_ylabel("AR(1)")
     axes[0].set_title(f"Rolling early-warning indicators (window = {WINDOW_DAYS} d)")
-    axes[1].plot(grid, var, color="***REMOVED***9467bd", lw=0.8)
+    axes[1].plot(grid, var, color="#9467bd", lw=0.8)
     axes[1].set_ylabel("Variance")
-    axes[2].plot(grid, sk, color="***REMOVED***8c564b", lw=0.8)
+    axes[2].plot(grid, sk, color="#8c564b", lw=0.8)
     axes[2].axhline(0.0, color="k", lw=0.4)
     axes[2].set_ylabel("Skewness")
     axes[2].set_xlabel("Date")
@@ -289,9 +289,9 @@ def plot_panel(grid: np.ndarray, ac1: np.ndarray, var: np.ndarray,
     plt.close(fig)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 def main() -> int:
     print(f"[analyze] loading {JSONL_PATH.name}", file=sys.stderr)
     dates, vals, meta = load_jsonl(JSONL_PATH)
@@ -306,8 +306,8 @@ def main() -> int:
     x_deseason = seasonal_detrend(x_aligned)
     x_resid = detrend_residual(x_deseason, window=60)
 
-    ***REMOVED*** changepoints on the deseasonal series (preserves regime-mean shifts but
-    ***REMOVED*** not annual cycle)
+    # changepoints on the deseasonal series (preserves regime-mean shifts but
+    # not annual cycle)
     cps = detect_changepoints_cusum(x_deseason, k=CUSUM_K, h=CUSUM_H,
                                     cluster=CLUSTER_GAP)
     print(f"[analyze]   CUSUM changepoints (k={CUSUM_K}, h={CUSUM_H}): n={len(cps)}",
@@ -315,12 +315,12 @@ def main() -> int:
     for cp in cps:
         print(f"[analyze]     - {grid[cp].date()}  idx={cp}", file=sys.stderr)
 
-    ***REMOVED*** EWS indicators on the high-pass residual (Dakos et al. 2008 method)
+    # EWS indicators on the high-pass residual (Dakos et al. 2008 method)
     ac1 = rolling_ac1(x_resid, WINDOW_DAYS)
     var = rolling_var(x_resid, WINDOW_DAYS)
     sk = rolling_skew(x_resid, WINDOW_DAYS)
 
-    ***REMOVED*** per-changepoint Kendall trend tests
+    # per-changepoint Kendall trend tests
     cp_reports = []
     for cp in cps:
         rep = {
@@ -334,7 +334,7 @@ def main() -> int:
         }
         cp_reports.append(rep)
 
-    ***REMOVED*** global trend (informative — long-term EWS without a labeled shift)
+    # global trend (informative — long-term EWS without a labeled shift)
     last = len(grid) - 1
     global_trend = {
         "ac1": kendall_trend(ac1, last, pre_window=len(grid)),
@@ -346,7 +346,7 @@ def main() -> int:
     plot_panel(grid, ac1, var, sk, cps, PANEL_PNG)
     print(f"[analyze]   plots -> {TS_PNG.name}, {PANEL_PNG.name}", file=sys.stderr)
 
-    ***REMOVED*** verdict — significant rises in AR1 AND variance before at least one shift
+    # verdict — significant rises in AR1 AND variance before at least one shift
     classical_signature = False
     for rep in cp_reports:
         ac = rep["ac1_trend"]

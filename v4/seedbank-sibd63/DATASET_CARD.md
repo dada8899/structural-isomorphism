@@ -1,12 +1,12 @@
-***REMOVED*** SIBD-63 Dataset Card
+# SIBD-63 Dataset Card
 
-***REMOVED******REMOVED*** Overview
+## Overview
 
 **SIBD-63** (Structural Isomorphism Benchmark Dataset, 63 A-level candidates) is a curated dataset of cross-domain structural isomorphism discoveries. Each record pairs two phenomena from disjoint scientific domains that share the same underlying mathematical structure.
 
-***REMOVED******REMOVED*** Dataset Details
+## Dataset Details
 
-***REMOVED******REMOVED******REMOVED*** Dataset Sources
+### Dataset Sources
 
 Three independent discovery pipelines, by construction zero-overlap:
 
@@ -29,7 +29,7 @@ Three independent discovery pipelines, by construction zero-overlap:
 
 All 63 records are rated A (top-tier) and include a 5-dimensional weighted score.
 
-***REMOVED******REMOVED******REMOVED*** Data Structure
+### Data Structure
 
 Each of the 63 records contains:
 
@@ -43,7 +43,7 @@ Each of the 63 records contains:
 
 Records are written one-per-line in JSONL format with UTF-8 encoding. The full schema is in `SIBD-63-schema.json`.
 
-***REMOVED******REMOVED******REMOVED*** Example Record
+### Example Record
 
 ```json
 {
@@ -72,7 +72,7 @@ Records are written one-per-line in JSONL format with UTF-8 encoding. The full s
 }
 ```
 
-***REMOVED******REMOVED*** Domain Coverage
+## Domain Coverage
 
 Records span **48 distinct domain labels**, including:
 
@@ -82,7 +82,7 @@ Records span **48 distinct domain labels**, including:
 - **Engineering / applied**: civil engineering, power engineering, traffic engineering, aerospace, urban planning, polymer chemistry, catalysis
 - **Emerging**: crypto / DeFi / Web3, synthetic biology, computational social science
 
-***REMOVED******REMOVED*** Intended Use
+## Intended Use
 
 - **Seed bank for empirical papers**: domain experts pick a seed matching their expertise and run the empirical study
 - **Benchmark for cross-domain similarity methods**: test whether a new embedding or LLM retrieval method can recover these 63 pairs
@@ -91,7 +91,7 @@ Records span **48 distinct domain labels**, including:
 
 **Not intended for**: direct consumer use, claims that these pairs are already empirically validated (most are not), replacement of peer-reviewed mechanistic studies.
 
-***REMOVED******REMOVED*** Quality and Limitations
+## Quality and Limitations
 
 **Strengths**:
 - All 63 passed strict LLM-as-judge review from multiple model families (Opus + Kimi for V3)
@@ -106,19 +106,19 @@ Records span **48 distinct domain labels**, including:
 - **No empirical validation of any record** (SOC/DeFi Phase 3 paper addresses one SOC-class subset but does not directly validate SIBD-63 records themselves)
 - **Single human curator** (author) applied final rating; no inter-rater agreement study
 
-***REMOVED******REMOVED*** Versions and Updates
+## Versions and Updates
 
 - **1.0** (2026-04-16): initial release, 63 records
 
-***REMOVED******REMOVED*** Ethical Considerations
+## Ethical Considerations
 
 The dataset encodes scientific hypotheses, not personal data. No human subjects are involved beyond the author's curation judgment. Some records touch on high-stakes domains (climate, pandemic epidemiology, financial stability); these are research hypotheses, not policy guidance.
 
-***REMOVED******REMOVED*** Contact
+## Contact
 
 Wan Qinghui · wanqinghui@gmail.com · https://structural.bytedance.city
 
-***REMOVED******REMOVED*** Related Resources
+## Related Resources
 
 - **Full source code & pipelines**: https://github.com/dada8899/structural-isomorphism
 - **V1 embedding model**: HuggingFace qinghuiwan/structural-isomorphism-v1

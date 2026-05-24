@@ -48,7 +48,7 @@ def send_mod():
     )
 
 
-***REMOVED*** ---------- 1. generate ----------
+# ---------- 1. generate ----------
 
 def test_generate_picks_6_near_critical(tmp_path, monkeypatch, gen_mod):
     """Real-shaped data → exactly 6 picks, highest-confidence first, output file written."""
@@ -71,31 +71,31 @@ def test_generate_picks_6_near_critical(tmp_path, monkeypatch, gen_mod):
     rc = gen_mod.main([
         "--week", "2026-05-25",
         "--out", str(out_md),
-        "--no-llm",       ***REMOVED*** avoid network
-        "--no-chart",     ***REMOVED*** avoid matplotlib dep in CI
+        "--no-llm",       # avoid network
+        "--no-chart",     # avoid matplotlib dep in CI
     ])
     assert rc == 0
     assert out_md.exists()
 
     text = out_md.read_text(encoding="utf-8")
-    ***REMOVED*** 6 picks, highest-confidence first → T09, T08, T07, T06, T05, T04
+    # 6 picks, highest-confidence first → T09, T08, T07, T06, T05, T04
     assert "| `T09` |" in text
     assert "| `T08` |" in text
     assert "| `T04` |" in text
-    ***REMOVED*** Lowest confidence rows NOT in (T00..T03)
+    # Lowest confidence rows NOT in (T00..T03)
     assert "| `T03` |" not in text
-    ***REMOVED*** Header / footer markers present
+    # Header / footer markers present
     assert "Structural Signals — week of 2026-05-25" in text
     assert "Data source: **real**" in text
     assert "Not financial advice" in text
 
 
-***REMOVED*** ---------- 2. buttondown mock ----------
+# ---------- 2. buttondown mock ----------
 
 def test_send_to_buttondown_mock_mode(tmp_path, send_mod):
     """No API key → mock mode, no HTTP, ok=True."""
     md = tmp_path / "issue.md"
-    md.write_text("***REMOVED*** My subject line\n\nbody text\n", encoding="utf-8")
+    md.write_text("# My subject line\n\nbody text\n", encoding="utf-8")
 
     result = send_mod.send(md_path=md, api_key=None)
     assert result["ok"] is True
@@ -108,7 +108,7 @@ def test_send_to_buttondown_mock_mode(tmp_path, send_mod):
 def test_send_to_buttondown_dry_run_skips_http(tmp_path, send_mod):
     """API key present but --dry-run → no HTTP, mode=dry-run."""
     md = tmp_path / "issue.md"
-    md.write_text("***REMOVED*** Subject\n\nbody\n", encoding="utf-8")
+    md.write_text("# Subject\n\nbody\n", encoding="utf-8")
 
     result = send_mod.send(
         md_path=md, api_key="btn_pat_fake", dry_run=True,
@@ -120,13 +120,13 @@ def test_send_to_buttondown_dry_run_skips_http(tmp_path, send_mod):
 def test_send_to_buttondown_uses_h1_as_subject(tmp_path, send_mod):
     md = tmp_path / "issue.md"
     md.write_text(
-        "Some preamble\n***REMOVED*** The real subject\nmore text\n", encoding="utf-8",
+        "Some preamble\n# The real subject\nmore text\n", encoding="utf-8",
     )
     result = send_mod.send(md_path=md, api_key=None)
     assert result["subject"] == "The real subject"
 
 
-***REMOVED*** ---------- 3. empty-data fallback ----------
+# ---------- 3. empty-data fallback ----------
 
 def test_empty_data_emits_graceful_doc(tmp_path, monkeypatch, gen_mod):
     """Zero near_critical companies → file is still written with empty-state copy."""
@@ -155,5 +155,5 @@ def test_monday_of_iso_week(gen_mod):
     """Sanity: 2026-05-25 is itself a Monday."""
     monday = gen_mod.monday_of_iso_week(dt.date(2026, 5, 28))
     assert monday == dt.date(2026, 5, 25)
-    ***REMOVED*** Already Monday → stays
+    # Already Monday → stays
     assert gen_mod.monday_of_iso_week(dt.date(2026, 5, 25)) == dt.date(2026, 5, 25)

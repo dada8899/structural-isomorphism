@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 — Phase 1: Fetch USGS earthquake catalog for SOC validation.
 
@@ -34,11 +34,11 @@ LOG_FILE = OUT_DIR / "fetch_log.json"
 
 API = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
-***REMOVED*** Config
+# Config
 START = date(2020, 1, 1)
 END = date(2025, 1, 1)
 MIN_MAG = 3.5
-BATCH_DAYS = 30  ***REMOVED*** month batches — USGS caps per query at 20000 events
+BATCH_DAYS = 30  # month batches — USGS caps per query at 20000 events
 
 
 def daterange_batches(start: date, end: date, step_days: int):
@@ -113,14 +113,14 @@ def main():
         total += len(rows)
         batches_done += 1
         print(f"  [{sa}..{sb})  events={len(rows):5d}  cumulative={total}")
-        time.sleep(0.25)  ***REMOVED*** light courtesy throttle
+        time.sleep(0.25)  # light courtesy throttle
 
-    ***REMOVED*** Save JSONL as canonical (always works)
+    # Save JSONL as canonical (always works)
     with CATALOG_JSONL.open("w", encoding="utf-8") as f:
         for r in all_rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    ***REMOVED*** Try parquet
+    # Try parquet
     parquet_ok = False
     try:
         import pandas as pd

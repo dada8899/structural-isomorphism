@@ -20,7 +20,7 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-***REMOVED*** --- Configuration ----------------------------------------------------------
+# --- Configuration ----------------------------------------------------------
 
 DEFAULT_API_BASE = "https://beta.structural.bytedance.city"
 
@@ -30,12 +30,12 @@ def get_api_base() -> str:
     return os.environ.get("STRUCTURAL_API_BASE", DEFAULT_API_BASE).rstrip("/")
 
 
-***REMOVED*** The deep-analysis report is LLM-generated and takes ~3-4 minutes.
+# The deep-analysis report is LLM-generated and takes ~3-4 minutes.
 ANALYZE_TIMEOUT_S = 360.0
-***REMOVED*** search / phenomenon are fast pure lookups.
+# search / phenomenon are fast pure lookups.
 QUICK_TIMEOUT_S = 30.0
 
-***REMOVED*** The 9 sections a complete analysis report should contain, in render order.
+# The 9 sections a complete analysis report should contain, in render order.
 REPORT_SECTION_ORDER = [
     "shared_structure",
     "your_problem_breakdown",
@@ -49,7 +49,7 @@ REPORT_SECTION_ORDER = [
 ]
 
 
-***REMOVED*** --- Error helper ------------------------------------------------------------
+# --- Error helper ------------------------------------------------------------
 
 
 def _error(kind: str, message: str, **extra: Any) -> dict:
@@ -59,7 +59,7 @@ def _error(kind: str, message: str, **extra: Any) -> dict:
     return out
 
 
-***REMOVED*** --- Core logic (pure, testable; no MCP / no global state) -------------------
+# --- Core logic (pure, testable; no MCP / no global state) -------------------
 
 
 def parse_search_response(payload: dict) -> dict:
@@ -202,7 +202,7 @@ def assemble_report(events: list[tuple[str, dict]]) -> dict:
         elif event_type == "done":
             done_seen = True
             from_cache = bool(data.get("from_cache"))
-            ***REMOVED*** A cached done event carries the whole report inline.
+            # A cached done event carries the whole report inline.
             cached = data.get("report")
             if cached and isinstance(cached, dict) and not sections:
                 for k, v in cached.items():
@@ -223,7 +223,7 @@ def assemble_report(events: list[tuple[str, dict]]) -> dict:
         )
 
     ordered = {k: sections[k] for k in REPORT_SECTION_ORDER if k in sections}
-    ***REMOVED*** Keep any extra sections the backend may emit beyond the known 9.
+    # Keep any extra sections the backend may emit beyond the known 9.
     for k, v in sections.items():
         if k not in ordered:
             ordered[k] = v
@@ -281,7 +281,7 @@ async def do_analyze(
     return assemble_report(events)
 
 
-***REMOVED*** --- MCP server + tool registration ------------------------------------------
+# --- MCP server + tool registration ------------------------------------------
 
 mcp = FastMCP("structural-isomorphism")
 

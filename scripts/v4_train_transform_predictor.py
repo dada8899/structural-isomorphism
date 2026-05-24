@@ -8,10 +8,10 @@ Training data: plans/v4-seed-cases.yaml (after user review + LLM expansion to 20
 
 This is a SCAFFOLD — wiring is done but actual train data loader assumes the expanded case file exists.
 Run order:
-  1. python v4_validate_seeds.py                             ***REMOVED*** user reviews starter seeds
-  2. python v4_expand_seeds.py                                ***REMOVED*** LLM expands 10 → 200-500 cases (separate script TODO)
-  3. python v4_train_transform_predictor.py --train           ***REMOVED*** this script
-  4. python v4_train_transform_predictor.py --eval --split layer2-survivors  ***REMOVED*** eval on Layer 2 幸存
+  1. python v4_validate_seeds.py                             # user reviews starter seeds
+  2. python v4_expand_seeds.py                                # LLM expands 10 → 200-500 cases (separate script TODO)
+  3. python v4_train_transform_predictor.py --train           # this script
+  4. python v4_train_transform_predictor.py --eval --split layer2-survivors  # eval on Layer 2 幸存
 
 Usage:
     python v4_train_transform_predictor.py --train --epochs 20
@@ -31,7 +31,7 @@ MODEL_DIR = PROJECT_DIR / "models" / "structural-v1"
 PLANS_DIR = PROJECT_DIR / "plans"
 V3_DIR = PROJECT_DIR / "models" / "v3-transform-predictor"
 
-***REMOVED*** Lazy imports: torch + sentence-transformers are heavy
+# Lazy imports: torch + sentence-transformers are heavy
 def _lazy_imports():
     import numpy as np
     import torch
@@ -58,7 +58,7 @@ def case_to_features(case: dict, encoder) -> "np.ndarray":
     b_text = f"{case['target_domain']}: {case['target_concept']} — {case.get('target_equation','')}"
     emb_a = encoder.encode(a_text, convert_to_numpy=True)
     emb_b = encoder.encode(b_text, convert_to_numpy=True)
-    ***REMOVED*** Concatenation + elementwise diff (common for pair tasks)
+    # Concatenation + elementwise diff (common for pair tasks)
     import numpy as np
     return np.concatenate([emb_a, emb_b, np.abs(emb_a - emb_b)])
 
@@ -115,7 +115,7 @@ def cmd_train(args):
     Y = np.stack([case_to_labels(c, variant_ids) for c in cases])
     print(f"X shape: {X.shape}, Y shape: {Y.shape}")
 
-    ***REMOVED*** Split 80/20
+    # Split 80/20
     n_train = int(0.8 * len(cases))
     perm = np.random.RandomState(42).permutation(len(cases))
     tr_idx, te_idx = perm[:n_train], perm[n_train:]
@@ -170,7 +170,7 @@ def main():
                         help="defaults to post-review file; fall back to starter if absent")
     args = parser.parse_args()
 
-    ***REMOVED*** Fallback to starter file if reviewed file missing
+    # Fallback to starter file if reviewed file missing
     if args.train and not (PROJECT_DIR / args.seed_file).exists():
         fallback = "plans/v4-seed-cases-starter.yaml"
         print(f"note: {args.seed_file} not found, falling back to {fallback}")

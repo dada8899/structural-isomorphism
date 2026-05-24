@@ -10,7 +10,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-***REMOVED*** Default model identifiers
+# Default model identifiers
 DEFAULT_LOCAL_MODEL = Path(__file__).parent.parent / "models" / "structural-v1"
 DEFAULT_HF_MODEL = "structural-isomorphism/structural-v1"
 DEFAULT_BASE_MODEL = "shibing624/text2vec-base-chinese"

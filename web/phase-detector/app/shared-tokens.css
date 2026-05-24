@@ -29,24 +29,24 @@
 
 :root {
   /* ----- The 5 brand tokens ----- */
-  --brand-ink:     ***REMOVED***18181B;   /* primary text — was --text-primary */
-  --brand-paper:   ***REMOVED***F5F5F4;   /* primary background — was --bg-primary */
-  --brand-accent:  ***REMOVED***2563EB;   /* brand blue — was --accent */
-  --brand-line:    ***REMOVED***E4E4E7;   /* hairline border — was --border-subtle */
-  --brand-muted:   ***REMOVED***71717A;   /* tertiary text — was --text-tertiary */
+  --brand-ink:     #18181B;   /* primary text — was --text-primary */
+  --brand-paper:   #F5F5F4;   /* primary background — was --bg-primary */
+  --brand-accent:  #2563EB;   /* brand blue — was --accent */
+  --brand-line:    #E4E4E7;   /* hairline border — was --border-subtle */
+  --brand-muted:   #71717A;   /* tertiary text — was --text-tertiary */
 
   /* ----- Extended palette (shared across both sites) -----
    * These derive from the 5 above + a couple of standard semantic colors.
    * Keep these here too so both sites get the same palette without
    * having to maintain it in two places. */
-  --brand-paper-card:   ***REMOVED***FFFFFF;                        /* card / elevated surface */
-  --brand-paper-soft:   ***REMOVED***F4F4F5;                        /* subtle background tint */
-  --brand-ink-soft:     ***REMOVED***52525B;                        /* secondary text */
-  --brand-accent-hover: ***REMOVED***1D4ED8;                        /* accent hover state */
+  --brand-paper-card:   #FFFFFF;                        /* card / elevated surface */
+  --brand-paper-soft:   #F4F4F5;                        /* subtle background tint */
+  --brand-ink-soft:     #52525B;                        /* secondary text */
+  --brand-accent-hover: #1D4ED8;                        /* accent hover state */
   --brand-accent-soft:  rgba(37, 99, 235, 0.08);        /* accent tinted bg */
   --brand-accent-ring:  rgba(37, 99, 235, 0.12);        /* focus ring */
-  --brand-line-strong:  ***REMOVED***D4D4D8;                        /* stronger separator */
-  --brand-success:      ***REMOVED***059669;
-  --brand-warning:      ***REMOVED***D97706;
-  --brand-danger:       ***REMOVED***DC2626;
+  --brand-line-strong:  #D4D4D8;                        /* stronger separator */
+  --brand-success:      #059669;
+  --brand-warning:      #D97706;
+  --brand-danger:       #DC2626;
 }

@@ -1,4 +1,4 @@
-***REMOVED*** structural-isomorphism v1.0 cross-domain SOC + universality benchmark
+# structural-isomorphism v1.0 cross-domain SOC + universality benchmark
 
 **Bundle name:** `structural-isomorphism-v1.0-benchmark`
 **Version:** 1.0.0
@@ -12,7 +12,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. What is this?
+## 1. What is this?
 
 This is a **frozen, citation-ready, cross-domain benchmark for self-organized
 criticality (SOC), preferential attachment, and adjacent universality classes**.
@@ -63,7 +63,7 @@ It ships:
    Phase 1 earthquake b-value in roughly 30 minutes of wall-clock time
    (mostly the USGS API pull).
 
-***REMOVED******REMOVED*** 2. Bundle layout
+## 2. Bundle layout
 
 ```
 structural-isomorphism-v1.0-benchmark/
@@ -126,7 +126,7 @@ structural-isomorphism-v1.0-benchmark/
     └── scientific-data-benchmark-2026-05-15.md   (companion paper draft, ~5k words)
 ```
 
-***REMOVED******REMOVED*** 3. Large-file policy
+## 3. Large-file policy
 
 Files larger than 50 MB are not bundled inline. In their stead the bundle
 contains `<filename>.LARGE_FILE_README.md` with the file's SHA-256, source URL,
@@ -143,7 +143,7 @@ missing files:
 In the present bundle (~85 MB total), all per-phase files are under the 50 MB
 threshold and are bundled inline, so no large-file stubs are present.
 
-***REMOVED******REMOVED*** 4. Provenance — where each file came from
+## 4. Provenance — where each file came from
 
 Each empirical phase has its raw data fetched independently from a publicly
 documented source:
@@ -166,14 +166,14 @@ documented source:
 
 Per-file fetch logs are at `datasets/<slot>/fetch_log.json` where available.
 
-***REMOVED******REMOVED*** 5. Schemas
+## 5. Schemas
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Schemas — JSONL (general convention)
+### 5.1 Schemas — JSONL (general convention)
 
 Each line is a JSON object. Fields are documented in the section that follows
 for the specific file type.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Schemas — taxonomy JSONL (`results/B3_taxonomy_v2.jsonl`)
+### 5.2 Schemas — taxonomy JSONL (`results/B3_taxonomy_v2.jsonl`)
 
 | field | type | meaning |
 | --- | --- | --- |
@@ -186,7 +186,7 @@ for the specific file type.
 | `b3_avg_confidence` | float | mean of `b3_confidences` |
 | `final_verdict` | string | e.g. `KEEP_strong`, `CONTESTED(B1=KEEP,B3=REJECT)`, `SPLIT_strong` |
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Schemas — results JSONL (`results/layer3_critic.jsonl`)
+### 5.3 Schemas — results JSONL (`results/layer3_critic.jsonl`)
 
 One row per class with the full layer-3 critic narrative:
 
@@ -202,7 +202,7 @@ One row per class with the full layer-3 critic narrative:
 | `merge_with` | string or null | class to merge into if applicable |
 | `notes` | string | reviewer's free-form observations |
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Schemas — results JSONL (`results/layer4.jsonl`)
+### 5.4 Schemas — results JSONL (`results/layer4.jsonl`)
 
 | field | type | meaning |
 | --- | --- | --- |
@@ -210,7 +210,7 @@ One row per class with the full layer-3 critic narrative:
 | `hub_name` | string | canonical hub phenomenon for the class |
 | `predictions` | list[{target, prediction, test_method, data_source, sample_size, paper_target, status, rationale}] | concrete downstream predictions |
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Schemas — nulls JSONL (`nulls/_registry.jsonl`)
+### 5.5 Schemas — nulls JSONL (`nulls/_registry.jsonl`)
 
 | field | type | meaning |
 | --- | --- | --- |
@@ -222,41 +222,41 @@ One row per class with the full layer-3 critic narrative:
 | `key_indicators` | dict | `alpha_clauset`, `sigma_alpha`, `xmin`, `vs_lognormal_R`, etc |
 | `expected_real_distribution` | string | the true generative form |
 
-***REMOVED******REMOVED******REMOVED*** 5.6 Schemas — CSV
+### 5.6 Schemas — CSV
 
 Where CSVs appear under `datasets/*/`, each is documented in the upstream
 fetch script's docstring. Common columns: `time` (ISO 8601 UTC),
 `size_or_magnitude` (float), `id` (string), and source-specific fields.
 
-***REMOVED******REMOVED******REMOVED*** 5.7 Schemas — class YAML (`taxonomy/classes/<id>.yaml`)
+### 5.7 Schemas — class YAML (`taxonomy/classes/<id>.yaml`)
 
 Per `taxonomy/SCHEMA.md`. Key fields: `display_name`, `equation_canonical`,
 `invariants`, `positive_examples`, `negative_examples`, `references`.
 
-***REMOVED******REMOVED*** 6. Quickstart — reproduce the earthquake SOC verdict in 30 lines
+## 6. Quickstart — reproduce the earthquake SOC verdict in 30 lines
 
 ```python
-***REMOVED*** 30-line standalone script. Requires: numpy, requests, powerlaw.
+# 30-line standalone script. Requires: numpy, requests, powerlaw.
 import json, requests
 from urllib.parse import urlencode
 
-***REMOVED*** 1. Pull a 6-month USGS slice (M >= 3.5).
+# 1. Pull a 6-month USGS slice (M >= 3.5).
 params = {"format": "geojson", "starttime": "2024-01-01", "endtime": "2024-07-01",
           "minmagnitude": 3.5, "limit": 20000}
 r = requests.get("https://earthquake.usgs.gov/fdsnws/event/1/query?" + urlencode(params), timeout=60)
 mags = [f["properties"]["mag"] for f in r.json()["features"] if f["properties"].get("mag")]
 
-***REMOVED*** 2. Convert M -> released energy E (ergs) via Gutenberg-Richter scaling.
+# 2. Convert M -> released energy E (ergs) via Gutenberg-Richter scaling.
 import numpy as np
 mags = np.asarray(mags)
 E = 10.0 ** (1.5 * mags + 11.8)
 
-***REMOVED*** 3. Clauset MLE on the released-energy tail.
+# 3. Clauset MLE on the released-energy tail.
 import powerlaw
 fit = powerlaw.Fit(E, discrete=False, verbose=False)
 
-***REMOVED*** 4. Gutenberg-Richter b-value from the magnitude tail.
-***REMOVED*** (b = (1/ln 10) / (mean(M) - M_c)). M_c by maximum-curvature.
+# 4. Gutenberg-Richter b-value from the magnitude tail.
+# (b = (1/ln 10) / (mean(M) - M_c)). M_c by maximum-curvature.
 mc = mags[np.argmax(np.histogram(mags, bins=30)[0]) + np.histogram(mags, bins=30)[1][0:1].sum() * 0]
 mc = max(np.median(mags) - 0.2, 4.0)
 b = (1.0 / np.log(10.0)) / max(mags[mags >= mc].mean() - mc, 1e-9)
@@ -271,15 +271,15 @@ The full tutorial `tutorials/01_reproduce_earthquake_soc.ipynb` extends this to
 the 2020-2025 catalog and produces the paper-headline value `b = 1.084` with
 bootstrap 95% CI `[1.073, 1.094]` plus the Vuong LR tests.
 
-***REMOVED******REMOVED*** 7. Reproducibility — `repro/reproduce_all.py`
+## 7. Reproducibility — `repro/reproduce_all.py`
 
 The one-shot reproducibility entry:
 
 ```bash
-***REMOVED*** Smoke mode (default): 2-3 systems, ~1 second
+# Smoke mode (default): 2-3 systems, ~1 second
 python repro/reproduce_all.py --smoke
 
-***REMOVED*** Full mode: all 13 phases + 4 nulls, well under a minute
+# Full mode: all 13 phases + 4 nulls, well under a minute
 python repro/reproduce_all.py --full
 ```
 
@@ -300,13 +300,13 @@ byte-stable `MANIFEST.json` across reruns; verify with:
 
 ```bash
 python repro/generate_manifest.py && md5sum MANIFEST.json
-python repro/generate_manifest.py && md5sum MANIFEST.json  ***REMOVED*** must match
+python repro/generate_manifest.py && md5sum MANIFEST.json  # must match
 ```
 
 The bundle hash (`MANIFEST.json:bundle_sha256`) is what Zenodo / DataCite
 should pin in their record.
 
-***REMOVED******REMOVED*** 8. Citation
+## 8. Citation
 
 If you use this bundle in published work, please cite both:
 
@@ -349,7 +349,7 @@ If you use this bundle in published work, please cite both:
 }
 ```
 
-***REMOVED******REMOVED*** 9. How this bundle relates to the rest of the repo
+## 9. How this bundle relates to the rest of the repo
 
 This bundle is a *frozen subset* of the structural-isomorphism research repo,
 chosen for deposit to Zenodo. The full repo
@@ -364,7 +364,7 @@ The bundle hash is the citation primitive. The git commit recorded in
 `MANIFEST.json:git_commit` resolves the *exact* state of the source repo
 from which this bundle was built.
 
-***REMOVED******REMOVED*** 10. Open questions & future versions
+## 10. Open questions & future versions
 
 - **v1.1** will fold in the five pre-registered new systems described in §8
   of the methods paper, fetched after the v1.0 deposit. (Pre-registration is

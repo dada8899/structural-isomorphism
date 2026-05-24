@@ -1,11 +1,11 @@
-***REMOVED*** B4 vs B3 — heterogeneous-ensemble agreement analysis
+# B4 vs B3 — heterogeneous-ensemble agreement analysis
 
-**Date**: 2026-05-14 (full ensemble re-run, session ***REMOVED***7 post-deploy)
+**Date**: 2026-05-14 (full ensemble re-run, session #7 post-deploy)
 **Session**: session-7 post-deploy scale tasks
 **B3 source**: `v4/results/B3_taxonomy_v2.jsonl` (3-reviewer within-vendor DeepSeek ensemble, 21 classes)
 **B4 source**: `v4/results/B4_heterogeneous_ensemble.jsonl` (**full 21-class** run, 63 verdicts)
 
-***REMOVED******REMOVED*** Setup note (critical caveat — unchanged from sample run)
+## Setup note (critical caveat — unchanged from sample run)
 
 **B4 third reviewer still falls back to in-vendor probe.** OpenRouter API key not present
 on this machine, so Kimi-K2.5 cross-architecture probe remains unavailable. The third reviewer
@@ -15,7 +15,7 @@ This caveat is documented in `B4_ensemble_summary.md`. A true cross-architecture
 (with Kimi-K2.5 or Claude or Gemini) is deferred to a future session once OpenRouter
 key (or equivalent direct keys) is provisioned.
 
-***REMOVED******REMOVED*** Full per-class agreement table (21 classes)
+## Full per-class agreement table (21 classes)
 
 | class_id | B3 consensus | B4 consensus | Agreement |
 |---|---|---|---|
@@ -41,19 +41,19 @@ key (or equivalent direct keys) is provisioned.
 | `sir_contagion_network_class` | SPLIT | REJECT | DIFFER |
 | `tail_copula_contagion` | REJECT | REJECT | AGREE |
 
-***REMOVED******REMOVED*** Aggregate metrics (full 21-class run)
+## Aggregate metrics (full 21-class run)
 
 - **Classes compared**: 21
 - **AGREE**: 8 / 21  (38%)
 - **DIFFER**: 13 / 21  (62%)
 
-***REMOVED******REMOVED*** What the full run reveals vs. the prior sample
+## What the full run reveals vs. the prior sample
 
 The Wave 2 W2-C sampled 8 classes and reported 4/7 AGREE (57%). The **full 21-class run shows
 substantially worse agreement (38% AGREE vs B3)** — confirming the prior caveat that B3's
 within-vendor 3-reviewer ensemble systematically over-estimates verdict stability.
 
-***REMOVED******REMOVED******REMOVED*** Pattern of disagreement
+### Pattern of disagreement
 
 Most B4 DIFFER cases push B3 toward less-decisive verdicts:
 
@@ -82,7 +82,7 @@ Most B4 DIFFER cases push B3 toward less-decisive verdicts:
    - `hysteresis_first_order_transition_fertility` — B3 said merge into broader hysteresis,
      B4 rejects the class outright.
 
-***REMOVED******REMOVED******REMOVED*** What B4 confirms
+### What B4 confirms
 
 The 8 / 21 AGREE cases (38%) form a tight robust core:
 - 4 strong REJECTs: extreme_value_tail, markov_chain_memory, scale_free_percolation,
@@ -94,7 +94,7 @@ These are robust to within-vendor temperature sweep. **They still do not yet pro
 cross-architecture disagreement** (third reviewer was still DeepSeek). A true Kimi or
 Claude reviewer pass might further degrade.
 
-***REMOVED******REMOVED*** Interpretation
+## Interpretation
 
 The full 21-class B4 ensemble corroborates and extends the prior 8-class caveat:
 
@@ -108,7 +108,7 @@ downstream artefacts most rely on (these are the "we have a class!" decisions), 
 are the least temperature-stable. **Any paper-tier deliverable that cites a B3 KEEP must
 qualify with a B4 re-check.**
 
-***REMOVED******REMOVED*** Recommendation
+## Recommendation
 
 1. **Do NOT lock B3 v2 yet** for the 13 DIFFER classes — they are sensitive to even
    within-vendor temperature variation.
@@ -122,10 +122,10 @@ qualify with a B4 re-check.**
    within-vendor ensemble systematically over-estimates verdict stability by ~62%
    on the 21-class V2 taxonomy.
 
-***REMOVED******REMOVED*** Reproduce
+## Reproduce
 
 ```bash
-***REMOVED*** Cross-tabulate full B3 ↔ B4 verdicts
+# Cross-tabulate full B3 ↔ B4 verdicts
 .venv/bin/python -c "
 import json
 from collections import Counter

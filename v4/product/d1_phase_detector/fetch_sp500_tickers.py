@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch S&P 500 ticker list from Wikipedia, with a hardcoded fallback.
 
 Outputs `sp500_tickers.json` next to this script. Each row is
@@ -28,11 +28,11 @@ from pathlib import Path
 WIKI_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 DEFAULT_OUTPUT = Path(__file__).parent / "sp500_tickers.json"
 
-***REMOVED*** Static fallback — top ~120 S&P 500 components by market cap as of 2024-2025.
-***REMOVED*** Used when Wikipedia fetch fails. Sector strings follow the same coarse buckets
-***REMOVED*** already used in companies.jsonl (lower_snake_case).
+# Static fallback — top ~120 S&P 500 components by market cap as of 2024-2025.
+# Used when Wikipedia fetch fails. Sector strings follow the same coarse buckets
+# already used in companies.jsonl (lower_snake_case).
 STATIC_FALLBACK: list[dict] = [
-    ***REMOVED*** Mega-cap tech / consumer
+    # Mega-cap tech / consumer
     {"symbol": "AAPL", "name": "Apple Inc.", "sector": "tech_hardware"},
     {"symbol": "MSFT", "name": "Microsoft Corporation", "sector": "tech_software"},
     {"symbol": "GOOGL", "name": "Alphabet Inc. Class A", "sector": "tech_software"},
@@ -43,7 +43,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "TSLA", "name": "Tesla Inc.", "sector": "consumer_discretionary"},
     {"symbol": "BRK.B", "name": "Berkshire Hathaway Inc. Class B", "sector": "financials"},
     {"symbol": "AVGO", "name": "Broadcom Inc.", "sector": "tech_semiconductors"},
-    ***REMOVED*** Large-cap tech / comms
+    # Large-cap tech / comms
     {"symbol": "ORCL", "name": "Oracle Corporation", "sector": "tech_software"},
     {"symbol": "ADBE", "name": "Adobe Inc.", "sector": "tech_software"},
     {"symbol": "CRM", "name": "Salesforce Inc.", "sector": "tech_software"},
@@ -64,14 +64,14 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "SNPS", "name": "Synopsys Inc.", "sector": "tech_software"},
     {"symbol": "CDNS", "name": "Cadence Design Systems Inc.", "sector": "tech_software"},
     {"symbol": "ANET", "name": "Arista Networks Inc.", "sector": "tech_hardware"},
-    ***REMOVED*** Telecom / media
+    # Telecom / media
     {"symbol": "DIS", "name": "Walt Disney Company", "sector": "comms"},
     {"symbol": "CMCSA", "name": "Comcast Corporation", "sector": "comms"},
     {"symbol": "T", "name": "AT&T Inc.", "sector": "comms"},
     {"symbol": "VZ", "name": "Verizon Communications Inc.", "sector": "comms"},
     {"symbol": "TMUS", "name": "T-Mobile US Inc.", "sector": "comms"},
     {"symbol": "CHTR", "name": "Charter Communications Inc.", "sector": "comms"},
-    ***REMOVED*** Financials / banks
+    # Financials / banks
     {"symbol": "JPM", "name": "JPMorgan Chase & Co.", "sector": "financials"},
     {"symbol": "BAC", "name": "Bank of America Corporation", "sector": "financials"},
     {"symbol": "WFC", "name": "Wells Fargo & Company", "sector": "financials"},
@@ -92,7 +92,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "V", "name": "Visa Inc.", "sector": "financials"},
     {"symbol": "MA", "name": "Mastercard Inc.", "sector": "financials"},
     {"symbol": "PYPL", "name": "PayPal Holdings Inc.", "sector": "financials"},
-    ***REMOVED*** Insurance
+    # Insurance
     {"symbol": "BRK.A", "name": "Berkshire Hathaway Inc. Class A", "sector": "financials"},
     {"symbol": "PGR", "name": "Progressive Corporation", "sector": "insurance"},
     {"symbol": "TRV", "name": "Travelers Companies Inc.", "sector": "insurance"},
@@ -103,7 +103,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "CB", "name": "Chubb Limited", "sector": "insurance"},
     {"symbol": "AFL", "name": "Aflac Inc.", "sector": "insurance"},
     {"symbol": "MMC", "name": "Marsh & McLennan Companies", "sector": "insurance"},
-    ***REMOVED*** Healthcare / pharma
+    # Healthcare / pharma
     {"symbol": "UNH", "name": "UnitedHealth Group Inc.", "sector": "healthcare"},
     {"symbol": "JNJ", "name": "Johnson & Johnson", "sector": "healthcare"},
     {"symbol": "LLY", "name": "Eli Lilly and Company", "sector": "healthcare"},
@@ -125,7 +125,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "VRTX", "name": "Vertex Pharmaceuticals Inc.", "sector": "healthcare"},
     {"symbol": "REGN", "name": "Regeneron Pharmaceuticals Inc.", "sector": "healthcare"},
     {"symbol": "BIIB", "name": "Biogen Inc.", "sector": "healthcare"},
-    ***REMOVED*** Consumer staples
+    # Consumer staples
     {"symbol": "WMT", "name": "Walmart Inc.", "sector": "consumer_staples"},
     {"symbol": "PG", "name": "Procter & Gamble Company", "sector": "consumer_staples"},
     {"symbol": "KO", "name": "Coca-Cola Company", "sector": "consumer_staples"},
@@ -140,7 +140,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "KHC", "name": "Kraft Heinz Company", "sector": "consumer_staples"},
     {"symbol": "STZ", "name": "Constellation Brands Inc.", "sector": "consumer_staples"},
     {"symbol": "SYY", "name": "Sysco Corporation", "sector": "consumer_staples"},
-    ***REMOVED*** Consumer discretionary
+    # Consumer discretionary
     {"symbol": "HD", "name": "Home Depot Inc.", "sector": "consumer_discretionary"},
     {"symbol": "LOW", "name": "Lowe's Companies Inc.", "sector": "consumer_discretionary"},
     {"symbol": "MCD", "name": "McDonald's Corporation", "sector": "consumer_discretionary"},
@@ -155,7 +155,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "ORLY", "name": "O'Reilly Automotive Inc.", "sector": "consumer_discretionary"},
     {"symbol": "AZO", "name": "AutoZone Inc.", "sector": "consumer_discretionary"},
     {"symbol": "CMG", "name": "Chipotle Mexican Grill Inc.", "sector": "consumer_discretionary"},
-    ***REMOVED*** Energy
+    # Energy
     {"symbol": "XOM", "name": "Exxon Mobil Corporation", "sector": "energy"},
     {"symbol": "CVX", "name": "Chevron Corporation", "sector": "energy"},
     {"symbol": "COP", "name": "ConocoPhillips", "sector": "energy"},
@@ -169,7 +169,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "WMB", "name": "Williams Companies Inc.", "sector": "energy"},
     {"symbol": "KMI", "name": "Kinder Morgan Inc.", "sector": "energy"},
     {"symbol": "HAL", "name": "Halliburton Company", "sector": "energy"},
-    ***REMOVED*** Utilities
+    # Utilities
     {"symbol": "NEE", "name": "NextEra Energy Inc.", "sector": "utilities"},
     {"symbol": "SO", "name": "Southern Company", "sector": "utilities"},
     {"symbol": "DUK", "name": "Duke Energy Corporation", "sector": "utilities"},
@@ -178,7 +178,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "D", "name": "Dominion Energy Inc.", "sector": "utilities"},
     {"symbol": "EXC", "name": "Exelon Corporation", "sector": "utilities"},
     {"symbol": "XEL", "name": "Xcel Energy Inc.", "sector": "utilities"},
-    ***REMOVED*** Industrials
+    # Industrials
     {"symbol": "BA", "name": "Boeing Company", "sector": "industrials"},
     {"symbol": "CAT", "name": "Caterpillar Inc.", "sector": "industrials"},
     {"symbol": "GE", "name": "General Electric Company", "sector": "industrials"},
@@ -199,7 +199,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "CSX", "name": "CSX Corporation", "sector": "industrials"},
     {"symbol": "PH", "name": "Parker-Hannifin Corporation", "sector": "industrials"},
     {"symbol": "MMM", "name": "3M Company", "sector": "industrials"},
-    ***REMOVED*** Materials
+    # Materials
     {"symbol": "LIN", "name": "Linde plc", "sector": "materials"},
     {"symbol": "APD", "name": "Air Products and Chemicals Inc.", "sector": "materials"},
     {"symbol": "SHW", "name": "Sherwin-Williams Company", "sector": "materials"},
@@ -208,7 +208,7 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "NEM", "name": "Newmont Corporation", "sector": "materials"},
     {"symbol": "DD", "name": "DuPont de Nemours Inc.", "sector": "materials"},
     {"symbol": "DOW", "name": "Dow Inc.", "sector": "materials"},
-    ***REMOVED*** Real Estate
+    # Real Estate
     {"symbol": "AMT", "name": "American Tower Corporation", "sector": "real_estate"},
     {"symbol": "PLD", "name": "Prologis Inc.", "sector": "real_estate"},
     {"symbol": "EQIX", "name": "Equinix Inc.", "sector": "real_estate"},
@@ -219,9 +219,9 @@ STATIC_FALLBACK: list[dict] = [
     {"symbol": "WELL", "name": "Welltower Inc.", "sector": "real_estate"},
 ]
 
-***REMOVED*** GICS Sector (Wikipedia) -> our coarse bucket
+# GICS Sector (Wikipedia) -> our coarse bucket
 GICS_TO_BUCKET = {
-    "Information Technology": "tech_software",  ***REMOVED*** refined post-hoc for HW vs SW
+    "Information Technology": "tech_software",  # refined post-hoc for HW vs SW
     "Health Care": "healthcare",
     "Financials": "financials",
     "Consumer Discretionary": "consumer_discretionary",
@@ -253,8 +253,8 @@ class SP500TableParser(HTMLParser):
         self._current_row: list[str] = []
         self._current_cell: list[str] = []
         self._done = False
-        ***REMOVED*** The Symbol column uses an <a> linking to the company's page; we
-        ***REMOVED*** accumulate raw text including link text. First <td> contains an <a>.
+        # The Symbol column uses an <a> linking to the company's page; we
+        # accumulate raw text including link text. First <td> contains an <a>.
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if self._done:
@@ -313,7 +313,7 @@ def fetch_wikipedia() -> list[dict] | None:
     parser = SP500TableParser()
     try:
         parser.feed(html)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         print(f"[fetch_sp500] html parse failed: {e}", file=sys.stderr)
         return None
 
@@ -325,7 +325,7 @@ def fetch_wikipedia() -> list[dict] | None:
         return None
 
     out: list[dict] = []
-    ***REMOVED*** Skip header row.
+    # Skip header row.
     for row in parser.rows[1:]:
         if len(row) < 3:
             continue
@@ -334,7 +334,7 @@ def fetch_wikipedia() -> list[dict] | None:
         gics = row[2].strip()
         if not symbol or not name:
             continue
-        ***REMOVED*** Strip footnote refs like "[note]" from name.
+        # Strip footnote refs like "[note]" from name.
         if "[" in name:
             name = name.split("[", 1)[0].strip()
         sector = GICS_TO_BUCKET.get(gics, "other")
@@ -367,7 +367,7 @@ def main() -> int:
         rows = STATIC_FALLBACK
         source = "static_fallback"
 
-    ***REMOVED*** Dedup by symbol, preserve order.
+    # Dedup by symbol, preserve order.
     seen: set[str] = set()
     dedup: list[dict] = []
     for r in rows:

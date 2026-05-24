@@ -1,4 +1,4 @@
-***REMOVED*** D1 Phase Detector — cost & latency projection
+# D1 Phase Detector — cost & latency projection
 
 **Date**: 2026-05-13
 **Branch**: v4/session2-mega-sprint
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Sample run (5 companies — measured)
+## Sample run (5 companies — measured)
 
 5/5 calls succeeded on first attempt. No state-machine fix required (JSON parsed cleanly via guardrail). See `sample_run_stats.json` for raw numbers.
 
@@ -24,7 +24,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Sample cost (measured)
+## Sample cost (measured)
 
 Pricing reference — DeepSeek `deepseek-v4-pro` (deepseek.com, 2026-05; standard rates, no off-peak discount applied):
 
@@ -42,7 +42,7 @@ Per-company average: **$0.00189** (~0.19 cent).
 
 ---
 
-***REMOVED******REMOVED*** Projected full 100-company batch
+## Projected full 100-company batch
 
 Linearly extrapolated from sample averages (avg 747 in / 1533 out per company):
 
@@ -60,7 +60,7 @@ Linearly extrapolated from sample averages (avg 747 in / 1533 out per company):
 
 Even at 10x volume (1000 companies, e.g. Russell 1000) cost is **~$1.90**; latency at 10-way parallel is **~78 min**. Both well within session-affordable.
 
-***REMOVED******REMOVED******REMOVED*** Cache-hit savings (likely on system prompt)
+### Cache-hit savings (likely on system prompt)
 
 The DeepSeek API does prefix caching automatically for repeated system prompts. The system prompt (~270 tokens) is identical across all calls. After the first call in a session, that portion becomes cache-hit:
 
@@ -72,7 +72,7 @@ So caching savings are not material at this scale; the dominant cost is output t
 
 ---
 
-***REMOVED******REMOVED*** Retries / failures budget
+## Retries / failures budget
 
 Sample showed 0 retries needed (100% first-attempt validation). Realistic robust estimate assuming 5% retry rate at 1.5× cost per retried call:
 
@@ -83,7 +83,7 @@ Tracking the retry rate in production is cheap and surfaces drift early.
 
 ---
 
-***REMOVED******REMOVED*** Recommendations for next-session full batch
+## Recommendations for next-session full batch
 
 1. **Run mode**: 5-way parallel (`asyncio` or `concurrent.futures.ThreadPoolExecutor(max_workers=5)`) — 100 companies in ~15 min, well below DeepSeek rate limits.
 2. **Cost cap**: budget $0.50 total for the 100-company batch (≥2.5× buffer over projection).
@@ -93,7 +93,7 @@ Tracking the retry rate in production is cheap and surfaces drift early.
 
 ---
 
-***REMOVED******REMOVED*** Open questions for cost / quality (next session)
+## Open questions for cost / quality (next session)
 
 - Should we run **multi-model ensemble** (deepseek-v4-pro + deepseek-v4-flash + a non-DeepSeek backup) for higher-confidence StructTuples? Cost would ~3×; latency similar (parallel). Defer until D2 calibration.
 - Is `deepseek-v4-pro` vs `deepseek-v4-flash` quality gap worth the ~3-4× cost? Run an A/B on the same 20-company set; if flash is within 80% of pro on dynamics_family accuracy, flash becomes the workhorse and pro is reserved for borderline cases.

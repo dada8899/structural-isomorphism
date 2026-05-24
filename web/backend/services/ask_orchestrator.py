@@ -48,62 +48,62 @@ from services.llm_service import LLMService, _get_http_client, OPENROUTER_URL
 logger = logging.getLogger("structural.ask_orchestrator")
 
 
-***REMOVED*** DeepSeek as the default driver for /ask. The `:nitro` suffix tells
-***REMOVED*** OpenRouter to route to the highest-throughput provider available, which
-***REMOVED*** cuts time-to-first-token from a 8-25s tail down to ~2-6s (M1.2 fix 1 —
-***REMOVED*** first-token latency硬伤). Same model, fastest provider — no answer
-***REMOVED*** quality change. Override via env (ASK_LLM_MODEL) to A/B against Claude /
-***REMOVED*** Kimi, or drop the suffix to let OpenRouter balance on price.
+# DeepSeek as the default driver for /ask. The `:nitro` suffix tells
+# OpenRouter to route to the highest-throughput provider available, which
+# cuts time-to-first-token from a 8-25s tail down to ~2-6s (M1.2 fix 1 —
+# first-token latency硬伤). Same model, fastest provider — no answer
+# quality change. Override via env (ASK_LLM_MODEL) to A/B against Claude /
+# Kimi, or drop the suffix to let OpenRouter balance on price.
 ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
 
-***REMOVED*** How many KB hits to surface to the user as citation candidates.
+# How many KB hits to surface to the user as citation candidates.
 TOP_K_CARDS = 5
-***REMOVED*** How many of those also surface as "similar phenomena" rows below the answer.
+# How many of those also surface as "similar phenomena" rows below the answer.
 TOP_K_SIMILAR = 3
-***REMOVED*** Typewriter cadence — emit answer in roughly N-character chunks to keep
-***REMOVED*** the network event count modest while still feeling alive.
+# Typewriter cadence — emit answer in roughly N-character chunks to keep
+# the network event count modest while still feeling alive.
 TYPEWRITER_CHARS_PER_CHUNK = 8
-***REMOVED*** Small delay between typewriter chunks so the frontend renders smoothly
-***REMOVED*** without buffering the whole stream. Tuned for SSE through nginx.
+# Small delay between typewriter chunks so the frontend renders smoothly
+# without buffering the whole stream. Tuned for SSE through nginx.
 TYPEWRITER_SLEEP_S = 0.025
 
-***REMOVED*** ---- Out-of-scope rejection guardrail (W5-A) -----------------------------
-***REMOVED*** Dogfood report 2026-05-15 (docs/dogfood-ask-2026-05-15.md) caught 3 edge
-***REMOVED*** queries (q5 "女朋友为什么生气" / q6 "1+1=?" / q7 "BTC 明天涨跌") where the
-***REMOVED*** system硬拗 isomorphism answers despite low retrieval scores. q6 burned
-***REMOVED*** 33s producing 494 chars of forced analogy.
-***REMOVED***
-***REMOVED*** We layer two cheap signals:
-***REMOVED***   - top-1 cosine < RELEVANCE_TOP1_MIN  → low relevance
-***REMOVED***   - top-3 mean   < RELEVANCE_TOP3_MEAN_MIN → low relevance
-***REMOVED***   - empty cards                         → low relevance (trivial)
-***REMOVED*** When any signal trips, `stream()` short-circuits (M1.3): it emits a
-***REMOVED*** local, honest refusal and skips the LLM call entirely — never硬拗.
-***REMOVED***
-***REMOVED*** Threshold rationale from dogfood data:
-***REMOVED***   q1 (SVB):      top-1=0.94  top-3=0.85+ → above
-***REMOVED***   q2 (team):     top-1=1.00  top-3=0.94  → above (false-negative ok; KW hack)
-***REMOVED***   q3 (churn):    top-1≈0.92  top-3=0.83  → above
-***REMOVED***   q4 (rumor):    top-1=0.93  top-3=0.88  → above
-***REMOVED***   q5 (gf):       top-1=0.82  top-3=0.747 → top-3 GATE TRIPS
-***REMOVED***   q6 (1+1):     top-1=0.70  top-3=0.597 → BOTH GATES TRIP
-***REMOVED***   q7 (BTC):     top-1=0.65  top-3=0.63  → BOTH GATES TRIP
-***REMOVED*** Env override knobs let us re-tune in prod without redeploy.
+# ---- Out-of-scope rejection guardrail (W5-A) -----------------------------
+# Dogfood report 2026-05-15 (docs/dogfood-ask-2026-05-15.md) caught 3 edge
+# queries (q5 "女朋友为什么生气" / q6 "1+1=?" / q7 "BTC 明天涨跌") where the
+# system硬拗 isomorphism answers despite low retrieval scores. q6 burned
+# 33s producing 494 chars of forced analogy.
+#
+# We layer two cheap signals:
+#   - top-1 cosine < RELEVANCE_TOP1_MIN  → low relevance
+#   - top-3 mean   < RELEVANCE_TOP3_MEAN_MIN → low relevance
+#   - empty cards                         → low relevance (trivial)
+# When any signal trips, `stream()` short-circuits (M1.3): it emits a
+# local, honest refusal and skips the LLM call entirely — never硬拗.
+#
+# Threshold rationale from dogfood data:
+#   q1 (SVB):      top-1=0.94  top-3=0.85+ → above
+#   q2 (team):     top-1=1.00  top-3=0.94  → above (false-negative ok; KW hack)
+#   q3 (churn):    top-1≈0.92  top-3=0.83  → above
+#   q4 (rumor):    top-1=0.93  top-3=0.88  → above
+#   q5 (gf):       top-1=0.82  top-3=0.747 → top-3 GATE TRIPS
+#   q6 (1+1):     top-1=0.70  top-3=0.597 → BOTH GATES TRIP
+#   q7 (BTC):     top-1=0.65  top-3=0.63  → BOTH GATES TRIP
+# Env override knobs let us re-tune in prod without redeploy.
 RELEVANCE_TOP1_MIN = float(os.getenv("ASK_RELEVANCE_TOP1_MIN", "0.75"))
 RELEVANCE_TOP3_MEAN_MIN = float(os.getenv("ASK_RELEVANCE_TOP3_MEAN_MIN", "0.65"))
 
-***REMOVED*** Session ***REMOVED***16 — forecasting-intent gate (SESSION-15-VERDICT backlog A).
-***REMOVED*** Some forecasting queries score high enough to bypass the retrieval gate
-***REMOVED*** above (e.g. "AI 能不能预测加密货币" retrieves "科技泡沫" / "投资判断" with
-***REMOVED*** decent cosine), yet the intent is the one thing Structural absolutely can
-***REMOVED*** not honour: predicting future prices / movements. We add a tiny keyword
-***REMOVED*** layer that runs BEFORE the retrieval gate so it short-circuits regardless
-***REMOVED*** of score. Two-layer defence: the score gate (probabilistic) + the intent
-***REMOVED*** keyword gate (deterministic). Either trip is enough.
-***REMOVED***
-***REMOVED*** Keep this list short and specific. Over-matching false-positives ("预测"
-***REMOVED*** inside "预测临界相变能不能提前预警" — which IS in scope) are avoided by
-***REMOVED*** pairing "predict / 预测" with financial-asset markers.
+# Session #16 — forecasting-intent gate (SESSION-15-VERDICT backlog A).
+# Some forecasting queries score high enough to bypass the retrieval gate
+# above (e.g. "AI 能不能预测加密货币" retrieves "科技泡沫" / "投资判断" with
+# decent cosine), yet the intent is the one thing Structural absolutely can
+# not honour: predicting future prices / movements. We add a tiny keyword
+# layer that runs BEFORE the retrieval gate so it short-circuits regardless
+# of score. Two-layer defence: the score gate (probabilistic) + the intent
+# keyword gate (deterministic). Either trip is enough.
+#
+# Keep this list short and specific. Over-matching false-positives ("预测"
+# inside "预测临界相变能不能提前预警" — which IS in scope) are avoided by
+# pairing "predict / 预测" with financial-asset markers.
 _FORECAST_KEYWORDS_ZH = (
     "预测加密", "预测股", "预测币", "预测涨跌", "预测走势", "预测行情",
     "明天涨", "明天跌", "明天会涨", "明天会跌",
@@ -201,18 +201,18 @@ class _AnswerFieldExtractor:
     IN_VALUE = 2
     DONE = 3
 
-    ***REMOVED*** Key we are hunting for, including the closing quote so we don't
-    ***REMOVED*** match `"answer_extra"`. We tolerate any whitespace between the key
-    ***REMOVED*** close-quote and the colon.
+    # Key we are hunting for, including the closing quote so we don't
+    # match `"answer_extra"`. We tolerate any whitespace between the key
+    # close-quote and the colon.
     _KEY = '"answer"'
 
     def __init__(self) -> None:
         self.state = self.SCANNING
-        ***REMOVED*** Rolling buffer used only while SCANNING for `"answer"`. Capped at
-        ***REMOVED*** 256 chars so a runaway preamble can't blow memory.
+        # Rolling buffer used only while SCANNING for `"answer"`. Capped at
+        # 256 chars so a runaway preamble can't blow memory.
         self._scan_tail = ""
-        ***REMOVED*** Pending escape sequence handler — set when we hit `\` inside the
-        ***REMOVED*** string. Forms: "esc" (next single-char escape) | "uXXXX" partial.
+        # Pending escape sequence handler — set when we hit `\` inside the
+        # string. Forms: "esc" (next single-char escape) | "uXXXX" partial.
         self._pending_esc: Optional[str] = None
 
     def feed(self, chunk: str) -> str:
@@ -223,12 +223,12 @@ class _AnswerFieldExtractor:
             if piece:
                 out_parts.append(piece)
             if self.state == self.DONE:
-                ***REMOVED*** Drop the rest of the chunk — caller will keep feeding
-                ***REMOVED*** for the buffer copy but we don't emit anything more.
+                # Drop the rest of the chunk — caller will keep feeding
+                # for the buffer copy but we don't emit anything more.
                 break
         return "".join(out_parts)
 
-    def _step(self, ch: str) -> str:  ***REMOVED*** noqa: C901  (state machine reads cleaner inline)
+    def _step(self, ch: str) -> str:  # noqa: C901  (state machine reads cleaner inline)
         if self.state == self.SCANNING:
             self._scan_tail = (self._scan_tail + ch)[-len(self._KEY):]
             if self._scan_tail == self._KEY:
@@ -236,28 +236,28 @@ class _AnswerFieldExtractor:
             return ""
 
         if self.state == self.AFTER_KEY:
-            ***REMOVED*** Look for `:` then the opening `"`. Skip whitespace between.
+            # Look for `:` then the opening `"`. Skip whitespace between.
             if ch == '"':
                 self.state = self.IN_VALUE
-            ***REMOVED*** Any non-whitespace, non-`:`, non-`"` char here means the
-            ***REMOVED*** response shape is off-spec; we let the full json.loads at
-            ***REMOVED*** end-of-stream report it. Stay AFTER_KEY in case it normalizes.
+            # Any non-whitespace, non-`:`, non-`"` char here means the
+            # response shape is off-spec; we let the full json.loads at
+            # end-of-stream report it. Stay AFTER_KEY in case it normalizes.
             return ""
 
         if self.state == self.IN_VALUE:
-            ***REMOVED*** Handle pending escape from previous char.
+            # Handle pending escape from previous char.
             if self._pending_esc is not None:
                 return self._consume_escape(ch)
             if ch == "\\":
                 self._pending_esc = "esc"
                 return ""
             if ch == '"':
-                ***REMOVED*** Unescaped closing quote → end of answer string value.
+                # Unescaped closing quote → end of answer string value.
                 self.state = self.DONE
                 return ""
             return ch
 
-        ***REMOVED*** DONE — ignore everything else.
+        # DONE — ignore everything else.
         return ""
 
     def _consume_escape(self, ch: str) -> str:
@@ -278,26 +278,26 @@ class _AnswerFieldExtractor:
                 self._pending_esc = None
                 return simple[ch]
             if ch == "u":
-                ***REMOVED*** Expect 4 hex digits to follow.
+                # Expect 4 hex digits to follow.
                 self._pending_esc = "u"
                 return ""
-            ***REMOVED*** Unknown escape — drop the backslash, keep the char.
+            # Unknown escape — drop the backslash, keep the char.
             self._pending_esc = None
             return ch
         if pending.startswith("u"):
-            ***REMOVED*** Accumulate up to 4 hex digits.
+            # Accumulate up to 4 hex digits.
             buf = pending + ch
-            if len(buf) >= 5:  ***REMOVED*** "u" + 4 digits
+            if len(buf) >= 5:  # "u" + 4 digits
                 hex_digits = buf[1:5]
                 try:
                     self._pending_esc = None
                     return chr(int(hex_digits, 16))
                 except ValueError:
                     self._pending_esc = None
-                    return ""  ***REMOVED*** malformed → silently drop
+                    return ""  # malformed → silently drop
             self._pending_esc = buf
             return ""
-        ***REMOVED*** Unknown pending state — reset.
+        # Unknown pending state — reset.
         self._pending_esc = None
         return ch
 
@@ -312,7 +312,7 @@ def _safe_snippet(description: str, max_len: int = 140) -> str:
     if not description:
         return ""
     text = description.replace("\n", " ").strip()
-    ***REMOVED*** Try to cut at the first natural sentence boundary, EN or ZH.
+    # Try to cut at the first natural sentence boundary, EN or ZH.
     for sep in ("。", "；", ". ", "; "):
         i = text.find(sep)
         if 0 < i < max_len:
@@ -336,9 +336,9 @@ class AskOrchestrator:
         self.llm = llm or LLMService()
         self.model = model or ASK_MODEL
 
-    ***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
-    ***REMOVED*** Public entry — async generator yielding SSE-formatted strings.
-    ***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
+    # ------------------------------------------------------------------ #
+    # Public entry — async generator yielding SSE-formatted strings.
+    # ------------------------------------------------------------------ #
 
     async def stream(self, query: str, lang: str = "zh") -> AsyncIterator[str]:
         """Run the full 3-phase pipeline. Caller is FastAPI StreamingResponse."""
@@ -348,10 +348,10 @@ class AskOrchestrator:
         if lang_norm not in ("zh", "en"):
             lang_norm = "zh"
 
-        ***REMOVED*** ---- Phase A: vector search ---------------------------------- ***REMOVED***
-        ***REMOVED*** We don't currently invoke the LLM rewrite gate here — the /ask
-        ***REMOVED*** surface is a single-box Perplexity-style flow, so we keep the
-        ***REMOVED*** user's query verbatim to minimize latency.
+        # ---- Phase A: vector search ---------------------------------- #
+        # We don't currently invoke the LLM rewrite gate here — the /ask
+        # surface is a single-box Perplexity-style flow, so we keep the
+        # user's query verbatim to minimize latency.
         rewritten = query
         yield _sse("meta", {
             "query": query,
@@ -363,13 +363,13 @@ class AskOrchestrator:
 
         cards: List[Dict] = []
         retrieval_started = time.monotonic()
-        ***REMOVED*** X2 W2+W3 (2026-05-24) — opt-in expansion + EN→ZH translation
-        ***REMOVED*** pipeline. Gated by env to preserve baseline behavior for the 772
-        ***REMOVED*** existing tests (which call self.search.search directly via mocks).
-        ***REMOVED*** Flip ASK_EXPANSION_ENABLED=1 on the env to enable in dev/prod.
-        ***REMOVED*** The pipeline is bullet-proof against LLM failure — if expansion
-        ***REMOVED*** or translation hits any error it degrades to the original query,
-        ***REMOVED*** so flipping the flag never breaks retrieval.
+        # X2 W2+W3 (2026-05-24) — opt-in expansion + EN→ZH translation
+        # pipeline. Gated by env to preserve baseline behavior for the 772
+        # existing tests (which call self.search.search directly via mocks).
+        # Flip ASK_EXPANSION_ENABLED=1 on the env to enable in dev/prod.
+        # The pipeline is bullet-proof against LLM failure — if expansion
+        # or translation hits any error it degrades to the original query,
+        # so flipping the flag never breaks retrieval.
         _expansion_enabled = os.getenv("ASK_EXPANSION_ENABLED", "").lower() in ("1", "true", "yes")
         try:
             if self.search is not None and _expansion_enabled:
@@ -387,9 +387,9 @@ class AskOrchestrator:
             cards = []
         retrieval_ms = int((time.monotonic() - retrieval_started) * 1000)
 
-        ***REMOVED*** Always emit the kb_cards event (possibly empty) so the frontend
-        ***REMOVED*** can transition from "searching" to "ready". Cards keep only the
-        ***REMOVED*** display-safe fields; descriptions stay short.
+        # Always emit the kb_cards event (possibly empty) so the frontend
+        # can transition from "searching" to "ready". Cards keep only the
+        # display-safe fields; descriptions stay short.
         cards_payload = [
             {
                 "id": c.get("id", ""),
@@ -401,18 +401,18 @@ class AskOrchestrator:
             }
             for c in cards
         ]
-        ***REMOVED*** W5-B: explicit `retrieval_done` event marking the user-visible
-        ***REMOVED*** transition from "搜索中…" to "找到 N 篇 → 正在生成"。Frontend
-        ***REMOVED*** paints citation placeholder cards on this event so the user has
-        ***REMOVED*** a concrete signal well before the LLM produces its first token.
-        ***REMOVED*** Kept alongside the legacy `kb_cards` event so older clients keep
-        ***REMOVED*** working without change.
+        # W5-B: explicit `retrieval_done` event marking the user-visible
+        # transition from "搜索中…" to "找到 N 篇 → 正在生成"。Frontend
+        # paints citation placeholder cards on this event so the user has
+        # a concrete signal well before the LLM produces its first token.
+        # Kept alongside the legacy `kb_cards` event so older clients keep
+        # working without change.
         yield _sse("retrieval_done", {
             "count": len(cards_payload),
             "retrieval_ms": retrieval_ms,
-            ***REMOVED*** Lightweight precis — name + domain + idx so a citation card
-            ***REMOVED*** placeholder can render. Full descriptions still go via the
-            ***REMOVED*** subsequent kb_cards event.
+            # Lightweight precis — name + domain + idx so a citation card
+            # placeholder can render. Full descriptions still go via the
+            # subsequent kb_cards event.
             "candidates": [
                 {
                     "idx": i + 1,
@@ -426,27 +426,27 @@ class AskOrchestrator:
         })
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
-        ***REMOVED*** ---- Relevance gate → out-of-scope refusal (W5-A → M1.3) ----- ***REMOVED***
-        ***REMOVED*** Inspect the retrieval scores. If the query is clearly outside
-        ***REMOVED*** the KB's coverage we SHORT-CIRCUIT here: emit a local, honest
-        ***REMOVED*** refusal and never call the LLM. The relevance gate has always
-        ***REMOVED*** been an accurate detector; M1.3 adds the missing execution
-        ***REMOVED*** branch that actually acts on it. Pre-M1.3 the flag was only a
-        ***REMOVED*** soft hint fed into the prompt, so an out-of-scope query still
-        ***REMOVED*** burned a full 18-32s LLM call (dogfood q6 "1+1=?" → 33s of
-        ***REMOVED*** forced analogy). Refusing locally drops that to ~1-3s and kills
-        ***REMOVED*** the "硬拗类比" failure mode outright — a code-layer guardrail
-        ***REMOVED*** per the global "不信任 LLM 输出" rule.
-        ***REMOVED*** Two-layer scope gate (session ***REMOVED***16):
-        ***REMOVED***   (1) forecasting-intent keyword gate — deterministic, runs first
-        ***REMOVED***   (2) retrieval-score gate — probabilistic, runs second
-        ***REMOVED*** Either trip refuses. The intent gate catches the "AI 能不能预测股票"
-        ***REMOVED*** class of query that retrieves OK but is the one thing we must not
-        ***REMOVED*** answer.
-        ***REMOVED*** P1-3 — deterministic trivial / chit-chat gate. Runs FIRST and
-        ***REMOVED*** catches obvious junk ("1+1=?", "你好", "今天几号") even when it
-        ***REMOVED*** happens to retrieve a KB card with a passable cosine. Cheaper +
-        ***REMOVED*** more reliable than leaning on the score gate for these classes.
+        # ---- Relevance gate → out-of-scope refusal (W5-A → M1.3) ----- #
+        # Inspect the retrieval scores. If the query is clearly outside
+        # the KB's coverage we SHORT-CIRCUIT here: emit a local, honest
+        # refusal and never call the LLM. The relevance gate has always
+        # been an accurate detector; M1.3 adds the missing execution
+        # branch that actually acts on it. Pre-M1.3 the flag was only a
+        # soft hint fed into the prompt, so an out-of-scope query still
+        # burned a full 18-32s LLM call (dogfood q6 "1+1=?" → 33s of
+        # forced analogy). Refusing locally drops that to ~1-3s and kills
+        # the "硬拗类比" failure mode outright — a code-layer guardrail
+        # per the global "不信任 LLM 输出" rule.
+        # Two-layer scope gate (session #16):
+        #   (1) forecasting-intent keyword gate — deterministic, runs first
+        #   (2) retrieval-score gate — probabilistic, runs second
+        # Either trip refuses. The intent gate catches the "AI 能不能预测股票"
+        # class of query that retrieves OK but is the one thing we must not
+        # answer.
+        # P1-3 — deterministic trivial / chit-chat gate. Runs FIRST and
+        # catches obvious junk ("1+1=?", "你好", "今天几号") even when it
+        # happens to retrieve a KB card with a passable cosine. Cheaper +
+        # more reliable than leaning on the score gate for these classes.
         from services.scope_guard import is_out_of_scope as _is_oos
         oos, oos_reason = _is_oos(query)
         if oos:
@@ -474,14 +474,14 @@ class AskOrchestrator:
                 "citations": [],
                 "out_of_scope": True,
                 "scope_reason": relevance_reason,
-                ***REMOVED*** `refused` marks a hard local refusal (no LLM call) so the
-                ***REMOVED*** frontend / analytics can tell it apart from the legacy
-                ***REMOVED*** soft `out_of_scope` flag.
+                # `refused` marks a hard local refusal (no LLM call) so the
+                # frontend / analytics can tell it apart from the legacy
+                # soft `out_of_scope` flag.
                 "refused": True,
             })
-            ***REMOVED*** No "similar phenomena": the gate already decided the
-            ***REMOVED*** retrieved cards aren't genuinely related, so surfacing them
-            ***REMOVED*** would contradict the refusal text.
+            # No "similar phenomena": the gate already decided the
+            # retrieved cards aren't genuinely related, so surfacing them
+            # would contradict the refusal text.
             yield _sse("similar_phenomena", {"phenomena": []})
             yield _sse("followups", {"questions": refusal["followups"]})
             refusal_latency_ms = int((time.monotonic() - started) * 1000)
@@ -500,12 +500,12 @@ class AskOrchestrator:
             yield _sse("done", {"latency_ms": refusal_latency_ms})
             return
 
-        ***REMOVED*** ---- Phase B: LLM synthesize answer + citations + followups -- ***REMOVED***
-        ***REMOVED*** Reached only for in-scope queries — out-of-scope ones were
-        ***REMOVED*** refused above (M1.3) without ever calling the LLM.
-        ***REMOVED*** W14-D: structured `ask.llm.start` log line — model + retrieval
-        ***REMOVED*** count so a single grep on `request_id` reconstructs the whole
-        ***REMOVED*** pipeline timeline.
+        # ---- Phase B: LLM synthesize answer + citations + followups -- #
+        # Reached only for in-scope queries — out-of-scope ones were
+        # refused above (M1.3) without ever calling the LLM.
+        # W14-D: structured `ask.llm.start` log line — model + retrieval
+        # count so a single grep on `request_id` reconstructs the whole
+        # pipeline timeline.
         try:
             from logging_config import get_logger as _glog
 
@@ -516,9 +516,9 @@ class AskOrchestrator:
             )
         except Exception:
             pass
-        ***REMOVED*** M1.2 fix 4: tell the frontend the LLM call is starting so its
-        ***REMOVED*** progress indicator can advance — closes the perceived "black
-        ***REMOVED*** screen" gap between `retrieval_done` and the first `answer_chunk`.
+        # M1.2 fix 4: tell the frontend the LLM call is starting so its
+        # progress indicator can advance — closes the perceived "black
+        # screen" gap between `retrieval_done` and the first `answer_chunk`.
         yield _sse("llm_start", {
             "model": self.model,
             "kb_count": len(cards_payload),
@@ -553,10 +553,10 @@ class AskOrchestrator:
 
         answer_text = payload.get("answer", "") if payload else ""
 
-        ***REMOVED*** W14-D: structured `ask.llm.complete` event. We don't have token
-        ***REMOVED*** counts in-band (the SSE stream doesn't surface them), so latency
-        ***REMOVED*** + answer length is the best proxy until we plumb token usage
-        ***REMOVED*** through llm_service.
+        # W14-D: structured `ask.llm.complete` event. We don't have token
+        # counts in-band (the SSE stream doesn't surface them), so latency
+        # + answer length is the best proxy until we plumb token usage
+        # through llm_service.
         try:
             from logging_config import get_logger as _glog
 
@@ -568,42 +568,42 @@ class AskOrchestrator:
         except Exception:
             pass
 
-        ***REMOVED*** If we never streamed any answer chars (e.g. fallback path, or the
-        ***REMOVED*** JSON-string-extractor never matched `"answer"` because the model
-        ***REMOVED*** produced a wonky envelope), fall back to one typewriter pass so
-        ***REMOVED*** the frontend isn't stuck on its "正在思考..." placeholder.
+        # If we never streamed any answer chars (e.g. fallback path, or the
+        # JSON-string-extractor never matched `"answer"` because the model
+        # produced a wonky envelope), fall back to one typewriter pass so
+        # the frontend isn't stuck on its "正在思考..." placeholder.
         if not first_chunk_sent and answer_text:
             for chunk in self._typewriter_chunks(answer_text):
                 yield _sse("answer_chunk", {"delta": chunk})
                 if TYPEWRITER_SLEEP_S > 0:
                     await asyncio.sleep(TYPEWRITER_SLEEP_S)
 
-        ***REMOVED*** Sanitize citations against the actual cards range so a
-        ***REMOVED*** hallucinated idx never leaks to the frontend.
+        # Sanitize citations against the actual cards range so a
+        # hallucinated idx never leaks to the frontend.
         validated_citations = self._validate_citations(payload.get("citations", []), cards)
-        ***REMOVED*** In-scope path only — out-of-scope queries were refused above and
-        ***REMOVED*** returned (M1.3), so `answer_done` here never carries out_of_scope.
+        # In-scope path only — out-of-scope queries were refused above and
+        # returned (M1.3), so `answer_done` here never carries out_of_scope.
         yield _sse("answer_done", {
             "full_text": answer_text,
             "citations": validated_citations,
         })
 
-        ***REMOVED*** ---- Phase C: similar phenomena ------------------------------ ***REMOVED***
+        # ---- Phase C: similar phenomena ------------------------------ #
         similar = self._build_similar_phenomena(cards[:TOP_K_SIMILAR])
         yield _sse("similar_phenomena", {"phenomena": similar})
 
-        ***REMOVED*** ---- Followups ----------------------------------------------- ***REMOVED***
+        # ---- Followups ----------------------------------------------- #
         followups = list(payload.get("followups", []))[:3] if payload else []
-        ***REMOVED*** Pad/trim defensively — schema requires >=2, but a fallback path
-        ***REMOVED*** might pass empty. Surface at most 3, drop blanks.
+        # Pad/trim defensively — schema requires >=2, but a fallback path
+        # might pass empty. Surface at most 3, drop blanks.
         followups = [q.strip() for q in followups if isinstance(q, str) and q.strip()][:3]
         yield _sse("followups", {"questions": followups})
 
-        ***REMOVED*** ---- Done ---------------------------------------------------- ***REMOVED***
+        # ---- Done ---------------------------------------------------- #
         latency_ms = int((time.monotonic() - started) * 1000)
-        ***REMOVED*** W14-D: emit final `ask.response` event so a single grep on the
-        ***REMOVED*** request_id reconstructs full lifecycle (request → retrieval →
-        ***REMOVED*** llm.start → llm.complete → response).
+        # W14-D: emit final `ask.response` event so a single grep on the
+        # request_id reconstructs full lifecycle (request → retrieval →
+        # llm.start → llm.complete → response).
         try:
             from logging_config import get_logger as _glog
 
@@ -617,9 +617,9 @@ class AskOrchestrator:
             pass
         yield _sse("done", {"latency_ms": latency_ms})
 
-    ***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
-    ***REMOVED*** Internals
-    ***REMOVED*** ------------------------------------------------------------------ ***REMOVED***
+    # ------------------------------------------------------------------ #
+    # Internals
+    # ------------------------------------------------------------------ #
 
     def _typewriter_chunks(self, text: str) -> List[str]:
         """Split the answer into N-character chunks for typewriter effect.
@@ -676,7 +676,7 @@ class AskOrchestrator:
             })
         return out
 
-    ***REMOVED*** ---------------- Relevance gating (W5-A) --------------------------- ***REMOVED***
+    # ---------------- Relevance gating (W5-A) --------------------------- #
 
     def _evaluate_relevance(self, cards: List[Dict]) -> tuple[bool, str]:
         """Decide whether the retrieved KB is too thin to support an answer.
@@ -716,7 +716,7 @@ class AskOrchestrator:
 
         return False, "ok"
 
-    ***REMOVED*** ---------------- LLM call + retry --------------------------------- ***REMOVED***
+    # ---------------- LLM call + retry --------------------------------- #
 
     async def _llm_answer_with_retry(
         self,
@@ -733,14 +733,14 @@ class AskOrchestrator:
         currently still drive this via `_call_llm_once` mocks). The hot
         path in `stream()` uses `_stream_llm_answer_with_retry` instead.
         """
-        ***REMOVED*** First attempt — normal prompt.
+        # First attempt — normal prompt.
         prompt = self._build_prompt(query, cards, lang, strict_json=False)
         result = await self._call_llm_once(prompt)
         validated = self._try_validate(result)
         if validated is not None:
             return validated
 
-        ***REMOVED*** Retry once with a stricter "JSON only, no markdown fences" note.
+        # Retry once with a stricter "JSON only, no markdown fences" note.
         logger.warning("[ask] first LLM JSON validate failed; retrying once")
         prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
         result2 = await self._call_llm_once(prompt2)
@@ -776,7 +776,7 @@ class AskOrchestrator:
               with strict_json=True.
         3. After two failures total, yield ("done", fallback).
         """
-        ***REMOVED*** ---- Attempt 1: stream + extract --------------------------------
+        # ---- Attempt 1: stream + extract --------------------------------
         prompt = self._build_prompt(query, cards, lang, strict_json=False)
         accumulated = ""
         emitted_any = False
@@ -797,18 +797,18 @@ class AskOrchestrator:
             yield ("done", validated)
             return
 
-        ***REMOVED*** ---- Attempt 2: depends on whether we already streamed answer ---
+        # ---- Attempt 2: depends on whether we already streamed answer ---
         if emitted_any:
-            ***REMOVED*** Already showed text to user. Re-call (non-streaming) for a
-            ***REMOVED*** second shot at valid citations/followups, but preserve the
-            ***REMOVED*** already-emitted answer string by overriding `answer` with
-            ***REMOVED*** whatever we managed to accumulate via the extractor.
+            # Already showed text to user. Re-call (non-streaming) for a
+            # second shot at valid citations/followups, but preserve the
+            # already-emitted answer string by overriding `answer` with
+            # whatever we managed to accumulate via the extractor.
             logger.warning("[ask] stream JSON validate failed; retry (no re-stream)")
             prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             result2 = await self._call_llm_once(prompt2)
             validated2 = self._try_validate(result2)
             if validated2 is not None:
-                ***REMOVED*** Keep what the user already saw on screen.
+                # Keep what the user already saw on screen.
                 streamed_answer = self._best_effort_extract_answer(accumulated)
                 if streamed_answer:
                     validated2 = dict(validated2)
@@ -816,7 +816,7 @@ class AskOrchestrator:
                 yield ("done", validated2)
                 return
         else:
-            ***REMOVED*** Nothing user-visible yet — safe to fully re-stream.
+            # Nothing user-visible yet — safe to fully re-stream.
             logger.warning("[ask] stream emitted nothing; retry with strict_json")
             prompt2 = self._build_prompt(query, cards, lang, strict_json=True)
             accumulated2 = ""
@@ -837,11 +837,11 @@ class AskOrchestrator:
                 yield ("done", validated3)
                 return
 
-            ***REMOVED*** Final tier: if streaming failed entirely (e.g. no API key,
-            ***REMOVED*** network refused) fall back to the legacy non-streaming
-            ***REMOVED*** `_call_llm_once` path. This preserves compatibility with
-            ***REMOVED*** mocks that only patch `_call_llm_once` AND keeps prod from
-            ***REMOVED*** giving up if the streaming endpoint flakes.
+            # Final tier: if streaming failed entirely (e.g. no API key,
+            # network refused) fall back to the legacy non-streaming
+            # `_call_llm_once` path. This preserves compatibility with
+            # mocks that only patch `_call_llm_once` AND keeps prod from
+            # giving up if the streaming endpoint flakes.
             if stream2_errored or not accumulated2:
                 logger.warning("[ask] streaming retry empty; falling back to non-stream")
                 try:
@@ -851,8 +851,8 @@ class AskOrchestrator:
                     result3 = None
                 validated4 = self._try_validate(result3)
                 if validated4 is not None:
-                    ***REMOVED*** Typewriter emission of the recovered answer so the
-                    ***REMOVED*** frontend isn't stuck on its placeholder.
+                    # Typewriter emission of the recovered answer so the
+                    # frontend isn't stuck on its placeholder.
                     answer4 = validated4.get("answer", "")
                     if answer4:
                         for chunk in self._typewriter_chunks(answer4):
@@ -885,7 +885,7 @@ class AskOrchestrator:
                     return ans
         except json.JSONDecodeError:
             pass
-        ***REMOVED*** Last resort — walk the chars through the extractor to reconstruct.
+        # Last resort — walk the chars through the extractor to reconstruct.
         ext = _AnswerFieldExtractor()
         return ext.feed(text)
 
@@ -894,7 +894,7 @@ class AskOrchestrator:
         if not raw:
             return None
         text = raw.strip()
-        ***REMOVED*** Strip stray markdown fences the model occasionally adds.
+        # Strip stray markdown fences the model occasionally adds.
         if text.startswith("```"):
             text = text.strip("`")
             if text.lower().startswith("json"):
@@ -909,7 +909,7 @@ class AskOrchestrator:
         except ValidationError as e:
             logger.warning(f"[ask] pydantic validate failed: {e.errors()[:2]}")
             return None
-        ***REMOVED*** Use model_dump so downstream code works with plain dicts.
+        # Use model_dump so downstream code works with plain dicts.
         return payload.model_dump()
 
     async def _call_llm_once(self, prompt: str) -> Optional[str]:
@@ -933,9 +933,9 @@ class AskOrchestrator:
                     ],
                     "temperature": 0.3,
                     "max_tokens": 1800,
-                    ***REMOVED*** DeepSeek + OpenRouter both honor response_format on
-                    ***REMOVED*** most builds; the strict-mode retry also reminds in
-                    ***REMOVED*** the prompt to be JSON-only.
+                    # DeepSeek + OpenRouter both honor response_format on
+                    # most builds; the strict-mode retry also reminds in
+                    # the prompt to be JSON-only.
                     "response_format": {"type": "json_object"},
                 },
                 timeout=60.0,
@@ -1004,8 +1004,8 @@ class AskOrchestrator:
                     try:
                         chunk = json.loads(payload)
                     except json.JSONDecodeError:
-                        ***REMOVED*** OpenRouter occasionally emits non-JSON keepalive
-                        ***REMOVED*** comments — skip silently.
+                        # OpenRouter occasionally emits non-JSON keepalive
+                        # comments — skip silently.
                         continue
                     delta = (
                         chunk.get("choices", [{}])[0].get("delta", {}).get("content")
@@ -1013,17 +1013,17 @@ class AskOrchestrator:
                     )
                     if not delta:
                         continue
-                    ***REMOVED*** Always forward raw chunk so the caller can accumulate
-                    ***REMOVED*** the full JSON for final pydantic validation.
+                    # Always forward raw chunk so the caller can accumulate
+                    # the full JSON for final pydantic validation.
                     yield ("raw_chunk", delta)
-                    ***REMOVED*** Extract any answer-field chars unlocked by this delta.
+                    # Extract any answer-field chars unlocked by this delta.
                     emitted = extractor.feed(delta)
                     if emitted:
                         yield ("answer_delta", emitted)
         except Exception as e:
-            ***REMOVED*** P1-2 — never surface the raw exception string. httpx errors
-            ***REMOVED*** can carry the upstream URL / timeout / connection internals.
-            ***REMOVED*** Map to a stable, neutral code; full detail stays in the log.
+            # P1-2 — never surface the raw exception string. httpx errors
+            # can carry the upstream URL / timeout / connection internals.
+            # Map to a stable, neutral code; full detail stays in the log.
             logger.error(f"[ask] LLM stream failed: {e}")
             yield ("error", _classify_upstream_error(e))
 
@@ -1063,7 +1063,7 @@ class AskOrchestrator:
             else ""
         )
 
-        ***REMOVED*** ---- In-scope synthesis prompt --------------------------------
+        # ---- In-scope synthesis prompt --------------------------------
         return f"""你是一个跨学科结构同构搜索引擎。用户问了一个复杂问题，你需要：
 
 1. 基于以下 KB 现象（已 vector 召回，按相似度排序），给出 200-400 字短答案，解释问题的"结构本质"
@@ -1112,10 +1112,10 @@ KB 现象列表（结构相似度排序）：
         `_fallback_payload` and possible future tailoring; not used today.
         """
         forecasting = scope_reason == "forecasting_intent"
-        ***REMOVED*** P1-3 — trivial / chit-chat / trivia queries (scope_reason
-        ***REMOVED*** "off_topic_*") get the same explicit "this isn't what Structural
-        ***REMOVED*** does — use a calculator / factual tool" wording as `no_cards`,
-        ***REMOVED*** which already names arithmetic & factual lookups by hand.
+        # P1-3 — trivial / chit-chat / trivia queries (scope_reason
+        # "off_topic_*") get the same explicit "this isn't what Structural
+        # does — use a calculator / factual tool" wording as `no_cards`,
+        # which already names arithmetic & factual lookups by hand.
         no_cards = scope_reason == "no_cards" or scope_reason.startswith("off_topic_")
         if lang == "en":
             if forecasting:
@@ -1211,7 +1211,7 @@ KB 现象列表（结构相似度排序）：
                 "哪个学科对它有最成熟的分析工具？",
                 "在什么边界条件下这种类比会失效？",
             ]
-        ***REMOVED*** Build a single citation pointing at card 1 if any cards exist.
+        # Build a single citation pointing at card 1 if any cards exist.
         if cards:
             citations = [{
                 "idx": 1,

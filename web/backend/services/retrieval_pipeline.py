@@ -34,11 +34,11 @@ from services.search_service import _detect_lang
 logger = logging.getLogger("structural.retrieval_pipeline")
 
 
-***REMOVED*** --- Retrieval log sink -----------------------------------------------------
+# --- Retrieval log sink -----------------------------------------------------
 
-***REMOVED*** Independent jsonl so a future "1 week from now, quantify expansion lift"
-***REMOVED*** pass can read just this file. Living under web/backend/logs/ next to the
-***REMOVED*** existing server.jsonl. The directory is created on first write.
+# Independent jsonl so a future "1 week from now, quantify expansion lift"
+# pass can read just this file. Living under web/backend/logs/ next to the
+# existing server.jsonl. The directory is created on first write.
 _LOG_PATH = (
     Path(__file__).resolve().parent.parent / "logs" / "retrieval.jsonl"
 )
@@ -50,7 +50,7 @@ def _write_retrieval_log(payload: Dict) -> None:
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.warning("retrieval log write failed: %s", e)
 
 
@@ -59,7 +59,7 @@ def _hash_query(query: str) -> str:
     return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
 
 
-***REMOVED*** --- Pipeline entrypoint ----------------------------------------------------
+# --- Pipeline entrypoint ----------------------------------------------------
 
 
 async def retrieve_with_expansion(
@@ -103,7 +103,7 @@ async def retrieve_with_expansion(
     started = time.monotonic()
     lang = _detect_lang(query)
 
-    ***REMOVED*** --- W3 translation -----------------------------------------------------
+    # --- W3 translation -----------------------------------------------------
     zh_query: Optional[str] = None
     translation_used = False
     if enable_translation and lang == "en":
@@ -114,27 +114,27 @@ async def retrieve_with_expansion(
         )
         translation_used = bool(zh_query)
 
-    ***REMOVED*** Build the seed query set we'll expand from. EN query stays in for
-    ***REMOVED*** BM25 (KB descriptions occasionally contain English terms); translated
-    ***REMOVED*** ZH is added as a parallel seed for embedding-side strength.
+    # Build the seed query set we'll expand from. EN query stays in for
+    # BM25 (KB descriptions occasionally contain English terms); translated
+    # ZH is added as a parallel seed for embedding-side strength.
     seeds = [query]
     if zh_query and zh_query != query:
         seeds.append(zh_query)
 
-    ***REMOVED*** --- W2 expansion -------------------------------------------------------
+    # --- W2 expansion -------------------------------------------------------
     candidate_queries: List[str] = list(seeds)
     expansion_used = False
     if enable_expansion:
-        ***REMOVED*** We expand ONCE — off the primary query (ZH if translated, else
-        ***REMOVED*** original). Expanding both seeds doubles LLM cost for marginal lift.
+        # We expand ONCE — off the primary query (ZH if translated, else
+        # original). Expanding both seeds doubles LLM cost for marginal lift.
         primary_for_expansion = zh_query or query
         expansions = await qe.expand_query(
             primary_for_expansion,
             llm_complete_json=llm_complete_json,
             timeout=expansion_timeout,
         )
-        ***REMOVED*** expand_query returns [primary, *rest]; we already have primary in
-        ***REMOVED*** seeds (as either original or translated), so only append the rest.
+        # expand_query returns [primary, *rest]; we already have primary in
+        # seeds (as either original or translated), so only append the rest.
         added = 0
         seen_lower = {s.lower() for s in candidate_queries}
         for e in expansions[1:]:
@@ -145,14 +145,14 @@ async def retrieve_with_expansion(
             added += 1
         expansion_used = added > 0
 
-    ***REMOVED*** --- Parallel search ---------------------------------------------------
+    # --- Parallel search ---------------------------------------------------
     async def _run_one(q: str) -> List[Dict]:
         try:
-            ***REMOVED*** search_fn is sync (SearchService.search). Run it in the
-            ***REMOVED*** default thread pool so 4 queries truly run in parallel
-            ***REMOVED*** rather than serialising the python work.
+            # search_fn is sync (SearchService.search). Run it in the
+            # default thread pool so 4 queries truly run in parallel
+            # rather than serialising the python work.
             return await asyncio.to_thread(search_fn, q, top_k)
-        except Exception as e:  ***REMOVED*** noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             logger.warning("retrieval search failed for one expansion: %s", e)
             return []
 
@@ -163,7 +163,7 @@ async def retrieve_with_expansion(
 
     elapsed_ms = int((time.monotonic() - started) * 1000)
 
-    ***REMOVED*** --- Structured log ----------------------------------------------------
+    # --- Structured log ----------------------------------------------------
     log_payload = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "event": "ask.retrieval",
@@ -192,7 +192,7 @@ async def retrieve_with_expansion(
     }
 
 
-***REMOVED*** --- Test helpers -----------------------------------------------------------
+# --- Test helpers -----------------------------------------------------------
 
 
 def _log_path_for_tests() -> Path:

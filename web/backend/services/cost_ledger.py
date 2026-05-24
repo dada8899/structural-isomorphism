@@ -81,8 +81,8 @@ class _DailyCallLedger:
         Called once per request, BEFORE the LLM pipeline runs, so an
         over-budget request is rejected without ever paying the API cost.
         """
-        ***REMOVED*** Local import: errors.py imports nothing from services, but keep
-        ***REMOVED*** the dependency direction one-way and avoid any import-time cycle.
+        # Local import: errors.py imports nothing from services, but keep
+        # the dependency direction one-way and avoid any import-time cycle.
         from errors import BudgetExceeded
 
         cap = _resolve_cap()
@@ -100,7 +100,7 @@ class _DailyCallLedger:
                         "many AI analyses it runs each day to control cost — "
                         "please try again tomorrow."
                     ),
-                    ***REMOVED*** RFC 7807 extension fields (purely informational).
+                    # RFC 7807 extension fields (purely informational).
                     tier="all",
                     limit=cap,
                     remaining=0,
@@ -126,7 +126,7 @@ class _DailyCallLedger:
             self._count = 0
 
 
-***REMOVED*** Process-wide singleton. Import this and call `.charge()`.
+# Process-wide singleton. Import this and call `.charge()`.
 ledger = _DailyCallLedger()
 
 

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Build SIBD-63: consolidate 63 A-level cross-domain structural isomorphism
 discoveries from V1 / V2 / V3 pipelines into a single unified dataset.
@@ -82,15 +82,15 @@ def main():
             continue
         seen_pairs.add(key)
 
-        ***REMOVED*** Pull richer fields from V2 / V3 where available
+        # Pull richer fields from V2 / V3 where available
         extra = {}
         if pipeline == "v2":
             extra = v2_by_pair.get(key, {})
         elif pipeline == "v3":
             extra = v3_by_pair.get(key, {})
 
-        ***REMOVED*** Some V3 equations come as single field 'shared_equation';
-        ***REMOVED*** V2 has a list 'equations'; V1 has text 'equations'. Normalize.
+        # Some V3 equations come as single field 'shared_equation';
+        # V2 has a list 'equations'; V1 has text 'equations'. Normalize.
         equations_list = []
         if "shared_equation" in rec or "shared_equation" in extra:
             eq = rec.get("shared_equation") or extra.get("shared_equation")
@@ -106,22 +106,22 @@ def main():
                 equations_list.append(v1v2_eqs)
 
         row = {
-            ***REMOVED*** Identity / provenance
+            # Identity / provenance
             "seed_id": f"SIBD-{pipeline}-{i:03d}",
             "pipeline": pipeline,
             "rank_in_pipeline": rec.get("rank"),
-            ***REMOVED*** Pair
+            # Pair
             "a_name": a_raw,
             "a_domain": rec.get("a_domain") or extra.get("a_domain") or "",
             "b_name": b_raw,
             "b_domain": rec.get("b_domain") or extra.get("b_domain") or "",
-            ***REMOVED*** Structure
+            # Structure
             "shared_equation": rec.get("shared_equation") or extra.get("shared_equation") or "",
             "variable_mapping": rec.get("variable_mapping") or extra.get("variable_mapping") or "",
             "equations": equations_list,
             "isomorphism_depth": rec.get("isomorphism_depth") or extra.get("isomorphism_depth"),
             "isomorphism_confidence": rec.get("isomorphism_confidence") or extra.get("isomorphism_confidence"),
-            ***REMOVED*** Publishability
+            # Publishability
             "paper_title": rec.get("paper_title") or extra.get("paper_title") or "",
             "target_venue": rec.get("target_venue") or extra.get("target_venue") or "",
             "literature_status": rec.get("literature_status") or extra.get("literature_status") or "",
@@ -134,15 +134,15 @@ def main():
             "solo_feasible": rec.get("solo_feasible") if rec.get("solo_feasible") is not None else extra.get("solo_feasible"),
             "impact_scope": rec.get("impact_scope") or extra.get("impact_scope") or "",
             "impact_detail": rec.get("impact_detail") or extra.get("impact_detail") or "",
-            ***REMOVED*** Scoring
+            # Scoring
             "final_score": rec.get("final_score") or extra.get("final_score"),
             "one_line_verdict": rec.get("one_line_verdict") or "",
             "rating": rec.get("rating") or extra.get("rating") or "A",
-            ***REMOVED*** Transformation analysis (from V4 transformation labeling)
+            # Transformation analysis (from V4 transformation labeling)
             "transformation_primitives": rec.get("primitives") or [],
             "transformation_depth": rec.get("transformation_depth"),
             "is_deep": rec.get("is_deep"),
-            ***REMOVED*** Full text analysis (for attribution / context)
+            # Full text analysis (for attribution / context)
             "full_analysis": rec.get("full_analysis") or extra.get("full_analysis") or "",
         }
         unified.append(row)
@@ -153,7 +153,7 @@ def main():
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"Wrote {len(unified)} unified records to {out_path}")
 
-    ***REMOVED*** Schema
+    # Schema
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://doi.org/10.5281/zenodo.19615170/SIBD-63-schema.json",
@@ -198,7 +198,7 @@ def main():
     (OUT_DIR / "SIBD-63-schema.json").write_text(json.dumps(schema, indent=2, ensure_ascii=False))
     print(f"Wrote schema to {OUT_DIR / 'SIBD-63-schema.json'}")
 
-    ***REMOVED*** Summary stats
+    # Summary stats
     print("\n=== Dataset summary ===")
     from collections import Counter
     pl = Counter(r["pipeline"] for r in unified)

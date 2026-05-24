@@ -97,8 +97,8 @@ def fit_clauset_powerlaw(
         is not installed, FitResult.error is set and other fields are None.
     """
     try:
-        import powerlaw  ***REMOVED*** type: ignore
-    except Exception as exc:  ***REMOVED*** pragma: no cover - import-time only
+        import powerlaw  # type: ignore
+    except Exception as exc:  # pragma: no cover - import-time only
         return FitResult(name=name, error=f"powerlaw missing: {exc}")
 
     if xmin_method != "ks":

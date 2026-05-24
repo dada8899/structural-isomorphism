@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="了解 Structural 跨学科搜索引擎的工作原理：如何把你的问题映射到地震、神经网络、金融市场等领域已经成熟的解法。">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>了解 Structural — 跨学科搜索引擎工作原理</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="/assets/css/newsletter.css?v=20260514">
   <style>
     /* Phase 子产品入口（学术版 hero 下方的 callout）
-     * W6-B (W5-E ***REMOVED***4): tightened to reduce first-viewport density.
+     * W6-B (W5-E #4): tightened to reduce first-viewport density.
      * margin-top: 16px (was 28), padding: 10px 14px (was 16/22), font: 13 (was 14). */
     .home__cross-product {
       margin-top: 16px;
@@ -38,7 +38,7 @@
       border: 1px solid rgba(37, 99, 235, 0.15);
       border-radius: 10px;
       font-size: 13px;
-      color: ***REMOVED***52525B;
+      color: #52525B;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -48,8 +48,8 @@
     .home__cross-product__badge {
       display: inline-flex;
       padding: 2px 8px;
-      background: ***REMOVED***2563EB;
-      color: ***REMOVED***FFFFFF;
+      background: #2563EB;
+      color: #FFFFFF;
       font-size: 11px;
       border-radius: 4px;
       font-weight: 600;
@@ -57,19 +57,19 @@
       flex-shrink: 0;
     }
     .home__cross-product a {
-      color: ***REMOVED***2563EB;
+      color: #2563EB;
       text-decoration: none;
       font-weight: 500;
     }
     .home__cross-product a:hover { text-decoration: underline; }
-    .home__cross-product-label { color: ***REMOVED***71717A; }
+    .home__cross-product-label { color: #71717A; }
 
-    /* Featured preprint (session ***REMOVED***3)
-     * W6-B (W5-E ***REMOVED***4): tightened — margin-top 12 (was 18), padding 16 20 (was 22 26). */
+    /* Featured preprint (session #3)
+     * W6-B (W5-E #4): tightened — margin-top 12 (was 18), padding 16 20 (was 22 26). */
     .home__featured-preprint {
       display: block; margin-top: 12px; padding: 16px 20px;
-      background: linear-gradient(135deg, ***REMOVED***FAFAF9, ***REMOVED***FFFFFF);
-      border: 1px solid ***REMOVED***18181B; border-radius: 12px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #18181B; border-radius: 12px;
       text-decoration: none; color: inherit;
       transition: all 0.18s;
     }
@@ -79,22 +79,22 @@
     }
     .home__featured-preprint__badge {
       display: inline-block; padding: 3px 9px;
-      background: ***REMOVED***18181B; color: ***REMOVED***FFF;
+      background: #18181B; color: #FFF;
       font-size: 10px; letter-spacing: 0.5px;
       font-family: "JetBrains Mono", monospace;
       border-radius: 4px; margin-bottom: 10px;
     }
     .home__featured-preprint__title {
       font-family: "Noto Serif SC", serif;
-      font-size: 19px; font-weight: 600; color: ***REMOVED***18181B;
+      font-size: 19px; font-weight: 600; color: #18181B;
       line-height: 1.4; margin-bottom: 8px;
     }
     .home__featured-preprint__body {
-      font-size: 14px; color: ***REMOVED***52525B; line-height: 1.65; margin-bottom: 8px;
+      font-size: 14px; color: #52525B; line-height: 1.65; margin-bottom: 8px;
     }
-    .home__featured-preprint__body strong { color: ***REMOVED***2563EB; }
+    .home__featured-preprint__body strong { color: #2563EB; }
     .home__featured-preprint__meta {
-      font-size: 12px; color: ***REMOVED***71717A;
+      font-size: 12px; color: #71717A;
       font-family: "JetBrains Mono", monospace;
     }
 
@@ -103,27 +103,27 @@
     .home__waitlist-card {
       max-width: 640px; margin: 0 auto;
       padding: 28px 28px;
-      background: linear-gradient(135deg, ***REMOVED***FAFAF9, ***REMOVED***FFFFFF);
-      border: 1px solid ***REMOVED***E4E4E7; border-radius: 16px;
+      background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+      border: 1px solid #E4E4E7; border-radius: 16px;
     }
     .home__waitlist-eyebrow {
       display: inline-block;
       font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
-      color: ***REMOVED***71717A; font-weight: 600;
+      color: #71717A; font-weight: 600;
       margin-bottom: 8px;
     }
     .home__waitlist-title {
       font-family: "Noto Serif SC", serif;
-      font-size: 22px; font-weight: 600; color: ***REMOVED***18181B;
+      font-size: 22px; font-weight: 600; color: #18181B;
       margin-bottom: 8px; line-height: 1.35;
     }
     .home__waitlist-body {
-      font-size: 14px; color: ***REMOVED***52525B; line-height: 1.65;
+      font-size: 14px; color: #52525B; line-height: 1.65;
       margin-bottom: 14px;
     }
     .home__waitlist-meta {
       display: inline-block; margin-left: 6px;
-      font-size: 12px; color: ***REMOVED***A1A1AA;
+      font-size: 12px; color: #A1A1AA;
     }
     .home__waitlist-form {
       display: flex; gap: 8px; flex-wrap: wrap;
@@ -132,32 +132,32 @@
     .home__waitlist-input {
       flex: 1 1 220px; min-width: 0;
       padding: 9px 12px;
-      font-size: 14px; color: ***REMOVED***18181B;
-      border: 1px solid ***REMOVED***D4D4D8; border-radius: 8px;
-      background: ***REMOVED***FFFFFF;
+      font-size: 14px; color: #18181B;
+      border: 1px solid #D4D4D8; border-radius: 8px;
+      background: #FFFFFF;
       transition: border-color 0.15s;
     }
     .home__waitlist-input:focus {
-      outline: none; border-color: ***REMOVED***18181B;
-      box-shadow: 0 0 0 1px ***REMOVED***18181B;
+      outline: none; border-color: #18181B;
+      box-shadow: 0 0 0 1px #18181B;
     }
     .home__waitlist-input:disabled { opacity: 0.6; }
     .home__waitlist-button {
       padding: 9px 20px;
-      font-size: 14px; font-weight: 500; color: ***REMOVED***FFFFFF;
-      background: ***REMOVED***18181B; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 500; color: #FFFFFF;
+      background: #18181B; border: none; border-radius: 8px;
       cursor: pointer; transition: background 0.15s;
     }
-    .home__waitlist-button:hover { background: ***REMOVED***27272A; }
+    .home__waitlist-button:hover { background: #27272A; }
     .home__waitlist-button:disabled { cursor: not-allowed; opacity: 0.6; }
     .home__waitlist-status {
       font-size: 12px; margin-top: 8px; min-height: 18px;
     }
-    .home__waitlist-status.is-ok { color: ***REMOVED***047857; }
-    .home__waitlist-status.is-dup { color: ***REMOVED***52525B; }
-    .home__waitlist-status.is-err { color: ***REMOVED***B91C1C; }
+    .home__waitlist-status.is-ok { color: #047857; }
+    .home__waitlist-status.is-dup { color: #52525B; }
+    .home__waitlist-status.is-err { color: #B91C1C; }
     .home__waitlist-fineprint {
-      font-size: 11px; color: ***REMOVED***A1A1AA; margin-top: 8px;
+      font-size: 11px; color: #A1A1AA; margin-top: 8px;
     }
     .sr-only {
       position: absolute; width: 1px; height: 1px;
@@ -177,7 +177,7 @@
   <main class="home">
     <!-- Banner: back to the search engine (W2-A — Perplexity-like /index.html is the primary entry) -->
     <div style="max-width:880px;margin:18px auto 0;padding:0 20px;">
-      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:***REMOVED***52525B;text-decoration:none;padding:6px 12px;border:1px solid ***REMOVED***E4E4E7;border-radius:999px;background:***REMOVED***FFFFFF;transition:all 0.15s;">
+      <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#52525B;text-decoration:none;padding:6px 12px;border:1px solid #E4E4E7;border-radius:999px;background:#FFFFFF;transition:all 0.15s;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         <span>回到搜索</span>
       </a>
@@ -197,7 +197,7 @@
              Each side is clickable → fires a search; caption reveals the shared structure. -->
         <div class="home__hero-evidence" id="hero-evidence">
           <div class="hero-evidence__card">
-            <div class="hero-evidence__eyebrow" style="display:inline-block;font-size:11px;letter-spacing:0.6px;color:***REMOVED***71717A;text-transform:uppercase;margin-bottom:10px;font-weight:600;" data-i18n="page.home.hero_evidence.eyebrow">演示 · 点任一边看一个真实例子</div>
+            <div class="hero-evidence__eyebrow" style="display:inline-block;font-size:11px;letter-spacing:0.6px;color:#71717A;text-transform:uppercase;margin-bottom:10px;font-weight:600;" data-i18n="page.home.hero_evidence.eyebrow">演示 · 点任一边看一个真实例子</div>
             <div class="hero-evidence__pair">
               <button type="button" class="hero-evidence__side" id="he-a-btn" data-side="a" data-i18n-attr="aria-label:page.home.hero_evidence.a_aria" aria-label="搜索 A 侧现象">
                 <span class="hero-evidence__domain" id="he-a-domain">核物理</span>
@@ -393,7 +393,7 @@
         <div class="home__favorites-list" id="home-favorites-list"></div>
       </section>
 
-      <!-- Session ***REMOVED***9 W2-A: beta-native newsletter signup (replaces W8-D phase
+      <!-- Session #9 W2-A: beta-native newsletter signup (replaces W8-D phase
            waitlist form, which was cross-origin to phase backend and
            mismatched in topic — it pitched phase signals on a
            cross-disciplinary learn page). -->
@@ -414,12 +414,12 @@
   <script src="/assets/js/home.js?v=20260514c"></script>
   <script src="/assets/js/product-switcher.js?v=20260514c"></script>
   <!-- W8-D waitlist.js no longer mounted: removed the cross-origin phase form
-       on this page in favor of the beta-native newsletter (session ***REMOVED***9 W2-A).
+       on this page in favor of the beta-native newsletter (session #9 W2-A).
        Script still loaded so it self-no-ops cleanly without errors. -->
   <script src="/assets/js/waitlist.js?v=20260513"></script>
   <script src="/assets/js/newsletter.js?v=20260514"></script>
   <script>
-    // Session ***REMOVED***9 W2-A: beta-native newsletter at the end of learn page.
+    // Session #9 W2-A: beta-native newsletter at the end of learn page.
     if (window.mountNewsletter) {
       window.mountNewsletter("newsletter-learn", "learn-end");
     }

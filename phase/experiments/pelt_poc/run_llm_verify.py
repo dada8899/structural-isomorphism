@@ -90,7 +90,7 @@ def main():
         breaks = json.load(f)
     print(f"共 {len(breaks)} 个高置信拐点，开始 LLM 验证…\n")
 
-    ***REMOVED*** 缓存已有结果
+    # 缓存已有结果
     results = {}
     if os.path.exists(OUTPUT):
         with open(OUTPUT) as f:
@@ -120,13 +120,13 @@ def main():
         enriched_item["llm"] = result
         enriched_item["key"] = key
         enriched.append(enriched_item)
-        time.sleep(0.5)  ***REMOVED*** 友好一点
+        time.sleep(0.5)  # 友好一点
 
-    ***REMOVED*** 保存
+    # 保存
     with open(OUTPUT, "w") as f:
         json.dump(enriched, f, ensure_ascii=False, indent=2)
 
-    ***REMOVED*** 聚合报告
+    # 聚合报告
     n = len(enriched)
     with_event = sum(1 for e in enriched if e.get("llm", {}).get("has_event"))
     high_conf_event = sum(
@@ -134,7 +134,7 @@ def main():
         if e.get("llm", {}).get("has_event") and e.get("llm", {}).get("confidence") == "high"
     )
 
-    ***REMOVED*** 交叉：regime change × LLM event
+    # 交叉：regime change × LLM event
     rc_and_event = sum(
         1 for e in enriched
         if e["regime_change"] != "无明显变化" and e.get("llm", {}).get("has_event")
@@ -152,17 +152,17 @@ def main():
         if e["regime_change"] == "无明显变化" and not e.get("llm", {}).get("has_event")
     )
 
-    ***REMOVED*** 写最终报告
+    # 写最终报告
     lines = []
-    lines.append("***REMOVED*** PELT POC 最终验证 — LLM 事件匹配\n")
+    lines.append("# PELT POC 最终验证 — LLM 事件匹配\n")
     lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 🎯 核心数字\n\n")
+    lines.append("## 🎯 核心数字\n\n")
     lines.append(f"- 高置信拐点数：**{n}**\n")
     lines.append(f"- LLM 确认有真实事件：**{with_event}/{n} = {with_event/n*100:.0f}%**\n")
     lines.append(f"- LLM 高置信度事件：**{high_conf_event}/{n} = {high_conf_event/n*100:.0f}%**\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 🔬 两个验证信号交叉\n\n")
+    lines.append("## 🔬 两个验证信号交叉\n\n")
     lines.append("如果一个拐点同时被 ①股价 regime 变化 ②LLM 事件匹配 确认，才是最可靠的。\n\n")
     lines.append("| | LLM 确认事件 | LLM 无事件 |\n|---|---|---|\n")
     lines.append(f"| **股价 regime 变化** | {rc_and_event} | {rc_no_event} |\n")
@@ -174,9 +174,9 @@ def main():
     lines.append(f"- **至少一个确认**：{either_confirmed}/{n} = {either_confirmed/n*100:.0f}%\n")
     lines.append(f"- **两个都不确认**（噪声）：{nrc_no_event}/{n} = {nrc_no_event/n*100:.0f}%\n\n")
 
-    ***REMOVED*** 每个拐点明细（关键：这是给用户看的成果）
-    lines.append("***REMOVED******REMOVED*** 📋 每个拐点明细\n\n")
-    ***REMOVED*** 按 ticker 分组
+    # 每个拐点明细（关键：这是给用户看的成果）
+    lines.append("## 📋 每个拐点明细\n\n")
+    # 按 ticker 分组
     by_ticker = {}
     for e in enriched:
         by_ticker.setdefault(e["ticker"], []).append(e)
@@ -186,7 +186,7 @@ def main():
         if not items:
             continue
         name = items[0]["name"]
-        lines.append(f"***REMOVED******REMOVED******REMOVED*** {ticker} · {name}\n\n")
+        lines.append(f"### {ticker} · {name}\n\n")
         for e in items:
             llm = e.get("llm", {})
             events = llm.get("events", [])
@@ -202,7 +202,7 @@ def main():
                 lines.append(f"  - 💭 {llm.get('note')}\n")
             lines.append("\n")
 
-    ***REMOVED*** 保存报告
+    # 保存报告
     report_path = os.path.join(os.path.dirname(__file__), "REPORT_FINAL.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("".join(lines))

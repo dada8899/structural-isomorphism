@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-PROJECT_DIR = Path(__file__).resolve().parents[1]  ***REMOVED*** v4/product/d1_phase_detector
+PROJECT_DIR = Path(__file__).resolve().parents[1]  # v4/product/d1_phase_detector
 MIGRATION = PROJECT_DIR / "migrations" / "0001_companies_structtuples_sqlite.sql"
 SAMPLE_JSONL = PROJECT_DIR / "sample_structtuples.jsonl"
 
@@ -119,9 +119,9 @@ def client(tmp_path, monkeypatch):
     return TestClient(main_mod.app), rows
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** End-to-end pipeline shape
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# End-to-end pipeline shape
+# ---------------------------------------------------------------------------
 
 
 def test_real_pipeline_data_loads(client):
@@ -131,7 +131,7 @@ def test_real_pipeline_data_loads(client):
     assert r.status_code == 200
     items = r.json()
     assert len(items) == len(rows)
-    ***REMOVED*** All tickers from JSONL appear in response
+    # All tickers from JSONL appear in response
     expected = {row["ticker"] for row in rows}
     got = {i["ticker"] for i in items}
     assert expected == got
@@ -143,7 +143,7 @@ def test_real_pipeline_stats_aggregation(client):
     assert r.status_code == 200
     body = r.json()
     assert body["total"] == len(rows)
-    ***REMOVED*** Sum of by_dynamics_family equals total (assuming all rows have non-null dynamics_family)
+    # Sum of by_dynamics_family equals total (assuming all rows have non-null dynamics_family)
     fam_total = sum(body["by_dynamics_family"].values())
     assert fam_total == body["total"]
 
@@ -160,7 +160,7 @@ def test_real_pipeline_company_detail(client):
 
 def test_real_pipeline_filter_by_dynamics(client):
     c, rows = client
-    ***REMOVED*** Pick the most common dynamics_family in the sample
+    # Pick the most common dynamics_family in the sample
     families = [r["dynamics_family"] for r in rows]
     from collections import Counter
 
@@ -171,9 +171,9 @@ def test_real_pipeline_filter_by_dynamics(client):
         assert item["dynamics_family"] == most_common
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CORS / OPTIONS
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CORS / OPTIONS
+# ---------------------------------------------------------------------------
 
 
 def test_cors_preflight_get_allowed(client):
@@ -186,15 +186,15 @@ def test_cors_preflight_get_allowed(client):
             "Access-Control-Request-Method": "GET",
         },
     )
-    ***REMOVED*** Some test clients return 200/204 for preflight depending on middleware
+    # Some test clients return 200/204 for preflight depending on middleware
     assert r.status_code in (200, 204)
     allowed = r.headers.get("access-control-allow-methods", "")
     assert "GET" in allowed
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Health probe
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Health probe
+# ---------------------------------------------------------------------------
 
 
 def test_health_with_loaded_db(client):

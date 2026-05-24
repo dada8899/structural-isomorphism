@@ -1,17 +1,17 @@
-***REMOVED*** Newsletter subscriber storage — design (W9-C)
+# Newsletter subscriber storage — design (W9-C)
 
 > Status: **v0 design**. v0 implementation exists at
 > `web/backend/api/newsletter.py` (flat JSONL, no double opt-in).
 > v1 (Buttondown migration) and full GDPR flow are TBD.
 
-***REMOVED******REMOVED*** Goals
+## Goals
 
 1. Capture subscribers from the beta site without owning sending infrastructure.
 2. Be ready to migrate to a real ESP (Buttondown / Substack) in one move.
 3. Privacy-respecting from day 1: easy unsubscribe, data-deletion on request,
    no PII shared with third parties without consent.
 
-***REMOVED******REMOVED*** v0 — flat-file JSONL (current)
+## v0 — flat-file JSONL (current)
 
 **Storage**: `web/backend/data/newsletter-subscribers.jsonl` (one row per
 signup; append-only with linear-scan dedupe).
@@ -57,7 +57,7 @@ signup; append-only with linear-scan dedupe).
 - `GET /api/newsletter/unsubscribe?token=<uuid>` not yet implemented.
 - No data-deletion endpoint.
 
-***REMOVED******REMOVED*** v1 — Buttondown migration
+## v1 — Buttondown migration
 
 When subscriber count crosses ~50, migrate to [Buttondown](https://buttondown.email/)
 ($9/mo). Buttondown gives us:
@@ -82,9 +82,9 @@ with open("web/backend/data/newsletter-subscribers.jsonl") as f:
             json={
                 "email": row["email"],
                 "metadata": {"source": row.get("source")},
-                ***REMOVED*** Force send of double-opt-in email — even though we already
-                ***REMOVED*** have implicit consent, re-confirming under the new tool is
-                ***REMOVED*** safer for deliverability.
+                # Force send of double-opt-in email — even though we already
+                # have implicit consent, re-confirming under the new tool is
+                # safer for deliverability.
                 "type": "unactivated",
             },
         )
@@ -93,7 +93,7 @@ with open("web/backend/data/newsletter-subscribers.jsonl") as f:
 After migration: keep the JSONL as **append-only audit log** (also useful if
 we ever need to leave Buttondown).
 
-***REMOVED******REMOVED*** v2 — separate database table (if needed)
+## v2 — separate database table (if needed)
 
 Only if we cross ~10k subscribers AND need queries Buttondown can't do
 (per-source funnel analysis, A/B test cohort assignment). At that point:
@@ -105,9 +105,9 @@ Only if we cross ~10k subscribers AND need queries Buttondown can't do
 
 Until ~10k subs, the JSONL + Buttondown is enough.
 
-***REMOVED******REMOVED*** Privacy & compliance
+## Privacy & compliance
 
-***REMOVED******REMOVED******REMOVED*** What we store
+### What we store
 
 - Email (required for sending).
 - Source page (for funnel attribution; e.g. `start-here-essay-end`).
@@ -120,7 +120,7 @@ We do **not** store:
 - Open / click events at JSONL layer (Buttondown handles those, separate from PII).
 - Demographic / inferred attributes.
 
-***REMOVED******REMOVED******REMOVED*** User rights
+### User rights
 
 | Right | How |
 |---|---|
@@ -130,13 +130,13 @@ We do **not** store:
 | Unsubscribe (one-click) | Buttondown footer link, or `GET /api/newsletter/unsubscribe?token=<uuid>` (v0.1 TODO). |
 | Portability | Plain-text email + signup date in a JSON file on request. |
 
-***REMOVED******REMOVED******REMOVED*** Retention
+### Retention
 
 - Active subscribers: indefinite (until unsubscribed).
 - Unsubscribed rows: kept 12 months as suppression list (avoid re-import
   accidents), then deleted.
 
-***REMOVED******REMOVED******REMOVED*** Legal basis
+### Legal basis
 
 - EU/UK (GDPR): consent at signup form (the form copy explicitly states
   "weekly email; can unsubscribe").
@@ -147,7 +147,7 @@ We do **not** store:
   information" under PIPL, but cross-border transfer to Buttondown (US-based)
   requires notice — the signup form's privacy note will reflect this in W10.
 
-***REMOVED******REMOVED*** Open questions
+## Open questions
 
 1. **Double opt-in (DOI) before W10?** Probably yes — even v0 should send a
    "click here to confirm" email, both for deliverability and to filter
@@ -158,7 +158,7 @@ We do **not** store:
    after we cross 50.
 3. **CCPA "Do Not Sell"?** N/A — we don't sell or share.
 
-***REMOVED******REMOVED*** Related
+## Related
 
 - [`newsletters/README.md`](newsletters/README.md) — pipeline overview.
 - `web/backend/api/newsletter.py` — current v0 endpoint.

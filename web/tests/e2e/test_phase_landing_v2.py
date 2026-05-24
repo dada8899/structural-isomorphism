@@ -29,13 +29,13 @@ import pytest
 
 BASE = os.environ.get("PHASE_BASE", "https://phase.bytedance.city").rstrip("/")
 
-***REMOVED*** Largest Contentful Paint budget — Google CWV "good" threshold (2500ms).
+# Largest Contentful Paint budget — Google CWV "good" threshold (2500ms).
 LCP_BUDGET_MS = 2500
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Fixtures
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def chromium_browser(playwright_instance):
@@ -84,9 +84,9 @@ def _measure_lcp(url: str, viewport: dict, browser) -> int:
     return int(entries[-1]["startTime"])
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Structural assertions
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Structural assertions
+# ---------------------------------------------------------------------------
 
 def test_hero_headline_renders(page):
     """Hero H1 must contain the W10-C alpha-screener positioning line."""
@@ -118,19 +118,19 @@ def test_six_explore_cards_rendered(page):
 
 
 def test_two_hero_ctas_work(page):
-    """Primary CTA links to /companies, secondary anchors to ***REMOVED***how-it-works."""
+    """Primary CTA links to /companies, secondary anchors to #how-it-works."""
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
     primary = page.locator('[data-testid="cta-primary"]').first
     secondary = page.locator('[data-testid="cta-secondary"]').first
     primary.wait_for(state="visible", timeout=5000)
     secondary.wait_for(state="visible", timeout=5000)
-    ***REMOVED*** Primary destination
+    # Primary destination
     href = primary.get_attribute("href")
     assert href and ("/companies" in href), f"primary CTA href wrong: {href!r}"
-    ***REMOVED*** Secondary destination (anchor)
+    # Secondary destination (anchor)
     sec_href = secondary.get_attribute("href")
-    assert sec_href and ("***REMOVED***how-it-works" in sec_href), f"secondary CTA href wrong: {sec_href!r}"
-    ***REMOVED*** Click primary, verify we end up on /companies
+    assert sec_href and ("#how-it-works" in sec_href), f"secondary CTA href wrong: {sec_href!r}"
+    # Click primary, verify we end up on /companies
     primary.click()
     page.wait_for_url("**/companies", timeout=10000)
 
@@ -138,9 +138,9 @@ def test_two_hero_ctas_work(page):
 def test_trust_signals_present(page):
     """Trust signals row must surface 3 receipts: validation / backtest / methodology."""
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** Section heading hidden visually (sr-only) but accessible by name.
+    # Section heading hidden visually (sr-only) but accessible by name.
     page.wait_for_selector("text=Receipts", timeout=10000)
-    ***REMOVED*** 3 labels (uppercase eyebrows inside cards):
+    # 3 labels (uppercase eyebrows inside cards):
     page.wait_for_selector("text=Cross-domain validation", timeout=10000)
     page.wait_for_selector("text=Honest backtest", timeout=10000)
     page.wait_for_selector("text=Open methodology", timeout=10000)
@@ -165,9 +165,9 @@ def test_console_clean_on_landing(page):
     )
     page.goto(BASE + "/", wait_until="networkidle", timeout=30000)
     page.wait_for_timeout(1500)
-    ***REMOVED*** Filter out third-party network noise (plausible analytics blocked /
-    ***REMOVED*** closed, favicon 404). We only fail on JS runtime errors that indicate
-    ***REMOVED*** the page itself broke.
+    # Filter out third-party network noise (plausible analytics blocked /
+    # closed, favicon 404). We only fail on JS runtime errors that indicate
+    # the page itself broke.
     real_errors = [
         e for e in errors
         if "plausible" not in e.lower()
@@ -181,26 +181,26 @@ def test_console_clean_on_landing(page):
 
 
 def test_how_it_works_section_anchor(page):
-    """Secondary CTA must scroll to a ***REMOVED***how-it-works anchor that exists."""
+    """Secondary CTA must scroll to a #how-it-works anchor that exists."""
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-    anchor = page.locator("***REMOVED***how-it-works").first
+    anchor = page.locator("#how-it-works").first
     anchor.wait_for(state="attached", timeout=5000)
-    ***REMOVED*** The section heading lives within.
+    # The section heading lives within.
     assert anchor.locator("text=没有黑盒").count() >= 1 or anchor.locator("text=How it works").count() >= 1
 
 
 def test_waitlist_form_present(page):
     """Newsletter waitlist form is reused from the prior session and surfaced prominently."""
     page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30000)
-    ***REMOVED*** WaitlistForm renders an email input + submit button (component contract from session ***REMOVED***9).
+    # WaitlistForm renders an email input + submit button (component contract from session #9).
     page.wait_for_selector('input[type="email"]', timeout=10000)
     inputs = page.locator('input[type="email"]')
     assert inputs.count() >= 1, "newsletter email input missing"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Performance assertions
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Performance assertions
+# ---------------------------------------------------------------------------
 
 def test_mobile_landing_lcp_under_budget(chromium_browser):
     """Mobile (375×667) landing v2 LCP must beat the 2500ms CWV gate."""

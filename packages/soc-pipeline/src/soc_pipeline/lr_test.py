@@ -55,7 +55,7 @@ def vuong_lr_test(
         LRResult dataclass.
     """
     try:
-        import powerlaw  ***REMOVED*** type: ignore
+        import powerlaw  # type: ignore
     except Exception as exc:
         return LRResult(vs=vs, error=f"powerlaw missing: {exc}")
 

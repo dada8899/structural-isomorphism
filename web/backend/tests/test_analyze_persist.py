@@ -1,4 +1,4 @@
-"""E2E test for /api/analyze/stream?persist=1 (M1.4 PR ***REMOVED***2 wiring).
+"""E2E test for /api/analyze/stream?persist=1 (M1.4 PR #2 wiring).
 
 We mock LLMService.stream_deep_analysis so the test runs in milliseconds
 and never hits OpenRouter. The mock yields a synthetic 9-section report.
@@ -39,7 +39,7 @@ _FULL_REPORT = {
 }
 
 
-***REMOVED*** --------- mocks --------- ***REMOVED***
+# --------- mocks --------- #
 
 
 class _FakeSearchService:
@@ -65,19 +65,19 @@ class _FakeSearchService:
         return np.array([1.0, 0.0, 0.0], dtype=float)
 
     def relevance_score(self, _q, _pid):
-        ***REMOVED*** Session ***REMOVED***17 V3 — analyze.py now calls this for the unified scope
-        ***REMOVED*** similarity口径. Return a high in-scope value so the existing
-        ***REMOVED*** query-mode tests (real cross-domain questions) keep passing the
-        ***REMOVED*** scope gate. The dedicated out-of-scope tests rely on the
-        ***REMOVED*** deterministic scope_guard layer, not this floor.
+        # Session #17 V3 — analyze.py now calls this for the unified scope
+        # similarity口径. Return a high in-scope value so the existing
+        # query-mode tests (real cross-domain questions) keep passing the
+        # scope gate. The dedicated out-of-scope tests rely on the
+        # deterministic scope_guard layer, not this floor.
         if _pid == "b_target":
             return 0.85
         return 0.0
 
     @staticmethod
     def _cosine(_a, _b):
-        ***REMOVED*** Pair-mode similarity helper. Not exercised by these query-mode
-        ***REMOVED*** tests, but present so the contract matches the real service.
+        # Pair-mode similarity helper. Not exercised by these query-mode
+        # tests, but present so the contract matches the real service.
         return 1.0
 
 
@@ -91,13 +91,13 @@ class _FakeLLM:
         return text
 
     async def stream_deep_analysis(self, a, b, similarity, user_query=None, lang="zh"):
-        ***REMOVED*** Emit one chunk per section, then a final done with the assembled report.
+        # Emit one chunk per section, then a final done with the assembled report.
         for key, value in _FULL_REPORT.items():
             yield {"type": "section", "key": key, "data": value}
         yield {"type": "done", "report": _FULL_REPORT}
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 @pytest.fixture
@@ -109,7 +109,7 @@ def isolated(tmp_path, monkeypatch):
 
     fresh = ReportStore(tmp_path / "test_history.db")
 
-    ***REMOVED*** Stub the lifespan-loaded search service.
+    # Stub the lifespan-loaded search service.
     monkeypatch.setattr(
         analyze_api,
         "_cache",
@@ -118,21 +118,21 @@ def isolated(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(analyze_api, "_llm", _FakeLLM(), raising=False)
     monkeypatch.setattr(analyze_api, "_report_store", fresh, raising=False)
-    ***REMOVED*** Skip the cache (force live generation) for the default path.
+    # Skip the cache (force live generation) for the default path.
 
-    ***REMOVED*** The endpoint reads app_state["search"] — patch by registering
-    ***REMOVED*** a tiny module-level dict.
+    # The endpoint reads app_state["search"] — patch by registering
+    # a tiny module-level dict.
     monkeypatch.setattr("main.app_state", {"search": _FakeSearchService()}, raising=False)
 
-    ***REMOVED*** Share the same store with /api/report so the round-trip works.
+    # Share the same store with /api/report so the round-trip works.
     monkeypatch.setattr(report_api, "_store", fresh, raising=False)
 
-    ***REMOVED*** Defeat the @tier_limit_decorator on /api/analyze/stream for tests by
-    ***REMOVED*** neutering the limiter between tests. `@tier_limit_decorator` (in
-    ***REMOVED*** api/analyze.py) binds the limiter from `services.rate_limit`, while
-    ***REMOVED*** the middleware uses its own `middleware.rate_limit` Limiter — reset
-    ***REMOVED*** BOTH so a multi-request test file doesn't accumulate counts and trip
-    ***REMOVED*** the (post-P1-1) 10/min anonymous floor.
+    # Defeat the @tier_limit_decorator on /api/analyze/stream for tests by
+    # neutering the limiter between tests. `@tier_limit_decorator` (in
+    # api/analyze.py) binds the limiter from `services.rate_limit`, while
+    # the middleware uses its own `middleware.rate_limit` Limiter — reset
+    # BOTH so a multi-request test file doesn't accumulate counts and trip
+    # the (post-P1-1) 10/min anonymous floor.
     for _mod in ("services.rate_limit", "middleware.rate_limit"):
         try:
             import importlib
@@ -160,17 +160,17 @@ def app(isolated, monkeypatch):
     monkeypatch is used (not direct attribute assignment) so the patch
     is rolled back at fixture teardown — leaking auth state between
     tests was causing 7 unrelated test_auth_* failures in full-suite
-    runs (caught session-***REMOVED***16 wrap-up).
+    runs (caught session-#16 wrap-up).
     """
     from api import analyze, report
 
     def _allow_all(_request):
-        return "free"  ***REMOVED*** any non-None tier passes
+        return "free"  # any non-None tier passes
 
-    ***REMOVED*** Patch the symbol the analyze module already imported (the
-    ***REMOVED*** function reference is bound at import time, so patching
-    ***REMOVED*** services.auth.verify_api_token alone is not enough — patch
-    ***REMOVED*** api.analyze.verify_api_token where it's actually called).
+    # Patch the symbol the analyze module already imported (the
+    # function reference is bound at import time, so patching
+    # services.auth.verify_api_token alone is not enough — patch
+    # api.analyze.verify_api_token where it's actually called).
     monkeypatch.setattr("api.analyze.verify_api_token", _allow_all)
 
     a = FastAPI()
@@ -184,7 +184,7 @@ def client(app):
     return TestClient(app)
 
 
-***REMOVED*** --------- helpers --------- ***REMOVED***
+# --------- helpers --------- #
 
 
 def _parse_sse(text: str) -> list[tuple[str, dict]]:
@@ -215,7 +215,7 @@ def _stream_text(client, url, headers=None) -> str:
         return "".join(chunks)
 
 
-***REMOVED*** --------- tests --------- ***REMOVED***
+# --------- tests --------- #
 
 
 def test_persist_off_emits_no_persisted_event(client, isolated):
@@ -246,8 +246,8 @@ def test_persist_on_emits_persisted_with_share_url(client, isolated):
         "/report/share/" + persisted_payload["share_token"]
     )
     assert persisted_payload["is_partial"] is False
-    ***REMOVED*** `persisted` must come BEFORE `done` so clients see the share URL
-    ***REMOVED*** in the same SSE flush as completion.
+    # `persisted` must come BEFORE `done` so clients see the share URL
+    # in the same SSE flush as completion.
     assert names.index("persisted") < names.index("done")
 
 
@@ -260,7 +260,7 @@ def test_persisted_report_readable_via_share_endpoint(client, isolated):
     events = _parse_sse(text)
     persisted = next(p for n, p in events if n == "persisted")
 
-    ***REMOVED*** Now read it back via the share endpoint.
+    # Now read it back via the share endpoint.
     r = client.get(f"/api/report/share/{persisted['share_token']}")
     assert r.status_code == 200
     body = r.json()
@@ -280,14 +280,14 @@ def test_persisted_row_records_creator_anon(client, isolated):
     assert raw["creator_anon_id"] == "user-X"
 
 
-***REMOVED*** --------- P0-1 end-to-end: persist → /reports/mine → /report/{id} -------- ***REMOVED***
-***REMOVED***
-***REMOVED*** The reviewer (SESSION-17 usability P0-1/P0-3) reported that persisting a
-***REMOVED*** report and then calling /api/reports/mine with the SAME anon-id returned
-***REMOVED*** an empty list, and /api/report/{id} 404'd. These tests close that gap:
-***REMOVED*** they drive the FULL HTTP round-trip (persist via /api/analyze/stream →
-***REMOVED*** read back via /api/reports/mine AND /api/report/{id}) so any regression
-***REMOVED*** in the anon-id persist→list→get chain fails CI, not a live dogfood run.
+# --------- P0-1 end-to-end: persist → /reports/mine → /report/{id} -------- #
+#
+# The reviewer (SESSION-17 usability P0-1/P0-3) reported that persisting a
+# report and then calling /api/reports/mine with the SAME anon-id returned
+# an empty list, and /api/report/{id} 404'd. These tests close that gap:
+# they drive the FULL HTTP round-trip (persist via /api/analyze/stream →
+# read back via /api/reports/mine AND /api/report/{id}) so any regression
+# in the anon-id persist→list→get chain fails CI, not a live dogfood run.
 
 
 def test_persist_then_listed_in_reports_mine_header_anon(client, isolated):
@@ -358,7 +358,7 @@ def test_get_report_by_id_wrong_anon_is_404(client, isolated):
     assert r.status_code == 404
 
 
-***REMOVED*** --------- P1-3: out-of-scope gate on /api/analyze/stream --------- ***REMOVED***
+# --------- P1-3: out-of-scope gate on /api/analyze/stream --------- #
 
 
 def test_analyze_refuses_arithmetic_query(client, isolated):
@@ -378,31 +378,31 @@ def test_analyze_refuses_arithmetic_query(client, isolated):
 def test_analyze_refuses_chitchat_query(client, isolated):
     text = _stream_text(
         client,
-        "/api/analyze/stream?b_id=b_target&text_a=%E4%BD%A0%E5%A5%BD",  ***REMOVED*** 你好
+        "/api/analyze/stream?b_id=b_target&text_a=%E4%BD%A0%E5%A5%BD",  # 你好
     )
     events = _parse_sse(text)
     assert "error" in [n for n, _ in events]
 
 
-***REMOVED*** --------- P0-2: daily LLM budget circuit breaker --------- ***REMOVED***
+# --------- P0-2: daily LLM budget circuit breaker --------- #
 
 
 def test_analyze_over_budget_emits_friendly_error(client, isolated, monkeypatch):
     """When the daily cap is hit, /api/analyze/stream emits a friendly
     `error` event (code budget_exceeded), NOT a crash and NOT a report."""
-    ***REMOVED*** Drive a tiny positive cap and exhaust it. Use the real singleton the
-    ***REMOVED*** endpoint imports. reset() AFTER setenv so the date/count are fresh.
+    # Drive a tiny positive cap and exhaust it. Use the real singleton the
+    # endpoint imports. reset() AFTER setenv so the date/count are fresh.
     monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
     from services.cost_ledger import ledger
     ledger.reset()
     assert ledger.snapshot()["cap"] == 1
-    ***REMOVED*** First request consumes the single allowed slot (real generation).
+    # First request consumes the single allowed slot (real generation).
     first = _stream_text(
         client,
         "/api/analyze/stream?b_id=b_target&text_a=why%20teams%20split",
     )
     assert "section" in [n for n, _ in _parse_sse(first)]
-    ***REMOVED*** Second request is over budget.
+    # Second request is over budget.
     text = _stream_text(
         client,
         "/api/analyze/stream?b_id=b_target&text_a=why%20teams%20split%20again",

@@ -32,7 +32,7 @@ def _make_response(status: int, json_body: dict | None, text_body: str = "") -> 
     return mock
 
 
-***REMOVED*** ---------- Anthropic --------------------------------------------------------
+# ---------- Anthropic --------------------------------------------------------
 
 
 def test_anthropic_happy_path():
@@ -49,9 +49,9 @@ def test_anthropic_happy_path():
             api_key="test-key",
         )
         assert out["text"] == '{"verdict": "KEEP"}'
-        ***REMOVED*** 100 in @ $3/M + 50 out @ $15/M = 0.0003 + 0.00075 = 0.00105
+        # 100 in @ $3/M + 50 out @ $15/M = 0.0003 + 0.00075 = 0.00105
         assert out["cost_usd"] == pytest.approx(0.00105)
-        ***REMOVED*** Verify request body
+        # Verify request body
         call_body = mock_post.call_args.kwargs["json"]
         assert call_body["model"] == "claude-sonnet-4.5"
         assert call_body["max_tokens"] == 100
@@ -75,7 +75,7 @@ def test_anthropic_system_extracted_from_messages():
         )
         call_body = mock_post.call_args.kwargs["json"]
         assert call_body["system"] == "be terse"
-        ***REMOVED*** system message should NOT appear in messages array
+        # system message should NOT appear in messages array
         assert all(m["role"] != "system" for m in call_body["messages"])
 
 
@@ -98,7 +98,7 @@ def test_anthropic_http_error_raises():
             )
 
 
-***REMOVED*** ---------- DeepSeek ---------------------------------------------------------
+# ---------- DeepSeek ---------------------------------------------------------
 
 
 def test_deepseek_happy_path():
@@ -115,9 +115,9 @@ def test_deepseek_happy_path():
             api_key="test-key",
         )
         assert out["text"] == '{"ok": true}'
-        ***REMOVED*** 100 @ $0.07/M + 50 @ $0.27/M = 7e-6 + 1.35e-5
+        # 100 @ $0.07/M + 50 @ $0.27/M = 7e-6 + 1.35e-5
         assert out["cost_usd"] == pytest.approx(7e-6 + 1.35e-5, rel=1e-3)
-        ***REMOVED*** JSON mode should be requested when schema is set
+        # JSON mode should be requested when schema is set
         call_body = mock_post.call_args.kwargs["json"]
         assert call_body["model"] == "deepseek-v4-flash"
 
@@ -140,7 +140,7 @@ def test_deepseek_response_format_set_when_schema_passed():
         assert call_body.get("response_format") == {"type": "json_object"}
 
 
-***REMOVED*** ---------- Kimi -------------------------------------------------------------
+# ---------- Kimi -------------------------------------------------------------
 
 
 def test_kimi_happy_path():
@@ -163,7 +163,7 @@ def test_kimi_happy_path():
         assert call_body["model"] == "kimi-k2.5"
 
 
-***REMOVED*** ---------- OpenAI -----------------------------------------------------------
+# ---------- OpenAI -----------------------------------------------------------
 
 
 def test_openai_happy_path():
@@ -180,13 +180,13 @@ def test_openai_happy_path():
             api_key="test-key",
         )
         assert out["text"] == '{"y": 2}'
-        ***REMOVED*** 100 @ $2.50/M + 50 @ $10/M = 0.00025 + 0.0005 = 0.00075
+        # 100 @ $2.50/M + 50 @ $10/M = 0.00025 + 0.0005 = 0.00075
         assert out["cost_usd"] == pytest.approx(0.00075)
         call_body = mock_post.call_args.kwargs["json"]
         assert call_body["model"] == "gpt-4o"
 
 
-***REMOVED*** ---------- GLM --------------------------------------------------------------
+# ---------- GLM --------------------------------------------------------------
 
 
 def test_glm_happy_path():
@@ -215,7 +215,7 @@ def test_glm_registered_in_list():
     assert "glm" in list_providers()
 
 
-***REMOVED*** ---------- Reproducibility / determinism -----------------------------------
+# ---------- Reproducibility / determinism -----------------------------------
 
 
 def test_state_machine_fix_is_deterministic():

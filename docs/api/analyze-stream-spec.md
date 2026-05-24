@@ -1,4 +1,4 @@
-***REMOVED*** `/api/analyze/stream` — Specification
+# `/api/analyze/stream` — Specification
 
 **Version**: 1.1 (M1.4)
 **Status**: Stable
@@ -6,18 +6,18 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. Overview
+## 0. Overview
 
-`GET /api/analyze/stream` — server-sent events (SSE) endpoint that produces a 9-section structural-isomorphism research report. Operates in two modes (Query / Pair). Session ***REMOVED***16 added optional persistence (`persist=1`) so a generated report can be saved with a share token.
+`GET /api/analyze/stream` — server-sent events (SSE) endpoint that produces a 9-section structural-isomorphism research report. Operates in two modes (Query / Pair). Session #16 added optional persistence (`persist=1`) so a generated report can be saved with a share token.
 
 Implementation: `web/backend/api/analyze.py`
 Companion endpoints: `/api/report/*` (see `report-endpoints-spec.md`)
 
 ---
 
-***REMOVED******REMOVED*** 1. Modes
+## 1. Modes
 
-***REMOVED******REMOVED******REMOVED*** 1.1 Query mode
+### 1.1 Query mode
 
 Semantic: "Borrow an answer from KB to my own free-text question."
 
@@ -32,7 +32,7 @@ GET /api/analyze/stream
   &persist=0|1                       (optional, default: 0)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 1.2 Pair mode
+### 1.2 Pair mode
 
 Semantic: "Show me the deep structural comparison between two KB phenomena."
 
@@ -47,7 +47,7 @@ GET /api/analyze/stream
   &persist=0|1                       (optional, default: 0)
 ```
 
-***REMOVED******REMOVED******REMOVED*** 1.3 Validation
+### 1.3 Validation
 
 - `b_id` is always required.
 - Exactly ONE of `text_a` / `a_id` must be provided; supplying both makes `text_a` win (query mode is preferred).
@@ -55,7 +55,7 @@ GET /api/analyze/stream
 
 ---
 
-***REMOVED******REMOVED*** 2. Headers
+## 2. Headers
 
 | Header | Required | Used for |
 |---|---|---|
@@ -65,13 +65,13 @@ GET /api/analyze/stream
 
 ---
 
-***REMOVED******REMOVED*** 3. Response — SSE event sequence
+## 3. Response — SSE event sequence
 
 All events are SSE-formatted (`event:` + `data:` lines, blank-line separated). All payloads are UTF-8 JSON.
 
-***REMOVED******REMOVED******REMOVED*** 3.1 Always emitted (in order)
+### 3.1 Always emitted (in order)
 
-| ***REMOVED*** | Event | Payload | Notes |
+| # | Event | Payload | Notes |
 |---|---|---|---|
 | 1 | `meta` | `{a, b, similarity, is_query_mode}` | One-time. `a` / `b` are KB rows or user-question stubs (query mode); `similarity` is cosine in [0, 1]. |
 | 2..n | `section` | `{key, data}` | One per completed top-level section. 9 expected (see §4). |
@@ -79,14 +79,14 @@ All events are SSE-formatted (`event:` + `data:` lines, blank-line separated). A
 | n+2 | `persisted` | `{id, share_token, share_url, created_at, is_partial}` | Only when `persist=1`. Always BEFORE `done`. |
 | last | `done` | `{report, from_cache}` | Terminal event. `report` = the full 9-section dict, `from_cache` = whether cache hit. |
 
-***REMOVED******REMOVED******REMOVED*** 3.2 Conditional events
+### 3.2 Conditional events
 
 | Event | Payload | When |
 |---|---|---|
 | `retry` | `{reason}` | First-pass report failed quality check; second pass is starting. |
 | `error` | `{message, retryable}` | Second pass also failed; `done` follows with a fallback report. |
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Event semantics — guarantees
+### 3.3 Event semantics — guarantees
 
 - `meta` is ALWAYS the first event.
 - `done` is ALWAYS the last event (even after errors).
@@ -97,7 +97,7 @@ All events are SSE-formatted (`event:` + `data:` lines, blank-line separated). A
 
 ---
 
-***REMOVED******REMOVED*** 4. The 9 sections (canonical order)
+## 4. The 9 sections (canonical order)
 
 | Key | Type | Purpose |
 |---|---|---|
@@ -115,7 +115,7 @@ All events are SSE-formatted (`event:` + `data:` lines, blank-line separated). A
 
 ---
 
-***REMOVED******REMOVED*** 5. The `persisted` event (M1.4)
+## 5. The `persisted` event (M1.4)
 
 When `persist=1`, exactly one `persisted` event is emitted right before `done`.
 
@@ -134,11 +134,11 @@ When `persist=1`, exactly one `persisted` event is emitted right before `done`.
 - `share_url` is fully qualified (honours `X-Forwarded-Host` / `X-Forwarded-Proto`).
 - `is_partial` is `true` when the report is a fallback / has missing sections — clients should dim the "Share" button.
 
-***REMOVED******REMOVED******REMOVED*** Persist on cache hit
+### Persist on cache hit
 
 When cache hits, the report is still persisted IF `persist=1` — each user gets a fresh `r_` id and share token. Payload contents may match a previous row's exactly; that's acceptable v1 behaviour.
 
-***REMOVED******REMOVED******REMOVED*** Failure handling
+### Failure handling
 
 Persistence failure is logged but NEVER tears down the SSE stream — the report itself is what the user came for. Clients should:
 1. Treat missing `persisted` event as "share feature unavailable for this report" (do NOT retry the whole stream).
@@ -146,7 +146,7 @@ Persistence failure is logged but NEVER tears down the SSE stream — the report
 
 ---
 
-***REMOVED******REMOVED*** 6. Caching
+## 6. Caching
 
 The report is cached by `(query_hash | a_id, b_id, lang)`:
 
@@ -157,20 +157,20 @@ Cache hits skip the LLM call entirely (≪ 1s response). Fallback sentinels (`sh
 
 ---
 
-***REMOVED******REMOVED*** 7. Latency
+## 7. Latency
 
 Real-prod data (2026-05-21):
 
 | Path | p50 | p95 | notes |
 |---|---|---|---|
 | Cache hit | < 200ms | < 500ms | network-bound |
-| Live generation (`:nitro`) | ~80s | > 180s | session-***REMOVED***16 measurement showed 6/9 sections at 180s timeout. Tune `OPENROUTER_DEEP_ANALYSIS_TIMEOUT` if you tighten this. |
+| Live generation (`:nitro`) | ~80s | > 180s | session-#16 measurement showed 6/9 sections at 180s timeout. Tune `OPENROUTER_DEEP_ANALYSIS_TIMEOUT` if you tighten this. |
 
 Clients SHOULD render incrementally as `section` events arrive — do NOT block on `done` alone.
 
 ---
 
-***REMOVED******REMOVED*** 8. Errors
+## 8. Errors
 
 | Status | Cause |
 |---|---|
@@ -183,18 +183,18 @@ SSE-level errors (LLM timeout / parse failure) are reported via the `error` even
 
 ---
 
-***REMOVED******REMOVED*** 9. Versioning
+## 9. Versioning
 
 - Wire format is versioned by `prompt_version` (currently `v1`, written into `reports.prompt_version` on persist).
 - New `section` keys may be added (additive, non-breaking).
 - Removing a section or renaming one is breaking — requires bumping `prompt_version`.
-- `persisted` event added in M1.4 (session ***REMOVED***16) is purely additive — clients that don't set `persist=1` see the same SSE stream as before.
+- `persisted` event added in M1.4 (session #16) is purely additive — clients that don't set `persist=1` see the same SSE stream as before.
 
 ---
 
-***REMOVED******REMOVED*** 10. Examples
+## 10. Examples
 
-***REMOVED******REMOVED******REMOVED*** 10.1 Query mode, persist on
+### 10.1 Query mode, persist on
 
 ```bash
 curl -sN \
@@ -204,7 +204,7 @@ curl -sN \
 
 Expected event order: `meta` → many `text`/`section` → `persisted` → `done`.
 
-***REMOVED******REMOVED******REMOVED*** 10.2 Pair mode, no persist (default)
+### 10.2 Pair mode, no persist (default)
 
 ```bash
 curl -sN \
@@ -213,7 +213,7 @@ curl -sN \
 
 Expected event order: `meta` → many `text`/`section` → `done`. No `persisted` event.
 
-***REMOVED******REMOVED******REMOVED*** 10.3 Reading back a shared report
+### 10.3 Reading back a shared report
 
 ```bash
 curl -s "https://beta.structural.bytedance.city/api/report/share/<token-from-persisted-event>"

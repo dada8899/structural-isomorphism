@@ -48,7 +48,7 @@ class _MockHTTPXClient:
         return _MockResponse(_body=body, status_code=self.fail_status if self.fail else 200)
 
 
-***REMOVED*** --- parser tests -------------------------------------------------------------
+# --- parser tests -------------------------------------------------------------
 
 
 def test_extract_json_plain():
@@ -72,7 +72,7 @@ def test_extract_json_invalid_returns_none():
     assert _extract_json("") is None
 
 
-***REMOVED*** --- Critic.judge -------------------------------------------------------------
+# --- Critic.judge -------------------------------------------------------------
 
 
 def test_critic_judge_happy_path():

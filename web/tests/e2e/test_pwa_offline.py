@@ -28,17 +28,17 @@ from pathlib import Path
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[3]  ***REMOVED*** web/tests/e2e/foo.py → repo root
+_REPO = Path(__file__).resolve().parents[3]  # web/tests/e2e/foo.py → repo root
 _PUBLIC = _REPO / "web" / "phase-detector" / "public"
 
-***REMOVED*** A minimal HTML shell — represents the rendered Next.js page.
+# A minimal HTML shell — represents the rendered Next.js page.
 _INDEX_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Phase Detector — test shell</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="***REMOVED***5B21B6">
+  <meta name="theme-color" content="#5B21B6">
 </head>
 <body>
   <main id="main"><h1 data-testid="home-heading">Phase Detector</h1></main>
@@ -61,11 +61,11 @@ _OFFLINE_HTML = """<!DOCTYPE html>
 class _SilentHandler(http.server.SimpleHTTPRequestHandler):
     """Quiet handler: serves public/ + /index + /offline from in-memory shells."""
 
-    ***REMOVED*** log_message would clutter pytest output.
-    def log_message(self, *_args, **_kwargs):  ***REMOVED*** noqa: D401
+    # log_message would clutter pytest output.
+    def log_message(self, *_args, **_kwargs):  # noqa: D401
         return
 
-    def do_GET(self):  ***REMOVED*** noqa: N802
+    def do_GET(self):  # noqa: N802
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             self._send(200, "text/html; charset=utf-8", _INDEX_HTML.encode("utf-8"))
@@ -73,7 +73,7 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/offline":
             self._send(200, "text/html; charset=utf-8", _OFFLINE_HTML.encode("utf-8"))
             return
-        ***REMOVED*** Public assets (sw.js, manifest, icons)
+        # Public assets (sw.js, manifest, icons)
         rel = path.lstrip("/")
         candidate = _PUBLIC / rel
         if candidate.is_file():
@@ -98,7 +98,7 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        ***REMOVED*** Service workers require same-origin so no CORS dance needed.
+        # Service workers require same-origin so no CORS dance needed.
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(body)
@@ -116,7 +116,7 @@ def local_server():
     httpd.server_close()
 
 
-***REMOVED*** --- Static file checks (no browser needed) ---
+# --- Static file checks (no browser needed) ---
 
 
 def test_manifest_file_exists_and_valid():
@@ -126,7 +126,7 @@ def test_manifest_file_exists_and_valid():
     assert data["name"] == "Phase Detector"
     assert data["display"] == "standalone"
     assert data["start_url"] == "/"
-    assert data["theme_color"] == "***REMOVED***5B21B6"
+    assert data["theme_color"] == "#5B21B6"
     icons = data["icons"]
     sizes = {i["sizes"] for i in icons}
     assert "192x192" in sizes
@@ -153,7 +153,7 @@ def test_icons_present():
         assert p.exists() and p.stat().st_size > 100, f"icon {name} missing or empty"
 
 
-***REMOVED*** --- Browser-based PWA tests ---
+# --- Browser-based PWA tests ---
 
 
 @pytest.fixture(scope="module")
@@ -169,7 +169,7 @@ def test_service_worker_registers(chromium, local_server):
     page = context.new_page()
     try:
         page.goto(local_server + "/", wait_until="load")
-        ***REMOVED*** Wait for the SW to attach + transition to activated.
+        # Wait for the SW to attach + transition to activated.
         state = page.evaluate(
             """async () => {
                 if (!('serviceWorker' in navigator)) return 'unsupported';
@@ -190,7 +190,7 @@ def test_service_worker_registers(chromium, local_server):
             }"""
         )
         assert state == "activated", f"SW state={state}"
-        ***REMOVED*** Manifest is wired up.
+        # Manifest is wired up.
         manifest_href = page.evaluate(
             "() => document.querySelector('link[rel=manifest]')?.href || null"
         )
@@ -226,12 +226,12 @@ def test_offline_fallback_served_when_offline(chromium, local_server):
     try:
         page.goto(local_server + "/", wait_until="load")
         _wait_for_sw_activated(page)
-        ***REMOVED*** Force SW to precache /offline by visiting it once.
+        # Force SW to precache /offline by visiting it once.
         page.goto(local_server + "/offline", wait_until="load")
         _wait_for_sw_activated(page)
         page.wait_for_timeout(500)
 
-        ***REMOVED*** Verify the SW cache has the offline entry before flipping offline.
+        # Verify the SW cache has the offline entry before flipping offline.
         cached = page.evaluate(
             """async () => {
                 const names = await caches.keys();
@@ -247,15 +247,15 @@ def test_offline_fallback_served_when_offline(chromium, local_server):
         )
         assert cached, "offline URL was not precached by SW"
 
-        ***REMOVED*** Cut the network — the SW must serve /offline from cache.
+        # Cut the network — the SW must serve /offline from cache.
         context.set_offline(True)
         try:
             page.goto(local_server + "/offline", wait_until="load", timeout=5000)
             content = page.locator('[data-testid="offline-page"]').inner_text()
             assert "offline" in content.lower()
         except Exception:
-            ***REMOVED*** Some Chromium builds bypass the SW for hard reloads while offline;
-            ***REMOVED*** the cache-presence assertion above is the load-bearing check.
+            # Some Chromium builds bypass the SW for hard reloads while offline;
+            # the cache-presence assertion above is the load-bearing check.
             pass
     finally:
         context.set_offline(False)

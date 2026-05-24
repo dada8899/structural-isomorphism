@@ -1,4 +1,4 @@
-***REMOVED*** Structural API Reference
+# Structural API Reference
 
 Public surface for the Structural cross-domain knowledge engine.
 
@@ -7,7 +7,7 @@ Public surface for the Structural cross-domain knowledge engine.
 - **OpenAPI spec:** [`openapi.json`](./openapi.json) (1688 lines, 39 paths)
 - **Live docs:** [`/api/docs`](https://structural.bytedance.city/api/docs) — Swagger UI served by FastAPI
 
-***REMOVED******REMOVED*** Auth
+## Auth
 
 All endpoints accept anonymous traffic but apply tier-based rate limits.
 Supply an `X-API-Key` header to promote a request beyond the free tier.
@@ -22,7 +22,7 @@ Supply an `X-API-Key` header to promote a request beyond the free tier.
 LLM-expensive endpoints (`/api/ask`, `/api/analyze`, `/api/synthesize`,
 `/api/mapping`) consume **half** the bucket per call.
 
-***REMOVED******REMOVED*** Error envelope
+## Error envelope
 
 All non-2xx responses use **RFC 7807** `application/problem+json`:
 
@@ -49,7 +49,7 @@ Error type slugs:
 - `upstream_unavailable` (503)
 - `internal_error` (500)
 
-***REMOVED******REMOVED*** Embedded ReDoc viewer
+## Embedded ReDoc viewer
 
 To render this spec locally, serve it alongside a ReDoc HTML wrapper:
 
@@ -70,7 +70,7 @@ To render this spec locally, serve it alongside a ReDoc HTML wrapper:
 
 Or use FastAPI's bundled Swagger UI at `/api/docs`.
 
-***REMOVED******REMOVED*** Tag catalog
+## Tag catalog
 
 | Tag | Description |
 |-----|-------------|
@@ -90,7 +90,7 @@ Or use FastAPI's bundled Swagger UI at `/api/docs`.
 | system | Health, version, and operational probes |
 | admin | Admin-only endpoints (require admin tier) |
 
-***REMOVED******REMOVED*** Changelog
+## Changelog
 
 - **0.2.0 (2026-05-15, W11-C)** — Added tier-aware rate limiting,
   RFC 7807 error envelopes, `X-API-Key` auth scaffold, `/api/version`

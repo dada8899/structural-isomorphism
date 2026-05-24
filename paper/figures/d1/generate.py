@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Generate the D1 method-paper figures + Type-I inflation simulation.
 
 Two figures produced (each as PDF vector + PNG @ 300 DPI):
@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 matplotlib.use("Agg")
-matplotlib.rcParams["pdf.fonttype"] = 42  ***REMOVED*** TrueType for journal PDFs
+matplotlib.rcParams["pdf.fonttype"] = 42  # TrueType for journal PDFs
 matplotlib.rcParams["ps.fonttype"] = 42
 matplotlib.rcParams["font.family"] = "DejaVu Sans"
 matplotlib.rcParams["axes.spines.top"] = False
@@ -49,18 +49,18 @@ REPO_ROOT = HERE.parents[2]
 SUMMARY = HERE / "simulation_summary.json"
 LAKE_RESULTS = REPO_ROOT / "v4" / "validation" / "scheffer-lake" / "lake_results.json"
 
-***REMOVED*** Make our reference implementation importable
+# Make our reference implementation importable
 sys.path.insert(0, str(REPO_ROOT))
-from paper.code.d1_block_bootstrap_reference import (  ***REMOVED*** noqa: E402
+from paper.code.d1_block_bootstrap_reference import (  # noqa: E402
     kendall_tau_vs_time,
     moving_block_bootstrap,
     rolling_ar1,
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------
-***REMOVED*** Helpers
-***REMOVED*** ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------
 
 def gen_ar1(n: int, phi: float, sigma: float, rng: np.random.Generator) -> np.ndarray:
     eps = rng.normal(scale=sigma, size=n)
@@ -95,7 +95,7 @@ def empirical_type_i(
         naive_ps.append(p_naive)
         if np.isfinite(p_naive) and p_naive < alpha:
             naive_reject += 1
-        ***REMOVED*** Block bootstrap with per-series seed
+        # Block bootstrap with per-series seed
         out = moving_block_bootstrap(
             x,
             n_replicates=n_boot,
@@ -121,9 +121,9 @@ def empirical_type_i(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------
-***REMOVED*** Figure 1: Type-I inflation curve.
-***REMOVED*** ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Figure 1: Type-I inflation curve.
+# ---------------------------------------------------------------------
 
 def figure_1_type_i_inflation():
     phis = [0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 0.95]
@@ -143,9 +143,9 @@ def figure_1_type_i_inflation():
     xs = [r["phi"] for r in rows]
     y_naive = [r["type_i_naive"] for r in rows]
     y_block = [r["type_i_block"] for r in rows]
-    ax.plot(xs, y_naive, "o-", color="***REMOVED***c0392b", lw=2.0, ms=7,
+    ax.plot(xs, y_naive, "o-", color="#c0392b", lw=2.0, ms=7,
             label="Naive Kendall-τ (iid p-value)")
-    ax.plot(xs, y_block, "s-", color="***REMOVED***2c7fb8", lw=2.0, ms=7,
+    ax.plot(xs, y_block, "s-", color="#2c7fb8", lw=2.0, ms=7,
             label="Block bootstrap (ℓ=20)")
     ax.axhline(0.05, color="black", ls=":", lw=1, alpha=0.7,
                label="Nominal α=0.05")
@@ -167,9 +167,9 @@ def figure_1_type_i_inflation():
     return rows
 
 
-***REMOVED*** ---------------------------------------------------------------------
-***REMOVED*** Figure 2: Lake Scheffer naive vs block bar chart.
-***REMOVED*** ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Figure 2: Lake Scheffer naive vs block bar chart.
+# ---------------------------------------------------------------------
 
 def figure_2_lake_naive_vs_block():
     """Reads v4/validation/scheffer-lake/lake_results.json if present,
@@ -194,7 +194,7 @@ def figure_2_lake_naive_vs_block():
                 if k in bb:
                     fallback[k] = bb[k]
             print(f"[d1-fig2] loaded real lake results from {LAKE_RESULTS}")
-        except Exception as e:  ***REMOVED*** pragma: no cover
+        except Exception as e:  # pragma: no cover
             print(f"[d1-fig2] warning: failed to load {LAKE_RESULTS}: {e}; "
                   f"using documented fallback numbers")
 
@@ -208,10 +208,10 @@ def figure_2_lake_naive_vs_block():
     width = 0.36
     xs = np.arange(len(labels))
     b1 = ax.bar(xs - width / 2, naive_vals, width=width,
-                color="***REMOVED***c0392b", label="Naive Kendall-τ p")
+                color="#c0392b", label="Naive Kendall-τ p")
     b2 = ax.bar(xs + width / 2, block_vals, width=width,
-                color="***REMOVED***2c7fb8", label=f"Block-bootstrap p (ℓ={fallback['block_size_days']} d)")
-    ***REMOVED*** Annotate p-values above bars
+                color="#2c7fb8", label=f"Block-bootstrap p (ℓ={fallback['block_size_days']} d)")
+    # Annotate p-values above bars
     for bars, vals_raw, key_a, key_b in [
         (b1, naive_vals, "p_naive_ar1", "p_naive_var"),
         (b2, block_vals, "p_block_bootstrap_ar1", "p_block_bootstrap_var"),
@@ -244,9 +244,9 @@ def figure_2_lake_naive_vs_block():
     return fallback
 
 
-***REMOVED*** ---------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------
 
 def main():
     rows = figure_1_type_i_inflation()

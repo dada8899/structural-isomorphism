@@ -25,14 +25,14 @@ def _v(name: str, kind: str, conf: float = 1.0, error: str | None = None) -> Ver
     return Verdict(critic_id=name, kind=kind, confidence=conf, reasoning="", error=error)
 
 
-***REMOVED*** --- majority_vote insertion-order tiebreaker (lines 86-90) ------------------
+# --- majority_vote insertion-order tiebreaker (lines 86-90) ------------------
 
 
 def test_majority_vote_tie_no_priority_uses_insertion_order():
     """Tie with no priority list → first label by insertion order wins."""
     vs = [_v("a", "REJECT"), _v("b", "KEEP")]
     label, disagree = majority_vote(vs)
-    ***REMOVED*** Both have count 1. With no priority, the first verdict's kind ("REJECT") wins.
+    # Both have count 1. With no priority, the first verdict's kind ("REJECT") wins.
     assert label == "REJECT"
     assert disagree is True
 
@@ -41,17 +41,17 @@ def test_majority_vote_tie_priority_missing_label_falls_back_to_insertion():
     """Priority list exists but contains none of the tied labels → falls
     through to insertion-order branch (lines 86-90)."""
     vs = [_v("a", "FOO"), _v("b", "BAR")]
-    label, disagree = majority_vote(vs, priority=["BAZ", "QUX"])  ***REMOVED*** none tied
+    label, disagree = majority_vote(vs, priority=["BAZ", "QUX"])  # none tied
     assert label in ("FOO", "BAR")
     assert disagree is True
-    ***REMOVED*** Insertion order means FOO comes first
+    # Insertion order means FOO comes first
     assert label == "FOO"
 
 
 def test_majority_vote_three_way_tie_no_priority():
     vs = [_v("a", "X"), _v("b", "Y"), _v("c", "Z")]
     label, _ = majority_vote(vs)
-    assert label == "X"  ***REMOVED*** first by insertion
+    assert label == "X"  # first by insertion
 
 
 def test_majority_vote_all_errored_returns_fallback():
@@ -61,13 +61,13 @@ def test_majority_vote_all_errored_returns_fallback():
     assert disagree is False
 
 
-***REMOVED*** --- unanimous ---------------------------------------------------------------
+# --- unanimous ---------------------------------------------------------------
 
 
 def test_unanimous_all_errored_returns_fallback_disagree_true():
     vs = [_v("a", "K", error="x"), _v("b", "K", error="x")]
     label, disagree = unanimous(vs, fallback="UNCLEAR")
-    ***REMOVED*** No valid labels → labels set is empty, len(labels) != 1 → fallback path
+    # No valid labels → labels set is empty, len(labels) != 1 → fallback path
     assert label == "UNCLEAR"
     assert disagree is True
 
@@ -85,7 +85,7 @@ def test_unanimous_disagree():
     assert disagree is True
 
 
-***REMOVED*** --- agreement_pct -----------------------------------------------------------
+# --- agreement_pct -----------------------------------------------------------
 
 
 def test_agreement_pct_no_valid_returns_zero():
@@ -99,11 +99,11 @@ def test_agreement_pct_empty_returns_zero():
 
 def test_agreement_pct_partial():
     vs = [_v("a", "K"), _v("b", "K"), _v("c", "R"), _v("d", "K", error="x")]
-    ***REMOVED*** 3 valid, 2 match "K"
+    # 3 valid, 2 match "K"
     assert agreement_pct(vs, "K") == 2 / 3
 
 
-***REMOVED*** --- krippendorff_alpha edge cases ------------------------------------------
+# --- krippendorff_alpha edge cases ------------------------------------------
 
 
 def test_krippendorff_alpha_fewer_than_two_returns_none():
@@ -126,13 +126,13 @@ def test_krippendorff_alpha_perfect_disagreement_two_critics():
     vs = [_v("a", "K"), _v("b", "R")]
     a = krippendorff_alpha(vs)
     assert a is not None
-    ***REMOVED*** 2 critics, 2 different labels: D_obs=1, D_exp=1.0 → α=0
+    # 2 critics, 2 different labels: D_obs=1, D_exp=1.0 → α=0
     assert a == 0.0
 
 
 def test_krippendorff_alpha_clamped_to_minus_one():
     """Systematic disagreement scenario, but α floor is -1.0."""
-    ***REMOVED*** 4 critics, all 4 different labels: max disagreement on 4 raters
+    # 4 critics, all 4 different labels: max disagreement on 4 raters
     vs = [_v("a", "W"), _v("b", "X"), _v("c", "Y"), _v("d", "Z")]
     a = krippendorff_alpha(vs)
     assert a is not None
@@ -144,11 +144,11 @@ def test_krippendorff_alpha_three_critic_mix():
     vs = [_v("a", "K"), _v("b", "K"), _v("c", "R")]
     a = krippendorff_alpha(vs)
     assert a is not None
-    ***REMOVED*** Some positive (one pair agrees) but well below 1.0
+    # Some positive (one pair agrees) but well below 1.0
     assert 0 < a < 1.0
 
 
-***REMOVED*** --- get_voting_strategy + VOTING_STRATEGIES --------------------------------
+# --- get_voting_strategy + VOTING_STRATEGIES --------------------------------
 
 
 def test_get_voting_strategy_by_name():

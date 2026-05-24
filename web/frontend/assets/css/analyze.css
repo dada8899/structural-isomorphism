@@ -243,24 +243,24 @@
   border: 1px solid rgba(37, 99, 235, 0.2);
   border-radius: var(--radius-full);
   font-size: var(--fs-13);
-  color: ***REMOVED***1D4ED8;
+  color: #1D4ED8;
   font-weight: var(--fw-medium);
   align-self: flex-start;
 }
 
 .section__streaming-indicator .hourglass-icon {
-  color: ***REMOVED***1D4ED8;
+  color: #1D4ED8;
 }
 
 .section__streaming-indicator .elapsed-timer {
   margin-left: var(--space-2);
-  color: ***REMOVED***1D4ED8;
+  color: #1D4ED8;
   background: rgba(37, 99, 235, 0.08);
   border-color: rgba(37, 99, 235, 0.2);
 }
 
 .section__streaming-indicator .elapsed-timer::before {
-  background: ***REMOVED***1D4ED8;
+  background: #1D4ED8;
 }
 
 .section--streaming .section__body > .shimmer-line {
@@ -470,8 +470,8 @@
 }
 
 .callout--warning {
-  border-left-color: ***REMOVED***d97706;
-  background: ***REMOVED***fffbf5;
+  border-left-color: #d97706;
+  background: #fffbf5;
 }
 
 .callout__label {
@@ -739,13 +739,13 @@
 
 .research-status--novel {
   background: rgba(5, 150, 105, 0.1);
-  color: ***REMOVED***059669;
+  color: #059669;
   border: 1px solid rgba(5, 150, 105, 0.2);
 }
 
 .research-status--partial {
   background: rgba(217, 119, 6, 0.1);
-  color: ***REMOVED***B45309;
+  color: #B45309;
   border: 1px solid rgba(217, 119, 6, 0.2);
 }
 
@@ -757,15 +757,15 @@
 
 .opportunity {
   padding: var(--space-5) var(--space-6);
-  background: linear-gradient(135deg, ***REMOVED***fffbf5 0%, ***REMOVED***fff 100%);
-  border: 1px solid ***REMOVED***f3e8d5;
+  background: linear-gradient(135deg, #fffbf5 0%, #fff 100%);
+  border: 1px solid #f3e8d5;
   border-radius: var(--radius-xl);
   margin: var(--space-4) 0;
 }
 
 .opportunity__label {
   font-size: var(--fs-11, 11px);
-  color: ***REMOVED***B45309;
+  color: #B45309;
   letter-spacing: var(--ls-wide);
   text-transform: uppercase;
   margin-bottom: var(--space-2);
@@ -832,12 +832,12 @@
 
 .risk__severity--high {
   background: rgba(220, 38, 38, 0.1);
-  color: ***REMOVED***DC2626;
+  color: #DC2626;
 }
 
 .risk__severity--medium {
   background: rgba(217, 119, 6, 0.1);
-  color: ***REMOVED***B45309;
+  color: #B45309;
 }
 
 .risk__severity--low {
@@ -939,7 +939,7 @@
 .analyze-loading__stream-preview::after {
   content: '▋';
   display: inline-block;
-  color: ***REMOVED***2563EB;
+  color: #2563EB;
   margin-left: 2px;
   animation: blink-caret 1s steps(2) infinite;
 }
@@ -975,7 +975,7 @@
  * for the rest, with optional items dimmed.
  */
 
-***REMOVED***section-action_plan {
+#section-action_plan {
   margin-top: var(--space-9);
   padding: var(--space-7) var(--space-7);
   background: linear-gradient(180deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.015));
@@ -984,11 +984,11 @@
   scroll-margin-top: calc(var(--header-height) + 80px);
 }
 
-***REMOVED***section-action_plan .section__number {
+#section-action_plan .section__number {
   color: var(--accent);
 }
 
-***REMOVED***section-action_plan .section__title {
+#section-action_plan .section__title {
   border-bottom-color: rgba(37, 99, 235, 0.18);
 }
 
@@ -1186,7 +1186,7 @@
 }
 
 @media (max-width: 720px) {
-  ***REMOVED***section-action_plan {
+  #section-action_plan {
     padding: var(--space-5) var(--space-4);
   }
   .action-item__row {
@@ -1291,7 +1291,7 @@ ol.md-list li::before {
   position: relative;
   margin: var(--space-5) 0 var(--space-6);
   padding: var(--space-6) var(--space-7);
-  background: linear-gradient(180deg, var(--bg-tertiary, ***REMOVED***f8f7f3) 0%, var(--bg-primary, ***REMOVED***fafaf9) 100%);
+  background: linear-gradient(180deg, var(--bg-tertiary, #f8f7f3) 0%, var(--bg-primary, #fafaf9) 100%);
   border: 1.5px solid var(--accent);
   border-radius: var(--radius-xl);
   box-shadow: 0 6px 24px rgba(37, 99, 235, 0.08), 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -1305,9 +1305,9 @@ ol.md-list li::before {
 
 .analyze-tldr--pending {
   border-style: dashed;
-  border-color: var(--text-tertiary, ***REMOVED***a8a29e);
+  border-color: var(--text-tertiary, #a8a29e);
   box-shadow: none;
-  background: var(--bg-tertiary, ***REMOVED***f8f7f3);
+  background: var(--bg-tertiary, #f8f7f3);
 }
 
 .analyze-tldr__label {
@@ -1372,7 +1372,7 @@ ol.md-list li::before {
   align-items: baseline;
   padding: var(--space-3) var(--space-4);
   margin-top: var(--space-3);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-md, 8px);
   font-size: var(--fs-14);
@@ -1431,14 +1431,14 @@ ol.md-list li::before {
 }
 
 /* ============================================================
-   Session ***REMOVED***16 M1.4 — share-bar + feedback buttons
+   Session #16 M1.4 — share-bar + feedback buttons
    ============================================================ */
 
 .analyze-share-bar {
   margin: var(--space-3) 0 var(--space-4);
   padding: var(--space-3) var(--space-3) var(--space-2);
-  background: ***REMOVED***fafaf9;
-  border: 1px solid ***REMOVED***e7e5e4;
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
   border-radius: 10px;
 }
 .analyze-share-bar__row {
@@ -1447,57 +1447,57 @@ ol.md-list li::before {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
-.analyze-share-bar__icon { font-size: 16px; color: ***REMOVED***57534e; }
+.analyze-share-bar__icon { font-size: 16px; color: #57534e; }
 .analyze-share-bar__url {
   flex: 1 1 280px;
   min-width: 0;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 13px;
   padding: 6px 10px;
-  background: ***REMOVED***fff;
-  border: 1px solid ***REMOVED***d6d3d1;
+  background: #fff;
+  border: 1px solid #d6d3d1;
   border-radius: 6px;
-  color: ***REMOVED***44403c;
+  color: #44403c;
 }
-.analyze-share-bar__url:focus { outline: 2px solid ***REMOVED***3b82f6; outline-offset: 1px; }
+.analyze-share-bar__url:focus { outline: 2px solid #3b82f6; outline-offset: 1px; }
 .analyze-share-bar__btn {
   font: inherit;
   font-size: 13px;
   padding: 6px 12px;
-  background: ***REMOVED***fff;
-  border: 1px solid ***REMOVED***d6d3d1;
+  background: #fff;
+  border: 1px solid #d6d3d1;
   border-radius: 6px;
-  color: ***REMOVED***44403c;
+  color: #44403c;
   cursor: pointer;
   transition: background-color 120ms ease;
 }
-.analyze-share-bar__btn:hover { background: ***REMOVED***f5f5f4; }
+.analyze-share-bar__btn:hover { background: #f5f5f4; }
 .analyze-share-bar__feedback {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px dashed ***REMOVED***e7e5e4;
+  border-top: 1px dashed #e7e5e4;
   font-size: 13px;
-  color: ***REMOVED***57534e;
+  color: #57534e;
 }
 .analyze-vote {
   font: inherit;
   font-size: 13px;
   padding: 4px 10px;
-  background: ***REMOVED***fff;
-  border: 1px solid ***REMOVED***d6d3d1;
+  background: #fff;
+  border: 1px solid #d6d3d1;
   border-radius: 16px;
   cursor: pointer;
   transition: all 120ms ease;
-  color: ***REMOVED***44403c;
+  color: #44403c;
 }
-.analyze-vote:hover { background: ***REMOVED***f5f5f4; }
+.analyze-vote:hover { background: #f5f5f4; }
 .analyze-vote--active {
-  background: ***REMOVED***fef3c7;
-  border-color: ***REMOVED***fbbf24;
-  color: ***REMOVED***78350f;
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #78350f;
 }
 .analyze-vote__count {
   display: inline-block;
@@ -1508,28 +1508,28 @@ ol.md-list li::before {
   margin-top: var(--space-2);
   padding: 6px 10px;
   font-size: 12px;
-  color: ***REMOVED***92400e;
-  background: ***REMOVED***fffbeb;
-  border-left: 3px solid ***REMOVED***f59e0b;
+  color: #92400e;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
   border-radius: 4px;
 }
 
-/* Session ***REMOVED***16 M1.4 — persisted-report viewer page (report.html) */
+/* Session #16 M1.4 — persisted-report viewer page (report.html) */
 
 .report-section {
   padding: var(--space-3) 0;
-  border-bottom: 1px solid ***REMOVED***f5f5f4;
+  border-bottom: 1px solid #f5f5f4;
 }
 .report-section__title {
   font-size: 17px;
   font-weight: 600;
   margin: 0 0 var(--space-2);
-  color: ***REMOVED***1c1917;
+  color: #1c1917;
 }
 .report-section__body {
   font-size: 15px;
   line-height: 1.65;
-  color: ***REMOVED***292524;
+  color: #292524;
 }
 .report-section__body p { margin: 0 0 var(--space-2); }
 .report-section__body ul { padding-left: var(--space-3); margin: 0 0 var(--space-2); }
@@ -1546,7 +1546,7 @@ ol.md-list li::before {
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
-  color: ***REMOVED***57534e;
+  color: #57534e;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 2px;
@@ -1558,11 +1558,11 @@ ol.md-list li::before {
   font-size: 22px;
   font-weight: 600;
   margin: 0 0 var(--space-1);
-  color: ***REMOVED***1c1917;
+  color: #1c1917;
 }
 .report-meta__attrs {
   font-size: 13px;
-  color: ***REMOVED***78716c;
+  color: #78716c;
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
@@ -1570,19 +1570,19 @@ ol.md-list li::before {
 .report-meta__model {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 12px;
-  background: ***REMOVED***f5f5f4;
+  background: #f5f5f4;
   padding: 2px 8px;
   border-radius: 10px;
-  color: ***REMOVED***57534e;
+  color: #57534e;
 }
 .report-meta__partial {
-  background: ***REMOVED***fffbeb;
-  color: ***REMOVED***92400e;
+  background: #fffbeb;
+  color: #92400e;
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 600;
 }
-.muted { color: ***REMOVED***a8a29e; font-style: italic; font-size: 14px; }
+.muted { color: #a8a29e; font-style: italic; font-size: 14px; }
 
 /* === Saved-report error card (SESSION-17 P0-3 / P1-3) ===
  * The /report page error state. Sits inside the normal content container
@@ -1593,8 +1593,8 @@ ol.md-list li::before {
   margin: 48px auto 64px;
   padding: 36px 32px;
   text-align: center;
-  background: var(--brand-paper-card, ***REMOVED***fff);
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  background: var(--brand-paper-card, #fff);
+  border: 1px solid var(--brand-line, #e4e4e7);
   border-radius: 16px;
 }
 .report-errorcard__icon {
@@ -1604,21 +1604,21 @@ ol.md-list li::before {
   width: 52px;
   height: 52px;
   margin-bottom: 14px;
-  color: var(--brand-muted, ***REMOVED***71717a);
-  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
+  color: var(--brand-muted, #71717a);
+  background: var(--brand-paper-soft, #f4f4f5);
   border-radius: 50%;
 }
 .report-errorcard__title {
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 650;
-  color: var(--brand-ink, ***REMOVED***18181b);
+  color: var(--brand-ink, #18181b);
 }
 .report-errorcard__msg {
   margin: 0 0 22px;
   font-size: 14px;
   line-height: 1.6;
-  color: var(--brand-muted, ***REMOVED***71717a);
+  color: var(--brand-muted, #71717a);
 }
 .report-errorcard__actions {
   display: flex;
@@ -1631,21 +1631,21 @@ ol.md-list li::before {
   padding: 9px 20px;
   font-size: 14px;
   font-weight: 600;
-  color: ***REMOVED***fff;
-  background: var(--brand-ink, ***REMOVED***18181b);
+  color: #fff;
+  background: var(--brand-ink, #18181b);
   border-radius: 9px;
   text-decoration: none;
 }
 .report-errorcard__cta:hover { opacity: 0.9; }
 /* Secondary action — quiet outline, points at "我的报告". */
 .report-errorcard__cta--ghost {
-  color: var(--brand-ink, ***REMOVED***18181b);
+  color: var(--brand-ink, #18181b);
   background: transparent;
-  border: 1px solid var(--brand-line, ***REMOVED***e4e4e7);
+  border: 1px solid var(--brand-line, #e4e4e7);
 }
 .report-errorcard__cta--ghost:hover {
   opacity: 1;
-  background: var(--brand-paper-soft, ***REMOVED***f4f4f5);
+  background: var(--brand-paper-soft, #f4f4f5);
 }
 
 /* ============================================================
@@ -1673,7 +1673,7 @@ ol.md-list li::before {
 .analyze-tldr__actions {
   margin-top: var(--space-4);
   padding: var(--space-4) var(--space-4);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg, 10px);
 }
@@ -1750,7 +1750,7 @@ ol.md-list li::before {
   line-height: 1.4;
   border-radius: var(--radius-full, 999px);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   color: var(--text-secondary);
 }
 
@@ -1780,7 +1780,7 @@ ol.md-list li::before {
    credibility signal (a person tried it and it worked), so it gets the
    success colour + a slightly heavier weight. Still restrained, no glow. */
 .cred-badge__chip--human {
-  color: var(--success, ***REMOVED***16a34a);
+  color: var(--success, #16a34a);
   border-color: rgba(22, 163, 74, 0.28);
   background: rgba(22, 163, 74, 0.07);
   font-weight: 600;
@@ -1796,7 +1796,7 @@ ol.md-list li::before {
 }
 
 .action-item__rank--zero {
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   color: var(--accent);
   border: 1.5px solid var(--accent);
 }
@@ -1827,7 +1827,7 @@ ol.md-list li::before {
 .report-followup {
   margin: var(--space-6) 0;
   padding: var(--space-5) var(--space-6);
-  background: var(--bg-tertiary, ***REMOVED***f8f7f3);
+  background: var(--bg-tertiary, #f8f7f3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
 }
@@ -1855,7 +1855,7 @@ ol.md-list li::before {
   padding: 4px 10px;
   font-size: var(--fs-12);
   color: var(--text-secondary);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full, 999px);
 }
@@ -1881,7 +1881,7 @@ ol.md-list li::before {
 .report-followup__optional {
   text-transform: none;
   letter-spacing: 0;
-  color: var(--text-quaternary, ***REMOVED***c4c4c4);
+  color: var(--text-quaternary, #c4c4c4);
 }
 
 .rf-chips {
@@ -1894,7 +1894,7 @@ ol.md-list li::before {
   padding: 6px 14px;
   font-size: var(--fs-13, 13px);
   color: var(--text-secondary);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full, 999px);
   cursor: pointer;
@@ -1915,7 +1915,7 @@ ol.md-list li::before {
   font-size: var(--fs-14);
   line-height: 1.6;
   color: var(--text-primary);
-  background: var(--bg-primary, ***REMOVED***fafaf9);
+  background: var(--bg-primary, #fafaf9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md, 8px);
   resize: vertical;

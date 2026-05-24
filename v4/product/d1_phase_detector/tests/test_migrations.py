@@ -35,7 +35,7 @@ def test_migration_creates_table(db):
 
 def test_migration_columns(db):
     cur = db.execute("PRAGMA table_info(d1_companies)")
-    cols = {r[1]: r[2] for r in cur.fetchall()}  ***REMOVED*** name -> type
+    cols = {r[1]: r[2] for r in cur.fetchall()}  # name -> type
     required = {
         "ticker", "name", "sector", "industry", "market_cap_usd_b",
         "dynamics_family", "critical_point_state", "universality_class",
@@ -60,7 +60,7 @@ def test_migration_indexes(db):
 
 def test_primary_key_is_ticker(db):
     cur = db.execute("PRAGMA table_info(d1_companies)")
-    pk_cols = [r[1] for r in cur.fetchall() if r[5] == 1]  ***REMOVED*** cid 5 = pk flag
+    pk_cols = [r[1] for r in cur.fetchall() if r[5] == 1]  # cid 5 = pk flag
     assert pk_cols == ["ticker"]
 
 
@@ -149,9 +149,9 @@ def test_jsonb_text_storage(db):
     assert parsed == payload
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Postgres migration syntactic smoke (no DB needed)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Postgres migration syntactic smoke (no DB needed)
+# ---------------------------------------------------------------------------
 
 
 def test_pg_migration_file_exists_and_nonempty():
@@ -160,7 +160,7 @@ def test_pg_migration_file_exists_and_nonempty():
     text = MIG_PG.read_text()
     assert "CREATE TABLE" in text.upper()
     assert "d1_companies" in text
-    ***REMOVED*** Must have the same canonical columns
+    # Must have the same canonical columns
     for col in (
         "ticker", "dynamics_family", "critical_point_state",
         "extraction_confidence", "extracted_at",

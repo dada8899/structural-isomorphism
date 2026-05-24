@@ -1,4 +1,4 @@
-***REMOVED*** Discord Server Scaffold — Structural Isomorphism
+# Discord Server Scaffold — Structural Isomorphism
 
 This document specifies the channel structure, role hierarchy, and permission
 matrix for the **Structural Isomorphism** Discord community server. An admin
@@ -8,7 +8,7 @@ step.
 > **Status**: blueprint. Apply once the BDFL (or delegated server admin) is
 > ready to flip the community switch (target W9-E launch window).
 
-***REMOVED******REMOVED*** 1. Server identity
+## 1. Server identity
 
 | Field | Value |
 |---|---|
@@ -21,90 +21,90 @@ step.
 | Vanity URL (post-Boost L3) | `discord.gg/structuralisomorphism` (see `discord-vanity-url-plan.md`) |
 | 2FA requirement for moderation | **ON** |
 
-***REMOVED******REMOVED*** 2. Category & channel structure
+## 2. Category & channel structure
 
 Eight categories. **20 text channels** + **2 voice channels** = **22 channels total**.
 
-***REMOVED******REMOVED******REMOVED*** 📢 Information (read-only for @member; post = @maintainer only)
+### 📢 Information (read-only for @member; post = @maintainer only)
 
 | Channel | Topic string |
 |---|---|
-| `***REMOVED***announcements` | "Releases, papers, events. Maintainers post; everyone reads. Mentions you via @subscriber." |
-| `***REMOVED***changelog` | "Auto-feed of merged PRs, tagged releases, and arXiv submissions. Bot-driven." |
-| `***REMOVED***events` | "Paper-reading sessions, office hours, conference meetups. RSVP via reactions." |
-| `***REMOVED***rules` | "Server rules + Code of Conduct. Pinned. Read before posting." |
+| `#announcements` | "Releases, papers, events. Maintainers post; everyone reads. Mentions you via @subscriber." |
+| `#changelog` | "Auto-feed of merged PRs, tagged releases, and arXiv submissions. Bot-driven." |
+| `#events` | "Paper-reading sessions, office hours, conference meetups. RSVP via reactions." |
+| `#rules` | "Server rules + Code of Conduct. Pinned. Read before posting." |
 
-***REMOVED******REMOVED******REMOVED*** 💬 General
-
-| Channel | Topic string |
-|---|---|
-| `***REMOVED***introductions` | "First post here. Name, where you found us, what you're curious about. Slowmode 30s." |
-| `***REMOVED***general` | "Open chat. Pipeline-specific questions go to the 🧪 Pipeline category. Slowmode 5s." |
-
-***REMOVED******REMOVED******REMOVED*** 🧪 Pipeline (project-specific support)
+### 💬 General
 
 | Channel | Topic string |
 |---|---|
-| `***REMOVED***soc-pipeline-help` | "Help with the SOC pipeline: install, runs, validation harness, fixture restore." |
-| `***REMOVED***cross-judge-help` | "Help with the Cross-Judge (multi-LLM consensus). Prompts, scoring, calibration." |
-| `***REMOVED***guarded-llm-help` | "Help with the Guarded LLM (refusal layer, retry policy, slowapi tiers)." |
+| `#introductions` | "First post here. Name, where you found us, what you're curious about. Slowmode 30s." |
+| `#general` | "Open chat. Pipeline-specific questions go to the 🧪 Pipeline category. Slowmode 5s." |
 
-***REMOVED******REMOVED******REMOVED*** 🔬 Phase Detector
-
-| Channel | Topic string |
-|---|---|
-| `***REMOVED***phase-detector-general` | "General Q&A about the Phase Detector v2 model and v3 plans." |
-| `***REMOVED***data-requests` | "Ask for a company / sector to be added to the index. Maintainers triage weekly." |
-| `***REMOVED***company-deep-dives` | "Long-form per-company analyses written by @verified-researcher or @contributor." |
-
-***REMOVED******REMOVED******REMOVED*** 📊 Research
+### 🧪 Pipeline (project-specific support)
 
 | Channel | Topic string |
 |---|---|
-| `***REMOVED***pre-registrations` | "Drop a pre-registration plan here before running a study. Mandatory for COI-flag work." |
-| `***REMOVED***methodology` | "Stats, identification, robustness checks, anti-p-hacking debate." |
-| `***REMOVED***paper-club` | "Weekly paper-reading group. One paper per thread. Slowmode 30s." |
-| `***REMOVED***arxiv-watch` | "Daily auto-digest of new arXiv preprints matching saved keyword feeds." |
+| `#soc-pipeline-help` | "Help with the SOC pipeline: install, runs, validation harness, fixture restore." |
+| `#cross-judge-help` | "Help with the Cross-Judge (multi-LLM consensus). Prompts, scoring, calibration." |
+| `#guarded-llm-help` | "Help with the Guarded LLM (refusal layer, retry policy, slowapi tiers)." |
 
-***REMOVED******REMOVED******REMOVED*** 🎓 Tutorials & Learning
-
-| Channel | Topic string |
-|---|---|
-| `***REMOVED***newcomers` | "New to the project? Ask anything here. No question is too basic." |
-| `***REMOVED***tutorial-questions` | "Walking through a tutorial and stuck? Post the step + error here." |
-| `***REMOVED***showcase` | "Show off projects built on top of the pipeline. The only place commercial promo is allowed (≤1 post/week/user)." |
-
-***REMOVED******REMOVED******REMOVED*** ⚙️ Contributors (restricted — @contributor and above)
+### 🔬 Phase Detector
 
 | Channel | Topic string |
 |---|---|
-| `***REMOVED***contributors-only` | "PRs in flight, design discussions, reviewer coordination. @contributor+ only." |
-| `***REMOVED***maintainer-council` | "Council deliberation. @maintainer only. Sealed audit log for COC votes." |
-| `***REMOVED***coc-reports` | "Private. Open a ticket via TicketTool here. @maintainer + reporter only per ticket." |
+| `#phase-detector-general` | "General Q&A about the Phase Detector v2 model and v3 plans." |
+| `#data-requests` | "Ask for a company / sector to be added to the index. Maintainers triage weekly." |
+| `#company-deep-dives` | "Long-form per-company analyses written by @verified-researcher or @contributor." |
 
-***REMOVED******REMOVED******REMOVED*** 🔊 Voice
+### 📊 Research
 
 | Channel | Topic string |
 |---|---|
-| `***REMOVED***voice-paper-reading` | "Paper-reading group voice room. Open during scheduled sessions." |
-| `***REMOVED***voice-pair-programming` | "Drop in for ad-hoc pair programming on the pipeline." |
+| `#pre-registrations` | "Drop a pre-registration plan here before running a study. Mandatory for COI-flag work." |
+| `#methodology` | "Stats, identification, robustness checks, anti-p-hacking debate." |
+| `#paper-club` | "Weekly paper-reading group. One paper per thread. Slowmode 30s." |
+| `#arxiv-watch` | "Daily auto-digest of new arXiv preprints matching saved keyword feeds." |
 
-***REMOVED******REMOVED*** 3. Role structure (5 tiers, lowest → highest)
+### 🎓 Tutorials & Learning
+
+| Channel | Topic string |
+|---|---|
+| `#newcomers` | "New to the project? Ask anything here. No question is too basic." |
+| `#tutorial-questions` | "Walking through a tutorial and stuck? Post the step + error here." |
+| `#showcase` | "Show off projects built on top of the pipeline. The only place commercial promo is allowed (≤1 post/week/user)." |
+
+### ⚙️ Contributors (restricted — @contributor and above)
+
+| Channel | Topic string |
+|---|---|
+| `#contributors-only` | "PRs in flight, design discussions, reviewer coordination. @contributor+ only." |
+| `#maintainer-council` | "Council deliberation. @maintainer only. Sealed audit log for COC votes." |
+| `#coc-reports` | "Private. Open a ticket via TicketTool here. @maintainer + reporter only per ticket." |
+
+### 🔊 Voice
+
+| Channel | Topic string |
+|---|---|
+| `#voice-paper-reading` | "Paper-reading group voice room. Open during scheduled sessions." |
+| `#voice-pair-programming` | "Drop in for ad-hoc pair programming on the pipeline." |
+
+## 3. Role structure (5 tiers, lowest → highest)
 
 | Role | Color | How granted | Capabilities |
 |---|---|---|---|
 | `@member` | grey (default) | Auto on join | Read all public channels; post in 💬 / 🎓 / 🔬 / 📊 (rate-limited) |
-| `@subscriber` | teal | Self-assign reaction-role after subscribing to newsletter | Pinged in `***REMOVED***announcements`; nothing extra otherwise |
-| `@verified-researcher` | blue | Manual: post ORCID + institutional email screenshot in `***REMOVED***coc-reports` ticket | Can post in `***REMOVED***company-deep-dives` and `***REMOVED***pre-registrations`; higher slowmode caps |
-| `@contributor` | green | Auto-granted via GitHub bot once a PR is merged on `dada8899/structural-isomorphism` | Access to ⚙️ `***REMOVED***contributors-only`; post in all research channels |
-| `@maintainer` | gold | Manual; council vote required (see `coc-enforcement-playbook.md`) | Full mod tools; access to `***REMOVED***maintainer-council` and `***REMOVED***coc-reports` |
+| `@subscriber` | teal | Self-assign reaction-role after subscribing to newsletter | Pinged in `#announcements`; nothing extra otherwise |
+| `@verified-researcher` | blue | Manual: post ORCID + institutional email screenshot in `#coc-reports` ticket | Can post in `#company-deep-dives` and `#pre-registrations`; higher slowmode caps |
+| `@contributor` | green | Auto-granted via GitHub bot once a PR is merged on `dada8899/structural-isomorphism` | Access to ⚙️ `#contributors-only`; post in all research channels |
+| `@maintainer` | gold | Manual; council vote required (see `coc-enforcement-playbook.md`) | Full mod tools; access to `#maintainer-council` and `#coc-reports` |
 
 Two **special-purpose** invisible roles (no color, no listing):
 
 - `@bot` — for MEE6, Carl-bot, TicketTool, GitHub bot, arXiv bot
 - `@muted` — applied via moderation; cannot send messages anywhere (timeout shim)
 
-***REMOVED******REMOVED*** 4. Permission matrix
+## 4. Permission matrix
 
 Rows = roles, columns = channel category. `R` = read, `W` = write, `M` = manage (pin/delete others' messages), `–` = no access.
 
@@ -120,35 +120,35 @@ Rows = roles, columns = channel category. `R` = read, `W` = write, `M` = manage 
 | 🔊 Voice | connect | connect | connect | connect | connect + mod |
 
 **Special rules**:
-- `***REMOVED***company-deep-dives` and `***REMOVED***pre-registrations`: write requires `@verified-researcher`+
-- `***REMOVED***maintainer-council`: write requires `@maintainer`
-- `***REMOVED***coc-reports`: write requires `@maintainer` OR being the ticket opener for that specific ticket
+- `#company-deep-dives` and `#pre-registrations`: write requires `@verified-researcher`+
+- `#maintainer-council`: write requires `@maintainer`
+- `#coc-reports`: write requires `@maintainer` OR being the ticket opener for that specific ticket
 
-***REMOVED******REMOVED*** 5. Slowmode policy
+## 5. Slowmode policy
 
 | Channel | Slowmode |
 |---|---|
-| `***REMOVED***general` | 5 seconds |
-| `***REMOVED***introductions` | 30 seconds |
-| `***REMOVED***paper-club` | 30 seconds |
-| `***REMOVED***arxiv-watch` | 6 hours (effectively bot-only) |
-| `***REMOVED***contributors-only` | OFF |
-| `***REMOVED***maintainer-council` | OFF |
+| `#general` | 5 seconds |
+| `#introductions` | 30 seconds |
+| `#paper-club` | 30 seconds |
+| `#arxiv-watch` | 6 hours (effectively bot-only) |
+| `#contributors-only` | OFF |
+| `#maintainer-council` | OFF |
 | All other text channels | 5 seconds default |
 
 Slowmode protects against burst spam without throttling real conversation. The
-30s cap on `***REMOVED***paper-club` is intentional: forces thoughtful comments over chat-blast.
+30s cap on `#paper-club` is intentional: forces thoughtful comments over chat-blast.
 
-***REMOVED******REMOVED*** 6. Pinned messages (per channel)
+## 6. Pinned messages (per channel)
 
 Each public channel gets a single pinned message linking to:
-1. `***REMOVED***rules`
-2. The relevant doc in `docs/community/` (e.g. `***REMOVED***contributors-only` pins
+1. `#rules`
+2. The relevant doc in `docs/community/` (e.g. `#contributors-only` pins
    `CONTRIBUTING.md`)
-3. The good-first-issues label on GitHub (for `***REMOVED***newcomers` and
-   `***REMOVED***tutorial-questions`)
+3. The good-first-issues label on GitHub (for `#newcomers` and
+   `#tutorial-questions`)
 
-***REMOVED******REMOVED*** 7. Server setup checklist (10-minute admin flow)
+## 7. Server setup checklist (10-minute admin flow)
 
 1. Create server with name "Structural Isomorphism"; pick the project logo from
    `docs/branding/logo-512.png` (W7-D) as server icon
@@ -161,7 +161,7 @@ Each public channel gets a single pinned message linking to:
 7. Set slowmodes per section 5
 8. Install bots per `discord-bot-config.md`
 9. Pin the messages from section 6
-10. Post `discord-welcome-message.md` content as a draft in `***REMOVED***rules` for review,
+10. Post `discord-welcome-message.md` content as a draft in `#rules` for review,
     then publish
 
 Done. Server is ready to invite members.

@@ -1,4 +1,4 @@
-***REMOVED*** Senior researcher outreach drafts — 2026-05-15
+# Senior researcher outreach drafts — 2026-05-15
 
 Five cold-email drafts for senior researchers per W7-A Track E. Staggered send schedule T+3, T+5, T+7, T+10, T+14 from launch (see INDEX.md). Each ~3 paragraphs, specific and respectful, no gushing.
 
@@ -6,7 +6,7 @@ Subject line convention: `[arXiv preprint] Cross-domain SOC pipeline with advers
 
 ---
 
-***REMOVED******REMOVED*** 1. Dietmar Plenz (NIMH, Bethesda)
+## 1. Dietmar Plenz (NIMH, Bethesda)
 
 **To:** Dietmar Plenz, Section on Critical Brain Dynamics, NIMH
 **Subject:** [arXiv preprint] Cross-domain SOC pipeline applied to neural avalanches — would value your perspective on sub-sampling and inter-electrode distance effects
@@ -28,7 +28,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED*** 2. Viola Priesemann (MPI Dynamics and Self-Organization, Göttingen)
+## 2. Viola Priesemann (MPI Dynamics and Self-Organization, Göttingen)
 
 **To:** Viola Priesemann, MPI for Dynamics and Self-Organization
 **Subject:** [arXiv preprint] Cross-domain SOC pipeline — would value your perspective on sub-critical reverberation vs. critical regime in our neural verdict
@@ -50,7 +50,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED*** 3. Marten Scheffer (Wageningen University)
+## 3. Marten Scheffer (Wageningen University)
 
 **To:** Marten Scheffer, Aquatic Ecology and Water Quality Management, WUR
 **Subject:** [arXiv preprint] Block-bootstrap correction for autocorrelated early-warning signals — building on your Scheffer et al. 2009 framework
@@ -73,7 +73,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED*** 4. Aaron Clauset (CU Boulder)
+## 4. Aaron Clauset (CU Boulder)
 
 **To:** Aaron Clauset, Department of Computer Science, CU Boulder
 **Subject:** [arXiv preprint] Reject-aware pipeline built on Clauset–Shalizi–Newman 2009 — would value your perspective on within-vendor LLM ensemble limits
@@ -95,7 +95,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED*** 5. Didier Sornette (SUSTech, formerly ETH Zürich)
+## 5. Didier Sornette (SUSTech, formerly ETH Zürich)
 
 **To:** Didier Sornette, Institute of Risk Analysis, Prediction and Management, SUSTech
 **Subject:** [arXiv preprint] S&P 500 inverse-cubic boundary case and dragon-king diagnostics — would value your perspective on power-law vs. dragon-king reading

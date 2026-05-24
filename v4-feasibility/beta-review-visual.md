@@ -1,17 +1,17 @@
-***REMOVED*** Beta Visual & UX Audit — `beta.structural.bytedance.city`
+# Beta Visual & UX Audit — `beta.structural.bytedance.city`
 
 **Date**: 2026-04-13
 **Method**: Playwright MCP permission denied (browser in use + resize denied) and WebFetch denied. Audit performed via direct read of VPS source (`/root/Projects/structural-isomorphism/web/frontend/`): 7 HTML templates + 10 CSS files + JS init handlers. No live screenshots taken. All pixel values below are from source CSS, not measured in-browser.
 
 ---
 
-***REMOVED******REMOVED*** Design system (read from `design-system.css`)
+## Design system (read from `design-system.css`)
 
 | Token | Value |
 |---|---|
-| `--bg-primary` | `***REMOVED***FAFAF9` (warm off-white) |
-| `--text-primary / secondary / tertiary / quaternary` | `***REMOVED***18181B / ***REMOVED***52525B / ***REMOVED***A1A1AA / ***REMOVED***D4D4D8` |
-| `--accent` | `***REMOVED***2563EB` (Blue-600) |
+| `--bg-primary` | `#FAFAF9` (warm off-white) |
+| `--text-primary / secondary / tertiary / quaternary` | `#18181B / #52525B / #A1A1AA / #D4D4D8` |
+| `--accent` | `#2563EB` (Blue-600) |
 | `--font-serif` | `Noto Serif SC`, Songti SC, Times |
 | `--font-sans` | `Inter`, PingFang SC, system |
 | `--font-mono` | `JetBrains Mono`, SF Mono |
@@ -23,9 +23,9 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 
 ---
 
-***REMOVED******REMOVED*** Per-page findings
+## Per-page findings
 
-***REMOVED******REMOVED******REMOVED*** 1. `/` (home) — desktop 1440
+### 1. `/` (home) — desktop 1440
 
 **Structure** (from `index.html:44-240`):
 - Hero section (`.home__hero`, `min-height: calc(85vh - 64px)`, centered)
@@ -41,12 +41,12 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 
 **Issues**:
 - **P1** — The hero stacks **eyebrow + H1 + tagline + lede + evidence pill + textarea + hint** all vertically centered in one viewport. At 1440×900 with 85vh hero + `--space-8` (64px) top padding, content is cramped. `home.css:36` uses `padding: var(--space-8) var(--space-5) var(--space-7)` = 64/24/48 which is OK but the `min-height: 85vh` on top of it pushes the footer scroll-hint off-screen on 900px-high windows.
-- **P2** — `.home__lede` uses `var(--fs-15, 15px)` and `color: var(--text-tertiary)` (`***REMOVED***A1A1AA`). Tertiary-on-off-white contrast = **2.8:1**, fails WCAG AA for body text (needs 4.5:1). The numeric `<strong>` inside bumps to secondary (`***REMOVED***52525B`, 7.5:1 ✓), but the surrounding prose does not.
+- **P2** — `.home__lede` uses `var(--fs-15, 15px)` and `color: var(--text-tertiary)` (`#A1A1AA`). Tertiary-on-off-white contrast = **2.8:1**, fails WCAG AA for body text (needs 4.5:1). The numeric `<strong>` inside bumps to secondary (`#52525B`, 7.5:1 ✓), but the surrounding prose does not.
 - **P2** — Searchbox footer uses `<kbd>⌘</kbd> + <kbd>Enter</kbd> 提交` but the kbd styling isn't defined in home.css (only in search.css for the editor hint). Inconsistent rendering likely.
 - **P2** — `.how-step__text` uses `var(--fs-15, 15px)` + `line-height: 1.75`. Everywhere else body is 14/16. Orphan font size.
 - **P2** — `.usecase__title` uses hardcoded `22px`, `.how-step__title` hardcodes `24px`, `.demo-pair__symbol` hardcodes `18px` — **violates the CLAUDE comment "Never use hardcoded values in component CSS"** stated in `design-system.css:3`. Inconsistency with the `--fs-*` scale.
 
-***REMOVED******REMOVED******REMOVED*** 2. `/search` — desktop 1440
+### 2. `/search` — desktop 1440
 
 **Init** (`search.js:643`): if no `?q=` param → **immediate `window.location.href = '/'`**. So the empty-state for `/search` literally doesn't exist in the running app — the user can never see it. Not broken, but means the only reachable states are loading skeleton / results / no-results.
 
@@ -57,12 +57,12 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 **Good**: helpful copy, correct affordances, consistent with tokens.
 
 **Issues**:
-- **P0** — **`<main class="search-page">` has NO sticky searchbar on /search**. Look at `search.html:48-51`: only `***REMOVED***search-summary` + `***REMOVED***search-results`. Yet `search.css:10-29` defines `.search-bar` with sticky styling — it's dead CSS. Users on results page cannot re-query without clicking "编辑" on the question header. The editor button is 32×80px in the top-right corner of the question card, visual afterthought.
+- **P0** — **`<main class="search-page">` has NO sticky searchbar on /search**. Look at `search.html:48-51`: only `#search-summary` + `#search-results`. Yet `search.css:10-29` defines `.search-bar` with sticky styling — it's dead CSS. Users on results page cannot re-query without clicking "编辑" on the question header. The editor button is 32×80px in the top-right corner of the question card, visual afterthought.
 - **P1** — `.search-question__text` uses `clamp(22px, 2.8vw, 30px)` serif. `.search-summary` wraps it in `max-width: 820px`. The "编辑" button is `position: absolute; top: var(--space-5); right: 0` — on narrow columns it overlaps wrapped question text.
-- **P1** — Error state `.search-error` at `search.css:551-572` uses hardcoded reds `***REMOVED***fecaca / ***REMOVED***fef2f2 / ***REMOVED***991b1b / ***REMOVED***b91c1c` — **bypasses `--danger: ***REMOVED***DC2626`** defined in design-system. Breaks the token discipline and will drift if tokens change.
+- **P1** — Error state `.search-error` at `search.css:551-572` uses hardcoded reds `#fecaca / #fef2f2 / #991b1b / #b91c1c` — **bypasses `--danger: #DC2626`** defined in design-system. Breaks the token discipline and will drift if tokens change.
 - **P2** — `.search-page` has `padding: var(--space-6) 0 var(--space-9)` but the summary and results both add their own `padding: 0 var(--space-5)` internally — double padding management, inconsistent gutters across children if any child forgets.
 
-***REMOVED******REMOVED******REMOVED*** 3. `/discoveries` — desktop 1440
+### 3. `/discoveries` — desktop 1440
 
 **Structure** (`discoveries.html:47-71`): disc-hero (eyebrow pill, huge serif `clamp(48px, 7vw, 88px)` title "那些**隐藏**的联系", lede, stats), disc-filter, disc-list (skeleton initially).
 
@@ -73,7 +73,7 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 - **P2** — `.disc-filter` filter pills (from responsive.css `padding: 5px 10px`) at desktop inherit ambiguous size. On desktop they use unknown base; on mobile (≤768) shrunk to 5/10. Check desktop default.
 - **P2** — stats use `gap: var(--space-7)` (48px) between 3 stats. Feels sparse if the row only has 3 numbers. Home/about use tighter gaps.
 
-***REMOVED******REMOVED******REMOVED*** 4. `/about` — desktop 1440
+### 4. `/about` — desktop 1440
 
 **Structure** (`about.html:42-122`): eyebrow, huge serif title `<br>`-broken "万物的形状<br>都在重复", lede, 5 sections with `Why / How / What's Next / Resources / Team` labels.
 
@@ -82,15 +82,15 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 **Issues**:
 - **P2** — `about.css:16` title `font-size: clamp(48px, 6vw, 72px)` ≠ discoveries (88px) ≠ home (`clamp(48px, 5.5vw, 64px)`). **Three different hero-title scales across 3 landing pages** — no systematic type scale decision.
 - **P2** — section label uses `var(--font-mono) + 11px + uppercase`, matching discoveries/analyze. Good.
-- **P2** — `.about-stats` uses `var(--bg-tertiary)` (pure white `***REMOVED***FFFFFF`) on `--bg-primary` (warm `***REMOVED***FAFAF9`). The tonal shift is ~0.3% — effectively invisible on most monitors. Same issue repeats in `.how-step`, `.usecase`, `.demo-pair`, `.about-team` — all use white card on off-white background. Container affordance is carried entirely by the 1px `--border-subtle: ***REMOVED***E4E4E7` border. If a user has low-contrast display or brightness cranked up, the cards disappear.
+- **P2** — `.about-stats` uses `var(--bg-tertiary)` (pure white `#FFFFFF`) on `--bg-primary` (warm `#FAFAF9`). The tonal shift is ~0.3% — effectively invisible on most monitors. Same issue repeats in `.how-step`, `.usecase`, `.demo-pair`, `.about-team` — all use white card on off-white background. Container affordance is carried entirely by the 1px `--border-subtle: #E4E4E7` border. If a user has low-contrast display or brightness cranked up, the cards disappear.
 
-***REMOVED******REMOVED******REMOVED*** 5. `/phenomenon/:id` — desktop 1440
+### 5. `/phenomenon/:id` — desktop 1440
 
 **Critical**: `phenomenon.html:57` is literally `<div id="ph-content"></div>`. `phenomenon.js:762` DOMContentLoaded only calls `loadPhenomenon(id)` **if an id exists in the URL path**. **No else branch, no redirect, no empty state**. Visiting `/phenomenon` or `/phenomenon/` renders header+footer+blank white 100vh. Same for malformed IDs that 404 — handled (`.search-empty` at `phenomenon.js:748`) but only after fetch fails, so there's a flash of blank.
 
 - **P0** — `/phenomenon` with no id = totally blank page between header and footer. Users who land here from a broken share link see nothing.
 
-***REMOVED******REMOVED******REMOVED*** 6. `/analyze` — desktop 1440
+### 6. `/analyze` — desktop 1440
 
 **Init** (`analyze.js:1084`): if no `?id=` → redirect home ✓. If `id` but no `q` / no `a_id` → redirect to `/phenomenon/{id}` ✓. Good defensive handling.
 
@@ -102,7 +102,7 @@ The token layer is genuinely well-built — Linear/Perplexity-level discipline. 
 
 ---
 
-***REMOVED******REMOVED*** Mobile (375×812)
+## Mobile (375×812)
 
 Responsive CSS exists and is careful (`responsive.css`, 451 lines). Breakpoints: 1024 / 768 / 480.
 
@@ -123,11 +123,11 @@ Responsive CSS exists and is careful (`responsive.css`, 451 lines). Breakpoints:
 
 ---
 
-***REMOVED******REMOVED*** Cross-page consistency issues
+## Cross-page consistency issues
 
 1. **Three different hero title scales**: home `clamp(48,5.5vw,64)`, about `clamp(48,6vw,72)`, discoveries `clamp(48,7vw,88)`. No systematic reason given — they read as ad-hoc.
 2. **Hardcoded pixel values** in 4 files despite the design-system.css prohibition: `home.css` (`18px, 22px, 24px`), `search.css` error reds, `about.css` team avatar (56px), `analyze.html` inline style block. Tokens exist; components don't use them.
-3. **Card background tonality too subtle**: `.how-step / .usecase / .about-stats / .about-team / .demo-pair` all use `--bg-tertiary ***REMOVED***FFF` on `--bg-primary ***REMOVED***FAFAF9`. Cards are 99.7% identical to the page bg. Carrying the entire affordance on 1px `***REMOVED***E4E4E7` is risky on low-contrast displays.
+3. **Card background tonality too subtle**: `.how-step / .usecase / .about-stats / .about-team / .demo-pair` all use `--bg-tertiary #FFF` on `--bg-primary #FAFAF9`. Cards are 99.7% identical to the page bg. Carrying the entire affordance on 1px `#E4E4E7` is risky on low-contrast displays.
 4. **Glass-morphism stacking**: header + search-page sticky bars + analyze-page progress bar all use different `rgba(250,250,249, α)` + `blur()` recipes. Inconsistent α and blur radii.
 5. **No favicon referenced** in any HTML `<head>` (`grep -n favicon /tmp/si-*.html` → 0 hits). Browser tab uses default. Logo SVG is inline-only — no `rel="icon"`.
 6. **No OG image** on any page except analyze (`analyze.html:13: /assets/og-image.png`). Home/about/discoveries have no social-share card metadata — shared links will look naked.
@@ -137,20 +137,20 @@ Responsive CSS exists and is careful (`responsive.css`, 451 lines). Breakpoints:
 
 ---
 
-***REMOVED******REMOVED*** P0 / P1 / P2 consolidated
+## P0 / P1 / P2 consolidated
 
-***REMOVED******REMOVED******REMOVED*** P0 (broken)
+### P0 (broken)
 1. **`/phenomenon` (no ID) renders blank content area.** No redirect, no empty state. `phenomenon.js:762` missing else branch. **Fix**: redirect to `/` or show a friendly message.
 2. **`/search` has dead CSS for `.search-bar`** (80+ lines in `search.css:10-29`) but the HTML template never renders it. Users on results page cannot start a new search without clicking the tiny "编辑" button in the top-right. **Fix**: either render `.search-bar` at the top of `<main>`, or delete the dead CSS.
 
-***REMOVED******REMOVED******REMOVED*** P1 (bad UX)
+### P1 (bad UX)
 3. **Mobile searchbox submit button text overflow**: "深度分析" label does not fit in 44px submit button ≤768. Hide label on mobile.
 4. **Mobile hero evidence pill** risks breaking "A ≅ B" atomicity on wrap. Use `display: grid` with fixed 3-column template at ≤720.
-5. **Body text contrast below AA**: `.home__lede` and `.how-step__time` use `--text-tertiary ***REMOVED***A1A1AA` on `***REMOVED***FAFAF9` = 2.8:1. Promote to `--text-secondary` for prose.
+5. **Body text contrast below AA**: `.home__lede` and `.how-step__time` use `--text-tertiary #A1A1AA` on `#FAFAF9` = 2.8:1. Promote to `--text-secondary` for prose.
 6. **Analyze page has 70 lines of inline `<style>`** because "analyze.css is off-limits". Either remove that rule or move these styles into common.css as proper tokens.
 7. **CJK letter-spacing**: `disc-hero__title` uses `--ls-tighter -0.03em` at 88px serif. Chinese glyphs touch. Override to `ls-normal` for CJK headers specifically.
 
-***REMOVED******REMOVED******REMOVED*** P2 (polish)
+### P2 (polish)
 8. **Three hero title scales** — unify to a single `--fs-hero-lg / md / sm` set in design-system.
 9. **Hardcoded px values** in `home.css` (18/22/24px), `search.css` (error reds) — use tokens.
 10. **Card bg tonality** too subtle — shift `--bg-tertiary` by 2-3 lumens or rely on shadow instead of the 1px border.
@@ -161,7 +161,7 @@ Responsive CSS exists and is careful (`responsive.css`, 451 lines). Breakpoints:
 
 ---
 
-***REMOVED******REMOVED*** Top 5 visual fixes to prioritize
+## Top 5 visual fixes to prioritize
 
 1. **Fix `/phenomenon` blank state** — one-line else branch in `phenomenon.js:762` redirecting to `/` (P0, 2 min).
 2. **Render a sticky re-search bar on `/search`** — the CSS already exists; add `<div class="search-bar"><form class="searchbox">...</form></div>` to `search.html:48`. Biggest UX win on the whole site. (P0, 20 min)
@@ -171,7 +171,7 @@ Responsive CSS exists and is careful (`responsive.css`, 451 lines). Breakpoints:
 
 ---
 
-***REMOVED******REMOVED*** What I couldn't verify without a live browser
+## What I couldn't verify without a live browser
 
 - Actual rendered Chinese typography quality (Noto Serif SC fallback chain behavior)
 - Hover/focus states firing correctly

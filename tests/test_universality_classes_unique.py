@@ -2,7 +2,7 @@
 
 Background
 ----------
-Session ***REMOVED***9 commit bfdf2b0 ("F1: P1 bugs") resolved a duplicate-class_id
+Session #9 commit bfdf2b0 ("F1: P1 bugs") resolved a duplicate-class_id
 defect: the Louvain community-detection step on the B3 consensus graph
 produced two Motter-Lai sub-communities and two Gardner-Collins
 sub-communities that legitimately differed (distinct domains, members,
@@ -98,9 +98,9 @@ def test_v2_suffix_classes_have_distinct_content():
         base_id = cid[: -len("_v2")]
         base = by_id.get(base_id)
         if base is None:
-            ***REMOVED*** _v2 without a base entry is allowed (e.g. only the _v2 survived).
+            # _v2 without a base entry is allowed (e.g. only the _v2 survived).
             continue
-        ***REMOVED*** Must differ in at least one of: domains, rank, name_en, hub_name.
+        # Must differ in at least one of: domains, rank, name_en, hub_name.
         diff_fields = [
             f for f in ("domains", "rank", "name_en", "hub_name")
             if c.get(f) != base.get(f)

@@ -1,4 +1,4 @@
-"""ConnectionsStore + ConnectionsMatcher 单元测试（G-MVP, Session ***REMOVED***19）。
+"""ConnectionsStore + ConnectionsMatcher 单元测试（G-MVP, Session #19）。
 
 覆盖：指纹 CRUD、可见性默认 L0、非法值降级、owner 隔离、
 list_discoverable 排除 L0、匹配引擎跨域过滤 / 相似度阈值 /
@@ -16,7 +16,7 @@ from services.connections_store import (
 from services.connections_match import ConnectionsMatcher, encode_to_blob
 
 
-***REMOVED*** ---------------- fixtures ------------------------------------------- ***REMOVED***
+# ---------------- fixtures ------------------------------------------- #
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def _vec(seed: int, dim: int = 16) -> np.ndarray:
     return rng.standard_normal(dim).astype("<f4")
 
 
-***REMOVED*** ---------------- ConnectionsStore: CRUD ----------------------------- ***REMOVED***
+# ---------------- ConnectionsStore: CRUD ----------------------------- #
 
 
 def test_create_and_get_fingerprint(store):
@@ -46,7 +46,7 @@ def test_create_and_get_fingerprint(store):
     assert row is not None
     assert row["user_email"] == "a@x.com"
     assert row["problem_summary"] == "30 人公司效率塌陷"
-    ***REMOVED*** 默认可见性最严 L0。
+    # 默认可见性最严 L0。
     assert row["visibility_level"] == DEFAULT_VISIBILITY == "L0"
 
 
@@ -54,7 +54,7 @@ def test_create_with_bad_visibility_downgrades_to_l0(store):
     fid = store.create_fingerprint(
         user_email="a@x.com",
         problem_summary="p",
-        visibility_level="SUPER_PUBLIC",  ***REMOVED*** 非法
+        visibility_level="SUPER_PUBLIC",  # 非法
     )
     assert store.get_fingerprint(fid)["visibility_level"] == "L0"
 
@@ -70,10 +70,10 @@ def test_list_by_user_newest_first(store):
 
 def test_set_visibility_owner_only(store):
     fid = store.create_fingerprint(user_email="a@x.com", problem_summary="p")
-    ***REMOVED*** 非 owner 改不动。
+    # 非 owner 改不动。
     assert store.set_visibility(fid, "intruder@x.com", "L2") is False
     assert store.get_fingerprint(fid)["visibility_level"] == "L0"
-    ***REMOVED*** owner 能改。
+    # owner 能改。
     assert store.set_visibility(fid, "a@x.com", "L1") is True
     assert store.get_fingerprint(fid)["visibility_level"] == "L1"
 
@@ -129,19 +129,19 @@ def test_list_discoverable_excludes_self(store):
 
 
 def test_schema_self_heal_on_existing_db(tmp_path):
-    ***REMOVED*** 旧表只有 id —— 再开 ConnectionsStore 应增量补齐列。
+    # 旧表只有 id —— 再开 ConnectionsStore 应增量补齐列。
     db = tmp_path / "old.db"
     import sqlite3
     conn = sqlite3.connect(db)
     conn.execute("CREATE TABLE structural_fingerprints (id TEXT PRIMARY KEY)")
     conn.commit()
     conn.close()
-    store = ConnectionsStore(db)  ***REMOVED*** 不应抛
+    store = ConnectionsStore(db)  # 不应抛
     fid = store.create_fingerprint(user_email="a@x.com", problem_summary="p")
     assert store.get_fingerprint(fid)["user_email"] == "a@x.com"
 
 
-***REMOVED*** ---------------- ConnectionsMatcher --------------------------------- ***REMOVED***
+# ---------------- ConnectionsMatcher --------------------------------- #
 
 
 def _fp(fid, user, domain, ucls, vec, ucls_field=None):
@@ -163,10 +163,10 @@ def test_match_filters_same_domain():
     matcher = ConnectionsMatcher(search_service=None)
     base = _vec(1)
     target = _fp("t", "me@x.com", "organization", "delay-debt", base)
-    ***REMOVED*** 候选：同领域（应被过滤）。embedding 几乎相同。
+    # 候选：同领域（应被过滤）。embedding 几乎相同。
     same_domain = _fp("c1", "x@x.com", "organization", "delay-debt", base + 0.001)
     out = matcher.match(target, [same_domain])
-    assert out == []  ***REMOVED*** 同域 → domain_distance 0 → 过滤
+    assert out == []  # 同域 → domain_distance 0 → 过滤
 
 
 def test_match_keeps_cross_domain_high_sim():
@@ -179,7 +179,7 @@ def test_match_keeps_cross_domain_high_sim():
     assert out[0]["fingerprint_id"] == "c1"
     assert out[0]["domain_distance"] == 1
     assert out[0]["structural_similarity"] > 0.9
-    ***REMOVED*** 同普适类 → 加成生效。
+    # 同普适类 → 加成生效。
     assert out[0]["same_universality_class"] is True
     assert out[0]["combined_score"] > out[0]["structural_similarity"]
 
@@ -187,7 +187,7 @@ def test_match_keeps_cross_domain_high_sim():
 def test_match_filters_low_similarity():
     matcher = ConnectionsMatcher(search_service=None)
     target = _fp("t", "me@x.com", "organization", "delay-debt", _vec(3))
-    ***REMOVED*** 完全无关向量 → 相似度低 → 过滤。
+    # 完全无关向量 → 相似度低 → 过滤。
     far = _fp("c1", "x@x.com", "ecology", "delay-debt", _vec(999))
     out = matcher.match(target, [far], sim_min=0.5)
     assert out == []
@@ -197,7 +197,7 @@ def test_match_excludes_same_user():
     matcher = ConnectionsMatcher(search_service=None)
     base = _vec(4)
     target = _fp("t", "me@x.com", "organization", "delay-debt", base)
-    ***REMOVED*** 同一用户的另一个跨域指纹 —— 不该匹配到自己。
+    # 同一用户的另一个跨域指纹 —— 不该匹配到自己。
     own = _fp("c1", "me@x.com", "ecology", "delay-debt", base)
     out = matcher.match(target, [own])
     assert out == []
@@ -207,12 +207,12 @@ def test_match_ranks_by_combined_score():
     matcher = ConnectionsMatcher(search_service=None)
     base = _vec(5)
     target = _fp("t", "me@x.com", "organization", "delay-debt", base)
-    ***REMOVED*** 同类（加成） vs 异类（无加成），相似度都高。
+    # 同类（加成） vs 异类（无加成），相似度都高。
     same_cls = _fp("c1", "a@x.com", "ecology", "delay-debt", base + 0.0001)
     diff_cls = _fp("c2", "b@x.com", "ecology", "other-class", base + 0.0001)
     out = matcher.match(target, [same_cls, diff_cls])
     assert len(out) == 2
-    ***REMOVED*** 同普适类的应排前。
+    # 同普适类的应排前。
     assert out[0]["fingerprint_id"] == "c1"
     assert out[0]["same_universality_class"] is True
     assert out[1]["same_universality_class"] is False
@@ -225,7 +225,7 @@ def test_count_structural_neighbors():
     cands = [
         _fp("c1", "a@x.com", "ecology", "delay-debt", base + 0.0001),
         _fp("c2", "b@x.com", "finance", "delay-debt", base + 0.0002),
-        _fp("c3", "c@x.com", "organization", "delay-debt", base),  ***REMOVED*** 同域，不计
+        _fp("c3", "c@x.com", "organization", "delay-debt", base),  # 同域，不计
     ]
     assert matcher.count_structural_neighbors(target, cands) == 2
 
@@ -234,6 +234,6 @@ def test_match_handles_missing_embedding():
     matcher = ConnectionsMatcher(search_service=None)
     target = _fp("t", "me@x.com", "organization", "delay-debt", _vec(7))
     no_emb = _fp("c1", "x@x.com", "ecology", "delay-debt", _vec(8))
-    no_emb["embedding"] = None  ***REMOVED*** 损坏 / 缺失
+    no_emb["embedding"] = None  # 损坏 / 缺失
     out = matcher.match(target, [no_emb])
-    assert out == []  ***REMOVED*** 相似度 0 → 过滤，不抛
+    assert out == []  # 相似度 0 → 过滤，不抛

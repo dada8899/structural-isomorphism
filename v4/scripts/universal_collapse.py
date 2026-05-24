@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """A3 — Universal-collapse master curve across SOC verified systems.
 
 Takes the verified-system event-size distributions (earthquake / S&P / DeFi 3 /
@@ -45,7 +45,7 @@ def empirical_ccdf(vals: np.ndarray, n_points: int = 200):
     if len(vals) == 0:
         return None, None
     grid = np.geomspace(vals.min() * 1.001, vals.max(), n_points)
-    ***REMOVED*** CCDF
+    # CCDF
     n = len(vals)
     ccdf = np.array([(vals > g).sum() / n for g in grid])
     return grid, ccdf
@@ -161,9 +161,9 @@ def load_defi():
                 if line:
                     try:
                         rec = json.loads(line)
-                        ***REMOVED*** Use raw debt_to_cover; normalize by 1e18 (ETH wei) heuristic
-                        ***REMOVED*** NOTE this is rough since different collateral assets have
-                        ***REMOVED*** different decimals; we accept some noise here
+                        # Use raw debt_to_cover; normalize by 1e18 (ETH wei) heuristic
+                        # NOTE this is rough since different collateral assets have
+                        # different decimals; we accept some noise here
                         raw = rec.get("debt_to_cover_raw") or rec.get("debt_to_cover")
                         if raw:
                             try:
@@ -201,14 +201,14 @@ def main():
             output[name] = {"status": "skipped", "reason": label}
             continue
         grid, ccdf = empirical_ccdf(vals, n_points=120)
-        ***REMOVED*** ax_raw: log-log CCDF on raw scale
+        # ax_raw: log-log CCDF on raw scale
         ax_raw.loglog(grid, ccdf, color=color, label=f"{label} (α={alpha_known})")
-        ***REMOVED*** Collapse: choose s_* as 99th percentile (cutoff scale)
+        # Collapse: choose s_* as 99th percentile (cutoff scale)
         s_star = np.percentile(vals, 99)
         x_rescaled = grid / s_star
-        ***REMOVED*** Rescaled CCDF: multiply by s_*^(α-1) to make P(s) = s^-α f(s/s_*) collapse
-        ***REMOVED*** CCDF: P(S>s) = (1/s_*)^(α-1) g(s/s_*) so g(u) = (s_*/s_*)^(α-1) * CCDF
-        ***REMOVED*** → g(u) = s_*^(α-1) · CCDF(s_* · u)
+        # Rescaled CCDF: multiply by s_*^(α-1) to make P(s) = s^-α f(s/s_*) collapse
+        # CCDF: P(S>s) = (1/s_*)^(α-1) g(s/s_*) so g(u) = (s_*/s_*)^(α-1) * CCDF
+        # → g(u) = s_*^(α-1) · CCDF(s_* · u)
         y_rescaled = (s_star ** (alpha_known - 1)) * ccdf
         ax_collapse.loglog(x_rescaled, y_rescaled, color=color, label=f"{name} (α={alpha_known})")
 
@@ -238,18 +238,18 @@ def main():
     plt.savefig(OUT_PNG, dpi=140, bbox_inches="tight")
     print(f"\nPlot saved: {OUT_PNG}")
 
-    ***REMOVED*** Summary
+    # Summary
     md = []
-    md.append("***REMOVED*** A3 — Universal-collapse master curve\n")
+    md.append("# A3 — Universal-collapse master curve\n")
     md.append("**Date**: 2026-05-13  \n")
     md.append(f"**Systems**: {sum(1 for v in output.values() if v.get('status')=='ok')} verified SOC systems  \n")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Methodology\n")
+    md.append("## Methodology\n")
     md.append("For each verified system we compute the empirical complementary CDF P(S > s) on a log-spaced grid and overlay all systems on log-log axes (panel A). For panel B we rescale by the 99th-percentile cutoff s*: x → s/s*, y → s*^(α-1) · CCDF(s).")
     md.append("")
     md.append("Under the finite-size scaling ansatz P(s) = s^(-α) · f(s/s*), all systems should collapse onto a single master function f(·) up to system-specific α and s*. Strict universal collapse requires shared α, which is NOT what V4 expects across observables (different conjugate variables → different α). What V4 predicts is shared FUNCTIONAL FORM (power-law tail + exponential cutoff), giving partial collapse.")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Per-system summary\n")
+    md.append("## Per-system summary\n")
     md.append("| System | α | n | s* (99th pctl) | range |")
     md.append("|---|---|---|---|---|")
     for name, info in output.items():
@@ -258,7 +258,7 @@ def main():
             continue
         md.append(f"| {name} | {info['alpha_known']} | {info['n']} | {info['s_star_99pctl']:.3g} | [{info['value_range'][0]:.2g}, {info['value_range'][1]:.2g}] |")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Result\n")
+    md.append("## Result\n")
     md.append("Panel A shows the raw spread — 6-7 systems span ~12 orders of magnitude in s, none coincident on raw axes. Panel B shows the rescaled view — under x/s* and y·s*^(α-1), the tails align over 2-3 decades for most systems, supporting the claim that they share functional form (power-law tail with exponential cutoff). The α spread [1.5, 3.0] across observables is consistent with the universality-class theory: same equations of motion, different conjugate observables → different scaling exponents.")
     md.append("")
     md.append("**Strict α-collapse fails** (as expected — these are 7 different observables on different physical scales). **Functional-form collapse succeeds** (the tail shape is universal). This is the V4 first-principles claim, now empirically demonstrated.")

@@ -86,8 +86,8 @@ def _rebind_to_handler_globals(wrapper, handler):
     wrapper_code = getattr(wrapper, "__code__", None)
     wrapper_globals = getattr(wrapper, "__globals__", None)
     if handler_globals is None or wrapper_code is None or wrapper_globals is None:
-        ***REMOVED*** Not a plain Python function (C wrapper / unusual slowapi build) —
-        ***REMOVED*** nothing safe to rebind; leave it untouched.
+        # Not a plain Python function (C wrapper / unusual slowapi build) —
+        # nothing safe to rebind; leave it untouched.
         return wrapper
 
     chained = _ChainedGlobals(primary=handler_globals, fallback=wrapper_globals)
@@ -99,11 +99,11 @@ def _rebind_to_handler_globals(wrapper, handler):
         closure=wrapper.__closure__,
     )
     rebound.__kwdefaults__ = wrapper.__kwdefaults__
-    ***REMOVED*** Carry over everything functools.wraps put on the slowapi wrapper
-    ***REMOVED*** (__wrapped__, __annotations__, __dict__, __qualname__, __doc__, ...).
+    # Carry over everything functools.wraps put on the slowapi wrapper
+    # (__wrapped__, __annotations__, __dict__, __qualname__, __doc__, ...).
     functools.update_wrapper(rebound, wrapper)
-    ***REMOVED*** update_wrapper sets __wrapped__ = wrapper; we want it to point at the
-    ***REMOVED*** ORIGINAL handler so `inspect.unwrap` reaches the real function.
+    # update_wrapper sets __wrapped__ = wrapper; we want it to point at the
+    # ORIGINAL handler so `inspect.unwrap` reaches the real function.
     rebound.__wrapped__ = handler
     return rebound
 
@@ -113,7 +113,7 @@ try:
 
     limiter = Limiter(key_func=get_remote_address, default_limits=[])
     _ENABLED = True
-except Exception as e:  ***REMOVED*** pragma: no cover
+except Exception as e:  # pragma: no cover
     logger.warning(f"slowapi not available, rate limiting disabled: {e}")
     limiter = None
     _ENABLED = False
@@ -171,37 +171,37 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
         return _noop
 
     def _resolve_spec() -> str:
-        ***REMOVED*** Local import keeps this module importable even if middleware
-        ***REMOVED*** subpackage isn't wired (e.g. lean test harnesses that don't
-        ***REMOVED*** install_rate_limit). The ContextVar default of "free" gives a
-        ***REMOVED*** sensible fallback in those cases.
+        # Local import keeps this module importable even if middleware
+        # subpackage isn't wired (e.g. lean test harnesses that don't
+        # install_rate_limit). The ContextVar default of "free" gives a
+        # sensible fallback in those cases.
         try:
             from middleware.rate_limit import CURRENT_TIER, TIER_LIMITS
             tier = CURRENT_TIER.get()
         except Exception:
             tier = "anonymous"
-            TIER_LIMITS = None  ***REMOVED*** type: ignore[assignment]
+            TIER_LIMITS = None  # type: ignore[assignment]
 
-        ***REMOVED*** Tier → req/minute. Mirrors middleware.rate_limit.TIER_LIMITS but
-        ***REMOVED*** tolerates absence to keep this module self-sufficient.
+        # Tier → req/minute. Mirrors middleware.rate_limit.TIER_LIMITS but
+        # tolerates absence to keep this module self-sufficient.
         defaults = {"free": 60, "pro": 1000, "team": 5000, "admin": None}
         if TIER_LIMITS:
-            defaults = dict(TIER_LIMITS)  ***REMOVED*** type: ignore[arg-type]
+            defaults = dict(TIER_LIMITS)  # type: ignore[arg-type]
 
-        ***REMOVED*** Normalise legacy tier names (verify_api_token still returns
-        ***REMOVED*** "anonymous" / "paid" in some code paths).
+        # Normalise legacy tier names (verify_api_token still returns
+        # "anonymous" / "paid" in some code paths).
         tier_norm = (tier or "free").lower()
-        ***REMOVED*** Launch P1-1 fix — anonymous traffic carries the per-endpoint
-        ***REMOVED*** `default_anon` floor. `TierResolutionMiddleware` resolves an
-        ***REMOVED*** un-keyed (anonymous) request to the "free" tier — there is no
-        ***REMOVED*** separate "anonymous" tier in middleware.rate_limit.TIER_LIMITS.
-        ***REMOVED*** So we MUST treat "free" the same as "anonymous" here, otherwise
-        ***REMOVED*** `default_anon` (e.g. 5/min on /api/ask) is dead code and anon
-        ***REMOVED*** traffic silently runs at the 60/min free-tier table value.
-        ***REMOVED*** An explicit free-tier API key is also rate-limited at the
-        ***REMOVED*** endpoint floor: the floor is always <= the table value, and a
-        ***REMOVED*** free key holder shouldn't get looser limits than an anon user
-        ***REMOVED*** on an LLM-expensive endpoint.
+        # Launch P1-1 fix — anonymous traffic carries the per-endpoint
+        # `default_anon` floor. `TierResolutionMiddleware` resolves an
+        # un-keyed (anonymous) request to the "free" tier — there is no
+        # separate "anonymous" tier in middleware.rate_limit.TIER_LIMITS.
+        # So we MUST treat "free" the same as "anonymous" here, otherwise
+        # `default_anon` (e.g. 5/min on /api/ask) is dead code and anon
+        # traffic silently runs at the 60/min free-tier table value.
+        # An explicit free-tier API key is also rate-limited at the
+        # endpoint floor: the floor is always <= the table value, and a
+        # free key holder shouldn't get looser limits than an anon user
+        # on an LLM-expensive endpoint.
         if tier_norm in ("anonymous", "free"):
             return default_anon
         if tier_norm == "paid":
@@ -209,17 +209,17 @@ def tier_limit_decorator(default_anon: str = "10/minute"):
 
         base = defaults.get(tier_norm, defaults.get("free", 60))
         if base is None:
-            ***REMOVED*** admin — effectively unlimited (slowapi can't be fully bypassed
-            ***REMOVED*** from a callable, but a 1M/min cap is inert in practice).
+            # admin — effectively unlimited (slowapi can't be fully bypassed
+            # from a callable, but a 1M/min cap is inert in practice).
             return "1000000/minute"
         return f"{base}/minute"
 
     _slow = limiter.limit(_resolve_spec)
 
     def _decorate(handler):
-        ***REMOVED*** Rebind the slowapi wrapper to the handler's own __globals__ so
-        ***REMOVED*** PEP-563 stringified annotations resolve on every FastAPI version
-        ***REMOVED*** (prod 502 root-cause fix — see `_rebind_to_handler_globals`).
+        # Rebind the slowapi wrapper to the handler's own __globals__ so
+        # PEP-563 stringified annotations resolve on every FastAPI version
+        # (prod 502 root-cause fix — see `_rebind_to_handler_globals`).
         return _rebind_to_handler_globals(_slow(handler), handler)
 
     return _decorate

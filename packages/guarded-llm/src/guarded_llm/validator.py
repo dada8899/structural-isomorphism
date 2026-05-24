@@ -15,7 +15,7 @@ Example::
 
     validator = SchemaValidator(Verdict)
     ok, err, inst = validator.validate({"verdict": "KEEP", "confidence": 0.9})
-    assert inst.verdict == "KEEP"          ***REMOVED*** real Pydantic instance
+    assert inst.verdict == "KEEP"          # real Pydantic instance
 """
 
 from __future__ import annotations
@@ -23,11 +23,11 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from pydantic import BaseModel, ValidationError  ***REMOVED*** type: ignore
+    from pydantic import BaseModel, ValidationError  # type: ignore
     _HAS_PYDANTIC = True
 except ImportError:
-    BaseModel = None  ***REMOVED*** type: ignore
-    ValidationError = Exception  ***REMOVED*** type: ignore
+    BaseModel = None  # type: ignore
+    ValidationError = Exception  # type: ignore
     _HAS_PYDANTIC = False
 
 
@@ -44,7 +44,7 @@ class SchemaValidator:
             confidence: float
 
         v = SchemaValidator(Out)
-        v.validate({"verdict": "KEEP", "confidence": 0.9})  ***REMOVED*** -> (True, None, Out(...))
+        v.validate({"verdict": "KEEP", "confidence": 0.9})  # -> (True, None, Out(...))
     """
 
     def __init__(self, model: Any):
@@ -71,7 +71,7 @@ class SchemaValidator:
         try:
             inst = self._model.model_validate(d)
         except ValidationError as e:
-            ***REMOVED*** Pretty-print the first error path so it's useful in retry hints
+            # Pretty-print the first error path so it's useful in retry hints
             errs = e.errors()
             if errs:
                 first = errs[0]

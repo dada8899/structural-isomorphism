@@ -1,16 +1,16 @@
-***REMOVED*** F2 — Active Learning Data Flow
+# F2 — Active Learning Data Flow
 
-**Status**: scaffold (session ***REMOVED***3, W4-C) — design + miner + simulation + interface. Real V1/V2 fine-tune deferred to F2.1 (VPS GPU run).
+**Status**: scaffold (session #3, W4-C) — design + miner + simulation + interface. Real V1/V2 fine-tune deferred to F2.1 (VPS GPU run).
 **Owner**: W4-C subagent
 **Related**: `v4/lib/embedding_finetune.py`, `v4/lib/F2_active_learning_design.md`, `v4/lib/embedding_bridge.py` (F1)
 
-***REMOVED******REMOVED*** 1. Goal
+## 1. Goal
 
 Close the loop between V4 critic verdicts (Layer 3 KEEP/REJECT/SPLIT on candidate classes) and the V1/V2 embedding model that powers F1 candidate expansion. Today, the model is frozen — V4 only *consumes* its similarity signal. F2 makes the model *learn* from V4 by harvesting REJECT verdicts as hard negatives and KEEP verdicts as positives, then contrastive-fine-tuning the embedding so future candidate-class expansion (via F1 bridge) yields better recall.
 
 This is a **positive feedback loop**: better critic verdicts → better embedding training set → better F1 candidates → better critic verdicts (because the critic has fewer false positives to wade through).
 
-***REMOVED******REMOVED*** 2. Data flow
+## 2. Data flow
 
 ```
 Layer 3 critic                          V1/V2 embedding model
@@ -37,7 +37,7 @@ Layer 3 critic                          V1/V2 embedding model
 
 The loop is *bounded*: each round of fine-tune produces a checkpoint (V3, V4, …). We do not re-tune online; instead we ship a new checkpoint per V4 critic batch (e.g. after every 50 new B3 verdicts), evaluate offline, and only deploy if R@5 / Silhouette / class-purity metrics all improve.
 
-***REMOVED******REMOVED*** 3. Sources (concrete files)
+## 3. Sources (concrete files)
 
 | Signal | Source file | What we extract |
 |---|---|---|
@@ -48,7 +48,7 @@ The loop is *bounded*: each round of fine-tune produces a checkpoint (V3, V4, �
 
 We deliberately use *only* B3 ensemble verdicts (not B1, not single-model B3) for the training signal: ensemble cuts down stochastic LLM disagreement and gives a `b3_avg_confidence` field we use as a per-pair training weight.
 
-***REMOVED******REMOVED*** 4. Hard-negative semantics
+## 4. Hard-negative semantics
 
 A REJECT verdict on class X means the LLM critic believes X's `positive_examples` do **not** share a universality class. So for every pair `(a, b)` drawn from X's positives, the contrastive loss should push `embed(a)` and `embed(b)` **apart** — that's a hard negative because the original V1/V2 model (or the Layer 3 LLM proposer) *thought* they were close.
 
@@ -56,7 +56,7 @@ A KEEP verdict on class Y means Y's `positive_examples` *do* share a class. So p
 
 A SPLIT verdict means *some subsets* of Y's positives share a class but not all of them. We could in principle mine intra-subset positives + inter-subset negatives if SPLIT verdicts came with subset annotations — currently they do not, so we treat SPLIT as **excluded** from training (neither positive nor negative).
 
-***REMOVED******REMOVED*** 5. Weighting
+## 5. Weighting
 
 Each training pair carries a `weight ∈ (0, 1]` derived from `b3_avg_confidence`:
 - weight = 1.0 if confidence ≥ 0.9 (strong verdict)
@@ -66,7 +66,7 @@ Each training pair carries a `weight ∈ (0, 1]` derived from `b3_avg_confidence
 
 This caps the influence of low-confidence verdicts on the embedding without throwing them away entirely.
 
-***REMOVED******REMOVED*** 6. Loss function (InfoNCE with hard negatives)
+## 6. Loss function (InfoNCE with hard negatives)
 
 For a batch of size B with B positives `(a_i, b_i)` and per-positive `K` hard negatives `n_i^1, … n_i^K`, the per-example InfoNCE loss is:
 
@@ -78,7 +78,7 @@ where the denominator sums over `b_i` plus the in-batch negatives plus the `K` m
 
 Total loss = mean(L_i · weight_i).
 
-***REMOVED******REMOVED*** 7. Evaluation
+## 7. Evaluation
 
 Offline metrics computed on a held-out 20% of KEEP-class positives (never seen at training time):
 - **R@5**: for each query phenomenon, % of true class-mates in top-5 NN
@@ -93,7 +93,7 @@ Acceptance bar (must meet **all** to deploy V3 checkpoint):
 - Silhouette improves or holds (Δ ≥ -0.02)
 - Critic agreement rate on top-100 NN expansions improves (separate online check)
 
-***REMOVED******REMOVED*** 8. Files this design produces
+## 8. Files this design produces
 
 | File | Purpose |
 |---|---|
@@ -107,11 +107,11 @@ Acceptance bar (must meet **all** to deploy V3 checkpoint):
 | `v4/results/active_learning/simulation_report.md` | baseline vs after-AL R@5 / Silhouette deltas |
 | `v4/tests/sanity/test_active_learning.py` | miner correctness + finetuner interface + simulation monotonicity |
 
-***REMOVED******REMOVED*** 9. Interface with F1
+## 9. Interface with F1
 
 After a successful V3 fine-tune (on VPS), the new checkpoint replaces `models/structural-v1/` and the cached `kb_embeddings.npy` is regenerated with the new model. F1's `EmbeddingBridge` then transparently uses the new geometry — no API change needed. The handshake is purely **on-disk**: checkpoint + npy cache.
 
-***REMOVED******REMOVED*** 10. Out of scope here
+## 10. Out of scope here
 
 - Actual GPU fine-tune (requires VPS provisioning, see `F2_active_learning_design.md` §3)
 - Embedding endpoint over HTTP (F1.1)

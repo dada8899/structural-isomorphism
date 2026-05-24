@@ -12,7 +12,7 @@ from collections import defaultdict
 
 import numpy as np
 
-***REMOVED*** 已知重大市场事件（日期 ± 60 天影响大多数股票）
+# 已知重大市场事件（日期 ± 60 天影响大多数股票）
 MACRO_EVENTS = [
     ("2011-08-01", "美国主权评级被标普下调"),
     ("2015-08-01", "中国股灾 + 人民币贬值"),
@@ -50,7 +50,7 @@ def main():
 
     n = len(breaks)
     lines = []
-    lines.append("***REMOVED*** PELT POC — 宏观事件过滤\n\n")
+    lines.append("# PELT POC — 宏观事件过滤\n\n")
     lines.append(f"对 {n} 个高置信拐点判断：是不是只是对宏观事件的反应？\n\n")
 
     macro_driven = 0
@@ -64,26 +64,26 @@ def main():
         else:
             real_signal += 1
 
-    ***REMOVED*** 四象限
+    # 四象限
     rc_non_macro = sum(1 for b in breaks if not b["macro_event"] and b["regime_change"] != "无明显变化")
     rc_macro = sum(1 for b in breaks if b["macro_event"] and b["regime_change"] != "无明显变化")
     no_rc_non_macro = sum(1 for b in breaks if not b["macro_event"] and b["regime_change"] == "无明显变化")
     no_rc_macro = sum(1 for b in breaks if b["macro_event"] and b["regime_change"] == "无明显变化")
 
-    lines.append("***REMOVED******REMOVED*** 🎯 核心筛选结果\n\n")
+    lines.append("## 🎯 核心筛选结果\n\n")
     lines.append(f"- 总拐点：{n}\n")
     lines.append(f"- **宏观事件驱动**（在 2020-COVID / 2022-Fed / 2023-SVB 等事件 ±60 天）：{macro_driven} = {macro_driven/n*100:.0f}%\n")
     lines.append(f"- **非宏观期拐点**（公司自身结构变化）：{real_signal} = {real_signal/n*100:.0f}%\n\n")
 
-    lines.append("***REMOVED******REMOVED*** 📊 四象限\n\n")
+    lines.append("## 📊 四象限\n\n")
     lines.append("| | 股价有 regime 变化 | 股价无变化 |\n|---|---|---|\n")
     lines.append(f"| **非宏观期** | **{rc_non_macro}** 🎯 真信号 | {no_rc_non_macro} |\n")
     lines.append(f"| **宏观事件附近** | {rc_macro}（可能 beta 反应）| {no_rc_macro} |\n\n")
 
     lines.append(f"**真信号**（非宏观 + regime 变化）：**{rc_non_macro}/{n} = {rc_non_macro/n*100:.0f}%**\n\n")
 
-    ***REMOVED*** 按公司分组列真信号
-    lines.append("***REMOVED******REMOVED*** 🎯 筛出的「公司自身」结构信号\n\n")
+    # 按公司分组列真信号
+    lines.append("## 🎯 筛出的「公司自身」结构信号\n\n")
     lines.append("这些拐点不在宏观事件附近，且股价有真实 regime 变化——最值得深入看的。\n\n")
     real_signals = [b for b in breaks if b["is_real_signal"]]
     by_ticker = defaultdict(list)
@@ -101,8 +101,8 @@ def main():
             )
     lines.append("\n")
 
-    ***REMOVED*** 宏观期拐点（说明性的）
-    lines.append("***REMOVED******REMOVED*** ⚠️ 宏观期拐点（可能只是 beta 反应）\n\n")
+    # 宏观期拐点（说明性的）
+    lines.append("## ⚠️ 宏观期拐点（可能只是 beta 反应）\n\n")
     macro_breaks = [b for b in breaks if b["macro_event"]]
     macro_event_counts = defaultdict(int)
     for b in macro_breaks:
@@ -112,8 +112,8 @@ def main():
         lines.append(f"| {ev} | {c} |\n")
     lines.append("\n")
 
-    ***REMOVED*** 最终判断
-    lines.append("***REMOVED******REMOVED*** ⚖️ 最终判断\n\n")
+    # 最终判断
+    lines.append("## ⚖️ 最终判断\n\n")
     true_rate = rc_non_macro / n
     lines.append(f"经过三层过滤（PELT → 多信号交叉 → 宏观事件排除），\n")
     lines.append(f"{rc_non_macro}/{n} = **{true_rate*100:.0f}%** 的拐点是「公司自身结构变化」。\n\n")
@@ -127,7 +127,7 @@ def main():
     with open(path, "w", encoding="utf-8") as f:
         f.write("".join(lines))
 
-    ***REMOVED*** 保存 enriched 数据
+    # 保存 enriched 数据
     with open(os.path.join(os.path.dirname(__file__), "high_conf_breaks_filtered.json"), "w") as f:
         json.dump(breaks, f, ensure_ascii=False, indent=2)
 

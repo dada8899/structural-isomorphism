@@ -1,5 +1,5 @@
 """
-User favorites / bookmarks for companies (W15-C, session ***REMOVED***10).
+User favorites / bookmarks for companies (W15-C, session #10).
 
 Endpoints:
   GET    /api/favorites              → {"tickers": [...]} for current user
@@ -64,11 +64,11 @@ from errors import (
 router = APIRouter(tags=["favorites"])
 logger = logging.getLogger("structural.favorites")
 
-***REMOVED*** Ticker validation: 1-10 chars, uppercase letters/digits/dot/dash. The dash
-***REMOVED*** and dot accommodate exchange suffixes (BRK.A, 7203.T, 0700.HK).
+# Ticker validation: 1-10 chars, uppercase letters/digits/dot/dash. The dash
+# and dot accommodate exchange suffixes (BRK.A, 7203.T, 0700.HK).
 _TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,9}$")
 
-***REMOVED*** Tier → max favorites. None == unlimited.
+# Tier → max favorites. None == unlimited.
 TIER_LIMITS = {
     "free": 50,
     "pro": 500,
@@ -76,9 +76,9 @@ TIER_LIMITS = {
     "admin": None,
 }
 
-***REMOVED*** Mutation lock — serialises read-modify-write of the jsonl. We intentionally
-***REMOVED*** use a single global RLock because the file is small (<1MB even at 10k
-***REMOVED*** users) and beta-stage write QPS is negligible.
+# Mutation lock — serialises read-modify-write of the jsonl. We intentionally
+# use a single global RLock because the file is small (<1MB even at 10k
+# users) and beta-stage write QPS is negligible.
 _WRITE_LOCK = threading.RLock()
 
 
@@ -115,7 +115,7 @@ def _load_all() -> dict[str, dict]:
         with open(path, "r", encoding="utf-8") as fh:
             for line_no, raw in enumerate(fh, 1):
                 raw = raw.strip()
-                if not raw or raw.startswith("***REMOVED***"):
+                if not raw or raw.startswith("#"):
                     continue
                 try:
                     rec = json.loads(raw)
@@ -146,7 +146,7 @@ def _atomic_write_all(records: dict[str, dict]) -> None:
             os.fsync(fh.fileno())
         os.replace(tmp_path, path)
     except Exception:
-        ***REMOVED*** Clean up tmp file on failure so we don't leak dot-files.
+        # Clean up tmp file on failure so we don't leak dot-files.
         try:
             os.unlink(tmp_path)
         except FileNotFoundError:
@@ -160,7 +160,7 @@ def _get_user_record(email: str, all_records: Optional[dict] = None) -> dict:
     rec = records.get(email.lower())
     if rec is None:
         rec = {"email": email.lower(), "tickers": [], "updated_at": None}
-    ***REMOVED*** Defensive: tickers must be list[str].
+    # Defensive: tickers must be list[str].
     if not isinstance(rec.get("tickers"), list):
         rec["tickers"] = []
     return rec
@@ -191,7 +191,7 @@ def _limit_for_tier(tier: str) -> Optional[int]:
     return TIER_LIMITS.get(tier, TIER_LIMITS["free"])
 
 
-***REMOVED*** ---------------- endpoints ----------------
+# ---------------- endpoints ----------------
 
 
 @router.get(
@@ -213,14 +213,14 @@ async def list_favorites(
     return {"tickers": rec.get("tickers", [])}
 
 
-***REMOVED*** IMPORTANT — route declaration order:
-***REMOVED*** `/favorites/merge` MUST be declared BEFORE `/favorites/{ticker}`,
-***REMOVED*** otherwise FastAPI matches the catch-all `{ticker}` first and "merge"
-***REMOVED*** never reaches the merge handler. Static paths under a catch-all
-***REMOVED*** always declare first.
+# IMPORTANT — route declaration order:
+# `/favorites/merge` MUST be declared BEFORE `/favorites/{ticker}`,
+# otherwise FastAPI matches the catch-all `{ticker}` first and "merge"
+# never reaches the merge handler. Static paths under a catch-all
+# always declare first.
 
 
-***REMOVED*** --------------- merge (anon localStorage → user account) ---------------
+# --------------- merge (anon localStorage → user account) ---------------
 
 
 @router.post(
@@ -247,11 +247,11 @@ async def merge_favorites(
         raise InvalidInput(detail="body.tickers must be an array")
 
     normalized: list[str] = []
-    for t in raw_list[:1000]:  ***REMOVED*** hard cap on payload size to avoid abuse
+    for t in raw_list[:1000]:  # hard cap on payload size to avoid abuse
         try:
             normalized.append(_validate_ticker(t))
         except InvalidInput:
-            continue  ***REMOVED*** silently drop garbage entries
+            continue  # silently drop garbage entries
 
     with _WRITE_LOCK:
         all_recs = _load_all()
@@ -299,7 +299,7 @@ async def add_favorite(
         existing: list[str] = list(rec.get("tickers") or [])
 
         if norm in existing:
-            ***REMOVED*** Idempotent no-op. 200 + flag so client knows what happened.
+            # Idempotent no-op. 200 + flag so client knows what happened.
             return JSONResponse(
                 status_code=200,
                 content={"ok": True, "added": False, "ticker": norm},

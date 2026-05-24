@@ -1,5 +1,5 @@
 """
-API-key authentication scaffold (W11-C, session ***REMOVED***10).
+API-key authentication scaffold (W11-C, session #10).
 
 Lightweight scaffold for `X-API-Key` header auth on /api/admin/* and
 optional tier promotion on /api/* (so paid customers can hit higher
@@ -45,7 +45,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger("structural.auth.api_key")
 
-***REMOVED*** Tier set — must stay in sync with middleware.rate_limit.TIER_LIMITS.
+# Tier set — must stay in sync with middleware.rate_limit.TIER_LIMITS.
 VALID_TIERS = ("free", "pro", "team", "admin")
 
 
@@ -62,13 +62,13 @@ class APIKey(BaseModel):
     revoked: bool = False
 
 
-***REMOVED*** ---- contextvar set by middleware so rate-limiter can read tier ----
+# ---- contextvar set by middleware so rate-limiter can read tier ----
 
 CURRENT_TIER: ContextVar[str] = ContextVar("CURRENT_TIER", default="free")
 CURRENT_API_KEY: ContextVar[Optional[str]] = ContextVar("CURRENT_API_KEY", default=None)
 
 
-***REMOVED*** ---- key store ----
+# ---- key store ----
 
 
 _DEFAULT_KEYS_PATH = Path(__file__).resolve().parent.parent / "data" / "api_keys.jsonl"
@@ -101,7 +101,7 @@ class _KeyStore:
             with open(self.path, "r", encoding="utf-8") as f:
                 for line_no, raw in enumerate(f, 1):
                     raw = raw.strip()
-                    if not raw or raw.startswith("***REMOVED***"):
+                    if not raw or raw.startswith("#"):
                         continue
                     try:
                         data = json.loads(raw)
@@ -140,7 +140,7 @@ def _get_store() -> _KeyStore:
     return _store
 
 
-***REMOVED*** ---- public API ----
+# ---- public API ----
 
 
 def verify_api_key(
@@ -157,8 +157,8 @@ def verify_api_key(
         revoked. This is intentionally NOT silent — sending a bad key
         shouldn't fall back to free tier.
     """
-    ***REMOVED*** Local import to avoid circular: errors.py is imported by main.py at
-    ***REMOVED*** startup, and auth.api_key may be imported by main.py before errors.py.
+    # Local import to avoid circular: errors.py is imported by main.py at
+    # startup, and auth.api_key may be imported by main.py before errors.py.
     from errors import Unauthenticated
 
     if not x_api_key:

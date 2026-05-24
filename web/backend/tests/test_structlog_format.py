@@ -17,7 +17,7 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from logging_config import (  ***REMOVED*** noqa: E402
+from logging_config import (  # noqa: E402
     REQUEST_ID_VAR,
     REQUEST_METHOD_VAR,
     REQUEST_PATH_VAR,
@@ -29,7 +29,7 @@ from logging_config import (  ***REMOVED*** noqa: E402
 )
 
 
-***REMOVED*** ISO 8601 UTC timestamp shape: "2026-05-15T10:30:00.123456Z" or similar.
+# ISO 8601 UTC timestamp shape: "2026-05-15T10:30:00.123456Z" or similar.
 _ISO_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+\-]\d{2}:?\d{2})$"
 )
@@ -50,7 +50,7 @@ def fresh_log(tmp_path, monkeypatch):
     monkeypatch.setenv("STRUCTURAL_LOG_FILE", str(p))
     configure_logging(log_file=p)
     yield p
-    ***REMOVED*** Clean teardown — reset contextvars in case a test left them set.
+    # Clean teardown — reset contextvars in case a test left them set.
     try:
         REQUEST_ID_VAR.set("-")
         REQUEST_PATH_VAR.set(None)
@@ -112,7 +112,7 @@ def test_request_id_omitted_when_unset(fresh_log):
     log = get_logger("structural.test")
     log.info("no.rid.check")
     entry = _read_last_json_line(fresh_log)
-    ***REMOVED*** Either omitted or sentinel '-' — we just don't want a misleading value.
+    # Either omitted or sentinel '-' — we just don't want a misleading value.
     rid = entry.get("request_id")
     assert rid in (None, "-"), f"unexpected request_id: {rid!r}"
 
@@ -150,8 +150,8 @@ def test_stdlib_logging_also_flows_through_pipeline(fresh_log):
 
     stdlib_logging.getLogger("structural.legacy").info("legacy_event")
     entry = _read_last_json_line(fresh_log)
-    ***REMOVED*** message may land under `event` (structlog) or `msg` (stdlib bridge)
-    ***REMOVED*** — the formatter normalizes both to the JSON output.
+    # message may land under `event` (structlog) or `msg` (stdlib bridge)
+    # — the formatter normalizes both to the JSON output.
     payload = json.dumps(entry)
     assert "legacy_event" in payload
 
@@ -171,6 +171,6 @@ def test_exception_info_serializes(fresh_log):
     except RuntimeError:
         log.exception("err.check")
     entry = _read_last_json_line(fresh_log)
-    ***REMOVED*** `exception` or `exc_info` field, depending on processor chain.
+    # `exception` or `exc_info` field, depending on processor chain.
     payload = json.dumps(entry)
     assert "boom" in payload or "RuntimeError" in payload

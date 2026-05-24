@@ -23,9 +23,9 @@ TAXONOMY_DIR = REPO / "v4" / "taxonomy" / "classes"
 RESULTS_DIR = REPO / "v4" / "results"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** universality-classes.json schema + counts
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# universality-classes.json schema + counts
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -52,7 +52,7 @@ def test_classes_list_nonempty_and_uniform(classes_data):
     classes = classes_data["classes"]
     assert isinstance(classes, list)
     assert len(classes) > 0
-    ***REMOVED*** Every class has class_id + name_zh + name_en at minimum
+    # Every class has class_id + name_zh + name_en at minimum
     for c in classes:
         assert "class_id" in c, f"class missing class_id: {c}"
         assert "name_zh" in c, f"class missing name_zh: {c['class_id']}"
@@ -62,7 +62,7 @@ def test_classes_list_nonempty_and_uniform(classes_data):
 def test_class_ids_uniqueness_audit(classes_data):
     """Audit: surface duplicate class_ids without blocking (known issue).
 
-    Session ***REMOVED***3 W6-E discovery (2026-05-13): universality-classes.json v0.3
+    Session #3 W6-E discovery (2026-05-13): universality-classes.json v0.3
     contains 2 duplicate class_ids: motter_lai_network_cascade (x2) and
     gardner_collins_toggle_switch (x2). Total 23 entries / 21 unique.
 
@@ -74,7 +74,7 @@ def test_class_ids_uniqueness_audit(classes_data):
 
     ids = [c["class_id"] for c in classes_data["classes"]]
     dups = {k: v for k, v in Counter(ids).items() if v > 1}
-    ***REMOVED*** known dups (audit baseline): motter_lai_network_cascade, gardner_collins_toggle_switch
+    # known dups (audit baseline): motter_lai_network_cascade, gardner_collins_toggle_switch
     n_dup_slots = sum(v - 1 for v in dups.values())
     assert n_dup_slots <= 2, (
         f"new duplicate class_ids beyond known baseline: {dups}"
@@ -101,9 +101,9 @@ def test_b3_consensus_counts_internal_sum(classes_data):
     for k, v in b3.items():
         assert isinstance(v, int), f"b3_consensus[{k}]={v!r} not int"
         assert v >= 0
-    ***REMOVED*** Total should be reasonable (<= total_classes upper bound)
+    # Total should be reasonable (<= total_classes upper bound)
     total = sum(b3.values())
-    assert total <= classes_data["meta"]["total_classes"] * 2  ***REMOVED*** generous slack
+    assert total <= classes_data["meta"]["total_classes"] * 2  # generous slack
 
 
 def test_verified_predictions_matches_paper_claim(classes_data):
@@ -111,13 +111,13 @@ def test_verified_predictions_matches_paper_claim(classes_data):
     stats = classes_data["stats"]
     if "verified_predictions" in stats:
         assert stats["verified_predictions"] >= 10
-        assert stats["verified_predictions"] <= 25  ***REMOVED*** generous upper bound
+        assert stats["verified_predictions"] <= 25  # generous upper bound
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Cross-reference: web class_ids should correspond to taxonomy yaml or
-***REMOVED*** documented stubs
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Cross-reference: web class_ids should correspond to taxonomy yaml or
+# documented stubs
+# ---------------------------------------------------------------------------
 
 
 def test_web_class_ids_are_strings(classes_data):
@@ -127,7 +127,7 @@ def test_web_class_ids_are_strings(classes_data):
         assert isinstance(cid, str)
         assert cid.strip() == cid
         assert " " not in cid
-        ***REMOVED*** Allow underscore/alphanumeric/hyphen
+        # Allow underscore/alphanumeric/hyphen
         assert all(ch.isalnum() or ch in "_-" for ch in cid), f"bad char in {cid}"
 
 
@@ -137,9 +137,9 @@ def test_each_class_has_provenance_or_rank(classes_data):
         assert "rank" in c or "provenance" in c, f"class {c.get('class_id')} has no rank/provenance"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Taxonomy yaml directory existence (where applicable)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Taxonomy yaml directory existence (where applicable)
+# ---------------------------------------------------------------------------
 
 
 def test_taxonomy_dir_has_yaml_files():
@@ -149,9 +149,9 @@ def test_taxonomy_dir_has_yaml_files():
     assert len(yaml_files) > 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Layer 5 phase count consistency (paper-claim invariant)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Layer 5 phase count consistency (paper-claim invariant)
+# ---------------------------------------------------------------------------
 
 
 def test_layer5_phase_count_matches_meta(classes_data):
@@ -166,12 +166,12 @@ def test_layer5_phase_count_matches_meta(classes_data):
         pytest.skip("layer5_phase_count not present")
     assert isinstance(n, int)
     assert n > 0
-    assert n < 50  ***REMOVED*** sanity upper bound
+    assert n < 50  # sanity upper bound
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Defensive JSON-roundtrip (catches encoding / float NaN / etc.)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Defensive JSON-roundtrip (catches encoding / float NaN / etc.)
+# ---------------------------------------------------------------------------
 
 
 def test_json_round_trip_stable(classes_data):

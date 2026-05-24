@@ -9,12 +9,12 @@ const SHARE_CARD = {
   width: 1200,
   height: 630,
   padding: 64,
-  bg: '***REMOVED***0A0A0B',
-  bgAccent: '***REMOVED***18181B',
-  textPrimary: '***REMOVED***FAFAF9',
-  textSecondary: '***REMOVED***A1A1AA',
-  textTertiary: '***REMOVED***52525B',
-  accent: '***REMOVED***3B82F6',
+  bg: '#0A0A0B',
+  bgAccent: '#18181B',
+  textPrimary: '#FAFAF9',
+  textSecondary: '#A1A1AA',
+  textTertiary: '#52525B',
+  accent: '#3B82F6',
 };
 
 /**
@@ -211,7 +211,7 @@ function renderShareCard(data) {
   ctx.stroke();
 
   // ≅ symbol
-  ctx.fillStyle = '***REMOVED***0A0A0B';
+  ctx.fillStyle = '#0A0A0B';
   ctx.font = `400 36px ${fontSerif}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -285,7 +285,7 @@ async function copyCanvasToClipboard(canvas) {
 
 /**
  * Render a hook-style share card for a single discovery / universality class.
- * Education-asset variant (Session ***REMOVED***18): a bold headline-driven layout,
+ * Education-asset variant (Session #18): a bold headline-driven layout,
  * lighter than the dark mapping card above. Light background, big serif hook.
  * @param {{headline, eyebrow, lineA, lineB, footnote, url}} data
  * @returns {HTMLCanvasElement}
@@ -298,16 +298,16 @@ function renderHookCard(data) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const INK = '***REMOVED***18181B';
-  const SUB = '***REMOVED***52525B';
-  const FAINT = '***REMOVED***A1A1AA';
-  const ACCENT = '***REMOVED***3B82F6';
+  const INK = '#18181B';
+  const SUB = '#52525B';
+  const FAINT = '#A1A1AA';
+  const ACCENT = '#3B82F6';
   const pad = SHARE_CARD.padding;
   const fontSans = '"Inter", "PingFang SC", -apple-system, system-ui, sans-serif';
   const fontSerif = '"Noto Serif SC", "Songti SC", serif';
 
   // === Background — warm off-white with a faint dot grid ===
-  ctx.fillStyle = '***REMOVED***FAFAF9';
+  ctx.fillStyle = '#FAFAF9';
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(0,0,0,0.035)';
   for (let x = pad; x < W - pad; x += 40) {

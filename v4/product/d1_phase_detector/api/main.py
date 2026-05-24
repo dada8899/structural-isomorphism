@@ -31,9 +31,9 @@ from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
 
 
-***REMOVED*** W8-D: ensure waitlist table exists on startup (idempotent).
-***REMOVED*** Mirrors migrations/0002_waitlist*.sql but inline so tests + dev don't
-***REMOVED*** need a separate migrate step.
+# W8-D: ensure waitlist table exists on startup (idempotent).
+# Mirrors migrations/0002_waitlist*.sql but inline so tests + dev don't
+# need a separate migrate step.
 _WAITLIST_DDL_SQLITE = """
 CREATE TABLE IF NOT EXISTS waitlist (
     email TEXT PRIMARY KEY,
@@ -69,16 +69,16 @@ def _ensure_waitlist_table() -> None:
                 cur.executescript(ddl)
             else:
                 cur.execute(ddl)
-    except Exception:  ***REMOVED*** pragma: no cover -- never block app boot on DDL race
+    except Exception:  # pragma: no cover -- never block app boot on DDL race
         pass
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    ***REMOVED*** startup: idempotent waitlist DDL (replaces deprecated @app.on_event("startup")).
+    # startup: idempotent waitlist DDL (replaces deprecated @app.on_event("startup")).
     _ensure_waitlist_table()
     yield
-    ***REMOVED*** shutdown: nothing to clean up currently.
+    # shutdown: nothing to clean up currently.
 
 
 app = FastAPI(
@@ -89,15 +89,15 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    ***REMOVED*** W8-D: include POST so /api/waitlist preflights succeed from main site.
+    # W8-D: include POST so /api/waitlist preflights succeed from main site.
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
-***REMOVED*** W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
+# W10-E: /api/universality/* endpoints (class list + detail + companies-by-class)
 app.include_router(universality_router)
 
 
-***REMOVED*** -------- pydantic models --------
+# -------- pydantic models --------
 
 
 class CompanyTuple(BaseModel):
@@ -125,14 +125,14 @@ class StatsResponse(BaseModel):
     by_sector: dict[str, int] = Field(default_factory=dict)
 
 
-***REMOVED*** W8-D: waitlist models.
+# W8-D: waitlist models.
 
 
 class WaitlistSignupResponse(BaseModel):
     status: str
     msg: str
-    ***REMOVED*** W8-D: returned so frontend can decide whether to fire `waitlist_signup`
-    ***REMOVED*** Plausible event (only on first signup, not duplicates).
+    # W8-D: returned so frontend can decide whether to fire `waitlist_signup`
+    # Plausible event (only on first signup, not duplicates).
     created: bool
 
 
@@ -140,17 +140,17 @@ class WaitlistCountResponse(BaseModel):
     count: int
 
 
-***REMOVED*** W8-D: email regex. Deliberately permissive but rules out obvious garbage.
-***REMOVED*** We do *not* try to be RFC 5322-perfect; backend stays cheap, frontend already
-***REMOVED*** uses <input type="email"> for the strict-enough check.
+# W8-D: email regex. Deliberately permissive but rules out obvious garbage.
+# We do *not* try to be RFC 5322-perfect; backend stays cheap, frontend already
+# uses <input type="email"> for the strict-enough check.
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-***REMOVED*** Whitelist sources to keep the column clean (avoids garbage from manual curl).
+# Whitelist sources to keep the column clean (avoids garbage from manual curl).
 _ALLOWED_SOURCES = frozenset(
     {"phase_detector", "main_site", "thank_you_share", "footer", "hero"}
 )
 
 
-***REMOVED*** -------- helpers --------
+# -------- helpers --------
 
 
 SELECT_COLS = (
@@ -164,7 +164,7 @@ SELECT_COLS = (
 def _normalize_company(rowdict: dict[str, Any]) -> dict[str, Any]:
     """Apply final shaping for CompanyTuple (cast Decimal / datetime / etc.)."""
     d = dict(rowdict)
-    ***REMOVED*** cast Decimal -> float
+    # cast Decimal -> float
     for k in ("market_cap_usd_b", "extraction_confidence"):
         v = d.get(k)
         if v is not None and not isinstance(v, (int, float)):
@@ -181,7 +181,7 @@ def _normalize_company(rowdict: dict[str, Any]) -> dict[str, Any]:
     return d
 
 
-***REMOVED*** -------- routes --------
+# -------- routes --------
 
 
 @app.get("/health")
@@ -226,8 +226,8 @@ def screener(
             f"ORDER BY extraction_confidence DESC NULLS LAST, ticker ASC "
             f"LIMIT {ph}"
         )
-        ***REMOVED*** SQLite doesn't support NULLS LAST natively in all versions, but modern (>=3.30) does.
-        ***REMOVED*** Defensive: if it raises, retry without NULLS LAST.
+        # SQLite doesn't support NULLS LAST natively in all versions, but modern (>=3.30) does.
+        # Defensive: if it raises, retry without NULLS LAST.
         try:
             cur.execute(sql, params + [limit])
             rows = cur.fetchall()
@@ -284,7 +284,7 @@ def stats() -> StatsResponse:
         )
 
 
-***REMOVED*** -------- W8-D waitlist routes --------
+# -------- W8-D waitlist routes --------
 
 
 def _maybe_forward_buttondown(email: str, source: str) -> None:
@@ -298,7 +298,7 @@ def _maybe_forward_buttondown(email: str, source: str) -> None:
     if not api_key:
         return
     try:
-        import httpx  ***REMOVED*** type: ignore
+        import httpx  # type: ignore
 
         httpx.post(
             "https://api.buttondown.email/v1/subscribers",
@@ -307,7 +307,7 @@ def _maybe_forward_buttondown(email: str, source: str) -> None:
             timeout=4.0,
         )
     except Exception:
-        ***REMOVED*** Newsletter forwarding is best-effort; storage is the source of truth.
+        # Newsletter forwarding is best-effort; storage is the source of truth.
         pass
 
 
@@ -347,7 +347,7 @@ def waitlist_signup(
                     f"VALUES ({ph}, {ph}, {ph}, {ph}) ON CONFLICT (email) DO NOTHING",
                     (email_norm, source, placement, referrer),
                 )
-            ***REMOVED*** rowcount can be -1 on some drivers; treat as success if no existing row.
+            # rowcount can be -1 on some drivers; treat as success if no existing row.
             created = True
 
     if created:

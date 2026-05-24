@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Phase 12 — Polished universal-collapse with finite-size scaling.
 
 Extends A3 (v4/scripts/universal_collapse.py) by adding:
@@ -41,9 +41,9 @@ import matplotlib.pyplot as plt
 from scipy import optimize, special, stats
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Paths
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
 THIS = Path(__file__).resolve()
 HERE = THIS.parent
 REPO = THIS.parents[3]
@@ -55,11 +55,11 @@ OUT_PLOT_C = HERE / "plot_panel_C.png"
 OUT_PLOT_RES = HERE / "plot_residuals.png"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Loaders — return (vals, alpha_known, label).  vals is np.ndarray of strictly
-***REMOVED*** positive event sizes; alpha_known is the literature / V4-fitted power-law
-***REMOVED*** exponent for the tail; label is human-readable.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Loaders — return (vals, alpha_known, label).  vals is np.ndarray of strictly
+# positive event sizes; alpha_known is the literature / V4-fitted power-law
+# exponent for the tail; label is human-readable.
+# ---------------------------------------------------------------------------
 
 def _load_jsonl_field(path: Path, field_names: tuple[str, ...]) -> np.ndarray:
     rows: list[float] = []
@@ -91,7 +91,7 @@ def _load_jsonl_field(path: Path, field_names: tuple[str, ...]) -> np.ndarray:
 
 
 def load_earthquake() -> tuple[np.ndarray, float, str]:
-    ***REMOVED*** energy_j = 10^(1.5 * mag) for mag >= 4.45 (Mc)
+    # energy_j = 10^(1.5 * mag) for mag >= 4.45 (Mc)
     path = VAL / "soc-earthquake" / "catalog.jsonl"
     if not path.exists():
         return np.array([]), 1.79, "earthquake: catalog missing"
@@ -186,9 +186,9 @@ SYSTEMS: list[tuple[str, Callable[[], tuple[np.ndarray, float, str]]]] = [
 ]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Log-binned density estimator
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Log-binned density estimator
+# ---------------------------------------------------------------------------
 
 def log_binned_density(
     vals: np.ndarray,
@@ -244,9 +244,9 @@ def log_binned_density(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Tail models  (fit on log-binned density)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Tail models  (fit on log-binned density)
+# ---------------------------------------------------------------------------
 
 def _safe_log(x: np.ndarray) -> np.ndarray:
     return np.log(np.clip(x, 1e-300, None))
@@ -310,7 +310,7 @@ def fit_model(
     when both n and the residual covariance structure are identical.
     """
     log_d = _safe_log(density)
-    ***REMOVED*** relative error becomes additive in log space
+    # relative error becomes additive in log space
     sigma_log = np.where(density > 0, err / density, 1.0)
     sigma_log = np.clip(sigma_log, 1e-3, 10.0)
 
@@ -344,8 +344,8 @@ def fit_model(
     params = dict(zip(param_names, [float(v) for v in result.x]))
     res = result.fun
     rmse_log = float(np.sqrt(np.mean(res ** 2)))
-    ***REMOVED*** Gaussian log-lik in log-space residuals (constant terms dropped consistently
-    ***REMOVED*** across models so BIC differences are meaningful):
+    # Gaussian log-lik in log-space residuals (constant terms dropped consistently
+    # across models so BIC differences are meaningful):
     chi2 = float(np.sum(res ** 2))
     log_lik = -0.5 * chi2 - float(np.sum(np.log(sigma_log)))
     bic = _bic(log_lik, k, n)
@@ -361,8 +361,8 @@ def fit_all_models(centers: np.ndarray, density: np.ndarray, err: np.ndarray) ->
     out: dict[str, dict] = {}
     s_min = float(centers.min())
     s_max = float(centers.max())
-    ***REMOVED*** initial guesses
-    ***REMOVED*** alpha guess: slope of log-log linear fit on first 70% of tail
+    # initial guesses
+    # alpha guess: slope of log-log linear fit on first 70% of tail
     try:
         n_use = max(3, int(0.7 * len(centers)))
         slope, intercept = np.polyfit(
@@ -373,7 +373,7 @@ def fit_all_models(centers: np.ndarray, density: np.ndarray, err: np.ndarray) ->
     except Exception:
         alpha0 = 2.0
         log_C0 = 0.0
-    sc0 = float(np.exp(np.log(s_max) - 0.5))  ***REMOVED*** ~ s_max / e^0.5
+    sc0 = float(np.exp(np.log(s_max) - 0.5))  # ~ s_max / e^0.5
     mu0 = float(np.mean(np.log(centers)))
     log_sigma0 = float(math.log(max(0.3, np.std(np.log(centers)))))
 
@@ -400,9 +400,9 @@ def rank_by_bic(fits: dict[str, FitResult]) -> list[tuple[str, float]]:
     return ok
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Collapse machinery
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Collapse machinery
+# ---------------------------------------------------------------------------
 
 def rescale_collapse(
     centers: np.ndarray,
@@ -436,7 +436,7 @@ def collapse_quality(systems_rescaled: dict[str, dict]) -> dict:
     if not systems_rescaled:
         return {"ok": False, "reason": "no systems"}
 
-    ***REMOVED*** Build shared x' grid covering common range
+    # Build shared x' grid covering common range
     x_mins, x_maxs = [], []
     for s in systems_rescaled.values():
         x = np.array(s["x_rescaled"])
@@ -445,14 +445,14 @@ def collapse_quality(systems_rescaled: dict[str, dict]) -> dict:
     x_lo = max(x_mins)
     x_hi = min(x_maxs)
     if x_lo >= x_hi:
-        ***REMOVED*** No common range — use loose overlap
+        # No common range — use loose overlap
         x_lo = min(x_mins)
         x_hi = max(x_maxs)
 
     n_bins = 20
     grid = np.geomspace(x_lo, x_hi, n_bins)
 
-    ***REMOVED*** interpolate log y onto grid for each system
+    # interpolate log y onto grid for each system
     matrix = []
     sys_names = []
     for name, s in systems_rescaled.items():
@@ -468,7 +468,7 @@ def collapse_quality(systems_rescaled: dict[str, dict]) -> dict:
         y = y[order]
         log_x = np.log(x)
         log_y = np.log(y)
-        ***REMOVED*** only interpolate inside this system's x range
+        # only interpolate inside this system's x range
         log_grid = np.log(grid)
         in_range = (log_grid >= log_x.min()) & (log_grid <= log_x.max())
         row = np.full(n_bins, np.nan)
@@ -476,25 +476,25 @@ def collapse_quality(systems_rescaled: dict[str, dict]) -> dict:
         matrix.append(row)
         sys_names.append(name)
 
-    mat = np.array(matrix)  ***REMOVED*** shape (n_systems, n_bins)
-    ***REMOVED*** ABSOLUTE cross-system variance (in log-y space, on the raw rescaled axis).
-    ***REMOVED*** Dominated by per-system absolute density prefactor — units / scale offset.
+    mat = np.array(matrix)  # shape (n_systems, n_bins)
+    # ABSOLUTE cross-system variance (in log-y space, on the raw rescaled axis).
+    # Dominated by per-system absolute density prefactor — units / scale offset.
     cross_var_abs = np.nanvar(mat, axis=0, ddof=1)
     mean_curve_abs = np.nanmean(mat, axis=0)
 
-    ***REMOVED*** SHAPE-NORMALIZED variance: subtract each system's own mean log-y, so we
-    ***REMOVED*** measure shape similarity (not absolute prefactor). This is the
-    ***REMOVED*** genuine universal-collapse quantity: are the *shapes* of the master
-    ***REMOVED*** curves identical, ignoring overall units?
+    # SHAPE-NORMALIZED variance: subtract each system's own mean log-y, so we
+    # measure shape similarity (not absolute prefactor). This is the
+    # genuine universal-collapse quantity: are the *shapes* of the master
+    # curves identical, ignoring overall units?
     row_means = np.nanmean(mat, axis=1, keepdims=True)
     mat_shape = mat - row_means
     cross_var_shape = np.nanvar(mat_shape, axis=0, ddof=1)
     mean_curve_shape = np.nanmean(mat_shape, axis=0)
 
-    ***REMOVED*** Within-system spread: per-system variance of own shape residuals
-    ***REMOVED*** (proxy for the intrinsic roughness of the master curve in each
-    ***REMOVED*** system's tail data).
-    deviations = mat_shape - mean_curve_shape  ***REMOVED*** shape (n_systems, n_bins)
+    # Within-system spread: per-system variance of own shape residuals
+    # (proxy for the intrinsic roughness of the master curve in each
+    # system's tail data).
+    deviations = mat_shape - mean_curve_shape  # shape (n_systems, n_bins)
     within_var = np.nanvar(deviations, axis=1, ddof=1)
 
     finite_cross_abs = cross_var_abs[np.isfinite(cross_var_abs)]
@@ -545,9 +545,9 @@ def collapse_quality(systems_rescaled: dict[str, dict]) -> dict:
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Plotting
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Plotting
+# ---------------------------------------------------------------------------
 
 def _make_three_panel_plot(per_system: dict, mean_curve_pkg: dict) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.6))
@@ -561,14 +561,14 @@ def _make_three_panel_plot(per_system: dict, mean_curve_pkg: dict) -> None:
         centers = np.array(bin_data["centers"])
         density = np.array(bin_data["density"])
         err = np.array(bin_data["err"])
-        ***REMOVED*** Panel A: raw log-binned density (which is essentially log-spaced PDF)
+        # Panel A: raw log-binned density (which is essentially log-spaced PDF)
         ax_raw.errorbar(
             centers, density, yerr=err, fmt="o", ms=3, color=color,
             label=f"{name} α={info['alpha_known']:.2f}",
             alpha=0.7, capsize=0, lw=0.8,
         )
 
-        ***REMOVED*** Panel B: 99-pctl rescaled
+        # Panel B: 99-pctl rescaled
         x_r = np.array(info["rescale_99pctl"]["x_rescaled"])
         y_r = np.array(info["rescale_99pctl"]["y_rescaled"])
         y_e = np.array(info["rescale_99pctl"]["y_err_rescaled"])
@@ -577,14 +577,14 @@ def _make_three_panel_plot(per_system: dict, mean_curve_pkg: dict) -> None:
             capsize=0, lw=0.8, label=name,
         )
 
-        ***REMOVED*** Panel C: best-fit overlay on rescaled axes
+        # Panel C: best-fit overlay on rescaled axes
         ax_logbin.errorbar(
             x_r, y_r, yerr=y_e, fmt="o", ms=3, color=color, alpha=0.55,
             capsize=0, lw=0.8, label=name,
         )
 
-    ***REMOVED*** Mean collapsed curve on panel C (absolute mean — note shape ratio
-    ***REMOVED*** is shown in the legend, see ratio_shape_normalized)
+    # Mean collapsed curve on panel C (absolute mean — note shape ratio
+    # is shown in the legend, see ratio_shape_normalized)
     if mean_curve_pkg.get("ok"):
         x_grid = np.array(mean_curve_pkg["x_grid"])
         log_y_mean = np.array(mean_curve_pkg["mean_curve_log_y"])
@@ -650,7 +650,7 @@ def _make_residuals_plot(per_system: dict, mean_curve_pkg: dict) -> None:
         in_range = (np.log(x_grid) >= log_x.min()) & (np.log(x_grid) <= log_x.max())
         interp = np.full_like(x_grid, np.nan, dtype=float)
         interp[in_range] = np.interp(np.log(x_grid[in_range]), log_x, log_y)
-        ***REMOVED*** shape-normalize: subtract per-system mean before comparing to mean shape
+        # shape-normalize: subtract per-system mean before comparing to mean shape
         sys_mean = np.nanmean(interp)
         if not np.isfinite(sys_mean):
             continue
@@ -679,9 +679,9 @@ def _make_residuals_plot(per_system: dict, mean_curve_pkg: dict) -> None:
     plt.close(fig)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main pipeline
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main pipeline
+# ---------------------------------------------------------------------------
 
 def _serializable_fit(fit: FitResult) -> dict:
     d = asdict(fit)
@@ -742,7 +742,7 @@ def run() -> dict:
             "n_bins": int(len(binned["centers"])),
         }
 
-        ***REMOVED*** 99-pctl rescale on the log-binned curve
+        # 99-pctl rescale on the log-binned curve
         rescale = rescale_collapse(
             binned["centers"], binned["density"], binned["err"],
             s_star=info["s_star_99pctl"], alpha=alpha_known,
@@ -750,7 +750,7 @@ def run() -> dict:
         info["rescale_99pctl"] = rescale
         rescaled_for_quality[name] = rescale
 
-        ***REMOVED*** Bayesian model fits
+        # Bayesian model fits
         try:
             fits = fit_all_models(binned["centers"], binned["density"], binned["err"])
         except Exception as exc:
@@ -777,10 +777,10 @@ def run() -> dict:
             f"best={info.get('best_model','?')}"
         )
 
-    ***REMOVED*** Cross-system collapse quality
+    # Cross-system collapse quality
     quality = collapse_quality(rescaled_for_quality)
 
-    ***REMOVED*** Plots
+    # Plots
     try:
         _make_three_panel_plot(per_system, quality)
         plot_c_ok = True
@@ -796,7 +796,7 @@ def run() -> dict:
         print(f"plot_residuals failed: {exc}")
         traceback.print_exc()
 
-    ***REMOVED*** Aggregate model preferences
+    # Aggregate model preferences
     model_votes: dict[str, int] = {"power_law": 0, "pl_cutoff": 0, "lognormal": 0}
     for info in per_system.values():
         if info.get("ok") and info.get("best_model") in model_votes:

@@ -15,7 +15,7 @@ import math
 
 import pytest
 
-***REMOVED*** Allow `from v4.lib...` after conftest.py sets up sys.path
+# Allow `from v4.lib...` after conftest.py sets up sys.path
 import sys
 from pathlib import Path
 
@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from v4.lib.multitest_correction import (  ***REMOVED*** noqa: E402
+from v4.lib.multitest_correction import (  # noqa: E402
     benjamini_hochberg,
     bonferroni,
     bonferroni_holm,
@@ -35,7 +35,7 @@ def test_bonferroni_basic():
     r = bonferroni([0.01, 0.04, 0.5], alpha=0.05)
     assert r.method == "bonferroni"
     assert r.n_tests == 3
-    ***REMOVED*** Bonferroni: p*n clipped to 1
+    # Bonferroni: p*n clipped to 1
     assert r.p_adjusted == pytest.approx([0.03, 0.12, 1.0])
     assert r.reject == [True, False, False]
 
@@ -43,15 +43,15 @@ def test_bonferroni_basic():
 def test_bonferroni_holm_docstring_example():
     """The docstring example must produce stable output."""
     r = bonferroni_holm([0.01, 0.03, 0.04, 0.5])
-    ***REMOVED*** Sorted: [0.01, 0.03, 0.04, 0.5] with multipliers [4, 3, 2, 1]
-    ***REMOVED*** Raw adjusted: [0.04, 0.09, 0.08, 0.5]
-    ***REMOVED*** Monotone non-decreasing: [0.04, 0.09, 0.09, 0.5]
-    ***REMOVED*** But monotone enforcement: must be non-decreasing => [0.04, 0.09, 0.09, 0.5]
-    ***REMOVED*** However standard step-down enforces p_adj_(i) = max_{j<=i} (multipliers[j] * p_(j))
-    ***REMOVED*** which gives [0.04, 0.09, 0.09, 0.5]
-    ***REMOVED*** Our impl uses minimum.accumulate from right then maximum.accumulate left
-    ***REMOVED*** so result is [0.04, 0.08, 0.08, 0.5] (Holm uses min over later stages)
-    ***REMOVED*** Either convention is valid; we check the rejections.
+    # Sorted: [0.01, 0.03, 0.04, 0.5] with multipliers [4, 3, 2, 1]
+    # Raw adjusted: [0.04, 0.09, 0.08, 0.5]
+    # Monotone non-decreasing: [0.04, 0.09, 0.09, 0.5]
+    # But monotone enforcement: must be non-decreasing => [0.04, 0.09, 0.09, 0.5]
+    # However standard step-down enforces p_adj_(i) = max_{j<=i} (multipliers[j] * p_(j))
+    # which gives [0.04, 0.09, 0.09, 0.5]
+    # Our impl uses minimum.accumulate from right then maximum.accumulate left
+    # so result is [0.04, 0.08, 0.08, 0.5] (Holm uses min over later stages)
+    # Either convention is valid; we check the rejections.
     assert r.method == "bonferroni-holm"
     assert r.reject == [True, False, False, False]
 
@@ -103,7 +103,7 @@ def test_all_ones():
 
 def test_nan_treated_as_one():
     r = bonferroni_holm([float("nan"), 0.001], alpha=0.05)
-    ***REMOVED*** NaN -> 1.0; one real test left
+    # NaN -> 1.0; one real test left
     assert r.reject[0] is False
     assert r.reject[1] is True
 
@@ -121,7 +121,7 @@ def test_monotone_in_sorted_order():
     random.seed(42)
     pvals = [random.random() for _ in range(50)]
     r = bonferroni_holm(pvals, alpha=0.05)
-    ***REMOVED*** Sort by raw p, check adjusted is non-decreasing
+    # Sort by raw p, check adjusted is non-decreasing
     order = sorted(range(len(pvals)), key=lambda i: pvals[i])
     p_adj_sorted = [r.p_adjusted[i] for i in order]
     for a, b in zip(p_adj_sorted[:-1], p_adj_sorted[1:]):
@@ -132,7 +132,7 @@ def test_bh_monotone():
     """BH adjusted p-values must be monotone non-decreasing in sorted-by-raw order."""
     pvals = [0.001, 0.01, 0.02, 0.04, 0.05, 0.1, 0.2, 0.5]
     r = benjamini_hochberg(pvals, alpha=0.05)
-    ***REMOVED*** Already sorted; check monotone
+    # Already sorted; check monotone
     for a, b in zip(r.p_adjusted[:-1], r.p_adjusted[1:]):
         assert a <= b + 1e-12
 

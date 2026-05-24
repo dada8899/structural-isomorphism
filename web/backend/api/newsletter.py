@@ -1,7 +1,7 @@
 """
 POST /api/newsletter/subscribe — beta site newsletter signup.
 
-Session ***REMOVED***9 W2-A: beta site previously only had `/api/waitlist` (cross-origin POST
+Session #9 W2-A: beta site previously only had `/api/waitlist` (cross-origin POST
 to the phase backend). Beta-native readers of /start-here, /learn, /discoveries
 had no way to subscribe. This endpoint captures email + source into a local
 JSONL file. Storage is intentionally simple (append-only, dedupe by email);
@@ -12,7 +12,7 @@ Body (JSON):
 
 Response:
     200  { "ok": true,  "created": true,  "email": "<normalized>" }
-    200  { "ok": true,  "created": false, "email": "<normalized>" }   ***REMOVED*** duplicate
+    200  { "ok": true,  "created": false, "email": "<normalized>" }   # duplicate
     400  { "ok": false, "error": "invalid email" }
     400  { "ok": false, "error": "invalid source" }
 """
@@ -32,20 +32,20 @@ from schemas import NewsletterCountResponse
 router = APIRouter(tags=["newsletter"])
 logger = logging.getLogger("structural.newsletter")
 
-***REMOVED*** RFC-5322-ish — pragmatic, not strict. Catches obvious junk + protects the
-***REMOVED*** jsonl file. We don't bounce-validate here; that happens at send time.
+# RFC-5322-ish — pragmatic, not strict. Catches obvious junk + protects the
+# jsonl file. We don't bounce-validate here; that happens at send time.
 _EMAIL_RE = re.compile(
     r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"
 )
 
-***REMOVED*** Allow only known sources so the jsonl stays clean for downstream aggregation.
-***REMOVED*** Add new sources here when adding new placements (keep in sync with
-***REMOVED*** web/frontend/assets/js/newsletter.js mountNewsletter calls).
+# Allow only known sources so the jsonl stays clean for downstream aggregation.
+# Add new sources here when adding new placements (keep in sync with
+# web/frontend/assets/js/newsletter.js mountNewsletter calls).
 _ALLOWED_SOURCES = {
     "start-here-essay-end",
     "learn-end",
     "discoveries-top",
-    "test",  ***REMOVED*** for curl/local testing only — filter out in analytics
+    "test",  # for curl/local testing only — filter out in analytics
 }
 
 _MAX_EMAIL_LEN = 200
@@ -92,7 +92,7 @@ async def subscribe(body: SubscribeBody, request: Request):
     email = (body.email or "").strip().lower()
     source = (body.source or "unknown").strip().lower()
 
-    ***REMOVED*** --- Validation ---
+    # --- Validation ---
     if not email or len(email) > _MAX_EMAIL_LEN or not _EMAIL_RE.match(email):
         return JSONResponse(
             {"ok": False, "error": "invalid email"}, status_code=400
@@ -102,14 +102,14 @@ async def subscribe(body: SubscribeBody, request: Request):
             {"ok": False, "error": "invalid source"}, status_code=400
         )
 
-    ***REMOVED*** --- Dedupe (cheap linear scan) ---
+    # --- Dedupe (cheap linear scan) ---
     if _is_duplicate(email):
         logger.info("newsletter duplicate signup: email=%s source=%s", email, source)
         return JSONResponse(
             {"ok": True, "created": False, "email": email}
         )
 
-    ***REMOVED*** --- Persist ---
+    # --- Persist ---
     f = _data_file()
     f.parent.mkdir(parents=True, exist_ok=True)
     entry = {
@@ -125,8 +125,8 @@ async def subscribe(body: SubscribeBody, request: Request):
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception as e:
-        ***REMOVED*** Storage failure is the only error path we don't swallow — surface to
-        ***REMOVED*** client so JS shows "try again". Otherwise data loss is silent.
+        # Storage failure is the only error path we don't swallow — surface to
+        # client so JS shows "try again". Otherwise data loss is silent.
         logger.error("newsletter write failed: %s", e)
         return JSONResponse(
             {"ok": False, "error": "storage failure"}, status_code=500

@@ -21,7 +21,7 @@ def _load_discoveries():
         return _discoveries
 
     data_dir = os.getenv("STRUCTURAL_DATA_DIR", "")
-    ***REMOVED*** Original v2 discoveries jsonl (preferred — has full a/b descriptions)
+    # Original v2 discoveries jsonl (preferred — has full a/b descriptions)
     results_dir = Path(data_dir).parent / "results" if data_dir else None
     candidates = []
     if results_dir:
@@ -44,8 +44,8 @@ def _load_discoveries():
                             pass
             break
 
-    ***REMOVED*** Fallback: the A-grade curated discoveries the /api/discoveries endpoint
-    ***REMOVED*** uses. This is the file that's actually shipped to VPS.
+    # Fallback: the A-grade curated discoveries the /api/discoveries endpoint
+    # uses. This is the file that's actually shipped to VPS.
     if not _discoveries:
         a_path = Path(__file__).parent.parent.parent / "data" / "a_discoveries.json"
         if a_path.exists():
@@ -79,11 +79,11 @@ async def daily_discoveries(lang: str = "zh"):
 
     svc = app_state.get("search")
 
-    ***REMOVED*** Pick 3 deterministically based on today's date
+    # Pick 3 deterministically based on today's date
     seed = int(hashlib.md5(str(date.today()).encode()).hexdigest()[:8], 16)
     n = len(discoveries)
 
-    ***REMOVED*** Pick 3 diverse indexes
+    # Pick 3 diverse indexes
     picks = []
     offset = seed % n
     stride = max(1, n // 3)
@@ -91,14 +91,14 @@ async def daily_discoveries(lang: str = "zh"):
         idx = (offset + i * stride) % n
         d = discoveries[idx]
 
-        ***REMOVED*** Enrich from search service when fields are missing (a_discoveries.json
-        ***REMOVED*** doesn't ship type_id / description — look them up from the KB).
+        # Enrich from search service when fields are missing (a_discoveries.json
+        # doesn't ship type_id / description — look them up from the KB).
         a_id = d.get("a_id", "")
         b_id = d.get("b_id", "")
         a_full = svc.get_by_id(a_id) if svc and a_id else None
         b_full = svc.get_by_id(b_id) if svc and b_id else None
 
-        ***REMOVED*** Similarity: prefer explicit similarity, fall back to confidence/100
+        # Similarity: prefer explicit similarity, fall back to confidence/100
         sim = d.get("similarity")
         if sim is None:
             conf = d.get("isomorphism_confidence")

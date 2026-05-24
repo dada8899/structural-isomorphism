@@ -1,4 +1,4 @@
-***REMOVED*** guarded-llm
+# guarded-llm
 
 Strict JSON LLM calls — schema validation, budget guard, retry policy, multi-provider support.
 
@@ -6,7 +6,7 @@ Strict JSON LLM calls — schema validation, budget guard, retry policy, multi-p
 pip install guarded-llm
 ```
 
-***REMOVED******REMOVED*** Quick start (class-based API)
+## Quick start (class-based API)
 
 ```python
 from pydantic import BaseModel
@@ -27,7 +27,7 @@ out = llm.call("Is gravity a self-organized criticality system?")
 print(out.verdict, out.confidence)
 ```
 
-***REMOVED******REMOVED*** High-level class API
+## High-level class API
 
 ::: guarded_llm.GuardedLLM
 
@@ -43,7 +43,7 @@ print(out.verdict, out.confidence)
 
 ::: guarded_llm.SchemaValidator
 
-***REMOVED******REMOVED*** Functional / legacy API
+## Functional / legacy API
 
 ::: guarded_llm.guardrailed_llm_call
 
@@ -53,7 +53,7 @@ print(out.verdict, out.confidence)
 
 ::: guarded_llm.validate_json
 
-***REMOVED******REMOVED*** Schemas
+## Schemas
 
 ::: guarded_llm.LLMSchema
 
@@ -65,7 +65,7 @@ print(out.verdict, out.confidence)
 
 ::: guarded_llm.B3EnsembleReview
 
-***REMOVED******REMOVED*** Providers
+## Providers
 
 ::: guarded_llm.BaseProvider
 
@@ -75,7 +75,7 @@ print(out.verdict, out.confidence)
 
 ::: guarded_llm.register_provider
 
-***REMOVED******REMOVED*** Exceptions
+## Exceptions
 
 ::: guarded_llm.GuardrailError
 

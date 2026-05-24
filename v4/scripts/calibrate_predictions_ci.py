@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B2 — Calibrate Layer 4 predictions with 95% CI bands.
 
 Takes v4/results/layer4_predictions.jsonl and produces
@@ -27,15 +27,15 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import bootstrap_alpha_ci  ***REMOVED*** noqa: E402
+from soc_pipeline import bootstrap_alpha_ci  # noqa: E402
 
 PREDS_IN = REPO / "v4" / "results" / "layer4_predictions.jsonl"
 OUT = REPO / "v4" / "results" / "layer4_predictions_calibrated.jsonl"
 SUMMARY = REPO / "v4" / "results" / "B2_calibration_summary.md"
 
 
-***REMOVED*** Phase 1-5 verified observations, frozen from paper.md / VERDICT-2026-04-15.md
-***REMOVED*** Each entry: physical_quantity -> {value, ci_low, ci_high, source}
+# Phase 1-5 verified observations, frozen from paper.md / VERDICT-2026-04-15.md
+# Each entry: physical_quantity -> {value, ci_low, ci_high, source}
 VERIFIED_OBSERVATIONS: dict[str, dict[str, dict[str, Any]]] = {
     "preferential_attachment": {
         "github_stars_alpha": {
@@ -106,7 +106,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, dict[str, Any]]] = {
             "sigma": 0.041,
             "source": "v4/validation/soc-stockmarket (S&P 500 1990-2025, |r| tail n=2,327)",
             "method": "Clauset MLE",
-            "literature_band": [2.8, 3.2],  ***REMOVED*** Gopikrishnan 1998 inverse cubic
+            "literature_band": [2.8, 3.2],  # Gopikrishnan 1998 inverse cubic
         },
         "stockmarket_omori_p": {
             "value": 0.286,
@@ -114,7 +114,7 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, dict[str, Any]]] = {
             "source": "v4/validation/soc-stockmarket (318 3σ mainshocks)",
             "method": "log-linear + c grid search",
             "r2": 0.71,
-            "literature_band": [0.3, 0.6],  ***REMOVED*** Weber 2007 daily band
+            "literature_band": [0.3, 0.6],  # Weber 2007 daily band
         },
         "defi_aave_alpha": {
             "value": 1.684,
@@ -141,11 +141,11 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, dict[str, Any]]] = {
             "literature_band": [0.5, 1.0],
         },
         "neural_tau_avalanche_size": {
-            "value": 2.58,  ***REMOVED*** bin factor 4× midpoint
+            "value": 2.58,  # bin factor 4× midpoint
             "value_range": [2.17, 3.00],
             "source": "v4/validation/soc-neural (DANDI 000006 mouse ALM, bin factor sweep 1-16x IEI)",
             "method": "Clauset MLE",
-            "literature_band": [1.5, 2.0],  ***REMOVED*** MF SOC Beggs-Plenz; deviation noted in paper
+            "literature_band": [1.5, 2.0],  # MF SOC Beggs-Plenz; deviation noted in paper
         },
         "neural_alpha_duration": {
             "value": 2.72,
@@ -165,11 +165,11 @@ VERIFIED_OBSERVATIONS: dict[str, dict[str, dict[str, Any]]] = {
 }
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Numerical band extraction from prediction text
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Numerical band extraction from prediction text
+# ──────────────────────────────────────────────────────────────────────────────
 
-***REMOVED*** Common physical quantities and their aliases (Chinese / English / symbol)
+# Common physical quantities and their aliases (Chinese / English / symbol)
 QUANTITY_ALIASES = {
     "alpha": ["α", "alpha", "幂律指数", "标度指数", "Clauset α"],
     "tau": ["τ", "tau", "avalanche-size 指数"],
@@ -184,8 +184,8 @@ QUANTITY_ALIASES = {
 RANGE_RE = re.compile(
     r"[\[【]?\s*(-?\d+\.?\d*)\s*(?:[,，]\s*|\s*[-–~至到]\s*)\s*(-?\d+\.?\d*)\s*[\]】]?"
 )
-***REMOVED*** Examples it should match:
-***REMOVED***   "[1.5, 1.8]"  "1.5-1.8"  "1.5 到 1.8"  "[0.08, 0.22]"
+# Examples it should match:
+#   "[1.5, 1.8]"  "1.5-1.8"  "1.5 到 1.8"  "[0.08, 0.22]"
 
 
 def extract_ranges(text: str) -> list[tuple[float, float]]:
@@ -196,7 +196,7 @@ def extract_ranges(text: str) -> list[tuple[float, float]]:
             a, b = float(m.group(1)), float(m.group(2))
         except ValueError:
             continue
-        ***REMOVED*** Sanity: skip if a >= b or absurd magnitudes
+        # Sanity: skip if a >= b or absurd magnitudes
         if a >= b:
             continue
         if abs(a) > 1e6 or abs(b) > 1e6:
@@ -237,9 +237,9 @@ def parse_prediction_bands(pred_text: str) -> list[dict[str, Any]]:
     return bands
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Matching predictions to verified observations
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Matching predictions to verified observations
+# ──────────────────────────────────────────────────────────────────────────────
 
 def match_obs(
     class_id: str,
@@ -250,7 +250,7 @@ def match_obs(
     obs_dict = VERIFIED_OBSERVATIONS.get(class_id, {})
     matches = []
     target_lower = target_text.lower()
-    ***REMOVED*** crude target → observation key mapping
+    # crude target → observation key mapping
     domain_keywords = {
         "earthquake": ["earthquake", "地震", "usgs", "断层"],
         "stockmarket": ["s&p", "stock", "股", "市场", "标普", "金融市场", "闪崩"],
@@ -271,11 +271,11 @@ def match_obs(
                 break
     for obs_key in relevant_obs_keys:
         obs = obs_dict[obs_key]
-        ***REMOVED*** Try matching each band to this observation
+        # Try matching each band to this observation
         for band in pred_bands:
-            ***REMOVED*** Skip bands that look like time / fraction unless quantity aligns
+            # Skip bands that look like time / fraction unless quantity aligns
             in_band = band["low"] <= obs["value"] <= band["high"]
-            ***REMOVED*** Partial: literature band overlap
+            # Partial: literature band overlap
             lit = obs.get("literature_band")
             partial = False
             if not in_band and lit:
@@ -294,7 +294,7 @@ def match_obs(
 
 def score_match(matches: list[dict[str, Any]]) -> str:
     if not matches:
-        return "pending"  ***REMOVED*** no verified observation matches yet
+        return "pending"  # no verified observation matches yet
     if any(m["in_band"] for m in matches):
         return "confirmed"
     if any(m["partial_match_via_literature"] for m in matches):
@@ -302,9 +302,9 @@ def score_match(matches: list[dict[str, Any]]) -> str:
     return "deviating"
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
-***REMOVED*** Bootstrap refresh of CI for verified observations (where raw data available)
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Bootstrap refresh of CI for verified observations (where raw data available)
+# ──────────────────────────────────────────────────────────────────────────────
 
 def refresh_alpha_ci_earthquake() -> dict[str, Any] | None:
     """Bootstrap CI on Clauset alpha from earthquake energies."""
@@ -322,7 +322,7 @@ def refresh_alpha_ci_earthquake() -> dict[str, Any] | None:
 def refresh_alpha_ci_stockmarket() -> dict[str, Any] | None:
     try:
         import pandas as pd
-        ***REMOVED*** yfinance multi-header: 3 header lines (Price/Ticker/Date). Use skiprows.
+        # yfinance multi-header: 3 header lines (Price/Ticker/Date). Use skiprows.
         df = pd.read_csv(
             REPO / "v4" / "validation" / "soc-stockmarket" / "sp500_daily.csv",
             skiprows=3,
@@ -357,7 +357,7 @@ def refresh_alpha_ci_defi(protocol: str) -> dict[str, Any] | None:
                 rec = json.loads(line)
             except Exception:
                 continue
-            ***REMOVED*** Common fields across protocols
+            # Common fields across protocols
             for key in ("amount_usd", "debt_to_cover_usd", "value_usd",
                         "amount_to_liquidate_usd", "debtAmount", "amount",
                         "liquidated_collateral_usd", "size_usd"):
@@ -374,14 +374,14 @@ def refresh_alpha_ci_defi(protocol: str) -> dict[str, Any] | None:
     return bootstrap_alpha_ci(np.array(sizes), n_boot=100, discrete=False)
 
 
-***REMOVED*** ──────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
 
 def main():
     print(f"Loading {PREDS_IN}...")
     preds = [json.loads(l) for l in PREDS_IN.open() if l.strip()]
     print(f"  {len(preds)} classes")
 
-    ***REMOVED*** Step 1: refresh bootstrap CIs where possible
+    # Step 1: refresh bootstrap CIs where possible
     print("\nStep 1: Refreshing bootstrap CIs on verified observations...")
     fresh_cis = {}
 
@@ -398,7 +398,7 @@ def main():
         fresh_cis[f"defi_{proto}_alpha"] = refresh_alpha_ci_defi(proto)
         print(f"    → {fresh_cis[f'defi_{proto}_alpha']}")
 
-    ***REMOVED*** Inject fresh CIs back into verified observations table
+    # Inject fresh CIs back into verified observations table
     fresh_map = {
         "earthquake_alpha": "earthquake_alpha_energy",
         "stockmarket_alpha": "stockmarket_alpha_returns",
@@ -413,7 +413,7 @@ def main():
             VERIFIED_OBSERVATIONS["soc_threshold_cascade"][obs_key]["bootstrap_ci_high"] = ci["ci_high"]
             VERIFIED_OBSERVATIONS["soc_threshold_cascade"][obs_key]["bootstrap_n_succeeded"] = ci.get("n_boot_succeeded")
 
-    ***REMOVED*** Step 2: calibrate each prediction
+    # Step 2: calibrate each prediction
     print("\nStep 2: Parsing prediction bands + matching to observations...")
     out_records = []
     total_preds = 0
@@ -451,23 +451,23 @@ def main():
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     print(f"\nWrote {OUT} ({len(out_records)} classes / {total_preds} predictions)")
 
-    ***REMOVED*** Step 3: also dump verified observations table for transparency
+    # Step 3: also dump verified observations table for transparency
     obs_path = REPO / "v4" / "results" / "verified_observations.json"
     obs_path.write_text(json.dumps(VERIFIED_OBSERVATIONS, indent=2, ensure_ascii=False))
     print(f"Wrote {obs_path}")
 
-    ***REMOVED*** Step 4: summary md
+    # Step 4: summary md
     confirmed = score_dist["confirmed"]
     partial = score_dist["partial"]
     deviating = score_dist["deviating"]
     pending = score_dist["pending"]
     md = []
-    md.append("***REMOVED*** B2 — Layer 4 prediction calibration summary\n")
+    md.append("# B2 — Layer 4 prediction calibration summary\n")
     md.append(f"**Run date**: 2026-05-13  \n")
     md.append(f"**Total classes**: {len(out_records)}  \n")
     md.append(f"**Total predictions**: {total_preds}  \n")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Verification status\n")
+    md.append("## Verification status\n")
     md.append(f"| Status | Count | % |")
     md.append(f"|---|---|---|")
     md.append(f"| ✅ Confirmed (observed value in predicted band) | {confirmed} | {confirmed*100/total_preds:.0f}% |")
@@ -475,7 +475,7 @@ def main():
     md.append(f"| 🔴 Deviating | {deviating} | {deviating*100/total_preds:.0f}% |")
     md.append(f"| ⚪ Pending (no verified observation yet) | {pending} | {pending*100/total_preds:.0f}% |")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Verified-observation bootstrap CI refresh\n")
+    md.append("## Verified-observation bootstrap CI refresh\n")
     md.append("| Quantity | Value | Bootstrap 95% CI | n_boot succeeded |")
     md.append("|---|---|---|---|")
     for k, v in fresh_cis.items():
@@ -484,7 +484,7 @@ def main():
         else:
             md.append(f"| {k} | — | failed: {v.get('error') if isinstance(v, dict) else v} | — |")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Methodology\n")
+    md.append("## Methodology\n")
     md.append("1. **Band extraction**: regex pulls numerical ranges `[a, b]` / `a-b` / `a 到 b` from each prediction text.")
     md.append("2. **Quantity inference**: looks at ~30 chars before each range for known physical-quantity keywords (α, τ, β, p_omori, b-value, ratio, time, fraction).")
     md.append("3. **Observation matching**: for each verified phase 1-5 system, the prediction text is scanned for domain keywords (earthquake / S&P / DeFi / neural). If matched, the predicted band is compared to observed central value.")
@@ -495,7 +495,7 @@ def main():
     md.append("   - `deviating`: predicted band misses both")
     md.append("   - `pending`: no verified phase has tested this class+target yet")
     md.append("")
-    md.append("***REMOVED******REMOVED*** Limitations\n")
+    md.append("## Limitations\n")
     md.append("- Regex band extraction misses range expressions in other phrasings (e.g. 'approximately X with σ Y'). 24/24 predictions had at least one extractable band; not all are physically meaningful quantities.")
     md.append("- Quantity inference is heuristic; some bands attributed to wrong quantity if context keyword is ambiguous.")
     md.append("- For non-α/τ quantities (timings, ratios), no verified observation table exists yet — those default to `pending` until matching phase is run.")

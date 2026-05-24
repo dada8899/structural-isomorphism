@@ -1,4 +1,4 @@
-***REMOVED*** CI Workflows + Disaster Recovery Deployment Audit
+# CI Workflows + Disaster Recovery Deployment Audit
 **Date:** 2026-05-15  
 **Status:** CRITICAL RED  
 **Repository:** structural-isomorphism  
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Executive Summary
+## Executive Summary
 
 **6 of 14 workflows failing as of 2026-05-15 03:16 UTC** (all push-to-main event at same timestamp):
 - CI, Coverage, Deploy docs, perf budget, sanity tests, types-sync all **FAILED**
@@ -17,7 +17,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. Workflow Run Status (Last 30 runs)
+## 1. Workflow Run Status (Last 30 runs)
 
 | Workflow | Latest Status | Event | Time | Actionable? |
 |----------|--------------|-------|------|-----------|
@@ -38,9 +38,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. Workflow File Audit (14 total)
+## 2. Workflow File Audit (14 total)
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: Concurrency Groups (race prevention)
+### ✅ PASS: Concurrency Groups (race prevention)
 - **ci.yml** ✓ has `concurrency: group: ci-{{ github.workflow }}-{{ github.ref }}`
 - **docs.yml** ✓ has `concurrency: group: pages, cancel-in-progress: false` (critical for Pages publish)
 - **deploy-beta-backend.yml** ✓ has `concurrency: group: deploy-beta-backend, cancel-in-progress: false`
@@ -55,7 +55,7 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: Timeouts Present
+### ✅ PASS: Timeouts Present
 - **12 of 14 workflows have explicit `timeout-minutes`**
 - ci.yml (15, 10, 10), coverage.yml (15), perf.yml (25), nightly.yml (45, 30, 15), load-smoke.yml (20), deploy-beta-backend.yml (10), deploy-phase-detector.yml (15)
 
@@ -68,7 +68,7 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: Actions Version Audit
+### ✅ PASS: Actions Version Audit
 - **All workflows use v4 (latest stable):**
   - actions/checkout@v4 ✓
   - actions/setup-python@v5 ✓
@@ -80,7 +80,7 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: Dependency Caching
+### ✅ PASS: Dependency Caching
 - **ci.yml:** pip cache (3 paths × 3 py versions × 3 OS)
 - **coverage.yml:** pip cache (py3.11 critical tests)
 - **perf.yml:** pnpm store cache (Next.js build)
@@ -91,9 +91,9 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ❌ FAIL: Critical Missing Features
+### ❌ FAIL: Critical Missing Features
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** a) **Search Index Build (W13-E flexsearch client-side)**
+#### a) **Search Index Build (W13-E flexsearch client-side)**
 - **Expected:** web/phase-detector build should generate `search-index.json` (Flexsearch data)
 - **Found in:** ❌ NOT in any workflow build step
 - **Impact:** Phase-detector client-side search will 404 or fail gracefully
@@ -101,7 +101,7 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** b) **Types-Sync Post-Generation Validation**
+#### b) **Types-Sync Post-Generation Validation**
 - **What works:** types-sync.yml ✓ regenerates api-types.ts + diffs
 - **What's missing:** ❌ No step to verify frontend actually imports + uses the generated types
 - **Impact:** Generated types could exist but unused; schema drift undetected
@@ -109,7 +109,7 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** c) **GH Pages Source Configuration**
+#### c) **GH Pages Source Configuration**
 - **Issue:** `gh api repos/dada8899/structural-isomorphism/pages` returns **404 Not Found**
 - **Cause:** GitHub Pages may not be enabled OR source not set to "GitHub Actions"
 - **Blocker:** docs.yml calls `actions/deploy-pages@v4` which requires Pages enabled + source="GitHub Actions"
@@ -121,21 +121,21 @@
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ⚠️ MINOR: Coverage Gate Relaxation
+### ⚠️ MINOR: Coverage Gate Relaxation
 - coverage.yml enforces **≥90% on critical files** (voting.py, multitest_correction.py, etc.)
 - global gate is **≥80%** across suite
 - **Noted:** Both are reasonable, no change needed
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ⚠️ MINOR: load-smoke.yml Dispatch-Only
+### ⚠️ MINOR: load-smoke.yml Dispatch-Only
 - Workflow only runs on `workflow_dispatch` (manual trigger)
 - Nightly run is **NOT scheduled** (unlike site-smoke.yml which runs every 6h)
 - **Recommendation:** Consider adding `schedule` cron for automated baseline (optional, ops preference)
 
 ---
 
-***REMOVED******REMOVED*** 3. Branch Protection Configuration
+## 3. Branch Protection Configuration
 
 **Status:** ⚠️ UNABLE TO VERIFY
 
@@ -172,13 +172,13 @@ ERROR: 404 Not Found
 
 ---
 
-***REMOVED******REMOVED*** 4. Disaster Recovery Deploy (VPS Safety Audit)
+## 4. Disaster Recovery Deploy (VPS Safety Audit)
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: `scripts/deploy-vps.sh` Safe-by-Default
+### ✅ PASS: `scripts/deploy-vps.sh` Safe-by-Default
 
 **Current behavior:**
 ```bash
-RSYNC_FLAGS="-avu"  ***REMOVED*** update only, NOT delete
+RSYNC_FLAGS="-avu"  # update only, NOT delete
 ```
 
 **Key safety features:**
@@ -200,7 +200,7 @@ RSYNC_FLAGS="-avu"  ***REMOVED*** update only, NOT delete
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: `scripts/restore-models.sh` Fixture Recovery
+### ✅ PASS: `scripts/restore-models.sh` Fixture Recovery
 
 **What it does:**
 - Idempotent restore of sentence-transformer model from HF Hub
@@ -216,7 +216,7 @@ RSYNC_FLAGS="-avu"  ***REMOVED*** update only, NOT delete
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** ✅ PASS: Health Checks in Deploy Workflows
+### ✅ PASS: Health Checks in Deploy Workflows
 
 **deploy-beta-backend.yml:**
 ```bash
@@ -225,20 +225,20 @@ for i in 1 2 3 4 5; do
   if [ "$CODE" = "200" ]; then exit 0; fi
   sleep 5
 done
-***REMOVED*** Fail if not 200 after 25s
+# Fail if not 200 after 25s
 ```
 
 **deploy-phase-detector.yml:**
 ```bash
 curl -fsS -o /dev/null https://phase.bytedance.city/
-curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOVED*** soft fail
+curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  # soft fail
 ```
 
 **Status:** ✅ PASS — post-deploy verification in place.
 
 ---
 
-***REMOVED******REMOVED*** 5. Performance Budget (W13-B)
+## 5. Performance Budget (W13-B)
 
 **File:** perf-budget.json
 
@@ -265,7 +265,7 @@ curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOV
 
 ---
 
-***REMOVED******REMOVED*** 6. Types Sync (W15-A Pydantic→TypeScript)
+## 6. Types Sync (W15-A Pydantic→TypeScript)
 
 **Workflow:** types-sync.yml
 
@@ -292,7 +292,7 @@ curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOV
 
 ---
 
-***REMOVED******REMOVED*** 7. Coverage Gates (W11-A)
+## 7. Coverage Gates (W11-A)
 
 **Enforced by:** coverage.yml (runs on every PR + push)
 
@@ -315,7 +315,7 @@ curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOV
 
 ---
 
-***REMOVED******REMOVED*** 8. Load Smoke Tests (W14-B k6)
+## 8. Load Smoke Tests (W14-B k6)
 
 **Workflow:** load-smoke.yml
 
@@ -348,7 +348,7 @@ curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOV
 
 ---
 
-***REMOVED******REMOVED*** 9. Nightly Workflow (Full Suite)
+## 9. Nightly Workflow (Full Suite)
 
 **Trigger:** Cron `0 2 * * *` (02:00 UTC = 10:00 Beijing)
 
@@ -365,7 +365,7 @@ curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true  ***REMOV
 
 ---
 
-***REMOVED******REMOVED*** 10. GitHub Secrets Configuration
+## 10. GitHub Secrets Configuration
 
 **Currently configured (per `gh secret list`):**
 ```
@@ -387,7 +387,7 @@ VPS_USER         (2026-05-14T14:06:03Z)
 
 ---
 
-***REMOVED******REMOVED*** 11. GitHub Pages Configuration
+## 11. GitHub Pages Configuration
 
 **Current state:** ❌ NOT ENABLED
 
@@ -411,7 +411,7 @@ HTTP 404: Not Found
 
 ---
 
-***REMOVED******REMOVED*** 12. Deployment Documentation
+## 12. Deployment Documentation
 
 **File:** docs/deployment/DEPLOY.md
 
@@ -427,7 +427,7 @@ HTTP 404: Not Found
 
 ---
 
-***REMOVED******REMOVED*** Summary Table
+## Summary Table
 
 | Category | Item | Status | Notes |
 |----------|------|--------|-------|
@@ -450,9 +450,9 @@ HTTP 404: Not Found
 
 ---
 
-***REMOVED******REMOVED*** Recommended Actions (Priority Order)
+## Recommended Actions (Priority Order)
 
-***REMOVED******REMOVED******REMOVED*** 🔴 CRITICAL (blocks deploy)
+### 🔴 CRITICAL (blocks deploy)
 1. **Enable GitHub Pages:**
    - Settings → Pages → Enable → Source: "GitHub Actions"
    - Unblock: docs.yml workflow
@@ -468,7 +468,7 @@ HTTP 404: Not Found
    - Check logs for: missing secrets, import errors, version mismatches
    - Likely cause: one of the above secrets missing
 
-***REMOVED******REMOVED******REMOVED*** ⚠️ IMPORTANT (within 1 sprint)
+### ⚠️ IMPORTANT (within 1 sprint)
 4. **Add timeout to sanity.yml:**
    - Add `timeout-minutes: 10` to prevent indefinite hangs
 
@@ -476,7 +476,7 @@ HTTP 404: Not Found
    - Light smoke test (5 VU × 1 min) to catch obvious regressions
    - Optional, depends on ops preference
 
-***REMOVED******REMOVED******REMOVED*** 📋 NICE-TO-HAVE (low priority)
+### 📋 NICE-TO-HAVE (low priority)
 6. **Implement client-side search index generation:**
    - Ensure phase-detector build outputs Flexsearch data
    - Integrate into perf.yml bundle size check
@@ -487,7 +487,7 @@ HTTP 404: Not Found
 
 ---
 
-***REMOVED******REMOVED*** Appendix: Incident Timeline
+## Appendix: Incident Timeline
 
 **2026-05-14 00:00 UTC:** Prod deployment via `rsync --delete` wiped `/root/Projects/structural-isomorphism/models/structural-v2/` (excluded from git but required at runtime).
 
@@ -505,7 +505,7 @@ HTTP 404: Not Found
 
 ---
 
-***REMOVED******REMOVED*** Conclusion
+## Conclusion
 
 **Overall risk:** 🔴 **HIGH** (immediate)
 - 6 workflows failing now; root cause unclear

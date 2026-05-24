@@ -1,9 +1,9 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Split null-controls registry into per-case results.json."""
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent  ***REMOVED*** dataset/v1/
+ROOT = Path(__file__).resolve().parent.parent  # dataset/v1/
 NULL_DIR = ROOT / "null_controls"
 
 NULL_MAP = {

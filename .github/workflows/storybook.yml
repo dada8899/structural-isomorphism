@@ -1,13 +1,13 @@
 name: Storybook CI
 
-***REMOVED*** PR check: build Storybook so broken stories are caught before merge.
-***REMOVED*** Deployment is handled by the unified `docs.yml` workflow on push to
-***REMOVED*** main (mkdocs at `/`, Storybook at `/storybook/` in one Pages artifact)
-***REMOVED*** — see w13-d notes in docs/.
-***REMOVED***
-***REMOVED*** This workflow does NOT deploy. It runs the same `pnpm storybook:build`
-***REMOVED*** command on PRs so the team finds rendering / loader errors at the PR
-***REMOVED*** stage rather than after merge.
+# PR check: build Storybook so broken stories are caught before merge.
+# Deployment is handled by the unified `docs.yml` workflow on push to
+# main (mkdocs at `/`, Storybook at `/storybook/` in one Pages artifact)
+# — see w13-d notes in docs/.
+#
+# This workflow does NOT deploy. It runs the same `pnpm storybook:build`
+# command on PRs so the team finds rendering / loader errors at the PR
+# stage rather than after merge.
 
 on:
   pull_request:

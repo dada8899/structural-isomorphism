@@ -1,7 +1,7 @@
-"""W10-D — newsletter archive + issue ***REMOVED***001 e2e tests.
+"""W10-D — newsletter archive + issue #001 e2e tests.
 
 Verifies the SSR newsletter pages added in W10-D:
-  - /newsletter (archive index) lists issue ***REMOVED***001 with date + subject + summary
+  - /newsletter (archive index) lists issue #001 with date + subject + summary
   - /newsletter/001 renders the hero subject line, repeats phase-flip tickers,
     and fires the `newsletter_archive_view` Plausible event on mount
 
@@ -86,7 +86,7 @@ def next_devserver():
     log_path = log_dir / "newsletter_archive_devserver.log"
     log_fh = log_path.open("wb")
 
-    ***REMOVED*** Invoke `next` directly to avoid pnpm's `--` argv mangling.
+    # Invoke `next` directly to avoid pnpm's `--` argv mangling.
     proc = subprocess.Popen(
         [str(next_bin), "dev", "-p", str(port)],
         cwd=str(PHASE_DETECTOR),
@@ -111,7 +111,7 @@ def next_devserver():
 
 
 def test_archive_index_lists_issue_001(next_devserver):
-    """Visit /newsletter and assert issue ***REMOVED***001 is listed with date + subject."""
+    """Visit /newsletter and assert issue #001 is listed with date + subject."""
     from playwright.sync_api import sync_playwright
 
     base = next_devserver["base"]
@@ -128,10 +128,10 @@ def test_archive_index_lists_issue_001(next_devserver):
             page.wait_for_selector("h1", timeout=10000)
             body = page.text_content("body") or ""
             assert "Structural Signals" in body, "archive page missing brand"
-            assert "Issue ***REMOVED***001" in body, "issue ***REMOVED***001 entry not listed"
+            assert "Issue #001" in body, "issue #001 entry not listed"
             assert "2026-05-15" in body, "publish date not shown"
             assert "block-bootstrap" in body, "summary not shown"
-            ***REMOVED*** Click-through to issue page works.
+            # Click-through to issue page works.
             link = page.locator("a[href='/newsletter/001']").first
             assert link.count() > 0, "no link to /newsletter/001"
         finally:
@@ -158,11 +158,11 @@ def test_issue_001_hero_and_phase_flips(next_devserver):
             )
             page.wait_for_selector("h1", timeout=10000)
             heading = page.text_content("h1") or ""
-            assert "Structural Signals ***REMOVED***001" in heading, (
+            assert "Structural Signals #001" in heading, (
                 f"unexpected hero h1: {heading!r}"
             )
             body = page.text_content("body") or ""
-            ***REMOVED*** At least 6 of the 10 known phase-flip tickers should render.
+            # At least 6 of the 10 known phase-flip tickers should render.
             expected_tickers = [
                 "AFRM",
                 "AIG",
@@ -179,9 +179,9 @@ def test_issue_001_hero_and_phase_flips(next_devserver):
             assert len(found) >= 6, (
                 f"expected ≥6 phase-flip tickers, only found {len(found)}: {found}"
             )
-            ***REMOVED*** Methodology spotlight is present.
+            # Methodology spotlight is present.
             assert "block-bootstrap" in body, "methodology spotlight not rendered"
-            ***REMOVED*** Outbound CTA link exists.
+            # Outbound CTA link exists.
             phase_link = page.locator(
                 "a[href*='phase.bytedance.city']"
             ).first
@@ -204,7 +204,7 @@ def test_issue_001_fires_plausible_archive_view(next_devserver):
         ctx = browser.new_context()
         page = ctx.new_page()
         try:
-            ***REMOVED*** Install plausible stub *before* page scripts run.
+            # Install plausible stub *before* page scripts run.
             page.add_init_script(
                 """
                 window.__plausibleCalls = [];
@@ -218,7 +218,7 @@ def test_issue_001_fires_plausible_archive_view(next_devserver):
                 wait_until="domcontentloaded",
                 timeout=30000,
             )
-            ***REMOVED*** Wait for the PageOpenTracker useEffect to fire.
+            # Wait for the PageOpenTracker useEffect to fire.
             page.wait_for_function(
                 "Array.isArray(window.__plausibleCalls) && "
                 "window.__plausibleCalls.some(c => c.name === 'newsletter_archive_view')",
@@ -229,7 +229,7 @@ def test_issue_001_fires_plausible_archive_view(next_devserver):
             assert "newsletter_archive_view" in names, (
                 f"expected newsletter_archive_view event, got {names}"
             )
-            ***REMOVED*** Verify issue prop captured.
+            # Verify issue prop captured.
             view_call = next(
                 c for c in calls if c["name"] == "newsletter_archive_view"
             )
@@ -265,14 +265,14 @@ def test_issue_001_outbound_link_click_fires_event(next_devserver):
                 wait_until="domcontentloaded",
                 timeout=30000,
             )
-            ***REMOVED*** Wait for the link tracker mount.
+            # Wait for the link tracker mount.
             page.wait_for_selector("a[href*='phase.bytedance.city']", timeout=10000)
 
-            ***REMOVED*** Prevent the actual navigation so we stay on /newsletter/001.
-            ***REMOVED*** Use a bubble-phase listener so the capture-phase NewsletterLinkTracker
-            ***REMOVED*** fires first; otherwise preventDefault in capture phase wouldn't stop
-            ***REMOVED*** the tracker, but ordering of multiple capture listeners is fragile
-            ***REMOVED*** across browsers.
+            # Prevent the actual navigation so we stay on /newsletter/001.
+            # Use a bubble-phase listener so the capture-phase NewsletterLinkTracker
+            # fires first; otherwise preventDefault in capture phase wouldn't stop
+            # the tracker, but ordering of multiple capture listeners is fragile
+            # across browsers.
             page.evaluate(
                 """
                 document.addEventListener('click', function(e) {

@@ -28,20 +28,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-***REMOVED*** Ensure web/backend is importable when running from repo root.
+# Ensure web/backend is importable when running from repo root.
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
-from services.ask_orchestrator import AskOrchestrator  ***REMOVED*** noqa: E402
+from services.ask_orchestrator import AskOrchestrator  # noqa: E402
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Fixtures
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Fixtures
+# --------------------------------------------------------------------------
 
-***REMOVED*** Low-relevance KB — mirrors the dogfood q5/q6/q7 retrieval pattern:
-***REMOVED*** top-1 around 0.65-0.70, all top-3 < 0.65 mean. This MUST trip both gates.
+# Low-relevance KB — mirrors the dogfood q5/q6/q7 retrieval pattern:
+# top-1 around 0.65-0.70, all top-3 < 0.65 mean. This MUST trip both gates.
 _LOW_REL_KB = [
     {
         "id": "phen-low-1",
@@ -69,20 +69,20 @@ _LOW_REL_KB = [
     },
 ]
 
-***REMOVED*** Borderline KB where top-1 is fine but top-3 mean barely fails — exercises
-***REMOVED*** the "top-3 mean" gate independently of the top-1 gate. Per dogfood q5
-***REMOVED*** (top-1=0.82, top-3 mean=0.747) we expect THIS pattern to trip ONLY the
-***REMOVED*** top-3 gate (top-3 mean below 0.65 threshold).
-***REMOVED*** We craft top-1=0.82 (above 0.75) with two low siblings so mean lands < 0.65.
+# Borderline KB where top-1 is fine but top-3 mean barely fails — exercises
+# the "top-3 mean" gate independently of the top-1 gate. Per dogfood q5
+# (top-1=0.82, top-3 mean=0.747) we expect THIS pattern to trip ONLY the
+# top-3 gate (top-3 mean below 0.65 threshold).
+# We craft top-1=0.82 (above 0.75) with two low siblings so mean lands < 0.65.
 _TOP3_MEAN_FAIL_KB = [
     {"id": "k1", "name": "phen 1", "domain": "x", "description": "...", "score": 0.82},
     {"id": "k2", "name": "phen 2", "domain": "x", "description": "...", "score": 0.55},
     {"id": "k3", "name": "phen 3", "domain": "x", "description": "...", "score": 0.55},
 ]
-***REMOVED*** Mean = (0.82+0.55+0.55)/3 = 0.64 → below default 0.65
+# Mean = (0.82+0.55+0.55)/3 = 0.64 → below default 0.65
 
-***REMOVED*** High-relevance KB — mirrors dogfood q1 (SVB) pattern. MUST NOT trip
-***REMOVED*** the gate; we assert the in-scope prompt is used.
+# High-relevance KB — mirrors dogfood q1 (SVB) pattern. MUST NOT trip
+# the gate; we assert the in-scope prompt is used.
 _HIGH_REL_KB = [
     {"id": "phen-h-1", "name": "Bank run cascade", "domain": "finance",
      "description": "Cascading deposit withdrawals.", "score": 0.94},
@@ -139,16 +139,16 @@ async def _collect(stream):
     return out
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Layer A: code-level relevance gate
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Layer A: code-level relevance gate
+# --------------------------------------------------------------------------
 
 class RelevanceGateTests(unittest.TestCase):
     """Pure-function tests on AskOrchestrator._evaluate_relevance."""
 
     def setUp(self):
-        ***REMOVED*** The orchestrator constructor doesn't touch the network unless
-        ***REMOVED*** stream() is awaited, so a bare instance is safe.
+        # The orchestrator constructor doesn't touch the network unless
+        # stream() is awaited, so a bare instance is safe.
         self.orch = AskOrchestrator(search_service=_FakeSearch([]))
 
     def test_empty_cards_trips_gate(self):
@@ -166,7 +166,7 @@ class RelevanceGateTests(unittest.TestCase):
         """q5-style pattern: top-1 OK but top-3 mean fails."""
         low, reason = self.orch._evaluate_relevance(_TOP3_MEAN_FAIL_KB)
         self.assertTrue(low)
-        ***REMOVED*** top-1=0.82 > 0.75, so top-1 gate passes; top-3 mean gate trips.
+        # top-1=0.82 > 0.75, so top-1 gate passes; top-3 mean gate trips.
         self.assertIn("top3_mean_below", reason)
 
     def test_high_relevance_passes_gate(self):
@@ -192,9 +192,9 @@ class RelevanceGateTests(unittest.TestCase):
         self.assertTrue(low)
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Layer B: in-scope prompt shape
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Layer B: in-scope prompt shape
+# --------------------------------------------------------------------------
 
 class PromptTests(unittest.TestCase):
     """`_build_prompt` always produces the in-scope synthesis prompt — the
@@ -211,7 +211,7 @@ class PromptTests(unittest.TestCase):
         )
         self.assertIn("200-400", prompt)
         self.assertIn("[1] [2]", prompt)
-        ***REMOVED*** The removed out-of-scope wording must not leak back in.
+        # The removed out-of-scope wording must not leak back in.
         self.assertNotIn("超出 Structural 当前覆盖范围", prompt)
 
     def test_strict_json_appends_reminder(self):
@@ -226,9 +226,9 @@ class PromptTests(unittest.TestCase):
         self.assertIn("严格要求", strict)
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** M1.3: local refusal payload builder (pure function, no LLM)
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# M1.3: local refusal payload builder (pure function, no LLM)
+# --------------------------------------------------------------------------
 
 class RefusalPayloadTests(unittest.TestCase):
     """Pure-function tests on AskOrchestrator._build_refusal_payload."""
@@ -275,9 +275,9 @@ class RefusalPayloadTests(unittest.TestCase):
         self.assertTrue(all(isinstance(q, str) and q.strip() for q in fu))
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Integration: M1.3 refusal short-circuits the SSE stream without an LLM call
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Integration: M1.3 refusal short-circuits the SSE stream without an LLM call
+# --------------------------------------------------------------------------
 
 class OutOfScopeStreamTests(unittest.TestCase):
     """End-to-end SSE behavior with the M1.3 refusal short-circuit."""
@@ -317,9 +317,9 @@ class OutOfScopeStreamTests(unittest.TestCase):
         self.assertTrue(answer_done.get("refused"))
         self.assertIsInstance(answer_done.get("scope_reason"), str)
         self.assertEqual(answer_done.get("citations"), [])
-        ***REMOVED*** The streamed answer is the LOCAL refusal text — honest & short.
+        # The streamed answer is the LOCAL refusal text — honest & short.
         self.assertIn("覆盖范围", answer_done["full_text"])
-        ***REMOVED*** No LLM call → no `llm_start` event.
+        # No LLM call → no `llm_start` event.
         self.assertNotIn("llm_start", [n for n, _ in events])
 
     def test_refusal_answer_chunks_reconstruct_full_text(self):
@@ -374,33 +374,33 @@ class OutOfScopeStreamTests(unittest.TestCase):
         answer_done = next(p for n, p in events if n == "answer_done")
         self.assertFalse(answer_done.get("out_of_scope", False))
         self.assertFalse(answer_done.get("refused", False))
-        ***REMOVED*** M1.2 fix 4: the in-scope path signals the LLM call to the frontend.
+        # M1.2 fix 4: the in-scope path signals the LLM call to the frontend.
         self.assertIn("llm_start", names)
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Follow-up: prod evidence (NOT a test — recorded for human follow-up)
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED***
-***REMOVED*** These cases verify the mock path only. After this PR lands, the
-***REMOVED*** dogfooder should re-run the W4-D suite against prod with real LLM and
-***REMOVED*** verify:
-***REMOVED***
-***REMOVED***   q5 "女朋友为什么生气" → answer < 200 chars, no [n] markers
-***REMOVED***   q6 "1+1=?"            → answer < 200 chars, no [n] markers
-***REMOVED***   q7 "BTC 明天涨跌"      → answer < 200 chars, polite refusal
-***REMOVED***
-***REMOVED*** AND that q1/q2/q3/q4 STILL get full 200-400 char isomorphism answers
-***REMOVED*** (no regression on the happy path).
-***REMOVED***
-***REMOVED*** Real-env e2e is intentionally NOT automated here because it costs real
-***REMOVED*** OpenRouter $; track as follow-up in docs/dogfood-ask-2026-05-15.md.
+# --------------------------------------------------------------------------
+# Follow-up: prod evidence (NOT a test — recorded for human follow-up)
+# --------------------------------------------------------------------------
+#
+# These cases verify the mock path only. After this PR lands, the
+# dogfooder should re-run the W4-D suite against prod with real LLM and
+# verify:
+#
+#   q5 "女朋友为什么生气" → answer < 200 chars, no [n] markers
+#   q6 "1+1=?"            → answer < 200 chars, no [n] markers
+#   q7 "BTC 明天涨跌"      → answer < 200 chars, polite refusal
+#
+# AND that q1/q2/q3/q4 STILL get full 200-400 char isomorphism answers
+# (no regression on the happy path).
+#
+# Real-env e2e is intentionally NOT automated here because it costs real
+# OpenRouter $; track as follow-up in docs/dogfood-ask-2026-05-15.md.
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Layer C: forecasting-intent keyword gate (session ***REMOVED***16)
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Layer C: forecasting-intent keyword gate (session #16)
+# --------------------------------------------------------------------------
 
-from services.ask_orchestrator import _is_forecasting_intent  ***REMOVED*** noqa: E402
+from services.ask_orchestrator import _is_forecasting_intent  # noqa: E402
 
 
 class ForecastingIntentGateTests(unittest.TestCase):
@@ -411,7 +411,7 @@ class ForecastingIntentGateTests(unittest.TestCase):
     we deterministically refuse.
     """
 
-    ***REMOVED*** ---- positive: should trip ---------------------------------------- ***REMOVED***
+    # ---- positive: should trip ---------------------------------------- #
 
     def test_predict_crypto_zh(self):
         self.assertTrue(_is_forecasting_intent("AI 能不能预测加密货币", "zh"))
@@ -437,7 +437,7 @@ class ForecastingIntentGateTests(unittest.TestCase):
     def test_stock_pick_en(self):
         self.assertTrue(_is_forecasting_intent("Stock pick for next week", "en"))
 
-    ***REMOVED*** ---- negative: in-scope questions must NOT trip ------------------- ***REMOVED***
+    # ---- negative: in-scope questions must NOT trip ------------------- #
 
     def test_structural_question_zh_passes(self):
         """The keyword 预测 alone is OK if not paired with a financial asset."""
@@ -475,14 +475,14 @@ class ForecastingRefusalPayloadTests(unittest.TestCase):
             scope_reason="forecasting_intent",
         )
         ans = payload["answer"]
-        ***REMOVED*** Forecasting-specific phrasing — NOT the generic out-of-scope text
+        # Forecasting-specific phrasing — NOT the generic out-of-scope text
         self.assertIn("预测", ans)
-        ***REMOVED*** Must call out that no AI tool can do this
+        # Must call out that no AI tool can do this
         self.assertTrue(
             "包括 AI" in ans or "AI" in ans,
             f"expected AI-disclaimer in answer, got: {ans[:200]}",
         )
-        ***REMOVED*** Must offer a pivot (the in-scope rephrasing)
+        # Must offer a pivot (the in-scope rephrasing)
         self.assertTrue(
             "级联" in ans or "相变" in ans or "结构" in ans,
             f"expected in-scope pivot offered, got: {ans[:200]}",
@@ -511,7 +511,7 @@ class ForecastingRefusalPayloadTests(unittest.TestCase):
             lang="zh",
             scope_reason="no_cards",
         )
-        ***REMOVED*** No_cards path — should NOT trigger forecasting-specific phrasing
+        # No_cards path — should NOT trigger forecasting-specific phrasing
         self.assertNotIn("预测涨跌", payload["answer"])
         self.assertNotIn("不预测资产价格", payload["answer"])
 

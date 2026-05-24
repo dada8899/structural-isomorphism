@@ -27,9 +27,9 @@ import numpy as np
 
 logger = logging.getLogger("structural.connections.match")
 
-***REMOVED*** 结构相似度下限。复用 analyze 的 scope floor 口径（[0,1]，0.50 为正交线）。
+# 结构相似度下限。复用 analyze 的 scope floor 口径（[0,1]，0.50 为正交线）。
 STRUCT_SIM_MIN = 0.50
-***REMOVED*** 同普适类加成系数（universality_class 相同 → combined ×1.15）。
+# 同普适类加成系数（universality_class 相同 → combined ×1.15）。
 SAME_CLASS_BONUS = 1.15
 
 
@@ -40,7 +40,7 @@ def _decode_embedding(blob: Optional[bytes]) -> Optional[np.ndarray]:
     try:
         arr = np.frombuffer(blob, dtype="<f4")
         return arr if arr.size > 0 else None
-    except Exception as e:  ***REMOVED*** pragma: no cover — defensive
+    except Exception as e:  # pragma: no cover — defensive
         logger.warning("connections_match: bad embedding blob: %s", e)
         return None
 
@@ -54,11 +54,11 @@ class ConnectionsMatcher:
     """无状态匹配引擎。依赖注入 SearchService 取 KB domain + _cosine。"""
 
     def __init__(self, search_service):
-        ***REMOVED*** search_service 可为 None（KB 未就绪时降级）：此时 domain 取指纹
-        ***REMOVED*** 自带的 domain 字段，_cosine 用本地实现。
+        # search_service 可为 None（KB 未就绪时降级）：此时 domain 取指纹
+        # 自带的 domain 字段，_cosine 用本地实现。
         self._search = search_service
 
-    ***REMOVED*** --- 内部工具 -------------------------------------------------------
+    # --- 内部工具 -------------------------------------------------------
 
     @staticmethod
     def _cosine(a: np.ndarray, b: np.ndarray) -> float:
@@ -78,7 +78,7 @@ class ConnectionsMatcher:
                 return str(kb_item["domain"])
         return str(fp.get("domain") or "")
 
-    ***REMOVED*** --- 主入口 ---------------------------------------------------------
+    # --- 主入口 ---------------------------------------------------------
 
     def match(
         self,
@@ -106,13 +106,13 @@ class ConnectionsMatcher:
 
         out: list[dict] = []
         for cand in candidates:
-            ***REMOVED*** 排除自己（list_discoverable 已能排，这里二次防御）。
+            # 排除自己（list_discoverable 已能排，这里二次防御）。
             if cand.get("user_email") and cand["user_email"] == t_user:
                 continue
             if cand.get("id") == target.get("id"):
                 continue
 
-            ***REMOVED*** 结构相似度。
+            # 结构相似度。
             c_emb = _decode_embedding(cand.get("embedding"))
             if t_emb is None or c_emb is None:
                 sim = 0.0
@@ -121,7 +121,7 @@ class ConnectionsMatcher:
             if sim < sim_min:
                 continue
 
-            ***REMOVED*** 领域距离：必须不同领域（同域匹配无跨域价值）。
+            # 领域距离：必须不同领域（同域匹配无跨域价值）。
             c_domain = self._domain_of(cand)
             domain_distance = (
                 1 if (t_domain and c_domain and t_domain != c_domain) else 0
@@ -129,7 +129,7 @@ class ConnectionsMatcher:
             if domain_distance < 1:
                 continue
 
-            ***REMOVED*** 同普适类加成。
+            # 同普适类加成。
             c_class = (cand.get("universality_class") or "").strip()
             same_class = bool(t_class and c_class and t_class == c_class)
             class_factor = SAME_CLASS_BONUS if same_class else 1.0

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Merge 5 batch outputs into one + compute distribution stats.
 
 Reads companies_batch_a{a,b,c,d,e}_out.jsonl and writes:
@@ -18,10 +18,10 @@ OUT_DIR = HERE
 BATCHES = ["aa", "ab", "ac", "ad", "ae"]
 DATE = "2026-05-13"
 
-***REMOVED*** DeepSeek v4-pro pricing (estimated from research / OpenRouter listing).
-***REMOVED*** Use conservative defaults if unsure; mark in stats.
-***REMOVED*** DeepSeek API direct (https://api.deepseek.com pricing 2026):
-***REMOVED***   v4-pro: $0.55/M prompt (cache miss), $0.07/M prompt (cache hit), $2.19/M completion
+# DeepSeek v4-pro pricing (estimated from research / OpenRouter listing).
+# Use conservative defaults if unsure; mark in stats.
+# DeepSeek API direct (https://api.deepseek.com pricing 2026):
+#   v4-pro: $0.55/M prompt (cache miss), $0.07/M prompt (cache hit), $2.19/M completion
 PRICE_PROMPT_MISS = 0.55 / 1_000_000
 PRICE_PROMPT_HIT = 0.07 / 1_000_000
 PRICE_COMPLETION = 2.19 / 1_000_000
@@ -45,13 +45,13 @@ def main() -> None:
                 continue
             rows.append(d)
 
-    ***REMOVED*** Write merged jsonl
+    # Write merged jsonl
     merged_path = OUT_DIR / f"structtuples_{DATE}.jsonl"
     with merged_path.open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    ***REMOVED*** Stats
+    # Stats
     n = len(rows)
     n_ok = sum(1 for r in rows if r.get("ok"))
     n_fail = n - n_ok
@@ -103,10 +103,10 @@ def main() -> None:
         + total_completion * PRICE_COMPLETION
     )
 
-    ***REMOVED*** Markdown report
+    # Markdown report
     lines = []
-    lines.append(f"***REMOVED*** D1 batch run {DATE} — stats\n")
-    lines.append(f"***REMOVED******REMOVED*** Counts\n")
+    lines.append(f"# D1 batch run {DATE} — stats\n")
+    lines.append(f"## Counts\n")
     lines.append(f"- rows processed: **{n}**")
     lines.append(f"- ok: **{n_ok}**")
     lines.append(f"- failed: **{n_fail}**")
@@ -114,7 +114,7 @@ def main() -> None:
         lines.append(f"- JSON parse failures during merge: {len(parse_failures)}")
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** Dynamics family distribution (ok rows)\n")
+    lines.append("## Dynamics family distribution (ok rows)\n")
     lines.append("| family | count | pct |")
     lines.append("|---|---:|---:|")
     for fam, c in fam_counter.most_common():
@@ -122,7 +122,7 @@ def main() -> None:
         lines.append(f"| {fam} | {c} | {pct:.1f}% |")
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** Critical-point state distribution (ok rows)\n")
+    lines.append("## Critical-point state distribution (ok rows)\n")
     lines.append("| state | count | pct |")
     lines.append("|---|---:|---:|")
     for s, c in state_counter.most_common():
@@ -130,7 +130,7 @@ def main() -> None:
         lines.append(f"| {s} | {c} | {pct:.1f}% |")
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** Agreement with a-priori expectation\n")
+    lines.append("## Agreement with a-priori expectation\n")
     total_with_prior = agreement["match"] + agreement["differ"]
     if total_with_prior > 0:
         match_pct = agreement["match"] / total_with_prior * 100
@@ -140,7 +140,7 @@ def main() -> None:
     lines.append("")
 
     if fam_by_expected:
-        lines.append("***REMOVED******REMOVED******REMOVED*** LLM family vs a-priori (where prior exists)\n")
+        lines.append("### LLM family vs a-priori (where prior exists)\n")
         lines.append("| a-priori expected | LLM assigned | count |")
         lines.append("|---|---|---:|")
         for exp_fam, fams in sorted(fam_by_expected.items()):
@@ -149,7 +149,7 @@ def main() -> None:
                 lines.append(f"| {exp_fam} | {fam}{marker} | {c} |")
         lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** LLM cost (DeepSeek v4-pro direct API, estimated)\n")
+    lines.append("## LLM cost (DeepSeek v4-pro direct API, estimated)\n")
     lines.append(f"- prompt tokens total: {total_prompt:,}")
     lines.append(f"- prompt cache hit: {total_prompt_cache_hit:,} ({total_prompt_cache_hit/max(total_prompt,1)*100:.1f}%)")
     lines.append(f"- completion tokens: {total_completion:,}")
@@ -161,7 +161,7 @@ def main() -> None:
     lines.append(f"- total elapsed (sum across parallel batches): {total_elapsed:.1f}s")
     lines.append("")
 
-    lines.append(f"***REMOVED******REMOVED*** Output\n")
+    lines.append(f"## Output\n")
     lines.append(f"- merged jsonl: `structtuples_{DATE}.jsonl` ({n} rows)\n")
 
     report_path = OUT_DIR / f"batch_run_{DATE}_stats.md"

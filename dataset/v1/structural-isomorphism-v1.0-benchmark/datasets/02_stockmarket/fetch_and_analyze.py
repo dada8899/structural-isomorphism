@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 Phase 2: SOC universality test on S&P 500 daily returns.
 
@@ -68,7 +68,7 @@ def load_or_fetch():
     if RAW.exists():
         import pandas as pd
         df = pd.read_csv(RAW, header=[0, 1], index_col=0, parse_dates=True)
-        ***REMOVED*** Flatten multiindex columns if yfinance returned multi
+        # Flatten multiindex columns if yfinance returned multi
         if hasattr(df.columns, "nlevels") and df.columns.nlevels > 1:
             df.columns = [c[0] for c in df.columns]
         return df
@@ -76,7 +76,7 @@ def load_or_fetch():
 
 
 def compute_returns(df):
-    ***REMOVED*** yfinance returns columns: Open, High, Low, Close, Adj Close, Volume
+    # yfinance returns columns: Open, High, Low, Close, Adj Close, Volume
     col = "Adj Close" if "Adj Close" in df.columns else "Close"
     p = df[col].astype(float).dropna()
     r = np.log(p.values[1:] / p.values[:-1])
@@ -136,19 +136,19 @@ def fit_omori_returns(ret_series, times, sigma_k: float = 3.0, window_days: int 
     std = abs_r.std()
     threshold = sigma_k * std
     main_idx = np.where(abs_r > threshold)[0]
-    ***REMOVED*** Keep only main shocks with enough forward window
+    # Keep only main shocks with enough forward window
     valid_main = main_idx[(main_idx + window_days) < len(abs_r)]
 
     if len(valid_main) < 10:
         return {"error": f"too few main shocks: {len(valid_main)}"}
 
-    ***REMOVED*** Stacked conditional E[|r_{t+tau}|] - baseline
+    # Stacked conditional E[|r_{t+tau}|] - baseline
     baseline = abs_r.mean()
     rates = np.zeros(window_days)
     for tau in range(1, window_days + 1):
         vals = abs_r[valid_main + tau]
-        rates[tau - 1] = vals.mean() - baseline  ***REMOVED*** excess volatility
-    ***REMOVED*** Only keep positive excess
+        rates[tau - 1] = vals.mean() - baseline  # excess volatility
+    # Only keep positive excess
     tau_days = np.arange(1, window_days + 1, dtype=float)
     keep = rates > 0
     if keep.sum() < 6:
@@ -157,7 +157,7 @@ def fit_omori_returns(ret_series, times, sigma_k: float = 3.0, window_days: int 
     r_fit = rates[keep]
     weights = np.ones_like(t_fit)
 
-    ***REMOVED*** Grid search over c
+    # Grid search over c
     best = None
     for c_day in [0.1, 0.3, 0.5, 1.0, 1.5, 2.0]:
         x = np.log10(t_fit + c_day)
@@ -176,7 +176,7 @@ def fit_omori_returns(ret_series, times, sigma_k: float = 3.0, window_days: int 
         ss_res = float(np.sum(w * (y - pred_y) ** 2))
         ss_tot = float(np.sum(w * (y - np.average(y, weights=w)) ** 2))
         r2 = 1 - ss_res / ss_tot if ss_tot > 0 else None
-        ***REMOVED*** slope sigma
+        # slope sigma
         dof = max(len(y) - 2, 1)
         mse = float(np.sum(w * (y - pred_y) ** 2) / dof)
         var_slope = mse * Sw / denom
@@ -226,7 +226,7 @@ def main():
     pl = clauset_powerlaw_fit(np.abs(r))
     print(f"  result: {pl}")
 
-    ***REMOVED*** Accept: alpha in [2.5, 3.5] consistent with Gopikrishnan 1998 for major indices
+    # Accept: alpha in [2.5, 3.5] consistent with Gopikrishnan 1998 for major indices
     alpha_predicted = (2.5, 3.5)
     alpha_ok = False
     if "alpha" in pl:

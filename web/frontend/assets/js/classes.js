@@ -38,7 +38,7 @@ const DATA_URL = "/assets/data/universality-classes.json";
 let allClasses = [];
 let manualClasses = [];
 let llmClasses = [];
-// Default to "all" so /classes shows the 23 cards immediately (session ***REMOVED***9 P1 UX fix).
+// Default to "all" so /classes shows the 23 cards immediately (session #9 P1 UX fix).
 let currentFilter = "all";
 
 const escapeHtml = (s) => {
@@ -48,7 +48,7 @@ const escapeHtml = (s) => {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&***REMOVED***39;");
+    .replace(/'/g, "&#39;");
 };
 
 async function loadData() {
@@ -607,7 +607,7 @@ function renderList(list) {
   const host = document.getElementById("uc-list");
   if (!host) return;
   if (!list || !list.length) {
-    host.innerHTML = `<p style="color:***REMOVED***777;padding:40px 0;text-align:center;">${T("page.classes.no_match", "没有匹配的等价类")}。</p>`;
+    host.innerHTML = `<p style="color:#777;padding:40px 0;text-align:center;">${T("page.classes.no_match", "没有匹配的等价类")}。</p>`;
     return;
   }
   if (currentFilter === 'path') {
@@ -735,7 +735,7 @@ async function init() {
     console.error(e);
     const host = document.getElementById("uc-list");
     if (host) {
-      host.innerHTML = `<p style="color:var(--text-secondary,***REMOVED***52525b);padding:40px 0;text-align:center;font-size:14px;">${T("page.classes.load_failed", "内容暂时加载不出来，请稍后重试。")}</p>`;
+      host.innerHTML = `<p style="color:var(--text-secondary,#52525b);padding:40px 0;text-align:center;font-size:14px;">${T("page.classes.load_failed", "内容暂时加载不出来，请稍后重试。")}</p>`;
     }
   }
 }

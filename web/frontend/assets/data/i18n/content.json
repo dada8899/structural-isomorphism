@@ -196,20 +196,20 @@
     "en": "Theory is only a starting point; it takes empirical work to turn a universality class into a paper. We selected the most mature class in V4 — <strong>branching-process Self-Organized Criticality (SOC)</strong> — which predicts an untruncated power-law event-size distribution with exponents τ ≈ 1.5, α ≈ 2.0, γ ≈ 2.0 satisfying the scaling relation γ = (α − 1)/(τ − 1). We ran the same fitting procedure across five mutually independent domains:"
   },
   "page.about.empirical.phase1": {
-    "zh": "<strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style=\"color: ***REMOVED***2f9e44;\">✅ 与理论吻合</span>。",
-    "en": "<strong>Phase 1 · Earthquakes (USGS, 84k events)</strong>: b-value = 1.084, p = 0.941 (Omori aftershock decay), τ ≈ 1.67. <span style=\"color: ***REMOVED***2f9e44;\">✅ Consistent with theory.</span>"
+    "zh": "<strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style=\"color: #2f9e44;\">✅ 与理论吻合</span>。",
+    "en": "<strong>Phase 1 · Earthquakes (USGS, 84k events)</strong>: b-value = 1.084, p = 0.941 (Omori aftershock decay), τ ≈ 1.67. <span style=\"color: #2f9e44;\">✅ Consistent with theory.</span>"
   },
   "page.about.empirical.phase2": {
-    "zh": "<strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style=\"color: ***REMOVED***2f9e44;\">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。",
-    "en": "<strong>Phase 2 · S&amp;P 500 daily series</strong>: α ≈ 3.00, p = 0.29 (within the daily-scale literature band of [0.3, 0.6]). <span style=\"color: ***REMOVED***2f9e44;\">✅ A continuous-diffusion sub-class</span>, in clear contrast to the discrete threshold-type SOC observed for earthquakes."
+    "zh": "<strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style=\"color: #2f9e44;\">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。",
+    "en": "<strong>Phase 2 · S&amp;P 500 daily series</strong>: α ≈ 3.00, p = 0.29 (within the daily-scale literature band of [0.3, 0.6]). <span style=\"color: #2f9e44;\">✅ A continuous-diffusion sub-class</span>, in clear contrast to the discrete threshold-type SOC observed for earthquakes."
   },
   "page.about.empirical.phase3": {
-    "zh": "<strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style=\"color: ***REMOVED***2f9e44;\">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。",
-    "en": "<strong>Phase 3 · DeFi liquidation cascades</strong> (Aave V2 + Compound V2 + MakerDAO, 43,065 events): per-protocol α = 1.57–1.68, clustering in the same sub-class as earthquakes. <span style=\"color: ***REMOVED***2f9e44;\">✅ Cross-protocol universality</span> — the same mathematical structure emerges independently in three distinct systems."
+    "zh": "<strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style=\"color: #2f9e44;\">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。",
+    "en": "<strong>Phase 3 · DeFi liquidation cascades</strong> (Aave V2 + Compound V2 + MakerDAO, 43,065 events): per-protocol α = 1.57–1.68, clustering in the same sub-class as earthquakes. <span style=\"color: #2f9e44;\">✅ Cross-protocol universality</span> — the same mathematical structure emerges independently in three distinct systems."
   },
   "page.about.empirical.phase4": {
-    "zh": "<strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style=\"color: ***REMOVED***e8a800;\">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。",
-    "en": "<strong>Phase 4 · Neuronal avalanches in mouse cortex</strong> (DANDI 000006): the size exponent τ and lifetime exponent γ fall within the task-state sub-critical range. <span style=\"color: ***REMOVED***e8a800;\">⚠️ Partially consistent</span>, corroborating the task-state sub-critical shift hypothesis of Priesemann et al. (2014)."
+    "zh": "<strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style=\"color: #e8a800;\">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。",
+    "en": "<strong>Phase 4 · Neuronal avalanches in mouse cortex</strong> (DANDI 000006): the size exponent τ and lifetime exponent γ fall within the task-state sub-critical range. <span style=\"color: #e8a800;\">⚠️ Partially consistent</span>, corroborating the task-state sub-critical shift hypothesis of Priesemann et al. (2014)."
   },
   "page.about.empirical.phase5": {
     "zh": "<strong>Phase 5 · Null controls</strong>：人工合成的 Poisson / Gaussian 流量经过同样管道，<strong>得不到 power-law</strong>——说明前四个领域的拟合不是方法学的产物。",
@@ -576,8 +576,8 @@
     "en": "23 cross-domain <em>shared patterns</em>"
   },
   "page.classes.hero_lede": {
-    "zh": "每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href=\"***REMOVED***uc-footnote\">页脚</a>。",
-    "en": "Each class is a group of phenomena sharing the same mathematical structure and invariants — earthquakes, bank runs, neural avalanches and grid cascades can all map onto the same underlying pattern. The <strong>23 classes</strong> below were surfaced without supervision from 191 cross-domain isomorphisms via community detection; <strong>13 independent domains are empirically validated</strong>. Click any card for shared equations, invariants and falsifiable predictions; method details in the <a href=\"***REMOVED***uc-footnote\">footnote</a>."
+    "zh": "每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href=\"#uc-footnote\">页脚</a>。",
+    "en": "Each class is a group of phenomena sharing the same mathematical structure and invariants — earthquakes, bank runs, neural avalanches and grid cascades can all map onto the same underlying pattern. The <strong>23 classes</strong> below were surfaced without supervision from 191 cross-domain isomorphisms via community detection; <strong>13 independent domains are empirically validated</strong>. Click any card for shared equations, invariants and falsifiable predictions; method details in the <a href=\"#uc-footnote\">footnote</a>."
   },
   "page.classes.filter_manual": {
     "zh": "人工精选",

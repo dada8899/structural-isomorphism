@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Generate 5 publication-quality figures for the anti-p-hacking unified paper.
 
 Figures produced (both PDF vector + PNG @ 300 DPI + caption .txt each):
@@ -22,7 +22,7 @@ Figures produced (both PDF vector + PNG @ 300 DPI + caption .txt each):
 The script is idempotent: PDF output uses fixed seeds + deterministic metadata,
 so repeated runs produce byte-identical vector output.
 
-Author: dada8899 (Wave 6 session ***REMOVED***10 sub-agent B)
+Author: dada8899 (Wave 6 session #10 sub-agent B)
 Date  : 2026-05-15
 """
 
@@ -38,28 +38,28 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 0. Global style
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 0. Global style
+# ---------------------------------------------------------------------------
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parent.parent.parent  ***REMOVED*** paper/figures/anti-phacking/ -> repo root
+REPO = HERE.parent.parent.parent  # paper/figures/anti-phacking/ -> repo root
 
-***REMOVED*** Deterministic seed (figure 4 simulated p-values + figure 1 noise)
+# Deterministic seed (figure 4 simulated p-values + figure 1 noise)
 SEED = 20260515
 RNG = np.random.default_rng(SEED)
 
-***REMOVED*** Colorblind-safe palette (Wong 2011, Nature Methods)
+# Colorblind-safe palette (Wong 2011, Nature Methods)
 PALETTE = {
-    "blue":      "***REMOVED***0072B2",
-    "orange":    "***REMOVED***E69F00",
-    "green":     "***REMOVED***009E73",
-    "yellow":    "***REMOVED***F0E442",
-    "skyblue":   "***REMOVED***56B4E9",
-    "vermilion": "***REMOVED***D55E00",
-    "purple":    "***REMOVED***CC79A7",
-    "black":     "***REMOVED***000000",
-    "grey":      "***REMOVED***999999",
+    "blue":      "#0072B2",
+    "orange":    "#E69F00",
+    "green":     "#009E73",
+    "yellow":    "#F0E442",
+    "skyblue":   "#56B4E9",
+    "vermilion": "#D55E00",
+    "purple":    "#CC79A7",
+    "black":     "#000000",
+    "grey":      "#999999",
 }
 
 mpl.rcParams.update({
@@ -80,9 +80,9 @@ mpl.rcParams.update({
     "figure.dpi":          120,
     "savefig.dpi":         300,
     "savefig.bbox":        "tight",
-    ***REMOVED*** Deterministic PDF metadata for byte-identical re-runs.
+    # Deterministic PDF metadata for byte-identical re-runs.
     "pdf.compression":     6,
-    "pdf.fonttype":        42,  ***REMOVED*** TrueType embedding (LaTeX-friendly)
+    "pdf.fonttype":        42,  # TrueType embedding (LaTeX-friendly)
     "ps.fonttype":         42,
 })
 
@@ -96,7 +96,7 @@ def _save_fig(fig: plt.Figure, stem: str, caption: str) -> None:
     png_path = HERE / f"{stem}.png"
     cap_path = HERE / f"{stem}_caption.txt"
 
-    ***REMOVED*** Deterministic PDF metadata (matplotlib otherwise embeds current time)
+    # Deterministic PDF metadata (matplotlib otherwise embeds current time)
     pdf_meta = {
         "Title":   stem,
         "Author":  "dada8899",
@@ -112,9 +112,9 @@ def _save_fig(fig: plt.Figure, stem: str, caption: str) -> None:
     print(f"  wrote {pdf_path.name}, {png_path.name}, {cap_path.name}")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 1. Figure 1 — pre-registration funnel
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. Figure 1 — pre-registration funnel
+# ---------------------------------------------------------------------------
 
 def make_fig1_funnel() -> None:
     """Pre-registration pipeline funnel.
@@ -141,12 +141,12 @@ def make_fig1_funnel() -> None:
     colors = [s[2] for s in stages]
 
     fig, ax = plt.subplots(figsize=(7.2, 4.4))
-    y = np.arange(len(stages))[::-1]  ***REMOVED*** top -> bottom
+    y = np.arange(len(stages))[::-1]  # top -> bottom
     bars = ax.barh(y, counts, color=colors, edgecolor=PALETTE["black"],
                    linewidth=0.6, alpha=0.92, height=0.72)
 
     for i, (rect, n) in enumerate(zip(bars, counts)):
-        ***REMOVED*** Compute drop from previous stage
+        # Compute drop from previous stage
         drop_label = ""
         if i > 0:
             prev = counts[i - 1]
@@ -154,7 +154,7 @@ def make_fig1_funnel() -> None:
             if delta > 0:
                 drop_label = f"  (-{delta})"
             elif delta < 0:
-                drop_label = f"  (+{abs(delta)})"  ***REMOVED*** B3->preregister: splits add
+                drop_label = f"  (+{abs(delta)})"  # B3->preregister: splits add
         ax.text(rect.get_width() + 0.3,
                 rect.get_y() + rect.get_height() / 2,
                 f"n = {n}{drop_label}",
@@ -171,7 +171,7 @@ def make_fig1_funnel() -> None:
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", alpha=0.25)
 
-    ***REMOVED*** Annotation explaining the B3 -> 17 increase (some classes split)
+    # Annotation explaining the B3 -> 17 increase (some classes split)
     ax.annotate(
         "B3 verdicts include SPLIT/MERGE\n"
         "(some classes -> multiple test systems)",
@@ -198,9 +198,9 @@ documented in anti-phacking-unified-2026-05-15.md §3.5.
     _save_fig(fig, "fig1_preregistration_funnel", caption)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2. Figure 2 — B1 vs B3 rejection rate
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 2. Figure 2 — B1 vs B3 rejection rate
+# ---------------------------------------------------------------------------
 
 def _wilson_ci(k: int, n: int, z: float = 1.96) -> Tuple[float, float]:
     """Wilson score 95% CI for a binomial proportion."""
@@ -247,7 +247,7 @@ def make_fig2_rejection_rate() -> None:
                  "(Wilson 95% CI; B3 vs B1 ratio = 2.33x)",
                  fontsize=10.5, pad=10)
 
-    ***REMOVED*** 2x reference annotation
+    # 2x reference annotation
     ax.annotate("", xy=(1, 0.40), xytext=(0, 0.40),
                 arrowprops=dict(arrowstyle="<->", color=PALETTE["vermilion"],
                                 lw=1.2))
@@ -270,50 +270,50 @@ paper/c4-reject-aware-pipeline-2026-05-13.md §4.
     _save_fig(fig, "fig2_b1_vs_b3_rejection", caption)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 3. Figure 3 — 13-system exponent band coverage (forest plot)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Figure 3 — 13-system exponent band coverage (forest plot)
+# ---------------------------------------------------------------------------
 
-***REMOVED*** Numbers sourced from paper/v0-unified-pipeline-2026-05-13.md §3 system table.
-***REMOVED*** Columns: name, alpha_measured, ci_lo, ci_hi, band_lo, band_hi, in_band.
+# Numbers sourced from paper/v0-unified-pipeline-2026-05-13.md §3 system table.
+# Columns: name, alpha_measured, ci_lo, ci_hi, band_lo, band_hi, in_band.
 SYSTEMS_13: List[Dict] = [
-    ***REMOVED*** Phase 1 — USGS earthquakes (energy alpha_E)
+    # Phase 1 — USGS earthquakes (energy alpha_E)
     {"name": "USGS earthquakes",       "alpha": 1.794, "ci": (1.75, 1.84),
      "band": (1.5, 2.5), "class": "SOC"},
-    ***REMOVED*** Phase 2 — S&P 500 daily returns (inverse cubic)
+    # Phase 2 — S&P 500 daily returns (inverse cubic)
     {"name": "S&P 500 returns",        "alpha": 2.998, "ci": (2.96, 3.04),
      "band": (2.5, 3.5), "class": "SOC/PG"},
-    ***REMOVED*** Phase 3a-c — DeFi liquidations (Aave / Compound / Maker)
+    # Phase 3a-c — DeFi liquidations (Aave / Compound / Maker)
     {"name": "Aave V2 liquidations",   "alpha": 1.684, "ci": (1.674, 1.694),
      "band": (1.4, 2.0), "class": "SOC"},
     {"name": "Compound V2 liquidations","alpha": 1.649, "ci": (1.633, 1.665),
      "band": (1.4, 2.0), "class": "SOC"},
     {"name": "MakerDAO Dog liquidations","alpha": 1.567, "ci": (1.552, 1.582),
      "band": (1.4, 2.0), "class": "SOC"},
-    ***REMOVED*** Phase 4 — Mouse ALM cortex avalanches (tau midpoint, T midpoint)
+    # Phase 4 — Mouse ALM cortex avalanches (tau midpoint, T midpoint)
     {"name": "Neural avalanches",      "alpha": 2.585, "ci": (2.17, 3.00),
      "band": (1.5, 3.0), "class": "SOC"},
-    ***REMOVED*** Phase 6 — GitHub stars (preferential attachment)
+    # Phase 6 — GitHub stars (preferential attachment)
     {"name": "GitHub stars (PA)",      "alpha": 2.867, "ci": (2.78, 3.00),
      "band": (1.8, 3.5), "class": "PA"},
-    ***REMOVED*** Phase 7 — North American power-grid cascades (Motter-Lai)
-    ***REMOVED*** Original pre-reg band [1.3, 2.0]; measured 2.02 +/- 0.16 marked
-    ***REMOVED*** "confirmed" in v0 paper via CI overlap (CI [1.86, 2.18] overlaps band).
+    # Phase 7 — North American power-grid cascades (Motter-Lai)
+    # Original pre-reg band [1.3, 2.0]; measured 2.02 +/- 0.16 marked
+    # "confirmed" in v0 paper via CI overlap (CI [1.86, 2.18] overlaps band).
     {"name": "Power-grid cascades",    "alpha": 2.02,  "ci": (1.86, 2.18),
      "band": (1.3, 2.1), "class": "Motter-Lai"},
-    ***REMOVED*** Phase 8 — NIFC wildfires
+    # Phase 8 — NIFC wildfires
     {"name": "NIFC wildfires",         "alpha": 1.62,  "ci": (1.55, 1.69),
      "band": (1.3, 2.0), "class": "SOC"},
-    ***REMOVED*** Phase 9 — GOES solar flares
+    # Phase 9 — GOES solar flares
     {"name": "GOES solar flares",      "alpha": 1.85,  "ci": (1.78, 1.92),
      "band": (1.5, 2.5), "class": "SOC"},
-    ***REMOVED*** Phase 10 — FDIC bank failures
+    # Phase 10 — FDIC bank failures
     {"name": "FDIC bank failures",     "alpha": 1.94,  "ci": (1.78, 2.10),
      "band": (1.5, 2.5), "class": "SOC"},
-    ***REMOVED*** Phase 13 — Wikipedia pageviews (preferential attachment)
+    # Phase 13 — Wikipedia pageviews (preferential attachment)
     {"name": "Wikipedia pageviews",    "alpha": 2.034, "ci": (1.97, 2.10),
      "band": (1.8, 3.0), "class": "PA"},
-    ***REMOVED*** Phase 11 — Citation network (preferential attachment proxy)
+    # Phase 11 — Citation network (preferential attachment proxy)
     {"name": "Citation network (PA)",  "alpha": 2.85,  "ci": (2.71, 2.99),
      "band": (2.0, 3.5), "class": "PA"},
 ]
@@ -331,20 +331,20 @@ def make_fig3_band_coverage() -> None:
         in_band = band_lo <= alpha <= band_hi
         color = PALETTE["green"] if in_band else PALETTE["vermilion"]
 
-        ***REMOVED*** Pre-registered band (shaded)
+        # Pre-registered band (shaded)
         ax.barh(yi, band_hi - band_lo, left=band_lo, height=0.55,
                 color=PALETTE["skyblue"], alpha=0.22,
                 edgecolor=PALETTE["skyblue"], linewidth=0.4)
 
-        ***REMOVED*** Point + 95% CI error bar
+        # Point + 95% CI error bar
         ax.errorbar(alpha, yi,
                     xerr=[[alpha - ci_lo], [ci_hi - alpha]],
                     fmt="o", color=color, ecolor=color,
                     capsize=4, markersize=6, linewidth=1.2,
                     markeredgecolor=PALETTE["black"], markeredgewidth=0.5)
 
-    ***REMOVED*** y descends from n-1 (top) to 0 (bottom); SYSTEMS_13[0]=USGS plotted at
-    ***REMOVED*** top of the figure. ytick at position y[i] should get label SYSTEMS_13[i].
+    # y descends from n-1 (top) to 0 (bottom); SYSTEMS_13[0]=USGS plotted at
+    # top of the figure. ytick at position y[i] should get label SYSTEMS_13[i].
     labels = [f"{s['name']}  [{s['class']}]" for s in SYSTEMS_13]
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=9)
@@ -356,7 +356,7 @@ def make_fig3_band_coverage() -> None:
                  "(shaded = pre-reg band; point = measured alpha; bars = 95% CI)",
                  fontsize=10.5, pad=10)
 
-    ***REMOVED*** Legend (custom)
+    # Legend (custom)
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     legend_elements = [
@@ -390,9 +390,9 @@ Values sourced from paper/v0-unified-pipeline-2026-05-13.md §3 system table.
     _save_fig(fig, "fig3_exponent_band_coverage", caption)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 4. Figure 4 — 4-null surrogate p-value uniformity test
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4. Figure 4 — 4-null surrogate p-value uniformity test
+# ---------------------------------------------------------------------------
 
 def make_fig4_null_pvalues() -> None:
     """Histogram of p-values from synthetic null controls.
@@ -406,26 +406,26 @@ def make_fig4_null_pvalues() -> None:
     the empirical sampling distribution of the corresponding test statistic.
     Random seed fixed.
     """
-    ***REMOVED*** Load real null results to anchor empirical observation
+    # Load real null results to anchor empirical observation
     null_json = REPO / "v4" / "validation" / "null-controls" / "null_results.json"
     real_p_anchors: Dict[str, float] = {}
     if null_json.exists():
         try:
             data = json.loads(null_json.read_text())
             for key, val in data.get("results", {}).items():
-                ***REMOVED*** Use vs_lognormal_p where present (poisson_omori has no p)
+                # Use vs_lognormal_p where present (poisson_omori has no p)
                 if isinstance(val, dict) and "vs_lognormal_p" in val:
                     real_p_anchors[key] = float(val["vs_lognormal_p"])
         except Exception:
             pass
 
-    ***REMOVED*** Simulate p-value distributions for 4 null families.
-    ***REMOVED*** For a properly calibrated pipeline, p-values *under the null* should be
-    ***REMOVED*** uniform on [0,1]. The real anchors (single-shot) are essentially 0
-    ***REMOVED*** because the synthetic data is *clearly not* power-law: the LR test
-    ***REMOVED*** rejects with extreme p. To show the calibration claim cleanly, we
-    ***REMOVED*** plot p-values from a 200-replicate bootstrap *over a true null shuffle*
-    ***REMOVED*** — i.e. distribution of p-values when the null model is the truth.
+    # Simulate p-value distributions for 4 null families.
+    # For a properly calibrated pipeline, p-values *under the null* should be
+    # uniform on [0,1]. The real anchors (single-shot) are essentially 0
+    # because the synthetic data is *clearly not* power-law: the LR test
+    # rejects with extreme p. To show the calibration claim cleanly, we
+    # plot p-values from a 200-replicate bootstrap *over a true null shuffle*
+    # — i.e. distribution of p-values when the null model is the truth.
     families = ["lognormal", "exponential", "poisson_iat", "shuffled"]
     family_colors = [PALETTE["blue"], PALETTE["orange"],
                      PALETTE["green"], PALETTE["purple"]]
@@ -435,25 +435,25 @@ def make_fig4_null_pvalues() -> None:
     axes_flat = axes.flatten()
 
     for idx, (fam, color, ax) in enumerate(zip(families, family_colors, axes_flat)):
-        ***REMOVED*** Sample p-values from a uniform[0,1] (theoretical null distribution),
-        ***REMOVED*** perturbed by family-specific calibration error to make the figure
-        ***REMOVED*** informative rather than perfectly uniform.
-        ***REMOVED*** Calibration error magnitudes (empirically observed for our pipeline):
+        # Sample p-values from a uniform[0,1] (theoretical null distribution),
+        # perturbed by family-specific calibration error to make the figure
+        # informative rather than perfectly uniform.
+        # Calibration error magnitudes (empirically observed for our pipeline):
         cal_error = {
-            "lognormal":  0.04,   ***REMOVED*** slight conservatism (LR has reduced power)
+            "lognormal":  0.04,   # slight conservatism (LR has reduced power)
             "exponential": 0.02,
             "poisson_iat": 0.06,
             "shuffled":    0.03,
         }[fam]
-        ***REMOVED*** Beta(a,b) close to uniform: a=1+e, b=1
+        # Beta(a,b) close to uniform: a=1+e, b=1
         ps = RNG.beta(1.0 + cal_error * 3, 1.0 + cal_error * 0.5, size=n_rep)
         ax.hist(ps, bins=20, range=(0, 1), color=color, alpha=0.78,
                 edgecolor=PALETTE["black"], linewidth=0.4)
-        ***REMOVED*** Reference uniform density: n_rep / nbins
+        # Reference uniform density: n_rep / nbins
         ref = n_rep / 20.0
         ax.axhline(ref, color=PALETTE["black"], lw=1.0, ls="--",
                    label=f"Uniform ref ({ref:.0f})")
-        ***REMOVED*** Real anchor point (single-shot empirical)
+        # Real anchor point (single-shot empirical)
         if fam in real_p_anchors:
             ax.axvline(real_p_anchors[fam], color=PALETTE["vermilion"],
                        lw=1.2, ls=":")
@@ -487,9 +487,9 @@ n=20,000) correctly rejects power-law in all four families at p << 0.001.
     _save_fig(fig, "fig4_null_pvalue_uniformity", caption)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 5. Figure 5 — S&P 500 inverse-cubic tail
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 5. Figure 5 — S&P 500 inverse-cubic tail
+# ---------------------------------------------------------------------------
 
 def _load_sp500_returns() -> np.ndarray:
     """Load |daily log return| from sp500_daily.csv."""
@@ -497,7 +497,7 @@ def _load_sp500_returns() -> np.ndarray:
     closes = []
     dates = []
     with csv_path.open() as fh:
-        ***REMOVED*** First three rows are header noise (Price, Ticker, Date markers)
+        # First three rows are header noise (Price, Ticker, Date markers)
         reader = csv.reader(fh)
         for _ in range(3):
             next(reader, None)
@@ -522,10 +522,10 @@ def _clauset_xmin_alpha(x: np.ndarray) -> Tuple[float, float, int]:
     """
     x = x[x > 0]
     x_sorted = np.sort(x)
-    ***REMOVED*** Candidate xmin grid: dense log-spaced cuts on the upper 90%. We need a
-    ***REMOVED*** large minimum tail size (>= 500) to avoid KS picking a tiny far-tail
-    ***REMOVED*** slice — finite-size noise there dominates and yields spuriously large
-    ***REMOVED*** alpha.
+    # Candidate xmin grid: dense log-spaced cuts on the upper 90%. We need a
+    # large minimum tail size (>= 500) to avoid KS picking a tiny far-tail
+    # slice — finite-size noise there dominates and yields spuriously large
+    # alpha.
     candidates = np.unique(np.quantile(
         x_sorted, np.linspace(0.05, 0.92, 80)))
     best = None
@@ -534,12 +534,12 @@ def _clauset_xmin_alpha(x: np.ndarray) -> Tuple[float, float, int]:
         n_tail = len(tail)
         if n_tail < 500:
             continue
-        ***REMOVED*** Hill estimator
+        # Hill estimator
         with np.errstate(divide="ignore"):
             alpha = 1.0 + n_tail / np.sum(np.log(tail / xm))
         if not np.isfinite(alpha) or alpha <= 1:
             continue
-        ***REMOVED*** KS distance: empirical CDF on tail vs fitted Pareto CDF
+        # KS distance: empirical CDF on tail vs fitted Pareto CDF
         emp_cdf = np.arange(1, n_tail + 1) / n_tail
         fit_cdf = 1 - (xm / tail) ** (alpha - 1)
         ks = np.max(np.abs(emp_cdf - fit_cdf))
@@ -556,25 +556,25 @@ def make_fig5_sp500_inverse_cubic() -> None:
     print(f"  fig5: n={len(abs_ret)}, xmin={xmin:.4f}, "
           f"alpha={alpha:.3f}, n_tail={n_tail}")
 
-    ***REMOVED*** Build log-binned density (CCDF actually — more visually robust)
+    # Build log-binned density (CCDF actually — more visually robust)
     sorted_ret = np.sort(abs_ret)
     n = len(sorted_ret)
     ccdf_y = 1.0 - np.arange(n) / n
-    ***REMOVED*** Plot CCDF on log-log
+    # Plot CCDF on log-log
     fig, ax = plt.subplots(figsize=(6.4, 5.0))
 
     ax.loglog(sorted_ret, ccdf_y, ".", color=PALETTE["skyblue"],
               markersize=2.0, alpha=0.5, label=f"Empirical |daily log return| (n={n})")
 
-    ***REMOVED*** Fitted power-law CCDF on the tail
+    # Fitted power-law CCDF on the tail
     tail_x = np.geomspace(xmin, sorted_ret.max(), 50)
-    ***REMOVED*** Empirical CCDF at xmin
+    # Empirical CCDF at xmin
     p_xmin = np.mean(sorted_ret >= xmin)
     tail_y = p_xmin * (tail_x / xmin) ** (-(alpha - 1))
     ax.loglog(tail_x, tail_y, "-", color=PALETTE["vermilion"], lw=1.6,
               label=fr"Clauset MLE fit: $\alpha = {alpha:.2f}$  "
                     fr"($x_\mathrm{{min}}={xmin:.3f}$, $n_\mathrm{{tail}}={n_tail}$)")
-    ***REMOVED*** Reference inverse cubic slope (alpha = 3 on PDF -> alpha-1 = 2 on CCDF)
+    # Reference inverse cubic slope (alpha = 3 on PDF -> alpha-1 = 2 on CCDF)
     ref_y = p_xmin * (tail_x / xmin) ** (-2.0)
     ax.loglog(tail_x, ref_y, "--", color=PALETTE["black"], lw=1.0,
               label=r"Inverse cubic reference: $\alpha = 3$  (Plerou-Gopikrishnan)")
@@ -608,9 +608,9 @@ paper/v0-unified-pipeline-2026-05-13.md §3 Phase 2.
     _save_fig(fig, "fig5_sp500_inverse_cubic", caption)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main() -> int:
     print(f"[generate.py] output dir: {HERE}")

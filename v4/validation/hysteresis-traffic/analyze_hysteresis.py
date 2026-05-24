@@ -38,17 +38,17 @@ QRHO_PATH = HERE / "traffic_qrho.jsonl"
 LIT_PATH = HERE / "literature_fallback.json"
 RESULTS_OUT = HERE / "traffic_results.json"
 
-***REMOVED*** ---- physical / class-prediction constants ----
-***REMOVED*** Branch classification is *by speed*, not by density, because NGSIM
-***REMOVED*** per-cell Edie aggregation can over-estimate q when only a sub-cell
-***REMOVED*** is occupied. Canonical FD threshold: v > 60 km/h ~ free flow,
-***REMOVED*** v < 40 km/h ~ congested. The 40-60 corridor is the meta-stable
-***REMOVED*** transition region where hysteresis is observed.
+# ---- physical / class-prediction constants ----
+# Branch classification is *by speed*, not by density, because NGSIM
+# per-cell Edie aggregation can over-estimate q when only a sub-cell
+# is occupied. Canonical FD threshold: v > 60 km/h ~ free flow,
+# v < 40 km/h ~ congested. The 40-60 corridor is the meta-stable
+# transition region where hysteresis is observed.
 V_FREE_KMH = 60.0
 V_JAM_KMH = 40.0
-***REMOVED*** Physical sanity cap on per-lane flow. Real motorway capacity is
-***REMOVED*** 2200-2400 veh/h/lane (HCM 2010); values above 2800 are NGSIM
-***REMOVED*** spatial-aggregation noise from sub-cell occupancy.
+# Physical sanity cap on per-lane flow. Real motorway capacity is
+# 2200-2400 veh/h/lane (HCM 2010); values above 2800 are NGSIM
+# spatial-aggregation noise from sub-cell occupancy.
 Q_MAX_PHYSICAL_VEH_H = 2800.0
 PREDICTED_RATIO_BAND = (1.25, 1.55)
 MIN_FREE_POINTS = 50
@@ -87,8 +87,8 @@ def load_qrho(
             if rho > 250:
                 continue
             if q > Q_MAX_PHYSICAL_VEH_H:
-                ***REMOVED*** NGSIM Edie cell with low actual occupancy but high
-                ***REMOVED*** per-frame speed; not a real macroscopic flow value.
+                # NGSIM Edie cell with low actual occupancy but high
+                # per-frame speed; not a real macroscopic flow value.
                 continue
             rhos.append(rho)
             qs.append(q)
@@ -268,14 +268,14 @@ def detect_first_order_transition(qrho_jsonl: Path) -> dict:
         pts.sort()
         t_arr = np.array([p[0] for p in pts])
         v_arr = np.array([p[3] for p in pts])
-        ***REMOVED*** find first time idx where v drops below V_JAM_KMH after
-        ***REMOVED*** being above V_FREE_KMH
+        # find first time idx where v drops below V_JAM_KMH after
+        # being above V_FREE_KMH
         above = v_arr >= V_FREE_KMH
         below = v_arr <= V_JAM_KMH
         if not above.any() or not below.any():
             continue
         first_above_idx = int(np.argmax(above))
-        ***REMOVED*** earliest 'below' that is after the first 'above'
+        # earliest 'below' that is after the first 'above'
         below_after = np.where((below) & (t_arr > t_arr[first_above_idx]))[0]
         if len(below_after) == 0:
             continue
@@ -300,7 +300,7 @@ def detect_first_order_transition(qrho_jsonl: Path) -> dict:
     return summary
 
 
-***REMOVED*** Time-bin constant for the transition scan (must match aggregation).
+# Time-bin constant for the transition scan (must match aggregation).
 T_BIN_S = 30.0
 
 
@@ -379,7 +379,7 @@ def main() -> int:
     use_ngsim = (n_free >= MIN_FREE_POINTS) and (n_jam >= MIN_JAM_POINTS)
 
     payload: dict = {
-        "phase": "A2-Hysteresis (V4 class ***REMOVED***2 hysteresis_preisach)",
+        "phase": "A2-Hysteresis (V4 class #2 hysteresis_preisach)",
         "domain": "highway traffic (US-101 NGSIM 2005-06-15)",
         "predicted_class": "hysteresis_preisach (Layer 4 prediction)",
         "predicted_ratio_band_q_c1_over_q_c2": list(PREDICTED_RATIO_BAND),
@@ -392,7 +392,7 @@ def main() -> int:
 
     if use_ngsim:
         analysis = analyze_ngsim(rho, q, v)
-        ***REMOVED*** Add temporal first-order transition scan (NGSIM-specific).
+        # Add temporal first-order transition scan (NGSIM-specific).
         transition = detect_first_order_transition(QRHO_PATH)
         analysis["first_order_transition_scan"] = transition
         payload["ngsim_analysis"] = analysis
@@ -411,7 +411,7 @@ def main() -> int:
             and ci["ratio_ci_high"] >= PREDICTED_RATIO_BAND[0]
         )
     else:
-        ***REMOVED*** Fallback to literature only.
+        # Fallback to literature only.
         ratios = [v["ratio"] for v in lit.values()]
         mean_ratio = statistics.mean(ratios) if ratios else None
         payload["literature_only_ratio_mean"] = mean_ratio
@@ -420,20 +420,20 @@ def main() -> int:
             mean_ratio is not None and in_band(mean_ratio, PREDICTED_RATIO_BAND)
         )
 
-    ***REMOVED*** ---- Verdict logic ----
-    ***REMOVED***
-    ***REMOVED*** The A2-Hysteresis class prediction has TWO independent
-    ***REMOVED*** signatures (per hysteresis_preisach.yaml):
-    ***REMOVED***   (i)  q_c1 / q_c2 in [1.25, 1.55] (loop-width signature)
-    ***REMOVED***   (ii) First-order (discontinuous) phase transition between
-    ***REMOVED***        free-flow and congested branches
-    ***REMOVED***
-    ***REMOVED*** NGSIM US-101 covers a single 45-min peak-hour window. It is
-    ***REMOVED*** therefore well-suited to test (ii) but cannot give a clean
-    ***REMOVED*** estimate of (i) because there is no congestion-recovery half
-    ***REMOVED*** of the cycle in the data (only loading: free -> jam, no jam
-    ***REMOVED*** -> free release). We therefore use literature anchors for the
-    ***REMOVED*** ratio and NGSIM for the first-order signature.
+    # ---- Verdict logic ----
+    #
+    # The A2-Hysteresis class prediction has TWO independent
+    # signatures (per hysteresis_preisach.yaml):
+    #   (i)  q_c1 / q_c2 in [1.25, 1.55] (loop-width signature)
+    #   (ii) First-order (discontinuous) phase transition between
+    #        free-flow and congested branches
+    #
+    # NGSIM US-101 covers a single 45-min peak-hour window. It is
+    # therefore well-suited to test (ii) but cannot give a clean
+    # estimate of (i) because there is no congestion-recovery half
+    # of the cycle in the data (only loading: free -> jam, no jam
+    # -> free release). We therefore use literature anchors for the
+    # ratio and NGSIM for the first-order signature.
     lit_ratios = [v["ratio"] for v in lit.values()]
     lit_in_band = [in_band(r, PREDICTED_RATIO_BAND) for r in lit_ratios]
     payload["literature_ratio_in_band"] = (
@@ -446,16 +446,16 @@ def main() -> int:
     first_order_ok = False
     if use_ngsim:
         trans = payload["ngsim_analysis"].get("first_order_transition_scan", {})
-        ***REMOVED*** First-order signature: a substantial fraction of monitored
-        ***REMOVED*** locations exhibit a sharp speed drop from free to jam band
-        ***REMOVED*** (instead of dwelling in the meta-stable interior).
+        # First-order signature: a substantial fraction of monitored
+        # locations exhibit a sharp speed drop from free to jam band
+        # (instead of dwelling in the meta-stable interior).
         n_scanned = trans.get("n_locations_scanned", 0)
         n_with = trans.get("n_locations_with_free_to_jam_transition", 0)
         if n_scanned >= 5 and n_with / n_scanned >= 0.30:
             first_order_ok = True
         payload["ngsim_first_order_signature_ok"] = first_order_ok
 
-    ***REMOVED*** Composite verdict.
+    # Composite verdict.
     if use_ngsim and first_order_ok and payload["literature_ratio_in_band"]:
         verdict = "CONFIRMED_COMPOSITE"
     elif payload["literature_ratio_in_band"] and use_ngsim:
@@ -471,7 +471,7 @@ def main() -> int:
     RESULTS_OUT.write_text(json.dumps(payload, indent=2))
     print(f"[write] {RESULTS_OUT}")
 
-    ***REMOVED*** Brief stdout summary.
+    # Brief stdout summary.
     print("\n--- summary ---")
     print(f"source: {payload['data_source_used']}")
     if use_ngsim:

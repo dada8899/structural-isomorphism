@@ -1,28 +1,28 @@
-***REMOVED*** Session ***REMOVED***4 Starter — 全权授权执行清单
+# Session #4 Starter — 全权授权执行清单
 
-> Session ***REMOVED***3 已完成所有 engineering / paper / product / community / future-planning 工作（41 PRs + F1 P1 fix = 42 PRs merged）。Session ***REMOVED***4 = **执行不可逆 / 对外发布 / 需 token 的 last-mile actions**。
+> Session #3 已完成所有 engineering / paper / product / community / future-planning 工作（41 PRs + F1 P1 fix = 42 PRs merged）。Session #4 = **执行不可逆 / 对外发布 / 需 token 的 last-mile actions**。
 >
-> 用户已说"全部授权"，session ***REMOVED***4 起手即可按本文档顺序执行，无需再问。
+> 用户已说"全部授权"，session #4 起手即可按本文档顺序执行，无需再问。
 >
 > **起手第一件事**：读本文件 + `HANDOFF.md`，然后按 §0 跑环境检查。
 
 ---
 
-***REMOVED******REMOVED*** §0 起手 60 秒 — 环境 + 凭证扫描
+## §0 起手 60 秒 — 环境 + 凭证扫描
 
 ```bash
 cd ~/Projects/structural-isomorphism
 git pull origin main
-git log --oneline -5         ***REMOVED*** head 应该是 session ***REMOVED***3 W9 finalize merge (commit 6f9efe6 或之后含 F1 P1 fix 的 0380327)
+git log --oneline -5         # head 应该是 session #3 W9 finalize merge (commit 6f9efe6 或之后含 F1 P1 fix 的 0380327)
 
-***REMOVED*** 凭证扫描
-gh auth status                                          ***REMOVED*** 必须 ✓ logged in dada8899 with repo scope
-env | grep -iE "deepseek|pypi|zenodo" | sed 's/=.*/=<SET>/'  ***REMOVED*** 看 token 是否在 env
-ls ~/.pypirc 2>&1                                        ***REMOVED*** 看 pypi config
-which git-filter-repo twine pandoc 2>&1                  ***REMOVED*** 看工具是否装好
+# 凭证扫描
+gh auth status                                          # 必须 ✓ logged in dada8899 with repo scope
+env | grep -iE "deepseek|pypi|zenodo" | sed 's/=.*/=<SET>/'  # 看 token 是否在 env
+ls ~/.pypirc 2>&1                                        # 看 pypi config
+which git-filter-repo twine pandoc 2>&1                  # 看工具是否装好
 ```
 
-***REMOVED******REMOVED******REMOVED*** 必须的凭证清单（按需准备）
+### 必须的凭证清单（按需准备）
 
 | Action | 凭证 | 获取方式 |
 |--------|------|----------|
@@ -35,9 +35,9 @@ which git-filter-repo twine pandoc 2>&1                  ***REMOVED*** 看工具
 
 ---
 
-***REMOVED******REMOVED*** §1 当前 main 状态（session ***REMOVED***3 + F1 P1 fix 后）
+## §1 当前 main 状态（session #3 + F1 P1 fix 后）
 
-- **main HEAD**: `0380327` (F1 P1 fix merge) — 42 PRs since session ***REMOVED***2 base `332049b`
+- **main HEAD**: `0380327` (F1 P1 fix merge) — 42 PRs since session #2 base `332049b`
 - **production live**:
   - https://phase.bytedance.city/ (HTTPS, 97 companies, **W6-D narrative + F1 React error fix applied + redeployed**)
   - https://beta.structural.bytedance.city/ (5 new pages: papers/methods/taxonomy-v2/start-here/about)
@@ -55,9 +55,9 @@ which git-filter-repo twine pandoc 2>&1                  ***REMOVED*** 看工具
 
 ---
 
-***REMOVED******REMOVED*** §2 Session ***REMOVED***4 执行顺序（按依赖排，每步独立可暂停）
+## §2 Session #4 执行顺序（按依赖排，每步独立可暂停）
 
-***REMOVED******REMOVED******REMOVED*** Step 1: Rotate DeepSeek API key （≤ 5 min, **用户 web action**）
+### Step 1: Rotate DeepSeek API key （≤ 5 min, **用户 web action**）
 
 **Why first**: 老 key 可能 leak 在 git history（W5-B 反馈）。先 rotate，老 key 立即失效，再 scrub 历史就没风险。
 
@@ -67,10 +67,10 @@ which git-filter-repo twine pandoc 2>&1                  ***REMOVED*** 看工具
 3. Create new key, copy
 4. 更新本地 + VPS env：
    ```bash
-   ***REMOVED*** Local: 加到 ~/.zshrc 或 .env
+   # Local: 加到 ~/.zshrc 或 .env
    export DEEPSEEK_API_KEY="sk-NEW..."
 
-   ***REMOVED*** VPS:
+   # VPS:
    ssh root@43.156.233.71 'cat >> /etc/environment <<EOF
    DEEPSEEK_API_KEY=sk-NEW...
    EOF
@@ -89,44 +89,44 @@ print(r.status_code, r.json().get('choices',[{}])[0].get('message',{}).get('cont
 "
 ```
 
-***REMOVED******REMOVED******REMOVED*** Step 2: Scrub git history （15-20 min, irreversible, **all auto**）
+### Step 2: Scrub git history （15-20 min, irreversible, **all auto**）
 
 **Why**: 历史 commits 仍包含老 key 引用（即使已 rotate，从 OSS 卫生角度该清除）。
 
 **Steps**:
 ```bash
-***REMOVED*** Install
+# Install
 pip install git-filter-repo
 
-***REMOVED*** Backup repo first (safety)
+# Backup repo first (safety)
 cd ~/Projects/
 cp -r structural-isomorphism structural-isomorphism-backup-pre-scrub-2026-05-14
 
-***REMOVED*** Identify all secret patterns to scrub
+# Identify all secret patterns to scrub
 cd ~/Projects/structural-isomorphism
 git log --all --full-history --source -p | grep -oE "sk-[a-zA-Z0-9_-]{20,}" | sort -u > /tmp/keys-found.txt
-cat /tmp/keys-found.txt  ***REMOVED*** 应列出 1-N 个 key fragment
+cat /tmp/keys-found.txt  # 应列出 1-N 个 key fragment
 
-***REMOVED*** Create replacement file
+# Create replacement file
 cat > /tmp/secret-replacements.txt <<EOF
 sk-ad62***==>***REDACTED***
 EOF
-***REMOVED*** Add each unique key to /tmp/secret-replacements.txt as `<key>==>***REDACTED***`
+# Add each unique key to /tmp/secret-replacements.txt as `<key>==>***REDACTED***`
 
-***REMOVED*** Run scrub
+# Run scrub
 git filter-repo --replace-text /tmp/secret-replacements.txt --force
 
-***REMOVED*** Verify scrub clean
+# Verify scrub clean
 git log --all -p | grep -E "sk-[a-zA-Z0-9_-]{20,}" | head -5
-***REMOVED*** Should be empty
+# Should be empty
 ```
 
 **Force push cleaned history**:
 ```bash
-***REMOVED*** Re-add origin (filter-repo removes it for safety)
+# Re-add origin (filter-repo removes it for safety)
 git remote add origin https://github.com/dada8899/structural-isomorphism.git
 
-***REMOVED*** Force push (irreversible)
+# Force push (irreversible)
 git push --force-with-lease --all origin
 git push --force-with-lease --tags origin
 ```
@@ -137,48 +137,48 @@ cd ~/Projects/
 rm -rf structural-isomorphism
 mv structural-isomorphism-backup-pre-scrub-2026-05-14 structural-isomorphism
 cd structural-isomorphism
-git push --force origin main  ***REMOVED*** restore origin to pre-scrub state
+git push --force origin main  # restore origin to pre-scrub state
 ```
 
-***REMOVED******REMOVED******REMOVED*** Step 3: Verify history clean + cleanup local clones （5 min）
+### Step 3: Verify history clean + cleanup local clones （5 min）
 
 ```bash
-***REMOVED*** Verify GitHub remote also clean
+# Verify GitHub remote also clean
 gh api repos/dada8899/structural-isomorphism/commits | jq -r '.[].sha' | head -5
-***REMOVED*** spot-check a recent commit:
+# spot-check a recent commit:
 gh api repos/dada8899/structural-isomorphism/git/blobs/$(gh api repos/dada8899/structural-isomorphism/contents/v4/scripts/b3_ensemble.py | jq -r .sha) | jq -r .content | base64 -d | grep -c "sk-ad62"
-***REMOVED*** should output 0
+# should output 0
 
-***REMOVED*** Clean VPS clone too
+# Clean VPS clone too
 ssh root@43.156.233.71 'cd /root/Projects/structural-isomorphism-v4 && git fetch && git reset --hard origin/main'
 ```
 
-***REMOVED******REMOVED******REMOVED*** Step 4: Flip repo PUBLIC （1 min, **auto via gh**）
+### Step 4: Flip repo PUBLIC （1 min, **auto via gh**）
 
 ```bash
-***REMOVED*** Before:
-gh repo view dada8899/structural-isomorphism --json visibility -q .visibility   ***REMOVED*** "PRIVATE"
+# Before:
+gh repo view dada8899/structural-isomorphism --json visibility -q .visibility   # "PRIVATE"
 
-***REMOVED*** Flip
+# Flip
 gh repo edit dada8899/structural-isomorphism --visibility public --accept-visibility-change-consequences
 
-***REMOVED*** After:
-gh repo view dada8899/structural-isomorphism --json visibility -q .visibility   ***REMOVED*** "PUBLIC"
+# After:
+gh repo view dada8899/structural-isomorphism --json visibility -q .visibility   # "PUBLIC"
 
-***REMOVED*** Verify externally accessible
+# Verify externally accessible
 curl -sI https://github.com/dada8899/structural-isomorphism | head -3
 ```
 
-***REMOVED******REMOVED******REMOVED*** Step 5: PyPI publish — soc-pipeline + guarded-llm （10 min, **需 PYPI_TOKEN**）
+### Step 5: PyPI publish — soc-pipeline + guarded-llm （10 min, **需 PYPI_TOKEN**）
 
 ```bash
 pip install build twine
 
-***REMOVED*** Rebuild wheels fresh (safer than stale)
+# Rebuild wheels fresh (safer than stale)
 cd packages/soc-pipeline
 rm -rf dist/ build/
 python -m build
-twine check dist/*   ***REMOVED*** 必须 PASSED
+twine check dist/*   # 必须 PASSED
 cd ../..
 
 cd packages/guarded-llm
@@ -187,17 +187,17 @@ python -m build
 twine check dist/*
 cd ../..
 
-***REMOVED*** Publish (use TestPyPI first if cautious)
+# Publish (use TestPyPI first if cautious)
 export TWINE_USERNAME="__token__"
-export TWINE_PASSWORD="pypi-..."  ***REMOVED*** 你的 PYPI_TOKEN
+export TWINE_PASSWORD="pypi-..."  # 你的 PYPI_TOKEN
 
-***REMOVED*** soc-pipeline
+# soc-pipeline
 twine upload packages/soc-pipeline/dist/*
 
-***REMOVED*** guarded-llm
+# guarded-llm
 twine upload packages/guarded-llm/dist/*
 
-***REMOVED*** Verify
+# Verify
 pip install soc-pipeline==0.1.0
 python -c "from soc_pipeline import fit_clauset_powerlaw; print('ok')"
 pip install guarded-llm==0.1.0
@@ -208,17 +208,17 @@ python -c "from guarded_llm import guardrailed_llm_call; print('ok')"
 - https://pypi.org/project/soc-pipeline/
 - https://pypi.org/project/guarded-llm/
 
-***REMOVED******REMOVED******REMOVED*** Step 6: Zenodo mint DOI for dataset/v1 （15 min, **需 ZENODO_ACCESS_TOKEN**）
+### Step 6: Zenodo mint DOI for dataset/v1 （15 min, **需 ZENODO_ACCESS_TOKEN**）
 
 ```bash
-***REMOVED*** Tarball the bundle
+# Tarball the bundle
 cd dataset/v1/
 tar czf /tmp/structural-isomorphism-dataset-v1.tar.gz --dereference --exclude='.DS_Store' .
-ls -lh /tmp/structural-isomorphism-dataset-v1.tar.gz   ***REMOVED*** ~100 MB
+ls -lh /tmp/structural-isomorphism-dataset-v1.tar.gz   # ~100 MB
 cd ../..
 
-***REMOVED*** Create deposition
-ZENODO_TOKEN="..."   ***REMOVED*** 你的 token
+# Create deposition
+ZENODO_TOKEN="..."   # 你的 token
 RESP=$(curl -s -X POST "https://zenodo.org/api/deposit/depositions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ZENODO_TOKEN" \
@@ -227,12 +227,12 @@ DEP_ID=$(echo $RESP | python -c "import sys,json; print(json.load(sys.stdin)['id
 BUCKET=$(echo $RESP | python -c "import sys,json; print(json.load(sys.stdin)['links']['bucket'])")
 echo "Deposition: $DEP_ID  Bucket: $BUCKET"
 
-***REMOVED*** Upload
+# Upload
 curl --progress-bar -X PUT "$BUCKET/structural-isomorphism-dataset-v1.tar.gz" \
   -H "Authorization: Bearer $ZENODO_TOKEN" \
   --data-binary @/tmp/structural-isomorphism-dataset-v1.tar.gz
 
-***REMOVED*** Add metadata
+# Add metadata
 cat > /tmp/zenodo-metadata.json <<'JSON'
 {"metadata":{
   "title":"Cross-domain SOC validation dataset (v1, 2026-05-13)",
@@ -250,7 +250,7 @@ curl -s -X PUT "https://zenodo.org/api/deposit/depositions/$DEP_ID" \
   -H "Authorization: Bearer $ZENODO_TOKEN" \
   -d @/tmp/zenodo-metadata.json
 
-***REMOVED*** Visit zenodo.org to review + click PUBLISH
+# Visit zenodo.org to review + click PUBLISH
 echo "Review at: https://zenodo.org/deposit/$DEP_ID"
 echo "After publish, DOI will be: https://doi.org/10.5281/zenodo.<ID>"
 ```
@@ -263,7 +263,7 @@ echo "After publish, DOI will be: https://doi.org/10.5281/zenodo.<ID>"
 
 Commit + push 这些更新。
 
-***REMOVED******REMOVED******REMOVED*** Step 7: arXiv submission — C1 v0.3 first （30 min web form, **需 arxiv.org 账号**）
+### Step 7: arXiv submission — C1 v0.3 first （30 min web form, **需 arxiv.org 账号**）
 
 **arXiv 没有 submission API**，必须 web form。
 
@@ -294,7 +294,7 @@ Commit + push 这些更新。
 
 C4 投 `stat.ML` primary + `cs.LG` cross-list（LLM ensemble methodology）。
 
-***REMOVED******REMOVED******REMOVED*** Step 8: 更新 cross-refs (10 min)
+### Step 8: 更新 cross-refs (10 min)
 
 得到 arXiv IDs (e.g. `2605.XXXXX`) 后更新：
 - `README.md`: arXiv badge
@@ -304,13 +304,13 @@ C4 投 `stat.ML` primary + `cs.LG` cross-list（LLM ensemble methodology）。
 - GitHub release notes
 - Zenodo deposition (related_identifiers: isSupplementTo arXiv:<ID>)
 
-***REMOVED******REMOVED******REMOVED*** Step 9: GitHub release v0.3.0 (5 min)
+### Step 9: GitHub release v0.3.0 (5 min)
 
 ```bash
 gh release create v0.3.0 \
-  --title "structural-isomorphism v0.3 — session ***REMOVED***3 mega-sprint" \
+  --title "structural-isomorphism v0.3 — session #3 mega-sprint" \
   --notes "$(cat <<'EOF'
-***REMOVED******REMOVED*** Session ***REMOVED***3 deliverables (2026-05-13)
+## Session #3 deliverables (2026-05-13)
 
 41 PRs merged across 9 waves. Key items:
 
@@ -327,15 +327,15 @@ EOF
 )"
 ```
 
-***REMOVED******REMOVED******REMOVED*** Step 10: HN / Reddit / Twitter launch announcements (optional, **scheduled**)
+### Step 10: HN / Reddit / Twitter launch announcements (optional, **scheduled**)
 
-不在 session ***REMOVED***4 强制范围。投 arXiv 后 1-2 周再做（让 paper 先有 reading time）。
+不在 session #4 强制范围。投 arXiv 后 1-2 周再做（让 paper 先有 reading time）。
 
-Outreach drafts 应该提前写好 — 见下方 §4 ready-made templates section（待 session ***REMOVED***5 完成）。
+Outreach drafts 应该提前写好 — 见下方 §4 ready-made templates section（待 session #5 完成）。
 
 ---
 
-***REMOVED******REMOVED*** §3 Risk gates / rollback
+## §3 Risk gates / rollback
 
 | Action | Reversible? | Rollback |
 |--------|------------|----------|
@@ -343,14 +343,14 @@ Outreach drafts 应该提前写好 — 见下方 §4 ready-made templates sectio
 | Step 2 (history scrub) | **NO** — irreversible if force-pushed. Mitigation: backup repo first |
 | Step 3 (verify) | n/a | — |
 | Step 4 (PUBLIC flip) | Yes — `gh repo edit --visibility private` | — |
-| Step 5 (PyPI) | **NO** — can yank version but never republish same version***REMOVED*** | mitigation: TestPyPI first |
+| Step 5 (PyPI) | **NO** — can yank version but never republish same version# | mitigation: TestPyPI first |
 | Step 6 (Zenodo) | **NO** — DOI permanent once published. Can release new version v1.1 | mitigation: review before clicking Publish |
 | Step 7 (arXiv) | **Withdraw** option exists but discouraged | mitigation: preview carefully |
 | Step 8-9 | Yes | — |
 
 ---
 
-***REMOVED******REMOVED*** §4 已知次要事项（不阻塞 session ***REMOVED***4 但 nice-to-do）
+## §4 已知次要事项（不阻塞 session #4 但 nice-to-do）
 
 1. **agent-soc-solar worktree leftover** (`.claude/worktrees/agent-soc-solar`): from earlier session, can `git worktree remove --force` cleanup
 2. **`b.ai` / `easyrouter.io` backup LLM keys** (memory `reference_backup_llm_keys_2026_05_03.md`): 可能也需要 rotate (low priority)
@@ -363,9 +363,9 @@ Outreach drafts 应该提前写好 — 见下方 §4 ready-made templates sectio
 
 ---
 
-***REMOVED******REMOVED*** §5 Session ***REMOVED***4 验收标准
+## §5 Session #4 验收标准
 
-session ***REMOVED***4 完成 = 以下 all true：
+session #4 完成 = 以下 all true：
 
 - [ ] DeepSeek key 已 rotate
 - [ ] Git history 无 plaintext API key (`git log --all -p | grep -E 'sk-[a-zA-Z0-9_-]{20,}'` empty)
@@ -376,13 +376,13 @@ session ***REMOVED***4 完成 = 以下 all true：
 - [ ] C1 v0.3 投 arXiv → 拿到 ID
 - [ ] (optional) C2 4 solo + C4 也投 arXiv
 - [ ] GitHub release v0.3.0 created
-- [ ] HANDOFF.md 更新到 session ***REMOVED***4 close 状态
+- [ ] HANDOFF.md 更新到 session #4 close 状态
 
 预估 wall time：**2-3 小时**（如果所有 token 都准备好且无 web step 卡住）。
 
 ---
 
-***REMOVED******REMOVED*** §6 Session ***REMOVED***4 起手第一段 prompt 模板
+## §6 Session #4 起手第一段 prompt 模板
 
 如果 user 想换 prompt 直接告诉 next-session Claude：
 
@@ -399,9 +399,9 @@ session ***REMOVED***4 完成 = 以下 all true：
 
 ---
 
-***REMOVED******REMOVED*** 附录：本 SESSION-4-STARTER.md 维护规则
+## 附录：本 SESSION-4-STARTER.md 维护规则
 
 - Step 7-9 完成后，把对应行从 §5 验收标准 check 掉
 - 任何 step 失败导致 partial 状态，在 §3 加一条 incident note
-- 如果 session ***REMOVED***4 衍生新 sprint，append 到 §4 "已知次要事项"
+- 如果 session #4 衍生新 sprint，append 到 §4 "已知次要事项"
 - arXiv ID / Zenodo DOI / PyPI URLs 拿到后即时回填到本文 + HANDOFF.md

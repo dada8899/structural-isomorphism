@@ -1,15 +1,15 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** run_all.sh — orchestrator for k6 load test suite (W14-B, session ***REMOVED***10)
-***REMOVED***
-***REMOVED*** Runs each scenario in sequence (NOT parallel — parallel runs would
-***REMOVED*** contaminate each other's baselines). Writes JSON summaries to
-***REMOVED*** tests/load/results/ and produces a markdown digest at the end.
-***REMOVED***
-***REMOVED*** Usage:
-***REMOVED***   BASE_URL=http://localhost:8000 ./tests/load/run_all.sh           ***REMOVED*** full suite
-***REMOVED***   BASE_URL=http://localhost:8000 SKIP_STRESS=1 ./tests/load/run_all.sh  ***REMOVED*** skip stress
-***REMOVED***   BASE_URL=https://beta.structural.bytedance.city SAFE=1 ./tests/load/run_all.sh
-***REMOVED***     (SAFE=1 runs only the smoke tests, capped at 1-2 VU — for prod sanity)
+#!/usr/bin/env bash
+# run_all.sh — orchestrator for k6 load test suite (W14-B, session #10)
+#
+# Runs each scenario in sequence (NOT parallel — parallel runs would
+# contaminate each other's baselines). Writes JSON summaries to
+# tests/load/results/ and produces a markdown digest at the end.
+#
+# Usage:
+#   BASE_URL=http://localhost:8000 ./tests/load/run_all.sh           # full suite
+#   BASE_URL=http://localhost:8000 SKIP_STRESS=1 ./tests/load/run_all.sh  # skip stress
+#   BASE_URL=https://beta.structural.bytedance.city SAFE=1 ./tests/load/run_all.sh
+#     (SAFE=1 runs only the smoke tests, capped at 1-2 VU — for prod sanity)
 
 set -euo pipefail
 
@@ -17,7 +17,7 @@ BASE_URL="${BASE_URL:-http://localhost:8000}"
 SAFE="${SAFE:-0}"
 SKIP_STRESS="${SKIP_STRESS:-0}"
 
-cd "$(dirname "$0")/../.."  ***REMOVED*** repo root
+cd "$(dirname "$0")/../.."  # repo root
 
 if ! command -v k6 >/dev/null 2>&1; then
   echo "ERROR: k6 is not installed."

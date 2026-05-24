@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Send a markdown newsletter draft to Buttondown — W7-D mini-brief 3 (2026-05-24).
 
 Pairs with `scripts/generate_weekly_signals.py`. Two modes:
@@ -41,10 +41,10 @@ _BUTTONDOWN_URL = "https://api.buttondown.email/v1/emails"
 
 
 def _read_subject(md_text: str, fallback: str) -> str:
-    """Use the first `***REMOVED*** ` heading as subject; fallback to filename stem."""
+    """Use the first `# ` heading as subject; fallback to filename stem."""
     for line in md_text.splitlines():
         line = line.strip()
-        if line.startswith("***REMOVED*** "):
+        if line.startswith("# "):
             return line[2:].strip()
     return fallback
 

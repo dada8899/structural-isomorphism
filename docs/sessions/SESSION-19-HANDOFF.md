@@ -1,4 +1,4 @@
-***REMOVED*** Session ***REMOVED***19 Handoff
+# Session #19 Handoff
 
 > 从 SESSION-18-OUTCOME.md 承接。本 session 完成了 B 飞轮深化 + UX 全面打磨 + 
 > 开始部署，但部署时踩到 VPS Python 3.11 兼容性 bug，服务崩溃，网站目前 502。
@@ -6,7 +6,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. 当前状态（网站 502）
+## 0. 当前状态（网站 502）
 
 **根因**：`stress_test.py` 和 `diagnose.py` 含 `from __future__ import annotations`，
 在 VPS Python 3.11 + Pydantic 2.6.1 下导致 `PydanticUndefinedAnnotation: name 'StressTestRequest' is not defined`，
@@ -33,9 +33,9 @@ curl -s https://beta.structural.bytedance.city/api/health
 
 ---
 
-***REMOVED******REMOVED*** 1. Session ***REMOVED***19 完成的内容
+## 1. Session #19 完成的内容
 
-***REMOVED******REMOVED******REMOVED*** B 飞轮 — 人工验证闭环（已提交 d88597b）
+### B 飞轮 — 人工验证闭环（已提交 d88597b）
 
 - `report_store.py`: `count_human_verified(b_id)` — indexed JOIN 统计"used it, it worked"用户数
 - `verified_isomorphisms.py`: `human_verified_for(store, b_id)` wrapper，降级返回 `{count: 0}`
@@ -44,7 +44,7 @@ curl -s https://beta.structural.bytedance.city/api/health
 - `analyze.css`: `.cred-badge__chip--human` success-green 样式
 - `test_flywheel_feedback.py`: 10 个新测试
 
-***REMOVED******REMOVED******REMOVED*** UX 全面打磨（已提交 e629857）
+### UX 全面打磨（已提交 e629857）
 
 9 个工具页面全部深化（discoveries / classes / insights / whitespace / lint + tools hub + apply / stress-test / diagnose 的 CSS 细节）：
 - 信息层级更清晰，空状态更友好，mobile 适配更好
@@ -52,7 +52,7 @@ curl -s https://beta.structural.bytedance.city/api/health
   `networkidle` → `domcontentloaded`（plausible analytics 脚本会阻塞 networkidle）；
   insights browser 测试 timeout 延长
 
-***REMOVED******REMOVED******REMOVED*** 测试覆盖
+### 测试覆盖
 
 - 后端：713 passed（baseline 501 → +212）
 - Education e2e：8/8 ✓
@@ -61,26 +61,26 @@ curl -s https://beta.structural.bytedance.city/api/health
 
 ---
 
-***REMOVED******REMOVED*** 2. 部署后待办
+## 2. 部署后待办
 
 | 优先级 | 动作 | 说明 |
 |---|---|---|
 | 🔴 P0 | 修 502（见上） | 提交两行删除 + redeploy |
-| 🔴 P0 | 轮换 OpenRouter API key | 旧 key 曾在 public repo 泄露（***REMOVED***17 起未办） |
+| 🔴 P0 | 轮换 OpenRouter API key | 旧 key 曾在 public repo 泄露（#17 起未办） |
 | 🟡 | 部署后跑 whitespace LLM 预计算 | `OPENROUTER_API_KEY=... python scripts/build_whitespace_matrix.py --llm`，约 400+ LLM 调用，一次性 |
 | 🟡 | 部署后跑 `@post_deploy` e2e | `STRUCTURAL_BASE=https://beta.structural.bytedance.city PHASE_BASE=https://beta.structural.bytedance.city .venv/bin/python -m pytest web/tests/e2e/ -k "post_deploy" -v` |
 | 🟢 | G 方向：连接人 | 独立立项，设计文档在 `docs/sessions/SESSION-18-G-connect-people-design.md` |
 
 ---
 
-***REMOVED******REMOVED*** 3. Git 状态
+## 3. Git 状态
 
 ```
 本地 ahead/behind: 0 / 0（已全部 push）
 最近 commit:
-  e629857  feat(frontend): session ***REMOVED***18 UX deepening — all 9 tool pages polished
-  d88597b  feat(backend,frontend): session ***REMOVED***18 B — flywheel feedback closes credibility loop
-  3c3eeb1  docs(sessions): session ***REMOVED***18 outcome — A-G shipped, deploy pending
+  e629857  feat(frontend): session #18 UX deepening — all 9 tool pages polished
+  d88597b  feat(backend,frontend): session #18 B — flywheel feedback closes credibility loop
+  3c3eeb1  docs(sessions): session #18 outcome — A-G shipped, deploy pending
 
 working tree 剩余未提交:
   M scripts/train_v2.py       ← 不是本 session 的，留着不动
@@ -90,7 +90,7 @@ working tree 剩余未提交:
 
 ---
 
-***REMOVED******REMOVED*** 4. 架构速查
+## 4. 架构速查
 
 | 层 | 位置 | 说明 |
 |---|---|---|
@@ -106,7 +106,7 @@ working tree 剩余未提交:
 
 ---
 
-***REMOVED******REMOVED*** 5. 起手指令（下个 session）
+## 5. 起手指令（下个 session）
 
 ```
 读 SESSION-19-HANDOFF.md，立刻提交两文件修复 + push + 触发 Deploy Beta Backend。

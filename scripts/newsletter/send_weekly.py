@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Weekly newsletter pipeline (W8-D).
 
 Pipeline:
@@ -10,13 +10,13 @@ Pipeline:
     6. Optionally send via Buttondown API (if BUTTONDOWN_API_KEY set + --send).
 
 Usage:
-    ***REMOVED*** Dry-run: emit markdown to stdout
+    # Dry-run: emit markdown to stdout
     python scripts/newsletter/send_weekly.py --dry-run
 
-    ***REMOVED*** Write to file (default: docs/newsletter/samples/digest-YYYY-MM-DD.md)
+    # Write to file (default: docs/newsletter/samples/digest-YYYY-MM-DD.md)
     python scripts/newsletter/send_weekly.py --out docs/newsletter/samples/
 
-    ***REMOVED*** Send via Buttondown (requires BUTTONDOWN_API_KEY env)
+    # Send via Buttondown (requires BUTTONDOWN_API_KEY env)
     python scripts/newsletter/send_weekly.py --send
 
 The "last week snapshot" lives at scripts/newsletter/state/last_week_state.json
@@ -73,7 +73,7 @@ def load_current_state(p: Path) -> dict[str, dict[str, Any]]:
             ticker = st.get("ticker") or rec.get("ticker")
             if not ticker:
                 continue
-            ***REMOVED*** Accept both schema variants for ergonomic field names.
+            # Accept both schema variants for ergonomic field names.
             confidence = st.get("confidence_overall")
             if confidence is None and isinstance(st.get("confidence"), dict):
                 confidence = st["confidence"].get("overall")
@@ -109,10 +109,10 @@ def write_state(state_dir: Path, current: dict[str, dict[str, Any]]) -> None:
     p.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-***REMOVED*** critical_point_state vocab is in flux across batches. Accept both v1
-***REMOVED*** (near_critical/subcritical/tipped) and v2 (approaching_critical/at_critical/
-***REMOVED*** post_critical_transition) labels. The newsletter cares about the "approaching"
-***REMOVED*** bucket regardless of exact label.
+# critical_point_state vocab is in flux across batches. Accept both v1
+# (near_critical/subcritical/tipped) and v2 (approaching_critical/at_critical/
+# post_critical_transition) labels. The newsletter cares about the "approaching"
+# bucket regardless of exact label.
 TIPPING_STATES = frozenset({"near_critical", "approaching_critical", "at_critical"})
 STABLE_STATES = frozenset({"subcritical", "far_from_critical"})
 
@@ -138,7 +138,7 @@ def diff_states(
             entered.append({**cur, "previous_state": prev_state or "unknown"})
         elif prev_state in TIPPING_STATES and cur_state in STABLE_STATES:
             returned.append({**cur, "previous_state": prev_state})
-    ***REMOVED*** sort by ticker for deterministic output
+    # sort by ticker for deterministic output
     entered.sort(key=lambda r: r["ticker"])
     returned.sort(key=lambda r: r["ticker"])
     return entered, returned
@@ -235,12 +235,12 @@ def send_via_buttondown(markdown: str, subject: str) -> dict[str, Any]:
     if not api_key:
         raise RuntimeError("BUTTONDOWN_API_KEY not set; cannot send")
     try:
-        import httpx  ***REMOVED*** type: ignore
-    except ImportError as e:  ***REMOVED*** pragma: no cover
+        import httpx  # type: ignore
+    except ImportError as e:  # pragma: no cover
         raise RuntimeError(
             "httpx not installed; pip install httpx OR run with --dry-run"
         ) from e
-    ***REMOVED*** https://docs.buttondown.email/api-emails-create
+    # https://docs.buttondown.email/api-emails-create
     res = httpx.post(
         "https://api.buttondown.email/v1/emails",
         headers={"Authorization": f"Token {api_key}"},

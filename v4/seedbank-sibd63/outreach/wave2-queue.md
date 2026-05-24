@@ -1,4 +1,4 @@
-***REMOVED*** Wave 2 outreach queue · 2026-04-17
+# Wave 2 outreach queue · 2026-04-17
 
 After i18n deploys (A/B/C/D/E agents), run `scripts/send_wave2.py` (or create drafts manually from this file) to fire these 8 messages.
 
@@ -13,9 +13,9 @@ Links below currently use raw Chinese URLs. When i18n is live, swap to `?lang=en
 
 ---
 
-***REMOVED******REMOVED*** PART 1 · Replies to existing threads (3)
+## PART 1 · Replies to existing threads (3)
 
-***REMOVED******REMOVED******REMOVED*** R1. Reply to Keith Holyoak (UCLA)
+### R1. Reply to Keith Holyoak (UCLA)
 
 ```yaml
 to: kholyoak@g.ucla.edu
@@ -43,7 +43,7 @@ Qinghui
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** R2. Reply to Dirk Helbing (ETH Zurich)
+### R2. Reply to Dirk Helbing (ETH Zurich)
 
 ```yaml
 to: dirk.helbing@gess.ethz.ch
@@ -76,7 +76,7 @@ Qinghui
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** R3. Reply to Dashun Wang (Northwestern Kellogg)
+### R3. Reply to Dashun Wang (Northwestern Kellogg)
 
 ```yaml
 to: dashun.wang@kellogg.northwestern.edu
@@ -110,9 +110,9 @@ Qinghui
 
 ---
 
-***REMOVED******REMOVED*** PART 2 · A-group cold emails (5)
+## PART 2 · A-group cold emails (5)
 
-***REMOVED******REMOVED******REMOVED*** A1. Didier Sornette (ETH Zurich)
+### A1. Didier Sornette (ETH Zurich)
 
 ```yaml
 to: dsornette@ethz.ch
@@ -151,7 +151,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** A2. John Beggs (Indiana University)
+### A2. John Beggs (Indiana University)
 
 ```yaml
 to: jmbeggs@indiana.edu
@@ -190,7 +190,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** A3. Viola Priesemann (MPI Göttingen)
+### A3. Viola Priesemann (MPI Göttingen)
 
 ```yaml
 to: viola.priesemann@ds.mpg.de
@@ -229,7 +229,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** A4. Álvaro Corral (CRM Barcelona)
+### A4. Álvaro Corral (CRM Barcelona)
 
 ```yaml
 to: acorral@crm.cat
@@ -268,7 +268,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** A5. Ariah Klages-Mundt (Gauntlet)
+### A5. Ariah Klages-Mundt (Gauntlet)
 
 ```yaml
 to: ariah@gauntlet.xyz
@@ -307,7 +307,7 @@ Qinghui Wan
 
 ---
 
-***REMOVED******REMOVED*** Send plan
+## Send plan
 
 1. Wait for all 5 i18n agents (A/B/C/D/E) to complete
 2. Integration pass: merge, verify, deploy to VPS

@@ -17,13 +17,13 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-***REMOVED*** Ensure web/backend is on sys.path so the new modules resolve.
+# Ensure web/backend is on sys.path so the new modules resolve.
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
 
-***REMOVED*** -------------- fixtures --------------
+# -------------- fixtures --------------
 
 
 @pytest.fixture(autouse=True)
@@ -70,10 +70,10 @@ def seed_keys(monkeypatch, tmp_path):
     ]
     p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
     monkeypatch.setenv("STRUCTURAL_API_KEYS_PATH", str(p))
-    ***REMOVED*** Reset the in-memory store so it picks up the new path.
+    # Reset the in-memory store so it picks up the new path.
     import auth.api_key as ak_mod
     ak_mod._store = None
-    ***REMOVED*** Also force-clear slowapi's storage at start.
+    # Also force-clear slowapi's storage at start.
     try:
         from middleware.rate_limit import limiter
         limiter.reset()
@@ -139,7 +139,7 @@ def client(app_with_hardening):
     return TestClient(app_with_hardening)
 
 
-***REMOVED*** -------------- RFC 7807 -------------------------------------
+# -------------- RFC 7807 -------------------------------------
 
 
 def test_problem_envelope_on_404(client):
@@ -155,7 +155,7 @@ def test_problem_envelope_on_404(client):
 
 
 def test_problem_envelope_on_validation_error(client):
-    ***REMOVED*** Extra field violates extra=forbid
+    # Extra field violates extra=forbid
     r = client.post("/api/echo", json={"name": "x", "count": 5, "bad": "no"})
     assert r.status_code == 422
     body = r.json()
@@ -166,7 +166,7 @@ def test_problem_envelope_on_validation_error(client):
 
 
 def test_problem_envelope_missing_required(client):
-    r = client.post("/api/echo", json={"name": "x"})  ***REMOVED*** missing count
+    r = client.post("/api/echo", json={"name": "x"})  # missing count
     assert r.status_code == 422
     body = r.json()
     assert body["type"].endswith("/errors/invalid_input")
@@ -185,19 +185,19 @@ def test_problem_envelope_budget_exceeded(client):
     assert r.status_code == 429
     body = r.json()
     assert body["type"].endswith("/errors/budget_exceeded")
-    ***REMOVED*** Extension fields preserved
+    # Extension fields preserved
     assert body.get("tier") == "free"
     assert body.get("remaining_usd") == 0
 
 
-***REMOVED*** -------------- API-key auth ----------------------------
+# -------------- API-key auth ----------------------------
 
 
 def test_no_api_key_is_free_tier(client):
     r = client.get("/api/ping")
     assert r.status_code == 200
     assert r.json()["tier"] == "free"
-    ***REMOVED*** Annotated by middleware
+    # Annotated by middleware
     assert r.headers.get("X-Rate-Limit-Tier") == "free"
 
 
@@ -230,7 +230,7 @@ def test_revoked_key_returns_401(client):
 
 
 def test_admin_endpoint_requires_admin_tier(client):
-    ***REMOVED*** No key — should get 403 (free tier hits the explicit Forbidden raise).
+    # No key — should get 403 (free tier hits the explicit Forbidden raise).
     r = client.get("/api/admin/secret")
     assert r.status_code == 403
     body = r.json()
@@ -248,12 +248,12 @@ def test_admin_endpoint_rejects_pro_tier(client):
     assert r.status_code == 403
 
 
-***REMOVED*** -------------- Rate limit ----------------------------
+# -------------- Rate limit ----------------------------
 
 
 def test_rate_limit_admin_unlimited(client):
     """Admin tier maps to 1M/min sentinel — should never trip."""
-    ***REMOVED*** Hit many times quickly; should all succeed.
+    # Hit many times quickly; should all succeed.
     for _ in range(20):
         r = client.get("/api/ping", headers={"X-API-Key": "sk_test_admin_ddd"})
         assert r.status_code == 200
@@ -261,16 +261,16 @@ def test_rate_limit_admin_unlimited(client):
 
 def test_rate_limit_429_uses_problem_format(monkeypatch, seed_keys):
     """Force a tight limit and verify 429 envelope shape."""
-    ***REMOVED*** Build a fresh app with a tight override.
+    # Build a fresh app with a tight override.
     from errors import install_problem_handlers
     from middleware import install_rate_limit, tier_aware_limit
     import middleware.rate_limit as rl_mod
     from middleware.rate_limit import limiter
 
-    ***REMOVED*** Override TIER_LIMITS so 'free' is 2/min — easy to hit.
+    # Override TIER_LIMITS so 'free' is 2/min — easy to hit.
     monkeypatch.setitem(rl_mod.TIER_LIMITS, "free", 2)
 
-    ***REMOVED*** Belt-and-suspenders: clear right before test body runs.
+    # Belt-and-suspenders: clear right before test body runs.
     limiter.reset()
 
     app = FastAPI()
@@ -283,7 +283,7 @@ def test_rate_limit_429_uses_problem_format(monkeypatch, seed_keys):
         return {"ok": True}
 
     c = TestClient(app)
-    ***REMOVED*** Two should succeed; third should 429.
+    # Two should succeed; third should 429.
     r1 = c.get("/api/ping")
     r2 = c.get("/api/ping")
     r3 = c.get("/api/ping")
@@ -305,7 +305,7 @@ def test_rate_limit_pro_higher_than_free(monkeypatch, seed_keys):
     from middleware import install_rate_limit, tier_aware_limit
     import middleware.rate_limit as rl_mod
 
-    ***REMOVED*** Force free=1, pro=5 so we can observe the gap deterministically.
+    # Force free=1, pro=5 so we can observe the gap deterministically.
     monkeypatch.setitem(rl_mod.TIER_LIMITS, "free", 1)
     monkeypatch.setitem(rl_mod.TIER_LIMITS, "pro", 5)
 
@@ -319,17 +319,17 @@ def test_rate_limit_pro_higher_than_free(monkeypatch, seed_keys):
         return {"ok": True}
 
     c = TestClient(app)
-    ***REMOVED*** Free tier: 1st ok, 2nd 429.
+    # Free tier: 1st ok, 2nd 429.
     assert c.get("/api/ping").status_code == 200
     assert c.get("/api/ping").status_code == 429
-    ***REMOVED*** Pro tier (separate bucket): 5 should pass.
+    # Pro tier (separate bucket): 5 should pass.
     pro_headers = {"X-API-Key": "sk_test_pro_bbb"}
     for i in range(5):
         r = c.get("/api/ping", headers=pro_headers)
         assert r.status_code == 200, f"pro request {i+1} unexpectedly 429"
 
 
-***REMOVED*** -------------- OpenAPI ----------------------------
+# -------------- OpenAPI ----------------------------
 
 
 def test_openapi_every_route_has_summary():
@@ -346,8 +346,8 @@ def test_openapi_every_route_has_summary():
                 continue
             if not op.get("summary"):
                 missing.append(f"{verb.upper()} {path}")
-    ***REMOVED*** Soft assert: print first 5 missing so we can iterate. Hard cap of 10
-    ***REMOVED*** allowed (some legacy routes without summaries — to be fixed in W12).
+    # Soft assert: print first 5 missing so we can iterate. Hard cap of 10
+    # allowed (some legacy routes without summaries — to be fixed in W12).
     assert len(missing) <= 10, (
         f"Too many routes without summary ({len(missing)}). First 5: {missing[:5]}"
     )
@@ -389,7 +389,7 @@ def test_openapi_json_file_exists():
     assert len(data["paths"]) > 10
 
 
-***REMOVED*** -------------- contextvar isolation ----------------------
+# -------------- contextvar isolation ----------------------
 
 
 def test_tier_context_isolated_between_requests(client):

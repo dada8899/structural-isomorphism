@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Pre-reg P1 — Clauset 2009 power-law fit on BCH absolute daily log returns.
 
 Imports the FROZEN pipeline from `soc_pipeline` package; does not modify it.
@@ -39,7 +39,7 @@ INTERVALS_FILE = OUT_DIR / "bch_intervals.json"
 FIT_RESULT_FILE = OUT_DIR / "p1_fit_result.json"
 CCDF_FILE = OUT_DIR / "p1_ccdf.json"
 
-PREDICTED_BAND = (2.5, 3.1)  ***REMOVED*** 2.8 +/- 0.3
+PREDICTED_BAND = (2.5, 3.1)  # 2.8 +/- 0.3
 LITERATURE_BAND = (2.0, 3.5)
 
 
@@ -55,14 +55,14 @@ def main():
     print(f"[load] n_intervals={len(intervals)} median={np.median(intervals):.4f}s "
           f"min={intervals.min():.6f}s max={intervals.max():.2f}s")
 
-    ***REMOVED*** Clauset fit
+    # Clauset fit
     fit = fit_clauset_powerlaw(intervals, name="P1_bitcoin_cash_intervals", discrete=False)
     print(f"[fit] alpha={fit.alpha} xmin={fit.xmin} sigma={fit.sigma} "
           f"n_tail={fit.n_tail} ks={fit.ks_statistic}")
     print(f"[fit] vs_lognormal R={fit.vs_lognormal_R} p={fit.vs_lognormal_p}")
     print(f"[fit] vs_exponential R={fit.vs_exponential_R} p={fit.vs_exponential_p}")
 
-    ***REMOVED*** Bootstrap CI on alpha
+    # Bootstrap CI on alpha
     ci = bootstrap_ci(intervals, n_boot=200, seed=42, discrete=False)
     ci_dict = None
     if not ci.error:
@@ -97,7 +97,7 @@ def main():
         json.dump(out, f, indent=2)
     print(f"[ok] -> {FIT_RESULT_FILE}")
 
-    ***REMOVED*** CCDF for plotting (subsample if huge for grid efficiency)
+    # CCDF for plotting (subsample if huge for grid efficiency)
     sample = intervals if len(intervals) < 200_000 else np.random.default_rng(42).choice(intervals, 200_000, replace=False)
     grid, ccdf = empirical_ccdf(sample, n_points=200)
     with open(CCDF_FILE, "w") as f:

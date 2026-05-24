@@ -27,14 +27,14 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-***REMOVED*** --- Python 3.12+ sqlite3 timestamp adapter/converter ---------------------
-***REMOVED*** The stdlib's default `datetime` adapter and `timestamp` converter are
-***REMOVED*** deprecated as of Python 3.12 (PendingDeprecationWarning → DeprecationWarning)
-***REMOVED*** and slated for removal in a future version. Register explicit ISO-8601
-***REMOVED*** string round-trippers so we don't rely on the deprecated default path.
-***REMOVED***
-***REMOVED*** Idempotent: sqlite3.register_*() are global; calling them on every import
-***REMOVED*** is harmless. Guarded by a module-level flag for clarity.
+# --- Python 3.12+ sqlite3 timestamp adapter/converter ---------------------
+# The stdlib's default `datetime` adapter and `timestamp` converter are
+# deprecated as of Python 3.12 (PendingDeprecationWarning → DeprecationWarning)
+# and slated for removal in a future version. Register explicit ISO-8601
+# string round-trippers so we don't rely on the deprecated default path.
+#
+# Idempotent: sqlite3.register_*() are global; calling them on every import
+# is harmless. Guarded by a module-level flag for clarity.
 
 _TIMESTAMP_HOOKS_INSTALLED = False
 
@@ -45,22 +45,22 @@ def _install_timestamp_hooks() -> None:
         return
 
     def _adapt_datetime(dt: _dt.datetime) -> str:
-        ***REMOVED*** Match the CURRENT_TIMESTAMP default ("YYYY-MM-DD HH:MM:SS") so
-        ***REMOVED*** comparisons against rows inserted via the SQL default still sort
-        ***REMOVED*** lexically. fromisoformat() accepts both " " and "T" separators.
+        # Match the CURRENT_TIMESTAMP default ("YYYY-MM-DD HH:MM:SS") so
+        # comparisons against rows inserted via the SQL default still sort
+        # lexically. fromisoformat() accepts both " " and "T" separators.
         return dt.isoformat(sep=" ", timespec="seconds")
 
     def _convert_timestamp(value: bytes) -> _dt.datetime:
-        ***REMOVED*** CURRENT_TIMESTAMP stores "YYYY-MM-DD HH:MM:SS" (no microseconds,
-        ***REMOVED*** no timezone). fromisoformat() handles both that shape and any
-        ***REMOVED*** isoformat() we adapt above.
+        # CURRENT_TIMESTAMP stores "YYYY-MM-DD HH:MM:SS" (no microseconds,
+        # no timezone). fromisoformat() handles both that shape and any
+        # isoformat() we adapt above.
         text = value.decode("utf-8", errors="replace")
         try:
             return _dt.datetime.fromisoformat(text)
         except ValueError:
-            ***REMOVED*** Fallback: strip trailing "Z" or fractional weirdness; if it
-            ***REMOVED*** still can't parse, return None equivalent (epoch) rather than
-            ***REMOVED*** crashing the row read.
+            # Fallback: strip trailing "Z" or fractional weirdness; if it
+            # still can't parse, return None equivalent (epoch) rather than
+            # crashing the row read.
             text2 = text.rstrip("Z").split(".")[0]
             return _dt.datetime.fromisoformat(text2)
 
@@ -102,10 +102,10 @@ class HistoryDB:
             timeout=10.0,
         )
         conn.row_factory = sqlite3.Row
-        ***REMOVED*** WAL mode for better concurrent read/write behaviour under uvicorn workers.
+        # WAL mode for better concurrent read/write behaviour under uvicorn workers.
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  ***REMOVED*** pragma: no cover
+        except sqlite3.Error as e:  # pragma: no cover
             logger.warning("history_db WAL pragma failed: %s", e)
         return conn
 
@@ -180,7 +180,7 @@ class HistoryDB:
                 try:
                     d["result_summary"] = json.loads(summary)
                 except json.JSONDecodeError:
-                    ***REMOVED*** Leave as raw string; caller can decide what to do.
+                    # Leave as raw string; caller can decide what to do.
                     pass
             out.append(d)
         return out

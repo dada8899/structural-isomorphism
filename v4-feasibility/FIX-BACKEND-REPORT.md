@@ -1,9 +1,9 @@
-***REMOVED*** Backend Fix Report — beta.structural.bytedance.city
+# Backend Fix Report — beta.structural.bytedance.city
 
 Date: 2026-04-14
 Target file locations: `/root/Projects/structural-isomorphism/web/backend/` on VPS
 
-***REMOVED******REMOVED*** Latency — Before / After
+## Latency — Before / After
 
 Test query: `{"query":"为什么创业公司早期更容易创新","top_k":5}`
 
@@ -15,7 +15,7 @@ Test query: `{"query":"为什么创业公司早期更容易创新","top_k":5}`
 The headline query is now under 600ms. The LLM assessment runs in parallel from
 the frontend and no longer blocks first paint.
 
-***REMOVED******REMOVED*** Strategy — Option B (two-phase)
+## Strategy — Option B (two-phase)
 
 Split `/api/search` into a fast vector path and an independent LLM pre-flight.
 Frontend fires both via `Promise.all`, renders results on search return, and
@@ -23,9 +23,9 @@ then either (a) overlays the low-fit coaching gate, or (b) re-runs search with
 the LLM-rewritten query and swaps in higher-quality rankings. This preserves
 the quality gain from query rewriting without blocking the first paint.
 
-***REMOVED******REMOVED*** Fixes Landed
+## Fixes Landed
 
-***REMOVED******REMOVED******REMOVED*** P0 — latency
+### P0 — latency
 1. `api/search.py` — `rewrite` default flipped to `False`; assessment returns
    `{"pending": true}`. New `POST /api/search/assess` endpoint for the LLM gate.
 2. `services/search_service.py` — added per-instance `lru_cache(1024)` wrapper
@@ -34,14 +34,14 @@ the quality gain from query rewriting without blocking the first paint.
    search and assess in parallel; rewrites trigger a second search to upgrade
    rankings; cache-busting version bumped to `v=20260414a`.
 
-***REMOVED******REMOVED******REMOVED*** P0 — 404 handler
+### P0 — 404 handler
 4. `main.py` — 404 handler checks `request.url.path.startswith("/api")` and
    returns `JSONResponse({"detail":"not found"})` for API routes; HTML 404
    template still serves for page routes. Verified with curl:
    `/api/phenomenon/fake-id-xyz` → `{"detail":"not found"}`, `/fake-page` →
    HTML 404.
 
-***REMOVED******REMOVED******REMOVED*** P1 — security
+### P1 — security
 5. `main.py` — `allow_origins` pinned to
    `https://beta.structural.bytedance.city` + `https://structural.bytedance.city`
    (extendable via `STRUCTURAL_EXTRA_ORIGINS` env). `allow_credentials=False`
@@ -51,7 +51,7 @@ the quality gain from query rewriting without blocking the first paint.
    `POST /api/synthesize`, `GET /api/analyze/stream`. slowapi installed into
    the project venv.
 
-***REMOVED******REMOVED******REMOVED*** P1 — V1 residue
+### P1 — V1 residue
 7. `main.py` — `sys.path.insert` now uses `Path(__file__).resolve().parent.parent.parent`
    (overridable via `STRUCTURAL_PROJECT_ROOT`). The old lowercase `~/projects`
    default was silently failing on VPS (caught by `PYTHONPATH` in systemd unit).
@@ -59,7 +59,7 @@ the quality gain from query rewriting without blocking the first paint.
    `kb-expanded.jsonl`. The running env already pointed here, but defaults
    are now correct.
 
-***REMOVED******REMOVED******REMOVED*** P1 — performance cheap wins
+### P1 — performance cheap wins
 9. `services/search_service.py` — added `idx_by_id: Dict[str, int]` built at
    load time. `api/mapping.py` and `api/analyze.py` now resolve phenomenon
    indices via O(1) lookup instead of O(N) `next((i for i, item in enumerate(svc.kb)))`.
@@ -72,7 +72,7 @@ the quality gain from query rewriting without blocking the first paint.
     `synthesize_answer`, `stream_deep_analysis`) now reuse the pool instead
     of creating a fresh client per call.
 
-***REMOVED******REMOVED*** Verification
+## Verification
 
 ```
 search TIME 0.56s
@@ -84,7 +84,7 @@ search (cached) TIME 0.50s
 Service logs clean, no traceback, no slowapi errors
 ```
 
-***REMOVED******REMOVED*** Deferred
+## Deferred
 
 None — all 10 items in the task landed. The one observation worth flagging:
 without query rewriting, raw-query rankings are noticeably worse (physics

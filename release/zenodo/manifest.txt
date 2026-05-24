@@ -1,11 +1,11 @@
-***REMOVED*** Manifest for dataset-v1.tar.gz
-***REMOVED*** Structural Isomorphism v1.0 — Cross-domain SOC validation dataset
-***REMOVED*** Generated: 2026-05-24
+# Manifest for dataset-v1.tar.gz
+# Structural Isomorphism v1.0 — Cross-domain SOC validation dataset
+# Generated: 2026-05-24
 
-***REMOVED******REMOVED*** Bundle
+## Bundle
 dataset-v1.tar.gz  sha256=8391a305bf0084bc7624b2725a0b7b24f17153b53236124c65c96fea8c7c9ee9  bytes=45639162
 
-***REMOVED******REMOVED*** Files inside bundle (sha256  size_bytes  relative_path)
+## Files inside bundle (sha256  size_bytes  relative_path)
 834e33acf061456c9af439896eb04cbeae0cfaa0d55d9b206d5c1df607ca9277          1991  dataset/v1/CITATION.cff
 6a6e2e0956ee9354310e041e331b636a8ae19551e7d0bdb94149d65ea843b02f          1524  dataset/v1/LICENSE
 ed08cea202964e8fac72b275545345ec62325c107e54128d637a73c928dcd116          8087  dataset/v1/MINT_DOI_RUNBOOK.md
@@ -528,4 +528,4 @@ cc81de41de0f6603249f79b0599967338c2c9ce2c953255a84ec37c69b50e670            15  
 e8ce4fc3c982ab7f21d941cec9a50bb1f29e78487a960ace0c888d00840bc35f          2214  v4/validation/tail-copula/results.json
 cb4dda934f19f0eb1f00d94f69099b1cb122ee424e06cca6a274da9091d3b2b2        250375  v4/validation/tail-copula/storm_daily_damage.csv
 
-***REMOVED*** total: 521 files, 215955385 bytes
+# total: 521 files, 215955385 bytes

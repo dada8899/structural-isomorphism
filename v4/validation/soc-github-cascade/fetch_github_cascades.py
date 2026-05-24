@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Phase 6 — fetch GitHub event-cascade data via the GitHub API (gh CLI).
 
 PROBLEM WITH PRIOR GITHUB PILOTS
@@ -67,10 +67,10 @@ OUT_DIR = Path(__file__).resolve().parent
 EVENTS_JSONL = OUT_DIR / "events.jsonl"
 FETCH_LOG = OUT_DIR / "fetch_log.json"
 
-***REMOVED*** Curated set of large, ACTIVE OSS repos. Picked for high issue/PR throughput
-***REMOVED*** (so cascade windows actually contain derived events) and topical diversity
-***REMOVED*** (languages, infra, ML, frameworks) to avoid single-project artefacts.
-***REMOVED*** These are real repositories on github.com.
+# Curated set of large, ACTIVE OSS repos. Picked for high issue/PR throughput
+# (so cascade windows actually contain derived events) and topical diversity
+# (languages, infra, ML, frameworks) to avoid single-project artefacts.
+# These are real repositories on github.com.
 REPOS: list[str] = [
     "kubernetes/kubernetes",
     "facebook/react",
@@ -99,8 +99,8 @@ REPOS: list[str] = [
     "n8n-io/n8n",
 ]
 
-***REMOVED*** How many of the most-recent issues+PRs to pull per repo. 100/page; we take
-***REMOVED*** up to 6 pages = 600 events/repo. 25 repos x 600 ~= 15k events total.
+# How many of the most-recent issues+PRs to pull per repo. 100/page; we take
+# up to 6 pages = 600 events/repo. 25 repos x 600 ~= 15k events total.
 PAGES_PER_REPO = 6
 PAGE_SIZE = 100
 
@@ -190,7 +190,7 @@ def fetch_repo(repo: str) -> list[dict[str, Any]]:
             else:
                 p_more = bool(pi.get("hasNextPage"))
                 pcur = pi.get("endCursor")
-        time.sleep(0.3)  ***REMOVED*** be polite to the API
+        time.sleep(0.3)  # be polite to the API
     return records
 
 
@@ -217,7 +217,7 @@ def synth_stream(n: int = 400, seed: int = 7) -> list[dict[str, Any]]:
             "reactions": int(rng.integers(10, 60)) if loud else 0,
         })
         num += 1
-        if loud:  ***REMOVED*** inject an Omori-decaying aftershock burst
+        if loud:  # inject an Omori-decaying aftershock burst
             for k in range(int(rng.integers(5, 30))):
                 dt = (k + 1) ** 1.4 * rng.exponential(1800.0)
                 recs.append({
@@ -262,7 +262,7 @@ def main() -> None:
         log["per_repo_counts"][repo] = len(recs)
         print(f"  {repo}: {len(recs)} events", file=sys.stderr, flush=True)
         all_records.extend(recs)
-        ***REMOVED*** checkpoint after every repo so a mid-run crash keeps progress
+        # checkpoint after every repo so a mid-run crash keeps progress
         with EVENTS_JSONL.open("w") as f:
             for r in all_records:
                 f.write(json.dumps(r) + "\n")

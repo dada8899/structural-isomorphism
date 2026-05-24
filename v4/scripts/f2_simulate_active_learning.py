@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """F2 simulation: mini active-learning loop with baseline + after-AL R@5.
 
 This script demonstrates the active-learning pipeline end-to-end *without*
@@ -28,12 +28,12 @@ from typing import Any
 
 import numpy as np
 
-***REMOVED*** resolve repo paths + sys.path so we can import the lib modules
+# resolve repo paths + sys.path so we can import the lib modules
 THIS = Path(__file__).resolve()
 REPO = THIS.parents[2]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from embedding_finetune import (  ***REMOVED*** noqa: E402
+from embedding_finetune import (  # noqa: E402
     ContrastiveFinetuner,
     FinetuneMetrics,
     TrainingPair,
@@ -100,9 +100,9 @@ def baseline_metrics(
     """
     ft = ContrastiveFinetuner(lr=0.0, mode="simulated")
     ft.fit(eval_pairs, epochs=1, batch_size=64, vocab_corpus=vocab_corpus)
-    ***REMOVED*** Reset weights to unity to undo any micro-drift from lr=0 numerical noise.
-    if ft._weights is not None:  ***REMOVED*** type: ignore[attr-defined]
-        ft._weights = np.ones_like(ft._weights)  ***REMOVED*** type: ignore[attr-defined]
+    # Reset weights to unity to undo any micro-drift from lr=0 numerical noise.
+    if ft._weights is not None:  # type: ignore[attr-defined]
+        ft._weights = np.ones_like(ft._weights)  # type: ignore[attr-defined]
     return ft.evaluate(eval_pairs)
 
 
@@ -138,7 +138,7 @@ def write_report(
     delta_mrr = after_al_eval.mrr - baseline.mrr
     delta_sil = after_al_eval.silhouette - baseline.silhouette
     lines: list[str] = []
-    lines.append("***REMOVED*** F2 Active Learning — Simulation Report")
+    lines.append("# F2 Active Learning — Simulation Report")
     lines.append("")
     lines.append("**Goal**: show baseline (vanilla TF-IDF) vs after-AL (TF-IDF with weight rerank from miner-mined pairs) metric deltas.")
     lines.append("")
@@ -146,7 +146,7 @@ def write_report(
     lines.append(f"- Train split: {n_train}")
     lines.append(f"- Eval split: {n_eval}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Metrics")
+    lines.append("## Metrics")
     lines.append("")
     lines.append("| Metric | Baseline | After-AL | Δ |")
     lines.append("|---|---:|---:|---:|")
@@ -155,14 +155,14 @@ def write_report(
     lines.append(f"| MRR | {baseline.mrr:.3f} | {after_al_eval.mrr:.3f} | {delta_mrr:+.3f} |")
     lines.append(f"| Silhouette (proxy) | {baseline.silhouette:.3f} | {after_al_eval.silhouette:.3f} | {delta_sil:+.3f} |")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Train info (after-AL run)")
+    lines.append("## Train info (after-AL run)")
     lines.append("")
     lines.append(f"- train_loss: {after_al_train.train_loss:.4f}")
     lines.append(f"- epochs: {after_al_train.epochs}")
     lines.append(f"- n_positives (train): {after_al_train.n_positives}")
     lines.append(f"- n_hard_negatives (train): {after_al_train.n_hard_negatives}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Interpretation")
+    lines.append("## Interpretation")
     lines.append("")
     if delta_r5 > 0:
         lines.append("R@5 **improved** under AL re-weighting — the miner signal carries useful information.")
@@ -174,7 +174,7 @@ def write_report(
         lines.append("")
         lines.append(f"Silhouette improved by {delta_sil:+.3f} — positives are pulled together and hard negatives pushed apart, which is the AL signal we wanted.")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Caveat (read this!)")
+    lines.append("## Caveat (read this!)")
     lines.append("")
     lines.append("This is a **simulation** using TF-IDF char n-grams, not the real V1/V2 sentence-transformer. The point is to validate the *plumbing* (miner → finetuner → eval gate → report), not to claim a real embedding improvement. Production V3 fine-tune happens on VPS (see `v4/lib/F2_active_learning_design.md` §3).")
     lines.append("")
@@ -206,7 +206,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.baseline == "all":
-        ***REMOVED*** Delegate to the dedicated ablation script
+        # Delegate to the dedicated ablation script
         import subprocess
         cmd = [
             sys.executable,
@@ -234,11 +234,11 @@ def main() -> int:
     train, evalset = split_train_eval(pairs, eval_frac=args.eval_frac, seed=args.seed)
     logger.info("Split: %d train / %d eval", len(train), len(evalset))
 
-    ***REMOVED*** Shared vocab corpus (union of train+eval text). Baseline and after-AL
-    ***REMOVED*** use the same vocab so the only difference is the weight vector.
+    # Shared vocab corpus (union of train+eval text). Baseline and after-AL
+    # use the same vocab so the only difference is the weight vector.
     vocab_corpus = _all_text(train) + _all_text(evalset)
 
-    ***REMOVED*** Baseline: TF-IDF without AL weight update
+    # Baseline: TF-IDF without AL weight update
     baseline = baseline_metrics(evalset, vocab_corpus=vocab_corpus)
     logger.info(
         "Baseline R@5=%.3f R@10=%.3f MRR=%.3f sil=%.3f",
@@ -248,7 +248,7 @@ def main() -> int:
         baseline.silhouette,
     )
 
-    ***REMOVED*** After-AL: TF-IDF + weight update from miner-mined pairs
+    # After-AL: TF-IDF + weight update from miner-mined pairs
     train_m, eval_m, _ft = after_al_metrics(
         train, evalset, vocab_corpus=vocab_corpus, epochs=args.epochs
     )

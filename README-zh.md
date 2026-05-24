@@ -1,4 +1,4 @@
-***REMOVED*** 结构同构性 (Structural Isomorphism)
+# 结构同构性 (Structural Isomorphism)
 
 [English](README.md) | **简体中文**
 
@@ -8,7 +8,7 @@
 [![Preprint](https://img.shields.io/badge/Preprint-arXiv_pending-orange.svg)](paper/v0-unified-pipeline-2026-05-13.md)
 [![Cite](https://img.shields.io/badge/Cite-CITATION.cff-blue.svg)](CITATION.cff)
 [![Methodology](https://img.shields.io/badge/Methodology-Anti--p--hacking-blueviolet.svg)](paper/anti-phacking-unified-2026-05-15.md)
-[![Tests](https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg)](***REMOVED***测试)
+[![Tests](https://img.shields.io/badge/tests-48_backend_+_11_e2e-brightgreen.svg)](#测试)
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 
@@ -18,13 +18,13 @@
 
 答案**不是**默认成立的。我们将其作为可证伪命题处理：先预注册指数区间，再用同一套 Clauset MLE 流水线跨领域拟合，最终以 PASS / FAIL / INCONCLUSIVE 给出有完整溯源记录的判定。
 
-***REMOVED******REMOVED*** 仓库内容
+## 仓库内容
 
 <table>
 <tr>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 1. SOC 流水线
+### 1. SOC 流水线
 一个共享的 Clauset MLE 模块（`v4/lib/soc_pipeline.py`，339 行代码）。跨 13 个经验系统 + 4 个空对照原样运行，输出幂律 / 对数正态 / 指数分布的对比结果，全部对照预注册的指数区间。
 
 [**→ 流水线文档**](docs/pipeline.md)
@@ -32,7 +32,7 @@
 </td>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 2. SIBD-63 数据集
+### 2. SIBD-63 数据集
 63 个 A 级跨领域候选对，每个都附共享方程、变量映射、溯源信息。由多模型 LLM 评审委员会（Claude · DeepSeek · Kimi · GLM-5）严格筛选产出。
 
 [**→ Zenodo DOI**](https://doi.org/10.5281/zenodo.19615170)
@@ -40,7 +40,7 @@
 </td>
 <td width="33%" valign="top">
 
-***REMOVED******REMOVED******REMOVED*** 3. Phase Detector
+### 3. Phase Detector
 一款研究预览阶段的消费级产品。给 100 家上市公司打上当前所处的动力学相位标签（稳定 / 积累 / 临界附近 / 反转 / 复苏），对照 9 类普适模式。
 
 **v0.1 回测（1000 只股票滚动验证，2020-2025）**：`near_critical` 群组相对等权基准的 Sharpe 提升 = **−0.07**（p = 0.57，**不显著**）。按 W7-D Track A 决定公开发布——定位转向"结构性研究叙述"。完整透明度报告见 [`/backtest`](https://phase.bytedance.city/backtest)。
@@ -51,14 +51,14 @@
 </tr>
 </table>
 
-***REMOVED******REMOVED*** 快速开始
+## 快速开始
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-v4 status                           ***REMOVED*** 展示 13 个系统 + 4 个空对照的 PASS / FAIL
+v4 status                           # 展示 13 个系统 + 4 个空对照的 PASS / FAIL
 ```
 
 或以编程方式调用流水线：
@@ -71,24 +71,24 @@ print(f"alpha = {result.alpha:.3f}, xmin = {result.xmin}")
 print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 ```
 
-***REMOVED******REMOVED*** 在线演示
+## 在线演示
 
 | 产品 | URL | 功能 |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity 风格的自然语言搜索，覆盖跨领域知识库。流式返回答案 + 引用卡片 + 跨领域类似现象。 |
 | Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 家被标记公司 + 1000 只股票（SP500 + R1000 补充）滚动回测 v0.1（零结果：Sharpe 提升 −0.07，p = 0.57）。研究预览——非投资建议。 |
 
-***REMOVED******REMOVED*** 测试
+## 测试
 
 ```bash
-pytest v4/tests/sanity -m sanity -q     ***REMOVED*** 38 个 sanity 测试，约 3.6 秒
-pytest -m "not e2e"                     ***REMOVED*** 完整后端，无需联网
-pytest -m e2e                           ***REMOVED*** 真实生产环境（慢，可能 flaky）
+pytest v4/tests/sanity -m sanity -q     # 38 个 sanity 测试，约 3.6 秒
+pytest -m "not e2e"                     # 完整后端，无需联网
+pytest -m e2e                           # 真实生产环境（慢，可能 flaky）
 ```
 
 CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod 跑一次。
 
-***REMOVED******REMOVED*** 方法论
+## 方法论
 
 流水线对每个系统都是**同一个函数**——不存在按领域定制的超参数。三条承诺让框架可证伪而非确认导向：
 
@@ -98,7 +98,7 @@ CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod �
 
 参考文献：A. Clauset, C. R. Shalizi, M. E. J. Newman, "Power-law distributions in empirical data," *SIAM Review* 51(4), 661–703 (2009)。另见 [`paper/anti-phacking-unified-2026-05-15.md`](paper/anti-phacking-unified-2026-05-15.md)——针对 LLM-in-the-loop 科学的反 p-hacking 纪律。
 
-***REMOVED******REMOVED*** 数据集
+## 数据集
 
 | 名称 | 记录数 | 位置 | 许可证 |
 |---|---|---|---|
@@ -108,7 +108,7 @@ CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod �
 
 完整数据集说明：[`dataset_card.md`](dataset_card.md)。模型说明：[`model_card.md`](model_card.md)。
 
-***REMOVED******REMOVED*** 引用
+## 引用
 
 ```bibtex
 @dataset{sibd63-2026,
@@ -135,7 +135,7 @@ CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod �
 
 仓库根目录的 [`CITATION.cff`](CITATION.cff) 是机器可读引用文件，GitHub 的 "Cite this repository" 按钮会自动识别。
 
-***REMOVED******REMOVED*** 仓库结构
+## 仓库结构
 
 ```
 structural-isomorphism/
@@ -158,7 +158,7 @@ structural-isomorphism/
 
 贡献者细节——构建约定、部署 SOP、session 复盘——参见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 和 [`docs/sessions/HANDOFF.md`](docs/sessions/HANDOFF.md)。原始的面向开发者的 README 保留在 [`docs/legacy-readme.md`](docs/legacy-readme.md)。
 
-***REMOVED******REMOVED*** 状态
+## 状态
 
 | 组件 | 状态 |
 |---|---|
@@ -169,7 +169,7 @@ structural-isomorphism/
 | 统一预印本 (C1) | v0.3.1 已就绪；arXiv 投递待定。 |
 | 单独 arXiv 草稿 | 4 篇完整（地震、S&P 500、DeFi、神经）。 |
 
-***REMOVED******REMOVED*** 参与贡献
+## 参与贡献
 
 我们欢迎：
 
@@ -180,12 +180,12 @@ structural-isomorphism/
 
 完整流程（环境搭建、代码风格、PR review 流程）见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。贡献即视为同意 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)。
 
-***REMOVED******REMOVED*** 许可证
+## 许可证
 
 代码：MIT——见 [`LICENSE`](LICENSE)。
 数据集：CC-BY-4.0——见各数据集说明。
 
-***REMOVED******REMOVED*** 致谢
+## 致谢
 
 - 统计方法论：A. Clauset, C. R. Shalizi, M. E. J. Newman (2009)。
 - 普适类概念：M. Scheffer（折叠分叉）、Motter & Lai（网络级联）、Gardner & Collins（双稳态开关）、Diamond & Dybvig（自我实现的银行挤兑）。

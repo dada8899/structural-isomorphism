@@ -2,7 +2,7 @@
   "slot": "13_hysteresis_traffic",
   "source_dir": "v4/validation/hysteresis-traffic",
   "traffic_results": {
-    "phase": "A2-Hysteresis (V4 class ***REMOVED***2 hysteresis_preisach)",
+    "phase": "A2-Hysteresis (V4 class #2 hysteresis_preisach)",
     "domain": "highway traffic (US-101 NGSIM 2005-06-15)",
     "predicted_class": "hysteresis_preisach (Layer 4 prediction)",
     "predicted_ratio_band_q_c1_over_q_c2": [

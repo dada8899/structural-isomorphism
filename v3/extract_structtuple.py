@@ -106,11 +106,11 @@ def main():
     if args.random:
         samples = random.sample(kb, min(args.n, len(kb)))
     elif args.input:
-        samples = kb  ***REMOVED*** use all from shard
+        samples = kb  # use all from shard
     else:
         samples = kb[: args.n]
 
-    ***REMOVED*** Resume support: skip IDs already present in output
+    # Resume support: skip IDs already present in output
     done_ids = set()
     if args.resume and args.out and Path(args.out).exists():
         with open(args.out) as f:

@@ -1,13 +1,13 @@
 name: Publish to PyPI
 
-***REMOVED*** Triggered by pushing a SemVer tag like `v0.1.0`, `v1.2.3`, or `v1.2.3-rc1`.
-***REMOVED*** Builds + publishes all three packages (soc-pipeline / guarded-llm / cross-judge).
-***REMOVED***
-***REMOVED*** Auth precedence per job:
-***REMOVED***   1. PYPI_API_TOKEN secret  (account- or project-scoped token)
-***REMOVED***   2. OIDC trusted publisher (no secret — must be configured on PyPI side)
-***REMOVED***
-***REMOVED*** See docs/deployment/PYPI_PUBLISH.md for full setup steps.
+# Triggered by pushing a SemVer tag like `v0.1.0`, `v1.2.3`, or `v1.2.3-rc1`.
+# Builds + publishes all three packages (soc-pipeline / guarded-llm / cross-judge).
+#
+# Auth precedence per job:
+#   1. PYPI_API_TOKEN secret  (account- or project-scoped token)
+#   2. OIDC trusted publisher (no secret — must be configured on PyPI side)
+#
+# See docs/deployment/PYPI_PUBLISH.md for full setup steps.
 
 on:
   push:
@@ -20,14 +20,14 @@ on:
         required: false
         default: "false"
 
-***REMOVED*** Avoid duplicate publishes if a tag is force-pushed.
+# Avoid duplicate publishes if a tag is force-pushed.
 concurrency:
   group: publish-pypi-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
-  ***REMOVED*** `id-token: write` is required for OIDC trusted publishing path.
+  # `id-token: write` is required for OIDC trusted publishing path.
   id-token: write
 
 jobs:
@@ -36,15 +36,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    ***REMOVED*** Environment is referenced by PyPI OIDC trusted publisher config.
-    ***REMOVED*** Create the env once in repo Settings → Environments → "pypi"
-    ***REMOVED*** (can also gate manual approvals there if desired).
+    # Environment is referenced by PyPI OIDC trusted publisher config.
+    # Create the env once in repo Settings → Environments → "pypi"
+    # (can also gate manual approvals there if desired).
     environment:
       name: pypi
       url: https://pypi.org/p/${{ matrix.package }}
 
-    ***REMOVED*** Workflow-level env so `if:` expressions can branch on token presence.
-    ***REMOVED*** (Step-level `env:` is not visible to that step's own `if:`.)
+    # Workflow-level env so `if:` expressions can branch on token presence.
+    # (Step-level `env:` is not visible to that step's own `if:`.)
     env:
       HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
 
@@ -88,7 +88,7 @@ jobs:
           path: packages/${{ matrix.package }}/dist/*
           retention-days: 30
 
-      ***REMOVED*** ---------- Publish path A: API token (preferred when secret set) ----------
+      # ---------- Publish path A: API token (preferred when secret set) ----------
       - name: Publish via API token
         if: >-
           github.event_name == 'push' &&
@@ -102,9 +102,9 @@ jobs:
           echo "Publishing ${{ matrix.package }} via API token..."
           twine upload --non-interactive --disable-progress-bar dist/*
 
-      ***REMOVED*** ---------- Publish path B: OIDC trusted publisher (fallback) -------------
-      ***REMOVED*** Runs only when PYPI_API_TOKEN secret is unset — requires PyPI trusted
-      ***REMOVED*** publisher to be configured per package (see docs/deployment/PYPI_PUBLISH.md).
+      # ---------- Publish path B: OIDC trusted publisher (fallback) -------------
+      # Runs only when PYPI_API_TOKEN secret is unset — requires PyPI trusted
+      # publisher to be configured per package (see docs/deployment/PYPI_PUBLISH.md).
       - name: Publish via OIDC trusted publisher
         if: >-
           github.event_name == 'push' &&
@@ -113,14 +113,14 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/${{ matrix.package }}/dist/
-          ***REMOVED*** skip-existing avoids failure when re-running for a tag where some
-          ***REMOVED*** packages already published.
+          # skip-existing avoids failure when re-running for a tag where some
+          # packages already published.
           skip-existing: true
 
       - name: Summary
         if: always()
         run: |
-          echo "***REMOVED******REMOVED******REMOVED*** ${{ matrix.package }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ${{ matrix.package }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- Tag: \`${{ github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Dry run: \`${{ inputs.dry_run }}\`" >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 V4 Layer 2: Hub detection + community discovery on the graph produced by build_graph.py.
 
@@ -58,7 +58,7 @@ def main():
     print(f"Loaded graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
     print()
 
-    ***REMOVED*** -------- Connected components --------
+    # -------- Connected components --------
     components = sorted(nx.connected_components(G), key=lambda c: -len(c))
     print(f"Connected components (≥2 nodes):")
     filtered_components = []
@@ -73,14 +73,14 @@ def main():
             print(f"  C{i:02d}: size={len(comp):3d}, domains={len(domains):2d}")
     print()
 
-    ***REMOVED*** -------- Louvain / greedy modularity on the giant component --------
+    # -------- Louvain / greedy modularity on the giant component --------
     largest = max(components, key=len) if components else set()
     if len(largest) >= 4:
         print(f"Running community detection on giant component ({len(largest)} nodes)...")
         sub = G.subgraph(largest).copy()
         communities = None
         try:
-            ***REMOVED*** NetworkX 3.x native Louvain
+            # NetworkX 3.x native Louvain
             communities = list(nx.community.louvain_communities(sub, weight="score", seed=42))
             algo = "louvain"
         except Exception as e:
@@ -100,13 +100,13 @@ def main():
         algo = None
     print()
 
-    ***REMOVED*** -------- Emit candidate classes --------
-    ***REMOVED***
-    ***REMOVED*** We emit two flavours:
-    ***REMOVED***   (a) connected-component-based (coarse, naturally forms isolated classes)
-    ***REMOVED***   (b) louvain-based (fine-grained, splits the giant component)
-    ***REMOVED***
-    ***REMOVED*** A "candidate class" needs: >=MIN_MEMBERS nodes, >=MIN_DOMAINS distinct domains.
+    # -------- Emit candidate classes --------
+    #
+    # We emit two flavours:
+    #   (a) connected-component-based (coarse, naturally forms isolated classes)
+    #   (b) louvain-based (fine-grained, splits the giant component)
+    #
+    # A "candidate class" needs: >=MIN_MEMBERS nodes, >=MIN_DOMAINS distinct domains.
 
     candidates = []
 
@@ -126,7 +126,7 @@ def main():
                 edge_count += 1
         if len(member_ids) < MIN_MEMBERS or len(doms) < MIN_DOMAINS:
             return None
-        ***REMOVED*** Hub node = member with highest degree inside this class
+        # Hub node = member with highest degree inside this class
         internal_degree = Counter()
         for e in graph["edges"]:
             if e["src"] in member_ids and e["dst"] in member_ids:
@@ -161,19 +161,19 @@ def main():
             "shared_equations_sample": all_eqs[:15],
         }
 
-    ***REMOVED*** (a) Components
+    # (a) Components
     for i, (comp, doms) in enumerate(filtered_components):
         cls = summarize_class(comp, "connected_component", i)
         if cls:
             candidates.append(cls)
 
-    ***REMOVED*** (b) Louvain communities (only if we have them)
+    # (b) Louvain communities (only if we have them)
     for i, c in enumerate(communities):
         cls = summarize_class(c, "louvain_community", i)
         if cls:
             candidates.append(cls)
 
-    ***REMOVED*** Sort by (size × n_domains) * avg_edge_score — proxy for "meaningful & broad"
+    # Sort by (size × n_domains) * avg_edge_score — proxy for "meaningful & broad"
     def rank_key(c):
         return -(c["size"] * c["n_domains"] * (c["avg_edge_score"] or 1))
 
@@ -183,11 +183,11 @@ def main():
         for c in candidates:
             f.write(json.dumps(c, ensure_ascii=False) + "\n")
 
-    ***REMOVED*** Print top candidates
+    # Print top candidates
     print(f"=== Top candidate equivalence classes (size × domains × score) ===")
     print()
     for i, c in enumerate(candidates[:8]):
-        print(f"--- ***REMOVED***{i + 1}  provenance={c['provenance']}  size={c['size']}  domains={c['n_domains']}  "
+        print(f"--- #{i + 1}  provenance={c['provenance']}  size={c['size']}  domains={c['n_domains']}  "
               f"avg_edge_score={c['avg_edge_score']}  max={c['max_edge_score']}")
         print(f"    Hub: {c['hub']['name']}  (internal degree {c['hub']['degree_inside_class']})")
         print(f"    Domains: {', '.join(c['domains'])}")

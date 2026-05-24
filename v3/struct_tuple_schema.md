@@ -1,12 +1,12 @@
-***REMOVED*** StructTuple Schema v0.1
+# StructTuple Schema v0.1
 
-***REMOVED******REMOVED*** 设计原则
+## 设计原则
 
 1. **字段受控词表**（enum），不是自由文本——便于硬约束匹配
 2. **从 description 可直接读出**，不要求 LLM 做创造性推断
 3. **每个字段都有 unknown 逃生通道**，避免强行填充
 
-***REMOVED******REMOVED*** 完整 Schema
+## 完整 Schema
 
 ```jsonc
 {
@@ -82,7 +82,7 @@
 }
 ```
 
-***REMOVED******REMOVED*** Phase 0 验证重点
+## Phase 0 验证重点
 
 1. **dynamics_family 覆盖率**：50 个样本中能填的比例，unknown 比例
 2. **硬约束一致性**：同一现象跑两次，dynamics_family 是否一致

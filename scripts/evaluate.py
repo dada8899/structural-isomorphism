@@ -12,7 +12,7 @@ DATA_FILE = Path(__file__).parent.parent / "data" / "clean.jsonl"
 MODEL_DIR = Path(__file__).parent.parent / "models" / "structural-v1"
 BASE_MODEL = "shibing624/text2vec-base-chinese"
 
-***REMOVED*** === Load data ===
+# === Load data ===
 print("Loading data...")
 type_descriptions = defaultdict(list)
 all_descriptions = []
@@ -30,7 +30,7 @@ with open(DATA_FILE) as f:
 
 print(f"Loaded {len(all_descriptions)} descriptions, {len(type_descriptions)} types")
 
-***REMOVED*** === Encode with both models ===
+# === Encode with both models ===
 print(f"\nEncoding with base model: {BASE_MODEL}...")
 base_model = SentenceTransformer(BASE_MODEL)
 base_embeddings = base_model.encode(all_descriptions, show_progress_bar=True, convert_to_numpy=True)
@@ -39,11 +39,11 @@ print(f"\nEncoding with fine-tuned model: {MODEL_DIR}...")
 fine_model = SentenceTransformer(str(MODEL_DIR))
 fine_embeddings = fine_model.encode(all_descriptions, show_progress_bar=True, convert_to_numpy=True)
 
-***REMOVED*** === Test 1: Silhouette Score ===
+# === Test 1: Silhouette Score ===
 print("\n=== Test 1: Silhouette Score ===")
 from sklearn.metrics import silhouette_score
 
-***REMOVED*** Convert type_ids to numeric labels
+# Convert type_ids to numeric labels
 unique_types = sorted(set(all_type_ids))
 type_to_num = {t: i for i, t in enumerate(unique_types)}
 labels = np.array([type_to_num[t] for t in all_type_ids])
@@ -62,7 +62,7 @@ elif fine_silhouette > 0.25:
 else:
     print("  → POOR: Structure not well learned")
 
-***REMOVED*** === Test 2: Intra-class vs Inter-class distance ===
+# === Test 2: Intra-class vs Inter-class distance ===
 print("\n=== Test 2: Intra vs Inter class similarity ===")
 import random
 random.seed(42)
@@ -76,7 +76,7 @@ def sample_similarities(embeddings, n_samples=500):
     for i, tid in enumerate(all_type_ids):
         type_indices[tid].append(i)
 
-    ***REMOVED*** Intra-class: sample pairs from same type
+    # Intra-class: sample pairs from same type
     for _ in range(n_samples):
         tid = random.choice(list(type_indices.keys()))
         if len(type_indices[tid]) < 2:
@@ -85,7 +85,7 @@ def sample_similarities(embeddings, n_samples=500):
         sim = float(util.cos_sim(embeddings[i], embeddings[j]))
         intra_sims.append(sim)
 
-    ***REMOVED*** Inter-class: sample pairs from different types
+    # Inter-class: sample pairs from different types
     for _ in range(n_samples):
         tid1, tid2 = random.sample(list(type_indices.keys()), 2)
         i = random.choice(type_indices[tid1])
@@ -111,7 +111,7 @@ print(f"    Gap:              {fine_intra.mean() - fine_inter.mean():.4f}")
 gap_improvement = (fine_intra.mean() - fine_inter.mean()) - (base_intra.mean() - base_inter.mean())
 print(f"  Gap improvement:  {gap_improvement:+.4f}")
 
-***REMOVED*** === Test 3: Retrieval@K ===
+# === Test 3: Retrieval@K ===
 print("\n=== Test 3: Retrieval@K ===")
 
 def retrieval_at_k(embeddings, k=5, n_queries=200):
@@ -127,9 +127,9 @@ def retrieval_at_k(embeddings, k=5, n_queries=200):
 
     for qi in query_indices:
         query_type = all_type_ids[qi]
-        ***REMOVED*** Compute similarities to all others
+        # Compute similarities to all others
         sims = util.cos_sim(embeddings[qi], embeddings)[0]
-        ***REMOVED*** Get top K+1 (exclude self)
+        # Get top K+1 (exclude self)
         top_indices = sims.argsort(descending=True)[1:k+1]
 
         for idx in top_indices:
@@ -158,7 +158,7 @@ elif fine_r5 > 0.4:
 else:
     print("  → POOR: <40% R@5")
 
-***REMOVED*** === Test 4: Original 10 cases (tonight's experiment) ===
+# === Test 4: Original 10 cases (tonight's experiment) ===
 print("\n=== Test 4: Tonight's 10 cases ===")
 
 test_pairs = [
@@ -210,7 +210,7 @@ for text1, text2, label, should_be_high in test_pairs:
     marker = "✓" if (should_be_high and fine_sim > 0.5) or (not should_be_high and fine_sim < 0.5) else "✗"
     print(f"  {label:<35} {base_sim:>8.4f} {fine_sim:>8.4f} {expected:>8}  {marker}")
 
-***REMOVED*** === Summary ===
+# === Summary ===
 print("\n" + "="*60)
 print("SUMMARY")
 print("="*60)

@@ -51,7 +51,7 @@ def load_series() -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df["date"] = pd.to_datetime(df["date"])
     df = df.set_index("date").sort_index()
-    ***REMOVED*** Fill onto continuous daily grid; small gaps already interpolated upstream
+    # Fill onto continuous daily grid; small gaps already interpolated upstream
     full = pd.date_range(df.index.min(), df.index.max(), freq="D")
     df = df.reindex(full)
     df["do"] = df["do"].interpolate(limit=7)
@@ -120,7 +120,7 @@ def moving_block_bootstrap(
 
     tau_boot = np.zeros(n_boot)
     for b in range(n_boot):
-        ***REMOVED*** Draw random block starts with replacement, concat, truncate to n
+        # Draw random block starts with replacement, concat, truncate to n
         starts = rng.choice(starts_all, size=n_blocks, replace=True)
         chunks = [x[s : s + block] for s in starts]
         resamp = np.concatenate(chunks)[:n]
@@ -144,12 +144,12 @@ def main():
           f"{df['do'].notna().sum()} non-NaN")
 
     resid = deseason(df["do"]).values
-    ***REMOVED*** Drop leading/trailing NaN from rolling deseason
+    # Drop leading/trailing NaN from rolling deseason
     valid_mask = ~np.isnan(resid)
     resid_clean = resid[valid_mask]
     print(f"[block-bootstrap] residual after deseason: {len(resid_clean)} points")
 
-    ***REMOVED*** Observed
+    # Observed
     ar1_obs = rolling_ar1(resid_clean, window=args.window)
     var_obs = rolling_var(resid_clean, window=args.window)
 
@@ -160,7 +160,7 @@ def main():
     print(f"[block-bootstrap] tau_Var obs = {tau_var_obs:.4f} "
           f"(naive p = {p_var_naive:.3e})")
 
-    ***REMOVED*** Block bootstrap on AR1
+    # Block bootstrap on AR1
     print(f"[block-bootstrap] running {args.n_boot} block-bootstrap resamples, "
           f"block size {args.block}, window {args.window}...")
     tau_ar1_boot = moving_block_bootstrap(
@@ -172,7 +172,7 @@ def main():
         lambda x: rolling_var(x, window=args.window), seed=args.seed + 1,
     )
 
-    ***REMOVED*** Two-sided block p-value: fraction of |tau_boot| >= |tau_obs|
+    # Two-sided block p-value: fraction of |tau_boot| >= |tau_obs|
     n_ge_ar1 = int(np.sum(np.abs(tau_ar1_boot) >= np.abs(tau_ar1_obs)))
     n_ge_var = int(np.sum(np.abs(tau_var_boot) >= np.abs(tau_var_obs)))
     p_block_ar1 = (1 + n_ge_ar1) / (1 + args.n_boot)
@@ -191,7 +191,7 @@ def main():
           f"p5={np.percentile(tau_var_boot, 5):+.4f} "
           f"p95={np.percentile(tau_var_boot, 95):+.4f}")
 
-    ***REMOVED*** Persist
+    # Persist
     if RESULTS_PATH.exists():
         with open(RESULTS_PATH) as f:
             results = json.load(f)

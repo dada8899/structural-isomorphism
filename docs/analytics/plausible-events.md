@@ -1,16 +1,16 @@
-***REMOVED*** Plausible custom events registry (W8-D)
+# Plausible custom events registry (W8-D)
 
 This is the authoritative list of custom Plausible events fired across the
 Phase Detector + main Structural site. Update this doc when adding or
 renaming events.
 
-***REMOVED******REMOVED*** Conventions
+## Conventions
 
 - Event names: `snake_case`, < 30 chars, no PII.
 - Props: also `snake_case`. Values must be strings, numbers, or booleans (Plausible coerces).
 - Goal in Plausible dashboard: add as a "Custom event" goal for the ones you want in conversion reports.
 
-***REMOVED******REMOVED*** Event catalog
+## Event catalog
 
 | Event | Where fired | Props | Goal? |
 |---|---|---|---|
@@ -24,7 +24,7 @@ renaming events.
 | `thank_you_view` | `web/frontend/thank-you.html` (inline script) | `source` | yes — confirms redirect succeeded |
 | `thank_you_share` | `web/phase-detector/components/ShareButtons.tsx` + main site thank-you inline script | `channel` (`x`, `linkedin`, `copy_link`) | yes — viral |
 
-***REMOVED******REMOVED*** How to verify in production
+## How to verify in production
 
 After deploy:
 
@@ -33,7 +33,7 @@ After deploy:
 3. Confirm payload has `n=screener_filter_applied` and the `props` JSON
 4. Repeat for waitlist signup and company detail click
 
-***REMOVED******REMOVED*** Adding a new event
+## Adding a new event
 
 1. Add the constant to `web/phase-detector/lib/analytics.ts::Events`
 2. Call `trackEvent(Events.NewEventName, { ... })` at the call site

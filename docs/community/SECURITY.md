@@ -1,11 +1,11 @@
-***REMOVED*** Security Policy
+# Security Policy
 
 > **Last reviewed**: 2026-05-15
 > **Maintainer**: structural-isomorphism BDFL + (eventual) Maintainer Council
 
 We take the security of structural-isomorphism seriously — both the code and the integrity of our published datasets and statistical claims. This document explains how to report a vulnerability privately, what to expect from us, and our coordinated-disclosure policy.
 
-***REMOVED******REMOVED*** Supported versions
+## Supported versions
 
 | Version | Supported |
 |---|---|
@@ -14,11 +14,11 @@ We take the security of structural-isomorphism seriously — both the code and t
 | older than two minors back | ❌ no — please upgrade |
 | pre-v1.0 alphas | best-effort only |
 
-***REMOVED******REMOVED*** Reporting a vulnerability
+## Reporting a vulnerability
 
 **Please do not report security issues via public GitHub issues, public Discord, or any public channel.** Public disclosure before a fix is available puts users at risk.
 
-***REMOVED******REMOVED******REMOVED*** Preferred channel: email
+### Preferred channel: email
 
 Send a report to **`security@structural-isomorphism.org`** (alias — currently routes to @dada8899; will route to council security subcommittee once formed per GOVERNANCE.md).
 
@@ -35,11 +35,11 @@ If you want to encrypt your report (recommended for serious vulnerabilities):
 
 Key fingerprint: `[TODO: fingerprint to be published once key is generated]`
 
-***REMOVED******REMOVED******REMOVED*** Alternative channel: GitHub Security Advisories
+### Alternative channel: GitHub Security Advisories
 
 If you have a GitHub account, you can use [GitHub's private vulnerability reporting](https://github.com/dada8899/structural-isomorphism/security/advisories/new). This routes directly to maintainers and supports coordinated disclosure timelines.
 
-***REMOVED******REMOVED******REMOVED*** What to include
+### What to include
 
 A useful report typically contains:
 
@@ -51,7 +51,7 @@ A useful report typically contains:
 6. **Your name + affiliation** (or "anonymous" if preferred) — for credit in the eventual advisory
 7. **Embargo preference** — default is 90 days; ask for a different window if needed
 
-***REMOVED******REMOVED******REMOVED*** Scope
+### Scope
 
 **In scope**:
 
@@ -69,29 +69,29 @@ A useful report typically contains:
 - Theoretical vulnerabilities with no practical exploit path
 - "Vulnerabilities" in published research findings — that's what peer review and adversarial replication are for
 
-***REMOVED******REMOVED******REMOVED*** What is **not** considered a vulnerability
+### What is **not** considered a vulnerability
 
 - Pipeline produces a numerically inconvenient result on a real dataset (this is data science, not a bug)
 - A reviewer-LLM disagrees with another reviewer-LLM (this is a feature; we publish the disagreement)
 - Someone forks the project and uses it badly (their problem, not ours)
 - An adversarially-crafted dataset produces a wrong universality-class label, **as long as the pipeline's confidence interval honestly reflects the uncertainty**
 
-***REMOVED******REMOVED*** What to expect from us
+## What to expect from us
 
-***REMOVED******REMOVED******REMOVED*** Triage SLA
+### Triage SLA
 
 - **Acknowledgement**: within **14 calendar days** of receiving your report. We will confirm receipt and tell you whether we're treating it as a security issue.
 - **Triage decision**: within **30 days**. We will tell you our assessment of severity and our planned timeline.
 - **Fix released**: within **90 days** for most issues. Critical-severity issues may be fixed faster (target: 14 days). Lower-severity issues may take longer if they require breaking changes; we will negotiate timeline with the reporter.
 
-***REMOVED******REMOVED******REMOVED*** Embargo
+### Embargo
 
 - **Default embargo**: 90 days from report to public disclosure.
 - We may ask for an extension if a fix requires coordinated upstream changes (e.g. a dependency CVE).
 - You may request a shorter embargo if the issue is already being actively exploited.
 - After the embargo lifts, we will publish a GitHub Security Advisory and a CVE if applicable.
 
-***REMOVED******REMOVED******REMOVED*** Credit
+### Credit
 
 Unless you request anonymity, we will credit you in:
 
@@ -101,7 +101,7 @@ Unless you request anonymity, we will credit you in:
 
 We do not currently run a paid bug bounty. If/when NumFOCUS sponsorship and funding allow, we will consider one.
 
-***REMOVED******REMOVED******REMOVED*** Coordinated disclosure
+### Coordinated disclosure
 
 If your finding implicates a third-party project (e.g. a CVE in our dependency that we surface), we will:
 
@@ -111,7 +111,7 @@ If your finding implicates a third-party project (e.g. a CVE in our dependency t
 
 If you have already notified upstream, please tell us so we can coordinate.
 
-***REMOVED******REMOVED*** Our security practices
+## Our security practices
 
 Things we already do:
 
@@ -128,11 +128,11 @@ Things we are working on (W7-B engineering roadmap):
 - SLSA-3 compliance for the published Python package
 - Adversarial-replication CI gate that blocks releases on judge-disagreement spikes
 
-***REMOVED******REMOVED*** Disclosure history
+## Disclosure history
 
 (empty as of 2026-05-15 — no security advisories filed yet)
 
-***REMOVED******REMOVED*** Questions
+## Questions
 
 For non-sensitive questions about this security policy, open a [GitHub Discussion](https://github.com/dada8899/structural-isomorphism/discussions) in the Meta category.
 

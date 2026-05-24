@@ -1,4 +1,4 @@
-***REMOVED*** 公司分析产品 · 完整 Plan
+# 公司分析产品 · 完整 Plan
 
 **文档状态**：v0.2（定位反转：Screening-first，Report 为 drill-down）
 **日期**：2026-04-15
@@ -12,7 +12,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 零. TL;DR
+## 零. TL;DR
 
 **Phase Detector**（结构相变探测器）——一个按**数学动力学**筛选全市场的工具。
 
@@ -31,9 +31,9 @@
 
 ---
 
-***REMOVED******REMOVED*** 一. 定位
+## 一. 定位
 
-***REMOVED******REMOVED******REMOVED*** 1.1 一句话定位（v0.2 修订）
+### 1.1 一句话定位（v0.2 修订）
 
 > **"在全市场找出那些正在经历结构相变的公司——用数学动力学而非财务比率筛选。"**
 
@@ -41,7 +41,7 @@
 - 英文：*"Don't screen by P/E. Screen by phase."*
 - 中文："别用市盈率筛股，用数学结构筛股。"
 
-***REMOVED******REMOVED******REMOVED*** 1.2 产品名
+### 1.2 产品名
 
 **暂定**：**`Phase Detector`**
 - 英文主名：Phase Detector
@@ -50,7 +50,7 @@
 
 备用命名：`PhaseShift`、`Structural Radar`、`Dynamics Screener`。
 
-***REMOVED******REMOVED******REMOVED*** 1.3 为什么是这个定位
+### 1.3 为什么是这个定位
 
 三个选择的拒绝理由：
 
@@ -69,7 +69,7 @@
 | "每天给你 1-3 个差异化角度" | 内容驱动，不依赖数据竞争 |
 | "thesis red-team 工具" | 避免 confirmation bias 是普遍痛点，没人专门解决 |
 
-***REMOVED******REMOVED******REMOVED*** 1.4 anti-positioning（v0.2 修订）
+### 1.4 anti-positioning（v0.2 修订）
 
 v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项都有"结构化版本"可以做。
 
@@ -88,7 +88,7 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 | ~~问答 chatbot~~ | **Structural Chat**（帮用户把模糊问题转成 StructTuple 的结构化对话入口） | 作为 report 的输入替代路径 |
 | ~~自动研报~~ | **Structural Report**（开创新文体：3 框架+量化投影+红队+预警信号） | 核心功能，不是复制旧研报，是定义新文体 |
 
-***REMOVED******REMOVED******REMOVED*** 1.5 核心价值主张
+### 1.5 核心价值主张
 
 **对分析师的 4 个可感知价值**：
 1. **发现信号**（Screener）：每天 5 分钟发现哪 3 家公司进入结构相变
@@ -98,9 +98,9 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 
 ---
 
-***REMOVED******REMOVED*** 二. 用户画像（3 个 Persona）
+## 二. 用户画像（3 个 Persona）
 
-***REMOVED******REMOVED******REMOVED*** Persona 1：Alice · 独立 Substack 分析师
+### Persona 1：Alice · 独立 Substack 分析师
 
 - 35 岁，原买方分析师，自己开 Substack 一年
 - 订阅 1,200 人，付费 85 人（$10/月）
@@ -109,7 +109,7 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 - 愿付：**$149/月** 换 1 篇/周的结构化 insight
 - 使用场景：周三晚上写本周分析前，用工具生成 3 个角度，挑 1 个深耕
 
-***REMOVED******REMOVED******REMOVED*** Persona 2：Ben · 小型对冲基金分析师
+### Persona 2：Ben · 小型对冲基金分析师
 
 - 28 岁，$80M AUM long/short fund 的初级分析师
 - 覆盖 ~20 只股票，每月写 3-5 篇更新
@@ -118,7 +118,7 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 - 愿付：**$299/月 个人订阅** 或 **$1,500/月 团队 5 人**
 - 使用场景：季报前生成结构化红队报告，季报后生成"结构变化"分析
 
-***REMOVED******REMOVED******REMOVED*** Persona 3：Carol · VC 投资分析师
+### Persona 3：Carol · VC 投资分析师
 
 - 30 岁，早期 VC fund 初级合伙人
 - 每月看 30-50 家公司，出 5-10 份 memo
@@ -126,7 +126,7 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 - 愿付：**$199/月** 或 **$99/月 轻量版**
 - 使用场景：看项目时快速匹配结构孪生，识别这家公司"像生态系统里哪种物种"
 
-***REMOVED******REMOVED******REMOVED*** 共性需求
+### 共性需求
 
 - 都写**长文本分析**（非 dashboard 型用户）
 - 都有**内容产出压力**（需要差异化 insight）
@@ -148,11 +148,11 @@ v0.1 写过 "不做的 5 件事"——**都错了**。重新想后，每一项�
 
 ---
 
-***REMOVED******REMOVED*** 三. 核心产品功能（v0.2：5 个核心功能）
+## 三. 核心产品功能（v0.2：5 个核心功能）
 
 v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排序。
 
-***REMOVED******REMOVED******REMOVED*** 功能 1：Structural Screener ⭐（**最强 moat**，新增为主功能）
+### 功能 1：Structural Screener ⭐（**最强 moat**，新增为主功能）
 
 **输入**：
 - 按动力学族筛选（27 个 enum：DDE_delayed_feedback / Bistable_switch / Network_cascade / ...）
@@ -186,7 +186,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 2：Structural Report（drill-down 详情，原主功能）
+### 功能 2：Structural Report（drill-down 详情，原主功能）
 
 **输入**：
 - 公司 ticker（如 `NFLX`、`PDD`、`700.HK`）
@@ -214,7 +214,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 3：Structural Projections ⭐（**新增**，让 Report 可 falsifiable）
+### 功能 3：Structural Projections ⭐（**新增**，让 Report 可 falsifiable）
 
 **问题**：只给定性框架（"like logistic saturation"）不够，分析师需要数字。
 
@@ -254,7 +254,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 4：Thesis Red Team（原功能 2，保持不变）
+### 功能 4：Thesis Red Team（原功能 2，保持不变）
 
 **输入**：用户上传自己的 bull/bear 研报（PDF / Markdown / 粘贴文本）
 
@@ -275,7 +275,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 5：Structural Chat ⭐（新增，对话入口）
+### 功能 5：Structural Chat ⭐（新增，对话入口）
 
 **场景**：用户描述模糊情境，chat 帮忙结构化。
 
@@ -291,7 +291,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 6：Structural Change Tracking（原功能 3，保留）
+### 功能 6：Structural Change Tracking（原功能 3，保留）
 
 **输入**：用户订阅一个公司 watchlist（设定 10-30 只）
 
@@ -309,7 +309,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 功能 7：Structural Index API ⭐（新增，B2B 第二 revenue stream）
+### 功能 7：Structural Index API ⭐（新增，B2B 第二 revenue stream）
 
 **What**：把 Top 1000 公司的 StructTuple 预计算结果做成**数据订阅产品**。
 
@@ -331,7 +331,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED******REMOVED*** 不做的功能（明确拒绝，这次不会改了）
+### 不做的功能（明确拒绝，这次不会改了）
 
 - ❌ 实时行情 / order book（技术和成本门槛）
 - ❌ 原始财务数据仓库（重复 SEC/AKShare 无意义）
@@ -346,9 +346,9 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 
 ---
 
-***REMOVED******REMOVED*** 四. 实现架构
+## 四. 实现架构
 
-***REMOVED******REMOVED******REMOVED*** 4.1 系统架构图
+### 4.1 系统架构图
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -384,7 +384,7 @@ v0.1 只做 3 个功能，v0.2 扩到 5 个。顺序按差异化 × 重要性排
 └───────────────────────────────────────────────┘
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4.2 核心管线（Company → Report）
+### 4.2 核心管线（Company → Report）
 
 ```
 Input: ticker="NFLX"
@@ -428,7 +428,7 @@ Input: ticker="NFLX"
 Output: Report object (Markdown + PDF) → served to user
 ```
 
-***REMOVED******REMOVED******REMOVED*** 4.3 技术栈（最小复杂度）
+### 4.3 技术栈（最小复杂度）
 
 | 层 | 选型 | 理由 |
 |---|---|---|
@@ -452,7 +452,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 100 用户 × $149 = $14,900 MRR → 毛利率 ~96%
 
-***REMOVED******REMOVED******REMOVED*** 4.4 复用现有 V3 的部分
+### 4.4 复用现有 V3 的部分
 
 | V3 资产 | 复用方式 | 修改需求 |
 |---|---|---|
@@ -469,9 +469,9 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 五. 数据规划
+## 五. 数据规划
 
-***REMOVED******REMOVED******REMOVED*** 5.1 需要的数据清单
+### 5.1 需要的数据清单
 
 | 数据类型 | 用途 | 规模 | 来源 |
 |---|---|---|---|
@@ -482,9 +482,9 @@ Output: Report object (Markdown + PDF) → served to user
 | **行业动力学模板** | 垂直场景预设 | 10-15 个 | 手动 curate |
 | **经典金融经济框架** | 基线对照 | ~50 个 | 教科书提取 |
 
-***REMOVED******REMOVED******REMOVED*** 5.2 数据源详细规划
+### 5.2 数据源详细规划
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2.1 跨域现象 KB（4443 → 3000 精选）
+#### 5.2.1 跨域现象 KB（4443 → 3000 精选）
 
 **起点**：现有 `v3/results/kb-expanded-struct.jsonl` 的 4443 条
 
@@ -505,7 +505,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **成本**：~$20 LLM 费用（用 Kimi 批量抽取新增 500 条）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2.2 商业案例库（300 条手动 curate）
+#### 5.2.2 商业案例库（300 条手动 curate）
 
 这是 **MVP 最重要的数据资产**。没有这个，系统只能给抽象框架，不能给"这家公司曾经也这样"。
 
@@ -544,7 +544,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **可外包**：找 MBA 学生每条 $5-10 curate。成本 $1,500-3,000。
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2.3 公司财务数据
+#### 5.2.3 公司财务数据
 
 **免费数据源优先级**：
 1. **SEC EDGAR**（美股，免费）- filings + financial statements
@@ -564,7 +564,7 @@ Output: Report object (Markdown + PDF) → served to user
 - 最近年报 + 季报的 MD&A 文本
 - 最近 90 天新闻 headline + 摘要
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2.4 新闻 / 定性数据
+#### 5.2.4 新闻 / 定性数据
 
 **MVP 方案**：
 - **NewsAPI**（$99/月）：主流英文媒体聚合
@@ -576,7 +576,7 @@ Output: Report object (Markdown + PDF) → served to user
 - **雪球用户讨论**（免费 API，非官方）
 - **Wind**（付费，太贵先不用）
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 5.2.5 行业动力学模板
+#### 5.2.5 行业动力学模板
 
 针对主要垂直（SaaS、DTC、Marketplace、Fintech、半导体、新能源、生物医药、游戏、教育、媒体），每个垂直预设：
 - 典型 state_vars 列表
@@ -588,7 +588,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **可外包**：专门请一位懂行业的 MBA 一周完成。成本 $1,500-3,000。
 
-***REMOVED******REMOVED******REMOVED*** 5.3 数据更新策略
+### 5.3 数据更新策略
 
 | 数据类型 | 更新频率 | 触发方式 |
 |---|---|---|
@@ -600,9 +600,9 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 六. 能实现到的效果
+## 六. 能实现到的效果
 
-***REMOVED******REMOVED******REMOVED*** 6.1 用户能感知到的 5 个核心 Moment
+### 6.1 用户能感知到的 5 个核心 Moment
 
 1. **初次输入 ticker → 30 秒后看到报告**
    - 读到一个"从没想过"的跨领域框架
@@ -624,7 +624,7 @@ Output: Report object (Markdown + PDF) → served to user
    - 某只 watchlist 公司的结构发生变化
    - 感受："工具帮我盯着了"
 
-***REMOVED******REMOVED******REMOVED*** 6.2 量化目标（12 个月）
+### 6.2 量化目标（12 个月）
 
 | 指标 | 3 个月 | 6 个月 | 12 个月 |
 |---|---|---|---|
@@ -641,7 +641,7 @@ Output: Report object (Markdown + PDF) → served to user
 - 6 个月付费 < 20 → 转化失败，停
 - 12 个月 MRR < $10k → 规模不够，转为 side project
 
-***REMOVED******REMOVED******REMOVED*** 6.3 技术指标目标
+### 6.3 技术指标目标
 
 | 指标 | MVP | Stable |
 |---|---|---|
@@ -653,9 +653,9 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 七. 分阶段路线图
+## 七. 分阶段路线图
 
-***REMOVED******REMOVED******REMOVED*** Phase 0：验证（Week 1-2，零成本）
+### Phase 0：验证（Week 1-2，零成本）
 
 **目标**：用 0 代码证明市场真实性
 
@@ -682,7 +682,7 @@ Output: Report object (Markdown + PDF) → served to user
 - 50-200 → 再发 10 篇确认
 - < 50 → 回到论文路径
 
-***REMOVED******REMOVED******REMOVED*** Phase 1：MVP（Week 3-6）
+### Phase 1：MVP（Week 3-6）
 
 **前提**：Phase 0 通过
 
@@ -705,7 +705,7 @@ Output: Report object (Markdown + PDF) → served to user
   - 产品问题 → 迭代报告质量
   - 分销问题 → 回到内容 marketing
 
-***REMOVED******REMOVED******REMOVED*** Phase 2：功能补完（Week 7-14）
+### Phase 2：功能补完（Week 7-14）
 
 **目标**：留存与重复购买
 
@@ -732,7 +732,7 @@ Output: Report object (Markdown + PDF) → served to user
 - 流失率 < 15%/月
 - 30% 用户使用 watchlist 功能
 
-***REMOVED******REMOVED******REMOVED*** Phase 3：增长（Week 15-28）
+### Phase 3：增长（Week 15-28）
 
 **目标**：找到可规模化的获客渠道
 
@@ -757,7 +757,7 @@ Output: Report object (Markdown + PDF) → served to user
 - 400-600 付费用户
 - 确定 1 个 scale 得动的渠道
 
-***REMOVED******REMOVED******REMOVED*** Phase 4：规模化决策（Month 7-12）
+### Phase 4：规模化决策（Month 7-12）
 
 **分叉点**：根据 Phase 3 结果决定
 
@@ -781,9 +781,9 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 八. 资源估算
+## 八. 资源估算
 
-***REMOVED******REMOVED******REMOVED*** 8.1 时间投入
+### 8.1 时间投入
 
 | Phase | 持续时间 | 每周投入 | 总工时 |
 |---|---|---|---|
@@ -795,7 +795,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **换算**：相当于 **4-5 个月全职** 或 **10 个月每周 2-3 天**。
 
-***REMOVED******REMOVED******REMOVED*** 8.2 现金投入
+### 8.2 现金投入
 
 | 项目 | Phase 0-1 | Phase 2 | Phase 3 | 合计 |
 |---|---|---|---|---|
@@ -819,7 +819,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **投资回报**：~10× - 40×（如果成功）；**0×**（如果失败）
 
-***REMOVED******REMOVED******REMOVED*** 8.3 人力 gap
+### 8.3 人力 gap
 
 你自己可以做：
 - ✅ 产品设计
@@ -835,9 +835,9 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 九. 风险清单
+## 九. 风险清单
 
-***REMOVED******REMOVED******REMOVED*** 9.1 严重风险（P0）
+### 9.1 严重风险（P0）
 
 | 风险 | 概率 | 影响 | 缓解 |
 |---|---|---|---|
@@ -846,7 +846,7 @@ Output: Report object (Markdown + PDF) → served to user
 | **LLM 成本失控** | 中 (30%) | 严重 | 引入 Kimi/Haiku fallback，report 缓存复用，设月度 budget 自动断闸 |
 | **用户找不到"实用 ROI"** | 中 (40%) | 严重 | 每份报告附具体可操作建议，避免纯哲学类比 |
 
-***REMOVED******REMOVED******REMOVED*** 9.2 中度风险（P1）
+### 9.2 中度风险（P1）
 
 | 风险 | 概率 | 影响 | 缓解 |
 |---|---|---|---|
@@ -856,7 +856,7 @@ Output: Report object (Markdown + PDF) → served to user
 | 个人 burnout | 中 (40%) | 严重 | 严格每周上限 30h，不加班 |
 | 中美两市场分裂 | 中 | 小 | MVP 只做美股 + A 股头部，暂时不做港股/欧股 |
 
-***REMOVED******REMOVED******REMOVED*** 9.3 尾部风险（P2）
+### 9.3 尾部风险（P2）
 
 - LLM 输出偏见导致的社会舆论（解决：每份报告人工抽查前 100 份）
 - 用户恶意使用（pump and dump）（解决：watermark + 法律 disclaimer）
@@ -864,11 +864,11 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 十. 最关键的 5 个决策点
+## 十. 最关键的 5 个决策点
 
 这 5 个决策每个都可能决定成败。
 
-***REMOVED******REMOVED******REMOVED*** 决策 1：Phase 0 要不要先做？
+### 决策 1：Phase 0 要不要先做？
 
 **选项 A**：跳过 Phase 0，直接 Phase 1 MVP
 - 优点：快
@@ -880,7 +880,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **推荐**：**B**。这 2 周的成本极低，但如果 Phase 0 失败，省下 150 小时 + $5k。
 
-***REMOVED******REMOVED******REMOVED*** 决策 2：用 ticker 还是公司描述作为主输入？
+### 决策 2：用 ticker 还是公司描述作为主输入？
 
 **选项 A**：只支持 ticker
 - 优点：结构化，数据好拉
@@ -892,14 +892,14 @@ Output: Report object (Markdown + PDF) → served to user
 
 **推荐**：**Phase 1 只支持 ticker**，Phase 2 加自然语言。
 
-***REMOVED******REMOVED******REMOVED*** 决策 3：是否做自动化报告生成？
+### 决策 3：是否做自动化报告生成？
 
 **选项 A**：全自动化（快，但质量可能差）
 **选项 B**：AI 生成 + 人工 review（慢，但质量保）
 
 **推荐**：**Phase 1 前 100 份用 B**，手动 review 每份报告。Phase 2 后逐步 A。
 
-***REMOVED******REMOVED******REMOVED*** 决策 4：定价锚点
+### 决策 4：定价锚点
 
 **选项 A**：$19/月（retail 价格）
 - 优点：低摩擦
@@ -915,7 +915,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 **推荐**：**freemium + $99/月** 主打专业用户，同时保留 $29/份的 single report 入口捕获犹豫用户。
 
-***REMOVED******REMOVED******REMOVED*** 决策 5：是否学术论文化？
+### 决策 5：是否学术论文化？
 
 **选项 A**：纯商业产品，不发论文
 **选项 B**：同时发 1 篇 position paper（比如 arXiv）作为信任背书
@@ -924,21 +924,21 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 十一. 从今天开始的第一步
+## 十一. 从今天开始的第一步
 
-***REMOVED******REMOVED******REMOVED*** 今天
+### 今天
 
 1. Review 这份 plan，决定 Go / No-Go
 2. 如果 Go：买下 domain（`structuralintel.io` / `structint.com` / `isomorph.finance`）
 3. 开一个 notion page 记录 Phase 0 进度
 
-***REMOVED******REMOVED******REMOVED*** 本周
+### 本周
 
 1. 选 3 家公司（NFLX / NVDA / PDD）生成第一批测试报告
 2. 发到 Substack 建立基础 newsletter
 3. 同一内容翻译到雪球 / 小红书 / Twitter
 
-***REMOVED******REMOVED******REMOVED*** 本月
+### 本月
 
 1. 完成 10 份公司报告
 2. 观察 3 周的 waitlist 增长
@@ -946,7 +946,7 @@ Output: Report object (Markdown + PDF) → served to user
 
 ---
 
-***REMOVED******REMOVED*** 附录 A：相关链接
+## 附录 A：相关链接
 
 - 现有项目：`~/Projects/structural-isomorphism/`
 - V3 核心代码：`v3/matcher.py` + `v3/extract_structtuple.py`
@@ -954,6 +954,6 @@ Output: Report object (Markdown + PDF) → served to user
 - Beta 站：`beta.structural.bytedance.city`（参考 UI）
 - GitHub：`github.com/dada8899/structural-isomorphism`
 
-***REMOVED******REMOVED*** 附录 B：版本历史
+## 附录 B：版本历史
 
 - v0.1 (2026-04-15)：初版草案

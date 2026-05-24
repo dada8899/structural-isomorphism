@@ -1,8 +1,8 @@
-***REMOVED*** Universality classes — duplicate `class_id` resolution
+# Universality classes — duplicate `class_id` resolution
 
 > Decision record. Status: resolved. Last updated: 2026-05-15.
 
-***REMOVED******REMOVED*** Problem
+## Problem
 
 `web/frontend/assets/data/universality-classes.json` is the public-facing
 taxonomy consumed by:
@@ -17,7 +17,7 @@ taxonomy consumed by:
 
 Both products key off the `class_id` field as the canonical identifier.
 
-During session ***REMOVED***9 (W6-E audit), two duplicate `class_id` values were
+During session #9 (W6-E audit), two duplicate `class_id` values were
 discovered in the JSON:
 
 - `motter_lai_network_cascade` (2 entries)
@@ -35,7 +35,7 @@ financial-microstructure phenomena into a second community. Both
 communities meet the Motter-Lai load-redistribution cascade prototype but
 the cross-edges and member entries differ.
 
-***REMOVED******REMOVED*** Options considered
+## Options considered
 
 | Option | Pro | Con |
 |---|---|---|
@@ -43,7 +43,7 @@ the cross-edges and member entries differ.
 | **B. Merge into one entry with union of members** | Preserves all members | Conflates two communities the clustering deliberately separated; misrepresents the B3 signal |
 | **C. Suffix the lower-rank entry with `_v2`** | Both communities preserved with full metadata; matches taxonomy YAML; deterministic and reproducible | Slightly clunky ID; future re-cluster might produce `_v3` etc. |
 
-***REMOVED******REMOVED*** Decision
+## Decision
 
 **Option C** (already implemented in commit `bfdf2b0`, 2026-05-14).
 
@@ -60,7 +60,7 @@ Rationale:
   unknown suffixes gracefully — a `_v2` simply renders as a sibling class
   with its own page.
 
-***REMOVED******REMOVED*** Resulting state
+## Resulting state
 
 - `motter_lai_network_cascade` — Traffic / Civil / Geology cluster
   (rank 4).
@@ -74,7 +74,7 @@ Rationale:
 All 23 `class_id` values are now unique. The B4 taxonomy YAML in
 `v4/taxonomy/` mirrors this suffix policy.
 
-***REMOVED******REMOVED*** Regression guard
+## Regression guard
 
 `tests/test_universality_classes_unique.py` adds five assertions:
 
@@ -90,7 +90,7 @@ These run under the `sanity` marker — under 30s, included in the default
 CI sweep. A future re-cluster run that re-introduces a collision will be
 detected at PR time, not in production.
 
-***REMOVED******REMOVED*** Policy for future re-clusters
+## Policy for future re-clusters
 
 When the B3 / B4 pipeline produces a fresh taxonomy:
 
@@ -105,9 +105,9 @@ When the B3 / B4 pipeline produces a fresh taxonomy:
 4. Never delete the base entry to resolve a collision — external
    citations may depend on it.
 
-***REMOVED******REMOVED*** References
+## References
 
 - Commit `bfdf2b0` — original F1 fix that introduced the `_v2` suffix.
-- W6-E session ***REMOVED***9 audit report (this PR).
+- W6-E session #9 audit report (this PR).
 - Louvain methodology: Blondel et al., *Fast unfolding of communities in
   large networks*, J. Stat. Mech. (2008).

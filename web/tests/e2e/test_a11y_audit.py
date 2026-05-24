@@ -47,10 +47,10 @@ BASE = os.environ.get("PHASE_BASE", "https://phase.bytedance.city").rstrip("/")
 AXE_CDN = "https://cdn.jsdelivr.net/npm/axe-core@4.10.0/axe.min.js"
 AXE_CACHE = pathlib.Path(__file__).parent / ".axe-core-4.10.0.min.js"
 
-***REMOVED*** WCAG conformance level we audit against. wcag2aa covers AA, wcag21aa covers
-***REMOVED*** 2.1 additions (orientation, status-messages, target-size, etc.). AAA is
-***REMOVED*** reported separately as informational — body text contrast is the only AAA
-***REMOVED*** criterion we hard-enforce (handled in test_aaa_body_contrast below).
+# WCAG conformance level we audit against. wcag2aa covers AA, wcag21aa covers
+# 2.1 additions (orientation, status-messages, target-size, etc.). AAA is
+# reported separately as informational — body text contrast is the only AAA
+# criterion we hard-enforce (handled in test_aaa_body_contrast below).
 AXE_TAGS_BLOCKING = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]
 AXE_TAGS_AAA_INFO = ["wcag2aaa", "wcag21aaa"]
 
@@ -72,15 +72,15 @@ VIEWPORTS = [
     ("mobile", {"width": 390, "height": 844}),
 ]
 
-***REMOVED*** Violations we intentionally allow as "documented known issues" — each must
-***REMOVED*** be defended in docs/accessibility/a11y-report-2026-05-15.md. We allow
-***REMOVED*** moderate/minor only; never critical or serious.
+# Violations we intentionally allow as "documented known issues" — each must
+# be defended in docs/accessibility/a11y-report-2026-05-15.md. We allow
+# moderate/minor only; never critical or serious.
 ALLOWLIST_IDS: set[str] = {
-    ***REMOVED*** axe flags duplicate-id-aria when Next.js renders mirrored elements for
-    ***REMOVED*** mobile/desktop nav. Both are visible to AT in different breakpoints, so
-    ***REMOVED*** the ID collision is a soft warning, not a screen-reader failure.
-    ***REMOVED*** We resolve it via responsive show/hide in TopNav.tsx but until that ship
-    ***REMOVED*** lands we accept the moderate severity.
+    # axe flags duplicate-id-aria when Next.js renders mirrored elements for
+    # mobile/desktop nav. Both are visible to AT in different breakpoints, so
+    # the ID collision is a soft warning, not a screen-reader failure.
+    # We resolve it via responsive show/hide in TopNav.tsx but until that ship
+    # lands we accept the moderate severity.
 }
 
 
@@ -106,7 +106,7 @@ def chromium_browser(playwright_instance):
 
 def _run_axe(page, tags: list[str]) -> dict[str, Any]:
     """Inject and run axe-core with the given WCAG tag set."""
-    ***REMOVED*** axe.run is async — wrap in a Promise and await via evaluate.
+    # axe.run is async — wrap in a Promise and await via evaluate.
     return page.evaluate(
         """async (tags) => {
             const result = await axe.run(document, {
@@ -144,7 +144,7 @@ def _audit_page(browser, axe_source: str, path: str, viewport: dict) -> dict:
     page = context.new_page()
     try:
         page.goto(BASE + path, wait_until="domcontentloaded", timeout=45000)
-        ***REMOVED*** Let async hydration / data fetches settle before scanning.
+        # Let async hydration / data fetches settle before scanning.
         try:
             page.wait_for_load_state("networkidle", timeout=10000)
         except Exception:
@@ -158,9 +158,9 @@ def _audit_page(browser, axe_source: str, path: str, viewport: dict) -> dict:
         context.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Test matrix — generated per (page, viewport) so failures pinpoint location.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Test matrix — generated per (page, viewport) so failures pinpoint location.
+# ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
     "viewport_name,viewport,path,label",
@@ -222,7 +222,7 @@ def test_aaa_body_contrast_informational(
     (out_dir / f"aaa-{label}.json").write_text(
         json.dumps(aaa_violations, indent=2), encoding="utf-8"
     )
-    ***REMOVED*** We don't assert — informational only.
+    # We don't assert — informational only.
 
 
 def test_skip_to_content_link_present(chromium_browser, axe_source):
@@ -234,9 +234,9 @@ def test_skip_to_content_link_present(chromium_browser, axe_source):
         skip_link = page.locator("a.skip-link").first
         assert skip_link.count() > 0, "skip-link missing from <body>"
         href = skip_link.get_attribute("href")
-        assert href == "***REMOVED***main-content", f"skip-link href={href!r} should be ***REMOVED***main-content"
-        ***REMOVED*** main landmark exists with the matching id.
-        main = page.locator("main***REMOVED***main-content").first
+        assert href == "#main-content", f"skip-link href={href!r} should be #main-content"
+        # main landmark exists with the matching id.
+        main = page.locator("main#main-content").first
         assert main.count() > 0, "<main id='main-content'> not found"
     finally:
         context.close()
@@ -249,7 +249,7 @@ def test_keyboard_navigation_tab_order_home(chromium_browser):
     try:
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=45000)
         page.wait_for_timeout(400)
-        ***REMOVED*** Force focus to document root, then send Tab.
+        # Force focus to document root, then send Tab.
         page.evaluate("document.body.setAttribute('tabindex', '-1'); document.body.focus();")
         page.keyboard.press("Tab")
         active = page.evaluate(

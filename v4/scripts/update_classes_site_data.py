@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Update web/frontend/assets/data/universality-classes.json with Phase 6/8/10/11 verified results.
 
 Adds new predictions (status=verified) to:
@@ -126,11 +126,11 @@ def main():
             added += 1
         print(f"[ok] {class_id}: added {added} predictions ({len(cls['predictions'])} total)")
 
-    ***REMOVED*** Update meta
+    # Update meta
     d["meta"]["last_updated"] = "2026-05-13"
     d["meta"]["layer5_phase_count"] = d["meta"].get("layer5_phase_count", 5) + 4
 
-    ***REMOVED*** Update stats — count predictions by status
+    # Update stats — count predictions by status
     total_verified = 0
     for c in d["classes"]:
         for p in c.get("predictions", []):
@@ -143,7 +143,7 @@ def main():
         json.dump(d, f, ensure_ascii=False, indent=2)
     print(f"Wrote {SITE_JSON}")
 
-    ***REMOVED*** Copy papers
+    # Copy papers
     for slug, src in PAPER_COPIES.items():
         if not src.exists():
             print(f"[skip-copy] {src} missing")

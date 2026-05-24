@@ -1,18 +1,18 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** restore-models.sh — idempotent model restore from HF Hub
-***REMOVED*** Used by: scripts/deploy-vps.sh + systemd structural-web.service PreStart
-***REMOVED*** Required: venv/bin/python with sentence-transformers installed
-***REMOVED***
-***REMOVED*** Why this exists:
-***REMOVED***   2026-05-14 prod 502 (25min) — rsync --delete from git source to deploy
-***REMOVED***   target wiped models/structural-v2/ (excluded from git via .gitignore).
-***REMOVED***   Backend startup load_model(explicit_path=...) raised, systemd loop.
-***REMOVED***   This script restores the model fixture from HF Hub idempotently.
-***REMOVED***
-***REMOVED*** Env vars (with defaults):
-***REMOVED***   REPO_ROOT   — deploy target root (default: /root/Projects/structural-isomorphism)
-***REMOVED***   MODEL_DIR   — where to save model (default: $REPO_ROOT/models/structural-v2)
-***REMOVED***   VENV_PYTHON — python with sentence-transformers (default: $REPO_ROOT/venv/bin/python)
+#!/usr/bin/env bash
+# restore-models.sh — idempotent model restore from HF Hub
+# Used by: scripts/deploy-vps.sh + systemd structural-web.service PreStart
+# Required: venv/bin/python with sentence-transformers installed
+#
+# Why this exists:
+#   2026-05-14 prod 502 (25min) — rsync --delete from git source to deploy
+#   target wiped models/structural-v2/ (excluded from git via .gitignore).
+#   Backend startup load_model(explicit_path=...) raised, systemd loop.
+#   This script restores the model fixture from HF Hub idempotently.
+#
+# Env vars (with defaults):
+#   REPO_ROOT   — deploy target root (default: /root/Projects/structural-isomorphism)
+#   MODEL_DIR   — where to save model (default: $REPO_ROOT/models/structural-v2)
+#   VENV_PYTHON — python with sentence-transformers (default: $REPO_ROOT/venv/bin/python)
 
 set -euo pipefail
 
@@ -20,10 +20,10 @@ REPO_ROOT="${REPO_ROOT:-/root/Projects/structural-isomorphism}"
 MODEL_DIR="${MODEL_DIR:-$REPO_ROOT/models/structural-v2}"
 VENV_PYTHON="${VENV_PYTHON:-$REPO_ROOT/venv/bin/python}"
 
-***REMOVED*** Candidate HF model IDs in fallback order
+# Candidate HF model IDs in fallback order
 CANDIDATES=(
-  "structural-isomorphism/structural-v1"   ***REMOVED*** ideal, may not exist on HF
-  "shibing624/text2vec-base-chinese"        ***REMOVED*** base model fallback (used 2026-05-14 recovery)
+  "structural-isomorphism/structural-v1"   # ideal, may not exist on HF
+  "shibing624/text2vec-base-chinese"        # base model fallback (used 2026-05-14 recovery)
 )
 
 if [[ -d "$MODEL_DIR" ]] && [[ -n "$(ls -A "$MODEL_DIR" 2>/dev/null)" ]]; then

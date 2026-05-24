@@ -1,4 +1,4 @@
-***REMOVED*** W6-D abstract rewrite suggestion (for W6-C or downstream session)
+# W6-D abstract rewrite suggestion (for W6-C or downstream session)
 
 **Source**: `paper/v0-unified-pipeline-2026-05-13.md` § Abstract
 **Reason**: W5-F top issue § 5.1 — current v0.2 abstract is a single ~600-word run-on sentence; readability is bottlenecked by chained relative clauses and dense numeric inserts.
@@ -8,14 +8,14 @@
 
 ---
 
-***REMOVED******REMOVED*** Diagnosis of the current abstract
+## Diagnosis of the current abstract
 
 - **Single sentence, ~600 words** — there are em-dashes and semicolons internally but the abstract is grammatically one sentence.
 - Per-system numeric reports (`b = 1.084 ± 0.005 on 37,281 USGS earthquakes`, …) are interleaved with the methodological scaffolding, making it impossible to scan.
 - Three claims (replication, robustness, taxonomy critic) are buried inside the same period.
 - Readers cannot find the headline result without parsing the whole paragraph.
 
-***REMOVED******REMOVED*** Target structure (5 short paragraphs, 200–250 words total)
+## Target structure (5 short paragraphs, 200–250 words total)
 
 Each paragraph should carry exactly one of the following claims:
 
@@ -25,7 +25,7 @@ Each paragraph should carry exactly one of the following claims:
 4. **Robustness layer** (≈40 words) — B3 multi-model ensemble taxonomy critic across 21 candidate classes returns 63 verdicts with 0 parse errors; KEEP=5, REJECT=7, SPLIT=5, MERGE=4; demotions are explicitly attributed to mechanism-vs-limit-theorem confusion.
 5. **Honest qualification** (≈30 words) — Vuong $R$ against lognormal is inconclusive in three of nine raw-tail comparisons (S&P, wildfires, Wikipedia); BIC on the log-binned density still rejects lognormal 0/7. We discuss the procedural tension in §6.2.
 
-***REMOVED******REMOVED*** Proposed rewrite (drop-in replacement for the current Abstract section)
+## Proposed rewrite (drop-in replacement for the current Abstract section)
 
 > Universality-class claims have empirical content only if a single analysis
 > pipeline, with no per-domain tuning, can recover the predicted signatures
@@ -72,7 +72,7 @@ Each paragraph should carry exactly one of the following claims:
 > verified, taxonomy surviving multi-model critic review — and not on
 > rejecting all smooth alternatives in every individual system.
 
-***REMOVED******REMOVED*** Word count target
+## Word count target
 
 | | Current | Proposed |
 |---|---|---|
@@ -82,21 +82,21 @@ Each paragraph should carry exactly one of the following claims:
 | Em-dashes in abstract | 7 | 3 |
 | Scan-readability | Bottom 5% (per W5-F) | ~80th percentile |
 
-***REMOVED******REMOVED*** Application notes for W6-C
+## Application notes for W6-C
 
-- This is a pure text replacement of the `***REMOVED******REMOVED*** Abstract` section in
+- This is a pure text replacement of the `## Abstract` section in
   `paper/v0-unified-pipeline-2026-05-13.md`. No figures, no LaTeX changes.
 - Keep all numeric facts; only the *prose framing* changes.
 - The per-system numerical table in the current abstract (12+ exponents) is
   not lost — it remains in §3 case studies in full.
 - After applying, regenerate `paper-en.pdf` via `paper/gen_pdf_v2.py`.
 
-***REMOVED******REMOVED*** Sanity check before merge
+## Sanity check before merge
 
 - [ ] Run `wc -w` on new abstract block — expect 230–280 words.
 - [ ] Run `grep -c "—" paper/v0-unified-pipeline-2026-05-13.md` — should drop
       vs current count, but the section-level em-dash budget is what matters
-      most (W5-F ***REMOVED***5 — em-dash diet).
+      most (W5-F #5 — em-dash diet).
 - [ ] Verify all numerical facts are still present somewhere in the paper
       body if they were dropped from the abstract.
 

@@ -11,7 +11,7 @@ import pytest
 import server
 
 
-***REMOVED*** --- Fake httpx client -------------------------------------------------------
+# --- Fake httpx client -------------------------------------------------------
 
 
 class FakeResponse:
@@ -52,7 +52,7 @@ def run(coro):
     return asyncio.run(coro)
 
 
-***REMOVED*** --- search ------------------------------------------------------------------
+# --- search ------------------------------------------------------------------
 
 
 def test_search_normal():
@@ -98,13 +98,13 @@ def test_search_empty_results():
 
 
 def test_search_top_k_clamped():
-    ***REMOVED*** top_k out of range must not raise; clamp handled before request.
+    # top_k out of range must not raise; clamp handled before request.
     client = FakeClient(post_result=FakeResponse(200, {"query": "q", "count": 0, "results": []}))
     out = run(server.do_search(client, "http://x", "q", 999))
     assert out["ok"] is True
 
 
-***REMOVED*** --- get_phenomenon ----------------------------------------------------------
+# --- get_phenomenon ----------------------------------------------------------
 
 
 def test_get_phenomenon_normal():
@@ -141,7 +141,7 @@ def test_get_phenomenon_unreachable():
     assert out["error"] == "unreachable"
 
 
-***REMOVED*** --- SSE parsing -------------------------------------------------------------
+# --- SSE parsing -------------------------------------------------------------
 
 
 def test_parse_sse_events_multi():
@@ -164,7 +164,7 @@ def test_parse_sse_events_skips_garbage():
         'event: section\ndata: {"key": "k", "data": "v"}\n\n'
     )
     events = server.parse_sse_events(stream)
-    ***REMOVED*** comment + bad-json block dropped, only the valid one survives.
+    # comment + bad-json block dropped, only the valid one survives.
     assert events == [("section", {"key": "k", "data": "v"})]
 
 
@@ -177,7 +177,7 @@ def test_assemble_report_full():
     assert out["ok"] is True
     assert out["complete"] is True
     assert out["missing_sections"] == []
-    ***REMOVED*** report keys must follow the canonical order.
+    # report keys must follow the canonical order.
     assert list(out["report"].keys()) == server.REPORT_SECTION_ORDER
 
 
@@ -205,9 +205,9 @@ def test_assemble_report_error_event():
 
 
 def test_assemble_report_cached_inline():
-    ***REMOVED*** A cached `done` carries the whole report inline (no section events).
+    # A cached `done` carries the whole report inline (no section events).
     cached = {k: f"c-{k}" for k in server.REPORT_SECTION_ORDER}
-    cached["_credibility"] = {"kb_source": True}  ***REMOVED*** underscore key must be dropped
+    cached["_credibility"] = {"kb_source": True}  # underscore key must be dropped
     events = [("meta", {}), ("done", {"from_cache": True, "report": cached})]
     out = server.assemble_report(events)
     assert out["ok"] is True
@@ -222,7 +222,7 @@ def test_assemble_report_empty():
     assert out["error"] == "empty_report"
 
 
-***REMOVED*** --- do_analyze --------------------------------------------------------------
+# --- do_analyze --------------------------------------------------------------
 
 
 def test_do_analyze_normal():
@@ -264,7 +264,7 @@ def test_do_analyze_bad_args():
     assert out["error"] == "bad_request"
 
 
-***REMOVED*** --- config ------------------------------------------------------------------
+# --- config ------------------------------------------------------------------
 
 
 def test_get_api_base_default():

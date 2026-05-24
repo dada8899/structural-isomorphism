@@ -1,11 +1,11 @@
-***REMOVED*** Buttondown setup for the Structural Signals newsletter
+# Buttondown setup for the Structural Signals newsletter
 
 **Status (W8-D / 2026-05-13):** Code paths are wired, account is **not yet
 provisioned**. Once the account exists, no further code changes are required
 — set `BUTTONDOWN_API_KEY` in `phase-api.env` on the VPS and signups will
 start forwarding automatically.
 
-***REMOVED******REMOVED*** Why Buttondown
+## Why Buttondown
 
 | Choice | Why |
 |---|---|
@@ -17,7 +17,7 @@ start forwarding automatically.
 
 Decision: **Buttondown** until ≥500 subscribers, then re-evaluate.
 
-***REMOVED******REMOVED*** Provisioning (manual, ~10 min — needs user action)
+## Provisioning (manual, ~10 min — needs user action)
 
 1. Go to https://buttondown.email/register
 2. Sign up with the project email
@@ -35,14 +35,14 @@ Decision: **Buttondown** until ≥500 subscribers, then re-evaluate.
 7. Restart phase-api: `systemctl restart phase-api`
 8. Test: from a non-existing test email, sign up via https://phase.bytedance.city → verify it appears in Buttondown subscribers list.
 
-***REMOVED******REMOVED*** Code touchpoints (already wired)
+## Code touchpoints (already wired)
 
 - `v4/product/d1_phase_detector/api/main.py::_maybe_forward_buttondown`
   - No-op when `BUTTONDOWN_API_KEY` is unset (no error path noise)
   - On any HTTP error from Buttondown: swallowed (DB is source of truth; backfill cron can later re-push missed signups)
 - `scripts/newsletter/send_weekly.py` — composes + sends the weekly digest
 
-***REMOVED******REMOVED*** Backfill safety net
+## Backfill safety net
 
 If Buttondown forwarding fails silently for a while, the DB has every signup.
 To backfill manually:
@@ -54,7 +54,7 @@ sqlite3 /var/lib/phase-api/d1.sqlite \
 
 Then bulk-import via Buttondown's CSV importer or the API.
 
-***REMOVED******REMOVED*** Open items (post-W8-D)
+## Open items (post-W8-D)
 
 - [ ] User authorizes spend (~$0-9/mo)
 - [ ] DNS CNAME added

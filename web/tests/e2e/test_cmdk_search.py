@@ -1,4 +1,4 @@
-"""W13-E (session ***REMOVED***10) Cmd+K palette e2e — site-wide search.
+"""W13-E (session #10) Cmd+K palette e2e — site-wide search.
 
 These tests cannot easily boot a real Next.js server in CI, so we mirror
 the W12-E PWA test pattern: stand up a tiny `http.server` that serves a
@@ -35,16 +35,16 @@ _INDEX_FILE = _PUBLIC / "search-index.json"
 _BUILD_SCRIPT = _REPO / "scripts" / "build_search_index.py"
 
 
-***REMOVED*** A self-contained HTML shell that mimics CommandPaletteProvider + CommandPalette.
-***REMOVED*** Keep this in sync with the React component's testable surface:
-***REMOVED***   - data-testid="cmdk-dialog" appears when open
-***REMOVED***   - data-testid="cmdk-input"  is the search input
-***REMOVED***   - data-testid="cmdk-result-<type>" is each result row
-***REMOVED***   - Cmd+K / Ctrl+K toggle
-***REMOVED***   - `/` opens IFF not focused inside <input>
-***REMOVED***   - Esc closes
-***REMOVED***   - Arrow keys navigate, Enter activates
-***REMOVED***   - Recent searches via localStorage key "phase:cmdk:recent"
+# A self-contained HTML shell that mimics CommandPaletteProvider + CommandPalette.
+# Keep this in sync with the React component's testable surface:
+#   - data-testid="cmdk-dialog" appears when open
+#   - data-testid="cmdk-input"  is the search input
+#   - data-testid="cmdk-result-<type>" is each result row
+#   - Cmd+K / Ctrl+K toggle
+#   - `/` opens IFF not focused inside <input>
+#   - Esc closes
+#   - Arrow keys navigate, Enter activates
+#   - Recent searches via localStorage key "phase:cmdk:recent"
 _INDEX_HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -58,10 +58,10 @@ _INDEX_HTML = r"""<!DOCTYPE html>
     .cmdk-panel input { width: 100%; padding: 12px 16px; border: 0; outline: none; font-size: 16px; }
     .cmdk-list { max-height: 60vh; overflow-y: auto; }
     .cmdk-row { padding: 10px 16px; cursor: pointer; }
-    .cmdk-row[aria-selected="true"] { background: ***REMOVED***f3f4f6; }
+    .cmdk-row[aria-selected="true"] { background: #f3f4f6; }
     .cmdk-row .title { font-weight: 500; }
-    .cmdk-row .sub { color: ***REMOVED***6b7280; font-size: 12px; }
-    .cmdk-group { padding: 4px 16px; text-transform: uppercase; color: ***REMOVED***9ca3af; font-size: 11px; }
+    .cmdk-row .sub { color: #6b7280; font-size: 12px; }
+    .cmdk-group { padding: 4px 16px; text-transform: uppercase; color: #9ca3af; font-size: 11px; }
     @media (max-width: 640px) {
       .cmdk-panel { width: 100vw; max-width: none; height: 100dvh; margin-top: 0; border-radius: 0; }
     }
@@ -221,7 +221,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
                + '</div>';
         }
       }
-      if (!hits.length && query.trim()) html = '<div style="padding:24px;color:***REMOVED***6b7280">没有匹配 “' + query + '” 的结果</div>';
+      if (!hits.length && query.trim()) html = '<div style="padding:24px;color:#6b7280">没有匹配 “' + query + '” 的结果</div>';
       if (!query.trim()) {
         const recent = loadRecent();
         html = '';
@@ -330,7 +330,7 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_a, **_kw):
         return
 
-    def do_GET(self):  ***REMOVED*** noqa: N802
+    def do_GET(self):  # noqa: N802
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html", "/search"):
             self._send(200, "text/html; charset=utf-8", _INDEX_HTML.encode("utf-8"))
@@ -374,9 +374,9 @@ def server(index_built):
     httpd.server_close()
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** Sanity: index built & reachable
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Sanity: index built & reachable
+# ----------------------------------------------------------------------
 
 @pytest.mark.sanity
 def test_index_has_minimum_entries(index_built):
@@ -396,16 +396,16 @@ def test_aapl_entry_present(index_built):
     assert "apple" in aapl["keywords"]
 
 
-***REMOVED*** ----------------------------------------------------------------------
-***REMOVED*** Playwright e2e
-***REMOVED*** ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Playwright e2e
+# ----------------------------------------------------------------------
 
 @pytest.mark.e2e
 def test_cmdk_opens_palette(page, server):
     page.goto(server)
-    ***REMOVED*** No dialog visible initially.
+    # No dialog visible initially.
     assert page.locator('[data-testid="cmdk-dialog"]').count() == 0
-    ***REMOVED*** Cmd+K opens it (Playwright maps Meta to Cmd on Mac, Ctrl on Linux).
+    # Cmd+K opens it (Playwright maps Meta to Cmd on Mac, Ctrl on Linux).
     page.keyboard.press("Meta+k")
     page.locator('[data-testid="cmdk-dialog"]').wait_for(state="visible", timeout=2000)
     assert page.locator('[data-testid="cmdk-input"]').is_visible()
@@ -424,11 +424,11 @@ def test_typing_appl_surfaces_aapl(page, server):
     page.keyboard.press("Meta+k")
     page.locator('[data-testid="cmdk-input"]').wait_for(state="visible")
     page.locator('[data-testid="cmdk-input"]').fill("appl")
-    ***REMOVED*** Wait a tick for the search to render.
+    # Wait a tick for the search to render.
     page.wait_for_timeout(100)
     first = page.locator('[data-testid="cmdk-result-company"]').first
     first.wait_for(state="visible", timeout=2000)
-    ***REMOVED*** Top company result should be Apple.
+    # Top company result should be Apple.
     title = first.locator(".title").inner_text()
     assert "AAPL" in title or "Apple" in title, f"expected AAPL top, got {title!r}"
 
@@ -441,9 +441,9 @@ def test_arrow_enter_navigates(page, server):
     page.locator('[data-testid="cmdk-input"]').fill("appl")
     page.wait_for_timeout(100)
     page.keyboard.press("Enter")
-    ***REMOVED*** Harness simulates router.push by setting window.location.hash.
+    # Harness simulates router.push by setting window.location.hash.
     page.wait_for_function(
-        "() => window.location.hash.startsWith('***REMOVED***go=')", timeout=2000
+        "() => window.location.hash.startsWith('#go=')", timeout=2000
     )
     h = page.evaluate("() => decodeURIComponent(window.location.hash)")
     assert "/company/AAPL" in h, f"expected /company/AAPL, got {h!r}"
@@ -461,12 +461,12 @@ def test_esc_closes(page, server):
 @pytest.mark.e2e
 def test_slash_does_not_trigger_inside_input(page, server):
     page.goto(server)
-    ***REMOVED*** Focus an existing input.
+    # Focus an existing input.
     page.locator('[data-testid="other-input"]').click()
     page.keyboard.press("/")
-    ***REMOVED*** Palette must NOT have opened.
+    # Palette must NOT have opened.
     assert page.locator('[data-testid="cmdk-dialog"]').count() == 0
-    ***REMOVED*** But the `/` was typed into the input.
+    # But the `/` was typed into the input.
     val = page.locator('[data-testid="other-input"]').input_value()
     assert val == "/"
 
@@ -484,13 +484,13 @@ def test_cmd_k_still_works_inside_input(page, server):
 def test_mobile_viewport_renders_palette(playwright_instance, server):
     browser = playwright_instance.chromium.launch(headless=True)
     try:
-        ***REMOVED*** iPhone 12 dimensions.
+        # iPhone 12 dimensions.
         ctx = browser.new_context(viewport={"width": 390, "height": 844})
         pg = ctx.new_page()
         pg.goto(server)
         pg.keyboard.press("Meta+k")
         pg.locator('[data-testid="cmdk-dialog"]').wait_for(state="visible", timeout=2000)
-        ***REMOVED*** Panel should fill the viewport (full-screen mobile).
+        # Panel should fill the viewport (full-screen mobile).
         bbox = pg.locator(".cmdk-panel").bounding_box()
         assert bbox is not None
         assert bbox["width"] >= 380, f"mobile panel width too narrow: {bbox['width']}"
@@ -507,9 +507,9 @@ def test_recent_searches_persist(page, server):
     page.locator('[data-testid="cmdk-input"]').fill("appl")
     page.wait_for_timeout(100)
     page.keyboard.press("Enter")
-    page.wait_for_function("() => window.location.hash.startsWith('***REMOVED***go=')", timeout=2000)
+    page.wait_for_function("() => window.location.hash.startsWith('#go=')", timeout=2000)
 
-    ***REMOVED*** Reopen — recent list should include "appl".
+    # Reopen — recent list should include "appl".
     page.keyboard.press("Meta+k")
     page.locator('[data-testid="cmdk-dialog"]').wait_for(state="visible")
     recent = page.locator('[data-cmdk-recent="appl"]')
@@ -525,7 +525,7 @@ def test_plausible_events_fired(page, server):
     page.locator('[data-testid="cmdk-input"]').fill("aapl")
     page.wait_for_timeout(200)
     page.keyboard.press("Enter")
-    page.wait_for_function("() => window.location.hash.startsWith('***REMOVED***go=')", timeout=2000)
+    page.wait_for_function("() => window.location.hash.startsWith('#go=')", timeout=2000)
 
     events = page.evaluate("() => window.__cmdk_events || []")
     names = {e["event"] for e in events}

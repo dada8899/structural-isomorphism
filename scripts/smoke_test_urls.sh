@@ -1,17 +1,17 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** Smoke test: curl every public URL on the academic + commercial site and report
-***REMOVED*** any non-200 response or any response whose body is the 404 fallback page.
-***REMOVED***
-***REMOVED*** Usage:  scripts/smoke_test_urls.sh [base_url]
-***REMOVED*** Default: https://beta.structural.bytedance.city
-***REMOVED***
-***REMOVED*** Run after every deploy. Exits non-zero if any URL fails.
+#!/usr/bin/env bash
+# Smoke test: curl every public URL on the academic + commercial site and report
+# any non-200 response or any response whose body is the 404 fallback page.
+#
+# Usage:  scripts/smoke_test_urls.sh [base_url]
+# Default: https://beta.structural.bytedance.city
+#
+# Run after every deploy. Exits non-zero if any URL fails.
 
 set -u
 
 BASE="${1:-https://beta.structural.bytedance.city}"
 
-***REMOVED*** Paths grouped by area. Add new routes here when adding new pages.
+# Paths grouped by area. Add new routes here when adding new pages.
 ACADEMIC=(
   /
   /search
@@ -57,8 +57,8 @@ check() {
     FAIL=$((FAIL + 1))
     return
   fi
-  ***REMOVED*** 404 fallback detection: backend returns FileResponse(404.html, status_code=404) on missing,
-  ***REMOVED*** but some routes may serve 404.html body with 200. Cheap heuristic: body title contains "没找到".
+  # 404 fallback detection: backend returns FileResponse(404.html, status_code=404) on missing,
+  # but some routes may serve 404.html body with 200. Cheap heuristic: body title contains "没找到".
   if echo "$title" | grep -q "没找到"; then
     printf "FAIL  404-body  %s  %s\n" "$path" "$title"
     FAIL=$((FAIL + 1))

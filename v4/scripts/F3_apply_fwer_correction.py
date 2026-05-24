@@ -22,14 +22,14 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-***REMOVED*** Allow `v4.lib.multitest_correction` import without install
+# Allow `v4.lib.multitest_correction` import without install
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from v4.lib.multitest_correction import (  ***REMOVED*** noqa: E402
+from v4.lib.multitest_correction import (  # noqa: E402
     benjamini_hochberg,
     bonferroni,
     bonferroni_holm,
@@ -39,9 +39,9 @@ from v4.lib.multitest_correction import (  ***REMOVED*** noqa: E402
 VALIDATION = ROOT / "v4" / "validation"
 RESULTS = ROOT / "v4" / "results"
 
-***REMOVED*** Per-system file map + path inside JSON to the powerlaw_fit dict
+# Per-system file map + path inside JSON to the powerlaw_fit dict
 SYSTEMS = [
-    ("earthquake", "soc-earthquake/gr_results.json", None),  ***REMOVED*** uses b-test, special
+    ("earthquake", "soc-earthquake/gr_results.json", None),  # uses b-test, special
     ("stockmarket", "soc-stockmarket/gr_results.json", "clauset_fit"),
     ("defi_aave", "soc-defi/multiprotocol_results.json", "aave_v2.power_law"),
     ("defi_compound", "soc-defi/multiprotocol_results.json", "compound_v2.power_law"),
@@ -97,7 +97,7 @@ def harvest_pvalues() -> list[dict]:
             continue
 
         if key is not None:
-            ***REMOVED*** Support dotted path (e.g., "aave_v2.power_law")
+            # Support dotted path (e.g., "aave_v2.power_law")
             cur: object = data
             for part in key.split("."):
                 if not isinstance(cur, dict):
@@ -107,8 +107,8 @@ def harvest_pvalues() -> list[dict]:
                 if cur is None:
                     break
             fit = cur
-            ***REMOVED*** For mw_loss / customers_affected (power-grid), the LR-test
-            ***REMOVED*** lives under e.g. data["mw_loss"]["fit"]
+            # For mw_loss / customers_affected (power-grid), the LR-test
+            # lives under e.g. data["mw_loss"]["fit"]
             if isinstance(fit, dict) and "fit" in fit:
                 fit = fit["fit"]
         else:
@@ -118,7 +118,7 @@ def harvest_pvalues() -> list[dict]:
             print(f"[skip] {name}: no fit dict at key {key}")
             continue
 
-        ***REMOVED*** Pull p-values; handle both "vs_lognormal_p" and "compare_vs_lognormal_p"
+        # Pull p-values; handle both "vs_lognormal_p" and "compare_vs_lognormal_p"
         ln_p = (
             fit.get("vs_lognormal_p")
             or fit.get("compare_vs_lognormal_p")
@@ -140,7 +140,7 @@ def harvest_pvalues() -> list[dict]:
             or fit.get("lr_exponential_R")
         )
 
-        ***REMOVED*** Verdict label
+        # Verdict label
         winner = fit.get("vs_powerlaw_lognormal_winner") or fit.get("winner") or "n/a"
         alpha_hat = fit.get("alpha")
         n_tail = fit.get("n_tail")
@@ -164,24 +164,24 @@ def harvest_pvalues() -> list[dict]:
                 }
             )
 
-    ***REMOVED*** Earthquake: special-case GR fit uses b-value; the canonical test is
-    ***REMOVED*** whether the global b ∈ literature band. There is no Vuong-LR p here.
-    ***REMOVED*** We do include a synthetic "literature-band-consistency" entry:
+    # Earthquake: special-case GR fit uses b-value; the canonical test is
+    # whether the global b ∈ literature band. There is no Vuong-LR p here.
+    # We do include a synthetic "literature-band-consistency" entry:
     eq_file = VALIDATION / "soc-earthquake" / "gr_results.json"
     if eq_file.exists():
         try:
             d = json.loads(eq_file.read_text())
             b = d.get("b_value")
             if b is not None:
-                ***REMOVED*** If b ∈ [0.9, 1.1] band, treat the within-band as
-                ***REMOVED*** decisive evidence (p->0 for band-consistency); not a Vuong-LR.
-                ***REMOVED*** We do NOT add this to the FWER family since it's not a hypothesis
-                ***REMOVED*** test in the LR sense. Skip.
+                # If b ∈ [0.9, 1.1] band, treat the within-band as
+                # decisive evidence (p->0 for band-consistency); not a Vuong-LR.
+                # We do NOT add this to the FWER family since it's not a hypothesis
+                # test in the LR sense. Skip.
                 pass
         except Exception:
             pass
 
-    ***REMOVED*** Scheffer block-bootstrap (2 tests)
+    # Scheffer block-bootstrap (2 tests)
     sch_file = VALIDATION / "scheffer-lake" / "lake_results.json"
     if sch_file.exists():
         try:
@@ -232,7 +232,7 @@ def main():
     holm = bonferroni_holm(pvalues, alpha=alpha)
     bh = benjamini_hochberg(pvalues, alpha=alpha)
 
-    ***REMOVED*** Attach corrections to each row
+    # Attach corrections to each row
     for i, r in enumerate(rows):
         r["p_bonferroni"] = bonf.p_adjusted[i]
         r["p_holm"] = holm.p_adjusted[i]
@@ -241,10 +241,10 @@ def main():
         r["reject_bonferroni"] = bool(bonf.reject[i])
         r["reject_holm"] = bool(holm.reject[i])
         r["reject_bh"] = bool(bh.reject[i])
-        ***REMOVED*** Did the verdict flip from raw to Holm?
+        # Did the verdict flip from raw to Holm?
         r["verdict_flip_raw_to_holm"] = r["reject_raw"] != r["reject_holm"]
 
-    ***REMOVED*** Write JSONL
+    # Write JSONL
     out_jsonl = RESULTS / "F3_fwer_corrected.jsonl"
     out_jsonl.parent.mkdir(parents=True, exist_ok=True)
     with out_jsonl.open("w") as f:
@@ -252,7 +252,7 @@ def main():
             f.write(json.dumps(r) + "\n")
     print(f"[F3] wrote {out_jsonl} ({len(rows)} rows)")
 
-    ***REMOVED*** Summary
+    # Summary
     summary = {
         "n_tests": len(rows),
         "alpha": alpha,

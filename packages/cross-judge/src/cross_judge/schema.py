@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-VerdictLabel = str  ***REMOVED*** free-form (KEEP/REJECT/UNCLEAR/SPLIT/MERGE/...); callers pick the vocabulary
+VerdictLabel = str  # free-form (KEEP/REJECT/UNCLEAR/SPLIT/MERGE/...); callers pick the vocabulary
 
 
 class Verdict(BaseModel):

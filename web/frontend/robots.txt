@@ -1,6 +1,6 @@
-***REMOVED*** beta.structural.bytedance.city is a pre-release beta — keep it out of
-***REMOVED*** search indexes so it doesn't compete with the future production domain.
-***REMOVED*** When promoting to the production domain, reinstate `Allow: /` there.
+# beta.structural.bytedance.city is a pre-release beta — keep it out of
+# search indexes so it doesn't compete with the future production domain.
+# When promoting to the production domain, reinstate `Allow: /` there.
 User-agent: *
 Disallow: /
 

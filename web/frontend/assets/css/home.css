@@ -102,7 +102,7 @@
 
 .home__lede {
   font-size: var(--fs-15);
-  /* Was --text-tertiary (***REMOVED***A1A1AA, 2.8:1). Use --text-secondary for WCAG AA on body copy. */
+  /* Was --text-tertiary (#A1A1AA, 2.8:1). Use --text-secondary for WCAG AA on body copy. */
   color: var(--text-secondary);
   letter-spacing: var(--ls-tight);
   line-height: var(--lh-relaxed);
@@ -173,7 +173,7 @@
 }
 
 .hero-evidence__side:focus-visible {
-  outline: 2px solid var(--accent, ***REMOVED***2563eb);
+  outline: 2px solid var(--accent, #2563eb);
   outline-offset: 2px;
 }
 
@@ -551,13 +551,13 @@
 }
 
 .usecase__sample--clickable:hover {
-  border-color: var(--accent, ***REMOVED***2563eb);
+  border-color: var(--accent, #2563eb);
   background: rgba(37, 99, 235, 0.06);
-  color: var(--accent, ***REMOVED***2563eb);
+  color: var(--accent, #2563eb);
 }
 
 .usecase__sample--clickable:focus-visible {
-  outline: 2px solid var(--accent, ***REMOVED***2563eb);
+  outline: 2px solid var(--accent, #2563eb);
   outline-offset: 2px;
 }
 
@@ -975,7 +975,7 @@
 }
 
 .searchbox__submit:hover {
-  background: ***REMOVED***000;
+  background: #000;
   padding-right: var(--space-6);
 }
 
@@ -1081,7 +1081,7 @@
 .skeleton-bar {
   display: inline-block;
   height: 10px;
-  background: var(--brand-line, ***REMOVED***E4E4E7);
+  background: var(--brand-line, #E4E4E7);
   border-radius: 4px;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
   vertical-align: middle;
@@ -1319,7 +1319,7 @@
 
 .chip--history:hover {
   color: var(--text-primary);
-  background: var(--bg-primary, ***REMOVED***fff);
+  background: var(--bg-primary, #fff);
   border-color: var(--text-tertiary);
   transform: translateY(-1px);
 }
@@ -1343,7 +1343,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--bg-primary, ***REMOVED***fff);
+  background: var(--bg-primary, #fff);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg, 12px);
   color: var(--text-primary);

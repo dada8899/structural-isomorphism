@@ -38,7 +38,7 @@ def main():
                 context = browser.new_context(viewport=vp)
                 page = context.new_page()
                 page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                ***REMOVED*** Give a moment for late-arriving content (CSS, fonts)
+                # Give a moment for late-arriving content (CSS, fonts)
                 page.wait_for_timeout(1500)
                 path = OUTPUT / f"{name}.png"
                 page.screenshot(path=str(path), full_page=True)
@@ -51,7 +51,7 @@ def main():
                 results.append((name, "fail", str(e)))
         browser.close()
     print(f"\nSaved {sum(1 for _, s, _ in results if s == 'ok')}/{len(results)} screenshots to {OUTPUT}/", flush=True)
-    ***REMOVED*** Exit code: 0 if at least half succeeded
+    # Exit code: 0 if at least half succeeded
     ok = sum(1 for _, s, _ in results if s == "ok")
     return 0 if ok >= len(results) // 2 else 1
 

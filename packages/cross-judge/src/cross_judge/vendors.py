@@ -24,7 +24,7 @@ class VendorConfig:
 
     name: str
     base_url: str
-    api_key_env: str  ***REMOVED*** environment variable name to read the API key from
+    api_key_env: str  # environment variable name to read the API key from
 
 
 VENDORS: dict[str, VendorConfig] = {

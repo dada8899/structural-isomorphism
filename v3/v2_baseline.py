@@ -11,11 +11,11 @@ PROJECT = V3_DIR.parent
 V2_MODEL = PROJECT / "models" / "structural-v2"
 KB = PROJECT / "data" / "kb-expanded.jsonl"
 
-***REMOVED*** Load 50 samples that were extracted (use Opus file as reference for IDs)
+# Load 50 samples that were extracted (use Opus file as reference for IDs)
 sample = [json.loads(l) for l in open(V3_DIR / "sample-opus-50.jsonl")]
 ids = {x["phenomenon_id"] for x in sample}
 
-***REMOVED*** Find their descriptions in KB
+# Find their descriptions in KB
 kb_map = {}
 for line in open(KB):
     p = json.loads(line)
@@ -25,13 +25,13 @@ for line in open(KB):
 items = [kb_map[s["phenomenon_id"]] for s in sample if s["phenomenon_id"] in kb_map]
 print(f"Loaded {len(items)} phenomena from KB")
 
-***REMOVED*** Encode
+# Encode
 print(f"Loading V2 model from {V2_MODEL}")
 model = SentenceTransformer(str(V2_MODEL))
 descs = [p["description"] for p in items]
 emb = model.encode(descs, show_progress_bar=True, convert_to_numpy=True)
 
-***REMOVED*** Pairwise sim, cross-domain only
+# Pairwise sim, cross-domain only
 pairs = []
 for i, j in combinations(range(len(items)), 2):
     a, b = items[i], items[j]

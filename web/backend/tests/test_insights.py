@@ -1,4 +1,4 @@
-"""Tests for the B Data Flywheel (Session ***REMOVED***18).
+"""Tests for the B Data Flywheel (Session #18).
 
 Three layers in one file:
   * unit  — ReportStore flywheel methods (list_by_anon followup join,
@@ -22,15 +22,15 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services.report_store import ReportStore  ***REMOVED*** noqa: E402
-from services.verified_isomorphisms import (  ***REMOVED*** noqa: E402
+from services.report_store import ReportStore  # noqa: E402
+from services.verified_isomorphisms import (  # noqa: E402
     _short,
     list_verified,
     shape_verified,
 )
 
 
-***REMOVED*** ============================ fixtures ============================ ***REMOVED***
+# ============================ fixtures ============================ #
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def app(tmp_path, monkeypatch):
     a = FastAPI()
     a.include_router(insights_api.router, prefix="/api")
     a.include_router(report_api.router, prefix="/api")
-    a._flywheel_store = fresh  ***REMOVED*** expose for seeding
+    a._flywheel_store = fresh  # expose for seeding
     return a
 
 
@@ -79,7 +79,7 @@ def _seed_report(store, *, query="q", b_id="b1", anon="A", payload=None):
     )
 
 
-***REMOVED*** ====================== unit: list_by_anon ======================== ***REMOVED***
+# ====================== unit: list_by_anon ======================== #
 
 
 def test_list_by_anon_no_followup_marks_unrevisited(store):
@@ -111,7 +111,7 @@ def test_list_by_anon_followup_join_is_per_anon(store):
         action_status="tried", outcome="worked",
     )
     rows = store.list_by_anon("A")
-    ***REMOVED*** A owns the report but never revisited → still unrevisited for A.
+    # A owns the report but never revisited → still unrevisited for A.
     assert rows[0]["has_followup"] is False
 
 
@@ -119,7 +119,7 @@ def test_list_by_anon_empty(store):
     assert store.list_by_anon("nobody") == []
 
 
-***REMOVED*** ================== unit: verified_isomorphisms =================== ***REMOVED***
+# ================== unit: verified_isomorphisms =================== #
 
 
 def test_verified_empty_db(store):
@@ -169,7 +169,7 @@ def test_verified_payload_decoded(store, payload_with_credibility):
     assert rows[0]["payload"]["_credibility"]["source_domain"] == "Forest fire spread"
 
 
-***REMOVED*** ==================== unit: stuck_structures ====================== ***REMOVED***
+# ==================== unit: stuck_structures ====================== #
 
 
 def test_stuck_structures_empty_db(store):
@@ -190,7 +190,7 @@ def test_stuck_structures_groups_by_b_id(store):
 def test_stuck_structures_worked_rate(store):
     a = _seed_report(store, query="q1", b_id="hot", anon="A")
     b = _seed_report(store, query="q2", b_id="hot", anon="A")
-    _seed_report(store, query="q3", b_id="hot", anon="A")  ***REMOVED*** no followup
+    _seed_report(store, query="q3", b_id="hot", anon="A")  # no followup
     store.record_followup(
         report_id=a["id"], anon_id="A",
         action_status="tried", outcome="worked",
@@ -204,7 +204,7 @@ def test_stuck_structures_worked_rate(store):
     assert hot["report_count"] == 3
     assert hot["followup_count"] == 2
     assert hot["worked_count"] == 1
-    assert hot["worked_rate"] == 0.5  ***REMOVED*** 1 worked / 2 followups
+    assert hot["worked_rate"] == 0.5  # 1 worked / 2 followups
 
 
 def test_stuck_structures_no_followup_rate_is_zero(store):
@@ -214,7 +214,7 @@ def test_stuck_structures_no_followup_rate_is_zero(store):
     assert rows[0]["followup_count"] == 0
 
 
-***REMOVED*** ==================== unit: insights_summary ====================== ***REMOVED***
+# ==================== unit: insights_summary ====================== #
 
 
 def test_summary_empty_db(store):
@@ -245,7 +245,7 @@ def test_summary_counts(store):
     assert s["verified_isomorphisms"] == 1
 
 
-***REMOVED*** ============== unit: verified_isomorphisms helpers =============== ***REMOVED***
+# ============== unit: verified_isomorphisms helpers =============== #
 
 
 def test_short_trims_long_text():
@@ -286,7 +286,7 @@ def test_list_verified_empty(store):
     assert list_verified(store) == []
 
 
-***REMOVED*** ===================== integ: /api/insights/* ==================== ***REMOVED***
+# ===================== integ: /api/insights/* ==================== #
 
 
 def test_summary_endpoint_empty(client):
@@ -374,7 +374,7 @@ def test_verified_limit_validation(client):
     assert client.get("/api/insights/verified?limit=200").status_code == 422
 
 
-***REMOVED*** ============== integ: /reports/mine followup fields ============= ***REMOVED***
+# ============== integ: /reports/mine followup fields ============= #
 
 
 def test_reports_mine_includes_followup_status(client, app):

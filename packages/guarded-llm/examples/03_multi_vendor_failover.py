@@ -30,7 +30,7 @@ class Answer(BaseModel):
     confidence: float
 
 
-***REMOVED*** Ordered fallback chain: cheapest first, most expensive last.
+# Ordered fallback chain: cheapest first, most expensive last.
 FAILOVER = [
     ("deepseek", "deepseek-v4-flash"),
     ("kimi", "kimi-k2.5"),
@@ -55,13 +55,13 @@ def ask_with_failover(prompt: str, budget: Budget) -> Answer:
             print(f"  succeeded with {provider}/{model} (cost ${llm.last_stats.cost_usd:.4f})")
             return out
         except BudgetExceeded:
-            ***REMOVED*** Budget is a hard stop — don't retry on another vendor.
+            # Budget is a hard stop — don't retry on another vendor.
             raise
         except (RetryExhausted, GuardrailError) as e:
             print(f"  {provider}/{model} failed: {type(e).__name__}: {e}")
             last_err = e
             continue
-        except Exception as e:  ***REMOVED*** noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             print(f"  {provider}/{model} crashed: {type(e).__name__}: {e}")
             last_err = e
             continue

@@ -43,13 +43,13 @@ from __future__ import annotations
 
 __version__ = "0.1.0"
 
-***REMOVED*** High-level API
+# High-level API
 from .core import GuardedLLM, GuardedCallStats
 from .budget import Budget, BudgetExceeded
 from .retry import RetryPolicy, RetryExhausted
 from .validator import SchemaValidator
 
-***REMOVED*** Functional / legacy API
+# Functional / legacy API
 from .guardrail import (
     guardrailed_llm_call,
     GuardrailResult,
@@ -59,7 +59,7 @@ from .guardrail import (
 from .schemas import (
     LLMSchema,
     validate_response,
-    ***REMOVED*** Legacy dataclass schemas (kept for v4 backwards compat)
+    # Legacy dataclass schemas (kept for v4 backwards compat)
     Layer3CriticVerdict,
     Layer4Prediction,
     B3EnsembleReview,
@@ -79,7 +79,7 @@ from .exceptions import (
 
 __all__ = [
     "__version__",
-    ***REMOVED*** High-level class API
+    # High-level class API
     "GuardedLLM",
     "GuardedCallStats",
     "Budget",
@@ -87,23 +87,23 @@ __all__ = [
     "RetryPolicy",
     "RetryExhausted",
     "SchemaValidator",
-    ***REMOVED*** Functional / legacy
+    # Functional / legacy
     "guardrailed_llm_call",
     "GuardrailResult",
     "state_machine_fix",
     "validate_json",
-    ***REMOVED*** Schemas
+    # Schemas
     "LLMSchema",
     "validate_response",
     "Layer3CriticVerdict",
     "Layer4Prediction",
     "B3EnsembleReview",
-    ***REMOVED*** Providers
+    # Providers
     "BaseProvider",
     "get_provider",
     "list_providers",
     "register_provider",
-    ***REMOVED*** Exceptions
+    # Exceptions
     "GuardrailError",
     "SchemaValidationError",
     "LLMCallError",

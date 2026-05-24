@@ -1,7 +1,7 @@
-***REMOVED*** V4 Physics Universality Class Taxonomy (seed)
-***REMOVED*** 每条普适类含: 名字 / 定义 / 共享方程 / 不变量 / 典型成员 / 诊断关键词
-***REMOVED*** 用于 Layer 3 taxonomy match
-***REMOVED*** 版本: 0.1 (2026-04-15 初版)
+# V4 Physics Universality Class Taxonomy (seed)
+# 每条普适类含: 名字 / 定义 / 共享方程 / 不变量 / 典型成员 / 诊断关键词
+# 用于 Layer 3 taxonomy match
+# 版本: 0.1 (2026-04-15 初版)
 
 classes:
   - id: soc_threshold_cascade
@@ -17,8 +17,8 @@ classes:
       Δs_i redistributed to neighbors via K_ij
       Critical condition: <∑_j K_ij> → 1
     invariants:
-      - gutenberg_richter_power_law  ***REMOVED*** P(s) ∝ s^(-τ), τ ≈ 1.5 (mean-field)
-      - omori_aftershock_decay       ***REMOVED*** n(t) ∝ 1/t^p, p ≈ 1
+      - gutenberg_richter_power_law  # P(s) ∝ s^(-τ), τ ≈ 1.5 (mean-field)
+      - omori_aftershock_decay       # n(t) ∝ 1/t^p, p ≈ 1
       - branching_process_criticality
       - scale_invariance_no_characteristic_size
       - waiting_time_pareto_tail

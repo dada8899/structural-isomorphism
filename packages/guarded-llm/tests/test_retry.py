@@ -32,7 +32,7 @@ def test_sleep_with_jitter_in_range():
     p = RetryPolicy(max_attempts=3, backoff_seconds=2.0, jitter=True)
     rng = random.Random(42)
     sleeps = [p.sleep_seconds(2, rng=rng) for _ in range(20)]
-    ***REMOVED*** base = 2 * 2 = 4; jitter in [0.5x, 1.5x] -> [2.0, 6.0]
+    # base = 2 * 2 = 4; jitter in [0.5x, 1.5x] -> [2.0, 6.0]
     for s in sleeps:
         assert 2.0 <= s <= 6.0
 
@@ -41,7 +41,7 @@ def test_init_rejects_invalid_max_attempts():
     with pytest.raises(ValueError):
         RetryPolicy(max_attempts=0)
     with pytest.raises(TypeError):
-        RetryPolicy(max_attempts="three")  ***REMOVED*** type: ignore[arg-type]
+        RetryPolicy(max_attempts="three")  # type: ignore[arg-type]
 
 
 def test_init_rejects_negative_backoff():

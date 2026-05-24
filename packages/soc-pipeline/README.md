@@ -1,4 +1,4 @@
-***REMOVED*** soc-pipeline
+# soc-pipeline
 
 **Cross-domain self-organized criticality validation in 5 lines of code.**
 
@@ -6,7 +6,7 @@ Pipeline for fitting and validating power-law / heavy-tailed event-size distribu
 
 Implements Clauset-Shalizi-Newman 2009 power-law MLE, Vuong likelihood-ratio tests against lognormal / exponential alternatives, bootstrap confidence intervals, synthetic null controls, Gutenberg-Richter b-value fitting, Omori-Utsu aftershock decay, time-resolution stability sweeps, and shape-normalized universal-collapse curves.
 
-***REMOVED******REMOVED*** Why this package?
+## Why this package?
 
 The classic [`powerlaw`](https://github.com/jeffalstott/powerlaw) package (Alstott et al. 2014) is excellent for fitting individual datasets. `soc-pipeline` builds on top of it with the operations practitioners actually need to *validate* a SOC claim end to end:
 
@@ -23,17 +23,17 @@ The classic [`powerlaw`](https://github.com/jeffalstott/powerlaw) package (Alsto
 | Standard 3-tier verdict | no | yes (`verdict_from_alpha_band`) |
 | Typed dataclass returns | no | yes |
 
-***REMOVED******REMOVED*** Install
+## Install
 
 ```bash
 pip install soc-pipeline
-***REMOVED*** with notebooks + matplotlib
+# with notebooks + matplotlib
 pip install "soc-pipeline[notebooks]"
-***REMOVED*** dev install (tests + ruff + mypy)
+# dev install (tests + ruff + mypy)
 pip install -e ".[dev,notebooks]"
 ```
 
-***REMOVED******REMOVED*** Quickstart — the one-call `validate()` API
+## Quickstart — the one-call `validate()` API
 
 The recommended entry point for almost all users:
 
@@ -41,17 +41,17 @@ The recommended entry point for almost all users:
 import numpy as np
 from soc_pipeline import validate
 
-***REMOVED*** 1-D positive event sizes — earthquake energies, S&P returns, avalanche sizes, …
+# 1-D positive event sizes — earthquake energies, S&P returns, avalanche sizes, …
 event_sizes = np.loadtxt("my_events.txt")
 
-***REMOVED*** Pre-registered acceptance band on the Clauset α (best practice)
+# Pre-registered acceptance band on the Clauset α (best practice)
 verdict = validate(event_sizes, label="my_events", expected_band=(1.8, 2.2))
 
-print(verdict.verdict)       ***REMOVED*** PASS | FAIL | INCONCLUSIVE
-print(verdict.alpha)         ***REMOVED*** Clauset 2009 MLE
-print(verdict.alpha_ci_lo, verdict.alpha_ci_hi)   ***REMOVED*** 95% bootstrap CI
-print(verdict.in_band)       ***REMOVED*** True / False / None
-print(verdict.reason)        ***REMOVED*** human-readable explanation
+print(verdict.verdict)       # PASS | FAIL | INCONCLUSIVE
+print(verdict.alpha)         # Clauset 2009 MLE
+print(verdict.alpha_ci_lo, verdict.alpha_ci_hi)   # 95% bootstrap CI
+print(verdict.in_band)       # True / False / None
+print(verdict.reason)        # human-readable explanation
 ```
 
 **Verdict rules** (Clauset 2009 §6 + pre-registration discipline):
@@ -62,7 +62,7 @@ print(verdict.reason)        ***REMOVED*** human-readable explanation
 | `FAIL` | Fit succeeds, but alpha outside band **or** an alternative (lognormal / exponential) is significantly preferred (R<0 and p<0.1) |
 | `INCONCLUSIVE` | Fewer than `min_samples` (default 100), or the underlying `powerlaw` fit fails |
 
-***REMOVED******REMOVED******REMOVED*** Pre-registered band concept
+### Pre-registered band concept
 
 The `expected_band` parameter is the discipline that separates exploratory
 data fitting from confirmatory analysis. The recipe:
@@ -76,7 +76,7 @@ data fitting from confirmatory analysis. The recipe:
 This is the same discipline used in particle physics (5σ pre-registered
 discovery bands) and clinical trials (pre-registered primary endpoints).
 
-***REMOVED******REMOVED*** Lower-level API (for diagnostics)
+## Lower-level API (for diagnostics)
 
 If you need the individual building blocks:
 
@@ -94,17 +94,17 @@ print(f"alpha = {fit.alpha:.2f}  xmin = {fit.xmin:.2g}  n_tail = {fit.n_tail}")
 ci = bootstrap_ci(event_sizes, n_boot=200)
 print(f"CI = [{ci.ci_low:.2f}, {ci.ci_high:.2f}]")
 
-***REMOVED*** Synthetic null controls — pipeline must reject all three
+# Synthetic null controls — pipeline must reject all three
 nulls = synthetic_null()
 for name, case in nulls.items():
     print(f"{name}: correctly_rejected = {case.correctly_rejected}")
 
-***REMOVED*** Tier verdict against predicted vs literature bands
+# Tier verdict against predicted vs literature bands
 v = verdict_from_alpha_band(fit.alpha, predicted=(1.5, 2.0), literature=(1.3, 2.3))
 print(f"verdict: {v}")
 ```
 
-***REMOVED******REMOVED*** Public API table
+## Public API table
 
 | Name | Kind | Purpose |
 |---|---|---|
@@ -123,7 +123,7 @@ print(f"verdict: {v}")
 | `empirical_ccdf(x_data)` | function | Log-spaced empirical CCDF |
 | `verdict_from_alpha_band(alpha, predicted, literature)` | function | 3-tier band classification |
 
-***REMOVED******REMOVED*** Limitations
+## Limitations
 
 - **Finite-size sensitivity.** Below ~1000 tail samples the Clauset MLE
   starts to wander; the bootstrap CI widens accordingly. The validator
@@ -141,13 +141,13 @@ print(f"verdict: {v}")
 - **`powerlaw` 1.5+ dependency.** Underlying numerics depend on
   Alstott et al. 2014. Pinned via `dependencies` in `pyproject.toml`.
 
-***REMOVED******REMOVED*** Earthquake quickstart (Gutenberg-Richter b-value)
+## Earthquake quickstart (Gutenberg-Richter b-value)
 
 ```python
 from soc_pipeline import fit_b_value, b_to_clauset_alpha
 
-***REMOVED*** magnitudes from USGS catalog
-mags = ...  ***REMOVED*** 1-D array
+# magnitudes from USGS catalog
+mags = ...  # 1-D array
 
 bv = fit_b_value(mags, bootstrap=True)
 print(f"b = {bv.b:.3f} ± {bv.sigma_b:.3f}  Mc = {bv.mc}  n = {bv.n_above_mc}")
@@ -155,26 +155,26 @@ print(f"95% CI: [{bv.ci_low:.3f}, {bv.ci_high:.3f}]")
 print(f"equivalent alpha on energy: {bv.alpha_equivalent:.2f}")
 ```
 
-***REMOVED******REMOVED*** Pandas integration
+## Pandas integration
 
 If your data is already in a `pd.Series`, the `.soc` accessor gives one-line
 SOC validation — no need to convert to numpy or learn the FitResult API:
 
 ```python
 import pandas as pd
-import soc_pipeline  ***REMOVED*** noqa: F401  -- registers the accessor
+import soc_pipeline  # noqa: F401  -- registers the accessor
 
 s = pd.Series(my_event_sizes, name="magnitudes")
-s.soc.fit_alpha()                                ***REMOVED*** -> float
-v = s.soc.validate(expected_band=(2.5, 3.5))     ***REMOVED*** -> Verdict (verdict / alpha / CI / KS / LR)
-s.soc.is_pass(expected_band=(2.5, 3.5))          ***REMOVED*** -> bool, for CI / gating
+s.soc.fit_alpha()                                # -> float
+v = s.soc.validate(expected_band=(2.5, 3.5))     # -> Verdict (verdict / alpha / CI / KS / LR)
+s.soc.is_pass(expected_band=(2.5, 3.5))          # -> bool, for CI / gating
 ```
 
 See [`tutorials/02_jupyter_widget.ipynb`](../../tutorials/02_jupyter_widget.ipynb) for an
 interactive `ipywidgets` UI and [`tutorials/03_pandas_accessor.ipynb`](../../tutorials/03_pandas_accessor.ipynb)
 for a walk-through on a real earthquake catalog.
 
-***REMOVED******REMOVED*** Cross-domain validation suite
+## Cross-domain validation suite
 
 This package was developed and validated against the [Structural Isomorphism Project](https://github.com/dada8899/structural-isomorphism) reference dataset of 13 verified SOC systems:
 
@@ -194,13 +194,13 @@ This package was developed and validated against the [Structural Isomorphism Pro
 
 See `notebooks/` for reproducibility — each notebook loads the source data, runs the pipeline, and reproduces the headline result of a published or working paper.
 
-***REMOVED******REMOVED*** Tutorials & reproducibility notebooks
+## Tutorials & reproducibility notebooks
 
 Beginner-friendly 10-cell walkthrough:
 
 ```
 tutorials/
-└── 01_quickstart.ipynb       ***REMOVED*** synthetic Gutenberg-Richter end-to-end (~10 cells)
+└── 01_quickstart.ipynb       # synthetic Gutenberg-Richter end-to-end (~10 cells)
 ```
 
 Cross-domain reproducibility notebooks (each loads source data and reproduces
@@ -208,11 +208,11 @@ the headline result of a published or working paper):
 
 ```
 notebooks/
-├── 01_earthquake_b_value.ipynb              ***REMOVED*** USGS catalog → b ≈ 1.0 (G-R + Aki MLE)
-├── 02_stockmarket_inverse_cubic.ipynb       ***REMOVED*** S&P 500 |daily return| → α ≈ 3
-├── 03_defi_cross_protocol.ipynb             ***REMOVED*** Aave + Compound + Maker → α ∈ [1.57, 1.68]
-├── 04_neural_avalanches.ipynb               ***REMOVED*** mouse cortex → τ ≈ 2.58
-└── 05_universal_collapse_demo.ipynb         ***REMOVED*** 7-system shape-normalized collapse
+├── 01_earthquake_b_value.ipynb              # USGS catalog → b ≈ 1.0 (G-R + Aki MLE)
+├── 02_stockmarket_inverse_cubic.ipynb       # S&P 500 |daily return| → α ≈ 3
+├── 03_defi_cross_protocol.ipynb             # Aave + Compound + Maker → α ∈ [1.57, 1.68]
+├── 04_neural_avalanches.ipynb               # mouse cortex → τ ≈ 2.58
+└── 05_universal_collapse_demo.ipynb         # 7-system shape-normalized collapse
 ```
 
 Run any notebook end-to-end:
@@ -222,7 +222,7 @@ jupyter nbconvert --to notebook --execute notebooks/01_earthquake_b_value.ipynb 
   --ExecutePreprocessor.timeout=600
 ```
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 If you use `soc-pipeline` in academic work, please cite:
 
@@ -243,10 +243,10 @@ And the underlying methods:
 - Vuong, Q. H. (1989). Likelihood ratio tests for model selection and non-nested hypotheses. *Econometrica*, 307–333.
 - Aki, K. (1965). Maximum likelihood estimate of *b* in the formula log N = a − bM. *Bull. Earthq. Res. Inst.*, 43, 237–239.
 
-***REMOVED******REMOVED*** License
+## License
 
 MIT — see `LICENSE`.
 
-***REMOVED******REMOVED*** Status
+## Status
 
 Beta. API may change before 1.0. Issue tracker on GitHub welcomes bug reports and contributions, especially from new domains (please open an issue with a public dataset link).

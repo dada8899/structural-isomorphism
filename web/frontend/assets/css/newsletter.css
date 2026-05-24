@@ -1,7 +1,7 @@
 /* =============================================================
  * /assets/css/newsletter.css — beta-site newsletter signup widget
  *
- * Session ***REMOVED***9 W2-A. Used by /assets/js/newsletter.js, which builds
+ * Session #9 W2-A. Used by /assets/js/newsletter.js, which builds
  * the markup into any container passed to window.mountNewsletter.
  *
  * Visual style mirrors learn.html's .home__waitlist inline styles
@@ -17,8 +17,8 @@
   max-width: 640px;
   margin: 56px auto 0;
   padding: 28px 28px;
-  background: linear-gradient(135deg, ***REMOVED***FAFAF9, ***REMOVED***FFFFFF);
-  border: 1px solid ***REMOVED***E4E4E7;
+  background: linear-gradient(135deg, #FAFAF9, #FFFFFF);
+  border: 1px solid #E4E4E7;
   border-radius: 16px;
 }
 
@@ -27,7 +27,7 @@
   font-size: 11px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: ***REMOVED***71717A;
+  color: #71717A;
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -36,14 +36,14 @@
   font-family: "Noto Serif SC", serif;
   font-size: 22px;
   font-weight: 600;
-  color: ***REMOVED***18181B;
+  color: #18181B;
   margin: 0 0 8px;
   line-height: 1.35;
 }
 
 .newsletter-body {
   font-size: 14px;
-  color: ***REMOVED***52525B;
+  color: #52525B;
   line-height: 1.65;
   margin: 0 0 14px;
 }
@@ -60,17 +60,17 @@
   min-width: 0;
   padding: 9px 12px;
   font-size: 14px;
-  color: ***REMOVED***18181B;
-  border: 1px solid ***REMOVED***D4D4D8;
+  color: #18181B;
+  border: 1px solid #D4D4D8;
   border-radius: 8px;
-  background: ***REMOVED***FFFFFF;
+  background: #FFFFFF;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .newsletter-input:focus {
   outline: none;
-  border-color: ***REMOVED***18181B;
-  box-shadow: 0 0 0 1px ***REMOVED***18181B;
+  border-color: #18181B;
+  box-shadow: 0 0 0 1px #18181B;
 }
 
 .newsletter-input:disabled {
@@ -81,8 +81,8 @@
   padding: 9px 20px;
   font-size: 14px;
   font-weight: 500;
-  color: ***REMOVED***FFFFFF;
-  background: ***REMOVED***18181B;
+  color: #FFFFFF;
+  background: #18181B;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -90,7 +90,7 @@
 }
 
 .newsletter-button:hover {
-  background: ***REMOVED***27272A;
+  background: #27272A;
 }
 
 .newsletter-button:disabled {
@@ -106,14 +106,14 @@
   transition: color 0.18s, background-color 0.18s, padding 0.18s;
 }
 
-/* Session ***REMOVED***9 W4-C: stronger visual cue on terminal states. The plain colored
+/* Session #9 W4-C: stronger visual cue on terminal states. The plain colored
  * text on a busy card is easy to miss (W3-A capture showed "提交中…" still
  * visible at 15s — feedback that final state isn't visible enough). A faint
  * inline pill on success/duplicate makes the swap unmistakable without
  * shouting. Errors get a soft red wash so they don't look like loading text. */
 .newsletter-status.is-ok {
-  color: ***REMOVED***047857;
-  background-color: ***REMOVED***ECFDF5;
+  color: #047857;
+  background-color: #ECFDF5;
   padding: 6px 10px;
   border-radius: 6px;
   display: inline-block;
@@ -121,16 +121,16 @@
 }
 
 .newsletter-status.is-dup {
-  color: ***REMOVED***3F3F46;
-  background-color: ***REMOVED***F4F4F5;
+  color: #3F3F46;
+  background-color: #F4F4F5;
   padding: 6px 10px;
   border-radius: 6px;
   display: inline-block;
 }
 
 .newsletter-status.is-err {
-  color: ***REMOVED***B91C1C;
-  background-color: ***REMOVED***FEF2F2;
+  color: #B91C1C;
+  background-color: #FEF2F2;
   padding: 6px 10px;
   border-radius: 6px;
   display: inline-block;
@@ -138,7 +138,7 @@
 
 .newsletter-fineprint {
   font-size: 11px;
-  color: ***REMOVED***A1A1AA;
+  color: #A1A1AA;
   margin: 8px 0 0;
 }
 

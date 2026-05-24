@@ -13,17 +13,17 @@ from sentence_transformers import SentenceTransformerTrainingArguments, Sentence
 from datasets import Dataset
 from torch.utils.data import DataLoader
 
-***REMOVED*** === Config ===
+# === Config ===
 DATA_FILE = Path(__file__).parent.parent / "data" / "clean.jsonl"
 OUTPUT_DIR = Path(__file__).parent.parent / "models" / "structural-v1"
 BASE_MODEL = "shibing624/text2vec-base-chinese"
 EPOCHS = 10
-BATCH_SIZE = 16  ***REMOVED*** smaller to avoid MPS memory pressure
+BATCH_SIZE = 16  # smaller to avoid MPS memory pressure
 SEED = 42
 
 random.seed(SEED)
 
-***REMOVED*** === Load data ===
+# === Load data ===
 print("Loading data...")
 type_descriptions = defaultdict(list)
 with open(DATA_FILE) as f:
@@ -37,7 +37,7 @@ with open(DATA_FILE) as f:
 total_desc = sum(len(v) for v in type_descriptions.values())
 print(f"Loaded {total_desc} descriptions across {len(type_descriptions)} types")
 
-***REMOVED*** === Build pairs ===
+# === Build pairs ===
 print("Building training pairs...")
 pairs = []
 for type_id, descriptions in type_descriptions.items():
@@ -52,21 +52,21 @@ for type_id, descriptions in type_descriptions.items():
 random.shuffle(pairs)
 print(f"Total positive pairs: {len(pairs)}")
 
-***REMOVED*** Split 90/10
+# Split 90/10
 split = int(len(pairs) * 0.9)
 train_pairs = pairs[:split]
 eval_pairs = pairs[split:]
 
-***REMOVED*** Convert to HF Dataset
+# Convert to HF Dataset
 train_dataset = Dataset.from_list(train_pairs)
 eval_dataset = Dataset.from_list(eval_pairs)
 print(f"Train: {len(train_dataset)}, Eval: {len(eval_dataset)}")
 
-***REMOVED*** === Load model (do NOT manually move to device) ===
+# === Load model (do NOT manually move to device) ===
 print(f"Loading base model: {BASE_MODEL}...")
 model = SentenceTransformer(BASE_MODEL)
 
-***REMOVED*** === Training with MultipleNegativesRankingLoss ===
+# === Training with MultipleNegativesRankingLoss ===
 loss = losses.MultipleNegativesRankingLoss(model)
 
 args = SentenceTransformerTrainingArguments(
@@ -76,14 +76,14 @@ args = SentenceTransformerTrainingArguments(
     per_device_eval_batch_size=BATCH_SIZE,
     learning_rate=2e-5,
     warmup_ratio=0.1,
-    fp16=False,  ***REMOVED*** MPS doesn't support fp16 well
+    fp16=False,  # MPS doesn't support fp16 well
     bf16=False,
     eval_strategy="epoch",
     save_strategy="epoch",
     save_total_limit=2,
     logging_steps=50,
     seed=SEED,
-    dataloader_pin_memory=False,  ***REMOVED*** MPS doesn't support pin_memory
+    dataloader_pin_memory=False,  # MPS doesn't support pin_memory
     use_mps_device=True,
 )
 
@@ -101,11 +101,11 @@ trainer.train()
 elapsed = time.time() - start
 print(f"\nTraining complete in {elapsed:.1f}s ({elapsed/60:.1f}min)")
 
-***REMOVED*** Save final model
+# Save final model
 model.save(str(OUTPUT_DIR))
 print(f"Model saved to: {OUTPUT_DIR}")
 
-***REMOVED*** === Quick validation ===
+# === Quick validation ===
 print("\n=== Quick Validation ===")
 from sentence_transformers import util
 

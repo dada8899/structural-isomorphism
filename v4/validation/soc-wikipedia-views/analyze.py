@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 13 — Wikipedia pageview distribution analysis.
 
 System: 7,521 unique English Wikipedia articles from 22 monthly Top-1000 lists
@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     run_size_null_controls,
@@ -73,15 +73,15 @@ def make_plot(views: np.ndarray, alpha: float, xmin: float) -> None:
     ccdf = ranks / len(v_sorted)
 
     fig, ax = plt.subplots(figsize=(6, 4.5))
-    ax.loglog(v_sorted, ccdf, ".", ms=2.5, alpha=0.5, color="***REMOVED***1f77b4", label="Empirical CCDF")
+    ax.loglog(v_sorted, ccdf, ".", ms=2.5, alpha=0.5, color="#1f77b4", label="Empirical CCDF")
 
-    ***REMOVED*** Draw reference power-law line on tail with same alpha
+    # Draw reference power-law line on tail with same alpha
     tail = v_sorted[v_sorted >= xmin]
     if len(tail) > 10:
         x_ref = np.logspace(np.log10(xmin), np.log10(tail.max()), 50)
-        ***REMOVED*** CCDF for continuous power law: P(X >= x) = (x / xmin)^(1 - alpha)
+        # CCDF for continuous power law: P(X >= x) = (x / xmin)^(1 - alpha)
         y_ref = (x_ref / xmin) ** (1 - alpha)
-        ***REMOVED*** Anchor to fraction in tail
+        # Anchor to fraction in tail
         n_tail = np.sum(views >= xmin)
         y_ref = y_ref * (n_tail / len(views))
         ax.loglog(x_ref, y_ref, "r--", lw=1.5, label=f"Power-law α={alpha:.2f}")
@@ -104,18 +104,18 @@ def main() -> int:
     print(f"  views range: [{int(views.min())}, {int(views.max())}]")
     print(f"  median: {int(np.median(views))}  mean: {views.mean():.1f}")
 
-    ***REMOVED*** 1. Clauset power-law fit (discrete=True — pageviews are integers)
+    # 1. Clauset power-law fit (discrete=True — pageviews are integers)
     print("\n[1] Clauset power-law fit on yearly views (discrete=True) ...")
     pl = fit_clauset_powerlaw(views, "wikipedia_pageviews", discrete=True)
     for k, v in pl.items():
         print(f"  {k}: {v}")
 
-    ***REMOVED*** 2. Bootstrap CI on alpha
+    # 2. Bootstrap CI on alpha
     print("\n[2] Bootstrap 95% CI on α (n_boot=100) ...")
     ci = bootstrap_alpha_ci(views, n_boot=100, discrete=True)
     print(f"  CI: {ci}")
 
-    ***REMOVED*** 3. Sub-population fit (top 20% / bottom 80% by views) for stability
+    # 3. Sub-population fit (top 20% / bottom 80% by views) for stability
     print("\n[3] Top-half / bottom-half split fits ...")
     median_v = float(np.median(views))
     top = views[views >= median_v]
@@ -125,19 +125,19 @@ def main() -> int:
     print(f"  top_half  n={len(top)}  α={pl_top.get('alpha')}")
     print(f"  bot_half  n={len(bot)}  α={pl_bot.get('alpha')}")
 
-    ***REMOVED*** 4. Null controls (matched-n non-power-law synthetics)
+    # 4. Null controls (matched-n non-power-law synthetics)
     print("\n[4] Null controls (matched-n) ...")
     nulls = run_size_null_controls(seed=42, n=min(len(views), 8000))
     print(f"  all_rejected: {nulls['all_rejected']}")
 
-    ***REMOVED*** 5. Plot
+    # 5. Plot
     print("\n[5] Generating log-log plot ...")
     if pl.get("alpha") and pl.get("xmin"):
         make_plot(views, float(pl["alpha"]), float(pl["xmin"]))
 
-    ***REMOVED*** Verdict bands
+    # Verdict bands
     predicted_narrow = (1.7, 2.5)
-    literature = (1.5, 3.0)  ***REMOVED*** broad heavy-tail span across views/Zipf literature
+    literature = (1.5, 3.0)  # broad heavy-tail span across views/Zipf literature
     alpha = pl.get("alpha")
     if alpha is None:
         verdict = "INCONCLUSIVE"
@@ -148,7 +148,7 @@ def main() -> int:
     else:
         verdict = "DEVIATING"
 
-    ***REMOVED*** Compose human-readable summary
+    # Compose human-readable summary
     interp = f"Wikipedia pageview distribution α = {alpha:.3f}" if alpha else "α unavailable"
     if isinstance(ci, dict) and "ci_low" in ci:
         interp += f" (bootstrap 95% CI [{ci['ci_low']:.3f}, {ci['ci_high']:.3f}])"

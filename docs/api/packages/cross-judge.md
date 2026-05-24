@@ -1,4 +1,4 @@
-***REMOVED*** cross-judge
+# cross-judge
 
 Multi-vendor LLM ensemble-judge framework — majority / unanimous / Krippendorff-α voting across heterogeneous models.
 
@@ -6,7 +6,7 @@ Multi-vendor LLM ensemble-judge framework — majority / unanimous / Krippendorf
 pip install cross-judge
 ```
 
-***REMOVED******REMOVED*** Quick start
+## Quick start
 
 ```python
 from cross_judge import Critic, Ensemble
@@ -21,7 +21,7 @@ result = ensemble.judge(query="Is this isomorphic to power-law tail scaling?")
 print(result.consensus, result.krippendorff_alpha, result.agreement_pct)
 ```
 
-***REMOVED******REMOVED*** Core API (v0.1)
+## Core API (v0.1)
 
 ::: cross_judge.Critic
 
@@ -35,7 +35,7 @@ print(result.consensus, result.krippendorff_alpha, result.agreement_pct)
 
 ::: cross_judge.VENDOR_DEFAULTS
 
-***REMOVED******REMOVED*** Voting strategies
+## Voting strategies
 
 ::: cross_judge.majority_vote
 
@@ -51,7 +51,7 @@ print(result.consensus, result.krippendorff_alpha, result.agreement_pct)
 
 ::: cross_judge.VotingStrategy
 
-***REMOVED******REMOVED*** Vendor configuration
+## Vendor configuration
 
 ::: cross_judge.VENDORS
 
@@ -61,7 +61,7 @@ print(result.consensus, result.krippendorff_alpha, result.agreement_pct)
 
 ::: cross_judge.make_client
 
-***REMOVED******REMOVED*** Legacy API (v4 backwards compat)
+## Legacy API (v4 backwards compat)
 
 ::: cross_judge.Reviewer
 

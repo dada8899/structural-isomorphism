@@ -6,7 +6,7 @@ import pytest
 from guarded_llm.validator import SchemaValidator
 
 
-***REMOVED*** Need pydantic to test the happy path
+# Need pydantic to test the happy path
 try:
     from pydantic import BaseModel
     HAS_PYDANTIC = True
@@ -28,7 +28,7 @@ class TestSchemaValidator:
             x: int
 
         with pytest.raises(TypeError):
-            SchemaValidator(Out(x=1))  ***REMOVED*** type: ignore[arg-type]
+            SchemaValidator(Out(x=1))  # type: ignore[arg-type]
 
     def test_validate_returns_instance_on_success(self):
         class Out(BaseModel):
@@ -48,7 +48,7 @@ class TestSchemaValidator:
             confidence: float
 
         v = SchemaValidator(Out)
-        ok, err, inst = v.validate({"verdict": "KEEP"})  ***REMOVED*** missing confidence
+        ok, err, inst = v.validate({"verdict": "KEEP"})  # missing confidence
         assert ok is False
         assert err is not None
         assert "confidence" in err
@@ -77,7 +77,7 @@ class TestSchemaValidator:
         ok, err, inst = v.validate({"inner": {"v": "bad"}})
         assert ok is False
         assert err is not None
-        ***REMOVED*** path includes "inner.v"
+        # path includes "inner.v"
         assert "inner" in err or "v" in err
 
     def test_validate_non_dict_input(self):
@@ -89,7 +89,7 @@ class TestSchemaValidator:
         v = SchemaValidator(Out)
         ok, err, inst = v.validate("not a dict")
         assert ok is False
-        ***REMOVED*** Either ValidationError-shaped or fallback "pydantic error:"
+        # Either ValidationError-shaped or fallback "pydantic error:"
         assert err is not None
         assert inst is None
 
@@ -123,7 +123,7 @@ class TestSchemaValidator:
 
             @classmethod
             def model_validate(cls, *a, **kw):
-                ***REMOVED*** Construct a fake ValidationError-like obj
+                # Construct a fake ValidationError-like obj
                 class FakeErr(Exception):
                     def errors(self):
                         return []
@@ -133,7 +133,7 @@ class TestSchemaValidator:
         v = SchemaValidator(WeirdEmpty)
         ok, err, inst = v.validate({"x": 1})
         assert ok is False
-        ***REMOVED*** FakeErr is not ValidationError so goes to general except
+        # FakeErr is not ValidationError so goes to general except
         assert err is not None
 
     def test_model_property(self):
@@ -144,12 +144,12 @@ class TestSchemaValidator:
         assert v.model is Out
 
 
-***REMOVED*** Test the no-pydantic branch by simulating ImportError
+# Test the no-pydantic branch by simulating ImportError
 def test_no_pydantic_import_error_path(monkeypatch):
     """Lines 28-31, 52: When pydantic is not available, init raises ImportError."""
     import guarded_llm.validator as mod
 
-    ***REMOVED*** Simulate pydantic being unavailable
+    # Simulate pydantic being unavailable
     orig = mod._HAS_PYDANTIC
     monkeypatch.setattr(mod, "_HAS_PYDANTIC", False)
     try:

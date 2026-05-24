@@ -1,4 +1,4 @@
-"""Structural diagnosis service (Session ***REMOVED***18, feature F).
+"""Structural diagnosis service (Session #18, feature F).
 
 The product takes a free-text description of an organisation / company /
 team / project situation and tells it which *structural state* it is in —
@@ -12,7 +12,7 @@ The LLM may only PICK from it — it can never invent a state. Every field
 the LLM returns is treated as untrusted: schema, types, the state_id enum
 and the confidence range are validated / coerced before reaching the API.
 
-Deepening (Session ***REMOVED***18 — F to 90+): every diagnosis is anchored to a real
+Deepening (Session #18 — F to 90+): every diagnosis is anchored to a real
 cross-domain phenomenon from the KB (4443 items). After the LLM picks a
 primary_state we build a structural query and search the KB for a real
 phenomenon that shares the same structure — turning "the LLM says you are
@@ -32,28 +32,28 @@ from services import llm_client
 
 logger = logging.getLogger("structural.diagnose")
 
-***REMOVED*** Hard input bounds. A situation description is a paragraph-ish; anything
-***REMOVED*** past this is abuse / accidental paste of a whole document.
+# Hard input bounds. A situation description is a paragraph-ish; anything
+# past this is abuse / accidental paste of a whole document.
 SITUATION_MIN_LEN = 12
 SITUATION_MAX_LEN = 1500
 
-***REMOVED*** Cap list-valued LLM fields — a runaway model could emit dozens.
+# Cap list-valued LLM fields — a runaway model could emit dozens.
 MAX_SIGNALS = 6
 MAX_RECOMMENDATIONS = 5
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Structural-state whitelist.
-***REMOVED***
-***REMOVED*** 8 states. Each aligns loosely with a universality class the KB already
-***REMOVED*** names (universality-classes.json), but is phrased for an org/team reader.
-***REMOVED*** Per-state fields:
-***REMOVED***   - class_ref       related universality class_id (traceability only).
-***REMOVED***   - class_hub       the class's representative cross-domain phenomenon
-***REMOVED***                     name (from universality-classes.json hub_name). Used
-***REMOVED***                     as a fallback reference when KB search is unavailable.
-***REMOVED***   - structure_query a domain-neutral structural phrasing of the state,
-***REMOVED***                     used to query the KB for a same-structure real case.
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Structural-state whitelist.
+#
+# 8 states. Each aligns loosely with a universality class the KB already
+# names (universality-classes.json), but is phrased for an org/team reader.
+# Per-state fields:
+#   - class_ref       related universality class_id (traceability only).
+#   - class_hub       the class's representative cross-domain phenomenon
+#                     name (from universality-classes.json hub_name). Used
+#                     as a fallback reference when KB search is unavailable.
+#   - structure_query a domain-neutral structural phrasing of the state,
+#                     used to query the KB for a same-structure real case.
+# --------------------------------------------------------------------------
 STRUCTURAL_STATES: dict[str, dict[str, str]] = {
     "damped_convergence": {
         "name": "阻尼收敛（稳定）",
@@ -121,7 +121,7 @@ STRUCTURAL_STATES: dict[str, dict[str, str]] = {
     },
 }
 
-***REMOVED*** Convenience: the set of legal state ids.
+# Convenience: the set of legal state ids.
 STATE_IDS = frozenset(STRUCTURAL_STATES.keys())
 
 
@@ -208,12 +208,12 @@ def _coerce_state_id(raw: Any) -> Optional[str]:
     norm = raw.strip()
     if not norm:
         return None
-    ***REMOVED*** Direct id match (case-insensitive).
+    # Direct id match (case-insensitive).
     low = norm.lower()
     for sid in STATE_IDS:
         if sid.lower() == low:
             return sid
-    ***REMOVED*** The LLM sometimes returns the Chinese name — map it back.
+    # The LLM sometimes returns the Chinese name — map it back.
     for sid, meta in STRUCTURAL_STATES.items():
         if meta["name"] == norm:
             return sid
@@ -230,10 +230,10 @@ def _coerce_confidence(raw: Any) -> float:
         val = float(raw)
     except (TypeError, ValueError):
         return 0.5
-    if val != val:  ***REMOVED*** NaN
+    if val != val:  # NaN
         return 0.5
     if val > 1.0:
-        ***REMOVED*** Likely a percentage like 80 → 0.8.
+        # Likely a percentage like 80 → 0.8.
         val = val / 100.0
     if val < 0.0:
         return 0.0
@@ -289,11 +289,11 @@ def coerce_result(raw: Any) -> Optional[dict]:
         return None
     primary_id = _coerce_state_id(primary_in.get("state_id"))
     if primary_id is None:
-        ***REMOVED*** No legal primary state — nothing trustworthy to show.
+        # No legal primary state — nothing trustworthy to show.
         return None
     confidence = _coerce_confidence(primary_in.get("confidence"))
 
-    ***REMOVED*** Secondary is optional. Drop it when illegal or identical to primary.
+    # Secondary is optional. Drop it when illegal or identical to primary.
     secondary_block: Optional[dict] = None
     secondary_in = raw.get("secondary_state")
     if isinstance(secondary_in, dict):
@@ -330,25 +330,25 @@ def coerce_result(raw: Any) -> Optional[dict]:
     }
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** Reference case — anchor the diagnosis to a real KB phenomenon.
-***REMOVED***
-***REMOVED*** The product's moat is the KB (4443 cross-domain phenomena). A diagnosis
-***REMOVED*** that just says "you are cascade-fragile" is an LLM opinion; a diagnosis
-***REMOVED*** that adds "your structure matches a real, named phenomenon" is evidence.
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Reference case — anchor the diagnosis to a real KB phenomenon.
+#
+# The product's moat is the KB (4443 cross-domain phenomena). A diagnosis
+# that just says "you are cascade-fragile" is an LLM opinion; a diagnosis
+# that adds "your structure matches a real, named phenomenon" is evidence.
+# --------------------------------------------------------------------------
 
-***REMOVED*** How many KB hits to ask SearchService for — we only keep the best one
-***REMOVED*** but a small pool lets us prefer a cross-domain hit over a same-domain one.
+# How many KB hits to ask SearchService for — we only keep the best one
+# but a small pool lets us prefer a cross-domain hit over a same-domain one.
 _REFERENCE_TOP_K = 6
 
-***REMOVED*** A reference is only worth showing above this unified relevance. Below it
-***REMOVED*** the "same structure" claim is too weak to stand behind.
+# A reference is only worth showing above this unified relevance. Below it
+# the "same structure" claim is too weak to stand behind.
 _REFERENCE_MIN_RELEVANCE = 0.55
 
-***REMOVED*** Words pulled out of the user's situation that would just re-surface the
-***REMOVED*** user's own domain — we want a STRUCTURAL match, not a topical one. Kept
-***REMOVED*** tiny on purpose: the structure_query already dominates the query.
+# Words pulled out of the user's situation that would just re-surface the
+# user's own domain — we want a STRUCTURAL match, not a topical one. Kept
+# tiny on purpose: the structure_query already dominates the query.
 _SITUATION_QUERY_CHARS = 120
 
 
@@ -390,7 +390,7 @@ def _coerce_reference_case(hit: Any) -> Optional[dict]:
         rel = float(relevance)
     except (TypeError, ValueError):
         rel = 0.0
-    if rel != rel:  ***REMOVED*** NaN
+    if rel != rel:  # NaN
         rel = 0.0
     rel = max(0.0, min(1.0, rel))
     domain = hit.get("domain")
@@ -449,10 +449,10 @@ def fetch_reference_case(
                 raw_hits = search_svc.search(query, top_k=_REFERENCE_TOP_K)
                 if isinstance(raw_hits, list):
                     hits = raw_hits
-            except Exception as e:  ***REMOVED*** noqa: BLE001 — search must never break F
+            except Exception as e:  # noqa: BLE001 — search must never break F
                 logger.warning("fetch_reference_case: search failed: %s", e)
 
-    ***REMOVED*** Coerce + relevance-gate, keeping order (search already ranked them).
+    # Coerce + relevance-gate, keeping order (search already ranked them).
     candidates: list[dict] = []
     for hit in hits:
         case = _coerce_reference_case(hit)
@@ -460,19 +460,19 @@ def fetch_reference_case(
             candidates.append((case, bool(hit.get("cross_domain"))))
 
     if candidates:
-        ***REMOVED*** Prefer a cross-domain hit (the product's whole point), else the
-        ***REMOVED*** top-ranked one.
+        # Prefer a cross-domain hit (the product's whole point), else the
+        # top-ranked one.
         for case, is_cross in candidates:
             if is_cross:
                 return case
         return candidates[0][0]
 
-    ***REMOVED*** No usable search hit — fall back to the class hub.
+    # No usable search hit — fall back to the class hub.
     return _fallback_reference_case(state_id)
 
 
-***REMOVED*** Prompt for the optional second LLM call that explains how the real
-***REMOVED*** reference case evolved — strictly grounded on the phenomenon we pass in.
+# Prompt for the optional second LLM call that explains how the real
+# reference case evolved — strictly grounded on the phenomenon we pass in.
 _REFERENCE_NOTE_PROMPT = """你是一个结构分析师。下面给你一个真实的跨领域\
 现象，以及一位用户当前组织/团队所处的结构状态。
 
@@ -521,7 +521,7 @@ async def _build_reference_note(
             temperature=0.3,
             max_tokens=400,
         )
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.warning("_build_reference_note: LLM failed: %s", e)
         return None
     if not isinstance(raw, dict):
@@ -551,7 +551,7 @@ async def run_diagnosis(
     raw = await llm_client.complete_json(
         system=system,
         user=user_prompt,
-        temperature=0.3,  ***REMOVED*** low — we want consistent, structural reasoning
+        temperature=0.3,  # low — we want consistent, structural reasoning
         max_tokens=2400,
     )
     if raw is None:
@@ -562,13 +562,13 @@ async def run_diagnosis(
         logger.warning("run_diagnosis: LLM output failed schema coercion")
         return None
 
-    ***REMOVED*** Anchor to a real KB phenomenon of the same structure. All failures
-    ***REMOVED*** here degrade gracefully — the core diagnosis is already done.
+    # Anchor to a real KB phenomenon of the same structure. All failures
+    # here degrade gracefully — the core diagnosis is already done.
     primary_id = coerced["primary_state"]["state_id"]
     reference_case: Optional[dict] = None
     try:
         reference_case = fetch_reference_case(primary_id, situation, search_svc)
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.warning("run_diagnosis: reference lookup failed: %s", e)
         reference_case = None
 

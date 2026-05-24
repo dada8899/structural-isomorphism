@@ -36,11 +36,11 @@ DEFAULT_SP500 = os.path.join(REPO_ROOT, "v4", "product", "d1_phase_detector", "c
 DEFAULT_OUT = os.path.join(SCRIPT_DIR, "..", "data", "1000_universe.csv")
 
 
-***REMOVED*** Russell 1000 mid/large-cap supplement — names that sit in R1000 but typically
-***REMOVED*** NOT in S&P 500 (sample, ~500 tickers across sectors).
-***REMOVED*** Sourced from public iShares IWB holdings + nasdaq.com Russell weights (2026).
+# Russell 1000 mid/large-cap supplement — names that sit in R1000 but typically
+# NOT in S&P 500 (sample, ~500 tickers across sectors).
+# Sourced from public iShares IWB holdings + nasdaq.com Russell weights (2026).
 RUSSELL_SUPPLEMENT: list[str] = [
-    ***REMOVED*** --- Technology / Software / Internet (~80) ---
+    # --- Technology / Software / Internet (~80) ---
     "PLTR", "SNOW", "DDOG", "NET", "OKTA", "ZS", "CRWD", "MDB", "TEAM", "ZM",
     "DOCU", "TWLO", "U", "ASAN", "MNDY", "FROG", "GTLB", "S", "ESTC", "SUMO",
     "TENB", "NEWR", "PD", "FSLY", "AKAM", "FFIV", "PANW", "FTNT", "CHKP", "CYBR",
@@ -49,7 +49,7 @@ RUSSELL_SUPPLEMENT: list[str] = [
     "BAND", "EVBG", "WIX", "GDDY", "SHOP", "ETSY", "EBAY", "Z", "TRIP", "BKNG",
     "EXPE", "ABNB", "DASH", "UBER", "LYFT", "GRUB", "PINS", "SNAP", "TWTR", "SQ",
     "AFRM", "UPST", "SOFI", "HOOD", "COIN", "RBLX", "U", "ROKU", "FUBO", "DIS",
-    ***REMOVED*** --- Healthcare / Biotech / MedTech (~80) ---
+    # --- Healthcare / Biotech / MedTech (~80) ---
     "REGN", "VRTX", "BIIB", "ALNY", "MRNA", "BNTX", "NVAX", "BMRN", "INCY", "EXEL",
     "JAZZ", "HALO", "NBIX", "ARWR", "EDIT", "CRSP", "NTLA", "BEAM", "PRME", "VERV",
     "FOLD", "RARE", "BPMC", "MYGN", "PCRX", "PCVX", "CYTK", "AKRO", "MDGL", "VIR",
@@ -58,46 +58,46 @@ RUSSELL_SUPPLEMENT: list[str] = [
     "TGTX", "MGNX", "ALEC", "VKTX", "PTGX", "RYTM", "CDNA", "NTRA", "NVST", "INMD",
     "ATEC", "OFIX", "NUVA", "GMED", "STAA", "EYE", "GKOS", "LFST", "CTLT", "WST",
     "TFX", "ICUI", "PEN", "CRL", "DXCM", "INSP", "PODD", "TNDM", "IRTC", "EXAS",
-    ***REMOVED*** --- Industrials / Defense / Transport (~60) ---
+    # --- Industrials / Defense / Transport (~60) ---
     "AXON", "CW", "TDG", "HEI", "MOG.A", "ESLT", "KTOS", "MERC", "VLRS", "TRMB",
     "FTV", "ROL", "DOV", "PNR", "WTS", "AOS", "GGG", "GWW", "FAST", "PWR",
     "MAS", "BLD", "BLDR", "EME", "MTZ", "PRIM", "CXW", "FIX", "ROAD", "MTRN",
     "PCAR", "WAB", "JBHT", "ODFL", "SAIA", "ARCB", "XPO", "GXO", "RXO", "KNX",
     "CHRW", "EXPD", "MATX", "ZTO", "GLBE", "FWRD", "WERN", "USFD", "PFGC", "ALSN",
     "RYDER", "RDDT", "CONX", "AAL", "LUV", "ALK", "JBLU", "HA", "SAVE", "SKYW",
-    ***REMOVED*** --- Consumer / Retail / Restaurants (~50) ---
+    # --- Consumer / Retail / Restaurants (~50) ---
     "ULTA", "FIVE", "OLLI", "BBWI", "BURL", "DKS", "TJX", "ROST", "DG", "DLTR",
     "FL", "JWN", "GPS", "AEO", "URBN", "ANF", "LULU", "DECK", "CROX", "RH",
     "WSM", "POOL", "LESL", "TSCO", "FND", "LCID", "RIVN", "PSNY", "NIO", "XPEV",
     "LI", "BLNK", "PLUG", "FCEL", "BE", "RUN", "ENPH", "SEDG", "NOVA", "MAXN",
     "CMG", "SHAK", "WING", "CAVA", "TXRH", "BLMN", "EAT", "DENN", "JACK", "DPZ",
-    ***REMOVED*** --- Financials / Fintech / Insurance (~60) ---
+    # --- Financials / Fintech / Insurance (~60) ---
     "ALLY", "BX", "KKR", "APO", "CG", "ARES", "OWL", "STEP", "HLNE", "TPG",
     "EVR", "LAZ", "PIPR", "MC", "STT", "NTRS", "BK", "RJF", "SF", "JEF",
     "SCHW", "TROW", "BEN", "IVZ", "CINF", "WTW", "AON", "BRO", "RYAN", "MMC",
     "TRV", "PGR", "AFL", "PRU", "MET", "AIG", "L", "RGA", "RNR", "EG",
     "ESGR", "CB", "GL", "AIZ", "UNM", "TMK", "FBHS", "MTG", "RDN", "ACT",
     "WAL", "ZION", "CFR", "HBAN", "RF", "FITB", "TFC", "CMA", "FCNCA", "PNFP",
-    ***REMOVED*** --- Energy / Utilities (~40) ---
+    # --- Energy / Utilities (~40) ---
     "FANG", "DVN", "EOG", "OXY", "PXD", "MRO", "APA", "CTRA", "RRC", "AR",
     "EQT", "MTDR", "SM", "CHK", "SBOW", "OAS", "LBRT", "NEX", "PUMP", "PTEN",
     "WMB", "OKE", "LNG", "TRGP", "ET", "EPD", "MPLX", "NEE", "DUK", "SO",
     "EXC", "AEP", "D", "WEC", "ETR", "ES", "FE", "PEG", "PCG", "ED",
-    ***REMOVED*** --- Materials / Chemicals / Metals (~40) ---
+    # --- Materials / Chemicals / Metals (~40) ---
     "CF", "MOS", "NTR", "FMC", "DD", "LYB", "EMN", "RPM", "OLN", "CE",
     "WLK", "VMC", "MLM", "EXP", "USG", "SUM", "AA", "CENX", "X", "NUE",
     "STLD", "CLF", "RS", "ATI", "TKR", "CRS", "AKS", "MT", "VALE", "GOLD",
     "FCX", "NEM", "AEM", "WPM", "FNV", "RGLD", "PAAS", "AG", "HL", "CDE",
-    ***REMOVED*** --- REITs / Real estate (~30) ---
+    # --- REITs / Real estate (~30) ---
     "WELL", "PSA", "DLR", "EQIX", "AMT", "CCI", "EQR", "AVB", "VTR", "ARE",
     "EXR", "IRM", "PEAK", "MAA", "ESS", "UDR", "CPT", "AIV", "ELS", "SUI",
     "MAC", "SPG", "O", "REG", "FRT", "KIM", "ADC", "STAG", "TRNO", "PLD",
-    ***REMOVED*** --- Other / Media / Misc (~40) ---
+    # --- Other / Media / Misc (~40) ---
     "WBD", "PARA", "FOXA", "NWSA", "LBRDA", "LBRDK", "FWONA", "FWONK", "LSXMA", "LSXMK",
     "DASH", "DKNG", "PENN", "MGM", "WYNN", "LVS", "CZR", "BYD", "RRR", "GLPI",
     "VICI", "GME", "AMC", "CHWY", "PETS", "WIX", "FVRR", "UPWK", "SVMK", "SPRT",
     "AI", "BBAI", "SOUN", "PATH", "BTBT", "MARA", "RIOT", "HUT", "CIFR", "BITF",
-    ***REMOVED*** --- Additional mid-cap supplement (Russell 1000 fillers, ~200) ---
+    # --- Additional mid-cap supplement (Russell 1000 fillers, ~200) ---
     "ACAD", "ACHC", "ACI", "ACM", "ADTN", "ADUS", "AEIS", "AESI", "AGCO", "AGNC",
     "AGYS", "AIN", "AIT", "AKR", "ALE", "ALEX", "ALG", "ALGM", "ALGT", "ALIT",
     "ALK", "ALKS", "ALRM", "ALTR", "AMBA", "AMC", "AMED", "AMG", "AMK", "AMKR",

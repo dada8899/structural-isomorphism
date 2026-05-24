@@ -3,7 +3,7 @@ hide:
   - navigation
 ---
 
-***REMOVED*** Structural Isomorphism
+# Structural Isomorphism
 
 > **Do systems from radically different scientific domains share the same
 > underlying mathematical structure?**
@@ -17,21 +17,21 @@ software communities, power grids, and highway traffic — and a growing set
 of adversarial pre-registrations that have produced PASS, INCONCLUSIVE, and
 FAIL verdicts without per-system tuning.
 
-***REMOVED******REMOVED*** Live demos
+## Live demos
 
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city){ target=_blank } | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
 | Phase Detector | [phase.bytedance.city](https://phase.bytedance.city){ target=_blank } | 100 tagged companies + 500-ticker S&P 500 walk-forward backtest. Research preview — *not investment advice*. |
 
-***REMOVED******REMOVED*** Get started in 30 seconds
+## Get started in 30 seconds
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-v4 status                  ***REMOVED*** show pass/fail across 13 systems + 4 nulls
+v4 status                  # show pass/fail across 13 systems + 4 nulls
 ```
 
 Or run the pipeline programmatically:
@@ -46,7 +46,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 
 See [Getting Started](getting-started.md) for the full walkthrough.
 
-***REMOVED******REMOVED*** Three artifacts
+## Three artifacts
 
 <div class="grid cards" markdown>
 
@@ -83,7 +83,7 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 
 </div>
 
-***REMOVED******REMOVED*** What this project is
+## What this project is
 
 - **A reproducible pipeline.** Clauset–Shalizi–Newman 2009 MLE power-law
   fits with KS-optimal $x_{\mathrm{min}}$, bootstrap confidence intervals,
@@ -99,7 +99,7 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 - **A live phase detector.** D1 ships the pipeline as a queryable service
   with a 7-event SSE orchestrator for streaming verdicts.
 
-***REMOVED******REMOVED*** Quick links
+## Quick links
 
 - [Getting started](getting-started.md) — install and first run.
 - [Pipeline](pipeline.md) — the shared analysis stack.
@@ -112,7 +112,7 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 - [Papers](papers.md) — preprints including the unified pipeline preprint
   and the CVE falsification.
 
-***REMOVED******REMOVED*** Citation
+## Citation
 
 If you reference this work, please cite the unified pipeline preprint:
 
@@ -126,7 +126,7 @@ If you reference this work, please cite the unified pipeline preprint:
 }
 ```
 
-***REMOVED******REMOVED*** Status
+## Status
 
 This is a research repository under active development. The pipeline
 library is frozen at commit `7ee228c`; phase papers and pre-registrations

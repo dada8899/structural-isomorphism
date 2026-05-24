@@ -39,7 +39,7 @@ for ax, lab in zip(axes, labels):
     sizes = sizes[sizes >= 1]
     x, ccdf = empirical_ccdf(sizes)
     ax.loglog(x, ccdf, ".", ms=3, alpha=0.55, label=f"empirical (n={len(sizes)})")
-    ***REMOVED*** overlay Clauset
+    # overlay Clauset
     r = RES["slices"][lab]["secondary_cascade_clauset"]
     alpha = r.get("alpha")
     xmin = r.get("xmin")
@@ -48,7 +48,7 @@ for ax, lab in zip(axes, labels):
         mask = x >= xmin
         x_tail = x[mask]
         if len(x_tail) > 0:
-            ***REMOVED*** CCDF of power law: (x/xmin)^-(alpha-1), normalize at xmin to match data
+            # CCDF of power law: (x/xmin)^-(alpha-1), normalize at xmin to match data
             ccdf_xmin = ccdf[mask][0]
             ccdf_fit = ccdf_xmin * (x_tail / xmin) ** -(alpha - 1)
             ax.loglog(x_tail, ccdf_fit, "r-", lw=2,

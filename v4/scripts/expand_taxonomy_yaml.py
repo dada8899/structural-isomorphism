@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Expand v4/taxonomy/classes/*.yaml with LLM-generated negative_examples +
 edge_cases for each class.
 
@@ -55,7 +55,7 @@ def _load_dotenv() -> None:
         return
     for line in env_path.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("***REMOVED***") or "=" not in line:
+        if not line or line.startswith("#") or "=" not in line:
             continue
         k, _, v = line.partition("=")
         k = k.strip()
@@ -68,8 +68,8 @@ _load_dotenv()
 
 DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Prompt template
+# ---------------------------------------------------------------------------
+# Prompt template
 
 EXPAND_PROMPT = """You are an expert in universality classes and cross-domain dynamical systems. You are reviewing the boundary of a candidate universality class for the structural-isomorphism v4 taxonomy project.
 
@@ -116,8 +116,8 @@ Output ONLY the JSON object, no preamble or explanation outside the JSON.
 """
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Yaml read/write (minimal, preserving non-target keys)
+# ---------------------------------------------------------------------------
+# Yaml read/write (minimal, preserving non-target keys)
 
 
 def read_yaml_raw(path: Path) -> str:
@@ -126,7 +126,7 @@ def read_yaml_raw(path: Path) -> str:
 
 def extract_yaml_field(text: str, field: str) -> str:
     """Extract a single yaml field's raw value (best-effort, simple regex)."""
-    ***REMOVED*** Match: ^field: value\n
+    # Match: ^field: value\n
     m = re.search(rf"^{re.escape(field)}:[ \t]*(.*)$", text, flags=re.MULTILINE)
     if not m:
         return ""
@@ -212,8 +212,8 @@ def extract_negative_phenomena(text: str, field: str = "negative_examples") -> l
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** DeepSeek API
+# ---------------------------------------------------------------------------
+# DeepSeek API
 
 
 def call_deepseek(prompt: str) -> tuple[str | None, str | None]:
@@ -229,9 +229,9 @@ def call_deepseek(prompt: str) -> tuple[str | None, str | None]:
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.3,
-        ***REMOVED*** deepseek-v4-pro uses reasoning_tokens internally; budget generously
-        ***REMOVED*** so the visible content message has room after reasoning. Empirically
-        ***REMOVED*** 8000 leaves ~6000 for content even after dense reasoning.
+        # deepseek-v4-pro uses reasoning_tokens internally; budget generously
+        # so the visible content message has room after reasoning. Empirically
+        # 8000 leaves ~6000 for content even after dense reasoning.
         "max_tokens": 8000,
     }
     req = urllib.request.Request(
@@ -254,7 +254,7 @@ def call_deepseek(prompt: str) -> tuple[str | None, str | None]:
         return None, f"HTTP {e.code}: {body}"
     except urllib.error.URLError as e:
         return None, f"URLError: {e.reason}"
-    except Exception as e:  ***REMOVED*** pragma: no cover
+    except Exception as e:  # pragma: no cover
         return None, f"{type(e).__name__}: {e}"
 
 
@@ -281,16 +281,16 @@ def extract_json(raw: str) -> dict | None:
             return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Yaml writer (append-only block for negative_examples + edge_cases)
+# ---------------------------------------------------------------------------
+# Yaml writer (append-only block for negative_examples + edge_cases)
 
 
 def _escape_yaml_string(s: str) -> str:
     """Wrap in double quotes if special chars; otherwise return as-is."""
     if not s:
         return '""'
-    if any(c in s for c in ":***REMOVED***&*?{}[]|,'\"\\"):
-        ***REMOVED*** escape backslash + double quote
+    if any(c in s for c in ":#&*?{}[]|,'\"\\"):
+        # escape backslash + double quote
         escaped = s.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
     return s
@@ -305,7 +305,7 @@ def render_negative_examples_block(items: list[dict[str, str]]) -> str:
         reason = it.get("reason", "")
         lines.append(f"- phenomenon: {_escape_yaml_string(ph)}")
         lines.append(f"  reason: {_escape_yaml_string(reason)}")
-    ***REMOVED*** 2-space indent for top-level list items per existing yaml convention
+    # 2-space indent for top-level list items per existing yaml convention
     out = lines[0] + "\n" + "\n".join(f"  {l}" if l.startswith("- ") or l.startswith("  ") else l for l in lines[1:])
     return out + "\n"
 
@@ -345,7 +345,7 @@ def merge_into_yaml(yaml_text: str, new_negatives: list[dict], new_edges: list[d
     ]
 
     if not add_negatives and not add_edges:
-        return yaml_text  ***REMOVED*** nothing to add
+        return yaml_text  # nothing to add
 
     lines = yaml_text.splitlines(keepends=True)
     out_lines: list[str] = []
@@ -355,17 +355,17 @@ def merge_into_yaml(yaml_text: str, new_negatives: list[dict], new_edges: list[d
     i = 0
     while i < len(lines):
         ln = lines[i]
-        ***REMOVED*** find end of negative_examples block
+        # find end of negative_examples block
         if not handled_neg and ln.startswith("negative_examples:"):
             out_lines.append(ln)
             i += 1
-            ***REMOVED*** passthrough existing block
+            # passthrough existing block
             while i < len(lines) and (
                 lines[i].startswith("- ") or lines[i].startswith("  ") or lines[i].strip() == ""
             ):
                 out_lines.append(lines[i])
                 i += 1
-            ***REMOVED*** append new entries
+            # append new entries
             for it in add_negatives:
                 out_lines.append(f"- phenomenon: {_escape_yaml_string(it['phenomenon'])}\n")
                 out_lines.append(f"  reason: {_escape_yaml_string(it.get('reason', ''))}\n")
@@ -388,7 +388,7 @@ def merge_into_yaml(yaml_text: str, new_negatives: list[dict], new_edges: list[d
         i += 1
 
     text = "".join(out_lines)
-    ***REMOVED*** If negative_examples block did not exist, append a new block.
+    # If negative_examples block did not exist, append a new block.
     if not handled_neg:
         text = _append_block_before_notes(text, render_negative_examples_block(add_negatives))
     if not handled_edge:
@@ -401,15 +401,15 @@ def _append_block_before_notes(text: str, block: str) -> str:
         return text
     idx = text.find("\nnotes:")
     if idx < 0:
-        ***REMOVED*** append at end
+        # append at end
         if not text.endswith("\n"):
             text += "\n"
         return text + block
     return text[: idx + 1] + block + text[idx + 1 :]
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Per-class processing
+# ---------------------------------------------------------------------------
+# Per-class processing
 
 
 def build_prompt_for_class(class_id: str, yaml_text: str) -> str:
@@ -478,8 +478,8 @@ def process_class(class_id: str, dry_run: bool) -> dict[str, Any]:
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
+# ---------------------------------------------------------------------------
+# Main
 
 
 def main() -> int:

@@ -1,6 +1,6 @@
 """Universality class taxonomy loader + endpoint helpers.
 
-Session ***REMOVED***10 W10-E — exposes the YAML taxonomy under `dataset/v1/taxonomy/`
+Session #10 W10-E — exposes the YAML taxonomy under `dataset/v1/taxonomy/`
 as three REST endpoints (registered by main.py):
 
     GET /api/universality/classes
@@ -42,15 +42,15 @@ logger = logging.getLogger("structural.universality")
 router = APIRouter(prefix="/api/universality", tags=["universality"])
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Path resolution
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Path resolution
+# ---------------------------------------------------------------------------
 
-***REMOVED*** This file lives at:
-***REMOVED***   <repo>/v4/product/d1_phase_detector/api/universality.py
-***REMOVED*** Taxonomy lives at:
-***REMOVED***   <repo>/dataset/v1/taxonomy/...
-***REMOVED*** We walk up 4 levels (api -> d1_phase_detector -> product -> v4 -> repo).
+# This file lives at:
+#   <repo>/v4/product/d1_phase_detector/api/universality.py
+# Taxonomy lives at:
+#   <repo>/dataset/v1/taxonomy/...
+# We walk up 4 levels (api -> d1_phase_detector -> product -> v4 -> repo).
 def _default_taxonomy_dir() -> Path:
     return (
         Path(__file__).resolve().parents[4]
@@ -67,9 +67,9 @@ def _taxonomy_dir() -> Path:
     return _default_taxonomy_dir()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** YAML loading helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# YAML loading helpers
+# ---------------------------------------------------------------------------
 
 def _safe_load_yaml(path: Path) -> Optional[Dict[str, Any]]:
     """Load one YAML file, returning None + warning on parse failure."""
@@ -82,7 +82,7 @@ def _safe_load_yaml(path: Path) -> Optional[Dict[str, Any]]:
     except yaml.YAMLError as e:
         logger.warning("taxonomy YAML parse failed for %s: %s", path.name, e)
         return None
-    except OSError as e:  ***REMOVED*** pragma: no cover -- IO errors caught explicitly
+    except OSError as e:  # pragma: no cover -- IO errors caught explicitly
         logger.warning("taxonomy YAML read failed for %s: %s", path.name, e)
         return None
 
@@ -98,7 +98,7 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     if not class_id:
         return {}
 
-    ***REMOVED*** Display names
+    # Display names
     display_name = (
         raw.get("display_name")
         or raw.get("name_en")
@@ -107,7 +107,7 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     )
     display_name_zh = raw.get("display_name_zh") or raw.get("name")
 
-    ***REMOVED*** One-line definition for cards
+    # One-line definition for cards
     definition = (
         raw.get("hub_phenomenon")
         or raw.get("definition")
@@ -116,16 +116,16 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     if isinstance(definition, str):
         definition = definition.strip()
 
-    ***REMOVED*** Exponent band — pulled from key_invariants in per-class file, or
-    ***REMOVED*** invariants in umbrella file. We surface as a list of strings; the FE
-    ***REMOVED*** picks the first or shows all.
+    # Exponent band — pulled from key_invariants in per-class file, or
+    # invariants in umbrella file. We surface as a list of strings; the FE
+    # picks the first or shows all.
     invariants_raw = raw.get("key_invariants") or raw.get("invariants") or []
     if isinstance(invariants_raw, list):
         invariants = [str(x) for x in invariants_raw if x]
     else:
         invariants = [str(invariants_raw)]
 
-    ***REMOVED*** Empirical / evidence systems
+    # Empirical / evidence systems
     positive_examples = raw.get("positive_examples") or []
     if isinstance(positive_examples, list):
         evidence_systems = []
@@ -144,8 +144,8 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     else:
         evidence_systems = []
 
-    ***REMOVED*** Known members (from umbrella) — merged into evidence_systems if no
-    ***REMOVED*** positive_examples present, so the card always has something to show.
+    # Known members (from umbrella) — merged into evidence_systems if no
+    # positive_examples present, so the card always has something to show.
     known_members = raw.get("known_members") or []
     if not evidence_systems and isinstance(known_members, list):
         evidence_systems = [
@@ -158,7 +158,7 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
             for m in known_members
         ]
 
-    ***REMOVED*** Negative examples + edge cases preserved verbatim in detail view.
+    # Negative examples + edge cases preserved verbatim in detail view.
     negative_examples = raw.get("negative_examples") or []
     if not isinstance(negative_examples, list):
         negative_examples = []
@@ -167,12 +167,12 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     if not isinstance(edge_cases, list):
         edge_cases = []
 
-    ***REMOVED*** Shared equation / master equation
+    # Shared equation / master equation
     equation = raw.get("shared_equation") or raw.get("master_equation") or ""
     if isinstance(equation, str):
         equation = equation.strip()
 
-    ***REMOVED*** References / prototypes
+    # References / prototypes
     references = raw.get("references") or []
     if not isinstance(references, list):
         references = [str(references)]
@@ -185,7 +185,7 @@ def _normalize_class_record(raw: Dict[str, Any], source: str) -> Dict[str, Any]:
     else:
         prototypes = [str(p) for p in prototypes if p]
 
-    ***REMOVED*** Status (well-established / emerging / speculative)
+    # Status (well-established / emerging / speculative)
     status = str(raw.get("status", "unknown"))
 
     return {
@@ -242,7 +242,7 @@ def _load_all_classes() -> Dict[str, Dict[str, Any]]:
                 norm = _normalize_class_record(entry, source="universality_classes.yaml")
                 if not norm:
                     continue
-                ***REMOVED*** Per-class file takes precedence; umbrella fills gaps.
+                # Per-class file takes precedence; umbrella fills gaps.
                 if norm["class_id"] not in out:
                     out[norm["class_id"]] = norm
 
@@ -260,14 +260,14 @@ def _summary_card(cls: Dict[str, Any]) -> Dict[str, Any]:
         "display_name_zh": cls.get("display_name_zh"),
         "definition": cls["definition"],
         "status": cls["status"],
-        "exponent_band": cls["key_invariants"][:3],  ***REMOVED*** short list for card
+        "exponent_band": cls["key_invariants"][:3],  # short list for card
         "evidence_count": len(cls.get("evidence_systems") or []),
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Routes
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 @router.get("/classes")
 def list_classes() -> Dict[str, Any]:
@@ -281,7 +281,7 @@ def list_classes() -> Dict[str, Any]:
     """
     classes = _load_all_classes()
     cards = [_summary_card(c) for c in classes.values()]
-    ***REMOVED*** Sort: well-established first, then alphabetical
+    # Sort: well-established first, then alphabetical
     status_order = {"well-established": 0, "emerging": 1, "speculative": 2, "unknown": 3}
     cards.sort(key=lambda c: (status_order.get(c["status"], 9), c["class_id"]))
     return {"count": len(cards), "classes": cards}
@@ -323,7 +323,7 @@ def companies_for_class(class_id: str) -> Dict[str, Any]:
             rows = cur.fetchall()
             for r in rows:
                 companies.append(row_to_dict(r, driver))
-    except Exception as e:  ***REMOVED*** pragma: no cover -- DB access guarded
+    except Exception as e:  # pragma: no cover -- DB access guarded
         logger.warning("companies_for_class DB query failed: %s", e)
 
     return {

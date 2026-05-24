@@ -1,4 +1,4 @@
-***REMOVED*** Session ***REMOVED***22 Handoff
+# Session #22 Handoff
 
 > 日期：2026-05-24
 > 承接 SESSION-21-HANDOFF.md。
@@ -8,7 +8,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. 当前状态
+## 0. 当前状态
 
 - `beta.structural.bytedance.city` 健康（health 200）。
 - 后端 **772 测试全过**（SESSION-21 是 756；+16 net 来自本 session 的
@@ -30,9 +30,9 @@ e942110  docs(paper): C1 v0.2 six-item pre-submission review closed
 
 ---
 
-***REMOVED******REMOVED*** 1. 本 session 完成的工作
+## 1. 本 session 完成的工作
 
-***REMOVED******REMOVED******REMOVED*** 1.1 SESSION-21 §8 的 4 个 🟢 收尾（全清）
+### 1.1 SESSION-21 §8 的 4 个 🟢 收尾（全清）
 
 **commit `1076e67`** — Agent A 落地：
 
@@ -43,7 +43,7 @@ e942110  docs(paper): C1 v0.2 six-item pre-submission review closed
 | struct-lint e2e 超时下调 | `web/tests/e2e/test_struct_lint.py` 210s → 10s SSE 首事件 + 180s 整体 | 流式化后超时与现实匹配 |
 | privacy export 补 fingerprint | `/api/privacy/export` 含 `structural_fingerprints` 字段 + `ConnectionsStore.export_all_for_user` | DSAR 完整性；与 SESSION-21 §6 delete 对称 |
 
-***REMOVED******REMOVED******REMOVED*** 1.2 C1 v0.2 6 项 Pre-submission Checklist 闭环
+### 1.2 C1 v0.2 6 项 Pre-submission Checklist 闭环
 
 **commit `e942110`** — Agent B 落地。6 项现状：
 
@@ -58,7 +58,7 @@ e942110  docs(paper): C1 v0.2 six-item pre-submission review closed
 
 **待用户决策**：5 个 author decision points（sibling co-submission / arxiv-02 correction note / Phase 1 declustering scope / Phase 4 multi-session expansion scope / 真领域专家 review 找谁）。
 
-***REMOVED******REMOVED******REMOVED*** 1.3 git 历史 scrub dry-run（PUBLIC release P0）
+### 1.3 git 历史 scrub dry-run（PUBLIC release P0）
 
 **commit `4e70298`** — Agent C 落地：
 
@@ -74,32 +74,32 @@ e942110  docs(paper): C1 v0.2 six-item pre-submission review closed
 
 **待用户**：vendor 端轮换 key（你之前说先不管）→ 跑 scrub 脚本 → force-push（详见 §3）。
 
-***REMOVED******REMOVED******REMOVED*** 1.4 Zenodo deposit + arXiv 投稿包
+### 1.4 Zenodo deposit + arXiv 投稿包
 
 **commit `acb93d5`** — Agent D 落地：
 
 ```
 release/zenodo/
-├── .zenodo.json           ***REMOVED*** DataCite metadata，15 字段
-├── dataset-v1.tar.gz       ***REMOVED*** 44MB LFS pointer，sha256: 8391a305...
-├── README.md               ***REMOVED*** Zenodo description（13 系统 + 4 nulls + BibTeX）
-└── manifest.txt            ***REMOVED*** 521 文件 per-file sha256 + size
+├── .zenodo.json           # DataCite metadata，15 字段
+├── dataset-v1.tar.gz       # 44MB LFS pointer，sha256: 8391a305...
+├── README.md               # Zenodo description（13 系统 + 4 nulls + BibTeX）
+└── manifest.txt            # 521 文件 per-file sha256 + size
 
 release/arxiv/c1-unified-preprint-v0.3/
-├── main.tex                ***REMOVED*** 1261 行，pandoc 转换 + 清理（去中文）
-├── references.bib          ***REMOVED*** 35 BibTeX 条目，含 arXiv ID + Zenodo DOI placeholder
-├── abstract.txt            ***REMOVED*** 249 词
-├── cover-letter.txt        ***REMOVED*** categories + 6 suggested reviewers
-└── main.pdf.TODO           ***REMOVED*** 本地无 LaTeX，建议走 arXiv server-side compile
+├── main.tex                # 1261 行，pandoc 转换 + 清理（去中文）
+├── references.bib          # 35 BibTeX 条目，含 arXiv ID + Zenodo DOI placeholder
+├── abstract.txt            # 249 词
+├── cover-letter.txt        # categories + 6 suggested reviewers
+└── main.pdf.TODO           # 本地无 LaTeX，建议走 arXiv server-side compile
 
 docs/release/
-├── zenodo-deposit-2026-05-24.md  ***REMOVED*** 上传 runbook + post-DOI substitution checklist
-└── arxiv-submission-2026-05-24.md  ***REMOVED*** 上传 runbook + endorsement-check
+├── zenodo-deposit-2026-05-24.md  # 上传 runbook + post-DOI substitution checklist
+└── arxiv-submission-2026-05-24.md  # 上传 runbook + endorsement-check
 ```
 
 **关键**：Zenodo DOI 必须先 mint（永久 + 一次性），arXiv 引用 DOI。
 
-***REMOVED******REMOVED******REMOVED*** 1.5 W7-D 6 个 mini-brief 全落地
+### 1.5 W7-D 6 个 mini-brief 全落地
 
 **commit `84b0c4f`** — Agent E 落地：
 
@@ -116,7 +116,7 @@ W7-B（guarded-llm）和 W7-C（soc-pipeline + cross-judge）三个 PyPI 包**�
 
 ---
 
-***REMOVED******REMOVED*** 2. PUBLIC release decision-gates 全景
+## 2. PUBLIC release decision-gates 全景
 
 来自 `docs/PUBLIC_READINESS_CHECKLIST.md`，本 session 处理后状态：
 
@@ -135,41 +135,41 @@ P1 项里 `Phase Detector browser-side runtime issue` + `universality-classes.js
 
 ---
 
-***REMOVED******REMOVED*** 3. 用户授权清单（每项 1 行命令 / 1 步操作）
+## 3. 用户授权清单（每项 1 行命令 / 1 步操作）
 
 按依赖顺序排，从上往下做：
 
-***REMOVED******REMOVED******REMOVED*** 3.1 git history scrub（force push）
+### 3.1 git history scrub（force push）
 
 ```bash
 cd ~/Projects/structural-isomorphism
 
-***REMOVED*** Step 1: 准备 patterns（自动从 gitleaks 扫，或手动填 scripts/scrub-patterns.txt）
-bash scripts/scrub-history.sh --auto-patterns      ***REMOVED*** 或手动编辑 patterns 文件
+# Step 1: 准备 patterns（自动从 gitleaks 扫，或手动填 scripts/scrub-patterns.txt）
+bash scripts/scrub-history.sh --auto-patterns      # 或手动编辑 patterns 文件
 
-***REMOVED*** Step 2: dry-run 再核对一次
+# Step 2: dry-run 再核对一次
 bash scripts/scrub-history.sh --dry-run
 
-***REMOVED*** Step 3: 真改写（自动建 backup tag + bundle）
+# Step 3: 真改写（自动建 backup tag + bundle）
 bash scripts/scrub-history.sh --execute
 
-***REMOVED*** Step 4: 验证 0 key 残留
+# Step 4: 验证 0 key 残留
 git log --all -p | grep -E "sk-or-v1-af9|sk-ad62cc6d" && echo "STILL THERE" || echo "CLEAN"
 gitleaks detect --no-banner --redact
 
-***REMOVED*** Step 5: force-push（不可逆）
+# Step 5: force-push（不可逆）
 git push --force-with-lease --all origin
 git push --force-with-lease --tags origin
 ```
 
 详细回滚 + fork 协调见 `docs/audit/git-history-scrub-2026-05-24.md`。
 
-***REMOVED******REMOVED******REMOVED*** 3.2 GitHub repo 翻 PUBLIC
+### 3.2 GitHub repo 翻 PUBLIC
 
 1. GitHub → Settings → "Change repository visibility" → Make public → 输入 repo 名确认
 2. 完了之后用 `gh repo view dada8899/structural-isomorphism --json visibility` 验证
 
-***REMOVED******REMOVED******REMOVED*** 3.3 Zenodo DOI mint（**先于 arXiv**）
+### 3.3 Zenodo DOI mint（**先于 arXiv**）
 
 详细 runbook 在 `docs/release/zenodo-deposit-2026-05-24.md`，速查：
 
@@ -183,7 +183,7 @@ git push --force-with-lease --tags origin
    - `release/arxiv/c1-unified-preprint-v0.3/references.bib` `si2026zenodo` 条目
    - `docs/sessions/C1-unified-preprint-draft-v0.2.md` §Appendix-A 和 ref 45
 
-***REMOVED******REMOVED******REMOVED*** 3.4 arXiv v0.3 提交
+### 3.4 arXiv v0.3 提交
 
 详细 runbook 在 `docs/release/arxiv-submission-2026-05-24.md`，速查：
 
@@ -196,30 +196,30 @@ git push --force-with-lease --tags origin
 7. Submit（**不可撤回**，moderation 1-3 天）
 8. 拿到 arXiv ID（形如 `2605.XXXXX`）后替换占位符（多处，见 doc）
 
-***REMOVED******REMOVED******REMOVED*** 3.5 PyPI 发包（3 个）
+### 3.5 PyPI 发包（3 个）
 
 ```bash
-***REMOVED*** 准备 PyPI token：https://pypi.org/manage/account/token/
+# 准备 PyPI token：https://pypi.org/manage/account/token/
 export TWINE_USERNAME=__token__
-export TWINE_PASSWORD='pypi-...'   ***REMOVED*** 你的 token
+export TWINE_PASSWORD='pypi-...'   # 你的 token
 
-***REMOVED*** 发 guarded-llm 0.1.0
+# 发 guarded-llm 0.1.0
 cd ~/Projects/structural-isomorphism/packages/guarded-llm
 python -m twine upload dist/*
 
-***REMOVED*** 发 soc-pipeline 0.1.0
+# 发 soc-pipeline 0.1.0
 cd ../soc-pipeline
 python -m twine upload dist/*
 
-***REMOVED*** 发 cross-judge 0.1.0
+# 发 cross-judge 0.1.0
 cd ../cross-judge
 python -m twine upload dist/*
 
-***REMOVED*** 验证（每个）
+# 验证（每个）
 pip install guarded-llm soc-pipeline cross-judge
 ```
 
-***REMOVED******REMOVED******REMOVED*** 3.6 push pipeline canonical tag
+### 3.6 push pipeline canonical tag
 
 PyPI 发包成功后：
 
@@ -227,19 +227,19 @@ PyPI 发包成功后：
 git push origin soc-pipeline-v0.1.0
 ```
 
-***REMOVED******REMOVED******REMOVED*** 3.7 [可选] 装 weekly newsletter cron
+### 3.7 [可选] 装 weekly newsletter cron
 
 ```bash
 cp scripts/launchd/com.structural.weekly-newsletter.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.structural.weekly-newsletter.plist
-launchctl list | grep structural   ***REMOVED*** 验证
+launchctl list | grep structural   # 验证
 ```
 
 ---
 
-***REMOVED******REMOVED*** 4. 仍需真人 / 仍未做的事
+## 4. 仍需真人 / 仍未做的事
 
-***REMOVED******REMOVED******REMOVED*** 4.1 真领域专家 review（Item 6 of C1 checklist）
+### 4.1 真领域专家 review（Item 6 of C1 checklist）
 
 CC 内部 review 在 `docs/sessions/C1-v0.2-internal-review-2026-05-24.md`。
 真要稳，需要 3 个真人 reviewer：
@@ -250,28 +250,28 @@ CC 内部 review 在 `docs/sessions/C1-v0.2-internal-review-2026-05-24.md`。
 
 **建议**：发预印本到 arXiv 前先发邮件给 3-5 个 reviewer 候选，提供 v0.3 PDF + 1 周窗口要 1 小时反馈。
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Phase 4 framing P0（CC 可改但需作者拍）
+### 4.2 Phase 4 framing P0（CC 可改但需作者拍）
 
 C1 v0.2 §3.4 报 γ ≈ 1.10 没回应 branching-process γ=2 预测。真神经科学 reviewer 会卡在这里。建议在 v0.3 加一段：
 > "Our γ ≈ 1.10 is consistent with subsampled estimates in the avalanche literature (refs to add) and deviates from the mean-field branching-process prediction γ=2; this likely reflects the single-session, single-region scope rather than a deep universality-class membership claim."
 
 如果你 GO，CC 可以下个 session inline 改 v0.2。
 
-***REMOVED******REMOVED******REMOVED*** 4.3 arxiv-02 correction note
+### 4.3 arxiv-02 correction note
 
 C1 §3.2 标了 arxiv-02 原文 "power-law strongly dominates lognormal" 是 sign-interpretation error。**是否给 arxiv-02 发独立勘误**是你的决定。
 
-***REMOVED******REMOVED******REMOVED*** 4.4 backtest v0.2 真实数据
+### 4.4 backtest v0.2 真实数据
 
 W7-D §4 backtest 用 mock 跑通 pipeline，真实数据接入是 v0.2 工作（D1 Phase Detector 真实 100 公司 + yfinance）。**3 工程日**量，可以下个 session 开做。
 
-***REMOVED******REMOVED******REMOVED*** 4.5 HN launch 准备
+### 4.5 HN launch 准备
 
 `docs/community/launch/hn-launch-readiness-2026-05-24.md` 标 NOT READY。剩下：演示 GIF / 负载测试 / backtest v0.2 / show HN 标题候选定稿。
 
 ---
 
-***REMOVED******REMOVED*** 5. 下个 session 起手指令
+## 5. 下个 session 起手指令
 
 ```
 读 SESSION-22-HANDOFF.md。站点健康，5 commit 推到 origin/main。
@@ -294,7 +294,7 @@ W7-D §4 backtest 用 mock 跑通 pipeline，真实数据接入是 v0.2 工作�
 
 ---
 
-***REMOVED******REMOVED*** 6. 本 session 的执行模式（值得复盘）
+## 6. 本 session 的执行模式（值得复盘）
 
 - **5 个 agent 并发**，每个独立 scope，干完不 commit，主对话统一审 + 分批 commit
   → 避免 git index lock 冲突，commit message 干净

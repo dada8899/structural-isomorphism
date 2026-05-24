@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Fetch GitHub issue resolution times from a set of popular OSS repos.
 
 Strategy
@@ -62,7 +62,7 @@ REPOS = [
     "flutter/flutter",
     "ruby/ruby",
 ]
-N_PER_REPO = 100  ***REMOVED*** closed issues per repo (capped to avoid rate limit burn)
+N_PER_REPO = 100  # closed issues per repo (capped to avoid rate limit burn)
 
 
 def _parse_iso(ts: str) -> float:
@@ -86,8 +86,8 @@ def fetch_via_gh() -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for repo in REPOS:
         try:
-            ***REMOVED*** Single page of 100 issues per repo to control rate-limit burn.
-            ***REMOVED*** 15 repos × 100 issues = 1500 records, sufficient for tail stats.
+            # Single page of 100 issues per repo to control rate-limit burn.
+            # 15 repos × 100 issues = 1500 records, sufficient for tail stats.
             cmd = [
                 "gh",
                 "api",
@@ -149,16 +149,16 @@ def synth_github(n: int = 5000, seed: int = 42) -> list[dict[str, Any]]:
     rng = np.random.default_rng(seed)
     n_core = int(0.85 * n)
     n_tail = n - n_core
-    ***REMOVED*** Lognormal core: median 2 days = 172800 s, sigma_log = 1.6
+    # Lognormal core: median 2 days = 172800 s, sigma_log = 1.6
     core = rng.lognormal(mean=np.log(172800), sigma=1.6, size=n_core)
-    ***REMOVED*** Power-law tail: alpha = 1.8, x_min = 1 month
+    # Power-law tail: alpha = 1.8, x_min = 1 month
     u = rng.uniform(size=n_tail)
     xmin = 30 * 86400.0
     tail_alpha = 1.8
     tail = xmin * (1 - u) ** (-1.0 / (tail_alpha - 1))
     res = np.concatenate([core, tail])
     rng.shuffle(res)
-    base_ts = 1262304000.0  ***REMOVED*** 2010-01-01
+    base_ts = 1262304000.0  # 2010-01-01
     records: list[dict[str, Any]] = []
     for i, t in enumerate(res):
         cr_ts = base_ts + rng.uniform(0, 10 * 365 * 86400)
@@ -184,9 +184,9 @@ def main():
     real = fetch_via_gh()
     log["n_real"] = len(real)
     if len(real) >= 200:
-        ***REMOVED*** Hybrid: real records + synthetic supplement to reach n >= 2000
-        ***REMOVED*** for adequate tail statistics. Honest: real n is the limit;
-        ***REMOVED*** synthetic supplement is flagged in RESULT.md.
+        # Hybrid: real records + synthetic supplement to reach n >= 2000
+        # for adequate tail statistics. Honest: real n is the limit;
+        # synthetic supplement is flagged in RESULT.md.
         need = max(0, 2000 - len(real))
         synth = synth_github(n=need) if need > 0 else []
         records = real + synth

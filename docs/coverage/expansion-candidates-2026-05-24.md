@@ -1,4 +1,4 @@
-***REMOVED*** Expansion Candidates — Structural Isomorphism KB
+# Expansion Candidates — Structural Isomorphism KB
 
 > **Date.** 2026-05-24
 > **Author.** Coverage research subagent.
@@ -11,7 +11,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. Executive Summary
+## 0. Executive Summary
 
 Current KB is concentrated on **threshold-cascade SOC + preferential attachment + a handful
 of bifurcation / hysteresis members**. Five universality classes well-established in
@@ -38,11 +38,11 @@ The complete top-10 priority ranking with scores is in §4. Wave structure for t
 
 ---
 
-***REMOVED******REMOVED*** 1. Discipline-Level Coverage Matrix
+## 1. Discipline-Level Coverage Matrix
 
-***REMOVED******REMOVED******REMOVED*** 1.1 Current 13 systems by universality class
+### 1.1 Current 13 systems by universality class
 
-| ***REMOVED*** | System | Phase | Universality class | Saturation |
+| # | System | Phase | Universality class | Saturation |
 |---|---|---|---|---|
 | 1 | USGS earthquakes | P1 | `soc_threshold_cascade` | gate test |
 | 2 | S&P 500 daily returns | P2 | `extreme_value_tail_class` (inverse-cubic) | 1 of class |
@@ -61,7 +61,7 @@ The complete top-10 priority ranking with scores is in §4. Wave structure for t
 **Saturation diagnosis**: 3 classes have ≥2 examples (saturating); 10+ classes have
 single example or zero.
 
-***REMOVED******REMOVED******REMOVED*** 1.2 Well-established literature classes NOT in KB (empty-class gaps)
+### 1.2 Well-established literature classes NOT in KB (empty-class gaps)
 
 | Universality class | Literature anchor | Status in KB | Why this matters |
 |---|---|---|---|
@@ -89,9 +89,9 @@ single example or zero.
 
 ---
 
-***REMOVED******REMOVED*** 2. Cross-Disciplinary Bridging — 8 Disciplines × 2 Candidates
+## 2. Cross-Disciplinary Bridging — 8 Disciplines × 2 Candidates
 
-| ***REMOVED*** | Discipline | Candidate phenomenon | Expected class | Data source | n | Cost |
+| # | Discipline | Candidate phenomenon | Expected class | Data source | n | Cost |
 |---|---|---|---|---|---|---|
 | L1a | **Linguistics** | Zipf's law on word frequencies (English+Chinese) | `preferential_attachment` (Simon-Yule) | Google Books Ngrams JSON v2 (https://storage.googleapis.com/books/ngrams/books/datasetsv2.html) | 10M tokens easy | 1 day |
 | L1b | **Linguistics** | Hapax legomena / vocabulary growth (Heaps law) | `preferential_attachment` (sublinear variant) | NLTK Project Gutenberg corpus, 25K books | 4M words | 1 day |
@@ -112,9 +112,9 @@ single example or zero.
 
 ---
 
-***REMOVED******REMOVED*** 3. Modern / Hot Candidates (5)
+## 3. Modern / Hot Candidates (5)
 
-| ***REMOVED*** | Candidate | Expected class | Data source | Why this is hot |
+| # | Candidate | Expected class | Data source | Why this is hot |
 |---|---|---|---|---|
 | M1 | **LLM scaling-law loss curves** (Chinchilla, BLOOM, Pythia) | new candidate `power_law_learning_curve` (Hestness 2017 / Kaplan 2020) | HuggingFace Open LLM Leaderboard logs + Pythia training checkpoints (Biderman 2023, public); BIG-bench task-loss CSVs | First serious cross-domain SOC test on neural-network training dynamics. Would directly engage Wei 2022 "emergent abilities" debate |
 | M2 | **LLM emergence (task accuracy vs scale)** | new candidate `phase_transition_emergence` | Schaeffer-Miranda-Koyejo 2023 "Mirage" dataset; Wei et al. 2022 SI | Most-cited 2023 ML paper category; would test whether "emergence" is a real phase transition or measurement artifact |
@@ -126,7 +126,7 @@ single example or zero.
 
 ---
 
-***REMOVED******REMOVED*** 4. Priority Matrix — Scoring & Top 10
+## 4. Priority Matrix — Scoring & Top 10
 
 **Scoring (each dimension 0-5):**
 - A. Academic impact (citation / venue ceiling)
@@ -153,7 +153,7 @@ single example or zero.
 
 ---
 
-***REMOVED******REMOVED*** 5. Disciplinary Coverage Matrix (After Top 10 Added)
+## 5. Disciplinary Coverage Matrix (After Top 10 Added)
 
 | Discipline | Before | After Top 10 | Class breadth gained |
 |---|---|---|---|
@@ -175,9 +175,9 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 ---
 
-***REMOVED******REMOVED*** 6. 6-Month Milestone — 3 Waves × 3 Systems
+## 6. 6-Month Milestone — 3 Waves × 3 Systems
 
-***REMOVED******REMOVED******REMOVED*** Wave 1 (months 1-2): **High data-availability, low compute, fast wins**
+### Wave 1 (months 1-2): **High data-availability, low compute, fast wins**
 
 | System | Class | Coupling to soc-pipeline | Reused module |
 |---|---|---|---|
@@ -187,7 +187,7 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 **Strategy**: All 3 use existing `packages/soc-pipeline/` unchanged. Only new code = per-system loader (≈80 LoC each). Total estimated effort: 1 person-week. Deliverables: 3 new `v4/validation/<system>/paper.md` + JSONL data + verdict cards. Push to dataset v1.1 release at end of Wave 1.
 
-***REMOVED******REMOVED******REMOVED*** Wave 2 (months 3-4): **High-impact / novelty, moderate effort**
+### Wave 2 (months 3-4): **High-impact / novelty, moderate effort**
 
 | System | Class | Coupling | New module |
 |---|---|---|---|
@@ -197,7 +197,7 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 **Strategy**: M1 introduces a *new physics submodel* (irreducible loss floor + power law), which is a deliberate KPI for Wave 2 — proves the pipeline is extensible beyond Clauset PL. Co-write with the Track A *Scientific Data* companion paper (which already wants v1.1 systems folded in per W7-A roadmap month 9-12).
 
-***REMOVED******REMOVED******REMOVED*** Wave 3 (months 5-6): **Hardest, biggest novelty, paper-worthy**
+### Wave 3 (months 5-6): **Hardest, biggest novelty, paper-worthy**
 
 | System | Class | Coupling | Risk / mitigation |
 |---|---|---|---|
@@ -209,7 +209,7 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 ---
 
-***REMOVED******REMOVED*** 7. Coupling Strategy — Reuse soc-pipeline
+## 7. Coupling Strategy — Reuse soc-pipeline
 
 **Per W7-A roadmap Track A goals**, every new system MUST:
 
@@ -229,7 +229,7 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 ---
 
-***REMOVED******REMOVED*** 8. Notes & Caveats
+## 8. Notes & Caveats
 
 - **Data freshness pitfalls**: Kaggle YouTube Trending stops 2020; TikTok DDPS API is academic-only and slow. Plan double-source.
 - **Sociology / Twitter cascade caveat**: post-X API closure, getting cascades >2023 is hard; use SNAP archived 2010-2020 cascades, accept the staleness.
@@ -238,7 +238,7 @@ Net: from 7 disciplines to 13 disciplines, from 3 saturated classes to 6 saturat
 
 ---
 
-***REMOVED******REMOVED*** 9. Recommended Decision Gates
+## 9. Recommended Decision Gates
 
 | Gate | When | Pass criterion |
 |---|---|---|

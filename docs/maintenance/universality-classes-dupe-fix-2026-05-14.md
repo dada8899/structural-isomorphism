@@ -1,14 +1,14 @@
-***REMOVED*** universality-classes.json: duplicate class_id resolution
+# universality-classes.json: duplicate class_id resolution
 
 **Date**: 2026-05-14
 **Affected file**: `web/frontend/assets/data/universality-classes.json`
-**Source of issue**: W6-E (session ***REMOVED***3 wave 6, regression test) flagged 2 duplicate `class_id` values
-**Fixed in commit**: `bfdf2b0` (`v4/fix (F1): P1 bugs — dedupe class_id + phase.bytedance.city React error`), session ***REMOVED***3
+**Source of issue**: W6-E (session #3 wave 6, regression test) flagged 2 duplicate `class_id` values
+**Fixed in commit**: `bfdf2b0` (`v4/fix (F1): P1 bugs — dedupe class_id + phase.bytedance.city React error`), session #3
 **Verified in this maintenance pass (2026-05-14)**: all 23 entries have unique `class_id`
 
 ---
 
-***REMOVED******REMOVED*** What was duplicated
+## What was duplicated
 
 Two pairs of Louvain sub-communities had identical `class_id` because the curation script (manual layer + LLM layer) produced two independent records that resolved to the same physics prototype slug:
 
@@ -23,7 +23,7 @@ Both pairs were **legitimately distinct Louvain sub-communities** (different mem
 
 ---
 
-***REMOVED******REMOVED*** Resolution decision
+## Resolution decision
 
 **Policy chosen**: rename — keep both entries, suffix the lower-rank (LLM-curated, smaller `size`) entry with `_v2`. No information loss.
 
@@ -33,7 +33,7 @@ Rationale:
 2. **Merge is also wrong for SPLIT**: B3 consensus on the `motter_lai_*` pair was explicitly `SPLIT` — the human-in-the-loop critic panel said these should remain split despite sharing a physics prototype label.
 3. **Rename preserves both with no data loss**: downstream consumers (`/classes` page, KB embedding pipeline, taxonomy-v2 cross-ref) treat them as distinct classes again. The `taxonomy_match` field on the `_v2` entries still points to the parent prototype slug, so the linkage is preserved for documentation purposes.
 
-***REMOVED******REMOVED******REMOVED*** Post-fix state (verified 2026-05-14)
+### Post-fix state (verified 2026-05-14)
 
 ```python
 >>> import json
@@ -41,12 +41,12 @@ Rationale:
 >>> ids = [c["class_id"] for c in data["classes"]]
 >>> len(ids), len(set(ids))
 (23, 23)
->>> ***REMOVED*** No duplicates.
+>>> # No duplicates.
 ```
 
 All 23 `class_id` values are now unique:
 
-| ***REMOVED*** | class_id | curation | b3_consensus |
+| # | class_id | curation | b3_consensus |
 |---|---|---|---|
 | 4 | `motter_lai_network_cascade` | manual | SPLIT |
 | 13 | `motter_lai_network_cascade_v2` | llm | SPLIT |
@@ -57,13 +57,13 @@ The remaining `taxonomy_match` collisions (`soc_threshold_cascade`, `hysteresis_
 
 ---
 
-***REMOVED******REMOVED*** Pending follow-up (out of scope of this fix)
+## Pending follow-up (out of scope of this fix)
 
 The two `gardner_collins_toggle_switch*` entries both carry `b3_consensus: MERGE`, meaning the critic panel recommends *eventually* merging them after collecting more cross-domain evidence. This is research follow-up, not a data-integrity bug. Tracked in `docs/sessions/HANDOFF.md` § P2 backlog ("review B3 MERGE verdicts after Layer 5 Phase 4+ data lands").
 
 ---
 
-***REMOVED******REMOVED*** Provenance / how to reproduce the check
+## Provenance / how to reproduce the check
 
 ```bash
 cd ~/Projects/structural-isomorphism

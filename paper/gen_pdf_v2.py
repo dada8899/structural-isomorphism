@@ -41,13 +41,13 @@ class AcademicPDF(FPDF):
     def body_text(self, text):
         self.set_font('Helvetica', '', 10)
         self.set_text_color(26, 26, 26)
-        ***REMOVED*** Handle bold and italic
+        # Handle bold and italic
         self.multi_cell(0, 5, text)
         self.ln(2)
 
     def add_figure(self, img_path, caption=''):
         if img_path.exists():
-            ***REMOVED*** Fit image to page width with margins
+            # Fit image to page width with margins
             self.image(str(img_path), x=25, w=160)
             if caption:
                 self.set_font('Helvetica', 'I', 9)
@@ -69,18 +69,18 @@ def parse_markdown(md_text):
     current_para = []
 
     for line in lines:
-        ***REMOVED*** Headers
-        if line.startswith('***REMOVED*** ') and not line.startswith('***REMOVED******REMOVED*** '):
+        # Headers
+        if line.startswith('# ') and not line.startswith('## '):
             if current_para:
                 blocks.append(('para', ' '.join(current_para)))
                 current_para = []
             blocks.append(('h1', line[2:].strip()))
-        elif line.startswith('***REMOVED******REMOVED*** '):
+        elif line.startswith('## '):
             if current_para:
                 blocks.append(('para', ' '.join(current_para)))
                 current_para = []
             blocks.append(('h2', line[3:].strip()))
-        elif line.startswith('***REMOVED******REMOVED******REMOVED*** '):
+        elif line.startswith('### '):
             if current_para:
                 blocks.append(('para', ' '.join(current_para)))
                 current_para = []
@@ -94,7 +94,7 @@ def parse_markdown(md_text):
             if current_para:
                 blocks.append(('para', ' '.join(current_para)))
                 current_para = []
-            ***REMOVED*** Parse table row
+            # Parse table row
             cells = [c.strip() for c in line.split('|')[1:-1]]
             if not all(c.replace('-', '').replace(':', '') == '' for c in cells):
                 blocks.append(('table_row', cells))
@@ -107,7 +107,7 @@ def parse_markdown(md_text):
                 blocks.append(('para', ' '.join(current_para)))
                 current_para = []
         else:
-            ***REMOVED*** Clean markdown formatting for plain text
+            # Clean markdown formatting for plain text
             clean = line.strip()
             clean = re.sub(r'\*\*(.*?)\*\*', r'\1', clean)
             clean = re.sub(r'\*(.*?)\*', r'\1', clean)
@@ -125,7 +125,7 @@ def generate_pdf(md_file, output_file, is_chinese=False):
     print(f"Reading {md_file}...")
     md_text = md_file.read_text(encoding='utf-8')
 
-    ***REMOVED*** Strip YAML frontmatter
+    # Strip YAML frontmatter
     if md_text.startswith('---'):
         end = md_text.index('---', 3)
         md_text = md_text[end+3:].strip()
@@ -135,7 +135,7 @@ def generate_pdf(md_file, output_file, is_chinese=False):
     pdf = AcademicPDF()
     pdf.add_page()
 
-    ***REMOVED*** For Chinese, we'd need a Unicode font - skip for now, use English
+    # For Chinese, we'd need a Unicode font - skip for now, use English
     in_table = False
 
     for btype, content in blocks:
@@ -155,9 +155,9 @@ def generate_pdf(md_file, output_file, is_chinese=False):
             in_table = True
         elif btype == 'para':
             in_table = False
-            ***REMOVED*** Check for figure references
+            # Check for figure references
             if '[Figure' in content or 'fig' in content.lower():
-                ***REMOVED*** Try to find and insert figure
+                # Try to find and insert figure
                 for fig in FIGURES_DIR.glob('*.png'):
                     if fig.stem.split('_')[0] in content.lower():
                         pdf.add_figure(fig)
@@ -169,7 +169,7 @@ def generate_pdf(md_file, output_file, is_chinese=False):
     print(f"Done! {output_file} ({output_file.stat().st_size / 1024:.0f} KB)")
 
 if __name__ == '__main__':
-    ***REMOVED*** English PDF
+    # English PDF
     en_input = PAPER_DIR / 'paper.md'
     en_output = PAPER_DIR / 'paper-en.pdf'
     generate_pdf(en_input, en_output)

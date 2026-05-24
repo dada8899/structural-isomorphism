@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Layer 5 — Phase 3: Omori aftershock decay.
 
@@ -32,10 +32,10 @@ RESULTS = OUT_DIR / "omori_results.json"
 
 
 MAIN_MAG_MIN = 6.0
-AFTERSHOCK_MIN = 4.0    ***REMOVED*** only count M >= this in aftershock stack (completeness)
+AFTERSHOCK_MIN = 4.0    # only count M >= this in aftershock stack (completeness)
 TIME_WINDOW_DAYS = 30
-***REMOVED*** Spatial window scales with main-shock magnitude (rough Utsu scaling)
-***REMOVED*** radius_km(M) = 10^(0.5*M - 1.2)
+# Spatial window scales with main-shock magnitude (rough Utsu scaling)
+# radius_km(M) = 10^(0.5*M - 1.2)
 def aftershock_radius_km(mag: float) -> float:
     return 10 ** (0.5 * mag - 1.2)
 
@@ -75,7 +75,7 @@ def stack_aftershocks(df):
     main = df[df["mag"] >= MAIN_MAG_MIN].copy().reset_index(drop=True)
     print(f"  main shocks (M>={MAIN_MAG_MIN}): {len(main)}")
 
-    all_dt_sec = []  ***REMOVED*** seconds after main shock
+    all_dt_sec = []  # seconds after main shock
     n_main_used = 0
 
     for i, row in main.iterrows():
@@ -85,20 +85,20 @@ def stack_aftershocks(df):
         r_km = aftershock_radius_km(M)
         t_end = t0 + TIME_WINDOW_DAYS * 86400
 
-        ***REMOVED*** Select candidates in forward window
+        # Select candidates in forward window
         mask = (df["time_ms"] / 1000.0 > t0) & (df["time_ms"] / 1000.0 < t_end) & (df["mag"] >= AFTERSHOCK_MIN) & (df["mag"] < M)
         cand = df[mask]
         if len(cand) == 0:
             continue
 
-        ***REMOVED*** Filter by great-circle distance
+        # Filter by great-circle distance
         d = great_circle_km(cand["lat"].values, cand["lon"].values, lat0, lon0)
         within = d < r_km
         after = cand[within]
         if len(after) == 0:
             continue
 
-        dts = after["time_ms"].values / 1000.0 - t0  ***REMOVED*** seconds
+        dts = after["time_ms"].values / 1000.0 - t0  # seconds
         all_dt_sec.extend(dts.tolist())
         n_main_used += 1
 
@@ -125,28 +125,28 @@ def fit_omori(dts_sec: np.ndarray, min_sec: float = 300.0, max_sec: float = 10 *
     if len(dts_sec) == 0:
         return {"error": "no aftershocks in [min_sec, max_sec]"}
 
-    ***REMOVED*** Log-spaced bins
+    # Log-spaced bins
     n_bins = 24
     bins = np.logspace(math.log10(min_sec), math.log10(max_sec), n_bins + 1)
-    centers = np.sqrt(bins[:-1] * bins[1:])  ***REMOVED*** geometric center
+    centers = np.sqrt(bins[:-1] * bins[1:])  # geometric center
     widths = bins[1:] - bins[:-1]
     counts, _ = np.histogram(dts_sec, bins=bins)
     rate_per_sec = counts / widths
-    valid = counts >= 3  ***REMOVED*** drop bins with too-small counts
+    valid = counts >= 3  # drop bins with too-small counts
     if valid.sum() < 6:
         return {"error": f"too few valid bins ({valid.sum()})"}
 
     t_sec = centers[valid]
     r = rate_per_sec[valid]
-    w = np.sqrt(counts[valid])  ***REMOVED*** poisson sigma weight
+    w = np.sqrt(counts[valid])  # poisson sigma weight
 
     best = None
-    ***REMOVED*** Grid search over c (days)
+    # Grid search over c (days)
     for c_day in [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]:
         c_sec = c_day * 86400
         x = np.log10(t_sec + c_sec)
         y = np.log10(r)
-        ***REMOVED*** Weighted linear regression: y = a - p*x
+        # Weighted linear regression: y = a - p*x
         W = w ** 2
         Sw = np.sum(W)
         Sx = np.sum(W * x)
@@ -162,7 +162,7 @@ def fit_omori(dts_sec: np.ndarray, min_sec: float = 300.0, max_sec: float = 10 *
         ss_res = float(np.sum(W * (y - pred_y) ** 2))
         ss_tot = float(np.sum(W * (y - np.average(y, weights=W)) ** 2))
         r2 = 1 - ss_res / ss_tot if ss_tot > 0 else None
-        ***REMOVED*** sigma of slope from weighted regression
+        # sigma of slope from weighted regression
         residuals = y - pred_y
         dof = max(len(y) - 2, 1)
         mse = float(np.sum(W * residuals ** 2) / dof)

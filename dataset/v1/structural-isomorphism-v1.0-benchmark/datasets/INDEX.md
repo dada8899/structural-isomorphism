@@ -1,4 +1,4 @@
-***REMOVED*** structural-isomorphism v1.0 benchmark — dataset index
+# structural-isomorphism v1.0 benchmark — dataset index
 
 This file lists every empirical system bundled in the benchmark, with the
 phase number, predicted universality class, pre-registered exponent band,
@@ -9,7 +9,7 @@ Manually appended entries (Phases 14, 15, ...) live under `v4/validation/`
 in the source repo and are mirrored to this bundle when the next release is
 cut.
 
-***REMOVED******REMOVED*** Phase 1 — USGS earthquake catalog 2020-2025
+## Phase 1 — USGS earthquake catalog 2020-2025
 
 - Source dir: `v4/validation/soc-earthquake/`
 - Class: `soc_threshold_cascade`
@@ -17,74 +17,74 @@ cut.
 - Verdict: PASS
 - Paper: `01_earthquake/paper.md`
 
-***REMOVED******REMOVED*** Phase 2 — S&P 500 daily log returns 1990-2025
+## Phase 2 — S&P 500 daily log returns 1990-2025
 
 - Source dir: `v4/validation/soc-stockmarket/`
 - Class: `soc_threshold_cascade` (financial sub-class)
 - Verdict: PASS
 
-***REMOVED******REMOVED*** Phase 3 — DeFi liquidations (Aave V2 / Compound V2 / MakerDAO Dog)
+## Phase 3 — DeFi liquidations (Aave V2 / Compound V2 / MakerDAO Dog)
 
 - Source dir: `v4/validation/soc-defi/`
 - Class: `soc_threshold_cascade`
 - Verdict: PASS
 
-***REMOVED******REMOVED*** Phase 4 — Mouse ALM cortex avalanches (DANDI:000006)
+## Phase 4 — Mouse ALM cortex avalanches (DANDI:000006)
 
 - Source dir: `v4/validation/soc-neural/`
 - Class: `soc_threshold_cascade` (sub-critical task regime)
 - Verdict: PASS (scaling relation γ to 2-3 %)
 
-***REMOVED******REMOVED*** Phase 6 — GitHub stargazer counts
+## Phase 6 — GitHub stargazer counts
 
 - Source dir: `v4/validation/soc-github-stars/`
 - Class: `preferential_attachment`
 - Pre-registered: α ∈ [2.0, 3.0]
 - Verdict: PASS
 
-***REMOVED******REMOVED*** Phase 7 — North American power-grid cascades (literature-meta catalog)
+## Phase 7 — North American power-grid cascades (literature-meta catalog)
 
 - Source dir: `v4/validation/soc-power-grid/`
 - Class: `motter_lai_network_cascade`
 - Verdict: PASS (literature-anchored, low independence)
 
-***REMOVED******REMOVED*** Phase 8 — FDIC bank failures 1934-2026
+## Phase 8 — FDIC bank failures 1934-2026
 
 - Source dir: `v4/validation/soc-bank-failures/`
 - Class: `tail_copula_contagion`
 - Verdict: PASS
 
-***REMOVED******REMOVED*** Phase 10 — NIFC wildfires
+## Phase 10 — NIFC wildfires
 
 - Source dir: `v4/validation/soc-wildfire/`
 - Class: `soc_threshold_cascade`
 - Verdict: PASS (LR vs lognormal contested)
 
-***REMOVED******REMOVED*** Phase 11 — GOES X-ray solar flares 2000-2016
+## Phase 11 — GOES X-ray solar flares 2000-2016
 
 - Source dir: `v4/validation/soc-solar/`
 - Class: `soc_threshold_cascade`
 - Verdict: PASS
 
-***REMOVED******REMOVED*** Phase 13 — English Wikipedia pageviews 2023-2024
+## Phase 13 — English Wikipedia pageviews 2023-2024
 
 - Source dir: `v4/validation/soc-wikipedia-views/`
 - Class: `preferential_attachment`
 - Verdict: PASS (α = 2.034)
 
-***REMOVED******REMOVED*** A2-Hysteresis — NGSIM US-101 traffic
+## A2-Hysteresis — NGSIM US-101 traffic
 
 - Source dir: `v4/validation/hysteresis-traffic/`
 - Class: `hysteresis_first_order_transition`
 - Verdict: CONFIRMED_COMPOSITE
 
-***REMOVED******REMOVED*** A2-Scheffer — Fox River dissolved oxygen 2011-2024
+## A2-Scheffer — Fox River dissolved oxygen 2011-2024
 
 - Source dir: `v4/validation/scheffer-lake/`
 - Class: `scheffer_fold_bifurcation`
 - Verdict: INCONCLUSIVE (block-bootstrap correction)
 
-***REMOVED******REMOVED*** Phase 14 — Solar-wind speed bursts (Wave 11-E, 2026-05-15)
+## Phase 14 — Solar-wind speed bursts (Wave 11-E, 2026-05-15)
 
 - Source dir: `v4/validation/soc-solar-wind/`
 - Class candidates: `leaky_integrate_fire_threshold_class`, `soc_threshold_cascade`, `fractional_brownian_crossings`
@@ -95,7 +95,7 @@ cut.
 - Source: hybrid (1,699 synthetic Veltri-1999-calibrated + 9,701 NOAA SWPC real)
 - Result: `v4/validation/soc-solar-wind/RESULT.md`
 
-***REMOVED******REMOVED*** Phase 15 — GitHub issue resolution times (Wave 11-E, 2026-05-15)
+## Phase 15 — GitHub issue resolution times (Wave 11-E, 2026-05-15)
 
 - Source dir: `v4/validation/soc-github-resolution/`
 - Class candidates: `preferential_attachment`, `extreme_value_tail_class`

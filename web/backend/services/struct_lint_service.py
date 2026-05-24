@@ -1,4 +1,4 @@
-"""C2 structural-lint service — Session ***REMOVED***18.
+"""C2 structural-lint service — Session #18.
 
 Feeds a strategy / plan document to an LLM and extracts the document's
 *structural claims*: implicit assumptions, cross-domain analogies, and
@@ -6,7 +6,7 @@ causal judgments. For each claim it surfaces the underlying structure,
 the failure mode that structure most commonly hits, a risk level, and a
 mitigation suggestion.
 
-Session ***REMOVED***18 deepening — this is NOT a bare-LLM wrapper. After the LLM
+Session #18 deepening — this is NOT a bare-LLM wrapper. After the LLM
 extracts the claims, each claim's structural description is used to
 query the KB (the cross-domain structural-isomorphism engine). When a
 structurally similar *real phenomenon* is found, a second LLM pass
@@ -29,25 +29,25 @@ from services import llm_client
 
 logger = logging.getLogger("structural.struct_lint")
 
-***REMOVED*** Hard cap on input length. Longer documents are rejected with HTTP 400
-***REMOVED*** rather than silently truncated — a truncated doc produces a misleading
-***REMOVED*** "structural risk" report on a fragment the user didn't intend to send.
+# Hard cap on input length. Longer documents are rejected with HTTP 400
+# rather than silently truncated — a truncated doc produces a misleading
+# "structural risk" report on a fragment the user didn't intend to send.
 MAX_DOC_CHARS = 20000
 
-***REMOVED*** Enum whitelists — anything outside these is malformed LLM output.
+# Enum whitelists — anything outside these is malformed LLM output.
 CLAIM_TYPES = {"assumption", "analogy", "causal_judgment"}
 RISK_LEVELS = {"high", "medium", "low"}
 
-***REMOVED*** Defensive cap on how many claims we keep, so a runaway LLM reply can't
-***REMOVED*** bloat the response payload.
+# Defensive cap on how many claims we keep, so a runaway LLM reply can't
+# bloat the response payload.
 MAX_CLAIMS = 30
 
-***REMOVED*** How many KB phenomena to fetch per claim. We keep the top-1 as the
-***REMOVED*** structural anchor; a 2nd is fetched only as a fallback candidate.
+# How many KB phenomena to fetch per claim. We keep the top-1 as the
+# structural anchor; a 2nd is fetched only as a fallback candidate.
 ISOMORPH_TOP_K = 2
 
-***REMOVED*** Only claims at/above this many chars of structure text are worth a KB
-***REMOVED*** query — a near-empty structure string yields noise matches.
+# Only claims at/above this many chars of structure text are worth a KB
+# query — a near-empty structure string yields noise matches.
 _MIN_STRUCTURE_FOR_SEARCH = 6
 
 _SYSTEM_PROMPT = """你是一个"结构 lint"工具，像代码审查工具审查代码一样审查策略/方案文档。
@@ -86,10 +86,10 @@ _SYSTEM_PROMPT = """你是一个"结构 lint"工具，像代码审查工具审�
 如果文档里找不到任何结构性主张，claims 返回空数组，summary 说明原因。"""
 
 
-***REMOVED*** Second-pass prompt — given a claim + the real KB phenomenon that is
-***REMOVED*** structurally isomorphic to it, re-ground the failure mode on that real
-***REMOVED*** anchor. The point is to replace free-form speculation with "this same
-***REMOVED*** structure already failed THIS way in domain X".
+# Second-pass prompt — given a claim + the real KB phenomenon that is
+# structurally isomorphic to it, re-ground the failure mode on that real
+# anchor. The point is to replace free-form speculation with "this same
+# structure already failed THIS way in domain X".
 _ANCHOR_SYSTEM_PROMPT = """你是一个"结构 lint"工具的失效模式分析模块。
 
 你会收到：一条策略文档里的结构性主张，它的底层结构描述，以及一个**已知的、来自其他领域的真实现象**——这个真实现象的底层结构和这条主张是同构的（结构相似）。
@@ -141,18 +141,18 @@ def _normalize_claim(raw) -> Optional[dict]:
 
     quote = _coerce_str(raw.get("quote"))
     if not quote:
-        ***REMOVED*** A claim with no source quote is unverifiable — drop it.
+        # A claim with no source quote is unverifiable — drop it.
         return None
 
     claim_type = _coerce_str(raw.get("claim_type")).lower()
     if claim_type not in CLAIM_TYPES:
-        ***REMOVED*** Out-of-enum claim_type — we can't trust the categorization, drop.
+        # Out-of-enum claim_type — we can't trust the categorization, drop.
         return None
 
     risk_level = _coerce_str(raw.get("risk_level")).lower()
     if risk_level not in RISK_LEVELS:
-        ***REMOVED*** Unknown risk level — normalize to "medium" rather than drop, so
-        ***REMOVED*** the claim (which has a valid quote + type) is still surfaced.
+        # Unknown risk level — normalize to "medium" rather than drop, so
+        # the claim (which has a valid quote + type) is still surfaced.
         risk_level = "medium"
 
     return {
@@ -162,9 +162,9 @@ def _normalize_claim(raw) -> Optional[dict]:
         "failure_mode": _coerce_str(raw.get("failure_mode"))[:800] or "未提供失效模式",
         "risk_level": risk_level,
         "suggestion": _coerce_str(raw.get("suggestion"))[:800] or "未提供建议",
-        ***REMOVED*** Filled in by the KB isomorphism pass; None when search is
-        ***REMOVED*** unavailable or finds nothing. Keep the key present always so the
-        ***REMOVED*** frontend can rely on its existence.
+        # Filled in by the KB isomorphism pass; None when search is
+        # unavailable or finds nothing. Keep the key present always so the
+        # frontend can rely on its existence.
         "isomorph": None,
     }
 
@@ -205,7 +205,7 @@ def normalize_isomorph(raw) -> Optional[dict]:
     pid = _coerce_str(raw.get("id"))
     if not pid:
         return None
-    ***REMOVED*** relevance is a [0,1] float; clamp defensively.
+    # relevance is a [0,1] float; clamp defensively.
     try:
         relevance = float(raw.get("relevance", 0.0))
     except (TypeError, ValueError):
@@ -273,8 +273,8 @@ async def _anchor_failure_mode(claim: dict, isomorph: dict) -> None:
         return
     anchored_fm = _coerce_str(raw.get("failure_mode"))
     anchored_sug = _coerce_str(raw.get("suggestion"))
-    ***REMOVED*** Only overwrite when the anchored output is non-empty — a blank
-    ***REMOVED*** second pass must not wipe a usable first-pass failure mode.
+    # Only overwrite when the anchored output is non-empty — a blank
+    # second pass must not wipe a usable first-pass failure mode.
     if anchored_fm:
         claim["failure_mode"] = anchored_fm[:800]
     if anchored_sug:
@@ -330,7 +330,7 @@ async def _attach_isomorphs(claims: list, search_svc) -> None:
         if anchor is None:
             continue
         claim["isomorph"] = anchor
-        ***REMOVED*** Anchor found — re-ground the failure mode on this real phenomenon.
+        # Anchor found — re-ground the failure mode on this real phenomenon.
         await _anchor_failure_mode(claim, anchor)
 
 
@@ -360,8 +360,8 @@ async def lint_document(document: str, search_svc=None) -> Optional[dict]:
     result = normalize_lint_result(raw)
     if result is None:
         return None
-    ***REMOVED*** Session ***REMOVED***18 deepening — the KB isomorphism pass. Best-effort: any
-    ***REMOVED*** failure here leaves claims with isomorph=None, never breaks the lint.
+    # Session #18 deepening — the KB isomorphism pass. Best-effort: any
+    # failure here leaves claims with isomorph=None, never breaks the lint.
     try:
         await _attach_isomorphs(result["claims"], search_svc)
     except Exception:
@@ -388,7 +388,7 @@ async def lint_document_streamed(
     so the frontend renders it the same way. On any LLM failure it yields a
     single `error` event and stops — never raises.
     """
-    ***REMOVED*** --- Stage 1: extract structural claims (the long blocking LLM call) ---
+    # --- Stage 1: extract structural claims (the long blocking LLM call) ---
     yield {
         "type": "progress",
         "stage": "extract",
@@ -418,9 +418,9 @@ async def lint_document_streamed(
         "message": f"已抽取 {len(claims)} 条结构性主张，正在比对失效模式……",
     }
 
-    ***REMOVED*** --- Stage 2: per-claim KB isomorphism pass (the per-claim LLM calls) ---
-    ***REMOVED*** Best-effort, same contract as _attach_isomorphs: any failure leaves the
-    ***REMOVED*** claim with isomorph=None and its first-pass failure mode intact.
+    # --- Stage 2: per-claim KB isomorphism pass (the per-claim LLM calls) ---
+    # Best-effort, same contract as _attach_isomorphs: any failure leaves the
+    # claim with isomorph=None and its first-pass failure mode intact.
     if search_svc is not None and claims:
         total = len(claims)
         for i, claim in enumerate(claims, start=1):

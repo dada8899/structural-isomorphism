@@ -53,7 +53,7 @@ def _make_universe():
         bt.CompanyRow("OT1", "far_from_critical"),
         bt.CompanyRow("OT2", "far_from_critical"),
         bt.CompanyRow("OT3", "post_critical_transition"),
-        bt.CompanyRow("SK", None),  ***REMOVED*** dropped
+        bt.CompanyRow("SK", None),  # dropped
     ]
     prices = {
         "NC1": _flat_series(100.0, 12, 0.02, snapshot),
@@ -66,9 +66,9 @@ def _make_universe():
     return companies, prices, snapshot
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Tests
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 def test_company_row_group_classification():
     assert bt.CompanyRow("X", "approaching_critical").group == "near_critical"
@@ -81,7 +81,7 @@ def test_company_row_group_classification():
 
 def test_add_months_basic():
     assert bt.add_months(dt.date(2024, 1, 31), 6) == dt.date(2024, 7, 31)
-    ***REMOVED*** Feb clamping
+    # Feb clamping
     assert bt.add_months(dt.date(2024, 1, 31), 1) == dt.date(2024, 2, 29)
     assert bt.add_months(dt.date(2023, 1, 31), 1) == dt.date(2023, 2, 28)
 
@@ -100,7 +100,7 @@ def test_compute_group_returns():
     assert len(grouped["other"]) == 3
     assert "SK" not in used["near_critical"] and "SK" not in used["other"]
 
-    ***REMOVED*** near_critical ~ (1.02^6 - 1) ≈ 0.126; other ~ 0
+    # near_critical ~ (1.02^6 - 1) ≈ 0.126; other ~ 0
     nc_mean = sum(grouped["near_critical"]) / 3
     oth_mean = sum(grouped["other"]) / 3
     assert nc_mean > 0.10, f"near_critical mean too low: {nc_mean}"
@@ -113,7 +113,7 @@ def test_ttest_significance():
     t, p = bt.ttest_groups(grouped["near_critical"], grouped["other"])
     assert not math.isnan(t)
     assert not math.isnan(p)
-    ***REMOVED*** With ~12% vs ~0% mean and very low variance, t should be very large and p tiny
+    # With ~12% vs ~0% mean and very low variance, t should be very large and p tiny
     assert t > 5, f"expected huge t-stat for fixture, got {t}"
     assert p < 0.01, f"expected significant p, got {p}"
 
@@ -131,7 +131,7 @@ def test_summarize_empty_and_nonempty():
     assert summ["n"] == 4
     assert 0.08 < summ["mean"] < 0.14
     assert summ["std"] > 0
-    ***REMOVED*** sharpe should be real
+    # sharpe should be real
     assert not math.isnan(summ["sharpe"])
 
 
@@ -139,12 +139,12 @@ def test_cumulative_curve_length():
     companies, prices, snapshot = _make_universe()
     rows = bt.build_cumulative_curve(companies, prices, snapshot, months=6)
     assert len(rows) >= 6, f"expected >=6 cumulative points, got {len(rows)}"
-    ***REMOVED*** First point should be near zero (anchor day)
+    # First point should be near zero (anchor day)
     first_nc = rows[0][1]
     first_oth = rows[0][2]
     assert abs(first_nc) < 0.01, f"first nc cumret not ~0: {first_nc}"
     assert abs(first_oth) < 0.01, f"first oth cumret not ~0: {first_oth}"
-    ***REMOVED*** Last point: near_critical should be > other
+    # Last point: near_critical should be > other
     last_nc = rows[-1][1]
     last_oth = rows[-1][2]
     assert last_nc > last_oth, f"expected nc cumret > oth cumret, got {last_nc} vs {last_oth}"

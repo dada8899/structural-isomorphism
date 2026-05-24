@@ -89,7 +89,7 @@ class Reviewer:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )
-            ***REMOVED*** openai-python v1+ response shape; vendor responses follow the same schema
+            # openai-python v1+ response shape; vendor responses follow the same schema
             choice = resp.choices[0]
             raw = (getattr(choice.message, "content", None) or "").strip()
         except Exception as e:

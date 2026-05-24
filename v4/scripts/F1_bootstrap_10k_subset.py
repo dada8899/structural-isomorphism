@@ -28,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
-***REMOVED*** Allow soc_pipeline import without pip install
+# Allow soc_pipeline import without pip install
 import sys
 ROOT = Path(__file__).resolve().parents[2]
 SOC_SRC = ROOT / "packages" / "soc-pipeline" / "src"
@@ -90,9 +90,9 @@ def load_earthquake_energy() -> tuple[np.ndarray, float, str]:
     if not mags:
         return np.array([]), 0.0, "earthquake: empty"
     energy = np.power(10.0, 1.5 * np.array(mags))
-    ***REMOVED*** Use the published Clauset xmin in the energy domain. The earthquake
-    ***REMOVED*** paper reports xmin via auto-search; we anchor at the 50th percentile of
-    ***REMOVED*** the tail (Mc=4.45 -> the entire array is already the tail).
+    # Use the published Clauset xmin in the energy domain. The earthquake
+    # paper reports xmin via auto-search; we anchor at the 50th percentile of
+    # the tail (Mc=4.45 -> the entire array is already the tail).
     xmin = float(np.percentile(energy, 50))
     return energy, xmin, "earthquake energy (J)"
 
@@ -100,7 +100,7 @@ def load_earthquake_energy() -> tuple[np.ndarray, float, str]:
 def load_wildfire_acres() -> tuple[np.ndarray, float, str]:
     vals = _load_jsonl_field(VALIDATION / "soc-wildfire" / "fires.jsonl",
                               ("size_acres",))
-    ***REMOVED*** Published Clauset xmin = 1199.28 acres (from wildfire_results.json)
+    # Published Clauset xmin = 1199.28 acres (from wildfire_results.json)
     xmin = 1199.28
     res = VALIDATION / "soc-wildfire" / "wildfire_results.json"
     if res.exists():
@@ -115,7 +115,7 @@ def load_wildfire_acres() -> tuple[np.ndarray, float, str]:
 def load_solar_flux() -> tuple[np.ndarray, float, str]:
     vals = _load_jsonl_field(VALIDATION / "soc-solar" / "flares.jsonl",
                               ("peak_flux_W_m2", "peak_flux"))
-    ***REMOVED*** Published Clauset xmin = 5.2e-6 (solar_results.json)
+    # Published Clauset xmin = 5.2e-6 (solar_results.json)
     xmin = 5.2e-6
     res = VALIDATION / "soc-solar" / "solar_results.json"
     if res.exists():
@@ -144,7 +144,7 @@ def bootstrap_fixed_xmin(
     the tail-MLE alpha from the noise of xmin re-selection.
     """
     rng = np.random.default_rng(seed)
-    ***REMOVED*** Filter to finite, positive
+    # Filter to finite, positive
     x = vals[np.isfinite(vals) & (vals > 0)]
     n = len(x)
     if n < 200:
@@ -156,8 +156,8 @@ def bootstrap_fixed_xmin(
         tail = sample[sample >= xmin]
         if len(tail) < 20:
             continue
-        ***REMOVED*** Hill MLE alpha for continuous data:
-        ***REMOVED***   alpha = 1 + n / sum(log(x_i / xmin))
+        # Hill MLE alpha for continuous data:
+        #   alpha = 1 + n / sum(log(x_i / xmin))
         log_ratio = np.log(tail / xmin)
         if not np.all(np.isfinite(log_ratio)) or log_ratio.sum() <= 0:
             continue

@@ -1,4 +1,4 @@
-***REMOVED*** Python Package API Reference
+# Python Package API Reference
 
 This section documents the public Python APIs for the three PyPI packages
 that ship from this repository. Pages here are **auto-generated** from
@@ -12,19 +12,19 @@ docstrings and type signatures via [mkdocstrings](https://mkdocstrings.github.io
 
 For the hosted **HTTP API** (`POST /api/ask` etc.), see [API reference](../index.md).
 
-***REMOVED******REMOVED*** Quick links
+## Quick links
 
-- Top-level entry points: [`validate`](./soc-pipeline.md***REMOVED***soc_pipeline.validate),
-  [`Ensemble.judge`](./cross-judge.md***REMOVED***cross_judge.Ensemble),
-  [`GuardedLLM.call`](./guarded-llm.md***REMOVED***guarded_llm.GuardedLLM)
-- Verdict types: [`Verdict`](./soc-pipeline.md***REMOVED***soc_pipeline.Verdict) (soc),
-  [`EnsembleVerdict`](./cross-judge.md***REMOVED***cross_judge.EnsembleVerdict) (cross-judge)
-- Budget / retry: [`Budget`](./guarded-llm.md***REMOVED***guarded_llm.Budget),
-  [`RetryPolicy`](./guarded-llm.md***REMOVED***guarded_llm.RetryPolicy)
+- Top-level entry points: [`validate`](./soc-pipeline.md#soc_pipeline.validate),
+  [`Ensemble.judge`](./cross-judge.md#cross_judge.Ensemble),
+  [`GuardedLLM.call`](./guarded-llm.md#guarded_llm.GuardedLLM)
+- Verdict types: [`Verdict`](./soc-pipeline.md#soc_pipeline.Verdict) (soc),
+  [`EnsembleVerdict`](./cross-judge.md#cross_judge.EnsembleVerdict) (cross-judge)
+- Budget / retry: [`Budget`](./guarded-llm.md#guarded_llm.Budget),
+  [`RetryPolicy`](./guarded-llm.md#guarded_llm.RetryPolicy)
 
-***REMOVED******REMOVED*** Conventions
+## Conventions
 
 - All public names are listed in each package's `__all__`.
 - Type hints follow PEP 604 (`X | None`).
-- Docstrings follow [Google style](https://google.github.io/styleguide/pyguide.html***REMOVED***383-functions-and-methods).
+- Docstrings follow [Google style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
 - Examples in docstrings are doctest-style and runnable.

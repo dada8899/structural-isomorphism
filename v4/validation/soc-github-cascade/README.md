@@ -1,10 +1,10 @@
-***REMOVED*** Phase 6 — GitHub Event Cascades (SOC validation)
+# Phase 6 — GitHub Event Cascades (SOC validation)
 
 Sixth cross-domain system run through the project's frozen SOC validation
 pipeline (`packages/soc-pipeline/`), the same pipeline used for Phase 1-5
 (earthquakes / stock market / DeFi / neural avalanches / null controls).
 
-***REMOVED******REMOVED*** Why a new GitHub target
+## Why a new GitHub target
 
 The project already has two GitHub pilots, and **neither tests a cascade**:
 
@@ -19,7 +19,7 @@ whose *rate* decays as a power law (Omori) and whose *total size* is
 power-law distributed (Gutenberg-Richter / branching). Phase 6 builds the
 GitHub analogue of exactly that object.
 
-***REMOVED******REMOVED*** Cascade definition (precise)
+## Cascade definition (precise)
 
 Per repository, over its event stream (every issue + PR `created_at`):
 
@@ -35,14 +35,14 @@ Per repository, over its event stream (every issue + PR `created_at`):
 This is structurally isomorphic to Phase 1: trigger → correlated burst →
 power-law size + Omori-decaying rate.
 
-***REMOVED******REMOVED*** Pre-registered bands (frozen before seeing the verdict)
+## Pre-registered bands (frozen before seeing the verdict)
 
 - cascade-size `alpha in [1.5, 3.5]` (wide; threshold-cascade SOC systems
   in this project's Phase 1-4 land 1.8-3.0, band widened because GitHub
   cascades have no established literature value)
 - Omori `p in [0.3, 1.3]` (canonical Omori band, same as Phase 1 / 3)
 
-***REMOVED******REMOVED*** Files
+## Files
 
 | File | Content |
 |---|---|
@@ -53,15 +53,15 @@ power-law size + Omori-decaying rate.
 | `cascade_results.json` | full machine-readable result (fit, CI, Omori, sweep, per-repo) |
 | `FINDINGS.md` | short verdict report |
 
-***REMOVED******REMOVED*** Reproduce
+## Reproduce
 
 ```bash
-python3 fetch_github_cascades.py            ***REMOVED*** ~5 min, needs authenticated gh CLI
-python3 analyze.py                          ***REMOVED*** runs the frozen pipeline
-python3 fetch_github_cascades.py --self-test  ***REMOVED*** parsing smoke test, writes nothing
+python3 fetch_github_cascades.py            # ~5 min, needs authenticated gh CLI
+python3 analyze.py                          # runs the frozen pipeline
+python3 fetch_github_cascades.py --self-test  # parsing smoke test, writes nothing
 ```
 
-***REMOVED******REMOVED*** Honesty notes
+## Honesty notes
 
 - **Real data only.** `events.jsonl` is 100% GitHub API data. The
   `synth_stream()` in the fetch script is reachable **only** via

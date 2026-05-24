@@ -1,10 +1,10 @@
-***REMOVED*** CI matrix decisions
+# CI matrix decisions
 
 > Source of truth for which OS × Python combos run in `.github/workflows/ci.yml`.
 > Update this doc whenever the matrix changes — the matrix comment in `ci.yml`
 > references this file.
 
-***REMOVED******REMOVED*** Active matrix (backend job)
+## Active matrix (backend job)
 
 | OS             | py3.10 | py3.11 | py3.12 |
 | -------------- | :----: | :----: | :----: |
@@ -20,7 +20,7 @@ Rationale:
   beyond what ubuntu 3.10 already provides.
 - **windows-latest** excluded entirely (see below).
 
-***REMOVED******REMOVED*** Why Windows is excluded
+## Why Windows is excluded
 
 Empirically, every Windows job under py3.11 / py3.12 hits one of three
 classes of failure that are **infrastructure-shaped, not logic-shaped** —
@@ -49,7 +49,7 @@ A global fix would require:
 
 For a Linux-deploy product with macOS dev fleet, that's net-negative ROI.
 
-***REMOVED******REMOVED*** When to reconsider
+## When to reconsider
 
 Re-introduce Windows to the matrix only if **all** of the following become true:
 - Windows becomes a supported deployment target (currently no plan).
@@ -60,11 +60,11 @@ Re-introduce Windows to the matrix only if **all** of the following become true:
 If reintroduced, the prereq work above must land first as its own milestone
 (estimated: 1–2 days, multiple files, schema-touching).
 
-***REMOVED******REMOVED*** History
+## History
 
 - **2026-04-xx**: Original matrix excluded `(macos, 3.10)` and `(windows, 3.10)`
   only — windows 3.11/3.12 expected to pass.
-- **2026-05-15** (session ***REMOVED***11): Windows runners consistently red across
+- **2026-05-15** (session #11): Windows runners consistently red across
   py3.11 / py3.12 due to the three failure classes above. Pragmatic call:
   drop Windows entirely, keep macOS for dev parity. Documented here so
   future contributors don't re-add Windows assuming it was "just slow".

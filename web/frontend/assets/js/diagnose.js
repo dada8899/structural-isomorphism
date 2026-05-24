@@ -1,5 +1,5 @@
 /**
- * Structural — 结构诊断 (feature F, Session ***REMOVED***18).
+ * Structural — 结构诊断 (feature F, Session #18).
  *
  * Vanilla JS, no dependencies. Posts a free-text situation description to
  * POST /api/diagnose and renders the structural-diagnosis report. Handles

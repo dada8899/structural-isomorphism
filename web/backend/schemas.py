@@ -3,7 +3,7 @@ HTTP API. This module is the **single source of truth** for the
 TypeScript types generated into `web/phase-detector/lib/api-types.ts`
 via `scripts/gen_ts_types.sh`.
 
-W15-A (session ***REMOVED***10, 2026-05-15): introduces the typed-API pipeline:
+W15-A (session #10, 2026-05-15): introduces the typed-API pipeline:
 
     Pydantic (here)  ─pydantic2ts─►  api-types.ts  ─import─►  frontend
 
@@ -37,9 +37,9 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/ask/stream  (web/backend/api/ask.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/ask/stream  (web/backend/api/ask.py)
+# ---------------------------------------------------------------------------
 class AskRequest(BaseModel):
     """Body for POST /api/ask/stream — Perplexity-like SSE endpoint."""
 
@@ -89,9 +89,9 @@ class Verdict(BaseModel):
     followups: List[str] = Field(default_factory=list)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/checkout/mock  (web/backend/api/checkout_mock.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/checkout/mock  (web/backend/api/checkout_mock.py)
+# ---------------------------------------------------------------------------
 class CheckoutBody(BaseModel):
     """Mock-Stripe checkout body. `force_status` is a test-only override
     honoured for localhost callers only.
@@ -113,9 +113,9 @@ class CheckoutResponse(BaseModel):
     message: Optional[str] = None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/history  (web/backend/api/history.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/history  (web/backend/api/history.py)
+# ---------------------------------------------------------------------------
 class HistoryRecordRequest(BaseModel):
     """Body for POST /api/history — records one user query."""
 
@@ -131,7 +131,7 @@ class HistoryRecord(BaseModel):
     query: str
     kind: str
     result_summary: Optional[str] = None
-    created_at: str  ***REMOVED*** ISO-8601 UTC
+    created_at: str  # ISO-8601 UTC
 
 
 class HistoryResponse(BaseModel):
@@ -141,9 +141,9 @@ class HistoryResponse(BaseModel):
     total: int = 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/search  (web/backend/api/search.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/search  (web/backend/api/search.py)
+# ---------------------------------------------------------------------------
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     top_k: int = Field(12, ge=1, le=30)
@@ -171,18 +171,18 @@ class SearchResponse(BaseModel):
     results: List[SearchResult] = Field(default_factory=list)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/mapping  (web/backend/api/mapping.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/mapping  (web/backend/api/mapping.py)
+# ---------------------------------------------------------------------------
 class MappingRequest(BaseModel):
     a_id: str
     b_id: str
     lang: str = "zh"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/error-log  (web/backend/api/error_log.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/error-log  (web/backend/api/error_log.py)
+# ---------------------------------------------------------------------------
 class ErrorReportBody(BaseModel):
     """Client-side error envelope. All optional fields are size-capped
     in the backend; mirrored here for the typed-frontend contract.
@@ -198,9 +198,9 @@ class ErrorReportBody(BaseModel):
     fatal: Optional[bool] = False
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/synthesize  (web/backend/api/synthesize.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/synthesize  (web/backend/api/synthesize.py)
+# ---------------------------------------------------------------------------
 class SynthesizeRequest(BaseModel):
     query: str
     rewritten_query: Optional[str] = None
@@ -208,17 +208,17 @@ class SynthesizeRequest(BaseModel):
     lang: str = "zh"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/newsletter/subscribe  (web/backend/api/newsletter.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/newsletter/subscribe  (web/backend/api/newsletter.py)
+# ---------------------------------------------------------------------------
 class SubscribeBody(BaseModel):
     email: str
     source: Optional[str] = "unknown"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/privacy/*  (web/backend/api/privacy/*.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/privacy/*  (web/backend/api/privacy/*.py)
+# ---------------------------------------------------------------------------
 class CookieConsent(BaseModel):
     """Cookie-consent record persisted on the client + mirrored on the
     server when the user opts in. W14-C surface model.
@@ -265,9 +265,9 @@ class PrivacyDeleteResponse(BaseModel):
     error_log_removed: int = 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/companies + /api/phases  (web/backend/api/* — screener endpoints)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/companies + /api/phases  (web/backend/api/* — screener endpoints)
+# ---------------------------------------------------------------------------
 class Company(BaseModel):
     """A single company row in the screener. Mirrors the inline
     `Company` shape from `web/phase-detector/lib/types.ts` — listed here
@@ -303,9 +303,9 @@ class PhasesResponse(BaseModel):
     total: int = 0
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Problem-detail error envelope (web/backend/errors.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Problem-detail error envelope (web/backend/errors.py)
+# ---------------------------------------------------------------------------
 class ProblemDetailEnvelope(BaseModel):
     """RFC 7807-style error envelope returned by every failing endpoint.
     Frontend can rely on `type` + `code` being present.
@@ -319,29 +319,29 @@ class ProblemDetailEnvelope(BaseModel):
     instance: Optional[str] = None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** System endpoints (main.py: /api/health, /api/version, /api/whoami)
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** 2026-05-15 W17 typed-OpenAPI fill-in. Added so the public OpenAPI spec
-***REMOVED*** no longer ships `{}` placeholders for endpoints that have a stable
-***REMOVED*** response shape. New endpoints should ship typed by default.
+# ---------------------------------------------------------------------------
+# System endpoints (main.py: /api/health, /api/version, /api/whoami)
+# ---------------------------------------------------------------------------
+# 2026-05-15 W17 typed-OpenAPI fill-in. Added so the public OpenAPI spec
+# no longer ships `{}` placeholders for endpoints that have a stable
+# response shape. New endpoints should ship typed by default.
 class HealthResponse(BaseModel):
     """GET /api/health — liveness/deep-probe response."""
 
     status: str = "ok"
     kb_size: int = 0
     llm_model: str = "unknown"
-    ***REMOVED*** Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
+    # Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
     checks: Optional[Dict[str, str]] = None
-    ***REMOVED*** Deep mode also surfaces the query-embedding LRU cache hit rate
-    ***REMOVED*** (Session ***REMOVED***17 P2). Values are numeric (int counts + float hit_rate).
+    # Deep mode also surfaces the query-embedding LRU cache hit rate
+    # (Session #17 P2). Values are numeric (int counts + float hit_rate).
     query_cache: Optional[Dict[str, float]] = None
 
 
 class VersionResponse(BaseModel):
     """GET /api/version — build & version metadata.
 
-    Session ***REMOVED***16 added `model` + `deployed_at` after the session ***REMOVED***15
+    Session #16 added `model` + `deployed_at` after the session #15
     deploy-pipeline incident: dogfood scripts need a single endpoint to
     fingerprint-check that prod is running the latest code AND that the model
     variant matches expectations (e.g. `:nitro` vs non-nitro DeepSeek).
@@ -352,10 +352,10 @@ class VersionResponse(BaseModel):
     build_date: str
     python_version: str
     env: str
-    ***REMOVED*** New in session ***REMOVED***16 — model identifier the /api/ask endpoint will use.
+    # New in session #16 — model identifier the /api/ask endpoint will use.
     model: str
-    ***REMOVED*** Deploy timestamp, distinct from build_date (image built once, deployed
-    ***REMOVED*** many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
+    # Deploy timestamp, distinct from build_date (image built once, deployed
+    # many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
     deployed_at: str
 
 
@@ -366,9 +366,9 @@ class WhoAmIResponse(BaseModel):
     api_key_supplied: bool
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** /api/examples + /api/discoveries + /api/daily + /api/flags + /api/newsletter
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# /api/examples + /api/discoveries + /api/daily + /api/flags + /api/newsletter
+# ---------------------------------------------------------------------------
 class ExamplesResponse(BaseModel):
     """GET /api/examples — handpicked example phenomenon pairs.
 
@@ -394,8 +394,8 @@ class ErrorAcceptedResponse(BaseModel):
     """
 
     accepted: bool
-    stored_at: Optional[str] = None  ***REMOVED*** ISO-8601 UTC when accepted=True
-    reason: Optional[str] = None  ***REMOVED*** set when accepted=False
+    stored_at: Optional[str] = None  # ISO-8601 UTC when accepted=True
+    reason: Optional[str] = None  # set when accepted=False
 
     model_config = {"extra": "allow"}
 
@@ -415,7 +415,7 @@ class DiscoveriesResponse(BaseModel):
 class DailyResponse(BaseModel):
     """GET /api/daily — today's curated discoveries."""
 
-    date: str  ***REMOVED*** ISO-8601 date
+    date: str  # ISO-8601 date
     discoveries: List[Dict[str, Any]] = Field(default_factory=list)
 
 
@@ -430,45 +430,45 @@ class FlagsResponse(BaseModel):
 
 
 __all__ = [
-    ***REMOVED*** ask
+    # ask
     "AskRequest",
     "AskMeta",
     "KBCard",
     "AnswerDone",
     "Verdict",
-    ***REMOVED*** checkout
+    # checkout
     "CheckoutBody",
     "CheckoutResponse",
-    ***REMOVED*** history
+    # history
     "HistoryRecordRequest",
     "HistoryRecord",
     "HistoryResponse",
-    ***REMOVED*** search
+    # search
     "SearchRequest",
     "AssessRequest",
     "SearchResult",
     "SearchResponse",
-    ***REMOVED*** mapping
+    # mapping
     "MappingRequest",
-    ***REMOVED*** errors
+    # errors
     "ErrorReportBody",
     "ProblemDetailEnvelope",
-    ***REMOVED*** synthesize
+    # synthesize
     "SynthesizeRequest",
-    ***REMOVED*** newsletter
+    # newsletter
     "SubscribeBody",
-    ***REMOVED*** privacy
+    # privacy
     "CookieConsent",
     "PrivacyExportRequest",
     "PrivacyExportResponse",
     "PrivacyDeleteRequest",
     "PrivacyDeleteResponse",
-    ***REMOVED*** screener
+    # screener
     "Company",
     "CompaniesResponse",
     "Phase",
     "PhasesResponse",
-    ***REMOVED*** system + filled-in W17 typed responses
+    # system + filled-in W17 typed responses
     "HealthResponse",
     "VersionResponse",
     "WhoAmIResponse",

@@ -35,8 +35,8 @@
     {"class_id": "scheffer_fold_bifurcation", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.88, "note_zh": "A2-Scheffer (Fox River) 验证,p ≪ 10⁻¹²⁰"},
     {"class_id": "schelling_credible_commitment", "b1": "REJECT", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "REJECT", "b3_consensus": "REJECT", "avg_conf": 0.91},
     {"class_id": "second_order_damped_oscillator", "b1": "KEEP", "b3_pro_rigorous": "KEEP", "b3_flash_rigorous": "KEEP", "b3_pro_creative": "KEEP", "b3_consensus": "KEEP", "avg_conf": 0.93},
-    {"class_id": "sir_contagion_network_class", "b1": "SPLIT", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.83, "note_zh": "Session ***REMOVED***3 W2-C SIR confirm 在做"},
-    {"class_id": "tail_copula_contagion", "b1": "KEEP", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "REJECT", "avg_conf": 0.76, "note_zh": "Copula 是参数族,不是机制。Session ***REMOVED***3 W2-B 已 reject"}
+    {"class_id": "sir_contagion_network_class", "b1": "SPLIT", "b3_pro_rigorous": "SPLIT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "SPLIT", "avg_conf": 0.83, "note_zh": "Session #3 W2-C SIR confirm 在做"},
+    {"class_id": "tail_copula_contagion", "b1": "KEEP", "b3_pro_rigorous": "REJECT", "b3_flash_rigorous": "REJECT", "b3_pro_creative": "SPLIT", "b3_consensus": "REJECT", "avg_conf": 0.76, "note_zh": "Copula 是参数族,不是机制。Session #3 W2-B 已 reject"}
   ],
   "demotion_pattern": {
     "zh": "B3 推翻 B1 KEEP 的 4 个 class (delay_differential_debt / hysteresis_preisach / scale_free_percolation_class / tail_copula_contagion) 共享同一个错误模式: 把数学框架(delay-differential equations / Preisach integral / scale-free generating model / copula family)当作普适类。三个 reviewer 独立收敛于这个 filter 本身是非平凡的方法论 validation。",

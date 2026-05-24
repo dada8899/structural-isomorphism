@@ -1,4 +1,4 @@
-***REMOVED*** Cross-domain SOC validation dataset (v1)
+# Cross-domain SOC validation dataset (v1)
 
 **Release date:** 2026-05-13
 **Version:** 1.0.0
@@ -9,7 +9,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. Overview
+## 1. Overview
 
 This dataset is a frozen, multi-domain benchmark for **self-organized
 criticality (SOC) and related universality-class validation**. It bundles:
@@ -51,7 +51,7 @@ It is suitable for:
 
 ---
 
-***REMOVED******REMOVED*** 2. Bundle layout
+## 2. Bundle layout
 
 ```
 dataset/v1/
@@ -111,7 +111,7 @@ dataset/v1/
     └── compute_manifest.py            (regenerates manifest.json)
 ```
 
-***REMOVED******REMOVED******REMOVED*** File and size summary
+### File and size summary
 
 - **Files:** 244
 - **Total size:** ~99 MB (uncompressed, following symlinks)
@@ -121,7 +121,7 @@ dataset/v1/
   when followed. When you publish to Zenodo, the runbook (`MINT_DOI_RUNBOOK.md`)
   describes producing a flattened tarball/zip that dereferences the symlinks.
 
-***REMOVED******REMOVED******REMOVED*** Headline counts
+### Headline counts
 
 | Bucket                    | Count |
 |---------------------------|-------|
@@ -138,7 +138,7 @@ the 13 headline universality-class membership claims.
 
 ---
 
-***REMOVED******REMOVED*** 3. Per-system file convention
+## 3. Per-system file convention
 
 Each `systems/<slot>/` directory contains:
 
@@ -155,7 +155,7 @@ the `fetch_*.py` script that pulled the raw data so you can re-fetch.
 
 ---
 
-***REMOVED******REMOVED*** 4. Per-null-control file convention
+## 4. Per-null-control file convention
 
 Each `null_controls/<case>/` directory contains a single `results.json`
 with the pipeline's full output: α estimate, σ_α, x_min, n_tail,
@@ -168,51 +168,51 @@ is the reproducible synth (rng_seed = 42) that produced the four cases.
 
 ---
 
-***REMOVED******REMOVED*** 5. Usage
+## 5. Usage
 
-***REMOVED******REMOVED******REMOVED*** Quick verification
+### Quick verification
 
 ```bash
 git clone https://github.com/dada8899/structural-isomorphism.git
 cd structural-isomorphism
 python3 dataset/v1/scripts/compute_manifest.py
-***REMOVED*** regenerates manifest.json — should show 244 files / 99 MB / 16 / 4 / 35 / 17
+# regenerates manifest.json — should show 244 files / 99 MB / 16 / 4 / 35 / 17
 ```
 
-***REMOVED******REMOVED******REMOVED*** Reproduce a single system's headline result
+### Reproduce a single system's headline result
 
 ```bash
 cd structural-isomorphism
 python3 dataset/v1/systems/01_earthquake/data/gutenberg_richter.py
-***REMOVED*** expected: b ≈ 1.084 (CI [1.073, 1.094]) — matches paper.md
+# expected: b ≈ 1.084 (CI [1.073, 1.094]) — matches paper.md
 ```
 
 See `pipeline/README.md` for the full reproducibility runbook.
 
-***REMOVED******REMOVED******REMOVED*** Apply the frozen pipeline to a new system
+### Apply the frozen pipeline to a new system
 
 ```python
-***REMOVED*** from anywhere inside the repo
+# from anywhere inside the repo
 import sys
 sys.path.insert(0, "dataset/v1/pipeline")
 from soc_pipeline import fit_powerlaw_clauset
 
-***REMOVED*** my_events = np.array([...])   ***REMOVED*** your event-size array
+# my_events = np.array([...])   # your event-size array
 result = fit_powerlaw_clauset(my_events, bootstrap_n=100)
 print(result["alpha"], result["xmin"], result["vs_lognormal_p"])
 ```
 
-***REMOVED******REMOVED******REMOVED*** Run the regression sanity suite
+### Run the regression sanity suite
 
 ```bash
 cd structural-isomorphism
 pytest dataset/v1/tests/sanity/ -q
-***REMOVED*** 17 test files; ~30s on laptop; all should pass at git commit 607906c
+# 17 test files; ~30s on laptop; all should pass at git commit 607906c
 ```
 
 ---
 
-***REMOVED******REMOVED*** 6. Citation
+## 6. Citation
 
 If you use this dataset, please cite it via `CITATION.cff`. Once the DOI is
 minted, the canonical citation will be:
@@ -225,7 +225,7 @@ Until the DOI is minted, please cite by git commit:
 > dada8899 (2026). *Cross-domain SOC validation dataset (v1)*. GitHub.
 > https://github.com/dada8899/structural-isomorphism @ commit 607906c.
 
-***REMOVED******REMOVED******REMOVED*** Companion papers
+### Companion papers
 
 The bundle's companion manuscript ("A cross-domain SOC + critical-systems
 benchmark with synthetic nulls and multi-model class curation", ~5k words)
@@ -235,7 +235,7 @@ that paper in addition to the dataset DOI.
 
 ---
 
-***REMOVED******REMOVED*** 7. License + attribution
+## 7. License + attribution
 
 - **Data:** CC-BY-4.0 (this includes systems/*/data/, taxonomy/, null_controls/,
   every `results.json` and `paper.md`).
@@ -248,7 +248,7 @@ sources where applicable.
 
 ---
 
-***REMOVED******REMOVED*** 8. Contact + provenance
+## 8. Contact + provenance
 
 - **Authors:** dada8899 (Independent Research)
 - **Issue tracker:** https://github.com/dada8899/structural-isomorphism/issues
@@ -260,7 +260,7 @@ sources where applicable.
 
 ---
 
-***REMOVED******REMOVED*** 9. Acknowledgments
+## 9. Acknowledgments
 
 - USGS Earthquake Catalog, NOAA GOES X-ray flare catalog, FDIC failed-bank
   list, NIFC fire database, Compound Labs and Aave subgraphs, Wikimedia
@@ -275,7 +275,7 @@ sources where applicable.
 
 ---
 
-***REMOVED******REMOVED*** 10. Known limitations
+## 10. Known limitations
 
 1. The B3 ensemble is *same-family* (3 DeepSeek configs, not 3 vendors).
    This is a real limitation, discussed in the companion paper §5.

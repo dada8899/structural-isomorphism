@@ -1,12 +1,12 @@
-***REMOVED*** Community launch drafts — INDEX
+# Community launch drafts — INDEX
 
 Drafts prepared by Wave 9 sub-agent D (2026-05-15). All artifacts below are **drafts not yet sent**. They are checked into the repo as version-controlled launch material; the send-out is gated on a final human review pass plus the arXiv submission landing (placeholders in each draft point at "arXiv pending" which must be replaced with the real arXiv ID before transmission).
 
-***REMOVED******REMOVED*** Scheduling rationale
+## Scheduling rationale
 
 The schedule below sequences channels so that signal compounds rather than competes. HN goes first because it tends to drive the largest single-day spike in inbound traffic and you want the most polished, methodology-forward framing to lead. Twitter posts in parallel with HN morning because the two audiences overlap heavily and X amplification often piggybacks on HN front-page momentum. Mastodon (fediscience.org) goes the same afternoon in the European-scientist evening window — Mastodon has slower decay than HN/X, so timing is less critical and a few hours stagger reduces "spam-everywhere" perception. Reddit waits T+1 (Wednesday) so the HN discussion can settle and any follow-up corrections land in the Reddit thread rather than getting buried under HN comment churn. Wednesday mid-morning US is the peak engagement window for both `/r/Physics` and `/r/datascience`. Senior researcher outreach staggers across two weeks at T+3 / T+5 / T+7 / T+10 / T+14 — sending five cold emails to senior researchers in the same week would (a) look like a blast and (b) make it harder to fold any feedback from earlier replies into later emails. Plenz and Priesemann go first because the neural sub-paper is the part most in need of a senior eye; Scheffer and Clauset middle because the D1 EWS and reject-aware framings benefit from arXiv discussion settling; Sornette last because his feedback is most likely to be on a sub-paper rather than the unified preprint.
 
-***REMOVED******REMOVED*** Send schedule
+## Send schedule
 
 | Channel | Time (relative to launch) | Best window | Why this slot |
 |---|---|---|---|
@@ -21,9 +21,9 @@ The schedule below sequences channels so that signal compounds rather than compe
 | Senior outreach — Clauset | T+10 | Friday morning MT (Boulder) | Clauset late-first-week; reject-aware framing benefits from arXiv discussion settling |
 | Senior outreach — Sornette | T+14 | Monday morning CST (Shenzhen) / Friday morning evening CET | Sornette last; finance and dragon-king feedback is on a sub-paper and is least time-critical |
 
-***REMOVED******REMOVED*** Drafts
+## Drafts
 
-| ***REMOVED*** | Channel | File | Status | Word count target |
+| # | Channel | File | Status | Word count target |
 |---|---|---|---|---|
 | 1 | HackerNews | [`hn-launch-2026-05-15.md`](hn-launch-2026-05-15.md) | Draft v1 | ~800 |
 | 2 | Twitter / X (7-tweet thread) | [`twitter-thread-2026-05-15.md`](twitter-thread-2026-05-15.md) | Draft v1, each tweet ≤ 280 chars validated | ~270 |
@@ -31,7 +31,7 @@ The schedule below sequences channels so that signal compounds rather than compe
 | 4 | Reddit (`/r/Physics` + `/r/datascience`) | [`reddit-2026-05-15.md`](reddit-2026-05-15.md) | Draft v1, two cross-posts | ~1100 (both combined) |
 | 5 | Senior outreach (5 emails) | [`senior-outreach-2026-05-15.md`](senior-outreach-2026-05-15.md) | Draft v1, 5 recipients | ~1500 (all five combined) |
 
-***REMOVED******REMOVED*** Pre-send checklist
+## Pre-send checklist
 
 Before any of the above goes out, the human reviewer needs to confirm:
 
@@ -46,7 +46,7 @@ Before any of the above goes out, the human reviewer needs to confirm:
 - [ ] Senior outreach emails: double-check current institutional affiliations (Sornette in particular has moved institutions)
 - [ ] Each senior outreach email: confirm the cited paper is real and the cited result is accurately characterized — these are well-known papers but the exact claim attribution should be re-read once before transmission
 
-***REMOVED******REMOVED*** Recipient list summary — senior outreach (T+3 to T+14)
+## Recipient list summary — senior outreach (T+3 to T+14)
 
 | Order | Name | Affiliation | Cited paper(s) | Key ask |
 |---|---|---|---|---|

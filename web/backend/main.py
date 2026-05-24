@@ -13,44 +13,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
-***REMOVED*** Ensure structural_isomorphism package is importable.
-***REMOVED*** Prefer env var, else walk up from this file (web/backend/main.py -> project root).
+# Ensure structural_isomorphism package is importable.
+# Prefer env var, else walk up from this file (web/backend/main.py -> project root).
 _project_root = os.getenv("STRUCTURAL_PROJECT_ROOT") or str(
     Path(__file__).resolve().parent.parent.parent
 )
 sys.path.insert(0, _project_root)
 
 load_dotenv(Path(__file__).parent / ".env")
-***REMOVED*** Session ***REMOVED***16: deploy-vps.sh writes a `.env.runtime` next to .env with the
-***REMOVED*** git SHA + deploy timestamp so /api/version can return real values (instead
-***REMOVED*** of "unknown"). Loaded *after* .env so deploy-time values override anything
-***REMOVED*** baked into a committed .env (which shouldn't happen, but defense in depth).
+# Session #16: deploy-vps.sh writes a `.env.runtime` next to .env with the
+# git SHA + deploy timestamp so /api/version can return real values (instead
+# of "unknown"). Loaded *after* .env so deploy-time values override anything
+# baked into a committed .env (which shouldn't happen, but defense in depth).
 load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 
-***REMOVED*** W14-D: structlog + correlation IDs. configure_logging() installs a
-***REMOVED*** JSON-line handler on the root logger (stdout) + a rotating file handler
-***REMOVED*** at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
-***REMOVED*** through the same pipeline. Must run *before* any logger.info() call so
-***REMOVED*** we don't accidentally bake in the old text format.
-from logging_config import configure_logging, get_logger  ***REMOVED*** noqa: E402
+# W14-D: structlog + correlation IDs. configure_logging() installs a
+# JSON-line handler on the root logger (stdout) + a rotating file handler
+# at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
+# through the same pipeline. Must run *before* any logger.info() call so
+# we don't accidentally bake in the old text format.
+from logging_config import configure_logging, get_logger  # noqa: E402
 
 configure_logging(level=os.getenv("STRUCTURAL_LOG_LEVEL", "INFO"))
 logger = get_logger("structural.web")
 
-***REMOVED*** Shared state
+# Shared state
 app_state = {}
 
-***REMOVED*** Session ***REMOVED***17 P2-3 — git SHA is resolved once at startup and cached here so
-***REMOVED*** /api/version never forks a `git` subprocess on the request path. In prod
-***REMOVED*** the SHA is expected via STRUCTURAL_GIT_SHA / .env.runtime; if it's missing
-***REMOVED*** we record "unknown" rather than shelling out (a misconfigured deploy
-***REMOVED*** shouldn't make every /api/version call spawn a process).
+# Session #17 P2-3 — git SHA is resolved once at startup and cached here so
+# /api/version never forks a `git` subprocess on the request path. In prod
+# the SHA is expected via STRUCTURAL_GIT_SHA / .env.runtime; if it's missing
+# we record "unknown" rather than shelling out (a misconfigured deploy
+# shouldn't make every /api/version call spawn a process).
 _GIT_SHA_CACHE: str = ""
 
-***REMOVED*** Launch P1-4 — in prod, the interactive API docs (/docs, /redoc) and the
-***REMOVED*** raw OpenAPI schema (/openapi.json) hand an attacker a full map of the API
-***REMOVED*** surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
-***REMOVED*** they stay on for dev / staging where they are useful.
+# Launch P1-4 — in prod, the interactive API docs (/docs, /redoc) and the
+# raw OpenAPI schema (/openapi.json) hand an attacker a full map of the API
+# surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
+# they stay on for dev / staging where they are useful.
 _IS_PROD = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
 _DOCS_KWARGS = (
     {"docs_url": None, "redoc_url": None, "openapi_url": None}
@@ -70,7 +70,7 @@ def _resolve_git_sha() -> str:
     if sha:
         return sha[:12]
     if _IS_PROD:
-        ***REMOVED*** Misconfigured deploy — don't shell out on the request path.
+        # Misconfigured deploy — don't shell out on the request path.
         return "unknown"
     try:
         import subprocess as _sp
@@ -87,7 +87,7 @@ def _resolve_git_sha() -> str:
 async def _phase_urlopen_json(req, timeout: int) -> dict:
     """Run a blocking urllib request off the event loop, return parsed JSON.
 
-    Session ***REMOVED***17 P2-6 — the /phase/* non-streaming endpoints used to call
+    Session #17 P2-6 — the /phase/* non-streaming endpoints used to call
     `urllib.request.urlopen()` directly inside an `async def` handler, which
     blocks the single event loop for up to `timeout` seconds and stalls every
     other request on the Structural site. `run_in_threadpool` keeps the loop
@@ -109,30 +109,30 @@ async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("Starting Structural Web Backend...")
 
-    ***REMOVED*** Session ***REMOVED***17 P2-3 — precompute the git SHA so /api/version is fork-free.
+    # Session #17 P2-3 — precompute the git SHA so /api/version is fork-free.
     global _GIT_SHA_CACHE
     _GIT_SHA_CACHE = _resolve_git_sha()
 
-    ***REMOVED*** Initialise structured JSON event logger + (optional) Sentry.
+    # Initialise structured JSON event logger + (optional) Sentry.
     try:
         from services.observability import setup_logging
         setup_logging()
-    except Exception as e:  ***REMOVED*** pragma: no cover — never fail startup over logging
+    except Exception as e:  # pragma: no cover — never fail startup over logging
         logger.warning(f"observability setup failed: {e}")
 
-    ***REMOVED*** X2 W1 (2026-05-24) — fail-fast on missing hybrid-retrieval deps.
-    ***REMOVED*** Historically jieba + rank_bm25 were imported lazily inside
-    ***REMOVED*** services/search_service.py and silently degraded to char-level
-    ***REMOVED*** tokenization (jieba missing) or embedding-only retrieval (rank_bm25
-    ***REMOVED*** missing). The dogfood report 2026-05-15 q2 "团队相变恢复" → "形状记忆
-    ***REMOVED*** 合金 相变恢复" score=1.0 was a direct consequence: jieba absent meant
-    ***REMOVED*** both query and doc tokenised to {相,变,恢,复} → BM25 字面 4-char hack.
-    ***REMOVED*** We now declare jieba/rank_bm25 in requirements.txt AND assert here so
-    ***REMOVED*** a stale deploy (skipped pip install -r) crashes loudly instead of
-    ***REMOVED*** degrading silently. Tested coverage: tests/test_startup_hybrid_deps.py.
+    # X2 W1 (2026-05-24) — fail-fast on missing hybrid-retrieval deps.
+    # Historically jieba + rank_bm25 were imported lazily inside
+    # services/search_service.py and silently degraded to char-level
+    # tokenization (jieba missing) or embedding-only retrieval (rank_bm25
+    # missing). The dogfood report 2026-05-15 q2 "团队相变恢复" → "形状记忆
+    # 合金 相变恢复" score=1.0 was a direct consequence: jieba absent meant
+    # both query and doc tokenised to {相,变,恢,复} → BM25 字面 4-char hack.
+    # We now declare jieba/rank_bm25 in requirements.txt AND assert here so
+    # a stale deploy (skipped pip install -r) crashes loudly instead of
+    # degrading silently. Tested coverage: tests/test_startup_hybrid_deps.py.
     try:
-        import jieba  ***REMOVED*** noqa: F401
-        import rank_bm25  ***REMOVED*** noqa: F401
+        import jieba  # noqa: F401
+        import rank_bm25  # noqa: F401
     except ImportError as exc:
         raise RuntimeError(
             "Hybrid retrieval requires `jieba` + `rank_bm25` "
@@ -182,7 +182,7 @@ app = FastAPI(
     license_info={
         "name": "Proprietary",
     },
-    ***REMOVED*** Launch P1-4 — disable /docs /redoc /openapi.json in prod.
+    # Launch P1-4 — disable /docs /redoc /openapi.json in prod.
     **_DOCS_KWARGS,
     openapi_tags=[
         {"name": "ask", "description": "Perplexity-like Q&A over the KB"},
@@ -204,10 +204,10 @@ app = FastAPI(
     ],
 )
 
-***REMOVED*** --- OpenAPI security scheme: APIKeyHeader (X-API-Key) ---
-***REMOVED*** Optional everywhere; admin-required for /api/admin/*. We inject via a
-***REMOVED*** custom openapi() so the same spec is served at /openapi.json AND can be
-***REMOVED*** exported to docs/api/openapi.json without re-implementing the logic.
+# --- OpenAPI security scheme: APIKeyHeader (X-API-Key) ---
+# Optional everywhere; admin-required for /api/admin/*. We inject via a
+# custom openapi() so the same spec is served at /openapi.json AND can be
+# exported to docs/api/openapi.json without re-implementing the logic.
 def _custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -230,7 +230,7 @@ def _custom_openapi():
             "(60 req/min). Provide an X-API-Key header to access higher tiers."
         ),
     }
-    ***REMOVED*** Force admin-prefix paths to require the key.
+    # Force admin-prefix paths to require the key.
     for path, methods in schema.get("paths", {}).items():
         if path.startswith("/api/admin"):
             for op in methods.values():
@@ -243,24 +243,24 @@ def _custom_openapi():
 app.openapi = _custom_openapi
 
 
-***REMOVED*** --- RFC 7807 problem-detail error handlers ---
-***REMOVED*** Must be installed before routers so they catch validation errors raised
-***REMOVED*** during dependency resolution.
-from errors import install_problem_handlers  ***REMOVED*** noqa: E402
+# --- RFC 7807 problem-detail error handlers ---
+# Must be installed before routers so they catch validation errors raised
+# during dependency resolution.
+from errors import install_problem_handlers  # noqa: E402
 install_problem_handlers(app)
 
-***REMOVED*** --- Tier-aware rate limiter (W11-C) ---
-***REMOVED*** Replaces the previous flat slowapi setup. The new module installs the
-***REMOVED*** middleware + custom RFC 7807 429 handler in one call. The legacy
-***REMOVED*** `services/rate_limit.py` is kept (existing routers still import `limit`
-***REMOVED*** and `tier_limit_decorator` from it) but defers to the same shared
-***REMOVED*** Limiter via the middleware contextvar.
-from middleware import install_rate_limit  ***REMOVED*** noqa: E402
+# --- Tier-aware rate limiter (W11-C) ---
+# Replaces the previous flat slowapi setup. The new module installs the
+# middleware + custom RFC 7807 429 handler in one call. The legacy
+# `services/rate_limit.py` is kept (existing routers still import `limit`
+# and `tier_limit_decorator` from it) but defers to the same shared
+# Limiter via the middleware contextvar.
+from middleware import install_rate_limit  # noqa: E402
 install_rate_limit(app)
 
-***REMOVED*** --- CORS ---
-***REMOVED*** Origins are restricted to our production hosts; wildcard + credentials is
-***REMOVED*** a browser-invalid combo anyway, so we drop allow_credentials.
+# --- CORS ---
+# Origins are restricted to our production hosts; wildcard + credentials is
+# a browser-invalid combo anyway, so we drop allow_credentials.
 _allowed_origins = [
     "https://beta.structural.bytedance.city",
     "https://structural.bytedance.city",
@@ -273,43 +273,43 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=False,
-    ***REMOVED*** W14-C: DELETE added for /api/privacy/delete (GDPR right-to-erasure).
+    # W14-C: DELETE added for /api/privacy/delete (GDPR right-to-erasure).
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    ***REMOVED*** Session ***REMOVED***17: replace the "*" wildcard with the headers the browser
-    ***REMOVED*** frontend actually sends — keep in sync with web/frontend fetch()
-    ***REMOVED*** calls. X-API-Key / Authorization are kept for programmatic clients.
-    ***REMOVED*** If a new fetch header is added, list it here or its preflight 403s.
+    # Session #17: replace the "*" wildcard with the headers the browser
+    # frontend actually sends — keep in sync with web/frontend fetch()
+    # calls. X-API-Key / Authorization are kept for programmatic clients.
+    # If a new fetch header is added, list it here or its preflight 403s.
     allow_headers=[
         "Content-Type", "X-Anon-Id", "X-Device-ID", "X-API-Key", "Authorization",
     ],
 )
 
-***REMOVED*** Launch P0-3: security response headers (HSTS / X-Frame-Options /
-***REMOVED*** X-Content-Type-Options / Referrer-Policy / CSP). Injected on every
-***REMOVED*** response — API and static pages alike.
-from middleware.security_headers import install_security_headers  ***REMOVED*** noqa: E402
+# Launch P0-3: security response headers (HSTS / X-Frame-Options /
+# X-Content-Type-Options / Referrer-Policy / CSP). Injected on every
+# response — API and static pages alike.
+from middleware.security_headers import install_security_headers  # noqa: E402
 
 install_security_headers(app)
 
-***REMOVED*** W14-D: Correlation-ID middleware. Mounted last so it runs *first* for
-***REMOVED*** inbound requests (Starlette middleware stack is LIFO). Reads X-Request-ID
-***REMOVED*** from caller or generates UUID4; binds onto ContextVar so every log line
-***REMOVED*** in the request scope carries it. Echoes back as X-Request-ID on response.
-from middleware.correlation import install_correlation_middleware  ***REMOVED*** noqa: E402
+# W14-D: Correlation-ID middleware. Mounted last so it runs *first* for
+# inbound requests (Starlette middleware stack is LIFO). Reads X-Request-ID
+# from caller or generates UUID4; binds onto ContextVar so every log line
+# in the request scope carries it. Echoes back as X-Request-ID on response.
+from middleware.correlation import install_correlation_middleware  # noqa: E402
 
 install_correlation_middleware(app)
 
 
-***REMOVED*** --- Shared getter for dependency ---
+# --- Shared getter for dependency ---
 def get_search_service():
     return app_state.get("search")
 
 
-***REMOVED*** --- API routes ---
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, favorites  ***REMOVED*** noqa
-from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, auth as auth_api  ***REMOVED*** noqa
-from api.privacy import export as privacy_export, delete as privacy_delete  ***REMOVED*** noqa
-from api import flags as flags_api  ***REMOVED*** noqa: E402 — W15-E feature flags
+# --- API routes ---
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, favorites  # noqa
+from api import search, phenomenon, mapping, daily, examples, suggest, discoveries, analyze, synthesize, ask, history, newsletter, checkout_mock, error_log, auth as auth_api  # noqa
+from api.privacy import export as privacy_export, delete as privacy_delete  # noqa
+from api import flags as flags_api  # noqa: E402 — W15-E feature flags
 
 app.include_router(search.router, prefix="/api")
 app.include_router(phenomenon.router, prefix="/api")
@@ -323,53 +323,53 @@ app.include_router(synthesize.router, prefix="/api")
 app.include_router(ask.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
 app.include_router(newsletter.router, prefix="/api")
-***REMOVED*** W10-B (session ***REMOVED***10): Stripe Pro mock + /api/usage probe. Real Stripe deferred
-***REMOVED*** until PMF signal — see web/backend/api/checkout_mock.py for migration plan.
+# W10-B (session #10): Stripe Pro mock + /api/usage probe. Real Stripe deferred
+# until PMF signal — see web/backend/api/checkout_mock.py for migration plan.
 app.include_router(checkout_mock.router, prefix="/api")
-***REMOVED*** W12-E (session ***REMOVED***10): client error reporter (page + global error boundaries
-***REMOVED*** auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
+# W12-E (session #10): client error reporter (page + global error boundaries
+# auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
 app.include_router(error_log.router, prefix="/api")
-***REMOVED*** W14-D: admin log tail endpoint — admin tier only.
-from api.admin import logs as admin_logs  ***REMOVED*** noqa: E402
+# W14-D: admin log tail endpoint — admin tier only.
+from api.admin import logs as admin_logs  # noqa: E402
 
 app.include_router(admin_logs.router, prefix="/api")
-***REMOVED*** W14-C: GDPR data export + delete endpoints.
+# W14-C: GDPR data export + delete endpoints.
 app.include_router(privacy_export.router, prefix="/api")
 app.include_router(privacy_delete.router, prefix="/api")
-***REMOVED*** W15-E (session ***REMOVED***10): feature flags + A/B experiments framework.
+# W15-E (session #10): feature flags + A/B experiments framework.
 app.include_router(flags_api.router, prefix="/api")
-***REMOVED*** W15-C (session ***REMOVED***10): user favorites / bookmarks (per-user star button).
+# W15-C (session #10): user favorites / bookmarks (per-user star button).
 app.include_router(favorites.router, prefix="/api")
-***REMOVED*** W15-B (session ***REMOVED***10): magic-link auth scaffold + JWT session cookies.
-***REMOVED*** Mock email send (writes to data/mock_email_outbox.jsonl); replace with
-***REMOVED*** real SMTP/SendGrid when product is ready for invite-only Alpha.
+# W15-B (session #10): magic-link auth scaffold + JWT session cookies.
+# Mock email send (writes to data/mock_email_outbox.jsonl); replace with
+# real SMTP/SendGrid when product is ready for invite-only Alpha.
 app.include_router(auth_api.router, prefix="/api")
-***REMOVED*** Session ***REMOVED***16 M1.4 — persisted analyze reports + share + feedback.
-from api import report as report_api  ***REMOVED*** noqa: E402
+# Session #16 M1.4 — persisted analyze reports + share + feedback.
+from api import report as report_api  # noqa: E402
 app.include_router(report_api.router, prefix="/api")
 
-***REMOVED*** Session ***REMOVED***18 — value-mining A-G. Seven new product surfaces; each ships an
-***REMOVED*** isolated api module so registration is one block. See docs/sessions/
-***REMOVED*** SESSION-18-HANDOFF.md.
-from api import whitespace as whitespace_api  ***REMOVED*** noqa: E402 — A2 research whitespace map
-from api import insights as insights_api  ***REMOVED*** noqa: E402 — B data flywheel
-from api import method_search  ***REMOVED*** noqa: E402 — A1 method reverse-search
-from api import stress_test  ***REMOVED*** noqa: E402 — E structural stress test
-from api import struct_lint  ***REMOVED*** noqa: E402 — C2 structural lint
-from api import diagnose  ***REMOVED*** noqa: E402 — F structural diagnosis
+# Session #18 — value-mining A-G. Seven new product surfaces; each ships an
+# isolated api module so registration is one block. See docs/sessions/
+# SESSION-18-HANDOFF.md.
+from api import whitespace as whitespace_api  # noqa: E402 — A2 research whitespace map
+from api import insights as insights_api  # noqa: E402 — B data flywheel
+from api import method_search  # noqa: E402 — A1 method reverse-search
+from api import stress_test  # noqa: E402 — E structural stress test
+from api import struct_lint  # noqa: E402 — C2 structural lint
+from api import diagnose  # noqa: E402 — F structural diagnosis
 
-***REMOVED*** Session ***REMOVED***19 — G connect-people MVP (P1 fingerprints + P2 matching / L1).
-from api import connections as connections_api  ***REMOVED*** noqa: E402 — G connect people
+# Session #19 — G connect-people MVP (P1 fingerprints + P2 matching / L1).
+from api import connections as connections_api  # noqa: E402 — G connect people
 
-***REMOVED*** W7-D mini-brief 1 (2026-05-24): waitlist + Plausible. Distinct from
-***REMOVED*** /api/newsletter/subscribe — this one captures UTM source for acquisition
-***REMOVED*** attribution and goes into a SQLite table (forward path to user/auth schema).
-from api import waitlist as waitlist_api  ***REMOVED*** noqa: E402
+# W7-D mini-brief 1 (2026-05-24): waitlist + Plausible. Distinct from
+# /api/newsletter/subscribe — this one captures UTM source for acquisition
+# attribution and goes into a SQLite table (forward path to user/auth schema).
+from api import waitlist as waitlist_api  # noqa: E402
 
-***REMOVED*** W7-D mini-brief 2 (2026-05-24): real-Stripe-test-mode billing with mock
-***REMOVED*** fallback when STRIPE_TEST_SECRET_KEY is unset. Complements legacy
-***REMOVED*** checkout_mock; new pricing.html targets /api/billing/checkout-session.
-from api import billing as billing_api  ***REMOVED*** noqa: E402
+# W7-D mini-brief 2 (2026-05-24): real-Stripe-test-mode billing with mock
+# fallback when STRIPE_TEST_SECRET_KEY is unset. Complements legacy
+# checkout_mock; new pricing.html targets /api/billing/checkout-session.
+from api import billing as billing_api  # noqa: E402
 
 app.include_router(whitespace_api.router, prefix="/api")
 app.include_router(insights_api.router, prefix="/api")
@@ -382,7 +382,7 @@ app.include_router(waitlist_api.router, prefix="/api")
 app.include_router(billing_api.router, prefix="/api")
 
 
-from schemas import HealthResponse, VersionResponse, WhoAmIResponse  ***REMOVED*** noqa: E402
+from schemas import HealthResponse, VersionResponse, WhoAmIResponse  # noqa: E402
 
 
 @app.get(
@@ -414,24 +414,24 @@ async def health(deep: int = 0):
         "llm_model": os.getenv("LLM_MODEL", "unknown"),
     }
     if deep:
-        ***REMOVED*** Deep-mode: probe optional subsystems and surface their state.
-        ***REMOVED*** We never fail the health endpoint outright — degraded subsystems
-        ***REMOVED*** show up as `checks.<name> = "fail"` so an operator can see the
-        ***REMOVED*** full picture in one shot.
+        # Deep-mode: probe optional subsystems and surface their state.
+        # We never fail the health endpoint outright — degraded subsystems
+        # show up as `checks.<name> = "fail"` so an operator can see the
+        # full picture in one shot.
         checks = {}
-        ***REMOVED*** search service load state
+        # search service load state
         checks["search_service"] = "ok" if svc else "fail"
-        ***REMOVED*** history DB file accessible
+        # history DB file accessible
         try:
             from pathlib import Path as _P
             hp = _P(__file__).parent / "data" / "history.db"
             checks["history_db"] = "ok" if hp.parent.exists() else "missing_dir"
         except Exception:
             checks["history_db"] = "fail"
-        ***REMOVED*** LLM upstream env present
+        # LLM upstream env present
         checks["llm_env"] = "ok" if os.getenv("OPENROUTER_API_KEY") or os.getenv("DEEPSEEK_API_KEY") else "missing"
         body["checks"] = checks
-        ***REMOVED*** Session ***REMOVED***17 P2 — query-embedding cache hit rate, for operators.
+        # Session #17 P2 — query-embedding cache hit rate, for operators.
         if svc:
             try:
                 body["query_cache"] = svc.cache_stats()
@@ -454,17 +454,17 @@ async def health(deep: int = 0):
 )
 async def version():
     import sys as _sys
-    ***REMOVED*** Session ***REMOVED***17 P2-3 — git SHA was precomputed at startup (lifespan) and
-    ***REMOVED*** cached in `_GIT_SHA_CACHE`; this endpoint never forks a subprocess.
-    ***REMOVED*** `_resolve_git_sha()` fallback covers the rare case where the cache is
-    ***REMOVED*** still empty (e.g. /api/version hit before lifespan finished in tests).
+    # Session #17 P2-3 — git SHA was precomputed at startup (lifespan) and
+    # cached in `_GIT_SHA_CACHE`; this endpoint never forks a subprocess.
+    # `_resolve_git_sha()` fallback covers the rare case where the cache is
+    # still empty (e.g. /api/version hit before lifespan finished in tests).
     git_sha = _GIT_SHA_CACHE or _resolve_git_sha()
-    ***REMOVED*** Session ***REMOVED***16 — surface the ask-model + deploy timestamp so dogfood scripts
-    ***REMOVED*** can fingerprint-check prod in a single request. Import the canonical
-    ***REMOVED*** value from ask_orchestrator so the two NEVER drift (Validator session
-    ***REMOVED*** ***REMOVED***16 P1: literal duplication was identified as a session-15 regression
-    ***REMOVED*** path).
-    from services.ask_orchestrator import ASK_MODEL as _ASK_MODEL  ***REMOVED*** noqa: WPS433
+    # Session #16 — surface the ask-model + deploy timestamp so dogfood scripts
+    # can fingerprint-check prod in a single request. Import the canonical
+    # value from ask_orchestrator so the two NEVER drift (Validator session
+    # #16 P1: literal duplication was identified as a session-15 regression
+    # path).
+    from services.ask_orchestrator import ASK_MODEL as _ASK_MODEL  # noqa: WPS433
     model = _ASK_MODEL
     build_date = os.getenv("STRUCTURAL_BUILD_DATE", "unknown")
     deployed_at = os.getenv("STRUCTURAL_DEPLOYED_AT", build_date)
@@ -479,7 +479,7 @@ async def version():
     }
 
 
-***REMOVED*** --- API-key probe ---
+# --- API-key probe ---
 @app.get(
     "/api/whoami",
     tags=["system"],
@@ -496,7 +496,7 @@ async def whoami(request: Request):
     return {"tier": _T.get(), "api_key_supplied": has_key}
 
 
-***REMOVED*** --- Admin endpoint (requires admin tier) ---
+# --- Admin endpoint (requires admin tier) ---
 @app.get(
     "/api/admin/keys",
     tags=["admin"],
@@ -515,14 +515,14 @@ async def admin_list_keys(request: Request):
 
     tier = _T.get()
     if tier == "free":
-        ***REMOVED*** No key supplied OR free-tier key — both end up as "free".
+        # No key supplied OR free-tier key — both end up as "free".
         if not (request.headers.get("X-API-Key") or request.headers.get("x-api-key")):
             raise Unauthenticated(detail="X-API-Key header required for /api/admin/*")
         raise Forbidden(detail="Admin tier required")
     if tier != "admin":
         raise Forbidden(detail="Admin tier required")
     keys = list_seed_keys()
-    ***REMOVED*** Never return the raw `key` field — only metadata.
+    # Never return the raw `key` field — only metadata.
     return {
         "count": len(keys),
         "keys": [
@@ -538,12 +538,12 @@ async def admin_list_keys(request: Request):
     }
 
 
-***REMOVED*** --- Serve frontend ---
+# --- Serve frontend ---
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
-***REMOVED*** Phase Detector static files
+# Phase Detector static files
 PHASE_DIR = FRONTEND_DIR / "phase"
 if PHASE_DIR.exists():
     app.mount("/phase/samples", StaticFiles(directory=PHASE_DIR / "samples"), name="phase_samples")
@@ -551,9 +551,9 @@ if PHASE_DIR.exists():
         app.mount("/phase/data", StaticFiles(directory=PHASE_DIR / "data"), name="phase_data")
 
 
-***REMOVED*** Launch P1-4 — accept HEAD on the root so health checkers / CDNs / crawlers
-***REMOVED*** that probe with HEAD get 200, not a misleading 405. FastAPI auto-derives
-***REMOVED*** HEAD from GET handlers only when HEAD is in `methods`, so list it here.
+# Launch P1-4 — accept HEAD on the root so health checkers / CDNs / crawlers
+# that probe with HEAD get 200, not a misleading 405. FastAPI auto-derives
+# HEAD from GET handlers only when HEAD is in `methods`, so list it here.
 @app.api_route("/", methods=["GET", "HEAD"])
 async def index():
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -569,15 +569,15 @@ async def phenomenon_page(pid: str):
     return FileResponse(FRONTEND_DIR / "phenomenon.html")
 
 
-***REMOVED*** Query-param deep-link form: /phenomenon?id=xxx (used by share-card and
-***REMOVED*** external embeds). JS-side resolvePhenomenonId() reads ?id= as fallback.
+# Query-param deep-link form: /phenomenon?id=xxx (used by share-card and
+# external embeds). JS-side resolvePhenomenonId() reads ?id= as fallback.
 @app.get("/phenomenon")
 async def phenomenon_page_query():
     return FileResponse(FRONTEND_DIR / "phenomenon.html")
 
 
-***REMOVED*** .html-suffixed forms — kept alive for legacy bookmarks and embedded
-***REMOVED*** CTAs that still hardcode /phenomenon.html or /analyze.html.
+# .html-suffixed forms — kept alive for legacy bookmarks and embedded
+# CTAs that still hardcode /phenomenon.html or /analyze.html.
 @app.get("/phenomenon.html")
 async def phenomenon_html_alias():
     return FileResponse(FRONTEND_DIR / "phenomenon.html")
@@ -631,9 +631,9 @@ async def phase_api_companies():
                 companies.append(d)
             except Exception:
                 continue
-    ***REMOVED*** W14-D: ticker_count surfaces the response cardinality so we can
-    ***REMOVED*** spot ingest regressions (e.g. file truncated to 0 rows) from a
-    ***REMOVED*** log dashboard without sampling actual responses.
+    # W14-D: ticker_count surfaces the response cardinality so we can
+    # spot ingest regressions (e.g. file truncated to 0 rows) from a
+    # log dashboard without sampling actual responses.
     logger.info("phases.fetch", ticker_count=len(companies))
     return JSONResponse({"count": len(companies), "companies": companies})
 
@@ -739,7 +739,7 @@ Thesis 内容：
         )
         llm_data = await _phase_urlopen_json(req, timeout=120)
         content = llm_data["choices"][0]["message"]["content"].strip()
-        ***REMOVED*** Strip markdown fences
+        # Strip markdown fences
         if content.startswith("```"):
             lines = content.split("\n")
             if lines[0].startswith("```"):
@@ -782,7 +782,7 @@ async def phase_api_deep_report(request: Request):
 - 结构清晰：核心观点 → 为什么是这个动力学家族 → 三个理由 → 一份监控清单 → 风险/反方
 - 用小标题、列表、表格、blockquote 让节奏分明
 - 不要陈词滥调，不要"市场普遍认为"这种废话
-- 标题用 ***REMOVED******REMOVED*** 和 ***REMOVED******REMOVED******REMOVED***，不用 ***REMOVED***
+- 标题用 ## 和 ###，不用 #
 
 直接输出 Markdown，不要包在代码块里，不要前置说明。"""
 
@@ -836,7 +836,7 @@ async def phase_api_deep_report(request: Request):
         )
         llm_data = await _phase_urlopen_json(req, timeout=180)
         report = llm_data["choices"][0]["message"]["content"].strip()
-        ***REMOVED*** Strip leading code fences if present
+        # Strip leading code fences if present
         if report.startswith("```"):
             lines = report.split("\n")
             if lines[0].startswith("```"):
@@ -958,8 +958,8 @@ async def phase_api_analogy(request: Request):
 
 请找 3 个在这个结构动力学上最相似的真实历史公司 + 时期，按系统指令输出 JSON。"""
 
-    ***REMOVED*** Kimi K2 是主力（便宜 + 对美股历史知识够用），Sonnet 是 fallback
-    ***REMOVED*** MiniMax M2 最快（~130 t/s），Grok-4-fast 次之，Kimi 和 Sonnet 作 fallback
+    # Kimi K2 是主力（便宜 + 对美股历史知识够用），Sonnet 是 fallback
+    # MiniMax M2 最快（~130 t/s），Grok-4-fast 次之，Kimi 和 Sonnet 作 fallback
     models = ["minimax/minimax-m2", "x-ai/grok-4-fast", "moonshotai/kimi-k2-0905", "anthropic/claude-sonnet-4.5"]
     last_err = None
     for model in models:
@@ -1045,7 +1045,7 @@ async def phase_api_analogy_detail(request: Request):
 
 **结构（严格按顺序写，用 Markdown 标题）**：
 
-***REMOVED******REMOVED*** 一、两家公司在结构上为什么像
+## 一、两家公司在结构上为什么像
 
 用大白话解释两家公司面对的是同一种数学结构（比如"都在一条 S 型增长曲线的拐点上"）。
 然后给出经典方程 + 翻译：
@@ -1064,7 +1064,7 @@ $$\\frac{dN}{dt} = r \\cdot N \\cdot (1 - N/K)$$
 
 结尾说一句：这两家公司**为什么**在数学上处于同一阶段。
 
-***REMOVED******REMOVED*** 二、历史公司当时到底发生了什么
+## 二、历史公司当时到底发生了什么
 
 400-500 字的故事，要像在讲新闻。要求：
 - 具体 CEO 名字、具体并购金额、具体战略代号
@@ -1072,20 +1072,20 @@ $$\\frac{dN}{dt} = r \\cdot N \\cdot (1 - N/K)$$
 - 分 2-3 个阶段，每阶段带年份
 - 避免"管理层做出战略调整"这种空话，要说"XX CEO 在 X 年 X 月做了什么，付出 Y 代价，换来 Z 结果"
 
-***REMOVED******REMOVED*** 三、当时的几个"如果当时选别的路"
+## 三、当时的几个"如果当时选别的路"
 
 至少 2 个反事实：
 - "如果当时 CEO 选择 X 而不是 Y，后来会像 XX 公司那样..."（要对比真实公司的结局）
 - 每个反事实要有一句"为什么最终没走这条路"的解释
 
-***REMOVED******REMOVED*** 四、这些信号，当时的投资者能看出来吗？
+## 四、这些信号，当时的投资者能看出来吗？
 
 列 4-6 条具体信号（不要"市场情绪转变"这种虚的）。每条格式：
 - **信号名**：具体是什么（举例"订户净新增从季度 80 万降到 20 万"）
 - **阈值**：超过多少值得警惕
 - **哪里能看到**：财报第几页？earnings call 里听什么？
 
-***REMOVED******REMOVED*** 五、那对当前公司意味着什么
+## 五、那对当前公司意味着什么
 
 最重要的一段。给 PM 可以拿去用的东西：
 
@@ -1137,7 +1137,7 @@ note: {struct.get('note', '?')}
 
 以"历史类比"为主角，按系统指令写一份 1500-2000 字的深度分析。把粗略描述展开到"真的了解了这家公司在那个时期发生的一切"的深度。"""
 
-    ***REMOVED*** Sonnet 4.5 为主（深度分析质量最好），Kimi K2 作 fallback
+    # Sonnet 4.5 为主（深度分析质量最好），Kimi K2 作 fallback
     models = ["anthropic/claude-sonnet-4.5", "moonshotai/kimi-k2-0905"]
     last_err = None
     for model in models:
@@ -1228,7 +1228,7 @@ async def phase_api_analogy_detail_stream(request: Request):
 
 **结构（严格按顺序写，用 Markdown 标题）**：
 
-***REMOVED******REMOVED*** 一、两家公司在结构上为什么像
+## 一、两家公司在结构上为什么像
 
 用大白话解释两家公司面对的是同一种数学结构（比如"都在一条 S 型增长曲线的拐点上"）。
 然后给出经典方程 + 翻译：
@@ -1247,7 +1247,7 @@ $$\\frac{dN}{dt} = r \\cdot N \\cdot (1 - N/K)$$
 
 结尾说一句：这两家公司**为什么**在数学上处于同一阶段。
 
-***REMOVED******REMOVED*** 二、历史公司当时到底发生了什么
+## 二、历史公司当时到底发生了什么
 
 400-500 字的故事，要像在讲新闻。要求：
 - 具体 CEO 名字、具体并购金额、具体战略代号
@@ -1255,20 +1255,20 @@ $$\\frac{dN}{dt} = r \\cdot N \\cdot (1 - N/K)$$
 - 分 2-3 个阶段，每阶段带年份
 - 避免"管理层做出战略调整"这种空话，要说"XX CEO 在 X 年 X 月做了什么，付出 Y 代价，换来 Z 结果"
 
-***REMOVED******REMOVED*** 三、当时的几个"如果当时选别的路"
+## 三、当时的几个"如果当时选别的路"
 
 至少 2 个反事实：
 - "如果当时 CEO 选择 X 而不是 Y，后来会像 XX 公司那样..."（要对比真实公司的结局）
 - 每个反事实要有一句"为什么最终没走这条路"的解释
 
-***REMOVED******REMOVED*** 四、这些信号，当时的投资者能看出来吗？
+## 四、这些信号，当时的投资者能看出来吗？
 
 列 4-6 条具体信号（不要"市场情绪转变"这种虚的）。每条格式：
 - **信号名**：具体是什么（举例"订户净新增从季度 80 万降到 20 万"）
 - **阈值**：超过多少值得警惕
 - **哪里能看到**：财报第几页？earnings call 里听什么？
 
-***REMOVED******REMOVED*** 五、那对当前公司意味着什么
+## 五、那对当前公司意味着什么
 
 最重要的一段。给 PM 可以拿去用的东西：
 
@@ -1671,7 +1671,7 @@ async def phase_api_memo_stream(request: Request):
 
     ticker = (body.get("ticker") or "").strip()
     struct = body.get("struct") or {}
-    side = (body.get("side") or "long").strip()  ***REMOVED*** long / short / watch
+    side = (body.get("side") or "long").strip()  # long / short / watch
     if not ticker or not struct:
         return JSONResponse({"error": "ticker and struct required"}, status_code=400)
 
@@ -1691,13 +1691,13 @@ async def phase_api_memo_stream(request: Request):
 
 你的输出会被用户直接粘到 Notion / Substack / 邮件 / PM memo 里，所以**必须是可以立即使用的成品**，不是草稿。
 
-**严格按以下 6 个板块写 Markdown，每个板块用 `***REMOVED******REMOVED***` 标题，顺序不能换**：
+**严格按以下 6 个板块写 Markdown，每个板块用 `##` 标题，顺序不能换**：
 
-***REMOVED******REMOVED*** TLDR
+## TLDR
 一句话总结。格式：「{公司名}结构上处于 {phase_state}（{dynamics_family} 动力学），{立场}的关键论点是 {一句话}。未来 6 个月最值得盯的是 {一个指标}。」
 要求：≤80 字，信息密度高，可以单独摘出来用。
 
-***REMOVED******REMOVED*** 一、结构画像
+## 一、结构画像
 
 用一段话（150-200 字）说清楚这家公司的结构动力学画像：
 - 当前的 `dynamics_family` 是什么，什么经典物理/生物方程对应
@@ -1705,7 +1705,7 @@ async def phase_api_memo_stream(request: Request):
 - 关键的 `canonical_equation` 写出来（合法 LaTeX，用 `$$...$$`），并用一句大白话翻译
 - 为什么市场对这家公司的结构性评估可能存在偏差
 
-***REMOVED******REMOVED*** 二、三个历史类比
+## 二、三个历史类比
 
 找 3 个真实存在过的公司 + 时期，它们在当时的结构动力学和这家公司现在最接近。每个类比写一段（80-120 字）：
 - 公司名 + 时期（具体年份，如"1998-2001 的 Cisco"）
@@ -1713,7 +1713,7 @@ async def phase_api_memo_stream(request: Request):
 - 那之后 3-5 年发生了什么（给真实数据）
 - 对当前公司的启示（一句话）
 
-***REMOVED******REMOVED*** 三、核心观点 + 支撑
+## 三、核心观点 + 支撑
 
 根据用户的立场（多/空/观察），给出 3 条立论，每条包含：
 - 观点（一句话，黑体）
@@ -1721,7 +1721,7 @@ async def phase_api_memo_stream(request: Request):
 - 支撑证据（引用具体数字，如果不确定就给区间）
 - 潜在反驳（一句话，承认这个观点什么时候会被推翻）
 
-***REMOVED******REMOVED*** 四、五个核心风险
+## 四、五个核心风险
 
 按严重程度排序。每条格式：
 - **风险名**（一句话概括）
@@ -1729,17 +1729,17 @@ async def phase_api_memo_stream(request: Request):
 - **触发条件**：什么可观测信号会让这个风险物化
 - **如果发生**：对公司的具体冲击（估值、增速、相位切换）
 
-***REMOVED******REMOVED*** 五、十个监控指标
+## 五、十个监控指标
 
 每条是**具体可查的指标 + 阈值 + 信号含义**：
-| ***REMOVED*** | 指标 | 阈值 | 在哪看到 | 含义 |
+| # | 指标 | 阈值 | 在哪看到 | 含义 |
 |---|------|------|---------|------|
 | 1 | DAU 季度环比 | 连续 2 季 < 1% | 10-Q 用户指标部分 | 饱和信号确认 |
 | 2 | ... | ... | ... | ... |
 
 必须用表格。10 条都要具体，不要"市场情绪" / "行业环境"这类虚的。
 
-***REMOVED******REMOVED*** 六、六个月后的可证伪假设
+## 六、六个月后的可证伪假设
 
 给 3 条**可以在 6 个月后用数据验证的**具体预测。每条格式：
 - **假设**：可验证的陈述（比如"NFLX 2026-Q2 全球订户将 < 2.85 亿"）
@@ -1898,7 +1898,7 @@ async def classes_page():
 
 @app.get("/paper/{slug}")
 async def paper_page(slug: str):
-    ***REMOVED*** Whitelist: serve the same HTML renderer, which picks up the slug from URL
+    # Whitelist: serve the same HTML renderer, which picks up the slug from URL
     return FileResponse(FRONTEND_DIR / "paper.html")
 
 
@@ -1907,27 +1907,27 @@ async def analyze_page():
     return FileResponse(FRONTEND_DIR / "analyze.html")
 
 
-***REMOVED*** Legacy alias: ask.js (W3-B deep-analysis CTA) still emits /analyze.html?text_a=
-***REMOVED*** Keep serving it to avoid breaking already-rendered thread items with hardcoded links.
+# Legacy alias: ask.js (W3-B deep-analysis CTA) still emits /analyze.html?text_a=
+# Keep serving it to avoid breaking already-rendered thread items with hardcoded links.
 @app.get("/analyze.html")
 async def analyze_html_alias():
     return FileResponse(FRONTEND_DIR / "analyze.html")
 
 
-***REMOVED*** Session ***REMOVED***16 M1.4 — persisted-report viewer pages. JS parses the URL.
+# Session #16 M1.4 — persisted-report viewer pages. JS parses the URL.
 @app.get("/report/share/{token}")
 async def report_share_page(token: str):
     return FileResponse(FRONTEND_DIR / "report.html")
 
 
-***REMOVED*** Session ***REMOVED***17 — "My Reports" list page (lists reports by device anonId).
+# Session #17 — "My Reports" list page (lists reports by device anonId).
 @app.get("/reports")
 async def my_reports_page():
     return FileResponse(FRONTEND_DIR / "reports.html")
 
 
-***REMOVED*** Session ***REMOVED***17 — privacy policy page (footer link; GDPR endpoints live
-***REMOVED*** under /api/privacy/*).
+# Session #17 — privacy policy page (footer link; GDPR endpoints live
+# under /api/privacy/*).
 @app.get("/privacy")
 async def privacy_page():
     return FileResponse(FRONTEND_DIR / "privacy.html")
@@ -1948,8 +1948,8 @@ async def methods_page():
     return FileResponse(FRONTEND_DIR / "methods.html")
 
 
-***REMOVED*** Session ***REMOVED***18 — value-mining A-G page routes. Each serves a static SPA shell;
-***REMOVED*** the .html alias keeps legacy / hand-typed URLs alive (matches /analyze.html).
+# Session #18 — value-mining A-G page routes. Each serves a static SPA shell;
+# the .html alias keeps legacy / hand-typed URLs alive (matches /analyze.html).
 def _s18_page(name: str):
     async def _serve():
         return FileResponse(FRONTEND_DIR / f"{name}.html")
@@ -1958,7 +1958,7 @@ def _s18_page(name: str):
 
 for _s18_name in ("tools", "whitespace", "insights", "apply",
                   "stress-test", "lint", "diagnose",
-                  "connections"):  ***REMOVED*** Session ***REMOVED***19 — G connect-people MVP
+                  "connections"):  # Session #19 — G connect-people MVP
     app.get(f"/{_s18_name}", include_in_schema=False)(_s18_page(_s18_name))
     app.get(f"/{_s18_name}.html", include_in_schema=False)(_s18_page(_s18_name))
 
@@ -1978,22 +1978,22 @@ async def learn_page():
     return FileResponse(FRONTEND_DIR / "learn.html")
 
 
-***REMOVED*** waitlist.js redirects here after a successful signup — without this route
-***REMOVED*** the redirect 404'd. thank-you.html already exists, it just wasn't exposed.
+# waitlist.js redirects here after a successful signup — without this route
+# the redirect 404'd. thank-you.html already exists, it just wasn't exposed.
 @app.get("/thank-you", include_in_schema=False)
 async def thank_you_page():
     return FileResponse(FRONTEND_DIR / "thank-you.html")
 
 
-***REMOVED*** Bare /report (no id) — report.js parseRoute() degrades to a friendly
-***REMOVED*** "pick a report" error; serving the shell lets that fallback run instead
-***REMOVED*** of a hard 404.
+# Bare /report (no id) — report.js parseRoute() degrades to a friendly
+# "pick a report" error; serving the shell lets that fallback run instead
+# of a hard 404.
 @app.get("/report", include_in_schema=False)
 async def report_index_page():
     return FileResponse(FRONTEND_DIR / "report.html")
 
 
-***REMOVED*** --- SEO: robots.txt + sitemap.xml (W3-D, 2026-05-14) ---
+# --- SEO: robots.txt + sitemap.xml (W3-D, 2026-05-14) ---
 @app.get("/robots.txt", include_in_schema=False)
 async def robots_txt():
     return FileResponse(FRONTEND_DIR / "robots.txt", media_type="text/plain")
@@ -2006,10 +2006,10 @@ async def sitemap_xml():
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
-    ***REMOVED*** API routes return RFC 7807 problem+json; only HTML pages get the full
-    ***REMOVED*** 404 template. Launch P1-5: unmatched /api routes previously returned an
-    ***REMOVED*** ad-hoc `{"detail": "not found"}` that bypassed errors.py — the API
-    ***REMOVED*** surface now answers with one consistent envelope everywhere.
+    # API routes return RFC 7807 problem+json; only HTML pages get the full
+    # 404 template. Launch P1-5: unmatched /api routes previously returned an
+    # ad-hoc `{"detail": "not found"}` that bypassed errors.py — the API
+    # surface now answers with one consistent envelope everywhere.
     path = request.url.path or ""
     if path.startswith("/api"):
         from errors import _problem_handler

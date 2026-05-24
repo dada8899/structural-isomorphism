@@ -10,7 +10,7 @@ Public types::
     RetryPolicy(max_attempts=3, backoff_seconds=1.0, jitter=True)
         .sleep_seconds(attempt: int, rng: random.Random | None) -> float
 
-    RetryExhausted               ***REMOVED*** raised when max_attempts is exhausted
+    RetryExhausted               # raised when max_attempts is exhausted
 
 `RetryExhausted` is exposed as a subclass of the existing
 `SchemaValidationError` so existing callers that catch `GuardrailError` keep
@@ -39,7 +39,7 @@ class RetryPolicy:
 
     Args:
         max_attempts: total number of LLM calls to make before giving up (>= 1).
-        backoff_seconds: base sleep between attempts (linear * attempt***REMOVED***).
+        backoff_seconds: base sleep between attempts (linear * attempt#).
         jitter: if True, multiply sleep by uniform(0.5, 1.5) to avoid
             thundering-herd retry storms when many parallel clients share a
             single backend.

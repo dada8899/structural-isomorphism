@@ -65,7 +65,7 @@ def main():
                 and key_of(c) not in used]
         if "phase_filter" in cfg:
             pool = [c for c in pool if c.get("phase_state") in cfg["phase_filter"]]
-        ***REMOVED*** Prefer approaching_critical (hot signal) → then confidence → then mcap
+        # Prefer approaching_critical (hot signal) → then confidence → then mcap
         phase_priority = {"approaching_critical": 0, "saturated": 1, "post_transition": 2}
         pool.sort(key=lambda c: (
             phase_priority.get(c.get("phase_state"), 3),

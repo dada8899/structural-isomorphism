@@ -1,13 +1,13 @@
-***REMOVED*** W7-A · structural-isomorphism 18-month Academic Value Roadmap
+# W7-A · structural-isomorphism 18-month Academic Value Roadmap
 
 > **Author.** W7-A subagent (research strategy persona — SOC physics / complex systems / cross-disciplinary statistical inference, PRE + Nature Phys referee experience).
 > **Date.** 2026-05-13.
-> **Inputs.** `docs/sessions/HANDOFF.md` (session ***REMOVED***2 state), `paper/v0-unified-pipeline-2026-05-13.md` v0.3 (§8 pre-registration + §9 submission path), `docs/reviews/W5-A-scholar-review-2026-05-13.md` (scholar review with 9 statistical concerns + 12-month patch roadmap), `v4/results/B3_taxonomy_v2.jsonl` (KEEP=5/REJECT=7/SPLIT=5/MERGE=4 ensemble verdict).
+> **Inputs.** `docs/sessions/HANDOFF.md` (session #2 state), `paper/v0-unified-pipeline-2026-05-13.md` v0.3 (§8 pre-registration + §9 submission path), `docs/reviews/W5-A-scholar-review-2026-05-13.md` (scholar review with 9 statistical concerns + 12-month patch roadmap), `v4/results/B3_taxonomy_v2.jsonl` (KEEP=5/REJECT=7/SPLIT=5/MERGE=4 ensemble verdict).
 > **Question this document answers.** What is the most leverage-producing 18-month academic agenda for this project, distinct from "PR fluff" and distinct from "patch the existing draft until PRE accepts it"?
 
 ---
 
-***REMOVED******REMOVED*** 0. TL;DR
+## 0. TL;DR
 
 The most leverage-producing 18-month path is **not** to maximize papers published. It is to shift the project from "interesting single-author cross-domain SOC catalogue" to **one of three substantive contributions to how the field works**:
 
@@ -21,7 +21,7 @@ The current submission plan (§9 of v0.3) targets PRE + Chaos + EPL for C1 — t
 
 ---
 
-***REMOVED******REMOVED*** 1. What counts as "real academic value" (not PR fluff)
+## 1. What counts as "real academic value" (not PR fluff)
 
 Five concrete contribution types, ranked by how a senior physicist / referee would actually value them:
 
@@ -45,13 +45,13 @@ Five concrete contribution types, ranked by how a senior physicist / referee wou
 
 ---
 
-***REMOVED******REMOVED*** 2. Honest weakness assessment (after scholar review)
+## 2. Honest weakness assessment (after scholar review)
 
 W5-A scholar review (2026-05-13) listed 9 statistical / methodological issues. Triaged into *fixable* vs *fundamental*:
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Fixable (1-4 weeks, no path constraint)
+### 2.1 Fixable (1-4 weeks, no path constraint)
 
-| ***REMOVED*** | Issue | Fix | Cost |
+| # | Issue | Fix | Cost |
 |---|---|---|---|
 | F1 | bootstrap n=100 → should be 10,000 | rerun overnight | 1 CPU-night |
 | F2 | Scheffer p=10⁻¹⁸⁶ (serial-correlation artifact) | block-bootstrap (already done in v0.3) | done ✓ |
@@ -59,9 +59,9 @@ W5-A scholar review (2026-05-13) listed 9 statistical / methodological issues. T
 | F4 | xmin sensitivity not stress-tested for small-n phases | sliding-window xmin scan supplementary figures | 1 day |
 | F5 | r_shape=1.11 lacks null distribution | 10k surrogate-null permutation test on row-centered ratio | 1-2 days |
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Fundamental (requires structural change to project)
+### 2.2 Fundamental (requires structural change to project)
 
-| ***REMOVED*** | Issue | Why fundamental | Implication |
+| # | Issue | Why fundamental | Implication |
 |---|---|---|---|
 | Φ1 | 11/11 in-band coverage is suspiciously high | "post-hoc curve-fitting concern" — only pre-registration on *fresh* systems can absolve | §8 pre-registration must actually be run, not just listed |
 | Φ2 | B3 single-vendor "ensemble" is not real architectural ensemble | DeepSeek × 3 temperature variants ≠ Claude+GPT+DeepSeek+Kimi+GLM cross-family | B4 cross-family ensemble is a separate paper, not a v0.4 fix |
@@ -73,9 +73,9 @@ W5-A scholar review (2026-05-13) listed 9 statistical / methodological issues. T
 
 ---
 
-***REMOVED******REMOVED*** 3. 18-month academic agenda — six tracks, ranked by leverage
+## 3. 18-month academic agenda — six tracks, ranked by leverage
 
-***REMOVED******REMOVED******REMOVED*** Track A — Open dataset + benchmark (T3, HIGHEST LEVERAGE) ★
+### Track A — Open dataset + benchmark (T3, HIGHEST LEVERAGE) ★
 
 **Deliverable.** A Zenodo-deposited DOI-stamped dataset bundle: `structural-isomorphism-v1.0-benchmark.zip`. Contents:
 - 13 independently fetched datasets (raw + cleaned)
@@ -102,7 +102,7 @@ W5-A scholar review (2026-05-13) listed 9 statistical / methodological issues. T
 
 **Cost.** Mostly already-done work. ~2 weeks packaging + 2 weeks paper drafting. No new compute, no new fieldwork. **This is the dominant near-term opportunity.**
 
-***REMOVED******REMOVED******REMOVED*** Track B — Reject-aware methodology paper (T2, near-finished) ★
+### Track B — Reject-aware methodology paper (T2, near-finished) ★
 
 **Deliverable.** C4 paper (`paper/c4-reject-aware-pipeline-2026-05-13.md`, 8164 words, exists at v0.1) → *Patterns* (Cell Press) or *NeurIPS-D&B* or *J. Stat. Software*.
 
@@ -124,7 +124,7 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 **Cost.** 2 weeks revision + 0 compute. No fieldwork.
 
-***REMOVED******REMOVED******REMOVED*** Track C — Pre-registered adversarial replication (T4, credibility-buying)
+### Track C — Pre-registered adversarial replication (T4, credibility-buying)
 
 **Deliverable.** Run the five §8 pre-registered systems (P1 Bitcoin Cash; P2 Reddit cascade; P3 FluNet influenza; P4 Flickr photo bursts; P5 ant-colony foraging). Publish results regardless of outcome.
 
@@ -149,7 +149,7 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 **Cost.** ~$30 in LLM if any taxonomy reruns. Mostly compute + literature search. 2-3 weeks effective work.
 
-***REMOVED******REMOVED******REMOVED*** Track D — Method paper series (T2, complement to C4)
+### Track D — Method paper series (T2, complement to C4)
 
 **Three method papers, each independent:**
 
@@ -166,7 +166,7 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 **Cost.** ~$0 compute. 2-3 weeks/each.
 
-***REMOVED******REMOVED******REMOVED*** Track E — Senior co-author / collaboration ecosystem (legitimacy)
+### Track E — Senior co-author / collaboration ecosystem (legitimacy)
 
 **Goal.** Convert single-author preprints to joint-authored papers with senior physicists who add credibility AND who already have referee networks at PRE / Chaos / Patterns.
 
@@ -197,7 +197,7 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 **Cost.** Time, not money. ~1-2 day/week if pursued aggressively.
 
-***REMOVED******REMOVED******REMOVED*** Track F — Heterogeneous LLM ensemble B4 (T2 methodology, deferred)
+### Track F — Heterogeneous LLM ensemble B4 (T2 methodology, deferred)
 
 **Deliverable.** Replace B3 (3× DeepSeek) with B4 (Claude Opus + GPT-5 + DeepSeek-pro + Kimi K2.5 + GLM-5) — a real architectural cross-family ensemble.
 
@@ -213,7 +213,7 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 **Cost.** $50-200 LLM. 1-2 weeks if region resolved.
 
-***REMOVED******REMOVED******REMOVED*** Track G — Long-term: ML benchmark on papers-with-code (compounding)
+### Track G — Long-term: ML benchmark on papers-with-code (compounding)
 
 **18-month is too early — this is months 12-24+.** But seed it now:
 
@@ -228,11 +228,11 @@ W5-A scholar review §5.3 explicitly flagged this as "probably the best paper in
 
 ---
 
-***REMOVED******REMOVED*** 4. What NOT to do (kill list)
+## 4. What NOT to do (kill list)
 
 Explicit anti-recommendations:
 
-| ***REMOVED*** | NOT to do | Why |
+| # | NOT to do | Why |
 |---|---|---|
 | ¬1 | Add a 14th, 15th, 16th system to chase headline count | Diminishing returns; 13 is enough; resources better spent on Track A packaging or Track C pre-registration |
 | ¬2 | Polish C1 to Nature Phys / Nat. Commun. submission | W5-A explicit: desk-reject likely; arXiv + PRE + Chaos is the realistic ceiling |
@@ -247,7 +247,7 @@ Explicit anti-recommendations:
 
 ---
 
-***REMOVED******REMOVED*** 5. Month-by-month milestone roadmap
+## 5. Month-by-month milestone roadmap
 
 | Month | Milestone | Deliverable | Decision gate |
 |---|---|---|---|
@@ -276,11 +276,11 @@ Explicit anti-recommendations:
 
 ---
 
-***REMOVED******REMOVED*** 6. Immediately actionable — next 30 days (top 10)
+## 6. Immediately actionable — next 30 days (top 10)
 
-Concrete tasks startable in session ***REMOVED***3 or ***REMOVED***4. Each tagged with effort (S/M/L) + suggested owner:
+Concrete tasks startable in session #3 or #4. Each tagged with effort (S/M/L) + suggested owner:
 
-| ***REMOVED*** | Task | Effort | Owner | Output |
+| # | Task | Effort | Owner | Output |
 |---|---|---|---|---|
 | **N1** | **Track A start — assemble Zenodo dataset bundle** (manifest + LICENSE + README + provenance) | M | main session or W8 agent | `dataset/v1.0/manifest.json` + `dataset/v1.0/README.md` |
 | **N2** | **F1 fix — bootstrap rerun at n=10,000 for headline phases (1, 4, 12, A2-Scheffer)** | M | bash bg + monitor | `v4/results/bootstrap_v2_10k.jsonl` |
@@ -295,11 +295,11 @@ Concrete tasks startable in session ***REMOVED***3 or ***REMOVED***4. Each tagge
 
 ---
 
-***REMOVED******REMOVED*** 7. Wave 8 dispatch — 5 mini-briefs ready to fire
+## 7. Wave 8 dispatch — 5 mini-briefs ready to fire
 
 Each is a self-contained subagent-startable task with effort sizing + acceptance criteria.
 
-***REMOVED******REMOVED******REMOVED*** W8-1 — Zenodo dataset bundle assembly
+### W8-1 — Zenodo dataset bundle assembly
 
 **Goal.** Package the 13 datasets + nulls + frozen pipeline + B3 taxonomy + tutorial into a Zenodo-ready bundle at `dataset/v1.0/`.
 
@@ -318,7 +318,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 **Effort.** M (1 day). **LLM.** None.
 
-***REMOVED******REMOVED******REMOVED*** W8-2 — Surrogate-null for r_shape=1.11
+### W8-2 — Surrogate-null for r_shape=1.11
 
 **Goal.** Compute the empirical p-value of r_shape=1.11 against a 10,000-iid-lognormal-matched surrogate null distribution.
 
@@ -338,7 +338,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 **Effort.** M (1-2 days). **LLM.** None — pure numerical.
 
-***REMOVED******REMOVED******REMOVED*** W8-3 — Bootstrap rerun at n=10,000 for headline phases
+### W8-3 — Bootstrap rerun at n=10,000 for headline phases
 
 **Goal.** Rerun bootstrap CIs at n_boot=10,000 (not 100) for Phases 1, 4, 12, A2-Scheffer.
 
@@ -354,7 +354,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 **Effort.** M (1 day wall + 1 night compute). **LLM.** None.
 
-***REMOVED******REMOVED******REMOVED*** W8-4 — C4 v0.2 revisions (model-architecture confound + layer compression)
+### W8-4 — C4 v0.2 revisions (model-architecture confound + layer compression)
 
 **Goal.** Produce C4 v0.2 with W5-A §5.3 critical fixes applied.
 
@@ -370,7 +370,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 **Effort.** S-M (4-6 hours). **LLM.** $0.
 
-***REMOVED******REMOVED******REMOVED*** W8-5 — Pre-registration P1 (Bitcoin Cash) end-to-end run
+### W8-5 — Pre-registration P1 (Bitcoin Cash) end-to-end run
 
 **Goal.** Execute the first of the 5 §8 pre-registered systems: Bitcoin Cash daily log returns (2017-2025), predicted band α = 2.8 ± 0.3.
 
@@ -389,7 +389,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 ---
 
-***REMOVED******REMOVED*** 8. Single highest-leverage action (top-1 pick)
+## 8. Single highest-leverage action (top-1 pick)
 
 **Action.** Ship the Zenodo dataset bundle (Track A start) in the next 2 weeks.
 
@@ -413,7 +413,7 @@ Each is a self-contained subagent-startable task with effort sizing + acceptance
 
 ---
 
-***REMOVED******REMOVED*** 9. Scoring rubric — "did we produce real academic value?"
+## 9. Scoring rubric — "did we produce real academic value?"
 
 Specific metrics with 18-month and 36-month targets:
 
@@ -434,9 +434,9 @@ Specific metrics with 18-month and 36-month targets:
 
 ---
 
-***REMOVED******REMOVED*** 10. Open questions for user / PM (none currently blocking; decisions can be deferred)
+## 10. Open questions for user / PM (none currently blocking; decisions can be deferred)
 
-| ***REMOVED*** | Question | Default if no answer |
+| # | Question | Default if no answer |
 |---|---|---|
 | Q1 | Is the project willing to use a non-`gmail.com` / non-`github.com` email for arXiv submission? arXiv moderation rejects placeholders. | Use `wanqh@u.illinois.edu`-style alumni email if available, else `riazward110@gmail.com` standalone; do not block on this |
 | Q2 | Track G papers-with-code seeding: when to fork D1-phase-detector product line vs keep academic-only | Defer to month 12; D1 product is currently parallel track in HANDOFF §2 Sprint A |
@@ -446,7 +446,7 @@ Specific metrics with 18-month and 36-month targets:
 
 ---
 
-***REMOVED******REMOVED*** 11. Document version + provenance
+## 11. Document version + provenance
 
 - **v0.1 — 2026-05-13.** Initial W7-A subagent draft. Builds on W5-A scholar review, paper v0.3, HANDOFF session-2-end.
 - **Author.** W7-A subagent persona (research-strategist).

@@ -1,6 +1,6 @@
 """ConnectionsStore — G 方向「按问题结构连接人」的数据访问层。
 
-Session ***REMOVED***19 G-MVP（P1 指纹抽取 + P2 匹配引擎 / L1 可发现）。
+Session #19 G-MVP（P1 指纹抽取 + P2 匹配引擎 / L1 可发现）。
 
 设计依据：docs/sessions/SESSION-18-G-connect-people-design.md §3。本 MVP 落
 P1 + P2，不做 P3（双向同意 match 流程 / 引荐 / 消息）。
@@ -29,7 +29,7 @@ from typing import Optional
 
 logger = logging.getLogger("structural.connections")
 
-***REMOVED*** 合法可见性级别。默认 L0（最严）。
+# 合法可见性级别。默认 L0（最严）。
 VISIBILITY_LEVELS = ("L0", "L1", "L2")
 DEFAULT_VISIBILITY = "L0"
 
@@ -42,8 +42,8 @@ def new_fingerprint_id() -> str:
     return "fp_" + uuid.uuid4().hex[:16]
 
 
-***REMOVED*** structural_fingerprints —— 一个用户可有多个指纹。
-***REMOVED*** embedding 存 float32 little-endian 裸字节（np.ndarray.astype('<f4').tobytes()）。
+# structural_fingerprints —— 一个用户可有多个指纹。
+# embedding 存 float32 little-endian 裸字节（np.ndarray.astype('<f4').tobytes()）。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS structural_fingerprints (
     id                 TEXT PRIMARY KEY,
@@ -65,8 +65,8 @@ CREATE INDEX IF NOT EXISTS idx_fp_visibility
     ON structural_fingerprints(visibility_level);
 """
 
-***REMOVED*** 表必须有的列。CREATE TABLE IF NOT EXISTS 在旧表上是 no-op，所以这里
-***REMOVED*** 显式列出，加列自愈（沿用 report_store 的 _migrate 模式）。
+# 表必须有的列。CREATE TABLE IF NOT EXISTS 在旧表上是 no-op，所以这里
+# 显式列出，加列自愈（沿用 report_store 的 _migrate 模式）。
 _FP_COLUMNS = (
     ("user_email", "TEXT"),
     ("source_report_id", "TEXT"),
@@ -93,21 +93,21 @@ class ConnectionsStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
-    ***REMOVED*** --- 连接 / schema --------------------------------------------------
+    # --- 连接 / schema --------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  ***REMOVED*** pragma: no cover
+        except sqlite3.Error as e:  # pragma: no cover
             logger.warning("connections_store WAL pragma failed: %s", e)
         return conn
 
     def _init_schema(self) -> None:
         try:
             with self._connect() as conn:
-                ***REMOVED*** 先迁移：旧表可能缺列，建索引前补齐避免 OperationalError。
+                # 先迁移：旧表可能缺列，建索引前补齐避免 OperationalError。
                 self._migrate_columns(conn)
                 conn.executescript(_SCHEMA)
         except sqlite3.Error as e:
@@ -123,7 +123,7 @@ class ConnectionsStore:
             ).fetchall()
         }
         if not existing:
-            return  ***REMOVED*** 表不存在 → 交给 CREATE TABLE
+            return  # 表不存在 → 交给 CREATE TABLE
         for col, col_def in _FP_COLUMNS:
             if col not in existing:
                 logger.warning(
@@ -135,7 +135,7 @@ class ConnectionsStore:
                     f"ADD COLUMN {col} {col_def}"
                 )
 
-    ***REMOVED*** --- 写 -------------------------------------------------------------
+    # --- 写 -------------------------------------------------------------
 
     def create_fingerprint(
         self,
@@ -231,7 +231,7 @@ class ConnectionsStore:
         """
         return self.list_by_user(user_email)
 
-    ***REMOVED*** --- 读 -------------------------------------------------------------
+    # --- 读 -------------------------------------------------------------
 
     def get_fingerprint(self, fid: str) -> Optional[dict]:
         with self._connect() as conn:

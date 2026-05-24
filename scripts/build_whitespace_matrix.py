@@ -1,11 +1,11 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """A2 Whitespace Map — precompute the universality-class × domain matrix.
 
 核心思想：26 个普适类 × 183 个领域 = 一个矩阵。每个普适类的 `domains`
 字段列出它目前已覆盖（filled）的领域。对未覆盖的格子，如果该领域结构上
 理论上应属于该普适类，则视为「研究空白」（whitespace lead）。
 
-Session ***REMOVED***18 深化（A2 二版）——解决初版"所有类恰好顶到 12 条上限"的短板：
+Session #18 深化（A2 二版）——解决初版"所有类恰好顶到 12 条上限"的短板：
 
   1. 信号融合（非 LLM）：不再只用 base-model 的 embedding 质心余弦。
      裸 embedding 是 surface-similarity，区分度极低。新增 type_id 结构信号：
@@ -74,33 +74,33 @@ EMB_FILE = _REPO / "web" / "data" / "kb_v2_embeddings.npy"
 EMB_IDS_FILE = _REPO / "web" / "data" / "kb_v2_embeddings_ids.json"
 OUT_FILE = _REPO / "web" / "data" / "whitespace_matrix.json"
 
-***REMOVED*** --- Signal fusion ---
-***REMOVED*** The base encoding model is surface-similarity (cosines cluster ~0.0-0.36
-***REMOVED*** with almost no spread), so it cannot discriminate leads on its own.
-***REMOVED*** We blend it with a type_id enrichment signal. SIGNAL_BLEND is the weight
-***REMOVED*** on the (sharper) type_id signal; the remainder goes to embedding.
+# --- Signal fusion ---
+# The base encoding model is surface-similarity (cosines cluster ~0.0-0.36
+# with almost no spread), so it cannot discriminate leads on its own.
+# We blend it with a type_id enrichment signal. SIGNAL_BLEND is the weight
+# on the (sharper) type_id signal; the remainder goes to embedding.
 SIGNAL_BLEND = 0.7
 
-***REMOVED*** Raw enrichment is unbounded; ENRICH_SCALE sets the tanh squash so a
-***REMOVED*** "neutral" enrichment (~baseline, value ~1) maps to a modest score and a
-***REMOVED*** strongly enriched domain (value ~5+) saturates near 1.
+# Raw enrichment is unbounded; ENRICH_SCALE sets the tanh squash so a
+# "neutral" enrichment (~baseline, value ~1) maps to a modest score and a
+# strongly enriched domain (value ~5+) saturates near 1.
 ENRICH_SCALE = 2.5
 
-***REMOVED*** A class needs at least this many KB-resolvable members for its type_id
-***REMOVED*** signature to be trustworthy; below it we fall back to embedding-only.
+# A class needs at least this many KB-resolvable members for its type_id
+# signature to be trustworthy; below it we fall back to embedding-only.
 MIN_MEMBERS_FOR_SIGNATURE = 3
 
-***REMOVED*** Lead bar = max(class filled-domain median, LEAD_BAR_FLOOR). The floor is
-***REMOVED*** an absolute cut on the fused score so classes with weak/empty filled sets
-***REMOVED*** still get a meaningful bar instead of admitting everything. To avoid an
-***REMOVED*** empty list, always keep at least MIN_LEADS_FLOOR best unfilled domains;
-***REMOVED*** MAX_LEADS_CAP keeps the list actionable.
+# Lead bar = max(class filled-domain median, LEAD_BAR_FLOOR). The floor is
+# an absolute cut on the fused score so classes with weak/empty filled sets
+# still get a meaningful bar instead of admitting everything. To avoid an
+# empty list, always keep at least MIN_LEADS_FLOOR best unfilled domains;
+# MAX_LEADS_CAP keeps the list actionable.
 LEAD_BAR_FLOOR = 0.30
 MIN_LEADS_FLOOR = 3
 MAX_LEADS_CAP = 20
 
-***REMOVED*** --- LLM judging layer (only with --llm + OPENROUTER_API_KEY) ---
-LLM_CANDIDATE_TOPK = 18   ***REMOVED*** judge this many top-fused unfilled domains per class
+# --- LLM judging layer (only with --llm + OPENROUTER_API_KEY) ---
+LLM_CANDIDATE_TOPK = 18   # judge this many top-fused unfilled domains per class
 _PLAUSIBLE_ENUM = {"yes", "maybe", "no"}
 
 
@@ -145,9 +145,9 @@ def load_kb() -> list[dict]:
     return rows
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** type_id structural signal
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# type_id structural signal
+# --------------------------------------------------------------------------
 
 
 def histogram(type_ids: list[str]) -> dict[str, float]:
@@ -218,9 +218,9 @@ def class_type_signature(
     return histogram(type_ids), len(type_ids)
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** LLM judging layer
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# LLM judging layer
+# --------------------------------------------------------------------------
 
 _LLM_SYSTEM = (
     "你是跨学科结构科学的评审。给定一个「普适类」（一种抽象的结构/动力学模式）"
@@ -274,16 +274,16 @@ def _coerce_llm_verdict(raw: object) -> dict | None:
     if plausible not in _PLAUSIBLE_ENUM:
         return None
     if plausible == "no":
-        return {"plausible": "no"}  ***REMOVED*** signal: drop this lead
+        return {"plausible": "no"}  # signal: drop this lead
     rationale = str(raw.get("rationale", "") or "").strip()
     question = str(raw.get("research_question", "") or "").strip()
     if not rationale:
         rationale = "（LLM 未给出理由）"
-    ***REMOVED*** research_question missing -> caller substitutes a templated fallback.
+    # research_question missing -> caller substitutes a templated fallback.
     return {
         "plausible": plausible,
         "rationale": rationale[:400],
-        "research_question": question[:400],  ***REMOVED*** may be "" -> fallback at caller
+        "research_question": question[:400],  # may be "" -> fallback at caller
     }
 
 
@@ -340,9 +340,9 @@ async def run_llm_layer(
     return verdicts
 
 
-***REMOVED*** --------------------------------------------------------------------------
-***REMOVED*** main
-***REMOVED*** --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# main
+# --------------------------------------------------------------------------
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -365,10 +365,10 @@ def main(argv: list[str] | None = None) -> int:
     emb_ids = json.load(open(EMB_IDS_FILE, "r", encoding="utf-8"))
     logger.info("kb=%d classes=%d emb=%s", len(kb), len(classes), embeddings.shape)
 
-    ***REMOVED*** id -> embedding row index
+    # id -> embedding row index
     idx_by_id = {pid: i for i, pid in enumerate(emb_ids)}
 
-    ***REMOVED*** --- Group KB phenomena by domain. ---
+    # --- Group KB phenomena by domain. ---
     domain_phen: dict[str, list[tuple[dict, int]]] = {}
     for item in kb:
         dom = item.get("domain", "")
@@ -377,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         domain_phen.setdefault(dom, []).append((item, idx_by_id[pid]))
 
-    ***REMOVED*** domain centroid (embedding) + domain type_id profile.
+    # domain centroid (embedding) + domain type_id profile.
     domain_centroid: dict[str, np.ndarray] = {}
     domain_type_profile: dict[str, dict[str, float]] = {}
     for dom, phens in domain_phen.items():
@@ -390,13 +390,13 @@ def main(argv: list[str] | None = None) -> int:
     all_domains = sorted(domain_phen.keys())
     logger.info("domains with phenomena=%d", len(all_domains))
 
-    ***REMOVED*** Global type_id baseline over the whole KB — the denominator for the
-    ***REMOVED*** enrichment signal (a type_id common everywhere should not score).
+    # Global type_id baseline over the whole KB — the denominator for the
+    # enrichment signal (a type_id common everywhere should not score).
     type_baseline = histogram(
         [str(r.get("type_id", "")) for r in kb if r.get("type_id")]
     )
 
-    ***REMOVED*** --- Encode each class's representative text (embedding signal). ---
+    # --- Encode each class's representative text (embedding signal). ---
     from structural_isomorphism.model import load_model, encode_texts
     model = load_model()
 
@@ -412,20 +412,20 @@ def main(argv: list[str] | None = None) -> int:
         class_texts.append(" ".join(p for p in parts if p))
     class_embs = np.asarray(encode_texts(model, class_texts), dtype=np.float32)
 
-    ***REMOVED*** --- Build matrix + leads (non-LLM signal). ---
+    # --- Build matrix + leads (non-LLM signal). ---
     matrix: dict[str, dict] = {}
     leads: list[dict] = []
-    ***REMOVED*** candidates handed to the optional LLM layer.
+    # candidates handed to the optional LLM layer.
     llm_candidates: dict[str, list[dict]] = {}
     n_filled = n_lead = n_empty = 0
-    n_sig_used = 0  ***REMOVED*** how many classes had a usable type_id signature
+    n_sig_used = 0  # how many classes had a usable type_id signature
 
     for ci, c in enumerate(classes):
         cid = c["class_id"]
         cname = c.get("name_zh", cid)
         c_emb = class_embs[ci]
 
-        ***REMOVED*** type_id signature for this class.
+        # type_id signature for this class.
         sig, n_members = class_type_signature(c, kb_by_name)
         use_sig = n_members >= MIN_MEMBERS_FOR_SIGNATURE and bool(sig)
         if use_sig:
@@ -433,9 +433,9 @@ def main(argv: list[str] | None = None) -> int:
 
         filled_norm = {normalize_domain(d) for d in c.get("domains", [])}
 
-        ***REMOVED*** --- Score every domain: fuse embedding cosine + type_id enrichment. ---
+        # --- Score every domain: fuse embedding cosine + type_id enrichment. ---
         emb_cos: dict[str, float] = {}
-        type_match: dict[str, float] = {}  ***REMOVED*** squashed enrichment, in [0, 1)
+        type_match: dict[str, float] = {}  # squashed enrichment, in [0, 1)
         fused: dict[str, float] = {}
         for dom in all_domains:
             ec = cosine(c_emb, domain_centroid[dom])
@@ -446,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 tm = squash_enrichment(enr)
                 type_match[dom] = round(tm, 4)
-                ***REMOVED*** Both signals in [~0, 1]; type_id enrichment is the sharper.
+                # Both signals in [~0, 1]; type_id enrichment is the sharper.
                 fused[dom] = round(
                     SIGNAL_BLEND * tm + (1.0 - SIGNAL_BLEND) * max(0.0, ec), 4
                 )
@@ -459,10 +459,10 @@ def main(argv: list[str] | None = None) -> int:
         unfilled = [d for d in all_domains
                     if normalize_domain(d) not in filled_norm]
 
-        ***REMOVED*** Lead bar = max(class filled-domain median, absolute floor). A lead
-        ***REMOVED*** must be "as structurally plausible as the domains we already know
-        ***REMOVED*** belong here" AND clear an absolute floor. No rigid per-class quota
-        ***REMOVED*** — counts vary by class.
+        # Lead bar = max(class filled-domain median, absolute floor). A lead
+        # must be "as structurally plausible as the domains we already know
+        # belong here" AND clear an absolute floor. No rigid per-class quota
+        # — counts vary by class.
         filled_median = (float(np.median(filled_scores))
                          if filled_scores else 0.0)
         lead_bar = max(filled_median, LEAD_BAR_FLOOR)
@@ -473,11 +473,11 @@ def main(argv: list[str] | None = None) -> int:
             if len(lead_domains) >= MAX_LEADS_CAP:
                 break
             if rank < MIN_LEADS_FLOOR:
-                lead_domains.append(dom)          ***REMOVED*** always surface a few
+                lead_domains.append(dom)          # always surface a few
             elif fused[dom] >= lead_bar:
                 lead_domains.append(dom)
             else:
-                break  ***REMOVED*** ranked desc — nothing below clears the bar either
+                break  # ranked desc — nothing below clears the bar either
         lead_set = set(lead_domains)
 
         cells: dict[str, dict] = {}
@@ -495,8 +495,8 @@ def main(argv: list[str] | None = None) -> int:
             cells[dom] = {"state": state, "score": score}
 
             if state == "lead":
-                ***REMOVED*** anchor = the phenomenon in this domain most similar to the
-                ***REMOVED*** class — the concrete "entry point" for a researcher.
+                # anchor = the phenomenon in this domain most similar to the
+                # class — the concrete "entry point" for a researcher.
                 best_phen, best_sim = None, -2.0
                 for phen, ei in domain_phen[dom]:
                     s = cosine(c_emb, embeddings[ei])
@@ -525,14 +525,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
         matrix[cid] = cells
 
-    ***REMOVED*** Keep only the top-K candidates per class for the LLM layer (by score).
+    # Keep only the top-K candidates per class for the LLM layer (by score).
     for cid in llm_candidates:
         llm_candidates[cid] = sorted(
             llm_candidates[cid],
             key=lambda x: -x["_lead_ref"]["score"],
         )[:LLM_CANDIDATE_TOPK]
 
-    ***REMOVED*** --- Optional LLM judging layer. ---
+    # --- Optional LLM judging layer. ---
     llm_ran = False
     n_llm_dropped = 0
     if args.llm:
@@ -548,13 +548,13 @@ def main(argv: list[str] | None = None) -> int:
             for lead in leads:
                 v = verdicts.get(lead["class_id"], {}).get(lead["domain"])
                 if v is None:
-                    ***REMOVED*** LLM gave no verdict (network / parse fail) — keep the
-                    ***REMOVED*** lead on the non-LLM signal, no LLM fields attached.
+                    # LLM gave no verdict (network / parse fail) — keep the
+                    # lead on the non-LLM signal, no LLM fields attached.
                     kept.append(lead)
                     continue
                 if v.get("plausible") == "no":
                     n_llm_dropped += 1
-                    ***REMOVED*** demote the matrix cell from lead -> empty.
+                    # demote the matrix cell from lead -> empty.
                     cell = matrix.get(lead["class_id"], {}).get(lead["domain"])
                     if cell:
                         cell["state"] = "empty"
@@ -567,21 +567,21 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 kept.append(lead)
             leads = kept
-            ***REMOVED*** recount lead / empty after LLM demotions.
+            # recount lead / empty after LLM demotions.
             n_lead = sum(1 for cls in matrix.values()
                          for cell in cls.values() if cell["state"] == "lead")
             n_empty = sum(1 for cls in matrix.values()
                           for cell in cls.values() if cell["state"] == "empty")
             logger.info("LLM layer: dropped %d leads (plausible=no)", n_llm_dropped)
 
-    ***REMOVED*** strip internal-only refs before serializing.
+    # strip internal-only refs before serializing.
     for lead in leads:
         lead.pop("_lead_ref", None)
 
-    ***REMOVED*** leads: sort by score desc — highest structural plausibility first.
+    # leads: sort by score desc — highest structural plausibility first.
     leads.sort(key=lambda x: (-x["score"], x["class_id"], x["domain"]))
 
-    ***REMOVED*** lead-count spread diagnostics.
+    # lead-count spread diagnostics.
     from collections import Counter
     lead_counts = Counter(x["class_id"] for x in leads)
     counts_sorted = sorted(lead_counts.values(), reverse=True)

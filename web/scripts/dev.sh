@@ -1,5 +1,5 @@
-***REMOVED***!/bin/bash
-***REMOVED*** Structural Web 本地开发启动脚本
+#!/bin/bash
+# Structural Web 本地开发启动脚本
 set -e
 
 cd "$(dirname "$0")/.."

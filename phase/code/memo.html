@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>投资 Memo 生成器 — Phase Detector</title>
   <meta name="description" content="选一家公司 + 立场 → 一键生成 1500-2500 字结构化投资 memo，复制到 Notion / Substack 直接用。">
 
@@ -18,20 +18,20 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --text-dim: ***REMOVED***A1A1AA;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --text-dim: #A1A1AA;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --green: ***REMOVED***059669;
-      --amber: ***REMOVED***D97706;
-      --red: ***REMOVED***DC2626;
+      --green: #059669;
+      --amber: #D97706;
+      --red: #DC2626;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -135,12 +135,12 @@
     }
     .side-btn:last-child { border-right: 0; }
     .side-btn:hover { background: var(--bg-card); color: var(--text); }
-    .side-btn[data-active="true"] { background: var(--accent); color: ***REMOVED***FFFFFF; }
+    .side-btn[data-active="true"] { background: var(--accent); color: #FFFFFF; }
 
     button.btn-primary {
       padding: 10px 22px;
       background: var(--accent);
-      color: ***REMOVED***FFFFFF;
+      color: #FFFFFF;
       border: 0;
       border-radius: 8px;
       font-size: 14px;
@@ -149,7 +149,7 @@
       transition: background 0.15s;
       font-family: inherit;
     }
-    button.btn-primary:hover { background: ***REMOVED***1D4ED8; }
+    button.btn-primary:hover { background: #1D4ED8; }
     button.btn-primary:disabled { background: var(--text-dim); cursor: not-allowed; }
 
     .toolbar {
@@ -294,8 +294,8 @@
 
     .error-box {
       padding: 30px 28px;
-      background: ***REMOVED***FEF2F2;
-      border: 1px solid ***REMOVED***FECACA;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
       border-radius: 10px;
       color: var(--red);
       text-align: center;
@@ -380,7 +380,7 @@
   </footer>
 
   <script>
-    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&***REMOVED***39;'}[c]));
+    const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     let COMPANIES = [];
     let SELECTED = null;
@@ -661,7 +661,7 @@
         } else {
           scheduleRender(true, memoBody);
           const warn = document.createElement('div');
-          warn.style.cssText = 'margin-top: 12px; padding: 10px 14px; background: ***REMOVED***FEF2F2; border-left: 3px solid ***REMOVED***DC2626; border-radius: 6px; color: ***REMOVED***991B1B; font-size: 13px;';
+          warn.style.cssText = 'margin-top: 12px; padding: 10px 14px; background: #FEF2F2; border-left: 3px solid #DC2626; border-radius: 6px; color: #991B1B; font-size: 13px;';
           warn.textContent = `流式中断：${err.message}`;
           memoBody.insertAdjacentElement('afterend', warn);
         }

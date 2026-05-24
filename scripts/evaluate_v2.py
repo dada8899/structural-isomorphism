@@ -28,7 +28,7 @@ with open(DATA_FILE) as f:
 
 print(f"Loaded {len(all_descriptions)} descriptions, {len(type_descriptions)} types")
 
-***REMOVED*** Sample subset for speed (1000 random)
+# Sample subset for speed (1000 random)
 import random
 random.seed(42)
 indices = random.sample(range(len(all_descriptions)), min(1000, len(all_descriptions)))
@@ -44,7 +44,7 @@ print("\nEncoding with V2 model...")
 v2 = SentenceTransformer(str(V2_MODEL))
 v2_emb = v2.encode(sub_descriptions, show_progress_bar=True, convert_to_numpy=True)
 
-***REMOVED*** Silhouette
+# Silhouette
 from sklearn.metrics import silhouette_score
 unique_types = sorted(set(sub_type_ids))
 type_to_num = {t: i for i, t in enumerate(unique_types)}
@@ -58,7 +58,7 @@ print(f"V1: {v1_sil:.4f}")
 print(f"V2: {v2_sil:.4f}")
 print(f"Improvement: {v2_sil - v1_sil:+.4f}")
 
-***REMOVED*** Retrieval@5
+# Retrieval@5
 def retrieval_at_k(embeddings, k=5, n_queries=200):
     type_indices = defaultdict(list)
     for i, tid in enumerate(sub_type_ids):
@@ -83,7 +83,7 @@ print(f"V1: {v1_r5:.1%}")
 print(f"V2: {v2_r5:.1%}")
 print(f"Improvement: {(v2_r5 - v1_r5)*100:+.1f}%")
 
-***REMOVED*** Intra/Inter
+# Intra/Inter
 def sample_sims(embeddings, n=500):
     intra, inter = [], []
     type_indices = defaultdict(list)
@@ -107,7 +107,7 @@ v2_intra, v2_inter = sample_sims(v2_emb)
 print(f"V1: intra={v1_intra.mean():.4f} inter={v1_inter.mean():.4f} gap={v1_intra.mean()-v1_inter.mean():.4f}")
 print(f"V2: intra={v2_intra.mean():.4f} inter={v2_inter.mean():.4f} gap={v2_intra.mean()-v2_inter.mean():.4f}")
 
-***REMOVED*** Save results
+# Save results
 results = {
     "v1_silhouette": v1_sil,
     "v2_silhouette": v2_sil,

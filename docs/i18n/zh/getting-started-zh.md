@@ -1,16 +1,16 @@
-***REMOVED*** 快速开始
+# 快速开始
 
 [English](../../getting-started.md) | **简体中文**
 
 本文将带你完成 **Structural Isomorphism** 的本地安装，并在本地运行第一个预注册验证。
 
-***REMOVED******REMOVED*** 前置依赖
+## 前置依赖
 
 - Python 3.12 或更新版本（开发目标是 3.14）。
 - macOS 或 Linux。Windows 未做测试。
 - 大约 5 GB 的磁盘空间，用于缓存数据集。
 
-***REMOVED******REMOVED*** 安装
+## 安装
 
 === "从源码（推荐）"
 
@@ -27,16 +27,16 @@
     共享分析栈将以 `soc-pipeline` 的名字发布到 PyPI。在此之前，请按上面的方式从克隆的仓库做可编辑安装。
 
     ```bash
-    ***REMOVED*** 占位——即将上线
+    # 占位——即将上线
     pip install soc-pipeline
     ```
 
 共享分析栈位于 `v4/lib/soc_pipeline.py`，没有重的 PyPI 之外的依赖。Web 后端（位于 `web/backend/`）额外依赖 FastAPI 和少量异步客户端库；详见 `web/backend/requirements.txt`。
 
-***REMOVED******REMOVED*** 入门示例——地震数据
+## 入门示例——地震数据
 
 ```bash
-v4 status              ***REMOVED*** 展示 13 个系统 + 4 个空对照的 PASS / FAIL
+v4 status              # 展示 13 个系统 + 4 个空对照的 PASS / FAIL
 ```
 
 编程方式调用示例：
@@ -54,7 +54,7 @@ print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
 
 完整 API 参见 [Pipeline](../../pipeline.md)。
 
-***REMOVED******REMOVED*** 跑一个已有的验证
+## 跑一个已有的验证
 
 每个系统在 `v4/validation/` 下都有自己的文件夹。要重放一次拟合：
 
@@ -72,7 +72,7 @@ print(lr_ln.R, lr_ln.p, lr_exp.R, lr_exp.p)
 
 判定结果分为 PASS、INCONCLUSIVE 或 FAIL，依据是 YAML 中声明的预注册规则。**流水线不做任何按系统调优的特殊处理**：所有判定都由同一段代码路径产出。
 
-***REMOVED******REMOVED*** 测试
+## 测试
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q
@@ -80,7 +80,7 @@ PYTHONPATH=. .venv/bin/python -m pytest web/backend/tests/ -q
 
 在撰写本文档时，Web 后端测试套件包含 30+ 个通过的测试，覆盖 SSE 编排器、限流 API endpoint，以及流水线结果的序列化层。
 
-***REMOVED******REMOVED*** 下一步去哪里
+## 下一步去哪里
 
 - 阅读 [Pipeline](../../pipeline.md) 概览，理解共享库暴露的七个核心分析操作。
 - 阅读 [预注册方法论](../../methodology/pre-registration.md)，理解指数区间是如何在数据采集前就被锁死的。

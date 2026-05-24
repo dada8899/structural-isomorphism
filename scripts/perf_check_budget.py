@@ -19,12 +19,12 @@ from pathlib import Path
 
 def route_key(path: str) -> str:
     """Match audit path back to budget exemption key (handles [param])."""
-    ***REMOVED*** Strip query string
+    # Strip query string
     p = path.split("?", 1)[0]
     parts = p.strip("/").split("/")
     if not parts or parts == [""]:
         return "/"
-    ***REMOVED*** /universality/self_organized_criticality → /universality/[class_id]
+    # /universality/self_organized_criticality → /universality/[class_id]
     if parts[0] == "universality" and len(parts) >= 2:
         return "/universality/[class_id]"
     if parts[0] == "company" and len(parts) >= 2:
@@ -45,7 +45,7 @@ def main():
     thresh = budget["thresholds"]
     exemptions = budget.get("exemptions", {})
 
-    failures: list[tuple[str, str, str, float, float]] = []  ***REMOVED*** (page, viewport, metric, actual, limit)
+    failures: list[tuple[str, str, str, float, float]] = []  # (page, viewport, metric, actual, limit)
 
     rows: list[dict] = []
     for page_key, page_data in audit["pages"].items():
@@ -95,22 +95,22 @@ def main():
             if metrics["inp_proxy_ms"] > inp_limit:
                 failures.append((page_key, vp, "INP*", metrics["inp_proxy_ms"], inp_limit))
 
-    ***REMOVED*** Print summary
+    # Print summary
     print(f"Perf budget check: {len(rows)} audits across {len(audit['pages'])} pages")
     print(f"  Failures: {len(failures)}")
 
-    ***REMOVED*** Build markdown if requested
+    # Build markdown if requested
     if args.markdown:
-        md = ["***REMOVED*** Performance budget report\n"]
+        md = ["# Performance budget report\n"]
         if failures:
-            md.append("***REMOVED******REMOVED*** Status: FAIL\n")
+            md.append("## Status: FAIL\n")
             md.append("| Page | Viewport | Metric | Actual | Limit |")
             md.append("|---|---|---|---:|---:|")
             for page, vp, metric, actual, limit in failures:
                 md.append(f"| `{page}` | {vp} | {metric} | {actual:.1f} | {limit:.1f} |")
         else:
-            md.append("***REMOVED******REMOVED*** Status: PASS\n")
-        md.append("\n***REMOVED******REMOVED*** All measurements\n")
+            md.append("## Status: PASS\n")
+        md.append("\n## All measurements\n")
         md.append("| Page | Viewport | LCP (ms) | CLS | TBT (ms) | INP* (ms) |")
         md.append("|---|---|---:|---:|---:|---:|")
         for r in rows:

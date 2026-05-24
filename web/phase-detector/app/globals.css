@@ -22,57 +22,57 @@
    * to preserve back-compat with ~86 existing call sites.
    *
    * WCAG AAA verification (contrast ratios):
-   *   --fg-primary  (***REMOVED***18181B) on --bg-base  (***REMOVED***FFFFFF) → 16.10:1  AAA-large + AAA-normal
-   *   --fg-secondary(***REMOVED***52525B) on --bg-base  (***REMOVED***FFFFFF) →  7.95:1  AAA-normal
-   *   --fg-tertiary (***REMOVED***71717A) on --bg-base  (***REMOVED***FFFFFF) →  4.83:1  AA (use sparingly for chrome)
-   *   --accent      (***REMOVED***5B21B6) on --bg-base  (***REMOVED***FFFFFF) →  8.85:1  AAA-normal
+   *   --fg-primary  (#18181B) on --bg-base  (#FFFFFF) → 16.10:1  AAA-large + AAA-normal
+   *   --fg-secondary(#52525B) on --bg-base  (#FFFFFF) →  7.95:1  AAA-normal
+   *   --fg-tertiary (#71717A) on --bg-base  (#FFFFFF) →  4.83:1  AA (use sparingly for chrome)
+   *   --accent      (#5B21B6) on --bg-base  (#FFFFFF) →  8.85:1  AAA-normal
    *
    * Dark theme verification (see .dark block below for sources):
-   *   ***REMOVED***FAFAFA on ***REMOVED***0A0A0A → 18.71:1  AAA-normal
-   *   ***REMOVED***D4D4D8 on ***REMOVED***0A0A0A → 14.20:1  AAA-normal
-   *   ***REMOVED***A1A1AA on ***REMOVED***0A0A0A →  8.18:1  AAA-normal
-   *   ***REMOVED***A78BFA on ***REMOVED***0A0A0A →  8.95:1  AAA-normal
+   *   #FAFAFA on #0A0A0A → 18.71:1  AAA-normal
+   *   #D4D4D8 on #0A0A0A → 14.20:1  AAA-normal
+   *   #A1A1AA on #0A0A0A →  8.18:1  AAA-normal
+   *   #A78BFA on #0A0A0A →  8.95:1  AAA-normal
    */
-  --bg-base: ***REMOVED***FFFFFF;
-  --bg-elevated: ***REMOVED***FAFAFA;
+  --bg-base: #FFFFFF;
+  --bg-elevated: #FAFAFA;
   --bg-overlay: rgba(0, 0, 0, 0.5);
-  --fg-primary: ***REMOVED***18181B;
-  --fg-secondary: ***REMOVED***52525B;
-  --fg-tertiary: ***REMOVED***71717A;
-  --fg-inverse: ***REMOVED***FFFFFF;
-  --accent: ***REMOVED***5B21B6;
-  --accent-fg: ***REMOVED***FFFFFF;
-  --accent-hover: ***REMOVED***4C1D95;
+  --fg-primary: #18181B;
+  --fg-secondary: #52525B;
+  --fg-tertiary: #71717A;
+  --fg-inverse: #FFFFFF;
+  --accent: #5B21B6;
+  --accent-fg: #FFFFFF;
+  --accent-hover: #4C1D95;
   --accent-subtle: rgba(91, 33, 182, 0.08);
   --accent-focus-ring: rgba(91, 33, 182, 0.18);
-  --success: ***REMOVED***16A34A;
-  --warning: ***REMOVED***CA8A04;
-  --danger: ***REMOVED***DC2626;
-  --border: ***REMOVED***E4E4E7;
-  --ring: ***REMOVED***5B21B6;
+  --success: #16A34A;
+  --warning: #CA8A04;
+  --danger: #DC2626;
+  --border: #E4E4E7;
+  --ring: #5B21B6;
 
   /* === Legacy alias layer (back-compat, do not depend on for new code) === */
-  --bg-primary: var(--brand-paper, ***REMOVED***F5F5F4);
-  --bg-secondary: var(--brand-paper-soft, ***REMOVED***F4F4F5);
+  --bg-primary: var(--brand-paper, #F5F5F4);
+  --bg-secondary: var(--brand-paper-soft, #F4F4F5);
   --bg-tertiary: var(--bg-base);
 
   --border-subtle: var(--border);
   --border-default: rgba(24, 24, 27, 0.12);
-  --border-strong: var(--brand-line-strong, ***REMOVED***D4D4D8);
+  --border-strong: var(--brand-line-strong, #D4D4D8);
 
   --text-primary: var(--fg-primary);
   --text-secondary: var(--fg-secondary);
   --text-tertiary: var(--fg-tertiary);
 
   /* === Chart-specific tokens (used by SparkLine / PhaseTrajectoryChart) === */
-  --chart-grid: ***REMOVED***E4E4E7;
-  --chart-band-low: ***REMOVED***10B981;   /* 稳态 */
-  --chart-band-mid: ***REMOVED***F59E0B;   /* 接近临界 */
-  --chart-band-high: ***REMOVED***EF4444;  /* 临界点上 */
-  --chart-tooltip-bg: ***REMOVED***FFFFFF;
-  --chart-tooltip-border: ***REMOVED***E4E4E7;
+  --chart-grid: #E4E4E7;
+  --chart-band-low: #10B981;   /* 稳态 */
+  --chart-band-mid: #F59E0B;   /* 接近临界 */
+  --chart-band-high: #EF4444;  /* 临界点上 */
+  --chart-tooltip-bg: #FFFFFF;
+  --chart-tooltip-border: #E4E4E7;
   --chart-tooltip-shadow: rgba(0, 0, 0, 0.08);
-  --chart-axis: ***REMOVED***18181B;
+  --chart-axis: #18181B;
 
   /* === Typography === */
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'Times New Roman', serif;
@@ -88,44 +88,44 @@
 .dark {
   color-scheme: dark;
 
-  --bg-base: ***REMOVED***0A0A0A;
-  --bg-elevated: ***REMOVED***18181B;
+  --bg-base: #0A0A0A;
+  --bg-elevated: #18181B;
   --bg-overlay: rgba(255, 255, 255, 0.1);
-  --fg-primary: ***REMOVED***FAFAFA;
-  --fg-secondary: ***REMOVED***D4D4D8;
-  --fg-tertiary: ***REMOVED***A1A1AA;
-  --fg-inverse: ***REMOVED***18181B;
-  --accent: ***REMOVED***A78BFA;
-  --accent-fg: ***REMOVED***18181B;
-  --accent-hover: ***REMOVED***C4B5FD;
+  --fg-primary: #FAFAFA;
+  --fg-secondary: #D4D4D8;
+  --fg-tertiary: #A1A1AA;
+  --fg-inverse: #18181B;
+  --accent: #A78BFA;
+  --accent-fg: #18181B;
+  --accent-hover: #C4B5FD;
   --accent-subtle: rgba(167, 139, 250, 0.16);
   --accent-focus-ring: rgba(167, 139, 250, 0.28);
-  --success: ***REMOVED***4ADE80;
-  --warning: ***REMOVED***FACC15;
-  --danger: ***REMOVED***F87171;
-  --border: ***REMOVED***27272A;
-  --ring: ***REMOVED***A78BFA;
+  --success: #4ADE80;
+  --warning: #FACC15;
+  --danger: #F87171;
+  --border: #27272A;
+  --ring: #A78BFA;
 
   /* Legacy aliases follow the new tokens. */
   --bg-primary: var(--bg-base);
   --bg-secondary: var(--bg-elevated);
-  --bg-tertiary: ***REMOVED***1F1F23;
+  --bg-tertiary: #1F1F23;
   --border-subtle: var(--border);
   --border-default: rgba(250, 250, 250, 0.16);
-  --border-strong: ***REMOVED***3F3F46;
+  --border-strong: #3F3F46;
   --text-primary: var(--fg-primary);
   --text-secondary: var(--fg-secondary);
   --text-tertiary: var(--fg-tertiary);
 
   /* Charts: brighter band colors so they remain readable on near-black bg. */
-  --chart-grid: ***REMOVED***27272A;
-  --chart-band-low: ***REMOVED***34D399;
-  --chart-band-mid: ***REMOVED***FBBF24;
-  --chart-band-high: ***REMOVED***F87171;
-  --chart-tooltip-bg: ***REMOVED***18181B;
-  --chart-tooltip-border: ***REMOVED***27272A;
+  --chart-grid: #27272A;
+  --chart-band-low: #34D399;
+  --chart-band-mid: #FBBF24;
+  --chart-band-high: #F87171;
+  --chart-tooltip-bg: #18181B;
+  --chart-tooltip-border: #27272A;
   --chart-tooltip-shadow: rgba(0, 0, 0, 0.6);
-  --chart-axis: ***REMOVED***FAFAFA;
+  --chart-axis: #FAFAFA;
 }
 
 html,
@@ -170,7 +170,7 @@ aside,
   }
 }
 
-/* W12-C (session ***REMOVED***10): smooth anchor scrolling for in-page jumps.
+/* W12-C (session #10): smooth anchor scrolling for in-page jumps.
  * Respects prefers-reduced-motion below.
  */
 html {
@@ -308,7 +308,7 @@ textarea:focus-visible {
 /* === Selection === */
 ::selection {
   background: var(--accent);
-  color: ***REMOVED***FAFAF9;
+  color: #FAFAF9;
 }
 
 /* === Skip link (a11y) === */
@@ -317,7 +317,7 @@ textarea:focus-visible {
   top: -40px;
   left: 0;
   background: var(--text-primary);
-  color: ***REMOVED***FAFAF9;
+  color: #FAFAF9;
   padding: 8px 16px;
   z-index: 100;
   text-decoration: none;
@@ -329,10 +329,10 @@ textarea:focus-visible {
 
 /* === W12-A: WCAG AA contrast hardening (2026-05-15) ===
  *
- * The Tailwind zinc-400 (***REMOVED***a1a1aa) and zinc-500 (***REMOVED***71717a) tones don't quite
- * clear 4.5:1 against our cream paper background (***REMOVED***F5F5F4) — axe-core flags
+ * The Tailwind zinc-400 (#a1a1aa) and zinc-500 (#71717a) tones don't quite
+ * clear 4.5:1 against our cream paper background (#F5F5F4) — axe-core flags
  * them as `color-contrast` (serious). We override the utility classes to
- * point at darker tones (zinc-600 ***REMOVED***52525b for body, zinc-500 for true tertiary)
+ * point at darker tones (zinc-600 #52525b for body, zinc-500 for true tertiary)
  * so the entire UI satisfies WCAG 2.1 AA without rewriting dozens of pages.
  *
  * Original tokens stay accessible via .text-zinc-soft when we *want* a faded
@@ -340,40 +340,40 @@ textarea:focus-visible {
  * over heavy chart imagery). Adopt sparingly.
  *
  * Contrast check (calculated WCAG 2.1):
- *   zinc-600 (***REMOVED***52525b) on paper (***REMOVED***F5F5F4): 7.95:1   passes AA + AAA
- *   zinc-500 (***REMOVED***71717a) on paper (***REMOVED***F5F5F4): 4.83:1   passes AA
- *   zinc-400 (***REMOVED***a1a1aa) on paper (***REMOVED***F5F5F4): 2.79:1   FAILS AA  (overridden below)
+ *   zinc-600 (#52525b) on paper (#F5F5F4): 7.95:1   passes AA + AAA
+ *   zinc-500 (#71717a) on paper (#F5F5F4): 4.83:1   passes AA
+ *   zinc-400 (#a1a1aa) on paper (#F5F5F4): 2.79:1   FAILS AA  (overridden below)
  */
 .text-zinc-400 {
-  /* Bump to zinc-600 (***REMOVED***52525b → 7.95:1 on cream paper) so we clear AA at
+  /* Bump to zinc-600 (#52525b → 7.95:1 on cream paper) so we clear AA at
    * 12px / 9pt as well as 4.5:1 normal-text threshold. Caveat: text-zinc-400
    * was often used for "very faded" tone, so this is a perceptible darken;
    * see .text-zinc-soft escape hatch below for purely decorative cases. */
-  color: ***REMOVED***52525b !important;
+  color: #52525b !important;
 }
 .text-zinc-500 {
   /* Same anchor as zinc-400 — zinc-500 used on small text (text-xs / text-[11px])
    * needs the same darker tone to clear 4.5:1. */
-  color: ***REMOVED***52525b !important;
+  color: #52525b !important;
 }
 
 /* Decorative-only escape hatch — use when contrast isn't required (purely
  * ornamental text, or when a sibling element carries the same semantic info). */
 .text-zinc-soft {
-  color: ***REMOVED***a1a1aa;
+  color: #a1a1aa;
 }
 
 /* W13-A dark-mode overrides for the W12-A contrast utilities — the zinc-600
- * lock is invisible on ***REMOVED***0A0A0A bg. Flip to the lighter zinc-200 anchor so
- * we keep ≥ 7:1 in dark. (***REMOVED***e4e4e7 on ***REMOVED***0a0a0a → 16.49:1, AAA.) */
+ * lock is invisible on #0A0A0A bg. Flip to the lighter zinc-200 anchor so
+ * we keep ≥ 7:1 in dark. (#e4e4e7 on #0a0a0a → 16.49:1, AAA.) */
 .dark .text-zinc-400 {
-  color: ***REMOVED***e4e4e7 !important;
+  color: #e4e4e7 !important;
 }
 .dark .text-zinc-500 {
-  color: ***REMOVED***d4d4d8 !important;
+  color: #d4d4d8 !important;
 }
 .dark .text-zinc-soft {
-  color: ***REMOVED***71717a;
+  color: #71717a;
 }
 
 /* W13-A bg-white in dark → flips to elevated surface, not pure-black, so
@@ -384,45 +384,45 @@ textarea:focus-visible {
   background-color: var(--bg-elevated) !important;
 }
 .dark .bg-zinc-50 {
-  background-color: ***REMOVED***18181B !important;
+  background-color: #18181B !important;
 }
 .dark .bg-zinc-100 {
-  background-color: ***REMOVED***1F1F23 !important;
+  background-color: #1F1F23 !important;
 }
 .dark .border-zinc-200 {
   border-color: var(--border) !important;
 }
 .dark .border-zinc-100 {
-  border-color: ***REMOVED***1F1F23 !important;
+  border-color: #1F1F23 !important;
 }
 .dark .text-zinc-700 {
-  color: ***REMOVED***E4E4E7 !important;
+  color: #E4E4E7 !important;
 }
 .dark .text-zinc-900 {
-  color: ***REMOVED***FAFAFA !important;
+  color: #FAFAFA !important;
 }
 .dark .text-zinc-600 {
-  color: ***REMOVED***D4D4D8 !important;
+  color: #D4D4D8 !important;
 }
 .dark .text-zinc-800 {
-  color: ***REMOVED***FAFAFA !important;
+  color: #FAFAFA !important;
 }
 .dark .bg-zinc-900 {
-  background-color: ***REMOVED***FAFAFA !important;
+  background-color: #FAFAFA !important;
 }
 .dark .text-white {
   /* Keep readable on dark accent backgrounds (e.g. CTA buttons). */
-  color: ***REMOVED***18181B !important;
+  color: #18181B !important;
 }
 /* Hover/active variants that often pair with the above. */
 .dark .hover\:bg-zinc-50:hover {
-  background-color: ***REMOVED***1F1F23 !important;
+  background-color: #1F1F23 !important;
 }
 .dark .hover\:text-zinc-900:hover {
-  color: ***REMOVED***FAFAFA !important;
+  color: #FAFAFA !important;
 }
 .dark .hover\:bg-zinc-100:hover {
-  background-color: ***REMOVED***27272A !important;
+  background-color: #27272A !important;
 }
 
 /* W12-A: inline text-block links must not rely on color alone (WCAG 1.4.1

@@ -35,15 +35,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <style>
     :root {{
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***52525B;
-      --text-muted: ***REMOVED***71717A;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
@@ -268,9 +268,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <span class="brand-beta">BETA</span>
       </a>
       <nav class="menu">
-        <a href="../***REMOVED***samples">样例</a>
-        <a href="../***REMOVED***idea">什么是结构筛选</a>
-        <a href="../***REMOVED***waitlist">Waitlist</a>
+        <a href="../#samples">样例</a>
+        <a href="../#idea">什么是结构筛选</a>
+        <a href="../#waitlist">Waitlist</a>
       </nav>
     </div>
   </header>
@@ -278,7 +278,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <main>
     <div class="container">
       <div class="breadcrumb">
-        <a href="/phase">Phase Detector</a> / <a href="/phase***REMOVED***samples">Day 1 Samples</a> / {ticker}
+        <a href="/phase">Phase Detector</a> / <a href="/phase#samples">Day 1 Samples</a> / {ticker}
       </div>
       <div class="ticker-eyebrow">{ticker} · {dynamics_family}</div>
       <article id="content"></article>
@@ -291,7 +291,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       <aside style="margin-top: 20px; text-align: center; padding: 18px; background: var(--bg-elevated); border-radius: 10px; border: 1px solid var(--border);">
         <div style="font-size: 14px; margin-bottom: 10px; color: var(--text-secondary);">想按数学动力学筛选全市场？</div>
-        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: ***REMOVED***FFFFFF; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
+        <a href="/phase/screener" style="display: inline-block; padding: 10px 24px; background: var(--accent); color: #FFFFFF; border-radius: 6px; font-weight: 600; text-decoration: none;">打开结构筛选器 →</a>
       </aside>
     </div>
   </main>
@@ -351,16 +351,16 @@ INDEX_TEMPLATE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Day 1 Samples — Phase Detector</title>
   <style>
-    body {{ background:***REMOVED***FAFAF9; color:***REMOVED***18181B; font-family:system-ui,sans-serif; max-width:720px; margin:60px auto; padding:0 24px; }}
+    body {{ background:#FAFAF9; color:#18181B; font-family:system-ui,sans-serif; max-width:720px; margin:60px auto; padding:0 24px; }}
     h1 {{ font-family:'Noto Serif SC',serif; }}
-    a {{ color:***REMOVED***2563EB; display:block; padding:12px 0; text-decoration:none; border-bottom:1px solid ***REMOVED***E4E4E7; }}
-    a:hover {{ background:***REMOVED***F4F4F5; }}
-    .meta {{ color:***REMOVED***71717A; font-size:13px; font-family:'JetBrains Mono',monospace; }}
+    a {{ color:#2563EB; display:block; padding:12px 0; text-decoration:none; border-bottom:1px solid #E4E4E7; }}
+    a:hover {{ background:#F4F4F5; }}
+    .meta {{ color:#71717A; font-size:13px; font-family:'JetBrains Mono',monospace; }}
   </style>
 </head>
 <body>
   <h1>Day 1 Samples</h1>
-  <p style="color:***REMOVED***A1A1AA">10 个跨结构类型的样例报告。点任一查看完整分析。</p>
+  <p style="color:#A1A1AA">10 个跨结构类型的样例报告。点任一查看完整分析。</p>
   {links}
   <p style="margin-top:40px"><a href="../">← 回首页</a></p>
 </body>
@@ -370,7 +370,7 @@ INDEX_TEMPLATE = """<!DOCTYPE html>
 
 def escape_js_string(s: str) -> str:
     """Escape a Python string for embedding in a JS string literal."""
-    ***REMOVED*** Use JSON encoding which produces valid JS string
+    # Use JSON encoding which produces valid JS string
     return json.dumps(s, ensure_ascii=False)
 
 

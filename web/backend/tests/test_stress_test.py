@@ -1,4 +1,4 @@
-"""Tests for feature E — structural stress-test (Session ***REMOVED***18).
+"""Tests for feature E — structural stress-test (Session #18).
 
 Three layers:
   1. Unit — validate_claim, _coerce_verdict, coerce_result pure functions.
@@ -19,15 +19,15 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services import stress_test_service as sts  ***REMOVED*** noqa: E402
+from services import stress_test_service as sts  # noqa: E402
 
 
-***REMOVED*** ============================================================== ***REMOVED***
-***REMOVED*** Layer 1 — unit tests                                           ***REMOVED***
-***REMOVED*** ============================================================== ***REMOVED***
+# ============================================================== #
+# Layer 1 — unit tests                                           #
+# ============================================================== #
 
 
-***REMOVED*** --------- validate_claim --------- ***REMOVED***
+# --------- validate_claim --------- #
 
 
 def test_validate_claim_normal():
@@ -44,7 +44,7 @@ def test_validate_claim_empty_raises():
 
 def test_validate_claim_too_short_raises():
     with pytest.raises(ValueError):
-        sts.validate_claim("abc")  ***REMOVED*** 3 chars < CLAIM_MIN_LEN
+        sts.validate_claim("abc")  # 3 chars < CLAIM_MIN_LEN
 
 
 def test_validate_claim_too_long_raises():
@@ -59,7 +59,7 @@ def test_validate_claim_non_str_raises():
         sts.validate_claim(None)
 
 
-***REMOVED*** --------- _coerce_verdict --------- ***REMOVED***
+# --------- _coerce_verdict --------- #
 
 
 def test_coerce_verdict_exact_enum():
@@ -86,7 +86,7 @@ def test_coerce_verdict_illegal_returns_none():
     assert sts._coerce_verdict(None) is None
 
 
-***REMOVED*** --------- coerce_result --------- ***REMOVED***
+# --------- coerce_result --------- #
 
 
 def _good_raw():
@@ -120,10 +120,10 @@ def test_coerce_result_not_dict_returns_none():
 
 def test_coerce_result_illegal_verdict_falls_back():
     raw = _good_raw()
-    raw["verdict"] = "DEFINITELY_TRUE"  ***REMOVED*** illegal, not a synonym
+    raw["verdict"] = "DEFINITELY_TRUE"  # illegal, not a synonym
     out = sts.coerce_result(raw)
     assert out is not None
-    ***REMOVED*** Mixed holds → CONDITIONAL fallback.
+    # Mixed holds → CONDITIONAL fallback.
     assert out["verdict"] == "CONDITIONAL"
     assert "推导" in out["verdict_reason"]
 
@@ -147,7 +147,7 @@ def test_coerce_result_illegal_verdict_none_hold_fails():
 
 
 def test_coerce_result_missing_fields_filled():
-    ***REMOVED*** Only correspondences present — everything else missing.
+    # Only correspondences present — everything else missing.
     raw = {
         "structural_correspondences": [
             {"claim": "唯一一条", "holds": True},
@@ -158,14 +158,14 @@ def test_coerce_result_missing_fields_filled():
     assert out["source"] == "（未识别）"
     assert out["target"] == "（未识别）"
     assert out["weakest_link"].startswith("（")
-    ***REMOVED*** holds True → no-corr-fails branch; single holds True → PASS.
+    # holds True → no-corr-fails branch; single holds True → PASS.
     assert out["verdict"] == "PASS"
-    ***REMOVED*** Missing stress_result gets a placeholder.
+    # Missing stress_result gets a placeholder.
     assert out["structural_correspondences"][0]["stress_result"].startswith("（")
 
 
 def test_coerce_result_empty_and_no_verdict_returns_none():
-    ***REMOVED*** No correspondences AND no verdict → unrecoverable.
+    # No correspondences AND no verdict → unrecoverable.
     assert sts.coerce_result({}) is None
     assert sts.coerce_result({"structural_correspondences": []}) is None
     assert sts.coerce_result({"source": "x", "target": "y"}) is None
@@ -178,19 +178,19 @@ def test_coerce_result_malformed_correspondences_filtered():
         "structural_correspondences": [
             "not a dict",
             {"no_claim": True},
-            {"claim": "", "holds": True},  ***REMOVED*** empty claim
+            {"claim": "", "holds": True},  # empty claim
             {"claim": "有效一条", "stress_result": "崩", "holds": False},
         ],
     }
     out = sts.coerce_result(raw)
     assert out is not None
-    ***REMOVED*** Only the one valid entry survives.
+    # Only the one valid entry survives.
     assert len(out["structural_correspondences"]) == 1
     assert out["structural_correspondences"][0]["claim"] == "有效一条"
 
 
 def test_coerce_result_holds_only_true_when_explicitly_true():
-    ***REMOVED*** holds = "true" string / 1 / missing → all coerced to False.
+    # holds = "true" string / 1 / missing → all coerced to False.
     raw = {
         "verdict": "PASS",
         "verdict_reason": "ok",
@@ -216,7 +216,7 @@ def test_coerce_result_caps_correspondences():
     assert len(out["structural_correspondences"]) == sts.MAX_CORRESPONDENCES
 
 
-***REMOVED*** --------- build_precedent_query --------- ***REMOVED***
+# --------- build_precedent_query --------- #
 
 
 def test_build_precedent_query_normal():
@@ -231,7 +231,7 @@ def test_build_precedent_query_no_target():
 
 
 def test_build_precedent_query_placeholder_returns_none():
-    ***REMOVED*** The placeholder coerce_result emits when LLM gave nothing.
+    # The placeholder coerce_result emits when LLM gave nothing.
     assert sts.build_precedent_query("（模型未指出最薄弱环节）") is None
 
 
@@ -247,7 +247,7 @@ def test_build_precedent_query_placeholder_target_skipped():
     assert q == "有效薄弱环节"
 
 
-***REMOVED*** --------- coerce_precedent --------- ***REMOVED***
+# --------- coerce_precedent --------- #
 
 
 def _kb_hit():
@@ -282,11 +282,11 @@ def test_coerce_precedent_no_failure_text_returns_none():
 
 def test_coerce_precedent_bad_phenomenon_returns_none():
     raw = {"failure_precedent": "有效文本"}
-    ***REMOVED*** Missing id.
+    # Missing id.
     assert sts.coerce_precedent(raw, {"name": "x"}) is None
-    ***REMOVED*** Missing name.
+    # Missing name.
     assert sts.coerce_precedent(raw, {"id": "x"}) is None
-    ***REMOVED*** Not a dict.
+    # Not a dict.
     assert sts.coerce_precedent(raw, None) is None
 
 
@@ -298,7 +298,7 @@ def test_coerce_precedent_missing_optional_fields_filled():
     assert out["relevance"] is None
 
 
-***REMOVED*** --------- _pick_precedent_hit --------- ***REMOVED***
+# --------- _pick_precedent_hit --------- #
 
 
 def test_pick_precedent_hit_prefers_cross_domain():
@@ -306,7 +306,7 @@ def test_pick_precedent_hit_prefers_cross_domain():
         {"id": "a", "relevance": 0.9, "cross_domain": False},
         {"id": "b", "relevance": 0.6, "cross_domain": True},
     ]
-    ***REMOVED*** Same-domain 0.9 loses to cross-domain 0.6.
+    # Same-domain 0.9 loses to cross-domain 0.6.
     assert sts._pick_precedent_hit(results)["id"] == "b"
 
 
@@ -329,7 +329,7 @@ def test_pick_precedent_hit_empty_or_bad_returns_none():
     assert sts._pick_precedent_hit(["junk", {"no_id": 1}]) is None
 
 
-***REMOVED*** --------- enrich_with_precedent (degradation) --------- ***REMOVED***
+# --------- enrich_with_precedent (degradation) --------- #
 
 
 def test_enrich_no_search_svc_degrades():
@@ -358,9 +358,9 @@ def test_enrich_no_hit_degrades():
     assert out["precedent"] is None
 
 
-***REMOVED*** ============================================================== ***REMOVED***
-***REMOVED*** Layer 2 — integration tests (TestClient + mocked llm_client)   ***REMOVED***
-***REMOVED*** ============================================================== ***REMOVED***
+# ============================================================== #
+# Layer 2 — integration tests (TestClient + mocked llm_client)   #
+# ============================================================== #
 
 
 @pytest.fixture(autouse=True)
@@ -407,7 +407,7 @@ def mock_llm(monkeypatch):
     from services import stress_test_service as svc
 
     def _set(available: bool, json_return=None):
-        ***REMOVED*** llm_available() is called by the API module.
+        # llm_available() is called by the API module.
         monkeypatch.setattr(
             st_api.llm_client, "llm_available", lambda: available
         )
@@ -421,7 +421,7 @@ def mock_llm(monkeypatch):
             async def _fake_complete_json(**kwargs):
                 return json_return
 
-        ***REMOVED*** complete_json is called by the service module.
+        # complete_json is called by the service module.
         monkeypatch.setattr(
             svc.llm_client, "complete_json", _fake_complete_json
         )
@@ -454,7 +454,7 @@ def mock_search(monkeypatch):
     main_mod.app_state.pop("search", None)
 
 
-***REMOVED*** Strong cross-domain KB hit used by precedent integration tests.
+# Strong cross-domain KB hit used by precedent integration tests.
 def _kb_search_results():
     return [
         {
@@ -489,21 +489,21 @@ def test_endpoint_llm_unavailable_503(client, mock_llm):
 
 
 def test_endpoint_llm_returns_none_503(client, mock_llm):
-    ***REMOVED*** LLM available but the call yields None (network/parse failure).
+    # LLM available but the call yields None (network/parse failure).
     mock_llm(available=True, json_return=None)
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
     assert resp.status_code == 503
 
 
 def test_endpoint_llm_garbage_guardrailed_503(client, mock_llm):
-    ***REMOVED*** LLM available but returns unrecoverable garbage → coerce_result None.
+    # LLM available but returns unrecoverable garbage → coerce_result None.
     mock_llm(available=True, json_return={"random": "noise", "foo": 1})
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
     assert resp.status_code == 503
 
 
 def test_endpoint_malformed_llm_still_coerced(client, mock_llm):
-    ***REMOVED*** Garbage verdict + partly-broken correspondences → guardrail recovers.
+    # Garbage verdict + partly-broken correspondences → guardrail recovers.
     mock_llm(
         available=True,
         json_return={
@@ -519,7 +519,7 @@ def test_endpoint_malformed_llm_still_coerced(client, mock_llm):
     resp = client.post("/api/stress-test", json={"claim": "这是一个有效的类比判断"})
     assert resp.status_code == 200
     body = resp.json()
-    ***REMOVED*** Bogus verdict + single holds-True corr → PASS fallback.
+    # Bogus verdict + single holds-True corr → PASS fallback.
     assert body["verdict"] in sts.VERDICTS
     assert len(body["structural_correspondences"]) == 1
 
@@ -531,7 +531,7 @@ def test_endpoint_empty_claim_422(client, mock_llm):
 
 
 def test_endpoint_whitespace_claim_422(client, mock_llm):
-    ***REMOVED*** Passes pydantic min_length=1 but validate_claim rejects after strip.
+    # Passes pydantic min_length=1 but validate_claim rejects after strip.
     mock_llm(available=True, json_return=_good_raw())
     resp = client.post("/api/stress-test", json={"claim": "        "})
     assert resp.status_code == 422
@@ -551,11 +551,11 @@ def test_endpoint_missing_claim_422(client, mock_llm):
     assert resp.status_code == 422
 
 
-***REMOVED*** --------- precedent integration --------- ***REMOVED***
+# --------- precedent integration --------- #
 
 
 def test_endpoint_success_with_precedent(client, mock_llm, mock_search):
-    ***REMOVED*** 1st LLM call → stress result; 2nd → precedent failure text.
+    # 1st LLM call → stress result; 2nd → precedent failure text.
     mock_llm(
         available=True,
         json_return=[
@@ -577,7 +577,7 @@ def test_endpoint_success_with_precedent(client, mock_llm, mock_search):
 
 
 def test_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_search):
-    ***REMOVED*** No search service in app_state → precedent null, verdict still emitted.
+    # No search service in app_state → precedent null, verdict still emitted.
     mock_llm(available=True, json_return=_good_raw())
     mock_search(None)
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
@@ -588,7 +588,7 @@ def test_endpoint_success_search_unavailable_degrades(client, mock_llm, mock_sea
 
 
 def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
-    ***REMOVED*** Search returns nothing structurally close → precedent null.
+    # Search returns nothing structurally close → precedent null.
     mock_llm(available=True, json_return=_good_raw())
     mock_search([])
     resp = client.post("/api/stress-test", json={"claim": "我们是中国版的 Notion"})
@@ -598,8 +598,8 @@ def test_endpoint_success_no_kb_hit_degrades(client, mock_llm, mock_search):
 
 
 def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
-    ***REMOVED*** KB hit found but precedent LLM returns unusable JSON → precedent null,
-    ***REMOVED*** the stress test itself still succeeds.
+    # KB hit found but precedent LLM returns unusable JSON → precedent null,
+    # the stress test itself still succeeds.
     mock_llm(
         available=True,
         json_return=[_good_raw(), {"noise": "no failure_precedent here"}],
@@ -613,7 +613,7 @@ def test_endpoint_precedent_llm_garbage_degrades(client, mock_llm, mock_search):
 
 
 def test_endpoint_precedent_weak_relevance_degrades(client, mock_llm, mock_search):
-    ***REMOVED*** KB hit exists but relevance below the floor → not a real precedent.
+    # KB hit exists but relevance below the floor → not a real precedent.
     weak = _kb_search_results()
     weak[0]["relevance"] = 0.3
     mock_llm(

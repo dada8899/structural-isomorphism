@@ -1,6 +1,6 @@
-"""A2 ***REMOVED***6 — Copula tail dependence between financial extremes and natural disasters.
+"""A2 #6 — Copula tail dependence between financial extremes and natural disasters.
 
-Hypothesis (Universality Class ***REMOVED***6): two heavy-tailed series from different domains
+Hypothesis (Universality Class #6): two heavy-tailed series from different domains
 exhibit non-zero upper tail dependence λ_U > 0 (joint extremes co-occur).
 
 Series A: |S&P 500 daily log returns| (1996-2024).
@@ -22,7 +22,7 @@ Writes:
     v4/validation/tail-copula/results.json
     v4/validation/tail-copula/lambda_U_panel.png
 
-Author: W2-B subagent, session ***REMOVED***3 (2026-05-13).
+Author: W2-B subagent, session #3 (2026-05-13).
 """
 
 from __future__ import annotations
@@ -36,16 +36,16 @@ import pandas as pd
 from scipy.optimize import minimize_scalar
 from scipy.stats import rankdata
 
-ROOT = Path(__file__).resolve().parents[1]  ***REMOVED*** v4/
+ROOT = Path(__file__).resolve().parents[1]  # v4/
 VAL_DIR = ROOT / "validation" / "tail-copula"
 SP500 = ROOT / "validation" / "soc-stockmarket" / "sp500_daily.csv"
 STORM = VAL_DIR / "storm_daily_damage.csv"
 OUT_JSON = VAL_DIR / "results.json"
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Data loading
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Data loading
+# ---------------------------------------------------------------------------
 def load_sp500() -> pd.DataFrame:
     df = pd.read_csv(
         SP500,
@@ -71,24 +71,24 @@ def build_joint(start="1996-01-01", end="2025-01-01") -> pd.DataFrame:
     st = load_storm()
     sp = sp[(sp["Date"] >= start) & (sp["Date"] < end)]
     st = st[(st["Date"] >= start) & (st["Date"] < end)]
-    ***REMOVED*** Left-join on trading days; storm damage = 0 if no storm that day.
+    # Left-join on trading days; storm damage = 0 if no storm that day.
     joint = sp.merge(st[["Date", "total_damage_usd"]], on="Date", how="left")
     joint["total_damage_usd"] = joint["total_damage_usd"].fillna(0.0)
     return joint
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Marginal transform
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Marginal transform
+# ---------------------------------------------------------------------------
 def to_pseudo_uniform(x: np.ndarray) -> np.ndarray:
     """Empirical CDF rank transform to (0, 1) with continuity correction."""
     n = len(x)
     return rankdata(x, method="average") / (n + 1)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Estimator 1: Empirical upper tail dependence
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Estimator 1: Empirical upper tail dependence
+# ---------------------------------------------------------------------------
 def empirical_lambda_U(u: np.ndarray, v: np.ndarray, q: float) -> float:
     """P(V > q | U > q) for q close to 1."""
     mask_u = u > q
@@ -106,25 +106,25 @@ def empirical_lambda_U_panel(u, v, quantiles=(0.90, 0.95, 0.975, 0.99)):
     return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Estimator 2: Gumbel copula MLE
-***REMOVED*** Gumbel C(u,v;θ) = exp(-((-log u)^θ + (-log v)^θ)^(1/θ)), θ ≥ 1.
-***REMOVED*** Upper tail dep: λ_U = 2 - 2^(1/θ); lower tail dep: 0.
-***REMOVED*** Density used for MLE: see Joe (1997).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Estimator 2: Gumbel copula MLE
+# Gumbel C(u,v;θ) = exp(-((-log u)^θ + (-log v)^θ)^(1/θ)), θ ≥ 1.
+# Upper tail dep: λ_U = 2 - 2^(1/θ); lower tail dep: 0.
+# Density used for MLE: see Joe (1997).
+# ---------------------------------------------------------------------------
 def _gumbel_log_pdf(u, v, theta):
     """Log-density of bivariate Gumbel copula. Returns array of log-pdf."""
     lu = -np.log(u)
     lv = -np.log(v)
-    ***REMOVED*** tA = ((-log u)^θ + (-log v)^θ)
+    # tA = ((-log u)^θ + (-log v)^θ)
     a = np.power(lu, theta) + np.power(lv, theta)
     a_pow = np.power(a, 1.0 / theta)
-    log_C = -a_pow  ***REMOVED*** log of copula
+    log_C = -a_pow  # log of copula
     log_c = (
         log_C
         + (theta - 1.0) * np.log(lu * lv)
-        - (lu + lv) * 0  ***REMOVED*** already added via -log u, -log v indirectly
-        - np.log(u) - np.log(v)  ***REMOVED*** converting density of (u,v) — Joe (1997) form
+        - (lu + lv) * 0  # already added via -log u, -log v indirectly
+        - np.log(u) - np.log(v)  # converting density of (u,v) — Joe (1997) form
         + (1.0 / theta - 2.0) * np.log(a)
         + np.log(a_pow + theta - 1.0)
     )
@@ -133,7 +133,7 @@ def _gumbel_log_pdf(u, v, theta):
 
 def fit_gumbel(u: np.ndarray, v: np.ndarray) -> float:
     """MLE of Gumbel θ ∈ [1.001, 20]. Returns θ_hat."""
-    ***REMOVED*** Clip away exact 0/1 to keep -log finite
+    # Clip away exact 0/1 to keep -log finite
     eps = 1e-6
     u = np.clip(u, eps, 1 - eps)
     v = np.clip(v, eps, 1 - eps)
@@ -157,13 +157,13 @@ def gumbel_lambda_U(theta: float) -> float:
     return float(2.0 - 2.0 ** (1.0 / theta))
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Estimator 3: Survival Clayton copula MLE (rotated for upper tail)
-***REMOVED*** Clayton C(u,v;θ) = (u^-θ + v^-θ - 1)^(-1/θ), θ > 0.
-***REMOVED*** Lower tail dep: λ_L = 2^(-1/θ); upper tail dep: 0.
-***REMOVED*** Survival Clayton (180° rotation): apply Clayton to (1-u, 1-v).
-***REMOVED*** Then upper tail dep of original = λ_L of Clayton on (1-u, 1-v) = 2^(-1/θ).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Estimator 3: Survival Clayton copula MLE (rotated for upper tail)
+# Clayton C(u,v;θ) = (u^-θ + v^-θ - 1)^(-1/θ), θ > 0.
+# Lower tail dep: λ_L = 2^(-1/θ); upper tail dep: 0.
+# Survival Clayton (180° rotation): apply Clayton to (1-u, 1-v).
+# Then upper tail dep of original = λ_L of Clayton on (1-u, 1-v) = 2^(-1/θ).
+# ---------------------------------------------------------------------------
 def _clayton_log_pdf(u, v, theta):
     """Log-density of bivariate Clayton copula (lower tail dependence)."""
     term = np.power(u, -theta) + np.power(v, -theta) - 1.0
@@ -200,9 +200,9 @@ def survival_clayton_lambda_U(theta: float) -> float:
     return float(2.0 ** (-1.0 / theta))
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Bootstrap CI (block bootstrap to preserve temporal autocorrelation)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Bootstrap CI (block bootstrap to preserve temporal autocorrelation)
+# ---------------------------------------------------------------------------
 def block_bootstrap_indices(n: int, block: int, rng: np.random.Generator) -> np.ndarray:
     n_blocks = int(np.ceil(n / block))
     starts = rng.integers(0, n - block + 1, size=n_blocks)
@@ -254,9 +254,9 @@ def _ci(arr: np.ndarray, alpha: float = 0.05) -> dict:
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Permutation null
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Permutation null
+# ---------------------------------------------------------------------------
 def permutation_null(
     u: np.ndarray, v: np.ndarray, n_perm: int = 1000, seed: int = 7, q: float = 0.95
 ) -> dict:
@@ -275,9 +275,9 @@ def permutation_null(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Baseline comparison
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Baseline comparison
+# ---------------------------------------------------------------------------
 def baseline_compare(
     joint: pd.DataFrame, return_q: float = 0.95, damage_q: float = 0.95
 ) -> dict:
@@ -288,7 +288,7 @@ def baseline_compare(
     d_thr = np.quantile(damage, damage_q)
     extreme_ret = abs_ret > r_thr
     extreme_dmg = damage > d_thr
-    p_extreme_dmg = extreme_dmg.mean()  ***REMOVED*** baseline P(extreme storm)
+    p_extreme_dmg = extreme_dmg.mean()  # baseline P(extreme storm)
     p_dmg_given_ret = (
         extreme_dmg[extreme_ret].mean() if extreme_ret.sum() else float("nan")
     )
@@ -306,9 +306,9 @@ def baseline_compare(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 def positive_control_within_domain() -> dict:
     """Sanity check: compute λ_U between |S&P returns| and |S&P returns lagged 1 day|.
 
@@ -349,7 +349,7 @@ def main():
     x = joint["abs_log_ret"].values
     y = joint["total_damage_usd"].values
 
-    ***REMOVED*** Pseudo-uniform marginals
+    # Pseudo-uniform marginals
     u = to_pseudo_uniform(x)
     v = to_pseudo_uniform(y)
 
@@ -379,16 +379,16 @@ def main():
     base = baseline_compare(joint)
     print(f"  baseline: {base}", flush=True)
 
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** Verdict
-    ***REMOVED*** ------------------------------------------------------------------
-    ***REMOVED*** Significance: empirical λ_U at q=0.95 > 99th percentile of null AND
-    ***REMOVED*** bootstrap CI excludes 0.
+    # ------------------------------------------------------------------
+    # Verdict
+    # ------------------------------------------------------------------
+    # Significance: empirical λ_U at q=0.95 > 99th percentile of null AND
+    # bootstrap CI excludes 0.
     obs_lU = emp["q=0.95"]
     sig_vs_null = obs_lU > null["p99_null"]
     boot_ci = boot["empirical_q95"]
     ci_excl_zero = boot_ci["ci_low"] > 0.0
-    nonzero_param = lU_g > 0.02 or lU_c > 0.02  ***REMOVED*** > floor noise
+    nonzero_param = lU_g > 0.02 or lU_c > 0.02  # > floor noise
 
     if sig_vs_null and ci_excl_zero and (lU_g > 0.05 or lU_c > 0.05):
         verdict = "supports"
@@ -405,7 +405,7 @@ def main():
 
     out = {
         "phase": "A2-Copula",
-        "universality_class": "***REMOVED***6 tail copula",
+        "universality_class": "#6 tail copula",
         "data_sources": [
             "S&P 500 daily returns (Yahoo Finance, local 1990-2025)",
             "NOAA Storm Events Database (1996-2024, public CSV)",
@@ -416,7 +416,7 @@ def main():
         "lambda_U_empirical_panel": emp,
         "lambda_U_empirical_q95": float(emp["q=0.95"]),
         "lambda_U_gumbel": float(lU_g),
-        "lambda_U_clayton": float(lU_c),  ***REMOVED*** actually survival Clayton
+        "lambda_U_clayton": float(lU_c),  # actually survival Clayton
         "gumbel_theta": float(th_g),
         "survival_clayton_theta": float(th_c),
         "lambda_U_ci_95": [boot_ci["ci_low"], boot_ci["ci_high"]],

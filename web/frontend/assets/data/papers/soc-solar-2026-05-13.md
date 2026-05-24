@@ -1,4 +1,4 @@
-***REMOVED*** Independent Validation of Solar-Flare SOC Statistics on a 17-Year GOES X-ray Catalog: Phase 11 of a Cross-Domain Universality Pipeline
+# Independent Validation of Solar-Flare SOC Statistics on a 17-Year GOES X-ray Catalog: Phase 11 of a Cross-Domain Universality Pipeline
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -7,17 +7,17 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 Solar flares are the canonical natural realization of self-organized criticality (SOC) since Lu and Hamilton (1991), with subsequent surveys converging on a peak-flux power-law $\alpha \in [1.5, 2.5]$. We re-fit this distribution on 29,907 unique GOES X-ray flares from the NOAA NGDC catalog (2000-2016), using the Layer-5 SOC pipeline previously applied to seismicity, the S&P 500, DeFi, mouse cortex, and wildfires. The Clauset-Shalizi-Newman MLE returns $\alpha = 2.194 \pm 0.018$ with bootstrap 95% CI $[2.159, 2.248]$, $x_\mathrm{min} = 5.2 \times 10^{-6}\,\mathrm{W\,m^{-2}}$ ($\approx$M0.5), $n_\mathrm{tail} = 4{,}336$. Power-law beats exponential at $R = +15.1$ ($p \approx 3 \times 10^{-51}$); the test against lognormal is inconclusive ($R = +0.44$, $p = 0.66$) — lognormal cannot be rejected but does not beat power-law. Inter-arrival times are themselves power-law, $\alpha_\mathrm{IAT} = 2.65$, consistent with Wheatland (2000). A stacked Omori-Utsu fit after X-class triggers returns $p \approx 0$, $R^2 = 0.05$: no aftershock-style temporal decay, matching Wheatland's state-dependent-Poisson view. The result is independent validation, not discovery, and flagged as cleaner than Phase 10 (wildfires) where lognormal beat the power-law.
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Self-organized criticality was introduced by Bak, Tang, and Wiesenfeld [1] as a generic mechanism by which slowly driven threshold-cascade systems organize themselves toward a critical point and exhibit power-law event-size distributions without parameter tuning. Lu and Hamilton [2] adapted the BTW sandpile to coronal magnetic reconnection and predicted that solar flare energies, peak fluxes, and durations should follow power laws with exponents close to those of the underlying avalanche model. The prediction was rapidly tested by Crosby, Aschwanden, and Dennis [3] on SMM/HXRBS data, who reported $\alpha \approx 1.5$-$1.8$; subsequent reviews [4] and SDO-era resurveys [5] consolidated a working range of $\alpha \in [1.5, 2.5]$ depending on observable and bandpass.
 
 This work is Phase 11 of the Structural Isomorphism project's Layer-5 pipeline, which has already applied a shared analysis stack (`v4/lib/soc_pipeline.py`) to tectonic seismicity (Phase 1), the S&P 500 (Phase 7), three DeFi protocols (Phase 8), mouse visual cortex (Phase 9), and U.S. wildfires (Phase 10). The purpose is not to discover that solar flares are SOC — among the most robust findings in plasma astrophysics — but to verify that the pipeline, unchanged, recovers the literature-standard exponent inside its predicted band on an independently fetched 17-year GOES catalog, and to compare cleanness against the other five systems.
 
-***REMOVED******REMOVED*** 2. Data
+## 2. Data
 
 The catalog was retrieved from the NOAA NGDC archive at the URL pattern
 ```
@@ -29,7 +29,7 @@ Class letters map to peak soft-X-ray flux as $\text{A}=10^{-8}$, $\text{B}=10^{-
 
 The 2000-2016 window covers roughly 1.5 solar cycles: descending phase of cycle 23 from the 2001 maximum, the deep 2008-2009 minimum, the ascending phase of cycle 24, and its 2014 maximum. The minimum years are undersampled (86 flares in 2008, 256 in 2009 versus 2,000-3,000 in active years), consistent with the cycle 23/24 minimum being one of the deepest of the modern instrumented era.
 
-***REMOVED******REMOVED*** 3. Methods
+## 3. Methods
 
 The analysis uses the shared `v4/lib/soc_pipeline.py` module unchanged.
 
@@ -43,33 +43,33 @@ The analysis uses the shared `v4/lib/soc_pipeline.py` module unchanged.
 
 **Null control.** Three non-SOC synthetics (Poisson, Gaussian-mixture sizes, uniform shot noise) of $n = 20{,}000$ each are run through the same pipeline. Passing requires rejection on all three.
 
-***REMOVED******REMOVED*** 4. Results
+## 4. Results
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Peak-flux power-law fit
+### 4.1 Peak-flux power-law fit
 
 The Clauset MLE selects $x_\mathrm{min} = 5.2 \times 10^{-6}\,\mathrm{W\,m^{-2}}$ ($\approx$M0.5), leaves $n_\mathrm{tail} = 4{,}336$ in the fitted tail, and returns $\alpha_\mathrm{peak} = 2.194 \pm 0.018$, with bootstrap 95% CI $[2.159, 2.248]$. The value sits at the upper end of the Phase-4 prediction band $[1.5, 2.5]$. For reference, Crosby et al. [3] reported $\alpha \approx 1.5$-$1.8$ from SMM/HXRBS hard X-rays, Aschwanden [4] cites $\alpha \approx 1.7$-$2.0$ from a broader compilation, and Verbeeck et al. [5] obtained $\alpha \approx 2.0$ from SDO/AIA. Our slightly higher exponent is consistent with the GOES 1-8 Å channel integrating thermal emission over the full flare loop volume, which steepens the tail relative to non-thermal hard-X-ray surveys; we do not claim a tension with prior work.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Power-law versus lognormal versus exponential
+### 4.2 Power-law versus lognormal versus exponential
 
 The likelihood-ratio test against exponential returns $R = +15.06$ with $p = 3 \times 10^{-51}$: power-law decisively crushes exponential, as expected. Against lognormal it is inconclusive, $R = +0.44$, $p = 0.66$. Read straight: on the 4,336-event tail the power-law is not significantly preferred over lognormal at the 5% level, but neither is lognormal preferred over power-law. Inconclusive results of this type are the normal outcome of the Clauset-2009 test at $n \sim 10^3$-$10^4$ when the alternative has an approximately straight log-log tail [6]. Functional consistency with the BTW/Lu-Hamilton avalanche prediction is sufficient to confirm the SOC signature; the absence of a lognormal rejection is a known discriminator limitation, not evidence against power-law.
 
 Cross-cohort context: Phase 10 (wildfires) returned $R = -4.73$ in favor of lognormal — a known fingerprint of suppression and fuel-limitation in fire-area distributions. By that yardstick solar flares are the cleanest SOC confirmation in the six-system cohort. We flag this because cleaner-than-expected results in a pipeline that has previously surfaced messy ones is evidence against over-fitting to confirm SOC.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Inter-arrival-time power-law
+### 4.3 Inter-arrival-time power-law
 
 A parallel Clauset fit on inter-arrival times (IAT) selects $x_\mathrm{min,IAT} = 3.06 \times 10^4\ \mathrm{s} \approx 8.5\ \mathrm{h}$ and returns $\alpha_\mathrm{IAT} = 2.65 \pm 0.03$ ($n_\mathrm{tail} = 3{,}351$). The IAT power-law is preferred over lognormal at $R = +2.27$ ($p = 0.023$) and over exponential at $R = +6.30$ ($p = 3 \times 10^{-10}$). This reproduces Wheatland (2000) [7]: flare waiting times are heavy-tailed and non-Poisson at long times, indicating clustering driven by slow modulation of the global flare rate over the solar cycle.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Omori-Utsu after X-class triggers
+### 4.4 Omori-Utsu after X-class triggers
 
 The stacked fit using all 147 X-class triggers and 3,773 follow-on flares in $[0.03, 2.5]\,\mathrm{d}$ returns $p_\mathrm{Omori} = -0.04 \pm 0.05$, $c = 0.001\,\mathrm{d}$, $R^2 = 0.05$. The slope is consistent with zero, goodness-of-fit is poor, $c$ saturates at the grid floor. Read straight: no Omori-style aftershock decay follows X-class flares. This contrasts with Phase 1 on earthquakes (same code returned $p = 0.94$, $R^2 = 0.99$) and matches Wheatland's [7] state-dependent-Poisson picture, in which flare occurrence is locally Poisson with a rate set by the slowly evolving global magnetic state — the triggering event does not itself perturb that state, so the trigger-conditioned rate is flat on post-trigger timescales.
 
 The negative Omori result therefore *decouples* the two SOC signatures: the size distribution is power-law in the BTW/Lu-Hamilton sense, but the temporal correlation structure is not the Omori-like relaxation seen in earthquakes. Both observations are within the solar SOC literature and we do not treat them as in tension.
 
-***REMOVED******REMOVED******REMOVED*** 4.5 Null control
+### 4.5 Null control
 
 All three non-SOC synthetics (Poisson, Gaussian mixture, uniform shot noise) are rejected by the pipeline: $\alpha$ fails to converge, $x_\mathrm{min}$ floats to a degenerate region, or the likelihood-ratio against the matching alternative goes strongly negative. Consistent with Phase 1-10 behavior.
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
 Across Phases 1, 7, 8, 9, 10, and 11 the same pipeline has been applied to six independent systems. Recovered exponents: $b = 1.084$ (earthquake b-value, $\tau_E = 1.72$) [Phase 1]; $\alpha = 3.00$ (S&P 500 drawdowns) [Phase 7]; $\alpha \in [1.57, 1.68]$ across three DeFi protocols [Phase 8]; $\alpha \in [2.17, 3.00]$ for neural avalanche size and duration [Phase 9]; $\alpha = 1.66$ (U.S. wildfire burned area) [Phase 10]; and $\alpha = 2.19$ (GOES flare peak flux) [Phase 11]. The range $[1.08, 3.00]$ is large but interpretable: the exponent is not the universal invariant. The universal invariant is the functional form — heavy-tailed power-law with system-specific $x_\mathrm{min}$, robust against exponential and at least competitive against lognormal. Different observables (radiated energy, dollar drawdown, integrated current, burned area, X-ray flux) sit at different points in the fluctuation-dissipation hierarchy of their respective systems and so map to different exponents even when the underlying threshold-cascade mechanism graph is shared. The Phase-1-through-11 results are consistent with this picture: every system is power-law-tailed, every system is non-Poisson where temporal stacking is available, and the variation in $\alpha$ is interpretable in terms of the chosen observable, not the SOC class itself.
 
@@ -79,7 +79,7 @@ The negative Omori result is worth one more line. In Phase 1, finding Omori-Utsu
 
 Phase 12 will apply the same pipeline to NERC TADS electric-grid outage records, where the Motter-Lai cascade model predicts a distinct SOC sub-class with steeper exponents and topology-governed finite-size cutoffs.
 
-***REMOVED******REMOVED*** 6. Limitations
+## 6. Limitations
 
 1. **GOES detection floor.** XRS event reports are incomplete below B1 from background subtraction artifacts and operator threshold choices; the fitted $x_\mathrm{min} \approx 5 \times 10^{-6}$ (M0.5) sits comfortably above this floor, so the fitted tail is in the high-completeness regime, but we have not characterized the floor quantitatively.
 2. **Solar-minimum undersampling.** The 2008-2009 minimum contributes only 342 of 29,907 flares, biasing temporal statistics (Sections 4.3-4.4) toward active-Sun behavior. A cycle-stratified analysis would be needed to test whether $\alpha_\mathrm{IAT}$ and the Omori-null are stable across the cycle.
@@ -89,11 +89,11 @@ Phase 12 will apply the same pipeline to NERC TADS electric-grid outage records,
 
 None of these affects the basic finding that the pipeline recovers $\alpha \in [1.5, 2.5]$ on a fresh 17-year catalog, which is what Phase 11 is for.
 
-***REMOVED******REMOVED*** 7. Conclusion
+## 7. Conclusion
 
 The Layer-5 SOC pipeline, run unchanged on 29,907 deduplicated GOES X-ray flares from 2000-2016, recovers the canonical Lu-Hamilton power-law signature with $\alpha = 2.194 \pm 0.018$ (95% bootstrap CI $[2.159, 2.248]$) and reproduces the Wheatland inter-arrival power-law and the absence of Omori-style temporal decay. The result is independent re-validation of a 35-year literature consensus, not a discovery. Within the six-system Phase 1-11 cohort, solar flares are the cleanest SOC confirmation, which is the outcome we should expect from the SOC system with the strongest pre-existing physical justification. Phase 12 will move on to electric-grid cascade failures.
 
-***REMOVED******REMOVED*** 8. References
+## 8. References
 
 [1] P. Bak, C. Tang, and K. Wiesenfeld, "Self-organized criticality: An explanation of 1/f noise," *Phys. Rev. Lett.* **59**, 381 (1987).
 

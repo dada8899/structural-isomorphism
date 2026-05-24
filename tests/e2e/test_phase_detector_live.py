@@ -16,7 +16,7 @@ from __future__ import annotations
 import pytest
 
 playwright = pytest.importorskip("playwright")
-from playwright.sync_api import Page, expect, sync_playwright  ***REMOVED*** noqa: E402
+from playwright.sync_api import Page, expect, sync_playwright  # noqa: E402
 
 BASE_URL = "https://phase.bytedance.city"
 
@@ -39,15 +39,15 @@ def page(browser):
     ctx.close()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Happy path
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Happy path
+# ---------------------------------------------------------------------------
 
 
 def test_home_loads_with_title(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    ***REMOVED*** W6-D updated title prefix is stable, but suffix may evolve as the
-    ***REMOVED*** narrative copy gets polished. Match the stable prefix.
+    # W6-D updated title prefix is stable, but suffix may evolve as the
+    # narrative copy gets polished. Match the stable prefix.
     title = page.title()
     assert "Phase Detector" in title, f"expected 'Phase Detector' in title, got: {title}"
 
@@ -56,8 +56,8 @@ def test_h1_visible(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
     h1 = page.locator("h1")
     expect(h1.first).to_be_visible()
-    ***REMOVED*** F1 fix: prod now serves W6-D hero — "哪些公司正在接近临界点？"
-    ***REMOVED*** The old "Company screener" h1 was the W3-B placeholder.
+    # F1 fix: prod now serves W6-D hero — "哪些公司正在接近临界点？"
+    # The old "Company screener" h1 was the W3-B placeholder.
     expect(h1.first).to_contain_text("接近临界点")
 
 
@@ -65,7 +65,7 @@ def test_filter_controls_present(page: Page):
     """All four filter controls render on first load."""
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
     selects = page.locator("select")
-    ***REMOVED*** 3 selects: dynamics_family, critical_point_state, sector
+    # 3 selects: dynamics_family, critical_point_state, sector
     expect(selects).to_have_count(3, timeout=10000)
 
 
@@ -77,9 +77,9 @@ def test_min_confidence_range_present(page: Page):
 
 def test_apply_and_reset_buttons(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    ***REMOVED*** F1 fix: W6-D screener uses 重置 (Chinese), not Reset; smoke-test that
-    ***REMOVED*** the screener section anchored under ***REMOVED***screener renders a reset control.
-    expect(page.locator("***REMOVED***screener")).to_be_visible()
+    # F1 fix: W6-D screener uses 重置 (Chinese), not Reset; smoke-test that
+    # the screener section anchored under #screener renders a reset control.
+    expect(page.locator("#screener")).to_be_visible()
 
 
 def test_stats_card_loads_then_resolves(page: Page):
@@ -92,7 +92,7 @@ def test_stats_card_loads_then_resolves(page: Page):
     page.goto(BASE_URL, wait_until="networkidle", timeout=30000)
     body = page.locator("body")
     expect(body).to_contain_text("Phase Detector")
-    ***REMOVED*** Confirm the page is not the React error fallback.
+    # Confirm the page is not the React error fallback.
     body_text = body.inner_text()
     assert "Application error" not in body_text, (
         f"page is rendering the React error fallback: {body_text[:200]!r}"
@@ -104,17 +104,17 @@ def test_no_console_errors_on_load(page: Page):
     errors = []
     page.on("console", lambda msg: errors.append(msg) if msg.type == "error" else None)
     page.goto(BASE_URL, wait_until="networkidle", timeout=30000)
-    ***REMOVED*** Allow a small grace for API-fail soft warnings (e.g. dev backend)
-    ***REMOVED*** but assert no truly hard JS errors
+    # Allow a small grace for API-fail soft warnings (e.g. dev backend)
+    # but assert no truly hard JS errors
     hard_errors = [e for e in errors if "favicon" not in str(e.text).lower()]
-    ***REMOVED*** Use soft assertion: log + don't fail (live API may not be reachable)
+    # Use soft assertion: log + don't fail (live API may not be reachable)
     if hard_errors:
         pytest.skip(f"transient console errors (non-blocking): {hard_errors[:3]}")
 
 
 def test_footer_disclaimer(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    ***REMOVED*** F1 fix: footer now uses Chinese disclaimer 非投资建议; covers both langs.
+    # F1 fix: footer now uses Chinese disclaimer 非投资建议; covers both langs.
     footer = page.locator("footer")
     footer_text = footer.inner_text()
     assert any(
@@ -130,9 +130,9 @@ def test_main_site_link_present(page: Page):
     expect(main_site.first).to_be_visible()
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Accessibility basics
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Accessibility basics
+# ---------------------------------------------------------------------------
 
 
 def test_keyboard_navigation_focusable(page: Page):
@@ -140,7 +140,7 @@ def test_keyboard_navigation_focusable(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
     page.keyboard.press("Tab")
     page.keyboard.press("Tab")
-    ***REMOVED*** Should be on something focusable
+    # Should be on something focusable
     focused = page.evaluate("document.activeElement?.tagName")
     assert focused in ("A", "BUTTON", "SELECT", "INPUT"), (
         f"expected focusable element, got {focused}"

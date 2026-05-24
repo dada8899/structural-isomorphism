@@ -1,5 +1,5 @@
 """
-POST /api/checkout/mock — Stripe Checkout *mock* endpoint (W10-B, session ***REMOVED***10).
+POST /api/checkout/mock — Stripe Checkout *mock* endpoint (W10-B, session #10).
 
 This is **not** live Stripe. It simulates the surface area we'll eventually
 plug into (customer/session ids, decline 10% of the time, persist to jsonl).
@@ -25,7 +25,7 @@ Body (JSON):
       "interval":  "month" | "year",
       "email":     "user@example.com",
       "name":      "Jane Doe",
-      "card_last4": "4242"   ***REMOVED*** informational only — NEVER a real card
+      "card_last4": "4242"   # informational only — NEVER a real card
     }
 
 Response:
@@ -37,7 +37,7 @@ Response:
           "interval":            "month",
           "amount_usd":          19,
          }
-    200  {  ***REMOVED*** decline (~10% of requests, simulating real-world failure rate)
+    200  {  # decline (~10% of requests, simulating real-world failure rate)
           "status":  "declined",
           "reason":  "card_declined",
          }
@@ -60,28 +60,28 @@ from pydantic import BaseModel
 
 router = APIRouter(tags=["checkout-mock"])
 logger = logging.getLogger("structural.checkout_mock")
-***REMOVED*** W14-D: structlog adapter — `slog` emits queryable key=value fields
-***REMOVED*** alongside the legacy stdlib `logger` calls (kept for log-message stability).
-try:  ***REMOVED*** pragma: no cover — import guard for early-load test envs
+# W14-D: structlog adapter — `slog` emits queryable key=value fields
+# alongside the legacy stdlib `logger` calls (kept for log-message stability).
+try:  # pragma: no cover — import guard for early-load test envs
     from logging_config import get_logger as _glog
 
     slog = _glog("structural.checkout_mock")
-except Exception:  ***REMOVED*** pragma: no cover
+except Exception:  # pragma: no cover
     slog = None
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
-***REMOVED*** Tier pricing in USD. Annual = 10x monthly (2 months free). Authoritative source —
-***REMOVED*** duplicated in web/phase-detector/lib/pricing.ts for frontend, but BE wins on
-***REMOVED*** the actual receipt amount.
+# Tier pricing in USD. Annual = 10x monthly (2 months free). Authoritative source —
+# duplicated in web/phase-detector/lib/pricing.ts for frontend, but BE wins on
+# the actual receipt amount.
 _TIER_PRICING = {
     "pro": {"month": 19, "year": 190},
     "team": {"month": 99, "year": 990},
 }
 
-***REMOVED*** Simulate ~10% decline rate (Stripe's actual production rate hovers 7-12% on
-***REMOVED*** B2B SaaS; we pick 10% so the e2e suite can hit both branches deterministically
-***REMOVED*** via the override below).
+# Simulate ~10% decline rate (Stripe's actual production rate hovers 7-12% on
+# B2B SaaS; we pick 10% so the e2e suite can hit both branches deterministically
+# via the override below).
 _DECLINE_RATE = 0.10
 
 _MAX_NAME_LEN = 100
@@ -100,9 +100,9 @@ class CheckoutBody(BaseModel):
     email: str
     name: Optional[str] = ""
     card_last4: Optional[str] = ""
-    ***REMOVED*** Test-only override — lets e2e tests force a deterministic branch
-    ***REMOVED*** without 10x retries to hit the decline path. NEVER honoured if
-    ***REMOVED*** request comes from a non-localhost IP.
+    # Test-only override — lets e2e tests force a deterministic branch
+    # without 10x retries to hit the decline path. NEVER honoured if
+    # request comes from a non-localhost IP.
     force_status: Optional[str] = None
 
 
@@ -120,7 +120,7 @@ async def checkout_mock(body: CheckoutBody, request: Request):
     name = (body.name or "").strip()[:_MAX_NAME_LEN]
     card_last4 = re.sub(r"\D", "", (body.card_last4 or ""))[:4]
 
-    ***REMOVED*** --- Validation ---
+    # --- Validation ---
     if tier not in _TIER_PRICING:
         return JSONResponse(
             {"error": "invalid tier", "allowed": list(_TIER_PRICING.keys())},
@@ -136,14 +136,14 @@ async def checkout_mock(body: CheckoutBody, request: Request):
 
     amount = _TIER_PRICING[tier][interval]
 
-    ***REMOVED*** --- Force-status override (localhost only, e2e support) ---
+    # --- Force-status override (localhost only, e2e support) ---
     force = (body.force_status or "").strip().lower()
     client_host = request.client.host if request.client else ""
     is_local = client_host in ("127.0.0.1", "localhost", "::1", "testclient", "")
     if force in ("success", "declined") and is_local:
         status = force
     else:
-        ***REMOVED*** Real decision: probabilistic decline
+        # Real decision: probabilistic decline
         status = "declined" if random.random() < _DECLINE_RATE else "success"
 
     if status == "declined":
@@ -156,7 +156,7 @@ async def checkout_mock(body: CheckoutBody, request: Request):
                 "checkout.declined",
                 tier=tier, interval=interval, amount_usd=amount,
             )
-        ***REMOVED*** Persist the decline too — useful funnel signal.
+        # Persist the decline too — useful funnel signal.
         _persist({
             "status": "declined",
             "tier": tier,
@@ -172,7 +172,7 @@ async def checkout_mock(body: CheckoutBody, request: Request):
             "reason": "card_declined",
         })
 
-    ***REMOVED*** Success path
+    # Success path
     customer_id = "mock_cus_" + uuid.uuid4().hex[:16]
     session_id = "mock_cs_" + uuid.uuid4().hex[:16]
 
@@ -230,11 +230,11 @@ def _persist(payload: dict, request: Request) -> None:
         logger.warning("checkout_mock persist failed: %s", e)
 
 
-***REMOVED*** -------- /api/usage --------
-***REMOVED*** Lightweight tier-and-quota probe used by the frontend to gate Pro features
-***REMOVED*** (paywall modal on tickers 101+). NOT auth-protected — the mock returns
-***REMOVED*** whichever tier the caller asserts via cookie/header, defaulting to free.
-***REMOVED*** In production this would hit the real user DB + counters.
+# -------- /api/usage --------
+# Lightweight tier-and-quota probe used by the frontend to gate Pro features
+# (paywall modal on tickers 101+). NOT auth-protected — the mock returns
+# whichever tier the caller asserts via cookie/header, defaulting to free.
+# In production this would hit the real user DB + counters.
 
 _TIER_LIMITS = {
     "free": {"ticker_limit": 100, "api_quota_today": 50},
@@ -274,8 +274,8 @@ async def usage(request: Request):
                 tier = c_tier
 
     limits = _TIER_LIMITS[tier]
-    ***REMOVED*** api_calls_today is mocked as 0 here — real impl pulls from a counter
-    ***REMOVED*** store (redis / sqlite). Frontend uses this to render usage bars later.
+    # api_calls_today is mocked as 0 here — real impl pulls from a counter
+    # store (redis / sqlite). Frontend uses this to render usage bars later.
     return JSONResponse({
         "tier": tier,
         "ticker_limit": limits["ticker_limit"],

@@ -1,4 +1,4 @@
-"""W12-C (session ***REMOVED***10): mobile visual regression — 4 viewports × 8 pages.
+"""W12-C (session #10): mobile visual regression — 4 viewports × 8 pages.
 
 Compares screenshots of key pages at 4 device viewports against committed
 baselines. Fails if average per-pixel diff exceeds 5% (>5% of the image
@@ -35,13 +35,13 @@ from typing import Iterator
 
 import pytest
 
-***REMOVED*** Default base URL. Points at the production beta so the test works without
-***REMOVED*** a local dev server. Override with MOBILE_VISUAL_BASE_URL.
+# Default base URL. Points at the production beta so the test works without
+# a local dev server. Override with MOBILE_VISUAL_BASE_URL.
 DEFAULT_BASE = "https://phase.bytedance.city"
 BASE = os.environ.get("MOBILE_VISUAL_BASE_URL", DEFAULT_BASE).rstrip("/")
 
-***REMOVED*** Where baselines + diffs live. Inside repo, gitignored except `.gitkeep` and
-***REMOVED*** committed baseline images.
+# Where baselines + diffs live. Inside repo, gitignored except `.gitkeep` and
+# committed baseline images.
 SCREENSHOT_ROOT = Path(__file__).parent / "screenshots" / "mobile-visual"
 BASELINE_DIR = SCREENSHOT_ROOT / "baseline"
 ACTUAL_DIR = SCREENSHOT_ROOT / "actual"
@@ -49,10 +49,10 @@ DIFF_DIR = SCREENSHOT_ROOT / "diff"
 
 UPDATE_BASELINES = os.environ.get("UPDATE_VISUAL_BASELINES") == "1"
 
-***REMOVED*** Diff threshold: 5% of pixels can differ.
+# Diff threshold: 5% of pixels can differ.
 PIXEL_DIFF_BUDGET = 0.05
 
-***REMOVED*** Viewport matrix. (slug, width, height, isMobile).
+# Viewport matrix. (slug, width, height, isMobile).
 VIEWPORTS = [
     ("iphone-se", 375, 812, True),
     ("iphone-pro-max", 414, 896, True),
@@ -60,8 +60,8 @@ VIEWPORTS = [
     ("ipad-landscape", 1024, 768, False),
 ]
 
-***REMOVED*** Page paths. Keep stable; if a page disappears upstream the test will
-***REMOVED*** capture the 404 page and fail loudly which is the desired behavior.
+# Page paths. Keep stable; if a page disappears upstream the test will
+# capture the 404 page and fail loudly which is the desired behavior.
 PAGES = [
     ("home", "/"),
     ("companies", "/companies"),
@@ -88,7 +88,7 @@ def chromium_browser(playwright_instance):
 
 def _have_image_libs() -> bool:
     try:
-        import PIL  ***REMOVED*** noqa: F401
+        import PIL  # noqa: F401
         return True
     except ImportError:
         return False
@@ -103,18 +103,18 @@ def _compute_pixel_diff(actual_path: Path, baseline_path: Path, diff_path: Path)
 
     a = Image.open(actual_path).convert("RGB")
     b = Image.open(baseline_path).convert("RGB")
-    ***REMOVED*** Resize baseline to actual size if they drift slightly (DPR, OS chrome).
+    # Resize baseline to actual size if they drift slightly (DPR, OS chrome).
     if a.size != b.size:
         b = b.resize(a.size)
     diff = ImageChops.difference(a, b)
-    ***REMOVED*** Sum per-pixel max channel diff; count pixels above threshold.
+    # Sum per-pixel max channel diff; count pixels above threshold.
     bands = diff.split()
-    ***REMOVED*** Use 'V' channel (max of R,G,B) as a proxy via .convert('L').
+    # Use 'V' channel (max of R,G,B) as a proxy via .convert('L').
     luminance_diff = diff.convert("L")
     pixels = list(luminance_diff.getdata())
     total = len(pixels)
     above = sum(1 for p in pixels if p > 32)
-    ***REMOVED*** Save the diff for human inspection.
+    # Save the diff for human inspection.
     diff.save(diff_path)
     return above / total if total else 0.0
 
@@ -150,16 +150,16 @@ def test_visual(chromium_browser, vp_slug, width, height, is_mobile, page_slug, 
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
         except Exception as e:
             pytest.skip(f"upstream {url} unreachable: {e}")
-        ***REMOVED*** Brief settle for fonts + first paint.
+        # Brief settle for fonts + first paint.
         page.wait_for_timeout(1500)
-        ***REMOVED*** Capture above-the-fold only (full_page=False) — avoids long pages
-        ***REMOVED*** ballooning baseline storage and gives us a stable hero shot.
+        # Capture above-the-fold only (full_page=False) — avoids long pages
+        # ballooning baseline storage and gives us a stable hero shot.
         page.screenshot(path=str(actual), full_page=False)
     finally:
         context.close()
 
     if UPDATE_BASELINES or not baseline.exists():
-        ***REMOVED*** First run or explicit update: copy actual → baseline.
+        # First run or explicit update: copy actual → baseline.
         baseline.parent.mkdir(parents=True, exist_ok=True)
         baseline.write_bytes(actual.read_bytes())
         pytest.skip(f"baseline {'updated' if UPDATE_BASELINES else 'created'}: {baseline}")

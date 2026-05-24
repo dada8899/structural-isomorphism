@@ -1,10 +1,10 @@
-***REMOVED*** Test Suite Summary — 2026-05-13
+# Test Suite Summary — 2026-05-13
 
-W6-E session ***REMOVED***3 subagent deliverable. Three-tier test coverage (unit /
+W6-E session #3 subagent deliverable. Three-tier test coverage (unit /
 integration / e2e) across the v4 codebase + D1 Phase Detector product +
 deployed sites.
 
-***REMOVED******REMOVED*** Headline numbers
+## Headline numbers
 
 | Layer | Count | Wall time | Status |
 |---|---|---|---|
@@ -16,9 +16,9 @@ deployed sites.
 Baseline before W6-E: 82 unit + 16 D1 API = ~98 tests.
 After W6-E: 213 tests. **+115 tests (+117%)**.
 
-***REMOVED******REMOVED*** Per-layer breakdown
+## Per-layer breakdown
 
-***REMOVED******REMOVED******REMOVED*** Layer 1 — Unit (139 tests, < 30s)
+### Layer 1 — Unit (139 tests, < 30s)
 
 Located in `v4/tests/sanity/`. Markers: `sanity`.
 
@@ -33,7 +33,7 @@ Located in `v4/tests/sanity/`. Markers: `sanity`.
 | **test_extract_structtuple.py (NEW W6-E)** | **21** | StructTuple.validate (all enums + bounds + edge cases) + make_prompt + DYNAMICS_FAMILIES coverage |
 | **test_site_data_consistency.py (NEW W6-E)** | **12** | universality-classes.json schema audit + class_id uniqueness + verified_predictions sanity |
 
-***REMOVED******REMOVED******REMOVED*** Layer 2 — Integration (52 tests, ~30s)
+### Layer 2 — Integration (52 tests, ~30s)
 
 | File | Tests | Coverage |
 |---|---|---|
@@ -42,39 +42,39 @@ Located in `v4/tests/sanity/`. Markers: `sanity`.
 | **v4/product/d1_phase_detector/tests/test_integration.py (NEW W6-E)** | **6** | Round-trip real `sample_structtuples.jsonl` extractor output → DB schema → API responses + CORS preflight |
 | **v4/product/d1_phase_detector/tests/test_migrations.py (NEW W6-E)** | **9** | SQLite migration creates table + columns + indexes + PK + INSERT + UNIQUE + ON CONFLICT UPSERT + JSON storage; Postgres migration syntactic smoke |
 
-***REMOVED******REMOVED******REMOVED*** Layer 3 — E2E (22 tests, ~30s, live network)
+### Layer 3 — E2E (22 tests, ~30s, live network)
 
 | File | Tests | Pass | Skip | Coverage |
 |---|---|---|---|---|
 | **tests/e2e/test_phase_detector_live.py (NEW W6-E)** | 10 | 9 | 1 | Home title / h1 / filter controls (3 selects) / range slider / Apply+Reset buttons / footer disclaimer / main-site link / a11y keyboard tab focus / console errors |
 | **tests/e2e/test_structural_site.py (NEW W6-E)** | 12 | 11 | 1 | Home loads + title + meta + main content / 4 sub-routes load-or-404-not-5xx / classes.html static / i18n toggle (skip if absent) / load < 10s / no 404 asset cascade |
 
-***REMOVED******REMOVED*** How to run
+## How to run
 
 ```bash
-***REMOVED*** Quick (no network, < 1min)
+# Quick (no network, < 1min)
 make test-fast
 
-***REMOVED*** Or directly:
+# Or directly:
 .venv/bin/python -m pytest -m "not e2e" -q
 
-***REMOVED*** Just unit:
+# Just unit:
 make test-unit
 .venv/bin/python -m pytest v4/tests/sanity -m sanity -q
 
-***REMOVED*** Just integration:
+# Just integration:
 make test-integration
 .venv/bin/python -m pytest v4/tests/integration v4/product/d1_phase_detector -q
 
-***REMOVED*** E2E against live deployed sites (requires network):
+# E2E against live deployed sites (requires network):
 make test-e2e
 .venv/bin/python -m pytest tests/e2e -m e2e -v
 
-***REMOVED*** Everything:
+# Everything:
 make test-all
 ```
 
-***REMOVED******REMOVED*** Coverage estimate (informal)
+## Coverage estimate (informal)
 
 | Module | Coverage |
 |---|---|
@@ -93,9 +93,9 @@ make test-all
 
 Approximate: **70-75% of stable surface area** has at least smoke coverage.
 
-***REMOVED******REMOVED*** Known issues / data findings surfaced by this suite
+## Known issues / data findings surfaced by this suite
 
-***REMOVED******REMOVED******REMOVED*** 1. universality-classes.json has 2 duplicate class_ids
+### 1. universality-classes.json has 2 duplicate class_ids
 Discovered by `test_class_ids_uniqueness_audit` (Layer 1 / sanity).
 Affected entries:
 - `motter_lai_network_cascade` (appears 2x)
@@ -106,7 +106,7 @@ The test is configured as an audit that pins the current baseline (≤ 2 dup
 slots); any NEW duplicate will fail CI. Followup: dedupe the JSON in a
 future data-cleanup commit.
 
-***REMOVED******REMOVED******REMOVED*** 2. phase.bytedance.city throws client-side exception on networkidle
+### 2. phase.bytedance.city throws client-side exception on networkidle
 Discovered by `test_stats_card_loads_then_resolves` (Layer 3 / e2e).
 Symptom: after `wait_until=networkidle` the body shows
 "Application error: a client-side exception has occurred". This indicates
@@ -117,24 +117,24 @@ Workaround in test: use `domcontentloaded` (static shell only) instead of
 `networkidle`. Real fix needed in D1 next session — likely API endpoint
 returning 500 or CORS preflight failing on the prod backend.
 
-***REMOVED******REMOVED******REMOVED*** 3. Known-flaky / skipped tests
+### 3. Known-flaky / skipped tests
 
 | Test | Reason |
 |---|---|
 | `test_i18n_toggle_if_present` | structural.bytedance.city has no visible i18n toggle button; test self-skips |
 | `test_html_route_classes_html` | `/classes.html` static route not exposed by current site build; test self-skips |
-| `test_no_console_errors_on_load` (phase) | Soft assertion — skips if transient API errors (treated as known prod issue, see ***REMOVED***2) |
+| `test_no_console_errors_on_load` (phase) | Soft assertion — skips if transient API errors (treated as known prod issue, see #2) |
 
-***REMOVED******REMOVED*** Next-session backlog
+## Next-session backlog
 
 - Add `b3_ensemble.py` call_deepseek tests with `urllib.request` mocks (vcr-py / responses)
 - Add `extract_one()` mock test that exercises the retry loop (network mocked)
 - Add Postgres migration test using `testcontainers-py` (require Docker)
 - Add visual regression baseline for phase.bytedance.city / beta.structural via Playwright screenshot diff
-- Investigate + fix prod client-side exception on phase Detector (issue ***REMOVED***2 above)
+- Investigate + fix prod client-side exception on phase Detector (issue #2 above)
 - Add coverage report via `pytest-cov`
 
-***REMOVED******REMOVED*** Files added / modified by W6-E
+## Files added / modified by W6-E
 
 ```
 v4/tests/sanity/test_b3_ensemble.py              (NEW, 24 tests)

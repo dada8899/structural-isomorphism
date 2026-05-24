@@ -1,4 +1,4 @@
-***REMOVED*** Session ***REMOVED***21 Handoff
+# Session #21 Handoff
 
 > 日期：2026-05-23 ~ 05-24
 > 承接 SESSION-20-HANDOFF.md。
@@ -7,7 +7,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 0. 当前状态
+## 0. 当前状态
 
 - `beta.structural.bytedance.city` 健康（health 200），生产环境正常。
 - 后端 756 测试全过（SESSION-20 是 713，涨幅来自本 session 新增的 struct-lint
@@ -15,11 +15,11 @@
 - 本 session 8 个 commit 全部 push 到 `origin/main`，已分 4 次部署，live 验证通过。
 - 一个 prod 配置变更：VPS 设了 `STRUCTURAL_PRIVACY_MOCK_CODE`（详见 §A）。
 - working tree 仅剩 `scripts/train_v2.py`（非本 session lineage，按 commit
-  边界铁律未动，与 ***REMOVED***19 ***REMOVED***20 一致）。
+  边界铁律未动，与 #19 #20 一致）。
 
 ---
 
-***REMOVED******REMOVED*** 1. 起手 bug：/analyze 链接参数名错误（commit b638ac4）
+## 1. 起手 bug：/analyze 链接参数名错误（commit b638ac4）
 
 **用户现象**：点「生成研究报告」后页面不生成报告，显示空状态。
 
@@ -38,7 +38,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. 502 系统性根因根治（commit c1c87f0）
+## 2. 502 系统性根因根治（commit c1c87f0）
 
 **修正 SESSION-20 §1 的判断**：交接文档说「本地 Python 3.14 全过、prod
 Python 3.11 才崩」是 Python 版本差异——**错了**。真因是 **FastAPI 版本**：
@@ -64,7 +64,7 @@ handler 模块符号优先（FastAPI 注解解析能找到本地模型），slow
 
 ---
 
-***REMOVED******REMOVED*** 3. struct-lint 流式反馈（commit 80a48d5）
+## 3. struct-lint 流式反馈（commit 80a48d5）
 
 原 `/api/struct-lint` 单次同步 LLM 调用 36-165s 干等无反馈。新增
 `GET /api/struct-lint/stream` SSE 端点（沿用 analyze.py 风格），逐阶段
@@ -78,7 +78,7 @@ yield `extract`/`claims`/每条主张 `isomorph`/`done` 进度事件。原 POST 
 
 ---
 
-***REMOVED******REMOVED*** 4. privacy 验证码 fail-closed（commit a3b7660）
+## 4. privacy 验证码 fail-closed（commit a3b7660）
 
 `STRUCTURAL_PRIVACY_MOCK_CODE` 未设时旧代码默认公开的 `"123456"`，知道
 订阅者邮箱即可拉 PII / 触发数据删除。改为 env 未设时返回每进程随机
@@ -89,7 +89,7 @@ export + delete 同改，+2 测试。
 
 ---
 
-***REMOVED******REMOVED*** 5. whitespace LLM 预计算（commit facc617）
+## 5. whitespace LLM 预计算（commit facc617）
 
 `build_whitespace_matrix.py --llm` 的 LLM 评判层之前没跑（缺 OpenRouter
 key）。本 session 改用项目自带 DeepSeek key 经 DeepSeek OpenAI-兼容端点
@@ -101,7 +101,7 @@ key）。本 session 改用项目自带 DeepSeek key 经 DeepSeek OpenAI-兼容�
 
 ---
 
-***REMOVED******REMOVED*** 6. G 方向 P1+P2 + 软上线（commit 4b9b520 + 979874e）
+## 6. G 方向 P1+P2 + 软上线（commit 4b9b520 + 979874e）
 
 按 `SESSION-18-G-connect-people-design.md` 落地「按问题结构连接人」的
 P1（结构指纹抽取/存储）+ P2（匹配引擎 + L1 可发现 + 三级可见性）。P0
@@ -122,7 +122,7 @@ P1（结构指纹抽取/存储）+ P2（匹配引擎 + L1 可发现 + 三级可�
   发现。**没进顶部导航、没正式立项、没上 P3**——等用户看实际用量再定。
 - 30 个本 session 新测试 + 1 个 privacy 集成测试。
 
-***REMOVED******REMOVED******REMOVED*** 待用户拍板
+### 待用户拍板
 
 - G 是否正式立项 / 是否对外大力上线 / 是否继续 P3。产品定位级决策。
 - report.html 底部加「一键把报告升级成指纹」opt-in 入口（设计 §3.4），
@@ -131,7 +131,7 @@ P1（结构指纹抽取/存储）+ P2（匹配引擎 + L1 可发现 + 三级可�
 
 ---
 
-***REMOVED******REMOVED*** 7. Phase 7-12：交接 §5 的待办其实早已完成
+## 7. Phase 7-12：交接 §5 的待办其实早已完成
 
 SESSION-20 §5 把「Phase 7-12 六个 SOC 系统扩展」列为「仍未做的大项」。
 **审计 `v4/validation/` 发现六个全做完了**（跟 D1 一样，交接 todo 过时）：
@@ -152,7 +152,7 @@ STATUS 写 55 样本），本 session 同样撞了 Phase 7-12。Handoff todo 列
 
 ---
 
-***REMOVED******REMOVED*** A. prod 配置变更（本 session 唯一一处）
+## A. prod 配置变更（本 session 唯一一处）
 
 **VPS `/root/Projects/structural-isomorphism/web/backend/.env`**：
 追加 `STRUCTURAL_PRIVACY_MOCK_CODE=850a6562b91b917fae15063a9ba8411d`。
@@ -171,7 +171,7 @@ STATUS 写 55 样本），本 session 同样撞了 Phase 7-12。Handoff todo 列
 
 ---
 
-***REMOVED******REMOVED*** 8. 待办（给下个 session）
+## 8. 待办（给下个 session）
 
 | 优先级 | 动作 | 说明 |
 |---|---|---|
@@ -185,7 +185,7 @@ STATUS 写 55 样本），本 session 同样撞了 Phase 7-12。Handoff todo 列
 
 ---
 
-***REMOVED******REMOVED*** 9. 本 session 的 8 个 commit
+## 9. 本 session 的 8 个 commit
 
 ```
 b638ac4  fix(frontend): /analyze 链接参数名 — 4 个入口的生成报告失效
@@ -194,7 +194,7 @@ a3b7660  fix(backend): privacy 验证码未配置时 fail-closed
 c1c87f0  fix(backend): 根治限流装饰器吞掉 handler __globals__ 导致的 502
 4b9b520  feat: G 方向 P1+P2 — 按问题结构连接人（structural connections MVP）
 facc617  feat(whitespace): 跑 LLM 评判层预计算 whitespace 矩阵
-1afdade  docs(sessions): session ***REMOVED***21 handoff（初版）
+1afdade  docs(sessions): session #21 handoff（初版）
 979874e  feat: G 方向软上线 + 结构指纹纳入隐私删除范围
 （+ 本文件最终版）
 ```
@@ -205,7 +205,7 @@ facc617  feat(whitespace): 跑 LLM 评判层预计算 whitespace 矩阵
 
 ---
 
-***REMOVED******REMOVED*** 10. 起手指令（下个 session）
+## 10. 起手指令（下个 session）
 
 ```
 读 SESSION-21-HANDOFF.md。站点健康，prod 配置就位。

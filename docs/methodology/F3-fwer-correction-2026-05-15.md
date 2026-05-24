@@ -1,4 +1,4 @@
-***REMOVED*** F3 — Family-wise error rate (FWER) correction (W7-D)
+# F3 — Family-wise error rate (FWER) correction (W7-D)
 
 **Date:** 2026-05-15
 **Reviewer concern (W5-A §3.3, §7.1):** "Multiple comparisons / familywise
@@ -9,9 +9,9 @@ decisions in the manuscript. No Bonferroni, no Benjamini-Hochberg, no
 is likely. This is the **single most important reviewer-pass issue** for
 *PRE* / *Chaos*."
 
-***REMOVED******REMOVED*** Implementation
+## Implementation
 
-***REMOVED******REMOVED******REMOVED*** Utility module: `v4/lib/multitest_correction.py`
+### Utility module: `v4/lib/multitest_correction.py`
 
 Three correction procedures, pure-Python / numpy-only, no statsmodels
 dependency:
@@ -25,7 +25,7 @@ dependency:
 All three return a `CorrectionResult` dataclass with the original raw p, the
 adjusted p, and a boolean `reject` decision at the requested alpha.
 
-***REMOVED******REMOVED******REMOVED*** Harvester: `v4/scripts/F3_apply_fwer_correction.py`
+### Harvester: `v4/scripts/F3_apply_fwer_correction.py`
 
 Walks the per-system validation result JSONs and harvests every Vuong LR
 p-value plus the Scheffer block-bootstrap AR1/Var p-values. Currently
@@ -45,9 +45,9 @@ Test family composition (20 tests as harvested 2026-05-15):
 not Vuong LR tests so they are not in the LR family. They could be added to
 a wider FWER family in a future revision.)
 
-***REMOVED******REMOVED*** Results
+## Results
 
-***REMOVED******REMOVED******REMOVED*** Naive FWER without correction
+### Naive FWER without correction
 
 At nominal alpha = 0.05 per test with 20 tests:
 
@@ -58,7 +58,7 @@ FWER_naive = 1 - (1 - 0.05)^20 = 1 - 0.358 = 0.6415
 This is the scholar reviewer's "above 0.5" concern made concrete: roughly
 64% probability of at least one spurious rejection under H0.
 
-***REMOVED******REMOVED******REMOVED*** Correction outcomes
+### Correction outcomes
 
 Run `PYTHONPATH=. python v4/scripts/F3_apply_fwer_correction.py`:
 
@@ -69,7 +69,7 @@ Run `PYTHONPATH=. python v4/scripts/F3_apply_fwer_correction.py`:
 | Bonferroni-Holm | 14 | 0 |
 | Benjamini-Hochberg (FDR) | 14 | 0 |
 
-***REMOVED******REMOVED******REMOVED*** Why no flips
+### Why no flips
 
 Every "significant" Vuong LR p in the v4 manuscript is *extremely* small
 (typical magnitudes 1e-9 to 1e-93), far below any sane Bonferroni threshold
@@ -79,7 +79,7 @@ column in Table 1 of the C1 manuscript is invariant under FWER correction —
 this is the **single most-important and most-positive finding for the paper's
 defensibility**.
 
-***REMOVED******REMOVED******REMOVED*** Concrete reviewer-defensible statement
+### Concrete reviewer-defensible statement
 
 > Across the 20 Vuong likelihood-ratio + Scheffer block-bootstrap hypothesis
 > tests reported in the manuscript (rsmall = 0.05 per test, FWER_naive = 0.64),
@@ -89,7 +89,7 @@ defensibility**.
 > inconclusive under FDR (BH adjusted p > 0.1). The paper's statistical
 > verdicts are robust to family-wise error correction.
 
-***REMOVED******REMOVED*** Recommended manuscript edit (per W5-A Appendix A)
+## Recommended manuscript edit (per W5-A Appendix A)
 
 In C1 §6.5 Limitations, add point (ix):
 
@@ -103,7 +103,7 @@ In C1 §6.5 Limitations, add point (ix):
 > `v4/scripts/F3_apply_fwer_correction.py`, output
 > `v4/results/F3_fwer_corrected.jsonl` and `v4/results/F3_fwer_summary.json`.
 
-***REMOVED******REMOVED*** Outputs
+## Outputs
 
 - `v4/lib/multitest_correction.py` — correction utility (3 methods)
 - `v4/tests/sanity/test_multitest_correction.py` — 15 unit tests
@@ -111,7 +111,7 @@ In C1 §6.5 Limitations, add point (ix):
 - `v4/results/F3_fwer_corrected.jsonl` — per-test row with raw + 3 adjusted p
 - `v4/results/F3_fwer_summary.json` — aggregate summary
 
-***REMOVED******REMOVED*** References
+## References
 
 - Holm S (1979). "A simple sequentially rejective multiple test procedure."
   *Scand. J. Stat.* 6, 65-70.

@@ -15,7 +15,7 @@ from ..exceptions import LLMCallError
 from . import BaseProvider, register_provider
 
 
-***REMOVED*** Approx public pricing snapshot, converted to USD (CNY/7.0).
+# Approx public pricing snapshot, converted to USD (CNY/7.0).
 _DEFAULT_PRICING_USD_PER_M = {
     "glm-4.5": (0.50, 1.50),
     "glm-4.6": (0.60, 1.80),

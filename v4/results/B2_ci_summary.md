@@ -1,8 +1,8 @@
-***REMOVED*** B2 — Layer 4 prediction 95% confidence intervals
+# B2 — Layer 4 prediction 95% confidence intervals
 
 **Generated**: by `scripts/add_prediction_ci.py`
 
-***REMOVED******REMOVED*** Coverage
+## Coverage
 
 - Class records: **21**
 - Predictions: **24**
@@ -12,18 +12,18 @@
 - Predictions with NO numerical band at all: **0**
 - Predictions with a verified cross-reference: **4**
 
-***REMOVED******REMOVED*** CI method breakdown
+## CI method breakdown
 
 - `analytic_normal_sigma`: 4
 - `bayesian_band_prior`: 45
 
-***REMOVED******REMOVED*** CI width distribution (CI-available bands)
+## CI width distribution (CI-available bands)
 
 - min: 0.0134
 - median: 0.3955
 - max: 94.9090
 
-***REMOVED******REMOVED*** Method
+## Method
 
 All 24 predictions have status=待验证 — the numerical bands are LLM
 structural-isomorphism extrapolations, and the target data has not
@@ -42,7 +42,7 @@ prediction itself*.
 - **`ci_available=false`** — degenerate (zero-width) bands get no
   fabricated number, only a reason.
 
-***REMOVED******REMOVED*** Limitations
+## Limitations
 
 - The triangular prior assumes the LLM band marks the central
   plausible region; the LLM never specified band semantics.

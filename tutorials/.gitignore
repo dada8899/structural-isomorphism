@@ -1,10 +1,10 @@
-***REMOVED*** Executed notebooks (re-generate locally, don't commit)
+# Executed notebooks (re-generate locally, don't commit)
 *_executed.ipynb
 
-***REMOVED*** Jupyter checkpoints
+# Jupyter checkpoints
 .ipynb_checkpoints/
 
-***REMOVED*** Tutorial scratch outputs
+# Tutorial scratch outputs
 *.png
 *.csv
 *.parquet

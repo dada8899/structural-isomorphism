@@ -1,20 +1,20 @@
-***REMOVED*** [tests] Lift coverage of `web/backend/api/ask.py` above 80 %
+# [tests] Lift coverage of `web/backend/api/ask.py` above 80 %
 
-***REMOVED******REMOVED*** What
+## What
 
 `web/backend/api/ask.py` is the SSE orchestrator that powers the production `https://structural-isomorphism.bytedance.city/ask` endpoint (Perplexity-like live answer mode). Today coverage is < 70 %. Add unit + integration tests to bring it to ≥ 80 % with a `pytest-cov` report attached to the PR.
 
-***REMOVED******REMOVED*** Why
+## Why
 
 `ask.py` handles 7-event SSE streaming, per-tier rate-limiting, abort propagation, and OpenRouter region-block fallback. Each of these is fragile and bug-prone; a coverage uplift here is the single highest-leverage test-quality contribution in the repo.
 
-***REMOVED******REMOVED*** Where
+## Where
 
 - Target file: `web/backend/api/ask.py` (117 lines)
 - Place tests at: `web/tests/backend/test_ask_api.py`
 - Existing test patterns: `web/tests/backend/test_*.py`
 
-***REMOVED******REMOVED*** How to start
+## How to start
 
 1. Install dev deps and baseline coverage:
    ```bash
@@ -25,13 +25,13 @@
 3. Write tests using FastAPI `TestClient` for sync paths and `httpx.AsyncClient` for the SSE stream.
 4. Mock OpenRouter via `respx` or `pytest-httpx`. Cover at least: happy path, region-block 403 fallback to DeepSeek, abort mid-stream, malformed upstream JSON, rate-limit 429.
 
-***REMOVED******REMOVED*** Definition of done
+## Definition of done
 
 - [ ] Coverage of `ask.py` ≥ 80 % (attach `pytest --cov` output to PR)
 - [ ] At least 1 SSE-streaming test that consumes events and asserts the 7-event order
 - [ ] At least 1 fallback-to-DeepSeek test (mock OpenRouter returning 403)
 - [ ] CI green (`make test-all` does not regress)
 
-***REMOVED******REMOVED*** Difficulty
+## Difficulty
 
 ★★ (requires pytest-asyncio familiarity)

@@ -1,4 +1,4 @@
-***REMOVED*** W7-D — Product Value Roadmap: From Demo to Must-Have
+# W7-D — Product Value Roadmap: From Demo to Must-Have
 
 **Date**: 2026-05-13
 **Author**: W7-D subagent (senior B2B SaaS / data-product strategist hat)
@@ -8,7 +8,7 @@
 
 ---
 
-***REMOVED******REMOVED*** TL;DR
+## TL;DR
 
 1. **The product is not a "phase classifier." The product is a *weekly research ritual* that gives one paying ICP — independent financial analysts + small hedge fund research seats — an unfair edge in seeing which public companies are structurally near a regime transition before consensus does.** Everything else is scaffolding for that ritual.
 2. **The single highest-leverage move in the next 30 days is: ship a credible waitlist + email-collection loop + first weekly newsletter ("This Week's Structural Signals — 6 companies near critical"). Without retention, more companies / more polish / more backtest is wasted.** Distribution beats craft for a 0-user product.
@@ -18,11 +18,11 @@
 
 ---
 
-***REMOVED******REMOVED*** 1. What "real product value" means for structural-isomorphism
+## 1. What "real product value" means for structural-isomorphism
 
 Four concurrent tests. A product passes only if all four are true.
 
-| ***REMOVED*** | Test | Pass criterion (12-month target) |
+| # | Test | Pass criterion (12-month target) |
 |---|---|---|
 | **V1** | **Weekly active habit** — user voluntarily visits ≥1×/week with actionable take-away | WAU/MAU ≥ 35% (Bear/Notion zone) |
 | **V2** | **Cash willingness** — user pays for value beyond free tier | Pro conversion ≥ 4% of free signups; ≥ 60% month-2 retention on Pro |
@@ -41,7 +41,7 @@ That positioning is defensible at score 90 even with zero proven alpha — becau
 
 ---
 
-***REMOVED******REMOVED*** 2. ICP lockdown
+## 2. ICP lockdown
 
 Six candidates evaluated on three axes (1–10):
 
@@ -65,45 +65,45 @@ P1 / P2 / P3 are **NOT pursued** in months 1–9. They are upsell paths once Sar
 
 ---
 
-***REMOVED******REMOVED*** 3. Current product weaknesses (frank diagnosis)
+## 3. Current product weaknesses (frank diagnosis)
 
 Already surfaced in W5-C / W5-E / W5-F, consolidated here:
 
-***REMOVED******REMOVED******REMOVED*** Data weakness
+### Data weakness
 - **D1**: 100 companies — too small to be useful watchlist coverage. Sarah needs 500–1000 minimum.
 - **D2**: No ground-truth eval for LLM extraction quality. Some `dynamics_family` labels are likely wrong; we don't know which.
 - **D3**: Zero backtest. We cannot answer "does `near_critical` actually outperform?" — meaning we cannot say what the product is *worth*.
 - **D4**: No weekly refresh — data is a snapshot, not a feed. Sarah's "this week" expectation isn't met.
 
-***REMOVED******REMOVED******REMOVED*** Product surface weakness
+### Product surface weakness
 - **P1**: ICP not declared anywhere on site — homepage talks to everyone, converts no one.
 - **P2**: Main site + D1 Phase Detector visually + verbally inconsistent (different nav, different fonts in spots, different tone).
 - **P3**: No account / waitlist / pricing. The funnel ends at "browse and leave."
 - **P4**: Zero retention loop — no email, no RSS, no alerts, no Slack/Twitter integration.
 - **P5**: No analytics (Plausible not wired). We can't measure what's working.
 
-***REMOVED******REMOVED******REMOVED*** Trust weakness
+### Trust weakness
 - **T1**: Caveat is buried — users could think this is financial advice.
 - **T2**: Methodology page (W6-B) exists but no audit log / "show your work" per prediction.
 - **T3**: No historical case study — "here's a company we flagged near_critical in 2022Q3, here's what happened" — which is the single most persuasive content type for this category.
 
-***REMOVED******REMOVED******REMOVED*** Craft weakness (UX score 71/100 from W5-E)
+### Craft weakness (UX score 71/100 from W5-E)
 - **C1**: Mobile experience adequate but not flawless.
 - **C2**: Dark mode missing.
 - **C3**: i18n incomplete (CN fragments mixed with EN).
 - **C4**: LCP ~1.8s (target <1.2s), CLS occasional.
 - **C5**: No onboarding flow — first-visit user is dropped into a 100-row table.
 
-***REMOVED******REMOVED******REMOVED*** Growth weakness
+### Growth weakness
 - **G1**: Zero owned distribution (no newsletter, no Twitter handle, no RSS).
 - **G2**: SEO basically nonexistent (no `/companies/{ticker}/structural-state` indexable pages).
 - **G3**: HN launch readiness: not ready (no signup, no story, no founder voice).
 
 ---
 
-***REMOVED******REMOVED*** 4. 12-month product roadmap
+## 4. 12-month product roadmap
 
-***REMOVED******REMOVED******REMOVED*** A. Sample expansion — 100 → 1000+ companies
+### A. Sample expansion — 100 → 1000+ companies
 
 - **Month 1**: 100 → 250 (S&P 500 small/mid cap pass)
 - **Month 3**: 250 → 500 (full S&P 500 + Russell 1000 top 250)
@@ -118,7 +118,7 @@ Already surfaced in W5-C / W5-E / W5-F, consolidated here:
 
 Cron infra cost: VPS already in place. ~$0 incremental.
 
-***REMOVED******REMOVED******REMOVED*** B. Backtest engine (the make-or-break experiment)
+### B. Backtest engine (the make-or-break experiment)
 
 **Hypothesis**: Companies labeled `near_critical` in quarter Q outperform sector benchmark in Q+1, Q+2 risk-adjusted.
 
@@ -139,14 +139,14 @@ Cron infra cost: VPS already in place. ~$0 incremental.
 
 **Critical**: this decision is announced publicly. Transparency about null results is itself a trust signal that no Bloomberg-tier competitor will match.
 
-***REMOVED******REMOVED******REMOVED*** C. User account + auth + waitlist (Month 1)
+### C. User account + auth + waitlist (Month 1)
 
 - Simple OAuth: Google + GitHub + email magic link (3 paths)
 - Free tier: 5 lookups/week, basic filter, no historical access
 - Waitlist before paid tier exists — collect 100+ emails as pre-launch validation
 - Tech: Clerk or Supabase auth (managed, $0 free tier, ship in 2 days vs custom 5)
 
-***REMOVED******REMOVED******REMOVED*** D. Pricing (Month 2 — Stripe mock first per session ***REMOVED***30 D-strip-2)
+### D. Pricing (Month 2 — Stripe mock first per session #30 D-strip-2)
 
 | Tier | Price | Includes | Target |
 |---|---|---|---|
@@ -155,9 +155,9 @@ Cron infra cost: VPS already in place. ~$0 incremental.
 | Team | $99/mo ($990/yr) | 5 seats · API access (1k req/mo) · CSV unlimited · Slack integration | small fund |
 | Enterprise | "Contact us" — $500–2000/mo | unlimited API · dedicated Slack · custom universe · SLA | hedge fund / boutique |
 
-Stripe mock first (session ***REMOVED***30 decision), real Stripe day 14.
+Stripe mock first (session #30 decision), real Stripe day 14.
 
-***REMOVED******REMOVED******REMOVED*** E. Retention loops (Month 1–3)
+### E. Retention loops (Month 1–3)
 
 - **Weekly newsletter "This Week's Structural Signals"** — Tuesday 7am ET. Format: hero quote · 6 companies highlighted · 1 deep-dive narrative · methodology footer. Built on Substack OR Buttondown OR custom (decision TBD; recommend Buttondown $9/mo + Plausible).
 - **Custom filter alerts**: user saves "small-cap industrials, dynamics_family = bistable, near_critical = true" → email when new match.
@@ -165,14 +165,14 @@ Stripe mock first (session ***REMOVED***30 decision), real Stripe day 14.
 - **Twitter/X bot** `@structural_signals` (Month 2): weekly top-10 thread, screenshot card per company, link back to site. Manual curation first, automation Month 6.
 - **Slack/Discord integration** (Month 4, Team tier only): webhook on filter match.
 
-***REMOVED******REMOVED******REMOVED*** F. Trust signals (Month 1–2)
+### F. Trust signals (Month 1–2)
 
 - **Methodology page upgrade** (W6-B foundation): add "What we extract / What we don't / Known false-positive patterns" sections
 - **Per-prediction audit log**: each company page shows the raw quote(s), the LLM model + version + date, the extraction prompt hash. "Show your work" button revealing the LLM's reasoning.
 - **Caveat hardening**: persistent footer "Not financial advice. For research purposes." + first-visit toast acknowledged.
 - **Historical case studies**: 3 publicly written case studies — 1 hit, 1 miss, 1 in-progress. Honest about misses → highest trust signal.
 
-***REMOVED******REMOVED******REMOVED*** G. Content + SEO (Month 2–6)
+### G. Content + SEO (Month 2–6)
 
 - **Blog: weekly "What happened to {Company} this week"** — long-form, SEO-target = "{ticker} regime shift analysis." 52 posts/yr → ~50k organic traffic/yr realistic.
 - **HN launch** (target Month 4, candidate Y8-A in dispatch): "Show HN: Structural Phase Detector for 500 public companies — open methodology, transparent backtest." Single best front-of-funnel event possible.
@@ -180,7 +180,7 @@ Stripe mock first (session ***REMOVED***30 decision), real Stripe day 14.
 - **2 paid KOL case-study collaborations** Month 3–6: pay 1 Sarah-persona analyst $1000–2000 each to do a deep-dive review, publish to their newsletter + our blog. Goal: borrowed trust + Sarah-persona signal-boost.
 - **Reproducibility kit**: GitHub repo with eval scripts, extraction prompts, backtest code — by Month 6. Drives academic citations + dev trust.
 
-***REMOVED******REMOVED******REMOVED*** H. B2B Index API (Month 6+ long-term)
+### H. B2B Index API (Month 6+ long-term)
 
 - **"Structural Index"** = monthly time-series of every company's `StructTuple`
 - API: `$0.10/query` pay-as-you-go OR `$500/mo` subscription with 50k queries
@@ -188,7 +188,7 @@ Stripe mock first (session ***REMOVED***30 decision), real Stripe day 14.
 - Tech: simple REST endpoint + Postman collection + 5 cookbook recipes
 - Distribution: post to /r/algotrading once, FinTwit thread, no other channel needed — buyers find their own way to this category
 
-***REMOVED******REMOVED******REMOVED*** I. Internationalization (Month 9–12)
+### I. Internationalization (Month 9–12)
 
 - CN: complete translation of all pages + write CN-original blog content (Sarah-persona-CN = "雪球大V分析师")
 - JP/KR/TW expansion gated by CN traction
@@ -197,11 +197,11 @@ Stripe mock first (session ***REMOVED***30 decision), real Stripe day 14.
 
 ---
 
-***REMOVED******REMOVED*** 5. The 90-point craft checklist
+## 5. The 90-point craft checklist
 
 What it takes from 71 → 95 (W5-E gap):
 
-***REMOVED******REMOVED******REMOVED*** UX consistency
+### UX consistency
 - [ ] Design system documented (Figma library OR Tailwind preset) — same `--color-primary`, `--space-*`, `--radius-*` across both apps
 - [ ] Both apps share the same nav header component, same footer, same focus rings
 - [ ] Mobile flawless: tap targets ≥ 44px, no horizontal scroll, no overflow text
@@ -209,26 +209,26 @@ What it takes from 71 → 95 (W5-E gap):
 - [ ] Dark mode complete (Apple system-pref-driven)
 - [ ] CN/EN switch in nav, 100% string coverage either language
 
-***REMOVED******REMOVED******REMOVED*** Trust
+### Trust
 - [ ] Every prediction has primary-source link (8-K, 10-K, earnings call URL with timestamp)
 - [ ] "Show audit log" button reveals: model name + version, prompt hash, extraction date, confidence score
 - [ ] Caveat in footer persistent + toast on first visit
 - [ ] Methodology page passes a stress test: a quant could replicate one StructTuple from the doc alone
 
-***REMOVED******REMOVED******REMOVED*** Performance
+### Performance
 - [ ] LCP < 1.2s (currently ~1.8s) — image lazy-load, font preload, edge CDN
 - [ ] CLS < 0.05 (currently occasional)
 - [ ] TTFB < 200ms at p95
 - [ ] API p95 < 100ms (lookup endpoint, filter endpoint)
 - [ ] No 404, no 500, no JS errors in Sentry per week
 
-***REMOVED******REMOVED******REMOVED*** Engagement / onboarding
+### Engagement / onboarding
 - [ ] Onboarding flow < 30s: name → use case (3 options) → first sample company served
 - [ ] Core action ≤ 3 clicks: home → company → state change → source quote
 - [ ] Weekly retention > 30% by Month 6
 - [ ] Newsletter open rate > 40%, click rate > 8%
 
-***REMOVED******REMOVED******REMOVED*** Polish
+### Polish
 - [ ] Zero dead-end states (every empty/error has helpful next-action)
 - [ ] Hover/focus/active/disabled states everywhere
 - [ ] Empty states have personality (illustrate, don't just say "no results")
@@ -236,7 +236,7 @@ What it takes from 71 → 95 (W5-E gap):
 
 ---
 
-***REMOVED******REMOVED*** 6. NOT to do (anti-roadmap)
+## 6. NOT to do (anti-roadmap)
 
 - ❌ **No mobile native app** — PWA covers 95% of need. Native = 6mo + $50k + App Store gatekeeper friction.
 - ❌ **No social features** — no comments, no "follow another analyst," no community. Adds moderation cost + dilutes core JTBD.
@@ -248,7 +248,7 @@ What it takes from 71 → 95 (W5-E gap):
 
 ---
 
-***REMOVED******REMOVED*** 7. Milestone roadmap (12 months)
+## 7. Milestone roadmap (12 months)
 
 | Month | Milestone | KPI gate | Cost |
 |---|---|---|---|
@@ -271,7 +271,7 @@ What it takes from 71 → 95 (W5-E gap):
 
 ---
 
-***REMOVED******REMOVED*** 8. Next 30 days — actionable list
+## 8. Next 30 days — actionable list
 
 These are the only things that matter in days 1–30. Each ≤ 2-day subagent task.
 
@@ -290,11 +290,11 @@ These are the only things that matter in days 1–30. Each ≤ 2-day subagent ta
 
 ---
 
-***REMOVED******REMOVED*** 9. Wave 8 dispatch candidates (≥ 5 mini-briefs, ready-to-ship)
+## 9. Wave 8 dispatch candidates (≥ 5 mini-briefs, ready-to-ship)
 
 Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, acceptance.
 
-***REMOVED******REMOVED******REMOVED*** W8-A — Waitlist + Plausible analytics (foundation)
+### W8-A — Waitlist + Plausible analytics (foundation)
 - **Worktree**: `.claude/worktrees/agent-w8a` branch `v4/session4-w8a-waitlist-plausible`
 - **Goal**: ship email collection + analytics across both apps
 - **Deliverables**:
@@ -307,7 +307,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 - **Acceptance**: real signup → real Buttondown contact → Plausible dashboard shows event · all 3-tier tests pass · LCP not regressed
 - **Estimate**: 1.5 day
 
-***REMOVED******REMOVED******REMOVED*** W8-B — UX consistency P0 sprint (71 → 85)
+### W8-B — UX consistency P0 sprint (71 → 85)
 - **Worktree**: `.claude/worktrees/agent-w8b` branch `v4/session4-w8b-ux-consistency`
 - **Goal**: close the design-system gap between main site + D1
 - **Deliverables**:
@@ -319,7 +319,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 - **Acceptance**: UX score reassessed ≥ 85 by independent reviewer subagent · Lighthouse a11y ≥ 95 · all e2e tests pass on mobile viewport
 - **Estimate**: 3 days
 
-***REMOVED******REMOVED******REMOVED*** W8-C — Stripe mock + Pro tier UI
+### W8-C — Stripe mock + Pro tier UI
 - **Worktree**: `.claude/worktrees/agent-w8c` branch `v4/session4-w8c-stripe-pro-tier`
 - **Goal**: pricing page + checkout funnel (Stripe test mode, no real money)
 - **Deliverables**:
@@ -331,7 +331,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 - **Acceptance**: end-to-end signup → checkout → account view works · Stripe webhook fires in test mode · 0 PII written outside Stripe + own DB · tests pass
 - **Estimate**: 2 days
 
-***REMOVED******REMOVED******REMOVED*** W8-D — Weekly newsletter pipeline v0.1
+### W8-D — Weekly newsletter pipeline v0.1
 - **Worktree**: `.claude/worktrees/agent-w8d` branch `v4/session4-w8d-newsletter-pipeline`
 - **Goal**: from raw `StructTuple` weekly diff → composed newsletter email
 - **Deliverables**:
@@ -346,7 +346,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 - **Acceptance**: digest pipeline runs end-to-end without manual intervention · Buttondown draft renders correctly · open rate target ≥ 30% on first send (gated, evaluated post-send)
 - **Estimate**: 2.5 days
 
-***REMOVED******REMOVED******REMOVED*** W8-E — Backtest engine v0.1 scaffold + 50-co sanity run
+### W8-E — Backtest engine v0.1 scaffold + 50-co sanity run
 - **Worktree**: `.claude/worktrees/agent-w8e` branch `v4/session4-w8e-backtest-scaffold`
 - **Goal**: build pipeline shell, run small sample, defer full run to Month 3
 - **Deliverables**:
@@ -361,7 +361,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 - **Acceptance**: pipeline runs end-to-end, 50-co output produced, methodology document peer-reviewable, cost < $50 actual spend, clear path to full run documented
 - **Estimate**: 2.5 days
 
-***REMOVED******REMOVED******REMOVED*** W8-F — HN launch readiness checklist
+### W8-F — HN launch readiness checklist
 - **Worktree**: `.claude/worktrees/agent-w8f` branch `v4/session4-w8f-hn-launch-prep`
 - **Goal**: prepare everything needed for an HN launch (target Month 4, after backtest)
 - **Deliverables**:
@@ -380,7 +380,7 @@ Each ready-to-paste-into-dispatch with worktree path, branch, deliverable, accep
 
 ---
 
-***REMOVED******REMOVED*** 10. Scoring rubric — how we measure 90+
+## 10. Scoring rubric — how we measure 90+
 
 Six metrics, each weighted, target shown.
 
@@ -397,7 +397,7 @@ A 90+ score = WAU/MAU ≥ 35% AND Pro conversion ≥ 4% AND MRR ≥ $15k AND NPS
 
 ---
 
-***REMOVED******REMOVED*** Appendix A — risks + mitigations
+## Appendix A — risks + mitigations
 
 | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
@@ -412,7 +412,7 @@ A 90+ score = WAU/MAU ≥ 35% AND Pro conversion ≥ 4% AND MRR ≥ $15k AND NPS
 
 ---
 
-***REMOVED******REMOVED*** Appendix B — competitive positioning grid
+## Appendix B — competitive positioning grid
 
 | Product | Audience | Price | What it does | Where we fit |
 |---|---|---|---|---|
@@ -427,7 +427,7 @@ A 90+ score = WAU/MAU ≥ 35% AND Pro conversion ≥ 4% AND MRR ≥ $15k AND NPS
 
 ---
 
-***REMOVED******REMOVED*** Closing — the bet
+## Closing — the bet
 
 The bet is that **one specific user — Sarah, the 4k-subscriber independent analyst — has been waiting for someone to ship structured regime signals to her inbox every Tuesday morning at 7am ET, with the receipts, at a price she can expense.**
 

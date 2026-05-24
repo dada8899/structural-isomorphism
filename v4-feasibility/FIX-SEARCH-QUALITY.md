@@ -1,10 +1,10 @@
-***REMOVED*** FIX-SEARCH-QUALITY — Raw Query Recall Upgrade
+# FIX-SEARCH-QUALITY — Raw Query Recall Upgrade
 
 **Date**: 2026-04-13
 **Scope**: `beta.structural.bytedance.city` `/api/search` raw (non-LLM) path
 **Constraint**: no embedding retraining; work within existing infra
 
-***REMOVED******REMOVED*** Options implemented
+## Options implemented
 
 All three: **A** (BM25 hybrid) + **B** (StructTuple dynamics boost) + **C** (domain collapse guard).
 
@@ -14,7 +14,7 @@ All three: **A** (BM25 hybrid) + **B** (StructTuple dynamics boost) + **C** (dom
 
 Final display score scaled `10*fused + 6` so the frontend bars keep their ~[6, 17] visual proportions (legacy code expected raw dot-products around that range).
 
-***REMOVED******REMOVED*** File changes
+## File changes
 
 - `web/backend/services/search_service.py` — full rewrite: new helpers `_tokenize` (L55), `_infer_dynamics_families` (L76), `_minmax` (L91), `_fused_scores` (L215), `_domain_guard` (L252), rewritten `search()` (L284). Constructor (L96) now builds BM25 index (L138) and loads StructTuple file (L151). Backup kept at `search_service.py.bak`.
 - Dependencies installed on VPS: `rank_bm25==0.2.2`, `jieba==0.42.1`.
@@ -22,9 +22,9 @@ Final display score scaled `10*fused + 6` so the frontend bars keep their ~[6, 1
 
 Startup log confirms: `BM25 index built (4443 docs)` + `Loaded 4443 StructTuple records`.
 
-***REMOVED******REMOVED*** Before/after on 15 test queries (top-5 avg relevance, 1-5 scale)
+## Before/after on 15 test queries (top-5 avg relevance, 1-5 scale)
 
-| ***REMOVED*** | Query | Before | After | Δ |
+| # | Query | Before | After | Δ |
 |---|---|---|---|---|
 | 1 | 为什么创业公司早期更容易创新 | 1.0 | 4.0 | +3.0 |
 | 2 | 延迟反馈的系统 | 3.2 | 3.6 | +0.4 |
@@ -46,13 +46,13 @@ Startup log confirms: `BM25 index built (4443 docs)` + `Loaded 4443 StructTuple 
 
 Highlights:
 - **创业早期创新**: now returns "竞争对手进入的临界规模防御门槛" / "早期创业公司的首个机构客户价值" / "创业公司的J曲线增长" (was Slepian-Wolf / immunology / literary theory).
-- **市场崩盘**: exact-name hit "市场崩盘" at ***REMOVED***1 plus "NFT市场泡沫-崩溃周期" / "相关性崩溃" / "止损流动性螺旋" (was ASLR / 公共领域殖民 / 档案沉默).
+- **市场崩盘**: exact-name hit "市场崩盘" at #1 plus "NFT市场泡沫-崩溃周期" / "相关性崩溃" / "止损流动性螺旋" (was ASLR / 公共领域殖民 / 档案沉默).
 - **相变**: all 5 hits are real phase-transition phenomena across materials/statistical mechanics (was 仪式遗存惯性 / 压力测试 noise).
 - **生态系统的临界点**: top-3 all ecological tipping phenomena (was 地基承载力 / 最低效率规模).
 - **量子纠缠的非定域性**: top-5 are all actual quantum-entanglement phenomena (was 光学涡旋 / 诱饵选项中庸 / 格点QCD noise).
-- **流言传播**: "谣言传播" ***REMOVED***1, "谣言传播的SIR模型" ***REMOVED***4 — StructTuple cascade family boost worked.
+- **流言传播**: "谣言传播" #1, "谣言传播的SIR模型" #4 — StructTuple cascade family boost worked.
 
-***REMOVED******REMOVED*** Latency impact
+## Latency impact
 
 | Path | Before | After |
 |---|---|---|
@@ -64,14 +64,14 @@ No regression. BM25 scoring on 4443 docs with jieba tokenization is ~5-10 ms per
 
 Memory footprint: +~15 MB (BM25 index + 4443 StructTuple records), total service RSS 419 MB.
 
-***REMOVED******REMOVED*** Regressions / limitations
+## Regressions / limitations
 
 - **Pure English queries** ("superconductor phase transition") still under-perform because jieba emits whole English tokens and KB descriptions are Chinese — BM25 contributes zero, so the result is embedding-only, same as before. Fix: add `opencc` or pre-translate English heads, or maintain an English surface-form index. Not done here.
 - **Degenerate queries** ("a", "为什么") unchanged — correct behavior, these are caught by the LLM assessment gate.
 - **Short keyword "相变"** now dominated by materials/chemistry phase-transition phenomena — the domain guard correctly kept them under cap (5 results, 3 distinct sub-domains).
 - Display score band changed from legacy ~[6, 18] to scaled ~[6, 17]; frontend bars auto-scale so no UI change needed.
 
-***REMOVED******REMOVED*** Rollback
+## Rollback
 
 ```
 ssh vps "cp /root/Projects/structural-isomorphism/web/backend/services/search_service.py.bak \
@@ -79,7 +79,7 @@ ssh vps "cp /root/Projects/structural-isomorphism/web/backend/services/search_se
          && systemctl restart structural-web"
 ```
 
-***REMOVED******REMOVED*** Test artifacts
+## Test artifacts
 
 - `/tmp/baseline_test.py` — 15-query HTTPS probe driver
 - `/tmp/after_results.jsonl` — post-deploy top-5 dump

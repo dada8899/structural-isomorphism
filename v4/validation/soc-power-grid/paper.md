@@ -1,4 +1,4 @@
-***REMOVED*** Power-Law Size Distribution in North American Power Grid Cascade Events: SOC Pipeline Validation on the NERC / OE-417 Literature-Meta Catalog (Motter-Lai Class)
+# Power-Law Size Distribution in North American Power Grid Cascade Events: SOC Pipeline Validation on the NERC / OE-417 Literature-Meta Catalog (Motter-Lai Class)
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
@@ -8,13 +8,13 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 The North American electric power transmission grid is a canonical cascading-failure system. Carreras, Newman, Dobson and Poole [1, 2] applied power-law fits to the NERC Disturbance Analysis Working Group (DAWG) catalog of reportable blackouts (1984-1998, later extended to 1984-2006 in [3]) and reported PDF exponents on load shed of $\alpha \approx 2.0$-$2.2$ and on customers affected of $\alpha \approx 1.8$-$2.1$, with the Clauset-Shalizi-Newman maximum-likelihood machinery [4] confirming statistical significance against exponential alternatives ($p > 0.6$). Hines, Apt, and Talukdar [5] replicated these findings on the extended 1984-2006 dataset with Pareto exponent $k = 1.2 \pm 0.1$ for MW (equivalent PDF $\alpha = 2.2$) and $k = 1.14$ for customers ($\alpha = 2.14$). These figures sit on the upper edge of the predicted band $[1.3, 2.0]$ derived from the Motter-Lai 2002 network-cascade model [6] and Carreras et al.'s self-organized-critical grid model [2]. As Phase 7 of the Structural Isomorphism Layer 5 validation program we attempted to acquire a fresh event-level OE-417 / NERC DAWG catalog. As of 2026-05-13 the EIA v2 API exposes only operational aggregates (sales, capacity, RTO load) with no event-level disturbance route, and the DOE OE-417 archive at `oe.netl.doe.gov` requires interactive session cookies that prohibit automated scraping. We therefore assembled a literature-meta-review catalog of $n = 123$ documented major North American disturbance events spanning 1984-09-22 to 2024-09-27, cross-referenced from Carreras 2016 Table V (4 WECC-corrected events), Hines 2009 §2, US-Canada Task Force 2004 (August 14 2003), FERC/NERC post-event reports for individual large events, and the cross-validated Wikipedia roster of major outages. Applying the unmodified SOC pipeline `v4/lib/soc_pipeline.py` (used in Phases 1-10), the Clauset MLE fit on MW load shed recovers $\alpha = 2.02 \pm 0.16$ ($x_\mathrm{min} = 1{,}300$ MW, $n_\mathrm{tail} = 40$, bootstrap 5-95% CI $[1.69, 2.31]$); on customers affected $\alpha = 2.87$ with bootstrap CI $[1.52, 2.96]$ (mean $2.19$). Both observables sit inside the literature band [1.3, 2.5]; the MW estimate is precisely on the upper edge of the narrow Motter-Lai prediction $[1.3, 2.0]$ and matches the Carreras 2016 and Hines 2009 published values within one standard error. The Clauset likelihood-ratio test against lognormal is inconclusive ($R = -0.11$, $p = 0.92$ for MW) — at $n_\mathrm{tail} = 40$ the test does not have power to discriminate, exactly as predicted by Clauset-Shalizi-Newman 2009 §6 ("at least 50 tail data points required for reliable LR comparison"). The exponential alternative is rejected ($R_\mathrm{exp} = +2.64$, $p = 0.008$). All three synthetic non-SOC nulls are rejected by the pipeline. Verdict: **confirmed (literature band), with explicit small-sample caveat**. The Phase 7 result corroborates rather than independently re-establishes the SOC class assignment for North American grid cascades — but the alpha match against the canonical NERC studies on a wholly different (newer, smaller, hand-curated) catalog is itself a non-trivial cross-validation.
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 The North American electric power transmission grid spans approximately 200,000 miles of high-voltage transmission line under the operational coordination of the North American Electric Reliability Corporation (NERC, formerly Council). Since 1984, all utilities and balancing authorities have been required to report any disturbance that interrupts more than 300 MW of firm load or affects more than 50,000 customers, via U.S. Department of Energy form OE-417 [7]. NERC mirrors this dataset in its DAWG / System Disturbance Reports archive. Together these two sources comprise the most authoritative public time series of large-scale grid cascading-failure events in the world.
 
@@ -24,7 +24,7 @@ The mechanistic explanation invokes two parallel modeling traditions. First, Bak
 
 For Phase 7 of the Structural Isomorphism Layer 5 validation program — which applies a single analysis stack across earthquakes, equities, DeFi protocols, mouse cortex, and wildfires — the prediction for the power-grid class is a Clauset MLE PDF exponent in $[1.3, 2.0]$ on both load shed (MW) and customer count, with the literature band $[1.3, 2.5]$ as a wider acceptance window. Our pre-registered hypotheses are: (a) MW load shed and customers each fit a power-law more parsimoniously than an exponential; (b) $\alpha_\mathrm{MW}$ and $\alpha_\mathrm{cust}$ are observable within the literature band; (c) the matched-$n$ synthetic non-SOC null controls (lognormal, exponential, Poisson IAT) are all correctly rejected.
 
-***REMOVED******REMOVED*** 2. Data
+## 2. Data
 
 **Source priority (specified before data collection).** We pre-registered three sources in descending priority:
 
@@ -45,7 +45,7 @@ For Phase 7 of the Structural Isomorphism Layer 5 validation program — which a
 
 **Small-sample disclosure.** The Clauset-Shalizi-Newman 2009 machinery [4] is reliable down to $n_\mathrm{tail} \geq 50$ and requires $n_\mathrm{total} \geq 100$ for the empirical $x_\mathrm{min}$ selection step to converge robustly. Our $n_\mathrm{total} = 123$ sits just above that floor; we widen the bootstrap CI from 2.5-97.5 to 5-95 to acknowledge increased tail uncertainty. The literature anchors (Carreras 2016 $n_\mathrm{tail} = 123$ for MW; Hines 2009 $n = 317$ for MW $\geq 300$) cover much larger samples and provide the credibility baseline; our re-derivation on a partially-overlapping curated subset is a corroboration exercise, not an independent first measurement.
 
-***REMOVED******REMOVED*** 3. Methods
+## 3. Methods
 
 The analysis pipeline is the shared module `v4/lib/soc_pipeline.py` used in Phases 1 through 10, applied without domain-specific modification.
 
@@ -57,9 +57,9 @@ The analysis pipeline is the shared module `v4/lib/soc_pipeline.py` used in Phas
 
 **Null control.** Three synthetic distributions matched to $n_\mathrm{tail}$ — Gaussian-walk-absolute-value, exponential, Poisson inter-arrival — pass through the same Clauset fitter. A correct pipeline should reject the power-law null on all three; this guards against the "fits everything to a power-law" critique [12].
 
-***REMOVED******REMOVED*** 4. Results
+## 4. Results
 
-***REMOVED******REMOVED******REMOVED*** 4.1 MW load shed
+### 4.1 MW load shed
 
 The Clauset fit selects $x_\mathrm{min} = 1{,}300$ MW and recovers
 $$\alpha_\mathrm{MW} = 2.018 \pm 0.161 \qquad (n_\mathrm{tail} = 40,\ n_\mathrm{total} = 123).$$
@@ -67,40 +67,40 @@ The bootstrap 5-95% CI is $[1.692, 2.307]$, with bootstrap mean $1.939$ and stan
 
 Comparison against published literature is the cleanest validation. Hines, Apt, and Talukdar 2009 [5] reported $\alpha_\mathrm{MW,PDF} = 2.2 \pm 0.1$ ($k = 1.2$ in Pareto form, $x_\mathrm{min} = 1012 \pm 340$ MW) on $n = 317$ filtered events. Carreras, Newman, and Dobson 2016 [3] reported $\alpha_\mathrm{MW,PDF} = 2.16 \pm 0.10$ ($x_\mathrm{min} = 850$ MW, $n_\mathrm{tail} = 123$) on the 22-year North-American sample. Our $\alpha = 2.018 \pm 0.161$ matches both literature values within one standard error: $|2.018 - 2.2| / \sqrt{0.16^2 + 0.1^2} = 0.97$ (less than 1$\sigma$ of the combined uncertainty). Our $x_\mathrm{min} = 1{,}300$ MW sits between the Carreras (850) and Hines (1012) values and reflects the slightly more curated, larger-event-biased nature of our roster.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Customers affected
+### 4.2 Customers affected
 
 $$\alpha_\mathrm{cust} = 2.871 \pm 0.367 \qquad (n_\mathrm{tail} = 26,\ n_\mathrm{total} = 123).$$
 Bootstrap 5-95% CI is $[1.521, 2.960]$, with bootstrap mean $2.185$. The point estimate sits above the narrow predicted band, but the bootstrap distribution recovers values entirely consistent with the literature anchors. The discrepancy is driven by the extreme-tail bias of the curated sample — events like the August 14 2003 cascade (55 million customers), Hurricane Sandy (8.5 M), and Hurricane Maria (3.4 M) are over-represented because the Wikipedia primary source preferentially documents headline-grade events. With $n_\mathrm{tail} = 26$ the fit is unstable; Clauset-Shalizi-Newman 2009 [4] explicitly advise against single-point inference at this tail size.
 
 Carreras 2016 [3] reported $\alpha_\mathrm{cust,PDF} = 1.82 \pm 0.05$ ($x_\mathrm{min} = 90{,}000$, $n_\mathrm{tail} = 252$). Hines 2009 [5] reported $\alpha_\mathrm{cust,PDF} = 2.14$ ($k = 1.14$, $x_\mathrm{min} = 291{,}000$). Our bootstrap mean of 2.19 is within one standard deviation of the Hines value and within two $\sigma$ of the Carreras value; the bootstrap interval $[1.52, 2.96]$ wholly contains the literature range.
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Likelihood ratios
+### 4.3 Likelihood ratios
 
 For MW load shed the Vuong $R$ statistic against lognormal is $-0.106$ ($p = 0.915$): **inconclusive**. Against exponential, $R = +2.641$ ($p = 0.008$): the power-law strictly beats the exponential. For customers, $R_\mathrm{LN} = -1.020$ ($p = 0.308$), again inconclusive; $R_\mathrm{exp} = +1.615$ ($p = 0.106$), marginally in favor of power-law. The inconclusiveness against lognormal at $n_\mathrm{tail} \in \{40, 26\}$ is exactly what Clauset-Shalizi-Newman 2009 §6.3 predict; the test simply does not have power at these sample sizes. The fact that the power-law beats the exponential, especially for MW where $p = 0.008$, is the more diagnostic result: it rules out the most parsimonious heavy-tailed alternative.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Null control
+### 4.4 Null control
 
 All three synthetic non-SOC distributions (Gaussian-walk-absolute, exponential, Poisson inter-arrival) at matched $n = 500$ are correctly rejected by the pipeline (`rejects_power_law = True` on each). This guards against the "fits everything" critique.
 
-***REMOVED******REMOVED*** 5. Discussion
+## 5. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 5.1 Alpha match against literature
+### 5.1 Alpha match against literature
 
 The MW load shed $\alpha = 2.018$ matches the Carreras 2016 and Hines 2009 values within combined standard error on a wholly hand-curated, partially-non-overlapping sample. This is non-trivial: our roster contains 17 events from 2007-2024 that postdate the latest NERC DAWG analysis in the literature, including Hurricane Sandy, Hurricane Maria, the February 2021 ERCOT Uri event, and the 2017 Pacific Maria collapse. The recovery of the same exponent on a partially-fresh sample is a non-trivial corroboration of the underlying scaling. As Carreras et al. argued [3], the value $\alpha_\mathrm{PDF} \approx 2$ implies that "the risk of large blackouts exceeds the risk of medium-size blackouts" once cost is included: at $\alpha < 2$ the second moment is infinite and the expected blackout cost is dominated by the largest events. Our updated estimate sits right at this critical value, reinforcing the policy implication.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 Why $\alpha_\mathrm{cust}$ is elevated
+### 5.2 Why $\alpha_\mathrm{cust}$ is elevated
 
 Our $\alpha_\mathrm{cust} = 2.87$ point estimate is high. The bootstrap interval $[1.52, 2.96]$ is wide enough to cover the literature, but the maximum-likelihood point estimate is steeper than the literature reports. Two non-exclusive explanations: (a) sample bias toward headline events — the Wikipedia primary source over-represents extreme-tail (>1M customer) events because smaller customer-count events are less newsworthy, and the Clauset MLE responds to this by selecting a higher $x_\mathrm{min}$ (here, 2.6 million customers) which truncates the lower-middle range and steepens the tail; (b) the 300 customers/MW fill rule on missing fields introduces nonzero error for events where the true ratio deviates (typically because the event affected primarily industrial vs residential load).
 
-***REMOVED******REMOVED******REMOVED*** 5.3 Mechanism: SOC vs Motter-Lai vs nonhomogeneous Poisson
+### 5.3 Mechanism: SOC vs Motter-Lai vs nonhomogeneous Poisson
 
 Carreras et al. [3] argue from the long-range time correlations (Hurst exponent $H = 0.57$ for power shed in the 1984-2006 North America record) that the SOC mechanism is operating — a memoryless Poisson process would yield $H = 0.5$. We note this is consistent with our Phase 2 (S&P 500) and Phase 4 (mouse cortex) findings of $H \approx 0.55$-$0.65$ across SOC systems. The Motter-Lai cascade model [6] is mechanistically distinct from BTW-sandpile SOC: it assumes a single trigger and a deterministic cascade on a static network, whereas SOC posits a continuously stress-loaded network in a marginal state. The two mechanisms predict similar exponent ranges $\alpha \in [1.3, 2.0]$ on real grid topologies because both produce heavy-tailed cascade-cluster distributions on heterogeneous load-bearing networks. Discriminating between them requires either (a) temporal correlation analysis at sub-second timescales (which OE-417 daily-resolution data cannot provide) or (b) the granular outage-propagation data discussed by Dobson et al. 2012 [13] (branching-process model). Phase 7's date-resolution data cannot distinguish; the alpha alone is class-compatible with both.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Pipeline robustness check
+### 5.4 Pipeline robustness check
 
 Our pipeline rejects all three synthetic non-SOC nulls at matched $n = 500$. Combined with the empirical Vuong $R_\mathrm{exp} > 0$ (power-law beats exponential) and the small-$n$ bootstrap CI overlap with the literature anchors, we conclude the pipeline behaves correctly on this domain.
 
-***REMOVED******REMOVED******REMOVED*** 5.5 Limitations
+### 5.5 Limitations
 
 (a) $n = 123$ is at the bare-floor of Clauset reliability; the bootstrap CIs are wide enough that the Vuong R-test cannot discriminate power-law from lognormal at the tail-sizes recovered. The literature anchors at $n \in \{317, 252, 467\}$ resolve this question more cleanly than our curated subset can.
 
@@ -110,13 +110,13 @@ Our pipeline rejects all three synthetic non-SOC nulls at matched $n = 500$. Com
 
 (d) The OE-417 reportable threshold has not changed since the early 1980s, but the underlying grid has doubled in installed capacity. Demand-growth-adjusted exponents (Hines 2009 §2) would be more rigorous; we did not implement this for the meta-review subset.
 
-***REMOVED******REMOVED*** 6. Conclusion
+## 6. Conclusion
 
 For the North American electric power grid class (Motter-Lai cascade + Carreras SOC), Phase 7 of the Structural Isomorphism validation program recovers a Clauset power-law exponent on MW load shed of $\alpha = 2.018 \pm 0.161$ ($x_\mathrm{min} = 1{,}300$ MW, $n_\mathrm{tail} = 40$, bootstrap 5-95% CI $[1.69, 2.31]$) on a literature-meta-review catalog of 123 events spanning 1984-2024. This value is in close agreement with the canonical Carreras 2016 ($\alpha = 2.16 \pm 0.10$) and Hines 2009 ($\alpha = 2.2 \pm 0.1$) literature anchors and sits on the upper edge of the predicted Motter-Lai band $[1.3, 2.0]$ and inside the wider literature band $[1.3, 2.5]$. The customers-affected observable returns $\alpha_\mathrm{cust} = 2.87$ at the point estimate but with bootstrap CI $[1.52, 2.96]$ wholly covering the literature range $[1.8, 2.1]$. All synthetic non-SOC nulls are rejected. The Vuong likelihood-ratio test prefers power-law over exponential ($p = 0.008$ for MW) but is inconclusive against lognormal at $n_\mathrm{tail} \in \{26, 40\}$ — as predicted by Clauset-Shalizi-Newman 2009 §6 for small tail samples.
 
 **Verdict: CONFIRMED (literature band), small-sample qualified.** This phase corroborates rather than independently re-establishes the SOC / Motter-Lai class assignment for North American grid cascades. The pipeline produced the right answer on a partially-fresh sample, which is the appropriate cross-validation given that the OE-417 raw-event API is not publicly available for automated download as of 2026-05-13. We recommend future iterations of Layer 5 acquire the OE-417 catalog via FOIA or direct DOE collaboration in order to extend the time series to 2024 with full per-event provenance, rather than relying on literature meta-review.
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] Carreras BA, Newman DE, Dobson I, Poole AB (2000). "Initial evidence for self-organized criticality in electric power system blackouts." Proc. 33rd Hawaii Int. Conf. System Sciences (HICSS).
 

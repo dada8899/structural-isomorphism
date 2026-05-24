@@ -1,6 +1,6 @@
 """Pytest fixtures for Playwright e2e tests.
 
-Session ***REMOVED***7 W3-A — structural-isomorphism e2e baseline.
+Session #7 W3-A — structural-isomorphism e2e baseline.
 """
 import pytest
 from playwright.sync_api import sync_playwright
@@ -21,10 +21,10 @@ def browser(playwright_instance):
 
 @pytest.fixture
 def page(browser):
-    ***REMOVED*** Grant clipboard permissions so tests for copy-link / share buttons
-    ***REMOVED*** (Session ***REMOVED***18 education assets) exercise the real navigator.clipboard
-    ***REMOVED*** path — headless Chromium otherwise blocks writeText(). Harmless to
-    ***REMOVED*** tests that don't touch the clipboard.
+    # Grant clipboard permissions so tests for copy-link / share buttons
+    # (Session #18 education assets) exercise the real navigator.clipboard
+    # path — headless Chromium otherwise blocks writeText(). Harmless to
+    # tests that don't touch the clipboard.
     context = browser.new_context(
         permissions=["clipboard-read", "clipboard-write"],
     )

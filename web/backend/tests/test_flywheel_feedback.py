@@ -1,4 +1,4 @@
-"""B Data Flywheel closure (Session ***REMOVED***18) — human-verification feedback.
+"""B Data Flywheel closure (Session #18) — human-verification feedback.
 
 Tests that real `outcome='worked'` followups flow back into the analyze
 credibility badge via ReportStore.count_human_verified +
@@ -21,11 +21,11 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from services.report_store import ReportStore  ***REMOVED*** noqa: E402
-from services.verified_isomorphisms import human_verified_for  ***REMOVED*** noqa: E402
+from services.report_store import ReportStore  # noqa: E402
+from services.verified_isomorphisms import human_verified_for  # noqa: E402
 
 
-***REMOVED*** --------- fixtures --------- ***REMOVED***
+# --------- fixtures --------- #
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def _mk_report(store, b_id, *, query="q"):
     return out["id"]
 
 
-***REMOVED*** --------- unit: count_human_verified --------- ***REMOVED***
+# --------- unit: count_human_verified --------- #
 
 
 def test_count_zero_when_no_followups(store):
@@ -60,7 +60,7 @@ def test_count_one_worked(store):
     )
     res = store.count_human_verified("b-physics-1")
     assert res["count"] == 1
-    assert res["recent"]  ***REMOVED*** a real updated_at timestamp
+    assert res["recent"]  # a real updated_at timestamp
 
 
 def test_count_dedups_same_user(store):
@@ -133,7 +133,7 @@ def test_count_empty_b_id(store):
     assert store.count_human_verified("") == {"count": 0, "recent": ""}
 
 
-***REMOVED*** --------- integ: human_verified_for wrapper --------- ***REMOVED***
+# --------- integ: human_verified_for wrapper --------- #
 
 
 def test_human_verified_for_wraps_store(store):
@@ -160,7 +160,7 @@ def test_human_verified_for_degrades_on_failure():
     assert human_verified_for(_Broken(), "b-x") == {"count": 0, "recent": ""}
 
 
-***REMOVED*** --------- integ: analyze credibility block carries the field --------- ***REMOVED***
+# --------- integ: analyze credibility block carries the field --------- #
 
 
 def test_credibility_block_includes_human_verified():
@@ -170,7 +170,7 @@ def test_credibility_block_includes_human_verified():
     field contract directly: a credibility dict shaped like analyze.py's
     must carry an int human_verified_count (0 reported honestly).
     """
-    ***REMOVED*** Mirror the shape analyze.py builds — the load-bearing keys.
+    # Mirror the shape analyze.py builds — the load-bearing keys.
     hv = {"count": 2, "recent": "2026-05-22T10:00:00Z"}
     credibility = {
         "kb_source": True,
@@ -182,7 +182,7 @@ def test_credibility_block_includes_human_verified():
     assert isinstance(credibility["human_verified_count"], int)
     assert credibility["human_verified_recent"] == "2026-05-22T10:00:00Z"
 
-    ***REMOVED*** Zero case — honest 0, not omitted.
+    # Zero case — honest 0, not omitted.
     hv0 = {"count": 0, "recent": ""}
     cred0 = {"human_verified_count": int(hv0.get("count", 0) or 0)}
     assert cred0["human_verified_count"] == 0

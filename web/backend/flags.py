@@ -1,4 +1,4 @@
-"""Feature flags + A/B experiments — session ***REMOVED***10 W15-E.
+"""Feature flags + A/B experiments — session #10 W15-E.
 
 Lightweight, in-process, no third-party SaaS. Config in `config/feature_flags.yaml`
 at repo root. Hot-reload on a 30s TTL (mtime + cache check).
@@ -34,7 +34,7 @@ import yaml
 
 log = logging.getLogger(__name__)
 
-***REMOVED*** Cache TTL — re-read YAML at most every 30s. Cheap (single file, few KB).
+# Cache TTL — re-read YAML at most every 30s. Cheap (single file, few KB).
 _CACHE_TTL_SECONDS = 30.0
 
 
@@ -43,7 +43,7 @@ def _default_config_path() -> Path:
     env = os.environ.get("FEATURE_FLAGS_PATH")
     if env:
         return Path(env)
-    ***REMOVED*** web/backend/flags.py -> repo root is 2 levels up.
+    # web/backend/flags.py -> repo root is 2 levels up.
     backend_dir = Path(__file__).resolve().parent
     return backend_dir.parent.parent / "config" / "feature_flags.yaml"
 
@@ -73,11 +73,11 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
     now = time.monotonic()
 
     with _cache_lock:
-        ***REMOVED*** Cache hit: file unchanged + within TTL.
+        # Cache hit: file unchanged + within TTL.
         if not force and _cache.path == p and (now - _cache.loaded_at) < _CACHE_TTL_SECONDS:
             return _cache.data
 
-        ***REMOVED*** mtime-based invalidation (cheap stat() call).
+        # mtime-based invalidation (cheap stat() call).
         try:
             mtime = p.stat().st_mtime
         except FileNotFoundError:
@@ -88,7 +88,7 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
             _cache.mtime = 0.0
             return _cache.data
 
-        ***REMOVED*** If mtime unchanged AND we have a prior load, just bump loaded_at.
+        # If mtime unchanged AND we have a prior load, just bump loaded_at.
         if not force and _cache.path == p and mtime == _cache.mtime and _cache.data:
             _cache.loaded_at = now
             return _cache.data
@@ -96,9 +96,9 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
         try:
             with open(p, "r", encoding="utf-8") as fh:
                 raw = yaml.safe_load(fh) or {}
-        except Exception as e:  ***REMOVED*** broad: any YAML or IO error
+        except Exception as e:  # broad: any YAML or IO error
             log.error("feature_flags: failed to parse %s: %s", p, e)
-            ***REMOVED*** Keep last good cache if we have one; otherwise empty.
+            # Keep last good cache if we have one; otherwise empty.
             if not _cache.data:
                 _cache.data = {}
             _cache.loaded_at = now
@@ -110,7 +110,7 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
             log.error("feature_flags: top-level YAML must be a mapping, got %s", type(raw))
             raw = {}
 
-        ***REMOVED*** Normalize sections.
+        # Normalize sections.
         raw.setdefault("flags", {})
         raw.setdefault("experiments", {})
 
@@ -140,7 +140,7 @@ def _current_tier() -> str:
     fall back to 'free'.
     """
     try:
-        from middleware.rate_limit import CURRENT_TIER  ***REMOVED*** local import to avoid cycle
+        from middleware.rate_limit import CURRENT_TIER  # local import to avoid cycle
         return CURRENT_TIER.get()
     except Exception:
         return "free"
@@ -167,12 +167,12 @@ def is_enabled(flag: str, user_id: Optional[str] = None) -> bool:
 
     rollout = entry.get("rollout")
     if not rollout:
-        return True  ***REMOVED*** fully enabled, no rollout gate
+        return True  # fully enabled, no rollout gate
 
     rtype = rollout.get("type")
     if rtype == "percentage":
         value = int(rollout.get("value", 0))
-        ***REMOVED*** Clamp into [0, 100]. value=100 -> always True; value=0 -> always False.
+        # Clamp into [0, 100]. value=100 -> always True; value=0 -> always False.
         if value <= 0:
             return False
         if value >= 100:
@@ -184,7 +184,7 @@ def is_enabled(flag: str, user_id: Optional[str] = None) -> bool:
         segments: List[str] = rollout.get("segments", []) or []
         return _current_tier() in segments
 
-    ***REMOVED*** Unknown rollout type: fail-closed.
+    # Unknown rollout type: fail-closed.
     log.warning("feature_flags: unknown rollout type %r for flag %s", rtype, flag)
     return False
 
@@ -212,9 +212,9 @@ def get_variant(experiment: str, user_id: Optional[str]) -> str:
     if not variants or not allocation:
         return "control"
 
-    ***REMOVED*** Build cumulative buckets in stable order (sorted by variant name for
-    ***REMOVED*** determinism across processes — dict iteration order is insertion in
-    ***REMOVED*** py3.7+ but YAML load preserves insertion too; sort to be safe).
+    # Build cumulative buckets in stable order (sorted by variant name for
+    # determinism across processes — dict iteration order is insertion in
+    # py3.7+ but YAML load preserves insertion too; sort to be safe).
     names = sorted(variants.keys())
     total = sum(int(allocation.get(n, 0)) for n in names)
     if total <= 0:
@@ -227,7 +227,7 @@ def get_variant(experiment: str, user_id: Optional[str]) -> str:
         cumulative += weight
         if bucket < cumulative:
             return name
-    ***REMOVED*** Fallback (shouldn't reach here mathematically).
+    # Fallback (shouldn't reach here mathematically).
     return names[-1]
 
 

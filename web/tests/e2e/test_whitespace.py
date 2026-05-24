@@ -1,4 +1,4 @@
-"""A2 Whitespace Map — /whitespace page e2e (session ***REMOVED***18).
+"""A2 Whitespace Map — /whitespace page e2e (session #18).
 
 Asserts:
   1. /whitespace renders the intro, the matrix heatmap, and the leads list.
@@ -32,7 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DIR = REPO_ROOT / "web" / "frontend"
 
 
-***REMOVED*** --- Canned API payloads --- ***REMOVED***
+# --- Canned API payloads --- #
 
 _MATRIX = {
     "available": True,
@@ -57,8 +57,8 @@ _MATRIX = {
     },
 }
 
-***REMOVED*** Two leads carry LLM verdicts (yes / maybe), one does not (degraded path)
-***REMOVED*** — exercises both the LLM-enriched and the no-key fallback rendering.
+# Two leads carry LLM verdicts (yes / maybe), one does not (degraded path)
+# — exercises both the LLM-enriched and the no-key fallback rendering.
 _LEADS = {
     "available": True,
     "total": 3,
@@ -86,11 +86,11 @@ _LEADS = {
 }
 
 
-***REMOVED*** --- Local static server --- ***REMOVED***
+# --- Local static server --- #
 
 
 class _SilentHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, *args, **kwargs):  ***REMOVED*** silence stderr
+    def log_message(self, *args, **kwargs):  # silence stderr
         pass
 
 
@@ -147,17 +147,17 @@ def _open_page(browser, base_url: str):
     return page
 
 
-***REMOVED*** --- Tests --- ***REMOVED***
+# --- Tests --- #
 
 
 def test_page_renders_intro_and_sections(local_server, chromium_browser):
     page = _open_page(chromium_browser, local_server)
     try:
         assert page.locator(".ws-intro__title").inner_text().strip() == "研究空白地图"
-        ***REMOVED*** Matrix + leads sections become visible after data loads.
-        assert page.locator("***REMOVED***ws-matrix-section").is_visible()
-        assert page.locator("***REMOVED***ws-leads-section").is_visible()
-        assert not page.locator("***REMOVED***ws-error").is_visible()
+        # Matrix + leads sections become visible after data loads.
+        assert page.locator("#ws-matrix-section").is_visible()
+        assert page.locator("#ws-leads-section").is_visible()
+        assert not page.locator("#ws-error").is_visible()
     finally:
         page.context.close()
 
@@ -181,11 +181,11 @@ def test_leads_render_with_analyze_link(local_server, chromium_browser):
         first_link = first.locator("a.ws-btn--primary")
         href = first_link.get_attribute("href")
         assert href.startswith("/analyze?")
-        ***REMOVED*** The /analyze prefill carries the concrete research question.
+        # The /analyze prefill carries the concrete research question.
         from urllib.parse import parse_qs, urlparse
         qs = parse_qs(urlparse(href).query)
         assert "厄尔尼诺振荡" in qs["text_a"][0]
-        ***REMOVED*** Top lead anchors p-100 (海气耦合).
+        # Top lead anchors p-100 (海气耦合).
         assert "b_id=p-100" in href
     finally:
         page.context.close()
@@ -197,14 +197,14 @@ def test_leads_show_llm_question_rationale_and_badge(local_server, chromium_brow
     page = _open_page(chromium_browser, local_server)
     try:
         first = page.locator(".ws-lead").first
-        ***REMOVED*** The concrete LLM research question is the card headline.
+        # The concrete LLM research question is the card headline.
         assert "厄尔尼诺振荡" in first.locator(".ws-lead__question").inner_text()
-        ***REMOVED*** The LLM rationale is rendered.
+        # The LLM rationale is rendered.
         assert "二阶阻尼振子" in first.locator(".ws-lead__claim").inner_text()
-        ***REMOVED*** yes -> 大概率成立 badge; the maybe lead -> 值得验证.
+        # yes -> 大概率成立 badge; the maybe lead -> 值得验证.
         assert first.locator(".ws-lead__plausible--yes").count() == 1
         assert page.locator(".ws-lead__plausible--maybe").count() == 1
-        ***REMOVED*** The unjudged third lead has no badge.
+        # The unjudged third lead has no badge.
         assert page.locator(".ws-lead__plausible").count() == 2
     finally:
         page.context.close()
@@ -214,10 +214,10 @@ def test_class_filter_narrows_leads(local_server, chromium_browser):
     page = _open_page(chromium_browser, local_server)
     try:
         assert page.locator(".ws-lead").count() == 3
-        page.select_option("***REMOVED***ws-filter-class", "c1")
-        ***REMOVED*** Only one lead belongs to class c1.
+        page.select_option("#ws-filter-class", "c1")
+        # Only one lead belongs to class c1.
         assert page.locator(".ws-lead").count() == 1
-        page.click("***REMOVED***ws-filter-reset")
+        page.click("#ws-filter-reset")
         assert page.locator(".ws-lead").count() == 3
     finally:
         page.context.close()

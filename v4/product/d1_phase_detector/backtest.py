@@ -79,9 +79,9 @@ class CompanyRow:
         return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Loaders
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Loaders
+# ---------------------------------------------------------------------------
 
 def load_companies(path: str) -> List[CompanyRow]:
     """Read JSONL — supports both {struct_tuple: {...}} wrapper and flat form."""
@@ -103,8 +103,8 @@ def load_companies(path: str) -> List[CompanyRow]:
                 cps = st.get("critical_point_state")
             else:
                 cps = rec.get("critical_point_state")
-            ***REMOVED*** NOTE: rows missing struct_tuple (e.g. input-only file like companies.jsonl)
-            ***REMOVED*** become group=None and get skipped downstream — handled gracefully.
+            # NOTE: rows missing struct_tuple (e.g. input-only file like companies.jsonl)
+            # become group=None and get skipped downstream — handled gracefully.
             out.append(CompanyRow(ticker=ticker.upper(), critical_point_state=cps))
     return out
 
@@ -127,9 +127,9 @@ def load_prices(path: str) -> Dict[str, List[Tuple[dt.date, float]]]:
     return table
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Algorithm helpers
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Algorithm helpers
+# ---------------------------------------------------------------------------
 
 def _nearest_on_or_after(series: List[Tuple[dt.date, float]], target: dt.date) -> Optional[Tuple[dt.date, float]]:
     for d, c in series:
@@ -151,7 +151,7 @@ def _nearest_on_or_before(series: List[Tuple[dt.date, float]], target: dt.date) 
 def add_months(d: dt.date, months: int) -> dt.date:
     y = d.year + (d.month - 1 + months) // 12
     m = (d.month - 1 + months) % 12 + 1
-    ***REMOVED*** clamp day to month-end
+    # clamp day to month-end
     if m == 12:
         last_day = 31
     else:
@@ -227,23 +227,23 @@ def ttest_groups(a: List[float], b: List[float]) -> Tuple[float, float]:
     if len(a) < 2 or len(b) < 2:
         return (float("nan"), float("nan"))
     try:
-        from scipy import stats  ***REMOVED*** type: ignore
+        from scipy import stats  # type: ignore
         res = stats.ttest_ind(a, b, equal_var=False)
         return float(res.statistic), float(res.pvalue)
-    except Exception as exc:  ***REMOVED*** pragma: no cover
+    except Exception as exc:  # pragma: no cover
         LOG.warning("scipy ttest failed: %s — falling back to manual Welch", exc)
         return _manual_welch(a, b)
 
 
 def _manual_welch(a: List[float], b: List[float]) -> Tuple[float, float]:
-    ***REMOVED*** Fallback if scipy missing; p-value via normal approx (not perfect for small n).
+    # Fallback if scipy missing; p-value via normal approx (not perfect for small n).
     ma, mb = statistics.fmean(a), statistics.fmean(b)
     va, vb = statistics.variance(a), statistics.variance(b)
     se = math.sqrt(va / len(a) + vb / len(b))
     if se == 0:
         return (float("nan"), float("nan"))
     t = (ma - mb) / se
-    ***REMOVED*** 2-sided normal approx
+    # 2-sided normal approx
     p = 2.0 * (1.0 - 0.5 * (1.0 + math.erf(abs(t) / math.sqrt(2))))
     return (t, p)
 
@@ -256,7 +256,7 @@ def build_cumulative_curve(
 ) -> List[Tuple[dt.date, float, float]]:
     """Build equal-weighted cumulative-return curve per group from snapshot to snapshot+months."""
     end = add_months(snapshot, months)
-    ***REMOVED*** collect all month-end dates between snapshot and end across all tickers
+    # collect all month-end dates between snapshot and end across all tickers
     all_dates: set = set()
     for c in companies:
         if c.group is None:
@@ -271,7 +271,7 @@ def build_cumulative_curve(
     if not timeline:
         return []
 
-    ***REMOVED*** Per ticker, normalize price to 1.0 at snapshot anchor.
+    # Per ticker, normalize price to 1.0 at snapshot anchor.
     nc_curves: List[List[float]] = []
     oth_curves: List[List[float]] = []
     for c in companies:
@@ -285,7 +285,7 @@ def build_cumulative_curve(
         if not anchor or anchor[1] <= 0:
             continue
         base = anchor[1]
-        ***REMOVED*** sample each timeline date at most-recent-on-or-before
+        # sample each timeline date at most-recent-on-or-before
         curve: List[float] = []
         idx = 0
         last_price = base
@@ -339,9 +339,9 @@ def write_cumulative_csv(path: str, rows: List[Tuple[dt.date, float, float]]) ->
     return len(rows)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Dry-run synthetic helpers (in-memory, no disk I/O)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Dry-run synthetic helpers (in-memory, no disk I/O)
+# ---------------------------------------------------------------------------
 
 def _synth_dry_run(snapshot: dt.date, months: int) -> Tuple[List[CompanyRow], Dict[str, List[Tuple[dt.date, float]]]]:
     """Build a small synthetic universe entirely in-memory for --dry-run."""
@@ -349,12 +349,12 @@ def _synth_dry_run(snapshot: dt.date, months: int) -> Tuple[List[CompanyRow], Di
     rng = _r.Random(7)
     companies: List[CompanyRow] = []
     prices: Dict[str, List[Tuple[dt.date, float]]] = {}
-    ***REMOVED*** 12 month grid extending past target_end so anchors exist
+    # 12 month grid extending past target_end so anchors exist
     target_end = add_months(snapshot, months)
     start = add_months(snapshot, -1)
     end = add_months(target_end, 1)
 
-    ***REMOVED*** build month-end timeline
+    # build month-end timeline
     timeline: List[dt.date] = []
     cur = start
     while cur <= end:
@@ -371,7 +371,7 @@ def _synth_dry_run(snapshot: dt.date, months: int) -> Tuple[List[CompanyRow], Di
             ser.append((d, round(price, 4)))
         prices[ticker] = ser
 
-    ***REMOVED*** near_critical group has stronger positive drift
+    # near_critical group has stronger positive drift
     for i in range(15):
         make(f"NC{i:03d}", "approaching_critical", drift=0.06, vol=0.08)
     for i in range(5):
@@ -383,9 +383,9 @@ def _synth_dry_run(snapshot: dt.date, months: int) -> Tuple[List[CompanyRow], Di
     return companies, prices
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Walk-forward (v0.2)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Walk-forward (v0.2)
+# ---------------------------------------------------------------------------
 
 def walk_forward_returns(
     companies: List[CompanyRow],
@@ -403,7 +403,7 @@ def walk_forward_returns(
       flat_grouped: {"near_critical": [...all returns...], "other": [...]}
       monthly: list of (snapshot_date, mean_nc, mean_other, n_nc, n_other)
     """
-    ***REMOVED*** Collect set of distinct snapshot dates from all tickers.
+    # Collect set of distinct snapshot dates from all tickers.
     all_dates: set = set()
     for series in prices.values():
         for d, _ in series:
@@ -414,18 +414,18 @@ def walk_forward_returns(
     if max_snapshot:
         timeline = [d for d in timeline if d <= max_snapshot]
 
-    ***REMOVED*** We need each snapshot to have a corresponding T+months point available,
-    ***REMOVED*** so cut tail.
+    # We need each snapshot to have a corresponding T+months point available,
+    # so cut tail.
     if not timeline:
         return {"near_critical": [], "other": []}, []
-    ***REMOVED*** Filter to snapshots where target_end <= last available date overall.
+    # Filter to snapshots where target_end <= last available date overall.
     last_overall = timeline[-1]
     usable = [d for d in timeline if add_months(d, months) <= last_overall]
 
     flat_grouped: Dict[str, List[float]] = {"near_critical": [], "other": []}
     monthly: List[Tuple[dt.date, float, float, int, int]] = []
 
-    ***REMOVED*** Pre-index companies by group for fast iteration
+    # Pre-index companies by group for fast iteration
     nc_companies = [c for c in companies if c.group == "near_critical"]
     oth_companies = [c for c in companies if c.group == "other"]
 
@@ -447,7 +447,7 @@ def walk_forward_returns(
                 end_pt = _nearest_on_or_after(series, target_end)
                 if not end_pt or anchor[1] <= 0:
                     continue
-                ***REMOVED*** Sanity: end_pt must not equal anchor (no forward window)
+                # Sanity: end_pt must not equal anchor (no forward window)
                 if end_pt[0] <= anchor[0]:
                     continue
                 ret = (end_pt[1] - anchor[1]) / anchor[1]
@@ -480,7 +480,7 @@ def write_walk_forward_cumulative_csv(
             "n_nc", "n_other", "cum_nc_ret", "cum_other_ret",
         ])
         for snap, mnc, moth, nnc, noth in monthly:
-            ***REMOVED*** Compound monthly mean returns (treat each snapshot as a period sample).
+            # Compound monthly mean returns (treat each snapshot as a period sample).
             if not math.isnan(mnc):
                 cum_nc = (1 + cum_nc) * (1 + mnc) - 1
             if not math.isnan(moth):
@@ -503,9 +503,9 @@ def plot_cumulative_png(
 ) -> bool:
     """Render a 2-line cumulative-return plot. Returns True on success."""
     try:
-        import matplotlib  ***REMOVED*** type: ignore
+        import matplotlib  # type: ignore
         matplotlib.use("Agg")
-        import matplotlib.pyplot as plt  ***REMOVED*** type: ignore
+        import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
         LOG.warning("matplotlib not installed; skipping PNG output")
         return False
@@ -529,9 +529,9 @@ def plot_cumulative_png(
 
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     fig, ax = plt.subplots(figsize=(11, 6))
-    ax.plot(dates, [c * 100 for c in cum_nc], label="near_critical", linewidth=2.0, color="***REMOVED***d62728")
-    ax.plot(dates, [c * 100 for c in cum_oth], label="other", linewidth=2.0, color="***REMOVED***1f77b4")
-    ax.axhline(0, color="***REMOVED***888", linewidth=0.8, linestyle="--")
+    ax.plot(dates, [c * 100 for c in cum_nc], label="near_critical", linewidth=2.0, color="#d62728")
+    ax.plot(dates, [c * 100 for c in cum_oth], label="other", linewidth=2.0, color="#1f77b4")
+    ax.axhline(0, color="#888", linewidth=0.8, linestyle="--")
     ax.set_title(f"Phase Detector walk-forward cumulative return{title_suffix}")
     ax.set_xlabel("Snapshot date")
     ax.set_ylabel("Cumulative return (%)")
@@ -545,9 +545,9 @@ def plot_cumulative_png(
     return True
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLI
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Phase Detector backtest v0.2")
@@ -570,7 +570,7 @@ def main(argv: List[str] | None = None) -> int:
     snapshot = dt.date.fromisoformat(args.snapshot)
     months = parse_period(args.period)
 
-    ***REMOVED*** --real-prices implies walk-forward + the new prices_500.csv path
+    # --real-prices implies walk-forward + the new prices_500.csv path
     if args.real_prices:
         if args.prices == DEFAULT_PRICES:
             args.prices = DEFAULT_REAL_PRICES
@@ -603,7 +603,7 @@ def main(argv: List[str] | None = None) -> int:
     if args.walk_forward:
         return _run_walk_forward(args, companies, prices, snapshot, months)
 
-    ***REMOVED*** ----- single-snapshot mode (v0.1 compat) -----
+    # ----- single-snapshot mode (v0.1 compat) -----
     grouped, used = compute_group_returns(companies, prices, snapshot, months)
     nc_summary = summarize(grouped["near_critical"], months)
     oth_summary = summarize(grouped["other"], months)

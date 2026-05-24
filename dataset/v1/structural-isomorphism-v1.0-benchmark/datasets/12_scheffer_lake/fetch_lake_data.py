@@ -1,6 +1,6 @@
 """
 fetch_lake_data.py — USGS NWIS dissolved oxygen (DO) time series fetch
-for Scheffer fold-bifurcation regime-shift validation (V4 taxonomy class ***REMOVED***3).
+for Scheffer fold-bifurcation regime-shift validation (V4 taxonomy class #3).
 
 Targets:
   - Primary: Fox River at Green Bay, WI (USGS 040851385) — eutrophic Green Bay embayment
@@ -31,7 +31,7 @@ OUT_DIR = Path(__file__).resolve().parent
 OUT_JSONL = OUT_DIR / "lake_do_timeseries.jsonl"
 OUT_LOG = OUT_DIR / "fetch_log.json"
 
-***REMOVED*** Candidate sites: (site_code, descriptor, start_year)
+# Candidate sites: (site_code, descriptor, start_year)
 CANDIDATE_SITES = [
     ("040851385", "Fox River at Green Bay, WI (eutrophic embayment, primary)", 2008),
     ("04085427", "Manitowoc River at Manitowoc, WI (cross-site check)", 2008),
@@ -85,7 +85,7 @@ def fetch_one(site_code: str, start_year: int, end_year: int = 2024) -> dict:
             val = float(v["value"])
         except (TypeError, ValueError):
             continue
-        if val < -1e5 or val > 1e5:  ***REMOVED*** USGS sometimes uses -999999 sentinel
+        if val < -1e5 or val > 1e5:  # USGS sometimes uses -999999 sentinel
             continue
         date_str = v["dateTime"][:10]
         records.append({
@@ -122,8 +122,8 @@ def synthetic_fold(n_days: int = 4000, seed: int = 42) -> list[dict]:
     rng = np.random.default_rng(seed)
     dt = 1.0
     P = np.zeros(n_days)
-    P[0] = 0.3  ***REMOVED*** oligotrophic start
-    ***REMOVED*** bifurcation parameter a ramped from 0.4 -> 1.2 across the run
+    P[0] = 0.3  # oligotrophic start
+    # bifurcation parameter a ramped from 0.4 -> 1.2 across the run
     a_path = np.linspace(0.4, 1.2, n_days)
     b = 1.0
     r = 1.0
@@ -165,7 +165,7 @@ def main() -> int:
         result = fetch_one(site, start_year)
         result["meta"]["descriptor"] = descriptor
         audit["attempts"].append(result["meta"])
-        ***REMOVED*** require >= 2 years of records to call it usable
+        # require >= 2 years of records to call it usable
         if result["meta"]["ok"] and result["meta"]["n_records"] >= 700:
             print(f"[fetch]   OK n={result['meta']['n_records']}, "
                   f"{result['meta']['first_date']} -> {result['meta']['last_date']}",
@@ -184,7 +184,7 @@ def main() -> int:
         else:
             print(f"[fetch]   skip ({result['meta'].get('error', 'too short')})",
                   file=sys.stderr)
-        time.sleep(0.5)  ***REMOVED*** be polite
+        time.sleep(0.5)  # be polite
 
     if chosen_site is None:
         print("[fetch] no candidate site yielded >=700 days; using SYNTHETIC fold model",

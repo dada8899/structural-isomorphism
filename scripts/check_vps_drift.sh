@@ -1,20 +1,20 @@
-***REMOVED***!/usr/bin/env bash
-***REMOVED*** Detect drift between local repo and VPS on critical deployed files.
-***REMOVED***
-***REMOVED*** Tells you when someone (or you) edited VPS backend or static files
-***REMOVED*** without also committing the change locally — which is how /phase
-***REMOVED*** ended up serving a 30-line stub for months. Runs on Mac via launchd.
-***REMOVED***
-***REMOVED*** Outputs a single DRIFT/CLEAN line per file. Non-zero exit if any drift.
-***REMOVED***
-***REMOVED*** Usage:  scripts/check_vps_drift.sh
+#!/usr/bin/env bash
+# Detect drift between local repo and VPS on critical deployed files.
+#
+# Tells you when someone (or you) edited VPS backend or static files
+# without also committing the change locally — which is how /phase
+# ended up serving a 30-line stub for months. Runs on Mac via launchd.
+#
+# Outputs a single DRIFT/CLEAN line per file. Non-zero exit if any drift.
+#
+# Usage:  scripts/check_vps_drift.sh
 
 set -u
 
 REPO_ROOT="${REPO_ROOT:-$HOME/Projects/structural-isomorphism}"
 VPS_ROOT="/root/Projects/structural-isomorphism"
 
-***REMOVED*** (local_path, vps_path) pairs. Add rows when deploying new critical files.
+# (local_path, vps_path) pairs. Add rows when deploying new critical files.
 FILES=(
   "web/backend/main.py|web/backend/main.py"
   "web/frontend/index.html|web/frontend/index.html"
@@ -30,7 +30,7 @@ STAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 
 for pair in "${FILES[@]}"; do
   local_rel="${pair%%|*}"
-  vps_rel="${pair***REMOVED******REMOVED****|}"
+  vps_rel="${pair##*|}"
   local_path="$REPO_ROOT/$local_rel"
   if [ ! -f "$local_path" ]; then
     printf "MISSING-LOCAL  %s\n" "$local_rel"

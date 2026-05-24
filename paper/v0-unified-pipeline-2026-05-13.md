@@ -1,18 +1,18 @@
-***REMOVED*** A pipeline for cross-domain validation of self-organized criticality, preferential attachment, and adjacent universality classes: thirteen systems, one method
+# A pipeline for cross-domain validation of self-organized criticality, preferential attachment, and adjacent universality classes: thirteen systems, one method
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
 **Contact.** dada8899@users.noreply.github.com  [TODO: replace with real institutional email + ORCID before formal arXiv/journal submission].
-**Date.** 2026-05-14. Version: v0.3.1 (session ***REMOVED***4 W6-D apply, post-W5-F copywriter-readability fix).
+**Date.** 2026-05-14. Version: v0.3.1 (session #4 W6-D apply, post-W5-F copywriter-readability fix).
 **Keywords.** self-organized criticality; preferential attachment; Motter-Lai network cascade; Preisach hysteresis; fold bifurcation; cross-domain validation; power-law; Omori-Utsu; null control; finite-size scaling; universal collapse; multi-model ensemble taxonomy; block bootstrap; pre-registration.
 
 ---
 
-***REMOVED******REMOVED*** Changelog
+## Changelog
 
-**v0.3.1 (2026-05-14, session ***REMOVED***4, W6-D apply).** Single change: applied the W6-D abstract rewrite (`docs/reviews/W6-D-abstract-rewrite-suggestion.md`) that resolves W5-F copywriter top issue § 5.1. The v0.3 abstract was a single ~600-word mega-sentence; v0.3.1 replaces it with the W6-D drop-in 5-paragraph form (problem / method / result / robustness / honest qualification, ~280 words). The Scheffer wording is reconciled to v0.3's block-bootstrap "inconclusive" verdict (W6-D's draft predated the v0.3 downgrade). No body, figures, references, or claims change.
+**v0.3.1 (2026-05-14, session #4, W6-D apply).** Single change: applied the W6-D abstract rewrite (`docs/reviews/W6-D-abstract-rewrite-suggestion.md`) that resolves W5-F copywriter top issue § 5.1. The v0.3 abstract was a single ~600-word mega-sentence; v0.3.1 replaces it with the W6-D drop-in 5-paragraph form (problem / method / result / robustness / honest qualification, ~280 words). The Scheffer wording is reconciled to v0.3's block-bootstrap "inconclusive" verdict (W6-D's draft predated the v0.3 downgrade). No body, figures, references, or claims change.
 
-**v0.3 (2026-05-13, session ***REMOVED***3, W6-C post-W5-A scholar review).** Substantive revisions in response to an independent scholar-track reviewer (W5-A):
+**v0.3 (2026-05-13, session #3, W6-C post-W5-A scholar review).** Substantive revisions in response to an independent scholar-track reviewer (W5-A):
 
 - §4.5 *universality-class headline demoted.* "First positive proof of universality-class membership" downgraded to "shape-normalized tail-form consistent across seven systems"; added §4.5.1 row-centering trade-off caveat (row-centering absorbs unit prefactors, including system-specific *amplitude* contributions that genuine cross-domain universality would, in principle, also need to handle); added §4.5.2 surrogate-null perspective.
 - §3.10 *Phase 7 verdict downgraded.* `CONFIRMED` → `consistent with literature anchors, n=123 sample-size-limited, verification_independence: LOW (curated from anchors)`. Phase 7 row in §5 main table now flagged with ⚠️.
@@ -22,7 +22,7 @@
 - §9 *Submission path.* New section: target = arXiv cond-mat.stat-mech preprint; primary journal candidates = PRE, Chaos, EPL; explicitly *not* Nature Phys / Nat Commun under the current framing.
 - Bootstrap rerun (n_boot = 10,000) flagged as pending in Table 1 footnote; not in this revision cycle.
 
-**v0.2 (2026-05-13, session ***REMOVED***3).** Adds five new validation phases plus a multi-model taxonomy update relative to v0.1:
+**v0.2 (2026-05-13, session #3).** Adds five new validation phases plus a multi-model taxonomy update relative to v0.1:
 
 - §3.10 Phase 7 — North American power-grid cascades (Motter-Lai class, literature-meta catalog of $n = 123$ events, $\alpha_\mathrm{MW} = 2.02 \pm 0.16$).
 - §3.11 Phase 13 — English Wikipedia pageviews (preferential-attachment popularity-flow band, $n = 7{,}521$ articles, $\alpha = 2.034$).
@@ -36,7 +36,7 @@
 
 ---
 
-***REMOVED******REMOVED*** Abstract
+## Abstract
 
 Universality-class claims have empirical content only if a single analysis pipeline, with no per-domain tuning, can recover the predicted signatures across systems drawn from very different domains.
 
@@ -50,7 +50,7 @@ We report two qualifications plainly. First, the raw-tail Vuong likelihood ratio
 
 ---
 
-***REMOVED******REMOVED*** 1. Introduction
+## 1. Introduction
 
 Universality classes are the sharpest tool statistical physics offers for cross-system comparison: two systems in the same class share a small set of critical exponents independent of microscopic detail [1, 2]. The concept was extended to non-equilibrium dynamics through self-organized criticality (SOC) by Bak, Tang, and Wiesenfeld [3], in which slowly driven threshold-cascade systems generically exhibit power-law event-size distributions, Omori-like aftershock decay, and associated scaling relations without parameter tuning. Tectonic seismicity is the canonical natural realization [3, 4]; the Drossel-Schwabl forest-fire model [5] and the Olami-Feder-Christensen earthquake automaton [6] populated the class theoretically, and Turcotte's review [7] codified the natural threshold-cascade hubs. Beggs and Plenz [8] opened the biology side with cortical avalanche $P(s) \propto s^{-3/2}$, $P(T) \propto T^{-2}$. Sornette [9] extended the picture to financial cascades and Eisenberg-Noe [10] gave the canonical network-clearing contagion model underlying bank-run and DeFi-liquidation dynamics.
 
@@ -80,35 +80,35 @@ The paper is organized as follows. Section 2 specifies the shared pipeline. Sect
 
 ---
 
-***REMOVED******REMOVED*** 2. Pipeline
+## 2. Pipeline
 
 The shared analysis stack is implemented in `v4/lib/soc_pipeline.py` and exposed to every phase as a small set of functions. The pipeline is intentionally minimal: each step corresponds to a single published estimator, the parameters are fixed across phases, and the only domain-specific code lives in the data loaders.
 
-***REMOVED******REMOVED******REMOVED*** 2.1 Clauset-Shalizi-Newman 2009 maximum-likelihood fit
+### 2.1 Clauset-Shalizi-Newman 2009 maximum-likelihood fit
 
 For each dataset we apply the Clauset-Shalizi-Newman estimator [16] to fit a continuous power-law $p(s) \propto s^{-\alpha}$ for $s \geq x_\mathrm{min}$. The $x_\mathrm{min}$ value is selected automatically by minimizing the Kolmogorov-Smirnov distance between the empirical and fitted CDFs on the candidate tail; $\alpha$ is then estimated by maximum likelihood on the resulting tail using the Hill-form estimator. We use the Alstott-Bullmore-Plenz `powerlaw` Python library [21] as the canonical implementation, with `discrete=True` set only for explicitly integer-valued data (Phase 4 avalanche sizes, Phase 6 star counts, Phase 13 pageviews). For each fit we report $\alpha$, the Hill-form $\sigma(\alpha)$, the fitted $x_\mathrm{min}$ in the domain's natural units, and the size $n_\mathrm{tail}$ of the fitted tail.
 
-***REMOVED******REMOVED******REMOVED*** 2.2 Bootstrap confidence intervals
+### 2.2 Bootstrap confidence intervals
 
 We compute a 95% non-parametric bootstrap CI on $\alpha$ from $n_\mathrm{boot} = 100$ resamples (with replacement) of the full size vector, refitting the Clauset MLE on each resample. One hundred resamples is at the low end of best practice; we note this conservatively widens the reported CI relative to a 1000-resample run. Where the analytic Hill $\sigma(\alpha)$ and the bootstrap 95% interval are simultaneously reportable (Phase 1, Phase 8), both appear in the system table. For small-$n$ phases ($n_\mathrm{total} < 200$, e.g. Phase 7 power grid) we widen the bootstrap percentile band to 5-95 and increase the resample count to 300, in lieu of the standard 2.5-97.5/100-resample report.
 
-***REMOVED******REMOVED******REMOVED*** 2.3 Likelihood-ratio tests against alternatives
+### 2.3 Likelihood-ratio tests against alternatives
 
 For each fit we compute the Clauset-Shalizi-Newman normalized log-likelihood ratio $R$ against two alternatives — lognormal and exponential — with Vuong-style $p$-values [22]. Positive $R$ favors power-law; $p < 0.05$ indicates the preference is statistically distinguishable. Following the standard practice [16, 17, 18], rejection of exponential is necessary but not sufficient for a power-law claim; the harder test is against lognormal, which can mimic a power-law tail over finite dynamic range. Clauset et al. [16, §6.3] specifically caution that the LR test has limited power for $n_\mathrm{tail} < 50$, in which case "inconclusive" cannot be read as evidence for either alternative.
 
-***REMOVED******REMOVED******REMOVED*** 2.4 Omori-Utsu temporal decay
+### 2.4 Omori-Utsu temporal decay
 
 Where the system has a meaningful event time series, we estimate temporal aftershock decay following the Omori-Utsu form $n(t) = K / (t + c)^p$ [4, 23, 24]. We identify a main-shock threshold by percentile (typically 99th, occasionally 95th or $3\sigma$ depending on the system's natural dynamic range), stack post-trigger event counts across all main shocks in a forward window, log-bin the stack, and fit $(p, c, K)$ by weighted log-log linear regression with $c$ grid-searched and the slope from weighted residuals. Goodness-of-fit is reported as weighted $R^2$ in log-space. For Phase 6 (GitHub stars), Phase 13 (Wikipedia pageviews — both PA growth processes), and Phase 4 size-only fits, no Omori-Utsu stacking is performed; preferential attachment makes no temporal-relaxation prediction.
 
-***REMOVED******REMOVED******REMOVED*** 2.5 Synthetic null controls
+### 2.5 Synthetic null controls
 
 For each phase we generate matched-$n$ synthetic samples from at least three non-power-law sources (typically: lognormal, exponential, and one domain-appropriate noise model — Gaussian random walk, Poisson inter-arrival, stretched exponential, or uniform shot noise) and run the identical pipeline on each. Passing requires correct rejection on all three: the synthetic-null likelihood-ratio against the "matching" alternative must be strongly negative, or the fit must fail to converge on a stable $x_\mathrm{min}$. Phase 5 (Section 3) is a dedicated null-control phase across four canonical non-SOC sources.
 
-***REMOVED******REMOVED******REMOVED*** 2.6 Log-binned density and BIC model comparison (v0.2 addition)
+### 2.6 Log-binned density and BIC model comparison (v0.2 addition)
 
 In Phase 12 (universal collapse polish) the pipeline also exposes a log-binned density estimator with 12 bins per decade and Poisson error bars per non-empty bin, plus a weighted-least-squares fitter for three candidate tail models (pure power-law, power-law with exponential cutoff, lognormal) on the binned data. The Bayesian Information Criterion $\mathrm{BIC} = k \log n - 2 \log L$ ranks the three models within each system. This module replaces the smoothed CCDF visualisation that v0.1 had used, and gives a quantitative answer on functional shape that the Vuong $R$ on raw data does not.
 
-***REMOVED******REMOVED******REMOVED*** 2.7 Non-power-law analytic stacks (v0.2 addition)
+### 2.7 Non-power-law analytic stacks (v0.2 addition)
 
 Two A2 phases use stacks structurally different from the power-law pipeline:
 
@@ -117,7 +117,7 @@ Two A2 phases use stacks structurally different from the power-law pipeline:
 
 Both stacks share the synthetic-null framework with the power-law pipeline.
 
-***REMOVED******REMOVED******REMOVED*** 2.8 Implementation and provenance
+### 2.8 Implementation and provenance
 
 The pipeline is one Python module of 339 lines, depending only on `numpy`, `scipy`, `pandas`, and `powerlaw`. The frozen commit for every value in this preprint is `7ee228c` (2026-05-13). Each phase's data ingestion script is checked in alongside the pipeline. Figure 1 (pipeline schematic, mermaid form):
 
@@ -149,7 +149,7 @@ All values are reproducible from the frozen commit and per-phase fetch scripts.
 
 ---
 
-***REMOVED******REMOVED*** 3. Case studies — eleven primary phases
+## 3. Case studies — eleven primary phases
 
 We summarize the eleven primary phases in Table 1 and then expand each in a per-system paragraph. The system order matches phase numbering rather than thematic clustering; the thematic discussion is deferred to Section 6.
 
@@ -177,55 +177,55 @@ We summarize the eleven primary phases in Table 1 and then expand each in a per-
 
 \*** Phase 2 LR vs LN is $-6.12$ in favor of lognormal; the power-law verdict rests on $\alpha = 2.998 \pm 0.041$ matching the Gopikrishnan-Plerou-Stanley canonical $\alpha = 3$ to within 0.07% plus the lognormal-not-ruled-out qualification.
 
-***REMOVED******REMOVED******REMOVED*** Phase 1 — USGS earthquakes (2020-2025)
+### Phase 1 — USGS earthquakes (2020-2025)
 
 We retrieved 84,724 type-`earthquake` events ($M \geq 3.5$) from the USGS FDSN event service in 61 monthly batches. The Wiemer-Wyss maximum-curvature estimator [25] gives a completeness magnitude $M_c = 4.45$, leaving 37,281 events above $M_c$. The Aki-1965 maximum-likelihood $b$-value [26] with the Shi-Bolt uncertainty [27] is $b = 1.084 \pm 0.005$ (analytic) with bootstrap 95% CI $[1.073, 1.094]$, corresponding via the Hanks-Kanamori relation [28] $s = 10^{1.5 M}$ to an energy exponent $\tau_E = 1 + b/1.5 = 1.722$. An independent Clauset MLE fit on the same energies selects $x_\mathrm{min} \approx 5.0 \times 10^8$ in seismic-moment units and recovers $\alpha_E = 1.794 \pm 0.024$ on $n = 1{,}071$ tail events; the two routes agree within three Clauset standard errors. Omori-Utsu stacking on 580 $M \geq 6.0$ main shocks (24,680 aftershocks, $M \geq 4.0$, 30-day forward windows) gives $p = 0.941 \pm 0.017$ at weighted $R^2 = 0.9927$ over three decades in time. Verdict: $\alpha_E$ and $p$ both inside the canonical seismological bands, both inside the Layer 4 prediction band for the SOC threshold-cascade class.
 
-***REMOVED******REMOVED******REMOVED*** Phase 2 — S&P 500 daily returns (1990-2025)
+### Phase 2 — S&P 500 daily returns (1990-2025)
 
 9,060 daily log returns of `^GSPC` from `yfinance`, range $[-12.8\%, +11.0\%]$. The Clauset MLE on $|r_t|$ selects $x_\mathrm{min} \approx 1.0\%$ and recovers $\alpha = 2.998 \pm 0.041$ on $n_\mathrm{tail} = 2{,}327$, reproducing the Gopikrishnan et al. 1998 "inverse cubic law" [29] to within 0.07% of the canonical value 3. Power-law versus lognormal returns $R = -6.12$, $p = 9.3 \times 10^{-10}$ — lognormal fits the tail strictly better — while power-law versus exponential is inconclusive ($R = -0.52$, $p = 0.60$), reflecting the well-known finite-$n$ difficulty of separating the two heavy-tailed alternatives on $\sim 2$k events [16, 19]. The Omori-Utsu fit on 318 $3\sigma$ main shocks stacked over 30 trading days returns $p = 0.286 \pm 0.034$ at weighted $R^2 = 0.7147$, inside Weber et al.'s [30] published daily-scale band $[0.3, 0.6]$ but outside the Lillo-Mantegna intraday band $[0.7, 1.0]$ [31]; this is a known scale-dependent feature. Verdict: confirmed at the functional level; lognormal not ruled out.
 
-***REMOVED******REMOVED******REMOVED*** Phase 3 — DeFi liquidations: Aave V2, Compound V2, MakerDAO Dog
+### Phase 3 — DeFi liquidations: Aave V2, Compound V2, MakerDAO Dog
 
 43,065 on-chain liquidation events across three architecturally distinct lending protocols, fetched from Ethereum mainnet event logs from Dec 2020 through Jan 2024. Aave V2 uses auction-based liquidation with 5% bonus, Compound V2 uses direct liquidation with 8% spread, and MakerDAO Dog/Clip uses Dutch clipper auctions; the three protocols share no code. Stablecoin-debt subsetting (for size-comparable USD-denominated tails) leaves 25,601 Aave events, 11,244 Compound events, and 1,985 Maker events. Clauset MLE returns $\alpha = 1.684 \pm 0.010$ (Aave, $x_\mathrm{min} = \$17{,}494$), $\alpha = 1.649 \pm 0.016$ (Compound, $x_\mathrm{min} = \$33{,}590$), and $\alpha = 1.567 \pm 0.015$ (Maker, $x_\mathrm{min} = \$12{,}539$); the three-protocol spread is 0.12 in $\alpha$ and every protocol rejects lognormal and exponential at $p \ll 10^{-9}$. Omori-Utsu at 1-hour aggregation gives $p \in [0.69, 0.76]$ across protocols (spread 0.07), all inside the published intraday band [31]. Verdict: tight cross-protocol consistency in size and time exponents, three-instance internal replication of the SOC signature at the L01 "expectation-driven cascade" Louvain sub-community, well separated from the continuous-diffusion stock-return regime of Phase 2.
 
-***REMOVED******REMOVED******REMOVED*** Phase 4 — Mouse ALM cortex avalanches (DANDI:000006)
+### Phase 4 — Mouse ALM cortex avalanches (DANDI:000006)
 
 1,392,414 spikes from 71 sorted units recorded during a delay-response behavioral task in mouse anterior lateral motor cortex. We define avalanches by the Beggs-Plenz binning rule [8] (bin width $= f \cdot \langle \mathrm{IEI} \rangle$, $f \in \{1, 2, 4, 8, 16\}$). A pre-validation step on 200,000 synthetic critical Bienaymé-Galton-Watson avalanches recovers mean-field SOC exponents $\tau = 1.497 \pm 0.001$ and $\alpha_T = 1.917 \pm 0.005$ (predicted: 1.5 and 2.0), confirming pipeline correctness. On the real recording, $\tau$ drifts from 2.17 ($f=16$) to 3.00 ($f=2$) with bin factor; $\alpha_T$ from 2.49 to 2.94. The crucial test for criticality, the scaling relation $\gamma = (\alpha_T - 1)/(\tau - 1)$, holds at every bin scale: measured $\gamma \approx 1.10$ matches the predicted ratio to within 2-3% at each factor, with regression $R^2 = 0.998$ at $f=2$. The tail exponents lie above the Beggs-Plenz spontaneous-cortex values $\tau = 3/2$, $\alpha_T = 2$ in the direction Priesemann, Munk, and Wibral [32] predicted for sub-critical task-active cortex (branching ratio $m < 1$). Verdict: scaling-relation test confirms criticality; the system sits in a different SOC sub-class than spontaneous Beggs-Plenz, refining rather than contradicting the class assignment.
 
-***REMOVED******REMOVED******REMOVED*** Phase 5 — Synthetic null controls
+### Phase 5 — Synthetic null controls
 
 Four non-SOC datasets generated and run through the identical pipeline. (i) 20,000 absolute Gaussian-random-walk increments $|\mathrm{d}X|$ with $\mathrm{d}X \sim \mathcal{N}(0,1)$: fitted $\alpha = 2.999$ but $R = -28.58$ versus lognormal and $R = -44.76$ versus exponential — power-law decisively rejected. (ii) 20,000 exponential variates: $R = -16.03$ versus lognormal, $R = -17.17$ versus exponential — rejected. (iii) 50,000 homogeneous-Poisson inter-arrival times: $R = -24.45$ versus lognormal, $R = -24.39$ versus exponential — rejected. (iv) Poisson process passed through the Omori-Utsu stacker: 23 main shocks detected, fitted $p = -0.068$ (wrong sign), $R^2 = 0.0015$ — no decay structure. The contrast with real-data phases (LR favors power-law by $+20$ to $+100$+; Omori $R^2 = 0.30$ to $0.99$; scaling $R^2 = 0.998$) is several orders of magnitude in log-likelihood. The pipeline is therefore a discriminating detector, not a power-law confirmation machine. This addresses the standard reviewer concern [17, 18] head-on.
 
-***REMOVED******REMOVED******REMOVED*** Phase 6 — GitHub stargazer counts
+### Phase 6 — GitHub stargazer counts
 
 8,398 public repositories fetched on 2026-05-13 from the GitHub Search API using ten stratified `stars:>N` queries with $N \in \{100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000\}$. Star range 248-500,996, median 4,734. The Clauset MLE selects $x_\mathrm{min} = 25{,}585$ stars (above the API's 1000-per-query cap-affected regime), $n_\mathrm{tail} = 1{,}417$, and returns $\alpha = 2.867 \pm 0.050$ with bootstrap 95% CI $[2.781, 3.000]$. The interval brackets the canonical Barabási-Albert asymptote $\alpha = 3$ at its upper edge. Per-language sub-fits ($n \geq 300$) span $\alpha \in [2.61, 3.00]$, all inside the predicted band, with JavaScript hitting $\alpha = 2.995$ — the most mature ecosystem at the BA limit. LR versus exponential gives $R = +5.45$, $p = 5 \times 10^{-8}$ (decisive); LR versus lognormal is inconclusive ($R = -1.45$, $p = 0.15$). No Omori-Utsu stacking is performed — preferential attachment is a growth law, not a relaxation law. Verdict: the same pipeline that recovers SOC exponents in $[1.5, 2.0]$ on threshold-cascade systems recovers a preferential-attachment exponent at the BA asymptote on a growth system, confirming that the class separation in V4's taxonomy is operationally meaningful, not nominal.
 
-***REMOVED******REMOVED******REMOVED*** Phase 7 — North American power-grid cascades (literature-meta catalog) — v0.2 addition
+### Phase 7 — North American power-grid cascades (literature-meta catalog) — v0.2 addition
 
 The North American electric power transmission grid is a canonical Motter-Lai network-cascade system [42, 43, 44]. We attempted to acquire a fresh event-level OE-417 / NERC DAWG catalog for direct Clauset fitting. As of 2026-05-13 the EIA v2 API exposes only operational aggregates (sales, capacity, RTO load) with no event-level disturbance route, and the DOE OE-417 archive at `oe.netl.doe.gov` requires interactive session cookies that prohibit automated scraping. We therefore assembled a literature-meta-review catalog of $n = 123$ documented major North American disturbance events spanning 1984-09-22 to 2024-09-27, cross-referenced from Carreras et al. 2016 Table V [43] (four WECC-corrected events), Hines, Apt, Talukdar 2009 §2 [45], US-Canada Task Force 2004 [53] (August 14 2003 cascading blackout, 61,800 MW / 55 million customers), FERC/NERC post-event reports for individual large events, and a cross-validated Wikipedia roster. MW load shed range: 100 to 61,800 (median 500, mean 2,420); customers affected range: 35,000 to 55 million (median 500,000). Applying the unmodified pipeline, the Clauset MLE on MW load shed recovers $\alpha_\mathrm{MW} = 2.018 \pm 0.161$ at $x_\mathrm{min} = 1{,}300$ MW, $n_\mathrm{tail} = 40$, bootstrap 5-95% CI $[1.69, 2.31]$ (300 successful resamples). The point estimate sits on the upper edge of the narrow Motter-Lai predicted band $[1.3, 2.0]$ and squarely inside the wider literature acceptance window $[1.3, 2.5]$, and it matches both Carreras 2016 ($\alpha = 2.16 \pm 0.10$ on $n_\mathrm{tail} = 123$) and Hines 2009 ($\alpha = 2.2 \pm 0.1$, $k = 1.2$ Pareto-form on $n = 317$ filtered events) to within one standard error of the combined uncertainty. On customers affected the Clauset MLE returns $\alpha_\mathrm{cust} = 2.87$ at $n_\mathrm{tail} = 26$ with bootstrap mean 2.19 and CI $[1.52, 2.96]$, wholly containing the literature anchors 1.82 (Carreras) and 2.14 (Hines). The Vuong LR vs lognormal is inconclusive ($R = -0.11$, $p = 0.92$ for MW), as predicted by Clauset et al. [16, §6.3] for $n_\mathrm{tail} = 40 < 50$; the LR vs exponential is $R = +2.64$, $p = 0.008$ — power-law strictly beats the simplest thin-tailed alternative. All three synthetic non-SOC nulls (Gaussian-walk-absolute, exponential, Poisson IAT) are rejected. **Caveats.** (a) $n = 123$ is at the bare floor of Clauset reliability; literature anchors at $n \in \{317, 252, 467\}$ resolve the lognormal-vs-power-law question more cleanly than our curated subset can. (b) The DOE OE-417 archive being TLS-blocked from automated scraping means we cannot independently verify the post-2006 events at full per-event provenance; future work via FOIA or direct DOE collaboration is the natural extension. **Verdict (v0.3 downgraded):** `consistent with literature anchors, n=123 sample-size-limited, verification_independence: LOW (curated from anchors)`. We are explicit that the $n = 123$ catalog was *assembled by aggregating* the Carreras 2016, Hines 2009, and US-Canada 2003 anchor catalogs — i.e. the same anchors whose exponents we compare to. The recovered $\alpha_\mathrm{MW} = 2.02$ matches Carreras 2.16 and Hines 2.2 within combined uncertainty, but the match is *partly definitional*: any sample drawn from the anchor catalogs would be expected to reproduce the anchor exponents to within sampling error. The independent contribution of Phase 7 is therefore more modest than v0.2 framed it: (i) the pipeline correctly recovers a value inside the Motter-Lai $[1.3, 2.0]$ predicted band on the curated catalog, and (ii) the synthetic non-SOC nulls correctly reject — but Phase 7 should *not* be read as an independent cross-validation of Motter-Lai universality in North American power grids. A genuine independent test would require either FOIA-acquired raw OE-417 events post-2006, or a non-overlapping geographic catalog (European ENTSO-E disturbance reports), neither of which is in this preprint. We flag this row with ⚠️ in the main table.
 
-***REMOVED******REMOVED******REMOVED*** Phase 8 — FDIC bank failures (1934-2026)
+### Phase 8 — FDIC bank failures (1934-2026)
 
 3,960 commercial bank failures with valid asset size from the FDIC public API, spanning 92 years and six orders of magnitude ($\$14$k to $\$1.47$T, the latter Washington Mutual 2008). The 1980s S&L crisis alone accounts for 2,035 (51%) of the record. Clauset MLE returns $\alpha = 1.899 \pm 0.045$, $x_\mathrm{min} = \$627$M, $n_\mathrm{tail} = 406$, bootstrap 95% CI $[1.763, 2.047]$. LR versus exponential is $+4.78$ ($p = 1.8 \times 10^{-6}$, decisive); versus lognormal is $-0.66$ ($p = 0.51$, inconclusive). The Omori-Utsu temporal stack on 99th-percentile main-failures gives $p \approx 0$ at $R^2 = 0.02$ — no temporal Omori decay. Read straight, this means bank-failure clustering is driven by global macroeconomic conditions (the S&L crisis envelope, the 2008 GFC envelope) rather than by event-triggered local stress redistribution; the no-Omori result is consistent with the Diamond-Dybvig-style L01 expectation-driven sub-class where the "cascade" propagates through belief revision and balance-sheet contagion on macroeconomic timescales, not through aftershock-style local relaxation. Verdict: size confirmed at the L01 sub-class center, no temporal-Omori consistent with the mechanism.
 
-***REMOVED******REMOVED******REMOVED*** Phase 10 — NIFC wildfires
+### Phase 10 — NIFC wildfires
 
 21,022 deduplicated US wildfire perimeters from the National Interagency Fire Center, post-1980s through 2024. Sizes span $6.3 \times 10^{-4}$ to $1.03 \times 10^{6}$ acres. Clauset MLE returns $\alpha = 1.660 \pm 0.017$, $x_\mathrm{min} = 1{,}199$ acres, $n_\mathrm{tail} = 1{,}591$, bootstrap 95% CI $[1.381, 1.808]$. The point estimate sits inside the Drossel-Schwabl + Malamud band $[1.3, 2.5]$ [5, 33] but is shifted upward from Malamud's canonical 1.4; we attribute this plausibly to post-1990s aggressive containment quenching the upper tail. LR versus exponential is $+10.46$ ($p = 1.3 \times 10^{-25}$, decisive); LR versus lognormal is $-4.73$ ($p = 2.3 \times 10^{-6}$): **lognormal beats power-law at the tail**. We report this plainly. The Reed-Hughes critique [20] applies in full. Omori-Utsu on inter-fire times after 95th-percentile main fires returns $p = 0.239 \pm 0.050$ at $R^2 = 0.713$, much lower than canonical seismological $p \approx 1$ and consistent with seasonal climate forcing rather than stress-relaxation cascade. Verdict: confirmed inside the predicted band, but qualified — lognormal cannot be ruled out, and the SOC claim rests on functional-form-plus-exponent-band agreement rather than rejection of all alternatives.
 
-***REMOVED******REMOVED******REMOVED*** Phase 11 — GOES solar flares
+### Phase 11 — GOES solar flares
 
 29,907 unique GOES X-ray Sensor flare events 2000-2016 from NOAA NGDC fixed-width reports, deduplicated across overlapping satellites. Peak fluxes span $6.3 \times 10^{-8}$ to $9.0 \times 10^{-4}$ W m$^{-2}$ (class A through X). Clauset MLE returns $\alpha = 2.194 \pm 0.018$, $x_\mathrm{min} = 5.2 \times 10^{-6}$ W m$^{-2}$ (M0.5), $n_\mathrm{tail} = 4{,}336$, bootstrap 95% CI $[2.159, 2.248]$. The value sits at the upper end of the Lu-Hamilton + Crosby et al. literature band $[1.5, 2.5]$ [34, 35] and is consistent with the GOES 1-8 Å bandpass integrating thermal emission across the full loop volume (which steepens relative to non-thermal hard-X-ray surveys). LR versus exponential is $+15.06$ ($p = 3 \times 10^{-51}$, decisive); LR versus lognormal is $+0.44$ ($p = 0.66$, inconclusive but power-law not beaten). A parallel Clauset fit on inter-arrival times reproduces Wheatland's [36] result: $\alpha_\mathrm{IAT} = 2.65 \pm 0.03$, heavy-tailed waiting times. Omori-Utsu after the 147 X-class triggers returns $p \approx -0.04$, $R^2 = 0.05$ — no aftershock decay, consistent with Wheatland's state-dependent-Poisson picture where flare occurrence is locally Poisson under a slowly varying global rate. Verdict: cleanest SOC confirmation in the cohort; the Omori null is the predicted signature, not an absence.
 
-***REMOVED******REMOVED******REMOVED*** Phase 13 — English Wikipedia pageviews — v0.2 addition
+### Phase 13 — English Wikipedia pageviews — v0.2 addition
 
 The platform is a linked corpus of approximately seven million English articles; readers arrive predominantly through search engines and via Wikipedia's own link graph; popular articles accumulate inlinks (preferentially-grown subgraph topology) and accumulate views (cumulative-advantage popularity flow). Newman [15, §3.2] cites Wikipedia pageviews with $\alpha \approx 2.0$ as one of the cleanest empirical Zipf [41] instances. We retrieved the Wikimedia REST endpoint `/metrics/pageviews/top/en.wikipedia/all-access/{year}/{month}/all-days` for every month of 2023 and 2024 (24 months); 2024-09 and 2024-12 returned HTTP 404 (`"data not loaded yet"`), leaving 22 months × 1,000 articles = 22,000 raw rows. After filtering non-article namespaces (Main_Page, Special:Search, Wikipedia:, Portal:, Help:, File:, Talk:, User:, Category:) and aggregating views per unique article, $n = 7{,}521$ articles remained, with cumulative views spanning $2.75 \times 10^5$ to $1.08 \times 10^8$ (Cleopatra, driven by the September-2023 ASCII-art viral attention; followed by YouTube and ChatGPT). The Clauset MLE selects $x_\mathrm{min} = 9.84 \times 10^5$ views and returns $\alpha = 2.034 \pm 0.019$ with bootstrap 95% CI $[1.854, 2.984]$ (median 2.00, mean 2.07, $n_\mathrm{tail} = 2{,}817$). The point estimate matches Newman's reported value to three decimal places and the Zipf law $\alpha = 2$ to one decimal place. LR versus exponential is $+7.67$, $p = 1.8 \times 10^{-14}$ — power-law decisively crushes exponential. LR versus lognormal is $-6.31$, $p = 2.7 \times 10^{-10}$ — lognormal is statistically preferred over a strict power-law at this $n_\mathrm{tail}$. We report this plainly. This is **not** evidence against the preferential-attachment class but against the discriminator power of the Vuong test at finite tail: Mitzenmacher [19] explicitly argues that Yule-Simon cumulative advantage with a small initial-attractiveness offset, and pure multiplicative-noise lognormal generators, produce distributions statistically indistinguishable on $n \sim 10^3$ tail samples. The point estimate matching $\alpha = 2$ to three decimal places is the operative evidence; a genuine lognormal-generated catalog would have no theoretical reason to land at the canonical preferential-attachment / Zipf value. Three matched-$n$ non-power-law nulls are correctly rejected. Verdict: confirmed in the predicted band $[1.7, 2.5]$ for the preferential-attachment popularity-flow sub-class. **Limitations.** (a) The Wikimedia Top-1000 cap is the dominant artifact; the catalog is left-truncated. The fitted $x_\mathrm{min}$ at $9.84 \times 10^5$ sits well above any month-by-month rank-1000 entry, so the *tail* fit is not edge-distorted, but the catalog is not a uniform sample of all English Wikipedia articles. (b) Spoerri [54] and Adamic-Huberman [55] report $\alpha \approx 2.0$ on uncapped samples; that the truncated catalog returns the same value within Clauset uncertainty is consistent with the truncation operating below the fitted tail. Combined with Phase 6 (GitHub stargazers, $\alpha \approx 2.87$, BA degree band $[2.0, 3.0]$), this paper completes a two-point test of the preferential-attachment parent class with measurements at both the degree-distribution and popularity-flow ends — both phases land inside their predicted bands, with non-overlapping sub-class centres exactly as theory predicts.
 
-***REMOVED******REMOVED******REMOVED*** A2-Hysteresis — NGSIM US-101 highway traffic (Preisach class, first-order signature + literature loop width) — v0.2 addition
+### A2-Hysteresis — NGSIM US-101 highway traffic (Preisach class, first-order signature + literature loop width) — v0.2 addition
 
-This is the first non-SOC, non-PA class to receive an empirical test in the Layer 5 program. The Preisach hysteresis class [46, 47] predicts a macroscopic first-order discontinuity between two stable branches and a loop-width ratio of order $q_{c1}/q_{c2} \in [1.25, 1.55]$. Highway traffic flow is the canonical real-world realisation: the fundamental-diagram literature [48, 49, 56, 57] has documented since Greenshields 1935 that the flow-density relation $q(\rho)$ is non-monotone, with an upper-branch free-flow capacity $q_{c1}$ exceeding the lower-branch congested capacity $q_{c2}$. We use the NGSIM US-101 vehicle-trajectory dataset (FHWA, federally archived, open-access via Socrata SODA on `data.transportation.gov`): 4.8 M vehicle-frame samples covering a 2,235-foot section southbound 7:50-8:35 am on 2005-06-15. Server-side SoQL aggregation onto 30-s × 200-ft × per-lane cells yields 5,012 records; after Edie's generalised macroscopic transform ($\rho$, $q$, $v$) and a HCM-2010 physical-capacity cap at $q \leq 2{,}800$ veh/h/lane, $n = 4{,}538$ cells remain (range $\rho \in [2.1, 205]$ veh/km/lane, $q \in [72, 2{,}798]$ veh/h/lane, $v \in [4.1, 76.5]$ km/h). The static fundamental diagram exhibits the canonical reverse-S shape with peak $q_{p95} \approx 2{,}700$ at $\rho \approx 90$ and visible decline to $q_{p95} \approx 1{,}724$ at $\rho \approx 184$, consistent with Treiber-Kesting fig. 8.2 [48]. **First-order signature (direct empirical).** Of 55 monitored locations with $\geq 30$ time bins of data, 25 (45 %) exhibit a sharp transition from the free-flow band ($v \geq 60$ km/h) to the congested band ($v \leq 40$ km/h) within the 45-minute window. The median crossing duration is 630 s (10.5 minutes), IQR $[600, 720]$ s — well below the 45-min total window, so the system spends most of its time in one branch or the other, not in the meta-stable interior. This is the canonical first-order signature. **Loop-width ratio (literature-anchored).** The NGSIM dataset structurally cannot support a direct loop measurement: the 45-min peak-hour window contains only the loading half-cycle (free → jam) with no recovery half (jam → free). We anchor the ratio to two independent literature calibrations: Treiber & Kesting 2013 chap. 8 A5 motorway [48] gives $q_{c1}/q_{c2} = 2{,}200 / 1{,}600 = 1.375$, and Geroliminis & Daganzo 2008 Yokohama MFD [49] gives $18 / 13 = 1.385$. Both anchor ratios fall inside the predicted band $[1.25, 1.55]$ and agree to within 1 %. The NGSIM-measured ratio $q_{c1}/q_{c2} = 0.93$ is *below* unity and outside the band, but this is a known dataset artifact (free-flow cells in NGSIM are upstream-end / pre-peak, not the upper meta-stable capacity just before tipping; the 95th-percentile of the densely-sampled congested branch operationally approaches bottleneck discharge $\approx$ free-flow capacity); we therefore do not interpret the NGSIM ratio as class rejection. Verdict: **CONFIRMED_COMPOSITE** — first-order signature direct empirical from NGSIM, loop-width from two textbook literature anchors. This is V4 universality-class ***REMOVED***2 (first non-SOC, non-PA) to receive an empirical attempt. **Caveats.** (a) The composite verdict is structurally weaker than a self-contained loop measurement; PeMS multi-day archival data covering both diurnal halves is the natural follow-up. (b) The predicted band $[1.25, 1.55]$ is class-level and does not yet distinguish per-regime sub-bands (motorway vs urban network vs intersection); a refined Layer-4 prediction would help.
+This is the first non-SOC, non-PA class to receive an empirical test in the Layer 5 program. The Preisach hysteresis class [46, 47] predicts a macroscopic first-order discontinuity between two stable branches and a loop-width ratio of order $q_{c1}/q_{c2} \in [1.25, 1.55]$. Highway traffic flow is the canonical real-world realisation: the fundamental-diagram literature [48, 49, 56, 57] has documented since Greenshields 1935 that the flow-density relation $q(\rho)$ is non-monotone, with an upper-branch free-flow capacity $q_{c1}$ exceeding the lower-branch congested capacity $q_{c2}$. We use the NGSIM US-101 vehicle-trajectory dataset (FHWA, federally archived, open-access via Socrata SODA on `data.transportation.gov`): 4.8 M vehicle-frame samples covering a 2,235-foot section southbound 7:50-8:35 am on 2005-06-15. Server-side SoQL aggregation onto 30-s × 200-ft × per-lane cells yields 5,012 records; after Edie's generalised macroscopic transform ($\rho$, $q$, $v$) and a HCM-2010 physical-capacity cap at $q \leq 2{,}800$ veh/h/lane, $n = 4{,}538$ cells remain (range $\rho \in [2.1, 205]$ veh/km/lane, $q \in [72, 2{,}798]$ veh/h/lane, $v \in [4.1, 76.5]$ km/h). The static fundamental diagram exhibits the canonical reverse-S shape with peak $q_{p95} \approx 2{,}700$ at $\rho \approx 90$ and visible decline to $q_{p95} \approx 1{,}724$ at $\rho \approx 184$, consistent with Treiber-Kesting fig. 8.2 [48]. **First-order signature (direct empirical).** Of 55 monitored locations with $\geq 30$ time bins of data, 25 (45 %) exhibit a sharp transition from the free-flow band ($v \geq 60$ km/h) to the congested band ($v \leq 40$ km/h) within the 45-minute window. The median crossing duration is 630 s (10.5 minutes), IQR $[600, 720]$ s — well below the 45-min total window, so the system spends most of its time in one branch or the other, not in the meta-stable interior. This is the canonical first-order signature. **Loop-width ratio (literature-anchored).** The NGSIM dataset structurally cannot support a direct loop measurement: the 45-min peak-hour window contains only the loading half-cycle (free → jam) with no recovery half (jam → free). We anchor the ratio to two independent literature calibrations: Treiber & Kesting 2013 chap. 8 A5 motorway [48] gives $q_{c1}/q_{c2} = 2{,}200 / 1{,}600 = 1.375$, and Geroliminis & Daganzo 2008 Yokohama MFD [49] gives $18 / 13 = 1.385$. Both anchor ratios fall inside the predicted band $[1.25, 1.55]$ and agree to within 1 %. The NGSIM-measured ratio $q_{c1}/q_{c2} = 0.93$ is *below* unity and outside the band, but this is a known dataset artifact (free-flow cells in NGSIM are upstream-end / pre-peak, not the upper meta-stable capacity just before tipping; the 95th-percentile of the densely-sampled congested branch operationally approaches bottleneck discharge $\approx$ free-flow capacity); we therefore do not interpret the NGSIM ratio as class rejection. Verdict: **CONFIRMED_COMPOSITE** — first-order signature direct empirical from NGSIM, loop-width from two textbook literature anchors. This is V4 universality-class #2 (first non-SOC, non-PA) to receive an empirical attempt. **Caveats.** (a) The composite verdict is structurally weaker than a self-contained loop measurement; PeMS multi-day archival data covering both diurnal halves is the natural follow-up. (b) The predicted band $[1.25, 1.55]$ is class-level and does not yet distinguish per-regime sub-bands (motorway vs urban network vs intersection); a refined Layer-4 prediction would help.
 
-***REMOVED******REMOVED******REMOVED*** A2-Scheffer — Fox River dissolved-oxygen (fold-bifurcation class, critical-slowing-down test) — v0.2 addition
+### A2-Scheffer — Fox River dissolved-oxygen (fold-bifurcation class, critical-slowing-down test) — v0.2 addition
 
 Scheffer et al. [50, 51] proposed that a wide class of ecosystems exhibit alternative stable states separated by fold (saddle-node) bifurcations, with rising lag-1 autocorrelation (AR1) and rising variance as the dominant eigenvalue approaches zero through critical slowing down (Dakos et al. PNAS 2008 [52]). We test this on USGS site 040851385 ("Fox River at Oil Tank Depot at Green Bay, WI"): 4,732 daily-mean dissolved-oxygen observations spanning 2011-03-04 to 2024-12-31 (95.8 % coverage on a 5,052-day grid; gaps $\leq 7$ days linearly interpolated, longer gaps left NaN). This is a documented eutrophic system [58] with recurrent summer hypoxia; daily-resolution monitoring is rare for closed-lake systems (we probed three secondary sites; Manitowoc returned $n = 2{,}689$, Lake Jesup FL and Delavan WI returned empty `dv` series). **Detrending.** A two-stage detrend removes (i) the annual day-of-year climatology (anomaly series) and (ii) a centered 60-day rolling-mean drift, yielding $x_\mathrm{resid}$. **Changepoint detection.** Page's two-sided CUSUM ($k = 0.5\sigma$, $h = 15\sigma$, cluster-gap 180 d) on the deseasoned series finds 19 candidate regime-shift events. **EWS indicators.** Rolling 365-day AR(1) and variance of $x_\mathrm{resid}$ are tested for monotonic trend by Kendall $\tau$ at both the long-run secular scale and the per-event 2-year pre-shift window.
 
@@ -246,21 +246,21 @@ Results from `v4/scripts/scheffer_block_bootstrap.py` (seed 42, 1,000 resamples)
 
 **Revised verdict: INCONCLUSIVE (block-bootstrap, single-site).** The naive Kendall-$\tau$ test misled us. The corrected block-bootstrap analysis returns a marginal-to-null result on both indicators. Phase A2-Scheffer is therefore *not* an empirical confirmation of the Scheffer fold-bifurcation class at the standard $p < 0.05$ threshold; it is at best a hint that warrants follow-up. The Sub-class proposal (3a one-shot tip vs 3b periodically-driven recurrent fold) remains a sensible mechanistic refinement, but its empirical support is reduced to a literature-anchored conceptual contribution rather than a fresh data confirmation. **Caveats.** (a) Single site (cross-system replication on multiple USGS lakes / EPA STORET / LTER required even to revisit the question). (b) The block-bootstrap result is *sensitive* to the choice of block length $\ell_\mathrm{block}$; at $\ell = 30$ d the residual within-block autocorrelation is small, but at $\ell = 60$ d the result would likely be more conservative still. (c) Boettiger & Hastings's [60] explicit warning that AR1/Var rise can occur in systems with non-stationary driver noise is now operative — the Fox River result cannot rule out exogenous nutrient-loading drift as the proximate cause of the AR1 / Var trends.
 
-***REMOVED******REMOVED******REMOVED*** Phase 14 — Solar-wind speed bursts (Wave 11-E, 2026-05-15 addition)
+### Phase 14 — Solar-wind speed bursts (Wave 11-E, 2026-05-15 addition)
 
 Per-burst integrated speed-excess statistics on a hybrid solar-wind dataset (1,699 synthetic hourly samples drawn from Veltri 1999 OMNIWeb-calibrated AR(1) + intermittent Pareto bursts; concatenated with 9,701 real 1-minute NOAA SWPC plasma samples retrieved on 2026-05-15). A burst is defined per pre-registration as a contiguous run where $V_p > \mu + 2\sigma$ on a 30-day rolling window, with duration $\in$ [5 min, 6 h]. Burst size is the integrated excess speed-area. After threshold extraction $n = 596$ bursts. Pre-registered band for the burst-size tail follows Freeman & Watkins 2002 [doi:10.1126/science.1075962]: $\alpha \in [1.8, 2.4]$. Frozen Clauset MLE returns $\alpha = 1.871$ with bootstrap 95% CI $[1.818, 2.877]$, $n_\mathrm{tail} = 519$. The point estimate sits *inside* the pre-registered band; however Vuong LR test against lognormal returns $R = -5.04$, $p = 4.65 \times 10^{-7}$ — lognormal decisively preferred at the raw-tail level. Inter-event time fit returns $\alpha = 2.841$, CI $[1.915, 2.988]$, *outside* the broader pre-registered $[1.5, 2.5]$ band; both alternatives modestly preferred. **Verdict: FAIL (burst size, on Vuong) + FAIL (inter-event, on band).** Honest caveat: 85 % of the sample is synthetic-by-construction (the SWPC realtime endpoint provides only 7 days of data), so the verdict is partly a self-consistency test of the pipeline rather than a fresh empirical claim. A multi-year OMNIWeb fetch is the obvious empirical follow-up.
 
-***REMOVED******REMOVED******REMOVED*** Phase 15 — GitHub issue resolution times (Wave 11-E, 2026-05-15 addition)
+### Phase 15 — GitHub issue resolution times (Wave 11-E, 2026-05-15 addition)
 
 Resolution-time distribution (closed_at − created_at, in seconds) across 15 popular open-source repositories on a hybrid sample (301 real records from `gh api /repos/{owner}/{repo}/issues` queries on 2026-05-15 against kubernetes, react, vscode, pytorch, rust-lang/rust, golang/go, microsoft/TypeScript, and others, restricted to non-PR issues; concatenated with 1,699 synthetic records calibrated to Bertram 2015 OSS bug-fix duration meta-statistics: lognormal core $\sigma_\mathrm{log} = 1.6$, median 2 days, mixed with 15 % Pareto-tail above 30 days at $\alpha = 1.8$). $n = 2{,}000$. Pre-registered band $\alpha \in [1.5, 3.0]$ (the task spec explicitly permits "lognormal preferred" as a successful adversarial outcome). Frozen Clauset MLE returns $\alpha = 1.836$, bootstrap 95% CI $[1.515, 2.121]$, $n_\mathrm{tail} = 321$. Vuong LR test: vs lognormal $R = +0.156$, $p = 0.876$ (indistinguishable); vs exponential $R = +3.487$, $p = 4.9 \times 10^{-4}$ (power-law decisively beats exponential). **Verdict: PASS** — $\alpha$ in band, no alternative significantly beats power-law in the pre-registered direction. Honest caveat: this is largely a self-test (the 1,699 synthetic samples are Pareto $\alpha = 1.8$ by construction); the 301 real records contribute < 5 % of tail-determining values. The "PASS" is therefore a software validation, not a discovery about cross-OSS triage dynamics. A full GitHub Archive BigQuery extraction (50–100 repos with $\geq 500$ closed issues each) is the obvious empirical follow-up; cf. project good-first-issue 003. Mechanistically, OSS issue resolution is more plausibly preferential-attachment + lognormal multiplicative-growth (Mitzenmacher 2004 [19]) than threshold-cascade SOC; the band PASS is a marginal-distribution finding, not a class assignment.
 
 ---
 
-***REMOVED******REMOVED*** 4. Universal collapse (v0.2 — log-binned density + BIC polish)
+## 4. Universal collapse (v0.2 — log-binned density + BIC polish)
 
 The V4 prediction is not that one exponent is universal across all heavy-tailed systems — that would require the same conjugate observable across all phases, which we do not have — but that systems sharing the same equations of motion exhibit a shared tail functional form, with system-specific $\alpha$ and $x_\mathrm{min}$.
 
-***REMOVED******REMOVED******REMOVED*** 4.1 Finite-size scaling ansatz
+### 4.1 Finite-size scaling ansatz
 
 For a critical SOC system with cutoff $s^*$ set by finite-size or finite-driving effects, the size distribution is expected to take the form
 $$
@@ -268,15 +268,15 @@ P(s) = s^{-\alpha} \, f\!\left(\frac{s}{s^*}\right),
 $$
 with $f(\cdot)$ a system-independent scaling function up to non-universal amplitudes. The empirical test [3, 7] is whether plotting $\overline{F}(s) \cdot s^{*\,\alpha-1}$ versus $s/s^*$ collapses multiple systems onto a single curve. Strict collapse requires shared $\alpha$ and $f$; partial collapse — same $f$, different $\alpha$ — is what universality with system-specific observables predicts. Christensen and Moloney [40] term these *strict* and *narrow-band* universality respectively.
 
-***REMOVED******REMOVED******REMOVED*** 4.2 Why log-binned density replaces the smoothed CCDF
+### 4.2 Why log-binned density replaces the smoothed CCDF
 
 The v0.1 universal-collapse pass used empirical CCDFs. v0.2 replaces this with log-binned PDF estimation (12 bins per decade) with Poisson error bars per non-empty bin. The CCDF integrates over the tail and so smooths out exactly the noise that matters for distinguishing power-law from lognormal in the upper tail; log-binned PDF preserves it and supplies per-bin uncertainty. This is the Clauset-recommended visualization for tail comparison [16] and is now standard in tail-fitting practice [21].
 
-***REMOVED******REMOVED******REMOVED*** 4.3 Seven-system rescaled log-binned density
+### 4.3 Seven-system rescaled log-binned density
 
 We take $s^*$ as each system's 99th-percentile event size, compute the log-binned PDF on a 12-bins-per-decade grid spanning $[\min s, \max s]$ on the tail $\{s : s \geq s_{50}\}$, and overlay seven verified systems on rescaled axes $x' = s/s^*$, $y' = s^{*\,\alpha-1} \hat p(s)$. The seven systems are earthquakes ($\alpha = 1.79$, $s^* = 2 \times 10^9$ J), S&P 500 ($\alpha = 3.00$, $s^* = 3.93\%$), wildfires ($\alpha = 1.66$, $s^* = 2.58 \times 10^4$ acres), solar flares ($\alpha = 2.19$, $s^* = 5.6 \times 10^{-5}$ W m$^{-2}$), bank failures ($\alpha = 1.90$, $s^* = 7.3 \times 10^9$ USD), GitHub stars ($\alpha = 2.87$, $s^* = 1.11 \times 10^5$ stars), and Aave V2 DeFi ($\alpha = 1.68$, $s^* = 2.24 \times 10^{23}$ wei). On raw axes the seven log-binned PDFs span twelve orders of magnitude in $s$ and are completely non-coincident.
 
-***REMOVED******REMOVED******REMOVED*** 4.4 Shape-normalized collapse ratio
+### 4.4 Shape-normalized collapse ratio
 
 Project the rescaled $(x', y')$ curves onto a shared logarithmic $x'$-grid of 20 points; let $M_{ij} = \log y'_{ij}$ be the interpolated log-y at grid bin $j$ for system $i$. We report two ratios:
 
@@ -285,7 +285,7 @@ Project the rescaled $(x', y')$ curves onto a shared logarithmic $x'$-grid of 20
 
 The two-orders-of-magnitude gap between $r_\mathrm{abs}$ and $r_\mathrm{shape}$ encodes the operational content — but it must be read carefully. The poor absolute collapse is a unit-prefactor artifact ($s^{*\,\alpha-1}$ absorbs scale, not units — wildfire acres, dimensionless returns, wei, USD do not commensurate); the small shape collapse ratio says the *functional dependence* of $\log y'$ on $\log x'$ is shared after we have removed each system's mean log-y. We interpret this as **consistent with a shared tail shape across the seven systems**, not as positive proof of universality-class membership — see §4.5 below.
 
-***REMOVED******REMOVED******REMOVED*** 4.5 Shared tail shape — operational content, caveats, and demoted framing
+### 4.5 Shared tail shape — operational content, caveats, and demoted framing
 
 For each system's log-binned tail we fit three candidate tail models by weighted least squares in log space (Gaussian-residuals approximation with $\sigma_\mathrm{log} = \sigma/\hat p$): pure power-law (2 parameters), power-law with exponential cutoff $\exp(-s/s_c)$ (3 parameters), and lognormal (2 parameters). The BIC $= k \log n - 2 \log L$ ranks the three:
 
@@ -309,31 +309,31 @@ For each system's log-binned tail we fit three candidate tail models by weighted
 
 **Revised framing.** We therefore demote the §4.5 headline from "first positive proof of universality class membership" to "**consistent with a shared tail shape across seven systems**, after row-centering removes free per-system amplitude prefactors, with the BIC ranking on log-binned density consistently preferring power-law-times-cutoff over lognormal (5/7 PL-cutoff wins, 0/7 LN wins, $\Delta\mathrm{BIC}_\mathrm{LN} \in [270, 5000]$)". The empirical pattern is real and non-trivial; the *interpretive* claim "this is universality-class membership" requires either a unit-consistent rescaling or a surrogate-null distribution before it can carry that weight. We flag this honestly here and as future work in §6.6 (item j).
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4.5.1 Row-centering, surrogate-null proxy, and what the BIC ranking actually buys
+#### 4.5.1 Row-centering, surrogate-null proxy, and what the BIC ranking actually buys
 
 A partial surrogate-null proxy is provided by Phase 5 itself: the four synthetic non-SOC sources (Gaussian RW, exponential, Poisson IAT, Poisson Omori) all produced raw-tail Vuong $R \in [-17, -45]$ against the matched alternative — i.e. the pipeline rejected the wrong functional form by 10-45 log-likelihood units, at $r$ values much larger than 1.11 (we did not compute Phase 5 shape-normalized $r$, but the per-bin residuals are several orders of magnitude larger than the verified-system residuals on the same grid). This is *informal* surrogate-null evidence that 1.11 is in fact a small number; a proper Monte-Carlo $r_\mathrm{shape}$ null distribution remains future work.
 
 The BIC ranking on log-binned density (7/7 lognormal rejected, 5/7 PL+cutoff preferred) is the *less interpretively ambiguous* signal. BIC penalises free parameters and the seven systems are evaluated independently; lognormal would be the natural attractor if the data were generated by multiplicative-noise rather than threshold-cascade mechanisms (Mitzenmacher [19]). Lognormal losing 7/7 on log-binned BIC is therefore robust evidence for *shared functional form*; the framing concern is specifically with the row-centered $r_\mathrm{shape}$ summary statistic, not with the BIC ranking.
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 4.5.2 What a fully unit-consistent cross-domain collapse would require
+#### 4.5.2 What a fully unit-consistent cross-domain collapse would require
 
 For completeness: a strict cross-domain universality test would need (i) all observables converted to a natural-units form before any rescaling — e.g. seismic energy in Joules, defi liquidation size in defi-protocol-native value units, GitHub stars dimensionless, etc., with a class-specific dimensional analysis; (ii) the collapse evaluated *without* row-centering, on the natively-unit-consistent rescaled axes; (iii) the resulting cross-system / within-system $r$ ratio compared to a Monte-Carlo null where each system's binned PDF is drawn from an independent functional family. None of (i)-(iii) are done in this preprint. We list this as future work item (j) in §6.6.
 
-***REMOVED******REMOVED******REMOVED*** 4.6 The BIC-vs-Vuong tension
+### 4.6 The BIC-vs-Vuong tension
 
 Phase 2 (S&P 500) and Phase 10 (wildfires) and Phase 13 (Wikipedia pageviews) reported that *Vuong's* likelihood-ratio test on raw data prefers lognormal over power-law. Phase 12 reports BIC on log-binned PDF prefers power-law (with cutoff) over lognormal decisively. The two procedures are not measuring the same thing: Vuong on raw data is sensitive to upper-tail individual events that dominate the LN likelihood; BIC on log-binned density evaluates fit across all decades with Poisson errors. At $n_\mathrm{tail} \sim 10^3$-$10^4$, both procedures have known biases and neither alone is decisive. The honest reading is: at currently available tail sizes, the power-law-versus-lognormal distinction is partly procedural; the cross-system *functional-shape* signature is more robust than the within-system *raw-tail-model* signature; and the V4 universality-class claim is strongest at the shape-collapse + BIC-on-binned level, weaker at the individual-system Vuong level.
 
-***REMOVED******REMOVED******REMOVED*** 4.7 Interpretation
+### 4.7 Interpretation
 
 The empirical pattern — power-law tails inside predicted bands across nine systems, shape-normalized functional-form collapse across seven, heterogeneous $\alpha$ in $[1.5, 3.0]$, BIC-preferred PL+cutoff in 5/7, BIC-rejected LN in 7/7 — is consistent with: (i) SOC and PA mechanism classes distinguishable by exponent band ($\alpha \in [1.5, 2.0]$ canonical SOC; $\alpha \in [2, 3.5]$ preferential attachment); (ii) within each class, precise $\alpha$ depends on the microscopic-to-macroscopic mapping (energy vs drawdown vs current vs area vs star count vs cumulative views); (iii) the universal invariant is the *tail shape* (power-law-times-exponential-cutoff with system-specific $\alpha$ and $s_c$), not the slope. This is the operational content of the universality-class claim, and it is now quantitatively supported.
 
 ---
 
-***REMOVED******REMOVED*** 5. Taxonomy critic passes (B1 + B3) and prediction calibration (B2)
+## 5. Taxonomy critic passes (B1 + B3) and prediction calibration (B2)
 
 The empirical validations sit downstream of a Layer-3 candidate-class catalog produced by community discovery on the project's V2 mechanism graph. Before treating those candidate classes as universality classes in the technical sense, we ran a B1 single-model critic pass and a B3 multi-model ensemble critic pass, plus a B2 calibration pass to attach predictions to each surviving class.
 
-***REMOVED******REMOVED******REMOVED*** 5.1 B1 critic pass: 21 candidate classes reviewed
+### 5.1 B1 critic pass: 21 candidate classes reviewed
 
 The critic principle was operationalized as four filters [16, 17]: (i) shared mechanism, not shared descriptor; (ii) equation form specific, not generic; (iii) mechanism implies shared scaling exponents, not merely shared critical-point existence; (iv) provenance artifacts merged.
 
@@ -343,19 +343,19 @@ The three REJECT cases are illustrative. (a) **extreme_value_tail_class** reject
 
 The 4 SPLIT and 3 MERGE cases similarly tightened the taxonomy. The surviving 15 active classes plus 2 demoted statistical-descriptor catalogs form a more defensible v1 taxonomy.
 
-***REMOVED******REMOVED******REMOVED*** 5.2 EVT rejection in detail
+### 5.2 EVT rejection in detail
 
 EVT is the most attractive false friend in the heavy-tailed literature. The Fisher-Tippett-Gnedenko theorem is a statement about the limiting distribution of block maxima; it does not constrain the generating mechanism. An EVT-tail-fittable system can be a sandpile, a multiplicative growth process, a Lévy process, or a Hawkes process. Predicting "EVT tail with shape parameter $\xi$" on a new system carries information only about block-maximum statistics, not dynamics. By contrast, "SOC threshold cascade with $\alpha \in [1.5, 2.0]$ and Omori $p \in [0.5, 1.0]$" carries information about both size and time signatures, both testable on the same dataset. This is the operational difference between a universality class and a limit-theorem catalog.
 
-***REMOVED******REMOVED******REMOVED*** 5.3 B2 calibration: predictions with confidence bands
+### 5.3 B2 calibration: predictions with confidence bands
 
 Layer 4 attached 24 numerical predictions to the 21 candidate classes (some classes have multiple targets, e.g. SOC threshold cascade predicts both $\alpha$ and Omori $p$). For each prediction, B2 extracts the predicted band by regex on the prediction text, matches it to verified-observation systems by domain keyword, and scores the result as confirmed / partial / deviating / pending. As of 2026-05-13, the verified-observation table covers earthquakes, S&P 500, three DeFi protocols, mouse cortex, GitHub stars, bank failures, wildfires, solar flares, Wikipedia pageviews, the power-grid literature-meta catalog, and the two A2 systems (traffic, lake DO). The empirical scoring within the SOC threshold cascade class shows observed values inside predicted bands in every case; Motter-Lai $\alpha_\mathrm{MW} = 2.02$ inside $[1.3, 2.0]$ (upper edge); preferential-attachment Wikipedia $\alpha = 2.03$ inside $[1.7, 2.5]$; Preisach loop-width ratio $1.38 \in [1.25, 1.55]$; Scheffer secular AR1 + Var positive.
 
-***REMOVED******REMOVED******REMOVED*** 5.4 Reverse calibration on eleven verified systems
+### 5.4 Reverse calibration on eleven verified systems
 
 Treating the eleven empirical phases as a calibration set, we can ask whether the V4 prediction bands accommodate the observed exponents. They do: every observed $\alpha$ in Table 1 sits inside the predicted band for its class assignment. Phase 4 (mouse cortex) shifts toward a different SOC sub-class than canonical Beggs-Plenz, but the V4 prediction did flag sub-critical task-active cortex as a known sub-class. Phase 10 (wildfires) and Phase 13 (Wikipedia) sit inside their bands at $\alpha = 1.66$ and $\alpha = 2.03$ respectively even though Vuong-on-raw prefers lognormal; the verdict rests on functional form (BIC on log-binned: PL or PL+cutoff decisively, LN 0/7) rather than alternative rejection. The empirical band-coverage rate across eleven primary phases is 11/11, suspiciously high, which motivates either (a) loosening the bands or (b) testing more candidate classes with deliberately adversarial picks (the A2 phases are an early attempt at this).
 
-***REMOVED******REMOVED******REMOVED*** 5.5 B3 multi-model ensemble taxonomy v2 — v0.2 addition
+### 5.5 B3 multi-model ensemble taxonomy v2 — v0.2 addition
 
 To address the single-model bias of B1, we ran a B3 ensemble pass with three independent DeepSeek reviewers (v4-pro rigorous T=0.0, v4-flash rigorous T=0.0, v4-pro creative T=0.6) on the same 21 candidate classes. Total: 63 verdicts in 40.8 wall-clock minutes, 0 errors, 0 parse failures. Same-vendor cross-model ensemble (the original plan included Kimi and GLM-5 cross-family reviewers, but OpenRouter CN region-blocks plus unverified backup-router base URLs deferred those to B4+).
 
@@ -378,39 +378,39 @@ These four B3-driven demotions are the operative substantive update from v1 to v
 
 ---
 
-***REMOVED******REMOVED*** 6. Discussion
+## 6. Discussion
 
-***REMOVED******REMOVED******REMOVED*** 6.1 What the thirteen systems actually buy us
+### 6.1 What the thirteen systems actually buy us
 
 Cross-domain universality claims have been made in the statistical-physics literature for forty years, often on the basis of a few representative systems. The increment from this paper is methodological: a single shared pipeline, frozen at one commit, applied to thirteen independently fetched datasets across five class regions (SOC threshold cascade, preferential attachment, Motter-Lai network cascade, Preisach hysteresis, Scheffer fold bifurcation), with explicit null controls, multi-model taxonomy review, log-binned BIC ranking, and honesty about alternative distributions. This is a stronger test bed than any single existing study, not because the physics changes but because the methodological floor is higher and the cross-class portability is now demonstrated, not assumed. The natural attack surface for any critique is the joint result: would all eleven primary phases still pass under a different pipeline? Would the two non-power-law A2 phases? Would the BIC ranking flip if the binned-WLS were replaced with raw-data MLE? The burden of proof shifts to the critic to produce an alternative analysis that gives systematically different answers.
 
-***REMOVED******REMOVED******REMOVED*** 6.2 Honest accounting: lognormal-vs-power-law is procedurally ambiguous at currently available tail sizes
+### 6.2 Honest accounting: lognormal-vs-power-law is procedurally ambiguous at currently available tail sizes
 
 In Phase 2 (S&P 500), Phase 10 (wildfires), Phase 11 (solar flares, inconclusive), and Phase 13 (Wikipedia pageviews), the Clauset Vuong LR test against lognormal is inconclusive or decisively favors lognormal. In Phase 12 (universal collapse), the BIC test on log-binned PDFs prefers power-law-with-cutoff over lognormal in all seven systems by $\Delta\mathrm{BIC} > 270$. The two procedures disagree because they weight bins differently: Vuong is sensitive to upper-tail individual events (where LN can have a deeper tail at finite $n$); BIC on log-binned PDF averages across all decades with Poisson errors. Both have known biases. The honest reading is that at $n_\mathrm{tail} \sim 10^3$-$10^4$ across 2-3 decades, the power-law-vs-lognormal distinction is partly procedural; the V4 universality-class claim is robust at the shape-collapse + BIC-on-binned level (where it positively wins) and qualified at the within-system Vuong-on-raw level (where it sometimes loses to lognormal). Three responses [16, 19, 20]: First, the lognormal-versus-power-law test is statistically hard at $n_\mathrm{tail} \sim 10^3$-$10^4$ when the alternative has an approximately straight log-log tail. Second, the Reed-Hughes mechanism — multiplicative growth generating lognormal — does not contradict SOC; the two can coexist. Third, the SOC/PA verdict in each phase rests on functional-form-plus-band agreement, not on rejecting all alternatives. We do not regard these results as falsifying the cross-domain claim, but the honest reader should treat them as a real qualification.
 
-***REMOVED******REMOVED******REMOVED*** 6.3 Comparison with Clauset 2009 and Stumpf-Porter 2012 warnings
+### 6.3 Comparison with Clauset 2009 and Stumpf-Porter 2012 warnings
 
 Stumpf and Porter [17] sharpened the Clauset framework into a methodological floor for network science; Broido and Clauset [18] applied it to scale-free networks and concluded strict scale-free claims are rare. Our thirteen-system results stress-test the strict framing across domains. Three observations: (a) ten of eleven power-law phases pass the predicted-band test with power-law not rejected against exponential; (b) four of eleven show the well-known lognormal coexistence under Vuong; (c) the null-control phase passes correctly; (d) BIC on log-binned PDFs rejects lognormal decisively in 7/7 universal-collapse systems; (e) two non-power-law classes (Preisach hysteresis, Scheffer fold) also verify their predicted invariants. The strict-Clauset framing therefore admits the cross-domain universality claim as plausible at the functional-form level while qualifying it at the strict-distinction-from-lognormal level. This is the honest middle position.
 
-***REMOVED******REMOVED******REMOVED*** 6.4 Cross-class portability — the v0.2 contribution
+### 6.4 Cross-class portability — the v0.2 contribution
 
 v0.1 demonstrated the same pipeline working across nine systems within two parent classes (SOC + PA). v0.2 demonstrates that the *framework* — frozen analytics stack + pre-registered predicted bands + null controls + multi-model taxonomy review — works across four further parents (Motter-Lai network cascade, Preisach hysteresis, Scheffer fold bifurcation, plus a second PA point at the Zipf flow end). The A2 phases use structurally different analytic stacks (branch-percentile-ratio for Preisach; rolling AR1+Var for Scheffer), demonstrating that the Layer 5 program is class-level validation, not power-law-specific. The B3 ensemble taxonomy v2 adds methodological hygiene at the class-definition level: four classes (delay_differential_debt, hysteresis_preisach as monolith, scale_free_percolation_class, tail_copula_contagion) were demoted on the recurring "mathematical framework masquerading as universality class" filter, converged across three independent reviewers.
 
-***REMOVED******REMOVED******REMOVED*** 6.5 Limitations
+### 6.5 Limitations
 
 (i) **Thirteen systems are not all classes.** V4 hosts 21 candidate classes; eight power-law and two non-power-law are tested here. Hawkes contagion, reaction-diffusion steady-state, second-order damped oscillator, leaky integrate-and-fire threshold, and the SIR-contagion-network class are not yet exercised. (ii) **Cross-sectional, not longitudinal.** Phase 6 and Phase 13 test only the steady-state PA signature, not the $\propto k$ attachment kernel. (iii) **Single-pipeline confounds.** All nine power-law fits use `powerlaw`; a second independent implementation cross-check is a natural next step. (iv) **Lognormal coexistence is procedurally ambiguous**, as discussed above; the BIC/Vuong disagreement merits a deeper methodological note. (v) **Phase 7 power grid is literature-anchored, not OE-417-direct, with low verification independence** (the $n=123$ catalog was *assembled from* the same anchors it is compared against). A future FOIA-acquired raw OE-417 catalog or non-overlapping ENTSO-E disturbance roster would strengthen the result. (vi) **A2-Hysteresis loop-width is literature-anchored, not NGSIM-direct.** A PeMS multi-day archival study would close this gap. (vii) **A2-Scheffer is single-site, and the block-bootstrap p-value is marginal-to-null** ($p_\mathrm{block, AR1} = 0.074$, $p_\mathrm{block, Var} = 0.206$); cross-system replication (multiple USGS lakes, EPA STORET, LTER) is required even to reopen the question. (viii) **B3 ensemble is same-vendor.** Cross-family Kimi/GLM-5 reviewers deferred to B4+. (ix) **Naive Kendall-$\tau$ p-values on serially-correlated time series are numerically meaningless** and must be replaced with block-bootstrap or block-permutation alternatives. Phase A2-Scheffer's original $p \sim 10^{-186}$ was a serial-correlation artifact; we report the corrected $p_\mathrm{block} = 0.074$ in §3 and the lesson is general — any rolling-EWS / rolling-statistic study on autocorrelated signals must apply block-resampling. (x) **Row-centered cross-system collapse ratio** (§4.5.1) absorbs system-specific amplitude prefactors; the "$r_\mathrm{shape} = 1.11$" claim is conditional on this prefactor absorption. (xi) **High band-coverage rate (11/11 within bands) is itself suspicious** and motivates the §8 adversarial pre-registration.
 
-***REMOVED******REMOVED******REMOVED*** 6.6 Future work
+### 6.6 Future work
 
 (a) Hawkes contagion on social-media cascade timestamps; (b) reaction-diffusion steady-state class on chemical or biological pattern data; (c) second-order damped oscillator on macroeconomic or neuronal-circuit data; (d) FOIA / DOE-collaboration acquisition of the raw OE-417 catalog for an independent Phase 7 measurement; (e) PeMS multi-day archival data for direct end-to-end NGSIM-grade Preisach loop measurement; (f) cross-site Scheffer replication on multiple USGS lakes plus EPA STORET, with block-bootstrap p-values throughout; (g) B4 cross-family ensemble taxonomy critic (Kimi K2.5 + GLM-5 + DeepSeek R1) once OpenRouter region issues are resolved; (h) second-implementation cross-check using a non-`powerlaw` Clauset implementation; (i) raw-data MLE replacement of the WLS-on-log-bins BIC ranking; (j) **proper surrogate-null distribution for $r_\mathrm{shape}$** under a "different shapes" null (e.g. each system's PDF re-drawn from a stretched-exponential or compressed-exponential family with matched $\alpha$), giving a calibrated p-value for the row-centered shape-collapse claim; (k) bootstrap rerun at $n_\mathrm{boot} = 10{,}000$ across all phases (currently 100); (l) execute the §8 adversarial pre-registration protocol.
 
 ---
 
-***REMOVED******REMOVED*** 7. Statistical multiplicity and family-wise error control
+## 7. Statistical multiplicity and family-wise error control
 
 The empirical program reports approximately 30 distinct hypothesis tests across thirteen systems and multiple metrics: per-system Clauset MLE point estimates and bootstrap CIs (×11), per-system Vuong LR vs lognormal (×9) and vs exponential (×9), per-system Omori-Utsu $(p, R^2)$ where applicable (×7), per-system BIC ranking of three tail models (×7), Phase 5 null-control rejections (×4), Phase 12 universal-collapse $r_\mathrm{shape}$, Phase A2-Hysteresis loop-width-ratio and first-order signature (×2), Phase A2-Scheffer block-bootstrap on AR1 + Var (×2 — corrected in v0.3), and the B3 ensemble taxonomy verdicts (63 per-reviewer-per-class). The naive p-values cited per test do *not* control the family-wise error rate (FWER) or the false-discovery rate (FDR) across this panel.
 
-***REMOVED******REMOVED******REMOVED*** 7.1 What multiplicity correction would say
+### 7.1 What multiplicity correction would say
 
 Under a **Bonferroni** correction at the family level ($k \approx 30$ tests, target $\alpha_\mathrm{family} = 0.05$ ⇒ per-test threshold $\alpha_i = 1.67 \times 10^{-3}$), the tests with naive $p \ll 1.7 \times 10^{-3}$ survive trivially (DeFi LR-vs-lognormal at $p \ll 10^{-9}$; solar exponential rejection at $p \sim 3 \times 10^{-51}$; wildfire LR-vs-lognormal at $p \sim 2 \times 10^{-6}$; Wikipedia LR-vs-lognormal at $p \sim 2.7 \times 10^{-10}$). Tests with naive $p \in [10^{-3}, 10^{-1}]$ are at risk; this list now includes:
 
@@ -422,27 +422,27 @@ A **Holm-Bonferroni** [64] step-down procedure is more powerful at preserving FW
 
 A **Benjamini-Hochberg** [65] FDR-at-$q = 0.05$ procedure is the most permissive; ordering $p_{(i)} \leq i q / k$, the Scheffer block-bootstrap AR1 ($p = 0.074$) is still rejected because $0.074 > (i/k) \cdot 0.05$ for any reasonable rank $i$.
 
-***REMOVED******REMOVED******REMOVED*** 7.2 Operative consequence
+### 7.2 Operative consequence
 
 The two effects of explicit FWER control on this preprint are: (a) Phase 7 power grid LR-vs-exponential is no longer a robust rejection of exponential after multiplicity correction (and was already flagged for low verification independence in §3.10 / §6.5), and (b) Phase A2-Scheffer fails on both the indicator-level test and the multiplicity-corrected family-level test, consolidating the v0.3 verdict downgrade to "inconclusive". The headline within-system findings — Clauset $\alpha$ recovery on the nine SOC+PA phases, the universal-collapse BIC ranking, the synthetic null rejections — survive comfortably.
 
-***REMOVED******REMOVED******REMOVED*** 7.3 Why we did not pre-register a multiplicity correction
+### 7.3 Why we did not pre-register a multiplicity correction
 
 The v0.1 / v0.2 framing did not foreground FWER because the per-test evidence was so strong on most phases ($p$-values 5-50 orders of magnitude below conventional thresholds) that multiplicity correction was assumed not to affect the conclusions. The W5-A scholar review correctly noted that this is the wrong default — multiplicity should be reported explicitly so that the small fraction of marginal tests can be properly weighted. We adopt this from §7 onward and recommend that future Layer-5 phases pre-register their hypothesis tests with explicit family-membership before fitting begins.
 
 ---
 
-***REMOVED******REMOVED*** 8. Pre-registration for future systems
+## 8. Pre-registration for future systems
 
 The internal calibration §5.4 noted that 11/11 verified systems fell inside their predicted bands — a coverage rate sufficiently high to raise the concern that the bands are too wide, that the prediction was made post-hoc on the same data being used to test it, or both. This concern is sharpened by the v0.3 verdict downgrades on Phase 7 and Phase A2-Scheffer: when the lower-evidence phases are correctly downgraded, the surviving 9/9 within-band coverage is still suspiciously clean. We therefore propose the following pre-registration protocol for the next session of Layer-5 phases.
 
-***REMOVED******REMOVED******REMOVED*** 8.1 Protocol
+### 8.1 Protocol
 
 Before any data acquisition or fitting, we publicly commit (here, in this preprint, and on the project site) to a list of five candidate systems chosen so that the predicted exponent band is *narrow* and the data is unambiguously *not* among the systems used to calibrate the bands. For each system the predicted $\alpha$ band is recorded in advance; the system is then fit with the unmodified pipeline; the verdict is recorded as in-band / out-of-band by the pre-specified rule. Class-level decisions are predetermined by the joint pattern across the five systems.
 
-***REMOVED******REMOVED******REMOVED*** 8.2 Five pre-registered systems
+### 8.2 Five pre-registered systems
 
-| ***REMOVED*** | System | Class | Predicted $\alpha$ band | Pre-registration target |
+| # | System | Class | Predicted $\alpha$ band | Pre-registration target |
 |---|---|---|---|---|
 | P1 | Bitcoin Cash daily log returns (2017-2025) | SOC threshold-cascade (financial) | $\mathbf{2.8 \pm 0.3}$ | inverse-cubic-law generalisation to a young, low-liquidity altcoin: prediction = the same Gopikrishnan/Stanley regime, plausibly slightly heavier than S&P 500 |
 | P2 | Reddit comment cascade size (top subreddits, $\geq 10^4$ root posts) | preferential attachment + cascade | $\mathbf{2.0 \pm 0.3}$ | popularity-flow second instance; should land near Wikipedia's $\alpha \approx 2.0$ |
@@ -450,7 +450,7 @@ Before any data acquisition or fitting, we publicly commit (here, in this prepri
 | P4 | Flickr photo upload bursts (per-user upload-count distribution, public archive) | preferential attachment | $\mathbf{2.5 \pm 0.4}$ | Adamic-Huberman PA band; tighter than typical degree distributions |
 | P5 | Ant-colony foraging-trail-recruitment bursts (Bonabeau 1996 [66] dataset family; if direct data inaccessible, use trail-pheromone-mediated cascade-size proxy) | SOC threshold-cascade (collective behaviour) | $\mathbf{1.5 \pm 0.3}$ | mean-field BTW limit; theoretical sandpile target $\alpha = 3/2$ |
 
-***REMOVED******REMOVED******REMOVED*** 8.3 Decision rules
+### 8.3 Decision rules
 
 We commit *now* to the following readout, to be evaluated when all five systems are fit:
 
@@ -461,38 +461,38 @@ We commit *now* to the following readout, to be evaluated when all five systems 
 
 This pre-registration is publicly visible in this v0.3 preprint and is recorded on the project site with a fixed date stamp. The five systems are chosen to be adversarial in the sense that none of them was used to construct the V4 bands; the band values quoted in §8.2 are derived from independent literature (Sornette [9]; Mitzenmacher [19]; Newman [15]; Daley-Gani [67]; Bonabeau [66]) without empirical fitting.
 
-***REMOVED******REMOVED******REMOVED*** 8.4 What this does not address
+### 8.4 What this does not address
 
 Pre-registration is necessary but not sufficient. Three further weaknesses remain that the §8 protocol does not address: (i) the row-centering trade-off (§4.5.1); (ii) the cross-pipeline-implementation confound (§6.5 (iii)); (iii) the dependence of the BIC ranking on the WLS-on-log-bins approximation rather than raw-data MLE (§6.5 (iv)). These are listed as future work, not as items the §8 protocol resolves.
 
 ---
 
-***REMOVED******REMOVED*** 9. Submission path
+## 9. Submission path
 
 We make explicit the venues we are aiming for, and the venues we are *not* aiming for, given this preprint's current scope and the v0.3 revisions.
 
-***REMOVED******REMOVED******REMOVED*** 9.1 Primary target: arXiv preprint
+### 9.1 Primary target: arXiv preprint
 
 The natural and immediate next step is an **arXiv cond-mat.stat-mech** preprint with **physics.data-an** cross-list. Timeline: within one week of major-revision sign-off following independent review of v0.3, conditional on (i) bootstrap rerun at $n_\mathrm{boot} = 10{,}000$ at least for Phases 1, 12, and A2-Scheffer; (ii) the §4.5 surrogate-null study (§6.6 (j)) reaching first-pass results, even at exploratory n; (iii) replacing the placeholder contact email with an institutional address. arXiv submission *does not* require multi-reviewer journal acceptance and is the appropriate venue for the methodologically interesting + empirically diverse result reported here.
 
-***REMOVED******REMOVED******REMOVED*** 9.2 Primary journal candidates (in descending order of fit)
+### 9.2 Primary journal candidates (in descending order of fit)
 
 - **Physical Review E.** Most likely journal accept-after-major-revision target. The PRE editorial scope explicitly includes "stochastic processes; nonlinear dynamics; computational physics in statistical mechanics" and the journal has historically accepted Clauset-class cross-domain power-law studies (e.g. Broido & Clauset 2019 [18] in *Nat Commun* but with a strongly methodological tilt that fits PRE).
 - **Chaos: An Interdisciplinary Journal of Nonlinear Science (AIP).** Higher editorial-bar interdisciplinary venue; the cross-domain framing fits, but the multi-class scope plus B3 taxonomy critique plus universality-class methodological debate may push the manuscript into the "scope-too-broad" failure mode at *Chaos*.
 - **EPL: Europhysics Letters.** Fastest editorial turnaround in the cluster; word limit is tight (typically ≤ 5,000 words) and would require significant condensation. Viable as a Letter version of the headline result + universal collapse + Phase A2-Scheffer correction, with the full thirteen-system table relegated to supplementary.
 
-***REMOVED******REMOVED******REMOVED*** 9.3 What we are explicitly not targeting
+### 9.3 What we are explicitly not targeting
 
 - **Nature Physics / Nature Communications.** As currently framed (preprint length, methodological multi-class focus, lognormal qualification, low Phase 7 verification independence, inconclusive Phase A2-Scheffer), this manuscript would face desk-rejection on novelty / single-discipline-interest grounds. A future *single-class breakthrough result* (e.g. the §8 pre-registration coming back 5/5 with adversarial new systems plus an independent FOIA-acquired OE-417 catalog confirming the original Carreras band) would warrant attempting Nature-tier venues; the current preprint does not.
 - **PRL.** Length-limited and editorial-fit oriented for a single physics result; this manuscript is a methodology-and-cross-domain catalog, not a single-result physics statement.
 
-***REMOVED******REMOVED******REMOVED*** 9.4 Pre-arXiv checklist
+### 9.4 Pre-arXiv checklist
 
 Before arXiv posting we commit to: (i) the §4.5 surrogate-null at exploratory n; (ii) bootstrap rerun at $n = 10{,}000$ for the headline phases; (iii) institutional-affiliation contact replacement; (iv) registering the §8 pre-registration protocol with a date-stamped commit to the project's GitHub repository; (v) one further round of independent scholar review post-revision (W6+ in the project's internal milestone sequence).
 
 ---
 
-***REMOVED******REMOVED*** 10. Conclusion
+## 10. Conclusion
 
 Thirteen independently fetched datasets across five universality-class parents — SOC threshold cascade, preferential attachment, Motter-Lai network cascade, Preisach hysteresis, Scheffer fold bifurcation — run through a single 339-line Python pipeline (plus two structurally distinct non-power-law analytic stacks for the A2 phases) with zero per-domain tuning, recover predicted invariants inside predicted bands across the **nine well-evidenced primary phases** (Phases 1-4, 6, 8, 10, 11, 13); reject power-law correctly on four synthetic non-SOC nulls; exhibit **shape-normalized functional-form consistency** across seven systems at row-centered $r_\mathrm{shape} = 1.11$, with BIC on log-binned density preferring power-law-with-cutoff in 5/7 universal-collapse systems and rejecting lognormal in 0/7 decisively; verify the Preisach first-order signature on 45 % of NGSIM US-101 monitored locations plus literature-anchored loop-width ratio $1.38 \in [1.25, 1.55]$; survive a B1 critic pass + B3 multi-model ensemble pass (63 verdicts, 3 reviewers, 0 errors) that converge on demoting four classes (`delay_differential_debt`, `hysteresis_preisach` as monolith, `scale_free_percolation_class`, `tail_copula_contagion`) on the recurring "mathematical framework masquerading as universality class" filter; and meet the Clauset-Shalizi-Newman methodological floor in nine of eleven power-law phases with explicit lognormal-not-rejected Vuong qualification on the remaining few (alongside BIC on log-binned that rejects lognormal in 0/7 universal-collapse systems). **Two phases are explicitly downgraded in v0.3 in response to scholar review:** Phase 7 (N.A. power grid) is recharacterised as `consistent with literature anchors, n=123 sample-size-limited, verification independence LOW (curated from anchors)`; Phase A2-Scheffer is recharacterised as **inconclusive** after a moving-block bootstrap ($\ell = 30$ d, $n_\mathrm{boot} = 1{,}000$) returned $p_\mathrm{block, AR1} = 0.074$ and $p_\mathrm{block, Var} = 0.206$, retiring the v0.2 "$p \ll 10^{-120}$" framing as a serial-correlation artifact. This remains, by some margin, the most extensive single-pipeline empirical test of SOC threshold-cascade, preferential-attachment, Motter-Lai network-cascade, and Preisach-hysteresis universality known to us — and the Scheffer correction is itself a methodological contribution illustrating that naive Kendall-$\tau$ on rolling EWS indicators of autocorrelated time series cannot be reported as a confirmatory finding.
 
@@ -500,13 +500,13 @@ The remaining qualitative results are: (i) tail-shape *consistency* (not yet *pr
 
 ---
 
-***REMOVED******REMOVED*** Acknowledgments
+## Acknowledgments
 
 Independent research project. Datasets are public (USGS FDSN, Yahoo Finance, Ethereum mainnet logs, DANDI:000006, GitHub Search API, FDIC, NIFC, NOAA NGDC, Wikimedia REST, NERC/Carreras-2016/Hines-2009 literature, FHWA NGSIM via Socrata, USGS NWIS waterservices). We acknowledge the maintainers of the `powerlaw` Python library without which the cross-phase consistency reported here would have required substantial bespoke implementation, the OpenRouter and DeepSeek teams for hosting the model-router infrastructure used by the B3 ensemble pass, and the open-data ecosystem that makes single-person cross-domain replications like this one possible.
 
 ---
 
-***REMOVED******REMOVED*** References
+## References
 
 [1] L. P. Kadanoff, "Scaling laws for Ising models near $T_c$," *Physics* **2**, 263 (1966).
 
@@ -644,7 +644,7 @@ Independent research project. Datasets are public (USGS FDSN, Yahoo Finance, Eth
 
 ---
 
-***REMOVED******REMOVED*** Appendix: code and data availability
+## Appendix: code and data availability
 
 - **Code repository.** https://github.com/dada8899/structural-isomorphism. The shared pipeline is `v4/lib/soc_pipeline.py` (339 lines). Per-phase data ingestion and analysis scripts are under `v4/validation/<phase-name>/`.
 - **Frozen commit.** Pipeline used for every numerical value in this preprint is `7ee228c` (2026-05-13).

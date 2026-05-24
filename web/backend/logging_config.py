@@ -39,16 +39,16 @@ from typing import Any, Optional
 
 import structlog
 
-***REMOVED*** ---- request-scoped context vars ----------------------------------------
+# ---- request-scoped context vars ----------------------------------------
 
-***REMOVED*** The single source of truth for the active request's correlation ID. Set by
-***REMOVED*** CorrelationIdMiddleware on every incoming request, read by structlog's
-***REMOVED*** `merge_contextvars` processor on every log call.
+# The single source of truth for the active request's correlation ID. Set by
+# CorrelationIdMiddleware on every incoming request, read by structlog's
+# `merge_contextvars` processor on every log call.
 REQUEST_ID_VAR: ContextVar[str] = ContextVar("request_id", default="-")
 
-***REMOVED*** Optional path / method / tier — populated by the middleware where available
-***REMOVED*** so all log lines in a request scope carry these without needing each call
-***REMOVED*** site to pass them. None default keeps non-request log lines clean.
+# Optional path / method / tier — populated by the middleware where available
+# so all log lines in a request scope carry these without needing each call
+# site to pass them. None default keeps non-request log lines clean.
 REQUEST_PATH_VAR: ContextVar[Optional[str]] = ContextVar("request_path", default=None)
 REQUEST_METHOD_VAR: ContextVar[Optional[str]] = ContextVar("request_method", default=None)
 REQUEST_TIER_VAR: ContextVar[Optional[str]] = ContextVar("request_tier", default=None)
@@ -60,11 +60,11 @@ def new_request_id() -> str:
     return uuid.uuid4().hex
 
 
-***REMOVED*** ---- log-file sink (for admin tail endpoint) ----------------------------
+# ---- log-file sink (for admin tail endpoint) ----------------------------
 
 _DEFAULT_LOG_DIR = Path(__file__).resolve().parent / "logs"
 _DEFAULT_LOG_FILE = "server.jsonl"
-_DEFAULT_MAX_BYTES = 100 * 1024 * 1024  ***REMOVED*** 100 MB
+_DEFAULT_MAX_BYTES = 100 * 1024 * 1024  # 100 MB
 _DEFAULT_BACKUP_COUNT = 7
 
 
@@ -80,13 +80,13 @@ def _ensure_log_dir(path: Path) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
     except Exception:
-        ***REMOVED*** Best-effort — if we can't create the dir (read-only fs in some
-        ***REMOVED*** test envs), the file handler will simply fail and the stream
-        ***REMOVED*** handler still works.
+        # Best-effort — if we can't create the dir (read-only fs in some
+        # test envs), the file handler will simply fail and the stream
+        # handler still works.
         pass
 
 
-***REMOVED*** ---- structlog processors -----------------------------------------------
+# ---- structlog processors -----------------------------------------------
 
 
 def _inject_correlation_ctx(_, __, event_dict: dict) -> dict:
@@ -121,7 +121,7 @@ def _add_service_metadata(_, __, event_dict: dict) -> dict:
     return event_dict
 
 
-***REMOVED*** ---- public API ---------------------------------------------------------
+# ---- public API ---------------------------------------------------------
 
 
 _configured = False
@@ -151,9 +151,9 @@ def configure_logging(
     if isinstance(level, str):
         lvl = getattr(logging, level.upper(), logging.INFO)
 
-    ***REMOVED*** ---- stdlib root logger: one stream handler + one rotating file ----
+    # ---- stdlib root logger: one stream handler + one rotating file ----
     root = logging.getLogger()
-    ***REMOVED*** Tear down anything we previously installed so re-configure is clean.
+    # Tear down anything we previously installed so re-configure is clean.
     for h in list(root.handlers):
         if getattr(h, "_structlog_owned", False):
             root.removeHandler(h)
@@ -172,12 +172,12 @@ def configure_logging(
         )
         setattr(file_h, "_structlog_owned", True)
         root.addHandler(file_h)
-    except Exception as e:  ***REMOVED*** pragma: no cover — depends on fs
-        ***REMOVED*** File handler is best-effort; stdout always works.
+    except Exception as e:  # pragma: no cover — depends on fs
+        # File handler is best-effort; stdout always works.
         sys.stderr.write(f"[logging_config] file handler init failed: {e}\n")
 
-    ***REMOVED*** Format stdlib log records via structlog's ProcessorFormatter so they
-    ***REMOVED*** get the same JSON shape + correlation injection.
+    # Format stdlib log records via structlog's ProcessorFormatter so they
+    # get the same JSON shape + correlation injection.
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         _inject_correlation_ctx,
@@ -197,7 +197,7 @@ def configure_logging(
     for h in root.handlers:
         h.setFormatter(formatter)
 
-    ***REMOVED*** ---- structlog config ----
+    # ---- structlog config ----
     structlog.configure(
         processors=shared_processors
         + [
@@ -210,12 +210,12 @@ def configure_logging(
         cache_logger_on_first_use=True,
     )
 
-    ***REMOVED*** Tame uvicorn / fastapi noise: route their records through root.
+    # Tame uvicorn / fastapi noise: route their records through root.
     for noisy in ("uvicorn", "uvicorn.error", "uvicorn.access", "fastapi", "slowapi"):
         lg = logging.getLogger(noisy)
-        ***REMOVED*** Don't add handlers; just let them propagate to root (where we
-        ***REMOVED*** already installed our formatter). Reset their level so DEBUG
-        ***REMOVED*** spam from optional libs doesn't sneak in.
+        # Don't add handlers; just let them propagate to root (where we
+        # already installed our formatter). Reset their level so DEBUG
+        # spam from optional libs doesn't sneak in.
         lg.handlers = []
         lg.propagate = True
 

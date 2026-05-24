@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """D1 — StructTuple extraction via DeepSeek direct API + LLM guardrail stack.
 
 For each company row in `companies.jsonl`, send a prompt to DeepSeek (v4-pro
@@ -36,15 +36,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-***REMOVED*** Wire v4/lib into sys.path so we can import the shared guardrail utilities.
+# Wire v4/lib into sys.path so we can import the shared guardrail utilities.
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from llm_guardrail import state_machine_fix, validate_json  ***REMOVED*** noqa: E402
+from llm_guardrail import state_machine_fix, validate_json  # noqa: E402
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** DeepSeek API config
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# DeepSeek API config
+# ---------------------------------------------------------------------------
 
 DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
 if not DEEPSEEK_KEY:
@@ -91,9 +91,9 @@ SYSTEM_PROMPT = (
 )
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Local schema with validate() classmethod (compatible with llm_guardrail)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Local schema with validate() classmethod (compatible with llm_guardrail)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -271,9 +271,9 @@ class StructTuple:
         return out
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** DeepSeek call (style copied from v4/scripts/b3_ensemble.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# DeepSeek call (style copied from v4/scripts/b3_ensemble.py)
+# ---------------------------------------------------------------------------
 
 
 def call_deepseek(
@@ -326,9 +326,9 @@ def call_deepseek(
         return None, f"{type(e).__name__}: {e}", None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Prompt builder
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Prompt builder
+# ---------------------------------------------------------------------------
 
 
 def make_prompt(company: dict, as_of: str = "2026-05-13") -> str:
@@ -379,9 +379,9 @@ Constraints:
 """
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Extraction (single + batch)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Extraction (single + batch)
+# ---------------------------------------------------------------------------
 
 
 def extract_one(
@@ -453,9 +453,9 @@ def extract_one(
     }
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** CLI
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 
 def main() -> int:

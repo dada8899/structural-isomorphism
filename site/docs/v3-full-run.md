@@ -1,14 +1,14 @@
-***REMOVED*** V3 Pipeline: StructTuple + LLM Rerank 完整运行报告
+# V3 Pipeline: StructTuple + LLM Rerank 完整运行报告
 
 > V3 Phase 1-4 全量跑完 4443 现象 KB → **20 A 级可发表候选 + 34 B+ = 54 可推进发现**
 
-***REMOVED******REMOVED*** 执行摘要
+## 执行摘要
 
 V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤，替代 V2 单一 embedding 余弦相似。核心赌注：跨域同构的本质是数学结构共享，不是词向量距离。
 
 **结果**：V3 产出 20 A 级发现，与 V1 的 24 tier-1 和 V2 的 19 A 级**完全零重叠**——三条管道互补，共积累 **63 个独立顶级候选**。
 
-***REMOVED******REMOVED*** Pipeline 流程（端到端）
+## Pipeline 流程（端到端）
 
 ```
 4443 现象 KB
@@ -36,7 +36,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
         → 三管道零重叠 → 63 个独立候选
 ```
 
-***REMOVED******REMOVED*** V2 vs V3 对比
+## V2 vs V3 对比
 
 | 指标 | V2 (embedding) | V3 (StructTuple+rerank) | V3 优势 |
 |---|---|---|---|
@@ -49,9 +49,9 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 
 **核心差异**：V3 不仅在数量上小胜 V2，更重要的是**每个发现都附带 `shared_equation` + `variable_mapping`**，论文写作的核心段落直接可用。V2 需要人工花几天研究"它们怎么同构"，V3 直接给出答案。
 
-***REMOVED******REMOVED*** V3 A 级发现完整列表（20 个，按 final_score 降序）
+## V3 A 级发现完整列表（20 个，按 final_score 降序）
 
-| ***REMOVED*** | Score | 现象 A | 现象 B | 领域 A × B |
+| # | Score | 现象 A | 现象 B | 领域 A × B |
 |---|---|---|---|---|
 | 1 | **8.6** | 地震静态应力触发 | DeFi清算连锁瀑布效应 | 地质学 × 区块链/Web3 |
 | 2 | **8.5** | 闪崩的流动性螺旋机制 | 清算级联的链上流动性危机 | 金融市场微观结构 × 加密货币/DeFi |
@@ -74,9 +74,9 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 | 19 | **7.5** | 政策扩散的竞争性学习机制 | VC跟投的信号级联 | 公共管理 × 创业与风险投资 |
 | 20 | **7.5** | Th1/Th2极化与疾病偏向 | 合成基因拨动开关的双稳锁存 | 免疫学 × 分子生物学 |
 
-***REMOVED******REMOVED*** V3 Top 5 详细分析
+## V3 Top 5 详细分析
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***地震静态应力触发 × DeFi清算连锁瀑布效应
+### #地震静态应力触发 × DeFi清算连锁瀑布效应
 
 - **Score**: 8.6 (A)
 - **跨域**: 地质学 × 区块链/Web3
@@ -90,7 +90,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 - **价值**: DeFi提供了大样本高频的'阈值破裂级联'实证平台,可首次定量验证Stein-King库仑应力触发理论在非地震系统的普适性
 - **时间**: 5-6个月 | **单人可行**: 是 | **影响**: 跨学科高影响,统计物理与地球物理双读者
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***闪崩的流动性螺旋机制 × 清算级联的链上流动性危机
+### #闪崩的流动性螺旋机制 × 清算级联的链上流动性危机
 
 - **Score**: 8.5 (A)
 - **跨域**: 金融市场微观结构 × 加密货币/DeFi
@@ -104,7 +104,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 - **价值**: DeFi清算数据链上完全透明可观测，可作为传统闪崩机制的天然实验场；反过来传统市场微观结构理论可直接指导DeFi协议参数设计。
 - **时间**: 3-4个月 | **单人可行**: 是 | **影响**: 金融稳定监管、DeFi协议设计、市场微观结构理论
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***保证金螺旋与强制去杠杆 × 清算级联的链上流动性危机
+### #保证金螺旋与强制去杠杆 × 清算级联的链上流动性危机
 
 - **Score**: 8.5 (A)
 - **跨域**: 金融市场微观结构 × 加密货币/DeFi
@@ -118,7 +118,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 - **价值**: Brunnermeier-Pedersen 2009的funding liquidity模型参数过去难以直接观测，DeFi提供了完美的参数识别实验，可以精确估计螺旋强度并反向验证传统市场理论。
 - **时间**: 3-4个月 | **单人可行**: 是 | **影响**: 宏观审慎监管、金融稳定、DeFi风险管理
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***清算级联的链上流动性危机 × 地震静态应力触发
+### #清算级联的链上流动性危机 × 地震静态应力触发
 
 - **Score**: 8.5 (A)
 - **跨域**: 加密货币/DeFi × 地质学
@@ -132,7 +132,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 - **价值**: 地震学的大村定律（Omori law）对余震频率衰减是精确幂律，若DeFi清算级联符合同一幂律，则可用地震预测工具预测清算风险。
 - **时间**: 3-4个月 | **单人可行**: 是 | **影响**: 复杂系统物理、DeFi风控、跨学科自组织临界性研究
 
-***REMOVED******REMOVED******REMOVED*** ***REMOVED***清算级联的链上流动性危机 × 银行挤兑
+### #清算级联的链上流动性危机 × 银行挤兑
 
 - **Score**: 8.5 (A)
 - **跨域**: 加密货币/DeFi × 金融
@@ -146,7 +146,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 - **价值**: Diamond-Dybvig 1983的多重均衡是纯理论构造，在传统银行业从未被精确观测。DeFi提供了第一个每次"挤兑"都完全可观测的实验室，可以实证区分基本面挤兑与恐慌挤兑。
 - **时间**: 4-5个月 | **单人可行**: 是 | **影响**: 银行挤兑理论、DeFi监管、金融稳定
 
-***REMOVED******REMOVED*** 三管道对比（V1 × V2 × V3）
+## 三管道对比（V1 × V2 × V3）
 
 | Pipeline | 底层方法 | 规模 | A 级发现 | 特长 |
 |---|---|---|---|---|
@@ -156,7 +156,7 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 
 **关键洞察**：三管道完全零重叠 → 63 个独立顶级候选。V3 的特殊贡献是捕捉到 **DeFi 作为传统金融传染理论的高分辨率实验场**（A 级里 10/20 是 DeFi 相关），这是 V1/V2 完全没发现的新方向。
 
-***REMOVED******REMOVED*** V3 的 V1/V2 未发现的亮点
+## V3 的 V1/V2 未发现的亮点
 
 1. **葡萄日烧伤害 × 珊瑚白化** (8.5) — 两者都是生物系统对温度超限的 DHW（Degree-Heating-Weeks）累积响应，NOAA CRW 珊瑚预警方法可直接迁移到葡萄园气候风险
 2. **DeFi 清算级联 × 地震静态应力触发** (8.5) — Omori-Utsu 幂律 + Coulomb 应力转移方程相同，DeFi 链上数据首次能以秒级分辨率验证地震学自组织临界理论
@@ -164,14 +164,14 @@ V3 引入结构化表征（StructTuple）+ LLM pairwise rerank 的两层过滤�
 4. **路口溢流锁死 × 电网连锁故障** (8.2) — Motter-Lai 级联模型首次应用到城市交通，打通"基础设施网络 as 物理流网络"的方法论桥梁
 5. **对乙酰氨基酚肝毒性 × 肿瘤铁死亡** (7.7) — GSH 缓冲崩溃的 fold bifurcation 严格对应，药理学跨临床肿瘤学的机制统一
 
-***REMOVED******REMOVED*** 结论
+## 结论
 
 - **V3 赌注兑现**：StructTuple + LLM rerank 管道，从 embedding → 结构代数的范式切换成功
 - **三管道互补确认**：V1/V2/V3 零重叠，共 63 个顶级候选，每个都值得独立论文
 - **V3 独有价值**：(1) 每对带 `shared_equation` (2) 发现 DeFi 新领域 (3) 捕捉到工程-物理跨尺度 PDE 同构
 - **下一步**：从 63 个候选里选 Top 3 开始写论文；或继续跑 V3 在更大 KB 上
 
-***REMOVED******REMOVED*** 相关文件
+## 相关文件
 
 - `v3/results/kb-expanded-struct.jsonl` — 4443 完整 StructTuple 库
 - `v3/results/v3-top1000.jsonl` — 1000 structural matcher 候选

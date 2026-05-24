@@ -1,4 +1,4 @@
-"""Session ***REMOVED***10 W10-E /compare page e2e.
+"""Session #10 W10-E /compare page e2e.
 
 Asserts the new /compare page renders correctly:
   1. Empty state when no tickers param given.
@@ -38,7 +38,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -58,7 +58,7 @@ def test_compare_empty_state_when_no_tickers(page: Page):
 def test_compare_two_tickers_renders_two_columns(page: Page):
     """?tickers=AAPL,TSLA renders 2 columns each tagged data-testid=compare-column."""
     page.goto(f"{BASE}/compare?tickers=AAPL,TSLA", wait_until="networkidle")
-    ***REMOVED*** Wait for at least one column to appear (companies are fetched client-side).
+    # Wait for at least one column to appear (companies are fetched client-side).
     page.wait_for_selector('[data-testid="compare-column"]', timeout=10000)
     columns = page.locator('[data-testid="compare-column"]').all()
     assert len(columns) >= 2, f"expected >= 2 columns, got {len(columns)}"

@@ -1,4 +1,4 @@
-***REMOVED*** Pre-registrations
+# Pre-registrations
 
 The full set of pre-registration YAML files lives under
 `v4/preregistration/` in the repository. Each file is a falsifiable
@@ -8,7 +8,7 @@ predicted band cannot be silently widened post hoc.
 See [Pre-registration methodology](methodology/pre-registration.md) for
 the schema and rationale.
 
-***REMOVED******REMOVED*** Active pre-registrations
+## Active pre-registrations
 
 | System                | Class                 | Predicted band   | Verdict        | Artifact |
 |-----------------------|-----------------------|------------------|----------------|----------|
@@ -21,7 +21,7 @@ GitHub stars, FDIC, NIFC wildfires, GOES flares, Wikipedia views,
 power grid) were validated under earlier pipeline phases and are
 documented in the unified preprint (`paper/v0-unified-pipeline-2026-05-13.md`).
 
-***REMOVED******REMOVED*** Verdict distribution
+## Verdict distribution
 
 At the time of writing the pipeline has produced:
 

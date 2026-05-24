@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Compare B4 DeepSeek-rerun ensemble verdicts to B3 taxonomy.
 
 Loads:
@@ -6,7 +6,7 @@ Loads:
   - v4/results/B4_deepseek_ensemble.jsonl  (per-class 3 reviewer verdicts)
 
 Optionally also loads (for triangulation):
-  - v4/results/B4_heterogeneous_ensemble.jsonl  (original B4 from session ***REMOVED***7)
+  - v4/results/B4_heterogeneous_ensemble.jsonl  (original B4 from session #7)
 
 Outputs a markdown diff report:
   - v4/results/B4_deepseek_vs_B3_diff.md
@@ -47,7 +47,7 @@ def consensus_of(verdicts: list[str]) -> tuple[str, str]:
     """Return (consensus, agreement_pattern).
     agreement_pattern in {'3/3', '2/3', 'all-disagree'}.
     """
-    ***REMOVED*** Strip ERROR / PARSE_FAIL from consensus computation but mark pattern
+    # Strip ERROR / PARSE_FAIL from consensus computation but mark pattern
     real = [v for v in verdicts if v not in {"ERROR", "PARSE_FAIL"}]
     if not real:
         return "UNCLEAR", "all-disagree"
@@ -103,7 +103,7 @@ def main() -> int:
     b4_ds_agg = aggregate_per_class(b4_ds_rows)
     b4_orig_agg = aggregate_per_class(b4_orig_rows) if b4_orig_rows else {}
 
-    ***REMOVED*** ---- compute agreement metrics ----
+    # ---- compute agreement metrics ----
     classes_ordered = sorted(b3_by_class.keys())
     rows_out: list[dict] = []
     for cid in classes_ordered:
@@ -137,11 +137,11 @@ def main() -> int:
 
     n = len(rows_out)
 
-    ***REMOVED*** ---- write markdown ----
+    # ---- write markdown ----
     lines: list[str] = []
-    lines.append("***REMOVED*** B4 DeepSeek heterogeneous ensemble vs B3 — diff report")
+    lines.append("# B4 DeepSeek heterogeneous ensemble vs B3 — diff report")
     lines.append("")
-    lines.append("**Date**: 2026-05-14 (session ***REMOVED***8 rerun, DeepSeek-only no OpenRouter)")
+    lines.append("**Date**: 2026-05-14 (session #8 rerun, DeepSeek-only no OpenRouter)")
     lines.append("")
     lines.append(
         "**Setup**: 3 DeepSeek direct-API reviewers — pro T=0.0 (rigorous), "
@@ -150,7 +150,7 @@ def main() -> int:
         "substituted with 3 temperature / system-prompt variations."
     )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** Per-class verdict diff")
+    lines.append("## Per-class verdict diff")
     lines.append("")
     header = "| class_id | B3 | B4-deepseek | pattern | B4-orig | reviewers (v_A / v_B / v_C) |"
     lines.append(header)
@@ -163,7 +163,7 @@ def main() -> int:
         )
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** Aggregate metrics")
+    lines.append("## Aggregate metrics")
     lines.append("")
     lines.append(f"- **Classes compared**: {n}")
     lines.append(f"- **3/3 unanimous**: {pattern_counter.get('3/3', 0)} ({pattern_counter.get('3/3', 0)/max(1,n)*100:.0f}%)")
@@ -179,19 +179,19 @@ def main() -> int:
         )
     lines.append("")
 
-    ***REMOVED*** ---- B4 verdict distribution ----
-    lines.append("***REMOVED******REMOVED*** B4-deepseek consensus distribution")
+    # ---- B4 verdict distribution ----
+    lines.append("## B4-deepseek consensus distribution")
     lines.append("")
     b4_dist: Counter = Counter(r["b4_deepseek"] for r in rows_out)
     for k in ("KEEP", "REJECT", "SPLIT", "MERGE", "UNCLEAR"):
         lines.append(f"- **{k}**: {b4_dist.get(k, 0)}")
     lines.append("")
 
-    ***REMOVED*** ---- interpretation ----
-    lines.append("***REMOVED******REMOVED*** Interpretation")
+    # ---- interpretation ----
+    lines.append("## Interpretation")
     lines.append("")
     lines.append(
-        "***REMOVED******REMOVED******REMOVED*** Q1: Is the original B4 (62% disagree) replicable with a different "
+        "### Q1: Is the original B4 (62% disagree) replicable with a different "
         "third-reviewer config?"
     )
     lines.append("")
@@ -220,7 +220,7 @@ def main() -> int:
     lines.append(verdict_q1)
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED******REMOVED*** Q2: Is 'DeepSeek 3-config' an acceptable heterogeneity proxy?")
+    lines.append("### Q2: Is 'DeepSeek 3-config' an acceptable heterogeneity proxy?")
     lines.append("")
     unanimous = pattern_counter.get("3/3", 0)
     no_majority = pattern_counter.get("all-disagree", 0)
@@ -249,7 +249,7 @@ def main() -> int:
     lines.append(verdict_q2)
     lines.append("")
 
-    lines.append("***REMOVED******REMOVED*** Methodology notes")
+    lines.append("## Methodology notes")
     lines.append("")
     lines.append(
         "- DeepSeek-chat / DeepSeek-reasoner unavailable on this account "

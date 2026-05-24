@@ -1,4 +1,4 @@
-***REMOVED*** Structural Phase 1 MVP — 三次对话实施计划
+# Structural Phase 1 MVP — 三次对话实施计划
 
 > 产品：beta.structural.bytedance.city
 > 知识库：4475 条现象（kb-5000-merged.jsonl）
@@ -8,7 +8,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 总体策略
+## 总体策略
 
 每次对话结束时，用户能看到**可运行的东西**（即使不完整），而不是一堆半成品代码。
 
@@ -20,28 +20,28 @@
 
 ---
 
-***REMOVED******REMOVED*** 视觉基准
+## 视觉基准
 
-***REMOVED******REMOVED******REMOVED*** 参考产品
+### 参考产品
 - **Linear** (linear.app)：极简、精准、动效精致
 - **Perplexity** (perplexity.ai)：搜索中心化、信息密度、分层清晰
 - **Anthropic** (anthropic.com)：衬线字体、大留白、学术感
 
-***REMOVED******REMOVED******REMOVED*** 设计系统
+### 设计系统
 
 **色彩（固定值，全局使用）**
 ```css
---bg-primary: ***REMOVED***FAFAF9;      /* 主背景，极淡米色 */
---bg-secondary: ***REMOVED***F4F4F5;    /* 次背景，灰白 */
---bg-tertiary: ***REMOVED***FFFFFF;     /* 卡片背景 */
---border-subtle: ***REMOVED***E4E4E7;   /* 默认边框 */
---border-strong: ***REMOVED***D4D4D8;   /* 强调边框 */
---text-primary: ***REMOVED***18181B;    /* 主文字，非纯黑 */
---text-secondary: ***REMOVED***52525B;  /* 次要文字 */
---text-tertiary: ***REMOVED***A1A1AA;   /* 三级文字/占位符 */
---accent: ***REMOVED***2563EB;          /* 唯一强调色，克制使用 */
---accent-hover: ***REMOVED***1D4ED8;
---success: ***REMOVED***059669;         /* 仅用于相似度高的数字 */
+--bg-primary: #FAFAF9;      /* 主背景，极淡米色 */
+--bg-secondary: #F4F4F5;    /* 次背景，灰白 */
+--bg-tertiary: #FFFFFF;     /* 卡片背景 */
+--border-subtle: #E4E4E7;   /* 默认边框 */
+--border-strong: #D4D4D8;   /* 强调边框 */
+--text-primary: #18181B;    /* 主文字，非纯黑 */
+--text-secondary: #52525B;  /* 次要文字 */
+--text-tertiary: #A1A1AA;   /* 三级文字/占位符 */
+--accent: #2563EB;          /* 唯一强调色，克制使用 */
+--accent-hover: #1D4ED8;
+--success: #059669;         /* 仅用于相似度高的数字 */
 ```
 
 **字体**
@@ -77,63 +77,63 @@
 
 ---
 
-***REMOVED******REMOVED*** 第 1 次对话：地基 + 首页
+## 第 1 次对话：地基 + 首页
 
 **目标**：跑起来一个能搜索的基础版本。结束时用户能本地打开首页，完成引导，搜索，看到结果卡片（但结果页还是基础版）。
 
-***REMOVED******REMOVED******REMOVED*** 交付清单
+### 交付清单
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.1 项目初始化（15 分钟）
+#### 1.1 项目初始化（15 分钟）
 
 ```
 ~/Projects/structural-isomorphism/web/
-├── PLAN.md                    ***REMOVED*** 本文档
+├── PLAN.md                    # 本文档
 ├── backend/
-│   ├── main.py                ***REMOVED*** FastAPI 入口
+│   ├── main.py                # FastAPI 入口
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── search.py          ***REMOVED*** 搜索端点
-│   │   ├── phenomenon.py      ***REMOVED*** 现象详情端点
-│   │   ├── mapping.py         ***REMOVED*** LLM 映射生成端点
-│   │   └── daily.py           ***REMOVED*** 每日发现端点
+│   │   ├── search.py          # 搜索端点
+│   │   ├── phenomenon.py      # 现象详情端点
+│   │   ├── mapping.py         # LLM 映射生成端点
+│   │   └── daily.py           # 每日发现端点
 │   ├── services/
 │   │   ├── __init__.py
-│   │   ├── search_service.py  ***REMOVED*** 封装 StructuralSearch
-│   │   ├── llm_service.py     ***REMOVED*** OpenRouter 调用
-│   │   └── cache.py           ***REMOVED*** 映射缓存
+│   │   ├── search_service.py  # 封装 StructuralSearch
+│   │   ├── llm_service.py     # OpenRouter 调用
+│   │   └── cache.py           # 映射缓存
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
-│   ├── index.html             ***REMOVED*** 首页
-│   ├── search.html            ***REMOVED*** 结果页（第 2 次对话完善）
-│   ├── phenomenon.html        ***REMOVED*** 详情页（第 2 次对话完善）
-│   ├── about.html             ***REMOVED*** 关于页（第 2 次对话）
-│   ├── 404.html               ***REMOVED*** 404 页（第 2 次对话）
+│   ├── index.html             # 首页
+│   ├── search.html            # 结果页（第 2 次对话完善）
+│   ├── phenomenon.html        # 详情页（第 2 次对话完善）
+│   ├── about.html             # 关于页（第 2 次对话）
+│   ├── 404.html               # 404 页（第 2 次对话）
 │   ├── assets/
 │   │   ├── css/
 │   │   │   ├── reset.css
-│   │   │   ├── design-system.css    ***REMOVED*** 设计变量
-│   │   │   ├── common.css           ***REMOVED*** 通用组件
-│   │   │   ├── home.css             ***REMOVED*** 首页样式
-│   │   │   └── onboarding.css       ***REMOVED*** 引导流程样式
+│   │   │   ├── design-system.css    # 设计变量
+│   │   │   ├── common.css           # 通用组件
+│   │   │   ├── home.css             # 首页样式
+│   │   │   └── onboarding.css       # 引导流程样式
 │   │   ├── js/
-│   │   │   ├── api.js               ***REMOVED*** API 封装
-│   │   │   ├── onboarding.js        ***REMOVED*** 引导流程逻辑
-│   │   │   ├── home.js              ***REMOVED*** 首页交互
+│   │   │   ├── api.js               # API 封装
+│   │   │   ├── onboarding.js        # 引导流程逻辑
+│   │   │   ├── home.js              # 首页交互
 │   │   │   └── utils.js
-│   │   ├── fonts/                   ***REMOVED*** Inter + Noto Serif SC 子集
-│   │   └── icons/                   ***REMOVED*** SVG 图标
+│   │   ├── fonts/                   # Inter + Noto Serif SC 子集
+│   │   └── icons/                   # SVG 图标
 │   └── shared/
-│       ├── header.html              ***REMOVED*** 共享头部
-│       └── footer.html              ***REMOVED*** 共享底部
-├── data/                             ***REMOVED*** 运行时数据（缓存等）
+│       ├── header.html              # 共享头部
+│       └── footer.html              # 共享底部
+├── data/                             # 运行时数据（缓存等）
 │   └── mapping_cache.jsonl
 └── scripts/
-    ├── dev.sh                        ***REMOVED*** 本地开发启动
-    └── precompute_daily.py           ***REMOVED*** 预计算每日发现
+    ├── dev.sh                        # 本地开发启动
+    └── precompute_daily.py           # 预计算每日发现
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.2 FastAPI 后端骨架（30 分钟）
+#### 1.2 FastAPI 后端骨架（30 分钟）
 
 - 初始化 FastAPI 应用
 - CORS 配置
@@ -143,7 +143,7 @@
 - 启动时加载 StructuralSearch（预加载 4475 条知识库和模型）
 - 健康检查端点 `/api/health`
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.3 核心 API 端点（60 分钟）
+#### 1.3 核心 API 端点（60 分钟）
 
 **POST /api/search**
 - 输入：`{"query": "字符串", "top_k": 12}`
@@ -168,7 +168,7 @@
 - 返回首页的 3 个示例发现
 - 从 v2-discoveries.jsonl 挑选最惊艳的 3 个
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.4 LLM 集成（30 分钟）
+#### 1.4 LLM 集成（30 分钟）
 
 **POST /api/mapping**
 - 输入：`{"phenomenon_a_id": "...", "phenomenon_b_id": "..."}`
@@ -202,7 +202,7 @@ Prompt 模板：
 - 行动建议必须具体可执行
 ```
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.5 首页引导流程（90 分钟）
+#### 1.5 首页引导流程（90 分钟）
 
 **Step 1：欢迎动画（2 秒）**
 
@@ -236,7 +236,7 @@ Prompt 模板：
 - 整个引导用 `<dialog>` 或全屏 fixed overlay
 - 跳过按钮绑定 ESC 键和点击事件
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.6 首页主体（90 分钟）
+#### 1.6 首页主体（90 分钟）
 
 **布局**（基于 Linear/Perplexity 风格）
 
@@ -294,7 +294,7 @@ Prompt 模板：
 6. 600ms：今日发现区域滑入
 7. 800ms：底部统计淡入
 
-***REMOVED******REMOVED******REMOVED******REMOVED*** 1.7 搜索提交到基础结果页（30 分钟）
+#### 1.7 搜索提交到基础结果页（30 分钟）
 
 第 1 次对话不做完整结果页，但要能跳转到一个**临时的基础结果页**：
 
@@ -306,7 +306,7 @@ Prompt 模板：
 
 目的：让第 1 次对话结束时有完整的 "搜索体验闭环"——能搜索，能看到结果。
 
-***REMOVED******REMOVED******REMOVED*** 第 1 次对话交付物
+### 第 1 次对话交付物
 
 - ✅ 项目结构完整
 - ✅ FastAPI 后端运行在 localhost:8000
@@ -321,11 +321,11 @@ Prompt 模板：
 
 ---
 
-***REMOVED******REMOVED*** 第 2 次对话：结果页 + 详情页 + 辅助页面
+## 第 2 次对话：结果页 + 详情页 + 辅助页面
 
 **目标**：所有页面完整，本地跑通完整流程。
 
-***REMOVED******REMOVED******REMOVED*** 2.1 搜索结果页（120 分钟）
+### 2.1 搜索结果页（120 分钟）
 
 **顶部结构揭示区**（高度 280px）
 - 左侧：用户的查询 + 识别到的数学结构名称 + 公式 + 一句话解释
@@ -345,7 +345,7 @@ Prompt 模板：
 **空状态**
 - 无结果：展示"没找到"插图 + 建议
 
-***REMOVED******REMOVED******REMOVED*** 2.2 现象详情页（150 分钟）
+### 2.2 现象详情页（150 分钟）
 
 按照 PM2 的完整设计实现：
 
@@ -359,7 +359,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - 首次访问：显示骨架屏 → LLM 生成 → 写入缓存 → 展示
 - 再次访问：直接从缓存读取，秒开
 
-***REMOVED******REMOVED******REMOVED*** 2.3 辅助页面（60 分钟）
+### 2.3 辅助页面（60 分钟）
 
 **关于页**（/about）
 - 产品介绍（1 段话）
@@ -381,12 +381,12 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - API 失败：温和的重试提示
 - 网络错误：顶部滑出灰色 toast
 
-***REMOVED******REMOVED******REMOVED*** 2.4 全局导航（30 分钟）
+### 2.4 全局导航（30 分钟）
 
 - 极简顶栏：Logo + 搜索入口 + 关于 + GitHub
 - 详情页增加面包屑：首页 / 搜索: xxx / 现象名
 
-***REMOVED******REMOVED******REMOVED*** 第 2 次对话交付物
+### 第 2 次对话交付物
 
 - ✅ 所有页面功能完整
 - ✅ 所有错误状态处理
@@ -397,11 +397,11 @@ LLM 实时生成内容（带 loading 骨架屏）：
 
 ---
 
-***REMOVED******REMOVED*** 第 3 次对话：打磨 + 部署
+## 第 3 次对话：打磨 + 部署
 
 **目标**：上线 beta.structural.bytedance.city，所有细节到位。
 
-***REMOVED******REMOVED******REMOVED*** 3.1 视觉细节打磨（120 分钟）
+### 3.1 视觉细节打磨（120 分钟）
 
 - 所有动效的缓动曲线精调
 - 页面进入动画的 stagger 时序
@@ -410,7 +410,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - 图标系统统一（所有 SVG 线宽 1.5px，尺寸 20px）
 - 暗色模式（可选，如果时间允许）
 
-***REMOVED******REMOVED******REMOVED*** 3.2 响应式适配（90 分钟）
+### 3.2 响应式适配（90 分钟）
 
 - 桌面 (>1024px)：完整体验
 - 平板 (768-1024px)：布局调整，详情页从左右变上下
@@ -420,7 +420,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
   - 详情页的结构映射从左右并排变上下堆叠
   - 顶栏简化
 
-***REMOVED******REMOVED******REMOVED*** 3.3 性能优化（30 分钟）
+### 3.3 性能优化（30 分钟）
 
 - 首屏 CSS inline
 - 非关键 JS 延迟加载
@@ -428,14 +428,14 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - 图标用 inline SVG 而非图片
 - LLM 映射的预计算（上线前预生成 top 30 对）
 
-***REMOVED******REMOVED******REMOVED*** 3.4 SEO 和 meta（30 分钟）
+### 3.4 SEO 和 meta（30 分钟）
 
 - 每个页面的 title 和 description
 - OG meta tags（分享卡片）
 - robots.txt
 - sitemap.xml
 
-***REMOVED******REMOVED******REMOVED*** 3.5 部署到 VPS（60 分钟）
+### 3.5 部署到 VPS（60 分钟）
 
 - 推送代码到 VPS `/root/Projects/structural-isomorphism/web/`
 - 安装 Python 依赖
@@ -448,7 +448,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - DNSPod 添加 A 记录：beta.structural → VPS IP
 - 注册到 VPS 项目注册表（CLAUDE.md）
 
-***REMOVED******REMOVED******REMOVED*** 3.6 上线前检查清单（30 分钟）
+### 3.6 上线前检查清单（30 分钟）
 
 - [ ] 所有页面在 Chrome/Safari/Firefox 打开正常
 - [ ] 手机浏览器打开正常
@@ -461,7 +461,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 - [ ] 写入 AI Monitor 项目卡片
 - [ ] 更新 ~/progress.md
 
-***REMOVED******REMOVED******REMOVED*** 第 3 次对话交付物
+### 第 3 次对话交付物
 
 - ✅ beta.structural.bytedance.city 上线
 - ✅ 手机/电脑都能流畅使用
@@ -471,7 +471,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 
 ---
 
-***REMOVED******REMOVED*** 关键决策锁定
+## 关键决策锁定
 
 | 项 | 决策 |
 |---|------|
@@ -479,7 +479,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 | 知识库 | 4475 条 (kb-5000-merged.jsonl) |
 | 视觉参考 | Linear + Perplexity |
 | 字体 | Inter + Noto Serif SC + JetBrains Mono |
-| 主色 | ***REMOVED***FAFAF9 背景 / ***REMOVED***18181B 文字 / ***REMOVED***2563EB 强调 |
+| 主色 | #FAFAF9 背景 / #18181B 文字 / #2563EB 强调 |
 | 引导 | 3 步（跳过保底） |
 | LLM | OpenRouter + Claude Sonnet / GPT-4 |
 | 缓存 | JSONL 文件缓存 mapping |
@@ -488,7 +488,7 @@ LLM 实时生成内容（带 loading 骨架屏）：
 
 ---
 
-***REMOVED******REMOVED*** 风险和缓解
+## 风险和缓解
 
 | 风险 | 概率 | 缓解 |
 |------|------|------|

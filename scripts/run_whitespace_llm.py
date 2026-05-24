@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """One-off runner: build the A2 whitespace matrix WITH the LLM judging layer,
 routed through DeepSeek instead of OpenRouter.
 
@@ -34,19 +34,19 @@ def main() -> int:
     if not key:
         raise SystemExit("DEEPSEEK_API_KEY is empty in .env")
 
-    ***REMOVED*** The llm_client reads OPENROUTER_API_KEY / LLM_MODEL_S18 from env.
+    # The llm_client reads OPENROUTER_API_KEY / LLM_MODEL_S18 from env.
     os.environ["OPENROUTER_API_KEY"] = key
     os.environ["LLM_MODEL_S18"] = "deepseek-chat"
 
-    ***REMOVED*** services.* imports need web/backend; structural_isomorphism is the
-    ***REMOVED*** top-level package at the repo root; build_whitespace_matrix is in scripts/.
+    # services.* imports need web/backend; structural_isomorphism is the
+    # top-level package at the repo root; build_whitespace_matrix is in scripts/.
     sys.path.insert(0, str(REPO / "web" / "backend"))
     sys.path.insert(0, str(REPO / "scripts"))
     sys.path.insert(0, str(REPO))
 
-    ***REMOVED*** Repoint the endpoint constant to DeepSeek's OpenAI-compatible API.
-    ***REMOVED*** llm_client did `from services.llm_service import OPENROUTER_URL`, so the
-    ***REMOVED*** name that complete_json() actually reads lives on llm_client.
+    # Repoint the endpoint constant to DeepSeek's OpenAI-compatible API.
+    # llm_client did `from services.llm_service import OPENROUTER_URL`, so the
+    # name that complete_json() actually reads lives on llm_client.
     from services import llm_service, llm_client
     deepseek_url = "https://api.deepseek.com/chat/completions"
     llm_service.OPENROUTER_URL = deepseek_url

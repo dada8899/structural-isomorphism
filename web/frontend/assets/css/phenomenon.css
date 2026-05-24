@@ -663,8 +663,8 @@
 
 /* === Why important === */
 .ph-why {
-  background: ***REMOVED***fffbf5;
-  border: 1px solid ***REMOVED***f3e8d5;
+  background: #fffbf5;
+  border: 1px solid #f3e8d5;
   border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-6);
   display: grid;
@@ -889,7 +889,7 @@
 
 .share-modal__close:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: ***REMOVED***fff;
+  color: #fff;
 }
 
 .share-modal__canvas-wrap {
@@ -999,7 +999,7 @@
 
 .ph-v2-pair-card__score-badge--hi {
   background: rgba(59, 130, 246, 0.12);
-  color: ***REMOVED***3b82f6;
+  color: #3b82f6;
 }
 
 .ph-v2-pair-card__score-badge--lo {

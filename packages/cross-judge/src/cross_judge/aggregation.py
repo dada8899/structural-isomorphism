@@ -24,7 +24,7 @@ def _label_counts(verdicts: Iterable[Verdict]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for v in verdicts:
         if v.error is not None:
-            ***REMOVED*** Errored verdicts don't count toward consensus; tracked separately.
+            # Errored verdicts don't count toward consensus; tracked separately.
             continue
         counts[v.verdict] = counts.get(v.verdict, 0) + 1
     return counts
@@ -57,12 +57,12 @@ def majority(
     tied = [label for label, c in counts.items() if c == max_count]
     if len(tied) == 1:
         return tied[0], disagree
-    ***REMOVED*** tiebreaker
+    # tiebreaker
     if priority:
         for p in priority:
             if p in tied:
                 return p, disagree
-    ***REMOVED*** else preserve insertion order from `verdicts`
+    # else preserve insertion order from `verdicts`
     seen_order: list[str] = []
     for v in verdicts:
         if v.error is None and v.verdict in tied and v.verdict not in seen_order:
@@ -140,7 +140,7 @@ STRATEGIES: dict[str, AggregationStrategy] = {
 def get_strategy(name_or_fn: str | AggregationStrategy) -> AggregationStrategy:
     """Resolve a strategy by name (string) or pass through if already a callable."""
     if callable(name_or_fn):
-        return name_or_fn  ***REMOVED*** type: ignore[return-value]
+        return name_or_fn  # type: ignore[return-value]
     key = str(name_or_fn).lower()
     if key not in STRATEGIES:
         raise KeyError(f"Unknown strategy '{name_or_fn}'. Known: {sorted(STRATEGIES)}.")

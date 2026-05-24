@@ -5,7 +5,7 @@ Only reject strict math terms, allow daily-use words.
 import json
 import os
 
-***REMOVED*** Strict math terms that should still be rejected
+# Strict math terms that should still be rejected
 STRICT_TERMS = {
     '方程', '函数', '变量', '参数', '微分', '积分', '导数',
     '矩阵', '向量', '算子', '拓扑', '同构', '映射', '收敛',
@@ -21,11 +21,11 @@ STRICT_TERMS = {
     '组合爆炸', 'NP完全', 'NP-hard',
 }
 
-***REMOVED*** Daily-use words that are now ALLOWED
-***REMOVED*** 随机, 频率, 周期, 对称, 分布, 均衡, 优化, 概率,
-***REMOVED*** 振荡, 振幅, 衰减, 共振, 临界, 阈值, 守恒,
-***REMOVED*** 博弈, 熵, 维度, 递归, 线性, 约束, 树状, 自指,
-***REMOVED*** 组合, 语法, etc.
+# Daily-use words that are now ALLOWED
+# 随机, 频率, 周期, 对称, 分布, 均衡, 优化, 概率,
+# 振荡, 振幅, 衰减, 共振, 临界, 阈值, 守恒,
+# 博弈, 熵, 维度, 递归, 线性, 约束, 树状, 自指,
+# 组合, 语法, etc.
 
 data_dir = '/Users/wanqh/Projects/structural-isomorphism/data'
 
@@ -40,7 +40,7 @@ for batch_num in range(1, 5):
     with open(input_file, 'r') as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith('***REMOVED***'):
+            if not line or line.startswith('#'):
                 continue
             try:
                 item = json.loads(line)
@@ -50,7 +50,7 @@ for batch_num in range(1, 5):
             total += 1
             desc = item.get('description', '')
 
-            ***REMOVED*** Check for strict math terms
+            # Check for strict math terms
             found_terms = []
             for term in STRICT_TERMS:
                 if term in desc:
@@ -68,7 +68,7 @@ for batch_num in range(1, 5):
             else:
                 passed += 1
 
-***REMOVED*** Write clean dataset (only passed entries)
+# Write clean dataset (only passed entries)
 clean_file = os.path.join(data_dir, 'clean.jsonl')
 clean_count = 0
 with open(clean_file, 'w') as out:
@@ -77,7 +77,7 @@ with open(clean_file, 'w') as out:
         with open(input_file, 'r') as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith('***REMOVED***'):
+                if not line or line.startswith('#'):
                     continue
                 try:
                     item = json.loads(line)
@@ -97,7 +97,7 @@ print(f"Clean dataset: {clean_file} ({clean_count} entries)")
 print()
 
 if reject_details:
-    ***REMOVED*** Count by type
+    # Count by type
     from collections import Counter
     type_rejects = Counter(f"{d['type_id']}-{d['type_name']}" for d in reject_details)
     term_counts = Counter()
@@ -114,7 +114,7 @@ if reject_details:
     for term, cnt in term_counts.most_common(20):
         print(f"  '{term}': {cnt}")
 
-***REMOVED*** Count entries per type in clean dataset
+# Count entries per type in clean dataset
 print()
 print("=== Entries per type in clean dataset ===")
 type_counts = Counter()

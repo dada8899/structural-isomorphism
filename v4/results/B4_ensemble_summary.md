@@ -1,4 +1,4 @@
-***REMOVED*** B4 — Heterogeneous-vendor ensemble review summary
+# B4 — Heterogeneous-vendor ensemble review summary
 
 **Date**: 2026-05-14  
 **Reviewers**: deepseek-pro-rigorous, deepseek-flash-rigorous, deepseek-pro-high-creativity  
@@ -7,11 +7,11 @@
 **Errors**: 0, **Parse failures**: 1  
 **Total wall time**: 24.5 min  
 
-***REMOVED******REMOVED*** Setup notes
+## Setup notes
 
 - OpenRouter Kimi-K2.5 unavailable (OPENROUTER_API_KEY missing); fallback to DeepSeek-pro T=1.0 (NOT a true cross-architecture probe)
 
-***REMOVED******REMOVED*** Per-class verdict table
+## Per-class verdict table
 
 | class_id | deepseek-pro-rigorous | deepseek-flash-rigorous | deepseek-pro-high-creativity | B4 consensus | avg_conf |
 |---|---|---|---|---|---|
@@ -37,7 +37,7 @@
 | `sir_contagion_network_class` | REJECT | REJECT | SPLIT | **REJECT** | 0.77 |
 | `tail_copula_contagion` | REJECT | REJECT | REJECT | **REJECT** | 0.88 |
 
-***REMOVED******REMOVED*** B4 consensus distribution
+## B4 consensus distribution
 
 - **KEEP**: 1
 - **REJECT**: 11
@@ -45,17 +45,17 @@
 - **MERGE**: 3
 - **UNCLEAR**: 6
 
-***REMOVED******REMOVED*** B3 vs B4 agreement (see B3_taxonomy_v2.jsonl for B3 consensus)
+## B3 vs B4 agreement (see B3_taxonomy_v2.jsonl for B3 consensus)
 
 Compare B4 consensus column above with B3 consensus from B3_taxonomy_v2.jsonl.
 
-***REMOVED******REMOVED*** Methodology notes
+## Methodology notes
 
 - B4 adds cross-vendor / cross-architecture probe to address the B3 limitation that 3 DeepSeek reviewers probe within-model confidence drift but not architectural disagreement.
 - If Kimi-K2.5 reachable via OpenRouter, third reviewer is cross-architecture; else fallback is DeepSeek-pro T=1.0 which is in-vendor and therefore a WEAKER cross-architecture probe (logged in setup notes).
 - Consensus rule: majority (>=2/3) for KEEP/REJECT/SPLIT/MERGE; else UNCLEAR. Identical to B3 for compatibility.
 
-***REMOVED******REMOVED*** DeepSeek heterogeneous rerun (2026-05-14)
+## DeepSeek heterogeneous rerun (2026-05-14)
 
 **Context**: User refused the OpenRouter Kimi unblocker (CN region-block / vendor distrust)
 and instead requested a 3-model DeepSeek direct-API rerun as heterogeneity proxy. Task spec
@@ -88,7 +88,7 @@ temperature / system-prompt variations as the closest available proxy.
 
 **Verdict distribution**: KEEP 1, REJECT 12, SPLIT 4, MERGE 3, UNCLEAR 1
 
-***REMOVED******REMOVED******REMOVED*** Interpretation
+### Interpretation
 
 1. **The 62%-disagree result from original B4 is NOT fully replicable.** Swapping the third
    reviewer from "DeepSeek-pro T=1.0 cross-domain physicist persona" to "DeepSeek-pro T=0.7

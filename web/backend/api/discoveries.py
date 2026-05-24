@@ -17,14 +17,14 @@ def _load_a_grade():
     global _a_cache
     if _a_cache is not None:
         return _a_cache
-    ***REMOVED*** Use the merged V2+V3 feed (39 items, each carrying a `pipeline` field).
-    ***REMOVED*** The legacy a_discoveries.json only held the 19 V2 items and lacked the
-    ***REMOVED*** pipeline tag, which broke the V2/V3 filter on the discoveries page and
-    ***REMOVED*** contradicted the "39 discoveries" copy in the UI/i18n.
+    # Use the merged V2+V3 feed (39 items, each carrying a `pipeline` field).
+    # The legacy a_discoveries.json only held the 19 V2 items and lacked the
+    # pipeline tag, which broke the V2/V3 filter on the discoveries page and
+    # contradicted the "39 discoveries" copy in the UI/i18n.
     path = Path(__file__).parent.parent.parent / "data" / "a_discoveries_merged.json"
     if not path.exists():
-        ***REMOVED*** Fallback to the legacy file so a missing merged file degrades
-        ***REMOVED*** gracefully instead of returning an empty list.
+        # Fallback to the legacy file so a missing merged file degrades
+        # gracefully instead of returning an empty list.
         path = Path(__file__).parent.parent.parent / "data" / "a_discoveries.json"
     if not path.exists():
         _a_cache = []
@@ -53,7 +53,7 @@ def _load_tier2():
 async def list_discoveries():
     items = _load_a_grade()
     tier2 = _load_tier2()
-    ***REMOVED*** Stats — v2 scores are floats (e.g. 9.65), bucket by integer floor for charting
+    # Stats — v2 scores are floats (e.g. 9.65), bucket by integer floor for charting
     by_score: dict = {}
     by_status: dict = {}
     for x in items:

@@ -1,9 +1,9 @@
-***REMOVED*** Papers
+# Papers
 
 Preprints and working drafts produced from the pipeline are tracked here.
 The canonical drafts live under `paper/` in the repository.
 
-***REMOVED******REMOVED*** Unified pipeline preprint (C1)
+## Unified pipeline preprint (C1)
 
 **Unified pre-registered validation of self-organized criticality across
 thirteen complex systems.**
@@ -23,7 +23,7 @@ returned KEEP=5 / REJECT=7 / SPLIT=5 / MERGE=4.
 - Length: approximately 10,400 words
 - Status: v0.3, prepared for arXiv submission
 
-***REMOVED******REMOVED*** CVE falsification preprint
+## CVE falsification preprint
 
 **Pre-registered validation of self-organized criticality in CVE
 disclosure bursts: A falsification.**
@@ -43,7 +43,7 @@ time series and yields a mixture distribution well-fit by lognormal.
 - Status: v0.2, prepared for arXiv submission (`cs.CR` primary,
   `physics.data-an` cross-list)
 
-***REMOVED******REMOVED*** Companion: FDNY inconclusive
+## Companion: FDNY inconclusive
 
 **Pre-registered validation of self-organized criticality in NYC FDNY
 fire incident dispatch.**
@@ -60,7 +60,7 @@ use of "SOC-like" would suggest.
 - Validation artifacts: `v4/validation/nyc-fdny-fires/`
 - Pre-registration: `v4/preregistration/nyc-fdny-fires.yaml`
 
-***REMOVED******REMOVED*** Drafts in progress
+## Drafts in progress
 
 The following drafts are in early stages and are not yet linked from
 the public documentation:
@@ -69,7 +69,7 @@ the public documentation:
   calibration loop and its impact on published-fit selection.
   See `paper/c4-reject-aware-pipeline-2026-05-13.md`.
 
-***REMOVED******REMOVED*** Citing
+## Citing
 
 ```bibtex
 @unpublished{structural_isomorphism_2026,

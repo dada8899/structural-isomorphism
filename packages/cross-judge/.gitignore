@@ -1,4 +1,4 @@
-***REMOVED*** Python build / cache artifacts
+# Python build / cache artifacts
 __pycache__/
 *.pyc
 *.egg-info/

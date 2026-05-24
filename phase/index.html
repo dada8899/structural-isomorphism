@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="theme-color" content="#FAFAF9">
   <title>Phase Detector — 别用市盈率筛股，用数学结构筛股</title>
   <meta name="description" content="Phase Detector 是一个按数学动力学筛选全市场的工具。不看 P/E，看 dynamics。找出那些正在经历结构相变的公司。">
 
@@ -17,19 +17,19 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***FAFAF9;
-      --bg-elevated: ***REMOVED***FFFFFF;
-      --bg-card: ***REMOVED***F4F4F5;
-      --border: ***REMOVED***E4E4E7;
-      --border-strong: ***REMOVED***D4D4D8;
-      --text: ***REMOVED***18181B;
-      --text-secondary: ***REMOVED***A1A1AA;
-      --text-muted: ***REMOVED***71717A;
-      --accent: ***REMOVED***2563EB;
+      --bg: #FAFAF9;
+      --bg-elevated: #FFFFFF;
+      --bg-card: #F4F4F5;
+      --border: #E4E4E7;
+      --border-strong: #D4D4D8;
+      --text: #18181B;
+      --text-secondary: #A1A1AA;
+      --text-muted: #71717A;
+      --accent: #2563EB;
       --accent-dim: rgba(37, 99, 235, 0.08);
-      --warning: ***REMOVED***F59E0B;
-      --danger: ***REMOVED***EF4444;
-      --success: ***REMOVED***10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --success: #10B981;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -174,10 +174,10 @@
     }
     .btn-primary {
       background: var(--accent);
-      color: ***REMOVED***FFFFFF;
+      color: #FFFFFF;
     }
     .btn-primary:hover {
-      background: ***REMOVED***1D4ED8;
+      background: #1D4ED8;
       text-decoration: none;
       transform: translateY(-1px);
     }
@@ -551,7 +551,7 @@
             if (data.ok) {
               btn.textContent = '已加入 ✓';
               status.textContent = '已收到。我们会在第一批测试上线时给你发邮件。';
-              status.style.color = '***REMOVED***34D399';
+              status.style.color = '#34D399';
             } else {
               throw new Error(data.error || '提交失败');
             }
@@ -559,7 +559,7 @@
             btn.disabled = false;
             btn.textContent = '加入';
             status.textContent = '提交失败：' + err.message;
-            status.style.color = '***REMOVED***F87171';
+            status.style.color = '#F87171';
           }
         });
       </script>
@@ -600,7 +600,7 @@
               <a href="/phase/company?t=${encodeURIComponent(c.ticker)}" style="display: block; padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: inherit; transition: all 200ms ease;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                   <span style="font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 1px;">${c.ticker}</span>
-                  <span style="font-family: var(--mono); font-size: 10px; padding: 3px 8px; background: rgba(251, 191, 36, 0.15); color: ***REMOVED***FBBF24; border-radius: 3px;">置信度 ${Math.round((c.confidence || 0) * 100)}%</span>
+                  <span style="font-family: var(--mono); font-size: 10px; padding: 3px 8px; background: rgba(251, 191, 36, 0.15); color: #FBBF24; border-radius: 3px;">置信度 ${Math.round((c.confidence || 0) * 100)}%</span>
                 </div>
                 <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px;">${c.name}</div>
                 <div style="font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">${c.dynamics_family}</div>

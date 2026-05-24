@@ -1,12 +1,12 @@
-***REMOVED*** beta.structural.bytedance.city — Copy & Content Review
+# beta.structural.bytedance.city — Copy & Content Review
 
 Date: 2026-04-13 | Source: `/root/Projects/structural-isomorphism/web/frontend/`
 
-***REMOVED******REMOVED*** Ground truth (live API)
+## Ground truth (live API)
 - `/api/health` → `kb_size: 4443`
 - `/api/discoveries` → `count: 39` (all rated A)
 
-***REMOVED******REMOVED*** Per-page findings
+## Per-page findings
 
 | Page | Issue | Sev | Quote / location | Fix |
 |---|---|---|---|---|
@@ -33,7 +33,7 @@ Date: 2026-04-13 | Source: `/root/Projects/structural-isomorphism/web/frontend/`
 | 404.html | Dead-ends user | P2 | Only "返回首页", no nav/footer | Add nav |
 | 404.html | Missing meta | P2 | None | Add |
 
-***REMOVED******REMOVED*** Top 5 most urgent fixes (P0)
+## Top 5 most urgent fixes (P0)
 
 1. **Phenomenon count stale: 4,475 → 4,443** (`index.html` L54+L121, `about.html` L68+L72). Three hardcoded copies of a number `/api/health` already exposes. Source-of-truth violation that will recur on every kb refresh.
 2. **A-level count: 19 → 39** (`index.html` L223, `discoveries.html` L8+L56). Page promises "19 个 A 级精选发现" then renders 39 cards from `/api/discoveries`. Visitors see the contradiction.
@@ -41,7 +41,7 @@ Date: 2026-04-13 | Source: `/root/Projects/structural-isomorphism/web/frontend/`
 4. **Version drift**: `about.html` L92 `你现在看到的是 v0.1` vs `discoveries.html` L51 `V2 管道`. Site can't decide if it's humble v0.1 or confident V2.
 5. **Missing meta/OG on 5 of 7 pages** (`search`, `phenomenon`, `about`, `404`, plus `index` has no OG and `analyze`'s OG is broken). SEO and social sharing crippled.
 
-***REMOVED******REMOVED*** Tone assessment
+## Tone assessment
 
 **Mostly consistent and appealing** — calm, intellectually confident, second-person direct ("你输入"/"你得到"). Serif-headings + sans-body type say "research tool, not toy". Signature lines like `万物的形状都在重复` and 404's `这个现象还没有被收录` are strong.
 
@@ -50,13 +50,13 @@ Inconsistencies:
 - **Hype vs. humility wobble**: `about.html` mixes humble ("独立研究项目", "v0.1") with marketing ("60% 的跨领域创新都涉及识别结构同构"). The unsourced 60% is the weakest sentence on the site.
 - **Jargon density on home**: `向量检索`, `768 维`, `对比学习微调`, `结构同构` all hit in the first two sections with no softer ramp. Non-CS readers bounce.
 
-***REMOVED******REMOVED*** Page needing most rework: **about.html**
+## Page needing most rework: **about.html**
 
 Reasons: (a) densest stack of stale numbers + version drift, (b) where new users land to understand the product, (c) the unsourced "60%" and the "v0.1" anchor actively undermine V2 confidence the rest of the site projects, (d) no meta/OG. Rewrite: align numbers with API, drop/upgrade "v0.1", cite or remove the 60% claim, add meta+OG.
 
 Runner-up: `discoveries.html` (loud P0 mismatch but only a single-section fix).
 
-***REMOVED******REMOVED*** Sources
+## Sources
 - `web/frontend/{index,search,analyze,phenomenon,discoveries,about,404}.html`
 - `web/frontend/assets/js/{home,search,analyze,phenomenon,discoveries,onboarding,utils,api,share-card}.js`
 - Live: `/api/health`, `/api/daily`, `/api/discoveries`; HEAD on `/assets/og-image.png` → 404

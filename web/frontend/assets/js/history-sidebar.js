@@ -30,8 +30,8 @@
   position: fixed;
   left: 0; top: 0; bottom: 0;
   width: 240px;
-  background: ***REMOVED***FAFAF9;
-  border-right: 1px solid ***REMOVED***E4E4E7;
+  background: #FAFAF9;
+  border-right: 1px solid #E4E4E7;
   display: flex;
   flex-direction: column;
   z-index: 90;
@@ -43,13 +43,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid ***REMOVED***E4E4E7;
+  border-bottom: 1px solid #E4E4E7;
   flex-shrink: 0;
 }
 .history-sidebar__title {
   font-size: 13px;
   font-weight: 600;
-  color: ***REMOVED***18181B;
+  color: #18181B;
   letter-spacing: 0.02em;
 }
 .history-sidebar__toggle {
@@ -58,11 +58,11 @@
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
-  color: ***REMOVED***71717A;
+  color: #71717A;
   font-size: 14px;
   line-height: 1;
 }
-.history-sidebar__toggle:hover { background: ***REMOVED***F4F4F5; color: ***REMOVED***18181B; }
+.history-sidebar__toggle:hover { background: #F4F4F5; color: #18181B; }
 .history-sidebar__body {
   flex: 1;
   overflow-y: auto;
@@ -79,12 +79,12 @@
   border: 1px solid transparent;
 }
 .history-entry:hover {
-  background: ***REMOVED***FFFFFF;
-  border-color: ***REMOVED***E4E4E7;
+  background: #FFFFFF;
+  border-color: #E4E4E7;
 }
 .history-entry__query {
   font-size: 13px;
-  color: ***REMOVED***18181B;
+  color: #18181B;
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -94,7 +94,7 @@
 }
 .history-entry__time {
   font-size: 11px;
-  color: ***REMOVED***A1A1AA;
+  color: #A1A1AA;
   margin-top: 4px;
 }
 .history-entry__delete {
@@ -107,46 +107,46 @@
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 4px;
-  color: ***REMOVED***A1A1AA;
+  color: #A1A1AA;
   opacity: 0;
   transition: opacity 0.12s;
   font-size: 14px;
   line-height: 1;
 }
 .history-entry:hover .history-entry__delete { opacity: 1; }
-.history-entry__delete:hover { background: ***REMOVED***FEF2F2; color: ***REMOVED***DC2626; }
+.history-entry__delete:hover { background: #FEF2F2; color: #DC2626; }
 .history-sidebar__footer {
   padding: 10px 16px;
-  border-top: 1px solid ***REMOVED***E4E4E7;
+  border-top: 1px solid #E4E4E7;
   font-size: 11px;
-  color: ***REMOVED***A1A1AA;
+  color: #A1A1AA;
   flex-shrink: 0;
 }
 .history-sidebar__clear {
   background: transparent;
   border: 0;
-  color: ***REMOVED***71717A;
+  color: #71717A;
   cursor: pointer;
   font-size: 11px;
   padding: 0;
 }
-.history-sidebar__clear:hover { color: ***REMOVED***DC2626; }
+.history-sidebar__clear:hover { color: #DC2626; }
 .history-sidebar__empty {
   padding: 16px 12px;
 }
 .history-sidebar__empty-text {
   font-size: 12px;
-  color: ***REMOVED***71717A;
+  color: #71717A;
   margin: 0 0 12px;
   line-height: 1.5;
 }
 .history-sidebar__example {
   display: block;
   font-size: 13px;
-  color: ***REMOVED***18181B;
+  color: #18181B;
   padding: 10px 12px;
-  background: ***REMOVED***FFFFFF;
-  border: 1px solid ***REMOVED***E4E4E7;
+  background: #FFFFFF;
+  border: 1px solid #E4E4E7;
   border-radius: 8px;
   margin-bottom: 8px;
   text-decoration: none;
@@ -154,8 +154,8 @@
   cursor: pointer;
 }
 .history-sidebar__example:hover {
-  border-color: ***REMOVED***2563EB;
-  color: ***REMOVED***2563EB;
+  border-color: #2563EB;
+  color: #2563EB;
 }
 
 /* Mobile hamburger trigger (always-visible floating button) */
@@ -166,8 +166,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: ***REMOVED***18181B;
-  color: ***REMOVED***FFFFFF;
+  background: #18181B;
+  color: #FFFFFF;
   border: 0;
   cursor: pointer;
   z-index: 95;
@@ -176,7 +176,7 @@
   line-height: 1;
   display: none;
 }
-.history-sidebar__trigger:hover { background: ***REMOVED***2563EB; }
+.history-sidebar__trigger:hover { background: #2563EB; }
 
 /* Desktop: sidebar always visible; body padding-left pushes content */
 @media (min-width: 1024px) {
@@ -276,7 +276,7 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&***REMOVED***39;');
+      .replace(/'/g, '&#39;');
   }
 
   function renderEmpty(body) {
@@ -307,7 +307,7 @@
   // race the initial render. localStorage stays authoritative.
   var _remoteCache = null;
 
-  // Remote sync is ON by default (W1-B, session ***REMOVED***8). Users who explicitly
+  // Remote sync is ON by default (W1-B, session #8). Users who explicitly
   // want device-local-only history can set `structural_disable_remote_history=1`
   // in localStorage. We still respect the old opt-in flag if set so existing
   // testers who turned it on don't see any regression.

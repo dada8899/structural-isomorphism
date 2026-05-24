@@ -22,7 +22,7 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 
-***REMOVED*** --- ContextVar-driven resolve_spec ---
+# --- ContextVar-driven resolve_spec ---
 
 
 def _extract_resolve_callable(decorator):
@@ -43,7 +43,7 @@ def _extract_resolve_callable(decorator):
         for cell in getattr(fn, "__closure__", None) or []:
             try:
                 val = cell.cell_contents
-            except ValueError:  ***REMOVED*** empty cell
+            except ValueError:  # empty cell
                 continue
             if callable(val) and getattr(val, "__name__", "") == "_resolve_spec":
                 return val
@@ -116,8 +116,8 @@ def test_resolver_admin_is_effectively_unlimited(resolver):
     tok = CURRENT_TIER.set("admin")
     try:
         spec = resolver()
-        ***REMOVED*** 1M/min — slowapi can't be fully bypassed from a callable but the
-        ***REMOVED*** cap is inert for any realistic admin traffic.
+        # 1M/min — slowapi can't be fully bypassed from a callable but the
+        # cap is inert for any realistic admin traffic.
         assert spec == "1000000/minute"
     finally:
         CURRENT_TIER.reset(tok)
@@ -128,7 +128,7 @@ def test_resolver_anonymous_falls_back_to_default_anon(resolver):
     from middleware.rate_limit import CURRENT_TIER
     tok = CURRENT_TIER.set("anonymous")
     try:
-        ***REMOVED*** default_anon='5/minute' was passed into the resolver's parent.
+        # default_anon='5/minute' was passed into the resolver's parent.
         assert resolver() == "5/minute"
     finally:
         CURRENT_TIER.reset(tok)
@@ -149,8 +149,8 @@ def test_resolver_unknown_tier_safely_buckets_as_free(resolver):
     from middleware.rate_limit import CURRENT_TIER
     tok = CURRENT_TIER.set("vip-platinum")
     try:
-        ***REMOVED*** Unknown tier — safest default is the free bucket so we never
-        ***REMOVED*** accidentally upgrade a request to a looser limit.
+        # Unknown tier — safest default is the free bucket so we never
+        # accidentally upgrade a request to a looser limit.
         assert resolver() == "60/minute"
     finally:
         CURRENT_TIER.reset(tok)
@@ -172,7 +172,7 @@ def test_default_anon_param_is_respected_per_endpoint():
         CURRENT_TIER.reset(tok)
 
 
-***REMOVED*** --- Endpoint coverage: every LLM-expensive route must have a limit ---
+# --- Endpoint coverage: every LLM-expensive route must have a limit ---
 
 
 @pytest.mark.parametrize(
@@ -213,12 +213,12 @@ def test_endpoint_has_rate_limit_decorator(module_name, route_path, method):
     route = matches[0]
     endpoint = route.endpoint
 
-    ***REMOVED*** slowapi attaches limit metadata as `_limiter` on the wrapped fn or
-    ***REMOVED*** leaves it discoverable via the limiter's internal storage. The simplest
-    ***REMOVED*** contract test: the endpoint function must NOT be the bare async def
-    ***REMOVED*** — it must have gone through a decorator wrap. We detect this by
-    ***REMOVED*** checking for the slowapi `_rate_limits` attribute that gets set, OR
-    ***REMOVED*** by inspecting the wrapped function chain.
+    # slowapi attaches limit metadata as `_limiter` on the wrapped fn or
+    # leaves it discoverable via the limiter's internal storage. The simplest
+    # contract test: the endpoint function must NOT be the bare async def
+    # — it must have gone through a decorator wrap. We detect this by
+    # checking for the slowapi `_rate_limits` attribute that gets set, OR
+    # by inspecting the wrapped function chain.
     has_limit = (
         hasattr(endpoint, "_rate_limit")
         or hasattr(endpoint, "__wrapped__")
@@ -241,8 +241,8 @@ def _endpoint_uses_slowapi(fn) -> bool:
         if id(f) in seen:
             continue
         seen.add(id(f))
-        ***REMOVED*** slowapi typically wraps with an attribute named like 'limit' or
-        ***REMOVED*** the closure carries the limiter reference itself.
+        # slowapi typically wraps with an attribute named like 'limit' or
+        # the closure carries the limiter reference itself.
         if getattr(f, "__module__", "").startswith("slowapi"):
             return True
         closure = getattr(f, "__closure__", None) or []
@@ -255,7 +255,7 @@ def _endpoint_uses_slowapi(fn) -> bool:
                 stack.append(v)
                 if getattr(v, "__module__", "").startswith("slowapi"):
                     return True
-            ***REMOVED*** Catch the Limiter instance directly.
+            # Catch the Limiter instance directly.
             if v.__class__.__name__ == "Limiter":
                 return True
     return False

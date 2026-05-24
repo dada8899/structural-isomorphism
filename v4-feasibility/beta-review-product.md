@@ -1,11 +1,11 @@
-***REMOVED*** Beta Site Product Review — beta.structural.bytedance.city
+# Beta Site Product Review — beta.structural.bytedance.city
 
 *Reviewer lens: a scientist friend just texted me "check this out". 5 min on the site, no docs.*
 *Date: 2026-04-13*
 
 ---
 
-***REMOVED******REMOVED*** First 5 seconds
+## First 5 seconds
 
 I land on a beige, serif-heavy page. The word **"Structural"** sits big. Below it: *"看似完全无关的现象，在数学结构层面往往是同一件事。"* and *"描述你的问题，从 87 个学科的 4,475 个现象里，找到结构相同的解法。"* A rotating evidence card shows **放射性衰变 ≅ 药物浓度下降 · 94%**.
 
@@ -17,7 +17,7 @@ Grade: **B.** Positioning lands; the payoff is still vague.
 
 ---
 
-***REMOVED******REMOVED*** User journey
+## User journey
 
 **Attempt 1.** I scroll before typing — the "工作流程" and "三种典型场景" sections actually answer my questions well. The "团队规模变大后效率反而下降" example is irresistible, so I paste it and hit submit.
 
@@ -34,11 +34,11 @@ None of these are structurally related to diseconomies-of-scale. This is the *he
 
 **Discoveries page.** Hero says *"19 条 A 级发现 · V2 管道"*. But `/api/discoveries` actually returns **39 items — 20 V3 + 19 V2**. The frontend copy is stale: V3 pipeline results exist but are invisible to the user. The "查看全部 19 个" link on the homepage reinforces the old number.
 
-**Can't find the coolest result.** There's no "top pick" or "most surprising". Everything is ranked by `final_score` but the hero card only rotates through a small fixed set of pairs. The actual ***REMOVED***1 (永冻土 ≅ 灭绝债务) is buried on a separate page.
+**Can't find the coolest result.** There's no "top pick" or "most surprising". Everything is ranked by `final_score` but the hero card only rotates through a small fixed set of pairs. The actual #1 (永冻土 ≅ 灭绝债务) is buried on a separate page.
 
 ---
 
-***REMOVED******REMOVED*** Cross-checks
+## Cross-checks
 
 | Check | Result |
 |---|---|
@@ -51,19 +51,19 @@ None of these are structurally related to diseconomies-of-scale. This is the *he
 
 ---
 
-***REMOVED******REMOVED*** Top 3 value-prop problems
+## Top 3 value-prop problems
 
 1. **The headline demo query is broken.** "团队规模变大后效率反而下降" returns linguistics and celestial mechanics. First-impression death. Either swap the example or fix retrieval for organizational/social queries (the corpus seems light on management science).
 2. **V3 work is invisible.** 20 V3 discoveries exist in the API but every piece of frontend copy still says "19 A 级 · V2 管道". A visitor has no idea the project kept moving. This is the single biggest credibility leak.
 3. **No "coolest result" on the landing page.** The best discoveries (永冻土 ≅ 灭绝债务, 半导体激光 ≅ 稳定币锚定) are two clicks deep. The hero rotator shows generic textbook analogies (decay ≅ drug concentration), not the project's actual wins.
 
-***REMOVED******REMOVED*** Top 3 missing features (10x lever)
+## Top 3 missing features (10x lever)
 
 1. **"Today's best isomorphism" hero card** — pull the top V3 discovery, show the paired phenomena, the shared equation (KaTeX already loaded on /discoveries!), one sentence of "why this is surprising", one click to the full report. Today the hero promises rigor but shows a 94% badge with no math.
 2. **Quality signal on search results.** Right now I get 5 matches with scores like `12.0086`. I have no idea if 12 is great or garbage. Show a confidence band ("strong / weak structural match"), hide sub-threshold results by default, and when *all* results are weak, say so honestly: *"we didn't find a strong structural match — try rephrasing around the mechanism."*
 3. **One-click "show me the math" + "export as BibTeX/Markdown".** This site is aimed at researchers (use-cases literally say 写论文·找选题). Researchers want (a) the equation and (b) citable artifacts. Add KaTeX rendering on result cards and a "copy citation" button. Pair with prominent HuggingFace/Zenodo links so the dataset and model feel real, not homemade.
 
-***REMOVED******REMOVED*** Specific copy changes
+## Specific copy changes
 
 **Current headline:**
 > Structural
@@ -81,7 +81,7 @@ None of these are structurally related to diseconomies-of-scale. This is the *he
 
 ---
 
-***REMOVED******REMOVED*** Verdict
+## Verdict
 
 **Not ready to share publicly. One more week of polish.**
 

@@ -546,8 +546,8 @@
           "data_source": "NGSIM US-101 South Socrata SODA API + Treiber & Kesting 2013 chap 8 A5 + Geroliminis & Daganzo 2008 Yokohama MFD",
           "data_source_en": "NGSIM US-101 South via Socrata SODA + Treiber & Kesting 2013 ch 8 A5 + Geroliminis & Daganzo 2008 Yokohama MFD",
           "sample_size": "4,538 macroscopic cells / 55 monitored space-locations / 2 independent literature anchors",
-          "paper_target": "Layer 5 A2 — first non-SOC class validation (Hysteresis-Preisach, V4 taxonomy class ***REMOVED***2)",
-          "paper_target_en": "Layer 5 A2 — first non-SOC class validation (Hysteresis-Preisach, V4 taxonomy class ***REMOVED***2)",
+          "paper_target": "Layer 5 A2 — first non-SOC class validation (Hysteresis-Preisach, V4 taxonomy class #2)",
+          "paper_target_en": "Layer 5 A2 — first non-SOC class validation (Hysteresis-Preisach, V4 taxonomy class #2)",
           "status": "✅ 已验证 (2026-05-13)",
           "status_en": "✅ Verified (2026-05-13)",
           "rationale": "CONFIRMED_COMPOSITE: 第一性原理 first-order 不连续信号在 NGSIM 上实证 (45% > 30% 阈值), 回路宽度因 NGSIM 仅含加载半周期无法端到端测量, 由两个独立文献锚点 (Treiber 1.375 / Geroliminis 1.385, 互相 1% 一致) 共同落入预测带 [1.25, 1.55] 完成. V4 第二个被验证的类, 第一个非 SOC 类.",
@@ -811,12 +811,12 @@
           "data_source": "USGS NWIS waterservices.usgs.gov/nwis/dv/, parameter 00300 (DO daily mean), stat 00003, all flagged 'A' (approved)",
           "data_source_en": "USGS NWIS waterservices.usgs.gov/nwis/dv/, parameter 00300 (DO daily mean), stat 00003, all flagged 'A' (approved)",
           "sample_size": "4,732 daily DO observations (95.8% coverage of 5,052 grid days) / 19 detected changepoints",
-          "paper_target": "Layer 5 A2 — first empirical validation of V4 taxonomy class ***REMOVED***3 (Scheffer fold-bifurcation / critical slowing down)",
-          "paper_target_en": "Layer 5 A2 — first empirical validation of V4 taxonomy class ***REMOVED***3 (Scheffer fold-bifurcation / critical slowing down)",
+          "paper_target": "Layer 5 A2 — first empirical validation of V4 taxonomy class #3 (Scheffer fold-bifurcation / critical slowing down)",
+          "paper_target_en": "Layer 5 A2 — first empirical validation of V4 taxonomy class #3 (Scheffer fold-bifurcation / critical slowing down)",
           "status": "✅ 已验证 (2026-05-13)",
           "status_en": "✅ Verified (2026-05-13)",
-          "rationale": "PROVISIONAL POSITIVE — 14 年长期 AR(1) 与方差同步显著上升 (p 均能扛过 v4 全程 Bonferroni 校正), 系统沿 fold 轴可测地不稳定化. 提议把 class ***REMOVED***3 拆为 3a (one-shot tip) 与 3b (周期/复发 fold-excursion); 在真实生态时序中 3b 经验上占主导. V4 第三个被验证的类.",
-          "rationale_en": "PROVISIONAL POSITIVE — 14-year global AR(1) and variance both rise significantly (p-values survive Bonferroni correction across the entire v4 program); the system is measurably destabilizing along the fold axis. Suggests splitting class ***REMOVED***3 into 3a (one-shot tip) and 3b (periodic/recurrent fold-excursion); 3b is empirically dominant in real ecosystem time series. V4's third validated class.",
+          "rationale": "PROVISIONAL POSITIVE — 14 年长期 AR(1) 与方差同步显著上升 (p 均能扛过 v4 全程 Bonferroni 校正), 系统沿 fold 轴可测地不稳定化. 提议把 class #3 拆为 3a (one-shot tip) 与 3b (周期/复发 fold-excursion); 在真实生态时序中 3b 经验上占主导. V4 第三个被验证的类.",
+          "rationale_en": "PROVISIONAL POSITIVE — 14-year global AR(1) and variance both rise significantly (p-values survive Bonferroni correction across the entire v4 program); the system is measurably destabilizing along the fold axis. Suggests splitting class #3 into 3a (one-shot tip) and 3b (periodic/recurrent fold-excursion); 3b is empirically dominant in real ecosystem time series. V4's third validated class.",
           "paper_url": "/paper/scheffer-lake-2026-05-13",
           "paper_title": "First empirical validation of Scheffer fold-bifurcation class on Fox River dissolved oxygen"
         }
@@ -1387,7 +1387,7 @@
       "curation_source": "manual",
       "b3_consensus": "REJECT",
       "verified": false,
-      "b3_note": "Demoted — copula is a parametric family, not a mechanism. Session ***REMOVED***3 W2-B confirmed reject.",
+      "b3_note": "Demoted — copula is a parametric family, not a mechanism. Session #3 W2-B confirmed reject.",
       "hub_id": "5k-14-005"
     },
     {
@@ -3328,7 +3328,7 @@
       "b3_consensus": "SPLIT",
       "verified": true,
       "verified_phases": [
-        "Session ***REMOVED***3 W2-C SIR confirm in progress"
+        "Session #3 W2-C SIR confirm in progress"
       ],
       "b3_note": "Verification in progress (W2-C).",
       "hub_id": "5k-ef-316"
@@ -3385,7 +3385,7 @@
         "Power-law inter-crossing: alpha = 2 - H"
       ],
       "last_curated": "2026-05-15",
-      "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
       "b3_status": "PENDING",
       "notes": "Pre-registered band alpha ∈ [1.5, 2.0] for H ∈ [0.5, 0.8]; cross-judge ensemble verification deferred (no API keys in worktree session).",
       "hub_id": null
@@ -3444,7 +3444,7 @@
         "Dimension-dependent transition existence"
       ],
       "last_curated": "2026-05-15",
-      "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
       "b3_status": "PENDING",
       "notes": "Pre-registered band nu ∈ [1.55, 1.60] (3D orthogonal). Cross-judge ensemble verification deferred.",
       "hub_id": null
@@ -3503,7 +3503,7 @@
         "Sethna crackling-noise universal"
       ],
       "last_curated": "2026-05-15",
-      "last_curated_by": "Wave 11 sub-agent E (session ***REMOVED***10)",
+      "last_curated_by": "Wave 11 sub-agent E (session #10)",
       "b3_status": "PENDING",
       "notes": "Sethna-Dahmen-Myers refinement of the B3-rejected hysteresis_preisach class. Pre-registered tau ∈ [1.5, 2.5]. Cross-judge ensemble verification deferred.",
       "hub_id": null

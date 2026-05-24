@@ -39,26 +39,26 @@ from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
-***REMOVED*** One-year HSTS. `includeSubDomains` is safe: every *.bytedance.city site
-***REMOVED*** is already HTTPS-only behind nginx + Let's Encrypt.
+# One-year HSTS. `includeSubDomains` is safe: every *.bytedance.city site
+# is already HTTPS-only behind nginx + Let's Encrypt.
 _HSTS = "max-age=31536000; includeSubDomains"
 
-***REMOVED*** Permissive-but-present CSP. Every external host the frontend actually
-***REMOVED*** uses is whitelisted; inline scripts/styles are allowed (see module
-***REMOVED*** docstring for why). connect-src covers same-origin XHR/SSE + analytics.
+# Permissive-but-present CSP. Every external host the frontend actually
+# uses is whitelisted; inline scripts/styles are allowed (see module
+# docstring for why). connect-src covers same-origin XHR/SSE + analytics.
 _CSP = "; ".join([
     "default-src 'self'",
-    ***REMOVED*** Inline handlers + jsdelivr (KaTeX) + both Plausible hosts.
+    # Inline handlers + jsdelivr (KaTeX) + both Plausible hosts.
     "script-src 'self' 'unsafe-inline' "
     "https://cdn.jsdelivr.net "
     "https://plausible.bytedance.city https://plausible.io",
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    ***REMOVED*** KaTeX ships fonts; data: covers inline-encoded assets.
+    # KaTeX ships fonts; data: covers inline-encoded assets.
     "font-src 'self' data: https://cdn.jsdelivr.net",
     "img-src 'self' data:",
-    ***REMOVED*** SSE / fetch back to our API + analytics beacon.
+    # SSE / fetch back to our API + analytics beacon.
     "connect-src 'self' https://plausible.bytedance.city https://plausible.io",
-    ***REMOVED*** Hard clickjacking stop (pairs with X-Frame-Options for old browsers).
+    # Hard clickjacking stop (pairs with X-Frame-Options for old browsers).
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "object-src 'none'",
@@ -82,14 +82,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     ):
         response = await call_next(request)
         for name, value in _STATIC_HEADERS.items():
-            ***REMOVED*** setdefault semantics — never clobber a header a route set
-            ***REMOVED*** deliberately (e.g. a route that needs to be framed could
-            ***REMOVED*** override X-Frame-Options; none do today).
+            # setdefault semantics — never clobber a header a route set
+            # deliberately (e.g. a route that needs to be framed could
+            # override X-Frame-Options; none do today).
             response.headers.setdefault(name, value)
-        ***REMOVED*** HSTS only makes sense over HTTPS. We can't always tell behind a
-        ***REMOVED*** proxy, so honour X-Forwarded-Proto; default to sending it (the
-        ***REMOVED*** site is HTTPS-only in every real deploy, and a browser ignores
-        ***REMOVED*** HSTS received over plain HTTP anyway).
+        # HSTS only makes sense over HTTPS. We can't always tell behind a
+        # proxy, so honour X-Forwarded-Proto; default to sending it (the
+        # site is HTTPS-only in every real deploy, and a browser ignores
+        # HSTS received over plain HTTP anyway).
         proto = request.headers.get("x-forwarded-proto", "https").lower()
         if proto == "https":
             response.headers.setdefault("Strict-Transport-Security", _HSTS)

@@ -11,7 +11,7 @@ def _v(rid: str, verdict: str, conf: float = 1.0, error: str | None = None) -> V
     return Verdict(reviewer_id=rid, verdict=verdict, confidence=conf, rationale="", error=error)
 
 
-***REMOVED*** --- majority -----------------------------------------------------------------
+# --- majority -----------------------------------------------------------------
 
 
 def test_majority_clear_winner():
@@ -37,7 +37,7 @@ def test_majority_tie_priority():
 def test_majority_tie_first_seen():
     vs = [_v("a", "KEEP"), _v("b", "REJECT")]
     label, _ = majority(vs)
-    assert label == "KEEP"  ***REMOVED*** first verdict's label wins on tie when no priority given
+    assert label == "KEEP"  # first verdict's label wins on tie when no priority given
 
 
 def test_majority_no_valid_verdicts():
@@ -51,10 +51,10 @@ def test_majority_ignores_errored_verdicts():
     vs = [_v("a", "KEEP"), _v("b", "KEEP"), _v("c", "REJECT", error="net")]
     label, disagree = majority(vs)
     assert label == "KEEP"
-    assert disagree is False  ***REMOVED*** only valid verdicts compared
+    assert disagree is False  # only valid verdicts compared
 
 
-***REMOVED*** --- unanimous ----------------------------------------------------------------
+# --- unanimous ----------------------------------------------------------------
 
 
 def test_unanimous_all_agree():
@@ -71,7 +71,7 @@ def test_unanimous_disagreement():
     assert disagree is True
 
 
-***REMOVED*** --- weighted -----------------------------------------------------------------
+# --- weighted -----------------------------------------------------------------
 
 
 def test_weighted_confidence_breaks_tie():
@@ -81,20 +81,20 @@ def test_weighted_confidence_breaks_tie():
 
 
 def test_weighted_explicit_weights():
-    ***REMOVED*** equal confidence, but b has 10x weight
+    # equal confidence, but b has 10x weight
     vs = [_v("a", "KEEP", conf=0.9), _v("b", "REJECT", conf=0.9)]
     label, _ = weighted(vs, weights={"a": 1.0, "b": 10.0})
     assert label == "REJECT"
 
 
 def test_weighted_no_confidence_flag():
-    ***REMOVED*** if use_confidence=False, weights override
+    # if use_confidence=False, weights override
     vs = [_v("a", "KEEP", conf=0.1), _v("b", "REJECT", conf=0.99)]
     label, _ = weighted(vs, weights={"a": 5.0, "b": 1.0}, use_confidence=False)
     assert label == "KEEP"
 
 
-***REMOVED*** --- first_disagreement -------------------------------------------------------
+# --- first_disagreement -------------------------------------------------------
 
 
 def test_first_disagreement_all_agree():
@@ -111,12 +111,12 @@ def test_first_disagreement_diff():
     assert disagree is True
 
 
-***REMOVED*** --- avg_confidence -----------------------------------------------------------
+# --- avg_confidence -----------------------------------------------------------
 
 
 def test_avg_confidence():
     vs = [_v("a", "X", 0.8), _v("b", "X", 0.6), _v("c", "X", 0.0, error="boom")]
-    ***REMOVED*** errored excluded
+    # errored excluded
     assert abs(avg_confidence(vs) - 0.7) < 1e-9
 
 
@@ -124,7 +124,7 @@ def test_avg_confidence_empty():
     assert avg_confidence([]) == 0.0
 
 
-***REMOVED*** --- registry -----------------------------------------------------------------
+# --- registry -----------------------------------------------------------------
 
 
 def test_get_strategy_by_name():

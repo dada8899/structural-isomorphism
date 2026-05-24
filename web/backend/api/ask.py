@@ -31,17 +31,17 @@ from services.rate_limit import tier_limit_decorator
 router = APIRouter(tags=["ask"])
 log = get_logger("structural.api.ask")
 
-***REMOVED*** W6-D (session ***REMOVED***7 P1 backlog): bump query cap from 500 → 8000 chars so
-***REMOVED*** users can paste full paragraphs / longer context. We keep pydantic
-***REMOVED*** validation as a structural floor (1..8000 with safe headroom), and add
-***REMOVED*** an explicit pre-validation check below that returns a structured
-***REMOVED*** `input_too_long` JSON error with the limit + received counts so the
-***REMOVED*** frontend can surface a friendly inline message instead of a generic
-***REMOVED*** 422 from pydantic. See `docs/sessions/SESSION-10-HANDOFF.md` §6 Option D.
+# W6-D (session #7 P1 backlog): bump query cap from 500 → 8000 chars so
+# users can paste full paragraphs / longer context. We keep pydantic
+# validation as a structural floor (1..8000 with safe headroom), and add
+# an explicit pre-validation check below that returns a structured
+# `input_too_long` JSON error with the limit + received counts so the
+# frontend can surface a friendly inline message instead of a generic
+# 422 from pydantic. See `docs/sessions/SESSION-10-HANDOFF.md` §6 Option D.
 MAX_QUERY_CHARS = 8000
 
-***REMOVED*** Reuse a single LLMService instance so its API key + model env are
-***REMOVED*** captured once and the underlying http client is shared.
+# Reuse a single LLMService instance so its API key + model env are
+# captured once and the underlying http client is shared.
 _llm: Optional[LLMService] = None
 
 
@@ -60,10 +60,10 @@ class AskRequest(BaseModel):
     the frontend can show a single "thinking about: <query>" line.
     """
 
-    ***REMOVED*** Pydantic upper bound is intentionally one above MAX_QUERY_CHARS so
-    ***REMOVED*** that exactly-at-cap requests pass the schema and the structured
-    ***REMOVED*** `input_too_long` handler below owns the boundary check (returns 422
-    ***REMOVED*** with a JSON body the frontend can render specifically).
+    # Pydantic upper bound is intentionally one above MAX_QUERY_CHARS so
+    # that exactly-at-cap requests pass the schema and the structured
+    # `input_too_long` handler below owns the boundary check (returns 422
+    # with a JSON body the frontend can render specifically).
     query: str = Field(..., min_length=1, max_length=MAX_QUERY_CHARS + 1)
     lang: Literal["zh", "en"] = Field("zh")
 
@@ -76,16 +76,16 @@ async def ask_stream(request: Request, req: AskRequest):
     Auth: optional Bearer token / cookie promotes the caller to free/paid
     tier (looser rate limits). Anonymous traffic still allowed.
     """
-    ***REMOVED*** W14-D structured log: request received (length only, never the full
-    ***REMOVED*** query body — PII / IP-sensitive content stays out of logs by default).
+    # W14-D structured log: request received (length only, never the full
+    # query body — PII / IP-sensitive content stays out of logs by default).
     log.info(
         "ask.request",
         query_len=len(req.query),
         lang=req.lang,
     )
 
-    ***REMOVED*** W6-D structured 8000-char cap: surface a JSON-shaped error the
-    ***REMOVED*** frontend can recognize (vs an opaque pydantic 422 string).
+    # W6-D structured 8000-char cap: surface a JSON-shaped error the
+    # frontend can recognize (vs an opaque pydantic 422 string).
     if len(req.query) > MAX_QUERY_CHARS:
         return JSONResponse(
             status_code=422,
@@ -100,22 +100,22 @@ async def ask_stream(request: Request, req: AskRequest):
             },
         )
 
-    ***REMOVED*** Tier classification — None means token provided but invalid.
+    # Tier classification — None means token provided but invalid.
     tier = verify_api_token(request)
     if tier is None:
         raise HTTPException(401, "Invalid API token")
 
-    ***REMOVED*** Import inside the handler to avoid a circular import at module load.
-    ***REMOVED*** (api.ask is imported in main.py, which itself owns app_state.)
+    # Import inside the handler to avoid a circular import at module load.
+    # (api.ask is imported in main.py, which itself owns app_state.)
     from main import app_state
 
     search = app_state.get("search")
     if search is None:
         raise HTTPException(503, "Search service not ready")
 
-    ***REMOVED*** Launch P0-2 — daily LLM budget circuit breaker. Charge BEFORE the
-    ***REMOVED*** pipeline runs so an over-budget request never pays the API cost.
-    ***REMOVED*** BudgetExceeded is an RFC 7807 ProblemDetail → friendly 429, not 500.
+    # Launch P0-2 — daily LLM budget circuit breaker. Charge BEFORE the
+    # pipeline runs so an over-budget request never pays the API cost.
+    # BudgetExceeded is an RFC 7807 ProblemDetail → friendly 429, not 500.
     from services.cost_ledger import ledger as _cost_ledger
     _cost_ledger.charge(endpoint="/api/ask/stream")
 
@@ -127,7 +127,7 @@ async def ask_stream(request: Request, req: AskRequest):
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            ***REMOVED*** Disable nginx buffering so SSE chunks flush immediately.
+            # Disable nginx buffering so SSE chunks flush immediately.
             "X-Accel-Buffering": "no",
             "Connection": "keep-alive",
         },

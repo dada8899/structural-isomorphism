@@ -1,56 +1,56 @@
-***REMOVED*** Session ***REMOVED***8 起手交接文档
+# Session #8 起手交接文档
 
-> 上 session (***REMOVED***7) 完成于 2026-05-14 ~17:00 CST
-> Main HEAD: `cf343c8` · 22 PRs merged (***REMOVED***64-***REMOVED***85)
+> 上 session (#7) 完成于 2026-05-14 ~17:00 CST
+> Main HEAD: `cf343c8` · 22 PRs merged (#64-#85)
 > Git tags: `v0.4.0` (5 directions ship) + `v0.4.1` (post-deploy scale)
 > 用户身份: 达达 (dada8899) · repo PUBLIC
 
 ---
 
-***REMOVED******REMOVED*** 0. 起手第一步（60 秒）
+## 0. 起手第一步（60 秒）
 
 ```bash
 cd ~/Projects/structural-isomorphism
 git pull origin main
-git log --oneline -10                 ***REMOVED*** HEAD = cf343c8 或更新
-gh auth status                        ***REMOVED*** ✓ dada8899
-ls .env                               ***REMOVED*** 本地 DeepSeek + OpenRouter key
+git log --oneline -10                 # HEAD = cf343c8 或更新
+gh auth status                        # ✓ dada8899
+ls .env                               # 本地 DeepSeek + OpenRouter key
 
-***REMOVED*** Backend imports + tests
+# Backend imports + tests
 cd web/backend && PYTHONPATH=. ../../.venv/bin/python -m pytest tests/ -q
-***REMOVED*** 应 30 passed
+# 应 30 passed
 
-***REMOVED*** E2E live prod (5 主要 URL + Perplexity SSE)
+# E2E live prod (5 主要 URL + Perplexity SSE)
 cd ../.. && .venv/bin/python -m pytest web/tests/e2e/ -q
-***REMOVED*** 应 11 passed in ~20s
+# 应 11 passed in ~20s
 
-***REMOVED*** Production health
+# Production health
 curl -s https://beta.structural.bytedance.city/api/health
-***REMOVED*** {"status":"ok","kb_size":4443,"llm_model":"anthropic/claude-sonnet-4.6"}
+# {"status":"ok","kb_size":4443,"llm_model":"anthropic/claude-sonnet-4.6"}
 
 curl -s -N -X POST -H "Content-Type: application/json" \
   -d '{"query":"test","lang":"zh"}' \
   https://beta.structural.bytedance.city/api/ask/stream | head -3
-***REMOVED*** event: meta / event: kb_cards / event: answer_chunk
+# event: meta / event: kb_cards / event: answer_chunk
 ```
 
 如有任何步骤失败，先看 `docs/sessions/session-7-deploy-verified.md` 的部署 SOP。
 
 ---
 
-***REMOVED******REMOVED*** 1. Session ***REMOVED***7 已 ship 的（不要重复做）
+## 1. Session #7 已 ship 的（不要重复做）
 
-✅ **22 PR merged** (***REMOVED***64-***REMOVED***85)，**5 directions all delivered** + post-deploy scale。
+✅ **22 PR merged** (#64-#85)，**5 directions all delivered** + post-deploy scale。
 
 | Direction | 主要交付 |
 |---|---|
-| *****REMOVED***6 Perplexity-like 真搜索引擎** (北极星) | POST /api/ask/stream 7-event SSE + 新 /index.html + ask.js (574 LOC) + ask.css (705 LOC) + /learn 旧 home 备份 |
-| *****REMOVED***1 Phase Detector** | **500/500 ticker StructTuple** (full SP500, $0.30) + backtest engine v0.1 + 9 pytest + .env.production fix (今天) |
-| *****REMOVED***2 UX 第三轮** | mobile fix + Plausible 14 events + /discoveries skeleton + glossary v2 (5 新词) |
-| *****REMOVED***3 科学纵深** | **B4 full 21 classes (62% disagree vs B3)** + 35/35 yaml expanded + **CVE FAIL** + **NYC FDNY INCONCLUSIVE** + CVE paper draft v0.1 |
-| *****REMOVED***4 工程平台** | GitHub Actions CI + history SQLite + observability + auth tier + i18n EN 100% + 30 backend tests |
+| **#6 Perplexity-like 真搜索引擎** (北极星) | POST /api/ask/stream 7-event SSE + 新 /index.html + ask.js (574 LOC) + ask.css (705 LOC) + /learn 旧 home 备份 |
+| **#1 Phase Detector** | **500/500 ticker StructTuple** (full SP500, $0.30) + backtest engine v0.1 + 9 pytest + .env.production fix (今天) |
+| **#2 UX 第三轮** | mobile fix + Plausible 14 events + /discoveries skeleton + glossary v2 (5 新词) |
+| **#3 科学纵深** | **B4 full 21 classes (62% disagree vs B3)** + 35/35 yaml expanded + **CVE FAIL** + **NYC FDNY INCONCLUSIVE** + CVE paper draft v0.1 |
+| **#4 工程平台** | GitHub Actions CI + history SQLite + observability + auth tier + i18n EN 100% + 30 backend tests |
 
-***REMOVED******REMOVED******REMOVED*** Live prod URLs (全部 200 + e2e verified)
+### Live prod URLs (全部 200 + e2e verified)
 
 - https://beta.structural.bytedance.city/ — **Perplexity-like 主页面**
 - https://beta.structural.bytedance.city/learn — 老 home backup
@@ -60,13 +60,13 @@ curl -s -N -X POST -H "Content-Type: application/json" \
 
 ---
 
-***REMOVED******REMOVED*** 2. 今天最后的修复（用户反馈触发）
+## 2. 今天最后的修复（用户反馈触发）
 
 **用户报错**: phase.bytedance.city 点筛选 "Failed to fetch"
 
 **根因**: VPS 上 `web/phase-detector/.env.production` 不存在 → Next.js build 时把 `NEXT_PUBLIC_API_BASE` 烧成源码默认值 `http://localhost:8000`（用户浏览器自己的本地端口） → 任何 fetch 都失败 + mixed content。
 
-**Fix (PR ***REMOVED***85)**: 
+**Fix (PR #85)**: 
 - 在 repo commit `.env.production` (`NEXT_PUBLIC_API_BASE=/api` + `NEXT_PUBLIC_USE_MOCK=false`)
 - README 加 build-time env 警告 + 部署 SOP
 - VPS 重 build + restart `phase-detector-web`
@@ -77,17 +77,17 @@ curl -s -N -X POST -H "Content-Type: application/json" \
 
 ---
 
-***REMOVED******REMOVED*** 3. Session ***REMOVED***8 优先级 P0/P1/P2 队列
+## 3. Session #8 优先级 P0/P1/P2 队列
 
-***REMOVED******REMOVED******REMOVED*** P0 — Token deps（仍待用户提供凭证）
+### P0 — Token deps（仍待用户提供凭证）
 
-1. **PyPI publish** — `soc-pipeline` + `guarded-llm` wheels (since session ***REMOVED***3 ready)
+1. **PyPI publish** — `soc-pipeline` + `guarded-llm` wheels (since session #3 ready)
 2. **Zenodo DOI mint** — dataset/v1 99MB bundle
 3. **arXiv submission** — C1 v0.3.1 + 4 solo + C4 + 今天加的 CVE preregister FAIL paper (cv-preregistration-fail-2026-05-14.md)
 
 每项启动需要用户在对话首段贴 token。
 
-***REMOVED******REMOVED******REMOVED*** P1 — Phase Detector 商业化（推荐 session ***REMOVED***8 主菜，无 token 依赖）
+### P1 — Phase Detector 商业化（推荐 session #8 主菜，无 token 依赖）
 
 **4. 真实价格数据接入 + walk-forward backtest** ←—— **首选**
 
@@ -97,19 +97,19 @@ W2-B 已写好 backtest 算法 + 9 pytest，但当前用 synthetic 价格（GBM 
 
 步骤：
 ```bash
-***REMOVED*** 1. 接入价格数据（选其一）
+# 1. 接入价格数据（选其一）
 .venv/bin/pip install yfinance
-***REMOVED*** 或写 Stooq daily CSV fetcher（fetch_prices.py --real 已支持但不稳定）
+# 或写 Stooq daily CSV fetcher（fetch_prices.py --real 已支持但不稳定）
 
-***REMOVED*** 2. 跑 walk-forward backtest（滚动窗口 6mo return）
+# 2. 跑 walk-forward backtest（滚动窗口 6mo return）
 .venv/bin/python v4/product/d1_phase_detector/backtest.py \
   --companies v4/product/d1_phase_detector/companies_500.jsonl \
   --period 6m \
   --real-prices
 
-***REMOVED*** 3. 看 t-test p-value：
-***REMOVED*** - p < 0.05 → 商业化路径打开！设计 free/paid tier
-***REMOVED*** - p > 0.05 → 回头 review critical_point_state 抽取 prompt
+# 3. 看 t-test p-value：
+# - p < 0.05 → 商业化路径打开！设计 free/paid tier
+# - p > 0.05 → 回头 review critical_point_state 抽取 prompt
 ```
 
 这是项目从"科普 demo"→"alpha-bearing product"的分水岭实验。
@@ -118,7 +118,7 @@ W2-B 已写好 backtest 算法 + 9 pytest，但当前用 synthetic 价格（GBM 
 
 `serve_backtest.py` stdlib http.server 已就绪。需要 Next.js 新增 `/backtest` 页 + 调用 `/api/backtest-result` + `/api/backtest-cumulative`。
 
-***REMOVED******REMOVED******REMOVED*** P1 — Perplexity 增强（用户使用数据驱动）
+### P1 — Perplexity 增强（用户使用数据驱动）
 
 **6. VPS LLM 升级 sonnet-4.6 for /api/ask/stream A/B test**
 
@@ -140,7 +140,7 @@ A/B 方式：同时跑两个 endpoint 或随机 50/50，对比用户停留时间
 
 W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比。
 
-***REMOVED******REMOVED******REMOVED*** P1 — 科学纵深
+### P1 — 科学纵深
 
 **10. OpenRouter Kimi key** —— **关键 unblocker**
 
@@ -160,7 +160,7 @@ W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比�
 - Refs 验证
 - 4500 字目标
 
-***REMOVED******REMOVED******REMOVED*** P2 — Long-term staged
+### P2 — Long-term staged
 
 13. **Plausible 数据回看** — Wait 1-2 周看 ask_submitted / similar_card_clicked / followup_clicked 等真实使用率
 14. **Adversarial pre-registration 整篇 paper** — CVE FAIL + NYC FDNY INCONCLUSIVE 两个 case study 合写
@@ -170,35 +170,35 @@ W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比�
 
 ---
 
-***REMOVED******REMOVED*** 4. 必备 quirks（继承 session ***REMOVED***7）
+## 4. 必备 quirks（继承 session #7）
 
-***REMOVED******REMOVED******REMOVED*** 多 subagent 并行
+### 多 subagent 并行
 1. **`isolation: "worktree"` flag 不可靠** —— form 4 silent fallback 全部 11 个 agent 撞。subagent prompt 强制开头 `git worktree add -b <branch> /tmp/<unique> main && cd /tmp/<unique>` 自救。
 2. **Cherry-pick rebase 是 wave merge 标配** —— agent branch 基于 old main，merge 时 diff 显示几千行 deletion。`git checkout -b <new> main && git cherry-pick <sha>` 比 rebase 干净（特别是 LFS pointer 多的 repo）。
 3. **commit boundary 永不 `git add -A`** —— subagent prompt 强制只 `git add <specific-file>`。commit 前必 `git diff --cached --name-only` 验证。
 4. **并行 ≤5 agent**（memory `feedback_parallel_agent_quota_burn.md`）。
 
-***REMOVED******REMOVED******REMOVED*** Frontend
-5. **Next.js `NEXT_PUBLIC_*` 是 build-time 烧入** —— 改 env 必须 rebuild + restart。`.env.production` 必须 commit 到 repo（已 fix in PR ***REMOVED***85）。
+### Frontend
+5. **Next.js `NEXT_PUBLIC_*` 是 build-time 烧入** —— 改 env 必须 rebuild + restart。`.env.production` 必须 commit 到 repo（已 fix in PR #85）。
 6. **FastAPI 静态文件路由必须显式声明** —— `/learn` 不会自动 fallback 到 `learn.html`，每个新页面要 `@app.get("/X") async def X_page(): return FileResponse(FRONTEND_DIR / "X.html")`。
 
-***REMOVED******REMOVED******REMOVED*** Backend
-7. **slowapi 动态限速 callable 不收 request** —— `_spec_for(request)` 会 TypeError。要 tier-aware 必须 contextvar 不是 closure。当前回退到静态 default_anon（PR ***REMOVED***75）。
+### Backend
+7. **slowapi 动态限速 callable 不收 request** —— `_spec_for(request)` 会 TypeError。要 tier-aware 必须 contextvar 不是 closure。当前回退到静态 default_anon（PR #75）。
 8. **OpenRouter Anthropic/Gemini CN 区域 block** —— 从 CN IP 出口 403。LLM agent 用 DeepSeek 直连或 fallback。VPS 在 Singapore 不受影响。
 
-***REMOVED******REMOVED******REMOVED*** 部署
+### 部署
 9. **VPS 部署管道** ——见 `docs/sessions/session-7-deploy-verified.md` §部署管道。rsync + ssh restart + curl smoke 三件套。
 10. **`structural-isomorphism-v4` 是同一 repo 的旧 checkout 名** —— git remote = `dada8899/structural-isomorphism`。VPS 上 phase-detector 的 working copy 在那里。
 
 ---
 
-***REMOVED******REMOVED*** 5. 关键文件入口
+## 5. 关键文件入口
 
 | 文件 | 用途 |
 |---|---|
-| `docs/sessions/HANDOFF.md` | 永久 entry point（已更新指向 session ***REMOVED***7 状态） |
+| `docs/sessions/HANDOFF.md` | 永久 entry point（已更新指向 session #7 状态） |
 | `docs/sessions/SESSION-7-end.md` | 完整 retrospective |
-| `docs/sessions/SESSION-8-STARTER.md` | session ***REMOVED***8 详细 P0/P1/P2 队列 |
+| `docs/sessions/SESSION-8-STARTER.md` | session #8 详细 P0/P1/P2 队列 |
 | `docs/sessions/session-7-deploy-verified.md` | 部署 SOP + 实测 SSE event log |
 | **本文件** (`SESSION-8-HANDOFF.md`) | 起手快速摘要（你正在读） |
 | `paper/cve-preregistration-fail-2026-05-14.md` | CVE FAIL paper v0.1 outline |
@@ -209,11 +209,11 @@ W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比�
 
 ---
 
-***REMOVED******REMOVED*** 6. Session ***REMOVED***8 起手 prompt 模板
+## 6. Session #8 起手 prompt 模板
 
-***REMOVED******REMOVED******REMOVED*** 推荐 Option A — Phase Detector 商业化（无 token，最高 leverage）
+### 推荐 Option A — Phase Detector 商业化（无 token，最高 leverage）
 
-> 接 session ***REMOVED***7。500 ticker 全量 StructTuple 已就绪 (`v4/product/d1_phase_detector/companies_500.jsonl`)，backtest 算法 + tests 都通。今天做 walk-forward real-data backtest：
+> 接 session #7。500 ticker 全量 StructTuple 已就绪 (`v4/product/d1_phase_detector/companies_500.jsonl`)，backtest 算法 + tests 都通。今天做 walk-forward real-data backtest：
 > 
 > 1. 接入 yfinance（或 Stooq stable）拉 500 ticker 过去 24mo 月度价格
 > 2. 跑 `backtest.py --period 6m --real-prices --companies companies_500.jsonl`
@@ -222,24 +222,24 @@ W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比�
 > 5. 显著 → 设计 free/paid tier 接入 phase.bytedance.city + /backtest 页面
 > 6. 不显著 → 回头审 critical_point_state 抽取 prompt
 
-***REMOVED******REMOVED******REMOVED*** Option B — Perplexity 增强 + Plausible 数据驱动
+### Option B — Perplexity 增强 + Plausible 数据驱动
 
 > 看 https://plausible.bytedance.city 跑了 N 天的 prod 数据，对比 14 个埋点事件的真实使用率。基于真实数据决定：
 > - /api/ask/stream LLM 升级 sonnet-4.6 (cost ×3-5) 是否值得
 > - 哪些 follow-up 类型用户最常点
 > - 哪些 citation 真被点击 → 暗示 KB 哪些条目最有价值
 
-***REMOVED******REMOVED******REMOVED*** Option C — Token 发布
+### Option C — Token 发布
 
-> 我提供 PYPI_TOKEN + ZENODO_ACCESS_TOKEN + arXiv 账号。请按 session ***REMOVED***4 SESSION-4-STARTER.md 的 9-step runbook 跑完 P0 ***REMOVED***1-***REMOVED***3。CVE FAIL paper 也一并 arXiv 提交。
+> 我提供 PYPI_TOKEN + ZENODO_ACCESS_TOKEN + arXiv 账号。请按 session #4 SESSION-4-STARTER.md 的 9-step runbook 跑完 P0 #1-#3。CVE FAIL paper 也一并 arXiv 提交。
 
-***REMOVED******REMOVED******REMOVED*** Option D — 科学完整（需 OpenRouter Kimi key）
+### Option D — 科学完整（需 OpenRouter Kimi key）
 
 > 用户提供 OpenRouter Kimi K2.5 API key。重跑 B4 ensemble 21 类（这次 3 vendor 真异构，不是 T 变化 fallback）。对比 8/13 AGREE/DIFFER 是否仍成立。如果稳定 → C1 unified preprint §B 用 B4 替换 B3。
 
 ---
 
-***REMOVED******REMOVED*** 7. Session ***REMOVED***7 stats（参考）
+## 7. Session #7 stats（参考）
 
 - **22 PR merged** in 1 session
 - **13 subagents** in 4 waves with worktree 自救
@@ -250,13 +250,13 @@ W3-B 加了 skeleton，需要 Playwright Lighthouse CLS metric 跑一遍对比�
 - 30 backend tests pass
 - 全部停在 context 90% 之前自然收尾
 
-**唯一规模可比的历史 session**: session ***REMOVED***26 (33 PR, 28 subagent, 5h rate limit hit)。session ***REMOVED***7 通过 cherry-pick + worktree 自救 + ≤5 并行 agent 控量，全程无 quota burn。
+**唯一规模可比的历史 session**: session #26 (33 PR, 28 subagent, 5h rate limit hit)。session #7 通过 cherry-pick + worktree 自救 + ≤5 并行 agent 控量，全程无 quota burn。
 
 ---
 
-***REMOVED******REMOVED*** 8. 用户当下需求理解
+## 8. 用户当下需求理解
 
-session ***REMOVED***7 大量交付后，用户在试用 phase.bytedance.city 时撞到了**今天才修的 .env 坑**（PR ***REMOVED***85）。这说明用户正在认真用产品。
+session #7 大量交付后，用户在试用 phase.bytedance.city 时撞到了**今天才修的 .env 坑**（PR #85）。这说明用户正在认真用产品。
 
 下个 session 起手时，**建议先问用户**：
 - 是继续主推 Phase Detector 商业化（Option A）？
@@ -267,8 +267,8 @@ session ***REMOVED***7 大量交付后，用户在试用 phase.bytedance.city �
 
 ---
 
-***REMOVED******REMOVED*** 9. 最后一件事
+## 9. 最后一件事
 
-**永远先读 `docs/sessions/HANDOFF.md` 的 §0 起手扫描**，不要跳。session ***REMOVED***7 起手时通过这步发现了 baseline 状态 + LFS pointer 风险 + worktree 隔离 form 4，节省了至少 2 个 wave 的混乱。
+**永远先读 `docs/sessions/HANDOFF.md` 的 §0 起手扫描**，不要跳。session #7 起手时通过这步发现了 baseline 状态 + LFS pointer 风险 + worktree 隔离 form 4，节省了至少 2 个 wave 的混乱。
 
-祝 session ***REMOVED***8 顺利。
+祝 session #8 顺利。

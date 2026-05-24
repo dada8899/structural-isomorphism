@@ -1,12 +1,12 @@
-***REMOVED*** Session ***REMOVED***11 进度 (2026-05-15)
+# Session #11 进度 (2026-05-15)
 
-> Started post-session-***REMOVED***10 closeout (Wave 6-15, 50 PR merged, v0.4.x tagged).
+> Started post-session-#10 closeout (Wave 6-15, 50 PR merged, v0.4.x tagged).
 > User auth: "auto mode, 跑到 context 90% 才停下"。
 > Initial wrong-project incident: 6 audit agents 误派 ~/Projects/renai-cross。已纠正切到 ~/Projects/structural-isomorphism。
 
 ---
 
-***REMOVED******REMOVED*** 1. 6 个 audit agent (Wave 0 — 巡查)
+## 1. 6 个 audit agent (Wave 0 — 巡查)
 
 全部 read-only，无 working tree 污染。报告写到 `docs/audit/2026-05-15-*.md`：
 
@@ -21,18 +21,18 @@
 
 ---
 
-***REMOVED******REMOVED*** 2. Wave 1 fix subagents (6 PRs merged)
+## 2. Wave 1 fix subagents (6 PRs merged)
 
 全部走 worktree 隔离 + 显式 git add + squash-merge --admin。
 
 | PR | 主题 | Branch | Tests |
 |---|---|---|---|
-| *****REMOVED***199** | ci: install editable packages/* + pyyaml + mkdocstrings | fix/p0-ci-packages-install | local import smoke pass |
-| *****REMOVED***200** | chore(api): FastAPI on_event → lifespan | fix/p1-fastapi-lifespan | 323 pass |
-| *****REMOVED***201** | fix(security): next 14.2.15 → 14.2.35 + postcss override | fix/p0-nextjs-1425 | next compile ✓ |
-| *****REMOVED***202** | fix(api): tier-aware rate limit ContextVar + 7 endpoints | fix/p0-ratelimit-coverage | 301 pass (+17) |
-| *****REMOVED***203** | chore(polish): CITATION 0.4.0 / /me redirect / 404 zh / ESLint / 加载更多 | chore/p2-polish-batch | pnpm build ✓ |
-| *****REMOVED***204** | fix(openapi): sync schema + 9 response_model | fix/p1-openapi-drift | 284 pass |
+| **#199** | ci: install editable packages/* + pyyaml + mkdocstrings | fix/p0-ci-packages-install | local import smoke pass |
+| **#200** | chore(api): FastAPI on_event → lifespan | fix/p1-fastapi-lifespan | 323 pass |
+| **#201** | fix(security): next 14.2.15 → 14.2.35 + postcss override | fix/p0-nextjs-1425 | next compile ✓ |
+| **#202** | fix(api): tier-aware rate limit ContextVar + 7 endpoints | fix/p0-ratelimit-coverage | 301 pass (+17) |
+| **#203** | chore(polish): CITATION 0.4.0 / /me redirect / 404 zh / ESLint / 加载更多 | chore/p2-polish-batch | pnpm build ✓ |
+| **#204** | fix(openapi): sync schema + 9 response_model | fix/p1-openapi-drift | 284 pass |
 
 **安全影响**：
 - npm audit vuln 16 → 14（剩 14 需 Next 15.x，独立工作）
@@ -42,7 +42,7 @@
 
 ---
 
-***REMOVED******REMOVED*** 3. Prod 故障恢复
+## 3. Prod 故障恢复
 
 **3 cert 过期**（discovered in VPS scan）：
 - `bytedance.city` (multi-domain: bytedance.city + astock + bot + petsoul + soulexpert) — -3d expired
@@ -57,15 +57,15 @@
 
 ---
 
-***REMOVED******REMOVED*** 4. Wave 2 fix subagents
+## 4. Wave 2 fix subagents
 
 派出 7 个 worktree-isolated subagents 修剩下的 P1/P2 + CI 红根因：
 
 | PR | 主题 | 状态 |
 |---|---|---|
-| *****REMOVED***205** | fix(storybook): align fixtures.ts to UniversalityEvidenceSystem schema | ✅ MERGED |
-| *****REMOVED***206** | fix(ci): perf_check_bundle regex covers root corner char + bare / route | ✅ MERGED |
-| *****REMOVED***207** | fix(types): regenerate api-types.ts to match F4 response_model | ✅ MERGED |
+| **#205** | fix(storybook): align fixtures.ts to UniversalityEvidenceSystem schema | ✅ MERGED |
+| **#206** | fix(ci): perf_check_bundle regex covers root corner char + bare / route | ✅ MERGED |
+| **#207** | fix(types): regenerate api-types.ts to match F4 response_model | ✅ MERGED |
 | F8 | Coverage CI gate 90% critical-modules failure | in-flight |
 | F10 | certbot.timer never enabled (OpenCloudOS preset disabled) | ✅ manually fixed on VPS |
 | F12 | deploy CI=true (pnpm no TTY → ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) | in-flight |
@@ -73,13 +73,13 @@
 
 **F9 真根因**：`perf_check_bundle.py` regex 缺 `┌` root-corner tree char + `(/\S+)` 不收 bare `/` route。F6 报告的"No routes parsed"症状是同 bug 不同表现，不是 Next 14.2.35 格式变化。
 
-**F11 (TS types regen)**：F4 PR ***REMOVED***204 加了 9 个 Pydantic response_model 没同步生成 TS。已 regen + 加 9 新 interface 到 `web/phase-detector/lib/api-types.ts`。
+**F11 (TS types regen)**：F4 PR #204 加了 9 个 Pydantic response_model 没同步生成 TS。已 regen + 加 9 新 interface 到 `web/phase-detector/lib/api-types.ts`。
 
 **F10 certbot 根因**：VPS 上 `certbot-renew.timer` 从未 enable（OpenCloudOS 9 默认 preset=disabled，跟 Ubuntu snap auto-enable 不同）。3 个月人肉续期撑住，这次没看 LE 邮件 → 3 cert 同时过期。已 `systemctl enable --now certbot-renew.timer` 修复，下次触发 2026-05-15 16:51 CST。诊断报告 `docs/audit/2026-05-15-certbot-autorenew-rca.md`。
 
 ---
 
-***REMOVED******REMOVED*** 5. 已知仍 user-input only blocker
+## 5. 已知仍 user-input only blocker
 
 | Item | Why |
 |---|---|
@@ -95,7 +95,7 @@ CC 全准备完毕，等 user 20-30 分钟 action 即可一键 OSS launch（per 
 
 ---
 
-***REMOVED******REMOVED*** 6. 主 session 走过的工具调用模式
+## 6. 主 session 走过的工具调用模式
 
 - 6 audit + 6 fix (wave 1) + 4 fix (wave 2) + 3 cert renew + 1 nav fix = 0 race / 0 commit boundary 违反
 - worktree 隔离 SOP + 显式 git add 100% 强制（per memory `feedback_subagent_form1_pollutes_main_commit.md`）
@@ -103,7 +103,7 @@ CC 全准备完毕，等 user 20-30 分钟 action 即可一键 OSS launch（per 
 
 ---
 
-***REMOVED******REMOVED*** 7. 下个 session 推荐
+## 7. 下个 session 推荐
 
 继续 SESSION-11-HANDOFF §6 Option A: 用户配 PYPI_TOKEN + HF_TOKEN + arXiv 账号 + GH Pages enable → CC 1 小时全部完成 OSS launch。
 

@@ -1,6 +1,6 @@
-"""Generic reusable OpenRouter LLM client — Session ***REMOVED***18.
+"""Generic reusable OpenRouter LLM client — Session #18.
 
-Session ***REMOVED***18 ships several new product surfaces (A1 method-search, E
+Session #18 ships several new product surfaces (A1 method-search, E
 structural stress-test, C2 structural lint). Each needs a JSON or text
 completion. Rather than every feature growing `llm_service.py` (a
 1390-line shared file, and a merge-conflict magnet for parallel work),
@@ -30,8 +30,8 @@ from services.llm_service import (
 
 logger = logging.getLogger("structural.llm_client")
 
-***REMOVED*** Single source of truth for the default model — same one analyze / ask
-***REMOVED*** use in prod. Honours the ASK_LLM_MODEL env override.
+# Single source of truth for the default model — same one analyze / ask
+# use in prod. Honours the ASK_LLM_MODEL env override.
 from services.ask_orchestrator import ASK_MODEL as _DEFAULT_MODEL
 
 
@@ -99,7 +99,7 @@ async def complete_json(
         except json.JSONDecodeError:
             logger.warning("complete_json: JSON parse failed, attempting repair")
             return _try_repair_json(fixed)
-    except Exception as e:  ***REMOVED*** noqa: BLE001 — never let an LLM error escape
+    except Exception as e:  # noqa: BLE001 — never let an LLM error escape
         logger.error("complete_json failed: %s", e)
         return None
 
@@ -139,7 +139,7 @@ async def complete_text(
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.error("complete_text failed: %s", e)
         return None
 
@@ -196,7 +196,7 @@ async def stream_text(
                         yield delta
                 except (json.JSONDecodeError, KeyError, IndexError):
                     continue
-    except Exception as e:  ***REMOVED*** noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         logger.error("stream_text failed: %s", e)
         return
 

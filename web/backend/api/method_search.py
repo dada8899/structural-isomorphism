@@ -1,4 +1,4 @@
-"""POST /api/method/apply — A1 方法反查（Session ***REMOVED***18）.
+"""POST /api/method/apply — A1 方法反查（Session #18）.
 
 引擎的反向用法：用户输入一个方法/算法/模型的描述，引擎找出 KB 里
 "结构上能套用这个方法"的其他领域现象。
@@ -49,13 +49,13 @@ async def method_apply(request: Request, req: MethodApplyRequest):
 
     method_text = req.method.strip()
     if len(method_text) < MIN_METHOD_LEN:
-        ***REMOVED*** min_length 在 pydantic 已挡空字符串，这里挡纯空白输入。
+        # min_length 在 pydantic 已挡空字符串，这里挡纯空白输入。
         raise HTTPException(422, "method 内容过短")
 
     try:
         result = await run_method_search(method_text, svc, req.top_n)
-    except Exception:  ***REMOVED*** noqa: BLE001 — LLM degrade is inside the service;
-        ***REMOVED*** this only catches a search-layer failure. Surface as 500, log it.
+    except Exception:  # noqa: BLE001 — LLM degrade is inside the service;
+        # this only catches a search-layer failure. Surface as 500, log it.
         logger.exception("[method/apply] pipeline failed")
         raise HTTPException(500, "Method search failed")
 

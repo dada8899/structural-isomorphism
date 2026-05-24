@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Multi-protocol SOC analysis on DeFi liquidations.
 
@@ -97,8 +97,8 @@ def extract_maker(events):
             art = int(e.get("art_raw", "0"))
         except Exception:
             continue
-        ***REMOVED*** art is 18-decimal; for SAI legacy some are in RAD format (45 decimals)
-        ***REMOVED*** Use heuristic: if value >> 1e30 assume RAD and divide by 1e45
+        # art is 18-decimal; for SAI legacy some are in RAD format (45 decimals)
+        # Use heuristic: if value >> 1e30 assume RAD and divide by 1e45
         if art > 10 ** 40:
             usd = art / 1e45
         else:
@@ -200,7 +200,7 @@ def analyze_protocol(name, rows, extract_fn):
     print(f"  alpha = {pl.get('alpha', '?')}")
     if "n_tail" in pl:
         print(f"  n_tail = {pl['n_tail']}, xmin = {pl.get('xmin_usd'):.2f}")
-    ***REMOVED*** Omori at 3 scales
+    # Omori at 3 scales
     scales = {"daily": 86400, "6hour": 21600, "1hour": 3600}
     omori_fits = {}
     for label, sec in scales.items():
@@ -239,7 +239,7 @@ def main():
     results["compound_v2"] = analyze_protocol("Compound V2", comp, extract_compound)
     results["maker_dog"] = analyze_protocol("Maker Dog", maker, extract_maker)
 
-    ***REMOVED*** Pooled analysis
+    # Pooled analysis
     print("\n--- POOLED (all three) ---")
     pooled = []
     pooled.extend(extract_aave(aave))
@@ -269,7 +269,7 @@ def main():
     OUT_FILE.write_text(json.dumps(results, indent=2))
     print(f"\nSaved: {OUT_FILE}")
 
-    ***REMOVED*** Print compact comparison table
+    # Print compact comparison table
     print("\n" + "=" * 72)
     print(f"{'Protocol':<14} {'N events':<10} {'α':<14} {'n_tail':<8} {'Omori p (best scale)':<30}")
     print("-" * 72)
@@ -282,7 +282,7 @@ def main():
         om = r.get("omori", {})
         best_s = r.get("best_omori_scale")
         if not best_s:
-            ***REMOVED*** pick best from omori dict
+            # pick best from omori dict
             good = [(k, v) for k, v in om.items() if "p" in v]
             if good:
                 best_s = max(good, key=lambda kv: (kv[1].get("R2") or 0))[0]

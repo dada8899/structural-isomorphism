@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="***REMOVED***0A0A0A">
+  <meta name="theme-color" content="#0A0A0A">
   <title>Phase Detector — 别用市盈率筛股，用数学结构筛股</title>
   <meta name="description" content="Phase Detector 是一个按数学动力学筛选全市场的工具。不看 P/E，看 dynamics。找出那些正在经历结构相变的公司。">
 
@@ -17,19 +17,19 @@
 
   <style>
     :root {
-      --bg: ***REMOVED***0A0A0A;
-      --bg-elevated: ***REMOVED***141414;
-      --bg-card: ***REMOVED***1A1A1A;
-      --border: ***REMOVED***27272A;
-      --border-strong: ***REMOVED***3F3F46;
-      --text: ***REMOVED***FAFAFA;
-      --text-secondary: ***REMOVED***A1A1AA;
-      --text-muted: ***REMOVED***71717A;
-      --accent: ***REMOVED***22D3EE;
+      --bg: #0A0A0A;
+      --bg-elevated: #141414;
+      --bg-card: #1A1A1A;
+      --border: #27272A;
+      --border-strong: #3F3F46;
+      --text: #FAFAFA;
+      --text-secondary: #A1A1AA;
+      --text-muted: #71717A;
+      --accent: #22D3EE;
       --accent-dim: rgba(34, 211, 238, 0.1);
-      --warning: ***REMOVED***F59E0B;
-      --danger: ***REMOVED***EF4444;
-      --success: ***REMOVED***10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --success: #10B981;
       --mono: 'JetBrains Mono', 'Menlo', monospace;
       --serif: 'Noto Serif SC', 'Times New Roman', serif;
       --sans: 'Inter', -apple-system, system-ui, sans-serif;
@@ -147,10 +147,10 @@
     }
     .btn-primary {
       background: var(--accent);
-      color: ***REMOVED***0A0A0A;
+      color: #0A0A0A;
     }
     .btn-primary:hover {
-      background: ***REMOVED***0ea5c4;
+      background: #0ea5c4;
       text-decoration: none;
       transform: translateY(-1px);
     }
@@ -402,9 +402,9 @@
         <span class="brand-beta">BETA</span>
       </a>
       <nav class="menu">
-        <a href="***REMOVED***samples">样例报告</a>
-        <a href="***REMOVED***idea">什么是结构筛选</a>
-        <a href="***REMOVED***waitlist">加入 Waitlist</a>
+        <a href="#samples">样例报告</a>
+        <a href="#idea">什么是结构筛选</a>
+        <a href="#waitlist">加入 Waitlist</a>
       </nav>
     </div>
   </header>
@@ -418,8 +418,8 @@
         给你看那些正在经历结构转折的公司——在它们出现在新闻之前。
       </p>
       <div class="cta-row">
-        <a href="***REMOVED***samples" class="btn btn-primary">看 10 份样例报告 →</a>
-        <a href="***REMOVED***waitlist" class="btn btn-secondary">加入 Waitlist</a>
+        <a href="#samples" class="btn btn-primary">看 10 份样例报告 →</a>
+        <a href="#waitlist" class="btn btn-secondary">加入 Waitlist</a>
       </div>
     </div>
   </section>
@@ -502,7 +502,7 @@
             if (data.ok) {
               btn.textContent = '已加入 ✓';
               status.textContent = '已收到。我们会在第一批测试上线时给你发邮件。';
-              status.style.color = '***REMOVED***34D399';
+              status.style.color = '#34D399';
             } else {
               throw new Error(data.error || '提交失败');
             }
@@ -510,7 +510,7 @@
             btn.disabled = false;
             btn.textContent = '加入';
             status.textContent = '提交失败：' + err.message;
-            status.style.color = '***REMOVED***F87171';
+            status.style.color = '#F87171';
           }
         });
       </script>

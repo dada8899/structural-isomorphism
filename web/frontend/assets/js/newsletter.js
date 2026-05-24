@@ -1,4 +1,4 @@
-// Session ***REMOVED***9 W2-A: beta-site newsletter signup (vanilla JS, no build step).
+// Session #9 W2-A: beta-site newsletter signup (vanilla JS, no build step).
 //
 // Posts to /api/newsletter/subscribe on the same origin (beta backend),
 // unlike waitlist.js which targets the phase backend.
@@ -103,7 +103,7 @@
     if (kind) el.classList.add("is-" + kind);
   }
 
-  // Session ***REMOVED***9 W4-C: client-side request timeout. Without this, a hung
+  // Session #9 W4-C: client-side request timeout. Without this, a hung
   // /api/newsletter/subscribe leaves the UI stuck on "提交中…" forever — W3-A
   // e2e observed exactly this (15s wait, still showing 提交中…). The backend
   // itself is fast (<5ms), but prod nginx / cold-start / network blips can

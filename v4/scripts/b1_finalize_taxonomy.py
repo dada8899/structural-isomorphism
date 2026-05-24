@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """B1 — Finalize the universality-class taxonomy from the Layer-3 critic pass.
 
 The Layer-3 critic pass already produced per-class verdicts (KEEP / SPLIT /
@@ -79,9 +79,9 @@ logging.basicConfig(
 log = logging.getLogger("b1_finalize")
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** .env loader (zero-dep, mirrors b4_deepseek_ensemble.py)
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# .env loader (zero-dep, mirrors b4_deepseek_ensemble.py)
+# ---------------------------------------------------------------------------
 
 def load_dotenv() -> None:
     env_path = REPO / ".env"
@@ -90,7 +90,7 @@ def load_dotenv() -> None:
     try:
         for line in env_path.read_text().splitlines():
             line = line.strip()
-            if not line or line.startswith("***REMOVED***") or "=" not in line:
+            if not line or line.startswith("#") or "=" not in line:
                 continue
             k, _, v = line.partition("=")
             k = k.strip()
@@ -101,9 +101,9 @@ def load_dotenv() -> None:
         log.warning("could not read .env: %s", e)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Robust JSONL reader — never crashes on a bad line, just skips + logs.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Robust JSONL reader — never crashes on a bad line, just skips + logs.
+# ---------------------------------------------------------------------------
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -126,15 +126,15 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Member-list resolution.
-***REMOVED*** Members live in candidate_classes.jsonl keyed by hub name. auto_curated rows
-***REMOVED*** carry hub_name -> we map class_id to its member list via the hub.
-***REMOVED*** The 6 critic classes that are NOT in auto_curated are mapped by a hand table
-***REMOVED*** (their hubs are unambiguous in candidate_classes.jsonl).
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Member-list resolution.
+# Members live in candidate_classes.jsonl keyed by hub name. auto_curated rows
+# carry hub_name -> we map class_id to its member list via the hub.
+# The 6 critic classes that are NOT in auto_curated are mapped by a hand table
+# (their hubs are unambiguous in candidate_classes.jsonl).
+# ---------------------------------------------------------------------------
 
-***REMOVED*** class_id -> hub name (for the 6 extra critic classes not in auto_curated)
+# class_id -> hub name (for the 6 extra critic classes not in auto_curated)
 EXTRA_HUB_MAP: dict[str, str] = {
     "hysteresis_preisach": "热固性树脂凝胶点渗流相变",
     "scheffer_fold_bifurcation": "蛋白质相分离的临界浓度阈值",
@@ -142,8 +142,8 @@ EXTRA_HUB_MAP: dict[str, str] = {
     "gardner_collins_toggle_switch_Th1Th2": "Th1/Th2极化与疾病偏向",
     "schelling_credible_commitment": "进入威慑与产能过度承诺",
     "motter_lai_network_cascade_social": "级联失效在社会网络中的传播",
-    ***REMOVED*** hysteresis_first_order_transition_fertility / gardner_collins_apoptosis
-    ***REMOVED*** share their hub with the auto_curated sibling; resolved below.
+    # hysteresis_first_order_transition_fertility / gardner_collins_apoptosis
+    # share their hub with the auto_curated sibling; resolved below.
     "hysteresis_first_order_transition_fertility": "低生育率陷阱假说",
     "gardner_collins_toggle_switch_apoptosis": "凋亡Caspase级联的不可逆数字开关",
 }
@@ -157,7 +157,7 @@ def build_hub_members(candidates: list[dict]) -> dict[str, list[str]]:
         if not hub:
             continue
         members = [m.get("name") for m in (c.get("members") or []) if m.get("name")]
-        ***REMOVED*** if a hub appears twice, keep the larger member set
+        # if a hub appears twice, keep the larger member set
         if hub not in out or len(members) > len(out[hub]):
             out[hub] = members
     return out
@@ -184,9 +184,9 @@ def resolve_members(
     return list(members)
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Verdict normalization.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Verdict normalization.
+# ---------------------------------------------------------------------------
 
 def base_verdict(raw: str) -> str:
     """Collapse a critic verdict string to KEEP / SPLIT / MERGE / REJECT."""
@@ -202,7 +202,7 @@ def base_verdict(raw: str) -> str:
     return "UNCLEAR"
 
 
-***REMOVED*** Hedge markers that signal a critic merge recommendation is *undecided*.
+# Hedge markers that signal a critic merge recommendation is *undecided*.
 HEDGE_MARKERS = ("possib", "could", "consider", "subtle", "or with", "may ")
 
 
@@ -214,9 +214,9 @@ def is_undecided(critic_row: dict, b3_row: dict | None, b4_consensus: str | None
     merge_text = (critic_row.get("merge_with") or "")
     if not isinstance(merge_text, str) or not merge_text.strip():
         return False, ""
-    ***REMOVED*** If the merge note says THIS class should absorb a provenance-duplicate
-    ***REMOVED*** variant (e.g. *_social / *_apoptosis), the class is the canonical
-    ***REMOVED*** receiver — that is a settled MERGE, not an undecided merge question.
+    # If the merge note says THIS class should absorb a provenance-duplicate
+    # variant (e.g. *_social / *_apoptosis), the class is the canonical
+    # receiver — that is a settled MERGE, not an undecided merge question.
     if any(v in merge_text for v in ("_social", "_apoptosis", "_Th1Th2")):
         return False, ""
     hedged = any(m in merge_text.lower() for m in HEDGE_MARKERS)
@@ -232,9 +232,9 @@ def is_undecided(critic_row: dict, b3_row: dict | None, b4_consensus: str | None
     return False, ""
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** B4-style DeepSeek supplemental critic for genuinely-undecided classes.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# B4-style DeepSeek supplemental critic for genuinely-undecided classes.
+# ---------------------------------------------------------------------------
 
 SUPPL_SYSTEM = (
     "You are a rigorous universality-class critic for cross-domain dynamical "
@@ -328,17 +328,17 @@ def call_deepseek_supplemental(
             log.warning("  supplemental %s: HTTP %s %s", class_id, e.code, body)
         except urllib.error.URLError as e:
             log.warning("  supplemental %s: URLError %s", class_id, e.reason)
-        except Exception as e:  ***REMOVED*** noqa: BLE001 - never crash the finalize pass
+        except Exception as e:  # noqa: BLE001 - never crash the finalize pass
             log.warning("  supplemental %s: %s", class_id, e)
         time.sleep(0.5 * (attempt + 1))
     log.warning("  supplemental %s: all retries failed, keeping critic KEEP", class_id)
     return None
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Display metadata (zh/en names, mechanism prototype, invariants) — taken from
-***REMOVED*** auto_curated where available; hand table fills the 6 extras.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Display metadata (zh/en names, mechanism prototype, invariants) — taken from
+# auto_curated where available; hand table fills the 6 extras.
+# ---------------------------------------------------------------------------
 
 EXTRA_META: dict[str, dict] = {
     "hysteresis_preisach": {
@@ -408,9 +408,9 @@ def get_meta(class_id: str, auto_curated_by_id: dict[str, dict]) -> dict:
     return {"name_zh": class_id, "name_en": class_id, "physics_prototype": "", "invariants": []}
 
 
-***REMOVED*** ---------------------------------------------------------------------------
-***REMOVED*** Main pipeline.
-***REMOVED*** ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main pipeline.
+# ---------------------------------------------------------------------------
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="B1 finalize taxonomy from Layer-3 critic pass.")
@@ -419,7 +419,7 @@ def main() -> int:
 
     load_dotenv()
 
-    ***REMOVED*** ---- load inputs --------------------------------------------------------
+    # ---- load inputs --------------------------------------------------------
     critic_rows = read_jsonl(CRITIC_IN)
     auto_curated = read_jsonl(AUTO_CURATED_IN)
     candidates = read_jsonl(CANDIDATES_IN)
@@ -434,7 +434,7 @@ def main() -> int:
     b3_by_id = {r["class_id"]: r for r in b3_rows if r.get("class_id")}
     hub_members = build_hub_members(candidates)
 
-    ***REMOVED*** B4 per-class consensus (majority of the 3 reviewers)
+    # B4 per-class consensus (majority of the 3 reviewers)
     b4_by_id: dict[str, str] = {}
     b4_votes: dict[str, list[str]] = {}
     for r in b4_rows:
@@ -444,7 +444,7 @@ def main() -> int:
     for cid, votes in b4_votes.items():
         b4_by_id[cid] = max(set(votes), key=votes.count)
 
-    ***REMOVED*** ---- pass 1: classify each critic verdict -------------------------------
+    # ---- pass 1: classify each critic verdict -------------------------------
     log.info("=== pass 1: classify %d critic verdicts ===", len(critic_rows))
     keep, split, merge, reject, undecided = [], [], [], [], []
     for row in critic_rows:
@@ -471,7 +471,7 @@ def main() -> int:
         len(keep), len(split), len(merge), len(reject), len(undecided),
     )
 
-    ***REMOVED*** ---- pass 2: DeepSeek supplemental on undecided classes -----------------
+    # ---- pass 2: DeepSeek supplemental on undecided classes -----------------
     llm_decisions: dict[str, dict] = {}
     if undecided:
         if args.no_llm:
@@ -491,7 +491,7 @@ def main() -> int:
                     if res:
                         llm_decisions[cid] = res
 
-    ***REMOVED*** apply LLM decisions: INDEPENDENT -> KEEP, MERGE -> merge bucket
+    # apply LLM decisions: INDEPENDENT -> KEEP, MERGE -> merge bucket
     for cid, row, reason in undecided:
         d = llm_decisions.get(cid)
         if d and (d.get("decision") or "").upper() == "MERGE":
@@ -504,15 +504,15 @@ def main() -> int:
                 cid, "DeepSeek INDEPENDENT" if d else "no LLM / default",
             )
 
-    ***REMOVED*** ---- pass 3: resolve MERGE pairs into canonical classes -----------------
-    ***REMOVED*** provenance-duplicate merges: the *_apoptosis / *_social variants fold
-    ***REMOVED*** into their canonical sibling. Build canonical-id mapping.
+    # ---- pass 3: resolve MERGE pairs into canonical classes -----------------
+    # provenance-duplicate merges: the *_apoptosis / *_social variants fold
+    # into their canonical sibling. Build canonical-id mapping.
     log.info("=== pass 3: resolve merges ===")
-    merge_into: dict[str, str] = {}  ***REMOVED*** variant_id -> canonical_id
+    merge_into: dict[str, str] = {}  # variant_id -> canonical_id
     for cid in merge:
         crow = next((r for r in critic_rows if r.get("class_id") == cid), {})
         target = (crow.get("merge_with") or "").strip()
-        ***REMOVED*** canonical = the simpler / seed name
+        # canonical = the simpler / seed name
         if cid == "gardner_collins_toggle_switch_apoptosis":
             merge_into[cid] = "gardner_collins_toggle_switch"
         elif cid == "gardner_collins_toggle_switch_Th1Th2":
@@ -522,13 +522,13 @@ def main() -> int:
         elif cid in llm_decisions and (llm_decisions[cid].get("merge_target")):
             merge_into[cid] = llm_decisions[cid]["merge_target"]
         else:
-            ***REMOVED*** fall back: keep as own class if target unclear
+            # fall back: keep as own class if target unclear
             merge_into[cid] = target if target else cid
             log.warning("merge target for %s unclear -> %s", cid, merge_into[cid])
 
-    ***REMOVED*** ---- pass 4: assemble ACTIVE classes ------------------------------------
+    # ---- pass 4: assemble ACTIVE classes ------------------------------------
     log.info("=== pass 4: assemble active classes ===")
-    ***REMOVED*** active = KEEP classes + canonical merge targets, minus merged-away variants
+    # active = KEEP classes + canonical merge targets, minus merged-away variants
     merged_away = set(merge_into.keys())
     canonical_targets = set(merge_into.values()) - merged_away
     active_ids: list[str] = []
@@ -549,16 +549,16 @@ def main() -> int:
         crow = critic_by_id.get(cid, {})
         meta = get_meta(cid, auto_curated_by_id)
 
-        ***REMOVED*** A canonical merge target (e.g. gardner_collins_toggle_switch) may have
-        ***REMOVED*** no critic row of its own — inherit verdict/confidence from a merged-in
-        ***REMOVED*** variant so the final record is never blank.
+        # A canonical merge target (e.g. gardner_collins_toggle_switch) may have
+        # no critic row of its own — inherit verdict/confidence from a merged-in
+        # variant so the final record is never blank.
         if not crow:
             for variant, target in merge_into.items():
                 if target == cid and critic_by_id.get(variant):
                     crow = critic_by_id[variant]
                     break
 
-        ***REMOVED*** member list — union in any variant merged into this canonical id
+        # member list — union in any variant merged into this canonical id
         members = resolve_members(cid, auto_curated_by_id, hub_members)
         for variant, target in merge_into.items():
             if target == cid:
@@ -567,8 +567,8 @@ def main() -> int:
                     if m not in members:
                         members.append(m)
 
-        ***REMOVED*** collect false-positive flags from this class's critic row AND any
-        ***REMOVED*** variant merged into it
+        # collect false-positive flags from this class's critic row AND any
+        # variant merged into it
         fp_flags: list[str] = list(crow.get("members_flagged_as_false_positive") or [])
         fp_reason = crow.get("members_flagged_reason", "")
         for variant, target in merge_into.items():
@@ -580,7 +580,7 @@ def main() -> int:
         pruned = [m for m in members if m in fp_flags]
         total_fp_pruned += len(pruned)
 
-        ***REMOVED*** negative-example library: curated near-miss list + pruned members
+        # negative-example library: curated near-miss list + pruned members
         neg_lib: list[dict] = []
         for ne in crow.get("negative_examples") or []:
             neg_lib.append({
@@ -617,9 +617,9 @@ def main() -> int:
             "name_en": meta["name_en"],
             "physics_prototype": meta["physics_prototype"],
             "invariants": meta["invariants"],
-            ***REMOVED*** A class with merged_variants is the canonical receiver of a
-            ***REMOVED*** MERGE — it stays ACTIVE, so its effective verdict is KEEP even
-            ***REMOVED*** though the variant's own critic row said MERGE_WITH.
+            # A class with merged_variants is the canonical receiver of a
+            # MERGE — it stays ACTIVE, so its effective verdict is KEEP even
+            # though the variant's own critic row said MERGE_WITH.
             "critic_verdict": "KEEP" if merged_variants else base_verdict(
                 crow.get("review_verdict", "KEEP")),
             "critic_confidence": crow.get("confidence", ""),
@@ -633,7 +633,7 @@ def main() -> int:
             "verdict_source": "B1 Layer-3 critic" + (" + DeepSeek V4 supplemental" if llm_note else ""),
         })
 
-    ***REMOVED*** split / reject records (NOT active, but recorded for honesty)
+    # split / reject records (NOT active, but recorded for honesty)
     split_records = []
     for cid in split:
         crow = critic_by_id.get(cid, {})
@@ -653,7 +653,7 @@ def main() -> int:
             "critic_confidence": crow.get("confidence", ""),
         })
 
-    ***REMOVED*** ---- write outputs ------------------------------------------------------
+    # ---- write outputs ------------------------------------------------------
     log.info("=== writing outputs ===")
     try:
         TAXONOMY_OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -676,7 +676,7 @@ def main() -> int:
         log.error("failed to write %s: %s", SUMMARY_OUT, e)
         return 1
 
-    ***REMOVED*** ---- console recap ------------------------------------------------------
+    # ---- console recap ------------------------------------------------------
     log.info("=" * 60)
     log.info("B1 FINALIZE DONE")
     log.info("  candidates reviewed : %d", len(critic_rows))
@@ -699,13 +699,13 @@ def write_summary(
 ) -> None:
     """Render the human-readable B1 wrap-up."""
     lines: list[str] = []
-    lines.append("***REMOVED*** B1 — Layer-3 Critic Pass: Final Authoritative Taxonomy")
+    lines.append("# B1 — Layer-3 Critic Pass: Final Authoritative Taxonomy")
     lines.append("")
     lines.append(f"**Date**: {time.strftime('%Y-%m-%d')}")
     lines.append(f"**Candidates reviewed**: {n_candidates}")
     lines.append(f"**Active universality classes (final)**: {len(final_rows)}")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** 一句话总结")
+    lines.append("## 一句话总结")
     lines.append("")
     lines.append(
         f"21 个候选普适类经 Layer-3 critic 逐条审查 + ensemble 交叉核验后，"
@@ -716,7 +716,7 @@ def write_summary(
         f"反例库共 {total_negatives} 条，并从成员列表剔除 {total_fp_pruned} 个 false-positive 成员。"
     )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** 权威性说明")
+    lines.append("## 权威性说明")
     lines.append("")
     lines.append(
         "- **权威基准 = B1 critic**（人工逐条审查，`layer3_critic.jsonl`）。"
@@ -728,9 +728,9 @@ def write_summary(
         "犹豫措辞、且 ensemble 又不同意），不全量重跑。"
     )
     lines.append("")
-    lines.append(f"***REMOVED******REMOVED*** 最终 {len(final_rows)} 个 Active 普适类")
+    lines.append(f"## 最终 {len(final_rows)} 个 Active 普适类")
     lines.append("")
-    lines.append("| ***REMOVED*** | class_id | 中文名 | critic verdict | 干净成员 | 反例 | 来源 |")
+    lines.append("| # | class_id | 中文名 | critic verdict | 干净成员 | 反例 | 来源 |")
     lines.append("|---|---|---|---|---|---|---|")
     for i, r in enumerate(final_rows, 1):
         src = "critic+DeepSeek" if r["llm_supplemental"] else "critic"
@@ -740,7 +740,7 @@ def write_summary(
             f"{r['negative_example_count']} | {src} |"
         )
     lines.append("")
-    lines.append("***REMOVED******REMOVED******REMOVED*** 每个 active 类为什么留下")
+    lines.append("### 每个 active 类为什么留下")
     lines.append("")
     for i, r in enumerate(final_rows, 1):
         lines.append(f"**{i}. {r['name_zh']}** (`{r['class_id']}`)")
@@ -758,25 +758,25 @@ def write_summary(
         if r["llm_supplemental"]:
             lines.append(f"- {r['llm_supplemental']}")
         lines.append("")
-    lines.append(f"***REMOVED******REMOVED*** 被 REJECT 的 {len(reject_records)} 个候选（站不住，不进 active 清单）")
+    lines.append(f"## 被 REJECT 的 {len(reject_records)} 个候选（站不住，不进 active 清单）")
     lines.append("")
     for r in reject_records:
         lines.append(f"- **`{r['class_id']}`** (confidence {r['critic_confidence']})")
         lines.append(f"  - {r['reason'][:400]}")
     lines.append("")
-    lines.append(f"***REMOVED******REMOVED*** 被 SPLIT 的 {len(split_records)} 个候选（机制不纯，拆解后不作单一 active 类）")
+    lines.append(f"## 被 SPLIT 的 {len(split_records)} 个候选（机制不纯，拆解后不作单一 active 类）")
     lines.append("")
     for r in split_records:
         lines.append(f"- **`{r['class_id']}`** (confidence {r['critic_confidence']})")
         lines.append(f"  - 拆分方案: {r['split_suggestion'][:400]}")
     lines.append("")
     merge_pairs = sorted(set(merge_into.items()))
-    lines.append(f"***REMOVED******REMOVED*** 被 MERGE 的 {len(merge_pairs)} 个变体（provenance 重复，并入规范类）")
+    lines.append(f"## 被 MERGE 的 {len(merge_pairs)} 个变体（provenance 重复，并入规范类）")
     lines.append("")
     for variant, target in merge_pairs:
         lines.append(f"- `{variant}` → 并入 `{target}`")
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** LLM 补判记录")
+    lines.append("## LLM 补判记录")
     lines.append("")
     if not undecided:
         lines.append("无悬而未决的类——所有 critic 结论均明确，未调用 LLM 补判。")
@@ -798,7 +798,7 @@ def write_summary(
                     f"  - 未获 LLM 判定（--no-llm 或调用失败）→ 默认沿用 critic 的 KEEP"
                 )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** 反例库规模")
+    lines.append("## 反例库规模")
     lines.append("")
     lines.append(
         f"- 总计 **{total_negatives} 条反例**，分两类：\n"
@@ -807,7 +807,7 @@ def write_summary(
         "- 反例库已结构化写入 B1_final_taxonomy.jsonl 每个 active 类的 negative_examples 字段。"
     )
     lines.append("")
-    lines.append("***REMOVED******REMOVED*** 输出文件")
+    lines.append("## 输出文件")
     lines.append("")
     lines.append("- `v4/results/B1_final_taxonomy.jsonl` — 每个 active 类一行（id / 中英文名 / 机制原型 / 不变量 / 干净成员 / 反例库 / verdict 来源）")
     lines.append("- `v4/results/B1_final_summary.md` — 本文件")

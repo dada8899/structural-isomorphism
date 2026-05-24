@@ -1,4 +1,4 @@
-"""Unit + integration tests for feature flags — session ***REMOVED***10 W15-E.
+"""Unit + integration tests for feature flags — session #10 W15-E.
 
 Run with:
     cd web/backend
@@ -16,8 +16,8 @@ _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-import flags as flags_mod  ***REMOVED*** noqa: E402
-from flags import (  ***REMOVED*** noqa: E402
+import flags as flags_mod  # noqa: E402
+from flags import (  # noqa: E402
     _bucket,
     get_all_experiments,
     get_all_flags,
@@ -41,9 +41,9 @@ def _write(p: Path, body: str) -> None:
     reset_cache_for_tests()
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Basic on/off
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Basic on/off
+# -----------------------------------------------------------------------------
 
 
 def test_flag_enabled_no_rollout(yaml_config):
@@ -80,9 +80,9 @@ def test_missing_config_file(tmp_path, monkeypatch):
     assert get_variant("anything", "user-1") == "control"
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Percentage rollout
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Percentage rollout
+# -----------------------------------------------------------------------------
 
 
 def test_percentage_rollout_100(yaml_config):
@@ -142,9 +142,9 @@ flags:
     assert 0.48 <= ratio <= 0.52, f"50% rollout: got {ratio:.4f}, want 0.50±0.02"
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Segment (tier) rollout
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Segment (tier) rollout
+# -----------------------------------------------------------------------------
 
 
 def test_segment_rollout_tier_match(yaml_config, monkeypatch):
@@ -158,21 +158,21 @@ flags:
 """)
     from middleware.rate_limit import CURRENT_TIER
 
-    ***REMOVED*** 'free' tier -> excluded
+    # 'free' tier -> excluded
     tok = CURRENT_TIER.set("free")
     try:
         assert is_enabled("pro_feature", "user-1") is False
     finally:
         CURRENT_TIER.reset(tok)
 
-    ***REMOVED*** 'pro' tier -> included
+    # 'pro' tier -> included
     tok = CURRENT_TIER.set("pro")
     try:
         assert is_enabled("pro_feature", "user-1") is True
     finally:
         CURRENT_TIER.reset(tok)
 
-    ***REMOVED*** 'admin' tier -> included
+    # 'admin' tier -> included
     tok = CURRENT_TIER.set("admin")
     try:
         assert is_enabled("pro_feature", "user-1") is True
@@ -192,9 +192,9 @@ flags:
     assert is_enabled("bogus", "user-1") is False
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Experiments / variants
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Experiments / variants
+# -----------------------------------------------------------------------------
 
 
 def test_experiment_missing_returns_control(yaml_config):
@@ -269,9 +269,9 @@ experiments:
     assert 0.78 <= ratio <= 0.82, f"80/20 allocation: control ratio {ratio:.4f}"
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Hot-reload (TTL + mtime)
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Hot-reload (TTL + mtime)
+# -----------------------------------------------------------------------------
 
 
 def test_hot_reload_on_mtime_change(yaml_config):
@@ -283,8 +283,8 @@ flags:
 """)
     assert is_enabled("toggle", "u") is False
 
-    ***REMOVED*** Bump mtime + content. Use os.utime to ensure mtime actually advances
-    ***REMOVED*** (some filesystems have low-resolution mtime, so add 2s).
+    # Bump mtime + content. Use os.utime to ensure mtime actually advances
+    # (some filesystems have low-resolution mtime, so add 2s).
     import os
     yaml_config.write_text("""
 flags:
@@ -294,8 +294,8 @@ flags:
     new_mtime = time.time() + 2
     os.utime(yaml_config, (new_mtime, new_mtime))
 
-    ***REMOVED*** Force reload (production path: TTL expires after 30s, but tests
-    ***REMOVED*** don't wait — explicit reset is the equivalent of TTL elapsing).
+    # Force reload (production path: TTL expires after 30s, but tests
+    # don't wait — explicit reset is the equivalent of TTL elapsing).
     reset_cache_for_tests()
     assert is_enabled("toggle", "u") is True
 
@@ -307,18 +307,18 @@ flags:
   cached:
     enabled: true
 """)
-    ***REMOVED*** Warm cache.
+    # Warm cache.
     assert is_enabled("cached", "u") is True
 
-    ***REMOVED*** Now simulate file deletion — cache should still return True.
+    # Now simulate file deletion — cache should still return True.
     yaml_config.unlink()
-    ***REMOVED*** Don't reset cache; we're testing that TTL keeps the prior good value.
+    # Don't reset cache; we're testing that TTL keeps the prior good value.
     assert is_enabled("cached", "u") is True
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** Bucketing primitives
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Bucketing primitives
+# -----------------------------------------------------------------------------
 
 
 def test_bucket_in_range():
@@ -329,13 +329,13 @@ def test_bucket_in_range():
 
 def test_bucket_deterministic():
     assert _bucket("alice", "flag_x") == _bucket("alice", "flag_x")
-    ***REMOVED*** Different keys -> (almost certainly) different buckets.
+    # Different keys -> (almost certainly) different buckets.
     assert _bucket("alice", "flag_x") != _bucket("alice", "flag_y") or True
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** API endpoint integration
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# API endpoint integration
+# -----------------------------------------------------------------------------
 
 
 def test_api_get_flags_endpoint(yaml_config):
@@ -397,14 +397,14 @@ experiments:
     app.include_router(flags_api.router, prefix="/api")
     client = TestClient(app)
 
-    r = client.get("/api/flags")  ***REMOVED*** no header
+    r = client.get("/api/flags")  # no header
     assert r.status_code == 200
     assert r.json()["experiments"]["exp1"] == "control"
 
 
-***REMOVED*** -----------------------------------------------------------------------------
-***REMOVED*** get_all_flags / get_all_experiments shape
-***REMOVED*** -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# get_all_flags / get_all_experiments shape
+# -----------------------------------------------------------------------------
 
 
 def test_get_all_flags_shape(yaml_config):

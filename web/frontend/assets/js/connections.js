@@ -1,4 +1,4 @@
-/* Session ***REMOVED***19 — G connect-people MVP (/connections).
+/* Session #19 — G connect-people MVP (/connections).
 
    Manages a logged-in user's structural fingerprints + shows "structural
    neighbors" (how many people are solving a structurally-identical but
@@ -14,7 +14,7 @@
   var esc = window.escapeHtml || function (s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;',
-        '"': '&quot;', "'": '&***REMOVED***39;' }[c];
+        '"': '&quot;', "'": '&#39;' }[c];
     });
   };
 
@@ -116,7 +116,7 @@
         visBadge(fp.visibility_level) +
       '</div>' +
       '<div class="cn-card__actions">' +
-        '<label style="font-size:12.5px;color:***REMOVED***9a958c;">可见性</label>' +
+        '<label style="font-size:12.5px;color:#9a958c;">可见性</label>' +
         '<select class="cn-vis-pick" data-act="vis">' + opts + '</select>' +
         '<button type="button" class="cn-btn" data-act="neighbors">看结构邻居</button>' +
         '<button type="button" class="cn-btn cn-btn--danger" data-act="delete">删除</button>' +
@@ -134,7 +134,7 @@
     if (count === 0) {
       head.textContent = '暂时还没有人在解结构相同的问题——' +
         '把更多问题登记成可发现的指纹，结构邻居会随用户增长出现。';
-      head.style.color = '***REMOVED***9a958c';
+      head.style.color = '#9a958c';
       head.style.fontWeight = '400';
       container.appendChild(head);
       show(container);

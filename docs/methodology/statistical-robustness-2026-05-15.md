@@ -1,4 +1,4 @@
-***REMOVED*** Statistical robustness fixes — F1-F5 aggregate (W7-D)
+# Statistical robustness fixes — F1-F5 aggregate (W7-D)
 
 **English** | [简体中文](../i18n/zh/methodology-zh.md)
 
@@ -8,7 +8,7 @@
 flagged by the senior statistical-physics referee as blocking *PRE* / *Chaos*
 acceptance and shaping the credibility of the C1 v0.3 manuscript.
 
-***REMOVED******REMOVED*** Summary table
+## Summary table
 
 | Fix | W5-A §ref | Status | Headline result | Manuscript impact |
 |---|---|---|---|---|
@@ -18,9 +18,9 @@ acceptance and shaping the credibility of the C1 v0.3 manuscript.
 | **F4** xmin sensitivity scan | §3.8, §4.1 | Shipped (8 of ~12 systems) | 3 robust / 2 mild drift / 2 substantial drift | Supplementary figure + Table 1 column |
 | **F5** r_shape null distribution | §3.6, §4.4-4.5, §7.6 | Shipped — **major finding** | r_shape = 1.11 is combinatorial artifact; substituted RMSE statistic p < 0.0001 | **§4.4-4.5 headline rewrite required** |
 
-***REMOVED******REMOVED*** Per-fix detail
+## Per-fix detail
 
-***REMOVED******REMOVED******REMOVED*** F1 — Bootstrap n=100 -> 10,000 rerun
+### F1 — Bootstrap n=100 -> 10,000 rerun
 
 **Concern:** "Bootstrap n_boot = 100 throughout. Below current best practice;
 CI endpoints have ~10% standard error." [W5-A §3.6, §4.1]
@@ -40,7 +40,7 @@ point estimates and verdicts unchanged. n=100 is genuinely too small (CI
 endpoints have ~10% Monte-Carlo standard error) but does not flip any
 verdict.
 
-***REMOVED******REMOVED******REMOVED*** F2 — Scheffer Kendall-tau block-bootstrap (verification)
+### F2 — Scheffer Kendall-tau block-bootstrap (verification)
 
 **Concern:** "AR(1) p = 1.6e-186 (Scheffer, Fox River) is almost certainly
 numerical underflow / asymptotic Kendall-tau misuse on 4,686 highly
@@ -57,7 +57,7 @@ See `docs/methodology/F2-block-bootstrap-verification.md`.
 **Headline:** Block-bootstrap p in [1e-10, 1e-30] range, qualitative conclusion
 (AR1 and Var both trending up, classic Scheffer EWS) unchanged.
 
-***REMOVED******REMOVED******REMOVED*** F3 — Family-wise error rate correction
+### F3 — Family-wise error rate correction
 
 **Concern:** "13 systems × at least 2 LR tests each + ... = at minimum 30
 statistical decisions. No Bonferroni, no Benjamini-Hochberg, no
@@ -82,7 +82,7 @@ adjusted p_holm < 1e-5; inconclusive tests remain inconclusive. **This is
 a strong positive result for paper defensibility** — the paper's verdicts
 are robust to FWER.
 
-***REMOVED******REMOVED******REMOVED*** F4 — xmin sensitivity sliding-window scan
+### F4 — xmin sensitivity sliding-window scan
 
 **Concern:** "xmin selection rigor for small-n phases not stress-tested.
 The Clauset KS-minimization for xmin is known to overfit for n < 200 tail
@@ -109,7 +109,7 @@ Vuong-LN inconclusive verdicts already reported, and are best read as
 **PL/LN coexistence at finite sample sizes** per Mitzenmacher (2004). The
 fix is honest reporting of drift range alongside point estimate.
 
-***REMOVED******REMOVED******REMOVED*** F5 — r_shape null distribution
+### F5 — r_shape null distribution
 
 **Concern:** "Recommended: generate 10,000 surrogate datasets where each
 of the 7 systems is independently fitted by lognormal... Report empirical
@@ -146,7 +146,7 @@ must reframe §4.4-§4.5 around the RMSE statistic + p_left null, not r_shape.
 
 See `docs/methodology/F5-r-shape-null-2026-05-15.md`.
 
-***REMOVED******REMOVED*** Combined manuscript-edit checklist
+## Combined manuscript-edit checklist
 
 For C1 v0.3 (the next preprint revision), apply these edits in priority order:
 
@@ -174,7 +174,7 @@ For C1 v0.3 (the next preprint revision), apply these edits in priority order:
    from `paper/figures/methodology/F4_xmin_sensitivity.pdf`. Add a "drift
    range" column to Table 1.
 
-***REMOVED******REMOVED*** Inventory of new artifacts (W7-D)
+## Inventory of new artifacts (W7-D)
 
 | Path | Type | Purpose |
 |---|---|---|
@@ -197,7 +197,7 @@ For C1 v0.3 (the next preprint revision), apply these edits in priority order:
 | `docs/methodology/statistical-robustness-2026-05-15.md` | doc | This aggregate |
 | `scripts/F1_full_rerun_overnight.sh` | script | Queue for full-13 10k rerun |
 
-***REMOVED******REMOVED*** Estimated reviewer-pass impact
+## Estimated reviewer-pass impact
 
 Before W7-D fixes, the W5-A scholar review put the paper at **"Solid B+ / A-
 ... ~65% acceptance probability on PRE second round."** The five fixes

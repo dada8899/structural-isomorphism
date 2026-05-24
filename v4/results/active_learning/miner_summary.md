@@ -1,10 +1,10 @@
-***REMOVED*** F2 Active Learning — Miner Summary
+# F2 Active Learning — Miner Summary
 
 - Positives mined: **29**
 - Hard negatives mined: **51**
 - Source: `v4/results/B3_taxonomy_v2.jsonl`
 
-***REMOVED******REMOVED*** Per-bucket stats
+## Per-bucket stats
 
 - `hard_negative_pairs`: 51
 - `keep_classes`: 4
@@ -14,14 +14,14 @@
 - `skip_consensus=SPLIT`: 5
 - `skip_lt2_positives`: 1
 
-***REMOVED******REMOVED*** Classes contributing positives (KEEP consensus)
+## Classes contributing positives (KEEP consensus)
 
 - `reaction_diffusion_steady_state_class`: 6 pairs
 - `reflexive_fixed_point_class`: 3 pairs
 - `scheffer_fold_bifurcation`: 10 pairs
 - `second_order_damped_oscillator`: 10 pairs
 
-***REMOVED******REMOVED*** Classes contributing hard negatives (REJECT consensus)
+## Classes contributing hard negatives (REJECT consensus)
 
 - `delay_differential_debt`: 6 pairs
 - `extreme_value_tail_class`: 6 pairs

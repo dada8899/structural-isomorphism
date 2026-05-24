@@ -1,4 +1,4 @@
-"""Session ***REMOVED***10 W10-E /universality explorer e2e.
+"""Session #10 W10-E /universality explorer e2e.
 
 Asserts:
   1. /universality renders ≥ 20 class cards (target: 35-42).
@@ -35,7 +35,7 @@ def _base_reachable(url: str) -> bool:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, ConnectionError):
         return False
-    except Exception:  ***REMOVED*** noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -76,7 +76,7 @@ def test_explorer_search_narrows_cards(page: Page):
     )
     before = page.locator('[data-testid="universality-class-card"]').count()
     page.get_by_test_id("universality-search-input").fill("percolation")
-    ***REMOVED*** Give the in-memory filter a tick to apply.
+    # Give the in-memory filter a tick to apply.
     page.wait_for_timeout(200)
     after = page.locator('[data-testid="universality-class-card"]').count()
     assert after < before, f"search filter should narrow ({before} -> {after})"
@@ -93,7 +93,7 @@ def test_explorer_card_click_navigates_to_detail(page: Page):
     assert class_id, "first card must have data-class-id"
     first.click()
     page.wait_for_url(f"**/universality/{class_id}", timeout=10000)
-    ***REMOVED*** Detail page header should be visible.
+    # Detail page header should be visible.
     expect(page.get_by_test_id("universality-detail-header")).to_be_visible()
 
 
@@ -104,9 +104,9 @@ def test_explorer_detail_page_direct_load(page: Page):
         f"{BASE}/universality/preferential_attachment", wait_until="networkidle"
     )
     expect(page.get_by_test_id("universality-detail-header")).to_be_visible()
-    ***REMOVED*** Key invariants should be present (the class file has 5+ invariants).
-    ***REMOVED*** We don't hard-fail if invariants are absent in mock mode — just verify
-    ***REMOVED*** the page rendered something meaningful.
+    # Key invariants should be present (the class file has 5+ invariants).
+    # We don't hard-fail if invariants are absent in mock mode — just verify
+    # the page rendered something meaningful.
     has_invariants = (
         page.locator('[data-testid="universality-invariants"]').count() > 0
     )

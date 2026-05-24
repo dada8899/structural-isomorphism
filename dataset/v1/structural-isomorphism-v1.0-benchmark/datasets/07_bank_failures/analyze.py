@@ -1,4 +1,4 @@
-***REMOVED***!/usr/bin/env python3
+#!/usr/bin/env python3
 """Layer 5 Phase 8 — US bank failure SOC validation.
 
 System: FDIC bank failure catalog 1934-2026 (full historical record)
@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve()
 REPO = ROOT.parents[3]
 sys.path.insert(0, str(REPO / "v4" / "lib"))
 
-from soc_pipeline import (  ***REMOVED*** noqa: E402
+from soc_pipeline import (  # noqa: E402
     bootstrap_alpha_ci,
     fit_clauset_powerlaw,
     omori_from_aftershock_stack,
@@ -41,7 +41,7 @@ def normalize_records():
     out = []
     for r in raw["data"]:
         d = r["data"]
-        ***REMOVED*** FAILDATE is "M/D/YYYY"
+        # FAILDATE is "M/D/YYYY"
         date_str = d.get("FAILDATE", "")
         try:
             parts = date_str.split("/")
@@ -52,7 +52,7 @@ def normalize_records():
         except (ValueError, IndexError):
             continue
 
-        ***REMOVED*** Asset size: QBFASSET in $1000s (thousand USD); convert to USD
+        # Asset size: QBFASSET in $1000s (thousand USD); convert to USD
         try:
             asset_k = float(d.get("QBFASSET") or 0)
             assets_usd = asset_k * 1000
@@ -61,7 +61,7 @@ def normalize_records():
         if assets_usd <= 0:
             continue
 
-        ***REMOVED*** Deposit size as alternative
+        # Deposit size as alternative
         try:
             dep_k = float(d.get("QBFDEP") or 0)
             deposits_usd = dep_k * 1000
@@ -102,18 +102,18 @@ def main():
     for dec, cnt in sorted(decade_dist.items()):
         print(f"    {dec}s: {cnt}")
 
-    ***REMOVED*** 1. Clauset power-law on asset size
+    # 1. Clauset power-law on asset size
     print("\n[1] Clauset power-law fit on assets_usd...")
     pl = fit_clauset_powerlaw(sizes, "bank_assets", discrete=False)
     for k, v in pl.items():
         print(f"  {k}: {v}")
 
-    ***REMOVED*** 2. Bootstrap CI
+    # 2. Bootstrap CI
     print("\n[2] Bootstrap 95% CI on α (n_boot=100)...")
     ci = bootstrap_alpha_ci(sizes, n_boot=100, discrete=False)
     print(f"  CI: {ci}")
 
-    ***REMOVED*** 3. Omori on inter-failure times after large mainshock failures
+    # 3. Omori on inter-failure times after large mainshock failures
     print("\n[3] Omori after large failures (>=99th pctl)...")
     times = np.array([r["fail_ts"] for r in records])
     sort_idx = np.argsort(times)
@@ -123,7 +123,7 @@ def main():
     print(f"  99th pctl asset threshold: ${threshold:.0f}")
     main_idx = np.where(sizes_sorted >= threshold)[0]
     print(f"  n large failures: {len(main_idx)}")
-    aftershock_window_days = 365  ***REMOVED*** 1 year aftershock window
+    aftershock_window_days = 365  # 1 year aftershock window
     dts_sec = []
     for mi in main_idx:
         t0 = times[mi]
@@ -142,7 +142,7 @@ def main():
     )
     print(f"  Omori result: {omori}")
 
-    ***REMOVED*** 4. Era-split analysis (pre-2007, 2007-2014 crisis, post-2014)
+    # 4. Era-split analysis (pre-2007, 2007-2014 crisis, post-2014)
     print("\n[4] Era-split α (pre-crisis / crisis / post-crisis)...")
     era_fits = {}
     for label, low, high in [("1934-2007_pre", 1934, 2007),
@@ -163,13 +163,13 @@ def main():
         }
         print(f"  {label:25s} n={len(sub):4d}  α={f.get('alpha'):.3f}  winner={f.get('vs_powerlaw_lognormal_winner')}")
 
-    ***REMOVED*** 5. Null control
+    # 5. Null control
     print("\n[5] Null control...")
     null_n = min(len(sizes), 4000)
     nulls = run_size_null_controls(seed=42, n=null_n)
     print(f"  all_rejected: {nulls['all_rejected']}")
 
-    ***REMOVED*** Verdict
+    # Verdict
     predicted = (1.4, 2.5)
     literature = (1.2, 3.0)
     alpha = pl.get("alpha")

@@ -34,7 +34,7 @@ import httpx
 
 from .verdict import Verdict
 
-***REMOVED*** Vendor → (base URL, env var) registry. Centralized so callers don't memorize.
+# Vendor → (base URL, env var) registry. Centralized so callers don't memorize.
 VENDOR_DEFAULTS: dict[str, tuple[str, str]] = {
     "deepseek": ("https://api.deepseek.com/v1", "DEEPSEEK_API_KEY"),
     "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY"),

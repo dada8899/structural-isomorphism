@@ -1,5 +1,5 @@
 """
-Correlation-ID middleware (W14-D, session ***REMOVED***10).
+Correlation-ID middleware (W14-D, session #10).
 
 Reads the inbound `X-Request-ID` header (any case). If absent or malformed,
 generates a fresh UUID4 hex. The ID is:
@@ -40,9 +40,9 @@ from logging_config import (
     new_request_id,
 )
 
-***REMOVED*** Accepted shapes: bare UUID4 hex (32 chars), dashed UUID, or any
-***REMOVED*** alphanumeric-ish string ≤ 64 chars (we don't want to be too strict — many
-***REMOVED*** clients pass their own request IDs from upstream load balancers).
+# Accepted shapes: bare UUID4 hex (32 chars), dashed UUID, or any
+# alphanumeric-ish string ≤ 64 chars (we don't want to be too strict — many
+# clients pass their own request IDs from upstream load balancers).
 _VALID_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -71,15 +71,15 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         )
         rid = _coerce_request_id(incoming)
 
-        ***REMOVED*** Bind contextvars for the duration of this request. We deliberately
-        ***REMOVED*** don't use a try/finally to reset — ContextVar is per-task and the
-        ***REMOVED*** asyncio task ends with the request, so leakage is impossible.
+        # Bind contextvars for the duration of this request. We deliberately
+        # don't use a try/finally to reset — ContextVar is per-task and the
+        # asyncio task ends with the request, so leakage is impossible.
         token_rid = REQUEST_ID_VAR.set(rid)
         token_path = REQUEST_PATH_VAR.set(request.url.path)
         token_method = REQUEST_METHOD_VAR.set(request.method)
 
-        ***REMOVED*** Tier may already be resolved by TierResolutionMiddleware (runs
-        ***REMOVED*** before us in app order). Mirror it if so.
+        # Tier may already be resolved by TierResolutionMiddleware (runs
+        # before us in app order). Mirror it if so.
         tier_token = None
         try:
             from middleware.rate_limit import CURRENT_TIER as _RL_TIER
@@ -99,20 +99,20 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except Exception:
-            ***REMOVED*** Log + re-raise — the FastAPI exception handlers own the
-            ***REMOVED*** actual response shape.
+            # Log + re-raise — the FastAPI exception handlers own the
+            # actual response shape.
             log.exception("http.request.error")
             raise
         finally:
-            ***REMOVED*** Reset in *reverse* order of set() to play nicely with
-            ***REMOVED*** contextvars' linked-list semantics.
+            # Reset in *reverse* order of set() to play nicely with
+            # contextvars' linked-list semantics.
             if tier_token is not None:
                 REQUEST_TIER_VAR.reset(tier_token)
             REQUEST_METHOD_VAR.reset(token_method)
             REQUEST_PATH_VAR.reset(token_path)
             REQUEST_ID_VAR.reset(token_rid)
 
-        ***REMOVED*** Echo the ID back so the client can quote it.
+        # Echo the ID back so the client can quote it.
         response.headers[REQUEST_ID_HEADER] = rid
         log.info("http.response", status_code=response.status_code)
         return response

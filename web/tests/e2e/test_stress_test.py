@@ -1,8 +1,8 @@
-"""Session ***REMOVED***18 e2e tests — feature E structural stress-test (/stress-test page).
+"""Session #18 e2e tests — feature E structural stress-test (/stress-test page).
 
 Run: pytest web/tests/e2e/test_stress_test.py -v
 
-@pytest.mark.post_deploy — only pass once Session ***REMOVED***18 ships stress-test.html.
+@pytest.mark.post_deploy — only pass once Session #18 ships stress-test.html.
 The orchestrator runs these; in baseline phase skip via `-k "not post_deploy"`.
 """
 import pytest
@@ -16,8 +16,8 @@ def test_stress_test_page_loads(page: Page):
     """/stress-test should show the intro + claim input form."""
     page.goto(f"{BASE}/stress-test")
     expect(page.locator(".stress-intro__title")).to_be_visible()
-    expect(page.locator("***REMOVED***stress-claim")).to_be_visible()
-    expect(page.locator("***REMOVED***stress-submit")).to_be_visible()
+    expect(page.locator("#stress-claim")).to_be_visible()
+    expect(page.locator("#stress-submit")).to_be_visible()
 
 
 @pytest.mark.post_deploy
@@ -33,48 +33,48 @@ def test_stress_test_chip_fills_input(page: Page):
     """Clicking an example chip fills the textarea (no auto-submit)."""
     page.goto(f"{BASE}/stress-test")
     page.locator(".stress-chip").first.click()
-    value = page.locator("***REMOVED***stress-claim").input_value()
+    value = page.locator("#stress-claim").input_value()
     assert len(value) > 4, "chip click should populate the claim textarea"
-    expect(page.locator("***REMOVED***stress-result")).to_be_hidden()
+    expect(page.locator("#stress-result")).to_be_hidden()
 
 
 @pytest.mark.post_deploy
 def test_stress_test_short_input_rejected(page: Page):
     """Submitting < 4 chars should surface an inline error, no result block."""
     page.goto(f"{BASE}/stress-test")
-    page.fill("***REMOVED***stress-claim", "ab")
-    page.click("***REMOVED***stress-submit")
-    expect(page.locator("***REMOVED***stress-error")).to_be_visible()
-    expect(page.locator("***REMOVED***stress-result")).to_be_hidden()
+    page.fill("#stress-claim", "ab")
+    page.click("#stress-submit")
+    expect(page.locator("#stress-error")).to_be_visible()
+    expect(page.locator("#stress-result")).to_be_hidden()
 
 
 @pytest.mark.post_deploy
 def test_stress_test_submit_shows_verdict_and_correspondences(page: Page):
     """A real claim submit should render the verdict badge + correspondences."""
     page.goto(f"{BASE}/stress-test")
-    page.fill("***REMOVED***stress-claim", "我们是中国版的 Notion")
-    page.click("***REMOVED***stress-submit")
-    ***REMOVED*** Result block appears once /api/stress-test resolves.
-    expect(page.locator("***REMOVED***stress-result")).to_be_visible(timeout=45000)
-    badge = page.locator("***REMOVED***stress-verdict-badge")
+    page.fill("#stress-claim", "我们是中国版的 Notion")
+    page.click("#stress-submit")
+    # Result block appears once /api/stress-test resolves.
+    expect(page.locator("#stress-result")).to_be_visible(timeout=45000)
+    badge = page.locator("#stress-verdict-badge")
     expect(badge).to_be_visible()
     badge_text = badge.inner_text()
     assert any(v in badge_text for v in ("PASS", "FAIL", "CONDITIONAL")), (
         f"verdict badge missing enum: {badge_text!r}"
     )
-    ***REMOVED*** At least the source / target pair must render.
-    expect(page.locator("***REMOVED***stress-source")).to_be_visible()
-    expect(page.locator("***REMOVED***stress-target")).to_be_visible()
+    # At least the source / target pair must render.
+    expect(page.locator("#stress-source")).to_be_visible()
+    expect(page.locator("#stress-target")).to_be_visible()
 
 
 @pytest.mark.post_deploy
 def test_stress_test_weakest_link_rendered(page: Page):
     """The weakest-link block should render after a successful test."""
     page.goto(f"{BASE}/stress-test")
-    page.fill("***REMOVED***stress-claim", "这次 AI 泡沫和 2000 年互联网泡沫一样")
-    page.click("***REMOVED***stress-submit")
-    expect(page.locator("***REMOVED***stress-result")).to_be_visible(timeout=45000)
-    weakest = page.locator("***REMOVED***stress-weakest-text")
+    page.fill("#stress-claim", "这次 AI 泡沫和 2000 年互联网泡沫一样")
+    page.click("#stress-submit")
+    expect(page.locator("#stress-result")).to_be_visible(timeout=45000)
+    weakest = page.locator("#stress-weakest-text")
     expect(weakest).to_be_visible()
     assert len(weakest.inner_text().strip()) > 0, "weakest link should have text"
 
@@ -88,14 +88,14 @@ def test_stress_test_precedent_block_graceful(page: Page):
     name + a failure-precedent sentence + a /phenomenon link.
     """
     page.goto(f"{BASE}/stress-test")
-    page.fill("***REMOVED***stress-claim", "这次 AI 泡沫和 2000 年互联网泡沫一样")
-    page.click("***REMOVED***stress-submit")
-    expect(page.locator("***REMOVED***stress-result")).to_be_visible(timeout=45000)
-    prec = page.locator("***REMOVED***stress-precedent")
+    page.fill("#stress-claim", "这次 AI 泡沫和 2000 年互联网泡沫一样")
+    page.click("#stress-submit")
+    expect(page.locator("#stress-result")).to_be_visible(timeout=45000)
+    prec = page.locator("#stress-precedent")
     if prec.is_visible():
-        name = page.locator("***REMOVED***stress-precedent-name").inner_text().strip()
-        failure = page.locator("***REMOVED***stress-precedent-failure").inner_text().strip()
+        name = page.locator("#stress-precedent-name").inner_text().strip()
+        failure = page.locator("#stress-precedent-failure").inner_text().strip()
         assert len(name) > 0, "precedent should name a phenomenon"
         assert len(failure) > 0, "precedent should explain how it broke"
-        href = page.locator("***REMOVED***stress-precedent-link").get_attribute("href") or ""
+        href = page.locator("#stress-precedent-link").get_attribute("href") or ""
         assert href.startswith("/phenomenon/"), f"bad precedent link: {href!r}"

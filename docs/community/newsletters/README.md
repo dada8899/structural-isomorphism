@@ -1,4 +1,4 @@
-***REMOVED*** Structural Signals — newsletter pipeline (W9-C)
+# Structural Signals — newsletter pipeline (W9-C)
 
 Weekly digest combining four data sources:
 
@@ -11,7 +11,7 @@ Weekly digest combining four data sources:
 4. **Methodology spotlight** — rotating 2-paragraph essay from a pool of
    8 topics (auto-picked by ISO week % pool size, or `--spotlight <slug>`).
 
-***REMOVED******REMOVED*** Files
+## Files
 
 - [`template.md`](./template.md) — canonical markdown template with `{{placeholder}}` markers.
 - [`template.mjml`](./template.mjml) — MJML email-friendly version (for Buttondown / Mailchimp).
@@ -24,40 +24,40 @@ The generator + data-source module live in:
 
 Tests: `tests/test_generate_newsletter.py`.
 
-***REMOVED******REMOVED*** Quick start
+## Quick start
 
 ```bash
-***REMOVED*** Generate the current week's digest (auto data sources, no real send)
+# Generate the current week's digest (auto data sources, no real send)
 python scripts/generate-newsletter.py --week 2026-W19 --out docs/community/newsletters/issue-001.md
 
-***REMOVED*** Preview (stdout, no file write)
+# Preview (stdout, no file write)
 python scripts/generate-newsletter.py --week 2026-W19 --dry-run
 
-***REMOVED*** Force a specific methodology spotlight
+# Force a specific methodology spotlight
 python scripts/generate-newsletter.py --week 2026-W19 \
     --spotlight ews-variance-autocorr --dry-run
 
-***REMOVED*** CI-friendly: skip arXiv + GitHub fetches (deterministic, offline)
+# CI-friendly: skip arXiv + GitHub fetches (deterministic, offline)
 python scripts/generate-newsletter.py --week 2026-W19 --skip-network --dry-run
 
-***REMOVED*** List spotlight topic slugs
+# List spotlight topic slugs
 python scripts/generate-newsletter.py --list-spotlights
 ```
 
-***REMOVED******REMOVED*** Rendering the MJML email
+## Rendering the MJML email
 
 ```bash
-***REMOVED*** Install MJML CLI (Node)
+# Install MJML CLI (Node)
 npm install -g mjml
 
-***REMOVED*** Render
+# Render
 mjml docs/community/newsletters/template.mjml -o /tmp/structural-signals.html
 
-***REMOVED*** (Currently the MJML template has its own placeholders; W10 will add a
-***REMOVED*** markdown-to-MJML build step that compiles each section.)
+# (Currently the MJML template has its own placeholders; W10 will add a
+# markdown-to-MJML build step that compiles each section.)
 ```
 
-***REMOVED******REMOVED*** Idempotency contract
+## Idempotency contract
 
 The generator is deterministic: given the same `--week`, the same
 upstream inputs (structtuples file + arXiv API response + gh api output),
@@ -66,7 +66,7 @@ and the same template, it produces **byte-identical** output.
 Practical implication: re-running on Monday produces the same digest as
 Sunday for the same week label. CI tests assert this.
 
-***REMOVED******REMOVED*** CI workflow
+## CI workflow
 
 `.github/workflows/newsletter.yml` runs every Sunday 23:00 UTC and:
 
@@ -80,7 +80,7 @@ Sunday for the same week label. CI tests assert this.
 > [`newsletter-subscribe-design.md`](../newsletter-subscribe-design.md) for
 > the subscription-storage plan.
 
-***REMOVED******REMOVED*** See also
+## See also
 
 - Older single-source phase-flip-only pipeline: `scripts/newsletter/send_weekly.py` (W8-D)
 - Subscription-storage design: [`newsletter-subscribe-design.md`](../newsletter-subscribe-design.md)

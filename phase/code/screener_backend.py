@@ -47,12 +47,12 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/phase/api", tags=["phase"])
 
-PHASE_DIR = Path(__file__).resolve().parent.parent  ***REMOVED*** phase/
+PHASE_DIR = Path(__file__).resolve().parent.parent  # phase/
 DATA_DIR = PHASE_DIR / "data"
 SAMPLES_DIR = PHASE_DIR / "samples"
 
 
-***REMOVED*** --- Data loaders (module-level cache, loaded once at startup) ---
+# --- Data loaders (module-level cache, loaded once at startup) ---
 _companies_cache: Optional[List[Dict]] = None
 
 
@@ -80,7 +80,7 @@ def companies_by_ticker() -> Dict[str, Dict]:
     return {c["ticker"]: c for c in load_companies() if c.get("ticker")}
 
 
-***REMOVED*** --- Pydantic response schemas ---
+# --- Pydantic response schemas ---
 class CompanyListResponse(BaseModel):
     count: int
     results: List[Dict]
@@ -100,7 +100,7 @@ class SampleReport(BaseModel):
     has_report: bool
 
 
-***REMOVED*** --- Endpoints ---
+# --- Endpoints ---
 @router.get("/screen")
 async def screen(
     dynamics: Optional[str] = Query(None, description="Filter by dynamics_family (enum)"),
@@ -176,7 +176,7 @@ async def screen_similar(
             score += weights["boundary_behavior"]
         if c.get("phase_state") == ref.get("phase_state"):
             score += weights["phase_state"]
-        ***REMOVED*** Small bonus for similar timescale
+        # Small bonus for similar timescale
         ts_a = s.get("timescale_log10_s")
         ts_b = ref_s.get("timescale_log10_s")
         if ts_a is not None and ts_b is not None:
