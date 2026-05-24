@@ -1,0 +1,467 @@
+{
+  "n_sessions": 5,
+  "per_session": [
+    {
+      "label": "anm369962_ses-20170313_original",
+      "nwb_file": "sample.nwb",
+      "n_units": 71,
+      "n_spikes": 1392414,
+      "span_seconds": 2266.1670510000004,
+      "mean_iei_ms": 1.64183594660152,
+      "pooled": {
+        "n_avalanches": 301092,
+        "size_fit": {
+          "name": "size_pooled",
+          "alpha": 2.9838134765624993,
+          "sigma_alpha": 0.00796448945361302,
+          "xmin": 7.0,
+          "n_total": 301092,
+          "n_tail": 62042,
+          "vs_lognormal_R": -30.523979582789682,
+          "vs_lognormal_p": 1.252723292552098e-204
+        },
+        "duration_fit": {
+          "name": "duration_pooled",
+          "alpha": 2.7571289062499993,
+          "sigma_alpha": 0.005197832829101191,
+          "xmin": 3.0,
+          "n_total": 301092,
+          "n_tail": 114278,
+          "vs_lognormal_R": -56.291979201167344,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "gamma": 1.0982987099021573,
+          "gamma_sigma": 0.007474750350777933,
+          "R2": 0.9988433822769097,
+          "n_T_bins": 27,
+          "T_range": [
+            1.0,
+            27.0
+          ]
+        }
+      },
+      "per_unit": {
+        "n_avalanches": 1368098,
+        "size_fit": {
+          "name": "size_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0017099026747248352,
+          "xmin": 1.0,
+          "n_total": 1368098,
+          "n_tail": 1368098,
+          "vs_lognormal_R": -560.0571735175267,
+          "vs_lognormal_p": 0.0
+        },
+        "duration_fit": {
+          "name": "duration_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0017099026747248352,
+          "xmin": 1.0,
+          "n_total": 1368098,
+          "n_tail": 1368098,
+          "vs_lognormal_R": -567.7171572246216,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "error": "too few T bins"
+        }
+      }
+    },
+    {
+      "label": "anm369962_ses-20170314",
+      "nwb_file": "sub-anm369962_ses-20170314.nwb",
+      "n_units": 51,
+      "n_spikes": 891557,
+      "span_seconds": 1956.0861000000002,
+      "mean_iei_ms": 2.294574906479074,
+      "pooled": {
+        "n_avalanches": 173613,
+        "size_fit": {
+          "name": "size_pooled",
+          "alpha": 2.9456256362171356,
+          "sigma_alpha": 0.012906465775080141,
+          "xmin": 10.0,
+          "n_total": 173613,
+          "n_tail": 22725,
+          "vs_lognormal_R": -13.574202924974415,
+          "vs_lognormal_p": 5.6959960100387884e-42
+        },
+        "duration_fit": {
+          "name": "duration_pooled",
+          "alpha": 2.8662597656249993,
+          "sigma_alpha": 0.008951529669353187,
+          "xmin": 4.0,
+          "n_total": 173613,
+          "n_tail": 43466,
+          "vs_lognormal_R": -25.653906842878524,
+          "vs_lognormal_p": 3.8242767430204866e-145
+        },
+        "scaling_relation": {
+          "gamma": 1.1248165005866997,
+          "gamma_sigma": 0.0066899491959491126,
+          "R2": 0.9991164352243538,
+          "n_T_bins": 27,
+          "T_range": [
+            1.0,
+            27.0
+          ]
+        }
+      },
+      "per_unit": {
+        "n_avalanches": 859497,
+        "size_fit": {
+          "name": "size_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0021572864372029926,
+          "xmin": 1.0,
+          "n_total": 859497,
+          "n_tail": 859497,
+          "vs_lognormal_R": -328.439161615596,
+          "vs_lognormal_p": 0.0
+        },
+        "duration_fit": {
+          "name": "duration_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0021572864372029926,
+          "xmin": 1.0,
+          "n_total": 859497,
+          "n_tail": 859497,
+          "vs_lognormal_R": -349.19323561890474,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "gamma": 1.029093420919364,
+          "gamma_sigma": 0.012736006033094402,
+          "R2": 0.9995407188149914,
+          "n_T_bins": 5,
+          "T_range": [
+            1.0,
+            5.0
+          ]
+        }
+      }
+    },
+    {
+      "label": "anm369962_ses-20170317",
+      "nwb_file": "sub-anm369962_ses-20170317.nwb",
+      "n_units": 59,
+      "n_spikes": 985694,
+      "span_seconds": 1752.3537919999997,
+      "mean_iei_ms": 1.840585961223154,
+      "pooled": {
+        "n_avalanches": 201510,
+        "size_fit": {
+          "name": "size_pooled",
+          "alpha": 2.988281249999999,
+          "sigma_alpha": 0.01059155844814304,
+          "xmin": 8.0,
+          "n_total": 201510,
+          "n_tail": 35240,
+          "vs_lognormal_R": -17.63410818865364,
+          "vs_lognormal_p": 1.3480631937380508e-69
+        },
+        "duration_fit": {
+          "name": "duration_pooled",
+          "alpha": 2.97333984375,
+          "sigma_alpha": 0.00858265932367965,
+          "xmin": 4.0,
+          "n_total": 201510,
+          "n_tail": 52864,
+          "vs_lognormal_R": -28.857507696203005,
+          "vs_lognormal_p": 4.078943494179955e-183
+        },
+        "scaling_relation": {
+          "gamma": 1.1047067496089336,
+          "gamma_sigma": 0.008229664324914383,
+          "R2": 0.9985591546365576,
+          "n_T_bins": 28,
+          "T_range": [
+            1.0,
+            28.0
+          ]
+        }
+      },
+      "per_unit": {
+        "n_avalanches": 940026,
+        "size_fit": {
+          "name": "size_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0020628139644366214,
+          "xmin": 1.0,
+          "n_total": 940026,
+          "n_tail": 940026,
+          "vs_lognormal_R": -290.4350997211139,
+          "vs_lognormal_p": 0.0
+        },
+        "duration_fit": {
+          "name": "duration_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.0020628139644366214,
+          "xmin": 1.0,
+          "n_total": 940026,
+          "n_tail": 940026,
+          "vs_lognormal_R": -298.93430378760024,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "gamma": 1.0037203827918875,
+          "gamma_sigma": 0.0013535230808331368,
+          "R2": 0.9999890893064803,
+          "n_T_bins": 8,
+          "T_range": [
+            1.0,
+            8.0
+          ]
+        }
+      }
+    },
+    {
+      "label": "anm369963_ses-20170227",
+      "nwb_file": "sub-anm369963_ses-20170227.nwb",
+      "n_units": 42,
+      "n_spikes": 765260,
+      "span_seconds": 1927.6020600000002,
+      "mean_iei_ms": 2.5353043782487004,
+      "pooled": {
+        "n_avalanches": 160257,
+        "size_fit": {
+          "name": "size_pooled",
+          "alpha": 2.9211181640624995,
+          "sigma_alpha": 0.01050654461845904,
+          "xmin": 7.0,
+          "n_total": 160257,
+          "n_tail": 33434,
+          "vs_lognormal_R": -14.100107938323145,
+          "vs_lognormal_p": 3.79189284320665e-45
+        },
+        "duration_fit": {
+          "name": "duration_pooled",
+          "alpha": 2.7046142578124996,
+          "sigma_alpha": 0.006844957243749792,
+          "xmin": 3.0,
+          "n_total": 160257,
+          "n_tail": 62017,
+          "vs_lognormal_R": -35.46152084725667,
+          "vs_lognormal_p": 1.9273326302345877e-275
+        },
+        "scaling_relation": {
+          "gamma": 1.1114470886845396,
+          "gamma_sigma": 0.008979908443048785,
+          "R2": 0.9984357808071359,
+          "n_T_bins": 26,
+          "T_range": [
+            1.0,
+            26.0
+          ]
+        }
+      },
+      "per_unit": {
+        "n_avalanches": 754562,
+        "size_fit": {
+          "name": "size_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.002302409298656431,
+          "xmin": 1.0,
+          "n_total": 754562,
+          "n_tail": 754562,
+          "vs_lognormal_R": -442.53790338430497,
+          "vs_lognormal_p": 0.0
+        },
+        "duration_fit": {
+          "name": "duration_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.002302409298656431,
+          "xmin": 1.0,
+          "n_total": 754562,
+          "n_tail": 754562,
+          "vs_lognormal_R": -463.48359814200694,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "error": "too few T bins"
+        }
+      }
+    },
+    {
+      "label": "anm369964_ses-20170320",
+      "nwb_file": "sub-anm369964_ses-20170320.nwb",
+      "n_units": 55,
+      "n_spikes": 918242,
+      "span_seconds": 2040.94053,
+      "mean_iei_ms": 2.2384280863459587,
+      "pooled": {
+        "n_avalanches": 196227,
+        "size_fit": {
+          "name": "size_pooled",
+          "alpha": 2.9060302734374996,
+          "sigma_alpha": 0.008268430981052512,
+          "xmin": 6.0,
+          "n_total": 196227,
+          "n_tail": 53139,
+          "vs_lognormal_R": -24.47140419644923,
+          "vs_lognormal_p": 2.978622768473901e-132
+        },
+        "duration_fit": {
+          "name": "duration_pooled",
+          "alpha": 2.7533935546874995,
+          "sigma_alpha": 0.006296060679253527,
+          "xmin": 3.0,
+          "n_total": 196227,
+          "n_tail": 77557,
+          "vs_lognormal_R": -43.825464524799905,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "gamma": 1.097876513869333,
+          "gamma_sigma": 0.010260328886366165,
+          "R2": 0.9979951962704998,
+          "n_T_bins": 25,
+          "T_range": [
+            1.0,
+            25.0
+          ]
+        }
+      },
+      "per_unit": {
+        "n_avalanches": 883148,
+        "size_fit": {
+          "name": "size_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.002128203978751415,
+          "xmin": 1.0,
+          "n_total": 883148,
+          "n_tail": 883148,
+          "vs_lognormal_R": -326.51814962914295,
+          "vs_lognormal_p": 0.0
+        },
+        "duration_fit": {
+          "name": "duration_per_unit",
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.002128203978751415,
+          "xmin": 1.0,
+          "n_total": 883148,
+          "n_tail": 883148,
+          "vs_lognormal_R": -344.096101534751,
+          "vs_lognormal_p": 0.0
+        },
+        "scaling_relation": {
+          "gamma": 1.011019476293786,
+          "gamma_sigma": 0.00269943413710718,
+          "R2": 0.9999786135650988,
+          "n_T_bins": 5,
+          "T_range": [
+            1.0,
+            5.0
+          ]
+        }
+      }
+    }
+  ],
+  "cross_session": {
+    "rows": [
+      {
+        "label": "anm369962_ses-20170313_original",
+        "tau": 2.9838134765624993,
+        "tau_sigma": 0.00796448945361302,
+        "alpha_T": 2.7571289062499993,
+        "alpha_T_sigma": 0.005197832829101191,
+        "gamma": 1.0982987099021573,
+        "gamma_sigma": 0.007474750350777933,
+        "gamma_predicted": 0.8857329214713809
+      },
+      {
+        "label": "anm369962_ses-20170314",
+        "tau": 2.9456256362171356,
+        "tau_sigma": 0.012906465775080141,
+        "alpha_T": 2.8662597656249993,
+        "alpha_T_sigma": 0.008951529669353187,
+        "gamma": 1.1248165005866997,
+        "gamma_sigma": 0.0066899491959491126,
+        "gamma_predicted": 0.9592080464428673
+      },
+      {
+        "label": "anm369962_ses-20170317",
+        "tau": 2.988281249999999,
+        "tau_sigma": 0.01059155844814304,
+        "alpha_T": 2.97333984375,
+        "alpha_T_sigma": 0.00858265932367965,
+        "gamma": 1.1047067496089336,
+        "gamma_sigma": 0.008229664324914383,
+        "gamma_predicted": 0.9924852652259336
+      },
+      {
+        "label": "anm369963_ses-20170227",
+        "tau": 2.9211181640624995,
+        "tau_sigma": 0.01050654461845904,
+        "alpha_T": 2.7046142578124996,
+        "alpha_T_sigma": 0.006844957243749792,
+        "gamma": 1.1114470886845396,
+        "gamma_sigma": 0.008979908443048785,
+        "gamma_predicted": 0.8873031808766156
+      },
+      {
+        "label": "anm369964_ses-20170320",
+        "tau": 2.9060302734374996,
+        "tau_sigma": 0.008268430981052512,
+        "alpha_T": 2.7533935546874995,
+        "alpha_T_sigma": 0.006296060679253527,
+        "gamma": 1.097876513869333,
+        "gamma_sigma": 0.010260328886366165,
+        "gamma_predicted": 0.9199190480460093
+      }
+    ],
+    "cross_session": {
+      "tau": {
+        "mean": 2.9489737600559263,
+        "std": 0.0367088947541929,
+        "min": 2.9060302734374996,
+        "max": 2.988281249999999,
+        "n": 5
+      },
+      "alpha_T": {
+        "mean": 2.810947265625,
+        "std": 0.1083355621267567,
+        "min": 2.7046142578124996,
+        "max": 2.97333984375,
+        "n": 5
+      },
+      "gamma_measured": {
+        "mean": 1.1074291125303328,
+        "std": 0.011185850984670368,
+        "min": 1.097876513869333,
+        "max": 1.1248165005866997,
+        "n": 5
+      },
+      "gamma_predicted_from_alpha_T_tau": {
+        "mean": 0.9289296924125614,
+        "std": 0.046465064168464014,
+        "min": 0.8857329214713809,
+        "max": 0.9924852652259336,
+        "n": 5
+      }
+    }
+  },
+  "verdict": {
+    "tau_in_[1.5, 3.0]": true,
+    "tau_cross_session_mean": 2.9489737600559263,
+    "tau_cross_session_range": [
+      2.9060302734374996,
+      2.988281249999999
+    ],
+    "tau_cross_session_std": 0.0367088947541929,
+    "alpha_T_in_[1.5, 2.5]": false,
+    "alpha_T_cross_session_mean": 2.810947265625,
+    "alpha_T_cross_session_range": [
+      2.7046142578124996,
+      2.97333984375
+    ],
+    "alpha_T_cross_session_std": 0.1083355621267567,
+    "scaling_relation_holds_cross_session": false,
+    "gamma_measured_minus_predicted": 0.17849942011777142
+  },
+  "method_notes": {
+    "P0_N1": "Multi-session expansion: 5 sessions (3 animals from DANDI:000006). Cross-session SE on tau / alpha_T checks whether the original single-session result is animal-specific or universality-class.",
+    "P0_N2": "Per-unit avalanche detection vs pooled. Pooled is the standard Beggs-Plenz 2003 method; per-unit avoids the Priesemann 2014 pooling-induces-subcritical-look critique. If exponents agree qualitatively the pooled-vs-per-unit issue is resolved; if not the C1 claim must be conditioned on the detection method."
+  }
+}

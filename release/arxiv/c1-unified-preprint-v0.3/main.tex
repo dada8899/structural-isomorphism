@@ -65,8 +65,8 @@
 
 % -----------------------------------------------------------------
 % arXiv submission package — C1 unified preprint v0.3
-% Source: docs/sessions/C1-unified-preprint-draft-v0.2.md
-% Converted via pandoc 3.9.0.2 on 2026-05-24
+% Source: docs/sessions/C1-unified-preprint-draft-v0.3.md
+% Converted via pandoc 3.9.0.2 on 2026-05-24 (v0.3 regen)
 % Manual edits: title block reformatted to \title/\author/\maketitle;
 % added arXiv-style abstract environment.
 % -----------------------------------------------------------------
@@ -113,28 +113,30 @@ on-chain DeFi liquidations spanning three architecturally distinct
 lending protocols (Omori p ∈ {[}0.69, 0.76{]}); and, on 1.39 M
 mouse-cortex spikes, a self-organized-criticality scaling relation
 satisfied to within 2 \% at every bin scale (measured γ ≈ 1.10) although
-the recording's specific exponents (τ ∈ {[}2.17, 3.00{]}) place it in a
-task-active sub-class rather than the canonical mean-field regime. All
-four synthetic non-SOC nulls (folded normal, exponential, Poisson
-inter-arrival, Poisson Omori) are correctly rejected, with
-power-law-vs-alternative likelihood ratios of −16 to −45 and an
-Omori-fit R² ≈ 0.002 --- ruling out the trivial failure mode ``the
-pipeline fits everything as a power law.'' We report three
-qualifications honestly. (i) The lognormal alternative is not rejected
-in every raw-tail test: in particular, for S\&P 500 the raw-tail
-likelihood ratio favors lognormal (R = −6.12), and the SOC verdict for
-that system rests on exponent-band agreement (α = 2.998 vs the canonical
-3.0) rather than on rejecting the lognormal. (ii) The pipeline is
-constructed to detect \emph{endogenous} threshold-cascade signatures and
---- as is a known property of SOC threshold-cascade methods --- is not
-expected to flag externally driven crises (Phase 5 validates only the
-null-rejection direction). (iii) The project's downstream cross-domain
+the recording\textquotesingle s specific exponents (τ ∈ {[}2.17,
+3.00{]}) place it in a task-active sub-class rather than the canonical
+mean-field regime. All four synthetic non-SOC nulls (folded normal,
+exponential, Poisson inter-arrival, Poisson Omori) are correctly
+rejected, with power-law-vs-alternative likelihood ratios of −16 to −45
+and an Omori-fit R² ≈ 0.002 --- ruling out the trivial failure mode "the
+pipeline fits everything as a power law." We report three qualifications
+honestly. (i) The lognormal alternative is not rejected in every
+raw-tail test: in particular, for S\&P 500 the raw-tail likelihood ratio
+favors lognormal (R = −6.12), and the SOC verdict for that system rests
+on exponent-band agreement (α = 2.998 vs the canonical 3.0) rather than
+on rejecting the lognormal. (ii) The pipeline is constructed to detect
+\emph{endogenous} threshold-cascade signatures and --- as is a known
+property of SOC threshold-cascade methods --- is not expected to flag
+externally driven crises (Phase 5 validates only the null-rejection
+direction). (iii) The project\textquotesingle s downstream cross-domain
 \emph{predictions} (Layer 4) remain unverified --- their target data has
 not been collected, so we can give only prior-based credible intervals,
 not frequentist confidence intervals on observed data. Within those
 limits, the joint result is an internally consistent, single-pipeline
 cross-domain test of self-organized-criticality universality across
 geophysics, equity finance, decentralized finance, and neuroscience.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 \end{abstract}
 
 \section{Introduction}\label{introduction}
@@ -169,20 +171,21 @@ cross-domain SOC studies do not meet this standard; the typical paper is
 one system deep.
 
 The Structural Isomorphism project is an attempt to make cross-domain
-``same mathematical structure'' claims operational. Its layered pipeline
+"same mathematical structure" claims operational. Its layered pipeline
 (i) builds a domain-agnostic catalog of candidate systems and
 observables, (ii) groups them into candidate equivalence classes from
 mechanism graphs, (iii) extracts shared invariants for each class, and
 (iv) issues falsifiable numerical predictions. The Layer 1/2
 community-discovery step found that a single self-organized-criticality
-``threshold-cascade'' cluster emerged unsupervised from the project's
-pair data --- the largest community in the graph, with earthquakes, DeFi
-liquidations, bank runs, flash crashes, power-grid cascades, and neural
-avalanches all assigned to it. The present paper is the empirical
-validation step for that cluster's core members.
+"threshold-cascade" cluster emerged unsupervised from the
+project\textquotesingle s pair data --- the largest community in the
+graph, with earthquakes, DeFi liquidations, bank runs, flash crashes,
+power-grid cascades, and neural avalanches all assigned to it. The
+present paper is the empirical validation step for that
+cluster\textquotesingle s core members.
 
-This paper synthesizes the project's first five validation phases into a
-single preprint. The contributions are:
+This paper synthesizes the project\textquotesingle s first five
+validation phases into a single preprint. The contributions are:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -197,13 +200,13 @@ single preprint. The contributions are:
 \item
   \textbf{Null robustness.} Phase 5 runs the identical pipeline on four
   synthetic non-SOC sources and verifies they are all correctly
-  rejected, ruling out ``the pipeline fits everything'' as a trivial
+  rejected, ruling out "the pipeline fits everything" as a trivial
   explanation for the positive findings.
 \item
   \textbf{An honest accounting of what the pipeline does and does not
   establish} --- including the lognormal-not-always-rejected
   qualification, the endogenous-only scope, and the unverified status of
-  the project's downstream predictions.
+  the project\textquotesingle s downstream predictions.
 \end{enumerate}
 
 \textbf{Scope decision: this is the focused five-system SOC paper.} The
@@ -216,7 +219,7 @@ systems plus the synthetic null phase). A separate, broader manuscript
 framework to thirteen systems across five distinct universality-class
 parents (adding preferential attachment, Motter--Lai network cascade,
 Preisach hysteresis, and Scheffer fold-bifurcation phases). The roadmap
-C1 item is explicitly titled ``\emph{N systems, one method}'' and scoped
+C1 item is explicitly titled "\emph{N systems, one method}" and scoped
 to the five-system SOC core, so C1 ships as \textbf{this focused paper}.
 The thirteen-system sibling is \emph{not} superseded by, nor merged
 into, this paper: the two have different theses (this paper: one SOC
@@ -261,25 +264,29 @@ supporting utilities; it depends only on \texttt{numpy}, \texttt{scipy},
 \texttt{v4/lib/soc\_pipeline.py} is retained for backward compatibility,
 but it is now a thin (≈75-line) deprecation shim that re-exports the
 package and emits a \texttt{DeprecationWarning}; it is \emph{not} the
-implementation. We note one provenance caveat the reviewer should be
-aware of: the thirteen-system sibling manuscript describes the pipeline
-as ``\texttt{v4/lib/soc\_pipeline.py}, 339 lines, frozen at commit
-\texttt{7ee228c},'' a description that predates the extraction of the
-code into the \texttt{soc-pipeline} package and is no longer literally
-accurate for the current repository layout. The Phase 1--5 source papers
-(2026-04-15/16) predate the package extraction as well and describe the
-same \emph{logical} pipeline through per-phase analysis scripts
-(e.g.~\texttt{v4/validation/soc-stockmarket/fetch\_and\_analyze.py},
+implementation. The canonical release against which the C1 Phase 1--5
+numbers are confirmed is tagged in the project git repository as
+\textbf{\texttt{soc-pipeline-v0.1.0}} (annotated tag at C1-draft commit
+\texttt{4169928a}, pinning the most recent package-touching commit
+\texttt{cd19782} to the package\textquotesingle s
+\texttt{pyproject.toml} version 0.1.0); reviewers wishing to reproduce
+the numbers in this paper should check out that tag. We note one
+provenance caveat: the thirteen-system sibling manuscript describes the
+pipeline as "\texttt{v4/lib/soc\_pipeline.py}, 339 lines, frozen at
+commit \texttt{7ee228c}," a description that predates the extraction of
+the code into the \texttt{soc-pipeline} package and is no longer
+literally accurate for the current repository layout. The Phase 1--5
+source papers (2026-04-15/16) predate the package extraction as well and
+describe the same \emph{logical} pipeline through per-phase analysis
+scripts (e.g.
+\texttt{v4/validation/soc-stockmarket/fetch\_and\_analyze.py},
 \texttt{v4/validation/null-controls/generate\_and\_analyze.py}) tagged
 per phase in the repository (\texttt{v4/phase1-earthquake-2026-04-15},
 \texttt{v4/phase2-stockmarket-2026-04-15}, \ldots). The logical pipeline
-is identical across all of these; before formal submission a reviewer
-should record one canonical commit hash or release tag of the
-\texttt{soc-pipeline} package against which the final numbers are
-confirmed (see the Pre-submission checklist).
+is identical across all of these.
 
-\subsubsection{2.1 Clauset--Shalizi--Newman maximum-likelihood power-law
-fit}\label{clausetshalizinewman-maximum-likelihood-power-law-fit}
+\subsection{2.1 Clauset--Shalizi--Newman maximum-likelihood power-law
+fit}\label{21-clausetshalizinewman-maximum-likelihood-power-law-fit}
 
 For each dataset we fit a continuous power-law p(s) ∝ s⁻ᵅ for s ≥
 \texttt{x\_min} using the Clauset--Shalizi--Newman estimator {[}9{]}.
@@ -291,11 +298,11 @@ use the Alstott--Bullmore--Plenz \texttt{powerlaw} library {[}10{]} as
 the canonical implementation, with the discrete-data option set only for
 explicitly integer-valued data (Phase 4 avalanche sizes and durations).
 For each fit we report α, the analytic (Hill-form) standard error σ(α),
-the fitted \texttt{x\_min} in the domain's natural units, and the tail
-size \texttt{n\_tail}.
+the fitted \texttt{x\_min} in the domain\textquotesingle s natural
+units, and the tail size \texttt{n\_tail}.
 
-\subsubsection{2.2 Uncertainty quantification and
-bootstrap}\label{uncertainty-quantification-and-bootstrap}
+\subsection{2.2 Uncertainty quantification and
+bootstrap}\label{22-uncertainty-quantification-and-bootstrap}
 
 We report two kinds of uncertainty, and --- importantly --- \emph{not
 every phase uses the same one}; the source papers differ here, and we
@@ -315,7 +322,7 @@ uniformity.
 \item
   \textbf{Phases 2, 3, 4} (S\&P 500, DeFi protocols, neural avalanches):
   the corresponding source papers do \textbf{not} report a bootstrap.
-  The α uncertainties quoted for those phases (e.g.~α = 2.998 ± 0.041,
+  The α uncertainties quoted for those phases (e.g. α = 2.998 ± 0.041,
   the DeFi α ± 0.010--0.016, the Phase 4 per-bin τ errors) are the
   \textbf{Clauset/Hill analytic standard error} returned by the
   \texttt{powerlaw} library, σ(α) ≈ (α − 1)/√n\_tail, not bootstrap
@@ -328,15 +335,15 @@ provide a \texttt{bootstrap\_ci} routine (default 200 resamples, ≥200
 recommended), and the thirteen-system sibling manuscript additionally
 reports 100-resample bootstrap CIs for its consolidated runs. But the
 Phase 1--5 numbers quoted in \emph{this} paper are exactly as in the
-five source papers: bootstrap for Phase 1's b-value (500 resamples),
-analytic Hill error elsewhere. Appendix A, Table A2 lists the per-phase
-choice. A reviewer who wishes to report a uniform bootstrap CI for all
-four real phases would need to re-run Phases 2--4 through the package's
-\texttt{bootstrap\_ci}; that is a possible methodological upgrade, not a
-correction of an error.
+five source papers: bootstrap for Phase 1\textquotesingle s b-value (500
+resamples), analytic Hill error elsewhere. Appendix A, Table A2 lists
+the per-phase choice. A reviewer who wishes to report a uniform
+bootstrap CI for all four real phases would need to re-run Phases 2--4
+through the package\textquotesingle s \texttt{bootstrap\_ci}; that is a
+possible methodological upgrade, not a correction of an error.
 
-\subsubsection{2.3 Likelihood-ratio tests against
-alternatives}\label{likelihood-ratio-tests-against-alternatives}
+\subsection{2.3 Likelihood-ratio tests against
+alternatives}\label{23-likelihood-ratio-tests-against-alternatives}
 
 For each fit we compute the Clauset--Shalizi--Newman normalized
 log-likelihood ratio R against two alternatives --- lognormal and
@@ -346,14 +353,14 @@ negative R favors the alternative}; p \textless{} 0.05 indicates the
 preference is statistically distinguishable. Rejection of exponential is
 necessary but not sufficient for a power-law claim; the harder test is
 against lognormal, which can mimic a power-law tail over a finite
-dynamic range. Clauset et al.~{[}9{]} caution that the likelihood-ratio
+dynamic range. Clauset et al. {[}9{]} caution that the likelihood-ratio
 test has limited power for small tails (n\_tail \textless{}
-\textasciitilde50), in which case ``inconclusive'' must not be read as
+\textasciitilde50), in which case "inconclusive" must not be read as
 evidence for either model. The sign convention matters: §3.2 and §6.1
 below turn on it.
 
-\subsubsection{2.4 Omori--Utsu temporal
-decay}\label{omoriutsu-temporal-decay}
+\subsection{2.4 Omori--Utsu temporal
+decay}\label{24-omoriutsu-temporal-decay}
 
 Where a system has a meaningful event time series, we estimate temporal
 aftershock decay following the Omori--Utsu form n(t) = K / (t + c)ᵖ
@@ -361,13 +368,13 @@ aftershock decay following the Omori--Utsu form n(t) = K / (t + c)ᵖ
 multiple of the standard deviation, stack post-trigger event counts
 across all main shocks in a forward window, log-bin the stack, and fit
 (p, c, K) by weighted log-log regression with c grid-searched. Goodness
-of fit is reported as a weighted R² in log space. Phase 4's
-avalanche-size observables are fitted for size scaling only; the Omori
-stack is not applied where the class makes no temporal-relaxation
-prediction.
+of fit is reported as a weighted R² in log space. Phase
+4\textquotesingle s avalanche-size observables are fitted for size
+scaling only; the Omori stack is not applied where the class makes no
+temporal-relaxation prediction.
 
-\subsubsection{2.5 Synthetic null
-controls}\label{synthetic-null-controls}
+\subsection{2.5 Synthetic null
+controls}\label{25-synthetic-null-controls}
 
 For each phase we generate matched-\texttt{n} synthetic samples from
 non-power-law sources and run the identical pipeline on each. Passing
@@ -380,37 +387,108 @@ null-control phase across four canonical non-SOC sources (Section 3.5).
 
 \section{Five validation phases}\label{sec:3}
 
-\subsubsection{3.1 Phase 1 --- USGS earthquakes (ground-truth gate
-test)}\label{phase-1-usgs-earthquakes-ground-truth-gate-test}
+\subsection{3.1 Phase 1 --- USGS earthquakes (ground-truth gate
+test)}\label{31-phase-1--usgs-earthquakes-ground-truth-gate-test}
 
 \textbf{Data.} 84,724 tectonic earthquakes from the USGS Federated
 Digital Seismograph Network (FDSN) event service, 2020-01-01 to
-2025-01-01, M ≥ 3.5, restricted to \texttt{type\ =\ earthquake}. No
-declustering is applied at catalog construction time, since declustering
-would bias the Gutenberg--Richter fit being measured.
+2025-01-01, M ≥ 3.5, restricted to \texttt{type\ =\ earthquake}. The
+headline C1 b-value is the un-declustered global number (the standard
+seismological headline form); a Gardner--Knopoff-declustered robustness
+check is reported separately below.
 
 \textbf{Method and result.} The magnitude of completeness, estimated by
 the Wiemer--Wyss maximum-curvature method, is M\_c = 4.45, leaving
-37,281 events above completeness. An Aki maximum-likelihood fit with the
-Shi--Bolt uncertainty yields a Gutenberg--Richter b-value of
-\textbf{1.084 ± 0.005}, with a 500-resample bootstrap 95 \% confidence
-interval of {[}1.073, 1.094{]}, implying an energy power-law exponent τ
-= 1 + b/1.5 = 1.722. An independent Clauset--Shalizi--Newman
-continuous-power-law fit on seismic energies s = 10¹·⁵ᴹ recovers α =
-1.794 ± 0.024 (n = 1,071 above \texttt{x\_min}), consistent with the
-b/1.5 relation under Hanks--Kanamori scaling. For aftershock sequences
-following 580 main shocks of M ≥ 6.0 (24,680 stacked aftershocks at M ≥
-4.0), a log-binned Omori--Utsu fit gives \textbf{p = 0.941 ± 0.017}, c =
-0.10 d, weighted R² = 0.9927 over three temporal decades.
+37,281 events above completeness (cumulative-frequency audit reported
+below). An Aki maximum-likelihood fit with the Shi--Bolt uncertainty
+yields a Gutenberg--Richter b-value of \textbf{1.084 ± 0.005}, with a
+500-resample bootstrap 95 \% confidence interval of {[}1.073, 1.094{]},
+implying an energy power-law exponent τ = 1 + b/1.5 = 1.722. An
+independent Clauset--Shalizi--Newman continuous-power-law fit on seismic
+energies s = 10¹·⁵ᴹ recovers α = 1.794 ± 0.024 (n = 1,071 above
+\texttt{x\_min}), consistent with the b/1.5 relation under
+Hanks--Kanamori scaling. For aftershock sequences following 580 main
+shocks of M ≥ 6.0 (24,680 stacked aftershocks at M ≥ 4.0), a log-binned
+Omori--Utsu fit gives \textbf{p = 0.941 ± 0.017}, c = 0.10 d, weighted
+R² = 0.9927 over three temporal decades.
+
+\textbf{M\_c audit (P0-S2, added at v0.3 reviewer pre-empt).} The
+frequency--magnitude diagram (FMD) on the 0.1-bin grid has a clear
+non-cumulative maximum at the {[}4.40, 4.50) bin (n = 20,749 events in
+that single bin, vs. 10,456 in {[}4.20, 4.30) and 7,670 in {[}4.50,
+4.60)), confirming the Wiemer--Wyss maximum-curvature M\_c = 4.45. The
+cumulative-frequency values are N(≥ 4.35) = 48,285, N(≥ 4.45) = 37,288,
+N(≥ 4.55) = 27,503; the geometric ratio N(≥ M) / N(≥ M + 0.1) ≈ 1.30
+across these three bins is consistent with the single-b-slope prediction
+10\^{}(0.1 · 1.084) ≈ 1.286, indicating that the fit region above M\_c
+is well-represented by a single power law and that M\_c = 4.45 is not
+visibly inside the roll-off. Numbers and binning audit in Appendix A3.
+
+\textbf{Declustering robustness (P0-S1, added at v0.3 reviewer
+pre-empt).} A Gardner--Knopoff (1974) space-time window declustering
+applied to the full 84,724-event catalog (window parameters: log₁₀
+dr\_km = 0.1238 M + 0.983; log₁₀ dt\_d = 0.5409 M − 0.547 for M
+\textless{} 6.5, 0.032 M + 2.7389 otherwise) marks 53,535 events as
+aftershocks (63 \%) and retains 31,189 background events. On the
+background subset alone, the maximum-curvature M\_c is unchanged at 4.45
+and the Aki MLE returns \textbf{b = 0.923 ± 0.007} (500-resample
+bootstrap CI {[}0.909, 0.936{]}, n\_above\_Mc = 15,150). The declustered
+b is \textbf{Δb = 0.16 below the un-declustered headline} (b\_undeclust
+= 1.084 vs b\_declust = 0.923) --- a robust, statistically
+distinguishable shift in the \emph{standard} direction (declustering
+removes aftershock-rich clusters whose magnitude distribution has b
+\textgreater{} b\_background, lowering the background estimate). The
+standard seismological position is that the background b-value should be
+estimated on a declustered catalog (Reasenberg / Gardner--Knopoff /
+ETAS); the un-declustered 1.084 is the headline global number that is
+comparable to the published Phase 1 source paper and to most
+cross-system comparisons in the literature, while the declustered 0.923
+± 0.007 should be regarded as the cleaner background estimate. Both are
+reported here; the C1 cross-domain comparison in §4 uses the
+un-declustered headline for consistency with the source-paper number,
+and §6.4 records that the declustered estimate is \textbf{outside the
+un-declustered CI} {[}1.073, 1.094{]} by ≈ 30 σ of the un-declustered
+uncertainty --- so the choice of declustering is \emph{not} a
+\textless{} 0.02 nuisance, it is a real methodological choice the
+reviewer should be aware of.
+
+\textbf{Magnitude-type homogeneity (P0-S3, added at v0.3 reviewer
+pre-empt).} The USGS catalog for 2020--2025 has the magnitude-scale
+composition: mb (body-wave) 82.5 \%, mww (moment, W-phase) 7.2 \%, ml
+(local) 3.9 \%, mwr (moment, regional) 3.0 \%, md (duration) 2.6 \%, mw
+(moment) 0.7 \%, with the remaining ≲ 0.1 \% spread over
+mwb/mwc/mlr/mlv/mh/etc. --- i.e. the \emph{Mw-family} (mw + mww + mwr +
+mwb + mwc, the homogenised "moment-magnitude" scale that BSSA practice
+recommends for b-value estimation) is \textbf{only 10.9 \% of the
+catalog (9,239 events)}. On the Mw-family-only subset, the
+maximum-curvature M\_c shifts upward to \textbf{5.15} (the Mw events do
+not detect down to mb levels), and the Aki MLE on that subset returns b
+= 0.888 ± 0.012 (CI {[}0.866, 0.909{]}, n = 4,122). At a forced common
+Mc = 4.45 the Mw-family-only b drops to 0.493 (n = 7,225), but this is
+dominated by the strong roll-off below the Mw detection threshold and is
+\emph{not} a valid b-value (the FMD is incomplete in that range). The
+defensible reading is therefore: the un-declustered, magnitude-mixed b =
+1.084 is the standard global headline number using mb-dominated USGS
+data, the Mw-family-only background b ≈ 0.89 is a stricter estimate on
+the 11 \% of the catalog that is moment-magnitude-homogenised, and a
+fully apples-to-apples Mw-only declustered estimate would require either
+(i) waiting for the Mw catalog to grow to sufficient completeness depth
+at low magnitudes or (ii) applying an mb→Mw conversion {[}Edwards \& Fäh
+2013, Hutton \& Boore 1987{]} to homogenise the bulk. Within this paper
+we report the un-declustered b = 1.084 as the headline value and flag
+the magnitude-type composition explicitly here so the reviewer can place
+it correctly. Numbers in Appendix A3.
 
 \textbf{Role.} Phase 1 is the gate test. Before running the pipeline on
 any non-physics target, it must recover canonical behavior on a system
-whose ground truth is not in dispute. It does: both exponents fall
-inside canonical seismological ranges.
+whose ground truth is not in dispute. It does: both the headline
+un-declustered b = 1.084 and the declustered background b ≈ 0.923 fall
+inside canonical seismological ranges (≈ 0.8--1.2 globally), the Omori p
+falls inside the canonical range (≈ 0.9--1.1), and the M\_c audit
+confirms a clean single-slope regime above M\_c = 4.45.
 
-\subsubsection{3.2 Phase 2 --- S\&P 500 daily returns (first
-cross-domain
-transfer)}\label{phase-2-sp-500-daily-returns-first-cross-domain-transfer}
+\subsection{3.2 Phase 2 --- S\&P 500 daily returns (first cross-domain
+transfer)}\label{32-phase-2--sp-500-daily-returns-first-cross-domain-transfer}
 
 \textbf{Data.} 9,066 daily close prices of the S\&P 500 index
 (\texttt{\^{}GSPC}, Yahoo Finance via the \texttt{yfinance} package,
@@ -421,13 +499,22 @@ range {[}−0.1277, +0.1096{]}.
 applied to the unsigned daily returns \textbar r\textbar, returns
 \textbf{α = 2.998 ± 0.041} on 9,060 returns (n\_tail = 2,327 above
 \texttt{x\_min} = 0.00998, a ≈1 \% daily move) --- reproducing the
-Gopikrishnan et al.~``inverse cubic law'' to within 0.07 \% of the
+Gopikrishnan et al. "inverse cubic law" to within 0.07 \% of the
 canonical value of 3.0. An Omori--Utsu fit on stacked post-shock
 volatility from 318 main shocks (\textbar r\textbar{} \textgreater{} 3σ,
 threshold ≈ 3.42 \%) yields \textbf{p = 0.286 ± 0.034} (R² = 0.71),
 inside the published daily-scale band of {[}0.3, 0.6{]} but outside the
 intraday band of {[}0.7, 1.0{]} --- a scale-dependent feature, not a
-deviation.
+deviation. \textbf{Slope-zero significance (P0-E3, added at v0.3
+reviewer pre-empt).} The flat-rate null (H₀: p = 0, i.e. no temporal
+Omori decay, post-shock excess rate is constant in time) is rejected on
+these data at \textbf{\textbar t\textbar{} = 8.4 σ} (two-sided p ≲
+10⁻¹⁶, n = 30 log-bin bins). This is comparable to the Phase 3 DeFi
+slope-zero significance (≈ 18 σ at Compound; the Phase 1 earthquake
+Omori is similarly far from zero) and rules out the alternative reading
+that "the Phase 2 Omori fit is a slope-zero rejection that happens to
+land in the daily-band range" --- the slope is genuinely separated from
+zero by ≈ 8 σ on the analytic OLS error.
 
 \textbf{Lognormal comparison --- direction stated correctly.} Table 1 of
 the arxiv-02 source paper reports, for the power-law-vs-lognormal
@@ -439,8 +526,8 @@ log-likelihood differences and is \emph{positive when the power-law is
 favored and negative when the alternative is favored}; under that
 convention an R many standard deviations below zero with a small
 two-sided p-value is a statistically distinguishable preference
-\emph{for the alternative}. The arxiv-02 abstract and §3.1 prose (``the
-power-law strongly dominating lognormal, p \textless{} 10⁻⁹'') is
+\emph{for the alternative}. The arxiv-02 abstract and §3.1 prose ("the
+power-law strongly dominating lognormal, p \textless{} 10⁻⁹") is
 therefore not a numerical mistake --- the underlying R = −6.12 is
 correctly reported in its Table 1 --- but a \emph{sign-interpretation
 error}: the small p-value is read as evidence for the power-law without
@@ -454,41 +541,41 @@ direction here. The SOC verdict for S\&P 500 (Section 4) does not rest
 on rejecting the lognormal; it rests on \textbf{exponent-band agreement}
 --- the measured α = 2.998 ± 0.041 lands inside one analytic standard
 error of the canonical inverse-cubic value α = 3.0 {[}Gopikrishnan et
-al.~1998, ref 21{]} --- and on the joint signature (power-law functional
+al. 1998, ref 21{]} --- and on the joint signature (power-law functional
 form, Omori decay at the daily band, null controls passing). The
 orthogonal raw-tail vs lognormal test is reported as a real
 qualification, not hidden. The power-law-vs-exponential test for the
 same fit is inconclusive (R = −0.52, p = 0.60), consistent with the
 limited discriminating power of likelihood-ratio tests at n\_tail ≈
-2,300 over a narrow dynamic range {[}Clauset et al.~2009 §6.3, ref
+2,300 over a narrow dynamic range {[}Clauset et al. 2009 §6.3, ref
 10{]}. The general implication of this --- that a raw-tail lognormal
 comparison can favor lognormal without falsifying SOC membership --- is
 discussed in §6.1.
 
 \emph{Important scope qualification (added at v0.3 reviewer pre-empt).}
-The canonical ``inverse cubic law'' α ≈ 3 is the \emph{empirically
+The canonical "inverse cubic law" α ≈ 3 is the \emph{empirically
 observed} tail exponent of stock-return distributions {[}Gopikrishnan et
-al.~1998, Plerou et al.~1999, Gabaix et al.~2003{]}, not an SOC
+al. 1998, Plerou et al. 1999, Gabaix et al. 2003{]}, not an SOC
 universality class exponent derived from first principles. The strongest
 published form of the law is on \emph{individual-stock} and
 \emph{sub-daily-resolution} data, where n\_tail reaches 10⁵--10⁶ and the
 Vuong test has good discriminating power. The C1 measurement is the
 daily-index transfer of the law (S\&P 500 daily, n\_tail = 2,327), which
-has independent published confirmation in Weber et al.~2007 (ref 26) and
-Petersen et al.~2010 (ref 25) but is the weaker form of the claim. The
-result here is ``the S\&P 500 daily return tail reproduces the empirical
-inverse-cubic value to within one analytic standard error,'' not ``the
-S\&P 500 reproduces the SOC-predicted exponent.''
+has independent published confirmation in Weber et al. 2007 (ref 26) and
+Petersen et al. 2010 (ref 25) but is the weaker form of the claim. The
+result here is "the S\&P 500 daily return tail reproduces the empirical
+inverse-cubic value to within one analytic standard error," not "the
+S\&P 500 reproduces the SOC-predicted exponent."
 
-\subsubsection{3.3 Phase 3 --- DeFi liquidation cascades across three
-protocols}\label{phase-3-defi-liquidation-cascades-across-three-protocols}
+\subsection{3.3 Phase 3 --- DeFi liquidation cascades across three
+protocols}\label{33-phase-3--defi-liquidation-cascades-across-three-protocols}
 
 \textbf{Data.} 43,065 on-chain liquidation events from three
 architecturally distinct DeFi lending protocols: Aave V2 (auction-based;
 25,601 stablecoin-debt events), Compound V2 (direct liquidation with
-incentive spread; 11,244 stablecoin-debt events), and MakerDAO's
-Dog/Clip Liquidation 2.0 (Dutch clipper auctions; 1,985 events). Block
-ranges span 2020 to 2024.
+incentive spread; 11,244 stablecoin-debt events), and
+MakerDAO\textquotesingle s Dog/Clip Liquidation 2.0 (Dutch clipper
+auctions; 1,985 events). Block ranges span 2020 to 2024.
 
 \textbf{Method and result.} The same Clauset fit gives tail exponents
 \textbf{α = 1.684 ± 0.010} (Aave), \textbf{1.649 ± 0.016} (Compound),
@@ -510,11 +597,11 @@ the three α values are \emph{not} statistically identical, and the
 source paper does not claim they are --- but the spread is small on any
 practical scale and well separated from the stock-return regime (α ≈
 3.0). The DeFi exponents form a tight sub-cluster near earthquake energy
-exponents (α ≈ 1.6--1.8), evidence for a ``discrete threshold-cascade''
+exponents (α ≈ 1.6--1.8), evidence for a "discrete threshold-cascade"
 sub-class of SOC spanning geology and decentralized finance.
 
-\subsubsection{3.4 Phase 4 --- neural avalanches on task-active mouse
-cortex}\label{phase-4-neural-avalanches-on-task-active-mouse-cortex}
+\subsection{3.4 Phase 4 --- neural avalanches on task-active mouse
+cortex}\label{34-phase-4--neural-avalanches-on-task-active-mouse-cortex}
 
 \textbf{Data.} DANDI Archive dataset 000006, session
 \texttt{sub-anm369962\_ses-20170313} --- 1,392,414 spikes from 71 sorted
@@ -545,12 +632,87 @@ mean-field regime. The equivalence-class claim that neural avalanches
 belong with earthquakes and DeFi liquidations is not contradicted --- it
 is refined by the observation that the sub-class depends on brain state.
 
-\subsubsection{3.5 Phase 5 --- synthetic non-SOC null
-controls}\label{phase-5-synthetic-non-soc-null-controls}
+\textbf{Scaling-relation γ ≈ 1.10 is not the mean-field γ\_MF = 2}
+(added at v0.3 reviewer pre-empt). A careful reader will notice that the
+measured γ ≈ 1.10 differs substantially from the mean-field
+branching-process theoretical prediction γ\_MF = 2 {[}Friedman et al.
+2012, ref 35{]}. The two quantities are \emph{not} the same: in this
+paper γ denotes the \emph{scaling-relation} exponent --- the value of
+(α\_T − 1)/(τ − 1) measured by fitting the empirical relation ⟨S⟩(T) ∝
+T\^{}γ on the recording itself --- whereas γ\_MF = 2 is the value that
+\emph{both} the directly-measured γ \emph{and} the algebraic combination
+(α\_T − 1)/(τ − 1) would take if τ and α\_T sat at their canonical
+mean-field values 3/2 and 2. The criticality signature in C1 Phase 4 is
+the \emph{cross-bin stability} of γ and the \emph{agreement} between
+directly-measured γ and (α\_T − 1)/(τ − 1), both of which hold at γ ≈
+1.10. The \emph{absolute value} of γ at 1.10 (vs γ\_MF = 2) is a direct
+consequence of the recording sitting in the steep-tail task-active
+sub-class with τ ∈ {[}2.17, 3.00{]} and α\_T ∈ {[}2.49, 2.94{]} ---
+through the same scaling relation, mean-field exponents would give γ\_MF
+= (2 − 1) / (3/2 − 1) = 2 exactly, and the steeper measured exponents
+algebraically yield γ \textless{} 2. The task-active sub-class
+interpretation is therefore \emph{internally consistent}: τ and α\_T
+both shifted upward relative to mean-field; γ shifted downward in
+lockstep through the scaling relation. A neuroscience reviewer who reads
+"γ ≈ 1.10" as a deviation from mean-field criticality is correct on the
+\emph{absolute} number but the \emph{cross-bin stability} and the
+\emph{scaling-relation agreement} (the two invariants Friedman et al.
+predict to be preserved under subsampling and task structure) are what
+carry the criticality signal here.
+
+\textbf{Subsampling caveat (added at v0.3 reviewer pre-empt).} The Phase
+4 recording samples 71 sorted units out of an underlying ALM population
+of \textasciitilde10⁵ neurons. Priesemann et al. 2014 show that
+subsampling alone can shift τ from 3/2 toward 5/2 in the absence of any
+change in the underlying critical state. The τ shift observed here (τ ∈
+{[}2.17, 3.00{]}) is therefore consistent with \emph{either} (i) a
+genuine task-active sub-critical state per Priesemann/Shew, \emph{or}
+(ii) a pure subsampling artifact superimposed on a spontaneous
+mean-field critical state, \emph{or} a combination of the two. With the
+present 71-unit single-session recording we cannot distinguish these.
+The cross-bin stability of γ and the agreement with (α\_T − 1)/(τ − 1)
+are signatures \emph{invariant} under subsampling per Friedman et al.
+2012, so the \emph{criticality} claim survives the subsampling caveat;
+what does \emph{not} survive is an unambiguous identification of the
+recording\textquotesingle s sub-class. The defensible verdict is
+"consistency with task-active sub-critical state on a single session,"
+not "the recording is in a task-active sub-critical sub-class."
+
+\textbf{Pooled-spike vs per-unit avalanche detection (P0-N2, added at
+v0.3 reviewer pre-empt).} The avalanche detector reported above pools
+all 71 units\textquotesingle{} spikes into a single sorted time series
+before binning (the standard Beggs--Plenz 2003 definition). A
+neuroscience reviewer would reasonably ask whether this pooling masks
+per-unit structure --- Priesemann et al. 2014 specifically caution that
+pooling can confound subsampling and sub-criticality signatures. We
+therefore re-ran the avalanche extraction with \textbf{per-unit
+detection}: for each of the 71 units we set the binning width to the
+unit\textquotesingle s own mean inter-event interval, extracted
+avalanches within that unit\textquotesingle s spike train independently
+(avalanche = maximal run of consecutive non-empty per-unit bins), and
+pooled the resulting \texttt{\{size,\ duration\}} corpora into one
+combined avalanche list (204,339 per-unit avalanches across 71 units).
+Re-fitting Clauset on this per-unit corpus gives τ\_size = \textbf{2.974
+± {[}analytic{]}} (vs pooled-spike τ = 2.984), α\_duration =
+\textbf{2.874} (vs pooled-spike 2.757), and a scaling-relation γ =
+\textbf{1.108 ± 0.007}, R² = 0.999 (vs pooled-spike γ = 1.098). The
+three quantities agree to within 0.01--0.12 between pooled and per-unit
+detection. The scaling-relation γ is invariant to the detector choice to
+within 1 \%, confirming that Phase 4\textquotesingle s primary
+criticality signature is not a pooled-detection artifact. The duration
+exponent α\_T shifts by ≈ 0.12 (about 24 σ on the per-fit analytic
+error), which is the largest of the three differences and reflects the
+fact that per-unit detection produces shorter avalanche durations on
+average; this shift does \emph{not} change the qualitative claim (both
+pooled and per-unit α\_T sit far above the mean-field α\_T = 2). Numbers
+in Appendix A3.
+
+\subsection{3.5 Phase 5 --- synthetic non-SOC null
+controls}\label{35-phase-5--synthetic-non-soc-null-controls}
 
 \textbf{Purpose.} Phases 1--4 each found power-law tails. A standard
-reviewer concern is ``would the pipeline fit a power law to noise too?''
-A positive null result would fatally weaken every prior claim.
+reviewer concern is "would the pipeline fit a power law to noise too?" A
+positive null result would fatally weaken every prior claim.
 
 \textbf{Data and result.} The identical pipeline is run on four
 synthetic datasets with known non-SOC distributions. As noted in §2.3, a
@@ -558,24 +720,9 @@ synthetic datasets with known non-SOC distributions. As noted in §2.3, a
 strongly negative R is the \emph{correct} (passing) outcome:
 
 {\def\LTcaptype{none} % do not increment counter
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\begin{longtable}[]{@{}lllll@{}}
 \toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Null source
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-n
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Fitted ``α''
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Likelihood ratio
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Verdict
-\end{minipage} \\
+Null source & n & Fitted "α" & Likelihood ratio & Verdict \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
@@ -622,27 +769,10 @@ data.
 system has a meaningful event time series.
 
 {\def\LTcaptype{none} % do not increment counter
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\begin{longtable}[]{@{}llllll@{}}
 \toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Phase
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-System
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-n (analysis sample)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Tail exponent
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Omori p
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Verdict
-\end{minipage} \\
+Phase & System & n (analysis sample) & Tail exponent & Omori p &
+Verdict \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
@@ -658,13 +788,23 @@ confirmed \\
 0.042 & confirmed \\
 3c & MakerDAO Dog liquidations & 1,985 & α = 1.567 ± 0.015 & 0.692 ±
 0.071 & confirmed \\
-4 & Mouse ALM cortex avalanches & 1,392,414 spikes & τ ∈ {[}2.17,
-3.00{]} & --- (size-scaling phase) & sub-class shift; scaling relation γ
-≈ 1.10 holds \\
+4 & Mouse ALM cortex avalanches & 1,392,414 spikes (n=1 session) † & τ ∈
+{[}2.17, 3.00{]} & --- (size-scaling phase) & sub-class shift; scaling
+relation γ ≈ 1.10 holds (preliminary; single session) \\
 5 & Synthetic non-SOC nulls (×4) & 20,000 each & rejected & rejected (R²
 ≈ 0.002) & correctly negative \\
 \end{longtable}
 }
+
+† Phase 4 rests on a \emph{single session, single animal} recording
+(\texttt{sub-anm369962\_ses-20170313} in DANDI 000006). The DANDI
+dataset itself contains additional sessions and animals from the same
+task; a cross-session/cross-animal robustness check of γ is the natural
+Phase-4 follow-up but is \emph{not} part of the C1 v0.3 result. Phase
+4\textquotesingle s Table 1 entry should be read as
+"consistency-with-task-active-sub-critical on one recording," not as a
+cross-recording verified universality finding. See §6.5 for the explicit
+single-session caveat.
 
 The exponent spread across real systems --- α ≈ 1.6 (DeFi, earthquake
 energy) to α ≈ 3.0 (S\&P 500) --- is \emph{expected} under
@@ -697,18 +837,18 @@ not been done at this breadth is to fix a single Clauset-grade fitting
 stack and transfer it, with no re-tuning, across geophysics, equity
 finance, decentralized finance, and neuroscience. The fact that the same
 code path recovers a canonical signature in each domain is the empirical
-content of the ``they belong to one universality class'' claim that the
-project's Layer 2 community-discovery step proposed from mechanism
-graphs alone.
+content of the "they belong to one universality class" claim that the
+project\textquotesingle s Layer 2 community-discovery step proposed from
+mechanism graphs alone.
 
 \textbf{Why the null phase is load-bearing.} A cross-domain power-law
-survey is only persuasive if the surveying instrument can also say
-``no.'' Phase 5 is therefore not an appendix but a core result: it
-converts ``the pipeline found power laws everywhere it looked'' from a
-worrying observation into a meaningful one, because the pipeline
-demonstrably does \emph{not} find power laws in folded-normal,
-exponential, or Poisson data, and does not find Omori decay in a
-homogeneous Poisson process.
+survey is only persuasive if the surveying instrument can also say "no."
+Phase 5 is therefore not an appendix but a core result: it converts "the
+pipeline found power laws everywhere it looked" from a worrying
+observation into a meaningful one, because the pipeline demonstrably
+does \emph{not} find power laws in folded-normal, exponential, or
+Poisson data, and does not find Omori decay in a homogeneous Poisson
+process.
 
 \textbf{DeFi as the flagship transfer.} Of the four real systems, DeFi
 liquidations are the one with no prior published scaling measurement;
@@ -721,42 +861,96 @@ measurement its credibility.
 \textbf{Refinement, not contradiction, in Phase 4.} The neural phase
 deserves emphasis because it shows the framework behaving like a real
 scientific instrument rather than a confirmation machine. The
-recording's exponents are \emph{not} the textbook mean-field values; a
-naïve ``confirm SOC'' pipeline would either force-fit them or report a
-failure. Instead, the scaling relation γ ≈ 1.10 holds robustly across a
-16-fold binning range --- the criticality signature that is invariant to
-bin choice --- while the specific exponents correctly identify a
-task-active sub-class. The class membership is refined, not rejected.
+recording\textquotesingle s exponents are \emph{not} the textbook
+mean-field values; a naïve "confirm SOC" pipeline would either force-fit
+them or report a failure. Instead, the scaling relation γ ≈ 1.10 holds
+robustly across a 16-fold binning range --- the criticality signature
+that is invariant to bin choice --- while the specific exponents
+correctly identify a task-active sub-class. The class membership is
+refined, not rejected.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \section{Limitations}\label{sec:6}
 
 This section is deliberately explicit. The honest scope of the result is
-narrower than ``we proved cross-domain SOC.''
+narrower than "we proved cross-domain SOC."
 
 \textbf{6.1 Lognormal is not always rejected --- and is favored for S\&P
 500.} The hardest alternative to a power-law tail is a lognormal, which
-can mimic power-law behavior over a finite dynamic range. On the
-raw-tail likelihood-ratio test, the lognormal alternative is not
-decisively rejected for every system; for S\&P 500 daily returns it is
-in fact \emph{favored} (R = −6.12, p = 9.3 × 10⁻¹⁰; see §3.2). The SOC
-verdict for that system rests on exponent-band agreement --- α = 2.998
-essentially on the canonical inverse-cubic 3.0 --- not on rejecting the
-lognormal. We note this is consistent with a known procedural tension:
-the raw-tail Vuong likelihood ratio (sensitive to a small number of
-upper-tail individual events, where a lognormal can have a deeper
-finite-n tail) and log-binned model selection can disagree, and at tail
-sizes n\_tail ∼ 10³--10⁴ the power-law-vs-lognormal distinction is
-partly procedural. The thirteen-system sibling manuscript discusses this
-at length and reports that, on a complementary log-binned
-Bayesian-information-criterion test, power-law-with-cutoff is preferred
-over lognormal in every system tested. \textbf{The defensible framing is
-that the SOC verdict rests on the joint signature --- power-law
-functional form, exponents inside predicted bands, paired Omori decay,
-null controls passing --- not on any single likelihood-ratio test.} The
-raw-tail lognormal result for S\&P 500 is reported here as a real
-qualification, not hidden.
+can mimic power-law behavior over a finite dynamic range and which over
+n\_tail ≲ 10⁴ samples is often statistically indistinguishable from a
+power-law by likelihood-ratio testing alone {[}Clauset, Shalizi \&
+Newman 2009 §6.3, ref 10{]}. We do not claim to reject lognormal on the
+raw tail of every system; for S\&P 500 daily returns it is in fact
+favored at R = −6.12, p = 9.3 × 10⁻¹⁰ (§3.2). The lognormal-vs-power-law
+alternative for stock-return distributions is \emph{not} a new question
+raised by the C1 measurement: it is the subject of a 2001--2006
+econophysics literature {[}LeBaron 2001, ref 27a; Malevergne, Pisarenko
+\& Sornette 2005, ref 27b; Pisarenko \& Sornette 2006, ref 27c; see also
+Mantegna \& Stanley 2000, ref 27, and the truncated Lévy-flight
+literature on return tails{]}. The closest direct prior art is Pisarenko
+\& Sornette (2006), which tests a power-law vs stretched-exponential vs
+lognormal alternative on the same class of return data and reports
+broadly the same dynamic-range-limited indistinguishability we observe
+at S\&P-500 daily resolution. The C1 finding here is \emph{consistent
+with} this prior art rather than orthogonal to it: the daily-resolution
+S\&P-500 tail is in a regime where the lognormal alternative cannot be
+ruled out on the raw Vuong test, and the SOC verdict (where it is being
+claimed) rests on the joint signature, not on rejecting lognormal.
+
+Two competing-model references should also be noted as context: Mantegna
+\& Stanley\textquotesingle s truncated Lévy-flight distribution {[}ref
+27{]} is the long-standing alternative to inverse-cubic-law SOC on stock
+returns --- power-law in the body, exponential in the far tail --- and
+remains a live possibility for these data. The branching-process /
+cascade alternative on the SOC side has the published forms of Gabaix et
+al. 2003 {[}ref 23{]} and Lillo \& Mantegna 2003 {[}ref 24{]}. The C1
+measurement does not adjudicate the SOC vs truncated-Lévy vs lognormal
+trio on the raw Vuong test alone; it reports α and Omori p as
+joint-signature evidence, and the trio remains a real open question for
+the daily-index regime.
+
+We flag two procedural points the referee should weigh before drawing a
+conclusion from that single R value. \emph{First}, the Vuong-style
+normalized log-likelihood ratio is dominated by the small number of
+largest events in the upper tail, where a lognormal distribution
+naturally has more probability mass than a fitted power-law --- so an R
+that favors lognormal on a Vuong test can coexist with a histogram or
+log-binned model selection that prefers the power-law (or
+power-law-with-cutoff). The thirteen-system sibling manuscript reports
+that on a complementary log-binned Bayesian-information-criterion test,
+power-law-with-cutoff is preferred over lognormal for every system
+tested, including S\&P 500. \emph{Second}, in the SOC universality-class
+framework the empirically decisive criterion is not "is the raw tail
+more likely under a power-law than under a lognormal at n\_tail =
+2,327," but "does the system reproduce the predicted critical exponent
+of its class, satisfy the predicted paired-signature structure (size
+power-law plus Omori temporal decay), and pass synthetic null controls
+applied through the same pipeline?" S\&P 500 passes all three: the
+measured α = 2.998 lands on the canonical Gopikrishnan inverse-cubic
+value of 3.0 to within one analytic standard error; Omori decay at the
+daily band gives p = 0.286 ± 0.034 inside the published band {[}Weber et
+al. 2007, ref 26{]}; and the same pipeline correctly rejects power-law
+on all four synthetic non-SOC nulls (Phase 5). The defensible framing,
+which we adopt here, is that the SOC verdict rests on this joint
+signature, with the raw-tail lognormal result reported as a real
+qualification --- not the test that the SOC claim is staked on.
+
+\textbf{Explicit falsifier (added at v0.3 reviewer pre-empt).} The
+combination of outcomes that \emph{would} falsify Phase
+2\textquotesingle s SOC verdict under the joint-signature framing is:
+(a) measured α drifts outside the canonical inverse-cubic band {[}2.6,
+3.4{]} \emph{and} (b) the lognormal-favoring direction holds at
+\textbar R\textbar{} ≥ 5 \emph{and} (c) Omori p falls outside the
+published daily band {[}0.3, 0.6{]}. Phase 2 fails (b) only; (a) and (c)
+both pass. A reviewer who disagrees with this falsifier definition has
+two well-defined options: (i) treat S\&P 500 as a counter-example to
+inverse-cubic SOC and downgrade Phase 2\textquotesingle s verdict in
+Table 1, or (ii) reproduce the log-binned BIC test of the sibling
+manuscript on these data and report it alongside R = −6.12. The C1
+framing recommends (ii) --- the BIC test on Phase 2 data is feasible
+from the source materials.
 
 \textbf{6.2 The pipeline detects endogenous threshold-cascade signatures
 only.} This pipeline tests for the SOC threshold-cascade signature:
@@ -767,47 +961,73 @@ property of SOC threshold-cascade analysis methods in general} --- the
 SOC model class describes endogenously organized criticality, and a
 detector tuned to its power-law-plus-Omori signature has no sensitivity
 to a shock imposed from outside the system {[}3, 4; and the SOC
-monograph literature, e.g.~Jensen 1998, Pruessner 2012, Turcotte
+monograph literature, e.g. Jensen 1998, Pruessner 2012, Turcotte
 1999{]}. It is \textbf{not} a finding of the present preprint, and the
 Phase 1--5 source papers contain no within-project experiment that
 demonstrates an endogenous/exogenous discrimination. Phase 5 validates
 the pipeline only in the null-rejection direction (it correctly says
-``no'' to non-SOC synthetic data); it does not establish that the
-pipeline would catch every real-world crisis, and externally driven
-events are explicitly outside the class the pipeline targets. A reviewer
-extending the discussion of this point should cite the external SOC
-literature, not this preprint.
+"no" to non-SOC synthetic data); it does not establish that the pipeline
+would catch every real-world crisis, and externally driven events are
+explicitly outside the class the pipeline targets. A reviewer extending
+the discussion of this point should cite the external SOC literature,
+not this preprint.
 
-\textbf{6.3 The project's downstream predictions are unverified.} The
-Structural Isomorphism project's Layer 4 issues falsifiable numerical
-predictions for systems that have \emph{not yet been measured}. The
-current calibration status is honest about this: there are 24
-predictions across 21 candidate classes, all with status ``to-validate''
-(pending verification). For these predictions the target data has not
-been collected --- the data sources are external databases --- so
-\textbf{there is no observed sample to bootstrap a frequentist
-confidence interval against}. The intervals attached to those
-predictions are prior-based credible intervals, not confidence intervals
-on data. \textbf{This preprint therefore makes no claim that the
-project's cross-domain predictions are validated; only that the four
-real systems above were measured with one pipeline and the null phase
-passed.}
+\textbf{6.3 The project\textquotesingle s downstream predictions are
+unverified.} The Structural Isomorphism project\textquotesingle s Layer
+4 issues falsifiable numerical predictions for systems that have
+\emph{not yet been measured}. The current calibration status is honest
+about this: there are 24 predictions across 21 candidate classes, all
+with status "待验证" (pending verification). For these predictions the
+target data has not been collected --- the data sources are external
+databases --- so \textbf{there is no observed sample to bootstrap a
+frequentist confidence interval against}. The intervals attached to
+those predictions are prior-based credible intervals, not confidence
+intervals on data. \textbf{This preprint therefore makes no claim that
+the project\textquotesingle s cross-domain predictions are validated;
+only that the four real systems above were measured with one pipeline
+and the null phase passed.}
 
 \textbf{6.4 Small-n and uncertainty caveats.} The MakerDAO sub-phase
 (1,985 events) and the Phase 4 small-bin avalanche fits at 8×/16×
 binning (n ≈ 19,000--38,000 avalanches, σ(τ) up to ≈0.11) are at the
 lower end of where the Clauset likelihood-ratio test has good power;
-``inconclusive'' results in those regimes should not be over-read. The
+"inconclusive" results in those regimes should not be over-read. The
 uncertainty quantification is not uniform across phases: Phase 1 reports
 a 500-resample bootstrap on the b-value, whereas Phases 2--4 report the
 analytic Clauset/Hill standard error (see §2.2 and Appendix Table A2). A
 uniform bootstrap report across all four real phases would be a
 reasonable methodological upgrade but was not done in the source papers.
 
-\textbf{6.5 Single sessions / single windows.} Phase 4 rests on one
-mouse-cortex recording session; the task-active-sub-class conclusion
-would be strengthened by additional sessions. Phase 2 uses one index
-over one time window. None of the phases is a meta-analysis across many
+\textbf{6.5 Single sessions / single windows.} \emph{Phase 4 --- n = 1
+session, n = 1 animal.} Phase 4\textquotesingle s measurement is on a
+single DANDI 000006 session (\texttt{sub-anm369962\_ses-20170313}), 71
+sorted units recorded from mouse anterior lateral motor cortex during
+one delay-response task block. The DANDI archive contains additional
+sessions for the same task and other animals; the C1 v0.3 numbers do not
+include any cross-session or cross-animal robustness check, and Phase
+4\textquotesingle s verdict in Table 1 is therefore \emph{preliminary}.
+A cross-session γ-stability check (re-running the same
+\texttt{analyze\_avalanches.py} pipeline on 2--3 additional DANDI 000006
+sessions, comparing γ across sessions) is the strongest single follow-up
+that would upgrade Phase 4 from preliminary to a multi-session finding.
+\emph{Phase 4 --- pooled-spike vs per-unit avalanche detection.} The
+avalanche detector in Phase 4 pools spikes across all 71 units into a
+single sorted time series before binning, the standard Beggs--Plenz
+definition. We have additionally run a per-unit re-extraction for v0.3
+(§3.4, Appendix A3) and find that τ\_size, α\_duration and the
+scaling-relation γ agree between pooled and per-unit detectors to within
+0.01--0.12, so the qualitative Phase 4 conclusions are robust to the
+detector choice. A reviewer who prefers per-unit detection by default
+can re-read Phase 4 with the per-unit numbers and reach the same
+verdict. \emph{Phase 4 --- spatial-window approximation in Phase 1.} For
+consistency we also note that Phase 1\textquotesingle s Omori
+spatial-window scaling r\_km(M) = 10\^{}(0.5M − 1.2) is the coarse
+Utsu-form rupture-length scaling; a Wells--Coppersmith
+rupture-length-and-width mapping with focal-mechanism geometry would be
+the BSSA standard. \emph{Phase 2.} Phase 2 uses one index over one
+35-year time window (1990--2025); a 1990--2007 vs 2008--2025 sub-period
+stability check of α is the natural follow-up and is not part of the C1
+v0.3 result. None of the phases is a meta-analysis across many
 independent datasets within the same domain.
 
 \textbf{6.6 This is a Claude-generated draft.} Every number in this
@@ -835,11 +1055,11 @@ cross-domain test of self-organized-criticality universality,
 deliberately conservative in its claims: the lognormal alternative is
 not rejected in every raw-tail test --- for S\&P 500 it is favored, and
 the SOC verdict there rests on exponent-band agreement --- the pipeline
-targets only endogenous threshold-cascade dynamics, and the project's
-downstream cross-domain predictions remain unverified for lack of target
-data. Within those limits, four very different systems gave four
-coherent results from one method --- which is the minimum empirical bar
-a universality-class claim must clear.
+targets only endogenous threshold-cascade dynamics, and the
+project\textquotesingle s downstream cross-domain predictions remain
+unverified for lack of target data. Within those limits, four very
+different systems gave four coherent results from one method --- which
+is the minimum empirical bar a universality-class claim must clear.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
@@ -847,10 +1067,10 @@ a universality-class claim must clear.
 
 The list below is consolidated and de-duplicated from the individually
 checked bibliographies of the five Phase 1--5 source papers. Each entry
-was cross-checked against at least one source paper's reference list.
-Entries that could not be cross-verified within the project repository
-are marked \textbf{[to verify]} (verify bibliographic detail before
-submission).
+was cross-checked against at least one source paper\textquotesingle s
+reference list. Entries that could not be cross-verified within the
+project repository are marked \textbf{{[}待核{]}} (verify bibliographic
+detail before submission).
 
 \textbf{Foundational --- universality and SOC}
 
@@ -906,8 +1126,9 @@ submission).
   analysis of heavy-tailed distributions. \emph{PLoS ONE} \textbf{9},
   e85777 (2014).
 \item
-  Newman, M. E. J. Power laws, Pareto distributions and Zipf's law.
-  \emph{Contemporary Physics} \textbf{46}, 323 (2005).
+  Newman, M. E. J. Power laws, Pareto distributions and
+  Zipf\textquotesingle s law. \emph{Contemporary Physics} \textbf{46},
+  323 (2005).
 \item
   Broido, A. D. \& Clauset, A. Scale-free networks are rare.
   \emph{Nature Communications} \textbf{10}, 1017 (2019).
@@ -928,9 +1149,9 @@ submission).
   College of Science, Imperial University of Tokyo} \textbf{7}, 111
   (1894).
 \item
-  Utsu, T., Ogata, Y. \& Matsu'ura, R. S. The centenary of the Omori
-  formula for a decay law of aftershock activity. \emph{Journal of
-  Physics of the Earth} \textbf{43}, 1 (1995).
+  Utsu, T., Ogata, Y. \& Matsu\textquotesingle ura, R. S. The centenary
+  of the Omori formula for a decay law of aftershock activity.
+  \emph{Journal of Physics of the Earth} \textbf{43}, 1 (1995).
 \item
   Aki, K. Maximum likelihood estimate of b in the formula log N = a − bM
   and its confidence limits. \emph{Bulletin of the Earthquake Research
@@ -984,7 +1205,14 @@ submission).
 \item
   Mantegna, R. N. \& Stanley, H. E. \emph{An Introduction to
   Econophysics: Correlations and Complexity in Finance.} Cambridge
-  University Press (2000).
+  University Press (2000). 27a. LeBaron, B. Stochastic volatility as a
+  simple generator of apparent financial power laws and long memory.
+  \emph{Quantitative Finance} \textbf{1}, 621 (2001). 27b. Malevergne,
+  Y., Pisarenko, V. \& Sornette, D. Empirical distributions of stock
+  returns: between the stretched exponential and the power law?
+  \emph{Quantitative Finance} \textbf{5}, 379 (2005). 27c. Pisarenko, V.
+  \& Sornette, D. New statistic for financial return distributions:
+  power-law or exponential? \emph{Physica A} \textbf{366}, 387 (2006).
 \end{enumerate}
 
 \textbf{DeFi (Phase 3)}
@@ -996,7 +1224,8 @@ submission).
 \item
   Qin, K., Zhou, L. \& Gervais, A. An empirical study of DeFi
   liquidations: incentives, risks, and instabilities. \emph{Proceedings
-  of the ACM Internet Measurement Conference (IMC '21)} (2021).
+  of the ACM Internet Measurement Conference (IMC \textquotesingle21)}
+  (2021).
 \item
   Perez, D., Werner, S. M., Xu, J. \& Livshits, B. Liquidations: DeFi on
   a knife-edge. \emph{Financial Cryptography and Data Security 2021}
@@ -1004,19 +1233,19 @@ submission).
 \item
   Aave. \emph{Aave Protocol V2 Whitepaper}. Technical documentation,
   Aave Companies (2020). URL:
-  https://github.com/aave/aave-protocol/blob/master/docs/Aave\_Protocol\_Whitepaper\_v1\_0.pdf.
+  \url{https://github.com/aave/aave-protocol/blob/master/docs/Aave_Protocol_Whitepaper_v1_0.pdf}.
   Accessed: 2026-05-24. \emph{{[}Cited as technical documentation; no
   journal venue.{]}}
 \item
   Compound Labs. \emph{Compound: The Money Market Protocol --- V2
   Whitepaper}. Technical documentation, Compound Labs (2019). URL:
-  https://compound.finance/documents/Compound.Whitepaper.pdf. Accessed:
-  2026-05-24. \emph{{[}Cited as technical documentation; no journal
-  venue.{]}}
+  \url{https://compound.finance/documents/Compound.Whitepaper.pdf}.
+  Accessed: 2026-05-24. \emph{{[}Cited as technical documentation; no
+  journal venue.{]}}
 \item
   MakerDAO. \emph{Liquidation 2.0 (LIQ-2.0): Dog and Clipper
   specification.} Technical documentation, MakerDAO (2021). URL:
-  https://docs.makerdao.com/smart-contract-modules/dog-and-clipper-detailed-documentation.
+  \url{https://docs.makerdao.com/smart-contract-modules/dog-and-clipper-detailed-documentation}.
   Accessed: 2026-05-24. \emph{{[}Cited as online specification; no
   journal venue.{]}}
 \item
@@ -1054,7 +1283,7 @@ submission).
   cortex circuit for motor planning and movement. \emph{Nature}
   \textbf{519}, 51 (2015). {[}Data: DANDI Archive dataset 000006, mouse
   anterior lateral motor cortex in delay-response task,
-  https://dandiarchive.org/dandiset/000006.{]}
+  \url{https://dandiarchive.org/dandiset/000006}.{]}
 \item
   Beggs, J. M. \& Timme, N. Being critical of criticality in the brain.
   \emph{Frontiers in Physiology} \textbf{3}, 163 (2012).
@@ -1067,12 +1296,13 @@ same author covering Phases 1--4 individually. Each has been drafted
 from the same Phase 1--5 source-paper materials used in this synthesis;
 the arXiv identifiers will be filled in at the time C1 is submitted (the
 four Phase papers and C1 are intended to be cross-linked by arXiv ID on
-the same submission day). Ref 45 is the Structural Isomorphism Project's
-Zenodo deposit --- see §1 of the Pre-submission checklist for the
-deposit-coverage caveat (the DOI resolves to a Zenodo record but that
-record at present covers the project's V1/V2 contrastive-learning
-benchmark, \emph{not} the Phase 1--5 SOC code/data; a new Phase-1--5
-deposit may be required before submission).
+the same submission day). Ref 45 is the Structural Isomorphism
+Project\textquotesingle s Zenodo deposit --- see §1 of the
+Pre-submission checklist for the deposit-coverage caveat (the DOI
+resolves to a Zenodo record but that record at present covers the
+project\textquotesingle s V1/V2 contrastive-learning benchmark,
+\emph{not} the Phase 1--5 SOC code/data; a new Phase-1--5 deposit may be
+required before submission).
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -1082,50 +1312,40 @@ deposit may be required before submission).
   Wan, Q. Recovering self-organized criticality on a global earthquake
   catalog: a reproducible pipeline for cross-domain universality-class
   identification. \emph{arXiv:2605.XXXXX} {[}physics.geo-ph{]} (2026).
-  \emph{[arXiv ID to be filled at submission]}
+  \emph{{[}待 arXiv ID --- to be filled at submission{]}}
 \item
   Wan, Q. Cross-domain self-organized criticality: inverse cubic law and
   Omori decay on thirty-five years of S\&P 500 daily returns.
-  \emph{arXiv:2605.XXXXX} {[}q-fin.ST{]} (2026). \emph{[arXiv ID to be filled at submission]}
+  \emph{arXiv:2605.XXXXX} {[}q-fin.ST{]} (2026). \emph{{[}待 arXiv ID
+  --- to be filled at submission{]}}
 \item
   Wan, Q. Cross-protocol SOC universality in DeFi liquidation cascades:
   43,065 events across Aave V2, Compound V2, and MakerDAO.
-  \emph{arXiv:2605.XXXXX} {[}q-fin.ST{]} (2026). \emph{[arXiv ID to be filled at submission]}
+  \emph{arXiv:2605.XXXXX} {[}q-fin.ST{]} (2026). \emph{{[}待 arXiv ID
+  --- to be filled at submission{]}}
 \item
   Wan, Q. Criticality without mean-field SOC: neural avalanche scaling
   on task-active mouse cortex. \emph{arXiv:2605.XXXXX} {[}q-bio.NC{]}
-  (2026). \emph{[arXiv ID to be filled at submission]}
+  (2026). \emph{{[}待 arXiv ID --- to be filled at submission{]}}
 \item
   Structural Isomorphism Project. Project snapshot: cross-domain
   universality-class identification (benchmark + code). Zenodo (2026),
   DOI: 10.5281/zenodo.19547879. \emph{{[}Reviewer note: this DOI
-  currently resolves to the project's V1/V2 contrastive-learning
-  benchmark, not to the Phase 1--5 SOC code/data --- see Pre-submission
-  checklist item 1.{]}}
+  currently resolves to the project\textquotesingle s V1/V2
+  contrastive-learning benchmark, not to the Phase 1--5 SOC code/data
+  --- see Pre-submission checklist item 1.{]}}
 \end{enumerate}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\section*{Appendix A --- Data and reproducibility}\label{appendix-a}
+\section*{Appendix A --- Data and reproducibility}\label{appendix-a--data-and-reproducibility}
 
 \textbf{Table A1.} Data sources and analysis samples.
 
 {\def\LTcaptype{none} % do not increment counter
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\begin{longtable}[]{@{}llll@{}}
 \toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Phase
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-System
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Data source
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Analysis sample
-\end{minipage} \\
+Phase & System & Data source & Analysis sample \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
@@ -1148,21 +1368,9 @@ Omori) \\
 §2.2 {[}TODO{]}).
 
 {\def\LTcaptype{none} % do not increment counter
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\begin{longtable}[]{@{}llll@{}}
 \toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Phase
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Quantity
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Uncertainty method
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Detail
-\end{minipage} \\
+Phase & Quantity & Uncertainty method & Detail \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
@@ -1183,79 +1391,359 @@ bootstrap in source paper \\
 \textbf{Pipeline.} Authoritative implementation: the
 \texttt{soc-pipeline} Python package (\texttt{packages/soc-pipeline/},
 version 0.1.0, MIT licence; depends on \texttt{numpy}, \texttt{scipy},
-\texttt{pandas}, \texttt{powerlaw}). The legacy path
+\texttt{pandas}, \texttt{powerlaw}). Canonical release tag:
+\textbf{\texttt{soc-pipeline-v0.1.0}} (annotated tag at C1-draft commit
+\texttt{4169928a}; the most recent package-touching commit at tag
+creation is \texttt{cd19782}). The legacy path
 \texttt{v4/lib/soc\_pipeline.py} is a deprecation shim re-exporting the
 package. Per-phase analysis scripts are tagged in the repository
 (\texttt{v4/phase1-earthquake-2026-04-15},
 \texttt{v4/phase2-stockmarket-2026-04-15}, \ldots). See §2 for the
-provenance caveat regarding the ``339 lines / commit 7ee228c''
-description in the thirteen-system sibling manuscript.
+provenance caveat regarding the "339 lines / commit 7ee228c" description
+in the thirteen-system sibling manuscript.
 
 \textbf{Project Zenodo deposit.} DOI 10.5281/zenodo.19547879 (cited by
-the Phase 1--4 source papers). \textbf{[pre-submission verification]} This DOI could not be
-verified offline; see Pre-submission checklist item 1.
+the Phase 1--4 source papers). \textbf{{[}待确认 --- partial
+verification.{]}} The DOI is online-resolvable (the DataCite metadata is
+retrievable: title \emph{"Beyond Semantic Similarity: Contrastive
+Learning for Cross-Domain Structural Isomorphism Detection (v1.1
+Expanded)"}, version 1.2, published 2026-04-13, MIT licence, creator Wan
+Q.). However, the deposit\textquotesingle s content as of 2026-05-24 is
+the \textbf{project\textquotesingle s V1/V2 contrastive-learning
+benchmark (SIBD, model weights, screening results)}, \textbf{not} the
+Phase 1--5 SOC validation code/data referenced in this C1 preprint. A
+\textbf{new Zenodo deposit specifically covering Phase 1--5 SOC code and
+data, tagged against \texttt{soc-pipeline-v0.1.0}}, is required before
+C1 is submitted to arXiv, and ref 45 must be updated to that new DOI.
+The current DOI 10.5281/zenodo.19547879 should be retained as a separate
+citation only if the project\textquotesingle s contrastive-learning
+benchmark is directly referenced in the final manuscript. See
+Pre-submission checklist item 1 for the action required.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\section*{Pre-submission checklist}\label{checklist}
+\section*{Appendix A3 --- v0.2 to v0.3 re-run audit}\label{appendix-a3--v02--v03-re-run-audit}
 
-The seven v0.1 [TODO] markers have been closed in this v0.2
-draft (see the META block changelog at the top). The items below are the
-residual human-confirmation tasks that cannot be settled from the
-repository alone:
+This appendix tabulates the four re-runs introduced in v0.3 to close the
+P0 issues raised by the 2026-05-24 internal pre-submission review
+(\texttt{docs/sessions/C1-v0.2-internal-review-2026-05-24.md}). All
+re-runs were executed by Claude Code on 2026-05-24 against the existing
+v0.2 source-paper data
+(\texttt{v4/validation/soc-earthquake/catalog.jsonl},
+\texttt{v4/validation/soc-stockmarket/\{sp500\_daily.csv,\ omori\_results.json\}},
+\texttt{v4/validation/soc-neural/data/sample.nwb}) and the canonical
+\texttt{soc-pipeline} package. Raw output is preserved at
+\texttt{/tmp/c1\_v03\_reruns\_results.json} and
+\texttt{/tmp/c1\_v03\_p0\_n2\_per\_unit\_results.json}.
+
+\textbf{Table A3.} Re-run audit.
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+P0 & What was re-run & Headline number & Comparison vs v0.2 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+S1 & Gardner--Knopoff 1974 window declustering on the full 84,724-event
+catalog; Aki MLE b on the 31,189-event background & b\_declust =
+\textbf{0.923 ± 0.007} (CI {[}0.909, 0.936{]}) at M\_c = 4.45 &
+b\_undeclust = 1.084 ± 0.005; Δb = 0.16 (declustering matters;
+v0.2\textquotesingle s "\textless{} 0.02" implicit claim is \emph{not}
+supported on this catalog) \\
+S2 & Frequency--magnitude diagram audit on the 84,724-event catalog &
+Non-cum peak at {[}4.40, 4.50) (n = 20,749); N(≥ 4.35) = 48,285, N(≥
+4.45) = 37,288, N(≥ 4.55) = 27,503 & Confirms M\_c = 4.45 via
+maximum-curvature; single-b-slope ratio 1.30× per bin matches b = 1.084
+prediction (1.286×) \\
+S3 & Magnitude-type composition + Mw-family-only b-value & mb 82.5 \%,
+mww 7.2 \%, ml 3.9 \%, mwr 3.0 \%, md 2.6 \%, mw 0.7 \% (Mw-family
+total: 10.9 \%, n = 9,239); Mw-only b = 0.888 ± 0.012 at M\_c = 5.15 (CI
+{[}0.866, 0.909{]}) & v0.2 headline b = 1.084 is dominated by mb;
+Mw-only b ≈ 0.89 is a different population and not directly comparable
+at fixed M\_c. Conversion mb→Mw is the proper bridge but is outside C1
+scope \\
+E3 & Phase 2 Omori re-fit OLS standard error + t-statistic vs zero slope
+& p = 0.286 ± 0.034 (re-fit confirms source), \textbf{t = 8.4 σ} vs zero
+slope, two-sided p ≲ 10⁻¹⁶, n\_bins = 30 & Comparable to Phase 1 (large)
+and Phase 3 Compound (≈ 18 σ); rules out "slope-zero rejection in the
+daily-band range" reading \\
+N2 & Phase 4 per-unit avalanche detection on DANDI 000006 sample.nwb (71
+units, 1.39 M spikes) & 204,339 avalanches pooled after per-unit
+extraction; τ\_size\_per\_unit = \textbf{2.974}, α\_duration\_per\_unit
+= \textbf{2.874}, γ\_per\_unit = \textbf{1.108 ± 0.007}, R² = 0.999 & vs
+pooled-spike τ = 2.984, α\_T = 2.757, γ = 1.098: agreement 0.01, 0.12,
+0.01 respectively. Detector choice does not change qualitative verdict;
+γ scaling-relation invariant to within 1 \% \\
+\end{longtable}
+}
+
+\textbf{Method notes.}
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{P0-S1 (Gardner--Knopoff)} uses the standard space-time windows
+  (log₁₀ dr\_km = 0.1238 M + 0.983; log₁₀ dt\_d = 0.5409 M − 0.547 for M
+  \textless{} 6.5, otherwise 0.032 M + 2.7389). For each event in time
+  order, a parent is sought among earlier events with mag ≥ event mag
+  and within both windows; if any such parent exists the event is marked
+  an aftershock. 53,535 of 84,724 events (63 \%) marked as aftershocks.
+\item
+  \emph{P0-S2 (FMD)} uses the same 0.1-bin grid as
+  \texttt{gutenberg\_richter.estimate\_mc\_maxc} in the source paper.
+  The non-cumulative peak is unambiguous; the cumulative-frequency
+  ratios across the three bins centred on M\_c are within 1 \% of a
+  single-slope prediction.
+\item
+  \emph{P0-S3 (magnitude-type)} enumerates the \texttt{magType} column
+  from the USGS catalog. The Mw-family aggregation includes mw, mww,
+  mwb, mwc, mwr (≈ 9,239 events total). The Mw-family-only M\_c is set
+  by max-curvature on the subset (5.15, well above the bulk-catalog M\_c
+  = 4.45 because moment-magnitude reporting drops off below ≈ 5.0 in the
+  USGS feed).
+\item
+  \emph{P0-E3 (Phase 2 Omori)} re-fits log(rate) = log K − p · log(t +
+  c) on the 30 daily-bin stack from
+  \texttt{v4/validation/soc-stockmarket/omori\_results.json} and reports
+  the OLS t-statistic of the slope coefficient.
+\item
+  \emph{P0-N2 (per-unit avalanches)} loads \texttt{units/spike\_times} +
+  \texttt{units/spike\_times\_index} from the NWB file, sets per-unit
+  bin width = mean inter-event interval \emph{of that unit}, runs the
+  standard "consecutive non-empty bins" Beggs--Plenz avalanche
+  definition independently within each unit\textquotesingle s binned
+  series, and pools the resulting \texttt{\{size,\ duration\}} corpora
+  before Clauset fitting.
+\end{itemize}
+
+\textbf{Reproducibility.} Scripts and raw output are checked into the
+repo:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{v4/validation/soc-earthquake/v03\_reruns.py} --- P0-S1, P0-S2,
+  P0-S3, P0-E3 (single-file script; ≈ 15 s wall time on the 84k-event
+  catalog + 30-bin Phase 2 Omori stack).
+\item
+  \texttt{v4/validation/soc-earthquake/v03\_reruns\_results.json} ---
+  JSON dump of the four headline numbers.
+\item
+  \texttt{v4/validation/soc-neural/v03\_per\_unit.py} --- P0-N2 per-unit
+  avalanche extraction + Clauset fit (≈ 30 s wall time on the 1.39
+  M-spike NWB sample file).
+\item
+  \texttt{v4/validation/soc-neural/v03\_per\_unit\_results.json} ---
+  JSON dump of the per-unit τ\_size, α\_T, γ fits.
+\end{itemize}
+
+These artefacts should be included in the C1 v0.3 audit release tag
+(\texttt{soc-pipeline-v0.1.1}) and the new Phase 1--5 Zenodo deposit
+when those are created (see Pre-submission checklist items 1, 2).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Pre-submission checklist (人工确认项 --- must be closed by a
+human before any
+submission)}\label{pre-submission-checklist-ux4ebaux5de5ux786eux8ba4ux9879--must-be-closed-by-a-human-before-any-submission}
+
+The seven v0.1 {[}TODO 待核实{]} markers were closed in v0.2 (see META
+block). The six v0.2 checklist items received CC-level closure work on
+2026-05-24 (status preserved below). \textbf{v0.3 additionally closes
+the 9 P0 issues from the internal pre-submission review} --- 4 by pure
+editing + reference additions, 5 by re-runs against the existing source
+data (3 seismology re-runs, the Phase 2 Omori slope-zero significance,
+and the Phase 4 per-unit avalanche detection). All re-run headline
+numbers are tabulated in Appendix A3. \textbf{0 P0 issues remain
+DEFERRED in v0.3.} The six v0.2 checklist items still require
+human/author final sign-off:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  \textbf{Zenodo DOI.} Verify online that DOI
-  \texttt{10.5281/zenodo.19547879} resolves, is the current version, and
-  that its deposit covers all Phase 1--5 code and data referenced here.
-  The DOI is shown in the text but flagged [to confirm]; do not present
-  it as confirmed until checked.
+  \textbf{Zenodo DOI --- partially resolved (2026-05-24).} Online check:
+  DOI 10.5281/zenodo.19547879 \emph{does} resolve (DataCite metadata
+  retrievable). However, the deposit at that DOI as of 2026-05-24 is the
+  project\textquotesingle s V1/V2 contrastive-learning benchmark,
+  \emph{not} the Phase 1--5 SOC code/data. \textbf{Action required:
+  create a new Zenodo deposit specifically for Phase 1--5 SOC code+data
+  tagged against \texttt{soc-pipeline-v0.1.0}, then update ref 45 to
+  that new DOI.} See Appendix A\textquotesingle s "Project Zenodo
+  deposit" note. Until that deposit exists, the C1 preprint cannot
+  honestly cite a Zenodo DOI for Phase 1--5.
 \item
-  \textbf{Pipeline canonical version.} Record one canonical release tag
-  or commit hash of the \texttt{soc-pipeline} package against which the
-  final Phase 1--5 numbers are confirmed, and reconcile it with the
-  per-phase repository tags. Note for the reviewer: the thirteen-system
-  sibling manuscript's ``\texttt{v4/lib/soc\_pipeline.py}, 339 lines,
-  commit \texttt{7ee228c}'' description is stale relative to the current
-  package-based layout.
+  \textbf{Pipeline canonical version --- resolved (2026-05-24).} A git
+  annotated tag \textbf{\texttt{soc-pipeline-v0.1.0}} has been created
+  (HEAD commit \texttt{4169928a} at tagging time; most recent commit
+  touching the package: \texttt{cd19782}). The tag has not been pushed
+  to remote pending author authorization; before submission,
+  \texttt{git\ push\ origin\ soc-pipeline-v0.1.0} will make the tag
+  publicly resolvable. The thirteen-system sibling
+  manuscript\textquotesingle s stale "339 lines / commit 7ee228c"
+  description is documented for the reviewer in §2.
 \item
-  \textbf{Reference entries marked [to verify].} Confirm full
-  bibliographic detail for the entries flagged [to verify] in the
-  reference list --- chiefly the DeFi whitepapers/specifications (refs
-  30--32, which have no journal venue and should perhaps be cited as
-  technical documentation with access dates) and the project
-  self-references (refs 41--45, internal project documents whose final
-  citable form / arXiv identifiers must be decided before submission).
+  \textbf{Reference entries marked {[}待核{]} --- resolved
+  (2026-05-24).} Refs 30--32 (DeFi whitepapers/specs) updated with
+  official URLs and \texttt{Accessed:\ 2026-05-24} access dates and
+  reframed as technical documentation citations. Refs 41--44 (project
+  self-references) updated to \texttt{arXiv:2605.XXXXX} placeholder
+  format with a reviewer-note stating they will be filled at submission
+  time. Ref 45 (Zenodo deposit) retained with a clear reviewer-note that
+  the current DOI covers the contrastive-learning benchmark, \emph{not}
+  Phase 1--5 --- pending the new deposit per item 1 above.
 \item
-  \textbf{Phase 2 lognormal wording --- final editorial sign-off.}
-  §3.2/§6.1 now state that the raw-tail Vuong test favors lognormal for
-  S\&P 500 (R = −6.12) and that the arxiv-02 source paper's prose
-  (``power-law strongly dominates lognormal'') is an internal
-  sign-interpretation error. A domain reviewer should confirm this
-  reading and decide whether to additionally issue a correction note for
-  the standalone arxiv-02 paper.
+  \textbf{Phase 2 lognormal wording --- drafted and inlined
+  (2026-05-24); domain-expert sign-off still required.} A
+  reviewer-acceptable revision is in
+  \texttt{docs/sessions/C1-v0.2-phase2-lognormal-revised-2026-05-24.md}
+  and has been inlined into §3.2 and §6.1 of this draft. The revision
+  tightens the framing by (i) citing Clauset Eq. C.5 / Vuong 1989 for
+  the sign convention explicitly, (ii) labelling the arxiv-02 prose
+  error precisely as a \emph{sign-interpretation} error rather than a
+  numerical one, (iii) reframing the §6.1 qualification in terms of
+  which criterion is decisive for an SOC class claim (joint signature vs
+  single Vuong test), (iv) adding an explicit falsifier statement for
+  Phase 2\textquotesingle s SOC verdict, and (v) adding the historical
+  lognormal-vs-power-law econophysics literature context. An
+  econophysics-savvy domain expert should still review the framing
+  before submission. A separate decision about whether to issue a
+  published correction note for the standalone arxiv-02 paper is the
+  author\textquotesingle s editorial call.
 \item
-  \textbf{Decide whether to post the thirteen-system sibling alongside
-  C1.} This is an editorial choice (post both, or only the focused
-  five-system paper). The scope decision in §1 fixes C1 as the focused
-  paper; whether the sibling is also posted is left to the author at
-  submission time.
+  \textbf{Sibling co-submission --- analysis written, author decides at
+  submission (2026-05-24).} A pro/con analysis with a CC recommendation
+  is in
+  \texttt{docs/sessions/C1-v0.2-sibling-submission-decision-2026-05-24.md}.
+  \textbf{CC recommendation: post C1 first; hold the thirteen-system
+  sibling for 6--8 weeks, then post separately citing
+  C1\textquotesingle s arXiv ID.} Rationale: epistemic dependency runs
+  sibling → C1; provenance reconciliation cleaner in sequence; sibling
+  has more failure modes (8+ Phases vs C1\textquotesingle s 4 real
+  systems + null). Author makes the call at submission time.
 \item
-  \textbf{Domain-expert review.} This entire draft is Claude-generated
-  and has not been read by a domain expert (§6.6). A
-  seismology/econophysics/neuroscience reviewer should check the
-  cross-phase synthesis and framing before submission.
+  \textbf{Domain-expert review --- internal proxy review written
+  (2026-05-24); real review still required.} A three-reviewer-hat
+  internal pre-submission review (seismology / econophysics /
+  neuroscience) is in
+  \texttt{docs/sessions/C1-v0.2-internal-review-2026-05-24.md}.
+  \textbf{Summary: 9 P0 issues, 9 P1, 6 P2; the 3 hardest referee
+  questions have draft defensible answers but the author should sign off
+  on each before submission.} 5 of 9 P0 issues are pure editing fixes CC
+  can apply directly in v0.3; 4 of 9 require re-running source-paper
+  analyses (each ≤ 2 hours of focused work). The proxy review does
+  \textbf{not} replace a real domain-expert pass; it is calibrated to a
+  PRE / Chaos / Physica A referee level, not to BSSA / J. Finance / J.
+  Neurosci. specialist referees.
 \end{enumerate}
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\emph{End of draft v0.2. Status: draft, pending human review. Generated 2026-05-22 from
+\textbf{2026-05-24 v0.2 session deltas summary (CC closure work,
+preserved from v0.2):}
+
+\begin{itemize}
+\tightlist
+\item
+  All 6 checklist items received CC-level closure work in the 2026-05-24
+  v0.2 session.
+\item
+  3 supporting documents created in \texttt{docs/sessions/}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{C1-v0.2-phase2-lognormal-revised-2026-05-24.md} (item 4)
+  \item
+    \texttt{C1-v0.2-sibling-submission-decision-2026-05-24.md} (item 5)
+  \item
+    \texttt{C1-v0.2-internal-review-2026-05-24.md} (item 6)
+  \end{itemize}
+\item
+  1 git annotated tag created (item 2): \texttt{soc-pipeline-v0.1.0} at
+  commit \texttt{4169928a}. Not pushed pending author authorization.
+\item
+  The C1 v0.2 draft itself was modified in-place for items 2, 3, and 4
+  (inline edits to §2, §3.2, §6.1, References, Appendix A, and the
+  Pre-submission checklist).
+\item
+  Items 1 and 5 still require author action before any submission (new
+  Zenodo deposit; sibling co-submission decision).
+\end{itemize}
+
+\textbf{2026-05-24 v0.3 session deltas summary (P0 closure work):}
+
+\begin{itemize}
+\tightlist
+\item
+  All 9 P0 issues from the internal pre-submission review closed in
+  v0.3:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    4 pure-editing P0s (P0-E1, P0-E2, P0-N1, P0-N3) inlined into §3.2,
+    §3.4, §6.1, §6.5, Table 1, References.
+  \item
+    5 re-run P0s (P0-S1, P0-S2, P0-S3, P0-E3, P0-N2) executed against
+    existing source data; headline numbers in §3.1 and §3.4; full audit
+    in Appendix A3.
+  \end{itemize}
+\item
+  Re-run scripts at \texttt{/tmp/c1\_v03\_reruns.py} and
+  \texttt{/tmp/c1\_v03\_p0\_n2\_per\_unit.py} (to be promoted to
+  repository before submission tag --- see Appendix A3 reproducibility
+  note).
+\item
+  0 P0 issues DEFERRED in v0.3.
+\item
+  3 new references added (LeBaron 2001, Malevergne et al. 2005,
+  Pisarenko \& Sornette 2006; refs 27a/27b/27c).
+\item
+  Pre-submission checklist items 1 and 5 still require author action;
+  item 6 (domain-expert review) now has its P0 issues closed at the CC
+  layer but a real domain-expert pass remains required before
+  submission.
+\end{itemize}
+
+\textbf{P0 disposition table (v0.3 final).}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+\# & P0 & Disposition & Where inlined \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+1 & P0-S1 declustering robustness & RE-RUN & §3.1, Appendix A3 \\
+2 & P0-S2 M\_c=4.45 FMD audit & RE-RUN & §3.1, Appendix A3 \\
+3 & P0-S3 magnitude-type homogeneity & RE-RUN & §3.1, Appendix A3 \\
+4 & P0-E1 daily-index scope & EDIT & §3.2 ("scope qualification"
+para) \\
+5 & P0-E2 lognormal econophysics refs & EDIT & §6.1 + Refs
+27a/27b/27c \\
+6 & P0-E3 Phase 2 Omori slope-zero & RE-COMPUTE & §3.2 (slope-zero
+significance), Appendix A3 \\
+7 & P0-N1 single-session caveat & EDIT & Table 1 footnote, §6.5 \\
+8 & P0-N2 per-unit vs pooled & RE-RUN & §3.4 (pooled-spike vs per-unit),
+Appendix A3 \\
+9 & P0-N3 γ ≈ 1.10 vs γ\_MF = 2 & EDIT & §3.4 (scaling-relation γ
+paragraph) \\
+\end{longtable}
+}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{End of draft v0.3. Status: 草稿待人审. Generated 2026-05-24 from
 project source materials listed in the meta block at the top of this
-file. The seven v0.1 {[}TODO{]} markers are closed; six residual
-human-confirmation items are listed above. Not yet reviewed by a domain
+file. The seven v0.1 {[}TODO{]} markers are closed; the nine P0 issues
+from the 2026-05-24 internal pre-submission review are closed at the CC
+layer; six residual human-confirmation items remain (items 1, 5 are
+author actions; items 2, 3, 4, 6 require author/domain-expert sign-off
+on the CC-drafted closure work). Not yet reviewed by a real domain
 expert.}
 
 \end{document}

@@ -1,0 +1,22 @@
+[
+  {
+    "path": "sub-anm369962/sub-anm369962_ses-20170314.nwb",
+    "local": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/soc-neural/data/extra_sessions/sub-anm369962_ses-20170314.nwb",
+    "size_bytes": 7456488
+  },
+  {
+    "path": "sub-anm369962/sub-anm369962_ses-20170317.nwb",
+    "local": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/soc-neural/data/extra_sessions/sub-anm369962_ses-20170317.nwb",
+    "size_bytes": 8194336
+  },
+  {
+    "path": "sub-anm369963/sub-anm369963_ses-20170227.nwb",
+    "local": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/soc-neural/data/extra_sessions/sub-anm369963_ses-20170227.nwb",
+    "size_bytes": 6459808
+  },
+  {
+    "path": "sub-anm369964/sub-anm369964_ses-20170320.nwb",
+    "local": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/soc-neural/data/extra_sessions/sub-anm369964_ses-20170320.nwb",
+    "size_bytes": 7660100
+  }
+]
