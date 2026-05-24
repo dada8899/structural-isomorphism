@@ -118,3 +118,118 @@ One exception: if Candidate 2 (Phase classifier) is chosen, the body should
 lead with the phase detector + backtest, not with the cross-domain framing.
 The 2026-05-15 body leads with the cross-domain framing. So Candidate 2 →
 requires re-ordering the body. Not a blocker, but plan for it at T-2h.
+
+---
+
+## #6 (NEW 2026-05-25): Negative results as launch narrative
+
+The v0.2 walk-forward came back at Sharpe lift -0.23 and the c4 critic
+ensemble demoted 33% of auto-curated classes. A reviewer-feedback pass
+on the long-form blog (`blog-post-negative-results-2026-05-25.md`)
+flagged "publishing the failures" as the most distinctive,
+unforgeable signal in the whole launch package. This adds a sixth
+title candidate built explicitly around that frame.
+
+### Three concrete title options
+
+**Candidate 6a — Self-killing backtest**
+
+> **Show HN: We built a cross-domain SOC validator and our own backtest killed it**
+
+- 80 chars including "Show HN:" → **AT LIMIT**. Verify exact byte count at T-2h.
+- Strengths: concrete verb ("killed"), self-deprecating framing flips the usual
+  "we built X and it works" cliché, signals epistemic honesty without using
+  the word
+- Risks: "SOC" is jargon — needs to resolve fast in the first body paragraph
+  or readers bounce; "killed it" can be misread as positive slang
+- Best fit: any backtest outcome — the past tense is honest regardless
+
+**Candidate 6b — Numbered honest funnel**
+
+> **Show HN: -0.23 Sharpe, 33% of our classes rejected, 4 published failures**
+
+- 79 chars → **OK** (just under 80)
+- Strengths: three numbers, all negative, all true; impossible to read as a
+  product pitch; HN historically over-rewards posts that lead with their
+  worst result
+- Risks: looks like a confession without context — reader has to click to
+  find out *what* the project actually is. High-CTR / low-relevance click
+  risk on the front page
+- Best fit: when arXiv preprint is live and the title can lean on the
+  preprint abstract to provide context one scroll down
+
+**Candidate 6c — Pre-registration discipline frame**
+
+> **Show HN: Pre-registered a backtest, it failed at -0.23 Sharpe, publishing anyway**
+
+- 84 chars → **OVER LIMIT**. Trimmed: *"Show HN: Pre-registered a backtest, it failed, publishing anyway"* (64 chars)
+- Strengths: tells the methodology story in a single sentence; "publishing
+  anyway" is the unforgeable signal; the pre-registration vocabulary
+  attracts the metascience / replication-crisis audience explicitly
+- Risks: "failed" alone (after the trim) loses the magnitude; pre-registration
+  audience is smaller than the cross-domain-physics audience
+- Best fit: when senior-outreach feedback has been heavy on the
+  pre-registration angle and we want to recruit metascience commenters
+  into the HN thread
+
+### When to use #6
+
+Use #6 when **at least two** of the following hold at T-1h:
+
+- The v0.2 backtest result is still null (Sharpe lift below +0.3) and we
+  do not have a re-run on a wider universe that flips the verdict.
+- Senior-reviewer outreach has come back with feedback praising the
+  *honesty* of the writeup, not the alpha. ("This is what cross-domain
+  science needs more of" type comments.)
+- The CVE pre-registration failure and the c4 33%-rejection are both
+  live in the repo and discoverable from the first comment of the HN
+  post within one click.
+- We have run friend-test on the negative framing and at least 3/5 friends
+  said "I would click that".
+
+### When NOT to use #6
+
+Skip #6 in any of these cases:
+
+- Senior outreach lands one or more positive endorsements from
+  recognisable names in stat-mech, complex systems, or quant finance
+  before T-1h. In that case the #1 (methodology-first) or #3 (curiosity
+  hook) titles are stronger — they let the endorsements do the heavy
+  lifting in the thread, and the negative-results material can be a
+  comment-thread asset rather than the headline.
+- A late v0.2 re-run or v0.3 partial result moves the Sharpe lift above
+  +0.3. Then the verdict is no longer "null", #6's premise collapses,
+  and Candidate 2 (Phase classifier) becomes viable.
+- The repo or the arXiv preprint is not fully indexable at T-1h.
+  Without a one-click path to the published failures, #6 reads as
+  unsubstantiated confession and underperforms.
+- We are A/B-coupling with a Twitter thread that leads with the positive
+  13/17 PASS frame. Mixed signals across surfaces dilute both.
+
+### Recommended fallback ranking
+
+Default fallback: **Candidate 6b** (numbered honest funnel). The three
+negative numbers in the title are *unforgeable signals* — they cannot be
+manufactured by a marketing team, they cannot be A/B-optimised against a
+positive variant, and the HN audience has consistently rewarded posts that
+lead with their worst result over the last decade. If we have a clean
+arXiv preprint live and no senior endorsement in hand, 6b is the safest
+high-upside pick.
+
+Secondary fallback: **Candidate 6a** (self-killing backtest) if the friend
+test shows 6b confuses non-quant readers. The verb "killed" gives the
+non-quant reader something to grab.
+
+Tertiary: **Candidate 6c (trimmed)** if the metascience angle has been
+heavily weighted in pre-launch outreach.
+
+### Updated decision matrix (supersedes the §"Decision matrix" table above when #6 is in play)
+
+| Backtest outcome | Senior endorsement in hand? | Primary title | Backup title |
+|---|---|---|---|
+| Strong (lift ≥ +0.5) | yes or no | Candidate 2 | Candidate 4 |
+| Weak (+0.1 to +0.4) | yes | Candidate 1 | Candidate 4 |
+| Weak (+0.1 to +0.4) | no | Candidate 4 | **Candidate 6b** |
+| Null (lift ≤ +0.1) | yes (≥1 named endorser) | Candidate 1 or 3 | **Candidate 6b** |
+| Null (lift ≤ +0.1) | no | **Candidate 6b** | Candidate 5 |
+| Tie-breaker / no fresh backtest | — | **Candidate 6b** (unforgeable signal) | Candidate 4 |
