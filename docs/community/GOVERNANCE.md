@@ -80,6 +80,7 @@ When the trigger in § 3 fires, the BDFL announces the council-formation window 
   1. Demonstrable technical or scientific contribution (≥ 3 merged PRs OR documented dataset contribution OR co-authored paper using the pipeline)
   2. Diversity of geography, institution, and seniority (no two council members from the same lab/employer)
   3. Stated commitment to a 12-month term + ~ 4 hours/week of project work
+- **Expanded soft signals + anti-signals** documented in `CONTRIBUTING.md` § "Maintainer council recruitment" (kept there for discoverability by would-be nominees). The soft signals are *not* gating but tip close calls — methodological rigor, mentorship behavior, adversarial honesty, COC posture, cross-domain breadth.
 - BDFL publishes the selection rationale in `docs/community/council-2027/selection-rationale.md`.
 
 ### 5.4 BDFL veto (limited)

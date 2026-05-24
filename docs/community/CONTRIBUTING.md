@@ -199,15 +199,195 @@ PRs that add code without docs will be asked to add docs before merge. PRs that 
 
 We commit to:
 
-| Reviewer | First-response SLA |
+| Reviewer | First-response SLA | Final-decision SLA |
+|---|---|---|
+| BDFL | 7 calendar days | 21 calendar days |
+| Council member (once council exists per GOVERNANCE.md) | 14 calendar days | 30 calendar days |
+| Volunteer reviewer | best-effort, no formal SLA | best-effort |
+
+Definitions:
+
+- **First response** = an actual review with comments, not just an acknowledgement. A "looks good, will read this week" comment does *not* count.
+- **Final decision** = merge, request-changes-with-specific-list, or close-with-reason. A PR may legitimately go back and forth before final decision; the clock pauses when the ball is in the contributor's court.
+
+### What to do if we miss the SLA
+
+1. **Day SLA + 0**: ping `@dada8899` on the PR with one polite line ("checking in on review SLA").
+2. **Day SLA + 3**: if no response, post in Discord `#contributors-only` (or `#general` if you're not yet `@contributor`).
+3. **Day SLA + 7**: open a meta-issue with label `governance` titled "SLA miss: PR #N". This is *not* punitive — it's a public signal that the maintainer is overloaded, and it lets the council reallocate review work.
+
+We track SLA hits/misses in a quarterly governance report (first one due 2026-Q4 once the council is seated per GOVERNANCE.md § 3).
+
+### Urgent security fixes
+
+Per `.github/SECURITY.md`, **do not open a public PR**. Email instead. We aim for 14-day acknowledgement and 90-day fix.
+
+## Maintainer council recruitment
+
+The current project is BDFL-only (see GOVERNANCE.md § 1). The 3-member Maintainer Council forms when triggered per GOVERNANCE.md § 3 (5 external PRs in a quarter, first arXiv acceptance, or 2027-01-01 — whichever first).
+
+If you're considering self-nominating or being nominated, the council selection criteria from GOVERNANCE.md § 5.3 are:
+
+1. **Demonstrable contribution**: ≥ 3 merged PRs OR a documented dataset contribution OR co-authorship on a paper that uses the pipeline.
+2. **Diversity**: no two council members from the same lab/employer.
+3. **Time commitment**: stated commitment to a 12-month term + ~ 4 hours/week of project work.
+
+Additional **soft signals** we look for (not gating, but they tip a close call):
+
+- **Methodological rigor**: at least one PR that surfaces or fixes a *methodological* bug (false-positive in EWS, mis-applied power-law fit, pre-registration violation), not just a typo or perf win.
+- **Mentorship behavior**: shown up in `#newcomers` or on good-first-issues to help newcomers, with patience and without condescension.
+- **Adversarial honesty**: at least one public comment where you said "I was wrong about X" or "my earlier review was off". The project lives or dies by negative-result transparency; council members must model this.
+- **Code of Conduct posture**: no open or recent COC complaints; visible alignment with Contributor Covenant v2.1 spirit.
+- **Cross-domain breadth or depth**: either breadth (you can speak credibly to at least 3 of: SOC theory, statistics, neuroscience, climate, finance, networks, NLP) or deep expertise in one of the core areas.
+
+**Anti-signals** that disqualify a nomination:
+
+- History of unattributed paper / code reuse
+- Active legal dispute with the project's IP
+- Pattern of dismissive or hostile review comments (even if technically correct)
+- Inability to commit ~4 h/week — we'd rather decline than over-extend you
+
+### Becoming a council member is not the only path to influence
+
+The project explicitly recognizes three trajectories with real authority:
+
+1. **Council member** — formal voting authority per GOVERNANCE.md § 6
+2. **Domain steward** (informal): you "own" a specific area (e.g. neural-avalanche validation, EWS methodology, frontend). The council defers to you on PRs in your area absent strong reason. This is granted by reputation, not by vote.
+3. **Verified researcher** (`@verified-researcher` Discord role): post-ORCID verification, you get write access to `#pre-registrations` and `#company-deep-dives` and can co-sign other researchers' pre-registrations.
+
+## New-contributor first-week onboarding path
+
+You just landed in the project and want to ship something useful within seven days. Here's the recommended path. None of it is mandatory — but each step compresses time-to-impact.
+
+### Day 1 (1 hour) — orientation
+
+- [ ] Read `README.md` end to end.
+- [ ] Read this file (CONTRIBUTING.md), even just skim.
+- [ ] Read `CODE_OF_CONDUCT.md` (it's short).
+- [ ] Skim `GOVERNANCE.md` § 1–3 — you don't need to know the rest yet.
+- [ ] Join the Discord (invite in README). Post one line in `#introductions`.
+
+### Day 2 (2 hours) — environment
+
+- [ ] Fork the repo and clone your fork.
+- [ ] Set up the dev environment per `## Setup details` above. Confirm `pytest v4/tests/sanity -m sanity -v` is green.
+- [ ] Skim the `docs/getting-started.md` walk-through end to end. Run the example notebook in `docs/tutorials/` to make sure your environment is real.
+- [ ] If anything broke during setup, file an issue using the `bug` template — this is itself a useful contribution.
+
+### Day 3–4 (~ 3 hours) — pick a good-first-issue
+
+- [ ] Open `docs/community/good-first-issues-active-2026-05-24.md` and scan the table.
+- [ ] Pick a ★ (under 4 h, no specialist knowledge) issue that touches an area you're curious about.
+- [ ] Comment on the live GH issue: "I'd like to take this; estimated to start within 24 h."
+- [ ] If you're new to OSS entirely, add: "First-time contributor — would value a mentor walk-through." A maintainer will pair with you.
+
+### Day 5 (~ 4 hours) — implement
+
+- [ ] Branch: `git checkout -b <type>/<short-desc>`.
+- [ ] Implement the change. Run the relevant test layer (see § Test requirements).
+- [ ] Run `pre-commit run --all-files`.
+- [ ] If you're stuck for more than 30 minutes, ask in `#newcomers` on Discord — that's literally what the channel is for. No shame.
+
+### Day 6 (~ 1 hour) — open PR
+
+- [ ] `git commit -sm "<conventional commit>"` (with DCO `-s` sign-off).
+- [ ] `git push -u origin <branch>`.
+- [ ] `gh pr create --fill`. Make sure the PR description references the issue (`Closes #N`).
+- [ ] Self-review your own diff once before requesting review. Catch the silly stuff.
+
+### Day 7 (~ 30 min) — respond + reflect
+
+- [ ] Address review feedback (if it landed within the SLA window).
+- [ ] Reply with a "thanks for the review" line on the merged PR.
+- [ ] Add yourself to `CONTRIBUTORS.md` (if it exists by then; otherwise the next contributor will create it).
+- [ ] In `#introductions` on Discord, post a one-line summary of what you shipped. This is how the community learns who you are.
+
+### Common stumbling blocks
+
+| Stumble | Fix |
 |---|---|
-| BDFL | 7 calendar days |
-| Council member (once council exists per GOVERNANCE.md) | 14 calendar days |
-| Volunteer reviewer | best-effort, no formal SLA |
+| "I broke a test I don't understand" | Comment on the issue with the failing output; a maintainer pairs |
+| "I don't know if my approach is right" | Open a *draft* PR early and ask for direction comments |
+| "Pre-commit is yelling at me" | Run `pre-commit run --all-files` until green; ask in `#newcomers` if stuck |
+| "I can't get the dataset to download" | LFS-vs-not-LFS confusion is common; see `docs/data/` README |
+| "My PR has been sitting for > SLA days" | Ping `@dada8899` once on the PR; if still nothing, escalate per § Review SLA |
 
-"First response" = an actual review with comments, not just an acknowledgement. If we miss the SLA on your PR, ping `@dada8899` on the PR — sometimes notifications get lost.
+### Beyond week one
 
-For **urgent security fixes**: per `.github/SECURITY.md`, do not open a public PR. Email instead. We aim for 14-day acknowledgement and 90-day fix.
+- After 1 merged PR: drop into `#contributors-only` (auto-granted via the Discord GitHub bot).
+- After 3 merged PRs: you meet the council nomination floor per GOVERNANCE.md § 5.3.
+- After 5 merged PRs OR a major feature: you're eligible for `@verified-researcher` role on Discord, separate from authorship considerations.
+
+## Translation & multilingual docs
+
+The README is the project's most-translated surface. Long-form docs (mkdocs site, tutorials, papers) are English-first but actively welcome translations.
+
+### Current scope
+
+- **README.md** — English (canonical) + Mandarin Chinese (in progress, issue #155)
+- **docs/index.md** — English only for now
+- **Newsletters** — English only
+- **Tutorials** — English (canonical); translations welcomed
+
+### Translation workflow
+
+1. **Open a tracking issue** with label `i18n` titled `[i18n] <language> translation of <file>`. Existing example: #155.
+2. **Branch off the English canonical version** at a known commit SHA. Note the SHA in your PR description (this is what your translation is *based on*).
+3. **Place translated files under a language-suffixed path**:
+   - `README.md` → `README.zh-CN.md` (or `.zh-TW`, `.ja`, `.de`, etc., using BCP-47 codes)
+   - `docs/index.md` → `docs/index.zh-CN.md`
+   - For tutorials in subdirs: `docs/tutorials/foo.md` → `docs/tutorials/foo.zh-CN.md`
+4. **Do NOT translate** without leaving a header at the top:
+   ```markdown
+   <!--
+   Translation of README.md @ SHA <abc123>
+   Translator: <your-handle>
+   Last sync with English original: <YYYY-MM-DD>
+   -->
+   ```
+5. **Add a language link footer** in the canonical English file:
+   ```markdown
+   ## Translations
+   - [简体中文](README.zh-CN.md) (synced 2026-05-24)
+   ```
+
+### Sync discipline (avoiding stale translations)
+
+This is where translations break in most projects. We enforce a light, automated check.
+
+- **English is the source of truth**. When the canonical file changes substantively (not a typo), the change author is *not* expected to also update translations — but the CI **must flag the staleness**.
+- **Staleness check**: a CI job compares the `<!-- Last sync with English original: ... -->` SHA against `git log` on the English file. If the English file has changed since that SHA, the translated file is labeled `stale-translation` automatically.
+- **Stale doesn't mean broken**: the translated file stays published with a banner "⚠️ This translation is X commits behind the English version. See changes here."
+- **Re-sync PRs are first-class contributions**. A PR titled `i18n(zh-CN): resync README to SHA <new>` is welcomed and reviewed within the normal SLA.
+
+### Translator commitment expectations
+
+We do **not** require translators to maintain their translation forever. But:
+
+- If you open a `[i18n]` PR, please commit to **at least one re-sync within 60 days** of merge.
+- After that, the translation is the community's; anyone can submit re-sync PRs.
+- If a translation is > 6 months stale and no one re-syncs it, the maintainers will add a `staleness warning > 6mo` notice at the top of the file but will not unpublish it (stale translation > no translation, by a wide margin, for non-critical docs).
+
+### Critical docs require synchronized translation
+
+For three files specifically, a substantive change to the English version **blocks merge** until at least Mandarin (the only currently-supported translation) is also updated, or the translation is explicitly marked deprecated:
+
+1. `CODE_OF_CONDUCT.md` — legal/normative
+2. `SECURITY.md` — security-critical
+3. `.github/ISSUE_TEMPLATE/coc-report.md` — used in COC reporting
+
+For all other files, async re-sync per the workflow above.
+
+### Future languages
+
+We will accept any translation contribution. Priority order based on current contributor / user signal:
+
+1. Mandarin Chinese (`zh-CN`) — issue #155 in flight
+2. Spanish (`es`) — opportunistic
+3. Japanese (`ja`) — opportunistic
+4. German (`de`) — opportunistic
+
+Open an issue with the `i18n` label to start any of these.
 
 ## Good first issues + mentorship
 
