@@ -45,9 +45,9 @@ const preview: Preview = {
     backgrounds: {
       default: "page",
       values: [
-        { name: "page", value: "***REMOVED***ffffff" },
-        { name: "muted", value: "***REMOVED***fafafa" },
-        { name: "dark", value: "***REMOVED***18181b" },
+        { name: "page", value: "#ffffff" },
+        { name: "muted", value: "#fafafa" },
+        { name: "dark", value: "#18181b" },
       ],
     },
     viewport: {
@@ -55,7 +55,7 @@ const preview: Preview = {
       defaultViewport: "responsive",
     },
     a11y: {
-      element: "***REMOVED***storybook-root",
+      element: "#storybook-root",
       manual: false,
       config: {},
       options: {

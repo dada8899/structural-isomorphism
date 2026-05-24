@@ -16,7 +16,7 @@ const md = fs.readFileSync(
   path.join(REPO_ROOT, "docs/community/newsletters/issue-001-2026-05-15.md"),
   "utf8"
 );
-const stripped = md.replace(/^***REMOVED*** .*\n+/m, "");
+const stripped = md.replace(/^# .*\n+/m, "");
 const html = renderMarkdown(stripped);
 
 const checks = [

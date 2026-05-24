@@ -1,6 +1,6 @@
 // Typed fetch wrappers for the structural-isomorphism backend.
 //
-// W15-A (session ***REMOVED***10, 2026-05-15): demonstrates the pattern of
+// W15-A (session #10, 2026-05-15): demonstrates the pattern of
 // consuming the auto-generated `./api-types.ts` shapes instead of
 // hand-rolled `interface` declarations sprinkled across components.
 //

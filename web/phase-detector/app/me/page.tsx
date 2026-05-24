@@ -1,6 +1,6 @@
 "use client";
 
-// W15-B (session ***REMOVED***10): authenticated user profile page.
+// W15-B (session #10): authenticated user profile page.
 //
 // Shows email, tier, account created date. Logout button clears the
 // session cookie and routes back to /. Unauthenticated visitors get a

@@ -1,6 +1,6 @@
 "use client";
 
-// W10-B (session ***REMOVED***10): 3-tier pricing table — Free / Pro $19 / Team $99.
+// W10-B (session #10): 3-tier pricing table — Free / Pro $19 / Team $99.
 // Design references consulted while building this:
 //   - Linear.app/pricing  (3-column, "most popular" pill, billing toggle)
 //   - Apple iCloud+/storage  (restrained palette, generous vertical rhythm)

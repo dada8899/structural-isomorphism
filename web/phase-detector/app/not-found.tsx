@@ -1,4 +1,4 @@
-// W17 polish (session ***REMOVED***11+): Chinese-localized 404 page.
+// W17 polish (session #11+): Chinese-localized 404 page.
 //
 // Replaces Next.js's default English 404 with site-styled Chinese copy.
 // Provides two CTAs: back to home (Link) and back to previous page

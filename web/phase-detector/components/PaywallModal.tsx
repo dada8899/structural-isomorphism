@@ -1,6 +1,6 @@
 "use client";
 
-// W10-B (session ***REMOVED***10): paywall modal — soft gate when free user tries to
+// W10-B (session #10): paywall modal — soft gate when free user tries to
 // access tickers beyond the 100-company free quota.
 //
 // Design references consulted:

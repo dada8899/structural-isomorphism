@@ -1,4 +1,4 @@
-// W14-C (session ***REMOVED***10, 2026-05-15): privacy policy SSR page.
+// W14-C (session #10, 2026-05-15): privacy policy SSR page.
 //
 // Mirrors docs/privacy-policy.md but rendered as a first-class Next.js route
 // so search engines + linked-from-footer "Privacy" link land somewhere with

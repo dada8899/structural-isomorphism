@@ -2,7 +2,7 @@
 // numbers in web/backend/api/checkout_mock.py:_TIER_PRICING. Keep in sync
 // when prices change.
 //
-// W10-B (session ***REMOVED***10): Free / Pro $19 / Team $99 mock pricing. Real Stripe
+// W10-B (session #10): Free / Pro $19 / Team $99 mock pricing. Real Stripe
 // integration deferred until PMF signal (target Q3 2026).
 
 export type TierId = "free" | "pro" | "team";

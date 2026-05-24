@@ -57,7 +57,7 @@ export function CompanyCard({ company }: { company: Company }) {
   const family = company.dynamics_family;
   const caveats = company.caveats ?? [];
 
-  // W4-B (session ***REMOVED***9): Stretched-link pattern — whole card is clickable to
+  // W4-B (session #9): Stretched-link pattern — whole card is clickable to
   // /company/[ticker]. Root <article> is relative; an absolutely-positioned
   // <Link> overlay (::after via aria-hidden span) covers the card surface.
   // Inner interactive elements (caveats <button>, "查看完整报告" footer Link)
@@ -219,7 +219,7 @@ export function CompanyCard({ company }: { company: Company }) {
         <Link
           href={`/company/${encodeURIComponent(company.ticker)}`}
           className="pointer-events-auto inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
-          style={{ color: "***REMOVED***2563EB" }}
+          style={{ color: "#2563EB" }}
           onClick={(e) => {
             // Stop the surface link's onClick from double-firing the same
             // event; the stretched link below would also navigate, but it's

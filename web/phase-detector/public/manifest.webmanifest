@@ -4,8 +4,8 @@
   "description": "100 家全球上市公司的状态评分 — 30 秒看懂谁在崩盘边缘，谁在悄悄起飞。",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "***REMOVED***FFFFFF",
-  "theme_color": "***REMOVED***5B21B6",
+  "background_color": "#FFFFFF",
+  "theme_color": "#5B21B6",
   "scope": "/",
   "lang": "zh-CN",
   "icons": [

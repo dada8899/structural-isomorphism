@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): /compare metadata layout.
+// W12-B (session #10, 2026-05-15): /compare metadata layout.
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";

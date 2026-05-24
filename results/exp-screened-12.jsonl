@@ -80,7 +80,7 @@
 {"rank": 1180, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "known_metaphor: 双流视觉与脊索双梯度均是双通路指定,生物学内部熟知"}
 {"rank": 1181, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "社会懈怠与委托代理信息租金都源于'贡献/努力不可观测',社会心理学的问责机制实验结果可为机制设计提供低成本监控替代方案证据", "reject_reason": null}
 {"rank": 1182, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 暖水入侵与珊瑚礁生长都是海洋正反馈,学科内平行"}
-{"rank": 1183, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "Kolmogorov复杂度与玻色采样积和式都是'计算上不可约的下界',前者的不可压缩性论证可与量子优越性的***REMOVED***P困难论证形成信息论-复杂性对照,加深量子优势的复杂度基础", "reject_reason": null}
+{"rank": 1183, "verdict": "pass", "value_type": "conceptual_bridge", "potential": 4, "reason": "Kolmogorov复杂度与玻色采样积和式都是'计算上不可约的下界',前者的不可压缩性论证可与量子优越性的#P困难论证形成信息论-复杂性对照,加深量子优势的复杂度基础", "reject_reason": null}
 {"rank": 1184, "verdict": "pass", "value_type": "mechanism_transfer", "potential": 3, "reason": "外汇储备边际效用递减与减速器效率级联都体现'每多一级收益几何递减',外储最优规模模型可借用传动系统级数优化的解析形式", "reject_reason": null}
 {"rank": 1185, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "same_field_overlap: 都是计算社科网络与城市计算分层,同域"}
 {"rank": 1186, "verdict": "reject", "value_type": null, "potential": null, "reason": null, "reject_reason": "no_actionable_insight: 咝音腭化与桩基荷载传递无结构同构"}

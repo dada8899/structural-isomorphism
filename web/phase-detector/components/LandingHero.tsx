@@ -72,7 +72,7 @@ export function LandingHero() {
             <span aria-hidden="true">→</span>
           </Link>
           <Link
-            href="***REMOVED***how-it-works"
+            href="#how-it-works"
             data-testid="cta-secondary"
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >

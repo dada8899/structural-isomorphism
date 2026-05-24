@@ -19,11 +19,11 @@
 import { useId } from "react";
 
 const STATES = [
-  { color: "***REMOVED***059669", label: "稳态", icon: "●" },
-  { color: "***REMOVED***D97706", label: "临界附近", icon: "▲" },
-  { color: "***REMOVED***DC2626", label: "临界点", icon: "◆" },
-  { color: "***REMOVED***18181B", label: "已翻转", icon: "✕" },
-  { color: "***REMOVED***71717A", label: "未知", icon: "○" },
+  { color: "#059669", label: "稳态", icon: "●" },
+  { color: "#D97706", label: "临界附近", icon: "▲" },
+  { color: "#DC2626", label: "临界点", icon: "◆" },
+  { color: "#18181B", label: "已翻转", icon: "✕" },
+  { color: "#71717A", label: "未知", icon: "○" },
 ];
 
 export function PhaseIndicatorAnimation() {

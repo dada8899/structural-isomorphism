@@ -1,6 +1,6 @@
 "use client";
 
-// W12-C (session ***REMOVED***10): touch-swipe hook using PointerEvent.
+// W12-C (session #10): touch-swipe hook using PointerEvent.
 //
 // Why PointerEvent (not TouchEvent / Hammer.js):
 //   - PointerEvent is the unified web spec for touch / mouse / pen.

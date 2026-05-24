@@ -27,7 +27,7 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
     });
   }, [error]);
 
-  const issueUrl = typeof window !== "undefined" ? buildIssueUrl(error) : "***REMOVED***";
+  const issueUrl = typeof window !== "undefined" ? buildIssueUrl(error) : "#";
 
   return (
     <div className="mx-auto max-w-2xl py-16">

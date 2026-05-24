@@ -35,23 +35,23 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
           data={rows}
           margin={{ top: 16, right: 24, bottom: 24, left: 8 }}
         >
-          <CartesianGrid stroke="***REMOVED***E4E4E7" strokeDasharray="3 3" />
+          <CartesianGrid stroke="#E4E4E7" strokeDasharray="3 3" />
           <XAxis
             dataKey="snapshot_date"
             ticks={yearTicks}
             tickFormatter={(v: string) => v.slice(0, 7)}
-            tick={{ fill: "***REMOVED***52525B", fontSize: 12 }}
-            stroke="***REMOVED***A1A1AA"
+            tick={{ fill: "#52525B", fontSize: 12 }}
+            stroke="#A1A1AA"
           />
           <YAxis
             tickFormatter={(v: number) => v.toFixed(1)}
-            tick={{ fill: "***REMOVED***52525B", fontSize: 12 }}
-            stroke="***REMOVED***A1A1AA"
+            tick={{ fill: "#52525B", fontSize: 12 }}
+            stroke="#A1A1AA"
             label={{
               value: "cumulative return (sum of monthly group means)",
               angle: -90,
               position: "insideLeft",
-              fill: "***REMOVED***71717A",
+              fill: "#71717A",
               fontSize: 11,
               dy: 100,
             }}
@@ -59,7 +59,7 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
           <Tooltip
             contentStyle={{
               background: "white",
-              border: "1px solid ***REMOVED***E4E4E7",
+              border: "1px solid #E4E4E7",
               borderRadius: 6,
               fontSize: 12,
             }}
@@ -77,7 +77,7 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
             type="monotone"
             dataKey="cum_nc_ret"
             name="near_critical (LLM)"
-            stroke="***REMOVED***DC2626"
+            stroke="#DC2626"
             strokeWidth={2}
             dot={false}
           />
@@ -85,7 +85,7 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
             type="monotone"
             dataKey="cum_other_ret"
             name="other (stable, LLM)"
-            stroke="***REMOVED***2563EB"
+            stroke="#2563EB"
             strokeWidth={2}
             dot={false}
           />
@@ -93,7 +93,7 @@ export function CumulativeChart({ rows }: { rows: Row[] }) {
             type="monotone"
             dataKey="cum_bench_ret"
             name="benchmark EW"
-            stroke="***REMOVED***71717A"
+            stroke="#71717A"
             strokeWidth={1.5}
             strokeDasharray="4 4"
             dot={false}

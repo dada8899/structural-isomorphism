@@ -12,8 +12,10 @@
 #   scripts/scrub-history.sh --execute            # actually rewrite history (still no push)
 #   scripts/scrub-history.sh --execute --no-backup
 #   scripts/scrub-history.sh --auto-patterns      # build patterns from gitleaks scan
+#   scripts/scrub-history.sh --validate-only      # only validate patterns file, no scrub
 #
 # Reference: docs/audit/git-history-scrub-2026-05-24.md
+#            docs/audit/git-history-scrub-postmortem-2026-05-25.md (1187-file pollution RCA)
 set -euo pipefail
 
 # -------- paths --------
@@ -29,12 +31,14 @@ DRY_RUN_LOG="${DRY_RUN_LOG:-$REPO_ROOT/.scrub-dry-run.log}"
 MODE="dry-run"
 DO_BACKUP=1
 AUTO_PATTERNS=0
+VALIDATE_ONLY=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run)        MODE="dry-run" ;;
     --execute)        MODE="execute" ;;
     --no-backup)      DO_BACKUP=0 ;;
     --auto-patterns)  AUTO_PATTERNS=1 ;;
+    --validate-only)  VALIDATE_ONLY=1 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -45,6 +49,82 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+# -------- validate_patterns_file --------
+# Defensive check against the 2026-05-24 pollution incident: filter-repo's
+# --replace-text reader does NOT skip comment lines. A bare "#" or any line
+# without "==>" becomes "literal → ***REMOVED***", catastrophically replacing
+# every occurrence of that literal across all blobs in all of history.
+#
+# Rules enforced:
+#   - empty lines: allowed (silently skipped)
+#   - lines starting with "#": allowed (defensive; we recommend NEVER putting
+#     them in patterns.txt — they should live in scrub-patterns.README.md)
+#   - any other line MUST contain "==>" with a non-empty left side
+# Failure mode: print every offending line with its number, then exit 4.
+validate_patterns_file() {
+  local file="$1"
+  if [[ ! -f "$file" ]]; then
+    echo "ERROR: patterns file not found: $file" >&2
+    exit 4
+  fi
+  if [[ ! -s "$file" ]]; then
+    echo "ERROR: patterns file is empty: $file" >&2
+    exit 4
+  fi
+
+  local lineno=0
+  local bad=0
+  local literal_count=0
+  while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
+    lineno=$((lineno + 1))
+    # Strip trailing CR (in case of CRLF files)
+    local line="${raw_line%$'\r'}"
+
+    # Empty line: skip
+    if [[ -z "$line" ]]; then
+      continue
+    fi
+    # Comment line: allowed but discouraged
+    if [[ "${line:0:1}" == "#" ]]; then
+      continue
+    fi
+    # Non-empty, non-comment: must contain "==>" with non-empty LHS
+    if [[ "$line" != *"==>"* ]]; then
+      echo "ERROR: line $lineno has no '==>' separator: $line" >&2
+      echo "       filter-repo would treat this as 'literal $line → ***REMOVED***'." >&2
+      echo "       This is the bug that caused the 2026-05-24 1187-file pollution." >&2
+      bad=$((bad + 1))
+      continue
+    fi
+    local lhs="${line%%==>*}"
+    if [[ -z "$lhs" ]]; then
+      echo "ERROR: line $lineno has empty left-hand side before '==>': $line" >&2
+      bad=$((bad + 1))
+      continue
+    fi
+    literal_count=$((literal_count + 1))
+  done < "$file"
+
+  if [[ "$bad" -gt 0 ]]; then
+    echo "FATAL: $bad invalid line(s) in $file — refusing to run filter-repo." >&2
+    echo "       Fix the patterns file (see scripts/scrub-patterns.README.md)" >&2
+    echo "       and rerun. Metadata/comments belong in the .README.md, NOT here." >&2
+    exit 4
+  fi
+  if [[ "$literal_count" -eq 0 ]]; then
+    echo "ERROR: patterns file has 0 literal==>replacement lines: $file" >&2
+    exit 4
+  fi
+  echo "  validate_patterns_file: OK ($literal_count literal rule(s), 0 violations)"
+}
+
+# Run validate-only mode early — no preflight, no repo state checks needed.
+if [[ "$VALIDATE_ONLY" -eq 1 ]]; then
+  echo "[validate-only] $PATTERNS_FILE"
+  validate_patterns_file "$PATTERNS_FILE"
+  exit 0
+fi
 
 # -------- preflight --------
 echo "[1/6] preflight"
@@ -114,9 +194,14 @@ fi
 echo "[3/6] validate patterns"
 if [[ ! -s "$PATTERNS_FILE" ]]; then
   echo "ERROR: $PATTERNS_FILE missing or empty. Either edit it manually" >&2
-  echo "       (format: 'literal===>replacement', one per line) or rerun with --auto-patterns." >&2
+  echo "       (format: 'literal==>replacement', one per line — see scrub-patterns.README.md)" >&2
+  echo "       or rerun with --auto-patterns." >&2
   exit 6
 fi
+
+# Hard validation gate — refuses to run filter-repo if any non-comment,
+# non-empty line lacks '==>' (the 2026-05-24 RCA fix).
+validate_patterns_file "$PATTERNS_FILE"
 
 NUM_RULES=$(grep -cE '==>' "$PATTERNS_FILE" || true)
 echo "  $NUM_RULES replacement rule(s) loaded"

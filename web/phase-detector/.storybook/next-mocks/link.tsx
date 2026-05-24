@@ -20,7 +20,7 @@ const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   ref,
 ) {
   const resolvedHref =
-    typeof href === "string" ? href : href?.pathname ?? "***REMOVED***";
+    typeof href === "string" ? href : href?.pathname ?? "#";
   return (
     <a ref={ref} href={resolvedHref} {...rest}>
       {children}

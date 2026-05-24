@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CheckoutMockForm } from "@/components/CheckoutMockForm";
 
-// W10-B (session ***REMOVED***10): mock Stripe Checkout. NOT a real payment page.
+// W10-B (session #10): mock Stripe Checkout. NOT a real payment page.
 // See `web/backend/api/checkout_mock.py` for the simulated endpoint behaviour.
 //
 // Migration plan (Q3 2026 or PMF signal, whichever comes first):

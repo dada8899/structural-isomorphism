@@ -24,7 +24,7 @@ import {
 import { parseQuery } from "@/lib/parse-query";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 
-// W6-B: reorganized per W5-E ***REMOVED***4 (hero info density) + W5-C ***REMOVED***3 (signals surface).
+// W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
 // PR-1 copy sweep (2026-05-14): hero rewritten outcome-first, jargon translated,
 // internal codenames (普适类 / 临界点 / STRUCTURAL SIGNALS) stripped from user-visible copy.
 // New flow:
@@ -67,7 +67,7 @@ export default function ScreenerHomePage() {
         // eslint-disable-next-line no-console
         console.warn("signals fetch failed:", err);
       });
-    // W3-C session ***REMOVED***9: pull 3 companies that have already transitioned for
+    // W3-C session #9: pull 3 companies that have already transitioned for
     // the first-fold "recently flipped" retrospective row. If BE has no rows
     // for this state we render nothing (no fake data).
     fetchScreener({ critical_point_state: "post_critical_transition", limit: 3 })
@@ -101,7 +101,7 @@ export default function ScreenerHomePage() {
     load(filters);
   }, [filters, load]);
 
-  // W12-C (session ***REMOVED***10): pull-to-refresh on touch devices. No-op when no
+  // W12-C (session #10): pull-to-refresh on touch devices. No-op when no
   // touchstart fires (desktop), so safe to wire unconditionally.
   usePullToRefresh({
     onRefresh: () => load(filters),
@@ -109,11 +109,11 @@ export default function ScreenerHomePage() {
   });
 
   const handleApply = useCallback((next: ScreenerFilters) => {
-    // Reset page size to 50 whenever filters change (W17 polish ***REMOVED***5).
+    // Reset page size to 50 whenever filters change (W17 polish #5).
     setFilters({ ...next, limit: next.limit ?? 50 });
   }, []);
 
-  // W17 polish ***REMOVED***5: "load more" pagination (mobile UX). Bumps the current
+  // W17 polish #5: "load more" pagination (mobile UX). Bumps the current
   // limit by +50 and re-fetches. If the server returns the same row count
   // as the previous request, we treat that as "no more rows" and hide the
   // button until filters change.
@@ -179,7 +179,7 @@ export default function ScreenerHomePage() {
   return (
     <div className="space-y-10">
       {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14).
-          W2-B (session ***REMOVED***9): transparency banner pulled above-fold as trust
+          W2-B (session #9): transparency banner pulled above-fold as trust
           signal — we publish the NULL backtest (p=0.681) upfront so users can
           decide before scrolling. Not a fine-print disclaimer; a positioning
           statement. */}
@@ -248,7 +248,7 @@ export default function ScreenerHomePage() {
           headline + ABOVE the state legend / signals / family blocks. */}
       <SearchHero onSubmit={handleSearchSubmit} />
 
-      {/* W3-C session ***REMOVED***9: first-fold retrospective row — companies that have
+      {/* W3-C session #9: first-fold retrospective row — companies that have
           ALREADY transitioned (post_critical_transition). Sits between the
           search hero and the state legend so users immediately see one
           concrete outcome of the methodology before scrolling into the table.
@@ -278,14 +278,14 @@ export default function ScreenerHomePage() {
                 style={{
                   color:
                     s === "far_from_critical"
-                      ? "***REMOVED***059669"
+                      ? "#059669"
                       : s === "approaching_critical"
-                        ? "***REMOVED***D97706"
+                        ? "#D97706"
                         : s === "at_critical"
-                          ? "***REMOVED***DC2626"
+                          ? "#DC2626"
                           : s === "post_critical_transition"
-                            ? "***REMOVED***18181B"
-                            : "***REMOVED***71717A",
+                            ? "#18181B"
+                            : "#71717A",
                 }}
                 aria-hidden="true"
               >
@@ -381,7 +381,7 @@ export default function ScreenerHomePage() {
         </div>
       </section>
 
-      {/* Screener — under the fold per W5-E ***REMOVED***4 */}
+      {/* Screener — under the fold per W5-E #4 */}
       <section id="screener" aria-labelledby="screener-heading">
         <div className="mb-3 flex items-baseline justify-between">
           <h2

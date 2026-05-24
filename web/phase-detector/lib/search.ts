@@ -1,4 +1,4 @@
-// W13-E (session ***REMOVED***10): client-side search engine for Cmd+K palette.
+// W13-E (session #10): client-side search engine for Cmd+K palette.
 //
 // We avoid pulling fuse.js (~12 KB gz) because our index is small
 // (~275 entries, ~90 KB raw) and our needs are simple:

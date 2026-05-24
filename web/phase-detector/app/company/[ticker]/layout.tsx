@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): /company/[ticker] dynamic metadata layout.
+// W12-B (session #10, 2026-05-15): /company/[ticker] dynamic metadata layout.
 //
 // Dynamic metadata: title uses the uppercased ticker; description copy
 // stays template. Per-company live data lives in the page body — including

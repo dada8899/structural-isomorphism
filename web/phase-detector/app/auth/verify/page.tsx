@@ -1,6 +1,6 @@
 "use client";
 
-// W15-B (session ***REMOVED***10): magic-link verification.
+// W15-B (session #10): magic-link verification.
 //
 // Reads ?token=... from URL, POSTs to /api/auth/verify, then redirects to
 // /me on success. Failure shows an error + a back-to-login link.

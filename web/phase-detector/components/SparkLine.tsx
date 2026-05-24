@@ -44,16 +44,16 @@ const PHASE_BIAS: Record<CriticalPointState, number> = {
 };
 
 // W13-A: per-theme palettes. Light = original W11-D values; dark uses
-// brightened tones so the band remains readable on ***REMOVED***0A0A0A background.
+// brightened tones so the band remains readable on #0A0A0A background.
 const BAND_STROKE_LIGHT: Array<{ from: number; to: number; color: string; label: string }> = [
-  { from: 0, to: 0.33, color: "***REMOVED***10B981", label: "稳态" },
-  { from: 0.33, to: 0.66, color: "***REMOVED***F59E0B", label: "接近临界" },
-  { from: 0.66, to: 1.01, color: "***REMOVED***EF4444", label: "临界点上" },
+  { from: 0, to: 0.33, color: "#10B981", label: "稳态" },
+  { from: 0.33, to: 0.66, color: "#F59E0B", label: "接近临界" },
+  { from: 0.66, to: 1.01, color: "#EF4444", label: "临界点上" },
 ];
 const BAND_STROKE_DARK: Array<{ from: number; to: number; color: string; label: string }> = [
-  { from: 0, to: 0.33, color: "***REMOVED***34D399", label: "稳态" },
-  { from: 0.33, to: 0.66, color: "***REMOVED***FBBF24", label: "接近临界" },
-  { from: 0.66, to: 1.01, color: "***REMOVED***F87171", label: "临界点上" },
+  { from: 0, to: 0.33, color: "#34D399", label: "稳态" },
+  { from: 0.33, to: 0.66, color: "#FBBF24", label: "接近临界" },
+  { from: 0.66, to: 1.01, color: "#F87171", label: "临界点上" },
 ];
 
 function hash32(s: string): number {
@@ -100,7 +100,7 @@ function bandFor(
   for (const b of palette) {
     if (v >= b.from && v < b.to) return { color: b.color, label: b.label };
   }
-  return { color: "***REMOVED***71717A", label: "未知" };
+  return { color: "#71717A", label: "未知" };
 }
 
 function fmtMonthLabel(offsetFromOldest: number, months: number): string {
@@ -125,14 +125,14 @@ export function SparkLine({
   // W13-A: pick palette based on resolved theme.
   const { resolvedTheme } = useTheme();
   const palette = resolvedTheme === "dark" ? BAND_STROKE_DARK : BAND_STROKE_LIGHT;
-  const baselineStroke = resolvedTheme === "dark" ? "***REMOVED***27272A" : "***REMOVED***E4E4E7";
-  const tooltipBg = resolvedTheme === "dark" ? "***REMOVED***18181B" : "***REMOVED***FFFFFF";
-  const tooltipBorder = resolvedTheme === "dark" ? "***REMOVED***27272A" : "***REMOVED***E4E4E7";
+  const baselineStroke = resolvedTheme === "dark" ? "#27272A" : "#E4E4E7";
+  const tooltipBg = resolvedTheme === "dark" ? "#18181B" : "#FFFFFF";
+  const tooltipBorder = resolvedTheme === "dark" ? "#27272A" : "#E4E4E7";
   const tooltipShadow =
     resolvedTheme === "dark" ? "0 2px 6px rgba(0,0,0,0.6)" : "0 2px 6px rgba(0,0,0,0.08)";
-  const tooltipFg = resolvedTheme === "dark" ? "***REMOVED***FAFAFA" : "***REMOVED***18181B";
-  const tooltipFgSecondary = resolvedTheme === "dark" ? "***REMOVED***D4D4D8" : "***REMOVED***52525B";
-  const dotStroke = resolvedTheme === "dark" ? "***REMOVED***0A0A0A" : "white";
+  const tooltipFg = resolvedTheme === "dark" ? "#FAFAFA" : "#18181B";
+  const tooltipFgSecondary = resolvedTheme === "dark" ? "#D4D4D8" : "#52525B";
+  const dotStroke = resolvedTheme === "dark" ? "#0A0A0A" : "white";
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);

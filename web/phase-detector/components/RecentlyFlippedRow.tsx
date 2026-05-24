@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CPS_ICON, CPS_LABEL_ZH } from "@/lib/labels";
 import type { Company } from "@/lib/types";
 
-// W3-C session ***REMOVED***9: lightweight first-fold row showing companies that have
+// W3-C session #9: lightweight first-fold row showing companies that have
 // already transitioned (critical_point_state = post_critical_transition).
 // Mirrors the structure of the "approaching critical" signals block above
 // it, but with a different visual tone (cool zinc instead of warm amber)

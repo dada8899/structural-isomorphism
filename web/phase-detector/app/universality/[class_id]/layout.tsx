@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): /universality/[class_id] dynamic metadata.
+// W12-B (session #10, 2026-05-15): /universality/[class_id] dynamic metadata.
 //
 // Generates per-class title + description from the class_id slug. We don't
 // fetch the full class detail at build/request time here (would add a DB

@@ -1,4 +1,4 @@
-// W13-E (session ***REMOVED***10): /search deep-link page.
+// W13-E (session #10): /search deep-link page.
 //
 // Visiting /search auto-opens the Cmd+K palette so deep-links from external
 // sources (newsletter "search this", docs "find") drop the user directly

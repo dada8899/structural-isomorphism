@@ -19,20 +19,20 @@
     <mj-preview>{{preview_text}}</mj-preview>
     <mj-attributes>
       <mj-all font-family="ui-serif, Georgia, 'Times New Roman', serif" />
-      <mj-text font-size="16px" line-height="1.55" color="***REMOVED***1a1a1a" />
+      <mj-text font-size="16px" line-height="1.55" color="#1a1a1a" />
       <mj-section padding="20px 24px" />
-      <mj-button background-color="***REMOVED***1a1a1a" color="***REMOVED***ffffff" border-radius="2px" />
+      <mj-button background-color="#1a1a1a" color="#ffffff" border-radius="2px" />
     </mj-attributes>
     <mj-style inline="inline">
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
-      .muted { color: ***REMOVED***6b6b6b; font-size: 14px; }
-      .eyebrow { letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: ***REMOVED***8a8a8a; }
-      a { color: ***REMOVED***1a1a1a; text-decoration: underline; text-underline-offset: 2px; }
-      blockquote { margin: 8px 0 8px 0; padding-left: 12px; border-left: 2px solid ***REMOVED***d0d0d0; color: ***REMOVED***4a4a4a; font-size: 15px; }
-      hr { border: 0; border-top: 1px solid ***REMOVED***e5e5e5; margin: 0; }
+      .muted { color: #6b6b6b; font-size: 14px; }
+      .eyebrow { letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: #8a8a8a; }
+      a { color: #1a1a1a; text-decoration: underline; text-underline-offset: 2px; }
+      blockquote { margin: 8px 0 8px 0; padding-left: 12px; border-left: 2px solid #d0d0d0; color: #4a4a4a; font-size: 15px; }
+      hr { border: 0; border-top: 1px solid #e5e5e5; margin: 0; }
     </mj-style>
   </mj-head>
-  <mj-body background-color="***REMOVED***fafaf7" width="640px">
+  <mj-body background-color="#fafaf7" width="640px">
 
     <!-- Masthead -->
     <mj-section padding-top="32px" padding-bottom="8px">
@@ -48,7 +48,7 @@
       </mj-column>
     </mj-section>
 
-    <mj-section><mj-column><mj-divider border-color="***REMOVED***1a1a1a" border-width="2px" padding="6px 0" /></mj-column></mj-section>
+    <mj-section><mj-column><mj-divider border-color="#1a1a1a" border-width="2px" padding="6px 0" /></mj-column></mj-section>
 
     <!-- Phase flips -->
     <mj-section>
@@ -63,7 +63,7 @@
       </mj-column>
     </mj-section>
 
-    <mj-section><mj-column><mj-divider border-color="***REMOVED***e5e5e5" /></mj-column></mj-section>
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
 
     <!-- Methodology spotlight -->
     <mj-section>
@@ -74,7 +74,7 @@
       </mj-column>
     </mj-section>
 
-    <mj-section><mj-column><mj-divider border-color="***REMOVED***e5e5e5" /></mj-column></mj-section>
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
 
     <!-- arXiv papers -->
     <mj-section>
@@ -87,7 +87,7 @@
       </mj-column>
     </mj-section>
 
-    <mj-section><mj-column><mj-divider border-color="***REMOVED***e5e5e5" /></mj-column></mj-section>
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
 
     <!-- Repo activity -->
     <mj-section>
@@ -98,10 +98,10 @@
       </mj-column>
     </mj-section>
 
-    <mj-section><mj-column><mj-divider border-color="***REMOVED***e5e5e5" /></mj-column></mj-section>
+    <mj-section><mj-column><mj-divider border-color="#e5e5e5" /></mj-column></mj-section>
 
     <!-- Discussion CTA -->
-    <mj-section background-color="***REMOVED***f1efe8" padding="28px 24px">
+    <mj-section background-color="#f1efe8" padding="28px 24px">
       <mj-column>
         <mj-text font-size="18px" font-weight="600">💬 Tried this in your domain?</mj-text>
         <mj-text>

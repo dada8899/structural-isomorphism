@@ -1,6 +1,6 @@
 "use client";
 
-// W13-E (session ***REMOVED***10): client-only auto-opener for /search deep-link.
+// W13-E (session #10): client-only auto-opener for /search deep-link.
 
 import { useEffect } from "react";
 import { openCommandPalette } from "@/components/CommandPaletteProvider";

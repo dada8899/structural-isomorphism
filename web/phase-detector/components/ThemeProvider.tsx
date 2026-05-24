@@ -1,6 +1,6 @@
 "use client";
 
-// W13-A (session ***REMOVED***10, 2026-05-15): 3-mode theme provider.
+// W13-A (session #10, 2026-05-15): 3-mode theme provider.
 //
 // Modes: "system" (default) | "light" | "dark".
 // Persistence: localStorage key `phase_theme`. Missing / corrupt value → "system".

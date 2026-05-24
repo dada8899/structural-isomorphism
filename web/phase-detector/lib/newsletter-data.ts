@@ -16,7 +16,7 @@ export const ISSUES: NewsletterIssue[] = [
   {
     number: "001",
     slug: "001",
-    subject: "Structural Signals ***REMOVED***001 — Week of 2026-05-12",
+    subject: "Structural Signals #001 — Week of 2026-05-12",
     weekLabel: "2026-W19",
     publishedOn: "2026-05-15",
     weekStart: "2026-05-04",

@@ -1,6 +1,6 @@
 "use client";
 
-// W13-A (session ***REMOVED***10, 2026-05-15): 3-state theme toggle.
+// W13-A (session #10, 2026-05-15): 3-state theme toggle.
 //
 // Renders a horizontal segmented control: System | Light | Dark.
 // Icons-only on mobile; icon + label on sm:+ for clarity.

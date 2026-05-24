@@ -1,6 +1,6 @@
 "use client";
 
-// W10-B (session ***REMOVED***10): mock Stripe Checkout form.
+// W10-B (session #10): mock Stripe Checkout form.
 //
 // Design references consulted while building this:
 //   - Stripe Checkout (the layout we're mimicking) — pre-filled total at top,

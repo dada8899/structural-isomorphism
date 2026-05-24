@@ -14,7 +14,7 @@ import ManageCookiesButton from "@/components/ManageCookiesButton";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
-// W12-C (session ***REMOVED***10): mobile polish.
+// W12-C (session #10): mobile polish.
 // viewport-fit=cover lets us use env(safe-area-inset-*) for iOS notch.
 export const viewport: Viewport = {
   width: "device-width",
@@ -22,10 +22,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   maximumScale: 5,
   userScalable: true,
-  themeColor: "***REMOVED***F5F5F4",
+  themeColor: "#F5F5F4",
 };
 
-// W3-B (session ***REMOVED***9): self-host fonts via next/font (latin subset only).
+// W3-B (session #9): self-host fonts via next/font (latin subset only).
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -103,10 +103,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-screen bg-[***REMOVED***F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60 safe-area-body dark:bg-zinc-950 dark:text-zinc-100">
+      <body className="min-h-screen bg-[#F5F5F4] font-sans text-zinc-900 antialiased lg:pl-60 safe-area-body dark:bg-zinc-950 dark:text-zinc-100">
         <ThemeProvider>
           <FlagsProvider>
-          <a href="***REMOVED***main-content" className="skip-link">
+          <a href="#main-content" className="skip-link">
             跳到主要内容
           </a>
           {/* W12-E: SW register + offline banner. */}

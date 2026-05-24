@@ -1,6 +1,6 @@
 "use client";
 
-// W15-B (session ***REMOVED***10): magic-link login page.
+// W15-B (session #10): magic-link login page.
 //
 // Flow:
 //   1. User enters email + clicks "Send sign-in link"

@@ -1,6 +1,6 @@
 "use client";
 
-// W15-B (session ***REMOVED***10): client-side auth helpers.
+// W15-B (session #10): client-side auth helpers.
 //
 // useSession() — React hook that:
 //   - fetches /api/auth/me on mount

@@ -1,7 +1,7 @@
 // W10-D: Newsletter archive index page.
 //
 // Lists all published Structural Signals issues, newest first. Currently
-// just issue ***REMOVED***001 — future issues are added to lib/newsletter-data.ts and
+// just issue #001 — future issues are added to lib/newsletter-data.ts and
 // each gets its own /newsletter/<NNN>/page.tsx (we may switch to a
 // catch-all dynamic route once we hit ~10 issues).
 
@@ -80,7 +80,7 @@ export default function NewsletterArchivePage() {
         {sorted.map((issue) => (
           <li key={issue.slug} className="border-b border-zinc-100 pb-5">
             <p className="mb-1 text-xs uppercase tracking-wider text-zinc-500">
-              Issue ***REMOVED***{issue.number} · {issue.publishedOn} · {issue.weekLabel}
+              Issue #{issue.number} · {issue.publishedOn} · {issue.weekLabel}
             </p>
             <Link
               href={`/newsletter/${issue.slug}`}

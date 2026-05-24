@@ -1,6 +1,6 @@
 "use client";
 
-// W12-C (session ***REMOVED***10): touch-swipe navigation between sibling tickers.
+// W12-C (session #10): touch-swipe navigation between sibling tickers.
 //
 // Renders an invisible <div> that captures left/right swipes on the
 // /company/[ticker] page and pushes the next / previous ticker via

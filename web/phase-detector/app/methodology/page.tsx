@@ -23,14 +23,14 @@ export const metadata: Metadata = buildMetadata({
 
 const cpsColor = (s: string) =>
   s === "far_from_critical"
-    ? "***REMOVED***059669"
+    ? "#059669"
     : s === "approaching_critical"
-      ? "***REMOVED***D97706"
+      ? "#D97706"
       : s === "at_critical"
-        ? "***REMOVED***DC2626"
+        ? "#DC2626"
         : s === "post_critical_transition"
-          ? "***REMOVED***18181B"
-          : "***REMOVED***71717A";
+          ? "#18181B"
+          : "#71717A";
 
 export default function MethodologyPage() {
   return (

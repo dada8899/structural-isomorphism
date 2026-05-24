@@ -12,6 +12,6 @@
 {"ticker": "ICE", "name": "Intercontinental Exchange", "exchange": "NYSE", "industry": "Exchange + Data", "market_cap_usd": 90000000000.0, "country": "US"}
 {"ticker": "AXP", "name": "American Express", "exchange": "NYSE", "industry": "Card Network + Lender", "market_cap_usd": 195000000000.0, "country": "US"}
 {"ticker": "PDD.A", "name": "PDD (Pinduoduo parent)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180000000000.0, "country": "CN"}
-{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing ***REMOVED***2", "market_cap_usd": 6000000000.0, "country": "US"}
+{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing #2", "market_cap_usd": 6000000000.0, "country": "US"}
 {"ticker": "EA", "name": "Electronic Arts", "exchange": "NASDAQ", "industry": "Gaming Publisher", "market_cap_usd": 40000000000.0, "country": "US"}
 {"ticker": "AMC", "name": "AMC Entertainment", "exchange": "NYSE", "industry": "Cinemas / Meme", "market_cap_usd": 2000000000.0, "country": "US"}

@@ -1,6 +1,6 @@
 "use client";
 
-// W13-E (session ***REMOVED***10): Cmd+K command palette.
+// W13-E (session #10): Cmd+K command palette.
 //
 // Site-wide instant search across companies / universality classes / papers /
 // newsletters / docs. Client-side index loaded lazily from /search-index.json
@@ -43,7 +43,7 @@ const TRENDING: Array<{ label: string; query: string }> = [
   { label: "NVDA", query: "NVDA" },
   { label: "Scheffer fold", query: "scheffer" },
   { label: "Reflexivity (Soros)", query: "reflexive" },
-  { label: "Newsletter ***REMOVED***001", query: "issue 001" },
+  { label: "Newsletter #001", query: "issue 001" },
 ];
 
 function loadRecent(): string[] {

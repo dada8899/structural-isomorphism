@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): /universality archive metadata layout.
+// W12-B (session #10, 2026-05-15): /universality archive metadata layout.
 //
 // Wraps the client-rendered class explorer. The dynamic per-class detail
 // page also lives under this segment; it has its own layout.tsx for

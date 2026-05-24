@@ -1,4 +1,4 @@
-// W10-D: SSR newsletter issue ***REMOVED***001 page.
+// W10-D: SSR newsletter issue #001 page.
 //
 // The markdown source lives in docs/community/newsletters/issue-001-2026-05-15.md
 // (single source of truth — same file ships to email and to web). We read it
@@ -20,7 +20,7 @@ import { articleSchema, buildMetadata } from "@/lib/seo";
 const ISSUE_SLUG = "001";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Structural Signals ***REMOVED***001 — Week of 2026-05-12",
+  title: "Structural Signals #001 — Week of 2026-05-12",
   description:
     "10 phase flips, why we use block-bootstrap CIs instead of iid bootstrap, and four cross-domain preprints worth reading. First issue of the weekly Structural Signals newsletter.",
   path: "/newsletter/001",
@@ -50,7 +50,7 @@ function readIssueMarkdown(): string {
   // Fallback: shipped-with-page copy (kept in sync by CI). This keeps the
   // page renderable even when run from a build context without the docs tree.
   return [
-    "***REMOVED*** Structural Signals ***REMOVED***001 — Week of 2026-05-12",
+    "# Structural Signals #001 — Week of 2026-05-12",
     "",
     "_Issue body unavailable in this build (markdown not found on disk)._",
     "_See [GitHub archive](https://github.com/dada8899/structural-isomorphism/tree/main/docs/community/newsletters) for the full text._",
@@ -69,12 +69,12 @@ export default function NewsletterIssue001Page() {
 
   const markdown = readIssueMarkdown();
   // Strip the H1 from markdown — we render our own masthead above.
-  const stripped = markdown.replace(/^***REMOVED*** .*\n+/m, "");
+  const stripped = markdown.replace(/^# .*\n+/m, "");
   const html = renderMarkdown(stripped);
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
-      {/* W12-B: Article schema for issue ***REMOVED***001. */}
+      {/* W12-B: Article schema for issue #001. */}
       <JsonLd
         id="ld-newsletter-001"
         schema={articleSchema({
@@ -93,13 +93,13 @@ export default function NewsletterIssue001Page() {
         items={[
           { label: "首页", href: "/" },
           { label: "Newsletter", href: "/newsletter" },
-          { label: `***REMOVED***${issue.number}` },
+          { label: `#${issue.number}` },
         ]}
       />
 
       <header className="mb-8 border-b border-zinc-200 pb-6">
         <p className="mb-2 text-xs uppercase tracking-wider text-zinc-500">
-          Issue ***REMOVED***{issue.number} · Published {issue.publishedOn} · {issue.weekLabel}
+          Issue #{issue.number} · Published {issue.publishedOn} · {issue.weekLabel}
         </p>
         <h1
           className="serif mb-3 text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl"

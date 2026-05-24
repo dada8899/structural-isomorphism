@@ -138,17 +138,17 @@ export function PhaseTrajectoryChart({
   // Band fills stay constant but use lower-opacity in dark to avoid glare.
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const chartLine = isDark ? "***REMOVED***FAFAFA" : "***REMOVED***18181B";
-  const chartGrid = isDark ? "***REMOVED***27272A" : "***REMOVED***E4E4E7";
-  const chartAxisLabel = isDark ? "***REMOVED***A1A1AA" : "***REMOVED***71717A";
-  const chartHoverLine = isDark ? "***REMOVED***A78BFA" : "***REMOVED***3B82F6";
-  const chartTooltipBg = isDark ? "***REMOVED***18181B" : "***REMOVED***FFFFFF";
-  const chartTooltipBorder = isDark ? "***REMOVED***27272A" : "***REMOVED***E4E4E7";
+  const chartLine = isDark ? "#FAFAFA" : "#18181B";
+  const chartGrid = isDark ? "#27272A" : "#E4E4E7";
+  const chartAxisLabel = isDark ? "#A1A1AA" : "#71717A";
+  const chartHoverLine = isDark ? "#A78BFA" : "#3B82F6";
+  const chartTooltipBg = isDark ? "#18181B" : "#FFFFFF";
+  const chartTooltipBorder = isDark ? "#27272A" : "#E4E4E7";
   const chartTooltipShadow = isDark
     ? "0 4px 12px rgba(0,0,0,0.6)"
     : "0 4px 12px rgba(0,0,0,0.08)";
-  const chartTooltipFg = isDark ? "***REMOVED***FAFAFA" : "***REMOVED***18181B";
-  const chartTooltipFgSecondary = isDark ? "***REMOVED***D4D4D8" : "***REMOVED***52525B";
+  const chartTooltipFg = isDark ? "#FAFAFA" : "#18181B";
+  const chartTooltipFgSecondary = isDark ? "#D4D4D8" : "#52525B";
 
   // Hydration-aware state for tooltip/brush.
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);

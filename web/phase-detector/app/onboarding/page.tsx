@@ -1,4 +1,4 @@
-// W12-D (session ***REMOVED***10, 2026-05-15): /onboarding/ deep-link page.
+// W12-D (session #10, 2026-05-15): /onboarding/ deep-link page.
 //
 // Useful for marketing-email landings — bypasses the localStorage seen
 // flag and forces the tour open on mount. The page is otherwise identical

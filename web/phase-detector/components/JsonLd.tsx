@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): JSON-LD structured data helper.
+// W12-B (session #10, 2026-05-15): JSON-LD structured data helper.
 //
 // Renders a single <script type="application/ld+json"> tag containing the
 // provided schema.org object. The component is server-renderable; we use

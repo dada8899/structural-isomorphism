@@ -41,7 +41,7 @@
 {"ticker": "PDD.A", "name": "PDD (Pinduoduo parent)", "exchange": "NASDAQ", "industry": "E-commerce", "market_cap_usd": 180e9, "country": "CN"}
 {"ticker": "SNAP", "name": "Snap Inc", "exchange": "NYSE", "industry": "Social Media", "market_cap_usd": 18e9, "country": "US"}
 {"ticker": "PINS", "name": "Pinterest", "exchange": "NYSE", "industry": "Visual Discovery", "market_cap_usd": 22e9, "country": "US"}
-{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing ***REMOVED***2", "market_cap_usd": 6e9, "country": "US"}
+{"ticker": "LYFT", "name": "Lyft", "exchange": "NASDAQ", "industry": "Ride Sharing #2", "market_cap_usd": 6e9, "country": "US"}
 {"ticker": "MTCH", "name": "Match Group", "exchange": "NASDAQ", "industry": "Dating Apps", "market_cap_usd": 8e9, "country": "US"}
 {"ticker": "BMBL", "name": "Bumble", "exchange": "NASDAQ", "industry": "Dating Apps", "market_cap_usd": 1e9, "country": "US"}
 {"ticker": "EA", "name": "Electronic Arts", "exchange": "NASDAQ", "industry": "Gaming Publisher", "market_cap_usd": 40e9, "country": "US"}

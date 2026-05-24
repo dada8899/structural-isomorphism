@@ -2,9 +2,9 @@ import type { Config } from "tailwindcss";
 
 // W6-B: aligned with main site (web/frontend/assets/css/design-system.css).
 // Font stack: Inter + Noto Serif SC (matches main site).
-// Default Tailwind zinc + accent ***REMOVED***2563EB.
-// W3-B (session ***REMOVED***9, 2026-05-14): fonts now self-hosted via next/font; tailwind references CSS vars.
-// W13-A (session ***REMOVED***10, 2026-05-15): class-based dark mode + token utilities.
+// Default Tailwind zinc + accent #2563EB.
+// W3-B (session #9, 2026-05-14): fonts now self-hosted via next/font; tailwind references CSS vars.
+// W13-A (session #10, 2026-05-15): class-based dark mode + token utilities.
 const config: Config = {
   darkMode: "class",
   content: [
@@ -64,10 +64,10 @@ const config: Config = {
         warning: "var(--warning)",
         danger: "var(--danger)",
         cps: {
-          subcritical: "***REMOVED***059669",
-          nearcritical: "***REMOVED***D97706",
-          supercritical: "***REMOVED***DC2626",
-          tipped: "***REMOVED***18181B",
+          subcritical: "#059669",
+          nearcritical: "#D97706",
+          supercritical: "#DC2626",
+          tipped: "#18181B",
         },
       },
       backgroundColor: {

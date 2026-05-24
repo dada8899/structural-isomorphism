@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): SEO helpers — site constants + structured
+// W12-B (session #10, 2026-05-15): SEO helpers — site constants + structured
 // data builders shared across pages.
 //
 // Why this lives in lib/ instead of inline in each page:

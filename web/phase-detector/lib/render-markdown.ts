@@ -7,7 +7,7 @@
 // issue template render to HTML; everything else is escaped.
 //
 // Supported:
-//   - h1..h3  (***REMOVED*** / ***REMOVED******REMOVED*** / ***REMOVED******REMOVED******REMOVED***)
+//   - h1..h3  (# / ## / ###)
 //   - paragraphs (blank-line separated)
 //   - bullet lists (- prefix), 2-space indented continuation lines
 //   - blockquotes (> prefix), 2-space indented inside a list item
@@ -71,7 +71,7 @@ export function renderMarkdown(md: string): string {
   let i = 0;
 
   const isHr = (l: string) => /^-{3,}\s*$/.test(l);
-  const isHeading = (l: string) => /^***REMOVED***{1,3}\s+/.test(l);
+  const isHeading = (l: string) => /^#{1,3}\s+/.test(l);
   const isListItem = (l: string) => /^- (?!- )/.test(l);
   const isBlockquote = (l: string) => /^>\s/.test(l);
 
@@ -88,7 +88,7 @@ export function renderMarkdown(md: string): string {
       continue;
     }
 
-    const m = /^(***REMOVED***{1,3})\s+(.*)$/.exec(line);
+    const m = /^(#{1,3})\s+(.*)$/.exec(line);
     if (m) {
       const level = m[1].length as 1 | 2 | 3;
       blocks.push({

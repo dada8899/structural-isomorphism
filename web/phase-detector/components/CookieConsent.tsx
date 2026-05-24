@@ -1,6 +1,6 @@
 "use client";
 
-// W14-C (session ***REMOVED***10, 2026-05-15): GDPR / e-Privacy cookie consent banner.
+// W14-C (session #10, 2026-05-15): GDPR / e-Privacy cookie consent banner.
 //
 // Design choices (vs. heavyweight CMPs like OneTrust / Cookiebot):
 //   • Self-hosted — no third-party SDK, no IAB TCF token, no consent-server

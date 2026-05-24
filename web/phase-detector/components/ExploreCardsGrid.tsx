@@ -26,11 +26,11 @@ import type { Company, CriticalPointState } from "@/lib/types";
 import { CPS_LABEL_ZH } from "@/lib/labels";
 
 const PHASE_COLORS: Record<CriticalPointState, { fg: string; bg: string; border: string }> = {
-  far_from_critical: { fg: "***REMOVED***065F46", bg: "***REMOVED***ECFDF5", border: "***REMOVED***A7F3D0" },
-  approaching_critical: { fg: "***REMOVED***92400E", bg: "***REMOVED***FFFBEB", border: "***REMOVED***FCD34D" },
-  at_critical: { fg: "***REMOVED***991B1B", bg: "***REMOVED***FEF2F2", border: "***REMOVED***FCA5A5" },
-  post_critical_transition: { fg: "***REMOVED***1F2937", bg: "***REMOVED***F4F4F5", border: "***REMOVED***D4D4D8" },
-  unknown: { fg: "***REMOVED***52525B", bg: "***REMOVED***FAFAFA", border: "***REMOVED***E4E4E7" },
+  far_from_critical: { fg: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
+  approaching_critical: { fg: "#92400E", bg: "#FFFBEB", border: "#FCD34D" },
+  at_critical: { fg: "#991B1B", bg: "#FEF2F2", border: "#FCA5A5" },
+  post_critical_transition: { fg: "#1F2937", bg: "#F4F4F5", border: "#D4D4D8" },
+  unknown: { fg: "#52525B", bg: "#FAFAFA", border: "#E4E4E7" },
 };
 
 // Build a stable inline SVG sparkline from a deterministic hash of the

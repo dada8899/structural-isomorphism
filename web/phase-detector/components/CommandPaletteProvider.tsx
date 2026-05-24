@@ -1,6 +1,6 @@
 "use client";
 
-// W13-E (session ***REMOVED***10): mount-once provider for the Cmd+K command palette.
+// W13-E (session #10): mount-once provider for the Cmd+K command palette.
 //
 // Lives in app/layout.tsx alongside <OnboardingTour /> so the global
 // Cmd+K / Ctrl+K shortcut is active everywhere.

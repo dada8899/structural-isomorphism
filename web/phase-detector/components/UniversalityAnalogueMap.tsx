@@ -77,12 +77,12 @@ function inferDomain(text: string): "physics" | "biology" | "finance" | "social"
 }
 
 const DOMAIN_COLOR: Record<string, string> = {
-  physics: "***REMOVED***3B82F6",
-  biology: "***REMOVED***10B981",
-  finance: "***REMOVED***F59E0B",
-  social: "***REMOVED***A855F7",
-  tech: "***REMOVED***06B6D4",
-  unknown: "***REMOVED***71717A",
+  physics: "#3B82F6",
+  biology: "#10B981",
+  finance: "#F59E0B",
+  social: "#A855F7",
+  tech: "#06B6D4",
+  unknown: "#71717A",
 };
 
 const DOMAIN_LABEL_ZH: Record<string, string> = {
@@ -259,18 +259,18 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   // W13-A theme-aware palette.
-  const edgeStroke = isDark ? "***REMOVED***52525B" : "***REMOVED***A1A1AA";
-  const centerFill = isDark ? "***REMOVED***FAFAFA" : "***REMOVED***18181B";
-  const nodeStroke = isDark ? "***REMOVED***0A0A0A" : "white";
-  const labelFill = isDark ? "***REMOVED***E4E4E7" : "***REMOVED***27272A";
-  const centerLabelFill = isDark ? "***REMOVED***18181B" : "white";
-  const tooltipBg = isDark ? "***REMOVED***18181B" : "white";
-  const tooltipBorder = isDark ? "***REMOVED***27272A" : "***REMOVED***E4E4E7";
+  const edgeStroke = isDark ? "#52525B" : "#A1A1AA";
+  const centerFill = isDark ? "#FAFAFA" : "#18181B";
+  const nodeStroke = isDark ? "#0A0A0A" : "white";
+  const labelFill = isDark ? "#E4E4E7" : "#27272A";
+  const centerLabelFill = isDark ? "#18181B" : "white";
+  const tooltipBg = isDark ? "#18181B" : "white";
+  const tooltipBorder = isDark ? "#27272A" : "#E4E4E7";
   const tooltipShadow = isDark
     ? "0 4px 12px rgba(0,0,0,0.6)"
     : "0 4px 12px rgba(0,0,0,0.08)";
-  const tooltipFg = isDark ? "***REMOVED***FAFAFA" : "***REMOVED***18181B";
-  const tooltipFgSecondary = isDark ? "***REMOVED***D4D4D8" : "***REMOVED***52525B";
+  const tooltipFg = isDark ? "#FAFAFA" : "#18181B";
+  const tooltipFgSecondary = isDark ? "#D4D4D8" : "#52525B";
   const [hover, setHover] = useState<number | null>(null);
   const [nodes, setNodes] = useState<Node[]>(() => {
     const { nodes: initial } = buildGraph(detail);
@@ -382,7 +382,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
           {nodes.map((n, i) => {
             const isHover = hover === i;
             const r = n.isCenter ? 26 : isHover ? 14 : 11;
-            const fill = n.isCenter ? centerFill : DOMAIN_COLOR[n.domain] ?? "***REMOVED***71717A";
+            const fill = n.isCenter ? centerFill : DOMAIN_COLOR[n.domain] ?? "#71717A";
             return (
               <g
                 key={n.id}

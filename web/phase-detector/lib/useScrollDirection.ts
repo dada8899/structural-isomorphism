@@ -1,6 +1,6 @@
 "use client";
 
-// W12-C (session ***REMOVED***10): rAF-throttled scroll-direction detector.
+// W12-C (session #10): rAF-throttled scroll-direction detector.
 // Used by sticky headers: hide when scrolling down past N px, reveal on up.
 // Mobile native pattern (iOS Safari toolbar, Twitter/X header).
 

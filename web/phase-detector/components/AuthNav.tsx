@@ -1,6 +1,6 @@
 "use client";
 
-// W15-B (session ***REMOVED***10): auth widget for the top nav.
+// W15-B (session #10): auth widget for the top nav.
 //
 // Shows either:
 //   - "Sign in" link when no session

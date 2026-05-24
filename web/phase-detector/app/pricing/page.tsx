@@ -6,7 +6,7 @@ import { PricingTable } from "@/components/PricingTable";
 import { Events } from "@/lib/analytics";
 import { buildMetadata } from "@/lib/seo";
 
-// W10-B (session ***REMOVED***10): pricing page. Free / Pro $19 / Team $99 mock.
+// W10-B (session #10): pricing page. Free / Pro $19 / Team $99 mock.
 // Real Stripe integration deferred until PMF signal — see README in
 // /checkout/mock for migration plan.
 //

@@ -1,6 +1,6 @@
 "use client";
 
-// W10-B (session ***REMOVED***10): client-only banner that reads `?tier=…&mock=1` from
+// W10-B (session #10): client-only banner that reads `?tier=…&mock=1` from
 // /thank-you and renders a tier-specific success message. We layer this on
 // top of the existing thank-you page (waitlist signup) so the page serves
 // both flows without a second route.

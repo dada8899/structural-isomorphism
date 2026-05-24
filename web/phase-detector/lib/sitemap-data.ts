@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): sitemap enumeration data.
+// W12-B (session #10, 2026-05-15): sitemap enumeration data.
 //
 // Tickers + universality class IDs that should appear in sitemap.xml.
 // In production these will be fetched from the API; for static export

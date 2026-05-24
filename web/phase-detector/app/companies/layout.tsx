@@ -1,4 +1,4 @@
-// W12-B (session ***REMOVED***10, 2026-05-15): /companies metadata layout.
+// W12-B (session #10, 2026-05-15): /companies metadata layout.
 //
 // page.tsx is a client component (uses useRouter, useEffect, useState),
 // so it can't export `metadata` directly. This server-component layout

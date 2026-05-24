@@ -1,6 +1,6 @@
 "use client";
 
-// W12-D (session ***REMOVED***10, 2026-05-15): first-time user onboarding tour.
+// W12-D (session #10, 2026-05-15): first-time user onboarding tour.
 //
 // 4 steps: welcome → phase badge → universality → waitlist.
 // Pure React + Portal, no third-party (shepherd.js / driver.js bloat).
@@ -410,7 +410,7 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
           position: fixed;
           pointer-events: auto;
           max-width: min(360px, calc(100vw - 32px));
-          background: ***REMOVED***ffffff;
+          background: #ffffff;
           border: 1px solid rgb(228 228 231);
           border-radius: 14px;
           box-shadow:
@@ -499,7 +499,7 @@ export default function OnboardingTour({ forceOpen = false, steps = DEFAULT_STEP
         }
         .phase-tour-next {
           background: rgb(24 24 27);
-          color: ***REMOVED***ffffff;
+          color: #ffffff;
         }
         .phase-tour-next:hover {
           background: rgb(39 39 42);

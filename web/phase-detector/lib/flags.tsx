@@ -1,4 +1,4 @@
-// Feature flags + experiments client — session ***REMOVED***10 W15-E.
+// Feature flags + experiments client — session #10 W15-E.
 //
 // Fetches /api/flags once on mount, caches in a React context. SSR-safe:
 // server-rendered HTML uses defaults (all flags false, all variants
