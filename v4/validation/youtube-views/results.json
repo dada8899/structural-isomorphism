@@ -1,0 +1,68 @@
+{
+  "timestamp_utc": "2026-05-24T16:21:22.349511+00:00",
+  "data_provenance": "GITHUB_MIRROR_LIVE",
+  "n_videos": 6351,
+  "max_views": 225211923,
+  "median_views": 518107,
+  "fit": {
+    "alpha": 2.161094648707497,
+    "alpha_se": 0.03963911772663342,
+    "xmin": 2817973.0,
+    "n_tail": 858,
+    "ks": 0.02441641111819065,
+    "alpha_ci_low": 2.047205147330421,
+    "alpha_ci_high": 2.2878595403880224,
+    "R_lognormal": -1.6341109761329558,
+    "p_lognormal": 0.10223555055498142,
+    "winner_vs_lognormal": "inconclusive",
+    "R_exponential": 6.343663634654207,
+    "p_exponential": 2.2436441817298504e-10,
+    "winner_vs_exponential": "power_law",
+    "R_truncated_pl": -2.5266842047835016,
+    "p_truncated_pl": 0.0010485585847481715,
+    "winner_vs_truncated_pl": "truncated_power_law"
+  },
+  "references": {
+    "twitter_higgs_alpha": {
+      "alpha": 1.898,
+      "se": 0.004,
+      "source": "X3 Wave 2 Higgs Twitter cascade (this session)"
+    },
+    "wikipedia_pageviews_alpha": {
+      "alpha": 2.1,
+      "se": 0.05,
+      "source": "X3 Phase A1 Wikipedia pageviews"
+    },
+    "github_stars_alpha": {
+      "alpha": 2.3,
+      "se": 0.04,
+      "source": "X3 Phase A1 GitHub stars"
+    },
+    "crane_sornette_2008_yt": {
+      "alpha": 2.2,
+      "se": 0.1,
+      "source": "Crane-Sornette 2008 PNAS YouTube cascades"
+    },
+    "cha_mislove_2009_yt": {
+      "alpha": 2.1,
+      "se": 0.05,
+      "source": "Cha-Mislove-Gummadi 2009 IMC YouTube views"
+    }
+  },
+  "isomorphism_distances": {
+    "twitter_higgs_alpha": 6.6037105016762085,
+    "wikipedia_pageviews_alpha": 0.9574999749115228,
+    "github_stars_alpha": 2.4666246994281655,
+    "crane_sornette_2008_yt": 0.36167544255961376,
+    "cha_mislove_2009_yt": 0.9574999749115228
+  },
+  "canonical_band": [
+    1.8,
+    3.0
+  ],
+  "sanity_band": [
+    1.5,
+    3.5
+  ],
+  "verdict": "PASS"
+}

@@ -1,0 +1,71 @@
+{
+  "timestamp_utc": "2026-05-24T16:02:45.464501+00:00",
+  "data_provenance": "SNAP_LIVE",
+  "n_cascades": 41426,
+  "max_cascade": 14060,
+  "median_cascade": 1.0,
+  "fit": {
+    "alpha": 1.897799698232296,
+    "alpha_se": 0.004411059893397624,
+    "xmin": 1.0,
+    "n_tail": 41426,
+    "ks": 0.003754360002295898,
+    "alpha_ci_low": 1.8891050704127297,
+    "alpha_ci_high": 1.9144582306169058,
+    "R_lognormal": 4.885902074677499,
+    "p_lognormal": 1.0295636396298984e-06,
+    "winner_vs_lognormal": "power_law",
+    "R_exponential": 24.76714477322449,
+    "p_exponential": 2.0265290245223235e-135,
+    "winner_vs_exponential": "power_law"
+  },
+  "omori": {
+    "p": 0.11896739179970724,
+    "p_sigma": null,
+    "c_days": null,
+    "logK": 2.8245620559779985,
+    "R2": 0.8695695040092493,
+    "n_aftershocks_in_fit": 0,
+    "n_post_peak": 343530,
+    "peak_bin_count": 1083,
+    "peak_time_offset_s": 280320.0,
+    "error": null
+  },
+  "references": {
+    "wikipedia_pageviews_alpha": {
+      "alpha": 2.1,
+      "se": 0.05,
+      "source": "X3 Phase A1 Wikipedia pageviews"
+    },
+    "github_stars_alpha": {
+      "alpha": 2.3,
+      "se": 0.04,
+      "source": "X3 Phase A1 GitHub stars"
+    },
+    "youtube_views_alpha_literature": {
+      "alpha": 2.2,
+      "se": 0.1,
+      "source": "Crane-Sornette 2008 PNAS YouTube cascades"
+    },
+    "twitter_goel_watts": {
+      "alpha": 2.25,
+      "se": 0.15,
+      "source": "Goel-Anderson-Hofman-Watts 2016 Mgmt Sci"
+    }
+  },
+  "isomorphism_distances": {
+    "wikipedia_pageviews_alpha": 4.0283600968186795,
+    "github_stars_alpha": 9.994420581722823,
+    "youtube_views_alpha_literature": 3.019067277596505,
+    "twitter_goel_watts": 2.3469874224414116
+  },
+  "canonical_band": [
+    1.8,
+    3.0
+  ],
+  "sanity_band": [
+    1.5,
+    3.5
+  ],
+  "verdict": "PASS"
+}
