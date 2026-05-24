@@ -1,0 +1,424 @@
+{
+  "system": "Tail copula contagion \u2014 multi-vendor financial pairs",
+  "data_provenance": "PRIMARY: CBOE direct CSVs (VIX_History 1990-2026, SPX_History 1975-2026, DJX_History 1997-2026, VVIX_History 2006-2026) fetched 2026-05-25 from https://cdn.cboe.com/api/global/us_indices/daily_prices/. CROSS-VENDOR: yfinance ^GSPC sp500_daily.csv reused from v4/validation/soc-stockmarket/ (1990-2025).",
+  "predicted_class": "tail_copula_contagion",
+  "prereg_band": {
+    "delta_lambda_pass_threshold": 0.3,
+    "lambda_calm_band": [
+      0.1,
+      0.2
+    ],
+    "lambda_stress_band": [
+      0.45,
+      0.65
+    ]
+  },
+  "pair_results": [
+    {
+      "name": "A_cboe_spx_vix",
+      "n": 9160,
+      "marginal_clauset_A": {
+        "xmin": 0.0099208018713286,
+        "alpha": 2.996738059549169,
+        "sigma_alpha": 0.041015397327251533,
+        "n_tail": 2370,
+        "rejects_power_law": true
+      },
+      "marginal_clauset_B": {
+        "xmin": 1.589999999999998,
+        "alpha": 2.9906413615248653,
+        "sigma_alpha": 0.048741063438501715,
+        "n_tail": 1668,
+        "rejects_power_law": true
+      },
+      "lambda_U_empirical": {
+        "q0.9": 0.5589519650655022,
+        "q0.95": 0.5218340611353712,
+        "q0.975": 0.5414847161572053,
+        "q0.99": 0.5494505494505495
+      },
+      "lambda_L_empirical": {
+        "q0.1": 0.18777292576419213,
+        "q0.05": 0.07860262008733625,
+        "q0.025": 0.03056768558951965,
+        "q0.01": 0.02197802197802198
+      },
+      "copulas": {
+        "gaussian": {
+          "params": {
+            "rho": 0.5573365228457136
+          },
+          "nll": -1696.4313950167389,
+          "aic": -3390.8627900334777,
+          "bic": -3383.7401885758095,
+          "lambda_U": 0.0,
+          "lambda_L": 0.0
+        },
+        "t": {
+          "params": {
+            "rho": 0.567206852494395,
+            "nu": 7.165829809050797
+          },
+          "nll": -1791.172179013734,
+          "aic": -3578.344358027468,
+          "bic": -3564.0991551121315,
+          "lambda_U": 0.1708209986250845,
+          "lambda_L": 0.1708209986250845
+        },
+        "gumbel": {
+          "params": {
+            "theta": 1.6695995949654039
+          },
+          "nll": -2211.682543482437,
+          "aic": -4421.365086964874,
+          "bic": -4414.242485507206,
+          "lambda_U": 0.48539037631813975,
+          "lambda_L": 0.0
+        },
+        "clayton": {
+          "params": {
+            "theta": 0.5620970128162041
+          },
+          "nll": -662.7552689912385,
+          "aic": -1323.510537982477,
+          "bic": -1316.3879365248088,
+          "lambda_U": 0.0,
+          "lambda_L": 0.29137473060450925
+        }
+      },
+      "best_copula_by_bic": "gumbel",
+      "soc_cascade": {
+        "p_co": 0.2,
+        "alpha": 2.5,
+        "log_lik": 1235.149279109115,
+        "aic": -2466.29855821823
+      },
+      "mechanism_vs_descriptor": {
+        "best_copula": "gumbel",
+        "aic_copula": -4421.365086964874,
+        "aic_soc_cascade": -2466.29855821823,
+        "delta_aic_soc_minus_copula": 1955.0665287466436,
+        "winner": "copula"
+      },
+      "conditional_calm_stress": {
+        "n_calm": 4585,
+        "n_stress": 458,
+        "lambda_U_calm_q0.90": 0.46943231441048033,
+        "lambda_U_stress_q0.90": 0.4666666666666667,
+        "delta_lambda": -0.0027656477438136595
+      },
+      "verdict": "REJECT (no jump and copula wins)"
+    },
+    {
+      "name": "B_yfinance_spx_vix",
+      "n": 9061,
+      "marginal_clauset_A": {
+        "xmin": 0.009980500536555859,
+        "alpha": 2.9980301314291906,
+        "sigma_alpha": 0.041419403650382366,
+        "n_tail": 2327,
+        "rejects_power_law": true
+      },
+      "marginal_clauset_B": {
+        "xmin": 1.589999999999998,
+        "alpha": 2.9937557004315596,
+        "sigma_alpha": 0.04915740979746543,
+        "n_tail": 1645,
+        "rejects_power_law": true
+      },
+      "lambda_U_empirical": {
+        "q0.9": 0.5618101545253863,
+        "q0.95": 0.5187637969094923,
+        "q0.975": 0.5486725663716814,
+        "q0.99": 0.5444444444444444
+      },
+      "lambda_L_empirical": {
+        "q0.1": 0.18322295805739514,
+        "q0.05": 0.07947019867549669,
+        "q0.025": 0.02654867256637168,
+        "q0.01": 0.022222222222222223
+      },
+      "copulas": {
+        "gaussian": {
+          "params": {
+            "rho": 0.5572695874522232
+          },
+          "nll": -1677.650301981865,
+          "aic": -3353.30060396373,
+          "bic": -3346.188869195508,
+          "lambda_U": 0.0,
+          "lambda_L": 0.0
+        },
+        "t": {
+          "params": {
+            "rho": 0.5673403296772046,
+            "nu": 7.1911568537646
+          },
+          "nll": -1769.3152640664466,
+          "aic": -3534.6305281328932,
+          "bic": -3520.407058596449,
+          "lambda_U": 0.17019454949077173,
+          "lambda_L": 0.17019454949077173
+        },
+        "gumbel": {
+          "params": {
+            "theta": 1.67083445897413
+          },
+          "nll": -2192.9105978830803,
+          "aic": -4383.821195766161,
+          "bic": -4376.709460997939,
+          "lambda_U": 0.48585503379086536,
+          "lambda_L": 0.0
+        },
+        "clayton": {
+          "params": {
+            "theta": 0.5592177814147975
+          },
+          "nll": -648.2962953653348,
+          "aic": -1294.5925907306696,
+          "bic": -1287.4808559624475,
+          "lambda_U": 0.0,
+          "lambda_L": 0.28953063380471145
+        }
+      },
+      "best_copula_by_bic": "gumbel",
+      "soc_cascade": {
+        "p_co": 0.2,
+        "alpha": 2.5,
+        "log_lik": 1224.0246073021308,
+        "aic": -2444.0492146042616
+      },
+      "mechanism_vs_descriptor": {
+        "best_copula": "gumbel",
+        "aic_copula": -4383.821195766161,
+        "aic_soc_cascade": -2444.0492146042616,
+        "delta_aic_soc_minus_copula": 1939.771981161899,
+        "winner": "copula"
+      },
+      "conditional_calm_stress": {
+        "n_calm": 4532,
+        "n_stress": 454,
+        "lambda_U_calm_q0.90": 0.47240618101545256,
+        "lambda_U_stress_q0.90": 0.4666666666666667,
+        "delta_lambda": -0.00573951434878589
+      },
+      "verdict": "REJECT (no jump and copula wins)"
+    },
+    {
+      "name": "C_cboe_spx_djx",
+      "n": 7201,
+      "marginal_clauset_A": {
+        "xmin": 0.010708159877836465,
+        "alpha": 2.9991951243139914,
+        "sigma_alpha": 0.04650548741699442,
+        "n_tail": 1848,
+        "rejects_power_law": true
+      },
+      "marginal_clauset_B": {
+        "xmin": 0.009848885059110302,
+        "alpha": 2.9996731647428905,
+        "sigma_alpha": 0.04541194612486086,
+        "n_tail": 1939,
+        "rejects_power_law": true
+      },
+      "lambda_U_empirical": {
+        "q0.9": 0.8152777777777778,
+        "q0.95": 0.8166666666666667,
+        "q0.975": 0.8277777777777777,
+        "q0.99": 0.8194444444444444
+      },
+      "lambda_L_empirical": {
+        "q0.1": 0.30416666666666664,
+        "q0.05": 0.175,
+        "q0.025": 0.05555555555555555,
+        "q0.01": 0.013888888888888888
+      },
+      "copulas": {
+        "gaussian": {
+          "params": {
+            "rho": 0.8107682273493753
+          },
+          "nll": -3846.8725761118003,
+          "aic": -7691.745152223601,
+          "bic": -7684.863177039351,
+          "lambda_U": 0.0,
+          "lambda_L": 0.0
+        },
+        "t": {
+          "params": {
+            "rho": 0.8385426143332779,
+            "nu": 3.276396738503915
+          },
+          "nll": -4256.239085424022,
+          "aic": -8508.478170848044,
+          "bic": -8494.714220479545,
+          "lambda_U": 0.5710969401585011,
+          "lambda_L": 0.5710969401585011
+        },
+        "gumbel": {
+          "params": {
+            "theta": 2.989946968073763
+          },
+          "nll": -5077.68521683547,
+          "aic": -10153.37043367094,
+          "bic": -10146.48845848669,
+          "lambda_U": 0.7390997987787253,
+          "lambda_L": 0.0
+        },
+        "clayton": {
+          "params": {
+            "theta": 1.3080994049723167
+          },
+          "nll": -1835.5579137147456,
+          "aic": -3669.115827429491,
+          "bic": -3662.2338522452424,
+          "lambda_U": 0.0,
+          "lambda_L": 0.5886704457308486
+        }
+      },
+      "best_copula_by_bic": "gumbel",
+      "soc_cascade": {
+        "p_co": 0.4,
+        "alpha": 3.0,
+        "log_lik": 3466.598463681693,
+        "aic": -6929.196927363386
+      },
+      "mechanism_vs_descriptor": {
+        "best_copula": "gumbel",
+        "aic_copula": -10153.37043367094,
+        "aic_soc_cascade": -6929.196927363386,
+        "delta_aic_soc_minus_copula": 3224.173506307554,
+        "winner": "copula"
+      },
+      "conditional_calm_stress": {
+        "n_calm": 3601,
+        "n_stress": 361,
+        "lambda_U_calm_q0.90": 0.7638888888888888,
+        "lambda_U_stress_q0.90": 0.9166666666666666,
+        "delta_lambda": 0.1527777777777778
+      },
+      "verdict": "REJECT (no jump and copula wins)"
+    },
+    {
+      "name": "D_cboe_vix_vvix",
+      "n": 5025,
+      "marginal_clauset_A": {
+        "xmin": 2.09,
+        "alpha": 2.993299071419572,
+        "sigma_alpha": 0.07387657872954827,
+        "n_tail": 728,
+        "rejects_power_law": true
+      },
+      "marginal_clauset_B": {
+        "xmin": 4.209999999999994,
+        "alpha": 2.8602611559996793,
+        "sigma_alpha": 0.048469946935752815,
+        "n_tail": 1473,
+        "rejects_power_law": true
+      },
+      "lambda_U_empirical": {
+        "q0.9": 0.5418326693227091,
+        "q0.95": 0.496,
+        "q0.975": 0.376,
+        "q0.99": 0.36
+      },
+      "lambda_L_empirical": {
+        "q0.1": 0.1765834932821497,
+        "q0.05": 0.09090909090909091,
+        "q0.025": 0.03278688524590164,
+        "q0.01": 0.01694915254237288
+      },
+      "copulas": {
+        "gaussian": {
+          "params": {
+            "rho": 0.5409248003802315
+          },
+          "nll": -863.9770423002368,
+          "aic": -1725.9540846004736,
+          "bic": -1719.4319038675462,
+          "lambda_U": 0.0,
+          "lambda_L": 0.0
+        },
+        "t": {
+          "params": {
+            "rho": 0.5569500979927118,
+            "nu": 7.308828826878239
+          },
+          "nll": -920.4174801956403,
+          "aic": -1836.8349603912807,
+          "bic": -1823.7905989254261,
+          "lambda_U": 0.16129578252446883,
+          "lambda_L": 0.16129578252446883
+        },
+        "gumbel": {
+          "params": {
+            "theta": 1.6280682536484428
+          },
+          "nll": -1092.3112174240587,
+          "aic": -2182.6224348481173,
+          "bic": -2176.10025411519,
+          "lambda_U": 0.4692646635653017,
+          "lambda_L": 0.0
+        },
+        "clayton": {
+          "params": {
+            "theta": 0.5711659018090607
+          },
+          "nll": -373.17815658639347,
+          "aic": -744.3563131727869,
+          "bic": -737.8341324398597,
+          "lambda_U": 0.0,
+          "lambda_L": 0.2971359776300193
+        }
+      },
+      "best_copula_by_bic": "gumbel",
+      "soc_cascade": {
+        "p_co": 0.3,
+        "alpha": 2.0,
+        "log_lik": 594.0337728156208,
+        "aic": -1184.0675456312415
+      },
+      "mechanism_vs_descriptor": {
+        "best_copula": "gumbel",
+        "aic_copula": -2182.6224348481173,
+        "aic_soc_cascade": -1184.0675456312415,
+        "delta_aic_soc_minus_copula": 998.5548892168758,
+        "winner": "copula"
+      },
+      "conditional_calm_stress": {
+        "n_calm": 2516,
+        "n_stress": 252,
+        "lambda_U_calm_q0.90": 0.6095617529880478,
+        "lambda_U_stress_q0.90": 0.48,
+        "delta_lambda": -0.12956175298804784
+      },
+      "verdict": "REJECT (no jump and copula wins)"
+    }
+  ],
+  "summary": {
+    "class": "tail_copula_contagion",
+    "n_pairs_analysed": 4,
+    "pass_count": 0,
+    "reject_count": 4,
+    "inconclusive_count": 0,
+    "overall_verdict": "REJECT-CONFIRMED",
+    "delta_lambda_mean_across_pairs": 0.0036777156742826,
+    "best_copula_tally": {
+      "gumbel": 4
+    },
+    "mechanism_winner_tally": {
+      "copula": 4
+    },
+    "prereg_band": {
+      "delta_lambda_pass_threshold": 0.3,
+      "lambda_calm_band": [
+        0.1,
+        0.2
+      ],
+      "lambda_stress_band": [
+        0.45,
+        0.65
+      ]
+    }
+  }
+}
