@@ -363,8 +363,24 @@ class AskOrchestrator:
 
         cards: List[Dict] = []
         retrieval_started = time.monotonic()
+        ***REMOVED*** X2 W2+W3 (2026-05-24) — opt-in expansion + EN→ZH translation
+        ***REMOVED*** pipeline. Gated by env to preserve baseline behavior for the 772
+        ***REMOVED*** existing tests (which call self.search.search directly via mocks).
+        ***REMOVED*** Flip ASK_EXPANSION_ENABLED=1 on the env to enable in dev/prod.
+        ***REMOVED*** The pipeline is bullet-proof against LLM failure — if expansion
+        ***REMOVED*** or translation hits any error it degrades to the original query,
+        ***REMOVED*** so flipping the flag never breaks retrieval.
+        _expansion_enabled = os.getenv("ASK_EXPANSION_ENABLED", "").lower() in ("1", "true", "yes")
         try:
-            if self.search is not None:
+            if self.search is not None and _expansion_enabled:
+                from services.retrieval_pipeline import retrieve_with_expansion
+                pipeline_out = await retrieve_with_expansion(
+                    query,
+                    search_fn=self.search.search,
+                    top_k=TOP_K_CARDS,
+                )
+                cards = pipeline_out["results"] or []
+            elif self.search is not None:
                 cards = self.search.search(query, top_k=TOP_K_CARDS) or []
         except Exception as e:
             logger.warning(f"[ask] vector search failed: {e}")

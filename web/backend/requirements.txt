@@ -28,3 +28,16 @@ pyjwt==2.12.1
 ***REMOVED*** OR if STRIPE_TEST_SECRET_KEY is unset. Pin to a stable line; 7.x is the
 ***REMOVED*** active major as of 2026-05.
 stripe>=7.0.0,<9
+***REMOVED*** X2 W1 (2026-05-24) — hybrid BM25 retrieval requires Chinese segmentation.
+***REMOVED*** Previously jieba/rank_bm25 were imported lazily inside services/search_service.py
+***REMOVED*** without being declared here, which let BM25 silently degrade to char-level
+***REMOVED*** tokenization in prod (X2 root-cause: dogfood q2 "团队相变恢复" → "形状记忆合金
+***REMOVED*** 相变恢复" score=1.0 via 4-char字面 hack). main.py lifespan now fails fast at
+***REMOVED*** startup if either is missing instead of silently degrading.
+jieba>=0.42.1
+rank_bm25>=0.2.2
+***REMOVED*** X2 W3 (2026-05-24) — language detection for EN→ZH translate-before-embed.
+***REMOVED*** Used in services/search_service.py:_detect_lang(). Lightweight pure-Python
+***REMOVED*** port of Google's compact language detector. Optional fallback to ASCII-ratio
+***REMOVED*** heuristic when import fails (search_service handles ImportError gracefully).
+langdetect>=1.0.9

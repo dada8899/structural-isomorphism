@@ -55,15 +55,32 @@ _ZH_STOP = {"为什么", "怎么", "如何", "什么", "吗", "呢", "的", "了
             "那么", "反而", "更", "一个", "一些", "一种"}
 
 
+***REMOVED*** X2 W1 (2026-05-24) \u2014 eager jieba import. Previously imported lazily inside
+***REMOVED*** _tokenize() with a bare `except Exception` fallback to char-level, which
+***REMOVED*** silently masked a real prod gap (jieba not in requirements.txt). main.py
+***REMOVED*** lifespan asserts jieba is importable; here we expose the module-level
+***REMOVED*** `_JIEBA` handle so unit tests can introspect availability via
+***REMOVED*** `search_service._JIEBA is not None`.
+try:
+    import jieba as _JIEBA
+except ImportError:  ***REMOVED*** pragma: no cover \u2014 main.py lifespan asserts this
+    _JIEBA = None
+
+
 def _tokenize(text: str) -> List[str]:
-    """Tokenize mixed CJK + English text for BM25."""
+    """Tokenize mixed CJK + English text for BM25.
+
+    Uses jieba search-mode segmentation when available (the expected prod
+    path \u2014 see main.py lifespan assert). Falls back to single-char split
+    only in unit-test contexts where jieba was intentionally absent. The
+    fallback path is preserved so individual service-level tests do not
+    require the full requirements.txt to be installed.
+    """
     if not text:
         return []
-    ***REMOVED*** Try jieba for Chinese; fall back to char-level if unavailable.
-    try:
-        import jieba
-        raw = list(jieba.cut_for_search(text))
-    except Exception:
+    if _JIEBA is not None:
+        raw = list(_JIEBA.cut_for_search(text))
+    else:
         raw = re.findall(r"[\u4e00-\u9fff]|[A-Za-z0-9]+", text)
     toks: List[str] = []
     for t in raw:
@@ -75,6 +92,55 @@ def _tokenize(text: str) -> List[str]:
             continue
         toks.append(t)
     return toks
+
+
+***REMOVED*** X2 W3 (2026-05-24) — language detection for translate-before-embed.
+***REMOVED*** Root cause: KB embedding model is `text2vec-base-chinese`, KB is 100%
+***REMOVED*** Chinese. EN queries like "power-law distribution" had 0 BM25 字面 hits
+***REMOVED*** AND embedding-similarity bias toward translated noise (LLM AB test:
+***REMOVED*** DeepSeek mapped "self-organized criticality" to "分权改革俘获风险").
+***REMOVED*** We detect EN-dominant queries up-front so the orchestrator can issue a
+***REMOVED*** translation call before encoding.
+try:
+    from langdetect import detect_langs as _detect_langs  ***REMOVED*** type: ignore
+    from langdetect import DetectorFactory as _DetectorFactory  ***REMOVED*** type: ignore
+    ***REMOVED*** langdetect is non-deterministic by default; seed for reproducibility.
+    _DetectorFactory.seed = 0
+    _LANGDETECT_OK = True
+except ImportError:  ***REMOVED*** pragma: no cover — falls back to ASCII heuristic
+    _LANGDETECT_OK = False
+
+
+def _detect_lang(query: str) -> str:
+    """Return 'zh' | 'en' | 'mixed' for the query string.
+
+    Priority order:
+      1. ASCII-letter ratio > 0.7 AND no CJK chars → 'en'
+      2. CJK present AND ASCII-letter ratio > 0.3 → 'mixed' (bilingual)
+      3. CJK present, low ASCII → 'zh'
+      4. No CJK, low ASCII (digits/punct only) → 'zh' (default to KB lang)
+
+    The langdetect library is consulted as a tiebreaker for the ASCII-only
+    cases (e.g. "phase transition" vs "1234"). The heuristic comes first
+    because it's deterministic; langdetect is non-deterministic on short
+    strings even with a seeded RNG.
+    """
+    if not query or not query.strip():
+        return "zh"
+    text = query.strip()
+    cjk = sum(1 for c in text if "一" <= c <= "鿿")
+    ascii_letters = sum(1 for c in text if c.isascii() and c.isalpha())
+    total_meaningful = cjk + ascii_letters
+    if total_meaningful == 0:
+        return "zh"  ***REMOVED*** digits/punctuation only — default to KB lang
+    ascii_ratio = ascii_letters / total_meaningful
+    if cjk > 0 and ascii_ratio > 0.3:
+        return "mixed"
+    if cjk > 0:
+        return "zh"
+    if ascii_ratio > 0.7:
+        return "en"
+    return "zh"
 
 
 def _infer_dynamics_families(query: str) -> List[str]:

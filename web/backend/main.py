@@ -120,6 +120,27 @@ async def lifespan(app: FastAPI):
     except Exception as e:  ***REMOVED*** pragma: no cover — never fail startup over logging
         logger.warning(f"observability setup failed: {e}")
 
+    ***REMOVED*** X2 W1 (2026-05-24) — fail-fast on missing hybrid-retrieval deps.
+    ***REMOVED*** Historically jieba + rank_bm25 were imported lazily inside
+    ***REMOVED*** services/search_service.py and silently degraded to char-level
+    ***REMOVED*** tokenization (jieba missing) or embedding-only retrieval (rank_bm25
+    ***REMOVED*** missing). The dogfood report 2026-05-15 q2 "团队相变恢复" → "形状记忆
+    ***REMOVED*** 合金 相变恢复" score=1.0 was a direct consequence: jieba absent meant
+    ***REMOVED*** both query and doc tokenised to {相,变,恢,复} → BM25 字面 4-char hack.
+    ***REMOVED*** We now declare jieba/rank_bm25 in requirements.txt AND assert here so
+    ***REMOVED*** a stale deploy (skipped pip install -r) crashes loudly instead of
+    ***REMOVED*** degrading silently. Tested coverage: tests/test_startup_hybrid_deps.py.
+    try:
+        import jieba  ***REMOVED*** noqa: F401
+        import rank_bm25  ***REMOVED*** noqa: F401
+    except ImportError as exc:
+        raise RuntimeError(
+            "Hybrid retrieval requires `jieba` + `rank_bm25` "
+            "(declared in web/backend/requirements.txt). "
+            "Run `pip install -r web/backend/requirements.txt` and restart. "
+            f"Underlying ImportError: {exc}"
+        ) from exc
+
     from services.search_service import SearchService
 
     data_dir = os.getenv("STRUCTURAL_DATA_DIR")
