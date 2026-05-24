@@ -88,3 +88,4 @@ scripts/scrub-patterns.local.txt
 .gitleaks-report-after.json
 .scrub-dry-run.log
 .scrub-pre-backup/
+data/kb-5000-merged.jsonl.archive-pre-v0.4-merge
