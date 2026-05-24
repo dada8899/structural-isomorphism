@@ -95,6 +95,26 @@ def _export_fingerprints(email: str) -> List[Dict[str, Any]]:
     return ConnectionsStore(db).export_all_for_user(email)
 
 
+def _export_p3(email: str) -> Dict[str, List[Dict[str, Any]]]:
+    """Export the user's P3 data (match_requests / referrals / messages / prefs).
+
+    Symmetric to _delete_p3 in delete.py — DSAR completeness (SESSION-21 §6).
+    Returns dict-of-lists, all empty when history.db doesn't exist yet.
+    """
+    empty = {
+        "match_requests": [],
+        "referrals": [],
+        "connections_messages": [],
+        "connections_prefs": [],
+    }
+    db = _history_db()
+    if not db.exists():
+        return empty
+    from services.connections_p3_store import ConnectionsP3Store
+
+    return ConnectionsP3Store(db).export_all_for_user(email)
+
+
 # Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
 # unset — it locks the endpoint (no one can guess it) instead of falling back
 # to a public default. The old "123456" default meant anyone who knew a
@@ -226,6 +246,11 @@ async def export_data(
             "mock_checkouts": [],
             "error_log": [],
             "structural_fingerprints": [],  # G connections feature, SESSION-22 §8
+            # P3 (SESSION-22 §5): mutual-consent match + referrals + messages.
+            "match_requests": [],
+            "referrals": [],
+            "connections_messages": [],
+            "connections_prefs": [],
             "search_history": [],  # local-only, never on server; documented
         },
     }
@@ -238,6 +263,11 @@ async def export_data(
             _read_jsonl(_checkouts_file()), email
         )
         payload["data"]["structural_fingerprints"] = _export_fingerprints(email)
+        p3 = _export_p3(email)
+        payload["data"]["match_requests"] = p3["match_requests"]
+        payload["data"]["referrals"] = p3["referrals"]
+        payload["data"]["connections_messages"] = p3["connections_messages"]
+        payload["data"]["connections_prefs"] = p3["connections_prefs"]
 
     if session_id:
         # error_log can span current file + 1 rotated segment
@@ -248,13 +278,18 @@ async def export_data(
 
     logger.info(
         "privacy export: email=%s session=%s newsletter=%d checkouts=%d "
-        "errors=%d fingerprints=%d",
+        "errors=%d fingerprints=%d match_requests=%d referrals=%d "
+        "messages=%d prefs=%d",
         email,
         session_id,
         len(payload["data"]["newsletter_subscribers"]),
         len(payload["data"]["mock_checkouts"]),
         len(payload["data"]["error_log"]),
         len(payload["data"]["structural_fingerprints"]),
+        len(payload["data"]["match_requests"]),
+        len(payload["data"]["referrals"]),
+        len(payload["data"]["connections_messages"]),
+        len(payload["data"]["connections_prefs"]),
     )
 
     return JSONResponse(payload, status_code=200)

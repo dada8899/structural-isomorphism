@@ -93,6 +93,26 @@ def _delete_fingerprints(email: str) -> int:
     return ConnectionsStore(db).delete_all_for_user(email)
 
 
+def _delete_p3(email: str) -> dict:
+    """Delete the user's P3 data: match_requests / referrals / messages / prefs.
+
+    Mirrors _delete_fingerprints — P3 introduced four new tables in the same
+    history.db and they must be DSAR-deletable per SESSION-21 §6 pattern.
+    Returns per-table row counts; all zeros if DB doesn't exist yet.
+    """
+    db = _history_db()
+    if not db.exists():
+        return {
+            "match_requests": 0,
+            "referrals": 0,
+            "connections_messages": 0,
+            "connections_prefs": 0,
+        }
+    from services.connections_p3_store import ConnectionsP3Store
+
+    return ConnectionsP3Store(db).delete_all_for_user(email)
+
+
 # Random per-process fallback — see export.py for the rationale. An unset
 # STRUCTURAL_PRIVACY_MOCK_CODE must fail closed (unguessable), never fall back
 # to a public default that would expose the data-deletion endpoint.
@@ -282,6 +302,10 @@ async def delete_data(
         "mock_checkouts": 0,
         "error_log": 0,
         "structural_fingerprints": 0,
+        "match_requests": 0,
+        "referrals": 0,
+        "connections_messages": 0,
+        "connections_prefs": 0,
     }
 
     try:
@@ -293,6 +317,12 @@ async def delete_data(
                 _checkouts_file(), email
             )
             removed["structural_fingerprints"] = _delete_fingerprints(email)
+            # P3 — SESSION-22 §5: match_requests / referrals / messages / prefs
+            p3_removed = _delete_p3(email)
+            removed["match_requests"] = p3_removed["match_requests"]
+            removed["referrals"] = p3_removed["referrals"]
+            removed["connections_messages"] = p3_removed["connections_messages"]
+            removed["connections_prefs"] = p3_removed["connections_prefs"]
         if session_id:
             n = 0
             for f in _error_log_files():

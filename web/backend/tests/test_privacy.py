@@ -95,6 +95,11 @@ def test_export_returns_correct_shape(app_with_data):
         "mock_checkouts",
         "error_log",
         "structural_fingerprints",
+        # P3 (SESSION-22 §5)
+        "match_requests",
+        "referrals",
+        "connections_messages",
+        "connections_prefs",
         "search_history",
     }
 
@@ -373,3 +378,104 @@ def test_export_fingerprints_empty_when_db_missing(app_with_data):
     r = client.get("/api/privacy/export?email=alice@example.com&code=123456")
     assert r.status_code == 200, r.text
     assert r.json()["data"]["structural_fingerprints"] == []
+
+
+# ===========================================================================
+# DSAR delete + export scope: P3 (match_requests / referrals / messages /
+# prefs) — SESSION-22 §5 mirrors SESSION-21 §6's fingerprint integration.
+# ===========================================================================
+
+
+def test_delete_removes_p3_data(app_with_data):
+    """Delete-by-email must wipe match_requests / referrals / messages / prefs
+    where the user is a participant (any role)."""
+    client, data_dir = app_with_data
+    from services.connections_p3_store import ConnectionsP3Store
+
+    p3 = ConnectionsP3Store(data_dir / "history.db")
+    # Alice is involved as sender, recipient, referrer, and message author.
+    p3.create_match_request(
+        from_user_email="alice@example.com",
+        to_user_email="bob@example.com",
+        to_fingerprint_id="fp_x",
+    )
+    p3.create_referral(
+        referrer_email="alice@example.com",
+        referee_a_email="bob@example.com",
+        referee_b_email="carol@example.com",
+    )
+    p3.create_message(
+        from_email="alice@example.com",
+        to_email="bob@example.com",
+        body="hello bob",
+    )
+    p3.set_block("alice@example.com", "bob@example.com", True)
+    # Bob has unrelated data that must SURVIVE Alice's deletion.
+    p3.create_match_request(
+        from_user_email="bob@example.com",
+        to_user_email="carol@example.com",
+        to_fingerprint_id="fp_y",
+    )
+
+    r = client.request(
+        "DELETE", "/api/privacy/delete?email=alice@example.com&code=123456"
+    )
+    assert r.status_code == 200, r.text
+    removed = r.json()["removed"]
+    # Alice was in 1 match_request, 1 referral, 1 message, 1 block pref.
+    assert removed["match_requests"] == 1
+    assert removed["referrals"] == 1
+    assert removed["connections_messages"] == 1
+    assert removed["connections_prefs"] == 1
+
+    # Bob's unrelated match still there (cross-user isolation).
+    bob_export = p3.export_all_for_user("bob@example.com")
+    assert len(bob_export["match_requests"]) == 1
+
+
+def test_export_includes_p3_data(app_with_data):
+    """Export must symmetrically return all P3 rows the user is in."""
+    client, data_dir = app_with_data
+    from services.connections_p3_store import ConnectionsP3Store
+
+    p3 = ConnectionsP3Store(data_dir / "history.db")
+    p3.create_match_request(
+        from_user_email="alice@example.com",
+        to_user_email="bob@example.com",
+        to_fingerprint_id="fp_z",
+    )
+    p3.create_message(
+        from_email="alice@example.com",
+        to_email="bob@example.com",
+        body="status check",
+    )
+    # Bob-only row — must NOT leak into Alice's export.
+    p3.create_message(
+        from_email="bob@example.com",
+        to_email="carol@example.com",
+        body="unrelated",
+    )
+
+    r = client.get("/api/privacy/export?email=alice@example.com&code=123456")
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+    assert len(data["match_requests"]) == 1
+    assert len(data["connections_messages"]) == 1
+    # Cross-user isolation: bob→carol message is NOT in Alice's export.
+    assert all(
+        m["from_email"] == "alice@example.com"
+        or m["to_email"] == "alice@example.com"
+        for m in data["connections_messages"]
+    )
+
+
+def test_export_p3_empty_when_db_missing(app_with_data):
+    """history.db not yet created → P3 fields are empty lists, no 500."""
+    client, _ = app_with_data
+    r = client.get("/api/privacy/export?email=alice@example.com&code=123456")
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+    assert data["match_requests"] == []
+    assert data["referrals"] == []
+    assert data["connections_messages"] == []
+    assert data["connections_prefs"] == []
