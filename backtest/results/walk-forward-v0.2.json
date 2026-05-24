@@ -1,0 +1,625 @@
+{
+  "meta": {
+    "version": "v0.2",
+    "generated_at": "2026-05-24T16:05:19+00:00",
+    "window_start": "2020-01-01",
+    "window_end": "2024-12-31",
+    "data_source_prices": "REAL",
+    "data_source_classification": "REAL",
+    "n_companies_universe": 100,
+    "n_cohort": 29,
+    "prices_meta_snapshot": {
+      "n_top100_hits": 99,
+      "failed": [
+        "RE"
+      ],
+      "spy_ok": true
+    },
+    "honest_caveats": [
+      "D1 classification is single-snapshot (2026-05-13), not monthly time-varying",
+      "This is an ex-post discriminative test, not a true ex-ante forecast",
+      "True walk-forward requires monthly D1 snapshots at historical timestamps (v0.3)",
+      "No transaction costs / no shorts / no factor decomposition",
+      "OLS SE on alpha is naive (no Newey-West)"
+    ]
+  },
+  "cohort": {
+    "tickers": [
+      "BAC",
+      "BIIB",
+      "BLDP",
+      "COIN",
+      "CRWD",
+      "CVX",
+      "DIS",
+      "FSLR",
+      "GM",
+      "ILMN",
+      "INTC",
+      "LCID",
+      "LLY",
+      "MRNA",
+      "NFLX",
+      "NIO",
+      "OXY",
+      "PLUG",
+      "RBLX",
+      "REGN",
+      "RIVN",
+      "ROKU",
+      "SEDG",
+      "SLB",
+      "SNOW",
+      "TSLA",
+      "U",
+      "UPST",
+      "WBD"
+    ],
+    "size": 29
+  },
+  "rebalances": [
+    {
+      "date": "2020-02-01",
+      "month": "2020-02",
+      "n_holdings": 22,
+      "cohort_return": -0.011161143597081934,
+      "spy_return": -0.07916627959899958,
+      "active_return": 0.06800513600191764,
+      "turnover": 1.0
+    },
+    {
+      "date": "2020-03-01",
+      "month": "2020-03",
+      "n_holdings": 22,
+      "cohort_return": -0.16663945144438133,
+      "spy_return": -0.1299869754167331,
+      "active_return": -0.036652476027648234,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-04-01",
+      "month": "2020-04",
+      "n_holdings": 22,
+      "cohort_return": 0.22595591392177675,
+      "spy_return": 0.13361080155468397,
+      "active_return": 0.09234511236709278,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-05-01",
+      "month": "2020-05",
+      "n_holdings": 22,
+      "cohort_return": 0.0746842471251947,
+      "spy_return": 0.04764511093683321,
+      "active_return": 0.027039136188361484,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-06-01",
+      "month": "2020-06",
+      "n_holdings": 22,
+      "cohort_return": 0.14578326649789963,
+      "spy_return": 0.01327542478228394,
+      "active_return": 0.1325078417156157,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-07-01",
+      "month": "2020-07",
+      "n_holdings": 22,
+      "cohort_return": 0.070555996917733,
+      "spy_return": 0.0635520192654695,
+      "active_return": 0.007003977652263502,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-08-01",
+      "month": "2020-08",
+      "n_holdings": 22,
+      "cohort_return": 0.14537766889195455,
+      "spy_return": 0.06979669225053708,
+      "active_return": 0.07558097664141747,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-09-01",
+      "month": "2020-09",
+      "n_holdings": 22,
+      "cohort_return": -0.036715680701385665,
+      "spy_return": -0.04128143949985408,
+      "active_return": 0.0045657587984684125,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-10-01",
+      "month": "2020-10",
+      "n_holdings": 25,
+      "cohort_return": 0.006520640854620416,
+      "spy_return": -0.021030220745514527,
+      "active_return": 0.027550861600134945,
+      "turnover": 0.06
+    },
+    {
+      "date": "2020-11-01",
+      "month": "2020-11",
+      "n_holdings": 25,
+      "cohort_return": 0.3219073705960275,
+      "spy_return": 0.10877666017762477,
+      "active_return": 0.2131307104184027,
+      "turnover": 0.0
+    },
+    {
+      "date": "2020-12-01",
+      "month": "2020-12",
+      "n_holdings": 25,
+      "cohort_return": 0.07328163388582178,
+      "spy_return": 0.03264645056822779,
+      "active_return": 0.040635183317593984,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-01-01",
+      "month": "2021-01",
+      "n_holdings": 26,
+      "cohort_return": 0.2117478944453333,
+      "spy_return": -0.0059709036219901535,
+      "active_return": 0.21771879806732344,
+      "turnover": 0.0192
+    },
+    {
+      "date": "2021-02-01",
+      "month": "2021-02",
+      "n_holdings": 26,
+      "cohort_return": 0.015210493165298024,
+      "spy_return": 0.027805292441356322,
+      "active_return": -0.012594799276058298,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-03-01",
+      "month": "2021-03",
+      "n_holdings": 26,
+      "cohort_return": -0.018926224731584878,
+      "spy_return": 0.04198659601948562,
+      "active_return": -0.060912820751070504,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-04-01",
+      "month": "2021-04",
+      "n_holdings": 27,
+      "cohort_return": -0.008408609928223475,
+      "spy_return": 0.056358796144081236,
+      "active_return": -0.06476740607230472,
+      "turnover": 0.0185
+    },
+    {
+      "date": "2021-05-01",
+      "month": "2021-05",
+      "n_holdings": 28,
+      "cohort_return": 0.01196629034944818,
+      "spy_return": 0.006566175165968913,
+      "active_return": 0.005400115183479267,
+      "turnover": 0.0179
+    },
+    {
+      "date": "2021-06-01",
+      "month": "2021-06",
+      "n_holdings": 28,
+      "cohort_return": 0.10884771676113836,
+      "spy_return": 0.019093487385397623,
+      "active_return": 0.08975422937574074,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-07-01",
+      "month": "2021-07",
+      "n_holdings": 28,
+      "cohort_return": -0.0320820117627521,
+      "spy_return": 0.027763995617934745,
+      "active_return": -0.05984600738068684,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-08-01",
+      "month": "2021-08",
+      "n_holdings": 28,
+      "cohort_return": 0.05565636056726547,
+      "spy_return": 0.029759738997633622,
+      "active_return": 0.02589662156963185,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-09-01",
+      "month": "2021-09",
+      "n_holdings": 28,
+      "cohort_return": -0.010776200977135244,
+      "spy_return": -0.04964999881717369,
+      "active_return": 0.03887379784003844,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-10-01",
+      "month": "2021-10",
+      "n_holdings": 28,
+      "cohort_return": 0.139698223110188,
+      "spy_return": 0.07359182811712861,
+      "active_return": 0.0661063949930594,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-11-01",
+      "month": "2021-11",
+      "n_holdings": 28,
+      "cohort_return": -0.03027807717721756,
+      "spy_return": -0.008034770140313507,
+      "active_return": -0.022243307036904053,
+      "turnover": 0.0
+    },
+    {
+      "date": "2021-12-01",
+      "month": "2021-12",
+      "n_holdings": 29,
+      "cohort_return": -0.0781547843325575,
+      "spy_return": 0.042584948557401026,
+      "active_return": -0.12073973288995853,
+      "turnover": 0.0172
+    },
+    {
+      "date": "2022-01-01",
+      "month": "2022-01",
+      "n_holdings": 29,
+      "cohort_return": -0.12106550818218179,
+      "spy_return": -0.049413440356804395,
+      "active_return": -0.07165206782537739,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-02-01",
+      "month": "2022-02",
+      "n_holdings": 29,
+      "cohort_return": 0.01497443005624248,
+      "spy_return": -0.0295169247227568,
+      "active_return": 0.04449135477899928,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-03-01",
+      "month": "2022-03",
+      "n_holdings": 29,
+      "cohort_return": 0.004573267242455877,
+      "spy_return": 0.03437707131295742,
+      "active_return": -0.029803804070501542,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-04-01",
+      "month": "2022-04",
+      "n_holdings": 29,
+      "cohort_return": -0.2029389305556316,
+      "spy_return": -0.08493518700177216,
+      "active_return": -0.11800374355385945,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-05-01",
+      "month": "2022-05",
+      "n_holdings": 29,
+      "cohort_return": -0.03438958469913112,
+      "spy_return": 0.002257283687025602,
+      "active_return": -0.036646868386156724,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-06-01",
+      "month": "2022-06",
+      "n_holdings": 29,
+      "cohort_return": -0.10566898158087383,
+      "spy_return": -0.08640685677189952,
+      "active_return": -0.01926212480897431,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-07-01",
+      "month": "2022-07",
+      "n_holdings": 29,
+      "cohort_return": 0.12947593986998804,
+      "spy_return": 0.09680490296325428,
+      "active_return": 0.03267103690673376,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-08-01",
+      "month": "2022-08",
+      "n_holdings": 29,
+      "cohort_return": -0.0006830822782615762,
+      "spy_return": -0.04080183557831274,
+      "active_return": 0.040118753300051165,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-09-01",
+      "month": "2022-09",
+      "n_holdings": 29,
+      "cohort_return": -0.07950003338477975,
+      "spy_return": -0.09615888415172624,
+      "active_return": 0.016658850766946495,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-10-01",
+      "month": "2022-10",
+      "n_holdings": 29,
+      "cohort_return": 0.07674260823214055,
+      "spy_return": 0.08571729874920653,
+      "active_return": -0.00897469051706598,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-11-01",
+      "month": "2022-11",
+      "n_holdings": 29,
+      "cohort_return": -0.006587989424771368,
+      "spy_return": 0.055591497598525885,
+      "active_return": -0.06217948702329725,
+      "turnover": 0.0
+    },
+    {
+      "date": "2022-12-01",
+      "month": "2022-12",
+      "n_holdings": 29,
+      "cohort_return": -0.14864645962215536,
+      "spy_return": -0.06193572051979723,
+      "active_return": -0.08671073910235813,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-01-01",
+      "month": "2023-01",
+      "n_holdings": 29,
+      "cohort_return": 0.2091534319631399,
+      "spy_return": 0.06776816254825913,
+      "active_return": 0.14138526941488078,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-02-01",
+      "month": "2023-02",
+      "n_holdings": 29,
+      "cohort_return": -0.04624858250432464,
+      "spy_return": -0.025142733358399783,
+      "active_return": -0.02110584914592486,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-03-01",
+      "month": "2023-03",
+      "n_holdings": 29,
+      "cohort_return": 0.0285505571719384,
+      "spy_return": 0.033134720974111076,
+      "active_return": -0.004584163802172674,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-04-01",
+      "month": "2023-04",
+      "n_holdings": 29,
+      "cohort_return": -0.08812171818534809,
+      "spy_return": 0.019852491600214073,
+      "active_return": -0.10797420978556216,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-05-01",
+      "month": "2023-05",
+      "n_holdings": 29,
+      "cohort_return": 0.05516587277999708,
+      "spy_return": 0.004616309537107233,
+      "active_return": 0.050549563242889846,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-06-01",
+      "month": "2023-06",
+      "n_holdings": 29,
+      "cohort_return": 0.08351218944626886,
+      "spy_return": 0.060858986035215556,
+      "active_return": 0.0226532034110533,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-07-01",
+      "month": "2023-07",
+      "n_holdings": 29,
+      "cohort_return": 0.1420905896177009,
+      "spy_return": 0.03656949931885234,
+      "active_return": 0.10552109029884857,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-08-01",
+      "month": "2023-08",
+      "n_holdings": 29,
+      "cohort_return": -0.11162880881606058,
+      "spy_return": -0.016251937153608953,
+      "active_return": -0.09537687166245162,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-09-01",
+      "month": "2023-09",
+      "n_holdings": 29,
+      "cohort_return": -0.06261221950624454,
+      "spy_return": -0.050782797035998084,
+      "active_return": -0.011829422470246459,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-10-01",
+      "month": "2023-10",
+      "n_holdings": 29,
+      "cohort_return": -0.10822243576198855,
+      "spy_return": -0.018257864845945604,
+      "active_return": -0.08996457091604294,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-11-01",
+      "month": "2023-11",
+      "n_holdings": 29,
+      "cohort_return": 0.11850081160811779,
+      "spy_return": 0.0913438804303972,
+      "active_return": 0.027156931177720584,
+      "turnover": 0.0
+    },
+    {
+      "date": "2023-12-01",
+      "month": "2023-12",
+      "n_holdings": 29,
+      "cohort_return": 0.13593530925794395,
+      "spy_return": 0.04143287517709204,
+      "active_return": 0.0945024340808519,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-01-01",
+      "month": "2024-01",
+      "n_holdings": 29,
+      "cohort_return": -0.08150865050775583,
+      "spy_return": 0.02004549100155728,
+      "active_return": -0.1015541415093131,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-02-01",
+      "month": "2024-02",
+      "n_holdings": 29,
+      "cohort_return": -0.0011775035947721732,
+      "spy_return": 0.052186826731802416,
+      "active_return": -0.05336433032657459,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-03-01",
+      "month": "2024-03",
+      "n_holdings": 29,
+      "cohort_return": 0.01228418924270394,
+      "spy_return": 0.029503233625059355,
+      "active_return": -0.017219044382355414,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-04-01",
+      "month": "2024-04",
+      "n_holdings": 29,
+      "cohort_return": -0.08448601003398712,
+      "spy_return": -0.03733778233255325,
+      "active_return": -0.04714822770143387,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-05-01",
+      "month": "2024-05",
+      "n_holdings": 29,
+      "cohort_return": 0.06533005045878829,
+      "spy_return": 0.05057959306086279,
+      "active_return": 0.014750457397925493,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-06-01",
+      "month": "2024-06",
+      "n_holdings": 29,
+      "cohort_return": -0.033708661557357106,
+      "spy_return": 0.031950966100875,
+      "active_return": -0.0656596276582321,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-07-01",
+      "month": "2024-07",
+      "n_holdings": 29,
+      "cohort_return": 0.030573390355977233,
+      "spy_return": 0.015374302600160483,
+      "active_return": 0.01519908775581675,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-08-01",
+      "month": "2024-08",
+      "n_holdings": 29,
+      "cohort_return": -0.016564471556348253,
+      "spy_return": 0.023365434996028167,
+      "active_return": -0.039929906552376424,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-09-01",
+      "month": "2024-09",
+      "n_holdings": 29,
+      "cohort_return": 0.02547234797811616,
+      "spy_return": 0.017882701577158988,
+      "active_return": 0.007589646400957172,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-10-01",
+      "month": "2024-10",
+      "n_holdings": 29,
+      "cohort_return": -0.056120635769861225,
+      "spy_return": -0.0058838371468228345,
+      "active_return": -0.05023679862303839,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-11-01",
+      "month": "2024-11",
+      "n_holdings": 29,
+      "cohort_return": 0.12050852458830509,
+      "spy_return": 0.05963359386472189,
+      "active_return": 0.0608749307235832,
+      "turnover": 0.0
+    },
+    {
+      "date": "2024-12-01",
+      "month": "2024-12",
+      "n_holdings": 29,
+      "cohort_return": -0.024849341393621934,
+      "spy_return": -0.027333748729297724,
+      "active_return": 0.0024844073356757902,
+      "turnover": 0.0
+    }
+  ],
+  "summary": {
+    "n_rebalances": 59,
+    "cohort_size": 29,
+    "cohort_cum_return": 1.117230535649091,
+    "spy_cum_return": 0.958249419657988,
+    "cohort_sharpe": 0.6045343277060825,
+    "spy_sharpe": 0.8357754548222234,
+    "sharpe_lift": -0.23124112711614087,
+    "cohort_max_drawdown": -0.4782703341986587,
+    "spy_max_drawdown": -0.23972231349012318,
+    "avg_turnover": 0.019200000000000005,
+    "max_turnover": 1.0,
+    "capm": {
+      "alpha_monthly": -0.0001964350174592587,
+      "alpha_annual": -0.0023572202095111044,
+      "beta": 1.3989764261983895,
+      "alpha_tstat": -0.02068431504167963,
+      "alpha_se_monthly": 0.009496810363961057,
+      "r_squared": 0.5347834499575405,
+      "n_obs": 59
+    }
+  },
+  "verdict": {
+    "bucket": "alpha_not_confirmed",
+    "headline": "alpha not confirmed",
+    "recommendation": "Pivot to structured research narrative positioning. Sharpe lift below the +0.3 floor \u2014 D1 classification does not show evidence of standalone alpha on this universe/window. Lean into transparent methodology + research-tool framing."
+  },
+  "chart_paths": {
+    "cumret": "walk-forward-v0.2-cumret.png",
+    "drawdown": "walk-forward-v0.2-drawdown.png",
+    "turnover": "walk-forward-v0.2-turnover.png"
+  }
+}
