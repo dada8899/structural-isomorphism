@@ -219,12 +219,17 @@ def update_one_target(
 
     if apply:
         # Atomic-ish swap: write .tmp, then rename.
-        tmp_npy = target["npy"].with_suffix(target["npy"].suffix + ".tmp")
+        # NOTE: np.save auto-appends '.npy' if the path doesn't end with it.
+        # We construct a tmp path that already ends with .npy so the saved
+        # file lands exactly where we expect.
+        tmp_npy = target["npy"].with_name(target["npy"].name + ".tmp")
+        tmp_npy_saved = Path(str(tmp_npy) + ".npy") if not str(tmp_npy).endswith(".npy") else tmp_npy
         tmp_ids = target["ids"].with_suffix(target["ids"].suffix + ".tmp")
-        np.save(tmp_npy, new_emb)
+        np.save(tmp_npy, new_emb)  # may produce tmp_npy_saved
         with open(tmp_ids, "w", encoding="utf-8") as f:
             json.dump(new_ids, f, ensure_ascii=False, indent=2)
-        tmp_npy.replace(target["npy"])
+        actual_tmp = tmp_npy_saved if tmp_npy_saved.exists() else tmp_npy
+        actual_tmp.replace(target["npy"])
         tmp_ids.replace(target["ids"])
         logging.info(f"[{name}] wrote {target['npy']} ({new_emb.shape})")
     else:
