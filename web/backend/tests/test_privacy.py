@@ -94,6 +94,7 @@ def test_export_returns_correct_shape(app_with_data):
         "newsletter_subscribers",
         "mock_checkouts",
         "error_log",
+        "structural_fingerprints",
         "search_history",
     }
 
@@ -327,3 +328,48 @@ def test_delete_removes_structural_fingerprints(app_with_data):
     ***REMOVED*** Alice's fingerprints gone, Bob's untouched.
     assert store.list_by_user("alice@example.com") == []
     assert len(store.list_by_user("bob@example.com")) == 1
+
+
+***REMOVED*** ===========================================================================
+***REMOVED*** DSAR export scope: structural fingerprints — SESSION-22 §8 (symmetry with
+***REMOVED*** delete-side fingerprint integration that landed in SESSION-21 §6)
+***REMOVED*** ===========================================================================
+
+
+def test_export_includes_structural_fingerprints(app_with_data):
+    """/api/privacy/export must hand back the user's fingerprint rows.
+    SESSION-21 §6 added them to delete scope; without the symmetric export
+    field the DSAR contract is one-way (user can erase but not retrieve)."""
+    client, data_dir = app_with_data
+    from services.connections_store import ConnectionsStore
+
+    store = ConnectionsStore(data_dir / "history.db")
+    store.create_fingerprint(
+        user_email="alice@example.com", problem_summary="团队扩张后决策变慢"
+    )
+    store.create_fingerprint(
+        user_email="alice@example.com", problem_summary="留存率持续下滑"
+    )
+    store.create_fingerprint(
+        user_email="bob@example.com", problem_summary="不该出现在 alice 的导出里"
+    )
+
+    r = client.get("/api/privacy/export?email=alice@example.com&code=123456")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    fps = body["data"]["structural_fingerprints"]
+    assert len(fps) == 2, f"expected 2 alice fingerprints, got {len(fps)}"
+    ***REMOVED*** Cross-user isolation — Bob's row must not leak into Alice's export.
+    assert all(fp["user_email"] == "alice@example.com" for fp in fps)
+    ***REMOVED*** Sanity check on payload shape — at least the summary survives the trip.
+    summaries = {fp["problem_summary"] for fp in fps}
+    assert summaries == {"团队扩张后决策变慢", "留存率持续下滑"}
+
+
+def test_export_fingerprints_empty_when_db_missing(app_with_data):
+    """If history.db hasn't been created (no user ever registered a
+    fingerprint), export must still succeed with an empty list — never 500."""
+    client, _ = app_with_data
+    r = client.get("/api/privacy/export?email=alice@example.com&code=123456")
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["structural_fingerprints"] == []

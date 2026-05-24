@@ -1,4 +1,9 @@
-fastapi==0.110.0
+***REMOVED*** SESSION-22 §1 — bumped from 0.110.0 to 0.115.14 as second-layer defense
+***REMOVED*** against the slowapi PEP 563 __globals__ crash root-fixed in SESSION-21 §2.
+***REMOVED*** 0.115.x is the last stable line with the same minor API surface as 0.110;
+***REMOVED*** 0.116+ introduces new behaviors not yet vetted here. The rate_limit.py
+***REMOVED*** _ChainedGlobals shim is the primary fix; this bump is belt-and-suspenders.
+fastapi==0.115.14
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
 python-dotenv==1.0.1
@@ -18,3 +23,8 @@ structlog==25.5.0
 PyYAML>=6.0,<7.0
 ***REMOVED*** W15-B (session ***REMOVED***10): JWT session tokens for magic-link auth scaffold.
 pyjwt==2.12.1
+***REMOVED*** W7-D mini-brief 2 (2026-05-24): Stripe SDK for real test-mode checkout.
+***REMOVED*** Optional — billing.py auto-falls-back to mock mode if `stripe` is absent
+***REMOVED*** OR if STRIPE_TEST_SECRET_KEY is unset. Pin to a stable line; 7.x is the
+***REMOVED*** active major as of 2026-05.
+stripe>=7.0.0,<9

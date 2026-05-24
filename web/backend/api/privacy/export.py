@@ -74,6 +74,27 @@ def _error_log_files() -> List[Path]:
     return [p for p in (base, rotated) if p.exists()]
 
 
+def _history_db() -> Path:
+    """history.db holds the structural_fingerprints table (G connections)."""
+    return _data_dir() / "history.db"
+
+
+def _export_fingerprints(email: str) -> List[Dict[str, Any]]:
+    """Export the user's structural fingerprints (G connections feature).
+
+    Mirrors the delete-side fingerprint integration that SESSION-21 §6
+    added. DSAR completeness requires that whatever we can delete on
+    request, we must also be able to hand back on request. Returns [] if
+    history.db hasn't been created yet (no fingerprints registered).
+    """
+    db = _history_db()
+    if not db.exists():
+        return []
+    from services.connections_store import ConnectionsStore
+
+    return ConnectionsStore(db).export_all_for_user(email)
+
+
 ***REMOVED*** Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
 ***REMOVED*** unset — it locks the endpoint (no one can guess it) instead of falling back
 ***REMOVED*** to a public default. The old "123456" default meant anyone who knew a
@@ -204,6 +225,7 @@ async def export_data(
             "newsletter_subscribers": [],
             "mock_checkouts": [],
             "error_log": [],
+            "structural_fingerprints": [],  ***REMOVED*** G connections feature, SESSION-22 §8
             "search_history": [],  ***REMOVED*** local-only, never on server; documented
         },
     }
@@ -215,6 +237,7 @@ async def export_data(
         payload["data"]["mock_checkouts"] = _filter_by_email(
             _read_jsonl(_checkouts_file()), email
         )
+        payload["data"]["structural_fingerprints"] = _export_fingerprints(email)
 
     if session_id:
         ***REMOVED*** error_log can span current file + 1 rotated segment
@@ -224,12 +247,14 @@ async def export_data(
         payload["data"]["error_log"] = error_rows
 
     logger.info(
-        "privacy export: email=%s session=%s newsletter=%d checkouts=%d errors=%d",
+        "privacy export: email=%s session=%s newsletter=%d checkouts=%d "
+        "errors=%d fingerprints=%d",
         email,
         session_id,
         len(payload["data"]["newsletter_subscribers"]),
         len(payload["data"]["mock_checkouts"]),
         len(payload["data"]["error_log"]),
+        len(payload["data"]["structural_fingerprints"]),
     )
 
     return JSONResponse(payload, status_code=200)

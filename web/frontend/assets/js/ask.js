@@ -843,11 +843,9 @@
     // /analyze NEEDS a B-side phenomenon id to run — without one analyze.js
     // bails to its empty state. Hide the CTA rather than ship a dead link.
     if (!topKbId) { section.hidden = true; return; }
-    // Clean /analyze URL — analyze.js reads the `id`/`q` URL params (NOT the
-    // API's `b_id`/`text_a`); it translates them itself. Matches the
-    // site-wide convention in search.js / home.js / phenomenon.js.
-    var url = '/analyze?id=' + encodeURIComponent(topKbId) +
-              '&q=' + encodeURIComponent(query);
+    // /analyze URL contract lives in utils/buildAnalyzeUrl.js — single
+    // source of truth across the site (search.js / home.js / phenomenon.js).
+    var url = window.buildAnalyzeUrl({ id: topKbId, q: query });
 
     section.innerHTML =
       '<a class="ask-thread-item__deep-cta" href="' + url + '">' +

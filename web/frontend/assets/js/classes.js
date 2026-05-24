@@ -321,15 +321,15 @@ function classAnalyzeSeed(cls) {
 
 // CTA target. /analyze needs a real KB phenomenon id; the hub's id ships in
 // the class data as `hub_id`. When it resolves we deep-link straight into
-// /analyze (analyze.js reads the `id`/`q` URL params). When it doesn't —
-// the 3 post-build classes whose hub isn't a KB phenomenon — we degrade to
-// /search so the CTA still does something useful instead of dead-ending on
-// the analyze empty state.
+// /analyze via the shared buildAnalyzeUrl() builder (utils/buildAnalyzeUrl.js,
+// single source of truth for the URL contract). When it doesn't — the 3
+// post-build classes whose hub isn't a KB phenomenon — we degrade to /search
+// so the CTA still does something useful instead of dead-ending on the
+// analyze empty state.
 function classAnalyzeHref(cls) {
   var seed = classAnalyzeSeed(cls);
   if (cls && cls.hub_id) {
-    return '/analyze?id=' + encodeURIComponent(cls.hub_id) +
-           '&q=' + encodeURIComponent(seed);
+    return window.buildAnalyzeUrl({ id: cls.hub_id, q: seed });
   }
   return '/search?q=' + encodeURIComponent(seed);
 }

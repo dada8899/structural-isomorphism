@@ -10,9 +10,16 @@ from playwright.sync_api import Page, expect
 
 BASE = "https://beta.structural.bytedance.city"
 
-***REMOVED*** /api/struct-lint is a single synchronous LLM call; measured ~165s online.
-***REMOVED*** Allow generous headroom so a slow-but-healthy response is not a test failure.
-LINT_RESULT_TIMEOUT_MS = 210000
+***REMOVED*** /api/struct-lint is now streamed via SSE (SESSION-21 §3 commit 80a48d5).
+***REMOVED*** First event (`meta` -> loading hint) arrives sub-second; the full result
+***REMOVED*** block lands once the `done` event fires (~36-165s, LLM-bound).
+***REMOVED***
+***REMOVED*** SESSION-22 §8: dropped from a flat 210s wait to a layered budget that
+***REMOVED*** catches a stalled SSE channel fast (10s for first byte) but still gives
+***REMOVED*** the LLM enough headroom (180s for `done`). The two-tier wait turns a
+***REMOVED*** hung connection into a fail-fast signal instead of a 3.5-min timeout.
+LINT_FIRST_EVENT_TIMEOUT_MS = 10000     ***REMOVED*** SSE first byte (meta event)
+LINT_RESULT_TIMEOUT_MS = 180000         ***REMOVED*** full pipeline -> ***REMOVED***lint-result visible
 
 _SAMPLE_DOC = (
     "我们的增长方案：竞品 X 靠裂变拉新做到了百万用户，我们照搬同一套裂变机制也能做到。"
@@ -53,7 +60,12 @@ def test_lint_submit_shows_summary_and_claims(page: Page):
     page.goto(f"{BASE}/lint")
     page.fill("***REMOVED***lint-textarea", _SAMPLE_DOC)
     page.click("***REMOVED***lint-submit")
-    ***REMOVED*** Result block appears once /api/struct-lint resolves.
+    ***REMOVED*** Layered wait after streaming: loading panel must show within 10s
+    ***REMOVED*** (proves the SSE `meta` event arrived), then the final result block
+    ***REMOVED*** within 180s (`done` event delivers the rendered payload).
+    expect(page.locator("***REMOVED***lint-loading")).to_be_visible(
+        timeout=LINT_FIRST_EVENT_TIMEOUT_MS
+    )
     expect(page.locator("***REMOVED***lint-result")).to_be_visible(timeout=LINT_RESULT_TIMEOUT_MS)
     expect(page.locator("***REMOVED***lint-summary-text")).not_to_be_empty()
     cards = page.locator(".lint-claim")
@@ -66,6 +78,10 @@ def test_lint_claim_card_has_risk_tag(page: Page):
     page.goto(f"{BASE}/lint")
     page.fill("***REMOVED***lint-textarea", _SAMPLE_DOC)
     page.click("***REMOVED***lint-submit")
+    ***REMOVED*** Same layered SSE wait as test_lint_submit_shows_summary_and_claims.
+    expect(page.locator("***REMOVED***lint-loading")).to_be_visible(
+        timeout=LINT_FIRST_EVENT_TIMEOUT_MS
+    )
     expect(page.locator("***REMOVED***lint-result")).to_be_visible(timeout=LINT_RESULT_TIMEOUT_MS)
     first = page.locator(".lint-claim").first
     expect(first.locator(".lint-tag--type")).to_be_visible()

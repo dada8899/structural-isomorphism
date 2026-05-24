@@ -220,6 +220,17 @@ class ConnectionsStore:
             )
             return cur.rowcount
 
+    def export_all_for_user(self, user_email: str) -> list[dict]:
+        """Return every fingerprint row for this user as dicts.
+
+        Used by /api/privacy/export (DSAR completeness — SESSION-22 §8).
+        SESSION-21 §6 added fingerprints to /api/privacy/delete but missed
+        the symmetric export path. Thin wrapper over list_by_user() with an
+        explicit DSAR-flavored name so the call site reads as intent.
+        Returns [] if the user has no fingerprints (or the table is empty).
+        """
+        return self.list_by_user(user_email)
+
     ***REMOVED*** --- 读 -------------------------------------------------------------
 
     def get_fingerprint(self, fid: str) -> Optional[dict]:

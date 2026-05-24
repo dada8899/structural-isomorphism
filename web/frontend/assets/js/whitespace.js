@@ -53,13 +53,13 @@
   }
 
   // --- Build the /analyze prefill URL for a lead ---
-  // analyze.js reads the `q`/`id` URL params (it translates them to the
-  // API's `text_a`/`b_id` itself). q = the concrete research question.
+  // q = the concrete research question. URL contract lives in
+  // utils/buildAnalyzeUrl.js — single source of truth across the site.
   function analyzeUrl(lead) {
-    var p = new URLSearchParams();
-    p.set('q', leadQuestion(lead));
-    if (lead.anchor_id) p.set('id', lead.anchor_id);
-    return '/analyze?' + p.toString();
+    return window.buildAnalyzeUrl({
+      id: lead.anchor_id,
+      q: leadQuestion(lead),
+    });
   }
 
   // --- Render the heatmap matrix ---
