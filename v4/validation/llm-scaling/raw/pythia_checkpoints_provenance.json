@@ -1,0 +1,80 @@
+{
+  "pythia-70m": {
+    "source": "wandb-eleutherai-pythia (real training run)",
+    "kind": "REAL_FULL",
+    "n_points_raw": 1500,
+    "n_points_used": 35,
+    "step_range": [
+      61,
+      142951
+    ],
+    "loss_range": [
+      2.1740262508392334,
+      8.068368911743164
+    ],
+    "dynamic_range": 5.894342660903931
+  },
+  "pythia-160m": {
+    "source": "synthetic (Biderman 2023 Fig 5 parameterisation)",
+    "kind": "SYNTHETIC",
+    "n_points": 14,
+    "reason": "no public wandb run identified for this size"
+  },
+  "pythia-410m": {
+    "source": "wandb-eleutherai-pythia (real training run)",
+    "kind": "REAL_FULL",
+    "n_points_raw": 4491,
+    "n_points_used": 40,
+    "step_range": [
+      2061,
+      142990
+    ],
+    "loss_range": [
+      1.9822947978973389,
+      2.8858795166015625
+    ],
+    "dynamic_range": 0.9035847187042236
+  },
+  "pythia-1b": {
+    "source": "synthetic (Biderman 2023 Fig 5 parameterisation)",
+    "kind": "SYNTHETIC",
+    "n_points": 14,
+    "reason": "no public wandb run identified for this size"
+  },
+  "pythia-1.4b": {
+    "source": "wandb-eleutherai-pythia (real training run)",
+    "kind": "REAL_TAIL_NARROW",
+    "n_points_raw": 1851,
+    "n_points_used": 40,
+    "step_range": [
+      73001,
+      78917
+    ],
+    "loss_range": [
+      1.7527986764907837,
+      1.8915050029754639
+    ],
+    "dynamic_range": 0.13870632648468018
+  },
+  "pythia-2.8b": {
+    "source": "wandb-eleutherai-pythia (real training run)",
+    "kind": "REAL_TAIL_NARROW",
+    "n_points_raw": 3299,
+    "n_points_used": 40,
+    "step_range": [
+      124001,
+      143000
+    ],
+    "loss_range": [
+      1.6881178617477417,
+      1.814206600189209
+    ],
+    "dynamic_range": 0.12608873844146729
+  },
+  "pythia-6.9b": {
+    "source": "synthetic (Biderman 2023 Fig 5 parameterisation)",
+    "kind": "SYNTHETIC",
+    "n_points": 14,
+    "reason": "no public wandb run identified for this size"
+  }
+}

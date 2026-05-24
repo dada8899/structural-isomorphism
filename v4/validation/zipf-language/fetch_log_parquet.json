@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-25 00:25:02",
+  "target_tokens": 1100000,
+  "datasets": [
+    {
+      "language": "en",
+      "source": "wikimedia/wikipedia parquet 20231101.en/shard0",
+      "n_articles": 246,
+      "n_chars": 7158265,
+      "n_tokens_estimate": 1107467,
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_en_expanded.txt",
+      "target_reached": true
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "swapped": [
+    {
+      "lang": "en",
+      "expanded_bytes": 7178650,
+      "original_bytes": 471022,
+      "backup": "wiki_en_original.txt"
+    },
+    {
+      "lang": "zh",
+      "expanded_bytes": 7314017,
+      "original_bytes": 354874,
+      "backup": "wiki_zh_original.txt"
+    },
+    {
+      "lang": "ar",
+      "expanded_bytes": 12414327,
+      "original_bytes": 552192,
+      "backup": "wiki_ar_original.txt"
+    },
+    {
+      "lang": "hi",
+      "expanded_bytes": 15750236,
+      "original_bytes": 1097592,
+      "backup": "wiki_hi_original.txt"
+    },
+    {
+      "lang": "es",
+      "expanded_bytes": 7335393,
+      "original_bytes": 561789,
+      "backup": "wiki_es_original.txt"
+    }
+  ],
+  "skipped": [],
+  "missing": []
+}

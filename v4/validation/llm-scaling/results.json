@@ -1,9 +1,26 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "validation": "llm-scaling",
-  "date": "2026-05-24",
+  "date": "2026-05-25",
   "module": "soc_pipeline.learning_curve.fit_learning_curve",
   "fits": {
+    "pythia-1.4b": {
+      "name": "pythia-1.4b",
+      "alpha": 1.9999,
+      "A": 999999999900.0,
+      "L_inf": 1.817896412269476,
+      "alpha_se": 0.0,
+      "A_se": 0.0,
+      "L_inf_se": 0.003738235631535756,
+      "R2": -0.007608108040419115,
+      "residual_rms": 0.022738799628931394,
+      "n_points": 40,
+      "C_range": [
+        1.2993520056774083e+21,
+        1.4046514737064428e+21
+      ],
+      "provenance": "REAL_TAIL_NARROW"
+    },
     "pythia-160m": {
       "name": "pythia-160m",
       "alpha": 0.09491123668506439,
@@ -18,7 +35,8 @@
       "C_range": [
         2.042495319932928e+17,
         2.920768307504087e+20
-      ]
+      ],
+      "provenance": "SYNTHETIC"
     },
     "pythia-1b": {
       "name": "pythia-1b",
@@ -34,39 +52,42 @@
       "C_range": [
         1.2731159238672384e+18,
         1.820555771130151e+21
-      ]
+      ],
+      "provenance": "SYNTHETIC"
     },
     "pythia-2.8b": {
       "name": "pythia-2.8b",
-      "alpha": 0.1458631588256726,
-      "A": 226.03458478727845,
-      "L_inf": 1.6078713645654101,
-      "alpha_se": 0.01275268318872204,
-      "A_se": 112.85752869748957,
-      "L_inf_se": 0.022881469429013517,
-      "R2": 0.9982892477802737,
-      "residual_rms": 0.003774727789474332,
-      "n_points": 14,
+      "alpha": 0.3997251780827386,
+      "A": 58192088.63408348,
+      "L_inf": 1.6191495019681046,
+      "alpha_se": 0.030469045664428634,
+      "A_se": 3.3302191407245536e-11,
+      "L_inf_se": 0.19312528846393764,
+      "R2": 0.012798498840694617,
+      "residual_rms": 0.018819179837272305,
+      "n_points": 40,
       "C_range": [
-        3.492021012529152e+18,
-        4.993590047916687e+21
-      ]
+        4.329827130384415e+21,
+        4.99322811626496e+21
+      ],
+      "provenance": "REAL_TAIL_NARROW"
     },
     "pythia-410m": {
       "name": "pythia-410m",
-      "alpha": 0.10003748539307464,
-      "A": 30.836687557391635,
-      "L_inf": 1.764025547678742,
-      "alpha_se": 0.021972528669330766,
-      "A_se": 23.22698103785892,
-      "L_inf_se": 0.07888182683324294,
-      "R2": 0.9949330308438095,
-      "residual_rms": 0.006100698811029981,
-      "n_points": 14,
+      "alpha": 0.5756581702263754,
+      "A": 73542460547.09859,
+      "L_inf": 2.000683275446591,
+      "alpha_se": 0.00045653758701175244,
+      "A_se": 1.3119018374141526e-15,
+      "L_inf_se": 0.007727211037699935,
+      "R2": 0.9856092546946604,
+      "residual_rms": 0.026017025884489946,
+      "n_points": 40,
       "C_range": [
-        5.100282253934592e+17,
-        7.293403623126467e+20
-      ]
+        1.0510919846572032e+19,
+        7.292365011457228e+20
+      ],
+      "provenance": "REAL_FULL"
     },
     "pythia-6.9b": {
       "name": "pythia-6.9b",
@@ -82,23 +103,25 @@
       "C_range": [
         8.628482782475059e+18,
         1.2338730378939335e+22
-      ]
+      ],
+      "provenance": "SYNTHETIC"
     },
     "pythia-70m": {
       "name": "pythia-70m",
-      "alpha": 0.10293669221989087,
-      "A": 22.01687053086914,
-      "L_inf": 2.30581037849389,
-      "alpha_se": 0.021255317441835647,
-      "A_se": 15.349725750312741,
-      "L_inf_se": 0.05575259116844362,
-      "R2": 0.9952552702569006,
-      "residual_rms": 0.004567221391218255,
-      "n_points": 14,
+      "alpha": 0.3118824258240901,
+      "A": 1111006.0583597268,
+      "L_inf": 1.7122222333271149,
+      "alpha_se": 0.028317990161795915,
+      "A_se": 1198918.0521471628,
+      "L_inf_se": 0.22103249226345453,
+      "R2": 0.9732497073266807,
+      "residual_rms": 0.2566114308396444,
+      "n_points": 35,
       "C_range": [
-        8.86172012249088e+16,
-        1.2672259775161958e+20
-      ]
+        5.4052574773248e+16,
+        1.2666999371164877e+20
+      ],
+      "provenance": "REAL_FULL"
     },
     "kaplan2020-gpt": {
       "name": "kaplan2020-gpt",
@@ -114,7 +137,8 @@
       "C_range": [
         8.64e+34,
         8.64e+41
-      ]
+      ],
+      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)"
     },
     "hoffmann2022-chinchilla": {
       "name": "hoffmann2022-chinchilla",
@@ -130,15 +154,37 @@
       "C_range": [
         1e+18,
         1e+25
-      ]
+      ],
+      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)"
     }
   },
   "summary": {
-    "pythia_n_sizes": 6,
-    "pythia_alpha_mean": 0.1158253303264123,
-    "pythia_alpha_std": 0.020567118186908134,
-    "pythia_alpha_cv": 0.17757012329640728,
-    "universality_verdict": "MODERATE_UNIVERSALITY",
+    "data_kind": "real",
+    "pythia_csv": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv",
+    "pythia_n_sizes": 7,
+    "provenance_per_model": {
+      "pythia-1.4b": "REAL_TAIL_NARROW",
+      "pythia-160m": "SYNTHETIC",
+      "pythia-1b": "SYNTHETIC",
+      "pythia-2.8b": "REAL_TAIL_NARROW",
+      "pythia-410m": "REAL_FULL",
+      "pythia-6.9b": "SYNTHETIC",
+      "pythia-70m": "REAL_FULL"
+    },
+    "alpha_all_sizes": {
+      "n": 7,
+      "mean": 0.5190400599504342,
+      "std": 0.6761340683225583,
+      "cv": 1.3026625890632137
+    },
+    "alpha_real_wide_only": {
+      "n": 2,
+      "mean": 0.44377029802523277,
+      "std": 0.18651761757938548,
+      "cv": 0.42030216625444383
+    },
+    "universality_verdict_all": "BROAD_SPREAD",
+    "universality_verdict_real_wide": "BROAD_SPREAD",
     "benchmark": {
       "chinchilla_alpha_compute": 0.155,
       "chinchilla_alpha_N": 0.34,

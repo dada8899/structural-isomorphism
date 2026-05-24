@@ -12,10 +12,10 @@
 |---|---|---|---|---|---|---|---|
 | amoc_rapid_26n | REAL | 240 | -0.231 | -0.320 | no | INCONCLUSIVE | 0.756 |
 | amazon_ndvi_central_amazonas | REAL | 299 | -0.280 | -0.619 | no | INCONCLUSIVE | 1.023 |
-| amazon_ndvi_para_central | SYNTHETIC | 291 | -0.060 | +0.161 | no | SYNTHETIC | 0.352 |
-| amazon_ndvi_rondonia_arc | SYNTHETIC | 291 | -0.129 | +0.352 | no | SYNTHETIC | 0.429 |
-| amazon_ndvi_western_acre | SYNTHETIC | 291 | +0.091 | -0.118 | no | SYNTHETIC | 0.401 |
-| amazon_ndvi_xingu_park | SYNTHETIC | 291 | +0.183 | +0.064 | no | SYNTHETIC | 0.198 |
+| amazon_ndvi_para_central | REAL | 299 | +0.159 | -0.263 | no | QUALIFIED | 0.513 |
+| amazon_ndvi_rondonia_arc | REAL | 299 | +0.138 | -0.582 | no | QUALIFIED | 0.829 |
+| amazon_ndvi_western_acre | REAL | 299 | +0.269 | -0.013 | no | QUALIFIED | 0.248 |
+| amazon_ndvi_xingu_park | REAL | 299 | -0.216 | -0.193 | no | INCONCLUSIVE | 0.658 |
 
 ## Data sources
 
@@ -59,51 +59,51 @@
 
 ### amazon_ndvi_para_central
 
-- Source: `raw/amazon_ndvi_para_central.jsonl` (n_raw=552, n_months=291, 2000-02 -> 2024-04)
-- Synthetic: **True**
-- AR(1) trend: tau = -0.0603, p = +0.1615, n = 243
-- Variance trend: tau = +0.1614, p = 1.79e-04
-- Skewness trend: tau = +0.2063, p = 1.68e-06
+- Source: `raw/amazon_ndvi_para_central.jsonl` (n_raw=572, n_months=299, 2000-02 -> 2024-12)
+- Synthetic: **False**
+- AR(1) trend: tau = +0.1585, p = 1.84e-04, n = 251
+- Variance trend: tau = -0.2631, p = 5.32e-10
+- Skewness trend: tau = -0.4958, p = 1.27e-31
 - Classical CSD signature: **False**
-- Power-law tail of |anomaly|: alpha = 3.531, xmin = 0.0510, KS = 0.0574, n_tail = 75/291
-- Iso-distance to scheffer-lake: **0.352** (lower = closer match)
-- Verdict: **SYNTHETIC**
+- Power-law tail of |anomaly|: alpha = 5.345, xmin = 0.2018, KS = 0.0708, n_tail = 39/299
+- Iso-distance to scheffer-lake: **0.513** (lower = closer match)
+- Verdict: **QUALIFIED**
 
 ### amazon_ndvi_rondonia_arc
 
-- Source: `raw/amazon_ndvi_rondonia_arc.jsonl` (n_raw=552, n_months=291, 2000-02 -> 2024-04)
-- Synthetic: **True**
-- AR(1) trend: tau = -0.1288, p = +0.0028, n = 243
-- Variance trend: tau = +0.3523, p = 2.86e-16
-- Skewness trend: tau = -0.4319, p = 1.16e-23
+- Source: `raw/amazon_ndvi_rondonia_arc.jsonl` (n_raw=572, n_months=299, 2000-02 -> 2024-12)
+- Synthetic: **False**
+- AR(1) trend: tau = +0.1380, p = +0.0011, n = 251
+- Variance trend: tau = -0.5818, p = 6.75e-43
+- Skewness trend: tau = +0.3617, p = 1.38e-17
 - Classical CSD signature: **False**
-- Power-law tail of |anomaly|: alpha = 3.056, xmin = 0.0349, KS = 0.0786, n_tail = 113/291
-- Iso-distance to scheffer-lake: **0.429** (lower = closer match)
-- Verdict: **SYNTHETIC**
+- Power-law tail of |anomaly|: alpha = 3.330, xmin = 0.0979, KS = 0.0799, n_tail = 116/299
+- Iso-distance to scheffer-lake: **0.829** (lower = closer match)
+- Verdict: **QUALIFIED**
 
 ### amazon_ndvi_western_acre
 
-- Source: `raw/amazon_ndvi_western_acre.jsonl` (n_raw=552, n_months=291, 2000-02 -> 2024-04)
-- Synthetic: **True**
-- AR(1) trend: tau = +0.0912, p = +0.0341, n = 243
-- Variance trend: tau = -0.1180, p = +0.0061
-- Skewness trend: tau = -0.0878, p = +0.0416
+- Source: `raw/amazon_ndvi_western_acre.jsonl` (n_raw=572, n_months=299, 2000-02 -> 2024-12)
+- Synthetic: **False**
+- AR(1) trend: tau = +0.2687, p = 2.29e-10, n = 251
+- Variance trend: tau = -0.0135, p = +0.7504
+- Skewness trend: tau = +0.1392, p = +0.0010
 - Classical CSD signature: **False**
-- Power-law tail of |anomaly|: alpha = 5.422, xmin = 0.0430, KS = 0.0630, n_tail = 45/291
-- Iso-distance to scheffer-lake: **0.401** (lower = closer match)
-- Verdict: **SYNTHETIC**
+- Power-law tail of |anomaly|: alpha = 3.655, xmin = 0.1279, KS = 0.0743, n_tail = 54/299
+- Iso-distance to scheffer-lake: **0.248** (lower = closer match)
+- Verdict: **QUALIFIED**
 
 ### amazon_ndvi_xingu_park
 
-- Source: `raw/amazon_ndvi_xingu_park.jsonl` (n_raw=552, n_months=291, 2000-02 -> 2024-04)
-- Synthetic: **True**
-- AR(1) trend: tau = +0.1827, p = 2.21e-05, n = 243
-- Variance trend: tau = +0.0643, p = +0.1354
-- Skewness trend: tau = -0.1292, p = +0.0027
+- Source: `raw/amazon_ndvi_xingu_park.jsonl` (n_raw=572, n_months=299, 2000-02 -> 2024-12)
+- Synthetic: **False**
+- AR(1) trend: tau = -0.2164, p = 3.25e-07, n = 251
+- Variance trend: tau = -0.1933, p = 5.07e-06
+- Skewness trend: tau = +0.2743, p = 9.64e-11
 - Classical CSD signature: **False**
-- Power-law tail of |anomaly|: alpha = 5.049, xmin = 0.0472, KS = 0.0698, n_tail = 37/291
-- Iso-distance to scheffer-lake: **0.198** (lower = closer match)
-- Verdict: **SYNTHETIC**
+- Power-law tail of |anomaly|: alpha = 2.908, xmin = 0.0933, KS = 0.0832, n_tail = 39/299
+- Iso-distance to scheffer-lake: **0.658** (lower = closer match)
+- Verdict: **INCONCLUSIVE**
 
 ## Limitations / honesty
 

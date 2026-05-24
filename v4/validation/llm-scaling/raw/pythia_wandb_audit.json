@@ -1,0 +1,140 @@
+{
+  "fetched_at": "2026-05-24T16:08:26Z",
+  "data_source": "https://wandb.ai/eleutherai/pythia (public anonymous GraphQL API)",
+  "identification_method": "match summaryMetrics.train/lm_loss to Biderman 2023 Table 8",
+  "models": [
+    {
+      "model": "pythia-70m",
+      "status": "REAL_WANDB",
+      "n_points": 1500,
+      "step_range": [
+        61,
+        142951
+      ],
+      "loss_range": [
+        8.068368911743164,
+        2.408371686935425
+      ],
+      "published_final": 2.493,
+      "loss_delta_vs_pub": 0.08462831306457508,
+      "runs_used": [
+        {
+          "run_id": "qiu9n7a6",
+          "role": "full"
+        }
+      ]
+    },
+    {
+      "model": "pythia-410m",
+      "status": "REAL_WANDB",
+      "n_points": 4491,
+      "step_range": [
+        2061,
+        142990
+      ],
+      "loss_range": [
+        2.8858795166015625,
+        2.0663857460021973
+      ],
+      "published_final": 2.02,
+      "loss_delta_vs_pub": 0.04638574600219725,
+      "runs_used": [
+        {
+          "run_id": "339s0ka6",
+          "role": "head"
+        },
+        {
+          "run_id": "1ena81fo",
+          "role": "mid"
+        },
+        {
+          "run_id": "318z89xb",
+          "role": "tail"
+        }
+      ]
+    },
+    {
+      "model": "pythia-1b-0.5MtokBS",
+      "status": "REAL_WANDB",
+      "n_points": 2999,
+      "step_range": [
+        202002,
+        285910
+      ],
+      "loss_range": [
+        1.9818949699401855,
+        1.9773552417755127
+      ],
+      "published_final": 1.965,
+      "loss_delta_vs_pub": 0.012355241775512615,
+      "runs_used": [
+        {
+          "run_id": "2ckblvuv",
+          "role": "head"
+        },
+        {
+          "run_id": "3bj0rp1k",
+          "role": "tail"
+        }
+      ]
+    },
+    {
+      "model": "pythia-2.8b",
+      "status": "REAL_WANDB",
+      "n_points": 3299,
+      "step_range": [
+        124001,
+        143000
+      ],
+      "loss_range": [
+        1.7623010873794556,
+        1.757043719291687
+      ],
+      "published_final": 1.763,
+      "loss_delta_vs_pub": 0.005956280708312889,
+      "runs_used": [
+        {
+          "run_id": "17hqpon5",
+          "role": "mid"
+        },
+        {
+          "run_id": "mdl32suo",
+          "role": "mid"
+        },
+        {
+          "run_id": "1yrbqqgi",
+          "role": "mid"
+        },
+        {
+          "run_id": "kg5ni1dl",
+          "role": "tail"
+        }
+      ]
+    },
+    {
+      "model": "pythia-1.4b",
+      "status": "REAL_WANDB",
+      "n_points": 1851,
+      "step_range": [
+        73001,
+        78917
+      ],
+      "loss_range": [
+        1.8128324747085571,
+        1.7930169105529785
+      ],
+      "published_final": 1.821,
+      "loss_delta_vs_pub": 0.027983089447021436,
+      "runs_used": [
+        {
+          "run_id": "lidt5yrz",
+          "role": "mid"
+        },
+        {
+          "run_id": "3ui27nye",
+          "role": "mid"
+        }
+      ]
+    }
+  ]
+}

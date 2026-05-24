@@ -1,5 +1,5 @@
 {
-  "merged_at": "2026-05-24T13:00:58.168977Z",
+  "merged_at": "2026-05-24T16:44:35.295222Z",
   "sites": [
     {
       "site_id": "central_amazonas",
@@ -20,10 +20,12 @@
       "lon": -62.5,
       "descriptor": "Rondonia (degraded arc-of-deforestation)",
       "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
-      "n_chunks_found": 0,
-      "n_records": 552,
-      "synthetic": true,
-      "fallback_reason": "real_n=0"
+      "n_chunks_found": 64,
+      "n_records": 572,
+      "synthetic": false,
+      "first_date": "2000-02-18",
+      "last_date": "2024-12-18",
+      "path": "amazon_ndvi_rondonia_arc.jsonl"
     },
     {
       "site_id": "xingu_park",
@@ -31,10 +33,12 @@
       "lon": -53.0,
       "descriptor": "Xingu (mixed park edge)",
       "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
-      "n_chunks_found": 0,
-      "n_records": 552,
-      "synthetic": true,
-      "fallback_reason": "real_n=0"
+      "n_chunks_found": 64,
+      "n_records": 572,
+      "synthetic": false,
+      "first_date": "2000-02-18",
+      "last_date": "2024-12-18",
+      "path": "amazon_ndvi_xingu_park.jsonl"
     },
     {
       "site_id": "western_acre",
@@ -42,10 +46,12 @@
       "lon": -68.0,
       "descriptor": "Western Acre (intact)",
       "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
-      "n_chunks_found": 0,
-      "n_records": 552,
-      "synthetic": true,
-      "fallback_reason": "real_n=0"
+      "n_chunks_found": 64,
+      "n_records": 572,
+      "synthetic": false,
+      "first_date": "2000-02-18",
+      "last_date": "2024-12-18",
+      "path": "amazon_ndvi_western_acre.jsonl"
     },
     {
       "site_id": "para_central",
@@ -53,10 +59,12 @@
       "lon": -55.5,
       "descriptor": "Para central (transitional)",
       "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
-      "n_chunks_found": 0,
-      "n_records": 552,
-      "synthetic": true,
-      "fallback_reason": "real_n=0"
+      "n_chunks_found": 64,
+      "n_records": 572,
+      "synthetic": false,
+      "first_date": "2000-02-18",
+      "last_date": "2024-12-18",
+      "path": "amazon_ndvi_para_central.jsonl"
     }
   ]
 }
