@@ -1,0 +1,264 @@
+"""Tests for the X3 LLM scaling-law learning-curve validation.
+
+Smoke + schema + alpha-range sanity. Standalone-module-load pattern so we
+do NOT depend on `soc_pipeline.__init__` being importable in this checkout
+(the editable-install points to a /tmp path that may not exist).
+
+Coverage:
+1. learning_curve module loads + roundtrips a synthetic Chinchilla curve
+2. results.json exists, has the expected schema, and the fits are sane
+3. KB JSONL has 10-15 entries with required fields and unique IDs
+4. CSV files exist with expected non-empty content
+5. Pythia alpha ensemble sits in the band [0.05, 0.30] (sanity, not strict)
+"""
+from __future__ import annotations
+
+import csv
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+MODULE_PATH = (
+    REPO_ROOT / "packages" / "soc-pipeline" / "src" / "soc_pipeline" / "learning_curve.py"
+)
+VAL_DIR = REPO_ROOT / "v4" / "validation" / "llm-scaling"
+RAW_DIR = VAL_DIR / "raw"
+RESULTS_JSON = VAL_DIR / "results.json"
+KB_JSONL = REPO_ROOT / "data" / "kb-additions-2026-05-24-llm-scaling.jsonl"
+
+
+# ---------------------------------------------------------------------------
+# Fixture: load learning_curve.py once per test session
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def lc():
+    """Load packages/soc-pipeline/src/soc_pipeline/learning_curve.py standalone."""
+    spec = importlib.util.spec_from_file_location("lc_under_test", MODULE_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["lc_under_test"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# ---------------------------------------------------------------------------
+# 1. Module smoke tests
+# ---------------------------------------------------------------------------
+
+def test_module_exports_expected_symbols(lc) -> None:
+    assert hasattr(lc, "fit_learning_curve")
+    assert hasattr(lc, "LearningCurveResult")
+    assert hasattr(lc, "power_law_with_floor")
+
+
+def test_power_law_with_floor_basic(lc) -> None:
+    """Forward model evaluates correctly at known values."""
+    C = np.array([1e18, 1e21, 1e24])
+    L = lc.power_law_with_floor(C, A=400.0, alpha=0.155, L_inf=1.7)
+    # At C → infinity loss → L_inf
+    assert L[-1] > 1.7
+    assert L[0] > L[1] > L[2]
+    # At C=1e18 with A=400, alpha=0.155 → 400 / 1e18^0.155 ≈ 0.5 → L ≈ 2.2
+    assert 2.0 < L[0] < 2.5
+
+
+def test_synthetic_chinchilla_recovery(lc) -> None:
+    """Round-trip: generate Chinchilla-like curve → fit → check parameter recovery."""
+    rng = np.random.default_rng(42)
+    C = np.logspace(17, 24, 15)
+    A_true, alpha_true, L_inf_true = 400.0, 0.155, 1.7
+    L_clean = lc.power_law_with_floor(C, A_true, alpha_true, L_inf_true)
+    L = L_clean * (1 + 0.01 * rng.standard_normal(C.size))
+
+    result = lc.fit_learning_curve(C, L, name="synthetic-chinchilla")
+
+    assert result.error is None
+    assert result.R2 is not None and result.R2 > 0.95
+    # alpha and L_inf should recover to within ~10%
+    assert abs(result.alpha - alpha_true) / alpha_true < 0.15
+    assert abs(result.L_inf - L_inf_true) / L_inf_true < 0.05
+    assert result.n_points == 15
+
+
+def test_too_few_points_returns_error(lc) -> None:
+    r = lc.fit_learning_curve([1.0, 2.0], [3.0, 4.0], name="tiny")
+    assert r.error is not None
+    assert "too_few_points" in r.error
+
+
+def test_shape_mismatch_returns_error(lc) -> None:
+    r = lc.fit_learning_curve([1.0, 2.0, 3.0], [1.0, 2.0], name="bad-shapes")
+    assert r.error is not None
+    assert "shape_mismatch" in r.error
+
+
+def test_filters_non_finite_entries(lc) -> None:
+    """NaN, inf, and non-positive entries are dropped before fitting."""
+    C = [1e18, 2e18, 4e18, 8e18, 16e18, float("nan"), -1.0]
+    L = [3.0, 2.5, 2.2, 2.1, 2.05, 2.0, 1.95]
+    r = lc.fit_learning_curve(C, L, name="dirty")
+    assert r.error is None
+    assert r.n_points == 5  # 7 - 2 dropped
+
+
+def test_result_to_dict_is_json_serializable(lc) -> None:
+    C = np.logspace(17, 24, 12)
+    L = lc.power_law_with_floor(C, 400.0, 0.155, 1.7)
+    r = lc.fit_learning_curve(C, L)
+    d = r.to_dict()
+    # round-trips through json without exception
+    s = json.dumps(d)
+    assert json.loads(s)["alpha"] is not None
+
+
+# ---------------------------------------------------------------------------
+# 2. Validation artifact tests (run_validation.py outputs)
+# ---------------------------------------------------------------------------
+
+def test_results_json_exists() -> None:
+    assert RESULTS_JSON.is_file(), (
+        f"missing {RESULTS_JSON}; run `python v4/validation/llm-scaling/run_validation.py`"
+    )
+
+
+def test_results_json_schema() -> None:
+    data = json.loads(RESULTS_JSON.read_text())
+    assert data["validation"] == "llm-scaling"
+    assert data["schema_version"] == "1.0"
+    assert "fits" in data and "summary" in data
+    # Expect 6 Pythia sizes + Kaplan + Hoffmann = 8 series
+    assert len(data["fits"]) == 8
+    pythia_keys = [k for k in data["fits"] if k.startswith("pythia-")]
+    assert len(pythia_keys) == 6
+
+
+def test_results_per_fit_schema() -> None:
+    data = json.loads(RESULTS_JSON.read_text())
+    required = {"name", "alpha", "A", "L_inf", "R2", "n_points"}
+    for name, fit in data["fits"].items():
+        missing = required - set(fit.keys())
+        assert not missing, f"{name} missing keys {missing}"
+        # fits should not have errored
+        assert fit.get("error") is None, f"{name} errored: {fit['error']}"
+        # alpha sanity: must be a finite positive number in (0, 1)
+        assert fit["alpha"] is not None and 0 < fit["alpha"] < 1
+        # L_inf sanity: non-negative and < 10
+        assert fit["L_inf"] is not None and 0 <= fit["L_inf"] < 10
+        # R^2 sanity
+        assert fit["R2"] is not None and fit["R2"] > 0.9
+
+
+def test_pythia_alpha_band() -> None:
+    """All 6 Pythia alphas should be in [0.05, 0.30]."""
+    data = json.loads(RESULTS_JSON.read_text())
+    for name, fit in data["fits"].items():
+        if not name.startswith("pythia-"):
+            continue
+        assert 0.05 <= fit["alpha"] <= 0.30, (
+            f"{name} alpha {fit['alpha']:.4f} outside [0.05, 0.30]"
+        )
+
+
+def test_chinchilla_alpha_matches_literature() -> None:
+    """Hoffmann fit should recover alpha_C ≈ 0.155 within ±0.03."""
+    data = json.loads(RESULTS_JSON.read_text())
+    hoff = data["fits"]["hoffmann2022-chinchilla"]
+    assert 0.125 <= hoff["alpha"] <= 0.185, (
+        f"Chinchilla alpha {hoff['alpha']:.4f} should be ~0.155 ±0.03"
+    )
+
+
+def test_kaplan_alpha_matches_literature() -> None:
+    """Kaplan fit should recover alpha_C ≈ 0.050 within ±0.02."""
+    data = json.loads(RESULTS_JSON.read_text())
+    kap = data["fits"]["kaplan2020-gpt"]
+    assert 0.030 <= kap["alpha"] <= 0.070, (
+        f"Kaplan alpha {kap['alpha']:.4f} should be ~0.050 ±0.02"
+    )
+
+
+def test_pythia_universality_summary() -> None:
+    data = json.loads(RESULTS_JSON.read_text())
+    s = data["summary"]
+    assert s["pythia_n_sizes"] == 6
+    assert s["pythia_alpha_mean"] is not None
+    assert 0.05 < s["pythia_alpha_mean"] < 0.30
+    assert s["universality_verdict"] in {
+        "STRONG_UNIVERSALITY",
+        "MODERATE_UNIVERSALITY",
+        "BROAD_SPREAD",
+        "UNKNOWN",
+    }
+
+
+# ---------------------------------------------------------------------------
+# 3. KB additions JSONL tests
+# ---------------------------------------------------------------------------
+
+def test_kb_jsonl_exists() -> None:
+    assert KB_JSONL.is_file()
+
+
+def test_kb_jsonl_row_count() -> None:
+    rows = [json.loads(l) for l in KB_JSONL.read_text().splitlines() if l.strip()]
+    assert 10 <= len(rows) <= 20, f"expected 10-20 rows, got {len(rows)}"
+
+
+def test_kb_jsonl_schema() -> None:
+    required = {"id", "name", "domain", "type_id", "description"}
+    rows = [json.loads(l) for l in KB_JSONL.read_text().splitlines() if l.strip()]
+    for r in rows:
+        missing = required - set(r.keys())
+        assert not missing, f"{r.get('id', '?')} missing fields: {missing}"
+        assert r["description"] and len(r["description"]) >= 50, (
+            f"{r['id']} description too short"
+        )
+
+
+def test_kb_jsonl_unique_ids() -> None:
+    rows = [json.loads(l) for l in KB_JSONL.read_text().splitlines() if l.strip()]
+    ids = [r["id"] for r in rows]
+    assert len(ids) == len(set(ids)), "duplicate ids in KB jsonl"
+
+
+def test_kb_jsonl_domain_consistency() -> None:
+    """All entries should be ML/AI-flavored."""
+    rows = [json.loads(l) for l in KB_JSONL.read_text().splitlines() if l.strip()]
+    ml_domains = {"机器学习", "人工智能", "深度学习"}
+    for r in rows:
+        assert r["domain"] in ml_domains, (
+            f"{r['id']} unexpected domain: {r['domain']}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 4. Raw CSV tests
+# ---------------------------------------------------------------------------
+
+def test_pythia_csv_exists_and_nonempty() -> None:
+    path = RAW_DIR / "pythia_checkpoints.csv"
+    assert path.is_file()
+    rows = list(csv.DictReader(path.open()))
+    assert len(rows) >= 60, f"too few Pythia rows: {len(rows)}"
+    # 6 models × 14 steps = 84 expected
+    models = {r["model"] for r in rows}
+    assert len(models) == 6
+
+
+def test_kaplan_csv_exists_and_nonempty() -> None:
+    path = RAW_DIR / "kaplan2020_compute.csv"
+    assert path.is_file()
+    rows = list(csv.DictReader(path.open()))
+    assert len(rows) >= 10
+
+
+def test_hoffmann_csv_exists_and_nonempty() -> None:
+    path = RAW_DIR / "hoffmann2022_compute.csv"
+    assert path.is_file()
+    rows = list(csv.DictReader(path.open()))
+    assert len(rows) >= 10

@@ -1,0 +1,87 @@
+{
+  "started_at": "2026-05-24T12:28:20.797152Z",
+  "amoc": {
+    "source": "RAPID 26N",
+    "url": "https://rapid.ac.uk/sites/default/files/rapid_data/moc_transports.nc",
+    "ok": true,
+    "synthetic": false,
+    "n_records": 14579,
+    "error": null,
+    "bytes_on_disk": 1182284,
+    "first_date": "2004-04-07T00:00",
+    "last_date": "2024-03-22T00:00"
+  },
+  "ndvi": [
+    {
+      "source": "MODIS MOD13Q1",
+      "site_id": "central_amazonas",
+      "lat": -3.0,
+      "lon": -60.0,
+      "descriptor": "Central Amazonas (intact, near Manaus)",
+      "ok": true,
+      "synthetic": true,
+      "n_records": 552,
+      "error": "HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+      "n_chunks_ok": 0,
+      "n_chunks_failed": 0,
+      "path": "amazon_ndvi_central_amazonas.jsonl"
+    },
+    {
+      "source": "MODIS MOD13Q1",
+      "site_id": "rondonia_arc",
+      "lat": -10.0,
+      "lon": -62.5,
+      "descriptor": "Rondonia (degraded arc-of-deforestation)",
+      "ok": true,
+      "synthetic": true,
+      "n_records": 552,
+      "error": "HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+      "n_chunks_ok": 0,
+      "n_chunks_failed": 0,
+      "path": "amazon_ndvi_rondonia_arc.jsonl"
+    },
+    {
+      "source": "MODIS MOD13Q1",
+      "site_id": "xingu_park",
+      "lat": -12.0,
+      "lon": -53.0,
+      "descriptor": "Xingu (mixed park edge)",
+      "ok": true,
+      "synthetic": true,
+      "n_records": 552,
+      "error": "HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+      "n_chunks_ok": 0,
+      "n_chunks_failed": 0,
+      "path": "amazon_ndvi_xingu_park.jsonl"
+    },
+    {
+      "source": "MODIS MOD13Q1",
+      "site_id": "western_acre",
+      "lat": -9.5,
+      "lon": -68.0,
+      "descriptor": "Western Acre (intact)",
+      "ok": true,
+      "synthetic": true,
+      "n_records": 552,
+      "error": "HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+      "n_chunks_ok": 0,
+      "n_chunks_failed": 0,
+      "path": "amazon_ndvi_western_acre.jsonl"
+    },
+    {
+      "source": "MODIS MOD13Q1",
+      "site_id": "para_central",
+      "lat": -5.5,
+      "lon": -55.5,
+      "descriptor": "Para central (transitional)",
+      "ok": true,
+      "synthetic": true,
+      "n_records": 552,
+      "error": "HTTPError: HTTP Error 500: INTERNAL SERVER ERROR",
+      "n_chunks_ok": 0,
+      "n_chunks_failed": 0,
+      "path": "amazon_ndvi_para_central.jsonl"
+    }
+  ],
+  "finished_at": "2026-05-24T12:28:32.251790Z"
+}

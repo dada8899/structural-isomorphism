@@ -1,0 +1,62 @@
+{
+  "merged_at": "2026-05-24T13:00:58.168977Z",
+  "sites": [
+    {
+      "site_id": "central_amazonas",
+      "lat": -3.0,
+      "lon": -60.0,
+      "descriptor": "Central Amazonas (intact, near Manaus)",
+      "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
+      "n_chunks_found": 64,
+      "n_records": 572,
+      "synthetic": false,
+      "first_date": "2000-02-18",
+      "last_date": "2024-12-18",
+      "path": "amazon_ndvi_central_amazonas.jsonl"
+    },
+    {
+      "site_id": "rondonia_arc",
+      "lat": -10.0,
+      "lon": -62.5,
+      "descriptor": "Rondonia (degraded arc-of-deforestation)",
+      "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
+      "n_chunks_found": 0,
+      "n_records": 552,
+      "synthetic": true,
+      "fallback_reason": "real_n=0"
+    },
+    {
+      "site_id": "xingu_park",
+      "lat": -12.0,
+      "lon": -53.0,
+      "descriptor": "Xingu (mixed park edge)",
+      "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
+      "n_chunks_found": 0,
+      "n_records": 552,
+      "synthetic": true,
+      "fallback_reason": "real_n=0"
+    },
+    {
+      "site_id": "western_acre",
+      "lat": -9.5,
+      "lon": -68.0,
+      "descriptor": "Western Acre (intact)",
+      "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
+      "n_chunks_found": 0,
+      "n_records": 552,
+      "synthetic": true,
+      "fallback_reason": "real_n=0"
+    },
+    {
+      "site_id": "para_central",
+      "lat": -5.5,
+      "lon": -55.5,
+      "descriptor": "Para central (transitional)",
+      "source": "MODIS MOD13Q1 (via curl + merge_modis_chunks.py)",
+      "n_chunks_found": 0,
+      "n_records": 552,
+      "synthetic": true,
+      "fallback_reason": "real_n=0"
+    }
+  ]
+}

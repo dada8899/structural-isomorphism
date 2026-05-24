@@ -1,0 +1,55 @@
+{
+  "xllcorner": "-6662668.56", 
+  "yllcorner": "-333816.78", 
+  "cellsize": 231.656358264, 
+  "nrows": 1, 
+  "ncols": 1, 
+  "band": "250m_16_days_NDVI", 
+  "units": "NDVI ratio - No units", 
+  "scale": "0.0001", 
+  "latitude": -3.0, 
+  "longitude": -60.0, 
+  "header": "https://modisrest.ornl.gov/rst/api/v1/MOD13Q1/subset?latitude=-3.0&longitude=-60.0&startDate=A2024289&endDate=A2024353&kmAboveBelow=0&kmLeftRight=0&band=250m_16_days_NDVI", 
+  "subset": [
+    {
+      "modis_date": "A2024289", 
+      "calendar_date": "2024-10-15", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2024306180011", 
+      "data": [3871]
+    }, 
+    {
+      "modis_date": "A2024305", 
+      "calendar_date": "2024-10-31", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2024326212117", 
+      "data": [2981]
+    }, 
+    {
+      "modis_date": "A2024321", 
+      "calendar_date": "2024-11-16", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2025005223133", 
+      "data": [3569]
+    }, 
+    {
+      "modis_date": "A2024337", 
+      "calendar_date": "2024-12-02", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2024358220853", 
+      "data": [2902]
+    }, 
+    {
+      "modis_date": "A2024353", 
+      "calendar_date": "2024-12-18", 
+      "band": "250m_16_days_NDVI", 
+      "tile": "h12v09", 
+      "proc_date": "2025003235117", 
+      "data": [3279]
+    }
+  ]
+}

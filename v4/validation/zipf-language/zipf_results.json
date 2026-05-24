@@ -1,0 +1,173 @@
+{
+  "timestamp": "2026-05-24T12:51:01.540080",
+  "per_language": {
+    "brown_en": {
+      "language": "en",
+      "n_tokens": 1023444,
+      "vocab_size": 41433,
+      "fit": {
+        "s_rank": 0.9826706755276529,
+        "log_c": 11.425572701731525,
+        "r2": 0.996027181539866,
+        "resid_std": 0.05516397511859299,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    },
+    "wiki_en": {
+      "language": "en",
+      "n_tokens": 72700,
+      "vocab_size": 13123,
+      "fit": {
+        "s_rank": 0.8582029060892322,
+        "log_c": 8.11575168558989,
+        "r2": 0.9955114607551749,
+        "resid_std": 0.05122160172366306,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    },
+    "wiki_zh": {
+      "language": "zh",
+      "n_tokens": 50289,
+      "vocab_size": 16217,
+      "fit": {
+        "s_rank": 0.7632290374189168,
+        "log_c": 7.1615175174753976,
+        "r2": 0.9976562500434614,
+        "resid_std": 0.03288166894244831,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    },
+    "wiki_ar": {
+      "language": "ar",
+      "n_tokens": 47962,
+      "vocab_size": 15353,
+      "fit": {
+        "s_rank": 0.8081530394134953,
+        "log_c": 7.4255640981099935,
+        "r2": 0.9964956737879276,
+        "resid_std": 0.042598269641338386,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    },
+    "wiki_hi": {
+      "language": "hi",
+      "n_tokens": 76059,
+      "vocab_size": 12811,
+      "fit": {
+        "s_rank": 0.8957220593873882,
+        "log_c": 8.469558312984237,
+        "r2": 0.998741044368896,
+        "resid_std": 0.02826739750230088,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    },
+    "wiki_es": {
+      "language": "es",
+      "n_tokens": 87615,
+      "vocab_size": 16607,
+      "fit": {
+        "s_rank": 0.8609173425040035,
+        "log_c": 8.10973887159672,
+        "r2": 0.9814577288947941,
+        "resid_std": 0.10518187607968281,
+        "rank_lo": 10,
+        "rank_hi_used": 1000,
+        "n_points": 991
+      },
+      "clauset": {
+        "error": "soc_pipeline unavailable"
+      }
+    }
+  },
+  "cross_language_chi2": {
+    "chi2": 95.15336535856473,
+    "dof": 5,
+    "chi2_per_dof": 19.030673071712947
+  },
+  "references": {
+    "pareto_wealth_rank_s": {
+      "s": 1.0,
+      "se": 0.15,
+      "source": "Pareto 1896 income; WID world avg"
+    },
+    "city_size_zipf": {
+      "s": 1.0,
+      "se": 0.1,
+      "source": "Gabaix 1999; Zipf 1949"
+    },
+    "zipf_classical": {
+      "s": 1.0,
+      "se": 0.1,
+      "source": "Zipf 1949"
+    }
+  },
+  "isomorphism_distances": {
+    "brown_en": {
+      "pareto_wealth_rank_s": 0.10842892109793269,
+      "city_size_zipf": 0.1517371135393524,
+      "zipf_classical": 0.1517371135393524
+    },
+    "wiki_en": {
+      "pareto_wealth_rank_s": 0.8945939184256587,
+      "city_size_zipf": 1.262044925813338,
+      "zipf_classical": 1.262044925813338
+    },
+    "wiki_zh": {
+      "pareto_wealth_rank_s": 1.541861806567705,
+      "city_size_zipf": 2.2492356672248346,
+      "zipf_classical": 2.2492356672248346
+    },
+    "wiki_ar": {
+      "pareto_wealth_rank_s": 1.230328958198341,
+      "city_size_zipf": 1.7650019139598025,
+      "zipf_classical": 1.7650019139598025
+    },
+    "wiki_hi": {
+      "pareto_wealth_rank_s": 0.6831614922494337,
+      "city_size_zipf": 1.0034592828954985,
+      "zipf_classical": 1.0034592828954985
+    },
+    "wiki_es": {
+      "pareto_wealth_rank_s": 0.7591736482042023,
+      "city_size_zipf": 0.9583199419877125,
+      "zipf_classical": 0.9583199419877125
+    }
+  },
+  "expected_band": [
+    0.9,
+    1.2
+  ],
+  "verdict_per_lang": {
+    "brown_en": "PASS",
+    "wiki_en": "INCONCLUSIVE",
+    "wiki_zh": "INCONCLUSIVE",
+    "wiki_ar": "INCONCLUSIVE",
+    "wiki_hi": "INCONCLUSIVE",
+    "wiki_es": "INCONCLUSIVE"
+  }
+}

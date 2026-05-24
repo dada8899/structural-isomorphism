@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-05-24 20:29:54",
+  "datasets": [
+    {
+      "source": "nltk-brown",
+      "language": "en",
+      "n_tokens_raw": 1161192,
+      "n_chars": 6127073,
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/brown_en.txt"
+    },
+    {
+      "source": "wikipedia-en",
+      "language": "en",
+      "n_articles_fetched": 991,
+      "n_chars": 467680,
+      "n_errors": 0,
+      "errors": [],
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_en.txt"
+    },
+    {
+      "source": "wikipedia-zh",
+      "language": "zh",
+      "n_articles_fetched": 829,
+      "n_chars": 141428,
+      "n_errors": 0,
+      "errors": [],
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_zh.txt"
+    },
+    {
+      "source": "wikipedia-ar",
+      "language": "ar",
+      "n_articles_fetched": 987,
+      "n_chars": 315202,
+      "n_errors": 0,
+      "errors": [],
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_ar.txt"
+    },
+    {
+      "source": "wikipedia-hi",
+      "language": "hi",
+      "n_articles_fetched": 927,
+      "n_chars": 432790,
+      "n_errors": 0,
+      "errors": [],
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_hi.txt"
+    },
+    {
+      "source": "wikipedia-es",
+      "language": "es",
+      "n_articles_fetched": 998,
+      "n_chars": 547333,
+      "n_errors": 0,
+      "errors": [],
+      "path": "/Users/dadamini/Projects/structural-isomorphism/v4/validation/zipf-language/raw/wiki_es.txt"
+    }
+  ]
+}
