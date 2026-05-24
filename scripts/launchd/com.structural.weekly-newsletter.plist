@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  W7-D mini-brief 3 (2026-05-24): weekly signals newsletter launchd job.
+
+  NOT installed automatically — copy to ~/Library/LaunchAgents/ and
+  `launchctl bootstrap gui/$(id -u)` per the install steps in
+  docs/newsletter/weekly-pipeline-2026-05-24.md.
+
+  Runs every Monday 06:00 local time:
+    1. scripts/generate_weekly_signals.py
+       → newsletter/weekly/<this-monday>.md (+ chart png)
+    2. scripts/send_to_buttondown.py <that .md> --status draft
+       → creates a Buttondown DRAFT (NOT sent — human reviews and presses
+         send Tuesday morning per the W7-D § 8 plan).
+
+  EnvironmentVariables: edit BUTTONDOWN_API_KEY + OPENROUTER_API_KEY in place
+  before installing. Leaving them empty == both scripts run in mock mode
+  (safe), so the worst case is a draft file gets written without LLM
+  commentary.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.structural.weekly-newsletter</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dadamini/Projects/structural-isomorphism</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>set -euo pipefail
+PY=/Users/dadamini/Projects/structural-isomorphism/.venv/bin/python3
+MD=$($PY scripts/generate_weekly_signals.py | tail -1)
+$PY scripts/send_to_buttondown.py "$MD" --status draft</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>BUTTONDOWN_API_KEY</key>
+        <string></string>
+        <key>OPENROUTER_API_KEY</key>
+        <string></string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dadamini/Projects/structural-isomorphism/logs/launchd-weekly-newsletter.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dadamini/Projects/structural-isomorphism/logs/launchd-weekly-newsletter.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

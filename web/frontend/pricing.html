@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="***REMOVED***FAFAF9">
+  <meta name="description" content="Structural Pricing — Free / Pro $19/mo / Team $99/mo. 每周结构性信号、自定义筛选、API 接入。">
+  <title>定价 — Structural</title>
+
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+
+  <meta property="og:title" content="定价 — Structural">
+  <meta property="og:description" content="Free / Pro $19/mo / Team $99/mo.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260524w7d">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260524w7d">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260524w7d">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260524w7d">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260524w7d">
+
+  <!-- Plausible analytics — W4-B (kept in sync with index.html). -->
+  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+
+  <style>
+    /* W7-D mini-brief 2 (2026-05-24): pricing page styles. Page-scoped;
+       promote to common.css once stable. */
+    .pricing-page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 56px 24px 96px;
+    }
+    .pricing-page__eyebrow {
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      text-transform: uppercase;
+      text-align: center;
+      margin: 0 0 12px;
+    }
+    .pricing-page__title {
+      font-family: var(--font-serif, "Noto Serif SC", serif);
+      font-weight: 600;
+      font-size: clamp(28px, 4.5vw, 36px);
+      line-height: 1.25;
+      color: var(--brand-ink, ***REMOVED***18181B);
+      text-align: center;
+      margin: 0 0 16px;
+    }
+    .pricing-page__lede {
+      max-width: 620px;
+      margin: 0 auto 48px;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      text-align: center;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+    }
+    @media (max-width: 880px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+
+    .pricing-card {
+      background: ***REMOVED***FFFFFF;
+      border: 1px solid var(--border-subtle, ***REMOVED***E4E4E7);
+      border-radius: var(--radius-xl, 12px);
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .pricing-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(24,24,27,0.06);
+    }
+    .pricing-card.is-featured {
+      border-color: var(--brand-ink, ***REMOVED***18181B);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .pricing-card__badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--brand-ink, ***REMOVED***18181B);
+      color: ***REMOVED***FFFFFF;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .pricing-card__tier {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+    }
+    .pricing-card__price {
+      font-family: var(--font-serif, "Noto Serif SC", serif);
+      font-weight: 600;
+      font-size: 36px;
+      line-height: 1.2;
+      color: var(--brand-ink, ***REMOVED***18181B);
+      margin: 0 0 4px;
+    }
+    .pricing-card__price-sub {
+      font-size: 13px;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      margin: 0 0 20px;
+    }
+    .pricing-card__desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      margin: 0 0 20px;
+      min-height: 60px;
+    }
+    .pricing-card__features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 28px;
+      flex: 1;
+    }
+    .pricing-card__features li {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--brand-ink, ***REMOVED***18181B);
+      padding: 8px 0 8px 24px;
+      position: relative;
+    }
+    .pricing-card__features li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      color: ***REMOVED***15803D;
+      font-weight: 600;
+    }
+    .pricing-card__cta {
+      display: inline-block;
+      width: 100%;
+      min-height: 44px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      border-radius: var(--radius-lg, 8px);
+      border: 1px solid var(--border-strong, ***REMOVED***D4D4D8);
+      background: ***REMOVED***FFFFFF;
+      color: var(--brand-ink, ***REMOVED***18181B);
+      transition: background 0.15s ease;
+    }
+    .pricing-card__cta:hover { background: var(--surface-elevated, ***REMOVED***F4F4F5); }
+    .pricing-card__cta:focus-visible {
+      outline: 2px solid var(--accent, ***REMOVED***2563EB);
+      outline-offset: 2px;
+    }
+    .pricing-card__cta.is-primary {
+      background: var(--brand-ink, ***REMOVED***18181B);
+      border-color: var(--brand-ink, ***REMOVED***18181B);
+      color: ***REMOVED***FFFFFF;
+    }
+    .pricing-card__cta.is-primary:hover { background: ***REMOVED***27272A; }
+    .pricing-card__cta:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .pricing-status {
+      max-width: 620px;
+      margin: 28px auto 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--brand-muted, ***REMOVED***71717A);
+      min-height: 22px;
+    }
+    .pricing-status.is-ok  { color: ***REMOVED***15803D; }
+    .pricing-status.is-err { color: ***REMOVED***B91C1C; }
+
+    .pricing-footer-note {
+      max-width: 620px;
+      margin: 40px auto 0;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--brand-muted, ***REMOVED***71717A);
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="pricing-page">
+    <div class="pricing-page__eyebrow">— Pricing · 定价 —</div>
+    <h1 class="pricing-page__title">为"看到拐点"付费</h1>
+    <p class="pricing-page__lede">
+      免费版能看 100 家公司、每周 5 次结构性扫描。Pro 解锁全量公司库与自定义信号订阅。Team 加 API 与多席位协作。
+    </p>
+
+    <div class="pricing-grid" id="pricing-grid">
+      <!-- ====== Free ====== -->
+      <article class="pricing-card" data-tier="free">
+        <div class="pricing-card__tier">Free</div>
+        <div class="pricing-card__price">$0</div>
+        <div class="pricing-card__price-sub">永久免费</div>
+        <p class="pricing-card__desc">先用一下，看看结构性信号长什么样。</p>
+        <ul class="pricing-card__features">
+          <li>100 家公司覆盖</li>
+          <li>每周 5 次结构性扫描</li>
+          <li>免费每周通讯</li>
+          <li>方法论 + 历史 case 阅读</li>
+        </ul>
+        <a href="/" class="pricing-card__cta">开始使用 →</a>
+      </article>
+
+      <!-- ====== Pro ====== -->
+      <article class="pricing-card is-featured" data-tier="pro">
+        <div class="pricing-card__badge">Most Popular</div>
+        <div class="pricing-card__tier">Pro</div>
+        <div class="pricing-card__price">$19<span style="font-size:16px;font-weight:400;color:var(--brand-muted)">/月</span></div>
+        <div class="pricing-card__price-sub">或 $190/年（节省 $38）</div>
+        <p class="pricing-card__desc">独立分析师、自媒体作者的主力套餐。</p>
+        <ul class="pricing-card__features">
+          <li>1000+ 家公司全量覆盖</li>
+          <li>不限次结构性扫描</li>
+          <li>自定义筛选 + 邮件告警</li>
+          <li>4 季度历史回溯</li>
+          <li>CSV 导出 50 次/月</li>
+        </ul>
+        <button class="pricing-card__cta is-primary" data-checkout-tier="pro" data-checkout-interval="month">
+          升级 Pro · $19/月
+        </button>
+      </article>
+
+      <!-- ====== Team ====== -->
+      <article class="pricing-card" data-tier="team">
+        <div class="pricing-card__tier">Team</div>
+        <div class="pricing-card__price">$99<span style="font-size:16px;font-weight:400;color:var(--brand-muted)">/月</span></div>
+        <div class="pricing-card__price-sub">或 $990/年（节省 $198）</div>
+        <p class="pricing-card__desc">小型基金 / 研究团队的协作套餐。</p>
+        <ul class="pricing-card__features">
+          <li>5 个席位</li>
+          <li>API 访问（1k req/月）</li>
+          <li>CSV 导出无限</li>
+          <li>Slack / Discord 集成</li>
+          <li>优先邮件支持</li>
+        </ul>
+        <button class="pricing-card__cta" data-checkout-tier="team" data-checkout-interval="month">
+          升级 Team · $99/月
+        </button>
+      </article>
+    </div>
+
+    <p class="pricing-status" id="pricing-status" role="status" aria-live="polite"></p>
+
+    <p class="pricing-footer-note">
+      所有结构性信号仅供研究参考，不构成投资建议。退订随时可在邮件底部一键操作。<br>
+      支付由 Stripe 处理；我们不接触你的卡号。
+    </p>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="/assets/js/utils.js?v=20260524w7d"></script>
+  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+  <script>
+    (function () {
+      var grid = document.getElementById('pricing-grid');
+      var status = document.getElementById('pricing-status');
+      if (!grid) return;
+
+      function getEmail() {
+        // Lightweight prompt for v0.1. Production will redirect to /login first.
+        var saved = '';
+        try { saved = (localStorage.getItem('user_email') || '').trim(); } catch (_) {}
+        var email = window.prompt('请输入邮箱（用于结账与账户）', saved);
+        if (!email) return null;
+        email = email.trim();
+        if (email.indexOf('@') < 0) {
+          status.textContent = '请输入有效邮箱';
+          status.classList.add('is-err');
+          return null;
+        }
+        try { localStorage.setItem('user_email', email); } catch (_) {}
+        return email;
+      }
+
+      function setStatus(msg, kind) {
+        status.textContent = msg;
+        status.classList.remove('is-ok', 'is-err');
+        if (kind) status.classList.add('is-' + kind);
+      }
+
+      grid.addEventListener('click', async function (e) {
+        var btn = e.target.closest('[data-checkout-tier]');
+        if (!btn) return;
+        var tier = btn.getAttribute('data-checkout-tier');
+        var interval = btn.getAttribute('data-checkout-interval') || 'month';
+        var email = getEmail();
+        if (!email) return;
+
+        btn.disabled = true;
+        setStatus('正在创建结账会话…');
+        try {
+          var r = await fetch('/api/billing/checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tier: tier, interval: interval, email: email })
+          });
+          var data = await r.json();
+          if (r.ok && data && data.url) {
+            if (window.plausible) {
+              try { window.plausible('Checkout Start', { props: { tier: tier, mode: data.mode } }); } catch (_) {}
+            }
+            // Real Stripe: full external URL. Mock: relative /pricing.html?status=success&session_id=...
+            window.location.href = data.url;
+          } else {
+            setStatus((data && data.error) || '创建结账会话失败，请重试', 'err');
+            btn.disabled = false;
+          }
+        } catch (err) {
+          setStatus('网络错误，请重试', 'err');
+          btn.disabled = false;
+        }
+      });
+
+      // Surface ?status=success|cancel on return from Stripe
+      var p = new URLSearchParams(window.location.search);
+      var qs = p.get('status');
+      if (qs === 'success') {
+        setStatus('订阅成功 ✓ 邀请邮件已发送到你的邮箱', 'ok');
+      } else if (qs === 'cancel') {
+        setStatus('已取消，未发生任何扣款', 'err');
+      }
+    })();
+  </script>
+</body>
+</html>

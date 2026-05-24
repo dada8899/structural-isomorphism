@@ -340,6 +340,16 @@ from api import diagnose  ***REMOVED*** noqa: E402 — F structural diagnosis
 ***REMOVED*** Session ***REMOVED***19 — G connect-people MVP (P1 fingerprints + P2 matching / L1).
 from api import connections as connections_api  ***REMOVED*** noqa: E402 — G connect people
 
+***REMOVED*** W7-D mini-brief 1 (2026-05-24): waitlist + Plausible. Distinct from
+***REMOVED*** /api/newsletter/subscribe — this one captures UTM source for acquisition
+***REMOVED*** attribution and goes into a SQLite table (forward path to user/auth schema).
+from api import waitlist as waitlist_api  ***REMOVED*** noqa: E402
+
+***REMOVED*** W7-D mini-brief 2 (2026-05-24): real-Stripe-test-mode billing with mock
+***REMOVED*** fallback when STRIPE_TEST_SECRET_KEY is unset. Complements legacy
+***REMOVED*** checkout_mock; new pricing.html targets /api/billing/checkout-session.
+from api import billing as billing_api  ***REMOVED*** noqa: E402
+
 app.include_router(whitespace_api.router, prefix="/api")
 app.include_router(insights_api.router, prefix="/api")
 app.include_router(method_search.router, prefix="/api")
@@ -347,6 +357,8 @@ app.include_router(stress_test.router, prefix="/api")
 app.include_router(struct_lint.router, prefix="/api")
 app.include_router(diagnose.router, prefix="/api")
 app.include_router(connections_api.router, prefix="/api")
+app.include_router(waitlist_api.router, prefix="/api")
+app.include_router(billing_api.router, prefix="/api")
 
 
 from schemas import HealthResponse, VersionResponse, WhoAmIResponse  ***REMOVED*** noqa: E402
