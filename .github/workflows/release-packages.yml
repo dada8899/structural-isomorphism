@@ -6,6 +6,7 @@ name: release-packages
 #   - guarded-llm-v0.1.1
 #   - soc-pipeline-v0.1.1
 #   - cross-judge-v0.1.1
+#   - reject-aware-critic-v0.1.0
 #
 # The tag name selects the package to build & publish. The job:
 #   1. Verifies the tag's version matches pyproject.toml's `version`.
@@ -24,16 +25,18 @@ on:
       - "guarded-llm-v*"
       - "soc-pipeline-v*"
       - "cross-judge-v*"
+      - "reject-aware-critic-v*"
   workflow_dispatch:
     inputs:
       package:
-        description: "Package to build (one of: guarded-llm, soc-pipeline, cross-judge)"
+        description: "Package to build (one of: guarded-llm, soc-pipeline, cross-judge, reject-aware-critic)"
         required: true
         type: choice
         options:
           - guarded-llm
           - soc-pipeline
           - cross-judge
+          - reject-aware-critic
       dry_run:
         description: "If true: build + twine check only, no upload"
         required: false
@@ -79,9 +82,10 @@ jobs:
             TAG="${GITHUB_REF_NAME}"
             # tag pattern: <package>-vX.Y.Z(.suffix?)
             case "$TAG" in
-              guarded-llm-v*)   PKG="guarded-llm";   VER="${TAG#guarded-llm-v}" ;;
-              soc-pipeline-v*)  PKG="soc-pipeline";  VER="${TAG#soc-pipeline-v}" ;;
-              cross-judge-v*)   PKG="cross-judge";   VER="${TAG#cross-judge-v}" ;;
+              guarded-llm-v*)          PKG="guarded-llm";          VER="${TAG#guarded-llm-v}" ;;
+              soc-pipeline-v*)         PKG="soc-pipeline";         VER="${TAG#soc-pipeline-v}" ;;
+              cross-judge-v*)          PKG="cross-judge";          VER="${TAG#cross-judge-v}" ;;
+              reject-aware-critic-v*)  PKG="reject-aware-critic";  VER="${TAG#reject-aware-critic-v}" ;;
               *)
                 echo "::error::Unrecognised tag format: $TAG"
                 exit 1
