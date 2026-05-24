@@ -1,0 +1,292 @@
+{
+  "system": "Extreme value tail (POT/GPD + Clauset alpha) on NOAA Storm Events 2024 + USGS peak streamflow",
+  "data_provenance": "NOAA NCEI Storm Events Database 2024 (StormEvents_details-ftp_v1.0_d2024_c20260421.csv.gz, public domain) + USGS NWIS annual peak streamflow (sites 07010000, 01646500, 09380000, 02035000, 08374550; public domain). Both downloaded 2026-05-25 via curl.",
+  "predicted_class": "extreme_value_tail_class",
+  "exponents_predicted": {
+    "xi_band": [
+      0.1,
+      0.6
+    ],
+    "alpha_band": [
+      1.7,
+      10.0
+    ]
+  },
+  "summary": {
+    "class_id": "extreme_value_tail_class",
+    "pre_registered_band": {
+      "xi": [
+        0.1,
+        0.6
+      ],
+      "alpha": [
+        1.7,
+        10.0
+      ],
+      "rationale": "Frechet-domain GPD shape from Embrechts-Klueppelberg-Mikosch 1997 + Coles 2001; alpha = 1/xi"
+    },
+    "b3_a_priori": "REJECT (limit-theorem class, not mechanism)",
+    "top_verdict": "REJECT-CONFIRMED",
+    "verdict_reason": "xi spread 1.996 > 0.20 across 5 domains -> EVT does not even produce a shared universal exponent. REJECT as a unified class is even stronger; consider sub-classes by Frechet/Gumbel/Weibull domain of attraction.",
+    "universality": {
+      "n_datasets": 5,
+      "xi_values": [
+        -0.020423913469312674,
+        0.04991164142916042,
+        -0.1714798712722839,
+        1.6727077955652032,
+        -0.32355992324144267
+      ],
+      "xi_in_band_count": 0,
+      "xi_mean": 0.24143114580226488,
+      "xi_std": 0.8129438875006614,
+      "xi_spread": 1.9962677188066458,
+      "xi_band": [
+        0.1,
+        0.6
+      ],
+      "alpha_values": [
+        20.035405996801362,
+        0.5978330480979811
+      ],
+      "coherent_band": false,
+      "descriptor_confirmed": true,
+      "mechanism_specific": true,
+      "verdict_label": "REJECT-PRE-REGISTERED-BAND-MISSED"
+    },
+    "per_dataset_pot": [
+      {
+        "label": "D1_noaa_wind_knots",
+        "n_total": 27504,
+        "threshold": 62.0,
+        "n_exceed": 2635,
+        "xi": -0.020423913469312674,
+        "sigma": 8.264240066745888,
+        "xi_se": 0.014988522253341133,
+        "alpha_from_xi": NaN,
+        "ks_stat": 0.1732921132508674,
+        "ks_p": 1.1458601626916956e-69,
+        "error": ""
+      },
+      {
+        "label": "D2_noaa_tornado_length_mi",
+        "n_total": 2137,
+        "threshold": 9.268,
+        "n_exceed": 214,
+        "xi": 0.04991164142916042,
+        "sigma": 5.042933687250871,
+        "xi_se": 0.07120949090796722,
+        "alpha_from_xi": 20.035405996801362,
+        "ks_stat": 0.037084504665911594,
+        "ks_p": 0.919410856228127,
+        "error": ""
+      },
+      {
+        "label": "D3_noaa_hail_size_in",
+        "n_total": 8941,
+        "threshold": 2.0,
+        "n_exceed": 641,
+        "xi": -0.1714798712722839,
+        "sigma": 1.0056966944405445,
+        "xi_se": 0.017968331495339863,
+        "alpha_from_xi": NaN,
+        "ks_stat": 0.31946660373528696,
+        "ks_p": 1.0946499303802318e-58,
+        "error": ""
+      },
+      {
+        "label": "D4_noaa_damage_usd",
+        "n_total": 14260,
+        "threshold": 100000.0,
+        "n_exceed": 1301,
+        "xi": 1.6727077955652032,
+        "sigma": 397731.97566059657,
+        "xi_se": 6.999883207531025e-10,
+        "alpha_from_xi": 0.5978330480979811,
+        "ks_stat": 0.07083714699406002,
+        "ks_p": 4.02457931669429e-06,
+        "error": ""
+      },
+      {
+        "label": "D5_usgs_peak_streamflow_cfs",
+        "n_total": 509,
+        "threshold": 612200.0,
+        "n_exceed": 51,
+        "xi": -0.32355992324144267,
+        "sigma": 187559.17119567492,
+        "xi_se": 0.0,
+        "alpha_from_xi": NaN,
+        "ks_stat": 0.06743789383688842,
+        "ks_p": 0.9623533254240473,
+        "error": ""
+      }
+    ],
+    "per_dataset_clauset": [
+      {
+        "label": "D1_noaa_wind_knots",
+        "n_total": 27504,
+        "xmin": 31.0,
+        "n_tail": 27382,
+        "alpha": 2.9288298326225726,
+        "sigma_alpha": 0.011656316507728042,
+        "ks_stat": 0.4453325431717653,
+        "vs_ln_R": -119.42622409571045,
+        "vs_ln_p": NaN,
+        "vs_exp_R": -342.39662387669154,
+        "vs_exp_p": NaN,
+        "rejects_power_law": true,
+        "error": ""
+      },
+      {
+        "label": "D2_noaa_tornado_length_mi",
+        "n_total": 2137,
+        "xmin": 6.26,
+        "n_tail": 413,
+        "alpha": 2.9988642125904805,
+        "sigma_alpha": 0.09835767781628199,
+        "ks_stat": 0.09873671706131337,
+        "vs_ln_R": -3.5970160372632973,
+        "vs_ln_p": 0.00032188864461393975,
+        "vs_exp_R": -2.584295084954051,
+        "vs_exp_p": 0.009757826920077746,
+        "rejects_power_law": true,
+        "error": ""
+      },
+      {
+        "label": "D3_noaa_hail_size_in",
+        "n_total": 8941,
+        "xmin": 0.7,
+        "n_tail": 8897,
+        "alpha": 2.790377457199234,
+        "sigma_alpha": 0.018981162432373907,
+        "ks_stat": 0.30606113885400327,
+        "vs_ln_R": -29.54149801658856,
+        "vs_ln_p": 8.444838091901915e-192,
+        "vs_exp_R": -36.580885064598036,
+        "vs_exp_p": 5.759168454873391e-293,
+        "rejects_power_law": true,
+        "error": ""
+      },
+      {
+        "label": "D4_noaa_damage_usd",
+        "n_total": 14260,
+        "xmin": 14000000.0,
+        "n_tail": 130,
+        "alpha": 1.8399337721680338,
+        "sigma_alpha": 0.07366706505667772,
+        "ks_stat": 0.04883089121736631,
+        "vs_ln_R": -0.6136905939070083,
+        "vs_ln_p": 0.5394198051767369,
+        "vs_exp_R": 5.068115066306824,
+        "vs_exp_p": 4.017745117846762e-07,
+        "rejects_power_law": true,
+        "error": ""
+      },
+      {
+        "label": "D5_usgs_peak_streamflow_cfs",
+        "n_total": 509,
+        "xmin": 42300.0,
+        "n_tail": 417,
+        "alpha": 1.6931994694793837,
+        "sigma_alpha": 0.03394612406882648,
+        "ks_stat": 0.1335592287760674,
+        "vs_ln_R": -6.542838124769356,
+        "vs_ln_p": 6.036215735045339e-11,
+        "vs_exp_R": -3.4156995490906894,
+        "vs_exp_p": 0.00063618397874541,
+        "rejects_power_law": true,
+        "error": ""
+      }
+    ],
+    "null_controls": {
+      "soc_pipeline_nulls": {
+        "gaussian_walk": {
+          "alpha": 2.999866679453076,
+          "rejects_power_law": true,
+          "correctly_rejected": true
+        },
+        "exponential": {
+          "alpha": 2.9960359168428843,
+          "rejects_power_law": true,
+          "correctly_rejected": true
+        },
+        "poisson_iat": {
+          "alpha": 2.9995200098261385,
+          "rejects_power_law": true,
+          "correctly_rejected": true
+        }
+      },
+      "pareto_positive_control": {
+        "expected_xi": 0.3333333333333333,
+        "expected_alpha": 3.0,
+        "pot": {
+          "label": "pareto_alpha3",
+          "n_total": 20000,
+          "threshold": 2.17540326746317,
+          "n_exceed": 2000,
+          "xi": 0.3310251615254929,
+          "sigma": 0.7271573314831458,
+          "xi_se": 0.02958768695553233,
+          "alpha_from_xi": 3.020918396026485,
+          "ks_stat": 0.011971818121676997,
+          "ks_p": 0.9333742186754229,
+          "error": ""
+        },
+        "clauset": {
+          "label": "pareto_alpha3",
+          "n_total": 20000,
+          "xmin": 7.245963084915368,
+          "n_tail": 50,
+          "alpha": 2.999999999999999,
+          "sigma_alpha": 0.2828427124746189,
+          "ks_stat": 0.12997437732158978,
+          "vs_ln_R": -2.8066673110817,
+          "vs_ln_p": 0.005005690997915409,
+          "vs_exp_R": -3.44366186326178,
+          "vs_exp_p": 0.0005738929551742046,
+          "rejects_power_law": true,
+          "error": ""
+        },
+        "pot_recovers_xi": true,
+        "clauset_recovers_alpha": true
+      },
+      "lognormal_negative_control": {
+        "pot": {
+          "label": "lognormal_neg",
+          "n_total": 20000,
+          "threshold": 6.867864241700775,
+          "n_exceed": 2000,
+          "xi": 0.454210423162631,
+          "sigma": 6.390315073865608,
+          "xi_se": 0.033874082927902005,
+          "alpha_from_xi": 2.2016227479701582,
+          "ks_stat": 0.01690548501192235,
+          "ks_p": 0.6108171981703385,
+          "error": ""
+        },
+        "clauset": {
+          "label": "lognormal_neg",
+          "n_total": 20000,
+          "xmin": 14.65414940761086,
+          "n_tail": 786,
+          "alpha": 2.722763408577156,
+          "sigma_alpha": 0.06144893577022393,
+          "ks_stat": 0.03172727349810034,
+          "vs_ln_R": -2.152103920348921,
+          "vs_ln_p": 0.0313891704581765,
+          "vs_exp_R": 3.4380002692983376,
+          "vs_exp_p": 0.0005860271157276956,
+          "rejects_power_law": true,
+          "error": ""
+        },
+        "clauset_correctly_flags_lognormal": true
+      }
+    },
+    "null_health": {
+      "soc_pipeline_nulls_all_rejected": true,
+      "pareto_positive_recovered": true,
+      "lognormal_negative_flagged": true
+    },
+    "elapsed_sec": 179.8
+  }
+}

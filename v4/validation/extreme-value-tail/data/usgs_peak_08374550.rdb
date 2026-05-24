@@ -1,0 +1,92 @@
+#
+# U.S. Geological Survey
+# National Water Information System
+# Retrieved: 2026-05-24 13:57:53 EDT
+#
+# ---------------------------------- WARNING ----------------------------------------
+# Some of the data that you have obtained from this U.S. Geological Survey database
+# may not have received Director's approval. Any such data values are qualified
+# as provisional and are subject to revision. Provisional data are released on the
+# condition that neither the USGS nor the United States Government may be held liable
+# for any damages resulting from its use.
+#
+# More data may be available offline.
+# For more information on these data,  contact  USGS Water Data Inquiries.
+# This file contains the annual peak streamflow data.
+#
+# This information includes the following fields:
+#
+#  agency_cd     Agency Code
+#  site_no       USGS station number
+#  peak_dt       Date of peak streamflow (format YYYY-MM-DD)
+#  peak_tm       Time of peak streamflow (24 hour format, 00:00 - 23:59)
+#  peak_va       Annual peak streamflow value in cfs
+#  peak_cd       Peak Discharge-Qualification codes (see explanation below)
+#  gage_ht       Gage height for the associated peak streamflow in feet
+#  gage_ht_cd    Gage height qualification codes
+#  year_last_pk  Peak streamflow reported is the highest since this year
+#  ag_dt         Date of maximum gage-height for water year (if not concurrent with peak)
+#  ag_tm         Time of maximum gage-height for water year (if not concurrent with peak
+#  ag_gage_ht    maximum Gage height for water year in feet (if not concurrent with peak
+#  ag_gage_ht_cd maximum Gage height code
+#
+# Sites in this file include:
+#  USGS 08374550 Rio Grande nr Castolon, TX
+#
+# Peak Streamflow-Qualification Codes(peak_cd):
+#   1 ... Discharge is a Maximum Daily Average
+#   2 ... Discharge is an Estimate
+#   3 ... Discharge affected by Dam Failure
+#   4 ... Discharge less than indicated value,
+#           which is Minimum Recordable Discharge at this site
+#   5 ... Discharge affected to unknown degree by
+#           Regulation or Diversion
+#   6 ... Discharge affected by Regulation or Diversion
+#   7 ... Discharge is an Historic Peak
+#   8 ... Discharge actually greater than indicated value
+#   9 ... Discharge due to Snowmelt, Hurricane,
+#           Ice-Jam or Debris Dam breakup
+#   A ... Year of occurrence is unknown or not exact
+#   Bd ... Day of occurrence is unknown or not exact
+#   Bm ... Month of occurrence is unknown or not exact
+#   C ... All or part of the record affected by Urbanization,
+#            Mining, Agricultural changes, Channelization, or other
+#   F ... Peak supplied by another agency
+#   O ... Opportunistic value not from systematic data collection
+#   R ... Revised
+#
+# Gage height qualification codes(gage_ht_cd,ag_gage_ht_cd):
+#   1 ... Gage height affected by backwater
+#   2 ... Gage height not the maximum for the year
+#   3 ... Gage height at different site and(or) datum
+#   4 ... Gage height below minimum recordable elevation
+#   5 ... Gage height is an estimate
+#   6 ... Gage datum changed during this year
+#   7 ... Debris, mud, or hyper-concentrated flow
+#   8 ... Gage height tidally affected
+#   Bd ... Day of occurrence is unknown or not exact
+#   Bm ... Month of occurrence is unknown or not exact
+#   F ... Peak supplied by another agency
+#   R ... Revised
+#
+#
+agency_cd	site_no	peak_dt	peak_tm	peak_va	peak_cd	gage_ht	gage_ht_cd	year_last_pk	ag_dt	ag_tm	ag_gage_ht	ag_gage_ht_cd
+5s	15s	10d	6s	8s	33s	8s	27s	4s	10d	6s	8s	27s
+USGS	08374550	2008-09-12		46500	6	22.71						
+USGS	08374550	2009-06-20		18600	6	16.43						
+USGS	08374550	2009-10-07		14700	6	15.15						
+USGS	08374550	2011-09-17		6590	6	11.32						
+USGS	08374550	2012-09-28		12000	6	14.17						
+USGS	08374550	2013-07-20		17900	6	16.22						
+USGS	08374550	2014-09-07		15900	6	15.58						
+USGS	08374550	2014-11-05		12300	6	14.28						
+USGS	08374550	2016-08-26		25200	6	17.32						
+USGS	08374550	2017-05-21		31000	6	19.51						
+USGS	08374550	2018-09-06	22:15	11500	6	13.91						
+USGS	08374550	2019-09-22	02:45	12200	6	14.24						
+USGS	08374550	2020-09-09	07:15	12500	6	16.61						
+USGS	08374550	2021-06-28	23:30	8420	6	14.22						
+USGS	08374550	2022-08-31	19:45	18000	6	18.81						
+USGS	08374550	2023-05-28	03:00	19100	6	19.10						
+USGS	08374550	2024-09-03	05:15	14500	6	17.49						
+USGS	08374550	2025-07-04	04:45	20100	6	19.35						
