@@ -1,0 +1,75 @@
+{
+  "title": "Structural Isomorphism: Cross-domain SOC validation dataset and pipeline (v1.0)",
+  "upload_type": "dataset",
+  "publication_date": "2026-05-24",
+  "version": "1.0.0",
+  "language": "eng",
+  "access_right": "open",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Wan, Qihui",
+      "affiliation": "Independent Researcher, Structural Isomorphism Project",
+      "orcid": "0000-0000-0000-0000"
+    }
+  ],
+  "description": "<p>A single fixed analysis pipeline applied unchanged to thirteen independent empirical systems plus four synthetic non-SOC null controls, to test cross-domain self-organized criticality (SOC) universality claims. The pipeline (<a href=\"https://pypi.org/project/soc-pipeline/\">soc-pipeline</a>, MIT, ~1,595 LOC across fit / b-value / Omori-Utsu / Vuong lognormal-vs-exponential LR / bootstrap / universal collapse / null-control modules; legacy entry-point v4/lib/soc_pipeline.py, 339-line shim) implements Clauset-Shalizi-Newman 2009 maximum-likelihood power-law estimation with KS-driven x_min selection, likelihood-ratio comparison against lognormal and exponential alternatives, and Omori-Utsu temporal decay stacking. Real-system coverage: USGS earthquakes, S&amp;P 500 daily returns, three DeFi lending protocols (Aave V2, Compound V2, MakerDAO), mouse-cortex neural avalanches, solar flares, wildfires, power-grid disturbances, GitHub event cascades, Reddit cascades, CVE vulnerabilities, Wikipedia views, and bank failures. Four synthetic nulls (folded normal, exponential, Poisson inter-arrival, Poisson Omori) are correctly rejected, ruling out the trivial failure mode 'fits everything as a power law'. Includes the B1/B3 multi-model LLM ensemble critic over a 21-candidate universality-class taxonomy (B3 taxonomy v2), per-system raw data + fit results, manifest with SHA-256 checksums, and full reproducibility instructions.</p>",
+  "keywords": [
+    "self-organized-criticality",
+    "power-law",
+    "cross-domain",
+    "complex-systems",
+    "universality-class",
+    "Clauset-Shalizi-Newman",
+    "Gutenberg-Richter",
+    "Omori-Utsu",
+    "heavy-tailed-distributions",
+    "neural-avalanches",
+    "DeFi-liquidations",
+    "null-control",
+    "reproducibility",
+    "Vuong-test",
+    "bootstrap"
+  ],
+  "communities": [
+    {"identifier": "complex-systems"}
+  ],
+  "subjects": [
+    {
+      "term": "Self-organized criticality",
+      "identifier": "https://www.wikidata.org/wiki/Q1058293",
+      "scheme": "url"
+    },
+    {
+      "term": "Statistical mechanics",
+      "identifier": "https://www.wikidata.org/wiki/Q193076",
+      "scheme": "url"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/dada8899/structural-isomorphism",
+      "relation": "isSupplementTo",
+      "resource_type": "software",
+      "scheme": "url"
+    },
+    {
+      "identifier": "arXiv:XXXX.XXXXX",
+      "relation": "isSupplementTo",
+      "resource_type": "publication-preprint",
+      "scheme": "arxiv"
+    },
+    {
+      "identifier": "https://pypi.org/project/soc-pipeline/",
+      "relation": "isDerivedFrom",
+      "resource_type": "software",
+      "scheme": "url"
+    }
+  ],
+  "references": [
+    "Clauset A., Shalizi C. R., Newman M. E. J. (2009). Power-law distributions in empirical data. SIAM Review 51(4), 661-703.",
+    "Bak P., Tang C., Wiesenfeld K. (1987). Self-organized criticality: an explanation of 1/f noise. Phys. Rev. Lett. 59, 381.",
+    "Beggs J. M., Plenz D. (2003). Neuronal avalanches in neocortical circuits. J. Neurosci. 23, 11167."
+  ],
+  "notes": "Companion preprint: C1 unified five-system SOC paper (Phase 1-5 synthesis); sibling thirteen-system manuscript at paper/v0-unified-pipeline-2026-05-13.md. Pipeline canonical implementation: packages/soc-pipeline/ (version 0.1.0). Per-phase analysis tags in repository: v4/phase1-earthquake-2026-04-15, v4/phase2-stockmarket-2026-04-15, etc. Data licence CC-BY-4.0 (per-system upstream licences honoured); code licence MIT. Replace ORCID and arXiv ID placeholders before publishing."
+}

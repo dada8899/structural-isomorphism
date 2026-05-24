@@ -1,0 +1,125 @@
+Cover letter for arXiv submission
+=================================
+
+Title.  A pipeline for cross-domain validation of self-organized
+        criticality: five systems, one method
+
+Author. Wan Qihui, Structural Isomorphism Project (independent
+        researcher). https://structural.bytedance.city
+
+Categories. Primary  physics.soc-ph (Physics and Society)
+            Cross    q-fin.ST    (Statistical Finance)
+            Cross    q-bio.NC    (Neurons and Cognition)
+
+
+What this paper does
+--------------------
+
+This paper synthesizes the Structural Isomorphism Project's first five
+validation phases into a single cross-domain test of self-organized
+criticality (SOC) universality. The same Python pipeline -- assembled
+from the standard Clauset-Shalizi-Newman 2009 MLE power-law toolkit
+plus Vuong lognormal-vs-exponential likelihood ratio and Omori-Utsu
+temporal stacking -- is applied unchanged to four real systems
+(USGS tectonic earthquakes; S&P 500 daily returns 1990-2025; three DeFi
+lending protocols, namely Aave V2, Compound V2, MakerDAO; mouse-cortex
+neural avalanches from DANDI 000006) and to four synthetic non-SOC
+nulls (folded normal, exponential, Poisson inter-arrival, Poisson
+Omori). The pipeline recovers canonical exponents on the real systems
+and rejects all four nulls -- ruling out the trivial "fits everything
+as a power law" failure mode that has historically dogged SOC claims.
+
+Three honest caveats are reported in §6 (lognormal is not rejected in
+every raw-tail test; the pipeline detects endogenous threshold-cascade
+signatures only; the project's downstream cross-domain predictions
+remain unverified).
+
+
+Why arXiv (and why cross-listed across three categories)
+--------------------------------------------------------
+
+The pipeline crosses three of arXiv's traditional disciplinary
+boundaries -- statistical physics, finance, and neuroscience. We
+believe the cross-listing is essential rather than ornamental: the
+paper's central methodological claim ("one fixed pipeline, no
+per-domain tuning") only makes sense if reviewers from each domain can
+see the test on their own data with the same code path. We have
+therefore selected physics.soc-ph as primary (since the universality-
+class framework is the unifying methodological backbone), with q-fin.ST
+and q-bio.NC as cross-lists for the Phase 2/3 finance and Phase 4
+neuroscience sections respectively.
+
+
+Replicability
+-------------
+
+Every number in the paper is reproducible from the public dataset
+deposit:
+
+  - GitHub:  https://github.com/dada8899/structural-isomorphism (MIT)
+  - Zenodo:  10.5281/zenodo.XXXXXXX  [to be filled after deposit]
+  - PyPI:    soc-pipeline 0.1.0      [planned, MIT]
+
+The Zenodo deposit (44 MB tarball, 521 files) bundles:
+  - per-system raw inputs and fit results for 13 systems + 4 nulls
+  - the B1/B3 multi-model LLM ensemble critic outputs over a
+    21-candidate universality-class taxonomy (B3 taxonomy v2)
+  - the pipeline source code snapshot (~1,595 LOC, MIT)
+  - SHA-256 manifest of every file in the bundle
+
+A reproducibility checklist runs through the canonical Phase 1-5
+numbers and is included in Appendix A of the paper.
+
+
+Conflict of interest
+--------------------
+
+None. This is an independent-researcher project with no funding from
+the systems studied (no DeFi-protocol funding, no exchange funding, no
+neurolab grants). All raw data sources are public.
+
+
+Suggested reviewers
+-------------------
+
+We suggest reviewers spanning the three cross-listed categories so the
+"one pipeline across domains" claim can be evaluated by domain experts
+on each side:
+
+  - Aaron Clauset (Colorado Boulder) -- statistical methodology
+    (power-law fitting; Phase 1, 2 standards)
+  - John M. Beggs (Indiana) -- neural-avalanche scaling (Phase 4)
+  - Didier Sornette (ETH Zurich/SUSTech) -- financial criticality and
+    cross-domain SOC framing (Phase 2, 3)
+  - Viola Priesemann (MPI Goettingen) -- subsampling effects on
+    avalanche measurement (Phase 4)
+  - Kaihua Qin or Lewis Gudgeon (Imperial) -- DeFi liquidation
+    empirics (Phase 3)
+  - Maya Paczuski (Calgary) -- SOC theory and cross-system
+    universality (foundational framing)
+
+A reviewer from the network-cascade community (e.g. Adilson Motter,
+Northwestern) would also be valuable for the future Layer 4 cross-
+domain prediction work referenced in §5.
+
+
+Companion preprints
+-------------------
+
+This paper is C1 of a coordinated set. Four single-phase preprints
+covering Phases 1-4 individually (refs 41-44) are intended to be
+submitted on the same day as C1 so the cross-listings can be linked.
+A sibling 13-system manuscript is in preparation (not part of this
+submission) and uses the same pipeline on the full 13-system bundle.
+
+
+Status
+------
+
+This is v0.3 of the unified preprint. v0.2 closed seven TODO markers
+from v0.1; v0.3 closes the remaining cosmetic items (cover letter,
+arXiv abstract, LaTeX packaging). The six residual human-confirmation
+items at the end of the paper (Zenodo deposit-coverage check, pipeline
+canonical version tag, [to verify] reference entries, Phase 2 lognormal
+wording editorial sign-off, sibling-paper coordination, domain-expert
+review) are the genuine pre-submission tasks remaining.
