@@ -1,0 +1,1 @@
+SPLIT: SF cluster tau' outside lattice band [2.00,2.20] (lattice control tau'=1.949); class is mechanistically distinct
