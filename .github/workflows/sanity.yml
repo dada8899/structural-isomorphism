@@ -1,44 +1,154 @@
 name: sanity tests
+
+# Repo-level "sanity" check. This workflow is the one required by main-branch
+# protection — it must keep passing on every PR / push to main.
+#
+# Three sequential legs, all gated under the single `sanity` job summary:
+#   1. v4 sanity tests (existing, deterministic primitive suite — must stay green).
+#   2. web/backend pytest baseline (781 tests as of 2026-05-24 + any new tests).
+#   3. Per-package unit tests for packages/* (guarded-llm / soc-pipeline / cross-judge).
+#
+# The deeper matrix (Linux + macOS × py3.10–3.13) for packages/* lives in
+# `ci-packages.yml`. This sanity workflow only runs the canonical py3.11 Linux
+# leg so it stays fast (< 10 min) and is suitable as a required check.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sanity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   sanity:
+    name: sanity
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install deps
+          python-version: "3.11"
+          cache: pip
+
+      # ----------------------------------------------------------------------
+      # Shared deps for the v4 sanity leg.
+      # scikit-learn is required: v4/lib/embedding_bridge.py uses
+      # TfidfVectorizer as fallback when V1/V2 SentenceTransformer models
+      # are unavailable in CI. Mirrors coverage.yml dep list.
+      # ----------------------------------------------------------------------
+      - name: Install v4 sanity deps
         run: |
           python -m pip install --upgrade pip
-          # scikit-learn required: v4/lib/embedding_bridge.py uses
-          # TfidfVectorizer as fallback when V1/V2 SentenceTransformer
-          # models unavailable in CI. Mirrors coverage.yml dep list.
           pip install numpy scipy pandas powerlaw matplotlib pytest pydantic pyyaml scikit-learn
-      - name: Install local packages (editable)
-        # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
-        # re-export from packages/*. Sanity tests import via the shims
-        # (and one test imports `yaml` directly), so we MUST install:
-        #   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
-        #   * guarded-llm        → guarded_llm.guardrail symbols
-        #   * cross-judge        → pulls in pyyaml + cross_judge prompts
+
+      # ----------------------------------------------------------------------
+      # Install the three packaged libraries in editable mode.
+      # v4/lib/{llm_guardrail,soc_pipeline}.py are deprecated shims that
+      # re-export from packages/*. Sanity tests import via the shims (and one
+      # test imports `yaml` directly), so we MUST install:
+      #   * soc-pipeline       → fit_clauset_powerlaw + soc primitives
+      #   * guarded-llm        → guarded_llm.guardrail symbols
+      #   * cross-judge        → pulls in pyyaml + cross_judge prompts
+      # Each install also pulls its own [dev] extras so the per-package
+      # unit-test leg below has everything it needs.
+      # ----------------------------------------------------------------------
+      - name: Install local packages (editable + dev extras)
         run: |
-          pip install -e packages/soc-pipeline
-          pip install -e packages/guarded-llm
-          pip install -e packages/cross-judge
-      - name: Run sanity tests
-        # IMPORTANT: do NOT add v4/lib to PYTHONPATH. v4/lib/soc_pipeline.py
-        # and v4/lib/llm_guardrail.py are deprecated re-export shims; when
-        # v4/lib is on PYTHONPATH first, `from soc_pipeline import ...`
-        # resolves to the shim, which re-imports itself and fails with
-        # ImportError. The editable installs above provide the real
-        # packages — let normal resolution find them. Tests that target the
-        # shim itself (test_llm_guardrail.py) add v4/lib to sys.path locally.
-        # web/backend is kept on PYTHONPATH for tests importing site-data modules.
+          pip install -e "packages/soc-pipeline[dev]"
+          pip install -e "packages/guarded-llm[dev]"
+          pip install -e "packages/cross-judge[dev]"
+
+      # ----------------------------------------------------------------------
+      # Leg 1: v4 sanity tests (existing canonical check).
+      #
+      # IMPORTANT: do NOT add v4/lib to PYTHONPATH. v4/lib/soc_pipeline.py
+      # and v4/lib/llm_guardrail.py are deprecated re-export shims; when
+      # v4/lib is on PYTHONPATH first, `from soc_pipeline import ...` resolves
+      # to the shim, which re-imports itself and fails with ImportError. The
+      # editable installs above provide the real packages — let normal
+      # resolution find them. Tests that target the shim itself
+      # (test_llm_guardrail.py) add v4/lib to sys.path locally.
+      # web/backend stays on PYTHONPATH for tests importing site-data modules.
+      # ----------------------------------------------------------------------
+      - name: Leg 1 — v4 sanity tests
         run: |
-          export PYTHONPATH="${PYTHONPATH}:$(pwd)/web/backend"
+          export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/web/backend"
           pytest v4/tests/sanity -m sanity -q --tb=short
+
+      # ----------------------------------------------------------------------
+      # Leg 2: web/backend pytest baseline.
+      #
+      # Installs the backend's requirements.txt (FastAPI + pydantic + jieba +
+      # rank_bm25 + langdetect + structlog + stripe + sentence-transformers +
+      # torch — heavyweight but matches prod). Pinned versions per
+      # requirements.txt; do NOT --upgrade.
+      # ----------------------------------------------------------------------
+      - name: Install web/backend deps
+        run: |
+          pip install -r web/backend/requirements.txt
+
+      - name: Leg 2 — web/backend pytest baseline
+        env:
+          # tests assume backend modules importable as top-level packages
+          PYTHONPATH: ${{ github.workspace }}/web/backend
+        working-directory: web/backend
+        run: |
+          # -ra: surface skipped/xfailed reasons. -q: compact output.
+          # --tb=short: brief tracebacks.
+          # The baseline as of 2026-05-24 is 781 passing tests; new tests
+          # added in 0.1.1+ must also pass here.
+          python -m pytest tests -ra -q --tb=short
+
+      # ----------------------------------------------------------------------
+      # Leg 3: per-package unit tests (canonical leg — py3.11 Linux).
+      # Full matrix is in ci-packages.yml.
+      # ----------------------------------------------------------------------
+      - name: Leg 3 — packages/soc-pipeline tests
+        working-directory: packages/soc-pipeline
+        run: |
+          if [ -d tests ]; then
+            python -m pytest -ra -q --tb=short
+          else
+            echo "No tests/ directory in soc-pipeline — skipping."
+          fi
+
+      - name: Leg 3 — packages/guarded-llm tests
+        working-directory: packages/guarded-llm
+        run: |
+          if [ -d tests ]; then
+            python -m pytest -ra -q --tb=short
+          else
+            echo "No tests/ directory in guarded-llm — skipping."
+          fi
+
+      - name: Leg 3 — packages/cross-judge tests
+        working-directory: packages/cross-judge
+        run: |
+          if [ -d tests ]; then
+            python -m pytest -ra -q --tb=short
+          else
+            echo "No tests/ directory in cross-judge — skipping."
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### sanity"
+            echo ""
+            echo "- Leg 1: v4 sanity tests"
+            echo "- Leg 2: web/backend pytest baseline (781+)"
+            echo "- Leg 3: packages/* unit tests (py3.11 · Linux canonical)"
+            echo ""
+            echo "Full matrix for packages/* lives in \`ci-packages.yml\`."
+          } >> "$GITHUB_STEP_SUMMARY"

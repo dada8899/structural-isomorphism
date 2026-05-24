@@ -46,7 +46,7 @@ from .reviewer import Reviewer
 from .schema import EnsembleResult, Verdict as LegacyVerdict
 from .vendors import VENDORS, VendorConfig, get_vendor, make_client
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # New v0.1 surface

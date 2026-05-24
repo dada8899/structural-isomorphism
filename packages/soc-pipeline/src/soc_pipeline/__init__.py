@@ -16,7 +16,7 @@ Low-level building blocks remain available:
 """
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .fit import FitResult, fit_clauset_powerlaw
 from .bootstrap import BootstrapResult, bootstrap_ci

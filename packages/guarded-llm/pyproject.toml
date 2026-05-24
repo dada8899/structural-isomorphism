@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "guarded-llm"
-version = "0.1.0"
+version = "0.1.1"
 description = "Strict-JSON LLM caller with schema validation, retry, and cost budget"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -86,6 +86,7 @@ include = [
     "examples",
     "docs",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "pyproject.toml",
 ]

@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include pyproject.toml
+recursive-include docs *.md
+recursive-include src/cross_judge/prompts *.yaml *.yml
+recursive-include tests *.py

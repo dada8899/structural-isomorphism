@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "soc-pipeline"
-version = "0.1.0"
+version = "0.1.1"
 description = "Cross-domain self-organized criticality validation (Clauset 2009 + bootstrap + null controls + Vuong LR + universal collapse)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -64,6 +64,8 @@ include = [
     "src/soc_pipeline",
     "README.md",
     "LICENSE",
+    "CHANGELOG.md",
+    "docs",
     "pyproject.toml",
     "tests",
 ]

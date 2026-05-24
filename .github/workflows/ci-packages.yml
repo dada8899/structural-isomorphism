@@ -1,0 +1,98 @@
+name: ci-packages
+
+# Per-package CI: tests every PyPI subpackage in packages/* against
+# the supported Python matrix on Linux + macOS.
+#
+# Triggers:
+#   - PRs touching anything under packages/
+#   - pushes to main touching anything under packages/
+#   - manual workflow_dispatch (full matrix)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - ".github/workflows/ci-packages.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - ".github/workflows/ci-packages.yml"
+  workflow_dispatch:
+
+# Cancel in-flight runs for the same PR / branch when a new commit lands.
+concurrency:
+  group: ci-packages-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.package }} · py${{ matrix.python-version }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        package:
+          - guarded-llm
+          - soc-pipeline
+          - cross-judge
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Upgrade pip + install build/twine
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build twine
+
+      - name: Install package (editable + dev extras)
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          python -m pip install -e ".[dev]"
+
+      - name: Run pytest
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          # `-ra` surfaces skipped/xfailed reasons; -q keeps log compact.
+          # If a package has no tests directory the step is a no-op pass.
+          if [ -d tests ]; then
+            python -m pytest -ra -q
+          else
+            echo "No tests/ directory for ${{ matrix.package }} — skipping pytest."
+          fi
+
+      - name: Build sdist + wheel
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          rm -rf dist/
+          python -m build --sdist --wheel --outdir dist/
+          ls -la dist/
+
+      - name: Twine check (PyPI metadata + README rendering)
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          python -m twine check --strict dist/*
+
+      - name: Upload build artifacts (debug)
+        # Only upload once per package — Linux + py3.11 is the canonical leg.
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.package }}-py${{ matrix.python-version }}
+          path: packages/${{ matrix.package }}/dist/*
+          retention-days: 14

@@ -1,0 +1,189 @@
+name: release-packages
+
+# Per-package release workflow.
+#
+# Triggered by pushing a tag of the form `<package>-vX.Y.Z`, e.g.:
+#   - guarded-llm-v0.1.1
+#   - soc-pipeline-v0.1.1
+#   - cross-judge-v0.1.1
+#
+# The tag name selects the package to build & publish. The job:
+#   1. Verifies the tag's version matches pyproject.toml's `version`.
+#   2. Builds sdist + wheel.
+#   3. `twine check --strict`.
+#   4. Uploads to PyPI via PYPI_API_TOKEN if that secret is set.
+#      Otherwise: build + check only, then emit a Step Summary explaining
+#      why upload was skipped. This makes the workflow safe to merge
+#      before the secret is configured.
+#
+# `workflow_dispatch` is also supported for re-runs / dry-runs.
+
+on:
+  push:
+    tags:
+      - "guarded-llm-v*"
+      - "soc-pipeline-v*"
+      - "cross-judge-v*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to build (one of: guarded-llm, soc-pipeline, cross-judge)"
+        required: true
+        type: choice
+        options:
+          - guarded-llm
+          - soc-pipeline
+          - cross-judge
+      dry_run:
+        description: "If true: build + twine check only, no upload"
+        required: false
+        default: "true"
+        type: string
+
+# Single in-flight publish per tag (avoid force-push duplicates).
+concurrency:
+  group: release-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # `id-token: write` required if you later wire OIDC trusted publishing.
+  id-token: write
+
+jobs:
+  release:
+    name: build + publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    environment:
+      name: pypi
+
+    env:
+      HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve target package + version from tag (or input)
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PKG="${{ inputs.package }}"
+            VER=""             # version sanity check skipped for dispatch
+            DRY="${{ inputs.dry_run }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            # tag pattern: <package>-vX.Y.Z(.suffix?)
+            case "$TAG" in
+              guarded-llm-v*)   PKG="guarded-llm";   VER="${TAG#guarded-llm-v}" ;;
+              soc-pipeline-v*)  PKG="soc-pipeline";  VER="${TAG#soc-pipeline-v}" ;;
+              cross-judge-v*)   PKG="cross-judge";   VER="${TAG#cross-judge-v}" ;;
+              *)
+                echo "::error::Unrecognised tag format: $TAG"
+                exit 1
+                ;;
+            esac
+            DRY="false"
+          fi
+          echo "package=$PKG"  >> "$GITHUB_OUTPUT"
+          echo "version=$VER"  >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY"  >> "$GITHUB_OUTPUT"
+          echo "Resolved package=$PKG version=$VER dry_run=$DRY"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build twine tomli
+
+      - name: Verify tag version matches pyproject.toml
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          PKG: ${{ steps.resolve.outputs.package }}
+          VER: ${{ steps.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          PY_VER=$(python - <<'PY'
+          import os, sys, tomli, pathlib
+          pkg = os.environ["PKG"]
+          p = pathlib.Path("packages") / pkg / "pyproject.toml"
+          data = tomli.loads(p.read_text())
+          print(data["project"]["version"])
+          PY
+          )
+          echo "tag version:       $VER"
+          echo "pyproject version: $PY_VER"
+          if [ "$VER" != "$PY_VER" ]; then
+            echo "::error::Tag version ($VER) does not match pyproject.toml version ($PY_VER) for $PKG."
+            exit 1
+          fi
+
+      - name: Build sdist + wheel
+        working-directory: packages/${{ steps.resolve.outputs.package }}
+        run: |
+          rm -rf dist/
+          python -m build --sdist --wheel --outdir dist/
+          ls -la dist/
+
+      - name: Twine check (--strict)
+        working-directory: packages/${{ steps.resolve.outputs.package }}
+        run: |
+          python -m twine check --strict dist/*
+
+      - name: Upload build artifacts (provenance)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ steps.resolve.outputs.package }}
+          path: packages/${{ steps.resolve.outputs.package }}/dist/*
+          retention-days: 90
+
+      - name: Publish to PyPI (token)
+        if: >-
+          steps.resolve.outputs.dry_run != 'true' &&
+          env.HAS_PYPI_TOKEN == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        working-directory: packages/${{ steps.resolve.outputs.package }}
+        run: |
+          echo "Publishing ${{ steps.resolve.outputs.package }} via PYPI_API_TOKEN..."
+          python -m twine upload --non-interactive --disable-progress-bar dist/*
+
+      - name: Skip upload — PYPI_API_TOKEN absent
+        if: >-
+          steps.resolve.outputs.dry_run != 'true' &&
+          env.HAS_PYPI_TOKEN == 'false'
+        run: |
+          echo "::warning::PYPI_API_TOKEN secret is not configured — skipping upload."
+          echo "Build + twine check passed. To enable auto-publish:"
+          echo "  Settings → Secrets and variables → Actions → New repository secret"
+          echo "  Name:  PYPI_API_TOKEN"
+          echo "  Value: pypi-... (project- or account-scoped token from pypi.org)"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### release-packages — ${{ steps.resolve.outputs.package }}"
+            echo ""
+            echo "- Event:   \`${{ github.event_name }}\`"
+            echo "- Tag/Ref: \`${{ github.ref_name }}\`"
+            echo "- Version: \`${{ steps.resolve.outputs.version }}\`"
+            echo "- Dry run: \`${{ steps.resolve.outputs.dry_run }}\`"
+            if [ "${HAS_PYPI_TOKEN}" = "true" ]; then
+              echo "- Auth:    PYPI_API_TOKEN present"
+            else
+              echo "- Auth:    PYPI_API_TOKEN absent — upload skipped"
+            fi
+            echo "- PyPI:    https://pypi.org/p/${{ steps.resolve.outputs.package }}"
+          } >> "$GITHUB_STEP_SUMMARY"

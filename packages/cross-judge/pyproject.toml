@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cross-judge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Multi-vendor LLM ensemble-judge framework with KEEP/REJECT/SPLIT/MERGE verdicts"
 readme = "README.md"
 license = { text = "MIT" }
