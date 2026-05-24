@@ -159,7 +159,13 @@ class EmbeddingBridge:
         if not self._ids_path.exists():
             raise FileNotFoundError(f"Id list not found at {self._ids_path}")
 
-        self._emb: np.ndarray = np.load(self._npy_path)
+        # allow_pickle=True: the cache is an internal artefact produced by our
+        # own training pipeline (see `scripts/build_kb_embeddings.py`), so the
+        # `.npy` file is a trusted source — not external/untrusted input.
+        # Without allow_pickle, numpy 1.16+ refuses to load object-dtype arrays
+        # that fall back to pickle, which is the failure surfaced by the
+        # `tests/sanity/test_embedding_bridge*.py` suite (12 ERRORs in CI).
+        self._emb: np.ndarray = np.load(self._npy_path, allow_pickle=True)
         with open(self._ids_path, encoding="utf-8") as f:
             self._ids: list[str] = json.load(f)
 

@@ -22,10 +22,11 @@ Universality classes are one of the most consequential ideas in modern statistic
 The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance. When a hypothesis fails — including our own consumer-facing one — we publish the failure.
 
 **Status as of 2026-05-25**
-- 27 SOC validation systems × 6 textbook universality classes confirmed (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom)
-- 4888 cross-domain knowledge base entries
-- 3 PyPI packages live (`soc-pipeline` / `cross-judge` / `guarded-llm`)
-- C1 unified preprint v0.3, 9/9 P0 reviewer concerns closed
+- 27 (v0.3) + 18 (v0.4 Wave 2) = **45 SOC validation systems** across textbook + reflexive + reject-confirm classes (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom + 18 new)
+- **4888 main KB + 300 long-tail (Wave 3C) + 145 Wave 2 entries pending merge** cross-domain knowledge base entries
+- 3 PyPI packages live (`soc-pipeline` / `cross-judge` / `guarded-llm`); `reject-aware-critic` v0.1.0 ready (50/50 tests passing)
+- C1 unified preprint v0.4 draft (459 lines, §3.5 "Completing the taxonomy"); v0.3 closed 9/9 P0 reviewer concerns, v0.4 batch closed 18/18
+- Taxonomy v0.4: **26 verified classes + 5 SPLIT decisions + 1 MERGE recommendation** (preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality)
 - One published null result: walk-forward backtest Sharpe lift = **−0.23**
 
 ## What's in this repo

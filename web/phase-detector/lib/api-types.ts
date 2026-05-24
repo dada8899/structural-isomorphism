@@ -172,6 +172,13 @@ export interface HealthResponse {
   checks?: {
     [k: string]: string;
   } | null;
+  /**
+   * Deep mode (`?deep=1`) surfaces the query-embedding LRU cache hit rate
+   * (Session #17 P2). Values are numeric (int counts + float hit_rate).
+   */
+  query_cache?: {
+    [k: string]: number;
+  } | null;
 }
 /**
  * A single history row returned by GET /api/history.
@@ -331,6 +338,11 @@ export interface Verdict {
 }
 /**
  * GET /api/version — build & version metadata.
+ *
+ * Session #16 added `model` + `deployed_at` after the session #15
+ * deploy-pipeline incident: dogfood scripts need a single endpoint to
+ * fingerprint-check that prod is running the latest code AND that the model
+ * variant matches expectations (e.g. `:nitro` vs non-nitro DeepSeek).
  */
 export interface VersionResponse {
   semver: string;
@@ -338,6 +350,15 @@ export interface VersionResponse {
   build_date: string;
   python_version: string;
   env: string;
+  /**
+   * Model identifier the /api/ask endpoint will use (session #16).
+   */
+  model: string;
+  /**
+   * Deploy timestamp, distinct from build_date (image built once, deployed
+   * many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
+   */
+  deployed_at: string;
 }
 /**
  * GET /api/whoami — debug helper reflecting the resolved auth tier.

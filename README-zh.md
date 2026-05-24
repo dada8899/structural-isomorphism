@@ -19,10 +19,11 @@
 答案**不是**默认成立的。我们将其作为可证伪命题处理：先预注册指数区间，再用同一套 Clauset MLE 流水线跨领域拟合，最终以 PASS / FAIL / INCONCLUSIVE 给出有完整溯源记录的判定。当一个假设被证伪——包括我们自己面向消费者的那一个——我们公开它。
 
 **截至 2026-05-25 的进展**
-- 27 个 SOC 验证系统 × 6 个教科书级普适类已确认 (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom)
-- 4888 条跨领域知识库条目
-- 3 个 PyPI 包已发布 (`soc-pipeline` / `cross-judge` / `guarded-llm`)
-- C1 统一预印本 v0.3，9/9 P0 reviewer 关切已闭环
+- 27（v0.3） + 18（v0.4 Wave 2）= **45 个 SOC 验证系统**，覆盖教科书级 + 反射式 + reject-confirm 类（KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom 加 18 个新增）
+- **4888 主 KB + 300 长尾（Wave 3C） + 145 Wave 2 条目待合并** 跨领域知识库条目
+- 3 个 PyPI 包已发布 (`soc-pipeline` / `cross-judge` / `guarded-llm`)；`reject-aware-critic` v0.1.0 已就绪 (50/50 测试通过)
+- C1 统一预印本 v0.4 草稿（459 行，§3.5 "Completing the taxonomy"）；v0.3 已闭环 9/9 P0 reviewer 关切，v0.4 批次闭环 18/18
+- 分类法 v0.4：**26 类已验证 + 5 个 SPLIT 决议 + 1 个 MERGE 建议**（preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality）
 - 一份已公开的零结果：滚动回测 Sharpe 提升 = **−0.23**
 
 ## 仓库内容

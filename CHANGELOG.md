@@ -187,3 +187,31 @@ gh release create v<MAJOR>.<MINOR>.0 --title "v<MAJOR>.<MINOR>.0" --notes-from-t
 ```
 
 See `docs/sessions/SESSION-11-HANDOFF.md` § 9 for full v0.4.0 release procedure.
+
+---
+
+## [v0.4-draft] — 2026-05-25 (in progress)
+
+### Added
+- 18 universality class validations (Wave 2A/B/C): 10 PASS-CONFIRMED + 6 REJECT-CONFIRMED + 2 INCONCLUSIVE
+- 5 SPLIT decisions (gardner v1↔v2, percolation↔SF, hysteresis-first-order 2-way)
+- 1 MERGE recommendation (preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality)
+- KB reproducible data layer pilot (200 entries with dataset_url / DOI / sampling_schema)
+- KB long-tail backfill (300 entries across 10 sparse domains)
+- C1 unified preprint v0.4 draft (459 lines, §3.5 "Completing the taxonomy")
+- packages/reject-aware-critic v0.1.0 (50/50 tests passing)
+- 6 senior researcher outreach email drafts
+- Negative-results launch materials (blog + LinkedIn probe + HN title #6)
+- 4 read-only audit reports (repo / verdicts / KB / packages)
+
+### Methodology
+- Cross-domain scatter threshold for descriptor-vs-mechanism binary filter (max/min(median θ) > 10x AND ≥2 regimes)
+- 3-tier dichotomy battery (within-active / within-sham / cross-arm) for reflexive class validation
+
+### Fixed
+- KB number correction (5388 → actual ceiling 5333)
+- 56/145 Wave 2 type_id schema normalisation
+- Anderson + Percolation pre-reg band paper↔artefact alignment
+- Tail copula attribution error (Gumbel BIC vs SOC ΔAIC)
+- CI sanity: np.load allow_pickle
+- CI types-sync: api.d.ts 3 new fields
