@@ -1,0 +1,43 @@
+{
+  "system": "Tracy-Widom GUE universality \u2014 GUE-N tridiagonal sampling (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: GUE-N largest eigenvalue sampled via Dumitriu-Edelman 2002 J Math Phys 43 5830 tridiagonal (beta=2) representation. N=400, n_samples=1500. Tracy-Widom 1994 Commun Math Phys 159 151 and Bornemann 2010 Comput Stat 25 give exact TW-GUE reference moments. Experimentally anchored in KPZ liquid-crystal interfaces (Takeuchi-Sano 2010 Sci Rep 1:34).",
+  "predicted_class": "tracy_widom_gue_beta2",
+  "exponents_predicted": {
+    "mean": -1.7710868074,
+    "var": 0.81319479,
+    "skew": 0.2240842,
+    "excess_kurt": 0.093448
+  },
+  "summary": {
+    "N": 400,
+    "n_samples": 1500,
+    "empirical": {
+      "n": 1500,
+      "mean": -1.759386578434527,
+      "var": 0.8359832168180485,
+      "std": 0.9143211781524305,
+      "skew": 0.26946027586423443,
+      "excess_kurt": 0.19170771153183352
+    },
+    "tw_gue_reference": {
+      "mean": -1.7710868074,
+      "var": 0.81319479,
+      "skew": 0.2240842,
+      "excess_kurt": 0.093448
+    },
+    "deviations_from_tw": {
+      "mean": 0.011700228965472848,
+      "var": 0.0227884268180486,
+      "skew": 0.04537607586423442,
+      "excess_kurt": 0.09825971153183352
+    },
+    "in_tw_band": {
+      "mean": true,
+      "var": true,
+      "skew": true,
+      "excess_kurt": true,
+      "overall": true
+    },
+    "overall_verdict": "CONFIRMED"
+  }
+}

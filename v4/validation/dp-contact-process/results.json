@@ -1,0 +1,90 @@
+{
+  "system": "Directed Percolation (DP) universality class \u2014 Domany-Kinzel CA (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: 1+1d Domany-Kinzel cellular automaton (DK 1984 J Phys A 17 L311); bond-DP line with p_c = 0.6447 (Grassberger 1979). DP universality anchored experimentally by Hof-Westerweel-Schneider 2008 Nature (pipe-flow turbulent puffs) and Takeuchi-Sano 2007 PRL 99 234503 (liquid-crystal turbulence DP transition); pipe transition Reynolds # 2040 from Avila-Moxey-Lozar 2011 Science 333 192.",
+  "predicted_class": "directed_percolation_1plus1d",
+  "exponents_predicted": {
+    "theta": 0.159464,
+    "beta": 0.276486,
+    "nu_parallel": 1.733847
+  },
+  "per_p": {
+    "below": {
+      "p": 0.62,
+      "n_seed": 12,
+      "L": 4096,
+      "T": 1000,
+      "rho_late": 0.0024005126953125,
+      "rho_t_initial": 0.5023396809895834,
+      "rho_t_50": 0.30712890625,
+      "rho_t_T": 0.0024820963541666665,
+      "loglog_fit_50_800": {
+        "slope": -1.7287305094764873,
+        "intercept": 2.9094204090800577,
+        "r2": 0.9232965529609064,
+        "n": 751,
+        "window": [
+          50.0,
+          800.0
+        ]
+      }
+    },
+    "critical": {
+      "p": 0.6447,
+      "n_seed": 12,
+      "L": 4096,
+      "T": 1000,
+      "rho_late": 0.31138570149739586,
+      "rho_t_initial": 0.50103759765625,
+      "rho_t_50": 0.4724934895833333,
+      "rho_t_T": 0.3038126627604167,
+      "loglog_fit_50_800": {
+        "slope": -0.13839083679843375,
+        "intercept": -0.0885933357146521,
+        "r2": 0.9876960044241117,
+        "n": 751,
+        "window": [
+          50.0,
+          800.0
+        ]
+      }
+    },
+    "above": {
+      "p": 0.67,
+      "n_seed": 12,
+      "L": 4096,
+      "T": 1000,
+      "rho_late": 0.6266646321614583,
+      "rho_t_initial": 0.5007731119791666,
+      "rho_t_50": 0.6323445638020834,
+      "rho_t_T": 0.6257120768229166,
+      "loglog_fit_50_800": {
+        "slope": -0.007042297319367743,
+        "intercept": -0.18483233080410752,
+        "r2": 0.5418720547833227,
+        "n": 751,
+        "window": [
+          50.0,
+          800.0
+        ]
+      }
+    }
+  },
+  "summary": {
+    "theta_measured": 0.13839083679843375,
+    "theta_predicted": 0.159464,
+    "theta_band": [
+      0.12,
+      0.2
+    ],
+    "beta_predicted": 0.276486,
+    "nu_parallel_predicted": 1.733847,
+    "p_c_used": 0.6447,
+    "below_rho_late": 0.0024005126953125,
+    "critical_rho_late": 0.31138570149739586,
+    "above_rho_late": 0.6266646321614583,
+    "monotone_phase_diagram": true,
+    "in_dp_band": true,
+    "overall_verdict": "CONFIRMED",
+    "n_seeds": 12
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "system": "KPZ universality class \u2014 Kim-Kosterlitz RSOS (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: 1+1d Kim-Kosterlitz RSOS (KK 1989 PRL 62 2289). RSOS in KPZ universality class; same alpha=1/2, beta=1/3 as paper-burn fronts (Maunuksela 1997 PRL 79 1515), liquid-crystal turbulent fronts (Takeuchi-Sano 2010 Sci Rep 1:34), bacterial colony edges (Bonachela 2011 J Theor Biol 269 251). 8 seeds per L, ensemble-averaged W^2(L,t).",
+  "predicted_class": "kpz_1plus1d_growth",
+  "exponents_predicted": {
+    "alpha": 0.5,
+    "beta": 0.3333333333333333,
+    "z": 1.5
+  },
+  "per_L": [
+    {
+      "L": 64,
+      "n_mono": 6144,
+      "n_seed": 8,
+      "growth_slope": {
+        "slope": 0.21671042608907884,
+        "intercept": -0.25846289467546035,
+        "r2": 0.8868220782067879,
+        "n": 15
+      },
+      "w_sat": 2.0450368734501776,
+      "n_snap": 68
+    },
+    {
+      "L": 128,
+      "n_mono": 17378,
+      "n_seed": 8,
+      "growth_slope": {
+        "slope": 0.29786718793049854,
+        "intercept": -0.3229439243929306,
+        "r2": 0.9737061058734543,
+        "n": 10
+      },
+      "w_sat": 2.6741342399172265,
+      "n_snap": 70
+    },
+    {
+      "L": 256,
+      "n_mono": 49152,
+      "n_seed": 8,
+      "growth_slope": {
+        "slope": 0.32033202613328926,
+        "intercept": -0.3694635354249218,
+        "r2": 0.9765306510942483,
+        "n": 17
+      },
+      "w_sat": 4.001864889427399,
+      "n_snap": 72
+    },
+    {
+      "L": 512,
+      "n_mono": 139023,
+      "n_seed": 8,
+      "growth_slope": {
+        "slope": 0.3306458969670922,
+        "intercept": -0.36341307076699203,
+        "r2": 0.9905623488643666,
+        "n": 23
+      },
+      "w_sat": 4.589207731053945,
+      "n_snap": 73
+    }
+  ],
+  "summary": {
+    "n_seeds_per_L": 8,
+    "alpha_fit": {
+      "slope": 0.4079955337645528,
+      "intercept": -0.4206705816220787,
+      "r2": 0.9700362788175091,
+      "n": 4
+    },
+    "beta_mean_largest2": 0.3254889615501907,
+    "z_estimate": 1.2534850085895755,
+    "alpha_predicted": 0.5,
+    "beta_predicted": 0.3333333333333333,
+    "z_predicted": 1.5,
+    "alpha_band": [
+      0.4,
+      0.65
+    ],
+    "beta_band": [
+      0.27,
+      0.4
+    ],
+    "in_kpz_band": true,
+    "tracy_widom_compare": {
+      "n_seeds": 8,
+      "kpz_centred_max_skew": 0.6610071144268536,
+      "kpz_centred_max_excess_kurt": -1.0206912757424047,
+      "tw_gue_skew": 0.2240842,
+      "tw_gue_excess_kurt": 0.093448,
+      "note": "Skewness of centred max-height across n_seeds samples is a qualitative TW proxy; rigorous TW-GOE recovery for flat-IC KPZ needs >=1000 seeds (Sasamoto-Spohn 2010)."
+    },
+    "overall_verdict": "CONFIRMED"
+  }
+}
