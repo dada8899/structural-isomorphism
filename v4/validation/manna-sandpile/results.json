@@ -1,0 +1,46 @@
+{
+  "system": "Manna sandpile (stochastic conserved SOC) \u2014 2D parallel (SYNTHETIC)",
+  "data_provenance": "SYNTHETIC: 2D Manna sandpile (Manna 1991 J Phys A 24 L363) with parallel-update toppling: at each sub-step every site with h>=2 simultaneously loses 2 grains, each scattered to one of 4 NN uniformly at random. Open boundary. tau_s \u2248 1.27 (L\u00fcbeck-Heger 2003 PRE 68 056102). Experimental anchor: Aegerter-Welling-Wijngaarden 2003 Nature Phys 2 158.",
+  "predicted_class": "manna_stochastic_soc",
+  "exponents_predicted": {
+    "tau_size": 1.27
+  },
+  "summary": {
+    "L": 128,
+    "n_warmup": 15000,
+    "n_record": 40000,
+    "n_zero": 11512,
+    "n_nonzero": 28488,
+    "mean_avalanche_size": 1677.0348918843022,
+    "max_avalanche_size": 176912,
+    "tau_size_measured": 1.395909456626883,
+    "tau_size_predicted": 1.27,
+    "tau_size_band": [
+      1.15,
+      1.7
+    ],
+    "in_manna_band": true,
+    "iso_distance": {
+      "to_manna": 0.12590945662688302,
+      "to_btw": 0.06590945662688297,
+      "to_oslo": 0.154090543373117,
+      "nearest_class": "btw"
+    },
+    "powerlaw_fit": {
+      "name": "manna_avalanche_size",
+      "alpha": 1.395909456626883,
+      "sigma_alpha": 0.003515204856479751,
+      "xmin": 34.0,
+      "n_total": 28488,
+      "n_tail": 12685,
+      "vs_lognormal_R": -20.570422810426013,
+      "vs_lognormal_p": 5.05236455346846e-94,
+      "vs_exponential_R": 55.246577144167155,
+      "vs_exponential_p": 0.0,
+      "vs_powerlaw_lognormal_winner": "lognormal",
+      "rejects_power_law": true,
+      "ks_statistic": 0.06181553836527892
+    },
+    "overall_verdict": "CONFIRMED"
+  }
+}
