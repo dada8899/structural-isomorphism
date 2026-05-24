@@ -1,0 +1,667 @@
+{
+  "class": "hysteresis_first_order_transition",
+  "run_date": "2026-05-25",
+  "seed": 20260525,
+  "synthetic": {
+    "landau_first_order": {
+      "label": "synth_landau_first_order",
+      "n_points": 8000,
+      "S1_jump_strength": {
+        "strength": 0.13505686392983662,
+        "n_jumps": 2,
+        "median_jump_abs": 0.1349399224532864,
+        "median_step_abs": 0.024327020459007143,
+        "jump_to_step_ratio": 5.546915091133138,
+        "scale_used": 0.9991341315565349,
+        "jumps": [
+          {
+            "idx": 2072,
+            "delta": 0.13801249488705736,
+            "x_before": -1.31094543543165,
+            "x_after": -1.1729329405445927
+          },
+          {
+            "idx": 7778,
+            "delta": 0.13186735001951544,
+            "x_before": 0.6088446488084117,
+            "x_after": 0.7407119988279272
+          }
+        ]
+      },
+      "S2_inner_loop_repro": {
+        "r2": 0.005187785913686045,
+        "n_pairs": 4,
+        "jump_h_mean": -0.6294294294294295,
+        "jump_h_std": 0.08418317246484576,
+        "jump_h_range_ratio": 0.0526144827905286,
+        "jump_dm_median": 0.12275260903189444,
+        "jump_h_samples": [
+          -0.4924924924924925,
+          -0.6846846846846847,
+          -0.6302302302302303,
+          -0.7103103103103103
+        ]
+      },
+      "S3_metastable_lifetime": {
+        "mean_lifetime": 421.05263157894734,
+        "median_lifetime": 26.0,
+        "n_runs": 19,
+        "exp_fit_slope": -0.001634119941698205,
+        "exp_fit_r": -0.8492787024089576,
+        "exp_fit_p": 4.2346980711291155e-06
+      },
+      "S5_powerlaw_jump_dist": {
+        "n_jumps": 0,
+        "powerlaw_applicable": false
+      },
+      "S6_bimodality": {
+        "n": 8000,
+        "delta_bic": 8204.851259024721,
+        "mu1": -0.9624514484801469,
+        "mu2": 0.9420992629124568,
+        "sd1": 0.2904899726466627,
+        "sd2": 0.3148629982092638,
+        "weight": 0.5075894056418555,
+        "separation": 6.292364279330582,
+        "bimodal": true,
+        "applicable": true
+      },
+      "latent_heat": {
+        "delta_L": 1.9061230773024171,
+        "method": "branch_label",
+        "n_A": 3913,
+        "n_B": 4087,
+        "mean_A": 0.9491601264187844,
+        "mean_B": -0.9569629508836327
+      },
+      "n_jumps_detected_in_sweep": 0
+    },
+    "preisach_cascade": {
+      "label": "synth_preisach_cascade",
+      "n_points": 8000,
+      "S1_jump_strength": {
+        "strength": 0.09355892624263457,
+        "n_jumps": 4,
+        "median_jump_abs": 0.0812672577431577,
+        "median_step_abs": 0.0,
+        "jump_to_step_ratio": 81267257.7431577,
+        "scale_used": 0.8686211033717958,
+        "jumps": [
+          {
+            "idx": 704,
+            "delta": 0.0812672577431577,
+            "x_before": 0.03437579112008422,
+            "x_after": 0.11564304886324192
+          },
+          {
+            "idx": 2704,
+            "delta": 0.0812672577431577,
+            "x_before": 0.03437579112008422,
+            "x_after": 0.11564304886324192
+          },
+          {
+            "idx": 4704,
+            "delta": 0.0812672577431577,
+            "x_before": 0.03437579112008422,
+            "x_after": 0.11564304886324192
+          },
+          {
+            "idx": 6704,
+            "delta": 0.0812672577431577,
+            "x_before": 0.03437579112008422,
+            "x_after": 0.11564304886324192
+          }
+        ]
+      },
+      "S2_inner_loop_repro": {
+        "r2": 1.0,
+        "n_pairs": 4,
+        "jump_h_mean": 0.8188188188188188,
+        "jump_h_std": 0.0,
+        "jump_h_range_ratio": 0.0,
+        "jump_dm_median": 0.0812672577431577,
+        "jump_h_samples": [
+          0.8188188188188188,
+          0.8188188188188188,
+          0.8188188188188188,
+          0.8188188188188188
+        ]
+      },
+      "S5_powerlaw_jump_dist": {
+        "n_jumps": 0,
+        "powerlaw_applicable": false
+      },
+      "S6_bimodality": {
+        "n": 8000,
+        "delta_bic": 99442.40545142244,
+        "mu1": -0.45467928958765774,
+        "mu2": 0.9999999999999991,
+        "sd1": 0.6592732983482354,
+        "sd2": 7.771561172376093e-16,
+        "weight": 0.6845000000910136,
+        "separation": 4.412978013273941,
+        "bimodal": true,
+        "applicable": true
+      },
+      "latent_heat": {
+        "delta_L": NaN,
+        "method": "none"
+      },
+      "n_jumps_detected_in_sweep": 0
+    },
+    "saddle_node": {
+      "label": "synth_saddle_node",
+      "n_trials": 12,
+      "n_tipped": 12,
+      "S4_csd_pre_jump_avg_tau_ar1": 0.29701745234238436,
+      "S4_csd_pre_jump_avg_tau_var": 0.2842604947423331,
+      "S4_csd_detected_fraction": 0.3333333333333333,
+      "S1_jump_strength_concat": {
+        "strength": 2.379308146025364,
+        "n_jumps": 2,
+        "median_jump_abs": 2.261361907618886,
+        "median_step_abs": 0.004938675777859447,
+        "jump_to_step_ratio": 457.8882177017099,
+        "scale_used": 0.9504283467429356,
+        "jumps": [
+          {
+            "idx": 7999,
+            "delta": 2.265227708674533,
+            "x_before": 1.257871384441069,
+            "x_after": -1.0073563242334642
+          },
+          {
+            "idx": 43999,
+            "delta": 2.257496106563238,
+            "x_before": 1.2363022340477825,
+            "x_after": -1.0211938725154555
+          }
+        ]
+      },
+      "S6_bimodality_concat": {
+        "n": 48000,
+        "delta_bic": 82807.27225495383,
+        "mu1": -0.9430424226768785,
+        "mu2": 0.9550031593495238,
+        "sd1": 0.17265491626300974,
+        "sd2": 0.479377810099679,
+        "weight": 0.8676090356352572,
+        "separation": 5.82193346886915,
+        "bimodal": true,
+        "applicable": true
+      }
+    }
+  },
+  "empirical": {
+    "recession_panel": {
+      "label": "us_recession_panel_1947_2026",
+      "n_quarters": 316,
+      "n_recessions": 12,
+      "S1_jump_strength_rel_unrate": 0.6521739130434782,
+      "S1_jump_strength_abs_unrate_pp": 2.733333333333333,
+      "S1_n_valid_jumps": 11,
+      "S1_individual_jumps": [
+        {
+          "date": "1948-10-01",
+          "u_before": NaN,
+          "u_peak": 6.966666666666666,
+          "jump_abs": NaN,
+          "jump_rel": NaN
+        },
+        {
+          "date": "1953-07-01",
+          "u_before": 3.233333333333333,
+          "u_peak": 5.966666666666666,
+          "jump_abs": 2.733333333333333,
+          "jump_rel": 0.845360824742268
+        },
+        {
+          "date": "1957-07-01",
+          "u_before": 4.133333333333334,
+          "u_peak": 7.366666666666667,
+          "jump_abs": 3.2333333333333334,
+          "jump_rel": 0.782258064516129
+        },
+        {
+          "date": "1960-04-01",
+          "u_before": 5.1000000000000005,
+          "u_peak": 7.0,
+          "jump_abs": 1.8999999999999995,
+          "jump_rel": 0.372549019607843
+        },
+        {
+          "date": "1970-01-01",
+          "u_before": 3.4,
+          "u_peak": 6.033333333333334,
+          "jump_abs": 2.633333333333334,
+          "jump_rel": 0.7745098039215689
+        },
+        {
+          "date": "1973-10-01",
+          "u_before": 5.366666666666667,
+          "u_peak": 8.866666666666667,
+          "jump_abs": 3.5,
+          "jump_rel": 0.6521739130434782
+        },
+        {
+          "date": "1980-01-01",
+          "u_before": 5.866666666666667,
+          "u_peak": 8.233333333333334,
+          "jump_abs": 2.366666666666667,
+          "jump_rel": 0.40340909090909094
+        },
+        {
+          "date": "1981-07-01",
+          "u_before": 7.666666666666667,
+          "u_peak": 10.666666666666666,
+          "jump_abs": 2.999999999999999,
+          "jump_rel": 0.3913043478260868
+        },
+        {
+          "date": "1990-07-01",
+          "u_before": 5.233333333333333,
+          "u_peak": 7.6000000000000005,
+          "jump_abs": 2.366666666666667,
+          "jump_rel": 0.4522292993630574
+        },
+        {
+          "date": "2001-04-01",
+          "u_before": 3.9333333333333336,
+          "u_peak": 5.866666666666667,
+          "jump_abs": 1.9333333333333336,
+          "jump_rel": 0.4915254237288136
+        },
+        {
+          "date": "2008-01-01",
+          "u_before": 4.5,
+          "u_peak": 9.933333333333334,
+          "jump_abs": 5.433333333333334,
+          "jump_rel": 1.2074074074074075
+        },
+        {
+          "date": "2020-01-01",
+          "u_before": 3.8666666666666667,
+          "u_peak": 13.0,
+          "jump_abs": 9.133333333333333,
+          "jump_rel": 2.362068965517241
+        }
+      ],
+      "asymmetry_onset_vs_recovery_slope": 3.240601484653288,
+      "S4_csd_pre_recession_tau_ar1": 0.055263157894736854,
+      "S4_csd_pre_recession_tau_var": -0.36447368421052634,
+      "S4_csd_detected_fraction": 0.0,
+      "S4_n_csd_events": 8,
+      "S5_powerlaw_jump_dist": {
+        "n_jumps": 11,
+        "powerlaw_applicable": false
+      },
+      "S6_bimodality_unrate": {
+        "n": 313,
+        "delta_bic": 21.286154713002134,
+        "mu1": 4.783329639126041,
+        "mu2": 6.91124317766008,
+        "sd1": 0.9784728307106133,
+        "sd2": 1.7142176929434652,
+        "weight": 0.5875586761107224,
+        "separation": 1.580511030332496,
+        "bimodal": true,
+        "applicable": true
+      }
+    },
+    "oil_boom_bust": {
+      "label": "wti_oil_boom_bust_1986_2026",
+      "n_days": 10163,
+      "n_flips": 104,
+      "n_bust_events": 51,
+      "S1_jump_strength_logp": {
+        "strength": 0.10629790402905928,
+        "n_jumps": 2,
+        "median_jump_abs": 0.3905667741506422,
+        "median_step_abs": 0.012646961700767179,
+        "jump_to_step_ratio": 30.8822587202657,
+        "scale_used": 3.674265995347102,
+        "jumps": [
+          {
+            "idx": 1286,
+            "delta": 0.40639577360111767,
+            "x_before": 3.4735180432417816,
+            "x_after": 3.067122269640664
+          },
+          {
+            "idx": 8629,
+            "delta": 0.3747377747001668,
+            "x_before": 2.6461747973841225,
+            "x_after": 3.0209125720842893
+          }
+        ]
+      },
+      "S1_regime_flip_log_jump_median": 0.13809466198352258,
+      "S1_regime_flip_n_with_brackets": 501,
+      "S4_csd_pre_bust_tau_ar1": -0.05106429849924274,
+      "S4_csd_pre_bust_tau_var": -0.015794742599587235,
+      "S4_csd_pre_bust_detected_frac": 0.02,
+      "S4_n_csd_events": 50,
+      "S5_powerlaw_price_changes": {
+        "n_jumps": 10021,
+        "powerlaw_applicable": true,
+        "alpha": 2.9923783759628675,
+        "xmin": 1.3599999999999994,
+        "n_tail": 1875,
+        "vs_lognormal_R": -3.7084157272459297,
+        "vs_lognormal_p": 0.0002085600470681225,
+        "vs_exponential_R": 1.207993425114189,
+        "vs_exponential_p": 0.22704979138198444,
+        "alpha_in_sethna_band": false,
+        "winner_vs_lognormal": "lognormal"
+      },
+      "S6_bimodality_logprice": {
+        "n": 10162,
+        "delta_bic": 4166.405834084671,
+        "mu1": 3.022825943087887,
+        "mu2": 4.213304881899189,
+        "sd1": 0.2548784888514597,
+        "sd2": 0.31215464533626125,
+        "weight": 0.4527916193883446,
+        "separation": 4.198974849389346,
+        "bimodal": true,
+        "applicable": true
+      },
+      "regime_transition_dates": [
+        {
+          "idx": 60,
+          "date": "1986-03-31",
+          "from": 0,
+          "to": -1,
+          "price": 10.25
+        },
+        {
+          "idx": 94,
+          "date": "1986-05-16",
+          "from": -1,
+          "to": 1,
+          "price": 16.08
+        },
+        {
+          "idx": 125,
+          "date": "1986-07-01",
+          "from": 1,
+          "to": -1,
+          "price": 12.39
+        },
+        {
+          "idx": 164,
+          "date": "1986-08-26",
+          "from": -1,
+          "to": 1,
+          "price": 15.78
+        },
+        {
+          "idx": 444,
+          "date": "1987-10-06",
+          "from": 1,
+          "to": -1,
+          "price": 19.33
+        },
+        {
+          "idx": 582,
+          "date": "1988-04-21",
+          "from": -1,
+          "to": 1,
+          "price": 18.34
+        },
+        {
+          "idx": 632,
+          "date": "1988-06-30",
+          "from": 1,
+          "to": -1,
+          "price": 15.2
+        },
+        {
+          "idx": 742,
+          "date": "1988-12-02",
+          "from": -1,
+          "to": 1,
+          "price": 15.69
+        },
+        {
+          "idx": 897,
+          "date": "1989-07-12",
+          "from": 1,
+          "to": -1,
+          "price": 20.2
+        },
+        {
+          "idx": 965,
+          "date": "1989-10-16",
+          "from": -1,
+          "to": 1,
+          "price": 20.64
+        },
+        {
+          "idx": 1075,
+          "date": "1990-03-21",
+          "from": 1,
+          "to": -1,
+          "price": 19.59
+        },
+        {
+          "idx": 1154,
+          "date": "1990-07-12",
+          "from": -1,
+          "to": 1,
+          "price": 18.69
+        },
+        {
+          "idx": 1258,
+          "date": "1990-12-05",
+          "from": 1,
+          "to": -1,
+          "price": 27.18
+        },
+        {
+          "idx": 1286,
+          "date": "1991-01-16",
+          "from": -1,
+          "to": 1,
+          "price": 32.25
+        },
+        {
+          "idx": 1287,
+          "date": "1991-01-17",
+          "from": 1,
+          "to": -1,
+          "price": 21.48
+        },
+        {
+          "idx": 1372,
+          "date": "1991-05-17",
+          "from": -1,
+          "to": 1,
+          "price": 21.19
+        },
+        {
+          "idx": 1516,
+          "date": "1991-12-09",
+          "from": 1,
+          "to": -1,
+          "price": 19.39
+        },
+        {
+          "idx": 1596,
+          "date": "1992-04-01",
+          "from": -1,
+          "to": 1,
+          "price": 19.85
+        },
+        {
+          "idx": 1767,
+          "date": "1992-12-01",
+          "from": 1,
+          "to": -1,
+          "price": 19.56
+        },
+        {
+          "idx": 1830,
+          "date": "1993-03-04",
+          "from": -1,
+          "to": 1,
+          "price": 21.05
+        }
+      ]
+    },
+    "lake_do_control": {
+      "label": "fox_river_DO_control_2011_2024",
+      "n_days": 4732,
+      "S1_jump_strength": {
+        "strength": 0.25006780255894834,
+        "n_jumps": 4,
+        "median_jump_abs": 2.6500000000000004,
+        "median_step_abs": 0.1999999999999993,
+        "jump_to_step_ratio": 13.249999933750049,
+        "scale_used": 10.597125950972107,
+        "jumps": [
+          {
+            "idx": 843,
+            "delta": 2.7,
+            "x_before": 7.4,
+            "x_after": 4.7
+          },
+          {
+            "idx": 1846,
+            "delta": 2.6000000000000005,
+            "x_before": 9.4,
+            "x_after": 6.8
+          },
+          {
+            "idx": 2576,
+            "delta": 2.8999999999999995,
+            "x_before": 10.1,
+            "x_after": 7.2
+          },
+          {
+            "idx": 4184,
+            "delta": 2.6000000000000005,
+            "x_before": 6.8,
+            "x_after": 9.4
+          }
+        ]
+      },
+      "S4_global_csd_tau_ar1": 0.2747397649226401,
+      "S4_global_csd_p_ar1": 3.50437823976061e-163,
+      "S4_global_csd_tau_var": 0.31044441324608324,
+      "S4_global_csd_p_var": 8.899307063403693e-208,
+      "S6_bimodality": {
+        "n": 4732,
+        "delta_bic": 1563.4580013849009,
+        "mu1": 8.827934531075588,
+        "mu2": 13.602479148063837,
+        "sd1": 2.055974146550965,
+        "sd2": 0.7450727024819456,
+        "weight": 0.6294533695210267,
+        "separation": 3.4091144282200023,
+        "bimodal": true,
+        "applicable": true
+      }
+    },
+    "traffic_qrho": {
+      "label": "ngsim_traffic_qrho_control",
+      "n_cells": 5012,
+      "n_lanes": 5,
+      "S1_jump_strength_q": {
+        "strength": NaN,
+        "n_jumps": 1
+      },
+      "S2_inner_loop_repro_across_lanes": {
+        "r2": 0.37003516748945087,
+        "n_pairs": 5,
+        "jump_h_mean": 40.067619639527656,
+        "jump_h_std": 2.018318361194472,
+        "jump_h_range_ratio": 0.009941572305917863,
+        "jump_dm_median": 1332.8928,
+        "jump_h_samples": [
+          42.93349906774394,
+          38.1205717837166,
+          39.1597265382225,
+          42.003729024238666,
+          38.1205717837166
+        ]
+      },
+      "S5_powerlaw_q_jumps": {
+        "n_jumps": 5011,
+        "powerlaw_applicable": true,
+        "alpha": 2.4922065960794004,
+        "xmin": 513.8538000000001,
+        "n_tail": 1731,
+        "vs_lognormal_R": -8.17823401655353,
+        "vs_lognormal_p": 2.8803397008692877e-16,
+        "vs_exponential_R": -5.306168047833735,
+        "vs_exponential_p": 1.119537534119164e-07,
+        "alpha_in_sethna_band": true,
+        "winner_vs_lognormal": "lognormal"
+      },
+      "S6_bimodality_q": {
+        "n": 5012,
+        "delta_bic": 1896.8343591581797,
+        "mu1": 1458.1264417941163,
+        "mu2": 2634.5356186602025,
+        "sd1": 362.760812346442,
+        "sd2": 855.3481755754716,
+        "weight": 0.8030800111522975,
+        "separation": 1.931533530297813,
+        "bimodal": true,
+        "applicable": true
+      }
+    }
+  },
+  "verdict_block": {
+    "sanity": {
+      "landau_inner_loop_r2": 0.005187785913686045,
+      "preisach_inner_loop_r2": 1.0,
+      "synthetic_S2_separation": 0.9948122140863139,
+      "synthetic_S2_pass": true,
+      "saddle_node_csd_frac": 0.3333333333333333,
+      "saddle_node_S4_pass": true
+    },
+    "empirical_signature_per_dataset": [
+      {
+        "dataset": "recession_panel",
+        "S1_jump_rel": 0.6521739130434782,
+        "S1_pass": true,
+        "S6_bimodal": true,
+        "S4_csd_frac": 0.0,
+        "S4_pass_non_scheffer": true,
+        "S5_is_clean_powerlaw": false,
+        "S5_pass_non_preisach": true
+      },
+      {
+        "dataset": "oil_boom_bust",
+        "S1_jump_rel": 0.13809466198352258,
+        "S1_pass": true,
+        "S6_bimodal": true,
+        "S4_csd_frac": 0.0,
+        "S4_pass_non_scheffer": true,
+        "S5_is_clean_powerlaw": false,
+        "S5_pass_non_preisach": true
+      }
+    ],
+    "any_empirical_hit": true,
+    "distinguishability_vs_preisach": {
+      "empirical_inner_loop_R2_traffic_preisach_control": 0.37003516748945087,
+      "recession_panel_no_inner_loops": true,
+      "synthetic_S2_separation": 0.9948122140863139,
+      "S5_recession_powerlaw_clean": false,
+      "S5_oil_powerlaw_clean": false,
+      "preisach_distinguishable": true
+    },
+    "distinguishability_vs_scheffer": {
+      "lake_global_csd_tau_ar1": 0.2747397649226401,
+      "recession_csd_frac": 0.0,
+      "saddle_synth_csd_frac": 0.3333333333333333,
+      "scheffer_distinguishable": true
+    },
+    "n_total_transitions_observed": 116,
+    "n_floor_for_pass": 30,
+    "verdict": "PASS_SPLIT_FROM_BOTH"
+  },
+  "wall_clock_seconds": 2.8272600173950195
+}
