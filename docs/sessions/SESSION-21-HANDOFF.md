@@ -1,9 +1,9 @@
 ***REMOVED*** Session ***REMOVED***21 Handoff
 
-> 日期：2026-05-23
+> 日期：2026-05-23 ~ 05-24
 > 承接 SESSION-20-HANDOFF.md。
-> 本 session 从一个用户报的「点生成报告没反应」bug 起手，做到全部交接待办清零。
-> **站点健康，无 P0 阻塞。**
+> 本 session 从用户报的「点生成报告没反应」bug 起手，做到全部交接待办清零。
+> **站点健康，无 P0 阻塞（一个只能用户操作的 P0 仍遗留：OpenRouter key 轮换）。**
 
 ---
 
@@ -11,8 +11,9 @@
 
 - `beta.structural.bytedance.city` 健康（health 200），生产环境正常。
 - 后端 756 测试全过（SESSION-20 是 713，涨幅来自本 session 新增的 struct-lint
-  流式 15 + 502 回归 4 + connections 30 测试）。
-- 本 session 6 个 commit 全部 push 到 `origin/main`，已部署，live 验证通过。
+  流式 15 + 502 回归 4 + connections 30 + privacy fingerprint 1 测试）。
+- 本 session 8 个 commit 全部 push 到 `origin/main`，已分 4 次部署，live 验证通过。
+- 一个 prod 配置变更：VPS 设了 `STRUCTURAL_PRIVACY_MOCK_CODE`（详见 §A）。
 - working tree 仅剩 `scripts/train_v2.py`（非本 session lineage，按 commit
   边界铁律未动，与 ***REMOVED***19 ***REMOVED***20 一致）。
 
@@ -77,15 +78,14 @@ yield `extract`/`claims`/每条主张 `isomorph`/`done` 进度事件。原 POST 
 
 ---
 
-***REMOVED******REMOVED*** 4. privacy 验证码 fail-closed（commit 8e... 见 git log）
+***REMOVED******REMOVED*** 4. privacy 验证码 fail-closed（commit a3b7660）
 
 `STRUCTURAL_PRIVACY_MOCK_CODE` 未设时旧代码默认公开的 `"123456"`，知道
 订阅者邮箱即可拉 PII / 触发数据删除。改为 env 未设时返回每进程随机
 `secrets.token_hex(16)`，端点 fail-closed，并打 warning 提示运维配置。
 export + delete 同改，+2 测试。
 
-> **prod 必须设 `STRUCTURAL_PRIVACY_MOCK_CODE`**，否则导出/删除端点现在是
-> 锁死状态（这是有意的安全默认）。
+**prod 配置**：本 session 已在 VPS 配上一个非公开码（详见 §A）。
 
 ---
 
@@ -96,23 +96,38 @@ key）。本 session 改用项目自带 DeepSeek key 经 DeepSeek OpenAI-兼容�
 路由，376 次调用 0 错误。结果 filled=104 / lead=198 / empty=4456，丢弃
 205 条 plausible=no 弱线索。runner 是 `scripts/run_whitespace_llm.py`。
 
+> **注**：这是绕过 OpenRouter 的一次性手段；prod 的 analyze/ask 主链路
+> 仍依赖 OpenRouter（见 §8 P0）。
+
 ---
 
-***REMOVED******REMOVED*** 6. G 方向 P1+P2 落地（commit 见 git log）
+***REMOVED******REMOVED*** 6. G 方向 P1+P2 + 软上线（commit 4b9b520 + 979874e）
 
 按 `SESSION-18-G-connect-people-design.md` 落地「按问题结构连接人」的
 P1（结构指纹抽取/存储）+ P2（匹配引擎 + L1 可发现 + 三级可见性）。P0
-账号复用已有 auth.py magic-link。P3（双向同意 match / 引荐 / 消息）按
-设计建议推迟。新增 `/connections` 页 + 5 个 API 端点 + 30 测试。
+账号复用已有 auth.py magic-link；P3（双向同意 match / 引荐 / 消息）按
+设计建议推迟到 P2 验证需求后。
 
-> **待用户拍板**：
-> - G 是否正式立项、是否对外上线、是否继续 P3——产品定位级决策。
-> - 指纹纳入 `/api/privacy/*` 删除范围（设计 §2.4）：privacy/delete 目前
->   只重写 JSONL、不扫 SQLite；connections 指纹在 SQLite。store 已留
->   `delete_all_for_user()` 待接入。
-> - report.html 底部加「一键把报告升级成指纹」opt-in 入口（设计 §3.4）。
-> - site-chrome.js 只加了 /connections 到 TOOLS_PATHS 高亮，未 bump 全站
->   cache-bust（纯 cosmetic）；/connections 未进可见导航菜单，靠直链访问。
+- 后端：`services/connections_store.py`（SQLite，加列自愈）+
+  `services/connections_match.py`（结构相似度匹配，强制跨域过滤）+
+  `api/connections.py`（5 端点，复用 auth.py JWT，L1 neighbors 响应剥掉
+  user_email/fingerprint_id 不暴露身份）
+- 前端：`/connections` 页（未登录内嵌 magic-link，已登录可登记指纹/切
+  可见性/看结构邻居）
+- **隐私漏洞补齐**（commit 979874e）：结构指纹纳入 `/api/privacy/delete`
+  范围。原 delete 只重写 JSONL，会漏删 SQLite 指纹表（设计 §2.4 要求）。
+  现按 email 删除时同步调 `ConnectionsStore.delete_all_for_user`，
+  removed 计数加 `structural_fingerprints` 项。+1 跨用户隔离测试。
+- **软上线**：`/tools` 页加「结构连接」卡片（commit 979874e），让 MVP 可被
+  发现。**没进顶部导航、没正式立项、没上 P3**——等用户看实际用量再定。
+- 30 个本 session 新测试 + 1 个 privacy 集成测试。
+
+***REMOVED******REMOVED******REMOVED*** 待用户拍板
+
+- G 是否正式立项 / 是否对外大力上线 / 是否继续 P3。产品定位级决策。
+- report.html 底部加「一键把报告升级成指纹」opt-in 入口（设计 §3.4），
+  本 session 未做。
+- 设计 §3.4 P4 每周 digest 邮件未做（属社区形态阶段）。
 
 ---
 
@@ -130,7 +145,29 @@ SESSION-20 §5 把「Phase 7-12 六个 SOC 系统扩展」列为「仍未做的�
 | 交通 traffic | 5,012 + 文献 | — | CONFIRMED_COMPOSITE |
 | 维基浏览 wikipedia | 7,521（Wikimedia 真实） | 2.034 | CONFIRMED |
 
-**教训**：接手先审计 `v4/validation/` 实际状态，别照 handoff todo 重做。
+**教训**（写进 session kickoff 起手纪律）：**接手先审计 `v4/validation/`
+实际状态，别照 handoff todo 重做**。SESSION-20 已撞过同款（D1 已扩完但
+STATUS 写 55 样本），本 session 同样撞了 Phase 7-12。Handoff todo 列表
+默认按「milestone 时刻的快照」存在，与现实可能漂移。
+
+---
+
+***REMOVED******REMOVED*** A. prod 配置变更（本 session 唯一一处）
+
+**VPS `/root/Projects/structural-isomorphism/web/backend/.env`**：
+追加 `STRUCTURAL_PRIVACY_MOCK_CODE=850a6562b91b917fae15063a9ba8411d`。
+
+- **为什么**：§4 把 privacy 端点改成 fail-closed，prod .env 原本没设
+  该 env → 部署后端点用随机码锁死。补上一个非公开 32 位 hex 码做
+  operator-gated 验证；Phase 2 接真 OTP 后作废。
+- **验证**：旧公开码 `123456` → 401 拒绝，新码 → 200 接受。
+- **备份**：`/root/Projects/structural-isomorphism/web/backend/.env.bak-s21`。
+  回滚 = `cp` 回来 + `systemctl restart structural-web.service`。
+- **同步**：本变更已记入 `~/Vault/Memory/decisions.md`（per CLAUDE.md
+  「跨 Session 配置变更必须写 Memory」铁律）。
+- **该码的用法**：现在 `/api/privacy/export?email=X&code=850a...` 才能拉
+  数据，`/api/privacy/delete` 同。**这个码不进任何代码仓库**——它就是
+  「operator 知道、用户不知道」的设计意图。
 
 ---
 
@@ -138,27 +175,48 @@ SESSION-20 §5 把「Phase 7-12 六个 SOC 系统扩展」列为「仍未做的�
 
 | 优先级 | 动作 | 说明 |
 |---|---|---|
-| 🔴 P0 | 轮换 OpenRouter API key | SESSION-20 起遗留，旧 key 在 public repo 泄露。**只能用户操作**。本 session 的 whitespace 预计算靠 DeepSeek 绕过了，但 prod 的 analyze/ask 仍依赖 OpenRouter |
-| 🟡 | prod 设 `STRUCTURAL_PRIVACY_MOCK_CODE` | 否则 privacy 导出/删除端点锁死（见 §4） |
-| 📋 | G 方向产品决策 | 立项 / 上线 / P3 / privacy 接入（见 §6） |
-| 🟢 | requirements.txt 升 fastapi | 502 第二层防御（见 §2） |
-| 🟢 | 抽共享 buildAnalyzeUrl() | /analyze 参数契约根治（见 §1） |
-| 🟢 | struct-lint e2e 超时下调 | 见 §3 |
-| 📋 | C1 v0.2 发布前 6 项人审 | SESSION-20 §5 遗留，未动 |
+| 🔴 P0 | **轮换 OpenRouter API key** | SESSION-20 起遗留，旧 key 曾在 public repo 泄露。**只能用户操作**。本 session whitespace 预计算靠 DeepSeek 绕过了，但 prod 的 analyze / ask 主链路仍依赖 OpenRouter |
+| 📋 | G 方向产品决策 | 立项 / 大力上线 / P3 / report.html 升级入口（见 §6 待用户拍板） |
+| 🟢 | requirements.txt 升 fastapi | 502 第二层防御（见 §2 末） |
+| 🟢 | 抽共享 buildAnalyzeUrl() | /analyze 参数契约根治（见 §1 末） |
+| 🟢 | struct-lint e2e 超时下调 | 见 §3 末 |
+| 🟢 | privacy export 也补 fingerprint | §6 只补了 delete；export 返回值未含指纹（DSAR 完整性次要瑕疵） |
+| 📋 | C1 v0.2 发布前 6 项人审 | SESSION-20 §5 遗留，本 session 未动 |
 
 ---
 
-***REMOVED******REMOVED*** 9. 本 session 的 6 个 commit
+***REMOVED******REMOVED*** 9. 本 session 的 8 个 commit
 
 ```
-b638ac4  fix(frontend): 修复 /analyze 链接参数名 — 4 个入口的生成报告失效
-<priv>   fix(backend): privacy 验证码未配置时 fail-closed
+b638ac4  fix(frontend): /analyze 链接参数名 — 4 个入口的生成报告失效
+a3b7660  fix(backend): privacy 验证码未配置时 fail-closed
 80a48d5  feat(backend,frontend): /api/struct-lint 流式进度反馈
 c1c87f0  fix(backend): 根治限流装饰器吞掉 handler __globals__ 导致的 502
-<conn>   feat: G 方向 P1+P2 — 按问题结构连接人
+4b9b520  feat: G 方向 P1+P2 — 按问题结构连接人（structural connections MVP）
 facc617  feat(whitespace): 跑 LLM 评判层预计算 whitespace 矩阵
-（+ 本文件）
+1afdade  docs(sessions): session ***REMOVED***21 handoff（初版）
+979874e  feat: G 方向软上线 + 结构指纹纳入隐私删除范围
+（+ 本文件最终版）
 ```
 
-全部已部署，live 验证：health 200 / /connections 200 / struct-lint SSE
-事件正常流 / /api/diagnose 返回 422 而非 502（证明 502 根治在 prod 生效）。
+全部已部署，live 验证：health 200 / /connections 200 / /tools 含「结构连接」
+卡片 / struct-lint SSE 事件正常流 / /api/diagnose 返回 422 而非 502（证明
+502 根治在 prod 生效）/ privacy 旧码 401、新码 200。
+
+---
+
+***REMOVED******REMOVED*** 10. 起手指令（下个 session）
+
+```
+读 SESSION-21-HANDOFF.md。站点健康，prod 配置就位。
+唯一 P0：提醒用户轮换 OpenRouter key（CC 推不动，主链路仍依赖）。
+其余可启动：(a) requirements.txt 升 fastapi（502 第二层防御）
+           (b) 抽共享 buildAnalyzeUrl()（/analyze 参数契约根治）
+           (c) C1 v0.2 发布前 6 项人审清单（SESSION-20 §5 遗留）
+G 方向已软上线（/connections + /tools 卡片），等用户看用量再决定 P3 / 立项。
+```
+
+> **诚实备注**：本 session 修正了 SESSION-20 对 502 根因的判断（不是 Python
+> 版本是 FastAPI 版本），并审计发现 SESSION-20 §5 列的「Phase 7-12 todo」
+> 其实已全部完成。下个 session 接手时**先审计 v4/validation/ 实际状态**
+> 再照 handoff todo 做事——handoff 是 milestone 快照，会过时。
