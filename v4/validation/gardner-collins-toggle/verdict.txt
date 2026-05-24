@@ -1,0 +1,1 @@
+INCONCLUSIVE (synthetic-only) -- empirical data inaccessible; synthetic-pipeline internal status = FULL_PASS; hill_n=3.26, in_band=True, dip=0.000 (< 0.25? True), bic_delta=1367.7 (> 10? True), tau=38.0 days (band 5.0-40.0 requires empirical anchor — magnitude_ok=True, structure_ok=True)

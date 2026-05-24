@@ -1,0 +1,189 @@
+{
+  "system": "Gardner-Collins toggle switch \u2014 bistability + Hill ultrasensitivity",
+  "preregistered": {
+    "hill_n_band": [
+      2.0,
+      4.5
+    ],
+    "dip_ratio_max": 0.25,
+    "dwell_tau_band_days": [
+      5.0,
+      40.0
+    ],
+    "rationale": "Gardner-Cantor-Collins 2000 Nature 403:339 (synthetic toggle, n\u22482.5-3.5); Mariani et al. 2010 (Th1/Th2 polarization, n\u22482.8)."
+  },
+  "data_attempts": [
+    {
+      "source": "gardner2000_nature",
+      "result": "GET https://www.nature.com/articles/35002131 -> 200 (292687 bytes); supplementary data not machine-extractable (figure-only)",
+      "got_data": false
+    },
+    {
+      "source": "tabula_muris_senis",
+      "result": "GET https://tabula-muris-senis.ds.czbiohub.org/ -> 200; portal is SPA, no CSV mirror; .h5ad ~5GB skipped",
+      "got_data": false
+    }
+  ],
+  "data_provenance": "SYNTHETIC: Gardner-Collins toggle ODE simulation (Gardner-Cantor-Collins 2000 Nature 403:339). du/dt = \u03b1/(1+v^n) - u; dv/dt = \u03b1/(1+u^n) - v with reflecting boundary at 0 and Euler-Maruyama stochastic integration. Two regimes: (steady) n_true=3.0 alpha=5.0 sigma=0.2 dt=0.1 n_cells=2500 n_time_steps=4000; (dwell) sigma=0.95 n_cells=800 n_time_steps=20000. Empirical sources (Gardner 2000 supplementary, Tabula Muris) not accessible to script \u2014 see TRIED.md.",
+  "summary": {
+    "log_ratio_bimodality": {
+      "gmm2": {
+        "mu": [
+          -4.682025924865723,
+          4.763767179145008
+        ],
+        "sigma": [
+          1.9134236625746193,
+          1.958136299790266
+        ],
+        "w": [
+          0.5051819568057792,
+          0.4948180431942208
+        ],
+        "log_lik": -6926.779530200527,
+        "bic": 13892.679290455335
+      },
+      "gmm1": {
+        "mu": -0.008077064721668456,
+        "sigma": 5.1039399368277705,
+        "log_lik": -7622.378277797738,
+        "bic": 15260.404647617188
+      },
+      "bic_delta_1_minus_2": 1367.725357161853,
+      "bimodal_bic_wins": true,
+      "dip": {
+        "dip_ratio": 0.0,
+        "n_peaks": 2,
+        "peak_centres": [
+          -3.3191679053316374,
+          3.567205285995035
+        ],
+        "trough_centre": -1.3106423911946914,
+        "trough_density": 0.0,
+        "peak_density_max": 0.19361909328594837
+      },
+      "dip_pass": true
+    },
+    "hill_fit": {
+      "ok": true,
+      "K": 0.6631077900614333,
+      "n": 3.2593091830927685,
+      "n_se": 0.12600120881971663,
+      "r2": 0.9999189830783665,
+      "n_bins_used": 10,
+      "v_threshold": 4.587320947108301,
+      "bins_u_norm": [
+        0.003808803977014627,
+        0.026028901218327585,
+        0.06489622025720208,
+        0.11016233699067812,
+        0.2000010655214875,
+        1.7999989344785123,
+        3.3666899749846944,
+        3.424661469563022,
+        3.4794005889861466,
+        3.6535580663311427
+      ],
+      "bins_v_high_fraction": [
+        0.996,
+        0.992,
+        1.0,
+        0.992,
+        0.98,
+        0.04,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "hill_n_in_band": true,
+    "dwell_time": {
+      "ok": true,
+      "n_dwells": 40373,
+      "tau_exp_mle_days": 37.95446709434523,
+      "median_dwell_days": 20.8,
+      "max_dwell_days": 473.40000000000003,
+      "ks_stat_vs_expon": 0.19481117811454302,
+      "ks_p_vs_expon": 0.0,
+      "tail_above_median_n": 20183,
+      "tail_exp_tau_days": 49.409071991279795,
+      "tail_absolute_tau_days": 70.2090719912798,
+      "ks_stat_tail_vs_expon": 0.006010344030403791,
+      "ks_p_tail_vs_expon": 0.45769254330702625,
+      "margin": 0.5656289219856262,
+      "typical_diff_std": 3.770859479904175
+    },
+    "dwell_magnitude_in_band": true,
+    "dwell_structure_ok": true,
+    "dwell_pass_synthetic_mode": true,
+    "null_controls": {
+      "unimodal_gaussian": {
+        "dip": {
+          "dip_ratio": 1.0,
+          "n_peaks": 1,
+          "peak_centres": [
+            0.029613903530850028
+          ]
+        },
+        "gmm2_bic": 5750.615866851855,
+        "gmm1_bic": 5729.411283758217
+      },
+      "exponential": {
+        "dip": {
+          "dip_ratio": 1.0,
+          "n_peaks": 1,
+          "peak_centres": [
+            0.3298096572096211
+          ]
+        },
+        "gmm2_bic": 4673.843603964569,
+        "gmm1_bic": 5748.486510508464
+      },
+      "lognormal": {
+        "dip": {
+          "dip_ratio": 1.0,
+          "n_peaks": 1,
+          "peak_centres": [
+            1.1526214473740504
+          ]
+        },
+        "gmm2_bic": 6832.619170209875,
+        "gmm1_bic": 9425.60057446879
+      },
+      "uniform": {
+        "dip": {
+          "dip_ratio": 0.7195767195767194,
+          "n_peaks": 11,
+          "peak_centres": [
+            3.0412419145122582,
+            4.790878489617544
+          ],
+          "trough_centre": 3.8744021883719184,
+          "trough_density": 0.1813709988968637,
+          "peak_density_max": 0.25205234405520033
+        },
+        "gmm2_bic": 6931.361724828744,
+        "gmm1_bic": 7219.178556034836
+      },
+      "true_bimodal": {
+        "dip": {
+          "dip_ratio": 0.0,
+          "n_peaks": 2,
+          "peak_centres": [
+            -2.05480465629313,
+            1.9802449458964366
+          ],
+          "trough_centre": -0.20086294717900466,
+          "trough_density": 0.0,
+          "peak_density_max": 0.5058591263807642
+        },
+        "gmm2_bic": 4777.022813133901,
+        "gmm1_bic": 8515.626631574738
+      }
+    },
+    "internal_status": "FULL_PASS",
+    "verdict_final": "INCONCLUSIVE (synthetic-only)",
+    "verdict_reason": "empirical data inaccessible; synthetic-pipeline internal status = FULL_PASS; hill_n=3.26, in_band=True, dip=0.000 (< 0.25? True), bic_delta=1367.7 (> 10? True), tau=38.0 days (band 5.0-40.0 requires empirical anchor \u2014 magnitude_ok=True, structure_ok=True)"
+  }
+}
