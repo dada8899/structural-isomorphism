@@ -12,11 +12,18 @@
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 
-> **来自完全不同科学领域的系统，是否真的共享同一套底层数学结构?**
+> **我们用一条冻结的 339 行 Clauset 流水线、不做任何按领域的调参，检验了横跨物理、金融、生物、互联网共 27 个现象是否真的共享同一套统计力学。本仓库公开每一次拟合、每一组空对照、每一次失败——包括一份零结果的 alpha 回测（Sharpe 提升 −0.23）、LLM 评审委员会对普适类候选 33% 的拒绝率，以及一份 26 类、带完整溯源的分类法。**
 
 普适类 (universality class) 是现代统计物理最具影响力的思想之一：少数几条方程足以描述材料、磁体、流体、晶格中各异的相变现象。本项目要检验的核心问题是——这套思想能否**在不针对具体领域调参的前提下**，延伸到那些噪声大、样本稀、风险高的真实经验领域：金融传染、神经雪崩、DeFi 清算、野火、生物基因开关、引用级联。
 
-答案**不是**默认成立的。我们将其作为可证伪命题处理：先预注册指数区间，再用同一套 Clauset MLE 流水线跨领域拟合，最终以 PASS / FAIL / INCONCLUSIVE 给出有完整溯源记录的判定。
+答案**不是**默认成立的。我们将其作为可证伪命题处理：先预注册指数区间，再用同一套 Clauset MLE 流水线跨领域拟合，最终以 PASS / FAIL / INCONCLUSIVE 给出有完整溯源记录的判定。当一个假设被证伪——包括我们自己面向消费者的那一个——我们公开它。
+
+**截至 2026-05-25 的进展**
+- 27 个 SOC 验证系统 × 6 个教科书级普适类已确认 (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom)
+- 4888 条跨领域知识库条目
+- 3 个 PyPI 包已发布 (`soc-pipeline` / `cross-judge` / `guarded-llm`)
+- C1 统一预印本 v0.3，9/9 P0 reviewer 关切已闭环
+- 一份已公开的零结果：滚动回测 Sharpe 提升 = **−0.23**
 
 ## 仓库内容
 
@@ -40,10 +47,10 @@
 </td>
 <td width="33%" valign="top">
 
-### 3. Phase Detector
-一款研究预览阶段的消费级产品。给 100 家上市公司打上当前所处的动力学相位标签（稳定 / 积累 / 临界附近 / 反转 / 复苏），对照 9 类普适模式。
+### 3. Phase Detector（研究预览）
+一款零结果产品。我们用 9 类普适模式给 100 家上市公司打了相位标签，并对 1000 只股票（SP500 + R1000 补充，2020-2025）做了滚动回测。`near_critical` 群组相对等权基准的 Sharpe 提升 = **−0.23**（p = 0.57，**不显著**）。
 
-**v0.1 回测（1000 只股票滚动验证，2020-2025）**：`near_critical` 群组相对等权基准的 Sharpe 提升 = **−0.07**（p = 0.57，**不显著**）。按 W7-D Track A 决定公开发布——定位转向"结构性研究叙述"。完整透明度报告见 [`/backtest`](https://phase.bytedance.city/backtest)。
+完整透明度报告公开发布，作为"跨领域框架不应该被包装成 alpha 工具"的一个案例研究。详情见 [`/backtest`](https://phase.bytedance.city/backtest)。
 
 [**→ phase.bytedance.city**](https://phase.bytedance.city)
 
@@ -76,7 +83,11 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | 产品 | URL | 功能 |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity 风格的自然语言搜索，覆盖跨领域知识库。流式返回答案 + 引用卡片 + 跨领域类似现象。 |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 家被标记公司 + 1000 只股票（SP500 + R1000 补充）滚动回测 v0.1（零结果：Sharpe 提升 −0.07，p = 0.57）。研究预览——非投资建议。 |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 家被标记公司 + 1000 只股票（SP500 + R1000 补充）滚动回测 v0.2（零结果：Sharpe 提升 −0.23，p = 0.57）。研究预览——非投资建议。 |
+
+### 关于负面结果
+
+跨领域普适性主张在历史上被反复地"过度生成、欠校验"——一张漂亮的对照图永远比它背后的空对照传播得更快。我们公开失败案例（包括我们自己面向消费者的那一份回测），因为一个不能报告"被拒绝"的框架，也就不值得被相信它报告的"通过"。能识别拒绝（reject-aware），是这份仓库其余部分值得一读的前提。
 
 ## 测试
 

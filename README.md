@@ -15,11 +15,18 @@
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 
-> **Do systems from radically different scientific domains share the same underlying mathematical structure?**
+> **We tested whether 27 phenomena across physics, finance, biology, and the web really share the same statistical mechanics — using one frozen 339-LOC Clauset pipeline, no per-domain tuning. This repo publishes every fit, every null control, and every failure: a null-result alpha backtest (Sharpe lift −0.23), a 33% rejection rate on LLM-curated universality classes, and a 26-class taxonomy with full provenance.**
 
 Universality classes are one of the most consequential ideas in modern statistical physics: a small number of equations describe phase transitions in materials, magnets, fluids, and lattices that look nothing alike. This project tests whether the same idea extends — without per-domain tuning — to noisy, sparse, high-stakes empirical domains: financial contagion, neural avalanches, DeFi liquidations, wildfires, biological gene switches, citation cascades.
 
-The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance.
+The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance. When a hypothesis fails — including our own consumer-facing one — we publish the failure.
+
+**Status as of 2026-05-25**
+- 27 SOC validation systems × 6 textbook universality classes confirmed (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom)
+- 4888 cross-domain knowledge base entries
+- 3 PyPI packages live (`soc-pipeline` / `cross-judge` / `guarded-llm`)
+- C1 unified preprint v0.3, 9/9 P0 reviewer concerns closed
+- One published null result: walk-forward backtest Sharpe lift = **−0.23**
 
 ## What's in this repo
 
@@ -43,10 +50,10 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 </td>
 <td width="33%" valign="top">
 
-### 3. Phase Detector
-A research-preview consumer product. Tags 100 public companies with their current dynamical phase (stable / accumulating / near-critical / reversed / recovering) against nine universality patterns.
+### 3. Phase Detector (research preview)
+A null-result product. We tagged 100 public companies with 9 universality patterns and ran a 1000-ticker walk-forward backtest (SP500 + R1000 supplement, 2020-2025). Sharpe lift of the `near_critical` cohort vs equal-weight benchmark = **−0.23** (p = 0.57, NOT significant).
 
-**Backtest v0.1 (1000-ticker walk-forward, 2020-2025)**: Sharpe lift of `near_critical` cohort vs equal-weight benchmark = **−0.07** (p = 0.57, NOT significant). Published openly per W7-D Track A → positioning pivot to structured-research-narrative. See [`/backtest`](https://phase.bytedance.city/backtest) for the full transparency report.
+Published openly as a transparency case study in how cross-domain frameworks should *not* be marketed as alpha tools. See [`/backtest`](https://phase.bytedance.city/backtest) for the full report.
 
 [**→ phase.bytedance.city**](https://phase.bytedance.city)
 
@@ -79,7 +86,11 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.1 (null result, Sharpe lift −0.07, p = 0.57). Research preview — not investment advice. |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.2 (null result, Sharpe lift −0.23, p = 0.57). Research preview — not investment advice. |
+
+### On negative results
+
+Cross-domain universality claims have a long history of being over-generated and under-checked: a striking diagram travels faster than the null control behind it. We publish the failures — including our own consumer-facing backtest — because a framework that cannot report rejections cannot be trusted to report acceptances. Reject-aware is what makes the rest of the repo worth reading.
 
 ## API reference
 
