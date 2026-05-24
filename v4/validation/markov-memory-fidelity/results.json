@@ -1,0 +1,240 @@
+{
+  "system": "Markov chain memory fidelity \u2014 per-domain tau_mix and stationary entropy across 4 independent state sequences.",
+  "data_provenance": "D1: Project Gutenberg #1342 Pride and Prejudice (public domain). D2: NCBI RefSeq NC_012920.1 human mitochondrial DNA (public). D3: FRED USRECD daily NBER recession indicator 1854-2026 (public). D4: Moody's Annual Default Study 2021 Exhibit 31 1y rating transition matrix (literature constant, no per-bond data; treated as fixed P).",
+  "predicted_class": "markov_chain_memory_fidelity_class",
+  "summary": {
+    "class_id": "markov_chain_memory_fidelity_class",
+    "b3_a_priori": "REJECT (statistical descriptor, not mechanism); rank=16 verified=false",
+    "top_verdict": "REJECT-CONFIRMED",
+    "verdict_reason": "tau_mix spread 2.98 decades > 2.0: Markov framework absorbs any state series; tau_mix is set by each domain's native dynamics, not by any shared mechanism. B3 'statistical descriptor, not mechanism' confirmed.",
+    "cross_domain": {
+      "n_domains": 4,
+      "tau_mix_native": [
+        0.8113953059657523,
+        0.3822631385194116,
+        364.15979604359643,
+        94.54070765988922
+      ],
+      "tau_mix_log10": [
+        -0.0907675090781659,
+        -0.41763757880401026,
+        2.5612919971420145,
+        1.9756188487775015
+      ],
+      "tau_mix_log10_spread": 2.9789295759460246,
+      "H_norm_values": [
+        0.8617581986332713,
+        0.9651867903595855,
+        0.8491647036485627,
+        0.9051960485630935
+      ],
+      "H_norm_spread": 0.11602208671102288,
+      "cluster_threshold_log10_tau": 0.5,
+      "cluster_threshold_H_norm": 0.2,
+      "descriptor_confirmed": true,
+      "verdict_label": "REJECT-CONFIRMED-DESCRIPTOR",
+      "reason": "tau_mix spread 2.98 decades > 2.0: Markov framework absorbs any state series; tau_mix is set by each domain's native dynamics, not by any shared mechanism. B3 'statistical descriptor, not mechanism' confirmed."
+    },
+    "domains": [
+      {
+        "label": "D1_text_pride_prejudice_chars",
+        "n_states": 27,
+        "n_obs": 692490,
+        "time_unit": "characters",
+        "lambda_1_real": 1.0000000000000013,
+        "lambda_2_modulus": 0.29157882685625486,
+        "tau_mix": 0.8113953059657523,
+        "tau_mix_log10": -0.0907675090781659,
+        "pi": [
+          0.06328620382417639,
+          0.013705632869258567,
+          0.020547618806941333,
+          0.03347778809482894,
+          0.10481321724966032,
+          0.01821978399656888,
+          0.015289773555969857,
+          0.05145496895979578,
+          0.05790272480862514,
+          0.001327096892513815,
+          0.0048477304332632054,
+          0.03321930023437192,
+          0.022206850939148485,
+          0.05725722719061233,
+          0.060686884557011024,
+          0.01257637305430121,
+          0.0009371990024390292,
+          0.04906648336652276,
+          0.05046000730697525,
+          0.07124300891422099,
+          0.022796029973039263,
+          0.008673061954774727,
+          0.018377187218858348,
+          0.0014498425245743972,
+          0.01912088134251952,
+          0.0014007442717501647,
+          0.18565637865727833
+        ],
+        "H_nats": 2.840214440637017,
+        "H_norm": 0.8617581986332713,
+        "lrt_o1_vs_o2_stat": 702284.7783356351,
+        "lrt_o1_vs_o2_p": 0.0,
+        "lrt_o1_vs_o2_df": 18252,
+        "enough_data_for_lrt": true,
+        "note": ""
+      },
+      {
+        "label": "D2_dna_human_mtdna_nucleotides",
+        "n_states": 4,
+        "n_obs": 16568,
+        "time_unit": "base_pairs",
+        "lambda_1_real": 1.0,
+        "lambda_2_modulus": 0.0730947282989122,
+        "tau_mix": 0.3822631385194116,
+        "tau_mix_log10": -0.41763757880401026,
+        "pi": [
+          0.3092895515180782,
+          0.3127301261544032,
+          0.13086255809742253,
+          0.247117764230096
+        ],
+        "H_nats": 1.3380330049028994,
+        "H_norm": 0.9651867903595855,
+        "lrt_o1_vs_o2_stat": 162.70164071535692,
+        "lrt_o1_vs_o2_p": 4.954115415585022e-18,
+        "lrt_o1_vs_o2_df": 36,
+        "enough_data_for_lrt": true,
+        "note": ""
+      },
+      {
+        "label": "D3_fred_usrecd_daily_recession",
+        "n_states": 2,
+        "n_obs": 62629,
+        "time_unit": "days",
+        "lambda_1_real": 1.0,
+        "lambda_2_modulus": 0.9972577197066589,
+        "tau_mix": 364.15979604359643,
+        "tau_mix_log10": 2.5612919971420145,
+        "pi": [
+          0.7245586642536993,
+          0.27544133574630064
+        ],
+        "H_nats": 0.5885961201650227,
+        "H_norm": 0.8491647036485627,
+        "lrt_o1_vs_o2_stat": 0.1922771797524092,
+        "lrt_o1_vs_o2_p": 0.9083381208772838,
+        "lrt_o1_vs_o2_df": 2,
+        "enough_data_for_lrt": true,
+        "note": ""
+      },
+      {
+        "label": "D4_moodys_corp_rating_1y_transition",
+        "n_states": 8,
+        "n_obs": 0,
+        "time_unit": "years",
+        "lambda_1_real": 1.0,
+        "lambda_2_modulus": 0.9894782904059654,
+        "tau_mix": 94.54070765988922,
+        "tau_mix_log10": 1.9756188487775015,
+        "pi": [
+          0.009746046001696365,
+          0.06534985349046395,
+          0.18285349859111488,
+          0.21903226086063476,
+          0.1588365787781763,
+          0.23855213673812045,
+          0.12562962553979332,
+          0.0
+        ],
+        "H_nats": 1.7614301777836898,
+        "H_norm": 0.9051960485630935,
+        "lrt_o1_vs_o2_stat": NaN,
+        "lrt_o1_vs_o2_p": NaN,
+        "lrt_o1_vs_o2_df": 0,
+        "enough_data_for_lrt": false,
+        "note": "Source: Moody's Annual Default Study 2021 Exhibit 31, global corporate cohort avg 1983-2020. Absorbing Default state; tau_mix is quasi-stationary 2nd eigenvalue scale. | H reported on quasi-stationary distribution (n-1 transient states, Darroch-Seneta)."
+      }
+    ],
+    "nulls": [
+      {
+        "label": "N1_iid_uniform_k5",
+        "n_states": 5,
+        "n_obs": 50000,
+        "time_unit": "steps",
+        "lambda_1_real": 1.0000000000000004,
+        "lambda_2_modulus": 0.00946216107290425,
+        "tau_mix": 0.21457134804181968,
+        "tau_mix_log10": -0.6684282703387833,
+        "pi": [
+          0.20068416302346914,
+          0.20034410529427535,
+          0.1986039822580691,
+          0.19592374269651916,
+          0.20444400672766727
+        ],
+        "H_nats": 1.6093407280620244,
+        "H_norm": 0.9999396159545361,
+        "lrt_o1_vs_o2_stat": 114.87775206519291,
+        "lrt_o1_vs_o2_p": 0.006454239260251896,
+        "lrt_o1_vs_o2_df": 80,
+        "enough_data_for_lrt": true,
+        "note": "expected tau_mix ~ 1 (iid)"
+      },
+      {
+        "label": "N2_strict_period2",
+        "n_states": 2,
+        "n_obs": 50000,
+        "time_unit": "steps",
+        "lambda_1_real": 1.0,
+        "lambda_2_modulus": 1.0,
+        "tau_mix": Infinity,
+        "tau_mix_log10": Infinity,
+        "pi": [
+          0.5,
+          0.5
+        ],
+        "H_nats": 0.6931471805599453,
+        "H_norm": 1.0,
+        "lrt_o1_vs_o2_stat": 0.0,
+        "lrt_o1_vs_o2_p": 1.0,
+        "lrt_o1_vs_o2_df": 2,
+        "enough_data_for_lrt": true,
+        "note": "expected tau_mix inf (periodic)"
+      },
+      {
+        "label": "N3_lazy_ring_rw_k10",
+        "n_states": 10,
+        "n_obs": 50000,
+        "time_unit": "steps",
+        "lambda_1_real": 0.9999999999999996,
+        "lambda_2_modulus": 0.9065599034096018,
+        "tau_mix": 10.193870195085479,
+        "tau_mix_log10": 1.0083390991450751,
+        "pi": [
+          0.09752696649582804,
+          0.09875776239279119,
+          0.09961059590475833,
+          0.10142277804346905,
+          0.10731668351965123,
+          0.1022466191372297,
+          0.10065818744730902,
+          0.09640755763417225,
+          0.09520032796029049,
+          0.10085252146450074
+        ],
+        "H_nats": 2.302061085104423,
+        "H_norm": 0.9997724262650631,
+        "lrt_o1_vs_o2_stat": 40.379549065211904,
+        "lrt_o1_vs_o2_p": 1.0,
+        "lrt_o1_vs_o2_df": 810,
+        "enough_data_for_lrt": true,
+        "note": "expected tau_mix ~ 10-30 (ring RW k=10)"
+      }
+    ],
+    "null_health": {
+      "iid_tau_close_to_1": true,
+      "period2_tau_infinite": true,
+      "ring_tau_in_expected_band": true
+    },
+    "elapsed_sec": 0.9
+  }
+}
