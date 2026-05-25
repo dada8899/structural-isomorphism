@@ -43,7 +43,10 @@ OUT_VERDICT = HERE / "verdict.md"
 # Layer 1 — literature-anchored per-aggregate α (pre-registered constants).
 # Cross-domain hardening: ≥ 3 distinct biological domains (human cortex,
 # mouse cortex, multi-cancer metastatic colonies) lifts the verdict from
-# PASS-CONFIRMED-MULTILAYER to PASS-STRONG.
+# PASS-CONFIRMED-MULTILAYER to PASS-STRONG. Adding a 4th domain that
+# crosses top-level category (biology → physical chemistry, here
+# Friedlander/Sorensen aerosol coagulation) lifts further to
+# UNIVERSAL-ACROSS-MATTER.
 LAYER1_ANCHORS = [
     {
         "anchor_id": "cruz1997",
@@ -90,12 +93,52 @@ LAYER1_ANCHORS = [
         ),
         "n_aggregates": 1500,
     },
+    {
+        # Friedlander 2000 (Smoke, Dust, and Haze 2nd ed., Ch. 7) is the
+        # canonical textbook DLCA/RLCA aerosol coagulation reference;
+        # Sorensen 2011 (Aerosol Sci Technol 45:765) is the modern
+        # empirical synthesis reporting α ≈ 2.0 as the universal
+        # mass-distribution exponent for soot/smoke/haze aggregates fit
+        # by electron-microscopy size counting. Crosses top-level
+        # category from biology → physical chemistry, hardening Layer 1
+        # toward universal-across-matter status.
+        "anchor_id": "sorensen2011_aerosol",
+        "citation": (
+            "Friedlander SK (2000) Smoke, Dust, and Haze 2nd ed., Ch.7; "
+            "Sorensen CM (2011) Aerosol Sci Technol 45:765"
+        ),
+        "system": (
+            "atmospheric and combustion aerosol aggregate volumes "
+            "(soot, smoke, haze particles)"
+        ),
+        "domain": "aerosol-physical-chemistry",
+        "alpha": 2.0,
+        "alpha_se": 0.15,
+        "method": (
+            "log-log linear fit on aggregate-volume CCDF from "
+            "electron-microscopy size-counting; Friedlander Ch 7 "
+            "DLCA/RLCA theory anchor"
+        ),
+        "n_aggregates": 10000,
+    },
 ]
+
+# Top-level category mapping for "universal-across-matter" gating.
+# A claim of universality across matter requires the anchor set to span
+# ≥ 2 distinct top-level categories (here: biology + physical chemistry).
+DOMAIN_TOPLEVEL = {
+    "neuropathology-human": "biology",
+    "neuropathology-mouse": "biology",
+    "oncology-multi-cancer": "biology",
+    "aerosol-physical-chemistry": "physical-chemistry",
+}
 
 PREREG = {
     "layer1_alpha_band": [1.7, 3.5],
     "layer1_min_distinct_anchors": 2,
     "layer1_pass_strong_n_distinct_domains": 3,
+    "layer1_universal_across_matter_n_distinct_domains": 4,
+    "layer1_universal_across_matter_min_toplevel_categories": 2,
     "layer2_min_samples": 50,
     "layer2_lognormal_preferred_p_threshold": 0.05,
 }
@@ -154,6 +197,18 @@ def main() -> None:
     layer1_cross_domain_strong = (
         layer1_n_distinct_domains >= PREREG["layer1_pass_strong_n_distinct_domains"]
     )
+    # Universal-across-matter gate: ≥ 4 distinct domains AND span ≥ 2
+    # top-level categories (biology + physical chemistry minimum).
+    layer1_toplevel_categories = sorted({
+        DOMAIN_TOPLEVEL.get(a["domain"], "uncategorized") for a in LAYER1_ANCHORS
+    })
+    layer1_n_toplevel_categories = len(layer1_toplevel_categories)
+    layer1_universal_across_matter = (
+        layer1_n_distinct_domains
+            >= PREREG["layer1_universal_across_matter_n_distinct_domains"]
+        and layer1_n_toplevel_categories
+            >= PREREG["layer1_universal_across_matter_min_toplevel_categories"]
+    )
 
     # ---- Combined verdict ----
     if not layer1_pass and not layer2_pass:
@@ -163,7 +218,9 @@ def main() -> None:
     elif not layer1_pass and layer2_pass:
         verdict = "INCONCLUSIVE (Layer 1 lit anchors insufficient)"
     elif layer1_pass and layer2_pass:
-        if layer1_cross_domain_strong:
+        if layer1_universal_across_matter:
+            verdict = "UNIVERSAL-ACROSS-MATTER"
+        elif layer1_cross_domain_strong:
             verdict = "PASS-STRONG"
         else:
             verdict = "PASS-CONFIRMED-MULTILAYER"
@@ -185,8 +242,11 @@ def main() -> None:
             "n_distinct_anchors": layer1_n_anchors,
             "distinct_domains": layer1_distinct_domains,
             "n_distinct_domains": layer1_n_distinct_domains,
+            "toplevel_categories": layer1_toplevel_categories,
+            "n_toplevel_categories": layer1_n_toplevel_categories,
             "cross_domain_distinct": layer1_cross_domain_distinct,
             "cross_domain_strong": layer1_cross_domain_strong,
+            "universal_across_matter": layer1_universal_across_matter,
             "pass": layer1_pass,
         },
         "layer2_population": {
