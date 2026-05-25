@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-05-24T16:08:26Z",
+  "fetched_at": "2026-05-25T07:29:22Z",
   "data_source": "https://wandb.ai/eleutherai/pythia (public anonymous GraphQL API)",
   "identification_method": "match summaryMetrics.train/lm_loss to Biderman 2023 Table 8",
   "models": [
