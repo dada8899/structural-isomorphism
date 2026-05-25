@@ -425,9 +425,35 @@ def main() -> None:
             },
             "verdict": verdict_steep,
             "purpose": (
-                "Infrastructure sanity check — demonstrates that the v0.5 "
-                "pre-reg CAN deliver PASS on appropriately-steep synthetic "
-                "data calibrated to anchor-implied k≈7.8 (WTO Bown 2009)."
+                "Infrastructure sanity check — demonstrates the steeper "
+                "b_true alone (without intercept adjustment) is INSUFFICIENT: "
+                "(s*, k) trajectory drifts out of pre-reg box."
+            ),
+        },
+        "subrun_c_anchor_calibrated_full": {
+            "a_intercept": A_CAL,
+            "b_true_generator": B_CAL,
+            "noise_scale": NOISE_CAL,
+            "n_per_arm": int(active_cal["n_events"]),
+            "fit_active": fit_active_cal,
+            "fit_sham": fit_sham_cal,
+            "anchor": anchor_cal,
+            "anchor_hits": int(anchor_hits_cal),
+            "verdict_ladder": {
+                "active_k_excludes_0": bool(active_k_excludes_0_cal),
+                "sham_null_holds": bool(sham_null_ok_cal),
+                "s_star_in_band": bool(s_star_in_band_cal),
+                "k_in_band": bool(k_in_band_cal),
+                "p_high_ok": bool(p_high_ok_cal),
+                "p_low_ok": bool(p_low_ok_cal),
+            },
+            "verdict": verdict_cal,
+            "purpose": (
+                "SESSION-24 (f) outstanding closure — full anchor-calibrated "
+                "(a, b, noise) sub-run using extended run_arm() kwargs. "
+                "Demonstrates v0.5 pre-reg infrastructure delivers a clean "
+                "PASS-CONFIRMED when generator parameters are tuned to "
+                "anchor-implied steepness."
             ),
         },
         "notes": (

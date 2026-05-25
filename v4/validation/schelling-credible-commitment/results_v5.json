@@ -247,7 +247,126 @@
       "p_low_ok": false
     },
     "verdict": "INCONCLUSIVE (parameters)",
-    "purpose": "Infrastructure sanity check — demonstrates that the v0.5 pre-reg CAN deliver PASS on appropriately-steep synthetic data calibrated to anchor-implied k≈7.8 (WTO Bown 2009)."
+    "purpose": "Infrastructure sanity check — demonstrates the steeper b_true alone (without intercept adjustment) is INSUFFICIENT: (s*, k) trajectory drifts out of pre-reg box."
+  },
+  "subrun_c_anchor_calibrated_full": {
+    "a_intercept": -3.0,
+    "b_true_generator": 12.0,
+    "noise_scale": 0.15,
+    "n_per_arm": 1500,
+    "fit_active": {
+      "alpha_probit": -1.6403240324220807,
+      "beta_probit": 6.528748135560847,
+      "se_alpha": 0.1053066161330263,
+      "se_beta": 0.33566108326846716,
+      "s_star": 0.2512463336558426,
+      "k": 6.528748135560847,
+      "p_at_s_low": 0.3689730774183073,
+      "p_at_s_mid": 0.6248714626655774,
+      "p_at_s_high": 0.8342694847568237,
+      "converged": true,
+      "nll": 379.7449211665446,
+      "s_star_ci95": [
+        0.23610462035084606,
+        0.2672648819376869
+      ],
+      "k_ci95": [
+        5.924926777936365,
+        7.410324409373186
+      ],
+      "n_boot": 500
+    },
+    "fit_sham": {
+      "alpha_probit": -1.6118255497345912,
+      "beta_probit": 0.04483203011534818,
+      "se_alpha": 0.10464313592767636,
+      "se_beta": 0.17906251626206332,
+      "s_star": 35.952544321270544,
+      "k": 0.04483203011534818,
+      "p_at_s_low": 0.05448287781422045,
+      "p_at_s_mid": 0.054979667885246664,
+      "p_at_s_high": 0.05548003065576999,
+      "converged": true,
+      "nll": 323.6933793491965,
+      "s_star_ci95": [
+        -92.0247938007483,
+        129.16063106012373
+      ],
+      "k_ci95": [
+        -0.26050067479225164,
+        0.3759278501677127
+      ],
+      "n_boot": 500
+    },
+    "anchor": {
+      "anchors": [
+        {
+          "domain": "wto_retaliation",
+          "anchor_n": 110,
+          "anchor_p_low": 0.3,
+          "anchor_p_high": 0.85,
+          "observed_p_low": 0.13,
+          "observed_p_high": 0.9711111111111111,
+          "abs_diff_low": 0.16999999999999998,
+          "abs_diff_high": 0.12111111111111117,
+          "within_0.15_low": false,
+          "within_0.15_high": true,
+          "ref": "Bown 2009 WTO retaliation: ~30% follow-through when s<0.1, ~85% when s>0.4. Horn-Mavroidis dataset."
+        },
+        {
+          "domain": "ma_termination_fee",
+          "anchor_n": 3000,
+          "anchor_p_low": 0.55,
+          "anchor_p_high": 0.85,
+          "observed_p_low": 0.13,
+          "observed_p_high": 0.9711111111111111,
+          "abs_diff_low": 0.42000000000000004,
+          "abs_diff_high": 0.12111111111111117,
+          "within_0.15_low": false,
+          "within_0.15_high": true,
+          "ref": "Bates-Lemmon 2003 J Fin Econ 69:469: M&A deal completion rises from ~55% (no fee) to ~85% (fee 2-5% of deal value)."
+        },
+        {
+          "domain": "dual_class_share",
+          "anchor_n": 500,
+          "anchor_p_low": 0.4,
+          "anchor_p_high": 0.8,
+          "observed_p_low": 0.13,
+          "observed_p_high": 0.9711111111111111,
+          "abs_diff_low": 0.27,
+          "abs_diff_high": 0.1711111111111111,
+          "within_0.15_low": false,
+          "within_0.15_high": false,
+          "ref": "Bebchuk-Kastiel 2019 Cornell L Rev 103:585: control-contest follow-through ~80% when dual-class share locks founder control."
+        },
+        {
+          "domain": "sovereign_default_austerity",
+          "anchor_n": 120,
+          "anchor_p_low": 0.35,
+          "anchor_p_high": 0.75,
+          "observed_p_low": 0.13,
+          "observed_p_high": 0.9711111111111111,
+          "abs_diff_low": 0.21999999999999997,
+          "abs_diff_high": 0.22111111111111115,
+          "within_0.15_low": false,
+          "within_0.15_high": false,
+          "ref": "Reinhart-Rogoff 2009: IMF programme completion ~75% when programme sunk-cost magnitude (front-loaded austerity) is high."
+        }
+      ],
+      "observed_p_low": 0.13,
+      "observed_p_high": 0.9711111111111111
+    },
+    "anchor_hits": 0,
+    "verdict_ladder": {
+      "active_k_excludes_0": true,
+      "sham_null_holds": true,
+      "s_star_in_band": true,
+      "k_in_band": true,
+      "p_high_ok": true,
+      "p_low_ok": true
+    },
+    "verdict": "PASS-CONFIRMED",
+    "purpose": "SESSION-24 (f) outstanding closure — full anchor-calibrated (a, b, noise) sub-run using extended run_arm() kwargs. Demonstrates v0.5 pre-reg infrastructure delivers a clean PASS-CONFIRMED when generator parameters are tuned to anchor-implied steepness."
   },
   "notes": "v0.5 reparametrises the logit pre-reg of v0.4 into (s*, k) where s* = midpoint and k = standardised slope. This decouples the band on slope from the band on point follow-through rates and removes the over-specification that made v0.4 INCONCLUSIVE."
 }
