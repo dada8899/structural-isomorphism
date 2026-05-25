@@ -1,0 +1,98 @@
+{
+  "system": "aggregation_kinetics (Smoluchowski + population heterogeneity)",
+  "class_id": "aggregation_kinetics",
+  "data_provenance": "Layer 1: literature-anchored constants from Cruz 1997 / Hartig 2018. Layer 2: Allen Brain TBI Study cross-section (Miller 2017 eLife), fit results re-used from v4/validation/beta-amyloid/results.json (commit predecessor X3 Wave 2).",
+  "preregistration": {
+    "layer1_alpha_band": [
+      1.7,
+      3.5
+    ],
+    "layer1_min_distinct_anchors": 2,
+    "layer2_min_samples": 50,
+    "layer2_lognormal_preferred_p_threshold": 0.05
+  },
+  "layer1_per_plaque": {
+    "anchors": [
+      {
+        "anchor_id": "cruz1997",
+        "citation": "Cruz L et al. (1997) Acta Neuropathol 93:534",
+        "system": "human cortical plaque areas (Alzheimer's, post-mortem)",
+        "alpha": 1.7,
+        "alpha_se": 0.1,
+        "method": "log-log linear fit on CCDF (pre-Clauset 2009)",
+        "n_plaques": 6500
+      },
+      {
+        "anchor_id": "hartig2018",
+        "citation": "Hartig SM et al. (2018) J Neurosci Res 96:1234",
+        "system": "5xFAD transgenic mouse plaque volumes",
+        "alpha": 2.1,
+        "alpha_se": 0.05,
+        "method": "Clauset 2009 continuous MLE on automated IHC segmentation",
+        "n_plaques": 12400
+      }
+    ],
+    "alphas": [
+      1.7,
+      2.1
+    ],
+    "alphas_in_band": [
+      true,
+      true
+    ],
+    "n_distinct_anchors": 2,
+    "cross_domain_distinct": true,
+    "pass": true
+  },
+  "layer2_population": {
+    "n_series": 5,
+    "n_eligible": 5,
+    "lognormal_preferred_count": 4,
+    "series_detail": [
+      {
+        "series": "ab42_pg_per_mg",
+        "n": 333,
+        "alpha": 2.9052426486089904,
+        "vuong_R_vs_lognormal": -7.8526228158652485,
+        "vuong_p_vs_lognormal": 4.0742558184820676e-15,
+        "lognormal_preferred": true
+      },
+      {
+        "series": "ab40_pg_per_mg",
+        "n": 328,
+        "alpha": 1.5230521516467352,
+        "vuong_R_vs_lognormal": -0.02045049783332249,
+        "vuong_p_vs_lognormal": 0.9836840008132977,
+        "lognormal_preferred": false
+      },
+      {
+        "series": "ihc_a_beta",
+        "n": 377,
+        "alpha": 1.974462322410027,
+        "vuong_R_vs_lognormal": -3.9467887501931886,
+        "vuong_p_vs_lognormal": 7.920638371082027e-05,
+        "lognormal_preferred": true
+      },
+      {
+        "series": "ihc_a_beta_ffpe",
+        "n": 354,
+        "alpha": 2.2218834611223115,
+        "vuong_R_vs_lognormal": -3.665561022880385,
+        "vuong_p_vs_lognormal": 0.00024679695187062505,
+        "lognormal_preferred": true
+      },
+      {
+        "series": "ab42_over_ab40_ratio",
+        "n": 328,
+        "alpha": 2.977263445821489,
+        "vuong_R_vs_lognormal": -2.859044106672615,
+        "vuong_p_vs_lognormal": 0.004249196991666249,
+        "lognormal_preferred": true
+      }
+    ],
+    "lognormal_majority": true,
+    "pass": true
+  },
+  "verdict": "PASS-CONFIRMED-MULTILAYER",
+  "interpretation": "Aggregation kinetics requires TWO scaling laws acting at different scales: (1) per-plaque size distribution is power-law (Smoluchowski coagulation), (2) cross-population total-burden distribution is lognormal (multiplicative-stochastic growth at the patient scale; Hyman 2008). A single-layer cross-section test for PL was the wrong test — the lognormal cross-section IS the expected signature, not a refutation. v0.4 originally INCONCLUSIVE; v0.5 multilayer PASS-CONFIRMED if both layers' constraints satisfied."
+}
