@@ -29,6 +29,17 @@ The answer is *not* "yes" by assumption. We treat it as a falsifiable question: 
 - Taxonomy v0.4: **26 verified classes + 5 SPLIT decisions + 1 MERGE recommendation** (preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality)
 - One published null result: walk-forward backtest Sharpe lift = **−0.23**
 
+**Status as of 2026-05-26 (v0.5-draft, transitional — see [paper/v0.5-draft/](paper/v0.5-draft/))**
+
+The v0.5 draft consolidates SESSION-25 work since the v0.4 cut. v0.4 outputs above are unchanged; v0.5 adds three methodology increments, one new class promotion, and one eval-specific universality finding:
+
+- **19 empirically-anchored classes** (+1): new `aggregation_kinetics` PASS-STRONG (multilayer Smoluchowski + lognormal population) promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE via a 2-layer test pattern; 3 distinct biological domains (Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003).
+- **11 PASS-CONFIRMED-or-stronger** (+1): `schelling_credible_commitment` lifted to PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (sub-run D, 2/4 anchor hits) via the (s\*, k) threshold-tobit reparametrisation. Horn-Mavroidis WTO real-data sanity check (n = 23 retaliation cases) returns a sign-reversed slope (`k = −2.92`, 95 % CI `[−7.92, −0.67]`), reported honestly as an observational-identification failure (selection on defendant intransigence), not a refutation of the underlying mechanism.
+- **3 methodology increments** (§3.6.5 (s\*, k) reparametrisation / §3.6.6 multilayer test pattern / §3.6.7 head-vs-tail-aware LLM validator) with one full applicability retrospective and three pre-registrations under [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/).
+- **Pythia LAMBADA cross-fit (§4)**: 100 % real per-checkpoint evaluation across 8 sizes × 27 checkpoints. v1 (L∞ free) and v2 (L∞ ∈ [1.0, 5.0]) both deliver TIGHT_UNIVERSALITY (CV ≈ 0.12). **The TIGHT verdict is eval-specific**: pooled across LAMBADA + train-loss sources, CV blows out to 0.58–1.49. The v0.4 BROAD_SPREAD verdict was an artefact of mixed 3-real + 3-synthetic train-loss provenance; the universality claim is a property of *the LAMBADA-OpenAI loss curve*, not of the scaling-law family in general.
+- **arXiv status**: v0.4 preprint submission pending user action; v0.5 draft is *not* a submission, only an extension. See `release/arxiv-submission-receipt.txt` (to be populated).
+- **No new PyPI packages**; no new datasets; v0.5 inherits v0.4's `dataset/v1/` and the three published PyPI packages unchanged.
+
 ## What's in this repo
 
 <table>

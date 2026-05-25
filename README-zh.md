@@ -26,6 +26,17 @@
 - 分类法 v0.4：**26 类已验证 + 5 个 SPLIT 决议 + 1 个 MERGE 建议**（preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality）
 - 一份已公开的零结果：滚动回测 Sharpe 提升 = **−0.23**
 
+**截至 2026-05-26（v0.5-draft 过渡态——详见 [paper/v0.5-draft/](paper/v0.5-draft/)）**
+
+v0.5 草稿汇总了 SESSION-25 自 v0.4 切线后的进展。v0.4 以上数字不变；v0.5 新增 3 个方法学增量、1 个新类晋升、1 个评测专属的普适性结论：
+
+- **19 个实证锚定的类**（+1）：新增 `aggregation_kinetics` PASS-STRONG（多层级 Smoluchowski 凝聚 + 跨人群对数正态），由 v0.4 的 `beta_amyloid_aggregation` INCONCLUSIVE 通过 2 层级测试模式晋升而来；3 个不同生物领域锚（Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003）。
+- **11 个 PASS-CONFIRMED-或更强**（+1）：`schelling_credible_commitment` 通过 (s\*, k) 阈值-tobit 重参数化升至 PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT（sub-run D，2/4 锚命中）。Horn-Mavroidis WTO 真实数据健全性检查（n = 23 个报复案例）返回符号反转斜率（`k = −2.92`，95 % CI `[−7.92, −0.67]`），如实报告为观测识别失败（被告强硬度选择偏差），不构成对底层机制的反驳。
+- **3 个方法学增量**（§3.6.5 (s\*, k) 重参数化 / §3.6.6 多层级测试模式 / §3.6.7 头-尾感知 LLM 校验器），含 1 份完整的跨类适用性回顾 + 3 份预注册（在 [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/)）。
+- **Pythia LAMBADA 跨拟合（§4）**：8 个 size × 27 checkpoint 全部使用真实逐点评测。v1（L∞ 自由）与 v2（L∞ ∈ [1.0, 5.0]）均得到 TIGHT_UNIVERSALITY（CV ≈ 0.12）。**TIGHT 结论是评测特异性的**：跨 LAMBADA + train-loss 多源池化后 CV 涨到 0.58–1.49。v0.4 的 BROAD_SPREAD 是 3-真实 + 3-合成 train-loss 混源造成的伪影；普适性结论是 *LAMBADA-OpenAI 损失曲线本身* 的属性，不是 scaling-law 家族普遍属性。
+- **arXiv 状态**：v0.4 预印本投递待用户操作；v0.5 草稿 *不* 是新投递，只是延伸。见 `release/arxiv-submission-receipt.txt`（待填）。
+- **没有新的 PyPI 包**；没有新的数据集；v0.5 继承 v0.4 的 `dataset/v1/` 与 3 个已发布 PyPI 包，原样不变。
+
 ## 仓库内容
 
 <table>

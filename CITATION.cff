@@ -5,8 +5,8 @@ title: "Structural Isomorphism: cross-domain SOC validation pipeline"
 authors:
   - family-names: dada8899
     affiliation: "Independent Research, Structural Isomorphism Project"
-version: 0.4.0-draft
-date-released: 2026-05-25
+version: 0.5.0-draft
+date-released: 2026-05-26
 url: "https://github.com/dada8899/structural-isomorphism"
 repository-code: "https://github.com/dada8899/structural-isomorphism"
 license: MIT
@@ -14,14 +14,22 @@ abstract: >
   A Clauset-grade analysis pipeline for cross-domain validation of self-
   organized criticality (SOC), preferential attachment, and adjacent
   universality classes (Motter-Lai network cascade, Preisach hysteresis,
-  Scheffer fold bifurcation). One shared ~339-LOC Python module
-  (v4/lib/soc_pipeline.py) applied unchanged to thirteen independent
-  empirical systems plus four synthetic null controls. Includes a B1/B3
-  multi-model LLM ensemble critic over a 21-candidate universality-class
-  taxonomy, frozen pipeline source, and 213 tests across unit /
-  integration / e2e tiers. Companion preprint
-  (paper/v0-unified-pipeline-2026-05-13.md) and dataset bundle
-  (dataset/v1/) ship in the same repository.
+  Scheffer fold bifurcation, aggregation kinetics, Schelling credible
+  commitment, Pythia LAMBADA scaling). One shared ~339-LOC Python module
+  (v4/lib/soc_pipeline.py) applied unchanged across nineteen empirically-
+  anchored universality classes plus synthetic null controls. v0.5
+  introduces three methodology increments (§3.6.5 (s*, k) threshold-
+  tobit reparametrisation; §3.6.6 multilayer test pattern; §3.6.7 head-
+  vs-tail-aware LLM validator), promotes one new class
+  (aggregation_kinetics, PASS-STRONG across 3 distinct biological
+  domains), and reports an eval-specific TIGHT_UNIVERSALITY finding for
+  Pythia LAMBADA scaling (CV ≈ 0.12 within-eval; CV ≈ 0.58–1.49 cross-
+  eval). Includes a B1/B3 multi-model LLM ensemble critic over a 21-
+  candidate universality-class taxonomy, frozen pipeline source, and
+  213+ tests across unit / integration / e2e tiers. Companion preprints
+  (paper/v0-unified-pipeline-2026-05-13.md and the v0.5 draft skeleton
+  at paper/v0.5-draft/v05-draft-skeleton.md) ship in the same
+  repository.
 keywords:
   - self-organized criticality
   - cross-domain validation
@@ -35,9 +43,15 @@ keywords:
   - Scheffer fold bifurcation
   - LLM ensemble critic
   - reproducibility benchmark
+  - aggregation kinetics
+  - Smoluchowski coagulation
+  - Schelling credible commitment
+  - threshold-tobit reparametrisation
+  - multilayer scaling test
+  - Pythia LAMBADA scaling-law cross-fit
 identifiers:
   - type: url
     value: https://github.com/dada8899/structural-isomorphism
   - type: other
-    value: "structural-isomorphism-pipeline-v0.4.0-draft"
-    description: pipeline release tag (v0.4 paper draft in progress; v0.4.0 final pending arXiv submission)
+    value: "structural-isomorphism-pipeline-v0.5.0-draft"
+    description: pipeline release tag (v0.5 paper draft in progress; v0.4 arXiv submission pending; v0.5 not yet a submission, only an extension)

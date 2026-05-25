@@ -16,7 +16,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub repo PUBLIC flip (awaiting key rotation + LFS migration + history scrub)
 - GH Pages enable for mkdocs + Storybook deployment (user manual action)
 - Plausible custom event verification on real prod data
-- 1-day staggered outreach to 5 senior researchers (W9-D drafts ready)
+- 1-day staggered outreach to 8 senior reviewers (6 v0.5 refresh + 2 new methodology specialists; `docs/outreach/2026-05-26-emails/` drafts ready)
+- Real-data WTO retaliation coding follow-up (Bown 2009 + Horn-Mavroidis n ≈ 110 cases × ~6 h; SESSION-25 task A2 in progress)
+- `aggregation_kinetics` 4th cross-domain anchor (Friedlander 2000 aerosol coagulation; SESSION-25 task A4 in progress)
+- Pythia cross-evaluator α extension (WikiText-103 / HellaSwag / LAMBADA-standard; SESSION-25 task A3 closed; cross-eval BROAD_SPREAD reported in §4.6 of v0.5 skeleton)
+
+---
+
+## [0.5.0-draft] — 2026-05-26 (SESSION-25 transitional cut)
+
+v0.5 is a **draft state**, not a submission. It consolidates SESSION-25 work between the v0.4 cut (SESSION-24 handoff) and HEAD. The v0.4 deliverables (PyPI packages, datasets, 18-class taxonomy, frozen pipeline) are unchanged. v0.5 adds three methodology increments, one new universality-class promotion, one re-analysed class lift, and one eval-specific scaling-law finding.
+
+### Added
+
+- **`aggregation_kinetics` PASS-STRONG class** (1960783, b01e5c4): promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE entry via a 2-layer pre-registration. Layer 1 = per-aggregate Smoluchowski power-law α ∈ [1.7, 3.5] anchored across 3 distinct biological domains (Cruz 1997 human cortex / Hartig 2018 5xFAD mouse / Iwata 2000 + Brú 2003 multi-cancer oncology); Layer 2 = cross-population lognormal anchored on 4/5 Allen Brain TBI Aβ series.
+- **Schelling credible-commitment v0.5 lift** (71edaf4, 39226c1, 8183a45, 714fb58, c44fdb0): v0.4 INCONCLUSIVE-pre-reg-overspec → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (sub-run D, 2/4 anchor hits) via the (s\*, k) threshold-tobit reparametrisation. Synthetic-generator family extended (`run_arm()` exposes `a_intercept` + `noise_scale`); sub-runs A / B / C / D + (a, b, noise) grid sweep characterise the structural limit of the synthetic generator. Real-data sanity check on the Horn-Mavroidis WTO 1995–2006 dataset (n = 23 disputes reaching DSB Article 22.6 retaliation-request stage) returns a **sign-reversed** probit fit (`k = −2.92`, 95 % CI `[−7.92, −0.67]`), reported honestly as an observational-identification failure (selection on defendant intransigence), not a refutation of the mechanism.
+- **Pythia LAMBADA per-checkpoint validation (§4 NEW)** (e798397, 50c960e, 534d24f, 46a2b14): 100 % real-data coverage across 8 sizes × 27 standard checkpoints = 216 (size, checkpoint) pairs from EleutherAI's `pythia-v1/<size>/zero-shot/` JSON outputs. v1 (L∞ unconstrained) and v2 (L∞ ∈ [1.0, 5.0] anchored to LAMBADA-OpenAI floor) both deliver TIGHT_UNIVERSALITY (CV = 0.118 and 0.116). Cross-evaluator α extension (LAMBADA-OpenAI vs train-loss sources) shows pooled CV blows out to 0.58–1.49 — **the TIGHT verdict is eval-specific**, not a property of the Chinchilla scaling-law family in general (`v4/validation/llm-scaling/cross_source_summary.md`).
+- **§3.6.5 (s\*, k) threshold-tobit reparametrisation — methodology increment** (14a73c4): targeted remediation for the over-specification failure mode that forced v0.4 Schelling INCONCLUSIVE; cross-class applicability audit returns N/A for three other candidate classes (`hysteresis_first_order_transition`, `adverse_selection_unraveling`, `gardner_collins_toggle_switch`). Pre-registration in `paper/v0.5-draft/preregistrations/preregistration-3.6.5-sk-reparam-2026-05-25.md`.
+- **§3.6.6 Multilayer test pattern — methodology increment** (14a73c4): general test-pattern upgrade for candidate classes whose theory predicts different scaling forms at different scales (intra-individual vs inter-individual; per-aggregate vs per-population; per-event vs per-waiting-time). First instance = `aggregation_kinetics`. Cross-class candidates flagged (allometric Kleiber; preferential-attachment; cascading failures; earthquake productivity). Pre-registration in `paper/v0.5-draft/preregistrations/preregistration-3.6.6-multilayer-2026-05-25.md`.
+- **§3.6.7 Head-vs-tail-aware LLM validator — engineering pattern** (14a73c4, 599341e, a8e60d5): pattern for LLM-driven text-rewrite tasks where a fixed *head* (input context) must be preserved while the *tail* is rewritten. Slicer `new_only = new_full[len(head):]` eliminates head-side false-rejects in forbidden-substring checks. Deployed on Wave 3 C KB cleanup (117 entries through OpenRouter Kimi K2.5, ~$0.05, 18s wall-clock) + head-internal collision strip (23 public-health entries). Pre-registration in `paper/v0.5-draft/preregistrations/preregistration-3.6.7-head-aware-validator-2026-05-25.md`.
+- **v0.5 paper draft skeleton** (71a5617, dcc3610): `paper/v0.5-draft/v05-draft-skeleton.md`, ~10k words, 9 sections + skeleton end-note + outstanding-placeholders block. Companion files: `methodology-increment-checklist.md`, `v05-roadmap.md`, `sec-4-cross-eval-update.md`, `sec-6-real-data-update.md`.
+- **Pattern-level pre-registrations** (14a73c4): three formal pre-reg documents (§3.6.5 / §3.6.6 / §3.6.7) under `paper/v0.5-draft/preregistrations/`.
+- **v0.5 figure bundle** (9b61b2b): 5 figures at 300 dpi PNG + captions in `paper/v0.5-draft/figures/`.
+- **`paper/v0.5-draft/references-bib.md`** (this commit): consolidated alphabetical bibliography for v0.5 — every citation referenced in §§3.6.5/6/7, §4, §5, §6 plus inherited v0.4 references, with DOI / arXiv URL / one-sentence relevance note. Pending-verification entries flagged honestly with `[DOI: pending]`; none fabricated.
+- **8-email reviewer outreach drafts** (this commit): `docs/outreach/2026-05-26-emails/` — 6 v0.5 refreshes (Sornette / Stumpf / Porter / Clauset / Sethna / Bouchaud) + 2 new methodology specialists (probit / threshold-tobit econometrics; multilayer / hierarchical scaling physics). v0.4 status declared honestly (arXiv pending) in each draft.
+- **KB master 5333 → 5341 promotion** (29bd6c8): `aggregation_kinetics` additions merged.
+
+### Changed
+
+- **§3 verdict matrix** (dcc3610, 1960783): 18 v0.4 rows preserved verbatim; new row (`aggregation_kinetics` PASS-STRONG), updated row (`schelling_credible_commitment` → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT), updated row (`llm_scaling` / Pythia → TIGHT_UNIVERSALITY on 100 % real LAMBADA).
+- **README.md / README-zh.md** (this commit): v0.5 transitional status block added after the existing v0.4 block; v0.4 numbers unchanged. Honest declaration that v0.5 is a draft, not a submission, and that the Pythia TIGHT verdict is eval-specific.
+- **CITATION.cff** (this commit): version 0.4.0-draft → 0.5.0-draft; date 2026-05-25 → 2026-05-26; abstract updated to mention `aggregation_kinetics`, Schelling, Pythia LAMBADA, and the three methodology increments; keywords extended.
+
+### Documented / Honest negative results
+
+- **Pythia v2 L∞-constrained re-fit: R² did not improve** (50c960e). Mean R² *decreased* by 0.018 (0.82 → 0.81); all 8 sizes hit the lower bound L_inf = 1.0. Interpretation: within Pythia training-compute range [10¹⁵, 10²²] FLOPs, LAMBADA log-perplexity is still in the power-law-decay regime, not the floor-bounded regime. v0.5 reports this as a clean negative finding and a *contribution*: it demonstrates the α universality verdict is robust to the fit re-specification (cross-fit robustness as the contribution, not R² improvement).
+- **Schelling Horn-Mavroidis WTO real-data probit: sign-reversed slope** (sec-6-real-data-update.md). `k = −2.92`, 95 % CI `[−7.92, −0.67]` — *opposite direction* of the Schelling pre-registration. Per-anchor projection lands 0/4 within ±0.20. Reported honestly as an observational-identification failure (selection on defendant intransigence); does not refute Schelling's exogenous-`s` mechanism but does refute the claim that Horn-Mavroidis alone identifies it.
+- **`aggregation_kinetics` Layer 1 anchors of unequal methodological vintage** (b01e5c4 §5 Caveat B). Two of three Layer 1 anchors (Cruz 1997, Brú 2003) use pre-Clauset log-log linear fitting on the CCDF (a methodology Clauset 2009 §6 criticised). In-band result robust to method choice, but the SEs from pre-Clauset method are not directly comparable to the Hartig 2018 Clauset-MLE SE. Honest path forward (§7.3): contemporary Clauset MLE re-fit on Cruz 1997 + Brú 2003 raw data, if recoverable.
+- **C4 §4.3.2 disambiguation** (08c5ee4): Hawkes contagion (C4) vs SOC-Gumbel (C1) confounding clarified; tail-copula attribution error corrected from "Gumbel BIC" to "SOC ΔAIC".
+- **KB Wave 3 C cleanup retrospective** (599341e, a8e60d5): 117 entries shared a 7-template boilerplate suffix; 23 public-health entries also shared a 30-character connector phrase. Both pollution sources removed via §3.6.7 slicer + deterministic strip. Validator + audit artifacts excluded from git via 4c4e489.
+
+### Fixed
+
+- **C4 audit + cross-class reparam retrospective closed** (ec5c148): SESSION-24 outstanding items (a) and (g).
+- **KB collision + V1 cache assertions made merge-aware** (087559a): tests no longer break under in-place KB rewrites.
+- **Schelling sub-run C results written to `results_v5.json`** (8183a45).
+
+### Methodology — explicit (continues v0.4)
+
+- §3.6.5: (s\*, k) reparametrisation. Targeted remediation; not a generic upgrade. Audit pattern for pre-registration consistency (does the slope band overlap the slope implied by the point-rate constraints?).
+- §3.6.6: Multilayer test pattern. PASS-CONFIRMED-MULTILAYER / SPLIT / REJECT-MULTILAYER verdict ladder. Cross-class candidate list.
+- §3.6.7: Head-vs-tail-aware LLM validator (engineering, not scientific methodology — reviewers should weight this lower than §§3.6.5 / 3.6.6).
+
+### Limitations carried into v0.5 (explicit)
+
+- v0.5 still inherits all v0.4 §6 limitations verbatim.
+- v0.5 additions: `aggregation_kinetics` Layer 1 hardening incomplete (3 biological domains anchored; 4th non-biological domain in progress as SESSION-25 task A4); Schelling 2/4 anchor-hit gap is a structural limit of the synthetic generator family, not a fitting failure; Pythia 12B post-300B-token continuation not currently available; cross-evaluator α universality reported BROAD_SPREAD pooled (the TIGHT verdict is intra-eval); joint L_inf fit (Hoffmann 2022 style) deferred; §3.6.7 is engineering, not methodology; v0.5 still inherits the v0.4 single-session-verdict limitation for the 18 v0.4 classes (no new cross-replication in v0.5).
+
+### Tag / submission status
+
+- v0.5 is a **draft state, not a submission**. v0.4 arXiv submission remains pending user account action.
+- HEAD at SESSION-25 cut: `14a73c4` (`docs(v0.5/preregistrations): 3 pattern-level pre-regs for §3.6 methodology`).
 
 ---
 
