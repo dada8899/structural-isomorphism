@@ -1,0 +1,367 @@
+{
+  "system": "Schelling credible commitment — REAL WTO retaliation data fit (SESSION-25)",
+  "data_source": "Horn-Mavroidis WTO Dispute Settlement Dataset (World Bank, 2011 update of 2006 cutoff) + WTO Official Case Summaries 2010 Edition + per-dispute manual outcome coding",
+  "n_disputes": 23,
+  "p_low_obs": 1.0,
+  "p_high_obs": 0.5833333333333334,
+  "n_low_bin": 11,
+  "n_high_bin": 12,
+  "prereg_v5": {
+    "s_star_band": [
+      0.2,
+      0.35
+    ],
+    "k_band": [
+      4.0,
+      12.0
+    ],
+    "p_high_threshold": 0.65,
+    "p_low_threshold": 0.4,
+    "sham_k_max_abs": 1.5,
+    "per_anchor_tolerance_strict": 0.2
+  },
+  "fit": {
+    "alpha_probit": 2.2324336916517282,
+    "beta_probit": -2.916721676236477,
+    "s_star": 0.7653914015314264,
+    "k": -2.916721676236477,
+    "p_at_s_low": 0.9504353350811108,
+    "p_at_s_mid": 0.9126756551609458,
+    "p_at_s_high": 0.8567305400171996,
+    "converged": true,
+    "nll": 10.189605652353787,
+    "s_star_ci95": [
+      0.5051629121029148,
+      1.9926505563212236
+    ],
+    "k_ci95": [
+      -7.9170503310982125,
+      -0.6704692984035171
+    ],
+    "alpha_ci95": [
+      1.1907978692477283,
+      4.985074496808702
+    ],
+    "beta_ci95": [
+      -7.9170503310982125,
+      -0.6704692984035171
+    ],
+    "n_boot_valid": 1987
+  },
+  "per_anchor_projection": {
+    "tolerance": 0.2,
+    "n_anchors": 4,
+    "n_hits": 0,
+    "per_anchor": [
+      {
+        "domain": "wto_retaliation",
+        "n": 110,
+        "p_low": 0.3,
+        "p_high": 0.85,
+        "p_hat_low": 0.9265016847275716,
+        "p_hat_high": 0.6721803076849373,
+        "residual_low": 0.6265016847275715,
+        "residual_high": 0.17781969231506267,
+        "hit_at_tol": false
+      },
+      {
+        "domain": "ma_termination_fee",
+        "n": 3000,
+        "p_low": 0.55,
+        "p_high": 0.85,
+        "p_hat_low": 0.9265016847275716,
+        "p_hat_high": 0.6721803076849373,
+        "residual_low": 0.3765016847275715,
+        "residual_high": 0.17781969231506267,
+        "hit_at_tol": false
+      },
+      {
+        "domain": "dual_class_share",
+        "n": 500,
+        "p_low": 0.4,
+        "p_high": 0.8,
+        "p_hat_low": 0.9265016847275716,
+        "p_hat_high": 0.6721803076849373,
+        "residual_low": 0.5265016847275715,
+        "residual_high": 0.12781969231506274,
+        "hit_at_tol": false
+      },
+      {
+        "domain": "sovereign_default_austerity",
+        "n": 120,
+        "p_low": 0.35,
+        "p_high": 0.75,
+        "p_hat_low": 0.9265016847275716,
+        "p_hat_high": 0.6721803076849373,
+        "residual_low": 0.5765016847275716,
+        "residual_high": 0.0778196923150627,
+        "hit_at_tol": false
+      }
+    ],
+    "s_low_mean": 0.2681818181818182,
+    "s_high_mean": 0.6124999999999999,
+    "p_hat_low": 0.9265016847275716,
+    "p_hat_high": 0.6721803076849373
+  },
+  "wto_anchor_specific_hit": false,
+  "wto_anchor_specific_residual_low": 0.6265016847275715,
+  "wto_anchor_specific_residual_high": 0.17781969231506267,
+  "verdict": "REJECT-or-INCONCLUSIVE (mechanism unclear, k CI includes 0)",
+  "hypothesis_interpretation": "FRAMING-LIKELY: WTO real data MISSES its own anchor → pre-reg (s_low/s_high, p_low/p_high) coords are mis-stated for WTO",
+  "structural_vs_framing": "framing",
+  "data_rows": [
+    {
+      "ds_no": "18",
+      "title": "Australia – Salmon",
+      "year_req": "1999",
+      "sunk_cost_stage": "arb_req_no_auth",
+      "sunk_cost_s": "0.20",
+      "retaliation_value_usd_m": "33",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_req_no_auth + WTO_ds18sum: Australia issued AQIS July 1999 lifting import ban; June 2000 mutual agreement",
+      "notes": "Settled bilaterally before authorisation; classic \"threat-induced compliance\""
+    },
+    {
+      "ds_no": "26",
+      "title": "EC – Hormones (US)",
+      "year_req": "1999",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.65",
+      "retaliation_value_usd_m": "202",
+      "defendant_complied_24mo": "0",
+      "outcome_basis": "HM:auth_granted + imp_req_date populated + WTO_ds26: US retaliation applied 1999; EC never complied (still unresolved 2010+, MoU 2009)",
+      "notes": "Authorisation $116.8M; US tariffs imposed; EC refused to lift hormone ban"
+    },
+    {
+      "ds_no": "27",
+      "title": "EC – Bananas III",
+      "year_req": "1999",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.70",
+      "retaliation_value_usd_m": "520",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted + imp_req_date populated + WTO_ds27: EC Tariff-Only regime 1 Jan 2006 + 2009 Geneva Agreement",
+      "notes": "Authorisation $191.4M; US/Ecuador tariffs imposed; EC eventually adopted tariff-only regime under retaliation pressure"
+    },
+    {
+      "ds_no": "46",
+      "title": "Brazil – Aircraft",
+      "year_req": "2000",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.70",
+      "retaliation_value_usd_m": "700",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted + imp_req_date populated + WTO_ds46: PROEX III brought into compliance Aug 2001 DSB adoption",
+      "notes": "CAN $344M authorisation; Brazil modified PROEX three times under retaliation threat; final PROEX III ruled compliant"
+    },
+    {
+      "ds_no": "48",
+      "title": "EC – Hormones (Canada)",
+      "year_req": "1999",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.55",
+      "retaliation_value_usd_m": "75",
+      "defendant_complied_24mo": "0",
+      "outcome_basis": "HM:auth_granted + imp_req_date populated + WTO_ds48: parallel to DS26; EC never complied with hormones ruling",
+      "notes": "Canada $11.3M authorisation; same fundamental EC non-compliance as DS26"
+    },
+    {
+      "ds_no": "103",
+      "title": "Canada – Dairy",
+      "year_req": "2000",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.30",
+      "retaliation_value_usd_m": "35",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date populated + WTO_ds103: Canada eliminated Special Class 5 milk pricing",
+      "notes": "Settled during arb suspension; Canada changed measures"
+    },
+    {
+      "ds_no": "108",
+      "title": "US – FSC",
+      "year_req": "2002",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.85",
+      "retaliation_value_usd_m": "4043",
+      "defendant_complied_24mo": "0",
+      "outcome_basis": "HM:auth_granted $4.043B + imp_req_date 2003 + WTO_ds108: US replaced FSC with ETI; ETI also struck down; EC tariffs applied 2004-2006; only AJCA 2004 partially compliant",
+      "notes": "Largest authorisation in WTO history; US compliance contested for years"
+    },
+    {
+      "ds_no": "113",
+      "title": "Canada – Dairy",
+      "year_req": "2000",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.30",
+      "retaliation_value_usd_m": "35",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "Duplicate of DS103 with NZ as complainant; same outcome",
+      "notes": "Linked to DS103"
+    },
+    {
+      "ds_no": "136",
+      "title": "US – 1916 Act (EC)",
+      "year_req": "2004",
+      "sunk_cost_stage": "auth_granted_no_retal",
+      "sunk_cost_s": "0.45",
+      "retaliation_value_usd_m": "0",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted but unspecified value + WTO_ds136: 1916 Antidumping Act repealed Dec 2004 by US Congress",
+      "notes": "US complied just after authorisation by repealing the Act; pending claims resolved"
+    },
+    {
+      "ds_no": "160",
+      "title": "US – Section 110(5) Copyright",
+      "year_req": "2001",
+      "sunk_cost_stage": "auth_granted_settled_in_arb",
+      "sunk_cost_s": "0.40",
+      "retaliation_value_usd_m": "1.22",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted but arb suspended Feb 2002 + WTO_ds160: 2003 mutual agreement on compensation; US paid lump sum",
+      "notes": "Settled with compensation rather than compliance per se; EC accepted ~€3.3M lump sum"
+    },
+    {
+      "ds_no": "162",
+      "title": "US – 1916 Act (Japan)",
+      "year_req": "2004",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.30",
+      "retaliation_value_usd_m": "0",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date Feb 2002 + Act repealed Dec 2004 + WTO_ds162: parallel to DS136",
+      "notes": "Same Act repeal as DS136"
+    },
+    {
+      "ds_no": "217",
+      "title": "US – Byrd Amendment",
+      "year_req": "2004",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.80",
+      "retaliation_value_usd_m": "150",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted Formula + imp_req_date + imp_date populated + WTO_ds217: Byrd Amendment repealed Feb 2006 (Deficit Reduction Act)",
+      "notes": "Multiple complainants retaliated; US Congress repealed amendment under pressure"
+    },
+    {
+      "ds_no": "222",
+      "title": "Canada – Aircraft Credits",
+      "year_req": "2003",
+      "sunk_cost_stage": "auth_granted_no_retal",
+      "sunk_cost_s": "0.50",
+      "retaliation_value_usd_m": "248",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted but no retaliation applied + WTO_ds222: Canada Account program modified to compliance",
+      "notes": "Canada changed Canada Account guidelines"
+    },
+    {
+      "ds_no": "234",
+      "title": "US – Byrd Amendment",
+      "year_req": "2004",
+      "sunk_cost_stage": "auth_granted_retal_applied",
+      "sunk_cost_s": "0.80",
+      "retaliation_value_usd_m": "150",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:auth_granted + imp_req_date + imp_date populated + WTO_ds234: parallel to DS217; same Feb 2006 repeal",
+      "notes": "Linked to DS217"
+    },
+    {
+      "ds_no": "245",
+      "title": "Japan – Apples",
+      "year_req": "2004",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.25",
+      "retaliation_value_usd_m": "143",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date 38203 + WTO_ds245: Japan implemented new measures, mutual agreement Aug 2005",
+      "notes": "Japan changed apple import quarantine rules"
+    },
+    {
+      "ds_no": "257",
+      "title": "US – Softwood Lumber IV",
+      "year_req": "2005",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.25",
+      "retaliation_value_usd_m": "200",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date + WTO_ds257: Settled by Oct 2006 Softwood Lumber Agreement",
+      "notes": "Multi-dispute negotiated settlement; all SLB disputes resolved bilaterally"
+    },
+    {
+      "ds_no": "264",
+      "title": "US – Softwood Lumber V",
+      "year_req": "2005",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.30",
+      "retaliation_value_usd_m": "400",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date + WTO_ds264: Settled by Oct 2006 SLA",
+      "notes": "Same SLA package"
+    },
+    {
+      "ds_no": "267",
+      "title": "US – Upland Cotton",
+      "year_req": "2005",
+      "sunk_cost_stage": "auth_granted_no_retal",
+      "sunk_cost_s": "0.45",
+      "retaliation_value_usd_m": "3000",
+      "defendant_complied_24mo": "0",
+      "outcome_basis": "HM:auth_granted 40056 + WTO_ds267: US never fully removed GSM-102 export credit guarantees; Brazil/US 2014 MoU only after years more pressure",
+      "notes": "2005 auth but compliance partial/late; coded as 24-mo non-compliance"
+    },
+    {
+      "ds_no": "268",
+      "title": "US – Oil Country Tubular Goods",
+      "year_req": "2007",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.25",
+      "retaliation_value_usd_m": "44",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date + WTO_ds268: US zeroing methodology disputes settled across many cases",
+      "notes": "Argentina pursued; settled via methodology changes"
+    },
+    {
+      "ds_no": "277",
+      "title": "US – Softwood Lumber VI",
+      "year_req": "2005",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.30",
+      "retaliation_value_usd_m": "425",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date + WTO_ds277: Part of Oct 2006 SLA package",
+      "notes": "Same SLA"
+    },
+    {
+      "ds_no": "285",
+      "title": "US – Gambling Services",
+      "year_req": "2007",
+      "sunk_cost_stage": "auth_granted_retal_not_applied",
+      "sunk_cost_s": "0.50",
+      "retaliation_value_usd_m": "21",
+      "defendant_complied_24mo": "0",
+      "outcome_basis": "HM:auth_granted $21M + WTO_ds285: US never modified gambling restrictions; Antigua never retaliated effectively (small economy)",
+      "notes": "Authorised but compliance not achieved; tiny complainant ineffective"
+    },
+    {
+      "ds_no": "291",
+      "title": "EC – Biotech",
+      "year_req": "2008",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.25",
+      "retaliation_value_usd_m": "0",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date Feb 2008 + WTO_ds291: EC adopted new biotech approval process, complainants stood down",
+      "notes": "Settled to procedural improvements"
+    },
+    {
+      "ds_no": "294",
+      "title": "US – Zeroing (EC)",
+      "year_req": "2010",
+      "sunk_cost_stage": "arb_req_settled_in_arb",
+      "sunk_cost_s": "0.25",
+      "retaliation_value_usd_m": "0",
+      "defendant_complied_24mo": "1",
+      "outcome_basis": "HM:arb_susp_date Sep 2010 + WTO_ds294: US modified zeroing methodology across many cases through 2012",
+      "notes": "Methodology changed gradually"
+    }
+  ]
+}
