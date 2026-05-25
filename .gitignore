@@ -55,6 +55,11 @@ results/v2-discoveries-expanded-raw.jsonl
 v4/validation/soc-earthquake/catalog.jsonl
 v4/validation/soc-wildfire/raw_nifc.csv
 *.jsonl.bak
+# KB rollback artifacts (pattern covers .bak-pre-* / .archive-pre-* suffixes)
+*.jsonl.bak-pre-*
+*.jsonl.archive-pre-*
+# Audit trails from in-place KB rewrites (regen-able by rerunning the script)
+data/wave3c-rewrite-results.json
 .claude/
 
 # D1 Phase Detector local DB artifacts
