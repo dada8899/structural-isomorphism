@@ -55,8 +55,15 @@ def test_construction_loads_cache(bridge_v2: EmbeddingBridge) -> None:
 
 @pytest.mark.sanity
 def test_v1_cache_loads(bridge_v1: EmbeddingBridge) -> None:
-    """V1 cache is 4475 phenomena, also 768-dim."""
-    assert bridge_v1.num_phenomena == 4475
+    """V1 cache loads (baseline 4475, expanded to 4888 in commit bf5014c, may grow).
+
+    Use a `>= baseline` assertion so future KB expansions don't break this
+    sanity test — mirrors the V2 pattern (`> 4000`). To pin an exact size,
+    we'd need to track the cache regen pipeline in a fixture, not here.
+    """
+    assert bridge_v1.num_phenomena >= 4475, (
+        f"V1 cache shrunk below baseline ({bridge_v1.num_phenomena} < 4475)"
+    )
 
 
 @pytest.mark.sanity

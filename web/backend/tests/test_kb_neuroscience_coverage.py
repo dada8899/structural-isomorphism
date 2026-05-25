@@ -211,10 +211,16 @@ class TestNeuroscienceShapeInvariants:
         assert len(names) == len(set(names)), "Duplicate names in additions"
 
     def test_no_id_collision_with_existing_kb(self):
-        # Hardening: ensure the new IDs don't clash with the active KB.
-        # We check kb-expanded.jsonl (production default) AND
-        # kb-5000-merged.jsonl (audit baseline). Skips cleanly if either
-        # is absent (e.g. fresh checkout).
+        # Hardening: detect *partial* ID overlap with the active KB.
+        #
+        # After the additions file is merged into master KB (e.g. via
+        # `scripts/merge_kb_additions.py`), the additions IDs naturally
+        # appear in master KB — that's the merge, not a collision.
+        # A real collision would be: someone added a NEW entry to the
+        # additions file with an ID that already lived in master KB
+        # from a different source — i.e. partial overlap. We check
+        # for that by requiring: full subset (= clean merge) OR
+        # empty intersection (= not yet merged).
         for kb_name in ("kb-expanded.jsonl", "kb-5000-merged.jsonl"):
             kb_path = _ROOT / "data" / kb_name
             if not kb_path.exists():
@@ -223,6 +229,15 @@ class TestNeuroscienceShapeInvariants:
                 existing_ids = {json.loads(l)["id"] for l in f if l.strip()}
             new_ids = {r["id"] for r in _load_rows()}
             collisions = new_ids & existing_ids
-            assert not collisions, (
-                f"ID collision with {kb_name}: {sorted(collisions)[:10]}"
+            if not collisions:
+                continue  # not yet merged into this KB — clean
+            if new_ids.issubset(existing_ids):
+                continue  # fully merged (post-merge state) — clean
+            partial_new = new_ids - existing_ids
+            assert False, (
+                f"Partial ID collision with {kb_name}: "
+                f"{len(collisions)} additions IDs match master AND "
+                f"{len(partial_new)} additions IDs are new. "
+                f"This means additions overlap with master from a "
+                f"different source. Sample clashing: {sorted(collisions)[:5]}"
             )
