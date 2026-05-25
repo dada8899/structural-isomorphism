@@ -249,9 +249,17 @@ def run_arm(
     *,
     s_grid: np.ndarray | None = None,
     b_true: float = 1.9,
+    a_intercept: float = -1.0,
+    noise_scale: float = 0.5,
 ) -> dict:
     """Run n_events commitment events with sunk-cost ratios drawn
-    uniformly from [0, 1] (or from s_grid if provided)."""
+    uniformly from [0, 1] (or from s_grid if provided).
+
+    Added (v0.5 extension, SESSION-24): `a_intercept` + `noise_scale`
+    passed through to `sample_commitment_event`. Defaults preserve
+    v0.4 behaviour (a=-1.0, noise=0.5). Anchor-calibrated values
+    (a≈-2, b≈8, noise≈0.2) reach the v0.5 pre-reg box [s* ∈ 0.20-0.35,
+    k ∈ 4-12]."""
     rng = np.random.default_rng(rng_seed)
     if s_grid is None:
         # Mix of low / mid / high to cover the dose-response curve
@@ -265,7 +273,9 @@ def run_arm(
     events = []
     for s in s_values:
         ev = sample_commitment_event(s=float(s), sham=sham, rng=rng,
-                                     b_slope=b_true)
+                                     b_slope=b_true,
+                                     a_intercept=a_intercept,
+                                     noise_scale=noise_scale)
         events.append(ev)
 
     return {

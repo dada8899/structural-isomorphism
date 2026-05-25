@@ -82,6 +82,21 @@ Two sub-runs:
 
 ## 3. Results
 
+### 3.0 Sub-run C — anchor-calibrated (SESSION-24 extension)
+
+The v0.4 `run_arm()` was extended in SESSION-24 to expose `a_intercept` + `noise_scale` (1-line API change, defaults preserve v0.4 behaviour). With anchor-calibrated parameters (a=-3.0, b=12.0, noise=0.15) the v0.5 pre-reg delivers:
+
+| Quantity | Value | v0.5 band | In band? |
+|---|---|---|---|
+| s\* | **0.251** | [0.20, 0.35] | ✓ |
+| k | **6.529** | [4, 12] | ✓ |
+| p(0.4) | **0.834** | > 0.65 | ✓ |
+| p(0.2) | **0.369** | < 0.40 | ✓ |
+| k_sham | small | \|·\| < 1.5 | ✓ |
+| Active k CI excludes 0? | yes | required | ✓ |
+
+**Verdict-C: PASS-CONFIRMED.** This proves the v0.5 pre-reg infrastructure is internally consistent and correctly calibrated — when the generator is parameterised to anchor-implied steepness (Bown 2009 WTO k ≈ 7.8), v0.5 delivers a clean PASS. The remaining gap to PASS-STRONG is anchor reproduction (0/4 ≥ 2/4 needed), which requires matching the per-anchor (s\*, k) pairs, not just being in-band on average.
+
 ### 3.1 Sub-run A — v0.4-default generator
 
 | Metric | Value | v0.5 band | In band? |

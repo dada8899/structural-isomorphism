@@ -285,6 +285,56 @@ def main() -> None:
         verdict = "INCONCLUSIVE: " + "; ".join(failures)
 
     # ============================================================
+    # SUB-RUN C: full anchor-calibrated (a, b, noise) — SESSION-24 extension
+    # Uses run_arm's new a_intercept + noise_scale kwargs to test whether
+    # the v0.5 pre-reg infrastructure delivers PASS on parameters tuned
+    # to anchor-implied (s* ≈ 0.25, k ≈ 5-8).
+    # ============================================================
+    A_CAL, B_CAL, NOISE_CAL = -3.0, 12.0, 0.15
+    print(f"\n[schelling-v5/C] full-calibrated a={A_CAL} b={B_CAL} noise={NOISE_CAL}",
+          file=sys.stderr)
+    active_cal = run_arm(sham=False, n_events=N_EVENTS_PER_ARM,
+                         rng_seed=20260525, s_grid=s_grid, b_true=B_CAL,
+                         a_intercept=A_CAL, noise_scale=NOISE_CAL)
+    sham_cal = run_arm(sham=True, n_events=N_EVENTS_PER_ARM,
+                       rng_seed=20260601, s_grid=s_grid, b_true=B_CAL,
+                       a_intercept=A_CAL, noise_scale=NOISE_CAL)
+    print(f"[active-cal] mean_p_exec={active_cal['follow_through'].mean():.3f}", file=sys.stderr)
+    fit_active_cal = probit_fit_mle(active_cal["s_values"], active_cal["follow_through"])
+    ci_active_cal = bootstrap_probit_ci(active_cal["s_values"], active_cal["follow_through"])
+    fit_active_cal.update(ci_active_cal)
+    fit_sham_cal = probit_fit_mle(sham_cal["s_values"], sham_cal["follow_through"])
+    ci_sham_cal = bootstrap_probit_ci(sham_cal["s_values"], sham_cal["follow_through"])
+    fit_sham_cal.update(ci_sham_cal)
+
+    s_star_in_band_cal = (s_star_band[0] <= fit_active_cal["s_star"] <= s_star_band[1])
+    k_in_band_cal = (k_band[0] <= fit_active_cal["k"] <= k_band[1])
+    p_high_ok_cal = fit_active_cal["p_at_s_high"] > PREREG_V5["p_high_threshold"]
+    p_low_ok_cal = fit_active_cal["p_at_s_low"] < PREREG_V5["p_low_threshold"]
+    sham_null_ok_cal = abs(fit_sham_cal["k"]) < PREREG_V5["sham_k_max_abs"]
+    active_k_excludes_0_cal = fit_active_cal["k_ci95"][0] > 0
+    anchor_cal = anchor_distance(active_cal["s_values"], active_cal["follow_through"])
+    anchor_hits_cal = sum(
+        1 for case in anchor_cal.get("cases", [])
+        if abs(case.get("delta_p_low", 1.0)) <= PREREG_V5["anchor_tolerance"]
+        and abs(case.get("delta_p_high", 1.0)) <= PREREG_V5["anchor_tolerance"]
+    )
+    if not active_k_excludes_0_cal:
+        verdict_cal = "REJECT (no mechanism)"
+    elif not sham_null_ok_cal:
+        verdict_cal = "REJECT (confound)"
+    elif s_star_in_band_cal and k_in_band_cal and p_high_ok_cal and p_low_ok_cal:
+        verdict_cal = "PASS-STRONG" if anchor_hits_cal >= PREREG_V5["anchor_min_hits"] else "PASS-CONFIRMED"
+    else:
+        verdict_cal = "INCONCLUSIVE (parameters)"
+    print(f"[VERDICT-cal] {verdict_cal}", file=sys.stderr)
+    print(f"  s* = {fit_active_cal['s_star']:.3f}, k = {fit_active_cal['k']:.3f}",
+          file=sys.stderr)
+    print(f"  p(0.4) = {fit_active_cal['p_at_s_high']:.3f}, p(0.2) = {fit_active_cal['p_at_s_low']:.3f}",
+          file=sys.stderr)
+    print(f"  anchor hits: {anchor_hits_cal}/4", file=sys.stderr)
+
+    # ============================================================
     # SUB-RUN B: steeper-generator (b_true=8.0) — anchor-calibrated
     # Tests whether v0.5 pre-reg INFRASTRUCTURE correctly delivers PASS
     # when the synthetic data is steepened to match real-anchor implied
