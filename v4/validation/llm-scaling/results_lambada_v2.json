@@ -1,0 +1,213 @@
+{
+  "system": "Pythia LAMBADA scaling-law v2 (warmup-filtered + L_inf constrained)",
+  "method": "L(C) = A \u00b7 C^(-\u03b1) + L_inf on LAMBADA-OpenAI log-perplexity; drop log-ppl > inf (pre-learning warmup), constrain L_inf \u2208 [1.0, 5.0] anchored to LAMBADA-OpenAI irreducible entropy (GPT-3 175B / Pythia-12B asymptote).",
+  "data_provenance": "100% REAL \u2014 EleutherAI/pythia GitHub repo evals/pythia-v1/<size>/zero-shot/*_step<N>.json. All 8 sizes \u00d7 27 checkpoints each. Warmup checkpoints (log-ppl > inf) dropped at fit time, 0 total across 8 sizes.",
+  "preregistration": {
+    "warmup_log_ppl_max": Infinity,
+    "L_inf_bounds": [
+      1.0,
+      5.0
+    ],
+    "L_inf_lower_anchor": "GPT-3 175B LAMBADA ppl \u2248 3.3 \u2192 log \u2248 1.19; Pythia-12B asymptote log-ppl \u2248 1.36. Lower bound 1.0 is below any plausible asymptote."
+  },
+  "warmup_dropped": 0,
+  "per_size_fits": {
+    "pythia-1.4b": {
+      "alpha": 0.1672119831682318,
+      "A": 9733.78900116281,
+      "L_inf": 1.0000000000000004,
+      "alpha_se": 0.08152630867194648,
+      "A_se": 28804.335784506617,
+      "L_inf_se": 3.3294973788454203,
+      "R2": 0.7927246848271485,
+      "residual_rms": 2.722573667469338,
+      "n_points": 26,
+      "C_range": [
+        1.7800388879056896e+16,
+        2.545455609705136e+21
+      ],
+      "name": "pythia-1.4b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-12b": {
+      "alpha": 0.17827643195860496,
+      "A": 24454.821563095225,
+      "L_inf": 1.0000000000000002,
+      "alpha_se": 0.08431084459023824,
+      "A_se": 79750.50315339383,
+      "L_inf_se": 3.4723760691334116,
+      "R2": 0.7865526462327634,
+      "residual_rms": 3.218375305595145,
+      "n_points": 26,
+      "C_range": [
+        1.4905808554819584e+17,
+        2.1315306233392005e+22
+      ],
+      "name": "pythia-12b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-160m": {
+      "alpha": 0.14108835625681174,
+      "A": 2602.135639251561,
+      "L_inf": 1.0000000000004328,
+      "alpha_se": 0.06887629535818689,
+      "A_se": 5967.870805231324,
+      "L_inf_se": 3.6944442704656164,
+      "R2": 0.8319160305475302,
+      "residual_rms": 2.1515451178819287,
+      "n_points": 26,
+      "C_range": [
+        2042495319932928.0,
+        2.920768307504087e+20
+      ],
+      "name": "pythia-160m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-1b": {
+      "alpha": 0.16416635824614254,
+      "A": 8171.751648445885,
+      "L_inf": 1.0000000000000002,
+      "alpha_se": 0.07843464661527214,
+      "A_se": 22999.142275517046,
+      "L_inf_se": 3.294698525909305,
+      "R2": 0.8029804347957048,
+      "residual_rms": 2.5981462499144037,
+      "n_points": 26,
+      "C_range": [
+        1.2731159238672384e+16,
+        1.820555771130151e+21
+      ],
+      "name": "pythia-1b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-2.8b": {
+      "alpha": 0.17034294914780354,
+      "A": 12335.710141386115,
+      "L_inf": 1.0000000000000002,
+      "alpha_se": 0.08371407800241983,
+      "A_se": 38259.38110283459,
+      "L_inf_se": 3.3191475855488415,
+      "R2": 0.7860373248493284,
+      "residual_rms": 2.8149096402041964,
+      "n_points": 26,
+      "C_range": [
+        3.492021012529152e+16,
+        4.993590047916687e+21
+      ],
+      "name": "pythia-2.8b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-410m": {
+      "alpha": 0.1552074311193944,
+      "A": 5064.465731671458,
+      "L_inf": 1.0000000000000087,
+      "alpha_se": 0.07849410951230486,
+      "A_se": 13798.217098819838,
+      "L_inf_se": 3.6398948756692144,
+      "R2": 0.8003711918212534,
+      "residual_rms": 2.567512758317209,
+      "n_points": 26,
+      "C_range": [
+        5100282253934592.0,
+        7.293403623126467e+20
+      ],
+      "name": "pythia-410m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-6.9b": {
+      "alpha": 0.17399500332414783,
+      "A": 17649.132104861335,
+      "L_inf": 1.0000000000000002,
+      "alpha_se": 0.08246376142454073,
+      "A_se": 55362.34504821897,
+      "L_inf_se": 3.34229873335956,
+      "R2": 0.7921941964549919,
+      "residual_rms": 2.954683966847915,
+      "n_points": 26,
+      "C_range": [
+        8.62848278247506e+16,
+        1.2338730378939335e+22
+      ],
+      "name": "pythia-6.9b",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    },
+    "pythia-70m": {
+      "alpha": 0.119438773271078,
+      "A": 1065.6195629793547,
+      "L_inf": 1.0000000000007527,
+      "alpha_se": 0.060640717732045456,
+      "A_se": 2029.6181757529816,
+      "L_inf_se": 4.213071571443846,
+      "R2": 0.8588053070460059,
+      "residual_rms": 1.7484370715347373,
+      "n_points": 26,
+      "C_range": [
+        886172012249088.0,
+        1.2672259775161958e+20
+      ],
+      "name": "pythia-70m",
+      "error": null,
+      "extra": {},
+      "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED",
+      "n": 26
+    }
+  },
+  "universality_summary": {
+    "n_sizes": 8,
+    "alpha_mean": 0.15871591081152686,
+    "alpha_std": 0.018435281871511153,
+    "alpha_cv": 0.11615270187626506,
+    "mean_R2": 0.8064477270718409,
+    "verdict": "TIGHT_UNIVERSALITY",
+    "alphas_per_size": {
+      "pythia-1.4b": 0.1672119831682318,
+      "pythia-12b": 0.17827643195860496,
+      "pythia-160m": 0.14108835625681174,
+      "pythia-1b": 0.16416635824614254,
+      "pythia-2.8b": 0.17034294914780354,
+      "pythia-410m": 0.1552074311193944,
+      "pythia-6.9b": 0.17399500332414783,
+      "pythia-70m": 0.119438773271078
+    },
+    "L_inf_per_size": {
+      "pythia-1.4b": 1.0000000000000004,
+      "pythia-12b": 1.0000000000000002,
+      "pythia-160m": 1.0000000000004328,
+      "pythia-1b": 1.0000000000000002,
+      "pythia-2.8b": 1.0000000000000002,
+      "pythia-410m": 1.0000000000000087,
+      "pythia-6.9b": 1.0000000000000002,
+      "pythia-70m": 1.0000000000007527
+    }
+  },
+  "comparison_vs_v1": {
+    "v1_alpha_mean": 0.14400044690000097,
+    "v1_alpha_cv": 0.11822975760442647,
+    "v1_verdict": "TIGHT_UNIVERSALITY",
+    "v1_mean_R2": 0.8245263447541225,
+    "delta_alpha_mean": 0.014715463911525895,
+    "delta_R2": -0.018078617682281584
+  },
+  "notes": "Closes SESSION-24 new outstanding \u00a73.2 #4 (L_inf fitted to 0). v2 forces L_inf >= 1.0 (LAMBADA literature anchor) and drops pre-learning warmup checkpoints. v1 results preserved at results_lambada.json for provenance."
+}
