@@ -1,25 +1,32 @@
 <!--
 ====================================================================
 META — C1 unified preprint draft
-Version:  v0.5 SKELETON
-Date:     2026-05-25 (SESSION-25)
-Status:   SKELETON — pre-final reviewer-readable draft. NOT submission-ready.
+Version:  v0.5 DRAFT (reviewer-readable, post-skeleton)
+Date:     2026-05-26 (SESSION-25 sub-agent B1+B3 re-type pass)
+Status:   REVIEWER-READABLE DRAFT — all main-paper sections written
+          in full. NOT submission-ready (Schelling Bown 2009 real-data
+          coding pending; Pythia cross-evaluator extension pending;
+          aggregation_kinetics 4th non-biological domain pending;
+          full reviewer pass pending). Do not submit.
 Source baseline: docs/sessions/C1-unified-preprint-draft-v0.4.md (HEAD 50c960e)
 Increment: SESSION-24 + SESSION-25 contributions (see §9 Changelog).
-Authors-of-record: this skeleton consolidates work by the SESSION-24
-and SESSION-25 (CC main + sub-agents). All numerical claims trace to
+Authors-of-record: this draft consolidates work by SESSION-24 and
+SESSION-25 (CC main + sub-agents). All numerical claims trace to
 in-repo `results.json`, `verdict_v5.md`, or peer-reviewed source
 papers listed in §8.
 
-This file is INTENTIONALLY a skeleton: §§3.6.5–3.6.7 and §§4–6 are
-the new contribution and are written in full; the v0.4 inherited
-material (§§1–3.5, §7, §8) is preserved as an outline with explicit
-"to be expanded — inherited from v0.4 §X" markers where the
-text already exists in `docs/sessions/C1-unified-preprint-draft-v0.4.md`
-and need not be re-typed. Placeholders {{...}} flag values that
-require user / sub-agent confirmation before submission.
+2026-05-26 update (SESSION-25 sub-agent B1+B3): §§1, 2, 3.1–3.5 and
+the abstract have been expanded from v0.4 source prose. §§3.6.5–3.6.7
+and §§4–6 (the v0.5 new contributions) were already written in full
+in the v0.5 SKELETON main session. The previous "to be expanded —
+inherited from v0.4 §X" markers have been resolved; the v0.4 prose
+has been re-typed verbatim where unchanged, with v0.5 deltas flagged
+inline as italicised "(v0.5 update)" notes. Placeholders {{...}} —
+none remain in the main text; any `{{` occurrences in the file are
+descriptions OF the placeholder convention, not actual placeholders.
 
-Word count target: 8,000-12,000 words for the skeleton.
+Word count target: 14,000-16,000 words for the v0.5 draft.
+Actual word count (2026-05-26): ~15,925 — within band.
 ====================================================================
 -->
 
@@ -27,92 +34,253 @@ Word count target: 8,000-12,000 words for the skeleton.
 
 **Author.** Wan Qinghui (万庆徽), Structural Isomorphism Project.
 **Affiliation.** Independent researcher. Project site: https://structural.bytedance.city.
-**Version.** v0.5 SKELETON DRAFT — extends v0.4 with three methodology increments, one new universality class (`aggregation_kinetics`, PASS-STRONG), a Pythia LAMBADA scaling-law cross-fit robustness check, and a re-analyzed Schelling credible-commitment verdict (INCONCLUSIVE → PASS-CONFIRMED via threshold-tobit reparametrisation).
-**Date.** 2026-05-25.
-**Status.** SKELETON — pending sub-agent completion of Schelling per-anchor tuning (task #5), Pythia 12B post-300B-token data ingestion (task #6), and full reviewer pass. **Do not submit.**
+**Version.** v0.5 DRAFT (reviewer-readable; post-skeleton 2026-05-26 expansion) — extends v0.4 with three methodology increments, one new universality class (`aggregation_kinetics`, PASS-STRONG-MULTILAYER), a Pythia LAMBADA scaling-law cross-fit robustness check (TIGHT_UNIVERSALITY on 100 %-real data across 8 sizes), and a re-analyzed Schelling credible-commitment verdict (INCONCLUSIVE → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT via threshold-tobit reparametrisation).
+**Date.** 2026-05-26.
+**Status.** REVIEWER-READABLE DRAFT — pending Schelling Bown 2009 real-data WTO coding (task A2), Pythia cross-evaluator extension (task A3 follow-up), aggregation_kinetics 4th non-biological domain anchor (task A4), and full reviewer pass. **Do not submit.**
 **Keywords.** self-organized criticality; cross-domain validation; universality class; multilayer testing; threshold-tobit reparametrisation; aggregation kinetics; LLM scaling laws; LAMBADA; Pythia; mechanism vs descriptor; head-aware LLM rewrite; reproducibility.
 
 ---
 
 ## Abstract
 
-A universality-class membership claim has empirical content only if a single, fixed analysis pipeline — applied with no per-domain tuning — recovers the predicted scaling signatures across systems drawn from very different domains, *and* correctly fails to find those signatures in matched non-class data. v0.4 of this preprint established such a pipeline on a five-system self-organized-criticality (SOC) deep core (USGS earthquakes, S&P 500 daily returns, three DeFi lending protocols, mouse-cortex neural avalanches, plus four synthetic null sources) and then extended it across an 18-class taxonomy-completion sweep, returning 10 PASS-CONFIRMED, 6 REJECT-CONFIRMED, and 2 INCONCLUSIVE verdicts together with 5 SPLIT decisions and 1 MERGE recommendation.
+A universality-class membership claim has empirical content only if a single fixed analysis pipeline — applied with no per-domain tuning — recovers the predicted scaling signatures across systems drawn from very different domains, *and* correctly fails to find those signatures in matched non-class data. v0.4 of this preprint established such a pipeline on a five-system SOC deep core (USGS earthquakes, S&P 500 daily returns, three DeFi lending protocols, mouse-cortex neural avalanches, plus four synthetic null sources) and extended it across an 18-class taxonomy-completion sweep, returning 10 PASS-CONFIRMED, 6 REJECT-CONFIRMED, and 2 INCONCLUSIVE verdicts together with 5 SPLIT decisions and 1 MERGE recommendation. v0.5 is a **focused hardening + new-class iteration** of that result, not a paradigm shift.
 
-v0.5 reports a focused three-part increment to that result. First, we promote one of the v0.4 INCONCLUSIVE entries (`beta_amyloid_aggregation`) into a new PASS-STRONG mechanism class, **`aggregation_kinetics`**, via a *multilayer test pattern* in which Smoluchowski coagulation predicts a per-aggregate power-law (Layer 1, α ∈ [1.7, 3.5]) while multiplicative-stochastic patient-level growth predicts a lognormal cross-population distribution (Layer 2). Three distinct biological domains anchor Layer 1 (human Alzheimer cortex, 5xFAD mouse cortex, multi-cancer oncology; α̅ = 1.95 across 3 domains); four of five Allen Brain TBI Aβ series anchor Layer 2 (Vuong R < 0 vs power-law at p < 0.05). The single-layer cross-section test that drove the v0.4 INCONCLUSIVE was the *wrong* test for the underlying theory; the multilayer test is the methodological fix.
+We report (i) one new universality class, **`aggregation_kinetics`** (PASS-STRONG-MULTILAYER), promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE entry via a 2-layer pre-registration (Smoluchowski per-aggregate power-law on 3 biological domains, α̅ = 1.95; multiplicative-stochastic cross-population lognormal on 4/5 Allen Brain TBI Aβ series); (ii) a **(s\*, k) threshold-tobit re-analysis** that lifts the v0.4 `schelling_credible_commitment` INCONCLUSIVE-pre-reg-overspec to PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (sub-run C s\* = 0.251, k = 6.529 in band; sham null clean; per-anchor microtune sub-run D 2/4 hits — the 2/4 gap is a structural limit of the synthetic generator family because the four literature anchors trace incompatible $(p_\text{low}, p_\text{high})$ regimes); (iii) a **100 %-real-data Pythia LAMBADA scaling-law fit** replacing the v0.4 mixed-provenance entry, with TIGHT_UNIVERSALITY (CV ≈ 0.12) robust across unconstrained (v1) and $L_\infty$-constrained (v2) re-fits — the failure of the v2 constraint to improve R² is an honest negative methodological finding (LAMBADA log-perplexity in the [$10^{15}$, $10^{22}$] FLOPs range remains in the power-law-decay regime, not the floor-bounded one); and (iv) **three methodology increments** in §§3.6.5–3.6.7 — targeted (s\*, k) reparametrisation, generalisable multilayer test pattern, head-vs-tail-aware LLM validator (engineering).
 
-Second, we re-analyse the v0.4 `schelling_credible_commitment` INCONCLUSIVE verdict using a **threshold-tobit (s\*, k) reparametrisation** that decouples a logit slope from a midpoint and eliminates the mutually inconsistent constraints under which the v0.4 pre-registration was originally written. With anchor-calibrated synthetic data (a = −3, b = 12, noise = 0.15) the v0.5 pre-registration delivers a clean PASS-CONFIRMED: s\* = 0.251 ∈ [0.20, 0.35] ✓; k = 6.529 ∈ [4, 12] ✓; p(s = 0.4) = 0.834 > 0.65 ✓; p(s = 0.2) = 0.369 < 0.40 ✓; sham null |k_sham| < 0.05 ≪ 1.5 ✓. **Final verdict: PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT.** Per-anchor (s\*, k) microtune (sub-run D: a = −2.5, b = 10, noise = 0.15) lands at s\* = 0.252, k = 4.977 with **2/4 anchor hits** (WTO, dual-class) @ ±0.20 tolerance; 4/4 is structurally unreachable inside the pre-reg band because the four anchors trace incompatible (p_low, p_high) regimes (M&A p_low = 0.55 vs WTO p_low = 0.30 differ by 0.25 > 0.20 tolerance; sovereign-default p_high = 0.75 saturates against the generator's high-s ceiling). This is a real scientific finding about the synthetic generator family, not a fitting failure.
-
-Third, we upgrade the v0.4 `llm_scaling` (Pythia) entry from 3/6 sizes-with-real-data + 3/6 SYNTHETIC fallback to **100 % REAL data across 8 sizes** via the EleutherAI per-checkpoint LAMBADA evaluation JSON (`results.lambada_openai.ppl`, 216 checkpoint × size combinations). The v1 (SESSION-24) and v2 (SESSION-25, L_inf ∈ [1.0, 5.0] constrained) fits both return TIGHT_UNIVERSALITY across the 8 sizes (v1: α̅ = 0.144, CV = 0.118, R² = 0.82; v2: α̅ = 0.159, CV = 0.116, R² = 0.81). The L_inf-constrained re-fit (v2) does not improve fit quality (mean R² −0.018, all 8 sizes hit the lower bound), which we read as an honest negative methodological finding: within the Pythia training-compute range [10¹⁵, 10²²] FLOPs, LAMBADA log-perplexity is still in the power-law-decay regime, not the floor-bounded regime, and the v1 L_inf ≈ 0 result is correct rather than a fit pathology. The universality verdict is robust to the fit re-specification, which is itself the methodological contribution.
-
-Beyond these three empirical updates we report three new methodology increments in §§3.6.5–3.6.7: (a) the (s\*, k) threshold-tobit reparametrisation as a *targeted* remediation for logit binary-outcome pre-registrations whose slope-band and point-rate constraints are mutually inconsistent; (b) the multilayer test pattern as a *general* upgrade for candidate classes that predict different scaling forms at intra-individual and inter-individual scales; and (c) a head-vs-tail-aware LLM validator as an *engineering* pattern that prevents false rejects in LLM rewrite tasks (deployed on a 117-entry Wave 3 C knowledge-base boilerplate cleanup). The first generalises only to the specific over-specification failure mode that motivated it (verified empirically against three candidate classes); the second generalises plausibly to allometric scaling, network growth, and cascading failure families (candidates listed); the third is engineering, not methodology, but worth recording because it changed the binding constraint on KB-quality cleanup at scale.
-
-We retain v0.4's caveats — lognormal not always rejected on raw tails (e.g., S&P 500), 11 of 18 v0.4 anchors carried by synthetic generators, single-session verdicts for most non-replicated classes, the still-open Schelling anchor-hit count, and the post-300B-token Pythia regime untested — and add v0.5's own: the v0.5 aggregation_kinetics PASS-STRONG rests on 3 biological domains and would harden further with a non-biological anchor (aerosol or polymer); the v2 Pythia floor-bounded fit is a defensible negative result, not a successful refinement.
+The v0.5 post-taxonomy count stands at 19 empirically-anchored classes (11 PASS-CONFIRMED-or-stronger, 6 REJECT-CONFIRMED, 1 INCONCLUSIVE). v0.5 inherits all v0.4 honest caveats (synthetic anchors for 11 of 18 v0.4 classes; single-session verdicts; α is in principle eval-specific) and adds its own (aggregation_kinetics rests on 3 biological domains — non-biological 4th anchor pending; Schelling 4/4 anchor hits unreachable in synthetic family — path to PASS-STRONG-REAL is Bown 2009 / Horn-Mavroidis manual WTO coding).
 
 ---
 
 ## 1. Introduction
 
-*[Inherited from v0.4 §1, verbatim except where noted. To be expanded in final draft from `docs/sessions/C1-unified-preprint-draft-v0.4.md`, lines 92–109.]*
+*[Inherits the v0.4 introduction in full. v0.5 deltas are flagged inline as italicised "(v0.5 update)" notes; the v0.4 prose is otherwise reproduced verbatim because the theoretical framing is unchanged.]*
 
-The v0.4 introduction established four points: (i) universality classes are the sharpest cross-system tool from statistical physics; (ii) the cross-domain empirical literature is dominated by single-system measurements with non-uniform fitting stacks, against which Clauset-Shalizi-Newman 2009 set the modern floor; (iii) the Structural Isomorphism project applies one frozen Clauset-grade pipeline to a layered cross-domain catalogue, with the SOC threshold-cascade community as the largest unsupervised cluster; and (iv) v0.4 reported the empirical validation step for that cluster's deep core (Phases 1–5) plus the 18-class taxonomy completion sweep.
+Universality classes are the sharpest tool statistical physics offers for cross-system comparison: two systems in the same class share a small set of critical exponents that are independent of microscopic detail [1, 2]. The concept was extended from equilibrium critical phenomena to non-equilibrium dynamics through the theory of self-organized criticality (SOC) of Bak, Tang, and Wiesenfeld [3], in which slowly driven threshold-cascade systems generically exhibit power-law event-size distributions, Omori-like temporal relaxation, and associated scaling relations without parameter tuning. Tectonic seismicity is the canonical natural realization [3, 4], and the Gutenberg–Richter and Omori–Utsu laws [5, 6] are its most widely reproduced quantitative signatures. Beggs and Plenz [7] opened the biological side of the class with cortical avalanches showing $P(s) \propto s^{-3/2}$ and $P(T) \propto T^{-2}$. Sornette [8] extended the picture to financial cascades.
 
-**What v0.5 adds to the introduction.** Two short paragraphs are inserted between v0.4 §1 paragraph 4 (the contributions list) and §1's organisational closer. The first introduces the *multilayer test pattern* as a generalisation of the v0.4 "one signature per class" framing: candidate classes whose underlying theory predicts *different* scaling forms at different scales (per-aggregate vs cross-population, per-event vs per-waiting-time, per-individual vs cross-population) require a layered pre-registration where each layer's constraints are tested independently and PASS-CONFIRMED-MULTILAYER requires all layers' constraints to hold. The second flags the *threshold-tobit reparametrisation* as a remediation for one specific v0.4 over-specification failure mode (logit slope + two point-rate constraints), explicitly scoped via the cross-class applicability retrospective at `docs/methodology/2026-05-25-threshold-tobit-cross-class-applicability.md`.
+The empirical literature contains many single-system measurements but few cross-system comparisons that use one fixed fitting stack. Clauset, Shalizi, and Newman [9] argued that standard estimators — binned-histogram slope fits, naive `x_min` choices — were producing falsely confident power-law conclusions, and that canonical examples deserved re-testing under maximum-likelihood-plus-Kolmogorov–Smirnov estimation with explicit comparison to alternatives. Subsequent practice tightened the floor: a defensible power-law claim today requires a Clauset maximum-likelihood fit with a reported `x_min`, a likelihood-ratio test against at least lognormal and exponential, and a null-control check. Most cross-domain SOC studies do not meet this standard; the typical paper is one system deep.
 
-**Updated v0.5 contributions list:**
+The Structural Isomorphism project is an attempt to make cross-domain "same mathematical structure" claims operational. Its layered pipeline (i) builds a domain-agnostic catalog of candidate systems and observables, (ii) groups them into candidate equivalence classes from mechanism graphs, (iii) extracts shared invariants for each class, and (iv) issues falsifiable numerical predictions. The Layer 1/2 community-discovery step found that a single self-organized-criticality "threshold-cascade" cluster emerged unsupervised from the project's pair data — the largest community in the graph, with earthquakes, DeFi liquidations, bank runs, flash crashes, power-grid cascades, and neural avalanches all assigned to it. v0.3 of this preprint reported the empirical validation step for that cluster's core members (Phases 1–5: USGS earthquakes, S&P 500 daily returns, three DeFi lending protocols, mouse-cortex neural avalanches, plus four synthetic non-SOC null sources). v0.4 extended this with an 18-class **taxonomy-completion sweep** that closed the empirical verdicts of an additional 18 candidate universality classes against the project's cross-judge B3 priors, applied the same frozen Clauset/SOC pipeline to each, and introduced the *cross-domain scatter threshold* as a binary screen for descriptor-vs-mechanism.
 
-1. *[v0.4 inherited]* A single fixed pipeline across four real systems.
-2. *[v0.4 inherited]* Null robustness on four synthetic non-SOC sources.
-3. *[v0.4 inherited]* Taxonomy completion across 18 candidate classes.
-4. *[v0.4 inherited]* Honest accounting of qualifications.
-5. ***[v0.5 NEW]* Aggregation-kinetics multilayer class** (`aggregation_kinetics`, PASS-STRONG), promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE entry via a 2-layer pre-registration (Smoluchowski PL on per-aggregate sizes + lognormal on cross-population total burden). Three biological domains anchor Layer 1; four of five Allen Brain TBI Aβ series anchor Layer 2.
-6. ***[v0.5 NEW]* Threshold-tobit re-analysis of `schelling_credible_commitment`**, lifting the v0.4 INCONCLUSIVE-pre-reg-overspec verdict to PASS-CONFIRMED (sub-run C, anchor-calibrated synthetic generator). Real-data WTO retaliation anchor coding (Bown 2009 / Horn-Mavroidis) remains the path to PASS-STRONG.
-7. ***[v0.5 NEW]* 100% REAL Pythia LAMBADA scaling-law fit**, replacing the v0.4 3/6-SYNTHETIC-fallback `llm_scaling` entry. Both unconstrained (v1) and L_inf-constrained (v2) fits return TIGHT_UNIVERSALITY (CV < 0.12) across 8 sizes; the L_inf-constrained re-fit is a defensible negative methodological result (no R² improvement, all 8 sizes hit the lower bound), demonstrating robustness of the α universality to fit specification.
-8. ***[v0.5 NEW]* Three methodology increments** in §§3.6.5–3.6.7: (s\*, k) threshold-tobit reparametrisation; multilayer test pattern; head-vs-tail-aware LLM validator (engineering).
+*v0.5 (the present revision) is a focused **hardening + new-class iteration** of the v0.4 result, not a paradigm shift.* The v0.4 framework, pipeline, and 18-class verdict matrix are inherited unchanged; v0.5 adds (i) one new universality class promoted from a v0.4 INCONCLUSIVE entry through a generalisable multilayer test pattern; (ii) a targeted methodological fix for one specific v0.4 pre-registration over-specification failure mode; (iii) a 100 %-real-data Pythia LAMBADA scaling-law fit replacing the v0.4 mixed-provenance `llm_scaling` entry; and (iv) three explicit methodology increments documented in §§3.6.5–3.6.7. None of these changes retracts a v0.4 number; all v0.4 verdicts (10 PASS-CONFIRMED, 6 REJECT-CONFIRMED, 2 INCONCLUSIVE) are preserved except where a v0.5 increment explicitly supersedes them.
+
+*Two additional framing points are inserted here as v0.5 contributions.* First, the **multilayer test pattern** (§3.6.6) generalises the v0.4 "one signature per class" framing: candidate classes whose underlying theory predicts *different* scaling forms at *different* scales (per-aggregate vs cross-population, per-event vs per-waiting-time, per-individual vs cross-cohort) require a layered pre-registration in which each layer's constraints are tested independently. PASS-CONFIRMED-MULTILAYER requires every layer's constraints to hold; a class that passes only at some layers is SPLIT (real but only at some scales); a class that passes at no layer is REJECT-MULTILAYER (the class as framed is empirically wrong). The pattern is offered as a general methodological upgrade, not specific to the v0.5 promotion case that motivates it. Second, the **threshold-tobit (s\*, k) reparametrisation** (§3.6.5) is a *targeted* remediation for the v0.4 pre-registration over-specification failure mode in which a logit slope band and two-or-more point follow-through rates on the same dose-response curve are jointly inconsistent — i.e., the point-rate constraints algebraically imply a slope outside the pre-registered slope band, and no logit fit can satisfy both. A cross-class applicability audit (`docs/methodology/2026-05-25-threshold-tobit-cross-class-applicability.md`) explicitly scopes the remediation to this one failure mode; Hill / linregress / exp-decay / multi-axis-gate parametrisations do not encounter it and should not be re-parametrised.
+
+*One real-data finding deserves explicit foreshadowing in the introduction.* The v0.5 Schelling re-analysis surfaces a structural limit of the synthetic-anchor family the v0.4 verdict matrix has been resting on: across a pre-registered (a, b, noise) grid sweep, **no synthetic generator parameterisation anywhere in the sweep reaches 4/4 literature anchor hits at ±0.20 tolerance**, because the four real-world anchors (WTO retaliation, M&A break-up fee, sovereign default, dual-class share structure) trace incompatible $(p_\text{low}, p_\text{high})$ regimes. The Schelling v0.5 verdict therefore lands at PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (2/4 anchor hits at the best in-band sub-run D, with the global (s\*, k) box satisfied and the sham null clean) rather than at PASS-STRONG. This is the kind of *eval-specific* universality finding that the v0.4 framework was not equipped to surface; v0.5's anchor-by-anchor verdict structure makes it explicit. The same finding pattern reappears in the v0.5 Pythia LAMBADA fit (§4): TIGHT_UNIVERSALITY across 8 sizes within LAMBADA-OpenAI, but α is in principle eval-specific; cross-evaluator α universality is a separate question that v0.5 does not test.
+
+**Contributions.** This paper makes the following contributions:
+
+1. *[v0.4 inherited]* **A single fixed pipeline across four real systems.** We re-fit power-law tails and, where applicable, Omori temporal decay on USGS earthquakes (Phase 1), S&P 500 daily returns (Phase 2), three DeFi lending protocols (Phase 3 — Aave V2, Compound V2, MakerDAO), and mouse-cortex neural avalanches (Phase 4), all through the same code path with no per-domain parameter tuning.
+
+2. *[v0.4 inherited]* **Null robustness.** Phase 5 runs the identical pipeline on four synthetic non-SOC sources and verifies they are all correctly rejected.
+
+3. *[v0.4 inherited]* **Taxonomy completion across 18 candidate classes** (§3.2 below): 10 PASS-CONFIRMED, 6 REJECT-CONFIRMED, 2 INCONCLUSIVE, 5 SPLIT decisions, and 1 MERGE recommendation against the B3 priors; the *cross-domain scatter threshold* introduced as a binary screen for descriptor-vs-mechanism.
+
+4. *[v0.4 inherited]* **Honest accounting** — including the lognormal-not-always-rejected qualification, the endogenous-only scope, the synthetic-data anchors carried by 11 of the 18 v0.4 classes, and the unverified status of the project's downstream cross-domain predictions (Layer 4).
+
+5. ***[v0.5 NEW]* Aggregation-kinetics multilayer class** (`aggregation_kinetics`, PASS-STRONG-MULTILAYER), promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE entry via a 2-layer pre-registration (Smoluchowski power-law on per-aggregate sizes + lognormal on cross-population total burden). Three biological domains anchor Layer 1 (human Alzheimer cortex, 5xFAD mouse cortex, multi-cancer oncology; α̅ = 1.95 across 3 domains); four of five Allen Brain TBI Aβ series anchor Layer 2 (Vuong R < 0 vs power-law at p < 0.05). The v0.4 single-layer cross-section test that drove the INCONCLUSIVE was the *wrong* test for the underlying theory; the multilayer test is the methodological fix.
+
+6. ***[v0.5 NEW]* Threshold-tobit re-analysis of `schelling_credible_commitment`**, lifting the v0.4 INCONCLUSIVE-pre-reg-overspec verdict to **PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT** (sub-run C anchor-calibrated synthetic generator: s\* = 0.251 ∈ [0.20, 0.35] ✓, k = 6.529 ∈ [4, 12] ✓, p(0.4) = 0.834 > 0.65 ✓, p(0.2) = 0.369 < 0.40 ✓; sham null $|k_\text{sham}| < 0.05 \ll 1.5$ ✓; per-anchor microtune sub-run D: 2/4 anchor hits at ±0.20 tolerance). The 2/4 gap is a real scientific finding about the synthetic generator family — the four literature anchors trace incompatible $(p_\text{low}, p_\text{high})$ regimes — not a fitting failure. Real-data WTO retaliation coding (Bown 2009 / Horn-Mavroidis, ~110 cases × ~6 h) is the path to per-anchor PASS-STRONG-REAL.
+
+7. ***[v0.5 NEW]* 100 % REAL Pythia LAMBADA scaling-law fit**, replacing the v0.4 3/6-SYNTHETIC-fallback `llm_scaling` entry. Both unconstrained (v1: α̅ = 0.144, CV = 0.118, mean R² = 0.82) and $L_\infty$-constrained (v2: α̅ = 0.159, CV = 0.116, mean R² = 0.81) fits return **TIGHT_UNIVERSALITY (CV < 0.12)** across 8 Pythia sizes on LAMBADA-OpenAI per-checkpoint evaluation JSONs (216 size × checkpoint observations). The $L_\infty$-constrained re-fit (v2) does not improve fit quality — mean R² actually decreases by 0.018, and all 8 sizes hit the lower bound $L_\infty = 1.0$. This is a defensible **negative methodological finding**: within the Pythia training-compute range $[10^{15}, 10^{22}]$ FLOPs, LAMBADA log-perplexity is still in the power-law-decay regime, not the floor-bounded regime. The universality verdict is robust to fit re-specification, and the robustness is itself the methodological contribution. *Eval-specificity caveat: α is in principle eval-specific; the cross-eval (LAMBADA-standard / WikiText-103 / HellaSwag) extension is deferred to v0.6.*
+
+8. ***[v0.5 NEW]* Three methodology increments** in §§3.6.5–3.6.7: (a) **(s\*, k) threshold-tobit reparametrisation** as a targeted remediation for the logit binary-outcome over-specification failure mode (with explicit cross-class N/A audit on three other classes); (b) **multilayer test pattern** as a general upgrade for candidate classes that predict different scaling forms at intra-individual and inter-individual scales (with a candidate list of allometric scaling / network growth / cascading failures / earthquake productivity for future batches); (c) **head-vs-tail-aware LLM validator** as an engineering pattern for LLM-driven text-rewrite tasks at scale (deployed on a 117-entry Wave 3 C KB boilerplate cleanup). The first generalises only to the specific failure mode that motivated it; the second generalises plausibly across class families; the third is engineering, not methodology, but worth recording because it changed the binding constraint on KB-quality cleanup at scale.
+
+**Scope decision.** As in v0.4, this paper carries the focused five-system SOC core *plus* the v0.4 taxonomy-completion sweep, now extended with the v0.5 increments (1 new class, 2 updated rows, 3 methodology increments). v0.3 shipped the five-system core; v0.4 added §3.2 below (the 18-class taxonomy completion); v0.5 adds the present increments. The thirteen-system sibling manuscript (`unified-pipeline-v0.2-2026-05-13`) remains a separate, broader portability paper, not superseded by or merged into this one. The two have different theses (this paper: SOC universality verified deeply across four real domains + null + 19-class taxonomy classifier with multilayer extension; the sibling: one *methodological framework* shown to be portable across five class families). They share the Phase 1–4 numbers, and this paper is kept numerically consistent with the sibling.
+
+The paper is organized as follows. Section 2 specifies the shared pipeline. Section 3 reports the verdict matrix: §3.1 summarises the v0.3 five-phase deep core; §3.2 reproduces the v0.4 18-class taxonomy-completion verdict matrix; §3.3 develops the cross-domain scatter threshold; §3.4 covers the cleanup of confusable triplets (5 SPLITs + 1 MERGE); §3.5 lists the v0.5 verdict matrix deltas (1 new class, 2 updated rows); §3.6 reports the seven methodology increments (4 from v0.4, 3 new in v0.5). Section 4 reports the Pythia LAMBADA scaling-law cross-fit robustness study. Section 5 presents the aggregation-kinetics multilayer class in detail. Section 6 reports the Schelling v0.5 re-analysis. Section 7 states limitations. Section 8 lists references. Section 9 closes with the v0.4 → v0.5 changelog.
 
 ---
 
 ## 2. The shared pipeline
 
-*[Inherited from v0.4 §2 verbatim. To be expanded in final draft from `docs/sessions/C1-unified-preprint-draft-v0.4.md`, lines 113–137.]*
+*[Inherits v0.4 §2 verbatim. No theoretical change. v0.5 adds one paragraph noting the multilayer test pattern as an addition to the methodology section (§3.6.6) and the two new standalone validation scripts (§5, §6) which keep the `soc-pipeline` core unchanged.]*
 
-The shared analysis stack is implemented as the Python package `soc-pipeline` (v0.1.0, MIT, `packages/soc-pipeline/`), exposed to every phase as a small set of functions: `fit_clauset_powerlaw`, `bootstrap_ci`, `lr_test`, `omori_utsu_stack`, `null_controls`, `aki_b_value`, `universal_collapse`. The pipeline is intentionally minimal; the only domain-specific code lives in per-phase data loaders. No phase modifies the pipeline; no phase tunes a fitting parameter; no phase adds a domain-specific prior. v0.5 inherits the same package release tag as v0.4 (`soc-pipeline-v0.1.0`); the v0.5 methodology increments (§§3.6.5–3.6.7) are *additions* to the methodology section, not modifications of the pipeline.
+The shared analysis stack is implemented as one Python package and exposed to every phase as a small set of functions. The pipeline is intentionally minimal: each step corresponds to a single published estimator, the parameters are fixed across phases, and the only domain-specific code lives in the per-phase data loaders. No phase modifies the pipeline; no phase tunes a fitting parameter; no phase adds a domain-specific prior. v0.4 §3.2 uses exactly the same pipeline calls as the v0.3 deep core and applies them to 18 additional classes with no modification. *v0.5 (the present revision) preserves this discipline: the new methodology increments (§§3.6.5–3.6.7) are additions to the methodology section, not modifications of the pipeline; the v0.5 validation scripts for `aggregation_kinetics` and the Schelling re-fit are standalone supplementary code that consume the `soc-pipeline` package without modifying it.*
 
-*v0.5 addendum.* Two pipeline-level additions appear in the v0.5 supplementary code, both implemented as standalone scripts rather than core-pipeline edits to keep the frozen module clean: (i) `v4/validation/aggregation-kinetics/run_validation.py` — the multilayer test driver that consumes the 3-anchor Layer 1 + 5-series Layer 2 inputs; (ii) `v4/validation/schelling-credible-commitment/run_validation_v5.py` — the probit / threshold-tobit re-fitter using SciPy's optimiser on the (s\*, k) reparametrisation. Both are exposed via plain Python scripts with deterministic seeds; neither modifies the `soc-pipeline` package.
+**Implementation and provenance.** The authoritative implementation is the standalone Python package `soc-pipeline` (version 0.1.0, MIT licence), located at `packages/soc-pipeline/` in the project repository. It is split into one module per analytical operation: `fit.py` (Clauset maximum-likelihood power-law fit), `bootstrap.py` (bootstrap confidence intervals), `lr_test.py` (likelihood-ratio tests), `omori.py` (Omori–Utsu stacking and fitting), `null_controls.py` (synthetic null generators), `b_value.py` (Aki maximum-likelihood b-value), `universal_collapse.py`, and supporting utilities; it depends only on `numpy`, `scipy`, `pandas`, and `powerlaw`. The canonical release tag is `soc-pipeline-v0.1.0`. The legacy path `v4/lib/soc_pipeline.py` is a deprecation shim re-exporting the package. *v0.5 inherits the same `soc-pipeline-v0.1.0` tag; no version bump is required because the pipeline itself is unchanged.*
+
+### 2.1 Clauset–Shalizi–Newman maximum-likelihood power-law fit
+
+For each dataset we fit a continuous power-law $p(s) \propto s^{-\alpha}$ for $s \geq x_\text{min}$ using the Clauset–Shalizi–Newman estimator [9]. The lower cutoff `x_min` is selected automatically by minimizing the Kolmogorov–Smirnov distance between the empirical and fitted cumulative distribution functions on the candidate tail; α is then estimated by maximum likelihood (Hill-form estimator) on that tail. We use the Alstott–Bullmore–Plenz `powerlaw` library [10] as the canonical implementation. For each fit we report α, the analytic Hill-form standard error σ(α), the fitted `x_min`, and the tail size `n_tail`.
+
+### 2.2 Uncertainty quantification
+
+Phase 1 reports a 500-resample bootstrap CI on the Gutenberg–Richter b-value in addition to the analytic Shi–Bolt error; Phases 2–4 and the v0.4 §3.2 batch report the Clauset/Hill analytic standard error returned by the `powerlaw` library. A uniform bootstrap across all phases is a possible methodological upgrade, not a correction.
+
+### 2.3 Likelihood-ratio tests against alternatives
+
+For each fit we compute the Clauset–Shalizi–Newman normalized log-likelihood ratio R against two alternatives — lognormal and exponential — with associated Vuong-style p-values [9]. In the Clauset convention, **a positive R favors the power-law and a negative R favors the alternative**; p < 0.05 indicates the preference is statistically distinguishable.
+
+### 2.4 Omori–Utsu temporal decay
+
+Where a system has a meaningful event time series, we estimate temporal aftershock decay following the Omori–Utsu form $n(t) = K / (t + c)^p$ [6]. Goodness of fit is reported as a weighted R² in log space.
+
+### 2.5 Synthetic null controls
+
+For each phase we generate matched-`n` synthetic samples from non-power-law sources and run the identical pipeline on each. Passing requires correct rejection: the synthetic-null likelihood-ratio against the matching alternative must be strongly negative, or the fit must fail to converge on a stable `x_min`. Phase 5 is a dedicated null-control phase across four canonical non-SOC sources.
+
+### 2.6 v0.5 supplementary scripts (additions, not pipeline modifications)
+
+Two standalone Python scripts are added in v0.5, both consuming the frozen `soc-pipeline-v0.1.0` package without modification:
+
+- `v4/validation/aggregation-kinetics/run_validation.py` — the multilayer test driver (§3.6.6, §5). Consumes 3-anchor Layer 1 inputs (per-aggregate power-law on Cruz 1997 human cortex / Hartig 2018 5xFAD mouse cortex / Iwata 2000 + Brú 2003 oncology) and 5-series Layer 2 inputs (cross-population lognormal Vuong test on Allen Brain TBI Aβ series). Reports per-layer verdicts and a combined PASS-CONFIRMED-MULTILAYER / SPLIT / REJECT-MULTILAYER ladder.
+
+- `v4/validation/schelling-credible-commitment/run_validation_v5.py` — the probit / threshold-tobit re-fitter (§3.6.5, §6). Uses SciPy's optimiser on the (s\*, k) reparametrisation $p(s) = \Phi((\beta s - \tau)/\sigma)$ with $s^* = -\tau/\beta + \mu$ and $k = \beta/\sigma$ pre-registered as independent bands. Consumes anchor-calibrated synthetic data; the same script accepts real-data CSV as a drop-in replacement once Bown 2009 / Horn-Mavroidis manual coding completes.
+
+Both scripts use deterministic seeds (Python `random.seed(42)` + NumPy `np.random.seed(42)`); neither modifies `soc-pipeline` core functions; both are reproducible from the same `soc-pipeline-v0.1.0` release tag.
+
+### 2.7 Multilayer test pattern as a methodological addition
+
+The multilayer test pattern introduced in v0.5 §3.6.6 is an *addition* to the methodology section rather than a modification of the pipeline. The pattern composes existing `soc-pipeline` calls (Clauset MLE power-law fit + Vuong likelihood-ratio test) into a multi-layer pre-registration in which each layer's verdict is computed against its own functional form and its own pre-registered band. The combined verdict ladder (PASS-CONFIRMED-MULTILAYER / SPLIT / REJECT-MULTILAYER) is a layer over the existing single-test verdict ladder. No new pipeline function is needed; the layering is in the pre-registration document and the validation script, not in the package.
 
 ---
 
-## 3. Verdict matrix updates
+## 3. Verdict matrix
 
-*[Inherits v0.4 §§3.1–3.5 verbatim. The 18-class verdict matrix (v0.4 Table 2) is preserved unchanged; v0.5 adds one new row (`aggregation_kinetics`) and updates two existing rows (`schelling_credible_commitment`, `llm_scaling`/Pythia). The full v0.4 matrix is to be re-typed in the final draft from `docs/sessions/C1-unified-preprint-draft-v0.4.md` lines 200–230. Here we list only the deltas.]*
+*[§3.1 summarises the v0.3 five-system deep core (Phases 1–5). §3.2 reproduces the v0.4 18-class taxonomy-completion verdict matrix verbatim. §3.3 develops the cross-domain scatter threshold (v0.4's main new methodological contribution). §3.4 covers the cleanup of confusable triplets (5 SPLITs + 1 MERGE). §3.5 lists v0.5's verdict matrix deltas (1 new row, 2 updated rows). §3.6 reports the seven methodology increments (4 from v0.4, 3 new in v0.5).]*
 
-### 3.1 v0.5 verdict matrix deltas
+### 3.1 v0.3 deep core — five-system summary (inherited)
 
-**Table 2-Δ.** v0.5 updates to the v0.4 18-class verdict matrix. Three rows change; all 18 v0.4 entries (`gardner_collins_toggle_switch`, `extreme_value_tail_class`, `tail_copula_contagion`, `reflexive_fixed_point_class`, `reaction_diffusion_steady_state`, `gardner_collins_toggle_v2`, `delay_differential_debt`, `percolation_connectivity`, `schelling_credible_commitment`, `hysteresis_first_order_transition`, `scale_free_percolation_class`, `second_order_damped_oscillator`, `leaky_integrate_fire_threshold`, `adverse_selection_unraveling`, `fractional_brownian_crossings`, `preisach_hysteresis_cascade`, `anderson_localization`, `markov_memory_fidelity`) are preserved unchanged unless they appear below. The `beta_amyloid_aggregation` INCONCLUSIVE entry from v0.4 is *superseded* by the new `aggregation_kinetics` row.
+Table 1 places the four real systems of the v0.3 deep core side by side. The headline observation is that one fixed pipeline, applied with zero per-domain re-tuning, recovers a coherent SOC signature in each of geophysics, equity finance, decentralized finance, and neuroscience, while Phase 5 confirms the pipeline does not manufacture that signature from non-SOC data.
+
+**Table 1.** Four-system summary (the v0.3 deep core). Omori p is reported where the system has a meaningful event time series.
+
+| Phase | System | n (analysis sample) | Tail exponent | Omori p | Verdict |
+|---|---|---|---|---|---|
+| 1 | USGS earthquakes | 37,281 above M_c | b = 1.084 ± 0.005 (α_E = 1.794 ± 0.024) | 0.941 ± 0.017 | confirmed (ground-truth gate) |
+| 2 | S&P 500 daily returns | 9,060 | α = 2.998 ± 0.041 | 0.286 ± 0.034 | confirmed on exponent band (raw-tail LR favors lognormal — see §6.1) |
+| 3a | Aave V2 liquidations | 25,601 | α = 1.684 ± 0.010 | 0.733 ± 0.045 | confirmed |
+| 3b | Compound V2 liquidations | 11,244 | α = 1.649 ± 0.016 | 0.761 ± 0.042 | confirmed |
+| 3c | MakerDAO Dog liquidations | 1,985 | α = 1.567 ± 0.015 | 0.692 ± 0.071 | confirmed |
+| 4 | Mouse ALM cortex avalanches | 1,392,414 spikes (n=1 session) † | τ ∈ [2.17, 3.00] | — (size-scaling phase) | sub-class shift; γ ≈ 1.10 holds (single session) |
+| 5 | Synthetic non-SOC nulls (×4) | 20,000 each | rejected | rejected (R² ≈ 0.002) | correctly negative |
+
+† Phase 4 rests on a single session, single animal recording. A cross-session/cross-animal robustness check is the natural Phase-4 follow-up but is not part of the C1 v0.4 / v0.5 result. See §7.1.
+
+The exponent spread across real systems — α ≈ 1.6 (DeFi, earthquake energy) to α ≈ 3.0 (S&P 500) — is *expected* under universality-class theory. Systems in the same class share equations of motion, not necessarily a single numerical exponent: different conjugate observables (released energy, return magnitude, debt size, avalanche size) carry different scaling exponents. What the framework predicts to be shared is the *functional form* — a power-law tail with an exponential finite-size cutoff — and the *paired-signature structure* (size power-law plus Omori temporal decay) for the threshold-cascade members.
+
+**Phase-by-phase reproducibility provenance.** Phase 1 sources from `web/.../papers/arxiv-01_earthquake_soc-2026-05-13.md` (USGS FDSN catalog 2020–2025, M ≥ 3.5; 84,724 events; M_c = 4.45 Wiemer–Wyss; b = 1.084 ± 0.005 Aki MLE with 500-resample bootstrap 95% CI [1.073, 1.094]; Omori p = 0.941 ± 0.017 on 580 main shocks of M ≥ 6.0; declustered background b_declust = 0.923 ± 0.007). Phase 2 sources from `arxiv-02_stockmarket_inverse_cubic-2026-05-13.md` (S&P 500 daily close 1990–2025, 9,066 prices → 9,065 log returns; α = 2.998 ± 0.041, n_tail = 2,327 above x_min = 0.00998; reproducing the Gopikrishnan inverse cubic law to within 0.07 %). Phase 3 sources from `arxiv-03_defi_cross_protocol-2026-05-13.md` (43,065 on-chain liquidations across Aave V2 / Compound V2 / MakerDAO Dog/Clip, block ranges 2020–2024). Phase 4 sources from `arxiv-04_neural_avalanches-2026-05-13.md` (DANDI 000006, mouse ALM cortex, 1,392,414 spikes / 71 sorted units / 2,266 s task; scaling-relation γ ≈ 1.10 stable across 16-fold binning sweep). Phase 5 sources from `soc-null-2026-04-16.md` (four canonical non-SOC nulls: Gaussian random-walk, exponential variates, homogeneous Poisson inter-arrivals, Poisson → Omori stack; all four correctly rejected at likelihood ratios of −16 to −45).
+
+**Why the null phase is load-bearing.** A cross-domain power-law survey is only persuasive if the surveying instrument can also say "no." Phase 5 is therefore not an appendix but a core result: it converts "the pipeline found power laws everywhere it looked" from a worrying observation into a meaningful one. The v0.4 §3.2 batch (next sub-section) generalises this principle: of the 18 candidate classes, 6 came back REJECT-CONFIRMED — the pipeline said "no" to descriptor-class candidates with the same vigor it applied to the synthetic nulls.
+
+### 3.2 v0.4 taxonomy completion — 18-class verdict matrix (inherited)
+
+This sub-section reports the v0.4 empirical-anchor batch verbatim. Using the same frozen `soc-pipeline` package and the same B3 cross-judge pre-registration logic that produced the Phase 1–4 verdicts, the v0.4 batch closed the empirical verdicts of an additional 18 candidate universality classes drawn from the project's `docs/v04-validation-plan/16-classes-empirical-anchors.md` pre-registration. No pipeline parameter was retuned for any class; no pre-registered band was widened during the run. *v0.5 preserves the entire matrix unchanged; the v0.5 deltas appear separately in §3.5.*
+
+#### 3.2.1 Methodology recap
+
+Each of the 18 classes carried a B3 cross-judge expected verdict (PASS / REJECT / SPLIT / MERGE / INCONCLUSIVE), derived from the project's mechanism-graph and KB-similarity layers, and a pre-registered cross-domain band on the class-defining invariant. The frozen Clauset/SOC pipeline was run against each class's empirical anchors (real data where licensable, synthetic-generative anchored on the published source paper where not — flagged `data_provenance: SYNTHETIC` in each `results.json`). The empirical verdict is then the comparison of the measured invariant to the pre-registered band, the cross-domain spread, and the sham/null discrimination outcome. The 18 classes were processed in three waves (Wave 2A: 6 high-priority; Wave 2B: 6 medium-priority; Wave 2C: 6 high-risk/textbook), with each verdict written into a sub-agent report in `docs/sessions/v04-<class>-report.md` and the underlying artefacts in `v4/validation/<class>/`. Aggregating the 18 verdicts and comparing to B3 priors gives the empirical taxonomy increment of v0.4.
+
+#### 3.2.2 The 18-class verdict matrix
+
+Table 2 summarises the 18 v0.4 verdicts. Columns: class name; B3 prior (cross-judge expected verdict before the run); pre-registered band on the class-defining invariant; empirical measurement (median across domains, with the cross-domain spread); empirical verdict; one-line reason.
+
+**Table 2.** v0.4 18-class verdict matrix. PASS-CONFIRMED = mechanism class status verified empirically. REJECT-CONFIRMED = descriptor-not-mechanism; see §3.3 for the cross-domain scatter threshold that screens these. SPLIT / MERGE = recommendation for the taxonomy graph. *v0.5 status column added (rightmost): unchanged / superseded / updated; v0.5 updates are detailed in §3.5.*
+
+| # | Class | B3 prior | Pre-reg band | Empirical median ± spread | v0.4 verdict | One-line reason | v0.5 status |
+|---|---|---|---|---|---|---|---|
+| W2A.1 | `gardner_collins_toggle_switch` | KEEP (v1) | Hill n ∈ [2.5, 4.5]; dwell 30–60 d | n = 3.26, dwell = 38 d (synthetic only) | INCONCLUSIVE | Real Anetzberger 2009 not loaded; synthetic anchor passes band | unchanged |
+| W2A.2 | `extreme_value_tail_class` | REJECT | ξ cluster < 0.20 across DoA | ξ-spread 1.996 across 5 datasets | REJECT-CONFIRMED | 5 mechanisms span Weibull/Gumbel/Fréchet DoA — descriptor | unchanged |
+| W2A.3 | `tail_copula_contagion` | REJECT (2 prior) | Δλ(stress − calm) > 0.15 | Δλ ∈ [−0.006, +0.001]; SOC mechanism loses to copula descriptor by ΔAIC 999–3,224 (Gumbel BIC win over alternatives 346–1,645) | REJECT-CONFIRMED (3rd verdict) | Static tail-dependence beats stress/calm split; copula property | unchanged |
+| W2A.4 | `reflexive_fixed_point_class` | KEEP | α ∈ [2.5, 3.5], ĉ > 0 with sham null | α = 2.97, ĉ = 0.65 | PASS-CONFIRMED | Six-domain Soros-equation anchor; sham null discriminates | unchanged |
+| W2A.5 | `reaction_diffusion_steady_state` | KEEP | λ ∈ [1.5, 8.0] km, 3-domain median | λ = 5.54 ± 1.24 km across 3 spatial domains | PASS-CONFIRMED | OZ Lorentzian beats exponential 2–5× on radial autocorr | unchanged |
+| W2A.6 | `gardner_collins_toggle_v2` | MERGE-candidate w/ v1 | Hill n ∈ [2.5, 4.5]; phase fingerprint | n = 3.06; 0/3 MERGE crits met | PASS + SPLIT vs v1 | Positive-feedback (v2) phase plane distinct from mutual-repressor (v1) | unchanged |
+| W2B.1 | `delay_differential_debt` | REJECT | T_period CV across 6 DDE < 0.50 | T_period CV = 1.184 across 6 mechanisms | REJECT-CONFIRMED | Hopf bifurcation normal-form, not a mechanism class | unchanged |
+| W2B.2 | `percolation_connectivity` | KEEP | Fisher τ ∈ [1.85, 2.2] (textbook 187/91 ≈ 2.055; 9% half-width) | τ = 1.94 with FSS collapse | PASS + SPLIT vs SF | 2D-lattice exponent distinct from scale-free percolation | unchanged |
+| W2B.3 | `schelling_credible_commitment` | REJECT (rank 5) | b ∈ [1.2, 2.6] AND high-s threshold ≥ 0.75 | b = 2.04 (in band); high-s = 0.64 (out) | INCONCLUSIVE | Mechanism+sham null pass; pre-reg magnitude over-specified | **UPDATED (v0.5 §3.5; §3.6.5; §6)** |
+| W2B.4 | `hysteresis_first_order_transition` | KEEP | ΔL ∈ [2.0, 6.0], inner-loop R² vs Preisach | ΔL = 2.73; inner-loop R² = 0.005 vs Preisach 1.000 | PASS + 2-way SPLIT | SPLIT from `hysteresis_preisach` (R² = 0.005) AND from `scheffer_fold_bifurcation` | unchanged |
+| W2B.5 | `scale_free_percolation_class` | MERGE-candidate w/ perco | γ ∈ [2.0, 3.5] CAIDA-anchored | γ = 2.146 (CAIDA AS graph) | PASS + SPLIT vs perco | τ_SF ∈ [2.40, 2.67] vs lattice τ = 2.055 (textbook 187/91) | unchanged |
+| W2B.6 | `second_order_damped_oscillator` | REJECT | ζ ∈ [0.05, 0.5] cluster across regimes | ζ-spread 2,395× across 3 regimes | REJECT-CONFIRMED | Spans underdamped/critical/overdamped; descriptor | unchanged |
+| W2C.1 | `leaky_integrate_fire_threshold` | SPLIT (neural/econ/CS) | R = τ_relax / T_event ∈ [3, 30] | R ∈ [1.02, 6.48], 2/5 in band, spread 6.35× | PARTIAL-shifted-band + SPLIT | Qualitative LIF holds; pre-reg band shifted | unchanged |
+| W2C.2 | `adverse_selection_unraveling` | SPLIT (econ/comms) | Akerlof α/β ∈ [1.15, 2.40] at f_sig = 0.2 | α/β = 1.201; q_floor lift 0.335 with Spence signal | PASS-CONFIRMED (econ-side) | Lemon-ratio half-life 3.61 in band [3, 14]; Spence quantified | unchanged |
+| W2C.3 | `fractional_brownian_crossings` | REJECT | H cluster < 0.15 across stationary domains | H-spread 0.361 across 3 domains | REJECT-CONFIRMED | finance 0.48 / Nile 0.78 / climate 0.84 — descriptor | unchanged |
+| W2C.4 | `preisach_hysteresis_cascade` | KEEP | τ_s ∈ [1.4, 1.7]; γ ∈ [1.7, 2.2] | τ_s = 1.490; γ overlaps RFIM | PASS + MERGE w/ `rfim_barkhausen` | Crackling-noise class (Sethna–Dahmen–Myers 2001) | unchanged |
+| W2C.5 | `anderson_localization` | KEEP | ν ∈ [1.45, 1.7] (textbook 1.572) | ν = 1.620 across two band regimes | PASS-CONFIRMED | 3D Anderson model FSS collapse | unchanged |
+| W2C.6 | `markov_memory_fidelity` | REJECT | τ_mix log10 spread < 0.5 decades | τ_mix log10 spread 2.98 decades; H_norm 0.116 | REJECT-CONFIRMED | 4 domains: text/DNA/recessions/ratings — descriptor | unchanged |
+
+**Aggregate counts (v0.4 Table 2).**
+
+- **10 PASS-CONFIRMED** (mechanism class status verified): W2A.4 reflexive_fixed_point, W2A.5 reaction_diffusion_steady_state, W2A.6 gardner_collins_toggle_v2, W2B.2 percolation_connectivity, W2B.4 hysteresis_first_order, W2B.5 scale_free_percolation, W2C.2 adverse_selection_unraveling, W2C.4 preisach_hysteresis_cascade, W2C.5 anderson_localization, plus W2C.1 leaky_integrate_fire (partial-shifted-band, counted as conditional PASS for the within-band 2/5 domains).
+- **6 REJECT-CONFIRMED** (descriptor-not-mechanism): W2A.2 extreme_value_tail, W2A.3 tail_copula_contagion, W2B.1 delay_differential_debt, W2B.6 second_order_damped_oscillator, W2C.3 fractional_brownian_crossings, W2C.6 markov_memory_fidelity.
+- **2 INCONCLUSIVE**: W2A.1 gardner_collins_toggle_switch v1 (synthetic-only anchor; real Anetzberger 2009 not loaded), W2B.3 schelling_credible_commitment (mechanism passes, pre-reg magnitude over-specified — v0.5 revises this; see §3.5 + §3.6.5 + §6).
+- **5 SPLIT decisions** introduced into the taxonomy graph: (i) `gardner_collins_toggle_v1` vs `_v2`; (ii) `percolation_connectivity` vs `scale_free_percolation_class`; (iii) `hysteresis_first_order_transition` vs `hysteresis_preisach` AND `scheffer_fold_bifurcation` (two-way); (iv) `adverse_selection_unraveling` econ-side vs comms-side (pending Wave 3 BERTopic NLP); (v) `leaky_integrate_fire` neural/economic/CS variants.
+- **1 MERGE recommendation**: `preisach_hysteresis_cascade` + `rfim_barkhausen_avalanche` → single `crackling_noise_universality` class anchored on Sethna–Dahmen–Myers 2001 (Nature 410:242). The classical, non-coupled `hysteresis_preisach` (already verified on NGSIM traffic) remains a sibling under the parent.
+
+### 3.3 The mechanism-vs-descriptor boundary, sharpened (inherited)
+
+The single sharpest finding of v0.4 §3.2 is empirical: six of the eighteen classes empirically REJECT, and the six REJECTs are not scattered — they cluster cleanly along the same axis. In each of the six cases the candidate class is a *statistical descriptor* (a tail family, a copula, a delay-differential normal form, a second-order ODE template, a self-similar process, a Markov framework) rather than a *mechanism family* (a specific dynamical generator). When the project's B3 cross-judge prior flagged these as REJECT, the analytical worry was always the same one — recently sharpened in the project's "mechanism-vs-descriptor" follow-up paper (C4, [refs 46–48]) and grounded in Halford 1992's distinction between functional form and underlying process — and the v0.4 empirical step now puts numbers behind it.
+
+We propose a **generalised cross-domain scatter threshold** as a binary screen for descriptor-vs-mechanism:
+
+> *A candidate class is empirically a descriptor (not a mechanism) when its class-defining invariant satisfies* **max/min(median θ across domains) > 10× AND ≥ 2 dynamical regimes are spanned**.
+
+Six of six REJECT-CONFIRMED classes cleanly satisfy this screen:
+
+| Class | max/min(median θ) | Regimes spanned | Source-paper-level "why descriptor" |
+|---|---|---|---|
+| `extreme_value_tail` | ξ-spread 1.996 across 3 DoA | 3 Fisher–Tippett–Gnedenko DoA (Weibull / Gumbel / Fréchet) | EVT applies to any stationary max-process; the limit theorem is universal but the mechanisms are not |
+| `tail_copula_contagion` | SOC vs copula ΔAIC 999–3,224 across 4 pairs (Gumbel BIC win 346–1,645) | "calm" vs "stress" *not separable*; static copula adequate | A copula is a marginal-stripped tail property, not a mechanism class (C4 paper §4.2) |
+| `delay_differential_debt` | T_period CV 1.184 across 6 DDE | Hopf vs non-Hopf vs near-Hopf | DDEs share Hopf-bifurcation normal form, not mechanism dynamics |
+| `second_order_damped_oscillator` | ζ-spread 2,395× | 3 regimes (underdamped / critically damped / overdamped) | Every second-order ODE has a ζ; the cluster threshold is empty |
+| `fractional_brownian_crossings` | H-spread 0.361 (>2.4× threshold) | finance 0.48 / Nile 0.78 / climate 0.84 (stationary domains) | H is a self-similarity exponent of the *process realisation*, not the generating mechanism |
+| `markov_memory_fidelity` | τ_mix log10 spread **2.98 decades** | text / DNA / recessions / ratings | "Markov" is a framework wrapper — any state series fits, with τ_mix set by domain dynamics |
+
+The screen is methodologically transferable: it was first proposed by the v0.4 W2B.6 second-order-damped-oscillator sub-agent (which observed that the ζ-spread of 2,395× across 3 regimes was *the same kind of finding* as the EVT ξ-spread of 1.996) and was then re-applied independently in W2C.6 markov_memory_fidelity (which named the resulting cluster as "Layer-0 REJECT cluster: tail-tail-tail descriptor families"). The cross-domain scatter threshold is in this sense v0.4's main methodological contribution beyond the v0.3 deep core.
+
+Two things to note honestly about the screen. First, the 10× / 2-regime numbers are pragmatic choices, not first-principles thresholds; in the v0.4 batch they cleanly separate the six REJECTs from the ten PASSes, but a future batch could find a class that sits inside the screen (e.g., a marginal mechanism family spanning 8× across 2 regimes) where a more careful Halford-1992-style mechanism audit would be required to break the tie. Second, the screen does *not* claim "any class with a spread > 10× is a descriptor" — it claims "this is one defensible binary screen that the v0.4 data supports, and the six REJECTs satisfy it overwhelmingly." A reviewer should read the screen as a confirmatory test, not a single-statistic verdict.
+
+The downstream payoff is substantial. The project's Layer 1 community-discovery step discovers candidate universality classes from KB-similarity and mechanism-graph signals; the project's Layer 2 step then groups them. Without the v0.4 scatter-threshold screen, descriptor-class candidates (Markov, copula, EVT, fractional Brownian, damped-oscillator, delay-differential) survive into Layer 4 prediction territory and contaminate the candidate-class list. With the screen as a Layer 1.5 sanity check, they are filtered out at the empirical-anchor stage before any prediction is issued. The project's `null_controls/descriptor_screen.py` plugin (added in this v0.4 round) implements the screen as a single function call against the per-class `results.json`.
+
+This finding is consistent with the broader complexity-science literature on the descriptor / mechanism distinction. Halford 1992 ("From cell to society") makes the structural distinction at the level of cognitive analogy; Stumpf & Porter 2012 (Science) make the statistical-fitting version of the argument specifically for scale-free networks ("most network 'scale-free' claims are statistical artifacts of fitting heavy-tailed distributions, not consequences of preferential-attachment mechanism"). The v0.4 §3.3 result generalises Stumpf–Porter from scale-free-network claims to the entire descriptor cluster (EVT, copula, fBm, Markov, damped-oscillator, delay-differential), with a single binary screen across all of them.
+
+### 3.4 Cleanup of confusable triplets (inherited)
+
+The 5 SPLIT decisions and 1 MERGE recommendation introduced in §3.2.2 cluster around four distinct taxonomy ambiguities. We describe each below; the consolidated taxonomy diagram is described textually at the close of this sub-section. *No v0.5 update is required for the cleanup; the 5+1 decisions from v0.4 stand.*
+
+**(a) `gardner_collins_toggle_switch` v1 vs v2.** The B3 cross-judge pre-flagged these two variants as MERGE candidates: both are Hill-coefficient bistable-switch models, both produce the same canonical n ∈ [2.5, 4.5] band, and the source-paper Anetzberger 2009 anchor is shared. The W2A.6 sub-agent ran the identical pipeline against both and found *0 of 3 MERGE criteria met*: v1 (mutual-repressor) and v2 (positive-feedback) produce qualitatively distinct phase-plane fingerprints despite both passing the n-band. The v2 closed-loop Hill is n = 3.06 (in band [2.5, 4.5]) and the phase plane is fundamentally different (single attractor moving along a sigmoid vs two symmetric attractors with a saddle). SPLIT verdict: keep both as siblings under a parent `bistable_genetic_switch_family`. The taxonomy diagram retains both nodes with an arc labelled "synthetic-anchor SPLIT, real-anchor Wave 3."
+
+**(b) `percolation_connectivity` (2D lattice) vs `scale_free_percolation_class`.** The pre-class consensus said "fold scale-free percolation into percolation_connectivity"; the W2B.2 sub-agent ran the textbook 2D-lattice Bernoulli site-percolation on the project's frozen FSS collapse pipeline and got τ = 1.94 (within finite-L correction-to-scaling drift below textbook Fisher exponent 187/91 ≈ 2.055), well inside the pre-reg band [1.85, 2.2] (a 9 % half-width band capturing finite-L drift). The independent W2B.5 sub-agent ran the CAIDA AS-graph data and the scale-free percolation cluster-size exponent at γ = 2.5 and γ = 3.5 gave (2γ−1)/(γ−1) ∈ [2.40, 2.67]. The gap between lattice τ = 1.94 and SF τ ∈ [2.40, 2.67] is 0.46–0.73, well above the 0.30 SPLIT threshold. The textbook-level prediction is Cohen–Erez–ben-Avraham–Havlin 2000 (PRL 65:4626), which already states that lattice and scale-free percolation share the same *qualitative* signature but distinct *quantitative* exponents under the (2γ−1)/(γ−1) closed form. SPLIT verdict: both classes retained as siblings; the parent `percolation_universality` is the connecting node.
+
+**(c) `hysteresis_first_order_transition` vs `hysteresis_preisach` AND vs `scheffer_fold_bifurcation`.** This is the noisiest cleanup in the v0.4 batch. The W2B.4 sub-agent ran 116 empirical transitions (12 NBER recessions + 104 WTI regime flips) plus a synthetic Preisach hysteron generator and a synthetic Scheffer fold bifurcation. Outer-loop jump size ΔL = 2.73 (in pre-reg band [2.0, 6.0]). Inner-loop R² test: 0.005 against Preisach (full mismatch — no congruency property) and qualitatively distinct from Scheffer's smooth fold (Scheffer is a slow-fast bifurcation, first-order is a discontinuous jump). 2-way SPLIT: keep `hysteresis_first_order_transition` as its own class, SPLIT from `hysteresis_preisach` (R² = 0.005), SPLIT from `scheffer_fold_bifurcation` (different bifurcation type). The taxonomy diagram inserts `hysteresis_first_order_transition` as a sibling of both, under a parent `discontinuous_transition_family`.
+
+**(d) `preisach_hysteresis_cascade` + `rfim_barkhausen_avalanche` MERGE.** The W2C.4 sub-agent ran the Preisach cascade against the project's already-verified `rfim_barkhausen` class and found τ_s = 1.490 matching the mean-field 3/2 prediction exactly, γ values overlap, and the underlying physics (Sethna–Dahmen–Myers 2001 Nature 410:242) explicitly identifies these as members of the same `crackling_noise_universality` parent. MERGE recommendation: replace both as standalone classes with a single `crackling_noise_universality` class. Caveat: the classical, *non-coupled* `hysteresis_preisach` (already verified on NGSIM traffic with α ≈ 3.0 under log-normal, not power-law) is *not* part of this merge — it remains a sibling under a sibling parent. The boundary is the coupled vs uncoupled hysteron interaction: coupled → crackling noise (power-law); uncoupled → classical Preisach (log-normal). This boundary is theoretically clean and empirically distinguishable (single-run Preisach ABBM α = 3.0 vs cascade α = 1.49).
+
+**Net v0.4 taxonomy impact.** v0.4 takes the 26-class candidate list, executes 5 SPLIT decisions and 1 MERGE recommendation, and lands at **~27–28 empirically supported classes** (26 − 1 MERGE + 5 SPLITs − 2 INCONCLUSIVEs deferred, roughly). The exact number depends on how the W2C.1 LIF sub-class split and the W2C.2 adverse-selection econ-vs-comms split are resolved in Wave 3 (the comms-side anchor was deferred to Wave 3 per task spec).
+
+**Taxonomy figure — textual specification.** The v0.4 taxonomy diagram (rendered in v0.5 as `paper/v0.5-draft/figures/taxonomy-v0.5.png`) updates the v0.3 graph as follows.
+
+- **Layer 1 (Mechanism — empirically PASS-CONFIRMED in v0.4 + v0.5)**: now 11 nodes (10 v0.4 + 1 v0.5 new `aggregation_kinetics`). The v0.4 nodes (`reflexive_fixed_point`, `reaction_diffusion_steady_state`, `gardner_collins_toggle_v2`, `percolation_connectivity`, `hysteresis_first_order_transition`, `scale_free_percolation_class`, `adverse_selection_unraveling` (econ-side), `preisach_hysteresis_cascade` (merging w/ rfim_barkhausen), `anderson_localization`, `leaky_integrate_fire_threshold` (partial-shifted-band, conditional)) carry the v0.4 measured median ± spread label. The new v0.5 node `aggregation_kinetics` is placed in a PASS-STRONG sub-cluster with the 3-anchor / 2-layer label. *Schelling moves into Layer 1 with the v0.5 promotion (PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT) as a 12th node.*
+- **Layer 0 (Descriptor — empirically REJECT-CONFIRMED in v0.4)**: 6 nodes, *demoted* from Layer 1 in v0.3. `extreme_value_tail`, `tail_copula_contagion`, `delay_differential_debt`, `second_order_damped_oscillator`, `fractional_brownian_crossings`, `markov_memory_fidelity`. Each node carries the cross-domain spread label and the "screen: passes" marker. *Unchanged in v0.5.*
+- **Layer 2 (Candidate — awaiting validation)**: 1 INCONCLUSIVE node remains (down from 2): `gardner_collins_toggle_v1` (synthetic-only). The Wave 3.1 long-tail-domain candidates remain as shown in v0.4.
+- **MERGE edges**: 1 edge collapsing `preisach_hysteresis_cascade` + `rfim_barkhausen_avalanche` into `crackling_noise_universality`. *Unchanged in v0.5.*
+- **SPLIT edges**: 5 edges showing the cleanups in (a)–(d) above (gc-toggle v1↔v2, percolation↔SF-percolation, hysteresis-first-order↔preisach AND ↔scheffer, adverse-selection econ↔comms, LIF neural/econ/CS). *Unchanged in v0.5.*
+- **Cross-layer arrow**: The cross-domain scatter threshold (§3.3) appears as a dashed horizontal screen between Layer 0 and Layer 1, labelled "max/min(θ) > 10× AND ≥ 2 regimes → Layer 0." *Unchanged in v0.5.*
+- ***New v0.5 multilayer annotation:*** The `aggregation_kinetics` node carries a 2-layer marker (Layer-1-of-class = per-aggregate; Layer-2-of-class = cross-population); the marker visually distinguishes single-signature mechanism classes (most of Layer 1) from multi-scale mechanism classes (this node only, for now; candidate extensions in §3.6.6).
+
+### 3.5 v0.5 verdict matrix deltas
+
+v0.5 introduces one new row, updates two existing rows, and supersedes one v0.4 INCONCLUSIVE entry. All 18 v0.4 rows in Table 2 above are otherwise preserved unchanged.
+
+**Table 3.** v0.5 updates to the v0.4 verdict matrix. The `beta_amyloid_aggregation` INCONCLUSIVE entry from v0.4 (single-layer cross-section test on Allen Brain TBI Aβ series, 4/5 lognormal-preferred) is *superseded* by the new `aggregation_kinetics` row; the v0.4 entry remains in the historical record for traceability.
 
 | # | Class | v0.4 verdict | v0.5 verdict | Key v0.5 evidence | Method change |
 |---|---|---|---|---|---|
-| **NEW** | `aggregation_kinetics` (Smoluchowski + multiplicative population) | (was `beta_amyloid_aggregation` INCONCLUSIVE) | **PASS-STRONG** | Layer 1: α ∈ {1.70, 2.10, 2.05} across 3 biological domains (Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003); Layer 2: 4/5 Allen Brain TBI Aβ series with lognormal Vuong-preferred at p < 0.05 | §3.6.6 multilayer test pattern |
-| W2B.3 | `schelling_credible_commitment` | INCONCLUSIVE-pre-reg-overspec | **PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT** | Sub-run C anchor-calibrated (a = −3, b = 12, noise = 0.15): s\* = 0.251 ✓, k = 6.529 ✓, p(0.4) = 0.834 ✓, p(0.2) = 0.369 ✓; sham null \|k_sham\| < 0.05 ✓; per-anchor microtune sub-run D (a = −2.5, b = 10, noise = 0.15): s\* = 0.252, k = 4.977, anchor hits 2/4 (WTO + dual-class) @ ±0.20 — M&A and sovereign-default structurally unreachable (intercept-mixture / high-s saturation limits of synthetic family) | §3.6.5 (s\*, k) reparametrisation |
-| llm_scaling | Pythia 70m–12b | MODERATE_UNIVERSALITY (3/6 REAL + 3/6 SYNTHETIC) | **TIGHT_UNIVERSALITY (100% REAL via LAMBADA)** | v1: α̅ = 0.144, CV = 0.118, mean R² = 0.82; v2 (L_inf ≥ 1.0): α̅ = 0.159, CV = 0.116, mean R² = 0.81; both → TIGHT_UNIVERSALITY (CV < 0.20) | Per-checkpoint LAMBADA-OpenAI evaluation JSONs (216 rows) |
+| **NEW** | `aggregation_kinetics` (Smoluchowski + multiplicative population) | (was `beta_amyloid_aggregation` INCONCLUSIVE) | **PASS-STRONG-MULTILAYER** | Layer 1: α ∈ {1.70, 2.10, 2.05} across 3 biological domains (Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003); Layer 2: 4/5 Allen Brain TBI Aβ series with lognormal Vuong-preferred at p < 0.05 | §3.6.6 multilayer test pattern |
+| W2B.3 | `schelling_credible_commitment` | INCONCLUSIVE-pre-reg-overspec | **PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT** | Sub-run C anchor-calibrated (a = −3, b = 12, noise = 0.15): s\* = 0.251 ✓, k = 6.529 ✓, p(0.4) = 0.834 ✓, p(0.2) = 0.369 ✓; sham null \|k_sham\| < 0.05 ✓; per-anchor microtune sub-run D (a = −2.5, b = 10, noise = 0.15): s\* = 0.252, k = 4.977, anchor hits 2/4 (WTO + dual-class) @ ±0.20 — M&A and sovereign-default structurally unreachable | §3.6.5 (s\*, k) reparametrisation |
+| llm_scaling (Pythia 70m–12b) | BROAD_SPREAD / MODERATE_UNIVERSALITY (3/6 REAL + 3/6 SYNTHETIC, CV = 0.706 on mixed-provenance train-loss) | **TIGHT_UNIVERSALITY (100 % REAL via LAMBADA)** | v1: α̅ = 0.144, CV = 0.118, mean R² = 0.82; v2 ($L_\infty \geq 1.0$): α̅ = 0.159, CV = 0.116, mean R² = 0.81; both → TIGHT_UNIVERSALITY (CV < 0.20); eval-specific caveat noted | Per-checkpoint LAMBADA-OpenAI evaluation JSONs (216 size × checkpoint rows) |
 
-### 3.2 Updated aggregate counts (v0.5)
+**Updated aggregate counts (v0.5):**
 
-After v0.5 the project's empirically-anchored matrix stands at:
-
-- **11 PASS-CONFIRMED-or-stronger** (1 newly promoted): the 10 v0.4 PASS-CONFIRMEDs + new `aggregation_kinetics` PASS-STRONG.
+- **11 PASS-CONFIRMED-or-stronger** (1 newly promoted): the 10 v0.4 PASS-CONFIRMEDs + new `aggregation_kinetics` PASS-STRONG-MULTILAYER. *Plus* `schelling_credible_commitment` lifted from INCONCLUSIVE to PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (so 12 with the partial-anchor qualifier).
 - **6 REJECT-CONFIRMED** (unchanged from v0.4).
-- **1 INCONCLUSIVE** (down from 2): only `gardner_collins_toggle_switch v1` (synthetic-only) remains; `schelling_credible_commitment` is promoted to PASS-CONFIRMED (sub-run C).
+- **1 INCONCLUSIVE** (down from 2): only `gardner_collins_toggle_switch v1` (synthetic-only) remains.
 - **5 SPLIT decisions** (unchanged from v0.4).
 - **1 MERGE recommendation** (unchanged from v0.4).
-- **Verdict on `llm_scaling`**: TIGHT_UNIVERSALITY (CV = 0.116 across 8 Pythia sizes on LAMBADA; comparable across v1 unconstrained and v2 L_inf-constrained re-fits).
+- **Verdict on `llm_scaling`**: TIGHT_UNIVERSALITY across 8 Pythia sizes on LAMBADA-OpenAI; comparable across v1 unconstrained and v2 $L_\infty$-constrained re-fits. Cross-evaluator α universality not tested in v0.5 (eval-specific caveat); deferred to v0.6.
 
-**Net taxonomy v0.5:** 18 v0.4 classes + 1 v0.5 new class (`aggregation_kinetics`) − 1 superseded entry (`beta_amyloid_aggregation`) = **19 empirically-anchored classes total**; SPLIT/MERGE accounting (5 splits − 1 merge) leaves the post-decision count at ~25–26 Layer-1 mechanism classes plus a Layer-0 descriptor cluster of 6 demoted classes.
+**Net v0.5 taxonomy:** 18 v0.4 classes + 1 v0.5 new class (`aggregation_kinetics`) − 1 superseded entry (`beta_amyloid_aggregation`) = **19 empirically-anchored classes total**; SPLIT/MERGE accounting (5 splits − 1 merge) leaves the post-decision count at ~25–26 Layer-1 mechanism classes plus a Layer-0 descriptor cluster of 6 demoted classes.
 
-### 3.3 The 18-class table — annotated for v0.5 (textual specification)
-
-The full v0.4 Table 2 will be reproduced in the final draft with three annotation columns added: (a) `v0.5 change` (NEW / UPDATED / unchanged), (b) `methodology applied` (§3.6.5 / §3.6.6 / §3.6.7 / —), (c) `verdict stability check status` (single-session v0.4 / cross-replicated in v0.5 / pending). At skeleton stage we list the three rows that change (see §3.1 Table 2-Δ above); all other 16 rows are marked `unchanged | — | single-session v0.4` and inherit their v0.4 text verbatim.
-
-The taxonomy diagram (textual spec in v0.4 §3.5.7) gains one node (`aggregation_kinetics` in the PASS-STRONG sub-cluster of Layer 1 Mechanism) and one resolved INCONCLUSIVE marker (`schelling_credible_commitment` moves to Layer 1 Mechanism with a footnote "PASS via sub-run C, anchor-hit count pending"). The Layer 0 Descriptor cluster of 6 nodes is unchanged.
+**Verdict stability check status.** All v0.4 rows are single-session verdicts (only `tail_copula_contagion` carried 3 independent verdicts in v0.4). v0.5 does not add cross-replication for the 18 v0.4 rows; the only v0.5-anchored cross-replication is for the new `aggregation_kinetics` class, which carries 3 anchors across Layer 1 and 5 series across Layer 2 by construction. The full single-session-verdict caveat from v0.4 §6.7 carries forward into v0.5 §7.1.
 
 ---
 
@@ -572,10 +740,12 @@ The full v0.4 §6 limitations are preserved verbatim:
 
 ## 9. Changelog from v0.4
 
-### v0.5 (2026-05-25, SESSION-25, SKELETON):
+### v0.5 (2026-05-25 SKELETON → 2026-05-26 DRAFT, SESSION-25):
 
-- **§1 Introduction.** Two new paragraphs added describing multilayer test pattern and threshold-tobit remediation as v0.5 increments; v0.4 contributions 1–4 preserved; new contributions 5–8 added.
-- **§3 Verdict matrix.** New row (`aggregation_kinetics`, PASS-STRONG, supersedes `beta_amyloid_aggregation` INCONCLUSIVE); updated row (`schelling_credible_commitment`, INCONCLUSIVE → PASS-CONFIRMED sub-run C); updated row (`llm_scaling`/Pythia, BROAD_SPREAD → TIGHT_UNIVERSALITY on 100% REAL LAMBADA). All other 18 v0.4 rows unchanged.
+- **Abstract.** Rewritten for v0.5 (369 words, down from 789-word skeleton draft) — focuses on the four v0.5 contributions and inherited caveats; v0.4 18-class verdict summary retained.
+- **§1 Introduction.** Re-typed verbatim from v0.4 §1 (paragraphs 1–4); v0.5 framing paragraphs inserted (multilayer test pattern; threshold-tobit remediation; eval-specific universality finding); 8-item contributions list (4 v0.4 inherited + 4 v0.5 new); paper organisation paragraph updated.
+- **§2 The shared pipeline.** Re-typed verbatim from v0.4 §2; v0.5 supplementary scripts section added (§2.6: `aggregation-kinetics/run_validation.py`, `schelling-credible-commitment/run_validation_v5.py`); multilayer test pattern noted as methodology addition (§2.7).
+- **§3 Verdict matrix.** Restructured into §§3.1–3.5: §3.1 v0.3 five-system deep-core (re-typed from v0.4 §4 Table 1); §3.2 v0.4 18-class verdict matrix (re-typed verbatim from v0.4 §3.5 Table 2, v0.5 status column added); §3.3 cross-domain scatter threshold (re-typed verbatim from v0.4 §3.5.3); §3.4 cleanup of confusable triplets + taxonomy diagram (re-typed verbatim from v0.4 §3.5.4 + §3.5.7, updated for v0.5); §3.5 v0.5 verdict matrix deltas (Table 3: new row `aggregation_kinetics`, PASS-STRONG-MULTILAYER, supersedes `beta_amyloid_aggregation` INCONCLUSIVE; updated row `schelling_credible_commitment`, INCONCLUSIVE → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT; updated row `llm_scaling`/Pythia, BROAD_SPREAD → TIGHT_UNIVERSALITY on 100% REAL LAMBADA). All other 18 v0.4 rows unchanged.
 - **§3.6.5 (s\*, k) threshold-tobit reparametrisation — NEW.** Methodology + cross-class applicability retrospective + scope limits.
 - **§3.6.6 Multilayer test pattern — NEW.** Methodology + first instance (`aggregation_kinetics`) + cross-class candidate list (allometric, network growth, cascading failures, earthquake productivity).
 - **§3.6.7 Head-vs-tail-aware LLM validator — NEW (engineering).** Pattern + first instance (Wave 3 C boilerplate rewrite, 117 entries) + follow-up (head-internal collision strip, 23 entries).
@@ -605,21 +775,32 @@ See §7.3.
 
 ## v0.5 SKELETON End Note
 
-This file is a **skeleton**, not a final draft. The following sections are written in full and are reviewer-readable:
+*Updated 2026-05-26 (SESSION-25 sub-agent B1+B3):* This file is now a **reviewer-readable v0.5 draft** rather than a skeleton; all main-paper sections are written in full. The following sections were expanded from v0.4 in the B1+B3 re-type pass:
+
+- **Abstract** rewritten for v0.5 (369 words; was 789, trimmed to focus on the four v0.5 contributions: 1 new class, Schelling re-analysis, Pythia real-data, 3 methodology increments)
+- **§1 Introduction** expanded (1,830 words) — v0.4 prose preserved verbatim with v0.5 framing paragraphs inserted (multilayer test pattern; threshold-tobit remediation; eval-specific universality finding); 8-item contributions list (4 v0.4 inherited + 4 v0.5 new)
+- **§2 The shared pipeline** expanded (871 words) — v0.4 pipeline description retained verbatim; v0.5 supplementary scripts section added (§2.6); multilayer test pattern noted as methodology addition (§2.7)
+- **§3 Verdict matrix** restructured and expanded (4,166 words for §§3.1–3.5):
+  - §3.1 v0.3 five-system deep-core summary (re-typed from v0.4 §4 Table 1)
+  - §3.2 v0.4 18-class verdict matrix (re-typed verbatim from v0.4 §3.5 Table 2 with v0.5 status column added)
+  - §3.3 cross-domain scatter threshold (re-typed verbatim from v0.4 §3.5.3)
+  - §3.4 cleanup of confusable triplets (re-typed verbatim from v0.4 §3.5.4 + taxonomy diagram spec updated for v0.5)
+  - §3.5 v0.5 verdict matrix deltas (Table 3: 1 new row + 2 updated rows + aggregate count update)
+
+The following sections were already reviewer-readable in the v0.5 skeleton (SESSION-25 main session) and are unchanged in this pass:
 
 - §§3.6.5 / 3.6.6 / 3.6.7 (methodology increments)
 - §4 (Pythia LAMBADA cross-fit robustness)
 - §5 (aggregation-kinetics multilayer class)
 - §6 (Schelling v0.5)
+- §7 (limitations)
+- §8 (references; v0.4 [1]–[52] preserved by reference, v0.5 [53]–[65] listed in §8.2)
 - §9 (changelog)
 
-The following sections are *outlines + delta-lists*, with the full text inherited from v0.4 and to be re-typed in the final draft from `docs/sessions/C1-unified-preprint-draft-v0.4.md`:
+The following sections remain *outlines + delta-lists* in the v0.5 main paper, intentionally:
 
-- §1 (Introduction)
-- §2 (Pipeline)
-- §§3.1–3.5 (verdict matrix preamble + 18-class table + cross-domain scatter threshold + cleanup of confusable triplets + surprises + honest limitations)
-- §7.1 (inherited v0.4 limitations)
-- §8.1 (v0.4 references [1]–[52])
+- §7.1 *inherited v0.4 limitations* — listed as a 7-item summary in §7.1; the full v0.4 §6 prose is in `docs/sessions/C1-unified-preprint-draft-v0.4.md` and need not be re-typed unless the v0.5 → v0.6 cycle introduces changes.
+- §8.1 *v0.4 references [1]–[52]* — preserved by reference; the full bibliography re-type happens at the arXiv-submission compile step, not in the markdown draft, because LaTeX `\bibliography{}` consumes the BibTeX file directly.
 
 The following placeholders were filled by SESSION-25 sub-agent (A1) from committed source files:
 
@@ -634,6 +815,19 @@ The following placeholders were filled by SESSION-25 sub-agent (A1) from committ
 
 No `{{...}}` placeholders remain in the main text after the SESSION-25 A1 fill pass. Any future structural updates (e.g., real-data Bown 2009 WTO sub-run results, Pythia cross-evaluator α from WikiText/HellaSwag, 4th aggregation_kinetics domain) will be added as new sections rather than placeholder substitutions and are tracked in the SESSION-25 backlog (tasks A2 / A3 / A4) and §7.3 v0.6 roadmap.
 
-**Total word count of v0.5 skeleton main text (excluding meta block):** approximately **9,968** words (target: 8,000–12,000) — within band. Full file is 10,436 words; the top meta block (lines 1–25) is 139 words and the end-note meta block (lines 606–end) is 329 words, both excluded. See `methodology-increment-checklist.md` for the reviewer-facing checklist and `v05-roadmap.md` for the path to submission-ready.
+**Total word count of v0.5 draft main text (excluding meta blocks):** approximately **15,200** words (target after B1+B3 re-type pass: 14,000–16,000) — within band. Full file is ~15,925 words; the top meta block and the v0.5 SKELETON End Note (above) are both excluded.
+
+**Per-section word counts (2026-05-26 B1+B3 pass):**
+- Abstract: 369 words (target 200–250; slightly over because the v0.5 increments are dense)
+- §1 Introduction: 1,830 words (target 1,500–2,000 ✓)
+- §2 The shared pipeline: 871 words (target 1,000–1,500; at lower end but covers all 7 sub-sections)
+- §§3.1–3.5 Verdict matrix: 4,166 words (target 2,000–2,500; over because the v0.4 18-class table + scatter threshold detail is load-bearing)
+- §3.6 Methodology increments: 1,908 words (SESSION-25 main session)
+- §4 Pythia LAMBADA: 1,686 words (SESSION-25 main session)
+- §5 Aggregation-kinetics: 1,272 words (SESSION-25 main session)
+- §6 Schelling v0.5: 1,258 words (SESSION-25 main session)
+- §7 Limitations: 829 words (SESSION-25 main session)
+
+See `methodology-increment-checklist.md` for the reviewer-facing checklist and `v05-roadmap.md` for the path to submission-ready.
 
 End of v0.5 skeleton.
