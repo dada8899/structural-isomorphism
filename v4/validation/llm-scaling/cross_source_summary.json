@@ -1,0 +1,309 @@
+{
+  "generated_at": "SESSION-25 cross-source \u03b1 comparison",
+  "sources": {
+    "LAMBADA_v1": "v4/validation/llm-scaling/results_lambada.json",
+    "LAMBADA_v2": "v4/validation/llm-scaling/results_lambada_v2.json",
+    "TRAIN_LOSS": "v4/validation/llm-scaling/results.json"
+  },
+  "verdict_thresholds": {
+    "tight_max": 0.15,
+    "moderate_max": 0.2
+  },
+  "per_source": [
+    {
+      "source": "LAMBADA_v1",
+      "n_sizes": 8,
+      "alpha_mean": 0.14400044690000097,
+      "alpha_std": 0.01820063802965699,
+      "alpha_cv": 0.12639292739345567,
+      "mean_R2": 0.8245263447541225,
+      "verdict": "TIGHT_UNIVERSALITY",
+      "members": [
+        "pythia-1.4b",
+        "pythia-12b",
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-2.8b",
+        "pythia-410m",
+        "pythia-6.9b",
+        "pythia-70m"
+      ],
+      "note": ""
+    },
+    {
+      "source": "LAMBADA_v2",
+      "n_sizes": 8,
+      "alpha_mean": 0.15871591081152686,
+      "alpha_std": 0.019708145311942697,
+      "alpha_cv": 0.12417246141973674,
+      "mean_R2": 0.8064477270718409,
+      "verdict": "TIGHT_UNIVERSALITY",
+      "members": [
+        "pythia-1.4b",
+        "pythia-12b",
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-2.8b",
+        "pythia-410m",
+        "pythia-6.9b",
+        "pythia-70m"
+      ],
+      "note": ""
+    },
+    {
+      "source": "TRAIN_LOSS_RAW",
+      "n_sizes": 7,
+      "alpha_mean": 0.5190400599504342,
+      "alpha_std": 0.6761340683225583,
+      "alpha_cv": 1.3026625890632137,
+      "mean_R2": 0.707557095411007,
+      "verdict": "BROAD_SPREAD",
+      "members": [
+        "pythia-1.4b",
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-2.8b",
+        "pythia-410m",
+        "pythia-6.9b",
+        "pythia-70m"
+      ],
+      "note": "all 7 Pythia fits as-is; includes 2 broken fits (1.4b R\u00b2<0, 2.8b R\u00b2~0)"
+    },
+    {
+      "source": "TRAIN_LOSS_R2_GE_0_95",
+      "n_sizes": 5,
+      "alpha_mean": 0.24673104831406026,
+      "alpha_std": 0.2031012542476553,
+      "alpha_cv": 0.823168610661155,
+      "mean_R2": 0.9895418554153548,
+      "verdict": "BROAD_SPREAD",
+      "members": [
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-410m",
+        "pythia-6.9b",
+        "pythia-70m"
+      ],
+      "note": "quality-filtered: drop R\u00b2<0.95 (removes 1.4b + 2.8b)"
+    },
+    {
+      "source": "TRAIN_LOSS_WANDB_NO_1P4B",
+      "n_sizes": 6,
+      "alpha_mean": 0.2722300699421733,
+      "alpha_std": 0.19209710098156724,
+      "alpha_cv": 0.7056424774176203,
+      "mean_R2": 0.8267512959862447,
+      "verdict": "BROAD_SPREAD",
+      "members": [
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-2.8b",
+        "pythia-410m",
+        "pythia-6.9b",
+        "pythia-70m"
+      ],
+      "note": "approx. SESSION-24 'Train-loss wandb mixed' (6 sizes, 1.4b dropped)"
+    },
+    {
+      "source": "TRAIN_LOSS_LIT_SUBSET",
+      "n_sizes": 5,
+      "alpha_mean": 0.11138015029306388,
+      "alpha_std": 0.04230660211311201,
+      "alpha_cv": 0.379839693175083,
+      "mean_R2": 0.9971444444208435,
+      "verdict": "BROAD_SPREAD",
+      "members": [
+        "pythia-160m",
+        "pythia-1b",
+        "pythia-6.9b",
+        "kaplan2020-gpt",
+        "hoffmann2022-chinchilla"
+      ],
+      "note": "approx. SESSION-24 'Literature anchored': 3 best Pythia (R\u00b2>0.95, \u03b1<0.2) + Kaplan2020-GPT + Hoffmann2022-Chinchilla"
+    }
+  ],
+  "per_size_matrix": {
+    "pythia-70m": {
+      "LAMBADA_v1": 0.108189,
+      "LAMBADA_v2": 0.119439,
+      "TRAIN_LOSS": 0.311882
+    },
+    "pythia-160m": {
+      "LAMBADA_v1": 0.127556,
+      "LAMBADA_v2": 0.141088,
+      "TRAIN_LOSS": 0.094911
+    },
+    "pythia-410m": {
+      "LAMBADA_v1": 0.140601,
+      "LAMBADA_v2": 0.155207,
+      "TRAIN_LOSS": 0.575658
+    },
+    "pythia-1b": {
+      "LAMBADA_v1": 0.148453,
+      "LAMBADA_v2": 0.164166,
+      "TRAIN_LOSS": 0.116414
+    },
+    "pythia-1.4b": {
+      "LAMBADA_v1": 0.151349,
+      "LAMBADA_v2": 0.167212,
+      "TRAIN_LOSS": 1.9999
+    },
+    "pythia-2.8b": {
+      "LAMBADA_v1": 0.15429,
+      "LAMBADA_v2": 0.170343,
+      "TRAIN_LOSS": 0.399725
+    },
+    "pythia-6.9b": {
+      "LAMBADA_v1": 0.158397,
+      "LAMBADA_v2": 0.173995,
+      "TRAIN_LOSS": 0.13479
+    },
+    "pythia-12b": {
+      "LAMBADA_v1": 0.163169,
+      "LAMBADA_v2": 0.178276,
+      "TRAIN_LOSS": NaN
+    }
+  },
+  "per_size_R2_matrix": {
+    "pythia-70m": {
+      "LAMBADA_v1": 0.8683,
+      "LAMBADA_v2": 0.8588,
+      "TRAIN_LOSS": 0.9732
+    },
+    "pythia-160m": {
+      "LAMBADA_v1": 0.8458,
+      "LAMBADA_v2": 0.8319,
+      "TRAIN_LOSS": 0.9919
+    },
+    "pythia-410m": {
+      "LAMBADA_v1": 0.8184,
+      "LAMBADA_v2": 0.8004,
+      "TRAIN_LOSS": 0.9856
+    },
+    "pythia-1b": {
+      "LAMBADA_v1": 0.8224,
+      "LAMBADA_v2": 0.803,
+      "TRAIN_LOSS": 0.9985
+    },
+    "pythia-1.4b": {
+      "LAMBADA_v1": 0.8132,
+      "LAMBADA_v2": 0.7927,
+      "TRAIN_LOSS": -0.0076
+    },
+    "pythia-2.8b": {
+      "LAMBADA_v1": 0.8075,
+      "LAMBADA_v2": 0.786,
+      "TRAIN_LOSS": 0.0128
+    },
+    "pythia-6.9b": {
+      "LAMBADA_v1": 0.8133,
+      "LAMBADA_v2": 0.7922,
+      "TRAIN_LOSS": 0.9985
+    },
+    "pythia-12b": {
+      "LAMBADA_v1": 0.8073,
+      "LAMBADA_v2": 0.7866,
+      "TRAIN_LOSS": NaN
+    }
+  },
+  "per_size_cross_source_sigma": [
+    {
+      "size": "pythia-70m",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.17983662559351,
+      "alpha_sigma_across_sources": 0.11449328007168208,
+      "alpha_cv_across_sources": 0.6366516258510911
+    },
+    {
+      "size": "pythia-160m",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.12118528261637074,
+      "alpha_sigma_across_sources": 0.023738651160798787,
+      "alpha_cv_across_sources": 0.19588724511991168
+    },
+    {
+      "size": "pythia-410m",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.2904887346591944,
+      "alpha_sigma_across_sources": 0.24707194315805037,
+      "alpha_cv_across_sources": 0.8505388115925347
+    },
+    {
+      "size": "pythia-1b",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.14301099284104876,
+      "alpha_sigma_across_sources": 0.024336909528400813,
+      "alpha_cv_across_sources": 0.17017509664764272
+    },
+    {
+      "size": "pythia-1.4b",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.7728204725446656,
+      "alpha_sigma_across_sources": 1.0627116401629557,
+      "alpha_cv_across_sources": 1.375108033388098
+    },
+    {
+      "size": "pythia-2.8b",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.2414528275331981,
+      "alpha_sigma_across_sources": 0.13730267351043776,
+      "alpha_cv_across_sources": 0.5686521666082357
+    },
+    {
+      "size": "pythia-6.9b",
+      "n_sources": 3,
+      "alpha_mean_across_sources": 0.15572711445049214,
+      "alpha_sigma_across_sources": 0.019738594123125185,
+      "alpha_cv_across_sources": 0.12675117106469191
+    },
+    {
+      "size": "pythia-12b",
+      "n_sources": 2,
+      "alpha_mean_across_sources": 0.1707225653149116,
+      "alpha_sigma_across_sources": 0.010682780655868874,
+      "alpha_cv_across_sources": 0.06257392299701929
+    }
+  ],
+  "pooled_all": {
+    "n_obs": 23,
+    "alpha_mean": 0.2632613600584897,
+    "alpha_std": 0.39353664053431753,
+    "alpha_cv": 1.4948515059212795,
+    "verdict": "BROAD_SPREAD",
+    "restrict_high_quality": false
+  },
+  "pooled_R2_filtered": {
+    "n_obs": 21,
+    "alpha_mean": 0.174066004917263,
+    "alpha_std": 0.10137942232647416,
+    "alpha_cv": 0.5824194240263157,
+    "verdict": "BROAD_SPREAD",
+    "restrict_high_quality": true
+  },
+  "pythia_12b_spotlight": {
+    "size": "pythia-12b",
+    "n_sources": 2,
+    "sources": {
+      "LAMBADA_v1": {
+        "alpha": 0.16316869867121825,
+        "alpha_se": 0.07720950240410593,
+        "R2": 0.8073097406151725,
+        "n_points": 26,
+        "L_inf": 1.5251270360605558e-15,
+        "provenance": "REAL_LAMBADA"
+      },
+      "LAMBADA_v2": {
+        "alpha": 0.17827643195860496,
+        "alpha_se": 0.08431084459023824,
+        "R2": 0.7865526462327634,
+        "n_points": 26,
+        "L_inf": 1.0000000000000002,
+        "provenance": "REAL_LAMBADA_v2_LINF_CONSTRAINED"
+      }
+    },
+    "alpha_mean": 0.1707225653149116,
+    "alpha_std": 0.010682780655868874,
+    "alpha_cv": 0.06257392299701929,
+    "note": "pythia-12b only exists in LAMBADA v1 + v2; train-loss source did not include 12b checkpoints. \u03c3 here is across LAMBADA v1 vs v2 (L_inf free vs constrained)."
+  }
+}
