@@ -131,10 +131,16 @@
       var input = qs('#ask-input');
 
       // Scheme A: keep the circular submit inert until there is text.
+      // SESSION-25 Variant B: also toggle `is-filled` on the form so the
+      // submit can flip to solid-accent the instant text appears (per
+      // Perplexity's "ready-to-fire" affordance — no need to hover first).
       function syncSubmitState() {
         if (!submitBtn) return;
         var hasText = !!(input && input.value.trim());
         submitBtn.disabled = !hasText;
+        if (form && form.classList) {
+          form.classList.toggle('is-filled', hasText);
+        }
       }
       syncSubmitState();
 

@@ -19,14 +19,25 @@
   padding: 0 20px;
 }
 
+/* SESSION-25 Variant B: homepage (body.is-home) gets the warm ink-tinted
+ * hero background — Bear/Anthropic "good paper" feel without going beige.
+ * The /ask conversation page keeps the cold-neutral var(--brand-paper). */
+body.is-home .ask-main {
+  background:
+    radial-gradient(ellipse 1200px 600px at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #F7F4ED 0%, #F4F0E6 100%);
+  background-attachment: fixed;
+}
+
 /* ============================================================
  * Empty state
  * ============================================================ */
 
 .ask-empty {
-  max-width: 720px;
+  /* SESSION-25 Variant B: widened to host the 768px Perplexity-form box. */
+  max-width: 808px;
   margin: 0 auto;
-  padding: 80px 0 64px;
+  padding: 96px 0 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -63,64 +74,89 @@
   color: var(--brand-muted);
 }
 
-/* ---- searchbox (empty state, large) ---- */
+/* ---- searchbox (empty state, large) — SESSION-25 Variant B Perplexity-form ---- */
+/* Perplexity-scale (768px max-width) on a pure white card, sitting on the
+ * warm ink-tinted hero background (see body.is-home in home.css). The card
+ * needs less shadow because the contrast against the off-white background
+ * already separates it. All transitions use the cubic-bezier "Apple ease". */
 
 .ask-searchbox {
+  position: relative;
   width: 100%;
-  max-width: 660px;
+  max-width: 768px;
   background: var(--brand-paper-card);
-  border: 1px solid var(--brand-line);
-  border-radius: 16px;
-  padding: 18px 20px 12px;
-  /* Soft floating elevation, à la Google's AI input box — a gentle
-     two-layer NEUTRAL shadow, no coloured ring. The earlier accent-blue
-     focus halo read as a harsh blue edge; dropped entirely. */
-  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04),
-              0 4px 16px rgba(24, 24, 27, 0.06);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  border: 1px solid #E8E2D5;          /* warm hairline to harmonise with hero */
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  /* Warm-tinted soft elevation — same depth as Perplexity but tuned to
+     the ink-warm hero, not cold neutral. */
+  box-shadow:
+    0 1px 2px rgba(58, 50, 30, 0.04),
+    0 6px 20px rgba(58, 50, 30, 0.06);
+  transition:
+    border-color 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Inner top-edge highlight — letterpress depth in good light. */
+.ask-searchbox::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 .ask-searchbox:focus-within {
-  /* Focus = the box lifts a little more. Border stays neutral, shadow
-     stays neutral — no blue. */
-  border-color: var(--brand-line-strong);
-  box-shadow: 0 2px 4px rgba(24, 24, 27, 0.05),
-              0 8px 28px rgba(24, 24, 27, 0.10);
+  border-color: #D8D1C0;
+  box-shadow:
+    0 2px 4px rgba(58, 50, 30, 0.05),
+    0 14px 36px rgba(58, 50, 30, 0.10),
+    0 4px 10px rgba(58, 50, 30, 0.05);
+  transform: translateY(-1px);
 }
 
 .ask-searchbox__input {
+  position: relative;     /* sit above the ::before highlight */
   width: 100%;
   border: none;
   outline: none;
   background: transparent;
   font-family: inherit;
-  font-size: 18px;
-  line-height: 1.55;
+  font-size: 20px;
+  line-height: 1.5;
   color: var(--brand-ink);
   resize: none;
   /* Scheme A: starts at one row, JS auto-grow expands on input. */
-  min-height: 56px;
-  max-height: 200px;
+  min-height: 60px;
+  max-height: 240px;
   overflow-y: hidden;
   padding: 0;
+  letter-spacing: -0.005em;
 }
 .ask-searchbox__input::placeholder {
-  color: var(--brand-muted);
+  color: #A6A19A;         /* warm muted to match hero */
+  font-weight: 400;
 }
 
 .ask-searchbox__footer {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* Scheme B: no internal divider — the box stays one whole piece. */
-  margin-top: 4px;
-  padding-top: 4px;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 0;
 }
 
 .ask-searchbox__hint {
   font-size: 12px;
   color: var(--brand-muted);
-  /* Scheme A: keep the shortcut hint quiet until the box is focused. */
-  opacity: 0;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  /* Variant B: always visible (Perplexity does NOT hide its shortcut hint
+     until focus — the always-on cue teaches keyboard users on first paint). */
+  opacity: 0.85;
   transition: opacity 0.15s;
 }
 .ask-searchbox:focus-within .ask-searchbox__hint {
@@ -158,43 +194,64 @@
 }
 .ask-searchbox__hint kbd {
   display: inline-block;
-  padding: 1px 5px;
-  background: var(--brand-paper-soft);
-  border: 1px solid var(--brand-line);
-  border-radius: 4px;
+  padding: 1px 6px;
+  background: rgba(58, 50, 30, 0.05);
+  border: 1px solid #E8E2D5;
+  border-bottom-width: 1.5px;       /* Variant B: faint physical key depth */
+  border-radius: 5px;
   font-family: "JetBrains Mono", monospace;
   font-size: 11px;
   color: var(--brand-ink-soft);
   margin: 0 1px;
+  line-height: 1.4;
 }
 
-/* Scheme A: circular icon-only submit. Inert gray until there is
- * input, then accent blue. JS toggles the `disabled` attribute. */
+/* Variant B: 48×48 rounded-square submit. Soft-fill inert state; goes
+ * accent-solid when the form is filled (.is-filled JS toggle) AND on
+ * hover, with a Perplexity-style lift + accent-shadow render. */
 .ask-searchbox__submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 44px;
-  height: 44px;
-  /* Scheme B: accent lives at the "soft fill" weight, not as a solid
-     high-saturation circle. Rounded square matches the 16px card. */
+  width: 48px;
+  height: 48px;
   background: var(--brand-accent-soft);
   color: var(--brand-accent);
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.05s;
+  transition:
+    background 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ask-searchbox__submit:hover {
+.ask-searchbox__submit:hover:not(:disabled) {
+  background: var(--brand-accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.24),
+    0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask-searchbox__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask-searchbox__submit:disabled {
+  background: rgba(58, 50, 30, 0.05);
+  color: #C9C2B5;
+  cursor: not-allowed;
+}
+/* When form has text, the submit goes solid-accent (Perplexity does this:
+ * an obvious "ready to fire" affordance, no need to hover-to-confirm). */
+.ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled) {
   background: var(--brand-accent);
   color: #fff;
 }
-.ask-searchbox__submit:active { transform: scale(0.95); }
-.ask-searchbox__submit:disabled {
-  background: var(--brand-line);
-  color: var(--brand-muted);
-  cursor: not-allowed;
+.ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled):hover {
+  background: #1D4ED8;
 }
 /* While submitting the button is disabled but should stay accent
    blue so the white spinner reads clearly. */
