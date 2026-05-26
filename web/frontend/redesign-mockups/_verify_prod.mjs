@@ -1,0 +1,25 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page = await ctx.newPage();
+const url = 'https://beta.structural.bytedance.city/';
+const resp = await page.goto(url);
+console.log('HTTP', resp.status());
+await page.waitForSelector('.ask-searchbox', { timeout: 8000 });
+await page.screenshot({ path: 'screenshots/prod-desktop-empty.png', fullPage: false });
+await page.locator('#ask-input').focus();
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'screenshots/prod-desktop-focused.png', fullPage: false });
+await page.locator('#ask-input').fill('为什么硅谷银行挤兑后市场反应这么剧烈？');
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'screenshots/prod-desktop-filled.png', fullPage: false });
+const placeholder = await page.locator('#ask-input').getAttribute('placeholder');
+console.log('placeholder:', placeholder);
+const bodyClass = await page.locator('body').getAttribute('class');
+console.log('body class:', bodyClass);
+const cssBox = await page.locator('.ask-searchbox').evaluate(el => {
+  const s = getComputedStyle(el);
+  return { maxW: s.maxWidth, br: s.borderRadius, pad: s.padding };
+});
+console.log('box CSS:', JSON.stringify(cssBox));
+await browser.close();

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Variant A — Perplexity-form, white-card</title>
+<style>
+/* ============================================================
+ * Variant A — "Perplexity-form, white-card"
+ *
+ * Brand tokens (inlined from web/shared/tokens.css). Kept verbatim
+ * so this mockup is fully self-contained for screenshot review.
+ * ============================================================ */
+:root {
+  --brand-ink:     #18181B;
+  --brand-paper:   #F5F5F4;
+  --brand-accent:  #2563EB;
+  --brand-line:    #E4E4E7;
+  --brand-muted:   #71717A;
+  --brand-paper-card:   #FFFFFF;
+  --brand-paper-soft:   #F4F4F5;
+  --brand-ink-soft:     #52525B;
+  --brand-accent-hover: #1D4ED8;
+  --brand-accent-soft:  rgba(37, 99, 235, 0.08);
+  --brand-line-strong:  #D4D4D8;
+
+  /* Variant A hero is a quiet warm-neutral so the WHITE card lifts
+     visually without needing colour or heavy shadow. */
+  --hero-bg: #FAFAF9;
+  --card-bg: #FFFFFF;
+
+  --font-sans: 'Inter', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+
+  --ease-perplexity: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--hero-bg);
+  color: var(--brand-ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ---- hero shell ---------------------------------------------- */
+
+.hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 96px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero__brand {
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 4.4vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.28;
+  margin: 0 0 14px;
+  max-width: 16em;
+  color: var(--brand-ink);
+}
+.hero__tagline {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--brand-ink-soft);
+  margin: 0 0 40px;
+  max-width: 560px;
+  font-weight: 400;
+}
+
+/* ---- searchbox (Variant A — pure white card) ----------------- */
+/* Sized 768px max-width — the box is the visual anchor on first
+ * paint. Padding 24/28/20 + radius 20 give the Perplexity "soft
+ * brick" silhouette. */
+.ask {
+  width: 100%;
+  max-width: 768px;
+  background: var(--card-bg);
+  border: 1px solid var(--brand-line);
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  /* Resting elevation: a single soft layer — present but not loud. */
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.04),
+    0 4px 16px rgba(24, 24, 27, 0.05);
+  transition:
+    border-color 220ms var(--ease-perplexity),
+    box-shadow 220ms var(--ease-perplexity),
+    transform 220ms var(--ease-perplexity);
+}
+.ask:focus-within {
+  /* Wake-up: border darkens (one notch, neutral) + shadow lifts.
+     No coloured halo. The lift is real but quiet. */
+  border-color: var(--brand-line-strong);
+  box-shadow:
+    0 2px 4px rgba(24, 24, 27, 0.05),
+    0 12px 32px rgba(24, 24, 27, 0.08),
+    0 4px 8px rgba(24, 24, 27, 0.04);
+  transform: translateY(-1px);
+}
+
+.ask__input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--brand-ink);
+  resize: none;
+  min-height: 60px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0;
+  letter-spacing: -0.005em;
+}
+.ask__input::placeholder {
+  color: #A1A1AA;
+  font-weight: 400;
+}
+
+.ask__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* Always-visible left-side meta strip: mode picker + hint */
+.ask__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* "Mode picker" segmented control — Perplexity has a model picker;
+   we surface the two real modes of this product (whitespace vs
+   deep analyze). Quiet at rest, accents on selection. */
+.mode {
+  display: inline-flex;
+  align-items: center;
+  background: var(--brand-paper-soft);
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.mode__btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--brand-muted);
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition:
+    background 160ms var(--ease-perplexity),
+    color 160ms var(--ease-perplexity);
+}
+.mode__btn:hover {
+  color: var(--brand-ink);
+}
+.mode__btn[aria-pressed="true"] {
+  background: #FFFFFF;
+  color: var(--brand-ink);
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.06),
+    0 0 0 1px rgba(24, 24, 27, 0.05);
+}
+.mode__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+}
+.mode__btn[aria-pressed="true"] .mode__dot { opacity: 1; color: var(--brand-accent); }
+
+.ask__hint {
+  /* Always visible — quiet but readable. No more opacity-0 trick. */
+  font-size: 12px;
+  color: var(--brand-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+.ask__hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #FFFFFF;
+  border: 1px solid var(--brand-line);
+  border-bottom-width: 1.5px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand-ink-soft);
+  margin: 0 1px;
+  line-height: 1.4;
+}
+
+/* Submit — Perplexity uses a clear large affordance. Soft accent
+   fill at rest, smooth lift on hover, solid accent on filled state. */
+.ask__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    background 200ms var(--ease-perplexity),
+    color 200ms var(--ease-perplexity),
+    transform 200ms var(--ease-perplexity),
+    box-shadow 200ms var(--ease-perplexity);
+}
+.ask__submit:hover:not(:disabled) {
+  background: var(--brand-accent);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgba(37, 99, 235, 0.22),
+    0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask__submit:disabled {
+  background: var(--brand-paper-soft);
+  color: #C4C4C8;
+  cursor: not-allowed;
+}
+/* When the textarea has content, the submit lights up — even without
+   focus. JS toggles .is-filled on the form. */
+.ask.is-filled .ask__submit:not(:disabled) {
+  background: var(--brand-accent);
+  color: #FFFFFF;
+}
+.ask.is-filled .ask__submit:not(:disabled):hover {
+  background: var(--brand-accent-hover);
+}
+
+/* Wait expectation — sits below the box, quiet. */
+.ask__expectation {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--brand-muted);
+  letter-spacing: 0.005em;
+}
+
+/* Example chips — quiet, single-line, hover reveals affordance. */
+.examples {
+  margin: 56px auto 0;
+  max-width: 760px;
+  width: 100%;
+}
+.examples__label {
+  font-size: 12px;
+  color: var(--brand-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  font-weight: 500;
+}
+.examples__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--brand-line);
+  background: #FFFFFF;
+  color: var(--brand-ink-soft);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    border-color 160ms var(--ease-perplexity),
+    color 160ms var(--ease-perplexity),
+    background 160ms var(--ease-perplexity),
+    transform 160ms var(--ease-perplexity);
+}
+.chip:hover {
+  border-color: var(--brand-line-strong);
+  color: var(--brand-ink);
+  background: #FAFAF9;
+  transform: translateY(-1px);
+}
+
+/* ---- mobile (≤640px) ---------------------------------------- */
+@media (max-width: 640px) {
+  .hero { padding: 64px 16px 56px; }
+  .hero__brand { font-size: 26px; line-height: 1.3; }
+  .hero__tagline { font-size: 14px; margin-bottom: 32px; }
+  .ask { padding: 18px 18px 14px; border-radius: 18px; }
+  .ask__input { font-size: 17px; min-height: 56px; }
+  .ask__footer { gap: 8px; }
+  .ask__hint { display: none; } /* keep mode picker, hide kbd hint on touch */
+  .mode__btn { font-size: 12px; padding: 5px 10px; }
+  .ask__submit { width: 44px; height: 44px; border-radius: 12px; }
+  .examples { margin-top: 36px; }
+  .chip { font-size: 13px; padding: 8px 12px; }
+}
+
+/* ---- reduced motion ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ask, .ask__submit, .chip, .mode__btn {
+    transition-duration: 60ms;
+  }
+}
+</style>
+</head>
+<body>
+  <main class="hero">
+    <h1 class="hero__brand">你卡住的问题，可能是别人早就解过的同一道题</h1>
+    <p class="hero__tagline">描述你的难题，我们帮你找到那个已经把它研究透的学科。约 2–3 分钟，一份能照着做的清单。</p>
+
+    <form class="ask" id="ask-form" role="search" autocomplete="off">
+      <textarea
+        class="ask__input"
+        id="ask-input"
+        placeholder="你卡在哪个问题上？"
+        rows="1"
+        spellcheck="false"
+        maxlength="8000"
+        aria-label="输入你的问题"
+      ></textarea>
+
+      <div class="ask__footer">
+        <div class="ask__meta">
+          <div class="mode" role="group" aria-label="分析模式">
+            <button type="button" class="mode__btn" aria-pressed="true" data-mode="deep">
+              <span class="mode__dot" aria-hidden="true"></span>深度分析
+            </button>
+            <button type="button" class="mode__btn" aria-pressed="false" data-mode="quick">
+              <span class="mode__dot" aria-hidden="true"></span>快速速览
+            </button>
+          </div>
+          <div class="ask__hint"><kbd>⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+        </div>
+
+        <button type="submit" class="ask__submit" id="ask-submit" aria-label="生成研究报告" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+
+    <p class="ask__expectation">约 2–3 分钟 · AI 会逐段推演 · 报告分段逐步出现</p>
+
+    <section class="examples" aria-label="试试这些例子">
+      <p class="examples__label">试试这些例子</p>
+      <div class="examples__chips">
+        <button type="button" class="chip">SVB 挤兑级联</button>
+        <button type="button" class="chip">月活衰减干预</button>
+        <button type="button" class="chip">谣言传播</button>
+        <button type="button" class="chip">团队相变</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Auto-grow textarea + filled-state toggle
+    var form = document.getElementById('ask-form');
+    var input = document.getElementById('ask-input');
+    var submit = document.getElementById('ask-submit');
+
+    function sync() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 240) + 'px';
+      var filled = input.value.trim().length > 0;
+      form.classList.toggle('is-filled', filled);
+      submit.disabled = !filled;
+    }
+    input.addEventListener('input', sync);
+    sync();
+
+    // Mode picker toggle
+    document.querySelectorAll('.mode__btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.mode__btn').forEach(function (x) {
+          x.setAttribute('aria-pressed', 'false');
+        });
+        b.setAttribute('aria-pressed', 'true');
+      });
+    });
+
+    // Platform-aware kbd hint
+    (function () {
+      var k = document.querySelector('.ask__hint kbd');
+      var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+      if (k && !isMac) k.textContent = 'Ctrl';
+    })();
+
+    // Chip → fill input
+    document.querySelectorAll('.chip').forEach(function (c) {
+      c.addEventListener('click', function () {
+        input.value = c.textContent;
+        sync();
+        input.focus();
+      });
+    });
+
+    // Prevent actual submit (mockup)
+    form.addEventListener('submit', function (e) { e.preventDefault(); });
+  </script>
+</body>
+</html>

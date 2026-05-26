@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Variant B — Perplexity-form, ink-tinted</title>
+<style>
+/* ============================================================
+ * Variant B — "Perplexity-form, ink-tinted"
+ *
+ * Same Perplexity dimensions + interactions as Variant A, but:
+ *   1. Hero background is a warm off-white (Bear / Anthropic feel),
+ *      NOT pure white. The hero is NOT dark — it's just slightly
+ *      ink-tinted so the pure-white card pops without any halo.
+ *   2. Card has a subtle inner top-edge highlight (1px white-50%)
+ *      that reads as a "letterpress" depth in good light.
+ *   3. Mode picker styled as a Bear/Notion-tool: monospace label,
+ *      no dot, divider-based separators.
+ *   4. Placeholder is more "tool-y" — a single inviting question.
+ * ============================================================ */
+:root {
+  --brand-ink:     #18181B;
+  --brand-paper:   #F5F5F4;
+  --brand-accent:  #2563EB;
+  --brand-line:    #E4E4E7;
+  --brand-muted:   #71717A;
+  --brand-paper-card:   #FFFFFF;
+  --brand-paper-soft:   #F4F4F5;
+  --brand-ink-soft:     #52525B;
+  --brand-accent-hover: #1D4ED8;
+  --brand-accent-soft:  rgba(37, 99, 235, 0.08);
+  --brand-line-strong:  #D4D4D8;
+
+  /* Variant B's signature: warm off-white hero. Anthropic / Bear
+     give that "good paper" feel without going beige. */
+  --hero-bg: #F7F4ED;
+  --hero-bg-2: #F4F0E6;
+  --card-bg: #FFFFFF;
+  --card-line: #E8E2D5;          /* warmer hairline to harmonise with hero */
+  --card-line-strong: #D8D1C0;
+
+  --font-sans: 'Inter', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+
+  --ease-perplexity: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  /* Subtle warm gradient — paper-like without being kitsch. */
+  background:
+    radial-gradient(ellipse 1200px 600px at 50% 0%, rgba(255, 255, 255, 0.6), transparent 60%),
+    linear-gradient(180deg, var(--hero-bg) 0%, var(--hero-bg-2) 100%);
+  background-attachment: fixed;
+  color: var(--brand-ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  min-height: 100vh;
+}
+
+/* ---- hero shell ---------------------------------------------- */
+
+.hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 96px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero__brand {
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 4.4vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.28;
+  margin: 0 0 14px;
+  max-width: 16em;
+  color: var(--brand-ink);
+}
+.hero__tagline {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--brand-ink-soft);
+  margin: 0 0 40px;
+  max-width: 560px;
+  font-weight: 400;
+}
+
+/* ---- searchbox (Variant B — pure white card on warm hero) ---- */
+/* The card is the same 768px Perplexity silhouette; the WARM hero
+ * does the lift work. Card needs less shadow because the contrast
+ * against the off-white background already separates it. */
+.ask {
+  position: relative;
+  width: 100%;
+  max-width: 768px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  box-shadow:
+    0 1px 2px rgba(58, 50, 30, 0.04),
+    0 6px 20px rgba(58, 50, 30, 0.06);
+  transition:
+    border-color 220ms var(--ease-perplexity),
+    box-shadow 220ms var(--ease-perplexity),
+    transform 220ms var(--ease-perplexity);
+}
+/* Inner top-edge highlight — gives the "letterpress" depth. Layered
+ * above the border via pseudo so we don't fight box-shadow stacking. */
+.ask::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.ask:focus-within {
+  border-color: var(--card-line-strong);
+  box-shadow:
+    0 2px 4px rgba(58, 50, 30, 0.05),
+    0 14px 36px rgba(58, 50, 30, 0.10),
+    0 4px 10px rgba(58, 50, 30, 0.05);
+  transform: translateY(-1px);
+}
+
+.ask__input {
+  position: relative; /* sit above the ::before highlight */
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--brand-ink);
+  resize: none;
+  min-height: 60px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0;
+  letter-spacing: -0.005em;
+}
+.ask__input::placeholder {
+  color: #A6A19A;          /* warm muted to match hero */
+  font-weight: 400;
+}
+
+.ask__footer {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ask__meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+  /* Bear-style: thin divider between mode and hint */
+  font-size: 12.5px;
+}
+
+/* Bear/Notion tool-feel mode picker: monospace labels, dot toggle,
+ * inline-flat rather than segmented pills. */
+.mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+.mode__btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--brand-muted);
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  transition:
+    background 160ms var(--ease-perplexity),
+    color 160ms var(--ease-perplexity);
+}
+.mode__btn:hover {
+  color: var(--brand-ink);
+  background: rgba(58, 50, 30, 0.04);
+}
+.mode__btn[aria-pressed="true"] {
+  color: var(--brand-ink);
+  background: rgba(58, 50, 30, 0.06);
+}
+.mode__btn[aria-pressed="true"]::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  display: inline-block;
+}
+/* divider between buttons (subtle vertical hairline) */
+.mode__btn + .mode__btn {
+  position: relative;
+  margin-left: 2px;
+}
+.mode__btn + .mode__btn::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: var(--card-line);
+}
+
+.ask__hint {
+  font-size: 12px;
+  color: var(--brand-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+.ask__hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(58, 50, 30, 0.05);
+  border: 1px solid var(--card-line);
+  border-bottom-width: 1.5px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand-ink-soft);
+  margin: 0 1px;
+  line-height: 1.4;
+}
+
+/* Submit — same dimensions, slightly warmer disabled state to match
+ * hero. Hover lift unchanged; the accent blue still wins the eye. */
+.ask__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    background 200ms var(--ease-perplexity),
+    color 200ms var(--ease-perplexity),
+    transform 200ms var(--ease-perplexity),
+    box-shadow 200ms var(--ease-perplexity);
+}
+.ask__submit:hover:not(:disabled) {
+  background: var(--brand-accent);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.24),
+    0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(37, 99, 235, 0.18);
+}
+.ask__submit:disabled {
+  background: rgba(58, 50, 30, 0.05);
+  color: #C9C2B5;
+  cursor: not-allowed;
+}
+.ask.is-filled .ask__submit:not(:disabled) {
+  background: var(--brand-accent);
+  color: #FFFFFF;
+}
+.ask.is-filled .ask__submit:not(:disabled):hover {
+  background: var(--brand-accent-hover);
+}
+
+.ask__expectation {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--brand-muted);
+  letter-spacing: 0.005em;
+}
+
+/* Example chips — warm white, harmonised with hero. */
+.examples {
+  margin: 56px auto 0;
+  max-width: 760px;
+  width: 100%;
+}
+.examples__label {
+  font-size: 11px;
+  color: var(--brand-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  font-weight: 500;
+}
+.examples__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--card-line);
+  background: #FFFFFF;
+  color: var(--brand-ink-soft);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    border-color 160ms var(--ease-perplexity),
+    color 160ms var(--ease-perplexity),
+    background 160ms var(--ease-perplexity),
+    transform 160ms var(--ease-perplexity),
+    box-shadow 160ms var(--ease-perplexity);
+}
+.chip:hover {
+  border-color: var(--card-line-strong);
+  color: var(--brand-ink);
+  background: #FFFEFC;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(58, 50, 30, 0.05);
+}
+
+/* ---- mobile ----------------------------------------------- */
+@media (max-width: 640px) {
+  .hero { padding: 64px 16px 56px; }
+  .hero__brand { font-size: 26px; line-height: 1.3; }
+  .hero__tagline { font-size: 14px; margin-bottom: 32px; }
+  .ask { padding: 18px 18px 14px; border-radius: 18px; }
+  .ask__input { font-size: 17px; min-height: 56px; }
+  .ask__footer { gap: 8px; }
+  .ask__hint { display: none; }
+  .mode__btn { font-size: 11px; padding: 4px 8px; }
+  .ask__submit { width: 44px; height: 44px; border-radius: 12px; }
+  .examples { margin-top: 36px; }
+  .chip { font-size: 13px; padding: 8px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask, .ask__submit, .chip, .mode__btn {
+    transition-duration: 60ms;
+  }
+}
+</style>
+</head>
+<body>
+  <main class="hero">
+    <h1 class="hero__brand">你卡住的问题，可能是别人早就解过的同一道题</h1>
+    <p class="hero__tagline">描述你的难题，我们帮你找到那个已经把它研究透的学科。约 2–3 分钟，一份能照着做的清单。</p>
+
+    <form class="ask" id="ask-form" role="search" autocomplete="off">
+      <textarea
+        class="ask__input"
+        id="ask-input"
+        placeholder="问一个跨领域的问题..."
+        rows="1"
+        spellcheck="false"
+        maxlength="8000"
+        aria-label="输入你的问题"
+      ></textarea>
+
+      <div class="ask__footer">
+        <div class="ask__meta">
+          <div class="mode" role="group" aria-label="分析模式">
+            <button type="button" class="mode__btn" aria-pressed="true" data-mode="deep">DEEP</button>
+            <button type="button" class="mode__btn" aria-pressed="false" data-mode="quick">QUICK</button>
+          </div>
+          <div class="ask__hint"><kbd>⌘</kbd>+<kbd>Enter</kbd> 提交</div>
+        </div>
+
+        <button type="submit" class="ask__submit" id="ask-submit" aria-label="生成研究报告" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+
+    <p class="ask__expectation">约 2–3 分钟 · AI 会逐段推演 · 报告分段逐步出现</p>
+
+    <section class="examples" aria-label="试试这些例子">
+      <p class="examples__label">Try these</p>
+      <div class="examples__chips">
+        <button type="button" class="chip">SVB 挤兑级联</button>
+        <button type="button" class="chip">月活衰减干预</button>
+        <button type="button" class="chip">谣言传播</button>
+        <button type="button" class="chip">团队相变</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    var form = document.getElementById('ask-form');
+    var input = document.getElementById('ask-input');
+    var submit = document.getElementById('ask-submit');
+
+    function sync() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 240) + 'px';
+      var filled = input.value.trim().length > 0;
+      form.classList.toggle('is-filled', filled);
+      submit.disabled = !filled;
+    }
+    input.addEventListener('input', sync);
+    sync();
+
+    document.querySelectorAll('.mode__btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.mode__btn').forEach(function (x) {
+          x.setAttribute('aria-pressed', 'false');
+        });
+        b.setAttribute('aria-pressed', 'true');
+      });
+    });
+
+    (function () {
+      var k = document.querySelector('.ask__hint kbd');
+      var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+      if (k && !isMac) k.textContent = 'Ctrl';
+    })();
+
+    document.querySelectorAll('.chip').forEach(function (c) {
+      c.addEventListener('click', function () {
+        input.value = c.textContent;
+        sync();
+        input.focus();
+      });
+    });
+
+    form.addEventListener('submit', function (e) { e.preventDefault(); });
+  </script>
+</body>
+</html>
