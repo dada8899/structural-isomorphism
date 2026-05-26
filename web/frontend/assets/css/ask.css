@@ -206,9 +206,10 @@ body.is-home .ask-main {
   line-height: 1.4;
 }
 
-/* Variant B: 48×48 rounded-square submit. Soft-fill inert state; goes
- * accent-solid when the form is filled (.is-filled JS toggle) AND on
- * hover, with a Perplexity-style lift + accent-shadow render. */
+/* Variant B (SESSION-25 v2): 48×48 rounded-square submit. NO BLUE.
+ * Empty/inert state: warm-ink-tinted soft fill. Filled/hover state:
+ * solid ink-dark (#27272A) — Bear/Notion tool feel that stays in
+ * the warm paper colour family. Per user feedback "去掉蓝色". */
 .ask-searchbox__submit {
   display: inline-flex;
   align-items: center;
@@ -216,8 +217,8 @@ body.is-home .ask-main {
   flex: none;
   width: 48px;
   height: 48px;
-  background: var(--brand-accent-soft);
-  color: var(--brand-accent);
+  background: rgba(58, 50, 30, 0.06);
+  color: #71717A;
   border: none;
   border-radius: 14px;
   cursor: pointer;
@@ -228,30 +229,31 @@ body.is-home .ask-main {
     box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ask-searchbox__submit:hover:not(:disabled) {
-  background: var(--brand-accent);
+  background: #27272A;
   color: #fff;
   transform: translateY(-1px);
+  /* Warm-ink shadow (not blue) to stay inside the paper colour family. */
   box-shadow:
-    0 4px 14px rgba(37, 99, 235, 0.24),
-    0 1px 2px rgba(37, 99, 235, 0.18);
+    0 4px 14px rgba(58, 50, 30, 0.18),
+    0 1px 2px rgba(58, 50, 30, 0.14);
 }
 .ask-searchbox__submit:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 1px 2px rgba(58, 50, 30, 0.14);
 }
 .ask-searchbox__submit:disabled {
-  background: rgba(58, 50, 30, 0.05);
+  background: rgba(58, 50, 30, 0.04);
   color: #C9C2B5;
   cursor: not-allowed;
 }
-/* When form has text, the submit goes solid-accent (Perplexity does this:
- * an obvious "ready to fire" affordance, no need to hover-to-confirm). */
+/* When form has text, the submit goes solid ink-dark (the "ready-to-fire"
+ * affordance from Variant B — but ink instead of accent blue). */
 .ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled) {
-  background: var(--brand-accent);
+  background: #27272A;
   color: #fff;
 }
 .ask-searchbox.is-filled .ask-searchbox__submit:not(:disabled):hover {
-  background: #1D4ED8;
+  background: #18181B;
 }
 /* While submitting the button is disabled but should stay accent
    blue so the white spinner reads clearly. */
