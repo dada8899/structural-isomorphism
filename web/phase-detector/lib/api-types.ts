@@ -173,8 +173,7 @@ export interface HealthResponse {
     [k: string]: string;
   } | null;
   /**
-   * Deep mode (`?deep=1`) surfaces the query-embedding LRU cache hit rate
-   * (Session #17 P2). Values are numeric (int counts + float hit_rate).
+   * Deep mode (`?deep=1`) surfaces the query-embedding LRU cache hit rate (Session #17 P2). Values are numeric (int counts + float hit_rate).
    */
   query_cache?: {
     [k: string]: number;
@@ -355,8 +354,7 @@ export interface VersionResponse {
    */
   model: string;
   /**
-   * Deploy timestamp, distinct from build_date (image built once, deployed
-   * many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
+   * Deploy timestamp, distinct from build_date (image built once, deployed many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
    */
   deployed_at: string;
 }

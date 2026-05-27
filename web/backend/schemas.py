@@ -333,9 +333,13 @@ class HealthResponse(BaseModel):
     llm_model: str = "unknown"
     # Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
     checks: Optional[Dict[str, str]] = None
-    # Deep mode also surfaces the query-embedding LRU cache hit rate
-    # (Session #17 P2). Values are numeric (int counts + float hit_rate).
-    query_cache: Optional[Dict[str, float]] = None
+    query_cache: Optional[Dict[str, float]] = Field(
+        default=None,
+        description=(
+            "Deep mode (`?deep=1`) surfaces the query-embedding LRU cache hit rate "
+            "(Session #17 P2). Values are numeric (int counts + float hit_rate)."
+        ),
+    )
 
 
 class VersionResponse(BaseModel):
@@ -352,11 +356,15 @@ class VersionResponse(BaseModel):
     build_date: str
     python_version: str
     env: str
-    # New in session #16 — model identifier the /api/ask endpoint will use.
-    model: str
-    # Deploy timestamp, distinct from build_date (image built once, deployed
-    # many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset.
-    deployed_at: str
+    model: str = Field(
+        description="Model identifier the /api/ask endpoint will use (session #16).",
+    )
+    deployed_at: str = Field(
+        description=(
+            "Deploy timestamp, distinct from build_date (image built once, deployed "
+            "many times). Falls back to build_date if STRUCTURAL_DEPLOYED_AT unset."
+        ),
+    )
 
 
 class WhoAmIResponse(BaseModel):

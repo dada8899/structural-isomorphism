@@ -34,6 +34,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true   # SESSION-27: fetch LFS-tracked web/data/kb_*.npy embeddings
+                      # for test_embedding_bridge sanity tests; without this
+                      # checkout leaves LFS pointer stubs and np.load raises
+                      # UnpicklingError on all 12 embedding-bridge tests.
 
       - uses: actions/setup-python@v5
         with:
