@@ -1,0 +1,518 @@
+{
+  "system": "Schelling credible commitment — US §301 natural-instrument extension (SESSION-27)",
+  "data_sources": [
+    "CRS R46604 Table A-1 (Section 301 Investigations 1995-Present, cases 96-130)",
+    "Bayard & Elliott (1994) Reciprocity and Retaliation in US Trade Policy (PIIE) aggregate counts via Cato PA-930 (2022)",
+    "Horn-Mavroidis WTO DSU sample (n=23) via results_real_wto.json (SESSION-25)"
+  ],
+  "post_wto_sample": {
+    "n": 35,
+    "p_low_obs": 0.7241379310344828,
+    "p_high_obs": 0.8333333333333334,
+    "n_low_bin": 29,
+    "n_high_bin": 6,
+    "p_y_given_retal_1": 0.8333333333333334,
+    "p_y_given_retal_0": 0.7241379310344828,
+    "n_retal_1": 6,
+    "n_retal_0": 29,
+    "delta_retal_minus_no_retal": 0.10919540229885061,
+    "instrument_sign_aligned_with_schelling": true,
+    "fit": {
+      "alpha_probit": -0.04322664747557302,
+      "beta_probit": 2.089546600917325,
+      "s_star": 0.020687094251258253,
+      "k": 2.089546600917325,
+      "p_at_s_low": 0.6460517598835789,
+      "p_at_s_mid": 0.7202678313028255,
+      "p_at_s_high": 0.7859922123261907,
+      "converged": true,
+      "nll": 19.109242006591476,
+      "k_ci95": [
+        -1.0380315921756658,
+        27.75493969133011
+      ],
+      "s_star_ci95": [
+        -2.2755819591871544,
+        2.4714752741246953
+      ],
+      "alpha_ci95": [
+        -7.091563495966707,
+        1.1767733940240956
+      ],
+      "beta_ci95": [
+        -1.0380315921756658,
+        27.75493969133011
+      ],
+      "n_boot_valid": 2000
+    }
+  },
+  "bayard_elliott_1975_1994_aggregate": {
+    "n_total_cases_1975_1994": 91,
+    "n_analyzable": 72,
+    "n_total_concessions": 35,
+    "n_retaliation_applied": 12,
+    "n_retaliation_applied_success": 2,
+    "concession_rate_retaliation_applied": 0.16666666666666666,
+    "concession_rate_no_retaliation": 0.55,
+    "concession_rate_overall": 0.4861111111111111,
+    "inferred_alpha_probit": 0.744224770619847,
+    "inferred_beta_probit": -2.4825362213980506,
+    "inferred_k": -2.4825362213980506,
+    "s_low_assumed": 0.25,
+    "s_high_assumed": 0.65,
+    "note": "Closed-form probit from two-bin grouped data with s_low/s_high set to match §301-coding logic. k_be is identified from cross-bin contrast only; no within-bin variance available."
+  },
+  "wto_dsu_cross_reference": {
+    "k": -2.916721676236477,
+    "k_ci95": [
+      -7.9170503310982125,
+      -0.6704692984035171
+    ],
+    "source": "results_real_wto.json (Horn-Mavroidis n=23)"
+  },
+  "sign_consistency": {
+    "post_wto_section_301": "positive",
+    "bayard_elliott_1975_1994": "negative",
+    "wto_dsu_horn_mavroidis": "negative",
+    "all_three_negative": false,
+    "sign_flip_in_section_301": true
+  },
+  "verdict": "MIXED: §301 post-WTO yields k>0 (sign-aligned with pre-reg) while WTO DSU yields k<0. Consistent with §301 as exogenous instrument hypothesis. Caveat: §301 post-WTO n=35 is small; CI on k is wide.",
+  "verdict_short": "MIXED-INSTRUMENT-PARTIAL-RECOVERY",
+  "prereg_v5": {
+    "s_star_band": [
+      0.2,
+      0.35
+    ],
+    "k_band": [
+      4.0,
+      12.0
+    ],
+    "p_high_threshold": 0.65,
+    "p_low_threshold": 0.4,
+    "sham_k_max_abs": 1.5,
+    "per_anchor_tolerance_strict": 0.2
+  },
+  "data_rows": [
+    {
+      "case_id": "116",
+      "year": "1997",
+      "economy": "Honduras",
+      "issue": "Intellectual Property",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.55",
+      "outcome_basis": "CRS-R46604 Table A-1: Suspend GSP/CBI preferences applied; Honduras complied; tariff-free treatment restored",
+      "notes": "Unilateral suspension of preferences (low-cost retaliation); concession achieved"
+    },
+    {
+      "case_id": "121",
+      "year": "2001",
+      "economy": "Ukraine",
+      "issue": "Intellectual Property",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.70",
+      "outcome_basis": "CRS-R46604 Table A-1: 100% ad valorem duties + GSP suspension on $75M; Ukraine adopted IP-protective legislation; sanctions later removed",
+      "notes": "Retaliation applied; foreign concession"
+    },
+    {
+      "case_id": "122",
+      "year": "2009",
+      "economy": "Canada",
+      "issue": "Softwood Lumber Agreement Compliance",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.70",
+      "outcome_basis": "CRS-R46604 Table A-1: 10% ad valorem duties on softwood from 4 provinces; Canada took compliance measures; duties lifted after $54.8M collected",
+      "notes": "Retaliation applied; foreign concession"
+    },
+    {
+      "case_id": "124",
+      "year": "2013",
+      "economy": "Ukraine",
+      "issue": "Intellectual Property",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: Retaliatory action NOT taken due to Ukraine political situation",
+      "notes": "Threatened only; no concession registered"
+    },
+    {
+      "case_id": "125",
+      "year": "2017",
+      "economy": "China",
+      "issue": "Technology Transfer/IP/Innovation",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.85",
+      "outcome_basis": "CRS-R46604 Table A-1: 10/15/25% ad valorem duties on >2/3 of US imports from China ($370B+); Phase One Agreement Jan 2020",
+      "notes": "Massive retaliation; partial concession (Phase One)"
+    },
+    {
+      "case_id": "126",
+      "year": "2019",
+      "economy": "EU",
+      "issue": "Large civil aircraft subsidies",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.70",
+      "outcome_basis": "CRS-R46604 Table A-1: 10-25% duties on $7.5B (WTO-sanctioned, used §301 to implement); 5-year suspension agreement 2021",
+      "notes": "WTO-authorised retaliation; concession via suspension agreement"
+    },
+    {
+      "case_id": "127",
+      "year": "2019",
+      "economy": "France",
+      "issue": "Digital Services Tax",
+      "era": "post_wto",
+      "retaliation_applied": "1",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.65",
+      "outcome_basis": "CRS-R46604 Table A-1: 25% duties on $1.3B French imports; application SUSPENDED 07/10/2020; OECD multilateral track active",
+      "notes": "Retaliation announced+suspended; no concession on DST itself"
+    },
+    {
+      "case_id": "96",
+      "year": "1995",
+      "economy": "Colombia",
+      "issue": "Bananas to EU",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: No retaliatory action; satisfactory resolution reached",
+      "notes": "Settled bilaterally without §301 retaliation"
+    },
+    {
+      "case_id": "97",
+      "year": "1995",
+      "economy": "Costa Rica",
+      "issue": "Bananas to EU",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: No retaliatory action; satisfactory resolution reached",
+      "notes": "Settled bilaterally"
+    },
+    {
+      "case_id": "98",
+      "year": "1995",
+      "economy": "Canada",
+      "issue": "Communications/US programming",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.25",
+      "outcome_basis": "CRS-R46604 Table A-1: Private parties reached resolution; no §301 action",
+      "notes": "Private settlement; no retaliation"
+    },
+    {
+      "case_id": "99",
+      "year": "1995",
+      "economy": "Japan",
+      "issue": "Consumer Photographic Film",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: No retaliation; US filed WTO case (DS44) instead; US lost the WTO case",
+      "notes": "Multilateral route; no foreign concession"
+    },
+    {
+      "case_id": "100",
+      "year": "1995",
+      "economy": "EU",
+      "issue": "EU Banana Regime",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS27 instead of §301 retaliation; banana regime later modified after WTO route",
+      "notes": "WTO route; concession but via DSU not §301"
+    },
+    {
+      "case_id": "101",
+      "year": "1995",
+      "economy": "EU",
+      "issue": "EU Enlargement",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: GATT XXIV:6 agreement July 1996; no §301 retaliation",
+      "notes": "Negotiated; concession via GATT Art XXIV:6"
+    },
+    {
+      "case_id": "102",
+      "year": "1996",
+      "economy": "Canada",
+      "issue": "Imported Periodicals",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS31; Canada later changed measures",
+      "notes": "WTO route; concession"
+    },
+    {
+      "case_id": "103",
+      "year": "1996",
+      "economy": "Portugal",
+      "issue": "Patent Term",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS37; Portugal complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "104",
+      "year": "1996",
+      "economy": "Pakistan",
+      "issue": "Pharma/Ag Chem Patent",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS36; Pakistan complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "105",
+      "year": "1996",
+      "economy": "Turkey",
+      "issue": "Box Office Tax",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS43; Turkey complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "106",
+      "year": "1996",
+      "economy": "India",
+      "issue": "Pharma/Ag Chem Patent",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS50; India complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "107",
+      "year": "1996",
+      "economy": "Australia",
+      "issue": "Leather Subsidies",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS57; Australia complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "108",
+      "year": "1996",
+      "economy": "Argentina",
+      "issue": "Textile/Apparel/Footwear duties",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS56; Argentina complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "109",
+      "year": "1996",
+      "economy": "Indonesia",
+      "issue": "Auto sector incentives",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS59; Indonesia complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "110",
+      "year": "1996",
+      "economy": "Brazil",
+      "issue": "Auto sector trade/investment",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS52/DS65; Brazil complied",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "111",
+      "year": "1997",
+      "economy": "EU",
+      "issue": "Modified Starch market access",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: Investigation terminated 06/06/1997 without action",
+      "notes": "Terminated; no concession"
+    },
+    {
+      "case_id": "112",
+      "year": "1997",
+      "economy": "Japan",
+      "issue": "Ag market access",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS76; Japan changed measures",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "113",
+      "year": "1997",
+      "economy": "Canada",
+      "issue": "Dairy export subsidies",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS103; Canada eliminated Special Class 5",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "114",
+      "year": "1997",
+      "economy": "EU",
+      "issue": "Dairy export subsidies",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS104; EU modified",
+      "notes": "WTO route"
+    },
+    {
+      "case_id": "115",
+      "year": "1997",
+      "economy": "Korea",
+      "issue": "Auto Import Barriers",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.35",
+      "outcome_basis": "CRS-R46604 Table A-1: MOU signed; satisfactory resolution",
+      "notes": "Negotiated MOU; concession"
+    },
+    {
+      "case_id": "117",
+      "year": "1998",
+      "economy": "Paraguay",
+      "issue": "Intellectual Property",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.35",
+      "outcome_basis": "CRS-R46604 Table A-1: MOU signed; investigation terminated",
+      "notes": "Negotiated MOU"
+    },
+    {
+      "case_id": "118",
+      "year": "1998",
+      "economy": "Mexico",
+      "issue": "High Fructose Corn Syrup",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS101/DS132; long-running NAFTA-WTO dispute, US ultimately lost some claims",
+      "notes": "WTO route; mixed outcome (coded 0 since no clean concession on §301 issue)"
+    },
+    {
+      "case_id": "119",
+      "year": "1999",
+      "economy": "Canada",
+      "issue": "Tourism/Sport Fishing",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: Ontario revoked measures; NAFTA Working Group review agreed",
+      "notes": "Negotiated; concession"
+    },
+    {
+      "case_id": "120",
+      "year": "2000",
+      "economy": "Canada",
+      "issue": "Canadian Wheat Board",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: US filed WTO case DS276; US lost the WTO case",
+      "notes": "WTO route; no concession"
+    },
+    {
+      "case_id": "123",
+      "year": "2010",
+      "economy": "China",
+      "issue": "Green Technologies trade/investment",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "1",
+      "sunk_cost_s": "0.30",
+      "outcome_basis": "CRS-R46604 Table A-1: China invalidated WTO-inconsistent measures",
+      "notes": "Negotiated; concession"
+    },
+    {
+      "case_id": "128",
+      "year": "2020",
+      "economy": "Multiple (10 economies)",
+      "issue": "Digital Services Taxes",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: Investigation ongoing as of 2020 cutoff; aggregated as 1 case at multi-economy level",
+      "notes": "Ongoing; coded 0 conservative"
+    },
+    {
+      "case_id": "129",
+      "year": "2020",
+      "economy": "Vietnam",
+      "issue": "Currency Valuation",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: Investigation ongoing",
+      "notes": "Ongoing"
+    },
+    {
+      "case_id": "130",
+      "year": "2020",
+      "economy": "Vietnam",
+      "issue": "Illegal Timber",
+      "era": "post_wto",
+      "retaliation_applied": "0",
+      "outcome_concession": "0",
+      "sunk_cost_s": "0.20",
+      "outcome_basis": "CRS-R46604 Table A-1: Investigation ongoing",
+      "notes": "Ongoing"
+    }
+  ]
+}
