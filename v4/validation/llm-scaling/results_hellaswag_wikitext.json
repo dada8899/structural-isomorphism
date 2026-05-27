@@ -1,0 +1,218 @@
+{
+  "session": "SESSION-26",
+  "task": "outstanding #7 \u2014 Pythia HellaSwag / WikiText-103 / LAMBADA-std cross-eval \u03b1 universality",
+  "path_taken": "B (open-llm-leaderboard scrape)",
+  "model_family": "Pythia non-deduped v1, 7 sizes (70m, 160m, 410m, 1.3b, 2.7b, 6.7b, 12b)",
+  "alpha_kind": "\u03b1_N (model-size scaling exponent), NOT \u03b1_C (compute trajectory)",
+  "note_vs_session25": "SESSION-25 used \u03b1_C from per-model compute trajectories. This file fits a different quantity: \u03b1_N from final-checkpoint performance across model sizes. The two are related but not identical \u2014 comparison is qualitative.",
+  "fits": {
+    "hellaswag.acc_norm": {
+      "A": 15.68545984541213,
+      "A_se": 25.654340595682935,
+      "alpha": 0.16731270635610812,
+      "alpha_se": 0.1141914847950772,
+      "err_inf": 1.9425037172140837e-16,
+      "err_inf_se": 0.34673204356411097,
+      "R2": 0.9766145703728171,
+      "n_points": 7,
+      "N_range": [
+        70426624.0,
+        11846072320.0
+      ],
+      "err_range": [
+        0.31179047998406695,
+        0.7271459868552081
+      ],
+      "model_sizes": [
+        70426624,
+        162322944,
+        405334016,
+        1313343488,
+        2646435840,
+        6650785280,
+        11846072320
+      ],
+      "acc_values": [
+        0.27285401314479185,
+        0.30342561242780325,
+        0.4084843656642103,
+        0.5143397729535949,
+        0.6074487153953396,
+        0.6499701254730134,
+        0.688209520015933
+      ],
+      "err_values": [
+        0.7271459868552081,
+        0.6965743875721968,
+        0.5915156343357897,
+        0.4856602270464051,
+        0.3925512846046604,
+        0.35002987452698664,
+        0.31179047998406695
+      ]
+    },
+    "arc:challenge.acc_norm": {
+      "A": 2.307274500680402,
+      "A_se": 1.2159941907876872,
+      "alpha": 0.0585893562667174,
+      "alpha_se": 0.14967291021722892,
+      "err_inf": 3.266692091627994e-14,
+      "err_inf_se": 1.7634101017839592,
+      "R2": 0.9579847580438211,
+      "n_points": 7,
+      "N_range": [
+        70426624.0,
+        11846072320.0
+      ],
+      "err_range": [
+        0.598976109215017,
+        0.7841296928327646
+      ],
+      "model_sizes": [
+        70426624,
+        162322944,
+        405334016,
+        1313343488,
+        2646435840,
+        6650785280,
+        11846072320
+      ],
+      "acc_values": [
+        0.2158703071672355,
+        0.22781569965870307,
+        0.2619453924914676,
+        0.31143344709897613,
+        0.37372013651877134,
+        0.40102389078498296,
+        0.39590443686006827
+      ],
+      "err_values": [
+        0.7841296928327646,
+        0.7721843003412969,
+        0.7380546075085324,
+        0.6885665529010239,
+        0.6262798634812287,
+        0.598976109215017,
+        0.6040955631399317
+      ]
+    }
+  },
+  "pooled": {
+    "n_evaluators": 2,
+    "evaluators": [
+      "hellaswag.acc_norm",
+      "arc:challenge.acc_norm"
+    ],
+    "alpha_values": [
+      0.16731270635610812,
+      0.0585893562667174
+    ],
+    "alpha_mean": 0.11295103131141276,
+    "alpha_std": 0.07687901812152721,
+    "alpha_cv_pct": 68.06402493976982,
+    "comparison_session25": {
+      "session25_pooled_cv_pct": 2.5,
+      "session25_alpha_kind": "\u03b1_C (compute trajectory)",
+      "this_alpha_kind": "\u03b1_N (model-size scaling)",
+      "comparison_note": "Different \u03b1; comparison qualitative. Order-of-magnitude agreement on CV would support evaluator universality of the scaling-law family (across both regimes)."
+    }
+  },
+  "non_pooled": {
+    "mmlu.acc_avg57": {
+      "A": 0.02796611403400357,
+      "A_se": 71.47584023139594,
+      "alpha": 0.006989703985356235,
+      "alpha_se": 20.874330518825236,
+      "err_inf": 0.715953282261839,
+      "err_inf_se": 72.29818005746613,
+      "R2": 0.001086891812522195,
+      "n_points": 7,
+      "N_range": [
+        70426624.0,
+        11846072320.0
+      ],
+      "err_range": [
+        0.727544925892464,
+        0.7536339815441921
+      ],
+      "model_sizes": [
+        70426624,
+        162322944,
+        405334016,
+        1313343488,
+        2646435840,
+        6650785280,
+        11846072320
+      ],
+      "acc_values": [
+        0.2590069582566375,
+        0.24950593393502687,
+        0.27245507410753594,
+        0.2655151159544371,
+        0.2585793332179874,
+        0.2463660184558079,
+        0.2675606660161476
+      ],
+      "err_values": [
+        0.7409930417433626,
+        0.7504940660649732,
+        0.727544925892464,
+        0.7344848840455629,
+        0.7414206667820127,
+        0.7536339815441921,
+        0.7324393339838524
+      ],
+      "note": "MMLU floored at random baseline (acc\u22480.25) on Pythia 70m-12b. Power-law fit largely captures the floor, not a meaningful \u03b1."
+    },
+    "truthfulqa:mc.mc2": {
+      "A": 1.009480881355808e-06,
+      "A_se": 84853.95334185884,
+      "alpha": 0.00010000006569794392,
+      "alpha_se": 8419185.71831739,
+      "err_inf": 0.6115898621755681,
+      "err_inf_se": 84854.05328355898,
+      "R2": -6.6561927081210115e-09,
+      "n_points": 7,
+      "N_range": [
+        70426624.0,
+        11846072320.0
+      ],
+      "err_range": [
+        0.5293535531620377,
+        0.6814628649867847
+      ],
+      "model_sizes": [
+        70426624,
+        162322944,
+        405334016,
+        1313343488,
+        2646435840,
+        6650785280,
+        11846072320
+      ],
+      "acc_values": [
+        0.47064644683796225,
+        0.44263082100781215,
+        0.4121958367286861,
+        0.39243228300924493,
+        0.35396472910143933,
+        0.32845497747322144,
+        0.3185371350132154
+      ],
+      "err_values": [
+        0.5293535531620377,
+        0.5573691789921879,
+        0.5878041632713139,
+        0.6075677169907551,
+        0.6460352708985606,
+        0.6715450225267785,
+        0.6814628649867847
+      ],
+      "note": "TruthfulQA-MC2 exhibits non-monotonic / inverse scaling on Pythia (acc drops 0.47\u21920.32). A power-law-in-N is inappropriate; fit reported for transparency only."
+    }
+  },
+  "honest_negative": {
+    "wikitext_103": "Not in EleutherAI/pythia-v1 JSONs; not in Open LLM Leaderboard v1 task list. Would require lm-eval-harness real-run (WikiText-103 perplexity over ~245k tokens \u00d7 7 sizes \u2248 several hours on M4 Pro CPU/MPS). Not feasible in 30-min budget.",
+    "lambada_standard": "Only lambada_openai variant is in the EleutherAI JSONs; lambada-std requires a separate real-run. SESSION-25's lambada_openai already provides one LAMBADA point. Adding lambada-std would test stimulus-set sensitivity, which is a smaller question than the new few-shot evaluator family added via leaderboard scrape."
+  }
+}
