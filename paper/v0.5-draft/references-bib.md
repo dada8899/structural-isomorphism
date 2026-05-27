@@ -10,10 +10,10 @@
 
 ## A
 
-**Adamic, L. A., & Huberman, B. A.** (2002). Zipf's law and the Internet. *Glottometrics*, 3, 143–150. URL: <http://glottometrics.com>. `[DOI: pending]`
+**Adamic, L. A., & Huberman, B. A.** (2002). Zipf's law and the Internet. *Glottometrics*, 3, 143–150. URL: <http://glottometrics.com>. PDF mirror: <https://people.computing.clemson.edu/~jmarty/courses/ProbabilityStatsTutorial/zipf-Internet.pdf>. `[DOI: N/A — Glottometrics does not assign DOIs; searched 2026-05-28]`
 *v0.4 Wikipedia / web-graph preferential-attachment anchor (§3.13).*
 
-**Adams, H., Zinsmeister, M., & Uniswap Team.** (2021). Uniswap v3 Core. *Uniswap Protocol Whitepaper*. URL: <https://uniswap.org/whitepaper-v3.pdf>. `[DOI: pending]`
+**Adams, H., Zinsmeister, M., Salem, M., Keefer, R., & Robinson, D.** (2021). Uniswap v3 Core. *Uniswap Protocol Whitepaper* (March 2021). URL: <https://uniswap.org/whitepaper-v3.pdf>. `[DOI: N/A — industry whitepaper, no DOI registered; searched 2026-05-28]`
 *v0.4 DeFi liquidation-cascade anchor.*
 
 **Akerlof, G. A.** (1970). The market for "lemons": Quality uncertainty and the market mechanism. *Quarterly Journal of Economics*, 84(3), 488–500. <https://doi.org/10.2307/1879431>
@@ -22,7 +22,7 @@
 **Alerstam, T.** (2011). Optimal bird migration revisited. *Journal of Ornithology*, 152(S1), 5–23. <https://doi.org/10.1007/s10336-011-0694-1>
 *v0.4 §6.6 cross-domain candidate (allometric scaling).*
 
-**Altshuller, G. S.** (1996). *And Suddenly the Inventor Appeared: TRIZ, the Theory of Inventive Problem Solving*. Technical Innovation Center. `[DOI: pending — book]`
+**Altshuller, G. S.** (1996). *And Suddenly the Inventor Appeared: TRIZ, the Theory of Inventive Problem Solving* (2nd ed., trans. L. Shulyak). Technical Innovation Center, Worcester. ISBN 9780964074026. `[DOI: N/A — book, ISBN 9780964074026; searched 2026-05-28]`
 *v0.4 §2 prior-art reference for structured cross-domain transfer.*
 
 **Alstott, J., Bullmore, E., & Plenz, D.** (2014). powerlaw: A Python package for analysis of heavy-tailed distributions. *PLOS ONE*, 9(1), e85777. <https://doi.org/10.1371/journal.pone.0085777>
@@ -57,7 +57,7 @@
 **Bouchaud, J.-P., & Potters, M.** (2003). *Theory of Financial Risk and Derivative Pricing: From Statistical Physics to Risk Management* (2nd ed.). Cambridge University Press. <https://doi.org/10.1017/CBO9780511753893>
 *Econophysics reference for §3 S&P 500 heavy-tail and the financial-markets section.*
 
-**Bown, C. P.** (2009). *Self-enforcing trade: Developing countries and WTO dispute settlement*. World Bank / Brookings Institution Press. ISBN 9780815713920. URL: <https://www.brookings.edu/book/self-enforcing-trade/>. `[DOI: pending — book/working-paper]`
+**Bown, C. P.** (2009). *Self-enforcing trade: Developing countries and WTO dispute settlement*. Brookings Institution Press, Washington DC. ISBN 9780815703235. URL: <https://www.brookings.edu/book/self-enforcing-trade/>. `[DOI: N/A — book, ISBN 9780815703235 (NB: bib previously listed ISBN 9780815713920 which is a typo; correct ISBN per Brookings is 9780815703235); searched 2026-05-28]`
 *WTO retaliation case data anchor for §6 Schelling credible-commitment (s\*, k) calibration.*
 
 **Brú, A., Albertos, S., Subiza, J. L., García-Asenjo, J. L., & Brú, I.** (2003). The universal dynamics of tumor growth. *Biophysical Journal*, 85(5), 2948–2961. <https://doi.org/10.1016/S0006-3495(03)74715-8>
@@ -65,10 +65,10 @@
 
 ## C
 
-**Camerer, C. F.** (2003). *Behavioral Game Theory: Experiments in Strategic Interaction*. Princeton University Press / Russell Sage Foundation. ISBN 9780691090399. `[DOI: pending — book]`
+**Camerer, C. F.** (2003). *Behavioral Game Theory: Experiments in Strategic Interaction*. Princeton University Press / Russell Sage Foundation. ISBN 9780691090399. `[DOI: N/A — book, ISBN 9780691090399; searched 2026-05-28]`
 *Lab-experimental Schelling-game baseline referenced in §6 limitations as path to instrument-clean replication.*
 
-**Camerer, C. F., & Fehr, E.** (2004). Measuring social norms and preferences using experimental games: A guide for social scientists. In J. Henrich, R. Boyd, S. Bowles, et al. (Eds.), *Foundations of Human Sociality*. Oxford University Press. `[DOI: pending — book chapter]`
+**Camerer, C. F., & Fehr, E.** (2004). Measuring social norms and preferences using experimental games: A guide for social scientists. In J. Henrich, R. Boyd, S. Bowles, E. Fehr, C. Camerer, & H. Gintis (Eds.), *Foundations of Human Sociality: Economic Experiments and Ethnographic Evidence from Fifteen Small-Scale Societies* (pp. 55–95). Oxford University Press. <https://doi.org/10.1093/0199262055.003.0003>
 *Companion to Camerer 2003; cited in §6 Schelling real-data follow-up path.*
 
 **Cameron, A. C., & Trivedi, P. K.** (2005). *Microeconometrics: Methods and Applications*. Cambridge University Press. <https://doi.org/10.1017/CBO9780511811241>
@@ -80,7 +80,7 @@
 **Clauset, A., Shalizi, C. R., & Newman, M. E. J.** (2009). Power-law distributions in empirical data. *SIAM Review*, 51(4), 661–703. <https://doi.org/10.1137/070710111> · arXiv:0706.1062
 *The MLE + KS + bootstrap + Vuong pipeline that is applied unchanged across every system in §3 of the unified preprint and §§4–5 of v0.5.*
 
-**Cohen, S. I. A., & Saxena, P.** (2015). Driving forces and barriers in the dynamics of amyloid fibrils. *Annual Review of Physical Chemistry*, 66, 261–286. `[DOI: pending]` (companion to Knowles–Vendruscolo 2014; see below)
+**Cohen, S. I. A., & Saxena, P.** (2015). Driving forces and barriers in the dynamics of amyloid fibrils. *Annual Review of Physical Chemistry*, 66, 261–286. `[DOI: pending — searched 2026-05-28 via crossref + google scholar + Annual Reviews vol 66 TOC, no matching article found; citation may be garbled (companion to Knowles–Vendruscolo 2014). Recommend human re-verify exact title/authors against original source before final submission.]`
 *§5.5 aggregation-kinetics 4th-domain candidate (cell-protein aggregates Layer 1 anchor).*
 
 **Cooper, D. J., & Kagel, J. H.** (2006). Other-regarding preferences: A selective survey of experimental results. In J. H. Kagel & A. E. Roth (Eds.), *Handbook of Experimental Economics*, Volume 2. Princeton University Press. <https://doi.org/10.1515/9781400883172-005>
@@ -114,7 +114,7 @@
 **Fisher, R. A.** (1937). The wave of advance of advantageous genes. *Annals of Eugenics*, 7(4), 355–369. <https://doi.org/10.1111/j.1469-1809.1937.tb02153.x>
 *v0.4 reaction-diffusion cross-domain reference.*
 
-**Friedlander, S. K.** (2000). *Smoke, Dust, and Haze: Fundamentals of Aerosol Dynamics* (2nd ed.). Oxford University Press. ISBN 9780195129991. `[DOI: pending — book]`
+**Friedlander, S. K.** (2000). *Smoke, Dust, and Haze: Fundamentals of Aerosol Dynamics* (2nd ed.). Topics in Chemical Engineering. Oxford University Press, New York. ISBN 9780195129991. `[DOI: N/A — book, ISBN 9780195129991; OUP does not register book-level DOI for this title; searched 2026-05-28]`
 *Aerosol-coagulation Layer 1 anchor proposed for `aggregation_kinetics` 4th-domain hardening (§5.5; SESSION-25 task A4 in-progress).*
 
 **Fu, K., Cagan, J., & Kotovsky, K.** (2013). Design team convergence: The influence of example solution quality. *Journal of Mechanical Design*, 135(2), 021004. <https://doi.org/10.1115/1.4023232>
@@ -140,15 +140,15 @@
 **Gopikrishnan, P., Meyer, M., Amaral, L. A. N., & Stanley, H. E.** (1999). Inverse cubic law for the distribution of stock price variations. *European Physical Journal B*, 3(2), 139–140. <https://doi.org/10.1007/s100510050292>
 *S&P 500 inverse-cubic tail anchor cited in v0.4 §3.2 and in the Sornette outreach email.*
 
-**Gottweis, J., et al.** (2025). AI Co-Scientist. *Google DeepMind Technical Report*. URL: <https://research.google/pubs/ai-co-scientist/>. `[DOI: pending — tech report]`
+**Gottweis, J., Natarajan, V., et al.** (2025). Towards an AI co-scientist. *Google DeepMind / Google Research Technical Report*. arXiv:2502.18864. URL: <https://arxiv.org/abs/2502.18864> · <https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/>. `[DOI: N/A — tech report / arXiv preprint, no journal DOI; searched 2026-05-28]`
 *v0.4 §1 prior-art reference.*
 
-**Greene, W. H.** (2018). *Econometric Analysis* (8th ed.). Pearson. ISBN 9780134811932. `[DOI: pending — book]`
+**Greene, W. H.** (2018). *Econometric Analysis* (8th ed.). Pearson Education, New York. ISBN 9780134811932. `[DOI: N/A — textbook, ISBN 9780134811932; Pearson does not register book-level DOI; searched 2026-05-28]`
 *Standard reference for probit / threshold-tobit specifications cited as background for §3.6.5.*
 
 ## H
 
-**Hartig, S. M., Beck, J., Wasse, B., et al.** (2018). Quantitative neuropathology of plaque load in 5xFAD transgenic mice. *Journal of Neuroscience Research*, 96(7), 1234–1245. `[DOI: pending — manuscript locator only in skeleton]`
+**Hartig, S. M., Beck, J., Wasse, B., et al.** (2018). Quantitative neuropathology of plaque load in 5xFAD transgenic mice. *Journal of Neuroscience Research*, 96(7), 1234–1245. `[DOI: pending — searched 2026-05-28 via crossref + google scholar + pubmed (Hartig + 5xFAD + 2018 + J Neurosci Res), no matching article found. Skeleton flagged this as "manuscript locator only" so citation metadata may be a placeholder rather than a real published article — recommend human re-verify the underlying 5xFAD plaque-load source before final submission.]`
 *Layer 1 mouse-cortex empirical anchor for `aggregation_kinetics` (§5); contemporary Clauset-MLE fit, α = 2.10.*
 
 **Hawkes, A. G.** (1971). Spectra of some self-exciting and mutually exciting point processes. *Biometrika*, 58(1), 83–90. <https://doi.org/10.1093/biomet/58.1.83>
@@ -175,10 +175,10 @@
 **Hope, T., Chan, J., Kittur, A., & Shahaf, D.** (2017). Accelerating innovation through analogy mining. In *Proceedings of KDD 2017*, pp. 235–243. <https://doi.org/10.1145/3097983.3098038>
 *v0.4 §2 cross-domain analogy reference.*
 
-**Horn, H., & Mavroidis, P. C.** (Eds.). (2003–2010). *The WTO Case Law*. Cambridge University Press / American Law Institute (annual volumes). `[DOI: pending — book series]`
+**Horn, H., & Mavroidis, P. C.** (Eds.). (2003–2011). *The WTO Case Law of [year]* (annual reporters' studies, 9 volumes). Cambridge University Press / American Law Institute. Per-volume URLs at <https://www.cambridge.org/core/journals/world-trade-review/information/reporters-studies-of-wto-case-law-from-world-trade-review>. `[DOI: N/A — book series, no series-level DOI; per-volume DOIs available from Cambridge Core but not aggregated; searched 2026-05-28]`
 *Companion case-law dataset to Bown 2009; §6 Schelling real-data anchor + §6.5 / sec-6-real-data-update.md probit fit on n = 23 disputes.*
 
-**Hyman, B. T., Phelps, C. H., Beach, T. G., Bigio, E. H., Cairns, N. J., Carrillo, M. C., et al.** (2008). National Institute on Aging–Alzheimer's Association guidelines for the neuropathologic assessment of Alzheimer's disease. *Annals of Neurology*, 64(2), 115–128. `[DOI: pending — referenced in skeleton]`
+**Hyman, B. T., Phelps, C. H., Beach, T. G., Bigio, E. H., Cairns, N. J., Carrillo, M. C., et al.** (2012). National Institute on Aging–Alzheimer's Association guidelines for the neuropathologic assessment of Alzheimer's disease. *Alzheimer's & Dementia*, 8(1), 1–13. <https://doi.org/10.1016/j.jalz.2011.10.007> `<!-- NB: bib previously listed year 2008 and journal *Annals of Neurology* 64(2):115; the actual NIA-AA consensus guidelines were published in 2012 jointly in Alzheimer's & Dementia (Hyman-led, DOI above) and Acta Neuropathologica (Montine-led, DOI 10.1007/s00401-011-0910-3). Recommend human verify which version §5 intends to cite. searched 2026-05-28 -->`
 *Layer 2 cross-population multiplicative-stochastic growth anchor predicting lognormal cross-section in `aggregation_kinetics` (§5 / §3.6.6).*
 
 ## I
@@ -221,10 +221,10 @@
 
 ## M
 
-**Martin, A. J. P., & Synge, R. L. M.** (1952). Separation of the higher monoamino acids by counter-current liquid-liquid extraction. *Biochemical Journal*, 35, 91–121. `[DOI: pending — pre-1955 source]`
+**Martin, A. J. P., & Synge, R. L. M.** (1941). Separation of the higher monoamino-acids by counter-current liquid-liquid extraction: the amino-acid composition of wool. *Biochemical Journal*, 35(1–2), 91–121. <https://doi.org/10.1042/bj0350091> `<!-- NB: bib previously listed year 1952 (which is Martin & Synge's Nobel-prize year); the actual paper was published 1941. The 1952 attribution likely came from a citation-graph confusion. Recommend human verify intended year. searched 2026-05-28 -->`
 *v0.4 prior-art reference.*
 
-**McNeil, A. J., Frey, R., & Embrechts, P.** (2005). *Quantitative Risk Management: Concepts, Techniques and Tools*. Princeton University Press. ISBN 9780691122557. `[DOI: pending — book]`
+**McNeil, A. J., Frey, R., & Embrechts, P.** (2005). *Quantitative Risk Management: Concepts, Techniques and Tools*. Princeton Series in Finance. Princeton University Press, Princeton NJ. ISBN 9780691122557. `[DOI: N/A — book, ISBN 9780691122557; Princeton University Press does not register book-level DOI for this edition; searched 2026-05-28]`
 *v0.4 quantitative-risk reference.*
 
 **Motter, A. E., & Lai, Y.-C.** (2002). Cascade-based attacks on complex networks. *Physical Review E*, 66(6), 065102(R). <https://doi.org/10.1103/PhysRevE.66.065102>
@@ -237,7 +237,7 @@
 
 ## O
 
-**Omori, F.** (1894). On the after-shocks of earthquakes. *Journal of the College of Science, Imperial University of Tokyo*, 7, 111–200. `[DOI: pending — pre-1900 historical]`
+**Omori, F.** (1894). On the after-shocks of earthquakes. *Journal of the College of Science, Imperial University of Tokyo*, 7, 111–200. `[DOI: N/A — pre-DOI era (1894), journal volume/pages cited above; CERN/NASA-ADS bibcode 1894JCSIT...7..111O; searched 2026-05-28]`
 *Omori law for aftershock temporal decay; Layer 2 anchor in the §3.6.6 multilayer-pattern earthquake-productivity candidate row.*
 
 ## P
@@ -267,7 +267,7 @@
 **Scheffer, M., Bascompte, J., Brock, W. A., Brovkin, V., Carpenter, S. R., Dakos, V., Held, H., van Nes, E. H., Rietkerk, M., & Sugihara, G.** (2009). Early-warning signals for critical transitions. *Nature*, 461, 53–59. <https://doi.org/10.1038/nature08227>
 *Critical-slowing-down / EWS canonical reference; §3 and §7.1(b) endogenous-only-scope limitation.*
 
-**Schelling, T. C.** (1960). *The Strategy of Conflict*. Harvard University Press. ISBN 9780674840317. `[DOI: pending — book]`
+**Schelling, T. C.** (1960). *The Strategy of Conflict*. Harvard University Press, Cambridge MA. ISBN 9780674840317 (pb 9780674840300). `[DOI: N/A — pre-DOI book (1960), ISBN 9780674840317; HUP publisher page: https://www.hup.harvard.edu/books/9780674840317; searched 2026-05-28]`
 *Theoretical foundation for the `schelling_credible_commitment` class (§6).*
 
 **Sethna, J. P., Dahmen, K. A., & Myers, C. R.** (2001). Crackling noise. *Nature*, 410(6825), 242–250. <https://doi.org/10.1038/35065675>
@@ -279,10 +279,10 @@
 **Skellam, J. G.** (1951). Random dispersal in theoretical populations. *Biometrika*, 38(1–2), 196–218. <https://doi.org/10.1093/biomet/38.1-2.196>
 *v0.4 reaction-diffusion reference.*
 
-**Smoluchowski, M. von** (1916). Drei Vorträge über Diffusion, Brownsche Bewegung und Koagulation von Kolloidteilchen. *Physikalische Zeitschrift*, 17, 557–585. `[DOI: pending — pre-1920 historical]`
+**Smoluchowski, M. von** (1916). Drei Vorträge über Diffusion, Brownsche Bewegung und Koagulation von Kolloidteilchen. *Physikalische Zeitschrift*, 17, 557–571 (pt 1, issue 22) & 585–599 (pt 2, issue 23). `[DOI: N/A — pre-DOI era (1916), journal volume/pages cited above; NASA-ADS bibcode 1916ZPhy...17..557S; archival mirror at https://archive.org/details/jbc.bj.uj.edu.pl.NDIGORP032280; searched 2026-05-28]`
 *Origin paper for the coagulation kinetics that predicts the per-aggregate power-law (Layer 1) in `aggregation_kinetics` (§5 / §3.6.6).*
 
-**Sornette, D.** (2003). *Why Stock Markets Crash: Critical Events in Complex Financial Systems*. Princeton University Press. ISBN 9780691118505. `[DOI: pending — book]`
+**Sornette, D.** (2003). *Why Stock Markets Crash: Critical Events in Complex Financial Systems*. Princeton University Press, Princeton NJ. ISBN 9780691118505 (rev. ed. 9780691175959). <https://doi.org/10.1515/9781400829552>
 *Cited in v0.4 §3 stock-market section and the Sornette outreach (inverse-cubic / dragon-king framing).*
 
 **Su, H., et al.** (2023). One embedder, any task: Instruction-finetuned text embeddings. In *Findings of ACL 2023*. <https://doi.org/10.18653/v1/2023.findings-acl.71>
@@ -291,7 +291,7 @@
 **Sugiyama, Y., et al.** (2008). Traffic jams without bottlenecks — experimental evidence for the physical mechanism of the formation of a jam. *New Journal of Physics*, 10(3), 033001. <https://doi.org/10.1088/1367-2630/10/3/033001>
 *v0.4 §3.12 NGSIM traffic anchor (A2-Hysteresis).*
 
-**Sunstein, C. R.** (2001). *Echo Chambers: Bush v. Gore, Impeachment, and Beyond*. Princeton University Press. ISBN 9780691118413. `[DOI: pending — book]`
+**Sunstein, C. R.** (2001). *Echo Chambers: Bush v. Gore, Impeachment, and Beyond*. Princeton University Press, Princeton NJ. ISBN 9780691118413 (alt ISBN 1400809053). `[DOI: N/A — book, ISBN 9780691118413; Princeton University Press does not register book-level DOI for this title; searched 2026-05-28]`
 *v0.4 social-cascade reference.*
 
 ## T
@@ -310,7 +310,7 @@
 
 ## U
 
-**US-Canada Power System Outage Task Force.** (2004). Final Report on the August 14, 2003 Blackout in the United States and Canada: Causes and Recommendations. URL: <https://www.energy.gov/oe/articles/blackout-2003-final-report-august-14-2003-blackout-united-states-and-canada-causes>. `[DOI: pending — government report]`
+**US-Canada Power System Outage Task Force.** (2004). *Final Report on the August 14, 2003 Blackout in the United States and Canada: Causes and Recommendations*. US Department of Energy / Natural Resources Canada (April 2004). Direct PDF: <https://www.energy.gov/sites/prod/files/oeprod/DocumentsandMedia/BlackoutFinal-Web.pdf> · Landing page: <https://www.energy.gov/oe/articles/blackout-2003-final-report-august-14-2003-blackout-united-states-and-canada-causes>. `[DOI: N/A — government report, retrieved 2026-05-28]`
 *v0.4 §3.10 power-grid Phase 7 catalog reference.*
 
 ## V
@@ -323,7 +323,7 @@
 **Webb, T., Holyoak, K. J., & Lu, H.** (2023). Emergent analogical reasoning in large language models. *Nature Human Behaviour*, 7, 1526–1541. <https://doi.org/10.1038/s41562-023-01659-w>
 *v0.4 §2 LLM-analogy reference.*
 
-**West, G. B.** (2017). *Scale: The Universal Laws of Growth, Innovation, Sustainability, and the Pace of Life in Organisms, Cities, Economies, and Companies*. Penguin Press. ISBN 9781594205583. `[DOI: pending — trade book]`
+**West, G. B.** (2017). *Scale: The Universal Laws of Growth, Innovation, Sustainability, and the Pace of Life in Organisms, Cities, Economies, and Companies*. Penguin Press, New York. ISBN 9781594205583 (pb 9780143110903). `[DOI: N/A — trade book, ISBN 9781594205583; Penguin Press does not register book-level DOI; searched 2026-05-28]`
 *Allometric-scaling and Kleiber's law popular reference cited in §3.6.6.*
 
 **West, G. B., Brown, J. H., & Enquist, B. J.** (1997). A general model for the origin of allometric scaling laws in biology. *Science*, 276(5309), 122–126. <https://doi.org/10.1126/science.276.5309.122>
@@ -332,7 +332,7 @@
 **Whitby, K. T.** (1978). The physical characteristics of sulfur aerosols. *Atmospheric Environment*, 12(1–3), 135–159. <https://doi.org/10.1016/0004-6981(78)90196-8>
 *Per-source aerosol size-distribution anchor referenced in §5.5 / §3.6.6 aggregation-kinetics 4th-domain candidate.*
 
-**Wooldridge, J. M.** (2010). *Econometric Analysis of Cross Section and Panel Data* (2nd ed.). MIT Press. ISBN 9780262232586. `[DOI: pending — book]`
+**Wooldridge, J. M.** (2010). *Econometric Analysis of Cross Section and Panel Data* (2nd ed.). MIT Press, Cambridge MA. ISBN 9780262232586. `[DOI: N/A — textbook, ISBN 9780262232586; MIT Press does not register book-level DOI for this edition; searched 2026-05-28]`
 *Standard reference for probit / threshold-tobit specifications underpinning §3.6.5.*
 
 ## X
@@ -344,30 +344,37 @@
 
 ## Pending-verification summary
 
-The following entries are cited in the draft but could not be programmatically resolved to a DOI from inside this repository and need a single round of librarian verification before final submission. None are fabricated — each is a real publication located via the project's existing source files (`paper/v0.5-draft/v05-draft-skeleton.md`, `paper/v0-unified-pipeline-2026-05-13.md`, `paper/paper.md`, and the `v4/validation/<system>/` README anchors):
+**Status (post-librarian-pass 2026-05-28).** The 23 `[DOI: pending]` entries flagged in the prior draft have been verified in a single librarian pass via crossref + google scholar + DOI resolver. Results:
 
-- Adamic & Huberman 2002 (*Glottometrics*; journal does not assign DOIs)
-- Adams / Uniswap whitepaper (industry whitepaper)
-- Altshuller 1996 (book)
-- Bown 2009 (book / World Bank working paper)
-- Camerer 2003 (book)
-- Camerer & Fehr 2004 (book chapter)
-- Cohen & Saxena 2015 (companion to Knowles–Vendruscolo 2014; DOI confirmation pending)
-- Friedlander 2000 (book)
-- Gottweis et al. 2025 (tech report)
-- Greene 2018 (textbook)
-- Hartig et al. 2018 (locator only in skeleton; J Neurosci Res 96:1234)
-- Horn & Mavroidis (book series)
-- Hyman et al. 2008 (Annals of Neurology 64:115 — locator in skeleton)
-- Martin & Synge 1952 (pre-DOI historical)
-- McNeil, Frey & Embrechts 2005 (book)
-- Omori 1894 (pre-DOI historical)
-- Schelling 1960 (book)
-- Smoluchowski 1916 (pre-DOI historical)
-- Sornette 2003 *Why Stock Markets Crash* (book)
-- Sunstein 2001 (book)
-- US-Canada Task Force 2004 (government report)
-- West 2017 (trade book)
-- Wooldridge 2010 (textbook)
+**DOI filled (2):**
+- Camerer & Fehr 2004 → `10.1093/0199262055.003.0003` (Oxford Academic)
+- Sornette 2003 → `10.1515/9781400829552` (De Gruyter / Princeton)
 
-All `[DOI: pending]` entries are real and locatable through the references printed above (publisher URL, arXiv ID where applicable, or canonical book ISBN). The verification step is a one-pass librarian task, not a re-research task.
+**DOI filled with year/citation correction flagged for human review (2):**
+- Hyman et al. 2008 → actual paper is Hyman et al. **2012** in *Alzheimer's & Dementia* 8(1):1–13, DOI `10.1016/j.jalz.2011.10.007` (companion Acta Neuropathol DOI `10.1007/s00401-011-0910-3` for Montine-led version). Bib previously listed 2008 / *Annals of Neurology* 64(2):115 which does not match any extant publication for this consensus document. Recommend human-author decide which version §5 intends.
+- Martin & Synge 1952 → actual paper is 1941, *Biochem J* 35(1–2):91–121, DOI `10.1042/bj0350091`. The 1952 year in the bib is the Nobel-prize year, not the publication year. Recommend human verify intent.
+
+**N/A explicitly noted (17) — no DOI registered because of publication type/era:**
+- Adamic & Huberman 2002 (Glottometrics does not assign DOIs)
+- Adams / Uniswap v3 whitepaper (industry whitepaper, no DOI)
+- Altshuller 1996 (book, ISBN 9780964074026)
+- Bown 2009 (book, ISBN 9780815703235 — bib previously had typo ISBN, now corrected)
+- Camerer 2003 (book, ISBN 9780691090399)
+- Friedlander 2000 (book, ISBN 9780195129991)
+- Gottweis et al. 2025 (tech report; arXiv:2502.18864 added as canonical locator)
+- Greene 2018 (textbook, ISBN 9780134811932)
+- Horn & Mavroidis 2003–2011 (book series, per-volume DOIs from Cambridge Core but no series DOI)
+- McNeil, Frey & Embrechts 2005 (book, ISBN 9780691122557)
+- Omori 1894 (pre-DOI era, NASA-ADS bibcode 1894JCSIT...7..111O)
+- Schelling 1960 (pre-DOI book, ISBN 9780674840317)
+- Smoluchowski 1916 (pre-DOI era, NASA-ADS bibcode 1916ZPhy...17..557S)
+- Sunstein 2001 (book, ISBN 9780691118413)
+- US-Canada Task Force 2004 (government report, official PDF URL on energy.gov, retrieved 2026-05-28)
+- West 2017 (trade book, ISBN 9781594205583)
+- Wooldridge 2010 (textbook, ISBN 9780262232586)
+
+**Still pending — searched but not found (2):**
+- Cohen & Saxena 2015 (*Annu Rev Phys Chem* 66:261–286): searched crossref + google scholar + Annual Reviews vol 66 TOC, no matching article. Citation may be garbled from Knowles–Vendruscolo 2014 companion. Recommend human re-verify exact title/authors against the original §5.5 source.
+- Hartig et al. 2018 (*J Neurosci Res* 96(7):1234–1245): searched crossref + google scholar + pubmed, no matching article. Skeleton flagged this as "manuscript locator only" so the citation metadata may itself be a placeholder. Recommend human re-verify the underlying 5xFAD plaque-load empirical source before final submission.
+
+**Verification provenance.** All filled DOIs were resolved via `https://doi.org/<DOI>` to confirm they point to the cited title/author. No DOI was fabricated. The two still-pending entries were retained as `[DOI: pending]` with an explicit `searched 2026-05-28` note rather than papered over with a plausible-but-unverified identifier.
