@@ -3,20 +3,28 @@ Train structural isomorphism embedding model V2 with expanded dataset.
 Dataset: 5689 entries (1214 original + 4475 new KB)
 """
 import json
+import os
 import random
 import time
 from collections import defaultdict
 from pathlib import Path
 
+import torch
 from sentence_transformers import SentenceTransformer, InputExample, losses
 from sentence_transformers import SentenceTransformerTrainingArguments, SentenceTransformerTrainer
 from datasets import Dataset
 
+if torch.backends.mps.is_available():
+    os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+    print(f"MPS available — torch will auto-select MPS device")
+else:
+    print(f"MPS not available — using CPU")
+
 DATA_FILE = Path(__file__).parent.parent / "data" / "clean-expanded.jsonl"
 OUTPUT_DIR = Path(__file__).parent.parent / "models" / "structural-v2"
 BASE_MODEL = "shibing624/text2vec-base-chinese"
-EPOCHS = 5  ***REMOVED*** Fewer epochs since much more data
-BATCH_SIZE = 16
+EPOCHS = 2  # Time-budget for session #10 — 5689 entries × 2 epoch sufficient for v2 baseline
+BATCH_SIZE = 32  # MPS available; double batch to halve steps
 SEED = 42
 
 random.seed(SEED)
@@ -36,7 +44,7 @@ print(f"Loaded {total_desc} descriptions across {len(type_descriptions)} types")
 
 print("Building training pairs...")
 pairs = []
-***REMOVED*** Limit pairs per type to avoid imbalance
+# Limit pairs per type to avoid imbalance
 MAX_PAIRS_PER_TYPE = 500
 for type_id, descriptions in type_descriptions.items():
     type_pairs = []
@@ -47,7 +55,7 @@ for type_id, descriptions in type_descriptions.items():
                 "sentence2": descriptions[j],
                 "label": 1.0,
             })
-    ***REMOVED*** Cap and shuffle
+    # Cap and shuffle
     random.shuffle(type_pairs)
     type_pairs = type_pairs[:MAX_PAIRS_PER_TYPE]
     pairs.extend(type_pairs)
@@ -83,7 +91,6 @@ args = SentenceTransformerTrainingArguments(
     logging_steps=100,
     seed=SEED,
     dataloader_pin_memory=False,
-    use_mps_device=True,
 )
 
 trainer = SentenceTransformerTrainer(

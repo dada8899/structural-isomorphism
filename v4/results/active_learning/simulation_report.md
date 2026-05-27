@@ -11,14 +11,14 @@
 | Metric | Baseline | After-AL | Δ |
 |---|---:|---:|---:|
 | R@5 | 0.400 | 0.400 | +0.000 |
-| R@10 | 0.600 | 0.800 | +0.200 |
+| R@10 | 0.600 | 0.600 | +0.000 |
 | MRR | 0.461 | 0.460 | -0.001 |
-| Silhouette (proxy) | 0.032 | 0.037 | +0.004 |
+| Silhouette (proxy) | 0.032 | 0.040 | +0.008 |
 
 ## Train info (after-AL run)
 
-- train_loss: 0.3367
-- epochs: 5
+- train_loss: 0.3306
+- epochs: 10
 - n_positives (train): 24
 - n_hard_negatives (train): 41
 
@@ -26,7 +26,7 @@
 
 R@5 **unchanged** — small eval set; check Silhouette delta instead.
 
-Silhouette improved by +0.004 — positives are pulled together and hard negatives pushed apart, which is the AL signal we wanted.
+Silhouette improved by +0.008 — positives are pulled together and hard negatives pushed apart, which is the AL signal we wanted.
 
 ## Caveat (read this!)
 
