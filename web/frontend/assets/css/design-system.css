@@ -197,6 +197,57 @@ body {
   color: var(--text-inverse);
 }
 
+/* === Variant B — warm-ink paper scope (SESSION-27 extension)
+ *
+ * Opt-in via `<body class="is-warmink">`. Re-maps the cold-neutral token
+ * pipeline (#F5F5F4 paper + #2563EB accent) into the warm-ink paper family
+ * established in SESSION-25/26 hero searchbox:
+ *
+ *   paper:   #F7F4ED → #F4F0E6   (warm off-white, Bear / Anthropic feel)
+ *   card:    #FFFFFF              (lift via warm shadow, no border tint)
+ *   ink:     #18181B / #27272A    (replaces blue accent for CTA / focus)
+ *   line:    #E8E2D5              (warm hairline, harmonises with paper)
+ *   shadow:  rgba(58, 50, 30, …)  (warm-ink shadow stack, not cold grey)
+ *
+ * Applied to /analyze and /search to eliminate the cold-vs-warm enclave
+ * effect users reported after SESSION-26 hero work.
+ * ============================================================ */
+body.is-warmink {
+  /* Page surfaces */
+  --bg-primary: #F7F4ED;
+  --bg-secondary: #F4F0E6;
+  --bg-tertiary: #FFFFFF;
+  --bg-subtle: rgba(58, 50, 30, 0.05);
+  --bg-overlay: rgba(39, 39, 42, 0.55);
+
+  /* Borders — warm hairlines, slightly stronger than cold neutral so cards
+     read clearly against the warm paper field. */
+  --border-subtle: #E8E2D5;
+  --border-default: rgba(58, 50, 30, 0.14);
+  --border-strong: #D9D1BD;
+  --border-focus: #27272A;
+
+  /* Text — primary/secondary unchanged (ink reads great on warm paper);
+     tertiary nudged to a warm-leaning neutral so it doesn't feel cool blue. */
+  --text-primary: #18181B;
+  --text-secondary: #3F3F46;
+  --text-tertiary: #71717A;
+  --text-quaternary: #C9C2B5;
+
+  /* Accent — replace saturated blue with ink-dark for CTA / focus. The "soft"
+     and "ring" variants become warm-ink rgba tints to keep the family. */
+  --accent: #27272A;
+  --accent-hover: #18181B;
+  --accent-subtle: rgba(58, 50, 30, 0.06);
+  --accent-focus-ring: rgba(58, 50, 30, 0.18);
+
+  /* Shadows — warm-ink shadow stack (no cold-grey tint). */
+  --shadow-xs: 0 1px 2px rgba(58, 50, 30, 0.04);
+  --shadow-sm: 0 1px 2px rgba(58, 50, 30, 0.04), 0 6px 20px rgba(58, 50, 30, 0.06);
+  --shadow-md: 0 2px 4px rgba(58, 50, 30, 0.05), 0 14px 36px rgba(58, 50, 30, 0.10);
+  --shadow-lg: 0 4px 14px rgba(58, 50, 30, 0.18), 0 1px 2px rgba(58, 50, 30, 0.14);
+}
+
 /* === Dark mode reserved (not implemented now) === */
 @media (prefers-color-scheme: dark) {
   /* Dark mode tokens will be defined here in Phase 3 */

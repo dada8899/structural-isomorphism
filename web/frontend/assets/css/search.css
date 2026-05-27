@@ -1345,3 +1345,34 @@
 @media (max-width: 768px) {
   .xd-banner { padding: var(--space-3) var(--space-4); }
 }
+
+/* =============================================================
+ * SESSION-27 Variant B — warm-ink paper extension for /search.
+ *
+ * Most of search.css already routes through design-system.css tokens
+ * (--bg-*, --accent, --text-*), which are remapped to warm-ink under
+ * body.is-warmink. The rules below patch the few spots that hard-code
+ * cold-blue rgba(37, 99, 235, …) or #F8F9FB so /search joins the same
+ * warm-ink family as the hero searchbox.
+ * ============================================================= */
+
+/* synth soft pulse — warm paper tint instead of cool #F8F9FB */
+@keyframes synthSoftPulseWarmink {
+  0%, 100% {
+    background: var(--bg-tertiary);
+    box-shadow: 0 1px 3px rgba(58, 50, 30, 0.04);
+  }
+  50% {
+    background: #F4F0E6;
+    box-shadow: 0 2px 12px rgba(58, 50, 30, 0.05);
+  }
+}
+body.is-warmink .search-synth--loading {
+  animation: synthSoftPulseWarmink 2.4s ease-in-out infinite;
+}
+
+/* Assess-gate icon — warm-ink soft fill, ink-dark glyph */
+body.is-warmink .assess-gate__icon {
+  background: rgba(58, 50, 30, 0.06);
+  color: #27272A;
+}

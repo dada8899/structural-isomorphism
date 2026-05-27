@@ -1939,3 +1939,101 @@ ol.md-list li::before {
   .report-followup { padding: var(--space-4); }
   .analyze-tldr__actions { padding: var(--space-3); }
 }
+
+/* =============================================================
+ * SESSION-27 Variant B — warm-ink paper extension for /analyze.
+ *
+ * design-system.css already re-maps the token pipeline under
+ * body.is-warmink (paper #F7F4ED, ink-dark accent, warm shadows).
+ * The rules below patch the ~25 spots in this file that hard-code
+ * blue rgba(37, 99, 235, …) / #2563EB / #1D4ED8 / #fffbf5 / #fafaf9
+ * so the entire /analyze page sits inside the warm-ink family.
+ * ============================================================= */
+
+/* Streaming pulse — warm-ink ring instead of blue */
+@keyframes streamingPulseWarmink {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+    box-shadow: 0 0 0 0 rgba(58, 50, 30, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(58, 50, 30, 0.14);
+  }
+}
+body.is-warmink .section--streaming .section__title::after {
+  background: #27272A;
+  animation: streamingPulseWarmink 1.5s ease-in-out infinite;
+}
+
+/* Streaming indicator pill — warm-ink soft fill, ink-dark text */
+body.is-warmink .section__streaming-indicator {
+  background: rgba(58, 50, 30, 0.05);
+  border-color: rgba(58, 50, 30, 0.18);
+  color: #27272A;
+}
+body.is-warmink .section__streaming-indicator .hourglass-icon,
+body.is-warmink .section__streaming-indicator .elapsed-timer {
+  color: #27272A;
+}
+body.is-warmink .section__streaming-indicator .elapsed-timer {
+  background: rgba(58, 50, 30, 0.06);
+  border-color: rgba(58, 50, 30, 0.18);
+}
+body.is-warmink .section__streaming-indicator .elapsed-timer::before {
+  background: #27272A;
+}
+
+/* Section bridge / header card — warm card on warm paper */
+body.is-warmink .analyze-header__bridge {
+  background: #FFFFFF;
+  border-color: #E8E2D5;
+  box-shadow: 0 1px 2px rgba(58, 50, 30, 0.04);
+}
+
+/* Streaming live preview — warm-ink dashed card */
+body.is-warmink .analyze-loading__stream-preview {
+  background: rgba(58, 50, 30, 0.04);
+  border-color: rgba(58, 50, 30, 0.22);
+}
+body.is-warmink .analyze-loading__stream-preview::after {
+  color: #27272A;
+}
+
+/* §8 Action plan — the "money shot" panel, now warm-ink */
+body.is-warmink #section-action_plan {
+  background: linear-gradient(180deg, rgba(58, 50, 30, 0.04), rgba(58, 50, 30, 0.015));
+  border-color: rgba(58, 50, 30, 0.16);
+}
+body.is-warmink #section-action_plan .section__title {
+  border-bottom-color: rgba(58, 50, 30, 0.18);
+}
+
+/* Pinned "if you only do one thing" — ink-dark border, warm shadow */
+body.is-warmink .action-pinned {
+  box-shadow: 0 4px 16px rgba(58, 50, 30, 0.10);
+}
+
+/* TL;DR pinned card — warm gradient + ink-dark accent border */
+body.is-warmink .analyze-tldr {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F7F4ED 100%);
+  box-shadow:
+    0 6px 24px rgba(58, 50, 30, 0.08),
+    0 1px 2px rgba(58, 50, 30, 0.04);
+}
+body.is-warmink .analyze-tldr--pending {
+  background: #FFFFFF;
+}
+body.is-warmink .analyze-tldr__core {
+  background: #F7F4ED;
+}
+
+/* Note: .callout--warning (line ~474, cream #fffbf5) and .opportunity
+   (line ~760, cream→white gradient) are intentionally left alone —
+   they're warm/amber warning surfaces that already harmonise with the
+   warm-ink paper family. Same for #fafaf9 fallback values: those are
+   `var(--bg-primary, #fafaf9)` fallbacks and never trigger because
+   --bg-primary is set to #F7F4ED by the body.is-warmink token block
+   in design-system.css. */

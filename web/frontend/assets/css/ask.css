@@ -303,23 +303,29 @@ body.is-home .ask-main {
   justify-content: center;
 }
 
+/* SESSION-27 Variant B color extension: chips drop blue accent and join
+ * the warm-ink paper family (matches hero searchbox + ink-dark submit).
+ * Inert state: warm-ink soft fill on warm hairline. Hover: solid ink-dark
+ * background like the submit button, white text. Geometry tuned for the
+ * "克制留白" PM aesthetic — 12px radius (squarer than the old 999px pill),
+ * 8×14 padding, 14px text. */
 .ask-chip {
   display: inline-flex;
   align-items: center;
   padding: 8px 14px;
-  background: var(--brand-paper-card);
-  border: 1px solid var(--brand-line);
-  border-radius: 999px;
+  background: rgba(58, 50, 30, 0.05);
+  border: 1px solid #E8E2D5;
+  border-radius: 12px;
   font-family: inherit;
-  font-size: 13px;
-  color: var(--brand-ink-soft);
+  font-size: 14px;
+  color: #3F3F46;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.05s;
+  transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.05s;
 }
 .ask-chip:hover {
-  border-color: var(--brand-accent);
-  color: var(--brand-accent);
-  background: var(--brand-accent-soft);
+  background: #27272A;
+  border-color: #27272A;
+  color: #FFFFFF;
 }
 .ask-chip:active { transform: scale(0.97); }
 
