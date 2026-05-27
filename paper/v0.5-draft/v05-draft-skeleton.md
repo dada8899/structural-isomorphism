@@ -206,6 +206,12 @@ Table 2 summarises the 18 v0.4 verdicts. Columns: class name; B3 prior (cross-ju
 - **5 SPLIT decisions** introduced into the taxonomy graph: (i) `gardner_collins_toggle_v1` vs `_v2`; (ii) `percolation_connectivity` vs `scale_free_percolation_class`; (iii) `hysteresis_first_order_transition` vs `hysteresis_preisach` AND `scheffer_fold_bifurcation` (two-way); (iv) `adverse_selection_unraveling` econ-side vs comms-side (pending Wave 3 BERTopic NLP); (v) `leaky_integrate_fire` neural/economic/CS variants.
 - **1 MERGE recommendation**: `preisach_hysteresis_cascade` + `rfim_barkhausen_avalanche` → single `crackling_noise_universality` class anchored on Sethna–Dahmen–Myers 2001 (Nature 410:242). The classical, non-coupled `hysteresis_preisach` (already verified on NGSIM traffic) remains a sibling under the parent.
 
+Figure 1 visualises the post-v0.5 19-class verdict ladder with the v0.4 → v0.5 upgrade arrows highlighted; the three v0.5 deltas listed in §3.5 (Table 3) are the rows marked with grey upgrade arrows.
+
+![Figure 1: v0.5 19-class verdict ladder](figures/fig1_verdict_matrix.png)
+
+**Figure 1.** Each row is one universality-class candidate. Bar length encodes the v0.5 final verdict rung on the 7-step ladder (REJECT-CONFIRMED → INCONCLUSIVE → PARTIAL → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT → PASS-CONFIRMED → PASS-CONFIRMED-MULTILAYER → PASS-STRONG → UNIVERSAL-ACROSS-MATTER). White circles mark the v0.4 baseline rung and grey arrows show the v0.5 upgrade. Three v0.5 deltas are highlighted: `aggregation_kinetics` (NEW class promoted to PASS-STRONG / UNIVERSAL-ACROSS-MATTER from v0.4 `beta_amyloid` INCONCLUSIVE); `schelling_credible_commitment` (INCONCLUSIVE → PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT via (s\*, k) reparametrisation, sub-run D best-in-band, 2/4 anchor hits); `llm_scaling` (BROAD_SPREAD → TIGHT_UNIVERSALITY once LAMBADA per-checkpoint evaluations replace train-loss fits, α̅=0.144, CV=0.126). Aggregate count: 11 PASS-or-stronger (one at UNIVERSAL-ACROSS-MATTER), 1 INCONCLUSIVE, 1 PARTIAL, 6 REJECT-CONFIRMED. Source data: `v4/validation/*/verdict*.md`, `docs/sessions/SESSION-23-HANDOFF.md`, `docs/sessions/SESSION-25-v05-paper-skeleton-summary.md`.
+
 ### 3.3 The mechanism-vs-descriptor boundary, sharpened (inherited)
 
 The single sharpest finding of v0.4 §3.2 is empirical: six of the eighteen classes empirically REJECT, and the six REJECTs are not scattered — they cluster cleanly along the same axis. In each of the six cases the candidate class is a *statistical descriptor* (a tail family, a copula, a delay-differential normal form, a second-order ODE template, a self-similar process, a Markov framework) rather than a *mechanism family* (a specific dynamical generator). When the project's B3 cross-judge prior flagged these as REJECT, the analytical worry was always the same one — recently sharpened in the project's "mechanism-vs-descriptor" follow-up paper (C4, [refs 46–48]) and grounded in Halford 1992's distinction between functional form and underlying process — and the v0.4 empirical step now puts numbers behind it.
@@ -324,7 +330,11 @@ The third case is the most informative: the Hill function *is* structurally the 
 
 **Honest scope claim.** The (s\*, k) reparametrisation is a **targeted remediation** for one specific over-specification failure mode, not a generic upgrade. It applies if and only if: (i) the class fits a binary outcome with a logit (or equivalent S-curve) on a single predictor; (ii) the pre-registration pins the slope and two-or-more point follow-through rates on the same predictor; and (iii) the point-rate constraints imply a slope inconsistent with the pre-registered slope band. The fix is then: switch to probit, reparametrise to (s\*, k), pre-register independent bounds on each, derive point-rate diagnostics from the fitted box. Classes that use Hill / linregress / exp-decay / multi-axis gate parametrisations should not be re-parametrised — they are already decoupled by construction.
 
-**Generalisability.** The lesson is *not* "every binary-outcome class should use threshold-tobit"; the lesson is "every pre-registration with two-or-more constraints on the *same* fitted family should be audited for mutual consistency *before* the run, not after". The audit can be done analytically (does the slope band overlap the slope implied by the point-rate constraints?) and we recommend the v0.5 pre-registration checklist include this check explicitly (§7.2 below).
+**Generalisability.** The lesson is *not* "every binary-outcome class should use threshold-tobit"; the lesson is "every pre-registration with two-or-more constraints on the *same* fitted family should be audited for mutual consistency *before* the run, not after". The audit can be done analytically (does the slope band overlap the slope implied by the point-rate constraints?) and we recommend the v0.5 pre-registration checklist include this check explicitly (§7.2 below). Figure 4 visualises the v0.4 infeasibility geometry alongside the v0.5 (s\*, k) feasibility box and the four sub-run loci.
+
+![Figure 4: schelling_credible_commitment — v0.4 logit infeasibility vs. v0.5 (s*, k) feasibility](figures/fig4_reparametrisation_concept.png)
+
+**Figure 4.** *Panel A.* The v0.4 pre-registration imposed three simultaneous constraints on the logit dose-response `logit p = a + b s`: (i) slope band b ∈ [1.2, 2.6] (blue), (ii) p(0.4) > 0.75 (green half-plane), and (iii) p(0.2) < 0.35 (red half-plane). Their intersection in (a, b) space is empty — the v0.4 INCONCLUSIVE verdict was a pre-registration over-specification, not an empirical refutation. *Panel B.* The v0.5 reparametrisation to the jointly identifiable pair (s\* = mid-point, k = probit-equivalent slope) defines a feasible pre-reg box [0.20, 0.35] × [4, 12]. Four sub-runs are plotted: sub-runs A (v0.4 default) and B (anchor-calibrated steeper b) fall outside the box; sub-run C (a=−3, b=12, σ=0.15) lands inside at (s\*=0.251, k=6.529); sub-run D (grid-sweep best-in-band+diag at a=−2.5, b=10, σ=0.15) lands at (s\*=0.252, k=4.977), the lower-k edge. The final v0.5 verdict is PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (2/4 anchors hit at ±0.20); the 2/4 gap is a structural limit of the synthetic generator's intercept-mixture, not a mechanism rejection (sham null |k|<0.05 across all sub-runs). Source: `v4/validation/schelling-credible-commitment/verdict_v5.md`.
 
 ### 3.6.6 Multilayer test pattern
 
@@ -373,7 +383,11 @@ These are *candidates* for future v0.5+ batches; we report none in v0.5. The pat
 
 **Honest scope claim.** This is **engineering, not scientific methodology**. We document it because (i) it changed the binding constraint on KB-quality cleanup at scale (from "expensive whole-output review" to "cheap targeted slice + strip"), (ii) the v0.5 KB hardening — which downstream affects the embedding-similarity and pair-mining steps of the project's Layer 1 community discovery — depends on the cleanup having worked correctly, and (iii) the pattern is reusable in any LLM-driven text-rewrite task with a fixed-prefix structure. It is not a contribution to the universality-class machinery; it is a contribution to the project's data-quality scaffolding.
 
-A reviewer reading §3.6 should weigh §3.6.5 and §3.6.6 as the *scientific* methodology contributions of v0.5 (along with the v0.4 contributions §3.5.3 etc.) and read §3.6.7 as engineering provenance worth recording but not as a methodological lift in the same sense.
+A reviewer reading §3.6 should weigh §3.6.5 and §3.6.6 as the *scientific* methodology contributions of v0.5 (along with the v0.4 contributions §3.5.3 etc.) and read §3.6.7 as engineering provenance worth recording but not as a methodological lift in the same sense. Figure 2 places these v0.5 methodology patterns on the cross-version timeline alongside v0.3 / v0.4 patterns.
+
+![Figure 2: Methodology pattern emergence timeline (2026-04 → 2026-05-25)](figures/fig2_methodology_timeline.png)
+
+**Figure 2.** Seven methodology patterns introduced across v0.3 → v0.4 → v0.5 are plotted on a calendar timeline. Filled circles mark the first-instance class where the pattern was discovered or first applied; open squares mark its earliest secondary validation on a distinct class. Background bands separate the v0.3, v0.4 and v0.5 windows. The two v0.5-only patterns are the (s\*, k) threshold-tobit reparametrisation (first used on `schelling_credible_commitment`) and the two-layer multilayer test (first used on `aggregation_kinetics`, no secondary class in v0.5 yet — flagged as open work). The head-aware LLM validator (LAMBADA per-checkpoint eval) is shown as a v0.5 introduction with v1 and v2 as the two instances. Source: `paper/v0.5-draft/v05-roadmap.md`, `paper/v0.5-draft/methodology-increment-checklist.md`, and SESSION-22..25 handoff documents.
 
 ---
 
@@ -471,7 +485,11 @@ The placeholder table will list the four primary sources of α for the Pythia si
 
 The LAMBADA-v1 and LAMBADA-v2 fits sit closely with the literature-anchored train-loss row (α̅ ≈ 0.12–0.16, CV ≈ 0.12–0.18) and far from the mixed-provenance wandb row (CV = 0.71). The interpretation is that **the mixed-provenance v0.4 BROAD_SPREAD verdict was an artefact of the 3-real + 3-synthetic mixture**, not a genuine cross-size spread. Replacing the synthetic fallback with the LAMBADA real-data anchors changes the verdict, and the LAMBADA verdict is the headline v0.5 result.
 
-Tables 4.6.A–B above (filled by SESSION-25) consolidate this cross-source comparison. **Bottom line.** The TIGHT_UNIVERSALITY claim is a property of *the LAMBADA-OpenAI loss curve fit*, not of the underlying scaling law family in general: within LAMBADA-class fits, v1 → v2 only shifts ᾱ by +0.015 and keeps CV ≈ 0.12; across evaluator classes (LAMBADA vs train-loss), pooled CV blows out to 0.58–1.49. Pythia-12b is the most stable single-size cell in the matrix (cross-source σ = 0.011, the lowest in the per-size cross-source comparison). The Pythia 12B post-300B-token continuation data, if it becomes available, would extend this comparison into the post-Chinchilla compute regime; see §7 limitations.
+Tables 4.6.A–B above (filled by SESSION-25) consolidate this cross-source comparison. **Bottom line.** The TIGHT_UNIVERSALITY claim is a property of *the LAMBADA-OpenAI loss curve fit*, not of the underlying scaling law family in general: within LAMBADA-class fits, v1 → v2 only shifts ᾱ by +0.015 and keeps CV ≈ 0.12; across evaluator classes (LAMBADA vs train-loss), pooled CV blows out to 0.58–1.49. Pythia-12b is the most stable single-size cell in the matrix (cross-source σ = 0.011, the lowest in the per-size cross-source comparison). The Pythia 12B post-300B-token continuation data, if it becomes available, would extend this comparison into the post-Chinchilla compute regime; see §7 limitations. See Figure 3 for the visualization of cross-source α convergence.
+
+![Figure 3: Pythia α cross-source universality](figures/fig3_pythia_alpha_universality.png)
+
+**Figure 3.** *Panel A.* Per-source mean α with error bars across 5 source recipes. Both LAMBADA evaluators (v1 unconstrained, v2 L_inf-constrained) deliver TIGHT_UNIVERSALITY (CV < 0.15), while train-loss recipes (quality-filtered or mixed) sit in BROAD_SPREAD even after dropping the broken 1.4b fit. *Panel B.* Per-size α trajectories across the 8 Pythia checkpoints for three sources: LAMBADA v1 and v2 trace nearly parallel curves inside the TIGHT band, train-loss shows order-of-magnitude swings (pythia-1.4b α≈2.0 with R²<0 is the broken fit diagnosing the BROAD_SPREAD outcome). *Panel C.* Spotlight on pythia-12b (the largest Pythia checkpoint, only available in LAMBADA v1 and v2): σ across the two LAMBADA recipes is 0.011 (CV = 0.063), the tightest cross-source agreement in the panel. Cross-evaluator panel (WikiText / HellaSwag) omitted because the upstream data is not yet committed; the §4.8 cross-evaluator extension (lambada_openai / piqa / arc_easy / arc_challenge / winogrande / sciq / logiqa / wsc) takes its place as the empirical realisation. Source data: `v4/validation/llm-scaling/cross_source_summary.json`, `results_lambada.json`, `results_lambada_v2.json`.
 
 ### 4.7 Honest caveats on the LAMBADA fit
 
@@ -618,11 +636,15 @@ INCONCLUSIVE → PASS-CONFIRMED-MULTILAYER → PASS-STRONG → UNIVERSAL-ACROSS-
 
 A top-level-category map (`DOMAIN_TOPLEVEL`) gates the top rung, so that 4 biological domains alone would *not* unlock UNIVERSAL-ACROSS-MATTER — that requires the anchor set to span at least 2 categories. Here, biology contributes 3 anchors and physical chemistry contributes 1; the gate passes.
 
-**SESSION-25 v2 verdict: UNIVERSAL-ACROSS-MATTER.** This is the **first class in the v0.5 verdict matrix to reach the top rung of the hardening ladder**, and it does so along the structural-isomorphism diagonal that the paper's §3 methodology proposes: same mechanism (Smoluchowski coagulation kernel), distinct substrates (neural tissue, tumour, aerosol), same scaling-exponent band. It is the strongest single positive result in the v0.5 bundle and a useful reference exemplar for the §3.6.6 multilayer test pattern.
+**SESSION-25 v2 verdict: UNIVERSAL-ACROSS-MATTER.** This is the **first class in the v0.5 verdict matrix to reach the top rung of the hardening ladder**, and it does so along the structural-isomorphism diagonal that the paper's §3 methodology proposes: same mechanism (Smoluchowski coagulation kernel), distinct substrates (neural tissue, tumour, aerosol), same scaling-exponent band. It is the strongest single positive result in the v0.5 bundle and a useful reference exemplar for the §3.6.6 multilayer test pattern. See Figure 5 for the Layer 1 / Layer 2 anchor visualisation across the three biological domains plus the Friedlander 2000 / Sorensen 2011 aerosol extension.
 
 **The next ladder rung** (`UNIVERSAL-ACROSS-MATTER-MULTI-CATEGORY`) would require ≥ 5 distinct domains spanning ≥ 3 top-level categories — e.g., adding cosmology / astrophysics (Press-Schechter halo mass function) or soft-matter colloidal sols (Lin-Lindsay-Weitz 1989 DLCA universality). The rung is named in the verdict-ladder code but not yet claimed.
 
 **Source.** `v4/validation/aggregation-kinetics/verdict.md` + `results.json` (SESSION-25 v2 sub-agent A4, 2026-05-26).
+
+![Figure 5: aggregation_kinetics — Layer 1 per-plaque PL + Layer 2 cross-population LN](figures/fig5_aggregation_multilayer.png)
+
+**Figure 5.** *Panel A.* Layer 1 power-law CCDF exponent α across the three independent biological-domain anchors: Cruz 1997 (human cortical Aβ plaques, α=1.7±0.1, n≈6,500), Hartig 2018 (5xFAD mouse plaques, α=2.1±0.05, n≈12,400), and Brú 2003 under the Iwata 2000 framework (tumour colonies across 7 cancer types, α=2.05±0.1, n≈1,500). All three fall inside the pre-registered α band [1.7, 3.5], satisfying the PASS-STRONG bar of ≥ 3 distinct biological domains. *Panel B.* Layer 2 Allen Brain TBI cross-population: 5 Aβ series (n=328–377 patients each) fit with Vuong R vs lognormal. Four of five series prefer lognormal at p<0.05 (Aβ42, IHC-Aβ, IHC-Aβ-FFPE, Aβ42/Aβ40 ratio); the Aβ40 series is a tie (R=−0.02, p=0.98) but the lognormal majority constraint (≥3/5) is satisfied. The two-layer test correctly captures aggregation kinetics as requiring per-plaque power-law (Smoluchowski coagulation) plus cross-population lognormal (multiplicative-stochastic patient-scale growth) acting simultaneously; the v0.4 single-layer cross-section test was the wrong test. The Friedlander 2000 / Sorensen 2011 atmospheric & combustion aerosol anchor (§5.4.5, α = 2.00 ± 0.15, ~10,000 particles) extends the Layer 1 panel to the UNIVERSAL-ACROSS-MATTER rung (4 anchors / 2 top-level categories). Source: `v4/validation/aggregation-kinetics/results.json`.
 
 ### 5.5 Cross-domain candidate extensions (Wave 3 follow-up)
 
@@ -854,11 +876,88 @@ Taken together, these inherited boundaries describe a methodology *honest about 
 
 ## 8. References
 
-*[The full v0.4 reference list (52 entries) is preserved verbatim. Below we list the v0.5 *new* references — the source papers introduced by the v0.5 increments.]*
+The full numbered reference list. §8.1 reproduces the v0.3 → v0.4 numbered list ([1]–[50]) verbatim from `docs/sessions/C1-unified-preprint-draft-v0.4.md` §References (which inherited [1]–[45] from `C1-unified-preprint-draft-v0.3.md` and added v0.4 [46]–[50]). §8.2 lists the v0.5 new references ([53]–[68]) introduced by the SESSION-24 / SESSION-25 increments. §8.3 provides a cross-walk to the alphabetically-ordered bibliography in `paper/v0.5-draft/references-bib.md`, which expands every author-surname citation in the prose with a full entry (DOI / ISBN / URL where available; 4 DOIs filled in the 2026-05-28 librarian pass, 2 still pending, 17 N/A-with-explanation). The author-surname inline citations (e.g. "Cruz 1997", "Friedlander 2000", "Hartig 2018") used throughout §§3–7 resolve to `references-bib.md` entries.
 
-### 8.1 v0.4 references (preserved verbatim from C1-unified-preprint-draft-v0.4.md §8)
+### 8.1 v0.4 references (verbatim from C1-unified-preprint-draft-v0.4.md §References, which inherits [1]–[45] from v0.3)
 
-*[To be re-typed in final draft. References [1] – [52] preserved.]*
+**Foundational — universality and SOC**
+
+[1] Wilson, K. G. The renormalization group and critical phenomena. *Reviews of Modern Physics* **55**, 583 (1983).
+[2] Stanley, H. E. Scaling, universality, and renormalization: three pillars of modern critical phenomena. *Reviews of Modern Physics* **71**, S358 (1999).
+[3] Bak, P., Tang, C. & Wiesenfeld, K. Self-organized criticality: an explanation of 1/f noise. *Physical Review Letters* **59**, 381 (1987).
+[4] Olami, Z., Feder, H. J. S. & Christensen, K. Self-organized criticality in a continuous, nonconservative cellular automaton modeling earthquakes. *Physical Review Letters* **68**, 1244 (1992).
+[5] Turcotte, D. L. Self-organized criticality. *Reports on Progress in Physics* **62**, 1377 (1999).
+[6] Sethna, J. P., Dahmen, K. A. & Myers, C. R. Crackling noise. *Nature* **410**, 242 (2001).
+[7] Jensen, H. J. *Self-Organized Criticality: Emergent Complex Behavior in Physical and Biological Systems.* Cambridge University Press (1998).
+[8] Pruessner, G. *Self-Organised Criticality: Theory, Models and Characterisation.* Cambridge University Press (2012).
+[9] Sornette, D. *Critical Phenomena in Natural Sciences: Chaos, Fractals, Selforganization and Disorder.* 2nd ed., Springer (2006).
+
+**Statistical method — power-law fitting**
+
+[10] Clauset, A., Shalizi, C. R. & Newman, M. E. J. Power-law distributions in empirical data. *SIAM Review* **51**, 661 (2009).
+[11] Alstott, J., Bullmore, E. & Plenz, D. powerlaw: a Python package for analysis of heavy-tailed distributions. *PLoS ONE* **9**, e85777 (2014).
+[12] Newman, M. E. J. Power laws, Pareto distributions and Zipf's law. *Contemporary Physics* **46**, 323 (2005).
+[13] Broido, A. D. & Clauset, A. Scale-free networks are rare. *Nature Communications* **10**, 1017 (2019).
+
+**Earthquakes (Phase 1)**
+
+[14] Gutenberg, B. & Richter, C. F. Frequency of earthquakes in California. *Bulletin of the Seismological Society of America* **34**, 185 (1944).
+[15] Omori, F. On the after-shocks of earthquakes. *Journal of the College of Science, Imperial University of Tokyo* **7**, 111 (1894).
+[16] Utsu, T., Ogata, Y. & Matsu'ura, R. S. The centenary of the Omori formula for a decay law of aftershock activity. *Journal of Physics of the Earth* **43**, 1 (1995).
+[17] Aki, K. Maximum likelihood estimate of b in the formula log N = a − bM and its confidence limits. *Bulletin of the Earthquake Research Institute, University of Tokyo* **43**, 237 (1965).
+[18] Shi, Y. & Bolt, B. A. The standard error of the magnitude-frequency b value. *Bulletin of the Seismological Society of America* **72**, 1677 (1982).
+[19] Wiemer, S. & Wyss, M. Minimum magnitude of completeness in earthquake catalogs: examples from Alaska, the western United States, and Japan. *Bulletin of the Seismological Society of America* **90**, 859 (2000).
+[20] Hanks, T. C. & Kanamori, H. A moment magnitude scale. *Journal of Geophysical Research* **84**, 2348 (1979).
+
+**Equity finance (Phase 2)**
+
+[21] Gopikrishnan, P., Meyer, M., Amaral, L. A. N. & Stanley, H. E. Inverse cubic law for the distribution of stock price variations. *European Physical Journal B* **3**, 139 (1998).
+[22] Plerou, V., Gopikrishnan, P., Amaral, L. A. N., Meyer, M. & Stanley, H. E. Scaling of the distribution of price variations of individual companies. *Physical Review E* **60**, 6519 (1999).
+[23] Gabaix, X., Gopikrishnan, P., Plerou, V. & Stanley, H. E. A theory of power-law distributions in financial market fluctuations. *Nature* **423**, 267 (2003).
+[24] Lillo, F. & Mantegna, R. N. Power-law relaxation in a complex system: Omori law after a financial market crash. *Physical Review E* **68**, 016119 (2003).
+[25] Petersen, A. M., Wang, F., Havlin, S. & Stanley, H. E. Market dynamics immediately before and after financial shocks: quantifying the Omori, productivity, and Bath laws. *Physical Review E* **82**, 036114 (2010).
+[26] Weber, P., Wang, F., Vodenska-Chitkushev, I., Havlin, S. & Stanley, H. E. Relation between volatility correlations in financial markets and Omori processes occurring on all scales. *Physical Review E* **76**, 016109 (2007).
+[27] Mantegna, R. N. & Stanley, H. E. *An Introduction to Econophysics: Correlations and Complexity in Finance.* Cambridge University Press (2000).
+[27a] LeBaron, B. Stochastic volatility as a simple generator of apparent financial power laws and long memory. *Quantitative Finance* **1**, 621 (2001).
+[27b] Malevergne, Y., Pisarenko, V. & Sornette, D. Empirical distributions of stock returns: between the stretched exponential and the power law? *Quantitative Finance* **5**, 379 (2005).
+[27c] Pisarenko, V. & Sornette, D. New statistic for financial return distributions: power-law or exponential? *Physica A* **366**, 387 (2006).
+
+**DeFi (Phase 3)**
+
+[28] Qin, K., Zhou, L. & Gervais, A. An empirical study of DeFi liquidations: incentives, risks, and instabilities. *Proceedings of the ACM Internet Measurement Conference (IMC '21)* (2021).
+[29] Perez, D., Werner, S. M., Xu, J. & Livshits, B. Liquidations: DeFi on a knife-edge. *Financial Cryptography and Data Security 2021* (2021).
+[30] Aave. *Aave Protocol V2 Whitepaper*. Technical documentation, Aave Companies (2020). URL: <https://github.com/aave/aave-protocol/blob/master/docs/Aave_Protocol_Whitepaper_v1_0.pdf>. Accessed: 2026-05-24.
+[31] Compound Labs. *Compound: The Money Market Protocol — V2 Whitepaper*. Technical documentation, Compound Labs (2019). URL: <https://compound.finance/documents/Compound.Whitepaper.pdf>. Accessed: 2026-05-24.
+[32] MakerDAO. *Liquidation 2.0 (LIQ-2.0): Dog and Clipper specification.* Technical documentation, MakerDAO (2021). URL: <https://docs.makerdao.com/smart-contract-modules/dog-and-clipper-detailed-documentation>. Accessed: 2026-05-24.
+[33] Motter, A. E. & Lai, Y.-C. Cascade-based attacks on complex networks. *Physical Review E* **66**, 065102 (2002).
+
+**Neural avalanches (Phase 4)**
+
+[34] Beggs, J. M. & Plenz, D. Neuronal avalanches in neocortical circuits. *Journal of Neuroscience* **23**, 11167 (2003).
+[35] Friedman, N., Ito, S., Brinkman, B. A. W., Shimono, M., DeVille, R. E. L., Dahmen, K. A., Beggs, J. M. & Butler, T. C. Universal critical dynamics in high resolution neuronal avalanche data. *Physical Review Letters* **108**, 208102 (2012).
+[36] Priesemann, V., Munk, M. H. J. & Wibral, M. Subsampling effects in neuronal avalanche distributions recorded in vivo. *BMC Neuroscience* **15**, 1 (2014).
+[37] Touboul, J. & Destexhe, A. Power-law statistics and universal scaling in the absence of criticality. *Physical Review E* **95**, 012413 (2017).
+[38] Harris, T. E. *The Theory of Branching Processes.* Springer (1963); Dover reprint (1989).
+[39] Li, N., Chen, T.-W., Guo, Z. V., Gerfen, C. R. & Svoboda, K. A motor cortex circuit for motor planning and movement. *Nature* **519**, 51 (2015). [Data: DANDI Archive dataset 000006, mouse anterior lateral motor cortex in delay-response task, <https://dandiarchive.org/dandiset/000006>.]
+[40] Beggs, J. M. & Timme, N. Being critical of criticality in the brain. *Frontiers in Physiology* **3**, 163 (2012).
+
+**Project (self-references) — arXiv IDs pending submission**
+
+[41] Wan, Q. Recovering self-organized criticality on a global earthquake catalog: a reproducible pipeline for cross-domain universality-class identification. *arXiv:2605.XXXXX* [physics.geo-ph] (2026). *[arXiv ID pending submission.]*
+[42] Wan, Q. Cross-domain self-organized criticality: inverse cubic law and Omori decay on thirty-five years of S&P 500 daily returns. *arXiv:2605.XXXXX* [q-fin.ST] (2026). *[arXiv ID pending.]*
+[43] Wan, Q. Cross-protocol SOC universality in DeFi liquidation cascades: 43,065 events across Aave V2, Compound V2, and MakerDAO. *arXiv:2605.XXXXX* [q-fin.ST] (2026). *[arXiv ID pending.]*
+[44] Wan, Q. Criticality without mean-field SOC: neural avalanche scaling on task-active mouse cortex. *arXiv:2605.XXXXX* [q-bio.NC] (2026). *[arXiv ID pending.]*
+[45] Structural Isomorphism Project. Project snapshot: cross-domain universality-class identification (benchmark + code). Zenodo (2026), DOI: <https://doi.org/10.5281/zenodo.19547879>. *[Reviewer note: this DOI currently resolves to the project's V1/V2 contrastive-learning benchmark; a new Phase-1–5 SOC deposit is pending — see v0.4 pre-submission checklist item 1.]*
+
+**v0.4 additions ([46]–[50], v0.4 §3.5 18-class verdict slate)**
+
+[46] Wan, Q. v04 18-class empirical-anchor validation slate, Wave 2A/B/C reports. In-repo, 17 verdict reports + 1 backfill: `docs/sessions/v04-{adverse-selection, anderson-localization, delay-differential-debt, extreme-value-tail, fractional-brownian-crossings, gardner-collins-toggle, gardner-collins-toggle-v2, hysteresis-first-order, markov-memory-fidelity, percolation-connectivity, preisach-hysteresis-cascade, reaction-diffusion, reflexive-fixed-point, scale-free-percolation, schelling-credible-commitment, second-order-damped-osc, tail-copula-contagion}-report.md`. Date 2026-05-25. *[DOI pending.]*
+[47] Wan, Q. Mechanism vs descriptor: a taxonomy follow-up paper (C4). In-repo `docs/sessions/C4-mechanism-vs-descriptor-paper.md`. Date 2026-05-25. *[arXiv ID pending.]*
+[48] Halford, G. S. *From cell to society: An evolutionary view of analogy.* Lawrence Erlbaum Associates (1992). [Cross-domain analogy distinction: functional form vs underlying process.]
+[49] Stumpf, M. P. H. & Porter, M. A. Critical truths about power laws. *Science* **335**, 665–666 (2012). [Statistical-fitting version of descriptor / mechanism distinction for scale-free networks.]
+[50] Cohen, R., Erez, K., ben-Avraham, D. & Havlin, S. Resilience of the internet to random breakdowns. *Physical Review Letters* **85**, 4626 (2000). [Scale-free vs lattice percolation closed-form exponents.]
+
+*(Slots [51] and [52] are reserved for the v0.4 finalisation pass; not used in the v0.5 main text. The v0.5 contributions resume the numbering at [53].)*
 
 ### 8.2 v0.5 new references
 
@@ -895,6 +994,52 @@ Taken together, these inherited boundaries describe a methodology *honest about 
 [68] **Horn, H., & Mavroidis, P. C.** (2011). The WTO dispute settlement data set, 1995–2006. *World Bank Data Catalog*, dataset ID 0037789, last updated 2019-04-23. *(Empirical WTO retaliation dataset for §6.6 real-data sanity check; 351 disputes, 23 reaching Article 22.6 retaliation-request stage.)*
 
 *[v0.5 final draft should reconcile the Cruz 1997 PNAS citation vs the Acta Neuropathol 93:534 in `results.json`; the discrepancy is in the project records and needs human review.]*
+
+### 8.3 Author-surname inline citation cross-walk (alphabetical bibliography in `references-bib.md`)
+
+The prose in §§3–7 uses **author-surname inline citations** (e.g. "Cruz 1997", "Hartig 2018", "Friedlander 2000", "Smoluchowski 1916", "Bown 2009", "Hyman 2008", "Iwata 2000", "Brú 2003", "Sorensen 2011", "Knowles-Vendruscolo 2014", "Krapivsky-Redner-Ben-Naim 2010", "Whitby 1978", "Cohen-Saxena 2015") for the v0.5 new anchors and supporting literature, in addition to the numbered [1]–[68] system above. The author-surname citations resolve to the alphabetical bibliography at `paper/v0.5-draft/references-bib.md` (380 lines, 2026-05-28 librarian-verified pass: 4 DOIs filled, 17 N/A explicitly noted with explanation, 2 entries still pending human re-verification — Cohen & Saxena 2015 and Hartig 2018 may be garbled citations; see `references-bib.md` §"Pending-verification summary" for full audit trail).
+
+**Why two systems coexist.** The numbered [1]–[68] system preserves the v0.4 / v0.5 numbering used by reviewers familiar with the v0.3 / v0.4 lineage. The author-surname system is the natural format for the v0.5 new anchor density in §§5–6 (where Cruz / Hartig / Iwata / Brú / Friedlander / Sorensen / Knowles-Vendruscolo / Krapivsky-Redner-Ben-Naim each appear two or three times across the layer-1 anchor narrative). Final-submission consolidation will pick one style; the cross-walk below is the bridge.
+
+**Cross-walk table (v0.5 new author-surname citations → numbered entry + `references-bib.md` location):**
+
+| Author-surname citation | Numbered entry | `references-bib.md` section |
+|---|---|---|
+| Cruz 1997 | [53] | C — Cruz, L. et al. (1997) |
+| Hartig 2018 | [54] | H — Hartig, S. M. et al. (2018) *[DOI: pending]* |
+| Iwata 2000 | [55] | I — Iwata, K., Kawasaki & Shigesada (2000) |
+| Brú 2003 | [56] | B — Brú, A. et al. (2003) |
+| Hyman 2008 / 2012 | [57] | H — Hyman, B. T. et al. (2008→2012 corr.) |
+| Biderman 2023 (Pythia) | [58] | B — Biderman, S. et al. (2023) |
+| Paperno 2016 (LAMBADA) | [59] | P — Paperno, D. et al. (2016) |
+| Hoffmann 2022 (Chinchilla) | [60] | H — Hoffmann, J. et al. (2022) |
+| Kydland & Prescott 1977 | [61] | K — Kydland, F. E. & Prescott, E. C. (1977) |
+| Bown 2009 | [62] | B — Bown, C. P. (2009) |
+| Horn & Mavroidis 2003–2011 | [63] | H — Horn, H. & Mavroidis, P. C. (eds.) |
+| Schelling 1960 | [64] | S — Schelling, T. C. (1960) |
+| Sethna-Dahmen-Myers 2001 (crackling noise) | [65] / [6] | S — Sethna, J. P. et al. (2001) |
+| Friedlander 2000 | [66] | F — Friedlander, S. K. (2000) |
+| Sorensen 2011 | [67] | S — Sorensen, C. M. (2011) |
+| Horn-Mavroidis WTO dataset 2011 | [68] | H — Horn & Mavroidis dataset (2011) |
+| Smoluchowski 1916 | — (alphabetical only) | S — Smoluchowski, M. von (1916) |
+| Krapivsky-Redner-Ben-Naim 2010 | — (alphabetical only) | K — Krapivsky, Redner & Ben-Naim (2010) |
+| Knowles-Vendruscolo 2014 | — (alphabetical only) | K — Knowles, T. P. J. & Vendruscolo, M. (2014) |
+| Cohen-Saxena 2015 | — (alphabetical only) | C — Cohen, S. I. A. & Saxena, P. (2015) *[DOI: pending — possibly garbled]* |
+| Whitby 1978 | — (alphabetical only) | W — Whitby, K. T. (1978) |
+| Kaplan 2020 (LLM scaling laws) | — (alphabetical only) | K — Kaplan, J. et al. (2020) |
+| Hestness 2017 (deep-learning scaling) | — (alphabetical only) | H — Hestness, J. et al. (2017) |
+| Clauset-Shalizi-Newman 2009 | [10] | C — Clauset, A. et al. (2009) |
+| Alstott-Bullmore-Plenz 2014 | [11] | A — Alstott, J. et al. (2014) |
+| Bak-Tang-Wiesenfeld 1987 | [3] | B — Bak, P., Tang & Wiesenfeld (1987) |
+| Camerer 2003 / Camerer & Fehr 2004 (Schelling lab-exp paths) | — (alphabetical only) | C — Camerer entries |
+| Cameron & Trivedi 2005 / Wooldridge 2010 / Greene 2018 (probit / threshold-tobit) | — (alphabetical only) | C / W / G entries |
+| Faloutsos 1999 / Barabási-Albert 1999 / Newman 2005 (multilayer candidate row) | — (alphabetical only) | F / B / N entries |
+| Felzer-Brodsky 2006 / Helmstetter 2003 (earthquake productivity) | — (alphabetical only) | F / H entries |
+| Glazier 2005 / Kleiber 1932 / West-Brown-Enquist 1997 / West 2017 (allometry) | — (alphabetical only) | G / K / W entries |
+| Vuong 1989 | — (alphabetical only) | V — Vuong, Q. H. (1989) |
+| Sornette 2003 / Bouchaud-Potters 2003 / Gabaix 2009 (econophysics) | — (alphabetical only) | S / B / G entries |
+
+All other author-surname citations in the v0.5 prose (and inherited v0.4 prose) resolve through `references-bib.md` alphabetical ordering. The 22 entries above with "alphabetical only" status appear in the v0.5 prose by author-surname *and* are present in `references-bib.md` with full bibliographic detail but were not assigned a numeric slot in [1]–[68]; final-submission consolidation will either (a) extend the numeric list to absorb them as [69]–[N], or (b) drop the numeric system and use author-year exclusively. The audit-trail document `references-bib.md` is preserved as the canonical alphabetical reference list independent of either choice.
 
 ---
 
