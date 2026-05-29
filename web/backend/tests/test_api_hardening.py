@@ -16,11 +16,29 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, ConfigDict, Field
 
 # Ensure web/backend is on sys.path so the new modules resolve.
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
+
+
+# SESSION-28 N3 — declared at MODULE scope, not inside the fixture.
+# With `from __future__ import annotations` at the top of this file, the
+# `async def echo(req: EchoPayload)` route below has its `EchoPayload`
+# annotation stringified (PEP 563). FastAPI / Pydantic later resolves that
+# forward ref against `echo.__globals__` (= this module's globals), so the
+# class MUST live here. When it was scoped inside `app_with_hardening`,
+# the resolution chain raised `PydanticUndefinedAnnotation: name 'EchoPayload'
+# is not defined` at every fixture setup — masked until SESSION-28 fixed the
+# upstream slowapi collection error that aborted pytest before this fixture
+# ran. We also avoid the name `Body` deliberately: `from fastapi import Body`
+# would shadow it, and the previous name caused noise in the error chain.
+class EchoPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(..., min_length=1, max_length=20)
+    count: int = Field(..., ge=1, le=100)
 
 
 # -------------- fixtures --------------
@@ -95,16 +113,10 @@ def app_with_hardening(seed_keys):
         install_problem_handlers,
     )
     from middleware import install_rate_limit, tier_aware_limit
-    from pydantic import BaseModel, ConfigDict, Field
 
     app = FastAPI(title="hardening-test", version="0.0.1")
     install_problem_handlers(app)
     install_rate_limit(app)
-
-    class Body(BaseModel):
-        model_config = ConfigDict(extra="forbid")
-        name: str = Field(..., min_length=1, max_length=20)
-        count: int = Field(..., ge=1, le=100)
 
     @app.get("/api/ping")
     @tier_aware_limit()
@@ -113,7 +125,7 @@ def app_with_hardening(seed_keys):
         return {"ok": True, "tier": CURRENT_TIER.get()}
 
     @app.post("/api/echo", summary="Echo")
-    async def echo(req: Body):
+    async def echo(req: EchoPayload):
         return req.model_dump()
 
     @app.get("/api/notfound")
