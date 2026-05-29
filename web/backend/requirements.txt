@@ -41,3 +41,14 @@ rank_bm25>=0.2.2
 # port of Google's compact language detector. Optional fallback to ASCII-ratio
 # heuristic when import fails (search_service handles ImportError gracefully).
 langdetect>=1.0.9
+# SESSION-28 (2026-05-29): restore slowapi pin that the SESSION-15-INCIDENT-#2
+# fix attempted to land in orphan commit 7d34d3f (5/15) but never merged into
+# main. errors.py:44 + middleware/rate_limit.py + services/rate_limit.py +
+# tests/test_ask_endpoint.py all import slowapi.errors / slowapi.Limiter —
+# without this pin every fresh CI venv + every prod restart crashes at import
+# time. PEP 563 __globals__ regression mitigated by the _ChainedGlobals shim
+# in middleware/rate_limit.py (SESSION-21 §2 root fix) + fastapi 0.115.14
+# belt-and-suspenders (SESSION-22 §1, see top of file). 0.1.9 is the latest
+# PyPI release as of 2026-05-29; cap below 0.2 because the maintainer has
+# signalled an API rework in the 0.2 line and we don't want a silent break.
+slowapi>=0.1.9,<0.2
