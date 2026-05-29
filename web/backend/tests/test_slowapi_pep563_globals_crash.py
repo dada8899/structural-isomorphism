@@ -151,7 +151,14 @@ def test_stringified_annotation_resolves_both_fastapi_paths():
         try:
             # typing._eval_type is what FastAPI's evaluate_forwardref calls
             # under the hood; cross-version stable for resolving a bare name.
-            resolved = typing._eval_type(ref, globalns, globalns, ())
+            # SESSION-28 N5 — the 4th positional arg is `recursive_guard` on
+            # Python 3.11 (CI runtime). Internally it does
+            # `recursive_guard | {ref.__forward_arg__}`, which fails with
+            # `TypeError: unsupported operand type(s) for |: 'tuple' and 'set'`
+            # when passed an empty tuple. Use `frozenset()` so the set-union
+            # works on both 3.11 (positional recursive_guard) and 3.12+
+            # (where the same value can be treated as the type-params slot).
+            resolved = typing._eval_type(ref, globalns, globalns, frozenset())
         except NameError as exc:  # pragma: no cover - this IS the regression
             pytest.fail(
                 f"FastAPI {label} annotation resolution crashed: {exc!r}. "

@@ -52,3 +52,13 @@ langdetect>=1.0.9
 # PyPI release as of 2026-05-29; cap below 0.2 because the maintainer has
 # signalled an API rework in the 0.2 line and we don't want a silent break.
 slowapi>=0.1.9,<0.2
+# SESSION-28 N6 (2026-05-29): python-multipart is REQUIRED by FastAPI whenever
+# a route declares `Form(...)` parameters. v4/product/d1_phase_detector/api/
+# main.py:316-319 has 4 such Form fields on the email-signup endpoint, but the
+# package was never declared here — main.py at import time raises
+# RuntimeError('Form data requires "python-multipart" to be installed') at
+# route-registration, which broke 9 test_universality_endpoints tests (this
+# was hidden behind the slowapi collection error until SESSION-28 restored
+# slowapi). Floor at 0.0.20 because earlier versions had CVE-2024-24762; cap
+# below 0.1 because the maintainer flagged a future API break above 0.1.
+python-multipart>=0.0.20,<0.1
