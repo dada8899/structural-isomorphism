@@ -62,6 +62,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r web/backend/requirements.txt
 
+      - name: Install structural_isomorphism (the in-repo package)
+        # SESSION-28: web/backend/services/search_service.py imports
+        # `from structural_isomorphism.model import ...`. In prod, main.py
+        # papers over this by sys.path.insert-ing the project root, but the
+        # SearchService-load smoke step below runs `cd web/backend && python -`
+        # directly and bypasses that hook, so it must see the package via the
+        # normal resolution path. setup.py at repo root declares the package;
+        # editable install is enough (no need to re-pin its deps because
+        # requirements.txt above already pinned them).
+        run: |
+          pip install -e .
+
       - name: Import every heavy module that prod loads at startup
         # We do not load the actual KB embeddings (gated behind models/
         # restore on VPS). What we DO verify is that each import works
