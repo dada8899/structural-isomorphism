@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase Detector EWS layer (2026-05-23, PD-EWS)
+
+Replaces the LLM-vibe "critical_point_state" classifier with a real,
+backtestable Early-Warning-Signal engine grounded in critical-slowing-down
+theory. US + HK markets supported equally.
+
+- `v4/product/d1_phase_detector/ews.py` — pure-Python CSD engine:
+  rolling lag-1 autocorrelation + variance; trailing Kendall-tau with
+  stride sub-sampling to defuse the overlapping-window false-positive
+  problem (white-noise FPR <0.5% verified on 1000 seeds).
+- `v4/product/d1_phase_detector/hk_universe.py` — Hang Seng + HSTECH
+  constituents (~97 names) + ADR dual-listing dedup map (BABA↔9988
+  etc.); ADRs drop in favor of the HK primary listing.
+- `v4/product/d1_phase_detector/run_ews_pipeline.py` — end-to-end:
+  fetch via yfinance (US + HK), compute EWS, write 3 JSON artifacts
+  (results / leaderboard / meta). Demo mode generates honest synthetic
+  data for sandbox/CI.
+- `v4/product/d1_phase_detector/api/ews.py` — FastAPI router mounted at
+  `/api/ews/{meta,leaderboard,<ticker>}`. In-memory mtime-aware cache so
+  nightly cron updates don't need a restart.
+- `web/phase-detector/components/EwsLeaderboardPanel.tsx` — new primary
+  screener experience on /companies. Market toggle (美/港/ALL),
+  phase-state filter, honest provenance badge.
+- `web/phase-detector/components/PhaseTrajectoryChart.tsx` — rewritten
+  end-to-end: now plots **real** AR1 + variance time series from the
+  EWS engine on a dual y-axis, with Kendall-τ in the legend. The
+  previous PRNG-fake trajectory is gone.
+- `web/phase-detector/app/company/[ticker]/page.tsx` — now fetches EWS
+  in parallel with the company record; synthesizes a minimal Company
+  shape from EWS for HK tickers (which have no LLM record); adds
+  market badge (港股/美股) + HKD currency formatting; new "一句话给你"
+  actionable layer that maps (phase, score, confidence) to a one-line
+  reader takeaway.
+- `.github/workflows/ews-pipeline-nightly.yml` — 22:00 UTC daily cron
+  refreshes the EWS dataset on the VPS (after US close, before HK open).
+- `v4/product/d1_phase_detector/README_EWS.md` — engine design notes,
+  reproduction instructions, and honest caveats.
+- 22 unit tests (`tests/test_ews.py`) covering primitive correctness,
+  white-noise false-positive rate, textbook-CSD detection rate,
+  drawdown gate, lone-indicator capping, significance gate.
+
+### Changed
+
+- /companies now leads with the CSD leaderboard; the legacy LLM-vibe
+  `/screener` blocks stay below for back-compat but are no longer the
+  headline tool.
+
+---
+
 - arXiv submission (5 papers, awaiting user account)
 - PyPI publish (3 packages, awaiting `PYPI_TOKEN`)
 - Zenodo DOI mint (awaiting `ZENODO_ACCESS_TOKEN`)

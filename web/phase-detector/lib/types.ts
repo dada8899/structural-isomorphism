@@ -150,3 +150,89 @@ export interface UniversalityCompaniesResponse {
   count: number;
   companies: UniversalityCompanyTag[];
 }
+
+// ---------------------------------------------------------------------------
+// EWS (Early-Warning-Signal) types — 2026-05-23 PD-EWS.
+//
+// The EWS layer replaces the LLM-vibe "critical_point_state" / fake PRNG
+// trajectory with values computed from real OHLCV by
+// `v4/product/d1_phase_detector/ews.py`. Two-market aware (US + HK).
+// ---------------------------------------------------------------------------
+
+export type Market = "US" | "HK";
+export type Currency = "USD" | "HKD";
+
+export interface EwsTimeSeries {
+  name: string;                       // "ar1" | "var"
+  dates: string[];                    // ISO yyyy-mm-dd, ascending
+  values: (number | null)[];          // None where the window hasn't filled
+  tau: number | null;                 // Kendall tau over trailing window
+  tau_p: number | null;               // approximate two-sided p-value
+  n_trend: number;
+}
+
+export interface EwsResultFull {
+  ticker: string;
+  as_of: string;
+  n_returns: number;
+  window: number;
+  trend_window: number;
+  ar1: EwsTimeSeries;
+  var: EwsTimeSeries;
+  criticality_score: number;          // 0..100
+  phase_state: CriticalPointState;
+  confidence: number;                 // 0..1
+  notes: string[];
+
+  // Enrichment from the pipeline
+  name?: string | null;
+  name_zh?: string | null;
+  sector?: string | null;
+  market?: Market;
+  currency?: Currency;
+  indices?: string[] | null;
+  adr_ticker?: string | null;
+  llm_dynamics_family?: DynamicsFamily | null;
+  llm_tldr?: string | null;
+  price_provenance?: "live" | "demo" | "missing";
+}
+
+// Lighter card payload for leaderboard / screener rows.
+export interface EwsCard {
+  ticker: string;
+  name?: string | null;
+  name_zh?: string | null;
+  sector?: string | null;
+  market?: Market;
+  currency?: Currency;
+  criticality_score: number;
+  phase_state: CriticalPointState;
+  confidence: number;
+  as_of?: string | null;
+  tau_ar1?: number | null;
+  tau_var?: number | null;
+  price_provenance?: "live" | "demo" | "missing";
+}
+
+export interface EwsMeta {
+  version: string;
+  generated_at?: string;
+  n_tickers: number;
+  n_critical?: number;
+  n_approaching?: number;
+  n_post?: number;
+  by_market?: Partial<Record<Market, number>>;
+  price_provenance: "live" | "demo" | "missing" | "live+synth_fallback" | "unknown";
+  period?: string;
+  interval?: string;
+  msg?: string;
+}
+
+export interface EwsLeaderboardFilters {
+  market?: Market | "ALL";
+  phase?: CriticalPointState;
+  sector?: string;
+  min_score?: number;
+  min_confidence?: number;
+  limit?: number;
+}

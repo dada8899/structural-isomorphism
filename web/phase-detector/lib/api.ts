@@ -8,8 +8,18 @@ import type {
   UniversalityClassDetail,
   UniversalityClassesResponse,
   UniversalityCompaniesResponse,
+  EwsResultFull,
+  EwsCard,
+  EwsMeta,
+  EwsLeaderboardFilters,
 } from "./types";
-import { MOCK_COMPANIES, MOCK_STATS } from "./mock-data";
+import {
+  MOCK_COMPANIES,
+  MOCK_STATS,
+  MOCK_EWS_LEADERBOARD,
+  MOCK_EWS_DETAIL,
+  MOCK_EWS_META,
+} from "./mock-data";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -171,6 +181,76 @@ export async function fetchUniversalityClassDetail(
   const json = await safeJson<UniversalityClassDetail>(res);
   if (!json) throw new Error("universality class detail returned empty body");
   return json;
+}
+
+// ---------------------------------------------------------------------------
+// 2026-05-23 PD-EWS — Early-Warning-Signal endpoints.
+// These are the real-data path (rolling AR1 / variance Kendall-tau over real
+// OHLCV). The /screener + /company endpoints above stay for back-compat /
+// the LLM-narrative side.
+// ---------------------------------------------------------------------------
+
+export async function fetchEwsLeaderboard(
+  filters: EwsLeaderboardFilters = {},
+): Promise<EwsCard[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 60));
+    return filterMockLeaderboard(filters);
+  }
+  const p = new URLSearchParams();
+  if (filters.market) p.set("market", filters.market);
+  if (filters.phase) p.set("phase", filters.phase);
+  if (filters.sector) p.set("sector", filters.sector);
+  if (typeof filters.min_score === "number") p.set("min_score", String(filters.min_score));
+  if (typeof filters.min_confidence === "number")
+    p.set("min_confidence", String(filters.min_confidence));
+  if (typeof filters.limit === "number") p.set("limit", String(filters.limit));
+  const qs = p.toString();
+  const url = `${API_BASE}/api/ews/leaderboard${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    // Degrade gracefully — frontend should render a "data refreshing" state
+    // rather than crash. The leaderboard JSON might not exist yet on first
+    // deploy before the cron has run.
+    if (res.status === 404 || res.status === 503) return [];
+    throw new Error(`ews leaderboard failed: ${res.status}`);
+  }
+  const json = await safeJson<EwsCard[]>(res);
+  return Array.isArray(json) ? json : [];
+}
+
+export async function fetchEwsDetail(ticker: string): Promise<EwsResultFull | null> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 60));
+    return MOCK_EWS_DETAIL[ticker.toUpperCase()] ?? null;
+  }
+  const url = `${API_BASE}/api/ews/${encodeURIComponent(ticker)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.status === 404 || res.status === 503) return null;
+  if (!res.ok) throw new Error(`ews detail failed: ${res.status}`);
+  return safeJson<EwsResultFull>(res);
+}
+
+export async function fetchEwsMeta(): Promise<EwsMeta | null> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 20));
+    return MOCK_EWS_META;
+  }
+  const url = `${API_BASE}/api/ews/meta`;
+  const res = await fetch(url, { next: { revalidate: 300 } });
+  if (!res.ok) return null;
+  return safeJson<EwsMeta>(res);
+}
+
+function filterMockLeaderboard(filters: EwsLeaderboardFilters): EwsCard[] {
+  return MOCK_EWS_LEADERBOARD.filter((r) => {
+    if (filters.market && filters.market !== "ALL" && r.market !== filters.market) return false;
+    if (filters.phase && r.phase_state !== filters.phase) return false;
+    if (filters.sector && r.sector !== filters.sector) return false;
+    if (typeof filters.min_score === "number" && r.criticality_score < filters.min_score) return false;
+    if (typeof filters.min_confidence === "number" && r.confidence < filters.min_confidence) return false;
+    return true;
+  }).slice(0, filters.limit ?? 50);
 }
 
 export async function fetchUniversalityCompanies(

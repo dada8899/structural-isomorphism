@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
+import { EwsLeaderboardPanel } from "@/components/EwsLeaderboardPanel";
 import { RecentlyFlippedRow } from "@/components/RecentlyFlippedRow";
 import { ScreenerFilter } from "@/components/ScreenerFilter";
 import { SearchHero } from "@/components/SearchHero";
@@ -247,6 +248,12 @@ export default function ScreenerHomePage() {
           Replaces the legacy "开始查看 →" scroll-to-filter CTA. Sits BELOW the
           headline + ABOVE the state legend / signals / family blocks. */}
       <SearchHero onSubmit={handleSearchSubmit} />
+
+      {/* PD-EWS (2026-05-23): the new primary screener experience — real
+          CSD signal, US + HK, market/phase filter. Sits AT THE TOP, above
+          the legacy LLM-narrative blocks. The old LLM /screener path is
+          kept below for back-compat but is no longer the headline tool. */}
+      <EwsLeaderboardPanel />
 
       {/* W3-C session #9: first-fold retrospective row — companies that have
           ALREADY transitioned (post_critical_transition). Sits between the

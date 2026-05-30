@@ -1,3 +1,8 @@
 # Generated price series — regenerate locally via fetch_prices.py
 prices.csv
 prices.meta.json
+
+# Note: ews_*.json IS tracked because the bundled demo dataset is what
+# the frontend renders before the VPS nightly cron has produced live data.
+# Cron overwrites these on the VPS; the version in git is "day-one
+# bootstrap" only.

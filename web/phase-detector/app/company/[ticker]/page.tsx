@@ -42,8 +42,8 @@ import {
   INDICATOR_VALUE_LABEL_ZH,
   SECTOR_LABEL_ZH,
 } from "@/lib/labels";
-import { fetchCompany } from "@/lib/api";
-import type { Company } from "@/lib/types";
+import { fetchCompany, fetchEwsDetail } from "@/lib/api";
+import type { Company, EwsResultFull } from "@/lib/types";
 
 // 2026-05-15 W6-C — detail page polish from 3.4/5 audit toward 9/10:
 //   1. Header chips: market_cap_usd_b + industry promoted out of metadata
@@ -115,12 +115,77 @@ function IndicatorTrendIcon({ value }: { value: string | number | null | undefin
   );
 }
 
-function formatMarketCap(b: number | null | undefined): string | null {
+function formatMarketCap(
+  b: number | null | undefined,
+  currency: "USD" | "HKD" = "USD",
+): string | null {
   if (b === null || b === undefined) return null;
-  if (b >= 1000) return `市值 ${(b / 1000).toFixed(2)} 万亿美元`;
-  if (b >= 1) return `市值 ${b.toLocaleString(undefined, { maximumFractionDigits: 1 })} 亿美元`;
-  return `市值 ${(b * 1000).toFixed(0)} 百万美元`;
+  const ccy = currency === "HKD" ? "港元" : "美元";
+  if (b >= 1000) return `市值 ${(b / 1000).toFixed(2)} 万亿${ccy}`;
+  if (b >= 1) return `市值 ${b.toLocaleString(undefined, { maximumFractionDigits: 1 })} 亿${ccy}`;
+  return `市值 ${(b * 1000).toFixed(0)} 百万${ccy}`;
 }
+
+// PD-EWS: actionable interpretation of (phase, score, confidence) — the
+// product's loudest gap was "no so-what". This produces a one-liner the
+// reader can actually use, without overclaiming as investment advice.
+function actionableLine(ews: EwsResultFull | null): {
+  headline: string;
+  body: string;
+  tone: "green" | "amber" | "red" | "zinc";
+} {
+  if (!ews || ews.criticality_score == null) {
+    return {
+      headline: "信号待计算",
+      body: "EWS 流水线尚未覆盖该 ticker，详细趋势数据稍后会自动出现。",
+      tone: "zinc",
+    };
+  }
+  const s = ews.criticality_score;
+  const conf = ews.confidence ?? 0;
+  if (ews.phase_state === "post_critical_transition") {
+    return {
+      headline: "已经翻过去了",
+      body: "尾部窗口内出现剧烈回撤；CSD 信号在事后通常重置。继续跟踪是否进入新的稳态。",
+      tone: "zinc",
+    };
+  }
+  if (ews.phase_state === "at_critical" && s >= 70) {
+    return {
+      headline: "强 CSD 警报",
+      body:
+        "AR1 与方差同时单调上行——临界减速的教科书形态。系统抗扰动能力下降，下一次冲击会被放大，方向未定（可能上行突破，也可能崩跌）。",
+      tone: "red",
+    };
+  }
+  if (ews.phase_state === "approaching_critical" || s >= 40) {
+    return {
+      headline: "结构警示",
+      body:
+        "至少一个 CSD 指标出现正向漂移，但单独不足以盖章。值得放进观察列表，等待方差或自相关进一步确认。",
+      tone: "amber",
+    };
+  }
+  if (conf < 0.4) {
+    return {
+      headline: "样本不足",
+      body: "数据量或液差不够稳定，结论保守地停在稳态。建议跟踪 30 天后再读一次。",
+      tone: "zinc",
+    };
+  }
+  return {
+    headline: "稳态",
+    body: "AR1 与方差均无显著上行趋势；系统当前抗扰动良好。",
+    tone: "green",
+  };
+}
+
+const TONE_CLASS: Record<"green" | "amber" | "red" | "zinc", string> = {
+  green: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  amber: "border-amber-200 bg-amber-50 text-amber-900",
+  red: "border-red-200 bg-red-50 text-red-900",
+  zinc: "border-zinc-200 bg-zinc-50 text-zinc-800",
+};
 
 function DetailSkeleton({ breadcrumb }: { breadcrumb: { label: string; href?: string }[] }) {
   // W6-C: structured skeleton matching final layout shape to keep CLS ≤ 0.1.
@@ -152,20 +217,53 @@ export default function CompanyDetailPage({
   params: { ticker: string };
 }) {
   const [company, setCompany] = useState<Company | null>(null);
+  const [ews, setEws] = useState<EwsResultFull | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchCompany(params.ticker)
-      .then((c) => {
-        if (!cancelled) setCompany(c);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
+    // Fetch company (LLM narrative, back-compat) and EWS (real CSD signal)
+    // in parallel. Either may legitimately be absent: HK tickers won't have
+    // a `Company` record yet; brand-new tickers won't have EWS.
+    Promise.allSettled([
+      fetchCompany(params.ticker),
+      fetchEwsDetail(params.ticker),
+    ]).then(([cRes, eRes]) => {
+      if (cancelled) return;
+      if (cRes.status === "fulfilled") {
+        setCompany(cRes.value);
+      }
+      if (eRes.status === "fulfilled" && eRes.value) {
+        setEws(eRes.value);
+        // Synthesize a minimal Company shape from EWS when the LLM-side
+        // record is missing (HK tickers usually). This keeps the rest of
+        // the page rendering without a special HK branch.
+        if (cRes.status === "rejected" && eRes.value) {
+          const e = eRes.value;
+          setCompany({
+            ticker: e.ticker,
+            name: e.name || e.ticker,
+            sector: e.sector ?? "unknown",
+            industry: null,
+            market_cap_usd_b: null,
+            dynamics_family: (e.llm_dynamics_family as Company["dynamics_family"]) ?? "mixed_or_unclear",
+            critical_point_state: e.phase_state,
+            universality_class: null,
+            extraction_confidence: e.confidence ?? 0,
+            extraction_model: "ews_engine",
+            extracted_at: e.as_of ?? null,
+            tldr: e.llm_tldr ?? "本 ticker 暂无 LLM 叙述；以下为基于真实价格的 EWS 信号读出。",
+            primary_indicators: null,
+            caveats: e.notes ?? null,
+          });
         }
-      });
+      }
+      if (cRes.status === "rejected" && (eRes.status !== "fulfilled" || !eRes.value)) {
+        const err = cRes.reason;
+        setError(err instanceof Error ? err.message : "Unknown error");
+      }
+    });
     return () => {
       cancelled = true;
     };
@@ -220,7 +318,10 @@ export default function CompanyDetailPage({
     ? SECTOR_LABEL_ZH[company.sector] ?? company.sector
     : null;
   const caveats = company.caveats ?? [];
-  const marketCapLabel = formatMarketCap(company.market_cap_usd_b);
+  const ewsCurrency = ews?.currency ?? "USD";
+  const marketCapLabel = formatMarketCap(company.market_cap_usd_b, ewsCurrency);
+  const isHk = ews?.market === "HK" || params.ticker.toUpperCase().endsWith(".HK");
+  const actionable = actionableLine(ews);
 
   return (
     <SwipeNavigator currentTicker={params.ticker}>
@@ -244,6 +345,18 @@ export default function CompanyDetailPage({
           className="flex flex-wrap items-center gap-2 text-xs"
           data-testid="company-chips"
         >
+          {/* PD-EWS: market badge (US / HK). Critical for HK users so they
+              know currency / settlement / connect coverage applies. */}
+          <span
+            className={`rounded-full px-2.5 py-0.5 font-medium ${
+              isHk
+                ? "bg-rose-100 text-rose-800"
+                : "bg-indigo-100 text-indigo-800"
+            }`}
+            data-testid="market-badge"
+          >
+            {isHk ? "港股 HKEX" : "美股 US"}
+          </span>
           {sectorLabel && (
             <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-zinc-700">
               {sectorLabel}
@@ -308,10 +421,43 @@ export default function CompanyDetailPage({
         <p className="text-base leading-relaxed text-zinc-800">{company.tldr}</p>
       </section>
 
-      {/* W11-D: PhaseTrajectoryChart — synthesized 12-month structural distance
-          trajectory with phase-band background, hover tooltip, brush selection.
-          Sits below TL;DR (anchor block) and above the deeper context panel so
-          the visual narrative reinforces what TL;DR just said. */}
+      {/* PD-EWS: actionable layer — the one-line "so what" the product
+          was missing. Sits ABOVE the chart so readers see the takeaway
+          before parsing the curves. */}
+      <section
+        className={`rounded-xl border p-5 ${TONE_CLASS[actionable.tone]}`}
+        aria-labelledby="actionable-heading"
+        data-testid="actionable-panel"
+      >
+        <h2
+          id="actionable-heading"
+          className="mb-1 text-xs font-semibold uppercase tracking-wider opacity-70"
+        >
+          一句话给你
+        </h2>
+        <p className="text-base font-medium">{actionable.headline}</p>
+        <p className="mt-1 text-sm leading-relaxed opacity-90">{actionable.body}</p>
+        {ews && (
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs opacity-80">
+            <span>
+              CSD 分数 <strong className="tabular-nums">{Math.round(ews.criticality_score)}</strong>/100
+            </span>
+            <span>
+              置信度 <strong className="tabular-nums">{Math.round((ews.confidence ?? 0) * 100)}%</strong>
+            </span>
+            {ews.as_of && <span>价格截至 {ews.as_of}</span>}
+            {ews.price_provenance === "demo" && (
+              <span className="rounded bg-zinc-900/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
+                演示数据
+              </span>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* PD-EWS: real critical-slowing-down chart. AR1 + variance from
+          actual daily log-returns; empty-state fallback when EWS data is
+          pending. Replaces the previous PRNG-fake trajectory. */}
       <section
         className="rounded-xl border border-zinc-200 bg-white p-6"
         aria-labelledby="trajectory-heading"
@@ -321,9 +467,9 @@ export default function CompanyDetailPage({
           id="trajectory-heading"
           className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
         >
-          结构距离趋势
+          临界减速指标 (CSD)
         </h2>
-        <PhaseTrajectoryChart company={company} months={12} />
+        <PhaseTrajectoryChart ewsDetail={ews} ticker={params.ticker} />
       </section>
 
       {/* W6-C: KeyContextPanel — surface the family + CPS explainer prominently.
