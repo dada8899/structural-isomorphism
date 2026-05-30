@@ -48,6 +48,18 @@ dev = [
     "pytest>=7.0",
     "pytest-mock>=3.10",
     "build>=1.0",
+    # SESSION-28 N7: tests/test_vendors_w11a_coverage.py drives the openai
+    # vendor path (make_client). 3 of the 5 tests already wrap their bodies
+    # in `try: ... except ImportError: pytest.skip(...)` defensively, but
+    # `test_make_client_missing_api_key_raises` + `test_make_client_unknown_vendor_raises`
+    # intentionally exercise the RuntimeError / KeyError that fire AFTER the
+    # `from openai import OpenAI` line inside make_client — so they fail at
+    # `ImportError` if openai isn't present at dev install time. Listing
+    # openai in `dev` mirrors the implicit assumption other tests already
+    # make. The standalone `openai` extra below stays as the public
+    # installation surface for end users who want to use the openai-python
+    # client at runtime independent of dev install.
+    "openai>=1.0",
 ]
 # Optional convenience: use openai-python client instead of the bundled httpx client.
 openai = [
