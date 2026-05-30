@@ -1,19 +1,19 @@
-# Session #28 Handoff — N1 + N2 root cause + 5 unmasked layers cleared
+# Session #28 Handoff — N1 + N2 root cause + 6 unmasked layers cleared + N9 partial
 
 > 日期：2026-05-29 → 2026-05-30
 > 承接：`SESSION-27-FINAL-HANDOFF.md` (HEAD baseline `7a81338`)
-> 6 commits pushed origin/main — slowapi 孤儿分支根因 + 5 个被掩盖的预存 bug 一并打掉
-> 主题：CI 红灯一锅端 — 揭开 layered legacy bug
+> 9 commits pushed origin/main — slowapi 孤儿分支根因 + 5 个被掩盖的预存 bug 一并打掉 + CI yaml LFS 补 + perf budget 部分（backtest TBT 修，companies INP* revert）
+> 主题：CI 红灯一锅端 — 揭开 layered legacy bug；perf 修复诚实记账
 
 ---
 
 ## 0. 当前状态
 
-- **HEAD（before this handoff commit）**: `832a3af`
-- **origin/main**: synced, 0 race, branch protection bypass 单次使用（无积累）
+- **HEAD（before this handoff update commit）**: `41f9a1e`
+- **origin/main**: synced (rebased once over PR #227 `6ed7bbe`), 0 race
 - `beta.structural.bytedance.city` / `phase.bytedance.city`: 健康
 - working tree: 完全干净
-- cumulative commits SESSION-22→28 = **106 + 6 = 112**
+- cumulative commits SESSION-22→28 = **106 + 9 = 115** (= 6 fix + handoff + N8 + N9 + N9 revert)
 
 ---
 
@@ -97,6 +97,36 @@ d5cdeb3  fix: clear remaining sanity Leg 2 failures unmasked by slowapi restore 
 - 修法：`832a3af` 把 `openai>=1.0` 加到 cross-judge `[project.optional-dependencies].dev`（独立的 `[openai]` extra 保留不动作为 end user 公开安装面）
 - 为什么之前没暴露：跟 N4-N6 同样的"被 Leg 2 abort 掩盖"原理
 
+### N8 — CI.yml backend job · embedding-bridge LFS pointer
+
+- 现象：SESSION-27 §4.2 在 `sanity.yml` 加了 `with: lfs: true`，但 `CI.yml` 是独立 workflow 自己 checkout，仍然失败 `v4/tests/sanity/test_embedding_bridge.py` 12 ERRORs (UnpicklingError on `np.load`)
+- 修法：`2463189` 复用 sanity.yml 模式，**只**给 backend job (line 45) 加 `with: lfs: true`，其余 3 个 job（packages / frontend / e2e）没 LFS 文件需求保持原状省 runner 时间
+- 为什么之前漏：跨 workflow 配置同步靠人记，没人记
+
+### N9 — perf budget · backtest TBT 真修 + companies INP* revert（部分）
+
+5/30 Lighthouse audit on `26686120457` (HEAD `6ed7bbe`) failures:
+```
+companies  mobile  INP*   2270.6 > 2200.0  (+70ms)
+backtest   mobile  TBT     339.0 >  200.0  (+139ms, +70%)
+```
+
+**backtest TBT 真修 ✅** (`e42053c` `CumulativeChartLazy.tsx`)：
+- 根因：`next/dynamic({ssr: false})` 把 recharts 拆 chunk 但 hydration 完立刻 fetch + parse，chart 在 hero+8 卡 stat grid+verdict block 之后远在折叠下，parse 落进 TBT 窗口纯浪费
+- 修法：wrap 在 `IntersectionObserver` (rootMargin: 600px)，container 进入屏幕一屏内才挂 dynamic component；360px skeleton 防 CLS
+- 验证：`e42053c` audit 失败列表不再含 backtest TBT，确认 ≤ 200ms
+
+**companies INP* 走偏 → revert（`41f9a1e`）**：
+- 第一次尝试：sub-agent 在 SparkLine 加 `visible`-gated useMemo，把 mount-time compute 推到 scroll-time
+- 验证后果：INP* 2270.6 → **2477.5**（恶化 207ms），因 50 个 IO 回调集中 fire → React batch 一个长 reconcile → LoAF 反而塞进 INP 测量窗口
+- 教训：INP 是 interaction-driven，把 mount 计算挪到 scroll 等于挪到测量窗内，反效果。startTransition / scheduler.postTask 才是对的非阻塞模式
+- revert：`41f9a1e` 干净反向 SparkLine 改动，回到 PR #227 状态（companies INP* 应 ≈ 2270，仍超 70ms 但不是我们引入的回归）
+
+**PR #227 fallout（5/30 同期合入）**：
+- PR `feat(phase-detector): PD-EWS — real CSD engine + HK market support` 加了 521 行 PhaseTrajectoryChart 重写 + 266 行 EwsLeaderboardPanel + 6222 行 mock-ews-data.json
+- e42053c audit 出现 6 个新 failure（`companies LCP`, `company_AAPL LCP+INP*`, `universality INP*`, `universality_class INP*`, `compare LCP+INP*`），都跟 EWS 新组件强相关
+- 这些 LCP / INP 退化属于 PR #227 善后，**SESSION-29 处理**
+
 ---
 
 ## 4. 关键发现 — 3 件
@@ -128,14 +158,16 @@ SESSION-27 §4.2 在 `sanity.yml` 加了 `with: lfs: true`，但 `CI.yml` 是独
 
 | # | 项 | 触发 | Priority | 处理建议 |
 |---|---|---|---|---|
-| 1 | **CI workflow `backend` job** — `test_embedding_bridge.py` 12 ERRORs（LFS pointer stub） | SESSION-27 §4.2 在 sanity.yml 修了，CI.yml 漏配 | **P1** | 在 CI.yml checkout step 加 `with: lfs: true`（5min 复用 sanity.yml 模式） |
-| 2 | **perf budget** — pre-existing failure，待具体 audit | SESSION-27 末仍 fail | P1 | 看具体哪个 route bundle 超 budget 200 kB |
-| 3 | prod 是否真有 `python-multipart` 装着？email 注册端点是否真能跑？ | N6 揭开 | P1 | SSH VPS `pip freeze | grep multipart`；curl `/v4/.../signup` 测一次 |
-| 4 | Figure 1 caption CV=0.126 vs §4 CV=0.118/0.116 vs Table 4.6.A CV=0.1264 | SESSION-25/27 carry-over | low | figure_generation.py 重生成统一 |
-| 5 | §8.1 [41]-[45] `arXiv:2605.XXXXX` placeholder | v0.4 inherited | low | 提交时拿到 arXiv ID 填入 |
-| 6 | §8 dual numbered + alphabetical 系统 final consolidation | SESSION-27 (iii) | low | §8.3 cross-walk bridges both |
-| 7 | `cross-judge` / `guarded-llm` / `soc-pipeline` 0.1.1 tag 未建未 push | SESSION-27 §4.5 | low | packaging decision；等 user action PYPI_API_TOKEN 设好 |
-| 8 | UX 暖墨色系仅覆盖 5 页 | SESSION-27 (UX agent flag) | low | 用户继续不满再扩 |
+| 1 | ~~CI workflow backend LFS~~ | SESSION-27 §4.2 漏 | done | N8 `2463189` 修 |
+| 2 | ~~perf budget pre-existing~~ | SESSION-27 末仍 fail | partial | N9 backtest TBT 真修 ✅；companies INP* revert（PR #227 影响） |
+| **3** | **PR #227 perf fallout** — 6 个 LCP/INP* failure 在多 routes（companies LCP / company_AAPL LCP+INP* / universality INP* / universality_class INP* / compare LCP+INP*） | `6ed7bbe` `feat: PD-EWS` 加 521 行 PhaseTrajectoryChart + 266 行 EwsLeaderboardPanel + 6222 行 mock-ews-data.json | **P1** | SESSION-29 处理：profile 新组件 + dynamic import EwsLeaderboardPanel + 拆 mock-ews-data lazy chunks |
+| **4** | **companies INP* still 70ms over** — N9 revert 后回到 2270.6（仍超 2200 budget） | N6 揭开 → N9 sub-agent 走偏 → revert | P2 | 真修需 SparkLine 50 张 × startTransition 或 scheduler.postTask；非 INP-naive 方案。建议跟 #3 一起在 perf sprint 整批处理 |
+| 5 | prod 是否真有 `python-multipart` 装着？email 注册端点是否真能跑？ | N6 揭开 | P1 | SSH VPS `pip freeze \| grep multipart`；curl `/v4/.../signup` 测一次 |
+| 6 | Figure 1 caption CV=0.126 vs §4 CV=0.118/0.116 vs Table 4.6.A CV=0.1264 | SESSION-25/27 carry-over | low | figure_generation.py 重生成统一 |
+| 7 | §8.1 [41]-[45] `arXiv:2605.XXXXX` placeholder | v0.4 inherited | low | 提交时拿到 arXiv ID 填入 |
+| 8 | §8 dual numbered + alphabetical 系统 final consolidation | SESSION-27 (iii) | low | §8.3 cross-walk bridges both |
+| 9 | `cross-judge` / `guarded-llm` / `soc-pipeline` 0.1.1 tag 未建未 push | SESSION-27 §4.5 | low | packaging decision；等 user action PYPI_API_TOKEN 设好 |
+| 10 | UX 暖墨色系仅覆盖 5 页 | SESSION-27 (UX agent flag) | low | 用户继续不满再扩 |
 
 ---
 
