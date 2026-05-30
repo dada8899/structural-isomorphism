@@ -118,11 +118,14 @@ export function SparkLine({
   months = 12,
   className,
 }: SparkLineProps) {
-  const series = useMemo(
-    () => buildSeries(ticker, currentPhase, months),
-    [ticker, currentPhase, months],
-  );
-  // W13-A: pick palette based on resolved theme.
+  // SESSION-28 N9 perf: defer the synchronous series + segment + totalLen
+  // computation behind `visible` so 50 off-screen CompanyCards (PAGE_STEP=50
+  // on /companies) don't all run hash32 + buildSeries(12) + 11-segment
+  // path math during initial mount. Each card paid ~0.5-1ms of synchronous
+  // work; 50× that landed on the worst LoAF window and produced the
+  // INP* 2270.6ms > 2200ms budget breach. Off-screen cards now render an
+  // empty placeholder SVG until IntersectionObserver flips `visible`,
+  // moving the math off the critical interaction path.
   const { resolvedTheme } = useTheme();
   const palette = resolvedTheme === "dark" ? BAND_STROKE_DARK : BAND_STROKE_LIGHT;
   const baselineStroke = resolvedTheme === "dark" ? "#27272A" : "#E4E4E7";
@@ -170,10 +173,19 @@ export function SparkLine({
   const padY = 3;
   const innerW = width - padX * 2;
   const innerH = height - padY * 2;
+
+  // SESSION-28 N9 perf: gate buildSeries on `visible`. Returning an empty
+  // array for off-screen cards is cheap and React's useMemo dep tracking
+  // will run buildSeries exactly once when the card scrolls into view.
+  const series = useMemo(
+    () =>
+      visible ? buildSeries(ticker, currentPhase, months) : ([] as Pt[]),
+    [visible, ticker, currentPhase, months],
+  );
   const step = innerW / Math.max(1, series.length - 1);
 
   // Build segment list — each segment is colored by the phase band of its
-  // midpoint value.
+  // midpoint value. Empty when series is empty (pre-visible).
   const segments = useMemo(() => {
     const segs: Array<{
       d: string;
