@@ -43,6 +43,15 @@ jobs:
             python-version: "3.10"
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true   # SESSION-28 N8: matches sanity.yml fix (SESSION-27 §4.2).
+                      # `pytest v4/tests/sanity` below loads kb_*.npy embedding
+                      # bridges that are LFS-tracked; without this checkout
+                      # leaves LFS pointer stubs and np.load raises
+                      # UnpicklingError on all 12 embedding-bridge tests.
+                      # The other 3 jobs (packages / frontend / e2e) don't read
+                      # any LFS-tracked path, so they intentionally skip LFS to
+                      # save runner time.
 
       - uses: actions/setup-python@v5
         with:
