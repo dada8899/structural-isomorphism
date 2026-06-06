@@ -186,6 +186,8 @@ async def stream_mapping(
     else:
         raise HTTPException(400, "Must provide either a_id or text_a")
 
+    _zh = (lang or "zh").lower().startswith("zh")
+
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
@@ -193,15 +195,28 @@ async def stream_mapping(
         # Meta event first — so client can render pair header immediately
         yield sse("meta", {"a": a, "b": b, "similarity": similarity})
 
+        # Reasoning-timeline skeleton + stages, so the 5-10s LLM wait is a
+        # visible "正在生成结构映射" step with a live timer instead of an
+        # opaque dots spinner. Additive events; the existing meta/text/done/
+        # error contract is untouched.
+        yield sse("stages", {"stages": [
+            {"key": "align", "label": "对齐两个现象" if _zh else "Aligning the two phenomena"},
+            {"key": "generate", "label": "生成结构映射" if _zh else "Generating structural mapping"},
+        ]})
+        yield sse("stage", {"key": "align", "status": "done"})
+
         # Check cache only in pair mode
         if cache_key_a:
             cached = _cache.get(cache_key_a, b_id)
             if cached:
+                yield sse("stage", {"key": "generate", "status": "done",
+                                    "detail": "命中缓存" if _zh else "from cache"})
                 yield sse("cache", {"mapping": cached})
                 yield sse("done", {"mapping": cached, "from_cache": True})
                 return
 
         # Stream LLM generation
+        yield sse("stage", {"key": "generate", "status": "active"})
         final_mapping = None
         async for chunk in _llm.stream_mapping(a, b, similarity, lang=lang):
             ctype = chunk.get("type")
@@ -212,8 +227,11 @@ async def stream_mapping(
                 })
             elif ctype == "done":
                 final_mapping = chunk.get("mapping")
+                yield sse("stage", {"key": "generate", "status": "done"})
                 yield sse("done", {"mapping": final_mapping, "from_cache": False})
             elif ctype == "error":
+                yield sse("stage", {"key": "generate", "status": "error",
+                                    "detail": "生成失败" if _zh else "failed"})
                 yield sse("error", {"message": chunk.get("message", "unknown error")})
 
         # Cache only in pair mode

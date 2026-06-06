@@ -497,6 +497,34 @@ function showSharePreview(canvas) {
   document.body.appendChild(modal);
 }
 
+// Reasoning timeline for the mapping generation — turns the 5-10s LLM wait
+// into a visible "对齐两个现象 → 生成结构映射" step list with a live timer,
+// instead of an opaque dots spinner. Lives as a sibling above the mapping
+// slot so the slot's own innerHTML re-renders (partial JSON) don't wipe it.
+function ensureMappingTimeline(slot) {
+  if (slot._timeline) return slot._timeline;
+  if (typeof window.createReasoningTimeline !== 'function') return null;
+  const host = document.createElement('div');
+  slot.insertAdjacentElement('beforebegin', host);
+  const lang = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2);
+  const tl = window.createReasoningTimeline(host, { lang: lang });
+  slot._timeline = tl;
+  return tl;
+}
+
+function mappingDefaultStages() {
+  const en = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en';
+  return en
+    ? [
+        { key: 'align', label: 'Aligning the two phenomena' },
+        { key: 'generate', label: 'Generating structural mapping' },
+      ]
+    : [
+        { key: 'align', label: '对齐两个现象' },
+        { key: 'generate', label: '生成结构映射' },
+      ];
+}
+
 function streamMapping(aSource, bId, slot, fallbackA) {
   // aSource is either { kind: 'id', value: 'xxx' } or { kind: 'text', value: '...' }
   const params = new URLSearchParams();
@@ -512,6 +540,24 @@ function streamMapping(aSource, bId, slot, fallbackA) {
   let accumulatedText = '';
   let renderedOnce = false;
   let scrolled = false;
+  let backendStages = false;
+
+  // First-class pipeline-progress events (own the timeline once seen).
+  es.addEventListener('stages', (e) => {
+    backendStages = true;
+    const tl = ensureMappingTimeline(slot);
+    if (tl) { try { tl.setStages(JSON.parse(e.data).stages); } catch (err) {} }
+  });
+  es.addEventListener('stage', (e) => {
+    backendStages = true;
+    const tl = ensureMappingTimeline(slot);
+    if (!tl) return;
+    let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+    if (d.status === 'active') tl.setActive(d.key, d.detail);
+    else if (d.status === 'done') tl.setDone(d.key, d.detail);
+    else if (d.status === 'skipped') tl.setSkipped(d.key, d.detail);
+    else if (d.status === 'error') tl.setError(d.key, d.detail);
+  });
 
   const tryRenderPartial = () => {
     if (!meta || !accumulatedText) return;
@@ -538,6 +584,12 @@ function streamMapping(aSource, bId, slot, fallbackA) {
   es.addEventListener('meta', (e) => {
     meta = JSON.parse(e.data);
     slot.innerHTML = renderMappingStreaming(meta.a, meta.b, meta.similarity, 0);
+    // Legacy fallback: drive the timeline from base events when the backend
+    // doesn't emit first-class stage events (no-op once `stages` arrives).
+    if (!backendStages) {
+      const tl = ensureMappingTimeline(slot);
+      if (tl) { tl.ensureStages(mappingDefaultStages()); tl.setDone('align'); tl.setActive('generate'); }
+    }
     if (!scrolled) {
       scrolled = true;
       requestAnimationFrame(() => {
@@ -566,6 +618,10 @@ function streamMapping(aSource, bId, slot, fallbackA) {
 
   es.addEventListener('done', (e) => {
     const data = JSON.parse(e.data);
+    if (slot._timeline) {
+      if (!backendStages) slot._timeline.setDone('generate');
+      slot._timeline.finish();
+    }
     if (meta && data.mapping) {
       slot.innerHTML = renderMappingPair(meta.a, meta.b, meta.similarity, data.mapping);
       if (window.renderMath) window.renderMath(slot);
@@ -575,6 +631,7 @@ function streamMapping(aSource, bId, slot, fallbackA) {
   });
 
   es.addEventListener('error', (e) => {
+    if (slot._timeline) { slot._timeline.failActive(T('page.phenomenon.mapping_error_title', '映射生成失败')); slot._timeline.finish({ error: true }); }
     try {
       const data = JSON.parse(e.data || '{}');
       console.error('Mapping stream error:', data);
@@ -588,6 +645,7 @@ function streamMapping(aSource, bId, slot, fallbackA) {
 
   es.onerror = (err) => {
     console.error('EventSource error:', err);
+    if (slot._timeline && !renderedOnce) { slot._timeline.failActive(T('page.phenomenon.connection_lost', '连接中断')); slot._timeline.finish({ error: true }); }
     if (!renderedOnce) {
       slot.innerHTML = renderMappingError(new Error(T('page.phenomenon.connection_lost', '连接中断')));
     }
