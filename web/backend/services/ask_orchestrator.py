@@ -171,6 +171,29 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# ---------------------------------------------------------------------- #
+# Reasoning-timeline stages (UX: render the pipeline as a live, step-by-
+# step progress timeline instead of a single opaque spinner). The backend
+# is the source of truth for *what is actually happening*, so each stage
+# boundary emits a `stage` event the frontend lights up in order. The
+# `stages` skeleton is emitted once up-front so the UI can paint the whole
+# pipeline immediately (pending steps greyed out) — that alone removes the
+# "圈在转、不知道后面发生了什么" dead-wait the user reported.
+#
+# Keys are stable identifiers; labels are localized at emit time. Adding
+# these is purely additive (new `stages` / `stage` event names) so the 772
+# existing SSE tests — which assert on a SUBSET of event names plus the
+# meta-first / done-last invariants — keep passing.
+# ---------------------------------------------------------------------- #
+ASK_STAGE_DEFS = [
+    ("understand", {"zh": "理解问题", "en": "Understanding your question"}),
+    ("retrieve", {"zh": "检索知识库", "en": "Searching the knowledge base"}),
+    ("relevance", {"zh": "评估相关性", "en": "Assessing relevance"}),
+    ("synthesize", {"zh": "跨领域结构推演", "en": "Cross-domain reasoning"}),
+    ("finalize", {"zh": "整理答案与引用", "en": "Finalizing answer & citations"}),
+]
+
+
 class _AnswerFieldExtractor:
     """Stream-parse the `answer` string field out of a JSON object as bytes arrive.
 
@@ -361,6 +384,31 @@ class AskOrchestrator:
             "lang": lang_norm,
         })
 
+        # Reasoning-timeline skeleton + stage helper. `meta` must stay the
+        # first event (test invariant), so the skeleton is emitted right
+        # after it. `_stage` returns a ready-to-yield SSE string carrying a
+        # cumulative `elapsed_ms` so each step can show its own timing.
+        def _stage(key: str, status: str, detail: Optional[str] = None) -> str:
+            data: Dict = {
+                "key": key,
+                "status": status,
+                "elapsed_ms": int((time.monotonic() - started) * 1000),
+            }
+            if detail:
+                data["detail"] = detail
+            return _sse("stage", data)
+
+        yield _sse("stages", {
+            "stages": [
+                {"key": k, "label": lbl[lang_norm]} for k, lbl in ASK_STAGE_DEFS
+            ],
+        })
+        yield _stage("understand", "active")
+        # No LLM rewrite on the /ask surface — the "understand" step is the
+        # verbatim-query pass-through, so it resolves immediately.
+        yield _stage("understand", "done")
+        yield _stage("retrieve", "active")
+
         cards: List[Dict] = []
         retrieval_started = time.monotonic()
         # X2 W2+W3 (2026-05-24) — opt-in expansion + EN→ZH translation
@@ -426,6 +474,17 @@ class AskOrchestrator:
         })
         yield _sse("kb_cards", {"cards": cards_payload, "count": len(cards_payload)})
 
+        _hit_detail = (
+            (f"命中 {len(cards_payload)} 个现象" if cards_payload else "未命中任何现象")
+            if lang_norm == "zh"
+            else (
+                f"{len(cards_payload)} matches"
+                if cards_payload else "no matches"
+            )
+        )
+        yield _stage("retrieve", "done", _hit_detail)
+        yield _stage("relevance", "active")
+
         # ---- Relevance gate → out-of-scope refusal (W5-A → M1.3) ----- #
         # Inspect the retrieval scores. If the query is clearly outside
         # the KB's coverage we SHORT-CIRCUIT here: emit a local, honest
@@ -461,6 +520,22 @@ class AskOrchestrator:
                 f"reason={relevance_reason} "
                 f"top1={(cards[0].get('score') if cards else None)}"
             )
+            # Timeline: the relevance step itself completed — its verdict is
+            # "out of scope" — and the LLM synthesis is deliberately skipped.
+            # Surfacing this makes the followup-only response legible instead
+            # of looking like a stuck spinner.
+            _verdict = (
+                "判定：超出知识库覆盖范围" if lang_norm == "zh"
+                else "Verdict: outside knowledge-base coverage"
+            )
+            _skip_detail = (
+                "已跳过——未调用大模型" if lang_norm == "zh"
+                else "Skipped — no LLM call"
+            )
+            yield _stage("relevance", "done", _verdict)
+            yield _stage("synthesize", "skipped", _skip_detail)
+            yield _stage("finalize", "active")
+
             refusal = self._build_refusal_payload(
                 query, cards, lang_norm, relevance_reason,
             )
@@ -497,6 +572,7 @@ class AskOrchestrator:
                 )
             except Exception:
                 pass
+            yield _stage("finalize", "done")
             yield _sse("done", {"latency_ms": refusal_latency_ms})
             return
 
@@ -523,6 +599,11 @@ class AskOrchestrator:
             "model": self.model,
             "kb_count": len(cards_payload),
         })
+        _in_scope_detail = (
+            "在覆盖范围内" if lang_norm == "zh" else "within coverage"
+        )
+        yield _stage("relevance", "done", _in_scope_detail)
+        yield _stage("synthesize", "active")
         llm_started = time.monotonic()
         payload: Dict
         raw_buffer = ""
@@ -578,6 +659,11 @@ class AskOrchestrator:
                 if TYPEWRITER_SLEEP_S > 0:
                     await asyncio.sleep(TYPEWRITER_SLEEP_S)
 
+        # Timeline: answer fully streamed → synthesis done; now the
+        # finalize step (citation validation + similar phenomena) runs.
+        yield _stage("synthesize", "done")
+        yield _stage("finalize", "active")
+
         # Sanitize citations against the actual cards range so a
         # hallucinated idx never leaks to the frontend.
         validated_citations = self._validate_citations(payload.get("citations", []), cards)
@@ -591,6 +677,7 @@ class AskOrchestrator:
         # ---- Phase C: similar phenomena ------------------------------ #
         similar = self._build_similar_phenomena(cards[:TOP_K_SIMILAR])
         yield _sse("similar_phenomena", {"phenomena": similar})
+        yield _stage("finalize", "done")
 
         # ---- Followups ----------------------------------------------- #
         followups = list(payload.get("followups", []))[:3] if payload else []

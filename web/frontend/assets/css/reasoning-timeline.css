@@ -1,0 +1,184 @@
+/* =============================================================
+ * reasoning-timeline.css — live step-by-step pipeline UI.
+ *
+ * Renders the backend pipeline as a vertical timeline that lights up as
+ * work happens (pending → active → done | skipped | error), each step with
+ * its own elapsed timer and a short detail line. Replaces the single opaque
+ * spinner so the user can see what's happening and is willing to wait.
+ *
+ * Tokens borrowed from design-system.css / shared-tokens.css.
+ * ============================================================= */
+
+.rt {
+  margin: var(--space-3, 12px) 0 var(--space-4, 16px);
+  border: 1px solid var(--brand-line, #e7e5e4);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--brand-paper-soft, #f5f5f4);
+  overflow: hidden;
+}
+
+/* ---- collapsible header (shown only after finish) ---- */
+.rt__head {
+  border-bottom: 1px solid var(--brand-line, #e7e5e4);
+}
+.rt--collapsed .rt__head { border-bottom: none; }
+
+.rt__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  width: 100%;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--brand-ink-soft, #57534e);
+  text-align: left;
+}
+.rt__toggle:hover { color: var(--brand-ink, #1c1917); }
+.rt__summary {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.rt__toggle-caret {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  transition: transform 180ms var(--ease-out-expo, ease);
+  transform: rotate(90deg);
+}
+.rt--collapsed .rt__toggle-caret { transform: rotate(0deg); }
+.rt--collapsed .rt__steps { display: none; }
+
+/* ---- step list ---- */
+.rt__steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+}
+
+.rt-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: var(--space-3, 12px);
+  align-items: start;
+  padding-bottom: var(--space-3, 12px);
+}
+.rt-step:last-child { padding-bottom: 0; }
+
+/* connector line between markers */
+.rt-step::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 22px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--brand-line, #e7e5e4);
+}
+.rt-step:last-child::before { display: none; }
+.rt-step--done::before,
+.rt-step--active::before { background: var(--brand-accent-ring, #c7d2cb); }
+
+/* ---- marker (circle + state glyphs) ---- */
+.rt-step__marker {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full, 999px);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--brand-paper, #fafaf9);
+  border: 2px solid var(--brand-line-strong, #d6d3d1);
+  box-sizing: border-box;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.rt-step__check,
+.rt-step__skip,
+.rt-step__err { width: 13px; height: 13px; display: none; }
+.rt-step__spinner { display: none; }
+
+/* pending: hollow circle (defaults above) */
+
+/* active: pulsing ring + spinner */
+.rt-step--active .rt-step__marker {
+  border-color: var(--brand-accent, #4a6b57);
+  background: var(--brand-accent-soft, #eef2ef);
+}
+.rt-step--active .rt-step__spinner {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-accent-ring, #c7d2cb);
+  border-top-color: var(--brand-accent, #4a6b57);
+  animation: rt-spin 0.7s linear infinite;
+}
+.rt-step--active .rt-step__label { color: var(--brand-ink, #1c1917); font-weight: 600; }
+
+/* done: filled check */
+.rt-step--done .rt-step__marker {
+  border-color: var(--brand-accent, #4a6b57);
+  background: var(--brand-accent, #4a6b57);
+}
+.rt-step--done .rt-step__check { display: block; color: #fff; }
+
+/* skipped: muted dash */
+.rt-step--skipped .rt-step__marker {
+  border-color: var(--brand-line-strong, #d6d3d1);
+  background: var(--brand-paper-soft, #f5f5f4);
+}
+.rt-step--skipped .rt-step__skip { display: block; color: var(--brand-muted, #a8a29e); }
+.rt-step--skipped .rt-step__label,
+.rt-step--skipped .rt-step__detail { color: var(--brand-muted, #a8a29e); }
+
+/* error: red x */
+.rt-step--error .rt-step__marker {
+  border-color: #c0392b;
+  background: #fdecea;
+}
+.rt-step--error .rt-step__err { display: block; color: #c0392b; }
+.rt-step--error .rt-step__label { color: #c0392b; font-weight: 600; }
+
+/* ---- body text ---- */
+.rt-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 1px;
+}
+.rt-step__label {
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--brand-ink-soft, #57534e);
+  transition: color 200ms ease;
+}
+.rt-step--pending .rt-step__label { color: var(--brand-muted, #a8a29e); }
+.rt-step__detail:empty { display: none; }
+.rt-step__detail {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--brand-muted, #a8a29e);
+  word-break: break-word;
+}
+.rt-step--active .rt-step__detail { color: var(--brand-ink-soft, #57534e); }
+
+.rt-step__time {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  color: var(--brand-muted, #a8a29e);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-top: 3px;
+}
+
+@keyframes rt-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rt-step--active .rt-step__spinner { animation: none; }
+  .rt__toggle-caret { transition: none; }
+}

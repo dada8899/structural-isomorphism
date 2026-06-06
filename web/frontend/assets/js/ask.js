@@ -311,6 +311,7 @@
       '<article class="ask-thread-item" id="' + id + '" data-query="' + esc(query) + '">' +
         '<h2 class="ask-thread-item__query">' + esc(query) + '</h2>' +
         '<div class="ask-thread-item__meta" data-role="meta" hidden></div>' +
+        '<div class="ask-thread-item__timeline" data-role="timeline"></div>' +
         '<div data-role="kb-section" hidden>' +
           '<div class="ask-section-label">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' +
@@ -348,6 +349,114 @@
 
     container.insertAdjacentHTML('beforeend', html);
     return qs('#' + id);
+  }
+
+  // ============================================================
+  // Reasoning timeline — live step-by-step pipeline view
+  // ============================================================
+  // Default skeleton mirrors the backend's ASK_STAGE_DEFS so the timeline
+  // renders even when the deployed backend hasn't shipped the `stages`/
+  // `stage` events yet (e.g. a not-yet-redeployed instance). In that case
+  // we drive it from the legacy events (meta / retrieval_done / llm_start /
+  // answer_*). Once a real `stage` event arrives we set `_backendStages`
+  // and stop the legacy mapping so the two never fight.
+  function defaultStages() {
+    var en = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en';
+    return en
+      ? [
+          { key: 'understand', label: 'Understanding your question' },
+          { key: 'retrieve', label: 'Searching the knowledge base' },
+          { key: 'relevance', label: 'Assessing relevance' },
+          { key: 'synthesize', label: 'Cross-domain reasoning' },
+          { key: 'finalize', label: 'Finalizing answer & citations' },
+        ]
+      : [
+          { key: 'understand', label: '理解问题' },
+          { key: 'retrieve', label: '检索知识库' },
+          { key: 'relevance', label: '评估相关性' },
+          { key: 'synthesize', label: '跨领域结构推演' },
+          { key: 'finalize', label: '整理答案与引用' },
+        ];
+  }
+
+  function getTimeline(item) {
+    if (item._timeline) return item._timeline;
+    if (typeof window.createReasoningTimeline !== 'function') return null;
+    var host = item.querySelector('[data-role="timeline"]');
+    if (!host) return null;
+    var lang = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2);
+    var tl = window.createReasoningTimeline(host, { lang: lang });
+    tl.setStages(defaultStages());
+    item._timeline = tl;
+    return tl;
+  }
+
+  // Legacy-event → stage mapping. Only runs while the backend hasn't sent a
+  // first-class `stage` event (item._backendStages falsy).
+  function driveTimelineLegacy(item, event, data) {
+    if (item._backendStages) return;
+    var tl = getTimeline(item);
+    if (!tl) return;
+    var en = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en';
+    switch (event) {
+      case 'meta':
+        tl.setActive('understand');
+        break;
+      case 'retrieval_done': {
+        var count = (typeof data.count === 'number') ? data.count
+          : (data.candidates ? data.candidates.length : 0);
+        tl.setDone('understand');
+        tl.setDone('retrieve', en
+          ? (count ? count + ' matches' : 'no matches')
+          : (count ? '命中 ' + count + ' 个现象' : '未命中任何现象'));
+        tl.setActive('relevance');
+        break;
+      }
+      case 'llm_start':
+        tl.setDone('relevance', en ? 'within coverage' : '在覆盖范围内');
+        tl.setActive('synthesize');
+        break;
+      case 'answer_chunk':
+        // First token implies synthesis is underway (covers backends that
+        // don't emit llm_start).
+        tl.setDone('relevance', en ? 'within coverage' : '在覆盖范围内');
+        tl.setActive('synthesize');
+        break;
+      case 'answer_done':
+        if (data && (data.refused || data.out_of_scope)) {
+          tl.setDone('relevance', en ? 'outside coverage' : '超出知识库覆盖范围');
+          tl.setSkipped('synthesize', en ? 'Skipped — no LLM call' : '已跳过——未调用大模型');
+        } else {
+          tl.setDone('synthesize');
+        }
+        tl.setActive('finalize');
+        break;
+      case 'done':
+        tl.setDone('finalize');
+        tl.finish();
+        break;
+    }
+  }
+
+  // First-class backend stage events.
+  function handleStagesEvent(item, data) {
+    if (!item || !data || !data.stages) return;
+    item._backendStages = true;
+    var tl = getTimeline(item);
+    if (tl) tl.setStages(data.stages);
+  }
+
+  function handleStageEvent(item, data) {
+    if (!item || !data || !data.key) return;
+    item._backendStages = true;
+    var tl = getTimeline(item);
+    if (!tl) return;
+    switch (data.status) {
+      case 'active':  tl.setActive(data.key, data.detail); break;
+      case 'done':    tl.setDone(data.key, data.detail); break;
+      case 'skipped': tl.setSkipped(data.key, data.detail); break;
+      case 'error':   tl.setError(data.key, data.detail); break;
+    }
   }
 
   // ============================================================
@@ -445,10 +554,20 @@
       catch (e) { data = { _raw: dataStr }; }
     }
 
+    // First-class pipeline-progress events (backend M-stage). These own the
+    // timeline; legacy mapping below is suppressed once they appear.
+    if (event === 'stages') return handleStagesEvent(item, data);
+    if (event === 'stage')  return handleStageEvent(item, data);
+
+    // Drive the timeline from legacy events too, so it works against a
+    // backend that predates the stage events. No-op once backend stages seen.
+    driveTimelineLegacy(item, event, data);
+
     switch (event) {
       case 'meta':            return handleMetaEvent(item, data);
       case 'retrieval_done':  return handleRetrievalDoneEvent(item, data);
       case 'kb_cards':        return handleKbCardsEvent(item, data);
+      case 'llm_start':       return; // timeline-only signal; handled above
       case 'answer_chunk':    return handleAnswerChunk(item, data);
       case 'answer_done':     return handleAnswerDoneEvent(item, data);
       case 'similar_phenomena': return handleSimilarEvent(item, data);
@@ -784,6 +903,9 @@
 
   function handleDoneEvent(item, data) {
     if (!item) return;
+    // Collapse the reasoning timeline into its compact summary now that the
+    // answer is the focus. Safe in both modes (finish() is idempotent).
+    if (item._timeline) item._timeline.finish();
     // Remove caret if still present (safety net)
     var caret = item.querySelector('.ask-caret');
     if (caret) caret.remove();
@@ -893,6 +1015,14 @@
   // ============================================================
   function showError(item, message, query) {
     if (!item) return;
+    // Mark whichever step was in flight as failed, so the timeline shows a
+    // red stop at the exact point things broke (e.g. LLM backend down /
+    // key revoked) instead of freezing mid-spin, then collapse it.
+    if (item._timeline) {
+      var en = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2) === 'en';
+      item._timeline.failActive(en ? 'failed' : '失败');
+      item._timeline.finish({ error: true });
+    }
     var errEl = item.querySelector('[data-role="error"]');
     if (!errEl) return;
     errEl.innerHTML =
