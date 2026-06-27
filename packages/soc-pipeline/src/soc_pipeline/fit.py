@@ -8,6 +8,7 @@ from __future__ import annotations
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from math import erfc, log, pi, sqrt
 from typing import Any
 
 import numpy as np
@@ -96,9 +97,9 @@ class FitResult:
     n_total: int = 0
     n_tail: int = 0
     ks_statistic: float | None = None
-    vs_lognormal_R: float | None = None
+    vs_lognormal_R: float | None = None  # noqa: N815 - public API compatibility
     vs_lognormal_p: float | None = None
-    vs_exponential_R: float | None = None
+    vs_exponential_R: float | None = None  # noqa: N815 - public API compatibility
     vs_exponential_p: float | None = None
     vs_powerlaw_lognormal_winner: str = "inconclusive"
     rejects_power_law: bool = False
@@ -134,6 +135,7 @@ def fit_clauset_powerlaw(
     discrete: bool = False,
     xmin_method: str = "ks",
     min_samples: int = 100,
+    max_xmin_candidates: int | None = 512,
 ) -> FitResult:
     """Fit a power-law to the tail of x_data using the Clauset 2009 method.
 
@@ -144,19 +146,16 @@ def fit_clauset_powerlaw(
         xmin_method: Currently only 'ks' (Kolmogorov-Smirnov minimization).
         min_samples: Minimum sample size; below this, the function returns a
             FitResult with an error message and unset fields.
+        max_xmin_candidates: Maximum xmin candidates to evaluate for large
+            continuous samples. Set to None to scan every possible candidate.
 
     Returns:
         FitResult dataclass.
 
     Notes:
-        Requires the `powerlaw` package (Alstott et al. 2014). If the package
-        is not installed, FitResult.error is set and other fields are None.
+        Continuous fits use a vectorized local Clauset estimator. Discrete fits
+        still require the `powerlaw` package (Alstott et al. 2014).
     """
-    try:
-        import powerlaw  # type: ignore
-    except Exception as exc:  # pragma: no cover - import-time only
-        return FitResult(name=name, error=f"powerlaw missing: {exc}")
-
     if xmin_method != "ks":
         return FitResult(name=name, error=f"xmin_method {xmin_method} not supported")
 
@@ -170,24 +169,37 @@ def fit_clauset_powerlaw(
             error=f"too few values: {n_total} < {min_samples}",
         )
 
+    if not discrete:
+        return _fit_continuous_powerlaw(
+            x_data,
+            name=name,
+            min_samples=min_samples,
+            max_xmin_candidates=max_xmin_candidates,
+        )
+
+    try:
+        import powerlaw  # type: ignore
+    except Exception as exc:  # pragma: no cover - import-time only
+        return FitResult(name=name, error=f"powerlaw missing: {exc}")
+
     alpha, sigma, xmin, ks, lognormal, exponential = _run_powerlaw_fit(
-        powerlaw, x_data, discrete=discrete
+        powerlaw, x_data, discrete=True
     )
     n_tail = int(np.sum(x_data >= xmin))
-    R_ln, p_ln = lognormal
-    R_exp, p_exp = exponential
+    r_ln, p_ln = lognormal
+    r_exp, p_exp = exponential
 
     rejects = False
-    if R_exp is not None and R_exp < 0:
+    if r_exp is not None and r_exp < 0:
         rejects = True
-    if R_ln is not None and R_ln < 0:
+    if r_ln is not None and r_ln < 0:
         rejects = True
 
-    if R_ln is None:
+    if r_ln is None:
         winner = "inconclusive"
-    elif R_ln > 0 and (p_ln is None or p_ln < 0.1):
+    elif r_ln > 0 and (p_ln is None or p_ln < 0.1):
         winner = "power_law"
-    elif R_ln < 0 and (p_ln is None or p_ln < 0.1):
+    elif r_ln < 0 and (p_ln is None or p_ln < 0.1):
         winner = "lognormal"
     else:
         winner = "inconclusive"
@@ -199,11 +211,248 @@ def fit_clauset_powerlaw(
         n_total=n_total,
         n_tail=n_tail,
         ks_statistic=ks,
-        vs_lognormal_R=None if R_ln is None else float(R_ln),
+        vs_lognormal_R=None if r_ln is None else float(r_ln),
         vs_lognormal_p=None if p_ln is None else float(p_ln),
-        vs_exponential_R=None if R_exp is None else float(R_exp),
+        vs_exponential_R=None if r_exp is None else float(r_exp),
         vs_exponential_p=None if p_exp is None else float(p_exp),
         vs_powerlaw_lognormal_winner=winner,
         rejects_power_law=bool(rejects),
         name=name,
     )
+
+
+def _fit_continuous_powerlaw(
+    x_data: np.ndarray,
+    *,
+    name: str,
+    min_samples: int,
+    max_xmin_candidates: int | None,
+) -> FitResult:
+    """Continuous Clauset fit with a vectorized xmin scan."""
+    sorted_x = np.sort(x_data)
+    min_tail_samples = max(min_samples, int(np.ceil(0.05 * len(sorted_x))))
+    fit = _select_continuous_xmin(
+        sorted_x,
+        min_samples=min_tail_samples,
+        max_xmin_candidates=max_xmin_candidates,
+    )
+    if fit is None:
+        return FitResult(
+            name=name,
+            n_total=int(len(sorted_x)),
+            error=f"too few tail values: {len(sorted_x)} < {min_samples}",
+        )
+
+    alpha, xmin, sigma, n_tail, ks, candidates_scanned, exact_scan = fit
+    tail = sorted_x[sorted_x >= xmin]
+    r_ln, p_ln = _vuong_powerlaw_vs_lognormal(tail, xmin, alpha)
+    r_exp, p_exp = _vuong_powerlaw_vs_exponential(tail, xmin, alpha)
+
+    rejects = False
+    if r_exp is not None and r_exp < 0:
+        rejects = True
+    if r_ln is not None and r_ln < 0:
+        rejects = True
+
+    if r_ln is None:
+        winner = "inconclusive"
+    elif r_ln > 0 and (p_ln is None or p_ln < 0.1):
+        winner = "power_law"
+    elif r_ln < 0 and (p_ln is None or p_ln < 0.1):
+        winner = "lognormal"
+    else:
+        winner = "inconclusive"
+
+    return FitResult(
+        alpha=alpha,
+        xmin=xmin,
+        sigma=sigma,
+        n_total=int(len(sorted_x)),
+        n_tail=n_tail,
+        ks_statistic=ks,
+        vs_lognormal_R=r_ln,
+        vs_lognormal_p=p_ln,
+        vs_exponential_R=r_exp,
+        vs_exponential_p=p_exp,
+        vs_powerlaw_lognormal_winner=winner,
+        rejects_power_law=bool(rejects),
+        name=name,
+        extra={
+            "xmin_candidates_scanned": candidates_scanned,
+            "xmin_exact_scan": exact_scan,
+            "min_tail_samples": min_tail_samples,
+        },
+    )
+
+
+def _select_continuous_xmin(
+    sorted_x: np.ndarray,
+    *,
+    min_samples: int,
+    max_xmin_candidates: int | None,
+) -> tuple[float, float, float, int, float, int, bool] | None:
+    n_total = int(len(sorted_x))
+    max_start = n_total - min_samples
+    if max_start < 0:
+        return None
+
+    candidate_indices, exact_scan = _xmin_candidate_indices(
+        sorted_x,
+        max_start=max_start,
+        max_xmin_candidates=max_xmin_candidates,
+    )
+    if len(candidate_indices) == 0:
+        return None
+
+    log_x = np.log(sorted_x)
+    suffix_log_sum = np.cumsum(log_x[::-1])[::-1]
+    tail_counts = n_total - candidate_indices
+    xmin_values = sorted_x[candidate_indices]
+    log_xmin = log_x[candidate_indices]
+    log_sums = suffix_log_sum[candidate_indices] - tail_counts * log_xmin
+
+    valid = np.isfinite(log_sums) & (log_sums > 0.0)
+    if not np.any(valid):
+        return None
+
+    candidate_indices = candidate_indices[valid]
+    tail_counts = tail_counts[valid]
+    xmin_values = xmin_values[valid]
+    log_xmin = log_xmin[valid]
+    log_sums = log_sums[valid]
+    alphas = 1.0 + tail_counts / log_sums
+    sigmas = (alphas - 1.0) / np.sqrt(tail_counts)
+
+    ks_distances = _continuous_ks_distances(
+        log_x=log_x,
+        candidate_indices=candidate_indices,
+        log_xmin=log_xmin,
+        tail_counts=tail_counts,
+        alphas=alphas,
+    )
+
+    best_pos = int(np.argmin(ks_distances))
+    scanned = int(len(candidate_indices))
+    return (
+        float(alphas[best_pos]),
+        float(xmin_values[best_pos]),
+        float(sigmas[best_pos]),
+        int(tail_counts[best_pos]),
+        float(ks_distances[best_pos]),
+        scanned,
+        exact_scan,
+    )
+
+
+def _xmin_candidate_indices(
+    sorted_x: np.ndarray,
+    *,
+    max_start: int,
+    max_xmin_candidates: int | None,
+) -> tuple[np.ndarray, bool]:
+    unique_starts = np.flatnonzero(
+        np.r_[True, sorted_x[1 : max_start + 1] != sorted_x[:max_start]]
+    )
+    if max_xmin_candidates is None or len(unique_starts) <= max_xmin_candidates:
+        return unique_starts.astype(int, copy=False), True
+
+    positions = np.linspace(0, len(unique_starts) - 1, max_xmin_candidates)
+    sampled = unique_starts[np.unique(np.rint(positions).astype(int))]
+    return sampled.astype(int, copy=False), False
+
+
+def _continuous_ks_distances(
+    *,
+    log_x: np.ndarray,
+    candidate_indices: np.ndarray,
+    log_xmin: np.ndarray,
+    tail_counts: np.ndarray,
+    alphas: np.ndarray,
+    chunk_size: int = 64,
+) -> np.ndarray:
+    n_total = len(log_x)
+    positions = np.arange(n_total, dtype=float)
+    distances = np.empty(len(candidate_indices), dtype=float)
+
+    for start in range(0, len(candidate_indices), chunk_size):
+        stop = min(start + chunk_size, len(candidate_indices))
+        idx = candidate_indices[start:stop]
+        counts = tail_counts[start:stop].astype(float)
+        log_ratio = np.maximum(log_x[None, :] - log_xmin[start:stop, None], 0.0)
+        model_cdf = 1.0 - np.exp(
+            (1.0 - alphas[start:stop, None]) * log_ratio
+        )
+        rank_upper = (positions[None, :] - idx[:, None] + 1.0) / counts[:, None]
+        rank_lower = (positions[None, :] - idx[:, None]) / counts[:, None]
+        tail_mask = positions[None, :] >= idx[:, None]
+
+        d_plus = np.where(tail_mask, rank_upper - model_cdf, -np.inf)
+        d_minus = np.where(tail_mask, model_cdf - rank_lower, -np.inf)
+        distances[start:stop] = np.maximum(
+            np.max(d_plus, axis=1),
+            np.max(d_minus, axis=1),
+        )
+
+    return distances
+
+
+def _powerlaw_logpdf(x_tail: np.ndarray, xmin: float, alpha: float) -> np.ndarray:
+    return log(alpha - 1.0) - log(xmin) - alpha * np.log(x_tail / xmin)
+
+
+def _vuong_statistic(ll_powerlaw: np.ndarray, ll_other: np.ndarray) -> tuple[float, float]:
+    diff = ll_powerlaw - ll_other
+    n = len(diff)
+    if n < 2:
+        return 0.0, 1.0
+
+    std = float(np.std(diff, ddof=1))
+    if not np.isfinite(std) or std == 0.0:
+        return 0.0, 1.0
+
+    r = float(np.sum(diff) / (sqrt(n) * std))
+    p = float(erfc(abs(r) / sqrt(2.0)))
+    return r, p
+
+
+def _vuong_powerlaw_vs_exponential(
+    x_tail: np.ndarray,
+    xmin: float,
+    alpha: float,
+) -> tuple[float | None, float | None]:
+    shifted = x_tail - xmin
+    mean_shifted = float(np.mean(shifted))
+    if not np.isfinite(mean_shifted) or mean_shifted <= 0.0:
+        return None, None
+
+    rate = 1.0 / mean_shifted
+    ll_powerlaw = _powerlaw_logpdf(x_tail, xmin, alpha)
+    ll_exponential = log(rate) - rate * shifted
+    return _vuong_statistic(ll_powerlaw, ll_exponential)
+
+
+def _vuong_powerlaw_vs_lognormal(
+    x_tail: np.ndarray,
+    xmin: float,
+    alpha: float,
+) -> tuple[float | None, float | None]:
+    log_tail = np.log(x_tail)
+    mu = float(np.mean(log_tail))
+    sigma = float(np.std(log_tail, ddof=0))
+    if not np.isfinite(sigma) or sigma <= 0.0:
+        return None, None
+
+    z_min = (log(xmin) - mu) / sigma
+    survival = 0.5 * erfc(z_min / sqrt(2.0))
+    if survival <= 0.0 or not np.isfinite(survival):
+        return None, None
+
+    ll_powerlaw = _powerlaw_logpdf(x_tail, xmin, alpha)
+    ll_lognormal = (
+        -np.log(x_tail)
+        - log(sigma)
+        - 0.5 * log(2.0 * pi)
+        - ((log_tail - mu) ** 2) / (2.0 * sigma**2)
+        - log(survival)
+    )
+    return _vuong_statistic(ll_powerlaw, ll_lognormal)

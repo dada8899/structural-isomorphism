@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .fit import _suppress_powerlaw_sigma_deprecation
+from .fit import _suppress_powerlaw_sigma_deprecation, fit_clauset_powerlaw
 
 __all__ = ["BootstrapResult", "bootstrap_ci"]
 
@@ -47,7 +47,8 @@ def bootstrap_ci(
         x_data: 1-D positive sample.
         n_boot: Number of resamples (default 200; >=200 recommended).
         seed: RNG seed for reproducibility.
-        discrete: Pass-through to powerlaw.Fit.
+        discrete: Pass-through to powerlaw.Fit. Continuous samples use the
+            local vectorized Clauset fitter.
         ci_pct: Lower/upper percentile pair for the CI (default 95% CI).
         min_samples: Minimum sample size to attempt bootstrap.
 
@@ -55,10 +56,13 @@ def bootstrap_ci(
         BootstrapResult dataclass. If fewer than 20 fits succeed, returns
         a result with error set.
     """
-    try:
-        import powerlaw  # type: ignore
-    except Exception as exc:
-        return BootstrapResult(error=f"powerlaw missing: {exc}")
+    if discrete:
+        try:
+            import powerlaw  # type: ignore
+        except Exception as exc:
+            return BootstrapResult(error=f"powerlaw missing: {exc}")
+    else:
+        powerlaw = None
 
     x_data = np.asarray(x_data, dtype=float)
     x_data = x_data[np.isfinite(x_data) & (x_data > 0)]
@@ -70,11 +74,22 @@ def bootstrap_ci(
     for _ in range(n_boot):
         sample = rng.choice(x_data, size=n, replace=True)
         try:
-            with _suppress_powerlaw_sigma_deprecation():
-                f = powerlaw.Fit(
-                    sample, discrete=discrete, xmin_distance="D", verbose=False
+            if discrete:
+                with _suppress_powerlaw_sigma_deprecation():
+                    f = powerlaw.Fit(
+                        sample, discrete=True, xmin_distance="D", verbose=False
+                    )
+                alpha = float(f.power_law.alpha)
+            else:
+                fit = fit_clauset_powerlaw(
+                    sample,
+                    discrete=False,
+                    min_samples=min_samples,
                 )
-            alphas.append(float(f.power_law.alpha))
+                if fit.error is not None or fit.alpha is None:
+                    continue
+                alpha = fit.alpha
+            alphas.append(alpha)
         except Exception:
             continue
     if len(alphas) < 20:
