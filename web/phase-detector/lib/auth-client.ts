@@ -58,12 +58,17 @@ export function useSession(): SessionState {
 
   const signOut = useCallback(async () => {
     try {
-      await fetch(`${AUTH_API_BASE}/auth/logout`, {
+      const response = await fetch(`${AUTH_API_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
-    } catch {
-      // Best-effort: cookie was probably already cleared.
+      if (!response.ok) {
+        throw new Error(`logout failed: ${response.status}`);
+      }
+    } catch (error) {
+      // Keep the visible session intact: claiming success while the HttpOnly
+      // cookie still exists causes the user to appear logged in again later.
+      throw error instanceof Error ? error : new Error("logout failed");
     }
     setUser(null);
   }, []);

@@ -19,6 +19,7 @@ export default function MePage() {
   const { user, loading, signOut } = useSession();
   const router = useRouter();
   const [redirecting, setRedirecting] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
 
   // After load completes, if there is no session, show the "please sign in"
   // card briefly and then auto-redirect to /auth/login for better UX.
@@ -69,8 +70,13 @@ export default function MePage() {
   }
 
   async function onLogout() {
-    await signOut();
-    router.push("/");
+    setLogoutError(false);
+    try {
+      await signOut();
+      router.push("/");
+    } catch {
+      setLogoutError(true);
+    }
   }
 
   // Format created_at as YYYY-MM-DD.
@@ -123,6 +129,11 @@ export default function MePage() {
       >
         退出登录
       </button>
+      {logoutError && (
+        <p role="alert" className="mt-3 text-sm text-rose-700">
+          退出失败，你仍处于登录状态，请重试。
+        </p>
+      )}
     </main>
   );
 }

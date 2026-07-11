@@ -104,8 +104,10 @@ export default function FavoritesPage() {
 
   const handleRemoveAll = useCallback(async () => {
     setConfirmClear(false);
+    setError(null);
     const tickers = rows.map((r) => r.ticker);
     if (signedIn) {
+      const failed = new Set<string>();
       for (const t of tickers) {
         try {
           await removeFavorite(t);
@@ -114,8 +116,15 @@ export default function FavoritesPage() {
             source: "favorites_page_bulk",
           });
         } catch {
-          // continue on error so a single failure doesn't strand others
+          failed.add(t);
         }
+      }
+      if (failed.size > 0) {
+        setRows((current) => current.filter((row) => failed.has(row.ticker)));
+        setError(
+          `${failed.size} 个收藏删除失败，已保留在列表中，请重试。`,
+        );
+        return;
       }
     } else {
       clearAnonFavorites();
@@ -167,6 +176,9 @@ export default function FavoritesPage() {
           </h1>
           <p className="mt-1 text-sm text-zinc-500" data-testid="favorites-count">
             共 {rows.length} 家公司
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            当前版本收藏仅保存在本设备，不与邮箱账户同步。
           </p>
         </div>
         <button

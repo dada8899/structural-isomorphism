@@ -11,6 +11,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
 
 interface Props {
@@ -26,10 +27,16 @@ export default function AuthNav({ variant = "compact" }: Props) {
 function EnabledAuthNav({ variant = "compact" }: Props) {
   const { user, loading, signOut } = useSession();
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState(false);
 
   async function onSignOut() {
-    await signOut();
-    router.refresh();
+    setSignOutError(false);
+    try {
+      await signOut();
+      router.refresh();
+    } catch {
+      setSignOutError(true);
+    }
   }
 
   if (loading) {
@@ -78,6 +85,11 @@ function EnabledAuthNav({ variant = "compact" }: Props) {
         >
           退出登录
         </button>
+        {signOutError && (
+          <span role="alert" className="px-3 text-xs text-rose-700">
+            退出失败，请重试
+          </span>
+        )}
       </div>
     );
   }
@@ -99,6 +111,11 @@ function EnabledAuthNav({ variant = "compact" }: Props) {
       >
         退出
       </button>
+      {signOutError && (
+        <span role="alert" className="text-xs text-rose-700">
+          退出失败，请重试
+        </span>
+      )}
     </span>
   );
 }

@@ -51,6 +51,11 @@ export default function PrivacyPage() {
           时间。
         </li>
         <li>
+          <strong>账户与登录</strong>（仅在账户功能开启且你主动登录时）——
+          邮箱、账户创建时间、方案等级，以及一次性登录链接的哈希、有效期和使用状态。
+          我们不保存原始登录 token 或密码。
+        </li>
+        <li>
           <strong>分析数据</strong>（仅在你勾选同意后启用）—— Plausible 自托管、
           无 cookie、不存原始 IP、不做跨站追踪。
         </li>
@@ -67,6 +72,8 @@ export default function PrivacyPage() {
       <ul>
         <li>错误日志：<strong>90 天</strong>，到期后滚动覆盖（详见 error_log.jsonl 的轮转策略）</li>
         <li>邮件订阅：<strong>直到你退订</strong>（每封邮件底部有一键退订链接）</li>
+        <li>账户记录：<strong>直到你要求删除账户</strong></li>
+        <li>登录链接：15 分钟后失效；哈希和使用状态仅用于防重放与安全审计</li>
         <li>Nginx 访问日志：<strong>14 天</strong>，仅用于安全与运维诊断</li>
         <li>Plausible 分析数据：<strong>聚合后无限期</strong>，原始 IP 从不写入磁盘</li>
       </ul>
@@ -93,6 +100,10 @@ export default function PrivacyPage() {
           <strong>jsDelivr</strong>（KaTeX / Marked.js 等 CDN）——
           可能在 CDN 层记录请求。
         </li>
+        <li>
+          <strong>邮件投递服务</strong>—— 账户功能开启时，仅为发送一次性登录链接
+          和注册通知处理必要的邮箱与邮件内容。
+        </li>
       </ul>
       <p>
         我们 <strong>不使用</strong> Google Analytics、Facebook Pixel、广告网络、
@@ -108,8 +119,9 @@ export default function PrivacyPage() {
           的所有数据（需邮箱验证）。
         </li>
         <li>
-          <strong>删除</strong>：调用{" "}
-          <code>DELETE /api/privacy/delete?email=...</code> 删除所有相关记录
+          <strong>删除</strong>：账户与登录数据请通过本页联系邮箱提交删除请求；
+          研究预览产生的其他邮箱记录可调用{" "}
+          <code>DELETE /api/privacy/delete?email=...</code> 删除
           （审计日志会保留删除请求本身，用于合规追踪）。
         </li>
         <li>
@@ -123,9 +135,11 @@ export default function PrivacyPage() {
 
       <h2>Cookie 与本地存储</h2>
       <p>
-        本站使用 localStorage（不是 cookie）存储以下技术状态：主题偏好、
-        cookie 同意选择、错误报告会话 ID、新手引导是否已看过。Plausible
-        分析<strong>仅在你勾选同意</strong>后加载，且本身不使用 cookie。
+        本站使用 localStorage 存储主题偏好、cookie 同意选择、错误报告会话 ID、
+        新手引导状态和匿名收藏。账户功能开启并登录后，本站另使用名为{" "}
+        <code>phase_session</code> 的必要会话 cookie；它设为 HttpOnly、Secure、
+        SameSite=Lax，最长 30 天，退出登录时删除。Plausible 分析
+        <strong>仅在你勾选同意</strong>后加载，且 Plausible 本身不使用 cookie。
       </p>
       <p>
         要修改你的 cookie 偏好，请点击下面的按钮（或任意页面底部 footer 的
