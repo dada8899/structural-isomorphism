@@ -33,7 +33,7 @@ const inter = localFont({
     { path: "../../frontend/assets/fonts/inter-600-latin.woff2", weight: "600" },
     { path: "../../frontend/assets/fonts/inter-700-latin.woff2", weight: "700" },
   ],
-  display: "swap",
+  display: "optional",
   variable: "--font-inter",
 });
 const notoSerifSC = localFont({
@@ -42,7 +42,7 @@ const notoSerifSC = localFont({
     { path: "../../frontend/assets/fonts/noto-serif-sc-500-latin.woff2", weight: "500" },
     { path: "../../frontend/assets/fonts/noto-serif-sc-600-latin.woff2", weight: "600" },
   ],
-  display: "swap",
+  display: "optional",
   variable: "--font-noto-serif",
 });
 const jetbrainsMono = localFont({
@@ -50,7 +50,7 @@ const jetbrainsMono = localFont({
     { path: "../../frontend/assets/fonts/jetbrains-mono-400-latin.woff2", weight: "400" },
     { path: "../../frontend/assets/fonts/jetbrains-mono-500-latin.woff2", weight: "500" },
   ],
-  display: "swap",
+  display: "optional",
   variable: "--font-jetbrains-mono",
 });
 
