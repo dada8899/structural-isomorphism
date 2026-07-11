@@ -17,6 +17,7 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import { restartOnboardingTour } from "./OnboardingTour";
 import { openCommandPalette } from "./CommandPaletteProvider";
 import ThemeToggle from "./ThemeToggle";
+import AuthNav from "./AuthNav";
 import { useScrollDirection } from "@/lib/useScrollDirection";
 
 const LINKS: { href: string; label: string; external?: boolean }[] = [
@@ -137,6 +138,7 @@ export default function TopNav() {
             </kbd>
           </span>
         </button>
+        <AuthNav variant="compact" />
         <LanguageSwitcher />
       </nav>
 
@@ -257,6 +259,9 @@ export default function TopNav() {
               </li>
               <li className="pt-2">
                 <LanguageSwitcher />
+              </li>
+              <li className="border-t border-zinc-100 pt-2">
+                <AuthNav variant="drawer" />
               </li>
             </ul>
           </div>

@@ -49,6 +49,7 @@ def backend(tmp_path, monkeypatch):
     CORS preflight + cookie SameSite headaches in tests.
     """
     monkeypatch.setenv("JWT_SECRET", "e2e-test-secret-deterministic-key-32+")
+    monkeypatch.setenv("AUTH_ENABLED", "true")
     monkeypatch.setenv("AUTH_DEV_MODE", "true")
 
     # Late import so env vars are read fresh.

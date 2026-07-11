@@ -18,6 +18,9 @@ Env:
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 import os
 import re
 from contextlib import asynccontextmanager
@@ -30,6 +33,9 @@ from pydantic import BaseModel, Field
 from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
 from .ews import router as ews_router
+from web.backend.api.auth import retry_registration_notifications, router as auth_router
+
+logger = logging.getLogger("phase.auth")
 
 
 # W8-D: ensure waitlist table exists on startup (idempotent).
@@ -78,8 +84,28 @@ def _ensure_waitlist_table() -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # startup: idempotent waitlist DDL (replaces deprecated @app.on_event("startup")).
     _ensure_waitlist_table()
+    retry_task = None
+    if os.getenv("AUTH_ENABLED", "false").lower() in {"1", "true", "yes"}:
+        # Durable outbox retry: failures stay pending and never block API boot.
+        try:
+            await asyncio.wait_for(
+                asyncio.to_thread(retry_registration_notifications), timeout=15
+            )
+        except Exception:
+            logger.exception("auth.registration_notification_startup_retry_failed")
+        async def retry_outbox_periodically() -> None:
+            while True:
+                await asyncio.sleep(300)
+                try:
+                    await asyncio.to_thread(retry_registration_notifications)
+                except Exception:
+                    logger.exception("auth.registration_notification_periodic_retry_failed")
+        retry_task = asyncio.create_task(retry_outbox_periodically())
     yield
-    # shutdown: nothing to clean up currently.
+    if retry_task:
+        retry_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await retry_task
 
 
 app = FastAPI(
@@ -103,6 +129,9 @@ app.include_router(universality_router)
 # (see v4/product/d1_phase_detector/run_ews_pipeline.py). Frontend reads
 # this for the trajectory chart, leaderboard, and screener defaults.
 app.include_router(ews_router)
+# Passwordless email accounts share the hardened auth implementation with the
+# main Structural API. The router itself fails closed unless AUTH_ENABLED=true.
+app.include_router(auth_router, prefix="/api")
 
 
 # -------- pydantic models --------

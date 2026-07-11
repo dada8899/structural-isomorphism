@@ -334,6 +334,8 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         )
     if path == "/phase" or path.startswith("/phase/"):
         return RedirectResponse("https://phase.bytedance.city", status_code=308)
+    if not _AUTH_ENABLED and path in ("/connections", "/connections.html"):
+        return RedirectResponse("/tools", status_code=308)
     if not _AUTH_ENABLED and path.startswith(
         ("/api/auth", "/api/connections", "/api/favorites")
     ):

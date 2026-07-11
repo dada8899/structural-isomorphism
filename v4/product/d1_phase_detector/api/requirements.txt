@@ -7,3 +7,4 @@ pydantic==2.6.1
 PyYAML==6.0.3
 python-multipart==0.0.20
 psycopg2-binary==2.9.9
+PyJWT==2.10.1

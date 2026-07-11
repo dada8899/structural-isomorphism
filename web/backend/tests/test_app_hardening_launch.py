@@ -87,6 +87,10 @@ def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
     assert legacy_page.status_code == 308
     assert legacy_page.headers["location"] == "https://phase.bytedance.city"
 
+    connections = prod_client.get("/connections", follow_redirects=False)
+    assert connections.status_code == 308
+    assert connections.headers["location"] == "/tools"
+
 
 # --------- P0-3: security headers on the real app --------- #
 

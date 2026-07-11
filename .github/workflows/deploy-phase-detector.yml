@@ -87,4 +87,12 @@ jobs:
           provenance = meta.get("price_provenance")
           assert isinstance(provenance, str) and provenance != "missing", meta
           PY
+          auth_status="$(curl -sS -o /tmp/phase-auth-me.json -w '%{http_code}' https://phase.bytedance.city/api/auth/me)"
+          if grep -qx 'NEXT_PUBLIC_AUTH_ENABLED=true' web/phase-detector/.env.production; then
+            test "$auth_status" = "401"
+            python3 -c 'import json; assert json.load(open("/tmp/phase-auth-me.json"))["error"] == "no session"'
+          else
+            test "$auth_status" = "503"
+            python3 -c 'import json; assert json.load(open("/tmp/phase-auth-me.json"))["error"] == "auth unavailable"'
+          fi
           echo "Smoke OK"

@@ -27,12 +27,13 @@ export interface SessionState {
 }
 
 const API_BASE =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_BASE_URL) ||
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_BASE) ||
   "";
+const AUTH_API_BASE = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
 
 async function fetchMe(): Promise<SessionUser | null> {
   try {
-    const r = await fetch(`${API_BASE}/api/auth/me`, {
+    const r = await fetch(`${AUTH_API_BASE}/auth/me`, {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -57,7 +58,7 @@ export function useSession(): SessionState {
 
   const signOut = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
+      await fetch(`${AUTH_API_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -94,7 +95,7 @@ export async function requestMagicLink(email: string): Promise<{
   dev_token?: string;
 }> {
   try {
-    const r = await fetch(`${API_BASE}/api/auth/request-link`, {
+    const r = await fetch(`${AUTH_API_BASE}/auth/request-link`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -112,7 +113,7 @@ export async function verifyMagicLink(token: string): Promise<{
   error?: string;
 }> {
   try {
-    const r = await fetch(`${API_BASE}/api/auth/verify`, {
+    const r = await fetch(`${AUTH_API_BASE}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

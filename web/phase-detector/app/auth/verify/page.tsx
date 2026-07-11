@@ -27,6 +27,8 @@ function VerifyInner() {
       setPhase("missing");
       return;
     }
+    // Remove the credential from browser history/referrers before exchange.
+    window.history.replaceState(null, "", "/auth/verify");
     let cancelled = false;
     (async () => {
       const r = await verifyMagicLink(token);
