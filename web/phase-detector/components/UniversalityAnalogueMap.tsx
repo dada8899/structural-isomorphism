@@ -478,7 +478,7 @@ export function UniversalityAnalogueMap({ detail, className, skipAnimation }: Pr
           </div>
         )}
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+      <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">
         中心 = 当前普适类。外圈节点 = 实证或候选系统，颜色编码所属领域，
         边粗细表示与该类的相似度（启发式排序）。点击节点可跳转到对应公司（如 ticker 形态）
         或滚动到证据段。

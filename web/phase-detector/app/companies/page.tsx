@@ -1,15 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
-import { EwsLeaderboardPanel } from "@/components/EwsLeaderboardPanel";
-import { RecentlyFlippedRow } from "@/components/RecentlyFlippedRow";
-import { ScreenerFilter } from "@/components/ScreenerFilter";
 import { SearchHero } from "@/components/SearchHero";
 import { StatsBar } from "@/components/StatsBar";
-import { WaitlistForm } from "@/components/WaitlistForm";
 import { fetchScreener, fetchStats } from "@/lib/api";
 import { addToHistory } from "@/lib/history";
 import { usePullToRefresh } from "@/lib/useSwipe";
@@ -24,6 +21,23 @@ import {
 } from "@/lib/labels";
 import { parseQuery } from "@/lib/parse-query";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
+
+const EwsLeaderboardPanel = dynamic(
+  () => import("@/components/EwsLeaderboardPanel").then((m) => m.EwsLeaderboardPanel),
+  { ssr: false },
+);
+const RecentlyFlippedRow = dynamic(
+  () => import("@/components/RecentlyFlippedRow").then((m) => m.RecentlyFlippedRow),
+  { ssr: false },
+);
+const ScreenerFilter = dynamic(
+  () => import("@/components/ScreenerFilter").then((m) => m.ScreenerFilter),
+  { ssr: false },
+);
+const WaitlistForm = dynamic(
+  () => import("@/components/WaitlistForm").then((m) => m.WaitlistForm),
+  { ssr: false },
+);
 
 // W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
 // PR-1 copy sweep (2026-05-14): hero rewritten outcome-first, jargon translated,

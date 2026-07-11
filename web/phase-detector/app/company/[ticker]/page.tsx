@@ -408,7 +408,7 @@ export default function CompanyDetailPage({
 
       {/* TL;DR card — largest visual block, the 30-second anchor. */}
       <section
-        className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
+        className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6"
         aria-labelledby="tldr-heading"
         data-testid="tldr-section"
       >
@@ -418,7 +418,7 @@ export default function CompanyDetailPage({
         >
           30 秒一句话
         </h2>
-        <p className="text-base leading-relaxed text-zinc-800">{company.tldr}</p>
+        <p className="text-sm leading-relaxed text-zinc-800 sm:text-base">{company.tldr}</p>
       </section>
 
       {/* PD-EWS: actionable layer — the one-line "so what" the product

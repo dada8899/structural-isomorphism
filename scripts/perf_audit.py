@@ -277,10 +277,6 @@ def audit_one(
         interaction_start_ms = 0.0
         interaction_end_ms = 0.0
         try:
-            page.evaluate("window.scrollBy(0, 200)")
-            page.wait_for_timeout(300)
-            page.evaluate("window.scrollBy(0, -200)")
-            page.wait_for_timeout(300)
             page.evaluate(
                 """
                 () => {
