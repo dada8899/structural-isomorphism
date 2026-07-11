@@ -12,12 +12,17 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Callable
 
-from scripts.judge_retrieval_qrels import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.judge_retrieval_qrels import (  # noqa: E402
     DEFAULT_MODEL,
     call_provider,
     read_jsonl,
@@ -25,7 +30,6 @@ from scripts.judge_retrieval_qrels import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_POOL = ROOT / "evaluation/english-candidate-pool-v1.jsonl"
 DEFAULT_SEED = ROOT / "evaluation/qrels-v1.jsonl"
 DEFAULT_KB = ROOT / "data/kb-expanded.jsonl"

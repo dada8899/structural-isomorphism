@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -103,3 +105,11 @@ def test_atomic_output_replaces_complete_jsonl(tmp_path):
     atomic_write(output, rows)
     assert [json.loads(line) for line in output.read_text().splitlines()] == rows
     assert not list(output.parent.glob(f".{output.name}.*"))
+
+
+def test_cli_help_runs_from_repository_root():
+    script = Path(__file__).resolve().parents[1] / "scripts/judge_english_candidate_pool.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--help"], capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
