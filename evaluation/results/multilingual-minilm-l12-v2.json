@@ -1,0 +1,575 @@
+{
+  "candidate_union_diagnostics": {
+    "candidate_k_per_language": 50,
+    "mean_judged_in_union": 1.48,
+    "mean_union_size": 72.68,
+    "mean_unjudged_in_union": 71.2
+  },
+  "comparability_boundaries": {
+    "dataset": "the old judged pool is a development set and does not independently validate generalization",
+    "not_valid": "full-corpus dense Top-5 is not endpoint-comparable to production fused retrieval, diversification, thresholds, or filters",
+    "recall": "candidate-union documents outside the old pool are unjudged and cannot establish recall gains or losses",
+    "valid": "dense versus production ordering only as a reranker over each identical fixed old English judged pool"
+  },
+  "fixed_old_english_judged_pool": {
+    "multilingual_dense_rerank": {
+      "mrr_fixed_judged_pool": 0.18,
+      "ndcg_at_5_fixed_judged_pool": 0.397643,
+      "queries": 40,
+      "top1_success_fixed_judged_pool": 0.125
+    },
+    "production_baseline_order": {
+      "mrr_fixed_judged_pool": 0.129583,
+      "ndcg_at_5_fixed_judged_pool": 0.302861,
+      "queries": 40,
+      "top1_success_fixed_judged_pool": 0.05
+    }
+  },
+  "frozen_inputs": {
+    "artifact_id": "structural-v2-kb4443-20260711",
+    "baseline_sha256": "dbb9d92d0bcc026df78b7ad129975ab6d0f43632140571c821cf23320bccc281",
+    "dataset_sha256": "08360f3e0ebe4bb6f091ac4f49fabe5f1881bc4c8f98d014b19711deca745173",
+    "kb_rows": 4443,
+    "kb_sha256": "299a0fd62dcf400d5d5ccbb8b853cc21cd73daf99ee9f6bc163ac1f5293cab99",
+    "manifest_sha256": "1ec027a9acd8268f5c57f84a33d0f7147205bd3c3832d125bfdea8c07d168a7c",
+    "paired_query_count": 50,
+    "qrels_sha256": "96ffddbbb7b9be73b0951fa13b136b47f20bdddc76b6998881c4c3a95aa8edca",
+    "query_count": 100
+  },
+  "methodology": {
+    "document_text": "description only",
+    "pair_consistency_scope": "all 50 English/Chinese query pairs, including 10 out-of-scope pairs",
+    "privacy": "queries and KB documents are encoded locally and are never sent to an API",
+    "rerank_scope": "the exact old five-document judged pool for 40 in-scope English queries",
+    "retrieval": "normalized dense embeddings; pure cosine; deterministic doc-id tie break"
+  },
+  "model": {
+    "cache": {
+      "file_count": 10,
+      "files": [
+        {
+          "path": "1_Pooling/config.json",
+          "sha256": "4be450dde3b0273bb9787637cfbd28fe04a7ba6ab9d36ac48e92b11e350ffc23",
+          "size": 190
+        },
+        {
+          "path": "README.md",
+          "sha256": "1e98ea05b0de579fcaad3d625b62ea55647142ed674d5f5ebf1440e4bbbb6f23",
+          "size": 3888
+        },
+        {
+          "path": "config.json",
+          "sha256": "6300193cb75e01cf80c96decef7187dfb33094d97cc1490b7ead6ff134476e4e",
+          "size": 645
+        },
+        {
+          "path": "config_sentence_transformers.json",
+          "sha256": "b8c64b5cece00d8424b4896ea75b512b6008576088497609dfeb6bd63e6d36b8",
+          "size": 122
+        },
+        {
+          "path": "model.safetensors",
+          "sha256": "eaa086f0ffee582aeb45b36e34cdd1fe2d6de2bef61f8a559a1bbc9bd955917b",
+          "size": 470641600
+        },
+        {
+          "path": "modules.json",
+          "sha256": "8f4b264b80206c830bebbdcae377e137925650a433b689343a63bdc9b3145460",
+          "size": 229
+        },
+        {
+          "path": "sentence_bert_config.json",
+          "sha256": "70f4448f31320443fe3557cacea5abf2dcc4915dda8c80646bec9f3bb0aa5a1f",
+          "size": 53
+        },
+        {
+          "path": "special_tokens_map.json",
+          "sha256": "378eb3bf733eb16e65792d7e3fda5b8a4631387ca04d2015199c4d4f22ae554d",
+          "size": 239
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "2c3387be76557bd40970cec13153b3bbf80407865484b209e655e5e4729076b8",
+          "size": 9081518
+        },
+        {
+          "path": "tokenizer_config.json",
+          "sha256": "5036ea374ffedd706e3bef33e2e0d6953cb868ef8a490e76e32ba0faa37a6b9b",
+          "size": 526
+        }
+      ],
+      "path": "/Users/dadamini/.cache/huggingface/hub/models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2/snapshots/e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+      "tree_sha256": "f0b29da4d3cdc5394c96dc982512412c57581382f204ae7278f89d8cbf9a7ad0"
+    },
+    "requested_id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "requested_revision": null,
+    "resolved_cache_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
+  },
+  "paired_top5": {
+    "mean_intersection_all_50_pairs": 2.28,
+    "mean_jaccard_all_50_pairs": 0.342381,
+    "per_pair": [
+      {
+        "candidate_union_size": 79,
+        "judged_in_union": 0,
+        "out_of_scope": false,
+        "pair_id": "in-01-linear-response",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 79
+      },
+      {
+        "candidate_union_size": 70,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-02-adaptation-tolerance",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 69
+      },
+      {
+        "candidate_union_size": 74,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-03-distance-decay",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 73
+      },
+      {
+        "candidate_union_size": 91,
+        "judged_in_union": 5,
+        "out_of_scope": false,
+        "pair_id": "in-04-chain-reaction",
+        "top5_intersection": 0,
+        "top5_jaccard": 0.0,
+        "unjudged_in_union": 86
+      },
+      {
+        "candidate_union_size": 84,
+        "judged_in_union": 0,
+        "out_of_scope": false,
+        "pair_id": "in-05-exponential-decay",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 84
+      },
+      {
+        "candidate_union_size": 73,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-06-bounded-growth",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 70
+      },
+      {
+        "candidate_union_size": 68,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-07-acceleration",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 67
+      },
+      {
+        "candidate_union_size": 70,
+        "judged_in_union": 4,
+        "out_of_scope": false,
+        "pair_id": "in-08-sunk-cost",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 66
+      },
+      {
+        "candidate_union_size": 78,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-09-restoring-force",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 76
+      },
+      {
+        "candidate_union_size": 68,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-10-periodic-cycle",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 67
+      },
+      {
+        "candidate_union_size": 72,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-11-resonance",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 71
+      },
+      {
+        "candidate_union_size": 61,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-12-oscillatory-feedback",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 59
+      },
+      {
+        "candidate_union_size": 70,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-13-interference",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 69
+      },
+      {
+        "candidate_union_size": 75,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-14-diffusion",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 73
+      },
+      {
+        "candidate_union_size": 78,
+        "judged_in_union": 0,
+        "out_of_scope": false,
+        "pair_id": "in-15-pattern-formation",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 78
+      },
+      {
+        "candidate_union_size": 87,
+        "judged_in_union": 4,
+        "out_of_scope": false,
+        "pair_id": "in-16-relative-motion",
+        "top5_intersection": 0,
+        "top5_jaccard": 0.0,
+        "unjudged_in_union": 83
+      },
+      {
+        "candidate_union_size": 74,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-17-runaway-feedback",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 73
+      },
+      {
+        "candidate_union_size": 67,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-18-dynamic-equilibrium",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 65
+      },
+      {
+        "candidate_union_size": 76,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-19-negative-feedback",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 75
+      },
+      {
+        "candidate_union_size": 71,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-20-hysteresis",
+        "top5_intersection": 5,
+        "top5_jaccard": 1.0,
+        "unjudged_in_union": 69
+      },
+      {
+        "candidate_union_size": 76,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-21-memory",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 75
+      },
+      {
+        "candidate_union_size": 91,
+        "judged_in_union": 0,
+        "out_of_scope": false,
+        "pair_id": "in-22-threshold",
+        "top5_intersection": 0,
+        "top5_jaccard": 0.0,
+        "unjudged_in_union": 91
+      },
+      {
+        "candidate_union_size": 86,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-23-nucleation",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 83
+      },
+      {
+        "candidate_union_size": 68,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-24-phase-transition",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 66
+      },
+      {
+        "candidate_union_size": 76,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-25-turbulence",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 75
+      },
+      {
+        "candidate_union_size": 80,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-26-state-transition",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 78
+      },
+      {
+        "candidate_union_size": 78,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-27-aggregation-normality",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 75
+      },
+      {
+        "candidate_union_size": 76,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-28-conservation-transfer",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 74
+      },
+      {
+        "candidate_union_size": 64,
+        "judged_in_union": 5,
+        "out_of_scope": false,
+        "pair_id": "in-29-small-world",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 59
+      },
+      {
+        "candidate_union_size": 74,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-30-preferential-attachment",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 73
+      },
+      {
+        "candidate_union_size": 61,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-31-contagion",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 59
+      },
+      {
+        "candidate_union_size": 78,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-32-catalyst",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 77
+      },
+      {
+        "candidate_union_size": 65,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-33-loss-aversion",
+        "top5_intersection": 5,
+        "top5_jaccard": 1.0,
+        "unjudged_in_union": 62
+      },
+      {
+        "candidate_union_size": 76,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-34-resource-scheduling",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 75
+      },
+      {
+        "candidate_union_size": 92,
+        "judged_in_union": 4,
+        "out_of_scope": false,
+        "pair_id": "in-35-commons",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 88
+      },
+      {
+        "candidate_union_size": 65,
+        "judged_in_union": 1,
+        "out_of_scope": false,
+        "pair_id": "in-36-selection",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 64
+      },
+      {
+        "candidate_union_size": 69,
+        "judged_in_union": 2,
+        "out_of_scope": false,
+        "pair_id": "in-37-adverse-selection",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 67
+      },
+      {
+        "candidate_union_size": 73,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-38-divide-conquer",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 70
+      },
+      {
+        "candidate_union_size": 70,
+        "judged_in_union": 0,
+        "out_of_scope": false,
+        "pair_id": "in-39-entropy",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 70
+      },
+      {
+        "candidate_union_size": 74,
+        "judged_in_union": 3,
+        "out_of_scope": false,
+        "pair_id": "in-40-sampling-aliasing",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 71
+      },
+      {
+        "candidate_union_size": 69,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-01-arithmetic",
+        "top5_intersection": 3,
+        "top5_jaccard": 0.428571,
+        "unjudged_in_union": 69
+      },
+      {
+        "candidate_union_size": 57,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-02-greeting",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 57
+      },
+      {
+        "candidate_union_size": 56,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-03-capital-trivia",
+        "top5_intersection": 5,
+        "top5_jaccard": 1.0,
+        "unjudged_in_union": 56
+      },
+      {
+        "candidate_union_size": 52,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-04-weather",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 52
+      },
+      {
+        "candidate_union_size": 66,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-05-translation",
+        "top5_intersection": 1,
+        "top5_jaccard": 0.111111,
+        "unjudged_in_union": 66
+      },
+      {
+        "candidate_union_size": 87,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-06-stock-forecast",
+        "top5_intersection": 2,
+        "top5_jaccard": 0.25,
+        "unjudged_in_union": 87
+      },
+      {
+        "candidate_union_size": 77,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-07-crypto-pick",
+        "top5_intersection": 0,
+        "top5_jaccard": 0.0,
+        "unjudged_in_union": 77
+      },
+      {
+        "candidate_union_size": 61,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-08-recipe",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 61
+      },
+      {
+        "candidate_union_size": 50,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-09-empty-whitespace",
+        "top5_intersection": 5,
+        "top5_jaccard": 1.0,
+        "unjudged_in_union": 50
+      },
+      {
+        "candidate_union_size": 81,
+        "judged_in_union": 0,
+        "out_of_scope": true,
+        "pair_id": "oos-10-punctuation",
+        "top5_intersection": 4,
+        "top5_jaccard": 0.666667,
+        "unjudged_in_union": 81
+      }
+    ]
+  },
+  "runtime": {
+    "batch_size": 64,
+    "candidate_k": 50,
+    "embedding_dimension": 384,
+    "numpy": "2.4.4",
+    "platform": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.5",
+    "sentence_transformers": "5.5.0",
+    "torch": "2.12.0"
+  },
+  "schema_version": "multilingual-embedding-experiment-v1"
+}
