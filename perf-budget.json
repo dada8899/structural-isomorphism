@@ -9,10 +9,10 @@
     "Bundle thresholds reference Next.js 'First Load JS' from `next build`",
     "(NOT the audit's transfer total which includes async chunks).",
     "",
-    "INP is currently measured as 'inp_proxy_ms' — an upper bound derived",
-    "from the worst LoAF or event duration observed during a synthetic",
-    "scroll+click interaction. The real user INP via web-vitals.js is",
-    "always <= this value; we keep the slack so the budget is conservative."
+    "INP is measured as 'inp_proxy_ms' from trusted Event Timing entries and",
+    "LoAF entries restricted to a Playwright click window. CI reports the",
+    "median of three runs; the threshold remains conservative because this",
+    "is still a lab proxy rather than field INP from real-user monitoring."
   ],
   "thresholds": {
     "lcp_mobile_ms": 2600,

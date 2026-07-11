@@ -113,6 +113,7 @@ jobs:
             --base http://localhost:3017 \
             --pages all \
             --viewport both \
+            --runs 3 \
             --out /tmp/perf-audit-ci.json
 
       - name: Check perf budget

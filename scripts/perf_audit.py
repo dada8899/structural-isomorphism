@@ -10,10 +10,9 @@ Drives a real Chromium via Playwright; collects:
   * TBT (total blocking time) via PerformanceObserver(type: 'longtask')
     summing (duration - 50) across the FCP→TTI window. Practical proxy:
     we sum all longtasks during a fixed observation window (5s after load).
-  * INP — proxied via the worst Long Animation Frame (LoAF) observed
-    during a programmatic interaction (click on the primary CTA / link
-    inside the viewport). We use LoAF when available, falling back to
-    the sum of (entry.duration) on `event` entries.
+  * INP — proxied inside an explicit trusted-interaction window. The audit
+    clicks a visible control through Playwright, then considers Event Timing
+    entries with an interactionId and LoAF entries overlapping that window.
   * Transfer size + JS bytes via Performance.getEntries (resource).
 
 Usage:
@@ -35,18 +34,19 @@ from typing import Any
 
 from playwright.sync_api import sync_playwright
 
-# 10 pages mirroring W12-A audit
-PAGES: list[tuple[str, str]] = [
-    ("landing", "/"),
-    ("companies", "/companies"),
-    ("company_AAPL", "/company/AAPL"),
-    ("universality", "/universality"),
-    ("universality_class", "/universality/self_organized_criticality"),
-    ("compare", "/compare?tickers=AAPL,TSLA"),
-    ("pricing", "/pricing"),
-    ("backtest", "/backtest"),
-    ("about", "/about"),
-    ("methodology", "/methodology"),
+# 10 pages mirroring W12-A audit. Each selector targets a stable, meaningful
+# control; a missing interaction is a failed run rather than a synthetic 0 ms.
+PAGES: list[tuple[str, str, str]] = [
+    ("landing", "/", '[data-tour-target="universality-card"]'),
+    ("companies", "/companies", '[data-testid="companies-load-more"]'),
+    ("company_AAPL", "/company/AAPL", '[data-testid="metadata-toggle"]'),
+    ("universality", "/universality", '[data-testid="universality-filter-PASS"]'),
+    ("universality_class", "/universality/self_organized_criticality", '[data-testid="universality-compare-cta"]'),
+    ("compare", "/compare?tickers=AAPL,TSLA", 'button[aria-label^="移除 "]'),
+    ("pricing", "/pricing", 'a[href="/methodology"]'),
+    ("backtest", "/backtest", 'a[href="/methodology"]'),
+    ("about", "/about", 'a[href="/"]'),
+    ("methodology", "/methodology", 'a[href="/"]'),
 ]
 
 VIEWPORTS = {
@@ -56,6 +56,10 @@ VIEWPORTS = {
 
 # Inject before any page script runs so we catch every relevant entry.
 INIT_SCRIPT = r"""
+// Audit the page controls, not the first-visit tour overlay. The onboarding
+// flow has its own interaction tests and otherwise intercepts every selector.
+try { localStorage.setItem('phase_tour_seen', 'true'); } catch (e) {}
+
 window.__perf = {
   lcp: 0,
   lcpElement: null,
@@ -112,6 +116,7 @@ try {
         duration: e.duration,
         processingStart: e.processingStart,
         startTime: e.startTime,
+        interactionId: e.interactionId || 0,
       });
     }
   }).observe({ type: 'event', buffered: true, durationThreshold: 16 });
@@ -140,6 +145,30 @@ def compute_tbt(long_tasks: list[dict[str, float]], fcp_ms: float, max_ms: float
         if effective > 50:
             tbt += effective - 50
     return tbt
+
+
+def compute_inp_proxy(
+    events: list[dict[str, float]],
+    loaf: list[dict[str, float]],
+    window_start_ms: float,
+    window_end_ms: float,
+) -> float:
+    """Return the worst event or LoAF duration inside the click window."""
+    if window_end_ms <= window_start_ms:
+        return 0.0
+    event_durations = [
+        float(entry["duration"])
+        for entry in events
+        if int(entry.get("interactionId") or 0) > 0
+        and window_start_ms <= float(entry["startTime"]) <= window_end_ms
+    ]
+    loaf_durations = [
+        float(entry["duration"])
+        for entry in loaf
+        if float(entry["start"]) <= window_end_ms
+        and float(entry["start"]) + float(entry["duration"]) >= window_start_ms
+    ]
+    return max(event_durations + loaf_durations, default=0.0)
 
 
 def collect_resource_sizes(resources: list[dict[str, Any]]) -> dict[str, float]:
@@ -173,8 +202,11 @@ def audit_one(
     path: str,
     viewport_name: str,
     viewport: dict[str, Any],
+    interaction_selector: str,
     runs: int = 1,
 ) -> dict[str, Any]:
+    if runs < 1:
+        raise ValueError("runs must be at least 1")
     results = []
     for run in range(runs):
         browser = p.chromium.launch(headless=True)
@@ -210,6 +242,10 @@ def audit_one(
             browser.close()
             results.append({"error": f"navigation failed: {exc}"})
             continue
+        if not 200 <= status < 300:
+            browser.close()
+            results.append({"error": f"navigation returned HTTP {status}"})
+            continue
 
         # Wait for network idle + extra settle time so async chunks/images stop shifting
         try:
@@ -218,30 +254,33 @@ def audit_one(
             pass
         page.wait_for_timeout(2000)
 
-        # Try interacting with a clickable element to get INP measurement
+        # Use a trusted Playwright click. Prevent anchor navigation while still
+        # exercising the page's real click handlers and rendering work.
+        interaction_start_ms = 0.0
+        interaction_end_ms = 0.0
         try:
             page.evaluate("window.scrollBy(0, 200)")
             page.wait_for_timeout(300)
             page.evaluate("window.scrollBy(0, -200)")
             page.wait_for_timeout(300)
-            # Click on first visible link/button to measure event timing
             page.evaluate(
                 """
                 () => {
-                  const candidate = Array.from(document.querySelectorAll('a, button')).find(el => {
-                    const rect = el.getBoundingClientRect();
-                    return rect.width > 10 && rect.height > 10 && rect.top >= 0 && rect.top < window.innerHeight - 100;
-                  });
-                  if (candidate) {
-                    candidate.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                    candidate.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-                  }
+                  document.addEventListener('click', event => {
+                    if (event.target.closest('a')) event.preventDefault();
+                  }, { capture: true, once: true });
                 }
-            """
+                """
             )
+            candidate = page.locator(interaction_selector).first
+            interaction_start_ms = page.evaluate("performance.now()")
+            candidate.click(timeout=3000)
             page.wait_for_timeout(500)
-        except Exception:
-            pass
+            interaction_end_ms = page.evaluate("performance.now()")
+        except Exception as exc:
+            browser.close()
+            results.append({"error": f"interaction failed: {exc}"})
+            continue
 
         # Compute FCP from paint entries
         fcp_ms = page.evaluate(
@@ -285,14 +324,22 @@ def audit_one(
         long_tasks = perf.get("longTasks", [])
         loaf = perf.get("loaf", [])
         events = perf.get("events", [])
+        interaction_events = [
+            event for event in events
+            if int(event.get("interactionId") or 0) > 0
+            and interaction_start_ms <= float(event["startTime"]) <= interaction_end_ms
+        ]
+        if not interaction_events:
+            browser.close()
+            results.append({"error": "no trusted Event Timing entry captured"})
+            continue
 
         # TBT calculation
         tbt = compute_tbt(long_tasks, fcp_ms, fcp_ms + 5000)
 
-        # INP proxy: worst event duration OR worst LoAF duration
-        worst_event = max((e["duration"] for e in events), default=0)
-        worst_loaf = max((e["duration"] for e in loaf), default=0)
-        inp_proxy = max(worst_event, worst_loaf)
+        inp_proxy = compute_inp_proxy(
+            events, loaf, interaction_start_ms, interaction_end_ms
+        )
 
         sizes = collect_resource_sizes(resources)
 
@@ -309,6 +356,8 @@ def audit_one(
                 "long_task_total_ms": round(sum(t["duration"] for t in long_tasks), 1),
                 "loaf_count": len(loaf),
                 "event_count": len(events),
+                "interaction_event_count": len(interaction_events),
+                "interaction_selector": interaction_selector,
                 "transfer_kb": sizes,
                 "resource_count": len(resources),
                 "dom_loaded_ms": round(nav["domContentLoadedEventEnd"], 1) if nav else 0,
@@ -319,8 +368,14 @@ def audit_one(
         browser.close()
 
     # Aggregate runs (median for stability)
-    if not results or "error" in results[0]:
-        return {"error": results[0].get("error", "no results"), "runs": runs}
+    errors = [result["error"] for result in results if "error" in result]
+    if len(results) != runs or errors:
+        return {
+            "error": f"{len(errors)} of {runs} runs failed",
+            "run_errors": errors,
+            "runs": runs,
+            "successful_runs": len(results) - len(errors),
+        }
 
     def median(key: str) -> float:
         return round(statistics.median([r[key] for r in results if isinstance(r.get(key), (int, float))]), 2)
@@ -358,12 +413,12 @@ def main():
         selected = PAGES
     else:
         keys = set(args.pages.split(","))
-        selected = [(k, p) for k, p in PAGES if k in keys]
+        selected = [(k, p, s) for k, p, s in PAGES if k in keys]
 
     viewports = {"desktop": "desktop", "mobile": "mobile"} if args.viewport == "both" else {args.viewport: args.viewport}
 
     print(f"Auditing {len(selected)} pages × {len(viewports)} viewports = {len(selected) * len(viewports)} runs (base: {args.base})", flush=True)
-    print(f"  pages={[k for k, _ in selected]}", flush=True)
+    print(f"  pages={[k for k, _, _ in selected]}", flush=True)
 
     out: dict[str, Any] = {
         "base_url": args.base,
@@ -373,12 +428,16 @@ def main():
     }
 
     with sync_playwright() as p:
-        for key, path in selected:
+        failed = False
+        for key, path, selector in selected:
             out["pages"][key] = {"path": path}
             for vp_name in viewports:
                 vp = VIEWPORTS[vp_name]
                 t0 = time.time()
-                result = audit_one(p, args.base, path, vp_name, vp, runs=args.runs)
+                result = audit_one(
+                    p, args.base, path, vp_name, vp, selector, runs=args.runs
+                )
+                failed = failed or "error" in result
                 elapsed = time.time() - t0
                 out["pages"][key][vp_name] = result
                 print(
@@ -389,6 +448,8 @@ def main():
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=2))
     print(f"\nWrote {args.out}", flush=True)
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
