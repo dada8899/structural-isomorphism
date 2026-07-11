@@ -49,11 +49,11 @@ const jetbrainsMono = JetBrains_Mono({
 // W6-B: localized to zh-CN, aligned with main site brand.
 export const metadata: Metadata = {
   title: {
-    default: "Phase Detector — 100 家公司的状态评分",
+    default: "Phase Detector — 597 个 demo ticker 研究快照",
     template: "%s — Phase Detector",
   },
   description:
-    "100 家全球上市公司的状态评分，30 秒看懂：谁在崩盘边缘，谁在悄悄起飞。",
+    "597 个 demo ticker 的结构信号研究快照；明确 provenance，不代表实时市场信号。",
   metadataBase: new URL("https://phase.bytedance.city"),
   alternates: { canonical: "https://phase.bytedance.city/" },
   manifest: "/manifest.webmanifest",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
   },
   openGraph: {
-    title: "Phase Detector — 100 家公司的状态评分",
+    title: "Phase Detector — 597 个 demo ticker 研究快照",
     description: "30 秒看懂一家公司当前的状态。",
     type: "website",
     siteName: "Phase Detector",
@@ -80,13 +80,13 @@ export const metadata: Metadata = {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — 100 家公司的状态评分",
+        alt: "Phase Detector — 597 个 demo ticker 研究快照",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Phase Detector — 100 家公司的状态评分",
+    title: "Phase Detector — 597 个 demo ticker 研究快照",
     description: "30 秒看懂一家公司当前的状态。",
     images: ["/og/home.png"],
   },

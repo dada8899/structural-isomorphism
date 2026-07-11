@@ -17,14 +17,14 @@ export const metadata: Metadata = {
 
 const SHARE_URL = "https://phase.bytedance.city";
 const SHARE_TEXT =
-  "我刚订阅了《结构信号》——100 家全球公司的状态评分，用解释地震和银行挤兑的同一套数学。每周日推送。";
+  "我刚订阅了《结构信号》——来自 597 个 demo ticker 研究快照的结构信号观察。每周日推送。";
 
 export default function ThankYouPage() {
   return (
     <article className="mx-auto max-w-2xl">
       <Breadcrumb items={[{ label: "首页", href: "/" }, { label: "已加入名单" }]} />
 
-      {/* W10-B: tier-specific success banner if user came from mock checkout. */}
+      {/* Legacy checkout parameters are handled as preview interest only. */}
       <Suspense fallback={null}>
         <CheckoutSuccessBanner />
       </Suspense>
@@ -68,7 +68,7 @@ export default function ThankYouPage() {
           className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm"
         >
           <div className="text-sm font-semibold text-zinc-900">回到首页</div>
-          <p className="mt-1 text-xs text-zinc-500">看 100 家公司的当前状态</p>
+          <p className="mt-1 text-xs text-zinc-500">查看 597 个 demo ticker 的研究快照</p>
         </Link>
         <Link
           href="/methodology"

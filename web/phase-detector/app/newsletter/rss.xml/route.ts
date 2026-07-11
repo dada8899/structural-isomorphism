@@ -59,7 +59,7 @@ export async function GET() {
     <title>Structural Signals — Phase Detector newsletter</title>
     <link>${SITE_URL}/newsletter</link>
     <atom:link href="${SITE_URL}/newsletter/rss.xml" rel="self" type="application/rss+xml" />
-    <description>Weekly cross-domain structural signals: phase flips across 1000+ companies, methodology, preprints. No marketing, no clickbait.</description>
+    <description>Weekly research notes from a 597-ticker demo snapshot, methodology, and cross-domain preprints. Not live market data or investment advice.</description>
     <language>zh-CN</language>
     <lastBuildDate>${buildDate}</lastBuildDate>
 ${items}

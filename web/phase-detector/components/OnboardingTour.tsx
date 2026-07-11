@@ -77,7 +77,7 @@ const DEFAULT_STEPS: TourStep[] = [
     id: "welcome",
     title: "欢迎来到 Phase Detector",
     description:
-      "我们每天给 1000+ 家上市公司打上结构性「相位」标签 — 30 秒看懂谁在崩盘边缘、谁在悄悄起飞。",
+      "当前研究预览覆盖 597 个 demo ticker，并明确展示数据来源；它用于理解方法，不提供实时投资信号。",
     nextLabel: "开始 4 步导览",
   },
   {

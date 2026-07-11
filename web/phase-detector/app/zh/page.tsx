@@ -132,12 +132,12 @@ export default async function LandingPageZh() {
 
 // W12-B (2026-05-15): canonical + OG + twitter added.
 export const metadata = {
-  title: "Phase Detector — 每日 1000+ 家上市公司的结构性信号",
+  title: "Phase Detector — 597 个 demo ticker 研究快照",
   description:
-    "每条都是一个假设。每条都附带证据。alpha 是否成立由你判断。1000+ 家上市公司每日结构信号——同一套数学解释过地震、银行挤兑、电网级联。",
+    "覆盖 597 个 demo ticker 的结构信号研究快照，明确展示数据来源；不是实时价格或投资建议。",
   alternates: { canonical: "https://phase.bytedance.city/zh" },
   openGraph: {
-    title: "Phase Detector — 每日 1000+ 家上市公司的结构性信号",
+    title: "Phase Detector — 597 个 demo ticker 研究快照",
     description: "每条都是一个假设。每条都附带证据。",
     type: "website" as const,
     url: "https://phase.bytedance.city/zh",
@@ -153,7 +153,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Phase Detector — 每日 1000+ 家上市公司的结构性信号",
+    title: "Phase Detector — 597 个 demo ticker 研究快照",
     description: "每条都是一个假设。每条都附带证据。",
     images: ["/og/home.png"],
     creator: "@dada8899",

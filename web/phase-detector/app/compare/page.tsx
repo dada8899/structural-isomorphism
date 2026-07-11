@@ -312,7 +312,7 @@ function CompareInner() {
     return () => {
       cancelled = true;
     };
-  }, [tickers.join(",")]);
+  }, [tickers]);
 
   const updateTickers = useCallback(
     (next: string[]) => {

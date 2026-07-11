@@ -90,7 +90,7 @@ export function EwsLeaderboardPanel() {
       : meta?.price_provenance === "live+synth_fallback"
         ? { txt: "真实+部分演示", cls: "bg-amber-100 text-amber-800" }
         : meta?.price_provenance === "demo"
-          ? { txt: "演示数据 · 部署后将切换至真实价格", cls: "bg-zinc-200 text-zinc-700" }
+          ? { txt: "演示数据 · 非实时市场信号", cls: "bg-zinc-200 text-zinc-700" }
           : { txt: "数据准备中", cls: "bg-zinc-100 text-zinc-600" };
 
   return (
@@ -110,7 +110,7 @@ export function EwsLeaderboardPanel() {
             临界减速排行 (CSD Leaderboard)
           </h2>
           <p className="mt-1 max-w-prose text-sm text-zinc-600">
-            真实价格滑窗算的 AR1 + 方差 Kendall 趋势。
+            按标注的数据来源计算 AR1 + 方差 Kendall 趋势；当前生产快照为 demo。
             <strong className="text-zinc-900"> 两个指标同时上升 </strong>
             才算 CSD 警报；单边不上分（避免假阳）。
             涵盖<strong className="text-zinc-900"> 美股 S&amp;P 500 + 港股 HSI/HSTECH</strong>，

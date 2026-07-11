@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { CheckoutMockForm } from "@/components/CheckoutMockForm";
+import { redirect } from "next/navigation";
 
 // W10-B (session #10): mock Stripe Checkout. NOT a real payment page.
 // See `web/backend/api/checkout_mock.py` for the simulated endpoint behaviour.
@@ -27,15 +26,5 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutMockPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-md py-16 text-center text-sm text-zinc-500">
-          加载结账表单…
-        </div>
-      }
-    >
-      <CheckoutMockForm />
-    </Suspense>
-  );
+  redirect("/newsletter?source=legacy-checkout");
 }

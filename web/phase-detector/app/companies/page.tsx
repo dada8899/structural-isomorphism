@@ -221,7 +221,7 @@ export default function ScreenerHomePage() {
           谁在崩盘边缘？谁在悄悄起飞？
         </h1>
         <p className="mb-3 max-w-2xl text-base leading-relaxed text-zinc-600 md:text-lg">
-          100 家全球公司的状态评分，30 秒看懂。
+          浏览 597 个 ticker 的 demo 研究快照，快速理解结构信号。
           每家公司给你一句话：它现在在哪个阶段、下一步可能往哪走、什么会让它翻车。
         </p>
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">

@@ -169,12 +169,12 @@ export default async function LandingPage() {
 // Metadata for the landing — overrides layout default with sharper EN-first positioning.
 // W12-B (2026-05-15): OG card + twitter + canonical added.
 export const metadata = {
-  title: "Phase Detector — Daily structural signals from 1000+ public companies",
+  title: "Phase Detector — 597-ticker demo research snapshot",
   description:
-    "Each one a hypothesis. Each one with the receipts. You judge the alpha. 1000+ 家上市公司每日结构信号——同一套数学解释过地震、银行挤兑、电网级联。",
+    "A 597-ticker demo research snapshot with explicit provenance. Not live prices or investment advice.",
   alternates: { canonical: "https://phase.bytedance.city/" },
   openGraph: {
-    title: "Phase Detector — Daily structural signals from 1000+ public companies",
+    title: "Phase Detector — 597-ticker demo research snapshot",
     description:
       "Each one a hypothesis. Each one with the receipts. You judge the alpha.",
     type: "website" as const,
@@ -191,7 +191,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Phase Detector — Daily structural signals from 1000+ public companies",
+    title: "Phase Detector — 597-ticker demo research snapshot",
     description: "Each one a hypothesis. Each one with the receipts.",
     images: ["/og/home.png"],
     creator: "@dada8899",

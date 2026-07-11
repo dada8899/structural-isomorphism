@@ -1,7 +1,7 @@
 {
   "name": "Phase Detector",
   "short_name": "Phase",
-  "description": "100 家全球上市公司的状态评分 — 30 秒看懂谁在崩盘边缘，谁在悄悄起飞。",
+  "description": "597 个 ticker 的 demo 结构信号研究快照，明确展示数据来源，不代表实时市场信号。",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

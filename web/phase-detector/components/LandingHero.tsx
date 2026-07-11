@@ -50,7 +50,7 @@ export function LandingHero() {
             fontFamily: "var(--font-serif), 'Noto Serif SC', 'Charter', 'Times New Roman', serif",
           }}
         >
-          Daily structural signals from <span className="text-indigo-700">1000+</span> public companies.
+          A structural-signals research preview across <span className="text-indigo-700">597</span> demo tickers.
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
@@ -59,7 +59,7 @@ export function LandingHero() {
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
-          1000+ 家上市公司，每日结构信号。每条都附凭证。alpha 你自己看，我们不替你下结论。
+          597 个 demo ticker 的研究快照，不是实时价格产品。每条都附凭证，结论由你判断。
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3" data-testid="hero-ctas">

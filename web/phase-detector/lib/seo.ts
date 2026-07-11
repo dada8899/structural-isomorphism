@@ -71,7 +71,7 @@ export function websiteSchema() {
     name: SITE_NAME,
     url: SITE_URL,
     description:
-      "100 家全球上市公司的状态评分，用解释地震、银行挤兑的同一套数学。",
+      "597 个 demo ticker 的结构信号研究快照，明确展示数据来源。",
     inLanguage: "zh-CN",
     publisher: {
       "@type": "Organization",

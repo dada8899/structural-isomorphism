@@ -21,9 +21,9 @@ import { buildMetadata } from "@/lib/seo";
 
 // W12-B (2026-05-15): canonical + OG image + twitter card added via buildMetadata helper.
 export const metadata: Metadata = buildMetadata({
-  title: "定价 — Phase Detector",
+  title: "研究预览 — Phase Detector",
   description:
-    "Free / Pro $19 / Team $99。给分析师、写手、买方团队的结构化股票研究订阅。1000+ ticker 全量访问、API、newsletter 抢先看。",
+    "Phase Detector 当前免费开放 597 个 demo ticker 研究快照；付费权益尚未上线。",
   path: "/pricing",
   ogImage: "/og/pricing.png",
 });
@@ -39,11 +39,11 @@ export default function PricingPage() {
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
         >
-          为认真的研究付一杯咖啡的价。
+          先验证研究价值，再开放付费。
         </h1>
         <p className="text-base leading-relaxed text-zinc-600">
-          每天免费看 100 家公司的状态评分；想要 1000+ ticker、API
-          访问、newsletter 抢先看，升级到 Pro。
+          当前展示 597 个 demo ticker 的研究快照。付费、实时价格、API
+          权益和团队协作尚未形成可验证闭环，因此暂不接受付款。
         </p>
       </header>
 
@@ -58,13 +58,11 @@ export default function PricingPage() {
           id="pmf-disclaimer-heading"
           className="mb-1 text-sm font-semibold text-amber-900"
         >
-          研究预览阶段：Stripe 接入还在路上
+          研究预览阶段：当前不开放支付
         </h2>
         <p className="text-sm leading-relaxed text-amber-900/85">
-          这是一个 mock checkout。当前点击「Start Pro」会进入一个模拟的
-          Stripe 结账页，**不会**真扣款。我们在 PMF 信号清晰之前不接入真实
-          Stripe（目标 Q3 2026）。但你输入的订阅意向会进入「先于
-          Stripe」的 waitlist——真上线时会优先邀请并享首月 50% off。
+          页面中的 Pro 与 Team 是方向说明，不代表已经交付的商品。CTA 只会
+          登记研究预览意向，不会创建模拟订单、订阅或扣款。
         </p>
       </section>
 
@@ -82,12 +80,11 @@ export default function PricingPage() {
         <dl className="space-y-6 text-sm">
           <div>
             <dt className="font-medium text-zinc-900">
-              「100 家」和「1000+」具体指什么？
+              当前覆盖具体是什么？
             </dt>
             <dd className="mt-1.5 leading-relaxed text-zinc-600">
-              Free 用户能看 100 家全球大盘股的状态评分（市值 &gt;
-              $50B）；Pro 解锁全量 1000+ ticker，含中型股、亚洲市场、
-              港股美股双重上市公司。
+              当前 EWS 快照包含 597 个 ticker，并明确标记为 demo provenance。
+              它用于验证方法和产品体验，不代表实时市场覆盖。
             </dd>
           </div>
           <div>
@@ -104,23 +101,22 @@ export default function PricingPage() {
               >
                 GitHub repo
               </a>
-              ）。Pro 解锁的是「批量访问 + 数据导出 + API」，不是把方法藏起来。
+              ）。批量访问、数据导出和 API 都仍是规划能力，当前没有付费解锁。
             </dd>
           </div>
           <div>
             <dt className="font-medium text-zinc-900">
-              Team 套餐的 5 个 seat 怎么算？
+              Team 方案现在能购买吗？
             </dt>
             <dd className="mt-1.5 leading-relaxed text-zinc-600">
-              每个 seat 一个邮箱、独立登录、共享同一个 Team 看板。超过 5 人
-              的团队请通过{" "}
+              不能。团队席位与共享看板仍在规划，当前只登记需求。研究团队可通过{" "}
               <a
                 href="mailto:hello@bytedance.city"
                 className="underline-offset-2 hover:underline"
               >
                 邮件
               </a>
-              联系我们做 enterprise 报价。
+              联系我们提供使用场景，不会产生报价或订单。
             </dd>
           </div>
           <div>

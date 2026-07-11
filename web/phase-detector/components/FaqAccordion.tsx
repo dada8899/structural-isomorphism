@@ -93,10 +93,9 @@ const QUESTIONS: QA[] = [
     q: "数据多久刷新一次？",
     a: (
       <>
-        结构特征：<strong>每日 23:00 UTC</strong>（财报、价格、新闻流的隔夜批处理）。
-        相位分类：<strong>每周一次</strong>——避免日内噪声触发假翻转。
-        遇到极端事件（财报暴雷、并购公告等）会触发<strong>临时重算</strong>，标记为 <code>flash_update</code>。
-        最后更新时间显示在每家公司的详情页顶部。
+        当前公开的是<strong>冻结的 597 ticker demo 快照</strong>，没有承诺自动刷新频率。
+        每条记录以页面显示的 generated_at 与 price_provenance 为准；在真实数据管线完成前，
+        不把快照描述成每日、每周或事件触发的实时更新。
       </>
     ),
   },

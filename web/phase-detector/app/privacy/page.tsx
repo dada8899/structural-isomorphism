@@ -23,7 +23,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-zinc mx-auto max-w-3xl px-6 py-10 dark:prose-invert">
       <h1>隐私政策</h1>
-      <p className="text-sm text-zinc-500">最后更新：2026-05-15</p>
+      <p className="text-sm text-zinc-500">最后更新：2026-07-11</p>
 
       <p>
         本页是 <strong>Structural Isomorphism</strong> 研究项目相关站点的简明隐私
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <code>structural.bytedance.city</code>、
         <code>phase.bytedance.city</code>、
         <code>beta.structural.bytedance.city</code>）。如有问题或希望删除你的数据，请发邮件至{" "}
-        <a href="mailto:riazward110@gmail.com">riazward110@gmail.com</a>。
+        <a href="mailto:hello@bytedance.city">hello@bytedance.city</a>。
       </p>
 
       <h2>我们收集什么</h2>
@@ -51,10 +51,6 @@ export default function PrivacyPage() {
           时间。
         </li>
         <li>
-          <strong>Mock checkout</strong>（如果你在定价页提交虚拟支付）—— 邮箱、
-          姓名、卡号末 4 位、所选 tier。仅用于评估付费意愿，不会真实扣款。
-        </li>
-        <li>
           <strong>分析数据</strong>（仅在你勾选同意后启用）—— Plausible 自托管、
           无 cookie、不存原始 IP、不做跨站追踪。
         </li>
@@ -64,7 +60,6 @@ export default function PrivacyPage() {
       <ul>
         <li>调试 —— 错误报告帮助我们快速定位前端崩溃</li>
         <li>留存 —— 邮件订阅让你能收到我们的研究更新</li>
-        <li>商业准备 —— mock checkout 用来评估 PMF（产品市场契合度）</li>
         <li>改进 —— 分析数据告诉我们哪些页面被使用、被忽视</li>
       </ul>
 
@@ -72,7 +67,6 @@ export default function PrivacyPage() {
       <ul>
         <li>错误日志：<strong>90 天</strong>，到期后滚动覆盖（详见 error_log.jsonl 的轮转策略）</li>
         <li>邮件订阅：<strong>直到你退订</strong>（每封邮件底部有一键退订链接）</li>
-        <li>Mock checkout 记录：<strong>无限期</strong>，作为商业化数据保留；可应申请删除</li>
         <li>Nginx 访问日志：<strong>14 天</strong>，仅用于安全与运维诊断</li>
         <li>Plausible 分析数据：<strong>聚合后无限期</strong>，原始 IP 从不写入磁盘</li>
       </ul>
@@ -92,8 +86,8 @@ export default function PrivacyPage() {
           。
         </li>
         <li>
-          <strong>Google Fonts</strong>（CDN 字体）—— 在加载字体时会向 Google
-          发送请求。
+          <strong>字体构建依赖</strong>—— 字体在构建阶段下载并由本站托管，浏览器
+          不会为页面字体直接连接 Google Fonts。
         </li>
         <li>
           <strong>jsDelivr</strong>（KaTeX / Marked.js 等 CDN）——
@@ -144,7 +138,7 @@ export default function PrivacyPage() {
       <h2>隐私问题联系方式</h2>
       <p>
         邮件：
-        <a href="mailto:riazward110@gmail.com">riazward110@gmail.com</a>
+        <a href="mailto:hello@bytedance.city">hello@bytedance.city</a>
         。本项目为非商业研究项目，没有公司实体，数据控制人即项目维护者。
       </p>
 
@@ -154,7 +148,7 @@ export default function PrivacyPage() {
         <Link href="https://github.com/dada8899/structural-isomorphism/blob/main/docs/privacy-policy.md">
           docs/privacy-policy.md
         </Link>{" "}
-        同步维护。如二者描述不一致，以本页（更晚更新）为准。
+        同步维护。如有不一致，以本页及实际运行的数据接口为准。
       </p>
     </article>
   );

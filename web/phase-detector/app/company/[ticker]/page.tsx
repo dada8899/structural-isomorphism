@@ -253,7 +253,7 @@ export default function CompanyDetailPage({
             extraction_confidence: e.confidence ?? 0,
             extraction_model: "ews_engine",
             extracted_at: e.as_of ?? null,
-            tldr: e.llm_tldr ?? "本 ticker 暂无 LLM 叙述；以下为基于真实价格的 EWS 信号读出。",
+            tldr: e.llm_tldr ?? "本 ticker 暂无 LLM 叙述；以下为 EWS 信号读出，数据来源以页面 provenance 标记为准。",
             primary_indicators: null,
             caveats: e.notes ?? null,
           });

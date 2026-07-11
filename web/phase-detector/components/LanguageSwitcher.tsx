@@ -26,8 +26,9 @@ function targetEnHref(pathname: string): string {
 
 function targetZhHref(pathname: string): string {
   if (pathname === "/zh" || pathname.startsWith("/zh/")) return pathname;
-  if (pathname === "/") return "/zh";
-  return "/zh" + pathname;
+  // Only the landing page has a Chinese route today. Deep-linking to a
+  // fabricated /zh/* path produced a systematic 404 from every inner page.
+  return "/zh";
 }
 
 export default function LanguageSwitcher() {

@@ -62,15 +62,15 @@ export default function AboutPage() {
       <section className="mb-8 space-y-3">
         <h2 className="text-xl font-semibold text-zinc-900">数据怎么来</h2>
         <p className="text-sm leading-relaxed text-zinc-600">
-          当前覆盖 100 家上市公司（NYSE + NASDAQ 大盘 +
-          部分中小盘代表）。我们读取每家公司的年报、业绩说明、行业研报，
+          当前研究快照覆盖 597 个 ticker（demo provenance，非实时市场数据）。
+          我们读取公司的年报、业绩说明、行业研报，
           用主流大模型抽取关键结构，再由几个独立的审稿 AI
           交叉检查后入库。
         </p>
         <ul className="ml-5 list-disc space-y-1 text-sm text-zinc-600">
           <li>抽取：主流大模型，长上下文读取全文</li>
           <li>审稿：多个独立 AI 模型投票，多数同意才入库</li>
-          <li>更新：每周一次（未来扩到每日）</li>
+          <li>更新：当前为冻结 demo 快照，不承诺自动刷新频率</li>
         </ul>
       </section>
 

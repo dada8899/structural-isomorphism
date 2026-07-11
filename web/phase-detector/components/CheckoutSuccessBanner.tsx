@@ -39,8 +39,7 @@ export function CheckoutSuccessBanner() {
       <p className="mt-1 text-sm leading-relaxed text-emerald-900/85">
         你已被记入「先于 Stripe」waitlist。真 Stripe
         上线时（预计 Q3 2026）会优先发邀请，并享首月 50% off。
-        在那之前，你的访问已按 {tierName} 配额开放
-        （Pro: 1000+ ticker / Team: 5000+ ticker + 5 seat）。
+        当前付费权益尚未上线，本页不会授予 {tierName} 权限。
       </p>
     </section>
   );

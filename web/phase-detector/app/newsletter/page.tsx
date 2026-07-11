@@ -17,7 +17,7 @@ import { buildMetadata, SITE_URL } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Newsletter archive — Structural Signals",
   description:
-    "Weekly newsletter from structural-isomorphism: phase flips across 1000+ companies, methodology deep-dives, and cross-domain preprints. No marketing, no clickbait.",
+    "Weekly notes from the 597-ticker demo research snapshot, methodology deep-dives, and cross-domain preprints.",
   path: "/newsletter",
   ogImage: "/og/newsletter.png",
 });
@@ -61,7 +61,7 @@ export default function NewsletterArchivePage() {
           Structural Signals — newsletter archive
         </h1>
         <p className="text-base leading-relaxed text-zinc-600">
-          Every Monday: phase flips across 1000+ public companies, one
+          Every Monday: observations from the 597-ticker demo snapshot, one
           methodology deep-dive, a few preprints we&rsquo;re reading, and what&rsquo;s
           happening in the repo. Same physics that describes earthquakes,
           neural avalanches, and power-grid cascades.

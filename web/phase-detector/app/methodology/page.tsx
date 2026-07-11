@@ -181,7 +181,7 @@ export default function MethodologyPage() {
           5. 哪些做不到
         </h2>
         <ul className="ml-5 list-disc space-y-1 text-sm text-zinc-600">
-          <li>覆盖：当前 100 家公司，长尾尚未覆盖</li>
+          <li>覆盖：当前 597 个 ticker 的 demo 研究快照，长尾尚未覆盖</li>
           <li>频率：每周更新一次，盘中突发事件不会立刻反映</li>
           <li>
             模型偏差：AI 可能漏读或读错，请看每家公司卡片下的&ldquo;注意事项&rdquo;

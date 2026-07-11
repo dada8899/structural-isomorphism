@@ -101,9 +101,8 @@ export function PhaseTrajectoryChart({ ewsDetail, ticker, className }: Props) {
             {ticker ?? "该公司"} 的 EWS 时序数据准备中
           </p>
           <p>
-            后台流水线每天收盘后重算一次。如果你刚好赶上窗口期，
-            稍后刷新即可。EWS 引擎只在每天的真实价格上跑，
-            <strong className="text-zinc-900"> 不再用任何合成或哈希数据。</strong>
+            当前研究预览使用 demo provenance；数据准备完成后即可查看。
+            <strong className="text-zinc-900"> 图表不会把演示数据标记为真实行情。</strong>
           </p>
         </div>
       </div>

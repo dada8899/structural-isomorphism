@@ -38,7 +38,7 @@ export function LandingHeroZh() {
             fontFamily: "var(--font-serif), 'Noto Serif SC', 'Charter', 'Times New Roman', serif",
           }}
         >
-          每日 <span className="text-indigo-700">1000+</span> 家上市公司的结构性信号。
+          覆盖 <span className="text-indigo-700">597</span> 个 demo ticker 的结构信号研究预览。
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
@@ -47,7 +47,7 @@ export function LandingHeroZh() {
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
-          Daily structural signals from 1000+ public companies. Each one a hypothesis. Each one with the receipts.
+          A 597-ticker demo research snapshot, not a live-price product. Each signal includes its evidence.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3" data-testid="hero-ctas">

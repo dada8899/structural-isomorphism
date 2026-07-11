@@ -18,7 +18,7 @@
 // in zinc-50 / zinc-200 / zinc-700. Real spacing: 32 / 24 / 16 / 8 grid.
 
 import { useEffect, useState } from "react";
-import { TIERS, annualPrice, annualSavings, type Interval, type PricingTier } from "@/lib/pricing";
+import { TIERS, type Interval, type PricingTier } from "@/lib/pricing";
 
 interface PricingTableProps {
   /** Initial interval; defaults to month. */
@@ -75,11 +75,6 @@ function TierCard({
   interval: Interval;
   onStart: (tier: PricingTier) => void;
 }) {
-  const displayPrice =
-    interval === "month" ? tier.monthly : Math.round(annualPrice(tier) / 12);
-  const intervalLabel = interval === "month" ? "/月" : "/月（年付）";
-  const savings = annualSavings(tier);
-
   return (
     <div
       className={`relative flex flex-col rounded-2xl border bg-white p-8 ${
@@ -92,9 +87,9 @@ function TierCard({
       {tier.highlight && (
         <div
           className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white"
-          aria-label="最受欢迎"
+          aria-label="规划中"
         >
-          Most popular
+          Planned
         </div>
       )}
 
@@ -105,21 +100,9 @@ function TierCard({
 
       <div className="mt-6 flex items-baseline gap-1">
         <span className="text-4xl font-semibold tracking-tight text-zinc-900">
-          ${displayPrice}
+          {tier.id === "free" ? "Free" : "Planned"}
         </span>
-        <span className="text-sm text-zinc-500">{intervalLabel}</span>
       </div>
-
-      {tier.monthly > 0 && interval === "year" && (
-        <p className="mt-1 text-xs text-emerald-700">
-          年付省 ${savings}（相当于 2 个月免费）
-        </p>
-      )}
-      {tier.monthly > 0 && interval === "month" && (
-        <p className="mt-1 text-xs text-zinc-400">
-          年付：${annualPrice(tier)} / 年（省 ${savings}）
-        </p>
-      )}
       {tier.monthly === 0 && (
         <p className="mt-1 text-xs text-zinc-400">永久免费 · 无需信用卡</p>
       )}
@@ -127,7 +110,7 @@ function TierCard({
       <button
         type="button"
         onClick={() => {
-          track("checkout_started", {
+          track("research_preview_interest", {
             tier: tier.id,
             interval,
             from: "pricing_page",
@@ -166,7 +149,7 @@ function TierCard({
 }
 
 export function PricingTable({ defaultInterval = "month" }: PricingTableProps) {
-  const [interval, setInterval] = useState<Interval>(defaultInterval);
+  const interval = defaultInterval;
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
@@ -179,51 +162,14 @@ export function PricingTable({ defaultInterval = "month" }: PricingTableProps) {
       return;
     }
     if (typeof window !== "undefined") {
-      window.location.href = `/checkout/mock?tier=${tier.id}&interval=${interval}`;
+      // Paid entitlements are not live. Collect research-preview interest
+      // without simulating a successful purchase.
+      window.location.href = "/newsletter?source=pricing";
     }
   }
 
   return (
     <div data-testid="pricing-table" data-hydrated={hydrated ? "true" : "false"}>
-      {/* Interval toggle */}
-      <div
-        className="mx-auto mb-10 inline-flex rounded-lg border border-zinc-200 bg-white p-1"
-        role="tablist"
-        aria-label="计费周期"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={interval === "month"}
-          onClick={() => setInterval("month")}
-          className={`min-h-[44px] rounded-md px-4 py-2 text-sm font-medium transition ${
-            interval === "month"
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-          data-testid="interval-month"
-        >
-          月付
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={interval === "year"}
-          onClick={() => setInterval("year")}
-          className={`min-h-[44px] rounded-md px-4 py-2 text-sm font-medium transition ${
-            interval === "year"
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-          data-testid="interval-year"
-        >
-          年付
-          <span className="ml-1 text-[11px] font-normal text-emerald-700">
-            省 2 个月
-          </span>
-        </button>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-6 lg:gap-8">
         {TIERS.map((tier) => (
           <TierCard

@@ -11,8 +11,8 @@ const STEPS = [
     n: "01",
     title: "Extract",
     titleZh: "提取结构特征",
-    body: "Daily structural features for 1000+ public companies — feedback loops, threshold proximity, network position. Computed from filings, prices, and news flow.",
-    bodyZh: "每日提取 1000+ 家公司的结构特征：反馈回路、临界点距离、网络位置。来源：财报 + 价格 + 新闻流。",
+    body: "A frozen 597-ticker demo snapshot of structural features. The current provenance is explicit and must not be read as live market coverage.",
+    bodyZh: "当前展示冻结的 597 个 demo ticker 结构特征快照；数据来源状态明确，不应视为实时市场覆盖。",
   },
   {
     n: "02",

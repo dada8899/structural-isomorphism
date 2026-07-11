@@ -117,29 +117,29 @@ export function PaywallModal({ open, onClose, hit = 100, context = "screener" }:
           id="paywall-modal-title"
           className="mb-1.5 text-lg font-semibold tracking-tight text-zinc-900"
         >
-          升级到 Pro，解锁 1000+ ticker
+          Pro 权益尚未上线
         </h2>
         <p className="mb-5 text-sm leading-relaxed text-zinc-600">
-          Free 套餐覆盖 {hit} 家全球大盘股。如果你的研究覆盖中型股、亚洲市场、
-          港股美股双重上市，Pro（$19/月）一键解锁完整库。
+          当前可访问 {hit} 个 ticker 的 demo 研究快照。付费、实时价格与完整 API
+          权益仍在验证中，本页不会授予付费权限。
         </p>
 
         <ul className="mb-6 space-y-1.5 text-sm text-zinc-700">
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-zinc-700" />
-            1000+ ticker 全量访问
+            597 个 demo ticker 研究快照
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-zinc-700" />
-            历史相位翻转 API
+            规划中：历史相位翻转 API
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-zinc-700" />
-            周三 newsletter 抢先看
+            规划中：newsletter 抢先看
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-zinc-700" />
-            导出 CSV / Markdown
+            规划中：导出 CSV / Markdown
           </li>
         </ul>
 
@@ -168,7 +168,7 @@ export function PaywallModal({ open, onClose, hit = 100, context = "screener" }:
         </div>
 
         <p className="mt-4 text-center text-xs text-zinc-400">
-          研究预览阶段：当前 mock checkout，不会扣款。
+          研究预览阶段：当前不开放 checkout，不会创建订单或扣款。
         </p>
       </div>
     </div>
