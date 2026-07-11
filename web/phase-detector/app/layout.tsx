@@ -171,6 +171,11 @@ export default function RootLayout({
                 <Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-white">
                   隐私
                 </Link>
+                {process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" && (
+                  <Link href="/auth/login" className="hover:text-zinc-900 dark:hover:text-white">
+                    注册 / 登录
+                  </Link>
+                )}
                 <ManageCookiesButton />
                 <a
                   href="https://github.com/dada8899/structural-isomorphism"
