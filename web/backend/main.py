@@ -612,6 +612,15 @@ async def search_page():
     return FileResponse(FRONTEND_DIR / "search.html")
 
 
+@app.get("/auth/login", include_in_schema=False)
+async def unified_auth_login():
+    """Send beta visitors to the project's canonical account entrypoint."""
+    return RedirectResponse(
+        "https://phase.bytedance.city/auth/login",
+        status_code=308,
+    )
+
+
 @app.get("/phenomenon/{pid}")
 async def phenomenon_page(pid: str):
     return FileResponse(FRONTEND_DIR / "phenomenon.html")
