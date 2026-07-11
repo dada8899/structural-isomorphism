@@ -109,7 +109,7 @@ jobs:
         run: pytest v4/tests/integration -v -m "not slow and not requires_internet and not requires_llm"
 
   # ---------------------------------------------------------------------------
-  # 2) Packages: in-tree libs (soc-pipeline, guarded-llm, cross-judge)
+  # 2) Packages: all in-tree libraries.
   #    Single Python version — packages have their own internal matrix
   #    needs if they grow. Cached pip per-package.
   # ---------------------------------------------------------------------------
@@ -146,8 +146,14 @@ jobs:
       - name: Test cross-judge package
         run: |
           cd packages/cross-judge
-          pip install -e .[dev] || true
-          pytest tests/ -v -m "not slow" || true
+          pip install -e .[dev]
+          pytest tests/ -v -m "not slow"
+
+      - name: Test reject-aware-critic package
+        run: |
+          cd packages/reject-aware-critic
+          pip install -e .[dev]
+          pytest tests/ -v -m "not slow"
 
   # ---------------------------------------------------------------------------
   # 3) Frontend: Next.js (phase-detector). Lint + build smoke.
@@ -183,10 +189,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm run lint --if-present || true
+        run: pnpm lint
 
       - name: Build (smoke)
-        run: pnpm run build --if-present || true
+        run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
@@ -198,6 +204,7 @@ jobs:
   e2e:
     name: e2e (live, soft-fail)
     runs-on: ubuntu-latest
+    continue-on-error: true
     timeout-minutes: 12
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
     steps:
@@ -217,9 +224,8 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] || pip install pytest requests
-          pip install playwright || true
-          python -m playwright install --with-deps chromium || true
+          pip install pytest requests playwright
+          python -m playwright install --with-deps chromium
 
       - name: Run e2e (skip slow + requires_llm; soft-fail)
-        run: pytest tests/e2e -m "e2e and not slow and not requires_llm" -v || true
+        run: pytest tests/e2e -m "e2e and not slow and not requires_llm" -v

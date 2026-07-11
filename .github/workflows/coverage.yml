@@ -25,33 +25,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install coverage pytest httpx fastapi pydantic
-          pip install -e packages/soc-pipeline || true
-          pip install -e packages/cross-judge || true
-          pip install -e packages/guarded-llm || true
+          pip install -e packages/soc-pipeline
+          pip install -e packages/cross-judge
+          pip install -e packages/guarded-llm
+          pip install -e packages/reject-aware-critic
           # Backend deps for web/backend tests. main.py imports python-dotenv
           # + PyYAML (api.flags, W15-E) at module load — without them the
           # importlib.import_module("main") in test_ask_endpoint.py's ask_app
           # fixture raises ImportError, all 10 HTTP endpoint tests error, and
           # the per-file gate sees a stale 54.3% for web/backend/api/ask.py.
-          pip install slowapi python-dotenv pyyaml || true
+          pip install slowapi python-dotenv pyyaml
           # W14/W15 test-collection deps (pyjwt → test_auth,
           # structlog → test_correlation + test_structlog_format).
           # Without these, pytest fails at collection time and kills
           # the entire web/backend suite, including W11-A critical tests
           # like test_checkout_mock_w11a_coverage.
-          pip install 'pyjwt>=2.8' structlog || true
+          pip install 'pyjwt>=2.8' structlog
           # openai → cross-judge vendors tests (otherwise 2 fail but
           # suite continues).
-          pip install 'openai>=1.0' || true
+          pip install 'openai>=1.0'
           # SOC scientific deps + sklearn (embedding_bridge sanity).
-          pip install numpy scipy pandas powerlaw scikit-learn || true
+          pip install numpy scipy pandas powerlaw scikit-learn
       - name: Run coverage (split by suite, parallel files combined)
         run: |
           export PYTHONPATH=.
-          # --continue-on-collection-errors: don't let a single missing
-          # optional dep kill the entire suite (W11-A critical tests
-          # must always run even if newer W14/W15 deps are missing).
-          PYTEST_FLAGS="-q --tb=no --continue-on-collection-errors"
+          PYTEST_FLAGS="-q --tb=short"
           # Each suite gets `-p` (--parallel-mode) so .coverage data lands
           # in suite-specific `.coverage.<host>.<pid>.*` files instead of
           # overwriting `.coverage`. Without -p, sequential `coverage run`
@@ -61,16 +59,18 @@ jobs:
           # web/backend/api/ask.py (covered by web backend suite, then
           # overwritten by soc-pipeline run that only imports it).
           # Guarded-llm
-          python -m coverage run -p --rcfile=.coveragerc -m pytest packages/guarded-llm/tests/ $PYTEST_FLAGS || true
+          python -m coverage run -p --rcfile=.coveragerc -m pytest packages/guarded-llm/tests/ $PYTEST_FLAGS
           # Cross-judge
-          python -m coverage run -p --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ $PYTEST_FLAGS || true
+          python -m coverage run -p --rcfile=.coveragerc -m pytest packages/cross-judge/tests/ $PYTEST_FLAGS
+          # Reject-aware critic
+          python -m coverage run -p --rcfile=.coveragerc -m pytest packages/reject-aware-critic/tests/ $PYTEST_FLAGS
           # Web backend
-          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS || true
+          python -m coverage run -p --rcfile=.coveragerc -m pytest web/backend/tests/ $PYTEST_FLAGS
           # V4 sanity. soc-pipeline-primitives is covered separately by the
           # packages/soc-pipeline subset below (avoids double-counting), so
           # it's --ignore'd here. The PYTHONPATH shadow bug that previously
           # broke this test was fixed via v4/tests/conftest.py reordering.
-          python -m coverage run -p --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py $PYTEST_FLAGS || true
+          python -m coverage run -p --rcfile=.coveragerc -m pytest v4/tests/sanity --ignore=v4/tests/sanity/test_soc_pipeline_primitives.py $PYTEST_FLAGS
           # Soc-pipeline subset (skip slow LR/null/omori for CI speed)
           python -m coverage run -p --rcfile=.coveragerc -m pytest \
               packages/soc-pipeline/tests/test_utils.py \
@@ -80,7 +80,7 @@ jobs:
               packages/soc-pipeline/tests/test_universal_collapse.py \
               packages/soc-pipeline/tests/test_time_resolution.py \
               packages/soc-pipeline/tests/test_fit.py \
-              $PYTEST_FLAGS || true
+              $PYTEST_FLAGS
           python -m coverage combine --rcfile=.coveragerc
       - name: Coverage report
         run: |

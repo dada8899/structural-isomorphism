@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PYTEST := $(PY) -m pytest
 
-.PHONY: test test-unit test-integration test-e2e test-retrieval-contract test-all test-fast help
+.PHONY: test test-unit test-integration test-e2e test-retrieval-contract test-all test-fast verify-release help
 
 help:
 	@echo "Targets:"
@@ -11,6 +11,7 @@ help:
 	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-fast         test-unit + test-integration (no network)"
 	@echo "  test-all          Everything"
+	@echo "  verify-release    Authoritative offline release gate across backend, packages, retrieval, and Phase"
 	@echo "  test              Alias for test-fast"
 
 test: test-fast
@@ -32,3 +33,13 @@ test-fast:
 
 test-all:
 	$(PYTEST) -v
+
+verify-release:
+	$(MAKE) test-fast
+	cd web/backend && ../../$(PYTEST) -q
+	cd packages/guarded-llm && ../../$(PYTEST) tests -q
+	cd packages/cross-judge && ../../$(PYTEST) tests -q
+	cd packages/reject-aware-critic && ../../$(PYTEST) tests -q
+	cd packages/soc-pipeline && ../../$(PYTEST) tests -q -m "not slow"
+	$(MAKE) test-retrieval-contract
+	cd web/phase-detector && pnpm lint && pnpm build
