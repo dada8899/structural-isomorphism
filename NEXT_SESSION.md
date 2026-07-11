@@ -642,3 +642,51 @@ git diff --stat
 - 部署后生产 smoke `29162780942` success；beta/Phase 深度健康、搜索/OOS、597 demo provenance、认证关闭态与全部业务不变量通过。
 - CI 的 live soft-fail E2E 曾在 Phase 部署切换窗口捕获 `/company/AAPL` 单次 502；同 job 其余 28 项通过，部署后 smoke 未复现。route matrix 已增加最多 3 次有限 5xx 重试（1s/2s），持续失败仍 fail closed。
 - 本轮交付的代码级 P0/P1/P2 已完成；不可自动完成的剩余项只有真实人工标注/外部学术 review，以及账号侧可用 SMTP/已验证发信身份。注册登录必须继续关闭，直到具备真实私有配置并完成五项生产验收。
+
+## 21. 2026-07-12 多专家复审、证据安全与生产邮箱认证
+
+> 本节是当前最新权威状态，取代第 20 节“认证仍关闭”的状态。用户再次确认：context 接近 90% 前主动追加本文件；compact 后第一步完整重读。
+
+### 多角色复审结论
+
+- 资深 PM/UX：首发 ICP 收敛为研究密集型 PM/增长负责人；北极星建议 Weekly Verified Transfer Outcomes。发现 Phase 冻结 demo/NULL 回测与 alpha/本周信号冲突、beta 597/耗时/机制文案漂移、报告默认持久化隐私风险。
+- 资深 QA/安全：复现公共报告读者可伪造 `worked` followup 并污染 verified evidence；发现 Phase 隐私披露落后于邮箱账户、登出与收藏批量删除假成功、生产监控未覆盖认证开启态。
+- 资深研究员/复杂系统科学家：当前投稿 NO-GO；高价值路线应收缩为 reject-aware、可追溯的跨域 scaling 协议与负结果。发现 manuscript 强 claim 可绕过 ledger，以及 Schelling taxonomy REJECT 与稿件 PASS 冲突。
+
+### 已修复并推送
+
+- `6ae5042`：manuscript Abstract/Contributions 强 claim 与 ledger 双向 inventory/hash 门禁；新增 Schelling taxonomy/WTO submission-blocking conflict，强制排除 universality PASS 计数。
+- `c15cf2b`：有 owner 的报告只允许 owner followup；所有 verified/count/stuck/insights 证据聚合只接受 creator 自己的结果，DB 绕过攻击也不计入。
+- `0f90b57`：Phase 统一为 597 frozen demo + published NULL + 无预测能力；删除 alpha/本周翻转/可购买 Offer，Pricing 改未开放状态；beta 统一 597、2–3 分钟和机制仍需验证。
+- `2e2a657`：Phase 隐私页披露邮箱账户、token hash、SMTP、HttpOnly session；登出失败保留会话并提示；收藏部分删除不再假成功；生产认证开关启用。
+- `46494e9`：报告 persistence/share capability 默认关闭，用户生成前必须显式勾选保存与持链可读链接。
+- `16fb749`：生产 smoke 新增 Phase auth enabled/no-session 401 门禁；总请求数 52。
+
+### 本地验证
+
+- backend：`892 passed, 1 skipped`；owner/evidence/report/auth 目标集与对抗测试通过。
+- root：`299 passed, 31 deselected`。
+- 产品/研究契约：`24 passed`；production smoke unit：`13 passed`。
+- Phase lint 与 production build：29/29 routes。
+- `git diff --check`、Node syntax、Ruff、TypeScript 均通过。
+
+### Resend、DNS 与生产认证终态
+
+- Resend 域名 `auth.bytedance.city`：DKIM、SPF MX、SPF TXT 均 verified；区域 `ap-northeast-1`。
+- DNSPod 记录已创建：`resend._domainkey.auth` TXT、`send.auth` MX/TXT。
+- VPS 私有配置：`/root/.config/structural-isomorphism/phase-auth.env` mode 600；systemd EnvironmentFile 已加载；用户/会话数据在 `/var/lib/structural-isomorphism/auth`，位于 Git 外。
+- 生产仅保留 send-only Resend Key；两枚临时 Full Access Key 已通过 API 撤销，本机临时管理 secret 与验收文件已删除。
+- 真实验收：SMTP 测试邮件 delivered；Magic Link delivered；首次兑换 200；`/me` 200；token 重放 400；API 重启后会话仍 200；新增用户管理员通知 delivered。
+- SMTP 临时失败/outbox retry 由并发/失败单测覆盖，未故意破坏生产网络演示。
+
+### 部署与剩余运行项
+
+- beta deploy `29163928489` success；Phase deploy `29163928490` success；对应 CI、perf、types、docs 已 success，Coverage/sanity 长任务仍需看最新提交终态。
+- 最新 SHA `16fb749` 的 CI `29164150070`、Coverage `29164150101`、sanity `29164150068`、perf `29164150087` 正在运行；types `29164150086` success。
+- 最终 production smoke `29164170117` 已触发，必须等到 success；不得把运行中写成完成。
+
+### 后续仍需推进
+
+- 产品：候选选择前补结构匹配证据/反证/适用边界；报告列表升级为 Today/This week/Waiting/Completed；首值 p75<10s；真实 ICP 15–20 个任务。
+- 研究：594 expanded candidates 需真实多标注者；WTO cluster bootstrap/LOO/Firth或Bayesian sensitivity与独立双人编码；外部复杂系统统计 reviewer。
+- QA：真实 Next + API 的 auth/favorites 浏览器链路、375/390 移动键盘/axe 矩阵、Phase 全控件行为 inventory；静态 154 controls 不得宣称等价于每个按钮行为已验证。
