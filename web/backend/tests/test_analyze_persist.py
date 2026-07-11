@@ -39,6 +39,42 @@ _FULL_REPORT = {
 }
 
 
+def test_confirmed_fingerprint_schema_accepts_and_normalizes():
+    from api.analyze import _parse_fingerprint
+
+    raw = json.dumps({
+        "source_query": "为什么团队恢复很慢？",
+        "summary": " 团队在冲突后恢复速度持续下降 ",
+        "variables": [" 信任 ", "反馈延迟"],
+        "constraints": ["两周内"],
+        "unknowns": [],
+        "revision": 2,
+    })
+    parsed = _parse_fingerprint(raw, "为什么团队恢复很慢？")
+    assert parsed == {
+        "summary": "团队在冲突后恢复速度持续下降",
+        "variables": ["信任", "反馈延迟"],
+        "constraints": ["两周内"],
+        "unknowns": [],
+        "revision": 2,
+        "provenance": "user_confirmed",
+    }
+
+
+@pytest.mark.parametrize("payload", [
+    {"source_query": "q", "summary": "too short", "variables": [], "extra": True},
+    {"source_query": "wrong", "summary": "long enough summary", "variables": []},
+    {"source_query": "q", "summary": "long enough summary", "variables": ["x" * 121]},
+])
+def test_confirmed_fingerprint_schema_rejects_drift(payload):
+    from api.analyze import _parse_fingerprint
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc:
+        _parse_fingerprint(json.dumps(payload), "q")
+    assert exc.value.status_code == 422
+
+
 # --------- mocks --------- #
 
 

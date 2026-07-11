@@ -30,6 +30,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import secrets
 import sqlite3
 from pathlib import Path
@@ -124,6 +125,8 @@ CREATE TABLE IF NOT EXISTS report_followup (
     -- outcome ∈ '' (not reported yet) | worked | partial | no_effect | too_early
     outcome     TEXT NOT NULL DEFAULT '',
     note        TEXT,
+    experiment_json TEXT,
+    outcome_detail_json TEXT,
     created_at  TEXT NOT NULL,
     updated_at  TEXT NOT NULL,
     FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
@@ -216,6 +219,7 @@ class ReportStore:
                 # step is a no-op (PRAGMA returns nothing) and `_SCHEMA`
                 # creates everything from scratch.
                 self._migrate_reports_columns(conn)
+                self._migrate_followup_columns(conn)
                 conn.executescript(_SCHEMA)
         except sqlite3.Error as e:
             logger.exception("report_store schema init failed: %s", e)
@@ -244,6 +248,18 @@ class ReportStore:
                     "adding via ALTER TABLE (schema drift self-heal)", col,
                 )
                 conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {col_def}")
+
+    def _migrate_followup_columns(self, conn: sqlite3.Connection) -> None:
+        """Add structured workbench fields to pre-workbench databases."""
+        existing = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(report_followup)").fetchall()
+        }
+        if not existing:
+            return
+        for col in ("experiment_json", "outcome_detail_json"):
+            if col not in existing:
+                conn.execute(f"ALTER TABLE report_followup ADD COLUMN {col} TEXT")
 
     # ------ create / read ------------------------------------------- #
 
@@ -589,6 +605,96 @@ class ReportStore:
     # lands in the DB. The API layer validates too (defence in depth).
     ACTION_STATUSES = ("planned", "in_progress", "tried", "abandoned")
     OUTCOMES = ("", "worked", "partial", "no_effect", "too_early")
+    EXPERIMENT_STATUSES = (
+        "planned", "in_progress", "completed", "stopped", "abandoned",
+    )
+    EXPERIMENT_TRANSITIONS = {
+        "planned": {"planned", "in_progress", "abandoned"},
+        "in_progress": {"in_progress", "completed", "stopped", "abandoned"},
+        "completed": {"completed"},
+        "stopped": {"stopped"},
+        "abandoned": {"abandoned"},
+    }
+    RESULT_VALUES = ("success", "partial", "failure", "inconclusive")
+    DECISION_VALUES = ("iterate", "scale", "stop", "retest")
+    STATUS_TO_ACTION = {
+        "planned": "planned",
+        "in_progress": "in_progress",
+        "completed": "tried",
+        "stopped": "abandoned",
+        "abandoned": "abandoned",
+    }
+    RESULT_TO_OUTCOME = {
+        "success": "worked",
+        "partial": "partial",
+        "failure": "no_effect",
+        "inconclusive": "too_early",
+    }
+
+    @staticmethod
+    def _validate_text(value: Any, field: str, limit: int, *, required=False) -> None:
+        if value is None and not required:
+            return
+        if not isinstance(value, str) or (required and not value.strip()):
+            raise ValueError(f"{field} must be a non-empty string")
+        if len(value) > limit:
+            raise ValueError(f"{field} must be at most {limit} characters")
+
+    def _validate_experiment(self, experiment: Optional[dict]) -> None:
+        if experiment is None:
+            return
+        if not isinstance(experiment, dict):
+            raise ValueError("experiment must be an object")
+        allowed = {
+            "hypothesis", "owner", "deadline", "baseline", "primary_metric",
+            "success_threshold", "stop_condition", "status", "notes",
+        }
+        if set(experiment) - allowed:
+            raise ValueError("experiment contains unknown fields")
+        self._validate_text(experiment.get("hypothesis"), "hypothesis", 2000, required=True)
+        self._validate_text(experiment.get("owner"), "owner", 120)
+        self._validate_text(experiment.get("primary_metric"), "primary_metric", 200)
+        self._validate_text(experiment.get("stop_condition"), "stop_condition", 1000)
+        self._validate_text(experiment.get("notes"), "experiment.notes", 4000)
+        deadline = experiment.get("deadline")
+        if deadline is not None:
+            if not isinstance(deadline, str) or not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}", deadline
+            ):
+                raise ValueError("deadline must be YYYY-MM-DD")
+            try:
+                _dt.date.fromisoformat(deadline)
+            except ValueError as exc:
+                raise ValueError("deadline must be a valid calendar date") from exc
+        for field in ("baseline", "success_threshold"):
+            value = experiment.get(field)
+            if value is not None and (not isinstance(value, (int, float)) or isinstance(value, bool)):
+                raise ValueError(f"{field} must be a number")
+        if experiment.get("status", "planned") not in self.EXPERIMENT_STATUSES:
+            raise ValueError(f"experiment.status must be one of {self.EXPERIMENT_STATUSES}")
+
+    def _validate_outcome_detail(self, detail: Optional[dict]) -> None:
+        if detail is None:
+            return
+        if not isinstance(detail, dict):
+            raise ValueError("outcome_detail must be an object")
+        allowed = {
+            "actual_metric", "result", "failure_reason", "learning", "next_decision",
+        }
+        if set(detail) - allowed:
+            raise ValueError("outcome_detail contains unknown fields")
+        actual = detail.get("actual_metric")
+        if actual is not None and (not isinstance(actual, (int, float)) or isinstance(actual, bool)):
+            raise ValueError("actual_metric must be a number")
+        result = detail.get("result")
+        if result not in (None, *self.RESULT_VALUES):
+            raise ValueError(f"result must be one of {self.RESULT_VALUES}")
+        if detail.get("next_decision") not in (None, *self.DECISION_VALUES):
+            raise ValueError(f"next_decision must be one of {self.DECISION_VALUES}")
+        self._validate_text(detail.get("failure_reason"), "failure_reason", 2000)
+        self._validate_text(detail.get("learning"), "learning", 4000)
+        if result == "failure" and not (detail.get("failure_reason") or "").strip():
+            raise ValueError("failure_reason is required when result is failure")
 
     def record_followup(
         self,
@@ -598,6 +704,8 @@ class ReportStore:
         action_status: str,
         outcome: str = "",
         note: Optional[str] = None,
+        experiment: Optional[dict] = None,
+        outcome_detail: Optional[dict] = None,
     ) -> dict:
         """Idempotent upsert of a revisit record on (report_id, anon_id).
 
@@ -611,34 +719,102 @@ class ReportStore:
         outcome = outcome or ""
         if outcome not in self.OUTCOMES:
             raise ValueError(f"outcome must be one of {self.OUTCOMES}")
+        self._validate_text(note, "note", 2000)
         anon_norm = anon_id if anon_id else "anon"
         now = _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         with self._connect() as conn:
+            previous = conn.execute(
+                "SELECT experiment_json, outcome_detail_json FROM report_followup "
+                "WHERE report_id = ? AND anon_id = ?",
+                (report_id, anon_norm),
+            ).fetchone()
+            old = (
+                json.loads(previous["experiment_json"])
+                if previous and previous["experiment_json"] else None
+            )
+            old_outcome_detail = (
+                json.loads(previous["outcome_detail_json"])
+                if previous and previous["outcome_detail_json"] else None
+            )
+            merged_experiment = (
+                {**(old or {}), **experiment} if experiment is not None else old
+            )
+            merged_outcome_detail = (
+                {**(old_outcome_detail or {}), **outcome_detail}
+                if outcome_detail is not None else old_outcome_detail
+            )
+            self._validate_experiment(merged_experiment)
+            self._validate_outcome_detail(merged_outcome_detail)
+            if old is not None and experiment is not None:
+                old_status = old.get("status", "planned")
+                new_status = merged_experiment.get("status", "planned")
+                if new_status not in self.EXPERIMENT_TRANSITIONS[old_status]:
+                    raise ValueError(
+                        f"invalid experiment status transition: {old_status} -> {new_status}"
+                    )
+            effective_experiment = merged_experiment
+            if outcome_detail is not None and (
+                effective_experiment is None
+                or effective_experiment.get("status", "planned")
+                not in {"completed", "stopped"}
+            ):
+                raise ValueError(
+                    "outcome_detail requires a completed or stopped experiment"
+                )
+            if effective_experiment is not None:
+                expected_action = self.STATUS_TO_ACTION[
+                    effective_experiment.get("status", "planned")
+                ]
+                if action_status != expected_action:
+                    raise ValueError(
+                        "action_status conflicts with experiment.status: "
+                        f"expected {expected_action!r}"
+                    )
+            if merged_outcome_detail is not None and merged_outcome_detail.get("result"):
+                expected_outcome = self.RESULT_TO_OUTCOME[
+                    merged_outcome_detail["result"]
+                ]
+                if outcome != expected_outcome:
+                    raise ValueError(
+                        "outcome conflicts with outcome_detail.result: "
+                        f"expected {expected_outcome!r}"
+                    )
             # created_at is set on first insert only; the upsert keeps it.
             conn.execute(
                 """
                 INSERT INTO report_followup (
                     report_id, anon_id, action_status, outcome, note,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    experiment_json, outcome_detail_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(report_id, anon_id) DO UPDATE SET
                     action_status = excluded.action_status,
                     outcome = excluded.outcome,
                     note = excluded.note,
+                    experiment_json = COALESCE(
+                        excluded.experiment_json, report_followup.experiment_json
+                    ),
+                    outcome_detail_json = COALESCE(
+                        excluded.outcome_detail_json, report_followup.outcome_detail_json
+                    ),
                     updated_at = excluded.updated_at
                 """,
-                (report_id, anon_norm, action_status, outcome, note, now, now),
+                (report_id, anon_norm, action_status, outcome, note,
+                 json.dumps(merged_experiment, ensure_ascii=False)
+                 if experiment is not None else None,
+                 json.dumps(merged_outcome_detail, ensure_ascii=False)
+                 if outcome_detail is not None else None,
+                 now, now),
             )
             row = conn.execute(
                 """
                 SELECT report_id, anon_id, action_status, outcome, note,
-                       created_at, updated_at
+                       experiment_json, outcome_detail_json, created_at, updated_at
                 FROM report_followup
                 WHERE report_id = ? AND anon_id = ?
                 """,
                 (report_id, anon_norm),
             ).fetchone()
-        return dict(row) if row else {}
+        return self._followup_row(row) or {}
 
     def get_followup(
         self, report_id: str, anon_id: Optional[str],
@@ -649,13 +825,28 @@ class ReportStore:
             row = conn.execute(
                 """
                 SELECT report_id, anon_id, action_status, outcome, note,
-                       created_at, updated_at
+                       experiment_json, outcome_detail_json, created_at, updated_at
                 FROM report_followup
                 WHERE report_id = ? AND anon_id = ?
                 """,
                 (report_id, anon_norm),
             ).fetchone()
-        return dict(row) if row else None
+        return self._followup_row(row)
+
+    @staticmethod
+    def _followup_row(row: Optional[sqlite3.Row]) -> Optional[dict]:
+        if row is None:
+            return None
+        result = dict(row)
+        result["experiment"] = (
+            json.loads(result.pop("experiment_json"))
+            if result.get("experiment_json") else None
+        )
+        result["outcome_detail"] = (
+            json.loads(result.pop("outcome_detail_json"))
+            if result.get("outcome_detail_json") else None
+        )
+        return result
 
     # ------ internals --------------------------------------------- #
 

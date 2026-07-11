@@ -72,6 +72,50 @@ def _looks_like_question(text: str) -> bool:
     return any(m in text for m in markers)
 
 
+def _parse_fingerprint(raw: Optional[str], expected_query: Optional[str]) -> Optional[dict]:
+    """Validate the user-confirmed structure before it enters report storage."""
+    if not raw:
+        return None
+    try:
+        value = _json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, "Invalid fingerprint JSON") from exc
+    if not isinstance(value, dict):
+        raise HTTPException(422, "Fingerprint must be an object")
+    allowed = {"source_query", "summary", "variables", "constraints", "unknowns", "revision"}
+    if set(value) - allowed:
+        raise HTTPException(422, "Fingerprint contains unknown fields")
+    source_query = value.get("source_query")
+    if expected_query and source_query != expected_query:
+        raise HTTPException(422, "Fingerprint does not match this question")
+    summary = value.get("summary")
+    if not isinstance(summary, str) or not 8 <= len(summary.strip()) <= 1000:
+        raise HTTPException(422, "Fingerprint summary must be 8-1000 characters")
+
+    def clean_list(name: str) -> list[str]:
+        items = value.get(name, [])
+        if not isinstance(items, list) or len(items) > 12:
+            raise HTTPException(422, f"Fingerprint {name} must be a list of at most 12 items")
+        cleaned = []
+        for item in items:
+            if not isinstance(item, str) or not item.strip() or len(item.strip()) > 120:
+                raise HTTPException(422, f"Invalid fingerprint {name} item")
+            cleaned.append(item.strip())
+        return cleaned
+
+    revision = value.get("revision", 1)
+    if not isinstance(revision, int) or not 1 <= revision <= 1000:
+        raise HTTPException(422, "Invalid fingerprint revision")
+    return {
+        "summary": summary.strip(),
+        "variables": clean_list("variables"),
+        "constraints": clean_list("constraints"),
+        "unknowns": clean_list("unknowns"),
+        "revision": revision,
+        "provenance": "user_confirmed",
+    }
+
+
 def _query_cache_key(text: str, b_id: str, lang: str = "zh") -> str:
     """For query-mode caching, use a hash of the (query, b_id, lang) tuple.
 
@@ -113,6 +157,11 @@ async def stream_analyze(
             "(used by the frontend) can not set custom headers. Falls back "
             "to the X-Anon-Id header for callers using fetch + ReadableStream."
         ),
+    ),
+    fingerprint: Optional[str] = Query(
+        None,
+        max_length=4096,
+        description="User-confirmed structural fingerprint JSON for query mode.",
     ),
 ):
     # Auth tier classification — None means token was provided but invalid.
@@ -225,6 +274,7 @@ async def stream_analyze(
         or None
     )
     creator_tier = tier if isinstance(tier, str) else None
+    confirmed_fingerprint = _parse_fingerprint(fingerprint, user_query)
     # ASK_MODEL is imported from ask_orchestrator (single source of truth);
     # it already honours the ASK_LLM_MODEL env override.
     ask_model = ASK_MODEL
@@ -249,7 +299,11 @@ async def stream_analyze(
                 # reserved key so saved/shared reports can render the moat
                 # badge too. renderFinalReport ignores non-section keys;
                 # _detail_dict lifts it back to a top-level field on read.
-                payload={**report, "_credibility": credibility},
+                payload={
+                    **report,
+                    "_credibility": credibility,
+                    **({"_fingerprint": confirmed_fingerprint} if confirmed_fingerprint else {}),
+                },
                 model=ask_model,
                 prompt_version="v1",
                 creator_anon_id=anon_id_raw,
@@ -327,6 +381,7 @@ async def stream_analyze(
             "is_query_mode": user_query is not None,
             # V4 — honest credibility data (see block above for what's real).
             "credibility": credibility,
+            "fingerprint": confirmed_fingerprint,
         })
 
         # Launch P1-3 — out-of-scope gate for query mode. The deep-report

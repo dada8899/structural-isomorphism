@@ -343,3 +343,84 @@ def test_followup_rejects_bad_outcome(client, isolated_store, sample_payload):
         json={"action_status": "tried", "outcome": "exploded"},
     )
     assert r.status_code == 400
+
+
+def test_followup_structured_experiment_lifecycle(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    url = f"/api/report/{out['id']}/followup"
+    headers = {"X-Anon-Id": "workbench-user"}
+    planned = client.post(url, headers=headers, json={
+        "action_status": "planned",
+        "experiment": {
+            "hypothesis": "Onboarding examples improve activation",
+            "owner": "researcher",
+            "deadline": "2026-08-01",
+            "baseline": 0.2,
+            "primary_metric": "activation_rate",
+            "success_threshold": 0.3,
+            "stop_condition": "500 users",
+            "status": "planned",
+            "notes": "Use a holdout",
+        },
+    })
+    assert planned.status_code == 200
+    assert planned.json()["experiment"]["primary_metric"] == "activation_rate"
+
+    running = client.post(url, headers=headers, json={
+        "action_status": "in_progress",
+        "experiment": {
+            "status": "in_progress",
+        },
+    })
+    assert running.status_code == 200
+    completed = client.post(url, headers=headers, json={
+        "action_status": "tried",
+        "outcome": "worked",
+        "experiment": {
+            "status": "completed",
+        },
+        "outcome_detail": {
+            "actual_metric": 0.34,
+            "result": "success",
+            "learning": "Examples reduced uncertainty",
+            "next_decision": "scale",
+        },
+    })
+    assert completed.status_code == 200
+    assert completed.json()["experiment"]["owner"] == "researcher"
+    assert completed.json()["experiment"]["deadline"] == "2026-08-01"
+    assert completed.json()["outcome_detail"]["result"] == "success"
+    got = client.get(url, headers=headers).json()["followup"]
+    assert got["experiment"]["status"] == "completed"
+    assert got["outcome_detail"]["actual_metric"] == 0.34
+
+
+@pytest.mark.parametrize("body", [
+    {"action_status": "planned", "experiment": {"hypothesis": ""}},
+    {"action_status": "planned", "experiment": {"hypothesis": "h", "extra": 1}},
+    {"action_status": "planned", "experiment": {"hypothesis": "h", "deadline": "tomorrow"}},
+    {"action_status": "tried", "outcome_detail": {"result": "maybe"}},
+])
+def test_followup_rejects_invalid_structured_payload(
+    client, isolated_store, sample_payload, body,
+):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    r = client.post(f"/api/report/{out['id']}/followup", json=body)
+    assert r.status_code == 422
+
+
+def test_followup_api_rejects_conflicting_state(client, isolated_store, sample_payload):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+    )
+    r = client.post(f"/api/report/{out['id']}/followup", json={
+        "action_status": "abandoned",
+        "outcome": "worked",
+        "experiment": {"hypothesis": "h", "status": "in_progress"},
+    })
+    assert r.status_code == 400
+    assert "conflicts" in r.json()["detail"]

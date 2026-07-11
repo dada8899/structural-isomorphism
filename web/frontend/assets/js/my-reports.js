@@ -48,10 +48,16 @@
     if (item && item.followup_outcome === 'worked') {
       return '<span class="myr-card__badge myr-card__badge--verified">已验证</span>';
     }
-    if (item && !item.has_followup) {
-      return '<span class="myr-card__badge myr-card__badge--todo">未回访</span>';
+    if (item && item.followup_outcome === 'partial') {
+      return '<span class="myr-card__badge myr-card__badge--verified">部分有效</span>';
     }
-    return '';
+    if (item && (item.followup_outcome === 'no_effect' || item.followup_status === 'abandoned')) {
+      return '<span class="myr-card__badge myr-card__badge--todo">无效</span>';
+    }
+    if (item && item.followup_status === 'in_progress') {
+      return '<span class="myr-card__badge myr-card__badge--todo">进行中</span>';
+    }
+    return '<span class="myr-card__badge myr-card__badge--todo">待回访</span>';
   }
 
   function cardHtml(item) {

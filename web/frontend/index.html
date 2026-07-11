@@ -189,6 +189,38 @@
         </div>
       </form>
 
+      <section class="ask-fingerprint" id="ask-fingerprint" aria-labelledby="ask-fingerprint-title" hidden>
+        <div class="ask-fingerprint__head">
+          <div>
+            <p class="ask-fingerprint__eyebrow">步骤 1 / 2 · 确认问题结构</p>
+            <h2 id="ask-fingerprint-title">先确认系统理解对了</h2>
+          </div>
+          <button type="button" class="ask-fingerprint__close" id="ask-fingerprint-cancel" aria-label="取消结构确认">×</button>
+        </div>
+        <label class="ask-fingerprint__field">
+          <span>问题摘要</span>
+          <textarea id="ask-fingerprint-summary" rows="3" maxlength="1000"></textarea>
+        </label>
+        <div class="ask-fingerprint__grid">
+          <label class="ask-fingerprint__field">
+            <span>关键变量 <small>用逗号分隔，可留空</small></span>
+            <input id="ask-fingerprint-variables" maxlength="500" placeholder="例如：流失率、激励、反馈延迟">
+          </label>
+          <label class="ask-fingerprint__field">
+            <span>约束条件 <small>可留空</small></span>
+            <input id="ask-fingerprint-constraints" maxlength="500" placeholder="例如：两周内、不能改价格">
+          </label>
+        </div>
+        <label class="ask-fingerprint__field">
+          <span>未知项 <small>明确不知道什么，避免模型假设</small></span>
+          <input id="ask-fingerprint-unknowns" maxlength="500" placeholder="例如：流失发生在哪个用户阶段">
+        </label>
+        <div class="ask-fingerprint__actions">
+          <span id="ask-fingerprint-error" role="alert" aria-live="polite"></span>
+          <button type="button" class="btn btn--primary" id="ask-fingerprint-confirm">确认结构，查找候选</button>
+        </div>
+      </section>
+
       <p class="ask-empty__hint">约 2–3 分钟，AI 会逐段推演 · 报告分段逐步出现</p>
 
       <div class="ask-empty__examples">

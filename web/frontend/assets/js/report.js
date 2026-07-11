@@ -119,6 +119,26 @@
     { v: 'no_effect', label: '没效果' },
     { v: 'too_early', label: '还太早' },
   ];
+  const EXPERIMENT_STATUS = [
+    { v: 'planned', label: '待开始' },
+    { v: 'in_progress', label: '进行中' },
+    { v: 'completed', label: '已完成' },
+    { v: 'stopped', label: '已停止' },
+    { v: 'abandoned', label: '已放弃' },
+  ];
+  const EXPERIMENT_TRANSITIONS = {
+    planned: ['planned', 'in_progress', 'abandoned'],
+    in_progress: ['in_progress', 'completed', 'stopped', 'abandoned'],
+    completed: ['completed'], stopped: ['stopped'], abandoned: ['abandoned'],
+  };
+  const RESULT_OPTIONS = [
+    { v: 'success', label: '成功' }, { v: 'partial', label: '部分成功' },
+    { v: 'failure', label: '失败' }, { v: 'inconclusive', label: '无法判定' },
+  ];
+  const DECISION_OPTIONS = [
+    { v: 'iterate', label: '迭代' }, { v: 'scale', label: '扩大' },
+    { v: 'stop', label: '停止' }, { v: 'retest', label: '重测' },
+  ];
 
   function anonHeaders() {
     let anonId = '';
@@ -143,31 +163,50 @@
     const curStatus = st.action_status || '';
     const curOutcome = st.outcome || '';
     const curNote = st.note || '';
-    // Outcome only matters once the user has actually tried.
-    const showOutcome = curStatus === 'tried' || curStatus === 'in_progress';
-
+    const exp = st.experiment || {};
+    const detail = st.outcome_detail || {};
+    const expStatus = exp.status || 'planned';
+    const allowedStatuses = EXPERIMENT_TRANSITIONS[expStatus] || [expStatus];
     const chip = (group, opt, selected) => `
       <button type="button" class="rf-chip${selected ? ' rf-chip--on' : ''}"
-              data-group="${group}" data-value="${opt.v}">${escapeHtml(opt.label)}</button>`;
+              data-group="${group}" data-value="${opt.v}" aria-pressed="${selected ? 'true' : 'false'}">${escapeHtml(opt.label)}</button>`;
 
     panel.innerHTML = `
       <div class="report-followup__head">
-        <h3 class="report-followup__title">我试过了吗 · 结果如何</h3>
-        <p class="report-followup__sub">记一笔。下次回到这份报告时，能看到你当时做到哪一步。</p>
+        <h3 class="report-followup__title">验证这次迁移</h3>
+        <p class="report-followup__sub">把建议变成一个可检验的最小实验，并记录真实结果。内容只保存在这份报告中。</p>
       </div>
       ${st.action_status ? `<div class="report-followup__saved" id="rf-saved-hint">上次记录：${escapeHtml((FOLLOWUP_STATUS.find(x => x.v === curStatus) || {}).label || curStatus)}${curOutcome ? ' · ' + escapeHtml((FOLLOWUP_OUTCOME.find(x => x.v === curOutcome) || {}).label || curOutcome) : ''}</div>` : ''}
-      <div class="report-followup__field">
-        <span class="report-followup__label">进展</span>
-        <div class="rf-chips" id="rf-status">
-          ${FOLLOWUP_STATUS.map(o => chip('status', o, o.v === curStatus)).join('')}
+      <fieldset class="report-experiment">
+        <legend>最小实验</legend>
+        <div class="report-form-grid">
+          <label class="report-form-field report-form-field--wide"><span>假设 <b aria-hidden="true">*</b></span><textarea id="rf-hypothesis" maxlength="2000" rows="2" placeholder="如果采用这个迁移方法，那么……">${escapeHtml(exp.hypothesis || '')}</textarea></label>
+          <label class="report-form-field"><span>负责人</span><input id="rf-owner" maxlength="120" value="${escapeHtml(exp.owner || '')}" placeholder="姓名或角色"></label>
+          <label class="report-form-field"><span>截止日期</span><input id="rf-deadline" type="date" value="${escapeHtml(exp.deadline || '')}"></label>
+          <label class="report-form-field"><span>基线值</span><input id="rf-baseline" type="number" step="any" inputmode="decimal" value="${exp.baseline == null ? '' : escapeHtml(exp.baseline)}" placeholder="例如 0.31"></label>
+          <label class="report-form-field"><span>核心指标</span><input id="rf-metric" maxlength="200" value="${escapeHtml(exp.primary_metric || '')}" placeholder="例如完成率"></label>
+          <label class="report-form-field"><span>成功阈值</span><input id="rf-threshold" type="number" step="any" inputmode="decimal" value="${exp.success_threshold == null ? '' : escapeHtml(exp.success_threshold)}" placeholder="例如 0.40"></label>
+          <label class="report-form-field"><span>停止条件</span><input id="rf-stop" maxlength="1000" value="${escapeHtml(exp.stop_condition || '')}" placeholder="例如达到 1000 次曝光"></label>
+          <label class="report-form-field report-form-field--wide"><span>实验备注</span><textarea id="rf-exp-notes" maxlength="4000" rows="2" placeholder="分组、样本或其他约束">${escapeHtml(exp.notes || '')}</textarea></label>
         </div>
-      </div>
-      <div class="report-followup__field" id="rf-outcome-field" ${showOutcome ? '' : 'hidden'}>
-        <span class="report-followup__label">结果</span>
-        <div class="rf-chips" id="rf-outcome">
-          ${FOLLOWUP_OUTCOME.map(o => chip('outcome', o, o.v === curOutcome)).join('')}
+        <div class="report-followup__field">
+          <span class="report-followup__label" id="rf-exp-status-label">实验状态</span>
+          <div class="rf-chips" id="rf-exp-status" role="group" aria-labelledby="rf-exp-status-label">
+            ${EXPERIMENT_STATUS.filter(o => allowedStatuses.includes(o.v)).map(o => chip('experiment-status', o, o.v === expStatus)).join('')}
+          </div>
+          ${['completed', 'stopped', 'abandoned'].includes(expStatus) ? '<p class="report-form-hint">终态保存后不可退回，确保结果已核实。</p>' : ''}
         </div>
-      </div>
+      </fieldset>
+      <fieldset class="report-outcome" id="rf-detail-field" ${['completed', 'stopped'].includes(expStatus) ? '' : 'hidden'}>
+        <legend>实验结果</legend>
+        <div class="report-form-grid">
+          <label class="report-form-field"><span>实际指标值</span><input id="rf-actual" type="number" step="any" inputmode="decimal" value="${detail.actual_metric == null ? '' : escapeHtml(detail.actual_metric)}"></label>
+          <label class="report-form-field"><span>结果判定</span><select id="rf-result"><option value="">请选择</option>${RESULT_OPTIONS.map(o => `<option value="${o.v}"${detail.result === o.v ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>
+          <label class="report-form-field report-form-field--wide" id="rf-failure-wrap" ${detail.result === 'failure' ? '' : 'hidden'}><span>失败原因 <b aria-hidden="true">*</b></span><textarea id="rf-failure" maxlength="2000" rows="2">${escapeHtml(detail.failure_reason || '')}</textarea></label>
+          <label class="report-form-field report-form-field--wide"><span>学到了什么</span><textarea id="rf-learning" maxlength="4000" rows="2">${escapeHtml(detail.learning || '')}</textarea></label>
+          <label class="report-form-field"><span>下一步决策</span><select id="rf-decision"><option value="">请选择</option>${DECISION_OPTIONS.map(o => `<option value="${o.v}"${detail.next_decision === o.v ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>
+        </div>
+      </fieldset>
       <div class="report-followup__field">
         <span class="report-followup__label">备注 <span class="report-followup__optional">选填</span></span>
         <textarea class="report-followup__note" id="rf-note" rows="2" maxlength="2000"
@@ -180,7 +219,7 @@
     `;
 
     // Local selection state (seeded from server).
-    const sel = { status: curStatus, outcome: curOutcome };
+    const sel = { experimentStatus: expStatus };
 
     panel.querySelectorAll('.rf-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -188,31 +227,77 @@
         const value = btn.dataset.value;
         // Toggle within group — clicking the active chip clears it.
         const wasOn = btn.classList.contains('rf-chip--on');
+        if (group === 'experiment-status' && wasOn) return;
         panel.querySelectorAll(`.rf-chip[data-group="${group}"]`)
-          .forEach(b => b.classList.remove('rf-chip--on'));
-        if (!wasOn) btn.classList.add('rf-chip--on');
+          .forEach(b => { b.classList.remove('rf-chip--on'); b.setAttribute('aria-pressed', 'false'); });
+        if (!wasOn) { btn.classList.add('rf-chip--on'); btn.setAttribute('aria-pressed', 'true'); }
         sel[group] = wasOn ? '' : value;
-        // Show/hide the outcome field based on status.
-        if (group === 'status') {
-          const of = document.getElementById('rf-outcome-field');
-          const reveal = sel.status === 'tried' || sel.status === 'in_progress';
-          if (of) of.hidden = !reveal;
+        if (group === 'experiment-status') {
+          sel.experimentStatus = wasOn ? expStatus : value;
+          const df = document.getElementById('rf-detail-field');
+          if (df) df.hidden = !['completed', 'stopped'].includes(sel.experimentStatus);
         }
       });
+    });
+
+    const resultSelect = document.getElementById('rf-result');
+    if (resultSelect) resultSelect.addEventListener('change', () => {
+      const wrap = document.getElementById('rf-failure-wrap');
+      if (wrap) wrap.hidden = resultSelect.value !== 'failure';
     });
 
     const submitBtn = document.getElementById('rf-submit');
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
         const msg = document.getElementById('rf-msg');
-        if (!sel.status) {
-          if (msg) { msg.textContent = '先选一个进展'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+        const value = (id) => ((document.getElementById(id) || {}).value || '').trim();
+        const hypothesis = value('rf-hypothesis');
+        if (!hypothesis) {
+          if (msg) { msg.textContent = '请先写明可验证的假设'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+          const field = document.getElementById('rf-hypothesis'); if (field) field.focus();
           return;
         }
+        const numberOrNull = (id) => {
+          const raw = value(id);
+          if (raw === '') return null;
+          const parsed = Number(raw);
+          return Number.isFinite(parsed) ? parsed : NaN;
+        };
+        const experiment = { hypothesis: hypothesis, status: sel.experimentStatus };
+        [['owner', 'rf-owner'], ['deadline', 'rf-deadline'], ['primary_metric', 'rf-metric'], ['stop_condition', 'rf-stop'], ['notes', 'rf-exp-notes']].forEach(([key, id]) => { experiment[key] = value(id) || null; });
+        experiment.baseline = numberOrNull('rf-baseline');
+        experiment.success_threshold = numberOrNull('rf-threshold');
         const note = (document.getElementById('rf-note') || {}).value || '';
-        const body = { action_status: sel.status };
-        if (sel.outcome) body.outcome = sel.outcome;
-        if (note.trim()) body.note = note.trim().slice(0, 2000);
+        const actionByExperiment = { planned: 'planned', in_progress: 'in_progress', completed: 'tried', stopped: 'abandoned', abandoned: 'abandoned' };
+        const body = { action_status: actionByExperiment[sel.experimentStatus], experiment: experiment };
+        body.note = note.trim().slice(0, 2000) || null;
+        if (['completed', 'stopped'].includes(sel.experimentStatus)) {
+          const outcomeDetail = {
+            actual_metric: numberOrNull('rf-actual'),
+            result: value('rf-result') || null,
+            failure_reason: value('rf-result') === 'failure' ? (value('rf-failure') || null) : null,
+            learning: value('rf-learning') || null,
+            next_decision: value('rf-decision') || null,
+          };
+          if (outcomeDetail.result === 'failure' && !outcomeDetail.failure_reason) {
+            if (msg) { msg.textContent = '结果为失败时，请记录失败原因'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+            const field = document.getElementById('rf-failure'); if (field) field.focus();
+            return;
+          }
+          if (!outcomeDetail.result) {
+            if (msg) { msg.textContent = '请先选择实验结果判定'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+            const field = document.getElementById('rf-result'); if (field) field.focus();
+            return;
+          }
+          body.outcome_detail = outcomeDetail;
+          body.outcome = { success: 'worked', partial: 'partial', failure: 'no_effect', inconclusive: 'too_early' }[outcomeDetail.result];
+        }
+
+        if ([experiment.baseline, experiment.success_threshold,
+          body.outcome_detail && body.outcome_detail.actual_metric].some(Number.isNaN)) {
+          if (msg) { msg.textContent = '指标值必须是有效数字'; msg.className = 'report-followup__msg report-followup__msg--err'; }
+          return;
+        }
 
         submitBtn.disabled = true;
         if (msg) { msg.textContent = '保存中…'; msg.className = 'report-followup__msg'; }
@@ -223,10 +308,11 @@
           body: JSON.stringify(body),
         })
           .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
-          .then(() => {
+          .then((saved) => {
             submitBtn.disabled = false;
             if (msg) { msg.textContent = '已保存'; msg.className = 'report-followup__msg report-followup__msg--ok'; }
-            trackPlausible('Report Followup', { action_status: sel.status, outcome: sel.outcome || 'none' });
+            window.setTimeout(() => renderFollowup(reportId, saved), 350);
+            trackPlausible('Report Followup', { action_status: body.action_status, outcome: body.outcome || 'none' });
           })
           .catch((err) => {
             console.warn('[report] followup save failed:', err);
@@ -296,7 +382,7 @@
         '<span class="report-followup__nudge-icon" aria-hidden="true">💡</span>' +
         '<div>' +
           '<p class="report-followup__nudge-title">上次这份报告你试了吗？结果如何？</p>' +
-          '<p class="report-followup__nudge-sub">花 10 秒记一笔，帮我们沉淀「真的管用」的跨领域方法。</p>' +
+          '<p class="report-followup__nudge-sub">用一分钟记下实验与结果，帮我们沉淀「真的管用」的跨领域方法。</p>' +
         '</div>' +
       '</div>' +
       '<button type="button" class="report-followup__nudge-close" ' +
@@ -323,9 +409,16 @@
         maybeRenderRevisitNudge(reportId, createdAt, followup);
       })
       .catch((err) => {
-        // GET failing shouldn't block the panel — show the empty form.
+        // Fail closed: an empty form could overwrite a record we could not load.
         console.warn('[report] followup load failed:', err);
         renderFollowup(reportId, null);
+        const submit = document.getElementById('rf-submit');
+        const msg = document.getElementById('rf-msg');
+        if (submit) submit.disabled = true;
+        if (msg) {
+          msg.textContent = '未能读取已有记录，请刷新后重试';
+          msg.className = 'report-followup__msg report-followup__msg--err';
+        }
       });
   }
 

@@ -389,8 +389,10 @@ def test_reports_mine_includes_followup_status(client, app):
     items = {it["query"]: it for it in r.json()["items"]}
     assert items["done"]["has_followup"] is True
     assert items["done"]["followup_outcome"] == "worked"
+    assert items["done"]["followup_status"] == "tried"
     assert items["todo"]["has_followup"] is False
     assert items["todo"]["followup_outcome"] == ""
+    assert items["todo"]["followup_status"] == ""
 
 
 def test_reports_mine_empty_still_has_shape(client):

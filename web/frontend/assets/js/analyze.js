@@ -1562,6 +1562,18 @@ document.addEventListener('DOMContentLoaded', () => {
   params.set('b_id', bId);
   if (q) {
     params.set('text_a', q);
+    try {
+      const rawFingerprint = sessionStorage.getItem('structural_pending_fingerprint');
+      if (rawFingerprint) {
+        const parsedFingerprint = JSON.parse(rawFingerprint);
+        if (parsedFingerprint && parsedFingerprint.source_query === q) {
+          params.set('fingerprint', rawFingerprint);
+        }
+        sessionStorage.removeItem('structural_pending_fingerprint');
+      }
+    } catch (e) {
+      try { sessionStorage.removeItem('structural_pending_fingerprint'); } catch (_) {}
+    }
   } else if (aId) {
     params.set('a_id', aId);
   } else {

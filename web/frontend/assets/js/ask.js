@@ -27,6 +27,7 @@
   var currentController = null;
   // Count threads so each item gets a stable DOM id.
   var threadCounter = 0;
+  var pendingFingerprintQuery = '';
 
   // ---- Plausible event wrapper (W3-B) ---------------------------
   // Guarded so the page does not throw when plausible.js fails to load
@@ -154,7 +155,7 @@
           submitBtn.disabled = true;
           submitBtn.classList.add('is-loading');
         }
-        submitQuery(q);
+        openFingerprintReview(q);
       });
 
       // Cmd/Ctrl+Enter submits
@@ -219,7 +220,7 @@
         // Tag the upcoming submit; submitQuery normalises 'empty' for
         // first-from-landing, so we keep 'deeplink' explicit instead.
         nextSubmitSource = 'deeplink';
-        submitQuery(qParam.trim());
+        openFingerprintReview(qParam.trim());
       }
     } catch (e) {}
   }
@@ -233,16 +234,80 @@
           // canned examples actually draw clicks.
           track('example_chip_clicked', { chip_label: (chip.textContent || '').trim().slice(0, 40) });
           nextSubmitSource = 'chip';
-          submitQuery(q.trim());
+          openFingerprintReview(q.trim());
         }
       });
+    });
+  }
+
+  function splitFingerprintList(value) {
+    return String(value || '').split(/[,，、;；\n]/).map(function (part) {
+      return part.trim();
+    }).filter(Boolean).slice(0, 12);
+  }
+
+  function openFingerprintReview(query) {
+    var panel = qs('#ask-fingerprint');
+    var summary = qs('#ask-fingerprint-summary');
+    if (!panel || !summary) {
+      submitQuery(query, null);
+      return;
+    }
+    pendingFingerprintQuery = String(query || '').trim();
+    summary.value = pendingFingerprintQuery.slice(0, 1000);
+    ['#ask-fingerprint-variables', '#ask-fingerprint-constraints', '#ask-fingerprint-unknowns'].forEach(function (sel) {
+      var field = qs(sel);
+      if (field) field.value = '';
+    });
+    var error = qs('#ask-fingerprint-error');
+    if (error) error.textContent = '';
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try { summary.focus(); } catch (e) {}
+    track('fingerprint_review_opened', { length: pendingFingerprintQuery.length });
+  }
+
+  function bindFingerprintReview() {
+    var panel = qs('#ask-fingerprint');
+    var confirm = qs('#ask-fingerprint-confirm');
+    var cancel = qs('#ask-fingerprint-cancel');
+    if (!panel || !confirm) return;
+    if (cancel) cancel.addEventListener('click', function () {
+      panel.hidden = true;
+      pendingFingerprintQuery = '';
+      var submit = qs('.ask-searchbox__submit');
+      if (submit) { submit.disabled = false; submit.classList.remove('is-loading'); }
+    });
+    confirm.addEventListener('click', function () {
+      var summary = (qs('#ask-fingerprint-summary').value || '').trim();
+      var error = qs('#ask-fingerprint-error');
+      if (summary.length < 8) {
+        if (error) error.textContent = '问题摘要至少需要 8 个字符。';
+        return;
+      }
+      var fingerprint = {
+        source_query: pendingFingerprintQuery,
+        summary: summary,
+        variables: splitFingerprintList(qs('#ask-fingerprint-variables').value),
+        constraints: splitFingerprintList(qs('#ask-fingerprint-constraints').value),
+        unknowns: splitFingerprintList(qs('#ask-fingerprint-unknowns').value),
+        revision: 1
+      };
+      panel.hidden = true;
+      track('fingerprint_confirmed', {
+        variables: fingerprint.variables.length,
+        constraints: fingerprint.constraints.length,
+        unknowns: fingerprint.unknowns.length
+      });
+      submitQuery(pendingFingerprintQuery, fingerprint);
+      pendingFingerprintQuery = '';
     });
   }
 
   // ============================================================
   // Submit + state transition
   // ============================================================
-  function submitQuery(query) {
+  function submitQuery(query, fingerprint) {
     if (!query) return;
 
     // Abort any in-flight stream
@@ -282,7 +347,7 @@
 
     // Build new item; stamp the t0 so kb_cards / answer events can
     // compute latency relative to this submit.
-    var item = renderThreadItem(query);
+    var item = renderThreadItem(query, fingerprint);
     if (item) item._t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // Scroll into view
@@ -301,7 +366,7 @@
     return Math.round(t1 - t0);
   }
 
-  function renderThreadItem(query) {
+  function renderThreadItem(query, fingerprint) {
     threadCounter += 1;
     var id = 'ask-item-' + threadCounter;
     var container = qs('#ask-thread-items');
@@ -310,11 +375,17 @@
     var html =
       '<article class="ask-thread-item" id="' + id + '" data-query="' + esc(query) + '">' +
         '<h2 class="ask-thread-item__query">' + esc(query) + '</h2>' +
+        (fingerprint ? '<section class="ask-thread-item__fingerprint" aria-label="已确认的结构指纹">' +
+          '<strong>已确认的结构指纹</strong><p>' + esc(fingerprint.summary) + '</p>' +
+          (fingerprint.variables.length ? '<span>变量：' + esc(fingerprint.variables.join('、')) + '</span>' : '<span>变量：待验证</span>') +
+          (fingerprint.constraints.length ? '<span>约束：' + esc(fingerprint.constraints.join('、')) + '</span>' : '<span>约束：待验证</span>') +
+          (fingerprint.unknowns.length ? '<span>未知：' + esc(fingerprint.unknowns.join('、')) + '</span>' : '<span>未知：未填写</span>') +
+        '</section>' : '') +
         '<div class="ask-thread-item__meta" data-role="meta" hidden></div>' +
         '<div data-role="kb-section" hidden>' +
           '<div class="ask-section-label">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' +
-            '<span>最相关的 5 个案例</span>' +
+            '<span>选择一个跨领域候选</span>' +
           '</div>' +
           '<div class="ask-thread-item__cards" data-role="cards"></div>' +
         '</div>' +
@@ -347,7 +418,9 @@
       '</article>';
 
     container.insertAdjacentHTML('beforeend', html);
-    return qs('#' + id);
+    var item = qs('#' + id);
+    if (item) item._fingerprint = fingerprint || null;
+    return item;
   }
 
   // ============================================================
@@ -517,7 +590,11 @@
     // Store cards on item for similar/deep-cta to reference
     item._cards = cards;
 
-    container.innerHTML = cards.map(function (c, i) {
+    var candidates = cards.slice(0, 3);
+    item._selectedCandidateId = '';
+    container.setAttribute('role', 'radiogroup');
+    container.setAttribute('aria-label', '选择一个跨领域候选');
+    container.innerHTML = candidates.map(function (c, i) {
       var idx = i + 1;
       // Polished route: /phenomenon/{id} is the canonical URL.
       // The backend renders phenomenon.html which reads ?id= for legacy compat.
@@ -527,19 +604,49 @@
       // Tooltip: first 100 chars of description, fall back to domain+name.
       var descRaw = c.description || c.summary || c.key_metric || '';
       var tooltip = descRaw ? String(descRaw).slice(0, 100) : (c.domain ? (c.domain + ' · ' + name) : name);
-      var aria = 'View KB phenomenon: ' + name;
+      var aria = '选择候选：' + name;
       return (
-        '<a class="ask-kb-card" href="' + href + '" target="_blank" rel="noopener"' +
-          ' data-kb-id="' + esc(c.id || '') + '"' +
-          ' aria-label="' + esc(aria) + '"' +
-          ' title="' + esc(tooltip) + '">' +
+        '<div class="ask-kb-card" data-kb-id="' + esc(c.id || '') + '">' +
+          '<button type="button" class="ask-kb-card__select ask-kb-card--candidate" role="radio" aria-checked="false"' +
+            ' data-kb-id="' + esc(c.id || '') + '"' +
+            ' aria-label="' + esc(aria) + '"' +
+            ' title="' + esc(tooltip) + '">' +
           '<span class="ask-kb-card__idx">' + idx + '</span>' +
-          (c.domain ? '<span class="ask-kb-card__domain">' + esc(c.domain) + '</span>' : '') +
-          '<span class="ask-kb-card__name">' + esc(name) + '</span>' +
-          (score ? '<span class="ask-kb-card__score">相似度 ' + score + '</span>' : '') +
-        '</a>'
+          '<span class="ask-kb-card__body">' +
+            (c.domain ? '<span class="ask-kb-card__domain">' + esc(c.domain) + '</span>' : '') +
+            '<span class="ask-kb-card__name">' + esc(name) + '</span>' +
+            '<span class="ask-kb-card__basis">检索候选 · ' + (score ? '相似度 ' + score : '分数未提供') + '，尚未验证</span>' +
+          '</span></button>' +
+          '<a class="ask-kb-card__source" href="' + href + '" target="_blank" rel="noopener"' +
+            ' aria-label="查看候选来源：' + esc(name) + '">查看来源 ↗</a>' +
+        '</div>'
       );
     }).join('');
+
+    qsa('.ask-kb-card--candidate', container).forEach(function (card) {
+      function selectCandidate() {
+        qsa('.ask-kb-card--candidate', container).forEach(function (other) {
+          var selected = other === card;
+          other.setAttribute('aria-checked', selected ? 'true' : 'false');
+          var shell = other.closest('.ask-kb-card');
+          if (shell) shell.classList.toggle('ask-kb-card--selected', selected);
+        });
+        item._selectedCandidateId = card.getAttribute('data-kb-id') || '';
+        renderDeepAnalysisCTA(item);
+        track('candidate_selected', {
+          phenomenon_id: item._selectedCandidateId || 'unknown',
+          position: qsa('.ask-kb-card--candidate', container).indexOf(card) + 1
+        });
+      }
+      card.addEventListener('click', selectCandidate);
+      card.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectCandidate();
+        }
+      });
+    });
+    track('candidate_view', { count: candidates.length });
 
     if (section) section.hidden = false;
 
@@ -569,11 +676,11 @@
       });
 
       item.addEventListener('click', function (ev) {
-        var citEl = ev.target.closest('.ask-citation, .ask-citation-link, .ask-kb-card');
+        var citEl = ev.target.closest('.ask-citation, .ask-citation-link, .ask-kb-card__source');
         if (!citEl) return;
         // Resolve position (1-based among siblings of the same kind).
         var siblings = item.querySelectorAll(
-          citEl.classList.contains('ask-kb-card') ? '.ask-kb-card'
+          citEl.classList.contains('ask-kb-card__source') ? '.ask-kb-card__source'
             : citEl.classList.contains('ask-citation-link') ? '.ask-citation-link'
             : '.ask-citation'
         );
@@ -583,13 +690,14 @@
         }
         // Pull phenomenon_id from the element (data-kb-id on cards, or
         // href `/phenomenon/{id}` for inline citations / citation bar).
-        var phenomenonId = citEl.getAttribute('data-kb-id');
+        var phenomenonId = citEl.getAttribute('data-kb-id') ||
+          (citEl.closest('.ask-kb-card') && citEl.closest('.ask-kb-card').getAttribute('data-kb-id'));
         if (!phenomenonId) {
           var href = citEl.getAttribute('href') || '';
           var m = href.match(/\/phenomenon\/([^\/?#]+)/);
           if (m) phenomenonId = decodeURIComponent(m[1]);
         }
-        var surface = citEl.classList.contains('ask-kb-card') ? 'kb_card'
+        var surface = citEl.classList.contains('ask-kb-card__source') ? 'kb_card_source'
           : citEl.classList.contains('ask-citation-link') ? 'citation_bar'
           : 'inline';
 
@@ -845,13 +953,18 @@
     if (!section) return;
     var query = item.getAttribute('data-query') || '';
     var cards = item._cards || [];
-    var topKbId = cards.length ? cards[0].id : '';
+    var selectedKbId = item._selectedCandidateId || '';
     // /analyze NEEDS a B-side phenomenon id to run — without one analyze.js
     // bails to its empty state. Hide the CTA rather than ship a dead link.
-    if (!topKbId) { section.hidden = true; return; }
+    if (!cards.length) { section.hidden = true; return; }
+    if (!selectedKbId) {
+      section.innerHTML = '<p class="ask-thread-item__candidate-prompt" role="status">先选择一个候选，再生成研究报告。系统不会替你默认选择 Top 1。</p>';
+      section.hidden = false;
+      return;
+    }
     // /analyze URL contract lives in utils/buildAnalyzeUrl.js — single
     // source of truth across the site (search.js / home.js / phenomenon.js).
-    var url = window.buildAnalyzeUrl({ id: topKbId, q: query });
+    var url = window.buildAnalyzeUrl({ id: selectedKbId, q: query });
 
     section.innerHTML =
       '<a class="ask-thread-item__deep-cta" href="' + url + '">' +
@@ -865,7 +978,10 @@
     var ctaLink = section.querySelector('.ask-thread-item__deep-cta');
     if (ctaLink) {
       ctaLink.addEventListener('click', function () {
-        track('deep_analysis_triggered', { from_thread_item: true });
+        if (item._fingerprint) {
+          try { sessionStorage.setItem('structural_pending_fingerprint', JSON.stringify(item._fingerprint)); } catch (e) {}
+        }
+        track('deep_analysis_triggered', { from_thread_item: true, phenomenon_id: selectedKbId });
       });
     }
   }
@@ -923,9 +1039,11 @@
   // Boot
   // ============================================================
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAskPage);
+  document.addEventListener('DOMContentLoaded', initAskPage);
+  document.addEventListener('DOMContentLoaded', bindFingerprintReview);
   } else {
     initAskPage();
+    bindFingerprintReview();
   }
 
   // Expose for debugging

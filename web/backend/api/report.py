@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from services.report_store import ReportStore, verify_share_token
 
@@ -59,6 +59,7 @@ class ReportListItem(BaseModel):
     # B Data Flywheel (Session #18) — revisit status for the '未回访' badge.
     has_followup: bool = False
     followup_outcome: str = ""
+    followup_status: str = ""
 
 
 class ReportListResponse(BaseModel):
@@ -89,7 +90,37 @@ _ALLOWED_ACTION_STATUSES = {"planned", "in_progress", "tried", "abandoned"}
 _ALLOWED_OUTCOMES = {"", "worked", "partial", "no_effect", "too_early"}
 
 
+class ExperimentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    hypothesis: Optional[str] = Field(None, min_length=1, max_length=2000)
+    owner: Optional[str] = Field(None, max_length=120)
+    deadline: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    baseline: Optional[float] = None
+    primary_metric: Optional[str] = Field(None, max_length=200)
+    success_threshold: Optional[float] = None
+    stop_condition: Optional[str] = Field(None, max_length=1000)
+    status: str = Field("planned", pattern=r"^(planned|in_progress|completed|stopped|abandoned)$")
+    notes: Optional[str] = Field(None, max_length=4000)
+
+
+class OutcomeDetailInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    actual_metric: Optional[float] = None
+    result: Optional[str] = Field(
+        None, pattern=r"^(success|partial|failure|inconclusive)$",
+    )
+    failure_reason: Optional[str] = Field(None, max_length=2000)
+    learning: Optional[str] = Field(None, max_length=4000)
+    next_decision: Optional[str] = Field(
+        None, pattern=r"^(iterate|scale|stop|retest)$",
+    )
+
+
 class FollowupRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     action_status: str = Field(
         ...,
         description=(
@@ -105,6 +136,8 @@ class FollowupRequest(BaseModel):
         ),
     )
     note: Optional[str] = Field(None, max_length=2000)
+    experiment: Optional[ExperimentInput] = None
+    outcome_detail: Optional[OutcomeDetailInput] = None
 
 
 class FollowupResponse(BaseModel):
@@ -113,6 +146,8 @@ class FollowupResponse(BaseModel):
     action_status: str
     outcome: str
     note: Optional[str]
+    experiment: Optional[ExperimentInput] = None
+    outcome_detail: Optional[OutcomeDetailInput] = None
     created_at: str
     updated_at: str
 
@@ -242,6 +277,7 @@ async def list_my_reports(
                 "view_count": it.get("view_count", 0),
                 "has_followup": bool(it.get("has_followup", False)),
                 "followup_outcome": it.get("followup_outcome", "") or "",
+                "followup_status": it.get("followup_status", "") or "",
             }
             for it in items
         ],
@@ -322,6 +358,14 @@ async def submit_followup(
             action_status=body.action_status,
             outcome=body.outcome or "",
             note=body.note,
+            experiment=(
+                body.experiment.model_dump(exclude_unset=True)
+                if body.experiment else None
+            ),
+            outcome_detail=(
+                body.outcome_detail.model_dump(exclude_unset=True)
+                if body.outcome_detail else None
+            ),
         )
     except (ValueError, ValidationError) as e:
         raise HTTPException(400, str(e)) from e
@@ -331,6 +375,8 @@ async def submit_followup(
         "action_status": fu["action_status"],
         "outcome": fu["outcome"],
         "note": fu.get("note"),
+        "experiment": fu.get("experiment"),
+        "outcome_detail": fu.get("outcome_detail"),
         "created_at": fu["created_at"],
         "updated_at": fu["updated_at"],
     }

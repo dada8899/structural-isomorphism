@@ -511,3 +511,128 @@ class TestReportFollowup:
             report_id=rid, anon_id="a", action_status="tried",
         )
         assert fu["action_status"] == "tried"
+
+    def test_structured_experiment_round_trip_and_legacy_update(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        experiment = {
+            "hypothesis": "A shorter form improves completion",
+            "owner": "PM",
+            "deadline": "2026-08-01",
+            "baseline": 0.31,
+            "primary_metric": "completion_rate",
+            "success_threshold": 0.4,
+            "stop_condition": "1000 exposures",
+            "status": "planned",
+            "notes": "Segment by device",
+        }
+        created = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+            experiment=experiment,
+        )
+        assert created["experiment"] == experiment
+        assert created["outcome_detail"] is None
+
+        # An old client updating only legacy fields must not erase new data.
+        updated = store.record_followup(
+            report_id=rid, anon_id="anon-1", action_status="planned",
+        )
+        assert updated["experiment"] == experiment
+
+    def test_experiment_state_machine_and_outcome_guardrails(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        store.record_followup(
+            report_id=rid, anon_id="a", action_status="planned",
+            experiment={"hypothesis": "h", "status": "planned"},
+        )
+        with pytest.raises(ValueError, match="status transition"):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status="tried",
+                experiment={"hypothesis": "h", "status": "completed"},
+            )
+        with pytest.raises(ValueError, match="completed or stopped"):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status="tried",
+                outcome_detail={"result": "success", "actual_metric": 0.5},
+            )
+        store.record_followup(
+            report_id=rid, anon_id="a", action_status="in_progress",
+            experiment={"status": "in_progress"},
+        )
+        done = store.record_followup(
+            report_id=rid, anon_id="a", action_status="tried", outcome="worked",
+            experiment={"status": "completed"},
+            outcome_detail={
+                "actual_metric": 0.5, "result": "success",
+                "learning": "Less friction helped", "next_decision": "scale",
+            },
+        )
+        assert done["outcome_detail"]["next_decision"] == "scale"
+
+    def test_partial_experiment_update_merges_old_fields(self, store, sample_payload):
+        rid = self._make_report(store, sample_payload)
+        store.record_followup(
+            report_id=rid, anon_id="a", action_status="planned",
+            experiment={
+                "hypothesis": "h", "owner": "Ada", "deadline": "2026-08-01",
+                "status": "planned",
+            },
+        )
+        updated = store.record_followup(
+            report_id=rid, anon_id="a", action_status="in_progress",
+            experiment={"status": "in_progress"},
+        )
+        assert updated["experiment"]["owner"] == "Ada"
+        assert updated["experiment"]["deadline"] == "2026-08-01"
+        assert updated["experiment"]["hypothesis"] == "h"
+
+    @pytest.mark.parametrize("action_status,outcome,experiment,detail", [
+        ("abandoned", "", {"hypothesis": "h", "status": "in_progress"}, None),
+        ("tried", "worked", {"hypothesis": "h", "status": "stopped"}, None),
+        ("tried", "worked", {"hypothesis": "h", "status": "completed"},
+         {"result": "failure", "failure_reason": "no lift"}),
+    ])
+    def test_rejects_conflicting_legacy_and_structured_state(
+        self, store, sample_payload, action_status, outcome, experiment, detail,
+    ):
+        rid = self._make_report(store, sample_payload)
+        with pytest.raises(ValueError, match="conflicts"):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status=action_status,
+                outcome=outcome, experiment=experiment, outcome_detail=detail,
+            )
+
+    @pytest.mark.parametrize("experiment", [
+        {"hypothesis": ""},
+        {"hypothesis": "h", "deadline": "01-08-2026"},
+        {"hypothesis": "h", "baseline": True},
+        {"hypothesis": "h", "unknown": "x"},
+    ])
+    def test_experiment_rejects_invalid_schema(self, store, sample_payload, experiment):
+        rid = self._make_report(store, sample_payload)
+        with pytest.raises(ValueError):
+            store.record_followup(
+                report_id=rid, anon_id="a", action_status="planned",
+                experiment=experiment,
+            )
+
+    def test_followup_columns_self_heal_without_losing_old_row(self, tmp_path):
+        import sqlite3
+        db = tmp_path / "old_followup.db"
+        store = ReportStore(db)
+        with sqlite3.connect(str(db)) as conn:
+            conn.execute("ALTER TABLE report_followup RENAME TO old_followup")
+            conn.execute(
+                "CREATE TABLE report_followup (id INTEGER PRIMARY KEY, "
+                "report_id TEXT, anon_id TEXT, action_status TEXT, outcome TEXT, "
+                "note TEXT, created_at TEXT, updated_at TEXT, "
+                "UNIQUE(report_id, anon_id))"
+            )
+            conn.execute(
+                "INSERT INTO report_followup VALUES "
+                "(1, 'r_old', 'a', 'tried', 'worked', 'legacy', 't', 't')"
+            )
+            conn.execute("DROP TABLE old_followup")
+        healed = ReportStore(db)
+        got = healed.get_followup("r_old", "a")
+        assert got["note"] == "legacy"
+        assert got["experiment"] is None
