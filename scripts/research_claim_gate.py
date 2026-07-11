@@ -18,6 +18,13 @@ REQUIRED_CLAIM_FIELDS = {
     "command", "environment", "seed", "result_figure_table", "provenance",
     "independence", "caveats",
 }
+REQUIRED_INVENTORY_FIELDS = {"line_sha256", "claim_ids", "disposition"}
+STRONG_CLAIM = re.compile(
+    r"\b(?:PASS(?:-[A-Z]+)+|REJECT(?:-[A-Z]+)+|INCONCLUSIVE|"
+    r"UNIVERSAL(?:ITY)?(?:-[A-Z]+)+|TIGHT_UNIVERSALITY|ALPHA_EVAL_SPECIFIC|"
+    r"null robustness|correctly (?:fails|rejected)|empirically[- ]anchored)\b"
+)
+HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*$")
 ALLOWED_STATUSES = {
     "reviewer-readable-do-not-submit", "internal-draft", "withdrawn", "submitted"
 }
@@ -37,6 +44,30 @@ ABSOLUTE_UNIVERSALITY = re.compile(
 
 def _nonempty(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _strong_manuscript_lines(text: str) -> dict[str, str]:
+    """Return content hashes for strong-claim lines in headline sections."""
+    section = ""
+    found: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        if raw_line.strip().startswith("**Contributions.**"):
+            section = "contributions"
+        heading = HEADING.match(raw_line)
+        if heading:
+            title = heading.group(1).strip().lower()
+            if title == "abstract":
+                section = "abstract"
+            elif title.startswith("contributions"):
+                section = "contributions"
+            elif heading.group(0).startswith("## "):
+                section = ""
+            continue
+        line = raw_line.strip()
+        if section and line and STRONG_CLAIM.search(line):
+            digest = hashlib.sha256(line.encode("utf-8")).hexdigest()
+            found[digest] = section
+    return found
 
 
 def validate(ledger_path: Path, root: Path = ROOT) -> list[str]:
@@ -125,6 +156,83 @@ def validate(ledger_path: Path, root: Path = ROOT) -> list[str]:
         text = manuscript.read_text(encoding="utf-8")
         if PLACEHOLDER_ID.search(text):
             errors.append("manuscript contains placeholder DOI/arXiv identifier")
+        strong_lines = _strong_manuscript_lines(text)
+        inventory = ledger.get("manuscript_claim_inventory")
+        if not isinstance(inventory, list):
+            errors.append("manuscript_claim_inventory must be a list")
+            inventory = []
+        registered: dict[str, dict[str, Any]] = {}
+        claim_ids = {claim.get("claim_id") for claim in claims if isinstance(claim, dict)}
+        for index, item in enumerate(inventory):
+            label = f"manuscript_claim_inventory[{index}]"
+            if not isinstance(item, dict) or not REQUIRED_INVENTORY_FIELDS <= item.keys():
+                errors.append(f"{label}: missing required inventory fields")
+                continue
+            digest = item.get("line_sha256")
+            if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+                errors.append(f"{label}: invalid line_sha256")
+                continue
+            if digest in registered:
+                errors.append(f"{label}: duplicate line_sha256")
+            registered[digest] = item
+            linked = item.get("claim_ids")
+            if not isinstance(linked, list) or not linked:
+                errors.append(f"{label}: claim_ids must be a non-empty list")
+            elif unknown := set(linked) - claim_ids:
+                errors.append(f"{label}: unknown claim_ids {sorted(unknown)}")
+            if item.get("disposition") not in {"bounded", "legacy-conflict-blocked"}:
+                errors.append(f"{label}: invalid disposition")
+        for digest, section in strong_lines.items():
+            if digest not in registered:
+                errors.append(f"unregistered strong manuscript claim in {section}: sha256={digest}")
+        for digest in registered:
+            if digest not in strong_lines:
+                errors.append(f"stale manuscript claim inventory entry: sha256={digest}")
+        inventoried_claim_ids = {
+            claim_id for item in registered.values()
+            for claim_id in item.get("claim_ids", [])
+        }
+        for claim_id in sorted(claim_ids - inventoried_claim_ids):
+            errors.append(f"ledger claim has no manuscript inventory backlink: {claim_id}")
+
+    conflicts = ledger.get("conflict_register")
+    if not isinstance(conflicts, list) or not conflicts:
+        errors.append("conflict_register must be a non-empty list")
+    else:
+        for index, conflict in enumerate(conflicts):
+            label = f"conflict_register[{index}]"
+            if not isinstance(conflict, dict):
+                errors.append(f"{label}: must be an object")
+                continue
+            required = {"conflict_id", "claim_ids", "evidence", "resolution", "submission_blocking"}
+            if not required <= conflict.keys():
+                errors.append(f"{label}: missing required conflict fields")
+                continue
+            if conflict.get("submission_blocking") is not True:
+                errors.append(f"{label}: unresolved scientific conflict must block submission")
+            linked = conflict.get("claim_ids")
+            if not isinstance(linked, list) or not linked:
+                errors.append(f"{label}: claim_ids must be a non-empty list")
+            elif unknown := set(linked) - {
+                claim.get("claim_id") for claim in claims if isinstance(claim, dict)
+            }:
+                errors.append(f"{label}: unknown claim_ids {sorted(unknown)}")
+            resolution = conflict.get("resolution")
+            if not _nonempty(resolution) or "exclude" not in resolution.lower():
+                errors.append(f"{label}: resolution must explicitly exclude the conflicted claim")
+            conflict_evidence = conflict.get("evidence")
+            if not isinstance(conflict_evidence, list) or not conflict_evidence:
+                errors.append(f"{label}: evidence must be a non-empty list")
+                conflict_evidence = []
+            for item in conflict_evidence:
+                if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+                    errors.append(f"{label}: invalid conflict evidence")
+                    continue
+                target = root / item["path"]
+                if not target.is_file():
+                    errors.append(f"{label}: missing evidence {item['path']}")
+                elif hashlib.sha256(target.read_bytes()).hexdigest() != item["sha256"]:
+                    errors.append(f"{label}: hash mismatch for {item['path']}")
     serialized = json.dumps(ledger, ensure_ascii=False)
     if PLACEHOLDER_ID.search(serialized):
         errors.append("ledger contains placeholder DOI/arXiv identifier")

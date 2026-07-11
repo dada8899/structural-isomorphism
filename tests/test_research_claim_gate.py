@@ -11,7 +11,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     (root / "paper").mkdir()
     evidence = root / "evidence/result.json"
     evidence.write_text('{"result":"bounded"}', encoding="utf-8")
-    (root / "paper/draft.md").write_text("# Draft\n", encoding="utf-8")
+    manuscript_line = "The bounded fixture is PASS-CONFIRMED."
+    (root / "paper/draft.md").write_text(
+        f"# Draft\n\n## Abstract\n{manuscript_line}\n", encoding="utf-8"
+    )
     claim = {
         "claim_id": "C-1", "headline": True,
         "exact_wording": "A bounded result was observed.",
@@ -26,6 +29,16 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
         "schema_version": "1.0.0", "manuscript": "paper/draft.md",
         "manuscript_status": "reviewer-readable-do-not-submit",
         "review_status": "internal-review-only", "external_review_completed": False,
+        "manuscript_claim_inventory": [{
+            "line_sha256": hashlib.sha256(manuscript_line.encode()).hexdigest(),
+            "claim_ids": ["C-1"], "disposition": "bounded",
+        }],
+        "conflict_register": [{
+            "conflict_id": "X-1", "claim_ids": ["C-1"],
+            "evidence": [{"path": "evidence/result.json", "sha256": hashlib.sha256(evidence.read_bytes()).hexdigest()}],
+            "resolution": "Exclude the conflicted claim from submission.",
+            "submission_blocking": True,
+        }],
         "claims": [claim],
     }
     path = root / "ledger.json"
@@ -81,3 +94,37 @@ def test_malformed_paths_fail_without_crashing(tmp_path: Path) -> None:
     errors = validate(ledger, root)
     assert any("manuscript path" in error for error in errors)
     assert any("evidence path" in error for error in errors)
+
+
+def test_unregistered_strong_manuscript_claim_fails_closed(tmp_path: Path) -> None:
+    root, ledger = _fixture(tmp_path)
+    (root / "paper/draft.md").write_text(
+        "# Draft\n\n## Abstract\nThe experiment is PASS-CONFIRMED.\n",
+        encoding="utf-8",
+    )
+    _mutate(ledger, lambda data: data.update(manuscript_claim_inventory=[]))
+    assert any("unregistered strong manuscript claim" in error for error in validate(ledger, root))
+
+
+def test_inventory_is_bidirectional_and_claim_linked(tmp_path: Path) -> None:
+    root, ledger = _fixture(tmp_path)
+    line = "The experiment is PASS-CONFIRMED."
+    (root / "paper/draft.md").write_text(f"# Draft\n\n## Abstract\n{line}\n", encoding="utf-8")
+    digest = hashlib.sha256(line.encode()).hexdigest()
+    _mutate(ledger, lambda data: data.update(manuscript_claim_inventory=[{
+        "line_sha256": digest, "claim_ids": ["C-1"], "disposition": "bounded",
+    }]))
+    assert validate(ledger, root) == []
+    (root / "paper/draft.md").write_text("# Draft\n\n## Abstract\nNo strong claim.\n", encoding="utf-8")
+    assert any("stale manuscript claim inventory" in error for error in validate(ledger, root))
+
+
+def test_unresolved_conflict_must_block_and_exclude(tmp_path: Path) -> None:
+    root, ledger = _fixture(tmp_path)
+    def mutate(data):
+        data["conflict_register"][0]["submission_blocking"] = False
+        data["conflict_register"][0]["resolution"] = "Discuss later."
+    _mutate(ledger, mutate)
+    errors = validate(ledger, root)
+    assert any("must block submission" in error for error in errors)
+    assert any("must explicitly exclude" in error for error in errors)
