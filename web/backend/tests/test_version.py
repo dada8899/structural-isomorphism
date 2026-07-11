@@ -106,7 +106,7 @@ def test_version_model_default_when_env_missing(monkeypatch):
         r = c.get("/api/version")
     body = r.json()
     # Default in main.version() matches ask_orchestrator.ASK_MODEL default.
-    assert body["model"] == "deepseek/deepseek-chat:nitro"
+    assert body["model"] == "openai/gpt-5.6-luna-pro"
 
 
 def test_version_schema_typed_strings(client):

@@ -69,7 +69,7 @@ def _get_http_client() -> httpx.AsyncClient:
 class LLMService:
     def __init__(self):
         self.api_key = os.getenv("OPENROUTER_API_KEY", "")
-        self.model = os.getenv("LLM_MODEL", "anthropic/claude-sonnet-4.6")
+        self.model = os.getenv("LLM_MODEL", "openai/gpt-5.6-luna-pro")
         if not self.api_key:
             logger.warning("OPENROUTER_API_KEY not set; LLM calls will fail.")
 

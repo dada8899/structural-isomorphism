@@ -54,7 +54,7 @@ logger = logging.getLogger("structural.ask_orchestrator")
 # first-token latency硬伤). Same model, fastest provider — no answer
 # quality change. Override via env (ASK_LLM_MODEL) to A/B against Claude /
 # Kimi, or drop the suffix to let OpenRouter balance on price.
-ASK_MODEL = os.getenv("ASK_LLM_MODEL", "deepseek/deepseek-chat:nitro")
+ASK_MODEL = os.getenv("ASK_LLM_MODEL", "openai/gpt-5.6-luna-pro")
 
 # How many KB hits to surface to the user as citation candidates.
 TOP_K_CARDS = 5

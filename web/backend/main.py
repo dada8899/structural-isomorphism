@@ -488,7 +488,7 @@ async def version():
     # #16 P1: literal duplication was identified as a session-15 regression
     # path).
     from services.ask_orchestrator import ASK_MODEL as _ASK_MODEL  # noqa: WPS433
-    model = _ASK_MODEL
+    model = os.getenv("ASK_LLM_MODEL", _ASK_MODEL)
     build_date = os.getenv("STRUCTURAL_BUILD_DATE", "unknown")
     deployed_at = os.getenv("STRUCTURAL_DEPLOYED_AT", build_date)
     return {

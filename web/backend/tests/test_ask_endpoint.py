@@ -133,6 +133,11 @@ async def _collect(stream):
     return out
 
 
+async def _force_non_stream(*_args, **_kwargs):
+    """Force the orchestrator into its mocked non-stream fallback path."""
+    yield ("error", "test_non_stream")
+
+
 class AskOrchestratorTests(unittest.TestCase):
     def test_full_stream_event_sequence(self):
         """Happy path: mock LLM returns valid JSON, all 7 event types emit."""
@@ -141,7 +146,8 @@ class AskOrchestratorTests(unittest.TestCase):
 
         # Patch out the network call and the typewriter sleep so the test
         # runs in <100ms regardless of asyncio loop scheduling.
-        with patch.object(AskOrchestrator, "_call_llm_once", return_value=_MOCK_LLM_JSON), \
+        with patch.object(AskOrchestrator, "_call_llm_stream", _force_non_stream), \
+             patch.object(AskOrchestrator, "_call_llm_once", return_value=_MOCK_LLM_JSON), \
              patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
             chunks = asyncio.run(_collect(orch.stream("为什么银行系统会突然崩溃？", lang="zh")))
 
@@ -231,7 +237,8 @@ class AskOrchestratorTests(unittest.TestCase):
         search = _FakeSearch(_FIXED_KB)
         orch = AskOrchestrator(search_service=search)
 
-        with patch.object(AskOrchestrator, "_call_llm_once", return_value=partly_bad), \
+        with patch.object(AskOrchestrator, "_call_llm_stream", _force_non_stream), \
+             patch.object(AskOrchestrator, "_call_llm_once", return_value=partly_bad), \
              patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
             chunks = asyncio.run(_collect(orch.stream("test", lang="zh")))
 
@@ -302,6 +309,11 @@ def ask_app(monkeypatch):
         "services.ask_orchestrator.AskOrchestrator._call_llm_once",
         # _call_llm_once is async; return a coroutine that resolves to JSON.
         lambda self, prompt: _async_value(_MOCK_LLM_JSON),
+        raising=True,
+    )
+    monkeypatch.setattr(
+        "services.ask_orchestrator.AskOrchestrator._call_llm_stream",
+        _force_non_stream,
         raising=True,
     )
     monkeypatch.setattr("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0, raising=False)
