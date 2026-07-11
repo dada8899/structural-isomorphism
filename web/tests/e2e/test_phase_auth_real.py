@@ -133,7 +133,7 @@ def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_st
         body=json.dumps({"ok": False, "error": "temporary"}),
     ))
     page.get_by_test_id("me-logout").click()
-    page.get_by_role("alert").wait_for()
+    page.get_by_text("退出失败，你仍处于登录状态，请重试。", exact=True).wait_for()
     assert page.get_by_test_id("me-email").is_visible()
     context.close()
 
