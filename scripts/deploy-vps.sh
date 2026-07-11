@@ -27,8 +27,27 @@ export CI=true
 SOURCE="${SOURCE:-/root/Projects/structural-isomorphism-v4}"
 TARGET="${TARGET:-/root/Projects/structural-isomorphism}"
 SERVICE="${SERVICE:-structural-web}"
+ARTIFACT_ROOT="${ARTIFACT_ROOT:-/root/structural-artifacts/current}"
+PREVIOUS_SHA="${PREVIOUS_SHA:-}"
 DRY_RUN=0
 PRUNE=0
+RUNTIME_BACKUP=""
+
+rollback_deploy() {
+  local reason="$1"
+  echo "[deploy] FAIL: $reason — rolling back" >&2
+  set +e
+  if [[ -n "$PREVIOUS_SHA" ]] && git -C "$SOURCE" cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null; then
+    git -C "$SOURCE" reset --hard "$PREVIOUS_SHA"
+    rsync -av "${EXCLUDES[@]}" "$SOURCE/" "$TARGET/"
+  fi
+  if [[ -n "$RUNTIME_BACKUP" && -f "$RUNTIME_BACKUP" ]]; then
+    cp -a "$RUNTIME_BACKUP" "$TARGET/web/backend/.env.runtime"
+  fi
+  systemctl restart "$SERVICE"
+  systemctl is-active "$SERVICE" || true
+  exit 1
+}
 
 for arg in "$@"; do
   case "$arg" in
@@ -91,11 +110,39 @@ if [[ "$DRY_RUN" == "0" ]]; then
   echo "[deploy] Ensuring models exist..."
   bash "$TARGET/scripts/restore-models.sh"
 
+  echo "[deploy] Validating production artifact bundle..."
+  for required in \
+    "$ARTIFACT_ROOT/manifest.json" \
+    "$ARTIFACT_ROOT/kb-expanded.jsonl" \
+    "$ARTIFACT_ROOT/kb_v2_embeddings.npy" \
+    "$ARTIFACT_ROOT/structural-v2"; do
+    [[ -e "$required" ]] || { echo "[deploy] FAIL: missing artifact $required" >&2; exit 1; }
+  done
+  (
+    cd "$TARGET/web/backend"
+    "$TARGET/venv/bin/python" - <<PY
+from services.artifact_manifest import validate_artifact_bundle
+print(validate_artifact_bundle(
+    "$ARTIFACT_ROOT/manifest.json",
+    kb_path="$ARTIFACT_ROOT/kb-expanded.jsonl",
+    embeddings_path="$ARTIFACT_ROOT/kb_v2_embeddings.npy",
+    model_path="$ARTIFACT_ROOT/structural-v2",
+))
+PY
+  )
+
   # Session #16: write build/deploy fingerprint so /api/version returns real
   # values. Without this, prod returns git_sha="unknown" and dogfood scripts
   # can't fingerprint-check what code is actually running (session #15 root
   # cause: 5 days of stale-code deploys went undetected).
   echo "[deploy] Writing runtime fingerprint to web/backend/.env.runtime..."
+  RUNTIME_BACKUP="$(mktemp)"
+  if [[ -f "$TARGET/web/backend/.env.runtime" ]]; then
+    cp -a "$TARGET/web/backend/.env.runtime" "$RUNTIME_BACKUP"
+  else
+    rm -f "$RUNTIME_BACKUP"
+    RUNTIME_BACKUP=""
+  fi
   # Validator session-#16 P2 — warn early if SOURCE has no .git, since
   # that's exactly when git_sha silently becomes 'unknown' and the
   # session-#15 incident class can re-emerge.
@@ -112,6 +159,11 @@ STRUCTURAL_GIT_SHA=$GIT_SHA
 STRUCTURAL_BUILD_DATE=$DEPLOYED_AT
 STRUCTURAL_DEPLOYED_AT=$DEPLOYED_AT
 STRUCTURAL_ENV=prod
+STRUCTURAL_ARTIFACT_MANIFEST=$ARTIFACT_ROOT/manifest.json
+STRUCTURAL_DATA_DIR=$ARTIFACT_ROOT
+STRUCTURAL_KB_FILE=kb-expanded.jsonl
+STRUCTURAL_MODEL_PATH=$ARTIFACT_ROOT/structural-v2
+STRUCTURAL_PRECOMPUTED_EMBEDDINGS=$ARTIFACT_ROOT/kb_v2_embeddings.npy
 EOF
   echo "[deploy]   git_sha=$GIT_SHA"
   echo "[deploy]   deployed_at=$DEPLOYED_AT"
@@ -119,6 +171,22 @@ EOF
   echo "[deploy] Restarting $SERVICE..."
   systemctl restart "$SERVICE"
   sleep 5
-  systemctl is-active "$SERVICE" || { echo "[deploy] FAIL: service not active"; journalctl -u "$SERVICE" -n 20 --no-pager; exit 1; }
+  systemctl is-active "$SERVICE" || rollback_deploy "service not active"
+  HEALTH="$(curl -fsS --max-time 10 'http://127.0.0.1:5004/api/health?deep=1')" \
+    || rollback_deploy "deep health request failed"
+  if ! HEALTH="$HEALTH" "$TARGET/venv/bin/python" - <<'PY'
+import json
+import os
+
+body = json.loads(os.environ["HEALTH"])
+assert body["status"] == "ok", body
+assert body["kb_size"] == 4443, body
+assert body["artifact_id"] == "structural-v2-kb4443-20260711", body
+assert body["embedding_shape"] == [4443, 768], body
+PY
+  then
+    rollback_deploy "deep health payload invalid"
+  fi
+  rm -f "$RUNTIME_BACKUP"
   echo "[deploy] OK"
 fi

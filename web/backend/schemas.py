@@ -331,6 +331,8 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     kb_size: int = 0
     llm_model: str = "unknown"
+    artifact_id: Optional[str] = None
+    embedding_shape: Optional[List[int]] = None
     # Deep mode (`?deep=1`) adds a `checks` map of sub-system probes.
     checks: Optional[Dict[str, str]] = None
     query_cache: Optional[Dict[str, float]] = Field(

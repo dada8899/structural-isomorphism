@@ -147,6 +147,24 @@ async def lifespan(app: FastAPI):
     kb_file = os.getenv("STRUCTURAL_KB_FILE", "kb-expanded.jsonl")
     model_path = os.getenv("STRUCTURAL_MODEL_PATH")
     precomputed = os.getenv("STRUCTURAL_PRECOMPUTED_EMBEDDINGS")
+    manifest_path = os.getenv("STRUCTURAL_ARTIFACT_MANIFEST")
+
+    if _IS_PROD and not manifest_path:
+        raise RuntimeError("STRUCTURAL_ARTIFACT_MANIFEST is required in production")
+    if manifest_path:
+        if not data_dir or not model_path or not precomputed:
+            raise RuntimeError(
+                "artifact validation requires STRUCTURAL_DATA_DIR, "
+                "STRUCTURAL_MODEL_PATH, and STRUCTURAL_PRECOMPUTED_EMBEDDINGS"
+            )
+        from services.artifact_manifest import validate_artifact_bundle
+
+        app_state["artifact"] = validate_artifact_bundle(
+            manifest_path,
+            kb_path=Path(data_dir) / kb_file,
+            embeddings_path=precomputed,
+            model_path=model_path,
+        )
 
     logger.info(f"Loading search service: data_dir={data_dir}, kb_file={kb_file}, precomputed={precomputed}")
     search_service = SearchService(
@@ -156,6 +174,8 @@ async def lifespan(app: FastAPI):
         precomputed_embeddings=precomputed,
     )
     app_state["search"] = search_service
+    if _IS_PROD and search_service.kb_size == 0:
+        raise RuntimeError("production search service loaded an empty knowledge base")
     logger.info(f"Search service ready. KB size: {search_service.kb_size}")
 
     yield
@@ -412,15 +432,16 @@ async def health(deep: int = 0):
         "status": "ok",
         "kb_size": svc.kb_size if svc else 0,
         "llm_model": os.getenv("LLM_MODEL", "unknown"),
+        "artifact_id": (app_state.get("artifact") or {}).get("artifact_id"),
+        "embedding_shape": (app_state.get("artifact") or {}).get("embedding_shape"),
     }
     if deep:
-        # Deep-mode: probe optional subsystems and surface their state.
-        # We never fail the health endpoint outright — degraded subsystems
-        # show up as `checks.<name> = "fail"` so an operator can see the
-        # full picture in one shot.
+        # Deep mode is a readiness probe: core retrieval failures return 503.
         checks = {}
         # search service load state
         checks["search_service"] = "ok" if svc else "fail"
+        checks["knowledge_base"] = "ok" if svc and svc.kb_size > 0 else "fail"
+        checks["artifact_manifest"] = "ok" if app_state.get("artifact") else "fail"
         # history DB file accessible
         try:
             from pathlib import Path as _P
@@ -438,6 +459,8 @@ async def health(deep: int = 0):
             except Exception:
                 pass
         body["status"] = "ok" if all(v in ("ok", "missing") for v in checks.values()) else "degraded"
+        if checks["knowledge_base"] != "ok" or checks["artifact_manifest"] != "ok":
+            return JSONResponse(body, status_code=503)
     return body
 
 

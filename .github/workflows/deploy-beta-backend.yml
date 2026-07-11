@@ -70,7 +70,7 @@ jobs:
           set -euo pipefail
           sleep 5
           for i in 1 2 3 4 5; do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://beta.structural.bytedance.city/api/health || echo "000")
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" 'https://beta.structural.bytedance.city/api/health?deep=1' || echo "000")
             if [ "$CODE" = "200" ]; then
               echo "[verify] prod healthy (attempt $i)"
               break
@@ -78,10 +78,47 @@ jobs:
             echo "[verify] retry $i, got $CODE"
             sleep 5
             if [ "$i" = "5" ]; then
-              echo "[verify] FAIL: /api/health did not return 200 after 5 retries"
+              echo "[verify] FAIL: deep health did not return 200 after 5 retries"
               exit 1
             fi
           done
+
+      - name: Verify artifact identity and semantic search
+        run: |
+          set -euo pipefail
+          HEALTH=$(curl -fsS --max-time 15 'https://beta.structural.bytedance.city/api/health?deep=1')
+          HEALTH="$HEALTH" python3 - <<'PY'
+          import json, os
+          body = json.loads(os.environ["HEALTH"])
+          assert body["status"] == "ok", body
+          assert body["kb_size"] == 4443, body
+          assert body["artifact_id"] == "structural-v2-kb4443-20260711", body
+          assert body["embedding_shape"] == [4443, 768], body
+          PY
+
+          queries=(
+            '月活用户每月固定流失百分之七，应该如何干预？'
+            '为什么有些谣言会突然爆发并形成级联传播？'
+            '团队氛围崩溃后为什么很难恢复？'
+            '银行挤兑为什么会出现自我强化？'
+            '一个平台如何避免正反馈导致系统失控？'
+          )
+          cross_domain=0
+          for query in "${queries[@]}"; do
+            BODY=$(curl -fsS --max-time 20 \
+              -H 'Content-Type: application/json' \
+              --data "$(python3 -c 'import json,sys; print(json.dumps({"query":sys.argv[1],"top_k":5}, ensure_ascii=False))' "$query")" \
+              https://beta.structural.bytedance.city/api/search)
+            RESULT=$(BODY="$BODY" python3 - <<'PY'
+          import json, os
+          body = json.loads(os.environ["BODY"])
+          assert body.get("count", 0) > 0, body
+          print(1 if body.get("stats", {}).get("cross_domain_count", 0) > 0 else 0)
+          PY
+            )
+            if [ "$RESULT" = "1" ]; then cross_domain=1; fi
+          done
+          test "$cross_domain" = "1"
 
       - name: Verify deploy fingerprint matches the just-deployed commit
         # Session #16: close the SESSION-15-INCIDENT gap.
