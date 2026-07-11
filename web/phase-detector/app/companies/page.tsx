@@ -71,12 +71,16 @@ function LazyMount({ children, minHeight = 1 }: { children: ReactNode; minHeight
 
 export default function ScreenerHomePage() {
   const router = useRouter();
+  const screenerRef = useRef<HTMLElement>(null);
+  const loadRequestRef = useRef(0);
+  const [screenerActive, setScreenerActive] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [signals, setSignals] = useState<Company[]>([]);
   const [recentlyFlipped, setRecentlyFlipped] = useState<Company[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [filters, setFilters] = useState<ScreenerFilters>({ limit: 50 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Initial stats fetch (independent from screener).
@@ -119,32 +123,88 @@ export default function ScreenerHomePage() {
   }, []);
 
   const load = useCallback(async (f: ScreenerFilters) => {
+    const requestId = ++loadRequestRef.current;
     setLoading(true);
     setError(null);
     try {
       const data = await fetchScreener(f);
-      setCompanies(data);
+      if (requestId === loadRequestRef.current) {
+        setCompanies(data);
+        setHasLoaded(true);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-      setCompanies([]);
+      if (requestId === loadRequestRef.current) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        setCompanies([]);
+        setHasLoaded(true);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load(filters);
-  }, [filters, load]);
+    if (screenerActive) load(filters);
+  }, [filters, load, screenerActive]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const next: ScreenerFilters = { limit: 50 };
+    const state = params.get("state");
+    const family = params.get("family");
+    const sector = params.get("sector");
+    if (state && CPS_OPTIONS.includes(state as (typeof CPS_OPTIONS)[number])) {
+      next.critical_point_state = state as ScreenerFilters["critical_point_state"];
+    }
+    if (family && DYNAMICS_FAMILY_OPTIONS.includes(family as (typeof DYNAMICS_FAMILY_OPTIONS)[number])) {
+      next.dynamics_family = family as ScreenerFilters["dynamics_family"];
+    }
+    if (sector) next.sector = sector;
+    if (!next.critical_point_state && !next.dynamics_family && !sector && params.get("q")) {
+      const parsed = parseQuery(params.get("q") ?? "");
+      Object.assign(next, parsed.filters);
+    }
+    if (next.critical_point_state || next.dynamics_family || sector) {
+      setScreenerActive(true);
+      setHasLoaded(false);
+      setFilters(next);
+    }
+  }, []);
+
+  useEffect(() => {
+    const target = screenerRef.current;
+    if (!target || screenerActive) return;
+    if (!("IntersectionObserver" in window)) {
+      setScreenerActive(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setScreenerActive(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [screenerActive]);
 
   // W12-C (session #10): pull-to-refresh on touch devices. No-op when no
   // touchstart fires (desktop), so safe to wire unconditionally.
   usePullToRefresh({
-    onRefresh: () => load(filters),
-    disabled: loading,
+    onRefresh: () => {
+      if (screenerActive) load(filters);
+    },
+    disabled: !screenerActive || loading,
   });
 
   const handleApply = useCallback((next: ScreenerFilters) => {
     // Reset page size to 50 whenever filters change (W17 polish #5).
+    setScreenerActive(true);
+    setHasLoaded(false);
+    loadRequestRef.current += 1;
     setFilters({ ...next, limit: next.limit ?? 50 });
   }, []);
 
@@ -156,6 +216,7 @@ export default function ScreenerHomePage() {
   const [reachedEnd, setReachedEnd] = useState(false);
   const handleLoadMore = useCallback(() => {
     const currentLimit = filters.limit ?? 50;
+    loadRequestRef.current += 1;
     setFilters({ ...filters, limit: currentLimit + PAGE_STEP });
   }, [filters]);
   useEffect(() => {
@@ -186,9 +247,8 @@ export default function ScreenerHomePage() {
   const handleSearchSubmit = useCallback(
     (raw: string) => {
       const parsed = parseQuery(raw);
-      // Persist to localStorage history (sidebar UI lives in PR-5).
-      addToHistory({ query: parsed.query, route: parsed.route });
       if (parsed.isTicker) {
+        addToHistory({ query: parsed.query, route: parsed.route });
         router.push(parsed.route);
         return;
       }
@@ -199,11 +259,18 @@ export default function ScreenerHomePage() {
       if (parsed.filters.dynamics_family)
         next.dynamics_family = parsed.filters.dynamics_family;
       if (parsed.filters.sector) next.sector = parsed.filters.sector;
+      setScreenerActive(true);
+      setHasLoaded(false);
+      loadRequestRef.current += 1;
       setFilters(next);
+      const historyRoute = parsed.route.startsWith("/?")
+        ? `/companies?${parsed.route.slice(2)}`
+        : "/companies";
+      addToHistory({ query: parsed.query, route: historyRoute });
       // Also reflect in URL so the search is shareable.
       if (parsed.route.startsWith("/?")) {
         // Next.js client-side update (no full reload).
-        router.replace(parsed.route);
+        router.replace(`/companies?${parsed.route.slice(2)}`, { scroll: false });
       }
       // Defer scroll until next paint so the filter state lands first.
       setTimeout(scrollToScreener, 0);
@@ -423,7 +490,7 @@ export default function ScreenerHomePage() {
       </section>
 
       {/* Screener — under the fold per W5-E #4 */}
-      <section id="screener" aria-labelledby="screener-heading">
+      <section ref={screenerRef} id="screener" aria-labelledby="screener-heading">
         <div className="mb-3 flex items-baseline justify-between">
           <h2
             id="screener-heading"
@@ -469,7 +536,7 @@ export default function ScreenerHomePage() {
               </div>
             )}
 
-            {!error && !loading && companies.length === 0 && (
+            {screenerActive && hasLoaded && !error && !loading && companies.length === 0 && (
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-6 py-12 text-center text-sm text-zinc-500">
                 没有公司匹配这些筛选条件。请尝试放宽条件或
                 <button

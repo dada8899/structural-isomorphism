@@ -68,9 +68,11 @@ Next.js `NEXT_PUBLIC_*` 是 **build-time** 烧入 bundle 的。**必须**在 `pn
 ```
 NEXT_PUBLIC_API_BASE=/api
 NEXT_PUBLIC_USE_MOCK=false
+PHASE_API_INTERNAL_BASE=http://127.0.0.1:8200
 ```
 
 - `/api` 是相对路径，浏览器走 `https://phase.bytedance.city/api/...` → nginx 反代到 8200
+- `PHASE_API_INTERNAL_BASE` 只供 Next.js Server Components 读取首屏数据，必须保持 VPS loopback；不要改为公网地址或 `NEXT_PUBLIC_*`
 - 缺这个文件时 build 会用源码默认值 `http://localhost:8000`，前端到用户浏览器的本地端口（不存在）→ "Failed to fetch"
 - 改了 `.env.production` 后必须 **rebuild + restart**（不是 dev hot reload）
 

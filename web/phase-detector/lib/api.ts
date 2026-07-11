@@ -24,7 +24,7 @@ import {
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 function buildQuery(filters: ScreenerFilters): string {
   const params = new URLSearchParams();

@@ -45,6 +45,14 @@ echo "$LOG_PREFIX repo synced to $(git rev-parse --short HEAD)"
   echo "$LOG_PREFIX ERROR: .env.production missing" >&2
   exit 1
 }
+grep -qx 'NEXT_PUBLIC_API_BASE=/api' "$WEB_DIR/.env.production" || {
+  echo "$LOG_PREFIX ERROR: public Phase API base must remain /api" >&2
+  exit 1
+}
+grep -qx 'PHASE_API_INTERNAL_BASE=http://127.0.0.1:8200' "$WEB_DIR/.env.production" || {
+  echo "$LOG_PREFIX ERROR: internal Phase API base missing or unsafe" >&2
+  exit 1
+}
 [[ -x "$API_PYTHON" && -x "$API_PIP" ]] || {
   echo "$LOG_PREFIX ERROR: Phase API virtualenv missing" >&2
   exit 1

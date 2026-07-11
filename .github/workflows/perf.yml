@@ -106,6 +106,9 @@ jobs:
           cat /tmp/server.log
           exit 1
 
+      - name: Check server-rendered critical content
+        run: python scripts/check_phase_initial_html.py --base http://localhost:3017
+
       - name: Run Core Web Vitals audit
         run: |
           mkdir -p docs/performance

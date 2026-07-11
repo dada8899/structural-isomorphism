@@ -173,7 +173,7 @@ export default function HistorySidebar() {
                   {EXAMPLE_QUERIES.slice(0, 4).map((q) => (
                     <Link
                       key={q}
-                      href={`/?q=${encodeURIComponent(q)}`}
+                      href={`/companies?q=${encodeURIComponent(q)}`}
                       onClick={() => setDrawerOpen(false)}
                       className="mb-2 block rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[13px] leading-snug text-zinc-900 hover:border-accent hover:text-accent"
                     >
@@ -188,7 +188,7 @@ export default function HistorySidebar() {
                     className="group relative mb-0.5 rounded-lg border border-transparent hover:border-zinc-200 hover:bg-white"
                   >
                     <Link
-                      href={entry.route || `/?q=${encodeURIComponent(entry.query)}`}
+                      href={entry.route || `/companies?q=${encodeURIComponent(entry.query)}`}
                       onClick={() => setDrawerOpen(false)}
                       className="block px-3 py-2.5"
                     >
