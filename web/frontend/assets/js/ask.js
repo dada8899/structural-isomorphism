@@ -965,23 +965,40 @@
     // /analyze URL contract lives in utils/buildAnalyzeUrl.js — single
     // source of truth across the site (search.js / home.js / phenomenon.js).
     var url = window.buildAnalyzeUrl({ id: selectedKbId, q: query });
+    var separator = url.indexOf('?') === -1 ? '?' : '&';
+    var privateUrl = url + separator + 'persist=0';
+    var savedUrl = url + separator + 'persist=1';
 
     section.innerHTML =
-      '<a class="ask-thread-item__deep-cta" href="' + url + '">' +
+      '<a class="ask-thread-item__deep-cta" href="' + privateUrl + '">' +
         '<span>生成研究报告</span>' +
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>' +
-      '</a>';
+      '</a>' +
+      '<label class="ask-thread-item__save-choice">' +
+        '<input type="checkbox" data-role="save-report-choice">' +
+        '<span><strong>保存到这台设备的报告列表</strong>并生成持链可读的分享链接。未勾选时不会在服务器保存报告。</span>' +
+      '</label>';
     section.hidden = false;
 
     // W3-B: bind deep analysis click — we send `from_thread_item: true`
     // so we can disambiguate from a direct /analyze visit.
     var ctaLink = section.querySelector('.ask-thread-item__deep-cta');
+    var saveChoice = section.querySelector('[data-role="save-report-choice"]');
+    if (ctaLink && saveChoice) {
+      saveChoice.addEventListener('change', function () {
+        ctaLink.setAttribute('href', saveChoice.checked ? savedUrl : privateUrl);
+      });
+    }
     if (ctaLink) {
       ctaLink.addEventListener('click', function () {
         if (item._fingerprint) {
           try { sessionStorage.setItem('structural_pending_fingerprint', JSON.stringify(item._fingerprint)); } catch (e) {}
         }
-        track('deep_analysis_triggered', { from_thread_item: true, phenomenon_id: selectedKbId });
+        track('deep_analysis_triggered', {
+          from_thread_item: true,
+          phenomenon_id: selectedKbId,
+          persist_opt_in: !!(saveChoice && saveChoice.checked)
+        });
       });
     }
   }

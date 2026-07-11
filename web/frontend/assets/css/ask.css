@@ -506,6 +506,31 @@ body.is-home .ask-main {
   line-height: 1.5;
 }
 
+.ask-thread-item__save-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 620px;
+  color: var(--color-text-secondary, #52525b);
+  font-size: 13px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.ask-thread-item__save-choice input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--color-accent, #18181b);
+}
+
+.ask-thread-item__save-choice strong {
+  color: var(--color-text, #18181b);
+  font-weight: 600;
+}
+
 .ask-fingerprint {
   margin-top: 16px;
   padding: 20px;

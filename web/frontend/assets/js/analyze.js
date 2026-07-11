@@ -1582,11 +1582,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Session #16 M1.4 — persist by default so users get a shareable URL
-  // for every report they read. Override with ?persist=0 in the URL.
-  // anon_id is the same UUID used by /api/flags / favorites / history.
+  // Persistence and capability-link creation require explicit opt-in.
+  // Missing/invalid values remain private and never reach the report store.
+  // anon_id is only attached when persistence was explicitly selected.
   const persistFlag = getQueryParam('persist');
-  if (persistFlag !== '0') {
+  if (persistFlag === '1') {
     params.set('persist', '1');
     try {
       let anonId = localStorage.getItem('anonId');
