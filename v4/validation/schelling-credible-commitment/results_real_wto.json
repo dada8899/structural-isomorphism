@@ -106,7 +106,7 @@
   "wto_anchor_specific_hit": false,
   "wto_anchor_specific_residual_low": 0.6265016847275715,
   "wto_anchor_specific_residual_high": 0.17781969231506267,
-  "verdict": "REJECT-or-INCONCLUSIVE (mechanism unclear, k CI includes 0)",
+  "verdict": "REJECT-SIGN-REVERSED-REAL (k CI excludes 0 below zero)",
   "hypothesis_interpretation": "FRAMING-LIKELY: WTO real data MISSES its own anchor → pre-reg (s_low/s_high, p_low/p_high) coords are mis-stated for WTO",
   "structural_vs_framing": "framing",
   "data_rows": [

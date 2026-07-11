@@ -232,10 +232,17 @@ def main():
     k_in_band = (k_band[0] <= fit["k"] <= k_band[1])
     p_high_ok = fit["p_at_s_high"] > PREREG_V5["p_high_threshold"]
     p_low_ok = fit["p_at_s_low"] < PREREG_V5["p_low_threshold"]
-    k_ci_excludes_0 = fit["k_ci95"][0] is not None and fit["k_ci95"][0] > 0
+    k_ci_low, k_ci_high = fit["k_ci95"]
+    k_ci_excludes_0 = (
+        k_ci_low is not None
+        and k_ci_high is not None
+        and not (k_ci_low <= 0 <= k_ci_high)
+    )
 
     if not k_ci_excludes_0:
         verdict = "REJECT-or-INCONCLUSIVE (mechanism unclear, k CI includes 0)"
+    elif k_ci_high < 0:
+        verdict = "REJECT-SIGN-REVERSED-REAL (k CI excludes 0 below zero)"
     elif s_star_in_band and k_in_band and p_high_ok and p_low_ok:
         if pa["n_hits"] >= 4:
             verdict = "PASS-STRONG-REAL"

@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0.0",
+  "manuscript": "paper/v0.5-draft/v05-draft-skeleton.md",
+  "manuscript_status": "reviewer-readable-do-not-submit",
+  "review_status": "internal-review-only",
+  "external_review_completed": false,
+  "claims": [
+    {
+      "claim_id": "C-V05-AGGREGATION-L1",
+      "headline": true,
+      "exact_wording": "In the four recorded literature anchors, Layer 1 aggregation-size exponents fall within the preregistered [1.7, 3.5] band; the anchors span biology and physical chemistry.",
+      "scope": "Four literature-anchored constants recorded in results.json; this is not a universal law over all matter and the older anchors include pre-Clauset log-log fits.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/aggregation-kinetics/results.json",
+          "sha256": "6a775067cdb3f3be50c443056cf6d6893f0e474f1abd828a9fe055291d54452c"
+        }
+      ],
+      "command": "python3 v4/validation/aggregation-kinetics/run_validation.py",
+      "environment": "Repository Python environment; literature constants and inherited Allen Brain TBI fits",
+      "seed": null,
+      "result_figure_table": "results.json: layer1_per_plaque and layer2_population; manuscript Abstract and Contribution 5",
+      "provenance": "Literature-anchored constants plus an inherited real-data cross-section; not raw remeasurement of every source paper.",
+      "independence": "Internal pipeline run; no independent external replication or external reviewer verdict recorded.",
+      "caveats": [
+        "Layer 2 is biology-only.",
+        "Three Layer 1 anchors use literature-reported or pre-Clauset fits.",
+        "The evidence supports this four-anchor sample, not universality over all matter."
+      ]
+    },
+    {
+      "claim_id": "C-V05-PYTHIA-EVAL-SPECIFIC",
+      "headline": true,
+      "exact_wording": "Across the recorded Pythia cross-evaluator analysis, fitted scaling exponents vary by evaluator; the pooled qualified-evaluator result is labelled ALPHA_EVAL_SPECIFIC.",
+      "scope": "Eight Pythia sizes and eight recorded evaluator/metric recipes over the available checkpoints; no claim about other model families, training runs, or benchmarks.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/llm-scaling/results_cross_eval.json",
+          "sha256": "2fe0baa1f7cb7e7b3864b7ec11968cc4ac242c391a52cc366fb18052b70ccf86"
+        }
+      ],
+      "command": "python3 v4/validation/llm-scaling/run_validation_cross_eval.py",
+      "environment": "Repository Python environment; EleutherAI Pythia evaluation extracts listed in raw/SOURCES.md",
+      "seed": null,
+      "result_figure_table": "results_cross_eval.json; manuscript Abstract and Contribution 7",
+      "provenance": "Repository analysis of upstream EleutherAI Pythia evaluation JSON extracts.",
+      "independence": "Internal re-analysis; upstream evaluations are external, but no independent replication of this fitted verdict is recorded.",
+      "caveats": [
+        "Evaluator metrics and transforms differ.",
+        "The conclusion is Pythia-specific.",
+        "Fit specification and checkpoint coverage bound the inference."
+      ]
+    },
+    {
+      "claim_id": "C-V05-SCHELLING-SYNTHETIC",
+      "headline": true,
+      "exact_wording": "The selected synthetic threshold-tobit sub-run supports only a partial-anchor-fit verdict, not a real-world confirmation of Schelling credible commitment.",
+      "scope": "Synthetic generator family and fixed seeds recorded in results_v5.json; real-world mechanism validity is explicitly outside this positive result.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/schelling-credible-commitment/results_v5.json",
+          "sha256": "178b430a0e659d6f3e21ace40f4dcc8bdb52778b6de3f18ba9f147660bc111f8"
+        }
+      ],
+      "command": "python3 v4/validation/schelling-credible-commitment/run_validation_v5.py",
+      "environment": "Repository Python environment; synthetic generator only",
+      "seed": "active=20260525; sham=20260601",
+      "result_figure_table": "results_v5.json subruns and verdict ladder; manuscript Contribution 6",
+      "provenance": "Fully synthetic re-analysis with literature anchors used as comparison targets.",
+      "independence": "Internal generator and internal analysis; no independent external replication.",
+      "caveats": [
+        "Headline manuscript prose selects later sub-runs while the top-level result remains inconclusive.",
+        "The generator does not establish real-data causal identification.",
+        "Per-anchor fit is incomplete."
+      ]
+    },
+    {
+      "claim_id": "C-V05-SCHELLING-WTO-REJECT",
+      "headline": true,
+      "exact_wording": "In the manually coded 23-dispute WTO sample, the fitted slope is negative and its recorded 95% bootstrap interval excludes zero, contradicting the preregistered positive-slope observational prediction.",
+      "scope": "The 23 disputes reaching the retaliation-request stage in the recorded Horn-Mavroidis-derived sample; this rejects the stated observational prediction, not Schelling theory generally.",
+      "status": "reviewer-readable-do-not-submit",
+      "evidence": [
+        {
+          "path": "v4/validation/schelling-credible-commitment/results_real_wto.json",
+          "sha256": "6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"
+        }
+      ],
+      "command": "python3 v4/validation/schelling-credible-commitment/run_validation_real_wto.py",
+      "environment": "Repository Python environment; manually coded WTO outcomes",
+      "seed": "bootstrap implementation recorded by the analysis script",
+      "result_figure_table": "results_real_wto.json fit.beta_probit and fit.k_ci95; manuscript Abstract and Contribution 6",
+      "provenance": "Horn-Mavroidis-derived dispute selection plus repository manual outcome coding.",
+      "independence": "Internal coding and analysis; manual coding has not received recorded independent double-coding.",
+      "caveats": [
+        "Small selected sample (n=23).",
+        "Observational selection prevents a general causal conclusion.",
+        "The result is based on a small manually coded selected sample and requires independent double-coding before any stronger claim."
+      ]
+    }
+  ]
+}
