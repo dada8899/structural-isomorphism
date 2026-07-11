@@ -76,7 +76,11 @@ def _jwt_secret() -> str:
     In tests we monkeypatch this to a known value. In prod the env var is
     set in systemd EnvironmentFile (see deploy/structural-backend.service).
     """
-    return os.getenv("JWT_SECRET") or _DEV_FALLBACK_SECRET
+    secret = os.getenv("JWT_SECRET", "")
+    is_prod = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
+    if is_prod and (len(secret) < 32 or secret == _DEV_FALLBACK_SECRET):
+        raise RuntimeError("JWT_SECRET must be a unique 32+ character value in production")
+    return secret or _DEV_FALLBACK_SECRET
 
 
 # --- Storage paths (lazy, overridable in tests) ---

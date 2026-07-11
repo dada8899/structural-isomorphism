@@ -19,6 +19,7 @@ import { requestMagicLink, isDevMode } from "@/lib/auth-client";
 type Phase = "idle" | "submitting" | "sent" | "error";
 
 export default function LoginPage() {
+  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
   const [email, setEmail] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,20 @@ export default function LoginPage() {
       setDevLink(r.dev_link);
     }
     setPhase("sent");
+  }
+
+  if (!authEnabled) {
+    return (
+      <main className="mx-auto max-w-md px-6 py-16">
+        <h1 className="mb-2 text-2xl font-semibold text-zinc-900">账户功能尚未开放</h1>
+        <p className="mb-8 text-sm leading-6 text-zinc-600">
+          当前版本是研究预览，登录、云端收藏和团队连接功能暂不提供。公司收藏仍可保存在本机浏览器中。
+        </p>
+        <Link href="/" className="text-sm text-zinc-700 underline">
+          返回研究预览
+        </Link>
+      </main>
+    );
   }
 
   return (

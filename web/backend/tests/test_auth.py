@@ -29,6 +29,13 @@ from fastapi.testclient import TestClient  # noqa: E402
 from api import auth as auth_mod  # noqa: E402
 
 
+def test_jwt_secret_fails_closed_in_production(monkeypatch):
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    with pytest.raises(RuntimeError, match="JWT_SECRET"):
+        auth_mod._jwt_secret()
+
+
 @pytest.fixture(autouse=True)
 def _fixed_jwt_secret(monkeypatch):
     """Lock the JWT secret so tokens are stable across test runs."""

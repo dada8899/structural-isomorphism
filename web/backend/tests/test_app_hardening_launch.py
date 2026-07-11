@@ -26,6 +26,7 @@ def _fresh_main(monkeypatch, env: str):
     monkeypatch.setenv("STRUCTURAL_ENV", env)
     # prod path requires the share-token secret env (report_store guards it).
     monkeypatch.setenv("STRUCTURAL_SHARE_TOKEN_SECRET", "test-secret-for-suite")
+    monkeypatch.setenv("AUTH_ENABLED", "false")
     if "main" in sys.modules:
         del sys.modules["main"]
     import main  # noqa: WPS433 — deliberate reload
@@ -71,6 +72,20 @@ def test_docs_disabled_in_prod(prod_client):
     assert prod_client.get("/openapi.json").status_code == 404
     assert prod_client.get("/docs").status_code == 404
     assert prod_client.get("/redoc").status_code == 404
+
+
+def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
+    auth = prod_client.post("/api/auth/request-link", json={"email": "a@example.com"})
+    assert auth.status_code == 503
+    assert auth.json()["error"] == "account_features_not_available"
+
+    legacy_api = prod_client.post("/phase/api/redteam", json={})
+    assert legacy_api.status_code == 410
+    assert legacy_api.json()["error"] == "legacy_phase_api_retired"
+
+    legacy_page = prod_client.get("/phase", follow_redirects=False)
+    assert legacy_page.status_code == 308
+    assert legacy_page.headers["location"] == "https://phase.bytedance.city"
 
 
 # --------- P0-3: security headers on the real app --------- #

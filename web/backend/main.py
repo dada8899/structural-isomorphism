@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 
 # Ensure structural_isomorphism package is importable.
 # Prefer env var, else walk up from this file (web/backend/main.py -> project root).
@@ -52,6 +52,7 @@ _GIT_SHA_CACHE: str = ""
 # surface (including /api/admin/*). Disable them when STRUCTURAL_ENV=prod;
 # they stay on for dev / staging where they are useful.
 _IS_PROD = os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod"
+_AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() in {"1", "true", "yes"}
 _DOCS_KWARGS = (
     {"docs_url": None, "redoc_url": None, "openapi_url": None}
     if _IS_PROD
@@ -318,6 +319,28 @@ install_security_headers(app)
 from middleware.correlation import install_correlation_middleware  # noqa: E402
 
 install_correlation_middleware(app)
+
+
+@app.middleware("http")
+async def gate_unfinished_production_surfaces(request: Request, call_next):
+    """Fail closed for scaffolds that are not production products yet."""
+    if not _IS_PROD:
+        return await call_next(request)
+    path = request.url.path
+    if path.startswith("/phase/api/"):
+        return JSONResponse(
+            {"error": "legacy_phase_api_retired", "canonical": "https://phase.bytedance.city"},
+            status_code=410,
+        )
+    if path == "/phase" or path.startswith("/phase/"):
+        return RedirectResponse("https://phase.bytedance.city", status_code=308)
+    if not _AUTH_ENABLED and path.startswith(
+        ("/api/auth", "/api/connections", "/api/favorites")
+    ):
+        return JSONResponse(
+            {"error": "account_features_not_available"}, status_code=503
+        )
+    return await call_next(request)
 
 
 # --- Shared getter for dependency ---

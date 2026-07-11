@@ -19,6 +19,11 @@ interface Props {
 }
 
 export default function AuthNav({ variant = "compact" }: Props) {
+  if (process.env.NEXT_PUBLIC_AUTH_ENABLED !== "true") return null;
+  return <EnabledAuthNav variant={variant} />;
+}
+
+function EnabledAuthNav({ variant = "compact" }: Props) {
   const { user, loading, signOut } = useSession();
   const router = useRouter();
 
