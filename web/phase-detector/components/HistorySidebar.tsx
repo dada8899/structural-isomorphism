@@ -26,6 +26,11 @@ function timeAgo(ts: number): string {
   return `${d.getMonth() + 1}-${d.getDate()}`;
 }
 
+function historyHref(entry: HistoryEntry): string {
+  if (entry.route?.startsWith("/?")) return `/companies?${entry.route.slice(2)}`;
+  return entry.route || `/companies?q=${encodeURIComponent(entry.query)}`;
+}
+
 function removeFromHistory(ts: number): void {
   if (typeof window === "undefined") return;
   try {
@@ -188,7 +193,7 @@ export default function HistorySidebar() {
                     className="group relative mb-0.5 rounded-lg border border-transparent hover:border-zinc-200 hover:bg-white"
                   >
                     <Link
-                      href={entry.route || `/companies?q=${encodeURIComponent(entry.query)}`}
+                      href={historyHref(entry)}
                       onClick={() => setDrawerOpen(false)}
                       className="block px-3 py-2.5"
                     >

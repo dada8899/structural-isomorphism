@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
@@ -59,6 +59,35 @@ function LazyMount({ children, minHeight = 1 }: { children: ReactNode; minHeight
   );
 }
 
+function urlFilters(params: { get(name: string): string | null }): {
+  filters: ScreenerFilters;
+  hasIntent: boolean;
+} {
+  const next: ScreenerFilters = { limit: 50 };
+  const state = params.get("state");
+  const family = params.get("family");
+  const sector = params.get("sector");
+  const query = params.get("q");
+  if (state && CPS_OPTIONS.includes(state as (typeof CPS_OPTIONS)[number])) {
+    next.critical_point_state = state as ScreenerFilters["critical_point_state"];
+  }
+  if (family && DYNAMICS_FAMILY_OPTIONS.includes(family as (typeof DYNAMICS_FAMILY_OPTIONS)[number])) {
+    next.dynamics_family = family as ScreenerFilters["dynamics_family"];
+  }
+  if (sector) next.sector = sector;
+  if (!next.critical_point_state && !next.dynamics_family && !sector && query) {
+    Object.assign(next, parseQuery(query).filters);
+  }
+  return { filters: next, hasIntent: Boolean(state || family || sector || query) };
+}
+
+function CompaniesUrlSync({ onChange }: { onChange(params: URLSearchParams): void }) {
+  const params = useSearchParams();
+  const serialized = params.toString();
+  useEffect(() => onChange(new URLSearchParams(serialized)), [onChange, serialized]);
+  return null;
+}
+
 // W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
 // PR-1 copy sweep (2026-05-14): hero rewritten outcome-first, jargon translated,
 // internal codenames (普适类 / 临界点 / STRUCTURAL SIGNALS) stripped from user-visible copy.
@@ -73,6 +102,8 @@ export default function ScreenerHomePage() {
   const router = useRouter();
   const screenerRef = useRef<HTMLElement>(null);
   const loadRequestRef = useRef(0);
+  const filtersRef = useRef<ScreenerFilters>({ limit: 50 });
+  const screenerActiveRef = useRef(false);
   const [screenerActive, setScreenerActive] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -148,39 +179,40 @@ export default function ScreenerHomePage() {
   }, [filters, load, screenerActive]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const next: ScreenerFilters = { limit: 50 };
-    const state = params.get("state");
-    const family = params.get("family");
-    const sector = params.get("sector");
-    if (state && CPS_OPTIONS.includes(state as (typeof CPS_OPTIONS)[number])) {
-      next.critical_point_state = state as ScreenerFilters["critical_point_state"];
-    }
-    if (family && DYNAMICS_FAMILY_OPTIONS.includes(family as (typeof DYNAMICS_FAMILY_OPTIONS)[number])) {
-      next.dynamics_family = family as ScreenerFilters["dynamics_family"];
-    }
-    if (sector) next.sector = sector;
-    if (!next.critical_point_state && !next.dynamics_family && !sector && params.get("q")) {
-      const parsed = parseQuery(params.get("q") ?? "");
-      Object.assign(next, parsed.filters);
-    }
-    if (next.critical_point_state || next.dynamics_family || sector) {
-      setScreenerActive(true);
-      setHasLoaded(false);
-      setFilters(next);
-    }
+    filtersRef.current = filters;
+    screenerActiveRef.current = screenerActive;
+  }, [filters, screenerActive]);
+
+  const syncUrlFilters = useCallback((params: URLSearchParams) => {
+    const { filters: next, hasIntent } = urlFilters(params);
+    if (!hasIntent && !screenerActiveRef.current) return;
+    const current = filtersRef.current;
+    const unchanged =
+      current.limit === next.limit &&
+      current.critical_point_state === next.critical_point_state &&
+      current.dynamics_family === next.dynamics_family &&
+      current.sector === next.sector;
+    if (unchanged) return;
+    loadRequestRef.current += 1;
+    filtersRef.current = next;
+    screenerActiveRef.current = true;
+    setScreenerActive(true);
+    setHasLoaded(false);
+    setFilters(next);
   }, []);
 
   useEffect(() => {
     const target = screenerRef.current;
     if (!target || screenerActive) return;
     if (!("IntersectionObserver" in window)) {
+      screenerActiveRef.current = true;
       setScreenerActive(true);
       return;
     }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          screenerActiveRef.current = true;
           setScreenerActive(true);
           observer.disconnect();
         }
@@ -202,10 +234,13 @@ export default function ScreenerHomePage() {
 
   const handleApply = useCallback((next: ScreenerFilters) => {
     // Reset page size to 50 whenever filters change (W17 polish #5).
+    const normalized = { ...next, limit: next.limit ?? 50 };
+    screenerActiveRef.current = true;
+    filtersRef.current = normalized;
     setScreenerActive(true);
     setHasLoaded(false);
     loadRequestRef.current += 1;
-    setFilters({ ...next, limit: next.limit ?? 50 });
+    setFilters(normalized);
   }, []);
 
   // W17 polish #5: "load more" pagination (mobile UX). Bumps the current
@@ -216,8 +251,10 @@ export default function ScreenerHomePage() {
   const [reachedEnd, setReachedEnd] = useState(false);
   const handleLoadMore = useCallback(() => {
     const currentLimit = filters.limit ?? 50;
+    const next = { ...filters, limit: currentLimit + PAGE_STEP };
     loadRequestRef.current += 1;
-    setFilters({ ...filters, limit: currentLimit + PAGE_STEP });
+    filtersRef.current = next;
+    setFilters(next);
   }, [filters]);
   useEffect(() => {
     // After a fetch resolves, infer "no more rows" when the count is below
@@ -262,6 +299,8 @@ export default function ScreenerHomePage() {
       setScreenerActive(true);
       setHasLoaded(false);
       loadRequestRef.current += 1;
+      screenerActiveRef.current = true;
+      filtersRef.current = next;
       setFilters(next);
       const historyRoute = parsed.route.startsWith("/?")
         ? `/companies?${parsed.route.slice(2)}`
@@ -280,6 +319,9 @@ export default function ScreenerHomePage() {
 
   return (
     <div className="space-y-10">
+      <Suspense fallback={null}>
+        <CompaniesUrlSync onChange={syncUrlFilters} />
+      </Suspense>
       {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14).
           W2-B (session #9): transparency banner pulled above-fold as trust
           signal — we publish the NULL backtest (p=0.681) upfront so users can
