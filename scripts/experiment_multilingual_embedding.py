@@ -267,6 +267,7 @@ def build_report(
             resolved_revision = marker.name
             break
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    script_path = Path(__file__).resolve()
     return {
         "schema_version": "multilingual-embedding-experiment-v1",
         "frozen_inputs": {
@@ -285,6 +286,16 @@ def build_report(
             "torch": package_version("torch"),
             "platform": platform.platform(), "embedding_dimension": int(doc_vectors.shape[1]),
             "batch_size": batch_size, "candidate_k": candidate_k,
+            "device": str(getattr(model, "device", "unknown")),
+            "determinism": "model.eval; normalized float32 embeddings; deterministic doc-id tie break",
+        },
+        "reproduction": {
+            "script_sha256": sha256(script_path),
+            "command": (
+                f".venv/bin/python scripts/{script_path.name} --batch-size {batch_size} "
+                f"--candidate-k {candidate_k} --output evaluation/results/multilingual-minilm-l12-v2.json"
+            ),
+            "network_requirement": "none after the fingerprinted model snapshot is cached",
         },
         "methodology": {
             "document_text": "description only", "retrieval": "normalized dense embeddings; pure cosine; deterministic doc-id tie break",

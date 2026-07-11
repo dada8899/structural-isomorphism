@@ -561,9 +561,16 @@
       }
     ]
   },
+  "reproduction": {
+    "command": ".venv/bin/python scripts/experiment_multilingual_embedding.py --batch-size 64 --candidate-k 50 --output evaluation/results/multilingual-minilm-l12-v2.json",
+    "network_requirement": "none after the fingerprinted model snapshot is cached",
+    "script_sha256": "d1dc68b6c77569a58fbf50c8d8281c2051066f74e85e81723962b32536051cde"
+  },
   "runtime": {
     "batch_size": 64,
     "candidate_k": 50,
+    "determinism": "model.eval; normalized float32 embeddings; deterministic doc-id tie break",
+    "device": "cpu",
     "embedding_dimension": 384,
     "numpy": "2.4.4",
     "platform": "macOS-15.3.1-arm64-arm-64bit-Mach-O",

@@ -93,3 +93,5 @@ def test_fake_encoder_never_downloads_and_json_is_deterministic(tmp_path):
     assert len(first["paired_top5"]["per_pair"]) == 50
     assert first["fixed_old_english_judged_pool"]["multilingual_dense_rerank"]["queries"] == 40
     assert "not endpoint-comparable" in first["comparability_boundaries"]["not_valid"]
+    assert first["reproduction"]["script_sha256"] == MODULE.sha256(SCRIPT)
+    assert first["runtime"]["device"] == "unknown"
