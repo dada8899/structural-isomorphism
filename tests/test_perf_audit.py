@@ -1,4 +1,11 @@
-from scripts.perf_audit import compute_inp_proxy
+from scripts.perf_audit import NAV_INTERACTION, PAGES, compute_inp_proxy
+
+
+def test_every_route_uses_the_responsive_visible_navigation_interaction():
+    assert ":visible" in NAV_INTERACTION
+    assert "cmdk-trigger-desktop" in NAV_INTERACTION
+    assert "mobile-nav-toggle" in NAV_INTERACTION
+    assert all(selector == NAV_INTERACTION for _, _, selector in PAGES)
 
 
 def test_compute_inp_proxy_ignores_loading_loaf_and_untrusted_events():

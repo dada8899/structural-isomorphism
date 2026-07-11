@@ -34,19 +34,25 @@ from typing import Any
 
 from playwright.sync_api import sync_playwright
 
-# 10 pages mirroring W12-A audit. Each selector targets a stable, meaningful
-# control; a missing interaction is a failed run rather than a synthetic 0 ms.
+# 10 pages mirroring W12-A audit. Use the same real navigation interaction on
+# every route so CI fixtures and responsive layouts remain comparable. The
+# ``:visible`` clause selects Cmd+K on desktop and the menu toggle on mobile;
+# a missing control is still a failed run rather than a synthetic 0 ms.
+NAV_INTERACTION = (
+    'button[data-testid="cmdk-trigger-desktop"]:visible, '
+    'button[data-testid="mobile-nav-toggle"]:visible'
+)
 PAGES: list[tuple[str, str, str]] = [
-    ("landing", "/", '[data-tour-target="universality-card"]'),
-    ("companies", "/companies", '[data-testid="companies-load-more"]'),
-    ("company_AAPL", "/company/AAPL", '[data-testid="metadata-toggle"]'),
-    ("universality", "/universality", '[data-testid="universality-filter-PASS"]'),
-    ("universality_class", "/universality/self_organized_criticality", '[data-testid="universality-compare-cta"]'),
-    ("compare", "/compare?tickers=AAPL,TSLA", 'button[aria-label^="移除 "]'),
-    ("pricing", "/pricing", 'a[href="/methodology"]'),
-    ("backtest", "/backtest", 'a[href="/methodology"]'),
-    ("about", "/about", 'a[href="/"]'),
-    ("methodology", "/methodology", 'a[href="/"]'),
+    ("landing", "/", NAV_INTERACTION),
+    ("companies", "/companies", NAV_INTERACTION),
+    ("company_AAPL", "/company/AAPL", NAV_INTERACTION),
+    ("universality", "/universality", NAV_INTERACTION),
+    ("universality_class", "/universality/self_organized_criticality", NAV_INTERACTION),
+    ("compare", "/compare?tickers=AAPL,TSLA", NAV_INTERACTION),
+    ("pricing", "/pricing", NAV_INTERACTION),
+    ("backtest", "/backtest", NAV_INTERACTION),
+    ("about", "/about", NAV_INTERACTION),
+    ("methodology", "/methodology", NAV_INTERACTION),
 ]
 
 VIEWPORTS = {
@@ -247,12 +253,15 @@ def audit_one(
             results.append({"error": f"navigation returned HTTP {status}"})
             continue
 
-        # Wait for network idle + extra settle time so async chunks/images stop shifting
+        # Next.js keeps background connections alive, so ``networkidle`` burns
+        # the full timeout on every run. The load event plus a bounded settle
+        # window captures late paint/layout work without turning 60 samples
+        # into a 20-minute CI job.
         try:
-            page.wait_for_load_state("networkidle", timeout=15000)
+            page.wait_for_load_state("load", timeout=5000)
         except Exception:
             pass
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(1000)
 
         # Use a trusted Playwright click. Prevent anchor navigation while still
         # exercising the page's real click handlers and rendering work.
