@@ -214,12 +214,18 @@ class Monitor:
                      "price_provenance must equal demo")
 
     def check_route_matrix(self) -> None:
-        beta_routes = ("/", "/search", "/classes", "/analyze", "/pricing.html")
+        beta_routes = ("/", "/start-here", "/search", "/classes", "/analyze")
         phase_routes = ("/", "/zh", "/companies", "/methodology", "/universality", "/about", "/pricing")
         for route in beta_routes:
             self.check_page(f"beta route {route}", BETA + route)
         for route in phase_routes:
             self.check_page(f"phase route {route}", PHASE + route)
+        # The legacy beta pricing file is intentionally not a public product
+        # surface while billing is disabled; fail if it silently reappears.
+        self.request(
+            "retired beta pricing route", "GET", f"{BETA}/pricing.html",
+            expected_status=404,
+        )
 
     def run(self) -> int:
         started = time.monotonic()
