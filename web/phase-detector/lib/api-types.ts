@@ -169,6 +169,8 @@ export interface HealthResponse {
   status?: string;
   kb_size?: number;
   llm_model?: string;
+  artifact_id?: string | null;
+  embedding_shape?: number[] | null;
   checks?: {
     [k: string]: string;
   } | null;

@@ -56,7 +56,7 @@ pnpm start   # serve built app on :3000
 Target subdomain: **phase.bytedance.city** (live).
 
 1. `pnpm build` to produce `.next/` output
-2. Reverse-proxy `phase.bytedance.city` → `127.0.0.1:3210` via nginx; `/api/` 反代到 `127.0.0.1:8200` (phase-detector-api)
+2. Reverse-proxy `phase.bytedance.city` → `127.0.0.1:3210` via nginx; use the tracked `phase.bytedance.city.nginx.conf` so `/api/health` maps to API `/health` and other `/api/*` paths retain their prefix on port 8200.
 3. `certbot --nginx -d phase.bytedance.city`
 4. systemd: `phase-detector-web` (3210) + `phase-detector-api` (8200)
 
