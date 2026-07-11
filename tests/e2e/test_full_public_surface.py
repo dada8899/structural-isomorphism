@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import functools
 import threading
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -70,7 +71,13 @@ def assert_route_matrix(page: Page, origin: str, routes: tuple[str, ...]) -> Non
     failures: list[str] = []
     for route in routes:
         try:
-            response = page.goto(origin + route, wait_until="domcontentloaded", timeout=20_000)
+            response = None
+            for attempt in range(3):
+                response = page.goto(origin + route, wait_until="domcontentloaded", timeout=20_000)
+                if response is not None and response.status < 500:
+                    break
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
             if response is None or response.status >= 400:
                 failures.append(f"{route}: HTTP {response.status if response else 'none'}")
                 continue

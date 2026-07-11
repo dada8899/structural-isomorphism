@@ -597,3 +597,48 @@ git diff --stat
 - sanity `29157003962` 仍在运行；perf `29157003952` 为唯一失败，20/20 测量完整，精确剩余：companies mobile LCP `2608 > 2600`、TBT `277 > 200`；company/AAPL mobile LCP `2784 > 2600`；compare mobile LCP `2640 > 2600`。
 - 不得放宽预算。下一轮从 server-rendered/initial payload 与首屏组件 profiler 入手；当前 CSS 隐藏和 IntersectionObserver 优化已经消除重复说明，但不能替代首屏数据架构修复。
 - 本地交接文档待提交；本地测试 server session `13124` 应关闭。
+
+## 19. 2026-07-12 P0/P1/P2 产品闭环与邮箱认证交付
+
+> 本节是当前最新权威状态。代码与生产部署已完成；最终长时 CI/性能门禁仍在运行，下一节应记录终态。
+
+### 已实现并推送
+
+- `2ee2f56`：工作台改为“用户确认结构指纹 → 显式选择候选 → 证据/反证 → 结构化最小实验 → 结果回写”；禁止默认选择 Top 1。
+- `a967889`：新增 594 条 expanded candidate 的本地盲审工具、断点续标、严格导入/导出、三标注者一致性与仲裁队列；未伪造人工标签。
+- `d555378`：新增 claim-evidence ledger 和 fail-closed 研究门禁；修正 WTO 数值置信区间为显著负向但符号反转的诚实结论。
+- `ee0cfd4`：修复公开页面死入口、Phase Explore 链接、onboarding 服务端请求、收藏文案与远程 Google Fonts 构建依赖。
+- `6eb6f77`：实现邮箱 magic-link 注册/登录、HttpOnly session、token 单次事务消费、持久化用户与 durable 管理员通知 outbox、限流、撤销、SMTP 后台重试和生产 fail-closed。
+- `332c266`：新增全站路由矩阵、工作台真实浏览器核心旅程和产品/研究契约；本地核心旅程在 CI 中 fail-closed。
+- `285be50`：CI 产品门禁 checkout 权威 Git LFS KB，修复干净 runner 只拿到 pointer 的问题。
+
+### 验证与部署
+
+- 本地 backend：`890 passed, 1 skipped`。
+- 本地根测试：`299 passed, 31 deselected`；产品/研究契约 `17 passed`；Phase lint 和 29/29 production build 通过。
+- GitHub fail-closed browser product contract 已通过；LFS 修复后的 retrieval/product/research contract 已通过。
+- Beta deploy `29162301984` success；线上 SHA `332c266`，4443 KB、`[4443,768]`、Luna Pro、artifact checks 全部正常。
+- Phase deploy `29162301553` success；线上 health 200、EWS 597 ticker、`price_provenance=demo`。
+- 生产认证保持 `NEXT_PUBLIC_AUTH_ENABLED=false`；`/api/auth/me` 返回 503 `auth unavailable`，避免没有发信能力时暴露半成品入口。
+
+### 唯一外部上线 blocker
+
+- 当前本机、VPS 与腾讯 SES 均没有可用已验证发信身份/SMTP 配置；腾讯 SES 创建身份受到账号侧 domain limit 拒绝。
+- 因此注册登录代码可部署但不能安全启用。启用前需要真实私有 `JWT_SECRET`、SMTP 配置和 `ADMIN_NOTIFICATION_EMAIL`；部署会拒绝公开占位/低熵 JWT、非 600 env、仓库内数据目录或不匹配的 systemd EnvironmentFile。
+- 启用后必须完成真实邮箱收信、管理员通知、token 重放拒绝、服务重启持久化和 SMTP 失败重试五项生产验收。
+
+### 仍在运行
+
+- 当前最新 SHA `285be50`：CI `29162357905`、Coverage `29162357901`、sanity `29162357956`、perf `29162357899` 仍在运行；types-sync `29162357906` 已 success。
+- 全部终态后触发 `site-smoke.yml`，复核全站路由并追加下一节；不得把运行中写成已通过。
+
+## 20. 2026-07-12 性能与生产最终收口
+
+> 本节取代第 19 节“长时门禁仍运行”的过程状态。
+
+- `1d60c56` 修复 Phase 移动端稳定 CLS：自托管字体从 `display: swap` 改为 `optional`，保留快缓存品牌字体并避免慢首访后换字重排。
+- 首轮失败证据为 backtest mobile CLS 三次均 `0.1141`、about mobile 三次均 `0.2393`；不是随机噪声。修复后 perf workflow `29162628931` 对 10 页 × 2 视口 × 3 runs 全部通过，预算未放宽、内容未隐藏。
+- Phase deploy `29162628915`、types-sync `29162628927`、docs deploy `29162628892`、Coverage `29162628887` 均 success。
+- 部署后生产 smoke `29162780942` success；beta/Phase 深度健康、搜索/OOS、597 demo provenance、认证关闭态与全部业务不变量通过。
+- CI 的 live soft-fail E2E 曾在 Phase 部署切换窗口捕获 `/company/AAPL` 单次 502；同 job 其余 28 项通过，部署后 smoke 未复现。route matrix 已增加最多 3 次有限 5xx 重试（1s/2s），持续失败仍 fail closed。
+- 本轮交付的代码级 P0/P1/P2 已完成；不可自动完成的剩余项只有真实人工标注/外部学术 review，以及账号侧可用 SMTP/已验证发信身份。注册登录必须继续关闭，直到具备真实私有配置并完成五项生产验收。
