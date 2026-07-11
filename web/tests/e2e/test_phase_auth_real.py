@@ -138,6 +138,31 @@ def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_st
     context.close()
 
 
+def test_phase_account_entry_is_visible_on_desktop_and_mobile(browser, real_stack):
+    desktop = browser.new_context(viewport={"width": 1280, "height": 800})
+    page = desktop.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"])
+    entry = page.get_by_test_id("auth-nav-signin")
+    entry.wait_for()
+    assert entry.inner_text() == "注册 / 登录"
+    assert entry.get_attribute("href") == "/auth/login"
+    desktop.close()
+
+    mobile = browser.new_context(viewport={"width": 390, "height": 844})
+    page = mobile.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"])
+    page.get_by_test_id("mobile-nav-toggle").click()
+    entry = page.get_by_role("menu", name="主导航（移动）").get_by_test_id(
+        "auth-nav-signin"
+    )
+    entry.wait_for()
+    assert entry.inner_text() == "注册 / 登录"
+    assert entry.get_attribute("href") == "/auth/login"
+    mobile.close()
+
+
 def test_favorites_partial_delete_retains_failed_row(browser, real_stack):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     page = context.new_page()
