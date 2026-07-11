@@ -224,11 +224,17 @@ class Monitor:
     def run(self) -> int:
         started = time.monotonic()
         self.check_structural_docs()
+        print("OK structural docs", flush=True)
         self.check_beta_system()
+        print("OK beta version and deep health", flush=True)
         self.check_search()
+        print("OK bilingual search and OOS refusal", flush=True)
         self.check_disabled_surfaces()
+        print("OK disabled production surfaces", flush=True)
         self.check_phase()
+        print("OK Phase API provenance", flush=True)
         self.check_route_matrix()
+        print("OK public route matrix", flush=True)
         elapsed = time.monotonic() - started
         print(f"PASS production smoke: {self.checked} requests in {elapsed:.1f}s")
         return self.checked
