@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>English Retrieval Blind Review</title><link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <main>
+    <header><div><h1>English retrieval blind review</h1><p>Offline, autosaved, rank and source hidden.</p></div><strong id="progress">Loading…</strong></header>
+    <section id="setup" class="panel"><label>Reviewer ID <input id="reviewer" maxlength="80" autocomplete="off"></label><button id="start">Start / Resume</button><button id="import">Import JSONL</button><input id="file" type="file" accept=".jsonl,application/json" hidden></section>
+    <section id="review" class="panel" hidden>
+      <nav><button id="previous">← Previous</button><span id="position"></span><button id="next">Next →</button></nav>
+      <article><p class="eyebrow">Query</p><h2 id="query"></h2><p class="eyebrow">Candidate</p><h3 id="candidate"></h3><span id="domain"></span><p id="description"></p></article>
+      <fieldset><legend>Relevance (keyboard 0–3)</legend><div id="scores"></div></fieldset>
+      <div class="grid"><label><input id="same-domain" type="checkbox"> Same-domain match</label><label><input id="evidence" type="checkbox"> Evidence is present</label>
+        <label>Reject reason <select id="reject"><option value="none">None</option><option value="not_relevant">Not relevant</option><option value="same_domain_only">Same-domain only</option><option value="weak_evidence">Weak evidence</option><option value="wrong_mechanism">Wrong mechanism</option><option value="insufficient_information">Insufficient information</option><option value="other">Other</option></select></label>
+        <label>Confidence <select id="confidence"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label></div>
+      <label>Optional note <textarea id="note" maxlength="1000"></textarea></label>
+      <p id="error" role="alert"></p><button id="save-next">Save & next</button>
+    </section>
+    <footer><button id="export-partial">Export checkpoint</button><button id="export-complete">Validate & export complete JSONL</button><span id="status"></span></footer>
+  </main><script src="review.js"></script>
+</body></html>
