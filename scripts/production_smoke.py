@@ -207,6 +207,17 @@ class Monitor:
         health = self.json("phase health", "GET", f"{PHASE}/api/health")
         self.require(isinstance(health, dict) and health.get("status") == "ok",
                      "phase health", "status must be ok")
+        auth = self.json(
+            "phase auth enabled without session",
+            "GET",
+            f"{PHASE}/api/auth/me",
+            expected_status=401,
+        )
+        self.require(
+            isinstance(auth, dict) and auth.get("error") == "no session",
+            "phase auth enabled without session",
+            "must reject anonymous access with no session",
+        )
         meta = self.json("phase EWS metadata", "GET", f"{PHASE}/api/ews/meta")
         self.require(isinstance(meta, dict), "phase EWS metadata", "expected an object")
         self.require(meta.get("n_tickers") == 597, "phase EWS metadata", "n_tickers must equal 597")

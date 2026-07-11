@@ -53,6 +53,8 @@ def successful_transport(method, url, body, timeout):
         return smoke.Response(503, encoded({"error": "billing_not_available"}))
     if url.endswith("/api/auth/request-link"):
         return smoke.Response(503, encoded({"error": "account_features_not_available"}))
+    if url.endswith("/api/auth/me"):
+        return smoke.Response(401, encoded({"ok": False, "error": "no session"}))
     if url.endswith("/api/ews/meta"):
         return smoke.Response(200, encoded({"n_tickers": 597, "price_provenance": "demo"}))
     if url.endswith("/api/health"):
@@ -67,9 +69,9 @@ def test_full_monitor_contract_passes_with_mock_transport(capsys):
     monitor = smoke.Monitor(
         successful_transport, timeout=3, search_interval=2.1, sleeper=waits.append
     )
-    assert monitor.run() == 51
+    assert monitor.run() == 52
     assert waits == [2.1] * 29
-    assert "PASS production smoke: 51 requests" in capsys.readouterr().out
+    assert "PASS production smoke: 52 requests" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("mutation, expected", [
@@ -155,4 +157,14 @@ def test_phase_wrong_provenance_fails():
             return smoke.Response(200, encoded({"n_tickers": 597, "price_provenance": "live"}))
         return result
     with pytest.raises(smoke.SmokeFailure, match="price_provenance must equal demo"):
+        smoke.Monitor(transport).check_phase()
+
+
+def test_phase_auth_disabled_or_accidentally_public_fails():
+    def transport(method, url, body, timeout):
+        result = successful_transport(method, url, body, timeout)
+        if url.endswith("/api/auth/me"):
+            return smoke.Response(503, encoded({"error": "auth unavailable"}))
+        return result
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 401, got 503"):
         smoke.Monitor(transport).check_phase()
