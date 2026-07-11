@@ -30,6 +30,12 @@
     { href: '/analyze', key: 'nav.analyze', label: '分析' },
     { href: '/tools', key: 'nav.tools', label: '工具' },
     { href: '/reports', key: 'nav.reports', label: '我的报告' },
+    {
+      href: 'https://phase.bytedance.city/auth/login',
+      key: 'nav.auth',
+      label: 'Phase 账户 ↗',
+      external: true
+    },
     { href: '/about', key: 'nav.about', label: '关于' },
   ];
 
@@ -75,6 +81,7 @@
       var isCurrent = item.href === cur;
       return (
         '<a href="' + item.href + '" class="' + extraClass + '"' +
+        (item.external ? ' target="_blank" rel="noopener"' : '') +
         (isCurrent ? ' aria-current="page"' : '') +
         ' data-i18n="' + item.key + '">' + item.label + '</a>'
       );
