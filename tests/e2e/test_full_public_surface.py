@@ -163,6 +163,19 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     assert "id=candidate-1" not in (cta.get_attribute("href") or "")
 
 
+def test_beta_header_exposes_canonical_phase_account(
+    page: Page, local_beta_origin: str
+):
+    page.goto(local_beta_origin, wait_until="domcontentloaded")
+    account = page.get_by_role("link", name="Phase 账户 ↗")
+    expect(account).to_be_visible()
+    expect(account).to_have_attribute(
+        "href", "https://phase.bytedance.city/auth/login"
+    )
+    expect(account).to_have_attribute("target", "_blank")
+    expect(account).to_have_attribute("rel", "noopener")
+
+
 def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str):
     now = datetime.now(timezone.utc)
     items = [
