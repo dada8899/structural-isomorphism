@@ -16,14 +16,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-# Wire v4/lib on sys.path
-import sys
-from pathlib import Path
-
-REPO = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO / "v4" / "lib"))
-
-from soc_pipeline import (  # noqa: E402
+from v4.lib.soc_pipeline import (
     fit_clauset_powerlaw,
     run_size_null_controls,
     verdict_from_alpha_band,

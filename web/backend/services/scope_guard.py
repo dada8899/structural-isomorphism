@@ -76,6 +76,43 @@ _TRIVIA_PREFIXES_EN = (
     "what day is it", "what's the weather", "what is the weather",
 )
 
+_HARD_FORECAST_PATTERNS = (
+    re.compile(r"(?:预测|明天|下周|一定).*(?:股价|股票|加密货币|币|涨|跌|价格)"),
+    re.compile(r"(?:股价|股票|加密货币|币|价格).*(?:预测|明天|下周|一定)"),
+    re.compile(r"\b(?:predict|forecast|guaranteed)\b.*\b(?:stock|tesla|crypto|cryptocurrency|price|rise|fall)\b", re.I),
+    re.compile(r"\bwill\b.*\b(?:stock|tesla|crypto|cryptocurrency|price)\b.*\b(?:tomorrow|next week|rise|fall)\b", re.I),
+    re.compile(r"(?:茅台|特斯拉|股票|股价|比特币|btc|加密货币).*(?:涨到多少|跌到多少|目标价)"),
+    re.compile(r"(?:股票|基金|比特币|btc|加密货币).*(?:值得投资|值得买入|该不该买)"),
+)
+
+_SOFT_FINANCE_RECOMMENDATION_PATTERNS = (
+    re.compile(r"推荐.*(?:股票|基金|加密货币|币)"),
+    re.compile(r"(?:股票|基金|加密货币|币).*推荐"),
+    re.compile(r"\b(?:pick|recommend)\b.*\b(?:stock|fund|crypto|cryptocurrency|coin)\b", re.I),
+)
+
+_STRUCTURAL_ANALYSIS_RE = re.compile(
+    r"(?:结构类比|结构同构|结构相似|结构机制|机制分析|正反馈|负反馈|级联|临界相变|"
+    r"structural\s+(?:analogy|isomorphism|similarity|mechanism)|mechanism|cascade)",
+    re.I,
+)
+_TRANSACTIONAL_FINANCE_RE = re.compile(
+    r"(?:买入|卖出|持仓|建仓|清仓|值得投资|投资标的|推荐.*(?:股票|基金|币种)|"
+    r"\b(?:buy|sell|hold|invest(?:ment)?|portfolio)\b)",
+    re.I,
+)
+
+_GENERAL_TRIVIA_PATTERNS = (
+    re.compile(r"^.+的首都(?:是哪里|是什么|在哪)[？?]?$"),
+    re.compile(r"^(?:what is|what's) the capital of .+[？?]?$", re.I),
+    re.compile(r"^.+(?:明天|今天).*(?:天气|气温).*[？?]?$"),
+    re.compile(r"^what (?:will|is).*(?:weather|temperature).*[？?]?$", re.I),
+    re.compile(r"^(?:把|请把).+(?:翻译成|译成).+[。.!！]?$"),
+    re.compile(r"^translate .+ into .+[.!]?$", re.I),
+    re.compile(r"^(?=.*(?:西红柿炒鸡蛋|炒鸡蛋|红烧|清蒸|煲汤|烘焙|食谱|菜谱|做饭|烹饪|料理)).*(?:怎么做|如何做|做法是什么)[？?]?$", re.I),
+    re.compile(r"^how (?:do|can) i (?:cook|make|prepare) .+[？?]?$", re.I),
+)
+
 # A query longer than this is assumed to carry real intent — the
 # chit-chat / trivia prefix checks only apply to SHORT queries so we
 # never decline a substantive question that merely opens with "hi,".
@@ -99,18 +136,46 @@ def is_out_of_scope(query: str) -> tuple[bool, str]:
     if not q:
         return True, "empty"
 
+    # Punctuation/symbol-only input carries no analysable phenomenon.
+    if not any(ch.isalnum() or "一" <= ch <= "鿿" for ch in q):
+        return True, "empty"
+
+    # Forecasting is product-wide policy, not an ask-only exception. Keep the
+    # deterministic high-precision patterns here so search/analyze/ask agree.
+    structural_analysis = bool(_STRUCTURAL_ANALYSIS_RE.search(q))
+    if any(pattern.search(q) for pattern in _HARD_FORECAST_PATTERNS):
+        return True, "forecasting_intent"
+    soft_recommendation = any(
+        pattern.search(q) for pattern in _SOFT_FINANCE_RECOMMENDATION_PATTERNS
+    )
+    if soft_recommendation and (not structural_analysis or _TRANSACTIONAL_FINANCE_RE.search(q)):
+        return True, "forecasting_intent"
+
+    # Common arithmetic wording wraps the expression in a natural-language
+    # prefix/suffix. Strip those wrappers before applying the strict regex.
+    arithmetic_candidate = re.sub(r"^(?:what is|what's|calculate|请问|计算)\s*", "", q)
+    arithmetic_candidate = re.sub(r"\s*(?:等于几|是多少|equals what)\s*[?？]?$", "", arithmetic_candidate)
+
     # 1. Pure arithmetic — "1+1", "2*3=?", "(4-2)/2 等于几".
     #    Strip trailing punctuation the regex tail already tolerates.
-    if _ARITHMETIC_RE.match(q):
+    if _ARITHMETIC_RE.match(q) or _ARITHMETIC_RE.match(arithmetic_candidate):
         # Guard: the expression must actually contain a digit (the regex
         # alone could match a lone operator).
-        if any(ch.isdigit() for ch in q):
+        if any(ch.isdigit() for ch in arithmetic_candidate):
             return True, "arithmetic"
+
+    if not structural_analysis and any(pattern.match(q) for pattern in _GENERAL_TRIVIA_PATTERNS):
+        return True, "trivia"
+
+    stripped = q.rstrip("?？!！.。,，~ ")
+    if stripped.startswith(("你好", "您好", "hello", "hi ")) and any(
+        marker in stripped for marker in ("怎么样", "好吗", "how are you")
+    ):
+        return True, "chitchat"
 
     # 2 & 3 only apply to short queries — a long query carries real intent.
     if len(q) <= _SHORT_QUERY_CHARS:
         # 2. Bare chit-chat / greeting.
-        stripped = q.rstrip("?？!！.。,，~ ")
         if stripped in _CHITCHAT_PHRASES:
             return True, "chitchat"
         # 3. Trivia / definition prefixes.

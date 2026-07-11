@@ -23,7 +23,7 @@ load_dotenv(Path(__file__).parent.parent / "backend" / ".env")
 from structural_isomorphism.model import load_model, encode_texts
 
 KB_FILE = REPO / "data" / "kb-5000-merged.jsonl"
-MODEL_PATH = REPO / "models" / "structural-v1"
+MODEL_PATH = REPO / "models" / "structural-v2"
 OUTPUT_DIR = Path(__file__).parent.parent / "data"
 OUTPUT_NPY = OUTPUT_DIR / "kb_embeddings.npy"
 OUTPUT_IDS = OUTPUT_DIR / "kb_embeddings_ids.json"

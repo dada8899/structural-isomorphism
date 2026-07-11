@@ -107,3 +107,54 @@ def test_bare_number_is_not_arithmetic():
     just weak input the retrieval gate can handle."""
     oos, reason = is_out_of_scope("42")
     assert reason != "arithmetic"
+
+
+@pytest.mark.parametrize("q", [
+    "股票价格涨跌为什么形成周期振荡？",
+    "How do stock prices rise and fall in an endogenous cycle?",
+    "供应链级联风险应该怎么做结构化分析？",
+])
+def test_structural_questions_are_not_over_refused(q):
+    oos, reason = is_out_of_scope(q)
+    assert oos is False
+    assert reason == "ok"
+
+
+def test_food_words_do_not_overmatch_business_language():
+    for query in (
+        "菜鸟团队遇到增长瓶颈应该怎么做？",
+        "红烧商业模式为什么形成正反馈，应该怎么做？",
+    ):
+        oos, reason = is_out_of_scope(query)
+        assert oos is False
+        assert reason == "ok"
+
+
+def test_finance_words_do_not_overmatch_structural_analysis():
+    oos, reason = is_out_of_scope("推荐一个比特币与银行挤兑的结构类比。")
+    assert oos is False
+    assert reason == "ok"
+
+
+@pytest.mark.parametrize("q", ["推荐一只值得买入的股票", "比特币现在值得投资吗？"])
+def test_transactional_finance_requests_are_refused(q):
+    oos, reason = is_out_of_scope(q)
+    assert oos is True
+    assert reason == "forecasting_intent"
+
+
+@pytest.mark.parametrize("q", [
+    "Pick a crypto guaranteed to rise next week and explain its mechanism.",
+    "预测明天股价并分析结构机制",
+])
+def test_explicit_forecasts_cannot_use_structural_analysis_as_bypass(q):
+    oos, reason = is_out_of_scope(q)
+    assert oos is True
+    assert reason == "forecasting_intent"
+
+
+@pytest.mark.parametrize("q", ["茅台涨到多少？", "特斯拉目标价是多少？"])
+def test_price_target_forecasts_are_refused(q):
+    oos, reason = is_out_of_scope(q)
+    assert oos is True
+    assert reason == "forecasting_intent"

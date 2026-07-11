@@ -342,7 +342,7 @@ class OutOfScopeStreamTests(unittest.TestCase):
 
     def test_empty_search_results_trigger_refusal(self):
         """No KB cards retrieved → refused with scope_reason=no_cards."""
-        events, calls = self._run_refused([], "?? ?? ??")
+        events, calls = self._run_refused([], "xyzzy plugh qwerty")
         self.assertEqual(calls["once"] + calls["stream"], 0)
         answer_done = next(p for n, p in events if n == "answer_done")
         self.assertTrue(answer_done.get("refused"))
