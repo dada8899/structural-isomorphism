@@ -12,6 +12,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Canonical retrieval benchmark contract. This is deliberately offline and
+  # dependency-light: schema, generator determinism, and OOS policy must fail
+  # the PR rather than becoming a soft signal.
+  retrieval-eval-contract:
+    name: retrieval eval contract (offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test runner
+        run: python -m pip install pytest
+      - name: Validate retrieval evaluation contract
+        run: make PY=python test-retrieval-contract
+
   # ---------------------------------------------------------------------------
   # 1) Backend: full Python matrix (3.10/3.11/3.12 × ubuntu/macos/windows)
   #    Sanity + integration suites. Slow tests skipped — those run nightly.
@@ -89,7 +106,7 @@ jobs:
       - name: Run integration tests (skip slow)
         # PR-time integration: must pass fast. Slow + requires_internet/llm
         # excluded — those are nightly-only signal.
-        run: pytest v4/tests/integration -v -m "not slow and not requires_internet and not requires_llm" || true
+        run: pytest v4/tests/integration -v -m "not slow and not requires_internet and not requires_llm"
 
   # ---------------------------------------------------------------------------
   # 2) Packages: in-tree libs (soc-pipeline, guarded-llm, cross-judge)

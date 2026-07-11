@@ -1,13 +1,14 @@
 PY := .venv/bin/python
 PYTEST := $(PY) -m pytest
 
-.PHONY: test test-unit test-integration test-e2e test-all test-fast help
+.PHONY: test test-unit test-integration test-e2e test-retrieval-contract test-all test-fast help
 
 help:
 	@echo "Targets:"
 	@echo "  test-unit         Run unit tests (offline, < 30s)"
 	@echo "  test-integration  Run integration tests (in-process, < 2min)"
 	@echo "  test-e2e          Run e2e tests (live network, may be flaky)"
+	@echo "  test-retrieval-contract  Validate retrieval dataset, determinism, and OOS policy"
 	@echo "  test-fast         test-unit + test-integration (no network)"
 	@echo "  test-all          Everything"
 	@echo "  test              Alias for test-fast"
@@ -22,6 +23,9 @@ test-integration:
 
 test-e2e:
 	$(PYTEST) tests/e2e -m e2e -v
+
+test-retrieval-contract:
+	PYTHONPATH=web/backend $(PYTEST) web/backend/tests/test_retrieval_eval_dataset.py -q
 
 test-fast:
 	$(PYTEST) -m "not e2e" -q
