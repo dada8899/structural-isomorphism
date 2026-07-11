@@ -690,3 +690,52 @@ git diff --stat
 - 产品：候选选择前补结构匹配证据/反证/适用边界；报告列表升级为 Today/This week/Waiting/Completed；首值 p75<10s；真实 ICP 15–20 个任务。
 - 研究：594 expanded candidates 需真实多标注者；WTO cluster bootstrap/LOO/Firth或Bayesian sensitivity与独立双人编码；外部复杂系统统计 reviewer。
 - QA：真实 Next + API 的 auth/favorites 浏览器链路、375/390 移动键盘/axe 矩阵、Phase 全控件行为 inventory；静态 154 controls 不得宣称等价于每个按钮行为已验证。
+
+## 22. 2026-07-12 产品决策闭环、真实浏览器门禁与研究 P1 终态
+
+> 本节是当前最新权威状态。可自动完成的工程、产品体验、安全、性能、部署和生产验证已经收口；后续工作进入真实用户研究与独立人工评审阶段。
+
+### 产品与体验
+
+- `8702521`：报告列表升级为“今天 / 本周 / 等待推进 / 已完成”行动队列。
+- 候选选择前展示结构匹配线索、来源摘要、反证/缺失证据和适用边界。
+- “相似度百分比”改为不暗示成功概率的“检索分”；所有候选明确为检索线索，不是因果或迁移验证。
+- 不新增 LLM 调用，不增加模型首值延迟。
+
+### 认证、全控件与无障碍
+
+- `f556266`：真实 Next + FastAPI + Playwright 门禁发现并修复两个 P0：
+  1. Next App Router 拦截 `replaceState`，导致 token 参数消失并取消兑换；
+  2. React StrictMode 重跑 effect，导致一次性 token 被并发 POST 两次。
+- 修复为原生 History URL 清理与按 token 复用同一兑换 Promise。
+- 真实门禁覆盖 Magic Link 单次兑换、HttpOnly Cookie、刷新后 `/me`、登出 503 保持会话、收藏部分失败、375px 键盘/axe，以及 23 个公开路由 × 375/390 的可见控件名称与键盘可达性。
+- clean runner 先后暴露 axe 本机隐藏缓存和通用 `role=alert` 二义性；远端 `a4201b1` / `a4706e2` 已修复为已安装 axe-core 与精确业务提示定位。
+
+### 研究 P1
+
+- `324c914`：594 条英文盲审增加投稿级门禁：至少 3 名 reviewer、每任务至少 3 份评价、仲裁清零、平均 quadratic-weighted kappa ≥ 0.67；当前无人类标签，因此不会误报 publication-ready。
+- WTO 23 行按政策事件合并为 17 clusters，执行 2,000 次确定性 cluster bootstrap 和 17 次 leave-one-cluster-out。
+- 结果只支持“负斜率符号在聚类与 LOO 敏感性中仍存在”：bootstrap `k` 95% CI `[-94.23, -0.107]`，97.88% 有效样本为负，17/17 LOO 为负；4.28% 出现 `|k| > 20` separation 极端尾部，因此禁止精确效应量和因果表述。
+- 已生成 23 项独立双人编码包，不泄露现有 stage/score/outcome，不自动裁决分歧。
+
+### 最终验证
+
+- 本地 backend：`894 passed, 1 skipped`；root：`299 passed, 32 deselected`。
+- 研究目标集：`21 passed`，claim gate PASS；产品/相关目标集通过。
+- 真实浏览器：auth/mobile/axe/control `7 passed`；公开页面/工作台 `5 passed`。
+- Phase lint、TypeScript 和 29/29 production build 通过。
+- GitHub SHA `a4706e2`：CI `29167564785`、sanity `29167564782`、Coverage `29167564756`、types `29167564752`、perf `29167564751` 全部 success。
+- 最终 production smoke `29168304570` success，52 项 fail-closed 请求全部通过。
+- beta 生产保持 4,443 KB、`[4443,768]`、权威 artifact 与 Luna Pro；Phase 保持 597 frozen demo、published NULL、认证开启且未登录 `/api/auth/me = 401`。
+
+### 只剩真人/外部工作
+
+1. 594 expanded candidates 的 3 人独立盲审、仲裁和 holdout 评测。
+2. 15–20 个真实研究密集型 PM/增长任务，验证候选接受率、术语理解与 Weekly Verified Transfer Outcomes。
+3. WTO 两名贸易法领域独立 coder、第三名仲裁者、政策 cluster 定义复核，并用最终仲裁数据重跑。
+4. 外部复杂系统/统计 reviewer；在完成前论文继续保持 submission NO-GO。
+
+### 接力注意
+
+- GitHub HTTPS/CLI 曾被失效代理 `127.0.0.1:7890` 间歇阻断；两次小修复通过 GitHub Connector 写入远端，因此本地等价提交 SHA 与远端 `a4201b1` / `a4706e2` 不同。
+- 下一会话先 fetch 并按内容安全对齐本地与 `origin/main`，不得 destructive reset，也不要重复应用相同补丁。
