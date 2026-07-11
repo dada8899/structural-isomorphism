@@ -61,8 +61,12 @@ def successful_transport(method, url, body, timeout):
 
 
 def test_full_monitor_contract_passes_with_mock_transport(capsys):
-    monitor = smoke.Monitor(successful_transport, timeout=3)
+    waits = []
+    monitor = smoke.Monitor(
+        successful_transport, timeout=3, search_interval=2.1, sleeper=waits.append
+    )
     assert monitor.run() == 50
+    assert waits == [2.1] * 29
     assert "PASS production smoke: 50 requests" in capsys.readouterr().out
 
 

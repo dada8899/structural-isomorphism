@@ -79,9 +79,22 @@ def urllib_transport(method: str, url: str, body: bytes | None, timeout: float) 
 
 
 class Monitor:
-    def __init__(self, transport: Transport = urllib_transport, timeout: float = DEFAULT_TIMEOUT):
+    def __init__(
+        self,
+        transport: Transport = urllib_transport,
+        timeout: float = DEFAULT_TIMEOUT,
+        *,
+        search_interval: float | None = None,
+        sleeper: Callable[[float], None] = time.sleep,
+    ):
         self.transport = transport
         self.timeout = timeout
+        self.search_interval = (
+            2.1 if search_interval is None and transport is urllib_transport
+            else float(search_interval or 0.0)
+        )
+        self.sleeper = sleeper
+        self.search_requests = 0
         self.checked = 0
 
     def request(self, label: str, method: str, url: str, *, payload: dict | None = None,
@@ -140,6 +153,9 @@ class Monitor:
                      "checks.llm_env must be ok or missing")
 
     def search(self, query: str, lang: str, label: str) -> dict:
+        if self.search_requests:
+            self.sleeper(self.search_interval)
+        self.search_requests += 1
         result = self.json(label, "POST", f"{BETA}/api/search",
                            payload={"query": query, "top_k": 5, "rewrite": False, "lang": lang})
         self.require(isinstance(result, dict), label, "expected an object")
