@@ -487,3 +487,113 @@ git diff --stat
 2. 用冻结 qrels 做 rerank/多语 embedding 实验，以 nDCG@5、Success@5 和 bilingual consistency 为准。
 3. 修复 perf audit 测量口径后，再做真实移动端性能优化。
 4. 浏览器 runtime 本轮仍无可用实例；页面已做 source/build/HTTP route matrix 验收，但没有截图式视觉验收。
+
+## 16. 2026-07-11 全项目审计与 P2 自动驾驶（进行中）
+
+> 本节是当前最新运行状态，优先级高于前文。
+> 用户已明确授权本项目持续自动驾驶；上下文接近 90% 时必须先追加本文件，compact/新 Session 后第一步完整重读本文件。
+
+### 已完成审计
+
+- 产品、学术、工程三路独立审查完成，汇总文档：`docs/audit/project-audit-2026-07-11.md`。
+- 主产品路线收敛为 Validated Transfer Workbench；Phase Detector 保持 597 ticker demo/null-result 研究预览定位。
+- 学术路线收窄为 reject-aware 方法论与 3–4 个真实系统的 scaling concordance；不再把 synthetic anchors 包装成普适机制确认。
+- README 中英文、model card、dataset card 已对齐 4,443 KB、597 demo、英文质量缺口、历史 embedding 评测泄漏与 reviewer-readable/do-not-submit 边界。
+
+### 已完成实现与提交
+
+- `e72529b` `fix(perf): measure trusted interactions fail closed`
+  - 性能 audit 改为真实 Playwright click、Event Timing interactionId、交互窗口 LoAF、页面稳定 selector、部分轮失败 fail closed、CI 3 次中位数。
+  - 本地 CI 同构 `/company/AAPL` 移动 3 次中位：LCP 2464ms、INP proxy 40ms；旧脚本同场景错报 0ms。
+- `1d36007` `ci: make release gates fail closed`
+  - cross-judge/frontend/coverage/E2E 移除假绿 `|| true`；reject-aware-critic 纳入 CI；外网 E2E 用 job-level non-blocking 显示真实失败；新增 `make verify-release`。
+- `64ce1f7` `fix(prod): retire unfinished account and legacy phase surfaces`
+  - 生产缺失/弱 JWT secret 硬失败；Auth/Connections/云 Favorites 默认 503；beta legacy `/phase/api/*` 410，旧 Phase 页面 308 到权威域；Phase 前端隐藏未开放登录。
+  - backend 全量：859 passed，1 skipped；Phase lint/build 29/29 routes。
+- `065f96d` `eval: measure English translation rerank signal`
+  - 固定旧 judged Top-5 池：英文 nDCG@5 0.3029，paired Chinese reference proxy 0.4041，RRF 0.3846。
+  - paired delta 均值 0.1012，bootstrap 95% CI [0.0313, 0.1738]；15 正/22 零/3 负；只有 27.5% 旧池含 relevance>=2，因此不宣称端到端 recall 提升。
+- `b080df8` `ci: monitor production business invariants`
+  - 新增三站 fail-closed 合成监控：docs、version/deep health/artifact、5 中+5 英、20 OOS、billing/auth 503、Phase health/meta/provenance、route matrix。
+- `ff9af1e` `docs: align product and research claims with evidence`
+  - 新增全项目审计与 P0/P1/P2 验收路线。
+- `51eec84` `ci: install canonical backend coverage dependencies`
+  - 首次 fail-closed coverage 暴露缺 sentence-transformers/jieba/rank-bm25/multipart 和 LFS；已改为权威 backend requirements + LFS checkout。新 workflow `29155228893` 已 success。
+- `6839d7e` / `cf64648` / `453e53b`
+  - 生产 smoke 低于 30/min 限流节流，增加阶段进度，并区分公开 route 与退役 beta pricing route。
+- `030d376` / `78da9d5`
+  - 英文 Top10 + paired Chinese reference Top10 扩展候选池：40 queries、794 query-doc，复用旧判定 200，需新判 594；全部绑定 dataset/KB/model/embedding/code/git/artifact 指纹。
+  - 判定器支持 strict allow-list/schema/resume/原子写，但真实 DeepSeek 调用被运行环境以“向外部第三方导出大量 query/document”为由硬拒绝，不得绕过。
+
+### 当前外部状态
+
+- push 到 `origin/main` 的最新 SHA：`78da9d5`（后续本地还有新 commit，见 `git log`）。
+- `78da9d5` CI `29155228888`、Coverage `29155228893`、sanity `29155228897`、types-sync `29155228892`、beta deploy `29155228918` 已 success。
+- perf `29155228884` 仍在运行 10 pages × 2 viewports × 3 runs；必须监控到结束，不放宽预算。
+- 完整生产 smoke 已通过 docs、deep health、中英检索、20 OOS、Auth/Billing、Phase provenance；在 beta `/pricing.html` 发现 404。核对后确认该文件是未公开/退役付费表面，监控已改为检查 `/start-here` 并显式要求 `/pricing.html` 保持 404。
+
+### 当前工作树与进行中实验
+
+- 本地已新增未提交 `scripts/experiment_multilingual_embedding.py` 与测试，默认纯离线，只有显式 `--allow-model-download` 才下载公开模型；查询/KB 始终本地编码。
+- 正在下载并实验 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`（471MB）；模型官方 card 声称支持 50 种语言。完成后必须记录 cache tree hash、fixed-pool nDCG/MRR/Top1、全 50 对中英 Top5 doc Jaccard 和不可比边界。
+- 生产 smoke route 修正与多语实验完成后，需分 commit、push，再手动触发 `site-smoke.yml`。
+
+### 严格下一步
+
+1. 等待本地 MiniLM 下载/编码完成，独立复算结果；若无明确增益，不改生产检索。
+2. 监控 perf `29155228884` 到结束；如失败，下载 audit artifact，分离测量错误与真实 LCP 红灯。
+3. 提交/push 当前 smoke route 修正和多语实验，监控新 CI/coverage/perf。
+4. 手动触发 site smoke，必须 51 个请求全通过。
+5. 线上复核 `/api/version`、deep health、Auth 503、legacy Phase 410/308、Phase 597/demo 与关键路由。
+6. 不在没有 expanded judgments/人类复核的情况下上线 translate-before-retrieve 或宣称英文 recall 提升。
+7. 最后追加本节与 `~/progress.md`，记录最终 commit、workflow、生产 smoke、回滚与剩余 P1/P2。
+
+## 17. 2026-07-11 P2 自动驾驶续航：英文实验与真实性能门禁
+
+> 本节是当前最新权威状态，优先级高于第 16 节。上下文接近 90% 时已按用户要求主动交接；compact 后必须先完整重读本文件再继续。
+
+### 已完成
+
+- `453e53b` 修正生产 smoke 的公开/退役 beta route；手动 `site smoke` workflow `29155810650` 已 success，51 个生产请求全通过。
+- 线上复核：beta `78da9d5`、4443 KB、`[4443,768]`、Auth 503、legacy Phase API 410、legacy Phase 页面 308；Phase 为 597 ticker、`price_provenance=demo`。
+- `a4f09b4` / `446282a` 新增本地多语 MiniLM 实验、结果、测试与完整复现 provenance：
+  - 模型：`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`，本地缓存内容寻址；查询/KB 未外发。
+  - 旧英文固定 Top5 判定池：nDCG@5 `0.302861 -> 0.397643`，MRR `0.129583 -> 0.18`，Top1 `0.05 -> 0.125`。
+  - 50 对中英 Top5 mean Jaccard `0.342381`；Top50 union 平均 71.2 个未判定文档。
+  - 两次离线结果逐字节一致；独立 Validator 对实验与 provenance PASS，但对上线 NO-GO：无 expanded human/heterogeneous judgments、holdout、中文 nDCG 回归、真实 endpoint/OOS/延迟并发门禁。
+- 性能脚本补丁已真正落盘并多轮校正：
+  - `2ee7bbd` 响应式可见导航交互，去掉永不满足的 Next.js `networkidle`；单页双视口从约 39 秒降到约 8 秒。
+  - `2acc791` 隔离已有独立交互测试的 onboarding/cookie 首访覆盖层，并记录 LCP 文本节点。
+  - `24f0bf9` 移除 LCP 前的程序化滚动；移动图例/说明去重、TLDR 响应式收敛、companies 初步拆包。
+  - `a479518` companies 下折叠视口懒加载，移动 chart/compare 重复长文隐藏；Phase lint 与 29/29 build 通过。
+- 所有上述 commit 已 push `origin/main`。本地关键页多次中位复测通过预算，但 GitHub runner 暴露出更慢的真实边界，未放宽预算。
+
+### 当前唯一红灯与证据
+
+- 最新权威 perf workflow：`29157003952`，20/20 页面/视口均成功测量，失败仅剩：
+  - companies mobile LCP `2608 > 2600ms`，TBT `277 > 200ms`；
+  - company/AAPL mobile LCP `2784 > 2600ms`，LCP 节点为 actionable 说明；
+  - compare mobile LCP `2640 > 2600ms`，LCP 节点为页面 intro；
+  - 其余页面、CLS、INP 均通过。不要改预算或排除这些业务内容。
+- 最新 SHA `a479518` 的 CI/Coverage/sanity/types-sync/Phase deploy/docs deploy 在本节写入时仍运行或排队；必须监控到终态。
+- 本地仅 `NEXT_SESSION.md` 有未提交交接修改；本地 Phase 测试 server 可能仍在 3017（session 13124），结束前关闭。
+
+### 严格下一步
+
+1. 完整重读本文件并检查 `git status/log`、最新 workflows。
+2. 对 companies TBT 做组件级 profiler/长任务定位；当前 IntersectionObserver 仍使首屏 leaderboard 立即加载，不能靠固定延迟逃避 TBT。
+3. 把 company/compare 首屏关键数据改为服务端可渲染或内联到初始 payload，消除 hydration 后晚到文本；不要继续用 CSS 隐藏核心内容。
+4. 每次修改先本地关键页 3-run，再跑最终 GitHub perf；预算保持原值。
+5. 最新 Phase deploy 成功后重新触发 `site-smoke.yml` 并做关键路由 HTTP/视觉验收。
+6. perf 全绿且 CI/部署/smoke 全绿后，追加本节最终状态与 `~/progress.md`，提交交接文档并 push。
+7. 英文检索下一步只做本地 expanded candidate judgments / human review 设计；不得向第三方批量导出 594 个 query-doc，也不得据当前 fixed-pool 信号上线模型。
+
+## 18. 2026-07-11 最新生产与门禁终态
+
+> 本节补充第 17 节写入后的终态；第 17 节仍是完整技术交接。
+
+- 最新代码 SHA：`a479518`；CI `29157003924`、Coverage `29157004004`、types-sync `29157003992`、Phase deploy `29157003931`、docs deploy `29157003980` 均 success。
+- 部署后生产业务 smoke `29157197712` success，51 个请求全通过。
+- sanity `29157003962` 仍在运行；perf `29157003952` 为唯一失败，20/20 测量完整，精确剩余：companies mobile LCP `2608 > 2600`、TBT `277 > 200`；company/AAPL mobile LCP `2784 > 2600`；compare mobile LCP `2640 > 2600`。
+- 不得放宽预算。下一轮从 server-rendered/initial payload 与首屏组件 profiler 入手；当前 CSS 隐藏和 IntersectionObserver 优化已经消除重复说明，但不能替代首屏数据架构修复。
+- 本地交接文档待提交；本地测试 server session `13124` 应关闭。
