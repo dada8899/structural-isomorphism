@@ -5,11 +5,10 @@ Why this exists alongside `api/checkout_mock.py`:
     `checkout_mock.py` is a self-contained simulator (random success/decline,
     no Stripe SDK). It served the M10-B "would-have-paid waitlist" use case.
 
-    `billing.py` is the *real* Stripe integration with a mock fallback. When
-    `STRIPE_TEST_SECRET_KEY` is set, it calls Stripe Checkout test mode
-    properly (no real money — cards are Stripe test cards like 4242…).
-    When the env is unset (default in CI / dev), it falls back to a mock
-    response shaped identically to Stripe's so the frontend behaves the same.
+    `billing.py` is the real Stripe integration behind an explicit
+    `BILLING_ENABLED` gate. Checkout fails closed unless billing is enabled
+    and the matching Stripe credentials are configured. Public mock checkout
+    is kept separate and is never presented as a successful payment.
 
     Migration path: once we want to flip to live Stripe, simply set
     `STRIPE_SECRET_KEY` (no _TEST_) and bump `STRIPE_MODE=live`. The webhook
@@ -18,12 +17,12 @@ Why this exists alongside `api/checkout_mock.py`:
 Endpoints:
     POST /api/billing/checkout-session
         Body: { tier: "pro"|"team", interval: "month"|"year", email: str }
-        → 200 { url: "<checkout url>", session_id: "...", mode: "stripe"|"mock" }
+        → 200 { url: "<checkout url>", session_id: "...", mode: "stripe" }
 
     POST /api/billing/webhook
-        Stripe webhook events (mock signature verification — full HMAC will
-        be wired when STRIPE_WEBHOOK_SECRET is provided). Stores into the
-        `billing_events` table; subsequent reconciliation runs read from it.
+        Stripe webhook events verified with Stripe's timestamped HMAC header.
+        Stores into the `billing_events` table; subsequent reconciliation
+        runs read from it.
 
     GET /api/billing/events/recent (debug)
         Returns the last 20 webhook events; used by ops dashboards and tests.
@@ -46,6 +45,7 @@ import logging
 import os
 import re
 import sqlite3
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Optional
@@ -128,6 +128,11 @@ def _webhook_secret() -> Optional[str]:
     return os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 
+def _billing_enabled() -> bool:
+    """Paid billing is opt-in; credentials alone must never activate it."""
+    return os.environ.get("BILLING_ENABLED", "").strip().lower() == "true"
+
+
 def _mode() -> str:
     """Resolve current mode: 'stripe' iff key is set AND SDK importable,
     else 'mock'."""
@@ -165,6 +170,13 @@ async def checkout_session(body: CheckoutBody, request: Request):
         )
     if not email or len(email) > 200 or not _EMAIL_RE.match(email):
         return JSONResponse({"error": "invalid email"}, status_code=400)
+
+    if not _billing_enabled():
+        return JSONResponse({
+            "mode": "unavailable",
+            "error": "billing_not_available",
+            "message": "Paid plans are not open yet. Join the research preview instead.",
+        }, status_code=503)
 
     amount_cents = _TIER_PRICING[tier][interval]
     success_url = (body.success_url or "/pricing.html?status=success").strip()
@@ -215,46 +227,59 @@ async def checkout_session(body: CheckoutBody, request: Request):
                 status_code=502,
             )
 
-    # --- Mock mode ---
-    fake_id = "mock_cs_" + uuid.uuid4().hex[:24]
-    url = f"{success_url}&session_id={fake_id}"
-    logger.info(
-        "billing checkout-session mock tier=%s interval=%s email=%s id=%s",
-        tier, interval, email, fake_id,
+    # Fail closed: a simulated checkout must never look like a successful
+    # subscription on a public product. Keep mock billing in the dedicated
+    # checkout_mock test surface; this endpoint represents real billing only.
+    logger.warning(
+        "billing unavailable: Stripe is not configured tier=%s interval=%s",
+        tier, interval,
     )
     return JSONResponse({
-        "mode": "mock",
-        "session_id": fake_id,
-        "url": url,
-        "amount_cents": amount_cents,
-    })
+        "mode": "unavailable",
+        "error": "billing_not_available",
+        "message": "Paid plans are not open yet. Join the research preview instead.",
+    }, status_code=503)
 
 
 # --------------------- Webhook ---------------------
 
-def _verify_signature(payload_bytes: bytes, sig_header: str, secret: str) -> bool:
-    """HMAC-SHA256 of the raw payload, formatted like Stripe's `t=,v1=` header.
+def _verify_signature(
+    payload_bytes: bytes,
+    sig_header: str,
+    secret: str,
+    *,
+    tolerance_seconds: int = 300,
+    now: int | None = None,
+) -> bool:
+    """Verify a Stripe v1 webhook signature with replay protection.
 
-    Real Stripe uses `t=<ts>,v1=<hex>`; we accept either Stripe's format or
-    the simpler `sha256=<hex>` (used by tests). Mismatch returns False.
+    Stripe signs ``<timestamp>.<raw_payload>`` and may include multiple v1
+    signatures during secret rotation. Requests outside the tolerance window
+    are rejected even when their HMAC is otherwise valid.
     """
     if not sig_header or not secret:
         return False
-    expected = hmac.new(
-        secret.encode("utf-8"),
-        payload_bytes,
-        hashlib.sha256,
-    ).hexdigest()
-    # Accept either format
-    if sig_header.startswith("sha256="):
-        provided = sig_header.split("=", 1)[1].strip()
-        return hmac.compare_digest(provided, expected)
-    # Stripe-style: t=...,v1=...
-    parts = dict(
-        p.split("=", 1) for p in sig_header.split(",") if "=" in p
-    )
-    provided = parts.get("v1", "").strip()
-    return bool(provided) and hmac.compare_digest(provided, expected)
+    timestamp: int | None = None
+    signatures: list[str] = []
+    for part in sig_header.split(","):
+        if "=" not in part:
+            continue
+        name, value = part.split("=", 1)
+        if name.strip() == "t":
+            try:
+                timestamp = int(value.strip())
+            except ValueError:
+                return False
+        elif name.strip() == "v1" and value.strip():
+            signatures.append(value.strip())
+    if timestamp is None or not signatures:
+        return False
+    current = int(time.time()) if now is None else int(now)
+    if abs(current - timestamp) > tolerance_seconds:
+        return False
+    signed_payload = str(timestamp).encode("ascii") + b"." + payload_bytes
+    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(signature, expected) for signature in signatures)
 
 
 @router.post("/billing/webhook")
@@ -267,19 +292,23 @@ async def webhook(request: Request):
       - If unset, we accept the event but mark verified=0. This is the
         intended dev/CI path; PROD must set the secret.
     """
+    if not _billing_enabled():
+        return JSONResponse({"error": "billing_not_available"}, status_code=503)
     raw = await request.body()
     sig = request.headers.get("stripe-signature") or ""
     secret = _webhook_secret()
 
+    if not secret:
+        logger.error("billing enabled without STRIPE_WEBHOOK_SECRET")
+        return JSONResponse({"error": "webhook_not_configured"}, status_code=503)
     verified = 0
-    if secret:
-        if _verify_signature(raw, sig, secret):
-            verified = 1
-        else:
-            logger.warning("billing webhook signature mismatch")
-            return JSONResponse(
-                {"error": "signature_mismatch"}, status_code=400
-            )
+    if _verify_signature(raw, sig, secret):
+        verified = 1
+    else:
+        logger.warning("billing webhook signature mismatch")
+        return JSONResponse(
+            {"error": "signature_mismatch"}, status_code=400
+        )
 
     try:
         evt = json.loads(raw.decode("utf-8") or "{}")
@@ -326,8 +355,14 @@ async def webhook(request: Request):
 
 
 @router.get("/billing/events/recent")
-async def events_recent(limit: int = 20):
+async def events_recent(request: Request, limit: int = 20):
     """Return the most-recent webhook events (debug / ops)."""
+    if not _billing_enabled():
+        return JSONResponse({"error": "billing_not_available"}, status_code=503)
+    admin_token = os.environ.get("STRUCTURAL_ADMIN_TOKEN", "")
+    provided = request.headers.get("x-admin-token", "")
+    if not admin_token or not hmac.compare_digest(provided, admin_token):
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
     try:
         with _connect() as conn:
             rows = conn.execute(

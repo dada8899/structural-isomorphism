@@ -1,7 +1,7 @@
 """Unit tests for api.billing — W7-D mini-brief 2 (2026-05-24).
 
 Covers:
-  - checkout-session mock fallback (no STRIPE_TEST_SECRET_KEY)
+  - checkout fails closed unless billing and Stripe are configured
   - webhook persists event to billing_events table
   - webhook duplicate event_id is OK (idempotent)
   - webhook signature mismatch returns 400 when secret is configured
@@ -17,6 +17,7 @@ import hmac
 import json
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,13 @@ from fastapi.testclient import TestClient  # noqa: E402
 from api import billing  # noqa: E402
 
 
+def _stripe_signature(body: str, secret: str, timestamp: int | None = None) -> str:
+    ts = int(time.time()) if timestamp is None else timestamp
+    signed = str(ts).encode() + b"." + body.encode()
+    digest = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return f"t={ts},v1={digest}"
+
+
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     # Redirect SQLite to tmp
@@ -41,6 +49,8 @@ def client(tmp_path, monkeypatch):
     # Force mock mode by default (no Stripe key). Individual tests can opt in.
     monkeypatch.delenv("STRIPE_TEST_SECRET_KEY", raising=False)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("BILLING_ENABLED", raising=False)
+    monkeypatch.delenv("STRUCTURAL_ADMIN_TOKEN", raising=False)
 
     app = FastAPI()
     app.include_router(billing.router, prefix="/api")
@@ -49,19 +59,18 @@ def client(tmp_path, monkeypatch):
 
 # ---------- Checkout session ----------
 
-def test_checkout_mock_fallback_when_no_key(client):
-    """No STRIPE_TEST_SECRET_KEY → falls back to mock mode."""
+def test_checkout_fails_closed_when_no_key(client):
+    """No Stripe configuration must never simulate a paid subscription."""
     r = client.post(
         "/api/billing/checkout-session",
         json={"tier": "pro", "interval": "month", "email": "alice@example.com"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 503
     data = r.json()
-    assert data["mode"] == "mock"
-    assert data["session_id"].startswith("mock_cs_")
-    assert data["amount_cents"] == 1900  # $19.00
-    assert "url" in data
-    assert "session_id=mock_cs_" in data["url"]
+    assert data["mode"] == "unavailable"
+    assert data["error"] == "billing_not_available"
+    assert "session_id" not in data
+    assert "url" not in data
 
 
 def test_checkout_validation_errors(client):
@@ -90,36 +99,42 @@ def test_checkout_validation_errors(client):
     assert r.json()["error"] == "invalid email"
 
 
-def test_checkout_team_year_amount(client):
+def test_checkout_team_year_is_unavailable_without_stripe(client):
     r = client.post(
         "/api/billing/checkout-session",
         json={"tier": "team", "interval": "year", "email": "team@example.com"},
     )
-    assert r.status_code == 200
+    assert r.status_code == 503
     data = r.json()
-    assert data["amount_cents"] == 99000  # $990.00
+    assert data["mode"] == "unavailable"
+    assert "amount_cents" not in data
 
 
 # ---------- Webhook ----------
 
-def test_webhook_persists_event(client):
+def test_webhook_persists_event(client, monkeypatch):
     """Webhook stores event into billing_events table and returns 200."""
     evt = {
         "id": "evt_test_001",
         "type": "checkout.session.completed",
         "data": {"object": {"customer_email": "alice@example.com"}},
     }
+    monkeypatch.setenv("BILLING_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setenv("STRUCTURAL_ADMIN_TOKEN", "admin-test")
+    body = json.dumps(evt)
+    signature = _stripe_signature(body, "whsec_test")
     r = client.post(
         "/api/billing/webhook",
-        content=json.dumps(evt),
-        headers={"content-type": "application/json"},
+        content=body,
+        headers={"content-type": "application/json", "stripe-signature": signature},
     )
     assert r.status_code == 200
     data = r.json()
     assert data["ok"] is True
     assert data["event_id"] == "evt_test_001"
     assert data["event_type"] == "checkout.session.completed"
-    assert data["verified"] is False  # no secret configured → verified=0
+    assert data["verified"] is True
 
     # Verify in DB
     with sqlite3.connect(str(billing._data_file())) as conn:
@@ -127,23 +142,27 @@ def test_webhook_persists_event(client):
         rows = list(conn.execute("SELECT * FROM billing_events"))
         assert len(rows) == 1
         assert rows[0]["event_id"] == "evt_test_001"
-        assert rows[0]["verified"] == 0
+        assert rows[0]["verified"] == 1
 
     # Recent events endpoint
-    r2 = client.get("/api/billing/events/recent")
+    r2 = client.get("/api/billing/events/recent", headers={"x-admin-token": "admin-test"})
     assert r2.status_code == 200
     assert r2.json()["count"] == 1
 
 
-def test_webhook_duplicate_event_is_idempotent(client):
+def test_webhook_duplicate_event_is_idempotent(client, monkeypatch):
     """Same event_id arriving twice → 200 with `duplicate: true`, no extra row."""
     evt = {"id": "evt_dup_001", "type": "invoice.paid", "data": {}}
     body = json.dumps(evt)
+    monkeypatch.setenv("BILLING_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_dup")
+    signature = _stripe_signature(body, "whsec_dup")
+    headers = {"content-type": "application/json", "stripe-signature": signature}
 
     r1 = client.post(
         "/api/billing/webhook",
         content=body,
-        headers={"content-type": "application/json"},
+        headers=headers,
     )
     assert r1.status_code == 200
     assert r1.json().get("duplicate") is not True
@@ -151,7 +170,7 @@ def test_webhook_duplicate_event_is_idempotent(client):
     r2 = client.post(
         "/api/billing/webhook",
         content=body,
-        headers={"content-type": "application/json"},
+        headers=headers,
     )
     assert r2.status_code == 200
     assert r2.json()["duplicate"] is True
@@ -167,6 +186,7 @@ def test_webhook_duplicate_event_is_idempotent(client):
 def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     """When STRIPE_WEBHOOK_SECRET is set, mismatched signature → 400."""
     monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret_xyz")
+    monkeypatch.setenv("BILLING_ENABLED", "true")
 
     evt = {"id": "evt_sig_001", "type": "x", "data": {}}
     body = json.dumps(evt)
@@ -192,19 +212,31 @@ def test_webhook_signature_mismatch_rejected(client, monkeypatch):
     assert r2.status_code == 400
 
     # Correct sha256-prefixed signature → accepted with verified=true
-    expected = hmac.new(
-        b"whsec_test_secret_xyz", body.encode("utf-8"), hashlib.sha256,
-    ).hexdigest()
+    expected = _stripe_signature(body, "whsec_test_secret_xyz")
     r3 = client.post(
         "/api/billing/webhook",
         content=body,
         headers={
             "content-type": "application/json",
-            "stripe-signature": f"sha256={expected}",
+            "stripe-signature": expected,
         },
     )
     assert r3.status_code == 200
     assert r3.json()["verified"] is True
+
+
+def test_webhook_rejects_stale_valid_signature(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_stale")
+    monkeypatch.setenv("BILLING_ENABLED", "true")
+    body = json.dumps({"id": "evt_stale", "type": "invoice.paid"})
+    stale = _stripe_signature(body, "whsec_stale", int(time.time()) - 301)
+    response = client.post(
+        "/api/billing/webhook",
+        content=body,
+        headers={"content-type": "application/json", "stripe-signature": stale},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"] == "signature_mismatch"
 
 
 # ---------- Real Stripe path (mocked SDK) ----------
@@ -214,6 +246,7 @@ def test_checkout_uses_stripe_when_key_present(client, monkeypatch):
     Stripe. We monkey-patch the lazy import to return a fake module so we
     don't hit the network."""
     monkeypatch.setenv("STRIPE_TEST_SECRET_KEY", "sk_test_xyz")
+    monkeypatch.setenv("BILLING_ENABLED", "true")
 
     class FakeSession:
         @staticmethod
