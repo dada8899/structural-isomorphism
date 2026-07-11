@@ -8,7 +8,7 @@
 // We use `useSearchParams` from next/navigation and a Suspense boundary
 // (required in Next 14 App Router for static export compat).
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { verifyMagicLink } from "@/lib/auth-client";
@@ -19,6 +19,10 @@ function VerifyInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const token = sp.get("token");
+  const exchangeRef = useRef<{
+    token: string;
+    request: ReturnType<typeof verifyMagicLink>;
+  } | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState<string | null>(null);
 
@@ -28,10 +32,21 @@ function VerifyInner() {
       return;
     }
     // Remove the credential from browser history/referrers before exchange.
-    window.history.replaceState(null, "", "/auth/verify");
+    // Next App Router patches window.history.replaceState and would turn the
+    // reactive search params into `token=null`, cancelling this effect after
+    // the server has already consumed the one-time credential. Invoke the
+    // native History method so the secret leaves the address bar without
+    // causing an App Router navigation.
+    History.prototype.replaceState.call(window.history, null, "", "/auth/verify");
     let cancelled = false;
     (async () => {
-      const r = await verifyMagicLink(token);
+      // React StrictMode re-runs effects in development. Reuse the same
+      // exchange promise so a one-time token is never POSTed twice.
+      const request = exchangeRef.current?.token === token
+        ? exchangeRef.current.request
+        : verifyMagicLink(token);
+      exchangeRef.current = { token, request };
+      const r = await request;
       if (cancelled) return;
       if (r.ok) {
         setPhase("success");
