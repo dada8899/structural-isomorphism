@@ -21,7 +21,7 @@ BACKEND = ROOT / "web" / "backend"
 PYTHON = ROOT / ".venv" / "bin" / "python"
 if not PYTHON.exists():
     PYTHON = Path(sys.executable)
-AXE = Path(__file__).with_name(".axe-core-4.10.0.min.js")
+AXE = PHASE / "node_modules" / "axe-core" / "axe.min.js"
 
 
 def free_port() -> int:
