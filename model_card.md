@@ -14,6 +14,16 @@ base_model: shibing624/text2vec-base-chinese
 
 # structural-isomorphism/structural-v1
 
+> **Historical card; not a current generalization claim (2026-07-11).** The
+> 100% Retrieval@5/10 figures below came from a pair-level random split where
+> the same descriptions could appear across train and evaluation. They are
+> retained for provenance but must not be cited as held-out performance.
+> Production currently uses the local `structural-v2` artifact with the
+> 4,443-row manifest. Its product benchmark is
+> `evaluation/retrieval-v1.jsonl`; the frozen baseline is nDCG@5 0.5786 and
+> Success@5 0.6125, with materially weak English retrieval. A replacement
+> model must pass group/domain-held-out evaluation and the bilingual gate.
+
 A sentence-transformer model fine-tuned for **structural similarity** -- recognizing that phenomena from completely different domains share the same underlying structure.
 
 Unlike standard semantic similarity models that match by surface vocabulary, this model maps descriptions with the same structural pattern close together in embedding space, regardless of domain.
@@ -82,7 +92,7 @@ for r in results[:5]:
 ```bibtex
 @article{structural-isomorphism-2026,
   title={Structural Isomorphism Search: Cross-Domain Structural Similarity Retrieval via Fine-tuned Embeddings},
-  author={Wan, Qihang},
+  author={Wan, Qinghui},
   journal={arXiv preprint arXiv:XXXX.XXXXX},
   year={2026}
 }

@@ -2,6 +2,13 @@
 
 **English** | [简体中文](README-zh.md)
 
+> **Current status (2026-07-11).** This repository is a research/product
+> workbench, not a validated universality map or investment system. The
+> production search artifact contains 4,443 KB records; Phase Detector is a
+> 597-ticker demo snapshot with a published null backtest. The strongest
+> defensible contribution is the preregistered, reject-aware validation
+> protocol. See [`NEXT_SESSION.md`](NEXT_SESSION.md) for operational truth.
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Dataset DOI](https://img.shields.io/badge/Dataset_DOI-10.5281%2Fzenodo.19615170-blue.svg)](https://doi.org/10.5281/zenodo.19615170)
@@ -33,7 +40,7 @@ The answer is *not* "yes" by assumption. We treat it as a falsifiable question: 
 
 The v0.5 draft consolidates SESSION-25 work since the v0.4 cut. v0.4 outputs above are unchanged; v0.5 adds three methodology increments, one new class promotion, and one eval-specific universality finding:
 
-- **19 empirically-anchored classes** (+1): new `aggregation_kinetics` PASS-STRONG (multilayer Smoluchowski + lognormal population) promoted from the v0.4 `beta_amyloid_aggregation` INCONCLUSIVE via a 2-layer test pattern; 3 distinct biological domains (Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003).
+- **19 candidate classes in the v0.5 research ledger** (+1): these are not 19 independently confirmed empirical mechanisms. Several rely on synthetic or literature-calibrated anchors; `aggregation_kinetics` remains a candidate scaling/mechanism class pending direct held-out replication.
 - **11 PASS-CONFIRMED-or-stronger** (+1): `schelling_credible_commitment` lifted to PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (sub-run D, 2/4 anchor hits) via the (s\*, k) threshold-tobit reparametrisation. Horn-Mavroidis WTO real-data sanity check (n = 23 retaliation cases) returns a sign-reversed slope (`k = −2.92`, 95 % CI `[−7.92, −0.67]`), reported honestly as an observational-identification failure (selection on defendant intransigence), not a refutation of the underlying mechanism.
 - **3 methodology increments** (§3.6.5 (s\*, k) reparametrisation / §3.6.6 multilayer test pattern / §3.6.7 head-vs-tail-aware LLM validator) with one full applicability retrospective and three pre-registrations under [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/).
 - **Pythia LAMBADA cross-fit (§4)**: 100 % real per-checkpoint evaluation across 8 sizes × 27 checkpoints. v1 (L∞ free) and v2 (L∞ ∈ [1.0, 5.0]) both deliver TIGHT_UNIVERSALITY (CV ≈ 0.12). **The TIGHT verdict is eval-specific**: pooled across LAMBADA + train-loss sources, CV blows out to 0.58–1.49. The v0.4 BROAD_SPREAD verdict was an artefact of mixed 3-real + 3-synthetic train-loss provenance; the universality claim is a property of *the LAMBADA-OpenAI loss curve*, not of the scaling-law family in general.
@@ -63,7 +70,10 @@ A single shared Clauset MLE module (`v4/lib/soc_pipeline.py`, 339 LOC). Runs unc
 <td width="33%" valign="top">
 
 ### 3. Phase Detector (research preview)
-A null-result product. We tagged 100 public companies with 9 universality patterns and ran a 1000-ticker walk-forward backtest (SP500 + R1000 supplement, 2020-2025). Sharpe lift of the `near_critical` cohort vs equal-weight benchmark = **−0.23** (p = 0.57, NOT significant).
+A null-result research preview. The live site exposes a frozen 597-ticker
+demo snapshot. Its walk-forward v0.2 analysis found no predictive alpha;
+Sharpe lift of the `near_critical` cohort vs equal-weight benchmark was
+**−0.23** and alpha was not significant.
 
 Published openly as a transparency case study in how cross-domain frameworks should *not* be marketed as alpha tools. See [`/backtest`](https://phase.bytedance.city/backtest) for the full report.
 
@@ -98,7 +108,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | Product | URL | What it does |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity-style natural-language search over the cross-domain knowledge base. Streamed answer, citation cards, similar phenomena across domains. |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 tagged companies + 1000-ticker (SP500 + R1000 supplement) walk-forward backtest v0.2 (null result, Sharpe lift −0.23, p = 0.57). Research preview — not investment advice. |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | Frozen 597-ticker demo research snapshot + transparent v0.2 null backtest. Not live data or investment advice. |
 
 ### On negative results
 
@@ -106,15 +116,15 @@ Cross-domain universality claims have a long history of being over-generated and
 
 ## API reference
 
-- **HTTP API** (Phase Detector / Structural Search): [`/api/docs`](https://structural.bytedance.city/api/docs) (Swagger UI) — see also [`docs/api/index.md`](docs/api/index.md).
+- **HTTP API**: production API discovery is intentionally disabled; use the versioned repository reference at [`docs/api/index.md`](docs/api/index.md).
 - **Python packages** (`soc-pipeline`, `cross-judge`, `guarded-llm`): auto-generated from docstrings at [docs/api/packages/](docs/api/packages/index.md). Hosted: <https://dada8899.github.io/structural-isomorphism/api/packages/>.
 
 ## Tests
 
 ```bash
-pytest v4/tests/sanity -m sanity -q     # 38 sanity tests, ~3.6s
-pytest -m "not e2e"                     # full backend, no live network
-pytest -m e2e                           # live deployments (slow, may flake)
+make test-fast          # root offline baseline
+make verify-release     # backend + all packages + retrieval + Phase build
+make test-e2e           # live deployments (non-blocking signal in CI)
 ```
 
 CI runs the sanity + integration suites on every PR. The e2e suite runs nightly against prod.
@@ -195,9 +205,9 @@ For contributor details — build conventions, deployment SOP, session retrospec
 |---|---|
 | SOC pipeline | Stable. Frozen module + 38 sanity tests + 213 total. |
 | Universality taxonomy | v0.3, B3 consensus complete, B4 ensemble run partial. |
-| Phase Detector | Live: 100 companies + 1000-ticker walk-forward backtest v0.1 (null result published openly). |
-| Structural Search | Live: SSE streaming, full EN i18n (244/244 keys). |
-| Unified preprint (C1) | v0.3.1 ready; arXiv submission pending. |
+| Phase Detector | Live 597-ticker demo snapshot; v0.2 null result published openly. |
+| Structural Search | Live with 4,443-record verified artifact; English retrieval remains below the quality gate. |
+| Unified preprint (C1) | Reviewer-readable draft; do not submit before claim/evidence and external review gates pass. |
 | Solo arXiv drafts | 4 complete (earthquakes, S&P 500, DeFi, neural). |
 
 ## Contributing

@@ -1,5 +1,7 @@
 # 结构同构性 (Structural Isomorphism)
 
+> **当前状态（2026-07-11）**：本仓库是研究/产品工作台，不是“普适类已被证实”的地图，也不是投资预测系统。生产检索的权威 artifact 为 4,443 条 KB；Phase Detector 是 597 ticker 的 demo 研究快照，且已公开负回测结果。当前最可防守的研究贡献是“预注册、可拒绝、可复现”的验证协议。运行权威状态见 [`NEXT_SESSION.md`](NEXT_SESSION.md)。
+
 [English](README.md) | **简体中文**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -30,7 +32,7 @@
 
 v0.5 草稿汇总了 SESSION-25 自 v0.4 切线后的进展。v0.4 以上数字不变；v0.5 新增 3 个方法学增量、1 个新类晋升、1 个评测专属的普适性结论：
 
-- **19 个实证锚定的类**（+1）：新增 `aggregation_kinetics` PASS-STRONG（多层级 Smoluchowski 凝聚 + 跨人群对数正态），由 v0.4 的 `beta_amyloid_aggregation` INCONCLUSIVE 通过 2 层级测试模式晋升而来；3 个不同生物领域锚（Cruz 1997 + Hartig 2018 + Iwata 2000 / Brú 2003）。
+- **v0.5 研究账本中的 19 个候选类**（+1）：这不等于 19 个经验机制均已被独立确认。其中多项依赖合成或文献标定锚点；`aggregation_kinetics` 在直接 held-out 复现前仍是候选 scaling/mechanism class。
 - **11 个 PASS-CONFIRMED-或更强**（+1）：`schelling_credible_commitment` 通过 (s\*, k) 阈值-tobit 重参数化升至 PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT（sub-run D，2/4 锚命中）。Horn-Mavroidis WTO 真实数据健全性检查（n = 23 个报复案例）返回符号反转斜率（`k = −2.92`，95 % CI `[−7.92, −0.67]`），如实报告为观测识别失败（被告强硬度选择偏差），不构成对底层机制的反驳。
 - **3 个方法学增量**（§3.6.5 (s\*, k) 重参数化 / §3.6.6 多层级测试模式 / §3.6.7 头-尾感知 LLM 校验器），含 1 份完整的跨类适用性回顾 + 3 份预注册（在 [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/)）。
 - **Pythia LAMBADA 跨拟合（§4）**：8 个 size × 27 checkpoint 全部使用真实逐点评测。v1（L∞ 自由）与 v2（L∞ ∈ [1.0, 5.0]）均得到 TIGHT_UNIVERSALITY（CV ≈ 0.12）。**TIGHT 结论是评测特异性的**：跨 LAMBADA + train-loss 多源池化后 CV 涨到 0.58–1.49。v0.4 的 BROAD_SPREAD 是 3-真实 + 3-合成 train-loss 混源造成的伪影；普适性结论是 *LAMBADA-OpenAI 损失曲线本身* 的属性，不是 scaling-law 家族普遍属性。
@@ -60,7 +62,7 @@ v0.5 草稿汇总了 SESSION-25 自 v0.4 切线后的进展。v0.4 以上数字�
 <td width="33%" valign="top">
 
 ### 3. Phase Detector（研究预览）
-一款零结果产品。我们用 9 类普适模式给 100 家上市公司打了相位标签，并对 1000 只股票（SP500 + R1000 补充，2020-2025）做了滚动回测。`near_critical` 群组相对等权基准的 Sharpe 提升 = **−0.23**（p = 0.57，**不显著**）。
+一个负结果研究预览。线上展示固定的 597 ticker demo 快照；v0.2 滚动分析没有找到预测 alpha，`near_critical` 群组相对等权基准的 Sharpe 提升为 **−0.23**，alpha 不显著。
 
 完整透明度报告公开发布，作为"跨领域框架不应该被包装成 alpha 工具"的一个案例研究。详情见 [`/backtest`](https://phase.bytedance.city/backtest)。
 
@@ -95,7 +97,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 | 产品 | URL | 功能 |
 |---|---|---|
 | Structural Search | [beta.structural.bytedance.city](https://beta.structural.bytedance.city) | Perplexity 风格的自然语言搜索，覆盖跨领域知识库。流式返回答案 + 引用卡片 + 跨领域类似现象。 |
-| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 100 家被标记公司 + 1000 只股票（SP500 + R1000 补充）滚动回测 v0.2（零结果：Sharpe 提升 −0.23，p = 0.57）。研究预览——非投资建议。 |
+| Phase Detector | [phase.bytedance.city](https://phase.bytedance.city) | 固定的 597 ticker demo 研究快照 + 透明的 v0.2 负回测。非实时数据，非投资建议。 |
 
 ### 关于负面结果
 
@@ -104,9 +106,9 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 ## 测试
 
 ```bash
-pytest v4/tests/sanity -m sanity -q     # 38 个 sanity 测试，约 3.6 秒
-pytest -m "not e2e"                     # 完整后端，无需联网
-pytest -m e2e                           # 真实生产环境（慢，可能 flaky）
+make test-fast          # 根目录离线基线
+make verify-release     # 后端 + 全部 packages + 检索 + Phase build
+make test-e2e           # 真实生产环境（CI 中为非阻塞信号）
 ```
 
 CI 在每个 PR 上跑 sanity + integration 套件。e2e 套件每晚对 prod 跑一次。
@@ -187,9 +189,9 @@ structural-isomorphism/
 |---|---|
 | SOC 流水线 | 稳定。冻结模块 + 38 个 sanity 测试 + 总计 213 个测试。 |
 | 普适类分类法 | v0.3，B3 共识完成，B4 集成 run 部分完成。 |
-| Phase Detector | 上线：100 家公司 + 1000 只股票滚动回测 v0.1（零结果公开发布）。 |
-| Structural Search | 上线：SSE 流式、完整英文 i18n（244/244 keys）、新增简体中文（本仓库 W11-B）。 |
-| 统一预印本 (C1) | v0.3.1 已就绪；arXiv 投递待定。 |
+| Phase Detector | 上线 597 ticker demo 快照；v0.2 负结果已公开。 |
+| Structural Search | 上线 4,443 条权威 artifact；英文检索仍未达质量门禁。 |
+| 统一预印本 (C1) | reviewer-readable draft；claim/evidence 与外部 review 门禁通过前不投递。 |
 | 单独 arXiv 草稿 | 4 篇完整（地震、S&P 500、DeFi、神经）。 |
 
 ## 参与贡献
