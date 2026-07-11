@@ -16,9 +16,12 @@ OpenAPI auto-docs: `/docs` (swagger) and `/redoc`.
 ## Quick start
 
 ```bash
-# from repo root, with .venv activated and dependencies installed
+# from repo root
+python3 -m venv .venv-phase-api
+.venv-phase-api/bin/pip install \
+  -r v4/product/d1_phase_detector/api/requirements.txt
 PYTHONPATH=. \
-  .venv/bin/uvicorn v4.product.d1_phase_detector.api.main:app --reload --port 8000
+  .venv-phase-api/bin/uvicorn v4.product.d1_phase_detector.api.main:app --reload --port 8000
 ```
 
 Then:
@@ -73,14 +76,23 @@ Tests use SQLite in-temp-dir fixtures, no external DB required. All 16 cases cov
 - `/company/{ticker}` hit / case-insensitive / 404
 - CORS
 
+The production dependency/import/startup contract can be checked from a clean
+virtual environment (requires package-index access):
+
+```bash
+PHASE_API_PYTHON=python3.12 \
+  bash v4/product/d1_phase_detector/api/scripts/smoke_clean_env.sh
+```
+
 ## Production deploy (sketch — not part of this PR)
 
 Target host: `phase.bytedance.city`.
 
 1. Run Postgres locally on VPS (or reuse existing pgvector-ready container).
 2. `DB_URL=postgresql://...` exported in systemd unit.
-3. systemd unit `phase-detector-api.service` runs uvicorn on `127.0.0.1:8000`.
-4. nginx reverse-proxies `phase.bytedance.city → 127.0.0.1:8000`.
+3. Install `api/requirements.txt` into the API's dedicated virtualenv; the
+   systemd unit `phase-detector-api.service` runs uvicorn on `127.0.0.1:8200`.
+4. nginx reverse-proxies `phase.bytedance.city → 127.0.0.1:8200`.
 5. certbot Let's Encrypt cert via nginx plugin.
 
 ## CORS

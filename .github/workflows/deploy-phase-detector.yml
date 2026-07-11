@@ -2,19 +2,20 @@ name: Deploy Phase Detector
 
 # Auto-deploy web/phase-detector to VPS phase.bytedance.city on push to main.
 # Triggered by:
-#   - Push to main touching web/phase-detector/** or this workflow file.
+#   - Push to main touching the Phase frontend/API or this workflow file.
 #   - Manual via workflow_dispatch.
 #
 # Background: the 2026-05-14 incident — devs forgot to rsync .env.production
 # so NEXT_PUBLIC_API_BASE baked to localhost:8000 → "Failed to fetch" in prod.
-# PR #85 committed .env.production to repo. This workflow + the VPS deploy
-# script `/root/scripts/deploy-phase-detector.sh` enforce the rebuild path.
+# PR #85 committed .env.production to repo. The forced-command entrypoint
+# delegates to the tracked `scripts/deploy-phase-detector-vps.sh` script.
 
 on:
   push:
     branches: [main]
     paths:
       - 'web/phase-detector/**'
+      - 'v4/product/d1_phase_detector/api/**'
       - '.github/workflows/deploy-phase-detector.yml'
   workflow_dispatch: {}
 
@@ -30,6 +31,22 @@ jobs:
     steps:
       - name: Checkout (for context only)
         uses: actions/checkout@v4
+
+      - name: Set up Phase API Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: v4/product/d1_phase_detector/api/requirements.txt
+
+      - name: Validate Phase API dependency contract
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/phase-api-import
+          /tmp/phase-api-import/bin/pip install --disable-pip-version-check \
+            -r v4/product/d1_phase_detector/api/requirements.txt
+          PYTHONPATH=. /tmp/phase-api-import/bin/python -c \
+            "from v4.product.d1_phase_detector.api.main import app; assert app.title"
 
       - name: SSH deploy
         env:
@@ -53,6 +70,20 @@ jobs:
           set -euo pipefail
           sleep 5
           curl -fsS -o /dev/null https://phase.bytedance.city/
-          # API health is best-effort (endpoint may not exist yet).
-          curl -fsS -o /dev/null https://phase.bytedance.city/api/health || true
+          health="$(curl -fsS https://phase.bytedance.city/api/health)"
+          meta="$(curl -fsS https://phase.bytedance.city/api/ews/meta)"
+          HEALTH_JSON="$health" META_JSON="$meta" python3 - <<'PY'
+          import json
+          import os
+
+          health = json.loads(os.environ["HEALTH_JSON"])
+          assert health == {"status": "ok"}, health
+
+          meta = json.loads(os.environ["META_JSON"])
+          assert isinstance(meta.get("version"), str) and meta["version"], meta
+          assert isinstance(meta.get("n_tickers"), int), meta
+          assert meta["n_tickers"] > 0, meta
+          provenance = meta.get("price_provenance")
+          assert isinstance(provenance, str) and provenance != "missing", meta
+          PY
           echo "Smoke OK"
