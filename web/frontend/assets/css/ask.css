@@ -499,6 +499,20 @@ body.is-home .ask-main {
 
 .ask-kb-card__source:hover { text-decoration: underline; }
 
+.ask-kb-card__evidence {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #e4e4e7);
+}
+
+.ask-kb-card__evidence div { display: grid; gap: 2px; }
+.ask-kb-card__evidence dt { color: var(--text-tertiary); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.ask-kb-card__evidence dd { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
 .ask-thread-item__candidate-prompt {
   margin: 0;
   color: var(--text-secondary);

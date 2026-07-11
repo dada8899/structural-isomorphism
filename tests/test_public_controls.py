@@ -25,12 +25,27 @@ def test_workbench_requires_fingerprint_and_candidate_confirmation() -> None:
     assert "structural_pending_fingerprint" in ask
     assert "item._selectedCandidateId" in ask
     assert "系统不会替你默认选择 Top 1" in ask
+    assert "结构匹配线索" in ask
+    assert "反证 / 尚缺证据" in ask
+    assert "适用边界" in ask
+    assert "检索分" in ask
+    assert "相似度 " not in ask
     assert 'id="ask-fingerprint-confirm"' in page
     assert "persist=0" in ask
     assert 'data-role="save-report-choice"' in ask
     assert "未勾选时不会在服务器保存报告" in ask
     assert "persistFlag === '1'" in analyze
     assert "persistFlag !== '0'" not in analyze
+
+
+def test_report_list_is_an_action_workbench() -> None:
+    script = (ROOT / "web/frontend/assets/js/my-reports.js").read_text(encoding="utf-8")
+    page = (ROOT / "web/frontend/reports.html").read_text(encoding="utf-8")
+    for bucket in ("today", "week", "waiting", "completed"):
+        assert f"id: '{bucket}'" in script
+    assert "outcome !== 'too_early'" in script
+    assert "reportBucket(item)" in script
+    assert "按今天、本周、等待推进和已完成分组" in page
 
 
 def test_phase_build_is_network_independent() -> None:

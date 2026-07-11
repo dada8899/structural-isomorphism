@@ -171,6 +171,15 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _display_score(card: Dict) -> float:
+    """Return a finite display-only retrieval score for evidence copy."""
+    try:
+        value = float(card.get("score") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    return value if value == value and value not in (float("inf"), float("-inf")) else 0.0
+
+
 class _AnswerFieldExtractor:
     """Stream-parse the `answer` string field out of a JSON object as bytes arrive.
 
@@ -398,6 +407,28 @@ class AskOrchestrator:
                 "type_id": c.get("type_id", ""),
                 "score": c.get("score", 0.0),
                 "description": (c.get("description") or "")[:240],
+                # Candidate-decision evidence is intentionally retrieval-only.
+                # It must never be phrased as causal/mechanism validation: the
+                # deep report is where variable mapping and boundary checks run.
+                "match_basis": (
+                    "Retrieval found structural-semantic proximity "
+                    f"(score {_display_score(c):.3f}); "
+                    "this is a ranking signal, not a validated transfer."
+                    if lang_norm == "en" else
+                    "检索系统发现结构语义接近"
+                    f"（检索分 {_display_score(c):.3f}）；"
+                    "这是排序线索，不是已验证的迁移结论。"
+                ),
+                "counter_evidence": (
+                    "No variable-by-variable mapping, causal-direction test, or boundary-condition check has been completed yet."
+                    if lang_norm == "en" else
+                    "尚未完成变量逐项映射、因果方向检验或边界条件核对。"
+                ),
+                "applicability_boundary": (
+                    "Transfer is plausible only if the key relationship in the source synopsis also holds in your problem; verify it in the report before acting."
+                    if lang_norm == "en" else
+                    "只有当来源摘要中的关键关系也存在于你的问题时，方法才可能迁移；行动前需在报告中核验。"
+                ),
             }
             for c in cards
         ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import functools
 import threading
+from datetime import datetime, timedelta, timezone
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -141,6 +142,11 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     expect(page.get_by_text("系统不会替你默认选择 Top 1")).to_be_visible()
     candidates = page.get_by_role("radio")
     expect(candidates).to_have_count(3)
+    first_shell = candidates.nth(0).locator("xpath=..")
+    expect(first_shell.get_by_text("结构匹配线索")).to_be_visible()
+    expect(first_shell.get_by_text("反证 / 尚缺证据")).to_be_visible()
+    expect(first_shell.get_by_text("适用边界")).to_be_visible()
+    expect(first_shell.get_by_text("尚未完成变量、因果方向与边界条件的逐项核对。")).to_be_visible()
     source = page.get_by_role("link", name="查看候选来源：Feedback B")
     source.focus()
     with page.context.expect_page() as popup_info:
@@ -155,6 +161,30 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     expect(cta).to_be_visible()
     assert "id=candidate-2" in (cta.get_attribute("href") or "")
     assert "id=candidate-1" not in (cta.get_attribute("href") or "")
+
+
+def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str):
+    now = datetime.now(timezone.utc)
+    items = [
+        {"id": "r_1111111111111111", "query": "today", "created_at": now.isoformat(), "view_count": 0, "lang": "zh", "has_followup": False, "followup_status": "", "followup_outcome": ""},
+        {"id": "r_2222222222222222", "query": "week", "created_at": (now - timedelta(days=2)).isoformat(), "view_count": 0, "lang": "zh", "has_followup": False, "followup_status": "", "followup_outcome": ""},
+        {"id": "r_3333333333333333", "query": "waiting", "created_at": (now - timedelta(days=10)).isoformat(), "view_count": 0, "lang": "zh", "has_followup": True, "followup_status": "in_progress", "followup_outcome": "too_early"},
+        {"id": "r_4444444444444444", "query": "completed", "created_at": (now - timedelta(days=12)).isoformat(), "view_count": 0, "lang": "zh", "has_followup": True, "followup_status": "tried", "followup_outcome": "worked"},
+    ]
+    page.add_init_script("localStorage.setItem('anonId', 'e2e-owner')")
+    page.route(
+        "**/api/reports/mine**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"items": items, "has_more": False}),
+        ),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    for section_id, query in (("today", "today"), ("week", "week"), ("waiting", "waiting"), ("completed", "completed")):
+        section = page.locator("#myr-bucket-" + section_id)
+        expect(section).to_be_visible()
+        expect(section.get_by_text(query, exact=True)).to_be_visible()
 
 
 @pytest.mark.requires_internet

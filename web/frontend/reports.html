@@ -30,6 +30,12 @@
 
     .myr-list { display: flex; flex-direction: column; gap: 10px; }
 
+    .myr-bucket { margin-bottom: 26px; }
+    .myr-bucket__head { margin-bottom: 10px; }
+    .myr-bucket__head h2 { margin: 0; color: var(--brand-ink); font-size: 15px; font-weight: 650; }
+    .myr-bucket__head p { margin: 3px 0 0; color: var(--brand-muted); font-size: 12px; line-height: 1.45; }
+    .myr-bucket__items { display: flex; flex-direction: column; gap: 10px; }
+
     .myr-card {
       display: block; text-decoration: none;
       background: var(--brand-paper-card, #fff);
@@ -107,7 +113,7 @@
     <div class="myr-container">
       <div class="myr-head">
         <h1 class="myr-head__title">我的报告</h1>
-        <p class="myr-head__sub">你在这台设备上保存过的跨领域研究报告。换设备或清除浏览器数据后这里会重新开始。</p>
+        <p class="myr-head__sub">按今天、本周、等待推进和已完成分组，从报告继续到可验证的实验。数据仅与这台设备的匿名标识关联。</p>
       </div>
 
       <div id="myr-list" class="myr-list">

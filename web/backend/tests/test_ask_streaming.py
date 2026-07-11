@@ -263,6 +263,39 @@ class StreamingPipelineTests(unittest.TestCase):
         names = [e[0] for e in _parse_sse_events(chunks)]
         self.assertLess(names.index("retrieval_done"), names.index("kb_cards"))
 
+    def test_candidate_cards_expose_honest_preselection_evidence(self):
+        search = _FakeSearch(_FIXED_KB)
+        orch = AskOrchestrator(search_service=search)
+        with patch.object(
+            AskOrchestrator,
+            "_call_llm_stream",
+            _mock_stream_factory(_MOCK_FULL_JSON),
+        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
+            chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
+        events = _parse_sse_events(chunks)
+        cards = next(data["cards"] for name, data in events if name == "kb_cards")
+        assert len(cards) == 3
+        for card in cards:
+            assert "ranking signal, not a validated transfer" in card["match_basis"]
+            assert "variable-by-variable mapping" in card["counter_evidence"]
+            assert "verify it in the report before acting" in card["applicability_boundary"]
+            assert card["description"]
+
+    def test_candidate_evidence_handles_invalid_retrieval_score(self):
+        bad = [{**_FIXED_KB[0], "score": "not-a-number"}]
+        orch = AskOrchestrator(search_service=_FakeSearch(bad))
+        with patch.object(
+            AskOrchestrator,
+            "_call_llm_stream",
+            _mock_stream_factory(_MOCK_FULL_JSON),
+        ), patch("services.ask_orchestrator.TYPEWRITER_SLEEP_S", 0):
+            chunks = asyncio.run(_collect(orch.stream("Why do banks fail", lang="en")))
+        cards = next(
+            data["cards"] for name, data in _parse_sse_events(chunks)
+            if name == "kb_cards"
+        )
+        assert "score 0.000" in cards[0]["match_basis"]
+
     def test_full_event_sequence_streaming_path(self):
         """All required events still emit when LLM is streamed."""
         search = _FakeSearch(_FIXED_KB)

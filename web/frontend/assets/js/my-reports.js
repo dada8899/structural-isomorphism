@@ -40,6 +40,52 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  var BUCKETS = [
+    { id: 'today', title: '今天', hint: '今天创建，尚未进入实验的报告' },
+    { id: 'week', title: '本周', hint: '近 7 天创建，可以决定下一步的报告' },
+    { id: 'waiting', title: '等待推进', hint: '已规划、进行中、等待结果或超过 7 天尚未处理' },
+    { id: 'completed', title: '已完成', hint: '已记录有效、部分有效、无效或放弃的结果' }
+  ];
+
+  function reportBucket(item, now) {
+    var outcome = item && item.followup_outcome;
+    var status = item && item.followup_status;
+    if ((outcome && outcome !== 'too_early') || status === 'abandoned') return 'completed';
+    if (item && item.has_followup) return 'waiting';
+    var created = new Date(item && item.created_at);
+    if (isNaN(created.getTime())) return 'waiting';
+    var current = now || new Date();
+    if (created.toDateString() === current.toDateString()) return 'today';
+    var age = current.getTime() - created.getTime();
+    if (age >= 0 && age < 7 * 24 * 60 * 60 * 1000) return 'week';
+    return 'waiting';
+  }
+
+  function bucketEl(id) {
+    var existing = document.getElementById('myr-bucket-' + id);
+    if (existing) return existing.querySelector('[data-bucket-items]');
+    var meta = BUCKETS.find(function (bucket) { return bucket.id === id; });
+    if (!meta) return null;
+    var section = document.createElement('section');
+    section.id = 'myr-bucket-' + id;
+    section.className = 'myr-bucket';
+    section.setAttribute('aria-labelledby', section.id + '-title');
+    section.innerHTML =
+      '<div class="myr-bucket__head">' +
+        '<h2 id="' + section.id + '-title">' + escapeHtml(meta.title) + '</h2>' +
+        '<p>' + escapeHtml(meta.hint) + '</p>' +
+      '</div>' +
+      '<div class="myr-bucket__items" data-bucket-items></div>';
+    var index = BUCKETS.findIndex(function (bucket) { return bucket.id === id; });
+    var next = null;
+    for (var i = index + 1; i < BUCKETS.length; i += 1) {
+      next = document.getElementById('myr-bucket-' + BUCKETS[i].id);
+      if (next) break;
+    }
+    listEl.insertBefore(section, next);
+    return section.querySelector('[data-bucket-items]');
+  }
+
   // B Data Flywheel (Session #18) — revisit badge. A report the user has
   // not yet recorded an outcome for gets a gentle '未回访' tag nudging them
   // to come back and report whether the borrowed structure worked. A
@@ -101,13 +147,14 @@
   }
 
   function appendItems(items) {
-    var html = items.map(cardHtml).join('');
     // First page replaces the skeleton; later pages append.
     if (offset === 0) {
-      listEl.innerHTML = html;
-    } else {
-      listEl.insertAdjacentHTML('beforeend', html);
+      listEl.innerHTML = '';
     }
+    items.forEach(function (item) {
+      var target = bucketEl(reportBucket(item));
+      if (target) target.insertAdjacentHTML('beforeend', cardHtml(item));
+    });
   }
 
   function load() {
@@ -159,4 +206,6 @@
   } else {
     load();
   }
+
+  window.__myReports = { reportBucket: reportBucket };
 })();
