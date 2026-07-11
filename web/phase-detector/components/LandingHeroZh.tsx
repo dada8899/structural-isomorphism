@@ -43,7 +43,7 @@ export function LandingHeroZh() {
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
           每条都是一个假设。每条都附带证据。
-          <br className="hidden sm:inline" /> <span className="text-zinc-900">alpha 是否成立，由你判断。</span>
+          <br className="hidden sm:inline" /> <span className="text-zinc-900">公开回测结论为 NULL，不提供预测能力。</span>
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">

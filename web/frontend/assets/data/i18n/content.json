@@ -336,8 +336,8 @@
     "en": "Describe your problem, and find structurally equivalent solutions across <strong>4,443</strong> phenomena spanning <strong>87</strong> disciplines."
   },
   "page.home.hero_evidence.caption_1": {
-    "zh": "它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。",
-    "en": "They look entirely unrelated, yet obey <strong>exactly the same</strong> mathematical equation."
+    "zh": "在明确假设下，它们可用<strong>同一类数学模型</strong>描述；机制是否一致仍需验证。",
+    "en": "Under explicit assumptions, the same <strong>model family</strong> can describe both; shared mechanism still requires validation."
   },
   "page.home.hero_evidence.caption_2": {
     "zh": "细菌和产品，在同一条<strong>逻辑斯谛曲线</strong>上。",
@@ -376,8 +376,8 @@
     "en": "Sub-product"
   },
   "page.home.cross_product.label": {
-    "zh": "Phase Detector — 把同构引擎用到金融/商业领域。",
-    "en": "Phase Detector — the isomorphism engine applied to finance and business."
+    "zh": "Phase Detector — 597 个 demo ticker 的冻结研究快照。",
+    "en": "Phase Detector — a frozen research snapshot of 597 demo tickers."
   },
   "page.home.cross_product.link": {
     "zh": "打开 Phase Detector →",
@@ -392,8 +392,8 @@
     "en": "What happens <em>after you type a question</em>"
   },
   "page.home.how.sub": {
-    "zh": "从一句话描述到一份可执行的跨学科研究报告，全程 1-2 分钟。",
-    "en": "From a one-sentence description to an actionable cross-disciplinary research report in one to two minutes."
+    "zh": "从一句话描述到一份可执行的跨学科研究报告，约需 2–3 分钟。",
+    "en": "From a one-sentence description to an actionable cross-disciplinary research report in about two to three minutes."
   },
   "page.home.how.step1.title": {
     "zh": "理解 + 检索",

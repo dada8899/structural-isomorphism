@@ -94,26 +94,8 @@ export function softwareApplicationSchema() {
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",
     url: SITE_URL,
-    offers: [
-      {
-        "@type": "Offer",
-        name: "Free",
-        price: "0",
-        priceCurrency: "USD",
-      },
-      {
-        "@type": "Offer",
-        name: "Pro",
-        price: "19",
-        priceCurrency: "USD",
-      },
-      {
-        "@type": "Offer",
-        name: "Team",
-        price: "99",
-        priceCurrency: "USD",
-      },
-    ],
+    description:
+      "A free frozen 597-ticker demo research snapshot. No paid offer or predictive claim is available.",
   };
 }
 

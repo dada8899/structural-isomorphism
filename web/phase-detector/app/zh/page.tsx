@@ -73,7 +73,7 @@ export default async function LandingPageZh() {
         <ExploreCardsGrid cards={cards} />
       ) : (
         <section className="mx-auto w-full max-w-4xl px-6 py-16 text-center text-sm text-zinc-500">
-          正在加载最近翻转的公司…
+          正在加载冻结快照样例…
         </section>
       )}
 
@@ -87,17 +87,17 @@ export default async function LandingPageZh() {
       >
         <div className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-white via-white to-indigo-50/40 p-8 sm:p-12">
           <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-indigo-700">
-            Newsletter · 每周一封
+            Research updates · 研究更新
           </p>
           <h2
             id="waitlist-heading-zh"
             className="mb-3 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl"
             style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
           >
-            《结构信号》— 每周一封
+            《结构信号》研究更新
           </h2>
           <p className="mb-6 max-w-prose text-sm leading-relaxed text-zinc-600 sm:text-base">
-            v0.2 backtest 报告就绪时第一时间通知 + 每周精选 3 家最值得看的相位翻转。
+            新的回测、方法说明或经复核的冻结样例发布时通知。
             <strong className="text-zinc-900">不卖广告，不卖列表，不发别的。</strong>
           </p>
           <WaitlistForm
@@ -147,7 +147,7 @@ export const metadata = {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — 每日结构性信号",
+        alt: "Phase Detector — 冻结 demo 研究快照",
       },
     ],
   },

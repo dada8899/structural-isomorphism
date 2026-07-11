@@ -1,9 +1,7 @@
-// W10-C alpha-screener landing: trust signals row.
+// Research-preview landing: trust signals row.
 //
 // Three quantitative + verifiable claims. Each links to the source so the
-// claim is auditable, not marketing fluff. This is the section that
-// converts "interesting" → "credible" for someone evaluating an alpha
-// product.
+// claim is auditable rather than predictive marketing.
 
 import Link from "next/link";
 
@@ -32,7 +30,7 @@ const SIGNALS: Signal[] = [
     label: "Honest backtest",
     value: BACKTEST_HEADLINE,
     href: "/backtest",
-    hint: "Walk-forward. 500 tickers × 5 years. We publish even when alpha = 0.",
+    hint: "Walk-forward. 500 tickers × 5 years. The recorded result does not establish predictive value.",
   },
   {
     label: "Open methodology",
@@ -63,7 +61,7 @@ export function TrustSignalsRow() {
             className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl"
             style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
           >
-            每一条信号都附带来源。<br className="hidden sm:inline" />你判断 alpha，我们不替你下结论。
+            每一条标签都附带来源。<br className="hidden sm:inline" />公开回测为 NULL，这里不提供预测结论。
           </p>
         </div>
         <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-200 sm:grid-cols-3">

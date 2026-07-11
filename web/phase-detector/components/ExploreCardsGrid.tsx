@@ -1,6 +1,6 @@
 "use client";
 
-// W10-C alpha-screener landing: "Recent phase flips this week" — 6 explore cards.
+// Six examples from the frozen demo snapshot.
 //
 // Each card surfaces a real company that has either transitioned recently
 // (post_critical_transition) or is approaching a flip (approaching_critical).
@@ -74,14 +74,14 @@ export function ExploreCardsGrid({ cards }: Props) {
       <div className="mb-8 flex items-baseline justify-between">
         <div>
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-            Recent flips · 本周状态变化
+            Frozen examples · 冻结快照样例
           </p>
           <h2
             id="explore-cards-heading"
             className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl"
             style={{ fontFamily: "var(--font-serif), 'Noto Serif SC', serif" }}
           >
-            谁刚刚翻面？谁正在靠近？
+            查看标签、来源与方法边界
           </h2>
         </div>
         <Link

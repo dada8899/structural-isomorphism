@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { PageOpenTracker } from "@/components/PageOpenTracker";
-import { PricingTable } from "@/components/PricingTable";
-import { Events } from "@/lib/analytics";
 import { buildMetadata } from "@/lib/seo";
 
-// W10-B (session #10): pricing page. Free / Pro $19 / Team $99 mock.
-// Real Stripe integration deferred until PMF signal — see README in
-// /checkout/mock for migration plan.
-//
-// Design references consulted (per CLAUDE.md "competitors first" rule):
-//   - Linear.app/pricing (3-column, billing toggle, "Most popular" badge)
-//   - Apple iCloud+ storage tiers (restrained palette, generous whitespace)
-//   - Lobehub /pricing (feature parity, no rainbow gradients)
-//   - OpenWebUI org page (community vs. team distinction)
-//   - Penpot pricing (annual savings inline)
-// Anti-patterns avoided: gradient CTAs, glow effects, emoji bullets,
-// competing badges.
+// Retained as a direct-link research-preview status page. There is no
+// purchasable offer while the product remains a frozen demo snapshot.
 
 // W12-B (2026-05-15): canonical + OG image + twitter card added via buildMetadata helper.
 export const metadata: Metadata = buildMetadata({
@@ -31,8 +18,7 @@ export const metadata: Metadata = buildMetadata({
 export default function PricingPage() {
   return (
     <article className="mx-auto max-w-5xl">
-      <PageOpenTracker event={Events.PricingView} />
-      <Breadcrumb items={[{ label: "首页", href: "/" }, { label: "定价" }]} />
+      <Breadcrumb items={[{ label: "首页", href: "/" }, { label: "研究预览状态" }]} />
 
       <header className="mx-auto mb-12 max-w-2xl text-center">
         <h1
@@ -47,7 +33,21 @@ export default function PricingPage() {
         </p>
       </header>
 
-      <PricingTable defaultInterval="month" />
+      <section className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-base font-semibold text-zinc-900">当前可用</h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+            597 个 demo ticker 的冻结快照、来源、方法说明与 NULL
+            回测均免费公开。
+          </p>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-base font-semibold text-zinc-900">尚未提供</h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+            实时价格、预测信号、付费权益、API 和团队协作均未上线，也不接受付款。
+          </p>
+        </div>
+      </section>
 
       {/* Real-Stripe disclaimer (PMF gate) */}
       <section
@@ -61,8 +61,7 @@ export default function PricingPage() {
           研究预览阶段：当前不开放支付
         </h2>
         <p className="text-sm leading-relaxed text-amber-900/85">
-          页面中的 Pro 与 Team 是方向说明，不代表已经交付的商品。CTA 只会
-          登记研究预览意向，不会创建模拟订单、订阅或扣款。
+          当前页面不展示套餐、价格或购买 CTA，也不会创建订单、订阅或扣款。
         </p>
       </section>
 
@@ -109,7 +108,7 @@ export default function PricingPage() {
               Team 方案现在能购买吗？
             </dt>
             <dd className="mt-1.5 leading-relaxed text-zinc-600">
-              不能。团队席位与共享看板仍在规划，当前只登记需求。研究团队可通过{" "}
+              不能。当前没有可购买的 Team 方案。研究团队可通过{" "}
               <a
                 href="mailto:hello@bytedance.city"
                 className="underline-offset-2 hover:underline"
@@ -124,9 +123,7 @@ export default function PricingPage() {
               我可以随时取消吗？
             </dt>
             <dd className="mt-1.5 leading-relaxed text-zinc-600">
-              当然。真 Stripe 上线后会在账户页提供一键取消，已付期内继续享有
-              Pro 功能，下一周期不再续费。研究预览阶段不收费，所以现在加入
-              本身也没有锁定成本。
+              当前没有订阅或扣款，因此也没有需要取消的付费服务。
             </dd>
           </div>
           <div>

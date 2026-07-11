@@ -1,4 +1,4 @@
-// W10-C alpha-screener landing: editorial hero.
+// Editorial research-preview hero.
 //
 // Server component — hero text is in initial HTML for instant LCP. No client
 // JS in this file. The animated phase indicator is a sibling client island.
@@ -54,8 +54,8 @@ export function LandingHero() {
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
-          Each one a hypothesis. Each one with the receipts.
-          <br className="hidden sm:inline" /> <span className="text-zinc-900">You judge the alpha.</span>
+          Each one is a frozen hypothesis with its provenance.
+          <br className="hidden sm:inline" /> <span className="text-zinc-900">The published backtest is NULL.</span>
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">

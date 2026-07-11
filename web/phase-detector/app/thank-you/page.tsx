@@ -7,7 +7,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 
 export const metadata: Metadata = {
   title: "已加入名单 — Phase Detector",
-  description: "你已加入《结构信号》订阅。每周日推送本周公司状态变化。",
+  description: "你已加入《结构信号》研究更新名单。",
   // Block indexing so this page does not show up in search.
   robots: { index: false, follow: false },
 };
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const SHARE_URL = "https://phase.bytedance.city";
 const SHARE_TEXT =
-  "我刚订阅了《结构信号》——来自 597 个 demo ticker 研究快照的结构信号观察。每周日推送。";
+  "我刚加入了《结构信号》研究更新名单——跟踪 597 个 demo ticker 的冻结研究快照。";
 
 export default function ThankYouPage() {
   return (
@@ -37,13 +37,12 @@ export default function ThankYouPage() {
       </h1>
 
       <p className="mb-3 text-base leading-relaxed text-zinc-700">
-        下次发刊是<strong>本周日 22:00 (Asia/Shanghai)</strong>。内容覆盖：
+        当新的回测、方法说明或经复核的案例发布时，我们会发邮件通知。内容可能包括：
       </p>
       <ul className="mb-6 list-disc space-y-1 pl-6 text-sm text-zinc-700">
-        <li>本周新走到「临界附近」的公司（每个附一句解释）</li>
-        <li>本周回到「稳态」的公司</li>
-        <li>一个深度案例（约 200 字）</li>
-        <li>常见问题 + 推荐阅读</li>
+        <li>冻结快照中的代表性标签与来源</li>
+        <li>公开回测的新结果，包括负结果</li>
+        <li>方法边界、数据来源和推荐阅读</li>
       </ul>
 
       <section
@@ -87,7 +86,7 @@ export default function ThankYouPage() {
       </section>
 
       <p className="text-xs text-zinc-400">
-        如果一周后没收到邮件，请检查垃圾邮件文件夹 — 或者在
+        如果新研究发布后没有收到通知，请检查垃圾邮件文件夹 — 或者在
         <a
           href="https://github.com/dada8899/structural-isomorphism/issues"
           target="_blank"

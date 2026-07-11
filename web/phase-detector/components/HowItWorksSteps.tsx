@@ -1,4 +1,4 @@
-// W10-C alpha-screener landing: 3-step "How it works" explainer.
+// Research-preview landing: 3-step "How it works" explainer.
 //
 // Editorial restraint per CLAUDE.md design refs (Bear / Linear). Numbered
 // steps with serif step numbers as visual rhythm; body text in sans for
@@ -23,10 +23,10 @@ const STEPS = [
   },
   {
     n: "03",
-    title: "Surface",
-    titleZh: "翻面前看见",
-    body: "You see flips before they're priced in. Or you don't — we publish honest backtests up front so you judge the alpha, not us.",
-    bodyZh: "在市场定价前看见翻转。或者根本看不见——我们公开发布 NULL backtest，让你自己判断 alpha，不替你下结论。",
+    title: "Inspect",
+    titleZh: "检查假设",
+    body: "Inspect the frozen labels and their evidence as a research snapshot. The published walk-forward backtest is NULL and does not establish predictive value.",
+    bodyZh: "把冻结标签和证据作为研究快照检查。公开 walk-forward 回测结论为 NULL，不支持预测价值。",
   },
 ];
 

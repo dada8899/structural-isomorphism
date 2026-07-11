@@ -24,8 +24,8 @@ const DEMO_EXAMPLES = [
       desc_en: 'After ingestion, blood concentration drops at a fixed fractional rate. Metabolism is proportional to the current concentration — the less present, the slower it clears.',
     },
     score: 94,
-    caption: '它们看起来毫无关系，却服从<strong>完全相同</strong>的数学方程。',
-    caption_en: 'They look entirely unrelated, yet obey <strong>exactly the same</strong> mathematical equation.',
+    caption: '在明确假设下，它们可用<strong>同一类数学模型</strong>描述；机制是否一致仍需验证。',
+    caption_en: 'Under explicit assumptions, the same <strong>model family</strong> can describe both; shared mechanism still requires validation.',
   },
   {
     a: {

@@ -111,12 +111,12 @@ export function WaitlistForm({
         className="text-lg font-semibold tracking-tight text-zinc-900"
         style={{ fontFamily: "'Noto Serif SC', serif" }}
       >
-        每周一封《结构信号》→
+        获取《结构信号》研究更新 →
       </h3>
       <p className="mt-1 text-sm text-zinc-600">
-        每周日推送：本周哪些公司刚走到临界附近、哪些回到稳态，附一个深度案例。
+        有新的回测、方法说明或经复核的冻结样例时通知。
         <span className="ml-1 text-xs text-zinc-400">
-          免费 · 一封邮件 · 可随时退订
+          免费 · 不定期 · 可随时退订
         </span>
       </p>
 
