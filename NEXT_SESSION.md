@@ -421,7 +421,7 @@ git diff --stat
 - 本节取代第 14 节的“未提交、未部署”状态；第 14 节保留为过程记录。
 - 100 条中英双语检索评测集、400 条 graded qrels、评测器、冻结基线与 CI contract 已提交并推送。
 - beta 后端与 Phase 站已部署；生产 beta 使用 `openai/gpt-5.6-luna-pro`，配置与仓库默认一致。
-- 工作树仅剩本交接文档；代码修改已全部提交。
+- 工作树干净；代码与本交接文档均已提交并推送。
 
 ### Validator blocker 收口
 
