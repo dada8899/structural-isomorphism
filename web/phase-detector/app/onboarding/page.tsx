@@ -10,7 +10,7 @@ import OnboardingTourClient from "./OnboardingTourClient";
 import { LandingHero } from "@/components/LandingHero";
 import { ExploreCardsGrid } from "@/components/ExploreCardsGrid";
 import { WaitlistForm } from "@/components/WaitlistForm";
-import { MOCK_COMPANIES } from "@/lib/mock-data";
+import { loadServerScreener } from "@/lib/server-api";
 import type { Company } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -19,20 +19,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }, // not for SEO — only direct links.
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-
 async function fetchExploreCards(): Promise<Company[]> {
-  if (USE_MOCK) {
-    return MOCK_COMPANIES.slice(0, 6);
-  }
   try {
-    const r = await fetch(`${API_BASE}/screener?limit=6`, {
-      next: { revalidate: 600 },
-    });
-    if (!r.ok) return [];
-    const data = await r.json();
-    return Array.isArray(data) ? data : data?.results ?? [];
+    return await loadServerScreener(6);
   } catch {
     return [];
   }

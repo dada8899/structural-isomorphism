@@ -38,3 +38,13 @@ export async function loadServerCompany(ticker: string): Promise<Company> {
   }
   return fetchJson<Company>(`/company/${encodeURIComponent(normalized)}`);
 }
+
+export async function loadServerScreener(limit = 6): Promise<Company[]> {
+  const boundedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+  if (USE_MOCK) return MOCK_COMPANIES.slice(0, boundedLimit);
+  const payload = await fetchJson<Company[] | { results?: Company[] }>(
+    `/screener?limit=${boundedLimit}`,
+  );
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload.results) ? payload.results : [];
+}

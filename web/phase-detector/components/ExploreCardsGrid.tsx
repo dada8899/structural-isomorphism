@@ -85,7 +85,7 @@ export function ExploreCardsGrid({ cards }: Props) {
           </h2>
         </div>
         <Link
-          href="/?critical_point_state=approaching_critical"
+          href="/companies?state=approaching_critical"
           className="hidden text-sm font-medium text-indigo-700 underline-offset-4 hover:underline sm:inline-block"
         >
           全部信号 →

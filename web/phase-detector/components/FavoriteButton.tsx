@@ -6,7 +6,7 @@
 //  - Filled star = favorited, outline = not favorited
 //  - Click toggles state
 //  - Anonymous users: store in localStorage (`phase_favorites_anon`)
-//    + small prompt directs them to sign in to sync
+//    + a status message confirms the local-only persistence boundary
 //  - Optimistic update + rollback on server failure
 //  - Plausible events: favorite_added / favorite_removed / favorite_cap_exceeded
 //  - Stops propagation: the star sits inside CompanyCard's stretched-link
@@ -160,7 +160,7 @@ export function FavoriteButton({
           className="mt-1 max-w-[160px] text-right text-[10px] leading-tight text-zinc-500"
           role="status"
         >
-          已存到本地。登录后将自动同步。
+          已存到本设备。
         </span>
       )}
       {error && (

@@ -147,7 +147,7 @@ export default function FavoritesPage() {
         </div>
         {!signedIn && (
           <p className="mt-4 text-center text-xs text-zinc-500">
-            登录后可在多设备间同步收藏。
+            收藏仅保存在当前设备。
           </p>
         )}
       </section>

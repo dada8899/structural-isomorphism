@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import HistorySidebar from "@/components/HistorySidebar";
 import JsonLd from "@/components/JsonLd";
 import NetworkBanner from "@/components/NetworkBanner";
@@ -26,23 +26,31 @@ export const viewport: Viewport = {
 };
 
 // W3-B (session #9): self-host fonts via next/font (latin subset only).
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: [
+    { path: "../../frontend/assets/fonts/inter-400-latin.woff2", weight: "400" },
+    { path: "../../frontend/assets/fonts/inter-500-latin.woff2", weight: "500" },
+    { path: "../../frontend/assets/fonts/inter-600-latin.woff2", weight: "600" },
+    { path: "../../frontend/assets/fonts/inter-700-latin.woff2", weight: "700" },
+  ],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
 });
-const notoSerifSC = Noto_Serif_SC({
-  subsets: ["latin"],
+const notoSerifSC = localFont({
+  src: [
+    { path: "../../frontend/assets/fonts/noto-serif-sc-400-latin.woff2", weight: "400" },
+    { path: "../../frontend/assets/fonts/noto-serif-sc-500-latin.woff2", weight: "500" },
+    { path: "../../frontend/assets/fonts/noto-serif-sc-600-latin.woff2", weight: "600" },
+  ],
   display: "swap",
-  weight: ["400", "500", "600"],
   variable: "--font-noto-serif",
-  preload: false,
 });
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+const jetbrainsMono = localFont({
+  src: [
+    { path: "../../frontend/assets/fonts/jetbrains-mono-400-latin.woff2", weight: "400" },
+    { path: "../../frontend/assets/fonts/jetbrains-mono-500-latin.woff2", weight: "500" },
+  ],
   display: "swap",
-  weight: ["400", "500"],
   variable: "--font-jetbrains-mono",
 });
 
