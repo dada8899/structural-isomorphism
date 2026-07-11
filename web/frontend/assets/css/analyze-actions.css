@@ -38,6 +38,13 @@
   border-color: var(--border-default);
 }
 
+.analyze-action-btn:disabled {
+  color: #686872;
+  opacity: 1;
+  cursor: not-allowed;
+  background: var(--bg-subtle);
+}
+
 .analyze-action-btn svg {
   width: 14px;
   height: 14px;

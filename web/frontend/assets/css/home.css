@@ -247,21 +247,39 @@
 }
 
 .hero-evidence__dot {
-  width: 6px;
-  height: 6px;
+  position: relative;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--border-subtle);
+  background: transparent;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
+.hero-evidence__dot::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: var(--border-subtle);
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
 .hero-evidence__dot:hover {
+  background: transparent;
+}
+
+.hero-evidence__dot:hover::before {
   background: var(--text-tertiary);
 }
 
 .hero-evidence__dot.is-active {
+  background: transparent;
+}
+
+.hero-evidence__dot.is-active::before {
   background: var(--text-primary);
   transform: scale(1.25);
 }

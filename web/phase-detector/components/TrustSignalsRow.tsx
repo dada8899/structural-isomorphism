@@ -90,12 +90,13 @@ export function TrustSignalsRow() {
             return (
               <li key={s.label} className="h-full">
                 {isInternal ? (
-                  <Link href={s.href} className="block h-full">
+                  <Link href={s.href} aria-label={`${s.label}: ${s.value}`} className="block h-full">
                     {inner}
                   </Link>
                 ) : (
                   <a
                     href={s.href}
+                    aria-label={`${s.label}: ${s.value}`}
                     target="_blank"
                     rel="noopener"
                     className="block h-full"
