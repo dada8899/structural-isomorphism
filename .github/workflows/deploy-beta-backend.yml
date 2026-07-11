@@ -128,7 +128,11 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED_SHA=$(git rev-parse --short=7 HEAD)
-          EXPECTED_MODEL="${EXPECTED_MODEL:-deepseek/deepseek-chat:nitro}"
+          EXPECTED_MODEL=$(sed -n 's/^ASK_LLM_MODEL=//p' web/backend/.env.example | head -1)
+          if [ -z "$EXPECTED_MODEL" ]; then
+            echo "[verify] FAIL: ASK_LLM_MODEL missing from web/backend/.env.example" >&2
+            exit 1
+          fi
 
           BODY=$(curl -s --max-time 10 https://beta.structural.bytedance.city/api/version)
           echo "[verify] /api/version response: $BODY"
