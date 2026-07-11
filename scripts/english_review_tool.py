@@ -37,6 +37,8 @@ REJECT_REASONS = {
     "none", "not_relevant", "same_domain_only", "weak_evidence",
     "wrong_mechanism", "insufficient_information", "other",
 }
+MIN_PUBLICATION_REVIEWERS = 3
+MIN_PUBLICATION_KAPPA = 0.67
 
 
 def sha256(path: Path) -> str:
@@ -277,9 +279,26 @@ def merge_judgments(files: Iterable[Path], bundle: dict[str, Any]) -> tuple[list
             pairwise.append({"reviewer_a": first, "reviewer_b": second,
                              **pair_agreement(reviewers[first], reviewers[second])})
     kappas = [row["quadratic_weighted_kappa"] for row in pairwise if row["quadratic_weighted_kappa"] is not None]
+    min_reviews = min((len(by_task.get(tid, [])) for tid in task_map), default=0)
+    mean_kappa = sum(kappas) / len(kappas) if kappas else None
+    publication_ready = (
+        len(names) >= MIN_PUBLICATION_REVIEWERS
+        and min_reviews >= MIN_PUBLICATION_REVIEWERS
+        and not disputes
+        and mean_kappa is not None
+        and mean_kappa >= MIN_PUBLICATION_KAPPA
+    )
     report = {"reviewers": names, "task_count": len(task_map), "judged_task_count": len(by_task),
               "adjudication_count": len(disputes), "pairwise": pairwise,
-              "mean_quadratic_weighted_kappa": sum(kappas) / len(kappas) if kappas else None}
+              "minimum_reviews_per_task": min_reviews,
+              "mean_quadratic_weighted_kappa": mean_kappa,
+              "publication_ready": publication_ready,
+              "publication_requirements": {
+                  "minimum_distinct_reviewers": MIN_PUBLICATION_REVIEWERS,
+                  "minimum_reviews_per_task": MIN_PUBLICATION_REVIEWERS,
+                  "minimum_mean_quadratic_weighted_kappa": MIN_PUBLICATION_KAPPA,
+                  "adjudication_count": 0,
+              }}
     return merged, report, disputes
 
 

@@ -96,10 +96,27 @@ def test_merge_reports_agreement_and_disputes(bundle, tmp_path):
     assert report["pairwise"][0]["overlap"] == 3
     assert isinstance(report["pairwise"][0]["quadratic_weighted_kappa"], float)
     assert report["pairwise"][0]["exact_agreement"] == pytest.approx(2 / 3)
+    assert report["minimum_reviews_per_task"] == 0
+    assert report["publication_ready"] is False
     disputed_ids = {row["task_id"] for row in disputes}
     assert tasks[1]["task_id"] in disputed_ids
     assert tasks[0]["task_id"] not in disputed_ids
     assert all(row["needs_adjudication"] for row in disputes)
+
+
+def test_publication_readiness_requires_three_complete_agreeing_reviewers(bundle, tmp_path):
+    fingerprint = bundle["metadata"]["candidate_pool_sha256"]
+    files = []
+    for reviewer in ("human-a", "human-b", "human-c"):
+        rows = [judgment(task, fingerprint, reviewer, index % 4)
+                for index, task in enumerate(bundle["tasks"])]
+        path = tmp_path / f"{reviewer}.jsonl"
+        write_jsonl(path, rows); files.append(path)
+    _, report, disputes = merge_judgments(files, bundle)
+    assert disputes == []
+    assert report["minimum_reviews_per_task"] == 3
+    assert report["mean_quadratic_weighted_kappa"] == 1.0
+    assert report["publication_ready"] is True
 
 
 def test_weighted_kappa_known_edges():

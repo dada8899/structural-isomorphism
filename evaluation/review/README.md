@@ -32,4 +32,24 @@ Validation is fail-closed for unknown task IDs, query/document identity drift,
 pool fingerprint drift, duplicates, invalid enums, and missing judgments.
 Merge output includes quadratic-weighted Cohen kappa for every reviewer pair
 and a queue for ties, fewer than two reviews, or score gaps of two or more.
-Only adjudicated results should be promoted into canonical qrels.
+`publication_ready` remains false unless every task has at least three distinct
+reviewers, no item remains in adjudication, and mean pairwise quadratic-weighted
+kappa is at least 0.67. Reviewer IDs are declarations, not identity proof;
+study coordination must ensure the files came from independent humans. Only
+adjudicated results should be promoted into canonical qrels. The repository
+contains no completed human labels and must not claim otherwise.
+
+## WTO independent coding
+
+The WTO work package is separate from retrieval review. Build a blinded bundle
+that omits the existing scores, outcomes, notes, and outcome basis:
+
+```bash
+python3 scripts/wto_reproducibility.py build-coding-bundle \
+  --output evaluation/review/wto-independent-coding-bundle-v1.json
+```
+
+Each coder works from official sources without opening the existing coded CSV
+or another coder's export. Validate each JSONL independently, then compare the
+two complete files. Comparison emits only disputed fields for adjudication; it
+does not silently choose a winner or overwrite the original dataset.

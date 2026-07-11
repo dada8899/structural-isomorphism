@@ -20,7 +20,8 @@
       "claim_ids": ["C-V05-SCHELLING-SYNTHETIC", "C-V05-SCHELLING-WTO-REJECT", "C-V04-LEGACY-TAXONOMY"],
       "evidence": [
         {"path":"v4/results/B1_final_summary.md","sha256":"89c3ffc0917b9b291dbf7e8d0033857fc3bfb43a366f4478ef95b451a8455d02"},
-        {"path":"v4/validation/schelling-credible-commitment/results_real_wto.json","sha256":"6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"}
+        {"path":"v4/validation/schelling-credible-commitment/results_real_wto.json","sha256":"6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"},
+        {"path":"evaluation/research/wto-robustness-v1.json","sha256":"05f24c49b07fe7bb1e8cc013156efe3f8c589d83200ee6b3b183dd2c2875c3b9"}
       ],
       "resolution": "Exclude schelling_credible_commitment from universality-class PASS counts and submission claims; retain the synthetic response-model experiment and WTO observational rejection as bounded method results only.",
       "submission_blocking": true
@@ -127,6 +128,10 @@
         {
           "path": "v4/validation/schelling-credible-commitment/results_real_wto.json",
           "sha256": "6ba734e3602c417fd8444459746c4e6bdacf5e77b56104e6282ffee541f1ae56"
+        },
+        {
+          "path": "evaluation/research/wto-robustness-v1.json",
+          "sha256": "05f24c49b07fe7bb1e8cc013156efe3f8c589d83200ee6b3b183dd2c2875c3b9"
         }
       ],
       "command": "python3 v4/validation/schelling-credible-commitment/run_validation_real_wto.py",
@@ -138,6 +143,7 @@
       "caveats": [
         "Small selected sample (n=23).",
         "Observational selection prevents a general causal conclusion.",
+        "Policy-cluster bootstrap preserves the negative sign but has an extreme separation tail; coefficient magnitude is unstable.",
         "The result is based on a small manually coded selected sample and requires independent double-coding before any stronger claim."
       ]
     }
