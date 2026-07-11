@@ -41,7 +41,10 @@ venv/
 
 # Jupyter
 .ipynb_checkpoints/
-site/
+site/*
+!site/index.html
+!site/docs/
+!site/docs/*.md
 site_mkdocs/
 _site_build/
 marketing/
