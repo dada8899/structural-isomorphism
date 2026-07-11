@@ -16,6 +16,7 @@ on:
     paths:
       - 'web/phase-detector/**'
       - 'v4/product/d1_phase_detector/api/**'
+      - 'scripts/deploy-phase-detector-vps.sh'
       - '.github/workflows/deploy-phase-detector.yml'
   workflow_dispatch: {}
 
