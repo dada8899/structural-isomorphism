@@ -39,6 +39,13 @@ def page(browser):
     ctx.close()
 
 
+def open_companies_screener(page: Page) -> None:
+    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
+    screener = page.locator("#screener")
+    screener.scroll_into_view_if_needed()
+    expect(screener).to_be_visible()
+
+
 # ---------------------------------------------------------------------------
 # Happy path
 # ---------------------------------------------------------------------------
@@ -62,20 +69,20 @@ def test_h1_visible(page: Page):
 
 def test_filter_controls_present(page: Page):
     """The dedicated companies route exposes all three select filters."""
-    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
+    open_companies_screener(page)
     selects = page.locator("select")
     # 3 selects: dynamics_family, critical_point_state, sector
     expect(selects).to_have_count(3, timeout=10000)
 
 
 def test_min_confidence_range_present(page: Page):
-    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
+    open_companies_screener(page)
     slider = page.locator('input[type="range"]')
     expect(slider).to_be_visible()
 
 
 def test_apply_and_reset_buttons(page: Page):
-    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
+    open_companies_screener(page)
     expect(page.get_by_role("region", name="筛选条件")).to_be_visible()
 
 
