@@ -1,4 +1,4 @@
-from scripts.perf_audit import NAV_INTERACTION, PAGES, compute_inp_proxy
+from scripts.perf_audit import INIT_SCRIPT, NAV_INTERACTION, PAGES, compute_inp_proxy
 
 
 def test_every_route_uses_the_responsive_visible_navigation_interaction():
@@ -6,6 +6,12 @@ def test_every_route_uses_the_responsive_visible_navigation_interaction():
     assert "cmdk-trigger-desktop" in NAV_INTERACTION
     assert "mobile-nav-toggle" in NAV_INTERACTION
     assert all(selector == NAV_INTERACTION for _, _, selector in PAGES)
+
+
+def test_route_audit_excludes_separately_tested_first_visit_overlays():
+    assert "phase_tour_seen" in INIT_SCRIPT
+    assert "cookie_consent_v1" in INIT_SCRIPT
+    assert "analytics: false" in INIT_SCRIPT
 
 
 def test_compute_inp_proxy_ignores_loading_loaf_and_untrusted_events():

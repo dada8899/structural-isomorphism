@@ -62,13 +62,21 @@ VIEWPORTS = {
 
 # Inject before any page script runs so we catch every relevant entry.
 INIT_SCRIPT = r"""
-// Audit the page controls, not the first-visit tour overlay. The onboarding
-// flow has its own interaction tests and otherwise intercepts every selector.
+// Audit route content and controls, not first-visit overlays. Onboarding and
+// cookie consent have their own interaction tests; otherwise the late-mounted
+// consent paragraph becomes the LCP element and measures CMP hydration rather
+// than the requested route.
 try { localStorage.setItem('phase_tour_seen', 'true'); } catch (e) {}
+try {
+  localStorage.setItem('cookie_consent_v1', JSON.stringify({
+    essential: true, analytics: false, marketing: false, version: 1, timestamp: 0
+  }));
+} catch (e) {}
 
 window.__perf = {
   lcp: 0,
   lcpElement: null,
+  lcpElementText: null,
   cls: 0,
   clsEntries: [],
   longTasks: [],   // {start, duration}
@@ -83,6 +91,7 @@ try {
       // LCP keeps the latest (largest) candidate
       window.__perf.lcp = e.startTime;
       window.__perf.lcpElement = e.element ? (e.element.tagName + (e.element.id ? '#' + e.element.id : '')) : null;
+      window.__perf.lcpElementText = e.element ? (e.element.textContent || '').trim().slice(0, 160) : null;
     }
   }).observe({ type: 'largest-contentful-paint', buffered: true });
 } catch (e) {}
@@ -357,6 +366,7 @@ def audit_one(
                 "status": status,
                 "lcp_ms": round(perf.get("lcp", 0), 1),
                 "lcp_element": perf.get("lcpElement"),
+                "lcp_element_text": perf.get("lcpElementText"),
                 "cls": round(perf.get("cls", 0), 4),
                 "fcp_ms": round(fcp_ms, 1),
                 "tbt_ms": round(tbt, 1),
@@ -394,6 +404,7 @@ def audit_one(
         "status": results[-1]["status"],
         "lcp_ms": median("lcp_ms"),
         "lcp_element": results[-1].get("lcp_element"),
+        "lcp_element_text": results[-1].get("lcp_element_text"),
         "cls": median("cls"),
         "fcp_ms": median("fcp_ms"),
         "tbt_ms": median("tbt_ms"),
