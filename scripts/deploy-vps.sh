@@ -14,6 +14,11 @@
 
 set -euo pipefail
 
+if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
+  exec 9>/var/lock/structural-isomorphism-deploy.lock
+  flock -w 900 9
+fi
+
 # CI=true tells pnpm (and most other JS tooling) to skip interactive prompts.
 # Without it, pnpm hits ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY when it
 # detects a modules dir change and asks the operator to confirm the purge —
@@ -170,11 +175,11 @@ EOF
 
   echo "[deploy] Restarting $SERVICE..."
   systemctl restart "$SERVICE"
-  sleep 5
-  systemctl is-active "$SERVICE" || rollback_deploy "service not active"
-  HEALTH="$(curl -fsS --max-time 10 'http://127.0.0.1:5004/api/health?deep=1')" \
-    || rollback_deploy "deep health request failed"
-  if ! HEALTH="$HEALTH" "$TARGET/venv/bin/python" - <<'PY'
+  READY=0
+  for attempt in $(seq 1 24); do
+    if systemctl is-active --quiet "$SERVICE" \
+      && HEALTH="$(curl -fsS --max-time 5 'http://127.0.0.1:5004/api/health?deep=1' 2>/dev/null)" \
+      && HEALTH="$HEALTH" "$TARGET/venv/bin/python" - <<'PY'
 import json
 import os
 
@@ -184,9 +189,13 @@ assert body["kb_size"] == 4443, body
 assert body["artifact_id"] == "structural-v2-kb4443-20260711", body
 assert body["embedding_shape"] == [4443, 768], body
 PY
-  then
-    rollback_deploy "deep health payload invalid"
-  fi
+    then
+      READY=1
+      break
+    fi
+    sleep 5
+  done
+  [[ "$READY" == "1" ]] || rollback_deploy "deep health not ready after 120 seconds"
   rm -f "$RUNTIME_BACKUP"
   echo "[deploy] OK"
 fi

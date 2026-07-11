@@ -2,6 +2,11 @@
 # Deploy both Phase Detector services from the VPS Git worktree.
 set -euo pipefail
 
+if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
+  exec 9>/var/lock/structural-isomorphism-deploy.lock
+  flock -w 900 9
+fi
+
 REPO="${PHASE_REPO:-/root/Projects/structural-isomorphism-v4}"
 API_REQUIREMENTS="$REPO/v4/product/d1_phase_detector/api/requirements.txt"
 API_PYTHON="$REPO/.venv/bin/python"
