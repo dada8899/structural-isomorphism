@@ -373,7 +373,7 @@ class TestSchemaDriftMigration:
         self._make_old_reports_db(db)
 
         # Opening a ReportStore on it must self-heal the schema.
-        store = ReportStore(db)
+        ReportStore(db)
 
         import sqlite3
         conn = sqlite3.connect(str(db))
@@ -618,7 +618,7 @@ class TestReportFollowup:
     def test_followup_columns_self_heal_without_losing_old_row(self, tmp_path):
         import sqlite3
         db = tmp_path / "old_followup.db"
-        store = ReportStore(db)
+        ReportStore(db)
         with sqlite3.connect(str(db)) as conn:
             conn.execute("ALTER TABLE report_followup RENAME TO old_followup")
             conn.execute(
@@ -636,3 +636,23 @@ class TestReportFollowup:
         got = healed.get_followup("r_old", "a")
         assert got["note"] == "legacy"
         assert got["experiment"] is None
+
+
+def test_only_report_owner_followup_enters_verified_evidence(store, sample_payload):
+    out = store.create(
+        query="q", b_id="target", lang="en", payload=sample_payload, model="m",
+        creator_anon_id="owner",
+    )
+    store.record_followup(
+        report_id=out["id"], anon_id="attacker",
+        action_status="tried", outcome="worked",
+    )
+    assert store.verified_isomorphisms() == []
+    assert store.count_human_verified("target")["count"] == 0
+    assert store.insights_summary()["verified_isomorphisms"] == 0
+    store.record_followup(
+        report_id=out["id"], anon_id="owner",
+        action_status="tried", outcome="worked",
+    )
+    assert len(store.verified_isomorphisms()) == 1
+    assert store.count_human_verified("target")["count"] == 1

@@ -405,7 +405,10 @@ class ReportStore:
                        MAX(f.updated_at)  AS last_verified_at
                 FROM reports r
                 JOIN report_followup f
-                    ON f.report_id = r.id AND f.outcome = 'worked'
+                    ON f.report_id = r.id
+                   AND f.outcome = 'worked'
+                   AND r.creator_anon_id IS NOT NULL
+                   AND f.anon_id = r.creator_anon_id
                 GROUP BY r.id
                 ORDER BY last_verified_at DESC
                 LIMIT ?
@@ -444,6 +447,8 @@ class ReportStore:
                 FROM report_followup f
                 JOIN reports r ON r.id = f.report_id
                 WHERE r.b_id = ? AND f.outcome = 'worked'
+                  AND r.creator_anon_id IS NOT NULL
+                  AND f.anon_id = r.creator_anon_id
                 """,
                 (b_id,),
             ).fetchone()
@@ -472,7 +477,10 @@ class ReportStore:
                        SUM(CASE WHEN f.outcome = 'worked'
                                 THEN 1 ELSE 0 END)  AS worked_count
                 FROM reports r
-                LEFT JOIN report_followup f ON f.report_id = r.id
+                LEFT JOIN report_followup f
+                    ON f.report_id = r.id
+                   AND r.creator_anon_id IS NOT NULL
+                   AND f.anon_id = r.creator_anon_id
                 GROUP BY r.b_id
                 ORDER BY report_count DESC, r.b_id ASC
                 LIMIT ?
@@ -499,15 +507,19 @@ class ReportStore:
                 "SELECT COUNT(*) FROM reports"
             ).fetchone()[0]
             total_followups = conn.execute(
-                "SELECT COUNT(*) FROM report_followup"
+                "SELECT COUNT(*) FROM report_followup f JOIN reports r ON r.id=f.report_id "
+                "WHERE r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id"
             ).fetchone()[0]
             worked = conn.execute(
-                "SELECT COUNT(*) FROM report_followup WHERE outcome = 'worked'"
+                "SELECT COUNT(*) FROM report_followup f JOIN reports r ON r.id=f.report_id "
+                "WHERE f.outcome='worked' AND r.creator_anon_id IS NOT NULL "
+                "AND f.anon_id=r.creator_anon_id"
             ).fetchone()[0]
             # verified isomorphisms = distinct reports with a 'worked' followup
             verified = conn.execute(
-                "SELECT COUNT(DISTINCT report_id) FROM report_followup "
-                "WHERE outcome = 'worked'"
+                "SELECT COUNT(DISTINCT f.report_id) FROM report_followup f "
+                "JOIN reports r ON r.id=f.report_id WHERE f.outcome='worked' "
+                "AND r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id"
             ).fetchone()[0]
         return {
             "total_reports": total_reports or 0,

@@ -152,7 +152,9 @@ def test_verified_multiple_verifiers_aggregate(store):
         )
     rows = store.verified_isomorphisms()
     assert len(rows) == 1
-    assert rows[0]["verifier_count"] == 3
+    # Only the report creator's revisit is admissible research evidence;
+    # public share readers may not inflate verification counts.
+    assert rows[0]["verifier_count"] == 1
     assert rows[0]["last_verified_at"]
 
 

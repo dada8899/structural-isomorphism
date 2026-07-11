@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from services.report_store import ReportStore, verify_share_token
@@ -351,6 +351,11 @@ async def submit_followup(
     r = store.get_by_id(report_id)
     if r is None:
         raise HTTPException(404, "Report not found")
+    owner = r.get("creator_anon_id")
+    if owner and owner != (x_anon_id or ""):
+        # Followup changes experimental state and feeds research evidence;
+        # possession of a public share URL is read-only, not write authority.
+        raise HTTPException(404, "Report not found")
     try:
         fu = store.record_followup(
             report_id=report_id,
@@ -398,6 +403,9 @@ async def get_followup(
     store = _get_store()
     r = store.get_by_id(report_id)
     if r is None:
+        raise HTTPException(404, "Report not found")
+    owner = r.get("creator_anon_id")
+    if owner and owner != (x_anon_id or ""):
         raise HTTPException(404, "Report not found")
     fu = store.get_followup(report_id, x_anon_id)
     return {"followup": fu}

@@ -294,6 +294,29 @@ def test_followup_records_and_reads_back(client, isolated_store, sample_payload)
     assert g.json()["followup"]["note"] == "成了"
 
 
+def test_public_share_reader_cannot_mutate_owner_followup(
+    client, isolated_store, sample_payload,
+):
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",
+        creator_anon_id="owner-device",
+    )
+    url = f"/api/report/{out['id']}/followup"
+    denied = client.post(
+        url,
+        json={"action_status": "tried", "outcome": "worked"},
+        headers={"X-Anon-Id": "share-reader"},
+    )
+    assert denied.status_code == 404
+    assert isolated_store.get_followup(out["id"], "share-reader") is None
+    allowed = client.post(
+        url,
+        json={"action_status": "tried", "outcome": "worked"},
+        headers={"X-Anon-Id": "owner-device"},
+    )
+    assert allowed.status_code == 200
+
+
 def test_followup_get_returns_null_when_absent(client, isolated_store, sample_payload):
     out = isolated_store.create(
         query="q", b_id="b1", lang="zh", payload=sample_payload, model="m",

@@ -33,11 +33,12 @@ def store(tmp_path):
     return ReportStore(tmp_path / "flywheel.db")
 
 
-def _mk_report(store, b_id, *, query="q"):
+def _mk_report(store, b_id, *, query="q", creator="u1"):
     """Create a minimal report targeting `b_id`, return its id."""
     out = store.create(
         query=query, b_id=b_id, lang="zh",
         payload={"shared_structure": {"name": "s"}}, model="m",
+        creator_anon_id=creator,
     )
     return out["id"]
 
@@ -80,25 +81,26 @@ def test_count_dedups_same_user(store):
 
 
 def test_count_multiple_distinct_users(store):
-    """Three different users, across two reports on the same b_id → 3."""
-    r1 = _mk_report(store, "b-bio-2")
-    r2 = _mk_report(store, "b-bio-2")
+    """Two report owners on the same b_id produce two trusted outcomes."""
+    r1 = _mk_report(store, "b-bio-2", creator="u1")
+    r2 = _mk_report(store, "b-bio-2", creator="u3")
     store.record_followup(
         report_id=r1, anon_id="u1", action_status="tried", outcome="worked",
     )
+    # A non-owner write cannot inflate the evidence count.
     store.record_followup(
         report_id=r1, anon_id="u2", action_status="tried", outcome="worked",
     )
     store.record_followup(
         report_id=r2, anon_id="u3", action_status="tried", outcome="worked",
     )
-    assert store.count_human_verified("b-bio-2")["count"] == 3
+    assert store.count_human_verified("b-bio-2")["count"] == 2
 
 
 def test_count_isolates_by_b_id(store):
     """A 'worked' on b-A must not leak into the count for b-B."""
     ra = _mk_report(store, "b-A")
-    rb = _mk_report(store, "b-B")
+    rb = _mk_report(store, "b-B", creator="u2")
     store.record_followup(
         report_id=ra, anon_id="u1", action_status="tried", outcome="worked",
     )
