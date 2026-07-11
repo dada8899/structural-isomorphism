@@ -333,7 +333,7 @@ export function PhaseTrajectoryChart({ ewsDetail, ticker, className }: Props) {
           </div>
         )}
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+      <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">
         左轴：滑窗 lag-1 自相关（AR1）。右轴：滑窗方差。两个指标
         <strong className="text-zinc-700"> 同时单调上行 </strong>
         是 Scheffer/Dakos &ldquo;临界减速&rdquo;的标志。τ 是 Kendall 趋势检验值

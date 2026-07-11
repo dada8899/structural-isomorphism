@@ -177,7 +177,7 @@ function CompareColumn({ company }: { company: Company }) {
 
       {/* TL;DR narrative */}
       {company.tldr && (
-        <p className="line-clamp-3 text-xs leading-relaxed text-zinc-600">
+        <p className="hidden text-xs leading-relaxed text-zinc-600 sm:line-clamp-3 sm:block">
           {company.tldr}
         </p>
       )}

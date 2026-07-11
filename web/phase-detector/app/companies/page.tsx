@@ -1,9 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { CompanyCard } from "@/components/CompanyCard";
 import { SearchHero } from "@/components/SearchHero";
 import { StatsBar } from "@/components/StatsBar";
@@ -22,22 +22,42 @@ import {
 import { parseQuery } from "@/lib/parse-query";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 
-const EwsLeaderboardPanel = dynamic(
-  () => import("@/components/EwsLeaderboardPanel").then((m) => m.EwsLeaderboardPanel),
-  { ssr: false },
+const EwsLeaderboardPanel = lazy(() =>
+  import("@/components/EwsLeaderboardPanel").then((m) => ({ default: m.EwsLeaderboardPanel })),
 );
-const RecentlyFlippedRow = dynamic(
-  () => import("@/components/RecentlyFlippedRow").then((m) => m.RecentlyFlippedRow),
-  { ssr: false },
+const RecentlyFlippedRow = lazy(() =>
+  import("@/components/RecentlyFlippedRow").then((m) => ({ default: m.RecentlyFlippedRow })),
 );
-const ScreenerFilter = dynamic(
-  () => import("@/components/ScreenerFilter").then((m) => m.ScreenerFilter),
-  { ssr: false },
+const ScreenerFilter = lazy(() =>
+  import("@/components/ScreenerFilter").then((m) => ({ default: m.ScreenerFilter })),
 );
-const WaitlistForm = dynamic(
-  () => import("@/components/WaitlistForm").then((m) => m.WaitlistForm),
-  { ssr: false },
+const WaitlistForm = lazy(() =>
+  import("@/components/WaitlistForm").then((m) => ({ default: m.WaitlistForm })),
 );
+
+function LazyMount({ children, minHeight = 1 }: { children: ReactNode; minHeight?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current || visible) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100px 0px" },
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [visible]);
+  return (
+    <div ref={ref} style={{ minHeight }}>
+      {visible ? <Suspense fallback={null}>{children}</Suspense> : null}
+    </div>
+  );
+}
 
 // W6-B: reorganized per W5-E #4 (hero info density) + W5-C #3 (signals surface).
 // PR-1 copy sweep (2026-05-14): hero rewritten outcome-first, jargon translated,
@@ -267,14 +287,14 @@ export default function ScreenerHomePage() {
           CSD signal, US + HK, market/phase filter. Sits AT THE TOP, above
           the legacy LLM-narrative blocks. The old LLM /screener path is
           kept below for back-compat but is no longer the headline tool. */}
-      <EwsLeaderboardPanel />
+      <LazyMount minHeight={280}><EwsLeaderboardPanel /></LazyMount>
 
       {/* W3-C session #9: first-fold retrospective row — companies that have
           ALREADY transitioned (post_critical_transition). Sits between the
           search hero and the state legend so users immediately see one
           concrete outcome of the methodology before scrolling into the table.
           Renders nothing if BE returns []. */}
-      <RecentlyFlippedRow companies={recentlyFlipped} />
+      <LazyMount minHeight={160}><RecentlyFlippedRow companies={recentlyFlipped} /></LazyMount>
 
       {/* State legend — PR-1 reorder: appears BEFORE signals so user knows
           what ●▲◆✕ + colors mean before seeing colored badges. */}
@@ -421,12 +441,12 @@ export default function ScreenerHomePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
-          <ScreenerFilter
+          <LazyMount minHeight={220}><ScreenerFilter
             initial={filters}
             stats={stats}
             onApply={handleApply}
             loading={loading}
-          />
+          /></LazyMount>
 
           <section aria-live="polite">
             {error && (
@@ -504,11 +524,11 @@ export default function ScreenerHomePage() {
           >
             每周一封《结构信号》
           </p>
-          <WaitlistForm
+          <LazyMount minHeight={220}><WaitlistForm
             placement="footer"
             source="phase_detector"
             className="border-0 bg-transparent p-0 shadow-none"
-          />
+          /></LazyMount>
         </div>
       </section>
 
