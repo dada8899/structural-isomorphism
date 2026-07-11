@@ -54,32 +54,29 @@ def test_home_loads_with_title(page: Page):
 
 def test_h1_visible(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    h1 = page.locator("h1")
-    expect(h1.first).to_be_visible()
-    # F1 fix: prod now serves W6-D hero — "哪些公司正在接近临界点？"
-    # The old "Company screener" h1 was the W3-B placeholder.
-    expect(h1.first).to_contain_text("接近临界点")
+    h1 = page.get_by_test_id("hero-headline")
+    expect(h1).to_be_visible()
+    expect(h1).to_contain_text("597")
+    expect(h1).to_contain_text("research preview")
 
 
 def test_filter_controls_present(page: Page):
-    """All four filter controls render on first load."""
-    page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
+    """The dedicated companies route exposes all three select filters."""
+    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
     selects = page.locator("select")
     # 3 selects: dynamics_family, critical_point_state, sector
     expect(selects).to_have_count(3, timeout=10000)
 
 
 def test_min_confidence_range_present(page: Page):
-    page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
+    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
     slider = page.locator('input[type="range"]')
     expect(slider).to_be_visible()
 
 
 def test_apply_and_reset_buttons(page: Page):
-    page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    # F1 fix: W6-D screener uses 重置 (Chinese), not Reset; smoke-test that
-    # the screener section anchored under #screener renders a reset control.
-    expect(page.locator("#screener")).to_be_visible()
+    page.goto(f"{BASE_URL}/companies", wait_until="domcontentloaded", timeout=20000)
+    expect(page.get_by_role("region", name="筛选条件")).to_be_visible()
 
 
 def test_stats_card_loads_then_resolves(page: Page):
@@ -114,12 +111,12 @@ def test_no_console_errors_on_load(page: Page):
 
 def test_footer_disclaimer(page: Page):
     page.goto(BASE_URL, wait_until="domcontentloaded", timeout=20000)
-    # F1 fix: footer now uses Chinese disclaimer 非投资建议; covers both langs.
+    # The canonical bilingual footer disclaimer is stable across locales.
     footer = page.locator("footer")
     footer_text = footer.inner_text()
     assert any(
         marker in footer_text
-        for marker in ("Not investment advice", "非投资建议")
+        for marker in ("Not investment advice", "非投资建议", "不是投资建议")
     ), f"expected disclaimer in footer, got: {footer_text!r}"
 
 
