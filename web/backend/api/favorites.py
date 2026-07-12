@@ -55,17 +55,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
-from auth.api_key import APIKey, verify_api_key
-try:
+if __package__ == "web.backend.api":
+    from ..auth.api_key import APIKey, verify_api_key
+    from .auth import require_same_origin, resolve_session_user
+    from ..errors import Forbidden, InvalidInput, RateLimitExceeded, Unauthenticated
+else:
+    from auth.api_key import APIKey, verify_api_key
     from api.auth import require_same_origin, resolve_session_user
-except ModuleNotFoundError:
-    from web.backend.api.auth import require_same_origin, resolve_session_user
-from errors import (
-    Forbidden,
-    InvalidInput,
-    RateLimitExceeded,
-    Unauthenticated,
-)
+    from errors import Forbidden, InvalidInput, RateLimitExceeded, Unauthenticated
 
 router = APIRouter(tags=["favorites"])
 logger = logging.getLogger("structural.favorites")

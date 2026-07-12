@@ -22,3 +22,11 @@ def test_phase_deploy_tracks_shared_auth_dependencies() -> None:
 def test_phase_deploy_checks_the_beta_env_target_mode() -> None:
     script = (Path(__file__).parents[1] / "scripts/deploy-phase-detector-vps.sh").read_text()
     assert "stat -Lc '%a' \"$BETA_ENV_FILE\"" in script
+
+
+def test_phase_package_can_build_the_full_account_deletion_registry() -> None:
+    auth = importlib.import_module("web.backend.api.auth")
+    registry = auth._account_registry()
+    assert [asset["name"] for asset in registry.manifest()] == [
+        "favorites", "claimed_reports", "authentication",
+    ]
