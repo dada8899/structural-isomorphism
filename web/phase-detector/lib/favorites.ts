@@ -96,6 +96,23 @@ export function clearAnonFavorites(): void {
   }
 }
 
+/** Clear browser-local account state after the server confirms permanent
+ * account deletion. This includes the legacy API-key credential so the
+ * client cannot continue presenting the deleted account as authenticated. */
+export function clearLocalAccountState(): void {
+  clearAnonFavorites();
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem("phase_api_key");
+    } catch {
+      // Storage may be unavailable; the authoritative session is HttpOnly
+      // and has already been invalidated by the server.
+    }
+  }
+  sessionAuthenticated = false;
+  lastMergeNotice = null;
+}
+
 export function consumeFavoriteMergeNotice(): {
   merged: number;
   dropped: number;

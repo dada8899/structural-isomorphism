@@ -27,6 +27,15 @@
     .myr-head { margin-bottom: 28px; }
     .myr-head__title { font-size: 24px; font-weight: 650; color: var(--brand-ink); margin: 0 0 6px; }
     .myr-head__sub { font-size: 14px; color: var(--brand-muted); margin: 0; }
+    .myr-reminder-panel { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:18px; padding:14px 16px; border:1px solid var(--brand-line, #e7e5e4); border-radius:12px; background:var(--brand-paper-card, #fff); }
+    .myr-reminder-panel__summary { margin:0; color:var(--brand-ink); font-size:13px; line-height:1.5; }
+    .myr-reminder-panel__privacy { display:block; color:var(--brand-muted); font-size:11px; }
+    .myr-reminder-toggle { display:inline-flex; align-items:center; gap:8px; min-height:44px; color:var(--brand-muted); font-size:12px; white-space:nowrap; cursor:pointer; }
+    .myr-reminder-toggle input { width:18px; height:18px; }
+    .myr-card__deadline { font-weight:600; }
+    .myr-card__deadline--overdue { color:#A33B2B; }
+    .myr-card__deadline--soon { color:#92670A; }
+    .myr-card__badge--overdue { color:#8A2F22; background:#FDECEA; border:1px solid #F2C6C0; }
 
     .myr-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -104,6 +113,12 @@
       background: var(--brand-paper-soft, #f5f5f4);
       border: 1px solid var(--brand-line, #e7e5e4);
     }
+    @media (max-width:640px) {
+      .myr-container { padding:32px 16px 64px; }
+      .myr-reminder-panel { align-items:flex-start; flex-direction:column; }
+      .myr-reminder-toggle { width:100%; }
+      .myr-card { padding:15px; }
+    }
   </style>
 </head>
 <body>
@@ -113,7 +128,13 @@
     <div class="myr-container">
       <div class="myr-head">
         <h1 class="myr-head__title">我的报告</h1>
-        <p class="myr-head__sub">按今天、本周、等待推进和已完成分组，从报告继续到可验证的实验。数据仅与这台设备的匿名标识关联。</p>
+        <p class="myr-head__sub" id="myr-ownership-copy">按今天、本周、等待推进和已完成分组，从报告继续到可验证的实验。</p>
+        <button type="button" id="myr-connect" class="myr-more" style="margin:16px 0 0" hidden>登录并跨设备同步</button>
+        <p id="myr-connect-error" role="alert" hidden style="color:#b91c1c;font-size:13px"></p>
+        <div class="myr-reminder-panel" id="myr-reminder-panel">
+          <p class="myr-reminder-panel__summary" id="myr-reminder-summary" aria-live="polite">正在检查实验日期…<span class="myr-reminder-panel__privacy">仅在这台设备打开 Structural 时提示，不发送邮件或系统通知。</span></p>
+          <label class="myr-reminder-toggle"><input type="checkbox" id="myr-reminder-toggle" checked> 开启本地提醒</label>
+        </div>
       </div>
 
       <div id="myr-list" class="myr-list">

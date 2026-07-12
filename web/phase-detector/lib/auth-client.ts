@@ -24,6 +24,7 @@ export interface SessionState {
   user: SessionUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  clearLocalSession: () => void;
   refresh: () => Promise<void>;
 }
 
@@ -75,6 +76,13 @@ export function useSession(): SessionState {
     setUser(null);
   }, []);
 
+  const clearLocalSession = useCallback(() => {
+    // Only call this after the server confirms that the HttpOnly session has
+    // been cleared (for example, after successful account deletion).
+    markFavoritesSignedOut();
+    setUser(null);
+  }, []);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -90,7 +98,7 @@ export function useSession(): SessionState {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  return { user, loading, signOut, refresh };
+  return { user, loading, signOut, clearLocalSession, refresh };
 }
 
 // One-shot helpers (non-hook) for non-React surfaces.

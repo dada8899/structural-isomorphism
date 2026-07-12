@@ -1170,6 +1170,12 @@ function streamAnalysis(params) {
       const payload = JSON.parse(e.data);
       window._persistedReport = payload;
       renderShareBar(payload);
+      renderDecisionBrief({
+        reportId: payload.id,
+        createdAt: payload.created_at,
+        partial: payload.is_partial,
+        allowExperiment: true,
+      });
       trackPlausible('Report Persisted', { is_partial: !!payload.is_partial });
     } catch (err) {
       console.warn('[analyze] persisted parse error:', err);
@@ -1197,6 +1203,7 @@ function streamAnalysis(params) {
     if (loading) loading.remove();
     updateProgressState(receivedKeys, null);
     renderTldrCard();
+    renderDecisionBrief();
     es.close();
   });
 
@@ -1413,6 +1420,157 @@ function buildBriefMarkdown() {
 
   return lines.join('\n');
 }
+
+// Compact, evidence-bounded action surface. It only extracts fields already
+// present in the report; absent evidence stays visibly unsupported.
+function buildDecisionBriefModel(context) {
+  const r = window._finalReport || {};
+  const meta = window._analyzeMeta || {};
+  const ctx = context || window._decisionBriefContext || {};
+  const source = ctx.source || meta.a || {};
+  const target = meta.b || {};
+  const fingerprint = ctx.fingerprint || meta.fingerprint || r._fingerprint || null;
+  const structure = r.shared_structure || {};
+  const risks = Array.isArray(r.risks_and_limits) ? r.risks_and_limits : [];
+  const plan = r.action_plan || {};
+  const firstAction = (Array.isArray(plan.this_week) && plan.this_week[0]) || plan.if_time_short || {};
+  return {
+    problem: ctx.query || target.original_query || target.description || '',
+    fingerprint, source, structure,
+    mechanism: structure.intuition || structure.mechanism || structure.name || '',
+    boundary: risks[0] ? [risks[0].risk_name, risks[0].explanation].filter(Boolean).join('：') : '',
+    hypothesis: firstAction.verification || firstAction.rationale || firstAction.title || '',
+    metric: firstAction.expected_impact || '',
+    reportId: ctx.reportId || ((window._persistedReport || {}).id) || '',
+    model: ctx.model || meta.model || '',
+    promptVersion: ctx.promptVersion || meta.prompt_version || '',
+    createdAt: ctx.createdAt || ((window._persistedReport || {}).created_at) || '',
+    partial: !!(ctx.partial || ((window._persistedReport || {}).is_partial)),
+    allowExperiment: ctx.allowExperiment !== false,
+  };
+}
+
+function decisionBriefMarkdown(model) {
+  const m = model || buildDecisionBriefModel();
+  const unsupported = 'UNSUPPORTED — 当前报告没有这项证据';
+  const safe = (value) => String(value || '').replace(/([\\`*_{}\[\]()<>#+\-.!|$^])/g, '\\$1').replace(/\r?\n/g, '\n> ');
+  const fp = m.fingerprint || {};
+  const sourceName = safe([m.source.domain, m.source.name].filter(Boolean).join(' · ')) || unsupported;
+  return [
+    '# Structural · 决策简报', '',
+    '> 状态：内部决策草稿；检索到的结构线索尚未构成机制验证。', '',
+    '## 问题', safe(m.problem) || unsupported, '',
+    '## 经用户确认的结构指纹', safe(fp.summary) || unsupported, '',
+    '## 选中候选', sourceName, '',
+    '## 可能共享的机制', safe(m.mechanism) || unsupported, '',
+    '## 边界与优先反证', safe(m.boundary) || unsupported, '',
+    '## 7 天最小实验',
+    `- 假设：${safe(m.hypothesis) || unsupported}`,
+    `- 核心指标：${safe(m.metric) || unsupported}`,
+    '- 结论规则：只有记录真实结果后，才可将线索升级为已验证迁移。', '',
+    '## 来源与版本',
+    `- 报告 ID：${safe(m.reportId) || unsupported}`,
+    `- 候选来源：${m.source.id ? `${window.location.origin}/phenomenon/${encodeURIComponent(m.source.id)}` : unsupported}`,
+    `- 模型：${safe(m.model) || unsupported}`,
+    `- Prompt：${safe(m.promptVersion) || unsupported}`,
+    `- 生成时间：${safe(m.createdAt) || unsupported}`,
+    `- 完整性：${m.partial ? 'PARTIAL — 报告未完整生成' : '完整报告（不等于机制已验证）'}`,
+    '', '---', `来源页面：${safe(window.location.href)}`,
+  ].join('\n');
+}
+
+function renderDecisionBrief(context) {
+  const root = document.getElementById('decision-brief-root');
+  if (!root || !window._finalReport || !Object.keys(window._finalReport).length) return;
+  window._decisionBriefContext = { ...(window._decisionBriefContext || {}), ...(context || {}) };
+  const m = buildDecisionBriefModel(window._decisionBriefContext);
+  const unsupported = '<span class="decision-brief__unsupported">当前报告没有这项证据</span>';
+  const value = (text) => text ? escapeHtml(text) : unsupported;
+  const fp = m.fingerprint || {};
+  const sourceName = [m.source.domain, m.source.name].filter(Boolean).join(' · ');
+  const todayDate = new Date();
+  const localDate = (date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  const today = localDate(todayDate);
+  const deadlineDate = new Date(todayDate);
+  deadlineDate.setDate(deadlineDate.getDate() + 7);
+  const deadline = localDate(deadlineDate);
+  const canCreate = !!(m.reportId && m.allowExperiment && fp.summary && m.source.id);
+  root.innerHTML = `
+    <section class="decision-brief" aria-labelledby="decision-brief-title">
+      <p class="decision-brief__eyebrow">下一步 · 一页决策简报</p>
+      <h2 class="decision-brief__title" id="decision-brief-title">先决定做什么，再读完整报告</h2>
+      <p class="decision-brief__lede">把这份报告压缩成一个可反驳的 7 天实验。这里展示的是检索与分析线索，不是已经验证的机制。</p>
+      <span class="decision-brief__status">内部决策草稿 · 未经实证验证</span>
+      <div class="decision-brief__grid">
+        <div class="decision-brief__item decision-brief__item--wide"><span class="decision-brief__label">你的问题</span><p class="decision-brief__value">${value(m.problem)}</p></div>
+        <div class="decision-brief__item"><span class="decision-brief__label">经用户确认的结构指纹</span><p class="decision-brief__value">${value(fp.summary)}</p></div>
+        <div class="decision-brief__item"><span class="decision-brief__label">选中候选</span><p class="decision-brief__value">${value(sourceName)}</p></div>
+        <div class="decision-brief__item"><span class="decision-brief__label">可能共享的机制</span><p class="decision-brief__value">${value(m.mechanism)}</p></div>
+        <div class="decision-brief__item"><span class="decision-brief__label">优先反证 / 适用边界</span><p class="decision-brief__value">${value(m.boundary)}</p></div>
+        <div class="decision-brief__item decision-brief__item--wide"><span class="decision-brief__label">建议的 7 天实验</span><p class="decision-brief__value">${value(m.hypothesis)}</p></div>
+      </div>
+      <div class="decision-brief__actions">
+        <button type="button" class="decision-brief__button" id="decision-brief-download">下载 .md</button>
+        ${canCreate ? '<button type="button" class="decision-brief__button decision-brief__button--primary" id="decision-brief-create">创建 7 天实验</button>' : ''}
+      </div>
+      ${canCreate ? `<div class="decision-brief__experiment" id="decision-brief-experiment" hidden>
+        <div class="decision-brief__form">
+          <label class="decision-brief__field decision-brief__field--wide">可验证假设<textarea id="decision-brief-hypothesis" maxlength="2000" rows="2">${escapeHtml(m.hypothesis)}</textarea></label>
+          <label class="decision-brief__field">截止日期<input id="decision-brief-deadline" type="date" min="${today}" max="${deadline}" value="${deadline}"></label>
+          <label class="decision-brief__field">核心指标<input id="decision-brief-metric" maxlength="200" value="${escapeHtml(m.metric)}" placeholder="例如完成率"></label>
+          <label class="decision-brief__field decision-brief__field--wide">停止条件<input id="decision-brief-stop" maxlength="1000" placeholder="何时停止或判定无效"></label>
+        </div>
+        <div class="decision-brief__actions" style="margin-top:12px"><button type="button" class="decision-brief__button decision-brief__button--primary" id="decision-brief-save">保存实验</button><span id="decision-brief-message" role="status" aria-live="polite"></span></div>
+      </div>` : ''}
+      <p class="decision-brief__meta">报告 ${escapeHtml(m.reportId || '未保存')} · 模型 ${escapeHtml(m.model || '未记录')} · Prompt ${escapeHtml(m.promptVersion || '未记录')} · ${m.partial ? 'PARTIAL' : '完整性以报告记录为准'}</p>
+    </section>`;
+
+  document.getElementById('decision-brief-download').addEventListener('click', () => {
+    const blob = new Blob([decisionBriefMarkdown(m)], { type: 'text/markdown;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const safeId = String(m.reportId || 'draft').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || 'draft';
+    link.download = `structural-decision-brief-${safeId}.md`;
+    document.body.appendChild(link); link.click(); link.remove();
+    const objectUrl = link.href; setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  });
+  if (!canCreate) return;
+  document.getElementById('decision-brief-create').addEventListener('click', () => {
+    document.getElementById('decision-brief-experiment').hidden = false;
+    document.getElementById('decision-brief-hypothesis').focus();
+  });
+  document.getElementById('decision-brief-save').addEventListener('click', () => {
+    const read = (id) => (document.getElementById(id).value || '').trim();
+    const hypothesis = read('decision-brief-hypothesis');
+    const message = document.getElementById('decision-brief-message');
+    if (!hypothesis) { message.textContent = '请先写明可验证的假设'; document.getElementById('decision-brief-hypothesis').focus(); return; }
+    const deadlineValue = read('decision-brief-deadline');
+    const metric = read('decision-brief-metric');
+    const stopCondition = read('decision-brief-stop');
+    if (!deadlineValue) { message.textContent = '请选择实验截止日期'; document.getElementById('decision-brief-deadline').focus(); return; }
+    if (deadlineValue < today || deadlineValue > deadline) { message.textContent = '截止日期需在今天至 7 天内'; document.getElementById('decision-brief-deadline').focus(); return; }
+    if (!metric) { message.textContent = '请填写核心指标'; document.getElementById('decision-brief-metric').focus(); return; }
+    if (!stopCondition) { message.textContent = '请填写停止条件，避免事后改写结论'; document.getElementById('decision-brief-stop').focus(); return; }
+    const saveButton = document.getElementById('decision-brief-save');
+    if (saveButton.disabled) return;
+    saveButton.disabled = true;
+    message.textContent = '保存中…';
+    let anonId = ''; try { anonId = localStorage.getItem('anonId') || ''; } catch (_) {}
+    fetch('/api/report/' + encodeURIComponent(m.reportId) + '/followup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(anonId ? { 'X-Anon-Id': anonId } : {}) },
+      body: JSON.stringify({ action_status: 'planned', outcome: '', experiment: {
+        hypothesis, status: 'planned', deadline: deadlineValue,
+        primary_metric: metric, stop_condition: stopCondition,
+      } }),
+    }).then((res) => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      .then(() => { message.textContent = '实验已保存；7 天后回来记录真实结果。'; trackPlausible('Decision Brief Experiment Created'); })
+      .catch((err) => { saveButton.disabled = false; console.warn('[decision-brief] save failed:', err); message.textContent = '没保存成功，请检查报告所有权后重试。'; });
+  });
+}
+
+window.buildDecisionBriefModel = buildDecisionBriefModel;
+window.decisionBriefMarkdown = decisionBriefMarkdown;
+window.renderDecisionBrief = renderDecisionBrief;
 
 // === Share + favorite action bar (in the breadcrumb) ===
 function initAnalyzeActions() {

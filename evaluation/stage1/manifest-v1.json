@@ -1,0 +1,123 @@
+{
+  "schema_version": "stage1.manifest.v1",
+  "benchmark_id": "stc-stage1-synthetic-implementation-v1",
+  "status": "IMPLEMENTATION_ONLY_NOT_STARTED",
+  "created_at": "2026-07-12T00:00:00Z",
+  "evidence_class": "synthetic",
+  "scientific_claim_allowed": false,
+  "protocol": {
+    "primary_endpoint": "VFU",
+    "unit": "frozen_scientific_problem_package",
+    "minimum_formal_design": {
+      "domains": 3,
+      "tasks_per_domain": 30,
+      "repeat_scoring_fraction": 0.2
+    },
+    "stage2_gate": {
+      "paired_vfu_ci_lower_gt": 0,
+      "matched_negative_specificity_min": 0.9,
+      "fabricated_citation_rate_max": 0,
+      "fatal_overclaim_rate_max": 0.01,
+      "directionally_consistent_domains_min": 2
+    },
+    "synthetic_counts_as_scientific_evidence": false
+  },
+  "arms": [
+    {
+      "arm_id": "expert_usual",
+      "kind": "baseline"
+    },
+    {
+      "arm_id": "general_ai_rag",
+      "kind": "baseline"
+    },
+    {
+      "arm_id": "semantic_retrieval_same_model",
+      "kind": "baseline"
+    },
+    {
+      "arm_id": "random_or_same_domain_candidates",
+      "kind": "negative_control"
+    },
+    {
+      "arm_id": "full_structure_engine",
+      "kind": "target"
+    },
+    {
+      "arm_id": "ablate_structural_fingerprint",
+      "kind": "ablation",
+      "ablation_index": 1
+    },
+    {
+      "arm_id": "ablate_cross_domain_constraint",
+      "kind": "ablation",
+      "ablation_index": 2
+    },
+    {
+      "arm_id": "ablate_reject_and_falsifier",
+      "kind": "ablation",
+      "ablation_index": 3
+    },
+    {
+      "arm_id": "ablate_evidence_ledger",
+      "kind": "ablation",
+      "ablation_index": 4
+    },
+    {
+      "arm_id": "ablate_transfer_mapping",
+      "kind": "ablation",
+      "ablation_index": 5
+    },
+    {
+      "arm_id": "ablate_experiment_and_feedback",
+      "kind": "ablation",
+      "ablation_index": 6
+    },
+    {
+      "arm_id": "swap_reasoning_model_family",
+      "kind": "ablation",
+      "ablation_index": 7
+    },
+    {
+      "arm_id": "permute_candidate_order_or_labels",
+      "kind": "ablation",
+      "ablation_index": 8
+    }
+  ],
+  "budgets": [
+    {
+      "budget_id": "budget_synthetic_ci",
+      "model_input_tokens_max": 2000,
+      "model_output_tokens_max": 1000,
+      "wall_seconds_max": 60,
+      "expert_active_minutes_max": 10,
+      "compute_cost_usd_max": 1
+    }
+  ],
+  "negative_controls": [
+    "matched_non_isomorph",
+    "synthetic_null",
+    "random_candidate",
+    "shared_shape_different_mechanism",
+    "insufficient_evidence_should_reject"
+  ],
+  "artifacts": [
+    {
+      "path": "schemas/problem-package-v1.schema.json",
+      "sha256": "43764fa14de7dfbf63c241b24ab3b1d7879cdc84e6d3b47df671faf81278eed1"
+    },
+    {
+      "path": "schemas/run-result-v1.schema.json",
+      "sha256": "ac47fa5a699b148b99bef0dcc97ea9e13cc55ac3648aff5fe4ebc95e3fe83b2c"
+    },
+    {
+      "path": "fixtures/synthetic-problems-v1.jsonl",
+      "sha256": "1013495c6c8e9c1928c52efde6f3f3d0df17273c83c22b2e6b56bba911cb692e"
+    },
+    {
+      "path": "fixtures/synthetic-results-v1.jsonl",
+      "sha256": "7e55f0d44bb60abfa5ae202482331179ce2104beb0ec8b55077b639f36c3e4d6"
+    }
+  ],
+  "immutable_digest": "f8bed9253190eb970271a687bcfe710f3b4fc8154ac838581f258c607f0bbe97"
+}

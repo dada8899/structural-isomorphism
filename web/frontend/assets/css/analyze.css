@@ -1860,6 +1860,22 @@ ol.md-list li::before {
   border-radius: var(--radius-full, 999px);
 }
 
+.report-reminder {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  margin: 0 0 var(--space-4);
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  background: var(--bg-primary, #fafaf9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  font-size: var(--fs-13, 13px);
+}
+.report-reminder label { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; cursor: pointer; }
+.report-reminder input { width: 18px; height: 18px; }
+.report-reminder small { grid-column: 1 / -1; color: var(--text-tertiary); font-size: var(--fs-11, 11px); }
+
 .report-followup__field {
   display: flex;
   flex-direction: column;
@@ -2018,6 +2034,8 @@ ol.md-list li::before {
   .report-followup__actions { align-items: flex-start; flex-direction: column; }
   .report-followup__actions .btn { width: 100%; min-height: 44px; }
   .analyze-tldr__actions { padding: var(--space-3); }
+  .report-reminder { grid-template-columns: 1fr; }
+  .report-reminder small { grid-column: auto; }
 }
 
 /* =============================================================

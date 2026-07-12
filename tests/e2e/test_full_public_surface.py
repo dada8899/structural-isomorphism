@@ -132,6 +132,12 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
 
     fingerprint = page.locator("#ask-fingerprint")
     expect(fingerprint).to_be_visible()
+    expect(page.locator("#ask-fingerprint-summary")).to_have_value("团队为什么恢复很慢？")
+    expect(page.locator("#ask-fingerprint-variables")).to_have_value("恢复速度")
+    expect(page.locator("#ask-fingerprint-unknowns")).to_have_value(
+        "这些变量之间的因果方向与可观测指标"
+    )
+    expect(page.locator("#ask-fingerprint-confirm")).to_be_focused()
     expect(page.get_by_role("radiogroup", name="选择一个跨领域候选")).to_have_count(0)
     page.locator("#ask-fingerprint-variables").fill("信任, 反馈延迟")
     page.locator("#ask-fingerprint-constraints").fill("两周内")
@@ -161,6 +167,78 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     expect(cta).to_be_visible()
     assert "id=candidate-2" in (cta.get_attribute("href") or "")
     assert "id=candidate-1" not in (cta.get_attribute("href") or "")
+
+
+def test_beta_fingerprint_draft_mobile_keyboard_and_recovery(
+    page: Page, local_beta_origin: str
+):
+    page.set_viewport_size({"width": 375, "height": 812})
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+    query = "留存率下降，需要在 2 周内验证，不能改变价格"
+    page.locator("#ask-input").fill(query)
+    page.locator("#ask-form").evaluate("form => form.requestSubmit()")
+
+    panel = page.locator("#ask-fingerprint")
+    expect(panel).to_be_visible()
+    expect(page.locator("#ask-fingerprint-variables")).to_have_value("留存率，价格")
+    expect(page.locator("#ask-fingerprint-constraints")).to_have_value(
+        "在 2 周内，不能改变价格"
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+    page.locator("#ask-fingerprint-unknowns").fill("需要确认流失发生在哪一阶段")
+    page.locator("#ask-fingerprint-cancel").click()
+    expect(panel).to_be_hidden()
+    expect(page.locator("#ask-input")).to_be_focused()
+
+    page.locator("#ask-form").evaluate("form => form.requestSubmit()")
+    expect(page.locator("#ask-fingerprint-unknowns")).to_have_value(
+        "需要确认流失发生在哪一阶段"
+    )
+    page.locator("#ask-fingerprint-summary").press("Escape")
+    expect(panel).to_be_hidden()
+    expect(page.locator("#ask-input")).to_be_focused()
+
+
+def test_beta_fingerprint_draft_does_not_invent_english_or_trust_bad_cache(
+    page: Page, local_beta_origin: str
+):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+    query = "Why did retention fall <script>alert(1)</script>?"
+    page.evaluate(
+        """([query]) => sessionStorage.setItem(
+          'structural_fingerprint_draft',
+          JSON.stringify({query, summary: {invented: true}, variables: ['fake']})
+        )""",
+        [query],
+    )
+    page.locator("#ask-input").fill(query)
+    page.locator("#ask-form").evaluate("form => form.requestSubmit()")
+
+    expect(page.locator("#ask-fingerprint-summary")).to_have_value(query)
+    expect(page.locator("#ask-fingerprint-variables")).to_have_value("")
+    expect(page.locator("#ask-fingerprint-constraints")).to_have_value("")
+    expect(page.locator("#ask-fingerprint-unknowns")).to_have_value(
+        "需要确认关键变量、可观测指标与因果方向"
+    )
+    assert page.locator("script").filter(has_text="alert(1)").count() == 0
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.set_viewport_size({"width": 430, "height": 932})
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+    page.locator("#ask-fingerprint-summary").press("Control+Enter")
+    expect(page.locator("#ask-fingerprint")).to_be_hidden()
+    expect(page.locator("#ask-thread")).to_be_visible()
+
+    page.reload(wait_until="domcontentloaded")
+    page.locator("#ask-input").fill("2 + 2 = ?")
+    page.locator("#ask-form").evaluate("form => form.requestSubmit()")
+    expect(page.locator("#ask-fingerprint-variables")).to_have_value("")
+    expect(page.locator("#ask-fingerprint-constraints")).to_have_value("")
+    expect(page.locator("#ask-fingerprint-unknowns")).to_have_value(
+        "需要确认关键变量、可观测指标与因果方向"
+    )
 
 
 def test_beta_header_exposes_canonical_phase_account(

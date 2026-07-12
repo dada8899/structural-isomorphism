@@ -564,10 +564,14 @@ body.is-home .ask-main {
 
 .ask-fingerprint__head h2 { margin: 2px 0 16px; font-size: 18px; }
 .ask-fingerprint__eyebrow { margin: 0; color: var(--text-tertiary); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-.ask-fingerprint__close { border: 0; background: transparent; color: var(--text-tertiary); font-size: 24px; cursor: pointer; }
+.ask-fingerprint__intro { margin: -8px 0 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
+.ask-fingerprint__close { display: grid; width: 44px; height: 44px; place-items: center; border: 0; background: transparent; color: var(--text-tertiary); font-size: 24px; cursor: pointer; }
+.ask-fingerprint__close:focus-visible { outline: 2px solid var(--accent, #4f46e5); outline-offset: 1px; }
 .ask-fingerprint__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ask-fingerprint__field { display: grid; gap: 6px; margin-bottom: 12px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
 .ask-fingerprint__field small { color: var(--text-tertiary); font-weight: 400; }
+.ask-fingerprint__status { display: inline-flex; margin-left: 4px; padding: 2px 6px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: 10px; font-style: normal; font-weight: 700; }
+.ask-fingerprint__status--unknown { background: #f4f4f5; color: #52525b; }
 .ask-fingerprint__field input,
 .ask-fingerprint__field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border, #d4d4d8); border-radius: 8px; background: #fff; color: var(--text-primary); font: inherit; font-weight: 400; }
 .ask-fingerprint__field input:focus,
@@ -578,8 +582,10 @@ body.is-home .ask-main {
 .ask-thread-item__fingerprint p { margin: 0; color: var(--text-primary); font-size: 14px; }
 
 @media (max-width: 640px) {
+  .ask-fingerprint { padding: 16px; }
   .ask-fingerprint__grid { grid-template-columns: 1fr; gap: 0; }
   .ask-fingerprint__actions { align-items: stretch; flex-direction: column; }
+  .ask-fingerprint__actions .btn { min-height: 44px; width: 100%; }
 }
 .ask-kb-card:hover {
   border-color: var(--brand-accent);

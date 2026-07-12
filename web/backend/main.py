@@ -392,6 +392,9 @@ app.include_router(auth_api.router, prefix="/api")
 # Session #16 M1.4 — persisted analyze reports + share + feedback.
 from api import report as report_api  # noqa: E402
 app.include_router(report_api.router, prefix="/api")
+from api import report_account as report_account_api, sso as sso_api  # noqa: E402
+app.include_router(report_account_api.router, prefix="/api")
+app.include_router(sso_api.router, prefix="/api")
 
 # Session #18 — value-mining A-G. Seven new product surfaces; each ships an
 # isolated api module so registration is one block. See docs/sessions/
@@ -1981,6 +1984,11 @@ async def report_share_page(token: str):
 @app.get("/reports")
 async def my_reports_page():
     return FileResponse(FRONTEND_DIR / "reports.html")
+
+
+@app.get("/auth/callback", include_in_schema=False)
+async def sso_callback_page():
+    return FileResponse(FRONTEND_DIR / "auth-callback.html")
 
 
 # Session #17 — privacy policy page (footer link; GDPR endpoints live

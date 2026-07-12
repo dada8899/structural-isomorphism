@@ -102,6 +102,9 @@ CREATE TABLE IF NOT EXISTS reports (
     prompt_version  TEXT NOT NULL,
     created_at      TEXT NOT NULL,
     creator_anon_id TEXT,
+    owner_user_id   TEXT,
+    claimed_at      TEXT,
+    claim_source_anon_id TEXT,
     creator_tier    TEXT,
     is_public       INTEGER NOT NULL DEFAULT 0,
     view_count      INTEGER NOT NULL DEFAULT 0,
@@ -110,6 +113,8 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS idx_reports_anon
     ON reports(creator_anon_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reports_owner
+    ON reports(owner_user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_share_token
     ON reports(share_token);
 
@@ -200,6 +205,9 @@ class ReportStore:
         ("prompt_version", "TEXT"),
         ("created_at", "TEXT"),
         ("creator_anon_id", "TEXT"),
+        ("owner_user_id", "TEXT"),
+        ("claimed_at", "TEXT"),
+        ("claim_source_anon_id", "TEXT"),
         ("creator_tier", "TEXT"),
         ("is_public", "INTEGER NOT NULL DEFAULT 0"),
         ("view_count", "INTEGER NOT NULL DEFAULT 0"),
@@ -366,7 +374,8 @@ class ReportStore:
                        CASE WHEN f.report_id IS NULL THEN 0 ELSE 1 END
                            AS has_followup,
                        COALESCE(f.action_status, '') AS followup_status,
-                       COALESCE(f.outcome, '')        AS followup_outcome
+                       COALESCE(f.outcome, '')        AS followup_outcome,
+                       COALESCE(f.experiment_json, '') AS experiment_json
                 FROM reports r
                 LEFT JOIN report_followup f
                     ON f.report_id = r.id AND f.anon_id = ?
@@ -380,8 +389,149 @@ class ReportStore:
         for r in rows:
             d = dict(r)
             d["has_followup"] = bool(d.get("has_followup", 0))
+            raw_experiment = d.pop("experiment_json", "")
+            try:
+                experiment = json.loads(raw_experiment) if raw_experiment else {}
+            except (json.JSONDecodeError, TypeError):
+                experiment = {}
+            d["experiment_status"] = experiment.get("status", "") if isinstance(experiment, dict) else ""
+            d["experiment_deadline"] = experiment.get("deadline") if isinstance(experiment, dict) else None
             out.append(d)
         return out
+
+    def has_reports_for_anon(self, anon_id: str) -> bool:
+        if not anon_id:
+            return False
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT 1 FROM reports WHERE creator_anon_id=? LIMIT 1", (anon_id,),
+            ).fetchone() is not None
+
+    def claim_by_anon(self, anon_id: str, owner_user_id: str) -> dict:
+        """Atomically claim only reports created by the proved anon browser.
+
+        Existing ownership is never transferred. Repeating the same claim is
+        idempotent; reports owned by another user remain untouched.
+        """
+        if not anon_id or not owner_user_id:
+            raise ValueError("anon_id and owner_user_id are required")
+        now = _dt.datetime.now(_dt.UTC).isoformat()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            claimed = conn.execute(
+                "UPDATE reports SET owner_user_id=?,claimed_at=?,claim_source_anon_id=? "
+                "WHERE creator_anon_id=? AND owner_user_id IS NULL",
+                (owner_user_id, now, anon_id, anon_id),
+            ).rowcount
+            already = conn.execute(
+                "SELECT COUNT(*) FROM reports WHERE creator_anon_id=? AND owner_user_id=?",
+                (anon_id, owner_user_id),
+            ).fetchone()[0]
+            conflicts = conn.execute(
+                "SELECT COUNT(*) FROM reports WHERE creator_anon_id=? "
+                "AND owner_user_id IS NOT NULL AND owner_user_id<>?",
+                (anon_id, owner_user_id),
+            ).fetchone()[0]
+            conn.commit()
+        return {"claimed": claimed, "owned_total": already, "conflicts": conflicts}
+
+    def list_by_owner(
+        self, owner_user_id: str, *, limit: int = 50, offset: int = 0,
+    ) -> list[dict]:
+        if limit < 1 or limit > 200:
+            limit = 50
+        if offset < 0:
+            offset = 0
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT r.id,r.share_token,r.query,r.b_id,r.lang,r.created_at,r.view_count,
+                       r.claimed_at,
+                       CASE WHEN f.report_id IS NULL THEN 0 ELSE 1 END AS has_followup,
+                       COALESCE(f.action_status,'') AS followup_status,
+                       COALESCE(f.outcome,'') AS followup_outcome,
+                       COALESCE(f.experiment_json,'') AS experiment_json
+                FROM reports r
+                LEFT JOIN report_followup f ON f.report_id=r.id
+                    AND f.anon_id=r.creator_anon_id
+                WHERE r.owner_user_id=?
+                ORDER BY r.created_at DESC LIMIT ? OFFSET ?
+                """, (owner_user_id, limit, offset),
+            ).fetchall()
+        out: list[dict] = []
+        for row in rows:
+            item = dict(row)
+            raw_experiment = item.pop("experiment_json", "")
+            try:
+                experiment = json.loads(raw_experiment) if raw_experiment else {}
+            except (json.JSONDecodeError, TypeError):
+                experiment = {}
+            item["experiment_status"] = (
+                experiment.get("status", "") if isinstance(experiment, dict) else ""
+            )
+            item["experiment_deadline"] = (
+                experiment.get("deadline") if isinstance(experiment, dict) else None
+            )
+            out.append(item)
+        return out
+
+    def export_by_owner(self, owner_user_id: str) -> dict:
+        """Complete account-owned report snapshot for DSAR and compensation."""
+        with self._connect() as conn:
+            reports = [dict(row) for row in conn.execute(
+                "SELECT * FROM reports WHERE owner_user_id=? ORDER BY created_at", (owner_user_id,)
+            ).fetchall()]
+            ids = [row["id"] for row in reports]
+            followups: list[dict] = []
+            feedback: list[dict] = []
+            if ids:
+                marks = ",".join("?" for _ in ids)
+                followups = [dict(row) for row in conn.execute(
+                    f"SELECT * FROM report_followup WHERE report_id IN ({marks})", ids
+                ).fetchall()]
+                feedback = [dict(row) for row in conn.execute(
+                    f"SELECT * FROM report_feedback WHERE report_id IN ({marks})", ids
+                ).fetchall()]
+        return {"reports": reports, "followups": followups, "feedback": feedback}
+
+    def delete_by_owner(self, owner_user_id: str) -> dict:
+        """Atomically erase owned reports; foreign-key children cascade."""
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            ids = [row[0] for row in conn.execute(
+                "SELECT id FROM reports WHERE owner_user_id=?", (owner_user_id,)
+            ).fetchall()]
+            followups = feedback = 0
+            if ids:
+                marks = ",".join("?" for _ in ids)
+                followups = conn.execute(
+                    f"SELECT COUNT(*) FROM report_followup WHERE report_id IN ({marks})", ids
+                ).fetchone()[0]
+                feedback = conn.execute(
+                    f"SELECT COUNT(*) FROM report_feedback WHERE report_id IN ({marks})", ids
+                ).fetchone()[0]
+            removed = conn.execute(
+                "DELETE FROM reports WHERE owner_user_id=?", (owner_user_id,)
+            ).rowcount
+            conn.commit()
+        return {"reports": removed, "followups": followups, "feedback": feedback}
+
+    def restore_owner_snapshot(self, snapshot: dict) -> None:
+        """Restore an exact snapshot after a later registry asset fails."""
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            for table, rows in (("reports", snapshot.get("reports", [])),
+                                ("report_followup", snapshot.get("followups", [])),
+                                ("report_feedback", snapshot.get("feedback", []))):
+                for row in rows:
+                    columns = list(row)
+                    marks = ",".join("?" for _ in columns)
+                    names = ",".join(columns)
+                    conn.execute(
+                        f"INSERT OR IGNORE INTO {table}({names}) VALUES({marks})",
+                        [row[name] for name in columns],
+                    )
+            conn.commit()
 
     # ------ B Data Flywheel (Session #18) -------------------------- #
 

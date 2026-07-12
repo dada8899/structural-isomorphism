@@ -584,7 +584,7 @@ export default function ScreenerHomePage() {
                 没有公司匹配这些筛选条件。请尝试放宽条件或
                 <button
                   onClick={() => handleApply({ limit: 50 })}
-                  className="ml-1 font-medium text-zinc-700 underline-offset-2 hover:underline"
+                    className="ml-1 inline-flex min-h-11 items-center font-medium text-zinc-700 underline-offset-2 hover:underline"
                 >
                   清除筛选
                 </button>
@@ -610,7 +610,7 @@ export default function ScreenerHomePage() {
                       onClick={handleLoadMore}
                       disabled={loading}
                       data-testid="companies-load-more"
-                      className="inline-flex items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex min-h-11 items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {loading ? "加载中…" : "加载更多"}
                     </button>

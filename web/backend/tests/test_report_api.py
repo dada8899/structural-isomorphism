@@ -78,6 +78,27 @@ def test_get_by_id_anonymous_owner_allows_read(client, isolated_store, sample_pa
     assert "share_token" not in body
 
 
+def test_detail_lifts_decision_brief_provenance_without_leaking_reserved_keys(
+    client, isolated_store, sample_payload,
+):
+    payload = {
+        **sample_payload,
+        "_fingerprint": {"summary": "用户确认的结构问题", "revision": 1},
+        "_source": {"id": "p_1", "name": "Ant routing", "domain": "Biology"},
+    }
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=payload, model="model-v1",
+        prompt_version="prompt-v3",
+    )
+    body = client.get(f"/api/report/{out['id']}").json()
+    assert body["fingerprint"]["summary"] == "用户确认的结构问题"
+    assert body["source"] == {"id": "p_1", "name": "Ant routing", "domain": "Biology"}
+    assert body["model"] == "model-v1"
+    assert body["prompt_version"] == "prompt-v3"
+    assert "_fingerprint" not in body["payload"]
+    assert "_source" not in body["payload"]
+
+
 def test_get_by_id_with_owner_requires_matching_anon(client, isolated_store, sample_payload):
     out = isolated_store.create(
         query="q", b_id="b1", lang="en", payload=sample_payload, model="m",
@@ -150,6 +171,39 @@ def test_list_mine_filters_by_anon(client, isolated_store, sample_payload):
     body = r.json()
     assert len(body["items"]) == 2
     assert all("other" not in i["query"] for i in body["items"])
+
+
+def test_list_mine_includes_experiment_deadline_for_local_reminders(
+    client, isolated_store, sample_payload,
+):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
+        creator_anon_id="A",
+    )
+    isolated_store.record_followup(
+        report_id=out["id"], anon_id="A", action_status="planned",
+        experiment={"hypothesis": "h", "status": "planned", "deadline": "2026-07-15"},
+    )
+    body = client.get("/api/reports/mine", headers={"X-Anon-Id": "A"}).json()
+    assert body["items"][0]["experiment_status"] == "planned"
+    assert body["items"][0]["experiment_deadline"] == "2026-07-15"
+
+
+def test_list_by_owner_includes_experiment_deadline_for_cross_device_reminders(
+    isolated_store, sample_payload,
+):
+    out = isolated_store.create(
+        query="q", b_id="b", lang="zh", payload=sample_payload, model="m",
+        creator_anon_id="A",
+    )
+    isolated_store.record_followup(
+        report_id=out["id"], anon_id="A", action_status="in_progress",
+        experiment={"hypothesis": "h", "status": "in_progress", "deadline": "2026-07-16"},
+    )
+    isolated_store.claim_by_anon("A", "user-1")
+    item = isolated_store.list_by_owner("user-1")[0]
+    assert item["experiment_status"] == "in_progress"
+    assert item["experiment_deadline"] == "2026-07-16"
 
 
 def test_list_mine_pagination(client, isolated_store, sample_payload):

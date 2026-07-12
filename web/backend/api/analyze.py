@@ -303,6 +303,12 @@ async def stream_analyze(
                     **report,
                     "_credibility": credibility,
                     **({"_fingerprint": confirmed_fingerprint} if confirmed_fingerprint else {}),
+                    "_source": {
+                        "id": a.get("id"),
+                        "name": a.get("name"),
+                        "domain": a.get("domain"),
+                        "type_id": a.get("type_id"),
+                    },
                 },
                 model=ask_model,
                 prompt_version="v1",
@@ -382,6 +388,8 @@ async def stream_analyze(
             # V4 — honest credibility data (see block above for what's real).
             "credibility": credibility,
             "fingerprint": confirmed_fingerprint,
+            "model": ask_model,
+            "prompt_version": "v1",
         })
 
         # Launch P1-3 — out-of-scope gate for query mode. The deep-report

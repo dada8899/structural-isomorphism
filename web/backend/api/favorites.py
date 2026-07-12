@@ -233,6 +233,44 @@ def _save_user_record(rec: dict) -> None:
         _atomic_write_all(all_recs)
 
 
+def export_account_favorites(email: str) -> dict:
+    """Registry adapter: export one account's server-side favorites."""
+    records = _load_all()
+    rec = records.get(email.lower())
+    return {
+        "exists": rec is not None,
+        "tickers": list((rec or {}).get("tickers", [])),
+        "updated_at": (rec or {}).get("updated_at"),
+    }
+
+
+def delete_account_favorites(email: str) -> dict:
+    """Registry adapter: remove one account without touching other owners."""
+    with _WRITE_LOCK:
+        records = _load_all()
+        removed = records.pop(email.lower(), None)
+        if removed is not None:
+            _atomic_write_all(records)
+        return {
+            "records": int(removed is not None),
+            "tickers": len((removed or {}).get("tickers", [])),
+        }
+
+
+def restore_account_favorites(email: str, snapshot: object, _removed: object = None) -> None:
+    """Compensating write used if a later account deletion step fails."""
+    if not isinstance(snapshot, dict) or not snapshot.get("exists"):
+        return
+    with _WRITE_LOCK:
+        records = _load_all()
+        records[email.lower()] = {
+            "email": email.lower(),
+            "tickers": list(snapshot["tickers"]),
+            "updated_at": snapshot.get("updated_at"),
+        }
+        _atomic_write_all(records)
+
+
 @dataclass(frozen=True)
 class _FavoriteUser:
     owner_email: str

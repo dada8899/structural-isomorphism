@@ -47,6 +47,8 @@ class ReportDetailResponse(BaseModel):
     view_count: int
     is_partial: bool
     credibility: Optional[dict] = None
+    fingerprint: Optional[dict] = None
+    source: Optional[dict] = None
 
 
 class ReportListItem(BaseModel):
@@ -60,6 +62,8 @@ class ReportListItem(BaseModel):
     has_followup: bool = False
     followup_outcome: str = ""
     followup_status: str = ""
+    experiment_status: str = ""
+    experiment_deadline: Optional[str] = None
 
 
 class ReportListResponse(BaseModel):
@@ -176,9 +180,13 @@ def _detail_dict(r: dict) -> dict:
     # (see analyze.py _maybe_persist) — lift it to a top-level field and
     # hand back a section-only payload. Older reports lack it → None.
     credibility = None
-    if isinstance(payload, dict) and "_credibility" in payload:
+    fingerprint = None
+    source = None
+    if isinstance(payload, dict):
         payload = dict(payload)
         credibility = payload.pop("_credibility", None)
+        fingerprint = payload.pop("_fingerprint", None)
+        source = payload.pop("_source", None)
     return {
         "id": r["id"],
         "query": r["query"],
@@ -192,6 +200,8 @@ def _detail_dict(r: dict) -> dict:
         "view_count": r.get("view_count", 0),
         "is_partial": r.get("is_partial", False),
         "credibility": credibility,
+        "fingerprint": fingerprint,
+        "source": source,
     }
 
 
@@ -278,6 +288,8 @@ async def list_my_reports(
                 "has_followup": bool(it.get("has_followup", False)),
                 "followup_outcome": it.get("followup_outcome", "") or "",
                 "followup_status": it.get("followup_status", "") or "",
+                "experiment_status": it.get("experiment_status", "") or "",
+                "experiment_deadline": it.get("experiment_deadline"),
             }
             for it in items
         ],

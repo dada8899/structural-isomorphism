@@ -76,7 +76,7 @@ export default function LoginPage() {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-base text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+              className="min-h-11 w-full rounded-md border border-zinc-300 px-3 py-2 text-base text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
               data-testid="auth-login-email"
               placeholder="you@example.com"
             />
@@ -84,7 +84,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={phase === "submitting" || !email.trim()}
-            className="inline-flex w-full items-center justify-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             data-testid="auth-login-submit"
           >
             {phase === "submitting" ? "发送中…" : "发送登录链接"}

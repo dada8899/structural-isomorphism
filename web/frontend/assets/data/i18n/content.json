@@ -572,12 +572,12 @@
     "en": "Equivalence classes · shared invariants · falsifiable predictions"
   },
   "page.classes.hero_title": {
-    "zh": "23 个跨领域<em>共享模式</em>",
-    "en": "23 cross-domain <em>shared patterns</em>"
+    "zh": "23 个跨领域<em>候选模式</em>",
+    "en": "23 cross-domain <em>candidate patterns</em>"
   },
   "page.classes.hero_lede": {
-    "zh": "每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href=\"#uc-footnote\">页脚</a>。",
-    "en": "Each class is a group of phenomena sharing the same mathematical structure and invariants — earthquakes, bank runs, neural avalanches and grid cascades can all map onto the same underlying pattern. The <strong>23 classes</strong> below were surfaced without supervision from 191 cross-domain isomorphisms via community detection; <strong>13 independent domains are empirically validated</strong>. Click any card for shared equations, invariants and falsifiable predictions; method details in the <a href=\"#uc-footnote\">footnote</a>."
+    "zh": "这些分组由算法从候选联系中生成，用来组织待检验预测；它们不是已经证明的普适机制。部分系统有内部分析记录，也包含 NULL、FAIL、PARTIAL 和合成对照。点开卡片先看预测、数据和边界，再决定是否继续验证。",
+    "en": "These groups were generated from candidate connections to organize testable predictions; they are not proven universal mechanisms. Some systems have internal analysis records, including NULL, FAIL, PARTIAL, and synthetic controls. Open a card to inspect predictions, data, and boundaries before choosing the next validation."
   },
   "page.classes.filter_manual": {
     "zh": "人工精选",
@@ -676,8 +676,8 @@
     "en": "<strong>Layer 4 — Prediction translation</strong>: for each matched universality class, established physical laws are translated into cross-domain falsifiable predictions."
   },
   "page.classes.footnote_l5": {
-    "zh": "<strong>Layer 5 实证验证</strong>：已完成 5 轮跨域测试——地震 (<a href=\"/paper/soc-earthquake-2026-04-15\">paper</a>) / 股市 (<a href=\"/paper/soc-stockmarket-2026-04-15\">paper</a>) / DeFi × 3 协议 (<a href=\"/paper/soc-defi-2026-04-15\">paper</a>) / 神经雪崩 (<a href=\"/paper/soc-neural-2026-04-16\">paper</a>) + null 反向验证 (<a href=\"/paper/soc-null-2026-04-16\">note</a>)。",
-    "en": "<strong>Layer 5 — Empirical validation</strong>: five cross-domain tests completed — earthquakes (<a href=\"/paper/soc-earthquake-2026-04-15?lang=en\">paper</a>) / stock market (<a href=\"/paper/soc-stockmarket-2026-04-15?lang=en\">paper</a>) / DeFi across 3 protocols (<a href=\"/paper/soc-defi-2026-04-15?lang=en\">paper</a>) / neural avalanches (<a href=\"/paper/soc-neural-2026-04-16?lang=en\">paper</a>) + null reverse-validation (<a href=\"/paper/soc-null-2026-04-16?lang=en\">note</a>)."
+    "zh": "<strong>Layer 5 结果记录</strong>：领域分析与合成对照使用共享代码框架，但数据依赖和证据强度不同。记录包含支持、拒绝、部分支持和证据不足；不等于外部复现。",
+    "en": "<strong>Layer 5 — Result records</strong>: domain analyses and synthetic controls share a code framework, but their dependence and evidence strength differ. Records include support, rejection, partial support, and insufficient evidence; they are not external replications."
   },
   "page.classes.footnote_l6": {
     "zh": "<strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除\"pipeline 把任何数据拟合成 SOC\"的平凡解释。",
@@ -867,6 +867,10 @@
     "zh": "变量关系检索",
     "en": "Variable-relation retrieval"
   },
+  "page.discoveries.mapping_note": {
+    "zh": "未结构化备注",
+    "en": "Unstructured note"
+  },
   "page.discoveries.tier_curated": {
     "zh": "优先核查",
     "en": "Priority review"
@@ -888,12 +892,12 @@
     "en": "domains"
   },
   "page.classes.badge_verified": {
-    "zh": "已实证",
-    "en": "Empirically verified"
+    "zh": "内部结果记录",
+    "en": "Internal result record"
   },
   "page.classes.badge_verified_multi": {
-    "zh": "已实证",
-    "en": "Empirically verified"
+    "zh": "内部结果记录",
+    "en": "Internal result record"
   },
   "page.classes.count_equations": {
     "zh": "方程",
@@ -968,8 +972,12 @@
     "en": "Content could not be loaded. Please try again later."
   },
   "page.classes.verified_title": {
-    "zh": "条预测已通过实证验证",
-    "en": "predictions empirically verified"
+    "zh": "条预测有内部结果记录",
+    "en": "predictions with internal result records"
+  },
+  "page.classes.status_internal_record": {
+    "zh": "内部结果记录",
+    "en": "Internal result record"
   },
   "page.classes.uncurated_note": {
     "zh": "AI 自动生成，尚未人工审核",
@@ -1924,20 +1932,20 @@
     "en": "13 internal analysis records, a v0.2 unified research draft, four single-system drafts, and a reproduction tutorial; these are not externally peer-reviewed conclusions."
   },
   "page.papers.eyebrow": {
-    "zh": "实证验证 · 预印本",
-    "en": "Empirical verification · preprints"
+    "zh": "内部分析记录 · 研究草稿",
+    "en": "Internal analysis records · research drafts"
   },
   "page.papers.title": {
     "zh": "同一分析流程,<em>13 份结果记录</em>",
     "en": "One analysis pipeline, <em>13 recorded results</em>"
   },
   "page.papers.lede": {
-    "zh": "所有 paper 共享同一份 <strong>339 行 Python pipeline</strong>。覆盖 <strong>SOC / Preferential Attachment / Motter-Lai / Preisach / Scheffer</strong> 五个普适类。",
-    "en": "All papers share one <strong>339-line Python pipeline</strong> spanning <strong>SOC / Preferential Attachment / Motter-Lai / Preisach / Scheffer</strong>."
+    "zh": "这些页面记录共享分析模块在不同数据上的结果，包括支持、NULL、FAIL、PARTIAL 和 INCONCLUSIVE。共享代码便于比较，但不自动证明系统共享机制。",
+    "en": "These pages record a shared analysis module applied to different data, including support, NULL, FAIL, PARTIAL, and INCONCLUSIVE results. Shared code aids comparison but does not prove a shared mechanism."
   },
   "page.papers.stat_verified": {
-    "zh": "分析阶段",
-    "en": "analysis phases"
+    "zh": "结果记录",
+    "en": "result records"
   },
   "page.papers.stat_classes": {
     "zh": "共享模式",
@@ -1992,8 +2000,8 @@
     "en": "Full pipeline · 5 stages"
   },
   "page.methods.title": {
-    "zh": "同一条 pipeline,<em>13 个独立系统</em>",
-    "en": "One pipeline, <em>13 independent systems</em>"
+    "zh": "共享分析模块，<em>不同证据结果</em>",
+    "en": "Shared analysis modules, <em>different evidence outcomes</em>"
   },
   "page.methods.l1_title": {
     "zh": "图构建",
@@ -2012,8 +2020,8 @@
     "en": "Prediction translation"
   },
   "page.methods.l5_title": {
-    "zh": "实证验证 (13 phase + 2 A2)",
-    "en": "Empirical validation (13 phases + 2 A2)"
+    "zh": "领域结果记录（真实与合成数据）",
+    "en": "Domain result records (real and synthetic data)"
   },
   "page.methods.b3_title": {
     "zh": "B3 多模型 ensemble taxonomy critic",
@@ -2164,12 +2172,12 @@
     "en": "For each matched pattern, translate the known physics into cross-domain falsifiable predictions (power-law band, aftershock law, loop-width ratio, critical slowing down, …)."
   },
   "page.methods.l5_desc": {
-    "zh": "同一份代码跑 13 个独立领域:地震 / 股市 / DeFi / 神经雪崩 / GitHub stars / 银行倒闭 / 野火 / 太阳耀斑 / 电网级联 / 维基百科 / 高速公路 / 湖泊翻转 + 4 个合成数据对照 + 7 系统共享形态对照。<strong>所有预测信号都落入预测带,对照组全部正确拒绝</strong>。",
-    "en": "Run the same code on 13 independent domains — earthquakes / stocks / DeFi / neural avalanches / GitHub stars / bank failures / wildfires / solar flares / grid cascades / Wikipedia / highway traffic / lake regime shifts — plus 4 synthetic-data controls and a 7-system shape-collapse control. <strong>Every predicted signal lands inside the predicted band; every control is correctly rejected.</strong>"
+    "zh": "共享分析模块用于多份领域数据和合成对照。结果并不一致：有支持、拒绝、部分支持、NULL 和证据不足。合成对照检验代码行为，不替代真实系统的机制证据。",
+    "en": "Shared analysis modules are used on multiple domain datasets and synthetic controls. Outcomes differ: support, rejection, partial support, NULL, and insufficient evidence. Synthetic controls test code behavior; they do not replace real-system mechanism evidence."
   },
   "page.methods.lede": {
-    "zh": "\"共享模式\"这件事只有\"<strong>同一份代码、不调一个参数,跑遍多个完全不同的领域,都恢复出预测信号</strong>\"时才算数。我们把这条要求做成了一个分层流程:从前几代检索积累的跨域现象,到 21 个候选共享模式,到 13 个独立数据源、全部跑同一份 Python 代码(<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>)。",
-    "en": "A \"shared pattern\" only counts when \"<strong>the same code, with zero tuned parameters, run across multiple totally different domains, recovers the predicted signal</strong>\". We turn that requirement into a layered pipeline: from cross-domain phenomena accumulated by earlier retrieval generations, to 21 candidate shared patterns, to 13 independent datasets all running the same Python code (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>)."
+    "zh": "共享代码只能保证分析步骤可比较，不能保证数据独立、机制相同或结论成立。这里记录从候选模式到真实/合成数据测试的流程，并保留支持、拒绝、NULL、PARTIAL 和 INCONCLUSIVE 结果。",
+    "en": "Shared code makes analysis steps comparable; it does not guarantee independent data, a common mechanism, or a positive conclusion. This page records the path from candidate patterns to real/synthetic tests while preserving support, rejection, NULL, PARTIAL, and INCONCLUSIVE outcomes."
   },
   "page.methods.null_p1": {
     "zh": "为排除\"代码把任何数据都拟合成幂律\"的平凡解释,我们在 4 个合成数据上跑了同一份代码作为对照(包括 Gaussian 随机游走、指数变量、Poisson 事件、Poisson 余震叠加)。<strong>全部正确拒绝幂律假设</strong>(相对对数正态/指数分布的似然比 R ∈ [-45, -16],Poisson 余震拟合 R² ≈ 0.002)。",

@@ -246,6 +246,48 @@
     }).filter(Boolean).slice(0, 12);
   }
 
+  function buildFingerprintDraft(query) {
+    var text = String(query || '').trim();
+    var variables = [];
+    var constraints = [];
+    var knownVariables = [
+      '流失率', '留存率', '转化率', '恢复速度', '反馈延迟', '信任', '价格',
+      '成本', '预算', '收入', '利润', '增长率', '故障率', '等待时间', '准确率'
+    ];
+    knownVariables.forEach(function (term) {
+      if (text.indexOf(term) !== -1 && variables.indexOf(term) === -1) variables.push(term);
+    });
+    if (/恢复.{0,6}(?:慢|速度|时间)/.test(text) && variables.indexOf('恢复速度') === -1) {
+      variables.push('恢复速度');
+    }
+    var timeMatches = text.match(/(?:在|用)?\s*\d+\s*(?:天|周|个月|月|年)(?:内|以内|之内)?/g) || [];
+    timeMatches.forEach(function (value) { constraints.push(value.trim()); });
+    var explicitLimits = text.match(/(?:不能|不要|不允许|不改变|不增加|不得)[^，。；;!?！？]{1,28}/g) || [];
+    explicitLimits.forEach(function (value) { constraints.push(value.trim()); });
+    constraints = constraints.filter(function (value, index, all) { return all.indexOf(value) === index; }).slice(0, 6);
+    return {
+      summary: text.slice(0, 1000),
+      variables: variables.slice(0, 6),
+      constraints: constraints,
+      unknowns: variables.length
+        ? ['这些变量之间的因果方向与可观测指标']
+        : ['需要确认关键变量、可观测指标与因果方向']
+    };
+  }
+
+  function saveFingerprintDraft() {
+    if (!pendingFingerprintQuery) return;
+    try {
+      sessionStorage.setItem('structural_fingerprint_draft', JSON.stringify({
+        query: pendingFingerprintQuery,
+        summary: qs('#ask-fingerprint-summary').value,
+        variables: qs('#ask-fingerprint-variables').value,
+        constraints: qs('#ask-fingerprint-constraints').value,
+        unknowns: qs('#ask-fingerprint-unknowns').value
+      }));
+    } catch (e) {}
+  }
+
   function openFingerprintReview(query) {
     var panel = qs('#ask-fingerprint');
     var summary = qs('#ask-fingerprint-summary');
@@ -254,16 +296,25 @@
       return;
     }
     pendingFingerprintQuery = String(query || '').trim();
-    summary.value = pendingFingerprintQuery.slice(0, 1000);
-    ['#ask-fingerprint-variables', '#ask-fingerprint-constraints', '#ask-fingerprint-unknowns'].forEach(function (sel) {
-      var field = qs(sel);
-      if (field) field.value = '';
-    });
+    var draft = buildFingerprintDraft(pendingFingerprintQuery);
+    try {
+      var saved = JSON.parse(sessionStorage.getItem('structural_fingerprint_draft') || 'null');
+      if (
+        saved && saved.query === pendingFingerprintQuery &&
+        ['summary', 'variables', 'constraints', 'unknowns'].every(function (key) {
+          return typeof saved[key] === 'string';
+        })
+      ) draft = saved;
+    } catch (e) {}
+    summary.value = draft.summary;
+    qs('#ask-fingerprint-variables').value = Array.isArray(draft.variables) ? draft.variables.join('，') : (draft.variables || '');
+    qs('#ask-fingerprint-constraints').value = Array.isArray(draft.constraints) ? draft.constraints.join('，') : (draft.constraints || '');
+    qs('#ask-fingerprint-unknowns').value = Array.isArray(draft.unknowns) ? draft.unknowns.join('，') : (draft.unknowns || '');
     var error = qs('#ask-fingerprint-error');
     if (error) error.textContent = '';
     panel.hidden = false;
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    try { summary.focus(); } catch (e) {}
+    try { qs('#ask-fingerprint-confirm').focus(); } catch (e) {}
     track('fingerprint_review_opened', { length: pendingFingerprintQuery.length });
   }
 
@@ -272,11 +323,25 @@
     var confirm = qs('#ask-fingerprint-confirm');
     var cancel = qs('#ask-fingerprint-cancel');
     if (!panel || !confirm) return;
+    qsa('input, textarea', panel).forEach(function (field) {
+      field.addEventListener('input', saveFingerprintDraft);
+      field.addEventListener('keydown', function (ev) {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+          ev.preventDefault();
+          confirm.click();
+        }
+      });
+    });
+    panel.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && cancel) { ev.preventDefault(); cancel.click(); }
+    });
     if (cancel) cancel.addEventListener('click', function () {
+      saveFingerprintDraft();
       panel.hidden = true;
       pendingFingerprintQuery = '';
       var submit = qs('.ask-searchbox__submit');
       if (submit) { submit.disabled = false; submit.classList.remove('is-loading'); }
+      try { qs('#ask-input').focus(); } catch (e) {}
     });
     confirm.addEventListener('click', function () {
       var summary = (qs('#ask-fingerprint-summary').value || '').trim();
@@ -294,6 +359,7 @@
         revision: 1
       };
       panel.hidden = true;
+      try { sessionStorage.removeItem('structural_fingerprint_draft'); } catch (e) {}
       track('fingerprint_confirmed', {
         variables: fingerprint.variables.length,
         constraints: fingerprint.constraints.length,

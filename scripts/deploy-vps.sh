@@ -37,6 +37,47 @@ PREVIOUS_SHA="${PREVIOUS_SHA:-}"
 DRY_RUN=0
 PRUNE=0
 RUNTIME_BACKUP=""
+BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$TARGET/web/backend/.env}"
+
+env_key_once() {
+  local file="$1" key="$2"
+  [[ "$(grep -cE "^${key}=" "$file" || true)" == "1" ]]
+}
+
+env_exact_once() {
+  local file="$1" key="$2" expected="$3"
+  env_key_once "$file" "$key" && grep -qx "${key}=${expected}" "$file"
+}
+
+validate_beta_sso_config() {
+  [[ -f "$BETA_ENV_FILE" ]] || {
+    echo "[deploy] ERROR: private beta environment is missing" >&2; return 1;
+  }
+  [[ "$(stat -c '%a' "$BETA_ENV_FILE")" == "600" ]] || {
+    echo "[deploy] ERROR: private beta environment must have mode 600" >&2; return 1;
+  }
+  for setting in \
+    'STRUCTURAL_ENV|prod' \
+    'STRUCTURAL_SSO_PHASE_ORIGIN|https://phase.bytedance.city' \
+    'STRUCTURAL_SSO_BETA_ORIGIN|https://beta.structural.bytedance.city'; do
+    local key="${setting%%|*}" expected="${setting#*|}"
+    env_exact_once "$BETA_ENV_FILE" "$key" "$expected" || {
+      echo "[deploy] ERROR: beta SSO production setting is missing or non-canonical" >&2; return 1;
+    }
+  done
+  local secret data_dir
+  secret="$(sed -n 's/^STRUCTURAL_SSO_SECRET=//p' "$BETA_ENV_FILE" | tail -1)"
+  data_dir="$(sed -n 's/^STRUCTURAL_SSO_DATA_DIR=//p' "$BETA_ENV_FILE" | tail -1)"
+  env_key_once "$BETA_ENV_FILE" STRUCTURAL_SSO_SECRET \
+    && env_key_once "$BETA_ENV_FILE" STRUCTURAL_SSO_DATA_DIR \
+    && [[ ${#secret} -ge 32 ]] \
+    && [[ ! "$secret" =~ (replace|change-me|changeme|example|test-secret|dev-) ]] \
+    && [[ "$(printf '%s' "$secret" | fold -w1 | sort -u | wc -l)" -ge 12 ]] \
+    && [[ "$data_dir" = /* ]] \
+    && [[ "$(realpath -m "$data_dir")" != "$(realpath -m "$TARGET")"* ]] || {
+    echo "[deploy] ERROR: beta SSO secret/data directory is unsafe" >&2; return 1;
+  }
+}
 
 rollback_deploy() {
   local reason="$1"
@@ -76,6 +117,8 @@ EOF
       exit 0 ;;
   esac
 done
+
+validate_beta_sso_config
 
 EXCLUDES=(
   --exclude=.git/

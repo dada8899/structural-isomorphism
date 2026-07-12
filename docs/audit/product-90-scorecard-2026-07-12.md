@@ -195,3 +195,149 @@
 - 英文模型只有在 expanded human holdout 提升且中文/OOS/延迟不退化后上线。
 
 达到以上指标后，功能预计 93、体验 91、价值 90、动线 92，综合约 **91.5**。在真实用户数据产生前，任何“产品已经 90 分”的说法都不诚实。
+
+## 8. 注册用户能力与研究资产完整性审计
+
+### 8.1 结论
+
+当前邮箱注册、magic link 验证、session、`/me` 与退出均为真实能力，新增用户通知也已接入；但账户目前仍是一个**身份外壳**，尚未成为用户资产的所有权主体。收藏仍以浏览器 localStorage 或旧 `X-API-Key` 身份运行，beta 报告及 follow-up 仍绑定 `X-Anon-Id`。用户注册后换设备，不会自动看到原收藏或报告。
+
+因此，产品可以诚实地说“可用邮箱登录 Phase”，不能说“登录后收藏与报告跨设备同步”。在账户所有权、隐私导出/删除完成前，不应把注册作为 beta 主旅程的强制步骤。
+
+### 8.2 功能 inventory
+
+| 能力 | 当前实现 | 是否真正绑定邮箱账户 | 判定 |
+|---|---|---:|---|
+| 邮箱注册/登录 | Phase magic link；同一入口兼容新老用户 | 是 | 可用 |
+| 登录持久化 | HttpOnly `phase_session`；`/api/auth/me` 校验 | 是 | 可用 |
+| 退出 | 服务端注销，失败时 UI 不假成功 | 是 | 可用 |
+| 新用户通知管理员 | 注册成功后进入通知发送链 | 是 | 可用，持续监控失败队列 |
+| 账户资料 | `/me` 展示 email、tier、创建时间 | 是 | 信息价值有限 |
+| Phase 收藏 | localStorage；旧服务端路径以 `X-API-Key.owner_email` 标识 | **否** | magic-link 用户无法获得云同步 |
+| 收藏跨设备 | 页面明确提示仅本设备 | 否 | 诚实但未形成账户价值 |
+| beta 报告 | `creator_anon_id` / `X-Anon-Id` | 否 | 清缓存或换设备即失联 |
+| 报告 follow-up | owner-only，但 owner 是 anon id | 否 | 安全边界已有，账户归属缺失 |
+| 报告分享 | share link | 不适用 | 可用；分享 token 不得用于 claim 所有权 |
+| 报告简报 | 分析页“复制为简报”生成 Markdown | 否 | 有即时价值，但不是持久研究资产 |
+| 用户数据导出 | legacy email + mock code DSAR | 部分 | 不含 auth、token/session、收藏、报告、通知记录 |
+| 用户数据删除 | legacy email + mock code，邮件确认仍为 log | 部分 | 不等于删除账户；同样漏删新账户资产 |
+| 账户自助删除 | `/me` 无入口 | 否 | P0 合规/信任缺口 |
+| 报告转研究草稿/论文 | 无 | 否 | 需先建立证据安全的 research-note 层 |
+
+### 8.3 四条端到端旅程
+
+#### A. 匿名收藏 → 注册 → 换设备
+
+当前：本地收藏 → 登录 Phase → 收藏仍在原浏览器 → 新设备为空。
+
+目标：登录后明确询问或自动合并本地收藏 → 服务端以 `user_id` 持久化 → 新设备恢复；合并应按稳定对象 ID 去重，并保留本地回滚副本直到服务端确认成功。
+
+#### B. 匿名报告 → 注册 → 换设备
+
+当前：beta 使用 anon id 创建报告 → Phase 登录不改变报告归属 → 新设备无法进入“我的报告”。
+
+目标：通过一次性跨域 SSO code exchange 在 beta 建立短期账户 session；用户在持有原 anon cookie/localStorage 的浏览器内主动 claim。服务端事务性写入 `owner_user_id`，保留 `creator_anon_id` 仅作迁移审计。公开 share token 绝不能作为所有权证明。
+
+#### C. 导出数据 / 删除账户
+
+当前 DSAR 实现仍按“没有账户”的旧假设工作，验证方式为部署配置的 mock code，删除确认邮件也仍是日志。导出/删除集合覆盖 newsletter、mock checkout、error log、fingerprints 与 connections P3，但没有覆盖 auth 用户、magic token/session、收藏、报告/follow-up 和注册通知状态。
+
+目标：`/me` 提供“导出我的数据”和“删除账户”；登录 session + 邮箱二次确认完成高风险验证。导出清单与删除清单由同一个数据资产 registry 生成，CI 强制二者对称。删除须撤销全部 session/token，并明确保留最小合规 tombstone 的字段和期限。
+
+#### D. 报告 → 决策简报 → 研究草稿/论文
+
+首要用户是研究密集型 PM/growth，立即需要的是可带进团队评审的 decision brief，而不是看似学术但证据不足的“自动论文”。现有“复制为简报”是正确起点，但缺少下载、版本、来源与复现信息。
+
+建议两级输出：
+
+1. P1 `Decision Brief (.md)`：问题、结构指纹、候选类比、共享机制、边界/反证、7 天实验、结果、来源链接、artifact/model/prompt 版本。
+2. P2 `Research Note`：在 brief 上增加 claim-evidence 表、方法、假设、负结果、局限与可复现清单；只有 outcome 已验证且引用完整时才允许生成 paper outline。检索分数或 LLM 判断不得被包装为论文结论。
+
+### 8.4 推荐数据模型与接口边界
+
+- 所有账户资产统一使用不可变 `user_id`；规范化 email 只用于登录和通知，不作为跨表主键。
+- favorites 迁入与 auth 同一事务数据库，或至少由统一 repository 管理；magic-link session 必须成为唯一用户鉴权入口，逐步废弃浏览器可写的 `phase_api_key` 身份。
+- reports 增加 nullable `owner_user_id`、`claimed_at`、`claim_source_anon_id`；旧报告继续可读，登录后仅合并当前浏览器能证明拥有的 anon 报告。
+- beta 与 Phase 位于不同 host，不能假设现有 cookie 自动共享；采用短时、单次、绑定 audience/state/nonce 的 code exchange，避免把长 session 放进 URL。
+- `/api/me/favorites`、`/api/me/reports`、`/api/me/export`、`/api/me/delete` 均从同一 session dependency 取得 `user_id`，不要由客户端提交 email 决定所有权。
+- 建立数据资产 registry：每新增一类用户数据，必须同时声明 owner key、导出器、删除器、保留期限和审计策略；测试校验 export/delete 对称。
+
+### 8.5 优先级与自动驾驶边界
+
+#### P0：公开推广注册前完成
+
+- 保持所有页面对同步能力的诚实披露，不出现“登录即可跨设备同步”的暗示。
+- 修复 DSAR 旧假设：至少锁定未接真实验证码的公开入口，并将当前账户资产缺口列入上线门禁。
+- 为账户、收藏、报告、notification、token/session 建立统一数据资产清单与 export/delete 对称测试。
+- `/me` 明示当前账户实际保存什么、不保存什么，并提供隐私请求入口。
+
+#### P1：让注册产生核心产品价值
+
+- magic-link session 接管收藏服务端鉴权；完成 local → cloud 的幂等 merge。
+- 完成 beta/Phase 一次性 SSO exchange、anon report claim、跨设备“我的报告”。
+- 提供登录态数据导出与账户删除；删除后验证 session 失效、资产不可恢复访问。
+- 保存报告页提供 `.md` decision brief 下载，携带来源、版本、边界与实验结果。
+- 关键 E2E：匿名产出资产 → 注册 → merge/claim → 新设备登录 → 资产可见 → 导出 → 删除 → 重放 session 失败。
+
+#### P2：研究资产与团队协作
+
+- Research Note、BibTeX/引用清单、evidence manifest、复现包。
+- 在证据与 outcome 门禁通过后生成 paper outline；不得默认生成“可发表论文”。
+- 版本 diff、团队权限、Notion/飞书/Linear 导出与审阅工作流。
+
+### 8.6 需要真实用户而非代码替代的问题
+
+- 先访谈/观察 5–8 位研究密集型 PM：跨设备收藏、跨设备报告、decision brief 三者的真实优先级。
+- 另访谈 5 位学术研究者：他们需要的是灵感检索、research note、literature map，还是论文草稿；不要用 PM 的需求替代学术需求。
+- 对两个 ICP 分开评估留存：PM 看实验启动与结果回写，研究者看证据保存、引用复用与研究问题演化。
+- 付费前必须确认用户愿意为“可复用、可追溯的研究资产”付费，而不是只为一次类比的新奇感付费。
+
+这一账户闭环完成后，注册才从运营指标变成真实产品能力；否则新增注册通知只说明有人进入过入口，不能证明用户获得了持续价值。
+
+## 9. 产品功能 × 数据 / 实验 / 模型证据矩阵
+
+### 9.1 证据等级
+
+- **E0 — 仅实现**：按钮或接口存在，没有可重复的质量证据。
+- **E1 — 合成验证**：单元、契约、边界或合成 fixture 通过。
+- **E2 — 冻结离线评测**：数据、模型、代码与指标可追溯，但可能复用旧池或存在分布偏差。
+- **E3 — 独立人工 / holdout**：盲审、多标注者一致性、未参与调参的 holdout 及回归门禁通过。
+- **E4 — 真实使用结果**：目标 ICP 在真实任务中重复使用，行为与 outcome 指标达到预注册门槛。
+
+公开用户承诺必须服从最低证据等级：E1 只能承诺“功能可运行”，E2 可承诺“在冻结样本上的表现”，E3 才能承诺“离线质量改善”，E4 才能承诺“帮助用户取得结果”。
+
+### 9.2 逐功能完备性
+
+| 功能 | 依赖的数据 / 实验 / 模型 | 当前证据 | 当前可承诺 | 失效时用户体验 | 要补的数据与重跑门禁 | 优先级 | 对 90 分预计提升 |
+|---|---|---|---|---|---|---:|---:|
+| 中英文结构搜索 | 4,443 KB、embedding、query rewrite/rerank、OOS 与 graded judgments | 中文/整体 **E2**：100 query、400 judgments，nDCG@5 0.5786；英文仅旧池 **E2-**，扩展池 **E0** | 中文/整体可称“冻结评测可用”；英文只能披露实验中 | 英文输入返回表面相似或错机制候选，用户在首步失去信任 | 594 expanded candidates × 3 独立盲审；仲裁清零、QWK≥0.67；独立 holdout；中文/OOS/延迟不退化；真实 endpoint 并发通过才切流 | P0 | +3.0 |
+| 候选匹配证据 | KB source、共享机制、变量映射、反证、适用边界、来源 provenance | 检索排序 **E2**；逐候选“为何匹配”主要为 LLM/KB 生成，整体约 **E1** | 可称“候选与解释”，不能称“已证实同构” | 分数看似精确但用户无法判断是机制一致还是关键词相似；误迁移风险高 | 候选卡固定展示 source、mechanism、mapping、counterevidence、boundary；抽取 100 对专家盲审；calibration/ECE、严重误配率、引用可达率设 fail-closed 门禁 | P0 | +2.5 |
+| 深度报告 | 检索候选、LLM、report schema、引用、artifact/model/prompt 版本 | schema/stream/failure tests 约 **E1**；无独立内容质量 holdout | 可称“结构化分析草稿”，不可称“可靠决策结论” | 等待后得到空泛内容、来源断裂或把检索分数当因果证据 | 50 个冻结任务 × PM/领域专家 rubric；事实/引用/边界完整率；无来源 claim 比例；p75 首值<10s、完成率≥95%；模型升级全量回归 | P0/P1 | +2.0 |
+| 实验计划 | 报告建议、hypothesis、metric、baseline、threshold、owner、deadline、stop condition | 字段与 guardrail **E1**，真实可执行性 **E0** | 可称“生成/记录最小实验计划” | 计划听起来专业但不可执行、指标不可测、没有停止条件 | 30 个真实 PM 任务；独立评审可执行率≥80%、指标可测率≥90%；用户编辑率与 7 日启动率；缺 hypothesis/metric/threshold 时禁止标 ready | P1 | +1.5 |
+| 结果回写与“已验证” | owner-only follow-up、experiment/outcome schema、真实 outcome、反事实与时间窗 | 权限/字段 **E1**；真实结果 **E0/E1** | 只能称“用户自报结果”；不能直接称科学验证 | 自报 worked 被全站包装为“已验证”，制造虚假社会证明 | 将 `user_reported`、`replicated`、`independently_verified` 分级；记录样本、指标、时间窗、actual、失败原因；至少 50 outcomes 后校准；公开案例需授权和复核 | P0 | +1.5 |
+| 收藏与账户 | magic-link auth、user_id、favorite/report ownership、merge/claim、跨域 SSO | auth **E2/E3**（真实邮件验收）；资产同步 **E0** | 只承诺 Phase 邮箱登录与本地收藏 | 用户注册后换设备仍为空，感觉注册无意义 | local→cloud 幂等合并；anon report claim；双设备 E2E；冲突、重复、断网、重放、删除门禁；真实用户恢复成功率≥99% | P1 | +1.5 |
+| Phase Detector | frozen 597 ticker snapshot、EWS pipeline、500 ticker × 5 年 walk-forward、provenance、NULL result | **E2/E3-**：冻结数据、公开 NULL backtest p=0.681、来源标记；非实时、非预测产品 | 可承诺“研究 demo 快照与透明 NULL 结果” | 用户把 demo price/signal 当实时交易建议；或因 NULL 结果误以为产品无价值 | 每 release 校验 snapshot hash、ticker count、price provenance、NULL 数值与页面一致；禁用 prediction/weekly/live 文案；若转实时需独立 prospective preregistration | P0 持续 | +0.8 |
+| Decision Brief 导出 | 报告、来源、实验/outcome、版本 manifest | 复制 Markdown **E1**；持久下载/复现 **E0** | 可称“复制简报草稿” | 复制后丢来源、版本和边界，团队无法审阅或复现 | golden-file/schema 测试；所有 claim 有 source 或明确 `unsupported`；下载 `.md` 与页面一致；版本 hash 可回溯 | P1 | +1.0 |
+| Research Note / 研究草稿 | evidence manifest、claim-evidence table、citation metadata、负结果、方法与局限 | **E0** | 暂无承诺 | 生成“像论文”的文本却没有证据与引用，伤害学术可信度 | 先建 Research Note；20 个研究任务由 2 位领域研究者评审；引用精确率/可达率、claim coverage、复现清单；outcome 未验证时禁止 paper-ready 标记 | P2 | +1.0 |
+| 隐私导出 / 删除 | 数据资产 registry、auth/session、favorites、reports、notifications、retention | legacy 范围 **E1**；当前账户完整性 **E0** | 只能承诺现有列明数据的有限处理，不能称“全部账户数据” | 用户删除后仍有 token、报告或收藏；严重信任与合规故障 | export/delete 从同一 registry 生成；全资产 seed 后导出完整、删除归零、session 重放失败；保留 tombstone 字段/期限固定并测试 | P0 | +1.2 |
+
+以上增益是对当前约 74 分基线的**上限估计**，合计约 +16 分；它们存在相关性，不能简单用完成按钮数相加。P0 证据诚信与 P1 账户/实验闭环全部通过后，才有资格接近 90；P2 研究草稿不是达到 90 的前置条件。
+
+### 9.3 推荐的 release gate 顺序
+
+1. **数据完整性 gate**：KB/snapshot/report schema hash、行数、唯一键、source 可达性、provenance 无漂移。
+2. **离线质量 gate**：中文、英文、OOS 分开报告；英文 594 三人盲审完成前候选模型不得上线。
+3. **内容安全 gate**：候选和报告逐 claim 检查来源、边界、反证；unsupported 内容不得显示为 verified。
+4. **性能与失败 gate**：首值、完整耗时、并发、超时、降级、重试；失败必须显示可恢复状态，不能空白或假成功。
+5. **闭环 gate**：报告 → 实验 → outcome → 工作台 → 导出在 owner 权限下全链路通过。
+6. **账户资产 gate**：匿名 → 注册 → merge/claim → 新设备 → 导出 → 删除 → session 重放失败。
+7. **真实价值 gate**：15–20 个 PM 真实任务、至少 50 个 outcome；达到预注册启动率、回写率、D7 复用率后再提升价值承诺。
+
+### 9.4 模型或数据更新的 fail-closed 规则
+
+- 任一 KB、embedding、reranker、prompt 或 report schema 更新，必须产生新 artifact id，并重跑它影响的完整门禁，不得沿用旧绿灯。
+- 总平均提升不能掩盖英文、中文、OOS 或长尾领域退化；任一关键 slice 超过预设回归容忍即拒绝发布。
+- 离线指标提升但真实 endpoint p75/p95、错误率或成本越界时拒绝发布。
+- 人类标签不得由待评模型生成或补齐；reviewer 身份、任务版本、仲裁与一致性均应可审计。
+- Phase 的 NULL 结果是产品可信资产，不应因营销需要隐藏；任何新预测主张必须走新的 prospective preregistration，而不是重解释旧 backtest。
+- “已验证”是证据状态，不是 UI 徽章：只有满足对应等级的数据记录才能升级，降级与撤回同样要可追溯。

@@ -1,0 +1,17 @@
+{
+  "schema_version": "kb-vnext-schema-v1",
+  "required": ["id", "name", "domain", "type_id", "description", "language", "provenance_class", "source", "source_review", "license", "data_layer", "evidence_level"],
+  "provenance_classes": ["real", "synthetic", "literature-derived", "manual-coded", "model-generated", "demo", "unknown"],
+  "languages": ["zh", "en", "bilingual", "unknown"],
+  "licenses": ["CC-BY-4.0", "CC0-1.0", "public-domain", "MIT", "source-specific", "unknown"],
+  "unknown_migration": {
+    "language": "zh",
+    "provenance_class": "unknown",
+    "source": null,
+    "source_review": null,
+    "license": "unknown",
+    "data_layer": null,
+    "evidence_level": "candidate"
+  },
+  "promotion_rule": "A migrated legacy row remains candidate until source, license, and provenance are supplied and reviewed; migration must not fabricate them."
+}

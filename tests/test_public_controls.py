@@ -31,6 +31,11 @@ def test_workbench_requires_fingerprint_and_candidate_confirmation() -> None:
     assert "检索分" in ask
     assert "相似度 " not in ask
     assert 'id="ask-fingerprint-confirm"' in page
+    assert "buildFingerprintDraft" in ask
+    assert "structural_fingerprint_draft" in ask
+    assert "系统只根据你写下的内容生成草案" in page
+    assert "用户原文" in page and "待确认" in page and "未知" in page
+    assert 'aria-describedby="ask-fingerprint-help"' in page
     assert "persist=0" in ask
     assert 'data-role="save-report-choice"' in ask
     assert "未勾选时不会在服务器保存报告" in ask

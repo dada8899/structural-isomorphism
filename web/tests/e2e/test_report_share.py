@@ -35,6 +35,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_BACKEND = REPO_ROOT / "web" / "backend"
 FRONTEND_DIR = REPO_ROOT / "web" / "frontend"
+AXE_PATH = REPO_ROOT / "web" / "phase-detector" / "node_modules" / "axe-core" / "axe.min.js"
 
 # Fixed secret shared by the test process (seeding) and the shim (verifying)
 # so HMAC share tokens match across both. Set before importing report_store.
@@ -467,6 +469,120 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report):
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_owner_decision_brief_download_and_create_experiment(report_backend, seed_report):
+    """Saved owner report exposes evidence-bounded brief and inline experiment."""
+    from playwright.sync_api import sync_playwright
+
+    anon = "decision-brief-owner"
+    payload = _sample_payload()
+    payload.update({
+        "shared_structure": {"name": "负反馈", "intuition": "通过延迟反馈抑制过冲"},
+        "risks_and_limits": [{"risk_name": "时滞失配", "explanation": "反馈周期可能不同"}],
+        "action_plan": {
+            "this_week": [{
+                "title": "小流量试验", "verification": "新策略将过冲降低至少 10%",
+                "expected_impact": "过冲率",
+            }],
+        },
+        "_fingerprint": {"summary": "需求过冲来自反馈时滞", "revision": 1},
+        "_source": {"id": "p_feedback", "name": "Feedback control", "domain": "Control"},
+    })
+    rep = seed_report(query="如何降低需求过冲", creator_anon_id=anon, payload=payload)
+    url = f"{report_backend['base']}/report/{rep['id']}"
+    followup_path = f"/api/report/{rep['id']}/followup"
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(accept_downloads=True)
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-root .decision-brief", timeout=10000)
+            page.set_viewport_size({"width": 375, "height": 812})
+            brief = page.locator("#decision-brief-root")
+            assert "未经实证验证" in brief.inner_text()
+            assert "需求过冲来自反馈时滞" in brief.inner_text()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            assert page.locator("#decision-brief-hypothesis").is_hidden()
+            with page.expect_download() as download_info:
+                page.locator("#decision-brief-download").click()
+            assert download_info.value.suggested_filename.endswith(".md")
+            page.locator("#decision-brief-create").click()
+            assert page.locator("#decision-brief-experiment").is_visible()
+            assert page.evaluate("document.activeElement?.id") == "decision-brief-hypothesis"
+            expected_deadline = page.evaluate("""() => {
+              const d = new Date(); d.setDate(d.getDate() + 7);
+              return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+            }""")
+            assert page.locator("#decision-brief-deadline").input_value() == expected_deadline
+            page.locator("#decision-brief-stop").fill("过冲未改善或投诉率上升时停止")
+            with page.expect_response(
+                lambda r: followup_path in r.url and r.request.method == "POST",
+                timeout=10000,
+            ) as response_info:
+                page.locator("#decision-brief-save").click()
+            assert response_info.value.status == 200
+            assert "实验已保存" in page.locator("#decision-brief-message").inner_text()
+            assert page.locator("#decision-brief-save").is_disabled()
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_shared_decision_brief_is_read_only(report_backend, seed_report):
+    rep = seed_report()
+    url = f"{report_backend['base']}/report/share/{rep['share_token']}"
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-download", timeout=10000)
+            assert page.locator("#decision-brief-create").count() == 0
+            assert page.locator("#report-followup").count() == 0
+        finally:
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_legacy_report_without_evidence_cannot_create_experiment(report_backend, seed_report):
+    anon = "legacy-brief-owner"
+    rep = seed_report(creator_anon_id=anon)
+    url = f"{report_backend['base']}/report/{rep['id']}"
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context()
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-download", timeout=10000)
+            assert "当前报告没有这项证据" in page.locator("#decision-brief-root").inner_text()
+            assert page.locator("#decision-brief-create").count() == 0
+            escaped = page.evaluate(
+                "model => decisionBriefMarkdown(model)",
+                {
+                    "problem": "# injected\n<script>alert(1)</script>",
+                    "fingerprint": {}, "source": {}, "mechanism": "$x^2$",
+                    "boundary": "[click](javascript:alert(1))", "hypothesis": "",
+                    "metric": "", "reportId": "r/../../bad", "model": "",
+                    "promptVersion": "", "createdAt": "", "partial": False,
+                },
+            )
+            assert "\\# injected" in escaped
+            assert "\\<script\\>" in escaped
+            assert "\\$x\\^2\\$" in escaped
+            assert "\\[click\\]\\(javascript:alert\\(1\\)\\)" in escaped
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
 def test_my_reports_empty_state_in_browser(report_backend):
     """/reports with no anonId in localStorage shows the empty state."""
     from playwright.sync_api import sync_playwright
@@ -513,6 +629,95 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
             # Each card links to a report detail URL.
             href = cards.first.get_attribute("href")
             assert href and href.startswith("/report/r_")
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(report_backend, seed_report):
+    from playwright.sync_api import sync_playwright
+    from services.report_store import ReportStore
+
+    anon = "deadline-dashboard-owner"
+    overdue = seed_report(query="逾期实验", creator_anon_id=anon)
+    soon = seed_report(query="即将到期实验", creator_anon_id=anon)
+    done = seed_report(query="已结束实验", creator_anon_id=anon)
+    store = ReportStore(report_backend["db_path"])
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    two_days = (date.today() + timedelta(days=2)).isoformat()
+    for rep, deadline, status, action in [
+        (overdue, yesterday, "planned", "planned"),
+        (soon, two_days, "in_progress", "in_progress"),
+        (done, yesterday, "abandoned", "abandoned"),
+    ]:
+        store.record_followup(
+            report_id=rep["id"], anon_id=anon, action_status=action,
+            experiment={"hypothesis": "h", "status": status, "deadline": deadline},
+        )
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(viewport={"width": 390, "height": 844})
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(report_backend["base"] + "/reports", wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector(".myr-card", timeout=10000)
+            summary = page.locator("#myr-reminder-summary")
+            if AXE_PATH.is_file():
+                page.add_script_tag(content=AXE_PATH.read_text(encoding="utf-8"))
+                serious = page.evaluate("""async () => (await axe.run(document, {
+                  runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}
+                })).violations.filter(v => ['critical','serious'].includes(v.impact))""")
+                assert serious == []
+            assert "1 个实验已逾期" in summary.inner_text()
+            assert "1 个将在 3 天内到期" in summary.inner_text()
+            overdue_card = page.locator(".myr-card", has_text="逾期实验")
+            assert "已逾期" in overdue_card.inner_text()
+            done_card = page.locator(".myr-card", has_text="已结束实验")
+            assert "已逾期" not in done_card.inner_text()
+            toggle = page.locator("#myr-reminder-toggle")
+            assert toggle.is_checked()
+            toggle.uncheck()
+            assert "本地提醒已关闭" in summary.inner_text()
+            assert "1 个实验已逾期" in summary.inner_text()
+            assert "1 个将在 3 天内到期" in summary.inner_text()
+            assert page.evaluate("localStorage.getItem('structural_local_reminders')") == "off"
+            assert toggle.evaluate("el => el.getBoundingClientRect().height") >= 18
+            states = page.evaluate("""() => ({
+              spring: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-03-09'},
+                new Date(2026, 2, 8, 12)
+              ),
+              fall: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-11-02'},
+                new Date(2026, 10, 1, 12)
+              ),
+              invalid: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-02-30'}
+              ),
+              missing: __myReports.deadlineState({experiment_status:'planned'}),
+              abandoned: __myReports.deadlineState({
+                experiment_status:'planned', experiment_deadline:'2020-01-01',
+                followup_status:'abandoned'
+              })
+            })""")
+            assert states["spring"] == {"kind": "soon", "days": 1}
+            assert states["fall"] == {"kind": "soon", "days": 1}
+            assert states["invalid"]["kind"] == "invalid"
+            assert states["missing"]["kind"] == "none"
+            assert states["abandoned"]["kind"] == "done"
+            page.evaluate("localStorage.setItem('structural_local_reminders', 'corrupt')")
+            page.reload(wait_until="domcontentloaded")
+            page.wait_for_selector(".myr-card", timeout=10000)
+            assert not page.locator("#myr-reminder-toggle").is_checked()
+            assert "1 个实验已逾期" in page.locator("#myr-reminder-summary").inner_text()
+            page.goto(report_backend["base"] + "/report/" + done["id"], wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#report-followup", timeout=10000)
+            assert "实验已结束，不再提醒" in page.locator("#report-reminder-message").inner_text()
+            page.locator("#rf-submit").click()
+            page.wait_for_function("document.querySelector('#rf-msg').textContent.includes('不再提醒')")
         finally:
             ctx.close()
             browser.close()

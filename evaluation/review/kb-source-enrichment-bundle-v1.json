@@ -1,0 +1,2017 @@
+{
+  "instructions": {
+    "accepted": "Accepted requires an HTTPS source URL, complete citation, license, and provenance class.",
+    "insufficient": "Use insufficient with null source fields when no defensible source can be established.",
+    "no_automation": "Do not generate or infer sources. Inspect the source manually."
+  },
+  "metadata": {
+    "kb_row_count": 4443,
+    "kb_sha256": "299a0fd62dcf400d5d5ccbb8b853cc21cd73daf99ee9f6bc163ac1f5293cab99",
+    "review_fingerprint": "904ea38733266caa2b530e38870a61e8b29b90086b2c8a748636937eb2a31fe5",
+    "selection": "risk-priority-v1"
+  },
+  "schema_version": "kb-source-enrichment-bundle-v1",
+  "task_count": 100,
+  "tasks": [
+    {
+      "description": "上皮细胞和间质细胞状态由互相抑制的基因回路维持：miR-200家族抑制ZEB1/2，ZEB1/2反抑制miR-200。这种双重互抑形成双稳态开关，细胞通常处于两种稳定状态之一，TGF-β等强烈信号可触发状态切换。中间部分可逆的混合状态在体内也可稳定存在，提示该系统为多稳态而非严格双稳态，为癌细胞获得侵袭-增殖双重能力提供了机制基础。",
+      "description_sha256": "5e30403acbfb5f7b6857fb68d4b54a0a23024d5c4f9f14b4376cebe19b7d3b54",
+      "domain": "细胞生物学",
+      "kb_id": "cell-009",
+      "name": "EMT上皮间质转化的互抑双稳态",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2d1344902bdd1b1e911e0de0",
+      "type_id": "18"
+    },
+    {
+      "description": "细胞极性由Par-3/Par-6/aPKC顶端复合体和Scribble/Dlg/Lgl基底复合体相互磷酸化排斥维持：顶端aPKC磷酸化Lgl使其离开顶端，Lgl反过来抑制顶端复合体在基底域的驻留。这种双向排斥形成稳定的双稳态空间划分，一旦初始不对称建立，正反馈放大使两个域越来越纯净，直至全细胞被精确划分为两个功能区，是互相排斥的正反馈对产生空间秩序的典型机制。",
+      "description_sha256": "ff38381d9038016df58a1b20915380ab2a4001031fe21eee1f7c254749a626a9",
+      "domain": "细胞生物学",
+      "kb_id": "cell-047",
+      "name": "极性复合体互斥正反馈空间划分",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_28fb1f99a9e548008eca4bf6",
+      "type_id": "18"
+    },
+    {
+      "description": "胰岛素激活PI3K-Akt-mTORC1通路，mTORC1激活S6K，活化的S6K磷酸化并降解胰岛素受体底物IRS1，削弱上游PI3K信号。这个负反馈使信号响应与刺激程度成比例。胰岛素抵抗的部分机制正是S6K过度反馈：慢性高胰岛素血症持续激活S6K，导致IRS1持续降解，形成信号传导的结构性衰减，揭示了急性反馈机制在慢性状态下如何演变为病理。",
+      "description_sha256": "45d375847c99a64fda72746ee5974c3f3f0eff8c6000570976d62d1d2b8af939",
+      "domain": "细胞生物学",
+      "kb_id": "cell-017",
+      "name": "Akt-S6K的胰岛素通路过度激活反馈",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_4b624db1a897cae1db917a93",
+      "type_id": "19"
+    },
+    {
+      "description": "转录起始复合体中RNA聚合酶II CTD结构域含52个七肽重复，在未磷酸化状态易与转录激活因子的低复杂度结构域发生相分离。超过临界组装数量时突然形成转录凝聚体，RNA聚合酶从招募到激活的效率跃升。超级增强子附近的高因子密度使局部浓度超过相分离阈值，解释了少数调控元件驱动极高转录活性的非线性效应，阈值附近的细微浓度差异被放大为离散的转录状态切换。",
+      "description_sha256": "daba73419fa79fbf7163c0dad2341db6bf4bc93ea2dbfd079b22bab0b054a4d3",
+      "domain": "细胞生物学",
+      "kb_id": "cell-039",
+      "name": "相分离触发RNA聚合酶超级激活",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_80bcf8f9d5181ca24683a1c9",
+      "type_id": "24"
+    },
+    {
+      "description": "任何未被纺锤体双向正确附着的染色单体动粒都持续产生MCC（有丝分裂检查点复合体），MCC结合并抑制APC/C-CDC20，阻止后期启动。一旦所有染色单体完成正确附着，MCC产生停止，APC/C被释放，启动姐妹染色单体分离。这是零容错数字检查机制：即使只有一个染色体附着不正确，整个细胞分裂均被阻止，一票否决制确保基因组分配的精确性。",
+      "description_sha256": "06776d53f2f4ca54b0c6748ef26399af38500c896f65093273282cd3292f999d",
+      "domain": "细胞生物学",
+      "kb_id": "cell-004",
+      "name": "纺锤体组装检查点的零容错数字监控",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_98b5874961e5e4dea12fed59",
+      "type_id": "58"
+    },
+    {
+      "description": "EGF受体内吞进入早期内体(pH约6.5)后，配体-受体亲和力开始下降，但多数受体仍被回收到质膜。随着内体成熟酸化至晚期内体(pH约5.5)，配体完全解离，受体被送往溶酶体降解。pH梯度作为层次化分选机制：每层pH选择性地决定特定受体-配体对的命运，信号持续时间由细胞内吞路径的pH动力学精确计时，不同受体-配体对因亲和力不同而在不同层次被分选。",
+      "description_sha256": "93e219f5b8acf996aaf30a61e763da1407f9cd424ebf4fdf8543033c8dc72d32",
+      "domain": "细胞生物学",
+      "kb_id": "cell-021",
+      "name": "内体成熟pH阶梯的层次化分选",
+      "priority_score": 8,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_5152307055f637766ad38bd7",
+      "type_id": "73"
+    },
+    {
+      "description": "脊椎动物的Hedgehog信号转导严格依赖初级纤毛这一细胞器。无配体时Patched受体驻留纤毛内抑制Smoothened；配体结合后Patched退出、Smoothened进入纤毛并在纤毛顶端激活Gli转录因子。纤毛缺陷（纤毛综合征）同时阻断Hedgehog信号传导，导致脑、肾、四肢等多器官发育异常，揭示了细胞器区室化对信号通路精确调控的重要性。",
+      "description_sha256": "a7d93b76c164fc7007eb240c1516fed770af258189c11994565ac19164bc0971",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-060",
+      "name": "Hedgehog信号的初级纤毛依赖",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_fb9ddf32ff647eafb6049108",
+      "type_id": "02"
+    },
+    {
+      "description": "Hedgehog蛋白前体在自我修饰过程中需将胆固醇共价连接到自身，形成双脂质修饰的成熟形式。修饰的Hedgehog蛋白形成可远距离扩散的脂蛋白颗粒。DHCR7缺陷导致Smith-Lemli-Opitz综合征，胆固醇合成障碍同时阻断Hedgehog信号，引起脑、心脏、四肢的复合发育缺陷。这是代谢通路与形态发生信号通路意外交叉的典型案例。",
+      "description_sha256": "2e95c39d4c3fc0004b4f692c7f8590ae6d2fcc0c44c82aa91534bb783279ef24",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-072",
+      "name": "胆固醇代谢缺陷与Hedgehog信号障碍",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_f2eece7ed51b38b946268e7f",
+      "type_id": "02"
+    },
+    {
+      "description": "大脑持续生成对即将发生事件的预测，实际结果与预测之间的差值会产生预测误差信号。该信号驱动学习：当结果比预期好时产生正向误差，促进该行为；比预期差时产生负向误差，抑制该行为。这是强化学习的神经机制基础。",
+      "description_sha256": "2da40a217c0566a46fdaad6390f6cd9debed4256ad0e5590528921244ba3c182",
+      "domain": "认知心理学",
+      "kb_id": "5k-19-023",
+      "name": "预期错误信号",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_f233bf0b3dca28d32b9eee14",
+      "type_id": "02"
+    },
+    {
+      "description": "CAP定理在区块链语境中表现为安全性、活性和去中心化的三角约束。以太坊PoS的Casper机制在面对网络分区时优先保证安全性（停止出块）而非活性（继续出块），以避免出现两个相互矛盾的最终性区块。这种设计选择意味着长时间网络分区将导致链停止出块，但不会产生双花风险。",
+      "description_sha256": "a5e84cf7cf4a44b2fc119aa5e1c5a08ce0fe276d5d1a63e6ca3597580d89867f",
+      "domain": "加密货币/DeFi",
+      "kb_id": "5k-14-061",
+      "name": "以太坊最终性与活性的三难困境",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_3c1d9fde51367e8d65fc4325",
+      "type_id": "03"
+    },
+    {
+      "description": "神经管由神经板两侧隆起折叠后在背中线融合而成，这一过程并非沿整条前后轴同时进行，而是从多个起始点向两端拉链式推进。融合点处细胞的丝状伪足伸出互相抓取，配合肌动蛋白收缩驱动边缘靠拢。任何起始点融合失败或推进受阻都导致神经管缺陷，如脊柱裂和无脑儿。",
+      "description_sha256": "e533c12d95915991648b2746a51afaa6e37f6307e2cef97910c41c0c07c7aa4b",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-040",
+      "name": "神经管闭合的拉链机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_48c217cf7060ab90e5c8b709",
+      "type_id": "05"
+    },
+    {
+      "description": "每次DNA复制，线性染色体末端因末端复制问题损失约50-200bp端粒序列。端粒长度随细胞分裂次数线性递减，充当分裂计数器。当端粒缩短到临界长度时触发DNA损伤响应，细胞进入不可逆的复制性衰老。这种衰减机制限制了体细胞的无限增殖潜力，是进化赋予多细胞生物防癌的内置计时器。",
+      "description_sha256": "8fa5173598911502be5aa801c1202276a2cd0eef83159818c4ebd48751d83bcb",
+      "domain": "分子生物学",
+      "kb_id": "bio-021",
+      "name": "端粒磨损的线性复制计数",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ac50bf0f72845d7cd8ea1063",
+      "type_id": "06"
+    },
+    {
+      "description": "毛囊经历生长期、退化期和休止期的周期性循环。休止期毛囊隆起部干细胞处于静止状态，BMP信号维持其休眠；当毛乳头释放的激活信号（Wnt/FGF7）积累超越BMP抑制时，干细胞激活并向下迁移形成新的毛球。这一定时激活机制类似于弹弓：抑制信号的缓慢消耗蓄积张力，随后快速触发激活，产生离散而非连续的周期节律。",
+      "description_sha256": "9a3a64baf5b4f0b14090f3c4c2134812375d9eb0da43744650b2ebf22b5279ba",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-058",
+      "name": "毛囊周期的干细胞激活节律",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_c47963e2bed9c64f882aadb4",
+      "type_id": "06"
+    },
+    {
+      "description": "成体骨骼肌中的肌肉干细胞（卫星细胞）紧贴肌纤维表面，被基底膜限制在特定龛位置并保持深度静止。静止态由Notch信号从肌纤维持续传递维持，FGF-FGFR1信号环路抑制细胞周期激活。损伤后肌纤维释放HGF激活卫星细胞，使其退出静止态增殖分化修复损伤。衰老时龛信号改变导致卫星细胞激活失效，是肌少症的细胞机制之一。",
+      "description_sha256": "d67b83a4dadf729c652a10b6da68e8b4155374cb3b6dce3ef169ff4280bfbc6a",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-069",
+      "name": "肌肉卫星细胞的静止态维持",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_021857b9a5db5079871103e1",
+      "type_id": "06"
+    },
+    {
+      "description": "PRC2复合体催化H3K27me3修饰，而修饰后的核小体本身能招募更多PRC2，导致抑制性标记从种子位点向周围自我强化扩散。这种正反馈形成S型动力学：初始缓慢扩散，达到阈值后快速铺开，最终在特定绝缘子边界停止，将基因锁定在沉默状态，是表观遗传记忆形成的典型机制。",
+      "description_sha256": "061636b6be5fdac60180955f41ed5ebf4bde370909cdad1c9a9afee65969523a",
+      "domain": "分子生物学",
+      "kb_id": "bio-007",
+      "name": "Polycomb抑制标记的S型扩散",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_611c778e4a796498ec248a0b",
+      "type_id": "07"
+    },
+    {
+      "description": "正常细胞两个原癌基因等位基因维持受控的生长信号。染色体扩增使拷贝数增至10-50份时，对应蛋白质丰度按比例增加，超越正常调控范围阈值后持续驱动细胞增殖。这是基因剂量的S型效应：剂量在正常范围内影响有限，超过临界点后效果剧烈。基因拷贝数变异是癌症中最常见的基因组改变，反映了阈值效应的临床重要性。",
+      "description_sha256": "06ec46a9619b1a800eefad73536a6225ea8c45c5e7f653c122191b2ed96feeef",
+      "domain": "分子生物学",
+      "kb_id": "bio-041",
+      "name": "原癌基因扩增的剂量阈值效应",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_285d79ce4a0113fd0b553754",
+      "type_id": "07"
+    },
+    {
+      "description": "政府支出增加通过需求扩张抬高利率，利率上升压缩私人投资，部分或完全抵消财政刺激——这一机制称为挤出效应。开放经济中还存在汇率挤出：利率上升吸引资本流入导致汇率升值，进一步削弱净出口，强化对财政乘数的压制。",
+      "description_sha256": "6bd1fee3d2e0d91e2cc20451feb64af66fb8a77909c33438c9d077b3c9ec2e69",
+      "domain": "宏观经济",
+      "kb_id": "5k-12-042",
+      "name": "财政乘数的挤出效应",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_36f1bf7d930e7f0fcb2aa75b",
+      "type_id": "07"
+    },
+    {
+      "description": "超额死亡率是观测死亡人数与基于历史趋势预测的预期死亡人数之差，反映特定时期内死亡的额外增加量。新冠疫情期间，超额死亡不仅包含直接病毒致死，还含医疗挤兑延误救治、隔离导致慢病管理中断等间接死亡。这一指标不依赖死因诊断，能捕捉归因不完整时的真实死亡负担。",
+      "description_sha256": "9f8beac0572b6a0d9078abbf13f9ad725e5be4472793330331f4104b002f3f13",
+      "domain": "流行病学",
+      "kb_id": "5k-08-036",
+      "name": "超额死亡率估计",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_97f5c096a6381e7114121ca9",
+      "type_id": "08"
+    },
+    {
+      "description": "向导RNA与靶序列存在不完全匹配时，Cas9仍可能切割。算法比对全基因组寻找最多含若干错配的潜在位点，再用机器学习模型基于错配位置和邻近序列上下文预测切割概率，指导研究者修改sgRNA减少不希望的编辑。",
+      "description_sha256": "54fb5a6938a233a14a7763c1e4b3300238c94f77ca86a4d43e5ad7496f75baab",
+      "domain": "生物信息学",
+      "kb_id": "5k-28-090",
+      "name": "CRISPR脱靶位点预测",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_f7b10a4e3dc9c4ca3ab29862",
+      "type_id": "08"
+    },
+    {
+      "description": "脊椎动物内脏左右不对称由胚胎节点处旋转纤毛产生的单向液流触发。纤毛以顺时针旋转打出向左流动的形态发生液流，激活节点左侧的Nodal信号，随后Nodal、Lefty和Pitx2级联不对称激活，指定心脏向左弯曲和其他内脏不对称定位。纤毛运动障碍患者约50%出现内脏反位，验证了液流对称破缺的必要性。",
+      "description_sha256": "f02b2d64570005622a061bb0ead115321f5578c64359a88cf9dc394495a2d9dd",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-044",
+      "name": "心脏左右不对称的纤毛流机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ddf7c8f65361da937a001c47",
+      "type_id": "09"
+    },
+    {
+      "description": "脑血管内皮细胞形成血脑屏障所需的紧密连接、外排转运体和特化转胞吞机制，是被周围星形胶质细胞和周细胞分泌的信号（Wnt/Wnt7、Ang1等）诱导获得的，并非内皮细胞的内在特性。将脑内皮细胞移植到外周组织后屏障特性丢失，将外周内皮移植入脑后可部分获得屏障特性，证明微环境对血脑屏障身份的持续维持必不可少。",
+      "description_sha256": "2c9762b0ae0d0f70872122b8cfdd2414000366d41cf08da387492b9bfd8dcfa8",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-065",
+      "name": "血脑屏障的发育特化程序",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_04d7b111461bfaac93cc5f50",
+      "type_id": "11"
+    },
+    {
+      "description": "货币政策收紧不仅通过利率成本影响借贷，还直接削减银行可贷资金来源。当银行资本受损或流动性收紧时，贷款供给独立于利率发生萎缩，中小企业因无法转向资本市场融资而受冲击最深，实体经济收缩幅度超出单纯利率效应的预测。",
+      "description_sha256": "bf3124991cd82cf36f2e7359fa2e4186a105ad31982442d9c5c8b4079ab9fe7b",
+      "domain": "宏观经济",
+      "kb_id": "5k-12-012",
+      "name": "信贷渠道与银行资本约束",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_0dfe69f2d98ab01892c4cfcc",
+      "type_id": "12"
+    },
+    {
+      "description": "胰岛素/IGF信号在多种动物中不仅调控代谢，还作为营养状态感受器门控发育时序转变。秀丽隐杆线虫中营养充足时胰岛素信号抑制转录因子DAF-16，允许正常发育进程；营养匮乏时信号减弱，DAF-16激活进入休眠幼虫期。这种营养-发育耦联机制确保发育关键窗口仅在资源充足时开启。",
+      "description_sha256": "5b67130c1bc96be5bd0fb03428edca9efa053ed8d9d045217569b5889bf587f6",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-050",
+      "name": "胰岛素信号通路与发育时序门控",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_8ecf4209b21f05779a5b7fef",
+      "type_id": "14"
+    },
+    {
+      "description": "每个月经周期启动时多个卵泡同步发育，但通常只有一个成为优势卵泡完成排卵。优势卵泡对FSH更敏感，产生更多雌激素；雌激素正反馈激活垂体LH分泌同时负反馈抑制FSH，导致FSH浓度下降。较小卵泡因FSH阈值更高而失去支持并发生闭锁，形成单优势卵泡的选择机制，是发育竞争通过旁分泌信号实现的典型案例。",
+      "description_sha256": "3fcca3295f3425357a463484f5ca67843967a0b5b3690dea1cbd01024cdd1a68",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-068",
+      "name": "卵巢滤泡优势化与旁分泌抑制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_8d19455703a3453ff7215008",
+      "type_id": "14"
+    },
+    {
+      "description": "Hippo激酶级联通路（MST1/2→LATS1/2→YAP/TAZ磷酸化）感受细胞密度和机械张力，通过抑制转录共激活因子YAP控制细胞增殖与凋亡的平衡，从而限制器官大小。器官组织中细胞密度增加后Hippo通路激活、YAP入核减少，增殖减缓；组织损伤后细胞密度降低、YAP激活驱动再生增殖。这一通路失活与多种实体瘤过度生长直接相关。",
+      "description_sha256": "80d8aae86d7e473fb5ae48d411fde922b4e3a87debb945c28a8e43ef07ec0cd8",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-075",
+      "name": "器官大小的Hippo通路门控",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_466e95faceda1cccc77a4c56",
+      "type_id": "14"
+    },
+    {
+      "description": "上皮组织弯曲折叠通常由特定细胞的顶面收缩驱动。这些细胞顶部的肌动蛋白-肌球蛋白网络受Rho GTP酶激活后收缩，使细胞从柱状变为楔形，推动上皮局部内陷。神经管闭合和原肠运动的起始步骤都依赖这一机制。计算模型表明，只要少数细胞同步收缩，就能驱动整片上皮的宏观折叠，力学放大效果显著。",
+      "description_sha256": "2a9e04824facee23c228ff89b27f8777c849bf5db702ef25422df29e7856dc1b",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-071",
+      "name": "组织折叠的顶面收缩驱动",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_27e4ef7cc5d88b836041ef93",
+      "type_id": "15"
+    },
+    {
+      "description": "处于不利处境的群体成员有时会合理化甚至为维持现有社会秩序辩护，即便这对自己有害。驱动力是对社会系统稳定性和可预测性的心理需求。这解释了为何低地位群体有时反对有利于自身的再分配政策，维护伤害自身的不平等结构。",
+      "description_sha256": "5ab3356c749535ff667c30e84d8b9a5dd690ef8525802dc97fc019b135874b77",
+      "domain": "社会心理学",
+      "kb_id": "5k-19-044",
+      "name": "系统正当化理论",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ff58bd0827754b024871b99a",
+      "type_id": "16"
+    },
+    {
+      "description": "病毒入侵触发少量干扰素分泌，干扰素与临近细胞受体结合激活JAK-STAT通路，诱导IRF7等主转录因子表达，IRF7又强烈上调干扰素产生，形成正反馈放大回路。初始弱信号指数式扩大。这种放大回路受SOCS蛋白的负反馈限制，防止免疫反应失控，展示了正反馈与负反馈联合维持有效但受控的免疫激活的协调机制。",
+      "description_sha256": "dbb0335f4b36d33bc633db9dcc77cd024e79017a4842e584c112c7c5717a0e70",
+      "domain": "分子生物学",
+      "kb_id": "bio-040",
+      "name": "干扰素正反馈的抗病毒放大回路",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_dee3506ac30e1edff48eb1fe",
+      "type_id": "18"
+    },
+    {
+      "description": "细胞中少量Ca²⁺进入激活IP3受体，促使内质网释放更多Ca²⁺，释放的Ca²⁺进一步激活更多受体，形成正反馈爆发式释放。随后SERCA泵将Ca²⁺泵回内质网终止信号，产生全或无的浓度尖锐脉冲。脉冲频率和空间传播速度编码信号类型，不同频率的Ca²⁺振荡激活不同的下游效应器，频率编码是细胞利用统一离子信使传递多样化信息的策略。",
+      "description_sha256": "2374cd9651aeb38c2132fa9c0f7960c0f813d9d90b9eec12abd3c958432f5821",
+      "domain": "细胞生物学",
+      "kb_id": "cell-002",
+      "name": "Ca²⁺诱导Ca²⁺释放的脉冲爆发",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_a13d87822ab4c6235213506a",
+      "type_id": "18"
+    },
+    {
+      "description": "G1期Rb蛋白结合并抑制转录因子E2F，阻止S期基因表达。有丝分裂信号激活CDK4/6磷酸化Rb，部分磷酸化的Rb释放E2F，后者上调cyclin E-CDK2进一步磷酸化Rb形成正反馈。一旦越过阈值，Rb被超磷酸化无法复原，细胞不可逆地进入S期。这个正反馈开关确保细胞分裂决策的单向性，防止在不利条件下中途退出细胞周期。",
+      "description_sha256": "a4688dda4f72dad7dfbf776a7a21cde9e9efaa89e81dc474c710c6dd5a9936ab",
+      "domain": "细胞生物学",
+      "kb_id": "cell-003",
+      "name": "细胞周期G1/S的Rb正反馈开关",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_41228c8adcef4ce456af1f10",
+      "type_id": "18"
+    },
+    {
+      "description": "2010年5月6日美股闪崩显示，算法做市商在波动性急剧上升时会集体退出市场或极度扩大价差，导致流动性骤然消失。价格下跌触发程序化止损，止损卖出进一步压低价格，引发更多止损，形成自我强化的螺旋下跌。传统流动性提供者撤退与反馈交易的叠加是流动性危机的微观机制。",
+      "description_sha256": "149c4b5ee80bcaf726fa3d81a05e6ad8c42ed0c363e75b967d4bf382c34784c8",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-053",
+      "name": "闪崩的流动性螺旋机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_66ea10334461e2dd19639914",
+      "type_id": "18"
+    },
+    {
+      "description": "2008年金融危机后，G20要求标准化场外衍生品通过中央对手方（CCP）清算，以消除双边交易对手风险。CCP通过成为每笔交易双方的对手方、收取初始保证金和变动保证金来管理风险。然而CCP本身也成为系统性风险的集中节点，其抗压能力和保证金追缴机制在极端市场条件下成为市场稳定的关键变量。",
+      "description_sha256": "9b01b851c3acbc952a84ae0cc39dbc8e0f45794b14043b1c1a899967964d6bff",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-075",
+      "name": "场外衍生品中央清算与交易对手风险",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_3dc0be96731a07892b9d8e5b",
+      "type_id": "18"
+    },
+    {
+      "description": "当资产价格下跌触发追加保证金时，被迫卖出进一步压低资产价格，触发更多追加保证金和更多强制卖出，形成保证金螺旋。2020年3月、2022年英国国债危机等均出现此机制。保证金螺旋是杠杆化金融体系中将个体流动性压力转化为市场系统性压力的核心传导路径。",
+      "description_sha256": "0ba0f95ab7a4486a0b17f0098c3cfbcc375fb18aa7b3d2a47e4bfae0bfcb8091",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-076",
+      "name": "保证金螺旋与强制去杠杆",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_f9c09f073ab42bdb4989c0db",
+      "type_id": "18"
+    },
+    {
+      "description": "部分暗池以公开市场最优买卖报价（NBBO）的中点作为成交价，为交易双方均提供0.5个价差单位的价格改善。这使暗池对非知情的机构投资者极具吸引力，但批评者指出，暗池中点成交不具有价格发现功能，大量订单流向暗池会降低公开市场的报价竞争与流动性厚度。",
+      "description_sha256": "1e54b4bfc0a76f3b6ec2ca27af106e2bf3138a0e5b476a5b4d9cb54d5ea74249",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-079",
+      "name": "暗池的价格改善机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_47e216ff875d839ec95f207e",
+      "type_id": "18"
+    },
+    {
+      "description": "通过在现货市场积累大量头寸并操纵价格，可以使同时持有的衍生品头寸获利，这类行为被称为跨市场操纵。经典案例包括商品市场中的逼仓（Corner）：通过控制实物供应逼使空头以高价回购期货合约平仓。期货交割机制决定了跨市场操纵的可行性和成本，监管机构因此对单一持仓上限设有严格规定。",
+      "description_sha256": "2403ee2f2a9642b5e3c8c5bbb3bbe472ac86fb28d621134ba32c85050011f3bc",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-091",
+      "name": "现货与衍生品的跨市场操纵",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2ac1444ce977c5092c2bbd0b",
+      "type_id": "18"
+    },
+    {
+      "description": "交易所通过给予做市商费用减免、优先接入权或交易返佣等激励，换取其承担在特定时段持续报价和维持最低流动性的义务。然而激励相容是核心难题：在市场压力期间，做市义务对做市商最为困难，此时违约成本若低于持续做市损失，做市商会选择违约，流动性保障机制有时在最需要时失效。",
+      "description_sha256": "aef4f63057d469a377aadca5655875fa6fa8de9f4b9f2e82ac415935e226e8fd",
+      "domain": "金融市场微观结构",
+      "kb_id": "5k-13-094",
+      "name": "做市义务与激励相容",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_5032430f3eeb5da07eb58077",
+      "type_id": "18"
+    },
+    {
+      "description": "miRNA通常与靶mRNA不完全互补，不切割而是抑制翻译或促进降解。一个miRNA可靶向数百个基因，形成广泛的负反馈网络：当某条通路过度激活时，通路产物往往上调抑制该通路的miRNA，构成全局性的自限机制，防止单条通路无限放大。",
+      "description_sha256": "b70d7da44b0b7ca82be3310fb13769797f37f510d6139d22734e4ec0a1ef11a8",
+      "domain": "分子生物学",
+      "kb_id": "bio-004",
+      "name": "miRNA的不完全互补抑制网络",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_181f7a1a93e936ce0e8bb9bc",
+      "type_id": "19"
+    },
+    {
+      "description": "Yamanaka因子（Oct4/Sox2/Klf4/c-Myc）能将成纤维细胞重编程为诱导多能干细胞，但效率极低（小于1%）。障碍包括染色质致密区阻止因子结合、p53通路检测DNA损伤引发凋亡、以及先锋因子必须在高度压缩染色质中开辟结合位点。理解这些屏障不仅用于提高重编程效率，也揭示了细胞命运稳定性的表观遗传机制。",
+      "description_sha256": "1477a4aeb7308cd76acbdfcc31758c82bf5057a915f4bc08400a7518ad556894",
+      "domain": "发育生物学",
+      "kb_id": "5k-07-056",
+      "name": "成纤维细胞重编程的分子屏障",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_eb1e1c7de651eff42edc987b",
+      "type_id": "19"
+    },
+    {
+      "description": "某人群疾病发生率高可能源于两种不同机制：高暴露（差异暴露性，如职业危害的不均等分配）或高易感（差异易感性，如遗传、营养、慢性病基础影响抵抗力）。混淆两者导致干预策略错误。理想研究设计应通过精确暴露测量和分层分析，区分高风险是因为接触量多还是因为对相同暴露更脆弱。",
+      "description_sha256": "0a89237d25217aeef912395be41d96c5c53eaa5d61236b6146430e2ff17e7708",
+      "domain": "流行病学",
+      "kb_id": "5k-08-069",
+      "name": "差异暴露性与差异易感性的混淆",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_e88f09ecc5f1893400213e78",
+      "type_id": "19"
+    },
+    {
+      "description": "中性粒细胞在1000倍跨度的cAMP梯度中均能感知方向，因为细胞对当前浓度快速适应：局部PIP3积累诱导Pten进入膜上削弱进一步积累，使细胞将初始积累的不对称性固化为极性后复位。这种积分-复位机制使细胞响应相对差异而非绝对浓度，类比视觉系统光适应，允许细胞在极低和极高绝对浓度的化学梯度中保持相同的方向感知精度。",
+      "description_sha256": "582b347a265077e1f65b497d73a542c90889586a520dbdf702beb5379d9c2784",
+      "domain": "细胞生物学",
+      "kb_id": "cell-020",
+      "name": "趋化梯度感知的自适应积分复位",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2a4e2d3bf03689a0326b9440",
+      "type_id": "19"
+    },
+    {
+      "description": "铁蛋白mRNA的5'UTR含铁响应元件(IRE)发夹结构，铁缺乏时铁调节蛋白(IRP)结合IRE阻止核糖体扫描，翻译受抑；铁充足时铁与IRP结合使其脱离IRE，铁蛋白翻译启动。这是无需新转录的纯翻译层面负反馈调节：铁的存储蛋白的合成速度直接与铁的可用量偶联，响应时间仅需分钟级，是最快速的代谢稳态反馈机制之一。",
+      "description_sha256": "46d6bc37c32b199b1c1f75271cae6e5ffc9cefae9ac2a21e76acaa4c2e97260a",
+      "domain": "细胞生物学",
+      "kb_id": "cell-033",
+      "name": "铁蛋白翻译的铁响应元件实时负反馈",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2d388512b18625486404a920",
+      "type_id": "19"
+    },
+    {
+      "description": "HER2/ErbB2在心肌细胞中具有重要的心脏保护功能，参与神经调节蛋白信号介导的心肌细胞存活通路。曲妥珠单抗阻断HER2信号，干扰心肌细胞的神经调节蛋白旁分泌保护，导致心肌细胞应激易感性增加，临床表现为无症状性心功能下降或心力衰竭。与蒽环类药物的不可逆心肌坏死不同，曲妥珠单抗相关心功能减退多为可逆性。",
+      "description_sha256": "a4eaf13f034ad4eaca8105f081061a4fdfdd5012a8e8a93fecaae13819c93db0",
+      "domain": "肿瘤学",
+      "kb_id": "5k-08-091",
+      "name": "HER2靶向治疗的心脏毒性机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_4406e10a0af8a56c4fbc4285",
+      "type_id": "19"
+    },
+    {
+      "description": "双特异性T细胞衔接抗体（BiTE）一端结合肿瘤抗原，另一端结合T细胞表面CD3，将T细胞物理招募至肿瘤细胞旁，形成细胞毒性突触，激活T细胞杀伤而无需抗原提呈或MHC限制。博纳吐单抗靶向ALL中的CD19。由于分子量小半衰期仅数小时，须持续静脉输注维持有效浓度，不良反应包括细胞因子释放综合征和神经毒性。",
+      "description_sha256": "44b26b10f698a3d8215feb05d2769277d0d277b350faba8b12d0b7a044d67569",
+      "domain": "肿瘤学",
+      "kb_id": "5k-08-098",
+      "name": "双特异性T细胞衔接抗体机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_1b972a52f71427d97fe36656",
+      "type_id": "19"
+    },
+    {
+      "description": "工作量证明区块链没有即时最终性，一笔交易的确认只代表在当前最长链上的概率性确定。51%攻击者可以私下构建更长的分叉链，然后广播替换主链，使之前确认的交易被回滚。算力越分散、孤块率越低，51%攻击成本越高；权益证明通过经济惩罚机制（slashing）提供更强的概率性最终性保障。",
+      "description_sha256": "bf02c1cefb8ba6ac655f2857119f3b3a087545b2b6ca6f1770c2b8d0de24a1af",
+      "domain": "加密货币/DeFi",
+      "kb_id": "5k-14-044",
+      "name": "区块链最终性的分叉回滚风险",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2607229295138106b0c2a90d",
+      "type_id": "21"
+    },
+    {
+      "description": "神经末梢摄取NGF与TrkA受体结合的复合体后，信号体被包装进信号内体，由dynein沿微管向细胞体逆行运输，距离可达1米以上，引入数小时时滞。运输过程中TrkA持续激活传递存活信号。周围神经损伤后细胞体感知到信号中断需要延迟，这段时滞是临床上神经再生窗口的生理基础，时滞长度与轴突长度成正比，决定了不同神经的损伤响应速度差异。",
+      "description_sha256": "f81fd6416e0f65367945e97b4774533eb03db55b4f186e7edd69813ebca6e355",
+      "domain": "细胞生物学",
+      "kb_id": "cell-010",
+      "name": "神经营养因子的逆行轴突时滞信号",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_37ec6be3b4c2092576a9a9fc",
+      "type_id": "22"
+    },
+    {
+      "description": "内质网与线粒体形成约10nm间距的接触位点，IP3R、GRP75和线粒体钙单向转运体MCU形成跨膜钙通道复合体。内质网释放的Ca²⁺不需要扩散至细胞质即可直接进入线粒体，局部微域Ca²⁺浓度可达10-100μM，远超细胞质均值。这种直接偶联将细胞质Ca²⁺信号延迟绕过，使线粒体快速响应IP3信号，时滞从扩散所需的数秒缩短至数十毫秒，线粒体能量代谢因此与信号通路紧密同步。",
+      "description_sha256": "a2b7d30f808d3ee3d33d584f841667534971bcb60d65a7f47f8e2153fb85b896",
+      "domain": "细胞生物学",
+      "kb_id": "cell-043",
+      "name": "内质网-线粒体接触位点钙传递时滞绕过",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_4f989632bf68e7bb987f9745",
+      "type_id": "22"
+    },
+    {
+      "description": "BDNF通过TrkB受体激活多条信号通路，促进树突棘密度增加、突触蛋白合成和LTP的维持。运动、认知刺激和抗抑郁药均能上调海马体BDNF水平，而慢性应激通过糖皮质激素抑制BDNF表达，导致海马体萎缩，这条轴线是抑郁症神经可塑性受损的核心机制。",
+      "description_sha256": "729d70090f7f08e7db652b24d6cb2efe0d3ea85b3a1cda6c78cd96a71b3935b8",
+      "domain": "神经科学",
+      "kb_id": "5k-06-039",
+      "name": "脑源性神经营养因子（BDNF）与可塑性",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_5a3fc773cdf711a960f4bed7",
+      "type_id": "23"
+    },
+    {
+      "description": "突触后细胞在高度去极化时合成内源性大麻素（2-AG、AEA），这些脂质分子以逆行方式穿越突触间隙，激活突触前CB1受体，抑制神经递质释放。这种从后往前的调制机制让突触后细胞能主动调控自己接收的输入强度，参与短时程突触抑制和学习。",
+      "description_sha256": "834f1ef4529af56b574c5d9c1afd76587cb6f119022d05b93c6a2ed6d272a362",
+      "domain": "神经科学",
+      "kb_id": "5k-06-041",
+      "name": "内源性大麻素的逆行突触信号",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_36138665a6a8f612fc7ec3a7",
+      "type_id": "23"
+    },
+    {
+      "description": "正常条件下热休克因子HSF1被Hsp70持续结合保持非活性。热应激使大量蛋白质错误折叠，竞争性结合Hsp70，释放HSF1并激活热休克基因。这是竞争性阈值检测机制：只有当错误折叠蛋白质数量超过Hsp70缓冲容量时，信号才会穿透。阈值随Hsp70丰度变化，细胞可动态调整其对热应激的敏感度。",
+      "description_sha256": "2154580485290867981608ea196fa30bc45388e695ed32257a4a55baa79d5197",
+      "domain": "分子生物学",
+      "kb_id": "bio-018",
+      "name": "热休克响应的竞争性阈值感知",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_bf8e8609d661cfd53de6f76f",
+      "type_id": "24"
+    },
+    {
+      "description": "ERK的激活需要Thr202和Tyr204同时被磷酸化，单磷酸化ERK活性极低。MEK是唯一能双磷酸化ERK的激酶，而对应磷酸酶可随机去磷酸化任一位点。这种AND逻辑的双重要求产生超灵敏性：ERK在低上游信号时几乎完全无活性，超过阈值后活性突然增高。双重要求构成内在信号滤波器，抑制噪声激活，确保只有真实的持续信号才能激活ERK下游的基因表达程序。",
+      "description_sha256": "1bd7aa4b6d21ce10607c785a89ceacfcc6cfe3fa1c626c8a7c152d4a14631b72",
+      "domain": "细胞生物学",
+      "kb_id": "cell-018",
+      "name": "MAPK通路双磷酸化AND门超灵敏性",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_579247f5624e88588a206a45",
+      "type_id": "24"
+    },
+    {
+      "description": "哺乳动物受精卵早期完全依赖母源mRNA，在2-8细胞期发生合子基因组激活(ZGA)，数千个基因突然开始转录。ZGA前染色质处于特殊的低核小体密度开放状态，关键转录因子Dux到达阈值浓度后触发ZGA，同时诱导母源RNA大规模降解。这是细胞历史中最剧烈的转录状态切换，阈值驱动的单向性确保从父母基因组过渡到新个体基因组的不可逆性，奠定新生命体的表达程序。",
+      "description_sha256": "9437e850beeed1510c488f5df641f99d393489d24358c95d493955da215acfb9",
+      "domain": "细胞生物学",
+      "kb_id": "cell-050",
+      "name": "合子基因组激活的阈值驱动转录切换",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_09e2dbbfb580c8140c52b369",
+      "type_id": "24"
+    },
+    {
+      "description": "跨链桥通过在源链锁定资产、在目标链铸造等量凭证实现资产跨链。桥的安全性取决于验证机制：多签桥若大多数签名者被攻击者控制，即可任意铸造凭证；轻客户端桥虽更去中心化，但代码复杂度高，智能合约漏洞是最大风险。Ronin桥和Wormhole桥被盗合计逾10亿美元，均源于信任假设的破坏。",
+      "description_sha256": "ef9aebfd0cbba3eacee50b1f40cdcc630b6a990614db8991397a4abc3848f2a3",
+      "domain": "加密货币/DeFi",
+      "kb_id": "5k-14-040",
+      "name": "跨链桥的信任假设攻击面",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_9492369b608c14a288a73073",
+      "type_id": "27"
+    },
+    {
+      "description": "当前大多数Rollup依赖中心化排序器对交易进行排序和批处理，排序器宕机会导致整个网络无法处理新交易。虽然用户可以通过强制包含机制直接向L1提交交易，但延迟高且成本昂贵。去中心化排序器通过多节点轮换或共识机制解决单点故障，但引入了额外的协调复杂度和共识延迟。",
+      "description_sha256": "3df93bd86fb65128dc35501b0f2b5794cbbcfe5f86fa5fb55d711e71840baf08",
+      "domain": "加密货币/DeFi",
+      "kb_id": "5k-14-054",
+      "name": "Layer2排序器的单点故障风险",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_a0c06991af520b3c0a8393ba",
+      "type_id": "27"
+    },
+    {
+      "description": "早期严重逆境（虐待、忽视、贫困）会通过表观遗传机制留下持久的神经生物学痕迹，导致应激反应系统慢性高激活、海马体积缩小和前额叶功能受损。这些改变可传至下一代，但敏感期内的关爱照料可以部分逆转这些影响。",
+      "description_sha256": "88cea6ef319b4e8c0f67112b4596fcf59bc714a6f8a1432c93e06fec65fe2c58",
+      "domain": "发展心理学",
+      "kb_id": "5k-19-098",
+      "name": "童年逆境的神经生物痕迹",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_3464ed6f42c40deff64ae524",
+      "type_id": "27"
+    },
+    {
+      "description": "模型输出的置信度与实际正确率之间的差距。一个完美校准的模型在置信度为70%时应当有70%的预测是正确的。深度神经网络通常过度自信，预期校准误差用来量化这种差距，温度缩放是后处理校准的常用轻量方法。",
+      "description_sha256": "6d420dc056a72b9083016f1c6f1db873c3807def65160d5e7f6016f857ecd1a6",
+      "domain": "机器学习",
+      "kb_id": "5k-10-024",
+      "name": "校准误差",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_31b65a703280ea112638380f",
+      "type_id": "28"
+    },
+    {
+      "description": "亲代印记使特定基因只从父方或母方表达。父方基因倾向于最大化后代对母体资源的索取，而母方基因倾向于节约资源以备后续妊娠，两套等位基因表达的冲突驱动了印记机制的进化。胎盘哺乳动物中父方表达基因多促进胚胎生长，母方表达基因多抑制生长，符合这一亲子冲突预测。",
+      "description_sha256": "ffe300209ebf9d61992538e950fc36fa69f82ac90a59761fc6391c3ff7c6c34a",
+      "domain": "进化生物学",
+      "kb_id": "5k-07-015",
+      "name": "基因组印记的亲子冲突假说",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_457198bdf4ab578ed3f21df3",
+      "type_id": "28"
+    },
+    {
+      "description": "减数分裂驱动基因能偏向自身传递，在后代中出现频率超过50%，违反孟德尔分离定律。这类自私元件以牺牲宿主适合度为代价提高自身拷贝数，引发基因组内部的军备竞赛：抑制驱动元件的修饰基因被选择出来，两者的共同进化导致基因组复杂性增加而个体适合度可能持续下降。",
+      "description_sha256": "a131b41a9a27185e707036dc9f1cb83826a1909ab62df12255d810a29528f8e9",
+      "domain": "进化生物学",
+      "kb_id": "5k-07-026",
+      "name": "自私遗传元件与基因组冲突",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_7e8fce5ae42566c5ae114c84",
+      "type_id": "28"
+    },
+    {
+      "description": "线性无阈（LNT）模型假设辐射致癌风险与剂量线性正比，无安全阈值，是辐射防护的保守基础。但低剂量范围的流行病学数据不支持严格线性，部分研究显示低剂量刺激修复机制（辐射兴奋效应），该模型在科学上仍有争议。",
+      "description_sha256": "c52cb0e0c5894a187c55fc226706db5c3878790edfcd0ba77bdc505ee1594e40",
+      "domain": "核物理",
+      "kb_id": "kb5k03-057",
+      "name": "辐射剂量线性无阈模型争议",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_50b65084c99dd6540fc0f211",
+      "type_id": "29"
+    },
+    {
+      "description": "皮层的正常功能依赖兴奋性（谷氨酸）和抑制性（GABA）输入的精确平衡，两者通常高度相关地共同扩展。E/I失衡是多种神经精神疾病的共同机制：自闭症谱系障碍倾向于兴奋过度，精神分裂症中GABA能中间神经元功能减弱，癫痫则是局部E/I比例急剧升高的极端表现。",
+      "description_sha256": "3dafbf7aa7c9480512286a4ebbc6d39f7272c9002d022a1559ffbb119b59b23e",
+      "domain": "神经科学",
+      "kb_id": "5k-06-042",
+      "name": "神经元兴奋-抑制平衡失调",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_563eaee44e0447ee7490a575",
+      "type_id": "31"
+    },
+    {
+      "description": "宿主与病原体处于持续的对抗性协同进化中：宿主进化出新的抗性机制，病原体随即进化出突破机制，再触发宿主新一轮抗性进化，双方始终处于进化竞赛而非稳定平衡。该动态要求宿主维持高水平遗传多样性，被认为是有性生殖在面对克隆繁殖竞争时得以维持的重要选择压力。",
+      "description_sha256": "300e5eeac7cf735631813b9e3687000a9bf3c180faa3ebaff57cef1fefaca355",
+      "domain": "进化生物学",
+      "kb_id": "5k-07-013",
+      "name": "协同进化的红皇后动态",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_3e6d8daf54ed0bf02f186a2c",
+      "type_id": "31"
+    },
+    {
+      "description": "圆偏振光每个光子携带±ħ自旋角动量，被吸收或双折射延迟后转移给微粒使其旋转。拉盖尔-高斯光束的轨道角动量也可使非球形粒子绕光轴公转。角动量守恒定律精确决定转矩大小，光镊旋转速率与激光功率和粒子吸收截面成正比，是细胞生物学和微机械中精密驱动的工具。",
+      "description_sha256": "a468fa6b05c7c6396f64dbd976bf9651e826dd654ac0ec0987adc6f0b7bb96c5",
+      "domain": "光学/光子学",
+      "kb_id": "5k-01-091",
+      "name": "光学角动量守恒光镊旋转转矩",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_60f55c52d36ba1acf8db14b3",
+      "type_id": "37"
+    },
+    {
+      "description": "细菌遭受噬菌体侵染后，Cas1-Cas2复合体识别入侵DNA上的PAM序列，切取短片段整合到CRISPR阵列前导端作为新间隔序列。整合过程利用阵列重复序列的保守结构作为锚定位点，以半保留方式插入并修复，不依赖DNA复制。新间隔序列的获取为该细胞后代提供针对同一噬菌体的免疫记忆，是原核生物获得性免疫的分子机制。",
+      "description_sha256": "4f9e5ced87c3f56ef6729a510f0ddcca7647c0f6f61277501c1e4de42045ec10",
+      "domain": "微生物学",
+      "kb_id": "5k-07-078",
+      "name": "CRISPR-Cas系统的间隔序列获取",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_fb38ee6b506932e92235ace1",
+      "type_id": "37"
+    },
+    {
+      "description": "链上稳定币借贷利率通过套利机制与传统金融市场的短期利率间接联动。当美联储加息使无风险利率上升时，机构套利者从DeFi借贷市场撤出资金转向传统市场，链上流动性减少导致DeFi利率上升以恢复均衡。这条传导链使DeFi利率无法完全独立于宏观货币政策。",
+      "description_sha256": "5270fbcf3705d8430d66182129a2713cdd5565cde63c20b32bec3e197499face",
+      "domain": "加密货币/DeFi",
+      "kb_id": "5k-14-065",
+      "name": "稳定币利率的货币政策传导",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_40a3eb91a742bcedf9dae725",
+      "type_id": "38"
+    },
+    {
+      "description": "VIX期货通常处于升水状态，持有多头头寸时随着期货到期接近现货，较高价格的期货合约持续向较低的现货回归，产生负向展期收益。长期做多波动率的投资者承受巨大展期损耗，这也是VIX相关ETF长期表现远差于现货VIX指数的根本原因。",
+      "description_sha256": "2aba8127426577efc6a556a413c90d33be3595049973fbf848978f3d418e0ad9",
+      "domain": "衍生品",
+      "kb_id": "5k-14-008",
+      "name": "波动率期货的展期损耗机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ee9e769c629fac75af35f284",
+      "type_id": "38"
+    },
+    {
+      "description": "细菌通过分泌并感测自诱导信号分子来评估种群密度。当信号分子浓度达到阈值时，整个种群同步激活毒力基因、生物膜基因或荧光素酶等协作行为基因。信号-响应曲线通常表现为陡峭的超敏开关而非线性响应，这是正反馈（自诱导信号激活自身合成基因）赋予种群群感协调精确同步性的机制原因。",
+      "description_sha256": "90c8ae3fac71ca3eb6f67765c9978ef6400ab07f5276ba110960aecc544fea0f",
+      "domain": "微生物学",
+      "kb_id": "5k-07-081",
+      "name": "群感效应的同步诱导阈值",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_6ab0acf57822409bc1bb6893",
+      "type_id": "40"
+    },
+    {
+      "description": "高企的住房成本推迟了年轻人独立居住和婚育的时间节点，而推迟导致的低出生率减少了未来家庭形成需求，在人口收缩预期下反而可能强化住房的资产增值属性，吸引更多投资性购买，进一步推高房价。住房政策因此不只是经济问题，其人口影响通过家庭形成机制形成跨代际传导的反馈回路。",
+      "description_sha256": "eb821524a13940e7047aa58da944bb5d185fb3fd91cdf4d363d4f0b74c72e0df",
+      "domain": "人口学",
+      "kb_id": "5k-20-072",
+      "name": "住房市场与家庭形成的反馈循环",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_d4a65733398a72b1663fda29",
+      "type_id": "41"
+    },
+    {
+      "description": "细胞质中出现DNA时，cGAS识别并催化合成cGAMP，cGAMP激活内质网跨膜蛋白STING，STING寡聚化后招募TBK1-IRF3级联，最终诱导干扰素表达。这条线性级联放大信号的同时保持特异性：每步均需特定识别，非DNA物质无法触发相同级联。cGAMP的跨细胞传递使免疫信号扩散至邻近细胞，实现局部信号的组织级放大。",
+      "description_sha256": "a926b22f65bf8c605d8a9f1c7d634f5f93b9d169c0d9b0a587124ada1adefe19",
+      "domain": "分子生物学",
+      "kb_id": "bio-044",
+      "name": "cGAS-STING的自DNA级联免疫感应",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_5d3c09790a10d53b0b38cce4",
+      "type_id": "42"
+    },
+    {
+      "description": "志贺毒素的A亚基是N-糖苷酶，特异性切除28S rRNA中保守的腺嘌呤残基，破坏延伸因子结合位点，使核糖体永久失活，蛋白质合成停止导致细胞死亡。B亚基五聚体识别宿主细胞表面Gb3糖脂受体，介导毒素内吞并逆向转运至内质网再送达胞质。肾小球内皮细胞高表达Gb3，解释了志贺毒素相关溶血尿毒综合征的肾脏选择性损伤。",
+      "description_sha256": "23bc3cbebd5f528b926cde25f03e89c9d1bbce95dbca3cd81b7ae1f16302dc21",
+      "domain": "微生物学",
+      "kb_id": "5k-07-084",
+      "name": "志贺毒素的核糖体失活机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_40fbccb043cfeb474422bddd",
+      "type_id": "42"
+    },
+    {
+      "description": "弓形虫通过细胞内分泌细胞器（棒状体）直接向宿主细胞注射效应蛋白。ROP16激酶直接磷酸化宿主STAT3/6，持续激活抗炎基因表达；GRA24直接激活宿主p38 MAPK途径。这些效应蛋白操控宿主免疫信号网络，将宿主细胞重编程为有利于弓形虫存活的表型。弓形虫因此成为研究宿主-寄生虫互作分子机制的重要模型系统。",
+      "description_sha256": "5cd931fa44a5f1749cdb5ef4f3373454e2cc2304445901cf315380fca17ea29f",
+      "domain": "微生物学",
+      "kb_id": "5k-07-094",
+      "name": "弓形虫棒状体蛋白的宿主转录操控",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_1e225cb19265e5d81c950d5e",
+      "type_id": "42"
+    },
+    {
+      "description": "有丝分裂末期APC/C降解cyclin B，CDK1活性下降，释放其靶标上的磷酸酶PP2A和PP1活性，去磷酸化CDK1靶标。PP1和PP2A的激活又进一步抑制CDK1，形成多重放大的负向级联。这个磷酸酶级联产生比CDK1降解本身更快速的出口信号，确保有丝分裂状态的快速崩塌而非缓慢退出，维持细胞周期的单向性，防止有丝分裂中间状态的不当停留。",
+      "description_sha256": "170974f4914fc41e70d56fa3af248353c7b8d84c259e7383f451f9f737dc8cc4",
+      "domain": "细胞生物学",
+      "kb_id": "cell-014",
+      "name": "有丝分裂出口的磷酸酶正反馈级联",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_9db8fadeb75655fe875ac844",
+      "type_id": "42"
+    },
+    {
+      "description": "凋亡信号激活少量caspase-9，caspase-9切割激活caspase-3，caspase-3反过来可正反馈激活更多caspase-9。XIAP等IAP蛋白持续抑制caspase，仅当促凋亡信号超过XIAP缓冲容量时，级联信号突破阈值形成不可逆的数字式全激活。一旦越过阈值，细胞凋亡在数分钟内无法逆转，这种全或无特性防止细胞在应激下半途开始凋亡又停止，产生中间危险状态。",
+      "description_sha256": "a4062744a2980024029bc80e1ccdb435b07032c4b926c94a4068603f0fa6be40",
+      "domain": "细胞生物学",
+      "kb_id": "cell-023",
+      "name": "凋亡Caspase级联的不可逆数字开关",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_bf9ffb822a36156b04c50456",
+      "type_id": "42"
+    },
+    {
+      "description": "NLRP3炎症小体激活分两步：第一步NF-κB信号上调NLRP3和pro-IL-1β表达；第二步危险信号触发NLRP3寡聚化，招募ASC形成丝状聚集体，ASC再招募pro-caspase-1形成多蛋白级联平台，活化的caspase-1切割pro-IL-1β和GSDMD，后者在质膜打孔引发炎症性细胞焦亡。两步激活设计避免单一信号意外触发这一不可逆事件，防止正常细胞代谢活动误触炎症性死亡。",
+      "description_sha256": "2096b46d2381f681e9d9110542fe6f793c81369aa1524589f7ed2da072e05a9c",
+      "domain": "细胞生物学",
+      "kb_id": "cell-044",
+      "name": "NLRP3炎症小体的两步不可逆组装",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_8a1aa45f5f273f4a1c8fb091",
+      "type_id": "42"
+    },
+    {
+      "description": "CTCF结合基因组上数万个位点，与Cohesin协作形成染色质环锚定点，将基因组分割为相对独立的拓扑关联域(TAD)。增强子的激活效应通常被限制在同一TAD内，CTCF结合位点突变可导致相邻TAD边界消失，使增强子跨域误激活癌基因。TAD是三维基因组中的功能模块单元，边界突变是某些癌症的驱动机制之一。",
+      "description_sha256": "5a333a502178008ec8d46728fef834057f8436db14943158e23ee5ce09a65289",
+      "domain": "分子生物学",
+      "kb_id": "bio-039",
+      "name": "染色质TAD边界的增强子限域",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ad1fefa08cadda74203f6232",
+      "type_id": "43"
+    },
+    {
+      "description": "分泌蛋白和外膜蛋白在N端携带15-30个氨基酸的信号肽，其中含有疏水核心序列，被信号识别颗粒或SecB分子伴侣识别并引导到分泌通道。分泌后信号肽被信号肽酶切除。细菌双精氨酸转位途径还能识别N端含双精氨酸基序的已折叠蛋白，在不解折叠的情况下将其转运穿膜，满足了需要在胞质侧完成辅因子装配的蛋白质的转运需求。",
+      "description_sha256": "f5bc3916a8a3bda3a6132a29b884a58afd3b3271c40f6c6c40fd23decfadac9a",
+      "domain": "微生物学",
+      "kb_id": "5k-07-085",
+      "name": "蛋白质分选的信号肽引导机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_4f5e0e3920d1ec187ea4e778",
+      "type_id": "43"
+    },
+    {
+      "description": "细胞质和溶酶体腔内存在多组平行的氨基酸传感器：CASTOR1感知精氨酸，SAMTOR感知SAM，SLC38A9感知腔内亮氨酸，v-ATPase活性反映整体氨基酸水平。多路感应结果汇聚到Ragulator复合体，决定mTORC1是否被招募到溶酶体表面激活。这是模块化AND门逻辑：多种营养状态信号需同时满足才触发mTORC1激活，防止单一氨基酸充足时误判整体营养状态。",
+      "description_sha256": "c3c8dc7c77e9da7d5b8917ee0efdad5345b62d877f2e1c1c70c3a904b13d8774",
+      "domain": "细胞生物学",
+      "kb_id": "cell-028",
+      "name": "mTORC1多传感器AND门营养整合",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_35588a0828b0e95097c390d2",
+      "type_id": "43"
+    },
+    {
+      "description": "大多数哺乳动物细胞在静止期伸出单根原发纤毛，纤毛膜富集Hedgehog通路、PDGFR等关键受体，将信号强度提高10-100倍。纤毛腔室是高度隔离的信号区间：Smo受体只在纤毛内被激活，Gli转录因子也在纤毛内被加工处理。这种空间隔离的模块确保信号的精确性，纤毛相当于可进行特异化信号处理的细胞突出部，破坏纤毛组装会导致Hedgehog信号几乎完全丧失。",
+      "description_sha256": "6d9dfe090c38fb4861c970919a622bef188e28a71c40e850c98f93a0451ae8c5",
+      "domain": "细胞生物学",
+      "kb_id": "cell-029",
+      "name": "原发纤毛的空间隔离信号天线",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_b1701fa49ae3f5da1131b3d6",
+      "type_id": "43"
+    },
+    {
+      "description": "G蛋白偶联受体激活后，Gα-GTP与βγ二聚体分离，两者各自激活不同下游效应器：Gαs激活腺苷酸环化酶，βγ独立激活PI3Kγ、GIRK钾通道和PLCβ。β-arrestin额外招募另一套与G蛋白无关的信号分子。每个受体通过支路拓扑连接数十个下游节点，形成高度模块化的信号网络，允许单一配体通过不同效应器亚型的组合激活产生细胞类型特异性的响应。",
+      "description_sha256": "b745ad18f477aad155f1bb6fb65c9918916c4483c263d5933a667d9d39412879",
+      "domain": "细胞生物学",
+      "kb_id": "cell-035",
+      "name": "G蛋白βγ亚基的并行信号分流",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_fc35bd7fe11337b99a0f52fa",
+      "type_id": "43"
+    },
+    {
+      "description": "磷脂酰肌醇(4,5)二磷酸(PIP2)主要分布在质膜内叶，招募多种膜骨架蛋白和信号蛋白，定义质膜的功能域。PLCβ水解PIP2产生IP3和DAG，局部PIP2耗尽形成信号域的边界，防止相邻区域被同一信号激活。PI4K5K持续合成PIP2维持稳态，使质膜信号域具有动态稳定性：局部活跃消耗与全局合成补充形成空间模块化的稳态格局，每个信号事件局限于特定质膜区域。",
+      "description_sha256": "5949475e83d25000d562891a29e145b7b19c302e9aabf98f19de9ebf692f99bb",
+      "domain": "细胞生物学",
+      "kb_id": "cell-040",
+      "name": "PIP2的质膜空间模块化信号域",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_6cc44d38d60b85a5c15ca236",
+      "type_id": "43"
+    },
+    {
+      "description": "早期人口转型理论以西欧经验为模板，预设高死亡率先降、出生率后降的标准序列，以及经济发展与生育率下降的因果关系。但撒哈拉以南非洲、东亚和南亚的转型历程显示，转型速度、驱动因素和最终稳定点均因文化、宗教、政策和国际环境的不同而呈现根本性差异，不存在单一的现代化收敛轨迹。",
+      "description_sha256": "c0a0d4cbefb548bfbe06bb2c56ea39e34e9e9da946b1facc4806739ab6b4ed11",
+      "domain": "人口学",
+      "kb_id": "5k-20-076",
+      "name": "人口转型的多样化路径",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_f480cd602318ae7dd5221c26",
+      "type_id": "44"
+    },
+    {
+      "description": "革兰氏阴性菌持续从外膜出芽形成含周质物质的囊泡（OMV），直径20-300纳米。OMV携带脂多糖、外膜蛋白、蛋白酶和毒素，可远距离递送毒力因子至宿主细胞，也能触发宿主免疫响应或作为诱饵竞争结合抗体。OMV组成受环境压力调节，抗生素处理下产量大幅增加，可能是细菌传播已产生的毒力因子同时保护活菌细胞的应激响应机制。",
+      "description_sha256": "634ff0d791f095748d87c01b58a0d495832dc769658caf2dbccd574124f8efd8",
+      "domain": "微生物学",
+      "kb_id": "5k-07-087",
+      "name": "细菌外膜囊泡与毒力因子递送",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_33bb5a52c902d183600091d7",
+      "type_id": "45"
+    },
+    {
+      "description": "流感病毒的PA-PB2聚合酶复合体结合宿主核内前体mRNA的5'帽结构，由PA亚基切取10-13个核苷酸，用作自身mRNA合成的引物，此过程称为帽子抢夺。被切割的宿主mRNA因缺乏帽结构而不稳定，翻译停止并被降解。这一机制在劫持宿主翻译机器的同时还下调了宿主基因表达，是RNA病毒操控宿主的精妙策略。",
+      "description_sha256": "e30524f1e50d8a419b3c564421ac39ad3d65bdd5d72c49dd2b6e6827ff00f8fb",
+      "domain": "微生物学",
+      "kb_id": "5k-07-098",
+      "name": "病毒RNA帽结构抢夺宿主翻译资源",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_a6685bd46890d4c12384ce6a",
+      "type_id": "45"
+    },
+    {
+      "description": "锥虫全身覆盖约1000万个变异表面糖蛋白（VSG）分子，构成免疫屏障。VSG基因库含约2000个，但每次只有一个位于特殊表达位点的VSG基因转录。以约0.01%的概率发生随机位点切换，使少数子代虫体改变VSG类型。宿主免疫系统清除优势抗原型的同时，已切换的少数虫体逃逸并再次增殖，形成持续的波动性血症，使慢性感染长期持续。",
+      "description_sha256": "ebc90d76cd57ca93d02b0bdc194d62856c0f7921b35f2fad04e4cac3a0538d35",
+      "domain": "微生物学",
+      "kb_id": "5k-07-099",
+      "name": "原虫变异表面糖蛋白的随机切换",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_49c1fa322f912981601138d3",
+      "type_id": "45"
+    },
+    {
+      "description": "健康肠道菌群通过多重机制阻止病原体定植：竞争同一营养位点和上皮附着受体；产生细菌素、短链脂肪酸等抑制性代谢物；激活上皮细胞分泌防御素；维持黏液层厚度和IgA抗体库。广谱抗生素破坏定植抵抗导致艰难梭菌机会性感染，粪菌移植通过恢复菌群多样性重建定植抵抗，从而治愈复发性感染。",
+      "description_sha256": "36ae1a0eb9a5e2a988134c20693d8a3dedee9b27a8fd8b4e24f21f01e9ac9867",
+      "domain": "微生物学",
+      "kb_id": "5k-07-089",
+      "name": "肠道微生物组的定植抵抗机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_c9ba6cbd3b9a325ff77a8644",
+      "type_id": "46"
+    },
+    {
+      "description": "在pH 0-3条件下生存的嗜酸菌维持胞质接近中性pH（约6.5），依靠强力质子泵将进入的质子快速外排。其细胞膜磷脂组成富含特殊脂肪酸，减少质子被动渗漏；外表面蛋白质在低pH下稳定折叠，携带大量正电荷以排斥质子靠近。某些嗜酸古菌还使用四醚脂而非双层脂膜，形成单层脂膜，彻底消除跨膜质子渗漏路径。",
+      "description_sha256": "044312d12f9f7b6539ecf2b4a8a5e90c04b72c40205fcdb7f9ecc3d6343c5f67",
+      "domain": "微生物学",
+      "kb_id": "5k-07-092",
+      "name": "嗜极微生物嗜酸机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_923a08ded867e32ca90b5f77",
+      "type_id": "47"
+    },
+    {
+      "description": "德国闪电战的制胜逻辑依赖装甲部队高速突破，但突破速度越快，补给线拉得越长、越脆弱。苏联反击莫斯科时德军装甲部队已因燃料和备件耗尽而停滞，证明闪电战存在无法消除的后勤临界距离。",
+      "description_sha256": "efcbb5774ef4f1758672cca6a6c2cc49a6521ff2af3ea7ae1ccbabce1ac6d7db",
+      "domain": "军事史/战略",
+      "kb_id": "5k-26-044",
+      "name": "闪电战的后勤临界点",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_cb44b2fe962105448e939c8a",
+      "type_id": "52"
+    },
+    {
+      "description": "委托人希望官僚机构忠实执行政策意图，但又依赖官僚的专业知识。官僚掌握信息优势，可以通过选择性报告、行政拖延和规则解释来扩大自主空间。委托人应对代理问题的机制——详细规则、激励合约和监督机构——本身具有管理成本，且可能压制有益的行政自主性，最优控制水平本质上是政治决策而非技术问题。",
+      "description_sha256": "dc2a678db4d5922a70f4e72f8fc4991334e84ef80f8744ab7b233944b6b2fc1b",
+      "domain": "政治学",
+      "kb_id": "5k-20-047",
+      "name": "官僚自主性与政治控制的张力",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_2eb1929f8841a7b3f1f92b39",
+      "type_id": "52"
+    },
+    {
+      "description": "各政治单元（国家、地区、城市）在采纳政策创新时会观察他者的试验结果并进行因果推断，而非独立决策。这种学习具有竞争性维度：当政策被视为提升竞争力的手段时，扩散速度加快，但也可能导致对片面成功案例的过度模仿和负面后果的系统性低估。政策扩散因此既是知识传播机制，也是竞争激励下的模仿行为。",
+      "description_sha256": "f73e1610461883d5f0a4d18b4630892f758a231ce6ceb98b4f5671ac709eef90",
+      "domain": "政治学",
+      "kb_id": "5k-20-059",
+      "name": "政策扩散的竞争性学习",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_782514ab0d2054ef11b62595",
+      "type_id": "52"
+    },
+    {
+      "description": "动物在导航任务后的休息期间，海马体神经元会以压缩约20倍的速度重现白天的放电序列，且前向和反向重放均有出现。反向重放尤其有利于逆向学习奖励路径，而睡眠中的重放被认为是长期记忆巩固的核心机制。",
+      "description_sha256": "16b4f367ab5d8b5786dc4bfda832109caea2a45d9aab8e0652c7ceae363e03cb",
+      "domain": "神经科学",
+      "kb_id": "5k-06-019",
+      "name": "神经序列重放与记忆巩固",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_e5de8e1b8a3a16b8204e5e24",
+      "type_id": "52"
+    },
+    {
+      "description": "Cas9蛋白由向导RNA引导寻找目标序列，但对匹配要求并非绝对严格。基因组中与目标高度相似的序列也可能被切割，尤其是靠近PAM位点的末端错配往往被容忍。脱靶概率随向导RNA长度减短和基因组序列相似度升高而显著上升。",
+      "description_sha256": "74c0aeb5f80df39f471e7b4ce4f858f01cf5b64fa52d3062b128d15c5fd75e39",
+      "domain": "基因编辑/合成生物学",
+      "kb_id": "5k-27-036",
+      "name": "CRISPR脱靶效应机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_d7f7f2c47343753b1b614baf",
+      "type_id": "54"
+    },
+    {
+      "description": "Prime编辑器使用改造过的Cas9切割单链，再由融合的逆转录酶以向导RNA的延伸部分为模板，将新序列逆转录写入切口位置。可实现所有12种点突变类型及小片段插入缺失，无需提供双链模板，拓展了精准编辑的适用范围。",
+      "description_sha256": "09a958e769b03348bc947f6012f8c842342d5cc6ad6c0a637c0d1e4284ac1aab",
+      "domain": "基因编辑/合成生物学",
+      "kb_id": "5k-27-046",
+      "name": "Prime编辑逆转录写入机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_94f535071f18412ff1cd8911",
+      "type_id": "54"
+    },
+    {
+      "description": "在单一维度的政策空间中，赢得多数所需的决定性选票来自中位选民，因此两党在竞争中都受到向中间靠拢的激励。然而这一收敛预测在现实中受到原生支持者极化、党内初选制度和身份认同政治的反向约束，党派实际立场与中位选民位置的背离程度成为衡量政治体系代表性失灵的重要指标。",
+      "description_sha256": "b08462ab6a953ab75015311fd8978be4a5ff41a3f3918dd1f98a3ca65ad8b4f7",
+      "domain": "政治学",
+      "kb_id": "5k-20-042",
+      "name": "政治联盟的中位选民引力",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_813c3b5247df2edd0e100d2f",
+      "type_id": "54"
+    },
+    {
+      "description": "与流行预期相反，群体讨论并不总是导致立场中和，而往往使群体走向比个体初始立场更为极端的结论。机制在于讨论中倾向某方向的论据数量优势不断得到强化，且成员有向群体中显得坚定的社会激励。这一效应在同质性群体中尤为突出，为理解立场一致的政策委员会、上诉法庭和派系小组的决策偏差提供了心理社会学解释。",
+      "description_sha256": "b6b14f8bff50afae44b644a6539d9363cd0254013c2081d3e7eb380816ad9ed1",
+      "domain": "政治学",
+      "kb_id": "5k-20-091",
+      "name": "群体决策的极化漂移",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_80510e58fb6d372d8da7126c",
+      "type_id": "54"
+    },
+    {
+      "description": "应激条件下翻译起始受阻，大量mRNA与G3BP等蛋白质共同液相分离形成压力颗粒。不同mRNA在颗粒中的聚集程度不同：翻译效率低的mRNA优先进入颗粒储存，重要持家基因mRNA优先留在活跃翻译池中。液滴式分拣利用蛋白质-RNA相互作用的亲和力差异作为分诊依据，在有限翻译资源下优化细胞存活策略，实现有序的资源重分配。",
+      "description_sha256": "147d91b1b2ccf7783b92fa6a1061988a5b629cc3aec0bb2c2e918d2b8f468755",
+      "domain": "分子生物学",
+      "kb_id": "bio-048",
+      "name": "压力颗粒的mRNA液相分诊机制",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_dcc2ff889bdb1ed2c0b84314",
+      "type_id": "55"
+    },
+    {
+      "description": "核质之间RanGTP/GDP比率存在数量级差异：细胞核中Ran主要为GTP形式，细胞质中主要为GDP形式。出核货物在核内高RanGTP环境中与输出受体形成复合体，入核货物在核内高RanGTP下被卸下。跨核孔的方向性由自由能梯度驱动，熵增方向（RanGTP扩散至细胞质）与主动的RCC1催化循环相平衡，维持稳定梯度，这是熵梯度直接驱动大分子定向运输的典型案例。",
+      "description_sha256": "9ea1a6aef6110be148876fc8ea3b5d2f13dea9855dada65d1f647008d1543e94",
+      "domain": "细胞生物学",
+      "kb_id": "cell-026",
+      "name": "核孔运输的RanGTP熵梯度驱动",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_33bc5e16aaceb9d5dcd474e1",
+      "type_id": "55"
+    },
+    {
+      "description": "溶酶体v-ATPase利用ATP水解自由能将质子泵入溶酶体腔，维持腔内pH4.5，比细胞质低约100倍。酸性环境激活多种水解酶并优化其催化效率。这是典型的耗散产序：消耗化学自由能建立质子浓度梯度（熵减），换取水解酶的高效催化状态，最终以有序降解生物大分子为目的。溶酶体腔的极端低pH是通过持续能量投入对抗质子泄漏来维持的动态稳态。",
+      "description_sha256": "0d62cd24c25887e6a3ad3e0f9589b5d76a56dec6e82ba57e32568008b4edf580",
+      "domain": "细胞生物学",
+      "kb_id": "cell-038",
+      "name": "溶酶体v-ATPase的耗散产序催化环境",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_c1d5e918009c904ba76cc563",
+      "type_id": "55"
+    },
+    {
+      "description": "中心体每次细胞周期中只复制一次。PLK4激酶被招募到亲中心体后启动前中心体蛋白组装，一旦子中心体形成，STIL被消耗且亲中心体上PLK4结合位点被占据，阻止第二轮复制开始。这种单次执照机制类似DNA复制的复制许可，通过资源耗竭而非主动抑制确保精确一次复制，防止多中心体产生导致的多极纺锤体和染色体不稳定。",
+      "description_sha256": "ec6e311e99dc22be9d0e586818b191cd78d83a200d13c93a0de955803eb382e8",
+      "domain": "细胞生物学",
+      "kb_id": "cell-019",
+      "name": "中心体复制的资源耗竭单次执照",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_699cd9cf1d58a8c396e902a3",
+      "type_id": "58"
+    },
+    {
+      "description": "任何绩效指标一旦成为控制目标，就会失去其作为绩效指标的价值，因为系统会围绕指标本身进行优化而非围绕指标所代理的实质目标。英国国家医疗系统降低急诊等待时间的考核导致将快死的病人放在救护车里计时。",
+      "description_sha256": "b15e4ad90194b9d43ec9b5ed616011111afedd77f551091ea0f55d35770c927a",
+      "domain": "公共管理",
+      "kb_id": "5k-26-079",
+      "name": "绩效指标的古德哈特定律",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_700a109dc03559eb1a77d899",
+      "type_id": "61"
+    },
+    {
+      "description": "硅酸盐岩石在雨水和生物活动下缓慢风化，消耗大气CO2并将钙镁离子和碳酸氢根输送入海，最终以碳酸钙形式沉积，将碳封存数亿年。这一过程是地球碳循环的负反馈调节机制：气候变暖加速风化，消耗更多CO2，使温度长期趋于稳定。",
+      "description_sha256": "bfaee4125439bbb1f4a0dc894c3dfee2f94fd556bd2a15bd24cfff78e94b703f",
+      "domain": "环境科学",
+      "kb_id": "5k-18-047",
+      "name": "大气二氧化碳的岩石风化长期汇",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_4a2832f9423a3163b5070699",
+      "type_id": "64"
+    },
+    {
+      "description": "多个市场参与者设置相近水平的止损单，当价格触及该水平时大量止损单同时触发，产生集中的单向卖出压力，价格被进一步推低触发更多止损，形成自我强化的流动性螺旋。这种机制在2010年美股闪崩和外汇市场突然跳空中均有体现，是微观结构风险的典型形态。",
+      "description_sha256": "1d907b33a769cdf63f27d95d3a34869117a3ce470d90b0490dd5f8cc906ad05f",
+      "domain": "风险管理",
+      "kb_id": "5k-14-029",
+      "name": "止损触发的流动性螺旋",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ed47cdb4812a8a3bcd9c35ba",
+      "type_id": "66"
+    },
+    {
+      "description": "沙堆模型中持续缓慢加沙使坡度趋向临界角，超过临界坡度的沙粒触发雪崩，可能波及整个沙堆。雪崩大小分布遵循幂律，没有特征尺度，系统自发维持在临界态而无需调节参数。这是自组织临界性的原型：驱动与耗散的慢速分离使系统自动找到临界点，地震震级、神经元级联放电和市场崩盘的幂律统计均被归因于此机制。",
+      "description_sha256": "50b848f95bdc5efa544d5445d584b9c3dfa58210fd893c08b4440601d8620d6a",
+      "domain": "统计力学",
+      "kb_id": "kb5k02-100",
+      "name": "沙堆模型自组织临界雪崩",
+      "priority_score": 7,
+      "required_review_fields": [
+        "source_url",
+        "citation",
+        "license",
+        "provenance_class",
+        "source_review",
+        "reviewer_id",
+        "reviewed_at",
+        "note"
+      ],
+      "task_id": "kbs_ad1097aace1bad26e49fd93d",
+      "type_id": "68"
+    }
+  ]
+}
