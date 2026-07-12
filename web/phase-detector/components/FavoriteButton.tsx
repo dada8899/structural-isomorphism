@@ -53,10 +53,10 @@ export function FavoriteButton({
   // Hydrate from server (or localStorage if anon) on mount.
   useEffect(() => {
     let cancelled = false;
-    setSignedIn(isSignedIn());
     fetchFavorites()
       .then((list) => {
         if (cancelled) return;
+        setSignedIn(isSignedIn());
         const has = list
           .map((t) => t.toUpperCase())
           .includes(ticker.toUpperCase());

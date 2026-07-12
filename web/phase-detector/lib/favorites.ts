@@ -13,9 +13,12 @@
 // All reads/writes are SSR-safe. Failures never throw to the caller.
 
 const ANON_KEY = "phase_favorites_anon";
-const MERGED_FLAG_KEY = "phase_favorites_merged_v1";
-
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const FAVORITES_API_BASE = API_BASE.endsWith("/api")
+  ? API_BASE
+  : `${API_BASE}/api`;
+let sessionAuthenticated: boolean | null = null;
+let lastMergeNotice: { merged: number; dropped: number } | null = null;
 
 interface AnonEnvelope {
   v: 1;
@@ -73,7 +76,11 @@ function getApiKeyHeader(): Record<string, string> {
 }
 
 export function isSignedIn(): boolean {
-  return Object.keys(getApiKeyHeader()).length > 0;
+  return sessionAuthenticated === true || Object.keys(getApiKeyHeader()).length > 0;
+}
+
+export function markFavoritesSignedOut(): void {
+  sessionAuthenticated = false;
 }
 
 export function getAnonFavorites(): string[] {
@@ -89,36 +96,75 @@ export function clearAnonFavorites(): void {
   }
 }
 
+export function consumeFavoriteMergeNotice(): {
+  merged: number;
+  dropped: number;
+} | null {
+  const notice = lastMergeNotice;
+  lastMergeNotice = null;
+  return notice;
+}
+
 // ---------------- server fetchers ----------------
 
-/** GET /api/favorites — returns server's source of truth. Falls back to
- * the anon bucket when offline / not signed in. */
-export async function fetchFavorites(): Promise<string[]> {
-  if (!isSignedIn()) {
-    return readAnon();
-  }
+interface ServerFavorites {
+  tickers: string[];
+  authenticated: boolean;
+}
+
+async function fetchServerFavorites(): Promise<ServerFavorites | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/favorites`, {
+    const res = await fetch(`${FAVORITES_API_BASE}/favorites`, {
       cache: "no-store",
       headers: getApiKeyHeader(),
+      credentials: "include",
     });
-    if (!res.ok) return readAnon();
-    const json = (await res.json()) as { tickers?: string[] };
-    if (Array.isArray(json?.tickers)) {
-      return json.tickers
-        .filter((t): t is string => typeof t === "string")
-        .map((t) => t.toUpperCase());
+    if (!res.ok) {
+      if (res.status === 401) sessionAuthenticated = false;
+      return null;
     }
-    return [];
+    const json = (await res.json()) as {
+      tickers?: string[];
+      authenticated?: boolean;
+    };
+    const authenticated = json?.authenticated === true;
+    sessionAuthenticated = authenticated;
+    return {
+      authenticated,
+      tickers: Array.isArray(json?.tickers)
+        ? json.tickers
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.toUpperCase())
+        : [],
+    };
   } catch {
-    return readAnon();
+    return null;
   }
+}
+
+/** GET /api/favorites — authenticated server state is authoritative.
+ * Anonymous and unavailable states retain the local bucket. */
+export async function fetchFavorites(): Promise<string[]> {
+  const server = await fetchServerFavorites();
+  if (!server?.authenticated) return readAnon();
+
+  const anon = readAnon();
+  if (anon.length === 0) return server.tickers;
+  const merged = await mergeAnonIntoUser();
+  if (merged) {
+    const refreshed = await fetchServerFavorites();
+    if (refreshed?.authenticated) return refreshed.tickers;
+  }
+  return server.tickers;
 }
 
 /** Add a ticker. Returns the resolved boolean state (true=favorited). */
 export async function addFavorite(ticker: string): Promise<boolean> {
   const t = ticker.trim().toUpperCase();
   if (!t) return false;
+  if (sessionAuthenticated === null && Object.keys(getApiKeyHeader()).length === 0) {
+    await fetchServerFavorites();
+  }
   if (!isSignedIn()) {
     const existing = readAnon();
     if (!existing.includes(t)) {
@@ -128,13 +174,20 @@ export async function addFavorite(ticker: string): Promise<boolean> {
   }
   try {
     const res = await fetch(
-      `${API_BASE}/api/favorites/${encodeURIComponent(t)}`,
+      `${FAVORITES_API_BASE}/favorites/${encodeURIComponent(t)}`,
       {
         method: "POST",
         headers: getApiKeyHeader(),
+        credentials: "include",
       },
     );
     if (res.status === 201 || res.status === 200) {
+      return true;
+    }
+    if (res.status === 401 && Object.keys(getApiKeyHeader()).length === 0) {
+      markFavoritesSignedOut();
+      const existing = readAnon();
+      if (!existing.includes(t)) writeAnon([...existing, t]);
       return true;
     }
     if (res.status === 429) {
@@ -155,6 +208,9 @@ export async function addFavorite(ticker: string): Promise<boolean> {
 export async function removeFavorite(ticker: string): Promise<boolean> {
   const t = ticker.trim().toUpperCase();
   if (!t) return false;
+  if (sessionAuthenticated === null && Object.keys(getApiKeyHeader()).length === 0) {
+    await fetchServerFavorites();
+  }
   if (!isSignedIn()) {
     const existing = readAnon();
     writeAnon(existing.filter((x) => x !== t));
@@ -162,13 +218,19 @@ export async function removeFavorite(ticker: string): Promise<boolean> {
   }
   try {
     const res = await fetch(
-      `${API_BASE}/api/favorites/${encodeURIComponent(t)}`,
+      `${FAVORITES_API_BASE}/favorites/${encodeURIComponent(t)}`,
       {
         method: "DELETE",
         headers: getApiKeyHeader(),
+        credentials: "include",
       },
     );
     if (res.status === 204 || res.status === 200) {
+      return false;
+    }
+    if (res.status === 401 && Object.keys(getApiKeyHeader()).length === 0) {
+      markFavoritesSignedOut();
+      writeAnon(readAnon().filter((x) => x !== t));
       return false;
     }
     throw new Error(`favorite remove failed: ${res.status}`);
@@ -177,48 +239,40 @@ export async function removeFavorite(ticker: string): Promise<boolean> {
   }
 }
 
-/** One-time post-login merge. Idempotent via localStorage flag. */
+/** Post-login merge. Server union is idempotent; only confirmed accepted
+ * entries are removed locally. Cap-dropped entries remain on this device. */
 export async function mergeAnonIntoUser(): Promise<{
   merged: number;
   dropped: number;
 } | null> {
-  if (!isSignedIn()) return null;
   if (typeof window === "undefined") return null;
-  try {
-    if (window.localStorage.getItem(MERGED_FLAG_KEY) === "1") return null;
-  } catch {
-    // ignore — proceed (worst case: re-merge, which is idempotent server-side)
+  if (sessionAuthenticated !== true && Object.keys(getApiKeyHeader()).length === 0) {
+    const server = await fetchServerFavorites();
+    if (!server?.authenticated) return null;
   }
   const anon = readAnon();
   if (anon.length === 0) {
-    try {
-      window.localStorage.setItem(MERGED_FLAG_KEY, "1");
-    } catch {
-      // ignore
-    }
     return { merged: 0, dropped: 0 };
   }
   try {
-    const res = await fetch(`${API_BASE}/api/favorites/merge`, {
+    const res = await fetch(`${FAVORITES_API_BASE}/favorites/merge`, {
       method: "POST",
       headers: { ...getApiKeyHeader(), "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ tickers: anon }),
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {
       tickers?: string[];
+      merged?: string[];
       dropped?: string[];
     };
-    const finalCount = json?.tickers?.length ?? 0;
     const dropped = json?.dropped?.length ?? 0;
-    // Success — clear anon bucket + mark merged.
-    clearAnonFavorites();
-    try {
-      window.localStorage.setItem(MERGED_FLAG_KEY, "1");
-    } catch {
-      // ignore
-    }
-    return { merged: finalCount - (finalCount - anon.length), dropped };
+    // Keep cap-dropped items locally so a partial merge is never presented as
+    // full success and the user's local data is not destroyed.
+    writeAnon(json?.dropped ?? []);
+    lastMergeNotice = { merged: json?.merged?.length ?? 0, dropped };
+    return lastMergeNotice;
   } catch {
     return null;
   }

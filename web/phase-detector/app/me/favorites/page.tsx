@@ -18,6 +18,7 @@ import { Events, trackEvent } from "@/lib/analytics";
 import { fetchCompany } from "@/lib/api";
 import {
   clearAnonFavorites,
+  consumeFavoriteMergeNotice,
   fetchFavorites,
   isSignedIn,
   removeFavorite,
@@ -46,13 +47,18 @@ export default function FavoritesPage() {
   // Initial hydrate.
   useEffect(() => {
     let cancelled = false;
-    setSignedIn(isSignedIn());
-
     (async () => {
       setLoading(true);
       try {
         const tickers = await fetchFavorites();
         if (cancelled) return;
+        setSignedIn(isSignedIn());
+        const merge = consumeFavoriteMergeNotice();
+        if (merge?.dropped) {
+          setError(
+            `已同步 ${merge.merged} 个收藏；另有 ${merge.dropped} 个超过账户上限，仍保留在本设备。`,
+          );
+        }
         if (tickers.length === 0) {
           setRows([]);
           setLoading(false);
@@ -178,7 +184,9 @@ export default function FavoritesPage() {
             共 {rows.length} 家公司
           </p>
           <p className="mt-1 text-xs text-zinc-500">
-            当前版本收藏仅保存在本设备，不与邮箱账户同步。
+            {signedIn
+              ? "已同步到邮箱账户，可在其他设备登录后查看。"
+              : "当前未登录，收藏仅保存在本设备；登录后会自动合并。"}
           </p>
         </div>
         <button

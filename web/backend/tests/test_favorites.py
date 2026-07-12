@@ -35,6 +35,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from api import favorites as fav  # noqa: E402
+from api import auth as session_auth  # noqa: E402
 from auth import api_key as auth_mod  # noqa: E402
 from errors import install_problem_handlers  # noqa: E402
 
@@ -90,6 +91,10 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("STRUCTURAL_API_KEYS_PATH", str(keys_path))
     # Reset cached store instance so the env var actually takes effect.
     monkeypatch.setattr(auth_mod, "_store", None, raising=False)
+    monkeypatch.setattr(session_auth, "_data_dir", lambda: tmp_path)
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("JWT_SECRET", "favorites-session-test-secret-32-chars-ok")
+    monkeypatch.setenv("AUTH_LINK_BASE_URL", "http://testserver")
 
     app = FastAPI()
     install_problem_handlers(app)
@@ -107,13 +112,115 @@ def _hdr(key: str | None) -> dict:
 def test_get_anonymous_returns_empty(client):
     r = client.get("/api/favorites")
     assert r.status_code == 200
-    assert r.json() == {"tickers": []}
+    assert r.json() == {
+        "tickers": [], "authenticated": False, "auth_method": None
+    }
 
 
 def test_get_new_user_returns_empty(client):
     r = client.get("/api/favorites", headers=_hdr("sk_test_free"))
     assert r.status_code == 200
-    assert r.json() == {"tickers": []}
+    assert r.json()["tickers"] == []
+    assert r.json()["authenticated"] is True
+    assert r.json()["auth_method"] == "api_key"
+
+
+def test_production_storage_requires_external_persistent_path(monkeypatch):
+    monkeypatch.delenv("STRUCTURAL_FAVORITES_PATH", raising=False)
+    monkeypatch.delenv("AUTH_DATA_DIR", raising=False)
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    with pytest.raises(RuntimeError, match="persistence requires"):
+        fav._data_file()
+
+
+def test_production_storage_rejects_repo_path(monkeypatch):
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+    monkeypatch.setenv(
+        "STRUCTURAL_FAVORITES_PATH", str(_BACKEND / "data" / "favorites.jsonl")
+    )
+    with pytest.raises(RuntimeError, match="outside the Git checkout"):
+        fav._data_file()
+
+
+def test_legacy_storage_migrates_once_without_overwrite(tmp_path, monkeypatch):
+    legacy = tmp_path / "legacy" / "favorites.jsonl"
+    target = tmp_path / "persistent" / "favorites.jsonl"
+    legacy.parent.mkdir()
+    legacy.write_text('{"email":"old@example.com","tickers":["AAPL"]}\n')
+    monkeypatch.setattr(fav, "_legacy_data_file", lambda: legacy)
+    fav._migrate_legacy_file(target)
+    assert target.read_text() == legacy.read_text()
+    target.write_text("authoritative\n")
+    fav._migrate_legacy_file(target)
+    assert target.read_text() == "authoritative\n"
+
+
+def _session_cookie(email: str, tier: str = "free") -> str:
+    session_auth._ensure_user(email)
+    token, _ = session_auth._issue_jwt(email, tier)
+    return token
+
+
+def test_http_only_session_is_server_source_of_truth(client):
+    token = _session_cookie("member@example.com")
+    client.cookies.set("phase_session", token)
+    added = client.post(
+        "/api/favorites/AAPL", headers={"Origin": "http://testserver"}
+    )
+    assert added.status_code == 201
+    listed = client.get("/api/favorites")
+    assert listed.json()["tickers"] == ["AAPL"]
+    assert listed.json()["auth_method"] == "session"
+
+    # A fresh browser/device with the same authenticated account reads the
+    # durable server state rather than the first device's local storage.
+    with TestClient(client.app) as second_device:
+        second_device.cookies.set("phase_session", token)
+        assert second_device.get("/api/favorites").json()["tickers"] == ["AAPL"]
+
+
+def test_http_only_session_merges_anonymous_tickers(client):
+    client.cookies.set("phase_session", _session_cookie("member@example.com"))
+    merged = client.post(
+        "/api/favorites/merge",
+        json={"tickers": ["AAPL", "tsla", "AAPL"]},
+        headers={"Origin": "http://testserver"},
+    )
+    assert merged.status_code == 200
+    assert set(merged.json()["tickers"]) == {"AAPL", "TSLA"}
+    assert client.get("/api/favorites").json()["tickers"] == ["AAPL", "TSLA"]
+
+
+def test_session_precedes_legacy_api_key(client):
+    client.cookies.set("phase_session", _session_cookie("member@example.com"))
+    response = client.post(
+        "/api/favorites/AAPL",
+        headers={**_hdr("sk_test_pro"), "Origin": "http://testserver"},
+    )
+    assert response.status_code == 201
+    assert client.get("/api/favorites").json()["tickers"] == ["AAPL"]
+    client.cookies.delete("phase_session")
+    assert client.get(
+        "/api/favorites", headers=_hdr("sk_test_pro")
+    ).json()["tickers"] == []
+
+
+def test_revoked_session_does_not_fall_back_to_api_key(client):
+    token, jti = session_auth._issue_jwt("free@example.com", "free")
+    session_auth._store().revoke(jti, "2026-07-12T00:00:00+00:00")
+    client.cookies.set("phase_session", token)
+    response = client.post(
+        "/api/favorites/AAPL", headers=_hdr("sk_test_free")
+    )
+    assert response.status_code == 401
+
+
+def test_session_mutation_rejects_cross_origin(client):
+    client.cookies.set("phase_session", _session_cookie("member@example.com"))
+    response = client.post(
+        "/api/favorites/AAPL", headers={"Origin": "https://evil.example"}
+    )
+    assert response.status_code == 403
 
 
 # ---- POST add ----
@@ -253,6 +360,7 @@ def test_merge_unions(client):
     assert r.status_code == 200
     body = r.json()
     assert set(body["tickers"]) == {"AAPL", "TSLA", "NVDA"}
+    assert body["merged"] == ["TSLA", "NVDA"]
     assert body["dropped"] == []
 
 

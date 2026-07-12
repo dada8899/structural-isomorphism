@@ -100,6 +100,18 @@ if grep -qx 'NEXT_PUBLIC_AUTH_ENABLED=true' "$WEB_DIR/.env.production"; then
     echo "$LOG_PREFIX ERROR: AUTH_DATA_DIR is not writable" >&2
     exit 1
   }
+  favorites_path="$(sed -n 's/^STRUCTURAL_FAVORITES_PATH=//p' "$AUTH_ENV_FILE" | tail -1)"
+  if [[ -n "$favorites_path" ]]; then
+    [[ "$favorites_path" != "$REPO"* ]] || {
+      echo "$LOG_PREFIX ERROR: STRUCTURAL_FAVORITES_PATH must be outside the Git checkout" >&2
+      exit 1
+    }
+    mkdir -p "$(dirname "$favorites_path")"
+    test -w "$(dirname "$favorites_path")" || {
+      echo "$LOG_PREFIX ERROR: favorites storage directory is not writable" >&2
+      exit 1
+    }
+  fi
   systemctl cat phase-detector-api | grep -Fq "EnvironmentFile=$AUTH_ENV_FILE" || {
     echo "$LOG_PREFIX ERROR: phase-detector-api must load the private auth environment" >&2
     exit 1

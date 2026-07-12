@@ -12,6 +12,7 @@
 // for us. This is deliberate: an XSS escape can't steal the session.
 
 import { useCallback, useEffect, useState } from "react";
+import { markFavoritesSignedOut } from "@/lib/favorites";
 
 export interface SessionUser {
   email: string;
@@ -70,6 +71,7 @@ export function useSession(): SessionState {
       // cookie still exists causes the user to appear logged in again later.
       throw error instanceof Error ? error : new Error("logout failed");
     }
+    markFavoritesSignedOut();
     setUser(null);
   }, []);
 

@@ -41,11 +41,13 @@ client UX is the same ("upgrade for more").
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import re
 import tempfile
 import threading
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -54,6 +56,10 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
 from auth.api_key import APIKey, verify_api_key
+try:
+    from api.auth import require_same_origin, resolve_session_user
+except ModuleNotFoundError:
+    from web.backend.api.auth import require_same_origin, resolve_session_user
 from errors import (
     Forbidden,
     InvalidInput,
@@ -83,11 +89,60 @@ _WRITE_LOCK = threading.RLock()
 
 
 def _data_file() -> Path:
-    """Storage path. Override via STRUCTURAL_FAVORITES_PATH in tests."""
-    env_override = os.getenv("STRUCTURAL_FAVORITES_PATH")
+    """Persistent storage path; production must never default into Git."""
+    env_override = os.getenv("STRUCTURAL_FAVORITES_PATH", "").strip()
     if env_override:
-        return Path(env_override)
+        target = Path(env_override)
+    else:
+        auth_data_dir = os.getenv("AUTH_DATA_DIR", "").strip()
+        if auth_data_dir:
+            target = Path(auth_data_dir) / "favorites.jsonl"
+        elif os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
+            raise RuntimeError(
+                "favorites persistence requires AUTH_DATA_DIR or "
+                "STRUCTURAL_FAVORITES_PATH in production"
+            )
+        else:
+            target = Path(__file__).resolve().parent.parent / "data" / "favorites.jsonl"
+    if os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
+        repo_root = Path(__file__).resolve().parents[3]
+        try:
+            target.resolve().relative_to(repo_root)
+        except ValueError:
+            pass
+        else:
+            raise RuntimeError("favorites persistence path must be outside the Git checkout")
+    _migrate_legacy_file(target)
+    return target
+
+
+def _legacy_data_file() -> Path:
     return Path(__file__).resolve().parent.parent / "data" / "favorites.jsonl"
+
+
+def _migrate_legacy_file(target: Path) -> None:
+    """Copy a pre-persistence-boundary JSONL once, without overwriting data."""
+    legacy = _legacy_data_file()
+    if target == legacy or target.exists() or not legacy.exists():
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        payload = legacy.read_bytes()
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(payload)
+                fh.flush()
+                os.fsync(fh.fileno())
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
+        logger.info(
+            "favorites.storage_migrated source=legacy_repo target=persistent bytes=%d",
+            len(payload),
+        )
+    except FileExistsError:
+        return
 
 
 def _normalize_ticker(t: str) -> str:
@@ -178,17 +233,45 @@ def _save_user_record(rec: dict) -> None:
         _atomic_write_all(all_recs)
 
 
-def _require_user(api_key: Optional[APIKey]) -> APIKey:
-    """Promote 'optional auth' to 'required auth' for write endpoints."""
-    if api_key is None:
+@dataclass(frozen=True)
+class _FavoriteUser:
+    owner_email: str
+    tier: str
+    auth_method: str
+
+
+def _resolve_user(request: Request, api_key: Optional[APIKey]) -> Optional[_FavoriteUser]:
+    """Session is authoritative; API key remains a compatibility fallback."""
+    session_user, status = resolve_session_user(request)
+    if status == "valid" and session_user:
+        return _FavoriteUser(session_user["email"], session_user["tier"], "session")
+    if status != "absent":
+        logger.warning("favorites.auth_rejected method=session reason=%s", status)
+        raise Unauthenticated(detail="invalid or revoked authenticated session")
+    if api_key is not None:
+        return _FavoriteUser(api_key.owner_email, api_key.tier, "api_key")
+    return None
+
+
+def _require_user(request: Request, api_key: Optional[APIKey]) -> _FavoriteUser:
+    user = _resolve_user(request, api_key)
+    if user is None:
         raise Unauthenticated(
             detail="favorites write requires an authenticated session"
         )
-    return api_key
+    if user.auth_method == "session":
+        origin_error = require_same_origin(request)
+        if origin_error is not None:
+            raise Forbidden(detail="invalid origin for cookie-authenticated mutation")
+    return user
 
 
 def _limit_for_tier(tier: str) -> Optional[int]:
     return TIER_LIMITS.get(tier, TIER_LIMITS["free"])
+
+
+def _user_hash(email: str) -> str:
+    return hashlib.sha256(email.lower().encode("utf-8")).hexdigest()[:12]
 
 
 # ---------------- endpoints ----------------
@@ -207,10 +290,16 @@ async def list_favorites(
     request: Request,
     api_key: Optional[APIKey] = Depends(verify_api_key),
 ):
-    if api_key is None:
-        return {"tickers": []}
-    rec = _get_user_record(api_key.owner_email)
-    return {"tickers": rec.get("tickers", [])}
+    user = _resolve_user(request, api_key)
+    if user is None:
+        return {"tickers": [], "authenticated": False, "auth_method": None}
+    rec = _get_user_record(user.owner_email)
+    return {
+        "tickers": rec.get("tickers", []),
+        "authenticated": True,
+        "auth_method": user.auth_method,
+        "cap": _limit_for_tier(user.tier),
+    }
 
 
 # IMPORTANT — route declaration order:
@@ -237,7 +326,7 @@ async def merge_favorites(
     request: Request,
     api_key: Optional[APIKey] = Depends(verify_api_key),
 ):
-    user = _require_user(api_key)
+    user = _require_user(request, api_key)
     try:
         body = await request.json()
     except Exception:
@@ -260,6 +349,7 @@ async def merge_favorites(
         seen = set(existing)
         cap = _limit_for_tier(user.tier)
         dropped: list[str] = []
+        merged: list[str] = []
         for t in normalized:
             if t in seen:
                 continue
@@ -268,12 +358,21 @@ async def merge_favorites(
                 continue
             existing.append(t)
             seen.add(t)
+            merged.append(t)
         rec["tickers"] = existing
         rec["updated_at"] = datetime.now(timezone.utc).isoformat()
         all_recs[user.owner_email.lower()] = rec
         _atomic_write_all(all_recs)
 
-    return {"tickers": existing, "dropped": dropped, "cap": cap}
+    logger.info(
+        "favorites.merge user_hash=%s auth_method=%s accepted=%d dropped=%d total=%d",
+        _user_hash(user.owner_email), user.auth_method,
+        len(merged), len(dropped), len(existing),
+    )
+
+    return {
+        "tickers": existing, "merged": merged, "dropped": dropped, "cap": cap
+    }
 
 
 @router.post(
@@ -290,7 +389,7 @@ async def add_favorite(
     request: Request,
     api_key: Optional[APIKey] = Depends(verify_api_key),
 ):
-    user = _require_user(api_key)
+    user = _require_user(request, api_key)
     norm = _validate_ticker(ticker)
 
     with _WRITE_LOCK:
@@ -324,6 +423,11 @@ async def add_favorite(
         all_recs[user.owner_email.lower()] = rec
         _atomic_write_all(all_recs)
 
+    logger.info(
+        "favorites.add user_hash=%s auth_method=%s ticker=%s total=%d",
+        _user_hash(user.owner_email), user.auth_method, norm, len(existing),
+    )
+
     return JSONResponse(
         status_code=201,
         content={"ok": True, "added": True, "ticker": norm},
@@ -343,18 +447,24 @@ async def remove_favorite(
     request: Request,
     api_key: Optional[APIKey] = Depends(verify_api_key),
 ):
-    user = _require_user(api_key)
+    user = _require_user(request, api_key)
     norm = _validate_ticker(ticker)
 
     with _WRITE_LOCK:
         all_recs = _load_all()
         rec = _get_user_record(user.owner_email, all_recs)
         existing: list[str] = list(rec.get("tickers") or [])
+        removed = norm in existing
         if norm in existing:
             existing.remove(norm)
             rec["tickers"] = existing
             rec["updated_at"] = datetime.now(timezone.utc).isoformat()
             all_recs[user.owner_email.lower()] = rec
             _atomic_write_all(all_recs)
+
+    logger.info(
+        "favorites.remove user_hash=%s auth_method=%s ticker=%s removed=%s total=%d",
+        _user_hash(user.owner_email), user.auth_method, norm, removed, len(existing),
+    )
 
     return Response(status_code=204)
