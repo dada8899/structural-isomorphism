@@ -26,3 +26,34 @@ python3 -m pytest tests/test_user_journey_evaluation.py -q
 ```
 
 The fixture is intentionally partial, mixed, and fails overall. `--allow-partial` exists only to exercise this contract fixture; omitting it activates the complete-matrix release gate. Its purpose is to prove scoring, variance, disagreement, evidence enforcement, and fail-closed behavior before connecting real product captures or external judges.
+
+## Immutable evidence preparation
+
+`prepare_journey_evaluation.py` creates the complete 8-role × 2-task matrix from an explicit allowlist of public repository surfaces. It stores source line provenance, capture digests, resolvable fragment locators, and hashes for the adapter, prompt, model registry, journey config, each case, and the bundle manifest. Captured text is labelled untrusted and separated from the judge instruction contract; judges must have tools and network disabled.
+
+The checked-in model registry is intentionally a non-runnable template. A human must replace each serving identity with its upstream family and immutable version, record a dated verification source, and set `manually_verified`. Two provider aliases of one upstream family do not count. Until then, `--dispatch-ready` fails closed. No command here invokes an external model or creates a score.
+
+Dispatch readiness has additional hard gates: the two verified identities must
+exactly match the frozen config allowlist; mutable aliases such as `latest` or
+`stable` are rejected; the verification source identifier must include its
+SHA-256; and every one of the 16 cases must contain frozen evidence for all five
+journey stages. The current static captures cover only selected stages, so this
+package is intentionally **bundle-valid but not dispatch-ready** even after a
+model registry is filled in. Real, redacted input/processing/result/action/
+recovery captures must replace the static implementation samples first.
+
+Bundle construction refuses non-empty or symlinked output locations and never
+overwrites existing evidence. Validation rejects symlinked sources/artifacts,
+rebuilds the expected cases from the frozen config and allowlisted sources, and
+compares their canonical hashes. Re-signing a modified case or manifest is not
+sufficient. Captures containing credential-like fields, cookies, email
+addresses, or phone-number-like PII are rejected before bundling.
+
+```bash
+tmpdir="$(mktemp -d)"
+python3 scripts/prepare_journey_evaluation.py --output "$tmpdir"
+python3 scripts/prepare_journey_evaluation.py --output "$tmpdir" --validate-only
+# Expected to fail until the registry has been manually verified:
+python3 scripts/prepare_journey_evaluation.py --output "$tmpdir" --validate-only --dispatch-ready
+python3 -m pytest tests/test_prepare_journey_evaluation.py -q
+```
