@@ -107,7 +107,10 @@ if env_exact_once "$WEB_DIR/.env.production" NEXT_PUBLIC_AUTH_ENABLED true; then
   [[ -f "$BETA_ENV_FILE" ]] || {
     echo "$LOG_PREFIX ERROR: beta environment file missing for shared SSO validation" >&2; exit 1;
   }
-  beta_env_mode="$(stat -c '%a' "$BETA_ENV_FILE")"
+  # The Phase Git worktree points at the single canonical beta private env
+  # through an ignored symlink. Follow it so we validate the secret-bearing
+  # target (0600), not the symlink inode (0777).
+  beta_env_mode="$(stat -Lc '%a' "$BETA_ENV_FILE")"
   [[ "$beta_env_mode" == "600" ]] || {
     echo "$LOG_PREFIX ERROR: private beta environment must have mode 600" >&2; exit 1;
   }
