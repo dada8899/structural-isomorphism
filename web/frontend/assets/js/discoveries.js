@@ -30,6 +30,50 @@ function L(obj, baseKey) {
   return obj[baseKey];
 }
 
+function normalizeDiscovery(raw) {
+  const equationValues = Array.isArray(raw.shared_equations)
+    ? raw.shared_equations
+    : (raw.shared_equation ? [raw.shared_equation] : (Array.isArray(raw.equations) ? raw.equations : []));
+  const hasLiteratureEvidence = Array.isArray(raw.literature_evidence)
+    && raw.literature_evidence.length > 0
+    && raw.literature_evidence.every((item) => item && typeof item === 'object'
+      && typeof item.source === 'string' && item.source.trim()
+      && item.license && item.license !== 'unknown'
+      && item.provenance_class && item.provenance_class !== 'unknown'
+      && item.source_review && typeof item.source_review === 'object');
+  let variableMapping = null;
+  if (raw.variable_mapping && typeof raw.variable_mapping === 'object') {
+    variableMapping = raw.variable_mapping;
+  } else if (typeof raw.variable_mapping === 'string') {
+    const pairs = raw.variable_mapping.split(/[;；]/).map((item) => item.trim()).filter(Boolean);
+    const parsed = pairs.map((item) => item.split(/↔|→|=>/, 2).map((part) => part.trim()));
+    const mapped = parsed.filter((pair) => pair.length === 2 && pair[0] && pair[1]);
+    if (mapped.length) {
+      variableMapping = Object.fromEntries(mapped);
+      const notes = pairs.filter((_, index) => parsed[index].length !== 2);
+      if (notes.length) variableMapping.__unmapped_notes__ = notes.join('；');
+    }
+  }
+  return {
+    ...raw,
+    shared_equations: equationValues.filter((value) => typeof value === 'string' && value.trim()),
+    variable_mapping_normalized: variableMapping,
+    model_score_unvalidated: Number.isFinite(Number(raw.isomorphism_confidence))
+      ? Number(raw.isomorphism_confidence) : null,
+    evidence_level: hasLiteratureEvidence ? 'source_backed' : 'candidate',
+    literature_status_display: hasLiteratureEvidence ? raw.literature_status : 'not_systematically_reviewed',
+  };
+}
+
+function renderVariableMapping(mapping) {
+  if (!mapping || typeof mapping !== 'object') return '';
+  return Object.entries(mapping)
+    .map(([left, right]) => left === '__unmapped_notes__'
+      ? `${T('page.discoveries.mapping_note', '未结构化备注')}：${escapeHtml(String(right))}`
+      : `${escapeHtml(left)} → ${escapeHtml(String(right))}`)
+    .join(' · ');
+}
+
 /**
  * Structural — Discoveries page
  * Renders 39 A-level cross-domain isomorphism discoveries (V2 19 + V3 20)
@@ -70,9 +114,9 @@ function discoveryHeadline(d) {
   // English keeps a small, calm variant set.
   if (en) {
     const enSet = [
-      `${a} and ${b} share the same equation.`,
-      `Underneath, ${a} and ${b} obey one structure.`,
-      `What if ${a} and ${b} were the same problem?`,
+      `Compare ${a} with ${b}: a structural candidate to test.`,
+      `${a} and ${b}: where might the mapping fail?`,
+      `A testable connection between ${a} and ${b}.`,
     ];
     return enSet[(d.rank || 0) % enSet.length];
   }
@@ -80,27 +124,27 @@ function discoveryHeadline(d) {
   // --- Chinese: choose a pool by the discovery's real character ---
   // Pool 1 — literature-unexplored: lean on the "nobody has connected these" angle.
   const poolUnexplored = [
-    `没人发现过：${a}和${b}，其实是同一个方程。`,
-    `${a}背后的数学，原来也在管着${b}。`,
-    `把${a}的方程拿来，竟然能算${b}。`,
+    `比较${a}和${b}：一条待验证的结构候选。`,
+    `${a}与${b}可能共享什么，又会在哪里失效？`,
+    `从${a}到${b}：先提出映射，再用数据反驳它。`,
   ];
   // Pool 2 — deep isomorphism (depth >= 3): emphasize "same skeleton, not just analogy".
   const poolDeep = [
-    `${a}和${b}，共享同一套数学骨架。`,
-    `不是类比——${a}和${b}是同一个结构。`,
-    `${a}怎么演化，${b}就怎么演化。`,
+    `${a}和${b}的结构匹配较深，但仍需机制检验。`,
+    `${a}与${b}：候选数学骨架，不是机制证明。`,
+    `检验${a}与${b}是否真的共享演化约束。`,
   ];
   // Pool 3 — far-apart domains: emphasize the cross-field leap.
   const poolCross = [
-    `${aDom}里的${a}，和${bDom}里的${b}，是同一回事。`,
-    `${a}和${b}隔着十万八千里，方程却一模一样。`,
-    `换个领域看：${a}就是另一种${b}。`,
+    `比较${aDom}的${a}与${bDom}的${b}。`,
+    `${a}和${b}相距很远：哪些变量真的能对应？`,
+    `跨领域候选：${a}与${b}，等待反例检验。`,
   ];
   // Pool 0 — default / established / same-domain.
   const poolDefault = [
-    `${a}，和${b}，其实是同一个方程。`,
-    `${a}和${b}，遵循同一条规律。`,
-    `解开${a}的那套数学，也能解开${b}。`,
+    `${a}与${b}：一条需要验证的结构联系。`,
+    `${a}和${b}是否共享规律？先看证据和反例。`,
+    `用${a}提出假设，再检查它能否解释${b}。`,
   ];
 
   let pool = poolDefault;
@@ -341,12 +385,12 @@ function renderList() {
   }
 
   listEl.innerHTML = filtered.map((d, i) => {
-    const st = statusInfo(d.literature_status);
-    const conf = typeof d.isomorphism_confidence === 'number'
-      ? (d.isomorphism_confidence <= 1 ? Math.round(d.isomorphism_confidence * 100) : Math.round(d.isomorphism_confidence))
-      : null;
+    const st = d.evidence_level === 'source_backed'
+      ? statusInfo(d.literature_status_display)
+      : { cls: 'unknown', zh: T('page.discoveries.status_not_reviewed', '文献未系统核查') };
+    const conf = d.model_score_unvalidated === null ? null : Math.round(d.model_score_unvalidated);
     const pipelineBadge = d.pipeline
-      ? `<span class="disc-item__pipeline disc-item__pipeline--${d.pipeline.toLowerCase()}">${escapeHtml(d.pipeline)}</span>`
+      ? `<span class="disc-item__pipeline disc-item__pipeline--${d.pipeline.toLowerCase()}">${d.pipeline === 'V3' ? T('page.discoveries.pipeline_v3', '变量关系检索') : T('page.discoveries.pipeline_v2', '文本结构检索')}</span>`
       : '';
     const verdict = L(d, "one_line_verdict") || L(d, "paper_title") || '';
 
@@ -372,11 +416,11 @@ function renderList() {
             <p class="disc-item__verdict">${escapeHtml(verdict)}</p>
             <div class="disc-item__meta">
               ${pipelineBadge}
-              ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">${T("page.discoveries.meta_rating", "等级")} ${escapeHtml(d.rating)}</span>` : ''}
+              ${d.rating ? `<span class="disc-item__meta-tag disc-item__meta-tag--rating">${T("page.discoveries.meta_rating", "AI 内部等级")} ${escapeHtml(d.rating)}</span>` : ''}
               <span class="disc-item__meta-tag disc-item__meta-tag--${st.cls}">
                 ${escapeHtml(statusLabel(st.cls, st.zh))}
               </span>
-              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "AI 结构匹配分")} ${conf}/100</span>` : ''}
+              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "未校准 AI 结构匹配分")} ${conf}/100</span>` : ''}
               ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_depth", "同构深度")} ${d.isomorphism_depth}/5</span>` : ''}
               ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
               ${d.solo_feasible ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_solo_feasible", "单人可做")}</span>` : ''}
@@ -385,7 +429,7 @@ function renderList() {
           <div class="disc-item__aside">
             <div class="disc-item__score">
               <span class="disc-item__score-num">${d.final_score}</span>
-              <span class="disc-item__score-unit">/10</span>
+              <span class="disc-item__score-unit">/10 AI内部</span>
             </div>
             <div class="disc-item__expand">
               ${T("page.discoveries.expand", "展开")}
@@ -397,18 +441,13 @@ function renderList() {
         </header>
         <div class="disc-item__detail">
           <div class="disc-item__detail-grid">
-            ${d.shared_equation ? `
+            ${d.shared_equations.length ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
                 <h4>${T("page.discoveries.section_shared_equation", "候选共享方程")}</h4>
-                <pre class="disc-item__equations">${escapeHtml(d.shared_equation)}</pre>
-                ${d.variable_mapping ? `<p class="disc-item__var-map"><strong>${T("page.discoveries.label_var_mapping", "变量映射")}</strong>：${escapeHtml(d.variable_mapping)}</p>` : ''}
+                <pre class="disc-item__equations">${d.shared_equations.map(e => escapeHtml(e)).join('\n')}</pre>
+                ${d.variable_mapping_normalized ? `<p class="disc-item__var-map"><strong>${T("page.discoveries.label_var_mapping", "候选变量映射")}</strong>：${renderVariableMapping(d.variable_mapping_normalized)}</p>` : ''}
               </div>
-            ` : (Array.isArray(d.equations) && d.equations.length ? `
-              <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_key_equations", "关键方程")}</h4>
-                <pre class="disc-item__equations">${d.equations.map(e => escapeHtml(String(e))).join('\n')}</pre>
-              </div>
-            ` : '')}
+            ` : ''}
 
             ${renderDimScores(d)}
 
@@ -573,7 +612,7 @@ async function loadDiscoveries() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     loadFailed = false;
-    allDiscoveries = data.discoveries || [];
+    allDiscoveries = (data.discoveries || []).map(normalizeDiscovery);
     allTier2 = data.tier2 || [];
     window.__discStats = data.stats || {};
     renderStats(data.stats || {}, data.count);

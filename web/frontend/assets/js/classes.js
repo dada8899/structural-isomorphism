@@ -218,17 +218,22 @@ function renderPredictions(preds) {
       const rationale = L(p, "rationale")
         ? `<p class="uc-pred__rationale">${escapeHtml(L(p, "rationale"))}</p>`
         : "";
-      const statusCls = (L(p, "status") && (L(p, "status").includes("已验证") || L(p, "status").includes("✅")))
-        ? "uc-pred__status uc-pred__status--verified"
+      const rawStatus = L(p, "status") || "";
+      const hasRecordedResult = rawStatus.includes("已验证") || rawStatus.includes("Verified") || rawStatus.includes("✅");
+      const displayStatus = hasRecordedResult
+        ? T("page.classes.status_internal_record", "内部结果记录")
+        : rawStatus;
+      const statusCls = hasRecordedResult
+        ? "uc-pred__status uc-pred__status--recorded"
         : "uc-pred__status";
       const paperLink = p.paper_url
         ? `<a class="uc-pred__paper-link" href="${escapeHtml(p.paper_url)}"${p.paper_title ? ` title="${escapeHtml(p.paper_title)}"` : ""}>${T("page.classes.pred_paper_link", "📄 论文 →")}</a>`
         : "";
       return `
-        <div class="uc-pred${statusCls.includes('verified') ? ' uc-pred--verified' : ''}">
+        <div class="uc-pred${statusCls.includes('recorded') ? ' uc-pred--recorded' : ''}">
           <div class="uc-pred__header">
             <div class="uc-pred__target">${escapeHtml(L(p, "target") || "")}</div>
-            ${L(p, "status") ? `<span class="${statusCls}">${escapeHtml(L(p, "status"))}</span>` : ""}
+            ${displayStatus ? `<span class="${statusCls}">${escapeHtml(displayStatus)}</span>` : ""}
             ${paperLink}
           </div>
           <p class="uc-pred__text">${escapeHtml(L(p, "prediction") || "")}</p>
@@ -240,7 +245,7 @@ function renderPredictions(preds) {
     .join("");
 }
 
-function countVerifiedPredictions(cls) {
+function countRecordedPredictions(cls) {
   if (!cls || !Array.isArray(cls.predictions)) return 0;
   let n = 0;
   for (const p of cls.predictions) {
@@ -336,12 +341,12 @@ function classAnalyzeHref(cls) {
 
 function buildBadges(cls) {
   const isLlm = cls.curation_source === "llm";
-  const nVerified = countVerifiedPredictions(cls);
+  const nRecorded = countRecordedPredictions(cls);
   const out = [];
-  // Put the verified badge FIRST so it's most prominent
-  if (nVerified > 0) {
-    const verifiedLabel = T("page.classes.badge_verified", "已实证"); const label = nVerified === 1 ? `✅ ${verifiedLabel}` : `✅ ${verifiedLabel} ×${nVerified}`;
-    out.push(`<span class="uc-badge uc-badge--verified" title="${nVerified} ${T("page.classes.verified_title", "条预测已通过实证验证")}">${label}</span>`);
+  if (nRecorded > 0) {
+    const recordedLabel = T("page.classes.badge_recorded", "有分析记录");
+    const label = nRecorded === 1 ? recordedLabel : `${recordedLabel} ×${nRecorded}`;
+    out.push(`<span class="uc-badge uc-badge--recorded" title="${nRecorded} 条预测有内部分析记录；不代表外部验证">${label}</span>`);
   }
   out.push(
     `<span class="uc-badge uc-badge--size">${cls.size} ${T("page.classes.badge_members", "成员")}</span>`,
@@ -385,7 +390,7 @@ function renderPreviewCard(cls) {
     <a class="uc-card uc-card--preview${uncurated ? " uc-card--uncurated" : ""}"
        href="/classes?id=${encodeURIComponent(cls.class_id)}"
        data-class-id="${escapeHtml(cls.class_id)}"
-       data-verified="${countVerifiedPredictions(cls) > 0 ? 'true' : 'false'}">
+       data-evidence-recorded="${countRecordedPredictions(cls) > 0 ? 'true' : 'false'}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
           <h2 class="uc-card__title">${escapeHtml(L(cls, "name") || T("page.classes.untitled", "(未命名)"))}</h2>

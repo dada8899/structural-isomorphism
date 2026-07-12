@@ -6,8 +6,12 @@
       "web/frontend/thank-you.html",
       "web/frontend/discoveries.html",
       "web/frontend/whitespace.html",
+      "web/frontend/classes.html",
+      "web/frontend/papers.html",
+      "web/frontend/methods.html",
       "web/frontend/assets/js/discoveries.js",
       "web/frontend/assets/js/whitespace.js",
+      "web/frontend/assets/js/classes.js",
       "web/frontend/assets/data/i18n/content.json"
     ],
     "current_documents": [
@@ -37,7 +41,11 @@
     "本周新进入「崩盘边缘」",
     "100 public companies, phase-tagged",
     "可以直接拿去写论文",
-    "A 级精选发现"
+    "A 级精选发现",
+    "13 个独立领域已实证验证",
+    "13 个验证系统",
+    "所有预测信号都落入预测带",
+    "Every predicted signal lands inside the predicted band"
   ],
   "required_context": [
     {
@@ -78,6 +86,18 @@
     {
       "path": "docs/index.md",
       "patterns": ["frozen 597-ticker research demo", "does not establish live signals"]
+    },
+    {
+      "path": "web/frontend/classes.html",
+      "patterns": ["候选模式", "不是已经证明的普适机制", "NULL、FAIL、PARTIAL"]
+    },
+    {
+      "path": "web/frontend/papers.html",
+      "patterns": ["内部分析记录", "不自动证明系统共享机制"]
+    },
+    {
+      "path": "web/frontend/methods.html",
+      "patterns": ["共享代码只能保证分析步骤可比较", "NULL、PARTIAL"]
     }
   ],
   "context_rules": [

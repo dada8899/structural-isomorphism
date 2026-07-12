@@ -47,9 +47,9 @@
             <span class="uc-hero__dot"></span>
             <span data-i18n="page.classes.hero_eyebrow">等价类 · 共享不变量 · 可验证预测</span>
           </div>
-          <h1 class="uc-hero__title" data-i18n="page.classes.hero_title">23 个跨领域<em>等价类</em></h1>
+          <h1 class="uc-hero__title" data-i18n="page.classes.hero_title">23 个跨领域<em>候选模式</em></h1>
           <p class="uc-hero__lede" data-i18n="page.classes.hero_lede">
-            每一类是一组共享同一套数学结构和不变量的现象——地震、银行挤兑、神经雪崩、电网级联都可以指向同一个共享模式。下面 <strong>23 类</strong>由社区发现算法从 191 条跨域同构里无监督浮现，<strong>13 个独立领域已实证验证</strong>。点开任一卡查看共享方程、不变量和可验证预测；方法论详见<a href="#uc-footnote">页脚</a>。
+            这些分组由算法从候选联系中生成，用来组织待检验预测；它们不是已经证明的普适机制。部分系统有内部分析记录，也包含 NULL、FAIL、PARTIAL 和合成对照。点开卡片先看预测、数据和边界，再决定是否继续验证。
           </p>
           <div class="uc-hero__stats" id="uc-hero-stats"></div>
         </section>
@@ -91,7 +91,7 @@
           <li data-i18n="page.classes.footnote_l2"><strong>2) 社区发现</strong>：连通分量 + Louvain（按权重）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。</li>
           <li data-i18n="page.classes.footnote_l3"><strong>3) 匹配到已知模式</strong>（本页呈现的 8 类已人工匹配到已知共享模式）：正在建设 LLM 生成器 + 评审的自动流程。</li>
           <li data-i18n="page.classes.footnote_l4"><strong>4) 预测翻译</strong>：对已匹配的共享模式，翻译该类已知的物理定律为跨域可验证预测。</li>
-          <li data-i18n="page.classes.footnote_l5"><strong>5) 实证验证</strong>:已在 <strong>13 个独立领域</strong>实证验证 — 地震(USGS) / 股市(S&P 500) / DeFi 三协议 / 小鼠皮层神经雪崩 / GitHub stars(强者愈强) / NERC 电网级联 / FDIC 银行倒闭 / NIFC 野火 / GOES 太阳耀斑 / 维基百科(强者愈强) / NGSIM 高速公路(回不去效应) / Fox River 湖泊(临界翻转) + 4 个合成数据对照 + 7 系统共享形态对照。完整列表见 <a href="/papers">论文</a>,统一研究报告见 <a href="/paper/unified-pipeline-v0.2-2026-05-13">完整研究报告</a>。</li>
+          <li data-i18n="page.classes.footnote_l5"><strong>5) 结果记录</strong>：13 份领域分析与合成对照使用共享代码框架，但数据接入、依赖结构和证据强度不同。记录包含支持、拒绝、部分支持和证据不足；这不是 13 个外部复现的机制确认。</li>
           <li data-i18n="page.classes.footnote_l6"><strong>代码稳健性</strong>:在 4 个合成数据上跑同一份代码作为对照(高斯随机游走、指数、Poisson 事件、Poisson 余震),全部正确拒绝幂律(相对对数正态/指数似然比 R ∈ [-45, -16],Poisson 余震拟合 R² ≈ 0.002)。共享形态对照在 7 个系统达到 r<sub>shape</sub> = 1.11(优秀),贝叶斯模型选择偏好 幂律 + cutoff 5/7,对数正态胜出 0/7。</li>
           <li data-i18n="page.classes.footnote_l7"><strong>多模型 AI 审稿团</strong>:3 个独立 AI 审稿模型 × 21 个候选共享模式 = 63 次投票,0 解析错误,40.8 分钟总耗时。AI 审稿团对 21 个候选共享模式投票:保留 5 / 拒绝 7 / 拆分 5 / 合并 4。4 个 AI 推翻人工保留的候选共享"把数学框架当作共享模式"的错误模式。详细见 <a href="/taxonomy-v2">审稿结果</a>。</li>
         </ol>
