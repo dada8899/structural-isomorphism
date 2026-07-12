@@ -147,8 +147,8 @@ export default function UniversalityExplorerPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-zinc-900">普适类浏览</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
-          所有跨领域同构的结构模式。点开任意一条看完整定义、关键不变量、
-          实证系统、文献来源，以及当前匹配的公司。
+          这里汇总的是待检验的跨领域结构候选，不代表不同系统已经共享同一机制。
+          点开任意一条可查看定义、候选不变量、现有证据、反例与来源；页面中的内部状态也不是外部复现结论。
         </p>
       </header>
 

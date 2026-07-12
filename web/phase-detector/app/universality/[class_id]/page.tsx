@@ -309,7 +309,7 @@ export default function UniversalityDetailPage() {
           see after the header. */}
       <Section
         title="跨领域类比图"
-        description="该类的实证系统按所属领域聚合；点击节点可跳转到对应公司或证据"
+        description="候选实例按所属领域聚合；这些连线用于探索，不代表系统共享同一机制"
         testid="analogue-map-section"
       >
         {detail ? (
@@ -346,7 +346,7 @@ export default function UniversalityDetailPage() {
 
           {detail?.shared_equation && (
             <Section
-              title="共享方程"
+              title="候选关系表达式"
               description="该类系统的主方程或临界条件"
               testid="universality-equation"
             >
@@ -358,8 +358,8 @@ export default function UniversalityDetailPage() {
 
           {detail && detail.evidence_systems.length > 0 && (
             <Section
-              title="实证系统（跨领域类比）"
-              description="经过验证或候选的实例 — 含 Vuong / KS / LR 检验结果（如有）"
+              title="证据记录与候选实例"
+              description="内部分析记录与候选实例；统计检验（如有）不等于机制证明或外部复现"
               testid="universality-evidence"
             >
               <ul className="space-y-3">
@@ -377,7 +377,7 @@ export default function UniversalityDetailPage() {
                       </p>
                     )}
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
-                      {ev.verified_at && <span>状态：{ev.verified_at}</span>}
+                      {ev.verified_at && <span>记录时间：{ev.verified_at}</span>}
                       {ev.paper && (
                         <span className="font-mono">{ev.paper}</span>
                       )}

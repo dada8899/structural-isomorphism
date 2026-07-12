@@ -24,6 +24,116 @@ def test_evidence_ladder_is_ordered_and_has_no_generic_verified_state() -> None:
     assert "verified" not in {item["id"] for item in ladder["levels"]}
 
 
+def test_replicated_level_cannot_bypass_required_evidence() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    row = {
+        **migrate_legacy_kb_row(legacy, schema),
+        "evidence_level": "replicated",
+        "source": {"locator": "https://example.org/source"},
+        "license": "CC-BY-4.0",
+        "provenance_class": "real",
+        "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-12"},
+    }
+    errors = validate_kb_vnext_row(row, schema)
+    assert any("replication_artifact" in error for error in errors)
+    assert any("replication_sha256" in error for error in errors)
+
+
+def test_replicated_level_rejects_boolean_evidence_placeholders() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    row = {
+        **migrate_legacy_kb_row(legacy, schema),
+        "evidence_level": "replicated",
+        "source": {"locator": "https://example.org/source"},
+        "license": "CC-BY-4.0",
+        "provenance_class": "real",
+        "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-12"},
+        "artifact_sha256": "a" * 64,
+        "replication_sha256": "b" * 64,
+        "verdict": "PASS",
+        **{key: False for key in (
+            "evidence_artifact", "method", "preregistered_rule", "counter_evidence",
+            "review_record", "reviewer_independence", "resolved_disputes",
+            "replication_artifact", "independent_team",
+        )},
+    }
+    errors = validate_kb_vnext_row(row, schema)
+    assert any("reviewer_independence" in error for error in errors)
+    assert any("independent_team" in error for error in errors)
+    assert len(errors) >= 9
+
+
+def test_replicated_level_rejects_empty_collection_placeholders() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    row = {
+        **migrate_legacy_kb_row(legacy, schema),
+        "evidence_level": "replicated",
+        "source": {"locator": "https://example.org/source"},
+        "license": "CC-BY-4.0", "provenance_class": "real",
+        "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-12"},
+        "artifact_sha256": "a" * 64, "replication_sha256": "b" * 64,
+        "verdict": "PASS", "method": "registered analysis", "reviewer_independence": True,
+        "independent_team": {"team_name": "team-b", "independence_statement": "No shared personnel or funding."},
+        "evidence_artifact": [], "preregistered_rule": [], "counter_evidence": [],
+        "review_record": [], "resolved_disputes": [], "replication_artifact": [],
+    }
+    errors = validate_kb_vnext_row(row, schema)
+    assert sum("structured auditable record" in error for error in errors) == 6
+
+
+def test_complete_replicated_record_has_a_reachable_valid_path() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    row = {
+        **migrate_legacy_kb_row(legacy, schema),
+        "evidence_level": "replicated",
+        "source": {"locator": "https://example.org/source"},
+        "license": "CC-BY-4.0", "provenance_class": "real",
+        "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-12"},
+        "evidence_artifact": {"locator": "https://example.org/analysis"},
+        "artifact_sha256": "a" * 64, "method": "preregistered comparison",
+        "preregistered_rule": {"locator": "https://example.org/prereg", "failure_condition": "metric <= baseline"},
+        "verdict": "PASS", "counter_evidence": {"search_protocol": "registered search", "findings": []},
+        "review_record": {"locator": "https://example.org/review"}, "reviewer_independence": True,
+        "resolved_disputes": {"status": "none"},
+        "replication_artifact": {"locator": "https://example.org/replication"},
+        "independent_team": {"team_name": "team-b", "independence_statement": "No shared personnel or funding."},
+        "replication_sha256": "b" * 64,
+    }
+    assert validate_kb_vnext_row(row, schema) == []
+
+
+def test_promoted_source_rejects_boolean_locator_and_fake_date() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    row = {
+        **migrate_legacy_kb_row(legacy, schema),
+        "evidence_level": "source_backed",
+        "source": {"locator": True},
+        "license": "CC-BY-4.0", "provenance_class": "real",
+        "source_review": {"reviewer": "reviewer-a", "reviewed_at": "not-a-date"},
+    }
+    errors = validate_kb_vnext_row(row, schema)
+    assert any("source locator" in error for error in errors)
+    assert any("non-future ISO date" in error for error in errors)
+
+
+def test_promoted_source_rejects_credentials_fragments_and_invalid_hosts() -> None:
+    schema = read_json(KB_SCHEMA)
+    legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}
+    for locator in ("https://user:pass@example.org/x", "https://example.org/x#frag", "https://./x"):
+        row = {
+            **migrate_legacy_kb_row(legacy, schema),
+            "evidence_level": "source_backed", "source": {"locator": locator},
+            "license": "CC-BY-4.0", "provenance_class": "real",
+            "source_review": {"reviewer": "reviewer-a", "reviewed_at": "2026-07-12"},
+        }
+        assert any("source locator" in error for error in validate_kb_vnext_row(row, schema))
+
+
 def test_legacy_kb_migration_preserves_unknowns() -> None:
     schema = read_json(KB_SCHEMA)
     legacy = {"id": "x", "name": "n", "domain": "d", "type_id": "01", "description": "text"}

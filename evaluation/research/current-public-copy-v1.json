@@ -12,7 +12,9 @@
       "web/frontend/assets/js/discoveries.js",
       "web/frontend/assets/js/whitespace.js",
       "web/frontend/assets/js/classes.js",
-      "web/frontend/assets/data/i18n/content.json"
+      "web/frontend/assets/data/i18n/content.json",
+      "web/phase-detector/app/universality/page.tsx",
+      "web/phase-detector/app/universality/[class_id]/page.tsx"
     ],
     "current_documents": [
       "README.md",
@@ -45,7 +47,10 @@
     "13 个独立领域已实证验证",
     "13 个验证系统",
     "所有预测信号都落入预测带",
-    "Every predicted signal lands inside the predicted band"
+    "Every predicted signal lands inside the predicted band",
+    "所有跨领域同构的结构模式",
+    "经过验证或候选的实例",
+    "实证系统（跨领域类比）"
   ],
   "required_context": [
     {
@@ -98,6 +103,14 @@
     {
       "path": "web/frontend/methods.html",
       "patterns": ["共享代码只能保证分析步骤可比较", "NULL、PARTIAL"]
+    },
+    {
+      "path": "web/phase-detector/app/universality/page.tsx",
+      "patterns": ["待检验的跨领域结构候选", "不代表不同系统已经共享同一机制", "内部状态也不是外部复现结论"]
+    },
+    {
+      "path": "web/phase-detector/app/universality/[class_id]/page.tsx",
+      "patterns": ["候选实例按所属领域聚合", "不代表系统共享同一机制", "不等于机制证明或外部复现"]
     }
   ],
   "context_rules": [
