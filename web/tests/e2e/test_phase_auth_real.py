@@ -112,6 +112,27 @@ def install_auth_proxy(page, stack) -> None:
             )
     page.route("**/api/auth/**", proxy)
     page.route("**/api/favorites**", proxy)
+    page.route("**/api/me/**", proxy)
+
+
+def sign_in(page, stack, email: str) -> None:
+    page.goto(stack["origin"] + "/auth/login")
+    page.get_by_test_id("auth-login-email").fill(email)
+    page.get_by_test_id("auth-login-submit").click()
+    page.get_by_test_id("auth-login-dev-link").wait_for()
+    link = page.get_by_test_id("auth-login-dev-link").get_attribute("href")
+    assert link and "token=" in link
+    page.goto(link)
+    page.wait_for_url("**/me")
+
+
+def dismiss_first_visit_overlays(page) -> None:
+    essential = page.get_by_test_id("cookie-essential-only")
+    if essential.is_visible():
+        essential.click()
+    tour_skip = page.get_by_test_id("tour-skip")
+    if tour_skip.is_visible():
+        tour_skip.click()
 
 
 def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_stack):
@@ -196,6 +217,120 @@ def test_real_next_session_favorites_persist_across_browser_contexts(browser, re
         "AAPL", exact=True
     ).is_visible()
     second.close()
+
+
+def test_account_export_failure_and_irreversible_delete_journey(browser, real_stack):
+    context = browser.new_context(viewport={"width": 390, "height": 844}, accept_downloads=True)
+    page = context.new_page()
+    page.set_default_timeout(8_000)
+    install_auth_proxy(page, real_stack)
+    sign_in(page, real_stack, "account-rights@example.com")
+    page.evaluate("localStorage.setItem('phase_favorites_anon', JSON.stringify({v:1,tickers:['TSLA']}))")
+    page.evaluate("localStorage.setItem('phase_api_key', 'legacy-local-credential')")
+
+    page.evaluate("""() => {
+      window.__revokedAccountUrls = [];
+      const original = URL.revokeObjectURL.bind(URL);
+      URL.revokeObjectURL = value => { window.__revokedAccountUrls.push(value); original(value); };
+    }""")
+
+    def fail_export(route):
+        route.fulfill(
+            status=503, content_type="application/json",
+            body=json.dumps({"ok": False, "error": "temporary"}),
+        )
+
+    page.route("**/api/me/export", fail_export)
+    page.get_by_test_id("me-export").click()
+    export_error = page.get_by_test_id("me-export-message")
+    export_error.wait_for()
+    assert export_error.get_attribute("role") == "alert"
+    assert page.get_by_test_id("me-email").inner_text() == "account-rights@example.com"
+    assert page.evaluate("localStorage.getItem('phase_api_key')") == "legacy-local-credential"
+    page.unroute("**/api/me/export", fail_export)
+
+    with page.expect_download() as pending:
+        page.get_by_test_id("me-export").click()
+    download = pending.value
+    assert re.fullmatch(
+        r"phase-account-export-\d{4}-\d{2}-\d{2}T.*Z\.json",
+        download.suggested_filename,
+    )
+    exported = json.loads(Path(download.path()).read_text(encoding="utf-8"))
+    assert exported["schema_version"] == "phase-account-export-v1"
+    assert exported["downloaded_at"].endswith("Z")
+    assert exported["export"]["ok"] is True
+    assert exported["export"]["data"]["authentication"]["account"]["email"] == "account-rights@example.com"
+    assert len(page.evaluate("window.__revokedAccountUrls")) == 1
+    export_message = page.get_by_test_id("me-export-message")
+    export_message.wait_for()
+    assert export_message.inner_text() == "数据已导出为 JSON 文件。文件包含导出时间和格式版本。"
+
+    page.get_by_test_id("me-delete-open").click()
+    submit = page.get_by_test_id("me-delete-submit")
+    assert submit.is_disabled()
+    page.get_by_test_id("me-delete-input").fill("delete")
+    assert submit.is_disabled()
+    page.get_by_test_id("me-delete-input").fill("DELETE")
+    assert submit.is_enabled()
+
+    delete_attempts = []
+
+    def fail_delete(route):
+        delete_attempts.append(route.request.url)
+        route.fulfill(
+            status=503,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "temporary"}),
+        )
+
+    page.route("**/api/me/delete", fail_delete)
+    page.evaluate("""() => {
+      const button = document.querySelector('[data-testid="me-delete-submit"]');
+      button.click();
+      button.click();
+    }""")
+    page.get_by_test_id("me-delete-error").wait_for()
+    assert len(delete_attempts) == 1
+    assert page.get_by_test_id("me-email").inner_text() == "account-rights@example.com"
+    assert page.evaluate("localStorage.getItem('phase_favorites_anon')") is not None
+
+    page.unroute("**/api/me/delete", fail_delete)
+    with page.expect_response("**/api/me/delete") as pending_delete:
+        submit.click()
+    delete_response = pending_delete.value
+    assert delete_response.status == 200, delete_response.text()
+    page.get_by_test_id("account-deleted").wait_for()
+    assert page.evaluate("localStorage.getItem('phase_favorites_anon')") is None
+    assert page.evaluate("localStorage.getItem('phase_api_key')") is None
+    assert page.get_by_test_id("account-deleted-home").get_attribute("href") == "/"
+    status = page.evaluate("async () => (await fetch('/api/me/export', {credentials:'include'})).status")
+    assert status == 401
+    context.close()
+
+
+@pytest.mark.parametrize("width,height", [(375, 812), (390, 844), (430, 932)])
+def test_authenticated_account_settings_mobile_accessibility(browser, real_stack, width, height):
+    context = browser.new_context(viewport={"width": width, "height": height})
+    page = context.new_page()
+    install_auth_proxy(page, real_stack)
+    sign_in(page, real_stack, f"account-mobile-{width}@example.com")
+    dismiss_first_visit_overlays(page)
+    page.get_by_test_id("me-delete-open").click()
+    page.get_by_test_id("me-delete-input").focus()
+    page.keyboard.type("DELETE")
+    assert page.get_by_test_id("me-delete-submit").is_enabled()
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    small_targets = page.locator("main a:visible,main button:visible,main input:visible").evaluate_all(
+        "els => els.filter(el => { const r=el.getBoundingClientRect(); return r.width < 44 || r.height < 44; }).map(el => el.getAttribute('data-testid') || el.textContent.trim())"
+    )
+    assert small_targets == []
+    page.add_script_tag(content=AXE.read_text(encoding="utf-8"))
+    violations = page.evaluate("""async () => (await axe.run(document, {
+      runOnly: {type: 'tag', values: ['wcag2a','wcag2aa','wcag21aa']}
+    })).violations.filter(v => ['critical','serious'].includes(v.impact))""")
+    assert violations == []
+    context.close()
 
 
 def test_phase_account_entry_is_visible_on_desktop_and_mobile(browser, real_stack):
