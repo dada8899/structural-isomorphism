@@ -739,3 +739,107 @@ git diff --stat
 
 - GitHub HTTPS/CLI 曾被失效代理 `127.0.0.1:7890` 间歇阻断；两次小修复通过 GitHub Connector 写入远端，因此本地等价提交 SHA 与远端 `a4201b1` / `a4706e2` 不同。
 - 下一会话先 fetch 并按内容安全对齐本地与 `origin/main`，不得 destructive reset，也不要重复应用相同补丁。
+
+## 23. 2026-07-12 成熟产品与 AI for Science 引擎新阶段
+
+> 本节是当前最新权威状态。用户要求持续自动驾驶，且特别强调跨 Session 记忆不可靠；后续必须执行本节的可恢复性协议。
+
+### 新的最高目标
+
+- 项目不再只以“同构检索产品”完成度为终点，而要成为可证伪、可复现、能主动寻找反证并通过前瞻实验验证的 AI for Science 引擎。
+- 总需求与完成合同：`docs/product/master-requirements-2026-07-12.md`。
+- 引擎闭环：科学问题 → 结构表示 → 跨域机制检索 → 可证伪假设 → 反例/边界 → 可区分实验 → 前瞻预测 → 结果回写 → 可信度更新。
+- 至少一个核心发现通过预注册前瞻验证或独立复现前，不得宣称“新范式已被证明”。
+
+### 当前本地版本
+
+- 本地已提交：`65cb825` 注册/登录入口、`2f8845d` 产品价值评分、`2e65dd5` 移动端 100 分门禁；本地与远端存在等价补丁但 SHA 不同，禁止 destructive reset。
+- GitHub 远端账户入口 PR `#230` 基于远端主线创建，写入本节时仍需检查全部 checks 后方可合并。
+- 移动端公开页面 375/390/430 审计：路由、溢出、控件名称、键盘、触控目标和 axe serious 均为 0 缺陷；新增 clean-runner workflow，尚需远端独立运行。
+- 收藏 Builder 已完成 session 权威、匿名合并、登出清理、stale-session 安全回落、Git 外持久化和一次性迁移；主 Agent 尚需独立复核后提交。
+- 公开文案 Builder 已完成旧口径、伪实时、伪置信度、直接写论文和内部代号清理；静态 claim contract 与 3 个测试通过，尚需独立复核后提交。
+- 模拟用户评测框架已实现 8 角色、五阶段门禁、异构模型要求和故意失败 fixture；12 个 public-copy/journey 测试通过。真实异构模型运行尚未完成。
+
+### 新增研究与产品资产
+
+- `docs/audit/product-90-scorecard-2026-07-12.md`
+- `docs/audit/value-evidence-framework-2026-07-12.md`
+- `docs/audit/evidence-bound-paper-drafting-2026-07-12.md`
+- `docs/audit/experiment-data-revalidation-matrix-2026-07-12.md`
+- `docs/audit/high-value-isomorphism-research-priorities-2026-07-12.md`
+- `docs/testing/simulated-user-evaluation-v1-2026-07-12.md`
+- 首轮高价值排序最高为路口溢流锁死↔电网级联 85；当前没有候选达到 90，禁止把共享方程当作机制证明。
+- AI for Science 范式定义与独立统计红队协议正在由两个独立 Agent 编写，完成后必须由主 Agent 交叉核验。
+
+### 当前未提交范围
+
+- 收藏/auth/deploy 相关修改。
+- 公开文案、claim inventory/checker/tests。
+- 模拟用户评测配置、fixture、runner/tests/docs。
+- 产品、实验、论文草拟、高价值研究和总需求审计文档。
+- 不得一次混为一个 commit；按 favorites、copy claims、journey evaluation、research/product docs 分批 Builder→Validator→目标/全量测试。
+
+### 跨 Session 强制协议
+
+1. 80% context 开始整理，最迟 90% 前追加本文件；每个部署版本后立即追加。
+2. compact/新 Session 第一动作必须完整读取本文件 1–末行，不只读最新节；然后检查 pwd、repo、README、git status/log、Agent、CI、部署和生产状态。
+3. 交接必须含 SHA/分支、未提交文件归属、测试命令/结果、workflow/run、生产证据、数据/模型指纹、回滚和严格下一步。
+4. 聊天记忆、摘要和 Agent 自报均不是最终证据；主 Agent 必须现场验证。
+5. 不在本文件或日志中记录任何 secret 值。
+6. 自动驾驶必须主动向用户同步阶段进展，至少覆盖 Validator、P0/P1、目标/全量测试、CI、部署、生产 smoke 和研究 go/no-go 节点；不等待用户询问。
+7. 进展汇报必须明确分开已验证、运行中、问题、风险边界与下一步，不能把局部绿色表述为项目完成。
+
+### 严格下一步
+
+1. 独立复核并测试 favorites/auth/deploy，按独立版本提交。
+2. 独立复核 public copy 与 claim gate，提交并跑完整相关门禁。
+3. 为 simulated journey runner 指派非 Builder Validator，再进行至少两个异构模型家族的真实公共数据评分。
+4. 回收 AI for Science 范式与统计红队文档，收敛最强 claim、benchmark、消融、负对照和前瞻验证计划。
+5. 按高价值优先级选择 2–3 个 dossier 深挖；先验证文献新颖性和可区分实验，不按吸引力直接开发。
+6. 检查 PR `#230` 及所有 CI；全绿后合并、部署并运行更新后的生产 smoke。
+
+### 项目完成后的待研究事项
+
+- 用户确认：本项目达到严格完成定义后，再独立研究如何实现真正的 24 小时无人值守自动驾驶。
+- 当前会话自动驾驶不等于常驻 daemon；无新执行回合时，已启动的 Agent/CI/长进程可完成，但主 Agent 不会自然获得无限续回合。
+- 后续专题范围：常驻 orchestrator、持久任务队列、自动续回合、阶段状态机、权限/预算、安全、失败隔离、Builder-Validator、CI/部署、生产监控、交接恢复与人工升级。
+- 在 Structural Isomorphism 完成前，不让该基础设施专题分散当前产品与研究主线。
+
+## 24. 2026-07-12 产品 90 分第二阶段：版本化与发布门禁
+
+> 本节是当前最新权威状态。阶段进展需主动同步；用户要求当前持续执行期间约每 10 分钟汇报一次。聊天系统无执行回合时无法按墙钟主动发消息，此限制不得隐瞒。
+
+### 已独立验证并提交到本地主线
+
+- `7cdec1d`：账户 session 权威收藏、匿名合并、跨设备恢复、登出/陈旧 session、安全迁移与 Git 外持久化。Validator 发现并修复生产 `/api/api/favorites` 双前缀；后端 61、真实 Next/FastAPI/Chromium 9 全通过。
+- `7601a7d`：公开文案与 claim inventory 门禁，移除旧 verified 数、伪实时、伪置信度、直接写论文和内部代号；contract PASS、3 tests。
+- `f61d3d7`：账户数据 registry、登录态导出/删除、session generation、deletion epoch、旧 SQLite 迁移、安全擦除和补偿回滚；独立 Validator 后账户目标 73、backend 全量 915 passed/1 skipped。
+- `757e874`：工作台系统先生成确定性指纹草案，标明用户原文/待确认/未知，缓存污染防护、移动/键盘/读屏；Validator 真实 Chromium 3、静态契约 1、public controls 11 通过。
+- `ea54579`：Stage 1 benchmark harness，含强基线、8 消融、负对照、预算、VFU、时间切分、污染与 immutable seal；红队修复 formal/symlink/TOCTOU/遗漏/重复绕过，23 tests。仅实现级 PASS，正式科学证据 NO-GO。
+- `59e3e09`：8角色×2任务模拟用户评测门禁，严格异构 panel、locator、digest、JSON、abstain和指纹；18 tests。真实异构运行仍 NO-GO，待模型 registry、不可变 evidence bundle 与 adapter。
+- `5b0738d`：总需求、90 分评分、AI for Science 范式、独立验证协议、论文证据安全、数据/实验复核和高价值研究优先级。
+
+### 发布 PR 与线上为什么暂未变化
+
+- 生产 beta 现场仍为 `324c914`；因此用户目前看不到本批变化。
+- 本地与远端因 GitHub Connector 等价补丁产生分叉；未 force push。基于 `origin/main=28078db` 无损重建发布分支 `release/product-90-20260712`，PR `#231`。
+- PR #231 首轮：backend矩阵、build、coverage、frontend、packages、sanity通过；4个红灯已完成四层根因：
+  1. browser：CI只装精简依赖，favorites经errors导入缺`slowapi`；
+  2. product contract：仍断言旧“收藏不与邮箱同步”文案；
+  3. mobile：PR门禁错误审计未部署生产站，形成部署前循环；
+  4. perf：真实 bundle/perf全PASS，仅PR评论权限403导致job失败。
+- 修复提交 `fc7400a` 已推送 PR #231：补slowapi、更新产品契约、mobile改为本地Beta+Phase构建审计、perf声明最小评论权限。本地产品契约26/26，workflow YAML与diff check通过；需等待第二轮CI终态。
+- 账户入口另有 PR `#230`；不得在 checks 未全绿时合并。PR #231未包含本地`65cb825`账户入口，以避免和远端逐文件Connector分支冲突。
+
+### 当前进行中三条 Builder
+
+1. `/me` 用户可见导出/删除 UI 与真实 Next/API E2E。
+2. Decision Brief 下载与报告完成后直接创建 7 天实验。
+3. 真实异构旅程评分前的模型 registry、不可变 evidence bundle 与安全 adapter；不调用外部模型、不伪造评分。
+
+### 严格下一步
+
+1. 监控 PR #231 第二轮 checks；逐项绿后才合并、部署、运行生产 smoke，并复核线上 SHA 与用户可见变化。
+2. 检查 PR #230 checks与冲突；若账户入口未进入#231，安全合并或在最新main重建最小补丁。
+3. 回收三条 Builder，分别指派独立 Validator；目标/全量测试后独立提交。
+4. 把本节 `NEXT_SESSION.md` 在对应发布终态后再次追加，不用本节“运行中”代替最终证据。
