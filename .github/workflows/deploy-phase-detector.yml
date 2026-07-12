@@ -15,6 +15,9 @@ on:
     branches: [main]
     paths:
       - 'web/phase-detector/**'
+      - 'web/backend/api/auth.py'
+      - 'web/backend/api/sso.py'
+      - 'web/backend/services/sso_store.py'
       - 'v4/product/d1_phase_detector/api/**'
       - 'scripts/deploy-phase-detector-vps.sh'
       - '.github/workflows/deploy-phase-detector.yml'
