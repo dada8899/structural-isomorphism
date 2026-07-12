@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <meta name="description" content="研究空白地图——26 个普适类 × 183 个领域的矩阵，找出结构上理论上应成立、但还没人验证的研究选题。">
+  <meta name="description" content="研究空白地图——把 26 个候选模式与 183 个领域排成矩阵，帮助筛选仍需真实数据验证的研究问题。">
   <title>研究空白地图 — Structural</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
@@ -42,13 +42,14 @@
         </nav>
         <h1 class="ws-intro__title">研究空白地图</h1>
         <p class="ws-intro__lede">
-          把 <strong>26 个普适类</strong> 和 <strong>183 个领域</strong> 排成一个矩阵。
-          每个普适类已经验证过的领域是「已验证」；那些结构上理论上应该成立、
-          但还没人去验证的格子，就是 <strong>研究空白</strong>——一个可能值得做的研究选题。
+          把 <strong>26 个候选模式</strong> 和 <strong>183 个领域</strong> 排成一个矩阵。
+          “候选模式”是待检验的结构分组，不代表已经证明同一机制。已有分析记录标为「有证据记录」；
+          尚无直接数据、但结构上值得比较的格子标为 <strong>待验证选题</strong>。
+          先点选一个格子，再核对来源、数据许可和失败条件。
         </p>
         <div class="ws-legend">
-          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--filled"></i>已验证</span>
-          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--lead"></i>研究空白</span>
+          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--filled"></i>有证据记录</span>
+          <span class="ws-legend__item"><i class="ws-swatch ws-swatch--lead"></i>待验证选题</span>
           <span class="ws-legend__item"><i class="ws-swatch ws-swatch--empty"></i>结构不相关</span>
         </div>
         <div id="ws-stats" class="ws-stats" hidden></div>
@@ -73,8 +74,8 @@
         <div class="ws-section__head">
           <h2 class="ws-section__title">矩阵热力图</h2>
           <p class="ws-section__hint">
-            行为普适类，列为领域。每行只展示该普适类相似度最高的若干领域，
-            横向可滚动。点击任意「研究空白」格子可定位到下方的选题。
+            行为候选模式，列为领域。每行只展示结构匹配分较高的若干领域；
+            该分数用于排序，不是正确概率。横向可滚动，点击「待验证选题」查看下一步。
           </p>
         </div>
         <div id="ws-matrix" class="ws-matrix" role="table" aria-label="研究空白矩阵"></div>
@@ -84,11 +85,11 @@
       <section id="ws-leads-section" class="ws-section" hidden>
         <div class="ws-section__head">
           <h2 class="ws-section__title">研究空白选题</h2>
-          <p class="ws-section__hint">按结构相似度排序——越靠前，越可能存在尚未被验证的同构现象。</p>
+          <p class="ws-section__hint">按结构匹配分排序。越靠前只表示更值得优先核查，不代表同一机制已经成立。</p>
         </div>
         <div class="ws-filters">
           <label class="ws-filter">
-            <span>普适类</span>
+            <span>候选模式</span>
             <select id="ws-filter-class"><option value="">全部</option></select>
           </label>
           <label class="ws-filter">

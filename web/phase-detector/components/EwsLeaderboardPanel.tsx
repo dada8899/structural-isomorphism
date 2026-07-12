@@ -174,7 +174,12 @@ export function EwsLeaderboardPanel() {
           当前筛选无匹配。试试切到 &ldquo;全部&rdquo; 或换市场。
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="EWS 结果表，可横向滚动"
+          tabIndex={0}
+        >
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wider text-zinc-500">

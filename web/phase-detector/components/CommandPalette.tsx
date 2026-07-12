@@ -309,7 +309,6 @@ export default function CommandPalette({ open, onClose, source }: CommandPalette
         aria-label="关闭搜索"
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-sm"
-        tabIndex={-1}
       />
 
       {/* Panel */}
@@ -353,7 +352,7 @@ export default function CommandPalette({ open, onClose, source }: CommandPalette
             type="button"
             onClick={onClose}
             aria-label="关闭"
-            className="rounded border border-zinc-200 px-1.5 py-0.5 text-xs text-zinc-500 hover:bg-zinc-50"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded border border-zinc-200 px-2 text-xs text-zinc-500 hover:bg-zinc-50"
           >
             Esc
           </button>

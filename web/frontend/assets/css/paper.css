@@ -7,10 +7,14 @@
   padding: 40px 0 120px;
   background: #fcfbf8;
   min-height: calc(100vh - 120px);
+  overflow-x: clip;
 }
 
 .paper-container {
   max-width: 760px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -48,6 +52,8 @@
 /* --- Main article --- */
 
 .paper-article {
+  min-width: 0;
+  max-width: 100%;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;
@@ -207,11 +213,26 @@
 /* --- Tables --- */
 
 .paper-article table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 20px 0 24px;
   font-size: 14.5px;
   font-family: 'Inter', sans-serif;
+}
+
+.paper-article img,
+.paper-article svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.paper-article p,
+.paper-article li,
+.paper-article a {
+  overflow-wrap: anywhere;
 }
 
 .paper-article th,

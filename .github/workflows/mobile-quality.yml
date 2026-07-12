@@ -1,0 +1,71 @@
+name: mobile quality
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "web/frontend/**"
+      - "web/phase-detector/**"
+      - "web/tests/e2e/test_mobile_quality_audit.py"
+      - ".github/workflows/mobile-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install browser runner
+        run: |
+          python -m pip install pytest playwright
+          python -m playwright install --with-deps chromium
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/phase-detector/pnpm-lock.yaml
+      - name: Install locked axe source
+        working-directory: web/phase-detector
+        run: pnpm install --frozen-lockfile
+      - name: Build Phase
+        working-directory: web/phase-detector
+        env:
+          NEXT_PUBLIC_USE_MOCK: "true"
+          NEXT_PUBLIC_AUTH_ENABLED: "true"
+        run: pnpm build
+      - name: Start local Beta and Phase
+        run: |
+          python -m http.server 4173 --directory web/frontend >/tmp/mobile-beta.log 2>&1 &
+          echo $! >/tmp/mobile-beta.pid
+          cd web/phase-detector
+          NEXT_PUBLIC_USE_MOCK=true NEXT_PUBLIC_AUTH_ENABLED=true pnpm start --port 4174 >/tmp/mobile-phase.log 2>&1 &
+          echo $! >/tmp/mobile-phase.pid
+          for url in http://127.0.0.1:4173/index.html http://127.0.0.1:4174/; do
+            for attempt in $(seq 1 60); do
+              curl -fsS "$url" >/dev/null && break
+              if [ "$attempt" = 60 ]; then
+                cat /tmp/mobile-beta.log /tmp/mobile-phase.log
+                exit 1
+              fi
+              sleep 1
+            done
+          done
+      - name: Enforce 375, 390 and 430 mobile quality
+        env:
+          BETA_BASE: http://127.0.0.1:4173
+          PHASE_BASE: http://127.0.0.1:4174
+        run: pytest web/tests/e2e/test_mobile_quality_audit.py -v
+      - name: Stop local servers
+        if: always()
+        run: |
+          xargs kill < /tmp/mobile-beta.pid 2>/dev/null || true
+          xargs kill < /tmp/mobile-phase.pid 2>/dev/null || true

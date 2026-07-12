@@ -41,13 +41,17 @@ function EnabledAuthNav({ variant = "compact" }: Props) {
 
   if (loading) {
     return (
-      <span
-        className="text-xs text-zinc-400"
+      <Link
+        href="/auth/login"
+        className={
+          variant === "drawer"
+            ? "block min-h-11 w-full rounded-md border border-zinc-300 px-3 py-2.5 text-left text-base font-medium text-zinc-800"
+            : "inline-flex min-h-11 items-center rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+        }
         data-testid="auth-nav-loading"
-        aria-live="polite"
       >
-        …
-      </span>
+        注册 / 登录
+      </Link>
     );
   }
 
@@ -57,12 +61,12 @@ function EnabledAuthNav({ variant = "compact" }: Props) {
         href="/auth/login"
         className={
           variant === "drawer"
-            ? "block w-full rounded-md px-3 py-2.5 text-left text-base text-zinc-700 hover:bg-zinc-50"
-            : "text-sm text-zinc-600 hover:text-zinc-900"
+            ? "block min-h-11 w-full rounded-md border border-zinc-300 px-3 py-2.5 text-left text-base font-medium text-zinc-800 hover:bg-zinc-50"
+            : "inline-flex min-h-11 items-center rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
         }
         data-testid="auth-nav-signin"
       >
-        登录
+        注册 / 登录
       </Link>
     );
   }

@@ -22,18 +22,18 @@
 [![Live: Structural Search](https://img.shields.io/badge/Live-beta.structural.bytedance.city-2f9e44)](https://beta.structural.bytedance.city)
 [![Live: Phase Detector](https://img.shields.io/badge/Live-phase.bytedance.city-2f9e44)](https://phase.bytedance.city)
 
-> **We tested whether 27 phenomena across physics, finance, biology, and the web really share the same statistical mechanics — using one frozen 339-LOC Clauset pipeline, no per-domain tuning. This repo publishes every fit, every null control, and every failure: a null-result alpha backtest (Sharpe lift −0.23), a 33% rejection rate on LLM-curated universality classes, and a 26-class taxonomy with full provenance.**
+> **We test whether cross-domain systems share measurable scaling signatures — and publish PASS, FAIL, NULL and INCONCLUSIVE results. The strongest current contribution is the reject-aware protocol, not a verified map of universality classes.**
 
 Universality classes are one of the most consequential ideas in modern statistical physics: a small number of equations describe phase transitions in materials, magnets, fluids, and lattices that look nothing alike. This project tests whether the same idea extends — without per-domain tuning — to noisy, sparse, high-stakes empirical domains: financial contagion, neural avalanches, DeFi liquidations, wildfires, biological gene switches, citation cascades.
 
 The answer is *not* "yes" by assumption. We treat it as a falsifiable question: pre-register exponent bands, fit the same Clauset MLE pipeline across every domain, and report PASS / FAIL / INCONCLUSIVE with full provenance. When a hypothesis fails — including our own consumer-facing one — we publish the failure.
 
-**Status as of 2026-05-25**
+**Historical research snapshot: 2026-05-25 (not current production evidence)**
 - 27 (v0.3) + 18 (v0.4 Wave 2) = **45 SOC validation systems** across textbook + reflexive + reject-confirm classes (KPZ / DP / RFIM / Manna / Oslo / Tracy-Widom + 18 new)
 - **4888 main KB + 300 long-tail (Wave 3C) + 145 Wave 2 entries pending merge** cross-domain knowledge base entries
 - 3 PyPI packages live (`soc-pipeline` / `cross-judge` / `guarded-llm`); `reject-aware-critic` v0.1.0 ready (50/50 tests passing)
 - C1 unified preprint v0.4 draft (459 lines, §3.5 "Completing the taxonomy"); v0.3 closed 9/9 P0 reviewer concerns, v0.4 batch closed 18/18
-- Taxonomy v0.4: **26 verified classes + 5 SPLIT decisions + 1 MERGE recommendation** (preisach_hysteresis_cascade + rfim_barkhausen → crackling_noise_universality)
+- Taxonomy v0.4: **26 internally reviewed candidate classes + 5 SPLIT decisions + 1 MERGE recommendation**; these are not 26 independently verified mechanisms
 - One published null result: walk-forward backtest Sharpe lift = **−0.23**
 
 **Status as of 2026-05-26 (v0.5-draft, transitional — see [paper/v0.5-draft/](paper/v0.5-draft/))**
@@ -41,7 +41,7 @@ The answer is *not* "yes" by assumption. We treat it as a falsifiable question: 
 The v0.5 draft consolidates SESSION-25 work since the v0.4 cut. v0.4 outputs above are unchanged; v0.5 adds three methodology increments, one new class promotion, and one eval-specific universality finding:
 
 - **19 candidate classes in the v0.5 research ledger** (+1): these are not 19 independently confirmed empirical mechanisms. Several rely on synthetic or literature-calibrated anchors; `aggregation_kinetics` remains a candidate scaling/mechanism class pending direct held-out replication.
-- **11 PASS-CONFIRMED-or-stronger** (+1): `schelling_credible_commitment` lifted to PASS-CONFIRMED-WITH-PARTIAL-ANCHOR-FIT (sub-run D, 2/4 anchor hits) via the (s\*, k) threshold-tobit reparametrisation. Horn-Mavroidis WTO real-data sanity check (n = 23 retaliation cases) returns a sign-reversed slope (`k = −2.92`, 95 % CI `[−7.92, −0.67]`), reported honestly as an observational-identification failure (selection on defendant intransigence), not a refutation of the underlying mechanism.
+- **Legacy internal PASS count (submission-blocked)**: the v0.5 draft counted 11 PASS-CONFIRMED-or-stronger, but `schelling_credible_commitment` conflicts with the B1 taxonomy and the real WTO sign reversal. It must be excluded from universality PASS counts pending external review.
 - **3 methodology increments** (§3.6.5 (s\*, k) reparametrisation / §3.6.6 multilayer test pattern / §3.6.7 head-vs-tail-aware LLM validator) with one full applicability retrospective and three pre-registrations under [paper/v0.5-draft/preregistrations/](paper/v0.5-draft/preregistrations/).
 - **Pythia LAMBADA cross-fit (§4)**: 100 % real per-checkpoint evaluation across 8 sizes × 27 checkpoints. v1 (L∞ free) and v2 (L∞ ∈ [1.0, 5.0]) both deliver TIGHT_UNIVERSALITY (CV ≈ 0.12). **The TIGHT verdict is eval-specific**: pooled across LAMBADA + train-loss sources, CV blows out to 0.58–1.49. The v0.4 BROAD_SPREAD verdict was an artefact of mixed 3-real + 3-synthetic train-loss provenance; the universality claim is a property of *the LAMBADA-OpenAI loss curve*, not of the scaling-law family in general.
 - **arXiv status**: v0.4 preprint submission pending user action; v0.5 draft is *not* a submission, only an extension. See `release/arxiv-submission-receipt.txt` (to be populated).
@@ -133,7 +133,7 @@ CI runs the sanity + integration suites on every PR. The e2e suite runs nightly 
 
 The pipeline is the *same* function applied across every system — no per-domain hyperparameters. Three commitments make the framework falsifiable rather than confirmatory:
 
-- **Pre-registered exponent bands.** Every claimed universality class declares its expected power-law exponent *before* we touch new data. A fit outside the band is recorded as FAIL, not retroactively re-classified.
+- **Timestamped pre-registrations where available.** CVE, FDNY and WSB predictions were committed before their recorded runs. The broader historical taxonomy sweep was not uniformly preregistered and must not be described as such.
 - **Null controls.** Four synthetic nulls (uniform, exponential, lognormal, shuffled) are run through the same pipeline. Any framework that does not reject them is broken.
 - **Cross-judge ensemble.** A heterogeneous LLM critic ensemble (Claude Sonnet, DeepSeek v4, Kimi K2.5, GLM-5) votes on candidate cross-domain pairs and produces explicit `KEEP / REJECT / SPLIT / MERGE` verdicts. No single model can wave a pair through.
 
@@ -164,15 +164,10 @@ Full dataset card: [`dataset_card.md`](dataset_card.md). Model card: [`model_car
   url       = {https://doi.org/10.5281/zenodo.19615170}
 }
 
-@misc{structural-isomorphism-soc-2026,
-  title        = {{Structural Isomorphism: A Cross-Domain
-                   Self-Organized Criticality Validation Pipeline}},
-  author       = {Wan, Qinghui},
-  year         = {2026},
-  howpublished = {arXiv:XXXX.XXXXX (preprint forthcoming)},
-  url          = {https://github.com/dada8899/structural-isomorphism}
-}
 ```
+
+No paper DOI or arXiv identifier has been assigned. Cite the versioned dataset
+above or the repository commit; do not invent a preprint identifier.
 
 A machine-readable [`CITATION.cff`](CITATION.cff) is provided at the repo root and is honored by GitHub's "Cite this repository" button.
 
@@ -206,9 +201,9 @@ For contributor details — build conventions, deployment SOP, session retrospec
 | SOC pipeline | Stable. Frozen module + 38 sanity tests + 213 total. |
 | Universality taxonomy | v0.3, B3 consensus complete, B4 ensemble run partial. |
 | Phase Detector | Live 597-ticker demo snapshot; v0.2 null result published openly. |
-| Structural Search | Live with 4,443-record verified artifact; English retrieval remains below the quality gate. |
+| Structural Search | Live with a checksum-verified 4,443-record artifact; individual mappings have mixed provenance and English retrieval remains below the quality gate. |
 | Unified preprint (C1) | Reviewer-readable draft; do not submit before claim/evidence and external review gates pass. |
-| Solo arXiv drafts | 4 complete (earthquakes, S&P 500, DeFi, neural). |
+| Research drafts | Four internal domain drafts; none should be represented as an accepted or externally reviewed arXiv paper. |
 
 ## Contributing
 

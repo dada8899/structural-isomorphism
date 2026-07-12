@@ -464,6 +464,7 @@ export default function ScreenerHomePage() {
             <h2
               id="signals-heading"
               className="text-base font-semibold tracking-tight text-amber-900"
+              style={{ color: "#78350F" }}
             >
               <span aria-hidden="true">▲ </span>
               当前发现 · {signals.length} 家公司接近状态翻转

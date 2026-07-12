@@ -108,15 +108,15 @@
         var cell = document.createElement('div');
         cell.className = 'ws-cell ws-cell--' + c.state;
         cell.setAttribute('role', 'cell');
-        var stateLabel = c.state === 'filled' ? '已验证'
-          : (c.state === 'lead' ? '研究空白' : '结构不相关');
+        var stateLabel = c.state === 'filled' ? '有证据记录'
+          : (c.state === 'lead' ? '待验证选题' : '结构不相关');
         cell.title = (cls.class_name || cls.class_id) + ' × ' + dom +
           ' — ' + stateLabel + '（相似度 ' + (c.score || 0).toFixed(2) + '）';
         if (c.state === 'lead') {
           cell.tabIndex = 0;
           cell.dataset.classId = cls.class_id;
           cell.dataset.domain = dom;
-          cell.setAttribute('aria-label', '研究空白：' + cls.class_name + ' × ' + dom);
+          cell.setAttribute('aria-label', '待验证选题：' + cls.class_name + ' × ' + dom);
         }
         cellsWrap.appendChild(cell);
       });
@@ -274,10 +274,10 @@
     var meta = (state.matrix && state.matrix.meta) || {};
     if (!el) return;
     el.innerHTML =
-      '<span><b>' + (meta.n_classes || 0) + '</b> 个普适类</span>' +
+      '<span><b>' + (meta.n_classes || 0) + '</b> 个候选模式</span>' +
       '<span><b>' + (meta.n_domains || 0) + '</b> 个领域</span>' +
-      '<span><b>' + (meta.n_filled || 0) + '</b> 个已验证格子</span>' +
-      '<span><b>' + (meta.n_leads || state.leads.length) + '</b> 个研究空白选题</span>';
+      '<span><b>' + (meta.n_filled || 0) + '</b> 个证据记录</span>' +
+      '<span><b>' + (meta.n_leads || state.leads.length) + '</b> 个待验证选题</span>';
     show(el);
   }
 

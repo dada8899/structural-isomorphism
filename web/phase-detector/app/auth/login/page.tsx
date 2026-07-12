@@ -58,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="mb-2 text-2xl font-semibold text-zinc-900">登录</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-zinc-900">注册 / 登录</h1>
       <p className="mb-8 text-sm text-zinc-600">
         输入邮箱即可，我们发送一次性登录链接。无需密码。
       </p>

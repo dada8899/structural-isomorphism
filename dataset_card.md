@@ -17,7 +17,7 @@ size_categories:
 # SIBD: Structural Isomorphism Benchmark Dataset
 
 > **Canonical production note (2026-07-11).** The live search system does
-> not use the historical 4,888/5,333 expansion ledger below. Its verified
+> not use the historical 4,888/5,333 expansion ledger below. Its checksum-verified
 > artifact is `structural-v2-kb4443-20260711`: 4,443 unique KB rows paired
 > with a `[4443, 768]` embedding matrix and checksums in
 > `artifacts/production-v2-4443.json`. The larger counts are retained as
@@ -126,14 +126,8 @@ with open("data/clean.jsonl") as f:
 
 ## Citation
 
-```bibtex
-@article{structural-isomorphism-2026,
-  title={Structural Isomorphism Search: Cross-Domain Structural Similarity Retrieval via Fine-tuned Embeddings},
-  author={Wan, Qinghui},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2026}
-}
-```
+No paper DOI or arXiv identifier has been assigned. Cite the versioned dataset
+manifest or repository commit. Do not construct a placeholder publication ID.
 
 ## License
 

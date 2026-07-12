@@ -357,6 +357,12 @@ textarea:focus-visible {
   color: #52525b !important;
 }
 
+/* Small status badges must remain AA even when a dynamically selected legacy
+ * class still emits emerald-600. White on emerald-700 clears 4.5:1. */
+.bg-emerald-600.text-white {
+  background-color: #047857 !important;
+}
+
 /* Decorative-only escape hatch — use when contrast isn't required (purely
  * ornamental text, or when a sibling element carries the same semantic info). */
 .text-zinc-soft {

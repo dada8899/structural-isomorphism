@@ -242,7 +242,9 @@ def _require_same_origin(request: Request) -> Optional[JSONResponse]:
     if not origin:
         return None
     expected = os.getenv("AUTH_LINK_BASE_URL", "").rstrip("/")
-    if expected and origin.rstrip("/") != expected:
+    if not expected:
+        expected = str(request.base_url).rstrip("/")
+    if origin.rstrip("/") != expected:
         return JSONResponse({"ok": False, "error": "invalid origin"}, status_code=403)
     return None
 
@@ -285,6 +287,36 @@ def _is_jti_revoked(jti: str) -> bool:
     if not jti:
         return False
     return _store().is_revoked(jti)
+
+
+def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
+    """Resolve the HttpOnly session for other API modules.
+
+    The status is one of ``absent``, ``valid``, ``invalid`` or ``unavailable``.
+    Callers must not treat an invalid/revoked cookie as anonymous or silently
+    fall back to a weaker credential.
+    """
+    cookie = request.cookies.get(_COOKIE_NAME)
+    if not cookie:
+        return None, "absent"
+    if not _auth_enabled():
+        return None, "unavailable"
+    claims = _decode_jwt(cookie)
+    if not claims or _is_jti_revoked(claims.get("jti", "")):
+        return None, "invalid"
+    user = _store().user(claims.get("sub", ""))
+    if not user:
+        return None, "invalid"
+    return {
+        "email": user["email"],
+        "tier": user["tier"],
+        "created_at": user["created_at"],
+    }, "valid"
+
+
+def require_same_origin(request: Request) -> Optional[JSONResponse]:
+    """Public wrapper used by cookie-authenticated mutation endpoints."""
+    return _require_same_origin(request)
 
 
 def _cookie_args(request: Request) -> dict:
@@ -494,4 +526,9 @@ def _override_data_dir_for_tests(tmp_dir: Path) -> None:
     _data_dir = lambda: tmp_dir  # noqa: E731
 
 
-__all__ = ["router", "retry_registration_notifications"]
+__all__ = [
+    "router",
+    "require_same_origin",
+    "resolve_session_user",
+    "retry_registration_notifications",
+]

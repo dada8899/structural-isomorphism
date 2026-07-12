@@ -189,7 +189,9 @@ def _api(method: str, url: str, headers: dict | None = None, body=None):
 def test_get_empty_for_anonymous(local_backend):
     status, body = _api("GET", f"{local_backend['base']}/api/favorites")
     assert status == 200
-    assert body == {"tickers": []}
+    assert body == {
+        "tickers": [], "authenticated": False, "auth_method": None
+    }
 
 
 def test_post_and_get_for_authenticated(local_backend):

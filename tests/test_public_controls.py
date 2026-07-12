@@ -63,7 +63,19 @@ def test_phase_auth_navigation_is_wired_and_fail_closed() -> None:
     assert '<AuthNav variant="drawer" />' in top_nav
     assert 'process.env.NEXT_PUBLIC_AUTH_ENABLED !== "true"' in auth_nav
     assert 'href="/auth/login"' in auth_nav
+    assert "注册 / 登录" in auth_nav
+    assert "min-h-11" in auth_nav
     assert "NEXT_PUBLIC_AUTH_ENABLED=true" in production_env
+
+
+def test_beta_auth_entry_is_explicitly_phase_scoped() -> None:
+    chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
+    backend = (ROOT / "web/backend/main.py").read_text(encoding="utf-8")
+    assert "https://phase.bytedance.city/auth/login" in chrome
+    assert "Phase 账户 ↗" in chrome
+    assert "external: true" in chrome
+    assert "target=\"_blank\" rel=\"noopener\"" in chrome
+    assert "async def unified_auth_login" in backend
 
 
 def test_public_positioning_matches_frozen_demo_and_null_backtest() -> None:
@@ -139,4 +151,5 @@ def test_phase_logout_and_bulk_favorite_failures_are_not_false_successes() -> No
     assert "你仍处于登录状态" in me_page
     assert "failed.add(t)" in favorites
     assert "已保留在列表中" in favorites
-    assert "不与邮箱账户同步" in favorites
+    assert "已同步到邮箱账户，可在其他设备登录后查看" in favorites
+    assert "当前未登录，收藏仅保存在本设备；登录后会自动合并" in favorites

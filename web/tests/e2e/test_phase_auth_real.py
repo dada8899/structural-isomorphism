@@ -58,7 +58,9 @@ def real_stack(tmp_path_factory):
             f"os.environ['AUTH_DATA_DIR']={str(data_dir)!r}",
             "os.environ['JWT_SECRET']='real-e2e-secret-with-at-least-32-characters'",
             "from fastapi import FastAPI", "from api.auth import router",
+            "from api.favorites import router as favorites_router",
             "app=FastAPI()", "app.include_router(router, prefix='/api')",
+            "app.include_router(favorites_router, prefix='/api')",
             "import uvicorn", f"uvicorn.run(app, host='127.0.0.1', port={api_port}, log_level='warning')",
         ]), encoding="utf-8",
     )
@@ -109,6 +111,7 @@ def install_auth_proxy(page, stack) -> None:
                 body=response.read(),
             )
     page.route("**/api/auth/**", proxy)
+    page.route("**/api/favorites**", proxy)
 
 
 def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_stack):
@@ -138,6 +141,87 @@ def test_real_next_magic_link_cookie_refresh_and_logout_failure(browser, real_st
     context.close()
 
 
+def test_real_next_session_favorites_persist_across_browser_contexts(browser, real_stack):
+    first = browser.new_context(viewport={"width": 390, "height": 844})
+    page = first.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"] + "/auth/login")
+    page.get_by_test_id("auth-login-email").fill("favorites-real@example.com")
+    page.get_by_test_id("auth-login-submit").click()
+    page.get_by_test_id("auth-login-dev-link").wait_for()
+    link = page.get_by_test_id("auth-login-dev-link").get_attribute("href")
+    assert link
+    page.goto(link)
+    page.wait_for_url("**/me")
+    result = page.evaluate("""async () => {
+      const response = await fetch('/api/favorites/AAPL', {
+        method: 'POST', credentials: 'include'
+      });
+      return {status: response.status, url: response.url};
+    }""")
+    assert result["status"] == 201
+    assert "/api/api/" not in result["url"]
+    first.close()
+
+    second = browser.new_context(viewport={"width": 390, "height": 844})
+    page = second.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"] + "/auth/login")
+    page.get_by_test_id("auth-login-email").fill("favorites-real@example.com")
+    page.get_by_test_id("auth-login-submit").click()
+    page.get_by_test_id("auth-login-dev-link").wait_for()
+    second_link = page.get_by_test_id("auth-login-dev-link").get_attribute("href")
+    assert second_link
+    page.goto(second_link)
+    page.wait_for_url("**/me")
+
+    auth_hydrations = []
+
+    def delay_auth_hydration(route):
+        auth_hydrations.append(route.request.url)
+        time.sleep(0.35)
+        route.fallback()
+
+    # A clean runner may hydrate the cookie session substantially later than
+    # the route shell. The page must retain a loading boundary and must not
+    # choose anonymous localStorage during that interval.
+    page.route("**/api/auth/me", delay_auth_hydration)
+    page.goto(real_stack["origin"] + "/me/favorites")
+    page.get_by_test_id("favorites-loading").wait_for()
+    page.get_by_test_id("favorites-page").wait_for()
+    assert auth_hydrations
+    assert page.get_by_test_id("favorites-count").inner_text() == "共 1 家公司"
+    page.get_by_test_id("favorite-card-AAPL").wait_for()
+    assert page.get_by_test_id("favorite-card-AAPL").get_by_text(
+        "AAPL", exact=True
+    ).is_visible()
+    second.close()
+
+
+def test_phase_account_entry_is_visible_on_desktop_and_mobile(browser, real_stack):
+    desktop = browser.new_context(viewport={"width": 1280, "height": 800})
+    page = desktop.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"])
+    entry = page.get_by_test_id("auth-nav-signin")
+    entry.wait_for()
+    assert entry.inner_text() == "注册 / 登录"
+    assert entry.get_attribute("href") == "/auth/login"
+    desktop.close()
+
+    mobile = browser.new_context(viewport={"width": 390, "height": 844})
+    page = mobile.new_page()
+    install_auth_proxy(page, real_stack)
+    page.goto(real_stack["origin"])
+    page.get_by_test_id("mobile-nav-toggle").click()
+    entry = page.get_by_role("menu", name="主导航（移动）").get_by_test_id(
+        "auth-nav-signin"
+    )
+    entry.wait_for()
+    assert entry.inner_text() == "注册 / 登录"
+    assert entry.get_attribute("href") == "/auth/login"
+    mobile.close()
+
 def test_favorites_partial_delete_retains_failed_row(browser, real_stack):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     page = context.new_page()
@@ -146,7 +230,11 @@ def test_favorites_partial_delete_retains_failed_row(browser, real_stack):
     def favorites(route):
         request = route.request
         if request.method == "GET":
-            route.fulfill(status=200, content_type="application/json", body='{"tickers":["AAPL","TSLA"]}')
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body='{"tickers":["AAPL","TSLA"],"authenticated":true}',
+            )
         elif request.url.endswith("/TSLA"):
             route.fulfill(status=503, content_type="application/json", body='{"error":"temporary"}')
         else:

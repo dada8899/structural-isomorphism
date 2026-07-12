@@ -16,8 +16,10 @@ import { useCallback, useEffect, useState } from "react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Events, trackEvent } from "@/lib/analytics";
 import { fetchCompany } from "@/lib/api";
+import { useSession } from "@/lib/auth-client";
 import {
   clearAnonFavorites,
+  consumeFavoriteMergeNotice,
   fetchFavorites,
   isSignedIn,
   removeFavorite,
@@ -37,6 +39,7 @@ interface RowState {
 }
 
 export default function FavoritesPage() {
+  const { user, loading: sessionLoading } = useSession();
   const [rows, setRows] = useState<RowState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +48,23 @@ export default function FavoritesPage() {
 
   // Initial hydrate.
   useEffect(() => {
+    // Do not choose between the authenticated server source and the anonymous
+    // local bucket until the HttpOnly-cookie session has finished hydrating.
+    if (sessionLoading) return;
     let cancelled = false;
-    setSignedIn(isSignedIn());
-
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const tickers = await fetchFavorites();
         if (cancelled) return;
+        setSignedIn(user !== null || isSignedIn());
+        const merge = consumeFavoriteMergeNotice();
+        if (merge?.dropped) {
+          setError(
+            `已同步 ${merge.merged} 个收藏；另有 ${merge.dropped} 个超过账户上限，仍保留在本设备。`,
+          );
+        }
         if (tickers.length === 0) {
           setRows([]);
           setLoading(false);
@@ -100,7 +112,7 @@ export default function FavoritesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionLoading, user]);
 
   const handleRemoveAll = useCallback(async () => {
     setConfirmClear(false);
@@ -131,6 +143,25 @@ export default function FavoritesPage() {
     }
     setRows([]);
   }, [rows, signedIn]);
+
+  // Never expose a final zero count while authentication or the selected data
+  // source is still loading. Besides avoiding misleading UI, this gives E2E
+  // and assistive technology an honest completion boundary.
+  if (sessionLoading || loading) {
+    return (
+      <section
+        className="mx-auto max-w-3xl px-4 py-12"
+        data-testid="favorites-loading"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          我的收藏
+        </h1>
+        <p className="mt-6 text-sm text-zinc-500">正在加载收藏…</p>
+      </section>
+    );
+  }
 
   // ---------------- empty state ----------------
   if (!loading && rows.length === 0) {
@@ -178,7 +209,9 @@ export default function FavoritesPage() {
             共 {rows.length} 家公司
           </p>
           <p className="mt-1 text-xs text-zinc-500">
-            当前版本收藏仅保存在本设备，不与邮箱账户同步。
+            {signedIn
+              ? "已同步到邮箱账户，可在其他设备登录后查看。"
+              : "当前未登录，收藏仅保存在本设备；登录后会自动合并。"}
           </p>
         </div>
         <button

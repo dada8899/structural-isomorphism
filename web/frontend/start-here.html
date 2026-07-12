@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title>Why bank runs, earthquakes, and neural avalanches are the same thing · Structural</title>
-  <meta name="description" content="A plain-English tour of structural isomorphism — why three very different systems share one statistical fingerprint, how we find them automatically, and what it lets us predict. No math, no jargon, ~10 minutes.">
+  <title>Can bank runs, earthquakes, and neural avalanches share a useful pattern? · Structural</title>
+  <meta name="description" content="A plain-English tour of structural isomorphism — how different systems can share candidate statistical patterns, how we test them, and where the analogy can fail. No math, no jargon, ~10 minutes.">
 
-  <meta property="og:title" content="Why bank runs, earthquakes, and neural avalanches are the same thing">
+  <meta property="og:title" content="Can bank runs, earthquakes, and neural avalanches share a useful pattern?">
   <meta property="og:description" content="A 10-minute plain-English tour. No math. No jargon.">
   <meta property="og:type" content="article">
   <meta property="og:image" content="/assets/og-image.png">
@@ -175,12 +175,12 @@
       这是一篇英文长文。想看中文，可以读 <a href="/learn">工作原理</a>、<a href="/about">关于本项目</a>，或直接回<a href="/">首页</a>提一个问题。
     </p>
 
-    <h1 class="essay__title">Why bank runs, earthquakes, and neural avalanches are the same thing</h1>
+    <h1 class="essay__title">Can bank runs, earthquakes, and neural avalanches share a useful pattern?</h1>
 
     <p class="essay__subtitle">
       Three completely different systems collapse in eerily similar ways.
       Once you see the shape, you can&rsquo;t un-see it &mdash; and you can start
-      predicting where it&rsquo;ll show up next.
+      testing where a similar pattern may &mdash; or may not &mdash; appear next.
     </p>
 
     <div class="essay__meta">≈ 1,650 words · 2026-05-13 · plain English · no equations</div>
@@ -285,12 +285,11 @@
     </p>
 
     <p>
-      If a new system passes <em>all</em> of these checks, not just the first
-      one, that&rsquo;s called sharing a <strong>universality class</strong>. The
-      term sounds physics-y. The practical meaning: same fingerprint, same
-      machinery. You can take tools developed in one field &mdash; say,
-      seismology&rsquo;s extensive theory of fault dynamics &mdash; and apply them
-      to a different field where the data looks identical.
+      Passing all of these checks makes a system a <em>candidate</em> for the
+      same <strong>universality class</strong>. In plain language, that means
+      different systems may share large-scale behavior even when their details
+      differ. Matching statistics alone does not prove the same mechanism; it
+      tells us which tools and failure tests are worth trying next.
     </p>
 
     <h2>4. The pipeline: how we find these matches automatically</h2>
@@ -312,7 +311,8 @@
 4,443 phenomena from 87 disciplines
             │
             ▼
-   [1] Embed each phenomenon as a structural fingerprint.
+   [1] Encode each phenomenon as a structural fingerprint
+       (a compact summary of variables, feedbacks, constraints and unknowns).
             │
             ▼
    [2] Cluster fingerprints to surface candidate families.
@@ -326,11 +326,12 @@
        no parameter tuning. Check if it fits the predictions.
             │
             ▼
-        13 verified systems · 5 confirmed universality classes
+        candidate systems · mixed PASS / FAIL / INCONCLUSIVE evidence
     </div>
 
     <p class="essay__figure-caption">
-      Layer 1 finds structural fingerprints. Layer 2 groups them. Layer 3
+      A structural fingerprint is a compact comparison summary, not proof of
+      equivalence. Layer 1 creates those summaries. Layer 2 groups them. Layer 3
       sanity-checks the groups with several independent reviewers. Layer 5
       tests each survivor on real data with no tuning &mdash; one piece of
       code, many domains. The whole thing is open source.
@@ -348,9 +349,9 @@
     <h2>5. What we&rsquo;ve found so far</h2>
 
     <p>
-      Running the pipeline against open data sources, we&rsquo;ve so far
-      verified 13 independent systems falling into five universality classes.
-      The verified list includes earthquakes (USGS catalogs), stock-market
+      Running the pipeline against open data sources has produced a mixed
+      research record, not a verified map of universality classes. Candidate
+      systems include earthquakes (USGS catalogs), stock-market
       jumps (35 years of S&amp;P 500), DeFi cascades (three protocols),
       neural avalanches (mouse cortex), bank failures (FDIC), wildfires
       (NIFC), solar flares (GOES), traffic phase transitions (NGSIM US-101),
@@ -359,8 +360,8 @@
     </p>
 
     <p>
-      We also ran four <em>synthetic null</em> datasets &mdash; data
-      engineered to <em>not</em> be self-organized critical &mdash; through the
+      We also ran four <em>synthetic null</em> datasets &mdash; generated
+      counterexamples designed to lack the target pattern &mdash; through the
       same code. The pipeline correctly rejected all four. That&rsquo;s the
       check that turns &ldquo;interesting&rdquo; into &ldquo;trustworthy&rdquo;: a tool that
       confirms everything you point it at is useless.
@@ -373,14 +374,12 @@
     </p>
 
     <p>
-      <strong>For investors:</strong> if a portfolio company has the
-      statistical signature of a self-organized critical system, the
-      reasonable expectation is rare-but-violent loss events &mdash; not a
-      smooth bell curve. Risk models that assume bell curves consistently
-      under-price tail risk in these systems. You can also tell, roughly,
-      <em>how close to the edge</em> a particular system is sitting. We do this
-      automatically for 100 public companies on the
-      <a href="https://phase.bytedance.city/" target="_blank" rel="noopener">Phase Detector</a> site.
+      <strong>For market researchers:</strong> heavy tails and phase-like
+      labels can be hypotheses worth stress-testing, but they are not trading
+      signals. The <a href="https://phase.bytedance.city/" target="_blank" rel="noopener">Phase Detector</a>
+      shows a frozen 597-ticker demo snapshot. Its published walk-forward
+      backtest found no predictive advantage, so the labels should be read as
+      research annotations rather than current company states or advice.
     </p>
 
     <p>
@@ -408,9 +407,9 @@
 
     <p>
       If this was your first exposure to the idea, the best next step is to
-      see one of the verified matches in concrete detail. The
-      <a href="/classes">pattern families page</a> shows each verified family
-      with its real-world examples and the predictions it makes. The
+      inspect one of the candidate matches in concrete detail. The
+      <a href="/classes">pattern families page</a> shows candidate families,
+      examples, and the tests associated with them. The
       <a href="/discoveries">discoveries page</a> shows ~200 pair-level matches
       between phenomena (some verified, some candidate-only). And the
       <a href="/papers">research report page</a> links the open-access report with
@@ -422,9 +421,8 @@
       X happen, has anyone solved something like it?&rdquo; &mdash; the
       <a href="/">search bar on the home page</a> takes your question in plain
       language and proposes structurally similar phenomena from completely
-      different fields. About a third of the time the match is genuinely
-      useful. The other two-thirds, you at least know the shape of what
-      you&rsquo;re dealing with.
+      different fields. These are retrieval candidates, not verified evidence;
+      select one only after checking its mechanism, counter-evidence and limits.
     </p>
 
     <p>
@@ -441,11 +439,11 @@
       <div class="essay__next-grid">
         <a class="essay__next-card" href="/classes">
           <strong>Browse pattern families →</strong>
-          <span>13 verified systems grouped into 5 families with examples and predictions.</span>
+          <span>Candidate families with examples, tests, failures and open questions.</span>
         </a>
         <a class="essay__next-card" href="https://phase.bytedance.city/" target="_blank" rel="noopener">
           <strong>See it applied to companies →</strong>
-          <span>100 public companies, phase-tagged. 30-second reads.</span>
+          <span>A frozen 597-ticker demo; its published backtest found no predictive advantage.</span>
         </a>
         <a class="essay__next-card" href="/paper/unified-pipeline-v0.2-2026-05-13">
           <strong>Read the full research report →</strong>

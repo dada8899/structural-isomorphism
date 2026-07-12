@@ -33,7 +33,7 @@
   --brand-paper:   #F5F5F4;   /* primary background — was --bg-primary */
   --brand-accent:  #2563EB;   /* brand blue — was --accent */
   --brand-line:    #E4E4E7;   /* hairline border — was --border-subtle */
-  --brand-muted:   #71717A;   /* tertiary text — was --text-tertiary */
+  --brand-muted:   #686872;   /* AA tertiary text on paper-soft backgrounds */
 
   /* ----- Extended palette (shared across both sites) -----
    * These derive from the 5 above + a couple of standard semantic colors.

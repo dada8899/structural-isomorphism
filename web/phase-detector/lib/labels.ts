@@ -277,7 +277,7 @@ export function displaySubtitle(
 // ---------------------------------------------------------------------------
 
 export const CPS_BADGE: Record<CriticalPointState, string> = {
-  far_from_critical: "bg-emerald-600 text-white",
+  far_from_critical: "bg-emerald-700 text-white",
   approaching_critical: "bg-amber-600 text-white",
   at_critical: "bg-red-600 text-white",
   post_critical_transition: "bg-zinc-900 text-white",

@@ -89,14 +89,8 @@ for r in results[:5]:
 
 ## Citation
 
-```bibtex
-@article{structural-isomorphism-2026,
-  title={Structural Isomorphism Search: Cross-Domain Structural Similarity Retrieval via Fine-tuned Embeddings},
-  author={Wan, Qinghui},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2026}
-}
-```
+No paper DOI or arXiv identifier has been assigned. Cite the repository commit
+and model artifact manifest. Do not construct a placeholder publication ID.
 
 ## License
 

@@ -1,0 +1,124 @@
+{
+  "schema_version": "current-public-copy-v1",
+  "scope": {
+    "runtime_pages": [
+      "web/frontend/start-here.html",
+      "web/frontend/thank-you.html",
+      "web/frontend/discoveries.html",
+      "web/frontend/whitespace.html",
+      "web/frontend/assets/js/discoveries.js",
+      "web/frontend/assets/js/whitespace.js",
+      "web/frontend/assets/data/i18n/content.json"
+    ],
+    "current_documents": [
+      "README.md",
+      "MODEL_CARD.md",
+      "DATASET_CARD.md",
+      "docs/index.md",
+      "docs/getting-started.md",
+      "docs/phase-detector.md"
+    ],
+    "excluded_contexts": [
+      "docs/sessions/** and explicit archive/legacy files are historical records",
+      "web/frontend/assets/data/papers/** are dated research drafts, not current product claims",
+      "CSS dimensions, test fixtures, source comments and sitemap changeFrequency are not user claims"
+    ]
+  },
+  "forbidden_patterns": [
+    "arXiv:XXXX",
+    "XXXX.XXXXX",
+    "26 verified classes",
+    "13 verified systems",
+    "Every claimed universality class declares",
+    "what it lets us predict",
+    "Why bank runs, earthquakes, and neural avalanches are the same thing",
+    "About a third of the time the match is genuinely useful",
+    "下次发刊是<strong>本周日",
+    "本周新进入「崩盘边缘」",
+    "100 public companies, phase-tagged",
+    "可以直接拿去写论文",
+    "A 级精选发现"
+  ],
+  "required_context": [
+    {
+      "path": "README.md",
+      "patterns": [
+        "not a validated universality map or investment system",
+        "submission-blocked",
+        "No paper DOI or arXiv identifier has been assigned"
+      ]
+    },
+    {
+      "path": "MODEL_CARD.md",
+      "patterns": ["Historical card; not a current generalization claim"]
+    },
+    {
+      "path": "DATASET_CARD.md",
+      "patterns": ["checksum-verified", "historical/staged research assets"]
+    },
+    {
+      "path": "web/frontend/start-here.html",
+      "patterns": [
+        "mixed PASS / FAIL / INCONCLUSIVE evidence",
+        "These are retrieval candidates, not verified evidence"
+      ]
+    },
+    {
+      "path": "web/frontend/thank-you.html",
+      "patterns": ["597-ticker 冻结研究 demo", "不是实时信号"]
+    },
+    {
+      "path": "web/frontend/discoveries.html",
+      "patterns": ["待验证候选", "不代表已经证明同一机制", "下一步是核对来源"]
+    },
+    {
+      "path": "web/frontend/whitespace.html",
+      "patterns": ["候选模式", "不代表已经证明同一机制", "先点选一个格子"]
+    },
+    {
+      "path": "docs/index.md",
+      "patterns": ["frozen 597-ticker research demo", "does not establish live signals"]
+    }
+  ],
+  "context_rules": [
+    {
+      "term": "verified",
+      "allowed": "checksum/schema verification, user-recorded terminal outcome, or an explicitly historical claim with caveat",
+      "forbidden": "class/mechanism/retrieval usefulness presented as independently established"
+    },
+    {
+      "term": "universal / universality",
+      "allowed": "name of a scientific concept, candidate taxonomy, or bounded historical result",
+      "forbidden": "unqualified cross-matter or cross-domain confirmation"
+    },
+    {
+      "term": "predict / signal / weekly / real-time",
+      "allowed": "pre-registered hypothesis, newsletter cadence, or explicit NULL/non-live context",
+      "forbidden": "current company signal, alpha, guaranteed outcome, or stale scheduled promise"
+    },
+    {
+      "term": "paper / arXiv / citation",
+      "allowed": "internal/reviewer-readable draft and assigned identifiers",
+      "forbidden": "placeholder identifier, direct-write/submission promise, or implied external review"
+    }
+  ],
+  "readability_contract": {
+    "first_use": "A specialist term must receive a plain-language explanation on first meaningful use.",
+    "two_layers": "Show a decision summary first; retain precise scientific terminology and evidence in the next layer.",
+    "actionable_states": "Error, empty, loading and blocked states must say what happened and what the user can do next.",
+    "buttons": "Buttons use user actions, never internal pipeline/version codes.",
+    "restatement_test": "A non-specialist should be able to restate what is known, what is uncertain, and the next action without claiming proof."
+  },
+  "deferred_surfaces": [
+    {
+      "surface": "classes and paper-detail historical research pages",
+      "reason": "dated result prose requires domain-by-domain evidence adjudication; it is not silently rewritten by a copy-only pass",
+      "required_action": "add visible historical/internal-draft context and bind claims to the research ledger before treating them as current"
+    },
+    {
+      "surface": "Phase landing and shared navigation",
+      "reason": "owned by concurrent mobile/navigation work",
+      "required_action": "retain frozen demo, NULL backtest, non-live and non-investment context in the owning validation pass"
+    }
+  ]
+}

@@ -24,16 +24,16 @@
     "en": "A number of pivotal moments in the history of science — Shannon importing thermodynamic entropy into information theory, Black and Scholes carrying the heat equation into option pricing, simulated annealing recasting a metallurgical process as combinatorial optimization — are all instances of <strong>the same mathematical skeleton being transplanted into a new domain for the first time</strong>. Historically, such cross-domain borrowings have depended on the serendipitous insight of a small number of polymaths."
   },
   "page.about.goal.p2": {
-    "zh": "Structural 想做的是：把这种发现过程<strong>从偶然变成可搜索、可复现、可验证的流程</strong>。四代管道（V1 / V2 / V3 / V4）是同一个目标的不同切面——从 embedding 召回，到结构代数匹配，到普适类组织和实证验证。产出的每一个候选都带数学方程、变量映射、目标期刊、执行计划，是领域专家可以直接拿去写论文的\"种子\"。",
-    "en": "Structural aims to turn this kind of discovery <strong>from serendipity into a searchable, reproducible, and verifiable pipeline</strong>. Four generations of pipelines (V1 / V2 / V3 / V4) approach the same goal from different angles — from embedding-based recall, to structural-algebraic matching, to universality-class organization and empirical validation. Every candidate it produces comes with its governing equation, a variable mapping, a target venue, and an execution plan — a seed that a domain expert can take directly into a paper."
+    "zh": "Structural 想把偶然的跨领域联想变成<strong>可搜索、可质疑、可验证的研究流程</strong>。系统先提出候选结构，再要求核对变量、机制、来源、反例和失败条件。候选不是论文结论；领域专家仍需收集真实数据、确认引用并承担作者责任。",
+    "en": "Structural turns accidental cross-domain analogy into a <strong>searchable, challengeable, and testable research workflow</strong>. The system proposes a candidate structure, then asks for variables, mechanism, sources, counterexamples, and a failure criterion. A candidate is not a paper conclusion; domain experts must still collect real data, verify citations, and take author responsibility."
   },
   "page.about.goal.stat1.label": {
     "zh": "Phenomena<br/>（自然语言知识库）",
     "en": "Phenomena<br/>(natural-language knowledge base)"
   },
   "page.about.goal.stat2.label": {
-    "zh": "A 级精选发现<br/>（AI 评审通过）",
-    "en": "A-grade curated discoveries<br/>(passed AI review)"
+    "zh": "优先核查候选<br/>（AI 内部排序）",
+    "en": "Priority-review candidates<br/>(internally AI-ranked)"
   },
   "page.about.goal.stat3.label": {
     "zh": "Universality classes<br/>（V4 等价类引擎聚合）",
@@ -500,12 +500,12 @@
     "en": "Today's discoveries"
   },
   "page.home.daily.title": {
-    "zh": "每天从知识库中揭示 <em>3 组</em>跨领域同构",
-    "en": "Three <em>fresh</em> cross-domain isomorphisms surfaced from the knowledge base every day"
+    "zh": "从知识库中查看 <em>3 组</em>跨领域候选联系",
+    "en": "Explore <em>three</em> cross-domain candidate connections from the knowledge base"
   },
   "page.home.daily.link": {
-    "zh": "查看全部 39 个 A 级精选发现",
-    "en": "Browse all 39 A-grade curated discoveries"
+    "zh": "查看全部 39 个待验证候选",
+    "en": "Browse all 39 candidates for validation"
   },
   "page.home.favorites.label": {
     "zh": "收藏的报告",
@@ -544,8 +544,8 @@
     "en": "Curated discoveries — Structural"
   },
   "page.discoveries.meta_desc": {
-    "zh": "V2 + V3 管线产出的 39 个 A 级跨领域结构同构发现，每条带共享方程和执行计划。",
-    "en": "39 A-grade cross-domain structural isomorphism discoveries from the V2 + V3 pipelines, each with a shared equation and an execution plan."
+    "zh": "39 个跨领域候选联系，由 AI 内部评分排序；仍需真实数据、来源核验和领域专家验证。",
+    "en": "39 cross-domain candidate connections ranked by internal AI scoring; real data, source checks, and domain-expert validation are still required."
   },
   "page.search.meta_title": {
     "zh": "搜索 — Structural",
@@ -596,8 +596,8 @@
     "en": "Methodology"
   },
   "page.discoveries.hero_eyebrow": {
-    "zh": "V2 严格 + V3 StructTuple · 五维评分 · 精选 A 级",
-    "en": "V2 strict + V3 StructTuple · five-dimensional scoring · A-grade only"
+    "zh": "39 个待验证候选 · AI 内部评分，不是同行评审",
+    "en": "39 candidates for validation · internal AI scoring, not peer review"
   },
   "page.discoveries.hero_title": {
     "zh": "那些<em>隐藏</em>的联系",
@@ -708,16 +708,16 @@
     "en": "No matching shared patterns"
   },
   "page.discoveries.hero_lede": {
-    "zh": "从三条检索管道（V1 广义 embedding / V2 严格 embedding / V3 StructTuple + LLM rerank）合并筛出，经 LLM 五维评分（创新性 / 严谨性 / 可行性 / 影响力 / 可写性），<strong>最终留下 39 条 A 级发现</strong>（V2 19 条 + V3 20 条，三管道发现零重叠）。每一条都是一个跨领域的数学同构，把两个看似无关的领域连在一起——并且带有可执行的论文化路径和建议期刊。",
-    "en": "Merged from three retrieval pipelines (V1 broad-recall embedding / V2 strict-precision embedding / V3 StructTuple + LLM rerank) and passed through a five-dimensional LLM rubric (novelty, rigor, feasibility, impact, writability), <strong>39 A-grade discoveries remain</strong> (19 from V2 + 20 from V3, with zero overlap across pipelines). Each is a cross-domain mathematical isomorphism that connects two seemingly unrelated fields — and ships with an executable publishing plan and a suggested target journal."
+    "zh": "三条检索管道合并后，由 LLM 按创新性、严谨性、可行性、影响力和可写性做内部评分，留下 <strong>39 条待验证候选</strong>。评分用于排序，不是正确概率，也不是外部同行评审。每条候选都需要核对来源、真实数据和失败条件。",
+    "en": "Three retrieval pipelines were merged and internally scored by LLMs for novelty, rigor, feasibility, impact, and writability, leaving <strong>39 candidates for validation</strong>. The score ranks candidates; it is not a probability of correctness or external peer review. Every candidate still needs source checks, real data, and a failure criterion."
   },
   "page.discoveries.meta_rating": {
     "zh": "等级",
     "en": "Grade"
   },
   "page.discoveries.meta_iso_confidence": {
-    "zh": "同构置信度",
-    "en": "Isomorphism confidence"
+    "zh": "AI 结构匹配分",
+    "en": "AI structure-match score"
   },
   "page.discoveries.meta_iso_depth": {
     "zh": "同构深度",
@@ -748,16 +748,16 @@
     "en": "Five-dimensional score"
   },
   "page.discoveries.section_shared_equation": {
-    "zh": "共享方程骨架 (V3 StructTuple)",
-    "en": "Shared equation skeleton (V3 StructTuple)"
+    "zh": "候选共享方程",
+    "en": "Candidate shared equation"
   },
   "page.discoveries.section_key_equations": {
     "zh": "关键方程",
     "en": "Key equations"
   },
   "page.discoveries.section_paper_path": {
-    "zh": "论文化路径",
-    "en": "Publishing plan"
+    "zh": "验证与研究路径",
+    "en": "Validation and research path"
   },
   "page.discoveries.section_blocking": {
     "zh": "阻塞机制",
@@ -796,8 +796,8 @@
     "en": "Unexplored in literature"
   },
   "page.discoveries.tier2_hint": {
-    "zh": "V2 五分顶级池里未晋级 A 的跨域对。只有基础同构判断和相似度，没有完整的五维深度分析，但质量仍值得探索。",
-    "en": "Cross-domain pairs in V2's top-five pool that did not reach A-grade. Only basic isomorphism checks and similarity — no full five-dimensional deep analysis — but still worth exploring."
+    "zh": "尚未完成深度核查的跨领域候选。它们只有基础结构匹配分，下一步需要检查机制、来源和反例。",
+    "en": "Cross-domain candidates that have not completed deeper review. They have only a basic structure-match score; mechanism, sources, and counterexamples are the next checks."
   },
   "page.discoveries.empty_filter": {
     "zh": "没有匹配的发现",
@@ -840,36 +840,36 @@
     "en": "Writability"
   },
   "page.discoveries.status_unexplored": {
-    "zh": "前所未有",
-    "en": "Unprecedented"
+    "zh": "未找到直接先例",
+    "en": "No direct precedent found"
   },
   "page.discoveries.status_partial": {
     "zh": "部分有先例",
     "en": "Partial precedent"
   },
   "page.discoveries.status_established": {
-    "zh": "已有研究",
-    "en": "Established"
+    "zh": "有相关研究",
+    "en": "Related literature"
   },
   "page.discoveries.filter_partial_chip": {
     "zh": "部分探索",
     "en": "Partial"
   },
   "page.discoveries.filter_established_chip": {
-    "zh": "已有研究",
-    "en": "Established"
+    "zh": "有相关研究",
+    "en": "Related literature"
   },
   "page.discoveries.pipeline_v2": {
-    "zh": "V2 严格",
-    "en": "V2 strict"
+    "zh": "文本结构检索",
+    "en": "Text-structure retrieval"
   },
   "page.discoveries.pipeline_v3": {
-    "zh": "V3 StructTuple",
-    "en": "V3 StructTuple"
+    "zh": "变量关系检索",
+    "en": "Variable-relation retrieval"
   },
   "page.discoveries.tier_curated": {
-    "zh": "A 级精选",
-    "en": "A-grade curated"
+    "zh": "优先核查",
+    "en": "Priority review"
   },
   "page.discoveries.tier_tier2": {
     "zh": "候选池",
@@ -1920,24 +1920,24 @@
     "en": "Papers & preprints — Structural"
   },
   "page.papers.meta_desc": {
-    "zh": "13 个验证 phase paper + v0.2 统一预印本 + 4 篇 arXiv 单系统稿 + 复现 tutorial。",
-    "en": "13 verified phase papers + v0.2 unified preprint + 4 arXiv solo drafts + reproduction tutorial."
+    "zh": "13 份内部分析记录 + v0.2 统一研究草稿 + 4 篇单系统草稿 + 复现教程；尚非外部同行评审结论。",
+    "en": "13 internal analysis records, a v0.2 unified research draft, four single-system drafts, and a reproduction tutorial; these are not externally peer-reviewed conclusions."
   },
   "page.papers.eyebrow": {
     "zh": "实证验证 · 预印本",
     "en": "Empirical verification · preprints"
   },
   "page.papers.title": {
-    "zh": "同一条 pipeline,<em>13 个验证系统</em>",
-    "en": "One pipeline, <em>13 verified systems</em>"
+    "zh": "同一分析流程,<em>13 份结果记录</em>",
+    "en": "One analysis pipeline, <em>13 recorded results</em>"
   },
   "page.papers.lede": {
     "zh": "所有 paper 共享同一份 <strong>339 行 Python pipeline</strong>。覆盖 <strong>SOC / Preferential Attachment / Motter-Lai / Preisach / Scheffer</strong> 五个普适类。",
     "en": "All papers share one <strong>339-line Python pipeline</strong> spanning <strong>SOC / Preferential Attachment / Motter-Lai / Preisach / Scheffer</strong>."
   },
   "page.papers.stat_verified": {
-    "zh": "验证 phase",
-    "en": "verified phases"
+    "zh": "分析阶段",
+    "en": "analysis phases"
   },
   "page.papers.stat_classes": {
     "zh": "共享模式",

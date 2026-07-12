@@ -106,5 +106,9 @@
   "nav.reports": {
     "zh": "我的报告",
     "en": "My reports"
+  },
+  "nav.auth": {
+    "zh": "Phase 账户 ↗",
+    "en": "Phase account ↗"
   }
 }
