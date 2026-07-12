@@ -1,5 +1,10 @@
 name: perf budget
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 # W13-B (2026-05-15) — performance budget gate.
 #
 # On every PR + push to main, this workflow:
