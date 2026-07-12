@@ -224,6 +224,18 @@ class Monitor:
         self.require(meta.get("price_provenance") == "demo", "phase EWS metadata",
                      "price_provenance must equal demo")
 
+    def check_auth_entrypoints(self) -> None:
+        for label, url in (
+            ("beta canonical auth entry", f"{BETA}/auth/login"),
+            ("phase canonical auth entry", f"{PHASE}/auth/login"),
+        ):
+            response = self.request(label, "GET", url)
+            self.require(
+                "发送登录链接".encode("utf-8") in response.body,
+                label,
+                "registration/login form copy is missing",
+            )
+
     def check_route_matrix(self) -> None:
         beta_routes = ("/", "/start-here", "/search", "/classes", "/analyze")
         phase_routes = ("/", "/zh", "/companies", "/methodology", "/universality", "/about", "/pricing")
@@ -250,6 +262,8 @@ class Monitor:
         print("OK disabled production surfaces", flush=True)
         self.check_phase()
         print("OK Phase API provenance", flush=True)
+        self.check_auth_entrypoints()
+        print("OK registration and login entrypoints", flush=True)
         self.check_route_matrix()
         print("OK public route matrix", flush=True)
         elapsed = time.monotonic() - started

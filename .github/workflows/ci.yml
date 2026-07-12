@@ -61,7 +61,8 @@ jobs:
       - name: Verify the explicit workbench decision journey
         run: >-
           pytest tests/e2e/test_full_public_surface.py
-          -k beta_workbench_requires_fingerprint_and_explicit_candidate
+          -k "beta_workbench_requires_fingerprint_and_explicit_candidate
+          or beta_header_exposes_canonical_phase_account"
           -m "e2e and not requires_internet" -v
       - name: Verify real Next auth, failure states, mobile controls and axe
         run: pytest web/tests/e2e/test_phase_auth_real.py -v

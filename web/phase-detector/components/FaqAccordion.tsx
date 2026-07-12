@@ -41,7 +41,11 @@ const QUESTIONS: QA[] = [
         （地震、银行挤兑、神经雪崩、电网级联、野火等）。
         在公司域上，extraction_confidence 字段给出每家公司的提取置信度，<code>&lt; 0.6</code> 的我们会标 caveat。
         准确率不是单一数字——
-        <Link href="/methodology" className="text-indigo-700 underline-offset-2 hover:underline">
+        <Link
+          href="/methodology"
+          aria-label="查看完整方法说明"
+          className="text-indigo-700 underline-offset-2 hover:underline"
+        >
           完整方法说明
         </Link>{" "}
         有 confusion matrix 和每个状态的 precision/recall。
@@ -64,11 +68,18 @@ const QUESTIONS: QA[] = [
     q: "可以导出数据吗？",
     a: (
       <>
-        Phase 1（当前）：通过 <Link href="/companies" className="text-indigo-700 underline-offset-2 hover:underline">filter UI</Link> 浏览 + 单页查看，开放 read-only JSON API。
+        Phase 1（当前）：通过 <Link
+          href="/companies"
+          aria-label="打开公司筛选界面"
+          className="text-indigo-700 underline-offset-2 hover:underline"
+        >
+          filter UI
+        </Link> 浏览 + 单页查看，开放 read-only JSON API。
         Phase 2（付费版上线后）：CSV 导出、webhook 推送、自定义 watchlist。
         开发者可以现在就直接调 <code className="rounded bg-zinc-100 px-1 py-0.5 text-[12px]">GET /api/screener</code>——code 全开源，结构在{" "}
         <a
           href="https://github.com/dada8899/structural-isomorphism"
+          aria-label="在 GitHub 查看 Structural Isomorphism 源代码"
           target="_blank"
           rel="noopener"
           className="text-indigo-700 underline-offset-2 hover:underline"

@@ -187,10 +187,10 @@ export default function CookieConsent() {
       data-testid="cookie-consent"
       className="fixed bottom-0 left-0 right-0 z-[200] border-t border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
     >
-      <div className="mx-auto max-w-5xl px-6 py-4">
+      <div className="mx-auto w-full min-w-0 max-w-5xl px-4 py-4 sm:px-6">
         {mode === "banner" && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-zinc-700 dark:text-zinc-200">
+            <div className="min-w-0 break-words text-sm text-zinc-700 dark:text-zinc-200">
               <p className="font-medium">关于 cookie 的说明</p>
               <p className="mt-1 text-zinc-600 dark:text-zinc-400">
                 我们使用必要的本地存储让站点正常工作。可选择开启
@@ -201,7 +201,7 @@ export default function CookieConsent() {
                 。
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="min-w-0 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={essentialOnly}

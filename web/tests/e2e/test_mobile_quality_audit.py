@@ -141,8 +141,14 @@ def test_mobile_key_flows_have_no_serious_axe_violations(browser, width):
     context = browser.new_context(viewport={"width": width, "height": 844}, is_mobile=True)
     page = context.new_page()
     failures = []
-    for url in (BETA + "/", BETA + "/analyze", PHASE + "/companies",
-                PHASE + "/auth/login", PHASE + "/me/favorites"):
+    products = os.getenv("AUDIT_PRODUCT", "all")
+    urls = []
+    if products in {"all", "beta"}:
+        urls.extend((BETA + "/", BETA + "/analyze"))
+    if products in {"all", "phase"}:
+        urls.extend((PHASE + "/companies", PHASE + "/auth/login",
+                     PHASE + "/me/favorites"))
+    for url in urls:
         page.goto(url, wait_until="domcontentloaded", timeout=20_000)
         page.wait_for_timeout(600)
         page.add_script_tag(content=axe)
