@@ -7,11 +7,18 @@ from typing import Optional
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
-from api.sso import (
-    SsoReplayStore, _data_dir, _subject_id, require_beta_origin,
-    resolve_anon_proof, resolve_beta_user, set_anon_proof,
-)
-from services.report_store import ReportStore
+if __package__ == "web.backend.api":
+    from .sso import (
+        SsoReplayStore, _data_dir, _subject_id, require_beta_origin,
+        resolve_anon_proof, resolve_beta_user, set_anon_proof,
+    )
+    from ..services.report_store import ReportStore
+else:
+    from api.sso import (
+        SsoReplayStore, _data_dir, _subject_id, require_beta_origin,
+        resolve_anon_proof, resolve_beta_user, set_anon_proof,
+    )
+    from services.report_store import ReportStore
 
 router = APIRouter(tags=["report-account"])
 _store: Optional[ReportStore] = None
