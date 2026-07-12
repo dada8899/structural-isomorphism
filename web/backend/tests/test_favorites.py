@@ -206,6 +206,7 @@ def test_session_precedes_legacy_api_key(client):
 
 
 def test_revoked_session_does_not_fall_back_to_api_key(client):
+    session_auth._ensure_user("free@example.com")
     token, jti = session_auth._issue_jwt("free@example.com", "free")
     session_auth._store().revoke(jti, "2026-07-12T00:00:00+00:00")
     client.cookies.set("phase_session", token)

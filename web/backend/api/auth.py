@@ -43,9 +43,17 @@ from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 try:  # Supports both `api.auth` and `web.backend.api.auth` import modes.
-    from services.auth_store import AuthStore
+    from services.auth_store import AuthStore, DeletedCredentialError
 except ModuleNotFoundError:  # Phase API imports from the repository root.
-    from web.backend.services.auth_store import AuthStore
+    from web.backend.services.auth_store import AuthStore, DeletedCredentialError
+try:
+    from services.account_data_registry import (
+        AccountAsset, AccountDataRegistry, deletion_tombstone,
+    )
+except ModuleNotFoundError:
+    from web.backend.services.account_data_registry import (
+        AccountAsset, AccountDataRegistry, deletion_tombstone,
+    )
 
 logger = logging.getLogger("structural.auth")
 
@@ -123,6 +131,36 @@ def _outbox_file() -> Path:
     return _data_dir() / "mock_email_outbox.jsonl"
 
 
+def _account_registry() -> AccountDataRegistry:
+    # Lazy import avoids an auth/favorites import cycle.
+    try:
+        from api import favorites
+    except ModuleNotFoundError:
+        from web.backend.api import favorites
+    store = _store()
+    return AccountDataRegistry([
+        AccountAsset(
+            name="favorites", owner_key="normalized_email",
+            retention="until removed by the user or account deletion",
+            export=favorites.export_account_favorites,
+            delete=favorites.delete_account_favorites,
+            restore=favorites.restore_account_favorites,
+        ),
+        # Account identity is deliberately last: deletion invalidates every
+        # outstanding JWT because resolve_session_user requires this row.
+        AccountAsset(
+            name="authentication", owner_key="normalized_email",
+            retention="account lifetime; removed on account deletion",
+            export=store.export_account_data,
+            delete=store.delete_account_data,
+        ),
+    ])
+
+
+def _append_deletion_audit(record: dict) -> None:
+    _append_jsonl(_data_dir() / "account_deletion_audit.jsonl", record)
+
+
 # --- JSONL helpers ---
 
 def _append_jsonl(path: Path, record: dict) -> None:
@@ -139,6 +177,10 @@ class RequestLinkBody(BaseModel):
 
 class VerifyBody(BaseModel):
     token: str = Field(..., min_length=10, max_length=200)
+
+
+class DeleteAccountBody(BaseModel):
+    confirmation: str = Field(..., min_length=6, max_length=20)
 
 
 # --- Helpers: email validation, rate limit, token gen, JWT ---
@@ -264,12 +306,18 @@ def _issue_jwt(email: str, tier: str) -> tuple[str, str]:
     """Return (jwt_string, jti)."""
     now = datetime.now(timezone.utc)
     jti = uuid.uuid4().hex
+    user = _store().user(email)
+    # Some internal/test-only connection flows mint a signed identity before
+    # creating an auth account. Such a token cannot pass resolve_session_user;
+    # production verify always supplies the persisted account generation.
+    generation = user.get("session_generation") if user else uuid.uuid4().hex
     payload = {
         "sub": email,
         "tier": tier,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(days=_SESSION_TTL_DAYS)).timestamp()),
         "jti": jti,
+        "gen": generation,
     }
     token = jwt.encode(payload, _jwt_secret(), algorithm=_JWT_ALG)
     return token, jti
@@ -305,7 +353,7 @@ def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
     if not claims or _is_jti_revoked(claims.get("jti", "")):
         return None, "invalid"
     user = _store().user(claims.get("sub", ""))
-    if not user:
+    if not user or claims.get("gen") != user.get("session_generation"):
         return None, "invalid"
     return {
         "email": user["email"],
@@ -423,7 +471,13 @@ async def verify(body: VerifyBody, request: Request, response: Response):
 
     # Create user if first sign-in.
     email = match["email"]
-    user, was_created = _ensure_user(email)
+    try:
+        user, was_created = _store().ensure_user_from_token(
+            email, _DEFAULT_TIER, datetime.now(timezone.utc).isoformat(), match["created_at"]
+        )
+    except DeletedCredentialError:
+        logger.warning("auth.verify_rejected reason=credential_predates_deletion")
+        return JSONResponse({"ok": False, "error": "invalid token"}, status_code=400)
     if was_created:
         # User creation and durable outbox enqueue are already committed. Never
         # delay or roll back the session while SMTP/retries run in background.
@@ -467,7 +521,9 @@ async def logout(request: Request):
     if cookie:
         claims = _decode_jwt(cookie)
         if claims and claims.get("jti"):
-            _store().revoke(claims["jti"], datetime.now(timezone.utc).isoformat())
+            _store().revoke(
+                claims["jti"], datetime.now(timezone.utc).isoformat(), claims.get("sub")
+            )
             logger.info("auth.logout jti=%s", claims["jti"])
 
     resp = JSONResponse({"ok": True})
@@ -503,7 +559,7 @@ async def me(request: Request):
     email = claims.get("sub", "")
     # Look up canonical user record so tier changes propagate.
     user = _store().user(email)
-    if not user:
+    if not user or claims.get("gen") != user.get("session_generation"):
         return JSONResponse(
             {"ok": False, "error": "user not found"}, status_code=401
         )
@@ -516,6 +572,67 @@ async def me(request: Request):
             "created_at": user["created_at"],
         },
     })
+
+
+@router.get("/me/export", summary="Export authenticated account data")
+async def export_my_account(request: Request):
+    """Export registry-declared assets for the current session only."""
+    unavailable = _auth_unavailable()
+    if unavailable:
+        return unavailable
+    user, status = resolve_session_user(request)
+    if status != "valid" or not user:
+        return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
+    try:
+        registry = _account_registry()
+        data = registry.export_all(user["email"])
+    except Exception:
+        logger.exception("account_data.export_failed")
+        return JSONResponse({"ok": False, "error": "account export unavailable"}, status_code=500)
+    logger.info("account_data.exported email_hash=%s", _token_hash(user["email"])[:12])
+    return JSONResponse({
+        "ok": True,
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "assets": registry.manifest(),
+        "data": data,
+    })
+
+
+@router.post("/me/delete", summary="Permanently delete authenticated account")
+async def delete_my_account(body: DeleteAccountBody, request: Request):
+    """Erase registry assets, invalidate credentials and clear the cookie."""
+    unavailable = _auth_unavailable()
+    if unavailable:
+        return unavailable
+    origin_error = _require_same_origin(request)
+    if origin_error:
+        return origin_error
+    user, status = resolve_session_user(request)
+    if status != "valid" or not user:
+        return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
+    if body.confirmation != "DELETE":
+        return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
+    try:
+        registry = _account_registry()
+        removed = registry.delete_all(user["email"])
+    except Exception:
+        logger.exception("account_data.delete_failed")
+        return JSONResponse({"ok": False, "error": "account deletion failed"}, status_code=500)
+    tombstone = deletion_tombstone(user["email"], removed)
+    try:
+        _append_deletion_audit(tombstone)
+    except Exception:
+        # Deletion already succeeded. Do not report a false failure that could
+        # encourage repeated requests; alert operators without restoring PII.
+        logger.exception("account_data.audit_write_failed")
+    response = JSONResponse({
+        "ok": True,
+        "deleted_at": tombstone["deleted_at"],
+        "removed": removed,
+    })
+    response.delete_cookie(key=_COOKIE_NAME, path="/")
+    logger.info("account_data.deleted owner_hash=%s", tombstone["owner_hash"])
+    return response
 
 
 # --- Test helpers ---
