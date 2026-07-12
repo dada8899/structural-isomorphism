@@ -34,6 +34,7 @@ from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
 from .ews import router as ews_router
 from web.backend.api.auth import retry_registration_notifications, router as auth_router
+from web.backend.api.sso import router as sso_router
 
 logger = logging.getLogger("phase.auth")
 
@@ -132,6 +133,7 @@ app.include_router(ews_router)
 # Passwordless email accounts share the hardened auth implementation with the
 # main Structural API. The router itself fails closed unless AUTH_ENABLED=true.
 app.include_router(auth_router, prefix="/api")
+app.include_router(sso_router, prefix="/api")
 
 
 # -------- pydantic models --------

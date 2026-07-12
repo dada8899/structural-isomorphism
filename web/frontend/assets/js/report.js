@@ -148,6 +148,32 @@
     { v: 'iterate', label: '迭代' }, { v: 'scale', label: '扩大' },
     { v: 'stop', label: '停止' }, { v: 'retest', label: '重测' },
   ];
+  const LOCAL_REMINDER_KEY = 'structural_local_reminders';
+  const TERMINAL_EXPERIMENTS = ['completed', 'stopped', 'abandoned'];
+
+  function localRemindersEnabled() {
+    try {
+      const value = localStorage.getItem(LOCAL_REMINDER_KEY);
+      return value === null || value === 'on';
+    } catch (e) { return true; }
+  }
+
+  function deadlineMessage(experiment) {
+    const exp = experiment || {};
+    if (TERMINAL_EXPERIMENTS.includes(exp.status)) return '实验已结束，不再提醒。';
+    if (!exp.deadline) return '尚未设置截止日期；保存后可在「我的报告」查看提醒。';
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(exp.deadline);
+    if (!match) return '截止日期无效，请修正后保存。';
+    const deadline = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const now = new Date();
+    const todayDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const deadlineDay = Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+    const days = (deadlineDay - todayDay) / 86400000;
+    if (days < 0) return `已逾期 ${Math.abs(days)} 天；请更新实验或记录结果。`;
+    if (days === 0) return '今天到期；请更新实验或记录结果。';
+    if (days <= 3) return `${days} 天后到期。`;
+    return `截止 ${exp.deadline}。`;
+  }
 
   function anonHeaders() {
     let anonId = '';
@@ -184,6 +210,11 @@
       <div class="report-followup__head">
         <h3 class="report-followup__title">验证这次迁移</h3>
         <p class="report-followup__sub">把建议变成一个可检验的最小实验，并记录真实结果。内容只保存在这份报告中。</p>
+      </div>
+      <div class="report-reminder" id="report-reminder">
+        <span id="report-reminder-message">${escapeHtml(deadlineMessage(exp))}</span>
+        <label><input type="checkbox" id="report-reminder-toggle" ${localRemindersEnabled() ? 'checked' : ''}> 本地提醒</label>
+        <small>仅在这台设备打开 Structural 时提示，不发送邮件或系统通知。</small>
       </div>
       ${st.action_status ? `<div class="report-followup__saved" id="rf-saved-hint">上次记录：${escapeHtml((FOLLOWUP_STATUS.find(x => x.v === curStatus) || {}).label || curStatus)}${curOutcome ? ' · ' + escapeHtml((FOLLOWUP_OUTCOME.find(x => x.v === curOutcome) || {}).label || curOutcome) : ''}</div>` : ''}
       <fieldset class="report-experiment">
@@ -229,6 +260,15 @@
 
     // Local selection state (seeded from server).
     const sel = { experimentStatus: expStatus };
+
+    const reminderToggle = document.getElementById('report-reminder-toggle');
+    if (reminderToggle) reminderToggle.addEventListener('change', () => {
+      try { localStorage.setItem(LOCAL_REMINDER_KEY, reminderToggle.checked ? 'on' : 'off'); } catch (e) {}
+      const reminderMessage = document.getElementById('report-reminder-message');
+      if (reminderMessage) reminderMessage.textContent = reminderToggle.checked
+        ? deadlineMessage(exp)
+        : '本地提醒已关闭；' + deadlineMessage(exp);
+    });
 
     panel.querySelectorAll('.rf-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -319,7 +359,14 @@
           .then((r) => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
           .then((saved) => {
             submitBtn.disabled = false;
-            if (msg) { msg.textContent = '已保存'; msg.className = 'report-followup__msg report-followup__msg--ok'; }
+            if (msg) {
+              msg.textContent = TERMINAL_EXPERIMENTS.includes(sel.experimentStatus)
+                ? '已保存；实验已结束，不再提醒。'
+                : '已保存；可在「我的报告」查看到期状态。';
+              msg.className = 'report-followup__msg report-followup__msg--ok';
+            }
+            const reminderMessage = document.getElementById('report-reminder-message');
+            if (reminderMessage) reminderMessage.textContent = deadlineMessage(experiment);
             window.setTimeout(() => renderFollowup(reportId, saved), 350);
             trackPlausible('Report Followup', { action_status: body.action_status, outcome: body.outcome || 'none' });
           })
@@ -549,7 +596,7 @@
 
         // SESSION-17 V6: load + render the report→action→outcome follow-up
         // panel below the action_plan section.
-        if (data.id) loadFollowup(data.id, data.created_at);
+        if (data.id && route.kind === 'id') loadFollowup(data.id, data.created_at);
 
         trackPlausible('Report Share Page Viewed', {
           referrer: document.referrer ? 'external' : 'direct',

@@ -35,6 +35,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_BACKEND = REPO_ROOT / "web" / "backend"
 FRONTEND_DIR = REPO_ROOT / "web" / "frontend"
+AXE_PATH = REPO_ROOT / "web" / "phase-detector" / "node_modules" / "axe-core" / "axe.min.js"
 
 # Fixed secret shared by the test process (seeding) and the shim (verifying)
 # so HMAC share tokens match across both. Set before importing report_store.
@@ -540,6 +542,7 @@ def test_shared_decision_brief_is_read_only(report_backend, seed_report):
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
             page.wait_for_selector("#decision-brief-download", timeout=10000)
             assert page.locator("#decision-brief-create").count() == 0
+            assert page.locator("#report-followup").count() == 0
         finally:
             browser.close()
 
@@ -626,6 +629,95 @@ def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
             # Each card links to a report detail URL.
             href = cards.first.get_attribute("href")
             assert href and href.startswith("/report/r_")
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(report_backend, seed_report):
+    from playwright.sync_api import sync_playwright
+    from services.report_store import ReportStore
+
+    anon = "deadline-dashboard-owner"
+    overdue = seed_report(query="逾期实验", creator_anon_id=anon)
+    soon = seed_report(query="即将到期实验", creator_anon_id=anon)
+    done = seed_report(query="已结束实验", creator_anon_id=anon)
+    store = ReportStore(report_backend["db_path"])
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    two_days = (date.today() + timedelta(days=2)).isoformat()
+    for rep, deadline, status, action in [
+        (overdue, yesterday, "planned", "planned"),
+        (soon, two_days, "in_progress", "in_progress"),
+        (done, yesterday, "abandoned", "abandoned"),
+    ]:
+        store.record_followup(
+            report_id=rep["id"], anon_id=anon, action_status=action,
+            experiment={"hypothesis": "h", "status": status, "deadline": deadline},
+        )
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(viewport={"width": 390, "height": 844})
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(report_backend["base"] + "/reports", wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector(".myr-card", timeout=10000)
+            summary = page.locator("#myr-reminder-summary")
+            if AXE_PATH.is_file():
+                page.add_script_tag(content=AXE_PATH.read_text(encoding="utf-8"))
+                serious = page.evaluate("""async () => (await axe.run(document, {
+                  runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}
+                })).violations.filter(v => ['critical','serious'].includes(v.impact))""")
+                assert serious == []
+            assert "1 个实验已逾期" in summary.inner_text()
+            assert "1 个将在 3 天内到期" in summary.inner_text()
+            overdue_card = page.locator(".myr-card", has_text="逾期实验")
+            assert "已逾期" in overdue_card.inner_text()
+            done_card = page.locator(".myr-card", has_text="已结束实验")
+            assert "已逾期" not in done_card.inner_text()
+            toggle = page.locator("#myr-reminder-toggle")
+            assert toggle.is_checked()
+            toggle.uncheck()
+            assert "本地提醒已关闭" in summary.inner_text()
+            assert "1 个实验已逾期" in summary.inner_text()
+            assert "1 个将在 3 天内到期" in summary.inner_text()
+            assert page.evaluate("localStorage.getItem('structural_local_reminders')") == "off"
+            assert toggle.evaluate("el => el.getBoundingClientRect().height") >= 18
+            states = page.evaluate("""() => ({
+              spring: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-03-09'},
+                new Date(2026, 2, 8, 12)
+              ),
+              fall: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-11-02'},
+                new Date(2026, 10, 1, 12)
+              ),
+              invalid: __myReports.deadlineState(
+                {experiment_status:'planned', experiment_deadline:'2026-02-30'}
+              ),
+              missing: __myReports.deadlineState({experiment_status:'planned'}),
+              abandoned: __myReports.deadlineState({
+                experiment_status:'planned', experiment_deadline:'2020-01-01',
+                followup_status:'abandoned'
+              })
+            })""")
+            assert states["spring"] == {"kind": "soon", "days": 1}
+            assert states["fall"] == {"kind": "soon", "days": 1}
+            assert states["invalid"]["kind"] == "invalid"
+            assert states["missing"]["kind"] == "none"
+            assert states["abandoned"]["kind"] == "done"
+            page.evaluate("localStorage.setItem('structural_local_reminders', 'corrupt')")
+            page.reload(wait_until="domcontentloaded")
+            page.wait_for_selector(".myr-card", timeout=10000)
+            assert not page.locator("#myr-reminder-toggle").is_checked()
+            assert "1 个实验已逾期" in page.locator("#myr-reminder-summary").inner_text()
+            page.goto(report_backend["base"] + "/report/" + done["id"], wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#report-followup", timeout=10000)
+            assert "实验已结束，不再提醒" in page.locator("#report-reminder-message").inner_text()
+            page.locator("#rf-submit").click()
+            page.wait_for_function("document.querySelector('#rf-msg').textContent.includes('不再提醒')")
         finally:
             ctx.close()
             browser.close()

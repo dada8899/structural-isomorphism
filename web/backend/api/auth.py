@@ -138,6 +138,10 @@ def _account_registry() -> AccountDataRegistry:
     except ModuleNotFoundError:
         from web.backend.api import favorites
     store = _store()
+    try:
+        from api import report_account
+    except ModuleNotFoundError:
+        from web.backend.api import report_account
     return AccountDataRegistry([
         AccountAsset(
             name="favorites", owner_key="normalized_email",
@@ -145,6 +149,13 @@ def _account_registry() -> AccountDataRegistry:
             export=favorites.export_account_favorites,
             delete=favorites.delete_account_favorites,
             restore=favorites.restore_account_favorites,
+        ),
+        AccountAsset(
+            name="claimed_reports", owner_key="sso_subject_hmac",
+            retention="until removed by the user or account deletion",
+            export=report_account.export_account_reports,
+            delete=report_account.delete_account_reports,
+            restore=report_account.restore_account_reports,
         ),
         # Account identity is deliberately last: deletion invalidates every
         # outstanding JWT because resolve_session_user requires this row.

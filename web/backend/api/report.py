@@ -62,6 +62,8 @@ class ReportListItem(BaseModel):
     has_followup: bool = False
     followup_outcome: str = ""
     followup_status: str = ""
+    experiment_status: str = ""
+    experiment_deadline: Optional[str] = None
 
 
 class ReportListResponse(BaseModel):
@@ -286,6 +288,8 @@ async def list_my_reports(
                 "has_followup": bool(it.get("has_followup", False)),
                 "followup_outcome": it.get("followup_outcome", "") or "",
                 "followup_status": it.get("followup_status", "") or "",
+                "experiment_status": it.get("experiment_status", "") or "",
+                "experiment_deadline": it.get("experiment_deadline"),
             }
             for it in items
         ],

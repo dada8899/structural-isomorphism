@@ -13,6 +13,7 @@ API_PYTHON="$REPO/.venv/bin/python"
 API_PIP="$REPO/.venv/bin/pip"
 WEB_DIR="$REPO/web/phase-detector"
 AUTH_ENV_FILE="${PHASE_AUTH_ENV_FILE:-/root/.config/structural-isomorphism/phase-auth.env}"
+BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$REPO/web/backend/.env}"
 LOG_PREFIX="[deploy-phase-detector $(date -u +%FT%TZ)]"
 PREVIOUS_SHA="${PHASE_PREVIOUS_SHA:-$(git -C "$REPO" rev-parse HEAD)}"
 DEPLOY_COMPLETE=0
@@ -61,18 +62,50 @@ if grep -qx 'NEXT_PUBLIC_AUTH_ENABLED=true' "$WEB_DIR/.env.production"; then
     echo "$LOG_PREFIX ERROR: private Phase auth environment file missing" >&2
     exit 1
   }
+  grep -qx 'NEXT_PUBLIC_STRUCTURAL_BETA_ORIGIN=https://beta.structural.bytedance.city' "$WEB_DIR/.env.production" || {
+    echo "$LOG_PREFIX ERROR: public beta callback origin must be canonical" >&2; exit 1;
+  }
   auth_env_mode="$(stat -c '%a' "$AUTH_ENV_FILE")"
   [[ "$auth_env_mode" == "600" ]] || {
     echo "$LOG_PREFIX ERROR: private auth environment must have mode 600" >&2
     exit 1
   }
   for auth_key in AUTH_ENABLED STRUCTURAL_ENV JWT_SECRET AUTH_LINK_BASE_URL AUTH_DATA_DIR \
-    SMTP_HOST SMTP_PORT SMTP_FROM_EMAIL ADMIN_NOTIFICATION_EMAIL; do
+    SMTP_HOST SMTP_PORT SMTP_FROM_EMAIL ADMIN_NOTIFICATION_EMAIL STRUCTURAL_SSO_SECRET \
+    STRUCTURAL_SSO_DATA_DIR STRUCTURAL_SSO_PHASE_ORIGIN STRUCTURAL_SSO_BETA_ORIGIN; do
     grep -qE "^${auth_key}=.+" "$AUTH_ENV_FILE" || {
       echo "$LOG_PREFIX ERROR: required private auth setting missing: $auth_key" >&2
       exit 1
     }
   done
+  grep -qx 'STRUCTURAL_SSO_PHASE_ORIGIN=https://phase.bytedance.city' "$AUTH_ENV_FILE" || {
+    echo "$LOG_PREFIX ERROR: Phase SSO origin must be canonical" >&2; exit 1;
+  }
+  grep -qx 'STRUCTURAL_SSO_BETA_ORIGIN=https://beta.structural.bytedance.city' "$AUTH_ENV_FILE" || {
+    echo "$LOG_PREFIX ERROR: beta SSO origin must be canonical" >&2; exit 1;
+  }
+  sso_secret="$(sed -n 's/^STRUCTURAL_SSO_SECRET=//p' "$AUTH_ENV_FILE" | tail -1)"
+  [[ ${#sso_secret} -ge 32 ]] \
+    && [[ ! "$sso_secret" =~ (replace|change-me|changeme|example|test-secret|dev-) ]] \
+    && [[ "$(printf '%s' "$sso_secret" | fold -w1 | sort -u | wc -l)" -ge 12 ]] || {
+      echo "$LOG_PREFIX ERROR: STRUCTURAL_SSO_SECRET must be high entropy" >&2; exit 1;
+    }
+  [[ -f "$BETA_ENV_FILE" ]] || {
+    echo "$LOG_PREFIX ERROR: beta environment file missing for shared SSO validation" >&2; exit 1;
+  }
+  beta_sso_secret="$(sed -n 's/^STRUCTURAL_SSO_SECRET=//p' "$BETA_ENV_FILE" | tail -1)"
+  [[ "$sso_secret" == "$beta_sso_secret" ]] || {
+    echo "$LOG_PREFIX ERROR: Phase and beta SSO secrets differ" >&2; exit 1;
+  }
+  sso_data_dir="$(sed -n 's/^STRUCTURAL_SSO_DATA_DIR=//p' "$AUTH_ENV_FILE" | tail -1)"
+  beta_sso_data_dir="$(sed -n 's/^STRUCTURAL_SSO_DATA_DIR=//p' "$BETA_ENV_FILE" | tail -1)"
+  [[ -n "$sso_data_dir" && "$sso_data_dir" == "$beta_sso_data_dir" && "$sso_data_dir" != "$REPO"* ]] || {
+    echo "$LOG_PREFIX ERROR: Phase and beta require the same Git-external SSO data directory" >&2; exit 1;
+  }
+  mkdir -p "$sso_data_dir"
+  test -w "$sso_data_dir" || {
+    echo "$LOG_PREFIX ERROR: shared SSO data directory is not writable" >&2; exit 1;
+  }
   grep -qx 'AUTH_ENABLED=true' "$AUTH_ENV_FILE" || {
     echo "$LOG_PREFIX ERROR: AUTH_ENABLED must be true" >&2; exit 1;
   }

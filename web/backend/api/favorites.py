@@ -257,7 +257,7 @@ def delete_account_favorites(email: str) -> dict:
         }
 
 
-def restore_account_favorites(email: str, snapshot: object) -> None:
+def restore_account_favorites(email: str, snapshot: object, _removed: object = None) -> None:
     """Compensating write used if a later account deletion step fails."""
     if not isinstance(snapshot, dict) or not snapshot.get("exists"):
         return

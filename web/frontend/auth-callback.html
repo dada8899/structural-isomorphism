@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>正在连接账户 — Structural</title>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      sessionStorage.setItem('structural_sso_callback', JSON.stringify({
+        code: params.get('code') || '', state: params.get('state') || ''
+      }));
+      history.replaceState(null, '', '/auth/callback');
+    }());
+  </script>
+  <link rel="stylesheet" href="/assets/css/design-system.css">
+</head>
+<body>
+  <main style="max-width:560px;margin:0 auto;padding:64px 24px">
+    <p style="color:#6d28d9;font-size:14px;font-weight:600">Structural 账户</p>
+    <h1 style="font-size:24px;margin:8px 0 12px">正在连接你的报告</h1>
+    <p id="sso-status" role="status" style="line-height:1.6;color:#52525b">正在验证一次性连接码，请不要关闭页面…</p>
+    <a id="sso-retry" href="/reports" hidden>返回“我的报告”重试</a>
+  </main>
+  <script src="/assets/js/auth-callback.js"></script>
+</body>
+</html>

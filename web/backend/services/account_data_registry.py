@@ -17,7 +17,7 @@ class AccountAsset:
     retention: str
     export: Callable[[str], object]
     delete: Callable[[str], object]
-    restore: Callable[[str, object], None] | None = None
+    restore: Callable[[str, object, object], None] | None = None
 
     def validate(self) -> None:
         if not self.name or not self.owner_key or not self.retention:
@@ -46,18 +46,19 @@ class AccountDataRegistry:
 
     def delete_all(self, owner: str) -> dict:
         """Delete in order; compensate reversible stores if a later step fails."""
-        completed: list[tuple[AccountAsset, object]] = []
+        completed: list[tuple[AccountAsset, object, object]] = []
         removed: dict[str, object] = {}
         try:
             for asset in self.assets:
                 snapshot = asset.export(owner)
-                removed[asset.name] = asset.delete(owner)
-                completed.append((asset, snapshot))
+                result = asset.delete(owner)
+                removed[asset.name] = result
+                completed.append((asset, snapshot, result))
         except Exception:
-            for asset, snapshot in reversed(completed):
+            for asset, snapshot, result in reversed(completed):
                 if asset.restore is not None:
                     try:
-                        asset.restore(owner, snapshot)
+                        asset.restore(owner, snapshot, result)
                     except Exception:
                         logger.exception(
                             "account_data.rollback_failed asset=%s owner_hash=%s",
