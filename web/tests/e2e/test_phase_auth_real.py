@@ -174,8 +174,22 @@ def test_real_next_session_favorites_persist_across_browser_contexts(browser, re
     assert second_link
     page.goto(second_link)
     page.wait_for_url("**/me")
+
+    auth_hydrations = []
+
+    def delay_auth_hydration(route):
+        auth_hydrations.append(route.request.url)
+        time.sleep(0.35)
+        route.fallback()
+
+    # A clean runner may hydrate the cookie session substantially later than
+    # the route shell. The page must retain a loading boundary and must not
+    # choose anonymous localStorage during that interval.
+    page.route("**/api/auth/me", delay_auth_hydration)
     page.goto(real_stack["origin"] + "/me/favorites")
+    page.get_by_test_id("favorites-loading").wait_for()
     page.get_by_test_id("favorites-page").wait_for()
+    assert auth_hydrations
     assert page.get_by_test_id("favorites-count").inner_text() == "共 1 家公司"
     page.get_by_test_id("favorite-card-AAPL").wait_for()
     assert page.get_by_test_id("favorite-card-AAPL").get_by_text(
