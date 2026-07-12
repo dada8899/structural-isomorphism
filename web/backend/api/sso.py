@@ -20,8 +20,12 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from api.auth import require_same_origin, resolve_session_user
-from services.sso_store import SsoReplayStore
+if __package__ == "web.backend.api":
+    from .auth import require_same_origin, resolve_session_user
+    from ..services.sso_store import SsoReplayStore
+else:
+    from api.auth import require_same_origin, resolve_session_user
+    from services.sso_store import SsoReplayStore
 
 router = APIRouter(tags=["sso"])
 _ALG = "HS256"
