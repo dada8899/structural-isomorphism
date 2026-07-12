@@ -250,7 +250,7 @@ export function SearchHero({ onSubmit, placeholder }: Props) {
                   setDebounced("");
                   inputRef.current?.focus();
                 }}
-                className="ml-2 rounded p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                className="ml-2 inline-flex h-11 w-11 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
               >
                 <svg
                   width="16"
@@ -318,7 +318,7 @@ export function SearchHero({ onSubmit, placeholder }: Props) {
                 setValue(q);
                 submit(q);
               }}
-              className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700 transition hover:border-accent hover:text-accent"
+              className="min-h-11 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700 transition hover:border-accent hover:text-accent"
             >
               {q}
             </button>

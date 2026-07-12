@@ -227,7 +227,7 @@ function TickerPicker({
         placeholder={
           atLimit ? `已达 ${MAX_TICKERS} 个上限` : "添加 ticker（例如 AAPL）"
         }
-        className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:bg-zinc-50 disabled:text-zinc-400"
+        className="min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:bg-zinc-50 disabled:text-zinc-400"
         data-testid="compare-picker-input"
       />
       {matches.length > 0 && (
@@ -243,7 +243,7 @@ function TickerPicker({
                   onAdd(c.ticker.toUpperCase());
                   setQuery("");
                 }}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
+                className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
               >
                 <span className="font-medium text-zinc-900">{c.ticker}</span>
                 <span className="truncate text-xs text-zinc-500">{c.name}</span>

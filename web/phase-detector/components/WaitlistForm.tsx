@@ -134,12 +134,12 @@ export function WaitlistForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={submitting || status === "ok"}
-          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
+          className="min-h-11 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={submitting || status === "ok"}
-          className="inline-flex items-center justify-center gap-1 rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? "提交中…" : status === "ok" ? "已加入 ✓" : "加入"}
         </button>

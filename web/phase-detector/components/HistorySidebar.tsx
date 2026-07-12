@@ -161,7 +161,7 @@ export default function HistorySidebar() {
               if (drawerOpen) setDrawerOpen(false);
               else toggleCollapsed();
             }}
-            className="ml-auto rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+            className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
           >
             <span aria-hidden>{collapsed ? "›" : "‹"}</span>
           </button>
@@ -180,7 +180,7 @@ export default function HistorySidebar() {
                       key={q}
                       href={`/companies?q=${encodeURIComponent(q)}`}
                       onClick={() => setDrawerOpen(false)}
-                      className="mb-2 block rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[13px] leading-snug text-zinc-900 hover:border-accent hover:text-accent"
+                      className="mb-2 flex min-h-11 items-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[13px] leading-snug text-zinc-900 hover:border-accent hover:text-accent"
                     >
                       {q}
                     </Link>
@@ -213,7 +213,7 @@ export default function HistorySidebar() {
                         e.stopPropagation();
                         handleDelete(entry.ts);
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-sm leading-none text-zinc-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                      className="absolute right-1 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded text-sm leading-none text-zinc-400 opacity-100 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                     >
                       ×
                     </button>
@@ -226,7 +226,7 @@ export default function HistorySidebar() {
               <button
                 type="button"
                 onClick={handleClear}
-                className="text-[11px] text-zinc-500 hover:text-red-600"
+                className="inline-flex min-h-11 items-center text-[11px] text-zinc-500 hover:text-red-600"
               >
                 清空历史
               </button>

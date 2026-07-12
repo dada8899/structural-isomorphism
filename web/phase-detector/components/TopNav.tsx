@@ -90,12 +90,12 @@ export default function TopNav() {
               href={l.href}
               target="_blank"
               rel="noopener"
-              className="hover:text-zinc-900"
+              className="inline-flex min-h-11 items-center hover:text-zinc-900"
             >
               {l.label}
             </a>
           ) : (
-            <Link key={l.href} href={l.href} className="hover:text-zinc-900">
+            <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center hover:text-zinc-900">
               {l.label}
             </Link>
           ),
@@ -104,7 +104,7 @@ export default function TopNav() {
         <button
           type="button"
           onClick={restartOnboardingTour}
-          className="text-zinc-600 hover:text-zinc-900"
+          className="min-h-11 text-zinc-600 hover:text-zinc-900"
           data-testid="tour-restart-link"
         >
           导览
@@ -114,7 +114,7 @@ export default function TopNav() {
           type="button"
           onClick={() => openCommandPalette("nav-click")}
           aria-label="搜索 (Cmd+K)"
-          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 px-2 py-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-zinc-200 px-2 py-1 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
           data-testid="cmdk-trigger-desktop"
         >
           <svg

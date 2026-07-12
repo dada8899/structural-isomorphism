@@ -11,7 +11,7 @@ export default function ManageCookiesButton() {
       type="button"
       data-testid="manage-cookies-button"
       onClick={openCookieConsent}
-      className="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+      className="min-h-11 rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
     >
       管理 cookie 偏好
     </button>

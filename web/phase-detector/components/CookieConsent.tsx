@@ -206,7 +206,7 @@ export default function CookieConsent() {
                 type="button"
                 onClick={essentialOnly}
                 data-testid="cookie-essential-only"
-                className="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className="min-h-11 rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
                 仅必要
               </button>
@@ -214,7 +214,7 @@ export default function CookieConsent() {
                 type="button"
                 onClick={() => setMode("customize")}
                 data-testid="cookie-customize"
-                className="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className="min-h-11 rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
                 自定义
               </button>
@@ -222,7 +222,7 @@ export default function CookieConsent() {
                 type="button"
                 onClick={acceptAll}
                 data-testid="cookie-accept-all"
-                className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="min-h-11 rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 全部接受
               </button>
@@ -296,7 +296,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => setMode("banner")}
-                className="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                className="min-h-11 rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
                 返回
               </button>
@@ -304,7 +304,7 @@ export default function CookieConsent() {
                 type="button"
                 onClick={saveCustom}
                 data-testid="cookie-save-custom"
-                className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="min-h-11 rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 保存偏好
               </button>
