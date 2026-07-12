@@ -10,6 +10,8 @@ from typing import Literal
 
 import numpy as np
 
+from .fit import _suppress_powerlaw_sigma_deprecation
+
 __all__ = ["LRResult", "vuong_lr_test"]
 
 Distribution = Literal[
@@ -64,8 +66,11 @@ def vuong_lr_test(
     if len(x_data) < 100:
         return LRResult(vs=vs, error=f"too few values: {len(x_data)}")
     try:
-        fit = powerlaw.Fit(x_data, discrete=discrete, xmin_distance="D", verbose=False)
-        R, p = fit.distribution_compare("power_law", vs, normalized_ratio=True)
+        with _suppress_powerlaw_sigma_deprecation():
+            fit = powerlaw.Fit(
+                x_data, discrete=discrete, xmin_distance="D", verbose=False
+            )
+            R, p = fit.distribution_compare("power_law", vs, normalized_ratio=True)
     except Exception as exc:
         return LRResult(vs=vs, error=f"lr test failed: {exc}")
 

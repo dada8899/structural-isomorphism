@@ -7,6 +7,7 @@ from soc_pipeline import NullCase, synthetic_null
 
 
 @pytest.mark.sanity
+@pytest.mark.slow
 def test_synthetic_null_all_three_rejected():
     """Healthy pipeline rejects power-law on all three synthetic nulls."""
     out = synthetic_null(n=5000, seed=42)

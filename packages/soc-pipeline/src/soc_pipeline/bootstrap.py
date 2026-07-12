@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .fit import _suppress_powerlaw_sigma_deprecation
+
 __all__ = ["BootstrapResult", "bootstrap_ci"]
 
 
@@ -68,7 +70,10 @@ def bootstrap_ci(
     for _ in range(n_boot):
         sample = rng.choice(x_data, size=n, replace=True)
         try:
-            f = powerlaw.Fit(sample, discrete=discrete, xmin_distance="D", verbose=False)
+            with _suppress_powerlaw_sigma_deprecation():
+                f = powerlaw.Fit(
+                    sample, discrete=discrete, xmin_distance="D", verbose=False
+                )
             alphas.append(float(f.power_law.alpha))
         except Exception:
             continue

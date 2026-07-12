@@ -83,6 +83,7 @@ def test_fit_alpha_returns_float_near_truth():
     assert 2.2 < alpha < 2.8, f"alpha={alpha} not in (2.2, 2.8)"
 
 
+@pytest.mark.slow
 def test_validate_with_matching_band_passes():
     """For Pareto with true alpha=2.5, the band (2.3, 2.7) should yield in_band=True."""
     s = _pareto_series(alpha_true=1.5, n=5000, seed=0)
@@ -142,6 +143,7 @@ def test_explicit_label_overrides():
 # --------------------------------------------------------------- reproducibility
 
 
+@pytest.mark.slow
 def test_reproducibility_under_seed():
     """Same data + same seed -> same bootstrap CI."""
     s = _pareto_series(alpha_true=1.5, n=3000, seed=42)
@@ -153,6 +155,7 @@ def test_reproducibility_under_seed():
         assert v1.alpha_ci_high == pytest.approx(v2.alpha_ci_high)
 
 
+@pytest.mark.slow
 def test_different_seeds_give_different_bootstrap_ci():
     """Different bootstrap seeds should perturb CI (sanity that seed actually flows)."""
     s = _pareto_series(alpha_true=1.5, n=3000, seed=42)
