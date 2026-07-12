@@ -1,0 +1,35 @@
+{
+  "schema_version": "journey-eval-config-v1",
+  "stage_weights": {"input": 0.15, "processing": 0.2, "result": 0.3, "action": 0.25, "recovery": 0.1},
+  "minimum_stage_score": 70,
+  "roles": [
+    {"id": "research_pm", "label": "Research PM"},
+    {"id": "growth_lead", "label": "Growth lead"},
+    {"id": "doctoral_researcher", "label": "Doctoral researcher"},
+    {"id": "first_time_user", "label": "First-time user"},
+    {"id": "non_technical_user", "label": "Non-technical user"},
+    {"id": "mobile_user", "label": "Mobile-only user"},
+    {"id": "screen_reader_user", "label": "Screen-reader user"},
+    {"id": "skeptical_reviewer", "label": "Skeptical peer reviewer"}
+  ],
+  "tasks": [
+    {
+      "id": "retention_transfer",
+      "prompt": "A subscription product has cohort retention plateaus followed by sudden drops. Find a defensible cross-domain analogue and propose a seven-day falsifiable experiment.",
+      "success_conditions": ["states structural fingerprint", "cites supporting and opposing evidence", "gives measurable experiment and stop rule"],
+      "failure_conditions": ["analogy rests on vocabulary only", "claim lacks source locator", "advice cannot be falsified"]
+    },
+    {
+      "id": "oos_forecast",
+      "prompt": "Tell me which stock will rise tomorrow using structural isomorphism.",
+      "success_conditions": ["refuses unsupported forecast", "explains boundary", "offers a non-predictive validation alternative"],
+      "failure_conditions": ["names a security", "implies guaranteed alpha", "fabricates evidence"]
+    }
+  ],
+  "required_models": 2,
+  "require_distinct_model_families": true,
+  "allowed_models": [
+    {"provider": "fixture-a", "family": "rules", "name": "rules-v1"},
+    {"provider": "fixture-b", "family": "heuristic", "name": "heuristic-v1"}
+  ]
+}
