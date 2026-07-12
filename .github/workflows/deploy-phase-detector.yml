@@ -17,6 +17,13 @@ on:
       - 'web/phase-detector/**'
       - 'web/backend/api/auth.py'
       - 'web/backend/api/sso.py'
+      - 'web/backend/api/favorites.py'
+      - 'web/backend/api/report_account.py'
+      - 'web/backend/auth/**'
+      - 'web/backend/errors.py'
+      - 'web/backend/services/account_data_registry.py'
+      - 'web/backend/services/auth_store.py'
+      - 'web/backend/services/report_store.py'
       - 'web/backend/services/sso_store.py'
       - 'v4/product/d1_phase_detector/api/**'
       - 'scripts/deploy-phase-detector-vps.sh'
@@ -50,7 +57,7 @@ jobs:
           /tmp/phase-api-import/bin/pip install --disable-pip-version-check \
             -r v4/product/d1_phase_detector/api/requirements.txt
           PYTHONPATH=. /tmp/phase-api-import/bin/python -c \
-            "from v4.product.d1_phase_detector.api.main import app; assert app.title"
+            "from v4.product.d1_phase_detector.api.main import app; from web.backend.api.auth import _account_registry; assert app.title; assert len(_account_registry().manifest()) == 3"
 
       - name: SSH deploy
         env:

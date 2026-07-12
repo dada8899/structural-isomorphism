@@ -14,9 +14,29 @@ def test_phase_deploy_tracks_shared_auth_dependencies() -> None:
     for dependency in (
         "web/backend/api/auth.py",
         "web/backend/api/sso.py",
+        "web/backend/api/favorites.py",
+        "web/backend/api/report_account.py",
+        "web/backend/auth/**",
+        "web/backend/errors.py",
+        "web/backend/services/account_data_registry.py",
+        "web/backend/services/auth_store.py",
+        "web/backend/services/report_store.py",
         "web/backend/services/sso_store.py",
     ):
         assert f"- '{dependency}'" in workflow
+
+
+def test_phase_dependency_contract_builds_the_account_registry() -> None:
+    workflow = (Path(__file__).parents[1] / ".github/workflows/deploy-phase-detector.yml").read_text()
+    assert "from web.backend.api.auth import _account_registry" in workflow
+    assert "_account_registry().manifest()" in workflow
+
+
+def test_phase_runtime_locks_shared_account_dependencies() -> None:
+    requirements = (
+        Path(__file__).parents[1] / "v4/product/d1_phase_detector/api/requirements.txt"
+    ).read_text().splitlines()
+    assert "slowapi==0.1.9" in requirements
 
 
 def test_phase_deploy_checks_the_beta_env_target_mode() -> None:
