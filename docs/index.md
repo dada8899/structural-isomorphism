@@ -75,9 +75,9 @@ See [Getting Started](getting-started.md) for the full walkthrough.
 
     ---
 
-    A research-preview consumer product. Tags 100 public companies with
-    their current dynamical phase (stable / accumulating / near-critical /
-    reversed / recovering) against nine universality patterns.
+    A frozen 597-ticker research demo. It displays model-assigned phase labels
+    against candidate patterns; the published walk-forward backtest is NULL
+    and does not establish live signals, predictive alpha, or investment advice.
 
     [:octicons-arrow-right-24: phase.bytedance.city](https://phase.bytedance.city)
 

@@ -255,7 +255,7 @@ function renderFilters(stats, total) {
   filterEl.innerHTML = `
     <div class="disc-tier-tabs">
       <button class="disc-tier-tab ${currentTier === 'a' ? 'active' : ''}" data-tier="a">
-        ${T("page.discoveries.tier_curated", "A 级精选")} <span class="disc-tier-tab__count">${total}</span>
+        ${T("page.discoveries.tier_curated", "优先核查")} <span class="disc-tier-tab__count">${total}</span>
       </button>
       <button class="disc-tier-tab ${currentTier === 't2' ? 'active' : ''}" data-tier="t2">
         ${T("page.discoveries.tier_tier2", "候选池")} <span class="disc-tier-tab__count">${tier2Count}</span>
@@ -280,15 +280,15 @@ function renderFilters(stats, total) {
       <div class="disc-filter-row">
         <span class="disc-filter__label">${T("page.discoveries.filter_pipeline_label", "检索管道")}</span>
         <button class="disc-filter__btn ${currentFilter === 'pipeline-v2' ? 'active' : ''}" data-filter="pipeline-v2">
-          ${T("page.discoveries.pipeline_v2", "V2 严格")} <span class="disc-filter__count">${v2Count}</span>
+          ${T("page.discoveries.pipeline_v2", "文本结构检索")} <span class="disc-filter__count">${v2Count}</span>
         </button>
         <button class="disc-filter__btn ${currentFilter === 'pipeline-v3' ? 'active' : ''}" data-filter="pipeline-v3">
-          ${T("page.discoveries.pipeline_v3", "V3 StructTuple")} <span class="disc-filter__count">${v3Count}</span>
+          ${T("page.discoveries.pipeline_v3", "变量关系检索")} <span class="disc-filter__count">${v3Count}</span>
         </button>
       </div>
     ` : `
       <div class="disc-filter-row">
-        <p class="disc-tier2-hint">${T("page.discoveries.tier2_hint", "V2 五分顶级池里未晋级 A 的")} (<strong>${tier2Count}</strong>).</p>
+        <p class="disc-tier2-hint">${T("page.discoveries.tier2_hint", "尚未完成深度核查的候选")} (<strong>${tier2Count}</strong>).</p>
       </div>
     `}
   `;
@@ -376,7 +376,7 @@ function renderList() {
               <span class="disc-item__meta-tag disc-item__meta-tag--${st.cls}">
                 ${escapeHtml(statusLabel(st.cls, st.zh))}
               </span>
-              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "同构置信度")} ${conf}%</span>` : ''}
+              ${conf !== null ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_confidence", "AI 结构匹配分")} ${conf}/100</span>` : ''}
               ${d.isomorphism_depth ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_iso_depth", "同构深度")} ${d.isomorphism_depth}/5</span>` : ''}
               ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
               ${d.solo_feasible ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_solo_feasible", "单人可做")}</span>` : ''}
@@ -399,7 +399,7 @@ function renderList() {
           <div class="disc-item__detail-grid">
             ${d.shared_equation ? `
               <div class="disc-item__detail-block" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_shared_equation", "共享方程骨架 (V3 StructTuple)")}</h4>
+                <h4>${T("page.discoveries.section_shared_equation", "候选共享方程")}</h4>
                 <pre class="disc-item__equations">${escapeHtml(d.shared_equation)}</pre>
                 ${d.variable_mapping ? `<p class="disc-item__var-map"><strong>${T("page.discoveries.label_var_mapping", "变量映射")}</strong>：${escapeHtml(d.variable_mapping)}</p>` : ''}
               </div>
@@ -414,7 +414,7 @@ function renderList() {
 
             ${L(d, "paper_title") || d.target_venue ? `
               <div class="disc-item__detail-block disc-item__paper" style="grid-column: 1 / -1">
-                <h4>${T("page.discoveries.section_paper_path", "论文化路径")}</h4>
+                <h4>${T("page.discoveries.section_paper_path", "验证与研究路径")}</h4>
                 ${L(d, "paper_title") ? `<div class="disc-item__paper-title">${escapeHtml(L(d, "paper_title"))}</div>` : ''}
                 ${d.target_venue ? `<div class="disc-item__paper-venue">${T("page.discoveries.label_submit_to", "建议投稿")}：<strong>${escapeHtml(d.target_venue)}</strong></div>` : ''}
               </div>
