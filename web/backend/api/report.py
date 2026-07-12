@@ -47,6 +47,8 @@ class ReportDetailResponse(BaseModel):
     view_count: int
     is_partial: bool
     credibility: Optional[dict] = None
+    fingerprint: Optional[dict] = None
+    source: Optional[dict] = None
 
 
 class ReportListItem(BaseModel):
@@ -176,9 +178,13 @@ def _detail_dict(r: dict) -> dict:
     # (see analyze.py _maybe_persist) — lift it to a top-level field and
     # hand back a section-only payload. Older reports lack it → None.
     credibility = None
-    if isinstance(payload, dict) and "_credibility" in payload:
+    fingerprint = None
+    source = None
+    if isinstance(payload, dict):
         payload = dict(payload)
         credibility = payload.pop("_credibility", None)
+        fingerprint = payload.pop("_fingerprint", None)
+        source = payload.pop("_source", None)
     return {
         "id": r["id"],
         "query": r["query"],
@@ -192,6 +198,8 @@ def _detail_dict(r: dict) -> dict:
         "view_count": r.get("view_count", 0),
         "is_partial": r.get("is_partial", False),
         "credibility": credibility,
+        "fingerprint": fingerprint,
+        "source": source,
     }
 
 

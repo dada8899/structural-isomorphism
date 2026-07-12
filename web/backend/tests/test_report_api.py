@@ -78,6 +78,27 @@ def test_get_by_id_anonymous_owner_allows_read(client, isolated_store, sample_pa
     assert "share_token" not in body
 
 
+def test_detail_lifts_decision_brief_provenance_without_leaking_reserved_keys(
+    client, isolated_store, sample_payload,
+):
+    payload = {
+        **sample_payload,
+        "_fingerprint": {"summary": "用户确认的结构问题", "revision": 1},
+        "_source": {"id": "p_1", "name": "Ant routing", "domain": "Biology"},
+    }
+    out = isolated_store.create(
+        query="q", b_id="b1", lang="zh", payload=payload, model="model-v1",
+        prompt_version="prompt-v3",
+    )
+    body = client.get(f"/api/report/{out['id']}").json()
+    assert body["fingerprint"]["summary"] == "用户确认的结构问题"
+    assert body["source"] == {"id": "p_1", "name": "Ant routing", "domain": "Biology"}
+    assert body["model"] == "model-v1"
+    assert body["prompt_version"] == "prompt-v3"
+    assert "_fingerprint" not in body["payload"]
+    assert "_source" not in body["payload"]
+
+
 def test_get_by_id_with_owner_requires_matching_anon(client, isolated_store, sample_payload):
     out = isolated_store.create(
         query="q", b_id="b1", lang="en", payload=sample_payload, model="m",

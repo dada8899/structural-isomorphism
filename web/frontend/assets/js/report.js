@@ -68,6 +68,15 @@
     window._analyzeMeta = {
       credibility: (detail && detail.credibility) || null,
       similarity: (detail && typeof detail.similarity === 'number') ? detail.similarity : undefined,
+      a: (detail && detail.source) || {},
+      b: {
+        original_query: (detail && detail.query) || '',
+        description: (detail && (detail.rewritten_query || detail.query)) || '',
+      },
+      is_query_mode: true,
+      fingerprint: (detail && detail.fingerprint) || null,
+      model: (detail && detail.model) || '',
+      prompt_version: (detail && detail.prompt_version) || '',
     };
 
     if (typeof window.renderFinalReport === 'function') {
@@ -500,6 +509,20 @@
         // window._finalReport + window._analyzeMeta we just populated).
         if (typeof window.renderTldrCard === 'function') {
           try { window.renderTldrCard(); } catch (e) { /* non-fatal */ }
+        }
+
+        if (typeof window.renderDecisionBrief === 'function') {
+          window.renderDecisionBrief({
+            query: data.query,
+            fingerprint: data.fingerprint,
+            source: data.source,
+            reportId: data.id,
+            model: data.model,
+            promptVersion: data.prompt_version,
+            createdAt: data.created_at,
+            partial: data.is_partial,
+            allowExperiment: route.kind === 'id',
+          });
         }
 
         // Stash persisted info so window._m14_submitFeedback can POST.

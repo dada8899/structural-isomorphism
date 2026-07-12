@@ -467,6 +467,119 @@ def test_feedback_button_posts_in_browser(report_backend, seed_report):
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_owner_decision_brief_download_and_create_experiment(report_backend, seed_report):
+    """Saved owner report exposes evidence-bounded brief and inline experiment."""
+    from playwright.sync_api import sync_playwright
+
+    anon = "decision-brief-owner"
+    payload = _sample_payload()
+    payload.update({
+        "shared_structure": {"name": "负反馈", "intuition": "通过延迟反馈抑制过冲"},
+        "risks_and_limits": [{"risk_name": "时滞失配", "explanation": "反馈周期可能不同"}],
+        "action_plan": {
+            "this_week": [{
+                "title": "小流量试验", "verification": "新策略将过冲降低至少 10%",
+                "expected_impact": "过冲率",
+            }],
+        },
+        "_fingerprint": {"summary": "需求过冲来自反馈时滞", "revision": 1},
+        "_source": {"id": "p_feedback", "name": "Feedback control", "domain": "Control"},
+    })
+    rep = seed_report(query="如何降低需求过冲", creator_anon_id=anon, payload=payload)
+    url = f"{report_backend['base']}/report/{rep['id']}"
+    followup_path = f"/api/report/{rep['id']}/followup"
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(accept_downloads=True)
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-root .decision-brief", timeout=10000)
+            page.set_viewport_size({"width": 375, "height": 812})
+            brief = page.locator("#decision-brief-root")
+            assert "未经实证验证" in brief.inner_text()
+            assert "需求过冲来自反馈时滞" in brief.inner_text()
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            assert page.locator("#decision-brief-hypothesis").is_hidden()
+            with page.expect_download() as download_info:
+                page.locator("#decision-brief-download").click()
+            assert download_info.value.suggested_filename.endswith(".md")
+            page.locator("#decision-brief-create").click()
+            assert page.locator("#decision-brief-experiment").is_visible()
+            assert page.evaluate("document.activeElement?.id") == "decision-brief-hypothesis"
+            expected_deadline = page.evaluate("""() => {
+              const d = new Date(); d.setDate(d.getDate() + 7);
+              return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+            }""")
+            assert page.locator("#decision-brief-deadline").input_value() == expected_deadline
+            page.locator("#decision-brief-stop").fill("过冲未改善或投诉率上升时停止")
+            with page.expect_response(
+                lambda r: followup_path in r.url and r.request.method == "POST",
+                timeout=10000,
+            ) as response_info:
+                page.locator("#decision-brief-save").click()
+            assert response_info.value.status == 200
+            assert "实验已保存" in page.locator("#decision-brief-message").inner_text()
+            assert page.locator("#decision-brief-save").is_disabled()
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_shared_decision_brief_is_read_only(report_backend, seed_report):
+    rep = seed_report()
+    url = f"{report_backend['base']}/report/share/{rep['share_token']}"
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-download", timeout=10000)
+            assert page.locator("#decision-brief-create").count() == 0
+        finally:
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_legacy_report_without_evidence_cannot_create_experiment(report_backend, seed_report):
+    anon = "legacy-brief-owner"
+    rep = seed_report(creator_anon_id=anon)
+    url = f"{report_backend['base']}/report/{rep['id']}"
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context()
+        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            page.wait_for_selector("#decision-brief-download", timeout=10000)
+            assert "当前报告没有这项证据" in page.locator("#decision-brief-root").inner_text()
+            assert page.locator("#decision-brief-create").count() == 0
+            escaped = page.evaluate(
+                "model => decisionBriefMarkdown(model)",
+                {
+                    "problem": "# injected\n<script>alert(1)</script>",
+                    "fingerprint": {}, "source": {}, "mechanism": "$x^2$",
+                    "boundary": "[click](javascript:alert(1))", "hypothesis": "",
+                    "metric": "", "reportId": "r/../../bad", "model": "",
+                    "promptVersion": "", "createdAt": "", "partial": False,
+                },
+            )
+            assert "\\# injected" in escaped
+            assert "\\<script\\>" in escaped
+            assert "\\$x\\^2\\$" in escaped
+            assert "\\[click\\]\\(javascript:alert\\(1\\)\\)" in escaped
+        finally:
+            ctx.close()
+            browser.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
 def test_my_reports_empty_state_in_browser(report_backend):
     """/reports with no anonId in localStorage shows the empty state."""
     from playwright.sync_api import sync_playwright
