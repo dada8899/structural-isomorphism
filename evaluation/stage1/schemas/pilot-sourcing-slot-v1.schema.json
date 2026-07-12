@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pilot-sourcing-slot-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slot_id", "status", "domain", "task_family", "expert_role", "budget",
+    "baselines", "negative_control", "time_split", "answer_source",
+    "contamination_scan", "formal_evidence_allowed"
+  ],
+  "properties": {
+    "slot_id": {"type": "string", "pattern": "^pilot-[0-9]{2}$"},
+    "status": {"const": "SOURCING_PLACEHOLDER"},
+    "domain": {"enum": ["earth_systems", "biomedical_systems", "networked_infrastructure", "collective_behavior"]},
+    "task_family": {"enum": ["prediction", "experiment_design", "mechanism_discrimination"]},
+    "expert_role": {
+      "type": "object", "additionalProperties": false,
+      "required": ["domain_expertise", "independent_of_engine", "assigned_expert_id"],
+      "properties": {
+        "domain_expertise": {"type": "string", "minLength": 1},
+        "independent_of_engine": {"const": true},
+        "assigned_expert_id": {"type": "null"}
+      }
+    },
+    "budget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["expert_minutes_max", "wall_minutes_max", "compute_usd_max"],
+      "properties": {
+        "expert_minutes_max": {"type": "integer", "minimum": 1},
+        "wall_minutes_max": {"type": "integer", "minimum": 1},
+        "compute_usd_max": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "baselines": {
+      "type": "array", "minItems": 3, "uniqueItems": true,
+      "items": {"enum": ["expert_usual", "expert_plus_general_ai_rag", "same_model_semantic_rag"]}
+    },
+    "negative_control": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "frozen"],
+      "properties": {
+        "kind": {"enum": ["matched_non_isomorph", "random_candidate", "same_domain_candidate"]},
+        "frozen": {"const": false}
+      }
+    },
+    "time_split": {
+      "type": "object", "additionalProperties": false,
+      "required": ["t0", "latest_accessible_material_at", "outcome_available_after_t0"],
+      "properties": {
+        "t0": {"type": "null"},
+        "latest_accessible_material_at": {"type": "null"},
+        "outcome_available_after_t0": {"type": "null"}
+      }
+    },
+    "answer_source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "locator", "digest", "imported_into_repository"],
+      "properties": {
+        "state": {"const": "NOT_IMPORTED"},
+        "locator": {"type": "null"},
+        "digest": {"type": "null"},
+        "imported_into_repository": {"const": false}
+      }
+    },
+    "contamination_scan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["checklist_id", "state", "completed_by", "completed_at"],
+      "properties": {
+        "checklist_id": {"const": "stage1-contamination-v1"},
+        "state": {"const": "NOT_RUN"},
+        "completed_by": {"type": "null"},
+        "completed_at": {"type": "null"}
+      }
+    },
+    "formal_evidence_allowed": {"const": false}
+  }
+}

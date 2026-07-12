@@ -1,0 +1,18 @@
+{
+  "schema_version": "stage1-contamination-v1",
+  "checklist_id": "stage1-contamination-v1",
+  "status": "TEMPLATE_NOT_RUN",
+  "checks": [
+    {"id": "corpus_cutoff", "question": "Are every corpus, cache and retrieval snapshot dated no later than the frozen cutoff?"},
+    {"id": "answer_absence", "question": "Is the outcome answer absent from the repository, prompts, fixtures, caches and model-visible packet?"},
+    {"id": "near_duplicate", "question": "Did a reviewer inspect lexical and semantic near-duplicate candidates without exposing the answer?"},
+    {"id": "target_revealing_text", "question": "Did a reviewer check titles, abstracts, filenames and metadata for target-revealing text?"},
+    {"id": "model_training_risk", "question": "Is model pretraining or post-training exposure assessed and recorded rather than assumed absent?"},
+    {"id": "developer_exposure", "question": "Are developers who saw the answer excluded from task selection, execution and primary scoring?"},
+    {"id": "search_cache", "question": "Are external search results frozen at t0 and checked for post-t0 snippets?"},
+    {"id": "packet_redaction", "question": "Does the expert packet omit answer locator, digest, outcome and adjudication fields?"},
+    {"id": "independent_signoff", "question": "Did an independent reviewer sign the completed scan before dispatch?"}
+  ],
+  "result_states": ["PASS", "FAIL", "UNRESOLVED"],
+  "dispatch_rule": "Every check must be PASS; any FAIL, UNRESOLVED or NOT_RUN blocks dispatch and formal evidence."
+}
