@@ -45,19 +45,31 @@ export default function LoginPage() {
   if (!authEnabled) {
     return (
       <main className="mx-auto max-w-md px-6 py-16">
+        <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">
+          Structural Labs · Phase · 子产品账户
+        </p>
         <h1 className="mb-2 text-2xl font-semibold text-zinc-900">账户功能尚未开放</h1>
         <p className="mb-8 text-sm leading-6 text-zinc-600">
           当前版本是研究预览，登录、云端收藏和团队连接功能暂不提供。公司收藏仍可保存在本机浏览器中。
         </p>
-        <Link href="/" className="text-sm text-zinc-700 underline">
+        <Link href="/" className="inline-flex min-h-11 items-center text-sm text-zinc-700 underline">
           返回研究预览
         </Link>
+        <a
+          href="https://beta.structural.bytedance.city"
+          className="mt-3 flex min-h-11 items-center text-sm font-semibold text-indigo-700 underline"
+        >
+          返回 Structural 主产品 / Back to main product ↗
+        </a>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-md px-6 py-16">
+      <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">
+        Structural Labs · Phase · 子产品账户
+      </p>
       <h1 className="mb-2 text-2xl font-semibold text-zinc-900">注册 / 登录</h1>
       <p className="mb-8 text-sm text-zinc-600">
         输入邮箱即可，我们发送一次性登录链接。无需密码。
@@ -133,9 +145,16 @@ export default function LoginPage() {
       <p className="mt-12 text-xs text-zinc-500">
         没有账户？这个链接也会自动创建一个。
         <br />
-        <Link href="/" className="text-zinc-700 underline">
+        <Link href="/" className="inline-flex min-h-11 items-center text-zinc-700 underline">
           返回首页
         </Link>
+        <br />
+        <a
+          href="https://beta.structural.bytedance.city"
+          className="inline-flex min-h-11 items-center font-semibold text-indigo-700 underline"
+        >
+          返回 Structural 主产品 / Back to main product ↗
+        </a>
       </p>
     </main>
   );

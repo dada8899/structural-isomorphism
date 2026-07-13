@@ -4,7 +4,7 @@
 // In production these will be fetched from the API; for static export
 // the lists are checked into git. Keep in sync with backend taxonomy.
 
-// Top-100 U.S. equity tickers covered by Phase Detector v0.1.
+// Top-100 U.S. equity tickers covered by Structural Labs · Phase v0.1.
 // Source: SP500 + Russell-1000 supplement from public/backtest/ universe.
 // Edit this list when the universe changes.
 export const PHASE_DETECTOR_TICKERS: string[] = [

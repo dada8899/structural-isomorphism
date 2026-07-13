@@ -49,6 +49,10 @@
   }
   .site-header__menu-btn {
     display: inline-flex;
+    margin-left: var(--space-2);
+  }
+  .site-header__account-cta {
+    display: inline-flex;
   }
 
   /* SESSION-17 P1-5: footer stacks vertically on phones so the copyright

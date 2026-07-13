@@ -226,6 +226,10 @@ def test_summary_empty_db(store):
         "total_followups": 0,
         "worked_count": 0,
         "verified_isomorphisms": 0,
+        "outcome_counts": {
+            "worked": 0, "partial": 0, "no_effect": 0,
+            "too_early": 0, "not_recorded": 0,
+        },
     }
 
 
@@ -297,6 +301,10 @@ def test_summary_endpoint_empty(client):
     assert r.json() == {
         "total_reports": 0, "total_followups": 0,
         "worked_count": 0, "verified_isomorphisms": 0,
+        "outcome_counts": {
+            "worked": 0, "partial": 0, "no_effect": 0,
+            "too_early": 0, "not_recorded": 0,
+        },
     }
 
 
@@ -312,6 +320,10 @@ def test_summary_endpoint_with_data(client, app):
     assert body["total_reports"] == 1
     assert body["worked_count"] == 1
     assert body["verified_isomorphisms"] == 1
+    assert body["outcome_counts"] == {
+        "worked": 1, "partial": 0, "no_effect": 0,
+        "too_early": 0, "not_recorded": 0,
+    }
 
 
 def test_stuck_structures_endpoint_empty(client):

@@ -9,6 +9,14 @@ function scoreTier(score) {
   return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_weak', '弱相关'), cls: 'score--weak' };
 }
 
+function evidenceHtml(item, compact) {
+  if (!window.StructuralEvidence) return '';
+  return window.StructuralEvidence.render(
+    (item && item.evidence) || window.StructuralEvidence.fallback(item || {}),
+    { compact: compact !== false, suppressActions: true }
+  );
+}
+
 /**
  * Structural — Search results page (Phase 2)
  *
@@ -65,7 +73,7 @@ function renderOutOfScope(query, data) {
       <p class="assess-gate__coaching">${msg}</p>
       <div class="assess-gate__suggestion">
         <div class="assess-gate__suggestion-label">${T('page.search.oos_what_fits', '💡 Structural 擅长什么')}</div>
-        <div class="assess-gate__suggestion-text">${T('page.search.oos_what_fits_text', '描述一个「行为像某种模式」的难题——比如增长卡住、留存下滑、组织效率塌陷、某个趋势莫名反转。这类问题往往在另一个学科里有结构相同的成熟解法。')}</div>
+        <div class="assess-gate__suggestion-text">${T('page.search.oos_what_fits_bounded', '描述一个「行为像某种模式」的难题——比如增长卡住、留存下滑或趋势反转。Structural 会寻找跨领域候选，用来生成需要验证的新假设。')}</div>
       </div>
       <div class="assess-gate__actions">
         <a href="/" class="btn btn--primary">${T('page.search.back_home', '返回首页')}</a>
@@ -300,7 +308,7 @@ function renderResults(query, data) {
     <div class="search-page__results">
       ${renderCrossDomainBanner(query, null)}
       <div class="search-page__results-title">
-        <span>${T('page.search.candidates_title', '跨领域证据')} · ${data.results.length} ${T('page.search.candidates_unit', '个候选')}</span>
+        <span>${T('page.search.evidence_candidates_title', '跨领域候选')} · ${data.results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         <span class="search-page__results-hint">${T('page.search.results_pre_synth_hint', 'AI 正在挑选首推 · 现在已可点击查看')}</span>
       </div>
       <div class="result-list">
@@ -315,6 +323,7 @@ function renderResults(query, data) {
               </div>
               <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
               <p class="result-card__description">${escapeHtml(r.description)}</p>
+              ${evidenceHtml(r)}
             </div>
             <div class="result-card__aside">
               <div class="result-card__score">
@@ -357,7 +366,7 @@ function renderCrossDomainBanner(query, recommendedResult) {
         </div>
         <div class="xd-banner__body">
           <div class="xd-banner__title">${T('page.search.xd_none_title', '这个问题更适合在它本来的领域里解决')}</div>
-          <p class="xd-banner__text">${T('page.search.xd_none_text', 'Structural 没有找到真正来自其他学科的同构现象——下面的候选都和你的问题在同一个领域里。跨领域类比在这里帮不上忙，直接用你这一行的成熟方法可能更快。')}</p>
+          <p class="xd-banner__text">${T('page.search.xd_none_text_bounded', 'Structural 没有返回其他领域的检索候选；下面结果与问题处于同一领域。此时应优先核对本领域证据，而不是强行做跨领域迁移。')}</p>
         </div>
       </div>
     `;
@@ -386,10 +395,10 @@ function renderCrossDomainBanner(query, recommendedResult) {
         <div class="xd-banner__title">${T('page.search.xd_preview_title', '生成报告时会发生什么')}</div>
         <p class="xd-banner__text">
           ${surfacePart}
-          ${T('page.search.xd_preview_text', '点开报告后，Structural 会用 {domain} 的成熟解法重新理解你的问题——这才是它和通用 AI 不一样的地方。')
+          ${T('page.search.xd_preview_text_bounded', '点开报告后，Structural 会借用 {domain} 的候选方法生成待检验假设；是否适用仍需核对变量、边界与反证。')
               .replace('{domain}', domainStrong)}
         </p>
-        <p class="xd-banner__hint">${T('page.search.xd_preview_hint', '提示：选一个标着「跨领域」的候选，跨学科迁移才成立。')}</p>
+        <p class="xd-banner__hint">${T('page.search.xd_preview_hint_bounded', '提示：「跨领域」只表示来源领域不同，不代表迁移已经成立。')}</p>
       </div>
     </div>
   `;
@@ -413,6 +422,7 @@ function renderV2PairsForTop() {
           <div class="v2-pair-card__domain">${escapeHtml(p.other_domain || '')}</div>
           <h5 class="v2-pair-card__name">${escapeHtml(p.other_name || '')}</h5>
           ${p.reason ? `<p class="v2-pair-card__reason">${escapeHtml(p.reason)}</p>` : ''}
+          ${evidenceHtml(p)}
         </a>
       `;
     }).join('');
@@ -436,7 +446,7 @@ function renderV2PairsForTop() {
       <div class="v2-pairs-section__header">
         <div class="v2-pairs-section__label">${T('page.search.v2_pairs_label', 'V2 模型识别的跨域对')}</div>
         <h3 class="v2-pairs-section__title">${T('page.search.v2_pairs_title', 'V2 还看到了这些联系')}</h3>
-        <p class="v2-pairs-section__sub">${T('page.search.v2_pairs_sub', 'V2 管道独立筛选过的跨学科同构对，不在向量检索流里。点击查看深度分析。')}</p>
+        <p class="v2-pairs-section__sub">${T('page.search.v2_pairs_sub', 'V2 管道内部筛选的跨学科候选，不是独立验证；点击查看映射、证据缺口与反例。')}</p>
       </div>
       ${blocks}
     </section>
@@ -469,7 +479,7 @@ function renderResultsWithSynth() {
       <div class="search-page__results">
         ${renderCrossDomainBanner(query, null)}
         <div class="search-page__results-title">
-          <span>${T('page.search.candidates_title', '跨领域证据')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
+          <span>${T('page.search.evidence_candidates_title', '跨领域候选')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         </div>
         <div class="result-list">
           ${results.map(r => `
@@ -483,6 +493,7 @@ function renderResultsWithSynth() {
                 </div>
                 <h3 class="result-card__name">${escapeHtml(r.name)}</h3>
                 <p class="result-card__description">${escapeHtml(r.description)}</p>
+                ${evidenceHtml(r)}
               </div>
               <div class="result-card__aside">
                 <div class="result-card__score">
@@ -523,6 +534,7 @@ function renderResultsWithSynth() {
               <span class="rec-primary__score">${scoreTier(pr.score).pct}% · ${scoreTier(pr.score).label}</span>
             </div>
             <h3 class="rec-primary__name">${escapeHtml(pr.name)}</h3>
+            ${evidenceHtml(pr)}
 
             ${primary.reason ? `
               <div class="rec-primary__block">
@@ -558,6 +570,7 @@ function renderResultsWithSynth() {
         <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
           <div class="rec-alt__angle">${escapeHtml(alt.angle_label || T('page.search.alt_angle_default', '补充视角'))}</div>
           <h4 class="rec-alt__name">${escapeHtml(r.name)}</h4>
+          ${evidenceHtml(r)}
           <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}% ${crossDomainTag(r)}</div>
           ${alt.reason ? `<p class="rec-alt__reason">${window.mdInline(alt.reason)}</p>` : ''}
           <div class="rec-alt__cta">
@@ -600,6 +613,7 @@ function renderResultsWithSynth() {
                   </div>
                   <div class="rec-other__name">${escapeHtml(r.name)}</div>
                   ${snippet ? `<p class="rec-other__snippet">${escapeHtml(snippet)}</p>` : `<p class="rec-other__desc">${escapeHtml(r.description)}</p>`}
+                  ${evidenceHtml(r)}
                 </div>
                 <div class="rec-other__score">${scoreTier(r.score).pct}%</div>
               </a>

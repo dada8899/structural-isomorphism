@@ -21,7 +21,7 @@ export async function generateMetadata({
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase()) || "Class";
   return buildMetadata({
-    title: `${human} — 普适类详情 — Phase Detector`,
+    title: `${human} — 普适类详情 — Structural Labs · Phase`,
     description: `普适类 ${human} 的定义、不变量、跨域类比，以及当前归入这类的上市公司。`,
     path: `/universality/${id}`,
     ogType: "article",

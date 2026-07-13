@@ -425,6 +425,7 @@ function renderList() {
               ${L(d, "time_estimate") ? `<span class="disc-item__meta-tag">${escapeHtml(L(d, "time_estimate"))}</span>` : ''}
               ${d.solo_feasible ? `<span class="disc-item__meta-tag">${T("page.discoveries.meta_solo_feasible", "单人可做")}</span>` : ''}
             </div>
+            ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
           </div>
           <div class="disc-item__aside">
             <div class="disc-item__score">
@@ -570,6 +571,7 @@ function renderTier2List(listEl) {
           </div>
         </div>
         ${L(d, "reason") ? `<p class="disc-t2-item__reason">${escapeHtml(L(d, "reason"))}</p>` : ''}
+        ${window.StructuralEvidence ? window.StructuralEvidence.render(d.evidence || window.StructuralEvidence.fallback(d), { compact: true }) : ''}
       </div>
       <div class="disc-t2-item__aside">
         <div class="disc-t2-item__sim">

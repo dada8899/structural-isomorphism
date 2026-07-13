@@ -67,6 +67,7 @@
     // badge rather than inventing numbers.
     window._analyzeMeta = {
       credibility: (detail && detail.credibility) || null,
+      evidence: (detail && detail.evidence) || null,
       similarity: (detail && typeof detail.similarity === 'number') ? detail.similarity : undefined,
       a: (detail && detail.source) || {},
       b: {

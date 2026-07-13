@@ -14,8 +14,8 @@ import { loadServerScreener } from "@/lib/server-api";
 import type { Company } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "导览 — Phase Detector",
-  description: "4 步快速了解 Phase Detector 怎么用。",
+  title: "导览 — Structural Labs · Phase",
+  description: "4 步快速了解 Structural Labs · Phase 怎么用。",
   robots: { index: false, follow: false }, // not for SEO — only direct links.
 };
 

@@ -155,6 +155,7 @@ async def issue_exchange_code(body: IssueBody, request: Request):
     expires_at = now + _CODE_TTL
     SsoReplayStore(_data_dir() / "sso_replay.sqlite3").issue(
         jti, _subject_id(user["email"]), user["tier"], expires_at,
+        email=user["email"],
     )
     claims = {
         "iss": _phase_origin(), "aud": body.audience, "state": body.state,
@@ -200,10 +201,30 @@ async def exchange_code(body: ExchangeBody, request: Request):
     response = JSONResponse({"ok": True, "user": {"id": issued["subject_id"]}})
     response.set_cookie(_BETA_SESSION_COOKIE, session, **_cookie_args(request, _SESSION_TTL))
     response.delete_cookie(_STATE_COOKIE, path="/")
+    # Phase and beta may share a parent browsing journey. Never leave a direct
+    # credential beside the freshly exchanged SSO credential; the resolver
+    # still checks dual-cookie conflicts for races, replays and old clients.
+    response.delete_cookie("phase_session", path="/")
     return response
 
 
-def resolve_beta_user(request: Request) -> tuple[dict | None, str]:
+def _resolve_direct_beta_user(request: Request) -> tuple[dict | None, str]:
+    direct_user, direct_status = resolve_session_user(request)
+    if direct_status != "valid" or not direct_user:
+        return None, direct_status
+    subject = _subject_id(direct_user["email"])
+    revoked_at = SsoReplayStore(_data_dir() / "sso_replay.sqlite3").subject_revoked_at(subject)
+    if revoked_at is not None and int(direct_user.get("_issued_ns", 0)) <= revoked_at:
+        return None, "revoked"
+    return {
+        "id": subject,
+        "email": direct_user["email"],
+        "tier": direct_user.get("tier", "free"),
+        "auth_method": "direct",
+    }, "valid"
+
+
+def _resolve_sso_beta_user(request: Request) -> tuple[dict | None, str]:
     token = request.cookies.get(_BETA_SESSION_COOKIE, "")
     if not token:
         return None, "absent"
@@ -214,12 +235,51 @@ def resolve_beta_user(request: Request) -> tuple[dict | None, str]:
         )
     except jwt.PyJWTError:
         return None, "invalid"
-    revoked_at = SsoReplayStore(_data_dir() / "sso_replay.sqlite3").subject_revoked_at(
-        str(claims.get("sub", ""))
-    )
+    subject = str(claims.get("sub", ""))
+    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
+    revoked_at = ledger.subject_revoked_at(subject)
     if revoked_at is not None and int(claims.get("issued_ns", 0)) <= revoked_at:
         return None, "revoked"
-    return {"id": claims["sub"], "tier": claims.get("tier", "free")}, "valid"
+    # A Phase exchange is trusted to establish the subject↔email binding.
+    # Pre-migration subject-only sessions must confirm their email with a
+    # fresh Phase exchange (or direct beta magic link) before email-owned
+    # assets are exposed. Never guess or accept an email from the browser.
+    email = ledger.email_for_subject(subject)
+    if not email or not hmac.compare_digest(_subject_id(email), subject):
+        return None, "unlinked"
+    return {
+        "id": subject,
+        "email": email,
+        "tier": claims.get("tier", "free"),
+        "auth_method": "phase_sso",
+    }, "valid"
+
+
+def resolve_beta_user(request: Request) -> tuple[dict | None, str]:
+    """Resolve both credentials independently, then enforce one identity.
+
+    No credential gets priority over another. A malformed/revoked credential
+    poisons the request even when the other one is valid, and two valid but
+    different subjects are rejected before any account endpoint can mutate.
+    """
+    direct, direct_status = _resolve_direct_beta_user(request)
+    sso_user, sso_status = _resolve_sso_beta_user(request)
+    for status in (direct_status, sso_status):
+        if status not in {"absent", "valid"}:
+            return None, status
+    if direct_status == "valid" and sso_status == "valid":
+        if not direct or not sso_user or not hmac.compare_digest(direct["id"], sso_user["id"]):
+            return None, "credential_conflict"
+        return {
+            **direct,
+            "tier": direct.get("tier", sso_user.get("tier", "free")),
+            "auth_method": "direct+phase_sso",
+        }, "valid"
+    if direct_status == "valid":
+        return direct, "valid"
+    if sso_status == "valid":
+        return sso_user, "valid"
+    return None, "absent"
 
 
 def set_anon_proof(response: JSONResponse, request: Request, anon_id: str) -> None:

@@ -18,11 +18,21 @@ class SsoReplayStore:
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS issued_sso_codes("
                 "jti TEXT PRIMARY KEY, subject_id TEXT NOT NULL, tier TEXT NOT NULL, "
-                "expires_at INTEGER NOT NULL, consumed_at INTEGER)"
+                "expires_at INTEGER NOT NULL, consumed_at INTEGER, email TEXT)"
             )
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS revoked_sso_subjects("
                 "subject_id TEXT PRIMARY KEY, revoked_at INTEGER NOT NULL)"
+            )
+            columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(issued_sso_codes)").fetchall()
+            }
+            if "email" not in columns:
+                conn.execute("ALTER TABLE issued_sso_codes ADD COLUMN email TEXT")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS sso_subject_email_bindings("
+                "subject_id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, "
+                "bound_at INTEGER NOT NULL)"
             )
 
     def _connect(self) -> sqlite3.Connection:
@@ -46,14 +56,27 @@ class SsoReplayStore:
             conn.commit()
             return inserted == 1
 
-    def issue(self, jti: str, subject_id: str, tier: str, expires_at: int) -> None:
+    def issue(
+        self, jti: str, subject_id: str, tier: str, expires_at: int,
+        email: str | None = None,
+    ) -> None:
         if not jti or not subject_id:
             raise ValueError("jti and subject_id are required")
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if email:
+                conn.execute(
+                    "INSERT INTO sso_subject_email_bindings(subject_id,email,bound_at) "
+                    "VALUES(?,?,?) ON CONFLICT(subject_id) DO UPDATE SET "
+                    "email=excluded.email,bound_at=excluded.bound_at",
+                    (subject_id, email.strip().lower(), time.time_ns()),
+                )
             conn.execute(
-                "INSERT INTO issued_sso_codes(jti,subject_id,tier,expires_at) VALUES(?,?,?,?)",
-                (jti, subject_id, tier, expires_at),
+                "INSERT INTO issued_sso_codes(jti,subject_id,tier,expires_at,email) "
+                "VALUES(?,?,?,?,?)",
+                (jti, subject_id, tier, expires_at, email.strip().lower() if email else None),
             )
+            conn.commit()
 
     def consume_issued(self, jti: str) -> dict | None:
         now = int(time.time())
@@ -62,7 +85,8 @@ class SsoReplayStore:
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
-                "SELECT subject_id,tier,expires_at,consumed_at FROM issued_sso_codes WHERE jti=?",
+                "SELECT subject_id,tier,expires_at,consumed_at,email "
+                "FROM issued_sso_codes WHERE jti=?",
                 (jti,),
             ).fetchone()
             if not row or row[3] is not None or int(row[2]) < now:
@@ -73,7 +97,39 @@ class SsoReplayStore:
                 (now, jti),
             ).rowcount
             conn.commit()
-        return {"subject_id": row[0], "tier": row[1]} if updated == 1 else None
+        return {
+            "subject_id": row[0], "tier": row[1], "email": row[4],
+        } if updated == 1 else None
+
+    def email_for_subject(self, subject_id: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT email FROM sso_subject_email_bindings WHERE subject_id=?",
+                (subject_id,),
+            ).fetchone()
+        return str(row[0]) if row else None
+
+    def export_subject_binding(self, subject_id: str) -> dict:
+        email = self.email_for_subject(subject_id)
+        return {"exists": email is not None, "email": email}
+
+    def delete_subject_binding(self, subject_id: str) -> dict:
+        snapshot = self.export_subject_binding(subject_id)
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM sso_subject_email_bindings WHERE subject_id=?", (subject_id,)
+            )
+        return snapshot
+
+    def restore_subject_binding(self, subject_id: str, snapshot: dict) -> None:
+        email = snapshot.get("email") if snapshot.get("exists") else None
+        if not email:
+            return
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO sso_subject_email_bindings(subject_id,email,bound_at) "
+                "VALUES(?,?,?)", (subject_id, email, time.time_ns()),
+            )
 
     def revoke_subject(self, subject_id: str, revoked_at: int | None = None) -> int:
         if not subject_id:

@@ -11,6 +11,7 @@ import pytest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "production_smoke.py"
+SERVICE_UNIT = Path(__file__).resolve().parents[1] / "web" / "scripts" / "structural-web.service"
 SPEC = importlib.util.spec_from_file_location("production_smoke", SCRIPT)
 assert SPEC and SPEC.loader
 smoke = importlib.util.module_from_spec(SPEC)
@@ -24,6 +25,14 @@ def encoded(value):
 
 def successful_transport(method, url, body, timeout):
     assert 1 <= timeout <= 60
+    if url == f"{smoke.STRUCTURAL}/":
+        return smoke.Response(
+            200,
+            (
+                '<html><a href="https://beta.structural.bytedance.city/auth/login">'
+                "注册 / 登录</a>" + "x" * 120 + "</html>"
+            ).encode(),
+        )
     if url.endswith("/api/version"):
         return smoke.Response(200, encoded({
             "semver": "1.0", "git_sha": "abc", "python_version": "3.12",
@@ -51,8 +60,6 @@ def successful_transport(method, url, body, timeout):
         }))
     if url.endswith("/api/billing/checkout-session"):
         return smoke.Response(503, encoded({"error": "billing_not_available"}))
-    if url.endswith("/api/auth/request-link"):
-        return smoke.Response(503, encoded({"error": "account_features_not_available"}))
     if url.endswith("/api/auth/me"):
         return smoke.Response(401, encoded({"ok": False, "error": "no session"}))
     if url.endswith("/api/ews/meta"):
@@ -73,7 +80,21 @@ def test_full_monitor_contract_passes_with_mock_transport(capsys):
     )
     assert monitor.run() == 54
     assert waits == [2.1] * 29
-    assert "PASS production smoke: 54 requests" in capsys.readouterr().out
+    assert "PASS production smoke: 54 checks, 54 HTTP attempts" in capsys.readouterr().out
+
+
+def test_systemd_activation_waits_for_deep_readiness():
+    unit = SERVICE_UNIT.read_text(encoding="utf-8")
+    start_post = next(line for line in unit.splitlines() if line.startswith("ExecStartPost="))
+    assert "/bin/bash -c" in start_post
+    assert "for attempt in {1..18}" in start_post
+    assert "/usr/bin/curl -fsS --max-time 2" in start_post
+    assert "127.0.0.1:5004/api/health?deep=1" in start_post
+    assert "&& exit 0" in start_post and start_post.endswith("exit 1'")
+    assert "TimeoutStartSec=135" in unit
+    assert "Restart=on-failure" in unit
+    # Worst case: 18 two-second probes plus 18 five-second sleeps = 126s.
+    assert 18 * (2 + 5) < 135
 
 
 @pytest.mark.parametrize("mutation, expected", [
@@ -103,11 +124,77 @@ def test_invalid_json_fails_without_echoing_body():
     assert "must-not-appear" not in str(caught.value)
 
 
+def test_docs_homepage_without_account_entry_fails_closed():
+    def transport(method, url, body, timeout):
+        return smoke.Response(200, b"<html>" + b"x" * 120 + b"</html>")
+
+    with pytest.raises(smoke.SmokeFailure, match="registration/login entry is missing"):
+        smoke.Monitor(transport).check_structural_docs()
+
+
 def test_unexpected_status_fails_closed():
     def transport(method, url, body, timeout):
         return smoke.Response(502, b"upstream details")
     with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 502"):
         smoke.Monitor(transport).check_structural_docs()
+
+
+def test_get_retries_transient_network_and_upstream_failures_only():
+    outcomes = [
+        smoke.SmokeFailure("temporary network failure"),
+        smoke.Response(502, b"starting"),
+        smoke.Response(200, b"<html>" + b"x" * 120 + b"</html>"),
+    ]
+    calls = []
+    waits = []
+
+    def transport(method, url, body, timeout):
+        calls.append((method, url))
+        outcome = outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monitor = smoke.Monitor(
+        transport, sleeper=waits.append, get_retry_delays=(0.1, 0.2)
+    )
+    monitor.check_page("page", "https://example.test/")
+    assert len(calls) == 3
+    assert waits == [0.1, 0.2]
+    assert monitor.checked == 1
+    assert monitor.attempted_requests == 3
+
+
+def test_get_retry_remains_fail_closed_after_budget():
+    calls = 0
+
+    def transport(method, url, body, timeout):
+        nonlocal calls
+        calls += 1
+        return smoke.Response(503, b"still unavailable")
+
+    monitor = smoke.Monitor(
+        transport, sleeper=lambda _delay: None, get_retry_delays=(0.0, 0.0)
+    )
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 503"):
+        monitor.check_structural_docs()
+    assert calls == 3
+
+
+def test_post_is_never_retried():
+    calls = 0
+
+    def transport(method, url, body, timeout):
+        nonlocal calls
+        calls += 1
+        return smoke.Response(503, b"unavailable")
+
+    monitor = smoke.Monitor(
+        transport, sleeper=lambda _delay: None, get_retry_delays=(0.0, 0.0)
+    )
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 503"):
+        monitor.request("write", "POST", "https://example.test/write", payload={"x": 1})
+    assert calls == 1
 
 
 def test_in_scope_empty_results_fail():
@@ -142,13 +229,22 @@ def test_missing_cross_domain_candidate_fails():
         smoke.Monitor(transport).check_search()
 
 
-@pytest.mark.parametrize("url_suffix", ["/api/billing/checkout-session", "/api/auth/request-link"])
-def test_disabled_surface_accidental_200_fails(url_suffix):
+def test_disabled_billing_surface_accidental_200_fails():
     def transport(method, url, body, timeout):
-        if url.endswith(url_suffix):
+        if url.endswith("/api/billing/checkout-session"):
             return smoke.Response(200, encoded({"ok": True}))
         return successful_transport(method, url, body, timeout)
     with pytest.raises(smoke.SmokeFailure, match="expected HTTP 503, got 200"):
+        smoke.Monitor(transport).check_disabled_surfaces()
+
+
+def test_beta_auth_disabled_or_accidentally_public_fails():
+    def transport(method, url, body, timeout):
+        result = successful_transport(method, url, body, timeout)
+        if url.endswith("/api/auth/me"):
+            return smoke.Response(503, encoded({"error": "auth unavailable"}))
+        return result
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 401, got 503"):
         smoke.Monitor(transport).check_disabled_surfaces()
 
 

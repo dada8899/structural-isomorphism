@@ -7,13 +7,14 @@ import path from "node:path";
 import { CumulativeChartLazy as CumulativeChart } from "./CumulativeChartLazy";
 import JsonLd from "@/components/JsonLd";
 import { buildMetadata, datasetSchema } from "@/lib/seo";
+import { PUBLIC_BACKTEST_P_LABEL, PUBLIC_BACKTEST_P_VALUE } from "@/lib/public-backtest";
 
 // Wave 2 (2026-05-14): /backtest transparency page.
 // Wave 10 (2026-05-15): updated to v0.1 1000-ticker walk-forward numbers.
 //
 // Framing intent (locked by user 2026-05-14, reaffirmed 2026-05-15):
 //   This page reports a NULL backtest outcome (Sharpe lift = -0.07,
-//   p = 0.569 at 1-month hold; lift = -0.51 at 6-month hold). It is NOT
+//   p = 0.5690715676 at 1-month hold; lift = -0.51 at 6-month hold). It is NOT
 //   marketed as an alpha screener. The narrative is pre-registration
 //   discipline: "we said we'd run this test on 1000 tickers, we ran it,
 //   here are the numbers, here is what they do and do not say."
@@ -26,9 +27,9 @@ import { buildMetadata, datasetSchema } from "@/lib/seo";
 
 // W12-B (2026-05-15): OG card + canonical + dataset JSON-LD embedded in page body.
 export const metadata: Metadata = buildMetadata({
-  title: "Backtest 透明度报告 — Phase Detector",
+  title: "Backtest 透明度报告 — Structural Labs · Phase",
   description:
-    "Walk-forward backtest v0.1 on 927 SP500 + Russell-1000-supplement tickers, 59 monthly snapshots, 2020-2025. Sharpe lift -0.07 vs benchmark (p = 0.569). Alpha NOT detected at scale. 我们公开发布零结果。",
+    `Walk-forward backtest v0.1 on 927 SP500 + Russell-1000-supplement tickers, 59 monthly snapshots, 2020-2025. Sharpe lift -0.07 vs benchmark (p = ${PUBLIC_BACKTEST_P_LABEL}). Alpha NOT detected at scale. 我们公开发布零结果。`,
   path: "/backtest",
   ogImage: "/og/backtest.png",
 });
@@ -161,6 +162,10 @@ export default async function BacktestPage() {
     );
   }
 
+  if (Math.abs(result.p_value - PUBLIC_BACKTEST_P_VALUE) > 5e-11) {
+    throw new Error("Published backtest p-value drifted from public/backtest/result.json");
+  }
+
   const ticksFetched = result.prices_meta?.yfinance_tickers ?? 0;
   const ticksTotal = result.prices_meta?.n_total_tickers ?? 500;
   const periodStart = result.prices_meta?.start ?? "—";
@@ -178,8 +183,8 @@ export default async function BacktestPage() {
       <JsonLd
         id="ld-backtest-dataset"
         schema={datasetSchema({
-          name: "Phase Detector walk-forward backtest v0.1",
-          description: `Walk-forward backtest of ${ticksFetched} U.S. equity tickers across ${result.n_snapshots} monthly snapshots. Published null outcome (Sharpe lift = ${num(lift ?? NaN, 3)}, p = ${num(result.p_value, 3)}).`,
+          name: "Structural Labs · Phase walk-forward backtest v0.1",
+          description: `Walk-forward backtest of ${ticksFetched} U.S. equity tickers across ${result.n_snapshots} monthly snapshots. Published null outcome (Sharpe lift = ${num(lift ?? NaN, 3)}, p = ${PUBLIC_BACKTEST_P_LABEL}).`,
           url: "https://phase.bytedance.city/backtest",
           distributionUrl: "https://phase.bytedance.city/api/backtest-result",
         })}
@@ -200,13 +205,13 @@ export default async function BacktestPage() {
         <p className="max-w-3xl text-base text-zinc-600">
           We pre-registered a single hypothesis: companies labelled{" "}
           <span className="font-medium text-zinc-900">near_critical</span> by
-          the Phase Detector should produce a different risk-adjusted forward
+          the Structural Labs · Phase label should produce a different risk-adjusted forward
           return than the rest of a ~1000-ticker U.S. equity universe across
           a 5-year walk-forward (2020-2025). The result is{" "}
           <span className="font-medium text-zinc-900">
             alpha NOT detected at scale
           </span>{" "}
-          — Sharpe lift = {num(lift ?? NaN, 3)} (p = {num(result.p_value, 3)}).
+          — Sharpe lift = {num(lift ?? NaN, 3)} (p = {PUBLIC_BACKTEST_P_LABEL}).
           Per <Link href="https://github.com/dada8899/structural-isomorphism/blob/main/docs/future/W7-D-product-value-roadmap-2026-05-13.md" className="underline">W7-D Track A</Link>, this confirms the pivot to{" "}
           <span className="font-medium text-zinc-900">
             structured-research-narrative positioning
@@ -226,7 +231,7 @@ export default async function BacktestPage() {
           />
           <StatCard
             label="p-value (paired t)"
-            value={num(result.p_value, 3)}
+            value={PUBLIC_BACKTEST_P_LABEL}
             note="two-sided · 59 months"
             emphasis="warn"
           />
@@ -270,12 +275,12 @@ export default async function BacktestPage() {
           Verdict · W7-D Track A month-3 decision gate
         </div>
         <div className="mt-2 text-xl font-semibold text-zinc-900">
-          Sharpe lift {lift != null && lift >= 0 ? "+" : ""}{num(lift ?? NaN, 3)} · p = {num(result.p_value, 3)} &rarr; NULL hypothesis NOT rejected
+          Sharpe lift {lift != null && lift >= 0 ? "+" : ""}{num(lift ?? NaN, 3)} · p = {PUBLIC_BACKTEST_P_LABEL} &rarr; NULL hypothesis NOT rejected
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-700">
           Across {result.n_snapshots} monthly snapshots from {periodStart} to{" "}
           {periodEnd} ({ticksFetched}/{ticksTotal} tickers fetched), the
-          Phase Detector&rsquo;s <em>near_critical</em> cohort (Sharpe {num(result.sharpe_nc, 2)})
+          Structural Labs · Phase&rsquo;s <em>near_critical</em> cohort (Sharpe {num(result.sharpe_nc, 2)})
           underperforms the equal-weight benchmark (Sharpe {num(benchSharpe ?? NaN, 2)})
           by {lift != null ? num(Math.abs(lift), 3) : "—"} Sharpe units — well
           below the W7-D{" "}
@@ -285,7 +290,7 @@ export default async function BacktestPage() {
           {num(result.sharpe_other, 2)}, lift +0.155, p = 0.801), but no
           comparison clears α = 0.05. The headline test (paired t-test on
           monthly cohort-minus-benchmark differences) confirms: <strong>on
-          this specification, the Phase Detector label does not carry
+          this specification, the Structural Labs · Phase label does not carry
           tradable directional information</strong>. Per the W7-D
           pre-committed pivot plan, we proceed with structured-research-
           narrative positioning, with this backtest result published as the
@@ -370,7 +375,7 @@ export default async function BacktestPage() {
             <strong>Static labels on R1000 supplement (no labels at all).</strong>{" "}
             Only the 500 SP500 tickers carry LLM <em>critical_point_state</em>{" "}
             labels. The heuristic price-regime cohort uses a 90-day vol +
-            180-day drawdown placebo — a baseline, not a Phase Detector test.
+            180-day drawdown placebo — a baseline, not a Structural Labs · Phase test.
           </li>
           <li>
             <strong>Horizon sweep was minimal.</strong> 1-month and 6-month

@@ -14,6 +14,9 @@ interface Props {
 }
 
 export function HeroCtaText({ fallback = "Browse signals" }: Props) {
-  const text = useVariantValue("hero_cta_text_v2", fallback);
-  return <>{text}</>;
+  useVariantValue("hero_cta_text_v2", fallback);
+  // Historical flag payloads included live-data wording, which is false for
+  // this frozen subproduct. Keep exposure measurement while constraining the
+  // user-visible promise to the published research boundary.
+  return <>Browse frozen snapshots</>;
 }

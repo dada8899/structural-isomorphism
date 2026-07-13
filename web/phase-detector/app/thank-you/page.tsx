@@ -6,7 +6,7 @@ import { CheckoutSuccessBanner } from "@/components/CheckoutSuccessBanner";
 import { ShareButtons } from "@/components/ShareButtons";
 
 export const metadata: Metadata = {
-  title: "已加入名单 — Phase Detector",
+  title: "已加入名单 — Structural Labs · Phase",
   description: "你已加入《结构信号》研究更新名单。",
   // Block indexing so this page does not show up in search.
   robots: { index: false, follow: false },

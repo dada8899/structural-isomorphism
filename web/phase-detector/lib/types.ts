@@ -1,4 +1,4 @@
-// Shared types for Phase Detector frontend.
+// Shared types for Structural Labs · Phase frontend.
 //
 // 2026-05-14 P0 fix: schema realigned to backend canonical (W3-B v0.2 taxonomy).
 // Backend = source of truth. FE enums + Stats shape now mirror exactly what

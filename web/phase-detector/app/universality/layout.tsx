@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "普适类清单 — Phase Detector",
+  title: "普适类候选 — Structural Labs · Phase",
   description:
-    "26+ 个跨域普适类：每一类背后是同一组方程、同一族不变量。点开任意一类，看哪些公司当下处在这个模式里。",
+    "冻结快照中的跨域结构候选：查看定义、证据、反例与来源；不代表外部复现，也不提供预测能力。",
   path: "/universality",
   ogImage: "/og/universality.png",
 });

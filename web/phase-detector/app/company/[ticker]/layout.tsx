@@ -16,7 +16,7 @@ export async function generateMetadata({
   const resolved = await Promise.resolve(params);
   const ticker = (resolved.ticker ?? "").toUpperCase();
   return buildMetadata({
-    title: `${ticker} — 状态评分 — Phase Detector`,
+    title: `${ticker} — 状态评分 — Structural Labs · Phase`,
     description: `${ticker} 当前的相位评分 + 关键指标 + 30 天轨迹。AI 抽取的公开资料，每条都有原文链接。`,
     path: `/company/${ticker}`,
     ogType: "article",

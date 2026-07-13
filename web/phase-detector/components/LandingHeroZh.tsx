@@ -27,7 +27,7 @@ export function LandingHeroZh() {
             aria-hidden="true"
             className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500"
           />
-          研究预览 · Research preview
+          Structural Labs · Phase · 冻结研究子产品
         </p>
 
         <h1
@@ -47,14 +47,14 @@ export function LandingHeroZh() {
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
-          A 597-ticker demo research snapshot, not a live-price product. Each signal includes its evidence.
+          A frozen 597-ticker demo research snapshot with sources. Published NULL; no predictive capability.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3" data-testid="hero-ctas">
           <Link
             href="/companies"
             data-testid="cta-primary"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-indigo-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
             浏览公司表
             <span aria-hidden="true">→</span>
@@ -62,13 +62,13 @@ export function LandingHeroZh() {
           <Link
             href="#how-it-works"
             data-testid="cta-secondary"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
             工作原理
           </Link>
           <Link
             href="/backtest"
-            className="inline-flex items-center gap-1 px-2 py-3 text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 px-2 py-3 text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
           >
             v0.1 NULL 回测 →
           </Link>

@@ -1,4 +1,4 @@
-// API client for Phase Detector backend (W3-B endpoints).
+// API client for Structural Labs · Phase backend (W3-B endpoints).
 // Falls back to mock data when NEXT_PUBLIC_USE_MOCK=true.
 
 import type {

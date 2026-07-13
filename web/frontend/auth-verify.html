@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <script>
+    /* Runs before any subresource is discovered: move credentials out of the
+       query string so favicon/CSS requests cannot receive them as Referer. */
+    (function () {
+      var clean = '/auth/verify';
+      try {
+        var query = new URLSearchParams(window.location.search);
+        var token = query.get('token') || '';
+        var next = query.get('next') || '';
+        if (token) {
+          try {
+            window.sessionStorage.setItem('structural_auth_verify_token', token);
+            if (next) window.sessionStorage.setItem('structural_auth_verify_next', next);
+            window.history.replaceState(null, '', clean);
+          } catch (_storageError) {
+            var fragment = new URLSearchParams();
+            fragment.set('token', token);
+            if (next) fragment.set('next', next);
+            window.history.replaceState(null, '', clean + '#' + fragment.toString());
+          }
+        } else if (window.location.search) {
+          window.history.replaceState(null, '', clean + window.location.hash);
+        }
+      } catch (_error) {
+        window.history.replaceState(null, '', clean);
+      }
+    }());
+  </script>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="robots" content="noindex,nofollow">
+  <title>正在验证 — Structural</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <style>
+    body { min-height:100vh; margin:0; display:grid; place-items:center; padding:24px; box-sizing:border-box; background:#fafaf9; color:#18181b; font-family:Inter,"Noto Sans SC",sans-serif; }
+    .verify-card { width:min(100%,420px); padding:32px; box-sizing:border-box; border:1px solid #e4e4e7; border-radius:16px; background:#fff; text-align:center; box-shadow:0 16px 40px rgba(24,24,27,.06); }
+    .verify-mark { width:44px; height:44px; margin:0 auto 18px; border:3px solid #d4d4d8; border-top-color:#2563eb; border-radius:50%; animation:spin .9s linear infinite; }
+    [data-state="error"] .verify-mark { animation:none; border-color:#dc2626; position:relative; }
+    [data-state="error"] .verify-mark::after { content:"!"; position:absolute; inset:0; display:grid; place-items:center; color:#dc2626; font-weight:700; }
+    h1 { margin:0 0 10px; font:600 28px/1.3 "Noto Serif SC",serif; }
+    p { margin:0; color:#52525b; line-height:1.7; }
+    a { display:inline-flex; min-height:44px; align-items:center; margin-top:22px; padding:0 18px; border-radius:9px; background:#18181b; color:#fff; text-decoration:none; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body data-auth-page="verify">
+  <main id="verify-card" class="verify-card" data-state="working" aria-labelledby="verify-title">
+    <div class="verify-mark" aria-hidden="true"></div>
+    <h1 id="verify-title">正在安全登录</h1>
+    <p id="verify-status" role="status" aria-live="polite">一次性链接正在验证，请稍候。</p>
+    <a id="verify-retry" href="/auth/login" hidden>重新发送登录链接</a>
+  </main>
+  <script defer src="/assets/js/auth-pages.js?v=20260713a"></script>
+</body>
+</html>

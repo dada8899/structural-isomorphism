@@ -20,6 +20,7 @@ import {
   DYNAMICS_LABEL_ZH,
 } from "@/lib/labels";
 import { parseQuery } from "@/lib/parse-query";
+import { PUBLIC_BACKTEST_P_LABEL } from "@/lib/public-backtest";
 import type { Company, ScreenerFilters, Stats } from "@/lib/types";
 
 const EwsLeaderboardPanel = lazy(() =>
@@ -324,10 +325,13 @@ export default function ScreenerHomePage() {
       </Suspense>
       {/* Hero — outcome-first rewrite (PR-1 copy sweep, 2026-05-14).
           W2-B (session #9): transparency banner pulled above-fold as trust
-          signal — we publish the NULL backtest (p=0.681) upfront so users can
+          signal — we publish the canonical NULL backtest upfront so users can
           decide before scrolling. Not a fine-print disclaimer; a positioning
           statement. */}
       <section className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-6 py-8 sm:px-8 sm:py-10">
+        <p className="mb-4 text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">
+          Structural Labs · Phase · 冻结研究子产品
+        </p>
         {/* W2-B transparency banner — above headline, amber 50 (trust signal,
             not red warning). Mobile-friendly via flex-wrap on inner text. */}
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
@@ -347,7 +351,7 @@ export default function ScreenerHomePage() {
           </svg>
           <div>
             <strong className="font-semibold">透明披露</strong>：我们做了 walk-forward backtest（500 ticker × 5 年），
-            <strong className="font-semibold">p = 0.681</strong>，alpha 不显著。这个分数
+            <strong className="font-semibold">p = {PUBLIC_BACKTEST_P_LABEL}</strong>，alpha 不显著。这个分数
             <strong className="font-semibold"> 不是 </strong>投资信号。{" "}
             <Link
               href="/backtest"
@@ -361,15 +365,15 @@ export default function ScreenerHomePage() {
           className="mb-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl"
           style={{ fontFamily: "'Noto Serif SC', serif" }}
         >
-          谁在崩盘边缘？谁在悄悄起飞？
+          冻结快照里，公司呈现出什么结构状态？
         </h1>
         <p className="mb-3 max-w-2xl text-base leading-relaxed text-zinc-600 md:text-lg">
-          浏览 597 个 ticker 的 demo 研究快照，快速理解结构信号。
-          每家公司给你一句话：它现在在哪个阶段、下一步可能往哪走、什么会让它翻车。
+          浏览固定的 597 个 ticker demo 研究快照，快速理解结构标签。
+          每家公司给你一句话：采集时处在哪个阶段、哪些公开证据支持或反驳该标签。
         </p>
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-zinc-500">
           用同一套数学，解释过地震、银行挤兑、电网瘫痪——现在套到上市公司上。
-          我们公开发布了 NULL backtest 结果，看清楚再决定要不要用。
+          我们公开发布了 NULL backtest 结果；这里不提供实时信号或预测能力。
         </p>
         {/* PR-4: legacy "开始查看 →" CTA replaced by <SearchHero> below.
             Keep secondary methodology link inline so users can still pivot to
@@ -377,10 +381,16 @@ export default function ScreenerHomePage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/methodology"
-            className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 px-2 py-2 text-sm font-medium text-zinc-700 underline-offset-4 hover:text-zinc-900 hover:underline"
           >
             怎么看这张表 →
           </Link>
+          <a
+            href="https://beta.structural.bytedance.city"
+            className="inline-flex min-h-11 items-center px-2 py-2 text-sm font-semibold text-indigo-700 underline underline-offset-4"
+          >
+            返回 Structural 主产品 / Back to main product ↗
+          </a>
         </div>
         <p className="mt-4 text-xs text-zinc-500">
           研究预览 · 不是投资建议 · 数据由 AI 抽取，请独立核实
@@ -632,7 +642,7 @@ export default function ScreenerHomePage() {
             id="waitlist-cta-heading"
             className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
           >
-            每周一封《结构信号》
+            《结构信号》研究更新
           </p>
           <LazyMount minHeight={220}><WaitlistForm
             placement="footer"
@@ -642,18 +652,18 @@ export default function ScreenerHomePage() {
         </div>
       </section>
 
-      {/* Sister-product cross-link — symmetric to Structural's homepage callout. */}
+      {/* Canonical main-product return. */}
       <a
-        href="https://beta.structural.bytedance.city/classes"
+        href="https://beta.structural.bytedance.city"
         target="_blank"
-        rel="noopener"
-        className="block rounded-2xl border border-zinc-200 bg-white px-6 py-5 transition hover:border-accent hover:bg-zinc-50 sm:px-8"
+        rel="noopener noreferrer"
+        className="block min-h-11 rounded-2xl border border-zinc-200 bg-white px-6 py-5 transition hover:border-accent hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-700 sm:px-8"
       >
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          姐妹产品
+          主产品 · Main product
         </span>
         <span className="block text-sm text-zinc-900">
-          想找跨学科的解法？→ <strong>Structural</strong>：把你的难题，换成另一个学科已经解过的题
+          返回 <strong>Structural</strong> 主产品，继续跨学科检索、发现与研究工作流 / Back to the Structural main product
         </span>
       </a>
     </div>

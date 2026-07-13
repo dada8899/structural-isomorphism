@@ -6,11 +6,28 @@ from typing import Optional
 from fastapi import APIRouter
 
 from schemas import DiscoveriesResponse
+from services.evidence_envelope import build_evidence_envelope
 
 router = APIRouter(tags=["discoveries"])
 
 _a_cache: Optional[list] = None
 _t2_cache: Optional[list] = None
+
+
+def _confidence_score(value):
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    return score / 100 if 1 < score <= 100 else score
+
+
+def _summary(value):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "；".join(str(item) for item in value if item)
+    return None
 
 
 def _load_a_grade():
@@ -51,8 +68,40 @@ def _load_tier2():
 
 @router.get("/discoveries", response_model=DiscoveriesResponse)
 async def list_discoveries():
-    items = _load_a_grade()
-    tier2 = _load_tier2()
+    raw_items = _load_a_grade()
+    items = []
+    for raw in raw_items:
+        item = dict(raw)
+        literature = item.get("literature_evidence") or []
+        reviewed = bool(literature) and all(
+            isinstance(value, dict) and value.get("source") and value.get("source_review")
+            for value in literature
+        )
+        # No discovery currently has a claim-ledger binding.  Even reviewed
+        # literature therefore remains a public candidate until one is added.
+        item["evidence"] = build_evidence_envelope(
+            candidate_kind="discovery_candidate",
+            candidate_label=item.get("paper_title") or item.get("one_line_verdict"),
+            candidate_score=_confidence_score(item.get("isomorphism_confidence")),
+            requested_level="source_backed" if reviewed else "candidate",
+            source_kind="external_source" if reviewed else "not_recorded",
+            source_label=(literature[0].get("source") if reviewed else None),
+            source_url=(literature[0].get("source") if reviewed else None),
+            source_review=(literature[0].get("source_review") if reviewed else None),
+            counterexample_status="gap_recorded" if item.get("risk") else "not_recorded",
+            counterexample_summary=_summary(item.get("risk")),
+        )
+        items.append(item)
+    tier2 = []
+    for raw in _load_tier2():
+        item = dict(raw)
+        item["evidence"] = build_evidence_envelope(
+            candidate_kind="tier2_discovery_candidate",
+            candidate_label=item.get("one_line_verdict") or item.get("paper_title"),
+            candidate_score=_confidence_score(item.get("isomorphism_confidence", item.get("similarity"))),
+            counterexample_status="not_recorded",
+        )
+        tier2.append(item)
     # Stats — v2 scores are floats (e.g. 9.65), bucket by integer floor for charting
     by_score: dict = {}
     by_status: dict = {}

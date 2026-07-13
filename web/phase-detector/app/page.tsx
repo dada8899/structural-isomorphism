@@ -142,23 +142,22 @@ export default async function LandingPage() {
 
       <FaqAccordion />
 
-      {/* Sister-product cross-link — keep the same as before for symmetry.
+      {/* Canonical main-product return — Phase is explicitly subordinate.
           W12-D: doubles as the universality spotlight target since there
           isn't a dedicated universality card on the landing yet. */}
       <section className="mx-auto w-full max-w-4xl px-6 pb-24">
         <Link
-          href="https://beta.structural.bytedance.city/classes"
+          href="https://beta.structural.bytedance.city"
           target="_blank"
           rel="noopener"
           data-tour-target="universality-card"
           className="block rounded-2xl border border-zinc-200 bg-white px-6 py-6 transition hover:border-indigo-300 hover:bg-indigo-50/30 sm:px-8"
         >
           <span className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-            姐妹产品 · Sister product
+            主产品 · Main product
           </span>
           <span className="block text-base text-zinc-900 sm:text-lg">
-            想找跨学科的解法？→{" "}
-            <strong className="font-semibold">Structural</strong>：把你的难题，换成另一个学科已经解过的题
+            返回 <strong className="font-semibold">Structural</strong> 主产品，继续跨学科检索、发现与研究工作流 / Back to the Structural main product
           </span>
         </Link>
       </section>
@@ -169,29 +168,29 @@ export default async function LandingPage() {
 // Metadata for the landing — overrides layout default with sharper EN-first positioning.
 // W12-B (2026-05-15): OG card + twitter + canonical added.
 export const metadata = {
-  title: "Phase Detector — 597-ticker demo research snapshot",
+  title: "Structural Labs · Phase — 597-ticker frozen demo research snapshot",
   description:
     "A 597-ticker demo research snapshot with explicit provenance. Not live prices or investment advice.",
   alternates: { canonical: "https://phase.bytedance.city/" },
   openGraph: {
-    title: "Phase Detector — 597-ticker demo research snapshot",
+    title: "Structural Labs · Phase — 597-ticker frozen demo research snapshot",
     description:
       "A frozen 597-ticker demo snapshot with provenance and a published NULL backtest.",
     type: "website" as const,
     url: "https://phase.bytedance.city/",
-    siteName: "Phase Detector",
+    siteName: "Structural Labs · Phase",
     images: [
       {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — frozen demo research snapshot",
+        alt: "Structural Labs · Phase — frozen demo research snapshot",
       },
     ],
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Phase Detector — 597-ticker demo research snapshot",
+    title: "Structural Labs · Phase — 597-ticker frozen demo research snapshot",
     description: "Each one a hypothesis. Each one with the receipts.",
     images: ["/og/home.png"],
     creator: "@dada8899",

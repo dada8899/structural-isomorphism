@@ -13,15 +13,15 @@ import Link from "next/link";
 import ManageCookiesButton from "@/components/ManageCookiesButton";
 
 export const metadata: Metadata = {
-  title: "隐私政策 — Phase Detector",
+  title: "隐私政策 — Structural Labs · Phase",
   description:
-    "Phase Detector 隐私政策：我们收集什么、为什么、保留多久、你有什么权利。",
+    "Structural Labs · Phase 隐私政策：我们收集什么、为什么、保留多久、你有什么权利。",
   alternates: { canonical: "https://phase.bytedance.city/privacy" },
 };
 
 export default function PrivacyPage() {
   return (
-    <article className="prose prose-zinc mx-auto max-w-3xl px-6 py-10 dark:prose-invert">
+    <article className="prose prose-zinc mx-auto max-w-3xl px-0 py-10 [overflow-wrap:anywhere] [&_code]:break-all sm:px-6 dark:prose-invert">
       <h1>隐私政策</h1>
       <p className="text-sm text-zinc-500">最后更新：2026-07-11</p>
 

@@ -21,6 +21,7 @@ from services.llm_service import LLMService
 from services.rate_limit import tier_limit_decorator
 from services.translation import translate_category, translate_kb_items
 from services.v2_pairs import get_pairs_for, has_pairs
+from services.evidence_envelope import build_evidence_envelope, retrieval_candidate
 
 router = APIRouter(tags=["search"])
 
@@ -172,6 +173,23 @@ async def search_phenomena(request: Request, req: SearchRequest):
     if lang_norm == "en":
         results = await translate_kb_items(results, lang_norm)
 
+    # Every public result carries the same fail-closed evidence contract.
+    # Legacy KB rows are internal records, not external citations.
+    results = [
+        {
+            **r,
+            "evidence": retrieval_candidate(
+                r,
+                counterexample=(
+                    "Variable mapping, causal direction, and boundary conditions have not been tested."
+                    if lang_norm == "en" else
+                    "尚未检验变量映射、因果方向和边界条件。"
+                ),
+            ),
+        }
+        for r in results
+    ]
+
     # Aggregate stats for the results page UI
     type_counts = Counter(r["type_id"] for r in results if r.get("type_id"))
     domain_counts = Counter(r["domain"] for r in results if r.get("domain"))
@@ -195,6 +213,25 @@ async def search_phenomena(request: Request, req: SearchRequest):
                 "score": p.get("score"),
                 "similarity": p.get("similarity"),
                 "reason": p.get("reason"),
+                "evidence": build_evidence_envelope(
+                    candidate_kind="v2_model_pair_candidate",
+                    candidate_label=p.get("other_name"),
+                    candidate_score=p.get("similarity"),
+                    source_kind="internal_kb",
+                    source_label="Structural V2 pair index",
+                    result_provenance="INTERNAL_AI_SCREEN",
+                    result_verdict="INCONCLUSIVE",
+                    result_summary=(
+                        "Model-screened pair; not an independent review."
+                        if lang_norm == "en" else "模型内部筛选记录；不是独立复核。"
+                    ),
+                    independence_kind="internal",
+                    independence_summary=(
+                        "Shared project pipeline; no external reviewer or independent team recorded."
+                        if lang_norm == "en" else "同一项目管道；未记录外部评审者或独立团队。"
+                    ),
+                    counterexample_status="not_recorded",
+                ),
             }
             for p in raw_pairs
         ]
@@ -214,6 +251,7 @@ async def search_phenomena(request: Request, req: SearchRequest):
             for p, t in zip(trimmed_pairs, translated):
                 p["other_name"] = t.get("name") or p["other_name"]
                 p["other_domain"] = t.get("domain") or p["other_domain"]
+                p["evidence"]["candidate"]["label"] = p["other_name"]
 
         v2_pairs_for_top.append(
             {

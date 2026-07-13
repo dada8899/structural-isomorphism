@@ -430,7 +430,7 @@ function renderDetail(cls) {
   if (cls.shared_equations_raw && cls.shared_equations_raw.length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">${T("page.classes.section_equations", "共享方程")}</h3>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_equations", "候选共享方程")}</h3>
         <p class="uc-detail__section-sub">${T("page.classes.section_equations_sub", "V3 抽取的 TeX-ish 方程，跨 pair 聚合。")}</p>
         ${renderEquations(cls.shared_equations_raw)}
       </section>
@@ -528,7 +528,7 @@ function renderDetail(cls) {
       shareText: headline + ' — Structural 跨领域结构同构引擎',
       filename: 'structural-class-' + cls.class_id + '.png',
       cardData: {
-        eyebrow: '跨域普适类 · ' + (cls.n_domains || domains.length) + ' 个领域',
+        eyebrow: '跨域候选分组 · ' + (cls.n_domains || domains.length) + ' 个领域',
         headline: headline,
         lineA: L(cls, 'name') || '',
         lineB: L(cls, 'physics_prototype') || cls.physics_prototype || '',
@@ -564,24 +564,24 @@ function renderDetail(cls) {
 
 // SESSION-18 (D): "学习路径" view — group the 26 classes into 3 progressive
 // bands by how many domains they span, so the page reads as a curriculum
-// (从聚焦的少数领域，到横跨整个科学版图的普适模式) rather than a flat list.
+// while domain count remains a coverage label rather than evidence strength.
 const PATH_BANDS = [
   {
     id: 'focused',
     title: '入门 · 聚焦少数领域',
-    desc: '先从只跨 2–4 个领域的模式入手——结构清晰、最容易在直觉上"看懂"。',
+    desc: '先从覆盖 2–4 个领域的候选分组入手，逐项核对变量映射、数据和反例。',
     test: (c) => (c.n_domains || 0) <= 4,
   },
   {
     id: 'broad',
     title: '进阶 · 跨多个领域',
-    desc: '这些模式横跨 5–8 个领域，开始显现出真正的跨学科迁移力。',
+    desc: '这些候选分组覆盖 5–8 个领域；范围更广也意味着异质性和错配风险更高。',
     test: (c) => (c.n_domains || 0) >= 5 && (c.n_domains || 0) <= 8,
   },
   {
     id: 'universal',
-    title: '普适 · 横跨科学版图',
-    desc: '跨越 9 个以上领域的"超级模式"——同一套数学结构连接起看似毫无关系的世界。',
+    title: '广域候选 · 覆盖较多领域',
+    desc: '覆盖 9 个以上领域只表示聚类范围，不能证明各系统具有同一结构或共同机制。',
     test: (c) => (c.n_domains || 0) >= 9,
   },
 ];

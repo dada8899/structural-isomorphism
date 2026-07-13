@@ -6,9 +6,9 @@ import { PageOpenTracker } from "@/components/PageOpenTracker";
 import { buildMetadata, organizationSchema } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "关于 — Phase Detector",
+  title: "关于 — Structural Labs · Phase",
   description:
-    "Phase Detector 用同一套数学，从地震、银行挤兑等场景延伸到上市公司——每家给一个状态评分。研究预览，不是投资建议。",
+    "Structural Labs · Phase 是 Structural 主产品下的冻结研究子产品：597 个 demo ticker，公开 NULL 回测，不提供预测能力。",
   path: "/about",
   ogImage: "/og/about.png",
 });
@@ -20,7 +20,7 @@ const FOUNDER_SCHEMA = {
   url: "https://github.com/dada8899",
   affiliation: {
     "@type": "Organization",
-    name: "Phase Detector",
+    name: "Structural Labs · Phase",
     url: "https://phase.bytedance.city",
   },
 };
@@ -40,29 +40,29 @@ export default function AboutPage() {
         className="serif mb-3 text-3xl font-semibold tracking-tight text-zinc-900 md:text-4xl"
         style={{ fontFamily: "'Noto Serif SC', serif" }}
       >
-        关于 Phase Detector
+        关于 Structural Labs · Phase
       </h1>
       <p className="mb-8 text-base leading-relaxed text-zinc-600">
-        Phase Detector 是
+        Structural Labs · Phase 是
         <a
-          href="https://beta.structural.bytedance.city/classes"
+          href="https://beta.structural.bytedance.city"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           className="text-blue-600 hover:underline"
         >
           {" "}Structural Isomorphism{" "}
         </a>
-        研究项目的子产品。我们把同一套用来解释
+        主产品旗下的冻结研究子产品。主产品负责跨学科检索、发现和研究工作流；Phase 只展示
+        597 个 demo ticker 的带来源结构快照。我们把同一套用来描述
         <strong className="text-zinc-900">地震、银行挤兑、电网瘫痪</strong>
-        的数学，套到上市公司上：谁正
-        <strong className="text-zinc-900">接近翻车点</strong>？谁已经
-        <strong className="text-zinc-900">翻完面回不去了</strong>？
+        的数学结构映射到上市公司公开资料，记录快照采集时的候选状态；
+        这些标签不预测公司下一步走向。
       </p>
 
       <section className="mb-8 space-y-3">
         <h2 className="text-xl font-semibold text-zinc-900">数据怎么来</h2>
         <p className="text-sm leading-relaxed text-zinc-600">
-          当前研究快照覆盖 597 个 ticker（demo provenance，非实时市场数据）。
+          当前研究快照固定覆盖 597 个 ticker（demo provenance，非实时市场数据）。
           我们读取公司的年报、业绩说明、行业研报，
           用主流大模型抽取关键结构，再由几个独立的审稿 AI
           交叉检查后入库。
@@ -79,7 +79,7 @@ export default function AboutPage() {
           这不是投资建议
         </h2>
         <p className="text-sm leading-relaxed text-zinc-600">
-          Phase Detector 是
+          Structural Labs · Phase 是
           <strong>研究预览</strong>。所有
           TL;DR、临界点状态、置信度都由 LLM 给出，可能包含错误、过期信息、
           或抽取偏差。
@@ -97,12 +97,12 @@ export default function AboutPage() {
           学术背景
         </h2>
         <p className="text-sm leading-relaxed text-zinc-600">
-          Phase Detector 基于 Structural Isomorphism 项目的核心假设：
+          Structural Labs · Phase 基于 Structural Isomorphism 项目的核心假设：
           <em>看似无关的现象，在数学结构层面往往是同一件事</em>。
           我们在 13 个独立领域跑了同一套代码（地震、神经放电、DeFi 清算、
           湖泊富营养化、高速公路堵车等），用同一套
           <Link
-            href="https://beta.structural.bytedance.city/classes"
+            href="https://beta.structural.bytedance.city"
             className="text-blue-600 hover:underline"
           >
             {" "}研究报告{" "}
@@ -212,12 +212,12 @@ export default function AboutPage() {
             打开公司表 →
           </Link>
           <a
-            href="https://beta.structural.bytedance.city/classes"
+            href="https://beta.structural.bytedance.city"
             target="_blank"
-            rel="noopener"
-            className="text-blue-600 hover:underline"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center text-blue-600 hover:underline"
           >
-            访问主站 ↗
+            返回 Structural 主产品 / Back to main product ↗
           </a>
         </div>
       </section>

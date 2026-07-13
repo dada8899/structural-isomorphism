@@ -1,4 +1,4 @@
-// PR-4: localStorage-backed search history for Phase Detector hero search.
+// PR-4: localStorage-backed search history for Structural Labs · Phase.
 //
 // Storage shape under key "phase_history":
 //   { v: 1, entries: HistoryEntry[], pinned: number[] }

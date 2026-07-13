@@ -21,6 +21,7 @@ import type {
   Market,
 } from "@/lib/types";
 import { CPS_BADGE, CPS_ICON, CPS_LABEL_ZH, SECTOR_LABEL_ZH } from "@/lib/labels";
+import { PUBLIC_BACKTEST_P_LABEL } from "@/lib/public-backtest";
 
 const PHASE_OPTIONS: { value: CriticalPointState | "ALL"; label: string }[] = [
   { value: "ALL", label: "全部" },
@@ -260,7 +261,7 @@ export function EwsLeaderboardPanel() {
         滑窗 250 天的 Kendall-τ 趋势检验（先 stride 子采样去除滑窗重叠造成的伪显著）→
         AR1 与方差 <strong>同时</strong> 正向且 p&lt;0.01 才计入复合分。
         我们曾用 LLM 给每家公司贴一个 &ldquo;动力学族&rdquo; 标签，那个版本
-        backtest 显示无 alpha（p≈0.68）；这个 CSD 引擎是真实可测量的物理量，
+        backtest 显示无 alpha（p={PUBLIC_BACKTEST_P_LABEL}）；这个 CSD 引擎是真实可测量的物理量，
         且对美股、港股结构平等。
         <strong className="text-zinc-700"> 不是投资建议。</strong>
       </p>

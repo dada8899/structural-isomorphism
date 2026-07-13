@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
@@ -50,6 +50,7 @@ class SummaryResponse(BaseModel):
     total_followups: int
     worked_count: int
     verified_isomorphisms: int
+    outcome_counts: dict[str, int]
 
 
 class StuckStructureItem(BaseModel):
@@ -74,6 +75,7 @@ class VerifiedItem(BaseModel):
     verifier_count: int
     last_verified_at: str
     created_at: str
+    evidence: dict[str, Any]
 
 
 class VerifiedResponse(BaseModel):

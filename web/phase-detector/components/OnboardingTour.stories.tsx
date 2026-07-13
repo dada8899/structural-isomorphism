@@ -42,7 +42,7 @@ export const CustomSteps: Story = {
     steps: [
       {
         id: "welcome",
-        title: "Welcome to Phase Detector",
+        title: "Welcome to Structural Labs · Phase",
         description:
           "We classify companies by where they sit on a 5-state phase " +
           "trajectory. Take 30 seconds to see what's new.",
