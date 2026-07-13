@@ -241,17 +241,60 @@ def test_beta_fingerprint_draft_does_not_invent_english_or_trust_bad_cache(
     )
 
 
-def test_beta_header_exposes_canonical_phase_account(
+def test_beta_header_exposes_one_dynamic_primary_account_entry(
     page: Page, local_beta_origin: str
 ):
     page.goto(local_beta_origin, wait_until="domcontentloaded")
-    account = page.get_by_role("link", name="Phase 账户 ↗")
+    account = page.locator(".site-header__account-cta")
+    expect(account).to_have_count(1)
     expect(account).to_be_visible()
-    expect(account).to_have_attribute(
-        "href", "https://phase.bytedance.city/auth/login"
+    expect(account).to_have_text("登录以同步")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
+
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"ok":true,"user":{"email":"owned@example.test"}}',
+        ),
     )
-    expect(account).to_have_attribute("target", "_blank")
-    expect(account).to_have_attribute("rel", "noopener")
+    page.reload(wait_until="domcontentloaded")
+    expect(account).to_have_text("我的研究")
+    expect(account).to_have_attribute("href", "/reports")
+
+
+def test_beta_mobile_menu_traps_and_restores_focus(page: Page, local_beta_origin: str):
+    page.set_viewport_size({"width": 375, "height": 812})
+    page.goto(local_beta_origin, wait_until="domcontentloaded")
+    menu = page.locator("#site-menu-btn")
+    menu.click()
+    close = page.locator("[data-menu-close]").filter(has=page.locator("svg")).last
+    expect(close).to_be_focused()
+    close.press("Shift+Tab")
+    expect(page.locator(".site-menu__link").last).to_be_focused()
+    mobile_language = page.locator("#site-menu-lang-toggle")
+    expect(mobile_language).to_be_visible()
+    mobile_language.click()
+    expect(page.locator("html")).to_have_attribute("lang", "en")
+    page.keyboard.press("Escape")
+    expect(menu).to_be_focused(timeout=1_000)
+
+
+def test_beta_header_never_picks_one_of_two_accounts(page: Page, local_beta_origin: str):
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=409,
+            content_type="application/json",
+            body='{"ok":false,"error":"credential_conflict"}',
+        ),
+    )
+    page.goto(local_beta_origin, wait_until="domcontentloaded")
+    account = page.locator(".site-header__account-cta")
+    expect(account).to_have_text("确认账户")
+    expect(account).to_have_attribute("data-auth-state", "conflict")
+    expect(account).to_have_attribute("href", "/auth/login?next=%2Freports")
 
 
 def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str):
@@ -276,6 +319,335 @@ def test_report_workbench_groups_action_state(page: Page, local_beta_origin: str
         section = page.locator("#myr-bucket-" + section_id)
         expect(section).to_be_visible()
         expect(section.get_by_text(query, exact=True)).to_be_visible()
+
+
+def test_my_research_account_and_data_failures_are_honest(page: Page, local_beta_origin: str):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"ok":true,"user":{"email":"owner@example.test","tier":"free"}}',
+        ),
+    )
+    page.route(
+        "**/api/me/reports**",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body='{"items":[],"has_more":false}'
+        ),
+    )
+    page.route(
+        "**/api/favorites",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body='{"tickers":["AAPL"]}'
+        ),
+    )
+    page.route(
+        "**/api/auth/logout",
+        lambda route: route.fulfill(status=503, content_type="application/json", body='{"error":"retry"}'),
+    )
+    page.route(
+        "**/api/me/delete",
+        lambda route: route.fulfill(status=500, content_type="application/json", body='{"error":"kept"}'),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    expect(page.locator("#lang-toggle")).to_have_count(1)
+    expect(page.get_by_role("heading", name="我的研究", exact=True)).to_be_visible()
+    expect(page.get_by_text("owner@example.test", exact=True)).to_be_visible()
+    account_favorite = page.locator(".myr-favorite", has_text="AAPL")
+    expect(account_favorite).to_be_visible()
+    expect(account_favorite).to_contain_text("Phase 子产品账户收藏")
+    expect(page.get_by_role("button", name="导出我的数据")).to_be_visible()
+    for control in (
+        page.locator(".myr-sections a").first,
+        account_favorite,
+        page.get_by_role("button", name="导出我的数据"),
+        page.get_by_role("button", name="退出登录"),
+        page.get_by_text("永久删除账户与关联数据", exact=True),
+    ):
+        assert control.bounding_box()["height"] >= 44
+
+    page.get_by_role("button", name="退出登录").click()
+    expect(page.locator("#myr-account-status")).to_contain_text("退出失败")
+
+    page.get_by_text("永久删除账户与关联数据", exact=True).click()
+    page.get_by_role("button", name="永久删除", exact=True).click()
+    expect(page.locator("#myr-account-status")).to_contain_text("请输入 DELETE")
+    page.locator("#myr-delete-confirmation").fill("DELETE")
+    page.get_by_role("button", name="永久删除", exact=True).click()
+    expect(page.locator("#myr-account-status")).to_contain_text("删除没有完成")
+
+
+@pytest.mark.parametrize("conflict_surface", ("auth", "reports", "favorites"))
+def test_my_research_locks_instead_of_falling_back_on_credential_conflict(
+    page: Page, local_beta_origin: str, conflict_surface: str
+):
+    page.add_init_script(
+        "localStorage.setItem('anonId', 'must-not-fallback');"
+        "localStorage.setItem('structural_favorites', JSON.stringify(["
+        "{query:'Local secret', analyze_url:'/analyze?id=secret'}]));"
+    )
+    conflict = '{"ok":false,"error":"credential_conflict"}'
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=409 if conflict_surface == "auth" else 200,
+            content_type="application/json",
+            body=conflict if conflict_surface == "auth" else '{"ok":true,"user":{"email":"owner@example.test"}}',
+        ),
+    )
+    page.route(
+        "**/api/me/reports**",
+        lambda route: route.fulfill(
+            status=409 if conflict_surface == "reports" else 200,
+            content_type="application/json",
+            body=conflict if conflict_surface == "reports" else '{"items":[],"has_more":false}',
+        ),
+    )
+    page.route(
+        "**/api/favorites",
+        lambda route: route.fulfill(
+            status=409 if conflict_surface == "favorites" else 200,
+            content_type="application/json",
+            body=conflict if conflict_surface == "favorites" else '{"tickers":[]}',
+        ),
+    )
+    page.route(
+        "**/api/reports/mine**",
+        lambda route: pytest.fail("credential conflict must not fall back to anonymous reports"),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-account")).to_contain_text("两个不同账户")
+    expect(page.locator("#myr-list")).to_contain_text("研究资产已保持锁定")
+    expect(page.locator("#myr-favorites")).to_contain_text("重新确认账户后再显示收藏")
+    expect(page.get_by_text("Local secret", exact=True)).to_have_count(0)
+    expect(page.get_by_role("link", name="重新确认账户")).to_have_count(2)
+
+
+def test_my_research_ordinary_unauthorized_keeps_local_assets(
+    page: Page, local_beta_origin: str
+):
+    page.add_init_script(
+        "localStorage.setItem('anonId', 'local-owner');"
+        "localStorage.setItem('structural_favorites', JSON.stringify(["
+        "{query:'Local candidate', analyze_url:'/analyze?id=local'}]));"
+    )
+    unauthorized = '{"ok":false,"error":"unauthorized"}'
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=401, content_type="application/json", body=unauthorized
+        ),
+    )
+    page.route(
+        "**/api/me/reports**",
+        lambda route: route.fulfill(
+            status=401, content_type="application/json", body=unauthorized
+        ),
+    )
+    page.route(
+        "**/api/reports/mine**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"items":[],"has_more":false}',
+        ),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-account")).to_contain_text("尚未登录")
+    expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
+    expect(page.get_by_text("Local candidate", exact=True)).to_be_visible()
+    expect(page.get_by_text("研究资产已保持锁定")).to_have_count(0)
+
+
+def test_my_research_waits_for_identity_before_any_asset_read(
+    page: Page, local_beta_origin: str
+):
+    page.add_init_script(
+        "localStorage.setItem('anonId', 'race-owner');"
+        "localStorage.setItem('structural_favorites', JSON.stringify(["
+        "{query:'Race secret', analyze_url:'/analyze?id=race'}]));"
+        "localStorage.setItem('structural_local_reminders', 'on');"
+        "window.__assetReads = 0;"
+        "const originalGetItem = Storage.prototype.getItem;"
+        "Storage.prototype.getItem = function(key) {"
+        "if (['anonId','structural_favorites','structural_local_reminders'].includes(key)) "
+        "window.__assetReads += 1;"
+        "return originalGetItem.call(this, key);"
+        "};"
+    )
+    requests = {"reports": 0, "favorites": 0, "legacy": 0, "proof": 0}
+
+    def delayed_conflict(route):
+        time.sleep(0.15)
+        route.fulfill(
+            status=409,
+            content_type="application/json",
+            body='{"ok":false,"error":"credential_conflict"}',
+        )
+
+    def reject_asset(name):
+        def handler(route):
+            requests[name] += 1
+            route.fulfill(status=500, body="unexpected asset read")
+        return handler
+
+    page.route("**/api/auth/me", delayed_conflict)
+    page.route("**/api/me/reports**", reject_asset("reports"))
+    page.route("**/api/favorites", reject_asset("favorites"))
+    page.route("**/api/reports/mine**", reject_asset("legacy"))
+    page.route("**/api/reports/anon-proof", reject_asset("proof"))
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-list")).to_contain_text("研究资产已保持锁定")
+    assert requests == {"reports": 0, "favorites": 0, "legacy": 0, "proof": 0}
+    assert page.evaluate("window.__assetReads") == 0
+    expect(page.get_by_text("Race secret", exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize("delayed_conflict", ("reports", "favorites"))
+def test_my_research_authenticated_asset_preflight_never_partially_commits(
+    page: Page, local_beta_origin: str, delayed_conflict: str
+):
+    page.add_init_script(
+        "localStorage.setItem('anonId', 'atomic-owner');"
+        "localStorage.setItem('structural_favorites', JSON.stringify(["
+        "{query:'Local secret', analyze_url:'/analyze?id=atomic'}]));"
+        "localStorage.setItem('structural_local_reminders', 'on');"
+        "window.__assetReads = 0; window.__seenSecret = false; window.__seenReport = false;"
+        "const originalGetItem = Storage.prototype.getItem;"
+        "Storage.prototype.getItem = function(key) {"
+        "if (['anonId','structural_favorites','structural_local_reminders'].includes(key)) "
+        "window.__assetReads += 1;"
+        "return originalGetItem.call(this, key);"
+        "};"
+        "new MutationObserver(function() {"
+        "const text = document.body ? document.body.innerText : '';"
+        "if (text.includes('Local secret')) window.__seenSecret = true;"
+        "if (text.includes('Staged report')) window.__seenReport = true;"
+        "}).observe(document.documentElement, {subtree:true, childList:true, characterData:true});"
+    )
+    conflict = '{"ok":false,"error":"credential_conflict"}'
+    report_ok = json.dumps({
+        "items": [{
+            "id": "r_atomic000000001",
+            "query": "Staged report",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "view_count": 0,
+            "lang": "zh",
+            "has_followup": False,
+            "followup_status": "",
+            "followup_outcome": "",
+        }],
+        "has_more": False,
+    })
+
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"ok":true,"user":{"email":"owner@example.test"}}',
+        ),
+    )
+
+    def reports_handler(route):
+        if delayed_conflict == "reports":
+            time.sleep(0.35)
+            route.fulfill(status=409, content_type="application/json", body=conflict)
+        else:
+            route.fulfill(status=200, content_type="application/json", body=report_ok)
+
+    def favorites_handler(route):
+        if delayed_conflict == "favorites":
+            time.sleep(0.35)
+            route.fulfill(status=409, content_type="application/json", body=conflict)
+        else:
+            route.fulfill(status=200, content_type="application/json", body='{"tickers":[]}')
+
+    page.route("**/api/me/reports**", reports_handler)
+    page.route("**/api/favorites", favorites_handler)
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    expect(page.locator("#myr-list")).to_contain_text("研究资产已保持锁定")
+    assert page.evaluate("window.__assetReads") == 0
+    assert page.evaluate("window.__seenSecret") is False
+    assert page.evaluate("window.__seenReport") is False
+    expect(page.get_by_text("Local secret", exact=True)).to_have_count(0)
+    expect(page.get_by_text("Staged report", exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize("failed_surface", ("reports", "favorites"))
+def test_my_research_authenticated_partial_failure_is_explicit(
+    page: Page, local_beta_origin: str, failed_surface: str
+):
+    page.add_init_script(
+        "localStorage.setItem('structural_favorites', JSON.stringify(["
+        "{query:'Local candidate', analyze_url:'/analyze?id=partial'}]));"
+    )
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"ok":true,"user":{"email":"owner@example.test"}}',
+        ),
+    )
+    page.route(
+        "**/api/me/reports**",
+        lambda route: route.fulfill(
+            status=503 if failed_surface == "reports" else 200,
+            content_type="application/json",
+            body='{"error":"unavailable"}' if failed_surface == "reports" else '{"items":[],"has_more":false}',
+        ),
+    )
+    page.route(
+        "**/api/favorites",
+        lambda route: route.fulfill(
+            status=503 if failed_surface == "favorites" else 200,
+            content_type="application/json",
+            body='{"error":"unavailable"}' if failed_surface == "favorites" else '{"tickers":["AAPL"]}',
+        ),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    if failed_surface == "reports":
+        expect(page.locator("#myr-list")).to_contain_text("报告暂时无法读取")
+        expect(page.locator(".myr-favorite", has_text="AAPL")).to_be_visible()
+    else:
+        expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
+        expect(page.locator("#myr-favorites-copy")).to_contain_text("账户收藏暂时无法读取")
+        expect(page.get_by_text("Local candidate", exact=True)).to_be_visible()
+
+
+def test_my_research_mobile_language_switch_persists(
+    page: Page, local_beta_origin: str
+):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.route(
+        "**/api/auth/me",
+        lambda route: route.fulfill(
+            status=401,
+            content_type="application/json",
+            body='{"ok":false,"error":"unauthorized"}',
+        ),
+    )
+    page.route(
+        "**/api/me/reports**",
+        lambda route: route.fulfill(
+            status=401,
+            content_type="application/json",
+            body='{"ok":false,"error":"unauthorized"}',
+        ),
+    )
+    page.goto(local_beta_origin + "/reports.html", wait_until="domcontentloaded")
+    page.locator("#site-menu-btn").click()
+    language = page.locator("#site-menu-lang-toggle")
+    expect(language).to_be_visible()
+    language.click()
+    expect(page.locator("html")).to_have_attribute("lang", "en")
+    assert page.evaluate("localStorage.getItem('structural.lang')") == "en"
+    page.reload(wait_until="domcontentloaded")
+    expect(page.locator("html")).to_have_attribute("lang", "en")
 
 
 @pytest.mark.requires_internet

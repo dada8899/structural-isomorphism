@@ -79,14 +79,52 @@ def test_phase_auth_navigation_is_wired_and_fail_closed() -> None:
     assert "NEXT_PUBLIC_AUTH_ENABLED=true" in production_env
 
 
-def test_beta_auth_entry_is_explicitly_phase_scoped() -> None:
+def test_beta_auth_entry_is_user_visible_and_canonical() -> None:
     chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
     backend = (ROOT / "web/backend/main.py").read_text(encoding="utf-8")
-    assert "https://phase.bytedance.city/auth/login" in chrome
-    assert "Phase 账户 ↗" in chrome
-    assert "external: true" in chrome
-    assert "target=\"_blank\" rel=\"noopener\"" in chrome
+    assert '/auth/login?next=%2Freports' in chrome
+    assert "登录以同步" in chrome
+    assert "我的研究" in chrome
+    assert "fetch('/api/auth/me'" in chrome
+    assert "credential_conflict" in chrome and "确认账户" in chrome
+    assert "site-header__account-cta" in chrome
+    assert "site-menu-lang-toggle" in chrome
     assert "async def unified_auth_login" in backend
+
+
+def test_primary_navigation_starts_at_the_real_workbench() -> None:
+    chrome = (ROOT / "web/frontend/assets/js/site-chrome.js").read_text(encoding="utf-8")
+    assert "{ href: '/', key: 'nav.start_here', label: '开始研究' }" in chrome
+    assert "{ href: '/analyze', key: 'nav.analyze'" not in chrome
+
+
+def test_my_research_unifies_assets_and_account_rights() -> None:
+    page = (ROOT / "web/frontend/reports.html").read_text(encoding="utf-8")
+    script = (ROOT / "web/frontend/assets/js/my-reports.js").read_text(encoding="utf-8")
+    for identifier in ("research-reports", "research-favorites", "research-account"):
+        assert f'id="{identifier}"' in page
+    assert "我的研究" in page
+    assert "用户结果回填不等于独立机制验证" in page
+    assert "fetch('/api/auth/me'" in script
+    assert "fetch('/api/me/export'" in script
+    assert "fetch('/api/me/delete'" in script
+    assert "fetch('/api/auth/logout'" in script
+    assert "用户记录有效" in script
+    assert ">已验证<" not in script
+    assert "[401, 404, 409]" in script
+    assert "credentialLocked" in script
+    assert "lockCredentialAssets" in script
+    assert '<script src="/assets/js/i18n.js?v=20260713a"></script>' in page
+    assert "loadAccount().then(function (identity)" in script
+    assert "loadAuthenticatedAssetsAtomically" in script
+    assert "Promise.all([" in script
+
+
+def test_docs_header_exposes_canonical_account_entry() -> None:
+    homepage = (ROOT / "site/index.html").read_text(encoding="utf-8")
+    assert 'class="account-link"' in homepage
+    assert 'href="https://beta.structural.bytedance.city/auth/login"' in homepage
+    assert ">注册 / 登录</a>" in homepage
 
 
 def test_public_positioning_matches_frozen_demo_and_null_backtest() -> None:

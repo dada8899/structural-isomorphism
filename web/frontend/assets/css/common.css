@@ -167,6 +167,21 @@
   cursor: pointer;
 }
 
+.site-header__account-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-primary);
+  font-size: var(--fs-13, 13px);
+  font-weight: var(--fw-medium, 500);
+  white-space: nowrap;
+}
+
 /* Drawer overlay — appended to <body> by site-chrome.js. */
 .site-menu {
   position: fixed;
@@ -251,6 +266,17 @@
 
 .site-menu__link:active {
   background: var(--brand-paper-soft, #f4f4f5);
+}
+
+.site-menu__lang-toggle {
+  width: 100%;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 /* === Footer === */

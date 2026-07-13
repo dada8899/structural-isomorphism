@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <title>我的报告 — Structural</title>
+  <title>我的研究 — Structural</title>
   <meta name="description" content="你在这台设备上保存过的跨领域研究报告——把别的学科的成熟解法借到你的问题上。">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
@@ -13,8 +13,8 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260521a">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260521a">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260521a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260521a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
 
   <!-- Plausible analytics (self-hosted, cookieless — matches the rest of the site). -->
   <script defer data-domain="structural.bytedance.city"
@@ -44,6 +44,25 @@
     .myr-bucket__head h2 { margin: 0; color: var(--brand-ink); font-size: 15px; font-weight: 650; }
     .myr-bucket__head p { margin: 3px 0 0; color: var(--brand-muted); font-size: 12px; line-height: 1.45; }
     .myr-bucket__items { display: flex; flex-direction: column; gap: 10px; }
+    .myr-sections { display:flex; gap:8px; margin:20px 0 24px; overflow:auto; }
+    .myr-sections a { min-height:44px; display:inline-flex; align-items:center; padding:0 13px; border:1px solid var(--brand-line,#e7e5e4); border-radius:999px; color:var(--brand-ink); font-size:13px; font-weight:600; text-decoration:none; white-space:nowrap; }
+    .myr-library-section { margin-top:34px; scroll-margin-top:88px; }
+    .myr-library-section__head { margin-bottom:12px; }
+    .myr-library-section__head h2 { margin:0 0 4px; font-size:18px; color:var(--brand-ink); }
+    .myr-library-section__head p { margin:0; color:var(--brand-muted); font-size:13px; line-height:1.55; }
+    .myr-account-card { padding:18px; border:1px solid var(--brand-line,#e7e5e4); border-radius:12px; background:#fff; }
+    .myr-account-email { margin:0 0 14px; color:var(--brand-ink); font-weight:650; overflow-wrap:anywhere; }
+    .myr-account-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .myr-account-actions button,.myr-account-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:0 14px; border:1px solid var(--brand-line,#e7e5e4); border-radius:9px; background:#fff; color:var(--brand-ink); font:600 13px/1 inherit; text-decoration:none; cursor:pointer; }
+    .myr-account-danger { margin-top:18px; padding-top:16px; border-top:1px solid var(--brand-line,#e7e5e4); }
+    .myr-account-danger summary { min-height:44px; display:flex; align-items:center; color:#991b1b; font-size:13px; font-weight:650; cursor:pointer; }
+    .myr-delete-form { display:grid; gap:10px; max-width:460px; padding-top:10px; }
+    .myr-delete-form label { color:var(--brand-muted); font-size:13px; line-height:1.55; }
+    .myr-delete-form input { min-height:44px; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:8px; font-size:16px; }
+    .myr-delete-form button { min-height:44px; border:0; border-radius:8px; background:#991b1b; color:#fff; font-weight:650; cursor:pointer; }
+    .myr-favorites-list { display:flex; flex-wrap:wrap; gap:8px; }
+    .myr-favorite { display:inline-flex; min-height:44px; align-items:center; gap:7px; padding:0 12px; border:1px solid var(--brand-line,#e7e5e4); border-radius:9px; color:var(--brand-ink); text-decoration:none; font-size:13px; }
+    .myr-favorite__source { color:var(--brand-muted); font-size:11px; }
 
     .myr-card {
       display: block; text-decoration: none;
@@ -89,7 +108,7 @@
     .myr-state__title { font-size: 16px; font-weight: 600; color: var(--brand-ink); margin: 0 0 8px; }
     .myr-state__hint { font-size: 14px; margin: 0 0 20px; }
     .myr-state__cta {
-      display: inline-block; text-decoration: none;
+      display: inline-flex; min-height: 44px; align-items: center; text-decoration: none;
       font-size: 14px; font-weight: 600; color: #fff;
       background: var(--brand-ink, #18181b);
       border-radius: 9px; padding: 9px 18px;
@@ -127,8 +146,13 @@
   <main class="myr-page">
     <div class="myr-container">
       <div class="myr-head">
-        <h1 class="myr-head__title">我的报告</h1>
-        <p class="myr-head__sub" id="myr-ownership-copy">按今天、本周、等待推进和已完成分组，从报告继续到可验证的实验。</p>
+        <h1 class="myr-head__title">我的研究</h1>
+        <p class="myr-head__sub" id="myr-ownership-copy">把报告、实验、结果和收藏放在一个可继续推进的工作区。</p>
+        <nav class="myr-sections" aria-label="我的研究分区">
+          <a href="#research-reports">报告与实验</a>
+          <a href="#research-favorites">收藏</a>
+          <a href="#research-account">账户与数据</a>
+        </nav>
         <button type="button" id="myr-connect" class="myr-more" style="margin:16px 0 0" hidden>登录并跨设备同步</button>
         <p id="myr-connect-error" role="alert" hidden style="color:#b91c1c;font-size:13px"></p>
         <div class="myr-reminder-panel" id="myr-reminder-panel">
@@ -137,19 +161,28 @@
         </div>
       </div>
 
-      <div id="myr-list" class="myr-list">
-        <div class="myr-skeleton"></div>
-        <div class="myr-skeleton"></div>
-        <div class="myr-skeleton"></div>
-      </div>
+      <section id="research-reports" class="myr-library-section" aria-labelledby="research-reports-title">
+        <div class="myr-library-section__head"><h2 id="research-reports-title">报告与实验</h2><p>按今天、本周、等待推进和已完成分组；用户结果回填不等于独立机制验证。</p></div>
+        <div id="myr-list" class="myr-list"><div class="myr-skeleton"></div><div class="myr-skeleton"></div><div class="myr-skeleton"></div></div>
+        <button type="button" id="myr-more" class="myr-more" hidden>加载更多</button>
+      </section>
 
-      <button type="button" id="myr-more" class="myr-more" hidden>加载更多</button>
+      <section id="research-favorites" class="myr-library-section" aria-labelledby="research-favorites-title">
+        <div class="myr-library-section__head"><h2 id="research-favorites-title">收藏</h2><p id="myr-favorites-copy">正在读取与你当前身份关联的收藏。</p></div>
+        <div id="myr-favorites" class="myr-favorites-list" aria-live="polite"><span class="myr-state__hint">正在加载…</span></div>
+      </section>
+
+      <section id="research-account" class="myr-library-section" aria-labelledby="research-account-title">
+        <div class="myr-library-section__head"><h2 id="research-account-title">账户与数据</h2><p>查看同步状态，导出你的数据，或永久删除账户及其关联资产。</p></div>
+        <div id="myr-account" class="myr-account-card" aria-live="polite"><p class="myr-state__hint">正在检查登录状态…</p></div>
+      </section>
     </div>
   </main>
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/my-reports.js?v=20260521a"></script>
-  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+  <script src="/assets/js/i18n.js?v=20260713a"></script>
+  <script src="/assets/js/my-reports.js?v=20260713b"></script>
+  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
 </body>
 </html>

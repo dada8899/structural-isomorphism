@@ -302,6 +302,7 @@ async def stream_analyze(
                 payload={
                     **report,
                     "_credibility": credibility,
+                    "_evidence": evidence,
                     **({"_fingerprint": confirmed_fingerprint} if confirmed_fingerprint else {}),
                     "_source": {
                         "id": a.get("id"),
@@ -374,6 +375,43 @@ async def stream_analyze(
         "human_verified_count": int(_hv.get("count", 0) or 0),
         "human_verified_recent": _hv.get("recent", "") or "",
     }
+    from services.evidence_envelope import build_evidence_envelope
+    if credibility["human_verified_count"] > 0:
+        _result_provenance = "USER_RECORDED_OUTCOME"
+        _result_summary = (
+            f'{credibility["human_verified_count"]} user-recorded worked outcome(s); not an independent mechanism validation.'
+            if lang == "en" else
+            f'{credibility["human_verified_count"]} 条用户“管用”回填；不是独立机制验证。'
+        )
+    elif credibility["has_verified_pairs"]:
+        _result_provenance = "INTERNAL_AI_SCREEN"
+        _result_summary = (
+            "Internal model-screened pair record; not an external review."
+            if lang == "en" else "内部模型筛选记录；不是外部复核。"
+        )
+    else:
+        _result_provenance = "NOT_TESTED"
+        _result_summary = None
+    evidence = build_evidence_envelope(
+        candidate_kind="analysis_candidate",
+        candidate_label=a.get("name") if isinstance(a, dict) else None,
+        candidate_score=similarity,
+        source_kind="internal_kb",
+        source_label="Structural KB record",
+        result_provenance=_result_provenance,
+        result_verdict="INCONCLUSIVE" if _result_provenance != "NOT_TESTED" else "NOT_TESTED",
+        result_summary=_result_summary,
+        independence_kind="internal" if _result_provenance != "NOT_TESTED" else "not_recorded",
+        independence_summary=((
+            "Internal pipeline or user outcome record; no external reviewer or independent replication team recorded."
+            if lang == "en" else "内部管道或用户结果记录；未记录外部评审者或独立复现团队。"
+        ) if _result_provenance != "NOT_TESTED" else None),
+        counterexample_status="gap_recorded",
+        counterexample_summary=(
+            "The report proposes boundaries and falsifiers; no completed falsification result is bound to this candidate."
+            if lang == "en" else "报告提出边界与反证方向；尚无完成的证伪结果绑定到该候选。"
+        ),
+    )
 
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
@@ -387,6 +425,7 @@ async def stream_analyze(
             "is_query_mode": user_query is not None,
             # V4 — honest credibility data (see block above for what's real).
             "credibility": credibility,
+            "evidence": evidence,
             "fingerprint": confirmed_fingerprint,
             "model": ask_model,
             "prompt_version": "v1",

@@ -399,6 +399,7 @@ class AskOrchestrator:
         # Always emit the kb_cards event (possibly empty) so the frontend
         # can transition from "searching" to "ready". Cards keep only the
         # display-safe fields; descriptions stay short.
+        from services.evidence_envelope import retrieval_candidate
         cards_payload = [
             {
                 "id": c.get("id", ""),
@@ -425,9 +426,17 @@ class AskOrchestrator:
                     "尚未完成变量逐项映射、因果方向检验或边界条件核对。"
                 ),
                 "applicability_boundary": (
-                    "Transfer is plausible only if the key relationship in the source synopsis also holds in your problem; verify it in the report before acting."
+                    "Transfer is plausible only if the key relationship in the internal KB synopsis also holds in your problem; verify it in the report before acting."
                     if lang_norm == "en" else
-                    "只有当来源摘要中的关键关系也存在于你的问题时，方法才可能迁移；行动前需在报告中核验。"
+                    "只有当内部 KB 摘要中的关键关系也存在于你的问题时，方法才可能迁移；行动前需在报告中核验。"
+                ),
+                "evidence": retrieval_candidate(
+                    c,
+                    counterexample=(
+                        "No variable-by-variable mapping, causal-direction test, or boundary-condition check has been completed yet."
+                        if lang_norm == "en" else
+                        "尚未完成变量逐项映射、因果方向检验或边界条件核对。"
+                    ),
                 ),
             }
             for c in cards

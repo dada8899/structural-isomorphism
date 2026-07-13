@@ -20,8 +20,8 @@
   var STORAGE_KEY = 'structural.lang';
   var DEFAULT_LANG = 'zh';
   var SUPPORTED = ['zh', 'en'];
-  var UI_JSON_URL = '/assets/data/i18n/ui.json';
-  var CONTENT_JSON_URL = '/assets/data/i18n/content.json';
+  var UI_JSON_URL = '/assets/data/i18n/ui.json?v=20260713a';
+  var CONTENT_JSON_URL = '/assets/data/i18n/content.json?v=20260713a';
 
   // Global strings registry — may be pre-populated by other scripts loaded
   // before this one (e.g. a page-specific content bundle). We merge into it
@@ -35,10 +35,10 @@
   // overwritten the moment content.json arrives. Kept intentionally small
   // (top-of-page chrome + nav crumbs); full coverage lives in content.json.
   var FALLBACK_EN = {
-    'page.home.brand': 'Turn your problem into <em>one another field has already solved</em>',
+    'page.home.brand': 'Turn your problem into <em>analogies worth testing in other fields</em>',
     'page.home.hero_evidence.eyebrow': 'Demo · click either side for a real example',
     'page.analyze.crumb_classes': 'Shared patterns',
-    'page.methods.lede': 'A "shared pattern" only counts when "<strong>the same code, with zero tuned parameters, run across multiple totally different domains, recovers the predicted signal</strong>".',
+    'page.methods.lede': 'Shared code makes analysis steps comparable; it does not guarantee independent data, a common mechanism, or a positive conclusion.',
     'page.methods.pipeline_title': 'Shared code modules',
     'page.methods.b3_limit_label': 'Limit:',
     'page.methods.b3_stat_agreement': 'human ↔ AI agreement',
@@ -287,8 +287,8 @@
 
   function wireToggleButton() {
     var btn = document.getElementById('lang-toggle');
-    if (!btn || btn.__i18nWired) return;
-    btn.__i18nWired = true;
+    if (!btn || btn.__structuralLangWired) return;
+    btn.__structuralLangWired = true;
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       toggleLang();

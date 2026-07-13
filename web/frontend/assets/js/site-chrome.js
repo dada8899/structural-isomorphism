@@ -6,7 +6,9 @@
  * this script fills both with identical markup so navigation is consistent
  * across the whole site.
  *
- * Core nav (product decision, SESSION-17): 首页 / 分析 / 我的报告 / 关于.
+ * Core nav: 开始研究 / 工具 / 我的报告 / 关于. The logo already provides
+ * the home affordance; cold-start users must never land on parameter-only
+ * /analyze.
  * Mobile (<=720px): the inline nav collapses into an iOS-style hamburger
  * drawer so phone users can still reach every core page.
  */
@@ -24,18 +26,10 @@
     return fallback;
   }
 
-  // Core navigation — 4 items only (SESSION-17 product decision).
+  // Core navigation — the homepage is the actual research workbench.
   var NAV = [
-    { href: '/', key: 'nav.home', label: '首页' },
-    { href: '/analyze', key: 'nav.analyze', label: '分析' },
+    { href: '/', key: 'nav.start_here', label: '开始研究' },
     { href: '/tools', key: 'nav.tools', label: '工具' },
-    { href: '/reports', key: 'nav.reports', label: '我的报告' },
-    {
-      href: 'https://phase.bytedance.city/auth/login',
-      key: 'nav.auth',
-      label: 'Phase 账户 ↗',
-      external: true
-    },
     { href: '/about', key: 'nav.about', label: '关于' },
   ];
 
@@ -50,7 +44,7 @@
   // Footer links — kept short and identical everywhere.
   var FOOTER_LINKS = [
     { href: '/about', key: 'footer.about', label: '关于', external: false },
-    { href: '/reports', key: 'nav.reports', label: '我的报告', external: false },
+    { href: '/reports', key: 'nav.reports', label: '我的研究', external: false },
     { href: '/privacy', key: 'footer.privacy', label: '隐私政策', external: false },
     { href: 'https://github.com/dada8899/structural-isomorphism', key: 'footer.github', label: 'GitHub', external: true },
   ];
@@ -88,6 +82,12 @@
     }).join('');
   }
 
+  function langToggleHtml(id, className) {
+    if (!window.i18n || typeof window.i18n.toggleLang !== 'function') return '';
+    return '<button type="button" class="' + className + '" id="' + id + '" ' +
+      'data-structural-lang-toggle aria-label="切换语言"><span data-i18n-lang-label>EN</span></button>';
+  }
+
   function renderHeader() {
     var header = document.querySelector('.site-header');
     if (!header) return;
@@ -101,9 +101,10 @@
         '</a>' +
         '<nav class="site-header__nav" aria-label="主导航">' +
           navLinksHtml('site-header__nav-link') +
-          '<button type="button" class="site-header__lang-toggle" id="lang-toggle" ' +
-            'aria-label="切换语言"><span data-i18n-lang-label>EN</span></button>' +
+          langToggleHtml('lang-toggle', 'site-header__lang-toggle') +
         '</nav>' +
+        '<a href="/auth/login?next=%2Freports" class="site-header__account-cta" ' +
+          'data-auth-state="loading" aria-live="polite">登录以同步</a>' +
         '<button type="button" class="site-header__menu-btn" id="site-menu-btn" ' +
           'aria-label="打开菜单" aria-expanded="false" aria-controls="site-menu-drawer">' +
           '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" ' +
@@ -135,26 +136,69 @@
           '</button>' +
         '</div>' +
         navLinksHtml('site-menu__link') +
+        langToggleHtml('site-menu-lang-toggle', 'site-menu__link site-menu__lang-toggle') +
       '</nav>';
 
     wireMenu();
     wireLangToggle();
+    wireAccountCta();
   }
 
   // i18n.js wires #lang-toggle once at its own boot; since site-chrome may
   // inject the button afterwards, wire it here too (idempotent).
   function wireLangToggle() {
-    var btn = document.getElementById('lang-toggle');
-    if (!btn || btn.__chromeWired) return;
-    btn.__chromeWired = true;
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      try {
-        if (window.i18n && typeof window.i18n.toggleLang === 'function') {
-          window.i18n.toggleLang();
-        }
-      } catch (err) {}
+    var buttons = document.querySelectorAll('[data-structural-lang-toggle]');
+    buttons.forEach(function (btn) {
+      if (btn.__structuralLangWired) return;
+      btn.__structuralLangWired = true;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        try {
+          if (window.i18n && typeof window.i18n.toggleLang === 'function') {
+            window.i18n.toggleLang();
+          }
+        } catch (err) {}
+      });
     });
+  }
+
+  function wireAccountCta() {
+    var cta = document.querySelector('.site-header__account-cta');
+    if (!cta || cta.__accountWired) return;
+    cta.__accountWired = true;
+    var authenticated = false;
+    var conflicted = false;
+
+    function render() {
+      var lang = 'zh';
+      try {
+        if (window.i18n && typeof window.i18n.getLang === 'function') {
+          lang = window.i18n.getLang();
+        } else if ((document.documentElement.lang || '').toLowerCase().indexOf('en') === 0) {
+          lang = 'en';
+        }
+      } catch (_error) {}
+      cta.textContent = conflicted
+        ? (lang === 'en' ? 'Confirm account' : '确认账户')
+        : (authenticated
+          ? (lang === 'en' ? 'My research' : '我的研究')
+          : (lang === 'en' ? 'Sign in to sync' : '登录以同步'));
+      cta.href = authenticated ? '/reports' : '/auth/login?next=%2Freports';
+      cta.dataset.authState = conflicted ? 'conflict' : (authenticated ? 'authenticated' : 'anonymous');
+    }
+
+    if (window.i18n && typeof window.i18n.onChange === 'function') {
+      window.i18n.onChange(render);
+    }
+    render();
+    window.fetch('/api/auth/me', { credentials: 'same-origin' })
+      .then(function (response) {
+        authenticated = response.ok;
+        if (response.ok) return {};
+        return response.json().catch(function () { return {}; });
+      })
+      .then(function (problem) { conflicted = problem.error === 'credential_conflict'; render(); })
+      .catch(function () { authenticated = false; conflicted = false; render(); });
   }
 
   function wireMenu() {
@@ -167,6 +211,8 @@
       // next frame so the CSS transition runs from the hidden state
       requestAnimationFrame(function () {
         drawer.classList.add('site-menu--open');
+        var first = drawer.querySelector('a[href], button:not([disabled])');
+        if (first) first.focus();
       });
       btn.setAttribute('aria-expanded', 'true');
       document.body.style.overflow = 'hidden';
@@ -179,6 +225,7 @@
       setTimeout(function () {
         if (!drawer.classList.contains('site-menu--open')) {
           drawer.setAttribute('hidden', '');
+          btn.focus();
         }
       }, 240);
     }
@@ -190,6 +237,20 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && drawer.classList.contains('site-menu--open')) {
         close();
+        return;
+      }
+      if (e.key === 'Tab' && drawer.classList.contains('site-menu--open')) {
+        var focusable = Array.prototype.slice.call(
+          drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        );
+        if (!focusable.length) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
       }
     });
   }

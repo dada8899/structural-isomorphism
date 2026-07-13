@@ -671,11 +671,25 @@ class ReportStore:
                 "JOIN reports r ON r.id=f.report_id WHERE f.outcome='worked' "
                 "AND r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id"
             ).fetchone()[0]
+            outcome_rows = conn.execute(
+                "SELECT f.outcome, COUNT(*) FROM report_followup f "
+                "JOIN reports r ON r.id=f.report_id "
+                "WHERE r.creator_anon_id IS NOT NULL AND f.anon_id=r.creator_anon_id "
+                "GROUP BY f.outcome"
+            ).fetchall()
+        outcome_counts = {str(row[0] or "not_recorded"): int(row[1] or 0) for row in outcome_rows}
         return {
             "total_reports": total_reports or 0,
             "total_followups": total_followups or 0,
             "worked_count": worked or 0,
             "verified_isomorphisms": verified or 0,
+            "outcome_counts": {
+                "worked": outcome_counts.get("worked", 0),
+                "partial": outcome_counts.get("partial", 0),
+                "no_effect": outcome_counts.get("no_effect", 0),
+                "too_early": outcome_counts.get("too_early", 0),
+                "not_recorded": outcome_counts.get("not_recorded", 0),
+            },
         }
 
     def record_view(self, rid: str) -> None:

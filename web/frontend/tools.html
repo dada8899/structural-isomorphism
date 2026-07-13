@@ -19,9 +19,9 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260522s18">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260522s18">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260522s18">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
   <link rel="stylesheet" href="/assets/css/tools.css?v=20260522s18">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260522s18">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
 
   <style>
     /* SESSION-18: per-card "what you get" footer + group intro line.
@@ -76,8 +76,8 @@
           <div class="tool-card__head">
             <span class="tool-card__name">深度迁移分析</span>
           </div>
-          <p class="tool-card__desc">把你的问题，换成另一个领域已经解过的题，生成一份九段研究报告。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：你卡在一个具体难题上，想知道有没有别的学科已经解过。<br><strong>会得到</strong>：一份分九段的报告——对应学科、可借的方法、要避的坑（约 2–3 分钟）。</p>
+          <p class="tool-card__desc">把你的问题改写成可与其他领域比较的候选结构，生成一份九段研究草案。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：你卡在具体难题上，想寻找其他学科的方法线索。<br><strong>会得到</strong>：候选映射、可借方法、证据缺口和迁移风险（约 2–3 分钟）；采用前仍需验证。</p>
         </a>
 
         <a class="tool-card" href="/whitespace">
@@ -163,8 +163,8 @@
           <div class="tool-card__head">
             <span class="tool-card__name">精选发现</span>
           </div>
-          <p class="tool-card__desc">39 个经多模型 AI 评审通过的跨域同构发现——地震和银行挤兑，其实是同一个方程。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：第一次来、想先看看引擎到底能挖出什么样的结果。<br><strong>会得到</strong>：39 个已验证的"跨领域撞衫"案例，可逐个点开看。</p>
+          <p class="tool-card__desc">39 条经内部 AI 筛查的跨域候选，用来比较不同问题是否可能共享相似的变量关系；仍需来源、反例和真实数据复核。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：第一次来、想看看引擎会提出什么候选。<br><strong>会得到</strong>：39 条待验证联系，可逐条查看证据缺口与下一步。<br><strong>口径</strong>：证据账本 v1，冻结于 2026-07-12；不是同行评审或机制确认。</p>
         </a>
 
         <a class="tool-card" href="/classes">
@@ -174,8 +174,8 @@
           <div class="tool-card__head">
             <span class="tool-card__name">普适类</span>
           </div>
-          <p class="tool-card__desc">23 个跨学科共享模式。同一条规律，横跨十几个看似无关的领域。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：想系统了解"有哪些规律是反复出现、跨领域通用的"。<br><strong>会得到</strong>：23 个模式族，每个都列出它出现过的领域和共同的数学规律。</p>
+          <p class="tool-card__desc">23 个候选模式族，用来组织跨学科的结构相似与待检验预测。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：想系统查看哪些变量关系可能在不同领域重复出现。<br><strong>会得到</strong>：候选成员、预测、反例与证据状态；分组不代表跨领域规律已经成立。</p>
         </a>
 
         <a class="tool-card" href="/insights">
@@ -186,8 +186,8 @@
             <span class="tool-card__name">数据洞察</span>
             <span class="tool-card__badge">新</span>
           </div>
-          <p class="tool-card__desc">用户最常卡住的问题结构，以及被真实结果验证过的同构库。</p>
-          <p class="tool-card__meta"><strong>什么时候用</strong>：好奇别人都拿这个引擎问什么、哪些同构最靠谱。<br><strong>会得到</strong>：用户高频问题的归类，加一个经真实数据验证过的同构清单。</p>
+          <p class="tool-card__desc">用户最常卡住的问题结构，以及用户主动回填的迁移结果记录；单次“管用”不等于机制已验证。</p>
+          <p class="tool-card__meta"><strong>什么时候用</strong>：好奇别人都问什么、哪些建议有人尝试过。<br><strong>会得到</strong>：高频问题归类和结果登记，包含样本量与最近记录日期。</p>
         </a>
 
       </div>
@@ -195,7 +195,7 @@
   </main>
 
   <footer class="site-footer"></footer>
-  <script src="/assets/js/i18n.js?v=20260522s18"></script>
-  <script src="/assets/js/site-chrome.js?v=20260521s17"></script>
+  <script src="/assets/js/i18n.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
 </body>
 </html>

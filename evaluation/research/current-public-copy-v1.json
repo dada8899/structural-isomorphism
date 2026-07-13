@@ -9,9 +9,15 @@
       "web/frontend/classes.html",
       "web/frontend/papers.html",
       "web/frontend/methods.html",
+      "web/frontend/about.html",
+      "web/frontend/tools.html",
+      "web/frontend/insights.html",
+      "web/frontend/index.html",
       "web/frontend/assets/js/discoveries.js",
       "web/frontend/assets/js/whitespace.js",
       "web/frontend/assets/js/classes.js",
+      "web/frontend/assets/js/insights.js",
+      "web/frontend/assets/js/home.js",
       "web/frontend/assets/data/i18n/content.json",
       "web/phase-detector/app/universality/page.tsx",
       "web/phase-detector/app/universality/[class_id]/page.tsx"
@@ -44,6 +50,12 @@
     "100 public companies, phase-tagged",
     "可以直接拿去写论文",
     "A 级精选发现",
+    "39 个已验证",
+    "39个已验证",
+    "39 个经多模型 AI 评审通过",
+    "已验证同构库",
+    "同一个数学结构在三个独立系统中独立涌现",
+    "每个领域接入真实开源数据，不调参",
     "13 个独立领域已实证验证",
     "13 个验证系统",
     "所有预测信号都落入预测带",
@@ -51,6 +63,67 @@
     "所有跨领域同构的结构模式",
     "经过验证或候选的实例",
     "实证系统（跨领域类比）"
+  ],
+  "forbidden_regex": [
+    "跨协议(?:级)?(?:普适|通用)(?:性)?",
+    "(?:同一个|相同的?)(?:数学)?结构.{0,24}(?:独立涌现|独立出现)",
+    "independent(?:ly)?\\s+(?:emerg(?:e|es|ed)|emergence)",
+    "empirically\\s+(?:validated|verified)\\s+across",
+    "(?:five|5)\\s+(?:companion\\s+)?papers?\\s+(?:on|in)\\s+arxiv",
+    "(?:5|五)\\s*篇(?:配套)?(?:论文|稿件).{0,16}arxiv",
+    "(?:从不|绝不)(?:修改|改动).{0,24}(?:不|从不)(?:调参|调参数|调整参数)",
+    "never\\s+(?:modified|changed).{0,40}never\\s+(?:tuned|given\\s+priors)",
+    "(?:all|every).{0,40}(?:follow|follows|obey|obeys).{0,16}(?:a\\s+)?power[- ]law",
+    "(?:全部|所有).{0,24}(?:服从|符合|呈现|都是).{0,12}幂律",
+    "(?:the\\s+)?same\\s+law\\s+governs",
+    "(?:放射性|药物|RLC|磁铁|湖泊|生态).{0,48}都是它",
+    "share(?:s|d|ing)?\\s+(?:the\\s+)?same\\s+(?:mathematical\\s+)?skeleton.{0,80}transfer",
+    "(?:validated|verified)\\s+on\\s+(?:the\\s+)?NGSIM",
+    "(?:subclasses?|analog(?:y|ies)).{0,80}all\\s+stand",
+    "corroborat(?:e|es|ed|ing)\\s+(?:the\\s+)?(?:hypothesis|mechanism|theory)",
+    "(?:to|we)\\s+rule(?:d|s|ing)?\\s+out.{0,100}(?:artifact|bias|explanation)",
+    "(?:印证|证实).{0,60}(?:假说|机制|理论)",
+    "(?<!不能)(?<!无法)排除.{0,80}(?:方法学产物|方法偏差)",
+    "说明.{0,60}(?:不是|并非)方法学(?:的)?产物",
+    "(?:mathematical\\s+structure|structural(?:ly)?).{0,48}(?:the\\s+same\\s+thing|equivalent\\s+solutions?)",
+    "数学结构.{0,24}(?:同一件事|结构相同的解法)",
+    "(?:already\\s+(?:been\\s+)?solved|mature\\s+tools?.{0,40}solved)",
+    "(?:已经解过|已经解决|早就研究透|成熟工具.{0,24}解决)",
+    "同一条规律.{0,24}(?:横跨|跨越).{0,16}领域",
+    "(?:same|one)\\s+SIR\\s+model",
+    "同一个?\\s*SIR\\s*模型",
+    "same.{0,12}cusp[- ]catastrophe\\s+surface",
+    "同一个?.{0,8}尖点灾变曲面",
+    "(?:63|sixty-three)\\s+independent\\s+top[- ]tier",
+    "63\\s*个独立的?顶级",
+    "pairwise\\s+isomorphic",
+    "两两.{0,8}同构",
+    "single\\s+deeper\\s+mathematical",
+    "同一个?更底层的?数学",
+    "every\\s+discovery.{0,40}(?:equation|methods section)",
+    "每个发现.{0,32}(?:带方程|论文的方法论段落)",
+    "(?:8|eight)\\s+named\\s+physical\\s+universality\\s+classes",
+    "8\\s*个已命名的?物理学普适类",
+    "(?:8|eight).{0,48}manually\\s+matched.{0,48}(?:known|named)\\s+physical\\s+universality\\s+classes?",
+    "8\\s*(?:个|类).{0,32}人工匹配.{0,32}(?:已知|命名的?)物理(?:学)?普适类",
+    "(?:established|known)\\s+physical\\s+laws?.{0,48}(?:translated?|converted?).{0,48}cross-domain",
+    "(?:翻译|转换).{0,24}(?:已知|既有)的?物理(?:学)?定律.{0,32}跨域",
+    "(?:three|3)\\s+independent\\s+AI\\s+(?:reviewers?|review\\s+models?)",
+    "3\\s*个独立\\s*AI\\s*(?:审稿|评审)模型",
+    "真正的跨学科迁移力",
+    "(?:超级模式|同一套数学结构连接)"
+  ],
+  "adjacent_context_rules": [
+    {
+      "claim_regex": "(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:同一|相同|共同|共享)(?:的)?机制|机制(?:已经)?(?:成立|确认|验证)",
+      "caveat_regex": "(?:(?:does|do)\\s+not|cannot)\\s+(?:establish|prove|confirm|validate|show|demonstrate|guarantee).{0,64}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|not\\s+(?:proof|validation|confirmation)\\s+of.{0,48}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:shared|common)\\s+mechanism.{0,24}(?:still\\s+requires|requires\\s+validation|has\\s+not\\s+been\\s+(?:proved|confirmed|validated))|(?:不能|无法|不足以)(?:据此|单凭[^，。；;]{0,20})?(?:证明|确认|验证|推出|说明).{0,40}(?:同一|相同|共同|共享)机制|不能.{0,24}(?:合并|视为|当作).{0,16}同一机制|不(?:等于|代表|意味着).{0,24}(?:(?:同一|相同|共同|共享)机制|机制确认|机制验证)|不自动证明.{0,24}共享机制|不是.{0,32}(?:机制确认|机制验证|机制已经成立的证明)|(?:同一|相同|共同|共享)机制.{0,16}(?:尚未|没有|未被)(?:成立|确认|验证|证明)",
+      "window": 220
+    },
+    {
+      "claim_regex": "real[- ]time\\s+(?:structural\\s+)?phase\\s+detection|实时.{0,12}(?:结构相位|状态)检测",
+      "caveat_regex": "(?:is|this\\s+is)\\s+not\\s+(?:a\\s+)?real[- ]time.{0,24}(?:phase|state)\\s+detection|(?:这|它)?不是实时.{0,12}(?:结构相位|状态)检测",
+      "window": 220
+    }
   ],
   "required_context": [
     {
@@ -103,6 +176,18 @@
     {
       "path": "web/frontend/methods.html",
       "patterns": ["共享代码只能保证分析步骤可比较", "NULL、PARTIAL"]
+    },
+    {
+      "path": "web/frontend/about.html",
+      "patterns": ["结构同构", "不等于它们已经具有同一机制", "内部 AI 筛查", "不能算作 13 次独立机制复现", "证据账本 v1（2026-07-12）"]
+    },
+    {
+      "path": "web/frontend/tools.html",
+      "patterns": ["39 条待验证联系", "单次“管用”不等于机制已验证"]
+    },
+    {
+      "path": "web/frontend/insights.html",
+      "patterns": ["用户结果记录", "不能单凭反馈证明两个领域共享同一机制", "不替代对照实验或独立复现"]
     },
     {
       "path": "web/phase-detector/app/universality/page.tsx",

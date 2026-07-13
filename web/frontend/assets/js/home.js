@@ -41,8 +41,8 @@ const DEMO_EXAMPLES = [
       desc_en: 'Word-of-mouth drives exponential growth early; once market penetration peaks, it enters a stock-replacement phase.',
     },
     score: 91,
-    caption: '细菌和产品，在同一条<strong>逻辑斯谛曲线</strong>上。',
-    caption_en: 'Bacteria and products ride the same <strong>logistic curve</strong>.',
+    caption: '细菌增长和产品扩散都可尝试用<strong>逻辑斯谛模型族</strong>比较；参数与机制需分别检验。',
+    caption_en: 'Bacterial growth and product diffusion can be compared with a <strong>logistic model family</strong>; parameters and mechanisms require separate tests.',
   },
   {
     a: {
@@ -58,8 +58,8 @@ const DEMO_EXAMPLES = [
       desc_en: 'One person shares, their friends share, spreading exponentially — until reach saturates or a fact-check interrupts it.',
     },
     score: 93,
-    caption: '病毒和信息，遵循<strong>同一个 SIR 模型</strong>。',
-    caption_en: 'Viruses and information obey the <strong>same SIR model</strong>.',
+    caption: '病毒与信息扩散可提出<strong>SIR 类候选映射</strong>；接触、恢复和传播假设并不相同。',
+    caption_en: 'Virus and information diffusion invite a <strong>candidate SIR-like mapping</strong>; contact, recovery, and transmission assumptions differ.',
   },
   {
     a: {
@@ -75,8 +75,8 @@ const DEMO_EXAMPLES = [
       desc_en: 'Water quality drifts slowly as nutrients rise, then crosses a threshold and the lake erupts into algal bloom; reducing nutrients does not easily reverse it.',
     },
     score: 96,
-    caption: '两个系统都在同一个<strong>尖点灾变曲面</strong>上滑动。',
-    caption_en: 'Both systems slide on the same <strong>cusp catastrophe surface</strong>.',
+    caption: '磁滞与湖泊翻转可用<strong>尖点灾变候选模型</strong>比较；是否适用仍需数据检验。',
+    caption_en: 'Magnetic hysteresis and lake shifts can be compared with a <strong>candidate cusp-catastrophe model</strong>; data must test whether it applies.',
   },
   {
     a: {
@@ -92,8 +92,8 @@ const DEMO_EXAMPLES = [
       desc_en: 'When price departs from equilibrium, supply and demand produce a restoring force; inertia carries it past equilibrium, producing periodic oscillations.',
     },
     score: 88,
-    caption: '弹簧和市场，都服从<strong>受驱简谐振动方程</strong>。',
-    caption_en: 'Springs and markets both obey the <strong>driven harmonic oscillator equation</strong>.',
+    caption: '弹簧与市场波动可提出<strong>受驱振子类比</strong>；市场反馈不等于机械回复力。',
+    caption_en: 'Springs and market fluctuations invite a <strong>driven-oscillator analogy</strong>; market feedback is not a mechanical restoring force.',
   },
 ];
 

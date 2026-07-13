@@ -25,6 +25,14 @@ def encoded(value):
 
 def successful_transport(method, url, body, timeout):
     assert 1 <= timeout <= 60
+    if url == f"{smoke.STRUCTURAL}/":
+        return smoke.Response(
+            200,
+            (
+                '<html><a href="https://beta.structural.bytedance.city/auth/login">'
+                "注册 / 登录</a>" + "x" * 120 + "</html>"
+            ).encode(),
+        )
     if url.endswith("/api/version"):
         return smoke.Response(200, encoded({
             "semver": "1.0", "git_sha": "abc", "python_version": "3.12",
@@ -52,8 +60,6 @@ def successful_transport(method, url, body, timeout):
         }))
     if url.endswith("/api/billing/checkout-session"):
         return smoke.Response(503, encoded({"error": "billing_not_available"}))
-    if url.endswith("/api/auth/request-link"):
-        return smoke.Response(503, encoded({"error": "account_features_not_available"}))
     if url.endswith("/api/auth/me"):
         return smoke.Response(401, encoded({"ok": False, "error": "no session"}))
     if url.endswith("/api/ews/meta"):
@@ -116,6 +122,14 @@ def test_invalid_json_fails_without_echoing_body():
     with pytest.raises(smoke.SmokeFailure) as caught:
         smoke.Monitor(transport).json("probe", "GET", "https://example.test")
     assert "must-not-appear" not in str(caught.value)
+
+
+def test_docs_homepage_without_account_entry_fails_closed():
+    def transport(method, url, body, timeout):
+        return smoke.Response(200, b"<html>" + b"x" * 120 + b"</html>")
+
+    with pytest.raises(smoke.SmokeFailure, match="registration/login entry is missing"):
+        smoke.Monitor(transport).check_structural_docs()
 
 
 def test_unexpected_status_fails_closed():
@@ -215,13 +229,22 @@ def test_missing_cross_domain_candidate_fails():
         smoke.Monitor(transport).check_search()
 
 
-@pytest.mark.parametrize("url_suffix", ["/api/billing/checkout-session", "/api/auth/request-link"])
-def test_disabled_surface_accidental_200_fails(url_suffix):
+def test_disabled_billing_surface_accidental_200_fails():
     def transport(method, url, body, timeout):
-        if url.endswith(url_suffix):
+        if url.endswith("/api/billing/checkout-session"):
             return smoke.Response(200, encoded({"ok": True}))
         return successful_transport(method, url, body, timeout)
     with pytest.raises(smoke.SmokeFailure, match="expected HTTP 503, got 200"):
+        smoke.Monitor(transport).check_disabled_surfaces()
+
+
+def test_beta_auth_disabled_or_accidentally_public_fails():
+    def transport(method, url, body, timeout):
+        result = successful_transport(method, url, body, timeout)
+        if url.endswith("/api/auth/me"):
+            return smoke.Response(503, encoded({"error": "auth unavailable"}))
+        return result
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 401, got 503"):
         smoke.Monitor(transport).check_disabled_surfaces()
 
 

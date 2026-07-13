@@ -49,6 +49,7 @@ class ReportDetailResponse(BaseModel):
     credibility: Optional[dict] = None
     fingerprint: Optional[dict] = None
     source: Optional[dict] = None
+    evidence: Optional[dict] = None
 
 
 class ReportListItem(BaseModel):
@@ -182,11 +183,13 @@ def _detail_dict(r: dict) -> dict:
     credibility = None
     fingerprint = None
     source = None
+    evidence = None
     if isinstance(payload, dict):
         payload = dict(payload)
         credibility = payload.pop("_credibility", None)
         fingerprint = payload.pop("_fingerprint", None)
         source = payload.pop("_source", None)
+        evidence = payload.pop("_evidence", None)
     return {
         "id": r["id"],
         "query": r["query"],
@@ -202,6 +205,7 @@ def _detail_dict(r: dict) -> dict:
         "credibility": credibility,
         "fingerprint": fingerprint,
         "source": source,
+        "evidence": evidence,
     }
 
 

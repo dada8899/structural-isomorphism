@@ -141,7 +141,15 @@ class Monitor:
         self.require(len(response.body.strip()) >= 100, label, "page body is unexpectedly small")
 
     def check_structural_docs(self) -> None:
-        self.check_page("structural homepage", f"{STRUCTURAL}/")
+        response = self.request("structural homepage", "GET", f"{STRUCTURAL}/")
+        self.require(len(response.body.strip()) >= 100, "structural homepage",
+                     "page body is unexpectedly small")
+        self.require(
+            b"https://beta.structural.bytedance.city/auth/login" in response.body
+            and "注册 / 登录".encode("utf-8") in response.body,
+            "structural homepage",
+            "canonical registration/login entry is missing",
+        )
         # The docs SPA fetches canonical Markdown resources directly.
         self.check_page("structural docs route", f"{STRUCTURAL}/docs/overview.md")
 
@@ -211,13 +219,18 @@ class Monitor:
                              expected_status=503)
         self.require(isinstance(checkout, dict) and checkout.get("error") == "billing_not_available",
                      "billing disabled", "must fail closed with billing_not_available")
-        auth = self.json("auth disabled", "POST", f"{BETA}/api/auth/request-link",
-                         payload={"email": "smoke@example.com"}, expected_status=503)
+        # Do not request a magic link in routine monitoring: that would create
+        # an account, send email, and enqueue an administrator notification.
+        auth = self.json(
+            "beta auth enabled without session",
+            "GET",
+            f"{BETA}/api/auth/me",
+            expected_status=401,
+        )
         self.require(
-            isinstance(auth, dict)
-            and auth.get("error") == "account_features_not_available",
-            "auth disabled",
-            "must fail closed with account_features_not_available",
+            isinstance(auth, dict) and auth.get("error") == "no session",
+            "beta auth enabled without session",
+            "must reject anonymous access with no session",
         )
 
     def check_phase(self) -> None:
@@ -276,7 +289,7 @@ class Monitor:
         self.check_search()
         print("OK bilingual search and OOS refusal", flush=True)
         self.check_disabled_surfaces()
-        print("OK disabled production surfaces", flush=True)
+        print("OK billing boundary and beta account session boundary", flush=True)
         self.check_phase()
         print("OK Phase API provenance", flush=True)
         self.check_auth_entrypoints()

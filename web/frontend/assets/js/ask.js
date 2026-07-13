@@ -684,13 +684,14 @@
             '<span class="ask-kb-card__basis">检索候选 · ' + (score ? '检索分 ' + score : '分数未提供') + '，尚未验证</span>' +
           '</span></button>' +
           '<a class="ask-kb-card__source" href="' + href + '" target="_blank" rel="noopener"' +
-            ' aria-label="查看候选来源：' + esc(name) + '">查看来源 ↗</a>' +
+            ' aria-label="查看内部 KB 记录：' + esc(name) + '">查看 KB 记录 ↗</a>' +
           '<dl class="ask-kb-card__evidence">' +
             '<div><dt>结构匹配线索</dt><dd>' + esc(c.match_basis || '该案例由检索排序返回；尚未完成结构映射核验。') + '</dd></div>' +
-            (descRaw ? '<div><dt>来源摘要</dt><dd>' + esc(String(descRaw).slice(0, 240)) + '</dd></div>' : '') +
+            (descRaw ? '<div><dt>KB 记录摘要</dt><dd>' + esc(String(descRaw).slice(0, 240)) + '</dd></div>' : '') +
             '<div><dt>反证 / 尚缺证据</dt><dd>' + esc(c.counter_evidence || '尚未完成变量、因果方向与边界条件的逐项核对。') + '</dd></div>' +
-            '<div><dt>适用边界</dt><dd>' + esc(c.applicability_boundary || '只有来源摘要中的关键关系也存在于你的问题时，方法才可能迁移。') + '</dd></div>' +
+            '<div><dt>适用边界</dt><dd>' + esc(c.applicability_boundary || '只有内部 KB 摘要中的关键关系也存在于你的问题时，方法才可能迁移。') + '</dd></div>' +
           '</dl>' +
+          (window.StructuralEvidence ? window.StructuralEvidence.render(c.evidence || window.StructuralEvidence.fallback(c), { compact: true }) : '') +
         '</div>'
       );
     }).join('');

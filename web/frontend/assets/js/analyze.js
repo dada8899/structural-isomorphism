@@ -590,7 +590,7 @@ function renderCredibilityBadge(credibility) {
     parts.push(`
       <span class="cred-badge__chip cred-badge__chip--human">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-        <span>${T('page.analyze.cred_human', '✓ {n} 人验证这个跨域迁移真的有效').replace('{n}', hvCount)}</span>
+        <span>${T('page.analyze.cred_user_outcome', '{n} 条用户结果回填（不代表独立机制验证）').replace('{n}', hvCount)}</span>
       </span>`);
   }
   if (typeof c.similarity === 'number') {
@@ -607,7 +607,7 @@ function renderCredibilityBadge(credibility) {
     parts.push(`
       <span class="cred-badge__chip cred-badge__chip--verified">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-        <span>${T('page.analyze.cred_verified', '这个跨域映射有 {n} 个经 AI 评审验证过的同构对').replace('{n}', n)}</span>
+        <span>${T('page.analyze.cred_internal_screen', '{n} 个内部 AI 筛选记录（非外部复核）').replace('{n}', n)}</span>
       </span>`);
   }
   if (!parts.length) return '';
@@ -727,6 +727,7 @@ function renderHeader(meta) {
       <span>${T('page.analyze.header_apply_to', '应用到 {target}').replace('{target}', `<strong>${targetStrong}</strong>`)}</span>
       <span style="color: var(--text-tertiary); font-family: var(--font-mono); font-size: var(--fs-12); margin-left: 8px;">${T('page.analyze.header_similarity', '{pct}% 结构相似').replace('{pct}', Math.round((meta.similarity || 0) * 100))}</span>
     </div>
+    ${window.StructuralEvidence ? window.StructuralEvidence.render(meta.evidence || window.StructuralEvidence.fallback(a), { compact: true, kbUrl: a.id ? '/phenomenon/' + encodeURIComponent(a.id) : '' }) : ''}
   `;
 }
 
@@ -1447,6 +1448,7 @@ function buildDecisionBriefModel(context) {
     createdAt: ctx.createdAt || ((window._persistedReport || {}).created_at) || '',
     partial: !!(ctx.partial || ((window._persistedReport || {}).is_partial)),
     allowExperiment: ctx.allowExperiment !== false,
+    evidence: ctx.evidence || meta.evidence || null,
   };
 }
 
@@ -1456,13 +1458,14 @@ function decisionBriefMarkdown(model) {
   const safe = (value) => String(value || '').replace(/([\\`*_{}\[\]()<>#+\-.!|$^])/g, '\\$1').replace(/\r?\n/g, '\n> ');
   const fp = m.fingerprint || {};
   const sourceName = safe([m.source.domain, m.source.name].filter(Boolean).join(' · ')) || unsupported;
+  const evidence = window.StructuralEvidence ? window.StructuralEvidence.normalize(m.evidence || window.StructuralEvidence.fallback(m.source)) : null;
   return [
     '# Structural · 决策简报', '',
-    '> 状态：内部决策草稿；检索到的结构线索尚未构成机制验证。', '',
+    '> 状态：内部决策草稿；检索到的结构线索不等于机制验证。', '',
     '## 问题', safe(m.problem) || unsupported, '',
     '## 经用户确认的结构指纹', safe(fp.summary) || unsupported, '',
     '## 选中候选', sourceName, '',
-    '## 可能共享的机制', safe(m.mechanism) || unsupported, '',
+    '## 待检验的机制假设', safe(m.mechanism) || unsupported, '',
     '## 边界与优先反证', safe(m.boundary) || unsupported, '',
     '## 7 天最小实验',
     `- 假设：${safe(m.hypothesis) || unsupported}`,
@@ -1471,6 +1474,11 @@ function decisionBriefMarkdown(model) {
     '## 来源与版本',
     `- 报告 ID：${safe(m.reportId) || unsupported}`,
     `- 候选来源：${m.source.id ? `${window.location.origin}/phenomenon/${encodeURIComponent(m.source.id)}` : unsupported}`,
+    `- 来源类型：${evidence && evidence.source.kind === 'external_source' ? '经核查的外部来源' : 'Structural 内部 KB 记录'}`,
+    `- 证据等级：${evidence ? safe(evidence.evidence_level) : 'candidate'}`,
+    `- 结果来源：${evidence ? safe(evidence.result.provenance) : 'NOT_TESTED'}`,
+    `- 独立性：${evidence && evidence.independence.status !== 'not_recorded' ? safe(evidence.independence.summary || evidence.independence.kind) : unsupported}`,
+    `- 证据账本：${evidence && evidence.ledger.status === 'bound' ? safe(evidence.ledger.claim_id + ' · ' + evidence.ledger.version) : unsupported}`,
     `- 模型：${safe(m.model) || unsupported}`,
     `- Prompt：${safe(m.promptVersion) || unsupported}`,
     `- 生成时间：${safe(m.createdAt) || unsupported}`,
@@ -1501,11 +1509,12 @@ function renderDecisionBrief(context) {
       <h2 class="decision-brief__title" id="decision-brief-title">先决定做什么，再读完整报告</h2>
       <p class="decision-brief__lede">把这份报告压缩成一个可反驳的 7 天实验。这里展示的是检索与分析线索，不是已经验证的机制。</p>
       <span class="decision-brief__status">内部决策草稿 · 未经实证验证</span>
+      ${window.StructuralEvidence ? window.StructuralEvidence.render(m.evidence || window.StructuralEvidence.fallback(m.source), { compact: true, kbUrl: m.source.id ? '/phenomenon/' + encodeURIComponent(m.source.id) : '' }) : ''}
       <div class="decision-brief__grid">
         <div class="decision-brief__item decision-brief__item--wide"><span class="decision-brief__label">你的问题</span><p class="decision-brief__value">${value(m.problem)}</p></div>
         <div class="decision-brief__item"><span class="decision-brief__label">经用户确认的结构指纹</span><p class="decision-brief__value">${value(fp.summary)}</p></div>
         <div class="decision-brief__item"><span class="decision-brief__label">选中候选</span><p class="decision-brief__value">${value(sourceName)}</p></div>
-        <div class="decision-brief__item"><span class="decision-brief__label">可能共享的机制</span><p class="decision-brief__value">${value(m.mechanism)}</p></div>
+        <div class="decision-brief__item"><span class="decision-brief__label">待检验的机制假设</span><p class="decision-brief__value">${value(m.mechanism)}</p></div>
         <div class="decision-brief__item"><span class="decision-brief__label">优先反证 / 适用边界</span><p class="decision-brief__value">${value(m.boundary)}</p></div>
         <div class="decision-brief__item decision-brief__item--wide"><span class="decision-brief__label">建议的 7 天实验</span><p class="decision-brief__value">${value(m.hypothesis)}</p></div>
       </div>

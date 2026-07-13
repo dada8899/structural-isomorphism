@@ -108,6 +108,16 @@
       background: var(--hover-bg);
       color: var(--primary);
     }
+    .topbar-right .account-link {
+      color: #fff;
+      background: var(--primary);
+      font-weight: 600;
+      padding-inline: 12px;
+    }
+    .topbar-right .account-link:hover {
+      color: #fff;
+      background: var(--primary-dark);
+    }
     .menu-toggle {
       display: none;
       background: none; border: none;
@@ -515,6 +525,9 @@
       #content h2 { font-size: 18px; }
       .welcome h1 { font-size: 24px; }
       .status-grid { grid-template-columns: 1fr; }
+      .topbar-right .topbar-secondary { display: none; }
+      .topbar-right a { padding: 6px 8px; }
+      .topbar-right .account-link { padding-inline: 10px; }
     }
   </style>
 </head>
@@ -527,9 +540,10 @@
     <span class="topbar-title">Structural Isomorphism</span>
   </div>
   <div class="topbar-right">
-    <a href="https://beta.structural.bytedance.city" target="_blank">Live Beta</a>
-    <a href="https://doi.org/10.5281/zenodo.19615170" target="_blank">Dataset DOI</a>
-    <a href="https://github.com/dada8899/structural-isomorphism" target="_blank">GitHub</a>
+    <a href="https://beta.structural.bytedance.city" target="_blank" rel="noopener">打开产品</a>
+    <a class="account-link" href="https://beta.structural.bytedance.city/auth/login">注册 / 登录</a>
+    <a class="topbar-secondary" href="https://doi.org/10.5281/zenodo.19615170" target="_blank" rel="noopener">Dataset DOI</a>
+    <a class="topbar-secondary" href="https://github.com/dada8899/structural-isomorphism" target="_blank" rel="noopener">GitHub</a>
     <button id="themeToggle" title="Toggle dark mode">&#9789;</button>
   </div>
 </nav>

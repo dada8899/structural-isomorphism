@@ -4,7 +4,7 @@
  * Fetches three aggregate endpoints and renders:
  *   - GET /api/insights/summary           → top-line stat cards
  *   - GET /api/insights/stuck-structures  → "最常卡住的问题结构" list
- *   - GET /api/insights/verified          → "已验证同构库" list
+ *   - GET /api/insights/verified          → user-recorded outcome list
  *
  * Aggregate, non-PII data — no anon-id header needed. Each section
  * degrades to a friendly empty state on no data; a failed fetch shows
@@ -77,7 +77,7 @@
       { value: d.total_reports || 0, label: '生成的研究报告' },
       { value: d.total_followups || 0, label: '收到的回访记录' },
       { value: d.worked_count || 0, label: '标记「确实管用」' },
-      { value: d.verified_isomorphisms || 0, label: '已验证同构' }
+      { value: d.verified_isomorphisms || 0, label: '有结果的迁移记录' }
     ];
     // Early-stage framing: when everything is still zero, the row of "0"s
     // should read as "刚起步" rather than a broken dashboard. A zero value
@@ -96,6 +96,17 @@
     if (allZero) {
       html += '<p class="insights-summary__note">这个引擎刚开始被用起来——数字会随着每一份报告慢慢长出来。</p>';
     }
+    var outcomes = d.outcome_counts || {};
+    var outcomeTotal = ['worked', 'partial', 'no_effect', 'too_early', 'not_recorded']
+      .reduce(function (sum, key) { return sum + (parseInt(outcomes[key], 10) || 0); }, 0);
+    html += '<div class="insights-summary__outcomes" aria-label="全部用户回填结果">' +
+      '<strong>回填分母 ' + outcomeTotal + '</strong> · ' +
+      '管用 ' + (parseInt(outcomes.worked, 10) || 0) + ' · ' +
+      '部分管用 ' + (parseInt(outcomes.partial, 10) || 0) + ' · ' +
+      '没效果 ' + (parseInt(outcomes.no_effect, 10) || 0) + ' · ' +
+      '尚早 ' + (parseInt(outcomes.too_early, 10) || 0) + ' · ' +
+      '未记录 ' + (parseInt(outcomes.not_recorded, 10) || 0) +
+      '<br><span>这是用户回填分布，存在选择偏差，不等于科学验证。</span></div>';
     el.innerHTML = html;
   }
 
@@ -135,7 +146,7 @@
     el.innerHTML = items.map(stuckRowHtml).join('');
   }
 
-  // ---- verified isomorphisms ---- //
+  // ---- user-recorded outcomes ---- //
 
   function verifiedCardHtml(item) {
     var source = escapeHtml(item.source_phenomenon || item.structure_name || '某个现象');
@@ -150,7 +161,7 @@
       '<div class="insights-card">' +
         '<div class="insights-card__top">' +
           problemHtml +
-          '<span class="insights-card__verified-tag">✓ 已验证</span>' +
+          '<span class="insights-card__verified-tag">用户结果记录</span>' +
         '</div>' +
         '<div class="insights-card__flow">' +
           '<span class="insights-card__chip">你的问题</span>' +
@@ -158,8 +169,10 @@
           '<span class="insights-card__chip">' + source + '</span>' +
         '</div>' +
         '<div class="insights-card__meta">' +
-          count + ' 人验证有效' + (when ? ' · 最近 ' + escapeHtml(when) : '') +
+          count + ' 条“管用”回填' + (when ? ' · 最近记录 ' + escapeHtml(when) : '') +
+          ' · 不等于机制验证' +
         '</div>' +
+        (window.StructuralEvidence ? window.StructuralEvidence.render(item.evidence || window.StructuralEvidence.fallback(item), { compact: true, kbUrl: item.b_id ? '/phenomenon/' + encodeURIComponent(item.b_id) : '' }) : '') +
       '</div>'
     );
   }
@@ -170,8 +183,8 @@
     var items = (data && data.items) || [];
     if (items.length === 0) {
       el.innerHTML = emptyHtml(
-        '第一条已验证同构还在路上',
-        '当有用户回到报告页确认「试了，管用」，这份跨领域映射就会沉淀到这里——成为比模型打分更硬的证据。'
+        '第一条用户结果记录还在路上',
+        '用户回到报告页记录“管用、没用或证据不足”后，结果会沉淀在这里。单次反馈不会把候选自动升级为已验证机制。'
       );
       return;
     }

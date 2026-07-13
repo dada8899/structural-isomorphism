@@ -1,7 +1,7 @@
 {
   "nav.start_here": {
-    "zh": "从这里开始",
-    "en": "Start here"
+    "zh": "开始研究",
+    "en": "Start research"
   },
   "nav.universality_classes": {
     "zh": "共享模式",
@@ -104,11 +104,11 @@
     "en": "Tools"
   },
   "nav.reports": {
-    "zh": "我的报告",
-    "en": "My reports"
+    "zh": "我的研究",
+    "en": "My research"
   },
   "nav.auth": {
-    "zh": "Phase 账户 ↗",
-    "en": "Phase account ↗"
+    "zh": "注册 / 登录",
+    "en": "Sign up / Log in"
   }
 }

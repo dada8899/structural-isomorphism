@@ -8,8 +8,8 @@
     "en": "The shape of everything<br>recurs"
   },
   "page.about.lede": {
-    "zh": "Structural 是一个跨领域思维引擎。它基于一个反直觉的观察：<strong>看似完全无关的现象，在数学结构层面往往是同一件事</strong>。放射性衰变和药物代谢、股价波动和热力学涨落、传染病传播和谣言扩散——它们在各自领域的语言下毫无关系，但背后是同一个方程。",
-    "en": "Structural is a cross-domain thinking engine, built on a counterintuitive observation: <strong>phenomena that look entirely unrelated are often the same thing at the level of mathematical structure</strong>. Radioactive decay and drug metabolism, stock-price fluctuations and thermodynamic noise, epidemic spread and rumor diffusion — each is foreign to the others in its own disciplinary vocabulary, yet all obey the same underlying equation."
+    "zh": "Structural 是一个跨领域思维引擎。它检索一个值得检验的可能性：<strong>看似无关的现象，可能共享可比较的变量关系、反馈或方程骨架</strong>。这类相似只形成候选，不等于机制相同；每一对仍需核对变量映射、来源、反例和真实数据。",
+    "en": "Structural is a cross-domain thinking engine. It searches for a testable possibility: <strong>apparently unrelated phenomena may share comparable variable relationships, feedback, or an equation skeleton</strong>. Such similarity is a candidate lead; it does not establish the same mechanism. Each pair still requires checks of the variable mapping, sources, counterexamples, and real data."
   },
   "page.about.goal.label": {
     "zh": "Goal",
@@ -40,8 +40,8 @@
     "en": "Universality classes<br/>(aggregated by the V4 equivalence-class engine)"
   },
   "page.about.goal.stat4.label": {
-    "zh": "实证验证领域<br/>（真实数据复现）",
-    "en": "Empirically validated domains<br/>(reproduced on real data)"
+    "zh": "领域结果记录<br/>（证据强度不一）",
+    "en": "Domain result records<br/>(mixed evidence strength)"
   },
   "page.about.why.label": {
     "zh": "Why",
@@ -52,8 +52,8 @@
     "en": "Why this matters"
   },
   "page.about.why.p1": {
-    "zh": "当你在自己的领域里遇到一个难题，答案也许根本不在你的领域里。<strong>在另一个和你完全无关的学科，可能有人已经解决了同一个数学问题</strong>——他们的术语不同、场景不同，但数学骨架完全一致。Structural 让你跨越学科的围墙，直接借用别人的答案。",
-    "en": "When you hit a hard problem in your own field, the answer may not live in your field at all. <strong>In a discipline with no apparent connection to yours, someone may already have solved the same mathematical problem</strong> — different vocabulary, different setting, but the same underlying structure. Structural lets you reach across disciplinary walls and borrow that answer directly."
+    "zh": "当你在自己的领域里遇到难题，其他学科的模型或实验设计也许能提供候选思路。<strong>相似骨架只提示“值得比较”</strong>——术语、变量和边界条件仍需逐项映射，借用的方法也要在当前问题中验证。",
+    "en": "When you hit a hard problem in your field, models or experiment designs from another discipline may provide candidate ideas. <strong>A similar skeleton only says “worth comparing”</strong>—terms, variables, and boundary conditions still require mapping, and any borrowed method must be validated in the current problem."
   },
   "page.about.why.p2": {
     "zh": "Claude Shannon 借用热力学的\"熵\"奠定了信息论。Black 和 Scholes 把热传导方程搬到金融市场上得到了期权定价公式。模拟退火算法把冶金学的物理过程变成了组合优化的利器。这些跨领域的突破不是偶然——它们都是<strong>结构同构被发现的瞬间</strong>。Structural 想做的是把这种\"发现\"系统化。",
@@ -68,8 +68,8 @@
     "en": "How it works"
   },
   "page.about.how.intro": {
-    "zh": "传统的搜索工具基于语义或关键词匹配——它找的是\"看起来像\"的东西。Structural 不一样。它的核心是让机器识别\"数学结构相似\"，而不是\"文字表面相似\"。为此我们建了<strong>三条并行的检索管道</strong>——它们从不同角度寻找同一件事，最后合并去重。",
-    "en": "Conventional search tools rely on semantic or keyword matching — they surface things that <em>look</em> alike. Structural is different. Its core aim is to let a machine recognize <em>mathematical</em> similarity rather than surface-textual similarity. To that end we run <strong>three parallel retrieval pipelines</strong>, each approaching the same question from a different angle, with their outputs merged and deduplicated at the end."
+    "zh": "普通搜索主要找字面或语义接近的内容。Structural 还尝试比较变量关系、反馈和阈值等“数学骨架”。这只会产生值得检查的候选：<strong>提取结构草案 → 跨学科检索 → 内部 AI 筛查 → 记录支持、反对或证据不足</strong>，不会自动证明机制相同。",
+    "en": "Ordinary search primarily finds text with similar wording or meaning. Structural also compares candidate variable relationships, feedback loops, and thresholds — a plain-language sense of a mathematical skeleton. This produces leads to inspect, not proof that two systems share a mechanism."
   },
   "page.about.how.v1.title": {
     "zh": "V1 · 广义 embedding（covering recall）",
@@ -136,24 +136,24 @@
     "en": "Retrieval proceeds by <strong>field-level hard matching</strong>: a mismatch on <code>dynamics_family</code> is an immediate reject, and only same-family pairs advance to fine-grained scoring. This filters out the classic keyword trap in which two phenomena both mention \"feedback\" or \"threshold\" while operating under entirely different mechanisms. Surviving pairs are then re-ranked by a pairwise LLM pass that emits a <code>shared_equation</code> and a <code>variable_mapping</code> for each."
   },
   "page.about.how.v3.role": {
-    "zh": "<strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → top 候选 + 共享方程。<br><strong>评估</strong>：在 1,000 候选上 LLM 5-score 密度 5.5%（V2 是 1.9%），深度分析 A 级命中率从 V2 的 ~20% 提升到 ~27%。<br><strong>角色</strong>：结构代数——每个发现都带方程，直接可以写进论文的方法论段落。",
-    "en": "<strong>Path</strong>: natural language → LLM inference of <code>dynamics_family</code> → StructTuple field matching → LLM rerank → top candidates with a shared equation.<br><strong>Evaluation</strong>: on 1,000 candidates, the LLM-5 score density is 5.5% (vs. 1.9% for V2), and the A-grade hit rate in deep analysis rises from V2's ~20% to ~27%.<br><strong>Role</strong>: structural algebra — every discovery ships with an equation that can be dropped directly into the methods section of a paper."
+    "zh": "<strong>路径</strong>：自然语言 → LLM 推断 dynamics_family → StructTuple 字段匹配 → LLM rerank → 带候选方程骨架和变量映射的结果。<br><strong>内部观察</strong>：历史内部评分在不同管道间有差异，但评分未做外部校准，不是正确率或论文质量证明。<br><strong>角色</strong>：生成可核查的结构草案；方程、变量对应和引用必须由领域专家复核后才能进入研究方法。",
+    "en": "<strong>Path</strong>: natural language → LLM inference of <code>dynamics_family</code> → StructTuple field matching → LLM rerank → results with a candidate equation skeleton and variable mapping.<br><strong>Internal observation</strong>: historical internal scores differ across pipelines, but they are not externally calibrated and are neither correctness rates nor evidence of paper quality.<br><strong>Role</strong>: generate an inspectable structural draft; domain experts must verify its equation, variable mapping, and sources before it can enter a research method."
   },
   "page.about.how.parallel.title": {
-    "zh": "三代并行，零重叠",
-    "en": "Three generations in parallel, with zero overlap"
+    "zh": "三条管道，候选集合不同",
+    "en": "Three pipelines, different candidate sets"
   },
   "page.about.how.parallel.p": {
-    "zh": "最关键的发现：V1 的 24 个 tier-1、V2 的 19 个 A 级、V3 的 20 个 A 级发现，<strong>两两之间完全零重叠</strong>。这说明三条管道看到的是结构的不同切面——V1 看到\"语义近邻\"、V2 看到\"精细语义\"、V3 看到\"数学同族\"。三个并集 = <strong>63 个独立的顶级跨域候选</strong>（数据集 <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a>）。",
-    "en": "The central empirical finding: V1's 24 tier-1 discoveries, V2's 19 A-grade discoveries, and V3's 20 A-grade discoveries exhibit <strong>zero pairwise overlap</strong>. Each pipeline evidently sees a different facet of structure — V1 picks up semantic neighbors, V2 picks up fine-grained semantics, and V3 picks up mathematical cognates. The union of the three yields <strong>63 independent top-tier cross-domain candidates</strong> (released as the <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a> dataset)."
+    "zh": "历史筛选各保留了 V1 的 24 条、V2 的 19 条和 V3 的 20 条候选，在当时的候选 ID 口径下没有重复。这个集合差异可能来自召回空间、阈值、提示词或抽样，不足以证明三条管道分别发现了结构的不同本质。并集作为 <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a> 保存 63 条历史候选；“63”是记录数，不是独立性或质量等级。",
+    "en": "Historical screening retained 24 V1, 19 V2, and 20 V3 candidates, with no duplicate candidate IDs under the definitions used at the time. That set difference could arise from retrieval space, thresholds, prompts, or sampling; it does not show that the pipelines discovered distinct underlying facets. Their union is preserved as <a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63</a>: 63 is a record count, not a claim of independence or quality."
   },
   "page.about.how.v4.title": {
     "zh": "V4 · 普适类发现引擎（universality class engine）",
     "en": "V4 · Universality-class discovery engine"
   },
   "page.about.how.v4.intro": {
-    "zh": "V1–V3 产出的是离散的\"A≅B\"配对。但只要你仔细看 63 个 seed，会发现大量<strong>\"A≅B 同时 A≅C\"</strong>的结构——地震、S&amp;P 股价、DeFi 清算、神经雪崩，它们两两都同构，但其实是在共享<strong>同一个更底层的数学物理规律</strong>。V4 的任务是把这些离散对子聚合成<strong>等价类（universality class）</strong>。",
-    "en": "V1–V3 emit discrete \"A≅B\" pairs. But a careful look at the 63 seeds reveals pervasive <strong>\"A≅B and A≅C\"</strong> structure — earthquakes, S&amp;P jumps, DeFi liquidations, and neural avalanches are pairwise isomorphic precisely because they share <strong>a single deeper mathematical-physical law</strong>. V4's task is to aggregate these discrete pairs into <strong>universality classes</strong>."
+    "zh": "V1–V3 产出离散的候选配对。V4 把共享节点或相似描述的配对聚合成<strong>候选结构组</strong>，例如把地震、市场波动、DeFi 清算和神经雪崩放在同一组中比较。聚类只说明它们值得用统一变量表和反例检验；不能据此证明任意两者同构，也不能推出一个更底层的共同规律。",
+    "en": "V1–V3 produce discrete candidate pairs. V4 groups pairs that share nodes or similar descriptions into <strong>candidate structural groups</strong>, for example placing earthquakes, market fluctuations, DeFi liquidations, and neural avalanches in one comparison set. Clustering only makes them worth testing with a common variable ledger and counterexamples; it does not establish pairwise isomorphism or a deeper common law."
   },
   "page.about.how.v4.layers_intro": {
     "zh": "实现分五层：",
@@ -176,52 +176,52 @@
     "en": "<strong>Layer 4 · Falsifiable predictions</strong> — for each class we distill one to five falsifiable predictions of the form \"if the class holds, such-and-such distribution or exponent will take this value\" (24 in total)."
   },
   "page.about.how.v4.layer5": {
-    "zh": "<strong>Layer 5 · 实证验证</strong>——对其中最可操作的一类（SOC）走完整个\"数据 → 拟合 → 论文\"流程，见下一节。",
-    "en": "<strong>Layer 5 · Empirical validation</strong> — for the most tractable class (SOC), we run the full data → fitting → paper pipeline end-to-end, as described in the next section."
+    "zh": "<strong>Layer 5 · 证据评估</strong>——对较可操作的 SOC 候选记录“数据 → 拟合 → 局限”流程；结果包含支持、拒绝和证据不足，不等于实证确认。",
+    "en": "<strong>Layer 5 · Evidence assessment</strong> — for a tractable SOC candidate, record the data → fit → limitations workflow. Outcomes include support, rejection, and insufficient evidence; this is not empirical confirmation."
   },
   "page.about.how.v4.role": {
-    "zh": "<strong>角色</strong>：组织器——把 V1-V3 的离散发现升级为\"结构家族\"，让一次验证能支撑多个领域的论文。浏览 23 个类：<a href=\"/classes\">/classes</a>。",
-    "en": "<strong>Role</strong>: organizer — elevating V1–V3's discrete findings into structural families, so that a single validation effort can support papers in multiple domains. Browse all 23 classes at <a href=\"/classes\">/classes</a>."
+    "zh": "<strong>角色</strong>：候选组织器——把 V1-V3 的离散联系归入 23 个待检验结构家族，便于逐领域提出预测和反例。一个领域的结果不能替其他领域完成验证；每项仍待独立复现。浏览候选：<a href=\"/classes\">/classes</a>。",
+    "en": "<strong>Role</strong>: candidate organizer — grouping V1–V3 links into 23 structural families so predictions and counterexamples can be tested per domain. A result in one domain cannot validate another; each remains pending independent replication. Browse the candidates at <a href=\"/classes\">/classes</a>."
   },
   "page.about.empirical.label": {
     "zh": "Empirical",
     "en": "Empirical"
   },
   "page.about.empirical.title": {
-    "zh": "Layer 5 · 实证验证 · SOC 跨五领域",
-    "en": "Layer 5 · Empirical validation · SOC across five domains"
+    "zh": "结果记录 · 同一分析框架在多类数据上的表现",
+    "en": "Result records · one analysis framework across varied data"
   },
   "page.about.empirical.intro": {
-    "zh": "理论只是起点，实证才让一个普适类变成论文。我们选了 V4 里最成熟的一类——<strong>Branching-process Self-Organized Criticality（SOC）</strong>，它预言 event-size 分布是无截断的 power law，exponent τ ≈ 1.5、energy α ≈ 2.0、lifetime γ ≈ 2.0 并满足 γ = (α-1)/(τ-1) 这个 scaling relation。我们在五个互相独立的领域做了同样的拟合：",
-    "en": "Theory is only a starting point; it takes empirical work to turn a universality class into a paper. We selected the most mature class in V4 — <strong>branching-process Self-Organized Criticality (SOC)</strong> — which predicts an untruncated power-law event-size distribution with exponents τ ≈ 1.5, α ≈ 2.0, γ ≈ 2.0 satisfying the scaling relation γ = (α − 1)/(τ − 1). We ran the same fitting procedure across five mutually independent domains:"
+    "zh": "项目保存了 13 份领域分析与合成对照的结果记录（口径冻结于 2026-07-12，证据账本 v1）。它们复用分析框架，但数据接入、预处理、独立性和证据强度不同；结果包含支持、拒绝、NULL、PARTIAL 和 INCONCLUSIVE，不能算作 13 次独立机制复现。",
+    "en": "The project retains 13 domain-analysis and synthetic-control result records (scope frozen on 2026-07-12, evidence ledger v1). They reuse an analysis framework but differ in data access, preprocessing, independence, and evidence strength. Outcomes include support, rejection, NULL, PARTIAL, and INCONCLUSIVE — not 13 independent mechanism replications."
   },
   "page.about.empirical.phase1": {
-    "zh": "<strong>Phase 1 · 地震 / USGS 84k events</strong>：b-value = 1.084，p = 0.941（Omori aftershock 衰减），τ ≈ 1.67。<span style=\"color: #2f9e44;\">✅ 与理论吻合</span>。",
-    "en": "<strong>Phase 1 · Earthquakes (USGS, 84k events)</strong>: b-value = 1.084, p = 0.941 (Omori aftershock decay), τ ≈ 1.67. <span style=\"color: #2f9e44;\">✅ Consistent with theory.</span>"
+    "zh": "<strong>Phase 1 · 地震 / USGS 84k events</strong>：历史分析记录 b-value = 1.084、p = 0.941、τ ≈ 1.67。<span style=\"color: #e8a800;\">⚠️ 与候选范围相容</span>；未完成预注册、稳健性审计和独立复现，不能据此确认机制。",
+    "en": "<strong>Phase 1 · Earthquakes (USGS, 84k events)</strong>: a historical analysis records b-value = 1.084, p = 0.941, and τ ≈ 1.67. <span style=\"color: #e8a800;\">⚠️ Compatible with the candidate range</span>; without preregistration, robustness audit, and independent replication, this does not confirm a mechanism."
   },
   "page.about.empirical.phase2": {
-    "zh": "<strong>Phase 2 · S&amp;P 500 日线</strong>：α ≈ 3.00，p = 0.29（在日尺度文献带 [0.3, 0.6] 内）。<span style=\"color: #2f9e44;\">✅ 连续扩散亚类</span>，与地震的离散阈值型 SOC 形成鲜明对比。",
-    "en": "<strong>Phase 2 · S&amp;P 500 daily series</strong>: α ≈ 3.00, p = 0.29 (within the daily-scale literature band of [0.3, 0.6]). <span style=\"color: #2f9e44;\">✅ A continuous-diffusion sub-class</span>, in clear contrast to the discrete threshold-type SOC observed for earthquakes."
+    "zh": "<strong>Phase 2 · S&amp;P 500 日线</strong>：历史分析记录 α ≈ 3.00、p = 0.29。<span style=\"color: #e8a800;\">⚠️ 统计观察</span>；数值与部分文献范围接近，但尚不足以确认连续扩散亚类，也不能与地震合并为同一机制。",
+    "en": "<strong>Phase 2 · S&amp;P 500 daily series</strong>: a historical analysis records α ≈ 3.00 and p = 0.29. <span style=\"color: #e8a800;\">⚠️ Statistical observation</span>; proximity to selected literature ranges does not establish a continuous-diffusion subclass or a mechanism shared with earthquakes."
   },
   "page.about.empirical.phase3": {
-    "zh": "<strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：per-protocol α = 1.57-1.68，与地震聚在同一亚类。<span style=\"color: #2f9e44;\">✅ 跨协议普适</span>——同一个数学结构在三个独立系统独立涌现。",
-    "en": "<strong>Phase 3 · DeFi liquidation cascades</strong> (Aave V2 + Compound V2 + MakerDAO, 43,065 events): per-protocol α = 1.57–1.68, clustering in the same sub-class as earthquakes. <span style=\"color: #2f9e44;\">✅ Cross-protocol universality</span> — the same mathematical structure emerges independently in three distinct systems."
+    "zh": "<strong>Phase 3 · DeFi 清算级联</strong>（Aave V2 + Compound V2 + MakerDAO，43,065 events）：历史分析记录的 per-protocol α = 1.57-1.68。<span style=\"color: #e8a800;\">⚠️ 跨协议统计相似</span>——协议并非三个独立自然系统，指数接近也不能证明共同机制。",
+    "en": "<strong>Phase 3 · DeFi liquidation cascades</strong> (Aave V2 + Compound V2 + MakerDAO, 43,065 events): a historical analysis records per-protocol α = 1.57–1.68. <span style=\"color: #e8a800;\">⚠️ Cross-protocol statistical similarity</span> — the protocols are not three independent natural systems, and similar exponents do not prove a common mechanism."
   },
   "page.about.empirical.phase4": {
-    "zh": "<strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：size exponent τ、lifetime γ 在 task-state 亚临界区间。<span style=\"color: #e8a800;\">⚠️ 部分符合</span>，印证 Priesemann 2014 的 task-state sub-critical shift 假说。",
-    "en": "<strong>Phase 4 · Neuronal avalanches in mouse cortex</strong> (DANDI 000006): the size exponent τ and lifetime exponent γ fall within the task-state sub-critical range. <span style=\"color: #e8a800;\">⚠️ Partially consistent</span>, corroborating the task-state sub-critical shift hypothesis of Priesemann et al. (2014)."
+    "zh": "<strong>Phase 4 · 小鼠皮层神经雪崩</strong>（DANDI 000006）：历史拟合的 size exponent τ、lifetime γ 与 task-state 亚临界假说部分相容。<span style=\"color: #e8a800;\">⚠️ 候选观察</span>；这不是对 Priesemann 2014 的独立复现，仍需替代模型与独立分析。",
+    "en": "<strong>Phase 4 · Neuronal avalanches in mouse cortex</strong> (DANDI 000006): historical fits of size exponent τ and lifetime γ are partly compatible with the task-state sub-critical hypothesis. <span style=\"color: #e8a800;\">⚠️ Candidate observation</span>; this is not an independent replication of Priesemann et al. (2014) and still requires alternative models and independent analysis."
   },
   "page.about.empirical.phase5": {
-    "zh": "<strong>Phase 5 · Null controls</strong>：人工合成的 Poisson / Gaussian 流量经过同样管道，<strong>得不到 power-law</strong>——说明前四个领域的拟合不是方法学的产物。",
-    "en": "<strong>Phase 5 · Null controls</strong>: synthetic Poisson and Gaussian streams run through the identical pipeline <strong>fail to produce a power law</strong> — evidence that the fits in the four real domains are not methodological artifacts."
+    "zh": "<strong>Phase 5 · 合成对照</strong>：特定 Poisson / Gaussian 样本在当时配置下未被选为幂律。这个有限对照可发现部分实现错误，但不能排除预处理、模型选择或数据依赖偏差；真实领域结论仍待独立复现。",
+    "en": "<strong>Phase 5 · Synthetic controls</strong>: selected Poisson and Gaussian samples were not classified as power laws under the recorded configuration. This bounded control can reveal some implementation errors, but cannot exclude preprocessing, model-selection, or data-dependent bias; real-domain conclusions remain pending independent replication."
   },
   "page.about.empirical.closing": {
-    "zh": "五个领域的分析脚本、论文 Markdown、数据下载脚本全部在 <code>v4/validation/</code> 下开源。五篇配套论文在 <a href=\"/classes\">/classes</a> 页面底部的 Layer 5 区域可以阅读。",
-    "en": "The analysis scripts, paper Markdown, and data-download scripts for all five domains are open-sourced under <code>v4/validation/</code>. The five companion papers can be read from the Layer 5 section at the bottom of the <a href=\"/classes\">/classes</a> page."
+    "zh": "分析脚本、研究报告 Markdown 和数据下载脚本保存在仓库中；当前材料是内部研究记录，不代表同行评审或外部发表。可从 <a href=\"/classes\">/classes</a> 查看结果与局限。",
+    "en": "Analysis scripts, research-report Markdown, and data-download scripts are retained in the repository. These are internal research records, not peer-reviewed or externally published papers. Results and limitations are available from <a href=\"/classes\">/classes</a>."
   },
   "page.about.empirical.significance": {
-    "zh": "<strong>意义</strong>：V4 不只是\"聚合 V1-V3\"——它把\"跨域同构\"从哲学命题推进到了<strong>\"可以用同一套代码在五个真实系统上复现\"</strong>的实证阶段。",
-    "en": "<strong>Significance</strong>: V4 is more than an aggregation of V1–V3. It moves cross-domain isomorphism from a philosophical claim to an empirical one — <strong>something that can be reproduced by the same code on five real-world systems</strong>."
+    "zh": "<strong>意义</strong>：共享代码让不同结果可比较，并保留失败和证据不足；它建立的是可审计的研究起点，不是跨域机制已经成立的证明。",
+    "en": "<strong>Significance</strong>: shared code makes unlike outcomes easier to compare while retaining failures and insufficient evidence. It creates an auditable research starting point, not proof of a shared cross-domain mechanism."
   },
   "page.about.scoring.label": {
     "zh": "Scoring",
@@ -276,28 +276,28 @@
     "en": "What's Next"
   },
   "page.about.next.title": {
-    "zh": "从种子库到论文的转化",
-    "en": "From seed bank to published papers"
+    "zh": "从候选库到可检验研究",
+    "en": "From candidate library to testable research"
   },
   "page.about.next.intro": {
-    "zh": "目前 V1 + V2 + V3 + V4 四代管道全部上线，63 个 seed 已经打包成<strong>可引用的 Zenodo 数据集</strong>（<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63 · DOI 10.5281/zenodo.19615170</a>，CC-BY-4.0）。SOC 一类已完成 Layer 5 实证闭环。下一步工作：",
-    "en": "All four pipeline generations (V1 + V2 + V3 + V4) are now live, and the 63 seeds have been packaged as a <strong>citable Zenodo dataset</strong> (<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">SIBD-63 · DOI 10.5281/zenodo.19615170</a>, CC-BY-4.0). The SOC class has completed the full Layer 5 empirical loop. Next:"
+    "zh": "SIBD-63 保存了 63 条历史候选（<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">DOI 10.5281/zenodo.19615170</a>，CC-BY-4.0）。其中 39 条通过内部 AI 筛查后进入候选展示；这不是同行评审或机制确认。下一步是补来源、预先写下失败条件、用真实数据检验，并交给领域专家独立复核。",
+    "en": "SIBD-63 preserves 63 historical candidates (<a href=\"https://doi.org/10.5281/zenodo.19615170\" target=\"_blank\" rel=\"noopener\">DOI 10.5281/zenodo.19615170</a>, CC-BY-4.0). Thirty-nine passed internal AI screening for candidate display; that is neither peer review nor mechanism confirmation. Next steps are source enrichment, preregistered failure criteria, real-data tests, and independent domain-expert review."
   },
   "page.about.next.item1": {
     "zh": "<strong>Seed bank outreach</strong>——把 63 个候选分门别类发给对口方向的学术团队（生态 / 金融 / 材料 / 神经 / DeFi），让领域专家挑与自己专长匹配的 seed 做成论文，Structural 获得 co-author / acknowledgement / 被引。",
     "en": "<strong>Seed-bank outreach</strong> — route each of the 63 candidates to matched academic groups (ecology, finance, materials, neuroscience, DeFi), so that domain experts can pick up seeds aligned with their expertise and develop them into papers, with Structural credited as co-author, acknowledged, or cited."
   },
   "page.about.next.item2": {
-    "zh": "<strong>其他普适类实证</strong>——把 Layer 5 的五阶段工作流复用到另外 22 个类（延迟反馈债务、bistable 双稳态、Motter-Lai 级联、toggle switch 等），逐个落地。",
-    "en": "<strong>Empirical validation of further universality classes</strong> — reapply the five-phase Layer 5 workflow to the remaining 22 classes (delayed-feedback debt, bistable switches, Motter–Lai cascades, toggle switches, and others), class by class."
+    "zh": "<strong>其他候选模式评估</strong>——把 Layer 5 的证据工作流用于另外 22 个候选，逐项写明数据、替代解释、失败条件与独立复现状态。",
+    "en": "<strong>Assessment of further candidate patterns</strong> — apply the Layer 5 evidence workflow to 22 additional candidates, documenting data, alternative explanations, failure criteria, and independent-replication status for each."
   },
   "page.about.next.item3": {
-    "zh": "<strong>方法论论文</strong>——以 V4 + Layer 5 的工作为支撑，写\"How to systematize cross-domain isomorphism discovery\"，目标 Nature Machine Intelligence / Patterns。",
-    "en": "<strong>A methodology paper</strong> — building on V4 and Layer 5, write \"How to systematize cross-domain isomorphism discovery\", targeting <em>Nature Machine Intelligence</em> / <em>Patterns</em>."
+    "zh": "<strong>方法论评估</strong>——用 13 份证据强度不一的结果记录建立基准，先补预注册、负例和独立复现，再判断是否形成可投稿的方法论结论。",
+    "en": "<strong>Methodology assessment</strong> — use the 13 mixed-strength result records as a benchmark, add preregistration, negative cases, and independent replication, then determine whether a submission-ready methodology claim is warranted."
   },
   "page.about.next.item4": {
-    "zh": "<strong>Phase Detector 产品化</strong>——把 seed bank 和普适类嵌入一个实时\"结构相位检测\"工具（<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> 已 beta），让非学术用户也能用上这个引擎。",
-    "en": "<strong>Productizing Phase Detector</strong> — embed the seed bank and universality classes into a real-time structural phase-detection tool (<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> is already in beta), bringing the engine to non-academic users."
+    "zh": "<strong>Phase Detector 研究演示</strong>——把候选模式用于冻结数据上的历史状态回放（<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> beta）。它不是实时检测、预测或投资信号。",
+    "en": "<strong>Phase Detector research demo</strong> — use candidate patterns for historical state replay on frozen data (<a href=\"https://beta.structural.bytedance.city/phase/timeline\" target=\"_blank\" rel=\"noopener\">/phase/timeline</a> beta). It is not real-time detection, prediction, or an investment signal."
   },
   "page.about.resources.label": {
     "zh": "Resources",
@@ -328,32 +328,32 @@
     "en": "A cross-domain thinking engine"
   },
   "page.home.tagline": {
-    "zh": "看似完全无关的现象，在数学结构层面往往是同一件事。",
-    "en": "Phenomena that look entirely unrelated are often, at the level of mathematical structure, the same thing."
+    "zh": "看似无关的现象，可能包含值得检验的结构相似。",
+    "en": "Apparently unrelated phenomena may contain structural similarities worth testing."
   },
   "page.home.lede": {
-    "zh": "描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，找到结构相同的解法。",
-    "en": "Describe your problem, and find structurally equivalent solutions across <strong>4,443</strong> phenomena spanning <strong>87</strong> disciplines."
+    "zh": "描述你的问题，从 <strong>87</strong> 个学科的 <strong>4,443</strong> 个现象里，寻找可检验的结构类比与方法候选。",
+    "en": "Describe your problem and search <strong>4,443</strong> phenomena across <strong>87</strong> disciplines for testable structural analogies and candidate methods."
   },
   "page.home.hero_evidence.caption_1": {
     "zh": "在明确假设下，它们可用<strong>同一类数学模型</strong>描述；机制是否一致仍需验证。",
     "en": "Under explicit assumptions, the same <strong>model family</strong> can describe both; shared mechanism still requires validation."
   },
   "page.home.hero_evidence.caption_2": {
-    "zh": "细菌和产品，在同一条<strong>逻辑斯谛曲线</strong>上。",
-    "en": "Bacteria and products trace the same <strong>logistic curve</strong>."
+    "zh": "细菌增长和产品扩散都可尝试用<strong>逻辑斯谛模型族</strong>比较；参数与机制需分别检验。",
+    "en": "Bacterial growth and product diffusion can be compared with a <strong>logistic model family</strong>; their parameters and mechanisms require separate tests."
   },
   "page.home.hero_evidence.caption_3": {
-    "zh": "病毒和信息，遵循<strong>同一个 SIR 模型</strong>。",
-    "en": "Viruses and information follow <strong>the same SIR model</strong>."
+    "zh": "病毒与信息扩散可提出<strong>SIR 类候选映射</strong>；接触、恢复和传播假设并不相同。",
+    "en": "Virus and information diffusion invite a <strong>candidate SIR-like mapping</strong>; contact, recovery, and transmission assumptions differ."
   },
   "page.home.hero_evidence.caption_4": {
-    "zh": "两个系统都在同一个<strong>尖点灾变曲面</strong>上滑动。",
-    "en": "Both systems slide along the same <strong>cusp-catastrophe surface</strong>."
+    "zh": "磁滞与湖泊翻转可用<strong>尖点灾变候选模型</strong>比较；是否落在同一模型上仍需数据检验。",
+    "en": "Magnetic hysteresis and lake regime shifts can be compared with a <strong>candidate cusp-catastrophe model</strong>; data must test whether either model is appropriate."
   },
   "page.home.hero_evidence.caption_5": {
-    "zh": "弹簧和市场，都服从<strong>受驱简谐振动方程</strong>。",
-    "en": "Spring and market alike obey the <strong>driven harmonic-oscillator equation</strong>."
+    "zh": "弹簧与市场波动可提出<strong>受驱振子类比</strong>；市场反馈不等于机械回复力。",
+    "en": "Springs and market fluctuations invite a <strong>driven-oscillator analogy</strong>; market feedback is not a mechanical restoring force."
   },
   "page.home.search.placeholder": {
     "zh": "一句话描述你观察到的现象、问题或正在做的研究方向。\n（可选）补充你的背景和已经尝试过的，我会调整迁移的深度。",
@@ -424,8 +424,8 @@
     "en": "Deep transfer report"
   },
   "page.home.how.step3.text": {
-    "zh": "点首推卡 → 8 段流式生成的研究报告：共享数学结构、关键变量、源领域的成熟工具、怎么具体应用到你的问题、需要验证的假设、迁移风险。",
-    "en": "Click the recommended card to stream an eight-section research report: the shared mathematical structure, the key variables, the mature tools available in the source domain, how to apply them concretely to your problem, the hypotheses that need testing, and the transfer risks."
+    "zh": "点首推卡 → 8 段流式生成的研究草案：候选结构、关键变量、源领域的方法线索、怎么检验在当前问题中的适用性、待验证假设和迁移风险。",
+    "en": "Click the recommended card to stream an eight-section research draft: candidate structure, key variables, method leads from the source domain, tests of applicability to the current problem, open hypotheses, and transfer risks."
   },
   "page.home.how.step3.time": {
     "zh": "≈ 2–3 分钟",
@@ -440,8 +440,8 @@
     "en": "Three <em>canonical scenarios</em>"
   },
   "page.home.usecases.sub": {
-    "zh": "把你正被困住的问题输入，系统识别出底层结构，返回跨域里已经解决过的成熟工具。",
-    "en": "Enter the problem you're stuck on; the system identifies the underlying structure and returns mature tools that have already solved it in another domain."
+    "zh": "输入你正被困住的问题，系统提出候选结构和其他领域的方法线索；是否适用仍需核对变量、边界与反例。",
+    "en": "Enter the problem you are stuck on; the system proposes candidate structures and method leads from other domains. Applicability still requires checks of variables, boundaries, and counterexamples."
   },
   "page.home.usecases.tag_question": {
     "zh": "你问",
@@ -456,12 +456,12 @@
     "en": "Research · finding cross-domain structure"
   },
   "page.home.usecases.card1.sample": {
-    "zh": "地震、股价跳跃、神经雪崩都是幂律分布，是同一个机制吗？ →",
-    "en": "Earthquakes, stock-price jumps, and neural avalanches all follow power-law distributions — is it the same mechanism? →"
+    "zh": "地震、股价跳跃、神经雪崩都曾报告重尾或幂律拟合；仅凭这些形状不能确认共同机制，下一步该检验什么？ →",
+    "en": "Earthquakes, stock-price jumps, and neural avalanches have each been fitted with heavy-tailed or power-law models; those shapes alone cannot establish a common mechanism, so what should be tested next? →"
   },
   "page.home.usecases.card1.value": {
-    "zh": "<strong>自组织临界（SOC）普适类</strong> · 分支过程族、τ ≈ 1.5、γ=(α−1)/(τ−1)——地震 · DeFi 清算 · 神经雪崩三个领域已被实证（5 篇 arXiv 配套论文）。",
-    "en": "<strong>The Self-Organized Criticality (SOC) universality class</strong> · branching-process family, τ ≈ 1.5, γ = (α − 1)/(τ − 1) — empirically validated across earthquakes, DeFi liquidations, and neural avalanches (five companion papers on arXiv)."
+    "zh": "<strong>自组织临界（SOC）候选类</strong> · 历史结果记录比较了地震、DeFi 清算和神经雪崩的部分统计量，并同时保留 PARTIAL、NULL 与局限；配套材料是内部研究稿，不是外部复现。",
+    "en": "<strong>Candidate Self-Organized Criticality (SOC) class</strong> · historical result records compare selected statistics from earthquakes, DeFi liquidations, and neural avalanches while retaining PARTIAL and NULL outcomes and limitations. The companion materials are internal research drafts, not external replications."
   },
   "page.home.usecases.card2.title": {
     "zh": "产品 · 用户流失分析",
@@ -472,8 +472,8 @@
     "en": "Our monthly active users are dropping at a fixed 7% rate — how should we read it, and how should we intervene? →"
   },
   "page.home.usecases.card2.value": {
-    "zh": "<strong>一阶指数衰减</strong> · dN/dt = −λN——放射性衰变 · 药物血药浓度 · RLC 阻尼振荡都是它。<strong>半衰期是唯一参数</strong>：干预必须在半衰期前进行，过后成本指数级上升。",
-    "en": "<strong>First-order exponential decay</strong> · dN/dt = −λN — the same law governs radioactive decay, drug plasma concentration, and damped RLC oscillation. <strong>The half-life is the only parameter</strong>: intervention must occur before it, after which the cost rises exponentially."
+    "zh": "<strong>一阶指数衰减候选</strong> · dN/dt = −λN——可把固定比例流失先与放射性衰变、药物浓度等衰减曲线作结构比较。业务流失通常还有分群、获客和季节因素，半衰期不是唯一参数；先检验拟合与反例，再决定干预。",
+    "en": "<strong>Candidate first-order exponential decay</strong> · dN/dt = −λN — fixed-rate churn can first be compared with decay curves from radioactivity or drug concentration. Business churn also reflects cohorts, acquisition, and seasonality, so half-life is not the only parameter; test the fit and counterexamples before acting."
   },
   "page.home.usecases.card3.title": {
     "zh": "战略 · 不可逆恶化",
@@ -484,8 +484,8 @@
     "en": "Once team morale goes bad, it never comes back — why? →"
   },
   "page.home.usecases.card3.value": {
-    "zh": "<strong>尖点灾变 / fold 分岔</strong> · 双稳态 + 磁滞回线——磁铁磁化 · 湖泊富营养化 · 生态 regime shift 都是它。<strong>回溯路径 ≠ 前进路径</strong>，触发阈值和反推阈值差得远。",
-    "en": "<strong>Cusp catastrophe / fold bifurcation</strong> · bistability with a hysteresis loop — the same structure underlies ferromagnetic magnetization, lake eutrophication, and ecological regime shifts. <strong>The return path is not the forward path</strong>: the trigger threshold and the reversal threshold are far apart."
+    "zh": "<strong>双稳态 / 磁滞候选</strong>——团队状态可先与磁化、湖泊富营养化等“前进与恢复路径不同”的现象比较。类比只提示检查阈值和记忆效应，不证明团队遵循尖点灾变或 fold 分岔；需用纵向数据排除更简单解释。",
+    "en": "<strong>Candidate bistability / hysteresis</strong> — team state can be compared with systems whose forward and recovery paths differ, such as magnetization or lake eutrophication. The analogy only suggests checking thresholds and memory effects; it does not establish a cusp catastrophe or fold bifurcation, and longitudinal data must rule against simpler explanations."
   },
   "page.home.history.label": {
     "zh": "你最近的问题",
@@ -520,24 +520,24 @@
     "en": "Structural — The shape of everything recurs"
   },
   "page.home.meta_desc": {
-    "zh": "一个跨领域思维引擎。描述你观察到的现象，找到完全不同领域里结构相同的现象。",
-    "en": "A cross-domain thinking engine. Describe a phenomenon you have observed and discover others in entirely different fields that share the same structure."
+    "zh": "一个跨领域思维引擎。描述你观察到的现象，寻找其他领域中可检验的结构相似候选，并查看证据缺口与反例。",
+    "en": "A cross-domain thinking engine. Describe an observed phenomenon, find testable structural analogies in other fields, and inspect evidence gaps and counterexamples."
   },
   "page.about.meta_title": {
     "zh": "关于 — Structural",
     "en": "About — Structural"
   },
   "page.about.meta_desc": {
-    "zh": "Structural 是一个跨领域思维引擎，基于“看似无关的现象在数学结构层面往往是同一件事”这个反直觉的观察，帮你跨越学科的围墙借用别人的答案。",
-    "en": "Structural is a cross-domain thinking engine built on a counterintuitive observation: phenomena that look entirely unrelated are often the same thing at the level of mathematical structure."
+    "zh": "Structural 是一个跨领域思维引擎，用变量关系和反馈骨架提出可检验类比；候选联系不是机制证明，仍需来源、反例与独立复现。",
+    "en": "Structural is a cross-domain thinking engine that proposes testable analogies from variable relationships and feedback skeletons. Candidate links are not mechanism proof and still require sources, counterexamples, and independent replication."
   },
   "page.classes.meta_title": {
     "zh": "共享模式 — Structural",
     "en": "Shared patterns — Structural"
   },
   "page.classes.meta_desc": {
-    "zh": "从 23 个自动浮现的跨领域等价类里，筛出 8 个已命名的物理学普适类。每类带共享方程、不变量和可验证预测。",
-    "en": "From 23 automatically surfaced cross-domain equivalence classes, we highlight 8 named physical universality classes. Each carries shared equations, invariants, and falsifiable predictions."
+    "zh": "浏览 23 个跨领域候选结构组，其中 8 个用于展示如何记录候选方程、不变量、可证伪预测与证据缺口；这些分组不是已确认的物理普适类。",
+    "en": "Browse 23 cross-domain candidate structural groups, including 8 examples that record candidate equations, invariants, falsifiable predictions, and evidence gaps. These groups are not confirmed physical universality classes."
   },
   "page.discoveries.meta_title": {
     "zh": "精选发现 — Structural",
@@ -568,8 +568,8 @@
     "en": "404 — Structural"
   },
   "page.classes.hero_eyebrow": {
-    "zh": "等价类 · 共享不变量 · 可验证预测",
-    "en": "Equivalence classes · shared invariants · falsifiable predictions"
+    "zh": "候选分组 · 待检验不变量 · 可证伪预测",
+    "en": "Candidate groups · proposed invariants · falsifiable predictions"
   },
   "page.classes.hero_title": {
     "zh": "23 个跨领域<em>候选模式</em>",
@@ -660,28 +660,28 @@
     "en": "Analyze"
   },
   "page.classes.footnote_l1": {
-    "zh": "<strong>Layer 1 图构建</strong>：读取 V1/V2/V3 的 A 级 + B+ 发现，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。",
-    "en": "<strong>Layer 1 — Graph construction</strong>: A- and B+-grade discoveries from V1/V2/V3 are filtered by <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code>, yielding 180 nodes and 143 edges."
+    "zh": "<strong>Layer 1 图构建</strong>：读取 V1/V2/V3 中带 A、B+ 内部评分标签的候选，按 <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code> 过滤，得到 180 节点 / 143 边。标签只用于当时的内部筛选，不代表正确性或证据质量。",
+    "en": "<strong>Layer 1 — Graph construction</strong>: candidates carrying internal A or B+ score labels in V1/V2/V3 are filtered by <code>final_score ≥ 7.0 OR rating ∈ {A, B+}</code>, yielding 180 nodes and 143 edges. These labels supported internal triage; they do not establish correctness or evidence quality."
   },
   "page.classes.footnote_l2": {
     "zh": "<strong>Layer 2 社区发现</strong>：连通分量 + Louvain（weight=score）。得到 23 个候选等价类，21 个跨 ≥ 2 领域。",
     "en": "<strong>Layer 2 — Community detection</strong>: connected components + Louvain (weight = score) yield 23 candidate equivalence classes, 21 of which span ≥ 2 domains."
   },
   "page.classes.footnote_l3": {
-    "zh": "<strong>Layer 3 Taxonomy Match</strong>（本页呈现的 8 类已人工匹配到已知物理普适类）：正在建设 LLM generator + critic 的自动 pipeline。",
-    "en": "<strong>Layer 3 — Taxonomy match</strong> (the 8 classes featured here were manually matched to known physical universality classes): an automated LLM generator + critic pipeline is under construction."
+    "zh": "<strong>Layer 3 分类假设</strong>：本页 8 个候选分组由人工关联到文献中的命名模式，供后续检验。这个关联是分类标签，不等于确认物理普适类或共享机制。",
+    "en": "<strong>Layer 3 — Taxonomy hypothesis</strong>: the 8 candidate groups shown here were manually associated with named patterns from the literature for later testing. The association is a taxonomy label, not confirmation of a physical universality class or shared mechanism."
   },
   "page.classes.footnote_l4": {
-    "zh": "<strong>Layer 4 预测翻译</strong>：对已匹配的普适类，翻译该类已知的物理定律为跨域可验证预测。",
-    "en": "<strong>Layer 4 — Prediction translation</strong>: for each matched universality class, established physical laws are translated into cross-domain falsifiable predictions."
+    "zh": "<strong>Layer 4 假设草拟</strong>：参考文献中报告的关系，为其他领域草拟可证伪假设。迁移是否成立仍取决于变量映射、真实数据、替代解释和预先声明的失败标准。",
+    "en": "<strong>Layer 4 — Hypothesis drafting</strong>: literature-reported relationships are used to draft falsifiable hypotheses for other domains. Any transfer still depends on variable mapping, real data, alternative explanations, and predeclared failure criteria."
   },
   "page.classes.footnote_l5": {
     "zh": "<strong>Layer 5 结果记录</strong>：领域分析与合成对照使用共享代码框架，但数据依赖和证据强度不同。记录包含支持、拒绝、部分支持和证据不足；不等于外部复现。",
     "en": "<strong>Layer 5 — Result records</strong>: domain analyses and synthetic controls share a code framework, but their dependence and evidence strength differ. Records include support, rejection, partial support, and insufficient evidence; they are not external replications."
   },
   "page.classes.footnote_l6": {
-    "zh": "<strong>Pipeline 稳健性</strong>：在 3 个已知非 SOC 分布（高斯、指数、Poisson）上跑同一 pipeline，全部正确拒绝幂律（R ∈ [−45, −16] 相对 exp/lognormal），Poisson Omori 拟合 R² ≈ 0.002。排除\"pipeline 把任何数据拟合成 SOC\"的平凡解释。",
-    "en": "<strong>Pipeline robustness</strong>: running the same pipeline on three known non-SOC distributions (Gaussian, exponential, Poisson) correctly rejects a power-law in every case (R ∈ [−45, −16] relative to exp/lognormal; Poisson Omori fit R² ≈ 0.002) — ruling out the trivial objection that the pipeline fits SOC to anything."
+    "zh": "<strong>合成对照记录</strong>：在当时配置下，3 组已选非 SOC 样本（高斯、指数、Poisson）未被选为幂律（R ∈ [−45, −16]，Poisson Omori R² ≈ 0.002）。这个有限对照可发现部分实现错误，不能排除其他生成过程、预处理或模型选择偏差。",
+    "en": "<strong>Synthetic-control record</strong>: under the recorded configuration, three selected non-SOC samples (Gaussian, exponential, and Poisson) were not selected as power laws (R ∈ [−45, −16]; Poisson Omori R² ≈ 0.002). This bounded control can reveal some implementation errors but cannot exclude other generators, preprocessing choices, or model-selection bias."
   },
   "page.classes.footnote_hint": {
     "zh": "完整 feasibility 报告见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/results/FINDINGS-2026-04-15.md\" target=\"_blank\" rel=\"noopener\">v4/results/FINDINGS-2026-04-15.md</a>，完整 V4 规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">plans/v4-universality-class-engine.md</a>。",
@@ -1224,12 +1224,12 @@
     "en": "Key thinkers"
   },
   "page.analyze.sub_mature_tools": {
-    "zh": "成熟工具",
-    "en": "Mature tools"
+    "zh": "可借方法候选",
+    "en": "Candidate methods to borrow"
   },
   "page.analyze.sub_what_it_solves": {
-    "zh": "在源领域中它解决什么",
-    "en": "What it solves in the source domain"
+    "zh": "它在源领域中的用途",
+    "en": "How it is used in the source domain"
   },
   "page.analyze.sub_translated_to_target": {
     "zh": "翻译到你的问题",
@@ -1544,8 +1544,8 @@
     "en": "V2 also saw these connections"
   },
   "page.search.v2_pairs_sub": {
-    "zh": "V2 管道独立筛选过的跨学科同构对，不在向量检索流里。点击查看深度分析。",
-    "en": "Cross-disciplinary isomorphic pairs independently filtered by the V2 pipeline, outside the vector retrieval stream. Click for deep analysis."
+    "zh": "V2 管道单独生成的一组跨学科候选，不在当前向量检索流里。模型筛选不是独立验证；点击查看映射、证据缺口与反例。",
+    "en": "A separate set of cross-disciplinary candidates produced by the V2 pipeline, outside the current vector-retrieval stream. Model filtering is not independent validation; open a pair to inspect its mapping, evidence gaps, and counterexamples."
   },
   "page.search.candidates_title": {
     "zh": "跨领域证据",
@@ -1692,20 +1692,20 @@
     "en": "Back to all results"
   },
   "page.phenomenon.same_structure_caption_emphasize": {
-    "zh": "这些现象共享同一个数学骨架，可相互迁移。",
-    "en": "These phenomena share the same mathematical skeleton and can be transferred between one another."
+    "zh": "这些现象被归入同一候选骨架；可借用假设设计检验，但方法迁移前需核对变量、边界与反例。",
+    "en": "These phenomena are grouped under one candidate skeleton. It may suggest test designs, but any method transfer requires checks of variables, boundaries, and counterexamples."
   },
   "page.phenomenon.same_structure_caption_default": {
-    "zh": "共享相同数学结构的其他已知现象",
-    "en": "Other known phenomena sharing the same mathematical structure"
+    "zh": "被检索为结构相似候选的其他现象",
+    "en": "Other phenomena retrieved as structural-analogy candidates"
   },
   "page.phenomenon.same_structure_eyebrow": {
     "zh": "开阔视野",
     "en": "Broaden the view"
   },
   "page.phenomenon.same_structure_title": {
-    "zh": "同一结构的其他现象",
-    "en": "Other phenomena of the same structure"
+    "zh": "同一候选结构下的其他现象",
+    "en": "Other phenomena under this candidate structure"
   },
   "page.phenomenon.structure_type_eyebrow": {
     "zh": "结构类型",
@@ -1716,32 +1716,32 @@
     "en": "Mathematical skeleton"
   },
   "page.phenomenon.structure_type_caption": {
-    "zh": "这个编号代表一类共享的数学结构，不同领域的许多现象都落在同一个骨架之下。",
-    "en": "This code represents a shared mathematical structure — many phenomena across different domains fall under the same skeleton."
+    "zh": "这个编号是检索与组织用的候选结构标签；它把可能具有相似变量关系的现象放在一起，不代表机制已经相同。",
+    "en": "This code is a candidate-structure label for retrieval and organization. It groups phenomena with possibly similar variable relationships; it does not establish a shared mechanism."
   },
   "page.phenomenon.belongs_to_structure": {
     "zh": "属于结构",
     "en": "belongs to structure"
   },
   "page.phenomenon.structure_type_text": {
-    "zh": "。沿着这个骨架，你可以在其他领域找到行为高度相似的现象，并把它们的成熟做法迁移到当前问题上。",
-    "en": ". Following this skeleton, you can find phenomena with highly similar behavior in other domains, and transfer their mature approaches to your current problem."
+    "zh": "。沿着这个候选骨架，你可以寻找其他领域的可比现象，把成熟做法改写成待检验假设；在当前问题采用前仍需验证适用边界。",
+    "en": ". Following this candidate skeleton can surface comparable phenomena in other domains and turn mature approaches into hypotheses to test; applicability must be validated before use in the current problem."
   },
   "page.phenomenon.v2_eyebrow": {
     "zh": "V2 管道",
     "en": "V2 pipeline"
   },
   "page.phenomenon.v2_title": {
-    "zh": "V2 模型识别的跨域同构",
-    "en": "Cross-domain isomorphisms identified by V2"
+    "zh": "V2 模型提出的跨域候选",
+    "en": "Cross-domain candidates proposed by V2"
   },
   "page.phenomenon.v2_caption_prefix": {
-    "zh": "这个现象在 V2 管道里被发现连接到",
-    "en": "In the V2 pipeline this phenomenon was found to connect to"
+    "zh": "V2 管道为这个现象生成了",
+    "en": "The V2 pipeline produced"
   },
   "page.phenomenon.v2_caption_suffix": {
-    "zh": "个其他领域的现象。每对都经过 AI 评分。",
-    "en": "phenomena in other domains. Each pair was LLM-scored."
+    "zh": "个其他领域候选。每对只有内部 AI 分数，尚待来源核对与独立复现。",
+    "en": "candidate phenomena in other domains. Each pair has only an internal AI score and remains pending source checks and independent replication."
   },
   "page.phenomenon.v2_score_prefix": {
     "zh": "V2",
@@ -1768,8 +1768,8 @@
     "en": "Starting from"
   },
   "page.phenomenon.analyze_text_suffix": {
-    "zh": "为起点，让 AI 沿着它的数学骨架跨越领域边界，生成一份 9 段结构化研究报告：共享结构 → 参数对照 → 方法借用 → 行动建议。",
-    "en": ", let the AI trace its mathematical skeleton across domain boundaries to produce a 9-section structured research report: shared structure → parameter mapping → method borrowing → action suggestions."
+    "zh": "为起点，让 AI 沿候选骨架检索跨域类比，生成 9 段研究草案：候选结构 → 参数对照 → 方法假设 → 验证建议。草案不等于机制确认。",
+    "en": ", let the AI search across domains using a candidate skeleton and produce a 9-section research draft: candidate structure → parameter mapping → method hypothesis → validation suggestions. The draft is not mechanism confirmation."
   },
   "page.phenomenon.analyze_btn": {
     "zh": "生成研究报告",
@@ -1984,8 +1984,8 @@
     "en": "About these papers:"
   },
   "page.papers.footer_note_body": {
-    "zh": "每个 phase 用同一份代码、独立公开数据源、相同 fitting 标准产出。",
-    "en": "Each phase uses the same code, independent public data, and identical fitting standards."
+    "zh": "各 phase 复用部分分析模块，但数据接入、预处理、独立性和证据强度不同；逐项限制以结果记录为准。",
+    "en": "The phases reuse selected analysis modules, but data access, preprocessing, independence, and evidence strength differ; consult each result record for its limitations."
   },
   "page.methods.meta_title": {
     "zh": "方法与 Pipeline — Structural",
@@ -2024,8 +2024,8 @@
     "en": "Domain result records (real and synthetic data)"
   },
   "page.methods.b3_title": {
-    "zh": "B3 多模型 ensemble taxonomy critic",
-    "en": "B3 multi-model ensemble taxonomy critic"
+    "zh": "B3 同模型族内部筛查",
+    "en": "B3 same-family internal screening"
   },
   "page.methods.null_title": {
     "zh": "Null robustness",
@@ -2072,48 +2072,48 @@
     "en": "B1 vs B3 disagreement"
   },
   "page.about.empirical.results": {
-    "zh": "几个有代表性的结果：地震（USGS 8.4 万次事件）的 b-value 落在 1.08 附近、余震衰减指数 p≈0.94，与理论吻合；S&P 500 日线的能量指数 α≈3.00 落在日尺度文献带内；DeFi 三大协议（Aave / Compound / MakerDAO，4.3 万次清算）的 per-protocol 能量指数 α=1.57-1.68，跨协议聚在同一个共享模式里——同一个数学结构在三个独立系统中独立涌现。小鼠皮层神经雪崩部分符合任务态亚临界假说。控制实验里人工合成的 Poisson / Gaussian 数据跑同样管道<strong>得不到幂律分布</strong>，说明前面的结果不是方法学造的假。",
-    "en": "Representative results: earthquakes (USGS, 84k events) — b-value ≈ 1.08, aftershock decay exponent p ≈ 0.94, both consistent with theory. S&P 500 daily returns — energy exponent α ≈ 3.00, well inside the published daily-scale band. DeFi (Aave / Compound / MakerDAO, 43k liquidations) — per-protocol energy exponents α = 1.57–1.68, all three protocols clustering on the same shared pattern: one mathematical structure independently emerging in three independent systems. Mouse cortical neural avalanches partially match the task-state subcritical hypothesis. As a control, the same pipeline applied to synthetic Poisson / Gaussian data <strong>fails to recover any power-law distribution</strong>, ruling out a methodological artefact."
+    "zh": "记录中既有与候选预测相容的统计量，也有 NULL、FAIL、PARTIAL 和 INCONCLUSIVE。地震、市场、DeFi 与神经数据的历史拟合只能说明某些统计形状值得继续比较；不能单凭指数接近推出同一机制。合成对照用于检查代码行为，也不能排除所有方法偏差。逐项数据、版本和限制见结果记录与证据账本 v1（2026-07-12）。",
+    "en": "The records include statistics compatible with candidate predictions as well as NULL, FAIL, PARTIAL, and INCONCLUSIVE outcomes. Historical fits on earthquake, market, DeFi, and neural data identify shapes worth comparing; similar exponents alone do not establish a shared mechanism. Synthetic controls check code behavior but cannot eliminate every methodological bias. See the result records and evidence ledger v1 (2026-07-12) for inputs, versions, and limits."
   },
   "page.about.how.example1": {
-    "zh": "<strong>地震和股价闪崩</strong>——共享同一类\"能量缓慢累积、临界点突然释放\"的方程，事件大小都服从相同范围的幂律分布。",
-    "en": "<strong>Earthquakes and stock-market flash crashes</strong> — share the same class of \"slow energy build-up, sudden release at a critical threshold\" equations; event sizes follow power-law distributions in the same band."
+    "zh": "<strong>地震和股价闪崩</strong>——候选比较关注“缓慢积累、突然释放”的统计形状；形状接近不等于驱动机制相同。",
+    "en": "<strong>Earthquakes and stock-market flash crashes</strong> — a candidate comparison focuses on slow build-up and sudden-release statistics; similar shapes do not establish the same driving mechanism."
   },
   "page.about.how.example2": {
-    "zh": "<strong>神经雪崩和电网级联反应</strong>——共享相同的\"局部失败传染给邻居\"机制，雪崩规模和持续时间的指数关系满足同一个标度律。",
-    "en": "<strong>Neural avalanches and power-grid cascading failures</strong> — share the same \"local failure spreads to neighbours\" mechanism; the scaling relation between avalanche size and duration obeys the same scaling law."
+    "zh": "<strong>神经雪崩和电网级联</strong>——都可提出“局部事件沿连接传播”的候选模型，但网络、因果方向和证据仍需分别检验。",
+    "en": "<strong>Neural avalanches and power-grid cascades</strong> — both invite a candidate model of local events propagating along connections, while their networks, causal direction, and evidence require separate tests."
   },
   "page.about.how.example3": {
-    "zh": "<strong>DeFi 清算和银行挤兑</strong>——共享同一个延迟反馈结构：杠杆累积 → 触发阈值 → 强制平仓压力传给下一家，跨链跨协议都涌现出相同的级联反应统计。",
-    "en": "<strong>DeFi liquidations and bank runs</strong> — share the same delayed-feedback structure: leverage builds up → threshold triggers → forced unwinds propagate to the next position. The same cascade statistics emerge across chains and across protocols."
+    "zh": "<strong>DeFi 清算和银行挤兑</strong>——可比较杠杆、阈值与压力传播的变量映射；跨协议统计相似只是研究线索。",
+    "en": "<strong>DeFi liquidations and bank runs</strong> — leverage, thresholds, and stress propagation can be mapped for comparison; cross-protocol statistical similarity remains a research lead."
   },
   "page.about.how.example4": {
-    "zh": "<strong>野火和太阳耀斑</strong>——共享\"系统自己漂到临界边缘\"的动力学，事件大小分布的指数都落在同一个窄带里。",
-    "en": "<strong>Wildfires and solar flares</strong> — share the \"system drifts to the edge of criticality on its own\" dynamics; the event-size exponents both fall inside the same narrow band."
+    "zh": "<strong>野火和太阳耀斑</strong>——历史结果曾比较事件大小分布；当前只作为候选统计类比，不作普适机制结论。",
+    "en": "<strong>Wildfires and solar flares</strong> — historical records compared event-size distributions; this remains a candidate statistical analogy, not a universal-mechanism conclusion."
   },
   "page.about.how.examples_intro": {
     "zh": "这套流程实际跑出来的发现，长这样：",
     "en": "Here is what this pipeline actually finds in practice:"
   },
   "page.about.how.flow": {
-    "zh": "具体来说：我们读取每个现象的描述，让 AI 提炼出它的状态变量、反馈结构、特征时间、骨架方程；同族的现象被聚到一起；每一对候选都交给多个独立 AI 评审员投票通过/否决，只留下多数同意的；最后挑出最成熟的一类，把开源数据接进同一套代码，看实际的分布、指数、回归曲线对不对得上理论预测。",
-    "en": "Concretely: we read each phenomenon's description and have an AI extract its state variables, feedback structure, characteristic timescale, and skeleton equation. Phenomena from the same family are clustered. Every candidate pair is then submitted to several independent AI reviewers who vote accept / reject; only those with a majority survive. Finally, we pick the most mature class, plug open-source data into a single shared codebase, and check whether the observed distributions, exponents, and regression curves match the theoretical predictions."
+    "zh": "系统从描述中提取状态变量、反馈结构和候选方程，再聚合相似现象。多个 AI 配置只用于内部筛查，不等于外部同行评审。部分候选随后进入共享分析代码，结果可能是支持、拒绝、NULL、PARTIAL 或 INCONCLUSIVE；每条仍需检查数据来源、替代解释和独立复现。",
+    "en": "The system extracts state variables, feedback structures, and candidate equations, then groups similar phenomena. Multiple AI configurations provide internal screening, not external peer review. Some candidates enter shared analysis code, producing support, rejection, NULL, PARTIAL, or INCONCLUSIVE results; every claim still requires source checks, alternative explanations, and independent replication."
   },
   "page.about.how.outcome": {
-    "zh": "每一对发现都附带可推断的数学方程、变量对应表、目标期刊、执行计划——领域专家可以直接拿去做实验、写论文。所有共享模式都在这里：<a href=\"/classes\">/classes</a>。",
-    "en": "Each finding ships with the inferred mathematical equation, variable-correspondence table, target journal, and execution plan — a domain expert can pick it up and run experiments or write a paper directly. The full set of shared patterns lives at <a href=\"/classes\">/classes</a>."
+    "zh": "每条候选提供变量映射、可能的方程、反例方向和下一步实验草案，供领域专家判断是否值得继续；它不是可直接投稿的结论。候选模式见 <a href=\"/classes\">/classes</a>。",
+    "en": "Each candidate offers a variable mapping, possible equation, counterexample direction, and next-experiment draft so a domain expert can decide whether to continue. It is not a submission-ready conclusion. Candidate patterns are listed at <a href=\"/classes\">/classes</a>."
   },
   "page.analyze.crumb_classes": {
     "zh": "共享模式",
     "en": "Shared patterns"
   },
   "page.classes.footnote_l7": {
-    "zh": "<strong>多模型 AI 审稿团</strong>:3 个独立 AI 审稿模型 × 21 个候选共享模式 = 63 次投票,0 解析错误,40.8 分钟总耗时。AI 审稿团对 21 个候选共享模式投票:保留 5 / 拒绝 7 / 拆分 5 / 合并 4。4 个 AI 推翻人工保留的候选共享\"把数学框架当作共享模式\"的错误模式。详细见 <a href=\"/taxonomy-v2\">审稿结果</a>。",
-    "en": "<strong>Multi-model AI review panel</strong>: 3 independent AI reviewers × 21 candidate shared patterns = 63 votes, 0 parse errors, 40.8 min total wall-time. Verdicts: keep 5 / reject 7 / split 5 / merge 4. The 4 candidates AI overturned (initially kept by human reviewers) all share the same error mode — <em>mistaking a mathematical framework for a shared pattern</em>. Full results at <a href=\"/taxonomy-v2\">/taxonomy-v2</a>."
+    "zh": "<strong>AI 内部筛查记录</strong>：同一厂商模型族的 3 个配置对 21 个候选分组产生 63 次内部投票（保留 5 / 拒绝 7 / 拆分 5 / 合并 4）。这些配置不是独立同行评审，也不能验证分类方法；结果只用于发现命名过宽等待复核问题。详见 <a href=\"/taxonomy-v2\">筛查记录</a>。",
+    "en": "<strong>Internal AI screening record</strong>: three configurations from one vendor's model family produced 63 internal votes on 21 candidate groups (keep 5 / reject 7 / split 5 / merge 4). The configurations are not independent peer review and do not validate the taxonomy method; the results only flag issues such as overly broad labels for review. See the <a href=\"/taxonomy-v2\">screening record</a>."
   },
   "page.home.brand": {
-    "zh": "把你的难题，换成<em>另一个学科已经解过的题</em>",
-    "en": "Turn your problem into <em>one another field has already solved</em>"
+    "zh": "把你的难题，换成<em>其他学科可供检验的类比</em>",
+    "en": "Turn your problem into <em>analogies worth testing in other fields</em>"
   },
   "page.home.hero_evidence.eyebrow": {
     "zh": "演示 · 点任一边看一个真实例子",
@@ -2128,16 +2128,16 @@
     "en": "A single-vendor review panel only detects intra-family verdict drift, not cross-architecture disagreement. Cross-vendor review (other LLM families) is deferred to a future version due to regional access constraints."
   },
   "page.methods.b3_p1": {
-    "zh": "候选模式太多 / 命名太松会污染整个分类。我们在\"匹配到已知模式\"环节接一个 <strong>多模型 AI 审稿团</strong>:跑三个独立 AI 审稿模型,每个对 21 个候选模式给 保留 / 拒绝 / 拆分 / 合并 四档投票,多数决定共识。",
-    "en": "Too many candidate patterns, or names that are too loose, will pollute the entire taxonomy. After the \"match to known patterns\" stage we add a <strong>multi-model AI review panel</strong>: three independent AI reviewers each vote keep / reject / split / merge on all 21 candidates, and the majority decides the consensus."
+    "zh": "候选模式太多或命名太松会污染整个分类。分类假设阶段使用同一厂商模型族的三个配置，对 21 个候选分别给出保留 / 拒绝 / 拆分 / 合并的内部筛查票。多数票只用于安排人工复核优先级，不是独立评审。",
+    "en": "Too many candidate patterns or overly loose names can pollute the taxonomy. At the taxonomy-hypothesis stage, three configurations from one vendor's model family cast internal screening votes—keep, reject, split, or merge—on 21 candidates. A majority only prioritizes human review; it is not independent review."
   },
   "page.methods.b3_p2": {
     "zh": "<strong>共识分布:</strong> 保留 5 / 拒绝 7 / 拆分 5 / 合并 4。详细投票矩阵见 <a href=\"/taxonomy-v2\">审稿结果</a>。",
     "en": "<strong>Consensus breakdown:</strong> keep 5 / reject 7 / split 5 / merge 4. Full voting matrix at <a href=\"/taxonomy-v2\">/taxonomy-v2</a>."
   },
   "page.methods.b3_p3": {
-    "zh": "<strong>关键发现 — 共享错误模式:</strong> AI 审稿团推翻初始保留的 4 个候选(延迟微分债务、回不去效应 Preisach 作为单一类、无标度渗流类、尾部 copula 传染)共享同一种错误 — <strong>把数学框架当作共享模式</strong>。这些都是数学基础设施,不是机制。三个独立审稿模型收敛于同一个判定本身就是非平凡的方法论验证。",
-    "en": "<strong>Key finding — a shared error mode:</strong> the four candidates the AI panel overturned (delay-differential debt; Preisach hysteresis as a single class; scale-free percolation class; tail-copula contagion) share the same error — <strong>mistaking a mathematical framework for a shared pattern</strong>. These are mathematical infrastructure, not mechanisms. The fact that three independent reviewers converge on the same verdict is itself a non-trivial methodological check."
+    "zh": "<strong>内部观察 — 相似错误标签:</strong> 同厂商的三个模型配置都把 4 个初始候选标为“可能把数学工具误当机制”。这种一致可用于发现待人工复核项，但由于模型同源、提示与样本未独立，它不是方法论有效性的验证。",
+    "en": "<strong>Internal observation — a similar error label:</strong> three configurations from one vendor flagged four initial candidates as possibly mistaking mathematical tools for mechanisms. This agreement can prioritize human review, but shared model provenance, prompts, and samples mean it is not validation of the methodology."
   },
   "page.methods.b3_stat_agreement": {
     "zh": "人工 ↔ AI 一致",
@@ -2156,20 +2156,20 @@
     "en": "total wall-time"
   },
   "page.methods.l1_desc": {
-    "zh": "读取前几代检索的高质量结果(A 级 + B+ 发现),按统一打分阈值过滤,得到 180 节点 / 143 边的现象关联图。",
-    "en": "Ingest the high-quality results from earlier retrieval generations (A-grade + B+ findings), filter by a unified score threshold, and obtain a phenomenon graph of 180 nodes / 143 edges."
+    "zh": "读取前几代检索中带 A、B+ 内部评分标签的候选，按当时阈值过滤，得到 180 节点 / 143 边的现象关联图；标签不代表正确性或证据质量。",
+    "en": "Read candidates carrying internal A or B+ score labels from earlier retrieval generations and filter them by the recorded threshold, yielding a phenomenon graph of 180 nodes / 143 edges; the labels do not establish correctness or evidence quality."
   },
   "page.methods.l2_desc": {
     "zh": "用社区发现算法(Louvain)在关联图上聚簇,得到 <strong>23 个候选等价类</strong>,21 个跨 ≥ 2 领域。",
     "en": "Run a community-detection algorithm (Louvain) on the graph to cluster nodes, yielding <strong>23 candidate equivalence classes</strong>, 21 of which span ≥ 2 domains."
   },
   "page.methods.l3_desc": {
-    "zh": "把无监督浮现的等价类匹配到物理学已命名的共享模式(临界级联、强者愈强、电网级联、回不去效应、临界翻转、银行挤兑 …)。",
-    "en": "Match each unsupervised-emerged equivalence class to a named physics pattern (critical cascade, rich-get-richer, grid cascade, no-going-back effect, critical tipping, bank-run cascade, …)."
+    "zh": "把算法生成的候选分组关联到文献中的命名模式，作为待检验的分类假设；关联标签不等于确认物理普适类或共享机制。",
+    "en": "Associate algorithm-generated candidate groups with named patterns in the literature as taxonomy hypotheses for testing; an association label does not confirm a physical universality class or shared mechanism."
   },
   "page.methods.l4_desc": {
-    "zh": "对已匹配的共享模式,把已知物理定律翻译为跨域可验证预测(幂律带、余震律、回路宽度比、临界放缓…)。",
-    "en": "For each matched pattern, translate the known physics into cross-domain falsifiable predictions (power-law band, aftershock law, loop-width ratio, critical slowing down, …)."
+    "zh": "参考文献中报告的关系草拟跨领域可证伪假设；每项迁移仍需核对变量映射、数据、替代解释和失败标准。",
+    "en": "Use literature-reported relationships to draft cross-domain falsifiable hypotheses; each transfer still requires checks of variable mapping, data, alternative explanations, and failure criteria."
   },
   "page.methods.l5_desc": {
     "zh": "共享分析模块用于多份领域数据和合成对照。结果并不一致：有支持、拒绝、部分支持、NULL 和证据不足。合成对照检验代码行为，不替代真实系统的机制证据。",
@@ -2180,24 +2180,24 @@
     "en": "Shared code makes analysis steps comparable; it does not guarantee independent data, a common mechanism, or a positive conclusion. This page records the path from candidate patterns to real/synthetic tests while preserving support, rejection, NULL, PARTIAL, and INCONCLUSIVE outcomes."
   },
   "page.methods.null_p1": {
-    "zh": "为排除\"代码把任何数据都拟合成幂律\"的平凡解释,我们在 4 个合成数据上跑了同一份代码作为对照(包括 Gaussian 随机游走、指数变量、Poisson 事件、Poisson 余震叠加)。<strong>全部正确拒绝幂律假设</strong>(相对对数正态/指数分布的似然比 R ∈ [-45, -16],Poisson 余震拟合 R² ≈ 0.002)。",
-    "en": "To rule out the trivial \"the code fits a power law to anything\" explanation, we ran the same code on 4 synthetic datasets as controls (Gaussian random walk, exponential variates, Poisson events, Poisson-aftershock superposition). <strong>All four correctly reject the power-law hypothesis</strong> (likelihood ratios R ∈ [-45, -16] against log-normal / exponential alternatives; Poisson-aftershock fit R² ≈ 0.002)."
+    "zh": "为检查代码是否会把明显的非幂律样本也拟合成幂律，我们记录了 4 个合成对照（Gaussian 随机游走、指数变量、Poisson 事件、Poisson 余震叠加）。在当时配置下这些样本未被选为幂律（记录的 R ∈ [-45, -16]，Poisson 余震 R² ≈ 0.002）。这个小型对照只覆盖已选生成过程，不能排除其他方法偏差。",
+    "en": "To check whether the code also labels obvious non-power-law samples as power laws, we recorded four synthetic controls (Gaussian random walk, exponential variates, Poisson events, and Poisson-aftershock superposition). Under the recorded configuration they were not selected as power laws (R ∈ [-45, -16]; Poisson-aftershock R² ≈ 0.002). This small control set covers only the chosen generators and cannot exclude other methodological bias."
   },
   "page.methods.null_p2": {
-    "zh": "我们做了一道共享形态对照(让 7 个不同领域的曲线在归一化后比形状)。在有限尺寸标度假设下做归一化形态对照,达到 r<sub>shape</sub> = 1.11(优秀阈值 r < 2)。贝叶斯模型选择在 5/7 系统优先选幂律 + 指数 cutoff,对数正态在 0/7 系统胜出。",
-    "en": "We also ran a shape-collapse control — normalising curves from 7 different domains and comparing shapes. Under the finite-size scaling ansatz, we reach r<sub>shape</sub> = 1.11 (excellent threshold r < 2). Bayesian model selection prefers \"power-law + exponential cutoff\" in 5/7 systems; log-normal wins in 0/7."
+    "zh": "另有一份探索性形态对照：在有限尺寸标度假设和既定归一化下，7 份领域曲线记录 r<sub>shape</sub> = 1.11；当时的模型选择在 5/7 中偏向幂律 + 指数 cutoff。阈值、领域选择和预处理均非预注册，因此这只是候选观察，不能证明 7 个领域发生同一 collapse 或共享机制。",
+    "en": "A separate exploratory shape comparison records r<sub>shape</sub> = 1.11 for seven domain curves under a finite-size-scaling assumption and a selected normalization; the recorded model selection favored power law plus exponential cutoff in 5/7. The threshold, domains, and preprocessing were not preregistered, so this is a candidate observation—not proof of one collapse or a shared mechanism across seven domains."
   },
   "page.methods.null_p3": {
     "zh": "完整研究规划见 <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>,统一研究报告见 <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">研究报告</a>。",
     "en": "Full research plan on <a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/plans/v4-universality-class-engine.md\" target=\"_blank\" rel=\"noopener\">GitHub</a>; unified pipeline report at <a href=\"/paper/unified-pipeline-v0.2-2026-05-13\">research report</a>."
   },
   "page.methods.pipeline_p1": {
-    "zh": "所有领域共用同一份 Python 代码(<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>)。一个函数对应一个分析操作:",
-    "en": "Every domain runs against the same Python module (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>). One function per analytical operation:"
+    "zh": "多份领域记录复用一个 Python 分析模块（<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">查看代码 →</a>）；数据接入、预处理和运行配置仍需逐项审计。模块提供以下分析操作：",
+    "en": "Multiple domain records reuse a Python analysis module (<a href=\"https://github.com/dada8899/structural-isomorphism/blob/main/v4/lib/soc_pipeline.py\" target=\"_blank\" rel=\"noopener\">view source →</a>); ingestion, preprocessing, and run configuration still require per-record audit. The module provides these operations:"
   },
   "page.methods.pipeline_p2": {
-    "zh": "<strong>每个领域调用同一个函数,数据接入是各领域专用的,但分析代码本身从不修改、不调参数、不加先验</strong>。这是\"同一份代码\"这件事的技术含义。",
-    "en": "<strong>Every domain calls the same functions. Data ingestion is domain-specific, but the analysis code itself is never modified, never tuned, never given priors.</strong> That is the technical meaning of \"the same code\"."
+    "zh": "<strong>不同领域复用共享分析模块，但数据接入、预处理和适用参数可能因数据而异。</strong>复用提高可比性；在缺少逐项配置与来源审计时，不能声称整条管道完全未修改、未调参或未使用先验。",
+    "en": "<strong>Domains reuse shared analysis modules, while ingestion, preprocessing, and applicable parameters may differ by dataset.</strong> Reuse improves comparability; without a per-run configuration and provenance audit, we cannot claim that the full pipeline was unchanged, untuned, or free of priors."
   },
   "page.methods.pipeline_title": {
     "zh": "共享代码模块",
@@ -2232,12 +2232,12 @@
     "en": "The <strong>4 candidates</strong> the AI panel overturned from \"human-kept\" (delay-differential debt; Preisach hysteresis as a single class; scale-free percolation class; tail-copula contagion) all share one error mode: <strong>mistaking a mathematical framework for a shared pattern</strong>."
   },
   "page.taxv2.pattern_p2": {
-    "zh": "延迟微分方程、Preisach 积分、无标度生成模型、copula 联合分布族都是数学基础设施。它们能描述很多不同机制产生的数据,但它们本身不是机制。三个独立审稿模型收敛于同一个判定本身就是非平凡的方法论验证。",
-    "en": "Delay-differential equations, Preisach integrals, scale-free generative models, and copula joint distributions are all mathematical infrastructure. They can describe data produced by many different mechanisms, but they are not mechanisms themselves. The fact that three independent reviewers converge on the same verdict is itself a non-trivial methodological check."
+    "zh": "延迟微分方程、Preisach 积分、无标度生成模型、copula 联合分布族是可描述多种机制的数学工具，本身不是机制。同厂商三个模型配置给出相似标签，只是内部筛查观察；它们共享训练谱系，不能作为方法论验证。",
+    "en": "Delay-differential equations, Preisach integrals, scale-free generative models, and copula joint distributions are mathematical tools that can describe multiple mechanisms; they are not mechanisms themselves. Similar labels from three same-vendor configurations are an internal screening observation, not methodological validation, because the models share a training lineage."
   },
   "page.taxv2.pattern_p3": {
-    "zh": "<strong>回不去效应(Preisach)例外:</strong> Preisach 作为<em>单一类</em>被 AI 审稿团拒绝,但交通-Preisach(NGSIM US-101 验证)、磁滞-Preisach、毛细-Preisach 等<strong>各领域子类</strong>仍然成立。每个子类对应一个真实物理机制 + 各自的回路宽度带。",
-    "en": "<strong>The Preisach exception:</strong> Preisach as a <em>single class</em> was rejected by the AI panel, but <strong>per-domain subclasses</strong> like traffic-Preisach (validated on NGSIM US-101), magnetic-Preisach, and capillary-Preisach all stand. Each subclass corresponds to a real physical mechanism with its own loop-width band."
+    "zh": "<strong>Preisach 待检验项:</strong> 把 Preisach 当作单一跨域机制的候选已被降级。NGSIM US-101 上的交通拟合、磁滞与毛细类比目前都只是各领域观察；一次数据拟合不确认真实机制，各子类仍需领域对照和独立复现。",
+    "en": "<strong>Preisach item pending tests:</strong> the candidate that treated Preisach as one cross-domain mechanism was downgraded. The traffic fit on NGSIM US-101 and the magnetic and capillary analogies remain per-domain observations; one dataset fit does not confirm a physical mechanism, and each subclass requires domain controls and independent replication."
   },
   "page.taxv2.pattern_title": {
     "zh": "共享降级模式",

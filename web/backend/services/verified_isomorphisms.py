@@ -59,6 +59,9 @@ def shape_verified(report_row: dict) -> dict:
     )
     structure_name = shared.get("name") or ""
 
+    from services.evidence_envelope import build_evidence_envelope
+    verifier_count = int(report_row.get("verifier_count", 0) or 0)
+    lang = report_row.get("lang", "")
     return {
         "report_id": report_row.get("id", ""),
         "problem": _short(report_row.get("query", "")),
@@ -66,9 +69,27 @@ def shape_verified(report_row: dict) -> dict:
         "lang": report_row.get("lang", ""),
         "source_phenomenon": str(source_domain),
         "structure_name": str(structure_name),
-        "verifier_count": int(report_row.get("verifier_count", 0) or 0),
+        "verifier_count": verifier_count,
         "last_verified_at": report_row.get("last_verified_at", "") or "",
         "created_at": report_row.get("created_at", "") or "",
+        "evidence": build_evidence_envelope(
+            candidate_kind="transfer_candidate",
+            candidate_label=structure_name or source_domain,
+            source_kind="internal_kb",
+            source_label="Structural report and KB record",
+            result_provenance="USER_RECORDED_OUTCOME",
+            result_verdict="INCONCLUSIVE",
+            result_summary=(
+                f"{verifier_count} user-recorded worked outcome(s); selection-biased and not a mechanism test."
+                if lang == "en" else f"{verifier_count} 条用户‘管用’回填；存在选择偏差，不是机制检验。"
+            ),
+            independence_kind="internal",
+            independence_summary=(
+                "User outcome record; no independent reviewer or replication team recorded."
+                if lang == "en" else "用户结果记录；未记录独立评审者或复现团队。"
+            ),
+            counterexample_status="not_recorded",
+        ),
     }
 
 
