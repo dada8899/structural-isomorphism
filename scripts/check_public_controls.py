@@ -20,7 +20,8 @@ FRONTEND = ROOT / "web" / "frontend"
 PHASE = ROOT / "web" / "phase-detector"
 
 PUBLIC_BETA_ROUTES = {
-    "/", "/about", "/analyze", "/apply", "/classes", "/diagnose",
+    "/", "/about", "/analyze", "/apply", "/auth/login", "/auth/verify",
+    "/classes", "/diagnose",
     "/discoveries", "/insights", "/learn", "/lint", "/methods",
     "/papers", "/phenomenon", "/privacy", "/report", "/reports",
     "/search", "/start-here", "/stress-test", "/taxonomy-v2",

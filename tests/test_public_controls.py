@@ -17,6 +17,12 @@ def test_inventory_has_links_and_buttons() -> None:
     assert any(item["tag"] == "button" for item in controls)
 
 
+def test_beta_native_auth_routes_are_public_contract_routes() -> None:
+    checker = (ROOT / "scripts/check_public_controls.py").read_text(encoding="utf-8")
+    assert '"/auth/login"' in checker
+    assert '"/auth/verify"' in checker
+
+
 def test_workbench_requires_fingerprint_and_candidate_confirmation() -> None:
     ask = (ROOT / "web/frontend/assets/js/ask.js").read_text(encoding="utf-8")
     analyze = (ROOT / "web/frontend/assets/js/analyze.js").read_text(encoding="utf-8")
