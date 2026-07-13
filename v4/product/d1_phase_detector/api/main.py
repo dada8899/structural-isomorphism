@@ -33,7 +33,11 @@ from pydantic import BaseModel, Field
 from .db import get_cursor, placeholder, row_to_dict
 from .universality import router as universality_router
 from .ews import router as ews_router
-from web.backend.api.auth import retry_registration_notifications, router as auth_router
+from web.backend.api.auth import (
+    _validate_production_config,
+    retry_registration_notifications,
+    router as auth_router,
+)
 from web.backend.api.sso import router as sso_router
 
 logger = logging.getLogger("phase.auth")
@@ -85,6 +89,9 @@ def _ensure_waitlist_table() -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # startup: idempotent waitlist DDL (replaces deprecated @app.on_event("startup")).
     _ensure_waitlist_table()
+    # Phase shares the account store but has its own explicit runtime role and
+    # canonical origin. Reject config drift before the service accepts traffic.
+    _validate_production_config()
     retry_task = None
     if os.getenv("AUTH_ENABLED", "false").lower() in {"1", "true", "yes"}:
         # Durable outbox retry: failures stay pending and never block API boot.

@@ -14,6 +14,11 @@
 
 set -euo pipefail
 
+[[ "$EUID" -eq 0 ]] || {
+  echo "[deploy] ERROR: deployment must run as root before any files are changed" >&2
+  exit 1
+}
+
 if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
   exec 9>/var/lock/structural-isomorphism-deploy.lock
   flock -w 900 9
@@ -37,8 +42,12 @@ PREVIOUS_SHA="${PREVIOUS_SHA:-}"
 DRY_RUN=0
 PRUNE=0
 RUNTIME_BACKUP=""
+SYSTEMD_UNIT_BACKUP=""
+SYSTEMD_UNIT_INSTALLED=0
 BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$TARGET/web/backend/.env}"
 BETA_AUTH_ENV_FILE="${STRUCTURAL_BETA_AUTH_ENV_FILE:-/root/.config/structural-isomorphism/beta-auth.env}"
+SYSTEMD_UNIT_SOURCE="${STRUCTURAL_SYSTEMD_UNIT_SOURCE:-$SOURCE/web/scripts/structural-web.service}"
+SYSTEMD_UNIT_TARGET="${STRUCTURAL_SYSTEMD_UNIT_TARGET:-/etc/systemd/system/${SERVICE}.service}"
 
 env_key_once() {
   local file="$1" key="$2"
@@ -130,6 +139,31 @@ validate_beta_auth_config() {
   }
 }
 
+install_structural_systemd_unit() {
+  [[ -f "$SYSTEMD_UNIT_SOURCE" ]] || {
+    echo "[deploy] ERROR: tracked structural-web systemd unit is missing" >&2; return 1;
+  }
+  grep -Fqx "EnvironmentFile=$BETA_AUTH_ENV_FILE" "$SYSTEMD_UNIT_SOURCE" || {
+    echo "[deploy] ERROR: tracked systemd unit does not load beta auth environment" >&2; return 1;
+  }
+  grep -Fq 'ExecStartPost=' "$SYSTEMD_UNIT_SOURCE" || {
+    echo "[deploy] ERROR: tracked systemd unit has no deep-readiness gate" >&2; return 1;
+  }
+  SYSTEMD_UNIT_BACKUP="$(mktemp)" || return 1
+  if [[ -f "$SYSTEMD_UNIT_TARGET" ]]; then
+    cp -a "$SYSTEMD_UNIT_TARGET" "$SYSTEMD_UNIT_BACKUP" || return 1
+  else
+    rm -f "$SYSTEMD_UNIT_BACKUP"
+    SYSTEMD_UNIT_BACKUP=""
+  fi
+  SYSTEMD_UNIT_INSTALLED=1
+  install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET" || return 1
+  systemctl daemon-reload || return 1
+  systemctl cat "$SERVICE" | grep -Fq "EnvironmentFile=$BETA_AUTH_ENV_FILE" || {
+    echo "[deploy] ERROR: active systemd unit does not load beta auth environment" >&2; return 1;
+  }
+}
+
 rollback_deploy() {
   local reason="$1"
   echo "[deploy] FAIL: $reason — rolling back" >&2
@@ -140,6 +174,14 @@ rollback_deploy() {
   fi
   if [[ -n "$RUNTIME_BACKUP" && -f "$RUNTIME_BACKUP" ]]; then
     cp -a "$RUNTIME_BACKUP" "$TARGET/web/backend/.env.runtime"
+  fi
+  if [[ "$SYSTEMD_UNIT_INSTALLED" == "1" ]]; then
+    if [[ -n "$SYSTEMD_UNIT_BACKUP" && -f "$SYSTEMD_UNIT_BACKUP" ]]; then
+      cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"
+    else
+      rm -f "$SYSTEMD_UNIT_TARGET"
+    fi
+    systemctl daemon-reload
   fi
   systemctl restart "$SERVICE"
   systemctl is-active "$SERVICE" || true
@@ -269,8 +311,10 @@ EOF
   echo "[deploy]   git_sha=$GIT_SHA"
   echo "[deploy]   deployed_at=$DEPLOYED_AT"
 
+  echo "[deploy] Installing canonical systemd unit..."
+  install_structural_systemd_unit || rollback_deploy "canonical systemd unit installation failed"
   echo "[deploy] Restarting $SERVICE..."
-  systemctl restart "$SERVICE"
+  systemctl restart "$SERVICE" || rollback_deploy "service restart failed"
   READY=0
   for attempt in $(seq 1 24); do
     if systemctl is-active --quiet "$SERVICE" \
@@ -292,6 +336,21 @@ PY
     sleep 5
   done
   [[ "$READY" == "1" ]] || rollback_deploy "deep health not ready after 120 seconds"
+  if ! AUTH_STATUS="$(curl -sS --max-time 5 -o /tmp/structural-beta-auth-me.json -w '%{http_code}' \
+    'http://127.0.0.1:5004/api/auth/me')"; then
+    rollback_deploy "beta account runtime request failed"
+  fi
+  [[ "$AUTH_STATUS" == "401" ]] || rollback_deploy "beta account runtime is not enabled"
+  "$TARGET/venv/bin/python" - <<'PY' || rollback_deploy "beta account runtime response is invalid"
+import json
+
+with open("/tmp/structural-beta-auth-me.json", encoding="utf-8") as handle:
+    body = json.load(handle)
+assert body.get("error") == "no session", body
+PY
   rm -f "$RUNTIME_BACKUP"
+  if [[ -n "$SYSTEMD_UNIT_BACKUP" ]]; then
+    rm -f "$SYSTEMD_UNIT_BACKUP"
+  fi
   echo "[deploy] OK"
 fi

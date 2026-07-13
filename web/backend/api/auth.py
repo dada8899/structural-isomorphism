@@ -126,10 +126,18 @@ def _validate_production_config() -> None:
         or parsed.username or parsed.password
     ):
         raise RuntimeError("AUTH_LINK_BASE_URL must be a bare HTTPS origin in production")
-    if os.getenv("AUTH_SITE_ROLE", "").strip().lower() != "beta":
-        raise RuntimeError("production auth runtime must use AUTH_SITE_ROLE=beta")
-    if link_origin.rstrip("/") != "https://beta.structural.bytedance.city":
-        raise RuntimeError("beta AUTH_LINK_BASE_URL must use the canonical beta origin")
+    site_role = os.getenv("AUTH_SITE_ROLE", "").strip().lower()
+    canonical_origins = {
+        "beta": "https://beta.structural.bytedance.city",
+        "phase": "https://phase.bytedance.city",
+    }
+    expected_origin = canonical_origins.get(site_role)
+    if expected_origin is None:
+        raise RuntimeError("production auth runtime must use an explicit supported AUTH_SITE_ROLE")
+    if link_origin.rstrip("/") != expected_origin:
+        raise RuntimeError(
+            f"{site_role} AUTH_LINK_BASE_URL must use its canonical HTTPS origin"
+        )
     data_dir = Path(os.environ["AUTH_DATA_DIR"]).expanduser()
     if not data_dir.is_absolute():
         raise RuntimeError("AUTH_DATA_DIR must be absolute in production")

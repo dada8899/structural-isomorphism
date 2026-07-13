@@ -497,7 +497,31 @@ def test_beta_deploy_loads_private_canonical_auth_environment():
     assert "AUTH_TRUSTED_PROXY_IPS" in deploy
     assert "EnvironmentFile=/root/.config/structural-isomorphism/beta-auth.env" in unit
     assert unit.index("web/backend/.env") < unit.index("beta-auth.env")
+    assert "install_structural_systemd_unit" in deploy
+    assert '$SOURCE/web/scripts/structural-web.service' in deploy
+    assert 'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert 'systemctl daemon-reload' in deploy
+    assert 'systemctl cat "$SERVICE"' in deploy
+    assert 'SYSTEMD_UNIT_BACKUP' in deploy
+    assert 'cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert deploy.index("SYSTEMD_UNIT_INSTALLED=1", deploy.index("install_structural_systemd_unit()")) < deploy.index(
+        'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"'
+    )
+    assert 'deployment must run as root before any files are changed' in deploy
+    assert 'rollback_deploy "beta account runtime is not enabled"' in deploy
+    assert 'rollback_deploy "service restart failed"' in deploy
+    assert 'rollback_deploy "beta account runtime request failed"' in deploy
+    assert 'body.get("error") == "no session"' in deploy
     assert "--exclude=web/backend/data/" in deploy
+
+
+def test_beta_deploy_workflow_gates_enabled_account_runtime():
+    workflow = (ROOT / ".github/workflows/deploy-beta-backend.yml").read_text(encoding="utf-8")
+    assert "Verify beta account runtime is enabled" in workflow
+    assert "web/scripts/structural-web.service" in workflow
+    assert "https://beta.structural.bytedance.city/api/auth/me" in workflow
+    assert 'test "$STATUS" = "401"' in workflow
+    assert '["error"] == "no session"' in workflow
 
 
 def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
@@ -512,8 +536,28 @@ def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):
     monkeypatch.setenv("ADMIN_NOTIFICATION_EMAIL", "owner@example.test")
     monkeypatch.setenv("AUTH_DATA_DIR", "/tmp/structural-auth-test")
     monkeypatch.setenv("AUTH_TRUSTED_PROXY_IPS", "127.0.0.1/32")
-    with pytest.raises(RuntimeError, match="canonical beta"):
+    with pytest.raises(RuntimeError, match="beta.*canonical HTTPS origin"):
         auth._validate_production_config()
+
+
+def test_phase_runtime_accepts_only_phase_canonical_origin(monkeypatch, tmp_path):
+    _set_valid_prod_auth(monkeypatch, tmp_path)
+    monkeypatch.setenv("AUTH_SITE_ROLE", "phase")
+    monkeypatch.setenv("AUTH_LINK_BASE_URL", "https://phase.bytedance.city")
+    auth._validate_production_config()
+
+    monkeypatch.setenv("AUTH_LINK_BASE_URL", "https://beta.structural.bytedance.city")
+    with pytest.raises(RuntimeError, match="phase.*canonical HTTPS origin"):
+        auth._validate_production_config()
+
+
+def test_phase_deploy_requires_explicit_role_and_proxy_contract():
+    deploy = (ROOT / "scripts/deploy-phase-detector-vps.sh").read_text(encoding="utf-8")
+    phase_main = (ROOT / "v4/product/d1_phase_detector/api/main.py").read_text(encoding="utf-8")
+    assert 'AUTH_SITE_ROLE phase' in deploy
+    assert 'AUTH_TRUSTED_PROXY_IPS' in deploy
+    assert 'AUTH_LINK_BASE_URL https://phase.bytedance.city' in deploy
+    assert "_validate_production_config()" in phase_main
 
 
 def _set_valid_prod_auth(monkeypatch, data_dir: Path) -> None:
@@ -530,11 +574,11 @@ def _set_valid_prod_auth(monkeypatch, data_dir: Path) -> None:
     monkeypatch.setenv("ADMIN_NOTIFICATION_EMAIL", "owner@example.test")
 
 
-def test_runtime_requires_beta_role_and_absolute_external_data_dir(tmp_path, monkeypatch):
+def test_runtime_requires_supported_role_and_absolute_external_data_dir(tmp_path, monkeypatch):
     _set_valid_prod_auth(monkeypatch, tmp_path / "auth")
     auth._validate_production_config()
-    monkeypatch.setenv("AUTH_SITE_ROLE", "phase")
-    with pytest.raises(RuntimeError, match="AUTH_SITE_ROLE=beta"):
+    monkeypatch.setenv("AUTH_SITE_ROLE", "unknown")
+    with pytest.raises(RuntimeError, match="explicit supported AUTH_SITE_ROLE"):
         auth._validate_production_config()
     monkeypatch.setenv("AUTH_SITE_ROLE", "beta")
     monkeypatch.setenv("AUTH_DATA_DIR", "relative/auth")

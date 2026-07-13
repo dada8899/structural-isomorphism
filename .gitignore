@@ -77,6 +77,7 @@ v4/product/d1_phase_detector/backtest/data/prices.meta.json
 web/backend/data/history.db
 web/backend/data/history.db-*
 web/backend/data/sso_replay.sqlite3*
+web/backend/data/auth.sqlite3*
 
 # Auth / connections runtime stores — per-deployment state, never committed
 web/backend/data/auth_users.jsonl
