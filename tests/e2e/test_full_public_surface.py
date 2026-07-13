@@ -153,7 +153,7 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     expect(first_shell.get_by_text("反证 / 尚缺证据")).to_be_visible()
     expect(first_shell.get_by_text("适用边界")).to_be_visible()
     expect(first_shell.get_by_text("尚未完成变量、因果方向与边界条件的逐项核对。")).to_be_visible()
-    source = page.get_by_role("link", name="查看候选来源：Feedback B")
+    source = page.get_by_role("link", name="查看内部 KB 记录：Feedback B")
     source.focus()
     with page.context.expect_page() as popup_info:
         source.press("Enter")
