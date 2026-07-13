@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { FlagsProvider } from "@/lib/flags";
 import CookieConsent from "@/components/CookieConsent";
 import ManageCookiesButton from "@/components/ManageCookiesButton";
+import ProductBoundary from "@/components/ProductBoundary";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
@@ -57,8 +58,8 @@ const jetbrainsMono = localFont({
 // W6-B: localized to zh-CN, aligned with main site brand.
 export const metadata: Metadata = {
   title: {
-    default: "Phase Detector — 597 个 demo ticker 研究快照",
-    template: "%s — Phase Detector",
+    default: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
+    template: "%s — Structural Labs · Phase",
   },
   description:
     "597 个 demo ticker 的结构信号研究快照；明确 provenance，不代表实时市场信号。",
@@ -78,23 +79,23 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
   },
   openGraph: {
-    title: "Phase Detector — 597 个 demo ticker 研究快照",
+    title: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
     description: "30 秒看懂一家公司当前的状态。",
     type: "website",
-    siteName: "Phase Detector",
+    siteName: "Structural Labs · Phase",
     url: "https://phase.bytedance.city/",
     images: [
       {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — 597 个 demo ticker 研究快照",
+        alt: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Phase Detector — 597 个 demo ticker 研究快照",
+    title: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
     description: "30 秒看懂一家公司当前的状态。",
     images: ["/og/home.png"],
   },
@@ -124,8 +125,9 @@ export default function RootLayout({
             <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
               <Link
                 href="/"
-                className="flex items-center gap-2"
-                aria-label="Phase Detector 首页"
+                className="flex min-h-11 min-w-0 items-center gap-2"
+                aria-label="Structural Labs · Phase 子产品首页"
+                data-phase-brand-home
               >
                 <svg
                   width="22"
@@ -143,15 +145,16 @@ export default function RootLayout({
                   <path d="M8.5 8.5l7 7" />
                 </svg>
                 <span className="text-sm font-semibold tracking-tight">
-                  Phase Detector
+                  Structural Labs · Phase
                 </span>
                 <span className="ml-2 hidden text-xs text-zinc-500 sm:inline">
-                  公司状态评分
+                  冻结研究子产品
                 </span>
               </Link>
               <TopNav />
             </div>
           </header>
+          <ProductBoundary />
           <main id="main-content" className="mx-auto max-w-7xl px-6 py-6">
             {children}
           </main>
@@ -159,7 +162,7 @@ export default function RootLayout({
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-4">
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  Phase Detector
+                  Structural Labs · Phase
                 </span>
                 <Link href="/about" className="hover:text-zinc-900 dark:hover:text-white">
                   关于
@@ -181,17 +184,17 @@ export default function RootLayout({
                   href="https://github.com/dada8899/structural-isomorphism"
                   target="_blank"
                   rel="noopener"
-                  className="hover:text-zinc-900 dark:hover:text-white"
+                  className="inline-flex min-h-11 items-center hover:text-zinc-900 dark:hover:text-white"
                 >
                   GitHub ↗
                 </a>
                 <a
-                  href="https://beta.structural.bytedance.city/classes"
+                  href="https://beta.structural.bytedance.city"
                   target="_blank"
                   rel="noopener"
                   className="hover:text-zinc-900 dark:hover:text-white"
                 >
-                  Structural ↗
+                  返回 Structural 主产品 ↗
                 </a>
               </div>
               <div className="text-zinc-400 dark:text-zinc-500">

@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "公司清单 — Phase Detector",
+  title: "公司冻结快照 — Structural Labs · Phase",
   description:
-    "100+ 家上市公司的状态评分一览：按动力学家族 / 临界点状态 / 行业筛选。每条都有可追溯的指标和原始资料链接。",
+    "597 个 demo ticker 的冻结结构研究快照：可筛选、附来源、公开 NULL 回测，不提供预测能力。",
   path: "/companies",
   ogImage: "/og/companies.png",
 });

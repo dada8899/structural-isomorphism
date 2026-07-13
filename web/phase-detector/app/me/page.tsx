@@ -21,6 +21,18 @@ const EXPORT_SCHEMA_VERSION = "phase-account-export-v1";
 
 type RequestState = "idle" | "working" | "success" | "error";
 
+function MainProductReturn() {
+  return (
+    <a
+      href="https://beta.structural.bytedance.city"
+      className="inline-flex min-h-11 items-center text-sm font-semibold text-indigo-700 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-700"
+      data-testid="me-main-product-return"
+    >
+      返回 Structural 主产品 / Back to main product ↗
+    </a>
+  );
+}
+
 function safeTimestamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return new Date().toISOString().replace(/[:.]/g, "-");
@@ -68,6 +80,7 @@ export default function MePage() {
         <p className="mt-3 text-xs text-zinc-500" data-testid="account-deleted-at">
           完成时间：{new Date(deletedAt).toLocaleString("zh-CN")}
         </p>
+        <div className="mt-5"><MainProductReturn /></div>
         <a
           href="/"
           className="mt-8 inline-flex min-h-11 items-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
@@ -82,6 +95,7 @@ export default function MePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
+        <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">Structural Labs · Phase · 子产品账户</p>
         <p className="text-sm text-zinc-500" data-testid="me-loading">
           加载中…
         </p>
@@ -112,6 +126,7 @@ export default function MePage() {
             <span className="text-xs text-zinc-500">2 秒后自动跳转</span>
           )}
         </div>
+        <div className="mt-5"><MainProductReturn /></div>
       </main>
     );
   }
@@ -206,10 +221,14 @@ export default function MePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-12 sm:px-6 sm:py-16">
+      <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">
+        Structural Labs · Phase · 子产品账户
+      </p>
       <h1 className="text-2xl font-semibold text-zinc-900">账户设置</h1>
       <p className="mt-2 text-sm leading-6 text-zinc-600">
         查看账户资料，导出你的数据，或管理登录状态。
       </p>
+      <div className="mt-3"><MainProductReturn /></div>
 
       <dl className="mt-8 grid grid-cols-1 gap-5 rounded-xl border border-zinc-200 bg-white p-5 sm:grid-cols-2 sm:p-6">
         <div>

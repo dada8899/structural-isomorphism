@@ -20,7 +20,7 @@ import { redirect } from "next/navigation";
 //   - Async: webhook handler enqueues, doesn't block the 200 response
 
 export const metadata: Metadata = {
-  title: "结账 — Phase Detector",
+  title: "结账 — Structural Labs · Phase",
   description: "Mock checkout 测试页 — 不会扣款。",
   robots: { index: false, follow: false },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-// PR-4: Perplexity-style search hero for Phase Detector home page.
+// PR-4: Perplexity-style search hero for Structural Labs · Phase.
 //
 // Sits between the H1/subhead and the signal blocks. Replaces the legacy
 // "开始查看 →" scroll-to-filter CTA with a real search input + autocomplete.

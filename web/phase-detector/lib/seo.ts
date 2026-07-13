@@ -11,7 +11,7 @@
 import type { Metadata } from "next";
 
 export const SITE_URL = "https://phase.bytedance.city";
-export const SITE_NAME = "Phase Detector";
+export const SITE_NAME = "Structural Labs · Phase";
 export const TWITTER_HANDLE = "@dada8899";
 export const DEFAULT_OG_IMAGE = "/og/home.png";
 
@@ -165,7 +165,7 @@ export function definedTermSchema(opts: {
     description: opts.description,
     inDefinedTermSet: {
       "@type": "DefinedTermSet",
-      name: "Phase Detector universality taxonomy",
+      name: "Structural Labs · Phase universality taxonomy",
       url: `${SITE_URL}/universality`,
     },
   };

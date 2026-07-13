@@ -1,5 +1,5 @@
 /*
- * Phase Detector — service worker (W12-E).
+ * Structural Labs · Phase — service worker (W12-E).
  *
  * Strategies (hand-rolled — keeps bundle weightless vs next-pwa):
  *   • cacheFirst       /_next/static/* + /icons/* + fonts + images

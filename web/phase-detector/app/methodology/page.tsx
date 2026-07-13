@@ -14,9 +14,9 @@ import {
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "方法 — Phase Detector",
+  title: "方法 — Structural Labs · Phase",
   description:
-    "Phase Detector 怎么打分：每家公司归入哪一类、当前在哪个状态、AI 怎么从公开资料里读出来。",
+    "Structural Labs · Phase 的冻结研究方法、公开来源和限制：597 个 demo ticker，NULL 回测，不提供预测能力。",
   path: "/methodology",
   ogImage: "/og/methodology.png",
 });
@@ -47,8 +47,9 @@ export default function MethodologyPage() {
         方法论
       </h1>
       <p className="mb-8 text-base leading-relaxed text-zinc-600">
-        我们给每家公司打两个标签：它属于哪一类共享模式、它现在处在哪个状态。
-        下面解释这两个标签怎么来。
+        Structural Labs · Phase 是 Structural 主产品下的冻结研究子产品。
+        我们给每家公司打两个标签：它属于哪一类共享模式、它在快照采集时处在哪个状态。
+        下面解释标签、来源与限制；这些标签不提供预测能力。
       </p>
 
       {/* What we record per company */}
@@ -182,7 +183,7 @@ export default function MethodologyPage() {
         </h2>
         <ul className="ml-5 list-disc space-y-1 text-sm text-zinc-600">
           <li>覆盖：当前 597 个 ticker 的 demo 研究快照，长尾尚未覆盖</li>
-          <li>频率：每周更新一次，盘中突发事件不会立刻反映</li>
+          <li>频率：当前版本是冻结快照，不承诺自动刷新；盘中事件不会反映</li>
           <li>
             模型偏差：AI 可能漏读或读错，请看每家公司卡片下的&ldquo;注意事项&rdquo;
           </li>
@@ -199,10 +200,10 @@ export default function MethodologyPage() {
         <ul className="space-y-1 text-sm">
           <li>
             <a
-              href="https://beta.structural.bytedance.city/classes"
-              className="text-blue-600 hover:underline"
+              href="https://beta.structural.bytedance.city"
+              className="inline-flex min-h-11 items-center text-blue-600 hover:underline"
             >
-              主站：跨学科同构研究报告 ↗
+              返回 Structural 主产品 / Back to main product ↗
             </a>
           </li>
           <li>

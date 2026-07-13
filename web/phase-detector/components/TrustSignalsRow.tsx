@@ -4,6 +4,7 @@
 // claim is auditable rather than predictive marketing.
 
 import Link from "next/link";
+import { PUBLIC_BACKTEST_P_LABEL } from "@/lib/public-backtest";
 
 interface Signal {
   label: string;
@@ -12,12 +13,8 @@ interface Signal {
   hint?: string;
 }
 
-// Backtest delta is sourced from /backtest page (W10-A). We currently
-// publish the NULL result honestly (p=0.681, alpha not significant). When
-// W10-A ships the v0.2 Sharpe lift this value swaps in via env.
 const BACKTEST_HEADLINE =
-  process.env.NEXT_PUBLIC_BACKTEST_HEADLINE ??
-  "v0.1 backtest: p=0.681 (NULL, published)";
+  `v0.1 backtest: p=${PUBLIC_BACKTEST_P_LABEL} (NULL, published)`;
 
 const SIGNALS: Signal[] = [
   {

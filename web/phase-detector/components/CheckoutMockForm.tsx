@@ -179,7 +179,7 @@ export function CheckoutMockForm() {
         <div className="flex items-center justify-between text-sm">
           <div>
             <div className="font-medium text-zinc-900">
-              Phase Detector {tier.name}
+              Structural Labs · Phase {tier.name}
             </div>
             <div className="mt-0.5 text-xs text-zinc-500">
               {interval === "month" ? "月度订阅" : "年度订阅（2 个月免费）"}

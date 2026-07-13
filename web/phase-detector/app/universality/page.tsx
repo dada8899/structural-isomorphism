@@ -145,10 +145,13 @@ export default function UniversalityExplorerPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-indigo-700">
+          Structural Labs · Phase · 冻结研究子产品
+        </p>
         <h1 className="text-2xl font-semibold text-zinc-900">普适类浏览</h1>
         <p className="max-w-3xl text-sm text-zinc-600">
           这里汇总的是待检验的跨领域结构候选，不代表不同系统已经共享同一机制。
-          点开任意一条可查看定义、候选不变量、现有证据、反例与来源；页面中的内部状态也不是外部复现结论。
+          点开任意一条可查看定义、候选不变量、现有证据、反例与来源；页面中的内部状态也不是外部复现结论，且不提供预测能力。
         </p>
       </header>
 
@@ -221,7 +224,13 @@ export default function UniversalityExplorerPage() {
         <Link href="/compare" className="text-zinc-900 underline hover:text-zinc-700">
           打开 /compare
         </Link>
-        。
+        。{" "}
+        <a
+          href="https://beta.structural.bytedance.city"
+          className="inline-flex min-h-11 items-center font-medium text-indigo-700 underline underline-offset-4"
+        >
+          返回 Structural 主产品 / Back to main product ↗
+        </a>
       </footer>
     </div>
   );

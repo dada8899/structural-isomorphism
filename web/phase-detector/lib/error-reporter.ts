@@ -140,7 +140,7 @@ export function buildIssueUrl(error: Error & { digest?: string }): string {
   const title = encodeURIComponent(`[user-report] ${(error?.message || "error").slice(0, 80)}`);
   const body = encodeURIComponent(
     [
-      "<!-- Auto-generated from Phase Detector error boundary -->",
+      "<!-- Auto-generated from Structural Labs · Phase error boundary -->",
       "",
       `**Digest**: \`${error?.digest || "n/a"}\``,
       `**URL**: ${stripQuery(typeof window !== "undefined" ? window.location.href : "") || "n/a"}`,

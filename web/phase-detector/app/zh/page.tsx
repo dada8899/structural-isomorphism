@@ -112,17 +112,16 @@ export default async function LandingPageZh() {
 
       <section className="mx-auto w-full max-w-4xl px-6 pb-24">
         <Link
-          href="https://beta.structural.bytedance.city/classes"
+          href="https://beta.structural.bytedance.city"
           target="_blank"
           rel="noopener"
           className="block rounded-2xl border border-zinc-200 bg-white px-6 py-6 transition hover:border-indigo-300 hover:bg-indigo-50/30 sm:px-8"
         >
           <span className="mb-1 block text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-            姐妹产品 · Sister product
+            主产品 · Main product
           </span>
           <span className="block text-base text-zinc-900 sm:text-lg">
-            想找跨学科的解法？→{" "}
-            <strong className="font-semibold">Structural</strong>：把你的难题，换成另一个学科已经解过的题
+            返回 <strong className="font-semibold">Structural</strong> 主产品，继续跨学科检索、发现与研究工作流 / Back to the Structural main product
           </span>
         </Link>
       </section>
@@ -132,28 +131,28 @@ export default async function LandingPageZh() {
 
 // W12-B (2026-05-15): canonical + OG + twitter added.
 export const metadata = {
-  title: "Phase Detector — 597 个 demo ticker 研究快照",
+  title: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
   description:
     "覆盖 597 个 demo ticker 的结构信号研究快照，明确展示数据来源；不是实时价格或投资建议。",
   alternates: { canonical: "https://phase.bytedance.city/zh" },
   openGraph: {
-    title: "Phase Detector — 597 个 demo ticker 研究快照",
+    title: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
     description: "每条都是一个假设。每条都附带证据。",
     type: "website" as const,
     url: "https://phase.bytedance.city/zh",
-    siteName: "Phase Detector",
+    siteName: "Structural Labs · Phase",
     images: [
       {
         url: "/og/home.png",
         width: 1200,
         height: 630,
-        alt: "Phase Detector — 冻结 demo 研究快照",
+        alt: "Structural Labs · Phase — 冻结 demo 研究快照",
       },
     ],
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Phase Detector — 597 个 demo ticker 研究快照",
+    title: "Structural Labs · Phase — 597 个 demo ticker 冻结研究快照",
     description: "每条都是一个假设。每条都附带证据。",
     images: ["/og/home.png"],
     creator: "@dada8899",

@@ -75,7 +75,7 @@ export interface TourStep {
 const DEFAULT_STEPS: TourStep[] = [
   {
     id: "welcome",
-    title: "欢迎来到 Phase Detector",
+    title: "欢迎来到 Structural Labs · Phase",
     description:
       "当前研究预览覆盖 597 个 demo ticker，并明确展示数据来源；它用于理解方法，不提供实时投资信号。",
     nextLabel: "开始 4 步导览",
@@ -96,9 +96,9 @@ const DEFAULT_STEPS: TourStep[] = [
   },
   {
     id: "waitlist",
-    title: "获取每周更新",
+    title: "获取研究更新",
     description:
-      "《结构信号》每周一封，免费。v0.2 backtest 报告就绪第一时间通知 + 每周精选 3 家最值得看的相位翻转。",
+      "新的方法说明、回测或经复核的冻结样例发布时通知；不承诺固定频率，也不发送预测信号。",
     target: "waitlist-form",
     nextLabel: "开始使用",
   },

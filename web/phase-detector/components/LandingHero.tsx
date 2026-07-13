@@ -39,7 +39,7 @@ export function LandingHero() {
             aria-hidden="true"
             className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500"
           />
-          Research preview · 研究预览
+          Structural Labs · Phase · Frozen research subproduct
         </p>
 
         <h1
@@ -55,7 +55,7 @@ export function LandingHero() {
 
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
           Each one is a frozen hypothesis with its provenance.
-          <br className="hidden sm:inline" /> <span className="text-zinc-900">The published backtest is NULL.</span>
+          <br className="hidden sm:inline" /> <span className="text-zinc-900">The published backtest is NULL. Phase has no predictive capability.</span>
         </p>
 
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
@@ -66,7 +66,7 @@ export function LandingHero() {
           <Link
             href="/companies"
             data-testid="cta-primary"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-indigo-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
             <HeroCtaText fallback="Browse signals" />
             <span aria-hidden="true">→</span>
@@ -74,13 +74,13 @@ export function LandingHero() {
           <Link
             href="#how-it-works"
             data-testid="cta-secondary"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-400 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
           >
             How it works
           </Link>
           <Link
             href="/backtest"
-            className="inline-flex items-center gap-1 px-2 py-3 text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 px-2 py-3 text-sm font-medium text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline"
           >
             v0.1 NULL backtest →
           </Link>

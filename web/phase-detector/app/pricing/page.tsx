@@ -8,9 +8,9 @@ import { buildMetadata } from "@/lib/seo";
 
 // W12-B (2026-05-15): canonical + OG image + twitter card added via buildMetadata helper.
 export const metadata: Metadata = buildMetadata({
-  title: "研究预览 — Phase Detector",
+  title: "研究预览 — Structural Labs · Phase",
   description:
-    "Phase Detector 当前免费开放 597 个 demo ticker 研究快照；付费权益尚未上线。",
+    "Structural Labs · Phase 当前免费开放 597 个 demo ticker 研究快照；付费权益尚未上线。",
   path: "/pricing",
   ogImage: "/og/pricing.png",
 });

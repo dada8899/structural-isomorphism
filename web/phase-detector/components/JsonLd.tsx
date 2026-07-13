@@ -11,7 +11,7 @@
 //     schema={{
 //       "@context": "https://schema.org",
 //       "@type": "WebSite",
-//       name: "Phase Detector",
+//       name: "Structural Labs · Phase",
 //       url: "https://phase.bytedance.city",
 //     }}
 //   />

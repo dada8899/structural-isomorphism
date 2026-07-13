@@ -1,4 +1,4 @@
-// Deterministic NLU for the Phase Detector hero search box.
+// Deterministic NLU for the Structural Labs · Phase hero search box.
 //
 // Input: free-form user query (CN or EN, no LLM).
 // Output: a routing decision the page can act on:

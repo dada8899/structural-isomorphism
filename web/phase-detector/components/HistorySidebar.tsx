@@ -9,7 +9,7 @@ import {
 } from "@/lib/history";
 import { EXAMPLE_QUERIES } from "@/lib/parse-query";
 
-// Perplexity-style history sidebar for Phase Detector.
+// Perplexity-style history sidebar for Structural Labs · Phase.
 // Desktop ≥1024px: 240px left rail, collapsible to 56px (state in localStorage).
 // Mobile <1024px: off-canvas drawer behind floating hamburger trigger.
 // Reads from lib/history.ts (writer wired in SearchHero submit + parse-query route).

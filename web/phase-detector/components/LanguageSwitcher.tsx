@@ -83,8 +83,8 @@ export default function LanguageSwitcher() {
         data-testid="lang-en"
         className={
           current === "en"
-            ? "rounded-l border border-zinc-300 bg-zinc-900 px-2 py-1 text-white"
-            : "rounded-l border border-zinc-200 bg-white px-2 py-1 text-zinc-600 hover:text-zinc-900"
+            ? "inline-flex min-h-11 items-center rounded-l border border-zinc-300 bg-zinc-900 px-2 py-1 text-white"
+            : "inline-flex min-h-11 items-center rounded-l border border-zinc-200 bg-white px-2 py-1 text-zinc-600 hover:text-zinc-900"
         }
       >
         EN
@@ -96,8 +96,8 @@ export default function LanguageSwitcher() {
         data-testid="lang-zh"
         className={
           current === "zh"
-            ? "rounded-r border border-l-0 border-zinc-300 bg-zinc-900 px-2 py-1 text-white"
-            : "rounded-r border border-l-0 border-zinc-200 bg-white px-2 py-1 text-zinc-600 hover:text-zinc-900"
+            ? "inline-flex min-h-11 items-center rounded-r border border-l-0 border-zinc-300 bg-zinc-900 px-2 py-1 text-white"
+            : "inline-flex min-h-11 items-center rounded-r border border-l-0 border-zinc-200 bg-white px-2 py-1 text-zinc-600 hover:text-zinc-900"
         }
       >
         中

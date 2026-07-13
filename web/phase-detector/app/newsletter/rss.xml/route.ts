@@ -56,7 +56,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Structural Signals — Phase Detector newsletter</title>
+    <title>Structural Signals — Structural Labs · Phase newsletter</title>
     <link>${SITE_URL}/newsletter</link>
     <atom:link href="${SITE_URL}/newsletter/rss.xml" rel="self" type="application/rss+xml" />
     <description>Weekly research notes from a 597-ticker demo snapshot, methodology, and cross-domain preprints. Not live market data or investment advice.</description>

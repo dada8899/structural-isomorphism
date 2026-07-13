@@ -5,7 +5,7 @@ import {
   PHASE_DETECTOR_UNIVERSALITY_CLASSES,
 } from "@/lib/sitemap-data";
 
-// W3-D (2026-05-14): static sitemap for the Phase Detector product.
+// W3-D (2026-05-14): static sitemap for Structural Labs · Phase.
 // W10-D (2026-05-15): added newsletter archive entries.
 // W12-B (2026-05-15): expanded to include /companies, /compare, /pricing,
 //   /universality + per-class detail pages, /company/[ticker] for all
