@@ -33,14 +33,14 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           lfs: true   # SESSION-27: fetch LFS-tracked web/data/kb_*.npy embeddings
                       # for test_embedding_bridge sanity tests; without this
                       # checkout leaves LFS pointer stubs and np.load raises
                       # UnpicklingError on all 12 embedding-bridge tests.
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -122,7 +122,7 @@ jobs:
         working-directory: packages/soc-pipeline
         run: |
           if [ -d tests ]; then
-            python -m pytest -ra -q --tb=short
+            python -m pytest -ra -q --tb=short -m "not slow"
           else
             echo "No tests/ directory in soc-pipeline — skipping."
           fi

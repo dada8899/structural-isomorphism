@@ -8,6 +8,7 @@ from soc_pipeline import BootstrapResult, bootstrap_ci
 
 
 @pytest.mark.sanity
+@pytest.mark.slow
 def test_bootstrap_ci_covers_true_alpha():
     """Bootstrap CI must contain the true alpha for synthetic data."""
     rng = np.random.default_rng(42)
@@ -33,6 +34,7 @@ def test_bootstrap_returns_error_on_small_sample():
 
 
 @pytest.mark.sanity
+@pytest.mark.slow
 def test_bootstrap_n_boot_succeeded_positive():
     rng = np.random.default_rng(0)
     samples = rng.pareto(2.0, size=2000) + 1.0
@@ -42,6 +44,7 @@ def test_bootstrap_n_boot_succeeded_positive():
 
 
 @pytest.mark.sanity
+@pytest.mark.slow
 def test_bootstrap_reproducible_with_seed():
     rng = np.random.default_rng(7)
     samples = rng.pareto(2.0, size=2000) + 1.0

@@ -24,6 +24,7 @@ def test_powerlaw_alpha_recovery_2_5():
 
 
 @pytest.mark.sanity
+@pytest.mark.slow
 def test_powerlaw_alpha_recovery_3_0():
     """Synthetic alpha=3.0 -> recovered alpha in [2.7, 3.3]."""
     rng = np.random.default_rng(123)

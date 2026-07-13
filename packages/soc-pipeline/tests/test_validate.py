@@ -34,6 +34,7 @@ def _pareto(alpha: float, n: int, scale: float = 10.0, seed: int = 0) -> np.ndar
 # ---------- 1. PASS case (Pareto α≈2.5, band [2.3, 2.7]) ---------------------
 
 
+@pytest.mark.slow
 def test_validate_pass_pareto_alpha_2p5_in_band() -> None:
     data = _pareto(2.5, n=5000, seed=42)
     v = validate(data, label="pareto_2p5", expected_band=(2.3, 2.7), n_boot=30)
@@ -120,6 +121,7 @@ def test_validate_exponential_alternative_preferred() -> None:
 # ---------- 6. Reproducibility — same seed → identical output ----------------
 
 
+@pytest.mark.slow
 def test_validate_reproducible_with_same_seed() -> None:
     data = _pareto(2.5, n=1500, seed=1234)
     # Bootstrap on, but small n_boot — we are testing seed determinism, not

@@ -5,12 +5,68 @@ Reference: Clauset, A., Shalizi, C. R., & Newman, M. E. (2009).
 """
 from __future__ import annotations
 
+import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 
 __all__ = ["FitResult", "fit_clauset_powerlaw"]
+
+
+_POWERLAW_SIGMA_DEPRECATION = (
+    r"Standard error for the MLE should be accessed using the 'standard_err' property\. "
+    r"Accessing via 'sigma' property will be removed in v2\.1\."
+)
+
+
+@contextmanager
+def _suppress_powerlaw_sigma_deprecation():
+    """Suppress only powerlaw 2.0's per-candidate deprecated-property storm."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=_POWERLAW_SIGMA_DEPRECATION,
+            category=DeprecationWarning,
+        )
+        yield
+
+
+def _run_powerlaw_fit(powerlaw: Any, data: np.ndarray, *, discrete: bool) -> tuple:
+    """Run the vendor fit while isolating one known powerlaw 2.0 warning storm.
+
+    powerlaw 2.0 internally reads its deprecated ``sigma`` property once per
+    xmin candidate, producing hundreds of thousands of identical warnings.
+    Suppression is deliberately scoped to the exact vendor message and this
+    call boundary; fit-quality and numerical warnings remain visible.
+    """
+    with _suppress_powerlaw_sigma_deprecation():
+        fit = powerlaw.Fit(data, discrete=discrete, xmin_distance="D", verbose=False)
+        alpha = float(fit.power_law.alpha)
+        if hasattr(fit.power_law, "standard_err"):
+            standard_err = fit.power_law.standard_err
+        else:  # powerlaw < 2.0 compatibility
+            standard_err = fit.power_law.sigma
+        sigma = float(standard_err)
+        xmin = float(fit.power_law.xmin)
+        try:
+            ks = float(fit.power_law.D)
+        except Exception:
+            ks = None
+        try:
+            lognormal = fit.distribution_compare(
+                "power_law", "lognormal", normalized_ratio=True
+            )
+        except Exception:
+            lognormal = (None, None)
+        try:
+            exponential = fit.distribution_compare(
+                "power_law", "exponential", normalized_ratio=True
+            )
+        except Exception:
+            exponential = (None, None)
+    return alpha, sigma, xmin, ks, lognormal, exponential
 
 
 @dataclass
@@ -114,28 +170,12 @@ def fit_clauset_powerlaw(
             error=f"too few values: {n_total} < {min_samples}",
         )
 
-    fit = powerlaw.Fit(x_data, discrete=discrete, xmin_distance="D", verbose=False)
-    alpha = float(fit.power_law.alpha)
-    sigma = float(fit.power_law.sigma)
-    xmin = float(fit.power_law.xmin)
+    alpha, sigma, xmin, ks, lognormal, exponential = _run_powerlaw_fit(
+        powerlaw, x_data, discrete=discrete
+    )
     n_tail = int(np.sum(x_data >= xmin))
-    try:
-        ks = float(fit.power_law.D)
-    except Exception:
-        ks = None
-
-    try:
-        R_ln, p_ln = fit.distribution_compare(
-            "power_law", "lognormal", normalized_ratio=True
-        )
-    except Exception:
-        R_ln, p_ln = (None, None)
-    try:
-        R_exp, p_exp = fit.distribution_compare(
-            "power_law", "exponential", normalized_ratio=True
-        )
-    except Exception:
-        R_exp, p_exp = (None, None)
+    R_ln, p_ln = lognormal
+    R_exp, p_exp = exponential
 
     rejects = False
     if R_exp is not None and R_exp < 0:
