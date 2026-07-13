@@ -19,6 +19,7 @@ on:
     paths:
       - 'web/backend/**'
       - 'web/frontend/**'
+      - 'web/scripts/structural-web.service'
       - 'scripts/deploy-vps.sh'
       - 'scripts/restore-models.sh'
       - '.github/workflows/deploy-beta-backend.yml'
@@ -82,6 +83,14 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Verify beta account runtime is enabled
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -sS --max-time 10 -o /tmp/beta-auth-me.json -w '%{http_code}' \
+            https://beta.structural.bytedance.city/api/auth/me)
+          test "$STATUS" = "401"
+          python3 -c 'import json; assert json.load(open("/tmp/beta-auth-me.json"))["error"] == "no session"'
 
       - name: Verify artifact identity and semantic search
         run: |

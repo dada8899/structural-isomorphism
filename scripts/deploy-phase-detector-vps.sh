@@ -157,8 +157,16 @@ if env_exact_once "$WEB_DIR/.env.production" NEXT_PUBLIC_AUTH_ENABLED true; then
       echo "$LOG_PREFIX ERROR: JWT_SECRET must be a high-entropy non-placeholder value" >&2
       exit 1
     }
+  env_exact_once "$AUTH_ENV_FILE" AUTH_SITE_ROLE phase || {
+    echo "$LOG_PREFIX ERROR: AUTH_SITE_ROLE must be phase" >&2
+    exit 1
+  }
   env_exact_once "$AUTH_ENV_FILE" AUTH_LINK_BASE_URL https://phase.bytedance.city || {
     echo "$LOG_PREFIX ERROR: AUTH_LINK_BASE_URL must use the canonical HTTPS origin" >&2
+    exit 1
+  }
+  env_key_once "$AUTH_ENV_FILE" AUTH_TRUSTED_PROXY_IPS || {
+    echo "$LOG_PREFIX ERROR: AUTH_TRUSTED_PROXY_IPS must be explicit" >&2
     exit 1
   }
   auth_data_dir="$(sed -n 's/^AUTH_DATA_DIR=//p' "$AUTH_ENV_FILE" | tail -1)"
