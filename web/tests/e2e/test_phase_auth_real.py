@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.request
 import urllib.error
+from http.cookies import SimpleCookie
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -89,6 +90,25 @@ def real_stack(tmp_path_factory):
 
 
 def install_auth_proxy(page, stack) -> None:
+    def apply_response_cookies(response) -> None:
+        raw_cookies = response.headers.get_all("Set-Cookie") or []
+        for raw in raw_cookies:
+            parsed = SimpleCookie()
+            parsed.load(raw)
+            for name, morsel in parsed.items():
+                if morsel["max-age"] == "0":
+                    page.context.clear_cookies(name=name)
+                    continue
+                same_site = (morsel["samesite"] or "Lax").capitalize()
+                page.context.add_cookies([{
+                    "name": name,
+                    "value": morsel.value,
+                    "url": stack["origin"],
+                    "httpOnly": bool(morsel["httponly"]),
+                    "secure": bool(morsel["secure"]),
+                    "sameSite": same_site if same_site in {"Lax", "Strict", "None"} else "Lax",
+                }])
+
     def proxy(route):
         request = route.request
         path = urlsplit(request.url).path
@@ -105,9 +125,10 @@ def install_auth_proxy(page, stack) -> None:
         except urllib.error.HTTPError as error:
             response = error
         with response:
+            apply_response_cookies(response)
             route.fulfill(
                 status=response.status,
-                headers=dict(response.headers.items()),
+                headers={key: value for key, value in response.headers.items() if key.lower() != "set-cookie"},
                 body=response.read(),
             )
     page.route("**/api/auth/**", proxy)

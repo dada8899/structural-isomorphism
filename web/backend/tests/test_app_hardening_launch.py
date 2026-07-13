@@ -92,10 +92,11 @@ def test_unfinished_surfaces_fail_closed_in_prod(prod_client):
     assert connections.headers["location"] == "/tools"
 
 
-def test_beta_auth_entry_redirects_to_canonical_phase_account(dev_client):
+def test_beta_auth_entry_is_native_to_primary_product(dev_client):
     response = dev_client.get("/auth/login", follow_redirects=False)
-    assert response.status_code == 308
-    assert response.headers["location"] == "https://phase.bytedance.city/auth/login"
+    assert response.status_code == 200
+    assert "发送登录链接" in response.text
+    assert "phase.bytedance.city/auth/login" not in response.text
 
 
 # --------- P0-3: security headers on the real app --------- #
