@@ -11,6 +11,7 @@ import pytest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "production_smoke.py"
+SERVICE_UNIT = Path(__file__).resolve().parents[1] / "web" / "scripts" / "structural-web.service"
 SPEC = importlib.util.spec_from_file_location("production_smoke", SCRIPT)
 assert SPEC and SPEC.loader
 smoke = importlib.util.module_from_spec(SPEC)
@@ -73,7 +74,21 @@ def test_full_monitor_contract_passes_with_mock_transport(capsys):
     )
     assert monitor.run() == 54
     assert waits == [2.1] * 29
-    assert "PASS production smoke: 54 requests" in capsys.readouterr().out
+    assert "PASS production smoke: 54 checks, 54 HTTP attempts" in capsys.readouterr().out
+
+
+def test_systemd_activation_waits_for_deep_readiness():
+    unit = SERVICE_UNIT.read_text(encoding="utf-8")
+    start_post = next(line for line in unit.splitlines() if line.startswith("ExecStartPost="))
+    assert "/bin/bash -c" in start_post
+    assert "for attempt in {1..18}" in start_post
+    assert "/usr/bin/curl -fsS --max-time 2" in start_post
+    assert "127.0.0.1:5004/api/health?deep=1" in start_post
+    assert "&& exit 0" in start_post and start_post.endswith("exit 1'")
+    assert "TimeoutStartSec=135" in unit
+    assert "Restart=on-failure" in unit
+    # Worst case: 18 two-second probes plus 18 five-second sleeps = 126s.
+    assert 18 * (2 + 5) < 135
 
 
 @pytest.mark.parametrize("mutation, expected", [
@@ -108,6 +123,64 @@ def test_unexpected_status_fails_closed():
         return smoke.Response(502, b"upstream details")
     with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 502"):
         smoke.Monitor(transport).check_structural_docs()
+
+
+def test_get_retries_transient_network_and_upstream_failures_only():
+    outcomes = [
+        smoke.SmokeFailure("temporary network failure"),
+        smoke.Response(502, b"starting"),
+        smoke.Response(200, b"<html>" + b"x" * 120 + b"</html>"),
+    ]
+    calls = []
+    waits = []
+
+    def transport(method, url, body, timeout):
+        calls.append((method, url))
+        outcome = outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monitor = smoke.Monitor(
+        transport, sleeper=waits.append, get_retry_delays=(0.1, 0.2)
+    )
+    monitor.check_page("page", "https://example.test/")
+    assert len(calls) == 3
+    assert waits == [0.1, 0.2]
+    assert monitor.checked == 1
+    assert monitor.attempted_requests == 3
+
+
+def test_get_retry_remains_fail_closed_after_budget():
+    calls = 0
+
+    def transport(method, url, body, timeout):
+        nonlocal calls
+        calls += 1
+        return smoke.Response(503, b"still unavailable")
+
+    monitor = smoke.Monitor(
+        transport, sleeper=lambda _delay: None, get_retry_delays=(0.0, 0.0)
+    )
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 503"):
+        monitor.check_structural_docs()
+    assert calls == 3
+
+
+def test_post_is_never_retried():
+    calls = 0
+
+    def transport(method, url, body, timeout):
+        nonlocal calls
+        calls += 1
+        return smoke.Response(503, b"unavailable")
+
+    monitor = smoke.Monitor(
+        transport, sleeper=lambda _delay: None, get_retry_delays=(0.0, 0.0)
+    )
+    with pytest.raises(smoke.SmokeFailure, match="expected HTTP 200, got 503"):
+        monitor.request("write", "POST", "https://example.test/write", payload={"x": 1})
+    assert calls == 1
 
 
 def test_in_scope_empty_results_fail():

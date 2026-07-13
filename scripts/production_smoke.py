@@ -86,6 +86,7 @@ class Monitor:
         *,
         search_interval: float | None = None,
         sleeper: Callable[[float], None] = time.sleep,
+        get_retry_delays: tuple[float, ...] | None = None,
     ):
         self.transport = transport
         self.timeout = timeout
@@ -94,13 +95,29 @@ class Monitor:
             else float(search_interval or 0.0)
         )
         self.sleeper = sleeper
+        self.get_retry_delays = (
+            (1.0, 2.0) if get_retry_delays is None and transport is urllib_transport
+            else tuple(get_retry_delays or ())
+        )
         self.search_requests = 0
         self.checked = 0
+        self.attempted_requests = 0
 
     def request(self, label: str, method: str, url: str, *, payload: dict | None = None,
                 expected_status: int = 200) -> Response:
         raw = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        response = self.transport(method, url, raw, self.timeout)
+        attempts = 1 + (len(self.get_retry_delays) if method == "GET" else 0)
+        for attempt in range(attempts):
+            self.attempted_requests += 1
+            try:
+                response = self.transport(method, url, raw, self.timeout)
+            except SmokeFailure:
+                if attempt + 1 == attempts:
+                    raise
+            else:
+                if response.status not in {502, 503, 504} or attempt + 1 == attempts:
+                    break
+            self.sleeper(self.get_retry_delays[attempt])
         self.checked += 1
         if response.status != expected_status:
             raise SmokeFailure(f"{label}: expected HTTP {expected_status}, got {response.status}")
@@ -267,7 +284,10 @@ class Monitor:
         self.check_route_matrix()
         print("OK public route matrix", flush=True)
         elapsed = time.monotonic() - started
-        print(f"PASS production smoke: {self.checked} requests in {elapsed:.1f}s")
+        print(
+            f"PASS production smoke: {self.checked} checks, "
+            f"{self.attempted_requests} HTTP attempts in {elapsed:.1f}s"
+        )
         return self.checked
 
 
