@@ -38,6 +38,7 @@ DRY_RUN=0
 PRUNE=0
 RUNTIME_BACKUP=""
 BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$TARGET/web/backend/.env}"
+BETA_AUTH_ENV_FILE="${STRUCTURAL_BETA_AUTH_ENV_FILE:-/root/.config/structural-isomorphism/beta-auth.env}"
 
 env_key_once() {
   local file="$1" key="$2"
@@ -76,6 +77,56 @@ validate_beta_sso_config() {
     && [[ "$data_dir" = /* ]] \
     && [[ "$(realpath -m "$data_dir")" != "$(realpath -m "$TARGET")"* ]] || {
     echo "[deploy] ERROR: beta SSO secret/data directory is unsafe" >&2; return 1;
+  }
+}
+
+validate_beta_auth_config() {
+  [[ -f "$BETA_AUTH_ENV_FILE" ]] || {
+    echo "[deploy] ERROR: private beta auth environment is missing" >&2; return 1;
+  }
+  [[ "$(stat -Lc '%a' "$BETA_AUTH_ENV_FILE")" == "600" ]] || {
+    echo "[deploy] ERROR: private beta auth environment must have mode 600" >&2; return 1;
+  }
+  local key
+  for key in AUTH_ENABLED AUTH_SITE_ROLE JWT_SECRET AUTH_LINK_BASE_URL AUTH_DATA_DIR SMTP_HOST SMTP_PORT \
+    SMTP_FROM_EMAIL SMTP_USERNAME SMTP_PASSWORD ADMIN_NOTIFICATION_EMAIL AUTH_TRUSTED_PROXY_IPS; do
+    env_key_once "$BETA_AUTH_ENV_FILE" "$key" || {
+      echo "[deploy] ERROR: beta auth environment has a missing or duplicate key" >&2; return 1;
+    }
+  done
+  env_exact_once "$BETA_AUTH_ENV_FILE" AUTH_ENABLED true || {
+    echo "[deploy] ERROR: beta auth must be explicitly enabled" >&2; return 1;
+  }
+  env_exact_once "$BETA_AUTH_ENV_FILE" AUTH_SITE_ROLE beta || {
+    echo "[deploy] ERROR: beta auth role must be explicit" >&2; return 1;
+  }
+  env_exact_once "$BETA_AUTH_ENV_FILE" AUTH_LINK_BASE_URL https://beta.structural.bytedance.city || {
+    echo "[deploy] ERROR: AUTH_LINK_BASE_URL must use canonical beta HTTPS" >&2; return 1;
+  }
+  local jwt_secret auth_data_dir smtp_port from_email admin_email
+  jwt_secret="$(sed -n 's/^JWT_SECRET=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  auth_data_dir="$(sed -n 's/^AUTH_DATA_DIR=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  smtp_port="$(sed -n 's/^SMTP_PORT=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  from_email="$(sed -n 's/^SMTP_FROM_EMAIL=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  admin_email="$(sed -n 's/^ADMIN_NOTIFICATION_EMAIL=//p' "$BETA_AUTH_ENV_FILE" | tail -1)"
+  [[ ${#jwt_secret} -ge 32 ]] \
+    && [[ ! "$jwt_secret" =~ (replace|change-me|changeme|example|test-secret|dev-) ]] \
+    && [[ "$(printf '%s' "$jwt_secret" | fold -w1 | sort -u | wc -l)" -ge 12 ]] || {
+    echo "[deploy] ERROR: beta JWT secret is unsafe" >&2; return 1;
+  }
+  [[ "$auth_data_dir" = /* ]] \
+    && [[ "$(realpath -m "$auth_data_dir")" != "$(realpath -m "$TARGET")"* ]] || {
+    echo "[deploy] ERROR: beta AUTH_DATA_DIR must be absolute and outside Git" >&2; return 1;
+  }
+  [[ "$smtp_port" =~ ^[0-9]+$ ]] && (( smtp_port >= 1 && smtp_port <= 65535 )) || {
+    echo "[deploy] ERROR: beta SMTP_PORT is invalid" >&2; return 1;
+  }
+  [[ "$from_email" == *@* && "$admin_email" == *@* ]] || {
+    echo "[deploy] ERROR: beta email identities are invalid" >&2; return 1;
+  }
+  mkdir -p "$auth_data_dir"
+  [[ -w "$auth_data_dir" ]] || {
+    echo "[deploy] ERROR: beta AUTH_DATA_DIR is not writable" >&2; return 1;
   }
 }
 
@@ -119,6 +170,7 @@ EOF
 done
 
 validate_beta_sso_config
+validate_beta_auth_config
 
 EXCLUDES=(
   --exclude=.git/

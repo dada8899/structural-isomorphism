@@ -24,6 +24,16 @@ router = APIRouter(tags=["report-account"])
 _store: Optional[ReportStore] = None
 
 
+def _beta_auth_error(status: str) -> JSONResponse:
+    if status == "credential_conflict":
+        return JSONResponse(
+            {"ok": False, "error": "credential_conflict"}, status_code=409,
+        )
+    return JSONResponse(
+        {"ok": False, "error": "valid beta session required"}, status_code=401,
+    )
+
+
 def _get_store() -> ReportStore:
     global _store
     if _store is None:
@@ -33,10 +43,10 @@ def _get_store() -> ReportStore:
 
 def export_account_reports(email: str) -> dict:
     subject = _subject_id(email)
+    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
     snapshot = _get_store().export_by_owner(subject)
-    snapshot["sso_revoked_at"] = SsoReplayStore(
-        _data_dir() / "sso_replay.sqlite3"
-    ).subject_revoked_at(subject)
+    snapshot["sso_revoked_at"] = ledger.subject_revoked_at(subject)
+    snapshot["sso_identity_binding"] = ledger.export_subject_binding(subject)
     return snapshot
 
 
@@ -45,12 +55,18 @@ def delete_account_reports(email: str) -> dict:
     ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
     previous = ledger.subject_revoked_at(subject)
     revoked_at = ledger.revoke_subject(subject)
+    report_snapshot = _get_store().export_by_owner(subject)
     try:
         removed = _get_store().delete_by_owner(subject)
+        binding = ledger.delete_subject_binding(subject)
     except Exception:
+        _get_store().restore_owner_snapshot(report_snapshot)
         ledger.restore_subject_revocation(subject, previous, revoked_at)
         raise
-    return {**removed, "beta_sessions_revoked_at": revoked_at}
+    return {
+        **removed, "beta_sessions_revoked_at": revoked_at,
+        "sso_identity_binding": binding,
+    }
 
 
 def restore_account_reports(email: str, snapshot: dict, removed: object = None) -> None:
@@ -60,6 +76,11 @@ def restore_account_reports(email: str, snapshot: dict, removed: object = None) 
     if applied is not None:
         SsoReplayStore(_data_dir() / "sso_replay.sqlite3").restore_subject_revocation(
             subject, snapshot.get("sso_revoked_at"), applied,
+        )
+    binding = removed.get("sso_identity_binding") if isinstance(removed, dict) else None
+    if isinstance(binding, dict):
+        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").restore_subject_binding(
+            subject, binding,
         )
 
 
@@ -88,7 +109,7 @@ async def claim_current_browser_reports(request: Request):
         return origin_error
     user, status = resolve_beta_user(request)
     if status != "valid" or not user:
-        return JSONResponse({"ok": False, "error": "valid beta session required"}, status_code=401)
+        return _beta_auth_error(status)
     anon_id = resolve_anon_proof(request)
     if not anon_id:
         return JSONResponse({"ok": False, "error": "current browser proof required"}, status_code=403)
@@ -106,6 +127,6 @@ async def list_account_reports(
 ):
     user, status = resolve_beta_user(request)
     if status != "valid" or not user:
-        return JSONResponse({"ok": False, "error": "valid beta session required"}, status_code=401)
+        return _beta_auth_error(status)
     rows = _get_store().list_by_owner(user["id"], limit=limit + 1, offset=offset)
     return {"items": rows[:limit], "has_more": len(rows) > limit}

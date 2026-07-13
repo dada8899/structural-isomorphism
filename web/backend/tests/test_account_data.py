@@ -168,6 +168,9 @@ def test_delete_erases_claimed_beta_reports_and_revokes_beta_session(client):
          "exp": now + 3600},
         sso._secret(), algorithm="HS256",
     )
+    sso.SsoReplayStore(sso._data_dir() / "sso_replay.sqlite3").issue(
+        "trusted-binding", subject, "free", now + 120, email="alice@example.com",
+    )
     before = TestClient(client.app)
     before.cookies.set("structural_beta_session", beta_token)
     # The auth-only fixture does not mount report-account routes; resolver is

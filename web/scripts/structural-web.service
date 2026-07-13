@@ -8,6 +8,7 @@ User=root
 WorkingDirectory=/root/Projects/structural-isomorphism/web/backend
 Environment="PYTHONPATH=/root/Projects/structural-isomorphism"
 EnvironmentFile=/root/Projects/structural-isomorphism/web/backend/.env
+EnvironmentFile=/root/.config/structural-isomorphism/beta-auth.env
 ExecStart=/root/Projects/structural-isomorphism/venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 5004
 # Keep the unit in "activating" until the model, canonical KB, embeddings and
 # artifact manifest are genuinely ready. This closes the reboot window where

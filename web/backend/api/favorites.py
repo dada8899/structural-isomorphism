@@ -57,11 +57,11 @@ from fastapi.responses import JSONResponse, Response
 
 if __package__ == "web.backend.api":
     from ..auth.api_key import APIKey, verify_api_key
-    from .auth import require_same_origin, resolve_session_user
+    from .auth import require_same_origin, resolve_account_user
     from ..errors import Forbidden, InvalidInput, RateLimitExceeded, Unauthenticated
 else:
     from auth.api_key import APIKey, verify_api_key
-    from api.auth import require_same_origin, resolve_session_user
+    from api.auth import require_same_origin, resolve_account_user
     from errors import Forbidden, InvalidInput, RateLimitExceeded, Unauthenticated
 
 router = APIRouter(tags=["favorites"])
@@ -277,11 +277,16 @@ class _FavoriteUser:
 
 def _resolve_user(request: Request, api_key: Optional[APIKey]) -> Optional[_FavoriteUser]:
     """Session is authoritative; API key remains a compatibility fallback."""
-    session_user, status = resolve_session_user(request)
+    session_user, status = resolve_account_user(request)
     if status == "valid" and session_user:
         return _FavoriteUser(session_user["email"], session_user["tier"], "session")
     if status != "absent":
         logger.warning("favorites.auth_rejected method=session reason=%s", status)
+        if status == "credential_conflict":
+            raise Unauthenticated(
+                detail="Conflicting authenticated credentials; sign in again",
+                status=409, error="credential_conflict",
+            )
         raise Unauthenticated(detail="invalid or revoked authenticated session")
     if api_key is not None:
         return _FavoriteUser(api_key.owner_email, api_key.tier, "api_key")

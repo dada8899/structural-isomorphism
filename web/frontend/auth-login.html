@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAFAF9">
+  <meta name="robots" content="noindex,nofollow">
+  <title>注册 / 登录 — Structural</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
+  <link rel="stylesheet" href="/assets/css/reset.css?v=20260513">
+  <link rel="stylesheet" href="/assets/css/design-system.css?v=20260513">
+  <style>
+    body { min-height:100vh; background:#fafaf9; color:#18181b; }
+    .auth-shell { width:min(100% - 32px, 440px); margin:0 auto; padding:72px 0 48px; }
+    .auth-back { display:inline-block; margin-bottom:40px; color:#71717a; text-decoration:none; font-size:14px; }
+    .auth-card { padding:32px; border:1px solid #e4e4e7; border-radius:16px; background:#fff; box-shadow:0 16px 40px rgba(24,24,27,.06); }
+    h1 { margin:0 0 12px; font:600 30px/1.25 "Noto Serif SC",serif; }
+    .auth-lede,.auth-note { color:#52525b; line-height:1.7; }
+    form { margin-top:28px; }
+    label { display:block; margin-bottom:8px; font-size:14px; font-weight:600; }
+    input { width:100%; min-height:48px; padding:0 14px; border:1px solid #d4d4d8; border-radius:10px; font-size:16px; }
+    input:focus { outline:3px solid rgba(37,99,235,.16); border-color:#2563eb; }
+    button { width:100%; min-height:48px; margin-top:14px; border:0; border-radius:10px; background:#18181b; color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+    button:disabled { cursor:wait; opacity:.55; }
+    .auth-status { min-height:48px; margin-top:18px; padding:12px 14px; border-radius:10px; background:#f4f4f5; color:#3f3f46; line-height:1.55; }
+    .auth-status[data-kind="error"] { background:#fef2f2; color:#991b1b; }
+    .auth-status[data-kind="success"] { background:#f0fdf4; color:#166534; }
+    .auth-note { margin:20px 0 0; font-size:13px; }
+    @media (max-width:520px) { .auth-shell{padding-top:28px}.auth-back{margin-bottom:24px}.auth-card{padding:24px 20px} }
+  </style>
+</head>
+<body data-auth-page="login">
+  <main class="auth-shell">
+    <a class="auth-back" href="/">← 返回 Structural</a>
+    <section class="auth-card" aria-labelledby="auth-title">
+      <h1 id="auth-title">注册或登录</h1>
+      <p class="auth-lede">输入邮箱，我们会发送一封 15 分钟内有效的一次性登录链接。首次登录会自动创建账户，无需密码。</p>
+      <form id="auth-login-form" novalidate>
+        <label for="auth-email">邮箱</label>
+        <input id="auth-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="200" required placeholder="you@example.com">
+        <button id="auth-submit" type="submit">发送登录链接</button>
+      </form>
+      <div id="auth-status" class="auth-status" role="status" aria-live="polite">登录后可在同一账户中访问收藏、研究报告和账户数据。</div>
+      <p class="auth-note">为保护隐私，无论邮箱是否已注册，成功提示都相同。继续即表示你同意按<a href="/privacy">隐私说明</a>处理账户数据。</p>
+    </section>
+  </main>
+  <script defer src="/assets/js/auth-pages.js?v=20260713a"></script>
+</body>
+</html>

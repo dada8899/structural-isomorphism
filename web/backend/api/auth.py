@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import asyncio
+import ipaddress
 import json
 import logging
 import os
@@ -37,6 +38,7 @@ from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlencode, urlsplit
 
 import jwt
 from fastapi import APIRouter, Request, Response
@@ -63,6 +65,8 @@ router = APIRouter(tags=["auth"])
 _TOKEN_TTL_MIN = 15            # magic-link freshness window
 _SESSION_TTL_DAYS = 30         # JWT lifetime
 _RATE_LIMIT_PER_HOUR = 3       # link requests per email per hour
+_DEFAULT_IP_RATE_LIMIT_PER_HOUR = 10
+_DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR = 200
 _DEFAULT_TIER = "free"
 _COOKIE_NAME = "phase_session"
 _JWT_ALG = "HS256"
@@ -109,11 +113,33 @@ def _validate_production_config() -> None:
     _jwt_secret()
     required = (
         "AUTH_LINK_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_FROM_EMAIL",
-        "ADMIN_NOTIFICATION_EMAIL",
+        "ADMIN_NOTIFICATION_EMAIL", "AUTH_DATA_DIR", "AUTH_TRUSTED_PROXY_IPS",
     )
     missing = [name for name in required if not os.getenv(name, "").strip()]
     if missing:
         raise RuntimeError(f"production auth email configuration missing: {', '.join(missing)}")
+    link_origin = os.getenv("AUTH_LINK_BASE_URL", "").strip()
+    parsed = urlsplit(link_origin)
+    if (
+        parsed.scheme != "https" or not parsed.netloc
+        or parsed.path not in ("", "/") or parsed.query or parsed.fragment
+        or parsed.username or parsed.password
+    ):
+        raise RuntimeError("AUTH_LINK_BASE_URL must be a bare HTTPS origin in production")
+    if os.getenv("AUTH_SITE_ROLE", "").strip().lower() != "beta":
+        raise RuntimeError("production auth runtime must use AUTH_SITE_ROLE=beta")
+    if link_origin.rstrip("/") != "https://beta.structural.bytedance.city":
+        raise RuntimeError("beta AUTH_LINK_BASE_URL must use the canonical beta origin")
+    data_dir = Path(os.environ["AUTH_DATA_DIR"]).expanduser()
+    if not data_dir.is_absolute():
+        raise RuntimeError("AUTH_DATA_DIR must be absolute in production")
+    repository = Path(__file__).resolve().parents[3]
+    resolved_data = data_dir.resolve()
+    if resolved_data == repository or repository in resolved_data.parents:
+        raise RuntimeError("AUTH_DATA_DIR must be outside the Git worktree in production")
+    _trusted_proxy_networks()
+    _positive_limit("AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR)
+    _positive_limit("AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR", _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR)
 
 
 # --- Storage paths (lazy, overridable in tests) ---
@@ -184,6 +210,7 @@ def _append_jsonl(path: Path, record: dict) -> None:
 
 class RequestLinkBody(BaseModel):
     email: str = Field(..., min_length=3, max_length=_MAX_EMAIL_LEN)
+    return_to: Optional[str] = Field(default=None, max_length=500)
 
 
 class VerifyBody(BaseModel):
@@ -205,9 +232,63 @@ def _normalize_email(raw: str) -> Optional[str]:
     return e
 
 
-def _check_rate_limit(email: str) -> bool:
-    """Return True if email is under the per-hour limit, False if exceeded."""
-    return _store().record_rate_request(email, _RATE_LIMIT_PER_HOUR)
+def _positive_limit(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a positive integer") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} must be a positive integer")
+    return value
+
+
+def _trusted_proxy_networks() -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    raw = os.getenv("AUTH_TRUSTED_PROXY_IPS", "").strip()
+    if not raw:
+        return []
+    try:
+        return [ipaddress.ip_network(item.strip(), strict=False) for item in raw.split(",") if item.strip()]
+    except ValueError as exc:
+        raise RuntimeError("AUTH_TRUSTED_PROXY_IPS contains an invalid address or CIDR") from exc
+
+
+def _client_ip(request: Request) -> str:
+    """Resolve the nearest untrusted client; ignore spoofed proxy headers."""
+    peer_raw = request.client.host if request.client else "0.0.0.0"
+    try:
+        peer = ipaddress.ip_address(peer_raw)
+    except ValueError:
+        return "0.0.0.0"
+    trusted = _trusted_proxy_networks()
+    if not any(peer in network for network in trusted):
+        return peer.compressed
+    forwarded: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+    for raw in request.headers.get("x-forwarded-for", "").split(","):
+        if not raw.strip():
+            continue
+        try:
+            forwarded.append(ipaddress.ip_address(raw.strip()))
+        except ValueError:
+            logger.warning("auth.forwarded_for_rejected reason=malformed")
+            return peer.compressed
+    for candidate in reversed([*forwarded, peer]):
+        if not any(candidate in network for network in trusted):
+            return candidate.compressed
+    return peer.compressed
+
+
+def _check_rate_limit(email: str, request: Request) -> bool:
+    """Apply atomic per-email, trusted-client-IP and global mail limits."""
+    ip_hash = hashlib.sha256(_client_ip(request).encode("utf-8")).hexdigest()
+    return _store().record_rate_requests([
+        (email, _RATE_LIMIT_PER_HOUR),
+        (f"ip:{ip_hash}", _positive_limit(
+            "AUTH_IP_EMAIL_LIMIT_PER_HOUR", _DEFAULT_IP_RATE_LIMIT_PER_HOUR,
+        )),
+        ("global:magic-link-email", _positive_limit(
+            "AUTH_GLOBAL_EMAIL_LIMIT_PER_HOUR", _DEFAULT_GLOBAL_RATE_LIMIT_PER_HOUR,
+        )),
+    ])
 
 
 def _generate_token() -> str:
@@ -217,6 +298,21 @@ def _generate_token() -> str:
 
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _safe_return_to(raw: Optional[str]) -> Optional[str]:
+    """Allow only a local absolute-path return target in emailed links."""
+    value = (raw or "").strip()
+    if not value or not value.startswith("/") or value.startswith("//"):
+        return None
+    if "\\" in value or any(ord(char) < 32 for char in value):
+        return None
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or parsed.path.startswith("//"):
+        return None
+    if parsed.path in {"/auth/login", "/auth/verify"}:
+        return None
+    return value
 
 
 def _ensure_user(email: str) -> tuple[dict, bool]:
@@ -326,6 +422,7 @@ def _issue_jwt(email: str, tier: str) -> tuple[str, str]:
         "sub": email,
         "tier": tier,
         "iat": int(now.timestamp()),
+        "issued_ns": time.time_ns(),
         "exp": int((now + timedelta(days=_SESSION_TTL_DAYS)).timestamp()),
         "jti": jti,
         "gen": generation,
@@ -361,8 +458,10 @@ def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
     if not _auth_enabled():
         return None, "unavailable"
     claims = _decode_jwt(cookie)
-    if not claims or _is_jti_revoked(claims.get("jti", "")):
+    if not claims:
         return None, "invalid"
+    if _is_jti_revoked(claims.get("jti", "")):
+        return None, "revoked"
     user = _store().user(claims.get("sub", ""))
     if not user or claims.get("gen") != user.get("session_generation"):
         return None, "invalid"
@@ -370,7 +469,44 @@ def resolve_session_user(request: Request) -> tuple[Optional[dict], str]:
         "email": user["email"],
         "tier": user["tier"],
         "created_at": user["created_at"],
+        "_issued_ns": int(claims.get("issued_ns", 0)),
     }, "valid"
+
+
+def resolve_account_user(request: Request) -> tuple[Optional[dict], str]:
+    """Resolve the canonical beta account across direct and legacy SSO paths."""
+    try:
+        from api.sso import resolve_beta_user
+    except ModuleNotFoundError:
+        from web.backend.api.sso import resolve_beta_user
+    beta, beta_status = resolve_beta_user(request)
+    if beta_status != "valid" or not beta:
+        return None, beta_status
+    stored = _store().user(beta["email"])
+    return {
+        "email": beta["email"],
+        "tier": beta.get("tier", "free"),
+        "created_at": stored.get("created_at") if stored else None,
+        "auth_method": "phase_sso",
+    }, "valid"
+
+
+def _account_auth_error(status: str) -> JSONResponse:
+    if status == "credential_conflict":
+        return JSONResponse(
+            {"ok": False, "error": "credential_conflict"}, status_code=409,
+        )
+    messages = {
+        "absent": "no session", "revoked": "session revoked",
+        "unlinked": "email confirmation required",
+    }
+    return JSONResponse({
+        "ok": False, "error": messages.get(status, "invalid session"),
+    }, status_code=401)
+
+
+def _clear_beta_session(response: Response) -> None:
+    response.delete_cookie(key="structural_beta_session", path="/")
 
 
 def require_same_origin(request: Request) -> Optional[JSONResponse]:
@@ -415,7 +551,7 @@ async def request_link(body: RequestLinkBody, request: Request):
             {"ok": False, "error": "invalid email"}, status_code=400
         )
 
-    if not _check_rate_limit(email):
+    if not _check_rate_limit(email, request):
         return JSONResponse(
             {"ok": False, "error": "rate limit exceeded; try again in 1 hour"},
             status_code=429,
@@ -428,8 +564,12 @@ async def request_link(body: RequestLinkBody, request: Request):
         (now + timedelta(minutes=_TOKEN_TTL_MIN)).isoformat(),
     )
 
-    base_url = os.getenv("AUTH_LINK_BASE_URL", "http://localhost:3000")
-    magic_link = f"{base_url}/auth/verify?token={token}"
+    base_url = os.getenv("AUTH_LINK_BASE_URL", "http://localhost:3000").rstrip("/")
+    query = {"token": token}
+    return_to = _safe_return_to(body.return_to)
+    if return_to:
+        query["next"] = return_to
+    magic_link = f"{base_url}/auth/verify?{urlencode(query)}"
     try:
         await asyncio.to_thread(
             _send_email, email, "Your Structural Isomorphism sign-in link",
@@ -511,6 +651,9 @@ async def verify(body: VerifyBody, request: Request, response: Response):
     }
     resp = JSONResponse(payload)
     resp.set_cookie(key=_COOKIE_NAME, value=jwt_token, **_cookie_args(request))
+    # A stale/expired legacy SSO cookie must never shadow the fresh direct
+    # credential on the next request.
+    _clear_beta_session(resp)
     return resp
 
 
@@ -528,18 +671,30 @@ async def logout(request: Request):
     origin_error = _require_same_origin(request)
     if origin_error:
         return origin_error
-    cookie = request.cookies.get(_COOKIE_NAME)
-    if cookie:
-        claims = _decode_jwt(cookie)
-        if claims and claims.get("jti"):
-            _store().revoke(
-                claims["jti"], datetime.now(timezone.utc).isoformat(), claims.get("sub")
-            )
-            logger.info("auth.logout jti=%s", claims["jti"])
-
-    resp = JSONResponse({"ok": True})
+    try:
+        from api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
+    except ModuleNotFoundError:
+        from web.backend.api.sso import SsoReplayStore, _data_dir as sso_data_dir, resolve_beta_user
+    beta_user, beta_status = resolve_beta_user(request)
+    resp = JSONResponse(
+        {"ok": False, "error": "credential_conflict"} if beta_status == "credential_conflict"
+        else {"ok": True},
+        status_code=409 if beta_status == "credential_conflict" else 200,
+    )
+    if beta_status == "valid" and beta_user:
+        cookie = request.cookies.get(_COOKIE_NAME)
+        if cookie:
+            claims = _decode_jwt(cookie)
+            if claims and claims.get("jti"):
+                _store().revoke(
+                    claims["jti"], datetime.now(timezone.utc).isoformat(), claims.get("sub")
+                )
+                logger.info("auth.logout jti=%s", claims["jti"])
+        if request.cookies.get("structural_beta_session"):
+            SsoReplayStore(sso_data_dir() / "sso_replay.sqlite3").revoke_subject(beta_user["id"])
     # delete_cookie matches the path the cookie was set on.
     resp.delete_cookie(key=_COOKIE_NAME, path="/")
+    _clear_beta_session(resp)
     return resp
 
 
@@ -549,31 +704,9 @@ async def me(request: Request):
     unavailable = _auth_unavailable()
     if unavailable:
         return unavailable
-    cookie = request.cookies.get(_COOKIE_NAME)
-    if not cookie:
-        return JSONResponse(
-            {"ok": False, "error": "no session"}, status_code=401
-        )
-
-    claims = _decode_jwt(cookie)
-    if not claims:
-        return JSONResponse(
-            {"ok": False, "error": "invalid session"}, status_code=401
-        )
-
-    jti = claims.get("jti", "")
-    if _is_jti_revoked(jti):
-        return JSONResponse(
-            {"ok": False, "error": "session revoked"}, status_code=401
-        )
-
-    email = claims.get("sub", "")
-    # Look up canonical user record so tier changes propagate.
-    user = _store().user(email)
-    if not user or claims.get("gen") != user.get("session_generation"):
-        return JSONResponse(
-            {"ok": False, "error": "user not found"}, status_code=401
-        )
+    user, status = resolve_account_user(request)
+    if status != "valid" or not user:
+        return _account_auth_error(status)
 
     return JSONResponse({
         "ok": True,
@@ -591,9 +724,9 @@ async def export_my_account(request: Request):
     unavailable = _auth_unavailable()
     if unavailable:
         return unavailable
-    user, status = resolve_session_user(request)
+    user, status = resolve_account_user(request)
     if status != "valid" or not user:
-        return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
+        return _account_auth_error(status)
     try:
         registry = _account_registry()
         data = registry.export_all(user["email"])
@@ -618,9 +751,9 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
     origin_error = _require_same_origin(request)
     if origin_error:
         return origin_error
-    user, status = resolve_session_user(request)
+    user, status = resolve_account_user(request)
     if status != "valid" or not user:
-        return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
+        return _account_auth_error(status)
     if body.confirmation != "DELETE":
         return JSONResponse({"ok": False, "error": "confirmation must equal DELETE"}, status_code=400)
     try:
@@ -642,6 +775,7 @@ async def delete_my_account(body: DeleteAccountBody, request: Request):
         "removed": removed,
     })
     response.delete_cookie(key=_COOKIE_NAME, path="/")
+    _clear_beta_session(response)
     logger.info("account_data.deleted owner_hash=%s", tombstone["owner_hash"])
     return response
 
@@ -657,6 +791,7 @@ def _override_data_dir_for_tests(tmp_dir: Path) -> None:
 __all__ = [
     "router",
     "require_same_origin",
+    "resolve_account_user",
     "resolve_session_user",
     "retry_registration_notifications",
 ]

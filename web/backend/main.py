@@ -110,6 +110,11 @@ async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
     logger.info("Starting Structural Web Backend...")
 
+    # Authentication deployment constraints are runtime security boundaries,
+    # not merely deploy-script conventions. A production beta process must
+    # fail before serving if its role or persistent data location is unsafe.
+    auth_api._validate_production_config()
+
     # Session #17 P2-3 — precompute the git SHA so /api/version is fork-free.
     global _GIT_SHA_CACHE
     _GIT_SHA_CACHE = _resolve_git_sha()
@@ -617,10 +622,16 @@ async def search_page():
 
 @app.get("/auth/login", include_in_schema=False)
 async def unified_auth_login():
-    """Send beta visitors to the project's canonical account entrypoint."""
-    return RedirectResponse(
-        "https://phase.bytedance.city/auth/login",
-        status_code=308,
+    """Serve the beta-native, same-origin account entrypoint."""
+    return FileResponse(FRONTEND_DIR / "auth-login.html")
+
+
+@app.get("/auth/verify", include_in_schema=False)
+async def unified_auth_verify():
+    """Consume beta magic links without crossing into the Phase subproduct."""
+    return FileResponse(
+        FRONTEND_DIR / "auth-verify.html",
+        headers={"Referrer-Policy": "no-referrer", "Cache-Control": "no-store"},
     )
 
 

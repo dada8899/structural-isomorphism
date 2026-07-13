@@ -121,6 +121,38 @@ class AuthStore:
             conn.commit()
             return True
 
+    def record_rate_requests(
+        self, buckets: list[tuple[str, int]], window_seconds: int = 3600,
+    ) -> bool:
+        """Atomically admit one request against every supplied rate bucket.
+
+        A request is recorded only when all buckets have capacity. This keeps
+        the per-address and global mail circuit breakers race-safe across
+        multiple workers sharing the SQLite store.
+        """
+        now = int(time.time())
+        with self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM auth_rate_requests WHERE requested_at < ?",
+                (now - window_seconds,),
+            )
+            for key, limit in buckets:
+                count = conn.execute(
+                    "SELECT COUNT(*) FROM auth_rate_requests "
+                    "WHERE email=? AND requested_at>=?",
+                    (key, now - window_seconds),
+                ).fetchone()[0]
+                if count >= limit:
+                    conn.rollback()
+                    return False
+            conn.executemany(
+                "INSERT INTO auth_rate_requests VALUES (?, ?)",
+                [(key, now) for key, _limit in buckets],
+            )
+            conn.commit()
+            return True
+
     def add_token(self, token_hash: str, email: str, created_at: str, expires_at: str) -> None:
         with self._connection() as conn:
             conn.execute(
