@@ -497,6 +497,7 @@ def test_beta_deploy_loads_private_canonical_auth_environment():
     assert "AUTH_TRUSTED_PROXY_IPS" in deploy
     assert "EnvironmentFile=/root/.config/structural-isomorphism/beta-auth.env" in unit
     assert unit.index("web/backend/.env") < unit.index("beta-auth.env")
+    assert "--exclude=web/backend/data/" in deploy
 
 
 def test_beta_runtime_rejects_noncanonical_production_link(monkeypatch):

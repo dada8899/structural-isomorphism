@@ -182,6 +182,7 @@ EXCLUDES=(
   --exclude=*.pyc
   --exclude=.env
   --exclude=.env.production
+  --exclude=web/backend/data/       # Runtime DB/outbox/API-key state; never deploy over user data
   --exclude=models/                # CRITICAL: 大文件 fixture, restore-models.sh 维护
   --exclude=data/large_*
   --exclude=*.npy
