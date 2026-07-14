@@ -1,3 +1,7 @@
+import unicodedata
+import subprocess
+import sys
+
 from scripts.validate_evidence_assets import (
     DISCOVERIES,
     KB,
@@ -15,6 +19,18 @@ from scripts.validate_evidence_assets import (
 
 def test_repository_evidence_asset_contracts_pass() -> None:
     assert validate_repository() == []
+
+
+def test_evidence_validator_cli_runs_from_outside_repository(tmp_path) -> None:
+    completed = subprocess.run(
+        [sys.executable, str(DISCOVERIES.parents[2] / "scripts/validate_evidence_assets.py")],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr or completed.stdout
 
 
 def test_evidence_ladder_is_ordered_and_has_no_generic_verified_state() -> None:
@@ -232,7 +248,7 @@ def test_audited_source_backed_row_passes() -> None:
 
 
 def test_discovery_promotes_only_with_complete_reviewed_evidence() -> None:
-    row = {
+    incomplete = {
         "shared_equation": "x=y",
         "literature_status": "bounded",
         "literature_evidence": [{
@@ -240,7 +256,16 @@ def test_discovery_promotes_only_with_complete_reviewed_evidence() -> None:
             "provenance_class": "literature-derived", "source_review": {"reviewer": "r"},
         }],
     }
-    normalized = normalize_discovery(row)
+    assert normalize_discovery(incomplete)["evidence_level"] == "candidate"
+
+    complete = {
+        **incomplete,
+        "literature_evidence": [{
+            **incomplete["literature_evidence"][0],
+            "source_review": {"reviewer": "r", "reviewed_at": "2026-07-13"},
+        }],
+    }
+    normalized = normalize_discovery(complete)
     assert normalized["evidence_level"] == "source_backed"
     assert normalized["literature_status"] == "bounded"
 
@@ -250,10 +275,34 @@ def test_all_39_discovery_equations_and_mappings_normalize() -> None:
     normalized = [normalize_discovery(row) for row in rows]
     assert len(normalized) == 39
     assert all(row["shared_equations"] for row in normalized)
+    for raw, public in zip(rows, normalized, strict=True):
+        raw_equations = raw.get("shared_equations")
+        if raw_equations is None:
+            raw_equations = [raw["shared_equation"]] if isinstance(raw.get("shared_equation"), str) else raw.get("equations", [])
+        assert len(public["shared_equations"]) == len(raw_equations)
+        for source, preserved in zip(raw_equations, public["shared_equations"], strict=True):
+            expected = source["zh"] if isinstance(source, dict) else source
+            assert preserved == unicodedata.normalize("NFKC", expected).strip()
     assert all(
         normalized[index]["variable_mapping"] is not None
         for index, raw in enumerate(rows) if raw.get("variable_mapping") is not None
     )
+
+
+def test_discovery_source_review_rejects_invalid_or_future_dates() -> None:
+    base = {
+        "shared_equation": "x=y",
+        "literature_status": "bounded",
+        "literature_evidence": [{
+            "source": "https://example.test/paper",
+            "license": "CC-BY-4.0",
+            "provenance_class": "literature-derived",
+            "source_review": {"reviewer": "reviewer-a", "reviewed_at": "not-a-date"},
+        }],
+    }
+    assert normalize_discovery(base)["evidence_level"] == "candidate"
+    base["literature_evidence"][0]["source_review"]["reviewed_at"] = "2999-01-01"
+    assert normalize_discovery(base)["evidence_level"] == "candidate"
 
 
 def test_ladder_rejects_source_backed_without_review_requirement() -> None:
