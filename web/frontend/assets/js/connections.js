@@ -132,7 +132,7 @@
     var head = document.createElement('div');
     head.className = 'cn-neighbor-count';
     if (count === 0) {
-      head.textContent = '暂时还没有人在解结构相同的问题——' +
+      head.textContent = '暂时还没有人在研究结构指纹相近的问题——' +
         '把更多问题登记成可发现的指纹，结构邻居会随用户增长出现。';
       head.style.color = '#9a958c';
       head.style.fontWeight = '400';
@@ -140,7 +140,7 @@
       show(container);
       return;
     }
-    head.textContent = '有 ' + count + ' 人正在解结构相同、但领域不同的问题';
+    head.textContent = '有 ' + count + ' 人正在研究结构指纹相近、但领域不同的问题';
     container.appendChild(head);
 
     (body.neighbors || []).forEach(function (n) {
@@ -150,7 +150,7 @@
       var metaBits = [];
       if (n.domain) metaBits.push('领域：' + esc(n.domain));
       metaBits.push('结构相似度 ' + simPct + '%');
-      if (n.same_universality_class) metaBits.push('同一普适类');
+      if (n.same_universality_class) metaBits.push('内部候选分类标签相同（非机制证明）');
       el.innerHTML =
         '<div class="cn-neighbor__summary">' + esc(n.problem_summary) + '</div>' +
         '<div class="cn-neighbor__meta">' + metaBits.join(' · ') + '</div>';

@@ -378,15 +378,21 @@ def mock_llm(monkeypatch):
     """
     from services import llm_client
 
-    state = {"available": True, "raw": _good_raw(), "note": "那个案例最终崩了。"}
+    runtime_raw = _good_raw()
+    runtime_raw["primary_state"].pop("confidence")
+    state = {
+        "available": True,
+        "raw": runtime_raw,
+        "note": "值得核查恢复时长；若状态变量不同，应放弃这个参照。",
+    }
 
     def _available() -> bool:
         return state["available"]
 
     async def _complete_json(**kwargs):
         user = kwargs.get("user", "")
-        if "真实现象" in user:  # the reference-note enrichment call
-            return {"note": state["note"]}
+        if "知识库候选" in user:  # candidate-note enrichment call
+            return {"candidate_note": state["note"]}
         return state["raw"]
 
     monkeypatch.setattr(llm_client, "llm_available", _available)
@@ -418,13 +424,26 @@ def mock_search():
 
 
 def test_endpoint_success(client, mock_llm):
-    r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷，加人反而更慢。"})
+    r = client.post("/api/diagnose", json={
+        "situation": "一个 30 人公司的效率塌陷，加人反而更慢。",
+        "client_request_id": "diagnose-request-001",
+    })
     assert r.status_code == 200
     body = r.json()
     assert body["primary_state"]["state_id"] == "hysteresis_trap"
-    assert body["primary_state"]["confidence"] == 0.82
+    assert "confidence" not in body["primary_state"]
+    assert body["assessment_kind"] == "structural_state_hypothesis"
+    assert body["request_id"] == "diagnose-request-001"
+    assert body["contract_version"] == "secondary-tools-v2"
+    assert body["evidence"]["evidence_level"] == "candidate"
     assert body["situation"].startswith("一个 30 人公司")
     assert "signals_to_watch" in body
+
+
+def test_endpoint_rejects_out_of_scope_before_model(client, mock_llm):
+    r = client.post("/api/diagnose", json={"situation": "2 + 2 等于多少，请直接告诉我答案"})
+    assert r.status_code == 422
+    assert r.json()["detail"]["error"] == "out_of_scope"
 
 
 def test_endpoint_503_when_llm_unavailable(client, mock_llm):
@@ -442,21 +461,20 @@ def test_endpoint_503_when_llm_returns_none(client, mock_llm):
 def test_endpoint_503_when_llm_returns_illegal_state(client, mock_llm):
     # Guardrail: an LLM that invents a state must NOT leak through — the
     # service coerces to None, the endpoint degrades to 503.
-    mock_llm["raw"] = {
-        "primary_state": {"state_id": "totally_made_up", "confidence": 0.9},
-        "reasoning": "x",
-    }
+    raw = _good_raw()
+    raw["primary_state"] = {"state_id": "totally_made_up"}
+    mock_llm["raw"] = raw
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
     assert r.status_code == 503
 
 
-def test_endpoint_illegal_secondary_does_not_break_response(client, mock_llm):
+def test_endpoint_illegal_secondary_fails_closed(client, mock_llm):
     raw = _good_raw()
+    raw["primary_state"].pop("confidence")
     raw["secondary_state"] = {"state_id": "nonsense"}
     mock_llm["raw"] = raw
     r = client.post("/api/diagnose", json={"situation": "一个 30 人公司的效率塌陷情况。"})
-    assert r.status_code == 200
-    assert r.json()["secondary_state"] is None
+    assert r.status_code == 503
 
 
 def test_endpoint_rejects_empty_situation(client, mock_llm):
@@ -491,34 +509,29 @@ def test_states_catalogue_endpoint(client):
 # ===========================================================================
 
 
-def test_endpoint_includes_reference_case_from_search(client, mock_llm, mock_search):
-    """A successful diagnosis carries a real KB reference_case."""
+def test_endpoint_includes_candidate_reference_from_search(client, mock_llm, mock_search):
+    """A successful diagnosis may carry a source-bound KB candidate."""
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷，加人反而更慢。"},
     )
     assert r.status_code == 200
-    ref = r.json()["reference_case"]
+    ref = r.json()["candidate_reference"]
     assert ref is not None
     assert ref["id"] == "phen_0421"
-    assert ref["source"] == "kb_search"
-    # The reference-note enrichment ran (mock_llm answers the 2nd call).
-    assert ref["note"] == "那个案例最终崩了。"
+    assert ref["retrieval_rank"] == 1
+    assert ref["evidence"]["evidence_level"] == "candidate"
+    assert ref["candidate_note"] == "值得核查恢复时长;若状态变量不同,应放弃这个参照。"
 
 
-def test_endpoint_reference_case_falls_back_when_no_search(client, mock_llm):
-    """No search service in app_state → degrade to a class-hub reference."""
-    # mock_search not used → app_state has no "search"; hysteresis_trap has
-    # a class_hub so a fallback reference is still produced.
+def test_endpoint_candidate_reference_absent_without_search(client, mock_llm):
+    """A class-hub label without a KB record is not surfaced as evidence."""
     r = client.post(
         "/api/diagnose",
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
     )
     assert r.status_code == 200
-    ref = r.json()["reference_case"]
-    assert ref is not None
-    assert ref["source"] == "class_hub"
-    assert ref["id"] == ""
+    assert r.json()["candidate_reference"] is None
 
 
 def test_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, mock_search):
@@ -529,7 +542,7 @@ def test_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, m
     """
     mock_search["svc"] = _FakeSearch(hits=[])
     raw = _good_raw()
-    raw["primary_state"] = {"state_id": "damped_convergence", "confidence": 0.7}
+    raw["primary_state"] = {"state_id": "damped_convergence"}
     mock_llm["raw"] = raw
     r = client.post(
         "/api/diagnose",
@@ -538,7 +551,7 @@ def test_endpoint_reference_case_null_when_no_hit_and_no_hub(client, mock_llm, m
     assert r.status_code == 200
     body = r.json()
     assert body["primary_state"]["state_id"] == "damped_convergence"
-    assert body["reference_case"] is None
+    assert body["candidate_reference"] is None
 
 
 def test_endpoint_survives_search_failure(client, mock_llm, mock_search):
@@ -549,7 +562,5 @@ def test_endpoint_survives_search_failure(client, mock_llm, mock_search):
         json={"situation": "一个 30 人公司的效率塌陷情况。"},
     )
     assert r.status_code == 200
-    # Diagnosis still completes; reference degrades to the class hub.
-    ref = r.json()["reference_case"]
-    assert ref is not None
-    assert ref["source"] == "class_hub"
+    # Diagnosis still completes, but an unbound class-hub label is not shown.
+    assert r.json()["candidate_reference"] is None

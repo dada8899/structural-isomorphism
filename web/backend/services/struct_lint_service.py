@@ -6,28 +6,39 @@ causal judgments. For each claim it surfaces the underlying structure,
 the failure mode that structure most commonly hits, a risk level, and a
 mitigation suggestion.
 
-Session #18 deepening — this is NOT a bare-LLM wrapper. After the LLM
-extracts the claims, each claim's structural description is used to
-query the KB (the cross-domain structural-isomorphism engine). When a
-structurally similar *real phenomenon* is found, a second LLM pass
-re-grounds the failure mode on that real anchor instead of free-form
-speculation. That structural anchor is the product's moat.
+After the LLM extracts claims, each structural description may query the KB
+for a candidate reference. Retrieval does not prove shared mechanism and
+never rewrites the model-generated failure mode.
 
-The LLM is untrusted. `normalize_lint_result` is a hard guardrail: it
-validates enum fields, drops malformed claims, and never lets a bad
-payload through. When no API key is configured the endpoint degrades to
-an explicit "llm unavailable" response (see api/struct_lint.py). When
-the search service is unavailable or finds nothing, the isomorph field
-degrades to None and C2 still returns a usable basic lint.
+The LLM is untrusted. The live path uses `validate_lint_result`, rejects the
+whole payload on any malformed claim, and binds every quote to the submitted
+document. When search is unavailable, references remain null.
 """
 from __future__ import annotations
 
-import logging
-from typing import AsyncIterator, Optional
+import hashlib
+from typing import Any, AsyncIterator, Optional
 
-from services import llm_client
+if __package__ == "web.backend.services":
+    from . import llm_client
+    from .input_limits import normalize_research_text
+    from .search_synthesis import validate_candidate_public_texts
+    from .secondary_tool_contracts import (
+        internal_screen_evidence,
+        kb_candidate_evidence,
+    )
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from services import llm_client
+    from services.input_limits import normalize_research_text
+    from services.search_synthesis import validate_candidate_public_texts
+    from services.secondary_tool_contracts import (
+        internal_screen_evidence,
+        kb_candidate_evidence,
+    )
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.struct_lint")
+logger = get_logger("structural.struct_lint")
 
 # Hard cap on input length. Longer documents are rejected with HTTP 400
 # rather than silently truncated — a truncated doc produces a misleading
@@ -42,8 +53,8 @@ RISK_LEVELS = {"high", "medium", "low"}
 # bloat the response payload.
 MAX_CLAIMS = 30
 
-# How many KB phenomena to fetch per claim. We keep the top-1 as the
-# structural anchor; a 2nd is fetched only as a fallback candidate.
+# How many KB phenomena to fetch per claim. We display at most one candidate;
+# the second is only a fallback for malformed retrieval rows.
 ISOMORPH_TOP_K = 2
 
 # Only claims at/above this many chars of structure text are worth a KB
@@ -86,25 +97,22 @@ _SYSTEM_PROMPT = """你是一个"结构 lint"工具，像代码审查工具审�
 如果文档里找不到任何结构性主张，claims 返回空数组，summary 说明原因。"""
 
 
-# Second-pass prompt — given a claim + the real KB phenomenon that is
-# structurally isomorphic to it, re-ground the failure mode on that real
-# anchor. The point is to replace free-form speculation with "this same
-# structure already failed THIS way in domain X".
-_ANCHOR_SYSTEM_PROMPT = """你是一个"结构 lint"工具的失效模式分析模块。
+# Legacy note prompt retained for compatibility-only helpers below. The live
+# v2 path attaches a retrieval candidate without rewriting the failure mode.
+_ANCHOR_SYSTEM_PROMPT = """你是一个"结构 lint"工具的候选参照分析模块。
 
-你会收到：一条策略文档里的结构性主张，它的底层结构描述，以及一个**已知的、来自其他领域的真实现象**——这个真实现象的底层结构和这条主张是同构的（结构相似）。
+你会收到：一条策略文档里的结构性主张，以及一个内部知识库检索候选。
+检索候选只用于后续核查，不证明两者同构，也不是现实证据。
 
-你的任务：基于那个真实现象**已知的失效方式**，重新给出这条主张的失效模式和对冲建议。要求：
-- failure_mode：明确点出"这条主张的结构和『某领域的某现象』同构；那个现象在 XX 条件下会失效，因此这条主张同样会在类似条件下崩"。要具体，不要泛泛而谈。
-- suggestion：基于这个真实锚点给一条可执行的对冲建议。
+你的任务：说明为什么值得比较，以及哪个观察会推翻这个参照。不得把候选改写成
+真实先例、已经同构、确认适用、证据或成功概率。
 
 只输出 JSON，格式严格如下：
 {
-  "failure_mode": "挂靠到真实现象的失效模式描述，2-4 句话",
-  "suggestion": "基于真实锚点的对冲建议，1-2 句话"
+  "candidate_note": "待核查说明，1-2 句话"
 }
 
-全部用中文。如果那个真实现象其实和这条主张关系不大，failure_mode 里如实说明同构关系较弱，并退回到结构本身最常见的失效模式。"""
+全部用中文。"""
 
 
 def check_doc_length(document: str) -> Optional[str]:
@@ -230,8 +238,12 @@ def _search_isomorph(search_svc, query: str) -> Optional[dict]:
         return None
     try:
         hits = search_svc.search(query, top_k=ISOMORPH_TOP_K)
-    except Exception:
-        logger.warning("struct_lint: KB search failed for a claim", exc_info=True)
+    except Exception as exc:
+        logger.warning(
+            "structural.struct_lint_search_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
     if not isinstance(hits, list) or not hits:
         return None
@@ -266,8 +278,12 @@ async def _anchor_failure_mode(claim: dict, isomorph: dict) -> None:
             temperature=0.3,
             max_tokens=600,
         )
-    except Exception:
-        logger.warning("struct_lint: anchor LLM pass raised", exc_info=True)
+    except Exception as exc:
+        logger.warning(
+            "structural.struct_lint_anchor_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return
     if not isinstance(raw, dict):
         return
@@ -315,6 +331,155 @@ def normalize_lint_result(raw) -> Optional[dict]:
     return {"summary": summary[:1200], "claims": claims}
 
 
+def validate_lint_result(raw: Any, document: str) -> Optional[dict]:
+    """Strict execution-path validator with verbatim source-quote binding."""
+    if not isinstance(raw, dict) or set(raw) != {"summary", "claims"}:
+        return None
+    claims_raw = raw.get("claims")
+    if not isinstance(claims_raw, list) or len(claims_raw) > MAX_CLAIMS:
+        return None
+    try:
+        normalized_document = normalize_research_text(
+            document,
+            max_chars=MAX_DOC_CHARS,
+            allow_layout=True,
+            field_name="document",
+        )
+        summary = normalize_research_text(
+            raw.get("summary"),
+            max_chars=1_200,
+            allow_layout=False,
+            field_name="summary",
+        )
+        claims: list[dict[str, Any]] = []
+        for index, item in enumerate(claims_raw):
+            if not isinstance(item, dict) or set(item) != {
+                "quote",
+                "claim_type",
+                "structure",
+                "failure_mode",
+                "risk_level",
+                "suggestion",
+            }:
+                return None
+            quote = normalize_research_text(
+                item.get("quote"),
+                max_chars=600,
+                allow_layout=True,
+                field_name="quote",
+            )
+            if quote not in normalized_document:
+                return None
+            claim_type = item.get("claim_type")
+            review_priority = item.get("risk_level")
+            if claim_type not in CLAIM_TYPES or review_priority not in RISK_LEVELS:
+                return None
+            structure = normalize_research_text(
+                item.get("structure"),
+                max_chars=800,
+                allow_layout=False,
+                field_name="structure",
+            )
+            failure_mode = normalize_research_text(
+                item.get("failure_mode"),
+                max_chars=800,
+                allow_layout=False,
+                field_name="failure_mode",
+            )
+            suggestion = normalize_research_text(
+                item.get("suggestion"),
+                max_chars=800,
+                allow_layout=False,
+                field_name="suggestion",
+            )
+            claim_id = "lint-" + hashlib.sha256(
+                f"{normalized_document}\x1f{index}\x1f{quote}".encode("utf-8")
+            ).hexdigest()[:16]
+            claims.append({
+                "claim_id": claim_id,
+                "quote": quote,
+                "claim_type": claim_type,
+                "structure": structure,
+                "failure_mode": failure_mode,
+                "review_priority": review_priority,
+                "suggestion": suggestion,
+                "reference_candidate": None,
+                "evidence": internal_screen_evidence(
+                    kind="document_claim_screen", label=quote
+                ),
+            })
+        validate_candidate_public_texts(
+            [
+                summary,
+                *(
+                    text
+                    for claim in claims
+                    for text in (
+                        claim["structure"],
+                        claim["failure_mode"],
+                        claim["suggestion"],
+                    )
+                ),
+            ]
+        )
+    except (TypeError, ValueError):
+        return None
+    return {"summary": summary, "claims": claims}
+
+
+def build_reference_candidate(raw: Any, retrieval_rank: int = 1) -> Optional[dict]:
+    """Bind a public candidate reference to one exact SearchService row."""
+    normalized = normalize_isomorph(raw)
+    if normalized is None:
+        return None
+    name = normalized["name"]
+    if not name:
+        return None
+    return {
+        "id": normalized["id"],
+        "name": name,
+        "domain": normalized["domain"],
+        "description": normalized["description"],
+        "retrieval_rank": retrieval_rank,
+        "candidate_note": None,
+        "evidence": kb_candidate_evidence(
+            raw,
+            counterexample="需要核查原文主张与候选记录的机制、尺度和失效边界。",
+        ),
+    }
+
+
+def _search_reference_candidate(search_svc: Any, query: str) -> Optional[dict]:
+    """Retrieve, bind and return the first valid candidate row."""
+    if search_svc is None or not query:
+        return None
+    try:
+        hits = search_svc.search(query, top_k=ISOMORPH_TOP_K)
+    except Exception as exc:
+        logger.warning(
+            "structural.struct_lint_candidate_search_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        return None
+    if not isinstance(hits, list):
+        return None
+    for index, hit in enumerate(hits, start=1):
+        candidate = build_reference_candidate(hit, retrieval_rank=index)
+        if candidate is not None:
+            return candidate
+    return None
+
+
+def _attach_reference_candidates(claims: list[dict], search_svc: Any) -> None:
+    """Attach retrieval candidates without allowing them to rewrite claims."""
+    if search_svc is None:
+        return
+    for claim in claims:
+        query = build_isomorph_query(claim)
+        claim["reference_candidate"] = _search_reference_candidate(search_svc, query)
+
+
 async def _attach_isomorphs(claims: list, search_svc) -> None:
     """For each claim, find a structurally isomorphic real KB phenomenon
     and re-ground its failure mode on that anchor. Mutates `claims`.
@@ -341,11 +506,9 @@ async def lint_document(document: str, search_svc=None) -> Optional[dict]:
     first LLM call fails or returns an unusable payload. The caller
     decides how to surface a degraded result.
 
-    `search_svc` is the running SearchService instance (app_state["search"]).
-    When provided, each extracted claim is matched against the KB for a
-    structurally isomorphic real phenomenon, and the failure mode is
-    re-grounded on that anchor. When None (search not ready), C2 still
-    returns a usable basic lint with isomorph=None on every claim.
+    `search_svc` is the running SearchService instance. When provided, each
+    claim may receive one untested KB candidate reference. When absent, the
+    strict document screen still returns with references set to null.
     """
     user_prompt = f"请对下面这份策略/方案文档做结构 lint：\n\n{document}"
     raw = await llm_client.complete_json(
@@ -355,17 +518,20 @@ async def lint_document(document: str, search_svc=None) -> Optional[dict]:
         max_tokens=3200,
     )
     if raw is None:
-        logger.warning("lint_document: LLM returned no payload")
+        logger.warning("structural.struct_lint_payload_missing")
         return None
-    result = normalize_lint_result(raw)
+    result = validate_lint_result(raw, document)
     if result is None:
         return None
-    # Session #18 deepening — the KB isomorphism pass. Best-effort: any
-    # failure here leaves claims with isomorph=None, never breaks the lint.
+    # Candidate retrieval is optional and cannot alter the primary screen.
     try:
-        await _attach_isomorphs(result["claims"], search_svc)
-    except Exception:
-        logger.warning("lint_document: isomorph pass failed", exc_info=True)
+        _attach_reference_candidates(result["claims"], search_svc)
+    except Exception as exc:
+        logger.warning(
+            "structural.struct_lint_isomorph_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
     return result
 
 
@@ -379,7 +545,7 @@ async def lint_document_streamed(
 
       {"type": "progress", "stage": "extract",  "message": ...}
       {"type": "progress", "stage": "claims",   "claim_count": N}
-      {"type": "progress", "stage": "isomorph", "current": i, "total": N,
+      {"type": "progress", "stage": "candidate_reference", "current": i, "total": N,
                             "message": ...}
       {"type": "done",     "result": {"summary", "claims": [...]}}
       {"type": "error",    "message": ...}
@@ -402,10 +568,10 @@ async def lint_document_streamed(
         max_tokens=3200,
     )
     if raw is None:
-        logger.warning("lint_document_streamed: LLM returned no payload")
+        logger.warning("structural.struct_lint_payload_missing")
         yield {"type": "error", "message": "结构 lint 生成失败，请稍后重试。"}
         return
-    result = normalize_lint_result(raw)
+    result = validate_lint_result(raw, document)
     if result is None:
         yield {"type": "error", "message": "结构 lint 生成失败，请稍后重试。"}
         return
@@ -418,29 +584,28 @@ async def lint_document_streamed(
         "message": f"已抽取 {len(claims)} 条结构性主张，正在比对失效模式……",
     }
 
-    # --- Stage 2: per-claim KB isomorphism pass (the per-claim LLM calls) ---
-    # Best-effort, same contract as _attach_isomorphs: any failure leaves the
-    # claim with isomorph=None and its first-pass failure mode intact.
+    # --- Stage 2: per-claim KB candidate retrieval. No second model is allowed
+    # to rewrite the extracted claim or make the retrieval row sound proven. ---
     if search_svc is not None and claims:
         total = len(claims)
         for i, claim in enumerate(claims, start=1):
             yield {
                 "type": "progress",
-                "stage": "isomorph",
+                "stage": "candidate_reference",
                 "current": i,
                 "total": total,
-                "message": f"正在为第 {i}/{total} 条主张匹配结构同构现象……",
+                "message": f"正在为第 {i}/{total} 条主张检索候选参照……",
             }
             try:
                 query = build_isomorph_query(claim)
-                anchor = _search_isomorph(search_svc, query)
-                if anchor is not None:
-                    claim["isomorph"] = anchor
-                    await _anchor_failure_mode(claim, anchor)
-            except Exception:
+                claim["reference_candidate"] = _search_reference_candidate(
+                    search_svc, query
+                )
+            except Exception as exc:
                 logger.warning(
-                    "lint_document_streamed: isomorph pass failed for a claim",
-                    exc_info=True,
+                    "structural.struct_lint_isomorph_failed",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
                 )
 
     yield {"type": "done", "result": result}
@@ -453,8 +618,10 @@ __all__ = [
     "ISOMORPH_TOP_K",
     "check_doc_length",
     "normalize_lint_result",
+    "validate_lint_result",
     "build_isomorph_query",
     "normalize_isomorph",
+    "build_reference_candidate",
     "lint_document",
     "lint_document_streamed",
 ]

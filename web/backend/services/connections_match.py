@@ -1,7 +1,8 @@
 """ConnectionsMatcher — G 方向匹配引擎（设计 §3.2）。
 
-给定一个指纹，在其它用户的可发现（L1/L2）指纹里找「结构同构但领域不同」
-的对象。算法不是难点（设计文档原话）——复用已有资产：
+给定一个指纹，在其它用户的可发现（L1/L2）指纹里检索「结构相似且领域不同」
+的待核验候选。该结果只是向量与元数据检索信号，不证明同构、共同机制或
+迁移有效性。算法复用已有资产：
 
   * 结构相似度：SearchService._cosine()（已正确处理未 L2-归一化向量）
   * 领域距离：两指纹的 KB domain 是否不同（同 0 / 不同 1）
@@ -20,12 +21,15 @@
 """
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
 import numpy as np
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.connections.match")
+logger = get_logger("structural.connections.match")
 
 # 结构相似度下限。复用 analyze 的 scope floor 口径（[0,1]，0.50 为正交线）。
 STRUCT_SIM_MIN = 0.50
@@ -40,8 +44,12 @@ def _decode_embedding(blob: Optional[bytes]) -> Optional[np.ndarray]:
     try:
         arr = np.frombuffer(blob, dtype="<f4")
         return arr if arr.size > 0 else None
-    except Exception as e:  # pragma: no cover — defensive
-        logger.warning("connections_match: bad embedding blob: %s", e)
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning(
+            "structural.connections_embedding_rejected",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
 
 
@@ -88,7 +96,7 @@ class ConnectionsMatcher:
         sim_min: float = STRUCT_SIM_MIN,
         limit: int = 20,
     ) -> list[dict]:
-        """为 target 指纹在 candidates 里找结构同构、领域不同的匹配。
+        """为 target 指纹检索结构相似、领域不同的待核验候选。
 
         target / candidates 都是 ConnectionsStore 行 dict。candidates 应已
         是 list_discoverable() 的结果（L0 不会进来）。
@@ -160,7 +168,7 @@ class ConnectionsMatcher:
         *,
         sim_min: float = STRUCT_SIM_MIN,
     ) -> int:
-        """L1「N 人在解结构相同的问题」——纯计数，不暴露任何身份。
+        """L1 待核验结构相似候选计数，不暴露任何身份。
 
         这是设计 §3.3 L1 级别的核心：零隐私成本就能验证「我不孤独」。
         """

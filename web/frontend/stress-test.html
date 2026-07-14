@@ -21,12 +21,12 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/stress-test.css?v=20260522">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/stress-test.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
   <!-- Plausible analytics. -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -43,8 +43,8 @@
       <section class="stress-intro">
         <h1 class="stress-intro__title">结构压力测试</h1>
         <p class="stress-intro__lede">
-          输入一个商业类比或战略判断。我们<strong>只做证伪</strong>——不夸、不顺着说，
-          专门检查这个类比在结构上成不成立、最可能从哪一环崩。
+          输入一个商业类比或战略判断。内部模型会<strong>只从反证方向筛查</strong>，
+          找出最可能断裂的环节；结果是待验证线索，不是成立 / 不成立的实证结论。
         </p>
       </section>
 
@@ -66,17 +66,17 @@
           </div>
           <button type="button" id="stress-submit" class="stress-submit">开始压力测试</button>
         </div>
-        <div class="stress-input__error" id="stress-error" hidden></div>
+        <div class="stress-input__error" id="stress-error" role="alert" hidden></div>
       </section>
 
       <!-- Loading -->
-      <section class="stress-loading" id="stress-loading" hidden>
+      <section class="stress-loading" id="stress-loading" aria-live="polite" hidden>
         <div class="stress-loading__spinner" aria-hidden="true"></div>
         <p class="stress-loading__text">正在红队拆解这个类比……</p>
       </section>
 
       <!-- Result -->
-      <section class="stress-result" id="stress-result" hidden>
+      <section class="stress-result" id="stress-result" aria-live="polite" hidden>
         <!-- Verdict badge -->
         <div class="stress-verdict" id="stress-verdict">
           <span class="stress-verdict__badge" id="stress-verdict-badge"></span>
@@ -109,8 +109,8 @@
 
           <!-- Real KB precedent backing the weakest link -->
           <div class="stress-precedent" id="stress-precedent" hidden>
-            <div class="stress-precedent__label">结构同构的真实先例</div>
-            <a class="stress-precedent__phenom" id="stress-precedent-link" href="#" aria-label="查看相似案例来源">
+            <div class="stress-precedent__label">知识库候选参照（未验证）</div>
+            <a class="stress-precedent__phenom" id="stress-precedent-link" href="#" aria-label="查看候选记录">
               <span class="stress-precedent__domain" id="stress-precedent-domain"></span>
               <span class="stress-precedent__name" id="stress-precedent-name"></span>
             </a>
@@ -123,11 +123,12 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260514e"></script>
-  <script src="/assets/js/api.js?v=20260514e"></script>
-  <script src="/assets/js/stress-test.js?v=20260522b"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/secondary-tool-contracts.js?v=20260714n2"></script>
+  <script src="/assets/js/stress-test.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

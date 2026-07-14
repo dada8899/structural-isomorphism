@@ -10,8 +10,8 @@ Pipeline:
      trivial signature (the raw method text) when the LLM is unavailable.
   2. SearchService.search() — use the signature text as the query to find
      structurally similar phenomena in the KB.
-  3. annotate_matches()   — for the top matches, LLM writes one sentence on
-     *why* the method transfers / *how* to apply it. Degrades to no note.
+  3. annotate_matches()   — for the top matches, LLM writes one candidate
+     comparison note and a falsifiable boundary. Degrades to no note.
 
 All LLM output is schema-validated here (never trusted): types coerced,
 strings length-capped, lists trimmed. Any LLM failure → graceful degrade,
@@ -19,10 +19,27 @@ never an exception.
 """
 from __future__ import annotations
 
-import logging
-from typing import Optional
+import asyncio
+import math
+import time
+from typing import Any, Optional
 
-logger = logging.getLogger("structural.method_search")
+if __package__ == "web.backend.services":
+    from . import llm_client
+    from .candidate_origin import normalize_candidate_identifier
+    from .input_limits import normalize_research_text
+    from .search_synthesis import validate_candidate_public_texts
+    from .secondary_tool_contracts import kb_candidate_evidence
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from services import llm_client
+    from services.candidate_origin import normalize_candidate_identifier
+    from services.input_limits import normalize_research_text
+    from services.search_synthesis import validate_candidate_public_texts
+    from services.secondary_tool_contracts import kb_candidate_evidence
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.method_search")
 
 # --- input / output bounds (guardrails) --------------------------------------
 MAX_METHOD_LEN = 1000
@@ -34,6 +51,9 @@ DEFAULT_TOP_N = 8
 MAX_TOP_N = 20
 MAX_KEYWORDS = 6
 MAX_KEYWORD_LEN = 30
+METHOD_SEARCH_TOTAL_BUDGET_SECONDS = 7.5
+SIGNATURE_TIMEOUT_SECONDS = 3.0
+ANNOTATION_TIMEOUT_SECONDS = 2.0
 
 
 # --- structural signature -----------------------------------------------------
@@ -84,16 +104,49 @@ def _coerce_signature(raw: Optional[dict], method_text: str) -> dict:
     return {"signature": sig, "keywords": keywords, "llm": True}
 
 
-async def extract_signature(method_text: str) -> dict:
+def _validate_signature_strict(raw: Any, method_text: str) -> dict:
+    """Validate the complete signature payload or use an explicit fallback."""
+    fallback = _coerce_signature(None, method_text)
+    if not isinstance(raw, dict) or set(raw) != {"signature", "keywords"}:
+        return fallback
+    if not isinstance(raw.get("keywords"), list):
+        return fallback
+    try:
+        signature = normalize_research_text(
+            raw.get("signature"),
+            max_chars=MAX_SIGNATURE_LEN,
+            allow_layout=False,
+            field_name="signature",
+        )
+        keywords = [
+            normalize_research_text(
+                item,
+                max_chars=MAX_KEYWORD_LEN,
+                allow_layout=False,
+                field_name="keyword",
+            )
+            for item in raw["keywords"]
+        ]
+        if not 1 <= len(keywords) <= MAX_KEYWORDS or len(keywords) != len(set(keywords)):
+            return fallback
+        validate_candidate_public_texts([signature])
+    except (TypeError, ValueError):
+        return fallback
+    return {"signature": signature, "keywords": keywords, "llm": True}
+
+
+async def extract_signature(
+    method_text: str,
+    *,
+    timeout_seconds: float = SIGNATURE_TIMEOUT_SECONDS,
+) -> dict:
     """Extract the structural signature of a method via the LLM.
 
     Returns the coerced shape from `_coerce_signature`. Never raises.
     """
-    from services import llm_client
-
     method_text = (method_text or "").strip()
     if not llm_client.llm_available():
-        logger.info("extract_signature: no LLM, degrading to raw text")
+        logger.info("retrieval.method_signature_llm_unavailable")
         return _coerce_signature(None, method_text)
     try:
         raw = await llm_client.complete_json(
@@ -101,11 +154,16 @@ async def extract_signature(method_text: str) -> dict:
             user=f"方法描述：\n{method_text}",
             temperature=0.3,
             max_tokens=600,
+            timeout=timeout_seconds,
         )
-    except Exception as e:  # noqa: BLE001 — defensive; client already guards
-        logger.error("extract_signature LLM call failed: %s", e)
+    except Exception as exc:  # noqa: BLE001 — defensive; client already guards
+        logger.error(
+            "retrieval.method_signature_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         raw = None
-    return _coerce_signature(raw, method_text)
+    return _validate_signature_strict(raw, method_text)
 
 
 def build_query(signature: dict) -> str:
@@ -125,11 +183,12 @@ def build_query(signature: dict) -> str:
 # --- applicability notes ------------------------------------------------------
 
 _NOTE_SYSTEM = (
-    "你是一个跨学科迁移顾问。用户给你一个方法的结构签名，以及若干个来自"
-    "不同领域的现象。对每个现象，写一句话说明：这个方法为什么能套用在这个"
-    "现象上、具体怎么套（不超过 60 字，要具体、不空泛）。"
-    '严格只输出 JSON，形如 {"notes": {"现象id": "套用说明", ...}}。'
+    "你是一个跨学科候选筛查员。用户给你一个方法的结构签名，以及若干条内部"
+    "知识库检索记录。对每条记录写一句话：为什么值得进一步测试，以及哪个条件"
+    "不满足时应当放弃迁移。检索命中不证明方法适用。"
+    '严格只输出 JSON，形如 {"notes": {"现象id": "待验证说明", ...}}。'
     "只为给定的现象 id 写说明，不要编造 id。"
+    "不得写成功概率、置信度、已经同构、确认适用或可以直接套用。"
 )
 
 
@@ -152,14 +211,40 @@ def _coerce_notes(raw: Optional[dict], valid_ids: set[str]) -> dict[str, str]:
     return out
 
 
-async def annotate_matches(signature: dict, matches: list[dict]) -> dict[str, str]:
-    """Ask the LLM for a one-line applicability note per match.
+def _validate_notes_strict(raw: Any, valid_ids: set[str]) -> dict[str, str]:
+    """Accept a complete, source-bound note map or reject it as a unit."""
+    if not isinstance(raw, dict) or set(raw) != {"notes"}:
+        return {}
+    notes = raw.get("notes")
+    if not isinstance(notes, dict) or not set(notes).issubset(valid_ids):
+        return {}
+    out: dict[str, str] = {}
+    try:
+        for pid, note in notes.items():
+            clean = normalize_research_text(
+                note,
+                max_chars=MAX_NOTE_LEN,
+                allow_layout=False,
+                field_name="candidate_note",
+            )
+            out[pid] = clean
+        validate_candidate_public_texts(out.values())
+    except (TypeError, ValueError):
+        return {}
+    return out
+
+
+async def annotate_matches(
+    signature: dict,
+    matches: list[dict],
+    *,
+    timeout_seconds: float = ANNOTATION_TIMEOUT_SECONDS,
+) -> dict[str, str]:
+    """Ask the LLM for one candidate-comparison note per match.
 
     Returns {phenomenon_id: note}. Empty dict when the LLM is unavailable
     or returns nothing usable — callers must treat notes as optional.
     """
-    from services import llm_client
-
     if not matches or not llm_client.llm_available():
         return {}
 
@@ -179,11 +264,16 @@ async def annotate_matches(signature: dict, matches: list[dict]) -> dict[str, st
             user="\n".join(lines),
             temperature=0.4,
             max_tokens=1400,
+            timeout=timeout_seconds,
         )
-    except Exception as e:  # noqa: BLE001
-        logger.error("annotate_matches LLM call failed: %s", e)
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "retrieval.method_annotation_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         raw = None
-    return _coerce_notes(raw, valid_ids)
+    return _validate_notes_strict(raw, valid_ids)
 
 
 # --- ranking ------------------------------------------------------------------
@@ -215,6 +305,51 @@ def rank_matches(results: list[dict], notes: dict[str, str], top_n: int) -> list
     return out
 
 
+def rank_candidates(
+    results: Any, notes: dict[str, str], top_n: int
+) -> list[dict[str, Any]]:
+    """Shape retrieval rows without publishing score-as-probability fields."""
+    if not isinstance(results, list):
+        return []
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in results:
+        if not isinstance(row, dict):
+            continue
+        rid = normalize_candidate_identifier(row.get("id"))
+        name = row.get("name")
+        if rid is None or rid in seen or not isinstance(name, str) or not name.strip():
+            continue
+        relevance = row.get("relevance", row.get("score"))
+        if isinstance(relevance, bool) or not isinstance(relevance, (int, float)):
+            relevance = None
+        elif not math.isfinite(float(relevance)):
+            relevance = None
+        evidence_row = dict(row)
+        evidence_row["name"] = name.strip()[:200]
+        evidence_row["relevance"] = relevance
+        candidates.append({
+            "id": rid,
+            "name": name.strip()[:200],
+            "domain": row.get("domain", "").strip()[:120]
+            if isinstance(row.get("domain", ""), str) else "",
+            "type_id": row.get("type_id", "").strip()[:120]
+            if isinstance(row.get("type_id", ""), str) else "",
+            "description": row.get("description", "").strip()[:600]
+            if isinstance(row.get("description", ""), str) else "",
+            "retrieval_rank": len(candidates) + 1,
+            "candidate_note": notes.get(rid),
+            "evidence": kb_candidate_evidence(
+                evidence_row,
+                counterexample="需要在目标领域验证方法假设、观测量和边界条件。",
+            ),
+        })
+        seen.add(rid)
+        if len(candidates) >= top_n:
+            break
+    return candidates
+
+
 # --- orchestration ------------------------------------------------------------
 
 def normalize_top_n(value: Optional[int]) -> int:
@@ -233,8 +368,24 @@ async def run_method_search(method_text: str, search_svc, top_n: int) -> dict:
     """
     method_text = (method_text or "").strip()
     top_n = normalize_top_n(top_n)
+    started = time.monotonic()
 
-    sig = await extract_signature(method_text)
+    signature_budget = min(
+        SIGNATURE_TIMEOUT_SECONDS,
+        METHOD_SEARCH_TOTAL_BUDGET_SECONDS,
+    )
+    try:
+        sig = await asyncio.wait_for(
+            extract_signature(method_text, timeout_seconds=signature_budget),
+            timeout=signature_budget,
+        )
+    except TimeoutError as exc:
+        logger.warning(
+            "retrieval.method_signature_timeout",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        sig = _coerce_signature(None, method_text)
     query = build_query(sig)
 
     # Search a slightly larger pool than top_n so ranking has headroom.
@@ -242,14 +393,38 @@ async def run_method_search(method_text: str, search_svc, top_n: int) -> dict:
 
     # Annotate only the slice we will actually return.
     head = rank_matches(results, {}, top_n)
-    notes = await annotate_matches(sig, head)
-    matches = rank_matches(results, notes, top_n)
+    remaining = METHOD_SEARCH_TOTAL_BUDGET_SECONDS - (time.monotonic() - started)
+    annotation_budget = min(ANNOTATION_TIMEOUT_SECONDS, max(0.0, remaining))
+    notes: dict[str, str] = {}
+    if annotation_budget > 0:
+        try:
+            notes = await asyncio.wait_for(
+                annotate_matches(
+                    sig,
+                    head,
+                    timeout_seconds=annotation_budget,
+                ),
+                timeout=annotation_budget,
+            )
+        except TimeoutError as exc:
+            logger.warning(
+                "retrieval.method_annotation_timeout",
+                count=len(head),
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+    else:
+        logger.warning(
+            "retrieval.method_annotation_skipped",
+            count=len(head),
+        )
+    candidates = rank_candidates(results, notes, top_n)
 
     return {
         "method": method_text,
         "signature": sig["signature"],
+        "signature_origin": "model_generated" if sig["llm"] else "input_fallback",
         "keywords": sig["keywords"],
-        "llm_used": sig["llm"],
-        "count": len(matches),
-        "matches": matches,
+        "count": len(candidates),
+        "candidates": candidates,
     }

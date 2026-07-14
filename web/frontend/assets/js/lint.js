@@ -7,6 +7,7 @@
 (function () {
   'use strict';
 
+  var contracts = window.SecondaryToolContracts;
   var MAX_CHARS = 20000;
 
   // --- element refs ---
@@ -19,6 +20,7 @@
   var elCharCount = document.getElementById('lint-charcount');
   var elSubmit = document.getElementById('lint-submit');
   var elInputError = document.getElementById('lint-input-error');
+  var elExamples = document.getElementById('lint-examples');
 
   var elLoadingTimer = document.getElementById('lint-loading-timer');
   var elLoadingHint = document.querySelector('#lint-loading .lint-loading__hint');
@@ -31,7 +33,8 @@
   var elAgain = document.getElementById('lint-again');
 
   var _timerInterval = null;
-  var _es = null;  // active EventSource for the current lint stream
+  var _stream = null;  // active POST stream for the current lint run
+  var _activeRequestId = null;
 
   // --- default loading hint, restored on each new run ---
   var _DEFAULT_HINT = elLoadingHint ? elLoadingHint.textContent : '';
@@ -79,51 +82,47 @@
     analogy: '跨域类比',
     causal_judgment: '因果判断'
   };
-  var RISK_LABEL = { high: '高风险', medium: '中风险', low: '低风险' };
+  var PRIORITY_LABEL = { high: '优先复核', medium: '建议复核', low: '常规复核' };
 
-  // --- structural-isomorphism anchor block ---
-  // Each claim may carry an `isomorph`: a real KB phenomenon whose
-  // underlying structure matches the claim. This is the product's moat —
-  // the failure mode above is grounded on this real cross-domain anchor,
-  // not free-form LLM speculation. Null when the KB found nothing.
-  function renderIsomorph(iso) {
-    if (!iso || !iso.id) return '';
-    var pct = Math.round((Number(iso.relevance) || 0) * 100);
-    var meta = esc(iso.domain || '') +
-      (pct ? ' · 结构相似度 ' + pct + '%' : '');
-    var desc = iso.description
-      ? '<div class="lint-iso__desc">' + esc(iso.description) + '</div>'
+  // Optional KB candidate reference. It is a retrieval lead only and does
+  // not change or validate the model-generated screen above it.
+  function renderCandidate(candidate) {
+    if (!candidate || !candidate.id) return '';
+    var meta = esc(candidate.domain || '领域未标注') +
+      ' · 本次检索候选 #' + candidate.retrieval_rank;
+    var desc = candidate.description
+      ? '<div class="lint-iso__desc">' + esc(candidate.description) + '</div>'
       : '';
     return '' +
       '<div class="lint-iso">' +
-        '<div class="lint-iso__label">结构同构现象（来自知识库）</div>' +
+        '<div class="lint-iso__label">知识库候选参照（未验证）</div>' +
         '<div class="lint-iso__body">' +
           '<a class="lint-iso__name" href="/phenomenon/' +
-            encodeURIComponent(iso.id) + '">' + esc(iso.name) + '</a>' +
+            encodeURIComponent(candidate.id) + '">' + esc(candidate.name) + '</a>' +
           '<span class="lint-iso__meta">' + meta + '</span>' +
           desc +
           '<a class="lint-iso__analyze" href="/analyze?id=' +
-            encodeURIComponent(iso.id) + '">用这个现象做深度迁移分析 →</a>' +
+            encodeURIComponent(candidate.id) + '">检验这个候选是否适用 →</a>' +
         '</div>' +
       '</div>';
   }
 
   function renderClaim(claim) {
-    var risk = RISK_LABEL[claim.risk_level] ? claim.risk_level : 'medium';
+    var priority = PRIORITY_LABEL[claim.review_priority] ? claim.review_priority : 'medium';
     var typeLabel = TYPE_LABEL[claim.claim_type] || claim.claim_type;
 
     var html = '' +
-      '<div class="lint-claim lint-claim--' + risk + '">' +
+      '<div class="lint-claim lint-claim--' + priority + '">' +
         '<div class="lint-claim__head">' +
           '<span class="lint-tag lint-tag--type">' + esc(typeLabel) + '</span>' +
-          '<span class="lint-tag lint-tag--risk-' + risk + '">' + RISK_LABEL[risk] + '</span>' +
+          '<span class="lint-tag lint-tag--risk-' + priority + '">' + PRIORITY_LABEL[priority] + '</span>' +
         '</div>' +
         '<p class="lint-claim__quote">“' + esc(claim.quote) + '”</p>' +
         '<div class="lint-claim__row">' +
           '<div class="lint-claim__row-label">底层结构</div>' +
           '<div class="lint-claim__row-text">' + esc(claim.structure) + '</div>' +
         '</div>' +
-        renderIsomorph(claim.isomorph) +
+        renderCandidate(claim.reference_candidate) +
         '<div class="lint-claim__row">' +
           '<div class="lint-claim__row-label">失效模式</div>' +
           '<div class="lint-claim__row-text">' + esc(claim.failure_mode) + '</div>' +
@@ -159,11 +158,11 @@
     showOnly(elError);
   }
 
-  // --- close any live SSE connection ---
+  // --- close any live stream ---
   function closeStream() {
-    if (_es) {
-      try { _es.close(); } catch (e) { /* ignore */ }
-      _es = null;
+    if (_stream) {
+      try { _stream.close(); } catch (e) { /* ignore */ }
+      _stream = null;
     }
   }
 
@@ -172,9 +171,97 @@
     if (elLoadingHint) elLoadingHint.textContent = text || _DEFAULT_HINT;
   }
 
-  // --- submit handler — consumes the SSE /api/struct-lint/stream endpoint ---
+  function decodeEventBlock(block) {
+    var eventName = 'message';
+    var data = [];
+    block.split(/\r?\n/).forEach(function (line) {
+      if (line.indexOf('event:') === 0) eventName = line.slice(6).trim();
+      if (line.indexOf('data:') === 0) data.push(line.slice(5).trimStart());
+    });
+    return { type: eventName, data: data.join('\n') };
+  }
+
+  function problemMessage(body, fallback) {
+    if (body && typeof body.message === 'string') return body.message;
+    if (body && typeof body.detail === 'string') return body.detail;
+    return fallback;
+  }
+
+  // POST + ReadableStream keeps the full document out of the URL, browser
+  // history, Referer, nginx request line and ordinary access logs.
+  function openLintStream(documentText, requestId, onEvent, onTransportError) {
+    var controller = new AbortController();
+    var closed = false;
+    var terminal = false;
+    var timer = setTimeout(function () {
+      if (closed || terminal) return;
+      controller.abort();
+      onTransportError('分析超时，请缩短文档或稍后重试。');
+    }, 240000);
+
+    function close() {
+      if (closed) return;
+      closed = true;
+      clearTimeout(timer);
+      controller.abort();
+    }
+
+    (async function () {
+      try {
+        var response = await fetch('/api/struct-lint/stream', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+          },
+          body: JSON.stringify({
+            document: documentText,
+            client_request_id: requestId
+          }),
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          var problem = null;
+          try { problem = await response.json(); } catch (e) { problem = null; }
+          throw new Error(problemMessage(problem, '请求失败（HTTP ' + response.status + '）'));
+        }
+        if (!response.body) throw new Error('当前浏览器不支持流式响应。');
+
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder('utf-8');
+        var buffer = '';
+        while (!closed) {
+          var part = await reader.read();
+          buffer += decoder.decode(part.value || new Uint8Array(), { stream: !part.done });
+          var boundary;
+          while ((boundary = buffer.search(/\r?\n\r?\n/)) !== -1) {
+            var separator = buffer.slice(boundary).match(/^\r?\n\r?\n/)[0];
+            var block = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + separator.length);
+            if (!block.trim()) continue;
+            var event = decodeEventBlock(block);
+            if (event.type === 'done' || event.type === 'error') terminal = true;
+            onEvent(event);
+          }
+          if (part.done) break;
+        }
+        if (!closed && !terminal) throw new Error('连接提前结束，请重试。');
+      } catch (error) {
+        if (!closed && !(error && error.name === 'AbortError')) {
+          onTransportError(error && error.message ? error.message : '网络错误，请检查连接后重试。');
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    }());
+
+    return { close: close };
+  }
+
+  // --- submit handler — consumes the POST SSE endpoint ---
   function runLint() {
-    var doc = elTextarea.value.trim();
+    var doc = String(elTextarea.value || '').normalize('NFKC').trim();
     elInputError.hidden = true;
 
     if (!doc) {
@@ -189,71 +276,64 @@
     }
 
     closeStream();
+    var requestId = contracts.createRequestId('lint');
+    _activeRequestId = requestId;
     showOnly(elLoading);
     setLoadingHint(_DEFAULT_HINT);
     startTimer();
 
-    // EventSource only does GET — the document rides as a query param.
-    // MAX_CHARS (20000) is well within URL-length limits for our nginx.
-    var url = '/api/struct-lint/stream?document=' + encodeURIComponent(doc);
-    var es = new EventSource(url);
-    _es = es;
-    var finished = false;  // guards against onerror after a clean done/error
-
-    // `meta` — stream is alive; first byte arrives in well under a second.
-    es.addEventListener('meta', function () {
-      setLoadingHint('正在连接分析服务……');
-    });
-
-    // `progress` — live stage updates: extract → claims → per-claim isomorph.
-    es.addEventListener('progress', function (e) {
-      var p = null;
-      try { p = JSON.parse(e.data); } catch (err) { p = null; }
-      if (p && p.message) setLoadingHint(p.message);
-    });
-
-    // `done` — final payload, identical shape to the old POST response.
-    es.addEventListener('done', function (e) {
-      finished = true;
+    _stream = openLintStream(doc, requestId, function (event) {
+      if (_activeRequestId !== requestId) return;
+      if (event.type === 'meta') {
+        var meta = null;
+        try { meta = JSON.parse(event.data); } catch (err) { meta = null; }
+        if (!meta || meta.request_id !== requestId ||
+            meta.contract_version !== contracts.CONTRACT_VERSION) {
+          closeStream();
+          showError('响应未通过请求绑定校验，未展示任何模型内容。请重试。');
+          return;
+        }
+        setLoadingHint('正在连接分析服务……');
+        return;
+      }
+      if (event.type === 'progress') {
+        var progress = null;
+        try { progress = JSON.parse(event.data); } catch (err) { progress = null; }
+        if (progress && progress.message) setLoadingHint(progress.message);
+        return;
+      }
+      if (event.type === 'done') {
+        var payload = null;
+        try { payload = JSON.parse(event.data); } catch (err) { payload = null; }
+        var validated = contracts.validateLintPayload(
+          payload && payload.result, requestId, doc
+        );
+        closeStream();
+        stopTimer();
+        if (!validated) {
+          showError('结果未通过完整性校验，未展示任何模型内容。请重试。');
+          return;
+        }
+        renderResult(validated);
+        return;
+      }
+      if (event.type === 'error') {
+        var body = null;
+        try { body = JSON.parse(event.data); } catch (err) { body = null; }
+        closeStream();
+        showError(problemMessage(body, '请稍后重试。'));
+      }
+    }, function (message) {
+      if (_activeRequestId !== requestId) return;
       closeStream();
-      stopTimer();
-      var payload = null;
-      try { payload = JSON.parse(e.data); } catch (err) { payload = null; }
-      var result = (payload && payload.result) || { summary: '', claims: [] };
-      renderResult(result);
+      showError(message || '网络错误，请检查连接后重试。');
     });
-
-    // `error` — terminal application error (validation / LLM failure).
-    es.addEventListener('error', function (e) {
-      // EventSource fires `error` for BOTH a named SSE error event AND a
-      // transport drop. A transport drop has no parseable data; a real
-      // application error carries a JSON body with a message.
-      var body = null;
-      if (e && e.data) {
-        try { body = JSON.parse(e.data); } catch (err) { body = null; }
-      }
-      if (body) {
-        finished = true;
-        closeStream();
-        showError(body.message || '请稍后重试。');
-      }
-    });
-
-    // Transport-level failure (connection dropped, server unreachable).
-    es.onerror = function () {
-      if (finished) return;       // already handled by done / error event
-      if (es.readyState === EventSource.CLOSED) {
-        finished = true;
-        closeStream();
-        showError('网络错误，请检查连接后重试。');
-      }
-      // readyState CONNECTING → EventSource is auto-retrying; let it.
-    };
   }
 
   // --- reset to input view ---
   function backToInput() {
     closeStream();
+    _activeRequestId = null;
     stopTimer();
     setLoadingHint(_DEFAULT_HINT);
     elInputError.hidden = true;
@@ -265,7 +345,19 @@
     elTextarea.addEventListener('input', updateCharCount);
     updateCharCount();
   }
-  if (elSubmit) elSubmit.addEventListener('click', runLint);
+  if (elExamples && elTextarea) {
+    elExamples.addEventListener('click', function (e) {
+      var target = e.target;
+      if (!target || typeof target.closest !== 'function') return;
+      var chip = target.closest('.lint-chip[data-example]');
+      if (!chip || !elExamples.contains(chip)) return;
+
+      elTextarea.value = chip.getAttribute('data-example') || '';
+      elTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+      elTextarea.focus();
+    });
+  }
+  if (elSubmit && contracts) elSubmit.addEventListener('click', runLint);
   if (elRetry) elRetry.addEventListener('click', backToInput);
   if (elAgain) elAgain.addEventListener('click', backToInput);
 
@@ -278,4 +370,8 @@
       }
     });
   }
+  window.addEventListener('pagehide', function () {
+    closeStream();
+    _activeRequestId = null;
+  });
 })();

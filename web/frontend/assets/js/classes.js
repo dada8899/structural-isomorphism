@@ -38,7 +38,9 @@ const DATA_URL = "/assets/data/universality-classes.json";
 let allClasses = [];
 let manualClasses = [];
 let llmClasses = [];
-// Default to "all" so /classes shows the 23 cards immediately (session #9 P1 UX fix).
+let unclassifiedClasses = [];
+let lastFocusedClassId = null;
+// Default to "all" so /classes shows every current candidate immediately.
 let currentFilter = "all";
 
 const escapeHtml = (s) => {
@@ -57,25 +59,71 @@ async function loadData() {
   return resp.json();
 }
 
-function renderHeroStats(stats) {
+function deriveClassStats(classes) {
+  const items = Array.isArray(classes) ? classes : [];
+  const originalQueue = items.filter((item) => item && (item.curation_source === "manual" || item.curation_source === "llm"));
+  const laterCandidates = items.filter((item) => !item || (item.curation_source !== "manual" && item.curation_source !== "llm"));
+  const manual = originalQueue.filter((item) => item.curation_source === "manual");
+  const llm = originalQueue.filter((item) => item.curation_source === "llm");
+  return {
+    total: items.length,
+    originalQueue: originalQueue.length,
+    originalCrossDomain: originalQueue.filter((item) => Number(item.n_domains || 0) >= 2).length,
+    laterCandidates: laterCandidates.length,
+    manual: manual.length,
+    llm: llm.length,
+    maxMembers: items.reduce((maximum, item) => Math.max(maximum, Number((item && item.size) || 0)), 0),
+    maxDomains: items.reduce((maximum, item) => Math.max(maximum, Number((item && item.n_domains) || 0)), 0),
+  };
+}
+
+function classDatasetSummary(stats) {
+  if (currentLang() === "en") {
+    return `${stats.total} candidate groups: ${stats.originalCrossDomain} cross-domain groups from the original human/AI queue and ${stats.laterCandidates} later candidates whose source is unclassified. Counts are computed from the loaded records.`;
+  }
+  return `当前共 ${stats.total} 个候选分组：${stats.originalCrossDomain} 个来自原始人工/AI 队列的跨域组，另有 ${stats.laterCandidates} 个后加候选（来源未分类）。所有数量均由当前加载记录计算。`;
+}
+
+function renderClassDatasetCopy(classes) {
+  const stats = deriveClassStats(classes);
+  const title = document.getElementById("uc-hero-title");
+  const methodSummary = document.getElementById("uc-method-data-summary");
+  const summary = classDatasetSummary(stats);
+  if (title) {
+    title.innerHTML = currentLang() === "en"
+      ? `${stats.total} <em>candidate patterns</em>`
+      : `${stats.total} 个<em>候选模式</em>`;
+  }
+  if (methodSummary) {
+    methodSummary.innerHTML = currentLang() === "en"
+      ? `<strong>Current data boundary</strong>: ${escapeHtml(summary)} The ${stats.laterCandidates} later candidates remain visible under a separate source filter and are not silently folded into the original queue.`
+      : `<strong>当前数据边界</strong>：${escapeHtml(summary)} ${stats.laterCandidates} 个后加候选使用独立来源筛选，不会静默并入原始队列。`;
+  }
+  document.querySelectorAll('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]').forEach((node) => {
+    node.setAttribute("content", summary);
+  });
+  return stats;
+}
+
+function renderHeroStats(classes) {
   const host = document.getElementById("uc-hero-stats");
-  if (!host || !stats) return;
+  if (!host) return;
+  const stats = deriveClassStats(classes);
   const items = [
-    { value: stats.n_equivalence_classes, label: T("page.classes.stat_total", "等价类总数") },
-    { value: stats.n_cross_domain, label: T("page.classes.stat_cross_domain", "跨 ≥2 领域") },
-    { value: stats.max_members, label: T("page.classes.stat_max_members", "最大成员数") },
-    { value: stats.max_domains, label: T("page.classes.stat_max_domains", "最多跨越领域") },
+    { key: "total", value: stats.total, label: T("page.classes.stat_total", "候选模式") },
+    { key: "original", value: stats.originalCrossDomain, label: T("page.classes.stat_original_queue", "原队列跨域组") },
+    { key: "later", value: stats.laterCandidates, label: T("page.classes.stat_later", "后加候选") },
+    { key: "domains", value: stats.maxDomains, label: T("page.classes.stat_max_domains", "最多跨越领域") },
   ];
-  host.innerHTML = items
-    .map(
-      (x) => `
-      <div class="uc-hero__stat">
-        <div class="uc-hero__stat-value">${escapeHtml(x.value ?? "—")}</div>
-        <div class="uc-hero__stat-label">${escapeHtml(x.label)}</div>
-      </div>
-    `
-    )
-    .join("");
+  items.forEach((item) => {
+    const row = host.querySelector(`[data-stat="${item.key}"]`);
+    if (!row) return;
+    const value = row.querySelector(".uc-hero__stat-value");
+    const label = row.querySelector(".uc-hero__stat-label");
+    if (value) value.textContent = String(item.value ?? "—");
+    if (label) label.textContent = item.label;
+  });
+  host.setAttribute("aria-busy", "false");
 }
 
 function renderMembers(membersByDomain, hubName) {
@@ -185,9 +233,9 @@ function renderEquations(eqs) {
     const renderedParts = parts.map((p) => {
       const latex = tryLatexify(p);
       if (latex) {
-        return `<div class="uc-eq-line"><span class="uc-eq-math">$$${latex}$$</span></div>`;
+        return `<div class="uc-eq-line" tabindex="0"><span class="uc-eq-math">$$${latex}$$</span></div>`;
       }
-      return `<div class="uc-eq-line"><code class="uc-eq-code">${escapeHtml(p)}</code></div>`;
+      return `<div class="uc-eq-line" tabindex="0"><code class="uc-eq-code">${escapeHtml(p)}</code></div>`;
     }).join("");
 
     const header = label ? `<div class="uc-eq-label">${escapeHtml(label)}</div>` : "";
@@ -206,53 +254,63 @@ function renderInvariants(invariants) {
   `;
 }
 
-function renderPredictions(preds) {
-  if (!preds || !preds.length) return "";
-  return preds
-    .map((p) => {
-      const meta = [];
-      if (L(p, "test_method")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_method", "方法")}</span>${escapeHtml(L(p, "test_method"))}</div>`);
-      if (L(p, "data_source")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_data", "数据")}</span>${escapeHtml(L(p, "data_source"))}</div>`);
-      if (L(p, "sample_size")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_sample", "样本量")}</span>${escapeHtml(L(p, "sample_size"))}</div>`);
-      if (L(p, "paper_target")) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_venue", "目标期刊")}</span>${escapeHtml(L(p, "paper_target"))}</div>`);
-      const rationale = L(p, "rationale")
-        ? `<p class="uc-pred__rationale">${escapeHtml(L(p, "rationale"))}</p>`
-        : "";
-      const rawStatus = L(p, "status") || "";
-      const hasRecordedResult = rawStatus.includes("已验证") || rawStatus.includes("Verified") || rawStatus.includes("✅");
-      const displayStatus = hasRecordedResult
-        ? T("page.classes.status_internal_record", "内部结果记录")
-        : rawStatus;
-      const statusCls = hasRecordedResult
-        ? "uc-pred__status uc-pred__status--recorded"
-        : "uc-pred__status";
-      const paperLink = p.paper_url
-        ? `<a class="uc-pred__paper-link" href="${escapeHtml(p.paper_url)}"${p.paper_title ? ` title="${escapeHtml(p.paper_title)}"` : ""}>${T("page.classes.pred_paper_link", "📄 论文 →")}</a>`
-        : "";
-      return `
-        <div class="uc-pred${statusCls.includes('recorded') ? ' uc-pred--recorded' : ''}">
-          <div class="uc-pred__header">
-            <div class="uc-pred__target">${escapeHtml(L(p, "target") || "")}</div>
-            ${displayStatus ? `<span class="${statusCls}">${escapeHtml(displayStatus)}</span>` : ""}
-            ${paperLink}
-          </div>
-          <p class="uc-pred__text">${escapeHtml(L(p, "prediction") || "")}</p>
-          ${rationale}
-          ${meta.length ? `<div class="uc-pred__meta">${meta.join("")}</div>` : ""}
-        </div>
-      `;
-    })
-    .join("");
+// Historical prediction objects contain free-form internal prose and workflow
+// metadata. The public renderer deliberately projects only auditable fields;
+// raw prediction/rationale/status/paper fields never enter the DOM.
+function historicalStatisticTokens(rawValue) {
+  const text = String(rawValue || "");
+  const numberPattern = /[−+-]?\d[\d,]*(?:\.\d+)?(?:[eE][−+-]?\d+|[⁻⁺]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+)?(?:\s*%|\s*±\s*[−+-]?\d[\d,]*(?:\.\d+)?)?/g;
+  const values = text.match(numberPattern) || [];
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).slice(0, 12);
 }
 
-function countRecordedPredictions(cls) {
+function publicPredictionView(prediction) {
+  const item = prediction || {};
+  return Object.freeze({
+    target: L(item, "target") || "",
+    testMethod: L(item, "test_method") || "",
+    dataSource: L(item, "data_source") || "",
+    sampleSize: L(item, "sample_size") || "",
+    historicalStatistics: historicalStatisticTokens(L(item, "prediction") || ""),
+  });
+}
+
+function renderPredictions(preds) {
+  if (!Array.isArray(preds) || !preds.length) return "";
+  return preds.map((prediction) => {
+    const view = publicPredictionView(prediction);
+    const meta = [];
+    if (view.testMethod) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_method", "方法")}</span>${escapeHtml(view.testMethod)}</div>`);
+    if (view.dataSource) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_data", "数据")}</span>${escapeHtml(view.dataSource)}</div>`);
+    if (view.sampleSize) meta.push(`<div><span class="uc-pred__meta-key">${T("page.classes.pred_meta_sample", "样本量")}</span>${escapeHtml(view.sampleSize)}</div>`);
+    const statistic = view.historicalStatistics.length
+      ? `<div class="uc-pred__historical-stat"><span class="uc-pred__meta-key">${T("page.classes.pred_meta_historical_stat", "历史记录数值")}</span>${view.historicalStatistics.map(escapeHtml).join(" · ")}</div>`
+      : "";
+    const boundary = T(
+      "page.classes.pred_boundary",
+      currentLang() === "en"
+        ? "Historical internal record · not bound to the current evidence ledger · cannot prove a shared mechanism"
+        : "历史内部记录 · 未绑定当前证据账本 · 不能证明共享机制",
+    );
+    return `
+      <div class="uc-pred">
+        <div class="uc-pred__header">
+          <div class="uc-pred__target">${escapeHtml(view.target || T("page.classes.pred_target_unknown", "目标未记录"))}</div>
+          <span class="uc-pred__record-label">${T("page.classes.pred_record_label", "历史内部记录")}</span>
+        </div>
+        ${meta.length ? `<div class="uc-pred__meta">${meta.join("")}</div>` : ""}
+        ${statistic}
+        <p class="uc-pred__boundary">${escapeHtml(boundary)}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function countPublicPredictionRecords(cls) {
   if (!cls || !Array.isArray(cls.predictions)) return 0;
-  let n = 0;
-  for (const p of cls.predictions) {
-    const s = (p && L(p, "status")) || "";
-    if (s.includes("已验证") || s.includes("✅")) n += 1;
-  }
-  return n;
+  return cls.predictions.map(publicPredictionView).filter((view) => (
+    view.target || view.testMethod || view.dataSource || view.sampleSize || view.historicalStatistics.length
+  )).length;
 }
 
 // SESSION-18 (D): build a hook-style headline for a universality class
@@ -284,33 +342,32 @@ function classHeadline(cls) {
   if (en) {
     if (picked.length === 2) {
       const enSet = [
-        `${picked[0]} and ${picked[1]} obey the same law.`,
-        `From ${picked[0]} to ${picked[1]}: one shared pattern.`,
-        `${picked[0]} and ${picked[1]} run on the same math.`,
+        `Candidate structural grouping: ${picked[0]} and ${picked[1]}. Check the variable mapping and evidence.`,
+        `A pattern to test between ${picked[0]} and ${picked[1]}, not an established law.`,
+        `Testable structural mapping: ${picked[0]} and ${picked[1]}.`,
       ];
       return enSet[seed % enSet.length];
     }
-    return `One pattern across ${nDom || 'many'} fields: ${name}`;
+    return `Candidate pattern across ${nDom || 'many'} fields: ${name}`;
   }
 
   if (picked.length === 2) {
-    // For very broad classes lean on the "spans the whole map" angle.
     if (nDom >= 9) {
       const poolWide = [
-        `从${picked[0]}到${picked[1]}，${nDom} 个领域共用一条规律。`,
-        `${picked[0]}、${picked[1]}……${nDom} 个领域，同一个数学结构。`,
-        `一条规律，横跨 ${nDom} 个领域——包括${picked[0]}和${picked[1]}。`,
+        `候选结构组覆盖 ${nDom} 个领域，包括${picked[0]}和${picked[1]}；覆盖范围不等于规律成立。`,
+        `候选映射：${picked[0]}、${picked[1]}等 ${nDom} 个领域；先核对变量、证据与反例。`,
+        `${picked[0]}和${picked[1]}出现在一个广域候选组中，仍需逐项验证。`,
       ];
       return poolWide[seed % poolWide.length];
     }
     const pool = [
-      `${picked[0]}和${picked[1]}，遵循同一条规律。`,
-      `${picked[0]}的规律，原来也在管着${picked[1]}。`,
-      `${picked[0]}和${picked[1]}，跑的是同一套数学。`,
+      `候选结构映射：${picked[0]}与${picked[1]}，需要核对变量和证据。`,
+      `${picked[0]}与${picked[1]}可能共享一个待检验模式。`,
+      `把${picked[0]}和${picked[1]}作为候选类比，先寻找反例。`,
     ];
     return pool[seed % pool.length];
   }
-  return `一个模式，跨越 ${nDom || '多个'} 个领域：${name}`;
+  return `覆盖 ${nDom || '多个'} 个领域的候选模式：${name}`;
 }
 
 // Absolute share URL for a single class.
@@ -336,17 +393,19 @@ function classAnalyzeHref(cls) {
   if (cls && cls.hub_id) {
     return window.buildAnalyzeUrl({ id: cls.hub_id, q: seed });
   }
-  return '/search?q=' + encodeURIComponent(seed);
+  return '#';
 }
 
 function buildBadges(cls) {
-  const isLlm = cls.curation_source === "llm";
-  const nRecorded = countRecordedPredictions(cls);
+  const nRecorded = countPublicPredictionRecords(cls);
   const out = [];
   if (nRecorded > 0) {
-    const recordedLabel = T("page.classes.badge_recorded", "有分析记录");
+    const recordedLabel = T("page.classes.badge_recorded", "有历史内部记录");
     const label = nRecorded === 1 ? recordedLabel : `${recordedLabel} ×${nRecorded}`;
-    out.push(`<span class="uc-badge uc-badge--recorded" title="${nRecorded} 条预测有内部分析记录；不代表外部验证">${label}</span>`);
+    const title = currentLang() === "en"
+      ? `${nRecorded} historical internal records; not external validation`
+      : `${nRecorded} 条历史内部记录；不代表外部验证`;
+    out.push(`<span class="uc-badge uc-badge--recorded" title="${escapeHtml(title)}">${label}</span>`);
   }
   out.push(
     `<span class="uc-badge uc-badge--size">${cls.size} ${T("page.classes.badge_members", "成员")}</span>`,
@@ -358,12 +417,16 @@ function buildBadges(cls) {
   if (cls.taxonomy_match === "soc_threshold_cascade") {
     out.push(`<span class="uc-badge uc-badge--soc">SOC</span>`);
   }
-  if (isLlm) {
+  if (cls.curation_source === "manual") {
+    out.push(`<span class="uc-badge uc-badge--source-manual">${T("page.classes.badge_source_manual", "人工队列来源")}</span>`);
+  } else if (cls.curation_source === "llm") {
     const confLabel = cls.confidence === "high" ? T("page.classes.llm_high", "高置信") :
                       cls.confidence === "medium" ? T("page.classes.llm_medium", "中置信") : T("page.classes.llm_low", "低置信");
     const confCls = cls.confidence === "high" ? "llm-high" :
                     cls.confidence === "medium" ? "llm-med" : "llm-low";
-    out.push(`<span class="uc-badge uc-badge--${confCls}">◐ LLM · ${confLabel}</span>`);
+    out.push(`<span class="uc-badge uc-badge--${confCls}">◐ ${T("page.classes.badge_source_llm", "AI 队列来源")} · ${confLabel}</span>`);
+  } else {
+    out.push(`<span class="uc-badge uc-badge--source-unclassified">${T("page.classes.badge_source_unclassified", "后加候选 · 来源未分类")}</span>`);
   }
   return out;
 }
@@ -390,7 +453,7 @@ function renderPreviewCard(cls) {
     <a class="uc-card uc-card--preview${uncurated ? " uc-card--uncurated" : ""}"
        href="/classes?id=${encodeURIComponent(cls.class_id)}"
        data-class-id="${escapeHtml(cls.class_id)}"
-       data-evidence-recorded="${countRecordedPredictions(cls) > 0 ? 'true' : 'false'}">
+       data-evidence-recorded="${countPublicPredictionRecords(cls) > 0 ? 'true' : 'false'}">
       <div class="uc-card__head">
         <div class="uc-card__titles">
           <h2 class="uc-card__title">${escapeHtml(L(cls, "name") || T("page.classes.untitled", "(未命名)"))}</h2>
@@ -439,7 +502,7 @@ function renderDetail(cls) {
   if ((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants) && (currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants).length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">${T("page.classes.section_invariants", "共享不变量")}</h3>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_invariants", "候选不变量")}</h3>
         ${renderInvariants((currentLang()==='en' && cls.invariants_en ? cls.invariants_en : cls.invariants))}
       </section>
     `);
@@ -453,16 +516,8 @@ function renderDetail(cls) {
   if (cls.predictions && cls.predictions.length) {
     sections.push(`
       <section class="uc-detail__section">
-        <h3 class="uc-detail__section-title">${T("page.classes.section_predictions", "可验证预测")}</h3>
+        <h3 class="uc-detail__section-title">${T("page.classes.section_predictions", "历史分析记录（结构化公开字段）")}</h3>
         ${renderPredictions(cls.predictions)}
-      </section>
-    `);
-  }
-  if (cls.curation_source === "llm" && cls.notes) {
-    sections.push(`
-      <section class="uc-detail__section uc-detail__section--note">
-        <h3 class="uc-detail__section-title">${T("page.classes.llm_note", "LLM 批注")}</h3>
-        <p class="uc-note">${escapeHtml(L(cls, "notes"))}</p>
       </section>
     `);
   }
@@ -492,9 +547,9 @@ function renderDetail(cls) {
     <div class="uc-detail__cta-card">
       <div class="uc-detail__cta-text">
         <h3 class="uc-detail__cta-title">${T("page.classes.cta_title", "用这个模式分析你自己的问题")}</h3>
-        <p class="uc-detail__cta-sub">${T("page.classes.cta_sub", "把你关心的现象输进去，看它和哪些领域共享同一套结构。")}</p>
+        <p class="uc-detail__cta-sub">${T("page.classes.cta_sub", "把你关心的现象输进去，看看哪些领域可能提供可检验的结构线索。")}</p>
       </div>
-      <a class="uc-detail__cta-btn" href="${classAnalyzeHref(cls)}">
+      <a class="uc-detail__cta-btn" href="${classAnalyzeHref(cls)}"${cls && cls.hub_id ? '' : ` data-private-class-query="${escapeHtml(classAnalyzeSeed(cls))}"`}>
         ${T("page.classes.cta_btn", "开始分析")}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </a>
@@ -560,6 +615,25 @@ function renderDetail(cls) {
       navigate(null);
     });
   });
+  const privateSearchCta = host.querySelector('[data-private-class-query]');
+  if (privateSearchCta) {
+    privateSearchCta.addEventListener('click', (event) => {
+      event.preventDefault();
+      const query = privateSearchCta.getAttribute('data-private-class-query') || '';
+      if (!query || typeof window.buildPrivateSearchUrl !== 'function') {
+        if (typeof window.announcePrivateNavigationError === 'function') {
+          window.announcePrivateNavigationError('helper_unavailable');
+        }
+        return;
+      }
+      const destination = window.buildPrivateSearchUrl({
+        query,
+        lang: currentLang(),
+        source: 'class',
+      });
+      if (destination) window.location.assign(destination);
+    });
+  }
 }
 
 // SESSION-18 (D): "学习路径" view — group the 26 classes into 3 progressive
@@ -628,7 +702,10 @@ function renderList(list) {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
       e.preventDefault();
       const id = card.dataset.classId;
-      if (id) navigate(id);
+      if (id) {
+        lastFocusedClassId = id;
+        navigate(id);
+      }
     });
   });
 }
@@ -649,19 +726,36 @@ function showView(which) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
+function focusDetailEntry() {
+  const detail = document.getElementById("uc-view-detail");
+  const target = detail && (detail.querySelector("[data-back-link]") || detail.querySelector(".uc-detail__title"));
+  if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+}
+
+function restoreOriginCardFocus() {
+  if (!lastFocusedClassId) return;
+  const cards = document.querySelectorAll("#uc-list .uc-card--preview");
+  const target = Array.from(cards).find((card) => card.dataset.classId === lastFocusedClassId);
+  if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+}
+
 function navigate(classId, replace) {
   if (classId) {
     const cls = allClasses.find((c) => c.class_id === classId);
     if (!cls) return;
     renderDetail(cls);
     showView('detail');
+    focusDetailEntry();
     const url = `/classes?id=${encodeURIComponent(classId)}`;
     if (replace) history.replaceState({ classId }, '', url);
     else history.pushState({ classId }, '', url);
     document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
   } else {
+    renderCurrentList();
     showView('list');
-    history.pushState({}, '', '/classes');
+    restoreOriginCardFocus();
+    if (replace) history.replaceState({}, '', '/classes');
+    else history.pushState({}, '', '/classes');
     document.title = T('nav.universality_classes', '普适类') + ' — Structural';
   }
 }
@@ -674,12 +768,25 @@ function handlePopState() {
     if (cls) {
       renderDetail(cls);
       showView('detail');
+      focusDetailEntry();
       document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
       return;
     }
   }
+  renderCurrentList();
   showView('list');
+  restoreOriginCardFocus();
   document.title = T('nav.universality_classes', '普适类') + ' — Structural';
+}
+
+function currentClassSource() {
+  return currentFilter === "manual" ? manualClasses :
+         currentFilter === "llm" ? llmClasses :
+         currentFilter === "unclassified" ? unclassifiedClasses : allClasses;
+}
+
+function renderCurrentList() {
+  renderList(currentClassSource());
 }
 
 function applyFilter(filter) {
@@ -689,9 +796,7 @@ function applyFilter(filter) {
   });
   // "path" groups all classes into a curriculum; manual/llm filter the flat
   // list; "all" is the flat list of everything.
-  const source = filter === "manual" ? manualClasses :
-                 filter === "llm" ? llmClasses : allClasses;
-  renderList(source);
+  renderCurrentList();
 }
 
 function bindFilter() {
@@ -703,9 +808,11 @@ function bindFilter() {
 function updateFilterCounts() {
   const m = document.querySelector("[data-count-manual]");
   const l = document.querySelector("[data-count-llm]");
+  const u = document.querySelector("[data-count-unclassified]");
   const a = document.querySelector("[data-count-all]");
   if (m) m.textContent = manualClasses.length;
   if (l) l.textContent = llmClasses.length;
+  if (u) u.textContent = unclassifiedClasses.length;
   if (a) a.textContent = allClasses.length;
 }
 
@@ -716,7 +823,9 @@ async function init() {
     allClasses = data.classes || [];
     manualClasses = allClasses.filter((c) => c.curation_source === "manual");
     llmClasses = allClasses.filter((c) => c.curation_source === "llm");
-    renderHeroStats(data.stats);
+    unclassifiedClasses = allClasses.filter((c) => c.curation_source !== "manual" && c.curation_source !== "llm");
+    renderClassDatasetCopy(allClasses);
+    renderHeroStats(allClasses);
     bindFilter();
     updateFilterCounts();
     applyFilter("all");
@@ -737,7 +846,7 @@ async function init() {
     window.addEventListener('popstate', handlePopState);
   } catch (e) {
     // P0-4 (SESSION-17): friendly error state — never dump the raw exception.
-    console.error(e);
+    console.error('[classes] load failed');
     const host = document.getElementById("uc-list");
     if (host) {
       host.innerHTML = `<p style="color:var(--text-secondary,#52525b);padding:40px 0;text-align:center;font-size:14px;">${T("page.classes.load_failed", "内容暂时加载不出来，请稍后重试。")}</p>`;
@@ -755,13 +864,23 @@ if (document.readyState === "loading") {
 function _classesRerender() {
   try {
     if (typeof window.__classesData !== 'undefined' && window.__classesData) {
-      renderHeroStats(window.__classesData.stats || {});
-      if (typeof renderList === 'function') renderList();
-      else if (typeof render === 'function') render();
+      renderClassDatasetCopy(allClasses);
+      renderHeroStats(allClasses);
+      const qp = new URLSearchParams(window.location.search);
+      const classId = qp.get('id') || qp.get('c');
+      const cls = classId && allClasses.find((item) => item.class_id === classId);
+      // Keep the hidden list synchronized too. A user may switch language in
+      // detail view and then return without another i18n event.
+      renderCurrentList();
+      if (cls) {
+        renderDetail(cls);
+        showView('detail');
+        document.title = `${L(cls, "name")} — ${T("nav.universality_classes", "普适类")} · Structural`;
+      }
     } else if (typeof render === 'function') {
       render();
     }
-  } catch (e) { console.warn('[classes i18n rerender]', e); }
+  } catch (e) { console.warn('[classes] i18n rerender failed'); }
 }
 try {
   if (window.i18n && typeof window.i18n.onChange === 'function') {

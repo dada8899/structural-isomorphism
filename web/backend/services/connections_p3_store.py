@@ -16,14 +16,19 @@ Session #22 G-P3。延续 SESSION-19 的 ConnectionsStore 模式（同一 histor
 """
 from __future__ import annotations
 
-import logging
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
-logger = logging.getLogger("structural.connections.p3")
+from .sqlite_utils import ClosingConnection
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.connections.p3")
 
 # 合法状态枚举
 MATCH_REQUEST_STATUS = ("pending", "accepted", "declined")
@@ -162,13 +167,19 @@ class ConnectionsP3Store:
     # --- 连接 / schema --------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = sqlite3.connect(
+            str(self.db_path), timeout=10.0, factory=ClosingConnection,
+        )
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
-        except sqlite3.Error as e:  # pragma: no cover
-            logger.warning("connections_p3 pragma failed: %s", e)
+        except sqlite3.Error as exc:  # pragma: no cover
+            logger.warning(
+                "structural.connections_p3_pragma_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
         return conn
 
     def _init_schema(self) -> None:
@@ -176,8 +187,12 @@ class ConnectionsP3Store:
             with self._connect() as conn:
                 self._migrate_columns(conn)
                 conn.executescript(_SCHEMA)
-        except sqlite3.Error as e:
-            logger.error("connections_p3 schema init failed: %s", e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "structural.connections_p3_schema_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
     def _migrate_columns(self, conn: sqlite3.Connection) -> None:
@@ -198,9 +213,7 @@ class ConnectionsP3Store:
                 continue
             for col, col_def in cols:
                 if col not in existing:
-                    logger.warning(
-                        "connections_p3: %s missing %r — adding", table, col
-                    )
+                    logger.warning("structural.connections.p3_schema_column_added")
                     conn.execute(
                         f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"
                     )
@@ -242,15 +255,9 @@ class ConnectionsP3Store:
                 )
         except sqlite3.IntegrityError:
             # 唯一索引命中 → 已有同样 pending → 不重复创建
-            logger.info(
-                "match_request dedup hit from=%s to=%s fp=%s",
-                from_user_email, to_user_email, to_fingerprint_id,
-            )
+            logger.info("structural.connections.match_request_deduplicated")
             return None
-        logger.info(
-            "match_request_created id=%s from=%s to=%s fp=%s",
-            rid, from_user_email, to_user_email, to_fingerprint_id,
-        )
+        logger.info("structural.connections.match_request_created")
         return rid
 
     def get_match_request(self, rid: str) -> Optional[dict]:
@@ -379,10 +386,7 @@ class ConnectionsP3Store:
                     reason, ts,
                 ),
             )
-        logger.info(
-            "referral_created id=%s X=%s A=%s B=%s",
-            rid, referrer_email, referee_a_email, referee_b_email,
-        )
+        logger.info("structural.connections.referral_created")
         return rid
 
     def get_referral(self, rid: str) -> Optional[dict]:
@@ -512,10 +516,7 @@ class ConnectionsP3Store:
                 """,
                 (mid, from_email, to_email, body, ts),
             )
-        logger.info(
-            "connection_message_sent id=%s from=%s to=%s len=%d",
-            mid, from_email, to_email, len(body),
-        )
+        logger.info("structural.connections.message_sent")
         return mid
 
     def list_inbox(self, email: str) -> list[dict]:

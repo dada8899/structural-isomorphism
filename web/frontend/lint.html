@@ -22,12 +22,12 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/lint.css?v=20260522">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
   <!-- Plausible analytics. -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -45,7 +45,7 @@
         <h1 class="lint-input__title">策略文档体检</h1>
         <p class="lint-input__intro">
           粘贴一份策略 / 方案文档。我们会像代码审查一样逐条找出里面的<strong>隐含假设</strong>、<strong>跨域类比</strong>和<strong>因果判断</strong>，
-          标出每一条的底层结构、最常见的失效模式和结构性风险。简单说：在文档交出去之前，先帮你挑一遍刺。
+          给出底层结构、可能失效模式和复核优先级。它是内部模型筛查，不是事实核验；原文引用和知识库候选都会单独标明。
         </p>
         <textarea
           id="lint-textarea"
@@ -68,7 +68,7 @@
       </section>
 
       <!-- Loading state -->
-      <section id="lint-loading" class="lint-loading" hidden>
+      <section id="lint-loading" class="lint-loading" aria-live="polite" hidden>
         <div class="lint-loading__dots">
           <span class="lint-loading__dot"></span>
           <span class="lint-loading__dot"></span>
@@ -80,7 +80,7 @@
       </section>
 
       <!-- Error state -->
-      <section id="lint-error" class="lint-error" hidden>
+      <section id="lint-error" class="lint-error" role="alert" hidden>
         <div class="lint-error__icon" aria-hidden="true">!</div>
         <h2 class="lint-error__title">文档体检失败</h2>
         <p id="lint-error-msg" class="lint-error__msg"></p>
@@ -90,11 +90,11 @@
       <!-- Result state -->
       <section id="lint-result" class="lint-result" hidden>
         <div class="lint-summary">
-          <span class="lint-summary__label">整体结构性风险</span>
+          <span class="lint-summary__label">优先复核摘要（内部模型筛查）</span>
           <p id="lint-summary-text" class="lint-summary__text"></p>
         </div>
         <div class="lint-result__head">
-          <h2 class="lint-result__title">逐条结构主张</h2>
+          <h2 class="lint-result__title">逐条候选主张</h2>
           <span id="lint-result-count" class="lint-result__count"></span>
         </div>
         <div id="lint-claims" class="lint-claims"></div>
@@ -105,11 +105,12 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260514e"></script>
-  <script src="/assets/js/api.js?v=20260514e"></script>
-  <script src="/assets/js/lint.js?v=20260523s21"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/secondary-tool-contracts.js?v=20260714n2"></script>
+  <script src="/assets/js/lint.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

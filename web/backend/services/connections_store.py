@@ -20,14 +20,19 @@ L2-归一化的向量）。
 """
 from __future__ import annotations
 
-import logging
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-logger = logging.getLogger("structural.connections")
+from .sqlite_utils import ClosingConnection
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+logger = get_logger("structural.connections")
 
 # 合法可见性级别。默认 L0（最严）。
 VISIBILITY_LEVELS = ("L0", "L1", "L2")
@@ -96,12 +101,18 @@ class ConnectionsStore:
     # --- 连接 / schema --------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = sqlite3.connect(
+            str(self.db_path), timeout=10.0, factory=ClosingConnection,
+        )
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.Error as e:  # pragma: no cover
-            logger.warning("connections_store WAL pragma failed: %s", e)
+        except sqlite3.Error as exc:  # pragma: no cover
+            logger.warning(
+                "structural.connections_wal_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
         return conn
 
     def _init_schema(self) -> None:
@@ -110,8 +121,12 @@ class ConnectionsStore:
                 # 先迁移：旧表可能缺列，建索引前补齐避免 OperationalError。
                 self._migrate_columns(conn)
                 conn.executescript(_SCHEMA)
-        except sqlite3.Error as e:
-            logger.error("connections_store schema init failed: %s", e)
+        except sqlite3.Error as exc:
+            logger.error(
+                "structural.connections_schema_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             raise
 
     def _migrate_columns(self, conn: sqlite3.Connection) -> None:
@@ -126,10 +141,7 @@ class ConnectionsStore:
             return  # 表不存在 → 交给 CREATE TABLE
         for col, col_def in _FP_COLUMNS:
             if col not in existing:
-                logger.warning(
-                    "connections_store: fingerprints table missing %r — adding",
-                    col,
-                )
+                logger.warning("structural.connections.schema_column_added")
                 conn.execute(
                     f"ALTER TABLE structural_fingerprints "
                     f"ADD COLUMN {col} {col_def}"
@@ -155,10 +167,7 @@ class ConnectionsStore:
         visibility_level 非法值一律降级为最严 L0（不信任输入）。
         """
         if visibility_level not in VISIBILITY_LEVELS:
-            logger.warning(
-                "create_fingerprint: bad visibility %r → forcing L0",
-                visibility_level,
-            )
+            logger.warning("structural.connections.visibility_invalid")
             visibility_level = DEFAULT_VISIBILITY
         fid = new_fingerprint_id()
         ts = _now()
@@ -177,10 +186,7 @@ class ConnectionsStore:
                     visibility_level, ts, ts,
                 ),
             )
-        logger.info(
-            "connections.fingerprint_created id=%s user=%s vis=%s",
-            fid, user_email, visibility_level,
-        )
+        logger.info("structural.connections.fingerprint_created")
         return fid
 
     def set_visibility(self, fid: str, user_email: str, level: str) -> bool:

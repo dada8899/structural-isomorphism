@@ -3,8 +3,8 @@
 Asserts:
   1. /whitespace renders the intro, the matrix heatmap, and the leads list.
   2. The matrix shows at least one `lead` cell and one `filled` cell.
-  3. The leads list renders cards with a 「生成验证方案」 link whose href
-     is /analyze?text_a=...&b_id=<anchor>.
+  3. The leads list renders evidence-safe deterministic copy and a
+     「生成验证方案」 link using an id + one-use local handoff.
   4. The class filter narrows the leads list.
 
 Self-contained: serves the static frontend out of web/frontend/ and stubs
@@ -20,6 +20,7 @@ from __future__ import annotations
 import http.server
 import json
 import os
+import re
 import socket
 import socketserver
 import threading
@@ -28,6 +29,7 @@ from typing import Generator
 
 import pytest
 
+pytestmark = pytest.mark.e2e
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DIR = REPO_ROOT / "web" / "frontend"
 
@@ -181,29 +183,78 @@ def test_leads_render_with_analyze_link(local_server, chromium_browser):
         first_link = first.locator("a.ws-btn--primary")
         href = first_link.get_attribute("href")
         assert href.startswith("/analyze?")
-        # The /analyze prefill carries the concrete research question.
+        # The URL carries only a random local handoff key. The deterministic
+        # verification question stays in one-use sessionStorage.
         from urllib.parse import parse_qs, urlparse
         qs = parse_qs(urlparse(href).query)
-        assert "厄尔尼诺振荡" in qs["text_a"][0]
+        assert qs["id"] == ["p-100"]
+        assert list(qs) == ["id", "handoff"]
+        handoff_key = qs["handoff"][0]
+        handoff = page.evaluate(
+            "key => JSON.parse(sessionStorage.getItem('structural_analyze_handoff:' + key))",
+            handoff_key,
+        )
+        assert "海洋学" in handoff["query"]
+        assert "二阶振子类" in handoff["query"]
+        assert "先查重" in handoff["query"]
         # Top lead anchors p-100 (海气耦合).
-        assert "b_id=p-100" in href
+        for sensitive in ("q", "text_a", "fingerprint", "anon_id", "b_id"):
+            assert sensitive not in qs
+
+        # Follow the actual CTA and prove the consumer maps the canonical
+        # public id/q contract to the backend's b_id/text_a SSE contract.
+        analyze_html = (FRONTEND_DIR / "analyze.html").read_text(encoding="utf-8")
+        page.route(
+            re.compile(r"/analyze(?:\?|$)"),
+            lambda route: route.fulfill(
+                status=200, content_type="text/html", body=analyze_html,
+            ),
+        )
+        page.route(
+            "**/api/analyze/stream",
+            lambda route: route.fulfill(
+                status=200, content_type="text/event-stream",
+                body="event: error\ndata: {}\n\n",
+            ),
+        )
+        with page.expect_request(
+            lambda request: request.url.endswith("/api/analyze/stream"),
+        ) as stream_request:
+            first_link.click()
+        request = stream_request.value
+        assert request.method == "POST"
+        assert urlparse(request.url).query == ""
+        assert request.post_data_json["b_id"] == "p-100"
+        assert request.post_data_json["text_a"] == handoff["query"]
+        assert handoff["query"] not in page.url
+        assert handoff["query"] not in (request.headers.get("referer") or "")
+        for sensitive in ("q=", "text_a=", "fingerprint=", "anon_id="):
+            assert sensitive not in page.url
+        assert page.evaluate(
+            "key => sessionStorage.getItem('structural_analyze_handoff:' + key)",
+            handoff_key,
+        ) is None
     finally:
         page.context.close()
 
 
-def test_leads_show_llm_question_rationale_and_badge(local_server, chromium_browser):
-    """When the json carries LLM fields the card shows the research
-    question, the rationale, and a yes/maybe plausibility badge."""
+def test_leads_do_not_publish_llm_claims_as_facts(local_server, chromium_browser):
+    """Model fields may order triage, but must not become public claims."""
     page = _open_page(chromium_browser, local_server)
     try:
         first = page.locator(".ws-lead").first
-        # The concrete LLM research question is the card headline.
-        assert "厄尔尼诺振荡" in first.locator(".ws-lead__question").inner_text()
-        # The LLM rationale is rendered.
-        assert "二阶阻尼振子" in first.locator(".ws-lead__claim").inner_text()
-        # yes -> 大概率成立 badge; the maybe lead -> 值得验证.
+        public_text = page.locator("#ws-leads").inner_text()
+        for lead in _LEADS["leads"]:
+            for field in ("research_question", "rationale"):
+                if lead.get(field):
+                    assert lead[field] not in public_text
+        assert "先查重" in first.locator(".ws-lead__question").inner_text()
+        assert "不表示尚无人研究、结构存在或结论成立" in first.locator(".ws-lead__claim").inner_text()
+        # Labels communicate internal review priority, never probability.
         assert first.locator(".ws-lead__plausible--yes").count() == 1
         assert page.locator(".ws-lead__plausible--maybe").count() == 1
+        assert first.locator(".ws-lead__plausible--yes").inner_text() == "优先核查"
+        assert page.locator(".ws-lead__plausible--maybe").inner_text() == "待核查"
         # The unjudged third lead has no badge.
         assert page.locator(".ws-lead__plausible").count() == 2
     finally:

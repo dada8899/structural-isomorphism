@@ -300,6 +300,11 @@ _GOOD_LLM_REPLY = {
     ],
 }
 
+_GOOD_DOCUMENT = (
+    "策略写道：竞品这么做成了，我们照搬也能成。"
+    "同时假设用户量上来收入自然就有了。"
+)
+
 
 def test_endpoint_success(client, monkeypatch):
     """Happy path: LLM available + returns a clean payload."""
@@ -314,17 +319,35 @@ def test_endpoint_success(client, monkeypatch):
         struct_lint_service.llm_client, "complete_json", fake_complete_json
     )
 
-    r = client.post("/api/struct-lint", json={"document": "我们的增长方案……"})
+    r = client.post("/api/struct-lint", json={
+        "document": _GOOD_DOCUMENT,
+        "client_request_id": "lint-request-000001",
+    })
     assert r.status_code == 200
     body = r.json()
     assert body["summary"]
+    assert body["request_id"] == "lint-request-000001"
+    assert body["contract_version"] == "secondary-tools-v2"
     assert len(body["claims"]) == 2
     assert body["claims"][0]["claim_type"] == "analogy"
+    assert body["claims"][0]["review_priority"] == "high"
+    assert "risk_level" not in body["claims"][0]
+    assert body["evidence"]["evidence_level"] == "candidate"
+
+
+def test_endpoint_rejects_out_of_scope_before_model(client, monkeypatch):
+    from api import struct_lint as struct_lint_api
+
+    monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: True)
+    response = client.post(
+        "/api/struct-lint", json={"document": "2 + 2 等于多少，请直接告诉我答案"}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"] == "out_of_scope"
 
 
 def test_endpoint_llm_unavailable(client, monkeypatch):
     """No API key → clean 503, no LLM call attempted."""
-    from services import struct_lint_service
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: False)
@@ -356,8 +379,8 @@ def test_endpoint_document_too_long(client, monkeypatch):
     assert body["received"] == len(too_long)
 
 
-def test_endpoint_filters_malformed_claims(client, monkeypatch):
-    """LLM returns a mix of good + malformed claims — guardrail keeps good only."""
+def test_endpoint_rejects_partially_malformed_claim_set(client, monkeypatch):
+    """One malformed model claim rejects the complete payload before display."""
     from services import struct_lint_service
 
     monkeypatch.setattr(struct_lint_service.llm_client, "llm_available", lambda: True)
@@ -388,13 +411,7 @@ def test_endpoint_filters_malformed_claims(client, monkeypatch):
     )
 
     r = client.post("/api/struct-lint", json={"document": "doc"})
-    assert r.status_code == 200
-    claims = r.json()["claims"]
-    assert len(claims) == 2
-    quotes = {c["quote"] for c in claims}
-    assert quotes == {"合法主张", "坏风险"}
-    bad_risk = next(c for c in claims if c["quote"] == "坏风险")
-    assert bad_risk["risk_level"] == "medium"
+    assert r.status_code == 503
 
 
 def test_endpoint_llm_returns_unusable_payload(client, monkeypatch):
@@ -461,9 +478,8 @@ def _stub_two_llm_calls(monkeypatch, extract_reply, anchor_reply):
     )
 
 
-def test_endpoint_attaches_isomorph_on_kb_hit(client, monkeypatch):
-    """Happy path with KB hit: each claim carries an isomorph anchor and
-    its failure mode is re-grounded by the second LLM pass."""
+def test_endpoint_attaches_candidate_reference_on_kb_hit(client, monkeypatch):
+    """A KB hit is shown as a candidate and cannot rewrite model claims."""
     fake = _FakeSearch(hits=[
         {
             "id": "ph-eco-01",
@@ -484,18 +500,18 @@ def test_endpoint_attaches_isomorph_on_kb_hit(client, monkeypatch):
         },
     )
 
-    r = client.post("/api/struct-lint", json={"document": "增长方案……"})
+    r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
     assert r.status_code == 200
     body = r.json()
     claims = body["claims"]
     assert len(claims) == 2
     for c in claims:
-        assert c["isomorph"] is not None
-        assert c["isomorph"]["id"] == "ph-eco-01"
-        assert c["isomorph"]["domain"] == "生态学"
-        assert c["isomorph"]["relevance"] == 0.78
-        # Failure mode re-grounded by the anchor pass.
-        assert "同构" in c["failure_mode"]
+        assert c["reference_candidate"] is not None
+        assert c["reference_candidate"]["id"] == "ph-eco-01"
+        assert c["reference_candidate"]["domain"] == "生态学"
+        assert c["reference_candidate"]["retrieval_rank"] == 1
+        assert c["reference_candidate"]["evidence"]["evidence_level"] == "candidate"
+        assert "同构" not in c["failure_mode"]
     # The KB was actually queried — one search per claim.
     assert len(fake.calls) == 2
 
@@ -507,12 +523,12 @@ def test_endpoint_degrades_when_search_unavailable(client, monkeypatch):
     monkeypatch.delitem(main.app_state, "search", raising=False)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
-    r = client.post("/api/struct-lint", json={"document": "增长方案……"})
+    r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
     assert r.status_code == 200
     claims = r.json()["claims"]
     assert len(claims) == 2
     for c in claims:
-        assert c["isomorph"] is None
+        assert c["reference_candidate"] is None
         # Failure mode falls back to the first-pass LLM output.
         assert c["failure_mode"]
 
@@ -523,12 +539,12 @@ def test_endpoint_degrades_on_empty_kb_match(client, monkeypatch):
     _install_search(monkeypatch, fake)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
-    r = client.post("/api/struct-lint", json={"document": "增长方案……"})
+    r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
     assert r.status_code == 200
     claims = r.json()["claims"]
     assert len(claims) == 2
     for c in claims:
-        assert c["isomorph"] is None
+        assert c["reference_candidate"] is None
     # Searched, but found nothing.
     assert len(fake.calls) == 2
 
@@ -539,11 +555,11 @@ def test_endpoint_degrades_when_search_raises(client, monkeypatch):
     _install_search(monkeypatch, fake)
     _stub_two_llm_calls(monkeypatch, _GOOD_LLM_REPLY, {})
 
-    r = client.post("/api/struct-lint", json={"document": "增长方案……"})
+    r = client.post("/api/struct-lint", json={"document": _GOOD_DOCUMENT})
     assert r.status_code == 200
     claims = r.json()["claims"]
     for c in claims:
-        assert c["isomorph"] is None
+        assert c["reference_candidate"] is None
 
 
 # =========================================================================
@@ -572,23 +588,22 @@ async def test_streamed_emits_progress_then_done(monkeypatch):
 
     events = []
     async for ev in struct_lint_service.lint_document_streamed(
-        "一段策略文档", search_svc=fake
+        _GOOD_DOCUMENT, search_svc=fake
     ):
         events.append(ev)
 
     stages = [e.get("stage") for e in events if e.get("type") == "progress"]
-    # extract → claims → one isomorph event per claim (2 claims).
+    # extract → claims → one candidate-reference event per claim (2 claims).
     assert "extract" in stages
     assert "claims" in stages
-    assert stages.count("isomorph") == 2
+    assert stages.count("candidate_reference") == 2
 
     done = [e for e in events if e.get("type") == "done"]
     assert len(done) == 1
     result = done[0]["result"]
     assert len(result["claims"]) == 2
-    # Anchor pass actually re-grounded the failure mode.
-    assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
-    assert result["claims"][0]["failure_mode"] == "同构重写后的失效模式"
+    assert result["claims"][0]["reference_candidate"]["id"] == "ph-eco-01"
+    assert result["claims"][0]["failure_mode"] == "幸存者偏差,忽略前提条件差异"
 
 
 @pytest.mark.anyio
@@ -604,7 +619,7 @@ async def test_streamed_emits_error_on_llm_failure(monkeypatch):
     )
 
     events = []
-    async for ev in struct_lint_service.lint_document_streamed("doc", search_svc=None):
+    async for ev in struct_lint_service.lint_document_streamed(_GOOD_DOCUMENT, search_svc=None):
         events.append(ev)
 
     assert any(e.get("type") == "error" for e in events)
@@ -624,15 +639,17 @@ async def test_streamed_degrades_without_search(monkeypatch):
     )
 
     events = []
-    async for ev in struct_lint_service.lint_document_streamed("doc", search_svc=None):
+    async for ev in struct_lint_service.lint_document_streamed(
+        _GOOD_DOCUMENT, search_svc=None
+    ):
         events.append(ev)
 
     stages = [e.get("stage") for e in events if e.get("type") == "progress"]
-    assert "isomorph" not in stages
+    assert "candidate_reference" not in stages
     done = [e for e in events if e.get("type") == "done"]
     assert len(done) == 1
     for c in done[0]["result"]["claims"]:
-        assert c["isomorph"] is None
+        assert c["reference_candidate"] is None
 
 
 # =========================================================================
@@ -663,6 +680,55 @@ def _parse_sse(text: str):
     return events
 
 
+def test_stream_get_transport_is_retired_without_echoing_document(client):
+    secret = "confidential-roadmap-do-not-log"
+    response = client.get(
+        "/api/struct-lint/stream",
+        params={"document": secret},
+    )
+    assert response.status_code == 410
+    assert response.json()["error"] == "sensitive_get_retired"
+    assert secret not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"document": ["not", "text"]},
+        {"document": "visible\u200bhidden"},
+        {"document": "x", "unexpected": True},
+        {"document": "x" * 25_001},
+    ],
+)
+def test_stream_body_rejects_wrong_type_controls_extra_and_hard_ceiling(client, payload):
+    response = client.post("/api/struct-lint/stream", json=payload)
+    assert response.status_code == 422
+
+
+def test_stream_accepts_20k_cjk_in_body(client, monkeypatch):
+    from api import struct_lint as struct_lint_api
+
+    document = "策" * 20_000
+    seen = []
+    monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: True)
+
+    async def fake_stream(doc, search_svc=None):
+        seen.append((doc, search_svc))
+        yield {"type": "done", "result": {"summary": "ok", "claims": []}}
+
+    monkeypatch.setattr(struct_lint_api, "lint_document_streamed", fake_stream)
+    response = client.post(
+        "/api/struct-lint/stream",
+        json={"document": document},
+    )
+    assert response.status_code == 200
+    assert response.request.url.path == "/api/struct-lint/stream"
+    assert not response.request.url.query
+    assert seen and seen[0][0] == document
+    assert _parse_sse(response.text)[-1][0] == "done"
+
+
 def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
     """Happy path: the SSE stream emits meta → progress(s) → done.
 
@@ -680,7 +746,10 @@ def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
         anchor_reply={"failure_mode": "同构失效模式", "suggestion": "建议"},
     )
 
-    r = client.get("/api/struct-lint/stream", params={"document": "一段策略文档"})
+    r = client.post("/api/struct-lint/stream", json={
+        "document": _GOOD_DOCUMENT,
+        "client_request_id": "lint-stream-000001",
+    })
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
 
@@ -689,13 +758,15 @@ def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
     assert types[0] == "meta"               # meta is sent first (fast first byte)
     assert "progress" in types              # at least one progress event
     assert types[-1] == "done"              # done is terminal
+    assert events[0][1]["request_id"] == "lint-stream-000001"
+    assert events[0][1]["contract_version"] == "secondary-tools-v2"
 
     # The done event carries the full lint result.
     done_event = next(e for e in events if e[0] == "done")
     result = done_event[1]["result"]
     assert result["summary"]
     assert len(result["claims"]) == 2
-    assert result["claims"][0]["isomorph"]["id"] == "ph-eco-01"
+    assert result["claims"][0]["reference_candidate"]["id"] == "ph-eco-01"
 
     # Progress events cover the pipeline stages.
     progress_stages = {
@@ -703,7 +774,7 @@ def test_stream_endpoint_emits_meta_progress_done(client, monkeypatch):
     }
     assert "extract" in progress_stages
     assert "claims" in progress_stages
-    assert "isomorph" in progress_stages
+    assert "candidate_reference" in progress_stages
 
 
 def test_stream_endpoint_empty_document_emits_error(client, monkeypatch):
@@ -711,7 +782,7 @@ def test_stream_endpoint_empty_document_emits_error(client, monkeypatch):
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: True)
-    r = client.get("/api/struct-lint/stream", params={"document": "   "})
+    r = client.post("/api/struct-lint/stream", json={"document": "   "})
     assert r.status_code == 200
     events = _parse_sse(r.text)
     err = next(e for e in events if e[0] == "error")
@@ -724,7 +795,7 @@ def test_stream_endpoint_llm_unavailable_emits_error(client, monkeypatch):
     from api import struct_lint as struct_lint_api
 
     monkeypatch.setattr(struct_lint_api.llm_client, "llm_available", lambda: False)
-    r = client.get("/api/struct-lint/stream", params={"document": "一段文档"})
+    r = client.post("/api/struct-lint/stream", json={"document": "一段文档"})
     assert r.status_code == 200
     events = _parse_sse(r.text)
     err = next(e for e in events if e[0] == "error")
@@ -746,7 +817,7 @@ def test_stream_endpoint_llm_failure_emits_error(client, monkeypatch):
     import main
     monkeypatch.delitem(main.app_state, "search", raising=False)
 
-    r = client.get("/api/struct-lint/stream", params={"document": "一段文档"})
+    r = client.post("/api/struct-lint/stream", json={"document": "一段文档"})
     assert r.status_code == 200
     events = _parse_sse(r.text)
     types = [e[0] for e in events]

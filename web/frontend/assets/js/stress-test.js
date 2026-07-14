@@ -1,27 +1,42 @@
-/**
- * Structural — Structural stress-test page (Session #18, feature E).
- *
- * Submits one analogy / strategic claim to POST /api/stress-test and renders
- * the falsification result: source vs target, per-correspondence stress
- * results, the weakest link, and a PASS / FAIL / CONDITIONAL verdict.
- */
+/** Structural stress-test: candidate-only red-team screen. */
 (function () {
   'use strict';
 
-  var VERDICT_LABEL = { PASS: '成立', FAIL: '不成立', CONDITIONAL: '有条件成立' };
-
-  function esc(s) {
-    return (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s));
-  }
+  var contracts = window.SecondaryToolContracts;
+  var OUTCOME_LABEL = {
+    not_broken_in_screen: '本轮未找到致命断点',
+    breaks_in_screen: '本轮发现关键断点',
+    condition_dependent: '取决于前提条件'
+  };
+  var OUTCOME_CLASS = {
+    not_broken_in_screen: 'not-broken',
+    breaks_in_screen: 'breaks',
+    condition_dependent: 'conditional'
+  };
+  var activeController = null;
+  var activeRequestId = null;
 
   function $(id) { return document.getElementById(id); }
-
+  function canonical(value) {
+    return String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  }
+  function esc(value) {
+    var node = document.createElement('div');
+    node.textContent = value == null ? '' : String(value);
+    return node.innerHTML;
+  }
+  function current(requestId) { return requestId && requestId === activeRequestId; }
+  function abortActive() {
+    if (activeController) activeController.abort();
+    activeController = null;
+    activeRequestId = null;
+  }
   function trackPlausible(event, props) {
     try {
       if (typeof window.plausible === 'function') {
         window.plausible(event, props ? { props: props } : undefined);
       }
-    } catch (e) { /* telemetry must not throw */ }
+    } catch (error) { /* telemetry must not affect the journey */ }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -30,101 +45,79 @@
     var errorEl = $('stress-error');
     var loadingEl = $('stress-loading');
     var resultEl = $('stress-result');
+    if (!claimEl || !submitEl || !contracts) return;
 
-    if (!claimEl || !submitEl) return;
-
-    // Example chips fill the textarea (do not auto-submit — let user read).
     var examples = $('stress-examples');
     if (examples) {
-      examples.addEventListener('click', function (e) {
-        var btn = e.target.closest('.stress-chip');
-        if (!btn) return;
-        claimEl.value = btn.getAttribute('data-claim') || '';
+      examples.addEventListener('click', function (event) {
+        var button = event.target.closest('.stress-chip');
+        if (!button) return;
+        claimEl.value = button.getAttribute('data-claim') || '';
         claimEl.focus();
       });
     }
 
-    function showError(msg) {
-      errorEl.textContent = msg;
+    function showError(message) {
+      errorEl.textContent = message;
       errorEl.hidden = false;
     }
     function clearError() {
       errorEl.hidden = true;
       errorEl.textContent = '';
     }
-
     function setLoading(on) {
       loadingEl.hidden = !on;
       submitEl.disabled = on;
       claimEl.disabled = on;
     }
 
-    function renderResult(data) {
-      // --- verdict ---
-      var verdict = (data.verdict || 'CONDITIONAL').toUpperCase();
-      var vKey = verdict.toLowerCase();
-      var verdictWrap = $('stress-verdict');
-      var verdictBadge = $('stress-verdict-badge');
-      verdictWrap.className = 'stress-verdict stress-verdict--' + vKey;
-      verdictBadge.className = 'stress-verdict__badge stress-verdict__badge--' + vKey;
-      verdictBadge.textContent = verdict + ' · ' + (VERDICT_LABEL[verdict] || '');
-      $('stress-verdict-reason').textContent = data.verdict_reason || '';
-
-      // --- source vs target ---
-      $('stress-source').textContent = data.source || '（未识别）';
-      $('stress-target').textContent = data.target || '（未识别）';
-
-      // --- correspondences ---
-      var list = $('stress-corr-list');
-      list.innerHTML = '';
-      var corrs = Array.isArray(data.structural_correspondences)
-        ? data.structural_correspondences : [];
-      if (corrs.length === 0) {
-        var li = document.createElement('li');
-        li.className = 'stress-corr stress-corr--breaks';
-        li.innerHTML = '<p class="stress-corr__stress" style="padding-left:0">'
-          + '模型未能拆出可压测的结构对应关系。</p>';
-        list.appendChild(li);
-      } else {
-        corrs.forEach(function (c) {
-          var holds = c && c.holds === true;
-          var li = document.createElement('li');
-          li.className = 'stress-corr ' + (holds ? 'stress-corr--holds' : 'stress-corr--breaks');
-          li.innerHTML =
-            '<div class="stress-corr__head">'
-            + '<span class="stress-corr__mark">' + (holds ? '✓' : '✕') + '</span>'
-            + '<span class="stress-corr__claim">' + esc(c.claim) + '</span>'
-            + '</div>'
-            + '<p class="stress-corr__stress">' + esc(c.stress_result) + '</p>';
-          list.appendChild(li);
-        });
+    function renderReference(reference) {
+      var wrap = $('stress-precedent');
+      if (!reference) {
+        wrap.hidden = true;
+        return;
       }
-
-      // --- weakest link ---
-      $('stress-weakest-text').textContent = data.weakest_link || '（未指出）';
-
-      // --- precedent (real KB phenomenon backing the weakest link) ---
-      // Degrades gracefully: when precedent is null the block stays hidden
-      // and the verdict still reads fine on its own.
-      var precWrap = $('stress-precedent');
-      var prec = data.precedent;
-      if (prec && prec.phenomenon_id && prec.failure_precedent) {
-        $('stress-precedent-domain').textContent = prec.domain || '';
-        $('stress-precedent-name').textContent = prec.phenomenon_name || '';
-        $('stress-precedent-link').href =
-          '/phenomenon/' + encodeURIComponent(prec.phenomenon_id);
-        $('stress-precedent-failure').textContent = prec.failure_precedent;
-        precWrap.hidden = false;
-      } else {
-        precWrap.hidden = true;
-      }
-
-      resultEl.hidden = false;
+      $('stress-precedent-domain').textContent = reference.domain || '领域未标注';
+      $('stress-precedent-name').textContent = reference.name;
+      $('stress-precedent-link').href = '/phenomenon/' + encodeURIComponent(reference.id);
+      $('stress-precedent-failure').textContent = reference.candidate_note ||
+        '这是内部知识库的检索候选。请核查变量定义、边界条件和失效触发是否一致。';
+      wrap.hidden = false;
     }
 
-    function submit() {
+    function renderResult(data) {
+      var key = data.screening_outcome;
+      var classKey = OUTCOME_CLASS[key];
+      var verdictWrap = $('stress-verdict');
+      var verdictBadge = $('stress-verdict-badge');
+      verdictWrap.className = 'stress-verdict stress-verdict--' + classKey;
+      verdictBadge.className = 'stress-verdict__badge stress-verdict__badge--' + classKey;
+      verdictBadge.textContent = OUTCOME_LABEL[key] + ' · 内部模型筛查';
+      $('stress-verdict-reason').textContent = data.rationale;
+      $('stress-source').textContent = data.source;
+      $('stress-target').textContent = data.target;
+
+      var list = $('stress-corr-list');
+      list.textContent = '';
+      data.structural_correspondences.forEach(function (item) {
+        var notBroken = item.screening_outcome === 'not_broken';
+        var row = document.createElement('li');
+        row.className = 'stress-corr ' + (notBroken ? 'stress-corr--not-broken' : 'stress-corr--breaks');
+        row.innerHTML = '<div class="stress-corr__head">' +
+          '<span class="stress-corr__mark">' + (notBroken ? '△' : '×') + '</span>' +
+          '<span class="stress-corr__claim">' + esc(item.claim) + '</span></div>' +
+          '<p class="stress-corr__stress">' + esc(item.stress_result) + '</p>';
+        list.appendChild(row);
+      });
+      $('stress-weakest-text').textContent = data.weakest_link;
+      renderReference(data.candidate_reference);
+      resultEl.hidden = false;
+      resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function submit() {
       clearError();
-      var claim = (claimEl.value || '').trim();
+      var claim = canonical(claimEl.value);
       if (claim.length < 4) {
         showError('请输入一个完整的类比或判断（至少 4 个字）。');
         return;
@@ -133,44 +126,61 @@
         showError('内容过长（上限 600 字），请精简。');
         return;
       }
-
+      abortActive();
+      var requestId = contracts.createRequestId('stress');
+      var controller = new AbortController();
+      activeRequestId = requestId;
+      activeController = controller;
       resultEl.hidden = true;
       setLoading(true);
       trackPlausible('StressTest Submit');
 
-      apiFetch('/stress-test', {
-        method: 'POST',
-        body: JSON.stringify({ claim: claim }),
-      })
-        .then(function (data) {
-          setLoading(false);
-          renderResult(data);
-          trackPlausible('StressTest Result', { verdict: data.verdict || 'NA' });
-        })
-        .catch(function (err) {
-          setLoading(false);
-          var msg = String(err && err.message || '');
-          // apiFetch throws "API <status>: <text>" — surface a clean message.
-          if (msg.indexOf('API 503') !== -1) {
-            showError('压力测试服务当前不可用（LLM 无响应）。请稍后重试。');
-          } else if (msg.indexOf('API 422') !== -1) {
-            showError('输入无法处理，请检查你的类比是否完整。');
-          } else if (msg.indexOf('API 429') !== -1) {
-            showError('请求过于频繁，请稍后再试。');
-          } else {
-            showError('压力测试失败，请稍后重试。');
-          }
-          trackPlausible('StressTest Error');
+      try {
+        var response = await fetch('/api/stress-test', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claim: claim, client_request_id: requestId }),
+          signal: controller.signal
         });
+        var body = null;
+        try { body = await response.json(); } catch (error) { body = null; }
+        if (!current(requestId)) return;
+        if (!response.ok) {
+          if (response.status === 422) throw new Error('scope');
+          if (response.status === 429) throw new Error('rate');
+          if (response.status === 503) throw new Error('unavailable');
+          throw new Error('request');
+        }
+        var validated = contracts.validateStressPayload(body, requestId, claim);
+        if (!validated) throw new Error('contract');
+        renderResult(validated);
+        trackPlausible('StressTest Result', { outcome: validated.screening_outcome });
+      } catch (error) {
+        if (!current(requestId) || (error && error.name === 'AbortError')) return;
+        var messages = {
+          scope: '这里只测试完整的结构类比。请补充要比较的对象和机制。',
+          rate: '请求过于频繁，请稍后再试。',
+          unavailable: '压力测试暂时不可用，请稍后重试。',
+          contract: '结果未通过完整性校验，未展示任何模型内容。请重试。'
+        };
+        showError(messages[error.message] || '压力测试失败，请检查网络后重试。');
+        trackPlausible('StressTest Error');
+      } finally {
+        if (current(requestId)) {
+          setLoading(false);
+          activeController = null;
+        }
+      }
     }
 
     submitEl.addEventListener('click', submit);
-    // Cmd/Ctrl + Enter submits from the textarea.
-    claimEl.addEventListener('keydown', function (e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
+    claimEl.addEventListener('keydown', function (event) {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
         submit();
       }
     });
+    window.addEventListener('pagehide', abortActive);
   });
-})();
+}());
