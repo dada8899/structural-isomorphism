@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#FAFAF9">
-  <meta name="description" content="方法反查——输入一个方法、算法或模型，看它在结构上还能套用到哪些其他领域的现象。">
+  <meta name="description" content="方法反查——输入一个方法、算法或模型，查找值得进一步检验的跨领域候选。">
   <title>方法反查 — Structural</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
@@ -21,13 +21,11 @@
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/apply.css?v=20260522">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
 
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
-  <!-- Plausible analytics (W7-D mini-brief 5, 2026-05-24). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <script defer src="/assets/js/analytics-consent.js?v=20260714n2"></script>
 </head>
 <body>
   <header class="site-header"></header>
@@ -43,8 +41,8 @@
       <section class="apply-intro">
         <h1 class="apply-intro__title">这个方法还能用在哪？</h1>
         <p class="apply-intro__sub">
-          输入一个方法、算法或模型——引擎会剥离它的领域外衣，提炼出它利用的底层结构，
-          再到知识库里找结构上同样适用的其他领域现象。
+          输入一个方法、算法或模型——引擎会提炼检索签名，再到知识库里找值得继续测试的
+          跨领域候选。检索顺序不代表适用概率，也不表示可以直接套用。
         </p>
       </section>
 
@@ -58,7 +56,7 @@
           aria-label="方法描述"></textarea>
         <div class="apply-form__row">
           <span class="apply-form__hint" id="apply-count">0 / 1000</span>
-          <button type="submit" class="apply-form__btn" id="apply-submit">查找可套用的领域</button>
+          <button type="submit" class="apply-form__btn" id="apply-submit">查找候选领域</button>
         </div>
       </form>
 
@@ -70,12 +68,12 @@
         <button type="button" class="apply-chip" data-method="A/B 测试——通过随机分组对照来识别因果效应">A/B 测试</button>
       </div>
 
-      <div id="apply-status" class="apply-status" hidden></div>
+      <div id="apply-status" class="apply-status" role="status" aria-live="polite" hidden></div>
 
       <section id="apply-result" class="apply-result" hidden>
         <div class="apply-signature" id="apply-signature"></div>
         <div class="apply-matches-head">
-          <h2 class="apply-matches-head__title">这个方法还能用在这些地方</h2>
+          <h2 class="apply-matches-head__title">值得继续验证的候选</h2>
           <span class="apply-matches-head__count" id="apply-matches-count"></span>
         </div>
         <div class="apply-matches" id="apply-matches"></div>
@@ -85,12 +83,13 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260514e"></script>
-  <script src="/assets/js/api.js?v=20260514e"></script>
-  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260524s22"></script>
-  <script src="/assets/js/apply.js?v=20260524s22"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/secondary-tool-contracts.js?v=20260714n2"></script>
+  <script src="/assets/js/apply.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

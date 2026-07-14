@@ -1141,6 +1141,8 @@
     box-shadow var(--dur-slow) var(--ease-out);
   overflow: hidden;
   isolation: isolate;
+  color: inherit;
+  text-decoration: none;
 }
 
 .disc-card::before {
@@ -1164,6 +1166,11 @@
   opacity: 1;
 }
 
+.disc-card:focus-visible {
+  outline: 3px solid var(--focus-ring, #2563eb);
+  outline-offset: 3px;
+}
+
 .disc-card__header {
   display: flex;
   justify-content: space-between;
@@ -1181,12 +1188,15 @@
   text-transform: uppercase;
 }
 
-.disc-card__score {
-  font-family: var(--font-mono);
-  font-size: var(--fs-13);
-  color: var(--text-primary);
-  font-weight: var(--fw-semibold);
-  font-feature-settings: "tnum";
+.disc-card__status {
+  max-width: 58%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: var(--fs-11, 11px);
+  color: var(--text-secondary);
+  line-height: 1.35;
+  text-align: right;
 }
 
 .disc-card__item {
@@ -1230,6 +1240,25 @@
   font-size: var(--fs-16);
   color: var(--text-secondary);
   font-weight: var(--fw-medium);
+}
+
+.disc-card__boundary {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--fs-12, 12px);
+  line-height: var(--lh-relaxed);
+}
+
+.disc-card__open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
 }
 
 /* === Stats section === */

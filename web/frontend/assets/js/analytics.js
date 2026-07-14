@@ -53,8 +53,8 @@
   };
 
   // Validate event names defensively — Plausible silently drops invalid names,
-  // which makes debugging hard. We log a console.warn in dev (Plausible-less
-  // environments) when someone passes an unknown event.
+  // which makes debugging hard. The warning stays content-free so event names
+  // supplied by callers never reach browser telemetry.
   function isKnownEvent(name) {
     for (var k in EVENTS) {
       if (EVENTS[k] === name) return true;
@@ -68,9 +68,7 @@
       // Soft warning; still attempt the track (forward-compat for new events
       // not yet added to the registry).
       try {
-        if (typeof console !== "undefined" && console.warn) {
-          console.warn("[analytics] unknown event:", name);
-        }
+        console.warn("[analytics] unknown event rejected");
       } catch (_) { /* swallow */ }
     }
     try {

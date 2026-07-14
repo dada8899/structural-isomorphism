@@ -9,6 +9,28 @@ function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "f
 function __homeLang() { try { return (window.i18n && window.i18n.getLang && window.i18n.getLang()) || 'zh'; } catch (e) { return 'zh'; } }
 function __pick(zh, en) { return __homeLang() === 'en' && en ? en : zh; }
 
+function navigatePrivateSearch(query, source) {
+  if (!query) return false;
+  if (typeof window.buildPrivateSearchUrl !== 'function') {
+    if (window.showToast) window.showToast('安全交接组件未加载；问题没有写入链接，请刷新后重试。');
+    return false;
+  }
+  const url = window.buildPrivateSearchUrl({
+    query,
+    lang: __homeLang(),
+    source: source || 'home',
+  });
+  if (!url) return false;
+  try {
+    if (!new URL(url, window.location.origin).searchParams.get('context')) {
+      if (window.showToast) window.showToast('未能建立安全的本地交接；问题没有写入链接。请允许当前标签页使用会话存储后重试。');
+      return false;
+    }
+  } catch (_) { return false; }
+  window.location.assign(url);
+  return true;
+}
+
 const DEMO_EXAMPLES = [
   {
     a: {
@@ -272,7 +294,7 @@ function initHeroEvidence() {
       if (!ex) return;
       const side = btn.dataset.side === 'a' ? ex.a : ex.b;
       const q = side.desc || side.name;
-      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+      navigatePrivateSearch(q, 'example');
     });
   });
 
@@ -295,7 +317,7 @@ function initSearch() {
       e.preventDefault();
       const q = input.value.trim();
       if (q) {
-        window.location.href = `/search?q=${encodeURIComponent(q)}`;
+        navigatePrivateSearch(q, 'home');
       }
     });
 
@@ -361,7 +383,7 @@ function renderSuggestions(_suggestionsFromServer) {
         input.value = q;
         input.focus();
         setTimeout(() => {
-          window.location.href = `/search?q=${encodeURIComponent(q)}`;
+          navigatePrivateSearch(q, 'example');
         }, 150);
       }
     }
@@ -387,7 +409,7 @@ function renderDailySkeleton() {
       </div>
       <div class="disc-card__divider">
         <span class="disc-card__divider-line"></span>
-        <span class="disc-card__divider-symbol" aria-hidden="true">≅</span>
+        <span class="disc-card__divider-symbol" aria-hidden="true">≈?</span>
         <span class="disc-card__divider-line"></span>
       </div>
       <div class="disc-card__item">
@@ -407,53 +429,78 @@ function renderDailyEmpty() {
     '<p class="home__daily-empty" style="grid-column:1/-1;text-align:center;' +
     'color:var(--text-secondary,#52525b);font-size:14px;padding:32px 0;">' +
     T('page.home.daily_empty', '今日发现暂时加载不出来，先去') +
-    ' <a href="/discoveries" style="color:var(--brand-accent,#2563EB);">' +
-    T('page.home.daily_empty_link', '看看全部精选发现') + '</a>。</p>';
+    ' <a href="/discoveries" style="color:var(--brand-accent,#2563EB);text-decoration:underline;text-underline-offset:3px;">' +
+    T('page.home.daily_empty_link', '查看全部候选队列') + '</a>' +
+    T('page.home.daily_empty_punctuation', '。') + '</p>';
+}
+
+function normalizeDailyCandidate(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (raw.schema_version !== 'discovery-candidate-v2') return null;
+  if (typeof raw.discovery_id !== 'string' || !raw.discovery_id) return null;
+  if (Object.prototype.hasOwnProperty.call(raw, 'similarity') ||
+      Object.prototype.hasOwnProperty.call(raw, 'isomorphism_confidence')) return null;
+  if (!raw.evidence || raw.evidence.evidence_level !== 'candidate') return null;
+  const pair = raw.pair;
+  if (!pair || !pair.a || !pair.b) return null;
+  for (const side of [pair.a, pair.b]) {
+    if (typeof side.id !== 'string' || !side.id || !side.name || !side.domain) return null;
+  }
+  return raw;
+}
+
+function dailyLocalized(value) {
+  if (!value || typeof value !== 'object') return '';
+  const selected = __homeLang() === 'en' ? value.en : value.zh;
+  return typeof selected === 'string' && selected.trim()
+    ? selected.trim()
+    : (typeof value.zh === 'string' ? value.zh.trim() : '');
 }
 
 function renderDaily(discoveries) {
   const grid = $('#daily-grid');
   if (!grid) return;
-  if (!discoveries.length) { renderDailyEmpty(); return; }
+  const clean = Array.isArray(discoveries) ? discoveries.map(normalizeDailyCandidate) : [];
+  if (clean.length !== 3 || clean.some((item) => !item) ||
+      new Set(clean.map((item) => item.discovery_id)).size !== 3) {
+    renderDailyEmpty();
+    return;
+  }
 
-  grid.innerHTML = discoveries.map((d, i) => {
-    const structureId = d.a.type_id || '—';
-    const scorePct = formatScore(d.similarity);
+  grid.innerHTML = clean.map((d, i) => {
+    const aName = dailyLocalized(d.pair.a.name);
+    const bName = dailyLocalized(d.pair.b.name);
+    const aDomain = dailyLocalized(d.pair.a.domain);
+    const bDomain = dailyLocalized(d.pair.b.domain);
+    const href = `/discoveries?candidate=${encodeURIComponent(d.discovery_id)}`;
+    const aria = T(
+      'page.home.daily_candidate_aria',
+      '待验证候选联系：{a} 与 {b}。查看证据缺口。'
+    ).replace('{a}', aName).replace('{b}', bName);
     return `
-      <article class="disc-card" data-a="${escapeHtml(d.a.id)}" data-b="${escapeHtml(d.b.id)}" style="animation: fadeInUp 600ms var(--ease-out-expo) ${1000 + i * 100}ms both">
+      <a class="disc-card" href="${escapeHtml(href)}" aria-label="${escapeHtml(aria)}" style="animation: fadeInUp 600ms var(--ease-out-expo) ${1000 + i * 100}ms both">
         <header class="disc-card__header">
-          <span class="disc-card__structure">${T("page.home.daily_structure_prefix", "结构")} ${escapeHtml(structureId)}</span>
-          <span class="disc-card__score">${scorePct}</span>
+          <span class="disc-card__structure">${T('page.home.daily_candidate', '待验证候选')}</span>
+          <span class="disc-card__status">${T('page.home.daily_unreviewed', '来源未独立复核')}</span>
         </header>
         <div class="disc-card__item">
-          <div class="disc-card__domain">${escapeHtml(d.a.domain)}</div>
-          <div class="disc-card__name">${escapeHtml(d.a.name)}</div>
+          <div class="disc-card__domain">${escapeHtml(aDomain)}</div>
+          <div class="disc-card__name">${escapeHtml(aName)}</div>
         </div>
         <div class="disc-card__divider">
           <span class="disc-card__divider-line"></span>
-          <span class="disc-card__divider-symbol">≅</span>
+          <span class="disc-card__divider-symbol" aria-hidden="true">≈?</span>
           <span class="disc-card__divider-line"></span>
         </div>
         <div class="disc-card__item">
-          <div class="disc-card__domain">${escapeHtml(d.b.domain)}</div>
-          <div class="disc-card__name">${escapeHtml(d.b.name)}</div>
+          <div class="disc-card__domain">${escapeHtml(bDomain)}</div>
+          <div class="disc-card__name">${escapeHtml(bName)}</div>
         </div>
-      </article>
+        <p class="disc-card__boundary">${T('page.home.daily_boundary', '≈? 表示待检验的结构联系；它不能证明两边机制相同。')}</p>
+        <span class="disc-card__open">${T('page.home.daily_open', '查看证据缺口')} <span aria-hidden="true">→</span></span>
+      </a>
     `;
   }).join('');
-
-  grid.addEventListener('click', (e) => {
-    const card = e.target.closest('.disc-card');
-    if (card) {
-      const a = card.dataset.a;
-      const b = card.dataset.b;
-      if (a && b) {
-        // Phase 2: jump straight to the 8-section deep analysis report,
-        // matching the discoveries page CTA convention.
-        window.location.href = `/analyze?a_id=${encodeURIComponent(a)}&id=${encodeURIComponent(b)}`;
-      }
-    }
-  });
 }
 
 // === Local history chips ===
@@ -480,7 +527,7 @@ function renderHistory() {
     const chip = e.target.closest('.chip--history');
     if (!chip) return;
     const q = chip.dataset.query;
-    if (q) window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    if (q) navigatePrivateSearch(q, 'history');
   });
 }
 
@@ -497,8 +544,9 @@ function renderFavorites() {
   }
   section.removeAttribute('hidden');
 
-  listEl.innerHTML = favs.map((f) => {
-    const href = f && f.analyze_url ? f.analyze_url : '/';
+  listEl.innerHTML = favs.map((f, index) => {
+    const targetId = f && /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(f.b_id || '') ? f.b_id : '';
+    const href = targetId ? '/analyze?id=' + encodeURIComponent(targetId) : '/reports#research-favorites';
     // Title fallback: a_name ≅ b_name (pair mode) → query → "(未命名查询)"
     let title = T('page.home.no_title', '(未命名查询)');
     if (f && f.a_name && f.b_name) {
@@ -508,9 +556,9 @@ function renderFavorites() {
     } else if (f && f.b_name) {
       title = f.b_name;
     }
-    const when = f && f.timestamp ? new Date(f.timestamp).toLocaleDateString(currentLang() === 'en' ? 'en-US' : 'zh-CN') : '';
+    const when = f && f.timestamp ? new Date(f.timestamp).toLocaleDateString(__homeLang() === 'en' ? 'en-US' : 'zh-CN') : '';
     return `
-      <a href="${escapeHtml(href)}" class="home__fav-card">
+      <a href="${escapeHtml(href)}" class="home__fav-card" data-local-favorite="${index}">
         <span class="home__fav-card__star">★</span>
         <div class="home__fav-card__body">
           <div class="home__fav-card__title">${escapeHtml(title)}</div>
@@ -520,6 +568,29 @@ function renderFavorites() {
       </a>
     `;
   }).join('');
+
+  listEl.onclick = (event) => {
+    const link = event.target.closest('[data-local-favorite]');
+    if (!link) return;
+    const favorite = favs[Number(link.dataset.localFavorite)];
+    if (!favorite || !favorite.query || !favorite.b_id || typeof window.buildAnalyzeUrl !== 'function') return;
+    event.preventDefault();
+    const destination = window.buildAnalyzeUrl({
+      id: favorite.b_id,
+      a_id: favorite.a_id,
+      q: favorite.query,
+      fingerprint: favorite.fingerprint,
+      origin_discovery_id: favorite.origin_discovery_id,
+      origin_contract_version: favorite.origin_contract_version,
+    });
+    try {
+      if (!new URL(destination, window.location.origin).searchParams.get('handoff')) {
+        if (window.showToast) window.showToast('未能建立安全的本地交接；问题没有写入链接。请允许当前标签页使用会话存储后重试。');
+        return;
+      }
+    } catch (_) { return; }
+    window.location.assign(destination);
+  };
 }
 
 async function loadHomeData() {
@@ -532,12 +603,12 @@ async function loadHomeData() {
   if (suggestRes.status === 'fulfilled') {
     renderSuggestions(suggestRes.value.suggestions || []);
   } else {
-    console.error('Failed to load suggestions:', suggestRes.reason);
+    console.error('[home] suggestions load failed');
   }
   if (dailyRes.status === 'fulfilled') {
     renderDaily(dailyRes.value.discoveries || []);
   } else {
-    console.error('Failed to load daily discoveries:', dailyRes.reason);
+    console.error('[home] daily discoveries load failed');
     renderDailyEmpty();
   }
 }
@@ -549,7 +620,7 @@ function initUsecaseSamples() {
       e.preventDefault();
       const q = btn.getAttribute('data-usecase-q');
       if (q) {
-        window.location.href = `/search?q=${encodeURIComponent(q)}`;
+        navigatePrivateSearch(q, 'example');
       }
     });
   });

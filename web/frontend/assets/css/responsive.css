@@ -21,6 +21,41 @@
   }
 }
 
+/* 320px remains a supported research viewport. Keep all three primary
+ * header affordances fully inside it, including the longest account state. */
+@media (max-width: 360px) {
+  .site-header__inner {
+    gap: 6px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+  .site-header__logo {
+    min-width: 0;
+    gap: 6px;
+    font-size: 17px;
+  }
+  .site-header__logo-mark {
+    width: 18px;
+    height: 18px;
+  }
+  .site-header__logo .beta-badge {
+    display: none;
+  }
+  .site-header__account-cta {
+    max-width: 96px;
+    margin-left: auto;
+    padding-right: 8px;
+    padding-left: 8px;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+  }
+  .site-header__menu-btn {
+    margin-right: -6px;
+    margin-left: 0;
+  }
+}
+
 /* === Small tablet / large phone (≤768px) === */
 @media (max-width: 768px) {
   :root {
@@ -174,7 +209,7 @@
     min-width: 0;
   }
 
-  .result-card__score-num {
+  .result-card__rank-num {
     font-size: var(--fs-20);
   }
 
@@ -469,7 +504,7 @@
   .newsletter-button,
   .ws-btn,
   .analyze-action-btn {
-    min-height: 40px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -478,9 +513,11 @@
   /* Footer links are text-only at ~20px tall — pad the hit area vertically
    * without shifting the visible baseline (negative margin offsets the pad). */
   .site-footer__link {
-    display: inline-block;
-    padding-block: 12px;
-    margin-block: -12px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-block: 0;
+    margin-block: 0;
   }
 }
 
