@@ -61,7 +61,8 @@ jobs:
             starlette==0.46.2 \
             'uvicorn[standard]==0.27.1' \
             PyJWT==2.12.1 \
-            slowapi==0.1.9
+            slowapi==0.1.9 \
+            structlog==25.5.0
           python -m playwright install --with-deps chromium
       - uses: pnpm/action-setup@v4
         with:

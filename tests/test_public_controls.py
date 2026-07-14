@@ -402,6 +402,24 @@ def test_product_contract_clean_job_installs_exact_yaml_parser() -> None:
     ]
 
 
+def test_phase_auth_browser_job_installs_canonical_runtime_logging() -> None:
+    job = _ci_job("browser-product-contract")
+    install_step = _named_ci_step(job, "Install browser test dependencies")
+    assert "if" not in install_step and "continue-on-error" not in install_step
+    assert _shell_tokens(install_step) == [
+        "python", "-m", "pip", "install",
+        "pytest==9.0.3", "playwright==1.59.0", "fastapi==0.115.14",
+        "pydantic==2.6.1", "starlette==0.46.2",
+        "uvicorn[standard]==0.27.1", "PyJWT==2.12.1", "slowapi==0.1.9",
+        "structlog==25.5.0", "python", "-m", "playwright", "install",
+        "--with-deps", "chromium",
+    ]
+    requirements = (
+        ROOT / "web/backend/requirements.txt"
+    ).read_text(encoding="utf-8").splitlines()
+    assert "structlog==25.5.0" in requirements
+
+
 def test_types_artifact_is_reproducible_in_make_and_sanity() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     generator = (ROOT / "scripts/gen_ts_types.sh").read_text(encoding="utf-8")
