@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "validation": "llm-scaling",
   "date": "2026-05-25",
   "module": "soc_pipeline.learning_curve.fit_learning_curve",
@@ -19,7 +19,9 @@
         1.2993520056774083e+21,
         1.4046514737064428e+21
       ],
-      "provenance": "REAL_TAIL_NARROW"
+      "provenance": "REAL_TAIL_NARROW",
+      "fit_status": "rejected",
+      "exclusion_reason": "alpha is outside the open scientific sanity range (0, 1)"
     },
     "pythia-160m": {
       "name": "pythia-160m",
@@ -36,7 +38,9 @@
         2.042495319932928e+17,
         2.920768307504087e+20
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-1b": {
       "name": "pythia-1b",
@@ -53,7 +57,9 @@
         1.2731159238672384e+18,
         1.820555771130151e+21
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-2.8b": {
       "name": "pythia-2.8b",
@@ -70,7 +76,9 @@
         4.329827130384415e+21,
         4.99322811626496e+21
       ],
-      "provenance": "REAL_TAIL_NARROW"
+      "provenance": "REAL_TAIL_NARROW",
+      "fit_status": "descriptive_only",
+      "exclusion_reason": "narrow compute range is not eligible for exponent inference"
     },
     "pythia-410m": {
       "name": "pythia-410m",
@@ -87,7 +95,9 @@
         1.0510919846572032e+19,
         7.292365011457228e+20
       ],
-      "provenance": "REAL_FULL"
+      "provenance": "REAL_FULL",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-6.9b": {
       "name": "pythia-6.9b",
@@ -104,7 +114,9 @@
         8.628482782475059e+18,
         1.2338730378939335e+22
       ],
-      "provenance": "SYNTHETIC"
+      "provenance": "SYNTHETIC",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "pythia-70m": {
       "name": "pythia-70m",
@@ -121,7 +133,9 @@
         5.4052574773248e+16,
         1.2666999371164877e+20
       ],
-      "provenance": "REAL_FULL"
+      "provenance": "REAL_FULL",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "kaplan2020-gpt": {
       "name": "kaplan2020-gpt",
@@ -138,7 +152,9 @@
         8.64e+34,
         8.64e+41
       ],
-      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)"
+      "provenance": "LITERATURE_ANCHORED (Kaplan 2020 eq. 1.5)",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     },
     "hoffmann2022-chinchilla": {
       "name": "hoffmann2022-chinchilla",
@@ -155,13 +171,16 @@
         1e+18,
         1e+25
       ],
-      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)"
+      "provenance": "LITERATURE_ANCHORED (Hoffmann 2022 Table 4 Approach 3)",
+      "fit_status": "fit_quality_eligible",
+      "exclusion_reason": null
     }
   },
   "summary": {
     "data_kind": "real",
     "pythia_csv": "v4/validation/llm-scaling/raw/pythia_checkpoints_combined.csv",
     "pythia_n_sizes": 7,
+    "pythia_n_fit_quality_eligible": 5,
     "provenance_per_model": {
       "pythia-1.4b": "REAL_TAIL_NARROW",
       "pythia-160m": "SYNTHETIC",
@@ -171,11 +190,24 @@
       "pythia-6.9b": "SYNTHETIC",
       "pythia-70m": "REAL_FULL"
     },
-    "alpha_all_sizes": {
-      "n": 7,
-      "mean": 0.5190400599504342,
-      "std": 0.6761340683225583,
-      "cv": 1.3026625890632137
+    "fit_status_per_model": {
+      "pythia-1.4b": "rejected",
+      "pythia-160m": "fit_quality_eligible",
+      "pythia-1b": "fit_quality_eligible",
+      "pythia-2.8b": "descriptive_only",
+      "pythia-410m": "fit_quality_eligible",
+      "pythia-6.9b": "fit_quality_eligible",
+      "pythia-70m": "fit_quality_eligible"
+    },
+    "exclusions_from_fit_spread": {
+      "pythia-1.4b": "alpha is outside the open scientific sanity range (0, 1)",
+      "pythia-2.8b": "narrow compute range is not eligible for exponent inference"
+    },
+    "alpha_fit_quality_eligible_sizes": {
+      "n": 5,
+      "mean": 0.24673104831406026,
+      "std": 0.2031012542476553,
+      "cv": 0.823168610661155
     },
     "alpha_real_wide_only": {
       "n": 2,
@@ -183,8 +215,9 @@
       "std": 0.18651761757938548,
       "cv": 0.42030216625444383
     },
-    "universality_verdict_all": "BROAD_SPREAD",
-    "universality_verdict_real_wide": "BROAD_SPREAD",
+    "fit_spread_diagnostic_fit_quality_eligible": "BROAD_SPREAD",
+    "fit_spread_diagnostic_real_wide": "BROAD_SPREAD",
+    "scientific_conclusion": "INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE",
     "benchmark": {
       "chinchilla_alpha_compute": 0.155,
       "chinchilla_alpha_N": 0.34,

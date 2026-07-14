@@ -3,6 +3,11 @@
   "scope": {
     "runtime_pages": [
       "web/frontend/start-here.html",
+      "web/frontend/analyze.html",
+      "web/frontend/search.html",
+      "web/frontend/learn.html",
+      "web/frontend/connections.html",
+      "web/frontend/taxonomy-v2.html",
       "web/frontend/thank-you.html",
       "web/frontend/discoveries.html",
       "web/frontend/whitespace.html",
@@ -32,7 +37,6 @@
     ],
     "excluded_contexts": [
       "docs/sessions/** and explicit archive/legacy files are historical records",
-      "web/frontend/assets/data/papers/** are dated research drafts, not current product claims",
       "CSS dimensions, test fixtures, source comments and sitemap changeFrequency are not user claims"
     ]
   },
@@ -76,6 +80,9 @@
     "(?:all|every).{0,40}(?:follow|follows|obey|obeys).{0,16}(?:a\\s+)?power[- ]law",
     "(?:全部|所有).{0,24}(?:服从|符合|呈现|都是).{0,12}幂律",
     "(?:the\\s+)?same\\s+law\\s+governs",
+    "(?:obey|obeys|follow|follows|run|runs)\\s+(?:on\\s+)?(?:the\\s+)?same\\s+(?:law|math(?:ematics)?)",
+    "(?:共用|遵循).{0,12}(?:同一|一)条规律",
+    "(?:规律.{0,24}(?:管着|支配)|跑的?是同一套数学|同一个数学结构)",
     "(?:放射性|药物|RLC|磁铁|湖泊|生态).{0,48}都是它",
     "share(?:s|d|ing)?\\s+(?:the\\s+)?same\\s+(?:mathematical\\s+)?skeleton.{0,80}transfer",
     "(?:validated|verified)\\s+on\\s+(?:the\\s+)?NGSIM",
@@ -88,7 +95,8 @@
     "(?:mathematical\\s+structure|structural(?:ly)?).{0,48}(?:the\\s+same\\s+thing|equivalent\\s+solutions?)",
     "数学结构.{0,24}(?:同一件事|结构相同的解法)",
     "(?:already\\s+(?:been\\s+)?solved|mature\\s+tools?.{0,40}solved)",
-    "(?:已经解过|已经解决|早就研究透|成熟工具.{0,24}解决)",
+    "(?:已经|早就).{0,20}(?:解过|解决|研究透)|成熟工具.{0,24}解决",
+    "骨子里.{0,16}(?:同一套|同一个?)规律",
     "同一条规律.{0,24}(?:横跨|跨越).{0,16}领域",
     "(?:same|one)\\s+SIR\\s+model",
     "同一个?\\s*SIR\\s*模型",
@@ -110,13 +118,26 @@
     "(?:翻译|转换).{0,24}(?:已知|既有)的?物理(?:学)?定律.{0,32}跨域",
     "(?:three|3)\\s+independent\\s+AI\\s+(?:reviewers?|review\\s+models?)",
     "3\\s*个独立\\s*AI\\s*(?:审稿|评审)模型",
+    "(?<!不是)(?<!并非)(?:三|3)\\s*个独立(?:的)?(?:审稿|评审)(?:模型|者)",
+    "(?<!not\\s)(?:three|3)\\s+independent\\s+(?:reviewer\\s+models?|reviewers?|review\\s+models?)",
+    "(?:correctly\\s+rejected\\s+(?:all\\s+)?four|(?:全部|所有)?四个.{0,16}(?:均|都)?(?:被)?正确拒绝)",
+    "turns?\\s+[\"“']?interesting[\"”']?\\s+into\\s+[\"“']?trustworthy",
+    "(?:就是|构成|证明).{0,16}(?:非平凡的?)?方法论验证|non[- ]trivial\\s+(?:methodological|methodology)\\s+validation",
+    "(?:各领域)?子类.{0,32}(?:仍然|依然|全部|都)(?:成立|有效).{0,48}真实物理机制|subclasses?.{0,48}(?:still|all)\\s+(?:stand|hold).{0,48}real\\s+physical\\s+mechanism",
+    "(?:已经|早已)?成熟的?(?:工具|解法|方法)(?:已经|足以|可以)?(?:解决|解答|迁移)?",
+    "theoretically\\s+(?:should|must)\\s+(?:hold|work|exist)|理论上(?:应当|应该|该)成立",
+    "(?:结构上)?(?:几乎)?必然存在|大概率成立",
+    "大概率存在.{0,80}(?:目前|至今).{0,24}(?:没人|没有人).{0,16}(?:验证|研究)",
+    "(?:discoveries?|发现).{0,100}(?:some\\s+(?:are\\s+)?verified|部分(?:已经|已)?验证)",
+    "(?:精选发现|curated discoveries?).{0,180}(?:综合(?:得分|评分).{0,32}0\\s*[-–]\\s*10|composite.{0,32}scores?.{0,24}0\\s*[-–]\\s*10)",
+    "(?:精选发现|curated discoveries?).{0,220}(?:由\\s*(?:Opus|独立\\s*AI)|independently\\s+assessed\\s+by\\s+Opus)",
     "真正的跨学科迁移力",
     "(?:超级模式|同一套数学结构连接)"
   ],
   "adjacent_context_rules": [
     {
       "claim_regex": "(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:同一|相同|共同|共享)(?:的)?机制|机制(?:已经)?(?:成立|确认|验证)",
-      "caveat_regex": "(?:(?:does|do)\\s+not|cannot)\\s+(?:establish|prove|confirm|validate|show|demonstrate|guarantee).{0,64}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|not\\s+(?:proof|validation|confirmation)\\s+of.{0,48}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:shared|common)\\s+mechanism.{0,24}(?:still\\s+requires|requires\\s+validation|has\\s+not\\s+been\\s+(?:proved|confirmed|validated))|(?:不能|无法|不足以)(?:据此|单凭[^，。；;]{0,20})?(?:证明|确认|验证|推出|说明).{0,40}(?:同一|相同|共同|共享)机制|不能.{0,24}(?:合并|视为|当作).{0,16}同一机制|不(?:等于|代表|意味着).{0,24}(?:(?:同一|相同|共同|共享)机制|机制确认|机制验证)|不自动证明.{0,24}共享机制|不是.{0,32}(?:机制确认|机制验证|机制已经成立的证明)|(?:同一|相同|共同|共享)机制.{0,16}(?:尚未|没有|未被)(?:成立|确认|验证|证明)",
+      "caveat_regex": "(?:(?:does|do)\\s+not|cannot)\\s+(?:establish|prove|confirm|validate|show|demonstrate|guarantee).{0,64}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|not\\s+(?:proof|validation|confirmation)\\s+of.{0,48}(?:same|shared|common)\\s+(?:cross-domain\\s+)?mechanism|(?:shared|common)\\s+mechanism.{0,24}(?:still\\s+requires|requires\\s+validation|has\\s+not\\s+been\\s+(?:proved|confirmed|validated))|(?:不能|无法|不足以)(?:据此|单凭[^，。；;]{0,20})?(?:证明|确认|验证|推出|说明).{0,40}(?:同一|相同|共同|共享)机制|不能.{0,24}(?:合并|视为|当作).{0,16}同一机制|不(?:等于|代表|意味着).{0,24}(?:(?:同一|相同|共同|共享)机制|机制确认|机制验证)|不自动证明.{0,24}共享机制|不是.{0,32}(?:机制确认|机制验证|机制已经成立的证明)|不会把.{0,32}(?:写成|当作|视为).{0,16}机制验证|(?:同一|相同|共同|共享)机制.{0,16}(?:尚未|没有|未被)(?:成立|确认|验证|证明)",
       "window": 220
     },
     {
@@ -146,16 +167,49 @@
       "path": "web/frontend/start-here.html",
       "patterns": [
         "mixed PASS / FAIL / INCONCLUSIVE evidence",
-        "These are retrieval candidates, not verified evidence"
+        "These are retrieval candidates, not verified evidence",
+        "three same-vendor configurations",
+        "not independent peer review",
+        "per-domain audit",
+        "cannot exclude other generators",
+        "not a list of verified matches"
       ]
+    },
+    {
+      "path": "web/frontend/analyze.html",
+      "patterns": ["研究草案", "方法线索、证据缺口与适用边界", "可检验的下一步"]
+    },
+    {
+      "path": "web/frontend/taxonomy-v2.html",
+      "patterns": ["同一厂商模型家族", "不是独立同行评审或分类方法验证", "不确认真实机制", "独立复现"]
     },
     {
       "path": "web/frontend/thank-you.html",
       "patterns": ["597-ticker 冻结研究 demo", "不是实时信号"]
     },
     {
+      "path": "web/frontend/index.html",
+      "patterns": ["23 组候选跨域模式", "39 个优先核查候选", "等待来源复核和实证检验"]
+    },
+    {
+      "path": "web/frontend/search.html",
+      "patterns": ["可比较的候选联系、方法线索和待验证边界"]
+    },
+    {
+      "path": "web/frontend/tools.html",
+      "patterns": ["是否存在值得比较的变量关系", "候选发现"]
+    },
+    {
+      "path": "web/frontend/connections.html",
+      "patterns": ["结构指纹相近、但领域不同", "不能证明双方具有同一机制"]
+    },
+    {
+      "path": "web/frontend/learn.html",
+      "patterns": ["自组织临界（SOC）候选类", "一阶指数衰减候选", "双稳态 / 磁滞候选"]
+    },
+    {
       "path": "web/frontend/discoveries.html",
-      "patterns": ["待验证候选", "不代表已经证明同一机制", "下一步是核对来源"]
+      "patterns": ["不是发现清单或同行评审", "当前所有条目都停留在候选层", "先补来源、数据、比较方法、主指标和失败条件"]
     },
     {
       "path": "web/frontend/whitespace.html",
@@ -171,7 +225,7 @@
     },
     {
       "path": "web/frontend/papers.html",
-      "patterns": ["内部分析记录", "不自动证明系统共享机制"]
+      "patterns": ["历史内部材料", "14 份结果记录、5 份研究草稿与 1 份复现教程", "不代表外部同行评审"]
     },
     {
       "path": "web/frontend/methods.html",
@@ -183,11 +237,11 @@
     },
     {
       "path": "web/frontend/tools.html",
-      "patterns": ["39 条待验证联系", "单次“管用”不等于机制已验证"]
+      "patterns": ["39 条待验证联系", "证据账本 v1"]
     },
     {
       "path": "web/frontend/insights.html",
-      "patterns": ["用户结果记录", "不能单凭反馈证明两个领域共享同一机制", "不替代对照实验或独立复现"]
+      "patterns": ["公开结果聚合当前暂停", "不会把用户反馈写成机制验证", "用户记录不替代对照实验或独立复现"]
     },
     {
       "path": "web/phase-detector/app/universality/page.tsx",
@@ -230,8 +284,8 @@
   "deferred_surfaces": [
     {
       "surface": "classes and paper-detail historical research pages",
-      "reason": "dated result prose requires domain-by-domain evidence adjudication; it is not silently rewritten by a copy-only pass",
-      "required_action": "add visible historical/internal-draft context and bind claims to the research ledger before treating them as current"
+      "reason": "dated result prose remains in the dynamic public dependency closure but is quarantined behind an enforced, closed-by-default historical boundary",
+      "required_action": "complete domain-by-domain ledger binding before promoting any historical Markdown statement into current public evidence"
     },
     {
       "surface": "Phase landing and shared navigation",

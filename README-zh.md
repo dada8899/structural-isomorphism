@@ -107,7 +107,7 @@ print(f"vs lognormal LR = {result.lr_lognormal:.3f}")
 
 ```bash
 make test-fast          # 根目录离线基线
-make verify-release     # 后端 + 全部 packages + 检索 + Phase build
+make verify-release     # API 产物 + 后端/packages/检索 + 浏览器合同 + Phase build
 make test-e2e           # 真实生产环境（CI 中为非阻塞信号）
 ```
 

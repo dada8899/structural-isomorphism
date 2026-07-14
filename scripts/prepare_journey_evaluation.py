@@ -130,7 +130,14 @@ def reject_private_payload(value: Any, where: str) -> None:
         raise ValueError(f"bundle payload contains credential-like or PII content: {where}")
     if isinstance(value, dict):
         for key, nested in value.items():
-            reject_private_payload(nested, f"{where}.{key}")
+            nested_where = f"{where}.{key}"
+            if key == "text_sha256":
+                if re.search(r"(?:^|\.)captures\[\d+\]$", where) is None:
+                    raise ValueError(f"unexpected capture digest field: {nested_where}")
+                if not isinstance(nested, str) or not SHA_RE.fullmatch(nested):
+                    raise ValueError(f"invalid capture text SHA-256: {nested_where}")
+                continue
+            reject_private_payload(nested, nested_where)
     elif isinstance(value, list):
         for index, nested in enumerate(value):
             reject_private_payload(nested, f"{where}[{index}]")

@@ -154,20 +154,11 @@ STATUS 写 55 样本），本 session 同样撞了 Phase 7-12。Handoff todo 列
 
 ## A. prod 配置变更（本 session 唯一一处）
 
-**VPS `/root/Projects/structural-isomorphism/web/backend/.env`**：
-追加 `STRUCTURAL_PRIVACY_MOCK_CODE=850a6562b91b917fae15063a9ba8411d`。
-
-- **为什么**：§4 把 privacy 端点改成 fail-closed，prod .env 原本没设
-  该 env → 部署后端点用随机码锁死。补上一个非公开 32 位 hex 码做
-  operator-gated 验证；Phase 2 接真 OTP 后作废。
-- **验证**：旧公开码 `123456` → 401 拒绝，新码 → 200 接受。
-- **备份**：`/root/Projects/structural-isomorphism/web/backend/.env.bak-s21`。
-  回滚 = `cp` 回来 + `systemctl restart structural-web.service`。
-- **同步**：本变更已记入 `~/Vault/Memory/decisions.md`（per CLAUDE.md
-  「跨 Session 配置变更必须写 Memory」铁律）。
-- **该码的用法**：现在 `/api/privacy/export?email=X&code=850a...` 才能拉
-  数据，`/api/privacy/delete` 同。**这个码不进任何代码仓库**——它就是
-  「operator 知道、用户不知道」的设计意图。
+> **2026-07-14 安全修订：**本节曾错误记录已退役生产 mock code 的明文。
+> 该值视为已泄露并已从当前文档和生产私有配置移除；服务重启后不再加载
+> 该变量，旧端点按进程随机值锁死。下一版本中旧 export/delete 固定返回
+> HTTP 410，用户数据权利统一通过登录态 `/api/me/export` 与
+> `/api/me/delete`。不得从 Git 历史恢复或重新使用旧值。
 
 ---
 

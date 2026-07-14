@@ -29,6 +29,8 @@ MODULE_PATH = (
 VAL_DIR = REPO_ROOT / "v4" / "validation" / "llm-scaling"
 RAW_DIR = VAL_DIR / "raw"
 RESULTS_JSON = VAL_DIR / "results.json"
+SUMMARY_MD = VAL_DIR / "summary.md"
+RUNNER_PATH = VAL_DIR / "run_validation.py"
 KB_JSONL = REPO_ROOT / "data" / "kb-additions-2026-05-24-llm-scaling.jsonl"
 
 
@@ -42,6 +44,15 @@ def lc():
     spec = importlib.util.spec_from_file_location("lc_under_test", MODULE_PATH)
     mod = importlib.util.module_from_spec(spec)
     sys.modules["lc_under_test"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture(scope="module")
+def runner():
+    spec = importlib.util.spec_from_file_location("llm_scaling_runner", RUNNER_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["llm_scaling_runner"] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -126,41 +137,69 @@ def test_results_json_exists() -> None:
     )
 
 
+def test_committed_artifacts_equal_deterministic_raw_input_build(runner) -> None:
+    generated = runner.main(write=False)
+
+    assert json.loads(RESULTS_JSON.read_text()) == generated
+    assert SUMMARY_MD.read_text() == runner._render_summary_md(generated)
+
+
+def test_fit_classification_rejects_boundaries_and_separates_narrow_tail(runner) -> None:
+    base = {
+        "error": None,
+        "alpha": 0.2,
+        "A": 10.0,
+        "L_inf": 1.0,
+        "R2": 0.99,
+        "provenance": "REAL_FULL",
+    }
+    assert runner._classify_fit(base, pythia=True) == ("fit_quality_eligible", None)
+    boundary = {**base, "alpha": 1.9999}
+    assert runner._classify_fit(boundary, pythia=True)[0] == "rejected"
+    negative = {**base, "R2": -0.01, "provenance": "REAL_TAIL_NARROW"}
+    assert runner._classify_fit(negative, pythia=True)[0] == "rejected"
+    narrow = {**base, "R2": 0.01, "provenance": "REAL_TAIL_NARROW"}
+    assert runner._classify_fit(narrow, pythia=True)[0] == "descriptive_only"
+
+
 def test_results_json_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     assert data["validation"] == "llm-scaling"
-    assert data["schema_version"] in {"1.0", "1.1"}
+    assert data["schema_version"] == "1.2"
     assert "fits" in data and "summary" in data
-    # Expect 6 Pythia sizes + Kaplan + Hoffmann = 8 series
-    assert len(data["fits"]) == 8
+    # Seven observed Pythia sizes + Kaplan + Hoffmann.
+    assert len(data["fits"]) == 9
     pythia_keys = [k for k in data["fits"] if k.startswith("pythia-")]
-    assert len(pythia_keys) == 6
+    assert set(pythia_keys) == {
+        "pythia-70m", "pythia-160m", "pythia-410m", "pythia-1b",
+        "pythia-1.4b", "pythia-2.8b", "pythia-6.9b",
+    }
 
 
 def test_results_per_fit_schema() -> None:
     data = json.loads(RESULTS_JSON.read_text())
-    required = {"name", "alpha", "A", "L_inf", "R2", "n_points"}
+    required = {
+        "name", "alpha", "A", "L_inf", "R2", "n_points",
+        "fit_status", "exclusion_reason",
+    }
     for name, fit in data["fits"].items():
         missing = required - set(fit.keys())
         assert not missing, f"{name} missing keys {missing}"
-        assert fit.get("error") is None, f"{name} errored: {fit['error']}"
-        # alpha sanity: must be a finite positive number in (0, 1)
-        assert fit["alpha"] is not None and 0 < fit["alpha"] < 1
-        # L_inf sanity: non-negative and < 10
-        assert fit["L_inf"] is not None and 0 <= fit["L_inf"] < 10
-        # R^2 sanity:
-        #  - For SYNTHETIC / REAL_FULL / LITERATURE_ANCHORED fits we require R^2 > 0.9.
-        #  - REAL_TAIL_NARROW data has no dynamic range and is allowed lower R^2,
-        #    but we still require it >= 0 (i.e. the fit isn't degenerate).
-        prov = fit.get("provenance", "")
-        if "REAL_TAIL_NARROW" in prov:
-            assert fit["R2"] is not None and fit["R2"] >= 0.0
-        else:
+        assert fit["fit_status"] in {
+            "fit_quality_eligible", "descriptive_only", "rejected",
+        }
+        if fit["fit_status"] == "fit_quality_eligible":
+            assert fit["exclusion_reason"] is None
+            assert fit.get("error") is None
+            assert fit["alpha"] is not None and 0 < fit["alpha"] < 1
+            assert fit["L_inf"] is not None and 0 <= fit["L_inf"] < 10
             assert fit["R2"] is not None and fit["R2"] > 0.9
+        else:
+            assert isinstance(fit["exclusion_reason"], str) and fit["exclusion_reason"]
 
 
 def test_pythia_alpha_band() -> None:
-    """All 6 Pythia alphas should be in a relaxed band [0.03, 1.0].
+    """Only fit-quality-eligible Pythia alphas enter the numerical band.
 
     The original 2026-05-24 synthetic data clustered at α ∈ [0.09, 0.15].
     Real wandb training-curve fits (2026-05-25 upgrade) push the per-size
@@ -170,6 +209,8 @@ def test_pythia_alpha_band() -> None:
     data = json.loads(RESULTS_JSON.read_text())
     for name, fit in data["fits"].items():
         if not name.startswith("pythia-"):
+            continue
+        if fit["fit_status"] != "fit_quality_eligible":
             continue
         assert 0.03 <= fit["alpha"] <= 1.0, (
             f"{name} alpha {fit['alpha']:.4f} outside [0.03, 1.0]"
@@ -201,28 +242,27 @@ def test_pythia_universality_summary() -> None:
     """
     data = json.loads(RESULTS_JSON.read_text())
     s = data["summary"]
-    assert s["pythia_n_sizes"] == 6
-    allowed_verdicts = {
-        "STRONG_UNIVERSALITY",
-        "MODERATE_UNIVERSALITY",
+    assert s["pythia_n_sizes"] == 7
+    assert s["pythia_n_fit_quality_eligible"] == 5
+    allowed_diagnostics = {
+        "NARROW_SPREAD",
+        "MODERATE_SPREAD",
         "BROAD_SPREAD",
         "UNKNOWN",
     }
-    # Schema 1.1 (stratified): keys "alpha_all_sizes" / "alpha_real_wide_only"
-    if "alpha_all_sizes" in s:
-        all_stats = s["alpha_all_sizes"]
-        assert all_stats["n"] == 6
-        assert all_stats["mean"] is not None
-        assert 0.03 < all_stats["mean"] < 1.0
-        assert s["universality_verdict_all"] in allowed_verdicts
-        assert s["universality_verdict_real_wide"] in allowed_verdicts
-    # Schema 1.0 (original flat keys) for backward compat
-    elif "pythia_alpha_mean" in s:
-        assert s["pythia_alpha_mean"] is not None
-        assert 0.05 < s["pythia_alpha_mean"] < 0.30
-        assert s["universality_verdict"] in allowed_verdicts
-    else:
-        raise AssertionError("Neither schema 1.0 nor 1.1 keys present in summary")
+    eligible = s["alpha_fit_quality_eligible_sizes"]
+    assert eligible["n"] == 5
+    assert eligible["mean"] is not None
+    assert 0.03 < eligible["mean"] < 1.0
+    assert s["fit_spread_diagnostic_fit_quality_eligible"] in allowed_diagnostics
+    assert s["fit_spread_diagnostic_real_wide"] in allowed_diagnostics
+    assert s["alpha_real_wide_only"]["n"] == 2
+    assert s["scientific_conclusion"] == (
+        "INSUFFICIENT_REAL_WIDE_SERIES_FOR_UNIVERSALITY_INFERENCE"
+    )
+    assert s["fit_status_per_model"]["pythia-1.4b"] == "rejected"
+    assert s["fit_status_per_model"]["pythia-2.8b"] == "descriptive_only"
+    assert set(s["exclusions_from_fit_spread"]) == {"pythia-1.4b", "pythia-2.8b"}
 
 
 # ---------------------------------------------------------------------------

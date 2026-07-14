@@ -102,6 +102,225 @@ def test_all_phase_public_routes_render(page: Page):
     assert_route_matrix(page, PHASE, PHASE_ROUTES)
 
 
+def test_beta_analytics_is_absent_until_explicit_consent(
+    page: Page, local_beta_origin: str
+):
+    requests: list[str] = []
+    page.route(
+        "https://plausible.bytedance.city/**",
+        lambda route: (
+            requests.append(route.request.url),
+            route.fulfill(status=200, content_type="application/javascript", body=""),
+        ),
+    )
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+
+    expect(page.locator("#analytics-consent")).to_be_visible()
+    expect(page.locator("#plausible-script")).to_have_count(0)
+    assert requests == []
+
+    page.get_by_role("button", name="仅必要功能").click()
+    expect(page.locator("#analytics-consent")).to_have_count(0)
+    choice = page.evaluate(
+        "() => JSON.parse(localStorage.getItem('cookie_consent_v1'))"
+    )
+    assert choice["essential"] is True
+    assert choice["analytics"] is False
+    assert choice["marketing"] is False
+    assert requests == []
+
+    page.get_by_role("button", name="分析设置").click()
+    expect(page.locator("#analytics-consent")).to_be_visible()
+
+
+def test_beta_explicit_consent_loads_only_canonical_plausible(
+    page: Page, local_beta_origin: str
+):
+    requests: list[str] = []
+
+    def capture(route):
+        requests.append(route.request.url)
+        route.fulfill(status=200, content_type="application/javascript", body="")
+
+    page.route("https://plausible.bytedance.city/**", capture)
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+    page.get_by_role("button", name="允许匿名分析").click()
+
+    script = page.locator("#plausible-script")
+    expect(script).to_have_count(1)
+    expect(script).to_have_attribute("data-domain", "beta.structural.bytedance.city")
+    page.wait_for_timeout(100)
+    assert requests == ["https://plausible.bytedance.city/js/script.js"]
+
+
+@pytest.mark.parametrize(
+    ("entry_path", "private_path"),
+    (
+        ("/analyze.html", "/analyze"),
+        ("/reports.html", "/reports"),
+        ("/report.html", "/report"),
+        ("/report.html", "/report/r_0123456789abcdef"),
+        (
+            "/report.html",
+            "/report/share/0123456789abcdef0123456789abcdef",
+        ),
+    ),
+)
+def test_beta_private_research_routes_never_load_analytics(
+    page: Page, local_beta_origin: str, entry_path: str, private_path: str,
+):
+    requests: list[str] = []
+    page.add_init_script(
+        """
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+          history.replaceState(null, '', PRIVATE_PATH);
+          localStorage.setItem('cookie_consent_v1', JSON.stringify({
+            version: 1, essential: true, analytics: true, marketing: false
+          }));
+        }
+        """.replace("PRIVATE_PATH", json.dumps(private_path))
+    )
+    page.route(
+        "https://plausible.bytedance.city/**",
+        lambda route: requests.append(route.request.url) or route.abort(),
+    )
+
+    page.goto(
+        local_beta_origin + entry_path,
+        wait_until="domcontentloaded",
+        timeout=20_000,
+    )
+    page.wait_for_timeout(100)
+
+    assert page.url.endswith(private_path)
+    expect(page.locator("#plausible-script")).to_have_count(0)
+    expect(page.locator("#analytics-consent")).to_have_count(0)
+    assert requests == []
+
+
+def test_beta_share_capability_never_becomes_same_origin_referrer(
+    page: Page, local_beta_origin: str
+):
+    token = "test-referrer-capability"
+    page.add_init_script(
+        f"""(() => {{
+          const token = {json.dumps(token)};
+          if (location.pathname === '/report.html') {{
+            history.replaceState(null, '', '/report/share/' + token);
+          }}
+        }})()""",
+    )
+    page.goto(
+        local_beta_origin + "/report.html",
+        wait_until="domcontentloaded",
+        timeout=20_000,
+    )
+    assert page.url.endswith("/report/share/" + token)
+
+    page.locator(".analyze-crumb__link").click()
+    page.wait_for_url(local_beta_origin + "/")
+
+    assert page.evaluate("document.referrer") == ""
+    assert token not in page.content()
+
+
+def test_beta_dnt_overrides_a_saved_analytics_choice(
+    browser, local_beta_origin: str
+):
+    context = browser.new_context(extra_http_headers={"DNT": "1"})
+    current = context.new_page()
+    current.add_init_script(
+        """
+        localStorage.setItem('cookie_consent_v1', JSON.stringify({
+          version: 1, essential: true, analytics: true, marketing: false
+        }));
+        Object.defineProperty(navigator, 'doNotTrack', {
+          value: '1', configurable: true
+        });
+        """
+    )
+    requests: list[str] = []
+    current.route(
+        "https://plausible.bytedance.city/**",
+        lambda route: requests.append(route.request.url) or route.abort(),
+    )
+    try:
+        current.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+        expect(current.locator("#analytics-consent")).to_have_count(0)
+        expect(current.locator("#plausible-script")).to_have_count(0)
+        choice = current.evaluate(
+            "() => JSON.parse(localStorage.getItem('cookie_consent_v1'))"
+        )
+        assert choice["analytics"] is False
+        assert choice["source"] == "dnt"
+        assert requests == []
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("path", ("/diagnose.html", "/pricing.html", "/thank-you.html"))
+def test_beta_consent_copy_respects_stored_english_without_i18n(
+    page: Page, local_beta_origin: str, path: str
+):
+    page.add_init_script("localStorage.setItem('structural.lang', 'en')")
+    page.goto(local_beta_origin + path, wait_until="domcontentloaded", timeout=20_000)
+
+    expect(
+        page.get_by_text("You decide whether to share anonymous usage data", exact=True)
+    ).to_be_visible()
+    expect(page.get_by_role("button", name="Essential only")).to_be_visible()
+    page.get_by_role("button", name="Essential only").click()
+    expect(page.get_by_role("button", name="Analytics settings")).to_be_visible()
+
+
+def test_beta_320_header_and_consent_controls_stay_inside_viewport(
+    page: Page, local_beta_origin: str
+):
+    page.set_viewport_size({"width": 320, "height": 720})
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+
+    assert page.evaluate("document.documentElement.scrollWidth") <= 320
+    for selector in (
+        ".site-header__logo",
+        ".site-header__account-cta",
+        "#site-menu-btn",
+        "[data-analytics-choice='false']",
+        "[data-analytics-choice='true']",
+    ):
+        box = page.locator(selector).bounding_box()
+        assert box is not None, selector
+        assert box["x"] >= 0, (selector, box)
+        assert box["x"] + box["width"] <= 320, (selector, box)
+    expect(page.locator("#site-menu-btn")).to_have_attribute("aria-label", "打开菜单")
+
+
+@pytest.mark.parametrize("width", (320, 390))
+def test_beta_consent_privacy_link_has_real_touch_target(
+    page: Page, local_beta_origin: str, width: int,
+):
+    page.set_viewport_size({"width": width, "height": 720})
+    page.add_init_script("localStorage.clear()")
+    page.goto(local_beta_origin, wait_until="domcontentloaded", timeout=20_000)
+
+    privacy_link = page.locator("#analytics-consent a[href='/privacy']")
+    expect(privacy_link).to_be_visible()
+    box = privacy_link.bounding_box()
+    assert box is not None
+    assert box["height"] >= 44, box
+    assert page.evaluate(
+        """() => {
+          const link = document.querySelector("#analytics-consent a[href='/privacy']");
+          const box = link.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            box.left + box.width / 2,
+            box.top + box.height / 2,
+          );
+          return hit === link || link.contains(hit);
+        }"""
+    )
+    assert page.evaluate("document.documentElement.scrollWidth - innerWidth") <= 0
+
+
 def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
     page: Page, local_beta_origin: str
 ):
@@ -114,8 +333,17 @@ def test_beta_workbench_requires_fingerprint_and_explicit_candidate(
         ("meta", {"query": "团队为什么恢复很慢？", "rewritten": "团队恢复反馈结构"}),
         ("retrieval_done", {"count": 3, "retrieval_ms": 20}),
         ("kb_cards", {"cards": cards}),
-        ("answer_chunk", {"delta": "候选说明"}),
-        ("answer_done", {"full_text": "候选说明", "citations": []}),
+        ("answer_validated", {"ok": True, "source": "model"}),
+        ("answer_chunk", {"delta": "候选说明 [1]"}),
+        (
+            "answer_done",
+            {
+                "full_text": "候选说明 [1]",
+                "citations": [
+                    {"idx": 1, "kb_id": "candidate-1", "label": "Cascade A"}
+                ],
+            },
+        ),
         ("done", {"latency_ms": 30}),
     ]
     body = "".join(
@@ -460,6 +688,60 @@ def test_my_research_ordinary_unauthorized_keeps_local_assets(
     expect(page.locator("#myr-list")).to_contain_text("还没有保存的报告")
     expect(page.get_by_text("Local candidate", exact=True)).to_be_visible()
     expect(page.get_by_text("研究资产已保持锁定")).to_have_count(0)
+
+
+@pytest.mark.parametrize(
+    "lang,expected_locale", (("zh", "zh-CN"), ("en", "en-US")),
+)
+def test_learn_local_favorite_keeps_the_rest_of_home_boot_alive(
+    page: Page, local_beta_origin: str, lang: str, expected_locale: str,
+):
+    """A non-empty local library must not break daily/home initialization."""
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    favorite = json.dumps({
+        "query": "Local verified candidate",
+        "analyze_url": "/analyze?id=p-100&q=local",
+        "timestamp": 1_784_006_400_000,
+    })
+    page.add_init_script(
+        f"""(() => {{
+          const favorite = {favorite};
+          localStorage.setItem('structural_favorites', JSON.stringify([favorite]));
+          window.__favoriteLocales = [];
+          const original = Date.prototype.toLocaleDateString;
+          Date.prototype.toLocaleDateString = function(locale, ...args) {{
+            window.__favoriteLocales.push(locale);
+            return original.call(this, locale, ...args);
+          }};
+        }})();""",
+    )
+    page.route(
+        "**/api/suggest*",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body='{"suggestions":[]}',
+        ),
+    )
+    page.route(
+        "**/api/daily*",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body='{"discoveries":[]}',
+        ),
+    )
+    page.goto(
+        f"{local_beta_origin}/learn.html?lang={lang}",
+        wait_until="domcontentloaded",
+    )
+    expect(page.locator("#home-favorites")).to_be_visible()
+    expect(page.locator(".home__fav-card__title")).to_have_text(
+        "Local verified candidate"
+    )
+    expect(page.locator(".home__fav-card__time")).not_to_be_empty()
+    expect(page.locator(".home__daily-empty")).to_be_visible()
+    locales = page.evaluate("window.__favoriteLocales")
+    assert locales
+    assert set(locales) == {expected_locale}
+    assert errors == []
 
 
 def test_my_research_waits_for_identity_before_any_asset_read(

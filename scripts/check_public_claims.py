@@ -332,9 +332,574 @@ def _dom_expression_kind(expression: str, dom_bindings: dict[str, str]) -> str |
 
 
 def _receiver_is_dom(receiver: str, dom_bindings: dict[str, str]) -> bool:
-    return receiver in {"document", "document.body", "document.head", "document.documentElement"} or (
-        receiver.split(".", 1)[0] in dom_bindings
+    receiver = re.sub(r"\s+", "", receiver)
+    return (
+        receiver in {"document", "document.body", "document.head", "document.documentElement"}
+        or _dom_expression_kind(receiver, dom_bindings) is not None
+        or receiver.split(".", 1)[0] in dom_bindings
     )
+
+
+def _js_braced_body(text: str, opening: int) -> str | None:
+    """Return one JS braced body, ignoring braces inside strings/comments."""
+    depth = 1
+    index = opening + 1
+    quote = ""
+    escaped = False
+    while index < len(text) and depth:
+        char = text[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("//", index):
+            newline = text.find("\n", index + 2)
+            index = len(text) if newline < 0 else newline + 1
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            index = len(text) if end < 0 else end + 2
+            continue
+        if char in "'\"`":
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        index += 1
+    return text[opening + 1:index - 1] if depth == 0 else None
+
+
+def _js_concise_arrow_body(text: str, start: int) -> str:
+    """Return a concise arrow expression through its top-level terminator."""
+    index = start
+    quote = ""
+    escaped = False
+    depth = 0
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = ""
+            index += 1
+            continue
+        if text.startswith("//", index) or text.startswith("/*", index):
+            break
+        if char in "'\"`":
+            quote = char
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth = max(0, depth - 1)
+        elif depth == 0 and char in ";\n":
+            break
+        index += 1
+    return text[start:index].strip()
+
+
+def _named_js_function_bodies(text: str) -> dict[str, str]:
+    """Extract declaration, expression, arrow and object-method callables."""
+    bodies: dict[str, str] = {}
+    seen_openings: set[tuple[str, int]] = set()
+
+    def add_block(name: str, opening: int) -> None:
+        key = (name, opening)
+        if key in seen_openings:
+            return
+        seen_openings.add(key)
+        body = _js_braced_body(text, opening)
+        if body is not None:
+            bodies[name] = bodies.get(name, "") + "\n" + body
+
+    block_headers = (
+        re.compile(r"\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{"),
+        re.compile(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+            r"(?:async\s+)?function(?:\s+[A-Za-z_$][\w$]*)?\s*\([^)]*\)\s*\{"
+        ),
+        re.compile(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+            r"(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{"
+        ),
+    )
+    for header in block_headers:
+        for match in header.finditer(text):
+            add_block(match.group(1), match.end() - 1)
+
+    method_header = re.compile(
+        r"(?:^|[,{}])\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{",
+        re.MULTILINE,
+    )
+    reserved = {"if", "for", "while", "switch", "catch", "with", "function"}
+    for match in method_header.finditer(text):
+        if match.group(1) not in reserved:
+            add_block(match.group(1), match.end() - 1)
+
+    concise_arrow = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+        r"(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*(?!\{)"
+    )
+    for match in concise_arrow.finditer(text):
+        body = _js_concise_arrow_body(text, match.end())
+        if body:
+            bodies[match.group(1)] = bodies.get(match.group(1), "") + "\n" + body
+    return bodies
+
+
+def _simple_js_params(raw: str) -> tuple[str, ...]:
+    params: list[str] = []
+    for item in _split_top_level(raw, ","):
+        name = item.split("=", 1)[0].strip()
+        if re.fullmatch(r"[A-Za-z_$][\w$]*", name):
+            params.append(name)
+    return tuple(params)
+
+
+def _named_js_function_params(text: str) -> dict[str, tuple[str, ...]]:
+    """Read parameters for the callable syntax accepted by the bounded flow."""
+    params: dict[str, tuple[str, ...]] = {}
+    patterns = (
+        re.compile(
+            r"\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{"
+        ),
+        re.compile(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+            r"(?:async\s+)?function(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)\s*\{"
+        ),
+        re.compile(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+            r"(?:async\s*)?\(([^)]*)\)\s*=>"
+        ),
+    )
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            params[match.group(1)] = _simple_js_params(match.group(2))
+    single_arrow = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*"
+        r"(?:async\s*)?([A-Za-z_$][\w$]*)\s*=>"
+    )
+    for match in single_arrow.finditer(text):
+        params[match.group(1)] = (match.group(2),)
+    method = re.compile(
+        r"(?:^|[,{}])\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{",
+        re.MULTILINE,
+    )
+    reserved = {"if", "for", "while", "switch", "catch", "with", "function"}
+    for match in method.finditer(text):
+        if match.group(1) not in reserved:
+            params[match.group(1)] = _simple_js_params(match.group(2))
+    return params
+
+
+def _js_code_mask(text: str) -> str:
+    """Blank comments/string prose while retaining template interpolation code."""
+    masked = list(text)
+    for start, end, quote, _ in _scan_js_literals(text):
+        if quote != "`":
+            masked[start:end] = " " * (end - start)
+            continue
+        masked[start:end] = " " * (end - start)
+        raw = text[start + 1:end - 1]
+        cursor = 0
+        while cursor < len(raw) - 1:
+            marker = raw.find("${", cursor)
+            if marker < 0:
+                break
+            opening = start + 1 + marker + 1
+            body = _js_braced_body(text, opening)
+            if body is None:
+                break
+            body_start = opening + 1
+            nested = _js_code_mask(body)
+            masked[body_start:body_start + len(body)] = nested
+            cursor = marker + len(body) + 3
+    value = "".join(masked)
+    value = re.sub(r"//[^\n]*", lambda match: " " * len(match.group(0)), value)
+    value = re.sub(
+        r"/\*.*?\*/", lambda match: " " * len(match.group(0)), value, flags=re.DOTALL
+    )
+    return value
+
+
+def _matching_paren(masked: str, opening: int) -> int | None:
+    depth = 1
+    for index in range(opening + 1, len(masked)):
+        if masked[index] == "(":
+            depth += 1
+        elif masked[index] == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def _js_call_sites(text: str) -> list[tuple[str, list[str]]]:
+    """Tokenize calls from executable code, including template interpolations."""
+    masked = _js_code_mask(text)
+    pattern = re.compile(
+        r"(?<![\w$])([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\("
+    )
+    reserved = {"if", "for", "while", "switch", "catch", "with", "function"}
+    calls: list[tuple[str, list[str]]] = []
+    for match in pattern.finditer(masked):
+        callee = re.sub(r"\s+", "", match.group(1))
+        if callee.rsplit(".", 1)[-1] in reserved:
+            continue
+        opening = match.end() - 1
+        closing = _matching_paren(masked, opening)
+        if closing is None:
+            continue
+        suffix = masked[closing + 1:].lstrip()
+        prefix = masked[:match.start()].rstrip()
+        if suffix.startswith("{") and (
+            prefix.endswith("function") or "." not in callee
+        ):
+            continue
+        calls.append((callee, _split_top_level(text[opening + 1:closing], ",")))
+    return calls
+
+
+def _resolve_callable_expr(
+    expression: str,
+    aliases: dict[str, set[str]],
+    callable_names: set[str],
+) -> set[str]:
+    value = _strip_wrapping_parentheses(expression.strip())
+    if not re.fullmatch(
+        r"[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*", value
+    ):
+        return set()
+    chain = re.sub(r"\s+", "", value)
+    leaf = chain.rsplit(".", 1)[-1]
+    if chain in aliases:
+        return set(aliases[chain])
+    if "." not in chain:
+        return set(aliases.get(leaf, {leaf} if leaf in callable_names else set()))
+    if chain.startswith("this.") and leaf in callable_names:
+        return {leaf}
+    return set()
+
+
+def _js_callable_aliases(
+    text: str,
+    callable_names: set[str],
+    initial: dict[str, set[str]] | None = None,
+) -> dict[str, set[str]]:
+    """Compute the closure of simple callable aliases in one lexical scope."""
+    aliases = {name: {name} for name in callable_names}
+    for name, values in (initial or {}).items():
+        aliases[name] = set(values)
+    object_header = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{"
+    )
+    method_header = re.compile(
+        r"(?:^|[,{}])\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{",
+        re.MULTILINE,
+    )
+    reserved = {"if", "for", "while", "switch", "catch", "with", "function"}
+    for object_match in object_header.finditer(text):
+        body = _js_braced_body(text, object_match.end() - 1)
+        if body is None:
+            continue
+        object_name = object_match.group(1)
+        for method_match in method_header.finditer(body):
+            method_name = method_match.group(1)
+            if method_name in callable_names and method_name not in reserved:
+                aliases[f"{object_name}.{method_name}"] = {method_name}
+    assignments: list[tuple[str, str]] = []
+    for statement in _js_statements(text):
+        match = re.search(
+            r"(?:^|\b(?:const|let|var)\s+)([A-Za-z_$][\w$]*)\s*=\s*(.+)$",
+            statement,
+            re.DOTALL,
+        )
+        if match:
+            assignments.append((match.group(1), match.group(2).strip()))
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for target, expression in assignments:
+            resolved = _resolve_callable_expr(expression, aliases, callable_names)
+            if resolved and not resolved.issubset(aliases.get(target, set())):
+                aliases.setdefault(target, set()).update(resolved)
+                changed = True
+        if not changed:
+            break
+    return aliases
+
+
+def _js_value_callable_dependencies(
+    text: str,
+    aliases: dict[str, set[str]],
+    callable_names: set[str],
+) -> dict[str, set[str]]:
+    """Track helper calls stored in intermediate values before a DOM write."""
+    assignments: list[tuple[str, str]] = []
+    for statement in _js_statements(text):
+        declaration = re.search(
+            r"(?:^|\b(?:const|let|var)\s+)([A-Za-z_$][\w$]*)\s*=\s*(.+)$",
+            statement,
+            re.DOTALL,
+        )
+        if declaration:
+            assignments.append((declaration.group(1), declaration.group(2).strip()))
+            continue
+        assignment = re.fullmatch(
+            r"\s*([A-Za-z_$][\w$]*)\s*=\s*(.+?)\s*", statement, re.DOTALL
+        )
+        if assignment:
+            assignments.append((assignment.group(1), assignment.group(2).strip()))
+
+    dependencies: dict[str, set[str]] = {}
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for target, expression in assignments:
+            resolved: set[str] = set()
+            for callee, arguments in _js_call_sites(expression):
+                resolved.update(_resolve_callable_expr(callee, aliases, callable_names))
+                for argument in arguments:
+                    resolved.update(_resolve_callable_expr(argument, aliases, callable_names))
+            for identifier in re.findall(r"(?<![.$\w])([A-Za-z_$][\w$]*)", _js_code_mask(expression)):
+                resolved.update(dependencies.get(identifier, set()))
+            current = dependencies.setdefault(target, set())
+            if resolved and not resolved.issubset(current):
+                current.update(resolved)
+                changed = True
+        if not changed:
+            break
+    return dependencies
+
+
+def _js_dom_sink_expressions(
+    text: str,
+    initial_dom_bindings: dict[str, str] | None = None,
+) -> list[str]:
+    """Return values written only to receivers proven to originate from DOM."""
+    bindings: dict[str, str] = {}
+    dom_bindings = dict(initial_dom_bindings or {})
+    expressions: list[str] = []
+    for statement in _js_statements(text):
+        declaration = re.search(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(.+)$",
+            statement,
+            re.DOTALL,
+        )
+        if declaration:
+            name, expression = declaration.group(1), declaration.group(2)
+            # A lexical declaration shadows any same-named DOM binding from
+            # an outer scope, even when the new value is an ordinary object.
+            dom_bindings.pop(name, None)
+            rendered = _eval_static_js_expr(expression, bindings)
+            if rendered is not None:
+                bindings[name] = rendered
+            dom_kind = _dom_expression_kind(expression, dom_bindings)
+            if dom_kind is not None:
+                dom_bindings[name] = dom_kind
+        else:
+            bare_assignment = re.fullmatch(
+                r"\s*([A-Za-z_$][\w$]*)\s*=\s*(.+?)\s*", statement, re.DOTALL
+            )
+            if bare_assignment:
+                name, expression = bare_assignment.groups()
+                dom_bindings.pop(name, None)
+                dom_kind = _dom_expression_kind(expression, dom_bindings)
+                if dom_kind is not None:
+                    dom_bindings[name] = dom_kind
+        assignment = re.search(
+            r"(document\.(?:querySelector|getElementById|getElementsByName)\([^)]*\)|"
+            r"[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\.\s*"
+            r"(?:textContent|innerText|innerHTML|title|ariaLabel)\s*=\s*(.+)$",
+            statement,
+            re.DOTALL,
+        )
+        if assignment and _receiver_is_dom(
+            re.sub(r"\s+", "", assignment.group(1)), dom_bindings
+        ):
+            expressions.append(assignment.group(2))
+        for method, argument_index in (
+            ("insertAdjacentHTML", 1), ("insertAdjacentText", 1), ("write", 0)
+        ):
+            for receiver, arguments in _method_calls(statement, method):
+                if _receiver_is_dom(receiver, dom_bindings) and len(arguments) > argument_index:
+                    expressions.append(arguments[argument_index])
+        for receiver, arguments in _method_calls(statement, "setAttribute"):
+            if not _receiver_is_dom(receiver, dom_bindings) or len(arguments) < 2:
+                continue
+            attribute = _eval_static_js_expr(arguments[0], bindings)
+            if attribute is not None and (
+                attribute.casefold() == "title" or attribute.casefold().startswith("aria-")
+            ):
+                expressions.append(arguments[1])
+        for receiver, arguments in _method_calls(statement, "append"):
+            if _receiver_is_dom(receiver, dom_bindings):
+                expressions.extend(arguments)
+        for method in ("prepend", "before", "after", "replaceWith", "replaceChildren"):
+            for receiver, arguments in _method_calls(statement, method):
+                if _receiver_is_dom(receiver, dom_bindings):
+                    expressions.extend(arguments)
+        for receiver, arguments in _method_calls(statement, "appendChild"):
+            if not _receiver_is_dom(receiver, dom_bindings) or not arguments:
+                continue
+            nested = _method_calls(arguments[0], "createTextNode")
+            if nested and nested[0][0] == "document" and nested[0][1]:
+                expressions.append(nested[0][1][0])
+    return expressions
+
+
+def _js_scope_dom_bindings(
+    text: str,
+    initial: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Compute simple DOM-origin bindings within one bounded JS scope."""
+    dom_bindings = dict(initial or {})
+    for statement in _js_statements(text):
+        declaration = re.search(
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(.+)$",
+            statement,
+            re.DOTALL,
+        )
+        if not declaration:
+            bare_assignment = re.fullmatch(
+                r"\s*([A-Za-z_$][\w$]*)\s*=\s*(.+?)\s*", statement, re.DOTALL
+            )
+            if not bare_assignment:
+                continue
+            name, expression = bare_assignment.groups()
+        else:
+            name, expression = declaration.group(1), declaration.group(2)
+        dom_bindings.pop(name, None)
+        dom_kind = _dom_expression_kind(expression, dom_bindings)
+        if dom_kind is not None:
+            dom_bindings[name] = dom_kind
+    return dom_bindings
+
+
+def _js_parameter_bindings(
+    text: str,
+    bodies: dict[str, str],
+    params: dict[str, tuple[str, ...]],
+) -> dict[str, dict[str, set[str]]]:
+    """Propagate callable arguments into callable parameters to a fixed point."""
+    names = set(bodies)
+    bindings = {
+        name: {param: set() for param in params.get(name, ())}
+        for name in bodies
+    }
+    scopes: list[tuple[str | None, str]] = [(None, text)] + list(bodies.items())
+    budget = max(2, len(bodies) + 1)
+    for _ in range(budget):
+        changed = False
+        for scope_name, source in scopes:
+            initial = bindings.get(scope_name, {}) if scope_name else {}
+            aliases = _js_callable_aliases(source, names, initial)
+            for callee, arguments in _js_call_sites(source):
+                targets = _resolve_callable_expr(callee, aliases, names)
+                for target in targets:
+                    for parameter, argument in zip(params.get(target, ()), arguments):
+                        resolved = _resolve_callable_expr(argument, aliases, names)
+                        current = bindings[target].setdefault(parameter, set())
+                        if resolved and not resolved.issubset(current):
+                            current.update(resolved)
+                            changed = True
+        if not changed:
+            break
+    return bindings
+
+
+def _js_dom_parameter_bindings(
+    text: str,
+    bodies: dict[str, str],
+    params: dict[str, tuple[str, ...]],
+    callable_bindings: dict[str, dict[str, set[str]]],
+) -> dict[str, dict[str, str]]:
+    """Propagate DOM-origin actual arguments into formal parameters."""
+    names = set(bodies)
+    bindings: dict[str, dict[str, str]] = {name: {} for name in bodies}
+    scopes: list[tuple[str | None, str]] = [(None, text)] + list(bodies.items())
+    budget = max(2, len(bodies) + 1)
+    for _ in range(budget):
+        changed = False
+        for scope_name, source in scopes:
+            callable_initial = callable_bindings.get(scope_name, {}) if scope_name else {}
+            aliases = _js_callable_aliases(source, names, callable_initial)
+            dom_initial = bindings.get(scope_name, {}) if scope_name else {}
+            dom_scope = _js_scope_dom_bindings(source, dom_initial)
+            for callee, arguments in _js_call_sites(source):
+                targets = _resolve_callable_expr(callee, aliases, names)
+                for target in targets:
+                    for parameter, argument in zip(params.get(target, ()), arguments):
+                        dom_kind = _dom_expression_kind(argument, dom_scope)
+                        if dom_kind is None or parameter in bindings[target]:
+                            continue
+                        bindings[target][parameter] = dom_kind
+                        changed = True
+        if not changed:
+            break
+    return bindings
+
+
+def _js_dynamic_render_units(text: str) -> list[str]:
+    """Scan values that reach a DOM-proven sink through bounded callable flow."""
+    bodies = _named_js_function_bodies(text)
+    if not bodies:
+        return []
+    names = set(bodies)
+    params = _named_js_function_params(text)
+    parameter_bindings = _js_parameter_bindings(text, bodies, params)
+    dom_parameter_bindings = _js_dom_parameter_bindings(
+        text, bodies, params, parameter_bindings
+    )
+    reachable: set[str] = set()
+    pending: list[str] = []
+    units: list[str] = []
+    sink_scopes: list[tuple[str | None, str]] = [(None, text)] + list(bodies.items())
+    for name, source in sink_scopes:
+        dom_initial = dom_parameter_bindings.get(name, {}) if name is not None else None
+        expressions = _js_dom_sink_expressions(source, dom_initial)
+        initial = parameter_bindings.get(name) if name is not None else None
+        aliases = _js_callable_aliases(source, names, initial)
+        value_dependencies = _js_value_callable_dependencies(source, aliases, names)
+        for expression in expressions:
+            for _, _, _, value in _scan_js_literals(expression):
+                units.extend(_render_static_value(value))
+            for callee, arguments in _js_call_sites(expression):
+                resolved = _resolve_callable_expr(callee, aliases, names)
+                for argument in arguments:
+                    resolved.update(_resolve_callable_expr(argument, aliases, names))
+                for target in resolved:
+                    if target not in reachable:
+                        reachable.add(target)
+                        pending.append(target)
+            for identifier in re.findall(
+                r"(?<![.$\w])([A-Za-z_$][\w$]*)", _js_code_mask(expression)
+            ):
+                for target in value_dependencies.get(identifier, set()):
+                    if target not in reachable:
+                        reachable.add(target)
+                        pending.append(target)
+    while pending:
+        name = pending.pop()
+        body = bodies[name]
+        for _, _, _, value in _scan_js_literals(body):
+            units.extend(_render_static_value(value))
+        aliases = _js_callable_aliases(body, names, parameter_bindings.get(name))
+        for callee, arguments in _js_call_sites(body):
+            resolved = _resolve_callable_expr(callee, aliases, names)
+            for argument in arguments:
+                resolved.update(_resolve_callable_expr(argument, aliases, names))
+            for target in resolved:
+                if target not in reachable:
+                    reachable.add(target)
+                    pending.append(target)
+    return list(dict.fromkeys(units))
 
 
 def _js_analysis(text: str) -> tuple[list[str], list[str]]:
@@ -353,61 +918,6 @@ def _js_analysis(text: str) -> tuple[list[str], list[str]]:
             dom_kind = _dom_expression_kind(expression, dom_bindings)
             if dom_kind is not None:
                 dom_bindings[name] = dom_kind
-        assignment = re.search(
-            r"([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\.\s*"
-            r"(?:textContent|innerText|innerHTML|title|ariaLabel)\s*=\s*(.+)$",
-            statement,
-            re.DOTALL,
-        )
-        if assignment and _receiver_is_dom(re.sub(r"\s+", "", assignment.group(1)), dom_bindings):
-            rendered = _eval_static_js_expr(assignment.group(2), bindings)
-            if rendered is not None:
-                rendered_values.append(rendered)
-        for method, argument_index in (
-            ("insertAdjacentHTML", 1),
-            ("insertAdjacentText", 1),
-            ("write", 0),
-        ):
-            for receiver, arguments in _method_calls(statement, method):
-                if not _receiver_is_dom(receiver, dom_bindings):
-                    continue
-                if len(arguments) <= argument_index:
-                    continue
-                rendered = _eval_static_js_expr(arguments[argument_index], bindings)
-                if rendered is not None:
-                    rendered_values.append(rendered)
-        for receiver, arguments in _method_calls(statement, "setAttribute"):
-            if not _receiver_is_dom(receiver, dom_bindings):
-                continue
-            if len(arguments) < 2:
-                continue
-            attribute = _eval_static_js_expr(arguments[0], bindings)
-            if attribute is None or not (
-                attribute.casefold() == "title"
-                or attribute.casefold().startswith("aria-")
-            ):
-                continue
-            rendered = _eval_static_js_expr(arguments[1], bindings)
-            if rendered is not None:
-                rendered_values.append(rendered)
-        for receiver, arguments in _method_calls(statement, "append"):
-            if not _receiver_is_dom(receiver, dom_bindings):
-                continue
-            for argument in arguments:
-                rendered = _eval_static_js_expr(argument, bindings)
-                if rendered is not None:
-                    rendered_values.append(rendered)
-        for receiver, arguments in _method_calls(statement, "appendChild"):
-            if not _receiver_is_dom(receiver, dom_bindings):
-                continue
-            if not arguments:
-                continue
-            nested = _method_calls(arguments[0], "createTextNode")
-            if nested and nested[0][0] == "document" and nested[0][1]:
-                rendered = _eval_static_js_expr(nested[0][1][0], bindings)
-                if rendered is not None:
-                    rendered_values.append(rendered)
-
         for function in ("fetch", "require", "import"):
             for arguments in _call_arguments(statement, function):
                 if arguments:
@@ -442,6 +952,10 @@ def _js_analysis(text: str) -> tuple[list[str], list[str]]:
         text,
     ):
         dependency_values.append(_decode_js_escapes(match.group(2)))
+    for expression in _js_dom_sink_expressions(text):
+        rendered = _eval_static_js_expr(expression, bindings)
+        if rendered is not None:
+            rendered_values.append(rendered)
     return (
         list(dict.fromkeys(dependency_values)),
         list(dict.fromkeys(rendered_values)),
@@ -516,11 +1030,43 @@ def _css_import_specifiers(text: str) -> list[str]:
 
 
 def _css_content_units(text: str) -> list[str]:
-    """Resolve statically visible CSS generated content, including adjacent strings."""
+    """Resolve statically visible CSS generated content and custom properties."""
     without_comments = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    custom_properties: dict[str, str] = {}
+    for declaration in re.finditer(
+        r"(--[A-Za-z0-9_-]+)\s*:\s*(.*?)(?:;|})",
+        without_comments,
+        re.DOTALL,
+    ):
+        custom_properties[declaration.group(1)] = declaration.group(2).strip()
+
+    def resolve_custom_properties(expression: str) -> str:
+        rendered = expression
+        for _ in range(len(custom_properties) + 1):
+            changed = False
+
+            def replace_var(match: re.Match[str]) -> str:
+                nonlocal changed
+                name = match.group(1)
+                fallback = match.group(2) or ""
+                replacement = custom_properties.get(name, fallback)
+                if replacement != match.group(0):
+                    changed = True
+                return replacement
+
+            updated = re.sub(
+                r"var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,\s*([^)]*))?\)",
+                replace_var,
+                rendered,
+            )
+            rendered = updated
+            if not changed:
+                break
+        return rendered
+
     units: list[str] = []
     for declaration in re.finditer(r"\bcontent\s*:\s*(.*?)(?:;|})", without_comments, re.IGNORECASE | re.DOTALL):
-        literals = _css_strings(declaration.group(1))
+        literals = _css_strings(resolve_custom_properties(declaration.group(1)))
         if literals:
             units.append("".join(literals))
     for specifier in _css_import_specifiers(without_comments):
@@ -528,6 +1074,39 @@ def _css_content_units(text: str) -> list[str]:
         if inline is not None:
             units.extend(_css_content_units(inline))
     return units
+
+
+def _css_generated_attribute_names(text: str) -> set[str]:
+    """Return HTML attributes whose values CSS exposes through content: attr()."""
+    without_comments = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    names: set[str] = set()
+    for declaration in re.finditer(
+        r"\bcontent\s*:\s*(.*?)(?:;|})",
+        without_comments,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        names.update(
+            match.group(1).casefold()
+            for match in re.finditer(
+                r"\battr\(\s*([A-Za-z_:][\w:.-]*)", declaration.group(1), re.IGNORECASE
+            )
+        )
+    return names
+
+
+class _GeneratedAttributeParser(HTMLParser):
+    def __init__(self, names: set[str]) -> None:
+        super().__init__(convert_charrefs=True)
+        self.names = names
+        self.values: list[str] = []
+
+    def handle_starttag(self, _tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        for name, value in attrs:
+            if name.casefold() in self.names and value:
+                self.values.append(value)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.handle_starttag(tag, attrs)
 
 
 def _render_static_value(value: str) -> list[str]:
@@ -539,8 +1118,39 @@ def _render_static_value(value: str) -> list[str]:
     return parser.result()
 
 
+def _js_computed_map_render_units(text: str) -> list[str]:
+    """Scan static map values when computed lookup data reaches a DOM sink.
+
+    Public tooltip and localization code commonly renders ``COPY[key]``. A
+    literal-only sink scan sees the lookup expression but misses every value in
+    ``COPY``. Keep this bounded to declared object maps that are actually read
+    with bracket notation in a file containing a DOM sink.
+    """
+    if not _js_dom_sink_expressions(text):
+        return []
+    units: list[str] = []
+    declaration = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{"
+    )
+    for match in declaration.finditer(text):
+        name = match.group(1)
+        if not re.search(rf"\b{re.escape(name)}\s*(?:\?\.)?\[", text):
+            continue
+        body = _js_braced_body(text, match.end() - 1)
+        if body is None:
+            continue
+        for _, _, _, value in _scan_js_literals(body):
+            units.extend(_render_static_value(value))
+    return list(dict.fromkeys(units))
+
+
 def _js_render_units(text: str) -> list[str]:
-    return [unit for value in _js_analysis(text)[1] for unit in _render_static_value(value)]
+    direct = [unit for value in _js_analysis(text)[1] for unit in _render_static_value(value)]
+    return list(
+        dict.fromkeys(
+            direct + _js_dynamic_render_units(text) + _js_computed_map_render_units(text)
+        )
+    )
 
 
 def _resolve_local_dependency(root: Path, source: Path, specifier: str) -> Path | None:
@@ -557,6 +1167,69 @@ def _resolve_local_dependency(root: Path, source: Path, specifier: str) -> Path 
     except ValueError as exc:
         raise ValueError(f"unsafe local dependency {specifier!r} from {source}") from exc
     return resolved
+
+
+def _papers_manifest_markdown_dependencies(value: Any) -> list[str]:
+    """Expand the exact runtime Markdown set declared by papers-manifest-v2."""
+    if not isinstance(value, dict) or not isinstance(value.get("meta"), dict):
+        raise ValueError("papers manifest root/meta must be objects")
+    meta = value["meta"]
+    expected_meta = {
+        "schema_version": "papers-manifest-v2",
+        "asset_version": "20260714n2",
+        "total_items": 20,
+        "historical_result_records": 14,
+        "historical_research_drafts": 5,
+        "historical_tutorials": 1,
+    }
+    if any(meta.get(key) != expected for key, expected in expected_meta.items()):
+        raise ValueError("papers manifest public-count contract drift")
+    contract = meta.get("result_contract")
+    expected_contract = {
+        "schema_version": "empirical-result-card-v1",
+        "evidence_level": "historical_internal_record",
+        "ledger_status": "not_bound",
+        "review_status": "internal_only",
+    }
+    if not isinstance(contract, dict) or any(
+        contract.get(key) != expected for key, expected in expected_contract.items()
+    ):
+        raise ValueError("papers manifest historical-boundary contract drift")
+    groups = value.get("groups")
+    if not isinstance(groups, list):
+        raise ValueError("papers manifest groups must be an array")
+    slugs: list[str] = []
+    statuses: dict[str, int] = {
+        "historical-record": 0,
+        "historical-draft": 0,
+        "historical-tutorial": 0,
+    }
+    for group in groups:
+        papers = group.get("papers") if isinstance(group, dict) else None
+        if not isinstance(papers, list):
+            raise ValueError("papers manifest group records must be arrays")
+        for paper in papers:
+            if not isinstance(paper, dict):
+                raise ValueError("papers manifest record must be an object")
+            slug = paper.get("slug")
+            if not isinstance(slug, str) or not re.fullmatch(
+                r"(?!.*\.\.)(?!.*\.$)[a-z0-9][a-z0-9._-]{1,119}", slug
+            ):
+                raise ValueError(f"unsafe papers manifest slug: {slug!r}")
+            if slug in slugs:
+                raise ValueError(f"duplicate papers manifest slug: {slug}")
+            status = paper.get("status")
+            if status not in statuses:
+                raise ValueError(f"invalid papers manifest status: {status!r}")
+            statuses[status] += 1
+            slugs.append(slug)
+    if len(slugs) != 20 or statuses != {
+        "historical-record": 14,
+        "historical-draft": 5,
+        "historical-tutorial": 1,
+    }:
+        raise ValueError("papers manifest runtime-record count drift")
+    return [f"/assets/data/papers/{slug}.md" for slug in slugs]
 
 
 def _public_dependency_paths(root: Path) -> list[str]:
@@ -587,6 +1260,13 @@ def _public_dependency_paths(root: Path) -> list[str]:
                     dependencies.append(value)
         elif target.suffix.casefold() == ".css":
             dependencies.extend(_css_import_specifiers(text))
+        elif relative == "web/frontend/assets/data/papers-manifest.json":
+            try:
+                dependencies.extend(
+                    _papers_manifest_markdown_dependencies(json.loads(text))
+                )
+            except json.JSONDecodeError as exc:
+                raise ValueError("papers manifest is not valid JSON") from exc
         for specifier in dependencies:
             dependency = _resolve_local_dependency(root, target, specifier)
             if dependency is not None:
@@ -634,6 +1314,113 @@ def _json_render_units(value: Any) -> list[str]:
     for child in children:
         units.extend(_json_render_units(child))
     return units
+
+
+def _historical_paper_quarantine(
+    contents: dict[str, str],
+) -> tuple[set[str], list[str]]:
+    """Recognize archival Markdown only with raw and rendered boundaries.
+
+    The files stay in the public dependency closure. They are exempted from
+    current-copy wording rules only when each directly addressable Markdown
+    asset carries its own bilingual evidence warning and the manifest, closed
+    disclosure, strict slug lookup, local renderer, sanitizer, and URL
+    allowlist are all present. Any missing control removes the exemption and
+    fails validation.
+    """
+    manifest_path = "web/frontend/assets/data/papers-manifest.json"
+    if manifest_path not in contents:
+        return set(), []
+    errors: list[str] = []
+    try:
+        manifest = json.loads(contents[manifest_path])
+        dependencies = _papers_manifest_markdown_dependencies(manifest)
+    except (json.JSONDecodeError, ValueError) as exc:
+        return set(), [f"invalid historical paper boundary manifest: {exc}"]
+    markdown_paths = {
+        f"web/frontend/{urlsplit(dependency).path.lstrip('/')}"
+        for dependency in dependencies
+    }
+    missing_markdown = sorted(markdown_paths - contents.keys())
+    if missing_markdown:
+        errors.append(f"historical paper closure is incomplete: {missing_markdown}")
+
+    raw_boundary_markers = (
+        "历史研究记录——不是当前证据。",
+        "Historical research record — not current evidence.",
+        "未绑定当前证据账本",
+        "not bound to the current evidence ledger",
+        "不能证明跨领域系统共享机制",
+        "do not establish a shared cross-domain mechanism",
+    )
+    for path in sorted(markdown_paths):
+        text = contents.get(path)
+        if text is None:
+            continue
+        boundary = text.lstrip()[:1800]
+        missing = [marker for marker in raw_boundary_markers if marker not in boundary]
+        if missing:
+            errors.append(
+                f"historical Markdown raw self-boundary is incomplete in {path}: {missing}"
+            )
+
+    required_surfaces = {
+        "web/frontend/paper.html": (
+            'id="paper-boundary"',
+            'id="paper-heading"',
+            'id="paper-legacy-record"',
+            '/assets/js/papers-catalog.js',
+            '/assets/js/markdown-safe.js',
+            '/assets/js/paper.js',
+        ),
+        "web/frontend/assets/js/papers-catalog.js": (
+            "validateManifest",
+            "slugFromLocation",
+            "validateSourceUrl",
+            "Papers status count drift",
+        ),
+        "web/frontend/assets/js/markdown-safe.js": (
+            "ALLOWED_TAGS",
+            "safeHref",
+            "sanitizeRenderedHtml",
+            "noopener noreferrer",
+        ),
+        "web/frontend/assets/js/paper.js": (
+            "Catalog.slugFromLocation",
+            "validatedManifest.bySlug[slug]",
+            "Markdown.render",
+            "Catalog.validateSourceUrl",
+        ),
+    }
+    for path, patterns in required_surfaces.items():
+        text = contents.get(path)
+        if text is None:
+            errors.append(f"missing historical paper boundary surface: {path}")
+            continue
+        for pattern in patterns:
+            if pattern not in text:
+                errors.append(f"missing historical paper boundary control {pattern!r} in {path}")
+
+    paper_html = contents.get("web/frontend/paper.html", "")
+    boundary_position = paper_html.find('id="paper-boundary"')
+    legacy_position = paper_html.find('id="paper-legacy-record"')
+    if boundary_position < 0 or legacy_position < 0 or boundary_position >= legacy_position:
+        errors.append("historical paper boundary must precede the raw Markdown disclosure")
+    details_tag = re.search(r"<details\b[^>]*\bid=[\"']paper-legacy-record[\"'][^>]*>", paper_html)
+    if details_tag is None or re.search(r"\bopen(?:\s*=|\s|>)", details_tag.group(0)):
+        errors.append("historical Markdown disclosure must be a closed details element")
+    if "cdn.jsdelivr.net/npm/marked" in paper_html or "marked.parse" in paper_html:
+        errors.append("historical Markdown renderer must be local and sanitized")
+
+    paper_js = contents.get("web/frontend/assets/js/paper.js", "")
+    if re.search(r"(?:\.open\s*=|setAttribute\(\s*['\"]open['\"])", paper_js):
+        errors.append("historical Markdown disclosure cannot be opened by runtime code")
+    if re.search(r"\|\|\s*['\"][a-z0-9._-]+['\"]", paper_js):
+        errors.append("paper detail runtime cannot fall back to a default slug")
+
+    if errors:
+        return set(), errors
+    return markdown_paths, []
 
 
 class _VisibleUnitParser(HTMLParser):
@@ -870,6 +1657,8 @@ def validate(inventory_path: Path = DEFAULT_INVENTORY, root: Path = ROOT) -> lis
             errors.append(f"missing public copy surface: {relative}")
             continue
         contents[relative] = target.read_text(encoding="utf-8")
+    historical_paper_paths, boundary_errors = _historical_paper_quarantine(contents)
+    errors.extend(boundary_errors)
     normalized_contents = {
         relative: _normalize_scan_text(text).casefold()
         for relative, text in contents.items()
@@ -882,6 +1671,30 @@ def validate(inventory_path: Path = DEFAULT_INVENTORY, root: Path = ROOT) -> lis
         relative: [_normalize_scan_text(unit) for unit in _claim_context_units(relative, text)]
         for relative, text in contents.items()
     }
+    generated_attribute_names: set[str] = set()
+    for relative, text in contents.items():
+        if relative.endswith(".css"):
+            generated_attribute_names.update(_css_generated_attribute_names(text))
+        elif relative.endswith((".html", ".htm")):
+            parser = _LocalDependencyParser()
+            parser.feed(text)
+            parser.close()
+            for style in parser.inline_styles:
+                generated_attribute_names.update(_css_generated_attribute_names(style))
+            for stylesheet in parser.stylesheets:
+                inline = _data_css_text(stylesheet)
+                if inline is not None:
+                    generated_attribute_names.update(_css_generated_attribute_names(inline))
+    if generated_attribute_names:
+        for relative, text in contents.items():
+            if not relative.endswith((".html", ".htm")):
+                continue
+            parser = _GeneratedAttributeParser(generated_attribute_names)
+            parser.feed(text)
+            parser.close()
+            values = [_normalize_scan_text(value) for value in parser.values]
+            rendered_units[relative].extend(values)
+            context_units[relative].extend(values)
     forbidden = inventory.get("forbidden_patterns")
     if not isinstance(forbidden, list) or not forbidden:
         errors.append("forbidden_patterns must be a non-empty list")
@@ -891,6 +1704,8 @@ def validate(inventory_path: Path = DEFAULT_INVENTORY, root: Path = ROOT) -> lis
                 errors.append("forbidden pattern must be a non-empty string")
                 continue
             for relative in contents:
+                if relative in historical_paper_paths:
+                    continue
                 normalized_pattern = _normalize_scan_text(pattern).casefold()
                 suffix = Path(relative).suffix.casefold()
                 raw_public_copy = suffix not in {".html", ".htm", ".js", ".css", ".json"}
@@ -913,6 +1728,8 @@ def validate(inventory_path: Path = DEFAULT_INVENTORY, root: Path = ROOT) -> lis
                 errors.append(f"invalid forbidden regex {pattern!r}: {exc}")
                 continue
             for relative in contents:
+                if relative in historical_paper_paths:
+                    continue
                 rendered = rendered_units[relative]
                 if any(compiled.search(fragment) for fragment in rendered):
                     errors.append(f"forbidden public claim regex {pattern!r} in {relative}")
@@ -935,6 +1752,8 @@ def validate(inventory_path: Path = DEFAULT_INVENTORY, root: Path = ROOT) -> lis
                 errors.append(f"invalid adjacent context regex at {index}: {exc}")
                 continue
             for relative in contents:
+                if relative in historical_paper_paths:
+                    continue
                 visible_units = context_units[relative]
                 for fragment in visible_units:
                     for match in claim.finditer(fragment):
