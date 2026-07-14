@@ -23,10 +23,14 @@ on:
       - 'web/backend/errors.py'
       - 'web/backend/services/account_data_registry.py'
       - 'web/backend/services/auth_store.py'
+      - 'web/backend/services/candidate_origin.py'
       - 'web/backend/services/report_store.py'
+      - 'web/backend/services/sqlite_utils.py'
       - 'web/backend/services/sso_store.py'
       - 'v4/product/d1_phase_detector/api/**'
       - 'scripts/deploy-phase-detector-vps.sh'
+      - 'scripts/install-nginx-privacy-vhost.sh'
+      - 'tests/test_nginx_privacy_contract.py'
       - '.github/workflows/deploy-phase-detector.yml'
   workflow_dispatch: {}
 

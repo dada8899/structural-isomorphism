@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Deploy both Phase Detector services from the VPS Git worktree.
-set -euo pipefail
+set -Eeuo pipefail
+umask 077
 
 if [[ "${STRUCTURAL_DEPLOY_LOCK_HELD:-0}" != "1" ]]; then
   exec 9>/var/lock/structural-isomorphism-deploy.lock
@@ -14,9 +15,18 @@ API_PIP="$REPO/.venv/bin/pip"
 WEB_DIR="$REPO/web/phase-detector"
 AUTH_ENV_FILE="${PHASE_AUTH_ENV_FILE:-/root/.config/structural-isomorphism/phase-auth.env}"
 BETA_ENV_FILE="${STRUCTURAL_BETA_ENV_FILE:-$REPO/web/backend/.env}"
+PHASE_PRIVACY_DROPIN_SOURCE="$REPO/web/phase-detector/phase-detector-api-privacy.conf"
+PHASE_PRIVACY_DROPIN_TARGET="${PHASE_PRIVACY_DROPIN_TARGET:-/etc/systemd/system/phase-detector-api.service.d/20-privacy.conf}"
+PHASE_NGINX_SOURCE="$REPO/web/phase-detector/phase.bytedance.city.nginx.conf"
+PHASE_NGINX_TARGET="${PHASE_NGINX_TARGET:-/etc/nginx/conf.d/phase.bytedance.city.conf}"
+NGINX_PRIVACY_INSTALLER="$REPO/scripts/install-nginx-privacy-vhost.sh"
 LOG_PREFIX="[deploy-phase-detector $(date -u +%FT%TZ)]"
 PREVIOUS_SHA="${PHASE_PREVIOUS_SHA:-$(git -C "$REPO" rev-parse HEAD)}"
 DEPLOY_COMPLETE=0
+PHASE_PRIVACY_DROPIN_INSTALLED=0
+PHASE_PRIVACY_DROPIN_PREEXISTED=0
+PHASE_PRIVACY_DROPIN_BACKUP=""
+PHASE_NGINX_PREPARED=0
 
 env_key_once() {
   local file="$1" key="$2"
@@ -28,13 +38,102 @@ env_exact_once() {
   env_key_once "$file" "$key" && grep -qx "${key}=${expected}" "$file"
 }
 
+restore_phase_privacy_dropin() {
+  [[ "$PHASE_PRIVACY_DROPIN_INSTALLED" == "1" ]] || return 0
+  local failed=0
+  if [[ "$PHASE_PRIVACY_DROPIN_PREEXISTED" == "1" ]]; then
+    if [[ -f "$PHASE_PRIVACY_DROPIN_BACKUP" && ! -L "$PHASE_PRIVACY_DROPIN_BACKUP" ]]; then
+      cp -a "$PHASE_PRIVACY_DROPIN_BACKUP" "$PHASE_PRIVACY_DROPIN_TARGET" || failed=1
+    else
+      failed=1
+    fi
+  else
+    rm -f "$PHASE_PRIVACY_DROPIN_TARGET" || failed=1
+  fi
+  systemctl daemon-reload || failed=1
+  if [[ "$failed" == "0" ]]; then
+    PHASE_PRIVACY_DROPIN_INSTALLED=0
+    rm -f "$PHASE_PRIVACY_DROPIN_BACKUP"
+    PHASE_PRIVACY_DROPIN_BACKUP=""
+  fi
+  return "$failed"
+}
+
+rollback_phase_nginx() {
+  [[ "$PHASE_NGINX_PREPARED" == "1" ]] || return 0
+  if STRUCTURAL_NGINX_TRANSACTION_ACTION=rollback \
+      bash "$NGINX_PRIVACY_INSTALLER" \
+        "$PHASE_NGINX_SOURCE" \
+        "$PHASE_NGINX_TARGET" \
+        phase.bytedance.city \
+        structural_phase_privacy; then
+    PHASE_NGINX_PREPARED=0
+    return 0
+  fi
+  return 1
+}
+
+commit_phase_privacy() {
+  [[ "$PHASE_NGINX_PREPARED" == "1" ]] || return 1
+  STRUCTURAL_NGINX_TRANSACTION_ACTION=commit \
+    bash "$NGINX_PRIVACY_INSTALLER" \
+      "$PHASE_NGINX_SOURCE" \
+      "$PHASE_NGINX_TARGET" \
+      phase.bytedance.city \
+      structural_phase_privacy
+  PHASE_NGINX_PREPARED=0
+  PHASE_PRIVACY_DROPIN_INSTALLED=0
+  rm -f "$PHASE_PRIVACY_DROPIN_BACKUP" || true
+  PHASE_PRIVACY_DROPIN_BACKUP=""
+}
+
+install_phase_privacy_dropin() {
+  local expected effective dropins
+  expected="ExecStart=/root/Projects/structural-isomorphism-v4/.venv/bin/uvicorn v4.product.d1_phase_detector.api.main:app --host 127.0.0.1 --port 8200 --no-access-log"
+  [[ -f "$PHASE_PRIVACY_DROPIN_SOURCE" ]] \
+    && grep -Fqx 'ExecStart=' "$PHASE_PRIVACY_DROPIN_SOURCE" \
+    && grep -Fqx "$expected" "$PHASE_PRIVACY_DROPIN_SOURCE" || {
+      echo "$LOG_PREFIX ERROR: canonical Phase privacy drop-in is invalid" >&2
+      return 1
+    }
+  mkdir -p "$(dirname "$PHASE_PRIVACY_DROPIN_TARGET")" || return 1
+  PHASE_PRIVACY_DROPIN_BACKUP="$(mktemp /tmp/phase-api-privacy-dropin.XXXXXX)" \
+    || return 1
+  if [[ -f "$PHASE_PRIVACY_DROPIN_TARGET" ]]; then
+    cp -a "$PHASE_PRIVACY_DROPIN_TARGET" "$PHASE_PRIVACY_DROPIN_BACKUP" || return 1
+    PHASE_PRIVACY_DROPIN_PREEXISTED=1
+  else
+    PHASE_PRIVACY_DROPIN_PREEXISTED=0
+  fi
+  PHASE_PRIVACY_DROPIN_INSTALLED=1
+  install -m 0644 "$PHASE_PRIVACY_DROPIN_SOURCE" "$PHASE_PRIVACY_DROPIN_TARGET" \
+    || { restore_phase_privacy_dropin; return 1; }
+  systemctl daemon-reload || { restore_phase_privacy_dropin; return 1; }
+  effective="$(systemctl show phase-detector-api --property=ExecStart --value)" \
+    || { restore_phase_privacy_dropin; return 1; }
+  dropins="$(systemctl show phase-detector-api --property=DropInPaths --value)" \
+    || { restore_phase_privacy_dropin; return 1; }
+  [[ "$effective" == *'/root/Projects/structural-isomorphism-v4/.venv/bin/uvicorn'* \
+    && "$effective" == *'--no-access-log'* \
+    && "$dropins" == *"$PHASE_PRIVACY_DROPIN_TARGET"* ]] \
+    || { restore_phase_privacy_dropin; return 1; }
+  if [[ "$AUTH_ENABLED_FOR_DEPLOY" == true ]]; then
+    systemctl cat phase-detector-api | grep -Fq "EnvironmentFile=$AUTH_ENV_FILE" \
+      || { restore_phase_privacy_dropin; return 1; }
+  fi
+}
+
 rollback_phase() {
   local code="${1:-$?}"
   local reason="${2:-command failed}"
   if [[ "$DEPLOY_COMPLETE" == "1" ]]; then return; fi
-  trap - ERR
+  trap - ERR INT TERM HUP
   set +e
   echo "$LOG_PREFIX ERROR: $reason; rolling back to $PREVIOUS_SHA" >&2
+  rollback_phase_nginx || \
+    echo "$LOG_PREFIX CRITICAL: Phase Nginx rollback failed; installer evidence retained" >&2
+  restore_phase_privacy_dropin || \
+    echo "$LOG_PREFIX CRITICAL: Phase privacy drop-in rollback failed; backup retained" >&2
   git -C "$REPO" reset --hard "$PREVIOUS_SHA"
   if [[ -f "$REPO/v4/product/d1_phase_detector/api/requirements.txt" ]]; then
     "$API_PIP" install --disable-pip-version-check \
@@ -209,12 +308,20 @@ fi
   echo "$LOG_PREFIX ERROR: Phase API requirements missing" >&2
   exit 1
 }
+[[ -f "$PHASE_PRIVACY_DROPIN_SOURCE" && -f "$PHASE_NGINX_SOURCE" \
+  && -f "$NGINX_PRIVACY_INSTALLER" ]] || {
+  echo "$LOG_PREFIX ERROR: tracked Phase privacy deployment files are missing" >&2
+  exit 1
+}
 
 export NVM_DIR="/root/.nvm"
 # shellcheck disable=SC1091
 [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"
 export CI=true
-trap rollback_phase ERR
+trap 'rollback_phase "$?" "command failed"' ERR
+trap 'rollback_phase 130 "interrupted by INT"' INT
+trap 'rollback_phase 143 "interrupted by TERM"' TERM
+trap 'rollback_phase 129 "interrupted by HUP"' HUP
 
 echo "$LOG_PREFIX installing Phase API dependencies"
 "$API_PIP" install --disable-pip-version-check -r "$API_REQUIREMENTS"
@@ -226,6 +333,17 @@ pnpm install --frozen-lockfile
 pnpm build
 echo "$LOG_PREFIX frontend build OK"
 
+# Apply both privacy boundaries before restarting either service. The Nginx
+# installer keeps a durable outer-transaction journal until every Phase smoke
+# succeeds, so any later failure restores both the vhost and systemd drop-in.
+STRUCTURAL_NGINX_TRANSACTION_ACTION=prepare \
+  bash "$NGINX_PRIVACY_INSTALLER" \
+    "$PHASE_NGINX_SOURCE" \
+    "$PHASE_NGINX_TARGET" \
+    phase.bytedance.city \
+    structural_phase_privacy
+PHASE_NGINX_PREPARED=1
+install_phase_privacy_dropin
 systemctl restart phase-detector-api phase-detector-web
 for attempt in 1 2 3 4 5 6; do
   if curl -fsS --max-time 5 http://127.0.0.1:8200/health >/tmp/phase-health.json \
@@ -239,7 +357,9 @@ for attempt in 1 2 3 4 5 6; do
   fi
   if [[ "$attempt" == "6" ]]; then
     echo "$LOG_PREFIX ERROR: service smoke failed" >&2
-    systemctl status phase-detector-api phase-detector-web --no-pager -l >&2 || true
+    api_state="$(systemctl is-active phase-detector-api 2>/dev/null || true)"
+    web_state="$(systemctl is-active phase-detector-web 2>/dev/null || true)"
+    echo "$LOG_PREFIX ERROR: service state api=${api_state:-unknown} web=${web_state:-unknown}" >&2
     rollback_phase 2 "service smoke failed"
   fi
   sleep 3
@@ -259,6 +379,14 @@ PY
 
 systemctl is-active --quiet phase-detector-api
 systemctl is-active --quiet phase-detector-web
+curl -fsS --max-time 10 \
+  --resolve phase.bytedance.city:443:127.0.0.1 \
+  -D - -o /dev/null https://phase.bytedance.city/ \
+  | tr -d '\r' \
+  | grep -Fqi 'Referrer-Policy: no-referrer'
+systemctl show phase-detector-api --property=ExecStart --value \
+  | grep -Fq -- '--no-access-log'
+commit_phase_privacy
 DEPLOY_COMPLETE=1
-trap - ERR
+trap - ERR INT TERM HUP
 echo "$LOG_PREFIX deploy complete"

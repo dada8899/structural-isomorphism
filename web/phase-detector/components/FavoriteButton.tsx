@@ -94,7 +94,7 @@ export function FavoriteButton({
         // Rollback.
         setFavorited(previous);
         if (err instanceof Error && err.message === "FAVORITES_CAP_EXCEEDED") {
-          setError("已达收藏上限,升级后可继续");
+          setError("已达收藏上限，请移除一项后再试");
           trackEvent(Events.FavoriteCapExceeded, { ticker, source });
         } else {
           setError("操作失败,请稍后再试");

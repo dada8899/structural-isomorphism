@@ -20,7 +20,9 @@ def test_phase_deploy_tracks_shared_auth_dependencies() -> None:
         "web/backend/errors.py",
         "web/backend/services/account_data_registry.py",
         "web/backend/services/auth_store.py",
+        "web/backend/services/candidate_origin.py",
         "web/backend/services/report_store.py",
+        "web/backend/services/sqlite_utils.py",
         "web/backend/services/sso_store.py",
     ):
         assert f"- '{dependency}'" in workflow
@@ -36,7 +38,10 @@ def test_phase_runtime_locks_shared_account_dependencies() -> None:
     requirements = (
         Path(__file__).parents[1] / "v4/product/d1_phase_detector/api/requirements.txt"
     ).read_text().splitlines()
+    assert "starlette==0.46.2" in requirements
+    assert "PyJWT==2.12.1" in requirements
     assert "slowapi==0.1.9" in requirements
+    assert "structlog==25.5.0" in requirements
 
 
 def test_phase_deploy_checks_the_beta_env_target_mode() -> None:

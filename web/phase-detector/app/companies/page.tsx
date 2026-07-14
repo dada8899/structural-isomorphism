@@ -125,7 +125,7 @@ export default function ScreenerHomePage() {
       .catch((err) => {
         if (!cancelled) {
           // eslint-disable-next-line no-console
-          console.warn("stats fetch failed:", err);
+          console.warn("[companies] stats fetch failed");
         }
       });
     // 2026-05-14 P0 fix: BE enum is `approaching_critical` (was hardcoded
@@ -136,7 +136,7 @@ export default function ScreenerHomePage() {
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.warn("signals fetch failed:", err);
+        console.warn("[companies] signals fetch failed");
       });
     // W3-C session #9: pull 3 companies that have already transitioned for
     // the first-fold "recently flipped" retrospective row. If BE has no rows
@@ -147,7 +147,7 @@ export default function ScreenerHomePage() {
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.warn("recently-flipped fetch failed:", err);
+        console.warn("[companies] recently flipped fetch failed");
       });
     return () => {
       cancelled = true;
