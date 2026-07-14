@@ -17,7 +17,6 @@ Response:
     400  { "ok": false, "error": "invalid source" }
 """
 import json
-import logging
 import re
 import time
 from pathlib import Path
@@ -28,9 +27,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from schemas import NewsletterCountResponse
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 router = APIRouter(tags=["newsletter"])
-logger = logging.getLogger("structural.newsletter")
+logger = get_logger("structural.newsletter")
 
 # RFC-5322-ish — pragmatic, not strict. Catches obvious junk + protects the
 # jsonl file. We don't bounce-validate here; that happens at send time.
@@ -77,8 +80,12 @@ def _is_duplicate(email: str) -> bool:
                     continue
                 if (row.get("email") or "").lower() == email:
                     return True
-    except Exception as e:
-        logger.warning("newsletter dedupe scan failed: %s", e)
+    except Exception as exc:
+        logger.warning(
+            "newsletter.dedupe_scan_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
     return False
 
 
@@ -104,7 +111,7 @@ async def subscribe(body: SubscribeBody, request: Request):
 
     # --- Dedupe (cheap linear scan) ---
     if _is_duplicate(email):
-        logger.info("newsletter duplicate signup: email=%s source=%s", email, source)
+        logger.info("newsletter.duplicate")
         return JSONResponse(
             {"ok": True, "created": False, "email": email}
         )
@@ -117,22 +124,23 @@ async def subscribe(body: SubscribeBody, request: Request):
         "source": source,
         "ts": int(time.time()),
         "iso": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "ip": request.client.host if request.client else "?",
-        "ua": (request.headers.get("user-agent") or "")[:200],
-        "referrer": (request.headers.get("referer") or "")[:300],
     }
     try:
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except Exception as e:
+    except Exception as exc:
         # Storage failure is the only error path we don't swallow — surface to
         # client so JS shows "try again". Otherwise data loss is silent.
-        logger.error("newsletter write failed: %s", e)
+        logger.error(
+            "newsletter.write_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse(
             {"ok": False, "error": "storage failure"}, status_code=500
         )
 
-    logger.info("newsletter signup: email=%s source=%s", email, source)
+    logger.info("newsletter.signup")
     return JSONResponse(
         {"ok": True, "created": True, "email": email}
     )

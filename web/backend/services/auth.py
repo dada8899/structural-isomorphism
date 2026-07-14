@@ -28,11 +28,15 @@ Public API:
 
 from __future__ import annotations
 
-import logging
 import os
 from typing import Optional
 
-logger = logging.getLogger("structural.auth")
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger
+else:
+    from logging_config import get_logger
+
+logger = get_logger("structural.auth")
 
 # Tier ordering: higher tier wins if a token is registered in multiple buckets.
 _TIER_RANK = {"paid": 2, "free": 1, "anonymous": 0}
@@ -67,7 +71,7 @@ def _parse_token_env() -> dict[str, str]:
             tier = tier.strip().lower()
             token = token.strip()
             if tier not in _TIER_RANK:
-                logger.warning("auth: unknown tier %r in STRUCTURAL_API_TOKENS, treating as free", tier)
+                logger.warning("structural.auth.tier_unknown")
                 tier = "free"
         else:
             tier = "free"

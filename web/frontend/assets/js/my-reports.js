@@ -25,14 +25,36 @@
   var favoritesCopy = document.getElementById('myr-favorites-copy');
   var accountEl = document.getElementById('myr-account');
   var credentialLocked = false;
+  var localFeaturesEnabled = false;
+  var currentAccountFavorites = { tickers: [], bookmarks: [] };
+  var displayedFavorites = [];
+  var favoriteMessages = {};
   var REMINDER_KEY = 'structural_local_reminders';
   var TERMINAL_EXPERIMENTS = ['completed', 'stopped', 'abandoned'];
+  var ENTITY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
+  var DISCOVERY_ID_RE = /^discovery-[0-9a-f]{16}$/;
+  var BOOKMARK_ID_RE = /^bm_[0-9a-f]{24}$/;
+  var TICKER_RE = /^[A-Z0-9][A-Z0-9.\-]{0,19}$/;
+  var CONTROL_RE = /[\p{Cc}\p{Cf}]/u;
+  var HTML_TAG_RE = /<\s*\/?\s*(?:[A-Za-z]|!)[^>]*>/;
+  var MAX_RESEARCH_QUERY_CHARS = (window.StructuralInputLimits &&
+    window.StructuralInputLimits.researchQueryChars) || 8000;
 
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  function tr(key, fallback) {
+    try {
+      if (window.i18n && typeof window.i18n.t === 'function') {
+        var value = window.i18n.t(key);
+        if (value && value !== key) return value;
+      }
+    } catch (_error) {}
+    return fallback;
   }
 
   function getAnonId() {
@@ -47,23 +69,269 @@
     } catch (e) { /* ignore */ }
   }
 
-  function safeLocalHref(value, fallback) {
-    var href = String(value || '').trim();
-    if (!href.startsWith('/') || href.startsWith('//') || href.indexOf('\\') !== -1) return fallback;
-    return href;
+  function originCandidateHref(origin) {
+    if (!origin || origin.contract_version !== 'discovery-candidate-v2' ||
+        !/^discovery-[0-9a-f]{16}$/.test(origin.discovery_id || '') ||
+        ['priority_review', 'candidate_pool'].indexOf(origin.tier) === -1 ||
+        !origin.pair ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(origin.pair.a_id || '') ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(origin.pair.b_id || '') ||
+        origin.pair.a_id === origin.pair.b_id) return '';
+    return '/discoveries?candidate=' + encodeURIComponent(origin.discovery_id);
   }
 
   function localFavorites() {
     try {
       var parsed = JSON.parse(localStorage.getItem('structural_favorites') || '[]');
-      return Array.isArray(parsed) ? parsed.slice(0, 100) : [];
+      if (!Array.isArray(parsed)) return [];
+      var changed = false;
+      var migrated = parsed.slice(0, 100).map(function (raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+        var legacy = legacyAnalysisFromHref(raw.analyze_url || raw.server_href);
+        if (!legacy.recognized) return raw;
+        var next = Object.assign({}, raw);
+        var query = safeText(raw.query, MAX_RESEARCH_QUERY_CHARS, true) || legacy.query;
+        var targetId = safeText(raw.b_id, 120) || safeText(raw.target_id, 120) || legacy.targetId;
+        var sourceId = safeText(raw.a_id, 120) || safeText(raw.source_id, 120) || legacy.sourceId;
+        if (query) next.query = query;
+        if (ENTITY_ID_RE.test(targetId || '')) {
+          next.b_id = targetId;
+          next.analyze_url = safeAnalysisHref(targetId);
+        } else {
+          delete next.analyze_url;
+        }
+        if (sourceId && ENTITY_ID_RE.test(sourceId)) next.a_id = sourceId;
+        if (Object.prototype.hasOwnProperty.call(next, 'server_href')) delete next.server_href;
+        changed = changed || JSON.stringify(next) !== JSON.stringify(raw);
+        return next;
+      });
+      if (changed) writeLocalFavorites(migrated);
+      return migrated;
     } catch (_error) { return []; }
   }
 
-  function favoriteLink(label, href, kind) {
-    return '<a class="myr-favorite" href="' + escapeHtml(href) + '"' +
-      (href.indexOf('https://') === 0 ? ' target="_blank" rel="noopener"' : '') +
-      '><span>' + escapeHtml(label) + '</span><span class="myr-favorite__source">' + escapeHtml(kind) + '</span></a>';
+  function writeLocalFavorites(items) {
+    try { localStorage.setItem('structural_favorites', JSON.stringify(items.slice(0, 100))); } catch (_error) {}
+  }
+
+  function safeText(value, max, allowLayout) {
+    if (typeof value !== 'string') return '';
+    var text = value.normalize('NFKC').trim();
+    if (!text || text.length > max || HTML_TAG_RE.test(text)) return '';
+    for (var char of text) {
+      if (!CONTROL_RE.test(char)) continue;
+      if (allowLayout && (char === '\n' || char === '\r' || char === '\t')) continue;
+      return '';
+    }
+    return text;
+  }
+
+  function safeAnalysisHref(targetId) {
+    return ENTITY_ID_RE.test(targetId || '')
+      ? '/analyze?id=' + encodeURIComponent(targetId)
+      : '';
+  }
+
+  function legacyAnalysisFromHref(value) {
+    if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.indexOf('\\') !== -1) return { recognized: false };
+    try {
+      var parsed = new URL(value, window.location.origin);
+      if (parsed.origin !== window.location.origin || ['/analyze', '/analyze.html'].indexOf(parsed.pathname) === -1) return { recognized: false };
+      var sourceId = safeText(parsed.searchParams.get('a_id'), 120);
+      var targetId = safeText(parsed.searchParams.get('id'), 120);
+      return {
+        recognized: true,
+        sourceId: ENTITY_ID_RE.test(sourceId) ? sourceId : null,
+        targetId: ENTITY_ID_RE.test(targetId) ? targetId : '',
+        query: safeText(
+          parsed.searchParams.get('q') || parsed.searchParams.get('text_a'),
+          MAX_RESEARCH_QUERY_CHARS,
+          true
+        )
+      };
+    } catch (_error) { return { recognized: false }; }
+  }
+
+  function normalizeFingerprint(raw, query) {
+    if (raw == null) return null;
+    if (typeof raw !== 'object' || Array.isArray(raw)) return null;
+    var allowed = {
+      source_query: true, summary: true, variables: true,
+      constraints: true, unknowns: true, revision: true
+    };
+    if (Object.keys(raw).some(function (key) { return !allowed[key]; })) return null;
+    var sourceQuery = safeText(raw.source_query, MAX_RESEARCH_QUERY_CHARS, true);
+    var summary = safeText(raw.summary, 1000, true);
+    if (!sourceQuery || sourceQuery !== query || !summary || summary.length < 8) return null;
+    var normalized = { source_query: sourceQuery, summary: summary };
+    for (var field of ['variables', 'constraints', 'unknowns']) {
+      var values = raw[field] == null ? [] : raw[field];
+      if (!Array.isArray(values) || values.length > 12) return null;
+      var cleaned = values.map(function (item) { return safeText(item, 120); });
+      if (cleaned.some(function (item) { return !item; })) return null;
+      normalized[field] = cleaned;
+    }
+    var revision = raw.revision == null ? 1 : raw.revision;
+    if (!Number.isInteger(revision) || revision < 1 || revision > 1000) return null;
+    normalized.revision = revision;
+    return normalized;
+  }
+
+  function normalizeOrigin(raw) {
+    var id = raw && raw.origin_discovery_id;
+    var contract = raw && raw.origin_contract_version;
+    if (id == null && contract == null) return null;
+    if (!DISCOVERY_ID_RE.test(id || '') || contract !== 'discovery-candidate-v2') return false;
+    return { origin_discovery_id: id, origin_contract_version: contract };
+  }
+
+  function structuralIdentity(query, sourceId, targetId, fingerprint, origin) {
+    return 'structural:' + JSON.stringify([
+      query, sourceId, targetId, fingerprint || null, origin || null
+    ]);
+  }
+
+  function normalizeLocalBookmark(raw, index) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    var legacy = legacyAnalysisFromHref(raw.analyze_url || raw.server_href);
+    var query = safeText(raw.query, MAX_RESEARCH_QUERY_CHARS, true) || legacy.query;
+    var sourceId = safeText(raw.a_id, 120) || safeText(raw.source_id, 120) || legacy.sourceId || null;
+    var targetId = safeText(raw.b_id, 120) || safeText(raw.target_id, 120) || legacy.targetId || '';
+    if (sourceId && !ENTITY_ID_RE.test(sourceId)) return null;
+    if (!ENTITY_ID_RE.test(targetId) || !query) return null;
+    var href = safeAnalysisHref(targetId);
+    if (!href) return null;
+    var title = safeText(raw.b_name, 240) || safeText(raw.title, 240) || query.slice(0, 240);
+    var fingerprint = normalizeFingerprint(raw.fingerprint, query);
+    if (raw.fingerprint != null && !fingerprint) return null;
+    var origin = normalizeOrigin(raw);
+    if (origin === false) return null;
+    return {
+      identity: structuralIdentity(query, sourceId, targetId, fingerprint, origin),
+      storage: 'local',
+      localIndex: index,
+      kind: 'structural_analysis',
+      title: title,
+      query: query,
+      sourceId: sourceId,
+      targetId: targetId,
+      fingerprint: fingerprint,
+      origin: origin,
+      href: href,
+      sourceLabel: tr('page.reports.favorite_source_local', 'Structural · 本机'),
+      payload: {
+        kind: 'structural_analysis', title: title, query: query,
+        source_id: sourceId, target_id: targetId,
+        ...(fingerprint ? { fingerprint: fingerprint } : {}),
+        ...(origin || {})
+      }
+    };
+  }
+
+  function normalizeAccountBookmark(bookmark) {
+    if (!bookmark || typeof bookmark !== 'object' || !BOOKMARK_ID_RE.test(bookmark.bookmark_id || '')) return null;
+    if (bookmark.kind === 'structural_analysis') {
+      var allowed = {
+        schema_version: true, bookmark_id: true, kind: true, title: true,
+        query: true, source_id: true, target_id: true, fingerprint: true,
+        origin_discovery_id: true, origin_contract_version: true,
+        href: true, source: true, created_at: true
+      };
+      if (Object.keys(bookmark).some(function (key) { return !allowed[key]; }) ||
+          bookmark.schema_version !== 'bookmark-v2' || bookmark.source !== 'Structural') return null;
+      var query = safeText(bookmark.query, MAX_RESEARCH_QUERY_CHARS, true);
+      var sourceId = bookmark.source_id === null ? null : safeText(bookmark.source_id, 120);
+      var targetId = safeText(bookmark.target_id, 120);
+      var title = safeText(bookmark.title, 240);
+      if (!query || !title || (bookmark.source_id !== null && !sourceId) || !ENTITY_ID_RE.test(targetId)) return null;
+      var fingerprint = normalizeFingerprint(bookmark.fingerprint, query);
+      if (bookmark.fingerprint != null && !fingerprint) return null;
+      var origin = normalizeOrigin(bookmark);
+      if (origin === false) return null;
+      var href = safeAnalysisHref(targetId);
+      if (!href || bookmark.href !== href) return null;
+      return {
+        identity: structuralIdentity(query, sourceId, targetId, fingerprint, origin),
+        storage: 'account', bookmarkId: bookmark.bookmark_id,
+        kind: bookmark.kind, title: title, query: query,
+        sourceId: sourceId, targetId: targetId, fingerprint: fingerprint,
+        origin: origin, href: href,
+        sourceLabel: tr('page.reports.favorite_source_account', 'Structural · 账户收藏')
+      };
+    }
+    if (bookmark.kind === 'phase_company') {
+      var ticker = safeText(bookmark.title, 20);
+      if (!TICKER_RE.test(ticker)) return null;
+      var phaseHref = 'https://phase.bytedance.city/company/' + encodeURIComponent(ticker);
+      if (bookmark.href !== phaseHref) return null;
+      return {
+        identity: 'phase:' + ticker, storage: 'account',
+        bookmarkId: bookmark.bookmark_id, kind: bookmark.kind,
+        title: ticker, ticker: ticker, href: phaseHref,
+        sourceLabel: tr('page.reports.favorite_source_phase', 'Phase 子产品账户收藏')
+      };
+    }
+    return null;
+  }
+
+  function legacyPhaseBookmark(ticker) {
+    var normalized = safeText(ticker, 20).toUpperCase();
+    if (!TICKER_RE.test(normalized)) return null;
+    return {
+      identity: 'phase:' + normalized, storage: 'account', kind: 'phase_company',
+      title: normalized, ticker: normalized,
+      href: 'https://phase.bytedance.city/company/' + encodeURIComponent(normalized),
+      sourceLabel: tr('page.reports.favorite_source_phase', 'Phase 子产品账户收藏')
+    };
+  }
+
+  function normalizedAccountFavorites(data) {
+    var result = [];
+    var seen = {};
+    var bookmarks = data && Array.isArray(data.bookmarks) ? data.bookmarks : [];
+    bookmarks.forEach(function (raw) {
+      var item = normalizeAccountBookmark(raw);
+      if (item && !seen[item.identity]) { seen[item.identity] = true; result.push(item); }
+    });
+    // Compatibility with a pre-v2 response during a rolling deploy. The v2
+    // server emits Phase items in bookmarks; old servers still expose tickers.
+    (data && Array.isArray(data.tickers) ? data.tickers : []).forEach(function (ticker) {
+      var item = legacyPhaseBookmark(ticker);
+      if (item && !seen[item.identity]) { seen[item.identity] = true; result.push(item); }
+    });
+    return result;
+  }
+
+  function favoriteCard(item, index) {
+    var external = item.href.indexOf('https://') === 0;
+    var message = favoriteMessages[item.identity] === 'remove_failed'
+      ? tr('page.reports.favorite_remove_failed', '移除没有完成；收藏仍然保留。')
+      : favoriteMessages[item.identity] === 'open_failed'
+        ? '浏览器未能建立安全的本地交接；问题没有写入链接，请允许当前标签页使用会话存储后重试。'
+        : '';
+    return '<article class="myr-favorite" data-favorite-kind="' + escapeHtml(item.kind) + '">' +
+      '<a class="myr-favorite__open" data-open-favorite="' + index + '" href="' + escapeHtml(item.href) + '" aria-label="' + escapeHtml(tr('page.reports.favorite_open', '打开收藏')) + '：' + escapeHtml(item.title) + '"' +
+      (external ? ' target="_blank" rel="noopener"' : '') + '>' +
+      '<span class="myr-favorite__title">' + escapeHtml(item.title) + '</span>' +
+      '<span class="myr-favorite__source">' + escapeHtml(item.sourceLabel) + '</span></a>' +
+      '<button type="button" class="myr-favorite__remove" data-remove-bookmark="' + index + '" aria-label="' + escapeHtml(tr('page.reports.favorite_remove', '移除收藏')) + '：' + escapeHtml(item.title) + '">' + escapeHtml(tr('page.reports.favorite_remove_short', '移除')) + '</button>' +
+      (message ? '<span class="myr-favorite__status" role="alert">' + escapeHtml(message) + '</span>' : '') +
+      '</article>';
+  }
+
+  function renderFavorites(accountData) {
+    if (!favoritesEl || credentialLocked || !localFeaturesEnabled) return;
+    currentAccountFavorites = accountData || { tickers: [], bookmarks: [] };
+    var accountItems = normalizedAccountFavorites(currentAccountFavorites);
+    var seen = {};
+    accountItems.forEach(function (item) { seen[item.identity] = true; });
+    var localItems = localFavorites().map(normalizeLocalBookmark).filter(Boolean).filter(function (item) {
+      return !seen[item.identity];
+    });
+    displayedFavorites = accountItems.concat(localItems);
+    favoritesEl.innerHTML = displayedFavorites.length
+      ? displayedFavorites.map(favoriteCard).join('')
+      : '<span class="myr-state__hint">' + escapeHtml(tr('page.reports.favorites_empty', '还没有收藏。保存结构分析或在 Phase 收藏公司后，会出现在这里。')) + '</span>';
   }
 
   function readProblem(response) {
@@ -77,6 +345,7 @@
 
   function lockCredentialAssets() {
     credentialLocked = true;
+    localFeaturesEnabled = false;
     connectBtn.hidden = true;
     if (accountEl) {
       accountEl.innerHTML = '<p class="myr-state__hint">检测到两个不同账户的登录凭据。为避免操作错账户，所有账户资产保持锁定。</p>' +
@@ -95,31 +364,11 @@
     );
   }
 
-  function renderFavorites(accountTickers) {
-    if (!favoritesEl || credentialLocked) return;
-    var local = localFavorites();
-    var links = local.map(function (item) {
-      var label = item.query || item.b_name || item.b_id || '未命名候选';
-      return favoriteLink(label, safeLocalHref(item.analyze_url, '/'), '本机研究收藏');
-    });
-    (accountTickers || []).forEach(function (ticker) {
-      if (!/^[A-Za-z0-9._-]{1,20}$/.test(ticker)) return;
-      links.push(favoriteLink(
-        ticker,
-        'https://phase.bytedance.city/company/' + encodeURIComponent(ticker),
-        'Phase 子产品账户收藏'
-      ));
-    });
-    favoritesEl.innerHTML = links.length
-      ? links.join('')
-      : '<span class="myr-state__hint">还没有收藏。选择候选或在 Phase 中收藏公司后，会出现在这里。</span>';
-  }
-
   function loadFavorites(authenticated) {
     if (!favoritesEl || credentialLocked) return;
     if (!authenticated) {
-      if (favoritesCopy) favoritesCopy.textContent = '当前显示这台浏览器的研究收藏；登录后还会显示账户收藏。';
-      renderFavorites([]);
+      if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_anonymous', '当前显示这台浏览器的研究收藏；登录后可同步并跨设备恢复。');
+      renderFavorites({ tickers: [], bookmarks: [] });
       return;
     }
     fetch('/api/favorites', { credentials: 'same-origin' })
@@ -132,8 +381,8 @@
       })
       .then(function (data) {
         if (credentialLocked) return;
-        if (favoritesCopy) favoritesCopy.textContent = '同时显示本机研究收藏和账户中的 Phase 子产品收藏，并明确标注来源。';
-        renderFavorites(Array.isArray(data.tickers) ? data.tickers : []);
+        if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_account', '正在显示本机与账户收藏；账户收藏可在其他已登录设备恢复。');
+        renderFavorites(data);
       })
       .catch(function (error) {
         if (error && error.message === 'credential_conflict') {
@@ -141,10 +390,167 @@
           return;
         }
         if (credentialLocked) return;
-        if (favoritesCopy) favoritesCopy.textContent = '账户收藏暂时无法读取；本机收藏仍然可用。';
-        renderFavorites([]);
+        if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_read_failed', '账户收藏暂时无法读取；本机收藏仍然可用。');
+        renderFavorites({ tickers: [], bookmarks: [] });
       });
   }
+
+  function syncLocalFavorites(accountData) {
+    if (credentialLocked) return Promise.resolve({ kind: 'conflict' });
+    var rawLocal = localFavorites();
+    var submitted = rawLocal.map(normalizeLocalBookmark).filter(Boolean);
+    if (!submitted.length) {
+      renderFavorites(accountData);
+      return Promise.resolve({ kind: 'ok', data: accountData });
+    }
+    return fetch('/api/favorites/merge', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tickers: [],
+        bookmarks: submitted.map(function (item) { return item.payload; })
+      })
+    }).then(function (response) {
+      if (!response.ok) {
+        return readProblem(response).then(function (problem) {
+          if (isCredentialConflict(response, problem)) return { kind: 'conflict' };
+          return { kind: 'error', status: response.status };
+        });
+      }
+      return response.json().then(function (data) { return { kind: 'ok', data: data }; });
+    }).catch(function () { return { kind: 'error', status: 0 }; })
+      .then(function (result) {
+        if (result.kind === 'conflict') {
+          lockCredentialAssets();
+          return result;
+        }
+        if (result.kind !== 'ok') {
+          if (favoritesCopy) favoritesCopy.textContent = tr('page.reports.favorites_sync_failed', '账户同步暂时不可用；本机收藏仍完整保留，可继续使用。');
+          renderFavorites(accountData);
+          return result;
+        }
+
+        var confirmed = {};
+        (Array.isArray(result.data.confirmed_bookmark_ids) ? result.data.confirmed_bookmark_ids : [])
+          .forEach(function (id) { if (BOOKMARK_ID_RE.test(id)) confirmed[id] = true; });
+        var confirmedIdentities = {};
+        (Array.isArray(result.data.bookmarks) ? result.data.bookmarks : []).forEach(function (raw) {
+          var normalized = normalizeAccountBookmark(raw);
+          if (normalized && normalized.bookmarkId && confirmed[normalized.bookmarkId]) {
+            confirmedIdentities[normalized.identity] = true;
+          }
+        });
+        var remaining = rawLocal.filter(function (raw, index) {
+          var normalized = normalizeLocalBookmark(raw, index);
+          return !normalized || !confirmedIdentities[normalized.identity];
+        });
+        // Local pending entries are removed only after the server echoes both
+        // a typed bookmark and its ID in confirmed_bookmark_ids.
+        writeLocalFavorites(remaining);
+        var dropped = Array.isArray(result.data.dropped_bookmark_ids)
+          ? result.data.dropped_bookmark_ids.length : 0;
+        if (favoritesCopy) {
+          favoritesCopy.textContent = dropped
+            ? tr('page.reports.favorites_partial', '部分收藏已同步到账户；达到配额的项目仍保存在本机。')
+            : tr('page.reports.favorites_synced', '收藏已与账户同步，可在其他已登录设备恢复。');
+        }
+        renderFavorites(result.data);
+        return result;
+      });
+  }
+
+  if (favoritesEl) favoritesEl.addEventListener('click', function (event) {
+    var openLink = event.target.closest('[data-open-favorite]');
+    if (openLink && !credentialLocked) {
+      var openIndex = Number(openLink.getAttribute('data-open-favorite'));
+      var openItem = displayedFavorites[openIndex];
+      if (openItem && openItem.kind === 'structural_analysis') {
+        event.preventDefault();
+        if (typeof window.buildAnalyzeUrl !== 'function') {
+          favoriteMessages[openItem.identity] = 'open_failed';
+          renderFavorites(currentAccountFavorites);
+          return;
+        }
+        var destination = window.buildAnalyzeUrl({
+          id: openItem.targetId,
+          a_id: openItem.sourceId,
+          q: openItem.query,
+          fingerprint: openItem.fingerprint,
+          ...(openItem.origin || {})
+        });
+        try {
+          if (!new URL(destination, window.location.origin).searchParams.get('handoff')) {
+            favoriteMessages[openItem.identity] = 'open_failed';
+            renderFavorites(currentAccountFavorites);
+            return;
+          }
+        } catch (_error) {
+          favoriteMessages[openItem.identity] = 'open_failed';
+          renderFavorites(currentAccountFavorites);
+          return;
+        }
+        delete favoriteMessages[openItem.identity];
+        window.location.assign(destination);
+        return;
+      }
+    }
+    var button = event.target.closest('[data-remove-bookmark]');
+    if (!button || button.disabled || credentialLocked) return;
+    var index = Number(button.getAttribute('data-remove-bookmark'));
+    var item = displayedFavorites[index];
+    if (!item) return;
+
+    if (item.storage === 'local') {
+      var raw = localFavorites();
+      var remaining = raw.filter(function (candidate, rawIndex) {
+        var normalized = normalizeLocalBookmark(candidate, rawIndex);
+        return !normalized || normalized.identity !== item.identity;
+      });
+      writeLocalFavorites(remaining);
+      delete favoriteMessages[item.identity];
+      renderFavorites(currentAccountFavorites);
+      return;
+    }
+
+    var endpoint = item.bookmarkId
+      ? '/api/favorites/bookmarks/' + encodeURIComponent(item.bookmarkId)
+      : '/api/favorites/' + encodeURIComponent(item.ticker || '');
+    button.disabled = true;
+    button.textContent = tr('page.reports.favorite_removing', '移除中…');
+    fetch(endpoint, { method: 'DELETE', credentials: 'include' })
+      .then(function (response) {
+        if (!response.ok) {
+          return readProblem(response).then(function (problem) {
+            if (isCredentialConflict(response, problem)) throw new Error('credential_conflict');
+            throw new Error('HTTP ' + response.status);
+          });
+        }
+        if (item.bookmarkId) {
+          currentAccountFavorites.bookmarks = (currentAccountFavorites.bookmarks || []).filter(function (rawBookmark) {
+            return rawBookmark && rawBookmark.bookmark_id !== item.bookmarkId;
+          });
+        }
+        if (item.ticker) {
+          currentAccountFavorites.tickers = (currentAccountFavorites.tickers || []).filter(function (ticker) {
+            return ticker !== item.ticker;
+          });
+        }
+        delete favoriteMessages[item.identity];
+        renderFavorites(currentAccountFavorites);
+        favoritesEl.setAttribute('tabindex', '-1');
+        favoritesEl.focus();
+      })
+      .catch(function (error) {
+        if (error && error.message === 'credential_conflict') {
+          lockCredentialAssets();
+          return;
+        }
+        favoriteMessages[item.identity] = 'remove_failed';
+        renderFavorites(currentAccountFavorites);
+        var retry = favoritesEl.querySelector('[data-remove-bookmark="' + index + '"]');
+        if (retry) retry.focus();
+      });
+  });
 
   function downloadAccountData(button) {
     var accountStatus = document.getElementById('myr-account-status');
@@ -239,7 +645,7 @@
         return identity;
       })
       .catch(function (error) {
-        console.error('[my-reports] identity classification failed:', error);
+        console.error('[my-reports] identity classification failed');
         accountEl.innerHTML = '<p class="myr-state__hint">暂时无法确认账户状态。为避免读错资产，本机与账户研究均未读取。</p>';
         if (favoritesCopy) favoritesCopy.textContent = '身份确认失败；未读取本机或账户收藏。';
         if (favoritesEl) favoritesEl.innerHTML = '<span class="myr-state__hint">确认身份后再显示收藏。</span>';
@@ -391,17 +797,40 @@
         (item.lang ? '<span class="myr-card__lang">' + escapeHtml(item.lang) + '</span>' : '') +
         (due ? '<span class="myr-card__deadline ' + due.css + '">' + escapeHtml(due.text) + '</span>' : '') +
       '</div>';
-    var href = item.share_token
-      ? '/report/share/' + escapeHtml(item.share_token)
-      : '/report/' + id;
+    // Library navigation always uses the authenticated/anonymous owner route.
+    // Share capabilities are minted and revealed only on one opened report.
+    var href = '/report/' + id;
+    var originHref = originCandidateHref(item.origin_candidate);
+    var originAction = originHref
+      ? '<a class="myr-card__origin" href="' + originHref + '">' +
+          '<span>源候选</span><strong>返回精选发现</strong>' +
+        '</a>'
+      : '';
+    var consentAction = accountConnected && item.publish_to_insights
+      ? '<div class="myr-card__privacy">' +
+          '<span>公开聚合已暂停；该报告仍保留旧同意记录。</span>' +
+          '<button type="button" data-withdraw-insights-consent="' + id + '">撤回同意</button>' +
+        '</div>'
+      : '';
+    var deleteAction = accountConnected
+      ? '<div class="myr-card__report-actions" data-report-actions="' + id + '">' +
+          '<span data-delete-status aria-live="polite">删除后分享链接也会立即失效。</span>' +
+          '<div class="myr-card__report-buttons">' +
+            '<button type="button" class="myr-card__delete" data-delete-report="' + id + '" aria-label="删除报告：' + escapeHtml(item.query || '未命名查询') + '">删除报告</button>' +
+          '</div>' +
+        '</div>'
+      : '';
     return (
-      '<a class="myr-card" href="' + href + '">' +
-        '<div class="myr-card__head">' +
-          '<p class="myr-card__query">' + escapeHtml(item.query || '（未命名查询）') + '</p>' +
-          followupBadge(item) +
-        '</div>' +
-        meta +
-      '</a>'
+      '<div class="myr-card-wrap">' +
+        '<a class="myr-card" href="' + href + '">' +
+          '<div class="myr-card__head">' +
+            '<p class="myr-card__query">' + escapeHtml(item.query || '（未命名查询）') + '</p>' +
+            followupBadge(item) +
+          '</div>' +
+          meta +
+        '</a>' +
+        originAction + consentAction + deleteAction +
+      '</div>'
     );
   }
 
@@ -493,19 +922,23 @@
       connectBtn.textContent = '同步此浏览器的新报告';
       ownershipCopy.textContent = '这些报告已与你的 Structural 账户关联，可在其他已登录设备继续。';
 
-      if (reports.kind === 'ok') {
-        commitReportData(reports.data);
-      } else {
-        renderState('报告暂时无法读取', '账户身份已确认，但报告服务暂时不可用。收藏状态仍单独显示。', '重试', '/reports');
-      }
-
+      var favoriteCommit;
       if (favorites.kind === 'ok') {
-        if (favoritesCopy) favoritesCopy.textContent = '同时显示本机研究收藏和账户中的 Phase 子产品收藏，并明确标注来源。';
-        renderFavorites(Array.isArray(favorites.data.tickers) ? favorites.data.tickers : []);
+        favoriteCommit = syncLocalFavorites(favorites.data);
       } else {
         if (favoritesCopy) favoritesCopy.textContent = '账户收藏暂时无法读取；本机收藏仍然可用。';
-        renderFavorites([]);
+        renderFavorites({ tickers: [], bookmarks: [] });
+        favoriteCommit = Promise.resolve({ kind: 'error' });
       }
+
+      return favoriteCommit.then(function (syncResult) {
+        if (syncResult && syncResult.kind === 'conflict') return;
+        if (reports.kind === 'ok') {
+          commitReportData(reports.data);
+        } else {
+          renderState('报告暂时无法读取', '账户身份已确认，但报告服务暂时不可用。收藏状态仍单独显示。', '重试', '/reports');
+        }
+      });
     }).finally(function () {
       loading = false;
     });
@@ -549,7 +982,7 @@
         commitReportData(data);
       })
       .catch(function (err) {
-        console.error('[my-reports] load failed:', err);
+        console.error('[my-reports] load failed');
         if (offset === 0) {
           if (err && err.message === 'credential_conflict') {
             lockCredentialAssets();
@@ -567,6 +1000,111 @@
   moreBtn.addEventListener('click', function () {
     moreBtn.textContent = '加载更多';
     load();
+  });
+
+  listEl.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-withdraw-insights-consent]');
+    if (button) {
+      var consentReportId = button.getAttribute('data-withdraw-insights-consent');
+      if (!consentReportId || button.disabled) return;
+      button.disabled = true;
+      button.textContent = '撤回中…';
+      fetch('/api/me/reports/' + encodeURIComponent(consentReportId) + '/insights-consent', {
+        method: 'DELETE', credentials: 'include'
+      }).then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      }).then(function () {
+        var row = button.closest('.myr-card__privacy');
+        if (row) row.innerHTML = '<span role="status">已撤回；该报告结果保持私密。</span>';
+        loadedItems.forEach(function (item) {
+          if (item.id === consentReportId) item.publish_to_insights = false;
+        });
+      }).catch(function () {
+        button.disabled = false;
+        button.textContent = '重试撤回';
+        var row = button.closest('.myr-card__privacy');
+        var message = row && row.querySelector('[data-withdraw-error]');
+        if (!message && row) {
+          row.insertAdjacentHTML('beforeend', '<span data-withdraw-error role="alert">撤回失败，旧同意不变。</span>');
+        }
+      });
+      return;
+    }
+
+    var cancelDelete = event.target.closest('[data-cancel-delete-report]');
+    if (cancelDelete) {
+      var cancelRow = cancelDelete.closest('[data-report-actions]');
+      var armedButton = cancelRow && cancelRow.querySelector('[data-delete-report]');
+      var cancelStatus = cancelRow && cancelRow.querySelector('[data-delete-status]');
+      if (armedButton) {
+        armedButton.removeAttribute('data-delete-armed');
+        armedButton.textContent = '删除报告';
+        armedButton.focus();
+      }
+      if (cancelStatus) {
+        cancelStatus.textContent = '删除后分享链接也会立即失效。';
+        cancelStatus.removeAttribute('role');
+      }
+      cancelDelete.remove();
+      return;
+    }
+
+    var deleteButton = event.target.closest('[data-delete-report]');
+    if (!deleteButton || deleteButton.disabled) return;
+    var reportId = deleteButton.getAttribute('data-delete-report');
+    var actionRow = deleteButton.closest('[data-report-actions]');
+    var deleteStatus = actionRow && actionRow.querySelector('[data-delete-status]');
+    var buttonGroup = deleteButton.closest('.myr-card__report-buttons');
+    if (!reportId || !actionRow || !deleteStatus || !buttonGroup) return;
+    if (!deleteButton.hasAttribute('data-delete-armed')) {
+      deleteButton.setAttribute('data-delete-armed', 'true');
+      deleteButton.textContent = '确认永久删除';
+      deleteStatus.removeAttribute('role');
+      deleteStatus.textContent = '此操作不可撤销；报告、实验记录、反馈和分享链接都会删除。';
+      buttonGroup.insertAdjacentHTML(
+        'afterbegin',
+        '<button type="button" data-cancel-delete-report>取消</button>'
+      );
+      deleteButton.focus();
+      return;
+    }
+
+    deleteButton.disabled = true;
+    var cancel = buttonGroup.querySelector('[data-cancel-delete-report]');
+    if (cancel) cancel.disabled = true;
+    deleteButton.textContent = '正在删除…';
+    deleteStatus.textContent = '正在删除报告并使分享链接失效…';
+    fetch('/api/me/reports/' + encodeURIComponent(reportId), {
+      method: 'DELETE', credentials: 'include'
+    }).then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    }).then(function (result) {
+      if (!result || result.share_revoked !== true) throw new Error('incomplete deletion');
+      var wrapper = actionRow.closest('.myr-card-wrap');
+      var bucket = actionRow.closest('.myr-bucket');
+      loadedItems = loadedItems.filter(function (item) { return item.id !== reportId; });
+      if (wrapper) wrapper.remove();
+      if (bucket && !bucket.querySelector('.myr-card-wrap')) bucket.remove();
+      if (loadedItems.length === 0) showEmpty();
+      updateReminderSummary();
+      // Keep tabindex=-1 after focusing the updated list/empty state. It is
+      // programmatically focusable but remains outside the sequential Tab
+      // order; removing it immediately makes Chromium drop focus to <body>.
+      listEl.setAttribute('tabindex', '-1');
+      listEl.focus();
+    }).catch(function () {
+      deleteButton.disabled = false;
+      if (cancel) cancel.disabled = false;
+      deleteButton.textContent = '重试永久删除';
+      deleteStatus.textContent = '删除没有完成；报告和分享链接仍然保留。';
+      deleteStatus.setAttribute('role', 'alert');
+      // Disabling the active button moves keyboard focus to <body> in
+      // Chromium. Restore it after re-enabling so Space/Enter can retry the
+      // destructive action without forcing the user to traverse the page.
+      deleteButton.focus();
+    });
   });
 
   connectBtn.addEventListener('click', function () {
@@ -596,6 +1134,7 @@
   });
 
   function enableLocalFeatures() {
+    localFeaturesEnabled = true;
     if (reminderToggle && !reminderToggle.__myrWired) {
       reminderToggle.__myrWired = true;
       reminderToggle.checked = remindersEnabled();
@@ -606,6 +1145,12 @@
       });
     }
     updateReminderSummary();
+  }
+
+  if (window.i18n && typeof window.i18n.onChange === 'function') {
+    window.i18n.onChange(function () {
+      if (!credentialLocked && localFeaturesEnabled) renderFavorites(currentAccountFavorites);
+    });
   }
 
   loadAccount().then(function (identity) {

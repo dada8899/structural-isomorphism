@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 import concurrent.futures
+import threading
 from urllib.parse import parse_qs, urlsplit
 
 import jwt
@@ -10,7 +11,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api import auth, report_account, sso
+from api import auth, report, report_account, sso
 from services.report_store import ReportStore
 
 
@@ -26,12 +27,15 @@ def stack(tmp_path, monkeypatch):
     monkeypatch.setenv("STRUCTURAL_SSO_BETA_ORIGIN", "http://beta.test")
     auth._override_data_dir_for_tests(tmp_path / "auth")
     report_account._store = ReportStore(tmp_path / "history.db")
+    report._store = report_account._store
     app = FastAPI()
     app.include_router(auth.router, prefix="/api")
     app.include_router(sso.router, prefix="/api")
+    app.include_router(report.router, prefix="/api")
     app.include_router(report_account.router, prefix="/api")
     yield app, report_account._store
     report_account._store = None
+    report._store = None
 
 
 def phase_login(client: TestClient, email: str = "owner@example.com") -> None:
@@ -106,6 +110,85 @@ def test_expired_code_and_cross_site_mutations_fail_closed(stack):
     ).status_code == 400
 
 
+def test_predeletion_exchange_code_cannot_recreate_deleted_account(stack):
+    app, _ = stack
+    beta, code, state, _ = exchange_session(app)
+    phase = TestClient(app, base_url="http://phase.test")
+    phase_login(phase)
+    exported = phase.get("/api/me/export")
+    assert exported.status_code == 200
+    exchange_events = exported.json()["data"]["claimed_reports"][
+        "sso_exchange_events"
+    ]
+    assert len(exchange_events) == 1
+    code_jti = jwt.decode(
+        code, options={"verify_signature": False}, algorithms=["HS256"],
+    )["jti"]
+    assert code_jti not in exported.text
+    deleted = phase.post(
+        "/api/me/delete", json={"confirmation": "DELETE"},
+        headers={"Origin": "http://phase.test"},
+    )
+    assert deleted.status_code == 200, deleted.text
+
+    exchanged = beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": code, "state": state},
+    )
+    assert exchanged.status_code == 409
+    assert exchanged.json()["error"] in {
+        "account no longer active", "exchange already used",
+    }
+    assert not beta.cookies.get("structural_beta_session")
+
+
+def test_reregistered_binding_does_not_reactivate_predeletion_code(stack):
+    app, _ = stack
+    old_beta, old_code, old_state, _ = exchange_session(app)
+    phase = TestClient(app, base_url="http://phase.test")
+    phase_login(phase)
+    assert phase.post(
+        "/api/me/delete", json={"confirmation": "DELETE"},
+        headers={"Origin": "http://phase.test"},
+    ).status_code == 200
+
+    new_beta, new_code, new_state, _ = exchange_session(app)
+    assert new_beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": new_code, "state": new_state},
+    ).status_code == 200
+    retired = old_beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": old_code, "state": old_state},
+    )
+    assert retired.status_code == 409
+
+
+def test_failed_account_delete_restores_pending_exchange_code(
+    stack, monkeypatch,
+):
+    app, _ = stack
+    beta, code, state, _ = exchange_session(app)
+    phase = TestClient(app, base_url="http://phase.test")
+    phase_login(phase)
+    monkeypatch.setattr(
+        auth.AuthStore, "delete_account_data",
+        lambda _self, _email: (_ for _ in ()).throw(OSError("late failure")),
+    )
+    failed = phase.post(
+        "/api/me/delete", json={"confirmation": "DELETE"},
+        headers={"Origin": "http://phase.test"},
+    )
+    assert failed.status_code == 500
+
+    exchanged = beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": code, "state": state},
+    )
+    assert exchanged.status_code == 200, exchanged.text
+    assert beta.get("/api/me/reports").status_code == 200
+
+
 def test_claim_uses_anon_proof_not_share_token_and_restores_cross_device(stack):
     app, store = stack
     owned = store.create(
@@ -137,11 +220,160 @@ def test_claim_uses_anon_proof_not_share_token_and_restores_cross_device(stack):
     other_device.cookies.set(
         "structural_beta_session", beta.cookies.get("structural_beta_session"),
     )
+    original_list = store.list_by_owner
+
+    def future_store_shape(*args, **kwargs):
+        rows = original_list(*args, **kwargs)
+        for row in rows:
+            # Regression guard: even if a future store query accidentally
+            # adds a capability column, FastAPI's response model must drop it.
+            row["share_token"] = owned["share_token"]
+        return rows
+
+    store.list_by_owner = future_store_shape
     reports = other_device.get("/api/me/reports")
     assert reports.status_code == 200
     assert [item["id"] for item in reports.json()["items"]] == [owned["id"]]
-    assert reports.json()["items"][0]["share_token"] == owned["share_token"]
+    item = reports.json()["items"][0]
+    assert set(item) == {
+        "id", "query", "b_id", "lang", "created_at", "view_count",
+        "claimed_at", "has_followup", "followup_status",
+        "followup_outcome", "experiment_status", "publish_to_insights",
+    }
+    assert "share_token" not in item
+    assert reports.headers["cache-control"] == "no-store"
+    assert reports.headers["pragma"] == "no-cache"
     assert other_device.post("/api/me/reports/claim").status_code == 403
+
+
+def test_owner_withdraws_consent_cross_device_while_anon_requires_original_id(
+    stack,
+):
+    app, store = stack
+    owned = store.create(
+        query="owned", b_id="b1", lang="zh", payload={}, model="m",
+        creator_anon_id="origin-device",
+    )
+    url = f"/api/report/{owned['id']}/followup"
+    origin = TestClient(app, base_url="http://beta.test")
+    assert origin.post(
+        url,
+        headers={"X-Anon-Id": "origin-device"},
+        json={
+            "action_status": "tried", "outcome": "worked",
+            "publish_to_insights": True,
+        },
+    ).status_code == 200
+    assert origin.post(
+        url,
+        headers={"X-Anon-Id": "different-device"},
+        json={
+            "action_status": "tried", "outcome": "worked",
+            "publish_to_insights": False,
+        },
+    ).status_code == 404
+
+    beta, code, state, _ = exchange_session(app)
+    assert beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": code, "state": state},
+    ).status_code == 200
+    assert beta.post(
+        "/api/reports/anon-proof",
+        headers={"X-Anon-Id": "origin-device", "Origin": "http://beta.test"},
+    ).status_code == 200
+    assert beta.post(
+        "/api/me/reports/claim", headers={"Origin": "http://beta.test"},
+    ).status_code == 200
+
+    other_device = TestClient(app, base_url="http://beta.test")
+    other_device.cookies.set(
+        "structural_beta_session", beta.cookies.get("structural_beta_session"),
+    )
+    listed = other_device.get("/api/me/reports")
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["publish_to_insights"] is True
+    withdrawn = other_device.delete(
+        f"/api/me/reports/{owned['id']}/insights-consent",
+        headers={"Origin": "http://beta.test"},
+    )
+    assert withdrawn.status_code == 200
+    assert withdrawn.headers["cache-control"] == "no-store"
+    assert withdrawn.headers["pragma"] == "no-cache"
+    assert withdrawn.json()["publish_to_insights"] is False
+    assert withdrawn.json()["consent_version"] == "insights-public-v1"
+    assert withdrawn.json()["consented_at"]
+    assert withdrawn.json()["withdrawn_at"]
+
+
+def test_owner_deletes_one_report_cascades_children_and_invalidates_share(stack):
+    app, store = stack
+    owned = store.create(
+        query="delete only me", b_id="b1", lang="zh", payload={}, model="m",
+        creator_anon_id="delete-origin",
+    )
+    store.record_feedback(
+        report_id=owned["id"], section=None, vote=1, voter_anon="reader",
+    )
+    store.record_followup(
+        report_id=owned["id"], anon_id="delete-origin",
+        action_status="planned", publish_to_insights=False,
+    )
+    foreign = store.create(
+        query="foreign", b_id="b2", lang="zh", payload={}, model="m",
+        creator_anon_id="foreign-origin",
+    )
+    store.claim_by_anon("foreign-origin", "another-account")
+
+    beta, code, state, _ = exchange_session(app)
+    assert beta.post(
+        "/api/sso/exchange", headers={"Origin": "http://beta.test"},
+        json={"code": code, "state": state},
+    ).status_code == 200
+    assert beta.post(
+        "/api/reports/anon-proof",
+        headers={"X-Anon-Id": "delete-origin", "Origin": "http://beta.test"},
+    ).status_code == 200
+    assert beta.post(
+        "/api/me/reports/claim", headers={"Origin": "http://beta.test"},
+    ).status_code == 200
+
+    cross_site = beta.delete(
+        f"/api/me/reports/{owned['id']}",
+        headers={"Origin": "http://evil.test"},
+    )
+    assert cross_site.status_code == 403
+    assert store.get_by_id(owned["id"]) is not None
+    denied = beta.delete(
+        f"/api/me/reports/{foreign['id']}",
+        headers={"Origin": "http://beta.test"},
+    )
+    assert denied.status_code == 404
+    assert store.get_by_id(foreign["id"]) is not None
+
+    deleted = beta.delete(
+        f"/api/me/reports/{owned['id']}",
+        headers={"Origin": "http://beta.test"},
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.headers["cache-control"] == "no-store"
+    assert deleted.headers["pragma"] == "no-cache"
+    assert deleted.json() == {
+        "ok": True,
+        "report_id": owned["id"],
+        "reports": 1,
+        "followups": 1,
+        "feedback": 1,
+        "share_revoked": True,
+    }
+    assert store.get_by_id(owned["id"]) is None
+    assert beta.get(
+        f"/api/report/share/{owned['share_token']}"
+    ).status_code == 404
+    assert all(
+        item["id"] != owned["id"]
+        for item in beta.get("/api/me/reports").json()["items"]
+    )
 
 
 def test_claim_is_idempotent_and_never_transfers_existing_owner(stack):
@@ -182,6 +414,64 @@ def test_concurrent_claim_has_one_owner_and_no_partial_transfer(stack):
     assert len(owners) == 1
     assert sum(result["claimed"] for result in results) == 8
     assert sorted(result["conflicts"] for result in results) == [0, 8]
+
+
+def test_account_delete_serializes_claim_and_erases_the_newly_claimed_report(
+    stack, monkeypatch,
+):
+    app, store = stack
+    report_row = store.create(
+        query="claim-delete race", b_id="b", lang="zh", payload={}, model="m",
+        creator_anon_id="anon-delete-race",
+    )
+    auth._ensure_user("owner@example.com")
+    token, _ = auth._issue_jwt("owner@example.com", "free")
+    beta = TestClient(app, base_url="http://beta.test")
+    phase = TestClient(app, base_url="http://phase.test")
+    beta.cookies.set("phase_session", token)
+    phase.cookies.set("phase_session", token)
+    assert beta.post(
+        "/api/reports/anon-proof",
+        headers={"X-Anon-Id": "anon-delete-race", "Origin": "http://beta.test"},
+    ).status_code == 200
+
+    reached_claim_write = threading.Event()
+    release_claim = threading.Event()
+    original_claim = store.claim_by_anon
+
+    def blocked_claim(anon_id: str, owner_id: str):
+        reached_claim_write.set()
+        assert release_claim.wait(5)
+        return original_claim(anon_id, owner_id)
+
+    monkeypatch.setattr(store, "claim_by_anon", blocked_claim)
+    outcome: dict[str, object] = {}
+    claiming = threading.Thread(target=lambda: outcome.setdefault(
+        "claim", beta.post(
+            "/api/me/reports/claim", headers={"Origin": "http://beta.test"},
+        ),
+    ))
+    claiming.start()
+    assert reached_claim_write.wait(5)
+
+    deleting = threading.Thread(target=lambda: outcome.setdefault(
+        "delete", phase.post(
+            "/api/me/delete", json={"confirmation": "DELETE"},
+            headers={"Origin": "http://phase.test"},
+        ),
+    ))
+    deleting.start()
+    deleting.join(0.1)
+    assert deleting.is_alive(), "account deletion escaped the owner claim gate"
+
+    release_claim.set()
+    claiming.join(5)
+    deleting.join(5)
+    assert not claiming.is_alive() and not deleting.is_alive()
+    assert outcome["claim"].status_code == 200  # type: ignore[union-attr]
+    assert outcome["delete"].status_code == 200  # type: ignore[union-attr]
+    assert store.get_by_id(report_row["id"]) is None
+    assert phase.get("/api/auth/me").status_code == 401
 
 
 def test_production_secret_and_origins_fail_closed(monkeypatch):

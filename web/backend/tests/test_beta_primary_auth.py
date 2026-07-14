@@ -142,7 +142,22 @@ def test_dual_valid_cross_account_credentials_reject_every_account_surface_witho
     requests = [
         alice.get("/api/auth/me"),
         alice.get("/api/favorites"),
+        alice.post(
+            "/api/favorites/bookmarks",
+            headers={"Origin": "http://beta.test"},
+            json={
+                "kind": "structural_analysis",
+                "title": "Must not write",
+                "query": "credential conflict",
+                "source_id": "alice-source",
+                "target_id": "alice-target",
+            },
+        ),
         alice.get("/api/me/reports"),
+        alice.delete(
+            f"/api/me/reports/{alice_report['id']}",
+            headers={"Origin": "http://beta.test"},
+        ),
         alice.post("/api/me/reports/claim", headers={"Origin": "http://beta.test"}),
         alice.get("/api/me/export"),
         alice.post(
@@ -488,6 +503,7 @@ def test_verify_document_response_blocks_referrer_and_caching():
 
 def test_beta_deploy_loads_private_canonical_auth_environment():
     deploy = (ROOT / "scripts/deploy-vps.sh").read_text(encoding="utf-8")
+    runtime_helper = (ROOT / "scripts/deploy-versioned-runtime.sh").read_text(encoding="utf-8")
     unit = (ROOT / "web/scripts/structural-web.service").read_text(encoding="utf-8")
     assert "/root/.config/structural-isomorphism/beta-auth.env" in deploy
     assert "stat -Lc '%a' \"$BETA_AUTH_ENV_FILE\"" in deploy
@@ -499,20 +515,28 @@ def test_beta_deploy_loads_private_canonical_auth_environment():
     assert unit.index("web/backend/.env") < unit.index("beta-auth.env")
     assert "install_structural_systemd_unit" in deploy
     assert '$SOURCE/web/scripts/structural-web.service' in deploy
-    assert 'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert 'systemd_unit_install_transaction "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"' in deploy
+    assert 'install -m 0644 "$source" "$target"' in runtime_helper
     assert 'systemctl daemon-reload' in deploy
     assert 'systemctl cat "$SERVICE"' in deploy
-    assert 'SYSTEMD_UNIT_BACKUP' in deploy
-    assert 'cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"' in deploy
-    assert deploy.index("SYSTEMD_UNIT_INSTALLED=1", deploy.index("install_structural_systemd_unit()")) < deploy.index(
-        'install -m 0644 "$SYSTEMD_UNIT_SOURCE" "$SYSTEMD_UNIT_TARGET"'
-    )
+    assert 'SYSTEMD_UNIT_BACKUP' in runtime_helper
+    assert 'cp -a "$SYSTEMD_UNIT_BACKUP" "$SYSTEMD_UNIT_TARGET"' in runtime_helper
+    install_function = deploy.index("install_structural_systemd_unit()")
+    snapshot_at = deploy.index("systemd_unit_capture", install_function + len("install_structural_systemd_unit()"))
+    sync_at = deploy.index('"${CMD[@]}" | tail -10')
+    assert snapshot_at < sync_at
+    transaction = runtime_helper.index("systemd_unit_install_transaction()")
+    intent = runtime_helper.index("SYSTEMD_UNIT_INSTALLED=1", transaction)
+    journal = runtime_helper.index("deploy_journal_write unit_installing", intent)
+    install = runtime_helper.index('install -m 0644 "$source" "$target"', journal)
+    assert transaction < intent < journal < install
+    assert "deployment_restore_transaction_state" in runtime_helper
     assert 'deployment must run as root before any files are changed' in deploy
-    assert 'rollback_deploy "beta account runtime is not enabled"' in deploy
-    assert 'rollback_deploy "service restart failed"' in deploy
-    assert 'rollback_deploy "beta account runtime request failed"' in deploy
+    assert 'abort_deploy "beta account runtime is not enabled"' in deploy
+    assert 'abort_deploy "service restart failed"' in deploy
+    assert 'abort_deploy "beta account runtime request failed"' in deploy
     assert 'body.get("error") == "no session"' in deploy
-    assert "--exclude=web/backend/data/" in deploy
+    assert "--exclude=web/backend/data/" in runtime_helper
 
 
 def test_beta_deploy_workflow_gates_enabled_account_runtime():

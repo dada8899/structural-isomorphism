@@ -41,21 +41,25 @@ import datetime as _dt
 import hashlib
 import hmac
 import json
-import logging
 import os
 import re
 import sqlite3
 import time
 import uuid
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 router = APIRouter(tags=["billing"])
-logger = logging.getLogger("structural.billing")
+logger = get_logger("structural.billing")
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
@@ -207,33 +211,33 @@ async def checkout_session(body: CheckoutBody, request: Request):
                 cancel_url=cancel_url,
                 metadata={"tier": tier, "interval": interval},
             )
-            logger.info(
-                "billing checkout-session stripe tier=%s interval=%s email=%s id=%s",
-                tier, interval, email, session.get("id"),
-            )
+            logger.info("billing.checkout_session_created", tier=tier)
             return JSONResponse({
                 "mode": "stripe",
                 "session_id": session.get("id"),
                 "url": session.get("url"),
                 "amount_cents": amount_cents,
             })
-        except Exception as e:
-            logger.exception(
-                "billing stripe error tier=%s interval=%s email=%s err=%s",
-                tier, interval, email, e,
+        except Exception as exc:
+            incident_id = new_incident_id()
+            logger.error(
+                "billing.checkout_session_failed",
+                error_type=type(exc).__name__,
+                incident_id=incident_id,
             )
             return JSONResponse(
-                {"error": "stripe_error", "detail": str(e)[:300]},
+                {
+                    "error": "stripe_error",
+                    "detail": "Payment provider unavailable.",
+                    "incident_id": incident_id,
+                },
                 status_code=502,
             )
 
     # Fail closed: a simulated checkout must never look like a successful
     # subscription on a public product. Keep mock billing in the dedicated
     # checkout_mock test surface; this endpoint represents real billing only.
-    logger.warning(
-        "billing unavailable: Stripe is not configured tier=%s interval=%s",
-        tier, interval,
-    )
+    logger.warning("billing.unavailable")
     return JSONResponse({
         "mode": "unavailable",
         "error": "billing_not_available",
@@ -299,21 +303,25 @@ async def webhook(request: Request):
     secret = _webhook_secret()
 
     if not secret:
-        logger.error("billing enabled without STRIPE_WEBHOOK_SECRET")
+        logger.error("billing.webhook_configuration_invalid", incident_id=new_incident_id())
         return JSONResponse({"error": "webhook_not_configured"}, status_code=503)
     verified = 0
     if _verify_signature(raw, sig, secret):
         verified = 1
     else:
-        logger.warning("billing webhook signature mismatch")
+        logger.warning("billing.webhook_signature_rejected")
         return JSONResponse(
             {"error": "signature_mismatch"}, status_code=400
         )
 
     try:
         evt = json.loads(raw.decode("utf-8") or "{}")
-    except Exception as e:
-        logger.warning("billing webhook bad json: %s", e)
+    except Exception as exc:
+        logger.warning(
+            "billing.webhook_payload_rejected",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse({"error": "invalid_json"}, status_code=400)
 
     event_id = evt.get("id") or ("mock_evt_" + uuid.uuid4().hex[:16])
@@ -323,7 +331,7 @@ async def webhook(request: Request):
     )
 
     try:
-        with _connect() as conn:
+        with closing(_connect()) as conn, conn:
             try:
                 conn.execute(
                     "INSERT INTO billing_events "
@@ -332,23 +340,24 @@ async def webhook(request: Request):
                     (event_id, event_type, json.dumps(evt), received_at, verified),
                 )
                 conn.commit()
-                logger.info(
-                    "billing webhook stored id=%s type=%s verified=%s",
-                    event_id, event_type, verified,
-                )
+                logger.info("billing.webhook_stored")
                 return JSONResponse({
                     "ok": True, "event_id": event_id,
                     "event_type": event_type, "verified": bool(verified),
                 })
             except sqlite3.IntegrityError:
                 # Duplicate event_id — Stripe retries are normal; ack 200.
-                logger.info("billing webhook duplicate id=%s", event_id)
+                logger.info("billing.webhook_duplicate")
                 return JSONResponse({
                     "ok": True, "event_id": event_id,
                     "event_type": event_type, "duplicate": True,
                 })
-    except sqlite3.Error as e:
-        logger.error("billing webhook storage failure: %s", e)
+    except sqlite3.Error as exc:
+        logger.error(
+            "billing.webhook_storage_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse(
             {"error": "storage_failure"}, status_code=500
         )
@@ -364,7 +373,7 @@ async def events_recent(request: Request, limit: int = 20):
     if not admin_token or not hmac.compare_digest(provided, admin_token):
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     try:
-        with _connect() as conn:
+        with closing(_connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT id, event_id, event_type, received_at, verified "
                 "FROM billing_events ORDER BY received_at DESC, id DESC LIMIT ?",
@@ -374,6 +383,10 @@ async def events_recent(request: Request, limit: int = 20):
                 "count": len(rows),
                 "events": [dict(r) for r in rows],
             })
-    except sqlite3.Error as e:  # pragma: no cover
-        logger.error("billing events_recent failed: %s", e)
+    except sqlite3.Error as exc:  # pragma: no cover
+        logger.error(
+            "billing.events_recent_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse({"count": 0, "events": []})

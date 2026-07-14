@@ -1,178 +1,148 @@
 # Privacy policy
 
-_Last updated: 2026-05-15_
+_Last updated: 2026-07-14_
 
-This is a short, plain-language privacy notice for the public sites of the
-**Structural Isomorphism** research project:
+This plain-language notice covers the Structural research sites:
 
-- `structural.bytedance.city` (main site, paper, classes, discoveries)
-- `phase.bytedance.city` / `beta.structural.bytedance.city` (subdomains as they ship)
+- `structural.bytedance.city` — project and research documentation;
+- `beta.structural.bytedance.city` — the primary Structural product;
+- `phase.bytedance.city` — the Structural Labs · Phase subproduct.
 
-If you have any question or want your data deleted, email
-**riazward110@gmail.com** — or use the self-service endpoints documented
-below (§ "Your rights").
+Questions or data requests can be sent to **hello@bytedance.city**.
 
 ## What we collect
 
-### Default (always on)
+We collect only what is needed to run the service or what you choose to submit:
 
-We use **Plausible Analytics** (self-hosted, see
-[`docs/analytics/plausible-deployment.md`](analytics/plausible-deployment.md))
-to understand which pages and findings are most useful — but **only after
-you opt in** via the cookie consent banner. Plausible is a cookieless,
-privacy-friendly analytics platform. Without consent, no analytics script
-is loaded at all.
+| Data | When | Purpose |
+|---|---|---|
+| Email and account timestamps | You request a Magic Link or create an account | Sign-in, account recovery, and registration notice |
+| One-time-link hash, expiry, and used state | A Magic Link is issued | Prevent token replay; the raw token is not stored |
+| Necessary session records | You sign in | Keep you signed in and revoke old sessions safely |
+| Reports, bookmarks, experiments, and outcomes | You explicitly save them | Provide “My Research” and cross-device continuity |
+| Newsletter or waitlist email and source | You submit the form | Send requested research updates |
+| Content-free frontend error metadata | The product reports a crash | Diagnose failures using an event name, error type, opaque incident ID, timestamp, and fatal/non-fatal state |
+| Optional aggregate analytics | You explicitly enable it | Understand which pages are useful |
+| Content-free operational telemetry | You access the sites | Security, abuse prevention, performance, and outage diagnosis |
 
-When loaded with your consent, for each page view we record:
+Anonymous search history, unsynced bookmarks, display preferences, consent
+choices, and onboarding state can be stored in your browser. They are not
+account data until you explicitly sign in and merge or save them.
 
-- The page URL (e.g. `/paper.html`)
-- The HTTP referrer (where you came from)
-- A coarse device type (desktop / mobile / tablet)
-- The user's country, derived from IP at request time (the IP itself is **not
-  stored**)
-- The browser family (Chrome, Firefox, etc.) and OS family
+Production does **not** collect card details or mock checkout submissions.
+There is no live paid checkout. The retired checkout simulator returns
+`410 Gone` before recording submitted fields.
 
-### Phase Detector subdomain (`phase.bytedance.city`)
+New newsletter, waitlist, and retired-checkout rows do not store IP address,
+User-Agent, or referrer. Frontend crash records do not persist the error
+message, stack, page URL, User-Agent, session ID, IP address, query, cookie, or
+referrer. Nginx access telemetry is limited to an opaque request ID, request
+method, status, response byte count, request duration, and upstream duration;
+it does not include the IP address, URL/path, query string, User-Agent, cookie,
+or referrer. Application logs use route templates rather than raw paths and
+drop arbitrary fields, exception messages, and tracebacks.
 
-The phase-detector app collects a small amount of data to make the product
-work:
+## What we do not do
 
-| Data | When | Why | Retention |
-|---|---|---|---|
-| **Session ID** (random, in localStorage) | First visit | Group error reports + history | Cleared when you clear browser storage |
-| **Error reports** | Frontend crash | Debug + fix bugs | 90 days, rolling |
-| **Newsletter signups** (email + source) | You submit | Send research updates | Until you unsubscribe |
-| **Mock checkout entries** (email + name + last-4) | You submit on /pricing | Evaluate PMF (no real charges) | Indefinite, deletable on request |
-| **Search history** (per-device, anonymous) | You search | Reload recent queries | Local-only (your device) |
+- We do not sell personal data.
+- We do not use ad networks, social pixels, or session-recording tools.
+- We do not store passwords; sign-in uses one-time email links.
+- We do not treat saved research outcomes as independent scientific proof.
+- We do not use client-supplied mock tiers to grant production entitlements.
 
-We do **not** collect:
+## Cookies and local storage
 
-- Personal identifiers tied to an account (we don't have user accounts yet)
-- Your IP address as a stored identifier (in-memory only; not written to disk
-  by Plausible)
-- Cross-site tracking data — no third-party trackers, ad networks, or social
-  plugins
-- Form contents beyond what you explicitly submit, scroll depth, click
-  heatmaps, session recordings
+Signed-in sessions use necessary `HttpOnly`, `Secure`, `SameSite=Lax` cookies.
+They are not available to page JavaScript. Local storage may hold theme,
+consent, onboarding, anonymous history, and unsynced bookmark state.
 
-## Web server logs
+Self-hosted Plausible analytics loads only after consent. It does not use
+tracking cookies or store raw IP addresses. Do Not Track disables optional
+analytics. Capability-bearing report-share routes never load analytics, even
+after consent, so a share token is not sent to the analytics service.
 
-Our web server (nginx) keeps standard access logs for security and operational
-reasons. These include the requesting IP address and User-Agent. We retain
-these logs for **14 days** and use them only for:
+## Email delivery and other processors
 
-- Diagnosing site outages and abuse (bots / brute-force probing)
-- Aggregated weekly traffic reports (with IPs hashed; see
-  [`scripts/analytics/parse_nginx_logs.py`](../scripts/analytics/parse_nginx_logs.py))
+We use an email delivery provider only to send one-time sign-in links,
+registration notices, and updates you requested. We may also use:
 
-After 14 days nginx logs are rotated and deleted.
+- self-hosted Plausible for consented aggregate analytics;
+- optional exception monitoring, if enabled, using only content-free event
+  IDs, error types, status codes, and opaque correlation/incident IDs;
+- jsDelivr for selected public JavaScript assets;
+- hosting and network providers required to operate the sites.
 
-## Cookies & local storage
+These providers may process the minimum technical data needed to deliver their
+service. Browser fonts are served by the site rather than fetched from Google
+Fonts at runtime.
 
-We don't set any tracking cookies. We use **localStorage** (a different
-browser API than cookies) to store:
+The exception-monitoring boundary does not export request URLs, headers,
+cookies, bodies, user records, breadcrumbs, messages, stack variables, or raw
+transactions.
 
-- Your theme preference (`phase_theme`)
-- Your cookie consent choice (`cookie_consent_v1`) — this records *which*
-  optional analytics you opted into, so we don't ask again on every visit
-- Your random session ID (`session_id`) — used to group error reports from
-  the same browsing session
-- Onboarding state (`phase_tour_seen`) — so the welcome tour doesn't loop
+## Retention
 
-localStorage entries are not transmitted to our servers automatically; only
-the session ID gets attached to error reports if you trigger a crash.
+- Magic Links become unusable after 15 minutes and cannot be replayed.
+- Session cookies last at most 30 days and can be revoked earlier.
+- Account records and explicitly saved assets remain until you delete the
+  account, subject to limited security records required to enforce deletion.
+- Newsletter records remain until you unsubscribe or request deletion.
+- Content-free frontend error logs use size-bounded rotation. The current
+  service keeps the active segment and one recent rotated segment; it does not
+  promise a fixed calendar retention period.
+- Web-server access logs are retained only as operationally needed and follow
+  the host's rotation policy; no fixed public calendar period is promised.
+- Optional analytics are aggregate and do not retain raw IP addresses.
 
-### Cookie consent banner
+## Your rights
 
-On your first visit, a banner asks you to choose:
+### Access and export
 
-- **Essential only** (default if you dismiss) — keep the strictly necessary
-  localStorage entries above; no analytics script is loaded.
-- **Accept all** — same as essential, plus we load Plausible (still no
-  cookies, just an analytics script).
-- **Customize** — toggle analytics on/off independently.
+Sign in to the Structural primary product and open
+[My Research and account controls](https://beta.structural.bytedance.city/reports).
+The authenticated `/api/me/export` operation downloads a JSON copy of the
+account and linked server-side assets without modifying them.
 
-Marketing cookies are **disabled and inapplicable** — we don't run any
-marketing pixels. The checkbox is shown for transparency but cannot be
-turned on. We respect the **Do Not Track (DNT)** header: if your browser
-advertises DNT, analytics is auto-disabled and the banner doesn't appear.
+### Permanent deletion
 
-You can change your mind anytime via the "Manage cookies" link in the
-footer (or the button on `/privacy`).
+Use the same account controls to confirm permanent deletion. The authenticated
+`/api/me/delete` operation removes the account and linked server-side assets and
+revokes active sessions. This action cannot be undone.
 
-## Third parties
+The old email-plus-code `/api/privacy/export` and `/api/privacy/delete`
+operations are retired and return `410 Gone` in production. They must not be
+used as a substitute for identity-bound account controls.
 
-- **Plausible Analytics** (self-hosted) — only loaded if you opt in. See
-  [Plausible's data policy](https://plausible.io/data-policy).
-- **Fonts**: we load Inter, Noto Serif SC, and JetBrains Mono via Next.js
-  `next/font/google` which fetches at build time and self-hosts to avoid
-  runtime requests to `fonts.googleapis.com`. The marketing site (separate
-  codebase) may still load from `fonts.googleapis.com` directly.
-- **KaTeX & Marked.js**: research site loads from `cdn.jsdelivr.net`
-  (jsDelivr). jsDelivr may log CDN requests per their privacy policy.
+If you cannot sign in, email **hello@bytedance.city**. We may ask you to prove
+control of the relevant email or account before exporting, correcting, or
+deleting data. We aim to answer manual requests within seven days.
 
-We do **not** use Google Analytics, Facebook Pixel, ad networks, or affiliate
-trackers.
+### Analytics choice
 
-## Your rights (GDPR / similar)
+You can reject optional analytics, change the choice through “Manage cookies,”
+or enable Do Not Track in your browser.
 
-You have the following rights regardless of jurisdiction:
+## Security
 
-### Access / export
+Secrets, raw Magic Link tokens, and passwords are not written to public project
+documents. Authentication and user assets are stored outside the Git checkout
+in production. Conflicting credentials fail closed, and account deletion
+revokes both direct and cross-product sessions.
 
-```
-GET /api/privacy/export?email=<your@email>&code=<6-digit-verification>
-```
+No online service can promise absolute security. If you believe you found a
+problem, contact **hello@bytedance.city** without including passwords, tokens,
+or other secrets in the message.
 
-Returns a JSON document with every record we hold tied to that email or the
-session ID you supply. Rate-limited to **1 request per hour per email** to
-prevent enumeration abuse.
+## Legal basis
 
-The verification code is currently mocked (always `123456` in dev / first
-real deployment will email a one-time code). The endpoint shape will stay
-stable when the real email flow ships.
+Where GDPR or similar law applies, necessary service operation and security are
+based on legitimate interests or contract-like service delivery; optional
+analytics and requested email updates rely on consent. You may withdraw consent
+for optional processing at any time.
 
-### Delete
+## Changes and controller
 
-```
-DELETE /api/privacy/delete?email=<your@email>&code=<6-digit-verification>
-```
-
-Removes records from all data files (newsletter, mock checkouts, error log).
-An **audit log entry** stays — recording that a delete was requested, with
-the *email and time only* — for compliance traceability. The audit log
-itself does not contain the deleted data.
-
-A mock confirmation email is logged (real email send wired when the email
-service is configured).
-
-### Object / opt out
-
-- Enable "Do Not Track" in your browser — analytics will auto-disable on
-  next page load
-- Click "Manage cookies" in the footer and turn off analytics
-- Email **riazward110@gmail.com** for any request not covered by the self-
-  service endpoints
-
-We aim to respond to manual requests within **7 days**.
-
-## Legal basis (for EU/UK visitors)
-
-For **default analytics-free browsing**, we rely on **legitimate interest**
-under GDPR Art. 6(1)(f). For **analytics with your consent**, we rely on
-**Art. 6(1)(a) — consent**, captured via the banner and revocable anytime.
-
-## Changes to this policy
-
-If we change what we collect, we'll update the date at the top of this page
-and (for material changes) post a short note on the homepage. The Next.js
-SSR version at `https://phase.bytedance.city/privacy` is kept in sync with
-this Markdown file; if the two disagree, the rendered page (with its more
-recent timestamp) is authoritative.
-
-## Contact
-
-Email: **riazward110@gmail.com**
-
-This site is a non-commercial research project. There is no corporate entity
-behind it; the data controller is the project maintainer (same email).
+Material changes update the date above. The rendered `/privacy` pages and the
+actual authenticated data controls take precedence over older historical
+documents. Structural is currently a non-commercial research project rather
+than a separate corporate entity; the project maintainer is the data controller.

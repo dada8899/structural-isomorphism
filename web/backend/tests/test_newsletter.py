@@ -6,6 +6,7 @@ Run with:
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -144,3 +145,20 @@ def test_email_normalized_to_lowercase_in_storage(client, tmp_path, monkeypatch)
     content = tmp_file.read_text(encoding="utf-8")
     assert "mixedcase@example.com" in content
     assert "MixedCase" not in content
+
+
+def test_signup_does_not_persist_network_or_browser_metadata(client):
+    response = client.post(
+        "/api/newsletter/subscribe",
+        json={"email": "private@example.com", "source": "test"},
+        headers={
+            "User-Agent": "ua-canary-42c488",
+            "Referer": "https://ref.example/referrer-canary-e29972",
+        },
+    )
+    assert response.status_code == 200
+    row = json.loads(nl._data_file().read_text(encoding="utf-8").splitlines()[0])
+    assert set(row) == {"email", "source", "ts", "iso"}
+    serialized = json.dumps(row)
+    assert "ua-canary-42c488" not in serialized
+    assert "referrer-canary-e29972" not in serialized

@@ -8,7 +8,6 @@ endpoints; this is foundation only.
 
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -18,7 +17,12 @@ from pydantic import BaseModel, Field
 
 from services.history_db import ALLOWED_KINDS, HistoryDB
 
-logger = logging.getLogger("structural.api.history")
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger
+else:
+    from logging_config import get_logger
+
+logger = get_logger("structural.api.history")
 
 router = APIRouter(tags=["history"])
 
@@ -40,7 +44,7 @@ def get_db() -> HistoryDB:
     global _db
     if _db is None:
         _db = HistoryDB(_resolve_db_path())
-        logger.info("history_db initialised at %s", _db.db_path)
+        logger.info("structural.history.initialized")
     return _db
 
 

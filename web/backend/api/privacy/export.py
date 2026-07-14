@@ -1,49 +1,35 @@
-"""GET /api/privacy/export — GDPR data subject access (DSAR) endpoint.
+"""Legacy unauthenticated export retained only as a development fixture.
 
-W14-C (session #10, 2026-05-15): self-service data export.
-
-Returns a JSON document with every record we hold for the given email
-identifier across:
-  • newsletter-subscribers.jsonl
-  • mock_checkouts.jsonl
-  • error_log.jsonl (matched by sessionId, not email — pass ?session_id=
-    in addition to ?email=)
-  • error_log.jsonl.1 (rotated segment, if present)
-
-Verification:
-  Phase 1 (now): mock verification code. The endpoint accepts the literal
-  string "123456" as the verification code (configurable via
-  STRUCTURAL_PRIVACY_MOCK_CODE env). This lets us:
-    1. Ship the endpoint shape today.
-    2. Test it in CI without a real mail server.
-    3. Surface a clear "needs real email loop" item for Phase 2.
-  Phase 2 (when SES/Postmark wired): send a 6-digit OTP, expire after 10
-  min, single-use. Same endpoint, just `code` verification changes.
-
-Rate limit:
-  1 request / hour / email. Prevents enumeration + abuse. Uses an in-
-  memory deque keyed by email; restarts reset. Documented as best-effort.
-
-Authentication:
-  Email + verification code only. We deliberately don't require any prior
-  account because we don't have accounts. The "verification" is the proof.
+A well-formed, constraint-valid production request returns HTTP 410; malformed
+or constraint-invalid queries return HTTP 422 before the handler. The supported
+account-bound export is ``GET /api/me/export`` with an active signed-in session.
+The email-code implementation below exists solely for isolated local and CI
+compatibility; it is not a public verification flow or a current account right.
 """
 from __future__ import annotations
 
 import json
-import logging
+import hashlib
+import hmac
 import os
 import secrets
 import time
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from schemas import PrivacyExportResponse as LegacyPrivacyExportResponse
+if __package__ == "web.backend.api.privacy":
+    from ...logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 router = APIRouter(tags=["privacy"], prefix="/privacy")
-logger = logging.getLogger("structural.privacy.export")
+logger = get_logger("structural.privacy.export")
 
 # --- Tuning ---
 RATE_LIMIT_WINDOW_S = 3600  # 1 hour
@@ -53,6 +39,16 @@ _MAX_EMAIL_LEN = 200
 # In-memory bucket. Cleared on restart — acceptable (worst case: user gets
 # one extra export after a server restart, not a security risk).
 _buckets: Dict[str, Deque[float]] = defaultdict(deque)
+_RATE_KEY = secrets.token_bytes(32)
+
+
+class LegacyPrivacyExportRetiredResponse(BaseModel):
+    error: Literal["legacy_privacy_endpoint_retired"]
+    detail: str
+
+
+def _is_prod() -> bool:
+    return os.getenv("STRUCTURAL_ENV", "dev").strip().lower() == "prod"
 
 
 def _data_dir() -> Path:
@@ -117,25 +113,22 @@ def _export_p3(email: str) -> Dict[str, List[Dict[str, Any]]]:
 
 # Random per-process fallback. Used only when STRUCTURAL_PRIVACY_MOCK_CODE is
 # unset — it locks the endpoint (no one can guess it) instead of falling back
-# to a public default. The old "123456" default meant anyone who knew a
+# to the retired public fallback. That fallback meant anyone who knew a
 # subscriber's email could pull their PII; an unset prod env must FAIL CLOSED.
 _FALLBACK_VERIFICATION_CODE = secrets.token_hex(16)
 
 
 def _expected_verification_code() -> str:
-    """Mock verification code. Phase 2 replaces with a real OTP store.
+    """Resolve the development-fixture code, failing closed when unset.
 
-    Set STRUCTURAL_PRIVACY_MOCK_CODE in every real deployment. When unset we
-    return an unguessable random code (fail closed), not a public default.
+    A constraint-valid production request never reaches this flow because the
+    route returns HTTP 410.
+    The environment override is only for isolated development and CI tests.
     """
     code = os.getenv("STRUCTURAL_PRIVACY_MOCK_CODE")
     if code:
         return code
-    logger.warning(
-        "STRUCTURAL_PRIVACY_MOCK_CODE unset — privacy export verification "
-        "uses a random per-process code; the endpoint is effectively locked "
-        "until an operator configures a real code."
-    )
+    logger.warning("privacy.export_fixture_locked")
     return _FALLBACK_VERIFICATION_CODE
 
 
@@ -149,6 +142,14 @@ def _check_rate_limit(key: str, now: float) -> bool:
         return False
     bucket.append(now)
     return True
+
+
+def _rate_key(identifier: str) -> str:
+    return hmac.new(
+        _RATE_KEY,
+        identifier.strip().lower().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -167,8 +168,12 @@ def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
                 except Exception:
                     # Single bad line shouldn't tank the whole export.
                     continue
-    except Exception as e:
-        logger.warning("read jsonl failed path=%s err=%s", path, e)
+    except Exception as exc:
+        logger.warning(
+            "privacy.export_read_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
     return out
 
 
@@ -181,23 +186,50 @@ def _filter_by_session(rows: List[Dict[str, Any]], session_id: str) -> List[Dict
     return [r for r in rows if (r.get("sessionId") or "") == session_id]
 
 
-@router.get("/export")
+@router.get(
+    "/export",
+    response_model=LegacyPrivacyExportResponse,
+    summary="Legacy email-code export (retired in production)",
+    description=(
+        "Development compatibility endpoint. A well-formed, constraint-valid "
+        "production request returns HTTP 410 before business logic or "
+        "persistence; a malformed, overlong, or otherwise constraint-invalid "
+        "query returns HTTP 422 before the handler. Signed-in users export "
+        "data through /api/me/export."
+    ),
+    deprecated=True,
+    responses={
+        410: {
+            "model": LegacyPrivacyExportRetiredResponse,
+            "description": "Production legacy export is retired",
+        },
+    },
+)
 async def export_data(
     request: Request,
     email: Optional[str] = Query(None, max_length=_MAX_EMAIL_LEN),
     session_id: Optional[str] = Query(None, max_length=128),
     code: Optional[str] = Query(None, max_length=32),
 ):
-    """Export all data tied to a given email + optional session id.
+    """Exercise the retired export fixture outside production only.
 
     Args:
         email: Identifier for newsletter / checkout records.
         session_id: Identifier for error log entries (different keying).
-        code: Verification code (mock for Phase 1).
+        code: Development-fixture verification value.
 
     Returns 200 with full payload on success. 401 if unverified.
     429 if rate-limit exceeded. 400 if no identifier supplied.
     """
+    if _is_prod():
+        return JSONResponse(
+            {
+                "error": "legacy_privacy_endpoint_retired",
+                "detail": "Use the signed-in account data export.",
+            },
+            status_code=410,
+        )
+
     now = time.time()
 
     # --- Input validation ---
@@ -213,18 +245,14 @@ async def export_data(
             status_code=401,
         )
     if code != _expected_verification_code():
-        logger.info(
-            "privacy export bad code: email=%s ip=%s",
-            email,
-            request.client.host if request.client else "?",
-        )
+        logger.info("privacy.export_verification_rejected")
         return JSONResponse(
             {"ok": False, "error": "invalid verification code"},
             status_code=401,
         )
 
     # --- Rate limit (after auth so 401 doesn't burn quota) ---
-    rl_key = (email or session_id or "").lower()
+    rl_key = _rate_key(email or session_id or "")
     if not _check_rate_limit(rl_key, now):
         return JSONResponse(
             {
@@ -276,20 +304,6 @@ async def export_data(
             error_rows.extend(_filter_by_session(_read_jsonl(f), session_id))
         payload["data"]["error_log"] = error_rows
 
-    logger.info(
-        "privacy export: email=%s session=%s newsletter=%d checkouts=%d "
-        "errors=%d fingerprints=%d match_requests=%d referrals=%d "
-        "messages=%d prefs=%d",
-        email,
-        session_id,
-        len(payload["data"]["newsletter_subscribers"]),
-        len(payload["data"]["mock_checkouts"]),
-        len(payload["data"]["error_log"]),
-        len(payload["data"]["structural_fingerprints"]),
-        len(payload["data"]["match_requests"]),
-        len(payload["data"]["referrals"]),
-        len(payload["data"]["connections_messages"]),
-        len(payload["data"]["connections_prefs"]),
-    )
+    logger.info("privacy.export_completed")
 
     return JSONResponse(payload, status_code=200)

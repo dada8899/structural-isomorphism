@@ -21,10 +21,16 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 if __package__ == "web.backend.api":
-    from .auth import require_same_origin, resolve_session_user
+    from .auth import (
+        account_is_active, account_owner_transaction, require_same_origin,
+        resolve_session_user,
+    )
     from ..services.sso_store import SsoReplayStore
 else:
-    from api.auth import require_same_origin, resolve_session_user
+    from api.auth import (
+        account_is_active, account_owner_transaction, require_same_origin,
+        resolve_session_user,
+    )
     from services.sso_store import SsoReplayStore
 
 router = APIRouter(tags=["sso"])
@@ -150,17 +156,27 @@ async def issue_exchange_code(body: IssueBody, request: Request):
     user, status = resolve_session_user(request)
     if status != "valid" or not user:
         return JSONResponse({"ok": False, "error": "valid session required"}, status_code=401)
-    now = int(time.time())
-    jti = uuid.uuid4().hex
-    expires_at = now + _CODE_TTL
-    SsoReplayStore(_data_dir() / "sso_replay.sqlite3").issue(
-        jti, _subject_id(user["email"]), user["tier"], expires_at,
-        email=user["email"],
-    )
-    claims = {
-        "iss": _phase_origin(), "aud": body.audience, "state": body.state,
-        "nonce": body.nonce, "jti": jti, "iat": now, "exp": expires_at,
-    }
+    with account_owner_transaction(user["email"]):
+        locked_user, locked_status = resolve_session_user(request)
+        if locked_status != "valid" or not locked_user:
+            return JSONResponse(
+                {"ok": False, "error": "valid session required"}, status_code=401,
+            )
+        if locked_user["email"].lower() != user["email"].lower():
+            return JSONResponse(
+                {"ok": False, "error": "credential_conflict"}, status_code=409,
+            )
+        now = int(time.time())
+        jti = uuid.uuid4().hex
+        expires_at = now + _CODE_TTL
+        SsoReplayStore(_data_dir() / "sso_replay.sqlite3").issue(
+            jti, _subject_id(locked_user["email"]), locked_user["tier"], expires_at,
+            email=locked_user["email"],
+        )
+        claims = {
+            "iss": _phase_origin(), "aud": body.audience, "state": body.state,
+            "nonce": body.nonce, "jti": jti, "iat": now, "exp": expires_at,
+        }
     return {"ok": True, "code": jwt.encode(claims, _secret(), algorithm=_ALG)}
 
 
@@ -186,18 +202,44 @@ async def exchange_code(body: ExchangeBody, request: Request):
         return JSONResponse({"ok": False, "error": "state mismatch"}, status_code=400)
     if not hmac.compare_digest(str(code.get("nonce", "")), str(binding.get("nonce", ""))):
         return JSONResponse({"ok": False, "error": "nonce mismatch"}, status_code=400)
-    issued = SsoReplayStore(_data_dir() / "sso_replay.sqlite3").consume_issued(
-        str(code.get("jti", ""))
-    )
-    if not issued:
+    ledger = SsoReplayStore(_data_dir() / "sso_replay.sqlite3")
+    code_jti = str(code.get("jti", ""))
+    pending = ledger.lookup_issued(code_jti)
+    if not pending:
         return JSONResponse({"ok": False, "error": "exchange already used"}, status_code=409)
-    now = int(time.time())
-    session = jwt.encode(
-        {"iss": _beta_origin(), "aud": "structural-beta-session", "sub": issued["subject_id"],
-         "tier": issued.get("tier", "free"), "jti": uuid.uuid4().hex,
-         "iat": now, "issued_ns": time.time_ns(), "exp": now + _SESSION_TTL},
-        _secret(), algorithm=_ALG,
-    )
+    issued_email = str(pending.get("email") or "").strip().lower()
+    if (
+        not issued_email
+        or not hmac.compare_digest(_subject_id(issued_email), pending["subject_id"])
+    ):
+        return JSONResponse({"ok": False, "error": "exchange identity unavailable"}, status_code=409)
+    with account_owner_transaction(issued_email):
+        issued = ledger.consume_issued(code_jti)
+        if not issued:
+            return JSONResponse({"ok": False, "error": "exchange already used"}, status_code=409)
+        if (
+            issued["subject_id"] != pending["subject_id"]
+            or str(issued.get("email") or "").strip().lower() != issued_email
+        ):
+            return JSONResponse({"ok": False, "error": "exchange identity changed"}, status_code=409)
+        revoked_at = ledger.subject_revoked_at(issued["subject_id"])
+        issued_ns = issued.get("issued_ns")
+        if (
+            not account_is_active(issued_email)
+            or ledger.email_for_subject(issued["subject_id"]) != issued_email
+            or (
+                revoked_at is not None
+                and (issued_ns is None or int(issued_ns) <= revoked_at)
+            )
+        ):
+            return JSONResponse({"ok": False, "error": "account no longer active"}, status_code=409)
+        now = int(time.time())
+        session = jwt.encode(
+            {"iss": _beta_origin(), "aud": "structural-beta-session", "sub": issued["subject_id"],
+             "tier": issued.get("tier", "free"), "jti": uuid.uuid4().hex,
+             "iat": now, "issued_ns": time.time_ns(), "exp": now + _SESSION_TTL},
+            _secret(), algorithm=_ALG,
+        )
     response = JSONResponse({"ok": True, "user": {"id": issued["subject_id"]}})
     response.set_cookie(_BETA_SESSION_COOKIE, session, **_cookie_args(request, _SESSION_TTL))
     response.delete_cookie(_STATE_COOKIE, path="/")

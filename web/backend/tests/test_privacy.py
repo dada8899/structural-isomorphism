@@ -67,13 +67,61 @@ def app_with_data(tmp_path, monkeypatch):
     exp_mod._buckets.clear()
     del_mod._buckets.clear()
 
-    # Ensure deterministic mock code
+    # Ensure a deterministic development-fixture verification value.
     monkeypatch.setenv("STRUCTURAL_PRIVACY_MOCK_CODE", "123456")
+    monkeypatch.setenv("STRUCTURAL_ENV", "dev")
 
     app = FastAPI()
     app.include_router(exp_mod.router, prefix="/api")
     app.include_router(del_mod.router, prefix="/api")
     return TestClient(app), data_dir
+
+
+def test_legacy_privacy_endpoints_are_retired_without_side_effects_in_production(
+    app_with_data, monkeypatch
+):
+    client, data_dir = app_with_data
+    newsletter_before = (data_dir / "newsletter-subscribers.jsonl").read_bytes()
+    checkouts_before = (data_dir / "mock_checkouts.jsonl").read_bytes()
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+
+    exported = client.get(
+        "/api/privacy/export?email=alice@example.com&code=123456"
+    )
+    deleted = client.request(
+        "DELETE", "/api/privacy/delete?email=alice@example.com&code=123456"
+    )
+
+    assert exported.status_code == 410
+    assert deleted.status_code == 410
+    assert exported.json()["error"] == "legacy_privacy_endpoint_retired"
+    assert deleted.json()["error"] == "legacy_privacy_endpoint_retired"
+    assert (data_dir / "newsletter-subscribers.jsonl").read_bytes() == newsletter_before
+    assert (data_dir / "mock_checkouts.jsonl").read_bytes() == checkouts_before
+    assert not (data_dir / "privacy_audit.jsonl").exists()
+
+
+@pytest.mark.parametrize("endpoint,method", [
+    ("/api/privacy/export", "GET"),
+    ("/api/privacy/delete", "DELETE"),
+])
+@pytest.mark.parametrize("invalid_query", [
+    f"email={'a' * 201}",
+    f"session_id={'s' * 129}",
+    f"code={'c' * 33}",
+])
+def test_production_privacy_constraints_return_422_before_retirement_handler(
+    app_with_data, monkeypatch, endpoint, method, invalid_query,
+):
+    client, data_dir = app_with_data
+    newsletter_before = (data_dir / "newsletter-subscribers.jsonl").read_bytes()
+    monkeypatch.setenv("STRUCTURAL_ENV", "prod")
+
+    response = client.request(method, f"{endpoint}?{invalid_query}")
+
+    assert response.status_code == 422
+    assert (data_dir / "newsletter-subscribers.jsonl").read_bytes() == newsletter_before
+    assert not (data_dir / "privacy_audit.jsonl").exists()
 
 
 # ===========================================================================
@@ -89,7 +137,7 @@ def test_export_returns_correct_shape(app_with_data):
     assert body["ok"] is True
     assert body["email"] == "alice@example.com"
     assert "exported_at" in body
-    assert "data" in body
+    assert set(body) == {"ok", "exported_at", "email", "session_id", "data"}
     assert set(body["data"].keys()) == {
         "newsletter_subscribers",
         "mock_checkouts",
@@ -187,6 +235,17 @@ def test_delete_removes_data(app_with_data):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["ok"] is True
+    assert set(body) == {"ok", "deleted_at", "removed", "email_confirmation"}
+    assert set(body["removed"]) == {
+        "newsletter_subscribers",
+        "mock_checkouts",
+        "error_log",
+        "structural_fingerprints",
+        "match_requests",
+        "referrals",
+        "connections_messages",
+        "connections_prefs",
+    }
     assert body["removed"]["newsletter_subscribers"] == 1
     assert body["removed"]["mock_checkouts"] == 2
 
@@ -210,7 +269,11 @@ def test_delete_writes_audit_entry(app_with_data):
     entries = [json.loads(line) for line in audit.read_text().splitlines() if line.strip()]
     assert len(entries) == 1
     assert entries[0]["event"] == "delete_requested"
-    assert entries[0]["email"] == "alice@example.com"
+    assert len(entries[0]["incident_id"]) == 32
+    assert "email" not in entries[0]
+    assert "session_id" not in entries[0]
+    assert "ip" not in entries[0]
+    assert "alice@example.com" not in audit.read_text()
     assert "removed_counts" in entries[0]
 
 

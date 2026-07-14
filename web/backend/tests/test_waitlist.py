@@ -62,6 +62,8 @@ def test_happy_path_creates_row(client):
         assert r0["email"] == "alice@example.com"
         assert r0["source"] == "homepage-hero"
         assert r0["created_at"]  # non-empty ISO timestamp
+        assert r0["ip"] is None
+        assert r0["ua"] is None
 
     # Count endpoint reflects it
     r2 = client.get("/api/waitlist/count")
@@ -127,6 +129,22 @@ def test_rate_limit_after_5_signups(client):
     )
     assert r6.status_code == 429
     assert r6.json()["error"] == "rate_limited"
+    assert "testclient" not in wl._rate_buckets
+
+
+def test_signup_does_not_persist_client_metadata(client):
+    response = client.post(
+        "/api/waitlist",
+        json={"email": "metadata@example.com", "source": "test"},
+        headers={"User-Agent": "ua-canary-887738"},
+    )
+    assert response.status_code == 200
+    with sqlite3.connect(str(wl._data_file())) as conn:
+        row = conn.execute(
+            "SELECT ip, ua FROM waitlist_signups WHERE email = ?",
+            ("metadata@example.com",),
+        ).fetchone()
+    assert row == (None, None)
 
 
 # ---------- UTM capture ----------

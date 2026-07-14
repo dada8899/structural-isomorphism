@@ -18,8 +18,8 @@ Schema:
         utm_campaign TEXT,
         utm_term TEXT,
         utm_content TEXT,
-        ip TEXT,
-        ua TEXT
+        ip TEXT,                           -- legacy column; new rows are NULL
+        ua TEXT                            -- legacy column; new rows are NULL
     )
 
 Why SQLite vs JSONL (newsletter.py uses JSONL):
@@ -48,20 +48,27 @@ Response:
 from __future__ import annotations
 
 import datetime as _dt
-import logging
+import hashlib
+import hmac
 import re
+import secrets
 import sqlite3
 import time
 from collections import deque
+from contextlib import closing
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 router = APIRouter(tags=["waitlist"])
-logger = logging.getLogger("structural.waitlist")
+logger = get_logger("structural.waitlist")
 
 # Pragmatic RFC-5322-ish — same shape as newsletter.py for consistency.
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
@@ -84,6 +91,16 @@ _MAX_UTM_LEN = 200
 _RATE_WINDOW_SEC = 600
 _RATE_MAX = 5
 _rate_buckets: dict[str, deque] = {}
+_RATE_KEY = secrets.token_bytes(32)
+
+
+def _rate_bucket_key(client_address: str) -> str:
+    """Return a process-local opaque bucket key, never a raw client address."""
+    return hmac.new(
+        _RATE_KEY,
+        client_address.encode("utf-8", errors="ignore"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def _data_file() -> Path:
@@ -174,7 +191,7 @@ def _norm_utm(v: Optional[str]) -> Optional[str]:
 async def waitlist(body: WaitlistBody, request: Request):
     email = (body.email or "").strip().lower()
     source = (body.source or "homepage-hero").strip().lower()
-    ip = request.client.host if request.client else "?"
+    rate_key = _rate_bucket_key(request.client.host if request.client else "unknown")
 
     # --- Validation ---
     if not email or len(email) > _MAX_EMAIL_LEN or not _EMAIL_RE.match(email):
@@ -187,8 +204,8 @@ async def waitlist(body: WaitlistBody, request: Request):
         )
 
     # --- Rate limit ---
-    if not _check_rate_limit(ip, time.time()):
-        logger.info("waitlist rate_limited: ip=%s", ip)
+    if not _check_rate_limit(rate_key, time.time()):
+        logger.info("waitlist.rate_limited")
         return JSONResponse(
             {"ok": False, "error": "rate_limited"}, status_code=429
         )
@@ -202,10 +219,8 @@ async def waitlist(body: WaitlistBody, request: Request):
     created_at = _dt.datetime.now(_dt.timezone.utc).isoformat(
         sep=" ", timespec="seconds"
     )
-    ua = (request.headers.get("user-agent") or "")[:300]
-
     try:
-        with _connect() as conn:
+        with closing(_connect()) as conn, conn:
             try:
                 conn.execute(
                     "INSERT INTO waitlist_signups "
@@ -215,25 +230,26 @@ async def waitlist(body: WaitlistBody, request: Request):
                     (
                         email, created_at, source,
                         utm_source, utm_medium, utm_campaign,
-                        utm_term, utm_content, ip, ua,
+                        utm_term, utm_content, None, None,
                     ),
                 )
                 conn.commit()
-                logger.info(
-                    "waitlist signup: email=%s source=%s utm_source=%s",
-                    email, source, utm_source,
-                )
+                logger.info("waitlist.signup")
                 return JSONResponse(
                     {"ok": True, "created": True, "email": email}
                 )
             except sqlite3.IntegrityError:
                 # UNIQUE constraint on email — duplicate is *not* an error.
-                logger.info("waitlist duplicate: email=%s source=%s", email, source)
+                logger.info("waitlist.duplicate")
                 return JSONResponse(
                     {"ok": True, "created": False, "email": email}
                 )
-    except sqlite3.Error as e:
-        logger.error("waitlist storage failure: %s", e)
+    except sqlite3.Error as exc:
+        logger.error(
+            "waitlist.storage_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse(
             {"ok": False, "error": "storage failure"}, status_code=500
         )
@@ -244,12 +260,16 @@ async def count():
     """Public count — used by social-proof widgets ("join 1,234 analysts...").
     Cheap at our scale; refactor to cache if hot."""
     try:
-        with _connect() as conn:
+        with closing(_connect()) as conn, conn:
             row = conn.execute(
                 "SELECT COUNT(*) AS n FROM waitlist_signups"
             ).fetchone()
             n = int(row["n"] if row else 0)
             return JSONResponse({"count": n})
-    except sqlite3.Error as e:  # pragma: no cover
-        logger.error("waitlist count failed: %s", e)
+    except sqlite3.Error as exc:  # pragma: no cover
+        logger.error(
+            "waitlist.count_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse({"count": 0})
