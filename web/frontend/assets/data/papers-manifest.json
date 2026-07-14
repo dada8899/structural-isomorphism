@@ -1,278 +1,315 @@
 {
   "meta": {
+    "schema_version": "papers-manifest-v2",
     "generated_at": "2026-05-13",
-    "version": "v4-session3",
-    "last_updated": "2026-05-13",
-    "total_papers": 20,
-    "verified_phases": 13,
-    "preprints": 1,
-    "arxiv_drafts": 4,
-    "tutorials": 1
+    "version": "v4-session3-public-boundary-v2",
+    "last_updated": "2026-07-13",
+    "asset_version": "20260714n2",
+    "slug_pattern": "^(?!.*\\.\\.)(?!.*\\.$)[a-z0-9][a-z0-9._-]{1,119}$",
+    "total_items": 20,
+    "historical_result_records": 14,
+    "historical_research_drafts": 5,
+    "historical_tutorials": 1,
+    "result_contract": {
+      "schema_version": "empirical-result-card-v1",
+      "evidence_level": "historical_internal_record",
+      "outcome_status": "not_normalized_in_current_ledger",
+      "source_status": "inspect_record",
+      "license_status": "not_recorded_in_manifest",
+      "preregistration_status": "not_recorded_in_manifest",
+      "ledger_status": "not_bound",
+      "review_status": "internal_only",
+      "observed_fallback_zh": "该页面保留一份历史分析记录；公开索引不把其中的统计量提升为机制结论。",
+      "observed_fallback_en": "This page preserves a historical analysis record; the public index does not promote its statistics into a mechanism claim.",
+      "boundary_zh": "它不能证明跨领域系统共享机制，也不代表外部同行评审、独立复现或当前可投稿结论。",
+      "boundary_en": "It does not establish a shared cross-domain mechanism, external peer review, independent replication, or a submission-ready conclusion.",
+      "next_test_zh": "核对原始来源与许可，冻结输入和结果哈希，记录替代模型与失败条件，再绑定当前证据账本。",
+      "next_test_en": "Audit source and license, freeze input and result hashes, record alternatives and failure rules, then bind the record to the current evidence ledger."
+    }
   },
   "groups": [
     {
       "id": "unified",
-      "title_zh": "v0.2 统一预印本",
-      "title_en": "v0.2 unified preprint",
-      "desc_zh": "13 个验证系统、一条 339 行 pipeline、一份完整论文。",
-      "desc_en": "Thirteen verified systems, one 339-line pipeline, one preprint.",
+      "title_zh": "v0.2 历史综合稿",
+      "title_en": "v0.2 historical synthesis draft",
+      "desc_zh": "对 13 份历史结果记录的综合稿；尚未与当前证据账本逐项绑定。",
+      "desc_en": "A synthesis of 13 historical result records; it is not yet bound record-by-record to the current evidence ledger.",
       "papers": [
         {
           "slug": "unified-pipeline-v0.2-2026-05-13",
-          "title_zh": "13 系统跨域普适类统一 pipeline (v0.2)",
-          "title_en": "Unified pipeline for 13-system cross-domain universality (v0.2)",
+          "title_zh": "13 份跨领域结果记录的历史综合分析 (v0.2)",
+          "title_en": "Historical synthesis of 13 cross-domain result records (v0.2)",
           "words": 12538,
           "minutes": 25,
           "class": "multi (SOC + PA + Motter-Lai + Preisach + Scheffer)",
-          "status": "preprint",
+          "status": "historical-draft",
           "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4",
           "feature": true
         }
       ]
     },
     {
       "id": "arxiv-drafts",
-      "title_zh": "arXiv 单系统稿件 (Session #3)",
-      "title_en": "arXiv solo drafts (Session #3)",
-      "desc_zh": "C2 工作流产出，4 篇可独立投出的 arXiv 草稿。",
-      "desc_en": "C2 workflow products — four standalone arXiv-ready drafts.",
+      "title_zh": "单系统历史研究稿 (Session #3)",
+      "title_en": "Historical single-system drafts (Session #3)",
+      "desc_zh": "C2 工作流保留的 4 篇内部草稿；不是可直接投稿或已同行评审的论文。",
+      "desc_en": "Four internal drafts retained from the C2 workflow; they are neither submission-ready nor peer-reviewed papers.",
       "papers": [
         {
           "slug": "arxiv-01_earthquake_soc-2026-05-13",
-          "title_zh": "全球地震目录上的 SOC 复现 — arXiv 稿",
-          "title_en": "Recovering SOC on a global earthquake catalog — arXiv draft",
+          "title_zh": "全球地震目录 SOC 候选分析 — 历史稿",
+          "title_en": "Candidate SOC analysis of a global earthquake catalog — historical draft",
           "words": 4249,
           "minutes": 9,
           "class": "SOC threshold-cascade",
-          "status": "arxiv-draft",
-          "date": "2026-05-13"
+          "status": "historical-draft",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-earthquake"
         },
         {
           "slug": "arxiv-02_stockmarket_inverse_cubic-2026-05-13",
-          "title_zh": "S&P 500 跨域 SOC: 反三次律 + Omori 衰减 — arXiv 稿",
-          "title_en": "Cross-domain SOC: inverse cubic law on S&P 500 — arXiv draft",
+          "title_zh": "S&P 500 尾部与衰减形态候选分析 — 历史稿",
+          "title_en": "Candidate tail and decay analysis for the S&P 500 — historical draft",
           "words": 3279,
           "minutes": 7,
           "class": "SOC threshold-cascade",
-          "status": "arxiv-draft",
-          "date": "2026-05-13"
+          "status": "historical-draft",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-stockmarket"
         },
         {
           "slug": "arxiv-03_defi_cross_protocol-2026-05-13",
-          "title_zh": "DeFi 跨协议清算 SOC: 43k 事件 / 3 协议 — arXiv 稿",
-          "title_en": "Cross-protocol SOC in DeFi liquidations (43k events) — arXiv draft",
+          "title_zh": "DeFi 跨协议清算形态候选分析 — 历史稿",
+          "title_en": "Candidate cross-protocol pattern analysis of DeFi liquidations — historical draft",
           "words": 3870,
           "minutes": 8,
           "class": "SOC threshold-cascade",
-          "status": "arxiv-draft",
-          "date": "2026-05-13"
+          "status": "historical-draft",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-defi"
         },
         {
           "slug": "arxiv-04_neural_avalanches-2026-05-13",
-          "title_zh": "无均匀场 SOC: 任务态小鼠皮层雪崩缩放 — arXiv 稿",
-          "title_en": "Criticality without mean-field SOC: neural avalanche scaling — arXiv draft",
+          "title_zh": "任务态小鼠皮层雪崩缩放候选分析 — 历史稿",
+          "title_en": "Candidate scaling analysis of task-state mouse cortical avalanches — historical draft",
           "words": 3335,
           "minutes": 7,
           "class": "SOC threshold-cascade",
-          "status": "arxiv-draft",
-          "date": "2026-05-13"
+          "status": "historical-draft",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-neural"
         }
       ]
     },
     {
       "id": "phase-papers",
-      "title_zh": "13 个验证 phase paper",
-      "title_en": "13 verified phase papers",
-      "desc_zh": "每篇 = 一个独立数据源 × 共享 339 行 pipeline，全部带 α + 95% CI + null control。",
-      "desc_en": "Each = one independent data source × the shared 339-line pipeline, with α + 95% CI + null control.",
+      "title_zh": "14 份领域结果记录",
+      "title_en": "14 domain result records",
+      "desc_zh": "每页保留一份历史分析；数据来源、预处理、替代模型、独立性与复现状态需逐项核对。",
+      "desc_en": "Each page preserves a historical analysis; source, preprocessing, alternatives, independence, and replication status require record-level review.",
       "papers": [
         {
           "slug": "soc-earthquake-2026-04-15",
-          "title_zh": "Phase 1 · USGS 地震 SOC",
-          "title_en": "Phase 1 · USGS earthquakes SOC",
+          "title_zh": "Phase 1 · USGS 地震候选形态记录",
+          "title_en": "Phase 1 · Candidate pattern record for USGS earthquakes",
           "words": 3613,
           "minutes": 8,
           "class": "SOC threshold-cascade",
           "alpha": "b = 1.084 ± 0.005",
           "n_tail": 37281,
-          "status": "site",
-          "date": "2026-04-15"
+          "status": "historical-record",
+          "date": "2026-04-15",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-earthquake"
         },
         {
           "slug": "soc-stockmarket-2026-04-15",
-          "title_zh": "Phase 2 · S&P 500 反三次律",
-          "title_en": "Phase 2 · S&P 500 inverse cubic",
+          "title_zh": "Phase 2 · S&P 500 尾部分布记录",
+          "title_en": "Phase 2 · S&P 500 tail-distribution record",
           "words": 2053,
           "minutes": 5,
           "class": "SOC threshold-cascade",
           "alpha": "α = 2.998 ± 0.041",
           "n_tail": 9060,
-          "status": "site",
-          "date": "2026-04-15"
+          "status": "historical-record",
+          "date": "2026-04-15",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-stockmarket"
         },
         {
           "slug": "soc-defi-2026-04-15",
-          "title_zh": "Phase 3 · DeFi 跨协议清算",
-          "title_en": "Phase 3 · DeFi cross-protocol liquidations",
+          "title_zh": "Phase 3 · DeFi 跨协议清算形态记录",
+          "title_en": "Phase 3 · DeFi cross-protocol liquidation-pattern record",
           "words": 2925,
           "minutes": 6,
           "class": "SOC threshold-cascade",
           "alpha": "α ∈ [1.567, 1.684]",
           "n_tail": 43065,
-          "status": "site",
-          "date": "2026-04-15"
+          "status": "historical-record",
+          "date": "2026-04-15",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-defi"
         },
         {
           "slug": "soc-neural-2026-04-16",
-          "title_zh": "Phase 4 · 小鼠皮层神经雪崩",
-          "title_en": "Phase 4 · Mouse cortex neural avalanches",
+          "title_zh": "Phase 4 · 小鼠皮层神经雪崩缩放记录",
+          "title_en": "Phase 4 · Mouse cortical avalanche-scaling record",
           "words": 1964,
           "minutes": 4,
           "class": "SOC threshold-cascade",
           "alpha": "τ ∈ [2.17, 3.00]",
           "n_tail": 1390000,
-          "status": "site",
-          "date": "2026-04-16"
+          "status": "historical-record",
+          "date": "2026-04-16",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-neural"
         },
         {
           "slug": "soc-null-2026-04-16",
-          "title_zh": "Phase 5 · Null 反向验证 (pipeline 不撒谎)",
-          "title_en": "Phase 5 · Null control (pipeline does not lie)",
+          "title_zh": "Phase 5 · 四组合成 Null 对照记录",
+          "title_en": "Phase 5 · Four synthetic null-control records",
           "words": 895,
           "minutes": 2,
           "class": "null-controls",
           "alpha": "rejected on 4 synthetic nulls",
           "n_tail": null,
-          "status": "site",
-          "date": "2026-04-16"
+          "status": "historical-record",
+          "date": "2026-04-16",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/null-controls"
         },
         {
           "slug": "soc-github-stars-2026-05-13",
-          "title_zh": "Phase 6 · GitHub 仓库 stars (Barabási-Albert PA)",
-          "title_en": "Phase 6 · GitHub repos (Barabási-Albert PA)",
+          "title_zh": "Phase 6 · GitHub 仓库 stars 分布记录",
+          "title_en": "Phase 6 · GitHub repository star-distribution record",
           "words": 2496,
           "minutes": 5,
           "class": "Preferential attachment",
           "alpha": "α = 2.867 ± 0.050",
           "n_tail": 8398,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-github-stars"
         },
         {
           "slug": "soc-power-grid-2026-05-13",
-          "title_zh": "Phase 7 · 北美电网级联 (Motter-Lai)",
-          "title_en": "Phase 7 · NERC power-grid cascades (Motter-Lai)",
+          "title_zh": "Phase 7 · 北美电网级联规模记录",
+          "title_en": "Phase 7 · North American power-grid cascade-size record",
           "words": 3622,
           "minutes": 8,
           "class": "Motter-Lai network-cascade",
           "alpha": "α_MW = 2.02 ± 0.16",
           "n_tail": 123,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-power-grid"
         },
         {
           "slug": "soc-bank-failures-2026-05-13",
-          "title_zh": "Phase 8 · FDIC 美国银行倒闭 (Diamond-Dybvig)",
-          "title_en": "Phase 8 · FDIC US bank failures (Diamond-Dybvig)",
+          "title_zh": "Phase 8 · FDIC 美国银行倒闭规模记录",
+          "title_en": "Phase 8 · FDIC US bank-failure size record",
           "words": 3429,
           "minutes": 7,
           "class": "SOC / Diamond-Dybvig sub-class",
           "alpha": "α = 1.899 ± 0.045",
           "n_tail": 3960,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-bank-failures"
         },
         {
           "slug": "soc-wildfire-2026-05-13",
-          "title_zh": "Phase 10 · NIFC 美国野火 SOC",
-          "title_en": "Phase 10 · NIFC US wildfires SOC",
+          "title_zh": "Phase 10 · NIFC 美国野火规模分布记录",
+          "title_en": "Phase 10 · NIFC US wildfire-size distribution record",
           "words": 2490,
           "minutes": 5,
           "class": "SOC threshold-cascade",
           "alpha": "α = 1.660 ± 0.017",
           "n_tail": 21022,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-wildfire"
         },
         {
           "slug": "soc-solar-2026-05-13",
-          "title_zh": "Phase 11 · GOES 太阳耀斑 SOC",
-          "title_en": "Phase 11 · GOES solar flares SOC",
+          "title_zh": "Phase 11 · GOES 太阳耀斑规模分布记录",
+          "title_en": "Phase 11 · GOES solar-flare size-distribution record",
           "words": 2512,
           "minutes": 5,
           "class": "SOC threshold-cascade",
           "alpha": "α = 2.194 ± 0.018",
           "n_tail": 29907,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-solar"
         },
         {
           "slug": "soc-universal-collapse-2026-05-13",
-          "title_zh": "Phase 12 · 跨系统 universal collapse (BIC 模型选择)",
-          "title_en": "Phase 12 · Cross-system universal collapse (BIC)",
+          "title_zh": "Phase 12 · 跨系统归一化形态比较记录",
+          "title_en": "Phase 12 · Cross-system normalized-shape comparison record",
           "words": 3967,
           "minutes": 8,
           "class": "finite-size scaling",
           "alpha": "r_shape = 1.11",
           "n_tail": null,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-universal-collapse"
         },
         {
           "slug": "soc-wikipedia-views-2026-05-13",
-          "title_zh": "Phase 13 · Wikipedia 浏览量 (Zipf PA 带)",
-          "title_en": "Phase 13 · Wikipedia pageviews (Zipf PA band)",
+          "title_zh": "Phase 13 · Wikipedia 浏览量分布记录",
+          "title_en": "Phase 13 · Wikipedia pageview-distribution record",
           "words": 3627,
           "minutes": 8,
           "class": "Preferential attachment (Zipf)",
           "alpha": "α = 2.034 ± 0.019",
           "n_tail": 7521,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/soc-wikipedia-views"
         },
         {
           "slug": "hysteresis-traffic-2026-05-13",
-          "title_zh": "A2-Hysteresis · NGSIM US-101 高速公路一阶相变 (Preisach)",
-          "title_en": "A2-Hysteresis · NGSIM US-101 first-order signature (Preisach)",
+          "title_zh": "A2-Hysteresis · NGSIM US-101 滞回形态记录",
+          "title_en": "A2-Hysteresis · NGSIM US-101 hysteresis-pattern record",
           "words": 3531,
           "minutes": 7,
           "class": "Preisach hysteresis (per-domain)",
           "alpha": "loop-width 1.38 ∈ [1.25, 1.55]",
           "n_tail": 4538,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/hysteresis-traffic"
         },
         {
           "slug": "scheffer-lake-2026-05-13",
-          "title_zh": "A2-Scheffer · Fox River 湖泊溶氧 fold 分岔 (CSD)",
-          "title_en": "A2-Scheffer · Fox River dissolved oxygen fold-bifurcation",
+          "title_zh": "A2-Scheffer · Fox River 湖泊溶氧早期预警指标记录",
+          "title_en": "A2-Scheffer · Fox River dissolved-oxygen early-warning indicator record",
           "words": 2960,
           "minutes": 6,
           "class": "Scheffer fold-bifurcation",
           "alpha": "Kendall τ_AR1 = +0.284 / τ_Var = +0.234",
           "n_tail": null,
-          "status": "site",
-          "date": "2026-05-13"
+          "status": "historical-record",
+          "date": "2026-05-13",
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/v4/validation/scheffer-lake"
         }
       ]
     },
     {
       "id": "tutorials",
-      "title_zh": "复现 tutorial",
-      "title_en": "Reproduction tutorial",
-      "desc_zh": "30 分钟、零私有数据、本地 pip + REST 即可跑通 Phase 1。",
-      "desc_en": "30-minute, no private data — pip + REST gets you Phase 1.",
+      "title_zh": "历史复现 tutorial",
+      "title_en": "Historical reproduction tutorial",
+      "desc_zh": "用于重跑 Phase 1 历史分析；依赖与上游数据可漂移，结果仍需与当前账本核对。",
+      "desc_en": "Re-runs the historical Phase 1 analysis; dependencies and upstream data may drift, and results still require current-ledger review.",
       "papers": [
         {
           "slug": "tutorial-reproduction-2026-05-13",
-          "title_zh": "Phase 1 复现 tutorial — Jupyter + CLI",
-          "title_en": "Phase 1 reproduction tutorial — Jupyter + CLI",
+          "title_zh": "Phase 1 历史复现 tutorial — Jupyter + CLI",
+          "title_en": "Phase 1 historical reproduction tutorial — Jupyter + CLI",
           "words": 710,
           "minutes": 2,
           "class": "tutorial",
-          "status": "site",
+          "status": "historical-tutorial",
           "date": "2026-05-13",
-          "external_link": "https://github.com/dada8899/structural-isomorphism/tree/main/tutorials"
+          "source_url": "https://github.com/dada8899/structural-isomorphism/tree/main/tutorials"
         }
       ]
     }
