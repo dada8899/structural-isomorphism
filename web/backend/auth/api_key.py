@@ -31,7 +31,6 @@ Public API:
 from __future__ import annotations
 
 import json
-import logging
 import os
 import threading
 import time
@@ -42,8 +41,12 @@ from typing import Optional
 
 from fastapi import Header, Request
 from pydantic import BaseModel, ConfigDict, Field
+if __package__ == "web.backend.auth":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.auth.api_key")
+logger = get_logger("structural.auth.api_key")
 
 # Tier set — must stay in sync with middleware.rate_limit.TIER_LIMITS.
 VALID_TIERS = ("free", "pro", "team", "admin")
@@ -107,14 +110,20 @@ class _KeyStore:
                         data = json.loads(raw)
                         ak = APIKey(**data)
                         keys[ak.key] = ak
-                    except Exception as e:
+                    except Exception as exc:
                         logger.warning(
-                            "api_keys.jsonl line %d malformed: %s", line_no, e
+                            "auth.api_key_record_rejected",
+                            error_type=type(exc).__name__,
+                            incident_id=new_incident_id(),
                         )
             self._keys = keys
             self._last_loaded_at = time.time()
-        except Exception as e:
-            logger.error("failed to load %s: %s", self.path, e)
+        except Exception as exc:
+            logger.error(
+                "auth.api_key_store_load_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
 
     def lookup(self, key: str) -> Optional[APIKey]:
         if not key:

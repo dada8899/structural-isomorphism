@@ -22,7 +22,6 @@ A/B experiments to anon users.)
 from __future__ import annotations
 
 import hashlib
-import logging
 import os
 import threading
 import time
@@ -32,7 +31,12 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-log = logging.getLogger(__name__)
+if __package__ == "web.backend":
+    from .logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
+log = get_logger("structural.feature_flags")
 
 # Cache TTL — re-read YAML at most every 30s. Cheap (single file, few KB).
 _CACHE_TTL_SECONDS = 30.0
@@ -81,7 +85,7 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
         try:
             mtime = p.stat().st_mtime
         except FileNotFoundError:
-            log.warning("feature_flags: config not found at %s — defaulting to empty", p)
+            log.warning("structural.feature_flags.config_missing")
             _cache.data = {}
             _cache.loaded_at = now
             _cache.path = p
@@ -96,8 +100,12 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
         try:
             with open(p, "r", encoding="utf-8") as fh:
                 raw = yaml.safe_load(fh) or {}
-        except Exception as e:  # broad: any YAML or IO error
-            log.error("feature_flags: failed to parse %s: %s", p, e)
+        except Exception as exc:  # broad: any YAML or IO error
+            log.error(
+                "structural.feature_flags.load_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             # Keep last good cache if we have one; otherwise empty.
             if not _cache.data:
                 _cache.data = {}
@@ -107,7 +115,11 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
             return _cache.data
 
         if not isinstance(raw, dict):
-            log.error("feature_flags: top-level YAML must be a mapping, got %s", type(raw))
+            log.error(
+                "structural.feature_flags.schema_invalid",
+                error_type=type(raw).__name__,
+                incident_id=new_incident_id(),
+            )
             raw = {}
 
         # Normalize sections.
@@ -118,8 +130,10 @@ def _load_config(path: Optional[Path] = None, *, force: bool = False) -> Dict[st
         _cache.loaded_at = now
         _cache.path = p
         _cache.mtime = mtime
-        log.info("feature_flags: loaded %d flags + %d experiments from %s",
-                 len(raw["flags"]), len(raw["experiments"]), p)
+        log.info(
+            "structural.feature_flags.loaded",
+            count=len(raw["flags"]) + len(raw["experiments"]),
+        )
         return _cache.data
 
 
@@ -185,7 +199,7 @@ def is_enabled(flag: str, user_id: Optional[str] = None) -> bool:
         return _current_tier() in segments
 
     # Unknown rollout type: fail-closed.
-    log.warning("feature_flags: unknown rollout type %r for flag %s", rtype, flag)
+    log.warning("structural.feature_flags.rollout_type_unknown")
     return False
 
 

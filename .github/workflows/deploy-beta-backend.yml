@@ -19,9 +19,16 @@ on:
     paths:
       - 'web/backend/**'
       - 'web/frontend/**'
+      # Backend imports the in-repo package directly (including model.py and
+      # discovery_evidence.py); any behavior change there must redeploy beta.
+      - 'structural_isomorphism/**'
       - 'web/scripts/structural-web.service'
       - 'scripts/deploy-vps.sh'
-      - 'scripts/restore-models.sh'
+      - 'scripts/deploy-versioned-runtime.sh'
+      - 'scripts/deploy-retired-module.sh'
+      - 'scripts/deploy-beta-backend.sh'
+      - 'scripts/install-nginx-privacy-vhost.sh'
+      - 'web/scripts/beta-structural.nginx.conf'
       - '.github/workflows/deploy-beta-backend.yml'
   workflow_dispatch: {}
 
@@ -33,7 +40,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A cold immutable runtime includes torch + sentence-transformers. Warm
+    # deploys reuse the attested release, while the first build needs room to
+    # complete without leaving a half-installed mutable venv.
+    timeout-minutes: 35
     steps:
       - name: Checkout (context only)
         uses: actions/checkout@v4
@@ -53,18 +63,20 @@ jobs:
         env:
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           # The deploy key is `command="/root/scripts/deploy-dispatcher.sh"`
           # restricted (SESSION-15 incident: pre-2026-05-20 it was forced to
           # `deploy-phase-detector.sh`, which is why backend deploys 5 days
           # of silent failure). The dispatcher routes by SSH_ORIGINAL_COMMAND
-          # — send "beta-backend" to trigger /root/scripts/deploy-beta-backend.sh
-          # which `git reset --hard origin/main` then runs scripts/deploy-vps.sh.
+          # — send an immutable full SHA. The forced dispatcher accepts only
+          # `beta-backend <40 lowercase hex>`, verifies it is reachable from
+          # origin/main, and passes the same SHA as DEPLOY_COMMIT.
           ssh -i ~/.ssh/id_deploy \
               -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes \
-              "$USER@$HOST" "beta-backend"
+              "$USER@$HOST" "beta-backend $DEPLOY_SHA"
 
       - name: Verify prod health
         run: |
@@ -91,6 +103,53 @@ jobs:
             https://beta.structural.bytedance.city/api/auth/me)
           test "$STATUS" = "401"
           python3 -c 'import json; assert json.load(open("/tmp/beta-auth-me.json"))["error"] == "no session"'
+
+      - name: Verify immutable runtime attestation
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA=$(git rev-parse HEAD)
+          REQUIREMENTS_SHA=$(python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          print(hashlib.sha256(Path("web/backend/requirements.txt").read_bytes()).hexdigest())
+          PY
+          )
+          ATTESTATION=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' \
+            "https://beta.structural.bytedance.city/assets/runtime-attestation.json?sha=$EXPECTED_SHA")
+          VERSION=$(curl -fsS --max-time 10 \
+            "https://beta.structural.bytedance.city/api/version?sha=$EXPECTED_SHA")
+          EXPECTED_SHA="$EXPECTED_SHA" REQUIREMENTS_SHA="$REQUIREMENTS_SHA" \
+            ATTESTATION="$ATTESTATION" VERSION="$VERSION" python3 - <<'PY'
+          import json
+          import os
+
+          body = json.loads(os.environ["ATTESTATION"])
+          version = json.loads(os.environ["VERSION"])
+          expected_sha = os.environ["EXPECTED_SHA"]
+          requirements_sha = os.environ["REQUIREMENTS_SHA"]
+          expected_versions = {
+              "fastapi": "0.115.14",
+              "pydantic": "2.6.1",
+              "starlette": "0.46.2",
+              "uvicorn": "0.27.1",
+          }
+          assert body.get("schema_version") == 1, body
+          assert body.get("requirements_sha256") == requirements_sha, body
+          freeze_sha = body.get("installed_freeze_sha256", "")
+          assert len(freeze_sha) == 64 and all(c in "0123456789abcdef" for c in freeze_sha), body
+          assert body.get("runtime_id") == f"cpython-311-{requirements_sha}-{freeze_sha}", body
+          assert body.get("python_abi") == "cpython-311", body
+          assert str(body.get("python_version", "")).startswith("3.11."), body
+          assert body.get("git_sha") == expected_sha, body
+          for package, expected in expected_versions.items():
+              assert body.get(package) == expected, body
+          for field in (
+              "python_abi", "runtime_id", "requirements_sha256", "installed_freeze_sha256",
+              "fastapi", "pydantic", "starlette", "uvicorn", "python_version",
+              "git_sha", "deployed_at",
+          ):
+              assert version.get(field) == body.get(field), (field, version, body)
+          PY
 
       - name: Verify artifact identity and semantic search
         run: |
@@ -136,7 +195,7 @@ jobs:
         # the deploy didn't actually take — fail loudly.
         run: |
           set -euo pipefail
-          EXPECTED_SHA=$(git rev-parse --short=7 HEAD)
+          EXPECTED_SHA=$(git rev-parse HEAD)
           EXPECTED_MODEL=$(sed -n 's/^ASK_LLM_MODEL=//p' web/backend/.env.example | head -1)
           if [ -z "$EXPECTED_MODEL" ]; then
             echo "[verify] FAIL: ASK_LLM_MODEL missing from web/backend/.env.example" >&2
@@ -156,8 +215,8 @@ jobs:
           got_sha = body.get("git_sha", "")
           got_model = body.get("model", "")
           fails = []
-          if not got_sha.startswith(expected_sha):
-              fails.append(f"git_sha mismatch: got {got_sha!r}, expected starts-with {expected_sha!r}")
+          if got_sha != expected_sha:
+              fails.append(f"git_sha mismatch: got {got_sha!r}, expected exact {expected_sha!r}")
           if got_model != expected_model:
               fails.append(f"model mismatch: got {got_model!r}, expected {expected_model!r}")
           if fails:

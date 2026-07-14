@@ -36,13 +36,8 @@ def client(tmp_path, monkeypatch):
 
 def _valid_payload(**overrides):
     base = {
-        "message": "TypeError: cannot read property 'x' of undefined",
-        "stack": "at Foo (page.tsx:42)\nat Bar (page.tsx:84)",
-        "digest": "abcdef0123",
-        "url": "https://phase.bytedance.city/company/AAPL?utm_source=spam",
-        "userAgent": "Mozilla/5.0 (test)",
+        "message": "TypeError",
         "timestamp": 1715750000,
-        "sessionId": "test-session-1",
         "fatal": False,
     }
     base.update(overrides)
@@ -61,17 +56,19 @@ def test_valid_report_stored(client):
     rows = log_path.read_text().splitlines()
     assert len(rows) == 1
     record = json.loads(rows[0])
-    assert record["message"].startswith("TypeError")
-    # URL query string must be stripped server-side.
-    assert "utm_source" not in (record["url"] or "")
-    assert record["url"] == "https://phase.bytedance.city/company/AAPL"
-    assert record["sessionId"] == "test-session-1"
+    assert set(record) == {
+        "event", "incident_id", "error_type", "timestamp", "iso", "fatal",
+    }
+    assert record["event"] == "client_error"
+    assert record["error_type"] == "TypeError"
+    assert len(record["incident_id"]) == 32
     assert record["fatal"] is False
+    assert "testclient" not in json.dumps(record)
 
 
 def test_fatal_flag_preserved(client):
     c, log_path = client
-    r = c.post("/api/errors", json=_valid_payload(fatal=True, sessionId="fatal-1"))
+    r = c.post("/api/errors", json=_valid_payload(fatal=True))
     assert r.status_code == 200
     record = json.loads(log_path.read_text().splitlines()[-1])
     assert record["fatal"] is True
@@ -79,7 +76,7 @@ def test_fatal_flag_preserved(client):
 
 def test_rate_limit_kicks_in(client):
     c, _ = client
-    payload = _valid_payload(sessionId="rl-session")
+    payload = _valid_payload()
     # First 10 must be accepted.
     for i in range(el.RATE_LIMIT_MAX):
         r = c.post("/api/errors", json=payload)
@@ -93,15 +90,40 @@ def test_rate_limit_kicks_in(client):
     assert body["reason"] == "rate_limited"
 
 
-def test_rate_limit_per_session_independent(client):
-    c, _ = client
-    payload_a = _valid_payload(sessionId="alpha")
-    payload_b = _valid_payload(sessionId="beta")
-    for _ in range(el.RATE_LIMIT_MAX):
-        c.post("/api/errors", json=payload_a)
-    # Alpha is now capped; beta should still go through.
-    r = c.post("/api/errors", json=payload_b)
-    assert r.json()["accepted"] is True
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("stack", "at Secret (private.tsx:42)"),
+        ("digest", "app-controlled-digest"),
+        ("url", "https://phase.bytedance.city/private?q=secret"),
+        ("userAgent", "private-browser-fingerprint"),
+        ("sessionId", "private-session-id"),
+    ),
+)
+def test_pre_hardening_raw_fields_are_rejected_before_model_acceptance(
+    client, field, value,
+):
+    c, log_path = client
+    r = c.post("/api/errors", json=_valid_payload(**{field: value}))
+    assert r.status_code == 422
+    assert not log_path.exists()
+
+
+@pytest.mark.parametrize(
+    "message",
+    (
+        "TypeError: secret value",
+        "secret value",
+        "typeerror",
+        "",
+        "X" * 600,
+    ),
+)
+def test_raw_or_nonallowlisted_message_is_rejected(client, message):
+    c, log_path = client
+    r = c.post("/api/errors", json=_valid_payload(message=message))
+    assert r.status_code == 422
+    assert not log_path.exists()
 
 
 def test_malformed_missing_message(client):
@@ -119,17 +141,11 @@ def test_malformed_extra_field_rejected(client):
     assert r.status_code == 422
 
 
-def test_message_too_long_rejected(client):
-    c, _ = client
-    r = c.post("/api/errors", json=_valid_payload(message="x" * 600))
-    assert r.status_code == 422
-
-
 def test_rotation_at_10mb(client, monkeypatch):
     c, log_path = client
     # Shrink the rotation threshold so we don't actually write 10MB in test.
     monkeypatch.setattr(el, "MAX_LOG_BYTES", 2048)
-    payload = _valid_payload(stack="x" * 400, sessionId="rot-test")
+    payload = _valid_payload()
     # 10 records ≈ enough to exceed 2KB once.
     for i in range(el.RATE_LIMIT_MAX):
         r = c.post("/api/errors", json=payload)
@@ -140,20 +156,29 @@ def test_rotation_at_10mb(client, monkeypatch):
     assert log_path.exists()
     # The rotation file is best-effort; assert no crash + at least one record.
     record = json.loads(log_path.read_text().splitlines()[-1])
-    assert record["sessionId"] == "rot-test"
+    assert record["event"] == "client_error"
+    assert "sessionId" not in record
     # rotated file existence depends on cumulative byte size — assert it's
     # either absent (small payloads) or non-empty.
     if rotated.exists():
         assert rotated.stat().st_size > 0
 
 
-def test_anonymous_no_session_uses_ip_bucket(client):
+def test_content_free_reports_share_the_server_ip_bucket(client):
     c, _ = client
     payload = _valid_payload()
-    payload["sessionId"] = None
     for _ in range(el.RATE_LIMIT_MAX):
         r = c.post("/api/errors", json=payload)
         assert r.json()["accepted"] is True
-    # Same IP, no session → bucketed together → 11th rejected.
+    # Same server-observed IP → bucketed together → 11th rejected.
     r = c.post("/api/errors", json=payload)
     assert r.json()["accepted"] is False
+
+
+def test_rate_bucket_keys_are_process_local_hmacs(client):
+    c, _ = client
+    c.post("/api/errors", json=_valid_payload())
+    assert el._buckets
+    serialized = json.dumps(sorted(el._buckets))
+    assert "testclient" not in serialized
+    assert all(key.startswith("ip:") and len(key) == 67 for key in el._buckets)

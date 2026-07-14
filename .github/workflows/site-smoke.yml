@@ -1,18 +1,59 @@
 name: site smoke
 on:
   workflow_dispatch:
+    inputs:
+      expected_git_sha:
+        description: Full beta deployment SHA that production must expose
+        required: true
+        type: string
+  workflow_run:
+    workflows: ["Deploy Beta Backend"]
+    branches: [main]
+    types: [completed]
   schedule:
     - cron: '0 */6 * * *'   # every 6h
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: production-site-smoke
   cancel-in-progress: false
 jobs:
   smoke:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve the last successful beta release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_SHA: ${{ inputs.expected_git_sha }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch)
+              EXPECTED_SHA="$MANUAL_SHA"
+              ;;
+            workflow_run)
+              EXPECTED_SHA="$DEPLOY_SHA"
+              ;;
+            schedule)
+              EXPECTED_SHA=$(gh api \
+                -H 'Accept: application/vnd.github+json' \
+                "/repos/$GITHUB_REPOSITORY/actions/workflows/deploy-beta-backend.yml/runs?branch=main&status=success&per_page=1" \
+                --jq '.workflow_runs[0].head_sha')
+              ;;
+            *)
+              echo "unsupported trigger: $GITHUB_EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "EXPECTED_BETA_SHA=$EXPECTED_SHA" >> "$GITHUB_ENV"
       - name: Run fail-closed production synthetic monitor
-        run: python3 scripts/production_smoke.py --timeout 15
+        run: |
+          python3 scripts/production_smoke.py \
+            --timeout 15 \
+            --expected-git-sha "$EXPECTED_BETA_SHA"

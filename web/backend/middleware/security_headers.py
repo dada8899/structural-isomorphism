@@ -14,7 +14,7 @@ Headers injected:
   * Strict-Transport-Security  — force HTTPS for a year (HSTS).
   * X-Frame-Options: DENY      — no embedding in any frame (clickjacking).
   * X-Content-Type-Options: nosniff — disable MIME sniffing.
-  * Referrer-Policy            — don't leak full URLs cross-origin.
+  * Referrer-Policy            — never emit a request referrer.
   * Content-Security-Policy    — restrict resource origins.
 
 CSP design — DELIBERATELY PERMISSIVE for v1:
@@ -67,7 +67,7 @@ _CSP = "; ".join([
 _STATIC_HEADERS = {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Referrer-Policy": "no-referrer",
     "Content-Security-Policy": _CSP,
 }
 
@@ -82,17 +82,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     ):
         response = await call_next(request)
         for name, value in _STATIC_HEADERS.items():
-            # setdefault semantics — never clobber a header a route set
-            # deliberately (e.g. a route that needs to be framed could
-            # override X-Frame-Options; none do today).
-            response.headers.setdefault(name, value)
+            # Assignment replaces any route-provided duplicate. Referrer
+            # policy is a global privacy invariant, not a route override.
+            response.headers[name] = value
         # HSTS only makes sense over HTTPS. We can't always tell behind a
         # proxy, so honour X-Forwarded-Proto; default to sending it (the
         # site is HTTPS-only in every real deploy, and a browser ignores
         # HSTS received over plain HTTP anyway).
         proto = request.headers.get("x-forwarded-proto", "https").lower()
         if proto == "https":
-            response.headers.setdefault("Strict-Transport-Security", _HSTS)
+            response.headers["Strict-Transport-Security"] = _HSTS
         return response
 
 

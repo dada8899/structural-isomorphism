@@ -3,29 +3,26 @@
 W12-E: receives reports from app/error.tsx + app/global-error.tsx (and any
 other instrumentation via lib/error-reporter.ts).
 
-Storage:
+Storage (content-free operational events):
     web/backend/data/error_log.jsonl — append-only, rotated at 10 MB
     web/backend/data/error_log.jsonl.1 — most recent prior segment (kept once)
 
 Rate limit:
-    10 errors / minute / sessionId (sliding 60s window, in-memory ring).
-    Anonymous (no sessionId) requests bucketed by client IP instead.
+    10 errors / minute / client IP (sliding 60s window, in-memory ring).
+    The address is HMAC-bucketed in memory and is never persisted or logged.
 
 Privacy:
-    • URL query string stripped server-side (defence-in-depth).
-    • stack / message truncated to bounded sizes.
+    • Only an exact allowlisted error class, timestamp and fatal flag enter the
+      application model. Pre-hardening raw fields are rejected with 422.
+    • The durable row contains a coarse allowlisted error type, fatal flag,
+      server timestamp and random incident ID only.
     • No localStorage contents accepted (schema forbids extra fields).
 
 Body schema (JSON):
     {
-      "message":    str (1..500),
-      "stack":      str | None (max 4000),
-      "digest":     str | None,
-      "url":        str | None (query stripped before storage),
-      "userAgent":  str | None (max 300),
-      "timestamp":  int  | None (seconds since epoch; defaults to server now),
-      "sessionId":  str  | None (max 64),
-      "fatal":      bool | None (true when reported from global-error.tsx)
+      "message":    allowlisted coarse error class,
+      "timestamp":  int | None (client event time; persistence uses server time),
+      "fatal":      bool (true when reported from global-error.tsx)
     }
 
 Response:
@@ -36,38 +33,37 @@ Response:
 from __future__ import annotations
 
 import json
-import logging
+import hashlib
+import hmac
 import os
+import secrets
 import time
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Deque, Dict, Optional
-from urllib.parse import urlsplit, urlunsplit
+from typing import Deque, Dict, Literal, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from schemas import ErrorAcceptedResponse
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
 router = APIRouter(tags=["errors"])
-logger = logging.getLogger("structural.errors")
+logger = get_logger("structural.client_errors")
 
 # --- Tuning constants ---
 RATE_LIMIT_WINDOW_S = 60
 RATE_LIMIT_MAX = 10
 MAX_LOG_BYTES = 10 * 1024 * 1024  # 10 MB
-_MAX_MESSAGE = 500
-_MAX_STACK = 4000
-_MAX_URL = 500
-_MAX_UA = 300
-_MAX_SESSION = 64
-_MAX_DIGEST = 64
 
-# Rate limiter state: sessionId -> deque[timestamps]. In-memory only; restarts
-# reset the window. Sufficient for client-side error reports — we tolerate a
-# slight burst right after process restart.
+# Rate limiter state: ephemeral IP-HMAC bucket -> deque[timestamps]. In-memory
+# only; restarts reset the window. The address never enters the bucket key.
 _buckets: Dict[str, Deque[float]] = defaultdict(deque)
+_RATE_KEY = secrets.token_bytes(32)
 
 
 def _data_file() -> Path:
@@ -90,26 +86,22 @@ def _rotate_if_needed(path: Path) -> None:
         if rotated.exists():
             rotated.unlink()
         os.replace(path, rotated)
-        logger.info("error_log rotated: %s -> %s", path.name, rotated.name)
-    except Exception as e:  # pragma: no cover — best-effort
-        logger.warning("error_log rotate failed: %s", e)
+        logger.info("privacy.client_error_log_rotated")
+    except Exception as exc:  # pragma: no cover — best-effort
+        logger.warning(
+            "privacy.client_error_log_rotate_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
 
 
-def _strip_query(url: Optional[str]) -> Optional[str]:
-    """Server-side belt-and-braces query stripper (client also strips)."""
-    if not url:
-        return None
-    try:
-        parts = urlsplit(url)
-        return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
-    except Exception:
-        return url.split("?")[0]
-
-
-def _bucket_key(session_id: Optional[str], client_ip: str) -> str:
-    if session_id and len(session_id) <= _MAX_SESSION:
-        return f"sid:{session_id}"
-    return f"ip:{client_ip}"
+def _bucket_key(client_ip: str) -> str:
+    digest = hmac.new(
+        _RATE_KEY,
+        b"ip\0" + (client_ip or "unknown").encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"ip:{digest}"
 
 
 def _check_rate_limit(key: str, now: float) -> bool:
@@ -125,14 +117,12 @@ def _check_rate_limit(key: str, now: float) -> bool:
 
 
 class ErrorReportBody(BaseModel):
-    message: str = Field(..., min_length=1, max_length=_MAX_MESSAGE)
-    stack: Optional[str] = Field(default=None, max_length=_MAX_STACK)
-    digest: Optional[str] = Field(default=None, max_length=_MAX_DIGEST)
-    url: Optional[str] = Field(default=None, max_length=_MAX_URL)
-    userAgent: Optional[str] = Field(default=None, max_length=_MAX_UA)
-    timestamp: Optional[int] = None
-    sessionId: Optional[str] = Field(default=None, max_length=_MAX_SESSION)
-    fatal: Optional[bool] = False
+    message: Literal[
+        "ChunkLoadError", "ClientError", "Error", "NetworkError",
+        "RangeError", "ReferenceError", "SyntaxError", "TypeError", "URIError",
+    ]
+    timestamp: Optional[int] = Field(default=None, ge=0, le=4_102_444_800)
+    fatal: bool = False
 
     model_config = {"extra": "forbid"}  # reject unknown fields (privacy)
 
@@ -143,7 +133,7 @@ async def submit_error(body: ErrorReportBody, request: Request):
     client_ip = request.client.host if request.client else "?"
 
     # --- Rate limit ---
-    key = _bucket_key(body.sessionId, client_ip)
+    key = _bucket_key(client_ip)
     if not _check_rate_limit(key, now):
         return JSONResponse(
             {"accepted": False, "reason": "rate_limited"}, status_code=200
@@ -151,16 +141,12 @@ async def submit_error(body: ErrorReportBody, request: Request):
 
     # --- Normalise ---
     record = {
-        "message": body.message[:_MAX_MESSAGE],
-        "stack": (body.stack or "")[:_MAX_STACK] or None,
-        "digest": body.digest,
-        "url": _strip_query(body.url),
-        "userAgent": (body.userAgent or "")[:_MAX_UA] or None,
-        "timestamp": int(body.timestamp) if body.timestamp else int(now),
+        "event": "client_error",
+        "incident_id": new_incident_id(),
+        "error_type": body.message,
+        "timestamp": int(now),
         "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
-        "sessionId": body.sessionId,
         "fatal": bool(body.fatal),
-        "client_ip": client_ip,
     }
 
     # --- Persist ---
@@ -170,17 +156,15 @@ async def submit_error(body: ErrorReportBody, request: Request):
     try:
         with open(f, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except Exception as e:  # pragma: no cover
-        logger.error("error_log write failed: %s", e)
+    except Exception as exc:  # pragma: no cover
+        logger.error(
+            "privacy.client_error_write_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return JSONResponse(
             {"accepted": False, "reason": "storage_failure"}, status_code=500
         )
 
-    logger.info(
-        "error_report: session=%s digest=%s fatal=%s msg=%s",
-        body.sessionId,
-        body.digest,
-        bool(body.fatal),
-        body.message[:120],
-    )
+    logger.info("privacy.client_error_accepted")
     return {"accepted": True, "stored_at": record["iso"]}

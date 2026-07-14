@@ -26,19 +26,33 @@ Notes on placement:
 from __future__ import annotations
 
 import re
+import ipaddress
+import os
 from typing import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from logging_config import (
-    REQUEST_ID_VAR,
-    REQUEST_METHOD_VAR,
-    REQUEST_PATH_VAR,
-    REQUEST_TIER_VAR,
-    get_logger,
-    new_request_id,
-)
+if __package__ == "web.backend.middleware":
+    from ..logging_config import (
+        REQUEST_ID_VAR,
+        REQUEST_METHOD_VAR,
+        REQUEST_PATH_VAR,
+        REQUEST_TIER_VAR,
+        get_logger,
+        new_incident_id,
+        new_request_id,
+    )
+else:
+    from logging_config import (
+        REQUEST_ID_VAR,
+        REQUEST_METHOD_VAR,
+        REQUEST_PATH_VAR,
+        REQUEST_TIER_VAR,
+        get_logger,
+        new_incident_id,
+        new_request_id,
+    )
 
 # Accepted shapes: bare UUID4 hex (32 chars), dashed UUID, or any
 # alphanumeric-ish string ≤ 64 chars (we don't want to be too strict — many
@@ -46,6 +60,8 @@ from logging_config import (
 _VALID_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 
 REQUEST_ID_HEADER = "X-Request-ID"
+REQUEST_ID_SCOPE_KEY = "structural.request_id"
+INCIDENT_ID_SCOPE_KEY = "structural.incident_id"
 
 
 def _coerce_request_id(raw: str | None) -> str:
@@ -56,6 +72,42 @@ def _coerce_request_id(raw: str | None) -> str:
     if not raw or not _VALID_ID_RE.match(raw):
         return new_request_id()
     return raw
+
+
+def _trusted_proxy_networks() -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
+    """Parse the explicit reverse-proxy allowlist; invalid input trusts nobody."""
+    raw = os.getenv("AUTH_TRUSTED_PROXY_IPS", "").strip()
+    if not raw:
+        return ()
+    try:
+        return tuple(
+            ipaddress.ip_network(item.strip(), strict=False)
+            for item in raw.split(",")
+            if item.strip()
+        )
+    except ValueError:
+        return ()
+
+
+def _peer_is_trusted(request: Request) -> bool:
+    peer_raw = request.client.host if request.client else ""
+    try:
+        peer = ipaddress.ip_address(peer_raw)
+    except ValueError:
+        return False
+    return any(peer in network for network in _trusted_proxy_networks())
+
+
+_ROUTE_TEMPLATE_RE = re.compile(r"^/[A-Za-z0-9_.~/{\}-]{0,159}$")
+
+
+def _resolved_route_template(request: Request) -> str:
+    """Return only a Starlette-owned route template, never the request path."""
+    route = request.scope.get("route")
+    template = getattr(route, "path", None)
+    if isinstance(template, str) and _ROUTE_TEMPLATE_RE.fullmatch(template):
+        return template
+    return "unknown"
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
@@ -69,13 +121,16 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         incoming = request.headers.get(REQUEST_ID_HEADER) or request.headers.get(
             REQUEST_ID_HEADER.lower()
         )
-        rid = _coerce_request_id(incoming)
+        # Public callers cannot choose a value that enters operational logs.
+        # Nginx replaces this header and connects over an explicitly trusted
+        # loopback network; direct/untrusted peers always receive a fresh ID.
+        rid = _coerce_request_id(incoming if _peer_is_trusted(request) else None)
+        request.scope[REQUEST_ID_SCOPE_KEY] = rid
 
-        # Bind contextvars for the duration of this request. We deliberately
-        # don't use a try/finally to reset — ContextVar is per-task and the
-        # asyncio task ends with the request, so leakage is impossible.
+        # The route is unresolved at this point. Bind ``unknown`` rather than
+        # the raw path; replace it with the trusted template after routing.
         token_rid = REQUEST_ID_VAR.set(rid)
-        token_path = REQUEST_PATH_VAR.set(request.url.path)
+        token_path = REQUEST_PATH_VAR.set("unknown")
         token_method = REQUEST_METHOD_VAR.set(request.method)
 
         # Tier may already be resolved by TierResolutionMiddleware (runs
@@ -91,17 +146,29 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             tier_token = None
 
         log = get_logger("structural.http")
-        log.info(
-            "http.request",
-            client=request.client.host if request.client else None,
-        )
+        log.info("http.request")
 
         try:
             response = await call_next(request)
-        except Exception:
-            # Log + re-raise — the FastAPI exception handlers own the
-            # actual response shape.
-            log.exception("http.request.error")
+            route_token = REQUEST_PATH_VAR.set(_resolved_route_template(request))
+            try:
+                response.headers[REQUEST_ID_HEADER] = rid
+                log.info("http.response", status_code=response.status_code)
+            finally:
+                REQUEST_PATH_VAR.reset(route_token)
+            return response
+        except Exception as exc:
+            route_token = REQUEST_PATH_VAR.set(_resolved_route_template(request))
+            try:
+                incident_id = new_incident_id()
+                request.scope[INCIDENT_ID_SCOPE_KEY] = incident_id
+                log.error(
+                    "http.request.error",
+                    error_type=type(exc).__name__,
+                    incident_id=incident_id,
+                )
+            finally:
+                REQUEST_PATH_VAR.reset(route_token)
             raise
         finally:
             # Reset in *reverse* order of set() to play nicely with
@@ -111,11 +178,6 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             REQUEST_METHOD_VAR.reset(token_method)
             REQUEST_PATH_VAR.reset(token_path)
             REQUEST_ID_VAR.reset(token_rid)
-
-        # Echo the ID back so the client can quote it.
-        response.headers[REQUEST_ID_HEADER] = rid
-        log.info("http.response", status_code=response.status_code)
-        return response
 
 
 def install_correlation_middleware(app: FastAPI) -> None:

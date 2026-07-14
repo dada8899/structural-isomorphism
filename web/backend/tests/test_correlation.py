@@ -6,6 +6,7 @@ Run with:
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,7 +20,13 @@ if str(_BACKEND) not in sys.path:
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from logging_config import REQUEST_ID_VAR, configure_logging, get_logger  # noqa: E402
+from logging_config import (  # noqa: E402
+    REQUEST_ID_VAR,
+    REQUEST_METHOD_VAR,
+    REQUEST_PATH_VAR,
+    configure_logging,
+    get_logger,
+)
 from middleware.correlation import (  # noqa: E402
     REQUEST_ID_HEADER,
     CorrelationIdMiddleware,
@@ -72,9 +79,21 @@ def test_request_without_header_gets_generated_uuid(client, app):
     assert app.state.captured["rid"] == rid
 
 
-def test_request_with_header_propagates(client, app):
-    """Caller-supplied ID survives round-trip and is bound to the handler."""
+def test_untrusted_request_header_is_replaced(client, app):
+    """A public caller cannot choose an identifier that enters logs."""
     supplied = "my-custom-id-1234"
+    r = client.get("/echo", headers={REQUEST_ID_HEADER: supplied})
+    assert r.status_code == 200
+    returned = r.headers.get(REQUEST_ID_HEADER)
+    assert returned != supplied
+    assert _UUID_HEX_RE.fullmatch(returned)
+    assert app.state.captured["rid"] == returned
+
+
+def test_trusted_proxy_request_header_propagates(app, monkeypatch):
+    monkeypatch.setenv("AUTH_TRUSTED_PROXY_IPS", "127.0.0.1/32")
+    client = TestClient(app, client=("127.0.0.1", 50000))
+    supplied = "proxy-generated-id-1234"
     r = client.get("/echo", headers={REQUEST_ID_HEADER: supplied})
     assert r.status_code == 200
     assert r.headers.get(REQUEST_ID_HEADER) == supplied
@@ -88,8 +107,10 @@ def test_response_echoes_back_header(client):
     assert r.headers.get(REQUEST_ID_HEADER), "404 should still carry X-Request-ID"
 
 
-def test_lowercase_header_accepted(client, app):
+def test_lowercase_header_accepted_from_trusted_proxy(app, monkeypatch):
     """Header lookup must be case-insensitive (RFC 7230 §3.2)."""
+    monkeypatch.setenv("AUTH_TRUSTED_PROXY_IPS", "127.0.0.1/32")
+    client = TestClient(app, client=("127.0.0.1", 50000))
     r = client.get("/echo", headers={"x-request-id": "abc-lower"})
     assert r.headers.get(REQUEST_ID_HEADER) == "abc-lower"
     assert app.state.captured["rid"] == "abc-lower"
@@ -135,21 +156,30 @@ def test_log_line_includes_request_id(client, tmp_path):
 
     @a.get("/ping")
     async def ping():
-        get_logger("structural.test").info("ping.handler", custom_field="hello")
+        get_logger("structural.test").info(
+            "test.ping_handler",
+            custom_field="must-not-survive",
+        )
         return {"pong": True}
 
     c = TestClient(a)
-    supplied = "abc12345"
+    supplied = "caller-controlled-id"
     r = c.get("/ping", headers={REQUEST_ID_HEADER: supplied})
     assert r.status_code == 200
+    returned = r.headers[REQUEST_ID_HEADER]
+    assert returned != supplied
 
     # Read the rotating file and look for at least one line tagged with
-    # the supplied request_id + our custom event name.
+    # the server-generated request_id + our constant event name.
     text = log_file.read_text(encoding="utf-8")
-    assert supplied in text, "expected request_id in log file"
-    assert "ping.handler" in text, "expected event name in log file"
+    assert returned in text, "expected request_id in log file"
+    assert supplied not in text
+    assert "test.ping_handler" in text, "expected event name in log file"
+    assert "must-not-survive" not in text
     # And the per-request http.request line that middleware emits.
     assert "http.request" in text or "http.response" in text
+    assert '"client"' not in text
+    assert "testclient" not in text
 
 
 def test_request_id_isolated_between_requests(client, app):
@@ -157,3 +187,64 @@ def test_request_id_isolated_between_requests(client, app):
     r1 = client.get("/echo")
     r2 = client.get("/echo")
     assert r1.headers[REQUEST_ID_HEADER] != r2.headers[REQUEST_ID_HEADER]
+
+
+def test_dynamic_path_and_query_are_replaced_by_route_template(tmp_path):
+    log_file = tmp_path / "server.jsonl"
+    configure_logging(log_file=log_file)
+    app = FastAPI()
+    install_correlation_middleware(app)
+
+    @app.get("/items/{item_id}")
+    async def item(item_id: str, q: str = ""):
+        get_logger("structural.test").info("test.item_handler")
+        return {"ok": bool(item_id or q)}
+
+    secret_path = "path-canary-ef64a8"
+    secret_query = "query-canary-0b5b9f"
+    response = TestClient(app).get(f"/items/{secret_path}?q={secret_query}")
+    assert response.status_code == 200
+    entries = [json.loads(line) for line in log_file.read_text().splitlines() if line]
+    serialized = json.dumps(entries)
+    assert "/items/{item_id}" in serialized
+    assert secret_path not in serialized
+    assert secret_query not in serialized
+    assert "?q=" not in serialized
+
+
+def test_exception_response_and_logs_do_not_expose_content(tmp_path):
+    from errors import install_problem_handlers
+
+    log_file = tmp_path / "server.jsonl"
+    configure_logging(log_file=log_file)
+    app = FastAPI()
+    install_correlation_middleware(app)
+    install_problem_handlers(app)
+
+    @app.get("/fail/{item_id}")
+    async def fail(item_id: str):
+        raise RuntimeError(f"exception-canary-908aae:{item_id}")
+
+    response = TestClient(app, raise_server_exceptions=False).get(
+        "/fail/path-canary-c6a102?token=query-canary-2db970"
+    )
+    assert response.status_code == 500
+    body = response.json()
+    assert re.fullmatch(r"[0-9a-f]{32}", body["incident_id"])
+    assert body["instance"] == "/fail/{item_id}"
+    assert response.headers[REQUEST_ID_HEADER]
+
+    serialized = log_file.read_text(encoding="utf-8")
+    assert body["incident_id"] in serialized
+    assert response.headers[REQUEST_ID_HEADER] in serialized
+    for secret in (
+        "exception-canary-908aae",
+        "path-canary-c6a102",
+        "query-canary-2db970",
+    ):
+        assert secret not in serialized
+        assert secret not in response.text
+    assert "Traceback" not in serialized
+    assert REQUEST_ID_VAR.get() == "-"
+    assert REQUEST_PATH_VAR.get() is None
+    assert REQUEST_METHOD_VAR.get() is None

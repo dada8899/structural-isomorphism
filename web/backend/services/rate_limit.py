@@ -7,10 +7,13 @@ dependency with main.py. main.py imports this module at startup and registers
 endpoints.
 """
 import functools
-import logging
 import types
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.rate_limit")
+logger = get_logger("structural.rate_limit")
 
 
 class _ChainedGlobals(dict):
@@ -113,8 +116,12 @@ try:
 
     limiter = Limiter(key_func=get_remote_address, default_limits=[])
     _ENABLED = True
-except Exception as e:  # pragma: no cover
-    logger.warning(f"slowapi not available, rate limiting disabled: {e}")
+except Exception as exc:  # pragma: no cover
+    logger.warning(
+        "structural.rate_limit_unavailable",
+        error_type=type(exc).__name__,
+        incident_id=new_incident_id(),
+    )
     limiter = None
     _ENABLED = False
 

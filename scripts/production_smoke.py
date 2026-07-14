@@ -9,12 +9,14 @@ bodies (which could contain deployment or authentication details).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 
@@ -22,6 +24,14 @@ STRUCTURAL = "https://structural.bytedance.city"
 BETA = "https://beta.structural.bytedance.city"
 PHASE = "https://phase.bytedance.city"
 DEFAULT_TIMEOUT = 15.0
+REQUIREMENTS = Path(__file__).resolve().parents[1] / "web" / "backend" / "requirements.txt"
+EXPECTED_RUNTIME_REQUIREMENTS_SHA256 = hashlib.sha256(REQUIREMENTS.read_bytes()).hexdigest()
+EXPECTED_RUNTIME_VERSIONS = {
+    "fastapi": "0.115.14",
+    "pydantic": "2.6.1",
+    "starlette": "0.46.2",
+    "uvicorn": "0.27.1",
+}
 
 ZH_QUERIES = (
     "银行挤兑如何形成正反馈级联？",
@@ -87,6 +97,7 @@ class Monitor:
         search_interval: float | None = None,
         sleeper: Callable[[float], None] = time.sleep,
         get_retry_delays: tuple[float, ...] | None = None,
+        expected_git_sha: str | None = None,
     ):
         self.transport = transport
         self.timeout = timeout
@@ -102,6 +113,7 @@ class Monitor:
         self.search_requests = 0
         self.checked = 0
         self.attempted_requests = 0
+        self.expected_git_sha = expected_git_sha
 
     def request(self, label: str, method: str, url: str, *, payload: dict | None = None,
                 expected_status: int = 200) -> Response:
@@ -159,6 +171,52 @@ class Monitor:
         for field in ("semver", "git_sha", "python_version", "env", "model", "deployed_at"):
             self.require(isinstance(version.get(field), str) and bool(version[field].strip()),
                          "beta version", f"missing non-empty {field}")
+        if self.expected_git_sha is not None:
+            self.require(
+                version["git_sha"] == self.expected_git_sha,
+                "beta version",
+                "running git SHA does not exactly match the expected beta release",
+            )
+
+        runtime = self.json(
+            "beta immutable runtime",
+            "GET",
+            f"{BETA}/assets/runtime-attestation.json",
+        )
+        self.require(isinstance(runtime, dict), "beta immutable runtime", "expected an object")
+        freeze_sha = runtime.get("installed_freeze_sha256")
+        self.require(isinstance(freeze_sha, str) and len(freeze_sha) == 64
+                     and all(character in "0123456789abcdef" for character in freeze_sha),
+                     "beta immutable runtime", "installed freeze SHA-256 is invalid")
+        expected_runtime_id = (
+            f"cpython-311-{EXPECTED_RUNTIME_REQUIREMENTS_SHA256}-{freeze_sha}"
+        )
+        self.require(runtime.get("schema_version") == 1, "beta immutable runtime",
+                     "schema_version must equal 1")
+        self.require(runtime.get("requirements_sha256") == EXPECTED_RUNTIME_REQUIREMENTS_SHA256,
+                     "beta immutable runtime", "requirements SHA-256 does not match this release")
+        self.require(runtime.get("runtime_id") == expected_runtime_id, "beta immutable runtime",
+                     "runtime_id does not match Python ABI + requirements SHA-256")
+        self.require(runtime.get("python_abi") == "cpython-311", "beta immutable runtime",
+                     "python_abi must equal cpython-311")
+        self.require(isinstance(runtime.get("python_version"), str)
+                     and runtime["python_version"].startswith("3.11."),
+                     "beta immutable runtime", "python_version must be an attested 3.11 release")
+        self.require(runtime.get("python_version") == version.get("python_version"),
+                     "beta immutable runtime", "API and runtime Python versions differ")
+        self.require(runtime.get("git_sha") == version.get("git_sha"),
+                     "beta immutable runtime", "API and runtime git SHAs differ")
+        self.require(runtime.get("deployed_at") == version.get("deployed_at"),
+                     "beta immutable runtime", "API and runtime deployment times differ")
+        for package, expected in EXPECTED_RUNTIME_VERSIONS.items():
+            self.require(runtime.get(package) == expected, "beta immutable runtime",
+                         f"{package} must equal {expected}")
+        for field in (
+            "python_abi", "runtime_id", "requirements_sha256", "installed_freeze_sha256",
+            "fastapi", "pydantic", "starlette", "uvicorn",
+        ):
+            self.require(runtime.get(field) == version.get(field), "beta immutable runtime",
+                         f"live API and static attestation differ for {field}")
 
         health = self.json("beta deep health", "GET", f"{BETA}/api/health?deep=1")
         self.require(isinstance(health, dict), "beta deep health", "expected an object")
@@ -308,11 +366,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
                         help="per-request timeout in seconds (default: 15)")
+    parser.add_argument(
+        "--expected-git-sha",
+        required=True,
+        help="full checked-out Git SHA that production must be running",
+    )
     args = parser.parse_args(argv)
     if not 1 <= args.timeout <= 60:
         parser.error("--timeout must be between 1 and 60 seconds")
     try:
-        Monitor(timeout=args.timeout).run()
+        expected_git_sha = args.expected_git_sha.strip()
+        if len(expected_git_sha) != 40 or any(
+            character not in "0123456789abcdef" for character in expected_git_sha
+        ):
+            parser.error("--expected-git-sha must be a full hexadecimal commit SHA")
+        Monitor(timeout=args.timeout, expected_git_sha=expected_git_sha).run()
     except SmokeFailure as exc:
         print(f"FAIL production smoke: {exc}", file=sys.stderr)
         return 1

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.responses import PlainTextResponse
 
 _BACKEND = Path(__file__).resolve().parent.parent
 if str(_BACKEND) not in sys.path:
@@ -36,7 +37,7 @@ def test_all_security_headers_present():
     h = r.headers
     assert h.get("X-Frame-Options") == "DENY"
     assert h.get("X-Content-Type-Options") == "nosniff"
-    assert h.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+    assert h.get("Referrer-Policy") == "no-referrer"
     assert "Content-Security-Policy" in h
     # HSTS sent on the default (https-assumed) path.
     assert "Strict-Transport-Security" in h
@@ -67,3 +68,22 @@ def test_headers_applied_to_404_too():
     r = _client().get("/does-not-exist")
     assert r.status_code == 404
     assert r.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+def test_referrer_policy_overrides_and_deduplicates_downstream_values():
+    app = FastAPI()
+    install_security_headers(app)
+
+    @app.get("/unsafe")
+    async def unsafe():
+        response = PlainTextResponse("ok")
+        response.raw_headers.extend(
+            [
+                (b"referrer-policy", b"unsafe-url"),
+                (b"referrer-policy", b"origin"),
+            ]
+        )
+        return response
+
+    response = TestClient(app).get("/unsafe")
+    assert response.headers.get_list("referrer-policy") == ["no-referrer"]

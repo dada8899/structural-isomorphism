@@ -37,8 +37,12 @@ from typing import Any, List, Optional
 
 from fastapi import APIRouter, Query, Request
 
-from errors import Forbidden, Unauthenticated
-from logging_config import current_log_file
+if __package__ == "web.backend.api.admin":
+    from ...errors import Forbidden, Unauthenticated
+    from ...logging_config import current_log_file
+else:
+    from errors import Forbidden, Unauthenticated
+    from logging_config import current_log_file
 from services.rate_limit import tier_limit_decorator
 
 router = APIRouter(tags=["admin"])

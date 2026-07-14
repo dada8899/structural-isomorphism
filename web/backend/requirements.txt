@@ -4,6 +4,10 @@
 # 0.116+ introduces new behaviors not yet vetted here. The rate_limit.py
 # _ChainedGlobals shim is the primary fix; this bump is belt-and-suspenders.
 fastapi==0.115.14
+# Release-target pin: FastAPI's compatible Starlette range is broad enough to
+# change validation/OpenAPI behavior across installs. Keep the target exact;
+# deployment attestation must prove the active service moved to this lock.
+starlette==0.46.2
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
 python-dotenv==1.0.1
