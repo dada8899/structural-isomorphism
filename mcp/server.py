@@ -6,7 +6,7 @@ Protocol (stdio transport) so any MCP-aware agent can call it.
 Tools:
   - search_isomorphism   : POST /api/search       — structurally similar phenomena
   - get_phenomenon       : GET  /api/phenomenon   — single phenomenon detail
-  - analyze_isomorphism  : GET  /api/analyze/stream (SSE) — full 9-section report
+  - analyze_isomorphism  : POST /api/analyze/stream (SSE) — full 9-section report
   - find_isomorphism     : search + analyze in one shot
 
 Backend base URL is configurable via the STRUCTURAL_API_BASE env var.
@@ -245,7 +245,7 @@ async def do_analyze(
     phenomenon_id: str,
     lang: str = "zh",
 ) -> dict:
-    """Call GET /api/analyze/stream, consume the full SSE stream, assemble it."""
+    """Call POST /api/analyze/stream, consume the full SSE stream, assemble it."""
     if not question or not question.strip():
         return _error("bad_request", "question must be a non-empty string")
     if not phenomenon_id or not phenomenon_id.strip():
@@ -254,11 +254,17 @@ async def do_analyze(
     if lang not in ("zh", "en"):
         lang = "zh"
 
-    params = {"text_a": question.strip(), "b_id": phenomenon_id.strip(), "lang": lang}
+    payload = {
+        "text_a": question.strip(),
+        "b_id": phenomenon_id.strip(),
+        "lang": lang,
+        "persist": 0,
+    }
     try:
-        resp = await client.get(
+        resp = await client.post(
             f"{base}/api/analyze/stream",
-            params=params,
+            json=payload,
+            headers={"Accept": "text/event-stream"},
             timeout=ANALYZE_TIMEOUT_S,
         )
     except httpx.TimeoutException:

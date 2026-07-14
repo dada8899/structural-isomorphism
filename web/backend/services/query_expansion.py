@@ -33,16 +33,18 @@ Design notes:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
-import logging
 import re
 import threading
 import time
 from collections import OrderedDict
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.query_expansion")
+logger = get_logger("structural.query_expansion")
 
 # --- Cost / size budgets ----------------------------------------------------
 
@@ -210,10 +212,7 @@ async def expand_query(
         # Defensive: model upgrade pushed cost above cap.
         _stats["cost_capped"] += 1
         _stats["fallbacks"] += 1
-        logger.warning(
-            "query expansion cost-capped: per-call %.4f USD > cap %.4f",
-            _ESTIMATED_COST_PER_CALL_USD, EXPANSION_MAX_COST_USD,
-        )
+        logger.warning("retrieval.expansion_cost_capped")
         result = [original]
         _cache_put(original, result)
         return result
@@ -222,8 +221,12 @@ async def expand_query(
     if llm_complete_json is None:
         try:
             from services.llm_client import complete_json as llm_complete_json
-        except Exception as e:  # pragma: no cover
-            logger.warning("query expansion: llm_client import failed: %s", e)
+        except Exception as exc:  # pragma: no cover
+            logger.warning(
+                "retrieval.expansion_client_unavailable",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             _stats["fallbacks"] += 1
             return [original]
 
@@ -239,13 +242,19 @@ async def expand_query(
             timeout=timeout,
         )
     except asyncio.TimeoutError:
-        logger.warning("query expansion: LLM timeout (%.1fs) for query_hash=%s",
-                       timeout, _hash(original))
+        logger.warning(
+            "retrieval.expansion_timeout",
+            incident_id=new_incident_id(),
+        )
         _stats["llm_failures"] += 1
         _stats["fallbacks"] += 1
         return [original]
-    except Exception as e:
-        logger.warning("query expansion: LLM error: %s", e)
+    except Exception as exc:
+        logger.warning(
+            "retrieval.expansion_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         _stats["llm_failures"] += 1
         _stats["fallbacks"] += 1
         return [original]
@@ -381,8 +390,12 @@ async def translate_en_to_zh(
             ),
             timeout=timeout,
         )
-    except (asyncio.TimeoutError, Exception) as e:  # noqa: BLE001
-        logger.warning("translate_en_to_zh failed: %s", e)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "retrieval.translation_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
         return None
 
     if not isinstance(raw, dict):
@@ -402,10 +415,3 @@ async def translate_en_to_zh(
 def reset_translate_cache_for_tests() -> None:
     """Test-only — flush translation cache."""
     _translate_cache.clear()
-
-
-# --- Utilities --------------------------------------------------------------
-
-
-def _hash(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()[:16]

@@ -83,19 +83,22 @@ window.StructuralAPI = {
   },
 
   async synthesize(query, rewrittenQuery, results) {
+    const candidateRefs = (Array.isArray(results) ? results : [])
+      .slice(0, 5)
+      .map((item) => ({ id: item && item.id }));
     return apiFetch('/synthesize', {
       method: 'POST',
       body: JSON.stringify({
         query,
         rewritten_query: rewrittenQuery,
-        results,
+        results: candidateRefs,
       }),
     });
   },
 
   /**
    * Streaming synthesize. Returns { abort } so callers can cancel mid-flight.
-   * callbacks: { onText({content,total_length}), onDone({result}), onError(err) }
+   * callbacks: { onText({content:'',total_length}), onDone({result}), onError(err) }
    *
    * EventSource doesn't support POST so we hand-parse SSE off fetch's
    * ReadableStream. The wire format matches the backend exactly:
@@ -107,6 +110,15 @@ window.StructuralAPI = {
     const lang = __apiLang();
     const ctrl = new AbortController();
     const cb = callbacks || {};
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      ctrl.abort();
+    }, 70000);
+    const finish = () => clearTimeout(timeoutId);
+    const candidateRefs = (Array.isArray(results) ? results : [])
+      .slice(0, 5)
+      .map((item) => ({ id: item && item.id }));
 
     (async () => {
       try {
@@ -119,7 +131,7 @@ window.StructuralAPI = {
           body: JSON.stringify({
             query,
             rewritten_query: rewrittenQuery,
-            results,
+            results: candidateRefs,
             lang,
           }),
           signal: ctrl.signal,
@@ -154,25 +166,30 @@ window.StructuralAPI = {
             let parsed;
             try { parsed = JSON.parse(data); }
             catch (e) {
-              console.warn('[synthesize] SSE parse failed:', e, data);
+              console.warn('[synthesize] rejected a malformed progress event');
               continue;
             }
             if (event === 'text') cb.onText && cb.onText(parsed);
-            else if (event === 'done') { cb.onDone && cb.onDone(parsed); return; }
+            else if (event === 'done') {
+              finish();
+              cb.onDone && cb.onDone(parsed);
+              return;
+            }
             else if (event === 'error') {
-              const err = new Error(parsed.message || 'stream error');
-              err.payload = parsed;
-              throw err;
+              throw new Error('synthesis_unavailable');
             }
           }
         }
+        throw new Error('synthesis_stream_ended_early');
       } catch (err) {
-        if (err && err.name === 'AbortError') return;
-        if (cb.onError) cb.onError(err);
-        else console.error('[synthesize] stream error:', err);
+        finish();
+        if (err && err.name === 'AbortError' && !timedOut) return;
+        const safeError = new Error(timedOut ? 'synthesis_timeout' : 'synthesis_unavailable');
+        if (cb.onError) cb.onError(safeError);
+        else console.error('[synthesize] stream unavailable');
       }
     })();
 
-    return { abort: () => ctrl.abort() };
+    return { abort: () => { finish(); ctrl.abort(); } };
   },
 };

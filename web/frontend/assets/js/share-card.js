@@ -1,7 +1,7 @@
 /**
  * Structural — Share card generator
  *
- * Generates a 1200x630 PNG share card for a structural mapping pair,
+ * Generates a 1200x630 PNG share card for a candidate mapping pair,
  * entirely on the client using Canvas. No server dependencies.
  */
 
@@ -16,6 +16,15 @@ const SHARE_CARD = {
   textTertiary: '#52525B',
   accent: '#3B82F6',
 };
+
+const STRUCTURAL_RETRIEVAL_SCORE = Object.freeze({
+  normalize(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+      ? value
+      : null;
+  },
+});
+window.StructuralRetrievalScore = STRUCTURAL_RETRIEVAL_SCORE;
 
 /**
  * Wrap text to fit within a max width. Returns array of lines.
@@ -52,7 +61,7 @@ function roundRect(ctx, x, y, w, h, r) {
 
 /**
  * Render the share card.
- * @param {{a: {name, domain, description}, b: {...}, similarity, mapping}} data
+ * @param {{a: {name, domain, description}, b: {...}, mapping}} data
  * @returns {HTMLCanvasElement}
  */
 function renderShareCard(data) {
@@ -90,6 +99,9 @@ function renderShareCard(data) {
   const fontSans = '"Inter", "PingFang SC", -apple-system, system-ui, sans-serif';
   const fontSerif = '"Noto Serif SC", "Songti SC", serif';
   const fontMono = '"JetBrains Mono", "SF Mono", monospace';
+  const english = window.i18n && typeof window.i18n.getLang === 'function'
+    ? window.i18n.getLang() === 'en'
+    : (document.documentElement.lang || '').toLowerCase().startsWith('en');
 
   // === Top: Logo + URL ===
   ctx.fillStyle = SHARE_CARD.textPrimary;
@@ -123,23 +135,26 @@ function renderShareCard(data) {
   ctx.textAlign = 'right';
   ctx.fillText('structural.bytedance.city', W - pad, logoY + 12);
 
-  // === Similarity badge (center top) ===
-  const simText = `${Math.round((data.similarity || 0) * 100)}% 同构`;
+  // A pair card has no meaningful list rank. Never turn retrieval similarity
+  // into a percentage: it is neither a probability nor cross-query evidence.
+  const boundaryText = english
+    ? 'Candidate mapping · not a probability'
+    : '候选映射 · 不是概率';
   ctx.textAlign = 'center';
   ctx.font = `500 16px ${fontMono}`;
-  const simW = ctx.measureText(simText).width + 32;
-  const simX = W / 2 - simW / 2;
-  const simY = pad + 4;
+  const boundaryWidth = ctx.measureText(boundaryText).width + 32;
+  const boundaryX = W / 2 - boundaryWidth / 2;
+  const boundaryY = pad + 4;
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
-  roundRect(ctx, simX, simY, simW, 32, 16);
+  roundRect(ctx, boundaryX, boundaryY, boundaryWidth, 32, 16);
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1;
-  roundRect(ctx, simX, simY, simW, 32, 16);
+  roundRect(ctx, boundaryX, boundaryY, boundaryWidth, 32, 16);
   ctx.stroke();
   ctx.fillStyle = SHARE_CARD.textPrimary;
   ctx.textBaseline = 'middle';
-  ctx.fillText(simText, W / 2, simY + 16);
+  ctx.fillText(boundaryText, W / 2, boundaryY + 16);
 
   // === Two phenomenon cards ===
   const cardY = 180;
@@ -170,7 +185,8 @@ function renderShareCard(data) {
     // Name (large serif)
     ctx.fillStyle = SHARE_CARD.textPrimary;
     ctx.font = `400 30px ${fontSerif}`;
-    const nameLines = wrapText(ctx, item.name || '', cardW - innerPad * 2);
+    const displayName = item.original_query || item.name || '';
+    const nameLines = wrapText(ctx, displayName, cardW - innerPad * 2);
     nameLines.slice(0, 2).forEach((line, i) => {
       ctx.fillText(line, x + innerPad, cardY + innerPad + 28 + i * 38);
     });
@@ -179,7 +195,10 @@ function renderShareCard(data) {
     ctx.fillStyle = SHARE_CARD.textSecondary;
     ctx.font = `400 15px ${fontSans}`;
     const descStartY = cardY + innerPad + 28 + nameLines.slice(0, 2).length * 38 + 16;
-    const descLines = wrapText(ctx, item.description || '', cardW - innerPad * 2);
+    const displayDescription = item.original_query && item.description === item.original_query
+      ? ''
+      : (item.description || '');
+    const descLines = wrapText(ctx, displayDescription, cardW - innerPad * 2);
     const maxDescLines = Math.floor((cardY + cardH - descStartY - innerPad) / 24);
     descLines.slice(0, maxDescLines).forEach((line, i) => {
       // Truncate last line with ellipsis if needed
@@ -193,7 +212,7 @@ function renderShareCard(data) {
   drawCard(pad, data.a, 'left');
   drawCard(pad + cardW + cardGap, data.b, 'right');
 
-  // === Center connector (≅ symbol) ===
+  // === Center connector (candidate, not equivalence) ===
   const cx = W / 2;
   const cy = cardY + cardH / 2;
 
@@ -210,16 +229,16 @@ function renderShareCard(data) {
   ctx.arc(cx, cy, 40, 0, Math.PI * 2);
   ctx.stroke();
 
-  // ≅ symbol
+  // Question-marked analogy symbol
   ctx.fillStyle = '#0A0A0B';
   ctx.font = `400 36px ${fontSerif}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('≅', cx, cy + 2);
+  ctx.fillText('≈?', cx, cy + 2);
 
   // === Bottom: structure name + insight ===
   const structureName = (data.mapping && data.mapping.structure_name) || '';
-  const insight = (data.mapping && data.mapping.core_insight) || '';
+  const insight = (data.mapping && data.mapping.candidate_rationale) || '';
 
   const bottomY = cardY + cardH + 50;
 
@@ -228,7 +247,7 @@ function renderShareCard(data) {
     ctx.fillStyle = SHARE_CARD.textTertiary;
     ctx.font = `500 12px ${fontMono}`;
     ctx.textAlign = 'center';
-    ctx.fillText('共享数学结构', W / 2, bottomY);
+    ctx.fillText(english ? 'UNTESTED CANDIDATE STRUCTURE' : '待验证的候选结构', W / 2, bottomY);
 
     // Structure name
     ctx.fillStyle = SHARE_CARD.textPrimary;
@@ -245,6 +264,17 @@ function renderShareCard(data) {
       ctx.fillText(line, W / 2, bottomY + 62 + i * 22);
     });
   }
+
+  ctx.fillStyle = SHARE_CARD.textTertiary;
+  ctx.font = `500 12px ${fontSans}`;
+  ctx.textAlign = 'center';
+  ctx.fillText(
+    english
+      ? 'Candidate only · sources, falsification and independent replication remain open'
+      : '仅为候选 · 来源核对、证伪与独立复现仍未完成',
+    W / 2,
+    H - 28,
+  );
 
   return canvas;
 }
@@ -278,7 +308,7 @@ async function copyCanvasToClipboard(canvas) {
     ]);
     return true;
   } catch (e) {
-    console.error('Copy to clipboard failed:', e);
+    console.error('[share-card] clipboard copy failed');
     return false;
   }
 }
@@ -471,7 +501,7 @@ function buildShareActions(opts) {
       const canvas = renderHookCard(opts.cardData || {});
       openShareCardModal(canvas, opts.filename || 'structural-card.png');
     } catch (err) {
-      console.error('Share card render failed:', err);
+      console.error('[share-card] render failed');
     }
   });
   wrap.appendChild(imgBtn);
@@ -485,34 +515,97 @@ function buildShareActions(opts) {
  */
 function openShareCardModal(canvas, filename) {
   const existing = document.querySelector('.share-modal');
-  if (existing) existing.remove();
+  if (existing && typeof existing.__shareClose === 'function') existing.__shareClose(false);
+  else if (existing) existing.remove();
+
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const lang = window.i18n && typeof window.i18n.getLang === 'function'
+    ? window.i18n.getLang()
+    : (document.documentElement.lang || 'zh').toLowerCase().startsWith('en') ? 'en' : 'zh';
+  const copy = lang === 'en'
+    ? {
+        title: 'Share image card', close: 'Close image-card preview', preview: 'Share-card preview',
+        download: 'Download image', clipboard: 'Copy to clipboard',
+        copied: 'Copied ✓', failed: 'Copy failed (download instead)',
+        hint: 'Ready for social sharing · 1200×630',
+      }
+    : {
+        title: '分享图片卡片', close: '关闭图片卡片预览', preview: '分享卡片预览',
+        download: '下载图片', clipboard: '复制到剪贴板',
+        copied: '已复制 ✓', failed: '复制失败（请用下载）',
+        hint: '可分享到社交平台 · 1200×630',
+      };
 
   const overlay = document.createElement('div');
   overlay.className = 'share-modal';
   overlay.innerHTML =
-    '<div class="share-modal__panel" role="dialog" aria-modal="true">' +
-      '<button type="button" class="share-modal__close" aria-label="关闭">×</button>' +
+    '<div class="share-modal__panel" role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-describedby="share-modal-hint">' +
+      '<h2 class="share-modal__title" id="share-modal-title">' + copy.title + '</h2>' +
+      '<button type="button" class="share-modal__close" aria-label="' + copy.close + '">×</button>' +
       '<div class="share-modal__preview"></div>' +
       '<div class="share-modal__actions">' +
-        '<button type="button" class="share-modal__btn share-modal__btn--primary" data-act="download">下载图片</button>' +
-        '<button type="button" class="share-modal__btn" data-act="copy">复制到剪贴板</button>' +
+        '<button type="button" class="share-modal__btn share-modal__btn--primary" data-act="download">' + copy.download + '</button>' +
+        '<button type="button" class="share-modal__btn" data-act="copy">' + copy.clipboard + '</button>' +
       '</div>' +
-      '<p class="share-modal__hint">分享到社交平台 · 1200×630</p>' +
+      '<p class="share-modal__hint" id="share-modal-hint">' + copy.hint + '</p>' +
     '</div>';
 
   // Display canvas scaled to fit
   const img = document.createElement('img');
   img.src = canvas.toDataURL('image/png');
-  img.alt = '分享卡片预览';
+  img.alt = copy.preview;
   img.className = 'share-modal__img';
   overlay.querySelector('.share-modal__preview').appendChild(img);
 
-  const close = () => overlay.remove();
-  overlay.querySelector('.share-modal__close').addEventListener('click', close);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  document.addEventListener('keydown', function esc(ev) {
-    if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
-  });
+  document.body.appendChild(overlay);
+  const background = Array.from(document.body.children)
+    .filter((node) => node !== overlay)
+    .map((node) => ({ node, inert: node.hasAttribute('inert') }));
+  background.forEach(({ node }) => node.setAttribute('inert', ''));
+  const previousOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+
+  let closed = false;
+  const focusables = () => Array.from(overlay.querySelectorAll(
+    'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter((node) => !node.hasAttribute('hidden'));
+  const onKeydown = (ev) => {
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      close();
+      return;
+    }
+    if (ev.key !== 'Tab') return;
+    const controls = focusables();
+    if (!controls.length) return;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!overlay.contains(document.activeElement)) {
+      ev.preventDefault();
+      first.focus();
+    } else if (ev.shiftKey && document.activeElement === first) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && document.activeElement === last) {
+      ev.preventDefault();
+      first.focus();
+    }
+  };
+  function close(restoreFocus = true) {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener('keydown', onKeydown);
+    background.forEach(({ node, inert }) => {
+      if (!inert) node.removeAttribute('inert');
+    });
+    document.body.style.overflow = previousOverflow;
+    overlay.remove();
+    if (restoreFocus && opener && opener.isConnected) opener.focus({ preventScroll: true });
+  }
+  overlay.__shareClose = close;
+  overlay.querySelector('.share-modal__close').addEventListener('click', () => close());
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+  document.addEventListener('keydown', onKeydown);
 
   overlay.querySelector('[data-act="download"]').addEventListener('click', () => {
     downloadCanvas(canvas, filename);
@@ -520,11 +613,11 @@ function openShareCardModal(canvas, filename) {
   const copyBtn = overlay.querySelector('[data-act="copy"]');
   copyBtn.addEventListener('click', async () => {
     const ok = await copyCanvasToClipboard(canvas);
-    copyBtn.textContent = ok ? '已复制 ✓' : '复制失败（请用下载）';
-    setTimeout(() => { copyBtn.textContent = '复制到剪贴板'; }, 2200);
+    copyBtn.textContent = ok ? copy.copied : copy.failed;
+    setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = copy.clipboard; }, 2200);
   });
 
-  document.body.appendChild(overlay);
+  overlay.querySelector('.share-modal__close').focus({ preventScroll: true });
 }
 
 window.ShareCard = {
@@ -534,4 +627,5 @@ window.ShareCard = {
   copy: copyCanvasToClipboard,
   buildActions: buildShareActions,
   openModal: openShareCardModal,
+  normalizeRetrievalSimilarity: STRUCTURAL_RETRIEVAL_SCORE.normalize,
 };

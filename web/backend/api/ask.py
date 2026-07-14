@@ -20,16 +20,35 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
-from logging_config import get_logger
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger
+else:
+    from logging_config import get_logger
 from services.ask_orchestrator import AskOrchestrator
 from services.auth import verify_api_token
 from services.llm_service import LLMService
+from services.input_limits import MAX_RESEARCH_QUERY_CHARS
 from services.rate_limit import tier_limit_decorator
+from services.research_fingerprint import ConfirmedResearchFingerprint
+from services.input_limits import normalize_research_text
 
 router = APIRouter(tags=["ask"])
 log = get_logger("structural.api.ask")
+
+
+class AskEventStreamResponse(StreamingResponse):
+    """Streaming response with an explicit OpenAPI media-type contract."""
+
+    media_type = "text/event-stream"
 
 # W6-D (session #7 P1 backlog): bump query cap from 500 → 8000 chars so
 # users can paste full paragraphs / longer context. We keep pydantic
@@ -38,7 +57,7 @@ log = get_logger("structural.api.ask")
 # `input_too_long` JSON error with the limit + received counts so the
 # frontend can surface a friendly inline message instead of a generic
 # 422 from pydantic. See `docs/sessions/SESSION-10-HANDOFF.md` §6 Option D.
-MAX_QUERY_CHARS = 8000
+MAX_QUERY_CHARS = MAX_RESEARCH_QUERY_CHARS
 
 # Reuse a single LLMService instance so its API key + model env are
 # captured once and the underlying http client is shared.
@@ -60,15 +79,33 @@ class AskRequest(BaseModel):
     the frontend can show a single "thinking about: <query>" line.
     """
 
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     # Pydantic upper bound is intentionally one above MAX_QUERY_CHARS so
     # that exactly-at-cap requests pass the schema and the structured
     # `input_too_long` handler below owns the boundary check (returns 422
     # with a JSON body the frontend can render specifically).
-    query: str = Field(..., min_length=1, max_length=MAX_QUERY_CHARS + 1)
+    query: StrictStr = Field(..., min_length=1, max_length=MAX_QUERY_CHARS + 1)
     lang: Literal["zh", "en"] = Field("zh")
+    fingerprint: Optional[ConfirmedResearchFingerprint] = None
+
+    @field_validator("query")
+    @classmethod
+    def _normalize_query(cls, value: str) -> str:
+        return normalize_research_text(
+            value,
+            max_chars=MAX_QUERY_CHARS + 1,
+            field_name="query",
+        )
+
+    @model_validator(mode="after")
+    def _bind_fingerprint_to_query(self):
+        if self.fingerprint is not None and self.fingerprint.source_query != self.query:
+            raise ValueError("fingerprint does not match query")
+        return self
 
 
-@router.post("/ask/stream")
+@router.post("/ask/stream", response_class=AskEventStreamResponse)
 @tier_limit_decorator(default_anon="5/minute")
 async def ask_stream(request: Request, req: AskRequest):
     """SSE endpoint streaming a Perplexity-style cross-domain answer.
@@ -78,11 +115,7 @@ async def ask_stream(request: Request, req: AskRequest):
     """
     # W14-D structured log: request received (length only, never the full
     # query body — PII / IP-sensitive content stays out of logs by default).
-    log.info(
-        "ask.request",
-        query_len=len(req.query),
-        lang=req.lang,
-    )
+    log.info("ask.request")
 
     # W6-D structured 8000-char cap: surface a JSON-shaped error the
     # frontend can recognize (vs an opaque pydantic 422 string).
@@ -113,17 +146,11 @@ async def ask_stream(request: Request, req: AskRequest):
     if search is None:
         raise HTTPException(503, "Search service not ready")
 
-    # Launch P0-2 — daily LLM budget circuit breaker. Charge BEFORE the
-    # pipeline runs so an over-budget request never pays the API cost.
-    # BudgetExceeded is an RFC 7807 ProblemDetail → friendly 429, not 500.
-    from services.cost_ledger import ledger as _cost_ledger
-    _cost_ledger.charge(endpoint="/api/ask/stream")
-
     orchestrator = AskOrchestrator(search_service=search, llm=_get_llm())
     log.info("ask.response", tier=tier)
 
-    return StreamingResponse(
-        orchestrator.stream(req.query, lang=req.lang),
+    return AskEventStreamResponse(
+        orchestrator.stream(req.query, lang=req.lang, fingerprint=req.fingerprint),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

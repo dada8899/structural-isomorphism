@@ -25,6 +25,7 @@
   // ---- state ----------------------------------------------------
   // Track current in-flight stream so a new submit can abort it.
   var currentController = null;
+  var currentGeneration = 0;
   // Count threads so each item gets a stable DOM id.
   var threadCounter = 0;
   var pendingFingerprintQuery = '';
@@ -66,6 +67,44 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function buildAskRequestBody(query, lang, fingerprint) {
+    var body = { query: String(query || ''), lang: lang === 'en' ? 'en' : 'zh' };
+    if (fingerprint) body.fingerprint = fingerprint;
+    return body;
+  }
+
+  function askGenerationMatches(itemGeneration, activeGeneration, eventGeneration) {
+    return itemGeneration === activeGeneration && eventGeneration === activeGeneration;
+  }
+
+  function validateAnswerDonePayload(data, cards, answerValidated) {
+    if (!answerValidated || !data || typeof data.full_text !== 'string') return null;
+    var citations = Array.isArray(data.citations) ? data.citations : [];
+    var cardsById = {};
+    (cards || []).forEach(function (card, index) {
+      if (card && card.id && !cardsById[card.id]) {
+        cardsById[card.id] = { card: card, index: index + 1 };
+      }
+    });
+    var citationIds = {};
+    for (var i = 0; i < citations.length; i++) {
+      var cit = citations[i];
+      var bound = cit && cardsById[cit.kb_id];
+      if (!bound || cit.idx !== bound.index || citationIds[cit.idx]) return null;
+      citationIds[cit.idx] = true;
+    }
+    var markers = Array.from(data.full_text.matchAll(/\[(\d+)\]/g)).map(function (match) {
+      return parseInt(match[1], 10);
+    });
+    var isRefusal = data.out_of_scope === true && citations.length === 0;
+    if (isRefusal) return { fullText: data.full_text, citations: citations };
+    if (!markers.length || markers.some(function (idx) { return !citationIds[idx]; })) return null;
+    var markerIds = {};
+    markers.forEach(function (idx) { markerIds[idx] = true; });
+    if (Object.keys(citationIds).some(function (idx) { return !markerIds[idx]; })) return null;
+    return { fullText: data.full_text, citations: citations };
   }
 
   // ============================================================
@@ -213,9 +252,20 @@
 
     bindExampleChips();
 
-    // If URL has ?q=..., auto-run that query (deep-link support)
+    // Migrate old external ?q links. The initial request may already exist in
+    // upstream access logs; scrub immediately so history/referrers and every
+    // subsequent same-origin request do not propagate the question further.
     try {
-      var qParam = new URLSearchParams(window.location.search).get('q');
+      var legacyUrl = new URL(window.location.href);
+      var qParam = legacyUrl.searchParams.get('q');
+      if (qParam) {
+        legacyUrl.searchParams.delete('q');
+        window.history.replaceState(
+          window.history.state,
+          '',
+          legacyUrl.pathname + legacyUrl.search + legacyUrl.hash
+        );
+      }
       if (qParam && qParam.trim()) {
         // Tag the upcoming submit; submitQuery normalises 'empty' for
         // first-from-landing, so we keep 'deeplink' explicit instead.
@@ -240,10 +290,69 @@
     });
   }
 
-  function splitFingerprintList(value) {
-    return String(value || '').split(/[,，、;；\n]/).map(function (part) {
-      return part.trim();
-    }).filter(Boolean).slice(0, 12);
+  function canonicalFingerprintText(value, allowLayout) {
+    var text = String(value == null ? '' : value).normalize('NFKC');
+    // Keep this boundary aligned with services/input_limits.py and
+    // privateNavigation.js.  Several default-ignorables (notably CGJ and
+    // variation selectors) are Unicode marks rather than Cc/Cf controls.
+    var defaultIgnorableRanges = [
+      [0x00AD, 0x00AD], [0x034F, 0x034F], [0x061C, 0x061C],
+      [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+      [0x200B, 0x200F], [0x202A, 0x202E], [0x2060, 0x206F],
+      [0x3164, 0x3164], [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF],
+      [0xFFA0, 0xFFA0], [0x1BCA0, 0x1BCA3], [0x1D173, 0x1D17A],
+      [0xE0000, 0xE0FFF]
+    ];
+    var forbidden = /[\p{Cc}\p{Cf}\p{Cs}]/u.test(text);
+    if (!forbidden) {
+      for (var char of text) {
+        var codepoint = char.codePointAt(0);
+        if (defaultIgnorableRanges.some(function (range) {
+          return range[0] <= codepoint && codepoint <= range[1];
+        })) {
+          forbidden = true;
+          break;
+        }
+      }
+    }
+    if (forbidden) {
+      throw new Error('不能包含不可见控制字符。');
+    }
+    return allowLayout ? text.trim().replace(/\s+/g, ' ') : text.trim();
+  }
+
+  function splitFingerprintList(value, label) {
+    var raw = String(value || '').split(/[,，、;；\n]/).map(function (part) {
+      return canonicalFingerprintText(part, false);
+    }).filter(Boolean);
+    if (raw.length > 12) throw new Error(label + '最多填写 12 项。');
+    var unique = [];
+    raw.forEach(function (item) {
+      if (item.length > 120) throw new Error(label + '每项最多 120 个字符。');
+      if (unique.indexOf(item) === -1) unique.push(item);
+    });
+    return unique;
+  }
+
+  function validateFingerprintDraft(query, draft) {
+    try {
+      var summary = canonicalFingerprintText(draft.summary, true);
+      if (summary.length < 8) throw new Error('问题摘要至少需要 8 个字符。');
+      if (summary.length > 1000) throw new Error('问题摘要最多 1000 个字符。');
+      return {
+        ok: true,
+        fingerprint: {
+          source_query: String(query || ''),
+          summary: summary,
+          variables: splitFingerprintList(draft.variables, '关键变量'),
+          constraints: splitFingerprintList(draft.constraints, '约束条件'),
+          unknowns: splitFingerprintList(draft.unknowns, '未知项'),
+          revision: 1
+        }
+      };
+    } catch (err) {
+      return { ok: false, error: err && err.message ? err.message : '请检查结构草案。' };
+    }
   }
 
   function buildFingerprintDraft(query) {
@@ -288,7 +397,7 @@
     } catch (e) {}
   }
 
-  function openFingerprintReview(query) {
+  function openFingerprintReview(query, initialFingerprint, initialError) {
     var panel = qs('#ask-fingerprint');
     var summary = qs('#ask-fingerprint-summary');
     if (!panel || !summary) {
@@ -296,7 +405,7 @@
       return;
     }
     pendingFingerprintQuery = String(query || '').trim();
-    var draft = buildFingerprintDraft(pendingFingerprintQuery);
+    var draft = initialFingerprint || buildFingerprintDraft(pendingFingerprintQuery);
     try {
       var saved = JSON.parse(sessionStorage.getItem('structural_fingerprint_draft') || 'null');
       if (
@@ -311,7 +420,7 @@
     qs('#ask-fingerprint-constraints').value = Array.isArray(draft.constraints) ? draft.constraints.join('，') : (draft.constraints || '');
     qs('#ask-fingerprint-unknowns').value = Array.isArray(draft.unknowns) ? draft.unknowns.join('，') : (draft.unknowns || '');
     var error = qs('#ask-fingerprint-error');
-    if (error) error.textContent = '';
+    if (error) error.textContent = initialError || '';
     panel.hidden = false;
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
     try { qs('#ask-fingerprint-confirm').focus(); } catch (e) {}
@@ -322,6 +431,7 @@
     var panel = qs('#ask-fingerprint');
     var confirm = qs('#ask-fingerprint-confirm');
     var cancel = qs('#ask-fingerprint-cancel');
+    var skip = qs('#ask-fingerprint-skip');
     if (!panel || !confirm) return;
     qsa('input, textarea', panel).forEach(function (field) {
       field.addEventListener('input', saveFingerprintDraft);
@@ -343,21 +453,27 @@
       if (submit) { submit.disabled = false; submit.classList.remove('is-loading'); }
       try { qs('#ask-input').focus(); } catch (e) {}
     });
+    if (skip) skip.addEventListener('click', function () {
+      var query = pendingFingerprintQuery;
+      panel.hidden = true;
+      pendingFingerprintQuery = '';
+      try { sessionStorage.removeItem('structural_fingerprint_draft'); } catch (e) {}
+      track('fingerprint_skipped', { length: query.length });
+      submitQuery(query, null);
+    });
     confirm.addEventListener('click', function () {
-      var summary = (qs('#ask-fingerprint-summary').value || '').trim();
       var error = qs('#ask-fingerprint-error');
-      if (summary.length < 8) {
-        if (error) error.textContent = '问题摘要至少需要 8 个字符。';
+      var checked = validateFingerprintDraft(pendingFingerprintQuery, {
+        summary: qs('#ask-fingerprint-summary').value,
+        variables: qs('#ask-fingerprint-variables').value,
+        constraints: qs('#ask-fingerprint-constraints').value,
+        unknowns: qs('#ask-fingerprint-unknowns').value
+      });
+      if (!checked.ok) {
+        if (error) error.textContent = checked.error;
         return;
       }
-      var fingerprint = {
-        source_query: pendingFingerprintQuery,
-        summary: summary,
-        variables: splitFingerprintList(qs('#ask-fingerprint-variables').value),
-        constraints: splitFingerprintList(qs('#ask-fingerprint-constraints').value),
-        unknowns: splitFingerprintList(qs('#ask-fingerprint-unknowns').value),
-        revision: 1
-      };
+      var fingerprint = checked.fingerprint;
       panel.hidden = true;
       try { sessionStorage.removeItem('structural_fingerprint_draft'); } catch (e) {}
       track('fingerprint_confirmed', {
@@ -381,6 +497,8 @@
       try { currentController.abort(); } catch (e) {}
       currentController = null;
     }
+    currentGeneration += 1;
+    var generation = currentGeneration;
 
     // Switch to thread state on first submit
     var emptyEl = qs('#ask-empty');
@@ -414,7 +532,10 @@
     // Build new item; stamp the t0 so kb_cards / answer events can
     // compute latency relative to this submit.
     var item = renderThreadItem(query, fingerprint);
-    if (item) item._t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (item) {
+      item._t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      item._generation = generation;
+    }
 
     // Scroll into view
     try {
@@ -422,7 +543,7 @@
     } catch (e) {}
 
     // Fire SSE
-    streamAsk(query, item);
+    streamAsk(query, item, fingerprint || null, generation);
   }
 
   // ---- timing helper -------------------------------------------
@@ -468,7 +589,7 @@
         '<div data-role="similar-section" hidden>' +
           '<div class="ask-section-label">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5l7 7"/></svg>' +
-            '<span>结构相同的现象（其他领域）</span>' +
+            '<span>结构相似候选（其他领域）</span>' +
           '</div>' +
           '<div class="ask-thread-item__similar" data-role="similar"></div>' +
         '</div>' +
@@ -492,10 +613,20 @@
   // ============================================================
   // SSE consumer
   // ============================================================
-  function streamAsk(query, item) {
-    currentController = new AbortController();
-    var signal = currentController.signal;
+  function isCurrentGeneration(item, generation) {
+    return !!item && askGenerationMatches(
+      item._generation,
+      currentGeneration,
+      generation
+    );
+  }
+
+  function streamAsk(query, item, fingerprint, generation) {
+    var controller = new AbortController();
+    currentController = controller;
+    var signal = controller.signal;
     var lang = (document.documentElement.getAttribute('lang') || 'zh').slice(0, 2);
+    var requestBody = buildAskRequestBody(query, lang, fingerprint);
 
     fetch('/api/ask/stream', {
       method: 'POST',
@@ -503,10 +634,11 @@
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
       },
-      body: JSON.stringify({ query: query, lang: lang }),
+      body: JSON.stringify(requestBody),
       signal: signal,
     })
       .then(function (resp) {
+        if (!isCurrentGeneration(item, generation)) return null;
         if (!resp.ok) {
           // W6-D: surface structured `input_too_long` body (HTTP 422)
           // as a friendly inline message instead of a bare "HTTP 422".
@@ -518,6 +650,15 @@
                 track('input_too_long_server', { limit: body.limit, received: body.received });
                 throw new Error(msg);
               }
+              var detail = body && Array.isArray(body.detail) ? body.detail : [];
+              var fingerprintError = detail.some(function (entry) {
+                return entry && Array.isArray(entry.loc) && entry.loc.indexOf('fingerprint') !== -1;
+              });
+              if (fingerprintError) {
+                var editError = new Error('结构草案未通过校验，请按提示修正后重试。');
+                editError.code = 'fingerprint_invalid';
+                throw editError;
+              }
               throw new Error('HTTP 422');
             }, function () {
               throw new Error('HTTP 422');
@@ -528,23 +669,33 @@
         if (!resp.body) {
           throw new Error('No response body (streaming unsupported)');
         }
-        return consumeSSE(resp.body.getReader(), item);
+        return consumeSSE(resp.body.getReader(), item, generation);
       })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
-        showError(item, '出了点问题，请重试', query);
+        if (!isCurrentGeneration(item, generation)) return;
+        if (err && err.code === 'fingerprint_invalid' && fingerprint) {
+          openFingerprintReview(query, fingerprint, err.message);
+          return;
+        }
+        showError(item, '出了点问题，请重试', query, generation);
       });
   }
 
-  function consumeSSE(reader, item) {
+  function consumeSSE(reader, item, generation) {
     var decoder = new TextDecoder('utf-8');
     var buffer = '';
 
     function pump() {
+      if (!isCurrentGeneration(item, generation)) {
+        try { reader.cancel(); } catch (e) {}
+        return Promise.resolve();
+      }
       return reader.read().then(function (res) {
+        if (!isCurrentGeneration(item, generation)) return;
         if (res.done) {
           // Flush trailing event if any
-          if (buffer.trim()) handleSSEBlock(buffer, item);
+          if (buffer.trim()) handleSSEBlock(buffer, item, generation);
           return;
         }
         buffer += decoder.decode(res.value, { stream: true });
@@ -553,7 +704,7 @@
         while ((idx = buffer.indexOf('\n\n')) !== -1) {
           var block = buffer.slice(0, idx);
           buffer = buffer.slice(idx + 2);
-          handleSSEBlock(block, item);
+          handleSSEBlock(block, item, generation);
         }
         return pump();
       });
@@ -562,7 +713,21 @@
     return pump();
   }
 
-  function handleSSEBlock(block, item) {
+  function normalizeAskStreamError(data) {
+    var code = data && typeof data.code === 'string' ? data.code : 'stream_error';
+    var retryable = !(data && data.retryable === false);
+    var message = data && typeof data.message === 'string' && data.message.trim()
+      ? data.message.trim()
+      : T('page.ask.error_temporary', '服务暂时出了点问题');
+    if (code === 'budget_exceeded') {
+      message = T('page.ask.error_budget_exceeded', '今日生成额度已用完，请明天再试。');
+      retryable = false;
+    }
+    return { code: code, message: message, retryable: retryable };
+  }
+
+  function handleSSEBlock(block, item, generation) {
+    if (!isCurrentGeneration(item, generation)) return;
     // Parse "event: foo\ndata: {json}" — multi-line data is allowed
     // per spec; we concat all data: lines.
     var lines = block.split('\n');
@@ -588,12 +753,23 @@
       case 'meta':            return handleMetaEvent(item, data);
       case 'retrieval_done':  return handleRetrievalDoneEvent(item, data);
       case 'kb_cards':        return handleKbCardsEvent(item, data);
+      case 'generation_progress': return handleGenerationProgress(item, data);
+      case 'answer_validated': return handleAnswerValidated(item, data);
       case 'answer_chunk':    return handleAnswerChunk(item, data);
       case 'answer_done':     return handleAnswerDoneEvent(item, data);
       case 'similar_phenomena': return handleSimilarEvent(item, data);
       case 'followups':       return handleFollowupsEvent(item, data);
-      case 'done':            return handleDoneEvent(item, data);
-      case 'error':           return showError(item, '服务暂时出了点问题', item.getAttribute('data-query'));
+      case 'done':            return handleDoneEvent(item, data, generation);
+      case 'error': {
+        var normalizedError = normalizeAskStreamError(data);
+        return showError(
+          item,
+          normalizedError.message,
+          item.getAttribute('data-query'),
+          generation,
+          { retryable: normalizedError.retryable, code: normalizedError.code }
+        );
+      }
       default:                return;
     }
   }
@@ -736,18 +912,11 @@
     //   - `.ask-kb-card` (top KB card rows)
     //   - `.ask-citation` (inline [N] markers inside the answer)
     //   - `.ask-citation-link` (citations bar at the bottom)
-    // Each click fires a Plausible event `citation_click` with props
-    // {phenomenon_id, position, query_hash, surface}. The query_hash is
-    // a short SHA-256 prefix of the original query so we can dedupe
-    // clicks across the same question without leaking raw text.
+    // Each click fires a Plausible event `citation_click` with only the
+    // selected KB identifier, position and surface. Never derive analytics
+    // values from the user's query: short hashes of natural-language input
+    // can be reversed with a dictionary and would contradict the privacy UI.
     if (!item._ckBound) {
-      var rawQuery = item.getAttribute('data-query') || '';
-      // Compute query_hash once per thread item; cache for reuse.
-      var hashPromise = computeQueryHash(rawQuery).then(function (h) {
-        item._queryHash = h;
-        return h;
-      });
-
       item.addEventListener('click', function (ev) {
         var citEl = ev.target.closest('.ask-citation, .ask-citation-link, .ask-kb-card__source');
         if (!citEl) return;
@@ -774,22 +943,11 @@
           : citEl.classList.contains('ask-citation-link') ? 'citation_bar'
           : 'inline';
 
-        function fire(h) {
-          track('citation_click', {
-            phenomenon_id: phenomenonId || 'unknown',
-            position: position,
-            query_hash: h || 'unhashed',
-            surface: surface,
-          });
-        }
-        // If hash already computed, fire synchronously; otherwise wait.
-        if (item._queryHash) {
-          fire(item._queryHash);
-        } else if (hashPromise && typeof hashPromise.then === 'function') {
-          hashPromise.then(fire);
-        } else {
-          fire(null);
-        }
+        track('citation_click', {
+          phenomenon_id: phenomenonId || 'unknown',
+          position: position,
+          surface: surface,
+        });
 
         // Keep legacy event so existing dashboards continue to work.
         var idxText = (citEl.textContent || '').match(/\d+/);
@@ -799,59 +957,28 @@
     }
   }
 
-  // ============================================================
-  // W6-D helper: short SHA-256 prefix of the query for analytics dedup.
-  // Falls back to a tiny synchronous string hash when crypto.subtle is
-  // unavailable (older browsers / non-HTTPS local dev).
-  // ============================================================
-  function computeQueryHash(query) {
-    var text = String(query || '').trim();
-    if (!text) return Promise.resolve('');
-    if (window.crypto && window.crypto.subtle && window.TextEncoder) {
-      try {
-        var bytes = new TextEncoder().encode(text);
-        return window.crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
-          var arr = Array.from(new Uint8Array(buf));
-          return arr.slice(0, 4).map(function (b) {
-            return ('00' + b.toString(16)).slice(-2);
-          }).join('');
-        }).catch(function () { return fallbackHash(text); });
-      } catch (e) { /* fall through */ }
-    }
-    return Promise.resolve(fallbackHash(text));
+  function handleGenerationProgress(item, data) {
+    if (!item || !data) return;
+    var answerEl = item.querySelector('[data-role="answer"]');
+    if (!answerEl) return;
+    var placeholder = answerEl.querySelector('.ask-thread-item__answer-empty');
+    if (placeholder) placeholder.textContent = '正在校验完整答案与引用…';
   }
-  function fallbackHash(s) {
-    // djb2 — short, fast, good enough as a session-level dedupe key.
-    var h = 5381;
-    for (var i = 0; i < s.length; i++) {
-      h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
-    }
-    return ('00000000' + h.toString(16)).slice(-8);
+
+  function handleAnswerValidated(item, data) {
+    if (!item || !data || data.ok !== true) return;
+    item._answerValidated = true;
   }
 
   function handleAnswerChunk(item, data) {
     if (!item || !data || typeof data.delta !== 'string') return;
-    var answerEl = item.querySelector('[data-role="answer"]');
-    if (!answerEl) return;
-
-    // Remove placeholder on first chunk
-    var empty = answerEl.querySelector('.ask-thread-item__answer-empty');
-    if (empty) empty.remove();
-
-    // W5-B: capture time-to-first-token explicitly; this is the headline
-    // latency metric we are optimizing for in this sprint.
-    if (!item._firstChunkAt) {
-      item._firstChunkAt = elapsedSince(item._t0);
-      track('first_answer_chunk', { latency_ms: item._firstChunkAt });
+    // Never place streamed model deltas in the DOM. The backend emits these
+    // only after validation, but the browser still waits for answer_done so a
+    // stale or mixed stream cannot publish a partial answer.
+    if (item._answerValidated && !item._firstValidatedChunkAt) {
+      item._firstValidatedChunkAt = elapsedSince(item._t0);
+      track('first_validated_answer_chunk', { latency_ms: item._firstValidatedChunkAt });
     }
-
-    // Append to a running text buffer (we keep raw text, render citations on done)
-    if (!item._answerBuf) item._answerBuf = '';
-    item._answerBuf += data.delta;
-
-    // Render raw text with blinking caret. Citations rendering happens
-    // at answer_done so we have the full citation map.
-    answerEl.innerHTML = esc(item._answerBuf) + '<span class="ask-caret" aria-hidden="true"></span>';
   }
 
   function handleAnswerDoneEvent(item, data) {
@@ -859,20 +986,38 @@
     var answerEl = item.querySelector('[data-role="answer"]');
     if (!answerEl) return;
 
-    var fullText = data.full_text || item._answerBuf || '';
-    var citations = data.citations || [];
+    var validated = validateAnswerDonePayload(
+      data,
+      item._cards || [],
+      item._answerValidated === true
+    );
+    if (!validated) {
+      return showError(
+        item,
+        '答案或引用未通过完整性校验，请重试',
+        item.getAttribute('data-query'),
+        item._generation
+      );
+    }
+    var fullText = validated.fullText;
+    var citations = validated.citations;
 
-    // Remove caret + render with [N] → linked badges
+    // Only this complete, source-bound event is allowed to publish prose.
+    // A local OOS/no-card refusal has no retrieval cards, so neither the
+    // retrieval_done nor kb_cards handler reveals this section. Visibility
+    // follows the trusted terminal answer, not successful retrieval.
+    var answerSection = item.querySelector('[data-role="answer-section"]');
+    if (answerSection) answerSection.hidden = false;
     answerEl.innerHTML = renderCitationsAsLinks(fullText, citations, item._cards);
 
     // Citations bar
     if (citations.length) {
       var barEl = item.querySelector('[data-role="citations"]');
       if (barEl) {
-        var cardsById = {};
-        (item._cards || []).forEach(function (c) { cardsById[c.id] = c; });
+        var displayCardsById = {};
+        (item._cards || []).forEach(function (c) { displayCardsById[c.id] = c; });
         barEl.innerHTML = citations.map(function (cit) {
-          var src = cardsById[cit.kb_id];
+          var src = displayCardsById[cit.kb_id];
           var label = cit.label || (src ? src.name : 'source');
           // Canonical /phenomenon/{id} route.
           var href = cit.kb_id ? ('/phenomenon/' + encodeURIComponent(cit.kb_id)) : '#';
@@ -963,8 +1108,8 @@
     bindFollowupClicks(item);
   }
 
-  function handleDoneEvent(item, data) {
-    if (!item) return;
+  function handleDoneEvent(item, data, generation) {
+    if (!isCurrentGeneration(item, generation)) return;
     // Remove caret if still present (safety net)
     var caret = item.querySelector('.ask-caret');
     if (caret) caret.remove();
@@ -1037,7 +1182,11 @@
     }
     // /analyze URL contract lives in utils/buildAnalyzeUrl.js — single
     // source of truth across the site (search.js / home.js / phenomenon.js).
-    var url = window.buildAnalyzeUrl({ id: selectedKbId, q: query });
+    var url = window.buildAnalyzeUrl({
+      id: selectedKbId,
+      q: query,
+      fingerprint: item._fingerprint || null
+    });
     var separator = url.indexOf('?') === -1 ? '?' : '&';
     var privateUrl = url + separator + 'persist=0';
     var savedUrl = url + separator + 'persist=1';
@@ -1064,9 +1213,6 @@
     }
     if (ctaLink) {
       ctaLink.addEventListener('click', function () {
-        if (item._fingerprint) {
-          try { sessionStorage.setItem('structural_pending_fingerprint', JSON.stringify(item._fingerprint)); } catch (e) {}
-        }
         track('deep_analysis_triggered', {
           from_thread_item: true,
           phenomenon_id: selectedKbId,
@@ -1097,25 +1243,31 @@
   // ============================================================
   // Error handling + retry
   // ============================================================
-  function showError(item, message, query) {
-    if (!item) return;
+  function showError(item, message, query, generation, options) {
+    generation = generation || (item && item._generation);
+    if (!isCurrentGeneration(item, generation)) return;
+    options = options || {};
+    var retryable = options.retryable !== false;
     var errEl = item.querySelector('[data-role="error"]');
     if (!errEl) return;
     errEl.innerHTML =
       '<div class="ask-thread-item__error">' +
         '<span>' + esc('出错了：' + (message || '请重试')) + '</span>' +
-        '<button type="button" class="ask-thread-item__error-retry" data-retry-q="' + esc(query || '') + '">重试</button>' +
+        (retryable
+          ? '<button type="button" class="ask-thread-item__error-retry" data-ask-retry="true">重试</button>'
+          : '') +
       '</div>';
     errEl.hidden = false;
-    var retryBtn = errEl.querySelector('[data-retry-q]');
+    if (options.code) errEl.dataset.errorCode = String(options.code);
+    var retryBtn = errEl.querySelector('[data-ask-retry]');
     if (retryBtn) {
       retryBtn.addEventListener('click', function () {
-        var q = retryBtn.getAttribute('data-retry-q') || '';
+        var q = String(query || '');
         if (q.trim()) {
           // Remove this item, then resubmit
           var container = qs('#ask-thread-items');
           if (item && item.parentNode === container) container.removeChild(item);
-          submitQuery(q.trim());
+          submitQuery(q.trim(), item._fingerprint || null);
         }
       });
     }
@@ -1139,6 +1291,20 @@
   // Expose for debugging
   window.__ask = {
     submitQuery: submitQuery,
-    abort: function () { if (currentController) currentController.abort(); },
+    abort: function () {
+      currentGeneration += 1;
+      if (currentController) currentController.abort();
+      currentController = null;
+    },
   };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      askGenerationMatches: askGenerationMatches,
+      buildAskRequestBody: buildAskRequestBody,
+      validateAnswerDonePayload: validateAnswerDonePayload,
+      validateFingerprintDraft: validateFingerprintDraft,
+      normalizeAskStreamError: normalizeAskStreamError,
+    };
+  }
 })();

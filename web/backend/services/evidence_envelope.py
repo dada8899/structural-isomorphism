@@ -10,6 +10,7 @@ from __future__ import annotations
 from enum import Enum
 from datetime import date
 import math
+import re
 from typing import Any, Mapping, Optional
 from urllib.parse import urlsplit
 
@@ -51,6 +52,7 @@ FALSIFICATION_PROVENANCE = {
     ResultProvenance.EXTERNAL_REVIEW.value,
     ResultProvenance.INDEPENDENT_REPLICATION.value,
 }
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _text(value: Any, limit: int = 1000) -> Optional[str]:
@@ -78,8 +80,11 @@ def _valid_ledger(value: Any) -> bool:
     if not all(_text(value.get(key), 200) for key in required):
         return False
     digest = _text(value.get("artifact_sha256"), 64)
+    recorded_at = _text(value.get("recorded_at"), 100) or ""
+    if not ISO_DATE.fullmatch(recorded_at):
+        return False
     try:
-        recorded_date = date.fromisoformat(_text(value.get("recorded_at"), 100) or "")
+        recorded_date = date.fromisoformat(recorded_at)
     except ValueError:
         return False
     locator = _text(value.get("url"), 2048)
@@ -105,8 +110,10 @@ def _valid_external_source(url: Any, review: Any) -> bool:
     if not locator or not isinstance(review, Mapping):
         return False
     reviewed_at = _text(review.get("reviewed_at"), 100)
+    if not reviewed_at or not ISO_DATE.fullmatch(reviewed_at):
+        return False
     try:
-        reviewed_date = date.fromisoformat(reviewed_at or "")
+        reviewed_date = date.fromisoformat(reviewed_at)
     except ValueError:
         return False
     return bool(
@@ -152,7 +159,13 @@ def build_evidence_envelope(
         source_kind = "not_recorded"
         external_url = None
         review = None
-    promotion_ok = ledger_bound
+    # Strict promotion is quarantined until the runtime consumes the same
+    # content-bound artifact/review manifest as the offline evidence ladder.
+    # The legacy contract only proves that fields are well formed; it cannot
+    # prove that a digest exists, that a review is content-bound, or that the
+    # source has two independent reviewers.  Keeping every requested upgrade
+    # at candidate is the only honest fail-closed behavior during migration.
+    promotion_ok = False
     if requested != "candidate":
         promotion_ok = promotion_ok and source_kind == "external_source"
     if requested in {"analysis_recorded", "falsification_tested", "externally_reviewed", "replicated"}:

@@ -1,4 +1,4 @@
-"""GET /api/analyze/stream — 深度跨学科迁移研究报告（SSE 流式）
+"""POST /api/analyze/stream — 深度跨学科迁移研究报告（SSE 流式）
 
 支持两种模式：
 1. Query mode: text_a (用户的原始问题) + b_id (KB 中的目标现象)
@@ -8,52 +8,332 @@
    → 语义：两个已知现象的深度对比
 """
 import hashlib
+import hmac
 import json as _json
-import logging
 import os
+import secrets
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Literal, Optional
+from urllib.parse import urlsplit
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-from services.auth import verify_api_token
-from services.cache import MappingCache
-from services.llm_service import LLMService
-from services.rate_limit import tier_limit_decorator
-from services.ask_orchestrator import ASK_MODEL  # canonical source of truth
-from services.report_store import ReportStore, sign_share_token
-from services.translation import translate_kb_item
+if __package__ == "web.backend.api":
+    from ..services.ask_orchestrator import ASK_MODEL
+    from ..services.auth import verify_api_token
+    from ..services.cache import MappingCache
+    from ..services.candidate_origin import (
+        SCHEMA_VERSION,
+        build_origin_candidate,
+        normalize_discovery_id,
+    )
+    from ..services.llm_service import LLMService
+    from ..services.input_limits import MAX_RESEARCH_QUERY_CHARS
+    from ..services.input_limits import normalize_research_text
+    from ..services.deep_report import (
+        DeepAnalysisReportV2,
+        GeneratedDeepReportV2,
+        SourceBinding,
+        SourceRef,
+        bind_deep_report,
+        validate_bound_deep_report,
+        validate_generated_deep_report_value,
+    )
+    from ..services.rate_limit import tier_limit_decorator
+    from ..services.report_store import ReportStore
+else:
+    from services.ask_orchestrator import ASK_MODEL
+    from services.auth import verify_api_token
+    from services.cache import MappingCache
+    from services.candidate_origin import (
+        SCHEMA_VERSION,
+        build_origin_candidate,
+        normalize_discovery_id,
+    )
+    from services.llm_service import LLMService
+    from services.input_limits import MAX_RESEARCH_QUERY_CHARS
+    from services.input_limits import normalize_research_text
+    from services.deep_report import (
+        DeepAnalysisReportV2,
+        GeneratedDeepReportV2,
+        SourceBinding,
+        SourceRef,
+        bind_deep_report,
+        validate_bound_deep_report,
+        validate_generated_deep_report_value,
+    )
+    from services.rate_limit import tier_limit_decorator
+    from services.report_store import ReportStore
 
-logger = logging.getLogger(__name__)
+logger = get_logger("structural.analyze")
 router = APIRouter(tags=["analyze"])
 
 _cache: Optional[MappingCache] = None
 _llm: Optional[LLMService] = None
 _report_store: Optional[ReportStore] = None
 
+_ENTITY_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$"
+_DISCOVERY_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+_FingerprintItem = Annotated[StrictStr, Field(min_length=1, max_length=120)]
+_REPORT_SECTION_KEYS = (
+    "shared_structure",
+    "your_problem_breakdown",
+    "target_domain_intro",
+    "structural_mapping",
+    "borrowable_insights",
+    "how_to_combine",
+    "research_directions",
+    "risks_and_limits",
+    "action_plan",
+)
+_DEEP_CACHE_SCHEMA = "deep-analysis-report-v2-deep-report-v2"
+_DEEP_LLM_ERROR_CODES = frozenset({
+    "provider_auth_failed",
+    "provider_rate_limited",
+    "provider_request_rejected",
+    "provider_unavailable",
+    "report_validation_failed",
+    "report_unavailable",
+    "upstream_error",
+    "upstream_timeout",
+    "upstream_unreachable",
+})
+
+
+def _canonical_text(value: str, *, field: str, allow_layout: bool = True) -> str:
+    """NFKC-normalize user text and reject invisible/unsafe controls."""
+    return normalize_research_text(
+        value,
+        max_chars=MAX_RESEARCH_QUERY_CHARS,
+        allow_layout=allow_layout,
+        field_name=field,
+    )
+
+
+class AnalyzeFingerprint(BaseModel):
+    """User-confirmed structure, bound to exactly one source question."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    source_query: StrictStr = Field(
+        min_length=1, max_length=MAX_RESEARCH_QUERY_CHARS
+    )
+    summary: StrictStr = Field(min_length=8, max_length=1000)
+    variables: list[_FingerprintItem] = Field(default_factory=list, max_length=12)
+    constraints: list[_FingerprintItem] = Field(default_factory=list, max_length=12)
+    unknowns: list[_FingerprintItem] = Field(default_factory=list, max_length=12)
+    revision: StrictInt = Field(default=1, ge=1, le=1000)
+
+    @field_validator("source_query")
+    @classmethod
+    def _validate_source_query(cls, value: str) -> str:
+        normalized = _canonical_text(value, field="fingerprint.source_query")
+        if not normalized or len(normalized) > MAX_RESEARCH_QUERY_CHARS:
+            raise ValueError(
+                "fingerprint.source_query must be "
+                f"1-{MAX_RESEARCH_QUERY_CHARS} characters"
+            )
+        return normalized
+
+    @field_validator("summary")
+    @classmethod
+    def _validate_summary(cls, value: str) -> str:
+        normalized = _canonical_text(value, field="fingerprint.summary")
+        if not 8 <= len(normalized) <= 1000:
+            raise ValueError("fingerprint.summary must be 8-1000 characters")
+        return normalized
+
+    @field_validator("variables", "constraints", "unknowns")
+    @classmethod
+    def _validate_items(cls, values: list[str], info) -> list[str]:
+        cleaned: list[str] = []
+        for item in values:
+            normalized = _canonical_text(
+                item,
+                field=f"fingerprint.{info.field_name}",
+                allow_layout=False,
+            )
+            if not normalized or len(normalized) > 120:
+                raise ValueError(
+                    f"fingerprint.{info.field_name} items must be 1-120 characters"
+                )
+            cleaned.append(normalized)
+        return cleaned
+
+
+class AnalyzeStreamRequest(BaseModel):
+    """Sensitive analysis inputs; this model is accepted only in a POST body."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    b_id: StrictStr = Field(pattern=_ENTITY_ID_PATTERN)
+    a_id: Optional[StrictStr] = Field(default=None, pattern=_ENTITY_ID_PATTERN)
+    text_a: Optional[StrictStr] = Field(
+        default=None, min_length=1, max_length=MAX_RESEARCH_QUERY_CHARS
+    )
+    lang: Literal["zh", "en"] = "zh"
+    persist: StrictInt = Field(default=0, ge=0, le=1)
+    anon_id: Optional[StrictStr] = Field(default=None, min_length=1, max_length=128)
+    fingerprint: Optional[AnalyzeFingerprint] = None
+    origin_discovery_id: Optional[StrictStr] = Field(
+        default=None,
+        pattern=_DISCOVERY_ID_PATTERN,
+    )
+    origin_contract_version: Optional[StrictStr] = Field(
+        default=None,
+        pattern=_DISCOVERY_ID_PATTERN,
+    )
+
+    @field_validator("text_a")
+    @classmethod
+    def _validate_text_a(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = _canonical_text(value, field="text_a")
+        if not normalized or len(normalized) > MAX_RESEARCH_QUERY_CHARS:
+            raise ValueError(
+                f"text_a must be 1-{MAX_RESEARCH_QUERY_CHARS} characters"
+            )
+        return normalized
+
+    @field_validator("anon_id")
+    @classmethod
+    def _validate_anon_id(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = _canonical_text(value, field="anon_id", allow_layout=False)
+        if not normalized or len(normalized) > 128:
+            raise ValueError("anon_id must be 1-128 characters")
+        return normalized
+
+    @model_validator(mode="after")
+    def _validate_mode(self):
+        if (self.text_a is None) == (self.a_id is None):
+            raise ValueError("provide exactly one of text_a or a_id")
+        if self.a_id is not None and self.a_id == self.b_id:
+            raise ValueError("a_id must differ from b_id")
+        if self.fingerprint is not None:
+            if self.text_a is None:
+                raise ValueError("fingerprint is only valid in query mode")
+            if self.fingerprint.source_query != self.text_a:
+                raise ValueError("fingerprint does not match text_a")
+        if (self.origin_discovery_id is None) != (
+            self.origin_contract_version is None
+        ):
+            raise ValueError("discovery origin fields must be provided together")
+        return self
+
+
+def _resolve_origin_candidate(
+    origin_discovery_id: Optional[str],
+    origin_contract_version: Optional[str],
+    *,
+    a_id: Optional[str],
+    b_id: str,
+    is_query_mode: bool,
+) -> Optional[dict]:
+    """Bind a discovery deep link to the exact current public candidate.
+
+    The pair and contract are validated again on the server; URL parameters
+    alone are never accepted as provenance.  Reports may retain this stable
+    identity, but user outcomes never mutate or upgrade the source candidate.
+    """
+    raw_id = origin_discovery_id or ""
+    raw_contract = origin_contract_version or ""
+    candidate_id = raw_id.strip()
+    contract_version = raw_contract.strip()
+    if not candidate_id and not contract_version:
+        return None
+    if (
+        candidate_id != raw_id
+        or contract_version != raw_contract
+        or not candidate_id
+        or not contract_version
+        or normalize_discovery_id(candidate_id) is None
+    ):
+        raise HTTPException(400, "Invalid discovery origin")
+
+    if contract_version != SCHEMA_VERSION:
+        raise HTTPException(409, "Discovery contract version is no longer current")
+    if is_query_mode or not a_id:
+        raise HTTPException(409, "Discovery origin requires its bound KB pair")
+
+    if __package__ == "web.backend.api":
+        from . import discoveries as discoveries_api
+    else:
+        from api import discoveries as discoveries_api
+
+    payload = discoveries_api.build_public_discoveries()
+    candidates = [*payload["discoveries"], *payload["tier2"]]
+    candidate = next(
+        (row for row in candidates if row["discovery_id"] == candidate_id),
+        None,
+    )
+    if candidate is None:
+        raise HTTPException(409, "Discovery candidate is no longer available")
+    pair = candidate["pair"]
+    if pair["a"]["id"] != a_id or pair["b"]["id"] != b_id:
+        raise HTTPException(409, "Discovery candidate does not match the requested pair")
+    origin = build_origin_candidate(
+        discovery_id=candidate["discovery_id"],
+        contract_version=candidate["schema_version"],
+        candidate_family_id=candidate["candidate_family_id"],
+        tier=candidate["tier"],
+        a_id=pair["a"]["id"],
+        b_id=pair["b"]["id"],
+    )
+    if origin is None:
+        logger.error(
+            "analyze.candidate_origin_failed",
+            incident_id=new_incident_id(),
+        )
+        raise HTTPException(500, "Discovery origin is unavailable")
+    return origin
+
 
 def _build_share_url(request: Request, report_id: str, token: str) -> str:
-    """Return a full https URL to the share page.
+    """Return a share URL without trusting client-controlled origin headers."""
+    del report_id  # The public capability path is token-addressed.
+    path = f"/report/share/{token}"
+    if os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
+        return f"https://beta.structural.bytedance.city{path}"
 
-    Honours X-Forwarded-Host / X-Forwarded-Proto so the URL is correct
-    behind nginx. Falls back to request.base_url when those are missing
-    (local dev / tests).
-    """
-    fwd_host = request.headers.get("x-forwarded-host")
-    fwd_proto = request.headers.get("x-forwarded-proto", "https")
-    if fwd_host:
-        base = f"{fwd_proto}://{fwd_host.split(',')[0].strip()}"
-    else:
-        base = str(request.base_url).rstrip("/")
-    return f"{base}/report/share/{token}"
+    parsed = urlsplit(str(request.base_url))
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.hostname not in {"localhost", "127.0.0.1", "::1", "testserver"}
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        return path
+    return f"{parsed.scheme}://{parsed.netloc}{path}"
 
 
 def _init():
     global _cache, _llm, _report_store
     if _cache is None:
         cache_path = Path(__file__).parent.parent.parent / "data" / "analysis_cache.jsonl"
-        _cache = MappingCache(cache_path)
+        _cache = MappingCache(
+            cache_path,
+            schema_version=_DEEP_CACHE_SCHEMA,
+            validator=lambda value: DeepAnalysisReportV2.model_validate(value).model_dump(
+                mode="json"
+            ),
+        )
     if _llm is None:
         _llm = LLMService()
     if _report_store is None:
@@ -63,597 +343,734 @@ def _init():
         _report_store = ReportStore(db_path)
 
 
-def _looks_like_question(text: str) -> bool:
-    if len(text) < 8:
-        return False
-    if "?" in text or "？" in text:
-        return True
-    markers = ["为什么", "怎么", "如何", "什么时候", "哪里", "是不是", "会不会", "能不能"]
-    return any(m in text for m in markers)
-
-
-def _parse_fingerprint(raw: Optional[str], expected_query: Optional[str]) -> Optional[dict]:
-    """Validate the user-confirmed structure before it enters report storage."""
-    if not raw:
+def _fingerprint_payload(value: Optional[AnalyzeFingerprint]) -> Optional[dict]:
+    """Project the validated request model into the persisted public shape."""
+    if value is None:
         return None
-    try:
-        value = _json.loads(raw)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(422, "Invalid fingerprint JSON") from exc
-    if not isinstance(value, dict):
-        raise HTTPException(422, "Fingerprint must be an object")
-    allowed = {"source_query", "summary", "variables", "constraints", "unknowns", "revision"}
-    if set(value) - allowed:
-        raise HTTPException(422, "Fingerprint contains unknown fields")
-    source_query = value.get("source_query")
-    if expected_query and source_query != expected_query:
-        raise HTTPException(422, "Fingerprint does not match this question")
-    summary = value.get("summary")
-    if not isinstance(summary, str) or not 8 <= len(summary.strip()) <= 1000:
-        raise HTTPException(422, "Fingerprint summary must be 8-1000 characters")
-
-    def clean_list(name: str) -> list[str]:
-        items = value.get(name, [])
-        if not isinstance(items, list) or len(items) > 12:
-            raise HTTPException(422, f"Fingerprint {name} must be a list of at most 12 items")
-        cleaned = []
-        for item in items:
-            if not isinstance(item, str) or not item.strip() or len(item.strip()) > 120:
-                raise HTTPException(422, f"Invalid fingerprint {name} item")
-            cleaned.append(item.strip())
-        return cleaned
-
-    revision = value.get("revision", 1)
-    if not isinstance(revision, int) or not 1 <= revision <= 1000:
-        raise HTTPException(422, "Invalid fingerprint revision")
     return {
-        "summary": summary.strip(),
-        "variables": clean_list("variables"),
-        "constraints": clean_list("constraints"),
-        "unknowns": clean_list("unknowns"),
-        "revision": revision,
+        "summary": value.summary,
+        "variables": list(value.variables),
+        "constraints": list(value.constraints),
+        "unknowns": list(value.unknowns),
+        "revision": value.revision,
         "provenance": "user_confirmed",
     }
 
 
-def _query_cache_key(text: str, b_id: str, lang: str = "zh") -> str:
-    """For query-mode caching, use a hash of the (query, b_id, lang) tuple.
+def _parse_fingerprint(raw: Optional[str], expected_query: Optional[str]) -> Optional[dict]:
+    """Compatibility helper for focused unit tests; HTTP accepts typed JSON."""
+    if not raw:
+        return None
+    try:
+        parsed = AnalyzeFingerprint.model_validate_json(raw, strict=True)
+        expected = _canonical_text(expected_query or "", field="text_a")
+        if parsed.source_query != expected:
+            raise ValueError("fingerprint does not match text_a")
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, "Invalid fingerprint") from exc
+    return _fingerprint_payload(parsed)
 
-    Lang is part of the cache key so zh/en reports don't collide.
+
+def _canonical_digest(value: object) -> str:
+    payload = _json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _binding_secret() -> bytes:
+    """Derive a domain-separated query-binding key from a private root."""
+    value = os.getenv("STRUCTURAL_SHARE_TOKEN_SECRET", "")
+    env = os.getenv("STRUCTURAL_ENV", "dev").lower()
+    weak_markers = ("replace", "example", "changeme", "placeholder")
+    if env == "prod" and (
+        len(value) < 32 or any(marker in value.lower() for marker in weak_markers)
+    ):
+        raise RuntimeError("private query-binding root is unavailable in production")
+    if not value:
+        value = f"deep-report-dev-only:{Path.cwd()}"
+    return hmac.new(
+        value.encode("utf-8"),
+        b"structural:deep-report-query-binding:v2",
+        hashlib.sha256,
+    ).digest()
+
+
+def _query_binding(query: str, *, b_id: str, lang: str) -> str:
+    payload = _json.dumps(
+        {"query": query, "b_id": b_id, "lang": lang},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hmac.new(_binding_secret(), payload, hashlib.sha256).hexdigest()
+
+
+def _archive_record(record: dict) -> dict:
+    """Freeze only the source fields covered by the canonical record digest."""
+    return {
+        key: record.get(key)
+        for key in ("id", "name", "domain", "type_id", "description")
+    }
+
+
+def _persisted_report_receipt(
+    *,
+    query: str,
+    b_id: str,
+    lang: str,
+    model: str,
+    prompt_version: str,
+    payload: dict,
+) -> str:
+    """Authenticate one immutable report archive independently of current KB.
+
+    Persisted reports are historical research artifacts, not cache entries.
+    The domain-separated HMAC lets a later read validate the exact generated
+    report, source snapshots, provenance and row bindings after the live KB
+    advances, while any edited or legacy unsigned v2 row fails closed.
     """
-    normalized = text.strip()
-    h = hashlib.md5(f"{normalized}||{b_id}||{lang}".encode("utf-8")).hexdigest()[:16]
-    return f"q_{h}"
+    message = _json.dumps(
+        {
+            "b_id": b_id,
+            "lang": lang,
+            "model": model,
+            "payload": payload,
+            "prompt_version": prompt_version,
+            "query": query,
+            "version": "persisted-deep-report-v2",
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    receipt_key = hmac.new(
+        _binding_secret(),
+        b"structural:persisted-deep-report:v2",
+        hashlib.sha256,
+    ).digest()
+    return hmac.new(receipt_key, message, hashlib.sha256).hexdigest()
 
 
-@router.get("/analyze/stream")
-@tier_limit_decorator(default_anon="10/minute")
-async def stream_analyze(
+def _record_digest(record: dict) -> str:
+    return _canonical_digest({
+        key: record.get(key)
+        for key in ("id", "name", "domain", "type_id", "description")
+    })
+
+
+def _cache_identity(
+    *,
+    source_record_sha256: str,
+    target_record_sha256: str,
+    artifact_id: str,
+    model_id: str,
+) -> str:
+    return "pair_" + _canonical_digest({
+        "schema": "deep-analysis-report-v2",
+        "prompt": "deep-report-v2",
+        "source": source_record_sha256,
+        "target": target_record_sha256,
+        "artifact": artifact_id,
+        "model": model_id,
+    })
+
+
+def _source_ref(record: dict, *, lang: str, target: bool = False) -> SourceRef:
+    label = str(record.get("name") or record.get("id") or "Internal KB record")[:240]
+    if lang == "en":
+        limitation = (
+            "Internal candidate record only; it does not establish mechanism, "
+            "causality, transfer success, or independent review."
+        )
+    else:
+        limitation = "仅为内部候选记录；不证明机制、因果、迁移有效或独立复核。"
+    if target:
+        limitation = (
+            "Internal target record used only for comparison; it does not show that the mechanisms are the same."
+            if lang == "en"
+            else "仅作为比较目标的内部记录；不能据此判断两边机制相同。"
+        )
+    return SourceRef(
+        source_ref_id=f"kb:{record['id']}",
+        source_kind="internal_kb",
+        record_id=str(record["id"]),
+        label=label,
+        limitations=limitation,
+    )
+
+
+@router.get("/analyze/stream", include_in_schema=False)
+async def retired_analyze_stream_get():
+    """Retire the URL-bearing transport without ever parsing its query string."""
+    return JSONResponse(
+        status_code=410,
+        content={
+            "error": "sensitive_get_retired",
+            "message": "Use POST /api/analyze/stream with a JSON body.",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _analyze_sse(event_type: str, data: dict) -> str:
+    return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _analyze_stream_response(generator) -> StreamingResponse:
+    return StreamingResponse(
+        generator,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def _terminal_error_response(*, code: str, message: str, retryable: bool):
+    async def events():
+        # `error` is the single terminal event.  Emitting a later `done` would
+        # let clients accidentally treat a failed generation as completed.
+        yield _analyze_sse("error", {
+            "code": code,
+            "message": message,
+            "retryable": retryable,
+        })
+
+    return _analyze_stream_response(events())
+
+
+async def _stream_analyze_v2(
     request: Request,
-    b_id: str = Query(...),
-    a_id: Optional[str] = Query(None),
-    text_a: Optional[str] = Query(
-        None,
-        max_length=2000,
-        description="User's free-text question. Capped at 2000 chars to "
-        "prevent unbounded payload growth in persisted reports.",
-    ),
-    lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
-    persist: int = Query(
-        0,
-        description=(
-            "Session #16 M1.4 — if 1, persist the final report to the "
-            "report store and emit a `persisted` SSE event with id + "
-            "share_url before `done`. Default 0 keeps existing callers "
-            "backward-compatible."
-        ),
-    ),
-    anon_id: Optional[str] = Query(
-        None,
-        max_length=128,
-        description=(
-            "Anonymous user id. Used to populate reports.creator_anon_id "
-            "when persist=1. Provided as a query param because EventSource "
-            "(used by the frontend) can not set custom headers. Falls back "
-            "to the X-Anon-Id header for callers using fetch + ReadableStream."
-        ),
-    ),
-    fingerprint: Optional[str] = Query(
-        None,
-        max_length=4096,
-        description="User-confirmed structural fingerprint JSON for query mode.",
-    ),
-):
-    # Auth tier classification — None means token was provided but invalid.
+    req: AnalyzeStreamRequest,
+) -> StreamingResponse:
+    """Generate a source-bound report with validation-before-display."""
     tier = verify_api_token(request)
     if tier is None:
         raise HTTPException(401, "Invalid API token")
 
     from main import app_state
 
-    _init()
-
     svc = app_state.get("search")
     if not svc:
         raise HTTPException(503, "Search service not ready")
 
-    # Always fetch the KB phenomenon (used as SOURCE)
-    kb_phenom = svc.get_by_id(b_id)
-    if not kb_phenom:
+    lang = req.lang
+    text_a = req.text_a
+    # Raw scope classification runs before KB lookup, retrieval, cache init or
+    # any LLM call.  This is the cheapest and least leaky rejection boundary.
+    if text_a is not None:
+        if __package__ == "web.backend.api":
+            from ..services.scope_guard import is_out_of_scope
+        else:
+            from services.scope_guard import is_out_of_scope
+        out_of_scope, _reason = is_out_of_scope(text_a)
+        if out_of_scope:
+            logger.info("analyze.raw_scope_refused")
+            return _terminal_error_response(
+                code="out_of_scope",
+                message=(
+                    "This request is outside the cross-domain research workflow. "
+                    "Try a question with variables, constraints, and an observable outcome."
+                    if lang == "en"
+                    else "这个请求不适合跨领域研究流程。请改写为包含变量、约束和可观察结果的问题。"
+                ),
+                retryable=False,
+            )
+
+    _init()
+    raw_b = svc.get_by_id(req.b_id)
+    if not raw_b:
         raise HTTPException(404, "Phenomenon not found")
 
-    user_query = None  # original question for query mode
+    artifact_id = str((app_state.get("artifact") or {}).get("artifact_id") or "")
+    if not artifact_id:
+        if os.getenv("STRUCTURAL_ENV", "dev").lower() == "prod":
+            raise HTTPException(503, "Verified knowledge artifact is unavailable")
+        artifact_id = "unverified-dev-artifact"
 
-    # Normalize the lang parameter once
-    lang = (lang or "zh").lower()
-    if lang not in ("zh", "en"):
-        lang = "zh"
+    model_id = str(getattr(_llm, "model", None) or ASK_MODEL)
+    user_query: Optional[str] = None
+    raw_target: Optional[dict] = None
 
-    if text_a:
-        # === Query mode ===
-        rewritten = await _llm.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
-
-        idx_kb = svc.idx_by_id.get(b_id)
-        if idx_kb is None:
-            raise HTTPException(404, "Phenomenon not in KB")
-        # Session #17 V3.1/V3.2 — UNIFIED similarity口径. The old code did a
-        # raw np.dot of a normalized query embedding against an UN-normalized
-        # KB embedding (kb_v2_embeddings.npy has norms ~14-22), producing
-        # illegal meta.similarity values (9.5 / 4.76 observed). relevance_score
-        # returns a true cosine remapped to [0, 1] — the SAME口径 /api/search
-        # now exposes as `result.relevance`, so a result search ranked highly
-        # will not be self-contradictorily rejected by the scope gate below.
-        similarity = svc.relevance_score(rewritten, b_id)
-
-        # SOURCE (a) = KB phenomenon; TARGET (b) = user's question.
-        # The synthetic `b.domain` is hardcoded ZH; translate for lang=en.
-        a = kb_phenom
-        b = {
+    if text_a is not None:
+        user_query = text_a
+        source_record = raw_b
+        # The selected KB row is a candidate source; the raw user question is
+        # the target.  No preliminary model rewrite is allowed to alter it.
+        source = dict(source_record)
+        target = {
             "id": "__query__",
             "name": text_a[:60] + ("..." if len(text_a) > 60 else ""),
             "domain": "Your question" if lang == "en" else "你的问题",
-            "type_id": "?",
-            "description": rewritten,
+            "type_id": "unknown",
+            "description": text_a,
             "original_query": text_a,
         }
-        user_query = text_a
-        cache_key_a = _query_cache_key(text_a, b_id, lang=lang)
-    elif a_id:
-        # === Pair mode ===
-        other = svc.get_by_id(a_id)
-        if not other:
-            raise HTTPException(404, "Phenomenon A not found")
-        idx_a = svc.idx_by_id.get(a_id)
-        idx_b = svc.idx_by_id.get(b_id)
-        if idx_a is None or idx_b is None:
-            raise HTTPException(404, "Phenomenon not in KB")
-        # V3.1 — same UN-normalized embedding bug applies to pair mode.
-        # Use the shared _cosine helper (divides by real norms) and remap
-        # to [0, 1] so meta.similarity stays in the same口径 as query mode.
-        _cos = svc._cosine(svc._embeddings[idx_a], svc._embeddings[idx_b])
-        similarity = round((_cos + 1.0) / 2.0, 4)
-        a = other
-        b = kb_phenom
-        # Suffix lang onto pair-mode cache key so zh/en don't collide. Legacy
-        # zh entries keep their unsuffixed keys, preserving the existing cache.
-        cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
+        signal = svc.relevance_score(text_a, req.b_id)
+        try:
+            floor = float(os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.50"))
+        except ValueError as exc:
+            raise RuntimeError("invalid ANALYZE_SCOPE_MIN_SIMILARITY") from exc
+        if not 0.0 <= floor <= 1.0:
+            raise RuntimeError("ANALYZE_SCOPE_MIN_SIMILARITY must be within [0,1]")
+        if not isinstance(signal, (int, float)) or not 0.0 <= float(signal) <= 1.0:
+            logger.warning("analyze.invalid_retrieval_signal")
+            signal = 0.0
+        if float(signal) < floor:
+            return _terminal_error_response(
+                code="candidate_not_supported",
+                message=(
+                    "The selected candidate is too weak to support a report. "
+                    "Return to the candidates and choose another lead."
+                    if lang == "en"
+                    else "当前候选不足以支撑研究草案。请返回候选列表并选择另一条线索。"
+                ),
+                retryable=False,
+            )
     else:
-        raise HTTPException(400, "Must provide either a_id or text_a")
+        assert req.a_id is not None
+        raw_a = svc.get_by_id(req.a_id)
+        if not raw_a:
+            raise HTTPException(404, "Phenomenon A not found")
+        source_record = raw_a
+        raw_target = raw_b
+        source = dict(source_record)
+        target = dict(raw_target)
 
-    # When lang=en, translate the KB fields in a/b before emitting meta.
-    # `b` in query mode is the user's own question (not KB) so we skip it;
-    # its fields are either user-written or already produced by the LLM
-    # rewrite in the target language.
-    if lang == "en":
-        a = await translate_kb_item(a, lang) or a
-        if user_query is None:
-            # Pair mode — b is a KB item too.
-            b = await translate_kb_item(b, lang) or b
-
-    # Expected 9 top-level sections in a complete report
-    EXPECTED_SECTIONS = {
-        "shared_structure",
-        "your_problem_breakdown",
-        "target_domain_intro",
-        "structural_mapping",
-        "borrowable_insights",
-        "how_to_combine",
-        "research_directions",
-        "risks_and_limits",
-        "action_plan",
-    }
-    MAX_MISSING_SECTIONS = 4
-
-    # Session #16 M1.4 — capture identity bits for optional persist=1.
-    # Two sources accepted (EventSource can't set headers): query param
-    # `anon_id` wins, then X-Anon-Id header, finally None. Treat empty as
-    # None so list_by_anon doesn't bucket every anon-less call together.
-    anon_id_raw = (
-        (anon_id or "").strip()
-        or (request.headers.get("x-anon-id", "").strip())
-        or None
+    origin_candidate = _resolve_origin_candidate(
+        req.origin_discovery_id,
+        req.origin_contract_version,
+        a_id=req.a_id,
+        b_id=req.b_id,
+        is_query_mode=user_query is not None,
     )
+    confirmed_fingerprint = _fingerprint_payload(req.fingerprint)
+    source_refs = [_source_ref(source_record, lang=lang)]
+    if raw_target is not None:
+        source_refs.append(_source_ref(raw_target, lang=lang, target=True))
+
+    source_record_sha = _record_digest(source_record)
+    fingerprint_sha = (
+        _canonical_digest(confirmed_fingerprint)
+        if confirmed_fingerprint is not None
+        else None
+    )
+    try:
+        source_binding = SourceBinding(
+            source_kb_id=str(source_record["id"]),
+            source_record_sha256=source_record_sha,
+            kb_artifact_id=artifact_id,
+            target_kind="query" if user_query is not None else "kb",
+            target_kb_id=None if user_query is not None else str(raw_target["id"]),
+            query_binding=(
+                _query_binding(user_query, b_id=req.b_id, lang=lang)
+                if user_query is not None
+                else None
+            ),
+            fingerprint_sha256=fingerprint_sha,
+            fingerprint_revision=(
+                confirmed_fingerprint["revision"]
+                if confirmed_fingerprint is not None
+                else None
+            ),
+            lang=lang,
+            model_id=model_id,
+            prompt_version="deep-report-v2",
+            schema_version="deep-analysis-report-v2",
+        )
+    except (KeyError, RuntimeError, ValueError) as exc:
+        logger.error(
+            "analyze.source_binding_unavailable",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
+        raise HTTPException(503, "Report provenance binding is unavailable") from exc
+
+    if __package__ == "web.backend.api":
+        from ..services.evidence_envelope import build_evidence_envelope
+    else:
+        from services.evidence_envelope import build_evidence_envelope
+    evidence = build_evidence_envelope(
+        candidate_kind="analysis_candidate",
+        candidate_label=str(source.get("name") or "") or None,
+        candidate_score=None,
+        requested_level="candidate",
+        source_kind="internal_kb",
+        source_label="Structural internal KB candidate",
+        result_provenance="NOT_TESTED",
+        result_verdict="NOT_TESTED",
+        independence_kind="not_recorded",
+        counterexample_status="gap_recorded",
+        counterexample_summary=(
+            "The report must propose falsifiers; no completed falsification result is bound."
+            if lang == "en"
+            else "报告必须提出证伪条件；当前未绑定任何已完成的证伪结果。"
+        ),
+    )
+    boundary = {
+        "conclusion_status": "candidate_analogy",
+        "mechanism_status": "not_verified",
+        "independent_review": "not_recorded",
+        "literature_status": "not_checked",
+    }
+
+    pair_cache_id: Optional[str] = None
+    if raw_target is not None:
+        pair_cache_id = _cache_identity(
+            source_record_sha256=source_record_sha,
+            target_record_sha256=_record_digest(raw_target),
+            artifact_id=artifact_id,
+            model_id=model_id,
+        )
+
     creator_tier = tier if isinstance(tier, str) else None
-    confirmed_fingerprint = _parse_fingerprint(fingerprint, user_query)
-    # ASK_MODEL is imported from ask_orchestrator (single source of truth);
-    # it already honours the ASK_LLM_MODEL env override.
-    ask_model = ASK_MODEL
 
-    def _maybe_persist(report: dict, is_partial: bool) -> Optional[dict]:
-        """Persist the report if persist=1 and we have a non-empty payload.
-
-        Returns the SSE payload for the `persisted` event, or None when
-        persistence is skipped (persist=0) or fails (logged, not raised).
-        We never let a persist failure tear down the SSE stream — the
-        report itself is what the user came for.
-        """
-        if not persist or not report:
+    def persist_report(
+        report: dict,
+        *,
+        generation_id: str,
+        report_sha256: str,
+    ) -> Optional[dict]:
+        if req.persist != 1:
             return None
         try:
-            out = _report_store.create(
-                query=user_query or "",
-                rewritten_query=(b.get("description") if user_query else None),
-                b_id=b_id,
-                lang=lang,
-                # V4: stash the credibility block inside the payload under a
-                # reserved key so saved/shared reports can render the moat
-                # badge too. renderFinalReport ignores non-section keys;
-                # _detail_dict lifts it back to a top-level field on read.
-                payload={
-                    **report,
-                    "_credibility": credibility,
-                    "_evidence": evidence,
-                    **({"_fingerprint": confirmed_fingerprint} if confirmed_fingerprint else {}),
-                    "_source": {
-                        "id": a.get("id"),
-                        "name": a.get("name"),
-                        "domain": a.get("domain"),
-                        "type_id": a.get("type_id"),
-                    },
+            row_query = user_query or ""
+            prompt_version = "deep-report-v2"
+            sealed_payload = {
+                **report,
+                "_report_sha256": report_sha256,
+                "_source_record": _archive_record(source_record),
+                **(
+                    {"_target_record": _archive_record(raw_target)}
+                    if raw_target is not None else {}
+                ),
+                "_evidence": evidence,
+                **({"_fingerprint": confirmed_fingerprint} if confirmed_fingerprint else {}),
+                **({"_origin_candidate": origin_candidate} if origin_candidate else {}),
+                "_source": {
+                    "id": source.get("id"),
+                    "name": source.get("name"),
+                    "domain": source.get("domain"),
+                    "type_id": source.get("type_id"),
                 },
-                model=ask_model,
-                prompt_version="v1",
-                creator_anon_id=anon_id_raw,
+            }
+            receipt = _persisted_report_receipt(
+                query=row_query,
+                b_id=req.b_id,
+                lang=lang,
+                model=model_id,
+                prompt_version=prompt_version,
+                payload=sealed_payload,
+            )
+            out = _report_store.create(
+                query=row_query,
+                rewritten_query=None,
+                b_id=req.b_id,
+                lang=lang,
+                payload={**sealed_payload, "_report_receipt": receipt},
+                model=model_id,
+                prompt_version=prompt_version,
+                creator_anon_id=req.anon_id,
                 creator_tier=creator_tier,
-                is_partial=is_partial,
+                is_partial=False,
             )
             return {
                 "id": out["id"],
-                "share_token": out["share_token"],
                 "share_url": _build_share_url(request, out["id"], out["share_token"]),
                 "created_at": out["created_at"],
-                "is_partial": is_partial,
+                "is_partial": False,
+                "origin_candidate": origin_candidate,
+                "generation_id": generation_id,
+                "report_sha256": report_sha256,
             }
-        except Exception:
-            logger.exception("[analyze] persist failed (persist=1)")
+        except Exception as exc:
+            logger.error(
+                "analyze.persist_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             return None
 
-    # Session #17 V4 — credibility block. We audited the KB
-    # (data/kb-expanded.jsonl): it carries ONLY id/name/domain/type_id/
-    # description — there is NO per-phenomenon universality-class label,
-    # SIBD-63 membership flag, or review-score field. We therefore do NOT
-    # fabricate a "moat badge". What we CAN honestly surface, post-V3-fix:
-    #   * similarity        — now a legal [0,1] relevance value;
-    #   * source_domain     — the KB phenomenon's domain (the borrowed-from
-    #                         field), and source_type_id;
-    #   * has_verified_pairs— whether the SOURCE phenomenon appears in the
-    #                         v2 cross-domain pair index (LLM-rated pairs,
-    #                         the closest thing to "verified isomorphism").
-    #   * verified_pair_count + best_verified_pair (top-rated neighbour).
-    # `kb_source` is True so the frontend knows this came from the curated
-    # KB, not free-text. No field here is invented.
-    from services.v2_pairs import get_pairs_for as _v2_pairs_for
-    _src_id = a.get("id") if isinstance(a, dict) else None
-    _verified_pairs = _v2_pairs_for(_src_id, limit=1) if _src_id else []
-    _all_verified = _v2_pairs_for(_src_id) if _src_id else []
-    # B Data Flywheel closure (Session #18) — real human-verification count.
-    # Distinct users who marked outcome='worked' on a report targeting THIS
-    # b_id. This is NOT a fabricated badge: it comes straight from real
-    # report_followup data. 0 is reported honestly as 0. The query is one
-    # indexed JOIN; it runs before event_gen so it can't slow the stream,
-    # and degrades to {count:0} on any failure (never tears down the SSE).
-    from services.verified_isomorphisms import human_verified_for
-    _hv = human_verified_for(_report_store, b_id)
-    credibility = {
-        "kb_source": bool(_src_id and _src_id != "__query__"),
-        "similarity": similarity,
-        "source_domain": a.get("domain") if isinstance(a, dict) else None,
-        "source_type_id": a.get("type_id") if isinstance(a, dict) else None,
-        "has_verified_pairs": len(_all_verified) > 0,
-        "verified_pair_count": len(_all_verified),
-        "best_verified_pair": (
-            {
-                "other_name": _verified_pairs[0].get("other_name"),
-                "other_domain": _verified_pairs[0].get("other_domain"),
-                "score": _verified_pairs[0].get("score"),
-                "similarity": _verified_pairs[0].get("similarity"),
-            }
-            if _verified_pairs
-            else None
-        ),
-        # B Data Flywheel closure — real users who confirmed it worked.
-        "human_verified_count": int(_hv.get("count", 0) or 0),
-        "human_verified_recent": _hv.get("recent", "") or "",
-    }
-    from services.evidence_envelope import build_evidence_envelope
-    if credibility["human_verified_count"] > 0:
-        _result_provenance = "USER_RECORDED_OUTCOME"
-        _result_summary = (
-            f'{credibility["human_verified_count"]} user-recorded worked outcome(s); not an independent mechanism validation.'
-            if lang == "en" else
-            f'{credibility["human_verified_count"]} 条用户“管用”回填；不是独立机制验证。'
-        )
-    elif credibility["has_verified_pairs"]:
-        _result_provenance = "INTERNAL_AI_SCREEN"
-        _result_summary = (
-            "Internal model-screened pair record; not an external review."
-            if lang == "en" else "内部模型筛选记录；不是外部复核。"
-        )
-    else:
-        _result_provenance = "NOT_TESTED"
-        _result_summary = None
-    evidence = build_evidence_envelope(
-        candidate_kind="analysis_candidate",
-        candidate_label=a.get("name") if isinstance(a, dict) else None,
-        candidate_score=similarity,
-        source_kind="internal_kb",
-        source_label="Structural KB record",
-        result_provenance=_result_provenance,
-        result_verdict="INCONCLUSIVE" if _result_provenance != "NOT_TESTED" else "NOT_TESTED",
-        result_summary=_result_summary,
-        independence_kind="internal" if _result_provenance != "NOT_TESTED" else "not_recorded",
-        independence_summary=((
-            "Internal pipeline or user outcome record; no external reviewer or independent replication team recorded."
-            if lang == "en" else "内部管道或用户结果记录；未记录外部评审者或独立复现团队。"
-        ) if _result_provenance != "NOT_TESTED" else None),
-        counterexample_status="gap_recorded",
-        counterexample_summary=(
-            "The report proposes boundaries and falsifiers; no completed falsification result is bound to this candidate."
-            if lang == "en" else "报告提出边界与反证方向；尚无完成的证伪结果绑定到该候选。"
-        ),
-    )
-
-    async def event_gen():
-        def sse(event_type: str, data: dict) -> str:
-            return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
-
-        # Emit meta first so the client can render the pair header
-        yield sse("meta", {
-            "a": a,
-            "b": b,
-            "similarity": similarity,
+    async def events():
+        generation_id = "g_" + secrets.token_hex(12)
+        yield _analyze_sse("meta", {
+            "generation_id": generation_id,
+            "a": source,
+            "b": target,
             "is_query_mode": user_query is not None,
-            # V4 — honest credibility data (see block above for what's real).
-            "credibility": credibility,
             "evidence": evidence,
             "fingerprint": confirmed_fingerprint,
-            "model": ask_model,
-            "prompt_version": "v1",
+            "model": model_id,
+            "lang": lang,
+            "artifact_id": artifact_id,
+            "prompt_version": "deep-report-v2",
+            "schema_version": "deep-analysis-report-v2",
+            "report_boundary": boundary,
+            "source_binding": source_binding.model_dump(mode="json"),
+            "source_refs": [item.model_dump(mode="json") for item in source_refs],
+            "origin_candidate": origin_candidate,
         })
 
-        # Launch P1-3 — out-of-scope gate for query mode. The deep-report
-        # generator previously had NO scope check: "1+1 等于几" + any b_id
-        # produced a full 9-section report (验证型产品硬拗 = 信任崩).
-        # Two layers, either trips:
-        #   (a) deterministic trivial/chit-chat detector (arithmetic,
-        #       greetings, trivia) — catches obvious junk;
-        #   (b) relevance floor — the UNIFIED query-vs-KB relevance, in
-        #       [0, 1], the SAME口径 /api/search exposes as result.relevance.
-        #       0.5 ≈ orthogonal; a genuine cross-domain match lands ~0.65+;
-        #       pure noise sits near 0.5. ANALYZE_SCOPE_MIN_SIMILARITY is
-        #       env-tunable. NOTE: because the口径 is now shared with search,
-        #       this floor MUST stay <= the relevance search shows for a
-        #       result, or search and analyze contradict each other (V3.2).
-        # Pair mode (two KB phenomena) is in-scope by construction — skip.
-        if user_query is not None:
-            from services.scope_guard import is_out_of_scope as _is_oos
-            oos, oos_reason = _is_oos(user_query)
-            # Default 0.50 — i.e. refuse only queries that are at-or-below
-            # orthogonal to the chosen KB phenomenon. Old default (0.30) was
-            # against a raw, unbounded np.dot and is meaningless now.
-            scope_floor = float(
-                os.getenv("ANALYZE_SCOPE_MIN_SIMILARITY", "0.50")
-            )
-            if not oos and similarity < scope_floor:
-                oos, oos_reason = True, "low_similarity"
-            if oos:
-                logger.info(
-                    "[analyze] out-of-scope query refused; reason=%s "
-                    "similarity=%.3f", oos_reason, similarity,
-                )
-                yield sse("error", {
-                    "message": (
-                        "这个问题超出了 Structural 的能力范围。Structural "
-                        "做的是跨领域结构迁移——把一个领域里验证过的方法，"
-                        "迁移到另一个结构相似的问题上。简单计算、事实查询、"
-                        "闲聊这类问题，换用更对口的工具会更合适。"
-                    ),
-                    "code": "out_of_scope",
-                    "scope_reason": oos_reason,
+        # Query reports never touch the durable generation cache.  Pair-mode
+        # rows contain public KB ids only and are revalidated against the exact
+        # artifact/model/source binding before release.
+        if pair_cache_id is not None:
+            cached = _cache.get(pair_cache_id, req.b_id, lang=lang)
+            if cached is not None:
+                try:
+                    cached_model = validate_bound_deep_report(
+                        cached,
+                        expected_source_binding=source_binding,
+                        expected_source_refs=source_refs,
+                        expected_source_record=source_record,
+                    )
+                    report = cached_model.model_dump(mode="json")
+                    report_sha = _canonical_digest(report)
+                    yield _analyze_sse("report_validated", {
+                        "generation_id": generation_id,
+                        "report_sha256": report_sha,
+                        "schema_version": "deep-analysis-report-v2",
+                        "from_cache": True,
+                    })
+                    for key in _REPORT_SECTION_KEYS:
+                        yield _analyze_sse("section", {"key": key, "data": report[key]})
+                    persisted = persist_report(
+                        report,
+                        generation_id=generation_id,
+                        report_sha256=report_sha,
+                    )
+                    if persisted is not None:
+                        yield _analyze_sse("persisted", persisted)
+                    yield _analyze_sse("done", {
+                        "generation_id": generation_id,
+                        "report_sha256": report_sha,
+                        "report": report,
+                        "from_cache": True,
+                    })
+                    return
+                except Exception as exc:
+                    logger.warning(
+                        "analyze.cache_row_rejected",
+                        error_type=type(exc).__name__,
+                        incident_id=new_incident_id(),
+                    )
+
+        generated: Optional[GeneratedDeepReportV2] = None
+        last_code = "report_unavailable"
+        last_retryable = True
+        for attempt in (1, 2):
+            if __package__ == "web.backend.api":
+                from ..services.cost_ledger import ledger as cost_ledger
+                from ..errors import BudgetExceeded
+            else:
+                from services.cost_ledger import ledger as cost_ledger
+                from errors import BudgetExceeded
+            try:
+                cost_ledger.charge(endpoint="/api/analyze/stream")
+            except BudgetExceeded as exc:
+                yield _analyze_sse("error", {
+                    "code": "budget_exceeded",
+                    "message": str(exc.detail),
                     "retryable": False,
                 })
-                yield sse("done", {"report": None, "from_cache": False})
                 return
 
-        # Check cache
-        cached = _cache.get(cache_key_a, b_id)
-        if cached:
-            # Emit each section as a separate event so frontend renders uniformly
-            for key, value in cached.items():
-                yield sse("section", {"key": key, "data": value})
-            # M1.4: optional persist even on cache hit — same payload, new
-            # share token / row, so the user gets a shareable URL each time
-            # they explicitly ask for it. Belt-and-suspenders: re-check
-            # quality so a stale cached fallback doesn't get persisted as
-            # is_partial=False (Validator session-#16 P2).
-            cached_missing = len(EXPECTED_SECTIONS - set(cached.keys())) if cached else 9
-            cached_partial = cached_missing >= MAX_MISSING_SECTIONS
-            persist_payload = _maybe_persist(cached, is_partial=cached_partial)
-            if persist_payload is not None:
-                yield sse("persisted", persist_payload)
-            yield sse("done", {"report": cached, "from_cache": True})
+            yield _analyze_sse("generation_progress", {
+                "stage": "generating" if attempt == 1 else "retrying",
+                "attempt": attempt,
+            })
+            report_payload = None
+            terminal_type: Optional[str] = None
+            protocol_failed = False
+            last_progress_chars = 0
+            try:
+                async for chunk in _llm.stream_deep_analysis(
+                    source,
+                    target,
+                    source_refs=source_refs,
+                    fingerprint=confirmed_fingerprint,
+                    lang=lang,
+                ):
+                    if not isinstance(chunk, dict) or terminal_type is not None:
+                        protocol_failed = True
+                        break
+                    chunk_type = chunk.get("type")
+                    if chunk_type == "progress":
+                        received_chars = chunk.get("received_chars")
+                        if (
+                            type(received_chars) is not int
+                            or not last_progress_chars <= received_chars <= 96_000
+                        ):
+                            protocol_failed = True
+                            break
+                        last_progress_chars = received_chars
+                        yield _analyze_sse("generation_progress", {
+                            "stage": "validating",
+                            "attempt": attempt,
+                            "received_chars": received_chars,
+                        })
+                    elif chunk_type == "done":
+                        terminal_type = "done"
+                        report_payload = chunk.get("report")
+                    elif chunk_type == "error":
+                        code = chunk.get("code")
+                        retryable = chunk.get("retryable")
+                        if (
+                            code not in _DEEP_LLM_ERROR_CODES
+                            or type(retryable) is not bool
+                        ):
+                            protocol_failed = True
+                            break
+                        terminal_type = "error"
+                        last_code = code
+                        last_retryable = retryable
+                    else:
+                        protocol_failed = True
+                        break
+            except Exception as exc:
+                logger.error(
+                    "analyze.llm_stream_failed",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
+                )
+                if terminal_type is not None:
+                    protocol_failed = True
+                else:
+                    terminal_type = "error"
+                    last_code = "upstream_error"
+                    last_retryable = True
+
+            if protocol_failed or terminal_type is None:
+                last_code = "report_protocol_failed"
+                last_retryable = False
+                logger.warning(
+                    "analyze.llm_protocol_rejected",
+                    incident_id=new_incident_id(),
+                )
+                break
+            if terminal_type == "error":
+                if not last_retryable:
+                    break
+                continue
+            if report_payload is not None:
+                try:
+                    generated = validate_generated_deep_report_value(
+                        report_payload,
+                        allowed_source_ref_ids={
+                            item.source_ref_id for item in source_refs
+                        },
+                        source_ref_id=source_refs[0].source_ref_id,
+                        fingerprint_revision=source_binding.fingerprint_revision,
+                        expected_lang=source_binding.lang,
+                    )
+                    break
+                except Exception as exc:
+                    last_code = "report_validation_failed"
+                    last_retryable = True
+                    logger.warning(
+                        "analyze.generated_report_rejected",
+                        error_type=type(exc).__name__,
+                        incident_id=new_incident_id(),
+                    )
+            if not last_retryable:
+                break
+
+        if generated is None:
+            yield _analyze_sse("error", {
+                "code": last_code,
+                "message": (
+                    "The report did not pass evidence and source validation. No partial report was published."
+                    if lang == "en"
+                    else "研究草案未通过证据与来源校验，系统没有发布任何半成品。"
+                ),
+                "retryable": last_retryable,
+            })
             return
 
-        # Launch P0-2 — daily LLM budget circuit breaker. The cached path
-        # above is free (no LLM call) so it is intentionally NOT charged;
-        # only a genuine generation counts. Headers are already sent here,
-        # so an over-budget request is surfaced as a terminal SSE `error`
-        # event + `done` rather than an HTTP 429.
-        from services.cost_ledger import ledger as _cost_ledger
-        from errors import BudgetExceeded as _BudgetExceeded
         try:
-            _cost_ledger.charge(endpoint="/api/analyze/stream")
-        except _BudgetExceeded as be:
-            yield sse("error", {
-                "message": be.detail,
-                "code": "budget_exceeded",
+            bound = bind_deep_report(
+                generated,
+                source_binding=source_binding,
+                source_refs=source_refs,
+                source_record=source_record,
+            )
+            report = bound.model_dump(mode="json")
+        except Exception as exc:
+            logger.error(
+                "analyze.report_binding_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
+            yield _analyze_sse("error", {
+                "code": "report_binding_failed",
+                "message": (
+                    "The report could not be bound to its source record."
+                    if lang == "en"
+                    else "研究草案无法绑定到来源记录，未发布正文。"
+                ),
                 "retryable": False,
             })
-            yield sse("done", {"report": None, "from_cache": False})
             return
 
-        def _report_quality(report):
-            """Return (is_fallback, missing_count) for a final report dict."""
-            if not report:
-                return True, len(EXPECTED_SECTIONS)
-            name_val = report.get("shared_structure", {}).get("name")
-            is_fallback = name_val in (
-                LLMService.FALLBACK_STRUCTURE_NAME_ZH,
-                LLMService.FALLBACK_STRUCTURE_NAME_EN,
-            )
-            missing = len(EXPECTED_SECTIONS - set(report.keys()))
-            return is_fallback, missing
-
-        async def _stream_once():
-            """
-            Run one pass of LLM stream. This is an async generator that yields
-            tuples: ("sse", event_type, data) for progressive events to forward,
-            and finally ("result", final_report, pending_error) as the sentinel.
-            """
-            local_emitted = set()
-            local_final = None
-            local_err = None
-            async for chunk in _llm.stream_deep_analysis(
-                a, b, similarity, user_query=user_query, lang=lang
-            ):
-                ctype = chunk.get("type")
-                if ctype == "text":
-                    yield ("sse", "text", {
-                        "content": chunk.get("content", ""),
-                        "total_length": chunk.get("total_length", 0),
-                    })
-                elif ctype == "section":
-                    key = chunk.get("key", "")
-                    if key in local_emitted:
-                        continue
-                    local_emitted.add(key)
-                    yield ("sse", "section", {
-                        "key": key,
-                        "data": chunk.get("data"),
-                    })
-                elif ctype == "done":
-                    local_final = chunk.get("report")
-                elif ctype == "error":
-                    local_err = chunk.get("message", "unknown error")
-            yield ("result", local_final, local_err)
-
-        # ---- First attempt: stream progressively ----
-        final_report = None
-        first_err = None
-        async for item in _stream_once():
-            if item[0] == "sse":
-                yield sse(item[1], item[2])
-            else:
-                _, final_report, first_err = item
-
-        is_fallback, missing = _report_quality(final_report)
-        needs_retry = (
-            final_report is None
-            or is_fallback
-            or missing >= MAX_MISSING_SECTIONS
+        report_sha = _canonical_digest(report)
+        yield _analyze_sse("report_validated", {
+            "generation_id": generation_id,
+            "report_sha256": report_sha,
+            "schema_version": "deep-analysis-report-v2",
+            "from_cache": False,
+        })
+        for key in _REPORT_SECTION_KEYS:
+            yield _analyze_sse("section", {"key": key, "data": report[key]})
+        persisted = persist_report(
+            report,
+            generation_id=generation_id,
+            report_sha256=report_sha,
         )
-
-        if needs_retry:
-            # Inform the client the first pass was incomplete and we'll retry.
-            reason_parts = []
-            if final_report is None:
-                reason_parts.append("final JSON parse failed")
-            elif is_fallback:
-                reason_parts.append("fallback report returned")
-            if missing:
-                reason_parts.append(f"{missing} sections missing")
-            if first_err:
-                reason_parts.append(first_err)
-            reason = "; ".join(reason_parts) or "incomplete report"
-            yield sse("retry", {"reason": reason})
-
-            # Second attempt — fresh LLM call, bypass cache.
-            final_report = None
-            second_err = None
-            async for item in _stream_once():
-                if item[0] == "sse":
-                    yield sse(item[1], item[2])
-                else:
-                    _, final_report, second_err = item
-
-            is_fallback2, missing2 = _report_quality(final_report)
-            retry_failed = (
-                final_report is None
-                or is_fallback2
-                or missing2 >= MAX_MISSING_SECTIONS
-            )
-
-            if retry_failed:
-                err_reason_parts = []
-                if final_report is None:
-                    err_reason_parts.append("retry: final JSON parse failed")
-                elif is_fallback2:
-                    err_reason_parts.append("retry: fallback report returned")
-                if missing2:
-                    err_reason_parts.append(f"retry: {missing2} sections missing")
-                if second_err:
-                    err_reason_parts.append(second_err)
-                err_reason = "; ".join(err_reason_parts) or "retry failed"
-                # Preserve backward-compat error shape; only ADD retryable flag.
-                yield sse("error", {
-                    "message": err_reason,
-                    "retryable": False,
-                })
-
-        # M1.4: persist BEFORE the `done` event so clients see the
-        # share URL alongside the final report in one SSE flush. Treat
-        # an incomplete/retried-then-failed report as is_partial=True so
-        # the frontend can dim the share button.
-        # Validator session #16 P1: also flag is_partial when >= 4 sections
-        # missing, not just on fallback-name match (a report with 5/9
-        # sections doesn't have the fallback name but is still partial).
-        if final_report is None:
-            is_partial = True
-        else:
-            is_fb, missing_count = _report_quality(final_report)
-            is_partial = is_fb or missing_count >= MAX_MISSING_SECTIONS
-        persist_payload = _maybe_persist(final_report or {}, is_partial=is_partial)
-        if persist_payload is not None:
-            yield sse("persisted", persist_payload)
-
-        yield sse("done", {"report": final_report, "from_cache": False})
-
-        # Cache successful reports (both first-try and retry-try). Skip the
-        # fallback sentinel in either language so we don't poison the cache.
-        if final_report and final_report.get("shared_structure", {}).get("name") not in (
-            LLMService.FALLBACK_STRUCTURE_NAME_ZH,
-            LLMService.FALLBACK_STRUCTURE_NAME_EN,
-        ):
+        if persisted is not None:
+            yield _analyze_sse("persisted", persisted)
+        if pair_cache_id is not None:
             try:
-                _cache.put(cache_key_a, b_id, final_report)
-            except Exception:
-                pass
+                _cache.put(pair_cache_id, req.b_id, report, lang=lang)
+            except Exception as exc:
+                logger.warning(
+                    "analyze.cache_write_failed",
+                    error_type=type(exc).__name__,
+                    incident_id=new_incident_id(),
+                )
+        yield _analyze_sse("done", {
+            "generation_id": generation_id,
+            "report_sha256": report_sha,
+            "report": report,
+            "from_cache": False,
+        })
 
-    return StreamingResponse(
-        event_gen(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
+    return _analyze_stream_response(events())
+
+
+@router.post(
+    "/analyze/stream",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": (
+                "Content-free progress followed by one source-bound, fully "
+                "validated report event sequence."
+            ),
+            "content": {
+                "text/event-stream": {"schema": {"type": "string"}},
+            },
         },
-    )
+    },
+)
+@tier_limit_decorator(default_anon="10/minute")
+async def stream_analyze(
+    request: Request,
+    req: AnalyzeStreamRequest,
+):
+    return await _stream_analyze_v2(request, req)

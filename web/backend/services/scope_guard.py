@@ -154,7 +154,11 @@ def is_out_of_scope(query: str) -> tuple[bool, str]:
     # Common arithmetic wording wraps the expression in a natural-language
     # prefix/suffix. Strip those wrappers before applying the strict regex.
     arithmetic_candidate = re.sub(r"^(?:what is|what's|calculate|请问|计算)\s*", "", q)
-    arithmetic_candidate = re.sub(r"\s*(?:等于几|是多少|equals what)\s*[?？]?$", "", arithmetic_candidate)
+    arithmetic_candidate = re.sub(
+        r"\s*(?:等于几|等于多少|是多少|equals what)\s*[?？]?$",
+        "",
+        arithmetic_candidate,
+    )
 
     # 1. Pure arithmetic — "1+1", "2*3=?", "(4-2)/2 等于几".
     #    Strip trailing punctuation the regex tail already tolerates.

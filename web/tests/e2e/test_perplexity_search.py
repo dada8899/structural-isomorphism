@@ -92,7 +92,7 @@ def test_search_html_reachable(page: Page):
 
 def test_analyze_html_reachable(page: Page):
     """Old /analyze.html — same semantics as test_search_html_reachable."""
-    response = page.goto(f"{BASE}/analyze.html?text_a=test&b_id=test")
+    response = page.goto(f"{BASE}/analyze.html?id=test&q=test")
     assert response is not None
     assert response.status in (200, 301, 302, 404), (
         f"unexpected status {response.status} for /analyze.html"

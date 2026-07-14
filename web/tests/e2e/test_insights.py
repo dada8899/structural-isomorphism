@@ -106,9 +106,15 @@ FRONTEND = Path({str(FRONTEND_DIR)!r})
 # Both routers share the same temp DB.
 store = ReportStore({str(db_path)!r})
 insights_api._store = store
+insights_api._canonical_lookup = lambda b_id: {{
+    "id": b_id,
+    "name": "Canonical " + b_id,
+    "domain": "Canonical Domain",
+}} if b_id else None
 report_api._store = store
 
 app = FastAPI()
+app.middleware("http")(insights_api.no_store_insights_responses)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -173,6 +179,9 @@ def _api_get(url: str):
 
 
 def _seed(store, *, query="测试查询", b_id="b_demo", anon="anon-A"):
+    # Keep combined pytest runs deterministic when another E2E module sets a
+    # different test-only share secret during collection.
+    os.environ["STRUCTURAL_SHARE_TOKEN_SECRET"] = _SHARE_SECRET
     return store.create(
         query=query, b_id=b_id, lang="zh",
         payload=_sample_payload(), model="deepseek/deepseek-chat",
@@ -183,42 +192,55 @@ def _seed(store, *, query="测试查询", b_id="b_demo", anon="anon-A"):
 # ============================ Phase A — API ======================== #
 
 
-def test_summary_endpoint_with_seeded_data(insights_backend, store):
-    out = _seed(store, query="A 阶段总览测试")
-    store.record_followup(
-        report_id=out["id"], anon_id="anon-A",
-        action_status="tried", outcome="worked",
-    )
-    status, body = _api_get(insights_backend["base"] + "/api/insights/summary")
-    assert status == 200
-    assert body["total_reports"] >= 1
-    assert body["worked_count"] >= 1
-    assert body["verified_isomorphisms"] >= 1
+def _seed_claimed_batch(store, *, start, stop, b_id):
+    for i in range(start, stop):
+        anon = f"account-device-{b_id}-{i}"
+        out = _seed(store, query=f"private {i}", b_id=b_id, anon=anon)
+        store.record_followup(
+            report_id=out["id"], anon_id=anon,
+            action_status="tried", outcome="worked",
+            publish_to_insights=True,
+        )
+        store.claim_by_anon(anon, f"account-{b_id}-{i}")
 
 
-def test_stuck_structures_endpoint(insights_backend, store):
-    _seed(store, query="卡住测试 1", b_id="b_stuck_e2e")
-    _seed(store, query="卡住测试 2", b_id="b_stuck_e2e")
-    status, body = _api_get(
-        insights_backend["base"] + "/api/insights/stuck-structures?limit=10"
-    )
-    assert status == 200
-    b_ids = [it["b_id"] for it in body["items"]]
-    assert "b_stuck_e2e" in b_ids
+def _snapshot(base):
+    return {
+        "summary": _api_get(base + "/api/insights/summary")[1],
+        "stuck": _api_get(base + "/api/insights/stuck-structures")[1],
+        "verified": _api_get(base + "/api/insights/verified")[1],
+    }
 
 
-def test_verified_endpoint(insights_backend, store):
-    out = _seed(store, query="已验证测试", b_id="b_verified_e2e")
-    store.record_followup(
-        report_id=out["id"], anon_id="anon-V",
-        action_status="tried", outcome="worked",
-    )
-    status, body = _api_get(insights_backend["base"] + "/api/insights/verified")
-    assert status == 200
-    probs = [it["problem"] for it in body["items"]]
-    assert "已验证测试" in probs
-    hit = next(it for it in body["items"] if it["problem"] == "已验证测试")
-    assert hit["source_phenomenon"] == "Forest fire spread"
+def test_all_public_endpoints_start_in_stable_paused_state(insights_backend):
+    assert _snapshot(insights_backend["base"]) == {
+        "summary": {"status": "public_aggregation_paused"},
+        "stuck": {"status": "public_aggregation_paused"},
+        "verified": {"status": "public_aggregation_paused"},
+    }
+
+
+def test_four_to_five_to_six_never_changes_public_response(
+    insights_backend, store,
+):
+    before = _snapshot(insights_backend["base"])
+    _seed_claimed_batch(store, start=0, stop=4, b_id="threshold-five")
+    at_four = _snapshot(insights_backend["base"])
+    _seed_claimed_batch(store, start=4, stop=5, b_id="threshold-five")
+    at_five = _snapshot(insights_backend["base"])
+    _seed_claimed_batch(store, start=5, stop=6, b_id="threshold-five")
+    at_six = _snapshot(insights_backend["base"])
+    assert before == at_four == at_five == at_six
+
+
+def test_nineteen_to_twenty_never_changes_public_response(
+    insights_backend, store,
+):
+    _seed_claimed_batch(store, start=0, stop=19, b_id="threshold-twenty")
+    at_nineteen = _snapshot(insights_backend["base"])
+    _seed_claimed_batch(store, start=19, stop=20, b_id="threshold-twenty")
+    at_twenty = _snapshot(insights_backend["base"])
+    assert at_nineteen == at_twenty
 
 
 def test_reports_mine_carries_followup(insights_backend, store):
@@ -238,12 +260,19 @@ def test_reports_mine_carries_followup(insights_backend, store):
     assert hit["followup_outcome"] == "worked"
 
 
-def test_stuck_structures_limit_rejected(insights_backend):
-    try:
-        _api_get(insights_backend["base"] + "/api/insights/stuck-structures?limit=0")
-        assert False, "expected 422"
-    except urllib.error.HTTPError as e:
-        assert e.code == 422
+def test_exact_404_and_validation_errors_are_no_store(insights_backend):
+    for path, expected in (
+        ("/api/insights", 404),
+        ("/api/insights/not-a-route", 404),
+        ("/api/insights/stuck-structures?limit=0", 422),
+    ):
+        try:
+            _api_get(insights_backend["base"] + path)
+            assert False, f"expected {expected}"
+        except urllib.error.HTTPError as error:
+            assert error.code == expected
+            assert error.headers.get("Cache-Control") == "no-store"
+            assert error.headers.get("Pragma") == "no-cache"
 
 
 # ====================== Phase B — Browser ========================== #
@@ -256,39 +285,37 @@ def _playwright_or_skip():
         pytest.skip("playwright not installed")
 
 
-def test_insights_page_renders_summary(insights_backend, store, page):
-    """Browser: insights.html loads and the summary stat cards render."""
+def test_insights_page_renders_paused_state_after_many_records(
+    insights_backend, store, page,
+):
     _playwright_or_skip()
-    out = _seed(store, query="浏览器渲染测试", b_id="b_browser_e2e")
-    store.record_followup(
-        report_id=out["id"], anon_id="anon-B",
-        action_status="tried", outcome="worked",
-    )
+    _seed_claimed_batch(store, start=0, stop=21, b_id="browser-paused")
     page.goto(insights_backend["base"] + "/insights", timeout=15000)
-    # Stat cards replace the skeletons once /summary resolves.
-    page.wait_for_selector(".insights-stat__value", timeout=8000)
-    values = page.locator(".insights-stat__value").all_inner_texts()
-    assert len(values) == 4
-    # total_reports card should be a non-negative integer.
-    assert int(values[0]) >= 1
+    page.wait_for_selector(".insights-empty", timeout=8000)
+    content = page.locator("main").inner_text()
+    assert "公开结果聚合已暂停" in content
+    assert "排行已关闭" in content
+    assert "公开用户结果已关闭" in content
 
 
-def test_insights_page_verified_section_renders(insights_backend, store, page):
-    """Browser: a seeded worked-followup shows in the verified library."""
+def test_insights_page_never_renders_private_or_aggregate_cards(
+    insights_backend, store, page,
+):
     _playwright_or_skip()
-    out = _seed(store, query="浏览器已验证测试", b_id="b_browser_v")
-    store.record_followup(
-        report_id=out["id"], anon_id="anon-BV",
-        action_status="tried", outcome="worked",
-    )
+    for i in range(6):
+        anon = f"browser-private-{i}"
+        out = _seed(
+            store, query=f"victim-{i}@example.com",
+            b_id="private-browser-id", anon=anon,
+        )
+        store.record_followup(
+            report_id=out["id"], anon_id=anon, action_status="tried",
+            outcome="worked", publish_to_insights=True,
+        )
     page.goto(insights_backend["base"] + "/insights", timeout=15000)
-    page.wait_for_selector(
-        ".insights-card, .insights-empty", timeout=8000,
-    )
+    page.wait_for_selector(".insights-empty", timeout=8000)
     content = page.content()
-    # Either real cards rendered, or (if another test's data is
-    # absent) a friendly empty state — never a raw error.
-    assert (
-        "insights-card__problem" in content
-        or "insights-empty" in content
-    )
+    assert "victim-" not in content
+    assert "private-browser-id" not in content
+    assert page.locator(".insights-card:not(.insights-card--skeleton)").count() == 0
+    assert page.locator(".insights-row:not(.insights-row--skeleton)").count() == 0

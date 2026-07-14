@@ -516,11 +516,10 @@ class TestAskStreamEndpoint:
 
 @pytest.fixture
 def ask_app_with_problem_handler(ask_app):
-    """ask_app + RFC 7807 handlers so BudgetExceeded → friendly 429.
+    """ask_app + production problem handlers for non-stream failures.
 
-    The bare `ask_app` doesn't install problem handlers; the real main.py
-    does. BudgetExceeded is an RFC 7807 ProblemDetail, so without the
-    handler it would surface as a 500. This fixture mirrors prod.
+    The ask budget is charged at the real provider boundary, after SSE
+    headers are committed, so budget exhaustion is reported in-stream.
     """
     from errors import install_problem_handlers
     install_problem_handlers(ask_app)
@@ -528,9 +527,12 @@ def ask_app_with_problem_handler(ask_app):
 
 
 def test_ask_over_budget_returns_friendly_429(ask_app_with_problem_handler, monkeypatch):
-    """When the daily LLM cap is hit, /api/ask/stream returns a 429
-    RFC 7807 problem response (budget_exceeded), not a 500 and not a
-    real LLM call."""
+    """An exhausted LLM budget becomes a typed terminal SSE error.
+
+    Charging happens immediately before the provider call.  At that point
+    HTTP 200 streaming headers are already committed, so returning a later
+    RFC 7807 status would be a false transport contract.
+    """
     monkeypatch.setenv("STRUCTURAL_LLM_DAILY_CALL_CAP", "1")
     from services.cost_ledger import ledger
     ledger.reset()
@@ -543,15 +545,18 @@ def test_ask_over_budget_returns_friendly_429(ask_app_with_problem_handler, monk
             assert r1.status_code == 200
             for _ in r1.iter_text():
                 pass
-        # Second request is over budget — friendly 429, not 500.
+        # Second request is over budget at the provider boundary.
         r2 = client.post(
             "/api/ask/stream", json={"query": "Why do banks collapse again"}
         )
-    assert r2.status_code == 429
-    body = r2.json()
-    # RFC 7807 envelope with the budget_exceeded type.
-    assert body["type"].endswith("/budget_exceeded")
-    assert "tomorrow" in body["detail"].lower()
+    assert r2.status_code == 200
+    events = _parse_sse_events([r2.text])
+    errors = [payload for name, payload in events if name == "error"]
+    assert len(errors) == 1
+    assert errors[0]["code"] == "budget_exceeded"
+    assert errors[0]["retryable"] is False
+    assert "tomorrow" in errors[0]["message"].lower()
+    assert not any(name == "answer_done" for name, _ in events)
     ledger.reset()
 
 

@@ -1,22 +1,42 @@
-"""POST /api/mapping — 生成两个现象之间的结构映射（LLM）
+"""Typed POST mapping endpoints; private text never travels in a URL.
 
 Two endpoints:
 - POST /api/mapping      — synchronous, returns cached or full result at once
-- GET  /api/mapping/stream — SSE stream, for fresh generations
+- POST /api/mapping/stream — SSE stream, for fresh generations
 """
 import json as _json
+import math
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
+import unicodedata
 
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
+from schemas import CandidateMapping, MappingRequest, MappingResponse, MappingSide
 from services.cache import MappingCache
 from services.llm_service import LLMService
+from services.input_limits import MAX_RESEARCH_QUERY_CHARS
 from services.rate_limit import tier_limit_decorator
 
+if __package__ == "web.backend.api":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
+
 router = APIRouter(tags=["mapping"])
+logger = get_logger("structural.mapping")
+
+MAPPING_SCHEMA_VERSION = "candidate-mapping-v2"
+_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$"
 
 _cache: Optional[MappingCache] = None
 _llm: Optional[LLMService] = None
@@ -26,19 +46,93 @@ def _init():
     global _cache, _llm
     if _cache is None:
         cache_path = Path(__file__).parent.parent.parent / "data" / "mapping_cache.jsonl"
-        _cache = MappingCache(cache_path)
+        _cache = MappingCache(
+            cache_path,
+            schema_version=MAPPING_SCHEMA_VERSION,
+            validator=lambda value: CandidateMapping.model_validate(value).model_dump(mode="json"),
+        )
     if _llm is None:
         _llm = LLMService()
 
 
-class MappingRequest(BaseModel):
-    a_id: str
-    b_id: str
-    # i18n: "zh" (default, legacy) or "en"
-    lang: str = "zh"
+def _shape_side(item: dict) -> dict:
+    """Whitelist the only KB/query fields that may cross the public API."""
+    return MappingSide.model_validate({
+        "id": item.get("id"),
+        "name": item.get("name"),
+        "domain": item.get("domain"),
+        "type_id": item.get("type_id"),
+        "description": item.get("description"),
+        "original_query": item.get("original_query"),
+    }).model_dump(mode="json")
 
 
-@router.post("/mapping")
+def _bounded_similarity(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("retrieval similarity must be numeric")
+    result = float(value)
+    if not math.isfinite(result) or result < -1.000001 or result > 1.000001:
+        raise ValueError("retrieval similarity is outside cosine bounds")
+    return max(-1.0, min(1.0, result))
+
+
+def _bounded_query_text(value: object) -> str:
+    """Validate user/rewrite text before embedding or LLM use."""
+    if not isinstance(value, str):
+        raise ValueError("mapping query must be text")
+    text = unicodedata.normalize("NFKC", value).strip()
+    if not text or len(text) > MAX_RESEARCH_QUERY_CHARS:
+        raise ValueError("mapping query length is invalid")
+    for char in text:
+        if unicodedata.category(char) in {"Cc", "Cf"} and char not in "\t\n\r":
+            raise ValueError("mapping query contains unsafe control text")
+    return text
+
+
+class MappingStreamRequest(BaseModel):
+    """Exact-one typed stream input accepted only in a JSON request body."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    b_id: StrictStr = Field(
+        min_length=1, max_length=120, pattern=_ID_PATTERN
+    )
+    a_id: Optional[StrictStr] = Field(
+        default=None, min_length=1, max_length=120, pattern=_ID_PATTERN
+    )
+    text_a: Optional[StrictStr] = Field(
+        default=None, min_length=1, max_length=MAX_RESEARCH_QUERY_CHARS
+    )
+    lang: Literal["zh", "en"] = "zh"
+
+    @field_validator("text_a")
+    @classmethod
+    def validate_text_a(cls, value: Optional[str]) -> Optional[str]:
+        return None if value is None else _bounded_query_text(value)
+
+    @model_validator(mode="after")
+    def validate_mode(self):
+        if (self.a_id is None) == (self.text_a is None):
+            raise ValueError("provide exactly one of a_id or text_a")
+        if self.a_id == self.b_id:
+            raise ValueError("mapping pair must contain two distinct phenomena")
+        return self
+
+
+def _mapping_response(
+    *, from_cache: bool, a: dict, b: dict, similarity: float, mapping: object,
+) -> dict:
+    return MappingResponse.model_validate({
+        "schema_version": "mapping-response-v2",
+        "from_cache": from_cache,
+        "a": a,
+        "b": b,
+        "retrieval_similarity": similarity,
+        "mapping": mapping,
+    }).model_dump(mode="json")
+
+
+@router.post("/mapping", response_model=MappingResponse)
 @tier_limit_decorator(default_anon="5/minute")
 async def generate_mapping(request: Request, req: MappingRequest):
     from main import app_state
@@ -54,71 +148,94 @@ async def generate_mapping(request: Request, req: MappingRequest):
     if not a or not b:
         raise HTTPException(404, "Phenomenon not found")
 
-    # Normalize lang + derive cache key. Legacy zh keeps unsuffixed cache key
-    # so existing entries stay valid; en gets a separate namespace.
-    lang = (req.lang or "zh").lower()
-    if lang not in ("zh", "en"):
-        lang = "zh"
-    cache_key_a = req.a_id if lang == "zh" else f"{req.a_id}__en"
-
-    # Check cache first
-    cached = _cache.get(cache_key_a, req.b_id)
-    if cached:
-        return {
-            "from_cache": True,
-            "a": a,
-            "b": b,
-            "mapping": cached,
-        }
-
     # Compute similarity from embeddings — O(1) via idx_by_id.
     import numpy as np
     idx_a = svc.idx_by_id.get(req.a_id)
     idx_b = svc.idx_by_id.get(req.b_id)
     if idx_a is None or idx_b is None:
         raise HTTPException(404, "Phenomenon not in KB")
-    similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
+    try:
+        similarity = _bounded_similarity(
+            float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
+        )
+        a_public = _shape_side(a)
+        b_public = _shape_side(b)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(503, "Mapping inputs are invalid") from exc
+
+    cached = _cache.get(req.a_id, req.b_id, lang=req.lang)
+    if cached:
+        return _mapping_response(
+            from_cache=True,
+            a=a_public,
+            b=b_public,
+            similarity=similarity,
+            mapping=cached,
+        )
 
     # Generate with LLM
-    mapping = await _llm.generate_mapping(a, b, similarity, lang=lang)
+    mapping = await _llm.generate_mapping(a_public, b_public, similarity, lang=req.lang)
+    try:
+        mapping = CandidateMapping.model_validate(mapping).model_dump(mode="json")
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(503, "Mapping output is invalid") from exc
 
-    # Save to cache if successful
-    if mapping and mapping.get("structure_name") != "结构分析暂不可用":
-        _cache.put(cache_key_a, req.b_id, mapping)
+    if mapping["generation_status"] == "generated":
+        try:
+            _cache.put(req.a_id, req.b_id, mapping, lang=req.lang)
+        except OSError as exc:
+            logger.error(
+                "structural.mapping.cache_write_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
 
-    return {
-        "from_cache": False,
-        "a": a,
-        "b": b,
-        "similarity": similarity,
-        "mapping": mapping,
-    }
+    return _mapping_response(
+        from_cache=False,
+        a=a_public,
+        b=b_public,
+        similarity=similarity,
+        mapping=mapping,
+    )
 
 
-@router.get("/mapping/stream")
+@router.get("/mapping/stream", include_in_schema=False)
+async def retired_mapping_stream_get():
+    """Retire query-string transport without parsing or echoing its values."""
+    return JSONResponse(
+        status_code=410,
+        content={
+            "error": "sensitive_get_retired",
+            "message": "Use POST /api/mapping/stream with a JSON body.",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.post("/mapping/stream")
 @tier_limit_decorator(default_anon="5/minute")
-async def stream_mapping(
-    request: Request,
-    b_id: str = Query(...),
-    a_id: Optional[str] = Query(None, description="KB phenomenon id for A side"),
-    text_a: Optional[str] = Query(None, description="Free-text query as A side (for 'from search' flow)"),
-    lang: str = Query("zh", description="Output language for LLM-generated text: 'zh' or 'en'"),
-):
+async def stream_mapping(request: Request, req: MappingStreamRequest):
     """
     SSE stream of a mapping generation.
 
     Two modes:
     1. Pair mode (a_id + b_id): both sides are KB phenomena, result is cached
-    2. Query mode (text_a + b_id): A is user's free-text query, no cache
+    2. Query mode (text_a + b_id): KB source is A and the user's problem is B;
+       the result is not cached
 
     Event types:
     - "cache":  {"mapping": {...}}           — immediate cache hit (pair mode only)
-    - "meta":   {"a": {...}, "b": {...}, "similarity": 0.95}
-    - "text":   {"content": "...", "total_length": N}
+    - "meta":   {"a": {...}, "b": {...}, "retrieval_similarity": 0.95}
+    - "text":   {"total_length": N}          — non-semantic progress only
     - "done":   {"mapping": {...}}
     - "error":  {"message": "..."}
     """
     from main import app_state
+
+    b_id = req.b_id
+    a_id = req.a_id
+    text_a = req.text_a
+    lang = req.lang
 
     _init()
 
@@ -129,11 +246,6 @@ async def stream_mapping(
     b = svc.get_by_id(b_id)
     if not b:
         raise HTTPException(404, "Phenomenon B not found")
-
-    # Normalize lang once at the top
-    lang = (lang or "zh").lower()
-    if lang not in ("zh", "en"):
-        lang = "zh"
 
     if a_id:
         # Pair mode: both sides are real KB phenomena
@@ -146,10 +258,13 @@ async def stream_mapping(
         idx_b = svc.idx_by_id.get(b_id)
         if idx_a is None or idx_b is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        similarity = float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
-        # Suffix lang onto cache key so zh/en don't collide. Legacy zh stays
-        # unsuffixed to preserve existing cache entries.
-        cache_key_a = a_id if lang == "zh" else f"{a_id}__en"
+        try:
+            similarity = _bounded_similarity(
+                float(np.dot(svc._embeddings[idx_a], svc._embeddings[idx_b]))
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(503, "Mapping similarity is invalid") from exc
+        cache_pair = (a_id, b_id)
     elif text_a:
         # Query mode: text_a is user's free-text question
         #
@@ -161,70 +276,111 @@ async def stream_mapping(
         from services.llm_service import LLMService
         llm_for_rewrite = _llm or LLMService()
 
-        rewritten = await llm_for_rewrite.rewrite_query(text_a, lang=lang) if _looks_like_question(text_a) else text_a
+        rewrite_candidate = (
+            await llm_for_rewrite.rewrite_query(text_a, lang=lang)
+            if _looks_like_question(text_a)
+            else text_a
+        )
+        try:
+            rewritten = _bounded_query_text(rewrite_candidate)
+        except ValueError:
+            logger.warning("structural.mapping.rewrite_invalid")
+            rewritten = text_a
 
         import numpy as np
         query_emb = svc.encode_query(rewritten)
         idx_b_requested = svc.idx_by_id.get(b_id)
         if idx_b_requested is None:
             raise HTTPException(404, "Phenomenon not in KB")
-        similarity = float(np.dot(query_emb.flatten(), svc._embeddings[idx_b_requested]))
+        try:
+            similarity = _bounded_similarity(
+                float(np.dot(query_emb.flatten(), svc._embeddings[idx_b_requested]))
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(503, "Mapping similarity is invalid") from exc
 
         # Swap: KB phenomenon becomes A (source), query becomes B (target)
         kb_phenom = svc.get_by_id(b_id)
         query_phenom = {
             "id": "__query__",
-            "name": text_a[:40] + ("..." if len(text_a) > 40 else ""),
-            "domain": "你的问题",
-            "type_id": "?",
+            "name": text_a[:80] + ("..." if len(text_a) > 80 else ""),
+            "domain": "Your question" if lang == "en" else "你的问题",
+            "type_id": "query",
             "description": rewritten,
             "original_query": text_a,
         }
         a = kb_phenom
         b = query_phenom
-        cache_key_a = None  # no caching for free-text queries
-    else:
-        raise HTTPException(400, "Must provide either a_id or text_a")
+        cache_pair = None
+
+    try:
+        a_public = _shape_side(a)
+        b_public = _shape_side(b)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(503, "Mapping inputs are invalid") from exc
 
     async def event_gen():
         def sse(event_type: str, data: dict) -> str:
             return f"event: {event_type}\ndata: {_json.dumps(data, ensure_ascii=False)}\n\n"
 
         # Meta event first — so client can render pair header immediately
-        yield sse("meta", {"a": a, "b": b, "similarity": similarity})
+        yield sse(
+            "meta",
+            {
+                "schema_version": "mapping-stream-meta-v2",
+                "a": a_public,
+                "b": b_public,
+                "retrieval_similarity": similarity,
+            },
+        )
 
         # Check cache only in pair mode
-        if cache_key_a:
-            cached = _cache.get(cache_key_a, b_id)
+        if cache_pair:
+            cached = _cache.get(*cache_pair, lang=lang)
             if cached:
                 yield sse("cache", {"mapping": cached})
                 yield sse("done", {"mapping": cached, "from_cache": True})
                 return
 
-        # Stream LLM generation
-        final_mapping = None
-        async for chunk in _llm.stream_mapping(a, b, similarity, lang=lang):
+        async for chunk in _llm.stream_mapping(a_public, b_public, similarity, lang=lang):
             ctype = chunk.get("type")
             if ctype == "text":
-                yield sse("text", {
-                    "content": chunk.get("content", ""),
-                    "total_length": chunk.get("total_length", 0),
-                })
+                total_length = chunk.get("total_length", 0)
+                if isinstance(total_length, bool) or not isinstance(total_length, int):
+                    total_length = 0
+                yield sse("text", {"total_length": max(0, min(total_length, 100_000))})
             elif ctype == "done":
-                final_mapping = chunk.get("mapping")
+                try:
+                    final_mapping = CandidateMapping.model_validate(
+                        chunk.get("mapping")
+                    ).model_dump(mode="json")
+                except (TypeError, ValueError):
+                    yield sse("error", {"message": "invalid_mapping_output"})
+                    return
+                if cache_pair and final_mapping["generation_status"] == "generated":
+                    try:
+                        _cache.put(*cache_pair, final_mapping, lang=lang)
+                    except OSError as exc:
+                        logger.error(
+                            "structural.mapping.cache_write_failed",
+                            error_type=type(exc).__name__,
+                            incident_id=new_incident_id(),
+                        )
                 yield sse("done", {"mapping": final_mapping, "from_cache": False})
+                return
             elif ctype == "error":
-                yield sse("error", {"message": chunk.get("message", "unknown error")})
-
-        # Cache only in pair mode
-        if cache_key_a and final_mapping and final_mapping.get("structure_name") != "结构分析暂不可用":
-            _cache.put(cache_key_a, b_id, final_mapping)
+                message = chunk.get("message")
+                if message not in {"upstream_timeout", "upstream_unreachable", "upstream_error"}:
+                    message = "upstream_error"
+                yield sse("error", {"message": message})
+                return
 
     return StreamingResponse(
         event_gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
             "X-Accel-Buffering": "no",  # Nginx: disable buffering
         },
     )

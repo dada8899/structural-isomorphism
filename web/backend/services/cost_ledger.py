@@ -32,11 +32,15 @@ Config (env, all optional — sane defaults built in):
 from __future__ import annotations
 
 import datetime as _dt
-import logging
 import os
 import threading
 
-logger = logging.getLogger("structural.cost_ledger")
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger
+else:
+    from logging_config import get_logger
+
+logger = get_logger("structural.cost_ledger")
 
 _DEFAULT_DAILY_CALL_CAP = 500
 
@@ -54,10 +58,7 @@ def _resolve_cap() -> int:
     try:
         return int(raw.strip())
     except ValueError:
-        logger.warning(
-            "cost_ledger: bad STRUCTURAL_LLM_DAILY_CALL_CAP=%r — using default %d",
-            raw, _DEFAULT_DAILY_CALL_CAP,
-        )
+        logger.warning("structural.cost_ledger.config_invalid")
         return _DEFAULT_DAILY_CALL_CAP
 
 
@@ -89,10 +90,10 @@ class _DailyCallLedger:
         with self._lock:
             self._roll_if_new_day()
             if cap > 0 and self._count >= cap:
-                used = self._count
                 logger.warning(
-                    "cost_ledger: daily LLM call cap hit (%d/%d) on %s endpoint=%s",
-                    used, cap, self._date, endpoint or "?",
+                    "structural.cost_ledger.daily_cap_reached",
+                    count=self._count,
+                    remaining=0,
                 )
                 raise BudgetExceeded(
                     detail=(

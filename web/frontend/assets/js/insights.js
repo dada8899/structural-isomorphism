@@ -1,14 +1,9 @@
 /**
  * Structural — Insights dashboard (B Data Flywheel, Session #18).
  *
- * Fetches three aggregate endpoints and renders:
- *   - GET /api/insights/summary           → top-line stat cards
- *   - GET /api/insights/stuck-structures  → "最常卡住的问题结构" list
- *   - GET /api/insights/verified          → user-recorded outcome list
- *
- * Aggregate, non-PII data — no anon-id header needed. Each section
- * degrades to a friendly empty state on no data; a failed fetch shows
- * a quiet retry-able error without tearing down the rest of the page.
+ * Public outcome aggregation is paused. The three endpoints expose only the
+ * stable pause status, and this page renders explanatory paused states that
+ * are independent of participant activity.
  */
 (function () {
   'use strict';
@@ -18,19 +13,6 @@
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
-  }
-
-  function fmtDate(iso) {
-    if (!iso) return '';
-    var d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-
-  function fmtPct(rate) {
-    var n = Number(rate);
-    if (isNaN(n)) return '0%';
-    return Math.round(n * 100) + '%';
   }
 
   function trackPlausible(event, props) {
@@ -67,128 +49,37 @@
     );
   }
 
-  // ---- summary stat cards ---- //
+  // ---- paused summary ---- //
 
   function renderSummary(data) {
     var el = document.getElementById('insights-summary');
     if (!el) return;
-    var d = data || {};
-    var cards = [
-      { value: d.total_reports || 0, label: '生成的研究报告' },
-      { value: d.total_followups || 0, label: '收到的回访记录' },
-      { value: d.worked_count || 0, label: '标记「确实管用」' },
-      { value: d.verified_isomorphisms || 0, label: '有结果的迁移记录' }
-    ];
-    // Early-stage framing: when everything is still zero, the row of "0"s
-    // should read as "刚起步" rather than a broken dashboard. A zero value
-    // gets a muted treatment + a small dash hint.
-    var html = cards.map(function (c) {
-      var n = parseInt(c.value, 10) || 0;
-      var zeroCls = n === 0 ? ' insights-stat--zero' : '';
-      return (
-        '<div class="insights-stat' + zeroCls + '">' +
-          '<div class="insights-stat__value">' + n + '</div>' +
-          '<div class="insights-stat__label">' + escapeHtml(c.label) + '</div>' +
-        '</div>'
-      );
-    }).join('');
-    var allZero = cards.every(function (c) { return (parseInt(c.value, 10) || 0) === 0; });
-    if (allZero) {
-      html += '<p class="insights-summary__note">这个引擎刚开始被用起来——数字会随着每一份报告慢慢长出来。</p>';
-    }
-    var outcomes = d.outcome_counts || {};
-    var outcomeTotal = ['worked', 'partial', 'no_effect', 'too_early', 'not_recorded']
-      .reduce(function (sum, key) { return sum + (parseInt(outcomes[key], 10) || 0); }, 0);
-    html += '<div class="insights-summary__outcomes" aria-label="全部用户回填结果">' +
-      '<strong>回填分母 ' + outcomeTotal + '</strong> · ' +
-      '管用 ' + (parseInt(outcomes.worked, 10) || 0) + ' · ' +
-      '部分管用 ' + (parseInt(outcomes.partial, 10) || 0) + ' · ' +
-      '没效果 ' + (parseInt(outcomes.no_effect, 10) || 0) + ' · ' +
-      '尚早 ' + (parseInt(outcomes.too_early, 10) || 0) + ' · ' +
-      '未记录 ' + (parseInt(outcomes.not_recorded, 10) || 0) +
-      '<br><span>这是用户回填分布，存在选择偏差，不等于科学验证。</span></div>';
-    el.innerHTML = html;
-  }
-
-  // ---- stuck structures ---- //
-
-  function stuckRowHtml(item, idx) {
-    var followups = parseInt(item.followup_count, 10) || 0;
-    var reports = parseInt(item.report_count, 10) || 0;
-    var rateHtml = followups
-      ? '<div class="insights-row__rate">' + fmtPct(item.worked_rate) + ' 管用</div>'
-      : '<div class="insights-row__rate insights-row__rate--none">暂无回访</div>';
-    return (
-      '<div class="insights-row">' +
-        '<div class="insights-row__rank">' + (idx + 1) + '</div>' +
-        '<div class="insights-row__body">' +
-          '<div class="insights-row__name">' + escapeHtml(item.b_id || '（未知目标）') + '</div>' +
-          '<div class="insights-row__meta">' +
-            reports + ' 份报告 · ' + followups + ' 次回访' +
-          '</div>' +
-        '</div>' +
-        rateHtml +
-      '</div>'
+    el.innerHTML = emptyHtml(
+      '公开结果聚合已暂停',
+      '当前不会展示人数、档位、排序或结果类别；新增或撤回记录都不会改变公开页面。'
     );
   }
+
+  // ---- paused stuck-structure surface ---- //
 
   function renderStuck(data) {
     var el = document.getElementById('insights-stuck');
     if (!el) return;
-    var items = (data && data.items) || [];
-    if (items.length === 0) {
-      el.innerHTML = emptyHtml(
-        '数据正在积累中',
-        '每生成一份研究报告，这里就多一条线索。报告攒够了，大家最常卡住的问题结构会自动浮现。'
-      );
-      return;
-    }
-    el.innerHTML = items.map(stuckRowHtml).join('');
-  }
-
-  // ---- user-recorded outcomes ---- //
-
-  function verifiedCardHtml(item) {
-    var source = escapeHtml(item.source_phenomenon || item.structure_name || '某个现象');
-    var count = parseInt(item.verifier_count, 10) || 0;
-    var when = fmtDate(item.last_verified_at);
-    var reportId = escapeHtml(item.report_id || '');
-    var problemHtml = reportId
-      ? '<a class="insights-card__problem" href="/report/' + reportId + '">' +
-          escapeHtml(item.problem || '（未命名问题）') + '</a>'
-      : '<p class="insights-card__problem">' + escapeHtml(item.problem || '（未命名问题）') + '</p>';
-    return (
-      '<div class="insights-card">' +
-        '<div class="insights-card__top">' +
-          problemHtml +
-          '<span class="insights-card__verified-tag">用户结果记录</span>' +
-        '</div>' +
-        '<div class="insights-card__flow">' +
-          '<span class="insights-card__chip">你的问题</span>' +
-          '<span class="insights-card__flow-arrow">→ 借自 →</span>' +
-          '<span class="insights-card__chip">' + source + '</span>' +
-        '</div>' +
-        '<div class="insights-card__meta">' +
-          count + ' 条“管用”回填' + (when ? ' · 最近记录 ' + escapeHtml(when) : '') +
-          ' · 不等于机制验证' +
-        '</div>' +
-        (window.StructuralEvidence ? window.StructuralEvidence.render(item.evidence || window.StructuralEvidence.fallback(item), { compact: true, kbUrl: item.b_id ? '/phenomenon/' + encodeURIComponent(item.b_id) : '' }) : '') +
-      '</div>'
+    el.innerHTML = emptyHtml(
+      '排行已关闭',
+      '暂停期间不按真实参与人数生成、筛选或排序任何问题结构。'
     );
   }
+
+  // ---- paused user-outcome surface ---- //
 
   function renderVerified(data) {
     var el = document.getElementById('insights-verified');
     if (!el) return;
-    var items = (data && data.items) || [];
-    if (items.length === 0) {
-      el.innerHTML = emptyHtml(
-        '第一条用户结果记录还在路上',
-        '用户回到报告页记录“管用、没用或证据不足”后，结果会沉淀在这里。单次反馈不会把候选自动升级为已验证机制。'
-      );
-      return;
-    }
-    el.innerHTML = items.map(verifiedCardHtml).join('');
+    el.innerHTML = emptyHtml(
+      '公开用户结果已关闭',
+      '实验结果仍可作为你的私有研究记录保存，但不会出现在公开卡片或可信度提示中。'
+    );
   }
 
   // ---- section error fallback ---- //
@@ -203,22 +94,22 @@
     getJson('/api/insights/summary')
       .then(renderSummary)
       .catch(function (err) {
-        console.error('[insights] summary failed:', err);
+        console.error('[insights] summary failed');
         var el = document.getElementById('insights-summary');
         if (el) el.innerHTML = emptyHtml('总览没加载出来', '稍后刷新重试。', 'error');
       });
 
-    getJson('/api/insights/stuck-structures?limit=10')
+    getJson('/api/insights/stuck-structures')
       .then(renderStuck)
       .catch(function (err) {
-        console.error('[insights] stuck-structures failed:', err);
+        console.error('[insights] stuck structures failed');
         showSectionError('insights-stuck');
       });
 
-    getJson('/api/insights/verified?limit=20')
+    getJson('/api/insights/verified')
       .then(renderVerified)
       .catch(function (err) {
-        console.error('[insights] verified failed:', err);
+        console.error('[insights] verified results failed');
         showSectionError('insights-verified');
       });
 

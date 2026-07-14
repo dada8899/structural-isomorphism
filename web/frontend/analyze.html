@@ -3,32 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#FAFAF9">
-  <meta name="description" content="跨学科研究报告——把别的领域已经成熟的工具借过来用，并给出你本周就能跑的动作。">
+  <meta name="description" content="跨学科研究草案——比较其他领域的方法线索、证据缺口与适用边界，并给出可检验的下一步。">
   <title data-i18n="page.analyze.meta_title">研究报告 — Structural</title>
 
   <link rel="icon" type="image/svg+xml" href="/assets/icons/favicon.svg">
 
   <!-- Open Graph / social share metadata -->
   <meta property="og:title" content="研究报告 — Structural">
-  <meta property="og:description" content="跨学科研究报告 · 从其他领域借用答案">
+  <meta property="og:description" content="跨领域研究草案 · 检验候选对应、反证与边界">
   <meta property="og:type" content="article">
   <meta property="og:image" content="/assets/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="研究报告 — Structural">
-  <meta name="twitter:description" content="跨学科研究报告 · 从其他领域借用答案">
+  <meta name="twitter:description" content="跨领域研究草案 · 检验候选对应、反证与边界">
 
   <link rel="stylesheet" href="/assets/css/fonts-self-hosted.css?v=20260514a">
 
   <link rel="stylesheet" href="/assets/css/shared-tokens.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/reset.css?v=20260514e">
   <link rel="stylesheet" href="/assets/css/design-system.css?v=20260514e">
-  <link rel="stylesheet" href="/assets/css/common.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/evidence-envelope.css?v=20260713a">
-  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260521v2">
-  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260514e">
+  <link rel="stylesheet" href="/assets/css/common.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/evidence-envelope.css?v=20260713n1">
+  <link rel="stylesheet" href="/assets/css/analyze.css?v=20260714n2">
+  <link rel="stylesheet" href="/assets/css/analyze-actions.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/decision-brief.css?v=20260712a">
-  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260713a">
+  <link rel="stylesheet" href="/assets/css/responsive.css?v=20260714n2">
   <link rel="stylesheet" href="/assets/css/glossary.css?v=20260514e">
 
   <!-- KaTeX for math rendering -->
@@ -36,10 +37,9 @@
   <script defer src="/assets/vendor/katex/katex.min.js?v=0.16.11"></script>
   <script defer src="/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11"></script>
 
-  <!-- Plausible analytics (W4-B G3, 2026-05-13). -->
-  <script defer data-domain="structural.bytedance.city" src="https://plausible.bytedance.city/js/script.js"></script>
+  <!-- No analytics on private research or report-capability surfaces. -->
 </head>
-<body class="is-warmink">
+<body class="has-history-sidebar is-warmink">
   <header class="site-header"></header>
 
   <main class="analyze-page">
@@ -74,21 +74,24 @@
         </div>
       </nav>
 
-      <div id="analyze-loading" class="analyze-loading">
-        <div class="analyze-loading__dots">
-          <span class="analyze-loading__dot"></span>
-          <span class="analyze-loading__dot"></span>
-          <span class="analyze-loading__dot"></span>
-        </div>
-        <h2 class="analyze-loading__title" data-i18n="page.analyze.loading_title">正在生成研究报告</h2>
-        <p class="analyze-loading__hint">我们正在写一份跨学科研究报告，从其他领域借用成熟的解法。</p>
-        <div class="analyze-loading__timer-row">
-          <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
-          <span class="analyze-loading__typical">约需 2–3 分钟 · 报告会分段逐步出现</span>
-        </div>
-      </div>
+      <section id="analyze-report-stage" class="analyze-report-stage"
+               aria-busy="true" data-state="loading">
+        <div id="analyze-header" class="analyze-header"></div>
 
-      <div id="analyze-header" class="analyze-header"></div>
+        <div id="analyze-loading" class="analyze-loading" role="status" aria-live="polite">
+          <div class="analyze-loading__dots">
+            <span class="analyze-loading__dot"></span>
+            <span class="analyze-loading__dot"></span>
+            <span class="analyze-loading__dot"></span>
+          </div>
+          <h2 class="analyze-loading__title" data-i18n="page.analyze.loading_title">正在生成研究报告</h2>
+          <p class="analyze-loading__hint">正在生成跨学科研究草案，并整理其他领域的方法线索、证据缺口与适用边界。</p>
+          <div class="analyze-loading__timer-row">
+            <span class="elapsed-timer" id="analyze-loading-timer">已等待 0s</span>
+            <span class="analyze-loading__typical">约需 2–3 分钟 · 完成证据与来源校验后一次呈现</span>
+          </div>
+        </div>
+      </section>
       <nav id="analyze-progress" class="analyze-progress"></nav>
 
       <!-- M1.4 (session #16): persisted-share bar. Hidden until the
@@ -130,14 +133,16 @@
 
   <footer class="site-footer"></footer>
 
-  <script src="/assets/js/i18n.js?v=20260713a"></script>
-  <script src="/assets/js/utils.js?v=20260514e"></script>
-  <script defer src="/assets/js/glossary.js?v=20260514e"></script>
-  <script src="/assets/js/history-sidebar.js?v=20260514"></script>
-  <script src="/assets/js/api.js?v=20260514e"></script>
-  <script src="/assets/js/evidence-envelope.js?v=20260713a"></script>
-  <script src="/assets/js/analyze.js?v=20260713a"></script>
+  <script src="/assets/js/i18n.js?v=20260714n2"></script>
+  <script src="/assets/js/utils.js?v=20260714n2"></script>
+  <script defer src="/assets/js/glossary.js?v=20260714n2"></script>
+  <script src="/assets/js/history-sidebar.js?v=20260714n2"></script>
+  <script src="/assets/js/api.js?v=20260714n2"></script>
+  <script src="/assets/js/evidence-envelope.js?v=20260714n2"></script>
+  <script src="/assets/js/utils/buildAnalyzeUrl.js?v=20260714n2"></script>
+  <script src="/assets/js/analyze.js?v=20260714n2"></script>
   <script src="/assets/js/product-switcher.js?v=20260514e"></script>
-  <script src="/assets/js/site-chrome.js?v=20260713a"></script>
+  <script src="/assets/js/analytics-consent.js?v=20260714n2"></script>
+  <script src="/assets/js/site-chrome.js?v=20260714n2"></script>
 </body>
 </html>

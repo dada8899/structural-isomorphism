@@ -1,18 +1,37 @@
 function T(key, fallback) { try { if (window.i18n && typeof window.i18n.t === "function") { var v = window.i18n.t(key); if (v && v !== key) return v; } } catch(e) {} return fallback; }
 
-// Score display helper: map fused score [0, 1.1] to a tier label + percentage.
-// Treats <0.3 as weak, 0.3-0.6 as medium, >=0.6 as strong.
-function scoreTier(score) {
-  const s = typeof score === 'number' ? score : 0;
-  if (s >= 0.6) return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_strong', '强相似'), cls: 'score--strong' };
-  if (s >= 0.3) return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_medium', '中等相似'), cls: 'score--medium' };
-  return { pct: Math.round(Math.min(s, 1) * 100), label: T('page.search.score_weak', '弱相关'), cls: 'score--weak' };
+// Retrieval scores are query-relative ranking signals, not calibrated
+// similarity, confidence, or probability. Public UI exposes position only.
+function rankText(index) {
+  return T('page.search.rank_within_query', '本次排序 #{rank}')
+    .replace('{rank}', String(index + 1));
+}
+
+function resolveSearchSynthesisCandidate(candidate, results) {
+  if (!candidate || typeof candidate !== 'object' ||
+      typeof candidate.source_kb_id !== 'string' || !Array.isArray(results)) return null;
+  const sourceId = candidate.source_kb_id;
+  const matches = [];
+  results.forEach((record, index) => {
+    if (record && record.id === sourceId) matches.push({ record, index });
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function synthesisGenerationMatches(expectedRun, expectedGeneration, currentRun, currentGeneration) {
+  return expectedRun === currentRun && expectedGeneration === currentGeneration;
+}
+
+if (typeof window !== 'undefined') {
+  window.resolveSearchSynthesisCandidate = resolveSearchSynthesisCandidate;
 }
 
 function evidenceHtml(item, compact) {
   if (!window.StructuralEvidence) return '';
   return window.StructuralEvidence.render(
-    (item && item.evidence) || window.StructuralEvidence.fallback(item || {}),
+    (item && item.evidence) || window.StructuralEvidence.fallback({
+      ...(item || {}), score: null, relevance: null,
+    }),
     { compact: compact !== false, suppressActions: true }
   );
 }
@@ -28,6 +47,74 @@ function evidenceHtml(item, compact) {
 
 function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
+}
+
+function scrubSensitiveSearchUrl() {
+  try {
+    const url = new URL(window.location.href);
+    ['q', 'context', 'from_query', 'text_a'].forEach((name) => url.searchParams.delete(name));
+    history.replaceState(history.state || {}, '', url.pathname + url.search + url.hash);
+  } catch (e) { /* remain fail-closed in the UI */ }
+}
+
+function currentSearchLang() {
+  return (window.i18n && typeof window.i18n.getLang === 'function' && window.i18n.getLang() === 'en')
+    ? 'en' : 'zh';
+}
+
+function hasPrivateContextKey(url) {
+  try {
+    return Boolean(new URL(url, window.location.origin).searchParams.get('context'));
+  } catch (e) {
+    return false;
+  }
+}
+
+function renderPrivateContextUnavailable() {
+  const summary = $('#search-summary');
+  if (summary) summary.innerHTML = '';
+  const container = $('#search-results');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="search-error search-context-lost" role="status" aria-live="polite">
+      <h2 class="search-error__title">${T('page.search.context_lost_title', '没有可恢复的研究问题')}</h2>
+      <p class="search-error__text">${T('page.search.context_lost_text', '问题不会保留在网址中。链接已过期、被重复使用，或浏览器安全存储不可用时，请返回首页重新提交。')}</p>
+      <div class="search-error__actions">
+        <a href="/" class="btn btn--primary">${T('page.search.context_lost_action', '返回首页重新提交')}</a>
+      </div>
+    </div>
+  `;
+}
+
+function navigateToPrivateSearch(query, options) {
+  if (typeof window.buildPrivateSearchUrl !== 'function') {
+    renderPrivateContextUnavailable();
+    return false;
+  }
+  const url = window.buildPrivateSearchUrl({
+    query,
+    lang: currentSearchLang(),
+    force: Boolean(options && options.force),
+    source: (options && options.source) || 'rewrite',
+  });
+  if (!url) {
+    renderPrivateContextUnavailable();
+    return false;
+  }
+  if (!hasPrivateContextKey(url)) {
+    renderPrivateContextUnavailable();
+    return false;
+  }
+  window.location.assign(url);
+  return true;
+}
+
+function privateAnalyzeHref(id, query) {
+  if (typeof window.buildAnalyzeUrl === 'function') {
+    return window.buildAnalyzeUrl({ id: id, q: query });
+  }
+  // Privacy fail-closed: public id is safe, user text is never a URL fallback.
+  return '/analyze?id=' + encodeURIComponent(id || '');
 }
 
 // === SESSION-17 V2 helpers ===
@@ -118,60 +205,118 @@ let _phaseIntervalId = null;
 function getSynthPhases() {
   return [
     { until: 4, text: T('page.search.phase_understanding', '正在理解你的问题') },
-    { until: 9, text: T('page.search.phase_picking', '正在挑选最相关的证据') },
-    { until: 16, text: T('page.search.phase_organizing', '正在组织答案') },
+    { until: 9, text: T('page.search.phase_picking', '正在整理候选记录') },
+    { until: 16, text: T('page.search.phase_organizing', '正在核对候选边界') },
     { until: 999, text: T('page.search.phase_almost', '马上就好') },
   ];
 }
 
-function renderQuestionHeader(query, data) {
-  const container = $('#search-summary');
-  if (!container) return;
+function loadingSynthHtml(candidateStatus) {
+  return `
+    <div class="search-synth__loading" role="status">
+      <div class="search-synth__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <span class="search-synth__phase-text" id="search-synth-phase">${T('page.search.phase_understanding', '正在理解你的问题')}</span>
+      <span class="elapsed-timer" id="search-synth-timer">${T('page.search.elapsed_start', '已等待 0s')}</span>
+      <span class="search-synth__typical" id="search-synth-status">${escapeHtml(candidateStatus)}</span>
+    </div>
+  `;
+}
 
-  if (data.count === 0) {
+function ensureSearchHeaderShell(query, candidateStatus) {
+  const container = $('#search-summary');
+  if (!container) return null;
+  container.classList.add('search-summary--active');
+  let question = container.querySelector('.search-question');
+  let questionText = document.getElementById('search-question-text');
+  let rewrite = document.getElementById('search-question-rewrite');
+  let synth = document.getElementById('search-synth');
+
+  if (!question || !questionText || !rewrite || !synth) {
     container.innerHTML = `
       <div class="search-question">
-        <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
-        <div class="search-question__text">${escapeHtml(query)}</div>
+        <div class="search-question__label" id="search-question-label"></div>
+        <div class="search-question__text" id="search-question-text">${escapeHtml(query)}</div>
+        <div class="search-question__rewrite" id="search-question-rewrite">
+          <span id="search-question-rewrite-label"></span><em id="search-question-rewrite-text"></em>
+        </div>
+      </div>
+      <div class="search-synth search-synth--loading" id="search-synth">
+        ${loadingSynthHtml(candidateStatus)}
       </div>
     `;
+    question = container.querySelector('.search-question');
+    questionText = document.getElementById('search-question-text');
+    rewrite = document.getElementById('search-question-rewrite');
+    synth = document.getElementById('search-synth');
+  }
+
+  let editBtn = document.getElementById('search-edit-btn');
+  if (!editBtn && question) {
+    editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'search-question__edit-btn';
+    editBtn.id = 'search-edit-btn';
+    editBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    const label = document.createElement('span');
+    label.textContent = T('page.search.edit', '编辑');
+    editBtn.appendChild(label);
+    question.insertBefore(editBtn, question.firstChild);
+  }
+  return { container, question, questionText, rewrite, synth, editBtn };
+}
+
+function updateSearchRewrite(query, rewritten) {
+  const label = document.getElementById('search-question-rewrite-label');
+  const text = document.getElementById('search-question-rewrite-text');
+  if (!label || !text) return;
+  const changed = typeof rewritten === 'string' && rewritten && rewritten !== query;
+  label.textContent = changed
+    ? T('page.search.rewritten_as', '已改写为研究问题：')
+    : T('page.search.retrieval_wording', '检索表达：');
+  text.textContent = changed
+    ? rewritten
+    : T('page.search.retrieval_original', '先按原问题检索');
+}
+
+function renderQuestionHeader(query, data) {
+  const rewritten = data.rewritten_query;
+  const candidateStatus = Number.isInteger(data.count)
+    ? `${data.count} ${T('page.search.candidates_typical', '个候选 · 通常 8–15s')}`
+    : T('page.search.candidates_loading', '候选检索中 · 结果通过校验后显示');
+  const shell = ensureSearchHeaderShell(query, candidateStatus);
+  if (!shell) return;
+  document.getElementById('search-question-label').textContent =
+    T('page.search.your_question', '你的问题');
+  shell.questionText.textContent = query;
+  updateSearchRewrite(query, rewritten);
+  if (shell.editBtn) {
+    shell.editBtn.setAttribute('aria-label', T('page.search.edit_this_question', '编辑这个问题'));
+    shell.editBtn.onclick = () => enterEditMode(query);
+  }
+
+  if (data.count === 0) {
+    shell.synth.className = 'search-synth search-synth--degraded';
+    shell.synth.innerHTML = `
+      <div class="search-synth__content">
+        <div class="search-synth__label">${T('page.search.empty_title', '没有找到可用的知识库候选')}</div>
+        <div class="search-synth__insight"><p>${T('page.search.empty_summary', '没有候选通过当前检索与校验；请补充变量、时间尺度或边界条件。')}</p></div>
+      </div>`;
     return;
   }
 
-  const rewritten = data.rewritten_query;
+  if (!Number.isInteger(data.count) && !shell.synth.classList.contains('search-synth--loading')) {
+    shell.synth.className = 'search-synth search-synth--loading';
+    shell.synth.innerHTML = loadingSynthHtml(candidateStatus);
+  }
+  const status = document.getElementById('search-synth-status');
+  if (status) status.textContent = candidateStatus;
+  if (Number.isInteger(data.count)) return;
 
-  container.innerHTML = `
-    <div class="search-question">
-      <button type="button" class="search-question__edit-btn" id="search-edit-btn" aria-label="${T('page.search.edit_this_question', '编辑这个问题')}">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        ${T('page.search.edit', '编辑')}
-      </button>
-      <div class="search-question__label">${T('page.search.your_question', '你的问题')}</div>
-      <div class="search-question__text">${escapeHtml(query)}</div>
-      ${rewritten && rewritten !== query ? `
-        <div class="search-question__rewrite">
-          ${T('page.search.rewritten_as', '已改写为研究问题：')}<em>${escapeHtml(rewritten)}</em>
-        </div>
-      ` : ''}
-    </div>
-    <div class="search-synth search-synth--loading" id="search-synth">
-      <div class="search-synth__loading">
-        <div class="search-synth__dots"><span></span><span></span><span></span></div>
-        <span class="search-synth__phase-text" id="search-synth-phase">${T('page.search.phase_understanding', '正在理解你的问题')}</span>
-        <span class="elapsed-timer" id="search-synth-timer">${T('page.search.elapsed_start', '已等待 0s')}</span>
-        <span class="search-synth__typical">${data.count} ${T('page.search.candidates_typical', '个候选 · 通常 8–15s')}</span>
-      </div>
-    </div>
-  `;
-
-  // Start elapsed timer for synthesis
   if (_synthTimerStop) { _synthTimerStop(); _synthTimerStop = null; }
   const synthTimerEl = document.getElementById('search-synth-timer');
   if (synthTimerEl && window.startElapsedTimer) {
     _synthTimerStop = window.startElapsedTimer(synthTimerEl);
   }
-
-  // Start phase rotation — single source of "I'm thinking about it" progress
   if (_phaseIntervalId) { clearInterval(_phaseIntervalId); _phaseIntervalId = null; }
   const phaseEl = document.getElementById('search-synth-phase');
   const phaseStart = Date.now();
@@ -183,17 +328,11 @@ function renderQuestionHeader(query, data) {
     }
     const elapsed = (Date.now() - phaseStart) / 1000;
     const phases = getSynthPhases();
-    const phase = phases.find(p => elapsed < p.until) || phases[phases.length - 1];
+    const phase = phases.find(item => elapsed < item.until) || phases[phases.length - 1];
     if (phaseEl.textContent !== phase.text) phaseEl.textContent = phase.text;
   };
   tickPhase();
   _phaseIntervalId = setInterval(tickPhase, 500);
-
-  // Wire the "编辑" button — turn the question text into an editable textarea
-  const editBtn = document.getElementById('search-edit-btn');
-  if (editBtn) {
-    editBtn.addEventListener('click', () => enterEditMode(query));
-  }
 }
 
 // === Edit mode: turn the question header into an inline form ===
@@ -226,9 +365,7 @@ function enterEditMode(currentQuery) {
   document.getElementById('search-edit-submit')?.addEventListener('click', () => {
     const newQ = (ta?.value || '').trim();
     if (!newQ) return;
-    const lang = (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'zh';
-    const langSuffix = lang === 'en' ? '&lang=en' : '';
-    window.location.href = `/search?q=${encodeURIComponent(newQ)}${langSuffix}`;
+    navigateToPrivateSearch(newQ, { source: 'rewrite' });
   });
 }
 
@@ -236,6 +373,97 @@ function toParagraphs(text) {
   // Delegate to the global mdParagraphs (in utils.js) which handles
   // **bold** / *italic* / `code` / \n→<br> and splits on \n\n.
   return (window.mdParagraphs ? window.mdParagraphs(text) : '');
+}
+
+function safeModelInline(text) {
+  return window.mdInline ? window.mdInline(text) : escapeHtml(text);
+}
+
+function renderCandidateBoundary(candidate) {
+  if (!candidate || typeof candidate !== 'object') return '';
+  const gaps = Array.isArray(candidate.evidence_gaps)
+    ? candidate.evidence_gaps.filter((gap) => typeof gap === 'string' && gap).slice(0, 4)
+    : [];
+  const parts = [];
+  if (gaps.length) {
+    parts.push(`
+      <div class="candidate-boundary__item">
+        <div class="candidate-boundary__label">${T('page.search.evidence_gaps', '尚缺证据')}</div>
+        <ul class="candidate-boundary__list">${gaps.map((gap) => `<li>${safeModelInline(gap)}</li>`).join('')}</ul>
+      </div>
+    `);
+  }
+  if (candidate.alternative_explanation) {
+    parts.push(`
+      <div class="candidate-boundary__item">
+        <div class="candidate-boundary__label">${T('page.search.competing_explanation', '竞争解释')}</div>
+        <p>${safeModelInline(candidate.alternative_explanation)}</p>
+      </div>
+    `);
+  }
+  if (candidate.failure_condition) {
+    parts.push(`
+      <div class="candidate-boundary__item">
+        <div class="candidate-boundary__label">${T('page.search.failure_condition', '何时否定')}</div>
+        <p>${safeModelInline(candidate.failure_condition)}</p>
+      </div>
+    `);
+  }
+  return parts.length ? `<div class="candidate-boundary">${parts.join('')}</div>` : '';
+}
+
+let _searchMathRuntime = null;
+
+function containsRenderableMath(container) {
+  const text = container && typeof container.textContent === 'string'
+    ? container.textContent : '';
+  return /(?:\$\$[^$]+\$\$|\$[^$\n]{1,200}\$|\\\([^)]*\\\)|\\\[[^\]]*\\\])/.test(text);
+}
+
+function loadSearchMathScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-search-math="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === 'true') resolve();
+      else {
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', reject, { once: true });
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.defer = true;
+    script.dataset.searchMath = src;
+    script.addEventListener('load', () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    }, { once: true });
+    script.addEventListener('error', reject, { once: true });
+    document.head.appendChild(script);
+  });
+}
+
+function renderSearchMath(container) {
+  if (!containsRenderableMath(container)) return;
+  if (typeof window.renderMathInElement === 'function') {
+    if (window.renderMath) window.renderMath(container);
+    return;
+  }
+  if (!_searchMathRuntime) {
+    if (!document.querySelector('link[data-search-math-css]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = '/assets/vendor/katex/katex.min.css?v=0.16.11';
+      stylesheet.dataset.searchMathCss = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    _searchMathRuntime = loadSearchMathScript('/assets/vendor/katex/katex.min.js?v=0.16.11')
+      .then(() => loadSearchMathScript('/assets/vendor/katex/contrib/auto-render.min.js?v=0.16.11'));
+  }
+  _searchMathRuntime
+    .then(() => { if (window.renderMath) window.renderMath(container); })
+    .catch(() => { console.warn('[search] math rendering unavailable'); });
 }
 
 function renderSynthBlock(synth) {
@@ -249,20 +477,39 @@ function renderSynthBlock(synth) {
   }
   // Remove loading state
   container.classList.remove('search-synth--loading');
+  const degraded = synth.synthesis_status === 'degraded';
+  container.classList.toggle('search-synth--degraded', degraded);
   container.innerHTML = `
     <div class="search-synth__content">
-      <div class="search-synth__label">${T('page.search.main_insight_label', '主洞察 · AI 合成')}</div>
+      <div class="search-synth__label">${degraded
+        ? T('page.search.synthesis_degraded_label', '候选比较 · 已安全降级')
+        : T('page.search.synthesis_validated_label', '候选比较 · 格式已校验')}</div>
       <div class="search-synth__insight">${toParagraphs(synth.main_insight)}</div>
       ${synth.why_these_matter ? `
         <div class="search-synth__why">
-          <span class="search-synth__why-tag">${T('page.search.why_useful', '为什么这有用')}</span>
+          <span class="search-synth__why-tag">${T('page.search.review_boundary', '核对边界')}</span>
           <div class="search-synth__why-text">${toParagraphs(synth.why_these_matter)}</div>
         </div>
       ` : ''}
     </div>
   `;
-  // Render any inline math
-  if (window.renderMath) window.renderMath(container);
+  renderSearchMath(container);
+}
+
+function renderSynthTransportFailure(onRetry) {
+  if (_synthTimerStop) { _synthTimerStop(); _synthTimerStop = null; }
+  const container = $('#search-synth');
+  if (!container) return;
+  container.classList.remove('search-synth--loading');
+  container.classList.add('search-synth--degraded');
+  container.innerHTML = `
+    <div class="search-synth__content">
+      <div class="search-synth__label">${T('page.search.synthesis_unavailable_label', '候选比较 · 暂不可用')}</div>
+      <div class="search-synth__insight"><p>${T('page.search.synthesis_unavailable_text', '检索候选仍可逐条查看；模型比较因网络或超时未完成，未展示任何未校验内容。')}</p></div>
+      <button type="button" class="btn btn--secondary search-synth__retry" id="search-synth-retry">${T('page.search.retry_comparison', '重试候选比较')}</button>
+    </div>
+  `;
+  document.getElementById('search-synth-retry')?.addEventListener('click', onRetry);
 }
 
 // State shared between renderResults and renderResultsWithSynth
@@ -271,6 +518,26 @@ let _lastResults = [];
 let _lastSynth = null;
 let _lastV2PairsForTop = [];
 let _lastStats = null;          // SESSION-17 V2: search `stats` (cross/same counts)
+let _currentSearchContext = null;
+let _lastForce = false;
+let _activeSearchRun = 0;
+let _activeSynthGeneration = 0;
+let _activeSynthStream = null;
+
+function cancelActiveSynthesis() {
+  _activeSynthGeneration += 1;
+  if (_activeSynthStream && _activeSynthStream.abort) {
+    try { _activeSynthStream.abort(); } catch (e) { /* already closed */ }
+  }
+  _activeSynthStream = null;
+}
+
+function updatePrivateSearchState(patch) {
+  if (typeof window.updatePrivateNavigationState !== 'function') return null;
+  const updated = window.updatePrivateNavigationState(patch, { kind: 'search' });
+  if (updated) _currentSearchContext = updated;
+  return updated;
+}
 
 function renderResults(query, data) {
   _lastQuery = query;
@@ -288,8 +555,8 @@ function renderResults(query, data) {
         <svg class="search-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6" opacity="0.3"/>
         </svg>
-        <h2 class="search-empty__title">${T('page.search.empty_title', '没有找到足够相似的现象')}</h2>
-        <p class="search-empty__text">${T('page.search.empty_text', '知识库暂时没有结构相似的匹配。<br>试着描述现象本身的<strong>行为模式</strong>，而不是问题或结论。')}</p>
+        <h2 class="search-empty__title">${T('page.search.empty_title', '没有找到可用的知识库候选')}</h2>
+        <p class="search-empty__text">${T('page.search.empty_text', '知识库暂时没有返回可排序的候选。<br>试着描述现象本身的<strong>行为模式</strong>，并补充变量、时间尺度或边界条件。')}</p>
         <div class="search-empty__actions">
           <a href="/" class="btn btn--primary">${T('page.search.back_home', '返回首页')}</a>
           <a href="/about" class="btn btn--ghost">${T('page.search.learn_structural', '了解 Structural')}</a>
@@ -309,11 +576,12 @@ function renderResults(query, data) {
       ${renderCrossDomainBanner(query, null)}
       <div class="search-page__results-title">
         <span>${T('page.search.evidence_candidates_title', '跨领域候选')} · ${data.results.length} ${T('page.search.candidates_unit', '个候选')}</span>
-        <span class="search-page__results-hint">${T('page.search.results_pre_synth_hint', 'AI 正在挑选首推 · 现在已可点击查看')}</span>
+        <span class="search-page__results-hint">${T('page.search.results_pre_synth_hint', '模型正在比较候选 · 现在已可逐条核查')}</span>
       </div>
+      <p class="search-ranking-note">${T('page.search.ranking_note', '序位只表示本次查询中的相对先后；不可跨查询比较，也不是成功概率、置信度或证据等级。')}</p>
       <div class="result-list">
-        ${data.results.map(r => `
-          <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="result-card result-card--pre-synth">
+        ${data.results.map((r, index) => `
+          <a href="${privateAnalyzeHref(r.id, query)}" class="result-card result-card--pre-synth">
             <div class="result-card__main">
               <div class="result-card__meta">
                 <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
@@ -326,8 +594,9 @@ function renderResults(query, data) {
               ${evidenceHtml(r)}
             </div>
             <div class="result-card__aside">
-              <div class="result-card__score">
-                <span class="result-card__score-num">${scoreTier(r.score).pct}</span><span class="result-card__score-unit">%</span>
+              <div class="result-card__rank" aria-label="${rankText(index)}">
+                <span class="result-card__rank-num">#${index + 1}</span>
+                <span class="result-card__rank-label">${T('page.search.within_query', '本次排序')}</span>
               </div>
               <svg class="result-card__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </div>
@@ -413,12 +682,11 @@ function renderV2PairsForTop() {
   const blocks = groups.map(group => {
     const pairs = Array.isArray(group.pairs) ? group.pairs : [];
     if (!pairs.length) return '';
-    const cards = pairs.map(p => {
-      const simPct = typeof p.similarity === 'number' ? Math.round(p.similarity * 100) : null;
+    const cards = pairs.map((p, pairIndex) => {
       const href = `/analyze?a_id=${encodeURIComponent(group.phenomenon_id)}&id=${encodeURIComponent(p.other_id || '')}`;
       return `
         <a href="${href}" class="v2-pair-card">
-          ${simPct !== null ? `<div class="v2-pair-card__sim">${simPct}%</div>` : ''}
+          <div class="v2-pair-card__rank" aria-label="${T('page.search.v2_pair_rank', '本组候选 #{rank}').replace('{rank}', String(pairIndex + 1))}">#${pairIndex + 1}</div>
           <div class="v2-pair-card__domain">${escapeHtml(p.other_domain || '')}</div>
           <h5 class="v2-pair-card__name">${escapeHtml(p.other_name || '')}</h5>
           ${p.reason ? `<p class="v2-pair-card__reason">${escapeHtml(p.reason)}</p>` : ''}
@@ -444,9 +712,10 @@ function renderV2PairsForTop() {
   return `
     <section class="v2-pairs-section">
       <div class="v2-pairs-section__header">
-        <div class="v2-pairs-section__label">${T('page.search.v2_pairs_label', 'V2 模型识别的跨域对')}</div>
-        <h3 class="v2-pairs-section__title">${T('page.search.v2_pairs_title', 'V2 还看到了这些联系')}</h3>
+        <div class="v2-pairs-section__label">${T('page.search.v2_pairs_label', 'V2 模型提出的跨域候选')}</div>
+        <h3 class="v2-pairs-section__title">${T('page.search.v2_pairs_title', '还可以核查这些候选')}</h3>
         <p class="v2-pairs-section__sub">${T('page.search.v2_pairs_sub', 'V2 管道内部筛选的跨学科候选，不是独立验证；点击查看映射、证据缺口与反例。')}</p>
+        <p class="v2-pairs-section__ranking-note">${T('page.search.v2_ranking_note', '候选序位只在当前分组内有效，不代表相似度、置信度或验证结论。')}</p>
       </div>
       ${blocks}
     </section>
@@ -465,15 +734,18 @@ function renderResultsWithSynth() {
 
   const primary = synth && synth.primary_recommendation;
   const alternatives = (synth && synth.alternative_angles) || [];
-  const snippetsByIdx = {};
+  const snippetsById = {};
   if (synth && Array.isArray(synth.relevance_snippets)) {
     for (const s of synth.relevance_snippets) {
-      if (typeof s.index === 'number') snippetsByIdx[s.index] = s.snippet;
+      if (s && typeof s.source_kb_id === 'string' && typeof s.snippet === 'string') {
+        snippetsById[s.source_kb_id] = s.snippet;
+      }
     }
   }
+  const primaryBinding = resolveSearchSynthesisCandidate(primary, results);
 
   // Fallback: synth failed or malformed
-  if (!primary || typeof primary.result_index !== 'number') {
+  if (!primaryBinding) {
     const v2PairsHtmlFallback = renderV2PairsForTop();
     container.innerHTML = `
       <div class="search-page__results">
@@ -481,9 +753,10 @@ function renderResultsWithSynth() {
         <div class="search-page__results-title">
           <span>${T('page.search.evidence_candidates_title', '跨领域候选')} · ${results.length} ${T('page.search.candidates_unit', '个候选')}</span>
         </div>
+        <p class="search-ranking-note">${T('page.search.ranking_note', '序位只表示本次查询中的相对先后；不可跨查询比较，也不是成功概率、置信度或证据等级。')}</p>
         <div class="result-list">
-          ${results.map(r => `
-            <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="result-card">
+          ${results.map((r, index) => `
+            <a href="${privateAnalyzeHref(r.id, query)}" class="result-card">
               <div class="result-card__main">
                 <div class="result-card__meta">
                   <span class="result-card__meta-domain">${escapeHtml(r.domain)}</span>
@@ -496,8 +769,9 @@ function renderResultsWithSynth() {
                 ${evidenceHtml(r)}
               </div>
               <div class="result-card__aside">
-                <div class="result-card__score">
-                  <span class="result-card__score-num">${scoreTier(r.score).pct}</span><span class="result-card__score-unit">%</span>
+                <div class="result-card__rank" aria-label="${rankText(index)}">
+                  <span class="result-card__rank-num">#${index + 1}</span>
+                  <span class="result-card__rank-label">${T('page.search.within_query', '本次排序')}</span>
                 </div>
                 <svg class="result-card__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
               </div>
@@ -510,42 +784,45 @@ function renderResultsWithSynth() {
     return;
   }
 
-  const pickedIndexes = new Set([primary.result_index]);
+  const pickedIds = new Set([primary.source_kb_id]);
   for (const alt of alternatives) {
-    if (typeof alt.result_index === 'number') pickedIndexes.add(alt.result_index);
+    if (resolveSearchSynthesisCandidate(alt, results)) pickedIds.add(alt.source_kb_id);
   }
-  const others = results.filter((_, idx) => !pickedIndexes.has(idx + 1));
+  const others = results.filter((record) => !pickedIds.has(record && record.id));
 
   // === Primary card ===
-  const pr = results[primary.result_index - 1];
+  const pr = primaryBinding.record;
+  const primaryIndex = primaryBinding.index;
   let primaryHtml = '';
   if (pr) {
     primaryHtml = `
       <section class="rec-primary" style="animation: fadeInUp 500ms var(--ease-out-expo) both">
         <div class="rec-primary__label">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          <span>${T('page.search.primary_rec_label', '推荐先看这一个')}</span>
+          <span>${T('page.search.primary_rec_label', '建议先核查这个候选')}</span>
         </div>
-        <a href="/analyze?id=${encodeURIComponent(pr.id)}&q=${encodeURIComponent(query)}" class="rec-primary__card">
+        <a href="${privateAnalyzeHref(pr.id, query)}" class="rec-primary__card">
           <div class="rec-primary__body">
             <div class="rec-primary__meta">
               <span class="rec-primary__domain">${escapeHtml(pr.domain)}</span>
               ${crossDomainTag(pr)}
-              <span class="rec-primary__score">${scoreTier(pr.score).pct}% · ${scoreTier(pr.score).label}</span>
+              <span class="rec-primary__rank">${rankText(primaryIndex)}</span>
             </div>
             <h3 class="rec-primary__name">${escapeHtml(pr.name)}</h3>
             ${evidenceHtml(pr)}
 
             ${primary.reason ? `
               <div class="rec-primary__block">
-                <div class="rec-primary__block-label">${T('page.search.primary_why', '为什么首推')}</div>
+                <div class="rec-primary__block-label">${T('page.search.primary_why', '为什么先核查')}</div>
                 <div class="rec-primary__block-text">${window.mdInline(primary.reason)}</div>
               </div>
             ` : ''}
 
+            ${renderCandidateBoundary(primary)}
+
             ${primary.what_youll_learn ? `
               <div class="rec-primary__block rec-primary__block--takeaway">
-                <div class="rec-primary__block-label">${T('page.search.primary_takeaway', '你会得到')}</div>
+                <div class="rec-primary__block-label">${T('page.search.primary_takeaway', '下一步核查')}</div>
                 <div class="rec-primary__block-text">${window.mdInline(primary.what_youll_learn)}</div>
               </div>
             ` : ''}
@@ -564,15 +841,23 @@ function renderResultsWithSynth() {
   let altHtml = '';
   if (alternatives.length > 0) {
     const altCards = alternatives.map((alt, i) => {
-      const r = results[alt.result_index - 1];
-      if (!r) return '';
+      const binding = resolveSearchSynthesisCandidate(alt, results);
+      if (!binding) return '';
+      const r = binding.record;
       return `
-        <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
+        <a href="${privateAnalyzeHref(r.id, query)}" class="rec-alt" style="animation: fadeInUp 500ms var(--ease-out-expo) ${i * 80 + 100}ms both">
           <div class="rec-alt__angle">${escapeHtml(alt.angle_label || T('page.search.alt_angle_default', '补充视角'))}</div>
           <h4 class="rec-alt__name">${escapeHtml(r.name)}</h4>
           ${evidenceHtml(r)}
-          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${scoreTier(r.score).pct}% ${crossDomainTag(r)}</div>
+          <div class="rec-alt__meta">${escapeHtml(r.domain)} · ${rankText(binding.index)} ${crossDomainTag(r)}</div>
           ${alt.reason ? `<p class="rec-alt__reason">${window.mdInline(alt.reason)}</p>` : ''}
+          ${renderCandidateBoundary(alt)}
+          ${alt.next_check ? `
+            <div class="candidate-boundary__next">
+              <span>${T('page.search.next_check', '下一步核查')}</span>
+              ${safeModelInline(alt.next_check)}
+            </div>
+          ` : ''}
           <div class="rec-alt__cta">
             ${T('page.search.deep_analysis', '深度分析')}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -597,15 +882,15 @@ function renderResultsWithSynth() {
     othersHtml = `
       <section class="rec-others">
         <button type="button" class="rec-others__toggle" id="rec-others-toggle">
-          <span>${T('page.search.others_prefix', '其他')} ${others.length} ${T('page.search.others_suffix', '个候选证据')}</span>
+          <span>${T('page.search.others_prefix', '其他')} ${others.length} ${T('page.search.others_suffix', '个待核查候选')}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="rec-others__list" id="rec-others-list" hidden>
           ${others.map(r => {
             const origIdx = results.indexOf(r) + 1;
-            const snippet = snippetsByIdx[origIdx];
+            const snippet = snippetsById[r.id];
             return `
-              <a href="/analyze?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(query)}" class="rec-other">
+              <a href="${privateAnalyzeHref(r.id, query)}" class="rec-other">
                 <div class="rec-other__main">
                   <div class="rec-other__meta">
                     <span class="rec-other__domain">${escapeHtml(r.domain)}</span>
@@ -615,7 +900,7 @@ function renderResultsWithSynth() {
                   ${snippet ? `<p class="rec-other__snippet">${escapeHtml(snippet)}</p>` : `<p class="rec-other__desc">${escapeHtml(r.description)}</p>`}
                   ${evidenceHtml(r)}
                 </div>
-                <div class="rec-other__score">${scoreTier(r.score).pct}%</div>
+                <div class="rec-other__rank">#${origIdx}<span>${T('page.search.within_query', '本次排序')}</span></div>
               </a>
             `;
           }).join('')}
@@ -640,8 +925,7 @@ function renderResultsWithSynth() {
     </div>
   `;
 
-  // Render inline math in recommendation text
-  if (window.renderMath) window.renderMath(container);
+  renderSearchMath(container);
 
   const toggle = document.getElementById('rec-others-toggle');
   const list = document.getElementById('rec-others-list');
@@ -659,12 +943,12 @@ function renderResultsWithSynth() {
   }
 }
 
-function renderError(err) {
+function renderError() {
   const container = $('#search-results');
   if (!container) return;
   // SESSION-17 copy SR-03: never surface the raw JS exception to the user —
   // it goes to the console only; the UI shows a fixed friendly message.
-  console.error('Search error:', err);
+  console.error('Search request failed.');
   container.innerHTML = `
     <div class="search-error">
       <h2 class="search-error__title">${T('page.search.error_title', '搜索失败')}</h2>
@@ -678,9 +962,9 @@ function renderError(err) {
   const retryBtn = document.getElementById('search-retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
-      const q = _lastQuery || getQueryParam('q');
+      const q = _lastQuery;
       if (q) performSearch(q);
-      else window.location.href = '/';
+      else renderPrivateContextUnavailable();
     });
   }
 }
@@ -695,7 +979,7 @@ function maybeRenderAssessmentGate(query, data) {
   if (typeof score !== 'number' || score >= 3) return false;
 
   // Below threshold — show the coaching card instead of results.
-  const coaching = assess.coaching || T('page.search.assess_coaching_default', '这个输入对 Structural 的同构搜索可能不太适合。');
+  const coaching = assess.coaching || T('page.search.assess_coaching_default', '这个输入对 Structural 的结构候选搜索可能不太适合。');
   const suggestion = assess.rewrite_suggestion;
   const category = assess.category || T('page.search.assess_category_other', '其他');
 
@@ -741,7 +1025,7 @@ function maybeRenderAssessmentGate(query, data) {
 
       <details class="assess-gate__why">
         <summary>${T('page.search.assess_why_summary', '为什么 Structural 拦下了这个问题')}</summary>
-        <p>${T('page.search.assess_why_p1', 'Structural 是一个跨学科<strong>结构同构</strong>引擎，最擅长的是把"<em>现象级</em>"的问题（比如行为模式、动力学、临界点、趋势变化）映射到其他学科里结构相同的案例。')}</p>
+        <p>${T('page.search.assess_why_p1', 'Structural 用跨学科<strong>结构比较</strong>来处理现象级问题，例如行为模式、动力学、阈值和趋势变化。它返回变量关系或方程骨架相近、值得进一步核查的候选；这不证明案例结构等价或机制一致。')}</p>
         <p>${T('page.search.assess_why_p2', '不擅长的：帮你写东西、关于产品本身的问题（比如「这个产品怎么用」）、闲聊、查事实、个人琐事——这些场景没有「另一个学科里的同款现象」可借。')}</p>
       </details>
     </div>
@@ -751,25 +1035,30 @@ function maybeRenderAssessmentGate(query, data) {
   const useSuggestion = document.getElementById('assess-use-suggestion');
   if (useSuggestion && suggestion) {
     useSuggestion.addEventListener('click', () => {
-      const lang = (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'zh';
-      const langSuffix = lang === 'en' ? '&lang=en' : '';
-      window.location.href = `/search?q=${encodeURIComponent(suggestion)}${langSuffix}`;
+      navigateToPrivateSearch(suggestion, { source: 'suggestion' });
     });
   }
   const forceSearch = document.getElementById('assess-force-search');
   if (forceSearch) {
     forceSearch.addEventListener('click', () => {
-      // Re-run the search with the assessment gate disabled
-      const url = new URL(window.location.href);
-      url.searchParams.set('force', '1');
-      window.location.href = url.toString();
+      navigateToPrivateSearch(query, { force: true, source: 'rewrite' });
     });
   }
   return true;
 }
 
-async function performSearch(query) {
+async function performSearch(query, navigationContext) {
+  const runId = ++_activeSearchRun;
+  cancelActiveSynthesis();
+  if (navigationContext) _currentSearchContext = navigationContext;
   _lastQuery = query;
+  _lastForce = Boolean(
+    (_currentSearchContext && _currentSearchContext.force) || getQueryParam('force') === '1'
+  );
+  // Paint the private question and a dimensionally stable progress shell
+  // before waiting for retrieval. This makes the user's input the immediate
+  // first value and prevents the final summary from pushing results downward.
+  renderQuestionHeader(query, { count: null, rewritten_query: null });
   renderSkeleton();
 
   try {
@@ -779,16 +1068,17 @@ async function performSearch(query) {
     //      When it returns, either (a) show the low-fit gate if worth<3,
     //      or (b) re-run search with the rewritten query for better rankings
     //      and swap in the improved results.
-    const force = getQueryParam('force');
+    const force = _lastForce;
     const searchPromise = StructuralAPI.search(query, 20);
     const assessPromise = force
       ? Promise.resolve(null)
-      : StructuralAPI.assessQuery(query).catch(err => {
-          console.warn('Assess failed, proceeding without gate:', err);
+      : StructuralAPI.assessQuery(query).catch(() => {
+          console.warn('Question assessment unavailable; continuing with bounded search.');
           return null;
         });
 
     const data = await searchPromise;
+    if (runId !== _activeSearchRun) return;
 
     // SESSION-17 V2: out-of-scope questions (arithmetic / chitchat / trivia)
     // get a friendly explanation instead of an empty result list. Stop here —
@@ -800,96 +1090,74 @@ async function performSearch(query) {
 
     renderQuestionHeader(query, data);
     renderResults(query, data);
+    updatePrivateSearchState({
+      rewritten_query: data.rewritten_query || null,
+      results: data.results || [],
+      force,
+      lang: currentSearchLang(),
+    });
 
     // Kick off synthesis using the raw query now — once the rewritten search
     // lands, we'll re-run synthesis with the improved context.
     //
-    // Uses the streaming endpoint so main_insight paints character-by-character
-    // (Perplexity-style). The previous request can be aborted if the rewritten
-    // search lands and we need to start over.
-    let _activeSynthStream = null;
+    // The transport streams progress only. Semantic model text is rendered
+    // only after the backend validates the complete typed payload.
     const runSynth = (q, rewritten, results) => {
       if (!results || results.length === 0) return;
-      // Cancel any in-flight stream from a prior call (rewritten upgrade).
-      if (_activeSynthStream && _activeSynthStream.abort) {
-        try { _activeSynthStream.abort(); } catch (e) {}
-      }
+      // Cancel any prior comparison and bind every callback to this exact
+      // search run + synthesis generation. Abort is advisory; a stale
+      // transport callback must still be unable to mutate the current DOM.
+      cancelActiveSynthesis();
+      const synthGeneration = _activeSynthGeneration;
 
-      // Replace the loading placeholder with a typewriter preview slot. We
-      // keep the AI label visible from the start so the user sees that
-      // something is happening even before the first delta lands.
+      // Keep one honest progress state; raw model deltas never enter the DOM.
       const synthEl = $('#search-synth');
       if (synthEl) {
         synthEl.classList.remove('search-synth--loading');
         synthEl.innerHTML = `
           <div class="search-synth__content">
-            <div class="search-synth__label">${T('page.search.main_insight_label', '主洞察 · AI 合成')}</div>
-            <div class="search-synth__insight search-synth__insight--streaming" id="synth-insight-preview">
-              <span class="search-synth__caret"></span>
+            <div class="search-synth__label">${T('page.search.synthesis_checking_label', '候选比较 · 校验中')}</div>
+            <div class="search-synth__insight search-synth__insight--streaming" aria-live="polite">
+              <p>${T('page.search.synthesis_checking_text', '正在核对候选来源、证据缺口、竞争解释与失败条件…')}</p>
             </div>
           </div>
         `;
       }
 
-      let streamBuffer = '';
       _activeSynthStream = StructuralAPI.synthesizeStream(q, rewritten, results, {
-        onText: (chunk) => {
-          streamBuffer += chunk.content || '';
-          const previewEl = document.getElementById('synth-insight-preview');
-          if (!previewEl) return;
-          const partial = extractPartialMainInsight(streamBuffer);
-          if (partial) {
-            previewEl.innerHTML = toParagraphs(partial)
-              + '<span class="search-synth__caret"></span>';
-            if (window.renderMath) window.renderMath(previewEl);
-          }
+        onText: () => {
+          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
         },
         onDone: (data) => {
+          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
+          _activeSynthGeneration += 1;
           _activeSynthStream = null;
           _lastSynth = data && data.result;
           renderSynthBlock(_lastSynth);
           renderResultsWithSynth();
         },
         onError: (err) => {
+          if (!synthesisGenerationMatches(runId, synthGeneration, _activeSearchRun, _activeSynthGeneration)) return;
+          _activeSynthGeneration += 1;
           _activeSynthStream = null;
-          console.error('Synthesize stream failed:', err);
-          const e = $('#search-synth');
-          if (e) e.remove();
+          console.warn('Candidate comparison unavailable; using ranked candidates.');
+          renderSynthTransportFailure(() => runSynth(q, rewritten, results));
           renderResultsWithSynth();
         },
       });
     };
-
-    // Extract main_insight value from a partially-streamed JSON. Returns
-    // the unescaped text fragment, or null if the field hasn't started yet.
-    // We only need the value of the first top-level "main_insight" key; the
-    // backend always emits it first in the schema.
-    function extractPartialMainInsight(buf) {
-      // Look for "main_insight": "<...>" (possibly unterminated).
-      const m = buf.match(/"main_insight"\s*:\s*"((?:[^"\\]|\\.)*)/);
-      if (!m) return null;
-      const raw = m[1];
-      // Unescape standard JSON escapes (\n, \", \\, \uXXXX). We keep this
-      // tolerant — any malformed trailing escape is just dropped.
-      try {
-        return JSON.parse('"' + raw + '"');
-      } catch (e) {
-        // Strip trailing partial escape and retry once
-        const stripped = raw.replace(/\\$/, '');
-        try { return JSON.parse('"' + stripped + '"'); }
-        catch (e2) { return raw.replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
-      }
-    }
 
     let currentData = data;
     runSynth(query, null, currentData.results);
 
     // When assessment arrives, apply gate or upgrade results.
     assessPromise.then(async assess => {
+      if (runId !== _activeSearchRun) return;
       if (!assess) return;
 
       // Low-fit → show coaching gate (replaces results).
       if (typeof assess.worth_score === 'number' && assess.worth_score < 3) {
+        cancelActiveSynthesis();
         const gateData = Object.assign({}, currentData, {
           assessment: {
             worth_score: assess.worth_score,
@@ -908,8 +1176,10 @@ async function performSearch(query) {
       if (rewritten && rewritten !== query) {
         try {
           const better = await StructuralAPI.search(rewritten, 20);
+          if (runId !== _activeSearchRun) return;
           // SESSION-17 V2: a rewritten query can also turn out-of-scope.
           if (better && better.out_of_scope) {
+            cancelActiveSynthesis();
             renderOutOfScope(query, better);
             return;
           }
@@ -917,18 +1187,15 @@ async function performSearch(query) {
           currentData = better;
           renderQuestionHeader(query, better);
           renderResults(query, better);
+          updatePrivateSearchState({
+            rewritten_query: rewritten,
+            results: better.results || [],
+            force,
+            lang: currentSearchLang(),
+          });
           runSynth(query, rewritten, better.results);
-          // Update session stash with the better results
-          try {
-            sessionStorage.setItem('structural_last_search', JSON.stringify({
-              query,
-              rewritten_query: rewritten,
-              results: better.results,
-              timestamp: Date.now(),
-            }));
-          } catch (e) { /* quota */ }
-        } catch (err) {
-          console.warn('Rewritten-query re-search failed:', err);
+        } catch {
+          console.warn('Rewritten-query search unavailable; keeping the first candidate set.');
         }
       }
     }).catch(() => {});
@@ -944,29 +1211,72 @@ async function performSearch(query) {
       }
     } catch (e) { /* ignore storage quota */ }
 
-    // Stash initial results for the detail page's "more answers" section
-    try {
-      sessionStorage.setItem('structural_last_search', JSON.stringify({
-        query,
-        rewritten_query: data.rewritten_query,
-        results: data.results,
-        timestamp: Date.now(),
-      }));
-    } catch (e) { /* quota / private mode */ }
-  } catch (err) {
-    console.error('Search failed:', err);
-    renderError(err);
+  } catch {
+    if (runId !== _activeSearchRun) return;
+    cancelActiveSynthesis();
+    console.error('Search flow failed.');
+    renderError();
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initHeaderScroll();
-  const q = getQueryParam('q');
-  if (q) {
-    performSearch(q);
-  } else {
-    window.location.href = '/';
+function resolveSearchNavigation() {
+  if (typeof window.resolvePrivateNavigationContext !== 'function') {
+    scrubSensitiveSearchUrl();
+    return null;
   }
+  try {
+    return window.resolvePrivateNavigationContext({
+      kind: 'search',
+      key: getQueryParam('context'),
+      lang: currentSearchLang(),
+      force: getQueryParam('force') === '1',
+    });
+  } catch (e) {
+    scrubSensitiveSearchUrl();
+    return null;
+  }
+}
+
+let _initialSearchBootConsumed = false;
+
+function takeInitialSearchBoot() {
+  if (_initialSearchBootConsumed) return { handled: false, context: null };
+  _initialSearchBootConsumed = true;
+  const boot = window.__structuralSearchBoot;
+  if (!boot || boot.attempted !== true) return { handled: false, context: null };
+  return { handled: true, context: boot.context || null };
+}
+
+function restoreSearchNavigation() {
+  const boot = takeInitialSearchBoot();
+  const context = boot.handled ? boot.context : resolveSearchNavigation();
+  if (!context) {
+    _activeSearchRun += 1;
+    cancelActiveSynthesis();
+    _currentSearchContext = null;
+    _lastQuery = '';
+    renderPrivateContextUnavailable();
+    return;
+  }
+  _currentSearchContext = context;
+  performSearch(context.query, context);
+}
+
+function startSearchPage() {
+  initHeaderScroll();
+  restoreSearchNavigation();
+}
+
+if (typeof module === 'undefined' || !module.exports) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startSearchPage, { once: true });
+  } else {
+    startSearchPage();
+  }
+}
+
+window.addEventListener('popstate', () => {
+  restoreSearchNavigation();
 });
 
 // Re-render content when language toggles
@@ -974,8 +1284,9 @@ try {
   if (window.i18n && typeof window.i18n.onChange === 'function') {
     window.i18n.onChange(function () {
       try {
-        const q = _lastQuery || getQueryParam('q');
+        const q = _lastQuery;
         if (!q) return;
+        updatePrivateSearchState({ lang: currentSearchLang() });
         // Re-render all cached results with new language
         const data = {
           count: (_lastResults || []).length,
@@ -995,3 +1306,11 @@ try {
     });
   }
 } catch (e) {}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    resolveSearchSynthesisCandidate,
+    synthesisGenerationMatches,
+    containsRenderableMath,
+  };
+}

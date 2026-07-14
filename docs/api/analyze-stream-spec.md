@@ -1,222 +1,381 @@
-# `/api/analyze/stream` — Specification
+# `/api/analyze/stream` — atomic candidate-report protocol
 
-**Version**: 1.1 (M1.4)
-**Status**: Stable
-**Last updated**: 2026-05-21
+**Protocol version:** `deep-analysis-report-v2`
 
----
+**Prompt version:** `deep-report-v2`
 
-## 0. Overview
+**Status:** release contract
 
-`GET /api/analyze/stream` — server-sent events (SSE) endpoint that produces a 9-section structural-isomorphism research report. Operates in two modes (Query / Pair). Session #16 added optional persistence (`persist=1`) so a generated report can be saved with a share token.
+**Last updated:** 2026-07-14
 
-Implementation: `web/backend/api/analyze.py`
-Companion endpoints: `/api/report/*` (see `report-endpoints-spec.md`)
+## 1. Purpose and trust boundary
 
----
+`POST /api/analyze/stream` accepts a typed JSON request and returns
+`text/event-stream`. It produces one source-bound, candidate-only research
+report. A retrieved record is a lead, not proof of an isomorphism, shared
+mechanism, causal relationship, successful transfer, or independent review.
 
-## 1. Modes
+The model is untrusted. Model prose is buffered on the server and cannot cross
+the public boundary until all of the following pass:
 
-### 1.1 Query mode
+1. complete JSON parsing with non-finite values rejected;
+2. the strict nested v2 schema (`extra=forbid`);
+3. candidate-claim and Unicode guards;
+4. fingerprint revision binding;
+5. source-reference allow-list and source/target role checks;
+6. server-owned source snapshot and artifact/model binding.
 
-Semantic: "Borrow an answer from KB to my own free-text question."
+There is no partial-report or fallback-report success path. A failed report
+ends with `error`; it never ends with a synthetic `done`.
 
-- **SOURCE (a)** = KB phenomenon retrieved by `b_id`
-- **TARGET (b)** = the user's question text
+Implementation:
 
-```
-GET /api/analyze/stream
-  ?b_id=<KB_phenomenon_id>          (required)
-  &text_a=<user's free text>         (required for query mode)
-  &lang=zh|en                        (optional, default: zh)
-  &persist=0|1                       (optional, default: 0)
-```
+- `web/backend/api/analyze.py`
+- `web/backend/services/deep_report.py`
+- `web/backend/services/llm_service.py`
 
-### 1.2 Pair mode
+## 2. Transport and privacy
 
-Semantic: "Show me the deep structural comparison between two KB phenomena."
+- Use `POST /api/analyze/stream` with `Content-Type: application/json`.
+- The retired `GET /api/analyze/stream` always returns `410` and does not
+  process query parameters.
+- Questions, fingerprints and anonymous identifiers belong only in the JSON
+  body, never in a URL or custom header.
+- Successful SSE responses use `Cache-Control: no-store`, `Pragma: no-cache`
+  and `X-Accel-Buffering: no`.
+- Production share URLs are pinned to
+  `https://beta.structural.bytedance.city`; client-controlled forwarded host or
+  proto headers are not an authority source.
 
-- **SOURCE (a)** = `a_id`
-- **TARGET (b)** = `b_id`
+An absent API key uses the product's anonymous tier. A present but invalid key
+returns HTTP `401` before report generation.
 
-```
-GET /api/analyze/stream
-  ?b_id=<KB_phenomenon_id>          (required)
-  &a_id=<KB_phenomenon_id>          (required for pair mode)
-  &lang=zh|en                        (optional, default: zh)
-  &persist=0|1                       (optional, default: 0)
-```
+## 3. Request contract
 
-### 1.3 Validation
+Unknown fields and implicit type coercions are rejected. Strings are
+NFKC-normalized; control, bidi and default-ignorable characters are rejected.
 
-- `b_id` is always required.
-- Exactly ONE of `text_a` / `a_id` must be provided; supplying both makes `text_a` win (query mode is preferred).
-- `b_id` (and `a_id` if given) must resolve to a KB row, else 404.
+### 3.1 Shared fields
 
----
-
-## 2. Headers
-
-| Header | Required | Used for |
+| Field | Type | Rule |
 |---|---|---|
-| `X-Anon-Id` | optional | When `persist=1`, written to `reports.creator_anon_id`; later used to filter `/api/reports/mine`. |
-| `X-API-Key` | optional | Tier classification (free / pro / team / admin). Affects rate limit + persistence-policy in future versions. |
-| `X-Forwarded-Host` / `X-Forwarded-Proto` | server-side | Used by analyze.py to build the `share_url` returned in the `persisted` event. |
+| `b_id` | string | Required; 1–120 safe ID characters; must resolve to a KB row. |
+| `lang` | `"zh" \| "en"` | Optional, default `"zh"`. |
+| `persist` | integer `0 \| 1` | Optional, default `0`; booleans are invalid. |
+| `anon_id` | string or null | Optional; normalized length 1–128. |
+| `fingerprint` | object or null | Query mode only; exact shape below. |
+| `origin_discovery_id` | string or null | Must appear with `origin_contract_version`; pair mode only. |
+| `origin_contract_version` | string or null | Must match the current discovery contract. |
 
----
+Exactly one of `text_a` and `a_id` is required. In pair mode, `a_id` must
+differ from `b_id`; equality is rejected by request validation before service,
+KB, cache, LLM or cost-ledger work.
 
-## 3. Response — SSE event sequence
+### 3.2 Query mode
 
-All events are SSE-formatted (`event:` + `data:` lines, blank-line separated). All payloads are UTF-8 JSON.
+The selected `b_id` is the source record; the user's question is the target.
 
-### 3.1 Always emitted (in order)
-
-| # | Event | Payload | Notes |
-|---|---|---|---|
-| 1 | `meta` | `{a, b, similarity, is_query_mode}` | One-time. `a` / `b` are KB rows or user-question stubs (query mode); `similarity` is cosine in [0, 1]. |
-| 2..n | `section` | `{key, data}` | One per completed top-level section. 9 expected (see §4). |
-| n+1 | `text` | `{content, total_length}` | (optional, raw LLM stream chunks; clients can ignore) |
-| n+2 | `persisted` | `{id, share_token, share_url, created_at, is_partial}` | Only when `persist=1`. Always BEFORE `done`. |
-| last | `done` | `{report, from_cache}` | Terminal event. `report` = the full 9-section dict, `from_cache` = whether cache hit. |
-
-### 3.2 Conditional events
-
-| Event | Payload | When |
-|---|---|---|
-| `retry` | `{reason}` | First-pass report failed quality check; second pass is starting. |
-| `error` | `{message, retryable}` | Second pass also failed; `done` follows with a fallback report. |
-
-### 3.3 Event semantics — guarantees
-
-- `meta` is ALWAYS the first event.
-- `done` is ALWAYS the last event (even after errors).
-- `persisted`, when present, is ALWAYS before `done` and ALWAYS exactly once.
-- `section` events are emitted incrementally as the LLM streams completed top-level JSON keys.
-- A section key is never emitted twice within the same stream.
-- Order of `section` events is the order the LLM produces them (typically — but not guaranteed — the canonical 9-section order in §4).
-
----
-
-## 4. The 9 sections (canonical order)
-
-| Key | Type | Purpose |
-|---|---|---|
-| `shared_structure` | object | The structural pattern shared by SOURCE & TARGET. Fields: `name`, `formal_expression`, `intuition`. |
-| `your_problem_breakdown` | object | Restate TARGET in structural terms. Fields: `summary`, `key_variables`, `dynamics`, `why_stuck`. |
-| `target_domain_intro` | object | Background on SOURCE's home domain. Fields: `domain_name`, `corresponding_phenomenon`, `key_thinkers`, `mature_tools`. |
-| `structural_mapping` | object | The actual SOURCE → TARGET mapping. Fields: `rationale`, `parameter_map`. |
-| `borrowable_insights` | array | List of transferable insights. |
-| `how_to_combine` | object | Actionable application. Fields: `steps`, `assumptions_to_verify`, `boundary_conditions`. |
-| `research_directions` | object | Where to go next. Fields: `literature_status`, `if_novel_opportunity`, `suggested_references`. |
-| `risks_and_limits` | object | Where the analogy breaks. Fields: `failure_cases`, `boundary_conditions`. |
-| `action_plan` | object | Concrete next steps. Fields: `immediate_actions`, `3_month_goals`, `12_month_vision`. |
-
-`MAX_MISSING_SECTIONS = 4` triggers a retry: if ≥ 4 of the 9 are absent, the first pass is considered incomplete.
-
----
-
-## 5. The `persisted` event (M1.4)
-
-When `persist=1`, exactly one `persisted` event is emitted right before `done`.
-
-```jsonc
+```json
 {
-  "id":          "r_abc123def456abcd",  // 18 chars
-  "share_token": "32-hex-char-hmac-token",
-  "share_url":   "https://<host>/report/share/<token>",
-  "created_at":  "2026-05-21T03:14:15.123456Z",
-  "is_partial":  false
+  "b_id": "source-record-id",
+  "text_a": "库存为什么会在补货后反复过冲？",
+  "lang": "zh",
+  "persist": 0,
+  "fingerprint": {
+    "source_query": "库存为什么会在补货后反复过冲？",
+    "summary": "补货反馈存在时滞，库存可能持续过冲",
+    "variables": ["库存", "补货时滞"],
+    "constraints": ["交付周期不可立即缩短"],
+    "unknowns": ["需求冲击与反馈时滞的相对贡献"],
+    "revision": 1
+  }
 }
 ```
 
-- `id` is opaque and stable.
-- `share_token` is `HMAC-SHA256(id, STRUCTURAL_SHARE_TOKEN_SECRET)[:32]`. Anyone with the token can read via `GET /api/report/share/{token}` without auth.
-- `share_url` is fully qualified (honours `X-Forwarded-Host` / `X-Forwarded-Proto`).
-- `is_partial` is `true` when the report is a fallback / has missing sections — clients should dim the "Share" button.
+`text_a` is 1–8,000 normalized characters. `fingerprint.source_query` must
+equal the normalized `text_a` exactly. Fingerprint limits are:
 
-### Persist on cache hit
+- `summary`: 8–1,000 characters;
+- `variables`, `constraints`, `unknowns`: at most 12 items each;
+- each item: 1–120 characters;
+- `revision`: integer 1–1,000.
 
-When cache hits, the report is still persisted IF `persist=1` — each user gets a fresh `r_` id and share token. Payload contents may match a previous row's exactly; that's acceptable v1 behaviour.
+Raw out-of-scope classification runs before cache initialization, KB lookup,
+LLM calls and cost charging. A weak selected candidate is also refused before
+the `meta` event.
 
-### Failure handling
+### 3.3 Pair mode
 
-Persistence failure is logged but NEVER tears down the SSE stream — the report itself is what the user came for. Clients should:
-1. Treat missing `persisted` event as "share feature unavailable for this report" (do NOT retry the whole stream).
-2. Fall back to the in-memory report payload from `done`.
+`a_id` is the source record and `b_id` is the comparison target.
 
----
+```json
+{
+  "a_id": "source-record-id",
+  "b_id": "comparison-record-id",
+  "lang": "zh",
+  "persist": 0
+}
+```
 
-## 6. Caching
+Discovery-origin fields are accepted only when they resolve again to the exact
+current public pair. URL values alone never establish provenance.
 
-The report is cached by `(query_hash | a_id, b_id, lang)`:
+## 4. Normal SSE state machine
 
-- Query-mode key: `q_<md5(query, b_id, lang)[:16]>`
-- Pair-mode key: `<a_id>` (zh) or `<a_id>__en` (en, legacy zh stays unsuffixed)
+Every `data:` value is one UTF-8 JSON object. There are two successful paths.
 
-Cache hits skip the LLM call entirely (≪ 1s response). Fallback sentinels (`shared_structure.name == "结构分析暂不可用"` / `"Structural analysis unavailable"`) are NEVER cached so users always re-roll a bad report.
+### 4.1 Validated pair-cache hit
 
----
+```text
+meta
+report_validated
+section × 9 (canonical order, unique keys)
+persisted × 0..1
+done
+```
 
-## 7. Latency
+### 4.2 Live generation
 
-Real-prod data (2026-05-21):
+```text
+meta
+generation_progress × 1..n
+report_validated
+section × 9 (canonical order, unique keys)
+persisted × 0..1
+done
+```
 
-| Path | p50 | p95 | notes |
-|---|---|---|---|
-| Cache hit | < 200ms | < 500ms | network-bound |
-| Live generation (`:nitro`) | ~80s | > 180s | session-#16 measurement showed 6/9 sections at 180s timeout. Tune `OPENROUTER_DEEP_ANALYSIS_TIMEOUT` if you tighten this. |
+The server may make at most two provider attempts. Each attempt has a 115-second
+wall-clock deadline. Retry occurs only for transient network/timeout failures,
+HTTP 408/429/5xx, or a schema/claim validation failure. HTTP 400/401/403 and
+other permanent 4xx failures are non-retryable.
 
-Clients SHOULD render incrementally as `section` events arrive — do NOT block on `done` alone.
+The failure path is terminal:
 
----
+```text
+error
+```
 
-## 8. Errors
+or, when generation began:
 
-| Status | Cause |
+```text
+meta
+generation_progress × 1..n
+error
+```
+
+No `report_validated`, `section`, `persisted` or `done` event may follow an
+`error`.
+
+### 4.3 Event payloads
+
+`meta` is emitted exactly once and includes:
+
+- `generation_id`;
+- server-owned source (`a`) and target (`b`) snapshots;
+- `is_query_mode`, `lang`, `model`, `artifact_id`;
+- `prompt_version`, `schema_version`;
+- the optional confirmed `fingerprint`;
+- `evidence`, `report_boundary`, `source_binding`, `source_refs`;
+- the optional validated `origin_candidate`.
+
+`generation_progress` contains only bounded structural progress:
+
+```json
+{"stage":"generating","attempt":1}
+```
+
+or:
+
+```json
+{"stage":"validating","attempt":1,"received_chars":2048}
+```
+
+It never contains model-authored prose. `received_chars` is a monotonic integer
+from 0 through 96,000.
+
+`report_validated` is the server receipt:
+
+```json
+{
+  "generation_id": "g_…",
+  "report_sha256": "64-lowercase-hex",
+  "schema_version": "deep-analysis-report-v2",
+  "from_cache": false
+}
+```
+
+Each `section` is `{ "key": <canonical key>, "data": <validated value> }`.
+Sections are compatibility projections of the already validated complete
+report; they are not permission to render partial semantics.
+
+`done` contains the same `generation_id`, `report_sha256`, `from_cache`, and
+the complete `report` object. The digest is SHA-256 over compact UTF-8 JSON with
+recursive object keys sorted and non-ASCII characters unescaped.
+
+## 5. Client acceptance rules
+
+A conforming client must buffer all semantic content and render only after all
+of these checks succeed:
+
+1. exactly one `meta`, then exactly one `report_validated`;
+2. exactly nine unique sections in canonical order;
+3. zero or one `persisted`, then exactly one `done`;
+4. no unknown or post-terminal event;
+5. generation ID, schema, prompt, model, language, artifact, fingerprint,
+   source binding, source refs and report boundary match the request/meta;
+6. the complete nested report schema passes locally;
+7. Web Crypto recomputes the canonical report SHA-256 and it equals both the
+   validation receipt and `done`.
+
+If Web Crypto is unavailable, JSON parsing fails, rendering throws, or any
+ordering/binding/hash check fails, the client must fail closed, clear the
+generation state and display no report body.
+
+## 6. Canonical report sections
+
+The full report is strict and contains these nine semantic sections:
+
+1. `shared_structure`: candidate status, formal expression, typed
+   `observations` containing `signal_to_check`, `candidate_implication` and
+   `status="not_checked"`, plus competing explanations, evidence gaps and
+   failure conditions. Observation prose cannot set evidence status.
+2. `your_problem_breakdown`: typed variables, dynamics, unknowns and the exact
+   optional fingerprint revision.
+3. `target_domain_intro`: server-bound source description, one source-backed
+   phenomenon, one closed-enum server-controlled source-limitation statement,
+   and model-proposed `candidate_methods`.
+   Every candidate method is explicitly `unverified_proposal`, declares
+   `source_support="not_recorded"` and states what evidence would be required.
+4. `structural_mapping`: untested hypothesis mappings with evidence for and
+   against, observable tests and failure signals.
+5. `borrowable_insights`: one to four model-proposed transfers, each explicitly
+   `unverified_proposal` with `source_support="not_recorded"`, prerequisites,
+   a target-side application and a failure signal. These proposals do not cite
+   the source record as support.
+6. `how_to_combine`: bounded steps, assumptions, boundaries and one
+   discriminating experiment with distinct candidate/competitor hypotheses,
+   expected outcomes labelled by `role="candidate"|"competitor"`, a
+   closed-enum server-controlled conditional decision rule, rejecting
+   falsification rule and stop rule. `threshold_basis` is always `proposal`
+   and `calibration_required` is always true.
+7. `research_directions`: `literature_status="not_checked"`, one closed-enum
+   server-controlled explanation that precedent/novelty remain unknown, search
+   questions, source types and an empty `suggested_references` list.
+8. `risks_and_limits`: one to six risks with severity, observable signals and
+   stop rules.
+9. `action_plan`: two or three ranked measurement/diagnostic/experiment actions
+   with closed-enum server-controlled decision/stop copy,
+   `threshold_basis="proposal"` and `calibration_required=true`.
+
+Top-level server-bound fields are:
+
+```text
+schema_version = deep-analysis-report-v2
+evidence_level = candidate
+generation_status = validated
+source_binding
+report_boundary
+source_refs
+```
+
+`report_boundary` is fixed to candidate-only values: mechanism not verified,
+independent review not recorded, and literature not checked.
+
+## 7. Source-role rules
+
+- Every source ref is a server-created `internal_kb` reference.
+- The source record and, in pair mode, comparison target each have one unique
+  declared ref.
+- Only the corresponding-phenomenon description is source-derived and must
+  cite exactly the source record.
+- Candidate methods and borrowable insights are model proposals, contain no
+  source ref, and must not attribute unrecorded methods, deployments or results
+  to the source domain.
+- The comparison target ref records input provenance only; it cannot be used to
+  launder a source claim.
+- Source record name/domain/description are overwritten from the current
+  server-owned KB row after model validation.
+
+## 8. Persistence and sharing
+
+Persistence is opt-in only (`persist=1`). When creation succeeds, one
+`persisted` event appears before `done`:
+
+```json
+{
+  "id": "opaque-report-id",
+  "share_token": "opaque-capability-token",
+  "share_url": "https://beta.structural.bytedance.city/report/share/<token>",
+  "created_at": "RFC-3339 timestamp",
+  "is_partial": false,
+  "origin_candidate": null,
+  "generation_id": "g_…",
+  "report_sha256": "64-lowercase-hex"
+}
+```
+
+`generation_id` and `report_sha256` must match the receipt and `done`.
+`is_partial` is always `false`; v2 never publishes or persists a partial report.
+The token is a bearer capability and must not be logged, sent as referrer data,
+or exposed to third-party scripts.
+
+Persistence failure does not downgrade a valid report. In that case there is
+no `persisted` event and the client must not claim the report was saved or
+shared.
+
+## 9. Cache contract
+
+- Query mode never reads or writes the durable generation cache.
+- Pair-mode cache identity binds the source and target record digests, KB
+  artifact, model, prompt and schema.
+- Every cached object is revalidated against the exact current source binding,
+  refs, source snapshot, nested schema and candidate-claim guard.
+- A stale or forged cache row is ignored and regenerated live.
+- `persist=0` performs no report-store creation; query mode also performs no
+  cache get or put.
+
+## 10. Error contract
+
+HTTP errors occur before the SSE report state machine:
+
+| Status | Meaning |
 |---|---|
-| 400 | Neither `text_a` nor `a_id` supplied. |
-| 401 | `X-API-Key` header present but invalid. |
-| 404 | `b_id` (or `a_id` in pair mode) not in KB. |
-| 503 | Search service still loading (cold start). |
+| `401` | A supplied API credential is invalid. |
+| `404` | A requested KB record does not exist. |
+| `409` | Discovery-origin identity is stale or does not match the pair. |
+| `410` | Retired GET transport. |
+| `422` | Strict body, mode, ID, Unicode, length or fingerprint validation failed. |
+| `503` | Search/artifact/provenance service is not ready. |
 
-SSE-level errors (LLM timeout / parse failure) are reported via the `error` event followed by `done` with a fallback report — the HTTP status stays 200.
+SSE `error` is `{code, message, retryable}`. Codes are stable and do not expose
+provider URLs, credentials or exception text. Representative codes include:
 
----
+- `out_of_scope`, `candidate_not_supported`, `budget_exceeded`;
+- `provider_auth_failed`, `provider_request_rejected`,
+  `provider_rate_limited`, `provider_unavailable`;
+- `upstream_timeout`, `upstream_unreachable`, `upstream_error`;
+- `report_validation_failed`, `report_protocol_failed`,
+  `report_binding_failed`, `report_unavailable`.
 
-## 9. Versioning
-
-- Wire format is versioned by `prompt_version` (currently `v1`, written into `reports.prompt_version` on persist).
-- New `section` keys may be added (additive, non-breaking).
-- Removing a section or renaming one is breaking — requires bumping `prompt_version`.
-- `persisted` event added in M1.4 (session #16) is purely additive — clients that don't set `persist=1` see the same SSE stream as before.
-
----
-
-## 10. Examples
-
-### 10.1 Query mode, persist on
+## 11. Example
 
 ```bash
-curl -sN \
-  -H "X-Anon-Id: my-anon-uuid" \
-  "https://beta.structural.bytedance.city/api/analyze/stream?b_id=soc-160&text_a=如何防止用户流失&lang=zh&persist=1"
+curl --no-buffer \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: text/event-stream' \
+  --data '{"b_id":"source-record-id","text_a":"库存为什么反复过冲？","lang":"zh","persist":0}' \
+  'https://beta.structural.bytedance.city/api/analyze/stream'
 ```
 
-Expected event order: `meta` → many `text`/`section` → `persisted` → `done`.
+Expected live success:
 
-### 10.2 Pair mode, no persist (default)
-
-```bash
-curl -sN \
-  "https://beta.structural.bytedance.city/api/analyze/stream?a_id=sci-001&b_id=soc-160&lang=zh"
+```text
+meta → generation_progress… → report_validated → 9 sections → done
 ```
 
-Expected event order: `meta` → many `text`/`section` → `done`. No `persisted` event.
+Expected validated failure:
 
-### 10.3 Reading back a shared report
-
-```bash
-curl -s "https://beta.structural.bytedance.city/api/report/share/<token-from-persisted-event>"
+```text
+meta → generation_progress… → error
 ```
-
-Returns `{id, query, payload, model, created_at, view_count, is_partial, ...}` — full report JSON, no auth required.

@@ -19,21 +19,22 @@ back to the original query, so retrieval never blocks on LLM availability.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
-import logging
 import os
 import re
 import time
 import unicodedata
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional
 
 from services import query_expansion as qe
 from services.search_service import _detect_lang
+if __package__ == "web.backend.services":
+    from ..logging_config import get_logger, new_incident_id
+else:
+    from logging_config import get_logger, new_incident_id
 
-logger = logging.getLogger("structural.retrieval_pipeline")
+logger = get_logger("structural.retrieval_pipeline")
 
 
 # The hardened English lane is intentionally separate from the legacy
@@ -117,18 +118,38 @@ _LOG_PATH = (
 
 
 def _write_retrieval_log(payload: Dict) -> None:
-    """Append one JSON line. Never raises — log failure must not break ask."""
+    """Append one content-free JSON line; arbitrary caller fields are ignored."""
     try:
+        safe: Dict = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "event": "retrieval.completed",
+        }
+        lang = payload.get("lang_detected")
+        if lang in {"en", "mixed", "zh"}:
+            safe["lang_detected"] = lang
+        for name in ("expansion_used", "translation_used"):
+            value = payload.get(name)
+            if isinstance(value, bool):
+                safe[name] = value
+        for name in (
+            "query_len",
+            "candidate_count",
+            "total_recall",
+            "fused_count",
+            "elapsed_ms",
+        ):
+            value = payload.get(name)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                safe[name] = value
         _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception as e:  # noqa: BLE001
-        logger.warning("retrieval log write failed: %s", e)
-
-
-def _hash_query(query: str) -> str:
-    """SHA-256 truncated — for log correlation without leaking content."""
-    return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
+            f.write(json.dumps(safe, ensure_ascii=False) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "retrieval.log_write_failed",
+            error_type=type(exc).__name__,
+            incident_id=new_incident_id(),
+        )
 
 
 _SAFE_TRANSLATE_SYSTEM = (
@@ -191,7 +212,11 @@ async def retrieve_safe_english(
         try:
             return list(await asyncio.to_thread(search_fn, value, top_k) or [])
         except Exception as exc:  # noqa: BLE001
-            logger.warning("safe retrieval local lane failed: %s", exc)
+            logger.warning(
+                "retrieval.local_lane_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             return []
 
     # Start the non-LLM lane before any optional provider work.
@@ -212,7 +237,11 @@ async def retrieve_safe_english(
             )
             translated = validate_zh_translation(raw, normalized)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("safe retrieval translation rejected: %s", exc)
+            logger.warning(
+                "retrieval.translation_rejected",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
 
     original_results = await original_task
     # Formatting is not semantic fidelity. Validate only after the original
@@ -223,7 +252,11 @@ async def retrieve_safe_english(
             if semantic_guard is None or not semantic_guard(normalized, translated):
                 translated = None
         except Exception as exc:  # noqa: BLE001
-            logger.warning("safe retrieval semantic guard failed: %s", exc)
+            logger.warning(
+                "retrieval.semantic_guard_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             translated = None
     rankings = [original_results]
     if translated and translated != normalized:
@@ -280,8 +313,8 @@ async def retrieve_with_expansion(
         total_recall: int     — raw count before top_k cut
 
     The function ALSO appends one row to web/backend/logs/retrieval.jsonl
-    with hashed query (no raw text), top-5 KB ids, scores, and timing.
-    Privacy: the raw query never leaves this function.
+    with content-free aggregate counters and timing. Raw or hashed query text,
+    result IDs and result scores are never written to operational telemetry.
     """
     started = time.monotonic()
     lang = _detect_lang(query)
@@ -335,8 +368,12 @@ async def retrieve_with_expansion(
             # default thread pool so 4 queries truly run in parallel
             # rather than serialising the python work.
             return await asyncio.to_thread(search_fn, q, top_k)
-        except Exception as e:  # noqa: BLE001
-            logger.warning("retrieval search failed for one expansion: %s", e)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "retrieval.search_lane_failed",
+                error_type=type(exc).__name__,
+                incident_id=new_incident_id(),
+            )
             return []
 
     per_query = await asyncio.gather(*[_run_one(q) for q in candidate_queries])
@@ -348,9 +385,6 @@ async def retrieve_with_expansion(
 
     # --- Structured log ----------------------------------------------------
     log_payload = {
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "event": "ask.retrieval",
-        "query_hash": _hash_query(query),
         "query_len": len(query),
         "lang_detected": lang,
         "expansion_used": expansion_used,
@@ -358,8 +392,6 @@ async def retrieve_with_expansion(
         "candidate_count": len(candidate_queries),
         "total_recall": total_recall,
         "fused_count": len(fused),
-        "top_5_kb_ids": [r.get("id", "") for r in fused[:5]],
-        "top_5_scores": [round(float(r.get("score") or 0.0), 4) for r in fused[:5]],
         "elapsed_ms": elapsed_ms,
     }
     _write_retrieval_log(log_payload)

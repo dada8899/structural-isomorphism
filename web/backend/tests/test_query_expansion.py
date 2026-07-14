@@ -67,8 +67,8 @@ def test_expand_query_unit_mock_llm_returns_original_plus_expansions():
 def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
     """Spec covers two things in one integration:
        - 4 conditions issued; search_fn called 4 times in parallel
-       - retrieval.jsonl row written with HASHED query (X2 caveat: no
-         raw query content stored; only sha256-16 hash for correlation)
+       - retrieval.jsonl row contains only aggregate counters, with no raw or
+         hashed query identifier and no result identifiers
     """
     log_path = tmp_path / "retrieval.jsonl"
     monkeypatch.setattr(rp, "_LOG_PATH", log_path)
@@ -105,15 +105,46 @@ def test_four_queries_run_in_parallel_and_fuse_by_id(tmp_path, monkeypatch):
     # All 4 distinct ids appear in fused result
     assert {r["id"] for r in out["results"]} == {"k1", "k2", "k3", "k4"}
 
-    # Retrieval log written, hashed only, no raw query content leaked
+    # Retrieval log is content-free: only aggregate counters and timing.
     import json
     rows = log_path.read_text(encoding="utf-8").strip().split("\n")
     assert len(rows) == 1
     row = json.loads(rows[0])
-    assert len(row["query_hash"]) == 16
     assert "硅谷银行挤兑" not in json.dumps(row, ensure_ascii=False)
     assert row["expansion_used"] is True
-    assert row["top_5_kb_ids"][:1] == ["k1"]
+    assert row["candidate_count"] == 4
+    assert "query_hash" not in row
+    assert "top_5_kb_ids" not in row
+    assert "top_5_scores" not in row
+
+
+def test_retrieval_log_sink_ignores_arbitrary_content(tmp_path, monkeypatch):
+    import json
+
+    log_path = tmp_path / "retrieval.jsonl"
+    monkeypatch.setattr(rp, "_LOG_PATH", log_path)
+    rp._write_retrieval_log({
+        "lang_detected": "en",
+        "query_len": 12,
+        "candidate_count": 1,
+        "raw_query": "query-canary-300bde",
+        "query_hash": "hash-canary-9ffc37",
+        "top_5_kb_ids": ["result-canary-2d2d61"],
+        "email": "privacy@example.test",
+    })
+    row = json.loads(log_path.read_text(encoding="utf-8"))
+    assert row["event"] == "retrieval.completed"
+    assert row["lang_detected"] == "en"
+    assert row["query_len"] == 12
+    assert row["candidate_count"] == 1
+    serialized = json.dumps(row)
+    for secret in (
+        "query-canary-300bde",
+        "hash-canary-9ffc37",
+        "result-canary-2d2d61",
+        "privacy@example.test",
+    ):
+        assert secret not in serialized
 
 
 # --- 3. 缓存命中 ----------------------------------------------------------

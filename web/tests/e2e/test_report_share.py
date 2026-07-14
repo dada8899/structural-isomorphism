@@ -104,6 +104,25 @@ def _sample_payload() -> dict:
     }
 
 
+def _origin_candidate() -> dict:
+    from web.backend.services.candidate_origin import (
+        build_origin_candidate,
+        discovery_id_for_pair,
+    )
+
+    pair = ("kb-origin-a", "kb-origin-b")
+    candidate = build_origin_candidate(
+        discovery_id=discovery_id_for_pair(*pair),
+        contract_version="discovery-candidate-v2",
+        candidate_family_id="pair-deadbeef0000",
+        tier="priority_review",
+        a_id=pair[0],
+        b_id=pair[1],
+    )
+    assert candidate is not None
+    return candidate
+
+
 # ---------------- shim + store fixtures ------------------------------ #
 
 
@@ -145,6 +164,7 @@ report_api._store = ReportStore({str(db_path)!r})
 app = FastAPI()
 if install_problem_handlers:
     install_problem_handlers(app)
+app.middleware("http")(report_api.no_store_report_share_responses)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -211,6 +231,10 @@ def seed_report(report_backend):
 
     def _seed(*, query="测试查询", b_id="b_demo", lang="zh",
               creator_anon_id=None, is_partial=False, payload=None):
+        # Pytest imports all selected modules before running fixtures. Other
+        # E2E modules use their own deterministic share secret, so restore this
+        # module's secret at the exact signing boundary for combined runs.
+        os.environ["STRUCTURAL_SHARE_TOKEN_SECRET"] = _SHARE_SECRET
         return store.create(
             query=query,
             b_id=b_id,
@@ -406,73 +430,72 @@ except Exception:  # pragma: no cover - env without playwright
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_share_page_renders_in_browser(report_backend, seed_report):
+def test_share_page_renders_in_browser(report_backend, seed_report, browser):
     """Scenarios 1 + 2 — the share URL renders the 9-section report in a
     fresh browser context (no anon cookie)."""
-    from playwright.sync_api import sync_playwright
-
-    rep = seed_report(query="跨领域同构 e2e 渲染测试")
+    rep = seed_report(
+        query="跨领域同构 e2e 渲染测试",
+        payload={**_sample_payload(), "_origin_candidate": _origin_candidate()},
+    )
     url = f"{report_backend['base']}/report/share/{rep['share_token']}"
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        # A brand-new context == incognito: no localStorage anonId.
-        ctx = browser.new_context()
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            # report.js reuses analyze.js renderFinalReport — sections render
-            # as #analyze-sections > section.section (one per 9-section key).
-            page.wait_for_selector("#analyze-sections .section", timeout=10000)
-            sections = page.locator("#analyze-sections .section")
-            assert sections.count() == 9, "expected all 9 sections rendered"
-            # Meta header (query title) is shown, loading spinner gone.
-            assert page.locator("#report-meta").is_visible()
-            assert "跨领域同构 e2e 渲染测试" in page.locator("#report-meta").inner_text()
-            assert page.locator("#report-loading").is_hidden()
-            # Share bar is wired for a share-route load.
-            assert page.locator("#analyze-share-bar").count() == 1
-        finally:
-            ctx.close()
-            browser.close()
+    # A brand-new context == incognito: no localStorage anonId.
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        # report.js reuses analyze.js renderFinalReport — sections render
+        # as #analyze-sections > section.section (one per 9-section key).
+        page.wait_for_selector("#analyze-sections .section", timeout=10000)
+        sections = page.locator("#analyze-sections .section")
+        assert sections.count() == 9, "expected all 9 sections rendered"
+        # Meta header (query title) is shown, loading spinner gone.
+        assert page.locator("#report-meta").is_visible()
+        assert "跨领域同构 e2e 渲染测试" in page.locator("#report-meta").inner_text()
+        assert page.locator("#report-loading").is_hidden()
+        origin = page.locator("#report-origin")
+        assert origin.is_visible()
+        assert "不会自动升级候选证据" in origin.inner_text()
+        assert origin.locator("a").get_attribute("href") == (
+            "/discoveries?candidate=" + _origin_candidate()["discovery_id"]
+        )
+        # Share bar is wired for a share-route load.
+        assert page.locator("#analyze-share-bar").count() == 1
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_feedback_button_posts_in_browser(report_backend, seed_report):
+def test_feedback_button_posts_in_browser(report_backend, seed_report, browser):
     """Scenario 3 (UI) — clicking the share-bar 👍 fires a POST that 200s."""
-    from playwright.sync_api import sync_playwright
-
     rep = seed_report()
     url = f"{report_backend['base']}/report/share/{rep['share_token']}"
     feedback_path = f"/api/report/{rep['id']}/feedback"
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context()
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            # Overall 👍/👎 live in the share bar (renderShareBar unhides it).
-            page.wait_for_selector("#analyze-share-bar .analyze-vote--up", timeout=10000)
-            up_btn = page.locator("#analyze-share-bar .analyze-vote--up").first
-            with page.expect_response(
-                lambda r: feedback_path in r.url and r.request.method == "POST",
-                timeout=10000,
-            ) as resp_info:
-                up_btn.click()
-            resp = resp_info.value
-            assert resp.status == 200, resp.text()
-            assert resp.json()["total_up"] == 1
-        finally:
-            ctx.close()
-            browser.close()
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        # Overall 👍/👎 live in the share bar (renderShareBar unhides it).
+        page.wait_for_selector("#analyze-share-bar .analyze-vote--up", timeout=10000)
+        up_btn = page.locator("#analyze-share-bar .analyze-vote--up").first
+        with page.expect_response(
+            lambda r: feedback_path in r.url and r.request.method == "POST",
+            timeout=10000,
+        ) as resp_info:
+            up_btn.click()
+        resp = resp_info.value
+        assert resp.status == 200, resp.text()
+        assert resp.json()["total_up"] == 1
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_owner_decision_brief_download_and_create_experiment(report_backend, seed_report):
+def test_owner_decision_brief_download_and_create_experiment(
+    report_backend, seed_report, browser,
+):
     """Saved owner report exposes evidence-bounded brief and inline experiment."""
-    from playwright.sync_api import sync_playwright
-
     anon = "decision-brief-owner"
     payload = _sample_payload()
     payload.update({
@@ -491,152 +514,259 @@ def test_owner_decision_brief_download_and_create_experiment(report_backend, see
     url = f"{report_backend['base']}/report/{rep['id']}"
     followup_path = f"/api/report/{rep['id']}/followup"
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context(accept_downloads=True)
-        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector("#decision-brief-root .decision-brief", timeout=10000)
-            page.set_viewport_size({"width": 375, "height": 812})
-            brief = page.locator("#decision-brief-root")
-            assert "未经实证验证" in brief.inner_text()
-            assert "需求过冲来自反馈时滞" in brief.inner_text()
-            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            assert page.locator("#decision-brief-hypothesis").is_hidden()
-            with page.expect_download() as download_info:
-                page.locator("#decision-brief-download").click()
-            assert download_info.value.suggested_filename.endswith(".md")
-            page.locator("#decision-brief-create").click()
-            assert page.locator("#decision-brief-experiment").is_visible()
-            assert page.evaluate("document.activeElement?.id") == "decision-brief-hypothesis"
-            expected_deadline = page.evaluate("""() => {
-              const d = new Date(); d.setDate(d.getDate() + 7);
-              return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
-            }""")
-            assert page.locator("#decision-brief-deadline").input_value() == expected_deadline
-            page.locator("#decision-brief-stop").fill("过冲未改善或投诉率上升时停止")
-            with page.expect_response(
-                lambda r: followup_path in r.url and r.request.method == "POST",
-                timeout=10000,
-            ) as response_info:
-                page.locator("#decision-brief-save").click()
-            assert response_info.value.status == 200
-            assert "实验已保存" in page.locator("#decision-brief-message").inner_text()
-            assert page.locator("#decision-brief-save").is_disabled()
-        finally:
-            ctx.close()
-            browser.close()
+    ctx = browser.new_context(accept_downloads=True)
+    ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_selector("#decision-brief-root .decision-brief", timeout=10000)
+        page.set_viewport_size({"width": 375, "height": 812})
+        brief = page.locator("#decision-brief-root")
+        assert "未经实证验证" in brief.inner_text()
+        assert "需求过冲来自反馈时滞" in brief.inner_text()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        assert page.locator("#decision-brief-hypothesis").is_hidden()
+        with page.expect_download() as download_info:
+            page.locator("#decision-brief-download").click()
+        assert download_info.value.suggested_filename.endswith(".md")
+        page.locator("#decision-brief-create").click()
+        assert page.locator("#decision-brief-experiment").is_visible()
+        assert page.evaluate("document.activeElement?.id") == "decision-brief-hypothesis"
+        expected_deadline = page.evaluate("""() => {
+          const d = new Date(); d.setDate(d.getDate() + 7);
+          return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+        }""")
+        assert page.locator("#decision-brief-deadline").input_value() == expected_deadline
+        page.locator("#decision-brief-stop").fill("过冲未改善或投诉率上升时停止")
+        with page.expect_response(
+            lambda r: followup_path in r.url and r.request.method == "POST",
+            timeout=10000,
+        ) as response_info:
+            page.locator("#decision-brief-save").click()
+        assert response_info.value.status == 200
+        assert "实验已保存" in page.locator("#decision-brief-message").inner_text()
+        assert page.locator("#decision-brief-save").is_disabled()
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_shared_decision_brief_is_read_only(report_backend, seed_report):
+def test_shared_decision_brief_is_read_only(report_backend, seed_report, browser):
     rep = seed_report()
     url = f"{report_backend['base']}/report/share/{rep['share_token']}"
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector("#decision-brief-download", timeout=10000)
-            assert page.locator("#decision-brief-create").count() == 0
-            assert page.locator("#report-followup").count() == 0
-        finally:
-            browser.close()
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_selector("#decision-brief-download", timeout=10000)
+        assert page.locator("#decision-brief-create").count() == 0
+        assert page.locator("#report-followup").count() == 0
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_legacy_report_without_evidence_cannot_create_experiment(report_backend, seed_report):
+def test_legacy_report_without_evidence_cannot_create_experiment(
+    report_backend, seed_report, browser,
+):
     anon = "legacy-brief-owner"
     rep = seed_report(creator_anon_id=anon)
     url = f"{report_backend['base']}/report/{rep['id']}"
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context()
-        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector("#decision-brief-download", timeout=10000)
-            assert "当前报告没有这项证据" in page.locator("#decision-brief-root").inner_text()
-            assert page.locator("#decision-brief-create").count() == 0
-            escaped = page.evaluate(
-                "model => decisionBriefMarkdown(model)",
-                {
-                    "problem": "# injected\n<script>alert(1)</script>",
-                    "fingerprint": {}, "source": {}, "mechanism": "$x^2$",
-                    "boundary": "[click](javascript:alert(1))", "hypothesis": "",
-                    "metric": "", "reportId": "r/../../bad", "model": "",
-                    "promptVersion": "", "createdAt": "", "partial": False,
-                },
-            )
-            assert "\\# injected" in escaped
-            assert "\\<script\\>" in escaped
-            assert "\\$x\\^2\\$" in escaped
-            assert "\\[click\\]\\(javascript:alert\\(1\\)\\)" in escaped
-        finally:
-            ctx.close()
-            browser.close()
+    ctx = browser.new_context()
+    ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_selector("#decision-brief-download", timeout=10000)
+        assert "当前报告没有这项证据" in page.locator("#decision-brief-root").inner_text()
+        assert page.locator("#decision-brief-create").count() == 0
+        escaped = page.evaluate(
+            "model => decisionBriefMarkdown(model)",
+            {
+                "problem": "# injected\n<script>alert(1)</script>",
+                "fingerprint": {}, "source": {}, "mechanism": "$x^2$",
+                "boundary": "[click](javascript:alert(1))", "hypothesis": "",
+                "metric": "", "reportId": "r/../../bad", "model": "",
+                "promptVersion": "", "createdAt": "", "partial": False,
+            },
+        )
+        assert "\\# injected" in escaped
+        assert "\\<script\\>" in escaped
+        assert "\\$x\\^2\\$" in escaped
+        assert "\\[click\\]\\(javascript:alert\\(1\\)\\)" in escaped
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_my_reports_empty_state_in_browser(report_backend):
+def test_my_reports_empty_state_in_browser(report_backend, browser):
     """/reports with no anonId in localStorage shows the empty state."""
-    from playwright.sync_api import sync_playwright
-
     url = f"{report_backend['base']}/reports"
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context()  # fresh — no anonId
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector(".myr-state", timeout=10000)
-            assert "还没有保存的报告" in page.locator(".myr-state").inner_text()
-            assert page.locator(".myr-card").count() == 0
-        finally:
-            ctx.close()
-            browser.close()
+    ctx = browser.new_context()  # fresh — no anonId
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_selector(".myr-state", timeout=10000)
+        assert "还没有保存的报告" in page.locator(".myr-state").inner_text()
+        assert page.locator(".myr-card").count() == 0
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_my_reports_lists_cards_in_browser(report_backend, seed_report):
+def test_my_reports_lists_cards_in_browser(report_backend, seed_report, browser):
     """/reports lists this device's reports and each card links to /report/<id>."""
-    from playwright.sync_api import sync_playwright
-
     anon = "myreports-browser-anon"
-    seed_report(query="蚁群优化与城市交通", creator_anon_id=anon)
+    seed_report(
+        query="蚁群优化与城市交通",
+        creator_anon_id=anon,
+        payload={**_sample_payload(), "_origin_candidate": _origin_candidate()},
+    )
     seed_report(query="珊瑚白化与系统性金融风险", creator_anon_id=anon)
 
     url = f"{report_backend['base']}/reports"
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context()
-        # Seed anonId before any page script runs.
-        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_selector(".myr-card", timeout=10000)
-            cards = page.locator(".myr-card")
-            assert cards.count() == 2
-            text = page.locator("#myr-list").inner_text()
-            assert "蚁群优化与城市交通" in text
-            assert "珊瑚白化与系统性金融风险" in text
-            # Each card links to a report detail URL.
-            href = cards.first.get_attribute("href")
-            assert href and href.startswith("/report/r_")
-        finally:
-            ctx.close()
-            browser.close()
+    ctx = browser.new_context()
+    # Seed anonId before any page script runs.
+    ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_selector(".myr-card", timeout=10000)
+        cards = page.locator(".myr-card")
+        assert cards.count() == 2
+        text = page.locator("#myr-list").inner_text()
+        assert "蚁群优化与城市交通" in text
+        assert "珊瑚白化与系统性金融风险" in text
+        # Each card links to a report detail URL.
+        href = cards.first.get_attribute("href")
+        assert href and href.startswith("/report/r_")
+        origin_link = page.locator(".myr-card__origin")
+        assert origin_link.count() == 1
+        assert origin_link.get_attribute("href") == (
+            "/discoveries?candidate=" + _origin_candidate()["discovery_id"]
+        )
+        assert origin_link.bounding_box()["height"] >= 44
+    finally:
+        ctx.close()
 
 
 @pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
-def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(report_backend, seed_report):
-    from playwright.sync_api import sync_playwright
+def test_account_report_delete_is_confirmed_and_updates_ui(
+    report_backend, browser,
+):
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    page = ctx.new_page()
+    deleted: list[str] = []
+    delete_attempts = 0
+
+    def fulfill_json(route, payload, status=200):
+        route.fulfill(
+            status=status,
+            content_type="application/json",
+            body=json.dumps(payload),
+        )
+
+    page.route(
+        "**/api/auth/me",
+        lambda route: fulfill_json(route, {
+            "ok": True,
+            "user": {"id": "account-owner", "email": "owner@example.test"},
+        }),
+    )
+    page.route(
+        "**/api/favorites",
+        lambda route: fulfill_json(route, {"tickers": []}),
+    )
+
+    def reports_route(route):
+        nonlocal delete_attempts
+        request = route.request
+        if request.method == "DELETE":
+            deleted.append(request.url)
+            delete_attempts += 1
+            if delete_attempts == 1:
+                fulfill_json(route, {"error": "temporary failure"}, status=503)
+                return
+            fulfill_json(route, {
+                "ok": True,
+                "report_id": "r_delete_me",
+                "reports": 1,
+                "followups": 1,
+                "feedback": 0,
+                "share_revoked": True,
+            })
+            return
+        fulfill_json(route, {
+            "items": [{
+                "id": "r_delete_me",
+                "share_token": "a" * 32,
+                "query": "删除流程体验测试",
+                "b_id": "b",
+                "lang": "zh",
+                "created_at": "2026-07-13T00:00:00Z",
+                "view_count": 1,
+                "has_followup": True,
+                "followup_status": "planned",
+                "followup_outcome": "",
+                "experiment_status": "planned",
+                "experiment_deadline": None,
+                "publish_to_insights": False,
+            }],
+            "has_more": False,
+        })
+
+    page.route("**/api/me/reports*", reports_route)
+    page.route("**/api/me/reports/**", reports_route)
+    try:
+        page.goto(
+            report_backend["base"] + "/reports",
+            wait_until="domcontentloaded",
+            timeout=20000,
+        )
+        page.wait_for_selector("[data-delete-report]", timeout=10000)
+        delete_button = page.locator("[data-delete-report]")
+        assert delete_button.evaluate(
+            "element => element.getBoundingClientRect().height"
+        ) >= 44
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+        delete_button.click()
+        assert deleted == []
+        assert delete_button.inner_text() == "确认永久删除"
+        assert "分享链接都会删除" in page.locator(
+            "[data-delete-status]"
+        ).inner_text()
+        page.locator("[data-cancel-delete-report]").click()
+        assert delete_button.inner_text() == "删除报告"
+
+        delete_button.click()
+        delete_button.click()
+        page.wait_for_function(
+            "document.querySelector('[data-delete-report]').textContent.includes('重试')"
+        )
+        assert page.evaluate(
+            "document.activeElement === document.querySelector('[data-delete-report]')"
+        )
+        assert page.locator(".myr-card").count() == 1
+        assert "仍然保留" in page.locator("[data-delete-status]").inner_text()
+        page.keyboard.press("Space")
+        page.wait_for_selector(".myr-state", timeout=10000)
+        assert len(deleted) == 2
+        assert all(url.endswith("/api/me/reports/r_delete_me") for url in deleted)
+        assert page.locator(".myr-card").count() == 0
+        assert "还没有保存的报告" in page.locator(".myr-state").inner_text()
+        assert page.evaluate(
+            "document.activeElement === document.querySelector('#myr-list')"
+        )
+        assert page.locator("#myr-list").get_attribute("tabindex") == "-1"
+    finally:
+        ctx.close()
+
+
+@pytest.mark.skipif(not _PLAYWRIGHT, reason="playwright not installed")
+def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(
+    report_backend, seed_report, browser,
+):
     from services.report_store import ReportStore
 
     anon = "deadline-dashboard-owner"
@@ -649,19 +779,24 @@ def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(report_back
     for rep, deadline, status, action in [
         (overdue, yesterday, "planned", "planned"),
         (soon, two_days, "in_progress", "in_progress"),
-        (done, yesterday, "abandoned", "abandoned"),
+        (done, yesterday, "completed", "tried"),
     ]:
+        kwargs = {}
+        if status == "completed":
+            kwargs = {
+                "outcome": "worked",
+                "outcome_detail": {"result": "success"},
+            }
         store.record_followup(
             report_id=rep["id"], anon_id=anon, action_status=action,
             experiment={"hypothesis": "h", "status": status, "deadline": deadline},
+            **kwargs,
         )
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context(viewport={"width": 390, "height": 844})
-        ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
-        page = ctx.new_page()
-        try:
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    ctx.add_init_script(f"localStorage.setItem('anonId', {anon!r});")
+    page = ctx.new_page()
+    try:
             page.goto(report_backend["base"] + "/reports", wait_until="domcontentloaded", timeout=20000)
             page.wait_for_selector(".myr-card", timeout=10000)
             summary = page.locator("#myr-reminder-summary")
@@ -716,8 +851,19 @@ def test_report_dashboard_deadlines_counts_and_local_reminder_toggle(report_back
             page.goto(report_backend["base"] + "/report/" + done["id"], wait_until="domcontentloaded", timeout=20000)
             page.wait_for_selector("#report-followup", timeout=10000)
             assert "实验已结束，不再提醒" in page.locator("#report-reminder-message").inner_text()
+            consent = page.locator("#rf-publish-insights")
+            assert consent.is_visible()
+            assert not consent.is_checked()
+            assert "当前暂停" in page.locator(
+                ".report-publication-consent"
+            ).inner_text()
+            consent.check()
             page.locator("#rf-submit").click()
-            page.wait_for_function("document.querySelector('#rf-msg').textContent.includes('不再提醒')")
-        finally:
-            ctx.close()
-            browser.close()
+            page.wait_for_function("document.querySelector('#rf-msg').textContent.includes('公开聚合当前暂停')")
+            page.wait_for_timeout(450)
+            assert page.locator("#rf-publish-insights").is_checked()
+            page.locator("#rf-publish-insights").uncheck()
+            page.locator("#rf-submit").click()
+            page.wait_for_function("document.querySelector('#rf-msg').textContent.includes('保持私密')")
+    finally:
+        ctx.close()
