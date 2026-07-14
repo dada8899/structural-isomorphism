@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
@@ -32,7 +32,10 @@ load_dotenv(Path(__file__).parent / ".env.runtime", override=True)
 # at web/backend/logs/server.jsonl, then routes uvicorn/fastapi/slowapi
 # through the same pipeline. Must run *before* any logger.info() call so
 # we don't accidentally bake in the old text format.
-from logging_config import configure_logging, get_logger  # noqa: E402
+if __package__ == "web.backend":
+    from .logging_config import configure_logging, get_logger  # noqa: E402
+else:
+    from logging_config import configure_logging, get_logger  # noqa: E402
 
 configure_logging(level=os.getenv("STRUCTURAL_LOG_LEVEL", "INFO"))
 logger = get_logger("structural.web")
@@ -69,18 +72,24 @@ def _resolve_git_sha() -> str:
     """
     sha = os.getenv("STRUCTURAL_GIT_SHA", "").strip()
     if sha:
-        return sha[:12]
+        return sha if len(sha) == 40 and all(c in "0123456789abcdef" for c in sha) else "unknown"
     if _IS_PROD:
         # Misconfigured deploy — don't shell out on the request path.
         return "unknown"
     try:
         import subprocess as _sp
-        return _sp.check_output(
-            ["git", "rev-parse", "--short=12", "HEAD"],
+        resolved = _sp.check_output(
+            ["git", "rev-parse", "HEAD"],
             cwd=str(Path(__file__).resolve().parent.parent.parent),
             stderr=_sp.DEVNULL,
             timeout=2,
-        ).decode().strip() or "unknown"
+        ).decode().strip()
+        return (
+            resolved
+            if len(resolved) == 40
+            and all(character in "0123456789abcdef" for character in resolved)
+            else "unknown"
+        )
     except Exception:
         return "unknown"
 
@@ -108,7 +117,7 @@ async def _phase_urlopen_json(req, timeout: int) -> dict:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: load the search engine once."""
-    logger.info("Starting Structural Web Backend...")
+    logger.info("startup.begin")
 
     # Authentication deployment constraints are runtime security boundaries,
     # not merely deploy-script conventions. A production beta process must
@@ -123,8 +132,8 @@ async def lifespan(app: FastAPI):
     try:
         from services.observability import setup_logging
         setup_logging()
-    except Exception as e:  # pragma: no cover — never fail startup over logging
-        logger.warning(f"observability setup failed: {e}")
+    except Exception as exc:  # pragma: no cover — never fail startup over logging
+        logger.warning("startup.observability_unavailable", error_type=type(exc).__name__)
 
     # X2 W1 (2026-05-24) — fail-fast on missing hybrid-retrieval deps.
     # Historically jieba + rank_bm25 were imported lazily inside
@@ -172,7 +181,7 @@ async def lifespan(app: FastAPI):
             model_path=model_path,
         )
 
-    logger.info(f"Loading search service: data_dir={data_dir}, kb_file={kb_file}, precomputed={precomputed}")
+    logger.info("startup.search_loading")
     search_service = SearchService(
         data_dir=data_dir,
         kb_file=kb_file,
@@ -182,11 +191,11 @@ async def lifespan(app: FastAPI):
     app_state["search"] = search_service
     if _IS_PROD and search_service.kb_size == 0:
         raise RuntimeError("production search service loaded an empty knowledge base")
-    logger.info(f"Search service ready. KB size: {search_service.kb_size}")
+    logger.info("startup.search_ready", kb_count=search_service.kb_size)
 
     yield
 
-    logger.info("Shutting down...")
+    logger.info("shutdown.begin")
 
 
 app = FastAPI(
@@ -211,20 +220,20 @@ app = FastAPI(
     # Launch P1-4 — disable /docs /redoc /openapi.json in prod.
     **_DOCS_KWARGS,
     openapi_tags=[
-        {"name": "ask", "description": "Perplexity-like Q&A over the KB"},
-        {"name": "search", "description": "Vector search for phenomena"},
-        {"name": "phenomenon", "description": "Per-phenomenon lookups + similar items"},
-        {"name": "mapping", "description": "LLM-generated structural mappings"},
-        {"name": "analyze", "description": "Deep cross-domain transfer reports"},
-        {"name": "synthesize", "description": "Synthesized answer over search results"},
-        {"name": "daily", "description": "Today's curated discoveries"},
-        {"name": "discoveries", "description": "A-grade structural discoveries"},
-        {"name": "examples", "description": "Handpicked example pairs"},
+        {"name": "ask", "description": "Evidence-bounded Q&A over internal KB candidates"},
+        {"name": "search", "description": "Vector retrieval of candidate analogies from the internal KB"},
+        {"name": "phenomenon", "description": "Phenomenon records and structurally similar candidates"},
+        {"name": "mapping", "description": "LLM-drafted structural mappings for human review"},
+        {"name": "analyze", "description": "Evidence-bounded cross-domain transfer research drafts"},
+        {"name": "synthesize", "description": "Candidate synthesis over retrieved records"},
+        {"name": "daily", "description": "Current candidate-review queue generated from the internal KB"},
+        {"name": "discoveries", "description": "Priority-review structural candidates, not validated discoveries"},
+        {"name": "examples", "description": "Curated illustrative pairs, not validation evidence"},
         {"name": "suggest", "description": "Search suggestion phrases"},
         {"name": "history", "description": "Per-device anonymous query history"},
         {"name": "newsletter", "description": "Email newsletter signup"},
-        {"name": "favorites", "description": "Per-user bookmarked company tickers"},
-        {"name": "checkout-mock", "description": "Stripe checkout mock (pre-PMF)"},
+        {"name": "favorites", "description": "Per-account research bookmarks and legacy company tickers"},
+        {"name": "checkout-mock", "description": "Legacy development simulator; retired in production and not a live billing capability"},
         {"name": "system", "description": "Health, version, and operational probes"},
         {"name": "admin", "description": "Admin-only endpoints (require admin tier)"},
     ],
@@ -310,6 +319,13 @@ app.add_middleware(
     ],
 )
 
+
+from api.insights import no_store_insights_responses  # noqa: E402
+from api.report import no_store_report_share_responses  # noqa: E402
+
+app.middleware("http")(no_store_insights_responses)
+app.middleware("http")(no_store_report_share_responses)
+
 # Launch P0-3: security response headers (HSTS / X-Frame-Options /
 # X-Content-Type-Options / Referrer-Policy / CSP). Injected on every
 # response — API and static pages alike.
@@ -339,10 +355,14 @@ async def gate_unfinished_production_surfaces(request: Request, call_next):
         )
     if path == "/phase" or path.startswith("/phase/"):
         return RedirectResponse("https://phase.bytedance.city", status_code=308)
-    if not _AUTH_ENABLED and path in ("/connections", "/connections.html"):
-        return RedirectResponse("/tools", status_code=308)
+    if path in ("/connections", "/connections.html"):
+        return RedirectResponse("/reports", status_code=308)
+    if path.startswith("/api/connections"):
+        return JSONResponse(
+            {"error": "connections_not_available"}, status_code=410
+        )
     if not _AUTH_ENABLED and path.startswith(
-        ("/api/auth", "/api/connections", "/api/favorites")
+        ("/api/auth", "/api/favorites")
     ):
         return JSONResponse(
             {"error": "account_features_not_available"}, status_code=503
@@ -373,8 +393,8 @@ app.include_router(synthesize.router, prefix="/api")
 app.include_router(ask.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
 app.include_router(newsletter.router, prefix="/api")
-# W10-B (session #10): Stripe Pro mock + /api/usage probe. Real Stripe deferred
-# until PMF signal — see web/backend/api/checkout_mock.py for migration plan.
+# Legacy development simulator + public free-tier usage probe. Production
+# checkout is permanently retired and records no submitted fields.
 app.include_router(checkout_mock.router, prefix="/api")
 # W12-E (session #10): client error reporter (page + global error boundaries
 # auto-POST here). 10/min/session rate limit + 10MB rotated jsonl.
@@ -390,9 +410,8 @@ app.include_router(privacy_delete.router, prefix="/api")
 app.include_router(flags_api.router, prefix="/api")
 # W15-C (session #10): user favorites / bookmarks (per-user star button).
 app.include_router(favorites.router, prefix="/api")
-# W15-B (session #10): magic-link auth scaffold + JWT session cookies.
-# Mock email send (writes to data/mock_email_outbox.jsonl); replace with
-# real SMTP/SendGrid when product is ready for invite-only Alpha.
+# Canonical beta magic-link auth + JWT session cookies. Production delivery
+# uses the configured SMTP transport and fails closed when unavailable.
 app.include_router(auth_api.router, prefix="/api")
 # Session #16 M1.4 — persisted analyze reports + share + feedback.
 from api import report as report_api  # noqa: E402
@@ -419,9 +438,9 @@ from api import connections as connections_api  # noqa: E402 — G connect peopl
 # attribution and goes into a SQLite table (forward path to user/auth schema).
 from api import waitlist as waitlist_api  # noqa: E402
 
-# W7-D mini-brief 2 (2026-05-24): real-Stripe-test-mode billing with mock
-# fallback when STRIPE_TEST_SECRET_KEY is unset. Complements legacy
-# checkout_mock; new pricing.html targets /api/billing/checkout-session.
+# Billing remains fail closed until a real paid entitlement surface launches.
+# The legacy checkout simulator above is development-only and returns 410 in
+# production; it must never act as a fallback for billing.
 from api import billing as billing_api  # noqa: E402
 
 app.include_router(whitespace_api.router, prefix="/api")
@@ -510,6 +529,7 @@ async def health(deep: int = 0):
 )
 async def version():
     import sys as _sys
+    from importlib import metadata as _metadata
     # Session #17 P2-3 — git SHA was precomputed at startup (lifespan) and
     # cached in `_GIT_SHA_CACHE`; this endpoint never forks a subprocess.
     # `_resolve_git_sha()` fallback covers the rare case where the cache is
@@ -529,6 +549,18 @@ async def version():
         "git_sha": git_sha,
         "build_date": build_date,
         "python_version": _sys.version.split()[0],
+        "python_abi": _sys.implementation.cache_tag,
+        "runtime_id": os.getenv("STRUCTURAL_RUNTIME_ID", "unversioned"),
+        "requirements_sha256": os.getenv(
+            "STRUCTURAL_RUNTIME_REQUIREMENTS_SHA256", "unknown"
+        ),
+        "installed_freeze_sha256": os.getenv(
+            "STRUCTURAL_RUNTIME_FREEZE_SHA256", "unknown"
+        ),
+        "fastapi": _metadata.version("fastapi"),
+        "pydantic": _metadata.version("pydantic"),
+        "starlette": _metadata.version("starlette"),
+        "uvicorn": _metadata.version("uvicorn"),
         "env": os.getenv("STRUCTURAL_ENV", "dev"),
         "model": model,
         "deployed_at": deployed_at,
@@ -597,6 +629,14 @@ async def admin_list_keys(request: Request):
 # --- Serve frontend ---
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
+# Papers use the manifest as the only public slug authority. Loading this
+# once at startup makes manifest/Markdown drift a deployment-blocking error.
+from services.papers_catalog import load_papers_catalog  # noqa: E402
+
+PAPERS_CATALOG = load_papers_catalog(
+    FRONTEND_DIR / "assets" / "data" / "papers-manifest.json"
+)
+
 app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
 # Phase Detector static files
@@ -608,10 +648,16 @@ if PHASE_DIR.exists():
 
 
 # Launch P1-4 — accept HEAD on the root so health checkers / CDNs / crawlers
-# that probe with HEAD get 200, not a misleading 405. FastAPI auto-derives
-# HEAD from GET handlers only when HEAD is in `methods`, so list it here.
-@app.api_route("/", methods=["GET", "HEAD"])
+# that probe with HEAD get 200, not a misleading 405. Keep GET and HEAD as
+# separate OpenAPI operations: a single multi-method APIRoute derives its
+# operationId from an unordered method set, producing duplicate, unstable IDs.
+@app.get("/", operation_id="get_homepage")
 async def index():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.head("/", operation_id="head_homepage")
+async def index_head():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
@@ -687,7 +733,7 @@ async def phase_api_companies():
     import json as _json
     data_file = FRONTEND_DIR / "phase" / "data" / "companies_struct.jsonl"
     if not data_file.exists():
-        logger.info("phases.fetch", ticker_count=0, source="missing_file")
+        logger.info("structural.phase.companies_missing", count=0)
         return JSONResponse({"count": 0, "companies": []})
     companies = []
     with open(data_file, encoding="utf-8") as f:
@@ -705,7 +751,7 @@ async def phase_api_companies():
     # W14-D: ticker_count surfaces the response cardinality so we can
     # spot ingest regressions (e.g. file truncated to 0 rows) from a
     # log dashboard without sampling actual responses.
-    logger.info("phases.fetch", ticker_count=len(companies))
+    logger.info("structural.phase.companies_loaded", count=len(companies))
     return JSONResponse({"count": len(companies), "companies": companies})
 
 
@@ -820,8 +866,8 @@ Thesis 内容：
             content = "\n".join(lines).strip()
         parsed = _json.loads(content)
         return JSONResponse(parsed)
-    except Exception as e:
-        return JSONResponse({"error": f"LLM call failed: {str(e)[:200]}"}, status_code=500)
+    except Exception:
+        return JSONResponse({"error": "LLM call failed"}, status_code=500)
 
 
 @app.post("/phase/api/deep-report", include_in_schema=False)
@@ -916,8 +962,8 @@ async def phase_api_deep_report(request: Request):
                 lines = lines[:-1]
             report = "\n".join(lines).strip()
         return JSONResponse({"ticker": ticker, "report": report})
-    except Exception as e:
-        return JSONResponse({"error": f"LLM call failed: {str(e)[:200]}"}, status_code=500)
+    except Exception:
+        return JSONResponse({"error": "LLM call failed"}, status_code=500)
 
 
 @app.post("/phase/api/waitlist", include_in_schema=False)
@@ -938,7 +984,6 @@ async def phase_api_waitlist(request: Request):
         "email": email,
         "ts": int(_time.time()),
         "iso": _time.strftime("%Y-%m-%d %H:%M:%S"),
-        "ip": request.client.host if request.client else "?",
     }
     with open(waitlist_file, "a", encoding="utf-8") as f:
         f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
@@ -1067,10 +1112,10 @@ async def phase_api_analogy(request: Request):
             parsed = _json.loads(content)
             parsed["_model"] = model
             return JSONResponse(parsed)
-        except Exception as e:
-            last_err = f"{model}: {str(e)[:150]}"
+        except Exception:
+            last_err = model
             continue
-    return JSONResponse({"error": f"All LLMs failed. Last: {last_err}"}, status_code=500)
+    return JSONResponse({"error": "All LLMs failed", "last_model": last_err}, status_code=500)
 
 
 @app.get("/phase/analogy", include_in_schema=False)
@@ -1249,10 +1294,10 @@ note: {struct.get('note', '?')}
                 "report": report,
                 "_model": model,
             })
-        except Exception as e:
-            last_err = f"{model}: {str(e)[:200]}"
+        except Exception:
+            last_err = model
             continue
-    return JSONResponse({"error": f"All LLMs failed. Last: {last_err}"}, status_code=500)
+    return JSONResponse({"error": "All LLMs failed", "last_model": last_err}, status_code=500)
 
 
 @app.get("/phase/analogy/detail", include_in_schema=False)
@@ -1430,15 +1475,15 @@ note: {struct.get('note', '?')}
                         },
                     ) as resp:
                         if resp.status_code >= 400:
-                            err_body = await resp.aread()
-                            await q.put(("error", f"upstream {resp.status_code}: {err_body[:300].decode(errors='replace')}"))
+                            await resp.aread()
+                            await q.put(("error", f"upstream_http_{resp.status_code}"))
                             return
                         async for raw in resp.aiter_lines():
                             await q.put(("line", raw))
             except _httpx.ReadTimeout:
                 await q.put(("error", "upstream 无响应 180 秒（LLM 停止生成）"))
-            except Exception as _e:
-                await q.put(("error", f"{type(_e).__name__}: {str(_e)[:200]}"))
+            except Exception:
+                await q.put(("error", "upstream_error"))
             finally:
                 await q.put(("end", None))
                 stop_event.set()
@@ -1608,15 +1653,15 @@ async def phase_api_analogy_stream(request: Request):
                         },
                     ) as resp:
                         if resp.status_code >= 400:
-                            err_body = await resp.aread()
-                            await q.put(("error", f"upstream {resp.status_code}: {err_body[:300].decode(errors='replace')}"))
+                            await resp.aread()
+                            await q.put(("error", f"upstream_http_{resp.status_code}"))
                             return
                         async for raw in resp.aiter_lines():
                             await q.put(("line", raw))
             except _httpx.ReadTimeout:
                 await q.put(("error", "upstream 无响应 180 秒（LLM 停止生成）"))
-            except Exception as _e:
-                await q.put(("error", f"{type(_e).__name__}: {str(_e)[:200]}"))
+            except Exception:
+                await q.put(("error", "upstream_error"))
             finally:
                 await q.put(("end", None))
                 stop_event.set()
@@ -1897,15 +1942,15 @@ async def phase_api_memo_stream(request: Request):
                         },
                     ) as resp:
                         if resp.status_code >= 400:
-                            err_body = await resp.aread()
-                            await q.put(("error", f"upstream {resp.status_code}: {err_body[:300].decode(errors='replace')}"))
+                            await resp.aread()
+                            await q.put(("error", f"upstream_http_{resp.status_code}"))
                             return
                         async for raw in resp.aiter_lines():
                             await q.put(("line", raw))
             except _httpx.ReadTimeout:
                 await q.put(("error", "upstream 无响应 180 秒"))
-            except Exception as _e:
-                await q.put(("error", f"{type(_e).__name__}: {str(_e)[:200]}"))
+            except Exception:
+                await q.put(("error", "upstream_error"))
             finally:
                 await q.put(("end", None))
                 stop_event.set()
@@ -1969,7 +2014,8 @@ async def classes_page():
 
 @app.get("/paper/{slug}")
 async def paper_page(slug: str):
-    # Whitelist: serve the same HTML renderer, which picks up the slug from URL
+    if not PAPERS_CATALOG.contains(slug):
+        raise HTTPException(status_code=404, detail="Paper record not found")
     return FileResponse(FRONTEND_DIR / "paper.html")
 
 

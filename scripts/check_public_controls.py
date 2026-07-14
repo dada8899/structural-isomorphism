@@ -41,10 +41,22 @@ class ControlParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs) -> None:
         values = dict(attrs)
+        if (
+            tag == "script"
+            and values.get("src") == "https://plausible.bytedance.city/js/script.js"
+            and "async" not in values
+        ):
+            self.errors.append(
+                f"{self.source}: optional Plausible analytics must load asynchronously"
+            )
         if tag in {"a", "button"}:
             record = {"tag": tag, "text": "", **{k: v or "" for k, v in values.items()}}
             self.controls.append(record)
             self._stack.append(record)
+        if tag == "button" and values.get("type") not in {"button", "submit", "reset"}:
+            self.errors.append(
+                f"{self.source}: <button> must declare button/submit/reset type"
+            )
         if tag == "a":
             self._check_link(values)
 

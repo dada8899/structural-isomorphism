@@ -3,10 +3,11 @@ name: sanity tests
 # Repo-level "sanity" check. This workflow is the one required by main-branch
 # protection — it must keep passing on every PR / push to main.
 #
-# Three sequential legs, all gated under the single `sanity` job summary:
+# Four sequential legs, all gated under the single `sanity` job summary:
 #   1. v4 sanity tests (existing, deterministic primitive suite — must stay green).
 #   2. web/backend pytest baseline (781 tests as of 2026-05-24 + any new tests).
-#   3. Per-package unit tests for packages/* (guarded-llm / soc-pipeline / cross-judge).
+#   3. Every offline root product/research/deployment contract under tests/.
+#   4. Per-package unit tests for packages/* (guarded-llm / soc-pipeline / cross-judge).
 #
 # The deeper matrix (Linux + macOS × py3.10–3.13) for packages/* lives in
 # `ci-packages.yml`. This sanity workflow only runs the canonical py3.11 Linux
@@ -44,6 +45,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       # ----------------------------------------------------------------------
       # Shared deps for the v4 sanity leg.
@@ -95,12 +100,16 @@ jobs:
       #
       # Installs the backend's requirements.txt (FastAPI + pydantic + jieba +
       # rank_bm25 + langdetect + structlog + stripe + sentence-transformers +
-      # torch — heavyweight but matches prod). Pinned versions per
+      # torch — heavyweight but matches the intended production release lock).
+      # Pinned versions per
       # requirements.txt; do NOT --upgrade.
       # ----------------------------------------------------------------------
       - name: Install web/backend deps
         run: |
           pip install -r web/backend/requirements.txt
+
+      - name: OpenAPI artifact matches release-target schema runtime
+        run: make PY=python openapi-check
 
       - name: Leg 2 — web/backend pytest baseline
         env:
@@ -114,11 +123,30 @@ jobs:
           # added in 0.1.1+ must also pass here.
           python -m pytest tests -ra -q --tb=short
 
+      - name: Install locked TypeScript generator
+        run: |
+          python -m pip install -r scripts/requirements-types.txt
+          npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/types-generator
+
+      - name: Leg 3 — reproducible API TypeScript artifact
+        run: make PY=python types-check
+
       # ----------------------------------------------------------------------
-      # Leg 3: per-package unit tests (canonical leg — py3.11 Linux).
+      # Leg 3: root release contracts.
+      #
+      # pytest.ini deliberately limits implicit discovery to v4 + E2E. Name
+      # tests/ explicitly after backend dependencies are installed so new
+      # product, evidence, deployment, and type contracts cannot be skipped.
+      # The Make target excludes live-network/LLM/slow/E2E cases fail closed.
+      # ----------------------------------------------------------------------
+      - name: Leg 3 — offline root release contracts
+        run: make PY=python test-release-contracts
+
+      # ----------------------------------------------------------------------
+      # Leg 4: per-package unit tests (canonical leg — py3.11 Linux).
       # Full matrix is in ci-packages.yml.
       # ----------------------------------------------------------------------
-      - name: Leg 3 — packages/soc-pipeline tests
+      - name: Leg 4 — packages/soc-pipeline tests
         working-directory: packages/soc-pipeline
         run: |
           if [ -d tests ]; then
@@ -127,7 +155,7 @@ jobs:
             echo "No tests/ directory in soc-pipeline — skipping."
           fi
 
-      - name: Leg 3 — packages/guarded-llm tests
+      - name: Leg 4 — packages/guarded-llm tests
         working-directory: packages/guarded-llm
         run: |
           if [ -d tests ]; then
@@ -136,7 +164,7 @@ jobs:
             echo "No tests/ directory in guarded-llm — skipping."
           fi
 
-      - name: Leg 3 — packages/cross-judge tests
+      - name: Leg 4 — packages/cross-judge tests
         working-directory: packages/cross-judge
         run: |
           if [ -d tests ]; then
@@ -153,7 +181,8 @@ jobs:
             echo ""
             echo "- Leg 1: v4 sanity tests"
             echo "- Leg 2: web/backend pytest baseline (781+)"
-            echo "- Leg 3: packages/* unit tests (py3.11 · Linux canonical)"
+            echo "- Leg 3: reproducible API TypeScript + every offline root release contract"
+            echo "- Leg 4: packages/* unit tests (py3.11 · Linux canonical)"
             echo ""
             echo "Full matrix for packages/* lives in \`ci-packages.yml\`."
           } >> "$GITHUB_STEP_SUMMARY"

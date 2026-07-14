@@ -9,9 +9,9 @@
 # Usage:
 #     bash scripts/gen_ts_types.sh
 #
-# Prereqs (already present in CI; install locally as needed):
-#     .venv/bin/pip install pydantic-to-typescript
-#     pnpm/npm install -g json-schema-to-typescript   (or use npx)
+# Prereqs (the same pinned set is installed in CI):
+#     .venv/bin/pip install -r scripts/requirements-types.txt
+#     npm ci --prefix scripts/types-generator
 #
 # Exits non-zero if generation fails. The `types-sync` GitHub Action
 # re-runs this script on every PR and `git diff --exit-code` on the
@@ -21,10 +21,15 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-PY="${PY:-${REPO_ROOT}/.venv/bin/python}"
-PYDANTIC2TS="${PYDANTIC2TS:-${REPO_ROOT}/.venv/bin/pydantic2ts}"
-OUT="web/phase-detector/lib/api-types.ts"
-SCHEMAS_FILE="web/backend/schemas.py"
+DEFAULT_TYPES_VENV="${REPO_ROOT}/.venv"
+if [[ -x "${REPO_ROOT}/.venv-openapi/bin/python" ]]; then
+  DEFAULT_TYPES_VENV="${REPO_ROOT}/.venv-openapi"
+fi
+PY="${PY:-${DEFAULT_TYPES_VENV}/bin/python}"
+OUT="${OUT:-web/phase-detector/lib/api-types.ts}"
+TYPE_REQUIREMENTS="scripts/requirements-types.txt"
+TYPE_GENERATOR="scripts/generate_ts_types.py"
+TYPE_TOOL_ROOT="scripts/types-generator"
 
 # Accept either an absolute path (local .venv) or a bare command name on
 # $PATH (CI sets PY=python). The `[[ -x ... ]]` test below only works on
@@ -37,45 +42,56 @@ if [[ "$PY" != /* ]]; then
   fi
   PY="$PY_RESOLVED"
 fi
-if [[ "$PYDANTIC2TS" != /* ]]; then
-  PYDANTIC2TS_RESOLVED="$(command -v "$PYDANTIC2TS" || true)"
-  if [[ -z "$PYDANTIC2TS_RESOLVED" ]]; then
-    echo "[gen_ts_types] pydantic2ts not found on PATH as '$PYDANTIC2TS' — run:" >&2
-    echo "    $PY -m pip install pydantic-to-typescript" >&2
-    exit 2
-  fi
-  PYDANTIC2TS="$PYDANTIC2TS_RESOLVED"
-fi
-
 if [[ ! -x "$PY" ]]; then
   echo "[gen_ts_types] no python at $PY — set PY env var or run 'python -m venv .venv'" >&2
   exit 2
 fi
-if [[ ! -x "$PYDANTIC2TS" ]]; then
-  echo "[gen_ts_types] pydantic2ts not installed in venv — run:" >&2
-  echo "    $PY -m pip install pydantic-to-typescript" >&2
+
+# Pydantic's JSON schema semantics are artifact inputs. Refuse a convenient
+# but unpinned local environment instead of silently rewriting committed TS.
+"$PY" - "$TYPE_REQUIREMENTS" <<'PY'
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+import re
+import sys
+
+requirements = Path(sys.argv[1]).read_text(encoding="utf-8")
+for package in ("pydantic", "pydantic-to-typescript"):
+    match = re.search(
+        rf"^{re.escape(package)}==([^\s#]+)\s*(?:#.*)?$",
+        requirements,
+        re.MULTILINE | re.IGNORECASE,
+    )
+    if match is None:
+        raise SystemExit(f"[gen_ts_types] {package} must be exactly pinned in {sys.argv[1]}")
+    expected = match.group(1)
+    try:
+        actual = version(package)
+    except PackageNotFoundError:
+        actual = "not-installed"
+    if actual != expected:
+        raise SystemExit(
+            f"[gen_ts_types] {package} version mismatch: got {actual}, expected {expected}; "
+            f"install -r {sys.argv[1]}"
+        )
+PY
+
+if [[ -n "${JSON2TS_CMD:-}" || -n "${JSON2TS_PACKAGE_JSON:-}" ]]; then
+  echo "[gen_ts_types] legacy command overrides are forbidden" >&2
+  exit 2
+fi
+if [[ ! -f "${TYPE_TOOL_ROOT}/package-lock.json" \
+   || ! -x "${TYPE_TOOL_ROOT}/node_modules/.bin/json2ts" ]]; then
+  echo "[gen_ts_types] locked json2ts runtime is missing — run:" >&2
+  echo "    npm ci --ignore-scripts --no-audit --no-fund --prefix ${TYPE_TOOL_ROOT}" >&2
   exit 2
 fi
 
-# Locate json2ts. We prefer a globally-installed binary, but the cheap
-# fallback is `npx --yes json-schema-to-typescript`. Either way the path
-# is passed explicitly to pydantic2ts via --json2ts-cmd.
-if command -v json2ts >/dev/null 2>&1; then
-  JSON2TS="$(command -v json2ts)"
-else
-  JSON2TS="npx --yes -p json-schema-to-typescript@15 json2ts"
-fi
-
-echo "[gen_ts_types] schemas: $SCHEMAS_FILE"
+echo "[gen_ts_types] schemas: web/backend/schemas.py"
 echo "[gen_ts_types] output:  $OUT"
-echo "[gen_ts_types] json2ts: $JSON2TS"
+echo "[gen_ts_types] json2ts: locked repository runtime"
 
-# pydantic2ts can ingest a module file directly, sidestepping FastAPI
-# import side effects (env loading, slowapi, DB pools, etc).
-"$PYDANTIC2TS" \
-  --module "$SCHEMAS_FILE" \
-  --output "$OUT" \
-  --json2ts-cmd "$JSON2TS"
+"$PY" "$TYPE_GENERATOR" --output "$OUT"
 
 # Sanity-check: must contain at least 15 TS interface/type declarations.
 COUNT=$(grep -E "^(export )?(interface|type) " "$OUT" | wc -l | tr -d ' ')

@@ -38,6 +38,8 @@ logs/
 !.env.example
 venv/
 .venv/
+.venv-openapi/
+scripts/types-generator/node_modules/
 
 # Jupyter
 .ipynb_checkpoints/
